@@ -1,0 +1,905 @@
+/* Visual stage 1. Imported after globals.css; no data/API logic here. */
+:root {
+  --bg: #060a12;
+  --panel: #0b1020;
+  --muted: #929ab2;
+  --line: rgba(154, 167, 217, .10);
+  --accent: #795cff;
+}
+body {
+  background: radial-gradient(ellipse at 70% 0, #34205c25, transparent 45%), #060a12;
+  -webkit-font-smoothing: antialiased;
+}
+:where(a, button, input):focus-visible { outline: 2px solid #b5a4ff; outline-offset: 4px; }
+.sidebar {
+  width: 208px;
+  padding: 22px 14px;
+  background:
+    linear-gradient(180deg, rgba(8, 12, 22, .94) 0%, rgba(10, 12, 28, .88) 55%, rgba(17, 16, 42, .96) 100%),
+    url('/backgrounds/sidebar-japan.webp') center bottom / cover no-repeat;
+}
+.sidebar__item { border-radius: 9px; min-height: 44px; font-size: 12px; }
+.sidebar__item.is-active { background: linear-gradient(100deg, #7653ff30, #7653ff09); }
+.brand strong { font-size: 16px; letter-spacing: .055em; }
+.sidebar__promo { margin-top: 40px; border-radius: 12px; }
+.topbar { left: 208px; height: 66px; padding: 0 24px; background: #070b15e6; }
+.topbar__search { height: 38px; max-width: 480px; border-radius: 9px; background: #11172b; }
+.topbar__search:focus-within { border-color: #8e78ff88; box-shadow: 0 0 0 3px #8061ff12; }
+.app-shell { margin-left: 208px; padding-top: 66px; }
+.page-content { width: min(1540px, 100%); padding: 20px 24px 48px; }
+.home-grid { grid-template-columns: minmax(0, 1fr) 258px; gap: 22px; }
+.home-grid .main-column { min-width: 0; }
+.home-grid .section { margin-top: 30px; }
+.home-grid .section-head { margin-bottom: 15px; gap: 12px; }
+.home-grid .section-title { font-size: 17px; font-weight: 650; letter-spacing: -.025em; }
+.home-grid .section-link { color: #a08bed; white-space: nowrap; font-size: 11px; }
+.home-grid .anime-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 13px; }
+.home-grid .anime-card { border-radius: 11px; background: #0b1120; box-shadow: none; }
+.home-grid .anime-card:hover { transform: translateY(-4px); border-color: #8f72ff70; box-shadow: 0 14px 35px #0005; }
+.home-grid .anime-card__image-wrap { aspect-ratio: 3 / 4; }
+.home-grid .anime-card__image-wrap > div { width: 100%; height: 100%; }
+.home-grid .anime-card__body { padding: 11px 10px 12px; }
+.home-grid .anime-card__body h3 { font-size: 12px; font-weight: 650; line-height: 1.5; }
+.home-grid .anime-card__meta { font-size: 10px; color: #98a0b8; }
+.home-grid .anime-card__rating { padding: 4px 6px; bottom: 8px; left: 8px; border-radius: 6px; }
+.home-grid .anime-card__tags { overflow: hidden; }
+.home-grid .anime-card__tags span { font-size: 9px; white-space: nowrap; padding: 4px 6px; background: #171d32; }
+.home-grid .page-hero {
+  min-height: 362px; border-radius: 14px; border-color: #8072cf25;
+  background:
+    radial-gradient(ellipse at 90% 20%, rgba(88, 56, 151, .72) 0, rgba(27, 23, 52, .9) 38%, rgba(10, 13, 25, .96) 80%),
+    url('/backgrounds/hero-fallback.webp') center / cover no-repeat;
+  box-shadow: 0 18px 60px #0003;
+}
+.home-grid .page-hero__backdrop { opacity: 1; filter: saturate(1.08); background-position: 65% center; }
+.home-grid .page-hero.no-banner .page-hero__backdrop,
+.home-grid .page-hero--empty .page-hero__backdrop { display: none; }
+.home-grid .page-hero__overlay {
+  background: linear-gradient(90deg, #070b16f5 0%, #070b16d9 28%, #070b1670 57%, #070b160a 100%),
+    linear-gradient(0deg, #080c1899, transparent 65%);
+}
+.home-grid .page-hero__content { max-width: 66%; padding: 32px 32px 64px; }
+.home-grid .page-hero h1 { font-size: clamp(26px, 2.65vw, 42px); line-height: 1.13; letter-spacing: -.045em; text-wrap: balance; }
+.home-grid .page-hero p { color: #c0c3d4; font-size: 12px; line-height: 1.8; margin: 14px 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.home-hero-carousel__kicker { color: #b5a4e9; letter-spacing: .09em; font-size: 9px; }
+.home-grid .page-hero__eyebrow { margin-bottom: 16px; }
+.home-grid .pill { min-height: 23px; font-size: 9px; background: #090e2480; }
+.home-grid .pill--accent { color: #d6caff; border-color: #9974ed66; }
+.home-hero-carousel__facts { margin-bottom: 16px; }
+.home-hero-carousel__facts span { padding: 0; margin-right: 7px; font-size: 9px; background: none; border: none; color: #b7bbce; }
+.home-grid .hero-actions { gap: 9px; }
+.btn--primary, .topbar__register { background: linear-gradient(125deg, #8156ff, #635bff); box-shadow: 0 6px 22px #7650ff30; }
+.home-grid .btn { min-height: 39px; border-radius: 8px; font-size: 11px; }
+.home-hero-carousel__nav { left: 32px; bottom: 18px; }
+.home-hero-carousel__arrow { width: 28px; height: 28px; border-radius: 7px; }
+.home-hero-carousel__dot { width: 18px; height: 18px; border: 6px solid #080c1800; background-clip: padding-box; }
+.home-hero-carousel__dot.is-active { width: 32px; }
+.right-rail { gap: 16px; grid-template-columns: minmax(0, 1fr); }
+.home-grid .panel { border-radius: 12px; background: linear-gradient(135deg, #0d1223, #080e1b); box-shadow: none; }
+.home-grid .panel__head { padding: 17px 15px 12px; font-size: 12px; }
+.home-grid .rank-item { grid-template-columns: 16px 38px minmax(0, 1fr) 12px; gap: 9px; min-height: 63px; padding: 7px 5px; }
+.home-grid .rank-item > div:first-of-type { width: 38px; height: 49px; border-radius: 7px; }
+.home-grid .rank-item > div:last-of-type { min-width: 0; }
+.home-grid .rank-item img { width: 100%; height: 100%; }
+.home-grid .rank-item strong { font-size: 11px; line-height: 1.45; }
+.home-grid .rank-item--upcoming { grid-template-columns: 38px minmax(0, 1fr) 12px; }
+.home-library-panel { position: relative; padding: 22px 18px 18px; overflow: hidden; }
+.home-library-panel__symbol { position: absolute; right: 13px; top: 13px; color: #9f7aff; font-size: 44px; opacity: .5; }
+.home-library-panel__eyebrow { color: #b49beb; font-size: 9px; letter-spacing: .13em; }
+.home-library-panel h2 { font-size: 20px; line-height: 1.3; letter-spacing: -.04em; margin: 15px 0 10px; }
+.home-library-panel p { font-size: 11px; color: #a1a6bd; line-height: 1.7; max-width: 190px; }
+.home-library-panel .btn { width: 100%; justify-content: space-between; margin-top: 15px; }
+.home-grid .schedule__tabs { background: #0c1224; border-radius: 10px; padding: 4px; gap: 4px; }
+.home-grid .schedule__tab { border-radius: 7px; padding: 10px 12px; }
+.home-grid .schedule__cards { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.home-grid .schedule__card { border-radius: 10px; background: #0b1020; padding: 12px; }
+.home-grid .empty-state { min-height: 130px; padding: 22px; background: #0c1120; border-radius: 12px; }
+.home-grid .telegram-panel {
+  background:
+    linear-gradient(90deg, rgba(12, 17, 36, .96), rgba(12, 17, 36, .72)),
+    url('/backgrounds/telegram-promo.webp') right center / auto 100% no-repeat,
+    radial-gradient(ellipse at 20% 0, #4630a647, transparent 70%), #0c1124;
+}
+@media (min-width: 1700px) { .home-grid .page-hero { min-height: 405px; } }
+@media (min-width: 721px) and (max-width: 1200px) {
+  .sidebar { width: 72px; padding: 20px 9px; }
+  .sidebar .brand__link > span:last-child, .sidebar__item span, .sidebar__label, .sidebar__promo, .sidebar__divider, .sidebar__nav--muted { display: none; }
+  .sidebar__item { justify-content: center; padding: 0; }
+  .brand { padding: 0 5px 22px; }
+  .topbar { left: 72px; }
+  .app-shell { margin-left: 72px; }
+  .home-grid { grid-template-columns: minmax(0, 1fr) 230px; gap: 16px; }
+  .home-grid .anime-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; }
+  .home-grid .anime-card__tags { display: none; }
+}
+@media (max-width: 1000px) {
+  .home-grid { grid-template-columns: minmax(0, 1fr); }
+  .right-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home-grid .page-hero h1 { font-size: 36px; }
+}
+@media (max-width: 720px) {
+  .sidebar { width: 100%; padding: 6px 8px; background: #090d1df5; }
+  .sidebar__item { min-height: 44px; font-size: 10px; }
+  .topbar { left: 0; height: 60px; padding: 0 14px; }
+  .app-shell { margin-left: 0; padding-top: 60px; }
+  .page-content { padding: 14px 14px 30px; }
+  .home-grid { gap: 26px; }
+  .home-grid .page-hero { min-height: 365px; border-radius: 12px; }
+  .home-grid .page-hero__content { max-width: 90%; padding: 30px 21px 65px; }
+  .home-grid .page-hero h1 { font-size: clamp(26px, 7.3vw, 36px); }
+  .home-grid .page-hero__overlay { background: linear-gradient(90deg, #080b17e6, #080b1766), linear-gradient(0deg, #080b17e6, transparent); }
+  .home-grid .page-hero__backdrop { background-position: 70% center; }
+  .home-grid .page-hero p { font-size: 12px; }
+  .home-hero-carousel__nav { left: 21px; bottom: 18px; }
+  .home-grid .section-title { font-size: 16px; }
+  .home-grid .section-link { font-size: 10px; }
+  .home-grid .anime-grid, .home-grid .loading-grid {
+    display: grid; grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 145px;
+    overflow-x: auto; gap: 11px; padding-bottom: 12px; scroll-snap-type: x proximity;
+    scrollbar-width: thin; scrollbar-color: #54467c #0b1020;
+  }
+  .home-grid .anime-card { scroll-snap-align: start; }
+  .home-grid .anime-card__body h3 { font-size: 12px; }
+  .home-grid .anime-card__tags { display: flex; }
+  .home-grid .schedule__cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .right-rail { grid-template-columns: minmax(0, 1fr); }
+  .home-grid .rank-item { min-height: 67px; }
+  .home-library-panel p { max-width: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-grid *, .sidebar *, .topbar * { animation: none !important; transition: none !important; }
+}
+
+/* =========================================================
+   AnimeBox mobile polish + about page
+   ========================================================= */
+.mobile-nav,
+.mobile-more,
+.mobile-more__backdrop {
+  display: none;
+}
+
+.about-page {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  padding: 10px 0 40px;
+}
+
+.about-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 42px;
+  border: 1px solid rgba(145, 125, 255, .18);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 88% 18%, rgba(126, 91, 255, .28), transparent 35%),
+    linear-gradient(145deg, rgba(18, 23, 45, .98), rgba(8, 13, 27, .98));
+}
+
+.about-hero__eyebrow {
+  display: inline-flex;
+  color: #b7a7ff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .16em;
+}
+
+.about-hero h1 {
+  max-width: 720px;
+  margin: 14px 0 0;
+  font-size: clamp(34px, 5vw, 62px);
+  line-height: .98;
+  letter-spacing: -.055em;
+}
+
+.about-hero p {
+  max-width: 760px;
+  margin: 20px 0 0;
+  color: #aeb6ca;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.about-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.about-hero__actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.about-card {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid rgba(148, 163, 184, .10);
+  border-radius: 18px;
+  background: linear-gradient(145deg, #0d1728, #09111e);
+}
+
+.about-card > svg {
+  width: 24px;
+  height: 24px;
+  color: #9e8aff;
+}
+
+.about-card h2 {
+  margin: 18px 0 8px;
+  font-size: 16px;
+}
+
+.about-card p {
+  margin: 0;
+  color: #8796ad;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.about-status {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 22px;
+  border: 1px solid rgba(148, 163, 184, .10);
+  border-radius: 18px;
+  background: rgba(11, 20, 35, .72);
+}
+
+.about-status span,
+.about-status strong {
+  display: block;
+}
+
+.about-status span {
+  color: #7789a3;
+  font-size: 10px;
+}
+
+.about-status strong {
+  margin-top: 5px;
+  font-size: 15px;
+}
+
+.about-status p {
+  margin: 0;
+  color: #8f9db2;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+@media (max-width: 980px) {
+  .about-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  body {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+
+  /* Desktop sidebar is replaced with a purpose-built phone nav. */
+  .sidebar {
+    display: none !important;
+  }
+
+  .topbar {
+    left: 0 !important;
+    right: 0;
+    width: 100%;
+    height: 64px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(148, 163, 184, .10);
+    background: rgba(7, 11, 21, .95);
+    backdrop-filter: blur(18px);
+  }
+
+  .topbar__search {
+    width: 100%;
+    max-width: none;
+    height: 44px;
+    border-radius: 12px;
+  }
+
+  .topbar__search input {
+    font-size: 13px;
+  }
+
+  .topbar__actions {
+    display: none;
+  }
+
+  .app-shell {
+    margin-left: 0 !important;
+    padding-top: 64px;
+  }
+
+  .page-content {
+    width: 100%;
+    padding: 16px 14px calc(98px + env(safe-area-inset-bottom));
+  }
+
+  .mobile-nav {
+    position: fixed;
+    z-index: 220;
+    left: 10px;
+    right: 10px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+    min-height: 66px;
+    padding: 6px;
+    border: 1px solid rgba(145, 125, 255, .16);
+    border-radius: 20px;
+    background: rgba(9, 13, 29, .96);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .46);
+    backdrop-filter: blur(22px);
+  }
+
+  .mobile-nav__item {
+    min-width: 0;
+    min-height: 52px;
+    padding: 6px 3px;
+    border: 0;
+    border-radius: 15px;
+    background: transparent;
+    color: #8997ad;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font: inherit;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .mobile-nav__item svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .mobile-nav__item span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 9px;
+    line-height: 1;
+  }
+
+  .mobile-nav__item.is-active {
+    color: #fff;
+    background: linear-gradient(145deg, rgba(111, 80, 255, .28), rgba(111, 80, 255, .10));
+    box-shadow: inset 0 0 0 1px rgba(139, 116, 255, .15);
+  }
+
+  .mobile-more__backdrop {
+    position: fixed;
+    z-index: 225;
+    inset: 0;
+    display: block;
+    border: 0;
+    background: rgba(1, 4, 11, .64);
+    backdrop-filter: blur(5px);
+  }
+
+  .mobile-more {
+    position: fixed;
+    z-index: 230;
+    left: 12px;
+    right: 12px;
+    bottom: calc(82px + env(safe-area-inset-bottom));
+    display: block;
+    padding: 10px 12px 14px;
+    border: 1px solid rgba(151, 132, 255, .18);
+    border-radius: 22px;
+    background: linear-gradient(180deg, rgba(17, 22, 42, .99), rgba(9, 14, 28, .99));
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .52);
+  }
+
+  .mobile-more__handle {
+    width: 42px;
+    height: 4px;
+    margin: 0 auto 8px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, .16);
+  }
+
+  .mobile-more__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 4px 10px;
+  }
+
+  .mobile-more__head strong {
+    font-size: 13px;
+  }
+
+  .mobile-more__head button {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .05);
+    color: #d9def0;
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  .mobile-more__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .mobile-more__item {
+    min-width: 0;
+    min-height: 58px;
+    padding: 10px 12px;
+    border: 1px solid rgba(148, 163, 184, .10);
+    border-radius: 14px;
+    background: rgba(11, 22, 38, .78);
+    color: #c9d1e1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    text-decoration: none;
+  }
+
+  .mobile-more__item svg {
+    width: 20px;
+    height: 20px;
+    color: #9d89ff;
+    flex: 0 0 auto;
+  }
+
+  /* Home */
+  .home-grid {
+    gap: 20px;
+  }
+
+  .home-grid .page-hero {
+    min-height: 430px;
+    border-radius: 18px;
+  }
+
+  .home-grid .page-hero__content {
+    max-width: 100%;
+    padding: 28px 22px 76px;
+  }
+
+  .home-grid .page-hero h1 {
+    max-width: 92%;
+    font-size: clamp(30px, 9vw, 42px);
+    line-height: 1.06;
+  }
+
+  .home-grid .page-hero p {
+    max-width: 92%;
+    font-size: 12px;
+    line-height: 1.65;
+  }
+
+  .home-grid .anime-grid,
+  .home-grid .loading-grid {
+    grid-auto-columns: min(42vw, 168px);
+  }
+
+  /* Catalog */
+  .search-page .anime-grid,
+  .tracker-page .anime-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .search-page .anime-card__body h3,
+  .tracker-page .anime-card__body h3 {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  /* Schedule: one readable card per row; tabs scroll instead of squeezing. */
+  .schedule__tabs {
+    display: flex;
+    gap: 8px;
+    width: calc(100% + 14px);
+    margin-right: -14px;
+    padding: 3px 14px 6px 0;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .schedule__tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .schedule__tab {
+    flex: 0 0 auto;
+    min-width: 108px;
+    scroll-snap-align: start;
+    white-space: nowrap;
+  }
+
+  .search-page .schedule__cards,
+  .home-grid .schedule__cards {
+    grid-template-columns: 1fr !important;
+  }
+
+  .search-page .schedule__card {
+    grid-template-columns: 58px minmax(0, 1fr) auto;
+    gap: 12px;
+    min-height: 86px;
+    padding: 10px;
+  }
+
+  .search-page .schedule__card .anime-schedule-image {
+    width: 58px;
+    height: 76px;
+  }
+
+  /* Anime detail: poster should not fill an entire phone screen. */
+  .anime-detail-hero {
+    padding: 26px 2px 24px !important;
+  }
+
+  .anime-detail-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+
+  .anime-detail-poster {
+    width: min(42vw, 168px);
+    margin: 0 auto;
+    border-radius: 16px !important;
+  }
+
+  .anime-detail-content {
+    width: 100%;
+  }
+
+  .anime-detail-content h1 {
+    font-size: clamp(28px, 8vw, 38px) !important;
+    line-height: 1.06;
+  }
+
+  .anime-detail-content > p {
+    font-size: 13px !important;
+    line-height: 1.7 !important;
+  }
+
+  .anime-detail-content .detail__section {
+    margin-top: 24px !important;
+  }
+
+  /* Episode page and player */
+  .episode-page {
+    min-width: 0;
+  }
+
+  .player {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .player__header {
+    padding: 12px;
+  }
+
+  .player__title {
+    max-width: 70vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .player__frame {
+    border-radius: 14px !important;
+  }
+
+  .player__controls {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .player__hint {
+    max-width: 30vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .player__nav-btn {
+    min-width: 0;
+    padding-inline: 10px;
+    font-size: 10px;
+  }
+
+  .episode-page__info {
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .episode-page__poster-shell {
+    width: 76px;
+  }
+
+  .detail__episodes .episode-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* About */
+  .about-page {
+    padding: 0 0 14px;
+  }
+
+  .about-hero {
+    padding: 28px 20px;
+    border-radius: 20px;
+  }
+
+  .about-hero h1 {
+    font-size: 38px;
+  }
+
+  .about-hero p {
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  .about-hero__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .about-hero__actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .about-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .about-card {
+    padding: 18px;
+  }
+
+  .about-status {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 18px;
+  }
+}
+
+@media (max-width: 380px) {
+  .mobile-nav {
+    left: 6px;
+    right: 6px;
+  }
+
+  .mobile-nav__item span {
+    font-size: 8px;
+  }
+
+  .home-grid .page-hero {
+    min-height: 400px;
+  }
+
+  .search-page .anime-grid,
+  .tracker-page .anime-grid {
+    gap: 8px;
+  }
+
+  .detail__episodes .episode-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+/* Anime detail desktop composition: episodes span the whole hero width. */
+.anime-detail-episodes {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .anime-detail-episodes {
+    margin-top: 34px !important;
+  }
+}
+
+
+/* =========================================================
+   AnimeBox mobile polish v2
+   Home readability, schedule density, safe bottom nav, support CTA
+   ========================================================= */
+@media (max-width: 720px) {
+  body {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+
+  .page-content {
+    padding-bottom: calc(108px + env(safe-area-inset-bottom));
+  }
+
+  /* Hero is a phone card, not a compressed desktop billboard. */
+  .home-grid .page-hero {
+    min-height: 392px;
+    border-radius: 20px;
+  }
+
+  .home-grid .page-hero__content {
+    max-width: 100%;
+    padding: 24px 18px 76px;
+  }
+
+  .home-grid .page-hero h1 {
+    max-width: 100%;
+    margin-top: 0;
+    padding-bottom: 8px;
+    font-size: clamp(28px, 8.2vw, 36px);
+    line-height: 1.04;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+
+  .home-grid .page-hero p {
+    max-width: 100%;
+    margin: 10px 0 14px;
+    font-size: 12px;
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+
+  .home-hero-carousel__facts {
+    margin-bottom: 12px;
+    gap: 7px;
+    overflow: hidden;
+  }
+
+  .home-hero-carousel__facts span:nth-child(n + 5) {
+    display: none;
+  }
+
+  .home-grid .hero-actions {
+    gap: 8px;
+  }
+
+  .home-grid .hero-actions .btn {
+    min-height: 42px;
+    padding-inline: 14px;
+  }
+
+  .home-hero-carousel__nav {
+    left: 18px;
+    right: 18px;
+    bottom: 14px;
+  }
+
+  /* Make the horizontal anime row obviously swipeable. */
+  .home-grid .anime-grid,
+  .home-grid .loading-grid {
+    grid-auto-columns: min(43vw, 164px);
+    gap: 12px;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-inline: contain;
+  }
+
+  .home-grid .anime-card {
+    scroll-snap-align: start;
+  }
+
+  /* Schedule: one readable row instead of two squeezed columns. */
+  .home-grid .schedule__cards {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  .home-grid .schedule__card {
+    grid-template-columns: 58px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 84px;
+    padding: 10px 12px;
+    border-radius: 16px;
+  }
+
+  .home-grid .schedule__card .anime-schedule-image {
+    width: 58px;
+    height: 68px;
+    border-radius: 12px;
+    object-fit: cover;
+  }
+
+  .home-grid .schedule__card strong {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .home-grid .schedule__card span {
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .home-grid .schedule__time {
+    max-width: 92px;
+    text-align: right;
+    white-space: normal;
+    font-size: 10px !important;
+  }
+
+  /* Bottom nav stays compact and never sits directly on content. */
+  .mobile-nav {
+    left: 12px;
+    right: 12px;
+    min-height: 64px;
+    padding: 5px;
+    border-radius: 18px;
+  }
+
+  .mobile-nav__item {
+    min-height: 50px;
+    border-radius: 14px;
+    gap: 4px;
+  }
+
+  .mobile-nav__item svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .mobile-more__item--support {
+    border-color: rgba(151, 113, 255, .26);
+    background: linear-gradient(135deg, rgba(113, 77, 255, .18), rgba(80, 56, 180, .10));
+  }
+}
+
+@media (max-width: 380px) {
+  .home-grid .page-hero {
+    min-height: 374px;
+  }
+
+  .home-grid .page-hero h1 {
+    font-size: clamp(27px, 8.5vw, 33px);
+  }
+
+  .home-grid .schedule__card {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .home-grid .schedule__card .anime-schedule-image {
+    width: 52px;
+    height: 64px;
+  }
+
+  .home-grid .schedule__time {
+    grid-column: 2;
+    justify-self: start;
+    max-width: none;
+    text-align: left;
+  }
+}
