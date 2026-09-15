@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { resolveAnimeRoute } from '@/lib/anime-route';
 import { animeHref } from '@/lib/anime-url';
 import { notFound, permanentRedirect } from 'next/navigation';
@@ -253,7 +254,73 @@ export default async function AnimePage({ params }: PageProps) {
   </main>
 );
 }
-export async function generateMetadata({ params }: PageProps) {
-  const anime = await resolveAnimeRoute((await params).slug);
-  return { title: anime ? `${anime.title.russian || anime.title.romaji || anime.title.english} — AnimeBox` : 'Аниме не найдено' };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const anime = await resolveAnimeRoute(slug);
+
+  if (!anime) {
+    return {
+      title: 'Аниме не найдено',
+      description: 'Запрошенное аниме не найдено на AnimeBox.',
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
+  const title =
+    anime.title.russian ||
+    anime.title.romaji ||
+    anime.title.english ||
+    anime.title.native ||
+    'Аниме';
+
+  const cleanedDescription = anime.description
+    ? cleanShikimoriDescription(anime.description).replace(/\s+/g, ' ').trim()
+    : '';
+
+  const description = cleanedDescription
+    ? cleanedDescription.slice(0, 155)
+    : `Смотреть и отслеживать «${title}» на AnimeBox: информация о тайтле, серии, статус просмотра и связанные сезоны.`;
+
+  const canonical = animeHref(anime);
+  const previewImage =
+    anime.bannerImage ||
+    anime.coverImage?.extraLarge ||
+    anime.coverImage?.large ||
+    '/backgrounds/hero-fallback.webp';
+
+  return {
+    title: `${title} — смотреть и отслеживать`,
+    description,
+    alternates: {
+      canonical,
+    },
+    openGraph: {
+      type: 'article',
+      locale: 'ru_RU',
+      url: canonical,
+      siteName: 'AnimeBox',
+      title: `${title} — AnimeBox`,
+      description,
+      images: [
+        {
+          url: previewImage,
+          alt: title,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${title} — AnimeBox`,
+      description,
+      images: [previewImage],
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
 }
