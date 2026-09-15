@@ -132,6 +132,39 @@ function formatUpcomingDate(airingAt: number): string {
   return `${prefix} · ${formatScheduleTime(airingAt)}`;
 }
 
+function EpisodeCountdown({ airingAt }: { airingAt: number }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const remaining = Math.max(0, airingAt * 1000 - now);
+
+  if (remaining <= 0) {
+    return <span className="episode-countdown is-live">Уже вышла</span>;
+  }
+
+  const totalSeconds = Math.floor(remaining / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const value =
+    days > 0
+      ? `${days}д ${String(hours).padStart(2, '0')}ч`
+      : `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+  return (
+    <span className="episode-countdown" aria-label={`До выхода серии ${value}`}>
+      <span className="episode-countdown__dot" aria-hidden="true" />
+      {value}
+    </span>
+  );
+}
+
 export default function HomePage() {
   const [popular, setPopular] = useState<Anime[]>([]);
   const [ongoing, setOngoing] = useState<Anime[]>([]);
@@ -381,7 +414,9 @@ export default function HomePage() {
         <section className="section">
           <div className="section-head">
             <h2 className="section-title">
-              <span className="section-title__icon">🔥</span>{' '}
+              <span className="section-title__icon section-title__icon--asset" aria-hidden="true">
+                <img src="/brand/icons/sections/popular.svg" alt="" />
+              </span>
               Популярные аниме
             </h2>
 
@@ -413,7 +448,9 @@ export default function HomePage() {
         <section className="section">
           <div className="section-head">
             <h2 className="section-title">
-              <span className="section-title__icon">🎬</span>{' '}
+              <span className="section-title__icon section-title__icon--asset" aria-hidden="true">
+                <img src="/brand/icons/sections/ongoing.svg" alt="" />
+              </span>
               Продолжающиеся
             </h2>
 
@@ -445,7 +482,9 @@ export default function HomePage() {
         <section className="section">
           <div className="section-head">
             <h2 className="section-title">
-              <span className="section-title__icon">✦</span>{' '}
+              <span className="section-title__icon section-title__icon--asset" aria-hidden="true">
+                <img src="/brand/icons/sections/recommendations.svg" alt="" />
+              </span>
               Рекомендации для тебя
             </h2>
 
@@ -481,7 +520,9 @@ export default function HomePage() {
         <section className="section schedule">
           <div className="section-head">
             <h2 className="section-title">
-              <span className="section-title__icon">▣</span>{' '}
+              <span className="section-title__icon section-title__icon--ui" aria-hidden="true">
+                <Icon name="calendar" />
+              </span>
               Расписание выхода серий
             </h2>
 
@@ -566,8 +607,8 @@ export default function HomePage() {
 
       <aside className="right-rail">
         <div className="panel home-library-panel">
-          <span className="home-library-panel__symbol" aria-hidden="true">
-            ✦
+          <span className="home-library-panel__symbol home-library-panel__symbol--brand" aria-hidden="true">
+            <img src="/brand/brand-mark.png" alt="" />
           </span>
           <span className="home-library-panel__eyebrow">ТВОЯ КОЛЛЕКЦИЯ</span>
           <h2>
@@ -579,15 +620,25 @@ export default function HomePage() {
           <Link className="btn btn--primary" href="/list">
             Открыть трекер <span aria-hidden="true">↗</span>
           </Link>
+
+          <img
+            className="home-library-panel__mascot"
+            src="/brand/animebox-mascot.png"
+            alt=""
+            aria-hidden="true"
+          />
         </div>
 
         <div className="panel">
-          <div className="panel__head">
-            <span>♛ Топ аниме</span>
+          <div className="panel__head panel__head--branded">
+            <span className="panel__title-with-icon">
+              <img src="/brand/brand-mark.png" alt="" aria-hidden="true" />
+              Топ аниме
+            </span>
             <span className="section-link">Сегодня</span>
           </div>
 
-          <div className="panel__body rank-list">
+          <div className="panel__body rank-list rank-list--premium">
             {popular.slice(0, 5).map((anime, index) => {
               const title = getAnimeTitle(anime);
 
@@ -595,9 +646,20 @@ export default function HomePage() {
                 <Link
                   href={animeHref(anime)}
                   key={anime.id}
-                  className="rank-item"
+                  className={`rank-item ${index < 3 ? 'rank-item--spotlight' : ''}`}
                 >
-                  <span className="rank-item__num">{index + 1}</span>
+                  {index < 3 ? (
+                    <span className="rank-item__badge" aria-hidden="true">
+                      <img
+                        src={`/ui/animebox-rank-${index + 1}.webp`}
+                        alt=""
+                      />
+                    </span>
+                  ) : (
+                    <span className="rank-item__num">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                  )}
 
                   <AnimeImage
                     image={anime.coverImage}
@@ -648,6 +710,7 @@ export default function HomePage() {
                       <span>
                         Эпизод {item.episode} · {formatUpcomingDate(item.airingAt)}
                       </span>
+                      <EpisodeCountdown airingAt={item.airingAt} />
                     </div>
 
                     <span className="rank-item__score">→</span>
@@ -662,22 +725,30 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="panel telegram-panel">
-          <div className="telegram-panel__icon">
-            <Icon name="telegram" />
+        <div className="panel telegram-panel telegram-panel--brand">
+          <img
+            className="telegram-panel__art"
+            src="/brand/telegram-cta.png"
+            alt=""
+            aria-hidden="true"
+          />
+
+          <div className="telegram-panel__content">
+            <span className="telegram-panel__eyebrow">ANIMEBOX × TELEGRAM</span>
+
+            <strong>
+              Новые серии — прямо в Telegram
+            </strong>
+
+            <span>
+              Следи за любимыми тайтлами и получай уведомления без лишнего шума.
+            </span>
+
+            <a href="https://t.me/yourAnimeBox" target="_blank" rel="noreferrer">
+              <Icon name="telegram" />
+              Открыть Mini App
+            </a>
           </div>
-
-          <strong>
-            Переходи в Telegram
-            <br />
-            и получай уведомления
-          </strong>
-
-          <span>Не пропускай новые серии любимых тайтлов.</span>
-
-          <a href="https://t.me/yourAnimeBox" target="_blank" rel="noreferrer">
-            Открыть Mini App
-          </a>
         </div>
       </aside>
     </div>

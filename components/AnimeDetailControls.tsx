@@ -1,4 +1,5 @@
 'use client';
+import { communityRequest } from '@/lib/community-client';
 
 import { animeHref } from '@/lib/anime-url';
 
@@ -154,13 +155,13 @@ export default function AnimeDetailControls({
     availableEpisodes
       ? Math.min(
           Math.max(
-            progress + 1,
+            progress,
             1,
           ),
           availableEpisodes,
         )
       : Math.max(
-          progress + 1,
+          progress,
           1,
         );
 
@@ -180,9 +181,18 @@ export default function AnimeDetailControls({
     );
   };
 
-  const handleAddToTracker = () => {
-    addAnimeToList(item);
-    setSaved(true);
+  const [trackerMessage, setTrackerMessage] = useState('');
+  const [trackerBusy, setTrackerBusy] = useState(false);
+  const handleAddToTracker = async () => {
+    if (trackerBusy) return;
+    setTrackerBusy(true); setTrackerMessage('');
+    try {
+      await communityRequest('library', { animeId: anime.id, status: 'planned' });
+      addAnimeToList(item); setSaved(true);
+      window.dispatchEvent(new Event('library-updated'));
+      setTrackerMessage('Добавлено в планы аккаунта.');
+    } catch (error) { setTrackerMessage((error as Error).message); }
+    finally { setTrackerBusy(false); }
   };
 
   const handleWatch = () => {
@@ -196,6 +206,7 @@ export default function AnimeDetailControls({
 
   return (
     <>
+      {trackerMessage && <p role="status">{trackerMessage}</p>}
       <div className="mt-7 flex flex-wrap gap-3">
         <button
           type="button"
@@ -231,7 +242,7 @@ export default function AnimeDetailControls({
               handleAddToTracker
             }
           >
-            ＋ В трекер
+            {trackerBusy ? 'Сохраняем…' : '＋ В трекер'}
           </button>
         )}
 
@@ -273,6 +284,7 @@ export default function AnimeDetailControls({
           </div>
 
           <EpisodeList
+          trackingAnimeId={anime.id}
             animeId={anime.slug || anime.id}
             episodes={anime.episodes}
             episodesAired={
@@ -348,6 +360,7 @@ export function AnimeDetailEpisodes({
       </div>
 
       <EpisodeList
+          trackingAnimeId={anime.id}
         animeId={anime.slug || anime.id}
         episodes={anime.episodes}
         episodesAired={

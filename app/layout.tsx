@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import './visual-refresh.css';
+import './community.css';
+import './design-v5.css';
 import Navbar from '@/components/Navbar';
 
 const SITE_URL = 'https://youranimebox.com';

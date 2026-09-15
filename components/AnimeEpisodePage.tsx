@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-
+import EpisodeComments from '@/components/EpisodeComments';
 import type { Anime } from '@/types/anime';
 import {
   addAnimeToList,
@@ -14,6 +14,7 @@ import {
 import { cleanShikimoriDescription } from '@/lib/shikimori-text';
 import { getAnimeTitle } from '@/lib/anime-display';
 
+import EpisodeCompletion from '@/components/EpisodeCompletion';
 import AnimePlayer, { PlayerSource } from '@/components/AnimePlayer';
 import AnimeImage from '@/components/AnimeImage';
 import EpisodeList from '@/components/EpisodeList';
@@ -223,6 +224,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
         </div>
       ) : (
         <AnimePlayer
+          animeId={anime.id}
           key={expectedSourceIdentity}
           title={title}
           episodeNumber={episodeNumber}
@@ -243,6 +245,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
         </div>
       )}
 
+      <EpisodeCompletion key={`${anime.id}:${episodeNumber}`} animeId={anime.id} episode={episodeNumber} />
       <section className="detail__section episode-page__body">
         <div className="episode-page__info">
           <div className="episode-page__poster-shell">
@@ -278,6 +281,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
         </div>
 
         <EpisodeList
+          trackingAnimeId={anime.id}
           animeId={animeIdParam}
           episodes={availableEpisodes}
           episodesAired={anime.episodesAired}
@@ -286,6 +290,12 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
           watchedUpTo={watchedUpTo}
         />
       </section>
+      <EpisodeComments
+  animeId={anime.id}
+  episode={episodeNumber}
+/>
     </div>
+    
   );
 }
+

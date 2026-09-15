@@ -9,6 +9,7 @@ import {
 } from 'react';
 
 import Link from 'next/link';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 
 import type { Anime } from '@/types/anime';
 
@@ -87,6 +88,33 @@ function isValidAnime(
   );
 }
 
+const AMBIENT_FALLBACKS = [
+  [112, 84, 255],
+  [55, 118, 255],
+  [180, 63, 126],
+  [33, 156, 181],
+  [193, 92, 67],
+  [94, 72, 190],
+] as const;
+
+function getAmbientRgb(anime: Anime): readonly [number, number, number] {
+  const color = anime.coverImage?.color || anime.image?.color;
+
+  if (typeof color === 'string') {
+    const hex = color.trim().replace('#', '');
+
+    if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+      return [
+        Number.parseInt(hex.slice(0, 2), 16),
+        Number.parseInt(hex.slice(2, 4), 16),
+        Number.parseInt(hex.slice(4, 6), 16),
+      ];
+    }
+  }
+
+  return AMBIENT_FALLBACKS[Math.abs(anime.id) % AMBIENT_FALLBACKS.length];
+}
+
 export default function HomeHeroCarousel({
   popular,
   ongoing,
@@ -143,6 +171,20 @@ export default function HomeHeroCarousel({
     slides[activeIndex] ??
     slides[0] ??
     null;
+
+
+  useEffect(() => {
+    if (!anime) return;
+
+    const [r, g, b] = getAmbientRgb(anime);
+    const root = document.documentElement;
+
+    root.style.setProperty('--anime-ambient-rgb', `${r}, ${g}, ${b}`);
+
+    return () => {
+      root.style.removeProperty('--anime-ambient-rgb');
+    };
+  }, [anime]);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -292,6 +334,24 @@ export default function HomeHeroCarousel({
       ? anime.genres
       : [];
 
+  const [ambientR, ambientG, ambientB] = getAmbientRgb(anime);
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType === 'touch') return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width - 0.5;
+    const y = (event.clientY - rect.top) / rect.height - 0.5;
+
+    event.currentTarget.style.setProperty('--hero-parallax-x', `${x * -10}px`);
+    event.currentTarget.style.setProperty('--hero-parallax-y', `${y * -7}px`);
+  };
+
+  const resetParallax = (element: HTMLElement) => {
+    element.style.setProperty('--hero-parallax-x', '0px');
+    element.style.setProperty('--hero-parallax-y', '0px');
+  };
+
   return (
     <section
       className={`page-hero home-hero-carousel ${bannerImage ? 'has-banner' : 'no-banner'}`}
@@ -299,6 +359,14 @@ export default function HomeHeroCarousel({
       onMouseEnter={() =>
         setPaused(true)
       }
+      style={{
+        ['--hero-ambient-rgb' as string]: `${ambientR}, ${ambientG}, ${ambientB}`,
+      }}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={(event) => {
+        resetParallax(event.currentTarget);
+        setPaused(false);
+      }}
       onMouseLeave={() =>
         setPaused(false)
       }

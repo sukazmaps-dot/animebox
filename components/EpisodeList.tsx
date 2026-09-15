@@ -1,5 +1,6 @@
 'use client';
 
+import { communityRequest } from '@/lib/community-client';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -10,6 +11,7 @@ import {
 
 interface EpisodeListProps {
   animeId: string | number;
+  trackingAnimeId: number;
   episodes?: number | null;
   episodesAired?: number | null;
   totalEpisodesKnown?: boolean;
@@ -19,12 +21,23 @@ interface EpisodeListProps {
 
 export default function EpisodeList({
   animeId,
+  trackingAnimeId,
   episodes,
   episodesAired,
   totalEpisodesKnown = true,
   currentEpisode,
   watchedUpTo = 0,
 }: EpisodeListProps) {
+  const [completedEpisodes, setCompletedEpisodes] = useState<number[]>([]);
+  useEffect(() => {
+    let active = true;
+    const refresh = () => communityRequest<{ episodes: number[] }>(`episodes?animeId=${trackingAnimeId}`)
+      .then(data => { if (active) setCompletedEpisodes(data.episodes); })
+      .catch(() => { if (active) setCompletedEpisodes([]); });
+    void refresh();
+    window.addEventListener('episode-completed', refresh);
+    return () => { active = false; window.removeEventListener('episode-completed', refresh); };
+  }, [trackingAnimeId]);
   const count =
     episodes && episodes > 0
       ? episodes
@@ -140,7 +153,7 @@ export default function EpisodeList({
       <div className="episode-list">
         {visibleEpisodes.map((number) => {
           const isCurrent = number === currentEpisode;
-          const isWatched = !isCurrent && number <= watchedUpTo;
+          const isWatched = !isCurrent && completedEpisodes.includes(number);
 
           const className = [
             'episode-list__item',

@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 import { createClient } from '@/lib/supabase/client';
+import { readProfileCache, saveProfileCache } from '@/lib/profile-cache';
+import CommunityProfile from '@/components/CommunityProfile';
 import ProfileEditModal from '@/components/ProfileEditModal';
 
 type Profile = {
@@ -16,17 +18,11 @@ type Profile = {
   created_at: string;
 };
 
-type TrackerItem = {
-  status: 'watching' | 'planned' | 'completed' | 'dropped';
-  current_episode: number;
-};
-
 export default function ProfilePage() {
   const router = useRouter();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [email, setEmail] = useState('');
-  const [tracker, setTracker] = useState<TrackerItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editOpen, setEditOpen] = useState(false);
@@ -46,6 +42,13 @@ export default function ProfilePage() {
       }
 
       setEmail(user.email ?? '');
+
+      const cachedProfile = readProfileCache<Profile>(user.id);
+      if (cachedProfile?.username?.trim()) {
+        setProfile(cachedProfile);
+        setLoading(false);
+        return;
+      }
 
       const { data: profileData, error: profileError } =
         await supabase
@@ -68,49 +71,13 @@ export default function ProfilePage() {
         return;
       }
 
-      const { data: trackerData, error: trackerError } =
-        await supabase
-          .from('user_anime')
-          .select('status, current_episode')
-          .eq('user_id', user.id);
-
-      if (trackerError) {
-        console.error(trackerError);
-      }
-
       setProfile(profileData);
-      setTracker((trackerData as TrackerItem[]) ?? []);
+      saveProfileCache(user.id, profileData);
       setLoading(false);
     }
 
     loadProfile();
   }, [router]);
-
-  const stats = useMemo(() => {
-    const watching = tracker.filter(
-      (item) => item.status === 'watching',
-    ).length;
-
-    const planned = tracker.filter(
-      (item) => item.status === 'planned',
-    ).length;
-
-    const completed = tracker.filter(
-      (item) => item.status === 'completed',
-    ).length;
-
-    const episodes = tracker.reduce(
-      (sum, item) => sum + item.current_episode,
-      0,
-    );
-
-    return {
-      watching,
-      planned,
-      completed,
-      episodes,
-    };
-  }, [tracker]);
 
   if (loading) {
     return (
@@ -169,7 +136,12 @@ export default function ProfilePage() {
               className="profile-v2__banner-image"
             />
           ) : (
-            <div className="profile-v2__banner-default" />
+            <img
+              src="/brand/profile-banner-default.webp"
+              alt=""
+              className="profile-v2__banner-image profile-v2__banner-image--default"
+              aria-hidden="true"
+            />
           )}
 
           <div className="profile-v2__banner-shade" />
@@ -222,129 +194,7 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      {/* STATS */}
-
-      <section className="profile-v2__stats">
-        <div className="profile-v2__stat">
-          <strong>{stats.watching}</strong>
-          <span>Смотрю</span>
-        </div>
-
-        <div className="profile-v2__stat">
-          <strong>{stats.completed}</strong>
-          <span>Просмотрено</span>
-        </div>
-
-        <div className="profile-v2__stat">
-          <strong>{stats.planned}</strong>
-          <span>В планах</span>
-        </div>
-
-        <div className="profile-v2__stat">
-          <strong>{stats.episodes}</strong>
-          <span>Серий</span>
-        </div>
-      </section>
-
-      {/* CONTENT */}
-
-      <section className="profile-v2__content">
-        <div className="profile-v2__library">
-          <div className="profile-v2__section-head">
-            <div>
-              <span className="profile-v2__eyebrow">
-                Библиотека
-              </span>
-
-              <h2>Мои аниме</h2>
-            </div>
-
-            <Link href="/list">
-              Открыть трекер →
-            </Link>
-          </div>
-
-          <div className="profile-v2__library-empty">
-            <div className="profile-v2__library-icon">
-              ◎
-            </div>
-
-            <strong>
-              Здесь появится твоя библиотека
-            </strong>
-
-            <p>
-              Начни добавлять аниме в «Смотрю»,
-              «В планах» или «Просмотрено».
-            </p>
-
-            <Link href="/search">
-              Найти аниме
-            </Link>
-          </div>
-        </div>
-
-        <aside className="profile-v2__achievements">
-          <div className="profile-v2__section-head">
-            <div>
-              <span className="profile-v2__eyebrow">
-                Прогресс
-              </span>
-
-              <h2>Достижения</h2>
-            </div>
-          </div>
-
-          <div className="profile-v2__achievement-list">
-            <div className="profile-v2__achievement is-unlocked">
-              <div>✦</div>
-
-              <span>
-                <strong>
-                  Добро пожаловать
-                </strong>
-
-                <small>
-                  Создан аккаунт AnimeBox
-                </small>
-              </span>
-            </div>
-
-            <div className="profile-v2__achievement">
-              <div>◇</div>
-
-              <span>
-                <strong>
-                  Первый шаг
-                </strong>
-
-                <small>
-                  Добавь первое аниме
-                </small>
-              </span>
-            </div>
-
-            <div className="profile-v2__achievement">
-              <div>◇</div>
-
-              <span>
-                <strong>
-                  Марафонец
-                </strong>
-
-                <small>
-                  Посмотри 100 серий
-                </small>
-              </span>
-            </div>
-          </div>
-
-          <div className="profile-v2__achievement-note">
-            Полная система достижений появится вместе
-            с прогрессом просмотра.
-          </div>
-        </aside>
-      </section>
+      <CommunityProfile />
 
       {/* FAVORITES */}
 
@@ -377,19 +227,20 @@ export default function ProfilePage() {
         bannerPath={profile.banner_path}
         onClose={() => setEditOpen(false)}
         onSaved={(data) => {
-          setProfile((current) =>
-            current
-              ? {
-                  ...current,
-                  username: data.username,
-                  bio: data.bio,
-                  avatar_path:
-                    data.avatar_path,
-                  banner_path:
-                    data.banner_path,
-                }
-              : current,
-          );
+          setProfile((current) => {
+            if (!current) return current;
+
+            const nextProfile = {
+              ...current,
+              username: data.username,
+              bio: data.bio,
+              avatar_path: data.avatar_path,
+              banner_path: data.banner_path,
+            };
+
+            saveProfileCache(current.id, nextProfile);
+            return nextProfile;
+          });
         }}
       />
     </main>

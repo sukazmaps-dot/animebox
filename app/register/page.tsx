@@ -1,162 +1,130 @@
 'use client';
 
-import {
-  FormEvent,
-  useState,
-} from 'react';
-import GoogleAuthButton from '@/components/GoogleAuthButton';
-
+import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 
+import GoogleAuthButton from '@/components/GoogleAuthButton';
 import { createClient } from '@/lib/supabase/client';
 
+function isDuplicateEmailError(code?: string, message?: string) {
+  const duplicateCodes = new Set(['user_already_exists', 'email_exists']);
+
+  if (code && duplicateCodes.has(code)) {
+    return true;
+  }
+
+  return /already registered|already exists|already been registered/i.test(
+    message ?? '',
+  );
+}
+
 export default function RegisterPage() {
-  const [username, setUsername] =
-    useState('');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const [email, setEmail] =
-    useState('');
-
-  const [password, setPassword] =
-    useState('');
-
-  const [confirmPassword, setConfirmPassword] =
-    useState('');
-
-  const [showPassword, setShowPassword] =
-    useState(false);
-
-  const [message, setMessage] =
-    useState('');
-
-  const [error, setError] =
-    useState('');
-
-  const [loading, setLoading] =
-    useState(false);
-
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     setMessage('');
     setError('');
 
-    const cleanUsername =
-      username.trim();
+    const cleanUsername = username.trim();
+    const cleanEmail = email.trim().toLowerCase();
 
-    if (
-      cleanUsername.length < 3 ||
-      cleanUsername.length > 24
-    ) {
-      setError(
-        'Ник должен содержать от 3 до 24 символов.',
-      );
-
+    if (cleanUsername.length < 3 || cleanUsername.length > 24) {
+      setError('Ник должен содержать от 3 до 24 символов.');
       return;
     }
 
     if (password.length < 6) {
-      setError(
-        'Пароль должен содержать минимум 6 символов.',
-      );
-
+      setError('Пароль должен содержать минимум 6 символов.');
       return;
     }
 
     if (password !== confirmPassword) {
-      setError(
-        'Пароли не совпадают.',
-      );
-
+      setError('Пароли не совпадают.');
       return;
     }
 
     setLoading(true);
 
     const supabase = createClient();
-
-    const { error: signupError } =
-      await supabase.auth.signUp({
-        email,
-        password,
-
-        options: {
-          data: {
-            username:
-              cleanUsername,
-          },
+    const { data, error: signupError } = await supabase.auth.signUp({
+      email: cleanEmail,
+      password,
+      options: {
+        data: {
+          username: cleanUsername,
         },
-      });
+      },
+    });
 
     if (signupError) {
-      if (
-        signupError.message
-          .toLowerCase()
-          .includes('already')
-      ) {
-        setError(
-          'Аккаунт с таким email уже существует.',
-        );
+      if (isDuplicateEmailError(signupError.code, signupError.message)) {
+        setError('Эта почта уже используется.');
       } else {
-        setError(
-          signupError.message,
-        );
+        setError(signupError.message);
       }
 
       setLoading(false);
       return;
     }
 
-    setMessage(
-      'Мы отправили письмо с подтверждением. Проверь свою почту.',
-    );
+    // При выключенном Confirm email Supabase сразу возвращает session.
+    // Сессия уже сохранена browser client'ом, поэтому можно сразу открыть профиль.
+    if (data.session) {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
+      if (!session) {
+        setError('Аккаунт создан, но сессия не сохранилась. Попробуй войти.');
+        setLoading(false);
+        return;
+      }
+
+      window.location.replace('/profile');
+      return;
+    }
+
+    // Fallback, если Confirm email оставлен включённым в Supabase.
+    setMessage(
+      'Аккаунт создан. Подтверди email по письму, после этого можно будет войти.',
+    );
     setLoading(false);
   }
 
   return (
     <main className="auth-page">
       <div className="auth-card">
-        <div className="auth-card__badge">
-          JOIN ANIMEBOX
+        <div className="auth-card__badge">JOIN ANIMEBOX</div>
+
+        <h1>Создай аккаунт</h1>
+        <p className="auth-card__subtitle">
+          Сохраняй тайтлы, продолжай просмотр с любого устройства и собирай
+          достижения.
+        </p>
+
+        <div className="auth-social">
+          <GoogleAuthButton label="Продолжить через Google" next="/profile" />
+          <div className="auth-divider">
+            <span />
+            <small>или зарегистрируйся через email</small>
+            <span />
+          </div>
         </div>
 
-        <h1>
-          Создай аккаунт
-        </h1>
-
-        <p className="auth-card__subtitle">
-          Сохраняй тайтлы, продолжай просмотр
-          с любого устройства и собирай достижения.
-        </p>
-            
-<div className="auth-social">
-  <GoogleAuthButton />
-
-  <div className="auth-divider">
-    <span />
-    <small>или зарегистрируйся через email</small>
-    <span />
-  </div>
-</div>
-        <form
-          onSubmit={handleSubmit}
-          className="auth-form"
-        >
+        <form onSubmit={handleSubmit} className="auth-form">
           <label>
-            <span>
-              Имя пользователя
-            </span>
-
+            <span>Имя пользователя</span>
             <input
               value={username}
-              onChange={(event) =>
-                setUsername(
-                  event.target.value,
-                )
-              }
+              onChange={(event) => setUsername(event.target.value)}
               maxLength={24}
               placeholder="Например: ghoul cat"
               autoComplete="username"
@@ -166,15 +134,10 @@ export default function RegisterPage() {
 
           <label>
             <span>Email</span>
-
             <input
               type="email"
               value={email}
-              onChange={(event) =>
-                setEmail(
-                  event.target.value,
-                )
-              }
+              onChange={(event) => setEmail(event.target.value)}
               placeholder="name@example.com"
               autoComplete="email"
               required
@@ -184,34 +147,18 @@ export default function RegisterPage() {
           <label>
             <div className="auth-form__label-row">
               <span>Пароль</span>
-
               <button
                 type="button"
-                onClick={() =>
-                  setShowPassword(
-                    (current) =>
-                      !current,
-                  )
-                }
+                onClick={() => setShowPassword((current) => !current)}
               >
-                {showPassword
-                  ? 'Скрыть'
-                  : 'Показать'}
+                {showPassword ? 'Скрыть' : 'Показать'}
               </button>
             </div>
 
             <input
-              type={
-                showPassword
-                  ? 'text'
-                  : 'password'
-              }
+              type={showPassword ? 'text' : 'password'}
               value={password}
-              onChange={(event) =>
-                setPassword(
-                  event.target.value,
-                )
-              }
+              onChange={(event) => setPassword(event.target.value)}
               placeholder="Минимум 6 символов"
               autoComplete="new-password"
               minLength={6}
@@ -220,57 +167,31 @@ export default function RegisterPage() {
           </label>
 
           <label>
-            <span>
-              Повторите пароль
-            </span>
-
+            <span>Повторите пароль</span>
             <input
-              type={
-                showPassword
-                  ? 'text'
-                  : 'password'
-              }
+              type={showPassword ? 'text' : 'password'}
               value={confirmPassword}
-              onChange={(event) =>
-                setConfirmPassword(
-                  event.target.value,
-                )
-              }
+              onChange={(event) => setConfirmPassword(event.target.value)}
               placeholder="Введите пароль ещё раз"
               autoComplete="new-password"
               required
             />
           </label>
 
-          {error && (
-            <div className="auth-form__error">
-              {error}
-            </div>
-          )}
-
-          {message && (
-            <div className="auth-form__success">
-              {message}
-            </div>
-          )}
+          {error && <div className="auth-form__error">{error}</div>}
+          {message && <div className="auth-form__success">{message}</div>}
 
           <button
             type="submit"
             className="auth-form__submit"
             disabled={loading}
           >
-            {loading
-              ? 'Создаём аккаунт...'
-              : 'Создать аккаунт'}
+            {loading ? 'Создаём аккаунт...' : 'Создать аккаунт'}
           </button>
         </form>
 
         <div className="auth-card__switch">
-          Уже есть аккаунт?
-
-          <Link href="/login">
-            Войти
-          </Link>
+          Уже есть аккаунт? <Link href="/login">Войти</Link>
         </div>
       </div>
     </main>

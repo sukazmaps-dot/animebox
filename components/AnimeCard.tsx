@@ -86,6 +86,13 @@ export default function AnimeCard({
         </span>
 
         <span className="anime-card__shine" />
+
+        <div className="anime-card__peek" aria-hidden="true">
+          <span className="anime-card__peek-label">
+            Открыть тайтл
+            <span className="anime-card__peek-arrow">↗</span>
+          </span>
+        </div>
       </div>
 
       <div className="anime-card__body">

@@ -1,0 +1,528 @@
+'use client';
+
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+
+type CommentItem = {
+  id: string;
+  anime_id: number;
+  episode_number: number;
+  user_id: string | null;
+  parent_id: string | null;
+  depth: number;
+  body: string;
+  is_spoiler: boolean;
+  created_at: string;
+  deleted_at: string | null;
+
+  author?: {
+    username: string | null;
+    avatarUrl: string | null;
+  } | null;
+};
+
+type Props = {
+  animeId: number;
+  episode: number;
+};
+
+type CommentNodeProps = {
+  comment: CommentItem;
+  childrenMap: Map<string, CommentItem[]>;
+  onReply: (comment: CommentItem) => void;
+};
+
+function formatDate(value: string) {
+  try {
+    return new Intl.DateTimeFormat('ru-RU', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(value));
+  } catch {
+    return '';
+  }
+}
+
+function CommentNode({
+  comment,
+  childrenMap,
+  onReply,
+}: CommentNodeProps) {
+  const [spoilerOpen, setSpoilerOpen] =
+    useState(false);
+
+  const children =
+    childrenMap.get(comment.id) ?? [];
+
+  const username =
+    comment.author?.username ||
+    'Пользователь';
+
+  const avatar =
+    comment.author?.avatarUrl ||
+    '/default-avatar.webp';
+
+  return (
+    <article
+      className={`episode-comment ${
+        comment.depth > 0
+          ? 'episode-comment--reply'
+          : ''
+      }`}
+    >
+      <header className="episode-comment__header">
+        <img
+          src={avatar}
+          alt=""
+          width={36}
+          height={36}
+          className="episode-comment__avatar"
+        />
+
+        <div className="episode-comment__author">
+          <strong>{username}</strong>
+
+          <time dateTime={comment.created_at}>
+            {formatDate(comment.created_at)}
+          </time>
+        </div>
+      </header>
+
+      <div className="episode-comment__body">
+        {comment.deleted_at ? (
+          <p className="episode-comment__deleted">
+            Комментарий удалён.
+          </p>
+        ) : comment.is_spoiler &&
+          !spoilerOpen ? (
+          <button
+            type="button"
+            className="episode-comment__spoiler"
+            onClick={() =>
+              setSpoilerOpen(true)
+            }
+          >
+            Спойлер скрыт — показать
+          </button>
+        ) : (
+          <p>{comment.body}</p>
+        )}
+      </div>
+
+      {!comment.deleted_at && (
+        <div className="episode-comment__actions">
+          <button
+            type="button"
+            onClick={() =>
+              onReply(comment)
+            }
+          >
+            Ответить
+          </button>
+        </div>
+      )}
+
+      {children.length > 0 && (
+        <div className="episode-comment__children">
+          {children.map((child) => (
+            <CommentNode
+              key={child.id}
+              comment={child}
+              childrenMap={childrenMap}
+              onReply={onReply}
+            />
+          ))}
+        </div>
+      )}
+    </article>
+  );
+}
+
+export default function EpisodeComments({
+  animeId,
+  episode,
+}: Props) {
+  const [
+    comments,
+    setComments,
+  ] = useState<CommentItem[]>([]);
+
+  const [
+    body,
+    setBody,
+  ] = useState('');
+
+  const [
+    spoiler,
+    setSpoiler,
+  ] = useState(false);
+
+  const [
+    parent,
+    setParent,
+  ] =
+    useState<CommentItem | null>(null);
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+  const [
+    sending,
+    setSending,
+  ] = useState(false);
+
+  const [
+    error,
+    setError,
+  ] = useState('');
+
+  const loadComments =
+    useCallback(
+      async (
+        signal?: AbortSignal,
+      ) => {
+        try {
+          setLoading(true);
+          setError('');
+
+          const response =
+            await fetch(
+              `/api/comments?anime_id=${animeId}&episode=${episode}`,
+              {
+                cache: 'no-store',
+                signal,
+              },
+            );
+
+          const data =
+            await response.json();
+
+          if (!response.ok) {
+            throw new Error(
+              data.error ||
+                'Не удалось загрузить комментарии.',
+            );
+          }
+
+          setComments(
+            Array.isArray(data.comments)
+              ? data.comments
+              : [],
+          );
+        } catch (error) {
+          if (
+            error instanceof DOMException &&
+            error.name === 'AbortError'
+          ) {
+            return;
+          }
+
+          setError(
+            error instanceof Error
+              ? error.message
+              : 'Не удалось загрузить комментарии.',
+          );
+        } finally {
+          setLoading(false);
+        }
+      },
+      [animeId, episode],
+    );
+
+  useEffect(() => {
+    const controller =
+      new AbortController();
+
+    /*
+     * При переходе:
+     *
+     * /episode/1 -> /episode/2
+     *
+     * старые комментарии сразу
+     * сбрасываются.
+     */
+    setComments([]);
+    setBody('');
+    setParent(null);
+    setSpoiler(false);
+
+    void loadComments(
+      controller.signal,
+    );
+
+    return () => {
+      controller.abort();
+    };
+  }, [loadComments]);
+
+  async function submit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    const cleanBody =
+      body.trim();
+
+    if (
+      !cleanBody ||
+      sending
+    ) {
+      return;
+    }
+
+    try {
+      setSending(true);
+      setError('');
+
+      const response =
+        await fetch(
+          '/api/comments',
+          {
+            method: 'POST',
+
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+
+            body: JSON.stringify({
+              animeId,
+              episode,
+
+              body:
+                cleanBody,
+
+              isSpoiler:
+                spoiler,
+
+              parentId:
+                parent?.id ??
+                null,
+            }),
+          },
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            'Не удалось отправить комментарий.',
+        );
+      }
+
+      setBody('');
+      setSpoiler(false);
+      setParent(null);
+
+      await loadComments();
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Не удалось отправить комментарий.',
+      );
+    } finally {
+      setSending(false);
+    }
+  }
+
+  const {
+    roots,
+    childrenMap,
+  } = useMemo(() => {
+    const roots:
+      CommentItem[] = [];
+
+    const childrenMap =
+      new Map<
+        string,
+        CommentItem[]
+      >();
+
+    for (const comment of comments) {
+      if (!comment.parent_id) {
+        roots.push(comment);
+        continue;
+      }
+
+      const children =
+        childrenMap.get(
+          comment.parent_id,
+        ) ?? [];
+
+      children.push(comment);
+
+      childrenMap.set(
+        comment.parent_id,
+        children,
+      );
+    }
+
+    return {
+      roots,
+      childrenMap,
+    };
+  }, [comments]);
+
+  return (
+    <section className="episode-comments">
+      <header className="episode-comments__header">
+        <div>
+          <span className="episode-comments__eyebrow">
+            ANIMEBOX COMMUNITY
+          </span>
+
+          <h2>
+            Обсуждение серии {episode}
+          </h2>
+
+          <p>
+            Обсуждение относится только
+            к этой серии.
+          </p>
+        </div>
+
+        <span className="episode-comments__count">
+          {comments.length}
+        </span>
+      </header>
+
+      <form
+        className="episode-comments__form"
+        onSubmit={submit}
+      >
+        {parent && (
+          <div className="episode-comments__replying">
+            <span>
+              Ответ пользователю{' '}
+              <b>
+                {parent.author
+                  ?.username ||
+                  'Пользователь'}
+              </b>
+            </span>
+
+            <button
+              type="button"
+              onClick={() =>
+                setParent(null)
+              }
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        <textarea
+          value={body}
+          maxLength={4000}
+          placeholder={
+            parent
+              ? 'Напиши ответ...'
+              : `Что думаешь о ${episode}-й серии?`
+          }
+          onChange={(event) =>
+            setBody(
+              event.target.value,
+            )
+          }
+        />
+
+        <div className="episode-comments__controls">
+          <label>
+            <input
+              type="checkbox"
+              checked={spoiler}
+              onChange={(event) =>
+                setSpoiler(
+                  event.target
+                    .checked,
+                )
+              }
+            />
+
+            <span>Спойлер</span>
+          </label>
+
+          <span className="episode-comments__length">
+            {body.length}/4000
+          </span>
+
+          <button
+            type="submit"
+            disabled={
+              sending ||
+              !body.trim()
+            }
+          >
+            {sending
+              ? 'Отправка...'
+              : 'Отправить'}
+          </button>
+        </div>
+      </form>
+
+      {error && (
+        <p
+          className="episode-comments__error"
+          role="alert"
+        >
+          {error}
+        </p>
+      )}
+
+      {loading ? (
+        <div className="episode-comments__empty">
+          Загружаем обсуждение…
+        </div>
+      ) : roots.length === 0 ? (
+        <div className="episode-comments__empty episode-comments__empty--illustrated">
+          <img
+            src="/brand/empty-comments.png"
+            alt=""
+            aria-hidden="true"
+          />
+          <strong>Пока здесь тихо</strong>
+          <span>Будь первым, кто обсудит эту серию.</span>
+        </div>
+      ) : (
+        <div className="episode-comments__list">
+          {roots.map((comment) => (
+            <CommentNode
+              key={comment.id}
+              comment={comment}
+              childrenMap={
+                childrenMap
+              }
+              onReply={(comment) => {
+                setParent(comment);
+
+                document
+                  .querySelector(
+                    '.episode-comments textarea',
+                  )
+                  ?.scrollIntoView({
+                    behavior:
+                      'smooth',
+                    block:
+                      'center',
+                  });
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}

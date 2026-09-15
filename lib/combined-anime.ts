@@ -17,6 +17,7 @@ import {
 } from '@/lib/shikimori-text';
 
 type ShikimoriAnime = {
+  genres?: { name?: string; russian?: string }[];
   id?: number;
   russian?: string | null;
   description?: string | null;
@@ -521,6 +522,9 @@ async function loadAnimeByIdWithShikimori(
 
     return {
       ...anime,
+      // Shounen is a demographic on many catalogs; AniList genres alone omit it.
+      genres: [...new Set([...(anime.genres ?? []), ...(shiki.genres ?? []).flatMap(genre =>
+        [genre.russian, genre.name].filter((name): name is string => typeof name === 'string' && name.length > 0))])],
       episodes: anime.episodes || shiki.episodes || null,
       episodesAired: Math.max(anime.episodesAired || 0, shiki.episodes_aired || 0) || null,
 

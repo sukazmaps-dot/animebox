@@ -11,6 +11,7 @@ import {
 
 import Icon from './Icon';
 import AuthUserButton from './AuthUserButton';
+import MobileAccountNav from './MobileAccountNav';
 
 const mainNav = [
   {
@@ -49,8 +50,6 @@ function NavbarContent() {
   const searchParams = useSearchParams();
 
   const [searchValue, setSearchValue] = useState('');
-  const [mobileMoreOpen, setMobileMoreOpen] =
-    useState(false);
 
   /*
    * Если пользователь находится на странице поиска,
@@ -58,46 +57,13 @@ function NavbarContent() {
    */
   useEffect(() => {
     if (pathname === '/search') {
+      // URL query is external navigation state; mirror it into the controlled input.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSearchValue(
         searchParams.get('search') ?? '',
       );
     }
   }, [pathname, searchParams]);
-
-  /*
-   * При переходе на другую страницу
-   * мобильное меню автоматически закрывается.
-   */
-  useEffect(() => {
-    setMobileMoreOpen(false);
-  }, [pathname]);
-
-  /*
-   * Escape закрывает мобильное меню.
-   */
-  useEffect(() => {
-    if (!mobileMoreOpen) {
-      return;
-    }
-
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setMobileMoreOpen(false);
-      }
-    }
-
-    window.addEventListener(
-      'keydown',
-      handleEscape,
-    );
-
-    return () => {
-      window.removeEventListener(
-        'keydown',
-        handleEscape,
-      );
-    };
-  }, [mobileMoreOpen]);
 
   /*
    * На /search обновляем URL автоматически,
@@ -210,15 +176,7 @@ function NavbarContent() {
     return pathname.startsWith(href);
   }
 
-  /*
-   * Эти страницы находятся внутри
-   * мобильного раздела "Ещё".
-   */
-  const mobileMoreActive =
-    mobileMoreOpen ||
-    isActive('/profile') ||
-    isActive('/favorites') ||
-    isActive('/about');
+
 
   return (
     <>
@@ -332,29 +290,36 @@ function NavbarContent() {
           </a>
         </nav>
 
-        <div className="sidebar__promo">
-          <div className="sidebar__promo-icon">
-            <Icon name="telegram" />
+        <div className="sidebar__promo sidebar__promo--brand">
+          <img
+            className="sidebar__promo-art"
+            src="/brand/telegram-cta.png"
+            alt=""
+            aria-hidden="true"
+          />
+
+          <div className="sidebar__promo-content">
+            <span className="sidebar__promo-kicker">ANIMEBOX × TELEGRAM</span>
+
+            <strong>
+              Новые серии
+              <br />
+              без пропусков
+            </strong>
+
+            <span>
+              Получай уведомления о любимых тайтлах прямо в Telegram.
+            </span>
+
+            <a
+              href={telegramUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Icon name="telegram" />
+              Подключить
+            </a>
           </div>
-
-          <strong>
-            Получай уведомления
-            <br />
-            о новых сериях в Telegram
-          </strong>
-
-          <span>
-            Подключай уведомления о выходе
-            любимого аниме.
-          </span>
-
-          <a
-            href={telegramUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Подключить
-          </a>
         </div>
       </aside>
 
@@ -416,11 +381,7 @@ function NavbarContent() {
           className={`mobile-nav__item ${
             isActive('/') ? 'is-active' : ''
           }`}
-          aria-current={
-            isActive('/')
-              ? 'page'
-              : undefined
-          }
+          aria-current={isActive('/') ? 'page' : undefined}
         >
           <Icon name="home" />
           <span>Главная</span>
@@ -429,170 +390,27 @@ function NavbarContent() {
         <Link
           href="/search"
           className={`mobile-nav__item ${
-            isActive('/search')
-              ? 'is-active'
-              : ''
+            isActive('/search') ? 'is-active' : ''
           }`}
-          aria-current={
-            isActive('/search')
-              ? 'page'
-              : undefined
-          }
+          aria-current={isActive('/search') ? 'page' : undefined}
         >
           <Icon name="anime" />
           <span>Аниме</span>
         </Link>
 
         <Link
-          href="/schedule"
-          className={`mobile-nav__item ${
-            isActive('/schedule')
-              ? 'is-active'
-              : ''
-          }`}
-          aria-current={
-            isActive('/schedule')
-              ? 'page'
-              : undefined
-          }
-        >
-          <Icon name="calendar" />
-          <span>Расписание</span>
-        </Link>
-
-        <Link
           href="/list"
           className={`mobile-nav__item ${
-            isActive('/list')
-              ? 'is-active'
-              : ''
+            isActive('/list') ? 'is-active' : ''
           }`}
-          aria-current={
-            isActive('/list')
-              ? 'page'
-              : undefined
-          }
+          aria-current={isActive('/list') ? 'page' : undefined}
         >
           <Icon name="tracker" />
           <span>Трекер</span>
         </Link>
 
-        <button
-          type="button"
-          className={`mobile-nav__item ${
-            mobileMoreActive
-              ? 'is-active'
-              : ''
-          }`}
-          onClick={() =>
-            setMobileMoreOpen(
-              (value) => !value,
-            )
-          }
-          aria-expanded={mobileMoreOpen}
-          aria-controls="mobile-more-menu"
-        >
-          <Icon name="menu" />
-          <span>Ещё</span>
-        </button>
+        <MobileAccountNav pathname={pathname} />
       </nav>
-
-      {/* =========================
-          MOBILE MORE
-          ========================= */}
-
-      {mobileMoreOpen && (
-        <>
-          <button
-            type="button"
-            className="mobile-more__backdrop"
-            aria-label="Закрыть меню"
-            onClick={() =>
-              setMobileMoreOpen(false)
-            }
-          />
-
-          <div
-            id="mobile-more-menu"
-            className="mobile-more"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Дополнительная навигация"
-          >
-            <div className="mobile-more__handle" />
-
-            <div className="mobile-more__head">
-              <strong>AnimeBox</strong>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setMobileMoreOpen(false)
-                }
-                aria-label="Закрыть"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="mobile-more__grid">
-              {/* Профиль теперь доступен и на телефоне */}
-
-              <Link
-                href="/profile"
-                className="mobile-more__item"
-              >
-                <Icon name="tracker" />
-                <span>Профиль</span>
-              </Link>
-
-              <Link
-                href="/favorites"
-                className="mobile-more__item"
-              >
-                <Icon name="heart" />
-                <span>Избранное</span>
-              </Link>
-
-              <Link
-                href="/list"
-                className="mobile-more__item"
-              >
-                <Icon name="bell" />
-                <span>Уведомления</span>
-              </Link>
-
-              <a
-                href={telegramUrl}
-                className="mobile-more__item"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Icon name="telegram" />
-                <span>Telegram</span>
-              </a>
-
-              <Link
-                href="/about"
-                className="mobile-more__item"
-              >
-                <Icon name="info" />
-                <span>О проекте</span>
-              </Link>
-
-              <a
-                href={donateUrl}
-                className="mobile-more__item mobile-more__item--support"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Icon name="heart" />
-                <span>Поддержать</span>
-              </a>
-            </div>
-          </div>
-        </>
-      )}
     </>
   );
 }

@@ -709,19 +709,7 @@ export function getWatchingStateFromProgress(
     return 'all';
   }
 
-  const availableEpisodes =
-    item.episodes && item.episodes > 0
-      ? item.episodes
-      : null;
-
-  if (
-    ['FINISHED', 'released', 'Вышло'].includes(item.status ?? '') &&
-    availableEpisodes &&
-    progress >= availableEpisodes
-  ) {
-    return 'watched';
-  }
-
+  // Last opened episode is a resume pointer, never proof of completion.
   return 'watching';
 }
 

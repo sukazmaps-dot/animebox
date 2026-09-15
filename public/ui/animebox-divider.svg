@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 56" fill="none">
+  <defs>
+    <linearGradient id="line" x1="0" y1="28" x2="800" y2="28" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4F7DFF" stop-opacity="0"/>
+      <stop offset=".18" stop-color="#6F8DFF" stop-opacity=".72"/>
+      <stop offset=".5" stop-color="#B06CFF"/>
+      <stop offset=".82" stop-color="#5ED7FF" stop-opacity=".72"/>
+      <stop offset="1" stop-color="#4F7DFF" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="core" cx="0" cy="0" r="1" gradientTransform="translate(400 28) rotate(90) scale(24)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F0E7FF"/>
+      <stop offset=".32" stop-color="#A77BFF"/>
+      <stop offset="1" stop-color="#5A6CFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-20%" y="-200%" width="140%" height="500%">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <path d="M38 28H342L366 20H384" stroke="url(#line)" stroke-width="2"/>
+  <path d="M762 28H458L434 20H416" stroke="url(#line)" stroke-width="2"/>
+  <path d="M400 7L409 20L422 28L409 36L400 49L391 36L378 28L391 20L400 7Z" fill="url(#core)" stroke="#B99CFF" stroke-opacity=".9" filter="url(#glow)"/>
+  <circle cx="358" cy="28" r="2" fill="#7FAAFF"/>
+  <circle cx="442" cy="28" r="2" fill="#8BDFFF"/>
+  <path d="M314 24H346" stroke="#766CFF" stroke-opacity=".45"/>
+  <path d="M454 32H486" stroke="#69CFFF" stroke-opacity=".45"/>
+</svg>

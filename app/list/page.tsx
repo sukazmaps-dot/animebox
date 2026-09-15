@@ -1,220 +1,212 @@
 'use client';
 
-import { animeHref } from '@/lib/anime-url';
-
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import type { AnimeListItem } from '@/types/anime';
+
 import {
-  getWatchingStateFromProgress,
-  readAnimeList,
-  readAnimeProgressMap,
-  writeAnimeList,
-} from '@/lib/anime-storage';
-import Icon from '@/components/Icon';
-import AnimeImage from '@/components/AnimeImage';
-import { getAnimeTitle } from '@/lib/anime-display';
+  communityRequest,
+  statusLabels,
+  type CommunityProfile,
+  type LibraryStatus,
+} from '@/lib/community-client';
+import LibraryStatusControl from '@/components/LibraryStatusControl';
 
-const filters = [
-  ['all', 'Все'],
-  ['watching', 'Смотрю'],
-  ['watched', 'Просмотрено'],
-] as const;
+type Filter = LibraryStatus | 'all';
 
-function getEpisodeCount(anime: AnimeListItem): number | null {
-  return anime.episodes && anime.episodes > 0
-    ? anime.episodes
-    : anime.episodesAired && anime.episodesAired > 0
-      ? anime.episodesAired
-      : null;
-}
+const filterIcons: Record<Filter, string> = {
+  all: '/brand/brand-mark.png',
+  watching: '/brand/icons/watching.svg',
+  planned: '/brand/icons/planned.svg',
+  completed: '/brand/icons/completed.svg',
+  dropped: '/brand/icons/dropped.svg',
+};
 
 export default function MyListPage() {
-  const [list, setList] = useState<AnimeListItem[]>([]);
-  const [progressMap, setProgressMap] = useState<Readonly<Record<string, number>>>({});
-  const [filter, setFilter] = useState<(typeof filters)[number][0]>('all');
+  const [data, setData] = useState<CommunityProfile | null>(null);
+  const [filter, setFilter] = useState<Filter>('all');
+  const [error, setError] = useState('');
+
+  async function load() {
+    try {
+      setError('');
+      setData(await communityRequest<CommunityProfile>('profile'));
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Не удалось загрузить библиотеку.',
+      );
+    }
+  }
 
   useEffect(() => {
-    const sync = () => {
-      setList(readAnimeList());
-      setProgressMap(readAnimeProgressMap());
-    };
-
-    const onStorage = (event: StorageEvent) => {
-      if (
-        event.key === null ||
-        event.key === 'anime_list' ||
-        event.key === 'anime_progress'
-      ) {
-        sync();
-      }
-    };
-
-    sync();
-
-    window.addEventListener('storage', onStorage);
-    window.addEventListener('anime-list-changed', sync);
-    window.addEventListener('anime-progress-changed', sync);
-    window.addEventListener('pageshow', sync);
+    void load();
+    window.addEventListener('library-updated', load);
 
     return () => {
-      window.removeEventListener('storage', onStorage);
-      window.removeEventListener('anime-list-changed', sync);
-      window.removeEventListener('anime-progress-changed', sync);
-      window.removeEventListener('pageshow', sync);
+      window.removeEventListener('library-updated', load);
     };
   }, []);
 
-  const rows = useMemo(
-    () =>
-      list.map((anime) => {
-        const progress = progressMap[String(anime.id)] ?? 0;
-        const state = getWatchingStateFromProgress(anime, progress);
-        const count = getEpisodeCount(anime);
-        const progressPercent = count
-          ? Math.min(100, Math.round((progress / count) * 100))
-          : 0;
+  const filteredLibrary = useMemo(() => {
+    if (!data) return [];
+    if (filter === 'all') return data.library;
+    return data.library.filter((item) => item.status === filter);
+  }, [data, filter]);
 
-        return {
-          anime,
-          progress,
-          state,
-          count,
-          progressPercent,
-        };
-      }),
-    [list, progressMap],
-  );
-
-  const counts = useMemo(() => {
-    let watching = 0;
-    let watched = 0;
-
-    for (const row of rows) {
-      if (
-        row.state === 'watching' ||
-        (row.anime.status === 'ongoing' && row.progress === 0)
-      ) {
-        watching += 1;
-      }
-
-      if (row.state === 'watched') {
-        watched += 1;
-      }
-    }
-
-    return {
-      all: rows.length,
-      watching,
-      watched,
-    };
-  }, [rows]);
-
-  const visibleRows = useMemo(() => {
-    if (filter === 'all') {
-      return rows;
-    }
-
-    if (filter === 'watched') {
-      return rows.filter((row) => row.state === 'watched');
-    }
-
-    return rows.filter(
-      (row) =>
-        row.state === 'watching' ||
-        (row.anime.status === 'ongoing' && row.progress === 0),
-    );
-  }, [filter, rows]);
-
-  const removeItem = (id: number) => {
-    const updated = list.filter((anime) => anime.id !== id);
-    setList(updated);
-    writeAnimeList(updated);
-    window.dispatchEvent(new Event('anime-list-changed'));
-  };
+  function filterCount(value: Filter) {
+    if (!data) return 0;
+    if (value === 'all') return data.library.length;
+    return data.stats[value];
+  }
 
   return (
-    <div className="search-page tracker-page">
-      <div className="page-heading">
-        <span className="pill pill--accent">МОЙ ANIMEBOX</span>
-        <h1>Трекер</h1>
-        <p>Здесь собраны сохранённые тайтлы, прогресс просмотра и уже завершённые сериалы.</p>
-      </div>
+    <main className="detail tracker-page">
+      <header className="tracker-hero">
+        <div className="tracker-hero__brand">
+          <div className="tracker-hero__mark" aria-hidden="true">
+            <img src="/brand/brand-mark.png" alt="" />
+          </div>
 
-      <div className="tracker-tabs" role="tablist" aria-label="Категории трекера">
-        {filters.map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={filter === id}
-            className={`tracker-tab ${filter === id ? 'is-active' : ''}`}
-            onClick={() => setFilter(id)}
-          >
-            <span>{label}</span>
-            <b>{counts[id]}</b>
-          </button>
-        ))}
-      </div>
-
-      {visibleRows.length === 0 ? (
-        <div className="empty-state tracker-empty">
-          <Icon name="heart" width={30} height={30} />
-          <strong>{list.length ? 'В этой категории пока пусто' : 'Твой список пока пуст'}</strong>
-          <span>
-            {filter === 'watching'
-              ? 'Открой сохранённый тайтл и начни первую серию — он появится здесь автоматически.'
-              : filter === 'watched'
-                ? 'Когда завершишь сериал, он попадёт в эту категорию автоматически.'
-                : 'Добавляй аниме со страницы тайтла.'}
-          </span>
-          <Link href="/search" className="btn btn--primary" style={{ marginTop: 15 }}>
-            Найти аниме
-          </Link>
+          <div>
+            <span className="tracker-eyebrow">ANIMEBOX LIBRARY</span>
+            <h1>Мой трекер</h1>
+            <p>Твоя коллекция, статусы и прогресс — в одном месте.</p>
+          </div>
         </div>
-      ) : (
-        <div className="anime-grid tracker-grid" style={{ marginTop: 18 }}>
-          {visibleRows.map(({ anime, progress, count, state, progressPercent }) => (
-            <div key={anime.id} className="tracker-card anime-card" style={{ position: 'relative' }}>
-              <Link href={animeHref(anime)}>
-                <div className="anime-card__image-wrap">
-                  <AnimeImage
-                    image={anime.coverImage ?? anime.image}
-                    alt={getAnimeTitle(anime)}
-                    englishName={anime.title?.english || anime.title?.romaji || anime.name}
-                    className="anime-card__image"
-                  />
-                  <span className="anime-card__rating"><span>★</span>{anime.score ?? '—'}</span>
-                  <span className={`tracker-badge tracker-badge--${state}`}>
-                    {state === 'watched' ? 'Просмотрено' : state === 'watching' ? 'Смотрю' : 'Сохранено'}
-                  </span>
-                </div>
-                <div className="anime-card__body">
-                  <h3>{getAnimeTitle(anime)}</h3>
-                  <div className="anime-card__meta">
-                    <span>{count ? `${anime.status === 'ongoing' ? 'Вышло' : 'Эпизодов'} ${count}` : 'Эпизоды уточняются'}</span>
-                  </div>
-                  <div className="tracker-progress-row">
-                    <span>Серия {progress}</span>
-                    <span>{progressPercent}%</span>
-                  </div>
-                  <div className="progress tracker-progress">
-                    <i style={{ width: `${progressPercent}%` }} />
-                  </div>
-                </div>
-              </Link>
-              <button
-                type="button"
-                aria-label="Удалить из списка"
-                onClick={() => removeItem(anime.id)}
-                className="tracker-remove"
-              >
-                ×
-              </button>
+
+        {data && (
+          <div className="tracker-summary" aria-label="Статистика библиотеки">
+            <div>
+              <strong>{data.library.length}</strong>
+              <span>В закладках</span>
             </div>
-          ))}
+            <div>
+              <strong>{data.stats.watching}</strong>
+              <span>Смотрю</span>
+            </div>
+            <div>
+              <strong>{data.stats.completed}</strong>
+              <span>Завершено</span>
+            </div>
+          </div>
+        )}
+      </header>
+
+      {error && (
+        <section className="tracker-error" role="alert">
+          <span>{error}</span>
+          <div>
+            <Link href="/login">Войти</Link>
+            <button type="button" onClick={() => void load()}>
+              Повторить
+            </button>
+          </div>
+        </section>
+      )}
+
+      {!data && !error && (
+        <div className="tracker-loading" role="status">
+          <span className="tracker-loading__dot" />
+          Загружаем библиотеку…
         </div>
       )}
-    </div>
+
+      {data && (
+        <>
+          <nav className="tracker-filters" aria-label="Фильтр библиотеки">
+            {(
+              ['all', 'watching', 'planned', 'completed', 'dropped'] as Filter[]
+            ).map((value) => {
+              const active = filter === value;
+              const label = value === 'all' ? 'Все' : statusLabels[value];
+
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={active}
+                  data-status={value}
+                  className={active ? 'tracker-filter is-active' : 'tracker-filter'}
+                  onClick={() => setFilter(value)}
+                >
+                  <span className="tracker-filter__icon" aria-hidden="true">
+                    <img src={filterIcons[value]} alt="" />
+                  </span>
+                  <span className="tracker-filter__label">{label}</span>
+                  <span className="tracker-filter__count">
+                    {filterCount(value)}
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+
+          {filteredLibrary.length > 0 ? (
+            <div className="tracker-list">
+              {filteredLibrary.map((item) => (
+                <article
+                  className="tracker-card"
+                  data-status={item.status}
+                  key={item.anime_id}
+                >
+                  <div className="tracker-card__top">
+                    <div className="tracker-card__identity">
+                      <div className="tracker-card__mark" aria-hidden="true">
+                        <img src="/brand/brand-mark.png" alt="" />
+                      </div>
+
+                      <div className="tracker-card__title">
+                        <span className="tracker-card__label">
+                          ЛИЧНАЯ БИБЛИОТЕКА
+                        </span>
+                        <Link href={`/anime/${item.anime_id}`} title={item.title}>
+                          {item.title}
+                        </Link>
+                      </div>
+                    </div>
+
+                    <div className="tracker-card__right">
+                      <span
+                        className={`tracker-status tracker-status--${item.status}`}
+                      >
+                        {statusLabels[item.status]}
+                      </span>
+
+                      <Link
+                        href={`/anime/${item.anime_id}`}
+                        className="tracker-card__open"
+                      >
+                        Открыть <span aria-hidden="true">→</span>
+                      </Link>
+                    </div>
+                  </div>
+
+                  <div className="tracker-card__controls">
+                    <LibraryStatusControl
+                      animeId={item.anime_id}
+                      initialStatus={item.status}
+                    />
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <section className="tracker-empty">
+              <img src="/brand/empty-library.png" alt="" aria-hidden="true" />
+              <span className="tracker-eyebrow">БИБЛИОТЕКА</span>
+              <h2>Здесь пока пусто</h2>
+              <p>
+                Добавь аниме в эту категорию — и оно появится здесь вместе со
+                статусом и прогрессом.
+              </p>
+              <Link href="/search">
+                Найти аниме <span aria-hidden="true">→</span>
+              </Link>
+            </section>
+          )}
+        </>
+      )}
+    </main>
   );
 }

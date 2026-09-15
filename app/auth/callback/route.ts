@@ -4,12 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
-
-  const code =
-    requestUrl.searchParams.get('code');
-
-  const requestedNext =
-    requestUrl.searchParams.get('next');
+  const code = requestUrl.searchParams.get('code');
+  const requestedNext = requestUrl.searchParams.get('next');
 
   const safeNext =
     requestedNext &&
@@ -20,31 +16,18 @@ export async function GET(request: Request) {
 
   if (!code) {
     return NextResponse.redirect(
-      new URL(
-        '/login?error=google-auth',
-        requestUrl.origin,
-      ),
+      new URL('/login?error=google-auth', requestUrl.origin),
     );
   }
 
   const supabase = await createClient();
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-  const { error } =
-    await supabase.auth.exchangeCodeForSession(
-      code,
-    );
-
-  if (error) {
-    console.error(
-      'OAuth callback error:',
-      error,
-    );
-
+  // Не редиректим дальше, пока Supabase действительно не создал session.
+  if (error || !data.session) {
+    console.error('OAuth callback error:', error);
     return NextResponse.redirect(
-      new URL(
-        '/login?error=google-auth',
-        requestUrl.origin,
-      ),
+      new URL('/login?error=google-auth', requestUrl.origin),
     );
   }
 
@@ -54,41 +37,20 @@ export async function GET(request: Request) {
 
   if (!user) {
     return NextResponse.redirect(
-      new URL(
-        '/login?error=google-auth',
-        requestUrl.origin,
-      ),
+      new URL('/login?error=google-auth', requestUrl.origin),
     );
   }
 
-  const { data: profile } =
-    await supabase
-      .from('profiles')
-      .select('username')
-      .eq('id', user.id)
-      .maybeSingle();
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('username')
+    .eq('id', user.id)
+    .maybeSingle();
 
-  /*
-   * Новый Google-пользователь:
-   * заставляем выбрать AnimeBox username.
-   */
+  // Новый Google-пользователь должен сначала выбрать AnimeBox username.
   if (!profile?.username?.trim()) {
-    return NextResponse.redirect(
-      new URL(
-        '/onboarding',
-        requestUrl.origin,
-      ),
-    );
+    return NextResponse.redirect(new URL('/onboarding', requestUrl.origin));
   }
 
-  /*
-   * Старый пользователь:
-   * сразу продолжаем вход.
-   */
-  return NextResponse.redirect(
-    new URL(
-      safeNext,
-      requestUrl.origin,
-    ),
-  );
+  return NextResponse.redirect(new URL(safeNext, requestUrl.origin));
 }

@@ -15,6 +15,7 @@ type IconName =
   | 'plus'
   | 'star'
   | 'menu'
+  | 'user'
   | 'clock'
   | 'spark';
 
@@ -63,6 +64,8 @@ export default function Icon({ name, ...props }: Props) {
       return <svg {...common} fill="currentColor" stroke="none"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.2 6.4 20.2l1.1-6.2L3 9.6l6.2-.9L12 3Z"/></svg>;
     case 'menu':
       return <svg {...common}><path d="M4 6h16M4 12h16M4 18h16"/></svg>;
+    case 'user':
+      return <svg {...common}><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg>;
     case 'clock':
       return <svg {...common}><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></svg>;
     case 'spark':

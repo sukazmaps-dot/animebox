@@ -3,12 +3,14 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'О проекте',
   description:
-    'AnimeBox — сервис для поиска, просмотра и отслеживания аниме, расписания новых серий и ведения собственной коллекции.',
+    'AnimeBox — anime tracker и сообщество: поиск аниме, личная библиотека, прогресс по сериям, расписание, профили, достижения и обсуждения эпизодов.',
   alternates: {
     canonical: '/about',
   },
 };
 
-export default function AboutLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function AboutLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return children;
 }

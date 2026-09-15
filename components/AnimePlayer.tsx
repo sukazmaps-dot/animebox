@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Icon from '@/components/Icon';
+import { useEpisodeTracking } from '@/components/useEpisodeTracking';
 import Hls from 'hls.js';
 
 export type TranslationOption = {
@@ -17,6 +18,7 @@ export type PlayerSource = {
 };
 
 interface AnimePlayerProps {
+  animeId?: number;
   title: string;
   episodeNumber: number;
   totalEpisodes?: number | null;
@@ -36,6 +38,7 @@ function toProxyHls(url: string): string {
 }
 
 export default function AnimePlayer({
+  animeId,
   title,
   episodeNumber,
   totalEpisodes,
@@ -62,6 +65,8 @@ export default function AnimePlayer({
   const isIframe = mediaType === 'iframe';
   const isHls = mediaType === 'hls';
   const videoLink = isHls ? toProxyHls(normalizedLink) : normalizedLink;
+
+  const trackingMessage = useEpisodeTracking(videoRef, animeId, episodeNumber, videoLink, isIframe);
 
   useEffect(() => {
     setPlayerError(null);
@@ -208,6 +213,7 @@ export default function AnimePlayer({
         )}
       </div>
 
+      {trackingMessage && <p role="status">{trackingMessage}</p>}
       <div className="player__controls">
         <button
           type="button"
