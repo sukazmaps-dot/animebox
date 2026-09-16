@@ -14,6 +14,15 @@ const MAX_PROVIDER_EXCLUDED_RATIO = 0.3;
 const PROVIDER_SKIP_FROM_TOLERANCE_MS = 30_000;
 const PROVIDER_SKIP_AFTER_TOLERANCE_MS = 30_000;
 
+// Fallback for providers that perform the native OP/ED jump but do not expose
+// a dedicated postMessage event to the parent page. The skipped interval never
+// becomes watched/active time; it is only removed from the completion denominator.
+const MIN_INFERRED_SKIP_MS = 30_000;
+const MAX_INFERRED_SKIP_MS = 180_000;
+const MAX_INFERRED_OPENING_START_MS = 240_000;
+const ENDING_INFERRED_START_RATIO = 0.7;
+const ENDING_INFERRED_TARGET_RATIO = 0.9;
+
 type PlayedRange = [number, number];
 type ProviderSkipKind = 'opening' | 'ending';
 
@@ -230,6 +239,78 @@ function validateProviderSkip(input: {
     range: [fromMs, toMs] as PlayedRange,
     excludedRanges,
   };
+}
+
+function rangeLooksLikeOpening(range: PlayedRange, durationMs: number | null) {
+  const [start] = range;
+  const maxStart = durationMs && durationMs > 0
+    ? Math.min(MAX_INFERRED_OPENING_START_MS, Math.floor(durationMs * 0.25))
+    : MAX_INFERRED_OPENING_START_MS;
+  return start <= maxStart;
+}
+
+function rangeLooksLikeEnding(range: PlayedRange, durationMs: number | null) {
+  if (!durationMs || durationMs <= 0) return false;
+  const [, end] = range;
+  return end >= Math.floor(durationMs * ENDING_INFERRED_TARGET_RATIO);
+}
+
+function inferProviderLikeSkip(input: {
+  lastPosition: number;
+  currentPosition: number;
+  durationMs: number | null;
+  existingExcludedRanges: PlayedRange[];
+}) {
+  const fromMs = input.lastPosition;
+  const toMs = input.currentPosition;
+  const skippedMs = toMs - fromMs;
+
+  if (skippedMs < MIN_INFERRED_SKIP_MS || skippedMs > MAX_INFERRED_SKIP_MS) {
+    return null;
+  }
+
+  const mergedExisting = mergeRanges(input.existingExcludedRanges);
+
+  const maxOpeningStart = input.durationMs && input.durationMs > 0
+    ? Math.min(MAX_INFERRED_OPENING_START_MS, Math.floor(input.durationMs * 0.25))
+    : MAX_INFERRED_OPENING_START_MS;
+
+  const openingAlreadyExcluded = mergedExisting.some((range) =>
+    rangeLooksLikeOpening(range, input.durationMs),
+  );
+
+  if (!openingAlreadyExcluded && fromMs <= maxOpeningStart) {
+    const excludedRanges = mergePlayedRanges(mergedExisting, fromMs, toMs);
+    return {
+      kind: 'opening' as const,
+      range: [fromMs, toMs] as PlayedRange,
+      excludedRanges,
+    };
+  }
+
+  if (input.durationMs && input.durationMs > 0) {
+    const endingAlreadyExcluded = mergedExisting.some((range) =>
+      rangeLooksLikeEnding(range, input.durationMs),
+    );
+    const endingStart = Math.floor(input.durationMs * ENDING_INFERRED_START_RATIO);
+    const endingTarget = Math.floor(input.durationMs * ENDING_INFERRED_TARGET_RATIO);
+
+    if (
+      !endingAlreadyExcluded &&
+      fromMs >= endingStart &&
+      toMs >= endingTarget &&
+      toMs <= input.durationMs + 5_000
+    ) {
+      const excludedRanges = mergePlayedRanges(mergedExisting, fromMs, toMs);
+      return {
+        kind: 'ending' as const,
+        range: [fromMs, toMs] as PlayedRange,
+        excludedRanges,
+      };
+    }
+  }
+
+  return null;
 }
 
 function safePosition(value?: number | null) {
@@ -549,7 +630,7 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
     } else if (positionDelta <= 0) {
       reason = positionDelta < -1_500 ? 'seek_backward' : 'idle';
     } else {
-      const providerSkip = validateProviderSkip({
+      const explicitProviderSkip = validateProviderSkip({
         skip: input.providerSkip,
         lastPosition,
         currentPosition: input.positionMs,
@@ -557,6 +638,20 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
         messageOrigins: episode.message_origins,
         existingExcludedRanges: excludedRanges,
       });
+
+      // Kodik currently performs the native opening jump in some embeds without
+      // sending a usable skip postMessage to the parent page. In that case the
+      // server may infer ONE tightly constrained OP/ED jump from the timeline.
+      // This does not award watched time for the skipped interval.
+      const inferredProviderSkip = explicitProviderSkip
+        ? null
+        : inferProviderLikeSkip({
+            lastPosition,
+            currentPosition: input.positionMs,
+            durationMs,
+            existingExcludedRanges: excludedRanges,
+          });
+      const providerSkip = explicitProviderSkip ?? inferredProviderSkip;
 
       if (providerSkip) {
         const [skipFrom, skipTo] = providerSkip.range;
@@ -580,7 +675,9 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
             MAX_ACCEPTED_MS,
             Math.max(0, Math.round(Math.min(wallDelta, playedAdvance))),
           );
-          reason = `accepted_provider_skip_${providerSkip.kind}`;
+          reason = explicitProviderSkip
+            ? `accepted_provider_skip_${providerSkip.kind}`
+            : `accepted_inferred_${providerSkip.kind}_skip`;
         } else {
           reason = 'seek_forward';
         }

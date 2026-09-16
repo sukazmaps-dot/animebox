@@ -136,6 +136,10 @@ export function useWatchSession({
   const sessionRef = useRef<string | null>(null);
   const seqRef = useRef(0);
   const latestPositionRef = useRef<number | null>(null);
+  // First position observed before a watch session is created. Keeping this
+  // anchor lets the server see an opening jump even when Kodik performs the
+  // skip before the first session/heartbeat has been established.
+  const sessionAnchorPositionRef = useRef<number | null>(null);
   const latestDurationRef = useRef<number | null>(null);
   const messageOriginRef = useRef<string | null>(null);
   const lastSentPositionRef = useRef<number | null>(null);
@@ -206,11 +210,24 @@ export function useWatchSession({
       sessionRef.current ||
       startingRef.current ||
       latestPositionRef.current == null ||
-      lastAdvanceAtRef.current == null ||
-      Date.now() - lastAdvanceAtRef.current > ACTIVE_ADVANCE_WINDOW_MS
+      (pendingProviderSkipRef.current == null &&
+        (lastAdvanceAtRef.current == null ||
+          Date.now() - lastAdvanceAtRef.current > ACTIVE_ADVANCE_WINDOW_MS))
     ) {
       return;
     }
+
+    const latestPosition = latestPositionRef.current;
+    const anchorPosition = sessionAnchorPositionRef.current;
+    const anchorDelta =
+      anchorPosition == null ? null : latestPosition - anchorPosition;
+    const startPosition =
+      anchorPosition != null &&
+      anchorDelta != null &&
+      anchorDelta >= 0 &&
+      anchorDelta <= MAX_PROVIDER_SKIP_MS
+        ? anchorPosition
+        : latestPosition;
 
     const task = (async () => {
       try {
@@ -221,11 +238,12 @@ export function useWatchSession({
           requiredEpisodes: requiredEpisodes ?? episode,
           sourceUrl,
           messageOrigin: messageOriginRef.current,
-          positionMs: latestPositionRef.current,
+          positionMs: startPosition,
           durationMs: latestDurationRef.current,
         });
 
         sessionRef.current = result.sessionId;
+        sessionAnchorPositionRef.current = null;
         seqRef.current = 0;
         lastSentPositionRef.current = latestPositionRef.current;
         setMessage('');
@@ -296,12 +314,18 @@ export function useWatchSession({
       }
 
       if (!sessionRef.current) {
-        if (!force) await startSession();
-        return;
+        await startSession();
+        if (!sessionRef.current) return;
       }
 
       const position = latestPositionRef.current;
-      if (position == null || position === lastSentPositionRef.current) return;
+      const pendingProviderSkip = pendingProviderSkipRef.current;
+      if (
+        position == null ||
+        (position === lastSentPositionRef.current && pendingProviderSkip == null)
+      ) {
+        return;
+      }
 
       sendingRef.current = true;
       const seq = seqRef.current + 1;
@@ -351,6 +375,7 @@ export function useWatchSession({
           setMessage('');
         } else if (status === 404 || status === 409 || status === 410) {
           sessionRef.current = null;
+          sessionAnchorPositionRef.current = latestPositionRef.current;
           seqRef.current = 0;
           lastSentPositionRef.current = null;
         } else {
@@ -371,6 +396,13 @@ export function useWatchSession({
       if (nextPosition == null) return;
 
       const previousPosition = latestPositionRef.current;
+      if (
+        !sessionRef.current &&
+        !startingRef.current &&
+        sessionAnchorPositionRef.current == null
+      ) {
+        sessionAnchorPositionRef.current = nextPosition;
+      }
       latestPositionRef.current = nextPosition;
 
       const nextDuration =
@@ -498,6 +530,7 @@ export function useWatchSession({
   useEffect(() => {
     disabledRef.current = false;
     sessionRef.current = null;
+    sessionAnchorPositionRef.current = null;
     seqRef.current = 0;
     latestPositionRef.current = null;
     latestDurationRef.current = null;
@@ -545,6 +578,7 @@ export function useWatchSession({
       }
 
       sessionRef.current = null;
+      sessionAnchorPositionRef.current = null;
       startingRef.current = null;
       sendingRef.current = false;
     };
