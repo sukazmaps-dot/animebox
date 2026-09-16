@@ -94,7 +94,7 @@ export async function POST(
       error: profileError,
     } = await supabase
       .from('profiles')
-      .select('id')
+      .select('id, username, avatar_path')
       .eq(
         'telegram_id',
         telegramId,
@@ -259,6 +259,12 @@ export async function POST(
 
         userId:
           profile.id,
+
+        profile: {
+          id: profile.id,
+          username: profile.username ?? null,
+          avatar_path: profile.avatar_path ?? null,
+        },
 
         telegram: {
           id:

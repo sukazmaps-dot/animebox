@@ -9,6 +9,7 @@ import './mobile-readability.css';
 
 import Navbar from '@/components/Navbar';
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
+import { AuthStateProvider } from '@/components/AuthStateProvider';
 
 import { Analytics } from '@vercel/analytics/next';
 
@@ -114,18 +115,20 @@ export default function RootLayout({
       </head>
 
       <body>
-        {/* Определяет, открыт AnimeBox внутри Telegram или в браузере */}
-        <TelegramMiniAppBridge />
+        <AuthStateProvider>
+          {/* Определяет, открыт AnimeBox внутри Telegram или в браузере */}
+          <TelegramMiniAppBridge />
 
-        <Navbar />
+          <Navbar />
 
-        <div className="app-shell">
-          <main className="page-content">
-            {children}
-          </main>
-        </div>
+          <div className="app-shell">
+            <main className="page-content">
+              {children}
+            </main>
+          </div>
 
-        <Analytics />
+          <Analytics />
+        </AuthStateProvider>
       </body>
     </html>
   );

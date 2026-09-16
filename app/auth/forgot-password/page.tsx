@@ -83,7 +83,7 @@ export default function ForgotPasswordPage() {
             </div>
 
             <Link
-              href="/auth"
+              href="/login"
               className="mt-5 inline-block text-sm text-violet-400 hover:text-violet-300"
             >
               ← Вернуться ко входу
@@ -129,7 +129,7 @@ export default function ForgotPasswordPage() {
             </button>
 
             <Link
-              href="/auth"
+              href="/login"
               className="block text-center text-sm text-white/45 hover:text-white"
             >
               Вернуться ко входу

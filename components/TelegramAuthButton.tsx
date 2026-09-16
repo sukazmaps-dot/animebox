@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
+import { notifyAuthChanged } from '@/lib/auth-events';
 
 type TelegramAuthResult = {
   id_token?: string;
@@ -48,6 +49,7 @@ type ApiResponse = {
   profile?: {
     id?: string;
     username?: string | null;
+    avatar_path?: string | null;
   };
 };
 
@@ -642,12 +644,28 @@ export default function TelegramAuthButton({
 
       /*
        * -----------------------------------------------------
-       * 7. Всё готово.
+       * 7. Мгновенно сообщаем всему UI о новой сессии.
+       * Navbar / mobile account обновятся ещё до навигации.
        * -----------------------------------------------------
        */
-      window.location.replace(
-        next,
-      );
+      notifyAuthChanged({
+        userId: loginData.user.id,
+        profile: data.profile
+          ? {
+              id: data.profile.id ?? loginData.user.id,
+              username: data.profile.username ?? null,
+              avatar_path: data.profile.avatar_path ?? null,
+            }
+          : {
+              id: loginData.user.id,
+              username:
+                (loginData.user.user_metadata?.username as string | undefined) ??
+                null,
+              avatar_path: null,
+            },
+      });
+
+      window.location.replace(next);
     } catch (error) {
       console.error(
         '[Telegram Auth]',

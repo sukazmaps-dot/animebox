@@ -6,6 +6,7 @@ import Link from 'next/link';
 
 import { createClient } from '@/lib/supabase/client';
 import { readProfileCache, saveProfileCache } from '@/lib/profile-cache';
+import { notifyAuthChanged } from '@/lib/auth-events';
 import CommunityProfile from '@/components/CommunityProfile';
 import ProfileEditModal from '@/components/ProfileEditModal';
 
@@ -293,6 +294,14 @@ export default function ProfilePage() {
             };
 
             saveProfileCache(current.id, nextProfile);
+            notifyAuthChanged({
+              userId: current.id,
+              profile: {
+                id: current.id,
+                username: nextProfile.username,
+                avatar_path: nextProfile.avatar_path,
+              },
+            });
             return nextProfile;
           });
         }}

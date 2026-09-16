@@ -366,7 +366,7 @@ export async function POST(
       await supabase
         .from('profiles')
         .select(
-          'id, username',
+          'id, username, avatar_path',
         )
         .eq(
           'telegram_id',
@@ -426,6 +426,9 @@ export async function POST(
 
           username:
             existingProfile.username,
+
+          avatar_path:
+            existingProfile.avatar_path ?? null,
         },
       });
     }
@@ -608,6 +611,7 @@ export async function POST(
             createdUser.id,
 
           username,
+          avatar_path: null,
         },
       },
       201,

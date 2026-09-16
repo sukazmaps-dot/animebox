@@ -5,12 +5,7 @@ import Link from 'next/link';
 
 import Icon from '@/components/Icon';
 import { createClient } from '@/lib/supabase/client';
-
-type Profile = {
-  id: string;
-  username: string | null;
-  avatar_path: string | null;
-};
+import { useAuthState } from '@/components/AuthStateProvider';
 
 type Props = {
   pathname: string;
@@ -20,66 +15,9 @@ const telegramUrl = 'https://t.me/yourAnimeBox';
 const donateUrl = 'https://donatepay.ru/don/Armlet';
 
 export default function MobileAccountNav({ pathname }: Props) {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { profile, loading, signOut } = useAuthState();
   const [open, setOpen] = useState(false);
-
   const supabase = useMemo(() => createClient(), []);
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (cancelled) return;
-
-      if (!user) {
-        setProfile(null);
-        setLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_path')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (cancelled) return;
-
-      if (error) {
-        console.error('Mobile profile load error:', error);
-      }
-
-      setProfile(
-        data ?? {
-          id: user.id,
-          username:
-            (user.user_metadata?.username as string | undefined) ??
-            (user.user_metadata?.full_name as string | undefined) ??
-            user.email?.split('@')[0] ??
-            null,
-          avatar_path: null,
-        },
-      );
-      setLoading(false);
-    }
-
-    void loadUser();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      void loadUser();
-    });
-
-    return () => {
-      cancelled = true;
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
 
   useEffect(() => {
     if (!open) return;
@@ -114,9 +52,8 @@ export default function MobileAccountNav({ pathname }: Props) {
     pathname.startsWith('/about');
 
   async function logout() {
-    await supabase.auth.signOut();
-    setProfile(null);
     setOpen(false);
+    await signOut();
     window.location.replace('/');
   }
 
@@ -133,11 +70,7 @@ export default function MobileAccountNav({ pathname }: Props) {
         aria-label={profile ? `Профиль ${username}` : 'Аккаунт'}
       >
         <span className={`mobile-nav__avatar ${loading ? 'is-loading' : ''}`}>
-          {profile ? (
-            <img src={avatarUrl} alt="" />
-          ) : (
-            <Icon name="user" />
-          )}
+          {profile ? <img src={avatarUrl} alt="" /> : <Icon name="user" />}
         </span>
         <span>Профиль</span>
       </button>

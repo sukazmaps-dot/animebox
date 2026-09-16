@@ -1,63 +1,16 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 
 import { createClient } from '@/lib/supabase/client';
-
-type Profile = {
-  id: string;
-  username: string | null;
-  avatar_path: string | null;
-};
+import { useAuthState } from '@/components/AuthStateProvider';
 
 export default function AuthUserButton() {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { profile, loading, signOut } = useAuthState();
   const [open, setOpen] = useState(false);
-
   const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const supabase = createClient();
-
-    async function loadUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        setProfile(null);
-        setLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_path')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Profile load error:', error);
-      }
-
-      setProfile(data);
-      setLoading(false);
-    }
-
-    loadUser();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      loadUser();
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     function handleOutside(event: MouseEvent) {
@@ -85,14 +38,9 @@ export default function AuthUserButton() {
   }, []);
 
   async function logout() {
-    const supabase = createClient();
-
-    await supabase.auth.signOut();
-
     setOpen(false);
-    setProfile(null);
-
-    window.location.href = '/';
+    await signOut();
+    window.location.replace('/');
   }
 
   if (loading) {
@@ -102,75 +50,48 @@ export default function AuthUserButton() {
   if (!profile) {
     return (
       <div className="auth-nav-guest">
-        <Link
-          href="/login"
-          className="auth-nav-login"
-        >
+        <Link href="/login" className="auth-nav-login">
           Войти
         </Link>
 
-        <Link
-          href="/register"
-          className="auth-nav-register"
-        >
+        <Link href="/register" className="auth-nav-register">
           Регистрация
         </Link>
       </div>
     );
   }
 
-  const username =
-    profile.username?.trim() || 'Пользователь';
-
-  const supabase = createClient();
+  const username = profile.username?.trim() || 'Пользователь';
 
   const avatarUrl = profile.avatar_path
     ? supabase.storage
         .from('profile-media')
-        .getPublicUrl(profile.avatar_path)
-        .data.publicUrl
+        .getPublicUrl(profile.avatar_path).data.publicUrl
     : '/default-avatar.webp';
 
   return (
-    <div
-      className="auth-user"
-      ref={menuRef}
-    >
+    <div className="auth-user" ref={menuRef}>
       <button
         type="button"
-        className={`auth-user__trigger ${
-          open ? 'is-open' : ''
-        }`}
-        onClick={() =>
-          setOpen((current) => !current)
-        }
+        className={`auth-user__trigger ${open ? 'is-open' : ''}`}
+        onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
         aria-label="Меню аккаунта"
       >
         <span className="auth-user__avatar">
-          <img
-            src={avatarUrl}
-            alt={`Аватар ${username}`}
-          />
+          <img src={avatarUrl} alt={`Аватар ${username}`} />
         </span>
 
-        <span className="auth-user__username">
-          {username}
-        </span>
+        <span className="auth-user__username">{username}</span>
 
-        <span className="auth-user__chevron">
-          {open ? '▲' : '▼'}
-        </span>
+        <span className="auth-user__chevron">{open ? '▲' : '▼'}</span>
       </button>
 
       {open && (
         <div className="auth-user__dropdown">
           <div className="auth-user__profile">
             <span className="auth-user__profile-avatar">
-              <img
-                src={avatarUrl}
-                alt={`Аватар ${username}`}
-              />
+              <img src={avatarUrl} alt={`Аватар ${username}`} />
             </span>
 
             <div>
@@ -182,26 +103,17 @@ export default function AuthUserButton() {
           <div className="auth-user__divider" />
 
           <div className="auth-user__links">
-            <Link
-              href="/profile"
-              onClick={() => setOpen(false)}
-            >
+            <Link href="/profile" onClick={() => setOpen(false)}>
               <span>Профиль</span>
               <small>→</small>
             </Link>
 
-            <Link
-              href="/list"
-              onClick={() => setOpen(false)}
-            >
+            <Link href="/list" onClick={() => setOpen(false)}>
               <span>Мой трекер</span>
               <small>→</small>
             </Link>
 
-            <Link
-              href="/favorites"
-              onClick={() => setOpen(false)}
-            >
+            <Link href="/favorites" onClick={() => setOpen(false)}>
               <span>Избранное</span>
               <small>→</small>
             </Link>
@@ -212,7 +124,7 @@ export default function AuthUserButton() {
           <button
             type="button"
             className="auth-user__logout"
-            onClick={logout}
+            onClick={() => void logout()}
           >
             Выйти из аккаунта
           </button>

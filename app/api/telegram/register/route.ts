@@ -160,7 +160,7 @@ export async function POST(
       await supabase
         .from('profiles')
         .select(
-          'id, telegram_id',
+          'id, telegram_id, username, avatar_path',
         )
         .eq(
           'telegram_id',
@@ -307,6 +307,12 @@ export async function POST(
 
         userId:
           existingProfile.id,
+
+        profile: {
+          id: existingProfile.id,
+          username: existingProfile.username ?? null,
+          avatar_path: existingProfile.avatar_path ?? null,
+        },
       });
     }
 
@@ -394,7 +400,7 @@ export async function POST(
       } =
         await supabase
           .from('profiles')
-          .select('id')
+          .select('id, username, avatar_path')
           .eq(
             'telegram_id',
             telegramId,
@@ -411,10 +417,13 @@ export async function POST(
           return json({
             ok: true,
             created: false,
-            tokenHash:
-              login.tokenHash,
-            userId:
-              raceProfile.id,
+            tokenHash: login.tokenHash,
+            userId: raceProfile.id,
+            profile: {
+              id: raceProfile.id,
+              username: raceProfile.username ?? null,
+              avatar_path: raceProfile.avatar_path ?? null,
+            },
           });
         }
       }
@@ -539,7 +548,9 @@ export async function POST(
           createdUser.id,
 
         profile: {
+          id: createdUser.id,
           username,
+          avatar_path: null,
         },
       },
       201,

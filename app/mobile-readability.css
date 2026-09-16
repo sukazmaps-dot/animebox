@@ -450,3 +450,120 @@
     font-size: 10px !important;
   }
 }
+
+/* =========================================================
+   Telegram Mini App shell hardening
+   - respects Telegram's stable viewport and safe-area CSS vars
+   - keeps account sheet above the bottom nav
+   - uses an opaque sheet so auth forms never bleed through
+   ========================================================= */
+html.telegram-mini-app {
+  --animebox-safe-top: max(
+    env(safe-area-inset-top, 0px),
+    var(--tg-safe-area-inset-top, 0px),
+    var(--tg-content-safe-area-inset-top, 0px)
+  );
+  --animebox-safe-bottom: max(
+    env(safe-area-inset-bottom, 0px),
+    var(--tg-safe-area-inset-bottom, 0px),
+    var(--tg-content-safe-area-inset-bottom, 0px)
+  );
+}
+
+html.telegram-mini-app,
+html.telegram-mini-app body {
+  min-height: var(
+    --animebox-tg-stable-height,
+    var(--tg-viewport-stable-height, 100dvh)
+  );
+}
+
+.telegram-mini-app__error {
+  position: fixed;
+  z-index: 1000000;
+  top: calc(10px + var(--animebox-safe-top, 0px));
+  left: 50%;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 92, 112, .38);
+  border-radius: 999px;
+  background: rgba(24, 12, 22, .96);
+  color: #ff9eac;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, .38);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  backdrop-filter: blur(14px);
+}
+
+@media (max-width: 720px) {
+  html.telegram-mini-app body {
+    padding-bottom: calc(72px + var(--animebox-safe-bottom));
+  }
+
+  html.telegram-mini-app .topbar {
+    top: var(--animebox-safe-top);
+  }
+
+  html.telegram-mini-app .app-shell {
+    padding-top: calc(56px + var(--animebox-safe-top));
+  }
+
+  html.telegram-mini-app .page-content {
+    padding-bottom: calc(94px + var(--animebox-safe-bottom));
+  }
+
+  html.telegram-mini-app .mobile-nav {
+    bottom: calc(6px + var(--animebox-safe-bottom));
+  }
+
+  html.telegram-mini-app .mobile-account__backdrop {
+    top: var(--animebox-safe-top);
+    bottom: 0;
+    background: rgba(1, 4, 11, .78);
+  }
+
+  html.telegram-mini-app .mobile-account {
+    left: 10px;
+    right: 10px;
+    bottom: calc(var(--mobile-nav-height, 58px) + 18px + var(--animebox-safe-bottom));
+    max-height: min(
+      520px,
+      calc(
+        var(
+          --animebox-tg-stable-height,
+          var(--tg-viewport-stable-height, 100dvh)
+        )
+        - var(--animebox-safe-top)
+        - var(--animebox-safe-bottom)
+        - var(--mobile-nav-height, 58px)
+        - 34px
+      )
+    );
+    padding-bottom: 12px;
+    background: linear-gradient(180deg, #10162a 0%, #080d1b 100%);
+    border-color: rgba(151, 132, 255, .24);
+    box-shadow: 0 24px 72px rgba(0, 0, 0, .62);
+    backdrop-filter: none;
+    scrollbar-width: thin;
+  }
+
+  html.telegram-mini-app .mobile-account__identity {
+    position: sticky;
+    top: -8px;
+    z-index: 2;
+    margin: 0 -2px;
+    padding-top: 7px;
+    background: linear-gradient(180deg, #10162a 78%, rgba(16, 22, 42, 0));
+  }
+
+  html.telegram-mini-app .mobile-account__link {
+    background: #0b1425;
+  }
+}

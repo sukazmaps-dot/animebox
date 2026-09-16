@@ -136,7 +136,7 @@ export async function POST(
     } = await supabase
       .from('profiles')
       .select(
-        'id, telegram_id',
+        'id, telegram_id, username, avatar_path',
       )
       .eq(
         'id',
@@ -259,6 +259,11 @@ export async function POST(
         ok: true,
         linked: true,
         alreadyLinked: true,
+        profile: {
+          id: currentProfile.id,
+          username: currentProfile.username ?? null,
+          avatar_path: currentProfile.avatar_path ?? null,
+        },
 
         telegram: {
           id:
@@ -341,6 +346,11 @@ export async function POST(
       ok: true,
       linked: true,
       alreadyLinked: false,
+      profile: {
+        id: currentProfile.id,
+        username: currentProfile.username ?? null,
+        avatar_path: currentProfile.avatar_path ?? null,
+      },
 
       telegram: {
         id:
