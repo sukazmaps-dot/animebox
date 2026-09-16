@@ -100,11 +100,9 @@ export default function CommunityProfile() {
           <small>Полностью просмотрены</small>
         </article>
 
-        <article className="profile-v2__stat">
-          <span className="profile-v2__stat-label">Уникальных серий</span>
-          <strong>{stats.episodes}</strong>
-          <small>Подтверждено плеером</small>
-        </article>
+       <span className="profile-v2__stat-label">Просмотрено серий</span>
+<strong>{stats.episodes}</strong>
+<small>Засчитано после подтверждённого просмотра</small>
 
         <article className="profile-v2__stat">
           <span className="profile-v2__stat-label">Время просмотра</span>
