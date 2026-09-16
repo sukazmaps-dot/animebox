@@ -26,6 +26,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+
+function formatWatchTime(activeMs: number) {
+  const totalSeconds = Math.max(0, Math.floor(activeMs / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) return `${hours}ч ${minutes}м`;
+  if (minutes > 0) return `${minutes}м ${seconds}с`;
+  return `${seconds}с`;
+}
+
 function formatJoinedDate(value: string) {
   try {
     return new Intl.DateTimeFormat('ru-RU', {
@@ -58,8 +70,7 @@ export default async function PublicProfilePage({ params }: Props) {
   if (!profile) notFound();
 
   const joinedDate = formatJoinedDate(profile.createdAt);
-  const watchHours = Math.floor(profile.stats.minutes / 60);
-  const watchMinutes = profile.stats.minutes % 60;
+  const watchTime = formatWatchTime(profile.stats.activeMs);
 
   return (
     <main className="profile-v2 profile-v2--public">
@@ -126,9 +137,7 @@ export default async function PublicProfilePage({ params }: Props) {
 
         <article className="profile-v2__stat">
           <span className="profile-v2__stat-label">Время просмотра</span>
-          <strong>
-            {watchHours}<em>ч</em> {watchMinutes}<em>м</em>
-          </strong>
+          <strong>{watchTime}</strong>
           <small>По данным плеера</small>
         </article>
 

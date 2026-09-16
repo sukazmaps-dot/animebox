@@ -25,6 +25,7 @@ export type PublicProfileData = {
     episodes: number;
     titles: number;
     minutes: number;
+    activeMs: number;
     comments: number;
   };
   achievements: PublicAchievement[];
@@ -183,6 +184,7 @@ export async function getPublicProfile(
       episodes,
       titles,
       minutes: Math.floor(watchSummary.activeMs / 60_000),
+      activeMs: Math.floor(watchSummary.activeMs),
       comments,
     },
     achievements,

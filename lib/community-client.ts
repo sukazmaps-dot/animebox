@@ -29,6 +29,7 @@ export type CommunityProfile = {
     episodes: number;
     titles: number;
     minutes: number;
+    active_ms: number;
     shonen_titles: number;
     comments: number;
   } & Record<LibraryStatus, number>;

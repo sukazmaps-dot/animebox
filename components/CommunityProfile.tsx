@@ -9,6 +9,36 @@ import {
   type CommunityProfile as ProfileData,
 } from '@/lib/community-client';
 
+
+function WatchTime({ activeMs }: { activeMs: number }) {
+  const totalSeconds = Math.max(0, Math.floor(activeMs / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return (
+      <>
+        {hours}<em>ч</em> {minutes}<em>м</em>
+      </>
+    );
+  }
+
+  if (minutes > 0) {
+    return (
+      <>
+        {minutes}<em>м</em> {seconds}<em>с</em>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {seconds}<em>с</em>
+    </>
+  );
+}
+
 export default function CommunityProfile() {
   const [data, setData] = useState<ProfileData | null>(null);
   const [error, setError] = useState('');
@@ -60,8 +90,6 @@ export default function CommunityProfile() {
   }
 
   const { stats } = data;
-  const watchHours = Math.floor(stats.minutes / 60);
-  const watchMinutes = stats.minutes % 60;
 
   return (
     <>
@@ -81,7 +109,7 @@ export default function CommunityProfile() {
         <article className="profile-v2__stat">
           <span className="profile-v2__stat-label">Время просмотра</span>
           <strong>
-            {watchHours}<em>ч</em> {watchMinutes}<em>м</em>
+            <WatchTime activeMs={stats.active_ms} />
           </strong>
           <small>По данным плеера</small>
         </article>

@@ -29,6 +29,7 @@ export async function GET() {
         ...(rawStats as Record<string, unknown>),
         episodes: watchSummary.completedEpisodes,
         minutes: Math.floor(watchSummary.activeMs / 60_000),
+        active_ms: Math.floor(watchSummary.activeMs),
       },
     });
   } catch (error) {
