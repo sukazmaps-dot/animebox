@@ -5,6 +5,35 @@ const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
 
 const SITE_URL = 'https://youranimebox.com';
 
+const MAIN_MENU = {
+  inline_keyboard: [
+    [
+      {
+        text: '🌐 Открыть AnimeBox',
+        url: SITE_URL,
+      },
+    ],
+    [
+      {
+        text: '📚 Мой трекер',
+        url: `${SITE_URL}/list`,
+      },
+      {
+        text: '🔍 Найти аниме',
+        url: `${SITE_URL}/search`,
+      },
+    ],
+    [
+      {
+        text: '📅 Расписание',
+        url: `${SITE_URL}/schedule`,
+      },
+    ],
+  ],
+};
+
+
+
 async function sendMessage(
   chatId: number,
   text: string,
@@ -74,32 +103,22 @@ export async function POST(request: NextRequest) {
       .toLowerCase();
 
     switch (command) {
-      case '/start':
-        await sendMessage(
-          chatId,
-          [
-            '👾 <b>Добро пожаловать в AnimeBox!</b>',
-            '',
-            'Отслеживай аниме, сохраняй прогресс и получай уведомления о новых сериях.',
-          ].join('\n'),
-          {
-            inline_keyboard: [
-              [
-                {
-                  text: '🌐 Открыть AnimeBox',
-                  url: SITE_URL,
-                },
-              ],
-              [
-                {
-                  text: '📚 Мой трекер',
-                  url: `${SITE_URL}/list`,
-                },
-              ],
-            ],
-          },
-        );
-        break;
+      case '/help':
+  await sendMessage(
+    chatId,
+    [
+      '💜 <b>AnimeBox Bot</b>',
+      '',
+      'Доступные команды:',
+      '/start — главное меню',
+      '/open — открыть AnimeBox',
+      '/tracker — открыть трекер',
+      '/notifications — уведомления',
+      '/help — помощь',
+    ].join('\n'),
+    MAIN_MENU,
+  );
+  break;
 
       case '/open':
         await sendMessage(
