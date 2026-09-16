@@ -1,0 +1,148 @@
+/* =========================================================
+   AnimeBox home anime rails
+   Horizontal paging for popular / ongoing / recommendations.
+   ========================================================= */
+
+.home-anime-rail {
+  position: relative;
+  min-width: 0;
+}
+
+.home-anime-rail__viewport {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 52px) / 5);
+  gap: 13px;
+
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 1px 12px;
+
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+}
+
+.home-anime-rail__viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.home-anime-rail__viewport .anime-card {
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+}
+
+.home-anime-rail__arrow {
+  position: absolute;
+  top: 38%;
+  z-index: 12;
+
+  display: grid;
+  place-items: center;
+
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgba(164, 143, 255, .30);
+  border-radius: 50%;
+
+  background: rgba(8, 12, 27, .92);
+  color: #f4f1ff;
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, .38),
+    0 0 24px rgba(110, 82, 255, .12);
+
+  font: inherit;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+
+  transform: translateY(-50%);
+  transition:
+    opacity .2s ease,
+    transform .2s ease,
+    border-color .2s ease,
+    background .2s ease;
+}
+
+.home-anime-rail__arrow:hover:not(:disabled) {
+  border-color: rgba(164, 143, 255, .58);
+  background: rgba(20, 19, 47, .98);
+  transform: translateY(-50%) scale(1.05);
+}
+
+.home-anime-rail__arrow:focus-visible {
+  outline: 2px solid rgba(170, 148, 255, .85);
+  outline-offset: 3px;
+}
+
+.home-anime-rail__arrow:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.home-anime-rail__arrow--prev {
+  left: -16px;
+}
+
+.home-anime-rail__arrow--next {
+  right: -16px;
+}
+
+@media (max-width: 1200px) {
+  .home-anime-rail__viewport {
+    grid-auto-columns: calc((100% - 36px) / 5);
+    gap: 9px;
+  }
+
+  .home-anime-rail__arrow--prev {
+    left: -12px;
+  }
+
+  .home-anime-rail__arrow--next {
+    right: -12px;
+  }
+}
+
+@media (max-width: 1000px) and (min-width: 721px) {
+  .home-anime-rail__viewport {
+    grid-auto-columns: calc((100% - 33px) / 4);
+    gap: 11px;
+  }
+}
+
+@media (max-width: 720px) {
+  .home-anime-rail__viewport {
+    grid-auto-columns: min(39vw, 154px);
+    gap: 10px;
+    margin-inline: -2px;
+    padding-inline: 2px;
+    scroll-snap-type: x proximity;
+  }
+
+  /*
+   * На телефоне естественный свайп удобнее стрелок.
+   * Следующая карточка остаётся слегка видна и подсказывает, что лента листается.
+   */
+  .home-anime-rail__arrow {
+    display: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .home-anime-rail__viewport {
+    grid-auto-columns: min(40vw, 146px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-anime-rail__viewport {
+    scroll-behavior: auto;
+  }
+
+  .home-anime-rail__arrow {
+    transition: none;
+  }
+}
