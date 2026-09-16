@@ -5,35 +5,60 @@ const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
 
 const SITE_URL = 'https://youranimebox.com';
 
-const MAIN_MENU = {
-  inline_keyboard: [
+/**
+ * Постоянное меню снизу Telegram.
+ * web_app открывает AnimeBox прямо внутри Telegram.
+ */
+const BOTTOM_MENU = {
+  keyboard: [
     [
       {
         text: '🌐 Открыть AnimeBox',
-        url: SITE_URL,
+        web_app: {
+          url: SITE_URL,
+        },
       },
     ],
     [
       {
         text: '📚 Мой трекер',
-        url: `${SITE_URL}/list`,
+        web_app: {
+          url: `${SITE_URL}/list`,
+        },
       },
       {
         text: '🔍 Найти аниме',
-        url: `${SITE_URL}/search`,
+        web_app: {
+          url: `${SITE_URL}/search`,
+        },
       },
     ],
     [
       {
         text: '📅 Расписание',
-        url: `${SITE_URL}/schedule`,
+        web_app: {
+          url: `${SITE_URL}/schedule`,
+        },
+      },
+    ],
+    [
+      {
+        text: '🔔 Уведомления',
+      },
+      {
+        text: '💜 Помощь',
       },
     ],
   ],
+
+  resize_keyboard: true,
+  is_persistent: true,
+  input_field_placeholder: 'Выбери действие 👇',
 };
 
-
-
+/**
+ * Отправка сообщения через Telegram Bot API.
+ */
 async function sendMessage(
   chatId: number,
   text: string,
@@ -47,9 +72,11 @@ async function sendMessage(
     `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
     {
       method: 'POST',
+
       headers: {
         'Content-Type': 'application/json',
       },
+
       body: JSON.stringify({
         chat_id: chatId,
         text,
@@ -61,148 +88,244 @@ async function sendMessage(
   );
 
   if (!response.ok) {
+    const errorText = await response.text();
+
     throw new Error(
-      `Telegram error: ${response.status} ${await response.text()}`,
+      `Telegram API error ${response.status}: ${errorText}`,
     );
   }
 }
 
+/**
+ * Telegram webhook.
+ */
 export async function POST(request: NextRequest) {
   try {
-    // Проверяем, что запрос реально пришёл от нашего webhook
-    if (WEBHOOK_SECRET) {
-      const secret = request.headers.get(
-        'x-telegram-bot-api-secret-token',
+    /**
+     * Если env случайно не настроены,
+     * лучше сразу вернуть ошибку,
+     * а не принимать webhook без защиты.
+     */
+    if (!BOT_TOKEN || !WEBHOOK_SECRET) {
+      console.error(
+        'Telegram webhook environment variables are missing',
       );
 
-      if (secret !== WEBHOOK_SECRET) {
-        return NextResponse.json(
-          { ok: false, error: 'unauthorized' },
-          { status: 401 },
-        );
-      }
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'server_not_configured',
+        },
+        {
+          status: 500,
+        },
+      );
+    }
+
+    /**
+     * Проверяем secret_token,
+     * который Telegram отправляет вместе с webhook.
+     */
+    const telegramSecret = request.headers.get(
+      'x-telegram-bot-api-secret-token',
+    );
+
+    if (telegramSecret !== WEBHOOK_SECRET) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'unauthorized',
+        },
+        {
+          status: 401,
+        },
+      );
     }
 
     const update = await request.json();
 
     const message = update?.message;
     const chatId = message?.chat?.id;
+
     const text =
       typeof message?.text === 'string'
         ? message.text.trim()
         : '';
 
+    /**
+     * Telegram может присылать не только текстовые сообщения.
+     * Просто подтверждаем такие updates.
+     */
     if (!chatId || !text) {
-      return NextResponse.json({ ok: true });
+      return NextResponse.json({
+        ok: true,
+      });
     }
 
-    // Убираем @BotUsername из команд группового чата
+    /**
+     * Для команд:
+     * /start
+     * /start@YourAnimeBoxBot
+     */
     const command = text
       .split(/\s+/)[0]
       .split('@')[0]
       .toLowerCase();
 
-    switch (command) {
-      case '/help':
-  await sendMessage(
-    chatId,
-    [
-      '💜 <b>AnimeBox Bot</b>',
-      '',
-      'Доступные команды:',
-      '/start — главное меню',
-      '/open — открыть AnimeBox',
-      '/tracker — открыть трекер',
-      '/notifications — уведомления',
-      '/help — помощь',
-    ].join('\n'),
-    MAIN_MENU,
-  );
-  break;
+    const normalizedText = text.toLowerCase();
 
-      case '/open':
-        await sendMessage(
-          chatId,
-          '🌐 <b>AnimeBox</b>\n\nСмотри и отслеживай свои аниме.',
-          {
-            inline_keyboard: [
-              [
-                {
-                  text: 'Открыть AnimeBox',
-                  url: SITE_URL,
-                },
-              ],
-            ],
-          },
-        );
-        break;
+    /**
+     * =====================================================
+     * /start
+     * =====================================================
+     */
+    if (command === '/start') {
+      await sendMessage(
+        chatId,
+        [
+          '👾 <b>Добро пожаловать в AnimeBox!</b>',
+          '',
+          'Смотри аниме, сохраняй прогресс и не пропускай новые серии.',
+          '',
+          '🔔 Я буду сообщать тебе о выходе новых эпизодов.',
+          '',
+          'Используй меню снизу 👇',
+        ].join('\n'),
+        BOTTOM_MENU,
+      );
 
-      case '/tracker':
-        await sendMessage(
-          chatId,
-          '📚 <b>Твой трекер AnimeBox</b>\n\nПродолжай просмотр с того места, где остановился.',
-          {
-            inline_keyboard: [
-              [
-                {
-                  text: '📚 Открыть трекер',
-                  url: `${SITE_URL}/list`,
-                },
-              ],
-            ],
-          },
-        );
-        break;
-
-      case '/notifications':
-        await sendMessage(
-          chatId,
-          [
-            '🔔 <b>Уведомления AnimeBox</b>',
-            '',
-            'Я сообщу тебе о выходе новых серий отслеживаемых аниме.',
-          ].join('\n'),
-          {
-            inline_keyboard: [
-              [
-                {
-                  text: '⚙️ Открыть AnimeBox',
-                  url: SITE_URL,
-                },
-              ],
-            ],
-          },
-        );
-        break;
-
-      case '/help':
-        await sendMessage(
-          chatId,
-          [
-            '💜 <b>AnimeBox Bot</b>',
-            '',
-            'Доступные команды:',
-            '/start — запустить бота',
-            '/open — открыть AnimeBox',
-            '/tracker — открыть трекер',
-            '/notifications — уведомления',
-            '/help — помощь',
-          ].join('\n'),
-        );
-        break;
-
-      default:
-        // На обычные сообщения бот может просто не реагировать
-        break;
+      return NextResponse.json({
+        ok: true,
+      });
     }
 
-    return NextResponse.json({ ok: true });
+    /**
+     * =====================================================
+     * /open
+     * =====================================================
+     */
+    if (command === '/open') {
+      await sendMessage(
+        chatId,
+        [
+          '🌐 <b>AnimeBox</b>',
+          '',
+          'Нажми кнопку «Открыть AnimeBox» в меню снизу 👇',
+        ].join('\n'),
+        BOTTOM_MENU,
+      );
+
+      return NextResponse.json({
+        ok: true,
+      });
+    }
+
+    /**
+     * =====================================================
+     * /tracker
+     * =====================================================
+     */
+    if (command === '/tracker') {
+      await sendMessage(
+        chatId,
+        [
+          '📚 <b>Твой трекер AnimeBox</b>',
+          '',
+          'Продолжай просмотр с того места, где остановился.',
+          '',
+          'Нажми «Мой трекер» в меню снизу 👇',
+        ].join('\n'),
+        BOTTOM_MENU,
+      );
+
+      return NextResponse.json({
+        ok: true,
+      });
+    }
+
+    /**
+     * =====================================================
+     * Уведомления
+     * =====================================================
+     */
+    if (
+      command === '/notifications' ||
+      normalizedText === '🔔 уведомления'
+    ) {
+      await sendMessage(
+        chatId,
+        [
+          '🔔 <b>Уведомления AnimeBox</b>',
+          '',
+          'Я сообщу тебе, когда выйдет новая серия аниме, которое ты отслеживаешь.',
+          '',
+          'Добавляй тайтлы в свой трекер AnimeBox — остальное сделаю я 💜',
+        ].join('\n'),
+        BOTTOM_MENU,
+      );
+
+      return NextResponse.json({
+        ok: true,
+      });
+    }
+
+    /**
+     * =====================================================
+     * Помощь
+     * =====================================================
+     */
+    if (
+      command === '/help' ||
+      normalizedText === '💜 помощь'
+    ) {
+      await sendMessage(
+        chatId,
+        [
+          '💜 <b>AnimeBox Bot</b>',
+          '',
+          'Через меня ты можешь:',
+          '',
+          '🌐 открыть AnimeBox',
+          '📚 перейти в свой трекер',
+          '🔍 найти аниме',
+          '📅 посмотреть расписание',
+          '🔔 получать уведомления о новых сериях',
+          '',
+          '<b>Команды:</b>',
+          '/start — главное меню',
+          '/open — открыть AnimeBox',
+          '/tracker — мой трекер',
+          '/notifications — уведомления',
+          '/help — помощь',
+        ].join('\n'),
+        BOTTOM_MENU,
+      );
+
+      return NextResponse.json({
+        ok: true,
+      });
+    }
+
+    /**
+     * Обычные сообщения бот пока игнорирует.
+     */
+    return NextResponse.json({
+      ok: true,
+    });
   } catch (error) {
-    console.error('Telegram webhook error:', error);
+    console.error(
+      'Telegram webhook error:',
+      error,
+    );
 
     return NextResponse.json(
-      { ok: false },
-      { status: 500 },
+      {
+        ok: false,
+        error: 'internal_error',
+      },
+      {
+        status: 500,
+      },
     );
   }
 }
