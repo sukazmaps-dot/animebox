@@ -18,6 +18,13 @@ import {
   type AuthChangedDetail,
   type AuthProfileSnapshot,
 } from '@/lib/auth-events';
+import {
+  TELEGRAM_AUTOLOGIN_CHANGED_EVENT,
+  disableTelegramAutoLogin,
+  enableTelegramAutoLogin,
+  isTelegramAutoLoginDisabled,
+  isTelegramMiniAppRuntime,
+} from '@/lib/telegram-auto-login';
 
 type AuthStateValue = {
   user: User | null;
@@ -25,6 +32,9 @@ type AuthStateValue = {
   loading: boolean;
   refresh: () => Promise<void>;
   signOut: () => Promise<void>;
+  telegramMiniApp: boolean;
+  telegramAutoLoginDisabled: boolean;
+  resumeTelegramAutoLogin: () => void;
 };
 
 type CachedAuthProfile = {
@@ -105,6 +115,9 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<AuthProfileSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
+  const [telegramMiniApp, setTelegramMiniApp] = useState(false);
+  const [telegramAutoLoginDisabled, setTelegramAutoLoginDisabled] =
+    useState(false);
 
   const refreshSerial = useRef(0);
 
@@ -173,6 +186,31 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
     setProfile(nextProfile);
     saveCachedProfile(nextProfile);
   }, [supabase]);
+
+  useEffect(() => {
+    function syncTelegramMode() {
+      const inMiniApp = isTelegramMiniAppRuntime();
+
+      setTelegramMiniApp(inMiniApp);
+      setTelegramAutoLoginDisabled(
+        inMiniApp && isTelegramAutoLoginDisabled(),
+      );
+    }
+
+    syncTelegramMode();
+
+    window.addEventListener(
+      TELEGRAM_AUTOLOGIN_CHANGED_EVENT,
+      syncTelegramMode,
+    );
+
+    return () => {
+      window.removeEventListener(
+        TELEGRAM_AUTOLOGIN_CHANGED_EVENT,
+        syncTelegramMode,
+      );
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -268,16 +306,42 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     refreshSerial.current += 1;
+
+    if (isTelegramMiniAppRuntime()) {
+      disableTelegramAutoLogin();
+      setTelegramMiniApp(true);
+      setTelegramAutoLoginDisabled(true);
+    }
+
     clearCachedProfile();
     setUser(null);
     setProfile(null);
     setLoading(false);
 
     const { error } = await supabase.auth.signOut();
+
     if (error) {
       console.error('[AuthState] sign out:', error);
+
+      // Keep the local logout usable even if the global revoke request fails.
+      const { error: localError } = await supabase.auth.signOut({
+        scope: 'local',
+      });
+
+      if (localError) {
+        console.error('[AuthState] local sign out:', localError);
+      }
     }
   }, [supabase]);
+
+  const resumeTelegramAutoLogin = useCallback(() => {
+    enableTelegramAutoLogin();
+    setTelegramMiniApp(isTelegramMiniAppRuntime());
+    setTelegramAutoLoginDisabled(false);
+
+    // A full reload lets TelegramMiniAppBridge start a fresh verified flow.
+    window.location.reload();
+  }, []);
 
   const value = useMemo<AuthStateValue>(
     () => ({
@@ -286,8 +350,20 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
       loading,
       refresh,
       signOut,
+      telegramMiniApp,
+      telegramAutoLoginDisabled,
+      resumeTelegramAutoLogin,
     }),
-    [loading, profile, refresh, signOut, user],
+    [
+      loading,
+      profile,
+      refresh,
+      resumeTelegramAutoLogin,
+      signOut,
+      telegramAutoLoginDisabled,
+      telegramMiniApp,
+      user,
+    ],
   );
 
   return (

@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
 import { notifyAuthChanged } from '@/lib/auth-events';
+import {
+  enableTelegramAutoLogin,
+  isTelegramAutoLoginDisabled,
+} from '@/lib/telegram-auto-login';
 
 type ApiResponse = {
   ok?: boolean;
@@ -120,6 +124,9 @@ export default function TelegramMiniAppBridge() {
     root.dataset.telegram = 'true';
     root.classList.add('telegram-mini-app');
 
+    const autoLoginDisabled = isTelegramAutoLoginDisabled();
+    root.dataset.telegramAutologin = autoLoginDisabled ? 'disabled' : 'enabled';
+
     telegram.ready();
     telegram.expand();
 
@@ -180,6 +187,8 @@ export default function TelegramMiniAppBridge() {
       userId?: string,
       profile?: ApiResponse['profile'],
     ) {
+      enableTelegramAutoLogin();
+      root.dataset.telegramAutologin = 'enabled';
       root.dataset.telegramVerified = 'true';
       root.dataset.telegramLinked = 'true';
       root.dataset.telegramAuthenticated = 'true';
@@ -392,7 +401,12 @@ export default function TelegramMiniAppBridge() {
       }
     }
 
-    void initialize();
+    if (autoLoginDisabled) {
+      root.dataset.telegramVerified = 'false';
+      root.dataset.telegramAuthenticated = 'false';
+    } else {
+      void initialize();
+    }
 
     return () => {
       destroyed = true;

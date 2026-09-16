@@ -15,7 +15,14 @@ const telegramUrl = 'https://t.me/yourAnimeBox';
 const donateUrl = 'https://donatepay.ru/don/Armlet';
 
 export default function MobileAccountNav({ pathname }: Props) {
-  const { profile, loading, signOut } = useAuthState();
+  const {
+    profile,
+    loading,
+    signOut,
+    telegramMiniApp,
+    telegramAutoLoginDisabled,
+    resumeTelegramAutoLogin,
+  } = useAuthState();
   const [open, setOpen] = useState(false);
   const supabase = useMemo(() => createClient(), []);
 
@@ -107,7 +114,11 @@ export default function MobileAccountNav({ pathname }: Props) {
                 <span>
                   {profile
                     ? 'Профиль, коллекция и настройки'
-                    : 'Войди, чтобы синхронизировать прогресс'}
+                    : telegramMiniApp && telegramAutoLoginDisabled
+                      ? 'Автовход через Telegram выключен'
+                      : telegramMiniApp
+                        ? 'Войди через Telegram или другим способом'
+                        : 'Войди, чтобы синхронизировать прогресс'}
                 </span>
               </div>
 
@@ -123,20 +134,45 @@ export default function MobileAccountNav({ pathname }: Props) {
 
             {!profile && (
               <div className="mobile-account__auth-actions">
-                <Link
-                  href="/login"
-                  className="mobile-account__auth-button"
-                  onClick={() => setOpen(false)}
-                >
-                  Войти
-                </Link>
-                <Link
-                  href="/register"
-                  className="mobile-account__auth-button mobile-account__auth-button--primary"
-                  onClick={() => setOpen(false)}
-                >
-                  Регистрация
-                </Link>
+                {telegramMiniApp ? (
+                  <>
+                    <button
+                      type="button"
+                      className="mobile-account__auth-button mobile-account__auth-button--primary"
+                      onClick={() => {
+                        setOpen(false);
+                        resumeTelegramAutoLogin();
+                      }}
+                    >
+                      Войти через Telegram
+                    </button>
+
+                    <Link
+                      href="/login"
+                      className="mobile-account__auth-button"
+                      onClick={() => setOpen(false)}
+                    >
+                      Другой способ
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/login"
+                      className="mobile-account__auth-button"
+                      onClick={() => setOpen(false)}
+                    >
+                      Войти
+                    </Link>
+                    <Link
+                      href="/register"
+                      className="mobile-account__auth-button mobile-account__auth-button--primary"
+                      onClick={() => setOpen(false)}
+                    >
+                      Регистрация
+                    </Link>
+                  </>
+                )}
               </div>
             )}
 

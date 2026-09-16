@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
 import { notifyAuthChanged } from '@/lib/auth-events';
+import { enableTelegramAutoLogin } from '@/lib/telegram-auto-login';
 
 type TelegramAuthResult = {
   id_token?: string;
@@ -648,6 +649,8 @@ export default function TelegramAuthButton({
        * Navbar / mobile account обновятся ещё до навигации.
        * -----------------------------------------------------
        */
+      enableTelegramAutoLogin();
+
       notifyAuthChanged({
         userId: loginData.user.id,
         profile: data.profile

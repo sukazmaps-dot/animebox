@@ -7,7 +7,13 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/components/AuthStateProvider';
 
 export default function AuthUserButton() {
-  const { profile, loading, signOut } = useAuthState();
+  const {
+    profile,
+    loading,
+    signOut,
+    telegramMiniApp,
+    resumeTelegramAutoLogin,
+  } = useAuthState();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const supabase = useMemo(() => createClient(), []);
@@ -50,13 +56,31 @@ export default function AuthUserButton() {
   if (!profile) {
     return (
       <div className="auth-nav-guest">
-        <Link href="/login" className="auth-nav-login">
-          Войти
-        </Link>
+        {telegramMiniApp ? (
+          <>
+            <Link href="/login" className="auth-nav-login">
+              Другой вход
+            </Link>
 
-        <Link href="/register" className="auth-nav-register">
-          Регистрация
-        </Link>
+            <button
+              type="button"
+              className="auth-nav-register auth-nav-telegram"
+              onClick={resumeTelegramAutoLogin}
+            >
+              Войти через Telegram
+            </button>
+          </>
+        ) : (
+          <>
+            <Link href="/login" className="auth-nav-login">
+              Войти
+            </Link>
+
+            <Link href="/register" className="auth-nav-register">
+              Регистрация
+            </Link>
+          </>
+        )}
       </div>
     );
   }

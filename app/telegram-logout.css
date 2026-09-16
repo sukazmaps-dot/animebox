@@ -1,0 +1,17 @@
+/* Stage 13.15 — explicit Telegram Mini App logout / guest mode */
+
+.auth-nav-telegram {
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mobile-account__auth-button:is(button) {
+  width: 100%;
+  font: inherit;
+  cursor: pointer;
+}
+
+html.telegram-mini-app[data-telegram-autologin='disabled'] .mobile-account {
+  border-color: rgba(85, 172, 238, 0.24);
+}

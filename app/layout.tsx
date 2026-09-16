@@ -6,6 +6,7 @@ import './visual-refresh.css';
 import './community.css';
 import './design-v5.css';
 import './mobile-readability.css';
+import './telegram-logout.css';
 
 import Navbar from '@/components/Navbar';
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
