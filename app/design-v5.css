@@ -2152,3 +2152,15 @@ body {
   display: grid;
   gap: 10px;
 }
+
+.auth-form__forgot {
+  color: #8e78ff;
+  font-size: 9px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color .18s ease;
+}
+
+.auth-form__forgot:hover {
+  color: #b9aaff;
+}

@@ -1,12 +1,8 @@
 'use client';
 
-import {
-  useState,
-} from 'react';
+import { useState } from 'react';
 
-import {
-  createClient,
-} from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 
 type TelegramAuthResult = {
   id_token?: string;
@@ -22,8 +18,7 @@ type TelegramLoginApi = {
       nonce?: string;
     },
     callback: (
-      result:
-        TelegramAuthResult,
+      result: TelegramAuthResult,
     ) => void,
   ): void;
 };
@@ -37,12 +32,36 @@ type Props = {
   ) => void;
 };
 
+type ApiResponse = {
+  ok?: boolean;
+
+  nonce?: string;
+
+  tokenHash?: string;
+
+  created?: boolean;
+
+  error?: string;
+
+  reason?: string;
+
+  profile?: {
+    id?: string;
+    username?: string | null;
+  };
+};
+
 const SCRIPT_ID =
   'animebox-telegram-login';
 
 const SCRIPT_SRC =
   'https://oauth.telegram.org/js/telegram-login.js?3';
 
+/*
+ * ---------------------------------------------------------
+ * Получаем Telegram Login API из window.
+ * ---------------------------------------------------------
+ */
 function getTelegramLogin():
   | TelegramLoginApi
   | undefined {
@@ -55,12 +74,80 @@ function getTelegramLogin():
   ).Telegram?.Login;
 }
 
+/*
+ * ---------------------------------------------------------
+ * Безопасно читаем ответ нашего API.
+ *
+ * Если Next/Vercel вернул HTML:
+ *
+ * <!DOCTYPE html>...
+ *
+ * мы НЕ пытаемся слепо вызвать response.json().
+ * ---------------------------------------------------------
+ */
+async function readJsonResponse(
+  response: Response,
+): Promise<ApiResponse> {
+  const text =
+    await response.text();
+
+  if (!text) {
+    if (!response.ok) {
+      throw new Error(
+        `telegram_api_http_${response.status}`,
+      );
+    }
+
+    return {};
+  }
+
+  try {
+    return JSON.parse(
+      text,
+    ) as ApiResponse;
+  } catch {
+    console.error(
+      '[Telegram Auth] API returned non-JSON response:',
+      {
+        status:
+          response.status,
+
+        url:
+          response.url,
+
+        contentType:
+          response.headers.get(
+            'content-type',
+          ),
+
+        preview:
+          text.slice(
+            0,
+            250,
+          ),
+      },
+    );
+
+    throw new Error(
+      `telegram_api_http_${response.status}`,
+    );
+  }
+}
+
+/*
+ * ---------------------------------------------------------
+ * Загружаем официальный Telegram Login SDK.
+ * ---------------------------------------------------------
+ */
 function loadTelegramLogin() {
   return new Promise<void>(
     (
       resolve,
       reject,
     ) => {
+      /*
+       * Уже загружен.
+       */
       if (
         getTelegramLogin()
       ) {
@@ -68,6 +155,10 @@ function loadTelegramLogin() {
         return;
       }
 
+      /*
+       * Script уже добавлен,
+       * но Telegram.Login ещё инициализируется.
+       */
       const existing =
         document.getElementById(
           SCRIPT_ID,
@@ -76,6 +167,9 @@ function loadTelegramLogin() {
           | null;
 
       if (existing) {
+        const startedAt =
+          Date.now();
+
         const check =
           window.setInterval(
             () => {
@@ -87,35 +181,38 @@ function loadTelegramLogin() {
                 );
 
                 resolve();
+
+                return;
+              }
+
+              /*
+               * Максимум 5 секунд.
+               */
+              if (
+                Date.now() -
+                  startedAt >
+                5000
+              ) {
+                window.clearInterval(
+                  check,
+                );
+
+                reject(
+                  new Error(
+                    'telegram_sdk_not_loaded',
+                  ),
+                );
               }
             },
             50,
           );
 
-        window.setTimeout(
-          () => {
-            window.clearInterval(
-              check,
-            );
-
-            if (
-              getTelegramLogin()
-            ) {
-              resolve();
-            } else {
-              reject(
-                new Error(
-                  'telegram_sdk_not_loaded',
-                ),
-              );
-            }
-          },
-          5000,
-        );
-
         return;
       }
 
+      /*
+       * Загружаем Telegram SDK.
+       */
       const script =
         document.createElement(
           'script',
@@ -161,16 +258,55 @@ function loadTelegramLogin() {
   );
 }
 
+/*
+ * ---------------------------------------------------------
+ * Перевод технических ошибок
+ * в нормальные пользовательские.
+ * ---------------------------------------------------------
+ */
 function humanizeError(
   error: string,
 ) {
+  if (
+    error.startsWith(
+      'telegram_api_http_',
+    )
+  ) {
+    const status =
+      error.replace(
+        'telegram_api_http_',
+        '',
+      );
+
+    if (
+      status === '404'
+    ) {
+      return 'Telegram API AnimeBox не найден. Проверь новый deployment.';
+    }
+
+    if (
+      status === '500'
+    ) {
+      return 'Ошибка Telegram API AnimeBox. Проверь Vercel Logs.';
+    }
+
+    return `Telegram API временно недоступен (${status}).`;
+  }
+
   switch (error) {
     case 'telegram_not_configured':
       return 'Вход через Telegram пока не настроен.';
 
+    case 'telegram_nonce_failed':
+    case 'telegram_nonce_missing':
+      return 'Не удалось начать безопасный вход через Telegram.';
+
     case 'invalid_telegram_token':
     case 'invalid_telegram_nonce':
       return 'Не удалось подтвердить вход через Telegram.';
+
+    case 'telegram_token_missing':
+      return 'Telegram не вернул данные авторизации.';
 
     case 'telegram_registration_failed':
       return 'Не удалось создать аккаунт через Telegram.';
@@ -178,9 +314,18 @@ function humanizeError(
     case 'profile_creation_failed':
       return 'Не удалось создать профиль AnimeBox.';
 
+    case 'profile_lookup_failed':
+      return 'Не удалось проверить профиль AnimeBox.';
+
+    case 'auth_user_not_found':
+      return 'Связанный аккаунт AnimeBox не найден.';
+
     case 'session_token_failed':
     case 'session_token_missing':
       return 'Не удалось создать сессию AnimeBox.';
+
+    case 'supabase_login_failed':
+      return 'Не удалось выполнить вход в AnimeBox.';
 
     case 'telegram_sdk_load_failed':
     case 'telegram_sdk_not_loaded':
@@ -218,6 +363,11 @@ export default function TelegramAuthButton({
     setLoading(true);
 
     try {
+      /*
+       * -----------------------------------------------------
+       * 1. Проверяем Telegram Client ID.
+       * -----------------------------------------------------
+       */
       const clientIdRaw =
         process.env
           .NEXT_PUBLIC_TELEGRAM_CLIENT_ID;
@@ -239,7 +389,9 @@ export default function TelegramAuthButton({
       }
 
       /*
-       * Получаем серверный nonce.
+       * -----------------------------------------------------
+       * 2. Получаем одноразовый nonce с backend.
+       * -----------------------------------------------------
        */
       const nonceResponse =
         await fetch(
@@ -250,24 +402,46 @@ export default function TelegramAuthButton({
 
             cache:
               'no-store',
+
+            headers: {
+              Accept:
+                'application/json',
+            },
           },
         );
 
       const nonceData =
-        await nonceResponse.json();
+        await readJsonResponse(
+          nonceResponse,
+        );
 
       if (
-        !nonceResponse.ok ||
-        !nonceData?.ok ||
+        !nonceResponse.ok
+      ) {
+        throw new Error(
+          nonceData.error ??
+            nonceData.reason ??
+            `telegram_api_http_${nonceResponse.status}`,
+        );
+      }
+
+      if (
+        !nonceData.ok ||
         typeof nonceData.nonce !==
           'string'
       ) {
         throw new Error(
-          nonceData?.error ??
+          nonceData.error ??
+            nonceData.reason ??
             'telegram_nonce_failed',
         );
       }
 
+      /*
+       * -----------------------------------------------------
+       * 3. Загружаем Telegram Login SDK.
+       * -----------------------------------------------------
+       */
       await loadTelegramLogin();
 
       const telegramLogin =
@@ -282,7 +456,9 @@ export default function TelegramAuthButton({
       }
 
       /*
-       * Telegram popup.
+       * -----------------------------------------------------
+       * 4. Открываем Telegram Login.
+       * -----------------------------------------------------
        */
       const result =
         await new Promise<
@@ -307,7 +483,13 @@ export default function TelegramAuthButton({
                   nonceData.nonce,
               },
 
-              resolve,
+              (
+                result,
+              ) => {
+                resolve(
+                  result,
+                );
+              },
             );
           },
         );
@@ -329,12 +511,12 @@ export default function TelegramAuthButton({
       }
 
       /*
-       * Никогда не доверяем
-       * Telegram user объекту
-       * из frontend callback.
+       * -----------------------------------------------------
+       * 5. Отправляем подписанный id_token на backend.
        *
-       * На сервер отправляется
-       * подписанный id_token.
+       * Frontend Telegram-профилю не доверяем.
+       * Проверку подписи делает сервер.
+       * -----------------------------------------------------
        */
       const response =
         await fetch(
@@ -345,6 +527,9 @@ export default function TelegramAuthButton({
 
             headers: {
               'Content-Type':
+                'application/json',
+
+              Accept:
                 'application/json',
             },
 
@@ -360,21 +545,34 @@ export default function TelegramAuthButton({
         );
 
       const data =
-        await response.json();
+        await readJsonResponse(
+          response,
+        );
 
       if (
-        !response.ok ||
-        !data?.ok
+        !response.ok
       ) {
         throw new Error(
-          data?.error ??
+          data.error ??
+            data.reason ??
+            `telegram_api_http_${response.status}`,
+        );
+      }
+
+      if (
+        !data.ok
+      ) {
+        throw new Error(
+          data.error ??
+            data.reason ??
             'telegram_auth_failed',
         );
       }
 
       if (
         typeof data.tokenHash !==
-        'string'
+          'string' ||
+        !data.tokenHash
       ) {
         throw new Error(
           'session_token_missing',
@@ -382,8 +580,10 @@ export default function TelegramAuthButton({
       }
 
       /*
-       * Создаём обычную
-       * Supabase browser session.
+       * -----------------------------------------------------
+       * 6. Обмениваем одноразовый Supabase token hash
+       *    на нормальную browser session.
+       * -----------------------------------------------------
        */
       const supabase =
         createClient();
@@ -407,10 +607,11 @@ export default function TelegramAuthButton({
 
       if (
         loginError ||
-        !loginData.session
+        !loginData.session ||
+        !loginData.user
       ) {
         console.error(
-          '[Telegram Auth] verifyOtp:',
+          '[Telegram Auth] Supabase verifyOtp:',
           loginError,
         );
 
@@ -419,6 +620,31 @@ export default function TelegramAuthButton({
         );
       }
 
+      /*
+       * Проверяем, что browser client
+       * действительно сохранил session.
+       */
+      const {
+        data:
+          sessionData,
+      } =
+        await supabase
+          .auth
+          .getSession();
+
+      if (
+        !sessionData.session
+      ) {
+        throw new Error(
+          'supabase_login_failed',
+        );
+      }
+
+      /*
+       * -----------------------------------------------------
+       * 7. Всё готово.
+       * -----------------------------------------------------
+       */
       window.location.replace(
         next,
       );
