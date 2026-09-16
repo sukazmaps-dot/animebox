@@ -17,6 +17,7 @@ export async function POST() {
       {
         headers: {
           'Cache-Control': 'no-store',
+          Pragma: 'no-cache',
         },
       },
     );
@@ -26,11 +27,18 @@ export async function POST() {
     nonce,
     {
       httpOnly: true,
+
       secure:
-        process.env.NODE_ENV === 'production',
+        process.env.NODE_ENV ===
+        'production',
+
       sameSite: 'lax',
-      path: '/api/auth/telegram',
-      maxAge: 5 * 60,
+
+      path:
+        '/api/auth/telegram',
+
+      maxAge:
+        5 * 60,
     },
   );
 
