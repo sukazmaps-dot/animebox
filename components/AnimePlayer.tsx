@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '@/components/Icon';
 import KodikPlayer from '@/components/KodikPlayer';
 import { useEpisodeTracking } from '@/components/useEpisodeTracking';
+import { useWatchSession } from '@/components/useWatchSession';
 import Hls from 'hls.js';
 
 export type TranslationOption = {
@@ -245,13 +246,23 @@ export default function AnimePlayer({
   const isHls = mediaType === 'hls';
   const videoLink = isHls ? toProxyHls(normalizedLink) : normalizedLink;
 
-  const trackingMessage = useEpisodeTracking(
+  const directTrackingMessage = useEpisodeTracking(
     videoRef,
     animeId,
     episodeNumber,
     videoLink,
     isIframe,
   );
+
+  const watchSession = useWatchSession({
+    enabled: started && isKodik,
+    animeId,
+    episode: episodeNumber,
+    requiredEpisodes: totalEpisodes,
+    sourceUrl: videoLink,
+  });
+
+  const trackingMessage = watchSession.message || directTrackingMessage;
 
   const episodeMeta = totalEpisodes
     ? totalEpisodesKnown
@@ -608,6 +619,7 @@ export default function AnimePlayer({
                   title={`${title} — серия ${episodeNumber}`}
                   episodeNumber={episodeNumber}
                   onReady={() => setPlayerReady(true)}
+                  onTimeUpdate={watchSession.onSample}
                 />
               ) : isIframe ? (
                 <iframe

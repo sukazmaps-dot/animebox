@@ -2,26 +2,57 @@
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
+type KodikTimeSample = {
+  positionSeconds: number;
+  durationSeconds?: number | null;
+  origin?: string | null;
+};
+
 type Props = {
   src: string;
   title?: string;
   episodeNumber?: number;
   onReady?: () => void;
+  onTimeUpdate?: (sample: KodikTimeSample) => void;
+};
+
+type KodikMessage = {
+  key?: string;
+  value?: unknown;
 };
 
 function normalizePlayerUrl(url: string) {
   return url.startsWith('//') ? `https:${url}` : url;
 }
 
-function buildPlayerUrl(url: string) {
+function buildPlayerUrl(url: string, episodeNumber?: number) {
   const normalized = normalizePlayerUrl(url);
 
   try {
     const nextUrl = new URL(normalized);
 
-    // Kodik iframe parameter: hide built-in season/episode/translation selectors.
-    // AnimeBox renders its own controls around the iframe instead.
-    nextUrl.searchParams.set('hide_selectors', '1');
+    /*
+     * AnimeBox owns the episode / voice UI.
+     * Kodik expects boolean iframe options as the literal strings
+     * "true" / "false". The previous value "1" was ignored,
+     * which is why Kodik's own selectors were still visible.
+     */
+    nextUrl.searchParams.set('hide_selectors', 'true');
+    nextUrl.searchParams.set('translations', 'false');
+
+    /*
+     * Open Kodik already scoped to the AnimeBox route episode.
+     * This removes the provider-side next/episode navigation and also
+     * avoids loading episode 1 first and correcting it afterwards.
+     */
+    if (
+      typeof episodeNumber === 'number' &&
+      Number.isSafeInteger(episodeNumber) &&
+      episodeNumber > 0
+    ) {
+      nextUrl.searchParams.set('episode', String(episodeNumber));
+      nextUrl.searchParams.set('only_episode', 'true');
+    }
 
     return nextUrl.toString();
   } catch {
@@ -29,69 +60,75 @@ function buildPlayerUrl(url: string) {
   }
 }
 
+
+function parseMessage(data: unknown): KodikMessage | null {
+  let value = data;
+
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as KodikMessage;
+}
+
+function finiteNumber(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+function readTimeValue(value: unknown) {
+  const direct = finiteNumber(value);
+  if (direct != null) return { position: direct, duration: null };
+
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+
+  const position =
+    finiteNumber(record.currentTime) ??
+    finiteNumber(record.current_time) ??
+    finiteNumber(record.time) ??
+    finiteNumber(record.position);
+
+  if (position == null) return null;
+
+  const duration =
+    finiteNumber(record.duration) ??
+    finiteNumber(record.totalTime) ??
+    finiteNumber(record.total_time);
+
+  return { position, duration };
+}
+
 export default function KodikPlayer({
   src,
   title = 'Kodik Player',
   episodeNumber,
   onReady,
+  onTimeUpdate,
 }: Props) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const switchTimerRef = useRef<number | null>(null);
-  const didInitialSyncRef = useRef(false);
-  const correctionSentRef = useRef(false);
+  const durationRef = useRef<number | null>(null);
 
-  const playerSrc = useMemo(() => buildPlayerUrl(src), [src]);
-
-  const targetOrigin = useMemo(() => {
-    try {
-      return new URL(playerSrc).origin;
-    } catch {
-      return '*';
-    }
-  }, [playerSrc]);
-
-  const sendCommand = useCallback(
-    (value: Record<string, unknown>) => {
-      iframeRef.current?.contentWindow?.postMessage(
-        {
-          key: 'kodik_player_api',
-          value,
-        },
-        targetOrigin,
-      );
-    },
-    [targetOrigin],
+  const playerSrc = useMemo(
+    () => buildPlayerUrl(src, episodeNumber),
+    [src, episodeNumber],
   );
-
-  const changeEpisode = useCallback(() => {
-    if (!episodeNumber || episodeNumber < 1) return;
-
-    sendCommand({
-      method: 'change_episode',
-      episode: episodeNumber,
-      without_reload: true,
-    });
-  }, [episodeNumber, sendCommand]);
 
   const handleLoad = useCallback(() => {
     onReady?.();
-
-    if (didInitialSyncRef.current) return;
-    didInitialSyncRef.current = true;
-
-    if (switchTimerRef.current) {
-      window.clearTimeout(switchTimerRef.current);
-    }
-
-    // Give Kodik's internal app a moment to initialize, then sync the
-    // episode selected in the AnimeBox route.
-    switchTimerRef.current = window.setTimeout(changeEpisode, 650);
-  }, [changeEpisode, onReady]);
-
-  useEffect(() => {
-    didInitialSyncRef.current = false;
-    correctionSentRef.current = false;
-  }, [playerSrc, episodeNumber]);
+  }, [onReady]);
 
   useEffect(() => {
     function onMessage(event: MessageEvent) {
@@ -102,27 +139,35 @@ export default function KodikPlayer({
         return;
       }
 
-      if (!event.data || typeof event.data !== 'object') {
+      const message = parseMessage(event.data);
+      if (!message) return;
+
+      const { key, value } = message;
+
+      // Kodik sends this event as postMessage while the video is playing.
+      // Some builds serialize the whole message as JSON, so parseMessage
+      // deliberately supports both object and string payloads.
+      if (key === 'kodik_player_time_update') {
+        const time = readTimeValue(value);
+        if (!time || time.position < 0) return;
+
+        if (time.duration != null && time.duration > 0) {
+          durationRef.current = time.duration;
+        }
+
+        onTimeUpdate?.({
+          positionSeconds: time.position,
+          durationSeconds: time.duration ?? durationRef.current,
+          origin: event.origin || null,
+        });
         return;
       }
 
-      const { key, value } = event.data as {
-        key?: string;
-        value?: unknown;
-      };
-
-      if (key === 'kodik_player_current_episode') {
-        const info = value as { episode?: number | null } | null;
-
-        if (
-          episodeNumber &&
-          info?.episode &&
-          info.episode !== episodeNumber &&
-          !correctionSentRef.current
-        ) {
-          correctionSentRef.current = true;
-          changeEpisode();
-        }
+      // Kept as a best-effort compatibility path for Kodik builds that
+      // publish duration separately from time updates.
+      if (key === 'kodik_player_duration_update' || key === 'kodik_player_duration') {
+        const duration = finiteNumber(value);
+        if (duration != null && duration > 0) durationRef.current = duration;
       }
     }
 
@@ -130,12 +175,8 @@ export default function KodikPlayer({
 
     return () => {
       window.removeEventListener('message', onMessage);
-
-      if (switchTimerRef.current) {
-        window.clearTimeout(switchTimerRef.current);
-      }
     };
-  }, [changeEpisode, episodeNumber]);
+  }, [onTimeUpdate]);
 
   return (
     <iframe

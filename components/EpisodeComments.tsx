@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import {
   FormEvent,
   useCallback,
@@ -78,21 +80,47 @@ function CommentNode({
       }`}
     >
       <header className="episode-comment__header">
-        <img
-          src={avatar}
-          alt=""
-          width={36}
-          height={36}
-          className="episode-comment__avatar"
-        />
+        {comment.user_id ? (
+          <Link
+            href={`/profile/${comment.user_id}`}
+            className="episode-comment__profile-link"
+            aria-label={`Открыть профиль ${username}`}
+          >
+            <img
+              src={avatar}
+              alt=""
+              width={36}
+              height={36}
+              className="episode-comment__avatar"
+            />
 
-        <div className="episode-comment__author">
-          <strong>{username}</strong>
+            <div className="episode-comment__author">
+              <strong>{username}</strong>
 
-          <time dateTime={comment.created_at}>
-            {formatDate(comment.created_at)}
-          </time>
-        </div>
+              <time dateTime={comment.created_at}>
+                {formatDate(comment.created_at)}
+              </time>
+            </div>
+          </Link>
+        ) : (
+          <>
+            <img
+              src={avatar}
+              alt=""
+              width={36}
+              height={36}
+              className="episode-comment__avatar"
+            />
+
+            <div className="episode-comment__author">
+              <strong>{username}</strong>
+
+              <time dateTime={comment.created_at}>
+                {formatDate(comment.created_at)}
+              </time>
+            </div>
+          </>
+        )}
       </header>
 
       <div className="episode-comment__body">
@@ -242,22 +270,28 @@ export default function EpisodeComments({
     const controller =
       new AbortController();
 
-    /*
-     * При переходе:
-     *
-     * /episode/1 -> /episode/2
-     *
-     * старые комментарии сразу
-     * сбрасываются.
-     */
-    setComments([]);
-    setBody('');
-    setParent(null);
-    setSpoiler(false);
+    async function resetAndLoad() {
+      /*
+       * Сбрасываем состояние после текущего render-cycle,
+       * чтобы переход /episode/1 -> /episode/2 не показывал
+       * старую ветку комментариев и не создавал sync setState
+       * прямо внутри тела effect.
+       */
+      await Promise.resolve();
 
-    void loadComments(
-      controller.signal,
-    );
+      if (controller.signal.aborted) return;
+
+      setComments([]);
+      setBody('');
+      setParent(null);
+      setSpoiler(false);
+
+      await loadComments(
+        controller.signal,
+      );
+    }
+
+    void resetAndLoad();
 
     return () => {
       controller.abort();

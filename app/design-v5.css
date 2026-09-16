@@ -1881,3 +1881,119 @@ body {
     font-size: 9px;
   }
 }
+/* =========================================================
+   PUBLIC USER PROFILES + COMMENT PROFILE LINKS
+   ========================================================= */
+
+.profile-v2--public .profile-v2__identity-main {
+  min-width: 0;
+}
+
+.profile-v2__public-badge {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border: 1px solid rgba(142, 111, 255, .18);
+  border-radius: 10px;
+  background: rgba(113, 83, 222, .065);
+  color: #a893f4;
+  font-size: 8px;
+  font-weight: 760;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+
+.profile-v2__public-achievements {
+  margin-top: 11px;
+}
+
+.profile-v2__achievement-list--public {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.profile-v2__public-empty {
+  min-height: 126px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid rgba(157, 170, 203, .065);
+  border-radius: 12px;
+  background: rgba(6, 13, 25, .34);
+}
+
+.profile-v2__public-empty img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  opacity: .72;
+}
+
+.profile-v2__public-empty strong {
+  display: block;
+  color: #eef1f8;
+  font-size: 10px;
+}
+
+.profile-v2__public-empty p {
+  margin: 5px 0 0;
+  color: rgba(132, 149, 179, .58);
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.episode-comment__profile-link {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 10px;
+  text-decoration: none;
+}
+
+.episode-comment__profile-link .episode-comment__avatar,
+.community-comment__profile-link .community-comment__avatar {
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.episode-comment__profile-link strong,
+.community-comment__profile-link strong {
+  transition: color .18s ease;
+}
+
+.episode-comment__profile-link:hover strong,
+.community-comment__profile-link:hover strong {
+  color: #b5a3ff;
+}
+
+.episode-comment__profile-link:hover .episode-comment__avatar,
+.community-comment__profile-link:hover .community-comment__avatar {
+  transform: translateY(-1px);
+  border-color: rgba(166, 140, 255, .52);
+  box-shadow: 0 0 0 3px rgba(123, 91, 255, .06), 0 7px 18px rgba(0,0,0,.22);
+}
+
+.episode-comment__profile-link:focus-visible,
+.community-comment__profile-link:focus-visible {
+  outline: 2px solid rgba(169, 145, 255, .82);
+  outline-offset: 4px;
+}
+
+.community-comment__profile-link {
+  border-radius: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+
+@media (max-width: 760px) {
+  .profile-v2__achievement-list--public {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-v2__public-badge {
+    align-self: flex-start;
+  }
+}

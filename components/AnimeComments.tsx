@@ -176,20 +176,41 @@ function CommentNode({
   return (
     <article className={`community-comment ${deleted ? 'is-deleted' : ''}`}>
       <header className="community-comment__header">
-        <div className="community-comment__identity">
-          <img src={avatar} width="38" height="38" loading="lazy" alt="" className="community-comment__avatar" />
-          <div>
-            <strong>{username}</strong>
-            <time dateTime={comment.created_at}>
-              {new Date(comment.created_at).toLocaleString('ru-RU', {
-                day: '2-digit',
-                month: 'short',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </time>
+        {comment.user_id ? (
+          <Link
+            href={`/profile/${comment.user_id}`}
+            className="community-comment__identity community-comment__profile-link"
+            aria-label={`Открыть профиль ${username}`}
+          >
+            <img src={avatar} width="38" height="38" loading="lazy" alt="" className="community-comment__avatar" />
+            <div>
+              <strong>{username}</strong>
+              <time dateTime={comment.created_at}>
+                {new Date(comment.created_at).toLocaleString('ru-RU', {
+                  day: '2-digit',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </time>
+            </div>
+          </Link>
+        ) : (
+          <div className="community-comment__identity">
+            <img src={avatar} width="38" height="38" loading="lazy" alt="" className="community-comment__avatar" />
+            <div>
+              <strong>{username}</strong>
+              <time dateTime={comment.created_at}>
+                {new Date(comment.created_at).toLocaleString('ru-RU', {
+                  day: '2-digit',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </time>
+            </div>
           </div>
-        </div>
+        )}
       </header>
 
       {deleted ? (

@@ -1,0 +1,191 @@
+import 'server-only';
+
+import { adminClient } from '@/lib/community-server';
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export type PublicAchievement = {
+  code: string;
+  title: string;
+  description: string;
+  icon: string;
+  earnedAt: string | null;
+};
+
+export type PublicProfileData = {
+  id: string;
+  username: string;
+  bio: string | null;
+  avatarUrl: string;
+  bannerUrl: string | null;
+  createdAt: string;
+  stats: {
+    episodes: number;
+    titles: number;
+    minutes: number;
+    comments: number;
+  };
+  achievements: PublicAchievement[];
+};
+
+type ProfileRow = {
+  id: string;
+  username: string | null;
+  bio: string | null;
+  avatar_path: string | null;
+  banner_path: string | null;
+  created_at: string;
+};
+
+type AchievementDefinition = {
+  code: string;
+  title: string;
+  description: string;
+  icon: string;
+};
+
+function toPublicStorageUrl(
+  admin: ReturnType<typeof adminClient>,
+  path: string | null,
+) {
+  if (!path) return null;
+
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+
+  return (
+    admin.storage.from('profile-media').getPublicUrl(path).data.publicUrl ||
+    null
+  );
+}
+
+function stringValue(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function achievementCode(row: Record<string, unknown>) {
+  return (
+    stringValue(row.code) ||
+    stringValue(row.achievement_code) ||
+    stringValue(row.achievement) ||
+    null
+  );
+}
+
+function achievementDate(row: Record<string, unknown>) {
+  return (
+    stringValue(row.earned_at) ||
+    stringValue(row.created_at) ||
+    stringValue(row.unlocked_at) ||
+    null
+  );
+}
+
+export async function getPublicProfile(
+  userId: string,
+): Promise<PublicProfileData | null> {
+  if (!UUID_RE.test(userId)) return null;
+
+  const admin = adminClient();
+
+  const { data: profileData, error: profileError } = await admin
+    .from('profiles')
+    .select('id,username,bio,avatar_path,banner_path,created_at')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (profileError) {
+    console.error('Public profile lookup:', profileError);
+    return null;
+  }
+
+  if (!profileData) return null;
+
+  const profile = profileData as ProfileRow;
+
+  const [episodesResult, libraryResult, commentsResult, awardsResult, definitionsResult] =
+    await Promise.all([
+      admin
+        .from('episodes_history')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('completed', true),
+      admin.from('anime_library').select('status').eq('user_id', userId),
+      admin
+        .from('comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId),
+      admin.from('user_achievements').select('*').eq('user_id', userId),
+      admin
+        .from('achievements')
+        .select('code,title,description,icon')
+        .order('threshold', { ascending: true }),
+    ]);
+
+  if (episodesResult.error) {
+    console.error('Public profile episode stats:', episodesResult.error);
+  }
+  if (libraryResult.error) {
+    console.error('Public profile library stats:', libraryResult.error);
+  }
+  if (commentsResult.error) {
+    console.error('Public profile comment stats:', commentsResult.error);
+  }
+  if (awardsResult.error) {
+    console.error('Public profile awards:', awardsResult.error);
+  }
+  if (definitionsResult.error) {
+    console.error('Public profile achievement definitions:', definitionsResult.error);
+  }
+
+  const episodes = episodesResult.error ? 0 : episodesResult.count ?? 0;
+  const comments = commentsResult.error ? 0 : commentsResult.count ?? 0;
+  const library = libraryResult.error ? [] : libraryResult.data ?? [];
+  const titles = library.filter((item) => item.status === 'completed').length;
+
+  const earnedByCode = new Map<string, string | null>();
+
+  for (const raw of awardsResult.error ? [] : awardsResult.data ?? []) {
+    const row = raw as Record<string, unknown>;
+    const code = achievementCode(row);
+    if (!code) continue;
+    earnedByCode.set(code, achievementDate(row));
+  }
+
+  const achievements: PublicAchievement[] = (
+    definitionsResult.error ? [] : definitionsResult.data ?? []
+  )
+    .filter((item) => earnedByCode.has(item.code))
+    .map((item) => {
+      const definition = item as AchievementDefinition;
+      return {
+        code: definition.code,
+        title: definition.title,
+        description: definition.description,
+        icon: definition.icon,
+        earnedAt: earnedByCode.get(definition.code) ?? null,
+      };
+    });
+
+  const avatarUrl =
+    toPublicStorageUrl(admin, profile.avatar_path) || '/default-avatar.webp';
+  const bannerUrl = toPublicStorageUrl(admin, profile.banner_path);
+
+  return {
+    id: profile.id,
+    username: profile.username?.trim() || 'Пользователь',
+    bio: profile.bio?.trim() || null,
+    avatarUrl,
+    bannerUrl,
+    createdAt: profile.created_at,
+    stats: {
+      episodes,
+      titles,
+      minutes: episodes * 24,
+      comments,
+    },
+    achievements,
+  };
+}

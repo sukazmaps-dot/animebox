@@ -6,6 +6,7 @@ import {
 import {
   createClient,
 } from '@/lib/supabase/server';
+import { adminClient } from '@/lib/community-server';
 
 const MAX_COMMENT_LENGTH = 4000;
 
@@ -79,9 +80,7 @@ function parsePositiveInteger(
  * второй раз через Storage его не пропускаем.
  */
 function getAvatarUrl(
-  supabase: Awaited<
-    ReturnType<typeof createClient>
-  >,
+  supabase: ReturnType<typeof adminClient>,
   avatarPath: string | null,
 ) {
   if (!avatarPath) {
@@ -245,37 +244,50 @@ export async function GET(
     let profiles:
       ProfileRow[] = [];
 
+    let profileClient:
+      ReturnType<typeof adminClient> | null = null;
+
 
     if (userIds.length > 0) {
-      const {
-        data: profileRows,
-        error: profileError,
-      } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          username,
-          avatar_path
-        `)
-        .in(
-          'id',
-          userIds,
-        );
+      try {
+        /*
+         * profiles закрыта RLS для чтения чужих аккаунтов.
+         * Декорируем комментарии только на сервере через service_role,
+         * не открывая таблицу браузеру.
+         */
+        profileClient = adminClient();
+
+        const {
+          data: profileRows,
+          error: profileError,
+        } = await profileClient
+          .from('profiles')
+          .select(`
+            id,
+            username,
+            avatar_path
+          `)
+          .in(
+            'id',
+            userIds,
+          );
 
 
-      /*
-       * Если профили временно недоступны,
-       * сами комментарии всё равно показываем.
-       */
-      if (profileError) {
+        if (profileError) {
+          console.error(
+            '[GET COMMENT PROFILES]',
+            profileError,
+          );
+        } else {
+          profiles =
+            (profileRows ??
+              []) as ProfileRow[];
+        }
+      } catch (profileError) {
         console.error(
           '[GET COMMENT PROFILES]',
           profileError,
         );
-      } else {
-        profiles =
-          (profileRows ??
-            []) as ProfileRow[];
       }
     }
 
@@ -318,9 +330,9 @@ export async function GET(
 
 
           const avatarUrl =
-            profile
+            profile && profileClient
               ? getAvatarUrl(
-                  supabase,
+                  profileClient,
                   profile.avatar_path,
                 )
               : null;
