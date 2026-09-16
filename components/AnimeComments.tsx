@@ -17,6 +17,7 @@ type Comment = {
   author?: {
     username: string | null;
     avatarUrl: string | null;
+    ogNumber: number | null;
   } | null;
 };
 
@@ -184,7 +185,17 @@ function CommentNode({
           >
             <img src={avatar} width="38" height="38" loading="lazy" alt="" className="community-comment__avatar" />
             <div>
-              <strong>{username}</strong>
+              <span className="animebox-comment-author-line">
+                <strong>{username}</strong>
+                {comment.author?.ogNumber && (
+                  <span
+                    className="animebox-og-mini"
+                    title="Один из первых 100 активных пользователей AnimeBox"
+                  >
+                    OG #{String(comment.author.ogNumber).padStart(3, '0')}
+                  </span>
+                )}
+              </span>
               <time dateTime={comment.created_at}>
                 {new Date(comment.created_at).toLocaleString('ru-RU', {
                   day: '2-digit',
@@ -199,7 +210,17 @@ function CommentNode({
           <div className="community-comment__identity">
             <img src={avatar} width="38" height="38" loading="lazy" alt="" className="community-comment__avatar" />
             <div>
-              <strong>{username}</strong>
+              <span className="animebox-comment-author-line">
+                <strong>{username}</strong>
+                {comment.author?.ogNumber && (
+                  <span
+                    className="animebox-og-mini"
+                    title="Один из первых 100 активных пользователей AnimeBox"
+                  >
+                    OG #{String(comment.author.ogNumber).padStart(3, '0')}
+                  </span>
+                )}
+              </span>
               <time dateTime={comment.created_at}>
                 {new Date(comment.created_at).toLocaleString('ru-RU', {
                   day: '2-digit',

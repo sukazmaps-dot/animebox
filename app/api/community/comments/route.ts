@@ -38,15 +38,32 @@ async function enrichAuthors(comments: CommentRow[]) {
 
   try {
     const admin = adminClient();
-    const { data, error } = await admin
-      .from('profiles')
-      .select('id,username,avatar_path')
-      .in('id', ids);
+    const [profilesResult, ogResult] = await Promise.all([
+      admin
+        .from('profiles')
+        .select('id,username,avatar_path')
+        .in('id', ids),
+      admin
+        .from('og_members')
+        .select('user_id,og_number')
+        .in('user_id', ids),
+    ]);
 
-    if (error) throw error;
+    if (profilesResult.error) throw profilesResult.error;
+    if (ogResult.error) {
+      // Comments still work before/without the optional OG migration.
+      console.error('Comment OG enrichment:', ogResult.error);
+    }
+
+    const ogByUser = new Map<string, number>();
+    for (const row of ogResult.error ? [] : ogResult.data ?? []) {
+      if (typeof row.og_number === 'number') {
+        ogByUser.set(row.user_id, row.og_number);
+      }
+    }
 
     const authors = new Map(
-      (data ?? []).map((profile) => {
+      (profilesResult.data ?? []).map((profile) => {
         const avatarUrl = profile.avatar_path
           ? admin.storage.from('profile-media').getPublicUrl(profile.avatar_path).data.publicUrl
           : null;
@@ -56,6 +73,7 @@ async function enrichAuthors(comments: CommentRow[]) {
           {
             username: typeof profile.username === 'string' ? profile.username.trim() || null : null,
             avatarUrl,
+            ogNumber: ogByUser.get(profile.id) ?? null,
           },
         ] as const;
       }),

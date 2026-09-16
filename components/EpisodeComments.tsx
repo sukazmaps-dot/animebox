@@ -25,6 +25,7 @@ type CommentItem = {
   author?: {
     username: string | null;
     avatarUrl: string | null;
+    ogNumber: number | null;
   } | null;
 };
 
@@ -95,7 +96,17 @@ function CommentNode({
             />
 
             <div className="episode-comment__author">
-              <strong>{username}</strong>
+              <span className="animebox-comment-author-line">
+                <strong>{username}</strong>
+                {comment.author?.ogNumber && (
+                  <span
+                    className="animebox-og-mini"
+                    title="Один из первых 100 активных пользователей AnimeBox"
+                  >
+                    OG #{String(comment.author.ogNumber).padStart(3, '0')}
+                  </span>
+                )}
+              </span>
 
               <time dateTime={comment.created_at}>
                 {formatDate(comment.created_at)}
@@ -113,7 +124,17 @@ function CommentNode({
             />
 
             <div className="episode-comment__author">
-              <strong>{username}</strong>
+              <span className="animebox-comment-author-line">
+                <strong>{username}</strong>
+                {comment.author?.ogNumber && (
+                  <span
+                    className="animebox-og-mini"
+                    title="Один из первых 100 активных пользователей AnimeBox"
+                  >
+                    OG #{String(comment.author.ogNumber).padStart(3, '0')}
+                  </span>
+                )}
+              </span>
 
               <time dateTime={comment.created_at}>
                 {formatDate(comment.created_at)}

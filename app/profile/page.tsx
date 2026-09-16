@@ -16,6 +16,7 @@ type Profile = {
   avatar_path: string | null;
   banner_path: string | null;
   created_at: string;
+  og_number: number | null;
 };
 
 export default function ProfilePage() {
@@ -45,26 +46,67 @@ export default function ProfilePage() {
 
       const cachedProfile = readProfileCache<Profile>(user.id);
       if (cachedProfile?.username?.trim()) {
-        setProfile(cachedProfile);
+        // Username/avatar can stay cached, but OG must be refreshed every time:
+        // a user can earn the badge immediately after adding their first title.
+        const cachedOgResult = await supabase
+          .from('og_members')
+          .select('og_number')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        const nextCachedProfile = {
+          ...cachedProfile,
+          og_number:
+            !cachedOgResult.error &&
+            typeof cachedOgResult.data?.og_number === 'number'
+              ? cachedOgResult.data.og_number
+              : null,
+        };
+
+        if (cachedOgResult.error) {
+          console.error('OG badge lookup:', cachedOgResult.error);
+        }
+
+        setProfile(nextCachedProfile);
+        saveProfileCache(user.id, nextCachedProfile);
         setLoading(false);
         return;
       }
 
-      const { data: profileData, error: profileError } =
-        await supabase
+      const [profileResult, ogResult] = await Promise.all([
+        supabase
           .from('profiles')
           .select(
             'id, username, bio, avatar_path, banner_path, created_at',
           )
           .eq('id', user.id)
-          .single();
+          .single(),
+        supabase
+          .from('og_members')
+          .select('og_number')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+      ]);
 
-      if (profileError) {
-        console.error(profileError);
+      if (profileResult.error) {
+        console.error(profileResult.error);
         setError('Не удалось загрузить профиль.');
         setLoading(false);
         return;
       }
+
+      if (ogResult.error) {
+        // Профиль должен продолжить работать даже до применения OG-миграции.
+        console.error('OG badge lookup:', ogResult.error);
+      }
+
+      const profileData = {
+        ...profileResult.data,
+        og_number:
+          typeof ogResult.data?.og_number === 'number'
+            ? ogResult.data.og_number
+            : null,
+      };
 
       if (!profileData.username?.trim()) {
         router.replace('/onboarding');
@@ -160,7 +202,19 @@ export default function ProfilePage() {
           <div className="profile-v2__identity-main">
             <div className="profile-v2__title-row">
               <div>
-                <h1>{username}</h1>
+                <div className="profile-v2__name-row">
+                  <h1>{username}</h1>
+
+                  {profile.og_number && (
+                    <span
+                      className="animebox-og-badge"
+                      title="Один из первых 100 активных пользователей AnimeBox"
+                    >
+                      <span aria-hidden="true">◆</span>
+                      OG #{String(profile.og_number).padStart(3, '0')}
+                    </span>
+                  )}
+                </div>
 
                 <p className="profile-v2__email">
                   {email}

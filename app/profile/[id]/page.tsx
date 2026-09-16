@@ -104,11 +104,25 @@ export default async function PublicProfilePage({ params }: Props) {
           <div className="profile-v2__identity-main">
             <div className="profile-v2__title-row">
               <div>
-                <h1>{profile.username}</h1>
+                <div className="profile-v2__name-row">
+                  <h1>{profile.username}</h1>
+
+                  {profile.ogNumber && (
+                    <span
+                      className="animebox-og-badge"
+                      title="Один из первых 100 активных пользователей AnimeBox"
+                    >
+                      <span aria-hidden="true">◆</span>
+                      OG #{String(profile.ogNumber).padStart(3, '0')}
+                    </span>
+                  )}
+                </div>
                 <p className="profile-v2__email">Публичный профиль AnimeBox</p>
               </div>
 
-              <span className="profile-v2__public-badge">Участник сообщества</span>
+              <span className="profile-v2__public-badge">
+                {profile.ogNumber ? 'Ранний тестер' : 'Участник сообщества'}
+              </span>
             </div>
 
             <p className="profile-v2__bio">

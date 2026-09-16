@@ -21,6 +21,7 @@ export type PublicProfileData = {
   avatarUrl: string;
   bannerUrl: string | null;
   createdAt: string;
+  ogNumber: number | null;
   stats: {
     episodes: number;
     titles: number;
@@ -112,6 +113,7 @@ export async function getPublicProfile(
     commentsResult,
     awardsResult,
     definitionsResult,
+    ogResult,
     watchSummary,
   ] = await Promise.all([
     admin.from('anime_library').select('status').eq('user_id', userId),
@@ -124,6 +126,11 @@ export async function getPublicProfile(
       .from('achievements')
       .select('code,title,description,icon')
       .order('threshold', { ascending: true }),
+    admin
+      .from('og_members')
+      .select('og_number')
+      .eq('user_id', userId)
+      .maybeSingle(),
     getWatchSummary(userId),
   ]);
 
@@ -138,6 +145,10 @@ export async function getPublicProfile(
   }
   if (definitionsResult.error) {
     console.error('Public profile achievement definitions:', definitionsResult.error);
+  }
+  if (ogResult.error) {
+    // Backward compatible until the OG migration is applied.
+    console.error('Public profile OG badge:', ogResult.error);
   }
 
   const episodes = watchSummary.completedEpisodes;
@@ -180,6 +191,10 @@ export async function getPublicProfile(
     avatarUrl,
     bannerUrl,
     createdAt: profile.created_at,
+    ogNumber:
+      !ogResult.error && typeof ogResult.data?.og_number === 'number'
+        ? ogResult.data.og_number
+        : null,
     stats: {
       episodes,
       titles,

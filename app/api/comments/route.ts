@@ -244,6 +244,9 @@ export async function GET(
     let profiles:
       ProfileRow[] = [];
 
+    const ogByUser =
+      new Map<string, number>();
+
     let profileClient:
       ReturnType<typeof adminClient> | null = null;
 
@@ -257,31 +260,58 @@ export async function GET(
          */
         profileClient = adminClient();
 
-        const {
-          data: profileRows,
-          error: profileError,
-        } = await profileClient
-          .from('profiles')
-          .select(`
-            id,
-            username,
-            avatar_path
-          `)
-          .in(
-            'id',
-            userIds,
-          );
+        const [profileResult, ogResult] =
+          await Promise.all([
+            profileClient
+              .from('profiles')
+              .select(`
+                id,
+                username,
+                avatar_path
+              `)
+              .in(
+                'id',
+                userIds,
+              ),
+            profileClient
+              .from('og_members')
+              .select('user_id,og_number')
+              .in(
+                'user_id',
+                userIds,
+              ),
+          ]);
 
 
-        if (profileError) {
+        if (profileResult.error) {
           console.error(
             '[GET COMMENT PROFILES]',
-            profileError,
+            profileResult.error,
           );
         } else {
           profiles =
-            (profileRows ??
+            (profileResult.data ??
               []) as ProfileRow[];
+        }
+
+        if (ogResult.error) {
+          console.error(
+            '[GET COMMENT OG BADGES]',
+            ogResult.error,
+          );
+        } else {
+          for (const row of
+            ogResult.data ?? []) {
+            if (
+              typeof row.og_number ===
+                'number'
+            ) {
+              ogByUser.set(
+                row.user_id,
+                row.og_number,
+              );
+            }
+          }
         }
       } catch (profileError) {
         console.error(
@@ -347,6 +377,13 @@ export async function GET(
                     profile.username,
 
                   avatarUrl,
+
+                  ogNumber:
+                    comment.user_id
+                      ? ogByUser.get(
+                          comment.user_id,
+                        ) ?? null
+                      : null,
                 }
               : null,
           };
