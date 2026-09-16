@@ -211,7 +211,6 @@ export async function startWatchSession(input: WatchStartInput) {
         watched_ranges: [],
         coverage_ms: 0,
         active_ms: 0,
-        ranked_ms: episodeRow.ranked_enabled ? 0 : null,
         resume_position_ms: initialPosition ?? 0,
         last_watched_at: new Date(now).toISOString(),
         updated_at: new Date(now).toISOString(),
@@ -291,7 +290,7 @@ export async function startWatchSession(input: WatchStartInput) {
       : {
           coverageMs: 0,
           activeMs: 0,
-          rankedMs: episodeRow.ranked_enabled ? 0 : null,
+          rankedMs: null,
           completedAt: null,
           resumePositionMs: initialPosition ?? 0,
           lastWatchedAt: new Date(now).toISOString(),
@@ -416,11 +415,6 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
 
   const coverageMs = Math.round(coveredSeconds(ranges));
   const activeMs = Number(progress?.active_ms ?? 0) + acceptedMs;
-  const rankedMs = episode.ranked_enabled
-    ? Number(progress?.ranked_ms ?? 0) + acceptedMs
-    : progress?.ranked_ms == null
-      ? null
-      : Number(progress.ranked_ms);
   const durationMs = episode.duration_ms == null ? null : Number(episode.duration_ms);
   const completedNow = Boolean(
     durationMs && durationMs > 0 && coverageMs >= Math.floor(durationMs * 0.9),
@@ -434,7 +428,6 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
       watched_ranges: ranges,
       coverage_ms: coverageMs,
       active_ms: activeMs,
-      ranked_ms: rankedMs,
       completed_at: completedAt,
       resume_position_ms: input.positionMs,
       last_watched_at: receivedAt,
