@@ -12,72 +12,58 @@ type TelegramStatus =
   | 'checking'
   | 'verified'
   | 'linking'
-  | 'linked'
+  | 'logging-in'
+  | 'authenticated'
   | 'error';
 
-type TelegramUser = {
-  id: number;
-  first_name: string;
-  last_name?: string | null;
-  username?: string | null;
-  language_code?: string | null;
-  photo_url?: string | null;
-  is_premium?: boolean;
-};
-
-type ValidateResponse = {
+type ApiResponse = {
   ok?: boolean;
-  user?: TelegramUser;
-  error?: string;
-  reason?: string;
-};
 
-type LinkResponse = {
-  ok?: boolean;
+  user?: {
+    id: number;
+    first_name: string;
+    username?: string | null;
+  };
+
   linked?: boolean;
   alreadyLinked?: boolean;
 
-  telegram?: {
-    id: number;
-    username?: string | null;
-    first_name?: string;
-  };
+  tokenHash?: string;
 
   error?: string;
   reason?: string;
 };
 
-function humanizeError(error: string) {
-  switch (error) {
+function humanizeError(
+  value: string,
+) {
+  switch (value) {
+    case 'telegram_not_linked':
+      return 'Telegram ещё не привязан к AnimeBox';
+
     case 'telegram_already_linked':
-      return 'Этот Telegram уже привязан к другому аккаунту';
+      return 'Telegram уже используется другим аккаунтом';
 
     case 'account_has_other_telegram':
-      return 'К аккаунту уже привязан другой Telegram';
+      return 'У аккаунта уже другой Telegram';
 
-    case 'animebox_login_required':
-      return 'Нужно войти в AnimeBox';
-
-    case 'invalid_animebox_session':
-      return 'Сессия AnimeBox устарела';
-
-    case 'profile_not_found':
-      return 'Профиль AnimeBox не найден';
-
-    case 'telegram_link_failed':
-      return 'Не удалось привязать Telegram';
-
-    case 'telegram_not_configured':
-      return 'Telegram не настроен';
-
+    case 'invalid_telegram_data':
     case 'invalid_hash':
-      return 'Ошибка подписи Telegram';
+      return 'Ошибка проверки Telegram';
 
     case 'expired':
-      return 'Сессия Telegram устарела';
+      return 'Telegram-сессия устарела';
+
+    case 'auth_user_not_found':
+      return 'Аккаунт AnimeBox не найден';
+
+    case 'session_token_failed':
+    case 'session_token_missing':
+      return 'Не удалось создать сессию AnimeBox';
 
     default:
-      return error || 'Неизвестная ошибка';
+      return value ||
+        'Ошибка Telegram';
   }
 }
 
@@ -85,28 +71,18 @@ export default function TelegramMiniAppBridge() {
   const [status, setStatus] =
     useState<TelegramStatus>('idle');
 
-  const [showBadge, setShowBadge] =
-    useState(false);
-
   const [message, setMessage] =
     useState('');
+
+  const [showBadge, setShowBadge] =
+    useState(false);
 
   useEffect(() => {
     const tg =
       window.Telegram?.WebApp;
 
-    /*
-     * Обычный браузер:
-     * Telegram-логику вообще не запускаем.
-     */
     if (!tg?.initData) {
       document.documentElement.dataset.telegram =
-        'false';
-
-      document.documentElement.dataset.telegramVerified =
-        'false';
-
-      document.documentElement.dataset.telegramLinked =
         'false';
 
       return;
@@ -124,53 +100,51 @@ export default function TelegramMiniAppBridge() {
     telegram.ready();
     telegram.expand();
 
+    const supabase =
+      createClient();
+
     const controller =
       new AbortController();
 
-    const supabase =
-      createClient();
+    let destroyed = false;
 
     let badgeTimer:
       | ReturnType<typeof setTimeout>
       | null = null;
 
-    let destroyed = false;
-
-    function showTemporaryBadge(
+    function showBadge(
       text: string,
       nextStatus: TelegramStatus,
-      timeout = 3000,
     ) {
-      if (destroyed) return;
+      if (destroyed) {
+        return;
+      }
 
       if (badgeTimer) {
-        clearTimeout(badgeTimer);
+        clearTimeout(
+          badgeTimer,
+        );
       }
 
       setMessage(text);
       setStatus(nextStatus);
       setShowBadge(true);
 
-      badgeTimer = setTimeout(() => {
-        if (!destroyed) {
-          setShowBadge(false);
-        }
-      }, timeout);
+      badgeTimer =
+        setTimeout(() => {
+          if (!destroyed) {
+            setShowBadge(false);
+          }
+        }, 3000);
     }
 
-    /*
-     * ---------------------------------------------------------
-     * 1. Проверяем Telegram initData
-     * ---------------------------------------------------------
-     */
-    async function validateTelegram():
-      Promise<TelegramUser | null> {
-      setStatus('checking');
-      setMessage('');
-
+    async function requestJson(
+      url: string,
+      body: object,
+    ): Promise<ApiResponse> {
       const response =
         await fetch(
-          '/api/telegram/validate',
+          url,
           {
             method: 'POST',
 
@@ -179,10 +153,12 @@ export default function TelegramMiniAppBridge() {
                 'application/json',
             },
 
-            body: JSON.stringify({
-              initData:
-                telegram.initData,
-            }),
+            body:
+              JSON.stringify(
+                body,
+              ),
+
+            cache: 'no-store',
 
             signal:
               controller.signal,
@@ -191,127 +167,143 @@ export default function TelegramMiniAppBridge() {
 
       const data =
         (await response.json()) as
-          ValidateResponse;
+          ApiResponse;
 
       if (
         !response.ok ||
-        !data.ok ||
-        !data.user
+        !data.ok
       ) {
         throw new Error(
           data.reason ??
             data.error ??
-            'telegram_validation_failed',
+            'request_failed',
+        );
+      }
+
+      return data;
+    }
+
+    /*
+     * Если пользователь уже вошёл
+     * внутри Telegram WebView —
+     * проверяем/привязываем аккаунт.
+     */
+    async function linkExistingSession(
+      accessToken: string,
+    ) {
+      setStatus('linking');
+
+      await requestJson(
+        '/api/telegram/link',
+        {
+          initData:
+            telegram.initData,
+
+          accessToken,
+        },
+      );
+
+      document.documentElement.dataset.telegramLinked =
+        'true';
+
+      showBadge(
+        'Telegram подключён ✓',
+        'authenticated',
+      );
+    }
+
+    /*
+     * Если Supabase-сессии нет —
+     * пытаемся войти по telegram_id.
+     */
+    async function loginWithTelegram() {
+      setStatus(
+        'logging-in',
+      );
+
+      const data =
+        await requestJson(
+          '/api/telegram/session',
+          {
+            initData:
+              telegram.initData,
+          },
+        );
+
+      if (!data.tokenHash) {
+        throw new Error(
+          'session_token_missing',
+        );
+      }
+
+      /*
+       * Supabase проверяет одноразовый
+       * token hash и создаёт обычную
+       * полноценную session.
+       */
+      const {
+        data: otpData,
+        error: otpError,
+      } =
+        await supabase.auth.verifyOtp({
+          token_hash:
+            data.tokenHash,
+
+          type:
+            'email',
+        });
+
+      if (
+        otpError ||
+        !otpData.session ||
+        !otpData.user
+      ) {
+        console.error(
+          '[Telegram] verifyOtp:',
+          otpError,
+        );
+
+        throw new Error(
+          'supabase_login_failed',
         );
       }
 
       document.documentElement.dataset.telegramVerified =
         'true';
 
-      window.dispatchEvent(
-        new CustomEvent(
-          'animebox:telegram-verified',
-          {
-            detail: {
-              user: data.user,
-            },
-          },
-        ),
-      );
-
-      return data.user;
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * 2. Если AnimeBox пользователь уже вошёл —
-     *    привязываем его профиль к Telegram.
-     * ---------------------------------------------------------
-     */
-    async function linkAnimeBoxAccount(
-      accessToken: string,
-    ) {
-      setStatus('linking');
-
-      const response =
-        await fetch(
-          '/api/telegram/link',
-          {
-            method: 'POST',
-
-            headers: {
-              'Content-Type':
-                'application/json',
-            },
-
-            body: JSON.stringify({
-              initData:
-                telegram.initData,
-
-              accessToken,
-            }),
-
-            signal:
-              controller.signal,
-          },
-        );
-
-      const data =
-        (await response.json()) as
-          LinkResponse;
-
-      if (
-        !response.ok ||
-        !data.ok ||
-        !data.linked
-      ) {
-        throw new Error(
-          data.reason ??
-            data.error ??
-            'telegram_link_failed',
-        );
-      }
-
       document.documentElement.dataset.telegramLinked =
+        'true';
+
+      document.documentElement.dataset.telegramAuthenticated =
         'true';
 
       window.dispatchEvent(
         new CustomEvent(
-          'animebox:telegram-linked',
+          'animebox:telegram-authenticated',
           {
             detail: {
-              telegram:
-                data.telegram,
-
-              alreadyLinked:
-                data.alreadyLinked === true,
+              user:
+                otpData.user,
             },
           },
         ),
       );
 
-      showTemporaryBadge(
-        data.alreadyLinked
-          ? 'Telegram подключён ✓'
-          : 'Telegram привязан ✓',
-        'linked',
+      showBadge(
+        'Вход через Telegram ✓',
+        'authenticated',
       );
     }
 
-    /*
-     * ---------------------------------------------------------
-     * 3. Полный стартовый flow.
-     * ---------------------------------------------------------
-     */
     async function initialize() {
       try {
-        await validateTelegram();
+        setStatus(
+          'checking',
+        );
 
         /*
-         * Telegram настоящий.
-         *
-         * Теперь смотрим, есть ли уже
-         * Supabase-сессия AnimeBox.
+         * Сначала проверяем,
+         * нет ли уже AnimeBox session.
          */
         const {
           data: sessionData,
@@ -321,8 +313,8 @@ export default function TelegramMiniAppBridge() {
 
         if (sessionError) {
           console.warn(
-            '[Telegram] Supabase session:',
-            sessionError.message,
+            '[Telegram] getSession:',
+            sessionError,
           );
         }
 
@@ -330,32 +322,27 @@ export default function TelegramMiniAppBridge() {
           sessionData.session;
 
         /*
-         * Пользователь ещё не вошёл в AnimeBox.
+         * Уже авторизован.
          *
-         * Это НЕ ошибка Telegram.
-         * Просто пока нечего привязывать.
+         * Просто убеждаемся,
+         * что Telegram связан.
          */
         if (
-          !session?.access_token
+          session?.access_token
         ) {
-          document.documentElement.dataset.telegramLinked =
-            'false';
-
-          showTemporaryBadge(
-            'Telegram ✓',
-            'verified',
+          await linkExistingSession(
+            session.access_token,
           );
 
           return;
         }
 
         /*
-         * Пользователь уже авторизован:
-         * привязываем Telegram.
+         * Нет сессии —
+         * пробуем автоматический
+         * Telegram login.
          */
-        await linkAnimeBoxAccount(
-          session.access_token,
-        );
+        await loginWithTelegram();
       } catch (error) {
         if (
           error instanceof DOMException &&
@@ -375,22 +362,6 @@ export default function TelegramMiniAppBridge() {
           error,
         );
 
-        document.documentElement.dataset.telegramLinked =
-          'false';
-
-        /*
-         * Если упала сама Telegram validation,
-         * verified останется false.
-         */
-        if (
-          document.documentElement.dataset
-            .telegramVerified !==
-          'true'
-        ) {
-          document.documentElement.dataset.telegramVerified =
-            'false';
-        }
-
         setMessage(
           humanizeError(
             rawMessage,
@@ -404,79 +375,10 @@ export default function TelegramMiniAppBridge() {
 
     void initialize();
 
-    /*
-     * ---------------------------------------------------------
-     * 4. Если пользователь авторизуется в AnimeBox
-     *    уже ПОСЛЕ открытия Mini App —
-     *    пробуем привязать Telegram сразу.
-     * ---------------------------------------------------------
-     */
-    const {
-      data: authListener,
-    } =
-      supabase.auth.onAuthStateChange(
-        (event, session) => {
-          if (
-            event !==
-              'SIGNED_IN' ||
-            !session?.access_token
-          ) {
-            return;
-          }
-
-          /*
-           * Telegram должен уже пройти
-           * серверную проверку.
-           */
-          if (
-            document.documentElement.dataset
-              .telegramVerified !==
-            'true'
-          ) {
-            return;
-          }
-
-          if (
-            document.documentElement.dataset
-              .telegramLinked ===
-            'true'
-          ) {
-            return;
-          }
-
-          void linkAnimeBoxAccount(
-            session.access_token,
-          ).catch(
-            (error) => {
-              const rawMessage =
-                error instanceof Error
-                  ? error.message
-                  : 'unknown_error';
-
-              console.error(
-                '[Telegram Link after login]',
-                error,
-              );
-
-              setMessage(
-                humanizeError(
-                  rawMessage,
-                ),
-              );
-
-              setStatus('error');
-              setShowBadge(true);
-            },
-          );
-        },
-      );
-
     return () => {
       destroyed = true;
 
       controller.abort();
-
-      authListener.subscription.unsubscribe();
 
       if (badgeTimer) {
         clearTimeout(
@@ -490,31 +392,34 @@ export default function TelegramMiniAppBridge() {
     };
   }, []);
 
-  /*
-   * Ничего не рисуем во время обычной
-   * фоновой проверки.
-   */
   if (
     status === 'idle' ||
     status === 'checking' ||
     status === 'linking' ||
+    status === 'logging-in' ||
     !showBadge
   ) {
     return null;
   }
 
   const success =
-    status === 'verified' ||
-    status === 'linked';
+    status ===
+    'authenticated';
 
   return (
     <div
       style={{
-        position: 'fixed',
-        zIndex: 999999,
+        position:
+          'fixed',
 
-        top: 12,
-        right: 12,
+        zIndex:
+          999999,
+
+        top:
+          12,
+
+        right:
+          12,
 
         maxWidth:
           'calc(100vw - 24px)',
@@ -543,9 +448,6 @@ export default function TelegramMiniAppBridge() {
 
         fontWeight:
           700,
-
-        lineHeight:
-          1.3,
 
         boxShadow:
           '0 8px 30px rgba(0,0,0,.35)',
