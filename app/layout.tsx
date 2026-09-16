@@ -4,6 +4,7 @@ import './globals.css';
 import './visual-refresh.css';
 import './community.css';
 import './design-v5.css';
+import './mobile-readability.css';
 
 import { Analytics } from '@vercel/analytics/next';
 
