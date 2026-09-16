@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { Suspense } from 'react';
 
@@ -10,11 +11,13 @@ import AnimeFranchise, {
 import AnimeImageCascade from '@/components/AnimeImageCascade';
 import AnimeDetailControls from '@/components/AnimeDetailControls';
 import AnimeNotificationControl from '@/components/AnimeNotificationControl';
+import RelatedAnime, { RelatedAnimeLoading } from '@/components/RelatedAnime';
 
 import { resolveAnimeRoute } from '@/lib/anime-route';
 import { animeHref } from '@/lib/anime-url';
 import { createImageCascade } from '@/lib/image-cascade';
 import { cleanShikimoriDescription } from '@/lib/shikimori-text';
+import { getAnimeTitle } from '@/lib/anime-display';
 
 import type { Anime } from '@/types/anime';
 
@@ -24,6 +27,109 @@ type PageProps = {
     slug: string;
   }>;
 };
+
+const SITE_URL = 'https://youranimebox.com';
+
+function seoDescription(anime: Anime): string {
+  const title = getAnimeTitle(anime);
+  const cleaned = cleanShikimoriDescription(anime.description)
+    ?.replace(/\s+/g, ' ')
+    .trim();
+
+  const facts = [
+    anime.format || null,
+    anime.episodes && anime.episodes > 0 ? `${anime.episodes} эп.` : null,
+    anime.startDate?.year ? String(anime.startDate.year) : null,
+    anime.genres?.slice(0, 2).join(', ') || null,
+  ].filter((value): value is string => Boolean(value));
+
+  const prefix = `${title}${facts.length ? ` — ${facts.join(' · ')}` : ''}.`;
+  const fallback =
+    'Описание, рейтинг, серии, похожие тайтлы и отслеживание прогресса в AnimeBox.';
+  const value = `${prefix} ${cleaned || fallback}`.replace(/\s+/g, ' ').trim();
+
+  if (value.length <= 160) {
+    return value;
+  }
+
+  return `${value.slice(0, 157).trimEnd()}…`;
+}
+
+function structuredDate(date?: Anime['startDate']): string | undefined {
+  if (!date?.year) {
+    return undefined;
+  }
+
+  const month = String(date.month ?? 1).padStart(2, '0');
+  const day = String(date.day ?? 1).padStart(2, '0');
+
+  return `${date.year}-${month}-${day}`;
+}
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const anime = await resolveAnimeRoute(slug);
+
+  if (!anime) {
+    return {
+      title: 'Аниме не найдено',
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
+  const title = getAnimeTitle(anime);
+  const canonical = animeHref(anime);
+  const description = seoDescription(anime);
+  const socialImage =
+    anime.bannerImage ||
+    anime.coverImage?.extraLarge ||
+    anime.coverImage?.large ||
+    '/backgrounds/hero-fallback.webp';
+
+  return {
+    title: `${title} — серии, описание и рейтинг`,
+    description,
+    alternates: {
+      canonical,
+    },
+    openGraph: {
+      type: 'website',
+      url: canonical,
+      siteName: 'AnimeBox',
+      locale: 'ru_RU',
+      title: `${title} — AnimeBox`,
+      description,
+      images: [
+        {
+          url: socialImage,
+          alt: title,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${title} — AnimeBox`,
+      description,
+      images: [socialImage],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+        'max-video-preview': -1,
+      },
+    },
+  };
+}
 
 
 export default async function AnimePage({
@@ -298,6 +404,114 @@ export default async function AnimePage({
     };
 
 
+  const canonicalUrl =
+    `${SITE_URL}${animeHref(resolved)}`;
+
+  const title =
+    getAnimeTitle(resolved);
+
+  const description =
+    seoDescription(resolved);
+
+  const alternateNames =
+    [
+      resolved.title.russian,
+      resolved.title.english,
+      resolved.title.romaji,
+      resolved.title.native,
+    ]
+      .filter(
+        (value): value is string =>
+          typeof value === 'string' &&
+          value.trim().length > 0 &&
+          value.trim() !== title,
+      );
+
+  const schemaType =
+    resolved.format === 'MOVIE' ||
+    resolved.format === 'Фильм'
+      ? 'Movie'
+      : 'TVSeries';
+
+  const animeStructuredData = {
+    '@context':
+      'https://schema.org',
+
+    '@type':
+      schemaType,
+
+    name:
+      title,
+
+    alternateName:
+      alternateNames.length
+        ? alternateNames
+        : undefined,
+
+    description:
+      description,
+
+    url:
+      canonicalUrl,
+
+    image:
+      imageCascade.banner ||
+      imageCascade.posters[0] ||
+      undefined,
+
+    genre:
+      resolved.genres.length
+        ? resolved.genres
+        : undefined,
+
+    datePublished:
+      structuredDate(
+        resolved.startDate,
+      ),
+
+    numberOfEpisodes:
+      episodesCount ||
+      undefined,
+
+    sameAs:
+      resolved.idMal
+        ? [
+            `https://myanimelist.net/anime/${resolved.idMal}`,
+          ]
+        : undefined,
+  };
+
+  const breadcrumbStructuredData = {
+    '@context':
+      'https://schema.org',
+
+    '@type':
+      'BreadcrumbList',
+
+    itemListElement: [
+      {
+        '@type':
+          'ListItem',
+        position:
+          1,
+        name:
+          'AnimeBox',
+        item:
+          SITE_URL,
+      },
+      {
+        '@type':
+          'ListItem',
+        position:
+          2,
+        name:
+          title,
+        item:
+          canonicalUrl,
+      },
+    ],
+  };
+
   /* =========================================================
      PAGE
      ========================================================= */
@@ -311,6 +525,19 @@ export default async function AnimePage({
         text-white
       "
     >
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(animeStructuredData).replace(/</g, '\\u003c'),
+        }}
+      />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbStructuredData).replace(/</g, '\\u003c'),
+        }}
+      />
 
 
       {/* =====================================================
@@ -809,6 +1036,18 @@ export default async function AnimePage({
         </section>
 
       )}
+
+
+      {/* =====================================================
+          ПОХОЖИЕ АНИМЕ / ВНУТРЕННЯЯ ПЕРЕЛИНКОВКА
+          ===================================================== */}
+
+      <Suspense fallback={<RelatedAnimeLoading />}>
+        <RelatedAnime
+          animeId={numericId}
+          genres={resolved.genres}
+        />
+      </Suspense>
 
 
     </main>

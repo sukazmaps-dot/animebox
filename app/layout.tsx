@@ -8,6 +8,7 @@ import './design-v5.css';
 import './mobile-readability.css';
 import './notifications.css';
 import './telegram-logout.css';
+import './home-rails.css';
 
 import Navbar from '@/components/Navbar';
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
@@ -16,6 +17,22 @@ import { AuthStateProvider } from '@/components/AuthStateProvider';
 import { Analytics } from '@vercel/analytics/next';
 
 const SITE_URL = 'https://youranimebox.com';
+
+const websiteStructuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'AnimeBox',
+  url: SITE_URL,
+  inLanguage: 'ru-RU',
+};
+
+const organizationStructuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'AnimeBox',
+  url: SITE_URL,
+  logo: `${SITE_URL}/logo.png`,
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -32,18 +49,6 @@ export const metadata: Metadata = {
   creator: 'AnimeBox',
   publisher: 'AnimeBox',
 
-  keywords: [
-    'аниме',
-    'аниме онлайн',
-    'смотреть аниме онлайн',
-    'аниме бесплатно',
-    'аниме трекер',
-    'AnimeBox',
-    'каталог аниме',
-    'расписание аниме',
-    'новые серии аниме',
-    'отслеживание аниме',
-  ],
 
   openGraph: {
     type: 'website',
@@ -77,20 +82,6 @@ export const metadata: Metadata = {
     images: ['/backgrounds/hero-fallback.webp'],
   },
 
-  robots: {
-    index: true,
-    follow: true,
-
-    googleBot: {
-      index: true,
-      follow: true,
-
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-      'max-video-preview': -1,
-    },
-  },
-
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon.ico',
@@ -117,6 +108,20 @@ export default function RootLayout({
       </head>
 
       <body>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(websiteStructuredData).replace(/</g, '\\u003c'),
+          }}
+        />
+
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(organizationStructuredData).replace(/</g, '\\u003c'),
+          }}
+        />
+
         <AuthStateProvider>
           {/* Определяет, открыт AnimeBox внутри Telegram или в браузере */}
           <TelegramMiniAppBridge />
