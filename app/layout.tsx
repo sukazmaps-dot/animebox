@@ -5,7 +5,7 @@ import './visual-refresh.css';
 import './community.css';
 import './design-v5.css';
 
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from '@vercel/analytics/next';
 
 import Navbar from '@/components/Navbar';
 
@@ -39,25 +39,10 @@ export const metadata: Metadata = {
     'отслеживание аниме',
   ],
 
-  /*
-   * ВАЖНО:
-   * canonical здесь НЕ ставим.
-   *
-   * Его будем задавать отдельно:
-   * /anime/[slug]
-   * /anime/[slug]/episode/[episode]
-   *
-   * Иначе Google может считать главную canonical-страницей
-   * для всего сайта.
-   */
-
   openGraph: {
     type: 'website',
-
     locale: 'ru_RU',
-
     url: SITE_URL,
-
     siteName: 'AnimeBox',
 
     title: 'AnimeBox — Смотри. Отслеживай. Живи.',
@@ -67,19 +52,9 @@ export const metadata: Metadata = {
 
     images: [
       {
-        /*
-         * Лучше позже создать:
-         * public/og/default.webp
-         *
-         * размером 1200x630.
-         *
-         * Пока можно оставить существующий background.
-         */
         url: '/backgrounds/hero-fallback.webp',
-
         width: 2244,
         height: 701,
-
         alt: 'AnimeBox — аниме, трекер и новые серии',
       },
     ],
@@ -137,30 +112,7 @@ export default function RootLayout({
           </main>
         </div>
 
-        import type { Metadata } from 'next';
-import { Analytics } from '@vercel/analytics/next';
-import './globals.css';
-
-export const metadata: Metadata = {
-  title: 'AnimeBox',
-  description: 'AnimeBox',
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html lang="ru">
-      <body>
-        {children}
-
         <Analytics />
-      </body>
-    </html>
-  );
-}
       </body>
     </html>
   );
