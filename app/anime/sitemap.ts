@@ -4,7 +4,7 @@ import { slugify } from '@/lib/anime-url';
 import { getSeoAnimeShard } from '@/lib/seo-anilist';
 import { ANIME_SITEMAP_SHARDS, SITE_URL } from '@/lib/seo-config';
 
-export const revalidate = 60 * 60 * 6;
+export const revalidate = 21600;
 
 export async function generateSitemaps() {
   return Array.from({ length: ANIME_SITEMAP_SHARDS }, (_, id) => ({ id }));

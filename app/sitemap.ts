@@ -5,7 +5,7 @@ import { slugify } from '@/lib/anime-url';
 import { SITE_URL } from '@/lib/seo-config';
 import type { Anime } from '@/types/anime';
 
-export const revalidate = 60 * 60 * 6;
+export const revalidate = 21600;
 
 function stableAnimePath(anime: Anime): string {
   const title =
