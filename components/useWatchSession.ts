@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const HEARTBEAT_INTERVAL_MS = 10_000;
-const ACTIVE_SAMPLE_WINDOW_MS = 4_000;
+const ACTIVE_ADVANCE_WINDOW_MS = 15_000;
 const MIN_ACTIVE_DELTA_MS = 100;
 const MAX_SAMPLE_ADVANCE_MS = 30_000;
 
@@ -105,8 +105,9 @@ export function useWatchSession({
   const latestDurationRef = useRef<number | null>(null);
   const messageOriginRef = useRef<string | null>(null);
   const lastSentPositionRef = useRef<number | null>(null);
-  const lastSampleAtRef = useRef<number | null>(null);
-  const activeRef = useRef(false);
+  // Timestamp of the latest *real forward playback advance*.
+  // Repeated integer samples from Kodik (24 -> 24) must not mark playback idle.
+  const lastAdvanceAtRef = useRef<number | null>(null);
   const startingRef = useRef<Promise<void> | null>(null);
   const sendingRef = useRef(false);
   const disabledRef = useRef(false);
@@ -157,7 +158,8 @@ export function useWatchSession({
       sessionRef.current ||
       startingRef.current ||
       latestPositionRef.current == null ||
-      !activeRef.current
+      lastAdvanceAtRef.current == null ||
+      Date.now() - lastAdvanceAtRef.current > ACTIVE_ADVANCE_WINDOW_MS
     ) {
       return;
     }
@@ -230,16 +232,15 @@ export function useWatchSession({
       }
 
       if (!force) {
-        if (document.visibilityState !== 'visible' || !activeRef.current) {
+        if (document.visibilityState !== 'visible') {
           return;
         }
 
-        const lastSampleAt = lastSampleAtRef.current;
+        const lastAdvanceAt = lastAdvanceAtRef.current;
         if (
-          lastSampleAt == null ||
-          Date.now() - lastSampleAt > ACTIVE_SAMPLE_WINDOW_MS
+          lastAdvanceAt == null ||
+          Date.now() - lastAdvanceAt > ACTIVE_ADVANCE_WINDOW_MS
         ) {
-          activeRef.current = false;
           return;
         }
       }
@@ -325,18 +326,24 @@ export function useWatchSession({
       if (previousPosition != null) {
         const delta = nextPosition - previousPosition;
 
-        activeRef.current =
+        /*
+         * Kodik reports rounded seconds and may repeat the same value:
+         * 23 -> 24 -> 24 -> 25. A repeated sample is not a pause.
+         * We only refresh the playback-activity timestamp on a plausible
+         * forward advance and otherwise leave the previous timestamp alone.
+         */
+        if (
           document.visibilityState === 'visible' &&
           delta >= MIN_ACTIVE_DELTA_MS &&
-          delta <= MAX_SAMPLE_ADVANCE_MS;
-      } else {
-        activeRef.current = false;
+          delta <= MAX_SAMPLE_ADVANCE_MS
+        ) {
+          lastAdvanceAtRef.current = Date.now();
+        }
       }
 
-      lastSampleAtRef.current = Date.now();
-
       if (
-        activeRef.current &&
+        lastAdvanceAtRef.current != null &&
+        Date.now() - lastAdvanceAtRef.current <= ACTIVE_ADVANCE_WINDOW_MS &&
         !sessionRef.current &&
         !startingRef.current
       ) {
@@ -354,8 +361,7 @@ export function useWatchSession({
     latestDurationRef.current = null;
     messageOriginRef.current = null;
     lastSentPositionRef.current = null;
-    lastSampleAtRef.current = null;
-    activeRef.current = false;
+    lastAdvanceAtRef.current = null;
 
     queueMicrotask(() => {
       setMessage('');
@@ -372,7 +378,6 @@ export function useWatchSession({
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') {
         void sendHeartbeat(true);
-        activeRef.current = false;
       }
     };
 
@@ -397,7 +402,6 @@ export function useWatchSession({
       sessionRef.current = null;
       startingRef.current = null;
       sendingRef.current = false;
-      activeRef.current = false;
     };
   }, [animeId, enabled, episode, sendHeartbeat, sourceUrl]);
 
