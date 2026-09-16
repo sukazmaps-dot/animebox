@@ -16,12 +16,13 @@ import { AuthStateProvider } from '@/components/AuthStateProvider';
 
 import { Analytics } from '@vercel/analytics/next';
 
-const SITE_URL = 'https://youranimebox.com';
+import { SITE_URL } from '@/lib/seo-config';
 
 const websiteStructuredData = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: 'AnimeBox',
+  alternateName: ['YourAnimeBox', 'youranimebox.com'],
   url: SITE_URL,
   inLanguage: 'ru-RU',
 };
@@ -30,8 +31,16 @@ const organizationStructuredData = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'AnimeBox',
+  alternateName: 'YourAnimeBox',
   url: SITE_URL,
-  logo: `${SITE_URL}/logo.png`,
+  logo: {
+    '@type': 'ImageObject',
+    url: `${SITE_URL}/brand/favicon.png`,
+    contentUrl: `${SITE_URL}/brand/favicon.png`,
+    width: 512,
+    height: 512,
+  },
+  sameAs: ['https://t.me/YourAnimeBoxBot'],
 };
 
 export const metadata: Metadata = {
@@ -83,9 +92,15 @@ export const metadata: Metadata = {
   },
 
   icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon.ico',
+    icon: [
+      { url: '/brand/favicon.png', type: 'image/png', sizes: '512x512' },
+      { url: '/favicon.ico', type: 'image/x-icon', sizes: '256x256' },
+    ],
+    shortcut: '/brand/favicon.png',
+    apple: '/brand/favicon.png',
   },
+
+  manifest: '/manifest.webmanifest',
 };
 
 export const viewport: Viewport = {

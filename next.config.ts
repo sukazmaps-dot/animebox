@@ -1,6 +1,9 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // One canonical URL style: /anime/title-id (without a trailing slash).
+  trailingSlash: false,
+  poweredByHeader: false,
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.shikimori.one' },

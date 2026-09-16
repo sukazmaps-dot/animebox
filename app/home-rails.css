@@ -1,6 +1,6 @@
 /* =========================================================
    AnimeBox home anime rails
-   Horizontal paging for popular / ongoing / recommendations.
+   Equal-height cards + reliable desktop paging.
    ========================================================= */
 
 .home-anime-rail {
@@ -12,6 +12,7 @@
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: calc((100% - 52px) / 5);
+  align-items: stretch;
   gap: 13px;
 
   min-width: 0;
@@ -29,48 +30,80 @@
   display: none;
 }
 
+/*
+ * Все карточки в rail должны иметь одинаковую геометрию.
+ * Раньше высота зависела от того, занял title одну строку или две.
+ */
 .home-anime-rail__viewport .anime-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   scroll-snap-align: start;
   scroll-snap-stop: normal;
 }
 
+.home-anime-rail__viewport .anime-card__body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.home-anime-rail__viewport .anime-card__body h3 {
+  min-height: 36px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.home-anime-rail__viewport .anime-card__meta {
+  min-height: 15px;
+}
+
+.home-anime-rail__viewport .anime-card__tags {
+  min-height: 25px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
 .home-anime-rail__arrow {
   position: absolute;
-  top: 38%;
-  z-index: 12;
+  top: 40%;
+  z-index: 30;
 
   display: grid;
   place-items: center;
 
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   padding: 0;
-  border: 1px solid rgba(164, 143, 255, .30);
+  border: 1px solid rgba(164, 143, 255, .36);
   border-radius: 50%;
 
-  background: rgba(8, 12, 27, .92);
-  color: #f4f1ff;
+  background: rgba(7, 11, 24, .94);
+  color: #f6f3ff;
   box-shadow:
-    0 12px 30px rgba(0, 0, 0, .38),
-    0 0 24px rgba(110, 82, 255, .12);
+    0 14px 34px rgba(0, 0, 0, .46),
+    0 0 26px rgba(110, 82, 255, .16);
+  backdrop-filter: blur(12px);
 
   font: inherit;
-  font-size: 28px;
+  font-size: 29px;
   line-height: 1;
   cursor: pointer;
 
   transform: translateY(-50%);
   transition:
-    opacity .2s ease,
+    opacity .18s ease,
     transform .2s ease,
     border-color .2s ease,
     background .2s ease;
 }
 
 .home-anime-rail__arrow:hover:not(:disabled) {
-  border-color: rgba(164, 143, 255, .58);
-  background: rgba(20, 19, 47, .98);
-  transform: translateY(-50%) scale(1.05);
+  border-color: rgba(181, 163, 255, .70);
+  background: rgba(24, 21, 54, .98);
+  transform: translateY(-50%) scale(1.06);
 }
 
 .home-anime-rail__arrow:focus-visible {
@@ -83,26 +116,19 @@
   pointer-events: none;
 }
 
+/* Стрелки внутри rail, чтобы их не обрезал соседний right rail/контейнер. */
 .home-anime-rail__arrow--prev {
-  left: -16px;
+  left: 8px;
 }
 
 .home-anime-rail__arrow--next {
-  right: -16px;
+  right: 8px;
 }
 
 @media (max-width: 1200px) {
   .home-anime-rail__viewport {
     grid-auto-columns: calc((100% - 36px) / 5);
     gap: 9px;
-  }
-
-  .home-anime-rail__arrow--prev {
-    left: -12px;
-  }
-
-  .home-anime-rail__arrow--next {
-    right: -12px;
   }
 }
 
@@ -116,16 +142,18 @@
 @media (max-width: 720px) {
   .home-anime-rail__viewport {
     grid-auto-columns: min(39vw, 154px);
+    align-items: stretch;
     gap: 10px;
     margin-inline: -2px;
     padding-inline: 2px;
     scroll-snap-type: x proximity;
   }
 
-  /*
-   * На телефоне естественный свайп удобнее стрелок.
-   * Следующая карточка остаётся слегка видна и подсказывает, что лента листается.
-   */
+  .home-anime-rail__viewport .anime-card__body h3 {
+    min-height: 32px;
+  }
+
+  /* На телефоне свайп удобнее стрелок. */
   .home-anime-rail__arrow {
     display: none;
   }

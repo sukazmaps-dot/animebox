@@ -17,6 +17,8 @@ import { resolveAnimeRoute } from '@/lib/anime-route';
 import { animeHref } from '@/lib/anime-url';
 import { createImageCascade } from '@/lib/image-cascade';
 import { cleanShikimoriDescription } from '@/lib/shikimori-text';
+import { cleanSeoText, truncateSeoText } from '@/lib/seo-text';
+import { SITE_URL } from '@/lib/seo-config';
 import { getAnimeTitle } from '@/lib/anime-display';
 
 import type { Anime } from '@/types/anime';
@@ -28,31 +30,25 @@ type PageProps = {
   }>;
 };
 
-const SITE_URL = 'https://youranimebox.com';
-
 function seoDescription(anime: Anime): string {
   const title = getAnimeTitle(anime);
-  const cleaned = cleanShikimoriDescription(anime.description)
-    ?.replace(/\s+/g, ' ')
-    .trim();
+  const cleaned = cleanSeoText(cleanShikimoriDescription(anime.description));
 
   const facts = [
-    anime.format || null,
-    anime.episodes && anime.episodes > 0 ? `${anime.episodes} эп.` : null,
+    anime.episodes && anime.episodes > 0 ? `${anime.episodes} серий` : null,
     anime.startDate?.year ? String(anime.startDate.year) : null,
     anime.genres?.slice(0, 2).join(', ') || null,
   ].filter((value): value is string => Boolean(value));
 
-  const prefix = `${title}${facts.length ? ` — ${facts.join(' · ')}` : ''}.`;
+  const intro = `Смотреть «${title}» онлайн на AnimeBox.`;
+  const details = facts.length ? ` ${facts.join(' · ')}.` : '';
   const fallback =
-    'Описание, рейтинг, серии, похожие тайтлы и отслеживание прогресса в AnimeBox.';
-  const value = `${prefix} ${cleaned || fallback}`.replace(/\s+/g, ' ').trim();
+    'Описание, рейтинг, список серий, похожие аниме и сохранение прогресса просмотра.';
 
-  if (value.length <= 160) {
-    return value;
-  }
-
-  return `${value.slice(0, 157).trimEnd()}…`;
+  return truncateSeoText(
+    `${intro}${details} ${cleaned || fallback}`,
+    158,
+  );
 }
 
 function structuredDate(date?: Anime['startDate']): string | undefined {
@@ -92,7 +88,7 @@ export async function generateMetadata({
     '/backgrounds/hero-fallback.webp';
 
   return {
-    title: `${title} — серии, описание и рейтинг`,
+    title: `${title} — смотреть онлайн, серии и описание`,
     description,
     alternates: {
       canonical,
@@ -414,12 +410,12 @@ export default async function AnimePage({
     seoDescription(resolved);
 
   const alternateNames =
-    [
+    Array.from(new Set([
       resolved.title.russian,
       resolved.title.english,
       resolved.title.romaji,
       resolved.title.native,
-    ]
+    ]))
       .filter(
         (value): value is string =>
           typeof value === 'string' &&

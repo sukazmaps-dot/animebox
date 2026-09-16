@@ -1,0 +1,104 @@
+AnimeBox — SEO Final / Discoverability patch
+
+Цель
+----
+Закрыть главный оставшийся SEO-пробел: Google уже умеет читать правильные metadata AnimeBox, но часть anime URL (например One Piece / JoJo) была ему неизвестна, потому что старый sitemap охватывал лишь небольшую выборку.
+
+Что исправлено
+--------------
+1. Масштабируемые sitemap для anime
+- Добавлен /anime/sitemap/[id].xml через Next.js generateSitemaps().
+- 20 sitemap-шардов, каждый до ~250 anime URL.
+- Итого система автоматически публикует до ~5000 популярных не-18+ anime URL.
+- Один shard = один GraphQL-запрос AniList с 5 страницами, а не 5 отдельных запросов.
+- Sitemap не зависит от Shikimori, чтобы временный 429 локализации не ломал обнаружение URL.
+- Для онгоингов changeFrequency=daily, остальных weekly.
+- lastModified берётся из AniList updatedAt.
+- В sitemap добавляются anime images.
+
+2. Root sitemap сохранён
+- /sitemap.xml остаётся лёгким приоритетным sitemap: главная, каталог, расписание, about + популярные и ongoing anime.
+- Это не ломает уже отправленный sitemap в Google Search Console.
+
+3. robots.txt
+- Удалена unsupported директива Host, из-за которой Search Console показывал жёлтое предупреждение.
+- robots.txt объявляет /sitemap.xml и все anime sitemap shards.
+- Заблокированы только технические URL: /api/, /admin/, /supabase-test/.
+- Пользовательские HTML-страницы должны использовать meta noindex, а не robots block.
+
+4. Единый canonical URL
+- next.config.ts: trailingSlash=false.
+- Снижается вероятность дублей /anime/title-id и /anime/title-id/.
+- Canonical anime страниц остаётся без завершающего slash.
+
+5. Улучшены metadata anime
+- Title: «Название — смотреть онлайн, серии и описание | AnimeBox».
+- Description очищается от [[wiki-разметки]], HTML, markdown-мусора, лишних пробелов и не режется посередине слова.
+- Description содержит формат/серии/год/жанры + нормальный synopsis.
+- canonical, Open Graph и Twitter остаются динамическими.
+
+6. Structured data
+- WebSite JSON-LD получил alternateName: YourAnimeBox / youranimebox.com.
+- Organization JSON-LD получил alternateName, logo ImageObject 512x512 и Telegram sameAs.
+- Anime TVSeries/Movie JSON-LD и BreadcrumbList сохранены.
+- alternateName anime очищается от дублей.
+
+7. Каталог стал SEO-доступнее
+- /search теперь получает первые 15 anime на сервере.
+- Значит Google видит обычные ссылки на anime уже в исходном HTML, даже до выполнения client JS.
+- /search индексируется.
+- /search?search=... получает noindex,follow + canonical /search, чтобы не создавать бесконечные дубли поисковых URL.
+
+8. Favicon / manifest
+- Добавлен /manifest.webmanifest.
+- В metadata favicon приоритетно используется стабильный /brand/favicon.png 512x512 + ICO fallback.
+- Organization logo использует тот же 512x512 asset.
+
+Новые/изменённые файлы
+----------------------
+- app/robots.ts
+- app/sitemap.ts
+- app/anime/sitemap.ts
+- app/manifest.ts
+- app/layout.tsx
+- app/anime/[slug]/page.tsx
+- app/search/page.tsx
+- components/SearchCatalogClient.tsx
+- lib/seo-config.ts
+- lib/seo-anilist.ts
+- lib/seo-text.ts
+- next.config.ts
+- public/brand/favicon.png (включён для гарантии наличия 512x512 asset)
+
+Проверки перед упаковкой
+------------------------
+- npx tsc --noEmit
+- ESLint по изменённым TS/TSX
+
+Что проверить после deploy
+--------------------------
+1. https://youranimebox.com/robots.txt
+   - больше нет Host:
+   - присутствует Sitemap: https://youranimebox.com/sitemap.xml
+   - присутствуют /anime/sitemap/0.xml ... /19.xml
+
+2. https://youranimebox.com/sitemap.xml
+   - открывается без ошибки.
+
+3. https://youranimebox.com/anime/sitemap/0.xml
+   - должен содержать сотни anime URL.
+
+4. Search Console
+   - оставить существующий sitemap.xml.
+   - для ускорения можно один раз отправить anime/sitemap/0.xml как дополнительный sitemap и убедиться, что Google его принимает.
+   - проверить live URL One Piece и JoJo, затем Request indexing для нескольких ключевых страниц.
+
+5. Через несколько дней сравнить:
+   - Pages / Indexing
+   - Sitemap discovered URLs
+   - Performance queries/pages
+   - favicon/title snippets (обновление Google не мгновенное).
+
+Важно
+-----
+SEO-патч делает обнаружение и техническую индексацию системными, но не гарантирует позиции в ТОП по конкурентным запросам. Ранжирование дальше зависит от качества страниц, уникальной полезности, скорости, ссылок/бренда и поведения реальных пользователей.
