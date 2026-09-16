@@ -62,13 +62,13 @@ export default function AnimeCard({
   return (
     <Link
       href={animeHref(anime)}
-      className={`anime-card ${
+      className={`anime-card flex h-full min-w-0 flex-col ${
         compact
           ? 'anime-card--compact'
           : ''
       }`}
     >
-      <div className="anime-card__image-wrap">
+      <div className="anime-card__image-wrap aspect-[2/3] shrink-0">
         <AnimeImage
           image={anime.coverImage}
           alt={title}
@@ -95,8 +95,8 @@ export default function AnimeCard({
         </div>
       </div>
 
-      <div className="anime-card__body">
-        <h3 title={title}>
+      <div className="anime-card__body flex min-w-0 flex-1 flex-col">
+        <h3 title={title} className="line-clamp-2">
           {title}
         </h3>
 
@@ -112,8 +112,7 @@ export default function AnimeCard({
           </span>
         </div>
 
-        {!compact &&
-          genres.length > 0 && (
+        {!compact && (
             <div className="anime-card__tags">
               {genres
                 .slice(0, 2)

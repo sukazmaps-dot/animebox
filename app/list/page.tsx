@@ -156,10 +156,21 @@ export default function MyListPage() {
         )}
       </header>
 
-      {error && (
+      {!authLoading && !loading && !user && !data && (
+        <section className="mx-auto flex w-full max-w-lg flex-col items-center rounded-2xl border border-violet-400/20 bg-gradient-to-br from-slate-900 to-slate-950 p-6 text-center sm:p-8">
+          <div aria-hidden="true" className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500/15 text-violet-300">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="5" y="10" width="14" height="11" rx="3" /><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" /></svg>
+          </div>
+          <h2 className="text-xl font-bold text-white">Твоя история аниме начинается здесь</h2>
+          <p className="mt-3 text-sm leading-relaxed text-slate-400">Войди, чтобы сохранять любимые тайтлы, отслеживать серии и прогресс. Смотри аниме, прокачивай уровень и поднимайся в лидерборде.</p>
+          <Link href="/login" className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-5 py-3 font-semibold text-white transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-violet-400">Войти</Link>
+        </section>
+      )}
+
+      {error && user && (
         <section className="tracker-error" role="alert">
           <span>{error}</span>
-          <div className="tracker-error__actions">
+          <div className="tracker-error__actions flex flex-wrap items-center gap-3">
             <Link href="/login" className="tracker-error__login">
               Войти
             </Link>

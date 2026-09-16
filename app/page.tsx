@@ -10,14 +10,16 @@ import AnimeCard from '@/components/AnimeCard';
 import Icon from '@/components/Icon';
 import AnimeImage from '@/components/AnimeImage';
 import HomeHeroCarousel from '@/components/HomeHeroCarousel';
-import { getAnimeTitle } from '@/lib/anime-display';
 import { getAnimes } from '@/lib/anime-client';
 import {
   getRecommendedAnime,
   getRecommendationFallback,
 } from '@/lib/recommendations';
 import { readWatchHistory } from '@/lib/anime-storage';
-import { TELEGRAM_MINI_APP_URL } from '@/lib/telegram-links';
+import TelegramPromoCard from '@/components/TelegramPromoCard';
+import TopAnimeItem from '@/components/TopAnimeItem';
+import ScheduleItem from '@/components/ScheduleItem';
+import { filterRecommendations } from '@/lib/filter-recommendations';
 
 type HomeScheduleItem = {
   id: number;
@@ -131,39 +133,6 @@ function formatUpcomingDate(airingAt: number): string {
           );
 
   return `${prefix} · ${formatScheduleTime(airingAt)}`;
-}
-
-function EpisodeCountdown({ airingAt }: { airingAt: number }) {
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const remaining = Math.max(0, airingAt * 1000 - now);
-
-  if (remaining <= 0) {
-    return <span className="episode-countdown is-live">Уже вышла</span>;
-  }
-
-  const totalSeconds = Math.floor(remaining / 1000);
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  const value =
-    days > 0
-      ? `${days}д ${String(hours).padStart(2, '0')}ч`
-      : `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-
-  return (
-    <span className="episode-countdown" aria-label={`До выхода серии ${value}`}>
-      <span className="episode-countdown__dot" aria-hidden="true" />
-      {value}
-    </span>
-  );
 }
 
 export default function HomePage() {
@@ -357,11 +326,11 @@ export default function HomePage() {
       return [];
     }
 
-    if (rawRecommendations.length > 0) {
-      return rawRecommendations;
-    }
-
-    return getRecommendationFallback(popular, ongoing, 10);
+    const displayedOngoing = (ongoing.length > 0 ? ongoing : popular).slice(0, 5);
+    return filterRecommendations(
+      [...rawRecommendations, ...getRecommendationFallback(popular, ongoing, 10)],
+      displayedOngoing,
+    );
   }, [
     hasWatchHistory,
     rawRecommendations,
@@ -500,11 +469,12 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="empty-state">
-              <strong>Начни смотреть аниме</strong>
+              <strong>{hasWatchHistory ? 'Пока нет новых рекомендаций' : 'Начни смотреть аниме'}</strong>
 
               <span>
-                После первого просмотра рекомендации начнут подстраиваться
-                под твои жанры.
+                {hasWatchHistory
+                  ? 'Подходящие тайтлы уже показаны выше. Загляни в каталог за новыми историями.'
+                  : 'После первого просмотра рекомендации начнут подстраиваться под твои жанры.'}
               </span>
 
               <Link
@@ -512,7 +482,7 @@ export default function HomePage() {
                 href="/search"
                 style={{ marginTop: 14 }}
               >
-                Найти первое аниме
+                {hasWatchHistory ? 'Открыть каталог' : 'Найти первое аниме'}
               </Link>
             </div>
           )}
@@ -639,44 +609,10 @@ export default function HomePage() {
             <span className="section-link">Сегодня</span>
           </div>
 
-          <div className="panel__body rank-list rank-list--premium">
-            {popular.slice(0, 5).map((anime, index) => {
-              const title = getAnimeTitle(anime);
-
-              return (
-                <Link
-                  href={animeHref(anime)}
-                  key={anime.id}
-                  className={`rank-item ${index < 3 ? 'rank-item--spotlight' : ''}`}
-                >
-                  {index < 3 ? (
-                    <span className="rank-item__badge" aria-hidden="true">
-                      <img
-                        src={`/ui/animebox-rank-${index + 1}.webp`}
-                        alt=""
-                      />
-                    </span>
-                  ) : (
-                    <span className="rank-item__num">
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
-                  )}
-
-                  <AnimeImage
-                    image={anime.coverImage}
-                    alt={title}
-                    englishName={anime.title.english || anime.title.romaji}
-                  />
-
-                  <div>
-                    <strong>{title}</strong>
-                    <span>★ {anime.score ?? '—'}</span>
-                  </div>
-
-                  <span className="rank-item__score">›</span>
-                </Link>
-              );
-            })}
+          <div className="panel__body">
+            {popular.slice(0, 5).map((anime, index) => (
+              <TopAnimeItem key={anime.id} anime={anime} rank={index + 1} />
+            ))}
           </div>
         </div>
 
@@ -693,29 +629,15 @@ export default function HomePage() {
                 const title = getScheduleTitle(item);
 
                 return (
-                  <Link
-                    href={animeHref(item.media)}
+                  <ScheduleItem
                     key={item.id}
-                    className="rank-item rank-item--upcoming"
-                  >
-                    <AnimeImage
-                      image={item.media.coverImage}
-                      alt={title}
-                      englishName={
-                        item.media.title.english || item.media.title.romaji
-                      }
-                    />
-
-                    <div>
-                      <strong>{title}</strong>
-                      <span>
-                        Эпизод {item.episode} · {formatUpcomingDate(item.airingAt)}
-                      </span>
-                      <EpisodeCountdown airingAt={item.airingAt} />
-                    </div>
-
-                    <span className="rank-item__score">→</span>
-                  </Link>
+                    href={animeHref(item.media)}
+                    title={title}
+                    image={item.media.coverImage}
+                    episode={item.episode}
+                    dateLabel={formatUpcomingDate(item.airingAt)}
+                    airingAt={item.airingAt}
+                  />
                 );
               })
             ) : (
@@ -726,31 +648,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="panel telegram-panel telegram-panel--brand">
-          <img
-            className="telegram-panel__art"
-            src="/brand/telegram-cta.png"
-            alt=""
-            aria-hidden="true"
-          />
-
-          <div className="telegram-panel__content">
-            <span className="telegram-panel__eyebrow">ANIMEBOX × TELEGRAM</span>
-
-            <strong>
-              Новые серии — прямо в Telegram
-            </strong>
-
-            <span>
-              Следи за любимыми тайтлами и получай уведомления без лишнего шума.
-            </span>
-
-            <a href={TELEGRAM_MINI_APP_URL} target="_blank" rel="noreferrer">
-              <Icon name="telegram" />
-              Открыть Mini App
-            </a>
-          </div>
-        </div>
+        <TelegramPromoCard />
       </aside>
     </div>
   );

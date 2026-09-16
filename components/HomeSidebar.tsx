@@ -1,3 +1,4 @@
+import TopAnimeItem from '@/components/TopAnimeItem';
 import { animeHref } from '@/lib/anime-url';
 import Link from 'next/link';
 import type { Anime } from '@/types/anime';
@@ -13,19 +14,7 @@ export function TopAnimePanel({ items }: { items: Anime[] }) {
       </div>
       <div className="px-2 pb-2">
         {items.slice(0, 5).map((anime, index) => (
-          <Link
-            key={anime.id}
-            href={animeHref(anime)}
-            className="group flex items-center gap-2.5 rounded-xl px-2 py-2 transition-all duration-300 hover:bg-white/[0.045]"
-          >
-            <span className={`w-4 text-center text-[10px] font-bold ${index < 3 ? 'text-violet-300' : 'text-slate-600'}`}>{index + 1}</span>
-            <AnimeImage image={anime.image} alt={anime.russian} className="h-12 w-9 shrink-0 rounded-lg object-cover transition duration-300 group-hover:scale-105" />
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-[10px] font-semibold text-slate-100">{anime.russian}</div>
-              <div className="mt-1 inline-flex items-center gap-1 text-[9px] text-amber-300"><Icon name="star" width={9} height={9} /> {anime.score ?? '—'}</div>
-            </div>
-            <Icon name="chevron" width={12} height={12} className="text-slate-600 transition group-hover:text-violet-300" />
-          </Link>
+          <TopAnimeItem key={anime.id} anime={anime} rank={index + 1} />
         ))}
       </div>
     </section>

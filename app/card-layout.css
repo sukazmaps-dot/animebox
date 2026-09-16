@@ -1,0 +1,13 @@
+/* Shared card geometry: reserve title, metadata and genre slots even when empty. */
+.anime-card.anime-card { display: flex; flex-direction: column; height: 100%; min-width: 0; }
+.anime-card.anime-card .anime-card__image-wrap { width: 100%; height: auto; aspect-ratio: 2 / 3; flex-shrink: 0; }
+.anime-card.anime-card .anime-card__body { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.anime-card.anime-card .anime-card__body h3 {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  line-height: 1.5; height: 3em; min-height: 3em; margin: 0; overflow: hidden; overflow-wrap: anywhere;
+}
+.anime-card.anime-card .anime-card__meta { height: 1.5em; min-height: 1.5em; line-height: 1.5; white-space: nowrap; overflow: hidden; }
+.anime-card.anime-card .anime-card__meta span { flex-shrink: 0; }
+.anime-card.anime-card .anime-card__meta span:last-child { min-width: 0; flex-shrink: 1; overflow: hidden; text-overflow: ellipsis; }
+.anime-card.anime-card .anime-card__tags { height: 25px; min-height: 25px; margin-top: 8px; overflow: hidden; }
+.anime-card.anime-card .anime-card__tags span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
