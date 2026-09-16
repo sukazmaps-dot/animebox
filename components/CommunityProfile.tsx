@@ -9,7 +9,6 @@ import {
   type CommunityProfile as ProfileData,
 } from '@/lib/community-client';
 
-
 function WatchTime({ activeMs }: { activeMs: number }) {
   const totalSeconds = Math.max(0, Math.floor(activeMs / 1000));
   const hours = Math.floor(totalSeconds / 3600);
@@ -100,9 +99,11 @@ export default function CommunityProfile() {
           <small>Полностью просмотрены</small>
         </article>
 
-       <span className="profile-v2__stat-label">Просмотрено серий</span>
-<strong>{stats.episodes}</strong>
-<small>Засчитано после подтверждённого просмотра</small>
+        <article className="profile-v2__stat">
+          <span className="profile-v2__stat-label">Просмотрено серий</span>
+          <strong>{stats.episodes}</strong>
+          <small>Засчитано после подтверждённого просмотра</small>
+        </article>
 
         <article className="profile-v2__stat">
           <span className="profile-v2__stat-label">Время просмотра</span>
@@ -210,7 +211,9 @@ export default function CommunityProfile() {
                 stats[achievement.metric],
                 achievement.threshold,
               );
-              const progress = Math.round((current / achievement.threshold) * 100);
+              const progress = Math.round(
+                (current / achievement.threshold) * 100,
+              );
               const unlocked = Boolean(achievement.earned_at);
 
               return (
@@ -225,12 +228,19 @@ export default function CommunityProfile() {
                   <div className="profile-v2__achievement-copy">
                     <div className="profile-v2__achievement-title">
                       <strong>{achievement.title}</strong>
-                      <small>{unlocked ? 'Получено' : `${current} / ${achievement.threshold}`}</small>
+                      <small>
+                        {unlocked
+                          ? 'Получено'
+                          : `${current} / ${achievement.threshold}`}
+                      </small>
                     </div>
 
                     <p>{achievement.description}</p>
 
-                    <div className="profile-v2__achievement-progress" aria-hidden="true">
+                    <div
+                      className="profile-v2__achievement-progress"
+                      aria-hidden="true"
+                    >
                       <span style={{ width: `${unlocked ? 100 : progress}%` }} />
                     </div>
                   </div>
