@@ -1,11 +1,12 @@
-import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { Suspense } from 'react';
 
 import LibraryStatusControl from '@/components/LibraryStatusControl';
+
 import AnimeFranchise, {
   AnimeFranchiseLoading,
 } from '@/components/AnimeFranchise';
+
 import AnimeImageCascade from '@/components/AnimeImageCascade';
 import AnimeDetailControls from '@/components/AnimeDetailControls';
 
@@ -16,23 +17,37 @@ import { cleanShikimoriDescription } from '@/lib/shikimori-text';
 
 import type { Anime } from '@/types/anime';
 
+
 type PageProps = {
   params: Promise<{
     slug: string;
   }>;
 };
 
+
 export default async function AnimePage({
   params,
 }: PageProps) {
   const { slug } = await params;
 
+
+  /* =========================================================
+     Получаем тайтл
+     ========================================================= */
+
   const resolved =
     await resolveAnimeRoute(slug);
+
 
   if (!resolved) {
     notFound();
   }
+
+
+  /*
+   * Если пользователь открыл старый / неправильный slug,
+   * отправляем его на канонический URL.
+   */
 
   if (slug !== resolved.slug) {
     permanentRedirect(
@@ -40,15 +55,31 @@ export default async function AnimePage({
     );
   }
 
+
+  /* =========================================================
+     ID тайтла
+     ========================================================= */
+
   /*
    * Внутренний ID AnimeBox / Community —
    * всегда AniList ID.
    */
+
   const numericId =
     resolved.id;
 
+
+  /*
+   * Внешний MAL ID.
+   */
+
   const malId =
     resolved.idMal;
+
+
+  /* =========================================================
+     AniList
+     ========================================================= */
 
   const aniList = {
     ...resolved,
@@ -59,12 +90,18 @@ export default async function AnimePage({
         : null,
   };
 
+
+  /* =========================================================
+     Нормализованный объект аниме
+     ========================================================= */
+
   /*
    * MAL ID оставляем только как
    * вспомогательный внешний ID.
    *
    * НЕ используем anime.id для Community.
    */
+
   const anime = {
     id:
       malId ||
@@ -105,6 +142,7 @@ export default async function AnimePage({
     },
   };
 
+
   /* =========================================================
      Изображения
      ========================================================= */
@@ -136,14 +174,17 @@ export default async function AnimePage({
           : null,
     });
 
+
   const posterSources = [
     ...imageCascade.posters,
     '/anime-placeholder.svg',
   ];
 
+
   const accentColor =
     aniList.coverImage?.color ||
     '#7c3aed';
+
 
   /* =========================================================
      Метаданные тайтла
@@ -158,23 +199,27 @@ export default async function AnimePage({
       : anime.score ||
         null;
 
+
   const episodesCount =
     aniList.episodes ||
     anime.episodes ||
     anime.episodes_aired ||
     null;
 
-  /*
-   * Объект для AnimeDetailControls
-   * и AnimeDetailEpisodes.
-   */
+
+  /* =========================================================
+     Объект для контролов
+     ========================================================= */
+
   const normalizedAnimeForControls: Anime =
     {
       /*
        * Очень важно:
        * здесь ID = AniList ID.
        */
-      id: numericId,
+
+      id:
+        numericId,
 
       slug:
         resolved.slug,
@@ -251,6 +296,11 @@ export default async function AnimePage({
         null,
     };
 
+
+  /* =========================================================
+     PAGE
+     ========================================================= */
+
   return (
     <main
       className="
@@ -261,11 +311,17 @@ export default async function AnimePage({
       "
     >
 
+
       {/* =====================================================
           HERO / ОПИСАНИЕ ТАЙТЛА
           ===================================================== */}
 
       <section className="relative overflow-hidden">
+
+
+        {/* =====================
+            Banner
+            ===================== */}
 
         {imageCascade.banner && (
           <div
@@ -282,6 +338,9 @@ export default async function AnimePage({
           />
         )}
 
+
+        {/* Затемнение */}
+
         <div
           className="
             absolute
@@ -289,6 +348,9 @@ export default async function AnimePage({
             bg-black/60
           "
         />
+
+
+        {/* Градиент */}
 
         <div
           className="
@@ -301,22 +363,31 @@ export default async function AnimePage({
           "
         />
 
+
+        {/* Контент */}
+
         <div
           className="
             anime-detail-hero
+
             relative
+
             mx-auto
             max-w-7xl
+
             px-4
             py-10
+
             md:px-6
             md:py-16
           "
         >
 
+
           <div
             className="
               anime-detail-grid
+
               grid
               grid-cols-1
               items-start
@@ -330,6 +401,7 @@ export default async function AnimePage({
             "
           >
 
+
             {/* =====================
                 Постер
                 ===================== */}
@@ -337,10 +409,12 @@ export default async function AnimePage({
             <div
               className="
                 anime-detail-poster
+
                 relative
                 overflow-hidden
 
                 rounded-xl
+
                 border
                 border-white/10
 
@@ -352,6 +426,7 @@ export default async function AnimePage({
                 md:self-stretch
               "
             >
+
               <div
                 className="
                   aspect-[2/3]
@@ -363,6 +438,7 @@ export default async function AnimePage({
                   md:aspect-auto
                 "
               >
+
                 <AnimeImageCascade
                   sources={
                     posterSources
@@ -374,7 +450,9 @@ export default async function AnimePage({
                   }
                   loading="eager"
                 />
+
               </div>
+
             </div>
 
 
@@ -389,9 +467,13 @@ export default async function AnimePage({
               "
             >
 
+
+              {/* Тип / статус */}
+
               <div
                 className="
                   mb-4
+
                   flex
                   flex-wrap
                   gap-2
@@ -402,10 +484,14 @@ export default async function AnimePage({
                   <span
                     className="
                       rounded-full
+
                       border
+
                       bg-white/10
+
                       px-3
                       py-1
+
                       text-xs
                       font-semibold
                     "
@@ -418,19 +504,25 @@ export default async function AnimePage({
                   </span>
                 )}
 
+
                 {anime.status && (
                   <span
                     className="
                       rounded-full
+
                       border
                       border-white/10
+
                       bg-white/10
+
                       px-3
                       py-1
+
                       text-xs
                       font-semibold
                     "
                   >
+
                     {anime.status ===
                       'released' ||
                     anime.status ===
@@ -442,11 +534,14 @@ export default async function AnimePage({
                             'RELEASING'
                         ? 'Онгоинг'
                         : anime.status}
+
                   </span>
                 )}
 
               </div>
 
+
+              {/* Название */}
 
               <h1
                 className="
@@ -462,28 +557,38 @@ export default async function AnimePage({
               </h1>
 
 
+              {/* Оригинальное название */}
+
               {anime.name &&
                 anime.russian &&
                 anime.name !==
                   anime.russian && (
+
                   <p
                     className="
                       mt-2
+
                       text-lg
                       text-white/50
                     "
                   >
                     {anime.name}
                   </p>
+
                 )}
 
+
+              {/* Описание */}
 
               {anime.description && (
                 <p
                   className="
                     mt-6
+
                     max-w-3xl
+
                     whitespace-pre-line
+
                     text-sm
                     leading-7
                     text-white/70
@@ -498,9 +603,12 @@ export default async function AnimePage({
               )}
 
 
+              {/* Рейтинг / эпизоды */}
+
               <div
                 className="
                   mt-6
+
                   flex
                   flex-wrap
                   items-center
@@ -511,6 +619,9 @@ export default async function AnimePage({
                 "
               >
 
+
+                {/* Рейтинг */}
+
                 {score && (
                   <div
                     className="
@@ -519,6 +630,7 @@ export default async function AnimePage({
                       gap-1.5
 
                       rounded-xl
+
                       border
                       border-white/10
 
@@ -528,6 +640,7 @@ export default async function AnimePage({
                       py-2
                     "
                   >
+
                     <span className="text-amber-400">
                       ★
                     </span>
@@ -544,9 +657,12 @@ export default async function AnimePage({
                     <span className="text-white/40">
                       / 10
                     </span>
+
                   </div>
                 )}
 
+
+                {/* Количество эпизодов */}
 
                 {episodesCount && (
                   <div
@@ -556,6 +672,7 @@ export default async function AnimePage({
                       gap-1.5
 
                       rounded-xl
+
                       border
                       border-white/10
 
@@ -567,6 +684,7 @@ export default async function AnimePage({
                       text-white/80
                     "
                   >
+
                     <span>
                       Эпизоды:
                     </span>
@@ -579,6 +697,7 @@ export default async function AnimePage({
                     >
                       {episodesCount}
                     </span>
+
                   </div>
                 )}
 
@@ -587,10 +706,10 @@ export default async function AnimePage({
 
               {/* =====================
                   Кнопки тайтла
-                  БЕЗ списка серий
                   ===================== */}
 
               <div className="mt-6">
+
                 <AnimeDetailControls
                   anime={
                     normalizedAnimeForControls
@@ -599,19 +718,21 @@ export default async function AnimePage({
                     false
                   }
                 />
+
               </div>
 
+
             </div>
+
           </div>
+
         </div>
+
       </section>
 
 
       {/* =====================================================
           БИБЛИОТЕКА
-
-          Это отдельная секция.
-          Она НЕ относится к Franchise.
           ===================================================== */}
 
       <section
@@ -628,35 +749,22 @@ export default async function AnimePage({
           md:px-6
         "
       >
+
         <LibraryStatusControl
           animeId={
             numericId
           }
         />
+
       </section>
 
 
       {/* =====================================================
-          ЭПИЗОДЫ
-
-          Список серий теперь находится
-          в своей отдельной секции.
-
-          Он НЕ является частью описания
-          и НЕ является частью Franchise.
-          ===================================================== */}
-
-      
-
-
-      {/* =====================================================
           ФРАНШИЗА
-
-          Отдельный смысловой блок.
-          Идёт ПОСЛЕ эпизодов.
           ===================================================== */}
 
       {aniList.id && (
+
         <section
           className="
             anime-detail-franchise-section
@@ -668,6 +776,7 @@ export default async function AnimePage({
             pb-14
           "
         >
+
           <Suspense
             key={
               aniList.id
@@ -676,6 +785,7 @@ export default async function AnimePage({
               <AnimeFranchiseLoading />
             }
           >
+
             <AnimeFranchise
               animeId={
                 aniList.id
@@ -685,9 +795,13 @@ export default async function AnimePage({
                 anime.name
               }
             />
+
           </Suspense>
+
         </section>
+
       )}
+
 
     </main>
   );

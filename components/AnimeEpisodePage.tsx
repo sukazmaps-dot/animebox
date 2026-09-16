@@ -31,6 +31,16 @@ type SourceApiResponse = {
   error?: string;
 };
 
+type KodikApiResponse = {
+  name?: string;
+  translations?: Array<{
+    title: string;
+    url: string;
+    type?: 'kodik';
+  }>;
+  error?: string;
+};
+
 export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: Anime; requestedEpisode: number }) {
   const router = useRouter();
   const animeIdParam = anime.slug as string;
@@ -85,72 +95,133 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
       let lastReason = '';
 
       try {
+        const nextSources: PlayerSource[] = [];
+        const shikimoriId = anime.idMal || anime.mal_id;
+
+        /*
+         * 1. Kodik — основной источник.
+         * Токен остаётся на сервере в /api/players/kodik.
+         */
+        if (shikimoriId) {
+          try {
+            const kodikResponse = await fetch(
+              `/api/players/kodik?shikimoriId=${encodeURIComponent(String(shikimoriId))}`,
+              {
+                signal: controller.signal,
+                cache: 'no-store',
+              },
+            );
+
+            const kodikData = (await kodikResponse.json()) as KodikApiResponse;
+
+            if (
+              kodikResponse.ok &&
+              Array.isArray(kodikData.translations) &&
+              kodikData.translations.length > 0
+            ) {
+              nextSources.push({
+                name: 'Kodik',
+                type: 'kodik',
+                translations: kodikData.translations
+                  .filter((item) => Boolean(item?.url?.trim()))
+                  .map((item) => ({
+                    title: item.title || 'Озвучка',
+                    url: item.url,
+                    type: 'kodik' as const,
+                  })),
+              });
+            } else if (kodikData.error) {
+              lastReason = kodikData.error;
+            }
+          } catch (error) {
+            if (controller.signal.aborted) throw error;
+            console.warn('[Kodik] source unavailable:', error);
+          }
+        }
+
+        /*
+         * 2. AniLiberty — fallback.
+         * Даже если Kodik недоступен, старый плеер продолжит работать.
+         */
         for (const query of queries) {
           if (!active || controller.signal.aborted) return;
 
-          const response = await fetch(
-            `/api/anilibria?slug=${encodeURIComponent(query)}&title=${encodeURIComponent(anime.title.romaji || anime.title.english || "")}&season=${anime.providerSeason || 1}&episode=${episodeNumber}`,
-            {
-              signal: controller.signal,
-              cache: 'no-store',
-            },
-          );
+          try {
+            const response = await fetch(
+              `/api/anilibria?slug=${encodeURIComponent(query)}&title=${encodeURIComponent(anime.title.romaji || anime.title.english || '')}&season=${anime.providerSeason || 1}&episode=${episodeNumber}`,
+              {
+                signal: controller.signal,
+                cache: 'no-store',
+              },
+            );
 
-          const data = (await response.json()) as SourceApiResponse;
+            const data = (await response.json()) as SourceApiResponse;
 
-          if (!response.ok) {
-            lastReason = data.error || data.reason || `Источник HTTP ${response.status}`;
-            continue;
-          }
+            if (!response.ok) {
+              lastReason =
+                data.error ||
+                data.reason ||
+                `Источник HTTP ${response.status}`;
+              continue;
+            }
 
-          if (!active || controller.signal.aborted) return;
+            if (!active || controller.signal.aborted) return;
 
-          if (data.episodes) setProviderEpisodes(data.episodes);
-          const nextSources: PlayerSource[] = [];
+            if (data.episodes) {
+              setProviderEpisodes(data.episodes);
+            }
 
-          if (data.hls?.length) {
-            const translations = data.hls
-              .filter((item) => Boolean(item?.url?.trim()))
-              .map((item) => ({
-                title: item.title || 'HLS',
-                url: item.url,
-                type: 'hls' as const,
-              }));
+            if (data.hls?.length) {
+              const translations = data.hls
+                .filter((item) => Boolean(item?.url?.trim()))
+                .map((item) => ({
+                  title: item.title || 'HLS',
+                  url: item.url,
+                  type: 'hls' as const,
+                }));
 
-            if (translations.length > 0) {
+              if (translations.length > 0) {
+                nextSources.push({
+                  name: 'AniLiberty',
+                  type: 'hls',
+                  translations,
+                });
+              }
+            }
+
+            if (data.externalPlayer?.trim()) {
               nextSources.push({
-                name: 'AniLiberty',
-                type: 'hls',
-                translations,
+                name: 'Внешний плеер',
+                type: 'iframe',
+                translations: [
+                  {
+                    title: 'Плеер',
+                    url: data.externalPlayer,
+                    type: 'iframe',
+                  },
+                ],
               });
             }
-          }
 
-          if (data.externalPlayer?.trim()) {
-            nextSources.push({
-              name: 'Внешний плеер',
-              type: 'iframe',
-              translations: [
-                {
-                  title: 'Плеер',
-                  url: data.externalPlayer,
-                  type: 'iframe',
-                },
-              ],
-            });
+            lastReason = data.reason || lastReason;
+            break;
+          } catch (error) {
+            if (controller.signal.aborted) throw error;
+            console.warn('[AniLiberty] source unavailable:', error);
           }
-
-          if (nextSources.length > 0) {
-            setSources(nextSources);
-            setSourceMessage('');
-            return;
-          }
-
-          lastReason = data.reason || lastReason;
         }
 
-        if (active && !controller.signal.aborted) {
-          setSources([]);
+        if (!active || controller.signal.aborted) return;
+
+        const validSources = nextSources.filter(
+          (source) => source.translations.length > 0,
+        );
+
+        setSources(validSources);
+
+        if (validSources.length > 0) {
+          setSourceMessage('');
+        } else {
           setSourceMessage(
             ['not_found', 'episode_unavailable'].includes(lastReason)
               ? 'Видео для этой серии пока недоступно.'
@@ -209,17 +280,25 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
   const description = cleanShikimoriDescription(anime.description);
 
   return (
-    <div className="detail episode-page">
-      <Link href={`/anime/${animeIdParam}`} className="detail__back">
-        ← Назад к {title}
+    <div className="detail episode-page pt-10 md:pt-12">
+      <Link
+        href={`/anime/${animeIdParam}`}
+        className="group mb-1 inline-flex w-fit items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2 text-[11px] font-semibold text-white/45 transition hover:border-white/[0.10] hover:bg-white/[0.045] hover:text-white/80"
+      >
+        <span className="transition-transform group-hover:-translate-x-0.5">←</span>
+        <span className="max-w-[70vw] truncate">Назад к {title}</span>
       </Link>
 
       {waitingForSources ? (
-        <div className="player">
-          <div className="player__frame relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-2xl bg-black shadow-2xl">
-            <span className="text-sm text-gray-400">
-              Поиск видеоисточников...
-            </span>
+        <div className="relative isolate overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(14,19,34,0.98),rgba(7,10,20,0.98))] p-3 shadow-[0_28px_90px_rgba(0,0,0,0.50)] md:p-4">
+          <div className="pointer-events-none absolute inset-x-16 top-0 h-px bg-gradient-to-r from-transparent via-violet-400/60 to-transparent" />
+          <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-[20px] border border-white/[0.08] bg-black">
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-violet-400" />
+              <span className="text-xs font-semibold text-white/45">
+                Подбираем лучший источник…
+              </span>
+            </div>
           </div>
         </div>
       ) : (
@@ -236,6 +315,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
           hasNext={hasNext}
           onPrev={() => goToEpisode(episodeNumber - 1)}
           onNext={() => goToEpisode(episodeNumber + 1)}
+          onEpisodeChange={goToEpisode}
         />
       )}
 

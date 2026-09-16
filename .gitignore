@@ -44,3 +44,5 @@ next-env.d.ts
 .data/
 
 .env.local
+
+supabase/migrations/
