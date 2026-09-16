@@ -813,6 +813,7 @@ export default function AnimePlayer({
                   resumeSeconds={resumeSeconds}
                   onReady={() => setPlayerReady(true)}
                   onTimeUpdate={watchSession.onSample}
+                  onProviderSkip={watchSession.onProviderSkip}
                 />
               ) : isIframe ? (
                 <iframe

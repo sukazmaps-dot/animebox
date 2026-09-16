@@ -1,11 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { KodikProviderSkipSignal } from '@/components/KodikPlayer';
 
 const HEARTBEAT_INTERVAL_MS = 10_000;
 const ACTIVE_ADVANCE_WINDOW_MS = 15_000;
 const MIN_ACTIVE_DELTA_MS = 100;
 const MAX_SAMPLE_ADVANCE_MS = 30_000;
+const PROVIDER_SKIP_SIGNAL_TTL_MS = 8_000;
+const MIN_PROVIDER_SKIP_MS = 15_000;
+const MAX_PROVIDER_SKIP_MS = 240_000;
 
 type Sample = {
   positionSeconds: number;
@@ -21,6 +25,8 @@ type StartResponse = {
     activeMs?: number;
     completedAt?: string | null;
     resumePositionMs?: number;
+    excludedMs?: number;
+    eligibleDurationMs?: number | null;
   };
 };
 
@@ -30,6 +36,8 @@ type HeartbeatResponse = {
   coverageMs?: number | null;
   activeMs?: number | null;
   durationMs?: number | null;
+  excludedMs?: number | null;
+  eligibleDurationMs?: number | null;
 };
 
 type Options = {
@@ -46,8 +54,31 @@ export type WatchProgressEventDetail = {
   coverageMs: number;
   activeMs: number;
   durationMs: number | null;
+  eligibleDurationMs: number | null;
+  excludedMs: number;
   percent: number | null;
   completed: boolean;
+};
+
+type PendingProviderSkip = {
+  kind: 'opening' | 'ending';
+  fromMs: number;
+  toMs: number;
+  origin: string | null;
+};
+
+type PendingSkipSignal = {
+  kind: 'opening' | 'ending';
+  fromMs: number;
+  origin: string | null;
+  createdAt: number;
+};
+
+type RecentLargeJump = {
+  fromMs: number;
+  toMs: number;
+  origin: string | null;
+  createdAt: number;
 };
 
 async function watchRequest<T>(
@@ -83,9 +114,12 @@ function toMs(seconds: number) {
   return Math.min(28_800_000, Math.max(0, Math.round(seconds * 1000)));
 }
 
-function progressPercent(coverageMs: number, durationMs: number | null) {
-  if (!durationMs || durationMs <= 0) return null;
-  return Math.min(100, Math.max(0, Math.round((coverageMs / durationMs) * 100)));
+function progressPercent(coverageMs: number, eligibleDurationMs: number | null) {
+  if (!eligibleDurationMs || eligibleDurationMs <= 0) return null;
+  return Math.min(
+    100,
+    Math.max(0, Math.round((coverageMs / eligibleDurationMs) * 100)),
+  );
 }
 
 export function useWatchSession({
@@ -108,6 +142,9 @@ export function useWatchSession({
   // Timestamp of the latest *real forward playback advance*.
   // Repeated integer samples from Kodik (24 -> 24) must not mark playback idle.
   const lastAdvanceAtRef = useRef<number | null>(null);
+  const pendingSkipSignalRef = useRef<PendingSkipSignal | null>(null);
+  const pendingProviderSkipRef = useRef<PendingProviderSkip | null>(null);
+  const recentLargeJumpRef = useRef<RecentLargeJump | null>(null);
   const startingRef = useRef<Promise<void> | null>(null);
   const sendingRef = useRef(false);
   const disabledRef = useRef(false);
@@ -117,6 +154,8 @@ export function useWatchSession({
       coverageMs?: number | null;
       activeMs?: number | null;
       durationMs?: number | null;
+      eligibleDurationMs?: number | null;
+      excludedMs?: number | null;
       completed?: boolean;
     }) => {
       if (!animeId) return;
@@ -127,7 +166,14 @@ export function useWatchSession({
         input.durationMs == null || Number(input.durationMs) <= 0
           ? latestDurationRef.current
           : Number(input.durationMs);
-      const nextPercent = progressPercent(coverageMs, durationMs);
+      const excludedMs = Math.max(0, Number(input.excludedMs ?? 0));
+      const eligibleDurationMs =
+        input.eligibleDurationMs == null || Number(input.eligibleDurationMs) <= 0
+          ? durationMs == null
+            ? null
+            : Math.max(1, durationMs - excludedMs)
+          : Number(input.eligibleDurationMs);
+      const nextPercent = progressPercent(coverageMs, eligibleDurationMs);
       const isCompleted = Boolean(input.completed);
 
       setPercent(nextPercent);
@@ -141,6 +187,8 @@ export function useWatchSession({
             coverageMs,
             activeMs,
             durationMs,
+            eligibleDurationMs,
+            excludedMs,
             percent: nextPercent,
             completed: isCompleted,
           },
@@ -191,6 +239,8 @@ export function useWatchSession({
             coverageMs: result.progress.coverageMs,
             activeMs: result.progress.activeMs,
             durationMs: result.durationMs,
+            eligibleDurationMs: result.progress.eligibleDurationMs,
+            excludedMs: result.progress.excludedMs,
             completed: Boolean(result.progress.completedAt),
           });
         }
@@ -257,16 +307,22 @@ export function useWatchSession({
       const seq = seqRef.current + 1;
 
       try {
+        const providerSkip = pendingProviderSkipRef.current;
         const result = await watchRequest<HeartbeatResponse>({
           action: 'heartbeat',
           sessionId: sessionRef.current,
           seq,
           positionMs: position,
           durationMs: latestDurationRef.current,
+          providerSkip,
         });
 
         seqRef.current = seq;
         lastSentPositionRef.current = position;
+        if (providerSkip === pendingProviderSkipRef.current) {
+          pendingProviderSkipRef.current = null;
+    recentLargeJumpRef.current = null;
+        }
 
         if (result.durationMs && result.durationMs > 0) {
           latestDurationRef.current = result.durationMs;
@@ -276,6 +332,8 @@ export function useWatchSession({
           coverageMs: result.coverageMs,
           activeMs: result.activeMs,
           durationMs: result.durationMs,
+          eligibleDurationMs: result.eligibleDurationMs,
+          excludedMs: result.excludedMs,
           completed: result.completed,
         });
 
@@ -323,8 +381,42 @@ export function useWatchSession({
 
       if (origin) messageOriginRef.current = origin;
 
+      const pendingSignal = pendingSkipSignalRef.current;
+      if (pendingSignal) {
+        const signalAge = Date.now() - pendingSignal.createdAt;
+        const jumpMs = nextPosition - pendingSignal.fromMs;
+
+        if (signalAge > PROVIDER_SKIP_SIGNAL_TTL_MS) {
+          pendingSkipSignalRef.current = null;
+        } else if (
+          jumpMs >= MIN_PROVIDER_SKIP_MS &&
+          jumpMs <= MAX_PROVIDER_SKIP_MS
+        ) {
+          pendingProviderSkipRef.current = {
+            kind: pendingSignal.kind,
+            fromMs: pendingSignal.fromMs,
+            toMs: nextPosition,
+            origin: pendingSignal.origin ?? origin ?? null,
+          };
+          pendingSkipSignalRef.current = null;
+          void sendHeartbeat(true);
+        }
+      }
+
       if (previousPosition != null) {
         const delta = nextPosition - previousPosition;
+
+        if (
+          delta > MAX_SAMPLE_ADVANCE_MS &&
+          delta <= MAX_PROVIDER_SKIP_MS
+        ) {
+          recentLargeJumpRef.current = {
+            fromMs: previousPosition,
+            toMs: nextPosition,
+            origin: origin ?? messageOriginRef.current,
+            createdAt: Date.now(),
+          };
+        }
 
         /*
          * Kodik reports rounded seconds and may repeat the same value:
@@ -350,7 +442,57 @@ export function useWatchSession({
         void startSession();
       }
     },
-    [enabled, startSession],
+    [enabled, sendHeartbeat, startSession],
+  );
+
+  const onProviderSkip = useCallback(
+    (signal: KodikProviderSkipSignal) => {
+      if (!enabled || disabledRef.current) return;
+
+      const fromMs =
+        signal.atSeconds == null
+          ? latestPositionRef.current
+          : toMs(signal.atSeconds);
+
+      if (fromMs == null) return;
+
+      if (signal.durationSeconds != null) {
+        const durationMs = toMs(signal.durationSeconds);
+        if (durationMs != null && durationMs >= 1_000) {
+          latestDurationRef.current = durationMs;
+        }
+      }
+
+      if (signal.origin) {
+        messageOriginRef.current = signal.origin;
+      }
+
+      const recentJump = recentLargeJumpRef.current;
+      if (
+        recentJump &&
+        Date.now() - recentJump.createdAt <= 2_500 &&
+        recentJump.toMs - recentJump.fromMs >= MIN_PROVIDER_SKIP_MS
+      ) {
+        pendingProviderSkipRef.current = {
+          kind: signal.kind,
+          fromMs: recentJump.fromMs,
+          toMs: recentJump.toMs,
+          origin: signal.origin ?? recentJump.origin ?? messageOriginRef.current,
+        };
+        recentLargeJumpRef.current = null;
+        pendingSkipSignalRef.current = null;
+        void sendHeartbeat(true);
+        return;
+      }
+
+      pendingSkipSignalRef.current = {
+        kind: signal.kind,
+        fromMs,
+        origin: signal.origin ?? messageOriginRef.current,
+        createdAt: Date.now(),
+      };
+    },
+    [enabled, sendHeartbeat],
   );
 
   useEffect(() => {
@@ -362,6 +504,9 @@ export function useWatchSession({
     messageOriginRef.current = null;
     lastSentPositionRef.current = null;
     lastAdvanceAtRef.current = null;
+    pendingSkipSignalRef.current = null;
+    pendingProviderSkipRef.current = null;
+    recentLargeJumpRef.current = null;
 
     queueMicrotask(() => {
       setMessage('');
@@ -407,6 +552,7 @@ export function useWatchSession({
 
   return {
     onSample,
+    onProviderSkip,
     message,
     progressPercent: percent,
     completed,

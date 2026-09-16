@@ -47,6 +47,34 @@ function optionalText(value: unknown, max: number) {
   return value;
 }
 
+function providerSkip(value: unknown) {
+  if (value == null) return null;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new ApiError(400, 'Некорректные данные пропуска заставки.');
+  }
+
+  const record = value as Record<string, unknown>;
+  const rawKind = record.kind;
+  if (rawKind !== 'opening' && rawKind !== 'ending') {
+    throw new ApiError(400, 'Некорректный тип пропуска заставки.');
+  }
+
+  const fromMs = positionMs(record.fromMs);
+  const toMs = positionMs(record.toMs);
+  if (fromMs == null || toMs == null || toMs <= fromMs) {
+    throw new ApiError(400, 'Некорректный диапазон пропуска заставки.');
+  }
+
+  const kind: 'opening' | 'ending' = rawKind;
+
+  return {
+    kind,
+    fromMs,
+    toMs,
+    origin: optionalText(record.origin, 500),
+  };
+}
+
 
 export async function GET(request: Request) {
   try {
@@ -110,6 +138,7 @@ export async function POST(request: Request) {
         seq,
         positionMs: heartbeatPosition,
         durationMs: optionalPositiveInteger(body.durationMs, 28_800_000),
+        providerSkip: providerSkip(body.providerSkip),
       });
 
       if (result.newlyCompleted) {

@@ -8,6 +8,13 @@ type KodikTimeSample = {
   origin?: string | null;
 };
 
+export type KodikProviderSkipSignal = {
+  kind: 'opening' | 'ending';
+  atSeconds: number | null;
+  durationSeconds: number | null;
+  origin?: string | null;
+};
+
 type Props = {
   src: string;
   title?: string;
@@ -15,6 +22,7 @@ type Props = {
   resumeSeconds?: number;
   onReady?: () => void;
   onTimeUpdate?: (sample: KodikTimeSample) => void;
+  onProviderSkip?: (signal: KodikProviderSkipSignal) => void;
 };
 
 type KodikMessage = {
@@ -123,6 +131,56 @@ function readEpisodeNumber(value: unknown) {
   return episode;
 }
 
+
+function skipText(value: unknown) {
+  if (typeof value === 'string') return value.toLowerCase();
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
+
+  const record = value as Record<string, unknown>;
+  return [
+    record.type,
+    record.kind,
+    record.name,
+    record.title,
+    record.label,
+    record.text,
+    record.button,
+  ]
+    .filter((item): item is string => typeof item === 'string')
+    .join(' ')
+    .toLowerCase();
+}
+
+function readSkipKind(
+  value: unknown,
+  positionSeconds: number | null,
+  durationSeconds: number | null,
+): 'opening' | 'ending' | null {
+  const text = skipText(value);
+
+  if (/опен|opening|intro|\bop\b/i.test(text)) return 'opening';
+  if (/эндинг|концов|ending|outro|\bed\b/i.test(text)) return 'ending';
+
+  // Some Kodik builds send the skip event without a useful label.
+  // Infer only from a safe part of the timeline; ambiguous middle-of-episode
+  // events are ignored rather than treated as trusted skips.
+  if (
+    positionSeconds != null &&
+    durationSeconds != null &&
+    durationSeconds > 0
+  ) {
+    if (positionSeconds <= Math.min(600, durationSeconds * 0.25)) {
+      return 'opening';
+    }
+
+    if (positionSeconds >= durationSeconds * 0.65) {
+      return 'ending';
+    }
+  }
+
+  return null;
+}
+
 export default function KodikPlayer({
   src,
   title = 'Kodik Player',
@@ -130,9 +188,11 @@ export default function KodikPlayer({
   resumeSeconds = 0,
   onReady,
   onTimeUpdate,
+  onProviderSkip,
 }: Props) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const durationRef = useRef<number | null>(null);
+  const currentPositionRef = useRef<number | null>(null);
   const lastForcedEpisodeRef = useRef<number | null>(null);
   const resumeAppliedRef = useRef(false);
 
@@ -155,6 +215,7 @@ export default function KodikPlayer({
 
   useEffect(() => {
     durationRef.current = null;
+    currentPositionRef.current = null;
     lastForcedEpisodeRef.current = null;
     resumeAppliedRef.current = false;
   }, [playerSrc, resumeSeconds]);
@@ -212,6 +273,8 @@ export default function KodikPlayer({
         const time = readTimeValue(value);
         if (!time || time.position < 0) return;
 
+        currentPositionRef.current = time.position;
+
         if (time.duration != null && time.duration > 0) {
           durationRef.current = time.duration;
         }
@@ -242,6 +305,34 @@ export default function KodikPlayer({
           durationSeconds: time.duration ?? durationRef.current,
           origin: event.origin || null,
         });
+        return;
+      }
+
+      if (
+        key === 'kodik_player_skip_button' ||
+        key === 'kodik_player_skip' ||
+        key === 'kodik_player_skip_opening' ||
+        key === 'kodik_player_skip_ending'
+      ) {
+        const kind =
+          key === 'kodik_player_skip_opening'
+            ? 'opening'
+            : key === 'kodik_player_skip_ending'
+              ? 'ending'
+              : readSkipKind(
+                  value,
+                  currentPositionRef.current,
+                  durationRef.current,
+                );
+
+        if (kind) {
+          onProviderSkip?.({
+            kind,
+            atSeconds: currentPositionRef.current,
+            durationSeconds: durationRef.current,
+            origin: event.origin || null,
+          });
+        }
         return;
       }
 
@@ -279,7 +370,7 @@ export default function KodikPlayer({
     return () => {
       window.removeEventListener('message', onMessage);
     };
-  }, [episodeNumber, expectedOrigin, onTimeUpdate, resumeSeconds]);
+  }, [episodeNumber, expectedOrigin, onProviderSkip, onTimeUpdate, resumeSeconds]);
 
   return (
     <>
@@ -293,16 +384,6 @@ export default function KodikPlayer({
         onLoad={handleLoad}
       />
 
-      {/*
-       * Kodik renders its "Получить код" control inside a cross-origin iframe.
-       * There is no documented iframe option for hiding that specific control,
-       * so AnimeBox masks only its small top-right area without touching the
-       * playback controls at the bottom.
-       */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-auto absolute right-0 top-0 z-10 h-11 w-[138px] bg-gradient-to-l from-black/95 via-black/75 to-transparent sm:h-10 sm:w-[150px]"
-      />
     </>
   );
 }

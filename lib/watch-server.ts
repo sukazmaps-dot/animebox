@@ -7,8 +7,22 @@ const MAX_EPISODE_MS = 28_800_000;
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
 const MAX_HEARTBEAT_GAP_MS = 30_000;
 const MAX_ACCEPTED_MS = 20_000;
+const MIN_PROVIDER_SKIP_MS = 15_000;
+const MAX_PROVIDER_SKIP_MS = 240_000;
+const MAX_PROVIDER_EXCLUDED_MS = 360_000;
+const MAX_PROVIDER_EXCLUDED_RATIO = 0.3;
+const PROVIDER_SKIP_FROM_TOLERANCE_MS = 30_000;
+const PROVIDER_SKIP_AFTER_TOLERANCE_MS = 30_000;
 
 type PlayedRange = [number, number];
+type ProviderSkipKind = 'opening' | 'ending';
+
+type ProviderSkipInput = {
+  kind: ProviderSkipKind;
+  fromMs: number;
+  toMs: number;
+  origin?: string | null;
+};
 
 type WatchStartInput = {
   userId: string;
@@ -27,6 +41,7 @@ type WatchHeartbeatInput = {
   seq: number;
   positionMs: number;
   durationMs?: number | null;
+  providerSkip?: ProviderSkipInput | null;
 };
 
 function watchClient() {
@@ -85,6 +100,136 @@ function normalizeRanges(value: unknown): PlayedRange[] {
       return [Math.round(start), Math.round(end)];
     })
     .filter((item): item is PlayedRange => Boolean(item));
+}
+
+
+function mergeRanges(ranges: PlayedRange[]) {
+  let merged: PlayedRange[] = [];
+  for (const [start, end] of ranges) {
+    merged = mergePlayedRanges(merged, start, end);
+  }
+  return merged;
+}
+
+function rangesCoverageMs(ranges: PlayedRange[]) {
+  return Math.max(0, Math.round(coveredSeconds(mergeRanges(ranges))));
+}
+
+function overlapCoverageMs(a: PlayedRange[], b: PlayedRange[]) {
+  const left = mergeRanges(a);
+  const right = mergeRanges(b);
+  let total = 0;
+  let i = 0;
+  let j = 0;
+
+  while (i < left.length && j < right.length) {
+    const start = Math.max(left[i][0], right[j][0]);
+    const end = Math.min(left[i][1], right[j][1]);
+    if (end > start) total += end - start;
+
+    if (left[i][1] < right[j][1]) i += 1;
+    else j += 1;
+  }
+
+  return Math.max(0, Math.round(total));
+}
+
+function effectiveWatchProgress(
+  watchedRanges: PlayedRange[],
+  excludedRanges: PlayedRange[],
+  durationMs: number | null,
+) {
+  const rawCoverageMs = rangesCoverageMs(watchedRanges);
+  const excludedMs = rangesCoverageMs(excludedRanges);
+  const watchedInsideExcludedMs = overlapCoverageMs(watchedRanges, excludedRanges);
+  const coverageMs = Math.max(0, rawCoverageMs - watchedInsideExcludedMs);
+  const eligibleDurationMs =
+    durationMs && durationMs > 0
+      ? Math.max(1, durationMs - Math.min(durationMs, excludedMs))
+      : null;
+
+  return {
+    rawCoverageMs,
+    coverageMs,
+    excludedMs,
+    eligibleDurationMs,
+  };
+}
+
+function validateProviderSkip(input: {
+  skip?: ProviderSkipInput | null;
+  lastPosition: number;
+  currentPosition: number;
+  durationMs: number | null;
+  messageOrigins: unknown;
+  existingExcludedRanges: PlayedRange[];
+}) {
+  const skip = input.skip;
+  if (!skip || (skip.kind !== 'opening' && skip.kind !== 'ending')) return null;
+
+  const fromMs = safePosition(skip.fromMs);
+  const toMs = safePosition(skip.toMs);
+  if (fromMs == null || toMs == null || toMs <= fromMs) return null;
+
+  const skippedMs = toMs - fromMs;
+  if (skippedMs < MIN_PROVIDER_SKIP_MS || skippedMs > MAX_PROVIDER_SKIP_MS) {
+    return null;
+  }
+
+  if (
+    fromMs < input.lastPosition - 2_000 ||
+    fromMs - input.lastPosition > PROVIDER_SKIP_FROM_TOLERANCE_MS ||
+    toMs > input.currentPosition ||
+    input.currentPosition - toMs > PROVIDER_SKIP_AFTER_TOLERANCE_MS
+  ) {
+    return null;
+  }
+
+  const origin = normalizedOrigin(skip.origin);
+  const allowedOrigins = Array.isArray(input.messageOrigins)
+    ? input.messageOrigins
+        .filter((item): item is string => typeof item === 'string')
+        .map((item) => normalizedOrigin(item))
+        .filter((item): item is string => Boolean(item))
+    : [];
+
+  if (!origin || !allowedOrigins.includes(origin)) return null;
+
+  if (input.durationMs && input.durationMs > 0) {
+    if (toMs > input.durationMs + 5_000) return null;
+
+    if (
+      skip.kind === 'opening' &&
+      fromMs > Math.min(600_000, Math.floor(input.durationMs * 0.25))
+    ) {
+      return null;
+    }
+
+    if (skip.kind === 'ending' && toMs < Math.floor(input.durationMs * 0.65)) {
+      return null;
+    }
+  }
+
+  const excludedRanges = mergePlayedRanges(
+    mergeRanges(input.existingExcludedRanges),
+    fromMs,
+    toMs,
+  );
+  const excludedMs = rangesCoverageMs(excludedRanges);
+  const maxExcludedMs = input.durationMs
+    ? Math.min(
+        MAX_PROVIDER_EXCLUDED_MS,
+        Math.floor(input.durationMs * MAX_PROVIDER_EXCLUDED_RATIO),
+      )
+    : MAX_PROVIDER_EXCLUDED_MS;
+
+  if (excludedMs > maxExcludedMs) return null;
+
+  return {
+    kind: skip.kind,
+    range: [fromMs, toMs] as PlayedRange,
+    excludedRanges,
+  };
 }
 
 function safePosition(value?: number | null) {
@@ -197,7 +342,7 @@ export async function startWatchSession(input: WatchStartInput) {
   // and the one-active-session unique index would block every future start.
   const { data: existingProgress, error: progressReadError } = await watch
     .from('progress')
-    .select('coverage_ms,active_ms,ranked_ms,completed_at,resume_position_ms,last_watched_at')
+    .select('watched_ranges,excluded_ranges,coverage_ms,active_ms,ranked_ms,completed_at,resume_position_ms,last_watched_at')
     .eq('user_id', input.userId)
     .eq('episode_id', episodeRow.id)
     .maybeSingle();
@@ -209,6 +354,7 @@ export async function startWatchSession(input: WatchStartInput) {
         user_id: input.userId,
         episode_id: episodeRow.id,
         watched_ranges: [],
+        excluded_ranges: [],
         coverage_ms: 0,
         active_ms: 0,
         resume_position_ms: initialPosition ?? 0,
@@ -272,16 +418,32 @@ export async function startWatchSession(input: WatchStartInput) {
     throw new ApiError(503, 'Не удалось создать сессию просмотра.');
   }
 
+  const startDurationMs = (episodeRow.duration_ms as number | null) ?? null;
+  const startProgress = existingProgress
+    ? effectiveWatchProgress(
+        normalizeRanges(existingProgress.watched_ranges),
+        normalizeRanges(existingProgress.excluded_ranges),
+        startDurationMs,
+      )
+    : {
+        rawCoverageMs: 0,
+        coverageMs: 0,
+        excludedMs: 0,
+        eligibleDurationMs: startDurationMs,
+      };
+
   return {
     sessionId: session.id as string,
     expiresAt: session.expires_at as string,
     episodeId: episodeRow.id as string,
-    durationMs: (episodeRow.duration_ms as number | null) ?? null,
+    durationMs: startDurationMs,
     ranked: Boolean(episodeRow.ranked_enabled),
     progress: existingProgress
       ? {
-          coverageMs: Number(existingProgress.coverage_ms ?? 0),
+          coverageMs: startProgress.coverageMs,
           activeMs: Number(existingProgress.active_ms ?? 0),
+          excludedMs: startProgress.excludedMs,
+          eligibleDurationMs: startProgress.eligibleDurationMs,
           rankedMs: existingProgress.ranked_ms == null ? null : Number(existingProgress.ranked_ms),
           completedAt: (existingProgress.completed_at as string | null) ?? null,
           resumePositionMs: Number(existingProgress.resume_position_ms ?? 0),
@@ -290,6 +452,8 @@ export async function startWatchSession(input: WatchStartInput) {
       : {
           coverageMs: 0,
           activeMs: 0,
+          excludedMs: 0,
+          eligibleDurationMs: startDurationMs,
           rankedMs: null,
           completedAt: null,
           resumePositionMs: initialPosition ?? 0,
@@ -337,7 +501,7 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
 
   const { data: episode, error: episodeError } = await watch
     .from('episodes')
-    .select('id,anime_id,episode_number,duration_ms,ranked_enabled')
+    .select('id,anime_id,episode_number,duration_ms,ranked_enabled,message_origins')
     .eq('id', session.episode_id)
     .single();
   throwIfError(episodeError);
@@ -359,9 +523,21 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
   const wallDelta = Number.isFinite(lastReceived) ? Math.max(0, now - lastReceived) : 0;
   const positionDelta = lastPosition == null ? 0 : input.positionMs - lastPosition;
 
+  const durationMs = episode.duration_ms == null ? null : Number(episode.duration_ms);
+
+  const { data: progress, error: progressError } = await watch
+    .from('progress')
+    .select('watched_ranges,excluded_ranges,coverage_ms,active_ms,ranked_ms,completed_at,resume_position_ms,last_watched_at')
+    .eq('user_id', input.userId)
+    .eq('episode_id', session.episode_id)
+    .maybeSingle();
+  throwIfError(progressError);
+
+  let ranges = normalizeRanges(progress?.watched_ranges);
+  let excludedRanges = normalizeRanges(progress?.excluded_ranges);
   let acceptedMs = 0;
   let reason = 'first_sample';
-  let acceptedRange: PlayedRange | null = null;
+  const acceptedRanges: PlayedRange[] = [];
 
   if (lastPosition != null) {
     if (input.seq !== Number(session.last_seq ?? 0) + 1) {
@@ -373,19 +549,63 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
     } else if (positionDelta <= 0) {
       reason = positionDelta < -1_500 ? 'seek_backward' : 'idle';
     } else {
-      const maxPlausibleAdvance = Math.min(
-        MAX_EPISODE_MS,
-        Math.round(wallDelta * 2.25 + 1_500),
-      );
+      const providerSkip = validateProviderSkip({
+        skip: input.providerSkip,
+        lastPosition,
+        currentPosition: input.positionMs,
+        durationMs,
+        messageOrigins: episode.message_origins,
+        existingExcludedRanges: excludedRanges,
+      });
 
-      if (positionDelta > maxPlausibleAdvance) {
-        reason = 'seek_forward';
+      if (providerSkip) {
+        const [skipFrom, skipTo] = providerSkip.range;
+        const playedBefore = Math.max(0, skipFrom - lastPosition);
+        const playedAfter = Math.max(0, input.positionMs - skipTo);
+        const playedAdvance = playedBefore + playedAfter;
+        const maxPlausibleAdvance = Math.min(
+          MAX_EPISODE_MS,
+          Math.round(wallDelta * 2.25 + 1_500),
+        );
+
+        if (playedAdvance <= maxPlausibleAdvance) {
+          excludedRanges = providerSkip.excludedRanges;
+          if (skipFrom > lastPosition) {
+            acceptedRanges.push([lastPosition, skipFrom]);
+          }
+          if (input.positionMs > skipTo) {
+            acceptedRanges.push([skipTo, input.positionMs]);
+          }
+          acceptedMs = Math.min(
+            MAX_ACCEPTED_MS,
+            Math.max(0, Math.round(Math.min(wallDelta, playedAdvance))),
+          );
+          reason = `accepted_provider_skip_${providerSkip.kind}`;
+        } else {
+          reason = 'seek_forward';
+        }
       } else {
-        acceptedMs = Math.min(MAX_ACCEPTED_MS, Math.max(0, Math.round(wallDelta)));
-        reason = 'accepted';
-        acceptedRange = [lastPosition, input.positionMs];
+        const maxPlausibleAdvance = Math.min(
+          MAX_EPISODE_MS,
+          Math.round(wallDelta * 2.25 + 1_500),
+        );
+
+        if (positionDelta > maxPlausibleAdvance) {
+          reason = 'seek_forward';
+        } else {
+          acceptedMs = Math.min(
+            MAX_ACCEPTED_MS,
+            Math.max(0, Math.round(wallDelta)),
+          );
+          reason = 'accepted';
+          acceptedRanges.push([lastPosition, input.positionMs]);
+        }
       }
     }
+  }
+
+  for (const [rangeStart, rangeEnd] of acceptedRanges) {
+    ranges = mergePlayedRanges(ranges, rangeStart, rangeEnd);
   }
 
   const receivedAt = new Date(now).toISOString();
@@ -400,24 +620,16 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
   });
   throwIfError(heartbeatError);
 
-  const { data: progress, error: progressError } = await watch
-    .from('progress')
-    .select('watched_ranges,coverage_ms,active_ms,ranked_ms,completed_at,resume_position_ms,last_watched_at')
-    .eq('user_id', input.userId)
-    .eq('episode_id', session.episode_id)
-    .maybeSingle();
-  throwIfError(progressError);
-
-  let ranges = normalizeRanges(progress?.watched_ranges);
-  if (acceptedRange) {
-    ranges = mergePlayedRanges(ranges, acceptedRange[0], acceptedRange[1]);
-  }
-
-  const coverageMs = Math.round(coveredSeconds(ranges));
+  const watchProgress = effectiveWatchProgress(ranges, excludedRanges, durationMs);
+  const rawCoverageMs = watchProgress.rawCoverageMs;
+  const coverageMs = watchProgress.coverageMs;
+  const excludedMs = watchProgress.excludedMs;
+  const eligibleDurationMs = watchProgress.eligibleDurationMs;
   const activeMs = Number(progress?.active_ms ?? 0) + acceptedMs;
-  const durationMs = episode.duration_ms == null ? null : Number(episode.duration_ms);
   const completedNow = Boolean(
-    durationMs && durationMs > 0 && coverageMs >= Math.floor(durationMs * 0.9),
+    eligibleDurationMs &&
+      eligibleDurationMs > 0 &&
+      coverageMs >= Math.floor(eligibleDurationMs * 0.9),
   );
   const completedAt = progress?.completed_at || (completedNow ? receivedAt : null);
 
@@ -426,7 +638,8 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
       user_id: input.userId,
       episode_id: session.episode_id,
       watched_ranges: ranges,
-      coverage_ms: coverageMs,
+      excluded_ranges: excludedRanges,
+      coverage_ms: rawCoverageMs,
       active_ms: activeMs,
       completed_at: completedAt,
       resume_position_ms: input.positionMs,
@@ -457,6 +670,8 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
     coverageMs,
     activeMs,
     durationMs,
+    excludedMs,
+    eligibleDurationMs,
     animeId: Number(episode.anime_id),
     episode: Number(episode.episode_number),
   };
@@ -477,6 +692,8 @@ export type EpisodeWatchState = {
   durationMs: number | null;
   coverageMs: number;
   activeMs: number;
+  excludedMs: number;
+  eligibleDurationMs: number | null;
   completed: boolean;
   watchedAt: string | null;
 };
@@ -553,6 +770,11 @@ export async function getLatestWatchState(
         : Math.round(asNonNegativeNumber(record.duration_ms)),
     coverageMs: Math.round(asNonNegativeNumber(record.coverage_ms)),
     activeMs: Math.round(asNonNegativeNumber(record.active_ms)),
+    excludedMs: 0,
+    eligibleDurationMs:
+      record.duration_ms == null
+        ? null
+        : Math.round(asNonNegativeNumber(record.duration_ms)),
     completed: Boolean(record.completed),
     watchedAt:
       typeof record.watched_at === 'string'
@@ -581,7 +803,7 @@ export async function getEpisodeWatchState(
   const { data: progress, error: progressError } = await watch
     .from('progress')
     .select(
-      'resume_position_ms,coverage_ms,active_ms,completed_at,last_watched_at',
+      'resume_position_ms,watched_ranges,excluded_ranges,coverage_ms,active_ms,completed_at,last_watched_at',
     )
     .eq('user_id', userId)
     .eq('episode_id', episode.id)
@@ -590,15 +812,24 @@ export async function getEpisodeWatchState(
 
   if (!progress) return null;
 
+  const episodeDurationMs =
+    episode.duration_ms == null
+      ? null
+      : Math.round(asNonNegativeNumber(episode.duration_ms));
+  const episodeProgress = effectiveWatchProgress(
+    normalizeRanges(progress.watched_ranges),
+    normalizeRanges(progress.excluded_ranges),
+    episodeDurationMs,
+  );
+
   return {
     episode: Number(episode.episode_number),
     positionMs: Math.round(asNonNegativeNumber(progress.resume_position_ms)),
-    durationMs:
-      episode.duration_ms == null
-        ? null
-        : Math.round(asNonNegativeNumber(episode.duration_ms)),
-    coverageMs: Math.round(asNonNegativeNumber(progress.coverage_ms)),
+    durationMs: episodeDurationMs,
+    coverageMs: episodeProgress.coverageMs,
     activeMs: Math.round(asNonNegativeNumber(progress.active_ms)),
+    excludedMs: episodeProgress.excludedMs,
+    eligibleDurationMs: episodeProgress.eligibleDurationMs,
     completed: Boolean(progress.completed_at),
     watchedAt:
       typeof progress.last_watched_at === 'string'

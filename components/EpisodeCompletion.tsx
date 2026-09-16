@@ -10,14 +10,19 @@ type WatchStateResponse = {
     durationMs: number | null;
     coverageMs: number;
     activeMs: number;
+    excludedMs?: number;
+    eligibleDurationMs?: number | null;
     completed: boolean;
     watchedAt: string | null;
   } | null;
 };
 
-function calculatePercent(coverageMs: number, durationMs: number | null) {
-  if (!durationMs || durationMs <= 0) return null;
-  return Math.min(100, Math.max(0, Math.round((coverageMs / durationMs) * 100)));
+function calculatePercent(coverageMs: number, eligibleDurationMs: number | null) {
+  if (!eligibleDurationMs || eligibleDurationMs <= 0) return null;
+  return Math.min(
+    100,
+    Math.max(0, Math.round((coverageMs / eligibleDurationMs) * 100)),
+  );
 }
 
 export default function EpisodeCompletion({
@@ -52,7 +57,10 @@ export default function EpisodeCompletion({
       setCompleted(Boolean(state?.completed));
       setPercent(
         state
-          ? calculatePercent(state.coverageMs, state.durationMs)
+          ? calculatePercent(
+              state.coverageMs,
+              state.eligibleDurationMs ?? state.durationMs,
+            )
           : 0,
       );
     } catch {
@@ -118,7 +126,7 @@ export default function EpisodeCompletion({
         <p className="mt-2">
           {completed
             ? 'AnimeBox подтвердил просмотр автоматически.'
-            : 'Серия засчитывается автоматически после 90% подтверждённого просмотра. Перемотка вперёд не считается.'}
+            : 'Серия засчитывается автоматически после 90% подтверждённой обязательной части. Кнопки пропуска опенинга/эндинга учитываются, обычная перемотка — нет.'}
         </p>
       </div>
     </section>
