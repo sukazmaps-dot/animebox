@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { readProfileCache, saveProfileCache } from '@/lib/profile-cache';
 import { notifyAuthChanged } from '@/lib/auth-events';
+import { isTelegramMiniAppRuntime } from '@/lib/telegram-auto-login';
+import { useAuthState } from '@/components/AuthStateProvider';
 import CommunityProfile from '@/components/CommunityProfile';
 import ProfileEditModal from '@/components/ProfileEditModal';
 
@@ -22,6 +24,12 @@ type Profile = {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const {
+    user,
+    loading: authLoading,
+    telegramMiniApp,
+    telegramAutoLoginDisabled,
+  } = useAuthState();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [email, setEmail] = useState('');
@@ -30,30 +38,53 @@ export default function ProfilePage() {
   const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
+    let active = true;
     const supabase = createClient();
 
+    const inTelegram = telegramMiniApp || isTelegramMiniAppRuntime();
+    const waitingForTelegramAuth =
+      inTelegram && !telegramAutoLoginDisabled && !user;
+
+    if (authLoading || waitingForTelegramAuth) {
+      const timer = window.setTimeout(() => {
+        if (!active) return;
+        setProfile(null);
+        setLoading(true);
+        setError('');
+      }, 0);
+
+      return () => {
+        active = false;
+        window.clearTimeout(timer);
+      };
+    }
+
+    if (!user) {
+      router.replace('/login');
+
+      return () => {
+        active = false;
+      };
+    }
+
+    const currentUser = user;
+
     async function loadProfile() {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+      setLoading(true);
+      setError('');
+      setEmail(currentUser.email ?? '');
 
-      if (userError || !user) {
-        router.replace('/login');
-        return;
-      }
-
-      setEmail(user.email ?? '');
-
-      const cachedProfile = readProfileCache<Profile>(user.id);
+      const cachedProfile = readProfileCache<Profile>(currentUser.id);
       if (cachedProfile?.username?.trim()) {
         // Username/avatar can stay cached, but OG must be refreshed every time:
         // a user can earn the badge immediately after adding their first title.
         const cachedOgResult = await supabase
           .from('og_members')
           .select('og_number')
-          .eq('user_id', user.id)
+          .eq('user_id', currentUser.id)
           .maybeSingle();
+
+        if (!active) return;
 
         const nextCachedProfile = {
           ...cachedProfile,
@@ -69,7 +100,7 @@ export default function ProfilePage() {
         }
 
         setProfile(nextCachedProfile);
-        saveProfileCache(user.id, nextCachedProfile);
+        saveProfileCache(currentUser.id, nextCachedProfile);
         setLoading(false);
         return;
       }
@@ -80,14 +111,16 @@ export default function ProfilePage() {
           .select(
             'id, username, bio, avatar_path, banner_path, created_at',
           )
-          .eq('id', user.id)
+          .eq('id', currentUser.id)
           .single(),
         supabase
           .from('og_members')
           .select('og_number')
-          .eq('user_id', user.id)
+          .eq('user_id', currentUser.id)
           .maybeSingle(),
       ]);
+
+      if (!active) return;
 
       if (profileResult.error) {
         console.error(profileResult.error);
@@ -115,12 +148,22 @@ export default function ProfilePage() {
       }
 
       setProfile(profileData);
-      saveProfileCache(user.id, profileData);
+      saveProfileCache(currentUser.id, profileData);
       setLoading(false);
     }
 
-    loadProfile();
-  }, [router]);
+    void loadProfile();
+
+    return () => {
+      active = false;
+    };
+  }, [
+    authLoading,
+    router,
+    telegramAutoLoginDisabled,
+    telegramMiniApp,
+    user,
+  ]);
 
   if (loading) {
     return (

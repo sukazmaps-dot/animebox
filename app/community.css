@@ -2903,3 +2903,52 @@ label input:checked + span::before {
       0 0 5px rgba(140,105,255,.22)
     );
 }
+/* =========================================================
+   TRACKER AUTH ERROR ACTIONS
+   Prevent unstyled inline "ВойтиПовторить" controls on mobile.
+   ========================================================= */
+.tracker-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 13px;
+}
+
+.tracker-error__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+}
+
+.tracker-error__login,
+.tracker-error__retry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 9px;
+  font: inherit;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.tracker-error__login {
+  border: 1px solid rgba(139, 116, 255, .34);
+  background: linear-gradient(135deg, #6551dd, #8252db);
+  color: #fff;
+}
+
+.tracker-error__retry {
+  border: 1px solid rgba(128, 143, 177, .18);
+  background: rgba(255, 255, 255, .035);
+  color: rgba(226, 232, 255, .82);
+}
+
+.tracker-error__login:hover,
+.tracker-error__retry:hover {
+  filter: brightness(1.08);
+}

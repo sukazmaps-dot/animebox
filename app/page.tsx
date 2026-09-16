@@ -17,6 +17,7 @@ import {
   getRecommendationFallback,
 } from '@/lib/recommendations';
 import { readWatchHistory } from '@/lib/anime-storage';
+import { TELEGRAM_MINI_APP_URL } from '@/lib/telegram-links';
 
 type HomeScheduleItem = {
   id: number;
@@ -744,7 +745,7 @@ export default function HomePage() {
               Следи за любимыми тайтлами и получай уведомления без лишнего шума.
             </span>
 
-            <a href="https://t.me/yourAnimeBox" target="_blank" rel="noreferrer">
+            <a href={TELEGRAM_MINI_APP_URL} target="_blank" rel="noreferrer">
               <Icon name="telegram" />
               Открыть Mini App
             </a>

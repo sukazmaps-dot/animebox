@@ -1,7 +1,10 @@
 import Link from 'next/link';
 import Icon from '@/components/Icon';
+import {
+  TELEGRAM_BOT_HANDLE,
+  TELEGRAM_MINI_APP_URL,
+} from '@/lib/telegram-links';
 
-const telegramUrl = 'https://t.me/yourAnimeBox';
 const donateUrl = 'https://donatepay.ru/don/Armlet';
 
 const features = [
@@ -37,9 +40,9 @@ const features = [
   },
   {
     icon: 'telegram' as const,
-    title: 'Telegram',
+    title: 'Telegram Mini App',
     description:
-      'AnimeBox развивается как единый веб-сервис и Telegram Mini App. Следующий крупный шаг — Mini App и уведомления о новых сериях.',
+      `Mini App уже работает вместе с веб-версией AnimeBox: один аккаунт, синхронизация и уведомления о новых сериях через ${TELEGRAM_BOT_HANDLE}.`,
   },
 ];
 
@@ -55,9 +58,9 @@ export default function AboutPage() {
           AnimeBox — развивающийся сервис для поиска аниме и ведения личной
           библиотеки. Здесь можно отслеживать просмотренные серии, продолжать с
           нужного эпизода, следить за расписанием, оформлять профиль и обсуждать
-          каждую серию отдельно. Веб-версия уже является основным продуктом, а
-          Telegram Mini App и уведомления станут её продолжением, а не отдельным
-          сервисом.
+          каждую серию отдельно. Веб-версия и Telegram Mini App работают как
+          единый сервис, а бот присылает уведомления о новых сериях подписанных
+          тайтлов.
         </p>
 
         <div className="about-hero__actions">
@@ -71,13 +74,13 @@ export default function AboutPage() {
           </Link>
 
           <a
-            href={telegramUrl}
+            href={TELEGRAM_MINI_APP_URL}
             target="_blank"
             rel="noreferrer"
             className="btn btn--ghost"
           >
             <Icon name="telegram" />
-            Telegram
+            Открыть Mini App
           </a>
         </div>
       </section>
@@ -102,11 +105,11 @@ export default function AboutPage() {
         </div>
 
         <p>
-          Сейчас основная работа сосредоточена на качестве веб-версии:
-          интерфейсе, стабильности источников данных, трекере, профилях и
-          сообществе. Далее — полноценная Telegram Mini App, уведомления и
-          дальнейшая оптимизация. Если найдёшь баг или хочешь предложить идею,
-          напиши в Telegram.
+          Сейчас основная работа сосредоточена на качестве AnimeBox:
+          интерфейсе, стабильности источников данных, трекере, профилях,
+          сообществе и дальнейшем улучшении Telegram-интеграции. Mini App и
+          уведомления уже работают. Если найдёшь баг или хочешь предложить
+          идею, открой {TELEGRAM_BOT_HANDLE}.
         </p>
 
         <a

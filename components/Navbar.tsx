@@ -12,6 +12,7 @@ import {
 import Icon from './Icon';
 import AuthUserButton from './AuthUserButton';
 import MobileAccountNav from './MobileAccountNav';
+import { TELEGRAM_MINI_APP_URL } from '@/lib/telegram-links';
 
 const mainNav = [
   {
@@ -41,7 +42,7 @@ const mainNav = [
   },
 ];
 
-const telegramUrl = 'https://t.me/yourAnimeBox';
+const telegramUrl = TELEGRAM_MINI_APP_URL;
 const donateUrl = 'https://donatepay.ru/don/Armlet';
 
 function NavbarContent() {
@@ -290,37 +291,6 @@ function NavbarContent() {
           </a>
         </nav>
 
-        <div className="sidebar__promo sidebar__promo--brand">
-          <img
-            className="sidebar__promo-art"
-            src="/brand/telegram-cta.png"
-            alt=""
-            aria-hidden="true"
-          />
-
-          <div className="sidebar__promo-content">
-            <span className="sidebar__promo-kicker">ANIMEBOX × TELEGRAM</span>
-
-            <strong>
-              Новые серии
-              <br />
-              без пропусков
-            </strong>
-
-            <span>
-              Получай уведомления о любимых тайтлах прямо в Telegram.
-            </span>
-
-            <a
-              href={telegramUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Icon name="telegram" />
-              Подключить
-            </a>
-          </div>
-        </div>
       </aside>
 
       {/* =========================

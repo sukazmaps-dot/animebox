@@ -72,9 +72,13 @@
 }
 .notifications-hero h1 { margin: 0; font-size: clamp(26px, 4vw, 42px); line-height: 1.05; }
 .notifications-hero p { max-width: 650px; margin: 12px 0 0; color: #9aa7bb; font-size: 13px; line-height: 1.7; }
-.notifications-hero__status { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid rgba(148,163,184,.12); border-radius: 999px; background: rgba(13,22,38,.78); color: #9aa7bb; font-size: 10px; font-weight: 720; }
+.notifications-hero__actions { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.notifications-hero__bot { color: #8fb8ff; font-size: 10px; font-weight: 760; text-decoration: none; }
+.notifications-hero__bot:hover { color: #b7d0ff; }
+.notifications-hero__status { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid rgba(148,163,184,.12); border-radius: 999px; background: rgba(13,22,38,.78); color: #9aa7bb; font-size: 10px; font-weight: 720; }
 .notifications-hero__status > span { width: 7px; height: 7px; border-radius: 50%; background: #6f7788; }
 .notifications-hero__status > span.is-online { background: #48d39d; box-shadow: 0 0 12px rgba(72,211,157,.55); }
+.notifications-hero__actions .notification-master { white-space: nowrap; }
 
 .notifications-card { padding: 22px; }
 .notifications-card__head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
@@ -117,6 +121,7 @@
   .anime-notification-control__button { width: 100%; }
   .notifications-page { padding: 18px 12px 110px; }
   .notifications-hero { padding: 20px; flex-direction: column; }
+  .notifications-hero__actions { align-items: flex-start; }
   .notifications-hero__status { align-self: flex-start; }
   .notifications-card { padding: 16px; }
   .notifications-test-row,

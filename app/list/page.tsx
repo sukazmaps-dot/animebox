@@ -9,6 +9,9 @@ import {
   type CommunityProfile,
   type LibraryStatus,
 } from '@/lib/community-client';
+import { AUTH_CHANGED_EVENT } from '@/lib/auth-events';
+import { isTelegramMiniAppRuntime } from '@/lib/telegram-auto-login';
+import { useAuthState } from '@/components/AuthStateProvider';
 import LibraryStatusControl from '@/components/LibraryStatusControl';
 
 type Filter = LibraryStatus | 'all';
@@ -22,31 +25,91 @@ const filterIcons: Record<Filter, string> = {
 };
 
 export default function MyListPage() {
+  const {
+    user,
+    loading: authLoading,
+    telegramMiniApp,
+    telegramAutoLoginDisabled,
+  } = useAuthState();
+
   const [data, setData] = useState<CommunityProfile | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
 
   async function load() {
     try {
       setError('');
+      setLoading(true);
       setData(await communityRequest<CommunityProfile>('profile'));
     } catch (error) {
+      setData(null);
       setError(
         error instanceof Error
           ? error.message
           : 'Не удалось загрузить библиотеку.',
       );
+    } finally {
+      setLoading(false);
     }
   }
 
   useEffect(() => {
-    void load();
-    window.addEventListener('library-updated', load);
+    let active = true;
+
+    const inTelegram = telegramMiniApp || isTelegramMiniAppRuntime();
+    const waitingForTelegramAuth =
+      inTelegram && !telegramAutoLoginDisabled && !user;
+
+    function reloadAfterAuth() {
+      // verifyOtp() has already persisted the Supabase session when this event
+      // is emitted. The zero-delay lets auth listeners finish their state sync.
+      window.setTimeout(() => {
+        if (active) void load();
+      }, 0);
+    }
+
+    function handleLibraryUpdated() {
+      if (user) void load();
+    }
+
+    window.addEventListener('library-updated', handleLibraryUpdated);
+    window.addEventListener(AUTH_CHANGED_EVENT, reloadAfterAuth);
+
+    let stateTimer: number | null = null;
+
+    if (authLoading || waitingForTelegramAuth) {
+      stateTimer = window.setTimeout(() => {
+        if (!active) return;
+        setData(null);
+        setError('');
+        setLoading(true);
+      }, 0);
+    } else if (!user) {
+      stateTimer = window.setTimeout(() => {
+        if (!active) return;
+        setData(null);
+        setLoading(false);
+        setError('Войди в аккаунт.');
+      }, 0);
+    } else {
+      stateTimer = window.setTimeout(() => {
+        if (active) void load();
+      }, 0);
+    }
 
     return () => {
-      window.removeEventListener('library-updated', load);
+      active = false;
+      if (stateTimer !== null) window.clearTimeout(stateTimer);
+      window.removeEventListener('library-updated', handleLibraryUpdated);
+      window.removeEventListener(AUTH_CHANGED_EVENT, reloadAfterAuth);
     };
-  }, []);
+  }, [
+    authLoading,
+    telegramAutoLoginDisabled,
+    telegramMiniApp,
+    user,
+  ]);
 
   const filteredLibrary = useMemo(() => {
     if (!data) return [];
@@ -96,16 +159,22 @@ export default function MyListPage() {
       {error && (
         <section className="tracker-error" role="alert">
           <span>{error}</span>
-          <div>
-            <Link href="/login">Войти</Link>
-            <button type="button" onClick={() => void load()}>
+          <div className="tracker-error__actions">
+            <Link href="/login" className="tracker-error__login">
+              Войти
+            </Link>
+            <button
+              type="button"
+              className="tracker-error__retry"
+              onClick={() => void load()}
+            >
               Повторить
             </button>
           </div>
         </section>
       )}
 
-      {!data && !error && (
+      {!data && !error && loading && (
         <div className="tracker-loading" role="status">
           <span className="tracker-loading__dot" />
           Загружаем библиотеку…

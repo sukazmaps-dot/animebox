@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { telegramMiniAppUrl } from '@/lib/telegram-links';
 
 type SubscriptionResponse = {
   ok?: boolean;
@@ -136,7 +137,7 @@ export default function AnimeNotificationControl({
 
     if (!telegramLinked) {
       window.open(
-        'https://t.me/YourAnimeBoxBot?startapp=notifications',
+        telegramMiniAppUrl('notifications'),
         '_blank',
         'noopener,noreferrer',
       );

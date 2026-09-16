@@ -3,6 +3,9 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+import { useAuthState } from '@/components/AuthStateProvider';
+import { isTelegramMiniAppRuntime } from '@/lib/telegram-auto-login';
+
 type Subscription = {
   anime_id: number;
   anime_slug: string;
@@ -60,6 +63,13 @@ function errorMessage(data: SettingsResponse) {
 }
 
 export default function NotificationSettingsClient() {
+  const {
+    user,
+    loading: authLoading,
+    telegramMiniApp,
+    telegramAutoLoginDisabled,
+  } = useAuthState();
+
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [telegramLinked, setTelegramLinked] = useState(false);
@@ -72,14 +82,51 @@ export default function NotificationSettingsClient() {
     let active = true;
     const controller = new AbortController();
 
+    const inTelegram = telegramMiniApp || isTelegramMiniAppRuntime();
+    const waitingForTelegramAuth =
+      inTelegram && !telegramAutoLoginDisabled && !user;
+
+    if (authLoading || waitingForTelegramAuth) {
+      const timer = window.setTimeout(() => {
+        if (!active) return;
+        setLoading(true);
+        setMessage('');
+      }, 0);
+
+      return () => {
+        active = false;
+        controller.abort();
+        window.clearTimeout(timer);
+      };
+    }
+
+    if (!user) {
+      window.location.replace('/login');
+
+      return () => {
+        active = false;
+        controller.abort();
+      };
+    }
+
     async function loadSettings() {
       try {
+        setLoading(true);
+        setMessage('');
+
         const response = await fetch('/api/notifications/settings', {
           cache: 'no-store',
           signal: controller.signal,
         });
 
         if (response.status === 401) {
+          // The provider already says we have a user. A transient 401 can occur
+          // while the Telegram-created browser session is finishing its cookie
+          // sync, so do not bounce the Mini App to /login immediately.
+          if (isTelegramMiniAppRuntime()) {
+            throw new Error('Сессия Telegram ещё синхронизируется. Попробуй ещё раз.');
+          }
+
           window.location.replace('/login');
           return;
         }
@@ -116,7 +163,12 @@ export default function NotificationSettingsClient() {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, []);
+  }, [
+    authLoading,
+    telegramAutoLoginDisabled,
+    telegramMiniApp,
+    user,
+  ]);
 
   async function sendTest() {
     if (busy) return;
@@ -251,7 +303,7 @@ export default function NotificationSettingsClient() {
           <div className="notifications-empty">
             <p>Сначала привяжи Telegram к AnimeBox.</p>
             <a
-              href="https://t.me/YourAnimeBoxBot?startapp=notifications"
+              href="https://t.me/YourAnimeBoxBot?startapp"
               target="_blank"
               rel="noreferrer"
             >

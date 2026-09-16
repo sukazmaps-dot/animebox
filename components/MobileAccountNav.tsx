@@ -6,12 +6,13 @@ import Link from 'next/link';
 import Icon from '@/components/Icon';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/components/AuthStateProvider';
+import { TELEGRAM_MINI_APP_URL } from '@/lib/telegram-links';
 
 type Props = {
   pathname: string;
 };
 
-const telegramUrl = 'https://t.me/yourAnimeBox';
+const telegramUrl = TELEGRAM_MINI_APP_URL;
 const donateUrl = 'https://donatepay.ru/don/Armlet';
 
 export default function MobileAccountNav({ pathname }: Props) {
