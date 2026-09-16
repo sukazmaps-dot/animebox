@@ -115,7 +115,7 @@ export default async function PublicProfilePage({ params }: Props) {
         <article className="profile-v2__stat">
           <span className="profile-v2__stat-label">Просмотрено серий</span>
           <strong>{profile.stats.episodes}</strong>
-          <small>Отмечено просмотренными</small>
+          <small>Подтверждено плеером</small>
         </article>
 
         <article className="profile-v2__stat">
@@ -129,7 +129,7 @@ export default async function PublicProfilePage({ params }: Props) {
           <strong>
             {watchHours}<em>ч</em> {watchMinutes}<em>м</em>
           </strong>
-          <small>Примерная статистика</small>
+          <small>По данным плеера</small>
         </article>
 
         <article className="profile-v2__stat">

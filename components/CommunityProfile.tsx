@@ -75,7 +75,7 @@ export default function CommunityProfile() {
         <article className="profile-v2__stat">
           <span className="profile-v2__stat-label">Уникальных серий</span>
           <strong>{stats.episodes}</strong>
-          <small>Отмечено просмотренными</small>
+          <small>Подтверждено плеером</small>
         </article>
 
         <article className="profile-v2__stat">
@@ -83,7 +83,7 @@ export default function CommunityProfile() {
           <strong>
             {watchHours}<em>ч</em> {watchMinutes}<em>м</em>
           </strong>
-          <small>Примерная статистика</small>
+          <small>По данным плеера</small>
         </article>
 
         <article className="profile-v2__stat">

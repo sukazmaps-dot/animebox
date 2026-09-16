@@ -201,7 +201,7 @@ export async function startWatchSession(input: WatchStartInput) {
 
   const { data: existingProgress, error: progressReadError } = await watch
     .from('progress')
-    .select('coverage_ms,active_ms,ranked_ms,completed_at')
+    .select('coverage_ms,active_ms,ranked_ms,completed_at,resume_position_ms,last_watched_at')
     .eq('user_id', input.userId)
     .eq('episode_id', episodeRow.id)
     .maybeSingle();
@@ -216,6 +216,8 @@ export async function startWatchSession(input: WatchStartInput) {
         coverage_ms: 0,
         active_ms: 0,
         ranked_ms: episodeRow.ranked_enabled ? 0 : null,
+        resume_position_ms: initialPosition ?? 0,
+        last_watched_at: new Date(now).toISOString(),
         updated_at: new Date(now).toISOString(),
       },
       { onConflict: 'user_id,episode_id', ignoreDuplicates: true },
@@ -235,12 +237,16 @@ export async function startWatchSession(input: WatchStartInput) {
           activeMs: Number(existingProgress.active_ms ?? 0),
           rankedMs: existingProgress.ranked_ms == null ? null : Number(existingProgress.ranked_ms),
           completedAt: (existingProgress.completed_at as string | null) ?? null,
+          resumePositionMs: Number(existingProgress.resume_position_ms ?? 0),
+          lastWatchedAt: (existingProgress.last_watched_at as string | null) ?? null,
         }
       : {
           coverageMs: 0,
           activeMs: 0,
           rankedMs: episodeRow.ranked_enabled ? 0 : null,
           completedAt: null,
+          resumePositionMs: initialPosition ?? 0,
+          lastWatchedAt: new Date(now).toISOString(),
         },
   };
 }
@@ -349,7 +355,7 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
 
   const { data: progress, error: progressError } = await watch
     .from('progress')
-    .select('watched_ranges,coverage_ms,active_ms,ranked_ms,completed_at')
+    .select('watched_ranges,coverage_ms,active_ms,ranked_ms,completed_at,resume_position_ms,last_watched_at')
     .eq('user_id', input.userId)
     .eq('episode_id', session.episode_id)
     .maybeSingle();
@@ -382,6 +388,8 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
       active_ms: activeMs,
       ranked_ms: rankedMs,
       completed_at: completedAt,
+      resume_position_ms: input.positionMs,
+      last_watched_at: receivedAt,
       updated_at: receivedAt,
     },
     { onConflict: 'user_id,episode_id' },
@@ -407,9 +415,198 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
     newlyCompleted: !progress?.completed_at && completedNow,
     coverageMs,
     activeMs,
+    durationMs,
     animeId: Number(episode.anime_id),
     episode: Number(episode.episode_number),
   };
+}
+
+export type WatchSummary = {
+  trackedEpisodes: number;
+  completedEpisodes: number;
+  activeMs: number;
+  coverageMs: number;
+  rankedMs: number;
+  lastWatchedAt: string | null;
+};
+
+export type EpisodeWatchState = {
+  episode: number;
+  positionMs: number;
+  durationMs: number | null;
+  coverageMs: number;
+  activeMs: number;
+  completed: boolean;
+  watchedAt: string | null;
+};
+
+function asNonNegativeNumber(value: unknown) {
+  const number = Number(value ?? 0);
+  return Number.isFinite(number) && number > 0 ? number : 0;
+}
+
+export async function getWatchSummary(userId: string): Promise<WatchSummary> {
+  const watch = watchClient();
+
+  const { data, error } = await watch.rpc('user_watch_summary', {
+    p_user_id: userId,
+  });
+  throwIfError(error);
+
+  const row = Array.isArray(data) ? data[0] : data;
+
+  if (!row || typeof row !== 'object') {
+    return {
+      trackedEpisodes: 0,
+      completedEpisodes: 0,
+      activeMs: 0,
+      coverageMs: 0,
+      rankedMs: 0,
+      lastWatchedAt: null,
+    };
+  }
+
+  const record = row as Record<string, unknown>;
+
+  return {
+    trackedEpisodes: asNonNegativeNumber(record.tracked_episodes),
+    completedEpisodes: asNonNegativeNumber(record.completed_episodes),
+    activeMs: asNonNegativeNumber(record.active_ms),
+    coverageMs: asNonNegativeNumber(record.coverage_ms),
+    rankedMs: asNonNegativeNumber(record.ranked_ms),
+    lastWatchedAt:
+      typeof record.last_watched_at === 'string'
+        ? record.last_watched_at
+        : null,
+  };
+}
+
+export async function getTrackedWatchMinutes(userId: string) {
+  const summary = await getWatchSummary(userId);
+  return Math.floor(summary.activeMs / 60_000);
+}
+
+export async function getLatestWatchState(
+  userId: string,
+  animeId: number,
+): Promise<EpisodeWatchState | null> {
+  const watch = watchClient();
+
+  const { data, error } = await watch.rpc('latest_watch_state', {
+    p_user_id: userId,
+    p_anime_id: animeId,
+  });
+  throwIfError(error);
+
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || typeof row !== 'object') return null;
+
+  const record = row as Record<string, unknown>;
+
+  return {
+    episode: Math.max(1, Math.round(asNonNegativeNumber(record.episode) || 1)),
+    positionMs: Math.round(asNonNegativeNumber(record.position_ms)),
+    durationMs:
+      record.duration_ms == null
+        ? null
+        : Math.round(asNonNegativeNumber(record.duration_ms)),
+    coverageMs: Math.round(asNonNegativeNumber(record.coverage_ms)),
+    activeMs: Math.round(asNonNegativeNumber(record.active_ms)),
+    completed: Boolean(record.completed),
+    watchedAt:
+      typeof record.watched_at === 'string'
+        ? record.watched_at
+        : null,
+  };
+}
+
+export async function getEpisodeWatchState(
+  userId: string,
+  animeId: number,
+  episodeNumber: number,
+): Promise<EpisodeWatchState | null> {
+  const watch = watchClient();
+
+  const { data: episode, error: episodeError } = await watch
+    .from('episodes')
+    .select('id,episode_number,duration_ms')
+    .eq('anime_id', animeId)
+    .eq('episode_number', episodeNumber)
+    .maybeSingle();
+  throwIfError(episodeError);
+
+  if (!episode) return null;
+
+  const { data: progress, error: progressError } = await watch
+    .from('progress')
+    .select(
+      'resume_position_ms,coverage_ms,active_ms,completed_at,last_watched_at',
+    )
+    .eq('user_id', userId)
+    .eq('episode_id', episode.id)
+    .maybeSingle();
+  throwIfError(progressError);
+
+  if (!progress) return null;
+
+  return {
+    episode: Number(episode.episode_number),
+    positionMs: Math.round(asNonNegativeNumber(progress.resume_position_ms)),
+    durationMs:
+      episode.duration_ms == null
+        ? null
+        : Math.round(asNonNegativeNumber(episode.duration_ms)),
+    coverageMs: Math.round(asNonNegativeNumber(progress.coverage_ms)),
+    activeMs: Math.round(asNonNegativeNumber(progress.active_ms)),
+    completed: Boolean(progress.completed_at),
+    watchedAt:
+      typeof progress.last_watched_at === 'string'
+        ? progress.last_watched_at
+        : null,
+  };
+}
+
+export async function getCompletedEpisodes(
+  userId: string,
+  animeId: number,
+): Promise<number[]> {
+  const watch = watchClient();
+
+  const { data: episodes, error: episodesError } = await watch
+    .from('episodes')
+    .select('id,episode_number')
+    .eq('anime_id', animeId)
+    .order('episode_number', { ascending: true });
+  throwIfError(episodesError);
+
+  const rows = episodes ?? [];
+  if (rows.length === 0) return [];
+
+  const episodeById = new Map<string, number>();
+  for (const row of rows) {
+    if (typeof row.id === 'string') {
+      episodeById.set(row.id, Number(row.episode_number));
+    }
+  }
+
+  const ids = Array.from(episodeById.keys());
+  if (ids.length === 0) return [];
+
+  const { data: progress, error: progressError } = await watch
+    .from('progress')
+    .select('episode_id')
+    .eq('user_id', userId)
+    .in('episode_id', ids)
+    .not('completed_at', 'is', null);
+  throwIfError(progressError);
+
+  return (progress ?? [])
+    .map((row) => episodeById.get(String(row.episode_id)))
+    .filter(
+      (value): value is number =>
+        typeof value === 'number' && Number.isSafeInteger(value) && value > 0,
+    )
+    .sort((a, b) => a - b);
 }
 
 export async function endWatchSession(input: {
@@ -420,6 +617,14 @@ export async function endWatchSession(input: {
   const watch = watchClient();
   const now = new Date().toISOString();
   const positionMs = safePosition(input.positionMs);
+
+  const { data: session, error: sessionReadError } = await watch
+    .from('sessions')
+    .select('episode_id')
+    .eq('id', input.sessionId)
+    .eq('user_id', input.userId)
+    .maybeSingle();
+  throwIfError(sessionReadError);
 
   const payload: Record<string, unknown> = {
     ended_at: now,
@@ -436,6 +641,19 @@ export async function endWatchSession(input: {
     .eq('user_id', input.userId)
     .is('ended_at', null);
   throwIfError(error);
+
+  if (session?.episode_id && positionMs != null) {
+    const { error: progressError } = await watch
+      .from('progress')
+      .update({
+        resume_position_ms: positionMs,
+        last_watched_at: now,
+        updated_at: now,
+      })
+      .eq('user_id', input.userId)
+      .eq('episode_id', session.episode_id);
+    throwIfError(progressError);
+  }
 
   return { ended: true };
 }

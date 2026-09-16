@@ -27,6 +27,20 @@ import {
 
 import EpisodeList from '@/components/EpisodeList';
 
+type LatestWatchState = {
+  episode: number;
+  positionMs: number;
+  durationMs: number | null;
+  coverageMs: number;
+  activeMs: number;
+  completed: boolean;
+  watchedAt: string | null;
+};
+
+type WatchStateResponse = {
+  state?: LatestWatchState | null;
+};
+
 function toListItem(
   anime: Anime,
 ): AnimeListItem {
@@ -84,6 +98,9 @@ export default function AnimeDetailControls({
 
   const [saved, setSaved] =
     useState(false);
+
+  const [watchState, setWatchState] =
+    useState<LatestWatchState | null>(null);
 
   const [
     watchingState,
@@ -151,19 +168,47 @@ export default function AnimeDetailControls({
     };
   }, [anime.id, item]);
 
-  const nextEpisode =
-    availableEpisodes
-      ? Math.min(
-          Math.max(
-            progress,
-            1,
-          ),
-          availableEpisodes,
-        )
-      : Math.max(
-          progress,
-          1,
-        );
+  useEffect(() => {
+    let active = true;
+
+    fetch(`/api/watch?animeId=${encodeURIComponent(String(anime.id))}`, {
+      cache: 'no-store',
+    })
+      .then(async (response) => {
+        if (response.status === 401) return null;
+        if (!response.ok) return null;
+        return (await response.json()) as WatchStateResponse;
+      })
+      .then((payload) => {
+        if (active) {
+          setWatchState(payload?.state ?? null);
+        }
+      })
+      .catch(() => {
+        if (active) setWatchState(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [anime.id]);
+
+  const fallbackEpisode = Math.max(progress, 1);
+
+  const serverEpisode = watchState
+    ? watchState.completed &&
+      availableEpisodes &&
+      watchState.episode < availableEpisodes
+      ? watchState.episode + 1
+      : watchState.episode
+    : null;
+
+  const nextEpisode = availableEpisodes
+    ? Math.min(
+        Math.max(serverEpisode ?? fallbackEpisode, 1),
+        availableEpisodes,
+      )
+    : Math.max(serverEpisode ?? fallbackEpisode, 1);
 
   const progressText =
     availableEpisodes
@@ -214,9 +259,13 @@ export default function AnimeDetailControls({
           onClick={handleWatch}
         >
           ▶{' '}
-          {progress > 0
-            ? `Продолжить · серия ${nextEpisode}`
-            : 'Смотреть с 1 серии'}
+          {watchState
+            ? watchState.completed && nextEpisode > watchState.episode
+              ? `Следующая · серия ${nextEpisode}`
+              : `Продолжить · серия ${nextEpisode}`
+            : progress > 0
+              ? `Продолжить · серия ${nextEpisode}`
+              : 'Смотреть с 1 серии'}
         </button>
 
         <button

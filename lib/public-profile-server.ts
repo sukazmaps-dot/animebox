@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { adminClient } from '@/lib/community-server';
+import { getWatchSummary } from '@/lib/watch-server';
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -105,28 +106,26 @@ export async function getPublicProfile(
 
   const profile = profileData as ProfileRow;
 
-  const [episodesResult, libraryResult, commentsResult, awardsResult, definitionsResult] =
-    await Promise.all([
-      admin
-        .from('episodes_history')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('completed', true),
-      admin.from('anime_library').select('status').eq('user_id', userId),
-      admin
-        .from('comments')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId),
-      admin.from('user_achievements').select('*').eq('user_id', userId),
-      admin
-        .from('achievements')
-        .select('code,title,description,icon')
-        .order('threshold', { ascending: true }),
-    ]);
+  const [
+    libraryResult,
+    commentsResult,
+    awardsResult,
+    definitionsResult,
+    watchSummary,
+  ] = await Promise.all([
+    admin.from('anime_library').select('status').eq('user_id', userId),
+    admin
+      .from('comments')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId),
+    admin.from('user_achievements').select('*').eq('user_id', userId),
+    admin
+      .from('achievements')
+      .select('code,title,description,icon')
+      .order('threshold', { ascending: true }),
+    getWatchSummary(userId),
+  ]);
 
-  if (episodesResult.error) {
-    console.error('Public profile episode stats:', episodesResult.error);
-  }
   if (libraryResult.error) {
     console.error('Public profile library stats:', libraryResult.error);
   }
@@ -140,7 +139,7 @@ export async function getPublicProfile(
     console.error('Public profile achievement definitions:', definitionsResult.error);
   }
 
-  const episodes = episodesResult.error ? 0 : episodesResult.count ?? 0;
+  const episodes = watchSummary.completedEpisodes;
   const comments = commentsResult.error ? 0 : commentsResult.count ?? 0;
   const library = libraryResult.error ? [] : libraryResult.data ?? [];
   const titles = library.filter((item) => item.status === 'completed').length;
@@ -183,7 +182,7 @@ export async function getPublicProfile(
     stats: {
       episodes,
       titles,
-      minutes: episodes * 24,
+      minutes: Math.floor(watchSummary.activeMs / 60_000),
       comments,
     },
     achievements,

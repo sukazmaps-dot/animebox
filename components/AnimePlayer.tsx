@@ -4,7 +4,6 @@ import type { CSSProperties, ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '@/components/Icon';
 import KodikPlayer from '@/components/KodikPlayer';
-import { useEpisodeTracking } from '@/components/useEpisodeTracking';
 import { useWatchSession } from '@/components/useWatchSession';
 import Hls from 'hls.js';
 
@@ -18,6 +17,18 @@ export type PlayerSource = {
   name: string;
   translations: TranslationOption[];
   type?: 'hls' | 'iframe' | 'video' | 'kodik';
+};
+
+type WatchStateResponse = {
+  state?: {
+    episode: number;
+    positionMs: number;
+    durationMs: number | null;
+    coverageMs: number;
+    activeMs: number;
+    completed: boolean;
+    watchedAt: string | null;
+  } | null;
 };
 
 interface AnimePlayerProps {
@@ -61,6 +72,43 @@ function sourceLabel(name?: string) {
   if (name === 'Kodik') return 'Kodik';
   if (name === 'AniLiberty') return 'AniLiberty';
   return name;
+}
+
+const TRANSLATION_PREFERENCE_PREFIX = 'animebox:translation:v1';
+
+function normalizePreferenceValue(value?: string) {
+  return value?.trim().toLocaleLowerCase('ru-RU') || '';
+}
+
+function translationPreferenceKey(animeId: number | undefined, sourceName: string) {
+  const animeKey = typeof animeId === 'number' && Number.isFinite(animeId)
+    ? String(animeId)
+    : 'global';
+
+  return `${TRANSLATION_PREFERENCE_PREFIX}:${animeKey}:${normalizePreferenceValue(sourceName)}`;
+}
+
+function readTranslationPreference(animeId: number | undefined, sourceName: string) {
+  try {
+    return window.localStorage.getItem(translationPreferenceKey(animeId, sourceName));
+  } catch {
+    return null;
+  }
+}
+
+function writeTranslationPreference(
+  animeId: number | undefined,
+  sourceName: string,
+  translationTitle: string,
+) {
+  try {
+    window.localStorage.setItem(
+      translationPreferenceKey(animeId, sourceName),
+      translationTitle,
+    );
+  } catch {
+    // localStorage can be unavailable in strict/private browser modes.
+  }
 }
 
 function PlayerDropdown({
@@ -228,8 +276,10 @@ export default function AnimePlayer({
   const [playerReady, setPlayerReady] = useState(false);
   const [theaterMode, setTheaterMode] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [resumeSeconds, setResumeSeconds] = useState(0);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const resumeAppliedRef = useRef(false);
   const playerViewportRef = useRef<HTMLDivElement | null>(null);
 
   const currentSource = sources[activeSourceIndex];
@@ -246,23 +296,17 @@ export default function AnimePlayer({
   const isHls = mediaType === 'hls';
   const videoLink = isHls ? toProxyHls(normalizedLink) : normalizedLink;
 
-  const directTrackingMessage = useEpisodeTracking(
-    videoRef,
-    animeId,
-    episodeNumber,
-    videoLink,
-    isIframe,
-  );
+  const trackableNativeVideo = !isIframe && Boolean(videoLink);
 
   const watchSession = useWatchSession({
-    enabled: started && isKodik,
+    enabled: started && (isKodik || trackableNativeVideo),
     animeId,
     episode: episodeNumber,
     requiredEpisodes: totalEpisodes,
-    sourceUrl: videoLink,
+    sourceUrl: normalizedLink || videoLink,
   });
 
-  const trackingMessage = watchSession.message || directTrackingMessage;
+  const trackingMessage = watchSession.message;
 
   const episodeMeta = totalEpisodes
     ? totalEpisodesKnown
@@ -301,6 +345,90 @@ export default function AnimePlayer({
   } as CSSProperties;
 
   useEffect(() => {
+    let active = true;
+    resumeAppliedRef.current = false;
+    queueMicrotask(() => {
+      if (active) setResumeSeconds(0);
+    });
+
+    if (!animeId) return;
+
+    fetch(`/api/watch?animeId=${encodeURIComponent(String(animeId))}&episode=${encodeURIComponent(String(episodeNumber))}`, {
+      method: 'GET',
+      cache: 'no-store',
+    })
+      .then(async (response) => {
+        if (response.status === 401) return null;
+        if (!response.ok) return null;
+        return (await response.json()) as WatchStateResponse;
+      })
+      .then((payload) => {
+        if (!active || !payload?.state || payload.state.completed) return;
+
+        const positionSeconds = Math.floor(payload.state.positionMs / 1000);
+        const durationSeconds =
+          payload.state.durationMs == null
+            ? null
+            : Math.floor(payload.state.durationMs / 1000);
+
+        if (positionSeconds < 10) return;
+        if (durationSeconds != null && durationSeconds - positionSeconds < 20) {
+          return;
+        }
+
+        setResumeSeconds(positionSeconds);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, [animeId, episodeNumber]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+
+    if (
+      !started ||
+      !video ||
+      isIframe ||
+      resumeSeconds <= 0 ||
+      resumeAppliedRef.current
+    ) {
+      return;
+    }
+
+    const applyResume = () => {
+      if (
+        resumeAppliedRef.current ||
+        !Number.isFinite(video.duration) ||
+        video.duration <= 0
+      ) {
+        return;
+      }
+
+      // Do not pull the viewer backwards if playback already advanced.
+      if (video.currentTime > 5) {
+        resumeAppliedRef.current = true;
+        return;
+      }
+
+      video.currentTime = Math.min(
+        resumeSeconds,
+        Math.max(0, video.duration - 10),
+      );
+      resumeAppliedRef.current = true;
+    };
+
+    video.addEventListener('loadedmetadata', applyResume);
+    if (video.readyState >= 1) applyResume();
+
+    return () => {
+      video.removeEventListener('loadedmetadata', applyResume);
+    };
+  }, [isIframe, resumeSeconds, started, videoLink]);
+
+  useEffect(() => {
     if (!theaterMode) return;
 
     const previousOverflow = document.body.style.overflow;
@@ -329,6 +457,46 @@ export default function AnimePlayer({
       document.removeEventListener('webkitfullscreenchange', onFullscreenChange as EventListener);
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function restoreTranslationPreference() {
+      // Defer the state sync until after the current render/effect pass.
+      await Promise.resolve();
+
+      if (cancelled) return;
+
+      const source = sources[activeSourceIndex];
+
+      if (!source || source.translations.length === 0) {
+        return;
+      }
+
+      const rememberedTitle = readTranslationPreference(animeId, source.name);
+
+      if (!rememberedTitle) {
+        setActiveTranslationIndex((current) =>
+          current >= 0 && current < source.translations.length ? current : 0,
+        );
+        return;
+      }
+
+      const rememberedValue = normalizePreferenceValue(rememberedTitle);
+      const rememberedIndex = source.translations.findIndex(
+        (translation) =>
+          normalizePreferenceValue(translation.title) === rememberedValue,
+      );
+
+      setActiveTranslationIndex(rememberedIndex >= 0 ? rememberedIndex : 0);
+    }
+
+    void restoreTranslationPreference();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSourceIndex, animeId, sources]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -393,7 +561,25 @@ export default function AnimePlayer({
   }
 
   function selectTranslation(id: string) {
-    setActiveTranslationIndex(Number(id));
+    const nextIndex = Number(id);
+    const source = sources[activeSourceIndex];
+    const translation = source?.translations[nextIndex];
+
+    if (
+      !Number.isSafeInteger(nextIndex) ||
+      nextIndex < 0 ||
+      !source ||
+      !translation
+    ) {
+      return;
+    }
+
+    setActiveTranslationIndex(nextIndex);
+
+    if (translation.title?.trim()) {
+      writeTranslationPreference(animeId, source.name, translation.title);
+    }
+
     setPlayerError(null);
     setPlayerReady(false);
   }
@@ -595,8 +781,14 @@ export default function AnimePlayer({
                 </div>
 
                 <p className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-violet-200/70">AnimeBox Player</p>
-                <h2 className="mt-2 max-w-2xl text-xl font-black tracking-[-0.03em] drop-shadow-lg sm:text-2xl md:text-3xl">Смотреть {episodeNumber} серию</h2>
-                <p className="mt-2 text-xs font-semibold text-white/55 sm:text-sm">{currentTranslation?.title || sourceLabel(currentSource?.name)}</p>
+                <h2 className="mt-2 max-w-2xl text-xl font-black tracking-[-0.03em] drop-shadow-lg sm:text-2xl md:text-3xl">
+                  {resumeSeconds > 0 ? 'Продолжить' : `Смотреть ${episodeNumber} серию`}
+                </h2>
+                <p className="mt-2 text-xs font-semibold text-white/55 sm:text-sm">
+                  {resumeSeconds > 0
+                    ? `с ${Math.floor(resumeSeconds / 60)}:${String(resumeSeconds % 60).padStart(2, '0')} · ${currentTranslation?.title || sourceLabel(currentSource?.name)}`
+                    : currentTranslation?.title || sourceLabel(currentSource?.name)}
+                </p>
               </div>
 
               <div className="absolute bottom-4 left-4 rounded-full border border-white/[0.12] bg-black/40 px-3 py-1.5 text-[10px] font-extrabold text-white/70 backdrop-blur-md">
@@ -618,6 +810,7 @@ export default function AnimePlayer({
                   src={videoLink}
                   title={`${title} — серия ${episodeNumber}`}
                   episodeNumber={episodeNumber}
+                  resumeSeconds={resumeSeconds}
                   onReady={() => setPlayerReady(true)}
                   onTimeUpdate={watchSession.onSample}
                 />
@@ -646,6 +839,17 @@ export default function AnimePlayer({
                   preload="auto"
                   src={!isHls ? videoLink : undefined}
                   onCanPlay={() => setPlayerReady(true)}
+                  onTimeUpdate={(event) => {
+                    const video = event.currentTarget;
+                    watchSession.onSample({
+                      positionSeconds: video.currentTime,
+                      durationSeconds:
+                        Number.isFinite(video.duration) && video.duration > 0
+                          ? video.duration
+                          : null,
+                      origin: window.location.origin,
+                    });
+                  }}
                 >
                   Ваш браузер не поддерживает воспроизведение видео.
                 </video>
@@ -665,7 +869,7 @@ export default function AnimePlayer({
       </div>
 
       {/* Bottom navigation */}
-      <div className="grid grid-cols-2 gap-2 border-t border-white/[0.05] bg-black/10 p-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:px-4 md:p-4 md:px-5">
+      <div className="grid grid-cols-2 gap-2 border-t border-white/[0.05] bg-black/10 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(170px,230px)_minmax(0,1fr)] sm:items-center sm:px-4 md:p-4 md:px-5">
         <button
           type="button"
           onClick={onPrev}
@@ -676,11 +880,15 @@ export default function AnimePlayer({
           Пред. серия
         </button>
 
-        <div className="order-3 col-span-2 flex min-w-0 flex-col items-center px-3 py-1 text-center sm:order-none sm:col-span-1">
-          <span className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-violet-300/35">
+        <div className="order-first col-span-2 flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-xl border border-violet-400/[0.10] bg-violet-500/[0.035] px-3 text-center sm:order-none sm:col-span-1">
+          <span className="shrink-0 text-[9px] font-extrabold uppercase tracking-[0.16em] text-violet-300/55">
             {sourceLabel(currentSource?.name)}
           </span>
-          <span className="mt-0.5 max-w-[280px] truncate text-xs font-bold text-white/55">
+          <span
+            aria-hidden="true"
+            className="h-1 w-1 shrink-0 rounded-full bg-violet-300/35"
+          />
+          <span className="min-w-0 truncate text-xs font-bold text-white/62">
             {currentTranslation?.title || episodeMeta}
           </span>
         </div>

@@ -8,6 +8,8 @@ import {
 } from '@/lib/community-server';
 import {
   endWatchSession,
+  getEpisodeWatchState,
+  getLatestWatchState,
   recordWatchHeartbeat,
   startWatchSession,
 } from '@/lib/watch-server';
@@ -43,6 +45,29 @@ function optionalText(value: unknown, max: number) {
     throw new ApiError(400, 'Некорректное текстовое значение.');
   }
   return value;
+}
+
+
+export async function GET(request: Request) {
+  try {
+    const { user } = await userClient();
+    const url = new URL(request.url);
+    const animeId = positiveInteger(Number(url.searchParams.get('animeId')));
+    const episodeParam = url.searchParams.get('episode');
+
+    const state =
+      episodeParam == null
+        ? await getLatestWatchState(user.id, animeId)
+        : await getEpisodeWatchState(
+            user.id,
+            animeId,
+            positiveInteger(Number(episodeParam)),
+          );
+
+    return response({ state });
+  } catch (error) {
+    return failure(error);
+  }
 }
 
 export async function POST(request: Request) {

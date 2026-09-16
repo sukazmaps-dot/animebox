@@ -64,15 +64,18 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
     }
 
     return requestedEpisode;
-  }, [requestedEpisode, availableEpisodes]);
+  }, [requestedEpisode]);
 
   useEffect(() => {
     if (!anime) return;
 
     addAnimeToList(anime);
     setAnimeProgress(anime.id, episodeNumber);
-    setWatchedUpTo(getAnimeProgress(anime.id));
     recordAnimeView(anime);
+
+    queueMicrotask(() => {
+      setWatchedUpTo(getAnimeProgress(anime.id));
+    });
   }, [anime, animeIdParam, episodeNumber]);
 
   const expectedSourceIdentity = `${animeIdParam}:${episodeNumber}`;
@@ -83,155 +86,185 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
     const controller = new AbortController();
     let active = true;
     const identity = `${animeIdParam}:${episodeNumber}`;
-    const timeout = window.setTimeout(() => controller.abort(), 24000);
+    const timeout = window.setTimeout(() => controller.abort(), 24_000);
 
-    const queries = [animeIdParam];
-    setLoadingSources(true);
-    setSources([]);
-    setSourceIdentity('');
-    setSourceMessage('');
+    queueMicrotask(() => {
+      if (!active) return;
+      setLoadingSources(true);
+      setSources([]);
+      setSourceIdentity('');
+      setSourceMessage('');
+    });
 
-    async function loadSources() {
-      let lastReason = '';
+    function publishSource(source: PlayerSource) {
+      if (!active || controller.signal.aborted || source.translations.length === 0) {
+        return;
+      }
+
+      setSources((current) => {
+        const withoutSameSource = current.filter((item) => item.name !== source.name);
+        const next = [...withoutSameSource, source];
+
+        // Kodik is the primary provider, so keep it first without changing
+        // the selected source after the player has already appeared.
+        return next.sort((a, b) => {
+          if (a.name === 'Kodik') return -1;
+          if (b.name === 'Kodik') return 1;
+          return 0;
+        });
+      });
+
+      setSourceIdentity(identity);
+      setSourceMessage('');
+      setLoadingSources(false);
+    }
+
+    async function loadKodik() {
+      const shikimoriId = anime.idMal || anime.mal_id;
+      if (!shikimoriId) return false;
 
       try {
-        const nextSources: PlayerSource[] = [];
-        const shikimoriId = anime.idMal || anime.mal_id;
+        const response = await fetch(
+          `/api/players/kodik?shikimoriId=${encodeURIComponent(String(shikimoriId))}`,
+          {
+            signal: controller.signal,
+            cache: 'no-store',
+          },
+        );
 
-        /*
-         * 1. Kodik — основной источник.
-         * Токен остаётся на сервере в /api/players/kodik.
-         */
-        if (shikimoriId) {
-          try {
-            const kodikResponse = await fetch(
-              `/api/players/kodik?shikimoriId=${encodeURIComponent(String(shikimoriId))}`,
-              {
-                signal: controller.signal,
-                cache: 'no-store',
-              },
-            );
+        const data = (await response.json()) as KodikApiResponse;
 
-            const kodikData = (await kodikResponse.json()) as KodikApiResponse;
+        if (
+          response.ok &&
+          Array.isArray(data.translations) &&
+          data.translations.length > 0
+        ) {
+          const translations = data.translations
+            .filter((item) => Boolean(item?.url?.trim()))
+            .map((item) => ({
+              title: item.title || 'Озвучка',
+              url: item.url,
+              type: 'kodik' as const,
+            }));
 
-            if (
-              kodikResponse.ok &&
-              Array.isArray(kodikData.translations) &&
-              kodikData.translations.length > 0
-            ) {
-              nextSources.push({
-                name: 'Kodik',
-                type: 'kodik',
-                translations: kodikData.translations
-                  .filter((item) => Boolean(item?.url?.trim()))
-                  .map((item) => ({
-                    title: item.title || 'Озвучка',
-                    url: item.url,
-                    type: 'kodik' as const,
-                  })),
-              });
-            } else if (kodikData.error) {
-              lastReason = kodikData.error;
-            }
-          } catch (error) {
-            if (controller.signal.aborted) throw error;
-            console.warn('[Kodik] source unavailable:', error);
+          if (translations.length > 0) {
+            publishSource({
+              name: 'Kodik',
+              type: 'kodik',
+              translations,
+            });
+            return true;
           }
         }
 
-        /*
-         * 2. AniLiberty — fallback.
-         * Даже если Kodik недоступен, старый плеер продолжит работать.
-         */
-        for (const query of queries) {
-          if (!active || controller.signal.aborted) return;
+        return false;
+      } catch (error) {
+        if (controller.signal.aborted) throw error;
+        console.warn('[Kodik] source unavailable:', error);
+        return false;
+      }
+    }
 
-          try {
-            const response = await fetch(
-              `/api/anilibria?slug=${encodeURIComponent(query)}&title=${encodeURIComponent(anime.title.romaji || anime.title.english || '')}&season=${anime.providerSeason || 1}&episode=${episodeNumber}`,
+    async function loadFallback() {
+      try {
+        const response = await fetch(
+          `/api/anilibria?slug=${encodeURIComponent(animeIdParam)}&title=${encodeURIComponent(
+            anime.title.romaji || anime.title.english || '',
+          )}&season=${anime.providerSeason || 1}&episode=${episodeNumber}`,
+          {
+            signal: controller.signal,
+            cache: 'no-store',
+          },
+        );
+
+        const data = (await response.json()) as SourceApiResponse;
+
+        if (!response.ok) {
+          return data.error || data.reason || `Источник HTTP ${response.status}`;
+        }
+
+        if (!active || controller.signal.aborted) return '';
+
+        if (data.episodes) {
+          setProviderEpisodes(data.episodes);
+        }
+
+        if (data.hls?.length) {
+          const translations = data.hls
+            .filter((item) => Boolean(item?.url?.trim()))
+            .map((item) => ({
+              title: item.title || 'HLS',
+              url: item.url,
+              type: 'hls' as const,
+            }));
+
+          if (translations.length > 0) {
+            publishSource({
+              name: 'AniLiberty',
+              type: 'hls',
+              translations,
+            });
+          }
+        }
+
+        if (data.externalPlayer?.trim()) {
+          publishSource({
+            name: 'Внешний плеер',
+            type: 'iframe',
+            translations: [
               {
-                signal: controller.signal,
-                cache: 'no-store',
-              },
-            );
-
-            const data = (await response.json()) as SourceApiResponse;
-
-            if (!response.ok) {
-              lastReason =
-                data.error ||
-                data.reason ||
-                `Источник HTTP ${response.status}`;
-              continue;
-            }
-
-            if (!active || controller.signal.aborted) return;
-
-            if (data.episodes) {
-              setProviderEpisodes(data.episodes);
-            }
-
-            if (data.hls?.length) {
-              const translations = data.hls
-                .filter((item) => Boolean(item?.url?.trim()))
-                .map((item) => ({
-                  title: item.title || 'HLS',
-                  url: item.url,
-                  type: 'hls' as const,
-                }));
-
-              if (translations.length > 0) {
-                nextSources.push({
-                  name: 'AniLiberty',
-                  type: 'hls',
-                  translations,
-                });
-              }
-            }
-
-            if (data.externalPlayer?.trim()) {
-              nextSources.push({
-                name: 'Внешний плеер',
+                title: 'Плеер',
+                url: data.externalPlayer,
                 type: 'iframe',
-                translations: [
-                  {
-                    title: 'Плеер',
-                    url: data.externalPlayer,
-                    type: 'iframe',
-                  },
-                ],
-              });
-            }
-
-            lastReason = data.reason || lastReason;
-            break;
-          } catch (error) {
-            if (controller.signal.aborted) throw error;
-            console.warn('[AniLiberty] source unavailable:', error);
-          }
+              },
+            ],
+          });
         }
+
+        return data.reason || '';
+      } catch (error) {
+        if (controller.signal.aborted) throw error;
+        console.warn('[AniLiberty] source unavailable:', error);
+        return error instanceof Error ? error.message : 'Не удалось загрузить резервный источник.';
+      }
+    }
+
+    async function loadSources() {
+      let fallbackReason = '';
+
+      try {
+        /*
+         * Important performance rule:
+         * as soon as Kodik is ready, show the player immediately.
+         * AniLiberty then loads as a background fallback instead of blocking
+         * the whole page for up to ~24 seconds.
+         */
+        const kodikReady = await loadKodik();
 
         if (!active || controller.signal.aborted) return;
 
-        const validSources = nextSources.filter(
-          (source) => source.translations.length > 0,
-        );
-
-        setSources(validSources);
-
-        if (validSources.length > 0) {
-          setSourceMessage('');
-        } else {
-          setSourceMessage(
-            ['not_found', 'episode_unavailable'].includes(lastReason)
-              ? 'Видео для этой серии пока недоступно.'
-              : lastReason || 'Видеоисточник для этой серии не найден.',
-          );
+        if (kodikReady) {
+          // Do not await this before showing the player.
+          void loadFallback().catch(() => undefined);
+          return;
         }
+
+        fallbackReason = await loadFallback();
+
+        if (!active || controller.signal.aborted) return;
+
+        setSourceIdentity(identity);
+        setLoadingSources(false);
+        setSourceMessage(
+          ['not_found', 'episode_unavailable'].includes(fallbackReason)
+            ? 'Видео для этой серии пока недоступно.'
+            : fallbackReason || 'Видеоисточник для этой серии не найден.',
+        );
       } catch (error) {
         if (!active) return;
 
-        setSources([]);
+        setSourceIdentity(identity);
+        setLoadingSources(false);
         setSourceMessage(
           controller.signal.aborted
             ? 'Проверка источника заняла слишком много времени. Обновите страницу.'
@@ -241,11 +274,6 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
         );
       } finally {
         window.clearTimeout(timeout);
-
-        if (active) {
-          setSourceIdentity(identity);
-          setLoadingSources(false);
-        }
       }
     }
 
