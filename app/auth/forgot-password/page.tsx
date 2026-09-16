@@ -25,6 +25,17 @@ export default function ForgotPasswordPage() {
       return;
     }
 
+    if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+        value,
+      )
+    ) {
+      setError(
+        'Введите корректный email, например name@example.com.',
+      );
+      return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -93,6 +104,7 @@ export default function ForgotPasswordPage() {
           <form
             onSubmit={submit}
             className="mt-6 space-y-4"
+            noValidate
           >
             <label className="block">
               <span className="mb-2 block text-sm text-white/70">

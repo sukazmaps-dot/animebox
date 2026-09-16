@@ -9,6 +9,7 @@ import AnimeFranchise, {
 
 import AnimeImageCascade from '@/components/AnimeImageCascade';
 import AnimeDetailControls from '@/components/AnimeDetailControls';
+import AnimeNotificationControl from '@/components/AnimeNotificationControl';
 
 import { resolveAnimeRoute } from '@/lib/anime-route';
 import { animeHref } from '@/lib/anime-url';
@@ -754,6 +755,13 @@ export default async function AnimePage({
           animeId={
             numericId
           }
+        />
+
+        <AnimeNotificationControl
+          animeId={numericId}
+          animeSlug={resolved.slug}
+          animeTitle={anime.russian || anime.name}
+          episodesAired={anime.episodes_aired || 0}
         />
 
       </section>

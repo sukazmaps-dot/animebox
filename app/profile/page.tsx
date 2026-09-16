@@ -272,6 +272,24 @@ export default function ProfilePage() {
         </Link>
       </section>
 
+      <section className="profile-v2__bottom-card">
+        <div>
+          <span className="profile-v2__eyebrow">
+            Telegram
+          </span>
+
+          <h2>Уведомления о новых сериях</h2>
+
+          <p>
+            Управляй подписками на тайтлы и проверь связь с ботом AnimeBox.
+          </p>
+        </div>
+
+        <Link href="/notifications">
+          Настроить уведомления →
+        </Link>
+      </section>
+
       {/* EDIT PROFILE MODAL */}
 
       <ProfileEditModal

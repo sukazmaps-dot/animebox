@@ -3215,6 +3215,98 @@ button { cursor: pointer; }
   color: #41526a;
 }
 
+/* =========================================
+   AnimeBox custom form validation
+   ========================================= */
+
+.auth-form input.auth-input--error {
+  border-color:
+    rgba(239, 100, 120, 0.58);
+
+  background:
+    rgba(25, 8, 18, 0.72);
+
+  box-shadow:
+    0 0 0 3px
+      rgba(239, 68, 100, 0.055),
+    0 8px 30px
+      rgba(239, 68, 100, 0.025);
+}
+
+.auth-form input.auth-input--error:focus {
+  border-color:
+    rgba(248, 113, 133, 0.78);
+
+  background:
+    rgba(25, 8, 18, 0.82);
+
+  box-shadow:
+    0 0 0 3px
+      rgba(239, 68, 100, 0.08),
+    0 0 24px
+      rgba(239, 68, 100, 0.045);
+}
+
+.auth-field-error {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 7px;
+
+  margin-top: -1px;
+
+  color: #e995a3;
+
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.45;
+
+  animation:
+    auth-field-error-in
+    0.18s ease both;
+}
+
+.auth-field-error__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 15px;
+  height: 15px;
+
+  flex: 0 0 15px;
+
+  margin-top: -1px;
+
+  border:
+    1px solid
+      rgba(248, 113, 133, 0.22);
+
+  border-radius: 50%;
+
+  background:
+    rgba(239, 68, 100, 0.09);
+
+  color: #f39aaa;
+
+  font-size: 9px;
+  font-weight: 800;
+}
+
+@keyframes auth-field-error-in {
+  from {
+    opacity: 0;
+    transform:
+      translateY(-3px);
+  }
+
+  to {
+    opacity: 1;
+    transform:
+      translateY(0);
+  }
+}
+
 .auth-form__submit {
   height: 44px;
 

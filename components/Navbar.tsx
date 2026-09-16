@@ -245,8 +245,8 @@ function NavbarContent() {
 
         <nav className="sidebar__nav sidebar__nav--muted">
           <Link
-            href="/list"
-            className="sidebar__item"
+            href="/notifications"
+            className={`sidebar__item ${isActive('/notifications') ? 'is-active' : ''}`}
           >
             <Icon name="bell" />
             <span>Уведомления</span>
@@ -350,7 +350,7 @@ function NavbarContent() {
 
         <div className="topbar__actions">
           <Link
-            href="/list"
+            href="/notifications"
             className="topbar__icon"
             aria-label="Уведомления"
           >

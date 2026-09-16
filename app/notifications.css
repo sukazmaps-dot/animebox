@@ -1,0 +1,124 @@
+.anime-notification-control {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid rgba(90, 126, 255, 0.18);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(42, 171, 238, 0.12), transparent 35%),
+    linear-gradient(145deg, rgba(12, 20, 37, 0.96), rgba(8, 13, 25, 0.96));
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.16);
+}
+
+.anime-notification-control__copy { min-width: 0; }
+.anime-notification-control__eyebrow,
+.notifications-hero__eyebrow,
+.notifications-card__head span {
+  display: block;
+  margin-bottom: 5px;
+  color: #7e8ca8;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.anime-notification-control h2 { margin: 0; font-size: 17px; font-weight: 820; }
+.anime-notification-control p { margin: 7px 0 0; max-width: 650px; color: #8f9db4; font-size: 12px; line-height: 1.65; }
+.anime-notification-control__actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.anime-notification-control__actions > a { color: #8c7cff; font-size: 11px; font-weight: 750; text-decoration: none; }
+
+.anime-notification-control__button {
+  min-height: 42px;
+  padding: 0 15px;
+  border: 1px solid rgba(93, 120, 187, 0.28);
+  border-radius: 12px;
+  background: rgba(19, 30, 50, 0.88);
+  color: #eef2ff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 780;
+  cursor: pointer;
+  transition: .18s ease;
+}
+.anime-notification-control__button:hover:not(:disabled) { transform: translateY(-1px); border-color: rgba(42, 171, 238, .55); background: rgba(22, 39, 63, .96); }
+.anime-notification-control__button.is-enabled { border-color: rgba(65, 205, 151, .32); background: rgba(33, 128, 96, .16); color: #84e8be; }
+.anime-notification-control__button:disabled { opacity: .58; cursor: wait; }
+.anime-notification-control__message { grid-column: 1 / -1; color: #f5b8c4; font-size: 11px; }
+.anime-notification-control__message.is-ok { color: #75dbb3; }
+
+.notifications-page { min-height: 100vh; padding: 32px 28px 80px; }
+.notifications-page__content { width: min(980px, 100%); margin: 0 auto; display: grid; gap: 16px; }
+.notifications-hero,
+.notifications-card {
+  border: 1px solid rgba(148, 163, 184, .10);
+  border-radius: 20px;
+  background: rgba(9, 16, 29, .90);
+  box-shadow: 0 22px 65px rgba(0,0,0,.16);
+}
+.notifications-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px;
+  background:
+    radial-gradient(circle at 85% 10%, rgba(42,171,238,.13), transparent 38%),
+    radial-gradient(circle at 10% 90%, rgba(113,84,255,.12), transparent 42%),
+    rgba(9,16,29,.94);
+}
+.notifications-hero h1 { margin: 0; font-size: clamp(26px, 4vw, 42px); line-height: 1.05; }
+.notifications-hero p { max-width: 650px; margin: 12px 0 0; color: #9aa7bb; font-size: 13px; line-height: 1.7; }
+.notifications-hero__status { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid rgba(148,163,184,.12); border-radius: 999px; background: rgba(13,22,38,.78); color: #9aa7bb; font-size: 10px; font-weight: 720; }
+.notifications-hero__status > span { width: 7px; height: 7px; border-radius: 50%; background: #6f7788; }
+.notifications-hero__status > span.is-online { background: #48d39d; box-shadow: 0 0 12px rgba(72,211,157,.55); }
+
+.notifications-card { padding: 22px; }
+.notifications-card__head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.notifications-card__head h2 { margin: 0; font-size: 18px; }
+.notifications-card__head b { color: #a89aff; font-size: 22px; }
+.notification-master,
+.notifications-test-row button,
+.notifications-list__item button {
+  border: 1px solid rgba(148,163,184,.15);
+  border-radius: 10px;
+  background: rgba(20,31,50,.86);
+  color: #e9eeff;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 760;
+  cursor: pointer;
+}
+.notification-master.is-enabled { border-color: rgba(65,205,151,.28); color: #77dfb5; background: rgba(47,144,108,.12); }
+.notification-master:disabled,
+.notifications-test-row button:disabled,
+.notifications-list__item button:disabled { opacity: .5; cursor: wait; }
+
+.notifications-test-row,
+.notifications-list__item { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 0; border-top: 1px solid rgba(148,163,184,.08); }
+.notifications-test-row strong,
+.notifications-list__item a { display: block; color: #f3f5ff; font-size: 12px; font-weight: 780; text-decoration: none; }
+.notifications-test-row span,
+.notifications-list__item span { display: block; margin-top: 4px; color: #7f8da5; font-size: 10px; }
+.notifications-list__item.is-disabled { opacity: .48; }
+.notifications-empty { padding: 18px; border: 1px dashed rgba(148,163,184,.14); border-radius: 14px; color: #8e9bb0; font-size: 11px; }
+.notifications-empty p { margin: 0 0 10px; }
+.notifications-empty a { color: #9c8cff; font-weight: 760; text-decoration: none; }
+.notifications-page__message { position: sticky; bottom: 20px; justify-self: center; padding: 10px 14px; border: 1px solid rgba(118,92,255,.22); border-radius: 999px; background: rgba(18,22,40,.96); color: #e9e5ff; font-size: 10px; box-shadow: 0 12px 30px rgba(0,0,0,.25); }
+.notifications-page__loading { padding: 80px 20px; text-align: center; color: #8d9ab0; }
+
+@media (max-width: 700px) {
+  .anime-notification-control { grid-template-columns: 1fr; padding: 16px; }
+  .anime-notification-control__actions { justify-content: stretch; }
+  .anime-notification-control__button { width: 100%; }
+  .notifications-page { padding: 18px 12px 110px; }
+  .notifications-hero { padding: 20px; flex-direction: column; }
+  .notifications-hero__status { align-self: flex-start; }
+  .notifications-card { padding: 16px; }
+  .notifications-test-row,
+  .notifications-list__item { align-items: flex-start; flex-direction: column; }
+}

@@ -218,6 +218,19 @@ export default function MobileAccountNav({ pathname }: Props) {
                 <Icon name="chevron" />
               </Link>
 
+              <Link
+                href="/notifications"
+                className="mobile-account__link"
+                onClick={() => setOpen(false)}
+              >
+                <Icon name="bell" />
+                <span>
+                  <strong>Уведомления</strong>
+                  <small>Новые серии в Telegram</small>
+                </span>
+                <Icon name="chevron" />
+              </Link>
+
               <a
                 href={telegramUrl}
                 className="mobile-account__link"

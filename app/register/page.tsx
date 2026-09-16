@@ -82,6 +82,30 @@ export default function RegisterPage() {
     useState('');
 
   const [
+    usernameError,
+    setUsernameError,
+  ] =
+    useState('');
+
+  const [
+    emailError,
+    setEmailError,
+  ] =
+    useState('');
+
+  const [
+    passwordError,
+    setPasswordError,
+  ] =
+    useState('');
+
+  const [
+    confirmPasswordError,
+    setConfirmPasswordError,
+  ] =
+    useState('');
+
+  const [
     loading,
     setLoading,
   ] =
@@ -95,6 +119,10 @@ export default function RegisterPage() {
 
     setMessage('');
     setError('');
+    setUsernameError('');
+    setEmailError('');
+    setPasswordError('');
+    setConfirmPasswordError('');
 
     const cleanUsername =
       username.trim();
@@ -104,38 +132,62 @@ export default function RegisterPage() {
         .trim()
         .toLowerCase();
 
+    let hasError = false;
+
     if (
-      cleanUsername.length <
-        3 ||
-      cleanUsername.length >
-        24
+      cleanUsername.length < 3 ||
+      cleanUsername.length > 24
     ) {
-      setError(
+      setUsernameError(
         'Ник должен содержать от 3 до 24 символов.',
       );
 
-      return;
+      hasError = true;
     }
 
-    if (
-      password.length <
-      6
+    if (!cleanEmail) {
+      setEmailError(
+        'Введите email.',
+      );
+
+      hasError = true;
+    } else if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+        cleanEmail,
+      )
     ) {
-      setError(
+      setEmailError(
+        'Введите корректный email, например name@example.com.',
+      );
+
+      hasError = true;
+    }
+
+    if (password.length < 6) {
+      setPasswordError(
         'Пароль должен содержать минимум 6 символов.',
       );
 
-      return;
+      hasError = true;
     }
 
-    if (
-      password !==
-      confirmPassword
+    if (!confirmPassword) {
+      setConfirmPasswordError(
+        'Повторите пароль.',
+      );
+
+      hasError = true;
+    } else if (
+      password !== confirmPassword
     ) {
-      setError(
+      setConfirmPasswordError(
         'Пароли не совпадают.',
       );
 
+      hasError = true;
+    }
+
+    if (hasError) {
       return;
     }
 
@@ -281,6 +333,7 @@ export default function RegisterPage() {
             handleSubmit
           }
           className="auth-form"
+          noValidate
         >
           <label>
             <span>
@@ -291,19 +344,39 @@ export default function RegisterPage() {
               value={
                 username
               }
-              onChange={(
-                event,
-              ) =>
+              onChange={(event) => {
                 setUsername(
-                  event.target
-                    .value,
-                )
+                  event.target.value,
+                );
+
+                if (usernameError) {
+                  setUsernameError('');
+                }
+              }}
+              className={
+                usernameError
+                  ? 'auth-input--error'
+                  : undefined
               }
               maxLength={24}
               placeholder="Например: ghoul cat"
               autoComplete="username"
+              aria-invalid={Boolean(usernameError)}
               required
             />
+
+            {usernameError && (
+              <span className="auth-field-error">
+                <span
+                  className="auth-field-error__icon"
+                  aria-hidden="true"
+                >
+                  !
+                </span>
+
+                {usernameError}
+              </span>
+            )}
           </label>
 
           <label>
@@ -314,18 +387,38 @@ export default function RegisterPage() {
             <input
               type="email"
               value={email}
-              onChange={(
-                event,
-              ) =>
+              onChange={(event) => {
                 setEmail(
-                  event.target
-                    .value,
-                )
+                  event.target.value,
+                );
+
+                if (emailError) {
+                  setEmailError('');
+                }
+              }}
+              className={
+                emailError
+                  ? 'auth-input--error'
+                  : undefined
               }
               placeholder="name@example.com"
               autoComplete="email"
+              aria-invalid={Boolean(emailError)}
               required
             />
+
+            {emailError && (
+              <span className="auth-field-error">
+                <span
+                  className="auth-field-error__icon"
+                  aria-hidden="true"
+                >
+                  !
+                </span>
+
+                {emailError}
+              </span>
+            )}
           </label>
 
           <label>
@@ -360,19 +453,43 @@ export default function RegisterPage() {
               value={
                 password
               }
-              onChange={(
-                event,
-              ) =>
+              onChange={(event) => {
                 setPassword(
-                  event.target
-                    .value,
-                )
+                  event.target.value,
+                );
+
+                if (passwordError) {
+                  setPasswordError('');
+                }
+
+                if (confirmPasswordError) {
+                  setConfirmPasswordError('');
+                }
+              }}
+              className={
+                passwordError
+                  ? 'auth-input--error'
+                  : undefined
               }
               placeholder="Минимум 6 символов"
               autoComplete="new-password"
               minLength={6}
+              aria-invalid={Boolean(passwordError)}
               required
             />
+
+            {passwordError && (
+              <span className="auth-field-error">
+                <span
+                  className="auth-field-error__icon"
+                  aria-hidden="true"
+                >
+                  !
+                </span>
+
+                {passwordError}
+              </span>
+            )}
           </label>
 
           <label>
@@ -389,18 +506,38 @@ export default function RegisterPage() {
               value={
                 confirmPassword
               }
-              onChange={(
-                event,
-              ) =>
+              onChange={(event) => {
                 setConfirmPassword(
-                  event.target
-                    .value,
-                )
+                  event.target.value,
+                );
+
+                if (confirmPasswordError) {
+                  setConfirmPasswordError('');
+                }
+              }}
+              className={
+                confirmPasswordError
+                  ? 'auth-input--error'
+                  : undefined
               }
               placeholder="Введите пароль ещё раз"
               autoComplete="new-password"
+              aria-invalid={Boolean(confirmPasswordError)}
               required
             />
+
+            {confirmPasswordError && (
+              <span className="auth-field-error">
+                <span
+                  className="auth-field-error__icon"
+                  aria-hidden="true"
+                >
+                  !
+                </span>
+
+                {confirmPasswordError}
+              </span>
+            )}
           </label>
 
           {error && (

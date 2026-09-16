@@ -18,6 +18,7 @@ declare global {
         username?: string;
         language_code?: string;
         photo_url?: string;
+        allows_write_to_pm?: boolean;
       };
 
       start_param?: string;
@@ -43,6 +44,10 @@ declare global {
 
     ready(): void;
     expand(): void;
+
+    requestWriteAccess?: (
+      callback?: (allowed: boolean) => void,
+    ) => void;
 
     onEvent?: (
       eventType: string,

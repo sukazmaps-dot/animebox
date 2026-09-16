@@ -27,6 +27,12 @@ export default function LoginPage() {
   const [error, setError] =
     useState('');
 
+  const [emailError, setEmailError] =
+    useState('');
+
+  const [passwordError, setPasswordError] =
+    useState('');
+
   const [loading, setLoading] =
     useState(false);
 
@@ -35,8 +41,46 @@ export default function LoginPage() {
   ) {
     event.preventDefault();
 
-    setLoading(true);
     setError('');
+    setEmailError('');
+    setPasswordError('');
+
+    const cleanEmail =
+      email.trim().toLowerCase();
+
+    let hasError = false;
+
+    if (!cleanEmail) {
+      setEmailError(
+        'Введите email.',
+      );
+
+      hasError = true;
+    } else if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+        cleanEmail,
+      )
+    ) {
+      setEmailError(
+        'Введите корректный email, например name@example.com.',
+      );
+
+      hasError = true;
+    }
+
+    if (!password) {
+      setPasswordError(
+        'Введите пароль.',
+      );
+
+      hasError = true;
+    }
+
+    if (hasError) {
+      return;
+    }
+
+    setLoading(true);
 
     const supabase =
       createClient();
@@ -46,7 +90,7 @@ export default function LoginPage() {
       error: signInError,
     } =
       await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: cleanEmail,
         password,
       });
 
@@ -137,6 +181,7 @@ export default function LoginPage() {
         <form
           onSubmit={handleSubmit}
           className="auth-form"
+          noValidate
         >
           <label>
             <span>
@@ -146,15 +191,38 @@ export default function LoginPage() {
             <input
               type="email"
               value={email}
-              onChange={(event) =>
+              onChange={(event) => {
                 setEmail(
                   event.target.value,
-                )
+                );
+
+                if (emailError) {
+                  setEmailError('');
+                }
+              }}
+              className={
+                emailError
+                  ? 'auth-input--error'
+                  : undefined
               }
               placeholder="name@example.com"
               autoComplete="email"
+              aria-invalid={Boolean(emailError)}
               required
             />
+
+            {emailError && (
+              <span className="auth-field-error">
+                <span
+                  className="auth-field-error__icon"
+                  aria-hidden="true"
+                >
+                  !
+                </span>
+
+                {emailError}
+              </span>
+            )}
           </label>
 
           <label>
@@ -200,15 +268,38 @@ export default function LoginPage() {
                   : 'password'
               }
               value={password}
-              onChange={(event) =>
+              onChange={(event) => {
                 setPassword(
                   event.target.value,
-                )
+                );
+
+                if (passwordError) {
+                  setPasswordError('');
+                }
+              }}
+              className={
+                passwordError
+                  ? 'auth-input--error'
+                  : undefined
               }
               placeholder="Введите пароль"
               autoComplete="current-password"
+              aria-invalid={Boolean(passwordError)}
               required
             />
+
+            {passwordError && (
+              <span className="auth-field-error">
+                <span
+                  className="auth-field-error__icon"
+                  aria-hidden="true"
+                >
+                  !
+                </span>
+
+                {passwordError}
+              </span>
+            )}
           </label>
 
           {error && (

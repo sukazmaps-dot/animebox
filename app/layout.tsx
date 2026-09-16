@@ -6,6 +6,7 @@ import './visual-refresh.css';
 import './community.css';
 import './design-v5.css';
 import './mobile-readability.css';
+import './notifications.css';
 import './telegram-logout.css';
 
 import Navbar from '@/components/Navbar';
@@ -107,7 +108,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru">
+    <html lang="ru" suppressHydrationWarning>
       <head>
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
