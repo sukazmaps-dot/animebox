@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 
 import './globals.css';
 import './visual-refresh.css';
@@ -6,9 +7,10 @@ import './community.css';
 import './design-v5.css';
 import './mobile-readability.css';
 
-import { Analytics } from '@vercel/analytics/next';
-
 import Navbar from '@/components/Navbar';
+import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
+
+import { Analytics } from '@vercel/analytics/next';
 
 const SITE_URL = 'https://youranimebox.com';
 
@@ -104,7 +106,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru">
+      <head>
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
+      </head>
+
       <body>
+        {/* Определяет, открыт AnimeBox внутри Telegram или в браузере */}
+        <TelegramMiniAppBridge />
+
         <Navbar />
 
         <div className="app-shell">
