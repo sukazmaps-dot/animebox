@@ -5,13 +5,15 @@ import {
   useState,
 } from 'react';
 
-import { createClient } from '@/lib/supabase/client';
+import {
+  createClient,
+} from '@/lib/supabase/client';
 
 type TelegramStatus =
   | 'idle'
   | 'checking'
-  | 'verified'
   | 'linking'
+  | 'registering'
   | 'logging-in'
   | 'authenticated'
   | 'error';
@@ -19,68 +21,101 @@ type TelegramStatus =
 type ApiResponse = {
   ok?: boolean;
 
-  user?: {
-    id: number;
-    first_name: string;
-    username?: string | null;
-  };
-
-  linked?: boolean;
-  alreadyLinked?: boolean;
-
   tokenHash?: string;
 
+  created?: boolean;
+
+  linked?: boolean;
+
   error?: string;
+
   reason?: string;
+
+  userId?: string;
+
+  profile?: {
+    username?: string | null;
+  };
 };
 
 function humanizeError(
   value: string,
 ) {
   switch (value) {
-    case 'telegram_not_linked':
-      return 'Telegram ещё не привязан к AnimeBox';
-
     case 'telegram_already_linked':
-      return 'Telegram уже используется другим аккаунтом';
+      return 'Telegram уже привязан к другому аккаунту';
 
     case 'account_has_other_telegram':
-      return 'У аккаунта уже другой Telegram';
+      return 'К аккаунту привязан другой Telegram';
 
-    case 'invalid_telegram_data':
     case 'invalid_hash':
-      return 'Ошибка проверки Telegram';
+    case 'invalid_telegram_data':
+      return 'Не удалось подтвердить Telegram';
 
     case 'expired':
-      return 'Telegram-сессия устарела';
+      return 'Telegram-сессия устарела. Открой Mini App заново';
 
-    case 'auth_user_not_found':
-      return 'Аккаунт AnimeBox не найден';
+    case 'telegram_registration_failed':
+      return 'Не удалось создать аккаунт через Telegram';
+
+    case 'profile_creation_failed':
+      return 'Не удалось создать профиль AnimeBox';
 
     case 'session_token_failed':
     case 'session_token_missing':
       return 'Не удалось создать сессию AnimeBox';
 
+    case 'supabase_login_failed':
+      return 'Не удалось войти в AnimeBox';
+
     default:
-      return value ||
-        'Ошибка Telegram';
+      return (
+        value ||
+        'Ошибка Telegram'
+      );
+  }
+}
+
+class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+
+    this.name =
+      'ApiError';
   }
 }
 
 export default function TelegramMiniAppBridge() {
-  const [status, setStatus] =
-    useState<TelegramStatus>('idle');
+  const [
+    status,
+    setStatus,
+  ] =
+    useState<TelegramStatus>(
+      'idle',
+    );
 
-  const [message, setMessage] =
+  const [
+    message,
+    setMessage,
+  ] =
     useState('');
 
-  const [showBadge, setShowBadge] =
+  const [
+    showBadgeState,
+    setShowBadgeState,
+  ] =
     useState(false);
 
   useEffect(() => {
     const tg =
       window.Telegram?.WebApp;
 
+    /*
+     * Обычный браузер.
+     */
     if (!tg?.initData) {
       document.documentElement.dataset.telegram =
         'false';
@@ -88,7 +123,8 @@ export default function TelegramMiniAppBridge() {
       return;
     }
 
-    const telegram = tg;
+    const telegram =
+      tg;
 
     document.documentElement.dataset.telegram =
       'true';
@@ -106,11 +142,15 @@ export default function TelegramMiniAppBridge() {
     const controller =
       new AbortController();
 
-    let destroyed = false;
+    let destroyed =
+      false;
 
     let badgeTimer:
-      | ReturnType<typeof setTimeout>
-      | null = null;
+      | ReturnType<
+          typeof setTimeout
+        >
+      | null =
+      null;
 
     function showBadge(
       text: string,
@@ -127,15 +167,26 @@ export default function TelegramMiniAppBridge() {
       }
 
       setMessage(text);
-      setStatus(nextStatus);
-      setShowBadge(true);
+
+      setStatus(
+        nextStatus,
+      );
+
+      setShowBadgeState(
+        true,
+      );
 
       badgeTimer =
-        setTimeout(() => {
-          if (!destroyed) {
-            setShowBadge(false);
-          }
-        }, 3000);
+        setTimeout(
+          () => {
+            if (!destroyed) {
+              setShowBadgeState(
+                false,
+              );
+            }
+          },
+          3000,
+        );
     }
 
     async function requestJson(
@@ -158,7 +209,8 @@ export default function TelegramMiniAppBridge() {
                 body,
               ),
 
-            cache: 'no-store',
+            cache:
+              'no-store',
 
             signal:
               controller.signal,
@@ -173,10 +225,12 @@ export default function TelegramMiniAppBridge() {
         !response.ok ||
         !data.ok
       ) {
-        throw new Error(
+        throw new ApiError(
           data.reason ??
             data.error ??
             'request_failed',
+
+          response.status,
         );
       }
 
@@ -184,83 +238,38 @@ export default function TelegramMiniAppBridge() {
     }
 
     /*
-     * Если пользователь уже вошёл
-     * внутри Telegram WebView —
-     * проверяем/привязываем аккаунт.
+     * Обмен token hash
+     * на настоящую Supabase session.
      */
-    async function linkExistingSession(
-      accessToken: string,
+    async function loginWithToken(
+      tokenHash: string,
     ) {
-      setStatus('linking');
-
-      await requestJson(
-        '/api/telegram/link',
-        {
-          initData:
-            telegram.initData,
-
-          accessToken,
-        },
-      );
-
-      document.documentElement.dataset.telegramLinked =
-        'true';
-
-      showBadge(
-        'Telegram подключён ✓',
-        'authenticated',
-      );
-    }
-
-    /*
-     * Если Supabase-сессии нет —
-     * пытаемся войти по telegram_id.
-     */
-    async function loginWithTelegram() {
       setStatus(
         'logging-in',
       );
 
-      const data =
-        await requestJson(
-          '/api/telegram/session',
-          {
-            initData:
-              telegram.initData,
-          },
-        );
-
-      if (!data.tokenHash) {
-        throw new Error(
-          'session_token_missing',
-        );
-      }
-
-      /*
-       * Supabase проверяет одноразовый
-       * token hash и создаёт обычную
-       * полноценную session.
-       */
       const {
-        data: otpData,
-        error: otpError,
+        data,
+        error,
       } =
-        await supabase.auth.verifyOtp({
-          token_hash:
-            data.tokenHash,
+        await supabase
+          .auth
+          .verifyOtp({
+            token_hash:
+              tokenHash,
 
-          type:
-            'email',
-        });
+            type:
+              'email',
+          });
 
       if (
-        otpError ||
-        !otpData.session ||
-        !otpData.user
+        error ||
+        !data.session ||
+        !data.user
       ) {
         console.error(
-          '[Telegram] verifyOtp:',
-          otpError,
+          '[Telegram verifyOtp]',
+          error,
         );
 
         throw new Error(
@@ -283,14 +292,111 @@ export default function TelegramMiniAppBridge() {
           {
             detail: {
               user:
-                otpData.user,
+                data.user,
             },
           },
         ),
       );
+    }
+
+    /*
+     * Уже есть обычная AnimeBox session:
+     * связываем её с Telegram.
+     */
+    async function linkExistingSession(
+      accessToken: string,
+    ) {
+      setStatus(
+        'linking',
+      );
+
+      await requestJson(
+        '/api/telegram/link',
+        {
+          initData:
+            telegram.initData,
+
+          accessToken,
+        },
+      );
+
+      document.documentElement.dataset.telegramVerified =
+        'true';
+
+      document.documentElement.dataset.telegramLinked =
+        'true';
+
+      document.documentElement.dataset.telegramAuthenticated =
+        'true';
+
+      showBadge(
+        'Telegram подключён ✓',
+        'authenticated',
+      );
+    }
+
+    /*
+     * Уже зарегистрированный
+     * Telegram user.
+     */
+    async function loginExistingTelegram() {
+      const data =
+        await requestJson(
+          '/api/telegram/session',
+          {
+            initData:
+              telegram.initData,
+          },
+        );
+
+      if (!data.tokenHash) {
+        throw new Error(
+          'session_token_missing',
+        );
+      }
+
+      await loginWithToken(
+        data.tokenHash,
+      );
 
       showBadge(
         'Вход через Telegram ✓',
+        'authenticated',
+      );
+    }
+
+    /*
+     * Совершенно новый Telegram user.
+     */
+    async function registerTelegramUser() {
+      setStatus(
+        'registering',
+      );
+
+      const data =
+        await requestJson(
+          '/api/telegram/register',
+          {
+            initData:
+              telegram.initData,
+          },
+        );
+
+      if (!data.tokenHash) {
+        throw new Error(
+          'session_token_missing',
+        );
+      }
+
+      await loginWithToken(
+        data.tokenHash,
+      );
+
+      showBadge(
+        data.created
+          ? 'Аккаунт создан через Telegram ✓'
+          : 'Вход через Telegram ✓',
+
         'authenticated',
       );
     }
@@ -302,18 +408,23 @@ export default function TelegramMiniAppBridge() {
         );
 
         /*
-         * Сначала проверяем,
-         * нет ли уже AnimeBox session.
+         * 1. Проверяем существующую
+         * Supabase session.
          */
         const {
-          data: sessionData,
-          error: sessionError,
+          data:
+            sessionData,
+
+          error:
+            sessionError,
         } =
-          await supabase.auth.getSession();
+          await supabase
+            .auth
+            .getSession();
 
         if (sessionError) {
           console.warn(
-            '[Telegram] getSession:',
+            '[Telegram getSession]',
             sessionError,
           );
         }
@@ -321,12 +432,6 @@ export default function TelegramMiniAppBridge() {
         const session =
           sessionData.session;
 
-        /*
-         * Уже авторизован.
-         *
-         * Просто убеждаемся,
-         * что Telegram связан.
-         */
         if (
           session?.access_token
         ) {
@@ -338,14 +443,45 @@ export default function TelegramMiniAppBridge() {
         }
 
         /*
-         * Нет сессии —
-         * пробуем автоматический
-         * Telegram login.
+         * 2. Сессии нет.
+         *
+         * Сначала пробуем вход
+         * существующего Telegram user.
          */
-        await loginWithTelegram();
+        try {
+          await loginExistingTelegram();
+
+          return;
+        } catch (error) {
+          /*
+           * Регистрируем ТОЛЬКО если
+           * сервер явно сообщил:
+           * Telegram ещё не связан.
+           *
+           * При invalid_hash / 500 / expired
+           * создавать аккаунт нельзя.
+           */
+          if (
+            !(
+              error instanceof
+              ApiError
+            ) ||
+            error.message !==
+              'telegram_not_linked'
+          ) {
+            throw error;
+          }
+        }
+
+        /*
+         * 3. Telegram настоящий,
+         * но профиля ещё нет.
+         */
+        await registerTelegramUser();
       } catch (error) {
         if (
-          error instanceof DOMException &&
+          error instanceof
+            DOMException &&
           error.name ===
             'AbortError'
         ) {
@@ -362,21 +498,30 @@ export default function TelegramMiniAppBridge() {
           error,
         );
 
+        document.documentElement.dataset.telegramAuthenticated =
+          'false';
+
         setMessage(
           humanizeError(
             rawMessage,
           ),
         );
 
-        setStatus('error');
-        setShowBadge(true);
+        setStatus(
+          'error',
+        );
+
+        setShowBadgeState(
+          true,
+        );
       }
     }
 
     void initialize();
 
     return () => {
-      destroyed = true;
+      destroyed =
+        true;
 
       controller.abort();
 
@@ -396,8 +541,9 @@ export default function TelegramMiniAppBridge() {
     status === 'idle' ||
     status === 'checking' ||
     status === 'linking' ||
+    status === 'registering' ||
     status === 'logging-in' ||
-    !showBadge
+    !showBadgeState
   ) {
     return null;
   }
