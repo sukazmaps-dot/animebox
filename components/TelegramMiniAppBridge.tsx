@@ -18,12 +18,13 @@ export default function TelegramMiniAppBridge() {
   const [showBadge, setShowBadge] =
     useState(false);
 
+  const [errorText, setErrorText] =
+    useState('');
+
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
 
-    /*
-     * Обычный браузер.
-     */
+    // Обычный браузер
     if (!tg?.initData) {
       document.documentElement.dataset.telegram =
         'false';
@@ -50,6 +51,7 @@ export default function TelegramMiniAppBridge() {
     async function verify() {
       try {
         setStatus('checking');
+        setErrorText('');
 
         const response = await fetch(
           '/api/telegram/validate',
@@ -62,12 +64,8 @@ export default function TelegramMiniAppBridge() {
             },
 
             body: JSON.stringify({
-              /*
-               * ВАЖНО:
-               * отправляем сырой initData,
-               * а не initDataUnsafe.
-               */
-              initData: tg!.initData,
+              // Отправляем сырой initData
+              initData: tg.initData,
             }),
 
             signal: controller.signal,
@@ -81,7 +79,8 @@ export default function TelegramMiniAppBridge() {
           !data?.ok
         ) {
           throw new Error(
-            data?.error ??
+            data?.reason ??
+              data?.error ??
               'Telegram verification failed',
           );
         }
@@ -92,10 +91,6 @@ export default function TelegramMiniAppBridge() {
         setStatus('verified');
         setShowBadge(true);
 
-        /*
-         * Позже этот event будет использовать
-         * Telegram ↔ Supabase auth.
-         */
         window.dispatchEvent(
           new CustomEvent(
             'animebox:telegram-verified',
@@ -107,9 +102,7 @@ export default function TelegramMiniAppBridge() {
           ),
         );
 
-        /*
-         * Временная визуальная проверка.
-         */
+        // Плашка только для теста
         window.setTimeout(() => {
           setShowBadge(false);
         }, 3000);
@@ -121,6 +114,11 @@ export default function TelegramMiniAppBridge() {
           return;
         }
 
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'unknown_error';
+
         console.error(
           'AnimeBox Telegram verification:',
           error,
@@ -129,6 +127,7 @@ export default function TelegramMiniAppBridge() {
         document.documentElement.dataset.telegramVerified =
           'false';
 
+        setErrorText(message);
         setStatus('error');
         setShowBadge(true);
       }
@@ -145,9 +144,7 @@ export default function TelegramMiniAppBridge() {
     };
   }, []);
 
-  /*
-   * В обычном браузере ничего не показываем.
-   */
+  // В обычном браузере ничего не показываем
   if (
     status === 'idle' ||
     status === 'checking' ||
@@ -163,6 +160,8 @@ export default function TelegramMiniAppBridge() {
         zIndex: 999999,
         top: 12,
         right: 12,
+
+        maxWidth: 'calc(100vw - 24px)',
 
         padding: '8px 12px',
 
@@ -188,11 +187,15 @@ export default function TelegramMiniAppBridge() {
           '0 8px 30px rgba(0,0,0,.35)',
 
         backdropFilter: 'blur(12px)',
+
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
       }}
     >
       {status === 'verified'
         ? 'Telegram ✓'
-        : 'Telegram verification error'}
+        : `Telegram: ${errorText}`}
     </div>
   );
 }

@@ -5,9 +5,7 @@ import { validateTelegramInitData } from '@/lib/telegram/validate-init-data';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function POST(
-  request: Request,
-) {
+export async function POST(request: Request) {
   try {
     const body = await request.json();
 
@@ -29,11 +27,11 @@ export async function POST(
     }
 
     const botToken =
-      process.env.TELEGRAM_BOT_TOKEN;
+      process.env.TELEGRAM_BOT_TOKEN?.trim();
 
     if (!botToken) {
       console.error(
-        'TELEGRAM_BOT_TOKEN is not configured',
+        '[Telegram] TELEGRAM_BOT_TOKEN is missing',
       );
 
       return NextResponse.json(
@@ -54,8 +52,8 @@ export async function POST(
       );
 
     if (!result.ok) {
-      console.warn(
-        'Telegram initData validation failed:',
+      console.error(
+        '[Telegram] initData rejected:',
         result.reason,
       );
 
@@ -63,12 +61,18 @@ export async function POST(
         {
           ok: false,
           error: 'invalid_telegram_data',
+          reason: result.reason,
         },
         {
           status: 401,
         },
       );
     }
+
+    console.log(
+      '[Telegram] verified user:',
+      result.user.id,
+    );
 
     return NextResponse.json({
       ok: true,
@@ -98,7 +102,7 @@ export async function POST(
     });
   } catch (error) {
     console.error(
-      'Telegram validation endpoint error:',
+      '[Telegram] validation endpoint error:',
       error,
     );
 
