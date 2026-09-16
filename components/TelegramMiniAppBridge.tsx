@@ -24,7 +24,7 @@ export default function TelegramMiniAppBridge() {
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
 
-    // Обычный браузер
+    // Если сайт открыт не внутри Telegram
     if (!tg?.initData) {
       document.documentElement.dataset.telegram =
         'false';
@@ -35,6 +35,9 @@ export default function TelegramMiniAppBridge() {
       return;
     }
 
+    // После проверки сохраняем уже гарантированно существующий объект
+    const telegram = tg;
+
     document.documentElement.dataset.telegram =
       'true';
 
@@ -42,11 +45,10 @@ export default function TelegramMiniAppBridge() {
       'telegram-mini-app',
     );
 
-    tg.ready();
-    tg.expand();
+    telegram.ready();
+    telegram.expand();
 
-    const controller =
-      new AbortController();
+    const controller = new AbortController();
 
     async function verify() {
       try {
@@ -59,13 +61,12 @@ export default function TelegramMiniAppBridge() {
             method: 'POST',
 
             headers: {
-              'Content-Type':
-                'application/json',
+              'Content-Type': 'application/json',
             },
 
             body: JSON.stringify({
-              // Отправляем сырой initData
-              initData: tg.initData,
+              // Отправляем именно сырой Telegram initData
+              initData: telegram.initData,
             }),
 
             signal: controller.signal,
@@ -91,6 +92,7 @@ export default function TelegramMiniAppBridge() {
         setStatus('verified');
         setShowBadge(true);
 
+        // В будущем сюда подключим Telegram ↔ Supabase
         window.dispatchEvent(
           new CustomEvent(
             'animebox:telegram-verified',
@@ -102,7 +104,7 @@ export default function TelegramMiniAppBridge() {
           ),
         );
 
-        // Плашка только для теста
+        // Временная тестовая плашка
         window.setTimeout(() => {
           setShowBadge(false);
         }, 3000);
@@ -144,7 +146,7 @@ export default function TelegramMiniAppBridge() {
     };
   }, []);
 
-  // В обычном браузере ничего не показываем
+  // В обычном браузере ничего не отображаем
   if (
     status === 'idle' ||
     status === 'checking' ||
@@ -158,6 +160,7 @@ export default function TelegramMiniAppBridge() {
       style={{
         position: 'fixed',
         zIndex: 999999,
+
         top: 12,
         right: 12,
 
