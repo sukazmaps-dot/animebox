@@ -52,6 +52,15 @@ function throwIfError(error: { message?: string } | null) {
   throw error;
 }
 
+function isUniqueViolation(error: unknown) {
+  return Boolean(
+    error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      (error as { code?: string }).code === '23505',
+  );
+}
+
 function normalizedOrigin(value?: string | null) {
   if (!value) return null;
 
@@ -183,22 +192,9 @@ export async function startWatchSession(input: WatchStartInput) {
   const expiresAt = new Date(now + SESSION_TTL_MS).toISOString();
   const initialPosition = safePosition(input.positionMs);
 
-  const { data: session, error: sessionError } = await watch
-    .from('sessions')
-    .insert({
-      user_id: input.userId,
-      episode_id: episodeRow.id,
-      expires_at: expiresAt,
-      last_received_at: new Date(now).toISOString(),
-      last_position_ms: initialPosition,
-      last_active: false,
-      last_seq: 0,
-    })
-    .select('id,expires_at')
-    .single();
-  throwIfError(sessionError);
-  if (!session) throw new ApiError(503, 'Не удалось создать сессию просмотра.');
-
+  // Progress must be ready before we create the active session.
+  // Otherwise an error here would leave a zombie session with ended_at = null,
+  // and the one-active-session unique index would block every future start.
   const { data: existingProgress, error: progressReadError } = await watch
     .from('progress')
     .select('coverage_ms,active_ms,ranked_ms,completed_at,resume_position_ms,last_watched_at')
@@ -223,6 +219,58 @@ export async function startWatchSession(input: WatchStartInput) {
       { onConflict: 'user_id,episode_id', ignoreDuplicates: true },
     );
     throwIfError(progressInsertError);
+  }
+
+  const closePreviousActiveSession = async () => {
+    const endedAt = new Date().toISOString();
+    const { error } = await watch
+      .from('sessions')
+      .update({ ended_at: endedAt, last_active: false })
+      .eq('user_id', input.userId)
+      .is('ended_at', null);
+    throwIfError(error);
+  };
+
+  // A new playback supersedes any stale/open playback for this user.
+  // The unique partial index remains in place as a database-level guard
+  // against parallel ranked sessions.
+  await closePreviousActiveSession();
+
+  let session: { id: string; expires_at: string } | null = null;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const { data, error } = await watch
+      .from('sessions')
+      .insert({
+        user_id: input.userId,
+        episode_id: episodeRow.id,
+        expires_at: expiresAt,
+        last_received_at: new Date().toISOString(),
+        last_position_ms: initialPosition,
+        last_active: false,
+        last_seq: 0,
+      })
+      .select('id,expires_at')
+      .single();
+
+    if (!error && data) {
+      session = data as { id: string; expires_at: string };
+      break;
+    }
+
+    // Two tabs can race between closing the old session and inserting a new one.
+    // If that happens, close the winner once and retry. The database unique
+    // index is still the final source of truth.
+    if (attempt === 0 && isUniqueViolation(error)) {
+      await closePreviousActiveSession();
+      continue;
+    }
+
+    throwIfError(error);
+  }
+
+  if (!session) {
+    throw new ApiError(503, 'Не удалось создать сессию просмотра.');
   }
 
   return {
