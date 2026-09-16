@@ -1,0 +1,1013 @@
+/* =========================================================
+   AnimeBox Smart Home v1
+   Personal mood + explainable feed + continue watching.
+   ========================================================= */
+
+.smart-section-eyebrow,
+.mood-picker__eyebrow,
+.smart-feed__editorial > span {
+  display: block;
+  margin-bottom: 5px;
+  color: #8f7cff;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+/* ---------- Continue watching ---------- */
+
+.continue-watching-section .section-head > div:first-child {
+  min-width: 0;
+}
+
+.continue-smart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.continue-smart-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 28px;
+  align-items: center;
+  min-width: 0;
+  min-height: 92px;
+  overflow: hidden;
+  padding: 9px 10px 9px 9px;
+  border: 1px solid rgba(145, 126, 237, .14);
+  border-radius: 13px;
+  background:
+    radial-gradient(circle at 92% 18%, rgba(113, 83, 226, .13), transparent 38%),
+    linear-gradient(135deg, rgba(15, 21, 40, .98), rgba(9, 14, 27, .98));
+  transition: transform .2s ease, border-color .2s ease, background .2s ease;
+}
+
+.continue-smart-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(157, 133, 255, .34);
+  background:
+    radial-gradient(circle at 92% 18%, rgba(113, 83, 226, .20), transparent 40%),
+    linear-gradient(135deg, rgba(17, 24, 46, .99), rgba(10, 15, 30, .99));
+}
+
+.continue-smart-card__poster {
+  position: relative;
+  width: 54px;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border-radius: 9px;
+  background: #10172a;
+}
+
+.continue-smart-card__poster > div:first-child,
+.continue-smart-card__image {
+  width: 100%;
+  height: 100%;
+}
+
+.continue-smart-card__image {
+  object-fit: cover;
+}
+
+.continue-smart-card__poster::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 45%, rgba(3, 7, 16, .64));
+  pointer-events: none;
+}
+
+.continue-smart-card__play {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(112, 83, 241, .94);
+  color: white;
+  font-size: 8px;
+  box-shadow: 0 6px 18px rgba(73, 48, 190, .32);
+}
+
+.continue-smart-card__body {
+  min-width: 0;
+  padding-right: 8px;
+}
+
+.continue-smart-card__eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  color: #8f7cff;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+
+.continue-smart-card__body strong {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #f1f3fb;
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.continue-smart-card__progress {
+  height: 3px;
+  overflow: hidden;
+  margin-top: 9px;
+  border-radius: 999px;
+  background: rgba(135, 148, 182, .14);
+}
+
+.continue-smart-card__progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #755cff, #9b78ff);
+}
+
+.continue-smart-card__body small {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  color: #79849e;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.continue-smart-card__arrow {
+  color: #8f82c9;
+  font-size: 18px;
+  transition: transform .2s ease, color .2s ease;
+}
+
+.continue-smart-card:hover .continue-smart-card__arrow {
+  color: #c4b7ff;
+  transform: translateX(2px);
+}
+
+/* ---------- Mood ---------- */
+
+.mood-picker {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(190px, .72fr) minmax(0, 1.8fr);
+  gap: 18px;
+  align-items: center;
+  margin-top: 24px;
+  padding: 17px;
+  overflow: hidden;
+  border: 1px solid rgba(143, 122, 246, .16);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 8% 20%, rgba(117, 87, 242, .14), transparent 36%),
+    linear-gradient(135deg, rgba(14, 20, 39, .98), rgba(8, 13, 26, .98));
+}
+
+.mood-picker::after {
+  content: '';
+  position: absolute;
+  width: 190px;
+  height: 190px;
+  right: -80px;
+  top: -100px;
+  border: 1px solid rgba(145, 124, 255, .08);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.mood-picker__intro,
+.mood-picker__options {
+  position: relative;
+  z-index: 1;
+}
+
+.mood-picker__intro h2 {
+  margin: 0;
+  color: #f1f3fc;
+  font-size: 16px;
+  line-height: 1.2;
+  letter-spacing: -.025em;
+}
+
+.mood-picker__intro p {
+  margin: 6px 0 0;
+  color: #7f8aa5;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.mood-picker__options {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.mood-chip {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 58px;
+  padding: 8px 9px;
+  border: 1px solid rgba(139, 151, 188, .11);
+  border-radius: 10px;
+  background: rgba(12, 18, 34, .84);
+  color: #dfe3ef;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.mood-chip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(155, 133, 255, .30);
+  background: rgba(20, 25, 48, .92);
+}
+
+.mood-chip:active {
+  transform: translateY(0) scale(.985);
+}
+
+.mood-chip.is-active {
+  border-color: rgba(154, 128, 255, .52);
+  background: linear-gradient(145deg, rgba(112, 82, 240, .26), rgba(68, 57, 140, .12));
+  box-shadow: inset 0 1px rgba(255,255,255,.035), 0 8px 24px rgba(47, 31, 125, .16);
+}
+
+.mood-chip__icon {
+  position: relative;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  overflow: visible;
+  border-radius: 10px;
+  background:
+    radial-gradient(circle, rgba(130, 92, 255, .17), rgba(85, 60, 180, .06) 58%, transparent 74%);
+  transition: transform .18s ease, filter .18s ease;
+}
+
+.mood-chip__image {
+  display: block;
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 0 7px rgba(139, 91, 255, .26));
+  transform: translateZ(0);
+}
+
+.mood-chip:hover .mood-chip__icon {
+  transform: translateY(-1px) scale(1.04);
+}
+
+.mood-chip.is-active .mood-chip__icon {
+  transform: scale(1.05);
+  filter: saturate(1.08) brightness(1.05);
+}
+
+.mood-chip.is-active .mood-chip__image {
+  filter:
+    drop-shadow(0 0 8px rgba(160, 104, 255, .42))
+    drop-shadow(0 0 15px rgba(105, 73, 255, .16));
+}
+
+.mood-chip__copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.mood-chip__copy strong {
+  overflow: hidden;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mood-chip__copy small {
+  overflow: hidden;
+  color: #727e99;
+  font-size: 7px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mood-chip.is-active small {
+  color: #aa9fd5;
+}
+
+/* ---------- Smart feed ---------- */
+
+.smart-feed-section .section-head {
+  align-items: flex-end;
+}
+
+.smart-feed-heading {
+  min-width: 0;
+}
+
+.smart-feed-heading__line {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.smart-feed-heading__line h2 {
+  margin: 0;
+}
+
+.smart-feed-heading__badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 7px;
+  border: 1px solid rgba(148, 126, 255, .18);
+  border-radius: 999px;
+  background: rgba(111, 83, 233, .10);
+  color: #a995ff;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .06em;
+}
+
+.smart-feed-heading p {
+  margin: 5px 0 0;
+  color: #75809a;
+  font-size: 9px;
+}
+
+.smart-feed__grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+.smart-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(137, 150, 184, .10);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #0c1222, #090f1d);
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+
+.smart-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(149, 124, 255, .31);
+  box-shadow: 0 15px 34px rgba(0, 0, 0, .25);
+}
+
+.smart-card__poster-link {
+  display: block;
+}
+
+.smart-card__poster {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  background: #10172a;
+}
+
+.smart-card__poster > div:first-child,
+.smart-card__image {
+  width: 100%;
+  height: 100%;
+}
+
+.smart-card__image {
+  object-fit: cover;
+  transition: transform .32s ease;
+}
+
+.smart-card:hover .smart-card__image {
+  transform: scale(1.035);
+}
+
+.smart-card__poster::after {
+  content: '';
+  position: absolute;
+  inset: 44% 0 0;
+  z-index: 1;
+  background: linear-gradient(180deg, transparent, rgba(3, 7, 15, .76));
+  pointer-events: none;
+}
+
+.smart-card__rating {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 23px;
+  padding: 0 7px;
+  border-radius: 7px;
+  background: rgba(5, 9, 18, .84);
+  color: #f3f5fc;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.smart-card__rating span {
+  color: #ffc94d;
+}
+
+.smart-card__open {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 23px;
+  padding: 0 7px;
+  border-radius: 7px;
+  background: rgba(111, 83, 236, .90);
+  color: white;
+  font-size: 8px;
+  font-weight: 800;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity .18s ease, transform .18s ease;
+}
+
+.smart-card:hover .smart-card__open,
+.smart-card:focus-within .smart-card__open {
+  opacity: 1;
+  transform: none;
+}
+
+.smart-card__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 10px;
+}
+
+.smart-card__title {
+  display: -webkit-box;
+  min-height: 32px;
+  overflow: hidden;
+  color: #f0f2f8;
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.smart-card__title:hover {
+  color: #c8bcff;
+}
+
+.smart-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  margin-top: 6px;
+  color: #7c879e;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+.smart-card__meta span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.smart-card__reason {
+  display: -webkit-box;
+  min-height: 30px;
+  margin: 9px 0 0;
+  overflow: hidden;
+  color: #aaa0d1;
+  font-size: 8px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.smart-card__reason span {
+  margin-right: 4px;
+  color: #846cff;
+}
+
+.smart-card__actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.smart-card__actions button {
+  min-height: 30px;
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color .18s ease, background .18s ease, color .18s ease, transform .18s ease;
+}
+
+.smart-card__plan {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 8px;
+  border: 1px solid rgba(139, 118, 244, .22);
+  background: rgba(113, 85, 232, .10);
+  color: #c6bbfa;
+  font-size: 8px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smart-card__plan:hover:not(:disabled) {
+  border-color: rgba(157, 135, 255, .42);
+  background: rgba(113, 85, 232, .19);
+  transform: translateY(-1px);
+}
+
+.smart-card__plan.is-saved {
+  border-color: rgba(90, 208, 156, .22);
+  background: rgba(58, 168, 122, .10);
+  color: #8be0bc;
+}
+
+.smart-card__plan:disabled {
+  cursor: default;
+}
+
+.smart-card__dismiss {
+  border: 1px solid rgba(138, 150, 181, .12);
+  background: rgba(15, 21, 38, .82);
+  color: #77839c;
+  font-size: 15px;
+}
+
+.smart-card__dismiss:hover {
+  border-color: rgba(230, 120, 150, .26);
+  background: rgba(94, 32, 54, .14);
+  color: #e9a1b6;
+}
+
+.smart-feed__editorial {
+  position: relative;
+  min-height: 100%;
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  padding: 20px;
+  border: 1px solid rgba(146, 124, 255, .18);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 78% 18%, rgba(125, 89, 250, .24), transparent 36%),
+    linear-gradient(145deg, #11152c, #0a1020 64%);
+}
+
+.smart-feed__editorial::before {
+  content: '✦';
+  position: absolute;
+  right: 18px;
+  top: 10px;
+  color: rgba(151, 127, 255, .16);
+  font-size: 82px;
+  line-height: 1;
+}
+
+.smart-feed__editorial h3 {
+  max-width: 310px;
+  margin: 0;
+  color: #f2f3fb;
+  font-size: 18px;
+  line-height: 1.15;
+  letter-spacing: -.035em;
+}
+
+.smart-feed__editorial p {
+  max-width: 390px;
+  margin: 9px 0 0;
+  color: #8f98af;
+  font-size: 9px;
+  line-height: 1.7;
+}
+
+.smart-feed__editorial-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 15px;
+}
+
+.smart-feed__editorial-pills b {
+  padding: 5px 7px;
+  border: 1px solid rgba(146, 127, 233, .12);
+  border-radius: 999px;
+  background: rgba(122, 91, 230, .08);
+  color: #9e92c9;
+  font-size: 7px;
+  font-weight: 750;
+}
+
+.smart-feed__sentinel {
+  height: 1px;
+}
+
+.smart-feed__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  color: #78839b;
+  font-size: 9px;
+}
+
+.smart-feed__loading span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #8068fa;
+  animation: smart-feed-pulse 1s ease-in-out infinite alternate;
+}
+
+.smart-feed__empty {
+  display: grid;
+  gap: 5px;
+  min-height: 120px;
+  place-content: center;
+  padding: 20px;
+  border: 1px dashed rgba(145, 126, 231, .18);
+  border-radius: 12px;
+  background: rgba(11, 16, 31, .72);
+  text-align: center;
+}
+
+.smart-feed__empty strong {
+  color: #e7e9f2;
+  font-size: 12px;
+}
+
+.smart-feed__empty span {
+  max-width: 540px;
+  color: #79849b;
+  font-size: 9px;
+  line-height: 1.6;
+}
+
+@keyframes smart-feed-pulse {
+  from { opacity: .35; transform: scale(.8); }
+  to { opacity: 1; transform: scale(1.08); }
+}
+
+@media (max-width: 1200px) and (min-width: 1001px) {
+  .mood-picker {
+    grid-template-columns: minmax(170px, .65fr) minmax(0, 1.7fr);
+  }
+
+  .mood-chip__copy small {
+    display: none;
+  }
+
+  .mood-chip {
+    justify-content: center;
+  }
+
+  .smart-feed__grid {
+    gap: 9px;
+  }
+
+  .smart-card__body {
+    padding: 8px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .mood-picker {
+    grid-template-columns: 1fr;
+  }
+
+  .mood-picker__options {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .smart-feed__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .continue-smart-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .continue-smart-card {
+    min-height: 88px;
+  }
+
+  .mood-picker {
+    margin-top: 20px;
+    padding: 14px;
+    gap: 13px;
+  }
+
+  .mood-picker__intro h2 {
+    font-size: 15px;
+  }
+
+  .mood-picker__intro p {
+    font-size: 10px;
+  }
+
+  .mood-picker__options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mood-chip:first-child {
+    grid-column: span 2;
+  }
+
+  .mood-chip {
+    min-height: 50px;
+  }
+
+  .mood-chip__copy strong {
+    font-size: 10px;
+  }
+
+  .mood-chip__copy small {
+    font-size: 8px;
+  }
+
+  .smart-feed-section .section-head {
+    align-items: flex-start;
+  }
+
+  .smart-feed-heading__line {
+    flex-wrap: wrap;
+  }
+
+  .smart-feed-heading p {
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+  .smart-feed__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .smart-card {
+    border-radius: 10px;
+  }
+
+  .smart-card__body {
+    padding: 9px;
+  }
+
+  .smart-card__title {
+    min-height: 34px;
+    font-size: 11px;
+  }
+
+  .smart-card__meta,
+  .smart-card__reason,
+  .smart-card__plan {
+    font-size: 8px;
+  }
+
+  .smart-card__open {
+    opacity: 1;
+    transform: none;
+  }
+
+  .smart-card__actions {
+    grid-template-columns: minmax(0, 1fr) 30px;
+  }
+
+  .smart-feed__editorial {
+    grid-column: 1 / -1;
+    min-height: 190px;
+    padding: 18px;
+  }
+
+  .smart-feed__editorial h3 {
+    font-size: 20px;
+  }
+
+  .smart-feed__editorial p {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 380px) {
+  .smart-card__meta span:first-child,
+  .smart-card__meta span:nth-child(2) {
+    display: none;
+  }
+
+  .smart-card__actions {
+    grid-template-columns: minmax(0, 1fr) 28px;
+  }
+
+  .smart-card__actions button {
+    min-height: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .continue-smart-card,
+  .continue-smart-card__arrow,
+  .mood-chip,
+  .smart-card,
+  .smart-card__image,
+  .smart-card__open,
+  .smart-card__actions button {
+    transition: none !important;
+  }
+
+  .smart-feed__loading span {
+    animation: none !important;
+  }
+}
+
+/* =========================================================
+   AnimeBox Smart Home v3
+   Main content and the right rail now live in ONE grid row.
+   The previous top-grid + lower-grid split made the lower feed wait for the
+   full height of the right sidebar and produced a huge empty desktop hole.
+   ========================================================= */
+
+.home-page {
+  min-width: 0;
+  width: 100%;
+}
+
+.home-grid--main {
+  align-items: start;
+}
+
+.home-grid--main > .main-column {
+  width: 100%;
+  min-width: 0;
+}
+
+.home-grid--main .smart-feed-section {
+  margin-top: 30px;
+}
+
+.smart-feed {
+  min-width: 0;
+}
+
+/* Mood reranking is a full list reorder. Fade the row as one visual surface
+   instead of letting React visibly teleport every card to its new index. */
+.smart-feed__stage {
+  min-width: 0;
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  transform-origin: 50% 18%;
+  will-change: opacity, transform;
+  transition:
+    opacity 135ms ease,
+    transform 190ms cubic-bezier(.2, .75, .25, 1);
+}
+
+.smart-feed__stage.is-mood-swapping {
+  opacity: 0;
+  transform: translate3d(0, 5px, 0) scale(.997);
+  pointer-events: none;
+}
+
+.smart-feed__slide {
+  width: clamp(188px, 16vw, 226px);
+  height: auto;
+
+  /* The DOM may grow for a long infinite session. Let the browser skip
+     painting/layout work for cards far outside the horizontal viewport. */
+  content-visibility: auto;
+  contain-intrinsic-size: 218px 430px;
+}
+
+.smart-feed__slide > .smart-card {
+  height: 100%;
+}
+
+/* The carousel is intentionally one row. The old grid/editorial insertion
+   caused orphan cards on mobile and large vertical holes on desktop. */
+.smart-feed__slide .smart-card__poster {
+  aspect-ratio: 2 / 3;
+}
+
+@media (min-width: 1500px) {
+  .smart-feed__slide {
+    width: 218px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .smart-feed__slide {
+    width: clamp(178px, 24vw, 214px);
+  }
+}
+
+@media (max-width: 720px) {
+  .home-grid--main .smart-feed-section {
+    margin-top: 24px;
+  }
+
+  .smart-feed__slide {
+    width: clamp(154px, 44vw, 184px);
+  }
+
+  .smart-card__reason {
+    min-height: 28px;
+  }
+}
+
+/* ---------- Smart Feed V3: infinite horizontal loading ---------- */
+
+.smart-feed__slide--skeleton {
+  pointer-events: none;
+}
+
+.smart-feed__skeleton-card {
+  width: 100%;
+  aspect-ratio: 2 / 3.72;
+  overflow: hidden;
+  border: 1px solid rgba(137, 150, 184, .08);
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      105deg,
+      rgba(16, 23, 42, .92) 24%,
+      rgba(54, 44, 84, .82) 42%,
+      rgba(16, 23, 42, .92) 60%
+    );
+  background-size: 220% 100%;
+  animation: smart-feed-shimmer 1.35s linear infinite;
+}
+
+.smart-feed__retry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #a995ff;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.smart-feed__retry:hover {
+  color: #d0c5ff;
+}
+
+@keyframes smart-feed-shimmer {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smart-feed__stage {
+    transition: none;
+    transform: none;
+  }
+
+  .smart-feed__stage.is-mood-swapping {
+    transform: none;
+  }
+
+  .smart-feed__skeleton-card {
+    animation: none;
+  }
+}

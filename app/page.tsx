@@ -2,24 +2,24 @@
 
 import { animeHref } from '@/lib/anime-url';
 
-import { useEffect, useMemo, useState } from 'react';
+import { startTransition, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { Anime, AnimeImage as AnimeImageType } from '@/types/anime';
 
 import AnimeCard from '@/components/AnimeCard';
+import HomeContinueWatching from '@/components/HomeContinueWatching';
+import HomeMoodPicker from '@/components/HomeMoodPicker';
+import SmartRecommendationFeed from '@/components/SmartRecommendationFeed';
 import Icon from '@/components/Icon';
 import AnimeImage from '@/components/AnimeImage';
 import HomeHeroCarousel from '@/components/HomeHeroCarousel';
 import { getAnimes } from '@/lib/anime-client';
-import {
-  getRecommendedAnime,
-  getRecommendationFallback,
-} from '@/lib/recommendations';
-import { readWatchHistory } from '@/lib/anime-storage';
+import { getPersonalizedRecommendations } from '@/lib/recommendations';
+import { readAnimeProgressMap, readWatchHistory, type AnimeHistoryEntry } from '@/lib/anime-storage';
 import TelegramPromoCard from '@/components/TelegramPromoCard';
 import TopAnimeItem from '@/components/TopAnimeItem';
 import ScheduleItem from '@/components/ScheduleItem';
-import { filterRecommendations } from '@/lib/filter-recommendations';
+import { readTasteProfile, setTasteMood, type TasteMood } from '@/lib/personalization';
 
 type HomeScheduleItem = {
   id: number;
@@ -49,10 +49,6 @@ type ScheduleDay = {
   key: string;
   label: string;
 };
-
-function getEpisodeCount(anime: Anime): number | null {
-  return anime.episodes && anime.episodes > 0 ? anime.episodes : null;
-}
 
 function getLocalDateKey(date: Date): string {
   const year = date.getFullYear();
@@ -145,12 +141,18 @@ export default function HomePage() {
 
   const [historyRevision, setHistoryRevision] = useState('');
   const [hasWatchHistory, setHasWatchHistory] = useState(false);
+  const [watchHistory, setWatchHistory] = useState<AnimeHistoryEntry[]>([]);
+  const [mood, setMood] = useState<TasteMood>('any');
+  const [tasteRevision, setTasteRevision] = useState(0);
 
   const [scheduleItems, setScheduleItems] = useState<HomeScheduleItem[]>([]);
-  const [scheduleDays, setScheduleDays] = useState<ScheduleDay[]>([]);
-  const [selectedScheduleDay, setSelectedScheduleDay] = useState('');
+  const [scheduleDays] = useState<ScheduleDay[]>(createScheduleDays);
+  const [selectedScheduleDay, setSelectedScheduleDay] = useState(
+    () => scheduleDays[0]?.key ?? '',
+  );
   const [scheduleLoading, setScheduleLoading] = useState(true);
   const [scheduleError, setScheduleError] = useState('');
+  const [clockNow, setClockNow] = useState(() => Date.now());
 
   /*
    * Главная лента.
@@ -233,6 +235,7 @@ export default function HomePage() {
       const history = readWatchHistory();
 
       setHasWatchHistory(history.length > 0);
+      setWatchHistory(history);
       setHistoryRevision(
         history
           .map((item) => `${item.id}:${item.viewCount}:${item.lastViewedAt}`)
@@ -261,15 +264,33 @@ export default function HomePage() {
     };
   }, []);
 
+  useEffect(() => {
+    const refreshTaste = () => {
+      setMood(readTasteProfile().mood);
+      setTasteRevision((revision) => revision + 1);
+    };
+
+    refreshTaste();
+    window.addEventListener('animebox-taste-changed', refreshTaste);
+
+    return () => {
+      window.removeEventListener('animebox-taste-changed', refreshTaste);
+    };
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setClockNow(Date.now());
+    }, 60_000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
   /*
    * Реальное расписание с уже существующего /api/schedule.
    * Загружается независимо и не тормозит hero/основную ленту.
    */
   useEffect(() => {
-    const days = createScheduleDays();
-    setScheduleDays(days);
-    setSelectedScheduleDay(days[0]?.key ?? '');
-
     const controller = new AbortController();
 
     async function loadSchedule() {
@@ -312,31 +333,35 @@ export default function HomePage() {
     return () => controller.abort();
   }, []);
 
-  const rawRecommendations = useMemo(
+  /*
+   * Ranking used to run on every unrelated HomePage render (including the
+   * one-minute schedule clock). Keep it hot only when catalogue/taste/history
+   * actually changes.
+   */
+  const smartRecommendations = useMemo(() => {
+    // Re-read local-first signals when their revision changes.
+    void historyRevision;
+    void tasteRevision;
+
+    return getPersonalizedRecommendations([...popular, ...ongoing], {
+      mood,
+      limit: 30,
+    });
+  }, [popular, ongoing, mood, historyRevision, tasteRevision]);
+
+  const progress = useMemo(() => {
+    void historyRevision;
+    return readAnimeProgressMap();
+  }, [historyRevision]);
+
+  const continueWatchingItems = useMemo(
     () =>
-      getRecommendedAnime(
-        [...popular, ...ongoing],
-        10,
-      ),
-    [popular, ongoing, historyRevision],
+      watchHistory.slice(0, 4).map((anime) => ({
+        anime,
+        episode: Math.max(1, progress[String(anime.id)] ?? 1),
+      })),
+    [progress, watchHistory],
   );
-
-  const recommendations = useMemo(() => {
-    if (!hasWatchHistory) {
-      return [];
-    }
-
-    const displayedOngoing = (ongoing.length > 0 ? ongoing : popular).slice(0, 5);
-    return filterRecommendations(
-      [...rawRecommendations, ...getRecommendationFallback(popular, ongoing, 10)],
-      displayedOngoing,
-    );
-  }, [
-    hasWatchHistory,
-    rawRecommendations,
-    popular,
-    ongoing,
-  ]);
 
   const fallbackItems = ongoing.length > 0 ? ongoing : popular;
   const heroLoading =
@@ -357,16 +382,17 @@ export default function HomePage() {
   }, [scheduleItems, selectedScheduleDay]);
 
   const upcomingScheduleItems = useMemo(() => {
-    const nowSeconds = Math.floor(Date.now() / 1000);
+    const nowSeconds = Math.floor(clockNow / 1000);
 
     return scheduleItems
       .filter((item) => item.airingAt >= nowSeconds)
       .slice(0, 5);
-  }, [scheduleItems]);
+  }, [scheduleItems, clockNow]);
 
   return (
-    <div className="home-grid">
-      <div className="main-column">
+    <div className="home-page">
+      <div className="home-grid home-grid--main">
+        <div className="main-column">
         {heroLoading ? (
           <section className="page-hero page-hero--empty">
             <div className="page-hero__content">
@@ -380,6 +406,53 @@ export default function HomePage() {
         ) : (
           <HomeHeroCarousel popular={popular} ongoing={ongoing} />
         )}
+
+        <HomeContinueWatching items={continueWatchingItems} />
+
+        <HomeMoodPicker
+          value={mood}
+          onChange={(nextMood) => {
+            if (nextMood === mood) return;
+
+            // Active chip responds immediately. The localStorage/event refresh
+            // is lower priority so it cannot compete with the feed animation.
+            setMood(nextMood);
+            startTransition(() => {
+              setTasteMood(nextMood);
+            });
+          }}
+        />
+
+        <section className="section smart-feed-section">
+          <div className="section-head">
+            <div className="smart-feed-heading">
+              <span className="smart-section-eyebrow">ПЕРСОНАЛЬНАЯ ЛЕНТА</span>
+              <div className="smart-feed-heading__line">
+                <h2 className="section-title">Подобрано для тебя</h2>
+                <span className="smart-feed-heading__badge">SMART V3</span>
+              </div>
+              <p>Лента догружается сама, а причина рекомендации остаётся видна на каждой карточке.</p>
+            </div>
+
+            <Link className="section-link" href="/search">
+              Весь каталог →
+            </Link>
+          </div>
+
+          {popularLoading && ongoingLoading && smartRecommendations.length === 0 ? (
+            <div className="loading-grid">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="skeleton skeleton--card" />
+              ))}
+            </div>
+          ) : (
+            <SmartRecommendationFeed
+              items={smartRecommendations}
+              mood={mood}
+              hasWatchHistory={hasWatchHistory}
+            />
+          )}
+        </section>
 
         <section className="section">
           <div className="section-head">
@@ -449,45 +522,6 @@ export default function HomePage() {
           )}
         </section>
 
-        <section className="section">
-          <div className="section-head">
-            <h2 className="section-title">
-              <span className="section-title__icon section-title__icon--asset" aria-hidden="true">
-                <img src="/brand/icons/sections/recommendations.svg" alt="" />
-              </span>
-              Рекомендации для тебя
-            </h2>
-
-            <span className="section-link">На основе просмотров</span>
-          </div>
-
-          {recommendations.length > 0 ? (
-            <div className="anime-grid">
-              {recommendations.slice(0, 5).map((anime) => (
-                <AnimeCard key={anime.id} anime={anime} />
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state">
-              <strong>{hasWatchHistory ? 'Пока нет новых рекомендаций' : 'Начни смотреть аниме'}</strong>
-
-              <span>
-                {hasWatchHistory
-                  ? 'Подходящие тайтлы уже показаны выше. Загляни в каталог за новыми историями.'
-                  : 'После первого просмотра рекомендации начнут подстраиваться под твои жанры.'}
-              </span>
-
-              <Link
-                className="btn btn--primary"
-                href="/search"
-                style={{ marginTop: 14 }}
-              >
-                {hasWatchHistory ? 'Открыть каталог' : 'Найти первое аниме'}
-              </Link>
-            </div>
-          )}
-        </section>
-
         <section className="section schedule">
           <div className="section-head">
             <h2 className="section-title">
@@ -542,7 +576,7 @@ export default function HomePage() {
             <div className="schedule__cards">
               {visibleScheduleItems.slice(0, 4).map((item) => {
                 const title = getScheduleTitle(item);
-                const released = item.airingAt * 1000 <= Date.now();
+                const released = item.airingAt * 1000 <= clockNow;
 
                 return (
                   <Link
@@ -574,7 +608,7 @@ export default function HomePage() {
             </div>
           )}
         </section>
-      </div>
+        </div>
 
       <aside className="right-rail">
         <div className="panel home-library-panel">
@@ -650,6 +684,7 @@ export default function HomePage() {
 
         <TelegramPromoCard />
       </aside>
+      </div>
     </div>
   );
 }

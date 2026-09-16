@@ -3,7 +3,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '@/components/Icon';
-import KodikPlayer from '@/components/KodikPlayer';
+import KodikPlayer, { type KodikPlayerHandle } from '@/components/KodikPlayer';
 import { useWatchSession } from '@/components/useWatchSession';
 import Hls from 'hls.js';
 
@@ -42,8 +42,11 @@ interface AnimePlayerProps {
   src?: string;
   hasPrev?: boolean;
   hasNext?: boolean;
+  prevLabel?: string;
+  nextLabel?: string;
   onPrev?: () => void;
   onNext?: () => void;
+  onEnded?: () => void;
   onEpisodeChange?: (episode: number) => void;
 }
 
@@ -265,8 +268,11 @@ export default function AnimePlayer({
   src,
   hasPrev = false,
   hasNext = false,
+  prevLabel = 'Пред. серия',
+  nextLabel = 'След. серия',
   onPrev,
   onNext,
+  onEnded,
   onEpisodeChange,
 }: AnimePlayerProps) {
   const [activeSourceIndex, setActiveSourceIndex] = useState(0);
@@ -279,6 +285,7 @@ export default function AnimePlayer({
   const [resumeSeconds, setResumeSeconds] = useState(0);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const kodikPlayerRef = useRef<KodikPlayerHandle | null>(null);
   const resumeAppliedRef = useRef(false);
   const playerViewportRef = useRef<HTMLDivElement | null>(null);
 
@@ -592,6 +599,22 @@ export default function AnimePlayer({
     onEpisodeChange?.(nextEpisode);
   }
 
+  function startPlayback() {
+    /*
+     * Kodik is preloaded behind the AnimeBox cover. Sending play from the
+     * original click keeps the provider start inside the same user gesture,
+     * so the viewer does not have to press Kodik's play button a second time.
+     */
+    if (isKodik) {
+      kodikPlayerRef.current?.play();
+      setStarted(true);
+      return;
+    }
+
+    setPlayerReady(false);
+    setStarted(true);
+  }
+
   async function toggleFullscreen() {
     const node = playerViewportRef.current as
       | (HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> | void })
@@ -732,6 +755,21 @@ export default function AnimePlayer({
               : 'aspect-video rounded-[22px] border border-violet-400/[0.12] shadow-[0_28px_80px_rgba(0,0,0,.55),0_0_50px_rgba(105,72,255,.055)] ring-1 ring-black/40'
           }`}
         >
+          {isKodik && videoLink && (
+            <KodikPlayer
+              ref={kodikPlayerRef}
+              key={`${videoLink}:${episodeNumber}`}
+              src={videoLink}
+              title={`${title} — серия ${episodeNumber}`}
+              episodeNumber={episodeNumber}
+              resumeSeconds={resumeSeconds}
+              onReady={() => setPlayerReady(true)}
+              onTimeUpdate={watchSession.onSample}
+              onProviderSkip={watchSession.onProviderSkip}
+              onEnded={onEnded}
+            />
+          )}
+
           {!videoLink ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.04] text-xl text-white/35">
@@ -745,11 +783,8 @@ export default function AnimePlayer({
           ) : !started ? (
             <button
               type="button"
-              onClick={() => {
-                setPlayerReady(false);
-                setStarted(true);
-              }}
-              className="group absolute inset-0 isolate overflow-hidden text-white"
+              onClick={startPlayback}
+              className="group absolute inset-0 z-30 isolate overflow-hidden text-white"
               aria-label={`Смотреть ${title}, серия ${episodeNumber}`}
             >
               {poster ? (
@@ -804,56 +839,48 @@ export default function AnimePlayer({
                 </div>
               )}
 
-              {isKodik ? (
-                <KodikPlayer
-                  key={`${videoLink}:${episodeNumber}`}
-                  src={videoLink}
-                  title={`${title} — серия ${episodeNumber}`}
-                  episodeNumber={episodeNumber}
-                  resumeSeconds={resumeSeconds}
-                  onReady={() => setPlayerReady(true)}
-                  onTimeUpdate={watchSession.onSample}
-                  onProviderSkip={watchSession.onProviderSkip}
-                />
-              ) : isIframe ? (
-                <iframe
-                  key={videoLink}
-                  src={videoLink}
-                  width="100%"
-                  height="100%"
-                  className="absolute inset-0 h-full w-full border-0"
-                  allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-                  allowFullScreen
-                  title="Anime player"
-                  onLoad={() => setPlayerReady(true)}
-                />
-              ) : (
-                <video
-                  ref={videoRef}
-                  key={videoLink}
-                  className="absolute inset-0 h-full w-full bg-black object-contain"
-                  controls
-                  autoPlay
-                  playsInline
-                  muted={false}
-                  poster={poster || undefined}
-                  preload="auto"
-                  src={!isHls ? videoLink : undefined}
-                  onCanPlay={() => setPlayerReady(true)}
-                  onTimeUpdate={(event) => {
-                    const video = event.currentTarget;
-                    watchSession.onSample({
-                      positionSeconds: video.currentTime,
-                      durationSeconds:
-                        Number.isFinite(video.duration) && video.duration > 0
-                          ? video.duration
-                          : null,
-                      origin: window.location.origin,
-                    });
-                  }}
-                >
-                  Ваш браузер не поддерживает воспроизведение видео.
-                </video>
+              {!isKodik && (
+                isIframe ? (
+                  <iframe
+                    key={videoLink}
+                    src={videoLink}
+                    width="100%"
+                    height="100%"
+                    className="absolute inset-0 h-full w-full border-0"
+                    allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+                    allowFullScreen
+                    title="Anime player"
+                    onLoad={() => setPlayerReady(true)}
+                  />
+                ) : (
+                  <video
+                    ref={videoRef}
+                    key={videoLink}
+                    className="absolute inset-0 h-full w-full bg-black object-contain"
+                    controls
+                    autoPlay
+                    playsInline
+                    muted={false}
+                    poster={poster || undefined}
+                    preload="auto"
+                    src={!isHls ? videoLink : undefined}
+                    onCanPlay={() => setPlayerReady(true)}
+                    onEnded={onEnded}
+                    onTimeUpdate={(event) => {
+                      const video = event.currentTarget;
+                      watchSession.onSample({
+                        positionSeconds: video.currentTime,
+                        durationSeconds:
+                          Number.isFinite(video.duration) && video.duration > 0
+                            ? video.duration
+                            : null,
+                        origin: window.location.origin,
+                      });
+                    }}
+                  >
+                    Ваш браузер не поддерживает воспроизведение видео.
+                  </video>
+                )
               )}
             </>
           )}
@@ -878,7 +905,7 @@ export default function AnimePlayer({
           className="group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-4 text-xs font-bold text-white/55 transition hover:border-white/[0.12] hover:bg-white/[0.05] hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
         >
           <Icon name="chevron" className="h-4 w-4 rotate-180 transition-transform group-hover:-translate-x-0.5" />
-          Пред. серия
+          {prevLabel}
         </button>
 
         <div className="order-first col-span-2 flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-xl border border-violet-400/[0.10] bg-violet-500/[0.035] px-3 text-center sm:order-none sm:col-span-1">
@@ -900,7 +927,7 @@ export default function AnimePlayer({
           disabled={!hasNext}
           className="group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-500 px-4 text-xs font-extrabold text-white shadow-[0_10px_30px_rgba(105,72,255,.25)] transition hover:-translate-y-px hover:shadow-[0_15px_38px_rgba(105,72,255,.34)] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:translate-y-0"
         >
-          След. серия
+          {nextLabel}
           <Icon name="chevron" className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </button>
       </div>

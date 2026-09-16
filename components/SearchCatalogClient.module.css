@@ -1,0 +1,54 @@
+.filterBar {
+  position: relative;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 12px 0 4px;
+}
+
+.genreScroller {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-x: auto;
+  padding: 0 1px;
+  scrollbar-width: none;
+  overscroll-behavior-inline: contain;
+}
+
+.genreScroller::-webkit-scrollbar {
+  display: none;
+}
+
+.allGenres {
+  flex: 0 0 auto;
+}
+
+.moodHint {
+  margin-left: auto;
+  color: #665f7d;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .filterBar {
+    flex-wrap: wrap;
+    row-gap: 9px;
+  }
+
+  .genreScroller {
+    order: 3;
+    flex-basis: 100%;
+    margin-inline: -14px;
+    padding-inline: 14px;
+  }
+
+  .moodHint {
+    display: none;
+  }
+}

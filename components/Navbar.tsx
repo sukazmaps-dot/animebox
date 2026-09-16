@@ -40,6 +40,11 @@ const mainNav = [
     label: 'Избранное',
     icon: 'heart' as const,
   },
+  {
+    href: '/leaderboard',
+    label: 'Рейтинг',
+    icon: 'trophy' as const,
+  },
 ];
 
 const telegramUrl = TELEGRAM_MINI_APP_URL;

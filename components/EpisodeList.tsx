@@ -1,13 +1,18 @@
 'use client';
 
-import { communityRequest } from '@/lib/community-client';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
+import { communityRequest } from '@/lib/community-client';
 import {
   findEpisodeGroupIndex,
   getEpisodeGroups,
 } from '@/lib/episode-groups';
+import type {
+  EpisodeExtraItem,
+  EpisodeSeasonTab,
+  EpisodeSeasonsResponse,
+} from '@/types/episode-seasons';
 
 interface EpisodeListProps {
   animeId: string | number;
@@ -19,6 +24,23 @@ interface EpisodeListProps {
   watchedUpTo?: number;
 }
 
+function seasonKey(id: number) {
+  return `season:${id}`;
+}
+
+function extraFormatLabel(format: string | null) {
+  switch (format) {
+    case 'MOVIE':
+      return 'Фильм';
+    case 'OVA':
+      return 'OVA';
+    case 'SPECIAL':
+      return 'Спецвыпуск';
+    default:
+      return 'Доп. часть';
+  }
+}
+
 export default function EpisodeList({
   animeId,
   trackingAnimeId,
@@ -28,155 +50,388 @@ export default function EpisodeList({
   currentEpisode,
   watchedUpTo = 0,
 }: EpisodeListProps) {
-  const [completedEpisodes, setCompletedEpisodes] = useState<number[]>([]);
-  useEffect(() => {
-    let active = true;
-    const refresh = () => communityRequest<{ episodes: number[] }>(`episodes?animeId=${trackingAnimeId}`)
-      .then(data => { if (active) setCompletedEpisodes(data.episodes); })
-      .catch(() => { if (active) setCompletedEpisodes([]); });
-    void refresh();
-    window.addEventListener('episode-completed', refresh);
-    return () => { active = false; window.removeEventListener('episode-completed', refresh); };
-  }, [trackingAnimeId]);
-  const count =
+  const currentCount =
     episodes && episodes > 0
       ? episodes
       : episodesAired && episodesAired > 0
         ? episodesAired
         : 0;
 
+  const [seasonData, setSeasonData] = useState<EpisodeSeasonsResponse>({
+    seasons: [],
+    extras: [],
+    partial: false,
+  });
+  const [activeTab, setActiveTab] = useState(seasonKey(trackingAnimeId));
+  const [completedEpisodes, setCompletedEpisodes] = useState<number[]>([]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
+    fetch(`/api/anime/${trackingAnimeId}/seasons`, {
+      signal: controller.signal,
+      cache: 'force-cache',
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Season API HTTP ${response.status}`);
+        return (await response.json()) as EpisodeSeasonsResponse;
+      })
+      .then((data) => {
+        if (!active) return;
+        setSeasonData(data);
+
+        const currentSeason = data.seasons.find((season) => season.isCurrent);
+        if (currentSeason) {
+          setActiveTab(seasonKey(currentSeason.id));
+        }
+      })
+      .catch((error) => {
+        if (!active || controller.signal.aborted) return;
+        console.warn('Season selector unavailable:', error);
+        setSeasonData({ seasons: [], extras: [], partial: true });
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [trackingAnimeId]);
+
+  const activeSeason = useMemo<EpisodeSeasonTab | null>(() => {
+    if (!activeTab.startsWith('season:')) return null;
+
+    const id = Number(activeTab.slice('season:'.length));
+    return seasonData.seasons.find((season) => season.id === id) ?? null;
+  }, [activeTab, seasonData.seasons]);
+
+  const selectedAnimeId = activeSeason?.id ?? trackingAnimeId;
+  const selectedAnimeSlug = activeSeason?.slug ?? String(animeId);
+  const selectedIsCurrent = selectedAnimeId === trackingAnimeId;
+
+  const episodeNumbers = useMemo(() => {
+    if (selectedIsCurrent) {
+      return Array.from({ length: currentCount }, (_, index) => index + 1);
+    }
+
+    return activeSeason?.episodes ?? [];
+  }, [activeSeason?.episodes, currentCount, selectedIsCurrent]);
+
+  const selectedCount = episodeNumbers.length;
+
+  useEffect(() => {
+    let active = true;
+
+    const refresh = () =>
+      communityRequest<{ episodes: number[] }>(
+        `episodes?animeId=${selectedAnimeId}`,
+      )
+        .then((data) => {
+          if (active) setCompletedEpisodes(data.episodes);
+        })
+        .catch(() => {
+          if (active) setCompletedEpisodes([]);
+        });
+
+    void refresh();
+    window.addEventListener('episode-completed', refresh);
+
+    return () => {
+      active = false;
+      window.removeEventListener('episode-completed', refresh);
+    };
+  }, [selectedAnimeId]);
+
   const groups = useMemo(
-    () => getEpisodeGroups(animeId, count),
-    [animeId, count],
+    () => getEpisodeGroups(selectedAnimeId, selectedCount),
+    [selectedAnimeId, selectedCount],
   );
 
   const focusEpisode = useMemo(() => {
-    if (currentEpisode && currentEpisode > 0) {
-      return Math.min(currentEpisode, count || currentEpisode);
+    if (selectedIsCurrent && currentEpisode && currentEpisode > 0) {
+      return Math.min(currentEpisode, selectedCount || currentEpisode);
     }
 
-    if (watchedUpTo > 0) {
-      return Math.min(watchedUpTo + 1, count || watchedUpTo + 1);
+    if (selectedIsCurrent && watchedUpTo > 0) {
+      return Math.min(watchedUpTo + 1, selectedCount || watchedUpTo + 1);
+    }
+
+    if (completedEpisodes.length > 0) {
+      const highestCompleted = Math.max(...completedEpisodes);
+      return Math.min(highestCompleted + 1, selectedCount || highestCompleted + 1);
     }
 
     return 1;
-  }, [count, currentEpisode, watchedUpTo]);
+  }, [
+    completedEpisodes,
+    currentEpisode,
+    selectedCount,
+    selectedIsCurrent,
+    watchedUpTo,
+  ]);
 
   const automaticGroupIndex = useMemo(
     () => findEpisodeGroupIndex(groups, focusEpisode),
     [focusEpisode, groups],
   );
 
-  const [selectedGroupIndex, setSelectedGroupIndex] = useState(
-    automaticGroupIndex,
-  );
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
-  useEffect(() => {
-    setSelectedGroupIndex(automaticGroupIndex);
-  }, [animeId, automaticGroupIndex]);
+  const selectedGroupIndex = useMemo(() => {
+    if (selectedGroupId) {
+      const manualIndex = groups.findIndex((group) => group.id === selectedGroupId);
+      if (manualIndex >= 0) return manualIndex;
+    }
 
-  if (count === 0 || groups.length === 0) {
-    return (
-      <div className="empty-state">
-        <span>Информация об эпизодах пока недоступна.</span>
-      </div>
-    );
-  }
+    return automaticGroupIndex;
+  }, [automaticGroupIndex, groups, selectedGroupId]);
 
   const activeGroup = groups[selectedGroupIndex] ?? groups[0];
-  const visibleEpisodes = Array.from(
-    { length: activeGroup.to - activeGroup.from + 1 },
-    (_, index) => activeGroup.from + index,
-  );
+  const visibleEpisodes = activeGroup
+    ? episodeNumbers.filter(
+        (episode) => episode >= activeGroup.from && episode <= activeGroup.to,
+      )
+    : [];
+
+  const hasSeasonTabs =
+    seasonData.seasons.length > 1 || seasonData.extras.length > 0;
+  const extrasActive = activeTab === 'extras';
 
   return (
     <div>
-      <div className="episode-list__meta">
-        {totalEpisodesKnown
-          ? `${count} эпизодов`
-          : `Вышло ${count} эпизодов`}
-
-        {groups.length > 1 && (
-          <span className="ml-2 text-white/35">
-            · показаны {activeGroup.from}–{activeGroup.to}
-          </span>
-        )}
-      </div>
-
-      {groups.length > 1 && (
-        <div className="mb-4">
+      {hasSeasonTabs && (
+        <div className="mb-5">
           <div className="mb-2 flex items-center justify-between gap-3">
             <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/45">
-              Части / арки
+              Сезоны и части
             </span>
-            <span className="text-xs text-white/35">
-              {selectedGroupIndex + 1} / {groups.length}
-            </span>
+
+            {seasonData.partial && (
+              <span className="text-[10px] text-amber-200/55">
+                часть связей загружается
+              </span>
+            )}
           </div>
 
           <div
             className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             role="tablist"
-            aria-label="Группы эпизодов"
+            aria-label="Сезоны аниме"
           >
-            {groups.map((group, index) => {
-              const active = index === selectedGroupIndex;
+            {seasonData.seasons.map((season) => {
+              const active = activeTab === seasonKey(season.id);
 
               return (
                 <button
-                  key={group.id}
+                  key={season.id}
                   type="button"
                   role="tab"
                   aria-selected={active}
-                  onClick={() => setSelectedGroupIndex(index)}
-                  className={`shrink-0 rounded-xl border px-3 py-2 text-left transition-colors ${
+                  onClick={() => {
+                    setActiveTab(seasonKey(season.id));
+                    setSelectedGroupId(null);
+                  }}
+                  className={`group min-w-[118px] shrink-0 rounded-xl border px-3.5 py-2.5 text-left transition-all duration-200 ${
                     active
-                      ? 'border-violet-400/60 bg-violet-500/20 text-white'
-                      : 'border-white/10 bg-white/[0.03] text-white/60 hover:border-violet-400/35 hover:text-white'
+                      ? 'border-violet-400/55 bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_22px_rgba(124,58,237,0.30)]'
+                      : 'border-slate-800/80 bg-slate-900/50 text-gray-400 hover:border-violet-400/35 hover:bg-slate-900/80 hover:text-white'
                   }`}
                 >
-                  <span className="block text-xs font-semibold">
-                    {group.kind === 'arc' ? group.title : `Серии ${group.title}`}
+                  <span className="block text-xs font-medium">{season.label}</span>
+                  <span
+                    className={`mt-1 block max-w-[155px] truncate text-[10px] ${
+                      active ? 'text-white/70' : 'text-white/35 group-hover:text-white/50'
+                    }`}
+                    title={season.title}
+                  >
+                    {season.title}
                   </span>
-                  {group.kind === 'arc' && (
-                    <span className="mt-0.5 block text-[10px] text-white/40">
-                      {group.from}–{group.to}
-                    </span>
-                  )}
+                  <span
+                    className={`mt-1 block text-[9px] ${
+                      active ? 'text-white/60' : 'text-white/25'
+                    }`}
+                  >
+                    {season.episodes.length > 0
+                      ? `${season.episodes.length} эп.`
+                      : 'эпизоды уточняются'}
+                    {season.year ? ` · ${season.year}` : ''}
+                  </span>
                 </button>
               );
             })}
+
+            {seasonData.extras.length > 0 && (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={extrasActive}
+                onClick={() => {
+                  setActiveTab('extras');
+                  setSelectedGroupId(null);
+                }}
+                className={`min-w-[128px] shrink-0 rounded-xl border px-3.5 py-2.5 text-left transition-all duration-200 ${
+                  extrasActive
+                    ? 'border-violet-400/55 bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_22px_rgba(124,58,237,0.30)]'
+                    : 'border-slate-800/80 bg-slate-900/50 text-gray-400 hover:border-violet-400/35 hover:bg-slate-900/80 hover:text-white'
+                }`}
+              >
+                <span className="block text-xs font-medium">Фильмы / OVA</span>
+                <span className="mt-1 block text-[10px] text-current opacity-60">
+                  {seasonData.extras.length} частей
+                </span>
+              </button>
+            )}
           </div>
         </div>
       )}
 
-      <div className="episode-list">
-        {visibleEpisodes.map((number) => {
-          const isCurrent = number === currentEpisode;
-          const isWatched = !isCurrent && completedEpisodes.includes(number);
-
-          const className = [
-            'episode-list__item',
-            isCurrent ? 'is-current' : '',
-            isWatched ? 'is-watched' : '',
-          ]
-            .filter(Boolean)
-            .join(' ');
-
-          return (
+      {extrasActive ? (
+        <ExtrasGrid items={seasonData.extras} />
+      ) : selectedCount === 0 || groups.length === 0 || !activeGroup ? (
+        <div className="empty-state">
+          <span>Информация об эпизодах этого сезона пока недоступна.</span>
+          {activeSeason && !selectedIsCurrent && (
             <Link
-              key={number}
-              href={`/anime/${animeId}/episode/${number}`}
+              href={`/anime/${activeSeason.slug}`}
               prefetch={false}
-              className={className}
+              className="mt-3 inline-flex rounded-lg border border-violet-400/30 bg-violet-500/10 px-3 py-2 text-xs font-semibold text-violet-200 transition hover:bg-violet-500/20"
             >
-              <span className="episode-list__number">{number}</span>
-              <span className="episode-list__label">Серия {number}</span>
-              {isWatched && <span className="episode-list__check">✓</span>}
+              Открыть сезон
             </Link>
-          );
-        })}
-      </div>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="episode-list__meta">
+            {selectedIsCurrent && !totalEpisodesKnown
+              ? `Вышло ${selectedCount} эпизодов`
+              : `${selectedCount} эпизодов`}
+
+            {activeSeason && (
+              <span className="ml-2 text-white/35">
+                · {activeSeason.label}
+              </span>
+            )}
+
+            {groups.length > 1 && (
+              <span className="ml-2 text-white/35">
+                · показаны {activeGroup.from}–{activeGroup.to}
+              </span>
+            )}
+          </div>
+
+          {groups.length > 1 && (
+            <div className="mb-4">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/45">
+                  Части / арки
+                </span>
+                <span className="text-xs text-white/35">
+                  {selectedGroupIndex + 1} / {groups.length}
+                </span>
+              </div>
+
+              <div
+                className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                role="tablist"
+                aria-label="Группы эпизодов"
+              >
+                {groups.map((group, index) => {
+                  const active = index === selectedGroupIndex;
+
+                  return (
+                    <button
+                      key={group.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setSelectedGroupId(group.id)}
+                      className={`shrink-0 rounded-xl border px-3 py-2 text-left transition-colors ${
+                        active
+                          ? 'border-violet-400/60 bg-violet-500/20 text-white'
+                          : 'border-white/10 bg-white/[0.03] text-white/60 hover:border-violet-400/35 hover:text-white'
+                      }`}
+                    >
+                      <span className="block text-xs font-semibold">
+                        {group.kind === 'arc' ? group.title : `Серии ${group.title}`}
+                      </span>
+                      {group.kind === 'arc' && (
+                        <span className="mt-0.5 block text-[10px] text-white/40">
+                          {group.from}–{group.to}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="episode-list">
+            {visibleEpisodes.map((number) => {
+              const isCurrent =
+                selectedIsCurrent && number === currentEpisode;
+              const isWatched =
+                !isCurrent && completedEpisodes.includes(number);
+
+              const className = [
+                'episode-list__item',
+                isCurrent ? 'is-current' : '',
+                isWatched ? 'is-watched' : '',
+              ]
+                .filter(Boolean)
+                .join(' ');
+
+              return (
+                <Link
+                  key={number}
+                  href={`/anime/${selectedAnimeSlug}/episode/${number}`}
+                  prefetch={false}
+                  className={className}
+                >
+                  <span className="episode-list__number">{number}</span>
+                  <span className="episode-list__label">Серия {number}</span>
+                  {isWatched && (
+                    <span className="episode-list__check">✓</span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ExtrasGrid({ items }: { items: EpisodeExtraItem[] }) {
+  return (
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {items.map((item) => (
+        <Link
+          key={item.id}
+          href={`/anime/${item.slug}`}
+          prefetch={false}
+          className="group rounded-xl border border-white/10 bg-white/[0.03] p-3 transition-all hover:-translate-y-0.5 hover:border-violet-400/35 hover:bg-violet-500/[0.07]"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-violet-300/75">
+                {extraFormatLabel(item.format)}
+              </span>
+              <strong className="mt-1 block truncate text-sm text-white/85 group-hover:text-white">
+                {item.title}
+              </strong>
+            </div>
+
+            {item.year && (
+              <span className="shrink-0 text-[10px] text-white/30">
+                {item.year}
+              </span>
+            )}
+          </div>
+        </Link>
+      ))}
     </div>
   );
 }

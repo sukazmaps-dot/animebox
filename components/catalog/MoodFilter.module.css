@@ -1,0 +1,213 @@
+.root {
+  position: relative;
+  z-index: 45;
+  flex: 0 0 auto;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 11px 0 8px;
+  border: 1px solid rgba(138, 157, 188, 0.13);
+  border-radius: 9px;
+  background: rgba(11, 23, 38, 0.88);
+  color: #9aa7bb;
+  font-size: 10px;
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition:
+    color 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.trigger:hover,
+.triggerActive {
+  color: #f2efff;
+  border-color: rgba(151, 118, 255, 0.44);
+  background:
+    linear-gradient(135deg, rgba(83, 57, 153, 0.4), rgba(16, 20, 39, 0.9));
+  box-shadow: 0 0 18px rgba(118, 77, 245, 0.1);
+}
+
+.emoji {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  flex: 0 0 25px;
+  border-radius: 8px;
+  background: radial-gradient(circle, rgba(132, 93, 255, .14), transparent 72%);
+}
+
+.emojiImage {
+  display: block;
+  width: 25px;
+  height: 25px;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 0 5px rgba(142, 93, 255, .30));
+}
+
+.label {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  display: grid;
+  place-items: center;
+  color: #9f8ce9;
+  transition: transform 160ms ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 9px);
+  left: 0;
+  width: 258px;
+  padding: 8px;
+  border: 1px solid rgba(151, 113, 255, 0.26);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 85% 0%, rgba(115, 72, 220, 0.13), transparent 42%),
+    linear-gradient(145deg, rgba(18, 17, 35, 0.96), rgba(9, 13, 26, 0.96));
+  box-shadow:
+    0 22px 60px rgba(0, 0, 0, 0.52),
+    0 0 34px rgba(111, 69, 219, 0.1);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-7px) scale(0.985);
+  transform-origin: top left;
+  transition:
+    opacity 150ms ease,
+    visibility 150ms ease,
+    transform 150ms ease;
+}
+
+.dropdownOpen {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.header {
+  display: grid;
+  gap: 3px;
+  padding: 7px 9px 10px;
+}
+
+.header strong {
+  color: #f4f1ff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.header span {
+  color: #756f8a;
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.options {
+  display: grid;
+  gap: 3px;
+}
+
+.option {
+  display: grid;
+  grid-template-columns: 35px minmax(0, 1fr) 18px;
+  align-items: center;
+  min-height: 42px;
+  width: 100%;
+  padding: 5px 8px 5px 6px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #c4c0d0;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.option:hover {
+  color: #fff;
+  background: rgba(116, 75, 205, 0.14);
+  transform: translateX(1px);
+}
+
+.optionActive {
+  color: #fff;
+  background: linear-gradient(90deg, rgba(123, 73, 238, 0.24), rgba(123, 73, 238, 0.05));
+}
+
+.optionEmoji {
+  display: grid;
+  place-items: center;
+  width: 31px;
+  height: 31px;
+  border-radius: 9px;
+  background: radial-gradient(circle, rgba(132, 93, 255, .13), transparent 73%);
+}
+
+.optionEmojiImage {
+  display: block;
+  width: 31px;
+  height: 31px;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 0 6px rgba(141, 91, 255, .25));
+  transition: transform 140ms ease, filter 140ms ease;
+}
+
+.option:hover .optionEmojiImage,
+.optionActive .optionEmojiImage {
+  transform: scale(1.06);
+  filter:
+    drop-shadow(0 0 7px rgba(157, 101, 255, .42))
+    saturate(1.06);
+}
+
+.check {
+  color: #ab8cff;
+  font-weight: 900;
+}
+
+@media (max-width: 600px) {
+  .label {
+    max-width: 128px;
+  }
+
+  .dropdown {
+    width: min(270px, calc(100vw - 28px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trigger,
+  .chevron,
+  .dropdown,
+  .option,
+  .optionEmojiImage {
+    transition: none;
+  }
+}

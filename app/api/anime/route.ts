@@ -6,6 +6,10 @@ import {
 import {
   getAnimesWithShikimori,
 } from '@/lib/combined-anime';
+import {
+  isCatalogMood,
+  rankAnimeByCatalogMood,
+} from '@/lib/catalog-moods';
 
 import type {
   GetAnimesOptions,
@@ -18,70 +22,67 @@ export const revalidate = 900;
 export async function GET(
   request: NextRequest,
 ) {
-  const params =
-    request.nextUrl.searchParams;
+  const params = request.nextUrl.searchParams;
 
-  const limit = Number.parseInt(
+  const requestedLimit = Number.parseInt(
     params.get('limit') ?? '20',
     10,
   );
 
-  const page = Number.parseInt(
+  const requestedPage = Number.parseInt(
     params.get('page') ?? '1',
     10,
   );
 
-  const orderRaw =
-    params.get('order');
+  const limit = Number.isFinite(requestedLimit)
+    ? Math.min(50, Math.max(1, requestedLimit))
+    : 20;
 
-  const search =
-    params.get('search') ??
-    undefined;
+  const page = Number.isFinite(requestedPage)
+    ? Math.max(1, requestedPage)
+    : 1;
 
-  const status =
-    params.get('status') ===
-    'ongoing'
-      ? 'ongoing'
-      : undefined;
+  const orderRaw = params.get('order');
+  const search = params.get('search') ?? undefined;
 
-  const genreRaw =
-    params.get('genre');
+  const status = params.get('status') === 'ongoing'
+    ? 'ongoing'
+    : undefined;
+
+  const genreRaw = params.get('genre');
+  const moodRaw = params.get('mood');
+  const mood = isCatalogMood(moodRaw) ? moodRaw : 'any';
+
+  /*
+   * Mood is a second ranking axis, not a fake genre. When it is active we
+   * retrieve a wider candidate pool, keep AniList/Shikimori genre filtering,
+   * then rerank those candidates by atmosphere. This lets combinations like
+   * "Drama + Стекло" work without mixing mood IDs into genre IDs.
+   */
+  const upstreamLimit = mood === 'any'
+    ? limit
+    : Math.min(50, Math.max(limit * 3, 30));
 
   const options: GetAnimesOptions = {
-    limit:
-      Number.isFinite(limit)
-        ? limit
-        : 20,
-
-    page:
-      Number.isFinite(page)
-        ? page
-        : 1,
-
+    limit: upstreamLimit,
+    page,
     order:
       orderRaw === 'popularity'
         ? ('popularity' as AniListListOrder)
         : 'ranked',
-
     status,
     search,
-    genre:
-      genreRaw ?? undefined,
+    genre: genreRaw ?? undefined,
   };
 
   try {
-    const anime =
-      await getAnimesWithShikimori(
-        options,
-      );
+    const candidates = await getAnimesWithShikimori(options);
+    const anime = rankAnimeByCatalogMood(candidates, mood).slice(0, limit);
 
     return NextResponse.json(
       { anime },
       {
         headers: {
-          // Браузер: 5 минут
-          // CDN/server cache: 15 минут
-          // stale: ещё 1 час
           'Cache-Control':
             search?.trim()
               ? 'private, max-age=60, stale-while-revalidate=120'
@@ -90,15 +91,11 @@ export async function GET(
       },
     );
   } catch (error) {
-    console.error(
-      'Anime list API error:',
-      error,
-    );
+    console.error('Anime list API error:', error);
 
     return NextResponse.json(
       {
-        error:
-          'Не удалось загрузить список аниме',
+        error: 'Не удалось загрузить список аниме',
       },
       { status: 502 },
     );

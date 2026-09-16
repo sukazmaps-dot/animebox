@@ -968,6 +968,9 @@ export type AniListFranchiseMedia = {
     | string
     | null;
 
+  episodes:
+    number | null;
+
   title:
     AniListFranchiseTitle;
 
@@ -1008,6 +1011,7 @@ const FRANCHISE_RELATIONS_QUERY = `
       idMal
       type
       format
+      episodes
 
       title {
         romaji
@@ -1039,6 +1043,7 @@ const FRANCHISE_RELATIONS_QUERY = `
             idMal
             type
             format
+            episodes
 
             title {
               romaji
@@ -1082,6 +1087,8 @@ type AniListRelationsResponse = {
         | string
         | null;
 
+      episodes?: number | null;
+
       title?: {
         romaji?: string | null;
         english?: string | null;
@@ -1123,6 +1130,8 @@ type AniListRelationsResponse = {
             format?:
               | string
               | null;
+
+            episodes?: number | null;
 
             title?: {
               romaji?: string | null;
@@ -1207,6 +1216,8 @@ function mapFranchiseMedia(
       | string
       | null;
 
+    episodes?: number | null;
+
     title?: {
       romaji?: string | null;
       english?: string | null;
@@ -1256,6 +1267,11 @@ function mapFranchiseMedia(
     format:
       media.format ??
       null,
+
+    episodes:
+      typeof media.episodes === 'number' && media.episodes > 0
+        ? media.episodes
+        : null,
 
     title: {
       romaji:

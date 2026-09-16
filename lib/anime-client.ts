@@ -2,6 +2,7 @@ import type { Anime } from '@/types/anime';
 import type {
   GetAnimesOptions,
 } from '@/lib/anilist';
+import type { CatalogMood } from '@/lib/catalog-moods';
 
 type CacheEntry<T> = {
   data: T;
@@ -54,8 +55,12 @@ function writeCache<T>(
   return data;
 }
 
+export type ClientAnimeListOptions = GetAnimesOptions & {
+  mood?: CatalogMood;
+};
+
 export async function getAnimes(
-  options: GetAnimesOptions = {},
+  options: ClientAnimeListOptions = {},
   fetchOptions?: {
     signal?: AbortSignal;
   },
@@ -84,6 +89,10 @@ export async function getAnimes(
 
   if (options.genre != null) {
     params.set('genre', String(options.genre));
+  }
+
+  if (options.mood && options.mood !== 'any') {
+    params.set('mood', options.mood);
   }
 
   const queryString = params.toString();

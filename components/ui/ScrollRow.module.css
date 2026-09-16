@@ -1,0 +1,136 @@
+.wrapper {
+  position: relative;
+  min-width: 0;
+}
+
+.track {
+  display: flex;
+  align-items: stretch;
+  gap: 13px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 3px 2px 13px;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 2px;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.track::-webkit-scrollbar {
+  display: none;
+}
+
+.track:focus-visible {
+  outline: 1px solid rgba(164, 137, 255, 0.34);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
+.track > * {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+.arrow {
+  position: absolute;
+  top: 43%;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(163, 130, 255, 0.56);
+  border-radius: 999px;
+  background:
+    linear-gradient(145deg, rgba(98, 63, 186, 0.84), rgba(25, 20, 49, 0.92));
+  color: #fff;
+  box-shadow:
+    0 0 0 1px rgba(196, 174, 255, 0.05) inset,
+    0 0 24px rgba(124, 78, 255, 0.27),
+    0 12px 36px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-50%) scale(0.86);
+  cursor: pointer;
+  transition:
+    opacity 180ms ease,
+    visibility 180ms ease,
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.arrowLeft {
+  left: 10px;
+}
+
+.arrowRight {
+  right: 10px;
+}
+
+.wrapper:hover .arrow,
+.wrapper:focus-within .arrow {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(-50%) scale(1);
+}
+
+.arrow:hover {
+  border-color: rgba(202, 181, 255, 0.92);
+  background:
+    linear-gradient(145deg, rgba(126, 83, 232, 0.96), rgba(48, 31, 91, 0.97));
+  box-shadow:
+    0 0 0 1px rgba(221, 209, 255, 0.08) inset,
+    0 0 30px rgba(139, 92, 246, 0.48),
+    0 14px 38px rgba(0, 0, 0, 0.42);
+}
+
+.arrow:active {
+  transform: translateY(-50%) scale(0.94);
+}
+
+.arrow:focus-visible {
+  outline: 2px solid rgba(210, 193, 255, 0.96);
+  outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+  .track {
+    gap: 10px;
+    margin-inline: -14px;
+    padding-inline: 14px;
+    scroll-padding-inline: 14px;
+  }
+
+  .arrow {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track {
+    scroll-behavior: auto;
+  }
+
+  .arrow {
+    transition: none;
+  }
+}
+
+/* Invisible IntersectionObserver hook after the last item. */
+.sentinel {
+  flex: 0 0 1px !important;
+  width: 1px;
+  height: 1px;
+  align-self: center;
+  pointer-events: none;
+  scroll-snap-align: none !important;
+}

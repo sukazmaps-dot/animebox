@@ -4,8 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import AnimeCard from '@/components/AnimeCard';
+import MoodFilter from '@/components/catalog/MoodFilter';
 import { getAnimes, isAbortError } from '@/lib/anime-client';
+import type { CatalogMood } from '@/lib/catalog-moods';
 import type { Anime } from '@/types/anime';
+
+import styles from './SearchCatalogClient.module.css';
 
 const GENRES = [
   { id: 1, russian: 'Экшен' },
@@ -20,7 +24,7 @@ const GENRES = [
   { id: 36, russian: 'Повседневность' },
   { id: 30, russian: 'Спорт' },
   { id: 37, russian: 'Сверхъестественное' },
-];
+] as const;
 
 export default function SearchCatalogClient({
   initialResults,
@@ -31,6 +35,7 @@ export default function SearchCatalogClient({
   const query = searchParams.get('search')?.trim() ?? '';
 
   const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
+  const [selectedMood, setSelectedMood] = useState<CatalogMood>('any');
   const [results, setResults] = useState<Anime[]>(initialResults);
   const [loading, setLoading] = useState(initialResults.length === 0);
   const [error, setError] = useState('');
@@ -40,10 +45,16 @@ export default function SearchCatalogClient({
   const [hasNextPage, setHasNextPage] = useState(initialResults.length >= 15);
 
   useEffect(() => {
-    // Skip only the first browser fetch: that exact catalogue state already came from SSR.
+    // Skip only the initial unfiltered browser request: SSR already supplied it.
     if (initialRenderRef.current) {
       initialRenderRef.current = false;
-      if (!query && selectedGenre === null && page === 1 && initialResults.length > 0) {
+      if (
+        !query &&
+        selectedGenre === null &&
+        selectedMood === 'any' &&
+        page === 1 &&
+        initialResults.length > 0
+      ) {
         return;
       }
     }
@@ -62,6 +73,7 @@ export default function SearchCatalogClient({
             limit: 15,
             order: 'ranked',
             genre: selectedGenre ?? undefined,
+            mood: selectedMood,
           },
           { signal: controller.signal },
         );
@@ -81,18 +93,21 @@ export default function SearchCatalogClient({
 
     void load();
     return () => controller.abort();
-  }, [initialResults, page, query, selectedGenre]);
+  }, [initialResults, page, query, selectedGenre, selectedMood]);
+
+  const hasFilters = selectedGenre !== null || selectedMood !== 'any';
 
   return (
     <div className="search-page">
       <div className="page-heading">
         <h1>Каталог аниме</h1>
-        <p>Ищи тайтлы по названию или жанру и добавляй их в свой трекер</p>
+        <p>Ищи тайтлы по названию, жанру и атмосфере — и добавляй их в свой трекер</p>
       </div>
 
-      <div className="genre-row">
+      <div className={styles.filterBar}>
         <button
-          className={`genre-btn ${selectedGenre === null ? 'is-active' : ''}`}
+          type="button"
+          className={`genre-btn ${styles.allGenres} ${selectedGenre === null ? 'is-active' : ''}`}
           onClick={() => {
             setSelectedGenre(null);
             setPageState({ query, page: 1 });
@@ -101,24 +116,37 @@ export default function SearchCatalogClient({
           Все жанры
         </button>
 
-        {GENRES.map((genre) => (
-          <button
-            key={genre.id}
-            className={`genre-btn ${selectedGenre === genre.id ? 'is-active' : ''}`}
-            onClick={() => {
-              setSelectedGenre(genre.id);
-              setPageState({ query, page: 1 });
-            }}
-          >
-            {genre.russian}
-          </button>
-        ))}
+        <MoodFilter
+          value={selectedMood}
+          onChange={(mood) => {
+            setSelectedMood(mood);
+            setPageState({ query, page: 1 });
+          }}
+        />
+
+        <div className={styles.genreScroller} aria-label="Жанры аниме">
+          {GENRES.map((genre) => (
+            <button
+              key={genre.id}
+              type="button"
+              className={`genre-btn ${selectedGenre === genre.id ? 'is-active' : ''}`}
+              onClick={() => {
+                setSelectedGenre(genre.id);
+                setPageState({ query, page: 1 });
+              }}
+            >
+              {genre.russian}
+            </button>
+          ))}
+        </div>
+
+        <span className={styles.moodHint}>жанр + настроение работают вместе</span>
       </div>
 
       <section className="section">
         <div className="section-head">
           <h2 className="section-title">
-            {query || selectedGenre !== null ? 'Результаты поиска' : 'Популярное аниме'}
+            {query || hasFilters ? 'Результаты поиска' : 'Популярное аниме'}
           </h2>
           <span className="section-link">Страница {page}</span>
         </div>
@@ -143,13 +171,14 @@ export default function SearchCatalogClient({
         ) : (
           <div className="empty-state">
             <strong>Ничего не найдено</strong>
-            <span>Попробуй изменить запрос или выбрать другой жанр.</span>
+            <span>Попробуй изменить запрос, жанр или настроение.</span>
           </div>
         )}
 
         {!loading && results.length > 0 && (
           <div className="pagination">
             <button
+              type="button"
               disabled={page === 1}
               onClick={() => setPageState({ query, page: Math.max(1, page - 1) })}
             >
@@ -157,6 +186,7 @@ export default function SearchCatalogClient({
             </button>
             <span>Страница {page}</span>
             <button
+              type="button"
               disabled={!hasNextPage}
               onClick={() => setPageState({ query, page: page + 1 })}
             >

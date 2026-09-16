@@ -57,7 +57,8 @@ export default function MobileAccountNav({ pathname }: Props) {
     pathname.startsWith('/profile') ||
     pathname.startsWith('/favorites') ||
     pathname.startsWith('/schedule') ||
-    pathname.startsWith('/about');
+    pathname.startsWith('/about') ||
+    pathname.startsWith('/leaderboard');
 
   async function logout() {
     setOpen(false);
@@ -228,6 +229,19 @@ export default function MobileAccountNav({ pathname }: Props) {
                 <span>
                   <strong>Уведомления</strong>
                   <small>Новые серии в Telegram</small>
+                </span>
+                <Icon name="chevron" />
+              </Link>
+
+              <Link
+                href="/leaderboard"
+                className="mobile-account__link"
+                onClick={() => setOpen(false)}
+              >
+                <Icon name="trophy" />
+                <span>
+                  <strong>Лидерборд</strong>
+                  <small>Топ-100 по времени просмотра</small>
                 </span>
                 <Icon name="chevron" />
               </Link>

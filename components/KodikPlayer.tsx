@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 
 type KodikTimeSample = {
   positionSeconds: number;
@@ -15,6 +15,11 @@ export type KodikProviderSkipSignal = {
   origin?: string | null;
 };
 
+export type KodikPlayerHandle = {
+  play: () => void;
+  pause: () => void;
+};
+
 type Props = {
   src: string;
   title?: string;
@@ -23,6 +28,7 @@ type Props = {
   onReady?: () => void;
   onTimeUpdate?: (sample: KodikTimeSample) => void;
   onProviderSkip?: (signal: KodikProviderSkipSignal) => void;
+  onEnded?: () => void;
 };
 
 type KodikMessage = {
@@ -181,7 +187,7 @@ function readSkipKind(
   return null;
 }
 
-export default function KodikPlayer({
+const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
   src,
   title = 'Kodik Player',
   episodeNumber,
@@ -189,12 +195,15 @@ export default function KodikPlayer({
   onReady,
   onTimeUpdate,
   onProviderSkip,
-}: Props) {
+  onEnded,
+}, ref) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const durationRef = useRef<number | null>(null);
   const currentPositionRef = useRef<number | null>(null);
   const lastForcedEpisodeRef = useRef<number | null>(null);
   const resumeAppliedRef = useRef(false);
+  const endedFiredRef = useRef(false);
+  const pendingPlayRef = useRef(false);
 
   const playerSrc = useMemo(
     () => buildPlayerUrl(src, episodeNumber),
@@ -209,18 +218,61 @@ export default function KodikPlayer({
     }
   }, [playerSrc]);
 
+  const postApiCommand = useCallback((method: string, value: Record<string, unknown> = {}) => {
+    const frameWindow = iframeRef.current?.contentWindow;
+    if (!frameWindow) return;
+
+    frameWindow.postMessage(
+      {
+        key: 'kodik_player_api',
+        value: {
+          method,
+          ...value,
+        },
+      },
+      expectedOrigin || '*',
+    );
+  }, [expectedOrigin]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      play() {
+        pendingPlayRef.current = true;
+        postApiCommand('play');
+      },
+      pause() {
+        pendingPlayRef.current = false;
+        postApiCommand('pause');
+      },
+    }),
+    [postApiCommand],
+  );
+
   const handleLoad = useCallback(() => {
     onReady?.();
-  }, [onReady]);
+
+    if (pendingPlayRef.current) {
+      postApiCommand('play');
+    }
+  }, [onReady, postApiCommand]);
 
   useEffect(() => {
     durationRef.current = null;
     currentPositionRef.current = null;
     lastForcedEpisodeRef.current = null;
     resumeAppliedRef.current = false;
+    endedFiredRef.current = false;
+    pendingPlayRef.current = false;
   }, [playerSrc, resumeSeconds]);
 
   useEffect(() => {
+    function fireEndedOnce() {
+      if (endedFiredRef.current) return;
+      endedFiredRef.current = true;
+      onEnded?.();
+    }
+
     function forceRouteEpisode() {
       if (
         !iframeRef.current?.contentWindow ||
@@ -300,11 +352,31 @@ export default function KodikPlayer({
           resumeAppliedRef.current = true;
         }
 
+        const knownDuration = time.duration ?? durationRef.current;
+
         onTimeUpdate?.({
           positionSeconds: time.position,
-          durationSeconds: time.duration ?? durationRef.current,
+          durationSeconds: knownDuration,
           origin: event.origin || null,
         });
+
+        if (
+          knownDuration != null &&
+          knownDuration > 0 &&
+          time.position >= Math.max(0, knownDuration - 0.6)
+        ) {
+          fireEndedOnce();
+        }
+
+        return;
+      }
+
+      if (
+        key === 'kodik_player_ended' ||
+        key === 'kodik_player_end' ||
+        key === 'kodik_player_video_ended'
+      ) {
+        fireEndedOnce();
         return;
       }
 
@@ -370,7 +442,7 @@ export default function KodikPlayer({
     return () => {
       window.removeEventListener('message', onMessage);
     };
-  }, [episodeNumber, expectedOrigin, onProviderSkip, onTimeUpdate, resumeSeconds]);
+  }, [episodeNumber, expectedOrigin, onEnded, onProviderSkip, onTimeUpdate, resumeSeconds]);
 
   return (
     <>
@@ -386,4 +458,8 @@ export default function KodikPlayer({
 
     </>
   );
-}
+});
+
+KodikPlayer.displayName = 'KodikPlayer';
+
+export default KodikPlayer;

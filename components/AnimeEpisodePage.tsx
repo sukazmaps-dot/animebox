@@ -18,6 +18,7 @@ import EpisodeCompletion from '@/components/EpisodeCompletion';
 import AnimePlayer, { PlayerSource } from '@/components/AnimePlayer';
 import AnimeImage from '@/components/AnimeImage';
 import EpisodeList from '@/components/EpisodeList';
+import type { EpisodeSeasonTab, EpisodeSeasonsResponse } from '@/types/episode-seasons';
 
 type SourceApiResponse = {
   episodes?: number[];
@@ -50,6 +51,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
   const [loadingSources, setLoadingSources] = useState(false);
   const [sourceMessage, setSourceMessage] = useState('');
   const [sourceIdentity, setSourceIdentity] = useState('');
+  const [seasonNavigation, setSeasonNavigation] = useState<EpisodeSeasonsResponse | null>(null);
 
   const availableEpisodes =
     providerEpisodes.reduce((max, episode) => Math.max(max, episode), Math.max(anime.episodes || 0, anime.episodesAired || 0)) || null;
@@ -286,15 +288,124 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
     };
   }, [anime, animeIdParam, episodeNumber]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
+    fetch(`/api/anime/${anime.id}/seasons`, {
+      signal: controller.signal,
+      cache: 'force-cache',
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`Season navigation HTTP ${response.status}`);
+        }
+
+        return (await response.json()) as EpisodeSeasonsResponse;
+      })
+      .then((data) => {
+        if (active) setSeasonNavigation(data);
+      })
+      .catch((error) => {
+        if (!active || controller.signal.aborted) return;
+        console.warn('Player season navigation unavailable:', error);
+        setSeasonNavigation(null);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [anime.id]);
+
+  const seasonRoute = useMemo(() => {
+    const seasons = seasonNavigation?.seasons ?? [];
+    const currentIndex = seasons.findIndex(
+      (season) => season.id === anime.id || season.isCurrent,
+    );
+
+    if (currentIndex < 0) {
+      return {
+        current: null as EpisodeSeasonTab | null,
+        previous: null as EpisodeSeasonTab | null,
+        next: null as EpisodeSeasonTab | null,
+      };
+    }
+
+    return {
+      current: seasons[currentIndex] ?? null,
+      previous: currentIndex > 0 ? seasons[currentIndex - 1] ?? null : null,
+      next:
+        currentIndex + 1 < seasons.length
+          ? seasons[currentIndex + 1] ?? null
+          : null,
+    };
+  }, [anime.id, seasonNavigation?.seasons]);
+
   const waitingForSources = loadingSources || sourceIdentity !== expectedSourceIdentity;
 
-  const hasPrev = episodeNumber > 1;
-  const hasNext = Boolean(
-    availableEpisodes && episodeNumber < availableEpisodes,
+  useEffect(() => {
+    if (seasonRoute.next?.slug && seasonRoute.next.episodes.length > 0) {
+      router.prefetch(`/anime/${seasonRoute.next.slug}/episode/1`);
+    }
+
+    const previousLastEpisode = seasonRoute.previous?.episodes.at(-1);
+    if (seasonRoute.previous?.slug && previousLastEpisode) {
+      router.prefetch(
+        `/anime/${seasonRoute.previous.slug}/episode/${previousLastEpisode}`,
+      );
+    }
+  }, [router, seasonRoute.next, seasonRoute.previous]);
+
+  const currentSeasonEpisodes = Math.max(
+    availableEpisodes ?? 0,
+    seasonRoute.current?.episodes.length ?? 0,
   );
+
+  const previousSeasonLastEpisode =
+    seasonRoute.previous?.episodes.at(-1) ?? null;
+
+  const nextSeasonFirstEpisode =
+    seasonRoute.next && seasonRoute.next.episodes.length > 0 ? 1 : null;
+
+  const atFirstEpisode = episodeNumber <= 1;
+  const atLastKnownEpisode =
+    currentSeasonEpisodes > 0 && episodeNumber >= currentSeasonEpisodes;
+
+  const hasPrev =
+    episodeNumber > 1 ||
+    Boolean(seasonRoute.previous && previousSeasonLastEpisode);
+
+  const hasNext =
+    (currentSeasonEpisodes > 0 && episodeNumber < currentSeasonEpisodes) ||
+    Boolean(seasonRoute.next && nextSeasonFirstEpisode);
 
   const goToEpisode = (number: number) => {
     router.push(`/anime/${animeIdParam}/episode/${number}`);
+  };
+
+  const goToPrevious = () => {
+    if (episodeNumber > 1) {
+      goToEpisode(episodeNumber - 1);
+      return;
+    }
+
+    if (seasonRoute.previous && previousSeasonLastEpisode) {
+      router.push(
+        `/anime/${seasonRoute.previous.slug}/episode/${previousSeasonLastEpisode}`,
+      );
+    }
+  };
+
+  const goToNext = () => {
+    if (currentSeasonEpisodes > 0 && episodeNumber < currentSeasonEpisodes) {
+      goToEpisode(episodeNumber + 1);
+      return;
+    }
+
+    if (seasonRoute.next && nextSeasonFirstEpisode) {
+      router.push(`/anime/${seasonRoute.next.slug}/episode/1`);
+    }
   };
 
   const title = getAnimeTitle(anime);
@@ -341,8 +452,11 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
           sources={sources}
           hasPrev={hasPrev}
           hasNext={hasNext}
-          onPrev={() => goToEpisode(episodeNumber - 1)}
-          onNext={() => goToEpisode(episodeNumber + 1)}
+          prevLabel={atFirstEpisode && seasonRoute.previous ? 'Пред. сезон' : 'Пред. серия'}
+          nextLabel={atLastKnownEpisode && seasonRoute.next ? 'След. сезон' : 'След. серия'}
+          onPrev={goToPrevious}
+          onNext={goToNext}
+          onEnded={hasNext ? goToNext : undefined}
           onEpisodeChange={goToEpisode}
         />
       )}
