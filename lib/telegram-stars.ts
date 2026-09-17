@@ -19,24 +19,40 @@ export type ParsedSupportPayload = {
   createdAt: number;
 };
 
+export type TelegramStarPartnerUser = {
+  type: 'user';
+  transaction_type?: string;
+  user?: { id?: number };
+  invoice_payload?: string;
+};
+
+export type TelegramStarTransaction = {
+  id: string;
+  amount: number;
+  date: number;
+  source?: TelegramStarPartnerUser | { type?: string; [key: string]: unknown };
+  receiver?: TelegramStarPartnerUser | { type?: string; [key: string]: unknown };
+};
+
+export type TelegramStarAmount = {
+  amount: number;
+  nanostar_amount?: number;
+};
+
 function isAllowedAmount(value: number): value is SupportStarAmount {
-  return SUPPORT_STAR_PACKS.some(
-    (pack) => pack.amount === value,
-  );
+  return SUPPORT_STAR_PACKS.some((pack) => pack.amount === value);
 }
 
 async function callTelegramApi<T>(
   botToken: string,
   method: string,
-  body: Record<string, unknown>,
+  body: Record<string, unknown> = {},
 ): Promise<T> {
   const response = await fetch(
     `https://api.telegram.org/bot${botToken}/${method}`,
     {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       cache: 'no-store',
     },
@@ -46,8 +62,7 @@ async function callTelegramApi<T>(
 
   if (!response.ok || !data.ok || data.result === undefined) {
     throw new Error(
-      data.description ||
-        `Telegram ${method} failed with HTTP ${response.status}`,
+      data.description || `Telegram ${method} failed with HTTP ${response.status}`,
     );
   }
 
@@ -72,9 +87,7 @@ export function createSupportPayload({
   return `animebox_support:v1:${amount}:${safeTelegramId}:${createdAt}:${nonce}`;
 }
 
-export function parseSupportPayload(
-  payload: unknown,
-): ParsedSupportPayload | null {
+export function parseSupportPayload(payload: unknown): ParsedSupportPayload | null {
   if (typeof payload !== 'string') return null;
 
   const match = payload.match(
@@ -97,11 +110,7 @@ export function parseSupportPayload(
     return null;
   }
 
-  return {
-    amount,
-    telegramId,
-    createdAt,
-  };
+  return { amount, telegramId, createdAt };
 }
 
 export async function createSupportInvoiceLink({
@@ -113,33 +122,18 @@ export async function createSupportInvoiceLink({
   amount: SupportStarAmount;
   telegramId?: number | null;
 }) {
-  const payload = createSupportPayload({
-    amount,
-    telegramId,
+  const payload = createSupportPayload({ amount, telegramId });
+
+  const invoiceUrl = await callTelegramApi<string>(botToken, 'createInvoiceLink', {
+    title: 'Поддержка AnimeBox',
+    description:
+      'Добровольная поддержка развития AnimeBox. Платёж не открывает платные функции.',
+    payload,
+    currency: 'XTR',
+    prices: [{ label: 'Поддержка AnimeBox', amount }],
   });
 
-  const invoiceUrl = await callTelegramApi<string>(
-    botToken,
-    'createInvoiceLink',
-    {
-      title: 'Поддержка AnimeBox',
-      description:
-        'Добровольная поддержка развития AnimeBox. Платёж не открывает платные функции.',
-      payload,
-      currency: 'XTR',
-      prices: [
-        {
-          label: 'Поддержка AnimeBox',
-          amount,
-        },
-      ],
-    },
-  );
-
-  return {
-    invoiceUrl,
-    payload,
-  };
+  return { invoiceUrl, payload };
 }
 
 export async function answerSupportPreCheckout({
@@ -153,19 +147,47 @@ export async function answerSupportPreCheckout({
   ok: boolean;
   errorMessage?: string;
 }) {
-  return callTelegramApi<boolean>(
+  return callTelegramApi<boolean>(botToken, 'answerPreCheckoutQuery', {
+    pre_checkout_query_id: queryId,
+    ok,
+    ...(ok
+      ? {}
+      : {
+          error_message:
+            errorMessage ||
+            'Не удалось подтвердить платёж AnimeBox. Попробуй ещё раз.',
+        }),
+  });
+}
+
+export async function getMyStarBalance(botToken: string) {
+  return callTelegramApi<TelegramStarAmount>(botToken, 'getMyStarBalance');
+}
+
+export async function getStarTransactions(
+  botToken: string,
+  { offset = 0, limit = 100 }: { offset?: number; limit?: number } = {},
+) {
+  const safeLimit = Math.max(1, Math.min(100, Math.floor(limit)));
+  const safeOffset = Math.max(0, Math.floor(offset));
+  return callTelegramApi<{ transactions: TelegramStarTransaction[] }>(
     botToken,
-    'answerPreCheckoutQuery',
-    {
-      pre_checkout_query_id: queryId,
-      ok,
-      ...(ok
-        ? {}
-        : {
-            error_message:
-              errorMessage ||
-              'Не удалось подтвердить платёж AnimeBox. Попробуй ещё раз.',
-          }),
-    },
+    'getStarTransactions',
+    { offset: safeOffset, limit: safeLimit },
   );
+}
+
+export async function refundStarPayment({
+  botToken,
+  userId,
+  telegramPaymentChargeId,
+}: {
+  botToken: string;
+  userId: number;
+  telegramPaymentChargeId: string;
+}) {
+  return callTelegramApi<boolean>(botToken, 'refundStarPayment', {
+    user_id: userId,
+    telegram_payment_charge_id: telegramPaymentChargeId,
+  });
 }

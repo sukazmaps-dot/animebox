@@ -25,7 +25,7 @@ export async function recordStarPayment({
     .eq('telegram_id', telegramId)
     .maybeSingle();
 
-  const { error } = await supabase
+  const { data: inserted, error } = await supabase
     .from('star_payments')
     .upsert(
       {
@@ -36,24 +36,34 @@ export async function recordStarPayment({
         currency: 'XTR',
         invoice_payload: invoicePayload,
         telegram_payment_charge_id: telegramPaymentChargeId,
-        provider_payment_charge_id:
-          providerPaymentChargeId || null,
+        provider_payment_charge_id: providerPaymentChargeId || null,
+        status: 'confirmed',
+        reconciliation_status: 'pending',
+        reconciliation_error: null,
       },
       {
         onConflict: 'telegram_payment_charge_id',
         ignoreDuplicates: true,
       },
-    );
+    )
+    .select('id')
+    .maybeSingle();
 
-  if (error) {
-    throw error;
+  if (error) throw error;
+
+  if (inserted?.id) {
+    const { error: eventError } = await supabase.from('star_payment_events').insert({
+      payment_id: inserted.id,
+      event_type: 'payment_received',
+      details: { source: 'telegram_webhook', amount, telegram_id: telegramId },
+    });
+    if (eventError) {
+      console.error('[AnimeBox Stars] failed to record payment event', eventError);
+    }
   }
 
-  return {
-    userId: profile?.id ?? null,
-  };
+  return { userId: profile?.id ?? null };
 }
-
 
 export async function recordPaymentSupportRequest({
   telegramId,
@@ -66,16 +76,12 @@ export async function recordPaymentSupportRequest({
 }) {
   const supabase = createSupabaseAdmin();
 
-  const { error } = await supabase
-    .from('payment_support_requests')
-    .insert({
-      telegram_id: telegramId,
-      chat_id: chatId,
-      message,
-      status: 'open',
-    });
+  const { error } = await supabase.from('payment_support_requests').insert({
+    telegram_id: telegramId,
+    chat_id: chatId,
+    message,
+    status: 'open',
+  });
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 }
