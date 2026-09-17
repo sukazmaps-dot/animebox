@@ -1,9 +1,8 @@
-import { userClient, adminClient, response, failure, ApiError } from '@/lib/community-server';
+import { adminClient, response, failure, ApiError } from '@/lib/community-server';
+import { requireAdmin } from '@/lib/admin-server';
 export async function GET(request: Request) {
  try {
-  const {user}=await userClient();
-  const allowed=(process.env.MONETIZATION_ADMIN_IDS??'').split(',').map(x=>x.trim()).filter(Boolean);
-  if(!allowed.includes(user.id)) throw new ApiError(403,'Нет доступа к панели монетизации.');
+  await requireAdmin(['owner','admin']);
   const page=Number(new URL(request.url).searchParams.get('page')??1);
   if(!Number.isInteger(page)||page<1||page>10000) throw new ApiError(400,'Некорректная страница.');
   const admin=adminClient();

@@ -10,6 +10,7 @@ import {
   ApiError,
 } from '@/lib/community-server';
 import { getSponsorStatuses } from '@/lib/sponsor-server';
+import { assertCanComment } from '@/lib/admin-server';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -195,7 +196,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { client } = await userClient();
+    const { client, user } = await userClient();
+    await assertCanComment(user.id);
     const body = await readBody(request);
     const id = positiveInteger(body.animeId);
 

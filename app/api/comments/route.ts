@@ -8,6 +8,7 @@ import {
 } from '@/lib/supabase/server';
 import { adminClient } from '@/lib/community-server';
 import { getSponsorStatuses } from '@/lib/sponsor-server';
+import { assertCanComment } from '@/lib/admin-server';
 
 const MAX_COMMENT_LENGTH = 4000;
 
@@ -491,6 +492,8 @@ export async function POST(
         },
       );
     }
+
+    await assertCanComment(user.id);
 
 
     /* =====================================================
