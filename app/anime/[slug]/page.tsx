@@ -17,9 +17,12 @@ import { resolveAnimeRoute } from '@/lib/anime-route';
 import { animeHref } from '@/lib/anime-url';
 import { createImageCascade } from '@/lib/image-cascade';
 import { cleanShikimoriDescription } from '@/lib/shikimori-text';
-import { cleanSeoText, truncateSeoText } from '@/lib/seo-text';
 import { SITE_URL } from '@/lib/seo-config';
-import { getAnimeTitle } from '@/lib/anime-display';
+import {
+  buildAnimeMetadata,
+  buildAnimeStructuredData,
+  getAnimeSeoIdentity,
+} from '@/lib/anime-seo';
 
 import type { Anime } from '@/types/anime';
 
@@ -34,38 +37,6 @@ type PageProps = {
 const getResolvedAnime = cache(
   async (slug: string) => resolveAnimeRoute(slug),
 );
-
-function seoDescription(anime: Anime): string {
-  const title = getAnimeTitle(anime);
-  const cleaned = cleanSeoText(cleanShikimoriDescription(anime.description));
-
-  const facts = [
-    anime.episodes && anime.episodes > 0 ? `${anime.episodes} серий` : null,
-    anime.startDate?.year ? String(anime.startDate.year) : null,
-    anime.genres?.slice(0, 2).join(', ') || null,
-  ].filter((value): value is string => Boolean(value));
-
-  const intro = `Смотреть «${title}» онлайн на AnimeBox.`;
-  const details = facts.length ? ` ${facts.join(' · ')}.` : '';
-  const fallback =
-    'Описание, рейтинг, список серий, похожие аниме и сохранение прогресса просмотра.';
-
-  return truncateSeoText(
-    `${intro}${details} ${cleaned || fallback}`,
-    158,
-  );
-}
-
-function structuredDate(date?: Anime['startDate']): string | undefined {
-  if (!date?.year) {
-    return undefined;
-  }
-
-  const month = String(date.month ?? 1).padStart(2, '0');
-  const day = String(date.day ?? 1).padStart(2, '0');
-
-  return `${date.year}-${month}-${day}`;
-}
 
 export async function generateMetadata({
   params,
@@ -84,64 +55,8 @@ export async function generateMetadata({
     };
   }
 
-  const title = getAnimeTitle(anime);
-  const canonicalPath = animeHref(anime);
-  const canonicalUrl = new URL(canonicalPath, SITE_URL).toString();
-  const description = seoDescription(anime);
-
-  const genres = Array.isArray(anime.genres)
-    ? anime.genres.filter(
-        (genre): genre is string =>
-          typeof genre === 'string' && genre.trim().length > 0,
-      )
-    : [];
-
-  return {
-    title: `${title} — смотреть и отслеживать`,
-    description,
-
-    alternates: {
-      canonical: canonicalUrl,
-    },
-
-    keywords: [
-      title,
-      `${title} смотреть`,
-      `${title} аниме`,
-      `${title} серии`,
-      'AnimeBox',
-      'аниме онлайн',
-      'аниме трекер',
-      ...genres,
-    ],
-
-    openGraph: {
-      type: 'website',
-      url: canonicalUrl,
-      siteName: 'AnimeBox',
-      locale: 'ru_RU',
-      title: `${title} — смотреть и отслеживать | AnimeBox`,
-      description,
-    },
-
-    twitter: {
-      card: 'summary_large_image',
-      title: `${title} | AnimeBox`,
-      description,
-    },
-
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        'max-image-preview': 'large',
-        'max-snippet': -1,
-        'max-video-preview': -1,
-      },
-    },
-  };
+  const canonicalUrl = new URL(animeHref(anime), SITE_URL).toString();
+  return buildAnimeMetadata(anime, canonicalUrl);
 }
 
 
@@ -420,79 +335,24 @@ export default async function AnimePage({
   const canonicalUrl =
     `${SITE_URL}${animeHref(resolved)}`;
 
-  const title =
-    getAnimeTitle(resolved);
+  const seoIdentity =
+    getAnimeSeoIdentity(resolved);
 
-  const description =
-    seoDescription(resolved);
+  const visibleAlternateNames =
+    seoIdentity.aliases
+      .filter((value) =>
+        !seoIdentity.generatedAliases.some(
+          (generated) => generated.toLocaleLowerCase('ru-RU') === value.toLocaleLowerCase('ru-RU'),
+        ),
+      )
+      .slice(0, 4);
 
-  const alternateNames =
-    Array.from(new Set([
-      resolved.title.russian,
-      resolved.title.english,
-      resolved.title.romaji,
-      resolved.title.native,
-    ]))
-      .filter(
-        (value): value is string =>
-          typeof value === 'string' &&
-          value.trim().length > 0 &&
-          value.trim() !== title,
-      );
-
-  const schemaType =
-    resolved.format === 'MOVIE' ||
-    resolved.format === 'Фильм'
-      ? 'Movie'
-      : 'TVSeries';
-
-  const animeStructuredData = {
-    '@context':
-      'https://schema.org',
-
-    '@type':
-      schemaType,
-
-    name:
-      title,
-
-    alternateName:
-      alternateNames.length
-        ? alternateNames
-        : undefined,
-
-    description:
-      description,
-
-    url:
+  const animeStructuredData =
+    buildAnimeStructuredData(
+      resolved,
       canonicalUrl,
-
-    image:
-      imageCascade.banner ||
-      imageCascade.posters[0] ||
-      undefined,
-
-    genre:
-      resolved.genres.length
-        ? resolved.genres
-        : undefined,
-
-    datePublished:
-      structuredDate(
-        resolved.startDate,
-      ),
-
-    numberOfEpisodes:
-      episodesCount ||
-      undefined,
-
-    sameAs:
-      resolved.idMal
-        ? [
-            `https://myanimelist.net/anime/${resolved.idMal}`,
-          ]
-        : undefined,
-  };
+      imageCascade.banner || imageCascade.posters[0] || null,
+    );
 
   const breadcrumbStructuredData = {
     '@context':
@@ -518,7 +378,7 @@ export default async function AnimePage({
         position:
           2,
         name:
-          title,
+          seoIdentity.pageHeading,
         item:
           canonicalUrl,
       },
@@ -782,6 +642,16 @@ export default async function AnimePage({
               </div>
 
 
+              {/* SEO-friendly season context without changing canonical URLs. */}
+
+              {seoIdentity.seasonLabel && (
+                <div className="mb-3">
+                  <span className="inline-flex rounded-full border border-violet-400/25 bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-200">
+                    {seoIdentity.seasonLabel}
+                  </span>
+                </div>
+              )}
+
               {/* Название */}
 
               <h1
@@ -793,8 +663,7 @@ export default async function AnimePage({
                   md:text-5xl
                 "
               >
-                {anime.russian ||
-                  anime.name}
+                {seoIdentity.pageHeading}
               </h1>
 
 
@@ -817,6 +686,13 @@ export default async function AnimePage({
                   </p>
 
                 )}
+
+              {visibleAlternateNames.length > 0 && (
+                <p className="mt-3 max-w-3xl text-xs leading-5 text-white/35 md:text-sm">
+                  <span className="text-white/50">Другие названия:</span>{' '}
+                  {visibleAlternateNames.join(' · ')}
+                </p>
+              )}
 
 
               {/* Описание */}

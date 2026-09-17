@@ -151,6 +151,7 @@ const LIST_QUERY = `
           english
           native
         }
+        synonyms
         averageScore
         episodes
         nextAiringEpisode { episode }
@@ -231,6 +232,15 @@ function mapMediaToAnime(
 
       russian: null,
     },
+
+    synonyms:
+      Array.isArray(media.synonyms)
+        ? media.synonyms
+            .filter((value: unknown): value is string =>
+              typeof value === 'string' && Boolean(value.trim()),
+            )
+            .map((value: string) => value.trim())
+        : [],
 
     description:
       cleanDescription(
@@ -616,6 +626,7 @@ const SINGLE_QUERY = `
         english
         native
       }
+      synonyms
       coverImage {
         extraLarge
         large
@@ -728,6 +739,7 @@ const BY_ID_QUERY = `
         english
         native
       }
+      synonyms
       description(asHtml: false)
       averageScore
       episodes

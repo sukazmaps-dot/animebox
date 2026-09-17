@@ -1,13 +1,99 @@
+import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
+
+import AnimeEpisodePage from '@/components/AnimeEpisodePage';
+import { getAnimeSeoIdentity } from '@/lib/anime-seo';
 import { resolveAnimeRoute } from '@/lib/anime-route';
 import { animeHref } from '@/lib/anime-url';
-import AnimeEpisodePage from '@/components/AnimeEpisodePage';
-export default async function EpisodePage({ params }: { params: Promise<{ slug: string; episode: string }> }) {
+import { isEpisodeIndexable } from '@/lib/episode-seo';
+import { SITE_URL } from '@/lib/seo-config';
+
+const parseEpisode = (value: string): number | null => {
+  const number = Number(value);
+  return Number.isSafeInteger(number) && number > 0 ? number : null;
+};
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string; episode: string }>;
+}): Promise<Metadata> {
   const { slug, episode } = await params;
-  const number = Number(episode);
-  if (!Number.isSafeInteger(number) || number < 1) notFound();
+  const number = parseEpisode(episode);
+  const anime = number ? await resolveAnimeRoute(slug) : null;
+
+  if (!anime || !number) {
+    return {
+      title: 'Серия не найдена',
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const identity = getAnimeSeoIdentity(anime);
+  const canonical = `${SITE_URL}${animeHref(anime)}/episode/${number}`;
+  const index = await isEpisodeIndexable(anime.id, number);
+  const title = `${identity.pageHeading} — ${number} серия`;
+  const description = index
+    ? `${title}: доступная серия, плеер, комментарии и сохранение прогресса просмотра на AnimeBox.`
+    : `${title}: страница серии AnimeBox.`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      type: 'video.episode',
+      url: canonical,
+      siteName: 'AnimeBox',
+      locale: 'ru_RU',
+      title: `${title} | AnimeBox`,
+      description,
+      images: anime.bannerImage
+        ? [{ url: anime.bannerImage }]
+        : anime.coverImage?.extraLarge
+          ? [{ url: anime.coverImage.extraLarge }]
+          : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${title} | AnimeBox`,
+      description,
+      images: anime.bannerImage
+        ? [anime.bannerImage]
+        : anime.coverImage?.extraLarge
+          ? [anime.coverImage.extraLarge]
+          : undefined,
+    },
+    robots: {
+      index,
+      follow: true,
+      googleBot: {
+        index,
+        follow: true,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+        'max-video-preview': -1,
+      },
+    },
+  };
+}
+
+export default async function EpisodePage({
+  params,
+}: {
+  params: Promise<{ slug: string; episode: string }>;
+}) {
+  const { slug, episode } = await params;
+  const number = parseEpisode(episode);
+
+  if (!number) notFound();
+
   const anime = await resolveAnimeRoute(slug);
   if (!anime) notFound();
-  if (slug !== anime.slug) permanentRedirect(`${animeHref(anime)}/episode/${number}`);
+
+  if (slug !== anime.slug) {
+    permanentRedirect(`${animeHref(anime)}/episode/${number}`);
+  }
+
   return <AnimeEpisodePage key={anime.slug} anime={anime} requestedEpisode={number} />;
 }

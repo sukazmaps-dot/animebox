@@ -7,7 +7,7 @@ import {
 } from '@/lib/seo-config';
 
 const ANILIST_API_URL = 'https://graphql.anilist.co';
-const CACHE_SECONDS = 60 * 60 * 6;
+const CACHE_SECONDS = 60 * 60 * 12;
 const MAX_ATTEMPTS = 4;
 const BASE_RETRY_DELAY_MS = 1_500;
 const MAX_RETRY_DELAY_MS = 15_000;
@@ -65,7 +65,7 @@ function buildShardQuery(shard: number): string {
             type: ANIME
             isAdult: false
             format_in: [TV, TV_SHORT, MOVIE, OVA, ONA, SPECIAL]
-            sort: POPULARITY_DESC
+            sort: ID_DESC
           ) {
             id
             status
@@ -205,7 +205,7 @@ async function loadSeoAnimeShard(shard: number): Promise<SeoAnimeEntry[]> {
 
 const getCachedSeoAnimeShard = unstable_cache(
   async (shard: number) => loadSeoAnimeShard(shard),
-  ['animebox-seo-anilist-shard-v2'],
+  ['animebox-seo-anilist-shard-v3-longtail'],
   {
     revalidate: CACHE_SECONDS,
   },

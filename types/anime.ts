@@ -34,6 +34,7 @@ export type Anime = {
   idMal?: number | null;
   mal_id?: number | null;
   title: AnimeTitle;
+  synonyms?: string[];
   name?: string | null;
   russian?: string | null;
   description?: string | null;
