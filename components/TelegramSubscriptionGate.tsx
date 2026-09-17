@@ -11,8 +11,9 @@ import {
 type GateState =
   | 'checking'
   | 'allowed'
-  | 'blocked'
-  | 'error';
+  | 'blocked';
+
+const CHANNEL_URL_FALLBACK = 'https://t.me/YourAnimeBox';
 
 type GateResponse = {
   ok?: boolean;
@@ -52,9 +53,7 @@ export default function TelegramSubscriptionGate({
   const [state, setState] =
     useState<GateState>('checking');
   const [channelUrl, setChannelUrl] =
-    useState('');
-  const [errorText, setErrorText] =
-    useState('');
+    useState(CHANNEL_URL_FALLBACK);
   const [checkingAgain, setCheckingAgain] =
     useState(false);
 
@@ -74,7 +73,6 @@ export default function TelegramSubscriptionGate({
         setState('checking');
       }
 
-      setErrorText('');
 
       try {
         const response = await fetch(
@@ -100,8 +98,15 @@ export default function TelegramSubscriptionGate({
         }
 
         if (!response.ok || !data.ok) {
-          setErrorText(gateErrorText(data.error));
-          setState('error');
+          // Пользователю не показываем техническую ошибку Telegram/API.
+          // Экран остаётся понятным: для доступа нужна подписка,
+          // а кнопка «Я подписался» повторяет серверную проверку.
+          console.error('[Telegram subscription gate]', {
+            status: response.status,
+            error: data.error,
+            message: gateErrorText(data.error),
+          });
+          setState('blocked');
           return;
         }
 
@@ -117,10 +122,7 @@ export default function TelegramSubscriptionGate({
         setState('blocked');
       } catch (error) {
         console.error('[Telegram subscription gate]', error);
-        setErrorText(
-          'Не удалось связаться с сервером. Проверь соединение и повтори попытку.',
-        );
-        setState('error');
+        setState('blocked');
       } finally {
         setCheckingAgain(false);
       }
@@ -222,10 +224,11 @@ export default function TelegramSubscriptionGate({
                 <span className="telegram-subscription-gate__eyebrow">
                   ANIMEBOX MINI APP
                 </span>
-                <h1>Один шаг до AnimeBox</h1>
+                <h1>Подписка на канал обязательна</h1>
                 <p>
-                  Подпишись на наш Telegram-канал, чтобы открыть Mini App,
-                  рекомендации, трекер и просмотр.
+                  Чтобы пользоваться AnimeBox и ботом, подпишись на наш
+                  Telegram-канал. После подписки вернись сюда и нажми
+                  «Я подписался».
                 </p>
 
                 <div className="telegram-subscription-gate__actions">
@@ -253,21 +256,13 @@ export default function TelegramSubscriptionGate({
             ) : (
               <>
                 <span className="telegram-subscription-gate__eyebrow">
-                  TELEGRAM
+                  ANIMEBOX MINI APP
                 </span>
-                <h1>Не получилось проверить доступ</h1>
-                <p>{errorText}</p>
-
-                <button
-                  type="button"
-                  className="telegram-subscription-gate__primary"
-                  onClick={() => void checkMembership(true)}
-                  disabled={checkingAgain}
-                >
-                  {checkingAgain
-                    ? 'Проверяем…'
-                    : 'Повторить проверку'}
-                </button>
+                <h1>Подписка на канал обязательна</h1>
+                <p>
+                  Чтобы пользоваться AnimeBox и ботом, подпишись на наш
+                  Telegram-канал. После подписки нажми «Я подписался».
+                </p>
               </>
             )}
           </div>

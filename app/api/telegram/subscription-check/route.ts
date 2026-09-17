@@ -8,6 +8,13 @@ import {
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+function getChannelUrl() {
+  return (
+    process.env.TELEGRAM_CHANNEL_URL?.trim() ||
+    'https://t.me/YourAnimeBox'
+  );
+}
+
 function json(data: unknown, status = 200) {
   return NextResponse.json(data, {
     status,
@@ -34,6 +41,7 @@ export async function POST(request: Request) {
         {
           ok: false,
           error: 'missing_init_data',
+          channelUrl: getChannelUrl(),
         },
         400,
       );
@@ -54,6 +62,7 @@ export async function POST(request: Request) {
         {
           ok: false,
           error: error.code,
+          channelUrl: getChannelUrl(),
         },
         error.status,
       );
@@ -65,6 +74,7 @@ export async function POST(request: Request) {
       {
         ok: false,
         error: 'telegram_membership_server_error',
+        channelUrl: getChannelUrl(),
       },
       500,
     );
