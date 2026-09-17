@@ -130,7 +130,45 @@ export default function TelegramMiniAppBridge() {
     telegram.ready();
     telegram.expand();
 
-    function syncViewportHeight() {
+    try {
+      telegram.setHeaderColor?.('#080912');
+      telegram.setBackgroundColor?.('#080912');
+      telegram.setBottomBarColor?.('#080912');
+    } catch (error) {
+      console.warn('[AnimeBox Telegram] theme colors:', error);
+    }
+
+    try {
+      const supportsSwipeControl =
+        telegram.isVersionAtLeast?.('7.7') ??
+        typeof telegram.disableVerticalSwipes === 'function';
+
+      if (supportsSwipeControl) {
+        telegram.disableVerticalSwipes?.();
+      }
+    } catch (error) {
+      console.warn('[AnimeBox Telegram] disableVerticalSwipes:', error);
+    }
+
+    try {
+      const supportsFullscreen =
+        telegram.isVersionAtLeast?.('8.0') ??
+        typeof telegram.requestFullscreen === 'function';
+
+      if (
+        supportsFullscreen &&
+        telegram.requestFullscreen &&
+        !telegram.isFullscreen
+      ) {
+        telegram.requestFullscreen();
+      }
+    } catch (error) {
+      // Old clients can throw even when the method exists in the JS bridge.
+      console.warn('[AnimeBox Telegram] requestFullscreen:', error);
+      telegram.expand();
+    }
+
+    function syncViewportMetrics() {
       const stableHeight = telegram.viewportStableHeight;
 
       if (Number.isFinite(stableHeight) && stableHeight > 0) {
@@ -139,10 +177,50 @@ export default function TelegramMiniAppBridge() {
           `${stableHeight}px`,
         );
       }
+
+      const safeArea = telegram.safeAreaInset;
+      const contentSafeArea = telegram.contentSafeAreaInset;
+
+      if (safeArea) {
+        root.style.setProperty(
+          '--animebox-tg-safe-top',
+          `${Math.max(0, safeArea.top || 0)}px`,
+        );
+        root.style.setProperty(
+          '--animebox-tg-safe-bottom',
+          `${Math.max(0, safeArea.bottom || 0)}px`,
+        );
+      }
+
+      if (contentSafeArea) {
+        root.style.setProperty(
+          '--animebox-tg-content-safe-top',
+          `${Math.max(0, contentSafeArea.top || 0)}px`,
+        );
+        root.style.setProperty(
+          '--animebox-tg-content-safe-bottom',
+          `${Math.max(0, contentSafeArea.bottom || 0)}px`,
+        );
+      }
+
+      root.dataset.telegramFullscreen = telegram.isFullscreen
+        ? 'true'
+        : 'false';
     }
 
-    syncViewportHeight();
-    telegram.onEvent?.('viewportChanged', syncViewportHeight);
+    function handleFullscreenFailed() {
+      // requestFullscreen may fail with UNSUPPORTED on older clients/devices.
+      // expand() remains the safe fallback.
+      telegram.expand();
+      syncViewportMetrics();
+    }
+
+    syncViewportMetrics();
+    telegram.onEvent?.('viewportChanged', syncViewportMetrics);
+    telegram.onEvent?.('safeAreaChanged', syncViewportMetrics);
+    telegram.onEvent?.('contentSafeAreaChanged', syncViewportMetrics);
+    telegram.onEvent?.('fullscreenChanged', syncViewportMetrics);
+    telegram.onEvent?.('fullscreenFailed', handleFullscreenFailed);
 
     function showError(value: string) {
       if (destroyed) return;
@@ -414,8 +492,24 @@ export default function TelegramMiniAppBridge() {
 
       if (errorTimer) clearTimeout(errorTimer);
 
-      telegram.offEvent?.('viewportChanged', syncViewportHeight);
+      telegram.offEvent?.('viewportChanged', syncViewportMetrics);
+      telegram.offEvent?.('safeAreaChanged', syncViewportMetrics);
+      telegram.offEvent?.('contentSafeAreaChanged', syncViewportMetrics);
+      telegram.offEvent?.('fullscreenChanged', syncViewportMetrics);
+      telegram.offEvent?.('fullscreenFailed', handleFullscreenFailed);
+
+      try {
+        telegram.enableVerticalSwipes?.();
+      } catch {
+        // Ignore cleanup errors from old Telegram clients.
+      }
+
       root.style.removeProperty('--animebox-tg-stable-height');
+      root.style.removeProperty('--animebox-tg-safe-top');
+      root.style.removeProperty('--animebox-tg-safe-bottom');
+      root.style.removeProperty('--animebox-tg-content-safe-top');
+      root.style.removeProperty('--animebox-tg-content-safe-bottom');
+      delete root.dataset.telegramFullscreen;
       root.classList.remove('telegram-mini-app');
     };
   }, []);

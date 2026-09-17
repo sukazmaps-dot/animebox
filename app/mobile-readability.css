@@ -461,12 +461,16 @@ html.telegram-mini-app {
   --animebox-safe-top: max(
     env(safe-area-inset-top, 0px),
     var(--tg-safe-area-inset-top, 0px),
-    var(--tg-content-safe-area-inset-top, 0px)
+    var(--tg-content-safe-area-inset-top, 0px),
+    var(--animebox-tg-safe-top, 0px),
+    var(--animebox-tg-content-safe-top, 0px)
   );
   --animebox-safe-bottom: max(
     env(safe-area-inset-bottom, 0px),
     var(--tg-safe-area-inset-bottom, 0px),
-    var(--tg-content-safe-area-inset-bottom, 0px)
+    var(--tg-content-safe-area-inset-bottom, 0px),
+    var(--animebox-tg-safe-bottom, 0px),
+    var(--animebox-tg-content-safe-bottom, 0px)
   );
 }
 
@@ -565,5 +569,201 @@ html.telegram-mini-app body {
 
   html.telegram-mini-app .mobile-account__link {
     background: #0b1425;
+  }
+}
+
+
+/* =========================================================
+   Telegram fullscreen + mandatory channel gate
+   ========================================================= */
+html.telegram-mini-app,
+html.telegram-mini-app body {
+  width: 100%;
+  max-width: 100vw;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: none;
+  background: #080912;
+}
+
+html.telegram-mini-app body {
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.telegram-subscription-gate,
+.telegram-subscription-gate__content {
+  min-height: inherit;
+}
+
+.telegram-subscription-gate__content.is-locked {
+  pointer-events: none;
+  user-select: none;
+  filter: blur(13px) saturate(.72) brightness(.44);
+  transform: scale(1.012);
+}
+
+.telegram-subscription-gate__overlay {
+  position: fixed;
+  z-index: 2147483000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding:
+    calc(24px + var(--animebox-safe-top, 0px))
+    18px
+    calc(24px + var(--animebox-safe-bottom, 0px));
+  overflow: auto;
+  overscroll-behavior: none;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(113, 74, 255, .20), transparent 34%),
+    linear-gradient(180deg, rgba(4, 5, 12, .84), rgba(4, 5, 12, .97));
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  animation: animeboxTelegramGateReveal .22s .08s both;
+}
+
+.telegram-subscription-gate__glow {
+  position: fixed;
+  width: min(520px, 92vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgba(109, 72, 255, .15);
+  filter: blur(90px);
+  pointer-events: none;
+}
+
+.telegram-subscription-gate__card {
+  position: relative;
+  width: min(430px, 100%);
+  padding: 28px 24px 24px;
+  border: 1px solid rgba(169, 151, 255, .22);
+  border-radius: 26px;
+  background:
+    linear-gradient(180deg, rgba(22, 21, 44, .96), rgba(9, 11, 24, .98));
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, .58),
+    inset 0 1px 0 rgba(255, 255, 255, .05);
+  color: #f7f7ff;
+  text-align: center;
+}
+
+.telegram-subscription-gate__logo {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(126, 89, 255, .24), rgba(53, 71, 191, .13));
+  border: 1px solid rgba(162, 140, 255, .22);
+  box-shadow: 0 16px 42px rgba(83, 56, 211, .20);
+}
+
+.telegram-subscription-gate__logo img {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  border-radius: 16px;
+}
+
+.telegram-subscription-gate__eyebrow {
+  display: inline-flex;
+  margin-bottom: 10px;
+  color: #a997ff;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .17em;
+}
+
+.telegram-subscription-gate__card h1 {
+  margin: 0;
+  font-size: clamp(26px, 8vw, 36px);
+  line-height: 1.02;
+  letter-spacing: -.045em;
+}
+
+.telegram-subscription-gate__card p {
+  max-width: 340px;
+  margin: 14px auto 0;
+  color: rgba(225, 226, 244, .68);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.telegram-subscription-gate__actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.telegram-subscription-gate__primary,
+.telegram-subscription-gate__secondary {
+  width: 100%;
+  min-height: 50px;
+  border: 0;
+  border-radius: 15px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 850;
+  transition:
+    transform .16s ease,
+    opacity .16s ease,
+    border-color .16s ease,
+    background .16s ease;
+}
+
+.telegram-subscription-gate__primary {
+  margin-top: 24px;
+  color: #fff;
+  background: linear-gradient(135deg, #7658ff, #526dff);
+  box-shadow: 0 14px 32px rgba(80, 67, 224, .28);
+}
+
+.telegram-subscription-gate__actions .telegram-subscription-gate__primary {
+  margin-top: 0;
+}
+
+.telegram-subscription-gate__secondary {
+  color: rgba(240, 240, 255, .88);
+  background: rgba(255, 255, 255, .055);
+  border: 1px solid rgba(255, 255, 255, .09);
+}
+
+.telegram-subscription-gate__primary:active,
+.telegram-subscription-gate__secondary:active {
+  transform: scale(.985);
+}
+
+.telegram-subscription-gate__primary:disabled,
+.telegram-subscription-gate__secondary:disabled {
+  cursor: default;
+  opacity: .52;
+}
+
+.telegram-subscription-gate__spinner {
+  width: 30px;
+  height: 30px;
+  margin: 2px auto 18px;
+  border: 3px solid rgba(166, 147, 255, .16);
+  border-top-color: #927cff;
+  border-radius: 50%;
+  animation: animeboxTelegramGateSpin .7s linear infinite;
+}
+
+@keyframes animeboxTelegramGateSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes animeboxTelegramGateReveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .telegram-subscription-gate__overlay,
+  .telegram-subscription-gate__spinner {
+    animation-duration: .001ms;
+    animation-iteration-count: 1;
   }
 }

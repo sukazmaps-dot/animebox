@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { escapeTelegramHtml } from '@/lib/notifications-server';
+import { getUserSubscriptions } from '@/lib/telegram/bot-subscriptions';
+
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
 
@@ -252,15 +255,84 @@ export async function POST(request: NextRequest) {
       command === '/notifications' ||
       normalizedText === '🔔 уведомления'
     ) {
+      const telegramId = Number(message?.from?.id ?? chatId);
+      const subscriptions =
+        await getUserSubscriptions(telegramId);
+
+      if (!subscriptions.accountLinked) {
+        await sendMessage(
+          chatId,
+          [
+            '🔔 <b>Уведомления AnimeBox</b>',
+            '',
+            'Твой Telegram пока не связан с аккаунтом AnimeBox.',
+            '',
+            'Открой Mini App через кнопку ниже — аккаунт привяжется автоматически.',
+          ].join('\n'),
+          BOTTOM_MENU,
+        );
+
+        return NextResponse.json({
+          ok: true,
+        });
+      }
+
+      const lines = [
+        '🔔 <b>Твои активные уведомления</b>',
+        '',
+      ];
+
+      lines.push(
+        subscriptions.systemNotifications
+          ? '✅ Telegram-уведомления AnimeBox включены'
+          : '⏸ Telegram-уведомления AnimeBox выключены',
+      );
+
+      const visibleAnime = subscriptions.anime.slice(0, 20);
+
+      if (visibleAnime.length > 0) {
+        lines.push(
+          '',
+          subscriptions.systemNotifications
+            ? '<b>Новые серии:</b>'
+            : '<b>Сохранённые подписки:</b>',
+        );
+
+        for (const item of visibleAnime) {
+          lines.push(
+            `🎬 «<b>${escapeTelegramHtml(item.animeTitle)}</b>»`,
+          );
+        }
+
+        if (subscriptions.anime.length > visibleAnime.length) {
+          lines.push(
+            `…и ещё ${subscriptions.anime.length - visibleAnime.length}`,
+          );
+        }
+
+        lines.push(
+          '',
+          `Всего тайтлов: <b>${subscriptions.anime.length}</b>`,
+        );
+
+        if (!subscriptions.systemNotifications) {
+          lines.push(
+            '',
+            'Подписки сохранены, но сообщения не будут приходить, пока Telegram-уведомления выключены.',
+          );
+        }
+      } else {
+        lines.push(
+          '',
+          'Подписок на новые серии пока нет.',
+          '',
+          'Открой страницу аниме и включи 🔔, чтобы получать новые серии.',
+        );
+      }
+
       await sendMessage(
         chatId,
-        [
-          '🔔 <b>Уведомления AnimeBox</b>',
-          '',
-          'Я сообщу тебе, когда выйдет новая серия аниме, которое ты отслеживаешь.',
-          '',
-          'Добавляй тайтлы в свой трекер AnimeBox — остальное сделаю я 💜',
-        ].join('\n'),
+        lines.join('\n'),
         BOTTOM_MENU,
       );
 

@@ -14,6 +14,7 @@ import './smart-home.css';
 
 import Navbar from '@/components/Navbar';
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
+import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
 import { AuthStateProvider } from '@/components/AuthStateProvider';
 
 import { Analytics } from '@vercel/analytics/next';
@@ -264,15 +265,17 @@ export default function RootLayout({
 
           <TelegramMiniAppBridge />
 
-          <Navbar />
+          <TelegramSubscriptionGate>
+            <Navbar />
 
-          <div className="app-shell">
-            <main className="page-content">
-              {children}
-            </main>
-          </div>
+            <div className="app-shell">
+              <main className="page-content">
+                {children}
+              </main>
+            </div>
 
-          <Analytics />
+            <Analytics />
+          </TelegramSubscriptionGate>
         </AuthStateProvider>
       </body>
     </html>

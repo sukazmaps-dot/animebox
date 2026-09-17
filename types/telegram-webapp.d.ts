@@ -7,6 +7,13 @@ declare global {
     };
   }
 
+  interface TelegramSafeAreaInset {
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+  }
+
   interface TelegramWebApp {
     initData: string;
 
@@ -38,12 +45,31 @@ declare global {
     >;
 
     isExpanded: boolean;
+    isFullscreen?: boolean;
+    isVerticalSwipesEnabled?: boolean;
 
     viewportHeight: number;
     viewportStableHeight: number;
 
+    safeAreaInset?: TelegramSafeAreaInset;
+    contentSafeAreaInset?: TelegramSafeAreaInset;
+
     ready(): void;
     expand(): void;
+
+    isVersionAtLeast?: (version: string) => boolean;
+
+    requestFullscreen?: () => void;
+    exitFullscreen?: () => void;
+
+    disableVerticalSwipes?: () => void;
+    enableVerticalSwipes?: () => void;
+
+    setHeaderColor?: (color: string) => void;
+    setBackgroundColor?: (color: string) => void;
+    setBottomBarColor?: (color: string) => void;
+
+    openTelegramLink?: (url: string) => void;
 
     requestWriteAccess?: (
       callback?: (allowed: boolean) => void,
