@@ -1,24 +1,84 @@
 import 'server-only';
+
 import { adminClient } from '@/lib/community-server';
-import { makeSponsorStatus, type SponsorStatus } from '@/lib/sponsor';
+import {
+  makeSponsorStatus,
+  resolveSponsorTier,
+  type SponsorStatus,
+} from '@/lib/sponsor';
+import {
+  getSponsorPreferenceRows,
+  sponsorPublicCosmeticsFromRow,
+} from '@/lib/sponsor-benefits-server';
+
+const DIRECTORY_VIEW = 'sponsor_directory_v3';
 
 export async function getSponsorTotal(userId: string): Promise<number> {
- const { data, error } = await adminClient().from('sponsor_directory_v2').select('total_stars').eq('user_id', userId).maybeSingle();
- if (error) throw error;
- return Number(data?.total_stars ?? 0);
+  const admin = adminClient();
+  let query = await admin
+    .from(DIRECTORY_VIEW)
+    .select('total_stars')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (query.error && (query.error.code === '42P01' || query.error.code === 'PGRST205')) {
+    query = await admin
+      .from('sponsor_directory_v2')
+      .select('total_stars')
+      .eq('user_id', userId)
+      .maybeSingle();
+  }
+
+  if (query.error) throw query.error;
+  return Number(query.data?.total_stars ?? 0);
 }
-export async function getSponsorStatuses(userIds: string[]): Promise<Map<string, SponsorStatus>> {
- const ids = [...new Set(userIds.filter(Boolean))];
- const result = new Map<string, SponsorStatus>();
- if (!ids.length) return result;
- const { data, error } = await adminClient().from('sponsor_directory_v2').select('user_id,total_stars').in('user_id', ids);
- if (error) { console.error('[Sponsor] cache unavailable', error); return result; }
- for (const row of data ?? []) {
-  const status = makeSponsorStatus(Number(row.total_stars));
-  if (status) result.set(row.user_id, status);
- }
- return result;
+
+export async function getSponsorStatuses(
+  userIds: string[],
+): Promise<Map<string, SponsorStatus>> {
+  const ids = [...new Set(userIds.filter(Boolean))];
+  const result = new Map<string, SponsorStatus>();
+  if (!ids.length) return result;
+
+  const admin = adminClient();
+  let directory = await admin
+    .from(DIRECTORY_VIEW)
+    .select('user_id,total_stars')
+    .in('user_id', ids);
+
+  if (directory.error && (directory.error.code === '42P01' || directory.error.code === 'PGRST205')) {
+    directory = await admin
+      .from('sponsor_directory_v2')
+      .select('user_id,total_stars')
+      .in('user_id', ids);
+  }
+
+  if (directory.error) {
+    console.error('[Sponsor] directory unavailable', directory.error);
+    return result;
+  }
+
+  const preferences = await getSponsorPreferenceRows(ids);
+
+  for (const row of directory.data ?? []) {
+    if (!row.user_id) continue;
+    const totalStars = Number(row.total_stars ?? 0);
+    const tier = resolveSponsorTier(totalStars);
+    if (!tier) continue;
+    const cosmetics = sponsorPublicCosmeticsFromRow(
+      preferences.get(row.user_id),
+      tier,
+    );
+    const status = makeSponsorStatus(totalStars, cosmetics);
+    if (status) result.set(row.user_id, status);
+  }
+
+  return result;
 }
-export async function getSponsorStatus(userId: string): Promise<SponsorStatus | null> {
- return makeSponsorStatus(await getSponsorTotal(userId));
+
+export async function getSponsorStatus(
+  userId: string,
+): Promise<SponsorStatus | null> {
+  const statuses = await getSponsorStatuses([userId]);
+  return statuses.get(userId) ?? null;
 }

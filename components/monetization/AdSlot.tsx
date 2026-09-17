@@ -1,3 +1,12 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+
+import { useAuthState } from '@/components/AuthStateProvider';
+import {
+  getSponsorMe,
+  peekSponsorMe,
+} from '@/lib/sponsor-me-client';
 import {
   AD_PROVIDER,
   ADS_ENABLED,
@@ -11,16 +20,48 @@ type AdSlotProps = {
 };
 
 /**
- * Provider-agnostic mount point for the future ad network.
- * It renders nothing until NEXT_PUBLIC_ADS_ENABLED=true.
- * No third-party script is injected by this component yet.
+ * Provider-agnostic ad mount. Premium/Patron sponsors and staff do not render it.
+ * No third-party provider script is injected here yet.
  */
 export default function AdSlot({
   placement,
   format = 'horizontal',
   className = '',
 }: AdSlotProps) {
-  if (!MONETIZATION_ENABLED || !ADS_ENABLED) {
+  const { user } = useAuthState();
+  const cached = peekSponsorMe(user?.id, 1);
+  const [adFree, setAdFree] = useState(
+    Boolean(cached?.benefits.adFree || cached?.role),
+  );
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let active = true;
+
+    const refresh = () => {
+      void getSponsorMe(user.id, 1, { force: true })
+        .then((data) => {
+          if (active) setAdFree(Boolean(data.benefits.adFree || data.role));
+        })
+        .catch(() => {
+          // Ads should not break the page when sponsor status is temporarily unavailable.
+        });
+    };
+
+    void getSponsorMe(user.id, 1)
+      .then((data) => {
+        if (active) setAdFree(Boolean(data.benefits.adFree || data.role));
+      })
+      .catch(() => undefined);
+
+    window.addEventListener('animebox:support-paid', refresh);
+    return () => {
+      active = false;
+      window.removeEventListener('animebox:support-paid', refresh);
+    };
+  }, [user?.id]);
+
+  if (!MONETIZATION_ENABLED || !ADS_ENABLED || adFree) {
     return null;
   }
 
@@ -32,10 +73,7 @@ export default function AdSlot({
       aria-label="Реклама"
     >
       <span className="monetization-ad__label">Реклама</span>
-      <div
-        className="monetization-ad__mount"
-        data-ad-mount={placement}
-      />
+      <div className="monetization-ad__mount" data-ad-mount={placement} />
     </aside>
   );
 }

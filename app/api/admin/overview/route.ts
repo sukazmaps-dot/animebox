@@ -24,7 +24,7 @@ export async function GET() {
       admin.from('comments').select('id', { count: 'exact', head: true }).gte('created_at', since),
       admin.from('anime_library').select('user_id', { count: 'exact', head: true }),
       admin.from('comments').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null),
-      admin.from('sponsor_metrics_v2').select('*').single(),
+      admin.from('sponsor_metrics_v3').select('*').single(),
       admin.from('profiles').select('id,username,created_at').order('created_at', { ascending: false }).limit(6),
       admin.from('admin_audit_log').select('id,actor_id,action,target_type,target_id,created_at').order('created_at', { ascending: false }).limit(8),
     ]);

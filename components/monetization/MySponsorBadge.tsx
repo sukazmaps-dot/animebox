@@ -22,30 +22,31 @@ export default function MySponsorBadge({ username }: { username: string }) {
 
   useEffect(() => {
     let active = true;
-
     if (!user?.id) return;
 
-    const nextCached = peekSponsorMe(user.id, 1);
-    queueMicrotask(() => {
-      if (!active) return;
-      setIdentity({
-        sponsor: nextCached?.sponsor ?? null,
-        role: nextCached?.role ?? null,
-      });
-    });
+    const apply = (data: SponsorMeData | null) => {
+      if (!active || !data) return;
+      setIdentity({ sponsor: data.sponsor, role: data.role });
+    };
 
-    void getSponsorMe(user.id, 1)
-      .then((data) => {
-        if (!active) return;
-        setIdentity({ sponsor: data.sponsor, role: data.role });
-      })
-      .catch((error) => {
-        if ((error as Error & { status?: number }).status === 401) return;
-        console.error('[Identity] failed to load my badge:', error);
-      });
+    apply(peekSponsorMe(user.id, 1));
+
+    const load = (force = false) => {
+      void getSponsorMe(user.id, 1, { force })
+        .then(apply)
+        .catch((error) => {
+          if ((error as Error & { status?: number }).status === 401) return;
+          console.error('[Identity] failed to load my badge:', error);
+        });
+    };
+
+    load();
+    const refresh = () => load(true);
+    window.addEventListener('animebox:sponsor-preferences-changed', refresh);
 
     return () => {
       active = false;
+      window.removeEventListener('animebox:sponsor-preferences-changed', refresh);
     };
   }, [user?.id]);
 

@@ -4,7 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuthState } from '@/components/AuthStateProvider';
 
 import { resolveIdentityKind, type PublicIdentityRole } from '@/lib/identity';
-import type { SponsorStatus } from '@/lib/sponsor';
+import {
+  resolveSponsorFrame,
+  type SponsorStatus,
+  type SponsorTier,
+} from '@/lib/sponsor';
 import { getSponsorMe, peekSponsorMe } from '@/lib/sponsor-me-client';
 
 type Props = {
@@ -21,12 +25,12 @@ type IdentityState = {
   sponsor: SponsorStatus | null;
 };
 
-const FRAME_BY_KIND = {
+const FRAME_BY_KIND: Record<'owner' | SponsorTier, string> = {
   owner: '/brand/identity/frame-owner.webp',
   patron: '/brand/identity/frame-patron.webp',
   premium: '/brand/identity/frame-premium.webp',
   supporter: '/brand/identity/frame-supporter.webp',
-} as const;
+};
 
 export default function UserAvatarWithFrame({
   src,
@@ -58,6 +62,21 @@ export default function UserAvatarWithFrame({
       );
     });
 
+    const reload = () => {
+      void getSponsorMe(user.id, 1, { force: true })
+        .then((data) => {
+          if (!active) return;
+          setFetchedIdentity({
+            role: data.role ?? null,
+            sponsor: data.sponsor ?? null,
+          });
+        })
+        .catch((error) => {
+          if ((error as Error & { status?: number }).status === 401) return;
+          console.error('[AvatarFrame] failed to load identity:', error);
+        });
+    };
+
     void getSponsorMe(user.id, 1)
       .then((data) => {
         if (!active) return;
@@ -71,8 +90,10 @@ export default function UserAvatarWithFrame({
         console.error('[AvatarFrame] failed to load identity:', error);
       });
 
+    window.addEventListener('animebox:sponsor-preferences-changed', reload);
     return () => {
       active = false;
+      window.removeEventListener('animebox:sponsor-preferences-changed', reload);
     };
   }, [loadCurrentIdentity, user?.id]);
 
@@ -85,18 +106,21 @@ export default function UserAvatarWithFrame({
     [currentIdentity.role, currentIdentity.sponsor],
   );
 
-  const frameSrc =
-    kind === 'owner' ||
-    kind === 'patron' ||
-    kind === 'premium' ||
-    kind === 'supporter'
-      ? FRAME_BY_KIND[kind]
-      : null;
+  const frameKind = useMemo(() => {
+    if (kind === 'owner') return 'owner' as const;
+    if (kind !== 'supporter' && kind !== 'premium' && kind !== 'patron') return null;
+    return resolveSponsorFrame(
+      kind,
+      currentIdentity.sponsor?.cosmetics?.selectedFrame,
+    );
+  }, [currentIdentity.sponsor?.cosmetics?.selectedFrame, kind]);
+
+  const frameSrc = frameKind ? FRAME_BY_KIND[frameKind] : null;
 
   return (
     <div
       className={`profile-v2__avatar-wrap relative h-[88px] w-[88px] shrink-0 overflow-visible sm:h-[116px] sm:w-[116px] ${className}`.trim()}
-      data-avatar-frame={frameSrc ? kind : 'none'}
+      data-avatar-frame={frameKind ?? 'none'}
     >
       <img
         src={src}

@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useAuthState } from '@/components/AuthStateProvider';
 import Link from 'next/link';
 
+import { useAuthState } from '@/components/AuthStateProvider';
 import SponsorBadge from './SponsorBadge';
 import AnimeBoxStar from './AnimeBoxStar';
 import SponsorProgressBar from './SponsorProgressBar';
@@ -14,6 +14,13 @@ import {
   peekSponsorMe,
   type SponsorMeData,
 } from '@/lib/sponsor-me-client';
+
+const STATUS_LABEL: Record<string, string> = {
+  confirmed: 'Подтверждено',
+  refunded: 'Возвращено',
+  disputed: 'Спорный платёж',
+  reconciliation_error: 'Нужна проверка',
+};
 
 export default function SponsorDashboard({ history = false }: { history?: boolean }) {
   const { user } = useAuthState();
@@ -32,7 +39,11 @@ export default function SponsorDashboard({ history = false }: { history?: boolea
 
   useEffect(() => {
     window.addEventListener('animebox:support-paid', reload);
-    return () => window.removeEventListener('animebox:support-paid', reload);
+    window.addEventListener('animebox:sponsor-preferences-changed', reload);
+    return () => {
+      window.removeEventListener('animebox:support-paid', reload);
+      window.removeEventListener('animebox:sponsor-preferences-changed', reload);
+    };
   }, [reload]);
 
   useEffect(() => {
@@ -95,9 +106,13 @@ export default function SponsorDashboard({ history = false }: { history?: boolea
           <span className="sponsor-v2-eyebrow">ТВОЙ ВКЛАД</span>
           <h2>{history ? 'История поддержки' : 'Твой путь спонсора'}</h2>
         </div>
-        <button className="btn btn--ghost" onClick={reload} disabled={loading}>
-          Обновить
-        </button>
+        <div className="sponsor-v3-dashboard-actions">
+          {data?.sponsor && <Link className="btn btn--ghost" href="/settings/sponsor">Оформление</Link>}
+          <Link className="btn btn--ghost" href="/supporters">Спонсоры</Link>
+          <button className="btn btn--ghost" onClick={reload} disabled={loading}>
+            Обновить
+          </button>
+        </div>
       </div>
 
       {loading && !data && <p role="status">Загружаем прогресс…</p>}
@@ -121,6 +136,14 @@ export default function SponsorDashboard({ history = false }: { history?: boolea
             </strong>
             {data.sponsor && <SponsorBadge tier={data.sponsor.tier} />}
           </div>
+
+          {data.sponsor && (
+            <div className="sponsor-v3-benefit-chips sponsor-v3-benefit-chips--dashboard">
+              <span data-active={data.benefits.adFree}>Без рекламы {data.benefits.adFree ? '✓' : '🔒'}</span>
+              <span>{Math.max(0, data.benefits.frames.length - 2)} рамок</span>
+              <span>{data.benefits.themes.length} тем профиля</span>
+            </div>
+          )}
 
           {next ? (
             <p className="sponsor-v2-next">
@@ -156,14 +179,19 @@ export default function SponsorDashboard({ history = false }: { history?: boolea
           {history && (
             <>
               {data.payments.length ? (
-                <ul className="sponsor-v2-history">
+                <ul className="sponsor-v2-history sponsor-v3-history">
                   {data.payments.map((payment) => (
-                    <li key={payment.id}>
-                      <time dateTime={payment.created_at}>
-                        {new Date(payment.created_at).toLocaleString('ru-RU')}
-                      </time>
+                    <li key={payment.id} data-status={payment.status}>
+                      <div>
+                        <time dateTime={payment.created_at}>
+                          {new Date(payment.created_at).toLocaleString('ru-RU')}
+                        </time>
+                        <small>{STATUS_LABEL[payment.status] ?? payment.status}</small>
+                        {payment.refund_reason && <small>{payment.refund_reason}</small>}
+                      </div>
                       <strong>
-                        +{payment.amount} <AnimeBoxStar size={20} />
+                        {payment.status === 'refunded' ? '−' : '+'}{payment.amount}{' '}
+                        <AnimeBoxStar size={20} />
                       </strong>
                     </li>
                   ))}
@@ -193,7 +221,7 @@ export default function SponsorDashboard({ history = false }: { history?: boolea
       )}
 
       <p className="sponsor-v2-note">
-        Уровни накопительные. Учитываются подтверждённые Telegram Stars. Поддержка через DonatePay пока не начисляет статус автоматически.
+        Уровни накопительные. Учитываются подтверждённые Telegram Stars и одобренные ручные корректировки. Возвращённые платежи в уровень не входят.
       </p>
     </section>
   );

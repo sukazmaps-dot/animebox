@@ -2,8 +2,15 @@ import Image from 'next/image';
 
 import styles from './UserIdentity.module.css';
 
-import { resolveIdentityKind, type IdentityKind, type PublicIdentityRole } from '@/lib/identity';
-import type { SponsorStatus } from '@/lib/sponsor';
+import {
+  resolveSponsorNameStyle,
+  type SponsorStatus,
+} from '@/lib/sponsor';
+import {
+  resolveIdentityKind,
+  type IdentityKind,
+  type PublicIdentityRole,
+} from '@/lib/identity';
 
 type Props = {
   username: string;
@@ -60,16 +67,25 @@ export default function UserIdentity({
   const kind = resolveIdentityKind(role, sponsor);
   const label = LABELS[kind];
   const kindClass = kind === 'none' ? '' : styles[kind];
+  const sponsorNameStyle = role
+    ? null
+    : resolveSponsorNameStyle(sponsor?.tier, sponsor?.cosmetics?.nameStyle);
+  const nameStyleClass = sponsorNameStyle
+    ? styles[`nameStyle${sponsorNameStyle[0].toUpperCase()}${sponsorNameStyle.slice(1)}` as keyof typeof styles] ?? ''
+    : '';
+  const sponsorBadgeVisible = role ? true : sponsor?.cosmetics?.badgeVisible !== false;
+  const sponsorTheme = role ? undefined : sponsor?.cosmetics?.profileTheme;
 
   return (
     <span
-      className={`${styles.identity} ${kindClass} ${compact ? styles.compact : ''} ${className}`.trim()}
+      className={`${styles.identity} ${kindClass} ${nameStyleClass} ${compact ? styles.compact : ''} ${className}`.trim()}
       data-identity-kind={kind}
       data-sponsor-tier={role ? undefined : sponsor?.tier}
+      data-sponsor-theme={sponsorTheme && sponsorTheme !== 'default' ? sponsorTheme : undefined}
     >
       <strong className={`${styles.name} ${nameClassName}`.trim()}>{username}</strong>
 
-      {kind !== 'none' && (
+      {kind !== 'none' && sponsorBadgeVisible && (
         <span
           className={styles.mark}
           title={label}
@@ -80,7 +96,7 @@ export default function UserIdentity({
         </span>
       )}
 
-      {showLabel && kind !== 'none' && (
+      {showLabel && kind !== 'none' && sponsorBadgeVisible && (
         <span className={styles.label}>{label}</span>
       )}
     </span>

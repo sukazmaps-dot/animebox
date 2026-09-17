@@ -35,7 +35,7 @@ export async function GET(request: Request) {
         ? admin.from('admin_user_controls').select('user_id,status,note,expires_at,updated_at').in('user_id', ids)
         : Promise.resolve({ data: [], error: null }),
       ids.length
-        ? admin.from('sponsor_directory_v2').select('user_id,total_stars').in('user_id', ids)
+        ? admin.from('sponsor_directory_v3').select('user_id,total_stars').in('user_id', ids)
         : Promise.resolve({ data: [], error: null }),
       admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
     ]);

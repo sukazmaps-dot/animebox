@@ -1,22 +1,42 @@
 'use client';
 
 import type { PublicIdentityRole } from '@/lib/identity';
-import type { SponsorStatus } from '@/lib/sponsor';
+import type {
+  SponsorFrame,
+  SponsorNameStyle,
+  SponsorPreferences,
+  SponsorProfileTheme,
+  SponsorStatus,
+} from '@/lib/sponsor';
 
 export type SponsorMeData = {
   sponsor: SponsorStatus | null;
   role: PublicIdentityRole;
   totalStars: number;
   telegramLinked: boolean;
-  payments: { id: string; amount: number; created_at: string }[];
+  payments: {
+    id: string;
+    amount: number;
+    created_at: string;
+    status: 'confirmed' | 'refunded' | 'disputed' | 'reconciliation_error';
+    refunded_at: string | null;
+    refund_reason: string | null;
+  }[];
   page: number;
   hasMore: boolean;
+  preferences: SponsorPreferences;
+  benefits: {
+    adFree: boolean;
+    frames: SponsorFrame[];
+    nameStyles: SponsorNameStyle[];
+    themes: SponsorProfileTheme[];
+  };
 };
 
 type CacheEntry = { data: SponsorMeData; expiresAt: number };
 
 const TTL_MS = 60_000;
-const SESSION_PREFIX = 'animebox:sponsor-me:v3:';
+const SESSION_PREFIX = 'animebox:sponsor-me:v4:';
 const memory = new Map<string, CacheEntry>();
 const inflight = new Map<string, Promise<SponsorMeData>>();
 
