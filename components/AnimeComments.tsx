@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { communityRequest } from '@/lib/community-client';
 import { createClient } from '@/lib/supabase/client';
+import SponsorBadge from '@/components/monetization/SponsorBadge';
+import type { SponsorStatus } from '@/lib/sponsor';
 
 type Comment = {
   id: string;
@@ -18,6 +20,7 @@ type Comment = {
     username: string | null;
     avatarUrl: string | null;
     ogNumber: number | null;
+    sponsor: SponsorStatus | null;
   } | null;
 };
 
@@ -195,6 +198,9 @@ function CommentNode({
                     OG #{String(comment.author.ogNumber).padStart(3, '0')}
                   </span>
                 )}
+                {comment.author?.sponsor && (
+                  <SponsorBadge tier={comment.author.sponsor.tier} compact />
+                )}
               </span>
               <time dateTime={comment.created_at}>
                 {new Date(comment.created_at).toLocaleString('ru-RU', {
@@ -219,6 +225,9 @@ function CommentNode({
                   >
                     OG #{String(comment.author.ogNumber).padStart(3, '0')}
                   </span>
+                )}
+                {comment.author?.sponsor && (
+                  <SponsorBadge tier={comment.author.sponsor.tier} compact />
                 )}
               </span>
               <time dateTime={comment.created_at}>

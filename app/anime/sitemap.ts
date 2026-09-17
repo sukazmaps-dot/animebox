@@ -4,7 +4,13 @@ import { slugify } from '@/lib/anime-url';
 import { getSeoAnimeShard } from '@/lib/seo-anilist';
 import { ANIME_SITEMAP_SHARDS, SITE_URL } from '@/lib/seo-config';
 
-export const revalidate = 21600;
+/**
+ * Do not pre-render AniList-backed sitemap shards during `next build`.
+ * They are generated when a crawler requests them and their data is cached in
+ * lib/seo-anilist.ts for six hours.
+ */
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function generateSitemaps() {
   return Array.from({ length: ANIME_SITEMAP_SHARDS }, (_, id) => ({ id }));
@@ -37,7 +43,7 @@ export default async function sitemap({
       } satisfies MetadataRoute.Sitemap[number];
     });
   } catch (error) {
-    // A temporary provider outage must not break the whole application's build.
+    // A temporary provider outage must never break the site or deployment.
     console.warn(`Anime sitemap shard ${shard} failed:`, error);
     return [];
   }

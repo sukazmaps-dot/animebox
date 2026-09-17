@@ -10,6 +10,8 @@ import {
   recordPaymentSupportRequest,
   recordStarPayment,
 } from '@/lib/monetization-server';
+import { getSponsorStatus } from '@/lib/sponsor-server';
+import { SPONSOR_META, type SponsorStatus } from '@/lib/sponsor';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
@@ -232,8 +234,10 @@ export async function POST(request: NextRequest) {
         successfulPayment.currency === 'XTR' &&
         Number(successfulPayment.total_amount) === parsed.amount
       ) {
+        let sponsor: SponsorStatus | null = null;
+
         try {
-          await recordStarPayment({
+          const recorded = await recordStarPayment({
             telegramId: payerTelegramId,
             chatId,
             amount: parsed.amount,
@@ -243,6 +247,10 @@ export async function POST(request: NextRequest) {
             providerPaymentChargeId:
               successfulPayment.provider_payment_charge_id ?? null,
           });
+
+          if (recorded.userId) {
+            sponsor = await getSponsorStatus(recorded.userId);
+          }
         } catch (error) {
           // Payment is already completed in Telegram. Never turn a
           // successful charge into a failed webhook because storage is down.
@@ -252,12 +260,17 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        const sponsorLine = sponsor
+          ? `Твой статус: <b>✦ ${SPONSOR_META[sponsor.tier].label}</b>`
+          : null;
+
         await sendMessage(
           chatId,
           [
             '💜 <b>Спасибо за поддержку AnimeBox!</b>',
             '',
             `Получено: <b>⭐ ${parsed.amount}</b>`,
+            ...(sponsorLine ? ['', sponsorLine] : []),
             '',
             'Твоя поддержка помогает оплачивать инфраструктуру и развивать проект дальше.',
           ].join('\n'),

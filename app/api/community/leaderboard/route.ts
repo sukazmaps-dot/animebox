@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { adminClient, failure } from '@/lib/community-server';
+import { getSponsorStatuses } from '@/lib/sponsor-server';
 
 type LeaderboardPeriod = 'week' | 'month' | 'all';
 
@@ -51,6 +52,10 @@ export async function GET(request: Request) {
     if (error) throw error;
 
     const rows = (Array.isArray(data) ? data : []) as LeaderboardRow[];
+    const sponsorByUser = await getSponsorStatuses(
+      rows.map((row) => row.user_id),
+    );
+
     const normalized = rows.map((row) => ({
       rank: Number(row.rank_no),
       userId: row.user_id,
@@ -60,6 +65,7 @@ export async function GET(request: Request) {
       episodes: Number(row.episodes) || 0,
       lastWatchedAt: row.last_watched_at,
       isCurrentUser: Boolean(row.is_current_user),
+      sponsor: sponsorByUser.get(row.user_id) ?? null,
     }));
 
     return Response.json(

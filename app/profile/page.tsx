@@ -11,6 +11,7 @@ import { isTelegramMiniAppRuntime } from '@/lib/telegram-auto-login';
 import { useAuthState } from '@/components/AuthStateProvider';
 import CommunityProfile from '@/components/CommunityProfile';
 import ProfileEditModal from '@/components/ProfileEditModal';
+import MySponsorBadge from '@/components/monetization/MySponsorBadge';
 
 type Profile = {
   id: string;
@@ -248,6 +249,8 @@ export default function ProfilePage() {
               <div>
                 <div className="profile-v2__name-row">
                   <h1>{username}</h1>
+
+                  <MySponsorBadge />
 
                   {profile.og_number && (
                     <span

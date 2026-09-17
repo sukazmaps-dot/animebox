@@ -4,6 +4,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import styles from './Leaderboard.module.css';
+import SponsorBadge from '@/components/monetization/SponsorBadge';
+import type { SponsorStatus } from '@/lib/sponsor';
 
 type Period = 'week' | 'month' | 'all';
 
@@ -16,6 +18,7 @@ type Entry = {
   episodes: number;
   lastWatchedAt: string | null;
   isCurrentUser: boolean;
+  sponsor: SponsorStatus | null;
 };
 
 type Payload = {
@@ -161,7 +164,10 @@ export default function LeaderboardClient() {
                   <span className={styles.rankSeal}>{entry.rank}</span>
                 </div>
                 <span className={styles.rankTitle}>{rankTitles[entry.rank]}</span>
-                <strong className={styles.podiumName} title={entry.username}>{entry.username}</strong>
+                <div className={styles.nameLine}>
+                  <strong className={styles.podiumName} title={entry.username}>{entry.username}</strong>
+                  {entry.sponsor && <SponsorBadge tier={entry.sponsor.tier} compact />}
+                </div>
                 {entry.isCurrentUser && <span className={styles.youBadge}>Это ты</span>}
                 <span className={styles.time}>{formatWatchTime(entry.activeMs)}</span>
                 <span className={styles.timeLabel}>подтверждённого просмотра</span>
@@ -201,7 +207,10 @@ export default function LeaderboardClient() {
                 <span className={styles.user}>
                   <Avatar entry={entry} />
                   <span>
-                    <strong>{entry.username}</strong>
+                    <span className={styles.rowNameLine}>
+                      <strong>{entry.username}</strong>
+                      {entry.sponsor && <SponsorBadge tier={entry.sponsor.tier} compact />}
+                    </span>
                     {entry.isCurrentUser && <small>Это ты</small>}
                   </span>
                 </span>

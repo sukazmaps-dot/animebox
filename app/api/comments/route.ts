@@ -7,6 +7,7 @@ import {
   createClient,
 } from '@/lib/supabase/server';
 import { adminClient } from '@/lib/community-server';
+import { getSponsorStatuses } from '@/lib/sponsor-server';
 
 const MAX_COMMENT_LENGTH = 4000;
 
@@ -247,6 +248,9 @@ export async function GET(
     const ogByUser =
       new Map<string, number>();
 
+    let sponsorByUser =
+      new Map<string, import('@/lib/sponsor').SponsorStatus>();
+
     let profileClient:
       ReturnType<typeof adminClient> | null = null;
 
@@ -260,7 +264,7 @@ export async function GET(
          */
         profileClient = adminClient();
 
-        const [profileResult, ogResult] =
+        const [profileResult, ogResult, sponsorResult] =
           await Promise.all([
             profileClient
               .from('profiles')
@@ -280,7 +284,10 @@ export async function GET(
                 'user_id',
                 userIds,
               ),
+            getSponsorStatuses(userIds),
           ]);
+
+        sponsorByUser = sponsorResult;
 
 
         if (profileResult.error) {
@@ -381,6 +388,13 @@ export async function GET(
                   ogNumber:
                     comment.user_id
                       ? ogByUser.get(
+                          comment.user_id,
+                        ) ?? null
+                      : null,
+
+                  sponsor:
+                    comment.user_id
+                      ? sponsorByUser.get(
                           comment.user_id,
                         ) ?? null
                       : null,

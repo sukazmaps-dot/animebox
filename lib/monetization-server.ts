@@ -48,6 +48,10 @@ export async function recordStarPayment({
   if (error) {
     throw error;
   }
+
+  return {
+    userId: profile?.id ?? null,
+  };
 }
 
 

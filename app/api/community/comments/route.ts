@@ -9,6 +9,7 @@ import {
   ensureAnime,
   ApiError,
 } from '@/lib/community-server';
+import { getSponsorStatuses } from '@/lib/sponsor-server';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -38,7 +39,7 @@ async function enrichAuthors(comments: CommentRow[]) {
 
   try {
     const admin = adminClient();
-    const [profilesResult, ogResult] = await Promise.all([
+    const [profilesResult, ogResult, sponsorByUser] = await Promise.all([
       admin
         .from('profiles')
         .select('id,username,avatar_path')
@@ -47,6 +48,7 @@ async function enrichAuthors(comments: CommentRow[]) {
         .from('og_members')
         .select('user_id,og_number')
         .in('user_id', ids),
+      getSponsorStatuses(ids),
     ]);
 
     if (profilesResult.error) throw profilesResult.error;
@@ -74,6 +76,7 @@ async function enrichAuthors(comments: CommentRow[]) {
             username: typeof profile.username === 'string' ? profile.username.trim() || null : null,
             avatarUrl,
             ogNumber: ogByUser.get(profile.id) ?? null,
+            sponsor: sponsorByUser.get(profile.id) ?? null,
           },
         ] as const;
       }),

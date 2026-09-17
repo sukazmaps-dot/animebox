@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { getPublicProfile } from '@/lib/public-profile-server';
+import SponsorBadge from '@/components/monetization/SponsorBadge';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -106,6 +107,10 @@ export default async function PublicProfilePage({ params }: Props) {
               <div>
                 <div className="profile-v2__name-row">
                   <h1>{profile.username}</h1>
+
+                  {profile.sponsor && (
+                    <SponsorBadge tier={profile.sponsor.tier} />
+                  )}
 
                   {profile.ogNumber && (
                     <span

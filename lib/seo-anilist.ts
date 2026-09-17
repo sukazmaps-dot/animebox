@@ -1,4 +1,5 @@
-import { fetchWithRetry } from '@/lib/fetch-retry';
+import { unstable_cache } from 'next/cache';
+
 import {
   ANIME_ITEMS_PER_PAGE,
   ANIME_PAGES_PER_SITEMAP,
@@ -6,6 +7,10 @@ import {
 } from '@/lib/seo-config';
 
 const ANILIST_API_URL = 'https://graphql.anilist.co';
+const CACHE_SECONDS = 60 * 60 * 6;
+const MAX_ATTEMPTS = 4;
+const BASE_RETRY_DELAY_MS = 1_500;
+const MAX_RETRY_DELAY_MS = 15_000;
 
 type SeoAniListMedia = {
   id?: number;
@@ -77,27 +82,81 @@ function buildShardQuery(shard: number): string {
   return `query AnimeBoxSeoSitemap { ${selections} }`;
 }
 
-export async function getSeoAnimeShard(shard: number): Promise<SeoAnimeEntry[]> {
-  if (
-    !Number.isInteger(shard) ||
-    shard < 0 ||
-    shard >= ANIME_SITEMAP_SHARDS
-  ) {
-    return [];
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function retryDelayMs(response: Response, attempt: number): number {
+  const retryAfter = response.headers.get('retry-after');
+
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+
+    if (Number.isFinite(seconds) && seconds >= 0) {
+      return Math.min(seconds * 1_000, MAX_RETRY_DELAY_MS);
+    }
+
+    const retryDate = Date.parse(retryAfter);
+
+    if (Number.isFinite(retryDate)) {
+      return Math.min(
+        Math.max(retryDate - Date.now(), 0),
+        MAX_RETRY_DELAY_MS,
+      );
+    }
   }
 
-  const response = await fetchWithRetry(ANILIST_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-    body: JSON.stringify({ query: buildShardQuery(shard) }),
-    next: {
-      // Sitemap data does not need minute-by-minute refreshes.
-      revalidate: 60 * 60 * 6,
-    },
-  });
+  return Math.min(
+    BASE_RETRY_DELAY_MS * 2 ** attempt,
+    MAX_RETRY_DELAY_MS,
+  );
+}
+
+async function fetchAniListForSitemap(query: string): Promise<Response> {
+  let lastResponse: Response | null = null;
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+    const response = await fetch(ANILIST_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ query }),
+      // Result caching is handled by unstable_cache below. Keeping this fetch
+      // uncached prevents multiple cache layers from fighting each other.
+      cache: 'no-store',
+    });
+
+    lastResponse = response;
+
+    if (response.ok) {
+      return response;
+    }
+
+    const temporaryFailure = response.status === 429 || response.status >= 500;
+
+    if (!temporaryFailure || attempt === MAX_ATTEMPTS - 1) {
+      return response;
+    }
+
+    const delay = retryDelayMs(response, attempt);
+    console.warn(
+      `AniList SEO sitemap HTTP ${response.status}; retrying in ${delay}ms ` +
+        `(attempt ${attempt + 2}/${MAX_ATTEMPTS})`,
+    );
+    await sleep(delay);
+  }
+
+  if (lastResponse) {
+    return lastResponse;
+  }
+
+  throw new Error('AniList SEO sitemap request did not produce a response');
+}
+
+async function loadSeoAnimeShard(shard: number): Promise<SeoAnimeEntry[]> {
+  const response = await fetchAniListForSitemap(buildShardQuery(shard));
 
   if (!response.ok) {
     throw new Error(`AniList SEO sitemap HTTP ${response.status}`);
@@ -142,4 +201,24 @@ export async function getSeoAnimeShard(shard: number): Promise<SeoAnimeEntry[]> 
   }
 
   return result;
+}
+
+const getCachedSeoAnimeShard = unstable_cache(
+  async (shard: number) => loadSeoAnimeShard(shard),
+  ['animebox-seo-anilist-shard-v2'],
+  {
+    revalidate: CACHE_SECONDS,
+  },
+);
+
+export async function getSeoAnimeShard(shard: number): Promise<SeoAnimeEntry[]> {
+  if (
+    !Number.isInteger(shard) ||
+    shard < 0 ||
+    shard >= ANIME_SITEMAP_SHARDS
+  ) {
+    return [];
+  }
+
+  return getCachedSeoAnimeShard(shard);
 }

@@ -2,6 +2,8 @@ import 'server-only';
 
 import { adminClient } from '@/lib/community-server';
 import { getWatchSummary } from '@/lib/watch-server';
+import { getSponsorStatus } from '@/lib/sponsor-server';
+import type { SponsorStatus } from '@/lib/sponsor';
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -22,6 +24,7 @@ export type PublicProfileData = {
   bannerUrl: string | null;
   createdAt: string;
   ogNumber: number | null;
+  sponsor: SponsorStatus | null;
   stats: {
     episodes: number;
     titles: number;
@@ -115,6 +118,7 @@ export async function getPublicProfile(
     definitionsResult,
     ogResult,
     watchSummary,
+    sponsor,
   ] = await Promise.all([
     admin.from('anime_library').select('status').eq('user_id', userId),
     admin
@@ -132,6 +136,7 @@ export async function getPublicProfile(
       .eq('user_id', userId)
       .maybeSingle(),
     getWatchSummary(userId),
+    getSponsorStatus(userId),
   ]);
 
   if (libraryResult.error) {
@@ -195,6 +200,7 @@ export async function getPublicProfile(
       !ogResult.error && typeof ogResult.data?.og_number === 'number'
         ? ogResult.data.og_number
         : null,
+    sponsor,
     stats: {
       episodes,
       titles,

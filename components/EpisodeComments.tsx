@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import SponsorBadge from '@/components/monetization/SponsorBadge';
+import type { SponsorStatus } from '@/lib/sponsor';
 
 import {
   FormEvent,
@@ -26,6 +28,7 @@ type CommentItem = {
     username: string | null;
     avatarUrl: string | null;
     ogNumber: number | null;
+    sponsor: SponsorStatus | null;
   } | null;
 };
 
@@ -106,6 +109,9 @@ function CommentNode({
                     OG #{String(comment.author.ogNumber).padStart(3, '0')}
                   </span>
                 )}
+                {comment.author?.sponsor && (
+                  <SponsorBadge tier={comment.author.sponsor.tier} compact />
+                )}
               </span>
 
               <time dateTime={comment.created_at}>
@@ -133,6 +139,9 @@ function CommentNode({
                   >
                     OG #{String(comment.author.ogNumber).padStart(3, '0')}
                   </span>
+                )}
+                {comment.author?.sponsor && (
+                  <SponsorBadge tier={comment.author.sponsor.tier} compact />
                 )}
               </span>
 
