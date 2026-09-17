@@ -345,3 +345,162 @@
     animation: none;
   }
 }
+
+/* =========================================================
+   AnimeBox profile frame + sponsor progress fix v3
+   ========================================================= */
+
+/* Frames are real elements now. Disable the old pseudo-element implementation
+   so it cannot drift relative to the avatar on desktop/mobile layouts. */
+.profile-v2__avatar-wrap::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Remove legacy avatar-box styling when the new framed avatar component is used. */
+.profile-v2__avatar-wrap[data-avatar-frame] {
+  isolation: isolate;
+}
+
+.user-avatar-frame__overlay {
+  transform: translateZ(0);
+  transform-origin: center;
+  filter:
+    drop-shadow(0 0 8px rgba(183, 105, 255, .28))
+    drop-shadow(0 0 18px rgba(121, 78, 255, .16));
+}
+
+.profile-v2__avatar-wrap[data-avatar-frame="owner"] .user-avatar-frame__overlay {
+  filter:
+    drop-shadow(0 0 8px rgba(255, 201, 92, .30))
+    drop-shadow(0 0 20px rgba(175, 91, 255, .25));
+}
+
+.profile-v2__avatar-wrap[data-avatar-frame="patron"] .user-avatar-frame__overlay {
+  filter:
+    drop-shadow(0 0 8px rgba(255, 199, 92, .24))
+    drop-shadow(0 0 18px rgba(194, 78, 255, .24));
+}
+
+.profile-v2__avatar-wrap[data-avatar-frame="premium"] .user-avatar-frame__overlay {
+  filter:
+    drop-shadow(0 0 8px rgba(232, 83, 255, .26))
+    drop-shadow(0 0 18px rgba(153, 78, 255, .18));
+}
+
+/* Current-profile and public-profile hero keep the same stable avatar geometry. */
+.profile-v2__identity > .profile-v2__avatar-wrap[data-avatar-frame] {
+  flex: 0 0 auto;
+}
+
+/* Premium Sponsor progress */
+.sponsor-v2-next {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  color: rgba(239, 235, 250, .92);
+}
+
+.sponsor-v2-next strong {
+  color: #f4efff;
+}
+
+.sponsor-v2-next__amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 2px;
+  color: #d9c8ff;
+  font-weight: 750;
+}
+
+.sponsor-v2-next--complete {
+  color: #d9c8ff;
+}
+
+.sponsor-progress {
+  width: 100%;
+  margin: 8px 0 16px;
+}
+
+.sponsor-progress__track {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(154, 116, 215, .12);
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(15, 23, 42, .94), rgba(31, 24, 52, .94));
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .32);
+}
+
+.sponsor-progress__fill {
+  position: relative;
+  height: 100%;
+  min-width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #d946ef 0%, #9333ea 48%, #4f46e5 100%);
+  box-shadow:
+    0 0 10px rgba(217, 70, 239, .34),
+    0 0 18px rgba(124, 58, 237, .22);
+  transition: width .55s cubic-bezier(.22, 1, .36, 1);
+}
+
+.sponsor-progress__fill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(110deg, transparent 15%, rgba(255,255,255,.26) 48%, transparent 78%);
+  transform: translateX(-130%);
+  animation: sponsor-progress-shimmer 3.2s ease-in-out infinite;
+}
+
+.sponsor-progress__glow {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #e9d5ff;
+  box-shadow: 0 0 12px #d946ef, 0 0 20px rgba(124,58,237,.72);
+  transform: translate(35%, -50%);
+}
+
+.animebox-star-icon--pulse {
+  animation: animebox-star-pulse 2.15s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes animebox-star-pulse {
+  0%, 100% {
+    transform: scale(1);
+    filter:
+      drop-shadow(0 0 5px rgba(205, 105, 255, .42))
+      drop-shadow(0 0 11px rgba(105, 112, 255, .18));
+  }
+  50% {
+    transform: scale(1.08);
+    filter:
+      drop-shadow(0 0 8px rgba(223, 119, 255, .66))
+      drop-shadow(0 0 17px rgba(105, 112, 255, .30));
+  }
+}
+
+@keyframes sponsor-progress-shimmer {
+  0%, 58% { transform: translateX(-130%); }
+  82%, 100% { transform: translateX(130%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animebox-star-icon--pulse,
+  .sponsor-progress__fill::before {
+    animation: none;
+  }
+
+  .sponsor-progress__fill {
+    transition: none;
+  }
+}

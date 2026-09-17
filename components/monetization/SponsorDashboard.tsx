@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import SponsorBadge from './SponsorBadge';
 import AnimeBoxStar from './AnimeBoxStar';
+import SponsorProgressBar from './SponsorProgressBar';
 import { SPONSOR_META, type SponsorStatus } from '@/lib/sponsor';
 
 type Data = { sponsor: SponsorStatus | null; totalStars:number; telegramLinked:boolean; payments:{id:string;amount:number;created_at:string}[]; page:number;hasMore:boolean };
@@ -35,9 +36,22 @@ export default function SponsorDashboard({history=false}:{history?:boolean}) {
   {error&&<p role="alert">{error} <button onClick={reload}>Повторить</button></p>}
   {guest&&<p><Link href="/profile">Войди в аккаунт</Link>, чтобы видеть свой прогресс и историю поддержки.</p>}
   {data&&<>
-   <div className="sponsor-v2-total"><strong>{data.totalStars.toLocaleString('ru-RU')} <AnimeBoxStar size={30} /></strong>{data.sponsor&&<SponsorBadge tier={data.sponsor.tier}/>}</div>
-   <p>{next?`До уровня ${SPONSOR_META[next===25?'supporter':next===100?'premium':'patron'].label} осталось ${next-data.totalStars} ⭐`:'Высший уровень открыт. Спасибо за поддержку AnimeBox!'} </p>
-   <progress className="sponsor-v2-progress" max={next??250} value={Math.min(data.totalStars,next??250)} aria-label="Прогресс спонсорства"/>
+   <div className="sponsor-v2-total"><strong>{data.totalStars.toLocaleString('ru-RU')} <AnimeBoxStar size={30} className="animebox-star-icon--pulse" /></strong>{data.sponsor&&<SponsorBadge tier={data.sponsor.tier}/>}</div>
+   {next ? (
+    <p className="sponsor-v2-next">
+      До уровня <strong>{SPONSOR_META[next===25?'supporter':next===100?'premium':'patron'].label}</strong> осталось
+      <span className="sponsor-v2-next__amount">{next-data.totalStars} <AnimeBoxStar size={20} className="animebox-star-icon--pulse" /></span>
+    </p>
+   ) : (
+    <p className="sponsor-v2-next sponsor-v2-next--complete">
+      Высший уровень открыт <AnimeBoxStar size={20} className="animebox-star-icon--pulse" /> Спасибо за поддержку AnimeBox!
+    </p>
+   )}
+   <SponsorProgressBar
+     current={next ? data.totalStars : 250}
+     target={next ?? 250}
+     label="Прогресс спонсорства"
+   />
    {!data.telegramLinked&&<p className="sponsor-v2-note">Для автоматического получения статуса привяжи Telegram к своему аккаунту в профиле. Stars учитываются по аккаунту плательщика в Telegram.</p>}
    {history&&<>
     {data.payments.length?<ul className="sponsor-v2-history">{data.payments.map(p=><li key={p.id}><time dateTime={p.created_at}>{new Date(p.created_at).toLocaleString('ru-RU')}</time><strong>+{p.amount} <AnimeBoxStar size={20} /></strong></li>)}</ul>:<p>Здесь появится твоя первая поддержка через Stars.</p>}

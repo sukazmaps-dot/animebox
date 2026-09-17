@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 
 import { getPublicProfile } from '@/lib/public-profile-server';
 import UserIdentity from '@/components/identity/UserIdentity';
+import UserAvatarWithFrame from '@/components/profile/UserAvatarWithFrame';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -96,11 +97,12 @@ export default async function PublicProfilePage({ params }: Props) {
         </div>
 
         <div className="profile-v2__identity">
-          <div className="profile-v2__avatar-wrap">
-            <div className="profile-v2__avatar-static">
-              <img src={profile.avatarUrl} alt={`Аватар ${profile.username}`} />
-            </div>
-          </div>
+          <UserAvatarWithFrame
+            src={profile.avatarUrl}
+            alt={`Аватар ${profile.username}`}
+            role={profile.role}
+            sponsor={profile.sponsor}
+          />
 
           <div className="profile-v2__identity-main">
             <div className="profile-v2__title-row">

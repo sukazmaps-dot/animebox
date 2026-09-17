@@ -13,6 +13,7 @@ import CommunityProfile from '@/components/CommunityProfile';
 import ProfileEditModal from '@/components/ProfileEditModal';
 import SponsorDashboard from '@/components/monetization/SponsorDashboard';
 import MySponsorBadge from '@/components/monetization/MySponsorBadge';
+import UserAvatarWithFrame from '@/components/profile/UserAvatarWithFrame';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 
 type Profile = {
@@ -237,14 +238,11 @@ export default function ProfilePage() {
         </div>
 
         <div className="profile-v2__identity">
-          <div className="profile-v2__avatar-wrap">
-            <div className="profile-v2__avatar-static">
-              <img
-                src={avatarUrl}
-                alt={`Аватар ${username}`}
-              />
-            </div>
-          </div>
+          <UserAvatarWithFrame
+            src={avatarUrl}
+            alt={`Аватар ${username}`}
+            loadCurrentIdentity
+          />
 
           <div className="profile-v2__identity-main">
             <div className="profile-v2__title-row">
