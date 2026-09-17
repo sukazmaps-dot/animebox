@@ -124,3 +124,5 @@
   gap: 6px;
   min-width: 0;
 }
+
+.podiumCard:has([data-sponsor-tier=premium]) .podiumName,.row:has([data-sponsor-tier=premium]) .rowNameLine>strong{color:#c3a1ff}.podiumCard:has([data-sponsor-tier=patron]) .podiumName,.row:has([data-sponsor-tier=patron]) .rowNameLine>strong{color:#f4cf81}.row:has([data-sponsor-tier=premium]) .user>img{outline:2px solid #b68bff}.row:has([data-sponsor-tier=patron]) .user>img{outline:2px solid #f1c873}

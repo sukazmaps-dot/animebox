@@ -26,7 +26,7 @@ type InvoiceStatus =
 function statusText(status: InvoiceStatus | '') {
   switch (status) {
     case 'paid':
-      return 'Спасибо 💜 Поддержка получена.';
+      return 'Спасибо 💜 Telegram подтвердил оплату. Статус обновится после обработки платежа.';
     case 'pending':
       return 'Платёж обрабатывается Telegram…';
     case 'failed':
@@ -109,6 +109,7 @@ export default function SupportAnimeBox() {
           data.invoiceUrl,
           (status) => {
             setInvoiceStatus(status);
+            if (status === 'paid') window.dispatchEvent(new Event('animebox:support-paid'));
           },
         );
       } else {
@@ -130,7 +131,7 @@ export default function SupportAnimeBox() {
         <span className="support-box__eyebrow">ANIMEBOX SUPPORT</span>
         <h2>Поддержать развитие AnimeBox</h2>
         <p>
-          Поддержка добровольная и не открывает скрытый контент или платные функции. Средства идут на инфраструктуру и развитие проекта.
+          Поддержка добровольная. Telegram Stars открывают накопительные уровни спонсорства и оформление профиля. Средства идут на инфраструктуру и развитие проекта.
         </p>
       </div>
 

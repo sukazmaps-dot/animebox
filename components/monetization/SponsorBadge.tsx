@@ -26,6 +26,7 @@ export default function SponsorBadge({
 
   return (
     <span
+      data-sponsor-tier={tier}
       className={`${styles.badge} ${tierClass} ${compact ? styles.compact : ''} ${className}`.trim()}
       title={`${meta.label} · ${meta.description}`}
       aria-label={`${meta.label}. ${meta.description}`}
@@ -45,7 +46,7 @@ export default function SponsorBadge({
           strokeLinejoin="round"
         />
         <path
-          d="m12 7.2 1.15 2.45 2.65.35-1.95 1.85.5 2.6L12 13.2l-2.35 1.25.5-2.6L8.2 10l2.65-.35L12 7.2Z"
+          d={tier === 'patron' ? 'M7 10l3 2 2-5 2 5 3-2-1 6H8l-1-6Z' : 'm12 7.2 1.15 2.45 2.65.35-1.95 1.85.5 2.6L12 13.2l-2.35 1.25.5-2.6L8.2 10l2.65-.35L12 7.2Z'}
           fill="currentColor"
         />
         <circle cx="18.7" cy="5.2" r="1.15" fill="currentColor" />

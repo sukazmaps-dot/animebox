@@ -1,24 +1,26 @@
-import { NextResponse } from 'next/server';
-
-import { createClient } from '@/lib/supabase/server';
-import { getSponsorStatus } from '@/lib/sponsor-server';
-
-export async function GET() {
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.getUser();
-
-  if (error || !data.user) {
-    return NextResponse.json({ sponsor: null }, { status: 401 });
+import { userClient, adminClient, response, failure } from '@/lib/community-server';
+import { getSponsorTotal } from '@/lib/sponsor-server';
+import { makeSponsorStatus } from '@/lib/sponsor';
+export async function GET(request: Request) {
+ try {
+  const { user } = await userClient();
+  const admin = adminClient();
+  const page = Math.max(1, Math.min(10000, Number(new URL(request.url).searchParams.get('page')) || 1));
+  if (!Number.isInteger(page)) return response({error:'Некорректная страница'},400);
+  const {data: profile,error:profileError} = await admin.from('profiles').select('telegram_id').eq('id',user.id).maybeSingle();
+  if(profileError) throw profileError;
+  let telegramId: string | null = null;
+  if(profile?.telegram_id && /^\d+$/.test(String(profile.telegram_id))) {
+   const {count,error} = await admin.from('profiles').select('id',{count:'exact',head:true}).eq('telegram_id',profile.telegram_id);
+   if(error) throw error;
+   if(count===1) telegramId=String(profile.telegram_id);
   }
-
-  return NextResponse.json(
-    {
-      sponsor: await getSponsorStatus(data.user.id),
-    },
-    {
-      headers: {
-        'Cache-Control': 'private, no-store',
-      },
-    },
-  );
+  let query=admin.from('star_payments').select('id,amount,created_at',{count:'exact'});
+  query=telegramId ? query.or(`user_id.eq.${user.id},and(user_id.is.null,telegram_id.eq.${telegramId})`) : query.eq('user_id',user.id);
+  const [{data:payments,error,count},totalStars]=await Promise.all([
+   query.order('created_at',{ascending:false}).order('id',{ascending:false}).range((page-1)*20,page*20-1), getSponsorTotal(user.id)
+  ]);
+  if(error) throw error;
+  return response({sponsor:makeSponsorStatus(totalStars),totalStars,payments:payments??[],page,hasMore:page*20<(count??0),telegramLinked:!!telegramId});
+ } catch(error) { return failure(error); }
 }

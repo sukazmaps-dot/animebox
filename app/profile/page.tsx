@@ -11,6 +11,7 @@ import { isTelegramMiniAppRuntime } from '@/lib/telegram-auto-login';
 import { useAuthState } from '@/components/AuthStateProvider';
 import CommunityProfile from '@/components/CommunityProfile';
 import ProfileEditModal from '@/components/ProfileEditModal';
+import SponsorDashboard from '@/components/monetization/SponsorDashboard';
 import MySponsorBadge from '@/components/monetization/MySponsorBadge';
 
 type Profile = {
@@ -295,6 +296,7 @@ export default function ProfilePage() {
         </div>
       </section>
 
+      <SponsorDashboard history />
       <CommunityProfile />
 
       {/* FAVORITES */}
