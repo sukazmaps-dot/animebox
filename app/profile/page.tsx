@@ -30,6 +30,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const {
     user,
+    profile: authProfile,
     loading: authLoading,
     telegramMiniApp,
     telegramAutoLoginDisabled,
@@ -74,47 +75,68 @@ export default function ProfilePage() {
     const currentUser = user;
 
     async function loadProfile() {
-      setLoading(true);
       setError('');
       setEmail(currentUser.email ?? '');
 
       const cachedProfile = readProfileCache<Profile>(currentUser.id);
       if (cachedProfile?.username?.trim()) {
-        // Username/avatar can stay cached, but OG must be refreshed every time:
-        // a user can earn the badge immediately after adding their first title.
-        const cachedOgResult = await supabase
+        // Returning visitors should see the hero immediately. OG is refreshed
+        // in the background instead of blocking the whole profile.
+        setProfile(cachedProfile);
+        setLoading(false);
+
+        void supabase
           .from('og_members')
           .select('og_number')
           .eq('user_id', currentUser.id)
-          .maybeSingle();
+          .maybeSingle()
+          .then((cachedOgResult) => {
+            if (!active) return;
+            if (cachedOgResult.error) {
+              console.error('OG badge lookup:', cachedOgResult.error);
+              return;
+            }
 
-        if (!active) return;
+            const ogNumber =
+              typeof cachedOgResult.data?.og_number === 'number'
+                ? cachedOgResult.data.og_number
+                : null;
 
-        const nextCachedProfile = {
-          ...cachedProfile,
-          og_number:
-            !cachedOgResult.error &&
-            typeof cachedOgResult.data?.og_number === 'number'
-              ? cachedOgResult.data.og_number
-              : null,
-        };
-
-        if (cachedOgResult.error) {
-          console.error('OG badge lookup:', cachedOgResult.error);
-        }
-
-        setProfile(nextCachedProfile);
-        saveProfileCache(currentUser.id, nextCachedProfile);
-        setLoading(false);
+            setProfile((current) => {
+              if (!current || current.id !== currentUser.id) return current;
+              if (current.og_number === ogNumber) return current;
+              const next = { ...current, og_number: ogNumber };
+              saveProfileCache(currentUser.id, next);
+              return next;
+            });
+          });
         return;
+      }
+
+      let showedOptimisticProfile = false;
+      if (
+        authProfile?.id === currentUser.id &&
+        authProfile.username?.trim()
+      ) {
+        setProfile({
+          id: currentUser.id,
+          username: authProfile.username,
+          bio: null,
+          avatar_path: authProfile.avatar_path,
+          banner_path: null,
+          created_at: currentUser.created_at,
+          og_number: null,
+        });
+        setLoading(false);
+        showedOptimisticProfile = true;
+      } else {
+        setLoading(true);
       }
 
       const [profileResult, ogResult] = await Promise.all([
         supabase
           .from('profiles')
-          .select(
-            'id, username, bio, avatar_path, banner_path, created_at',
-          )
+          .select('id, username, bio, avatar_path, banner_path, created_at')
           .eq('id', currentUser.id)
           .single(),
         supabase
@@ -128,13 +150,14 @@ export default function ProfilePage() {
 
       if (profileResult.error) {
         console.error(profileResult.error);
-        setError('Не удалось загрузить профиль.');
-        setLoading(false);
+        if (!showedOptimisticProfile) {
+          setError('Не удалось загрузить профиль.');
+          setLoading(false);
+        }
         return;
       }
 
       if (ogResult.error) {
-        // Профиль должен продолжить работать даже до применения OG-миграции.
         console.error('OG badge lookup:', ogResult.error);
       }
 
@@ -163,6 +186,7 @@ export default function ProfilePage() {
     };
   }, [
     authLoading,
+    authProfile,
     router,
     telegramAutoLoginDisabled,
     telegramMiniApp,

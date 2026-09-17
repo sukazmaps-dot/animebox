@@ -1,15 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 
+import { statusLabels, type LibraryStatus } from '@/lib/community-client';
 import {
-  communityRequest,
-  statusLabels,
-  type CommunityProfile,
-  type LibraryStatus,
-} from '@/lib/community-client';
-import { AUTH_CHANGED_EVENT } from '@/lib/auth-events';
+  getTrackerSnapshot,
+  invalidateTrackerSnapshot,
+  peekTrackerSnapshot,
+  type TrackerSnapshot,
+} from '@/lib/tracker-client';
 import { isTelegramMiniAppRuntime } from '@/lib/telegram-auto-login';
 import { useAuthState } from '@/components/AuthStateProvider';
 import LibraryStatusControl from '@/components/LibraryStatusControl';
@@ -32,16 +32,26 @@ export default function MyListPage() {
     telegramAutoLoginDisabled,
   } = useAuthState();
 
-  const [data, setData] = useState<CommunityProfile | null>(null);
+  const [data, setData] = useState<TrackerSnapshot | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  async function load() {
+  const load = useCallback(async (force = false) => {
+    if (!user?.id) return;
+
     try {
       setError('');
-      setLoading(true);
-      setData(await communityRequest<CommunityProfile>('profile'));
+      const cached = peekTrackerSnapshot(user.id);
+      if (cached) {
+        setData(cached);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+
+      const nextData = await getTrackerSnapshot(user.id, force);
+      setData(nextData);
     } catch (error) {
       setData(null);
       setError(
@@ -52,7 +62,7 @@ export default function MyListPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [user]);
 
   useEffect(() => {
     let active = true;
@@ -61,20 +71,13 @@ export default function MyListPage() {
     const waitingForTelegramAuth =
       inTelegram && !telegramAutoLoginDisabled && !user;
 
-    function reloadAfterAuth() {
-      // verifyOtp() has already persisted the Supabase session when this event
-      // is emitted. The zero-delay lets auth listeners finish their state sync.
-      window.setTimeout(() => {
-        if (active) void load();
-      }, 0);
-    }
-
     function handleLibraryUpdated() {
-      if (user) void load();
+      if (!user?.id) return;
+      invalidateTrackerSnapshot(user.id);
+      if (active) void load(true);
     }
 
     window.addEventListener('library-updated', handleLibraryUpdated);
-    window.addEventListener(AUTH_CHANGED_EVENT, reloadAfterAuth);
 
     let stateTimer: number | null = null;
 
@@ -93,8 +96,13 @@ export default function MyListPage() {
         setError('Войди в аккаунт.');
       }, 0);
     } else {
+      const cached = peekTrackerSnapshot(user.id);
       stateTimer = window.setTimeout(() => {
-        if (active) void load();
+        if (!active) return;
+        setData(cached);
+        setError('');
+        setLoading(!cached);
+        void load(false);
       }, 0);
     }
 
@@ -102,13 +110,13 @@ export default function MyListPage() {
       active = false;
       if (stateTimer !== null) window.clearTimeout(stateTimer);
       window.removeEventListener('library-updated', handleLibraryUpdated);
-      window.removeEventListener(AUTH_CHANGED_EVENT, reloadAfterAuth);
     };
   }, [
     authLoading,
     telegramAutoLoginDisabled,
     telegramMiniApp,
     user,
+    load,
   ]);
 
   const filteredLibrary = useMemo(() => {
@@ -177,7 +185,7 @@ export default function MyListPage() {
             <button
               type="button"
               className="tracker-error__retry"
-              onClick={() => void load()}
+              onClick={() => void load(true)}
             >
               Повторить
             </button>

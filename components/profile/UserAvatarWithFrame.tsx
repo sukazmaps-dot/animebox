@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useAuthState } from '@/components/AuthStateProvider';
 
 import { resolveIdentityKind, type PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
+import { getSponsorMe, peekSponsorMe } from '@/lib/sponsor-me-client';
 
 type Props = {
   src: string;
@@ -34,35 +36,45 @@ export default function UserAvatarWithFrame({
   loadCurrentIdentity = false,
   className = '',
 }: Props) {
-  const [fetchedIdentity, setFetchedIdentity] = useState<IdentityState | null>(null);
+  const { user } = useAuthState();
+  const cached = loadCurrentIdentity ? peekSponsorMe(user?.id, 1) : null;
+  const [fetchedIdentity, setFetchedIdentity] = useState<IdentityState | null>(
+    cached
+      ? { role: cached.role ?? null, sponsor: cached.sponsor ?? null }
+      : null,
+  );
 
   useEffect(() => {
-    if (!loadCurrentIdentity) return;
+    if (!loadCurrentIdentity || !user?.id) return;
 
-    const controller = new AbortController();
+    let active = true;
+    const nextCached = peekSponsorMe(user.id, 1);
+    queueMicrotask(() => {
+      if (!active) return;
+      setFetchedIdentity(
+        nextCached
+          ? { role: nextCached.role ?? null, sponsor: nextCached.sponsor ?? null }
+          : null,
+      );
+    });
 
-    fetch('/api/monetization/sponsor/me', {
-      cache: 'no-store',
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        if (!response.ok) return null;
-        const data = (await response.json()) as Partial<IdentityState>;
-        return {
+    void getSponsorMe(user.id, 1)
+      .then((data) => {
+        if (!active) return;
+        setFetchedIdentity({
           role: data.role ?? null,
           sponsor: data.sponsor ?? null,
-        } satisfies IdentityState;
-      })
-      .then((identity) => {
-        if (identity) setFetchedIdentity(identity);
+        });
       })
       .catch((error) => {
-        if (error instanceof DOMException && error.name === 'AbortError') return;
+        if ((error as Error & { status?: number }).status === 401) return;
         console.error('[AvatarFrame] failed to load identity:', error);
       });
 
-    return () => controller.abort();
-  }, [loadCurrentIdentity]);
+    return () => {
+      active = false;
+    };
+  }, [loadCurrentIdentity, user?.id]);
 
   const currentIdentity = loadCurrentIdentity
     ? fetchedIdentity ?? { role, sponsor }

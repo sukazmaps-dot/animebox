@@ -1,14 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useAuthState } from '@/components/AuthStateProvider';
 import Link from 'next/link';
 import { achievementIcon } from '@/lib/achievement-icons';
 
 import {
-  communityRequest,
   statusLabels,
   type CommunityProfile as ProfileData,
 } from '@/lib/community-client';
+import {
+  getCommunityProfileCached,
+  invalidateCommunityProfile,
+  peekCommunityProfile,
+} from '@/lib/community-profile-cache';
+import { seedTrackerSnapshot } from '@/lib/tracker-client';
 
 function WatchTime({ activeMs }: { activeMs: number }) {
   const totalSeconds = Math.max(0, Math.floor(activeMs / 1000));
@@ -40,24 +46,55 @@ function WatchTime({ activeMs }: { activeMs: number }) {
 }
 
 export default function CommunityProfile() {
-  const [data, setData] = useState<ProfileData | null>(null);
+  const { user } = useAuthState();
+  const [data, setData] = useState<ProfileData | null>(() => peekCommunityProfile(user?.id));
   const [error, setError] = useState('');
 
-  async function load() {
+  const load = useCallback(async (force = false) => {
     try {
       setError('');
-      setData(await communityRequest<ProfileData>('profile'));
+      if (!user?.id) return;
+      const profile = await getCommunityProfileCached(user.id, force);
+      setData(profile);
+      seedTrackerSnapshot(user.id, {
+        stats: {
+          watching: profile.stats.watching,
+          planned: profile.stats.planned,
+          completed: profile.stats.completed,
+          dropped: profile.stats.dropped,
+        },
+        library: profile.library,
+      });
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Ошибка профиля.');
     }
-  }
+  }, [user]);
 
   useEffect(() => {
     let active = true;
 
-    communityRequest<ProfileData>('profile')
+    if (!user?.id) return;
+
+    const cached = peekCommunityProfile(user.id);
+    queueMicrotask(() => {
+      if (!active) return;
+      setData(cached);
+      setError('');
+    });
+
+    void getCommunityProfileCached(user.id)
       .then((profile) => {
-        if (active) setData(profile);
+        if (!active) return;
+        setData(profile);
+        seedTrackerSnapshot(user.id, {
+          stats: {
+            watching: profile.stats.watching,
+            planned: profile.stats.planned,
+            completed: profile.stats.completed,
+            dropped: profile.stats.dropped,
+          },
+          library: profile.library,
+        });
       })
       .catch((error) => {
         if (active) {
@@ -65,16 +102,24 @@ export default function CommunityProfile() {
         }
       });
 
+    const handleLibraryUpdated = () => {
+      invalidateCommunityProfile(user.id);
+      if (active) void load(true);
+    };
+
+    window.addEventListener('library-updated', handleLibraryUpdated);
+
     return () => {
       active = false;
+      window.removeEventListener('library-updated', handleLibraryUpdated);
     };
-  }, []);
+  }, [user?.id, load]);
 
   if (error) {
     return (
       <section className="profile-v2__community-error" role="alert">
         <span>{error}</span>
-        <button type="button" onClick={() => void load()}>
+        <button type="button" onClick={() => void load(true)}>
           Повторить
         </button>
       </section>
