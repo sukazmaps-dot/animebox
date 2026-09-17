@@ -20,95 +20,197 @@ import { Analytics } from '@vercel/analytics/next';
 
 import { SITE_URL } from '@/lib/seo-config';
 
+/* =========================================================
+   SEO / Structured Data
+   ========================================================= */
+
 const websiteStructuredData = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
+
   name: 'AnimeBox',
-  alternateName: ['YourAnimeBox', 'youranimebox.com'],
+
+  alternateName: [
+    'YourAnimeBox',
+    'youranimebox.com',
+  ],
+
   url: SITE_URL,
+
+  description:
+    'AnimeBox — платформа для просмотра и отслеживания аниме с персональными рекомендациями.',
+
   inLanguage: 'ru-RU',
 };
 
 const organizationStructuredData = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
+
   name: 'AnimeBox',
   alternateName: 'YourAnimeBox',
+
   url: SITE_URL,
+
   logo: {
     '@type': 'ImageObject',
+
     url: `${SITE_URL}/brand/favicon.png`,
     contentUrl: `${SITE_URL}/brand/favicon.png`,
+
     width: 512,
     height: 512,
   },
-  sameAs: ['https://t.me/YourAnimeBoxBot'],
+
+  sameAs: [
+    'https://t.me/YourAnimeBoxBot',
+  ],
 };
+
+/* =========================================================
+   Metadata
+   ========================================================= */
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
 
   title: {
-    default: 'AnimeBox — Смотри. Отслеживай. Живи.',
-    template: '%s | AnimeBox',
+    default:
+      'AnimeBox — Смотри. Отслеживай. Живи.',
+
+    template:
+      '%s | AnimeBox',
   },
 
   description:
-    'AnimeBox — сервис для просмотра и отслеживания аниме. Сохраняй тайтлы, отмечай серии, следи за расписанием и обсуждай эпизоды.',
+    'Смотри аниме, сохраняй прогресс, собирай свою коллекцию и находи новые тайтлы с персональными рекомендациями.',
 
   applicationName: 'AnimeBox',
+
   creator: 'AnimeBox',
   publisher: 'AnimeBox',
 
+  keywords: [
+    'AnimeBox',
+    'аниме',
+    'аниме онлайн',
+    'смотреть аниме',
+    'аниме трекер',
+    'трекер аниме',
+    'каталог аниме',
+    'новые серии аниме',
+    'рекомендации аниме',
+    'расписание аниме',
+  ],
+
+  alternates: {
+    canonical: SITE_URL,
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+
+    googleBot: {
+      index: true,
+      follow: true,
+
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+
+  /* =======================================================
+     Open Graph
+     Telegram / Discord / VK / соцсети
+     ======================================================= */
 
   openGraph: {
     type: 'website',
+
     locale: 'ru_RU',
+
     url: SITE_URL,
+
     siteName: 'AnimeBox',
 
-    title: 'AnimeBox — Смотри. Отслеживай. Живи.',
+    title:
+      'AnimeBox — Смотри. Отслеживай. Живи.',
 
     description:
-      'Смотри аниме, отслеживай просмотренные серии, собирай свою коллекцию и обсуждай эпизоды на AnimeBox.',
+      'Смотри аниме, сохраняй прогресс, собирай свою коллекцию и находи новые тайтлы с персональными рекомендациями.',
 
     images: [
       {
-        url: '/backgrounds/hero-fallback.webp',
-        width: 2244,
-        height: 701,
-        alt: 'AnimeBox — аниме, трекер и новые серии',
+        url: `${SITE_URL}/og/animebox-share-v2.jpg`,
+
+        width: 1200,
+        height: 630,
+
+        alt:
+          'AnimeBox — Смотри. Отслеживай. Живи.',
       },
     ],
   },
 
+  /* =======================================================
+     Twitter / X
+     ======================================================= */
+
   twitter: {
     card: 'summary_large_image',
 
-    title: 'AnimeBox — Смотри. Отслеживай. Живи.',
+    title:
+      'AnimeBox — Смотри. Отслеживай. Живи.',
 
     description:
-      'Смотри аниме, отслеживай серии, собирай свою коллекцию и следи за новыми эпизодами.',
+      'Смотри аниме, сохраняй прогресс и находи новые тайтлы с персональными рекомендациями.',
 
-    images: ['/backgrounds/hero-fallback.webp'],
+    images: [
+      `${SITE_URL}/og/animebox-share-v2.jpg`,
+    ],
   },
+
+  /* =======================================================
+     Icons
+     ======================================================= */
 
   icons: {
     icon: [
-      { url: '/brand/favicon.png', type: 'image/png', sizes: '512x512' },
-      { url: '/favicon.ico', type: 'image/x-icon', sizes: '256x256' },
+      {
+        url: '/brand/favicon.png',
+        type: 'image/png',
+        sizes: '512x512',
+      },
+
+      {
+        url: '/favicon.ico',
+        type: 'image/x-icon',
+        sizes: '256x256',
+      },
     ],
+
     shortcut: '/brand/favicon.png',
+
     apple: '/brand/favicon.png',
   },
 
   manifest: '/manifest.webmanifest',
 };
 
+/* =========================================================
+   Viewport
+   ========================================================= */
+
 export const viewport: Viewport = {
   themeColor: '#080912',
   colorScheme: 'dark',
 };
+
+/* =========================================================
+   Root layout
+   ========================================================= */
 
 export default function RootLayout({
   children,
@@ -116,7 +218,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" suppressHydrationWarning>
+    <html
+      lang="ru"
+      suppressHydrationWarning
+    >
       <head>
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
@@ -125,22 +230,38 @@ export default function RootLayout({
       </head>
 
       <body>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(websiteStructuredData).replace(/</g, '\\u003c'),
-          }}
-        />
+        {/* Website structured data */}
 
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(organizationStructuredData).replace(/</g, '\\u003c'),
+            __html: JSON.stringify(
+              websiteStructuredData,
+            ).replace(
+              /</g,
+              '\\u003c',
+            ),
+          }}
+        />
+
+        {/* Organization structured data */}
+
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(
+              organizationStructuredData,
+            ).replace(
+              /</g,
+              '\\u003c',
+            ),
           }}
         />
 
         <AuthStateProvider>
-          {/* Определяет, открыт AnimeBox внутри Telegram или в браузере */}
+          {/* Определяет, открыт AnimeBox
+              внутри Telegram или браузера */}
+
           <TelegramMiniAppBridge />
 
           <Navbar />
