@@ -282,12 +282,17 @@ export default function AnimePlayer({
   const [playerReady, setPlayerReady] = useState(false);
   const [theaterMode, setTheaterMode] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [telegramAndroidMiniApp, setTelegramAndroidMiniApp] = useState(false);
+  const [telegramPseudoFullscreen, setTelegramPseudoFullscreen] = useState(false);
   const [resumeSeconds, setResumeSeconds] = useState(0);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const kodikPlayerRef = useRef<KodikPlayerHandle | null>(null);
   const resumeAppliedRef = useRef(false);
   const playerViewportRef = useRef<HTMLDivElement | null>(null);
+  const telegramFullscreenOwnedRef = useRef(false);
+  const telegramOrientationOwnedRef = useRef(false);
+  const telegramWasFullscreenRef = useRef(false);
 
   const currentSource = sources[activeSourceIndex];
   const currentTranslation = currentSource?.translations[activeTranslationIndex];
@@ -436,6 +441,21 @@ export default function AnimePlayer({
   }, [isIframe, resumeSeconds, started, videoLink]);
 
   useEffect(() => {
+    const telegram = window.Telegram?.WebApp;
+    const platform = telegram?.platform?.toLowerCase() || '';
+    const isTelegramAndroid = Boolean(
+      telegram?.initData &&
+        (platform === 'android' || platform.startsWith('android_')),
+    );
+
+    const timer = window.setTimeout(() => {
+      setTelegramAndroidMiniApp(isTelegramAndroid);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     if (!theaterMode) return;
 
     const previousOverflow = document.body.style.overflow;
@@ -445,6 +465,75 @@ export default function AnimePlayer({
       document.body.style.overflow = previousOverflow;
     };
   }, [theaterMode]);
+
+  useEffect(() => {
+    if (!telegramPseudoFullscreen) return;
+
+    const telegram = window.Telegram?.WebApp;
+    const root = document.documentElement;
+    const body = document.body;
+    const previousBodyOverflow = body.style.overflow;
+    const previousBodyOverscroll = body.style.overscrollBehavior;
+    const previousRootOverflow = root.style.overflow;
+
+    body.style.overflow = 'hidden';
+    body.style.overscrollBehavior = 'none';
+    root.style.overflow = 'hidden';
+    root.classList.add('animebox-player-telegram-fullscreen');
+
+    telegramWasFullscreenRef.current = Boolean(telegram?.isFullscreen);
+    telegramFullscreenOwnedRef.current = false;
+    telegramOrientationOwnedRef.current = false;
+
+    try {
+      telegram?.expand();
+
+      if (!telegramWasFullscreenRef.current && telegram?.requestFullscreen) {
+        telegram.requestFullscreen();
+        telegramFullscreenOwnedRef.current = true;
+      }
+
+      // Telegram can only lock the CURRENT orientation. Lock it only when the
+      // viewer already rotated the phone to landscape; never trap portrait.
+      if (
+        window.innerWidth > window.innerHeight &&
+        telegram?.lockOrientation &&
+        !telegram.isOrientationLocked
+      ) {
+        telegram.lockOrientation();
+        telegramOrientationOwnedRef.current = true;
+      }
+    } catch (error) {
+      // The CSS layer below is the actual Android fallback, so a Telegram SDK
+      // failure must not prevent the viewer from getting a full player surface.
+      console.warn('[AnimePlayer] Telegram fullscreen request failed:', error);
+    }
+
+    return () => {
+      body.style.overflow = previousBodyOverflow;
+      body.style.overscrollBehavior = previousBodyOverscroll;
+      root.style.overflow = previousRootOverflow;
+      root.classList.remove('animebox-player-telegram-fullscreen');
+
+      try {
+        if (telegramOrientationOwnedRef.current) {
+          telegram?.unlockOrientation?.();
+        }
+
+        if (
+          telegramFullscreenOwnedRef.current &&
+          !telegramWasFullscreenRef.current
+        ) {
+          telegram?.exitFullscreen?.();
+        }
+      } catch (error) {
+        console.warn('[AnimePlayer] Telegram fullscreen cleanup failed:', error);
+      } finally {
+        telegramFullscreenOwnedRef.current = false;
+        telegramOrientationOwnedRef.current = false;
+      }
+    };
+  }, [telegramPseudoFullscreen]);
 
   useEffect(() => {
     function onFullscreenChange() {
@@ -616,6 +705,17 @@ export default function AnimePlayer({
   }
 
   async function toggleFullscreen() {
+    /*
+     * Telegram Android WebView can reject native DOM/iframe fullscreen even
+     * when the same player works in Chrome. In that environment we make the
+     * Mini App fullscreen and pin the AnimeBox viewport over the whole WebView.
+     * Playback is NOT remounted, so Kodik/HLS position is preserved.
+     */
+    if (telegramAndroidMiniApp) {
+      setTelegramPseudoFullscreen((current) => !current);
+      return;
+    }
+
     const node = playerViewportRef.current as
       | (HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> | void })
       | null;
@@ -643,6 +743,8 @@ export default function AnimePlayer({
       console.warn('[AnimePlayer] fullscreen unavailable:', error);
     }
   }
+
+  const fullscreenActive = fullscreen || telegramPseudoFullscreen;
 
   const playerBody = (
     <section
@@ -714,7 +816,7 @@ export default function AnimePlayer({
             <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
               <path d="M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span className="hidden sm:inline">Полный экран</span>
+            <span className="hidden sm:inline">{fullscreenActive ? 'Выйти из полного экрана' : 'Полный экран'}</span>
           </button>
         </div>
       </div>
@@ -750,10 +852,21 @@ export default function AnimePlayer({
         <div
           ref={playerViewportRef}
           className={`relative w-full overflow-hidden bg-black transition-all duration-300 ${
-            fullscreen
-              ? 'h-screen w-screen rounded-none border-0'
-              : 'aspect-video rounded-[22px] border border-violet-400/[0.12] shadow-[0_28px_80px_rgba(0,0,0,.55),0_0_50px_rgba(105,72,255,.055)] ring-1 ring-black/40'
+            telegramPseudoFullscreen
+              ? 'fixed inset-0 z-[2147483000] h-[100dvh] w-[100dvw] max-w-none rounded-none border-0 shadow-none ring-0'
+              : fullscreen
+                ? 'h-screen w-screen rounded-none border-0'
+                : 'aspect-video rounded-[22px] border border-violet-400/[0.12] shadow-[0_28px_80px_rgba(0,0,0,.55),0_0_50px_rgba(105,72,255,.055)] ring-1 ring-black/40'
           }`}
+          style={
+            telegramPseudoFullscreen
+              ? {
+                  width: '100dvw',
+                  height: 'var(--tg-viewport-height, 100dvh)',
+                  maxWidth: 'none',
+                }
+              : undefined
+          }
         >
           {isKodik && videoLink && (
             <KodikPlayer
@@ -883,6 +996,32 @@ export default function AnimePlayer({
                 )
               )}
             </>
+          )}
+
+          {telegramAndroidMiniApp && started && videoLink && (
+            <button
+              type="button"
+              onClick={() => void toggleFullscreen()}
+              className="absolute right-3 top-3 z-[70] inline-flex h-10 items-center gap-2 rounded-xl border border-white/15 bg-black/65 px-3 text-[11px] font-extrabold text-white shadow-[0_12px_36px_rgba(0,0,0,.45)] backdrop-blur-md transition active:scale-95"
+              aria-label={
+                telegramPseudoFullscreen
+                  ? 'Выйти из полного экрана'
+                  : 'Открыть плеер на весь экран'
+              }
+            >
+              {telegramPseudoFullscreen ? (
+                <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+                  <path d="M7 7l10 10M17 7 7 17" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+                  <path d="M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+              <span className="hidden min-[390px]:inline">
+                {telegramPseudoFullscreen ? 'Выйти' : 'На весь экран'}
+              </span>
+            </button>
           )}
 
           {playerError && !isIframe && (
