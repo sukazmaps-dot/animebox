@@ -3,19 +3,26 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import { cache, Suspense } from 'react';
 
 import LibraryStatusControl from '@/components/LibraryStatusControl';
+
 import AnimeFranchise, {
   AnimeFranchiseLoading,
 } from '@/components/AnimeFranchise';
+
 import AnimeImageCascade from '@/components/AnimeImageCascade';
 import AnimeDetailControls from '@/components/AnimeDetailControls';
+import AnimeNotificationControl from '@/components/AnimeNotificationControl';
+import RelatedAnime, { RelatedAnimeLoading } from '@/components/RelatedAnime';
 
 import { resolveAnimeRoute } from '@/lib/anime-route';
 import { animeHref } from '@/lib/anime-url';
 import { createImageCascade } from '@/lib/image-cascade';
 import { cleanShikimoriDescription } from '@/lib/shikimori-text';
+import { cleanSeoText, truncateSeoText } from '@/lib/seo-text';
 import { SITE_URL } from '@/lib/seo-config';
+import { getAnimeTitle } from '@/lib/anime-display';
 
 import type { Anime } from '@/types/anime';
+
 
 type PageProps = {
   params: Promise<{
@@ -23,78 +30,53 @@ type PageProps = {
   }>;
 };
 
-/* =========================================================
-   Получение аниме
-
-   cache() нужен потому что одни и те же данные используются
-   и generateMetadata(), и самой страницей.
-   ========================================================= */
 
 const getResolvedAnime = cache(
-  async (slug: string) => {
-    return resolveAnimeRoute(slug);
-  },
+  async (slug: string) => resolveAnimeRoute(slug),
 );
 
-/* =========================================================
-   SEO helpers
-   ========================================================= */
+function seoDescription(anime: Anime): string {
+  const title = getAnimeTitle(anime);
+  const cleaned = cleanSeoText(cleanShikimoriDescription(anime.description));
 
-function normalizeMetaText(
-  value: string | null | undefined,
-) {
-  if (!value) {
-    return '';
-  }
+  const facts = [
+    anime.episodes && anime.episodes > 0 ? `${anime.episodes} серий` : null,
+    anime.startDate?.year ? String(anime.startDate.year) : null,
+    anime.genres?.slice(0, 2).join(', ') || null,
+  ].filter((value): value is string => Boolean(value));
 
-  return value
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+  const intro = `Смотреть «${title}» онлайн на AnimeBox.`;
+  const details = facts.length ? ` ${facts.join(' · ')}.` : '';
+  const fallback =
+    'Описание, рейтинг, список серий, похожие аниме и сохранение прогресса просмотра.';
 
-function truncateMetaText(
-  value: string,
-  maxLength = 190,
-) {
-  if (value.length <= maxLength) {
-    return value;
-  }
-
-  const sliced = value.slice(
-    0,
-    maxLength - 1,
+  return truncateSeoText(
+    `${intro}${details} ${cleaned || fallback}`,
+    158,
   );
-
-  const lastSpace =
-    sliced.lastIndexOf(' ');
-
-  return `${
-    lastSpace > 120
-      ? sliced.slice(0, lastSpace)
-      : sliced
-  }…`;
 }
 
-/* =========================================================
-   ДИНАМИЧЕСКИЕ METADATA ДЛЯ КАЖДОГО АНИМЕ
-   ========================================================= */
+function structuredDate(date?: Anime['startDate']): string | undefined {
+  if (!date?.year) {
+    return undefined;
+  }
+
+  const month = String(date.month ?? 1).padStart(2, '0');
+  const day = String(date.day ?? 1).padStart(2, '0');
+
+  return `${date.year}-${month}-${day}`;
+}
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-
-  const anime =
-    await getResolvedAnime(slug);
+  const anime = await getResolvedAnime(slug);
 
   if (!anime) {
     return {
       title: 'Аниме не найдено',
-
-      description:
-        'Запрошенное аниме не найдено на AnimeBox.',
-
+      description: 'Запрошенное аниме не найдено на AnimeBox.',
       robots: {
         index: false,
         follow: false,
@@ -102,93 +84,20 @@ export async function generateMetadata({
     };
   }
 
-  /* ===============================
-     Название
-     =============================== */
+  const title = getAnimeTitle(anime);
+  const canonicalPath = animeHref(anime);
+  const canonicalUrl = new URL(canonicalPath, SITE_URL).toString();
+  const description = seoDescription(anime);
 
-  const title =
-    anime.title?.russian ||
-    anime.title?.romaji ||
-    anime.title?.english ||
-    anime.title?.native ||
-    'Аниме';
-
-  /* ===============================
-     Canonical
-     =============================== */
-
-  const canonicalPath =
-    animeHref(anime);
-
-  const canonicalUrl = new URL(
-    canonicalPath,
-    SITE_URL,
-  ).toString();
-
-  /* ===============================
-     Описание
-     =============================== */
-
-  const cleanedDescription =
-    anime.description
-      ? normalizeMetaText(
-          cleanShikimoriDescription(
-            anime.description,
-          ),
-        )
-      : '';
-
-  const baseDescription =
-    `Смотри «${title}» на AnimeBox, ` +
-    'отмечай просмотренные серии и сохраняй прогресс.';
-
-  const description =
-    truncateMetaText(
-      cleanedDescription
-        ? `${baseDescription} ${cleanedDescription}`
-        : baseDescription,
-    );
-
-  /* ===============================
-     Изображение карточки
-
-     Приоритет:
-     1. широкий banner
-     2. большой poster
-     3. обычный poster
-     4. общая AnimeBox OG-картинка
-     =============================== */
-
-  const socialImage =
-    anime.bannerImage ||
-    anime.coverImage?.extraLarge ||
-    anime.coverImage?.large ||
-    `${SITE_URL}/og/animebox-share-v2.jpg`;
-
-  /* ===============================
-     Дополнительные keywords
-     =============================== */
-
-  const genres =
-    Array.isArray(anime.genres)
-      ? anime.genres
-          .map((genre) =>
-            typeof genre === 'string'
-              ? genre
-              : null,
-          )
-          .filter(
-            (
-              genre,
-            ): genre is string =>
-              Boolean(genre),
-          )
-      : [];
+  const genres = Array.isArray(anime.genres)
+    ? anime.genres.filter(
+        (genre): genre is string =>
+          typeof genre === 'string' && genre.trim().length > 0,
+      )
+    : [];
 
   return {
-    title:
-      `${title} — смотреть и отслеживать`,
-
+    title: `${title} — смотреть и отслеживать`,
     description,
 
     alternates: {
@@ -206,83 +115,48 @@ export async function generateMetadata({
       ...genres,
     ],
 
-    /* =============================
-       Telegram / Discord / VK
-       ============================= */
-
     openGraph: {
       type: 'website',
-
-      locale: 'ru_RU',
-
-      siteName: 'AnimeBox',
-
       url: canonicalUrl,
-
-      title:
-        `${title} — смотреть и отслеживать | AnimeBox`,
-
+      siteName: 'AnimeBox',
+      locale: 'ru_RU',
+      title: `${title} — смотреть и отслеживать | AnimeBox`,
       description,
-
-      images: [
-        {
-          url: socialImage,
-
-          alt:
-            `${title} — AnimeBox`,
-        },
-      ],
     },
-
-    /* =============================
-       Twitter / X
-       ============================= */
 
     twitter: {
       card: 'summary_large_image',
-
-      title:
-        `${title} | AnimeBox`,
-
+      title: `${title} | AnimeBox`,
       description,
+    },
 
-      images: [
-        socialImage,
-      ],
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+        'max-video-preview': -1,
+      },
     },
   };
 }
 
-/* =========================================================
-   PAGE
-   ========================================================= */
 
 export default async function AnimePage({
   params,
 }: PageProps) {
   const { slug } = await params;
 
-  const resolved =
-    await getResolvedAnime(slug);
-
-  if (!resolved) {
-    notFound();
-  }
-
-  if (slug !== resolved.slug) {
-    permanentRedirect(
-      animeHref(resolved),
-    );
-  }
-
-  // ↓ дальше оставляешь весь существующий код страницы
 
   /* =========================================================
      Получаем тайтл
      ========================================================= */
 
   const resolved =
-    await resolveAnimeRoute(slug);
+    await getResolvedAnime(slug);
 
 
   if (!resolved) {
