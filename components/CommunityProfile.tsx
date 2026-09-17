@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { achievementIcon } from '@/lib/achievement-icons';
 
 import {
   communityRequest,
@@ -223,7 +224,7 @@ export default function CommunityProfile() {
                   }`}
                   key={achievement.code}
                 >
-                  <img src={achievement.icon} alt="" width="52" height="52" />
+                  <img src={achievementIcon(achievement.code, achievement.icon)} alt="" width="52" height="52" />
 
                   <div className="profile-v2__achievement-copy">
                     <div className="profile-v2__achievement-title">

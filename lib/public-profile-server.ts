@@ -6,6 +6,7 @@ import { getSponsorStatus } from '@/lib/sponsor-server';
 import type { SponsorStatus } from '@/lib/sponsor';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
 import type { PublicIdentityRole } from '@/lib/identity';
+import { achievementIcon } from '@/lib/achievement-icons';
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -183,7 +184,7 @@ export async function getPublicProfile(
         code: definition.code,
         title: definition.title,
         description: definition.description,
-        icon: definition.icon,
+        icon: achievementIcon(definition.code, definition.icon),
         earnedAt: earnedByCode.get(definition.code) ?? null,
       };
     });

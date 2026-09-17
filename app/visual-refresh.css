@@ -2284,3 +2284,32 @@ body {
     color: #728099;
   }
 }
+
+
+/* Existing AnimeBox asset integration */
+.topbar__asset-icon {
+  display: block;
+  flex: 0 0 auto;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.topbar__asset-icon--search {
+  width: 18px;
+  height: 18px;
+  opacity: .82;
+  filter: drop-shadow(0 0 8px rgba(139, 101, 255, .16));
+}
+
+.topbar__asset-icon--notification {
+  width: 20px;
+  height: 20px;
+  opacity: .9;
+  filter: drop-shadow(0 0 9px rgba(139, 101, 255, .2));
+}
+
+.topbar__icon:hover .topbar__asset-icon--notification,
+.topbar__search:focus-within .topbar__asset-icon--search {
+  opacity: 1;
+  filter: drop-shadow(0 0 12px rgba(160, 126, 255, .38));
+}

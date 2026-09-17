@@ -1120,3 +1120,19 @@
     animation: none;
   }
 }
+
+
+.smart-feed-heading__asset {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  margin-right: 1px;
+  border-color: rgba(161, 132, 255, .24);
+  background: radial-gradient(circle at 50% 35%, rgba(144, 103, 255, .18), rgba(17, 18, 33, .9));
+  box-shadow: 0 0 24px rgba(118, 83, 255, .08);
+}
+
+.smart-feed-heading__asset img {
+  width: 16px;
+  height: 16px;
+}

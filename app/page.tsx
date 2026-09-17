@@ -430,6 +430,12 @@ export default function HomePage() {
             <div className="smart-feed-heading">
               <span className="smart-section-eyebrow">ПЕРСОНАЛЬНАЯ ЛЕНТА</span>
               <div className="smart-feed-heading__line">
+                <span
+                  className="section-title__icon section-title__icon--asset smart-feed-heading__asset"
+                  aria-hidden="true"
+                >
+                  <img src="/brand/icons/sections/recommendations.svg" alt="" />
+                </span>
                 <h2 className="section-title">Подобрано для тебя</h2>
                 <span className="smart-feed-heading__badge">SMART V3</span>
               </div>

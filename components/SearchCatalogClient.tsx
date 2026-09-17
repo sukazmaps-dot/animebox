@@ -159,7 +159,8 @@ export default function SearchCatalogClient({
             ))}
           </div>
         ) : error ? (
-          <div className="empty-state">
+          <div className={`empty-state ${styles.assetEmpty}`}>
+            <img className={styles.emptyMascot} src="/ui/animebox-mascot.webp" alt="" aria-hidden="true" />
             <strong>Не удалось загрузить результаты</strong>
             <span>{error}</span>
           </div>
@@ -170,7 +171,8 @@ export default function SearchCatalogClient({
             ))}
           </div>
         ) : (
-          <div className="empty-state">
+          <div className={`empty-state ${styles.assetEmpty}`}>
+            <img className={styles.emptyMascot} src="/ui/animebox-mascot.webp" alt="" aria-hidden="true" />
             <strong>Ничего не найдено</strong>
             <span>Попробуй изменить запрос, жанр или настроение.</span>
           </div>

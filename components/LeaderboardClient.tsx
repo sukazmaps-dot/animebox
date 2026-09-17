@@ -105,7 +105,7 @@ export default function LeaderboardClient() {
   return (
     <main className={styles.page}>
       <section className={styles.hero}>
-        <div className={styles.heroEmblem}><Crown /></div>
+        <div className={styles.heroEmblem}><img src="/ui/animebox-rank-1.webp" alt="" aria-hidden="true" /></div>
         <span className={styles.eyebrow}><span /> ANIMEBOX · HALL OF FAME</span>
         <h1>Твоя история.<br /><em>Твоё место в топе.</em></h1>
         <p>Любимые истории становятся частью твоей. Знакомься с теми, кто смотрит вместе с тобой — и найди своё место среди них.</p>
@@ -159,6 +159,12 @@ export default function LeaderboardClient() {
                 aria-label={`${entry.rank} место: ${entry.username}, ${formatWatchTime(entry.activeMs)}`}
               >
                 <span className={styles.cardTexture} aria-hidden="true" />
+                <img
+                  className={styles.rankArtwork}
+                  src={`/ui/animebox-rank-${entry.rank}.webp`}
+                  alt=""
+                  aria-hidden="true"
+                />
                 <span className={styles.placeLabel}>{entry.rank === 1 ? 'ЛИДЕР РЕЙТИНГА' : `${String(entry.rank).padStart(2, '0')} / ПРИЗОВОЕ МЕСТО`}</span>
                 <div className={styles.avatarStage}>
                   {entry.rank === 1 && <Crown className={styles.crown} />}

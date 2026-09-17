@@ -8,6 +8,7 @@
 .hero p { max-width: 550px; margin: 0; font-size: 14px; line-height: 1.75; color: #9295b0; }
 .heroEmblem { position: absolute; z-index: -1; width: 210px; height: 210px; right: 42px; top: 46px; display: grid; place-items: center; color: #b694f5; opacity: .16; border: 1px solid #b899ff; border-radius: 50%; box-shadow: 0 0 0 20px #ac80ff0a,0 0 0 50px #ac80ff06; transform: rotate(-12deg); }
 .heroEmblem svg { width: 116px; }
+.heroEmblem img { width: 152px; height: 152px; object-fit: contain; filter: drop-shadow(0 0 28px #9b72ff55); }
 .heroMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 19px; color: #7e8099; font-size: 11px; }
 .heroMeta span:first-child { color: #d1c0f8; letter-spacing: .1em; border: 1px solid #b69cf530; border-radius: 5px; padding: 4px 7px; font-size: 9px; font-weight: 800; }
 .tabs { display: inline-flex; gap: 4px; max-width: 100%; margin-top: 24px; padding: 5px; border: 1px solid #ffffff0e; border-radius: 13px; background: #070913aa; }
@@ -20,6 +21,8 @@
 .podium { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); align-items: end; gap: 18px; padding-top: 28px; }
 .podiumCard { --accent: #ccd8f0; --tint: #8ca7d0; --glow: #95b6e41a; position: relative; isolation: isolate; min-width: 0; min-height: 334px; display: flex; flex-direction: column; align-items: center; padding: 22px 20px 0; text-align: center; color: #f5f4fa; border: 1px solid color-mix(in srgb,var(--accent) 25%,transparent); border-radius: 23px; background: radial-gradient(ellipse at 50% 0%,var(--glow),transparent 68%),linear-gradient(170deg,#151725,#0b0d17); transition: transform .25s,box-shadow .25s,border-color .25s; }
 .podiumCard::before { content: ''; position: absolute; top: -1px; left: 20%; right: 20%; height: 1px; background: linear-gradient(90deg,transparent,var(--accent),transparent); box-shadow: 0 0 18px var(--glow); }
+.rankArtwork { position: absolute; z-index: -1; top: 44px; left: 50%; width: 126px; height: 126px; transform: translateX(-50%); object-fit: contain; opacity: .13; filter: saturate(1.08) drop-shadow(0 0 28px var(--glow)); pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
+.podiumCard[data-rank='1'] .rankArtwork { top: 50px; width: 158px; height: 158px; opacity: .18; }
 .cardTexture { position: absolute; z-index: -1; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; background: radial-gradient(circle at 17% 22%,var(--accent) 0 1px,transparent 2px),radial-gradient(circle at 86% 38%,var(--tint) 0 1px,transparent 2px),radial-gradient(circle at 78% 14%,var(--accent) 0 1px,transparent 2px),linear-gradient(115deg,transparent 40%,#ffffff03 40.3%,transparent 64%); }
 .podiumCard[data-rank='1'] { --accent: #ffda8b; --tint: #cf9d44; --glow: #e9b44c23; grid-column: 2; grid-row: 1; min-height: 382px; border-color: #d5a74c66; background: radial-gradient(ellipse at 50% 0%,#dfad4029,transparent 65%),linear-gradient(165deg,#201c24,#10101a); box-shadow: 0 16px 60px #b7831712,inset 0 0 50px #e6ae2705; }
 .podiumCard[data-rank='2'] { grid-column: 1; grid-row: 1; }
@@ -68,7 +71,7 @@
 .state strong { color: #efebf7; margin-bottom: 8px; }
 .note { margin: 20px 4px 0; max-width: 850px; color: #716d84; font-size: 11px; line-height: 1.75; }
 .page a:focus-visible,.page button:focus-visible { outline: 2px solid #dab9ff; outline-offset: 5px; }
-@media (hover:hover) { .podiumCard:hover { transform: translateY(-6px); border-color: var(--accent); box-shadow: 0 15px 50px var(--glow); } .row:hover { background: #a475e70a; } .personalAction:hover { filter: brightness(1.12); } }
+@media (hover:hover) { .podiumCard:hover { transform: translateY(-6px); border-color: var(--accent); box-shadow: 0 15px 50px var(--glow); } .podiumCard:hover .rankArtwork { opacity: .24; transform: translateX(-50%) scale(1.045); } .row:hover { background: #a475e70a; } .personalAction:hover { filter: brightness(1.12); } }
 @keyframes crownFloat { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-4px) rotate(4deg); } }
 @media (max-width: 760px) {
  .page { width: calc(100% - 20px); padding-top: 20px; }

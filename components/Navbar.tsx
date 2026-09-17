@@ -253,7 +253,12 @@ function NavbarContent() {
             href="/notifications"
             className={`sidebar__item ${isActive('/notifications') ? 'is-active' : ''}`}
           >
-            <Icon name="bell" />
+            <img
+              className="topbar__asset-icon topbar__asset-icon--notification"
+              src="/brand/icons/notification.svg"
+              alt=""
+              aria-hidden="true"
+            />
             <span>Уведомления</span>
           </Link>
 
@@ -305,7 +310,12 @@ function NavbarContent() {
           onSubmit={submitSearch}
           role="search"
         >
-          <Icon name="search" />
+          <img
+            className="topbar__asset-icon topbar__asset-icon--search"
+            src="/brand/icons/search.svg"
+            alt=""
+            aria-hidden="true"
+          />
 
           <input
             value={searchValue}
@@ -429,7 +439,12 @@ function NavbarFallback() {
         aria-hidden="true"
       >
         <div className="topbar__search">
-          <Icon name="search" />
+          <img
+            className="topbar__asset-icon topbar__asset-icon--search"
+            src="/brand/icons/search.svg"
+            alt=""
+            aria-hidden="true"
+          />
 
           <input
             value=""
