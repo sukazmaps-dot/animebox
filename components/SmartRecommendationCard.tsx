@@ -188,12 +188,31 @@ export default function SmartRecommendationCard({
     planState === 'saving'
       ? 'Сохраняем…'
       : planState === 'saved'
-        ? 'В планах ✓'
+        ? 'В планах'
         : planState === 'auth'
-          ? 'Нужен вход'
+          ? 'Войти'
           : planState === 'error'
             ? 'Повторить'
             : 'В планы';
+
+  const planIcon =
+    planState === 'saved'
+      ? '✓'
+      : planState === 'auth'
+        ? '↗'
+        : planState === 'error'
+          ? '↻'
+          : '+';
+
+  const planClassName = [
+    'smart-card__plan',
+    planState === 'saved' ? 'is-saved' : '',
+    planState === 'saving' ? 'is-saving' : '',
+    planState === 'auth' ? 'is-auth' : '',
+    planState === 'error' ? 'is-error' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <article
@@ -248,12 +267,17 @@ export default function SmartRecommendationCard({
         <div className="smart-card__actions">
           <button
             type="button"
-            className={planState === 'saved' ? 'smart-card__plan is-saved' : 'smart-card__plan'}
+            className={planClassName}
             onClick={() => void addToPlans()}
             disabled={planState === 'saving' || planState === 'saved'}
           >
-            <span aria-hidden="true">＋</span>
-            {planLabel}
+            <span
+              className={planState === 'saving' ? 'smart-card__plan-icon is-spinner' : 'smart-card__plan-icon'}
+              aria-hidden="true"
+            >
+              {planState === 'saving' ? '' : planIcon}
+            </span>
+            <span className="smart-card__plan-label">{planLabel}</span>
           </button>
 
           <button
