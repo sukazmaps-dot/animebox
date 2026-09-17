@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import { checkKodikEpisodeAvailability } from '@/lib/kodik-episode-availability';
 import {
   escapeTelegramHtml,
   sendTelegramMessage,
@@ -12,7 +13,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 const ANILIST_API_URL = 'https://graphql.anilist.co';
-const LOOKBACK_SECONDS = 6 * 60 * 60;
+const LOOKBACK_SECONDS = 48 * 60 * 60;
 const FUTURE_GRACE_SECONDS = 60;
 const MAX_PAGES = 8;
 const RETRY_AFTER_MS = 10 * 60 * 1000;
@@ -38,6 +39,7 @@ const AIRING_QUERY = `
         episode
         media {
           id
+          idMal
           title {
             romaji
             english
@@ -55,6 +57,7 @@ type AiringItem = {
   episode: number;
   media?: {
     id: number;
+    idMal?: number | null;
     title?: {
       romaji?: string | null;
       english?: string | null;
@@ -255,9 +258,64 @@ export async function POST(request: Request) {
         .map((row) => row.user_id),
     );
 
+    /*
+     * AniList only tells us when an episode is scheduled to air. AnimeBox
+     * must not notify until the episode is actually present in the primary
+     * player provider. Check each anime/episode once per cron run, then reuse
+     * that result for every subscribed user.
+     */
+    const subscribedAnimeIds = new Set(
+      subscriptions.map((item) => item.anime_id),
+    );
+    const relevantSchedules = airingItems.filter((item) =>
+      subscribedAnimeIds.has(item.media!.id),
+    );
+    const availabilityBySchedule = new Map<
+      string,
+      'available' | 'unavailable' | 'unknown'
+    >();
+
+    let playerAvailable = 0;
+    let waitingForPlayer = 0;
+    let availabilityUnknown = 0;
+
+    for (const schedule of relevantSchedules) {
+      const animeId = schedule.media!.id;
+      const key = `${animeId}:${schedule.episode}`;
+
+      if (availabilityBySchedule.has(key)) continue;
+
+      const availability = await checkKodikEpisodeAvailability(
+        schedule.media?.idMal ?? null,
+        schedule.episode,
+      );
+
+      availabilityBySchedule.set(key, availability.status);
+
+      if (availability.status === 'available') {
+        playerAvailable += 1;
+      } else if (availability.status === 'unavailable') {
+        waitingForPlayer += 1;
+      } else {
+        availabilityUnknown += 1;
+        console.warn('[Episode notifications] Kodik availability unknown:', {
+          animeId,
+          shikimoriId: schedule.media?.idMal ?? null,
+          episode: schedule.episode,
+          reason: availability.reason,
+        });
+      }
+    }
+
     const schedulesByAnime = new Map<number, AiringItem[]>();
-    for (const item of airingItems) {
+    for (const item of relevantSchedules) {
       const animeId = item.media!.id;
+      const key = `${animeId}:${item.episode}`;
+
+      if (availabilityBySchedule.get(key) !== 'available') {
+        continue;
+      }
+
       const bucket = schedulesByAnime.get(animeId) ?? [];
       bucket.push(item);
       schedulesByAnime.set(animeId, bucket);
@@ -369,8 +427,8 @@ export async function POST(request: Request) {
             chatId,
             text:
               `🔔 <b>${escapeTelegramHtml(title)}</b>\n\n` +
-              `Вышла <b>${schedule.episode}-я серия</b> по расписанию AnimeBox.\n` +
-              'Можно сразу открыть страницу просмотра.',
+              `<b>${schedule.episode}-я серия</b> уже появилась в плеере AnimeBox.\n` +
+              'Можно смотреть прямо сейчас.',
             webAppUrl: watchUrl,
             buttonText: `▶ Смотреть ${schedule.episode} серию`,
           });
@@ -432,6 +490,9 @@ export async function POST(request: Request) {
         sent,
         failed,
         skipped,
+        playerAvailable,
+        waitingForPlayer,
+        availabilityUnknown,
         durationMs: Date.now() - startedAt,
       },
       { headers: { 'Cache-Control': 'no-store' } },

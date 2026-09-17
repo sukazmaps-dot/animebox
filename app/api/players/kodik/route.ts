@@ -1,86 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-type KodikApiResult = {
-  id?: string;
-  link?: string;
-  translation?: {
-    id?: number;
-    title?: string;
-    type?: string;
-  };
-};
-
-type KodikApiResponse = {
-  results?: KodikApiResult[];
-};
-
-function normalizePlayerUrl(url: string) {
-  return url.startsWith('//') ? `https:${url}` : url;
-}
+import {
+  filterKodikResultsForEpisode,
+  searchKodikByShikimoriId,
+} from '@/lib/kodik-episode-availability';
 
 export async function GET(request: NextRequest) {
-  const shikimoriId = request.nextUrl.searchParams.get('shikimoriId');
-  const token = process.env.KODIK_TOKEN;
+  const shikimoriIdParam = request.nextUrl.searchParams.get('shikimoriId');
+  const episodeParam = request.nextUrl.searchParams.get('episode');
 
-  if (!shikimoriId || !/^\d+$/.test(shikimoriId)) {
+  if (!shikimoriIdParam || !/^\d+$/.test(shikimoriIdParam)) {
     return NextResponse.json(
       { error: 'Missing or invalid shikimoriId' },
       { status: 400 },
     );
   }
 
-  if (!token) {
-    console.error('[Kodik] KODIK_TOKEN is not configured');
+  const shikimoriId = Number(shikimoriIdParam);
+  const episode = episodeParam == null ? null : Number(episodeParam);
 
+  if (
+    episodeParam != null &&
+    (!Number.isSafeInteger(episode) || Number(episode) < 1)
+  ) {
     return NextResponse.json(
-      { error: 'Kodik is not configured' },
-      { status: 503 },
+      { error: 'Invalid episode' },
+      { status: 400 },
     );
   }
 
-  const params = new URLSearchParams({
-    token,
-    shikimori_id: shikimoriId,
-    limit: '50',
-  });
-
   try {
-    const response = await fetch(
-      `https://kodik-api.com/search?${params.toString()}`,
-      {
-        next: {
-          revalidate: 60 * 30,
-        },
-      },
-    );
+    const results = await searchKodikByShikimoriId(shikimoriId, {
+      noStore: episode != null,
+    });
+    const filtered =
+      episode == null
+        ? {
+            status: 'available' as const,
+            maxEpisode: null,
+            results,
+          }
+        : filterKodikResultsForEpisode(results, episode);
 
-    if (!response.ok) {
-      console.error(
-        '[Kodik] search failed:',
-        response.status,
-        response.statusText,
-      );
-
-      return NextResponse.json(
-        { error: 'Kodik API error' },
-        { status: 502 },
-      );
-    }
-
-    const data = (await response.json()) as KodikApiResponse;
     const seen = new Set<string>();
-
-    const translations = (data.results ?? [])
-      .filter(
-        (item): item is KodikApiResult & { link: string } =>
-          typeof item.link === 'string' && item.link.trim().length > 0,
-      )
+    const translations = filtered.results
       .map((item) => ({
         title: item.translation?.title?.trim() || 'Озвучка',
-        url: normalizePlayerUrl(item.link.trim()),
+        url: item.link?.trim() || '',
         type: 'kodik' as const,
         translationId: item.translation?.id ?? null,
       }))
+      .filter((item) => item.url.length > 0)
       .filter((item) => {
         const key = item.translationId
           ? `id:${item.translationId}`
@@ -91,15 +61,29 @@ export async function GET(request: NextRequest) {
         return true;
       });
 
-    return NextResponse.json({
-      name: 'Kodik',
-      translations,
-    });
+    return NextResponse.json(
+      {
+        name: 'Kodik',
+        status:
+          episode == null
+            ? translations.length > 0
+              ? 'available'
+              : 'unavailable'
+            : filtered.status,
+        maxEpisode: filtered.maxEpisode,
+        translations,
+      },
+      {
+        headers: {
+          'Cache-Control': 'private, no-store',
+        },
+      },
+    );
   } catch (error) {
     console.error('[Kodik] request failed:', error);
 
     return NextResponse.json(
-      { error: 'Failed to fetch Kodik' },
+      { error: 'Failed to fetch Kodik', status: 'unknown' },
       { status: 502 },
     );
   }

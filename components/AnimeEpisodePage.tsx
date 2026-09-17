@@ -39,6 +39,8 @@ type KodikApiResponse = {
     url: string;
     type?: 'kodik';
   }>;
+  status?: 'available' | 'unavailable' | 'unknown';
+  maxEpisode?: number | null;
   error?: string;
 };
 
@@ -127,7 +129,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
 
       try {
         const response = await fetch(
-          `/api/players/kodik?shikimoriId=${encodeURIComponent(String(shikimoriId))}`,
+          `/api/players/kodik?shikimoriId=${encodeURIComponent(String(shikimoriId))}&episode=${encodeURIComponent(String(episodeNumber))}`,
           {
             signal: controller.signal,
             cache: 'no-store',
