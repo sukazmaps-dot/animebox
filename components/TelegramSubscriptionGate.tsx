@@ -9,6 +9,7 @@ import {
 } from 'react';
 
 type GateState =
+  | 'detecting'
   | 'checking'
   | 'allowed'
   | 'blocked';
@@ -22,6 +23,30 @@ type GateResponse = {
   channelUrl?: string;
   error?: string;
 };
+
+function getTelegramMiniApp(): TelegramWebApp | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const telegram = window.Telegram?.WebApp;
+  const initData = telegram?.initData?.trim();
+  const telegramId = telegram?.initDataUnsafe?.user?.id;
+
+  // The Telegram SDK is loaded on the normal website too, therefore the
+  // existence of window.Telegram/WebApp alone MUST NOT activate the gate.
+  // A real Mini App launch must contain signed initData and a Telegram user.
+  if (
+    !telegram ||
+    !initData ||
+    !Number.isSafeInteger(telegramId) ||
+    Number(telegramId) <= 0
+  ) {
+    return null;
+  }
+
+  return telegram;
+}
 
 function gateErrorText(code?: string) {
   switch (code) {
@@ -50,85 +75,78 @@ export default function TelegramSubscriptionGate({
 }: {
   children: ReactNode;
 }) {
-  const [state, setState] =
-    useState<GateState>('checking');
-  const [channelUrl, setChannelUrl] =
-    useState(CHANNEL_URL_FALLBACK);
-  const [checkingAgain, setCheckingAgain] =
-    useState(false);
+  // Important: detecting does NOT lock the regular website.
+  // Only a confirmed Telegram Mini App launch can switch to checking/blocked.
+  const [state, setState] = useState<GateState>('detecting');
+  const [channelUrl, setChannelUrl] = useState(CHANNEL_URL_FALLBACK);
+  const [checkingAgain, setCheckingAgain] = useState(false);
 
-  const checkMembership = useCallback(
-    async (isRetry = false) => {
-      const tg = window.Telegram?.WebApp;
+  const checkMembership = useCallback(async (isRetry = false) => {
+    const telegram = getTelegramMiniApp();
 
-      // Normal browser version of AnimeBox is not gated.
-      if (!tg?.initData) {
+    // youranimebox.com opened in Chrome/Safari/normal Telegram browser:
+    // no subscription gate at all.
+    if (!telegram) {
+      document.documentElement.dataset.telegramSubscribed = 'not-applicable';
+      setCheckingAgain(false);
+      setState('allowed');
+      return;
+    }
+
+    if (isRetry) {
+      setCheckingAgain(true);
+    } else {
+      setState('checking');
+    }
+
+    try {
+      const response = await fetch('/api/telegram/subscription-check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          initData: telegram.initData,
+        }),
+        cache: 'no-store',
+      });
+
+      const data = (await response.json()) as GateResponse;
+
+      if (data.channelUrl) {
+        setChannelUrl(data.channelUrl);
+      }
+
+      if (!response.ok || !data.ok) {
+        console.error('[Telegram subscription gate]', {
+          status: response.status,
+          error: data.error,
+          message: gateErrorText(data.error),
+        });
+
+        // Inside a real Mini App we fail closed: access remains gated.
+        setState('blocked');
+        return;
+      }
+
+      if (data.subscribed) {
+        document.documentElement.dataset.telegramSubscribed = 'true';
         setState('allowed');
         return;
       }
 
-      if (isRetry) {
-        setCheckingAgain(true);
-      } else {
-        setState('checking');
-      }
+      document.documentElement.dataset.telegramSubscribed = 'false';
+      setState('blocked');
+    } catch (error) {
+      console.error('[Telegram subscription gate]', error);
 
-
-      try {
-        const response = await fetch(
-          '/api/telegram/subscription-check',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Accept: 'application/json',
-            },
-            body: JSON.stringify({
-              initData: tg.initData,
-            }),
-            cache: 'no-store',
-          },
-        );
-
-        const data =
-          (await response.json()) as GateResponse;
-
-        if (data.channelUrl) {
-          setChannelUrl(data.channelUrl);
-        }
-
-        if (!response.ok || !data.ok) {
-          // Пользователю не показываем техническую ошибку Telegram/API.
-          // Экран остаётся понятным: для доступа нужна подписка,
-          // а кнопка «Я подписался» повторяет серверную проверку.
-          console.error('[Telegram subscription gate]', {
-            status: response.status,
-            error: data.error,
-            message: gateErrorText(data.error),
-          });
-          setState('blocked');
-          return;
-        }
-
-        if (data.subscribed) {
-          document.documentElement.dataset.telegramSubscribed =
-            'true';
-          setState('allowed');
-          return;
-        }
-
-        document.documentElement.dataset.telegramSubscribed =
-          'false';
-        setState('blocked');
-      } catch (error) {
-        console.error('[Telegram subscription gate]', error);
-        setState('blocked');
-      } finally {
-        setCheckingAgain(false);
-      }
-    },
-    [],
-  );
+      // Only a real Mini App reaches this branch.
+      setState('blocked');
+    } finally {
+      setCheckingAgain(false);
+    }
+  }, []);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -141,9 +159,11 @@ export default function TelegramSubscriptionGate({
   }, [checkMembership]);
 
   useEffect(() => {
-    const tg = window.Telegram?.WebApp;
+    const telegram = getTelegramMiniApp();
 
-    if (!tg?.initData) return;
+    if (!telegram) {
+      return;
+    }
 
     const recheckAfterReturn = () => {
       if (state === 'blocked') {
@@ -151,31 +171,31 @@ export default function TelegramSubscriptionGate({
       }
     };
 
-    tg.onEvent?.('activated', recheckAfterReturn);
+    telegram.onEvent?.('activated', recheckAfterReturn);
 
     return () => {
-      tg.offEvent?.('activated', recheckAfterReturn);
+      telegram.offEvent?.('activated', recheckAfterReturn);
     };
   }, [checkMembership, state]);
 
   function openChannel() {
-    if (!channelUrl) return;
-
-    const tg = window.Telegram?.WebApp;
-
-    if (tg?.openTelegramLink) {
-      tg.openTelegramLink(channelUrl);
+    if (!channelUrl) {
       return;
     }
 
-    window.open(
-      channelUrl,
-      '_blank',
-      'noopener,noreferrer',
-    );
+    const telegram = getTelegramMiniApp();
+
+    if (telegram?.openTelegramLink) {
+      telegram.openTelegramLink(channelUrl);
+      return;
+    }
+
+    window.open(channelUrl, '_blank', 'noopener,noreferrer');
   }
 
-  const locked = state !== 'allowed';
+  // Detecting is intentionally not locked. This prevents the normal website
+  // from ever being covered by the Telegram gate during hydration.
+  const locked = state === 'checking' || state === 'blocked';
 
   return (
     <div className="telegram-subscription-gate">
@@ -219,7 +239,7 @@ export default function TelegramSubscriptionGate({
                   Ещё секунду — AnimeBox проверяет доступ через Telegram.
                 </p>
               </>
-            ) : state === 'blocked' ? (
+            ) : (
               <>
                 <span className="telegram-subscription-gate__eyebrow">
                   ANIMEBOX MINI APP
@@ -247,22 +267,9 @@ export default function TelegramSubscriptionGate({
                     onClick={() => void checkMembership(true)}
                     disabled={checkingAgain}
                   >
-                    {checkingAgain
-                      ? 'Проверяем…'
-                      : 'Я подписался'}
+                    {checkingAgain ? 'Проверяем…' : 'Я подписался'}
                   </button>
                 </div>
-              </>
-            ) : (
-              <>
-                <span className="telegram-subscription-gate__eyebrow">
-                  ANIMEBOX MINI APP
-                </span>
-                <h1>Подписка на канал обязательна</h1>
-                <p>
-                  Чтобы пользоваться AnimeBox и ботом, подпишись на наш
-                  Telegram-канал. После подписки нажми «Я подписался».
-                </p>
               </>
             )}
           </div>

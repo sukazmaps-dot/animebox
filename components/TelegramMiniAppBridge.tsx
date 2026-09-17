@@ -105,11 +105,21 @@ export default function TelegramMiniAppBridge() {
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
+    const initData = tg?.initData?.trim();
+    const telegramId = tg?.initDataUnsafe?.user?.id;
 
-    if (!tg?.initData) {
+    // telegram-web-app.js is intentionally loaded on the public website too.
+    // Do not treat the existence of the SDK as a Mini App launch.
+    if (
+      !tg ||
+      !initData ||
+      !Number.isSafeInteger(telegramId) ||
+      Number(telegramId) <= 0
+    ) {
       document.documentElement.dataset.telegram = 'false';
       document.documentElement.dataset.telegramVerified = 'false';
       document.documentElement.dataset.telegramAuthenticated = 'false';
+      document.documentElement.classList.remove('telegram-mini-app');
       return;
     }
 
