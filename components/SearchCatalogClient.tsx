@@ -8,6 +8,7 @@ import MoodFilter from '@/components/catalog/MoodFilter';
 import { getAnimes, isAbortError } from '@/lib/anime-client';
 import type { CatalogMood } from '@/lib/catalog-moods';
 import type { Anime } from '@/types/anime';
+import AdSlot from '@/components/monetization/AdSlot';
 
 import styles from './SearchCatalogClient.module.css';
 
@@ -173,6 +174,14 @@ export default function SearchCatalogClient({
             <strong>Ничего не найдено</strong>
             <span>Попробуй изменить запрос, жанр или настроение.</span>
           </div>
+        )}
+
+        {!loading && results.length > 0 && (
+          <AdSlot
+            placement="catalog-after-results"
+            format="horizontal"
+            className="monetization-ad--catalog"
+          />
         )}
 
         {!loading && results.length > 0 && (

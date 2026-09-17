@@ -11,6 +11,7 @@ import './telegram-logout.css';
 import './home-rails.css';
 import './card-layout.css';
 import './smart-home.css';
+import './monetization.css';
 
 import Navbar from '@/components/Navbar';
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';

@@ -1,0 +1,342 @@
+/* =========================================================
+   AnimeBox monetization v1
+   ========================================================= */
+
+.monetization-ad {
+  position: relative;
+  width: 100%;
+  min-height: 92px;
+  overflow: hidden;
+  border: 1px solid rgba(156, 110, 255, 0.18);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(112, 73, 190, 0.08), rgba(20, 23, 42, 0.45)),
+    rgba(8, 9, 18, 0.82);
+}
+
+.monetization-ad--rectangle {
+  min-height: 220px;
+}
+
+.monetization-ad__label {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.monetization-ad__mount {
+  width: 100%;
+  min-height: inherit;
+}
+
+.support-animebox-card {
+  position: relative;
+  overflow: hidden;
+  padding: 22px;
+  isolation: isolate;
+}
+
+.support-animebox-card::before {
+  content: '';
+  position: absolute;
+  inset: -35% -10% auto 40%;
+  height: 190px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(190, 88, 255, 0.24), transparent 68%);
+  filter: blur(4px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.support-animebox-card__eyebrow,
+.support-box__eyebrow,
+.support-page__eyebrow {
+  display: inline-flex;
+  color: #bda3ff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.support-animebox-card__icon {
+  margin: 14px 0 10px;
+  font-size: 30px;
+  filter: drop-shadow(0 0 18px rgba(190, 88, 255, 0.4));
+}
+
+.support-animebox-card h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.support-animebox-card p {
+  margin: 0 0 18px;
+  color: rgba(233, 235, 247, 0.68);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.support-page {
+  width: min(100%, 980px);
+  margin: 0 auto;
+  padding: 30px 0 70px;
+}
+
+.support-page__hero {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 24px;
+  padding: clamp(24px, 5vw, 48px);
+  border: 1px solid rgba(161, 114, 255, 0.2);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 82% 14%, rgba(137, 76, 255, 0.24), transparent 28%),
+    linear-gradient(135deg, rgba(40, 28, 67, 0.88), rgba(10, 12, 24, 0.96));
+}
+
+.support-page__hero h1 {
+  max-width: 720px;
+  margin: 12px 0 14px;
+  font-size: clamp(32px, 6vw, 58px);
+  line-height: 0.98;
+}
+
+.support-page__hero p {
+  max-width: 720px;
+  margin: 0;
+  color: rgba(237, 238, 248, 0.72);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.support-box {
+  padding: clamp(20px, 4vw, 34px);
+  border: 1px solid rgba(161, 114, 255, 0.18);
+  border-radius: 26px;
+  background: rgba(10, 12, 24, 0.88);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.2);
+}
+
+.support-box__intro h2 {
+  margin: 10px 0 8px;
+  font-size: clamp(24px, 4vw, 34px);
+}
+
+.support-box__intro p,
+.support-box__section p,
+.support-terms__card p {
+  color: rgba(234, 236, 247, 0.68);
+  line-height: 1.65;
+}
+
+.support-box__section {
+  margin-top: 26px;
+  padding-top: 26px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.support-box__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.support-box__section-head > div {
+  display: grid;
+  gap: 4px;
+}
+
+.support-box__section-head span,
+.support-box__section--web > div > span {
+  color: rgba(220, 223, 238, 0.48);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.support-box__badge {
+  padding: 6px 9px;
+  border: 1px solid rgba(255, 214, 82, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 211, 69, 0.08);
+  color: #f5da72 !important;
+}
+
+.support-stars-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.support-star-pack {
+  display: flex;
+  min-height: 168px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid rgba(168, 122, 255, 0.18);
+  border-radius: 18px;
+  color: #f7f4ff;
+  text-align: left;
+  background:
+    linear-gradient(145deg, rgba(93, 55, 160, 0.22), rgba(14, 16, 29, 0.92));
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.support-star-pack:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(190, 151, 255, 0.48);
+  background:
+    linear-gradient(145deg, rgba(112, 65, 193, 0.34), rgba(14, 16, 29, 0.96));
+}
+
+.support-star-pack:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.support-star-pack__amount {
+  color: #f5d76b;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.support-star-pack strong {
+  font-size: 15px;
+}
+
+.support-star-pack small {
+  min-height: 36px;
+  color: rgba(230, 232, 244, 0.56);
+  line-height: 1.45;
+}
+
+.support-star-pack__action {
+  margin-top: auto;
+  color: #c9aeff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.support-box__section--web {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.support-box__section--web strong {
+  display: block;
+  margin-top: 5px;
+}
+
+.support-box__section--web p {
+  max-width: 560px;
+  margin: 6px 0 0;
+}
+
+.support-box__donatepay {
+  flex: 0 0 auto;
+}
+
+.support-box__status {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(110, 225, 164, 0.18);
+  border-radius: 14px;
+  background: rgba(64, 176, 116, 0.08);
+  color: #b8f2d0;
+  font-size: 13px;
+}
+
+.support-box__status.is-error {
+  border-color: rgba(255, 105, 120, 0.2);
+  background: rgba(255, 72, 91, 0.08);
+  color: #ffc0c8;
+}
+
+.support-box__footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+  color: rgba(222, 224, 239, 0.4);
+  font-size: 12px;
+}
+
+.support-box__footer a,
+.support-page__back a {
+  color: #bda4ff;
+}
+
+.support-page__back {
+  margin-top: 20px;
+  font-size: 13px;
+}
+
+.support-terms__card {
+  padding: clamp(20px, 4vw, 34px);
+  border: 1px solid rgba(161, 114, 255, 0.16);
+  border-radius: 24px;
+  background: rgba(10, 12, 24, 0.82);
+}
+
+.support-terms__card h2 {
+  margin: 26px 0 8px;
+  font-size: 19px;
+}
+
+.support-terms__card h2:first-child {
+  margin-top: 0;
+}
+
+@media (max-width: 760px) {
+  .support-page {
+    padding-top: 12px;
+  }
+
+  .support-page__hero,
+  .support-box,
+  .support-terms__card {
+    border-radius: 20px;
+  }
+
+  .support-stars-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .support-star-pack {
+    min-height: 0;
+  }
+
+  .support-star-pack small {
+    min-height: 0;
+  }
+
+  .support-box__section--web,
+  .support-box__footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .support-box__donatepay {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+
+html.telegram-mini-app .support-box__web-only {
+  display: none;
+}

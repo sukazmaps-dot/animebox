@@ -5,8 +5,6 @@ import {
   TELEGRAM_MINI_APP_URL,
 } from '@/lib/telegram-links';
 
-const donateUrl = 'https://donatepay.ru/don/Armlet';
-
 const features = [
   {
     icon: 'anime' as const,
@@ -112,15 +110,13 @@ export default function AboutPage() {
           идею, открой {TELEGRAM_BOT_HANDLE}.
         </p>
 
-        <a
-          href={donateUrl}
-          target="_blank"
-          rel="noreferrer"
+        <Link
+          href="/support"
           className="about-status__support"
         >
           <Icon name="heart" />
           Поддержать проект
-        </a>
+        </Link>
       </section>
     </div>
   );

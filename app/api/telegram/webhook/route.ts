@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { escapeTelegramHtml } from '@/lib/notifications-server';
 import { getUserSubscriptions } from '@/lib/telegram/bot-subscriptions';
+import {
+  answerSupportPreCheckout,
+  parseSupportPayload,
+} from '@/lib/telegram-stars';
+import {
+  recordPaymentSupportRequest,
+  recordStarPayment,
+} from '@/lib/monetization-server';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
@@ -49,7 +57,15 @@ const BOTTOM_MENU = {
         text: '🔔 Уведомления',
       },
       {
-        text: '💜 Помощь',
+        text: '💜 Поддержать',
+        web_app: {
+          url: `${SITE_URL}/support`,
+        },
+      },
+    ],
+    [
+      {
+        text: '❓ Помощь',
       },
     ],
   ],
@@ -147,8 +163,112 @@ export async function POST(request: NextRequest) {
 
     const update = await request.json();
 
+    /**
+     * =====================================================
+     * Telegram Stars: pre-checkout
+     * =====================================================
+     */
+    const preCheckoutQuery = update?.pre_checkout_query;
+
+    if (preCheckoutQuery?.id) {
+      const parsed = parseSupportPayload(
+        preCheckoutQuery.invoice_payload,
+      );
+      const payerTelegramId = Number(
+        preCheckoutQuery?.from?.id ?? 0,
+      );
+      const totalAmount = Number(
+        preCheckoutQuery?.total_amount ?? 0,
+      );
+      const currency = preCheckoutQuery?.currency;
+
+      const payloadMatchesPayer = Boolean(
+        parsed &&
+          (parsed.telegramId === 0 ||
+            parsed.telegramId === payerTelegramId),
+      );
+
+      const valid = Boolean(
+        parsed &&
+          currency === 'XTR' &&
+          totalAmount === parsed.amount &&
+          payloadMatchesPayer,
+      );
+
+      await answerSupportPreCheckout({
+        botToken: BOT_TOKEN,
+        queryId: String(preCheckoutQuery.id),
+        ok: valid,
+        errorMessage: valid
+          ? undefined
+          : 'Не удалось подтвердить платёж AnimeBox. Открой страницу поддержки заново.',
+      });
+
+      return NextResponse.json({
+        ok: true,
+      });
+    }
+
     const message = update?.message;
-    const chatId = message?.chat?.id;
+    const chatId = Number(message?.chat?.id ?? 0);
+
+    /**
+     * =====================================================
+     * Telegram Stars: successful payment
+     * =====================================================
+     */
+    const successfulPayment = message?.successful_payment;
+
+    if (successfulPayment && chatId) {
+      const parsed = parseSupportPayload(
+        successfulPayment.invoice_payload,
+      );
+      const payerTelegramId = Number(
+        message?.from?.id ?? chatId,
+      );
+
+      if (
+        parsed &&
+        successfulPayment.currency === 'XTR' &&
+        Number(successfulPayment.total_amount) === parsed.amount
+      ) {
+        try {
+          await recordStarPayment({
+            telegramId: payerTelegramId,
+            chatId,
+            amount: parsed.amount,
+            invoicePayload: successfulPayment.invoice_payload,
+            telegramPaymentChargeId:
+              successfulPayment.telegram_payment_charge_id,
+            providerPaymentChargeId:
+              successfulPayment.provider_payment_charge_id ?? null,
+          });
+        } catch (error) {
+          // Payment is already completed in Telegram. Never turn a
+          // successful charge into a failed webhook because storage is down.
+          console.error(
+            '[AnimeBox Stars] failed to persist successful payment:',
+            error,
+          );
+        }
+
+        await sendMessage(
+          chatId,
+          [
+            '💜 <b>Спасибо за поддержку AnimeBox!</b>',
+            '',
+            `Получено: <b>⭐ ${parsed.amount}</b>`,
+            '',
+            'Твоя поддержка помогает оплачивать инфраструктуру и развивать проект дальше.',
+          ].join('\n'),
+          BOTTOM_MENU,
+        );
+      }
+
+      return NextResponse.json({
+        ok: true,
+      });
+    }
 
     const text =
       typeof message?.text === 'string'
@@ -343,12 +463,88 @@ export async function POST(request: NextRequest) {
 
     /**
      * =====================================================
+     * Payment support / terms
+     * =====================================================
+     */
+    if (command === '/terms') {
+      await sendMessage(
+        chatId,
+        [
+          '📄 <b>Условия поддержки AnimeBox</b>',
+          '',
+          `${SITE_URL}/terms`,
+        ].join('\n'),
+        BOTTOM_MENU,
+      );
+
+      return NextResponse.json({
+        ok: true,
+      });
+    }
+
+    if (command === '/paysupport') {
+      const issue = text
+        .replace(/^\/paysupport(?:@\w+)?/i, '')
+        .trim();
+
+      if (!issue) {
+        await sendMessage(
+          chatId,
+          [
+            '💳 <b>Поддержка по платежам</b>',
+            '',
+            'Опиши проблему после команды:',
+            '<code>/paysupport Платёж списался, но...</code>',
+            '',
+            'Заявка будет сохранена для разбора.',
+          ].join('\n'),
+          BOTTOM_MENU,
+        );
+
+        return NextResponse.json({
+          ok: true,
+        });
+      }
+
+      try {
+        await recordPaymentSupportRequest({
+          telegramId: Number(message?.from?.id ?? chatId),
+          chatId,
+          message: issue.slice(0, 1000),
+        });
+
+        await sendMessage(
+          chatId,
+          [
+            '✅ <b>Заявка по платежу сохранена</b>',
+            '',
+            'Не удаляй чек Telegram до решения вопроса.',
+          ].join('\n'),
+          BOTTOM_MENU,
+        );
+      } catch (error) {
+        console.error('[AnimeBox Stars] payment support request:', error);
+
+        await sendMessage(
+          chatId,
+          'Не удалось сохранить заявку. Попробуй отправить /paysupport ещё раз позже.',
+          BOTTOM_MENU,
+        );
+      }
+
+      return NextResponse.json({
+        ok: true,
+      });
+    }
+
+    /**
+     * =====================================================
      * Помощь
      * =====================================================
      */
     if (
       command === '/help' ||
-      normalizedText === '💜 помощь'
+      (normalizedText === '💜 помощь' || normalizedText === '❓ помощь')
     ) {
       await sendMessage(
         chatId,
@@ -368,6 +564,8 @@ export async function POST(request: NextRequest) {
           '/open — открыть AnimeBox',
           '/tracker — мой трекер',
           '/notifications — уведомления',
+          '/terms — условия поддержки',
+          '/paysupport — помощь с платежом',
           '/help — помощь',
         ].join('\n'),
         BOTTOM_MENU,

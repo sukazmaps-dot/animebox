@@ -20,6 +20,8 @@ import TelegramPromoCard from '@/components/TelegramPromoCard';
 import TopAnimeItem from '@/components/TopAnimeItem';
 import ScheduleItem from '@/components/ScheduleItem';
 import { readTasteProfile, setTasteMood, type TasteMood } from '@/lib/personalization';
+import AdSlot from '@/components/monetization/AdSlot';
+import { SupportAnimeBoxCard } from '@/components/monetization/SupportAnimeBox';
 
 type HomeScheduleItem = {
   id: number;
@@ -454,6 +456,11 @@ export default function HomePage() {
           )}
         </section>
 
+        <AdSlot
+          placement="home-after-smart-feed"
+          format="horizontal"
+        />
+
         <section className="section">
           <div className="section-head">
             <h2 className="section-title">
@@ -681,6 +688,8 @@ export default function HomePage() {
             )}
           </div>
         </div>
+
+        <SupportAnimeBoxCard />
 
         <TelegramPromoCard />
       </aside>

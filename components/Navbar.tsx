@@ -48,7 +48,6 @@ const mainNav = [
 ];
 
 const telegramUrl = TELEGRAM_MINI_APP_URL;
-const donateUrl = 'https://donatepay.ru/don/Armlet';
 
 function NavbarContent() {
   const pathname = usePathname();
@@ -285,15 +284,13 @@ function NavbarContent() {
             <span>О проекте</span>
           </Link>
 
-          <a
-            href={donateUrl}
-            className="sidebar__item"
-            target="_blank"
-            rel="noreferrer"
+          <Link
+            href="/support"
+            className={`sidebar__item ${isActive('/support') ? 'is-active' : ''}`}
           >
             <Icon name="heart" />
             <span>Поддержать проект</span>
-          </a>
+          </Link>
         </nav>
 
       </aside>
