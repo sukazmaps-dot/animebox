@@ -288,6 +288,7 @@ export async function POST(request: Request) {
       const availability = await checkKodikEpisodeAvailability(
         schedule.media?.idMal ?? null,
         schedule.episode,
+        { verifyPlayerUrl: true },
       );
 
       availabilityBySchedule.set(key, availability.status);
@@ -303,6 +304,7 @@ export async function POST(request: Request) {
           shikimoriId: schedule.media?.idMal ?? null,
           episode: schedule.episode,
           reason: availability.reason,
+          verifiedPlayerUrl: availability.verifiedPlayerUrl,
         });
       }
     }
