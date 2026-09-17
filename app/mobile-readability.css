@@ -580,13 +580,21 @@ html.telegram-mini-app,
 html.telegram-mini-app body {
   width: 100%;
   max-width: 100vw;
-  overscroll-behavior-x: none;
-  overscroll-behavior-y: none;
   background: #080912;
 }
 
-html.telegram-mini-app body {
+/* Ordinary Mini App pages are always a vertical document scroll surface.
+   The strict scroll lock lives only in .animebox-player-telegram-fullscreen. */
+html.telegram-mini-app:not(.animebox-player-telegram-fullscreen) {
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+}
+
+html.telegram-mini-app:not(.animebox-player-telegram-fullscreen) body {
   overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+  touch-action: pan-y pinch-zoom;
   -webkit-overflow-scrolling: touch;
 }
 

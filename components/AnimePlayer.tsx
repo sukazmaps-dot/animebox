@@ -293,6 +293,7 @@ export default function AnimePlayer({
   const telegramFullscreenOwnedRef = useRef(false);
   const telegramOrientationOwnedRef = useRef(false);
   const telegramWasFullscreenRef = useRef(false);
+  const telegramVerticalSwipesWereEnabledRef = useRef<boolean | null>(null);
 
   const currentSource = sources[activeSourceIndex];
   const currentTranslation = currentSource?.translations[activeTranslationIndex];
@@ -484,6 +485,10 @@ export default function AnimePlayer({
     telegramWasFullscreenRef.current = Boolean(telegram?.isFullscreen);
     telegramFullscreenOwnedRef.current = false;
     telegramOrientationOwnedRef.current = false;
+    telegramVerticalSwipesWereEnabledRef.current =
+      typeof telegram?.isVerticalSwipesEnabled === 'boolean'
+        ? telegram.isVerticalSwipesEnabled
+        : null;
 
     try {
       telegram?.expand();
@@ -521,7 +526,11 @@ export default function AnimePlayer({
       root.classList.remove('animebox-player-telegram-fullscreen');
 
       try {
-        telegram?.enableVerticalSwipes?.();
+        // Undo only the gesture change AnimeBox made for pseudo-fullscreen.
+        // If Telegram already had vertical swipes disabled, keep that state.
+        if (telegramVerticalSwipesWereEnabledRef.current !== false) {
+          telegram?.enableVerticalSwipes?.();
+        }
 
         if (telegramOrientationOwnedRef.current) {
           telegram?.unlockOrientation?.();
@@ -538,6 +547,7 @@ export default function AnimePlayer({
       } finally {
         telegramFullscreenOwnedRef.current = false;
         telegramOrientationOwnedRef.current = false;
+        telegramVerticalSwipesWereEnabledRef.current = null;
       }
     };
   }, [telegramPseudoFullscreen]);

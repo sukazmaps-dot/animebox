@@ -149,22 +149,11 @@ export default function TelegramMiniAppBridge() {
     }
 
     /*
-     * Do NOT disable Telegram vertical swipes globally. On Telegram Android
-     * that can swallow the same touch gesture the page needs for normal
-     * scrolling. Keep the app scrollable and only disable swipes while the
-     * player itself is in our Android pseudo-fullscreen mode.
+     * Leave Telegram's vertical-swipe setting untouched during ordinary
+     * browsing. Chromium-based Telegram clients can otherwise start owning the
+     * same vertical gesture the document needs for normal wheel/touch scroll.
+     * AnimePlayer changes it only while Android pseudo-fullscreen is active.
      */
-    try {
-      const supportsSwipeControl =
-        telegram.isVersionAtLeast?.('7.7') ??
-        typeof telegram.enableVerticalSwipes === 'function';
-
-      if (supportsSwipeControl) {
-        telegram.enableVerticalSwipes?.();
-      }
-    } catch (error) {
-      console.warn('[AnimeBox Telegram] enableVerticalSwipes:', error);
-    }
 
     /*
      * expand() is enough for ordinary Mini App browsing. requestFullscreen()
