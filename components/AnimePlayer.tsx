@@ -488,6 +488,11 @@ export default function AnimePlayer({
     try {
       telegram?.expand();
 
+      // Disable Telegram's own vertical collapse gesture only while the
+      // player occupies the whole Mini App. Normal pages keep vertical swipes
+      // enabled so document scrolling continues to work on Android.
+      telegram?.disableVerticalSwipes?.();
+
       if (!telegramWasFullscreenRef.current && telegram?.requestFullscreen) {
         telegram.requestFullscreen();
         telegramFullscreenOwnedRef.current = true;
@@ -516,6 +521,8 @@ export default function AnimePlayer({
       root.classList.remove('animebox-player-telegram-fullscreen');
 
       try {
+        telegram?.enableVerticalSwipes?.();
+
         if (telegramOrientationOwnedRef.current) {
           telegram?.unlockOrientation?.();
         }
@@ -851,19 +858,27 @@ export default function AnimePlayer({
       <div className="relative bg-[radial-gradient(circle_at_50%_0%,rgba(98,68,190,.10),transparent_48%)] p-2.5 sm:p-3.5 md:p-4">
         <div
           ref={playerViewportRef}
-          className={`relative w-full overflow-hidden bg-black transition-all duration-300 ${
+          className={`${
             telegramPseudoFullscreen
-              ? 'fixed inset-0 z-[2147483000] h-[100dvh] w-[100dvw] max-w-none rounded-none border-0 shadow-none ring-0'
+              ? 'fixed inset-0 z-[2147483000] m-0 max-w-none overflow-hidden rounded-none border-0 bg-black shadow-none ring-0'
               : fullscreen
-                ? 'h-screen w-screen rounded-none border-0'
-                : 'aspect-video rounded-[22px] border border-violet-400/[0.12] shadow-[0_28px_80px_rgba(0,0,0,.55),0_0_50px_rgba(105,72,255,.055)] ring-1 ring-black/40'
-          }`}
+                ? 'relative h-screen w-screen overflow-hidden rounded-none border-0 bg-black'
+                : 'relative aspect-video w-full overflow-hidden rounded-[22px] border border-violet-400/[0.12] bg-black shadow-[0_28px_80px_rgba(0,0,0,.55),0_0_50px_rgba(105,72,255,.055)] ring-1 ring-black/40'
+          } transition-all duration-300`}
           style={
             telegramPseudoFullscreen
               ? {
-                  width: '100dvw',
-                  height: 'var(--tg-viewport-height, 100dvh)',
+                  position: 'fixed',
+                  inset: 0,
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  left: 0,
+                  width: '100vw',
+                  height: 'var(--animebox-tg-stable-height, 100dvh)',
                   maxWidth: 'none',
+                  margin: 0,
+                  zIndex: 2147483000,
                 }
               : undefined
           }

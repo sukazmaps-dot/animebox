@@ -148,35 +148,29 @@ export default function TelegramMiniAppBridge() {
       console.warn('[AnimeBox Telegram] theme colors:', error);
     }
 
+    /*
+     * Do NOT disable Telegram vertical swipes globally. On Telegram Android
+     * that can swallow the same touch gesture the page needs for normal
+     * scrolling. Keep the app scrollable and only disable swipes while the
+     * player itself is in our Android pseudo-fullscreen mode.
+     */
     try {
       const supportsSwipeControl =
         telegram.isVersionAtLeast?.('7.7') ??
-        typeof telegram.disableVerticalSwipes === 'function';
+        typeof telegram.enableVerticalSwipes === 'function';
 
       if (supportsSwipeControl) {
-        telegram.disableVerticalSwipes?.();
+        telegram.enableVerticalSwipes?.();
       }
     } catch (error) {
-      console.warn('[AnimeBox Telegram] disableVerticalSwipes:', error);
+      console.warn('[AnimeBox Telegram] enableVerticalSwipes:', error);
     }
 
-    try {
-      const supportsFullscreen =
-        telegram.isVersionAtLeast?.('8.0') ??
-        typeof telegram.requestFullscreen === 'function';
-
-      if (
-        supportsFullscreen &&
-        telegram.requestFullscreen &&
-        !telegram.isFullscreen
-      ) {
-        telegram.requestFullscreen();
-      }
-    } catch (error) {
-      // Old clients can throw even when the method exists in the JS bridge.
-      console.warn('[AnimeBox Telegram] requestFullscreen:', error);
-      telegram.expand();
-    }
+    /*
+     * expand() is enough for ordinary Mini App browsing. requestFullscreen()
+     * is intentionally NOT called here: the player requests it only after a
+     * direct user tap on the fullscreen control.
+     */
 
     function syncViewportMetrics() {
       const stableHeight = telegram.viewportStableHeight;

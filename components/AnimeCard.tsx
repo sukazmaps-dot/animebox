@@ -68,17 +68,22 @@ export default function AnimeCard({
           : ''
       }`}
     >
-      <div className="anime-card__image-wrap aspect-[2/3] shrink-0">
-        <AnimeImage
-          image={anime.coverImage}
-          alt={title}
-          englishName={
-            anime.title?.english ||
-            anime.title?.romaji
-          }
-          className="anime-card__image"
-          loading="lazy"
-        />
+      <div
+        className="anime-card__image-wrap aspect-[2/3] shrink-0"
+        style={{ aspectRatio: '2 / 3' }}
+      >
+        <div className="anime-card__image-fill">
+          <AnimeImage
+            image={anime.coverImage}
+            alt={title}
+            englishName={
+              anime.title?.english ||
+              anime.title?.romaji
+            }
+            className="anime-card__image"
+            loading="lazy"
+          />
+        </div>
 
         <span className="anime-card__rating">
           <span>★</span>
