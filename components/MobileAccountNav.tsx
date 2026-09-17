@@ -13,7 +13,6 @@ type Props = {
 };
 
 const telegramUrl = TELEGRAM_MINI_APP_URL;
-const donateUrl = 'https://donatepay.ru/don/Armlet';
 
 export default function MobileAccountNav({ pathname }: Props) {
   const {
@@ -58,7 +57,8 @@ export default function MobileAccountNav({ pathname }: Props) {
     pathname.startsWith('/favorites') ||
     pathname.startsWith('/schedule') ||
     pathname.startsWith('/about') ||
-    pathname.startsWith('/leaderboard');
+    pathname.startsWith('/leaderboard') ||
+    pathname.startsWith('/support');
 
   async function logout() {
     setOpen(false);
@@ -275,17 +275,34 @@ export default function MobileAccountNav({ pathname }: Props) {
               </Link>
             </nav>
 
-            <div className="mobile-account__footer">
-              <a href={donateUrl} target="_blank" rel="noreferrer">
-                Поддержать проект
-              </a>
+            <Link
+              href="/support"
+              className="mobile-account__support"
+              onClick={() => setOpen(false)}
+              aria-label="Поддержать AnimeBox"
+            >
+              <span className="mobile-account__support-icon" aria-hidden="true">
+                <Icon name="heart" />
+              </span>
 
-              {profile && (
+              <span className="mobile-account__support-copy">
+                <strong>Поддержать AnimeBox</strong>
+                <small>Stars · получи значок Спонсор</small>
+              </span>
+
+              <span className="mobile-account__support-action" aria-hidden="true">
+                <span>⭐</span>
+                <Icon name="chevron" />
+              </span>
+            </Link>
+
+            {profile && (
+              <div className="mobile-account__footer mobile-account__footer--logout-only">
                 <button type="button" onClick={() => void logout()}>
-                  Выйти
+                  Выйти из аккаунта
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </section>
         </>
       )}
