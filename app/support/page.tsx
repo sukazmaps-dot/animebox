@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import SupportAnimeBox from '@/components/monetization/SupportAnimeBox';
 import SponsorDashboard from '@/components/monetization/SponsorDashboard';
 import SponsorBadge from '@/components/monetization/SponsorBadge';
@@ -10,7 +11,14 @@ const tiers=[
  {tier:'patron' as const,amount:250,title:'Меценат AnimeBox',perks:['Все преимущества Premium','Золотая рамка и цвет ника','Особый значок мецената']},
 ];
 export default function SupportPage(){return <div className="support-page sponsor-v2-page">
- <section className="support-page__hero"><span className="support-page__eyebrow">ANIMEBOX · СОЗДАЁМ ВМЕСТЕ</span><h1>Твоя поддержка.<br/>Будущее AnimeBox.</h1><p>Помоги независимому проекту расти — и добавь своему профилю характер. Каждая звезда идёт в общий прогресс твоего спонсорства.</p></section>
+ <section className="support-page__hero">
+  <div className="support-page__hero-copy">
+   <span className="support-page__eyebrow">ANIMEBOX · СОЗДАЁМ ВМЕСТЕ</span>
+   <h1>Твоя поддержка.<br/>Будущее AnimeBox.</h1>
+   <p>Помоги независимому проекту расти — и добавь своему профилю характер. Каждая звезда идёт в общий прогресс твоего спонсорства.</p>
+  </div>
+  <Image src="/brand/illustrations/support-stars.webp" width={720} height={480} alt="" aria-hidden="true" className="support-page__hero-art" priority unoptimized/>
+ </section>
  <SponsorDashboard/>
  <section aria-label="Уровни спонсорства" className="sponsor-v2-tiers">{tiers.map(t=><article className="sponsor-v2-tier" data-tier={t.tier} key={t.tier}><SponsorBadge tier={t.tier}/><div className="sponsor-v2-price">{t.amount}<span> ⭐ суммарно</span></div><h2>{t.title}</h2><ul>{t.perks.map(p=><li key={p}>{p}</li>)}</ul><a className="btn btn--ghost" href="#support-payment">Поддержать проект ↓</a></article>)}</section>
  <div id="support-payment"><SupportAnimeBox/></div>

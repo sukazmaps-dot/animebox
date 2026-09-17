@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import AnimeCard from '@/components/AnimeCard';
+import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import MoodFilter from '@/components/catalog/MoodFilter';
 import { getAnimes, isAbortError } from '@/lib/anime-client';
 import type { CatalogMood } from '@/lib/catalog-moods';
@@ -153,10 +154,13 @@ export default function SearchCatalogClient({
         </div>
 
         {loading ? (
-          <div className="loading-grid">
-            {Array.from({ length: 15 }).map((_, index) => (
-              <div key={index} className="skeleton skeleton--card" />
-            ))}
+          <div>
+            <AnimeBoxLoader label="Подбираем аниме…" size={46} />
+            <div className="loading-grid" aria-hidden="true">
+              {Array.from({ length: 10 }).map((_, index) => (
+                <div key={index} className="skeleton skeleton--card" />
+              ))}
+            </div>
           </div>
         ) : error ? (
           <div className={`empty-state ${styles.assetEmpty}`}>
@@ -172,7 +176,7 @@ export default function SearchCatalogClient({
           </div>
         ) : (
           <div className={`empty-state ${styles.assetEmpty}`}>
-            <img className={styles.emptyMascot} src="/ui/animebox-mascot.webp" alt="" aria-hidden="true" />
+            <img className={styles.emptyMascot} src="/brand/illustrations/empty-search.webp" alt="" aria-hidden="true" />
             <strong>Ничего не найдено</strong>
             <span>Попробуй изменить запрос, жанр или настроение.</span>
           </div>

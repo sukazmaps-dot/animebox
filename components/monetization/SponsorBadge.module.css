@@ -53,10 +53,11 @@
 .icon {
   position: relative;
   z-index: 1;
-  width: 17px;
-  height: 17px;
-  flex: 0 0 17px;
-  filter: drop-shadow(0 0 6px rgb(var(--sponsor-a) / 0.58));
+  width: 21px;
+  height: 21px;
+  flex: 0 0 21px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 7px rgb(var(--sponsor-a) / 0.46));
 }
 
 .label {
@@ -72,9 +73,9 @@
 }
 
 .compact .icon {
-  width: 15px;
-  height: 15px;
-  flex-basis: 15px;
+  width: 18px;
+  height: 18px;
+  flex-basis: 18px;
 }
 
 @media (max-width: 640px) {

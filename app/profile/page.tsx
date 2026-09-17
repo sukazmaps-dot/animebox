@@ -13,6 +13,7 @@ import CommunityProfile from '@/components/CommunityProfile';
 import ProfileEditModal from '@/components/ProfileEditModal';
 import SponsorDashboard from '@/components/monetization/SponsorDashboard';
 import MySponsorBadge from '@/components/monetization/MySponsorBadge';
+import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 
 type Profile = {
   id: string;
@@ -171,7 +172,7 @@ export default function ProfilePage() {
     return (
       <main className="profile-v2">
         <div className="profile-v2__loading">
-          Загружаем профиль...
+          <AnimeBoxLoader label="Загружаем профиль…" size={52} />
         </div>
       </main>
     );

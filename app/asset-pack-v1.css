@@ -1,0 +1,226 @@
+/* =========================================================
+   AnimeBox generated asset pack v1
+   Identity frames, support art and empty states
+   ========================================================= */
+
+/* Premium profile avatar frames. The identity badge already exists in the
+   profile subtree, so :has() keeps the frame in sync without a second API call. */
+.profile-v2__avatar-wrap {
+  isolation: isolate;
+}
+
+.profile-v2:has([data-identity-kind="owner"]) .profile-v2__avatar-static,
+.profile-v2:has([data-sponsor-tier="supporter"]) .profile-v2__avatar-static,
+.profile-v2:has([data-sponsor-tier="premium"]) .profile-v2__avatar-static,
+.profile-v2:has([data-sponsor-tier="patron"]) .profile-v2__avatar-static {
+  border-radius: 999px;
+  border-color: rgba(10, 13, 28, .92);
+  overflow: hidden;
+}
+
+.profile-v2__avatar-wrap::after {
+  position: absolute;
+  z-index: 8;
+  inset: -22px;
+  pointer-events: none;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  filter: drop-shadow(0 0 14px rgba(151, 92, 255, .22));
+}
+
+.profile-v2:has([data-sponsor-tier="supporter"]) .profile-v2__avatar-wrap::after {
+  content: '';
+  background-image: url('/brand/identity/frame-supporter.webp');
+}
+
+.profile-v2:has([data-sponsor-tier="premium"]) .profile-v2__avatar-wrap::after {
+  content: '';
+  inset: -25px;
+  background-image: url('/brand/identity/frame-premium.webp');
+  filter: drop-shadow(0 0 18px rgba(218, 75, 255, .30));
+}
+
+.profile-v2:has([data-sponsor-tier="patron"]) .profile-v2__avatar-wrap::after {
+  content: '';
+  inset: -27px;
+  background-image: url('/brand/identity/frame-patron.webp');
+  filter:
+    drop-shadow(0 0 16px rgba(255, 196, 91, .26))
+    drop-shadow(0 0 24px rgba(171, 92, 255, .18));
+}
+
+.profile-v2:has([data-identity-kind="owner"]) .profile-v2__avatar-wrap::after {
+  content: '';
+  inset: -30px;
+  background-image: url('/brand/identity/frame-owner.webp');
+  filter:
+    drop-shadow(0 0 18px rgba(255, 202, 94, .34))
+    drop-shadow(0 0 34px rgba(170, 86, 255, .22));
+}
+
+/* Generated support artwork */
+.support-animebox-card > *:not(.support-animebox-card__art) {
+  position: relative;
+  z-index: 2;
+}
+
+.support-animebox-card__art {
+  position: absolute;
+  z-index: 0;
+  top: -25px;
+  right: -62px;
+  width: 210px;
+  height: 150px;
+  object-fit: contain;
+  opacity: .72;
+  pointer-events: none;
+  filter: drop-shadow(0 0 24px rgba(184, 84, 255, .24));
+  transform: rotate(5deg);
+}
+
+.support-animebox-card h2,
+.support-animebox-card p {
+  max-width: 68%;
+}
+
+.support-page__hero-copy {
+  position: relative;
+  z-index: 2;
+  max-width: 68%;
+}
+
+.support-page__hero-art {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  right: -4%;
+  width: min(43%, 420px);
+  height: auto;
+  transform: translateY(-50%);
+  opacity: .92;
+  pointer-events: none;
+  filter:
+    drop-shadow(0 0 24px rgba(178, 81, 255, .28))
+    drop-shadow(0 16px 36px rgba(0, 0, 0, .24));
+}
+
+/* Shared generated empty-state artwork */
+.animebox-empty-art {
+  display: block;
+  width: min(190px, 46vw);
+  height: auto;
+  margin: 0 auto 14px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 24px rgba(146, 90, 255, .18));
+}
+
+.notifications-empty__art {
+  display: block;
+  width: 140px;
+  height: 140px;
+  margin: -8px auto 12px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 22px rgba(157, 99, 255, .18));
+}
+
+.tracker-empty__art {
+  display: block;
+  width: 170px;
+  height: 170px;
+  margin: 0 auto 10px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 26px rgba(180, 91, 255, .20));
+}
+
+/* 404 */
+.animebox-not-found {
+  display: grid;
+  min-height: min(720px, calc(100dvh - 100px));
+  place-items: center;
+  padding: 36px 18px 80px;
+}
+
+.animebox-not-found__card {
+  width: min(100%, 760px);
+  padding: clamp(24px, 5vw, 46px);
+  border: 1px solid rgba(162, 113, 255, .18);
+  border-radius: 28px;
+  text-align: center;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(144, 78, 255, .16), transparent 36%),
+    rgba(8, 12, 25, .88);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .22);
+}
+
+.animebox-not-found__art {
+  width: min(330px, 76vw);
+  height: auto;
+  margin: -18px auto 4px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 28px rgba(166, 88, 255, .24));
+}
+
+.animebox-not-found__eyebrow {
+  color: #b795ff;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .18em;
+}
+
+.animebox-not-found h1 {
+  margin: 8px 0 10px;
+  color: #f7f4ff;
+  font-size: clamp(30px, 5vw, 48px);
+}
+
+.animebox-not-found p {
+  max-width: 520px;
+  margin: 0 auto 22px;
+  color: rgba(216, 221, 240, .62);
+  line-height: 1.65;
+}
+
+@media (max-width: 760px) {
+  .profile-v2__avatar-wrap::after {
+    inset: -16px;
+  }
+
+  .profile-v2:has([data-sponsor-tier="premium"]) .profile-v2__avatar-wrap::after,
+  .profile-v2:has([data-sponsor-tier="patron"]) .profile-v2__avatar-wrap::after,
+  .profile-v2:has([data-identity-kind="owner"]) .profile-v2__avatar-wrap::after {
+    inset: -18px;
+  }
+
+  .support-animebox-card__art {
+    top: -18px;
+    right: -76px;
+    width: 190px;
+    opacity: .55;
+  }
+
+  .support-animebox-card h2,
+  .support-animebox-card p {
+    max-width: 75%;
+  }
+
+  .support-page__hero-copy {
+    max-width: 100%;
+  }
+
+  .support-page__hero-art {
+    top: auto;
+    right: -44px;
+    bottom: -58px;
+    width: 220px;
+    transform: none;
+    opacity: .26;
+  }
+}
+
+.animebox-not-found__actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}

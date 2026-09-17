@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { useAuthState } from '@/components/AuthStateProvider';
+import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import { isTelegramMiniAppRuntime } from '@/lib/telegram-auto-login';
 
 type Subscription = {
@@ -261,7 +262,11 @@ export default function NotificationSettingsClient() {
   const activeSubscriptions = subscriptions.filter((item) => item.enabled);
 
   if (loading) {
-    return <div className="notifications-page__loading">Загружаем уведомления…</div>;
+    return (
+      <div className="notifications-page__loading">
+        <AnimeBoxLoader label="Загружаем уведомления…" size={48} />
+      </div>
+    );
   }
 
   return (
@@ -338,6 +343,7 @@ export default function NotificationSettingsClient() {
 
         {subscriptions.length === 0 ? (
           <div className="notifications-empty">
+            <img className="notifications-empty__art" src="/brand/illustrations/empty-notifications.webp" alt="" aria-hidden="true" />
             <p>Пока нет подписок. Открой аниме и нажми «Уведомлять о сериях».</p>
             <Link href="/search">Открыть каталог</Link>
           </div>

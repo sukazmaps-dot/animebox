@@ -66,6 +66,7 @@ export default function FavoritesPage() {
 
       {favorites.length === 0 ? (
         <div className="empty-state tracker-empty">
+          <img className="tracker-empty__art" src="/brand/illustrations/empty-favorites.webp" alt="" aria-hidden="true" />
           <strong>Избранное пока пусто</strong>
           <span>Открой страницу аниме и нажми «В избранное».</span>
           <Link href="/search" className="btn btn--primary" style={{ marginTop: 15 }}>

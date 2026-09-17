@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState } from 'react';
 
 import {
@@ -44,7 +45,15 @@ export function SupportAnimeBoxCard() {
   return (
     <div className="panel support-animebox-card">
       <span className="support-animebox-card__eyebrow">ПОДДЕРЖАТЬ ANIMEBOX</span>
-      <div className="support-animebox-card__icon" aria-hidden="true">💜</div>
+      <Image
+        src="/brand/illustrations/support-stars.webp"
+        width={360}
+        height={240}
+        alt=""
+        aria-hidden="true"
+        className="support-animebox-card__art"
+        unoptimized
+      />
       <h2>Помоги проекту расти</h2>
       <p>
         Серверы, домен и новые функции требуют ресурсов. Любая поддержка помогает развивать AnimeBox дальше.

@@ -13,6 +13,7 @@ import './card-layout.css';
 import './smart-home.css';
 import './monetization.css';
 import './sponsor-v2.css';
+import './asset-pack-v1.css';
 
 import Navbar from '@/components/Navbar';
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';

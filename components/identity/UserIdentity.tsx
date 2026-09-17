@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 import styles from './UserIdentity.module.css';
 
 import { resolveIdentityKind, type IdentityKind, type PublicIdentityRole } from '@/lib/identity';
@@ -23,42 +25,26 @@ const LABELS: Record<IdentityKind, string> = {
   none: '',
 };
 
-function IdentityIcon({ kind }: { kind: IdentityKind }) {
-  if (kind === 'owner') {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M4.2 8.1 8.3 11l3.7-6.3 3.7 6.3 4.1-2.9-1.5 9.2H5.7L4.2 8.1Z" fill="currentColor" fillOpacity=".2" stroke="currentColor" strokeWidth="1.35" strokeLinejoin="round" />
-        <path d="M7 19.2h10M8.1 14.8h7.8" stroke="currentColor" strokeWidth="1.45" strokeLinecap="round" />
-        <circle cx="4" cy="6.5" r="1.35" fill="currentColor" />
-        <circle cx="12" cy="3.6" r="1.35" fill="currentColor" />
-        <circle cx="20" cy="6.5" r="1.35" fill="currentColor" />
-      </svg>
-    );
-  }
+const ICONS: Record<Exclude<IdentityKind, 'none'>, string> = {
+  owner: '/brand/identity/role-owner.webp',
+  admin: '/brand/identity/role-admin.webp',
+  moderator: '/brand/identity/role-moderator.webp',
+  patron: '/brand/identity/role-patron.webp',
+  premium: '/brand/identity/role-premium.webp',
+  supporter: '/brand/identity/role-supporter.webp',
+};
 
-  if (kind === 'admin') {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 3.2 19 6v5.1c0 4.5-2.9 7.8-7 9.7-4.1-1.9-7-5.2-7-9.7V6l7-2.8Z" fill="currentColor" fillOpacity=".16" stroke="currentColor" strokeWidth="1.4" />
-        <path d="m8.8 12 2 2 4.5-4.7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-
-  if (kind === 'moderator') {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 3.5 20 12l-8 8.5L4 12l8-8.5Z" fill="currentColor" fillOpacity=".14" stroke="currentColor" strokeWidth="1.4" />
-        <circle cx="12" cy="12" r="2.5" fill="currentColor" />
-      </svg>
-    );
-  }
-
+function IdentityIcon({ kind }: { kind: Exclude<IdentityKind, 'none'> }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 3.1 14.4 8l5.4.8-3.9 3.8.9 5.3-4.8-2.5-4.8 2.5.9-5.3-3.9-3.8L9.6 8 12 3.1Z" fill="currentColor" fillOpacity=".18" stroke="currentColor" strokeWidth="1.35" strokeLinejoin="round" />
-      <circle cx="18.4" cy="5.1" r="1.2" fill="currentColor" />
-    </svg>
+    <Image
+      src={ICONS[kind]}
+      alt=""
+      width={40}
+      height={40}
+      className={styles.iconImage}
+      aria-hidden="true"
+      unoptimized
+    />
   );
 }
 
