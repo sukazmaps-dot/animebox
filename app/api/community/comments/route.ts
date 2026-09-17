@@ -11,6 +11,7 @@ import {
 } from '@/lib/community-server';
 import { getSponsorStatuses } from '@/lib/sponsor-server';
 import { assertCanComment } from '@/lib/admin-server';
+import { publicIdentityRoleFor } from '@/lib/identity-server';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -78,6 +79,7 @@ async function enrichAuthors(comments: CommentRow[]) {
             avatarUrl,
             ogNumber: ogByUser.get(profile.id) ?? null,
             sponsor: sponsorByUser.get(profile.id) ?? null,
+            role: publicIdentityRoleFor(profile.id),
           },
         ] as const;
       }),

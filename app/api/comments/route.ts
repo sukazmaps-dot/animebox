@@ -9,6 +9,7 @@ import {
 import { adminClient } from '@/lib/community-server';
 import { getSponsorStatuses } from '@/lib/sponsor-server';
 import { assertCanComment } from '@/lib/admin-server';
+import { publicIdentityRoleFor } from '@/lib/identity-server';
 
 const MAX_COMMENT_LENGTH = 4000;
 
@@ -398,6 +399,11 @@ export async function GET(
                       ? sponsorByUser.get(
                           comment.user_id,
                         ) ?? null
+                      : null,
+
+                  role:
+                    comment.user_id
+                      ? publicIdentityRoleFor(comment.user_id)
                       : null,
                 }
               : null,

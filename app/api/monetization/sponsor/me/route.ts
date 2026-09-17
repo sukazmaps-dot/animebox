@@ -1,6 +1,7 @@
 import { userClient, adminClient, response, failure } from '@/lib/community-server';
 import { getSponsorTotal } from '@/lib/sponsor-server';
 import { makeSponsorStatus } from '@/lib/sponsor';
+import { publicIdentityRoleFor } from '@/lib/identity-server';
 export async function GET(request: Request) {
  try {
   const { user } = await userClient();
@@ -21,6 +22,6 @@ export async function GET(request: Request) {
    query.order('created_at',{ascending:false}).order('id',{ascending:false}).range((page-1)*20,page*20-1), getSponsorTotal(user.id)
   ]);
   if(error) throw error;
-  return response({sponsor:makeSponsorStatus(totalStars),totalStars,payments:payments??[],page,hasMore:page*20<(count??0),telegramLinked:!!telegramId});
+  return response({sponsor:makeSponsorStatus(totalStars),role:publicIdentityRoleFor(user.id),totalStars,payments:payments??[],page,hasMore:page*20<(count??0),telegramLinked:!!telegramId});
  } catch(error) { return failure(error); }
 }

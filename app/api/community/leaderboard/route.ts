@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { adminClient, failure } from '@/lib/community-server';
 import { getSponsorStatuses } from '@/lib/sponsor-server';
+import { publicIdentityRoleFor } from '@/lib/identity-server';
 
 type LeaderboardPeriod = 'week' | 'month' | 'all';
 
@@ -66,6 +67,7 @@ export async function GET(request: Request) {
       lastWatchedAt: row.last_watched_at,
       isCurrentUser: Boolean(row.is_current_user),
       sponsor: sponsorByUser.get(row.user_id) ?? null,
+      role: publicIdentityRoleFor(row.user_id),
     }));
 
     return Response.json(

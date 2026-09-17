@@ -249,9 +249,7 @@ export default function ProfilePage() {
             <div className="profile-v2__title-row">
               <div>
                 <div className="profile-v2__name-row">
-                  <h1>{username}</h1>
-
-                  <MySponsorBadge />
+                  <h1><MySponsorBadge username={username} /></h1>
 
                   {profile.og_number && (
                     <span

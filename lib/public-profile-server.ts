@@ -4,6 +4,8 @@ import { adminClient } from '@/lib/community-server';
 import { getWatchSummary } from '@/lib/watch-server';
 import { getSponsorStatus } from '@/lib/sponsor-server';
 import type { SponsorStatus } from '@/lib/sponsor';
+import { publicIdentityRoleFor } from '@/lib/identity-server';
+import type { PublicIdentityRole } from '@/lib/identity';
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -25,6 +27,7 @@ export type PublicProfileData = {
   createdAt: string;
   ogNumber: number | null;
   sponsor: SponsorStatus | null;
+  role: PublicIdentityRole;
   stats: {
     episodes: number;
     titles: number;
@@ -201,6 +204,7 @@ export async function getPublicProfile(
         ? ogResult.data.og_number
         : null,
     sponsor,
+    role: publicIdentityRoleFor(userId),
     stats: {
       episodes,
       titles,

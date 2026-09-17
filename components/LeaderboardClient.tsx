@@ -4,7 +4,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import styles from './Leaderboard.module.css';
-import SponsorBadge from '@/components/monetization/SponsorBadge';
+import UserIdentity from '@/components/identity/UserIdentity';
+import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
 
 type Period = 'week' | 'month' | 'all';
@@ -19,6 +20,7 @@ type Entry = {
   lastWatchedAt: string | null;
   isCurrentUser: boolean;
   sponsor: SponsorStatus | null;
+  role: PublicIdentityRole;
 };
 
 type Payload = {
@@ -165,8 +167,13 @@ export default function LeaderboardClient() {
                 </div>
                 <span className={styles.rankTitle}>{rankTitles[entry.rank]}</span>
                 <div className={styles.nameLine}>
-                  <strong className={styles.podiumName} title={entry.username}>{entry.username}</strong>
-                  {entry.sponsor && <SponsorBadge tier={entry.sponsor.tier} compact />}
+                  <UserIdentity
+                    username={entry.username}
+                    role={entry.role}
+                    sponsor={entry.sponsor}
+                    compact
+                    nameClassName={styles.podiumName}
+                  />
                 </div>
                 {entry.isCurrentUser && <span className={styles.youBadge}>Это ты</span>}
                 <span className={styles.time}>{formatWatchTime(entry.activeMs)}</span>
@@ -208,8 +215,12 @@ export default function LeaderboardClient() {
                   <Avatar entry={entry} />
                   <span>
                     <span className={styles.rowNameLine}>
-                      <strong>{entry.username}</strong>
-                      {entry.sponsor && <SponsorBadge tier={entry.sponsor.tier} compact />}
+                      <UserIdentity
+                        username={entry.username}
+                        role={entry.role}
+                        sponsor={entry.sponsor}
+                        compact
+                      />
                     </span>
                     {entry.isCurrentUser && <small>Это ты</small>}
                   </span>

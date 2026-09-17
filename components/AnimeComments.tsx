@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { communityRequest } from '@/lib/community-client';
 import { createClient } from '@/lib/supabase/client';
-import SponsorBadge from '@/components/monetization/SponsorBadge';
+import UserIdentity from '@/components/identity/UserIdentity';
+import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
 
 type Comment = {
@@ -21,6 +22,7 @@ type Comment = {
     avatarUrl: string | null;
     ogNumber: number | null;
     sponsor: SponsorStatus | null;
+    role: PublicIdentityRole;
   } | null;
 };
 
@@ -189,7 +191,12 @@ function CommentNode({
             <img src={avatar} width="38" height="38" loading="lazy" alt="" className="community-comment__avatar" />
             <div>
               <span className="animebox-comment-author-line">
-                <strong>{username}</strong>
+                <UserIdentity
+                  username={username}
+                  role={comment.author?.role ?? null}
+                  sponsor={comment.author?.sponsor ?? null}
+                  compact
+                />
                 {comment.author?.ogNumber && (
                   <span
                     className="animebox-og-mini"
@@ -197,9 +204,6 @@ function CommentNode({
                   >
                     OG #{String(comment.author.ogNumber).padStart(3, '0')}
                   </span>
-                )}
-                {comment.author?.sponsor && (
-                  <SponsorBadge tier={comment.author.sponsor.tier} compact />
                 )}
               </span>
               <time dateTime={comment.created_at}>
@@ -217,7 +221,12 @@ function CommentNode({
             <img src={avatar} width="38" height="38" loading="lazy" alt="" className="community-comment__avatar" />
             <div>
               <span className="animebox-comment-author-line">
-                <strong>{username}</strong>
+                <UserIdentity
+                  username={username}
+                  role={comment.author?.role ?? null}
+                  sponsor={comment.author?.sponsor ?? null}
+                  compact
+                />
                 {comment.author?.ogNumber && (
                   <span
                     className="animebox-og-mini"
@@ -225,9 +234,6 @@ function CommentNode({
                   >
                     OG #{String(comment.author.ogNumber).padStart(3, '0')}
                   </span>
-                )}
-                {comment.author?.sponsor && (
-                  <SponsorBadge tier={comment.author.sponsor.tier} compact />
                 )}
               </span>
               <time dateTime={comment.created_at}>
