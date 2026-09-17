@@ -7,6 +7,7 @@ import Icon from '@/components/Icon';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/components/AuthStateProvider';
 import { TELEGRAM_MINI_APP_URL } from '@/lib/telegram-links';
+import { buildSupportMailto } from '@/lib/contact';
 
 type Props = {
   pathname: string;
@@ -257,6 +258,19 @@ export default function MobileAccountNav({ pathname }: Props) {
                 <span>
                   <strong>Telegram</strong>
                   <small>Уведомления и Mini App</small>
+                </span>
+                <Icon name="chevron" />
+              </a>
+
+              <a
+                href={buildSupportMailto('Поддержка AnimeBox')}
+                className="mobile-account__link"
+                onClick={() => setOpen(false)}
+              >
+                <Icon name="mail" />
+                <span>
+                  <strong>Поддержка</strong>
+                  <small>support@youranimebox.com</small>
                 </span>
                 <Icon name="chevron" />
               </a>

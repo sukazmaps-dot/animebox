@@ -4,6 +4,7 @@ import {
   TELEGRAM_BOT_HANDLE,
   TELEGRAM_MINI_APP_URL,
 } from '@/lib/telegram-links';
+import { SUPPORT_EMAIL, buildSupportMailto } from '@/lib/contact';
 
 const features = [
   {
@@ -107,8 +108,16 @@ export default function AboutPage() {
           интерфейсе, стабильности источников данных, трекере, профилях,
           сообществе и дальнейшем улучшении Telegram-интеграции. Mini App и
           уведомления уже работают. Если найдёшь баг или хочешь предложить
-          идею, открой {TELEGRAM_BOT_HANDLE}.
+          идею, напиши нам на {SUPPORT_EMAIL} или открой {TELEGRAM_BOT_HANDLE}.
         </p>
+
+        <a
+          href={buildSupportMailto('Поддержка AnimeBox')}
+          className="about-status__support"
+        >
+          <Icon name="mail" />
+          Написать в поддержку
+        </a>
 
         <Link
           href="/support"

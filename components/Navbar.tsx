@@ -13,6 +13,7 @@ import Icon from './Icon';
 import AuthUserButton from './AuthUserButton';
 import MobileAccountNav from './MobileAccountNav';
 import { TELEGRAM_MINI_APP_URL } from '@/lib/telegram-links';
+import { buildSupportMailto } from '@/lib/contact';
 
 const mainNav = [
   {
@@ -270,6 +271,14 @@ function NavbarContent() {
           >
             <Icon name="telegram" />
             <span>Telegram Mini App</span>
+          </a>
+
+          <a
+            href={buildSupportMailto('Поддержка AnimeBox')}
+            className="sidebar__item"
+          >
+            <Icon name="mail" />
+            <span>Написать в поддержку</span>
           </a>
 
           <Link

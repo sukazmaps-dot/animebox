@@ -23,6 +23,7 @@ import { AuthStateProvider } from '@/components/AuthStateProvider';
 import { Analytics } from '@vercel/analytics/next';
 
 import { SITE_URL } from '@/lib/seo-config';
+import { SUPPORT_EMAIL } from '@/lib/contact';
 
 /* =========================================================
    SEO / Structured Data
@@ -69,6 +70,13 @@ const organizationStructuredData = {
   sameAs: [
     'https://t.me/YourAnimeBoxBot',
   ],
+
+  contactPoint: {
+    '@type': 'ContactPoint',
+    contactType: 'customer support',
+    email: SUPPORT_EMAIL,
+    availableLanguage: ['Russian', 'English'],
+  },
 };
 
 /* =========================================================
