@@ -7,6 +7,13 @@ declare global {
     };
   }
 
+  interface TelegramSafeAreaInset {
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+  }
+
   interface TelegramWebApp {
     initData: string;
 
@@ -32,27 +39,37 @@ declare global {
 
     colorScheme: 'light' | 'dark';
 
-    themeParams: Record<
-      string,
-      string | undefined
-    >;
+    themeParams: Record<string, string | undefined>;
 
     isExpanded: boolean;
     isFullscreen?: boolean;
     isOrientationLocked?: boolean;
+    isVerticalSwipesEnabled?: boolean;
 
     viewportHeight: number;
     viewportStableHeight: number;
 
+    safeAreaInset?: TelegramSafeAreaInset;
+    contentSafeAreaInset?: TelegramSafeAreaInset;
+
     ready(): void;
     expand(): void;
+
+    isVersionAtLeast?: (version: string) => boolean;
 
     requestFullscreen?: () => void;
     exitFullscreen?: () => void;
     lockOrientation?: () => void;
     unlockOrientation?: () => void;
+
     disableVerticalSwipes?: () => void;
     enableVerticalSwipes?: () => void;
+
+    setHeaderColor?: (color: string) => void;
+    setBackgroundColor?: (color: string) => void;
+    setBottomBarColor?: (color: string) => void;
+
+    openTelegramLink?: (url: string) => void;
 
     requestWriteAccess?: (
       callback?: (allowed: boolean) => void,
@@ -60,12 +77,12 @@ declare global {
 
     onEvent?: (
       eventType: string,
-      callback: (...args: unknown[]) => void
+      callback: (...args: unknown[]) => void,
     ) => void;
 
     offEvent?: (
       eventType: string,
-      callback: (...args: unknown[]) => void
+      callback: (...args: unknown[]) => void,
     ) => void;
   }
 }
