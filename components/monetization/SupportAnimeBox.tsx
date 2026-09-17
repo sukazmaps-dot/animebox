@@ -4,6 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
 
+import AnimeBoxStar from './AnimeBoxStar';
+
 import {
   MONETIZATION_ENABLED,
   SUPPORT_STAR_PACKS,
@@ -148,7 +150,7 @@ export default function SupportAnimeBox() {
         <section className="support-box__section">
           <div className="support-box__section-head">
             <div>
-              <span>Telegram Stars</span>
+              <span className="animebox-star-value"><AnimeBoxStar size={20} /> Telegram Stars</span>
               <strong>Поддержка внутри Telegram</strong>
             </div>
             <span className="support-box__badge">XTR</span>
@@ -163,7 +165,7 @@ export default function SupportAnimeBox() {
                 disabled={loadingAmount !== null}
                 onClick={() => void payWithStars(pack.amount)}
               >
-                <span className="support-star-pack__amount">⭐ {pack.amount}</span>
+                <span className="support-star-pack__amount"><AnimeBoxStar size={30} /> {pack.amount}</span>
                 <strong>{pack.title}</strong>
                 <small>{pack.description}</small>
                 <span className="support-star-pack__action">

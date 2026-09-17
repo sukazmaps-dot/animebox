@@ -21,7 +21,7 @@
 .profile-v2__avatar-wrap::after {
   position: absolute;
   z-index: 8;
-  inset: -22px;
+  inset: -10px;
   pointer-events: none;
   background-position: center;
   background-repeat: no-repeat;
@@ -36,14 +36,14 @@
 
 .profile-v2:has([data-sponsor-tier="premium"]) .profile-v2__avatar-wrap::after {
   content: '';
-  inset: -25px;
+  inset: -13px;
   background-image: url('/brand/identity/frame-premium.webp');
   filter: drop-shadow(0 0 18px rgba(218, 75, 255, .30));
 }
 
 .profile-v2:has([data-sponsor-tier="patron"]) .profile-v2__avatar-wrap::after {
   content: '';
-  inset: -27px;
+  inset: -14px;
   background-image: url('/brand/identity/frame-patron.webp');
   filter:
     drop-shadow(0 0 16px rgba(255, 196, 91, .26))
@@ -52,7 +52,7 @@
 
 .profile-v2:has([data-identity-kind="owner"]) .profile-v2__avatar-wrap::after {
   content: '';
-  inset: -30px;
+  inset: -16px;
   background-image: url('/brand/identity/frame-owner.webp');
   filter:
     drop-shadow(0 0 18px rgba(255, 202, 94, .34))
@@ -183,13 +183,13 @@
 
 @media (max-width: 760px) {
   .profile-v2__avatar-wrap::after {
-    inset: -16px;
+    inset: -8px;
   }
 
   .profile-v2:has([data-sponsor-tier="premium"]) .profile-v2__avatar-wrap::after,
   .profile-v2:has([data-sponsor-tier="patron"]) .profile-v2__avatar-wrap::after,
   .profile-v2:has([data-identity-kind="owner"]) .profile-v2__avatar-wrap::after {
-    inset: -18px;
+    inset: -10px;
   }
 
   .support-animebox-card__art {
@@ -223,4 +223,125 @@
   justify-content: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+
+/* =========================================================
+   AnimeBox Stars + loading polish v2
+   ========================================================= */
+.animebox-star-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: var(--animebox-star-size, 22px);
+  height: var(--animebox-star-size, 22px);
+  object-fit: contain;
+  vertical-align: -0.2em;
+  filter:
+    drop-shadow(0 0 6px rgba(205, 105, 255, .48))
+    drop-shadow(0 0 14px rgba(105, 112, 255, .22));
+}
+
+.animebox-star-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.support-star-pack__amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.sponsor-v2-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sponsor-v2-price__stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sponsor-v2-total > strong,
+.sponsor-v2-history strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.animebox-anime-loading {
+  display: grid;
+  min-height: min(620px, calc(100dvh - 92px));
+  place-items: center;
+  padding: 42px 20px 96px;
+}
+
+.animebox-anime-loading__card {
+  position: relative;
+  display: grid;
+  width: min(100%, 420px);
+  place-items: center;
+  gap: 14px;
+  padding: 34px 28px 30px;
+  overflow: hidden;
+  border: 1px solid rgba(155, 104, 255, .16);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(132, 75, 255, .16), transparent 43%),
+    linear-gradient(160deg, rgba(15, 20, 39, .92), rgba(8, 12, 25, .94));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .20);
+}
+
+.animebox-anime-loading__card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 28%, rgba(180, 131, 255, .045) 48%, transparent 68%);
+  transform: translateX(-120%);
+  animation: animebox-loading-sheen 2.8s ease-in-out infinite;
+}
+
+.animebox-anime-loading__eyebrow {
+  color: #a88cff;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+.animebox-anime-loading__hint {
+  margin: -4px 0 0;
+  color: rgba(190, 199, 223, .44);
+  font-size: 11px;
+  text-align: center;
+}
+
+@keyframes animebox-loading-sheen {
+  0%, 52% { transform: translateX(-120%); }
+  82%, 100% { transform: translateX(120%); }
+}
+
+@media (max-width: 760px) {
+  .animebox-anime-loading {
+    min-height: min(520px, calc(100dvh - 120px));
+    padding: 28px 16px 110px;
+  }
+
+  .animebox-anime-loading__card {
+    width: min(100%, 340px);
+    padding: 28px 20px 26px;
+    border-radius: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animebox-anime-loading__card::before {
+    animation: none;
+  }
 }

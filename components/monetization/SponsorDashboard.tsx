@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import SponsorBadge from './SponsorBadge';
+import AnimeBoxStar from './AnimeBoxStar';
 import { SPONSOR_META, type SponsorStatus } from '@/lib/sponsor';
 
 type Data = { sponsor: SponsorStatus | null; totalStars:number; telegramLinked:boolean; payments:{id:string;amount:number;created_at:string}[]; page:number;hasMore:boolean };
@@ -20,7 +21,7 @@ export default function SponsorDashboard({history=false}:{history?:boolean}) {
  },[reload]);
  useEffect(()=>{
   const controller=new AbortController();
-  setLoading(true);setError('');
+  queueMicrotask(()=>{if(!controller.signal.aborted){setLoading(true);setError('');}});
   fetch(`/api/monetization/sponsor/me?page=${page}`,{cache:'no-store',signal:controller.signal})
    .then(async r=>{if(r.status===401){setGuest(true);setData(null);return;}const d=await r.json();if(!r.ok)throw new Error(d.error||'Не удалось загрузить поддержку');setGuest(false);setData(d);})
    .catch(e=>{if(!controller.signal.aborted)setError(e.message);})
@@ -34,12 +35,12 @@ export default function SponsorDashboard({history=false}:{history?:boolean}) {
   {error&&<p role="alert">{error} <button onClick={reload}>Повторить</button></p>}
   {guest&&<p><Link href="/profile">Войди в аккаунт</Link>, чтобы видеть свой прогресс и историю поддержки.</p>}
   {data&&<>
-   <div className="sponsor-v2-total"><strong>{data.totalStars.toLocaleString('ru-RU')} <span>⭐</span></strong>{data.sponsor&&<SponsorBadge tier={data.sponsor.tier}/>}</div>
+   <div className="sponsor-v2-total"><strong>{data.totalStars.toLocaleString('ru-RU')} <AnimeBoxStar size={30} /></strong>{data.sponsor&&<SponsorBadge tier={data.sponsor.tier}/>}</div>
    <p>{next?`До уровня ${SPONSOR_META[next===25?'supporter':next===100?'premium':'patron'].label} осталось ${next-data.totalStars} ⭐`:'Высший уровень открыт. Спасибо за поддержку AnimeBox!'} </p>
    <progress className="sponsor-v2-progress" max={next??250} value={Math.min(data.totalStars,next??250)} aria-label="Прогресс спонсорства"/>
    {!data.telegramLinked&&<p className="sponsor-v2-note">Для автоматического получения статуса привяжи Telegram к своему аккаунту в профиле. Stars учитываются по аккаунту плательщика в Telegram.</p>}
    {history&&<>
-    {data.payments.length?<ul className="sponsor-v2-history">{data.payments.map(p=><li key={p.id}><time dateTime={p.created_at}>{new Date(p.created_at).toLocaleString('ru-RU')}</time><strong>+{p.amount} ⭐</strong></li>)}</ul>:<p>Здесь появится твоя первая поддержка через Stars.</p>}
+    {data.payments.length?<ul className="sponsor-v2-history">{data.payments.map(p=><li key={p.id}><time dateTime={p.created_at}>{new Date(p.created_at).toLocaleString('ru-RU')}</time><strong>+{p.amount} <AnimeBoxStar size={20} /></strong></li>)}</ul>:<p>Здесь появится твоя первая поддержка через Stars.</p>}
     <div className="sponsor-v2-pager"><button disabled={page===1||loading} onClick={()=>setPage(p=>p-1)}>← Назад</button><span>Страница {page}</span><button disabled={!data.hasMore||loading} onClick={()=>setPage(p=>p+1)}>Дальше →</button></div>
    </>}
   </>}
