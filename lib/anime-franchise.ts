@@ -3,6 +3,7 @@ import {
   type AniListFranchiseMedia,
   type AniListRelationType,
 } from '@/lib/anilist';
+import { getTitleContinuationHints } from '@/lib/search-intent';
 
 export type FranchiseCategory =
   | 'series' | 'movies' | 'ova' | 'specials' | 'spinOffs' | 'other';
@@ -31,7 +32,11 @@ export type AnimeFranchise = {
 };
 
 
-export type FranchiseSeasonItem = FranchiseItem;
+export type FranchiseSeasonItem = FranchiseItem & {
+  seasonNumber: number;
+  partNumber: number | null;
+  label: string;
+};
 
 const SEASON_RELATIONS = new Set<AniListRelationType>([
   'PREQUEL',
@@ -39,9 +44,112 @@ const SEASON_RELATIONS = new Set<AniListRelationType>([
 ]);
 
 /**
- * Возвращает только основную цепочку сезонов вокруг текущего тайтла.
- * Спин-оффы, фильмы, side story и alternative сюда не попадают.
+ * Возвращает основную цепочку TV/ONA, но не считает каждый split-cour новым
+ * сезоном. Например `Season 3` + `Season 3 Part 2` получают один номер
+ * сезона и разные части. Фильмы/OVA/spin-off сюда по-прежнему не попадают.
  */
+function franchiseTitles(item: FranchiseItem): string[] {
+  return [
+    item.title.russian,
+    item.title.romaji,
+    item.title.english,
+    item.title.native,
+  ].filter((value): value is string => typeof value === 'string' && Boolean(value.trim()));
+}
+
+function stemTokens(value: string): Set<string> {
+  return new Set(
+    value
+      .toLocaleLowerCase('ru-RU')
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .split(/\s+/)
+      .filter((token) => token.length >= 2),
+  );
+}
+
+function stemSimilarity(a: string, b: string): number {
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  if ((a.includes(b) || b.includes(a)) && Math.min(a.length, b.length) >= 8) return 0.92;
+
+  const left = stemTokens(a);
+  const right = stemTokens(b);
+  if (!left.size || !right.size) return 0;
+  let shared = 0;
+  for (const token of left) if (right.has(token)) shared += 1;
+  return shared / Math.max(left.size, right.size);
+}
+
+function titleHints(item: FranchiseItem) {
+  return franchiseTitles(item).map(getTitleContinuationHints);
+}
+
+function explicitSeason(item: FranchiseItem): number | null {
+  return titleHints(item).find((hint) => hint.seasonNumber)?.seasonNumber ?? null;
+}
+
+function explicitPart(item: FranchiseItem): number | null {
+  return titleHints(item).find((hint) => hint.partNumber)?.partNumber ?? null;
+}
+
+function isSplitContinuation(previous: FranchiseItem, current: FranchiseItem): boolean {
+  const currentPart = explicitPart(current);
+  if (!currentPart || currentPart < 2) return false;
+
+  const previousStems = titleHints(previous).map((hint) => hint.continuationStem).filter(Boolean);
+  const currentStems = titleHints(current).map((hint) => hint.continuationStem).filter(Boolean);
+
+  return currentStems.some((currentStem) =>
+    previousStems.some((previousStem) => stemSimilarity(previousStem, currentStem) >= 0.72),
+  );
+}
+
+function normalizeSeasonChain(items: FranchiseItem[]): FranchiseSeasonItem[] {
+  const normalized: FranchiseSeasonItem[] = [];
+  let nextSeasonNumber = 1;
+
+  for (const item of items) {
+    const previous = normalized.at(-1);
+    const declaredSeason = explicitSeason(item);
+    const declaredPart = explicitPart(item);
+
+    let seasonNumber: number;
+    if (declaredSeason) {
+      seasonNumber = declaredSeason;
+    } else if (previous && isSplitContinuation(previous, item)) {
+      seasonNumber = previous.seasonNumber;
+    } else {
+      seasonNumber = Math.max(nextSeasonNumber, (previous?.seasonNumber ?? 0) + 1);
+    }
+
+    nextSeasonNumber = Math.max(nextSeasonNumber, seasonNumber + 1);
+    normalized.push({
+      ...item,
+      seasonNumber,
+      partNumber: declaredPart,
+      label: `Сезон ${seasonNumber}`,
+    });
+  }
+
+  const bySeason = new Map<number, FranchiseSeasonItem[]>();
+  for (const item of normalized) {
+    const group = bySeason.get(item.seasonNumber) ?? [];
+    group.push(item);
+    bySeason.set(item.seasonNumber, group);
+  }
+
+  for (const group of bySeason.values()) {
+    if (group.length <= 1) continue;
+    group.forEach((item, index) => {
+      const partNumber = item.partNumber ?? index + 1;
+      item.partNumber = partNumber;
+      item.label = `Сезон ${item.seasonNumber} · Часть ${partNumber}`;
+    });
+  }
+
+  return normalized;
+}
+
 export function getPrimarySeasonItems(
   franchise: AnimeFranchise,
 ): FranchiseSeasonItem[] {
@@ -79,9 +187,11 @@ export function getPrimarySeasonItems(
     }
   }
 
-  return franchise.items
+  const chain = franchise.items
     .filter((item) => seasonIds.has(item.id) && item.category === 'series')
     .sort(compareReleaseDates);
+
+  return normalizeSeasonChain(chain);
 }
 
 export const FRANCHISE_CATEGORY_LABELS: Record<FranchiseCategory, string> = {

@@ -13,6 +13,11 @@ import {
 } from '@/lib/anime-storage';
 import { cleanShikimoriDescription } from '@/lib/shikimori-text';
 import { getAnimeTitle } from '@/lib/anime-display';
+import {
+  getEpisodeAvailability,
+  peekEpisodeAvailability,
+} from '@/lib/episode-availability-client';
+import type { EpisodeAvailabilityResponse } from '@/types/episode-availability';
 
 import EpisodeCompletion from '@/components/EpisodeCompletion';
 import AnimePlayer, { PlayerSource } from '@/components/AnimePlayer';
@@ -54,9 +59,21 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
   const [sourceMessage, setSourceMessage] = useState('');
   const [sourceIdentity, setSourceIdentity] = useState('');
   const [seasonNavigation, setSeasonNavigation] = useState<EpisodeSeasonsResponse | null>(null);
+  const [episodeAvailability, setEpisodeAvailability] =
+    useState<EpisodeAvailabilityResponse | null>(
+      () => peekEpisodeAvailability(anime.id),
+    );
 
+  const metadataEpisodes = Math.max(anime.episodes || 0, anime.episodesAired || 0) || null;
+  const providerMaxEpisode = providerEpisodes.length
+    ? Math.max(...providerEpisodes)
+    : null;
   const availableEpisodes =
-    providerEpisodes.reduce((max, episode) => Math.max(max, episode), Math.max(anime.episodes || 0, anime.episodesAired || 0)) || null;
+    episodeAvailability?.status === 'available'
+      ? episodeAvailability.maxEpisode
+      : episodeAvailability?.status === 'unavailable'
+        ? null
+        : providerMaxEpisode || metadataEpisodes;
 
   const totalEpisodesKnown = Boolean(
     anime?.episodes && anime.episodes > 0,
@@ -69,6 +86,43 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
 
     return requestedEpisode;
   }, [requestedEpisode]);
+
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    const cached = peekEpisodeAvailability(anime.id);
+
+    if (cached) {
+      queueMicrotask(() => {
+        if (active) setEpisodeAvailability(cached);
+      });
+      return () => {
+        active = false;
+        controller.abort();
+      };
+    }
+
+    getEpisodeAvailability(anime.id, { signal: controller.signal })
+      .then((data) => {
+        if (active) setEpisodeAvailability(data);
+      })
+      .catch((error) => {
+        if (!active || controller.signal.aborted) return;
+        console.warn('Episode availability unavailable:', error);
+        setEpisodeAvailability({
+          animeId: anime.id,
+          status: 'unknown',
+          episodes: [],
+          maxEpisode: null,
+          providers: [],
+        });
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [anime.id]);
 
   useEffect(() => {
     if (!anime) return;
@@ -138,6 +192,15 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
 
         const data = (await response.json()) as KodikApiResponse;
 
+        if (data.maxEpisode && data.maxEpisode > 0) {
+          setProviderEpisodes((current) => [
+            ...new Set([
+              ...current,
+              ...Array.from({ length: data.maxEpisode! }, (_, index) => index + 1),
+            ]),
+          ].sort((a, b) => a - b));
+        }
+
         if (
           response.ok &&
           Array.isArray(data.translations) &&
@@ -189,8 +252,10 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
 
         if (!active || controller.signal.aborted) return '';
 
-        if (data.episodes) {
-          setProviderEpisodes(data.episodes);
+        if (data.episodes?.length) {
+          setProviderEpisodes((current) =>
+            [...new Set([...current, ...data.episodes!])].sort((a, b) => a - b),
+          );
         }
 
         if (data.hls?.length) {
@@ -359,10 +424,15 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
     }
   }, [router, seasonRoute.next, seasonRoute.previous]);
 
-  const currentSeasonEpisodes = Math.max(
-    availableEpisodes ?? 0,
-    seasonRoute.current?.episodes.length ?? 0,
-  );
+  const currentSeasonEpisodes =
+    episodeAvailability?.status === 'available'
+      ? availableEpisodes ?? 0
+      : episodeAvailability?.status === 'unavailable'
+        ? 0
+        : Math.max(
+            availableEpisodes ?? 0,
+            seasonRoute.current?.episodes.length ?? 0,
+          );
 
   const previousSeasonLastEpisode =
     seasonRoute.previous?.episodes.at(-1) ?? null;

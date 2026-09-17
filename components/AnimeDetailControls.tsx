@@ -1,5 +1,10 @@
 'use client';
 import { communityRequest } from '@/lib/community-client';
+import {
+  getEpisodeAvailability,
+  peekEpisodeAvailability,
+} from '@/lib/episode-availability-client';
+import type { EpisodeAvailabilityResponse } from '@/types/episode-availability';
 
 import { animeHref } from '@/lib/anime-url';
 
@@ -73,6 +78,68 @@ function getAvailableEpisodes(
   return null;
 }
 
+function useEpisodeAvailability(anime: Anime) {
+  const metadataCount = getAvailableEpisodes(anime);
+  const [availability, setAvailability] =
+    useState<EpisodeAvailabilityResponse | null>(
+      () => peekEpisodeAvailability(anime.id),
+    );
+
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    const cached = peekEpisodeAvailability(anime.id);
+
+    if (cached) {
+      queueMicrotask(() => {
+        if (active) setAvailability(cached);
+      });
+      return () => {
+        active = false;
+        controller.abort();
+      };
+    }
+
+    queueMicrotask(() => {
+      if (active) setAvailability(null);
+    });
+    getEpisodeAvailability(anime.id, { signal: controller.signal })
+      .then((data) => {
+        if (active) setAvailability(data);
+      })
+      .catch((error) => {
+        if (!active || controller.signal.aborted) return;
+        console.warn('Player availability check failed:', error);
+        setAvailability({
+          animeId: anime.id,
+          status: 'unknown',
+          episodes: [],
+          maxEpisode: null,
+          providers: [],
+        });
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [anime.id]);
+
+  const count =
+    availability?.status === 'available'
+      ? availability.maxEpisode
+      : availability?.status === 'unavailable'
+        ? null
+        : metadataCount;
+
+  return {
+    availability,
+    count,
+    pending: availability === null,
+    unavailable: availability?.status === 'unavailable',
+  };
+}
+
 export default function AnimeDetailControls({
   anime,
   showEpisodes = true,
@@ -87,8 +154,11 @@ export default function AnimeDetailControls({
     [anime],
   );
 
-  const availableEpisodes =
-    getAvailableEpisodes(anime);
+  const {
+    count: availableEpisodes,
+    pending: episodeAvailabilityPending,
+    unavailable: episodesUnavailable,
+  } = useEpisodeAvailability(anime);
 
   const [favorite, setFavorite] =
     useState(false);
@@ -257,15 +327,25 @@ export default function AnimeDetailControls({
           type="button"
           className="btn btn--primary"
           onClick={handleWatch}
+          disabled={episodeAvailabilityPending || episodesUnavailable}
+          title={
+            episodesUnavailable
+              ? 'Сейчас нет серий, которые можно открыть в плеере'
+              : undefined
+          }
         >
           ▶{' '}
-          {watchState
-            ? watchState.completed && nextEpisode > watchState.episode
-              ? `Следующая · серия ${nextEpisode}`
-              : `Продолжить · серия ${nextEpisode}`
-            : progress > 0
-              ? `Продолжить · серия ${nextEpisode}`
-              : 'Смотреть с 1 серии'}
+          {episodeAvailabilityPending
+            ? 'Проверяем плеер…'
+            : episodesUnavailable
+              ? 'Серии пока недоступны'
+              : watchState
+                ? watchState.completed && nextEpisode > watchState.episode
+                  ? `Следующая · серия ${nextEpisode}`
+                  : `Продолжить · серия ${nextEpisode}`
+                : progress > 0
+                  ? `Продолжить · серия ${nextEpisode}`
+                  : 'Смотреть с 1 серии'}
         </button>
 
         <button
@@ -320,15 +400,18 @@ export default function AnimeDetailControls({
           )}
       </div>
 
-      {showEpisodes && availableEpisodes && (
+      {showEpisodes &&
+        (availableEpisodes || episodeAvailabilityPending || episodesUnavailable) && (
         <section className="detail__section mt-10">
           <div className="detail__section-header">
             <h2>Эпизоды</h2>
 
             <span>
-              {anime.episodes
-                ? `${availableEpisodes} эпизодов`
-                : `Вышло ${availableEpisodes}`}
+              {episodeAvailabilityPending
+                ? 'Проверяем плееры…'
+                : episodesUnavailable
+                  ? 'Нет доступных серий'
+                  : `${availableEpisodes} эпизодов в плеере`}
             </span>
           </div>
 
@@ -357,8 +440,11 @@ export function AnimeDetailEpisodes({
 }: {
   anime: Anime;
 }) {
-  const availableEpisodes =
-    getAvailableEpisodes(anime);
+  const {
+    count: availableEpisodes,
+    pending: episodeAvailabilityPending,
+    unavailable: episodesUnavailable,
+  } = useEpisodeAvailability(anime);
 
   const [progress, setProgress] =
     useState(0);
@@ -393,7 +479,7 @@ export function AnimeDetailEpisodes({
     };
   }, [anime.id]);
 
-  if (!availableEpisodes) {
+  if (!availableEpisodes && !episodeAvailabilityPending && !episodesUnavailable) {
     return null;
   }
 
@@ -402,9 +488,11 @@ export function AnimeDetailEpisodes({
       <div className="detail__section-header">
         <h2>Эпизоды</h2>
         <span>
-          {anime.episodes
-            ? `${availableEpisodes} эпизодов`
-            : `Вышло ${availableEpisodes}`}
+          {episodeAvailabilityPending
+            ? 'Проверяем плееры…'
+            : episodesUnavailable
+              ? 'Нет доступных серий'
+              : `${availableEpisodes} эпизодов в плеере`}
         </span>
       </div>
 

@@ -103,6 +103,8 @@ export type GetAnimesOptions = {
   genre?: number | string;
 };
 
+// AniList response is normalized by mapMediaToAnime below.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AniListMedia = any;
 
 type AniListPageResponse = {
@@ -155,6 +157,11 @@ const LIST_QUERY = `
         status
         format
         genres
+        startDate {
+          year
+          month
+          day
+        }
         coverImage {
           extraLarge
           large

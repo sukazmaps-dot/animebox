@@ -3,6 +3,8 @@ export type EpisodeSeasonTab = {
   slug: string;
   label: string;
   title: string;
+  seasonNumber: number;
+  partNumber: number | null;
   episodes: number[];
   year: number | null;
   isCurrent: boolean;

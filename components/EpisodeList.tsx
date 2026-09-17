@@ -5,6 +5,11 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { communityRequest } from '@/lib/community-client';
 import {
+  getEpisodeAvailability,
+  peekEpisodeAvailability,
+} from '@/lib/episode-availability-client';
+import type { EpisodeAvailabilityResponse } from '@/types/episode-availability';
+import {
   findEpisodeGroupIndex,
   getEpisodeGroups,
 } from '@/lib/episode-groups';
@@ -64,6 +69,12 @@ export default function EpisodeList({
   });
   const [activeTab, setActiveTab] = useState(seasonKey(trackingAnimeId));
   const [completedEpisodes, setCompletedEpisodes] = useState<number[]>([]);
+  const [availability, setAvailability] = useState<EpisodeAvailabilityResponse | null>(
+    () => peekEpisodeAvailability(trackingAnimeId),
+  );
+  const [availabilityLoading, setAvailabilityLoading] = useState(
+    () => !peekEpisodeAvailability(trackingAnimeId),
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -109,13 +120,72 @@ export default function EpisodeList({
   const selectedAnimeSlug = activeSeason?.slug ?? String(animeId);
   const selectedIsCurrent = selectedAnimeId === trackingAnimeId;
 
-  const episodeNumbers = useMemo(() => {
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+    const cached = peekEpisodeAvailability(selectedAnimeId);
+
+    if (cached) {
+      queueMicrotask(() => {
+        if (!active) return;
+        setAvailability(cached);
+        setAvailabilityLoading(false);
+      });
+      return () => {
+        active = false;
+        controller.abort();
+      };
+    }
+
+    queueMicrotask(() => {
+      if (!active) return;
+      setAvailability(null);
+      setAvailabilityLoading(true);
+    });
+
+    getEpisodeAvailability(selectedAnimeId, { signal: controller.signal })
+      .then((data) => {
+        if (!active) return;
+        setAvailability(data);
+      })
+      .catch((error) => {
+        if (!active || controller.signal.aborted) return;
+        console.warn('Episode availability unavailable:', error);
+        setAvailability({
+          animeId: selectedAnimeId,
+          status: 'unknown',
+          episodes: [],
+          maxEpisode: null,
+          providers: [],
+        });
+      })
+      .finally(() => {
+        if (active) setAvailabilityLoading(false);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [selectedAnimeId]);
+
+  const metadataEpisodeNumbers = useMemo(() => {
     if (selectedIsCurrent) {
       return Array.from({ length: currentCount }, (_, index) => index + 1);
     }
 
     return activeSeason?.episodes ?? [];
   }, [activeSeason?.episodes, currentCount, selectedIsCurrent]);
+
+  const episodeNumbers = useMemo(() => {
+    if (!availability) return [];
+    if (availability.status === 'available') return availability.episodes;
+    if (availability.status === 'unavailable') return [];
+
+    // Unknown is a temporary provider failure. Keep metadata as a fallback so
+    // a 429/timeout never makes valid episodes disappear.
+    return metadataEpisodeNumbers;
+  }, [availability, metadataEpisodeNumbers]);
 
   const selectedCount = episodeNumbers.length;
 
@@ -251,9 +321,23 @@ export default function EpisodeList({
                       active ? 'text-white/60' : 'text-white/25'
                     }`}
                   >
-                    {season.episodes.length > 0
-                      ? `${season.episodes.length} эп.`
-                      : 'эпизоды уточняются'}
+                    {(() => {
+                      const cached =
+                        season.id === selectedAnimeId
+                          ? availability
+                          : peekEpisodeAvailability(season.id);
+
+                      if (season.id === selectedAnimeId && availabilityLoading) {
+                        return 'проверяем серии';
+                      }
+                      if (cached?.status === 'available') {
+                        return `${cached.episodes.length} эп. в плеере`;
+                      }
+                      if (cached?.status === 'unavailable') {
+                        return 'нет серий в плеере';
+                      }
+                      return 'проверить серии';
+                    })()}
                     {season.year ? ` · ${season.year}` : ''}
                   </span>
                 </button>
@@ -287,6 +371,24 @@ export default function EpisodeList({
 
       {extrasActive ? (
         <ExtrasGrid items={seasonData.extras} />
+      ) : availabilityLoading ? (
+        <div className="empty-state" aria-busy="true">
+          <span>Проверяем серии, которые реально доступны в плеере…</span>
+        </div>
+      ) : availability?.status === 'unavailable' ? (
+        <div className="empty-state">
+          <strong>Серий в плеере пока нет</strong>
+          <span>AnimeBox не показывает эпизоды, которые сейчас нельзя запустить.</span>
+          {activeSeason && !selectedIsCurrent && (
+            <Link
+              href={`/anime/${activeSeason.slug}`}
+              prefetch={false}
+              className="mt-3 inline-flex rounded-lg border border-violet-400/30 bg-violet-500/10 px-3 py-2 text-xs font-semibold text-violet-200 transition hover:bg-violet-500/20"
+            >
+              Открыть сезон
+            </Link>
+          )}
+        </div>
       ) : selectedCount === 0 || groups.length === 0 || !activeGroup ? (
         <div className="empty-state">
           <span>Информация об эпизодах этого сезона пока недоступна.</span>

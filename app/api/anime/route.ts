@@ -10,6 +10,10 @@ import {
   isCatalogMood,
   rankAnimeByCatalogMood,
 } from '@/lib/catalog-moods';
+import {
+  parseAnimeSearchIntent,
+  rankAnimeForSearchIntent,
+} from '@/lib/search-intent';
 
 import type {
   GetAnimesOptions,
@@ -43,7 +47,9 @@ export async function GET(
     : 1;
 
   const orderRaw = params.get('order');
-  const search = params.get('search') ?? undefined;
+  const rawSearch = params.get('search')?.trim() || undefined;
+  const searchIntent = rawSearch ? parseAnimeSearchIntent(rawSearch) : null;
+  const search = searchIntent?.titleQuery || rawSearch;
 
   const status = params.get('status') === 'ongoing'
     ? 'ongoing'
@@ -59,9 +65,15 @@ export async function GET(
    * then rerank those candidates by atmosphere. This lets combinations like
    * "Drama + Стекло" work without mixing mood IDs into genre IDs.
    */
-  const upstreamLimit = mood === 'any'
-    ? limit
-    : Math.min(50, Math.max(limit * 3, 30));
+  const hasStructuredSearch = Boolean(
+    searchIntent?.seasonNumber || searchIntent?.partNumber || searchIntent?.episodeNumber,
+  );
+
+  const upstreamLimit = hasStructuredSearch
+    ? Math.min(50, Math.max(limit * 3, 40))
+    : mood === 'any'
+      ? limit
+      : Math.min(50, Math.max(limit * 3, 30));
 
   const options: GetAnimesOptions = {
     limit: upstreamLimit,
@@ -77,14 +89,17 @@ export async function GET(
 
   try {
     const candidates = await getAnimesWithShikimori(options);
-    const anime = rankAnimeByCatalogMood(candidates, mood).slice(0, limit);
+    const intentRanked = searchIntent
+      ? rankAnimeForSearchIntent(candidates, searchIntent)
+      : candidates;
+    const anime = rankAnimeByCatalogMood(intentRanked, mood).slice(0, limit);
 
     return NextResponse.json(
       { anime },
       {
         headers: {
           'Cache-Control':
-            search?.trim()
+            rawSearch?.trim()
               ? 'private, max-age=60, stale-while-revalidate=120'
               : 'public, max-age=300, s-maxage=900, stale-while-revalidate=3600',
         },

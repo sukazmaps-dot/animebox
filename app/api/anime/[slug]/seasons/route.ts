@@ -65,10 +65,12 @@ export async function GET(
     const registeredItems = franchise.items.map(registerAnime);
     const primarySeasons = getPrimarySeasonItems(franchise).map(registerAnime);
 
-    const seasons: EpisodeSeasonTab[] = primarySeasons.map((item, index) => ({
+    const seasons: EpisodeSeasonTab[] = primarySeasons.map((item) => ({
       id: item.id,
       slug: item.slug,
-      label: `Сезон ${index + 1}`,
+      label: item.label,
+      seasonNumber: item.seasonNumber,
+      partNumber: item.partNumber,
       title: mediaTitle(item),
       episodes:
         typeof item.episodes === 'number' && item.episodes > 0

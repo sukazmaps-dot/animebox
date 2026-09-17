@@ -73,7 +73,7 @@ export default async function AnimeFranchise({
               <div>
                 <h3 className="text-sm font-semibold text-white/85">Сезоны / части</h3>
                 <p className="mt-1 text-xs text-white/40">
-                  Цепочка продолжений. Переход по точному названию
+                  Части одного сезона не получают лишний номер
                 </p>
               </div>
               <span className="text-xs text-white/35">{seasons.length}</span>
@@ -91,8 +91,8 @@ export default async function AnimeFranchise({
 
                 const content = (
                   <>
-                    <span className="block text-sm font-bold">{title}</span>
-                    <span className="mt-1 block max-w-44 truncate text-[11px] text-white/45">
+                    <span className="block text-sm font-bold">{item.label}</span>
+                    <span className="mt-1 block max-w-44 truncate text-[11px] text-white/45" title={title}>
                       {title}
                     </span>
                     {item.startDate?.year && (

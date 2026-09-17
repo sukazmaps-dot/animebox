@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import AnimeCard from '@/components/AnimeCard';
@@ -10,6 +10,7 @@ import { getAnimes, isAbortError } from '@/lib/anime-client';
 import type { CatalogMood } from '@/lib/catalog-moods';
 import type { Anime } from '@/types/anime';
 import AdSlot from '@/components/monetization/AdSlot';
+import { parseAnimeSearchIntent } from '@/lib/search-intent';
 
 import styles from './SearchCatalogClient.module.css';
 
@@ -35,6 +36,10 @@ export default function SearchCatalogClient({
 }) {
   const searchParams = useSearchParams();
   const query = searchParams.get('search')?.trim() ?? '';
+  const searchIntent = useMemo(
+    () => (query ? parseAnimeSearchIntent(query) : null),
+    [query],
+  );
 
   const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
   const [selectedMood, setSelectedMood] = useState<CatalogMood>('any');
@@ -104,6 +109,15 @@ export default function SearchCatalogClient({
       <div className="page-heading">
         <h1>Каталог аниме</h1>
         <p>Ищи тайтлы по названию, жанру и атмосфере — и добавляй их в свой трекер</p>
+        {searchIntent &&
+          searchIntent.titleQuery !== searchIntent.normalized && (
+            <p className="mt-2 text-xs text-violet-200/70">
+              Понял запрос: <strong className="text-violet-100">{searchIntent.titleQuery}</strong>
+              {searchIntent.seasonNumber ? ` · сезон ${searchIntent.seasonNumber}` : ''}
+              {searchIntent.partNumber ? ` · часть ${searchIntent.partNumber}` : ''}
+              {searchIntent.episodeNumber ? ` · серия ${searchIntent.episodeNumber}` : ''}
+            </p>
+          )}
       </div>
 
       <div className={styles.filterBar}>
