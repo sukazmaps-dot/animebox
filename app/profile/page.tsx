@@ -207,7 +207,7 @@ export default function ProfilePage() {
     const loadTheme = () => {
       void fetch('/api/premium/studio', { cache: 'no-store' })
         .then(async (response) => {
-          const payload = (await response.json()) as { theme?: string };
+          const payload = (await response.json()) as { theme?: string; allowed?: boolean };
           if (!response.ok || !active) return;
 
           if (payload.theme && isPremiumProfileTheme(payload.theme)) {
