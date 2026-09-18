@@ -1,0 +1,379 @@
+/* =========================================================
+   AnimeBox — Typography Polish
+   Loaded LAST on purpose.
+   Keeps the compact visual identity while removing 6–9px UI
+   text that is difficult to read on desktop and phones.
+   ========================================================= */
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---------- Navigation / shell ---------- */
+.brand small {
+  font-size: 11px !important;
+  line-height: 1.35;
+}
+
+.sidebar__item {
+  font-size: 12px;
+}
+
+.section-link,
+.home-grid .section-link {
+  font-size: 11px;
+}
+
+/* ---------- Home / catalogue ---------- */
+.anime-card__body h3,
+.home-grid .anime-card__body h3 {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.anime-card__meta,
+.home-grid .anime-card__meta {
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+.anime-card__tags span,
+.home-grid .anime-card__tags span {
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.anime-card__rating,
+.home-grid .anime-card__rating {
+  font-size: 10.5px;
+}
+
+.continue-card p {
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.schedule__card strong,
+.home-grid .schedule__card strong {
+  font-size: 12px;
+}
+
+.schedule__card span,
+.schedule__time,
+.home-grid .schedule__card span,
+.home-grid .schedule__time {
+  font-size: 10.5px !important;
+  line-height: 1.35;
+}
+
+.rank-item strong {
+  font-size: 11.5px;
+}
+
+.rank-item span,
+.rank-item__score {
+  font-size: 10.5px;
+}
+
+.telegram-panel__eyebrow,
+.telegram-panel--brand .telegram-panel__eyebrow {
+  font-size: 9.5px !important;
+}
+
+.telegram-panel span,
+.telegram-panel--brand .telegram-panel__content > span:not(.telegram-panel__eyebrow) {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.telegram-panel a,
+.telegram-panel--brand a {
+  font-size: 11px;
+}
+
+/* ---------- Smart home ---------- */
+.continue-smart-card__eyebrow,
+.smart-section-eyebrow {
+  font-size: 9.5px;
+}
+
+.continue-smart-card__body strong {
+  font-size: 12px;
+}
+
+.continue-smart-card__body small {
+  font-size: 10px;
+}
+
+.mood-picker__intro p {
+  font-size: 11px;
+}
+
+.mood-chip__copy strong {
+  font-size: 11px;
+}
+
+.mood-chip__copy small {
+  font-size: 9.5px;
+  line-height: 1.35;
+}
+
+.smart-feed-heading__badge {
+  font-size: 9.5px;
+}
+
+.smart-feed-heading p {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.smart-card__title {
+  font-size: 12px;
+}
+
+.smart-card__rating,
+.smart-card__open,
+.smart-card__meta,
+.smart-card__reason {
+  font-size: 10px;
+}
+
+.smart-card__plan {
+  font-size: 10.5px;
+}
+
+.smart-feed__editorial p,
+.smart-feed__loading,
+.smart-feed__empty span {
+  font-size: 10.5px;
+}
+
+.smart-feed__editorial-pills b {
+  font-size: 9.5px;
+}
+
+/* ---------- Tracker / profile ---------- */
+.tracker-eyebrow,
+.profile-v2__eyebrow,
+.community-library-control__eyebrow {
+  font-size: 9.5px !important;
+}
+
+.tracker-hero p,
+.community-library-control__footer p,
+.community-library-control__message {
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.tracker-filter,
+.tracker-filter__count,
+.community-library-status {
+  font-size: 10.5px;
+}
+
+.profile-v2__email,
+.profile-v2__meta {
+  font-size: 11.5px;
+}
+
+.profile-v2__bio,
+.profile-v2__section-head p,
+.profile-v2__bottom-card p {
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.profile-v2__stat-label,
+.profile-v2__status-chip,
+.profile-v2__library-status {
+  font-size: 10.5px;
+}
+
+.profile-v2__achievement-title strong {
+  font-size: 11.5px;
+}
+
+.profile-v2__achievement-title small,
+.profile-v2__achievement-copy p,
+.profile-v2__achievement-note {
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.animebox-og-badge {
+  font-size: 10px !important;
+}
+
+/* ---------- Detail / comments ---------- */
+.detail__genre,
+.detail__side-card span,
+.fact span {
+  font-size: 10.5px;
+}
+
+.detail__side-card strong,
+.fact strong {
+  font-size: 12px;
+}
+
+.episode-comments__header span,
+.episode-comments__count,
+.episode-comment__author time {
+  font-size: 10.5px;
+}
+
+.episode-comments__header p,
+.episode-comments__empty,
+.episode-comments__error {
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.episode-comment__author strong {
+  font-size: 12px;
+}
+
+/* ---------- Premium ---------- */
+.premium-eyebrow,
+.premium-section-head > span,
+.premium-admin__head > div > span {
+  font-size: 10.5px;
+}
+
+.premium-benefits p,
+.premium-admin__head p,
+.premium-plan__cards small {
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   Phones
+   ========================================================= */
+@media (max-width: 760px) {
+  body {
+    font-size: 14px;
+  }
+
+  .mobile-nav__item span {
+    font-size: 11.5px !important;
+  }
+
+  .section-link,
+  .home-grid .section-link {
+    font-size: 12px !important;
+  }
+
+  .anime-card__body h3,
+  .home-grid .anime-card__body h3,
+  .search-page .anime-card__body h3,
+  .tracker-page .anime-card__body h3 {
+    font-size: 13px !important;
+  }
+
+  .anime-card__meta,
+  .home-grid .anime-card__meta,
+  .search-page .anime-card__meta,
+  .tracker-page .anime-card__meta,
+  .anime-card__rating,
+  .anime-card__tags span {
+    font-size: 11px !important;
+  }
+
+  .home-hero-carousel__kicker,
+  .tracker-eyebrow,
+  .profile-v2__eyebrow,
+  .community-library-control__eyebrow {
+    font-size: 10.5px !important;
+  }
+
+  .mood-picker__intro p,
+  .smart-feed-heading p,
+  .continue-smart-card__body small {
+    font-size: 11.5px !important;
+  }
+
+  .mood-chip__copy strong,
+  .smart-card__title {
+    font-size: 12px !important;
+  }
+
+  .mood-chip__copy small,
+  .smart-card__meta,
+  .smart-card__reason,
+  .smart-card__rating,
+  .smart-card__open,
+  .smart-feed__editorial-pills b {
+    font-size: 10.5px !important;
+  }
+
+  .smart-card__plan {
+    font-size: 11px !important;
+  }
+
+  .smart-feed__editorial p,
+  .smart-feed__loading,
+  .smart-feed__empty span {
+    font-size: 11.5px !important;
+  }
+
+  .profile-v2__email,
+  .profile-v2__meta,
+  .profile-v2__stat-label,
+  .profile-v2__status-chip,
+  .profile-v2__library-status {
+    font-size: 11.5px !important;
+  }
+
+  .profile-v2__bio,
+  .profile-v2__section-head p,
+  .profile-v2__bottom-card p {
+    font-size: 13px !important;
+  }
+
+  .profile-v2__achievement-title strong {
+    font-size: 12.5px !important;
+  }
+
+  .profile-v2__achievement-title small,
+  .profile-v2__achievement-copy p,
+  .profile-v2__achievement-note {
+    font-size: 11px !important;
+  }
+
+  .detail__genre,
+  .detail__side-card span,
+  .fact span,
+  .episode-comment__author time {
+    font-size: 11.5px !important;
+  }
+
+  .detail__side-card strong,
+  .fact strong,
+  .episode-comment__author strong {
+    font-size: 12.5px !important;
+  }
+
+  .premium-benefits p,
+  .premium-admin__head p,
+  .premium-plan__cards small {
+    font-size: 12px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  /* Do not make typography smaller on narrow phones. */
+  body {
+    font-size: 14px;
+  }
+
+  .anime-card__body h3,
+  .home-grid .anime-card__body h3,
+  .search-page .anime-card__body h3,
+  .tracker-page .anime-card__body h3 {
+    font-size: 12.5px !important;
+  }
+}
