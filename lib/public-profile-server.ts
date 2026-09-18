@@ -7,6 +7,7 @@ import type { SponsorStatus } from '@/lib/sponsor';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
 import type { PublicIdentityRole } from '@/lib/identity';
 import { achievementIcon } from '@/lib/achievement-icons';
+import { getUserEntitlements } from '@/lib/entitlements-server';
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -28,6 +29,7 @@ export type PublicProfileData = {
   createdAt: string;
   ogNumber: number | null;
   sponsor: SponsorStatus | null;
+  premium: boolean;
   role: PublicIdentityRole;
   stats: {
     episodes: number;
@@ -123,6 +125,7 @@ export async function getPublicProfile(
     ogResult,
     watchSummary,
     sponsor,
+    entitlements,
   ] = await Promise.all([
     admin.from('anime_library').select('status').eq('user_id', userId),
     admin
@@ -141,6 +144,7 @@ export async function getPublicProfile(
       .maybeSingle(),
     getWatchSummary(userId),
     getSponsorStatus(userId),
+    getUserEntitlements(userId).catch(() => null),
   ]);
 
   if (libraryResult.error) {
@@ -205,6 +209,7 @@ export async function getPublicProfile(
         ? ogResult.data.og_number
         : null,
     sponsor,
+    premium: Boolean(entitlements?.premiumBadge),
     role: publicIdentityRoleFor(userId),
     stats: {
       episodes,
