@@ -77,6 +77,85 @@ export default function PremiumClient() {
     };
   }, [user?.id]);
 
+  async function buyPremium(plan: PremiumPlanId) {
+    if (!user?.id || buying) return;
+
+    setBuying(plan);
+    setError('');
+    setPaymentStatus('');
+
+    try {
+      const tg = window.Telegram?.WebApp;
+      const initData = tg?.initData?.trim() || '';
+
+      const response = await fetch('/api/premium/stars/invoice', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({ plan, initData }),
+        cache: 'no-store',
+      });
+
+      const payload = (await response.json()) as InvoiceResponse;
+
+      if (!response.ok || !payload.ok || !payload.invoiceUrl) {
+        throw new Error(
+          payload.error === 'plan_not_available'
+            ? 'Этот Premium-тариф пока не включён.'
+            : 'Не удалось открыть оплату Premium.',
+        );
+      }
+
+      const refreshAfterPayment = async () => {
+        setPaymentStatus('Оплата подтверждена. Активируем Premium…');
+        clearPremiumMeCache();
+
+        for (let attempt = 0; attempt < 8; attempt += 1) {
+          await new Promise((resolve) => window.setTimeout(resolve, 1250));
+          try {
+            const next = await getPremiumMe({ force: true });
+            setData(next);
+            if (next.premium) {
+              setPaymentStatus('Premium активирован ✓');
+              window.dispatchEvent(new Event('animebox:entitlements-changed'));
+              return;
+            }
+          } catch {
+            // Webhook may still be processing. Retry a few times.
+          }
+        }
+
+        setPaymentStatus(
+          'Платёж подтверждён. Если Premium ещё не появился, обнови страницу через несколько секунд.',
+        );
+      };
+
+      if (tg?.initData?.trim() && tg.openInvoice) {
+        tg.openInvoice(payload.invoiceUrl, (status) => {
+          if (status === 'paid') {
+            void refreshAfterPayment();
+          } else if (status === 'cancelled') {
+            setPaymentStatus('Оплата отменена.');
+          } else if (status === 'failed') {
+            setPaymentStatus('Telegram не смог завершить оплату.');
+          }
+        });
+      } else {
+        window.location.assign(payload.invoiceUrl);
+      }
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Не удалось открыть оплату Premium.',
+      );
+    } finally {
+      setBuying('');
+    }
+  }
+
   const subscription = data?.subscription;
   const endDate = subscription
     ? new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(subscription.endsAt))
