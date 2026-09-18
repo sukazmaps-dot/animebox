@@ -43,6 +43,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editOpen, setEditOpen] = useState(false);
+  const [premiumTheme, setPremiumTheme] = useState<PremiumProfileTheme>('default');
 
   useEffect(() => {
     let active = true;
