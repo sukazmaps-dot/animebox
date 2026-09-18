@@ -11,6 +11,7 @@ type Subscription = {
   plan: 'monthly' | 'yearly' | 'manual';
   status: 'active' | 'grace_period' | 'expired' | 'cancelled' | 'refunded';
   source: string;
+  transaction_id: string | null;
   starts_at: string;
   ends_at: string;
   cancelled_at: string | null;
