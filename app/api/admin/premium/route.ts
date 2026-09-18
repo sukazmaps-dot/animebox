@@ -3,6 +3,9 @@ import { requireAdmin, writeAdminAudit } from '@/lib/admin-server';
 import { grantPremium, revokePremium } from '@/lib/premium-server';
 import { getPremiumCatalog, updatePremiumPlanConfig } from '@/lib/premium-catalog-server';
 import { isPremiumPlanId } from '@/lib/premium';
+import { refundStarPayment } from '@/lib/telegram-stars';
+import { markTelegramStarsPaymentRefunded } from '@/lib/payments/providers/telegram-stars';
+import { deactivatePremiumForTransaction } from '@/lib/premium-refund-server';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
