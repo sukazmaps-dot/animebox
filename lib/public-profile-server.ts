@@ -8,6 +8,7 @@ import { publicIdentityRoleFor } from '@/lib/identity-server';
 import type { PublicIdentityRole } from '@/lib/identity';
 import { achievementIcon } from '@/lib/achievement-icons';
 import { getUserEntitlements } from '@/lib/entitlements-server';
+import type { PremiumProfileTheme } from '@/lib/premium-studio';
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -30,6 +31,7 @@ export type PublicProfileData = {
   ogNumber: number | null;
   sponsor: SponsorStatus | null;
   premium: boolean;
+  premiumTheme: PremiumProfileTheme;
   role: PublicIdentityRole;
   stats: {
     episodes: number;
@@ -126,6 +128,7 @@ export async function getPublicProfile(
     watchSummary,
     sponsor,
     entitlements,
+    premiumSettings,
   ] = await Promise.all([
     admin.from('anime_library').select('status').eq('user_id', userId),
     admin
@@ -145,6 +148,12 @@ export async function getPublicProfile(
     getWatchSummary(userId),
     getSponsorStatus(userId),
     getUserEntitlements(userId).catch(() => null),
+    admin
+      .from('premium_profile_settings')
+      .select('theme')
+      .eq('user_id', userId)
+      .maybeSingle()
+      .then((result) => (result.error ? null : result.data)),
   ]);
 
   if (libraryResult.error) {
@@ -210,6 +219,10 @@ export async function getPublicProfile(
         : null,
     sponsor,
     premium: Boolean(entitlements?.premiumBadge),
+    premiumTheme:
+      entitlements?.premiumThemes && premiumSettings?.theme
+        ? (premiumSettings.theme as PremiumProfileTheme)
+        : 'default',
     role: publicIdentityRoleFor(userId),
     stats: {
       episodes,
