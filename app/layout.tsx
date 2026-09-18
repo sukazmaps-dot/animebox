@@ -246,6 +246,47 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
 
+        <script
+          id="animebox-css-recovery"
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function () {
+                var key = 'animebox:css-recovery:v1';
+
+                function cssIsReady() {
+                  try {
+                    return getComputedStyle(document.documentElement)
+                      .getPropertyValue('--animebox-css-ready')
+                      .trim() === '1';
+                  } catch (_) {
+                    return true;
+                  }
+                }
+
+                function recover() {
+                  if (cssIsReady()) {
+                    try { sessionStorage.removeItem(key); } catch (_) {}
+                    return;
+                  }
+
+                  try {
+                    if (sessionStorage.getItem(key) === '1') return;
+                    sessionStorage.setItem(key, '1');
+                  } catch (_) {}
+
+                  var url = new URL(window.location.href);
+                  url.searchParams.set('__abx_css_recover', String(Date.now()));
+                  window.location.replace(url.toString());
+                }
+
+                window.addEventListener('load', function () {
+                  window.setTimeout(recover, 120);
+                }, { once: true });
+              })();
+            `,
+          }}
+        />
+
         {/* Yandex.Metrika counter 112789274 */}
         <Script
           id="yandex-metrika"
