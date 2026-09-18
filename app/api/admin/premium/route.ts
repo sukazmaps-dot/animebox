@@ -39,7 +39,7 @@ export async function GET(request: Request) {
 
     const { data: subscriptions, error } = await admin
       .from('premium_subscriptions')
-      .select('id,user_id,plan,status,source,transaction_id,starts_at,ends_at,cancelled_at,created_at')
+      .select('id,user_id,plan,status,source,transaction_id,starts_at,ends_at,cancelled_at,auto_renew,auto_renew_cancelled_at,telegram_subscription_charge_id,created_at')
       .order('created_at', { ascending: false })
       .limit(100);
     if (error) throw error;
@@ -85,9 +85,16 @@ export async function POST(request: Request) {
 
       if (
         amount !== null &&
-        (!Number.isInteger(amount) || amount < 1 || amount > 100000)
+        (!Number.isInteger(amount) ||
+          amount < 1 ||
+          amount > (planId === 'monthly' ? 10000 : 100000))
       ) {
-        throw new ApiError(400, 'Цена в Stars должна быть целым числом от 1 до 100000.');
+        throw new ApiError(
+          400,
+          planId === 'monthly'
+            ? 'Цена месячной подписки должна быть от 1 до 10000 Stars.'
+            : 'Цена годового Premium должна быть от 1 до 100000 Stars.',
+        );
       }
 
       if (active && !amount) {
