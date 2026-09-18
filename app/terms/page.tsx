@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Условия поддержки AnimeBox',
-  description: 'Условия добровольной поддержки проекта AnimeBox.',
+  description: 'Условия добровольной поддержки и AnimeBox Premium.',
 };
 
 export default function TermsPage() {
@@ -13,7 +13,7 @@ export default function TermsPage() {
         <span className="support-page__eyebrow">ANIMEBOX · TERMS</span>
         <h1>Условия поддержки</h1>
         <p>
-          Эти условия относятся к добровольной финансовой поддержке AnimeBox.
+          Здесь описана добровольная поддержка проекта и отдельный продукт AnimeBox Premium.
         </p>
       </section>
 
@@ -23,9 +23,18 @@ export default function TermsPage() {
           Платёж является добровольной поддержкой разработки AnimeBox и сам по себе не предоставляет подписку, эксклюзивный контент или гарантированный набор функций.
         </p>
 
+        <h2>AnimeBox Premium</h2>
+        <p>
+          AnimeBox Premium является отдельным платным доступом на выбранный срок.
+          Он не считается добровольным донатом: после подтверждённой оплаты
+          аккаунту выдаются указанные на странице Premium возможности до даты
+          окончания доступа. Повторная покупка добавляет новый срок к уже
+          действующему Premium.
+        </p>
+
         <h2>Telegram Stars</h2>
         <p>
-          В Telegram Mini App поддержка принимается через Telegram Stars. Финальное подтверждение платежа выполняется интерфейсом Telegram.
+          Через Telegram Stars могут проходить как добровольная поддержка, так и покупка Premium. Тип платежа указывается до оплаты, а финальное подтверждение выполняется интерфейсом Telegram.
         </p>
 
         <h2>Проблемы с платежом</h2>
