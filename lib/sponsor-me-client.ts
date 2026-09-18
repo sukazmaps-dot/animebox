@@ -22,6 +22,16 @@ export type SponsorMeData = {
     refunded_at: string | null;
     refund_reason: string | null;
   }[];
+  donations: {
+    id: string;
+    amount: number;
+    currency: string;
+    status: 'paid' | 'refunded';
+    paid_at: string | null;
+    refunded_at: string | null;
+    created_at: string;
+    comment: string | null;
+  }[];
   page: number;
   hasMore: boolean;
   preferences: SponsorPreferences;
@@ -36,7 +46,7 @@ export type SponsorMeData = {
 type CacheEntry = { data: SponsorMeData; expiresAt: number };
 
 const TTL_MS = 60_000;
-const SESSION_PREFIX = 'animebox:sponsor-me:v4:';
+const SESSION_PREFIX = 'animebox:sponsor-me:v5:';
 const memory = new Map<string, CacheEntry>();
 const inflight = new Map<string, Promise<SponsorMeData>>();
 

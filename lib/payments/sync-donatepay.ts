@@ -6,8 +6,13 @@ import {
   isDonatePayConfigured,
 } from '@/lib/payments/providers/donatepay';
 import { recordPaymentTransaction } from '@/lib/payments/service';
+import {
+  backfillPendingDonatePayClaims,
+  tryClaimDonatePayTransaction,
+} from '@/lib/payments/donatepay-claim';
 
 const PROVIDER = 'donatepay';
+const INTERACTIVE_COOLDOWN_MS = 20_000;
 
 function maxNumericId(values: string[]) {
   let max: bigint | null = null;
@@ -19,7 +24,9 @@ function maxNumericId(values: string[]) {
   return max?.toString() ?? null;
 }
 
-export async function syncDonatePayTransactions() {
+export async function syncDonatePayTransactions(
+  options: { respectCooldown?: boolean } = {},
+) {
   if (!isDonatePayConfigured()) {
     throw new Error('DONATEPAY_API_TOKEN is not configured.');
   }
@@ -34,6 +41,26 @@ export async function syncDonatePayTransactions() {
 
   const cursor = typeof state?.cursor === 'string' ? state.cursor : null;
   const startedAt = Date.now();
+  const lastSyncedMs = state?.last_synced_at ? Date.parse(state.last_synced_at) : Number.NaN;
+
+  if (
+    options.respectCooldown &&
+    Number.isFinite(lastSyncedMs) &&
+    startedAt - lastSyncedMs < INTERACTIVE_COOLDOWN_MS
+  ) {
+    const claimed = await backfillPendingDonatePayClaims(100);
+    return {
+      configured: true,
+      scanned: 0,
+      imported: 0,
+      claimed,
+      cursor,
+      initialSync: !cursor,
+      skipped: true,
+      reason: 'cooldown',
+      durationMs: Date.now() - startedAt,
+    };
+  }
 
   try {
     // One DonatePay request per sync run. Historical clients document a strict
@@ -49,6 +76,8 @@ export async function syncDonatePayTransactions() {
     });
 
     let imported = 0;
+    let claimed = 0;
+
     for (const item of ordered) {
       const result = await recordPaymentTransaction({
         userId: null,
@@ -73,8 +102,22 @@ export async function syncDonatePayTransactions() {
         eventType: 'payment.paid',
         eventDetails: { source: 'donatepay_sync' },
       });
+
       if (result.created) imported += 1;
+
+      if (item.comment) {
+        const claimResult = await tryClaimDonatePayTransaction({
+          transactionId: result.id,
+          comment: item.comment,
+        });
+        if (claimResult.claimed) claimed += 1;
+      }
     }
+
+    // Also revisit recent unlinked payments. This makes claim matching robust
+    // when a transaction was imported before the claim feature existed or
+    // when a sync completed before the user returned to AnimeBox.
+    claimed += await backfillPendingDonatePayClaims(100);
 
     const nextCursor = maxNumericId(transactions.map((item) => item.id)) ?? cursor;
     const syncedAt = new Date().toISOString();
@@ -90,6 +133,7 @@ export async function syncDonatePayTransactions() {
           metadata: {
             last_batch_count: transactions.length,
             last_imported_count: imported,
+            last_claimed_count: claimed,
             initial_sync_latest_only: !cursor,
             duration_ms: Date.now() - startedAt,
           },
@@ -103,8 +147,10 @@ export async function syncDonatePayTransactions() {
       configured: true,
       scanned: transactions.length,
       imported,
+      claimed,
       cursor: nextCursor,
       initialSync: !cursor,
+      skipped: false,
       durationMs: Date.now() - startedAt,
     };
   } catch (error) {

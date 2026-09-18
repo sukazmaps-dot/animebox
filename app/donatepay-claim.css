@@ -1,0 +1,187 @@
+/* AnimeBox DonatePay Claim v1 */
+
+.support-donatepay-claim {
+  align-items: stretch;
+}
+
+.support-donatepay-claim__copy {
+  width: 100%;
+}
+
+.support-donatepay-claim__copy > strong {
+  display: block;
+  margin-top: 5px;
+}
+
+.support-donatepay-claim__flow {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.support-donatepay-claim__steps {
+  display: grid;
+  gap: 8px;
+}
+
+.support-donatepay-claim__steps > span {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: rgba(235, 237, 248, .74);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.support-donatepay-claim__steps b {
+  display: grid;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid rgba(182, 137, 255, .28);
+  border-radius: 8px;
+  background: rgba(141, 89, 225, .12);
+  color: #d8c4ff;
+  font-size: 10px;
+}
+
+.support-donatepay-claim__codebox {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 10px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid rgba(175, 128, 255, .28);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(143, 86, 231, .14), transparent 42%),
+    rgba(7, 9, 17, .78);
+}
+
+.support-donatepay-claim__codebox small {
+  grid-column: 1 / -1;
+  color: rgba(218, 221, 238, .48);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.support-donatepay-claim__codebox code {
+  overflow-wrap: anywhere;
+  color: #f0e7ff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: clamp(15px, 3vw, 19px);
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.support-donatepay-claim__codebox button {
+  min-height: 38px;
+  padding: 8px 11px;
+  border: 1px solid rgba(180, 137, 255, .3);
+  border-radius: 10px;
+  background: rgba(133, 84, 211, .14);
+  color: #d9c7ff;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.support-donatepay-claim__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.support-donatepay-claim__notice,
+.support-donatepay-claim__success {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(169, 126, 255, .2);
+  border-radius: 13px;
+  background: rgba(118, 77, 190, .08);
+  color: #d7c8f3;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.support-donatepay-claim__notice.is-error {
+  border-color: rgba(255, 105, 120, .22);
+  background: rgba(255, 72, 91, .08);
+  color: #ffc0c8;
+}
+
+.support-donatepay-claim__success {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 0;
+  border-color: rgba(106, 226, 166, .2);
+  background: rgba(58, 170, 113, .08);
+  color: #baf3d1;
+}
+
+.support-donatepay-claim__success span {
+  color: #effff5;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.support-donatepay-claim__muted {
+  display: block;
+  margin-top: 10px;
+  color: rgba(215, 218, 234, .46);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.sponsor-v4-history-block {
+  margin-top: 22px;
+}
+
+.sponsor-v4-history-title {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.sponsor-v4-history-title strong {
+  color: #eee8f7;
+  font-size: 13px;
+}
+
+.sponsor-v4-history-title span {
+  color: #8f879b;
+  font-size: 10px;
+}
+
+.sponsor-v4-donation-history li > strong {
+  color: #cdb7ff;
+}
+
+@media (max-width: 640px) {
+  .support-donatepay-claim__codebox {
+    grid-template-columns: 1fr;
+  }
+
+  .support-donatepay-claim__codebox small {
+    grid-column: auto;
+  }
+
+  .support-donatepay-claim__codebox button,
+  .support-donatepay-claim__actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .support-donatepay-claim__success,
+  .sponsor-v4-history-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

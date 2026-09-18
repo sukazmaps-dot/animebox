@@ -44,14 +44,24 @@ export async function GET(request: Request) {
       ? query.or(`user_id.eq.${user.id},and(user_id.is.null,telegram_id.eq.${telegramId})`)
       : query.eq('user_id', user.id);
 
-    const [{ data: payments, error, count }, totalStars] = await Promise.all([
+    const [paymentsResult, totalStars, donationsResult] = await Promise.all([
       query
         .order('created_at', { ascending: false })
         .order('id', { ascending: false })
         .range((page - 1) * 20, page * 20 - 1),
       getSponsorTotal(user.id),
+      admin
+        .from('payment_transactions')
+        .select('id,amount,currency,status,paid_at,refunded_at,created_at,metadata')
+        .eq('user_id', user.id)
+        .eq('provider', 'donatepay')
+        .in('status', ['paid', 'refunded'])
+        .order('created_at', { ascending: false })
+        .limit(20),
     ]);
-    if (error) throw error;
+
+    if (paymentsResult.error) throw paymentsResult.error;
+    if (donationsResult.error) throw donationsResult.error;
 
     const tier = resolveSponsorTier(totalStars);
     const preferences = await getSponsorPreferences(user.id, totalStars);
@@ -62,13 +72,34 @@ export async function GET(request: Request) {
       badgeVisible: preferences.badgeVisible,
     };
 
+    const donations = (donationsResult.data ?? []).map((item) => {
+      const metadata = item.metadata && typeof item.metadata === 'object'
+        ? (item.metadata as Record<string, unknown>)
+        : null;
+      const comment = typeof metadata?.comment === 'string'
+        ? metadata.comment.replace(/\bABX-[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}\b/gi, '').trim()
+        : null;
+
+      return {
+        id: item.id,
+        amount: Number(item.amount),
+        currency: item.currency,
+        status: item.status,
+        paid_at: item.paid_at,
+        refunded_at: item.refunded_at,
+        created_at: item.created_at,
+        comment: comment || null,
+      };
+    });
+
     return response({
       sponsor: makeSponsorStatus(totalStars, cosmetics),
       role: publicIdentityRoleFor(user.id),
       totalStars,
-      payments: payments ?? [],
+      payments: paymentsResult.data ?? [],
+      donations,
       page,
-      hasMore: page * 20 < (count ?? 0),
+      hasMore: page * 20 < (paymentsResult.count ?? 0),
       telegramLinked: Boolean(telegramId),
       preferences,
       benefits: sponsorBenefitsPayload(tier),

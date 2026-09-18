@@ -20,6 +20,7 @@ const STATUS_LABEL: Record<string, string> = {
   refunded: 'Возвращено',
   disputed: 'Спорный платёж',
   reconciliation_error: 'Нужна проверка',
+  paid: 'Подтверждено',
 };
 
 export default function SponsorDashboard({ history = false }: { history?: boolean }) {
@@ -178,27 +179,63 @@ export default function SponsorDashboard({ history = false }: { history?: boolea
 
           {history && (
             <>
-              {data.payments.length ? (
-                <ul className="sponsor-v2-history sponsor-v3-history">
-                  {data.payments.map((payment) => (
-                    <li key={payment.id} data-status={payment.status}>
-                      <div>
-                        <time dateTime={payment.created_at}>
-                          {new Date(payment.created_at).toLocaleString('ru-RU')}
-                        </time>
-                        <small>{STATUS_LABEL[payment.status] ?? payment.status}</small>
-                        {payment.refund_reason && <small>{payment.refund_reason}</small>}
-                      </div>
-                      <strong>
-                        {payment.status === 'refunded' ? '−' : '+'}{payment.amount}{' '}
-                        <AnimeBoxStar size={20} />
-                      </strong>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>Здесь появится твоя первая поддержка через Stars.</p>
-              )}
+              <div className="sponsor-v4-history-block">
+                <div className="sponsor-v4-history-title">
+                  <strong>Telegram Stars</strong>
+                  <span>Влияют на уровни спонсорства</span>
+                </div>
+
+                {data.payments.length ? (
+                  <ul className="sponsor-v2-history sponsor-v3-history">
+                    {data.payments.map((payment) => (
+                      <li key={payment.id} data-status={payment.status}>
+                        <div>
+                          <time dateTime={payment.created_at}>
+                            {new Date(payment.created_at).toLocaleString('ru-RU')}
+                          </time>
+                          <small>{STATUS_LABEL[payment.status] ?? payment.status}</small>
+                          {payment.refund_reason && <small>{payment.refund_reason}</small>}
+                        </div>
+                        <strong>
+                          {payment.status === 'refunded' ? '−' : '+'}{payment.amount}{' '}
+                          <AnimeBoxStar size={20} />
+                        </strong>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>Здесь появится твоя первая поддержка через Stars.</p>
+                )}
+              </div>
+
+              <div className="sponsor-v4-history-block">
+                <div className="sponsor-v4-history-title">
+                  <strong>Донаты картой</strong>
+                  <span>Учитываются отдельно от Stars</span>
+                </div>
+
+                {data.donations?.length ? (
+                  <ul className="sponsor-v2-history sponsor-v3-history sponsor-v4-donation-history">
+                    {data.donations.map((donation) => (
+                      <li key={donation.id} data-status={donation.status}>
+                        <div>
+                          <time dateTime={donation.paid_at ?? donation.created_at}>
+                            {new Date(donation.paid_at ?? donation.created_at).toLocaleString('ru-RU')}
+                          </time>
+                          <small>{STATUS_LABEL[donation.status] ?? donation.status} · DonatePay</small>
+                          {donation.comment && <small>{donation.comment}</small>}
+                        </div>
+                        <strong>
+                          {donation.status === 'refunded' ? '−' : '+'}
+                          {Number(donation.amount).toLocaleString('ru-RU', { maximumFractionDigits: 4 })} {donation.currency}
+                        </strong>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>Привязанные донаты через DonatePay появятся здесь.</p>
+                )}
+              </div>
 
               <div className="sponsor-v2-pager">
                 <button
@@ -221,7 +258,7 @@ export default function SponsorDashboard({ history = false }: { history?: boolea
       )}
 
       <p className="sponsor-v2-note">
-        Уровни накопительные. Учитываются подтверждённые Telegram Stars и одобренные ручные корректировки. Возвращённые платежи в уровень не входят.
+        Уровни накопительные. В них учитываются подтверждённые Telegram Stars и одобренные ручные корректировки. Донаты в обычной валюте сохраняются отдельно и не конвертируются в Stars.
       </p>
     </section>
   );
