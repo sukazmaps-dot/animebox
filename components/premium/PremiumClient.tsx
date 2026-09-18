@@ -4,7 +4,11 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { useAuthState } from '@/components/AuthStateProvider';
-import { getPremiumMe, type PremiumMe } from '@/lib/entitlements-client';
+import { clearPremiumMeCache, getPremiumMe, type PremiumMe } from '@/lib/entitlements-client';
+import type { PremiumCatalogPlan, PremiumPlanId } from '@/lib/premium';
+
+type PremiumCatalogResponse = { plans: PremiumCatalogPlan[] };
+type InvoiceResponse = { ok?: boolean; invoiceUrl?: string; error?: string };
 
 const BENEFITS = [
   ['Без рекламы', 'Рекламные блоки AnimeBox отключаются на всём сайте.'],
