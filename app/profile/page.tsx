@@ -210,7 +210,7 @@ export default function ProfilePage() {
           const payload = (await response.json()) as { theme?: string; allowed?: boolean };
           if (!response.ok || !active) return;
 
-          if (payload.theme && isPremiumProfileTheme(payload.theme)) {
+          if (payload.allowed && payload.theme && isPremiumProfileTheme(payload.theme)) {
             setPremiumTheme(payload.theme);
           } else {
             setPremiumTheme('default');
