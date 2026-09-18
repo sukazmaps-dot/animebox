@@ -250,27 +250,34 @@ export default function AdSlot({
           aria-label="Реклама"
           aria-busy={!rendered}
         >
-          {rendered && <span className="monetization-ad__label">Реклама</span>}
-
-          {config.provider === 'house' ? (
-            <Link className="monetization-ad__house" href="/support">
-              <span>AnimeBox</span>
-              <strong>Помоги проекту расти без навязчивой рекламы</strong>
-              <small>Поддержка проекта отключает наши рекламные блоки на подходящих уровнях.</small>
-              <b>Поддержать →</b>
-            </Link>
-          ) : (
-            <div
-              className="monetization-ad__mount monetization-ad__mount--adsterra"
-              data-ad-mount={placement}
-              data-ad-format={resolvedFormat}
-            >
-              <AdsterraNativeBanner
-                onReady={handleProviderReady}
-                onError={handleProviderError}
-              />
+          {rendered && (
+            <div className="monetization-ad__meta" aria-hidden="true">
+              <span>Реклама</span>
+              <small>Партнёрский блок</small>
             </div>
           )}
+
+          <div className="monetization-ad__surface">
+            {config.provider === 'house' ? (
+              <Link className="monetization-ad__house" href="/support">
+                <span>AnimeBox</span>
+                <strong>Помоги проекту расти без навязчивой рекламы</strong>
+                <small>Поддержка проекта отключает наши рекламные блоки на подходящих уровнях.</small>
+                <b>Поддержать →</b>
+              </Link>
+            ) : (
+              <div
+                className="monetization-ad__mount monetization-ad__mount--adsterra"
+                data-ad-mount={placement}
+                data-ad-format={resolvedFormat}
+              >
+                <AdsterraNativeBanner
+                  onReady={handleProviderReady}
+                  onError={handleProviderError}
+                />
+              </div>
+            )}
+          </div>
         </aside>
       ) : null}
     </div>

@@ -623,3 +623,105 @@ html.telegram-mini-app .support-box__web-only {
     animation: none;
   }
 }
+
+
+/* =========================================================
+   AnimeBox Ad System v1.2 · native shell polish
+   Keeps third-party creatives untouched, but makes the
+   placement feel intentional and visually consistent.
+   ========================================================= */
+
+.monetization-ad-slot .monetization-ad {
+  width: min(100%, 760px);
+  padding: 10px;
+  border: 1px solid rgba(142, 108, 236, .24);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(115, 76, 214, .12), transparent 34%),
+    linear-gradient(180deg, rgba(14, 17, 31, .96), rgba(8, 10, 20, .98));
+  box-shadow:
+    0 18px 54px rgba(0, 0, 0, .22),
+    inset 0 1px 0 rgba(255, 255, 255, .025);
+}
+
+.monetization-ad__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px 8px;
+  color: rgba(225, 220, 245, .58);
+  line-height: 1;
+}
+
+.monetization-ad__meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.monetization-ad__meta > span::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #9a76ff;
+  box-shadow: 0 0 10px rgba(154, 118, 255, .72);
+}
+
+.monetization-ad__meta > small {
+  color: rgba(205, 211, 232, .38);
+  font-size: 9px;
+  letter-spacing: .03em;
+}
+
+.monetization-ad__surface {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 13px;
+  background: #0b0e19;
+}
+
+.monetization-ad__surface .monetization-ad__mount--adsterra,
+.monetization-ad__surface .adsterra-native-host,
+.monetization-ad__surface .adsterra-native-host > div[id^='container-'] {
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.monetization-ad-slot.is-loading:not(.is-rendered) .monetization-ad {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.monetization-ad-slot.is-loading:not(.is-rendered) .monetization-ad__surface {
+  border-radius: 0;
+  background: transparent;
+}
+
+@media (max-width: 720px) {
+  .monetization-ad-slot .monetization-ad {
+    width: min(100%, 540px);
+    padding: 8px;
+    border-radius: 16px;
+  }
+
+  .monetization-ad__meta {
+    padding: 0 3px 7px;
+  }
+
+  .monetization-ad__meta > span,
+  .monetization-ad__meta > small {
+    font-size: 8px;
+  }
+
+  .monetization-ad__surface {
+    border-radius: 11px;
+  }
+}
