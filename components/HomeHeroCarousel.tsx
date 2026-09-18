@@ -9,6 +9,7 @@ import {
 } from 'react';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 
 import type { Anime } from '@/types/anime';
@@ -378,13 +379,15 @@ export default function HomeHeroCarousel({
       }
     >
       {bannerImage && (
-        <div
+        <Image
           key={`${anime.id}-backdrop`}
+          src={bannerImage}
+          alt=""
+          fill
+          priority={activeIndex === 0}
+          sizes="(max-width: 760px) 100vw, (max-width: 1280px) 75vw, 980px"
           className="page-hero__backdrop home-hero-carousel__backdrop is-visible"
-          style={{
-            backgroundImage:
-              `url("${bannerImage}")`,
-          }}
+          aria-hidden="true"
         />
       )}
 
