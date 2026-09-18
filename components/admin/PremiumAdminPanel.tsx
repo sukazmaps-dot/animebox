@@ -195,6 +195,71 @@ export default function PremiumAdminPanel() {
         <Link href="/premium">Открыть Premium →</Link>
       </div>
 
+      <div className="premium-admin__plans">
+        {(data?.plans ?? []).map((plan) => {
+          const draft = planDrafts[plan.id];
+
+          return (
+            <article key={plan.id}>
+              <div>
+                <span>{plan.id === 'monthly' ? 'MONTHLY' : 'YEARLY'}</span>
+                <strong>{plan.label}</strong>
+                <small>{plan.durationDays} дней доступа</small>
+              </div>
+
+              <label>
+                <span>Цена, Stars</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="100000"
+                  value={draft.amount}
+                  onChange={(event) =>
+                    setPlanDrafts((current) => ({
+                      ...current,
+                      [plan.id]: {
+                        ...current[plan.id],
+                        amount: event.target.value,
+                      },
+                    }))
+                  }
+                  placeholder="Цена"
+                />
+              </label>
+
+              <label className="premium-admin__toggle">
+                <input
+                  type="checkbox"
+                  checked={draft.active}
+                  onChange={(event) =>
+                    setPlanDrafts((current) => ({
+                      ...current,
+                      [plan.id]: {
+                        ...current[plan.id],
+                        active: event.target.checked,
+                      },
+                    }))
+                  }
+                />
+                <span>Продажа включена</span>
+              </label>
+
+              <button
+                type="button"
+                disabled={busy === `plan:${plan.id}`}
+                onClick={() => void configurePlan(plan.id)}
+              >
+                {busy === `plan:${plan.id}`
+                  ? 'Сохраняем…'
+                  : 'Сохранить тариф'}
+              </button>
+            </article>
+          );
+        })}
+      </div>
+
+      <div className="premium-admin__divider" />
+
       <form className="premium-admin__search" onSubmit={search}>
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ник или UUID пользователя" />
         <button type="submit" disabled={busy === 'search'}>{busy === 'search' ? 'Ищем…' : 'Найти'}</button>
