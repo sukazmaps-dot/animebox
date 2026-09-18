@@ -24,6 +24,7 @@ type Data = {
   profiles: { id: string; username: string | null }[];
   matches?: { id: string; username: string | null }[];
   plans: PremiumCatalogPlan[];
+  canRefund: boolean;
 };
 
 type PlanDraft = { amount: string; active: boolean };
@@ -372,7 +373,8 @@ export default function PremiumAdminPanel() {
                         : 'Отключить'}
                     </button>
 
-                    {subscription.source === 'telegram_stars' &&
+                    {data?.canRefund &&
+                      subscription.source === 'telegram_stars' &&
                       subscription.transaction_id && (
                         <button
                           type="button"
