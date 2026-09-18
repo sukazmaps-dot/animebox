@@ -15,6 +15,7 @@ import SponsorDashboard from '@/components/monetization/SponsorDashboard';
 import MySponsorBadge from '@/components/monetization/MySponsorBadge';
 import UserAvatarWithFrame from '@/components/profile/UserAvatarWithFrame';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
+import CurrentPremiumBadge from '@/components/premium/CurrentPremiumBadge';
 
 type Profile = {
   id: string;
@@ -273,6 +274,8 @@ export default function ProfilePage() {
               <div>
                 <div className="profile-v2__name-row">
                   <h1><MySponsorBadge username={username} /></h1>
+
+                  <CurrentPremiumBadge />
 
                   {profile.og_number && (
                     <span
