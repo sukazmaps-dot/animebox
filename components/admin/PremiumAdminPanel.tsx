@@ -15,6 +15,9 @@ type Subscription = {
   starts_at: string;
   ends_at: string;
   cancelled_at: string | null;
+  auto_renew: boolean;
+  auto_renew_cancelled_at: string | null;
+  telegram_subscription_charge_id: string | null;
   created_at: string;
 };
 
@@ -237,7 +240,7 @@ export default function PremiumAdminPanel() {
         <div>
           <span>PREMIUM V1</span>
           <h2>AnimeBox Premium</h2>
-          <p>Ручные grants для тестирования entitlement-слоя до подключения checkout.</p>
+          <p>Тарифы, Telegram Stars checkout, автопродление, refunds и ручные grants.</p>
         </div>
         <Link href="/premium">Открыть Premium →</Link>
       </div>
@@ -251,7 +254,11 @@ export default function PremiumAdminPanel() {
               <div>
                 <span>{plan.id === 'monthly' ? 'MONTHLY' : 'YEARLY'}</span>
                 <strong>{plan.label}</strong>
-                <small>{plan.durationDays} дней доступа</small>
+                <small>
+                  {plan.billingMode === 'recurring'
+                    ? 'Автопродление каждые 30 дней'
+                    : `${plan.durationDays} дней · разовая оплата`}
+                </small>
               </div>
 
               <label>
@@ -259,7 +266,7 @@ export default function PremiumAdminPanel() {
                 <input
                   type="number"
                   min="1"
-                  max="100000"
+                  max={plan.id === 'monthly' ? 10000 : 100000}
                   value={draft.amount}
                   onChange={(event) =>
                     setPlanDrafts((current) => ({
@@ -348,7 +355,7 @@ export default function PremiumAdminPanel() {
 
       <div className="sponsor-v2-table sponsor-v25-table">
         <table>
-          <thead><tr><th>Пользователь</th><th>План</th><th>Источник</th><th>До</th><th>Статус</th><th /></tr></thead>
+          <thead><tr><th>Пользователь</th><th>План</th><th>Источник</th><th>До</th><th>Продление</th><th>Статус</th><th /></tr></thead>
           <tbody>
             {active.map((subscription) => (
               <tr key={subscription.id}>
@@ -360,6 +367,14 @@ export default function PremiumAdminPanel() {
                 <td>{subscription.plan}</td>
                 <td>{subscription.source}</td>
                 <td>{new Date(subscription.ends_at).toLocaleString('ru-RU')}</td>
+                <td>
+                  {subscription.plan === 'monthly' &&
+                  subscription.source === 'telegram_stars'
+                    ? subscription.auto_renew
+                      ? 'Авто'
+                      : 'Отключено'
+                    : '—'}
+                </td>
                 <td><span className="sponsor-v25-status" data-status={subscription.status}>{subscription.status}</span></td>
                 <td>
                   <div className="premium-admin__row-actions">
