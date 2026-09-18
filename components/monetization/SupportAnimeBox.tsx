@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useAuthState } from '@/components/AuthStateProvider';
 import AnimeBoxStar from './AnimeBoxStar';
+import BoostySupport from './BoostySupport';
 
 import {
   MONETIZATION_ENABLED,
@@ -451,6 +452,8 @@ export default function SupportAnimeBox() {
           </small>
         </div>
       </section>
+
+      <BoostySupport />
 
       {(invoiceStatus || errorText) && (
         <div
