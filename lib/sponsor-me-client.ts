@@ -24,6 +24,7 @@ export type SponsorMeData = {
   }[];
   donations: {
     id: string;
+    provider: 'donatepay' | 'boosty' | string;
     amount: number;
     currency: string;
     status: 'paid' | 'refunded';
