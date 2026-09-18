@@ -1,6 +1,6 @@
 import { adminClient, failure, response, userClient } from '@/lib/community-server';
 import { getEffectiveUserEntitlements } from '@/lib/entitlements-server';
-import { getPremiumStatus } from '@/lib/premium-server';
+import { getPremiumRecurringSubscription, getPremiumStatus } from '@/lib/premium-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,8 +8,9 @@ export async function GET() {
   try {
     const { user } = await userClient();
     const admin = adminClient();
-    const [subscription, entitlements, paymentsResult] = await Promise.all([
+    const [subscription, recurringSubscription, entitlements, paymentsResult] = await Promise.all([
       getPremiumStatus(user.id),
+      getPremiumRecurringSubscription(user.id),
       getEffectiveUserEntitlements(user.id),
       admin
         .from('payment_transactions')
@@ -25,6 +26,7 @@ export async function GET() {
     return response({
       premium: Boolean(subscription),
       subscription,
+      recurringSubscription,
       entitlements,
       payments: paymentsResult.data ?? [],
     });
