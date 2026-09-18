@@ -38,9 +38,44 @@ function mapSubscription(row: Record<string, unknown>): PremiumSubscription {
   };
 }
 
+async function expirePremiumForUser(userId: string) {
+  const admin = createSupabaseAdmin();
+  const now = new Date().toISOString();
+
+  const { data: expired, error } = await admin
+    .from('premium_subscriptions')
+    .select('id')
+    .eq('user_id', userId)
+    .in('status', ['active', 'grace_period'])
+    .lte('ends_at', now);
+
+  if (error) throw error;
+
+  const ids = (expired ?? []).map((item) => item.id as string);
+  if (!ids.length) return;
+
+  const { error: subscriptionError } = await admin
+    .from('premium_subscriptions')
+    .update({ status: 'expired', updated_at: now })
+    .in('id', ids);
+
+  if (subscriptionError) throw subscriptionError;
+
+  const { error: entitlementError } = await admin
+    .from('user_entitlements')
+    .update({ active: false, updated_at: now })
+    .eq('user_id', userId)
+    .eq('source', 'premium')
+    .in('source_id', ids);
+
+  if (entitlementError) throw entitlementError;
+}
+
 export async function getPremiumStatus(userId: string) {
   const admin = createSupabaseAdmin();
   const now = new Date().toISOString();
+
+  await expirePremiumForUser(userId);
 
   const { data, error } = await admin
     .from('premium_subscriptions')
