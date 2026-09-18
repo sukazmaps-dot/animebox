@@ -299,6 +299,14 @@ function NavbarContent() {
           </Link>
 
           <Link
+            href="/premium"
+            className={`sidebar__item ${isActive('/premium') ? 'is-active' : ''}`}
+          >
+            <Icon name="star" />
+            <span>AnimeBox Premium</span>
+          </Link>
+
+          <Link
             href="/support"
             className={`sidebar__item ${isActive('/support') ? 'is-active' : ''}`}
           >
