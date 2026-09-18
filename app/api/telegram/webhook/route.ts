@@ -13,7 +13,10 @@ import {
 } from '@/lib/monetization-server';
 import { getPremiumPlan } from '@/lib/premium-catalog-server';
 import { recordPremiumTelegramStarsPayment } from '@/lib/payments/providers/premium-telegram-stars';
-import { activatePremiumFromPayment } from '@/lib/premium-payment-server';
+import {
+  activateOrRenewTelegramPremium,
+  syncPremiumTelegramSubscriptionState,
+} from '@/lib/premium-payment-server';
 import { getSponsorStatus } from '@/lib/sponsor-server';
 import { SPONSOR_META, type SponsorStatus } from '@/lib/sponsor';
 
@@ -171,6 +174,38 @@ export async function POST(request: NextRequest) {
 
     /**
      * =====================================================
+     * Telegram Stars: recurring subscription state
+     * =====================================================
+     */
+    const subscriptionUpdate = update?.subscription;
+
+    if (subscriptionUpdate?.invoice_payload && subscriptionUpdate?.state) {
+      const premiumPayload = parsePremiumPayload(
+        subscriptionUpdate.invoice_payload,
+      );
+
+      if (
+        premiumPayload?.plan === 'monthly' &&
+        ['active', 'canceled', 'failed'].includes(subscriptionUpdate.state)
+      ) {
+        try {
+          await syncPremiumTelegramSubscriptionState({
+            userId: premiumPayload.animeboxUserId,
+            state: subscriptionUpdate.state,
+          });
+        } catch (error) {
+          console.error(
+            '[AnimeBox Premium] subscription state sync failed:',
+            error,
+          );
+        }
+      }
+
+      return NextResponse.json({ ok: true });
+    }
+
+    /**
+     * =====================================================
      * Telegram Stars: pre-checkout
      * =====================================================
      */
@@ -264,6 +299,14 @@ export async function POST(request: NextRequest) {
         Number(successfulPayment.total_amount) === premiumPayload.amount
       ) {
         try {
+          const isRecurring = successfulPayment.is_recurring === true;
+          const isFirstRecurring =
+            successfulPayment.is_first_recurring === true;
+          const subscriptionExpirationDate =
+            Number.isSafeInteger(successfulPayment.subscription_expiration_date)
+              ? Number(successfulPayment.subscription_expiration_date)
+              : null;
+
           const transaction = await recordPremiumTelegramStarsPayment({
             userId: premiumPayload.animeboxUserId,
             telegramId: payerTelegramId,
@@ -274,14 +317,21 @@ export async function POST(request: NextRequest) {
               successfulPayment.telegram_payment_charge_id,
             providerPaymentChargeId:
               successfulPayment.provider_payment_charge_id ?? null,
+            isRecurring,
+            isFirstRecurring,
+            subscriptionExpirationDate,
           });
 
-          const subscription = await activatePremiumFromPayment({
+          const subscription = await activateOrRenewTelegramPremium({
             userId: premiumPayload.animeboxUserId,
             plan: premiumPayload.plan,
             durationDays: premiumPayload.durationDays,
             transactionId: transaction.id,
-            provider: 'telegram_stars',
+            telegramPaymentChargeId:
+              successfulPayment.telegram_payment_charge_id,
+            isRecurring,
+            isFirstRecurring,
+            subscriptionExpirationDate,
           });
 
           const until = new Intl.DateTimeFormat('ru-RU', {
@@ -293,13 +343,17 @@ export async function POST(request: NextRequest) {
           await sendMessage(
             chatId,
             [
-              '✦ <b>AnimeBox Premium активирован!</b>',
+              isRecurring && !isFirstRecurring
+                ? '✦ <b>AnimeBox Premium продлён!</b>'
+                : '✦ <b>AnimeBox Premium активирован!</b>',
               '',
               `Тариф: <b>${premiumPayload.plan === 'yearly' ? '12 месяцев' : '1 месяц'}</b>`,
               `Оплачено: <b>⭐ ${premiumPayload.amount}</b>`,
               `Premium до: <b>${until}</b>`,
               '',
-              'Без рекламы и Premium-возможности уже доступны в твоём AnimeBox аккаунте.',
+              premiumPayload.plan === 'monthly' && isRecurring
+                ? 'Месячная подписка продлевается автоматически каждые 30 дней. Автопродление можно отключить на странице Premium.'
+                : 'Без рекламы и Premium-возможности уже доступны в твоём AnimeBox аккаунте.',
             ].join('\n'),
             BOTTOM_MENU,
           );
