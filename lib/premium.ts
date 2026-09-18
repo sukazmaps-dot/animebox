@@ -7,6 +7,7 @@ export type PremiumCatalogPlan = {
   durationDays: number;
   active: boolean;
   telegramStarsAmount: number | null;
+  billingMode: 'recurring' | 'prepaid';
 };
 
 export const PREMIUM_PLAN_DEFINITIONS: Record<
@@ -15,17 +16,20 @@ export const PREMIUM_PLAN_DEFINITIONS: Record<
     productCode: PremiumCatalogPlan['productCode'];
     label: string;
     durationDays: number;
+    billingMode: PremiumCatalogPlan['billingMode'];
   }
 > = {
   monthly: {
     productCode: 'premium_monthly',
     label: '1 месяц',
     durationDays: 30,
+    billingMode: 'recurring',
   },
   yearly: {
     productCode: 'premium_yearly',
     label: '12 месяцев',
     durationDays: 365,
+    billingMode: 'prepaid',
   },
 };
 
