@@ -20,6 +20,32 @@ const nextConfig: NextConfig = {
   },
 
   async headers() {
+    const htmlNoStoreHeaders = [
+      { key: 'Cache-Control', value: 'no-cache, max-age=0, must-revalidate' },
+      { key: 'Cloudflare-CDN-Cache-Control', value: 'no-store' },
+    ];
+
+    const htmlRoutes = [
+      '/',
+      '/anime/:path*',
+      '/search/:path*',
+      '/schedule/:path*',
+      '/list/:path*',
+      '/favorites/:path*',
+      '/leaderboard/:path*',
+      '/notifications/:path*',
+      '/about/:path*',
+      '/support/:path*',
+      '/supporters/:path*',
+      '/premium/:path*',
+      '/profile/:path*',
+      '/settings/:path*',
+      '/login/:path*',
+      '/register/:path*',
+      '/onboarding/:path*',
+      '/admin/:path*',
+    ];
+
     const staticHeaders = [
       { key: 'Cache-Control', value: 'public, max-age=3600' },
       {
@@ -29,6 +55,7 @@ const nextConfig: NextConfig = {
     ];
 
     return [
+      ...htmlRoutes.map((source) => ({ source, headers: htmlNoStoreHeaders })),
       { source: '/ui/:path*', headers: staticHeaders },
       { source: '/backgrounds/:path*', headers: staticHeaders },
     ];
