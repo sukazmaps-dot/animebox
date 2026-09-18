@@ -145,43 +145,70 @@ export default function SponsorLeaderboard() {
         </div>
 
         <div className={styles.heroStats}>
-          <div><small>Публично показано</small><strong><StarsValue value={data?.stats.publicStars ?? 0} large /></strong><span>{PERIOD_LABELS[period].toLowerCase()}</span></div>
-          <div><small>В рейтинге</small><strong>{data?.stats.supporters ?? 0}</strong><span>открытых спонсоров</span></div>
-          <div><small>Приватность</small><strong>100%</strong><span>участие добровольное</span></div>
+          <div>
+            <small>Поддержка за период</small>
+            <strong><StarsValue value={data?.stats.publicStars ?? 0} large /></strong>
+            <span>{PERIOD_LABELS[period].toLowerCase()}</span>
+          </div>
+          <div>
+            <small>Открытых спонсоров</small>
+            <strong>{data?.stats.supporters ?? 0}</strong>
+            <span>участвуют в стене</span>
+          </div>
+          <div>
+            <small>Приватность стены</small>
+            <strong>100%</strong>
+            <span>только по желанию пользователя</span>
+          </div>
         </div>
 
-        <div className={styles.tabs} role="group" aria-label="Период рейтинга спонсоров">
-          {(Object.keys(PERIOD_LABELS) as Period[]).map((item) => (
-            <button
-              type="button"
-              aria-pressed={period === item}
-              className={period === item ? styles.activeTab : ''}
-              key={item}
-              onClick={() => {
-                if (item === period) return;
-                setLoading(true);
-                setError('');
-                setData(null);
-                setPeriod(item);
-              }}
-            >
-              {PERIOD_LABELS[item]}
-            </button>
-          ))}
+        <div className={styles.heroControls}>
+          <div className={styles.tabs} role="group" aria-label="Период рейтинга спонсоров">
+            {(Object.keys(PERIOD_LABELS) as Period[]).map((item) => (
+              <button
+                type="button"
+                aria-pressed={period === item}
+                className={period === item ? styles.activeTab : ''}
+                key={item}
+                onClick={() => {
+                  if (item === period) return;
+                  setLoading(true);
+                  setError('');
+                  setData(null);
+                  setPeriod(item);
+                }}
+              >
+                {PERIOD_LABELS[item]}
+              </button>
+            ))}
+          </div>
+
+          <div className={styles.utilityBar}>
+            <Link className={styles.primaryAction} href="/support">Поддержать AnimeBox <span aria-hidden="true">✦</span></Link>
+            <Link href="/settings/sponsor">Настроить видимость</Link>
+          </div>
         </div>
       </section>
-
-      <div className={styles.utilityBar}>
-        <Link href="/support">Поддержать AnimeBox <span aria-hidden="true">✦</span></Link>
-        <Link href="/settings/sponsor">Настроить видимость</Link>
-      </div>
 
       {error ? (
         <section className={styles.state} role="alert"><strong>Рейтинг временно недоступен</strong><span>{error}</span></section>
       ) : loading && !data ? (
         <section className={styles.state} role="status">Собираем стену спонсоров…</section>
       ) : data && data.entries.length === 0 ? (
-        <section className={styles.state}><strong>За этот период пока нет открытых поддержек</strong><span>Можно выбрать другой период или стать первым.</span></section>
+        <section className={styles.emptyState}>
+          <div className={styles.emptyVisual} aria-hidden="true">
+            <span className={styles.emptyOrb} />
+            <AnimeBoxStar size={42} className={styles.emptyStar} />
+          </div>
+          <span className={styles.eyebrow}>SUPPORTERS HALL</span>
+          <h2>{period === 'all' ? 'Пьедестал пока свободен' : `За ${PERIOD_LABELS[period].toLowerCase()} открытых поддержек пока нет`}</h2>
+          <p>Стена заполняется только теми, кто сам включил публичное отображение. Поддержка уже может быть учтена, даже если пользователь предпочёл остаться скрытым.</p>
+          <div className={styles.emptyActions}>
+            <Link className={styles.primaryAction} href="/support">Поддержать AnimeBox <span aria-hidden="true">✦</span></Link>
+            <Link href="/settings/sponsor">Настроить своё отображение</Link>
+          </div>
+          <small>Никаких автоматических публикаций: участие в рейтинге всегда добровольное.</small>
+        </section>
       ) : data ? (
         <>
           <div className={styles.sectionHeading}>
