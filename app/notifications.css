@@ -85,7 +85,6 @@
 .notifications-card__head h2 { margin: 0; font-size: 18px; }
 .notifications-card__head b { color: #a89aff; font-size: 22px; }
 .notification-master,
-.notifications-test-row button,
 .notifications-list__item button {
   border: 1px solid rgba(148,163,184,.15);
   border-radius: 10px;
@@ -99,14 +98,10 @@
 }
 .notification-master.is-enabled { border-color: rgba(65,205,151,.28); color: #77dfb5; background: rgba(47,144,108,.12); }
 .notification-master:disabled,
-.notifications-test-row button:disabled,
 .notifications-list__item button:disabled { opacity: .5; cursor: wait; }
 
-.notifications-test-row,
 .notifications-list__item { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 0; border-top: 1px solid rgba(148,163,184,.08); }
-.notifications-test-row strong,
 .notifications-list__item a { display: block; color: #f3f5ff; font-size: 12px; font-weight: 780; text-decoration: none; }
-.notifications-test-row span,
 .notifications-list__item span { display: block; margin-top: 4px; color: #7f8da5; font-size: 10px; }
 .notifications-list__item.is-disabled { opacity: .48; }
 .notifications-empty { padding: 18px; border: 1px dashed rgba(148,163,184,.14); border-radius: 14px; color: #8e9bb0; font-size: 11px; }

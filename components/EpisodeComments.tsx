@@ -503,9 +503,11 @@ export default function EpisodeComments({
             </button>
           </div>
 
-          <span className="episode-comments__count" title="Комментарии и ответы">
-            {comments.length}
-          </span>
+          {comments.length > 0 && (
+            <span className="episode-comments__count" title="Комментарии и ответы">
+              {comments.length}
+            </span>
+          )}
         </div>
       </header>
 

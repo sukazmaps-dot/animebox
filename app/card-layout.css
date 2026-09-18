@@ -11,3 +11,30 @@
 .anime-card.anime-card .anime-card__meta span:last-child { min-width: 0; flex-shrink: 1; overflow: hidden; text-overflow: ellipsis; }
 .anime-card.anime-card .anime-card__tags { height: 25px; min-height: 25px; margin-top: 8px; overflow: hidden; }
 .anime-card.anime-card .anime-card__tags span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Mobile catalog hardening.
+   Some Android/Telegram WebViews intermittently resolve aspect-ratio on grid
+   flex items from the image's intrinsic size. The padding-ratio fallback keeps
+   every catalog/tracker poster geometrically identical. */
+@media (max-width: 720px) {
+  .search-page .anime-grid,
+  .tracker-page .anime-grid {
+    align-items: start;
+    grid-auto-rows: auto;
+  }
+
+  .search-page .anime-card.anime-card,
+  .tracker-page .anime-card.anime-card {
+    height: auto;
+    align-self: start;
+  }
+
+  .search-page .anime-card.anime-card .anime-card__image-wrap,
+  .tracker-page .anime-card.anime-card .anime-card__image-wrap {
+    box-sizing: border-box;
+    height: 0 !important;
+    padding-top: 133.333333%;
+    aspect-ratio: auto !important;
+    flex: 0 0 auto;
+  }
+}

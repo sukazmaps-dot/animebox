@@ -75,7 +75,6 @@ export default function NotificationSettingsClient() {
   const [busy, setBusy] = useState(false);
   const [telegramLinked, setTelegramLinked] = useState(false);
   const [telegramEnabled, setTelegramEnabled] = useState(false);
-  const [telegramVerifiedAt, setTelegramVerifiedAt] = useState<string | null>(null);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [message, setMessage] = useState('');
 
@@ -142,7 +141,6 @@ export default function NotificationSettingsClient() {
 
         setTelegramLinked(Boolean(data.telegramLinked));
         setTelegramEnabled(Boolean(data.telegramEnabled));
-        setTelegramVerifiedAt(data.telegramVerifiedAt ?? null);
         setSubscriptions(data.subscriptions ?? []);
       } catch (error) {
         if (!active || (error as Error).name === 'AbortError') return;
@@ -171,46 +169,23 @@ export default function NotificationSettingsClient() {
     user,
   ]);
 
-  async function sendTest() {
-    if (busy) return;
-    setBusy(true);
-    setMessage('');
-
-    try {
-      const allowed = await requestTelegramWriteAccess();
-
-      if (!allowed) {
-        setMessage('Telegram не дал разрешение на сообщения от бота.');
-        return;
-      }
-
-      const response = await fetch('/api/notifications/test', {
-        method: 'POST',
-        cache: 'no-store',
-      });
-      const data = await readJson(response);
-
-      if (!response.ok || !data.ok) {
-        throw new Error(errorMessage(data));
-      }
-
-      setTelegramEnabled(true);
-      setTelegramVerifiedAt(data.telegramVerifiedAt ?? new Date().toISOString());
-      setMessage('Тест отправлен. Проверь чат с @YourAnimeBoxBot.');
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Тест не отправлен.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function toggleGlobal() {
-    if (busy || !telegramVerifiedAt) return;
+    if (busy || !telegramLinked) return;
     setBusy(true);
     setMessage('');
 
     try {
       const next = !telegramEnabled;
+
+      if (next) {
+        const allowed = await requestTelegramWriteAccess();
+
+        if (!allowed) {
+          setMessage('Telegram не дал разрешение на сообщения от бота.');
+          return;
+        }
+      }
+
       const response = await fetch('/api/notifications/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -282,8 +257,8 @@ export default function NotificationSettingsClient() {
         </div>
 
         <div className="notifications-hero__status">
-          <span className={telegramVerifiedAt ? 'is-online' : ''} />
-          {telegramVerifiedAt ? 'Telegram подключён' : 'Нужна проверка Telegram'}
+          <span className={telegramLinked ? 'is-online' : ''} />
+          {telegramLinked ? 'Telegram подключён' : 'Telegram не подключён'}
         </div>
       </section>
 
@@ -297,14 +272,14 @@ export default function NotificationSettingsClient() {
           <button
             type="button"
             className={telegramEnabled ? 'notification-master is-enabled' : 'notification-master'}
-            disabled={busy || !telegramVerifiedAt}
+            disabled={busy || !telegramLinked}
             onClick={() => void toggleGlobal()}
           >
             {telegramEnabled ? 'Включено' : 'Выключено'}
           </button>
         </div>
 
-        {!telegramLinked ? (
+        {!telegramLinked && (
           <div className="notifications-empty">
             <p>Сначала привяжи Telegram к AnimeBox.</p>
             <a
@@ -314,20 +289,6 @@ export default function NotificationSettingsClient() {
             >
               Открыть Telegram Mini App
             </a>
-          </div>
-        ) : (
-          <div className="notifications-test-row">
-            <div>
-              <strong>Проверка связи</strong>
-              <span>
-                {telegramVerifiedAt
-                  ? 'Бот уже успешно отправлял сообщение.'
-                  : 'Отправь тест, чтобы подтвердить доступ бота к личным сообщениям.'}
-              </span>
-            </div>
-            <button type="button" disabled={busy} onClick={() => void sendTest()}>
-              {busy ? 'Отправляем…' : 'Отправить тест'}
-            </button>
           </div>
         )}
       </section>

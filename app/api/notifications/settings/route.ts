@@ -3,6 +3,7 @@ import {
   notificationFailure,
   notificationResponse,
   requireNotificationUser,
+  sendTelegramMessage,
   NotificationError,
 } from '@/lib/notifications-server';
 
@@ -57,6 +58,7 @@ export async function POST(request: Request) {
     }
 
     const telegramEnabled = body.telegramEnabled;
+    let telegramVerifiedAt: string | null = null;
 
     if (telegramEnabled) {
       const telegramProfile = await getTelegramProfile(user.id);
@@ -77,12 +79,19 @@ export async function POST(request: Request) {
 
       if (currentError) throw currentError;
 
-      if (!current?.telegram_verified_at) {
-        throw new NotificationError(
-          409,
-          'telegram_not_verified',
-          'Сначала включи уведомления у любого тайтла или отправь тестовое сообщение.',
-        );
+      telegramVerifiedAt = current?.telegram_verified_at ?? null;
+
+      if (!telegramVerifiedAt) {
+        await sendTelegramMessage({
+          chatId: String(telegramProfile.telegram_id),
+          text:
+            '🔔 <b>Уведомления AnimeBox включены</b>\n\n' +
+            'Теперь я смогу сообщать тебе о новых сериях выбранных тайтлов.',
+          webAppUrl: 'https://youranimebox.com/notifications',
+          buttonText: 'Открыть уведомления',
+        });
+
+        telegramVerifiedAt = new Date().toISOString();
       }
     }
 
@@ -92,6 +101,9 @@ export async function POST(request: Request) {
         {
           user_id: user.id,
           telegram_enabled: telegramEnabled,
+          ...(telegramVerifiedAt
+            ? { telegram_verified_at: telegramVerifiedAt }
+            : {}),
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'user_id' },
@@ -102,6 +114,7 @@ export async function POST(request: Request) {
     return notificationResponse({
       ok: true,
       telegramEnabled,
+      telegramVerifiedAt,
     });
   } catch (error) {
     return notificationFailure(error);
