@@ -361,13 +361,30 @@ export default function PremiumAdminPanel() {
                 <td>{new Date(subscription.ends_at).toLocaleString('ru-RU')}</td>
                 <td><span className="sponsor-v25-status" data-status={subscription.status}>{subscription.status}</span></td>
                 <td>
-                  <button
-                    className="is-danger"
-                    disabled={Boolean(busy)}
-                    onClick={() => void revoke(subscription)}
-                  >
-                    {busy === `revoke:${subscription.id}` ? 'Отключаем…' : 'Отключить'}
-                  </button>
+                  <div className="premium-admin__row-actions">
+                    <button
+                      className="is-danger"
+                      disabled={Boolean(busy)}
+                      onClick={() => void revoke(subscription)}
+                    >
+                      {busy === `revoke:${subscription.id}`
+                        ? 'Отключаем…'
+                        : 'Отключить'}
+                    </button>
+
+                    {subscription.source === 'telegram_stars' &&
+                      subscription.transaction_id && (
+                        <button
+                          type="button"
+                          disabled={Boolean(busy)}
+                          onClick={() => void refundPremium(subscription)}
+                        >
+                          {busy === `refund:${subscription.id}`
+                            ? 'Возвращаем…'
+                            : 'Вернуть Stars'}
+                        </button>
+                      )}
+                  </div>
                 </td>
               </tr>
             ))}
