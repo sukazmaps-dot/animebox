@@ -5,7 +5,6 @@ import './globals.css';
 import './visual-refresh.css';
 import './community.css';
 import './design-v5.css';
-import './mobile-readability.css';
 import './notifications.css';
 import './telegram-logout.css';
 import './home-rails.css';
@@ -20,6 +19,8 @@ import './monetization-v3.css';
 import './asset-pack-v1.css';
 import './engagement-v1.css';
 import './mobile-layout-fix.css';
+import './mobile-readability.css';
+import './typography-polish.css';
 
 import Navbar from '@/components/Navbar';
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
