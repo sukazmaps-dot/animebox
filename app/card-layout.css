@@ -38,3 +38,38 @@
     flex: 0 0 auto;
   }
 }
+
+/* =========================================================
+   AnimeBox micro UI hotfix v1.2
+   Mobile catalog polish + orphan card alignment
+   ========================================================= */
+
+@media (max-width: 520px) {
+  .search-page .anime-grid > :last-child:nth-child(odd),
+  .tracker-page .anime-grid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    width: min(100%, 236px);
+    justify-self: center;
+  }
+
+  .search-page .anime-grid > *,
+  .tracker-page .anime-grid > * {
+    min-width: 0;
+  }
+
+  .pagination {
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  .pagination button {
+    min-width: 96px;
+    padding-inline: 10px;
+    white-space: nowrap;
+  }
+
+  .pagination span {
+    flex: 0 0 auto;
+    text-align: center;
+  }
+}
