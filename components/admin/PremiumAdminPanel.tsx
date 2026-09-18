@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 
+import type { PremiumCatalogPlan, PremiumPlanId } from '@/lib/premium';
+
 type Subscription = {
   id: string;
   user_id: string;
@@ -20,7 +22,10 @@ type Data = {
   subscriptions: Subscription[];
   profiles: { id: string; username: string | null }[];
   matches?: { id: string; username: string | null }[];
+  plans: PremiumCatalogPlan[];
 };
+
+type PlanDraft = { amount: string; active: boolean };
 
 export default function PremiumAdminPanel() {
   const [data, setData] = useState<Data | null>(null);
@@ -32,6 +37,10 @@ export default function PremiumAdminPanel() {
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [refresh, setRefresh] = useState(0);
+  const [planDrafts, setPlanDrafts] = useState<Record<PremiumPlanId, PlanDraft>>({
+    monthly: { amount: '', active: false },
+    yearly: { amount: '', active: false },
+  });
 
   async function load() {
     const response = await fetch('/api/admin/premium', { cache: 'no-store' });
