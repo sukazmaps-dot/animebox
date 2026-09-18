@@ -41,15 +41,23 @@ export async function POST(request: Request) {
       );
     }
 
-    if (plan.billingMode === 'recurring') {
-      const existingRecurring = await getPremiumRecurringSubscription(user.id);
+    const existingRecurring = await getPremiumRecurringSubscription(user.id);
 
-      if (existingRecurring) {
-        return NextResponse.json(
-          { ok: false, error: 'recurring_already_exists' },
-          { status: 409 },
-        );
-      }
+    if (plan.billingMode === 'recurring' && existingRecurring) {
+      return NextResponse.json(
+        { ok: false, error: 'recurring_already_exists' },
+        { status: 409 },
+      );
+    }
+
+    if (
+      plan.id === 'yearly' &&
+      existingRecurring?.autoRenew
+    ) {
+      return NextResponse.json(
+        { ok: false, error: 'cancel_recurring_first' },
+        { status: 409 },
+      );
     }
 
     const initData = typeof body?.initData === 'string' ? body.initData.trim() : '';
