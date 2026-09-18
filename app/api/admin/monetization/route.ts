@@ -80,6 +80,7 @@ export async function GET(request: Request) {
         'id,user_id,provider,product_code,external_id,external_user_id,status,amount,currency,provider_status,provider_created_at,paid_at,refunded_at,metadata,created_at',
         { count: 'exact' },
       )
+      .is('archived_at', null)
       .order('created_at', { ascending: false })
       .order('id', { ascending: false });
 
