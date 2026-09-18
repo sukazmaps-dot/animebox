@@ -156,6 +156,51 @@ export default function PremiumAdminPanel() {
     }
   }
 
+  async function refundPremium(subscription: Subscription) {
+    if (!subscription.transaction_id || subscription.source !== 'telegram_stars') {
+      return;
+    }
+
+    const note =
+      window.prompt(
+        'Причина возврата Premium:',
+        'Возврат AnimeBox Premium',
+      ) ?? '';
+
+    if (!note.trim()) return;
+
+    setBusy(`refund:${subscription.id}`);
+    setError('');
+
+    try {
+      const response = await fetch('/api/admin/premium', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'refund',
+          transactionId: subscription.transaction_id,
+          reason: note,
+        }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Не удалось вернуть Premium-платёж');
+      }
+
+      setRefresh((value) => value + 1);
+      window.dispatchEvent(new Event('animebox:entitlements-changed'));
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Не удалось вернуть Premium-платёж',
+      );
+    } finally {
+      setBusy('');
+    }
+  }
+
   async function revoke(subscription: Subscription) {
     const note = window.prompt('Причина отключения Premium:', 'Ручное отключение администратором') ?? '';
     if (!note.trim()) return;
