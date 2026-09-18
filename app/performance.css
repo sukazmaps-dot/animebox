@@ -1,0 +1,56 @@
+/* =========================================================
+   AnimeBox — Global Performance Pass
+   Lightweight paint/layout hints for below-the-fold content.
+   ========================================================= */
+
+.page-hero__backdrop{
+  object-fit:cover;
+  object-position:65% center;
+}
+
+.home-grid .section:not(:first-child),
+.right-rail > .panel,
+.profile-v2__bottom-card,
+.premium-benefits,
+.premium-plan,
+.premium-history{
+  content-visibility:auto;
+  contain-intrinsic-size:1px 480px;
+}
+
+.anime-card,
+.continue-card,
+.smart-card{
+  contain:paint;
+}
+
+img{
+  image-rendering:auto;
+}
+
+@media(max-width:760px){
+  .page-hero__backdrop{
+    object-position:70% center;
+  }
+
+  .home-grid .section:not(:first-child),
+  .right-rail > .panel,
+  .profile-v2__bottom-card,
+  .premium-benefits,
+  .premium-plan,
+  .premium-history{
+    contain-intrinsic-size:1px 360px;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  html:focus-within{scroll-behavior:auto}
+  *,
+  *::before,
+  *::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    scroll-behavior:auto!important;
+    transition-duration:.01ms!important;
+  }
+}

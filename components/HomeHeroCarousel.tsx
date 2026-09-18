@@ -229,6 +229,16 @@ export default function HomeHeroCarousel({
       return;
     }
 
+    const embeddedDescription =
+      anime.description?.trim();
+
+    if (embeddedDescription) {
+      setLocalizedDescription(
+        embeddedDescription,
+      );
+      return;
+    }
+
     const controller =
       new AbortController();
 
@@ -279,7 +289,7 @@ export default function HomeHeroCarousel({
     return () => {
       controller.abort();
     };
-  }, [anime?.id]);
+  }, [anime?.description, anime?.id]);
 
   if (
     slides.length === 0 ||

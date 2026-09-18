@@ -21,6 +21,7 @@ import './engagement-v1.css';
 import './mobile-layout-fix.css';
 import './mobile-readability.css';
 import './typography-polish.css';
+import './performance.css';
 
 import Navbar from '@/components/Navbar';
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
