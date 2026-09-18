@@ -58,6 +58,8 @@ const nextConfig: NextConfig = {
       ...htmlRoutes.map((source) => ({ source, headers: htmlNoStoreHeaders })),
       { source: '/ui/:path*', headers: staticHeaders },
       { source: '/backgrounds/:path*', headers: staticHeaders },
+      { source: '/brand/:path*', headers: staticHeaders },
+      { source: '/og/:path*', headers: staticHeaders },
     ];
   },
 };
