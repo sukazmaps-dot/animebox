@@ -255,3 +255,7 @@
   .premium-studio{padding:22px 12px 90px}
   .premium-studio__head{flex-direction:column}
 }
+
+.premium-admin__row-actions{display:flex;flex-wrap:wrap;gap:6px}
+.premium-admin__row-actions button{min-height:32px;padding:0 10px;border:1px solid rgba(255,255,255,.10);border-radius:8px;background:rgba(255,255,255,.04);color:#bdb5c8}
+.premium-admin__row-actions button.is-danger{border-color:rgba(255,102,128,.20);background:rgba(160,52,75,.10);color:#ffabb8}
