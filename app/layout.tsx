@@ -29,8 +29,6 @@ import './hero-controls-v5.css';
 import './hero-teaser-v6.css';
 import './hero-swipe-v7.css';
 import './ad-layout-v8.css';
-import './monetization-reliability-v10.css';
-import './mobile-home-ending-v11.css';
 
 import Navbar from '@/components/Navbar';
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
