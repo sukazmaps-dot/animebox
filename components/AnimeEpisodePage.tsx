@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import EpisodeComments from '@/components/EpisodeComments';
 import LibraryStatusControl from '@/components/LibraryStatusControl';
+import AdSlot from '@/components/monetization/AdSlot';
 import AnimeNotificationControl from '@/components/AnimeNotificationControl';
 import type { Anime } from '@/types/anime';
 import {
@@ -561,6 +562,12 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
           <b>Перейти к комментариям ↓</b>
         </a>
       </section>
+
+      <AdSlot
+        placement="watch-below-engagement"
+        format="horizontal"
+        className="monetization-ad--watch"
+      />
 
       <section className="detail__section episode-page__body">
         <div className="episode-page__info">

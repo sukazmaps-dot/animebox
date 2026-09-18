@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import AdsterraNativeBanner from '@/components/monetization/AdsterraNativeBanner';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuthState } from '@/components/AuthStateProvider';
 import {
@@ -8,72 +10,195 @@ import {
   peekSponsorMe,
 } from '@/lib/sponsor-me-client';
 import {
+  AD_PLACEMENT_DEFINITIONS,
+  type AdPlacement,
+  type AdFormat,
+  type AdRuntimeConfig,
+} from '@/lib/ads';
+import {
+  clearAdConfigCache,
+  getAdRuntimeConfig,
+  reserveAdExposure,
+} from '@/lib/ads-client';
+import {
   AD_PROVIDER,
   ADS_ENABLED,
   MONETIZATION_ENABLED,
 } from '@/lib/monetization';
 
 type AdSlotProps = {
-  placement: string;
-  format?: 'horizontal' | 'rectangle' | 'native';
+  placement: AdPlacement;
+  format?: AdFormat;
   className?: string;
 };
 
 /**
- * Provider-agnostic ad mount. Premium/Patron sponsors and staff do not render it.
- * No third-party provider script is injected here yet.
+ * Provider-agnostic ad mount.
+ *
+ * Rules:
+ * - never renders for sponsor/staff accounts with the adFree entitlement;
+ * - obeys runtime placement switches from /admin/ads;
+ * - reserves only a small number of ad exposures per browser session;
+ * - applies a global cooldown between ad blocks;
+ * - provider=none renders nothing, so enabling the ad system before a provider
+ *   is connected never creates empty holes in the UI.
  */
 export default function AdSlot({
   placement,
-  format = 'horizontal',
+  format,
   className = '',
 }: AdSlotProps) {
-  const { user } = useAuthState();
-  const cached = peekSponsorMe(user?.id, 1);
+  const { user, loading: authLoading } = useAuthState();
+  const cached = useMemo(() => peekSponsorMe(user?.id, 1), [user?.id]);
   const [adFree, setAdFree] = useState(
     Boolean(cached?.benefits.adFree || cached?.role),
   );
+  const [sponsorResolved, setSponsorResolved] = useState(
+    !user?.id || Boolean(cached),
+  );
+  const [config, setConfig] = useState<AdRuntimeConfig | null>(null);
+  const [reserved, setReserved] = useState(false);
+  const [providerFailed, setProviderFailed] = useState(false);
+
+  const resolvedFormat = format ?? AD_PLACEMENT_DEFINITIONS[placement].format;
+  const handleProviderError = useCallback(() => setProviderFailed(true), []);
 
   useEffect(() => {
-    if (!user?.id) return;
     let active = true;
 
-    const refresh = () => {
-      void getSponsorMe(user.id, 1, { force: true })
+    if (!user?.id) {
+      queueMicrotask(() => {
+        if (!active) return;
+        setAdFree(false);
+        setSponsorResolved(true);
+      });
+      return () => {
+        active = false;
+      };
+    }
+
+    const currentCached = peekSponsorMe(user.id, 1);
+
+    if (currentCached) {
+      queueMicrotask(() => {
+        if (!active) return;
+        setAdFree(Boolean(currentCached.benefits.adFree || currentCached.role));
+        setSponsorResolved(true);
+      });
+    } else {
+      queueMicrotask(() => {
+        if (active) setSponsorResolved(false);
+      });
+    }
+
+    const refresh = (force = false) => {
+      void getSponsorMe(user.id, 1, { force })
         .then((data) => {
-          if (active) setAdFree(Boolean(data.benefits.adFree || data.role));
+          if (!active) return;
+          setAdFree(Boolean(data.benefits.adFree || data.role));
+          setSponsorResolved(true);
         })
         .catch(() => {
-          // Ads should not break the page when sponsor status is temporarily unavailable.
+          if (!active) return;
+          // Fail closed for logged-in users: if sponsor entitlement cannot be
+          // verified, prefer hiding ads over accidentally showing them to a
+          // paid/ad-free account.
+          setAdFree(true);
+          setSponsorResolved(true);
         });
     };
 
-    void getSponsorMe(user.id, 1)
-      .then((data) => {
-        if (active) setAdFree(Boolean(data.benefits.adFree || data.role));
-      })
-      .catch(() => undefined);
+    refresh(false);
 
-    window.addEventListener('animebox:support-paid', refresh);
+    const onSupportPaid = () => refresh(true);
+    window.addEventListener('animebox:support-paid', onSupportPaid);
     return () => {
       active = false;
-      window.removeEventListener('animebox:support-paid', refresh);
+      window.removeEventListener('animebox:support-paid', onSupportPaid);
     };
   }, [user?.id]);
 
-  if (!MONETIZATION_ENABLED || !ADS_ENABLED || adFree) {
-    return null;
-  }
+  useEffect(() => {
+    let active = true;
+
+    void getAdRuntimeConfig()
+      .then((next) => {
+        if (active) setConfig(next);
+      })
+      .catch(() => {
+        if (active) setConfig(null);
+      });
+
+    const refresh = () => {
+      clearAdConfigCache();
+      setReserved(false);
+      setProviderFailed(false);
+      void getAdRuntimeConfig({ force: true })
+        .then((next) => {
+          if (active) setConfig(next);
+        })
+        .catch(() => undefined);
+    };
+
+    window.addEventListener('animebox:ads-config-updated', refresh);
+    return () => {
+      active = false;
+      window.removeEventListener('animebox:ads-config-updated', refresh);
+    };
+  }, []);
+
+  const eligible = Boolean(
+    MONETIZATION_ENABLED &&
+      ADS_ENABLED &&
+      AD_PROVIDER !== 'none' &&
+      config?.enabled &&
+      config.provider !== 'none' &&
+      config.placements[placement] &&
+      !authLoading &&
+      sponsorResolved &&
+      !adFree,
+  );
+
+  useEffect(() => {
+    if (!eligible || !config || reserved) return;
+    const allowed = reserveAdExposure(placement, config);
+    if (!allowed) return;
+    queueMicrotask(() => setReserved(true));
+  }, [config, eligible, placement, reserved]);
+
+  if (!eligible || !reserved || !config || providerFailed) return null;
 
   return (
     <aside
-      className={`monetization-ad monetization-ad--${format} ${className}`.trim()}
+      className={`monetization-ad monetization-ad--${resolvedFormat} ${className}`.trim()}
       data-ad-placement={placement}
-      data-ad-provider={AD_PROVIDER}
+      data-ad-provider={config.provider}
       aria-label="Реклама"
     >
       <span className="monetization-ad__label">Реклама</span>
-      <div className="monetization-ad__mount" data-ad-mount={placement} />
+
+      {config.provider === 'house' ? (
+        <Link className="monetization-ad__house" href="/support">
+          <span>AnimeBox</span>
+          <strong>Помоги проекту расти без навязчивой рекламы</strong>
+          <small>Поддержка проекта отключает наши рекламные блоки на подходящих уровнях.</small>
+          <b>Поддержать →</b>
+        </Link>
+      ) : config.provider === 'adsterra' ? (
+        <div
+          className="monetization-ad__mount monetization-ad__mount--adsterra"
+          data-ad-mount={placement}
+          data-ad-format={resolvedFormat}
+        >
+          <AdsterraNativeBanner onError={handleProviderError} />
+        </div>
+      ) : (
+        <div
+          className="monetization-ad__mount"
+          data-ad-mount={placement}
+          data-ad-format={resolvedFormat}
+        />
+      )}
     </aside>
   );
 }

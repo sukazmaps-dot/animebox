@@ -390,3 +390,151 @@ html.telegram-mini-app .support-box__web-only {
     justify-content: center;
   }
 }
+
+/* =========================================================
+   AnimeBox Ad System v1
+   Light, provider-agnostic placements
+   ========================================================= */
+
+.monetization-ad {
+  display: grid;
+  place-items: stretch;
+  margin: 18px 0;
+  min-width: 0;
+  isolation: isolate;
+}
+
+.monetization-ad--horizontal {
+  min-height: 92px;
+}
+
+.monetization-ad--native {
+  min-height: 112px;
+}
+
+.monetization-ad--watch {
+  margin: 16px 0 22px;
+}
+
+.monetization-ad__mount {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: inherit;
+}
+
+.monetization-ad__house {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 18px;
+  align-items: center;
+  width: 100%;
+  min-height: inherit;
+  padding: 18px 20px;
+  color: #f4f1ff;
+  text-decoration: none;
+  background:
+    radial-gradient(circle at 82% 20%, rgba(136, 85, 255, .18), transparent 36%),
+    linear-gradient(135deg, rgba(22, 18, 40, .92), rgba(10, 13, 25, .96));
+}
+
+.monetization-ad__house > span {
+  color: #aa8dff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+}
+
+.monetization-ad__house > strong {
+  grid-column: 1;
+  margin-top: 2px;
+  font-size: 15px;
+}
+
+.monetization-ad__house > small {
+  grid-column: 1;
+  color: rgba(232, 234, 247, .58);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.monetization-ad__house > b {
+  grid-column: 2;
+  grid-row: 1 / 4;
+  align-self: center;
+  padding: 9px 12px;
+  border: 1px solid rgba(158, 118, 255, .28);
+  border-radius: 10px;
+  background: rgba(132, 88, 236, .14);
+  color: #d7c9ff;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .monetization-ad {
+    margin: 14px 0;
+    border-radius: 15px;
+  }
+
+  .monetization-ad--horizontal,
+  .monetization-ad--native,
+  .monetization-ad--rectangle {
+    min-height: 82px;
+  }
+
+  .monetization-ad__house {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+    padding: 15px 16px;
+  }
+
+  .monetization-ad__house > strong,
+  .monetization-ad__house > small,
+  .monetization-ad__house > b {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .monetization-ad__house > b {
+    width: max-content;
+    margin-top: 8px;
+  }
+}
+
+/* =========================================================
+   AnimeBox · Adsterra Native Banner provider v1
+   ========================================================= */
+
+.monetization-ad__mount--adsterra {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  width: 100%;
+  min-width: 0;
+}
+
+.adsterra-native-host {
+  width: 100%;
+  min-width: 0;
+  min-height: 90px;
+}
+
+.adsterra-native-host > div[id^='container-'] {
+  width: 100%;
+  min-width: 0;
+}
+
+.adsterra-native-host.is-failed {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .monetization-ad__mount--adsterra,
+  .adsterra-native-host {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+}

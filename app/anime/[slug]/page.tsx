@@ -13,6 +13,7 @@ import AnimeDetailControls from '@/components/AnimeDetailControls';
 import AnimeNotificationControl from '@/components/AnimeNotificationControl';
 import EpisodeDiscussionHub from '@/components/EpisodeDiscussionHub';
 import RelatedAnime, { RelatedAnimeLoading } from '@/components/RelatedAnime';
+import AdSlot from '@/components/monetization/AdSlot';
 
 import { resolveAnimeRoute } from '@/lib/anime-route';
 import { animeHref } from '@/lib/anime-url';
@@ -940,6 +941,10 @@ export default async function AnimePage({
         />
       </section>
 
+
+      <section className="anime-detail-after-hero mx-auto max-w-7xl px-4 pb-5 md:px-6">
+        <AdSlot placement="anime-detail-before-related" format="native" />
+      </section>
 
       {/* =====================================================
           ПОХОЖИЕ АНИМЕ / ВНУТРЕННЯЯ ПЕРЕЛИНКОВКА
