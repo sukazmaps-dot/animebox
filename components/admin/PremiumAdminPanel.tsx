@@ -46,7 +46,18 @@ export default function PremiumAdminPanel() {
     const response = await fetch('/api/admin/premium', { cache: 'no-store' });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить Premium');
-    setData(payload as Data);
+    const next = payload as Data;
+    setData(next);
+    setPlanDrafts((current) => {
+      const result = { ...current };
+      for (const plan of next.plans ?? []) {
+        result[plan.id] = {
+          amount: plan.telegramStarsAmount ? String(plan.telegramStarsAmount) : '',
+          active: plan.active,
+        };
+      }
+      return result;
+    });
   }
 
   useEffect(() => {
