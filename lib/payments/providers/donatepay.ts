@@ -1,6 +1,7 @@
 import 'server-only';
 
 const DEFAULT_BASE_URL = 'https://donatepay.ru/api/v1';
+const DEFAULT_CURRENCY = 'RUB';
 
 export type DonatePayTransaction = {
   id: string;
@@ -36,7 +37,7 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 
 function asNumber(value: unknown) {
-  const number = typeof value === 'number' ? value : Number(value);
+  const number = typeof value === 'number' ? value : Number(String(value ?? '').replace(',', '.'));
   return Number.isFinite(number) ? number : null;
 }
 
@@ -44,14 +45,91 @@ function text(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
+function lower(value: unknown) {
+  return String(value ?? '').trim().toLowerCase();
+}
+
 function isSuccess(value: unknown) {
+  if (value == null || value === '') return true;
   if (typeof value === 'number') return value === 0;
-  return String(value ?? '').toLowerCase() === 'success';
+  return lower(value) === 'success';
 }
 
 function isDonation(value: unknown) {
+  if (value == null || value === '') return true;
   if (typeof value === 'number') return value === 0;
-  return String(value ?? '').toLowerCase() === 'donation';
+  return lower(value) === 'donation';
+}
+
+function parseDonatePayDate(value: unknown): string | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const ms = value < 10_000_000_000 ? value * 1000 : value;
+    const date = new Date(ms);
+    return Number.isFinite(date.getTime()) ? date.toISOString() : null;
+  }
+
+  if (typeof value === 'string') {
+    const raw = value.trim();
+    if (!raw) return null;
+
+    const numeric = Number(raw);
+    if (/^\d+(?:\.\d+)?$/.test(raw) && Number.isFinite(numeric)) {
+      return parseDonatePayDate(numeric);
+    }
+
+    const ms = Date.parse(raw);
+    return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
+  }
+
+  const record = asRecord(value);
+  if (!record) return null;
+
+  for (const key of ['date', 'created_at', 'createdAt', 'timestamp', 'time']) {
+    const parsed = parseDonatePayDate(record[key]);
+    if (parsed) return parsed;
+  }
+
+  return null;
+}
+
+function extractTransactionRows(payload: unknown): unknown[] {
+  if (Array.isArray(payload)) return payload;
+
+  const root = asRecord(payload);
+  if (!root) return [];
+
+  const rootStatus = lower(root.status);
+  if (rootStatus && rootStatus !== 'success') {
+    const message = text(root.message) || text(root.error) || 'DonatePay API returned an error payload.';
+    throw new Error(`DonatePay API: ${message}`);
+  }
+
+  for (const key of ['data', 'transactions', 'items', 'rows', 'result']) {
+    const value = root[key];
+    if (Array.isArray(value)) return value;
+
+    const nested = asRecord(value);
+    if (!nested) continue;
+
+    for (const nestedKey of ['data', 'transactions', 'items', 'rows', 'result']) {
+      const rows = nested[nestedKey];
+      if (Array.isArray(rows)) return rows;
+    }
+
+    // Some DonatePay-compatible responses can return a single transaction object.
+    if (nested.id != null && (nested.sum != null || nested.amount != null)) {
+      return [nested];
+    }
+  }
+
+  if (root.id != null && (root.sum != null || root.amount != null)) {
+    return [root];
+  }
+
+  const count = asNumber(root.count);
+  if (count === 0) return [];
+
+  return [];
 }
 
 function normalizeTransaction(value: unknown): DonatePayTransaction | null {
@@ -59,28 +137,39 @@ function normalizeTransaction(value: unknown): DonatePayTransaction | null {
   if (!row || !isSuccess(row.status) || !isDonation(row.type)) return null;
 
   const id = row.id == null ? '' : String(row.id).trim();
-  const amount = asNumber(row.sum);
-  const currency = text(row.currency)?.toUpperCase() ?? '';
-  const created = text(row.created_at);
-  const createdMs = created ? Date.parse(created) : Number.NaN;
+  const vars = asRecord(row.vars);
+  const amount = asNumber(row.sum ?? row.amount ?? vars?.sum ?? vars?.amount);
+  const currency = (
+    text(row.currency) ??
+    text(vars?.currency) ??
+    process.env.DONATEPAY_DEFAULT_CURRENCY?.trim() ??
+    DEFAULT_CURRENCY
+  ).toUpperCase();
+  const createdAt =
+    parseDonatePayDate(row.created_at) ??
+    parseDonatePayDate(row.createdAt) ??
+    parseDonatePayDate(vars?.created_at) ??
+    parseDonatePayDate(vars?.date);
 
-  if (!id || amount == null || amount <= 0 || !currency || !Number.isFinite(createdMs)) {
+  if (!id || amount == null || amount <= 0 || !currency || !createdAt) {
     return null;
   }
-
-  const vars = asRecord(row.vars);
 
   return {
     id,
     amount,
     currency,
-    donorName: text(vars?.name) ?? text(row.what),
-    comment: text(vars?.comment) ?? text(row.comment),
-    paymentSystem: text(vars?.payment_system),
+    donorName: text(vars?.name) ?? text(vars?.username) ?? text(row.what) ?? text(row.name),
+    comment:
+      text(vars?.comment) ??
+      text(vars?.message) ??
+      text(row.comment) ??
+      text(row.message),
+    paymentSystem: text(vars?.payment_system) ?? text(row.payment_system),
     commission: asNumber(row.commission),
     toCash: asNumber(row.to_cash),
     toPay: asNumber(row.to_pay),
-    createdAt: new Date(createdMs).toISOString(),
+    createdAt,
   };
 }
 
@@ -99,8 +188,10 @@ export async function fetchDonatePayTransactions({
   url.searchParams.set('access_token', token);
   url.searchParams.set('limit', String(Math.min(100, Math.max(1, limit))));
   url.searchParams.set('order', after ? 'ASC' : 'DESC');
-  url.searchParams.set('type', 'Donation');
-  url.searchParams.set('status', 'Success');
+  // DonatePay documents these values in lowercase. Uppercase values can return
+  // a successful HTTP response with a non-transaction payload.
+  url.searchParams.set('type', 'donation');
+  url.searchParams.set('status', 'success');
   if (after && /^\d+$/.test(after)) url.searchParams.set('after', after);
 
   const response = await fetch(url, {
@@ -111,8 +202,8 @@ export async function fetchDonatePayTransactions({
   });
 
   if (!response.ok) {
-    // Do not include response/request URLs in errors: access_token is a query
-    // parameter and must never leak into logs.
+    // Never include response/request URLs in errors: access_token is a query
+    // parameter and must not leak into logs.
     throw new DonatePayApiError(
       response.status === 429
         ? 'DonatePay rate limit reached. Try again later.'
@@ -121,12 +212,16 @@ export async function fetchDonatePayTransactions({
     );
   }
 
-  const payload = (await response.json()) as { data?: unknown };
-  if (!Array.isArray(payload.data)) {
-    throw new Error('DonatePay API returned an unexpected transactions payload.');
-  }
+  const payload = (await response.json()) as unknown;
+  const rows = extractTransactionRows(payload);
 
-  return payload.data
+  const transactions = rows
     .map(normalizeTransaction)
     .filter((item): item is DonatePayTransaction => Boolean(item));
+
+  if (rows.length > 0 && transactions.length === 0) {
+    throw new Error('DonatePay returned transactions, but AnimeBox could not normalize them.');
+  }
+
+  return transactions;
 }
