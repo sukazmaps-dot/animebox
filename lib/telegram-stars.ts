@@ -262,6 +262,9 @@ export async function createPremiumInvoiceLink({
         amount,
       },
     ],
+    ...(plan === 'monthly'
+      ? { subscription_period: 30 * 24 * 60 * 60 }
+      : {}),
   });
 
   return { invoiceUrl, payload };
@@ -343,5 +346,24 @@ export async function refundStarPayment({
   return callTelegramApi<boolean>(botToken, 'refundStarPayment', {
     user_id: userId,
     telegram_payment_charge_id: telegramPaymentChargeId,
+  });
+}
+
+
+export async function editUserStarSubscription({
+  botToken,
+  userId,
+  telegramPaymentChargeId,
+  isCanceled,
+}: {
+  botToken: string;
+  userId: number;
+  telegramPaymentChargeId: string;
+  isCanceled: boolean;
+}) {
+  return callTelegramApi<boolean>(botToken, 'editUserStarSubscription', {
+    user_id: userId,
+    telegram_payment_charge_id: telegramPaymentChargeId,
+    is_canceled: isCanceled,
   });
 }
