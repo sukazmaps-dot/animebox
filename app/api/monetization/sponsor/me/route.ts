@@ -52,9 +52,9 @@ export async function GET(request: Request) {
       getSponsorTotal(user.id),
       admin
         .from('payment_transactions')
-        .select('id,amount,currency,status,paid_at,refunded_at,created_at,metadata')
+        .select('id,provider,amount,currency,status,paid_at,refunded_at,created_at,metadata')
         .eq('user_id', user.id)
-        .eq('provider', 'donatepay')
+        .in('provider', ['donatepay', 'boosty'])
         .in('status', ['paid', 'refunded'])
         .order('created_at', { ascending: false })
         .limit(20),
@@ -82,6 +82,7 @@ export async function GET(request: Request) {
 
       return {
         id: item.id,
+        provider: item.provider,
         amount: Number(item.amount),
         currency: item.currency,
         status: item.status,
