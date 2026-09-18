@@ -8,6 +8,10 @@ import {
   type TelegramStarPartnerUser,
   type TelegramStarTransaction,
 } from '@/lib/telegram-stars';
+import {
+  markTelegramStarsPaymentRefunded,
+  recordTelegramStarsPayment,
+} from '@/lib/payments/providers/telegram-stars';
 
 type PaymentRow = {
   id: string;
@@ -94,13 +98,14 @@ export async function reconcileStarPayments({
     });
 
     if (outgoingRefund) {
+      const refundedAt = new Date(outgoingRefund.date * 1000).toISOString();
       if (payment.status !== 'refunded') {
         const { error } = await admin
           .from('star_payments')
           .update({
             status: 'refunded',
             reconciliation_status: 'refunded',
-            refunded_at: new Date(outgoingRefund.date * 1000).toISOString(),
+            refunded_at: refundedAt,
             telegram_verified_at: new Date().toISOString(),
             reconciliation_error: null,
           })
@@ -108,6 +113,13 @@ export async function reconcileStarPayments({
         if (error) throw error;
         await addEvent(payment.id, 'refund_completed', { source: 'reconciliation' });
       }
+
+      await markTelegramStarsPaymentRefunded({
+        telegramPaymentChargeId: payment.telegram_payment_charge_id,
+        refundedAt,
+        source: 'reconciliation',
+      });
+
       refunded += 1;
       continue;
     }
@@ -166,6 +178,15 @@ export async function reconcileStarPayments({
       .eq('id', payment.id);
     if (error) throw error;
     await addEvent(payment.id, 'telegram_verified', { source: 'getStarTransactions' });
+    await recordTelegramStarsPayment({
+      userId: payment.user_id,
+      telegramId: payment.telegram_id,
+      amount: payment.amount,
+      telegramPaymentChargeId: payment.telegram_payment_charge_id,
+      legacyStarPaymentId: payment.id,
+      createdAt: payment.created_at,
+      source: 'reconciliation',
+    });
     verified += 1;
   }
 
@@ -206,6 +227,15 @@ export async function reconcileStarPayments({
     if (recoveredPayment?.id) {
       await addEvent(recoveredPayment.id, 'payment_recovered', {
         source: 'getStarTransactions',
+      });
+      await recordTelegramStarsPayment({
+        userId,
+        telegramId,
+        amount: tx.amount,
+        telegramPaymentChargeId: tx.id,
+        legacyStarPaymentId: recoveredPayment.id,
+        createdAt: new Date(tx.date * 1000).toISOString(),
+        source: 'reconciliation',
       });
       recovered += 1;
     }

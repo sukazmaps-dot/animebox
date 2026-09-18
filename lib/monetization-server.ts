@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import { recordTelegramStarsPayment } from '@/lib/payments/providers/telegram-stars';
 
 export async function recordStarPayment({
   telegramId,
@@ -61,6 +62,18 @@ export async function recordStarPayment({
       console.error('[AnimeBox Stars] failed to record payment event', eventError);
     }
   }
+
+  // Dual-write into the provider-agnostic ledger. star_payments remains the
+  // source for the current sponsor system until the staged migration is done.
+  await recordTelegramStarsPayment({
+    userId: profile?.id ?? null,
+    telegramId,
+    amount,
+    telegramPaymentChargeId,
+    providerPaymentChargeId: providerPaymentChargeId ?? null,
+    legacyStarPaymentId: inserted?.id ?? null,
+    source: 'telegram_webhook',
+  });
 
   return { userId: profile?.id ?? null };
 }

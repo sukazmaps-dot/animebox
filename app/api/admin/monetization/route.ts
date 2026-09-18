@@ -2,6 +2,9 @@ import { ApiError, adminClient, failure, response } from '@/lib/community-server
 import { requireAdmin, writeAdminAudit } from '@/lib/admin-server';
 import { getMyStarBalance, refundStarPayment } from '@/lib/telegram-stars';
 import { reconcileStarPayments } from '@/lib/star-reconciliation';
+import { isDonatePayConfigured } from '@/lib/payments/providers/donatepay';
+import { syncDonatePayTransactions } from '@/lib/payments/sync-donatepay';
+import { markTelegramStarsPaymentRefunded } from '@/lib/payments/providers/telegram-stars';
 
 const PAGE_SIZE = 25;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -71,24 +74,38 @@ export async function GET(request: Request) {
       .order('total_stars', { ascending: false })
       .order('account_key');
 
+    let unifiedQuery = admin
+      .from('payment_transactions')
+      .select(
+        'id,user_id,provider,product_code,external_id,external_user_id,status,amount,currency,provider_status,provider_created_at,paid_at,refunded_at,metadata,created_at',
+        { count: 'exact' },
+      )
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false });
+
     if (q) {
       const ids = matchedProfiles.map((item) => item.id);
       if (ids.length) {
         paymentsQuery = paymentsQuery.in('user_id', ids);
         sponsorQuery = sponsorQuery.in('user_id', ids);
+        unifiedQuery = unifiedQuery.in('user_id', ids);
       } else if (/^\d{4,20}$/.test(q)) {
         paymentsQuery = paymentsQuery.eq('telegram_id', Number(q));
         sponsorQuery = sponsorQuery.eq('account_key', `t:${q}`);
+        unifiedQuery = unifiedQuery.eq('external_user_id', q);
       } else {
         return response({
           metrics: metrics.data,
           analytics,
           payments: [],
+          unifiedPayments: [],
           sponsors: [],
           profiles: [],
           notes: [],
           adjustments: [],
           telegramBalance: null,
+          donatePayConfigured: isDonatePayConfigured(),
+          donatePaySync: null,
           page,
           q,
           hasMore: false,
@@ -112,9 +129,19 @@ export async function GET(request: Request) {
     const payments = await paymentsQuery.range(from, to);
     if (payments.error) throw payments.error;
 
+    const unifiedResult = await unifiedQuery.range(from, to);
+    const unifiedPayments = unifiedResult.error && missingRelation(unifiedResult.error)
+      ? []
+      : unifiedResult.error
+        ? (() => { throw unifiedResult.error; })()
+        : unifiedResult.data ?? [];
+    const unifiedCount = unifiedResult.error && missingRelation(unifiedResult.error)
+      ? 0
+      : unifiedResult.count ?? 0;
+
     const ids = [
       ...new Set(
-        [...(payments.data ?? []), ...(sponsors.data ?? []), ...matchedProfiles]
+        [...(payments.data ?? []), ...(sponsors.data ?? []), ...unifiedPayments, ...matchedProfiles]
           .map((item) => ('id' in item && 'username' in item ? item.id : item.user_id))
           .filter((value): value is string => Boolean(value)),
       ),
@@ -150,18 +177,32 @@ export async function GET(request: Request) {
       }
     }
 
+    const donatePayStateResult = await admin
+      .from('payment_provider_sync_state')
+      .select('cursor,last_synced_at,last_error,metadata')
+      .eq('provider', 'donatepay')
+      .maybeSingle();
+    const donatePaySync = donatePayStateResult.error && missingRelation(donatePayStateResult.error)
+      ? null
+      : donatePayStateResult.error
+        ? (() => { throw donatePayStateResult.error; })()
+        : donatePayStateResult.data;
+
     return response({
       metrics: metrics.data,
       analytics,
       payments: payments.data,
+      unifiedPayments,
       sponsors: sponsors.data,
       profiles: profiles.data,
       notes: notesResult.data ?? [],
       adjustments: adjustmentsResult.data ?? [],
       telegramBalance,
+      donatePayConfigured: isDonatePayConfigured(),
+      donatePaySync,
       page,
       q,
-      hasMore: page * PAGE_SIZE < Math.max(payments.count ?? 0, sponsors.count ?? 0),
+      hasMore: page * PAGE_SIZE < Math.max(payments.count ?? 0, sponsors.count ?? 0, unifiedCount),
       canAdjust: role === 'owner',
     });
   } catch (error) {
@@ -191,6 +232,22 @@ export async function POST(request: Request) {
       if (!botToken) throw new ApiError(500, 'TELEGRAM_BOT_TOKEN не настроен.');
       const result = await reconcileStarPayments({ botToken, transactionLimit: 100 });
       await writeAdminAudit({ actorId: user.id, actorRole: role, action: 'stars.reconcile', targetType: 'monetization', details: result });
+      return response({ ok: true, result });
+    }
+
+    if (action === 'sync_donatepay') {
+      const { user, role } = await requireAdmin(['owner', 'admin']);
+      if (!isDonatePayConfigured()) {
+        throw new ApiError(503, 'DONATEPAY_API_TOKEN не настроен.');
+      }
+      const result = await syncDonatePayTransactions();
+      await writeAdminAudit({
+        actorId: user.id,
+        actorRole: role,
+        action: 'payments.donatepay_sync',
+        targetType: 'monetization',
+        details: result,
+      });
       return response({ ok: true, result });
     }
 
@@ -265,6 +322,11 @@ export async function POST(request: Request) {
       const { error: updateError } = await admin.from('star_payments').update({ status: 'refunded', reconciliation_status: 'refunded', refunded_at: now, refund_reason: reason, reconciliation_error: null, telegram_verified_at: now }).eq('id', payment.id);
       if (updateError) throw updateError;
       await admin.from('star_payment_events').insert({ payment_id: payment.id, event_type: 'refund_completed', actor_user_id: user.id, details: { reason, amount: payment.amount } });
+      await markTelegramStarsPaymentRefunded({
+        telegramPaymentChargeId: payment.telegram_payment_charge_id,
+        refundedAt: now,
+        source: 'admin',
+      });
       await writeAdminAudit({ actorId: user.id, actorRole: role, action: 'stars.refund', targetType: 'star_payment', targetId: payment.id, reason, details: { amount: payment.amount, telegram_id: payment.telegram_id } });
       return response({ ok: true });
     }

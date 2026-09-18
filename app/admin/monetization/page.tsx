@@ -21,6 +21,31 @@ type Payment = {
   telegram_payment_charge_id: string;
 };
 
+type UnifiedPayment = {
+  id: string;
+  user_id: string | null;
+  provider: string;
+  product_code: string;
+  external_id: string;
+  external_user_id: string | null;
+  status: 'pending' | 'paid' | 'failed' | 'cancelled' | 'partially_refunded' | 'refunded';
+  amount: number | string;
+  currency: string;
+  provider_status: string | null;
+  provider_created_at: string | null;
+  paid_at: string | null;
+  refunded_at: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+};
+
+type DonatePaySyncState = {
+  cursor: string | null;
+  last_synced_at: string | null;
+  last_error: string | null;
+  metadata: Record<string, unknown> | null;
+};
+
 type Sponsor = {
   account_key: string;
   user_id: string | null;
@@ -59,11 +84,14 @@ type Data = {
     repeat_payers_30d: number;
   };
   payments: Payment[];
+  unifiedPayments: UnifiedPayment[];
   sponsors: Sponsor[];
   profiles: { id: string; username: string | null; telegram_id: number | null }[];
   notes: { user_id: string; note: string; updated_at: string }[];
   adjustments: Adjustment[];
   telegramBalance: number | null;
+  donatePayConfigured: boolean;
+  donatePaySync: DonatePaySyncState | null;
   canAdjust: boolean;
   hasMore: boolean;
 };
@@ -121,6 +149,26 @@ export default function MonetizationAdmin() {
     ) : (
       <span className="sponsor-v2-unlinked">{name(id)}</span>
     );
+
+  const unifiedOwner = (payment: UnifiedPayment) => {
+    if (payment.user_id) return profileLink(payment.user_id);
+    const donorName = typeof payment.metadata?.donor_name === 'string'
+      ? payment.metadata.donor_name
+      : null;
+    return (
+      <span className="sponsor-v2-unlinked">
+        {donorName ? `${payment.provider} · ${donorName}` : `${payment.provider} · без привязки`}
+      </span>
+    );
+  };
+
+  const unifiedAmount = (payment: UnifiedPayment) => {
+    const amount = Number(payment.amount);
+    const display = Number.isFinite(amount)
+      ? amount.toLocaleString('ru-RU', { maximumFractionDigits: 4 })
+      : String(payment.amount);
+    return `${display} ${payment.currency}`;
+  };
 
   async function runAction(payload: Record<string, unknown>, key: string) {
     setActionId(key);
@@ -180,13 +228,20 @@ export default function MonetizationAdmin() {
     <main className="sponsor-v2-admin sponsor-v3-admin">
       <div className="sponsor-v25-head">
         <div>
-          <span>STAGE 2.5 V3</span>
+          <span>UNIFIED PAYMENTS V1</span>
           <h1>Монетизация AnimeBox</h1>
-          <p>Спонсоры, Stars, корректировки, аналитика и возвраты.</p>
+          <p>Stars, DonatePay, единый ledger, спонсоры, аналитика и возвраты.</p>
         </div>
         <div className="sponsor-v25-actions">
           <button disabled={loading || actionId === 'reconcile'} onClick={() => void runAction({ action: 'reconcile' }, 'reconcile')}>
             {actionId === 'reconcile' ? 'Сверяем…' : '↻ Сверить Telegram'}
+          </button>
+          <button
+            disabled={loading || Boolean(actionId) || !data?.donatePayConfigured}
+            title={data?.donatePayConfigured ? 'Получить новые успешные донаты' : 'Добавь DONATEPAY_API_TOKEN в Vercel'}
+            onClick={() => void runAction({ action: 'sync_donatepay' }, 'sync-donatepay')}
+          >
+            {actionId === 'sync-donatepay' ? 'Синхронизация…' : '↻ DonatePay'}
           </button>
           <button disabled={loading} onClick={() => setRefresh((value) => value + 1)}>Обновить</button>
         </div>
@@ -209,6 +264,20 @@ export default function MonetizationAdmin() {
             <div>Спонсоров<strong>{data.metrics.sponsors}</strong></div>
             <div>Платежей<strong>{data.metrics.payment_count}</strong></div>
           </div>
+
+          <section className="sponsor-v3-analytics">
+            <h2>Unified Payments · состояние провайдеров</h2>
+            <div>
+              <article><span>Telegram Stars</span><strong>Подключён</strong></article>
+              <article><span>DonatePay</span><strong>{data.donatePayConfigured ? 'Подключён' : 'Нужен token'}</strong></article>
+              <article>
+                <span>DonatePay sync</span>
+                <strong>{data.donatePaySync?.last_synced_at ? new Date(data.donatePaySync.last_synced_at).toLocaleString('ru-RU') : 'Ещё не запускался'}</strong>
+              </article>
+              <article><span>DonatePay cursor</span><strong>{data.donatePaySync?.cursor || '—'}</strong></article>
+            </div>
+            {data.donatePaySync?.last_error && <p className="sponsor-v25-error" role="alert">DonatePay: {data.donatePaySync.last_error}</p>}
+          </section>
 
           {data.analytics && (
             <section className="sponsor-v3-analytics">
@@ -269,7 +338,27 @@ export default function MonetizationAdmin() {
             </>
           )}
 
-          <h2>Платежи</h2>
+          <h2>Unified Payments</h2>
+          <div className="sponsor-v2-table sponsor-v25-table">
+            <table>
+              <thead><tr><th>Дата</th><th>Пользователь</th><th>Провайдер</th><th>Продукт</th><th>Сумма</th><th>Статус</th></tr></thead>
+              <tbody>
+                {data.unifiedPayments.map((payment) => (
+                  <tr key={payment.id}>
+                    <td>{new Date(payment.provider_created_at || payment.created_at).toLocaleString('ru-RU')}</td>
+                    <td>{unifiedOwner(payment)}</td>
+                    <td>{payment.provider}</td>
+                    <td>{payment.product_code}</td>
+                    <td>{unifiedAmount(payment)}</td>
+                    <td><span className="sponsor-v25-status" data-status={payment.status}>{payment.status}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!data.unifiedPayments.length && <p>Unified ledger пока пуст.</p>}
+          </div>
+
+          <h2>Telegram Stars · legacy ledger</h2>
           <div className="sponsor-v2-table sponsor-v25-table">
             <table>
               <thead><tr><th>Дата</th><th>Пользователь</th><th>Stars</th><th>Платёж</th><th>Сверка</th><th>Заметка</th><th>Действия</th></tr></thead>
