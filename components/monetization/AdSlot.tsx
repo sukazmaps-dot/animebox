@@ -6,9 +6,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuthState } from '@/components/AuthStateProvider';
 import {
-  getSponsorMe,
-  peekSponsorMe,
-} from '@/lib/sponsor-me-client';
+  getPremiumMe,
+  peekPremiumMe,
+} from '@/lib/entitlements-client';
 import {
   AD_PLACEMENT_DEFINITIONS,
   type AdPlacement,
@@ -52,13 +52,11 @@ export default function AdSlot({
   className = '',
 }: AdSlotProps) {
   const { user, loading: authLoading } = useAuthState();
-  const cached = useMemo(() => peekSponsorMe(user?.id, 1), [user?.id]);
+  const cached = useMemo(() => (user?.id ? peekPremiumMe() : null), [user?.id]);
   const slotRef = useRef<HTMLDivElement>(null);
 
-  const [adFree, setAdFree] = useState(
-    Boolean(cached?.benefits.adFree || cached?.role),
-  );
-  const [sponsorResolved, setSponsorResolved] = useState(
+  const [adFree, setAdFree] = useState(Boolean(cached?.entitlements.adFree));
+  const [entitlementsResolved, setEntitlementsResolved] = useState(
     !user?.id || Boolean(cached),
   );
   const [config, setConfig] = useState<AdRuntimeConfig | null>(null);
@@ -89,51 +87,53 @@ export default function AdSlot({
       queueMicrotask(() => {
         if (!active) return;
         setAdFree(false);
-        setSponsorResolved(true);
+        setEntitlementsResolved(true);
       });
       return () => {
         active = false;
       };
     }
 
-    const currentCached = peekSponsorMe(user.id, 1);
+    const currentCached = peekPremiumMe();
 
     if (currentCached) {
       queueMicrotask(() => {
         if (!active) return;
-        setAdFree(Boolean(currentCached.benefits.adFree || currentCached.role));
-        setSponsorResolved(true);
+        setAdFree(Boolean(currentCached.entitlements.adFree));
+        setEntitlementsResolved(true);
       });
     } else {
       queueMicrotask(() => {
-        if (active) setSponsorResolved(false);
+        if (active) setEntitlementsResolved(false);
       });
     }
 
     const refresh = (force = false) => {
-      void getSponsorMe(user.id, 1, { force })
+      void getPremiumMe({ force })
         .then((data) => {
           if (!active) return;
-          setAdFree(Boolean(data.benefits.adFree || data.role));
-          setSponsorResolved(true);
+          setAdFree(Boolean(data.entitlements.adFree));
+          setEntitlementsResolved(true);
         })
         .catch(() => {
           if (!active) return;
-          // Fail closed for logged-in users: if sponsor entitlement cannot be
-          // verified, prefer hiding ads over accidentally showing them to a
-          // paid/ad-free account.
+          // Fail closed for logged-in users: if paid access cannot be
+          // verified, prefer hiding ads over accidentally showing them to an
+          // ad-free account.
           setAdFree(true);
-          setSponsorResolved(true);
+          setEntitlementsResolved(true);
         });
     };
 
     refresh(false);
 
-    const onSupportPaid = () => refresh(true);
-    window.addEventListener('animebox:support-paid', onSupportPaid);
+    const onAccessChanged = () => refresh(true);
+    window.addEventListener('animebox:support-paid', onAccessChanged);
+    window.addEventListener('animebox:entitlements-changed', onAccessChanged);
     return () => {
       active = false;
-      window.removeEventListener('animebox:support-paid', onSupportPaid);
+      window.removeEventListener('animebox:support-paid', onAccessChanged);
+      window.removeEventListener('animebox:entitlements-changed', onAccessChanged);
     };
   }, [user?.id]);
 
@@ -177,7 +177,7 @@ export default function AdSlot({
       config.provider !== 'none' &&
       config.placements[placement] &&
       !authLoading &&
-      sponsorResolved &&
+      entitlementsResolved &&
       !adFree,
   );
 
