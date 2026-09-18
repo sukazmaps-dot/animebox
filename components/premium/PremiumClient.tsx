@@ -29,6 +29,30 @@ export default function PremiumClient() {
   const [paymentStatus, setPaymentStatus] = useState('');
 
   useEffect(() => {
+    let active = true;
+
+    void fetch('/api/premium/catalog', { cache: 'no-store' })
+      .then(async (response) => {
+        const payload = (await response.json()) as PremiumCatalogResponse;
+        if (!response.ok) throw new Error('Не удалось загрузить тарифы');
+        if (active) setPlans(payload.plans ?? []);
+      })
+      .catch((requestError) => {
+        if (active) {
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : 'Не удалось загрузить тарифы',
+          );
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!user?.id) {
       setData(null);
       setLoading(false);
