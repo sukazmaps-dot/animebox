@@ -12,11 +12,11 @@ type InvoiceResponse = { ok?: boolean; invoiceUrl?: string; error?: string };
 
 const BENEFITS = [
   ['Без рекламы', 'Рекламные блоки AnimeBox отключаются на всём сайте.'],
-  ['Premium badge', 'Отдельный Premium-статус аккаунта, не смешанный со спонсорским tier.'],
-  ['Profile Studio', 'Расширенная персонализация профиля и будущие premium-настройки.'],
-  ['Animated avatar', 'Доступ к анимированному оформлению профиля, когда Profile Studio будет открыт.'],
-  ['Extra showcases', 'Дополнительные витрины и блоки профиля.'],
-  ['Premium themes', 'Расширенные темы оформления AnimeBox-профиля.'],
+  ['Premium badge', 'Отдельный Premium-статус в своём и публичном профиле.'],
+  ['Profile Studio', 'Выбор безопасных готовых тем оформления без произвольного CSS.'],
+  ['Premium themes', 'Violet Nebula, Midnight и Sakura Night для профиля.'],
+  ['Публичное оформление', 'Выбранная тема видна другим пользователям AnimeBox.'],
+  ['Накопление срока', 'Новая покупка продлевает уже активный Premium, а не сжигает остаток.'],
 ] as const;
 
 export default function PremiumClient() {
@@ -195,7 +195,11 @@ export default function PremiumClient() {
                 <span>PREMIUM READY</span>
                 <strong>Аккаунт готов к Premium</strong>
               </div>
-              <small>Checkout подключим отдельным этапом после утверждения цены.</small>
+              <small>
+                {plans.some((plan) => plan.active)
+                  ? 'Выбери тариф ниже — доступ активируется после оплаты.'
+                  : 'Тарифы пока не открыты для продажи.'}
+              </small>
             </div>
           )}
 
