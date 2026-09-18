@@ -12,6 +12,9 @@ export type PremiumMe = {
     startsAt: string;
     endsAt: string;
     cancelledAt: string | null;
+    autoRenew: boolean;
+    autoRenewCancelledAt: string | null;
+    telegramSubscriptionChargeId: string | null;
   };
   entitlements: Entitlements;
   payments: Array<{
