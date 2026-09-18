@@ -155,21 +155,30 @@ export function createPremiumPayload({
     throw new Error('Invalid Premium amount');
   }
 
-  if (!Number.isInteger(durationDays) || durationDays < 1 || durationDays > 3660) {
-    throw new Error('Invalid Premium duration');
+  const expectedProductCode =
+    plan === 'monthly' ? 'premium_monthly' : 'premium_yearly';
+  const expectedDurationDays = plan === 'monthly' ? 30 : 365;
+
+  if (
+    productCode !== expectedProductCode ||
+    durationDays !== expectedDurationDays
+  ) {
+    throw new Error('Invalid Premium plan definition');
   }
 
   const createdAt = Math.floor(Date.now() / 1000);
   const nonce = randomBytes(6).toString('hex');
+  const planCode = plan === 'monthly' ? 'm' : 'y';
 
+  // Keep the Telegram invoice payload comfortably below the 128-byte limit.
+  // The server derives product + duration from the compact plan code and
+  // validates the current price again during pre-checkout.
   return [
-    'animebox_premium',
-    'v1',
-    plan,
-    productCode,
+    'abxp',
+    'v2',
+    planCode,
     animeboxUserId,
     amount,
-    durationDays,
     safeTelegramId,
     createdAt,
     nonce,
@@ -179,19 +188,57 @@ export function createPremiumPayload({
 export function parsePremiumPayload(payload: unknown): ParsedPremiumPayload | null {
   if (typeof payload !== 'string') return null;
 
-  const match = payload.match(
+  const v2 = payload.match(
+    /^abxp:v2:(m|y):([0-9a-f-]{36}):(\d+):(\d+):(\d+):([a-f0-9]{12})$/i,
+  );
+
+  if (v2) {
+    const plan: PremiumPlanId = v2[1].toLowerCase() === 'm' ? 'monthly' : 'yearly';
+    const animeboxUserId = v2[2];
+    const amount = Number(v2[3]);
+    const telegramId = Number(v2[4]);
+    const createdAt = Number(v2[5]);
+    const productCode =
+      plan === 'monthly' ? 'premium_monthly' : 'premium_yearly';
+    const durationDays = plan === 'monthly' ? 30 : 365;
+
+    if (
+      !PREMIUM_UUID_RE.test(animeboxUserId) ||
+      !Number.isInteger(amount) ||
+      amount <= 0 ||
+      !Number.isSafeInteger(telegramId) ||
+      telegramId < 0 ||
+      !Number.isSafeInteger(createdAt) ||
+      createdAt <= 0
+    ) {
+      return null;
+    }
+
+    return {
+      plan,
+      productCode,
+      animeboxUserId,
+      amount,
+      durationDays,
+      telegramId,
+      createdAt,
+    };
+  }
+
+  // Backward compatibility with invoice links created before Premium v2.
+  const v1 = payload.match(
     /^animebox_premium:v1:(monthly|yearly):(premium_monthly|premium_yearly):([0-9a-f-]{36}):(\d+):(\d+):(\d+):(\d+):([a-f0-9]{12})$/i,
   );
 
-  if (!match) return null;
+  if (!v1) return null;
 
-  const plan = match[1] as PremiumPlanId;
-  const productCode = match[2] as ParsedPremiumPayload['productCode'];
-  const animeboxUserId = match[3];
-  const amount = Number(match[4]);
-  const durationDays = Number(match[5]);
-  const telegramId = Number(match[6]);
-  const createdAt = Number(match[7]);
+  const plan = v1[1] as PremiumPlanId;
+  const productCode = v1[2] as ParsedPremiumPayload['productCode'];
+  const animeboxUserId = v1[3];
+  const amount = Number(v1[4]);
+  const durationDays = Number(v1[5]);
+  const telegramId = Number(v1[6]);
+  const createdAt = Number(v1[7]);
 
   const productMatchesPlan =
     (plan === 'monthly' && productCode === 'premium_monthly') ||
