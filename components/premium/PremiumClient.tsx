@@ -204,6 +204,7 @@ export default function PremiumClient() {
   }
 
   const subscription = data?.subscription;
+  const recurringSubscription = data?.recurringSubscription;
   const endDate = subscription
     ? new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(subscription.endsAt))
     : null;
@@ -234,33 +235,31 @@ export default function PremiumClient() {
               </div>
               <small>До {endDate}</small>
 
-              {subscription.plan === 'monthly' &&
-                subscription.source === 'telegram_stars' &&
-                subscription.telegramSubscriptionChargeId && (
-                  <div className="premium-status__renewal">
-                    <span>
-                      {subscription.autoRenew
-                        ? 'Автопродление: включено'
-                        : 'Автопродление: отключено'}
-                    </span>
+              {recurringSubscription?.telegramSubscriptionChargeId && (
+                <div className="premium-status__renewal">
+                  <span>
+                    {recurringSubscription.autoRenew
+                      ? 'Месячное автопродление: включено'
+                      : 'Месячное автопродление: отключено'}
+                  </span>
 
-                    <button
-                      type="button"
-                      disabled={managingSubscription}
-                      onClick={() =>
-                        void manageRecurringSubscription(
-                          subscription.autoRenew ? 'cancel' : 'resume',
-                        )
-                      }
-                    >
-                      {managingSubscription
-                        ? 'Сохраняем…'
-                        : subscription.autoRenew
-                          ? 'Отключить автопродление'
-                          : 'Включить снова'}
-                    </button>
-                  </div>
-                )}
+                  <button
+                    type="button"
+                    disabled={managingSubscription}
+                    onClick={() =>
+                      void manageRecurringSubscription(
+                        recurringSubscription.autoRenew ? 'cancel' : 'resume',
+                      )
+                    }
+                  >
+                    {managingSubscription
+                      ? 'Сохраняем…'
+                      : recurringSubscription.autoRenew
+                        ? 'Отключить автопродление'
+                        : 'Включить снова'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
