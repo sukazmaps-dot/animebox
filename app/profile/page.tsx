@@ -275,7 +275,7 @@ export default function ProfilePage() {
   }).format(new Date(profile.created_at));
 
   return (
-    <main className="profile-v2">
+    <main className={`profile-v2 premium-profile-theme--${premiumTheme}`}>
       {/* PROFILE HERO */}
 
       <section className="profile-v2__hero">
