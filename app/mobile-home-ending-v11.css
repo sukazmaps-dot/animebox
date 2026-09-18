@@ -1,0 +1,104 @@
+/* =========================================================
+   AnimeBox Mobile Home Ending v11
+
+   The old mobile stack reserved space for the fixed bottom nav three times:
+   body padding + page-content padding + footer margin. That created a large
+   empty strip between the last Home section and the footer.
+
+   v11 keeps the safe area only AFTER the footer, where the fixed navigation
+   actually lives, and makes the footer compact on phones.
+   ========================================================= */
+
+@media (max-width: 768px) {
+  /* The footer is rendered on every page, so the fixed-nav clearance belongs
+     after it rather than inside the main content. */
+  body {
+    padding-bottom: 0 !important;
+  }
+
+  .page-content {
+    padding-bottom: 22px !important;
+  }
+
+  /* Home should finish immediately after the schedule instead of looking like
+     an unfinished section with ~100px of empty canvas. */
+  .home-page {
+    padding-bottom: 0 !important;
+  }
+
+  .home-page .schedule {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .home-page .schedule__cards,
+  .home-page .schedule > .empty-state {
+    margin-bottom: 0 !important;
+  }
+
+  /* Compact service footer. The navigation clearance is now below this block,
+     so the brand and links stay visually attached to the page content. */
+  .site-footer {
+    margin-top: 0 !important;
+    margin-bottom: calc(
+      var(--ab-mobile-nav-height, 62px) + 18px + env(safe-area-inset-bottom)
+    ) !important;
+    border-top-color: rgba(255, 255, 255, .07) !important;
+  }
+
+  .site-footer__inner {
+    padding: 18px 16px 16px !important;
+    gap: 13px !important;
+  }
+
+  .site-footer__brand {
+    gap: 3px !important;
+  }
+
+  .site-footer__brand strong {
+    font-size: 12.5px !important;
+  }
+
+  .site-footer__brand span {
+    font-size: 9.5px !important;
+  }
+
+  .site-footer__links {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    gap: 8px 14px !important;
+  }
+
+  .site-footer__links a {
+    min-width: 0;
+    font-size: 10.5px !important;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  /* Telegram uses its own safe-area CSS variables. */
+  html.telegram-mini-app .site-footer {
+    margin-bottom: calc(
+      var(--ab-mobile-nav-height, 62px) + 18px + var(--animebox-safe-bottom, 0px)
+    ) !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .page-content {
+    padding-bottom: 18px !important;
+  }
+
+  .site-footer__inner {
+    padding-inline: 14px !important;
+  }
+
+  .site-footer__links {
+    gap: 7px 12px !important;
+  }
+
+  .site-footer__links a {
+    font-size: 10px !important;
+  }
+}
