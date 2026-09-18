@@ -1,6 +1,8 @@
 import { ApiError, adminClient, failure, readBody, response } from '@/lib/community-server';
 import { requireAdmin, writeAdminAudit } from '@/lib/admin-server';
 import { grantPremium, revokePremium } from '@/lib/premium-server';
+import { getPremiumCatalog, updatePremiumPlanConfig } from '@/lib/premium-catalog-server';
+import { isPremiumPlanId } from '@/lib/premium';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -50,6 +52,7 @@ export async function GET(request: Request) {
       subscriptions: subscriptions ?? [],
       profiles: profiles.data ?? [],
       matches,
+      plans: await getPremiumCatalog(),
     });
   } catch (error) {
     return failure(error);
@@ -61,6 +64,54 @@ export async function POST(request: Request) {
     const { user, role } = await requireAdmin(['owner', 'admin']);
     const body = await readBody(request);
     const action = typeof body.action === 'string' ? body.action.trim() : '';
+
+    if (action === 'configure_plan') {
+      const planId = typeof body.planId === 'string' ? body.planId.trim() : '';
+      const amountRaw = body.telegramStarsAmount;
+      const active = body.active === true;
+
+      if (!isPremiumPlanId(planId)) {
+        throw new ApiError(400, 'Некорректный Premium-тариф.');
+      }
+
+      const amount =
+        amountRaw === null || amountRaw === '' || amountRaw === undefined
+          ? null
+          : Number(amountRaw);
+
+      if (
+        amount !== null &&
+        (!Number.isInteger(amount) || amount < 1 || amount > 100000)
+      ) {
+        throw new ApiError(400, 'Цена в Stars должна быть целым числом от 1 до 100000.');
+      }
+
+      if (active && !amount) {
+        throw new ApiError(400, 'Нельзя включить тариф без цены в Telegram Stars.');
+      }
+
+      const plan = await updatePremiumPlanConfig({
+        planId,
+        telegramStarsAmount: amount,
+        active,
+      });
+
+      await writeAdminAudit({
+        actorId: user.id,
+        actorRole: role,
+        action: 'premium.configure_plan',
+        targetType: 'payment_product',
+        targetId: plan.productCode,
+        details: {
+          plan_id: plan.id,
+          active: plan.active,
+          telegram_stars_amount: plan.telegramStarsAmount,
+          duration_days: plan.durationDays,
+        },
+      });
+
+      return response({ ok: true, plan });
+    }
 
     if (action === 'grant') {
       const userId = typeof body.userId === 'string' ? body.userId.trim() : '';
