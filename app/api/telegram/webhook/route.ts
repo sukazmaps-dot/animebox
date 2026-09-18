@@ -4,12 +4,16 @@ import { escapeTelegramHtml } from '@/lib/notifications-server';
 import { getUserSubscriptions } from '@/lib/telegram/bot-subscriptions';
 import {
   answerSupportPreCheckout,
+  parsePremiumPayload,
   parseSupportPayload,
 } from '@/lib/telegram-stars';
 import {
   recordPaymentSupportRequest,
   recordStarPayment,
 } from '@/lib/monetization-server';
+import { getPremiumPlan } from '@/lib/premium-catalog-server';
+import { recordPremiumTelegramStarsPayment } from '@/lib/payments/providers/premium-telegram-stars';
+import { activatePremiumFromPayment } from '@/lib/premium-payment-server';
 import { getSponsorStatus } from '@/lib/sponsor-server';
 import { SPONSOR_META, type SponsorStatus } from '@/lib/sponsor';
 
@@ -173,7 +177,10 @@ export async function POST(request: NextRequest) {
     const preCheckoutQuery = update?.pre_checkout_query;
 
     if (preCheckoutQuery?.id) {
-      const parsed = parseSupportPayload(
+      const supportPayload = parseSupportPayload(
+        preCheckoutQuery.invoice_payload,
+      );
+      const premiumPayload = parsePremiumPayload(
         preCheckoutQuery.invoice_payload,
       );
       const payerTelegramId = Number(
@@ -184,26 +191,45 @@ export async function POST(request: NextRequest) {
       );
       const currency = preCheckoutQuery?.currency;
 
-      const payloadMatchesPayer = Boolean(
-        parsed &&
-          (parsed.telegramId === 0 ||
-            parsed.telegramId === payerTelegramId),
-      );
+      let valid = false;
+      let errorMessage =
+        'Не удалось подтвердить платёж AnimeBox. Открой страницу оплаты заново.';
 
-      const valid = Boolean(
-        parsed &&
+      if (supportPayload) {
+        const payloadMatchesPayer =
+          supportPayload.telegramId === 0 ||
+          supportPayload.telegramId === payerTelegramId;
+
+        valid = Boolean(
           currency === 'XTR' &&
-          totalAmount === parsed.amount &&
-          payloadMatchesPayer,
-      );
+            totalAmount === supportPayload.amount &&
+            payloadMatchesPayer,
+        );
+      } else if (premiumPayload) {
+        const plan = await getPremiumPlan(premiumPayload.plan);
+        const payloadMatchesPayer =
+          premiumPayload.telegramId === 0 ||
+          premiumPayload.telegramId === payerTelegramId;
+
+        valid = Boolean(
+          plan?.active &&
+            plan.telegramStarsAmount === premiumPayload.amount &&
+            plan.durationDays === premiumPayload.durationDays &&
+            currency === 'XTR' &&
+            totalAmount === premiumPayload.amount &&
+            payloadMatchesPayer,
+        );
+
+        if (!plan?.active) {
+          errorMessage = 'Этот тариф AnimeBox Premium сейчас недоступен.';
+        }
+      }
 
       await answerSupportPreCheckout({
         botToken: BOT_TOKEN,
         queryId: String(preCheckoutQuery.id),
         ok: valid,
-        errorMessage: valid
-          ? undefined
-          : 'Не удалось подтвердить платёж AnimeBox. Открой страницу поддержки заново.',
+        errorMessage: valid ? undefined : errorMessage,
       });
 
       return NextResponse.json({
@@ -222,12 +248,70 @@ export async function POST(request: NextRequest) {
     const successfulPayment = message?.successful_payment;
 
     if (successfulPayment && chatId) {
+      const premiumPayload = parsePremiumPayload(
+        successfulPayment.invoice_payload,
+      );
       const parsed = parseSupportPayload(
         successfulPayment.invoice_payload,
       );
       const payerTelegramId = Number(
         message?.from?.id ?? chatId,
       );
+
+      if (
+        premiumPayload &&
+        successfulPayment.currency === 'XTR' &&
+        Number(successfulPayment.total_amount) === premiumPayload.amount
+      ) {
+        try {
+          const transaction = await recordPremiumTelegramStarsPayment({
+            userId: premiumPayload.animeboxUserId,
+            telegramId: payerTelegramId,
+            plan: premiumPayload.plan,
+            amount: premiumPayload.amount,
+            durationDays: premiumPayload.durationDays,
+            telegramPaymentChargeId:
+              successfulPayment.telegram_payment_charge_id,
+            providerPaymentChargeId:
+              successfulPayment.provider_payment_charge_id ?? null,
+          });
+
+          const subscription = await activatePremiumFromPayment({
+            userId: premiumPayload.animeboxUserId,
+            plan: premiumPayload.plan,
+            durationDays: premiumPayload.durationDays,
+            transactionId: transaction.id,
+            provider: 'telegram_stars',
+          });
+
+          const until = new Intl.DateTimeFormat('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+          }).format(new Date(subscription.endsAt));
+
+          await sendMessage(
+            chatId,
+            [
+              '✦ <b>AnimeBox Premium активирован!</b>',
+              '',
+              `Тариф: <b>${premiumPayload.plan === 'yearly' ? '12 месяцев' : '1 месяц'}</b>`,
+              `Оплачено: <b>⭐ ${premiumPayload.amount}</b>`,
+              `Premium до: <b>${until}</b>`,
+              '',
+              'Без рекламы и Premium-возможности уже доступны в твоём AnimeBox аккаунте.',
+            ].join('\n'),
+            BOTTOM_MENU,
+          );
+        } catch (error) {
+          console.error(
+            '[AnimeBox Premium] failed to persist successful payment:',
+            error,
+          );
+        }
+
+        return NextResponse.json({ ok: true });
+      }
 
       if (
         parsed &&
