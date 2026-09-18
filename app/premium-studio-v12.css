@@ -1,0 +1,541 @@
+/* =========================================================
+   AnimeBox Premium Studio v12
+   Safe variable-driven personalization. No raw user CSS.
+   ========================================================= */
+
+.premium-studio-v12 {
+  --studio-surface: rgba(14, 18, 32, .88);
+  --studio-border: rgba(178, 132, 255, .14);
+}
+
+.premium-studio-v12__head {
+  align-items: center;
+}
+
+.premium-studio-v12__title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.premium-studio-v12__title-wrap > img,
+.premium-studio-v12__lock-icon {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  filter: drop-shadow(0 14px 32px rgba(139, 82, 255, .28));
+}
+
+.premium-studio-v12__lock-icon {
+  display: block;
+  margin-bottom: 14px;
+}
+
+.premium-studio-v12__workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(340px, .92fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.premium-studio-v12__controls {
+  display: grid;
+  gap: 14px;
+}
+
+.premium-studio-v12__panel {
+  padding: 18px;
+  border: 1px solid var(--studio-border);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 88% 4%, rgba(130, 78, 255, .07), transparent 30%),
+    var(--studio-surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .02);
+}
+
+.premium-studio-v12__section-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.premium-studio-v12__section-head > span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border: 1px solid rgba(176, 132, 255, .2);
+  border-radius: 10px;
+  background: rgba(126, 79, 255, .08);
+  color: #c8a9ff;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.premium-studio-v12__section-head h2 {
+  margin: 0;
+  color: #f7f3ff;
+  font-size: 17px;
+  letter-spacing: -.02em;
+}
+
+.premium-studio-v12__section-head p {
+  margin: 4px 0 0;
+  color: rgba(235, 229, 246, .48);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.premium-studio-v12__color-list {
+  display: grid;
+  gap: 9px;
+}
+
+.premium-studio-v12__color-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, .055);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .02);
+}
+
+.premium-studio-v12__color-field > span:first-child,
+.premium-studio-v12__range > span,
+.premium-studio-v12__select > span,
+.premium-studio-v12__toggle > span {
+  min-width: 0;
+}
+
+.premium-studio-v12__color-field strong,
+.premium-studio-v12__range strong,
+.premium-studio-v12__select strong,
+.premium-studio-v12__toggle strong {
+  display: block;
+  color: #eee8f7;
+  font-size: 12px;
+}
+
+.premium-studio-v12__color-field small,
+.premium-studio-v12__range small,
+.premium-studio-v12__select small,
+.premium-studio-v12__toggle small {
+  display: block;
+  margin-top: 3px;
+  color: rgba(235, 229, 246, .42);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.premium-studio-v12__color-controls {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+}
+
+.premium-studio-v12__color-controls input[type='color'] {
+  width: 40px;
+  height: 40px;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 11px;
+  background: #080b14;
+  cursor: pointer;
+}
+
+.premium-studio-v12__color-controls input[type='text'] {
+  width: 90px;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 11px;
+  outline: none;
+  background: rgba(4, 7, 14, .7);
+  color: #e9e1f5;
+  font: 700 11px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-transform: uppercase;
+}
+
+.premium-studio-v12__color-controls input[type='text']:focus {
+  border-color: rgba(167, 116, 255, .42);
+  box-shadow: 0 0 0 3px rgba(126, 79, 255, .08);
+}
+
+.premium-studio-v12__contrast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, .06);
+  border-radius: 12px;
+  font-size: 10px;
+}
+
+.premium-studio-v12__contrast strong { color: #efe9f8; }
+.premium-studio-v12__contrast span { color: rgba(235, 229, 246, .48); text-align: right; }
+.premium-studio-v12__contrast.is-good { border-color: rgba(82, 208, 139, .16); background: rgba(48, 158, 98, .045); }
+.premium-studio-v12__contrast.is-warning { border-color: rgba(255, 177, 78, .18); background: rgba(192, 119, 33, .055); }
+
+.premium-studio-v12__presets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.premium-studio-v12__presets > button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 62px;
+  padding: 10px 11px;
+  border: 1px solid rgba(255, 255, 255, .055);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .02);
+  color: #eee8f7;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+
+.premium-studio-v12__presets > button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(177, 132, 255, .22);
+  background: rgba(139, 88, 255, .055);
+}
+
+.premium-studio-v12__presets > button.is-active {
+  border-color: rgba(177, 132, 255, .4);
+  background: rgba(139, 88, 255, .09);
+}
+
+.premium-studio-v12__preset-dot {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border-radius: 9px;
+  box-shadow: 0 0 22px currentColor;
+}
+
+.premium-studio-v12__presets strong,
+.premium-studio-v12__presets small {
+  display: block;
+}
+
+.premium-studio-v12__presets strong { font-size: 11px; }
+.premium-studio-v12__presets small { margin-top: 3px; color: rgba(235, 229, 246, .38); font-size: 9px; line-height: 1.35; }
+
+.premium-studio-v12__range,
+.premium-studio-v12__select,
+.premium-studio-v12__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 58px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, .055);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .018);
+}
+
+.premium-studio-v12__range + .premium-studio-v12__select,
+.premium-studio-v12__select + .premium-studio-v12__toggle {
+  margin-top: 8px;
+}
+
+.premium-studio-v12__range input[type='range'] {
+  width: min(220px, 45%);
+  accent-color: #9b65ff;
+}
+
+.premium-studio-v12__select select {
+  min-width: 112px;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 10px;
+  outline: none;
+  background: #0b0f1c;
+  color: #eee8f7;
+  font-size: 11px;
+}
+
+.premium-studio-v12__toggle {
+  justify-content: flex-start;
+  cursor: pointer;
+}
+
+.premium-studio-v12__toggle input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  accent-color: #8f5bff;
+}
+
+.premium-studio-v12__media-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.premium-studio-v12__media-grid > article {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, .055);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .018);
+}
+
+.premium-studio-v12__media-preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  margin-bottom: 10px;
+  border: 1px solid rgba(255, 255, 255, .07);
+  background: radial-gradient(circle at 50% 30%, rgba(134, 80, 255, .18), transparent 55%), #090d18;
+}
+
+.premium-studio-v12__media-preview.is-avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 22px;
+}
+
+.premium-studio-v12__media-preview.is-banner {
+  height: 76px;
+  border-radius: 12px;
+}
+
+.premium-studio-v12__media-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.premium-studio-v12__media-preview.is-avatar img { object-fit: cover; }
+.premium-studio-v12__media-preview.is-banner span { color: rgba(234, 225, 248, .3); font-size: 10px; font-weight: 800; letter-spacing: .08em; }
+
+.premium-studio-v12__media-grid > article > strong,
+.premium-studio-v12__media-grid > article > small { display: block; }
+.premium-studio-v12__media-grid > article > strong { color: #f1ebfa; font-size: 12px; }
+.premium-studio-v12__media-grid > article > small { margin-top: 3px; color: rgba(235, 229, 246, .38); font-size: 9px; }
+.premium-studio-v12__media-grid > article > div:last-of-type { display: flex; gap: 7px; margin-top: 10px; }
+.premium-studio-v12__media-grid button {
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid rgba(171, 126, 255, .22);
+  border-radius: 9px;
+  background: rgba(123, 76, 230, .1);
+  color: #dbc9fb;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.premium-studio-v12__media-grid button.is-ghost { border-color: rgba(255, 255, 255, .07); background: transparent; color: rgba(235, 229, 246, .5); }
+.premium-studio-v12__media-grid button:disabled { opacity: .5; cursor: default; }
+
+.premium-studio-v12__preview-wrap { min-width: 0; }
+.premium-studio-v12__sticky { position: sticky; top: 92px; }
+.premium-studio-v12__preview-label { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; color: rgba(235, 229, 246, .35); font-size: 9px; }
+.premium-studio-v12__preview-label span { color: #ba96ff; font-weight: 900; letter-spacing: .15em; }
+
+.premium-studio-v12__preview {
+  position: relative;
+  overflow: hidden;
+  min-height: 420px;
+  border: 1px solid rgba(var(--ab-premium-accent-rgb), .34);
+  border-radius: 24px;
+  background: var(--ab-premium-primary);
+  color: var(--ab-premium-text);
+  box-shadow: 0 26px 70px rgba(0, 0, 0, .34), 0 0 52px rgba(var(--ab-premium-accent-rgb), var(--ab-premium-glow-alpha));
+}
+
+.premium-studio-v12__preview.border-soft { border-color: rgba(var(--ab-premium-accent-rgb), .18); box-shadow: 0 26px 70px rgba(0,0,0,.30), 0 0 32px rgba(var(--ab-premium-accent-rgb), calc(var(--ab-premium-glow-alpha) * .55)); }
+.premium-studio-v12__preview.border-sharp { border-radius: 12px; border-width: 2px; }
+
+.premium-studio-v12__preview-banner {
+  position: relative;
+  height: 150px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 78% 20%, rgba(var(--ab-premium-accent-rgb), .44), transparent 42%),
+    linear-gradient(135deg, color-mix(in srgb, var(--ab-premium-primary) 72%, #000), var(--ab-premium-primary));
+}
+
+.premium-studio-v12__preview-banner img { width: 100%; height: 100%; object-fit: cover; }
+.premium-studio-v12__preview-banner > div { position: absolute; inset: 0; background: linear-gradient(180deg, transparent, var(--ab-premium-primary)); }
+
+.premium-studio-v12__preview-body {
+  position: relative;
+  padding: 0 22px 22px;
+}
+
+.premium-studio-v12__preview-avatar {
+  width: 88px;
+  height: 88px;
+  margin-top: -44px;
+  margin-bottom: 14px;
+  border: 3px solid var(--ab-premium-accent);
+  border-radius: 28px;
+  object-fit: cover;
+  background: var(--ab-premium-primary);
+  box-shadow: 0 0 30px rgba(var(--ab-premium-accent-rgb), var(--ab-premium-glow-alpha));
+}
+
+.premium-studio-v12__preview-body span { color: var(--ab-premium-accent); font-size: 9px; font-weight: 900; letter-spacing: .15em; }
+.premium-studio-v12__preview-body h3 { margin: 5px 0 4px; color: var(--ab-premium-text); font-size: 25px; }
+.premium-studio-v12__preview-body p { margin: 0; color: rgba(var(--ab-premium-text-rgb), .64); font-size: 11px; line-height: 1.55; }
+.premium-studio-v12__preview-body button { min-height: 38px; margin-top: 18px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--ab-premium-accent); color: var(--ab-premium-text); font-size: 10px; font-weight: 900; box-shadow: 0 10px 26px rgba(var(--ab-premium-accent-rgb), .28); }
+.premium-studio-v12__fake-progress { height: 5px; margin-top: 20px; overflow: hidden; border-radius: 99px; background: rgba(var(--ab-premium-text-rgb), .1); }
+.premium-studio-v12__fake-progress span { display: block; width: 68%; height: 100%; border-radius: inherit; background: var(--ab-premium-accent); box-shadow: 0 0 18px rgba(var(--ab-premium-accent-rgb), .75); }
+
+.premium-studio-v12__actions { display: grid; grid-template-columns: auto minmax(170px, 1fr); gap: 8px; margin-top: 10px; }
+.premium-studio-v12__actions button { min-height: 44px; padding: 0 15px; border-radius: 12px; font-size: 11px; font-weight: 900; cursor: pointer; }
+.premium-studio-v12__actions button.is-primary { border: 1px solid rgba(181, 140, 255, .28); background: linear-gradient(135deg, #8454f5, #6942d5); color: #fff; box-shadow: 0 12px 32px rgba(111, 71, 218, .18); }
+.premium-studio-v12__actions button.is-secondary { border: 1px solid rgba(255,255,255,.07); background: rgba(255,255,255,.025); color: rgba(238,232,247,.62); }
+.premium-studio-v12__actions button:disabled { opacity: .48; cursor: default; }
+
+/* Premium asset integration */
+.animebox-premium-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.animebox-premium-badge__icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px rgba(156, 96, 255, .34));
+}
+
+.sidebar-membership__icon img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(155, 93, 255, .35));
+}
+
+.premium-hero__premium-icon {
+  width: min(330px, 86%);
+  height: min(330px, 86%);
+  object-fit: contain;
+  filter: drop-shadow(0 28px 60px rgba(126, 73, 255, .32));
+}
+
+/* Profile-wide custom Premium variables */
+.profile-v2.premium-profile-custom {
+  color: var(--ab-premium-text);
+}
+
+.profile-v2.premium-profile-custom .profile-v2__hero,
+.profile-v2.premium-profile-custom .profile-v2__stat,
+.profile-v2.premium-profile-custom .profile-v2__status-strip,
+.profile-v2.premium-profile-custom .profile-v2__library,
+.profile-v2.premium-profile-custom .profile-v2__achievements,
+.profile-v2.premium-profile-custom .profile-v2__bottom-card,
+.profile-v2.premium-profile-custom .sponsor-dashboard {
+  border-color: rgba(var(--ab-premium-accent-rgb), .16);
+  background-color: color-mix(in srgb, var(--ab-premium-primary) 92%, #000);
+}
+
+.profile-v2.premium-profile-custom .profile-v2__hero {
+  box-shadow: 0 24px 72px rgba(0,0,0,.32), 0 0 48px rgba(var(--ab-premium-accent-rgb), var(--ab-premium-glow-alpha));
+}
+
+.profile-v2.premium-profile-custom .profile-v2__banner-shade {
+  background: linear-gradient(180deg, rgba(0,0,0,.06), color-mix(in srgb, var(--ab-premium-primary) 93%, transparent));
+}
+
+.profile-v2.premium-profile-custom .profile-v2__eyebrow,
+.profile-v2.premium-profile-custom .profile-v2__online,
+.profile-v2.premium-profile-custom .profile-v2__stat-label {
+  color: var(--ab-premium-accent);
+}
+
+.profile-v2.premium-profile-custom h1,
+.profile-v2.premium-profile-custom h2,
+.profile-v2.premium-profile-custom strong,
+.profile-v2.premium-profile-custom .profile-v2__bio {
+  color: var(--ab-premium-text);
+}
+
+.profile-v2.premium-profile-custom .profile-v2__email,
+.profile-v2.premium-profile-custom .profile-v2__meta,
+.profile-v2.premium-profile-custom .profile-v2__stat small,
+.profile-v2.premium-profile-custom .profile-v2__section-head p {
+  color: rgba(var(--ab-premium-text-rgb), .52);
+}
+
+.profile-v2.premium-profile-custom .profile-v2__edit,
+.profile-v2.premium-profile-custom .profile-v2__section-head a,
+.profile-v2.premium-profile-custom .profile-v2__bottom-card > a {
+  border-color: rgba(var(--ab-premium-accent-rgb), .22);
+  background: rgba(var(--ab-premium-accent-rgb), .09);
+  color: var(--ab-premium-text);
+}
+
+/* Player shell sync */
+.animebox-premium-player.is-premium-themed {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--player-primary) 92%, #fff 2%), color-mix(in srgb, var(--player-primary) 90%, #000 10%)) !important;
+  color: var(--player-text);
+}
+
+.animebox-premium-player.is-premium-themed .premium-player-accent-line { background: linear-gradient(90deg, transparent, var(--player-accent), transparent) !important; }
+.animebox-premium-player.is-premium-themed .premium-player-glow { background: radial-gradient(ellipse at center, rgba(var(--player-accent-rgb), .18), transparent 65%) !important; }
+.animebox-premium-player.is-premium-themed .premium-player-dot { background: var(--player-accent) !important; box-shadow: 0 0 14px rgba(var(--player-accent-rgb), .9) !important; }
+.animebox-premium-player.is-premium-themed .premium-player-accent-text { color: var(--player-accent) !important; }
+.animebox-premium-player.is-premium-themed .premium-player-source.is-active,
+.animebox-premium-player.is-premium-themed .premium-player-play-button,
+.animebox-premium-player.is-premium-themed .premium-player-next-button { background: var(--player-accent) !important; color: var(--player-text) !important; box-shadow: 0 10px 30px rgba(var(--player-accent-rgb), .28) !important; }
+.animebox-premium-player.is-premium-themed .premium-player-dropdown-trigger.is-open,
+.animebox-premium-player.is-premium-themed .premium-player-dropdown-option.is-active { border-color: rgba(var(--player-accent-rgb), .32) !important; background: rgba(var(--player-accent-rgb), .10) !important; }
+.animebox-premium-player.is-premium-themed .premium-player-control-icon { color: var(--player-accent) !important; }
+.animebox-premium-player.is-premium-themed .premium-player-toolbar-button:hover { border-color: rgba(var(--player-accent-rgb), .25) !important; background: rgba(var(--player-accent-rgb), .08) !important; color: var(--player-text) !important; }
+
+@media (max-width: 900px) {
+  .premium-studio-v12__workspace { grid-template-columns: 1fr; }
+  .premium-studio-v12__sticky { position: static; }
+  .premium-studio-v12__preview-wrap { order: -1; }
+  .premium-studio-v12__preview { min-height: 350px; }
+}
+
+@media (max-width: 600px) {
+  .premium-studio-v12__title-wrap { align-items: flex-start; }
+  .premium-studio-v12__title-wrap > img { width: 56px; height: 56px; }
+  .premium-studio-v12__presets,
+  .premium-studio-v12__media-grid { grid-template-columns: 1fr; }
+  .premium-studio-v12__color-field { align-items: flex-start; flex-direction: column; }
+  .premium-studio-v12__color-controls { width: 100%; }
+  .premium-studio-v12__color-controls input[type='text'] { flex: 1; width: auto; }
+  .premium-studio-v12__contrast { align-items: flex-start; flex-direction: column; }
+  .premium-studio-v12__contrast span { text-align: left; }
+  .premium-studio-v12__range,
+  .premium-studio-v12__select { align-items: flex-start; flex-direction: column; }
+  .premium-studio-v12__range input[type='range'] { width: 100%; }
+  .premium-studio-v12__select select { width: 100%; }
+  .premium-studio-v12__actions { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .premium-studio-v12 *,
+  .profile-v2.premium-profile-custom *,
+  .animebox-premium-player.is-premium-themed * {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+.premium-status + .premium-cta {
+  margin-top: 10px;
+}

@@ -13,9 +13,9 @@ type InvoiceResponse = { ok?: boolean; invoiceUrl?: string; error?: string };
 const BENEFITS = [
   ['Без рекламы', 'Рекламные блоки AnimeBox отключаются на всём сайте.'],
   ['Premium badge', 'Отдельный Premium-статус в своём и публичном профиле.'],
-  ['Profile Studio', 'Выбор безопасных готовых тем оформления без произвольного CSS.'],
-  ['Premium themes', 'Violet Nebula, Midnight и Sakura Night для профиля.'],
-  ['Публичное оформление', 'Выбранная тема видна другим пользователям AnimeBox.'],
+  ['Premium Studio', 'Своя палитра: фон, accent, текст, glow и стиль рамки.'],
+  ['Анимированный профиль', 'Premium-аватар и баннер поддерживают animated WEBP и GIF.'],
+  ['Тема плеера', 'Accent и Primary можно синхронизировать с оболочкой AnimeBox Player.'],
   ['Накопление срока', 'Новая покупка продлевает уже активный Premium, а не сжигает остаток.'],
 ] as const;
 
@@ -219,7 +219,8 @@ export default function PremiumClient() {
           <span className="premium-eyebrow">ANIMEBOX PREMIUM</span>
           <h1>Больше персонализации.<br />Меньше отвлекающего.</h1>
           <p>
-            Premium — отдельный продукт AnimeBox: без рекламы, с расширенным оформлением профиля и будущими premium-функциями. Он не заменяет и не смешивается со спонсорством.
+            Premium — отдельный продукт AnimeBox: без рекламы, с полноценным Premium Studio,
+            собственной палитрой профиля, анимированными медиа и темой оболочки плеера.
           </p>
 
           {!authLoading && !user && (
@@ -266,6 +267,12 @@ export default function PremiumClient() {
             </div>
           )}
 
+          {user && !loading && data?.premium && (
+            <Link className="premium-cta premium-cta--primary" href="/profile/edit?tab=premium">
+              Открыть Premium Studio
+            </Link>
+          )}
+
           {user && !loading && !data?.premium && (
             <div className="premium-status">
               <div>
@@ -285,14 +292,18 @@ export default function PremiumClient() {
 
         <div className="premium-hero__orb" aria-hidden="true">
           <div className="premium-hero__ring" />
-          <div className="premium-hero__core">P</div>
+          <img
+            className="premium-hero__premium-icon"
+            src="/premium/premium-user.webp"
+            alt=""
+          />
         </div>
       </section>
 
       <section className="premium-benefits">
         <div className="premium-section-head">
           <span>ЧТО ВХОДИТ</span>
-          <h2>Premium entitlements v1</h2>
+          <h2>Premium возможности</h2>
           <p>Доступ определяется единым entitlement-слоем, а не отдельными проверками по страницам.</p>
         </div>
 

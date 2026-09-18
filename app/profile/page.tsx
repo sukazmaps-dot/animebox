@@ -1,5 +1,6 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -10,13 +11,16 @@ import { notifyAuthChanged } from '@/lib/auth-events';
 import { isTelegramMiniAppRuntime } from '@/lib/telegram-auto-login';
 import { useAuthState } from '@/components/AuthStateProvider';
 import CommunityProfile from '@/components/CommunityProfile';
-import ProfileEditModal from '@/components/ProfileEditModal';
 import SponsorDashboard from '@/components/monetization/SponsorDashboard';
 import MySponsorBadge from '@/components/monetization/MySponsorBadge';
 import UserAvatarWithFrame from '@/components/profile/UserAvatarWithFrame';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import CurrentPremiumBadge from '@/components/premium/CurrentPremiumBadge';
-import { isPremiumProfileTheme, type PremiumProfileTheme } from '@/lib/premium-studio';
+import {
+  DEFAULT_PREMIUM_STUDIO_SETTINGS,
+  premiumStudioCssVariables,
+  type PremiumStudioSettings,
+} from '@/lib/premium-studio';
 
 type Profile = {
   id: string;
@@ -42,8 +46,7 @@ export default function ProfilePage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [editOpen, setEditOpen] = useState(false);
-  const [premiumTheme, setPremiumTheme] = useState<PremiumProfileTheme>('default');
+  const [premiumStudio, setPremiumStudio] = useState<PremiumStudioSettings | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -198,35 +201,35 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!user?.id) {
-      setPremiumTheme('default');
+      setPremiumStudio(null);
       return;
     }
 
     let active = true;
 
-    const loadTheme = () => {
+    const loadStudio = () => {
       void fetch('/api/premium/studio', { cache: 'no-store' })
         .then(async (response) => {
-          const payload = (await response.json()) as { theme?: string; allowed?: boolean };
+          const payload = (await response.json()) as {
+            allowed?: boolean;
+            settings?: PremiumStudioSettings;
+          };
           if (!response.ok || !active) return;
-
-          if (payload.allowed && payload.theme && isPremiumProfileTheme(payload.theme)) {
-            setPremiumTheme(payload.theme);
-          } else {
-            setPremiumTheme('default');
-          }
+          setPremiumStudio(payload.allowed ? payload.settings ?? DEFAULT_PREMIUM_STUDIO_SETTINGS : null);
         })
         .catch(() => {
-          if (active) setPremiumTheme('default');
+          if (active) setPremiumStudio(null);
         });
     };
 
-    loadTheme();
-    window.addEventListener('animebox:premium-studio-updated', loadTheme);
+    loadStudio();
+    window.addEventListener('animebox:premium-studio-updated', loadStudio);
+    window.addEventListener('animebox:entitlements-changed', loadStudio);
 
     return () => {
       active = false;
-      window.removeEventListener('animebox:premium-studio-updated', loadTheme);
+      window.removeEventListener('animebox:premium-studio-updated', loadStudio);
+      window.removeEventListener('animebox:entitlements-changed', loadStudio);
     };
   }, [user?.id]);
 
@@ -255,19 +258,26 @@ export default function ProfilePage() {
 
   const supabase = createClient();
 
-  const avatarUrl = profile.avatar_path
+  const effectiveAvatarPath = premiumStudio?.avatarPath || profile.avatar_path;
+  const effectiveBannerPath = premiumStudio?.bannerPath || profile.banner_path;
+
+  const avatarUrl = effectiveAvatarPath
     ? supabase.storage
         .from('profile-media')
-        .getPublicUrl(profile.avatar_path)
+        .getPublicUrl(effectiveAvatarPath)
         .data.publicUrl
     : '/default-avatar.webp';
 
-  const bannerUrl = profile.banner_path
+  const bannerUrl = effectiveBannerPath
     ? supabase.storage
         .from('profile-media')
-        .getPublicUrl(profile.banner_path)
+        .getPublicUrl(effectiveBannerPath)
         .data.publicUrl
     : null;
+
+  const premiumStyle = premiumStudio
+    ? (premiumStudioCssVariables(premiumStudio) as CSSProperties)
+    : undefined;
 
   const joinedDate = new Intl.DateTimeFormat('ru-RU', {
     month: 'long',
@@ -275,7 +285,10 @@ export default function ProfilePage() {
   }).format(new Date(profile.created_at));
 
   return (
-    <main className={`profile-v2 premium-profile-theme--${premiumTheme}`}>
+    <main
+      className={`profile-v2 premium-profile-theme--${premiumStudio?.theme ?? 'default'} ${premiumStudio ? 'premium-profile-custom' : ''}`}
+      style={premiumStyle}
+    >
       {/* PROFILE HERO */}
 
       <section className="profile-v2__hero">
@@ -329,13 +342,12 @@ export default function ProfilePage() {
                 </p>
               </div>
 
-              <button
+              <Link
                 className="profile-v2__edit"
-                type="button"
-                onClick={() => setEditOpen(true)}
+                href="/profile/edit"
               >
                 Редактировать профиль
-              </button>
+              </Link>
             </div>
 
             <p className="profile-v2__bio">
@@ -364,11 +376,11 @@ export default function ProfilePage() {
           <span className="profile-v2__eyebrow">AnimeBox Premium</span>
           <h2>Profile Studio</h2>
           <p>
-            Выбирай Premium-тему профиля и настраивай оформление аккаунта.
+            Настраивай цвета, Premium-аватар, баннер, glow и тему оболочки плеера.
           </p>
         </div>
 
-        <Link href="/profile/studio">
+        <Link href="/profile/edit?tab=premium">
           Открыть Profile Studio →
         </Link>
       </section>
@@ -412,40 +424,6 @@ export default function ProfilePage() {
         </Link>
       </section>
 
-      {/* EDIT PROFILE MODAL */}
-
-      <ProfileEditModal
-        open={editOpen}
-        username={username}
-        bio={profile.bio}
-        avatarPath={profile.avatar_path}
-        bannerPath={profile.banner_path}
-        onClose={() => setEditOpen(false)}
-        onSaved={(data) => {
-          setProfile((current) => {
-            if (!current) return current;
-
-            const nextProfile = {
-              ...current,
-              username: data.username,
-              bio: data.bio,
-              avatar_path: data.avatar_path,
-              banner_path: data.banner_path,
-            };
-
-            saveProfileCache(current.id, nextProfile);
-            notifyAuthChanged({
-              userId: current.id,
-              profile: {
-                id: current.id,
-                username: nextProfile.username,
-                avatar_path: nextProfile.avatar_path,
-              },
-            });
-            return nextProfile;
-          });
-        }}
-      />
     </main>
   );
 }

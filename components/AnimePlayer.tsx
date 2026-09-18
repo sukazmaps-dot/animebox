@@ -6,6 +6,11 @@ import Icon from '@/components/Icon';
 import KodikPlayer, { type KodikPlayerHandle } from '@/components/KodikPlayer';
 import { useWatchSession } from '@/components/useWatchSession';
 import Hls from 'hls.js';
+import {
+  hexToRgb,
+  resolveReadableTextColor,
+  type PremiumStudioSettings,
+} from '@/lib/premium-studio';
 
 export type TranslationOption = {
   title: string;
@@ -17,6 +22,11 @@ export type PlayerSource = {
   name: string;
   translations: TranslationOption[];
   type?: 'hls' | 'iframe' | 'video' | 'kodik';
+};
+
+type PremiumStudioResponse = {
+  allowed?: boolean;
+  settings?: PremiumStudioSettings;
 };
 
 type WatchStateResponse = {
@@ -156,14 +166,14 @@ function PlayerDropdown({
         type="button"
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
-        className={`group flex min-h-11 w-full items-center gap-3 rounded-2xl border px-3.5 text-left transition duration-200 sm:min-w-[210px] ${
+        className={`premium-player-dropdown-trigger ${open ? 'is-open' : ''} group flex min-h-11 w-full items-center gap-3 rounded-2xl border px-3.5 text-left transition duration-200 sm:min-w-[210px] ${
           open
             ? 'border-violet-400/35 bg-violet-500/[0.08] shadow-[0_0_0_4px_rgba(139,92,246,0.07)]'
             : 'border-white/[0.07] bg-white/[0.025] hover:border-white/[0.12] hover:bg-white/[0.045]'
         }`}
       >
         {icon && (
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-black/20 text-violet-300">
+          <span className="premium-player-control-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-black/20 text-violet-300">
             {icon}
           </span>
         )}
@@ -222,7 +232,7 @@ function PlayerDropdown({
                   onChange(option.id);
                   setOpen(false);
                 }}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${
+                className={`premium-player-dropdown-option ${active ? 'is-active' : ''} flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${
                   active
                     ? 'bg-gradient-to-r from-violet-500/[0.16] to-indigo-500/[0.08] text-white ring-1 ring-inset ring-violet-400/15'
                     : 'text-white/60 hover:bg-white/[0.045] hover:text-white'
@@ -285,6 +295,7 @@ export default function AnimePlayer({
   const [telegramAndroidMiniApp, setTelegramAndroidMiniApp] = useState(false);
   const [telegramPseudoFullscreen, setTelegramPseudoFullscreen] = useState(false);
   const [resumeSeconds, setResumeSeconds] = useState(0);
+  const [premiumStudio, setPremiumStudio] = useState<PremiumStudioSettings | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const kodikPlayerRef = useRef<KodikPlayerHandle | null>(null);
@@ -350,12 +361,64 @@ export default function AnimePlayer({
     });
   }, [episodeNumber, totalEpisodes]);
 
-  const brandStyles = {
-    '--player-accent': '#8b5cf6',
-    '--player-accent-2': '#6366f1',
-    '--player-border': 'rgba(139, 92, 246, 0.18)',
-    '--player-shadow': '0 34px 110px rgba(0,0,0,.56), 0 0 70px rgba(109,74,255,.08)',
-  } as CSSProperties;
+  const syncedPremiumTheme = premiumStudio?.syncPlayerTheme ? premiumStudio : null;
+
+  const brandStyles = useMemo(() => {
+    const accent = syncedPremiumTheme?.accentColor ?? '#8b5cf6';
+    const primary = syncedPremiumTheme?.primaryColor ?? '#0e1323';
+    const requestedText = syncedPremiumTheme?.textColor ?? '#ffffff';
+    const text = resolveReadableTextColor(requestedText, primary);
+    const onAccent = resolveReadableTextColor(requestedText, accent);
+    const { r, g, b } = hexToRgb(accent);
+    const glow = syncedPremiumTheme
+      ? 0.08 + (syncedPremiumTheme.glowStrength / 100) * 0.24
+      : 0.08;
+
+    return {
+      '--player-accent': accent,
+      '--player-accent-2': accent,
+      '--player-primary': primary,
+      '--player-text': text,
+      '--player-on-accent': onAccent,
+      '--player-accent-rgb': `${r}, ${g}, ${b}`,
+      '--player-border': `rgba(${r}, ${g}, ${b}, ${syncedPremiumTheme ? 0.30 : 0.18})`,
+      '--player-shadow': `0 34px 110px rgba(0,0,0,.56), 0 0 70px rgba(${r},${g},${b},${glow})`,
+    } as CSSProperties;
+  }, [syncedPremiumTheme]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadPremiumStudio = () => {
+      void fetch('/api/premium/studio', { cache: 'no-store' })
+        .then(async (response) => {
+          if (response.status === 401 || response.status === 403) return null;
+          if (!response.ok) return null;
+          return (await response.json()) as PremiumStudioResponse;
+        })
+        .then((payload) => {
+          if (!active) return;
+          if (payload?.allowed && payload.settings?.syncPlayerTheme) {
+            setPremiumStudio(payload.settings);
+          } else {
+            setPremiumStudio(null);
+          }
+        })
+        .catch(() => {
+          if (active) setPremiumStudio(null);
+        });
+    };
+
+    loadPremiumStudio();
+    window.addEventListener('animebox:premium-studio-updated', loadPremiumStudio);
+    window.addEventListener('animebox:entitlements-changed', loadPremiumStudio);
+
+    return () => {
+      active = false;
+      window.removeEventListener('animebox:premium-studio-updated', loadPremiumStudio);
+      window.removeEventListener('animebox:entitlements-changed', loadPremiumStudio);
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -766,19 +829,19 @@ export default function AnimePlayer({
   const playerBody = (
     <section
       style={brandStyles}
-      className={`relative overflow-visible rounded-[28px] border border-[color:var(--player-border)] bg-[linear-gradient(180deg,rgba(14,19,35,.985),rgba(6,9,18,.99))] [box-shadow:var(--player-shadow)] ${
+      className={`animebox-premium-player ${syncedPremiumTheme ? 'is-premium-themed' : ''} relative overflow-visible rounded-[28px] border border-[color:var(--player-border)] bg-[linear-gradient(180deg,rgba(14,19,35,.985),rgba(6,9,18,.99))] [box-shadow:var(--player-shadow)] ${
         theaterMode ? 'mx-auto w-full max-w-[1480px]' : ''
       }`}
     >
-      <div className="pointer-events-none absolute inset-x-20 top-0 h-px bg-gradient-to-r from-transparent via-violet-400/70 to-transparent" />
-      <div className="pointer-events-none absolute -inset-12 -z-10 bg-[radial-gradient(ellipse_at_center,rgba(121,78,255,.16),transparent_65%)] blur-3xl" />
+      <div className="premium-player-accent-line pointer-events-none absolute inset-x-20 top-0 h-px bg-gradient-to-r from-transparent via-violet-400/70 to-transparent" />
+      <div className="premium-player-glow pointer-events-none absolute -inset-12 -z-10 bg-[radial-gradient(ellipse_at_center,rgba(121,78,255,.16),transparent_65%)] blur-3xl" />
 
       {/* Premium header */}
       <div className="flex flex-col gap-5 border-b border-white/[0.055] px-4 py-4 sm:px-5 md:flex-row md:items-end md:justify-between md:px-6 md:py-5">
         <div className="min-w-0">
           <div className="mb-2 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-violet-400 shadow-[0_0_14px_rgba(167,139,250,.95)]" />
-            <span className="text-[9px] font-extrabold uppercase tracking-[0.2em] text-violet-300/65">
+            <span className="premium-player-dot h-1.5 w-1.5 rounded-full bg-violet-400 shadow-[0_0_14px_rgba(167,139,250,.95)]" />
+            <span className="premium-player-accent-text text-[9px] font-extrabold uppercase tracking-[0.2em] text-violet-300/65">
               AnimeBox Cinema
             </span>
           </div>
@@ -800,7 +863,7 @@ export default function AnimePlayer({
                     key={`${source.name}-${index}`}
                     type="button"
                     onClick={() => selectSource(index)}
-                    className={`rounded-xl px-3.5 py-2 text-[11px] font-extrabold transition-all duration-200 ${
+                    className={`premium-player-source ${active ? 'is-active' : ''} rounded-xl px-3.5 py-2 text-[11px] font-extrabold transition-all duration-200 ${
                       active
                         ? 'bg-gradient-to-r from-violet-600 to-indigo-500 text-white shadow-[0_8px_26px_rgba(105,72,255,.30)]'
                         : 'text-white/40 hover:bg-white/[0.05] hover:text-white/75'
@@ -840,7 +903,7 @@ export default function AnimePlayer({
           <button
             type="button"
             onClick={() => setTheaterMode((current) => !current)}
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 text-[11px] font-bold text-white/55 transition hover:border-violet-400/20 hover:bg-violet-500/[0.07] hover:text-white"
+            className="premium-player-toolbar-button inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 text-[11px] font-bold text-white/55 transition hover:border-violet-400/20 hover:bg-violet-500/[0.07] hover:text-white"
           >
             <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
               <path d="M4 7h16v10H4z" stroke="currentColor" strokeWidth="1.7" />
@@ -852,7 +915,7 @@ export default function AnimePlayer({
           <button
             type="button"
             onClick={() => void toggleFullscreen()}
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 text-[11px] font-bold text-white/55 transition hover:border-violet-400/20 hover:bg-violet-500/[0.07] hover:text-white"
+            className="premium-player-toolbar-button inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 text-[11px] font-bold text-white/55 transition hover:border-violet-400/20 hover:bg-violet-500/[0.07] hover:text-white"
           >
             <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
               <path d="M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -946,12 +1009,12 @@ export default function AnimePlayer({
                 <div className="relative mb-5">
                   <span className="absolute inset-0 animate-ping rounded-full bg-violet-500/20 [animation-duration:2.2s]" />
                   <span className="absolute -inset-4 rounded-full border border-violet-300/10 bg-violet-500/[0.04]" />
-                  <span className="relative flex h-[86px] w-[86px] items-center justify-center rounded-full border border-white/20 bg-gradient-to-br from-violet-500 via-violet-600 to-indigo-600 shadow-[0_20px_65px_rgba(105,72,255,.48),inset_0_1px_0_rgba(255,255,255,.28)] transition duration-300 group-hover:scale-105">
+                  <span className="premium-player-play-button relative flex h-[86px] w-[86px] items-center justify-center rounded-full border border-white/20 bg-gradient-to-br from-violet-500 via-violet-600 to-indigo-600 shadow-[0_20px_65px_rgba(105,72,255,.48),inset_0_1px_0_rgba(255,255,255,.28)] transition duration-300 group-hover:scale-105">
                     <Icon name="play" className="ml-1 h-9 w-9 text-white" />
                   </span>
                 </div>
 
-                <p className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-violet-200/70">AnimeBox Player</p>
+                <p className="premium-player-accent-text text-[10px] font-extrabold uppercase tracking-[0.22em] text-violet-200/70">AnimeBox Player</p>
                 <h2 className="mt-2 max-w-2xl text-xl font-black tracking-[-0.03em] drop-shadow-lg sm:text-2xl md:text-3xl">
                   {resumeSeconds > 0 ? 'Продолжить' : `Смотреть ${episodeNumber} серию`}
                 </h2>
@@ -1087,7 +1150,7 @@ export default function AnimePlayer({
           type="button"
           onClick={onNext}
           disabled={!hasNext}
-          className="group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-500 px-4 text-xs font-extrabold text-white shadow-[0_10px_30px_rgba(105,72,255,.25)] transition hover:-translate-y-px hover:shadow-[0_15px_38px_rgba(105,72,255,.34)] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:translate-y-0"
+          className="premium-player-next-button group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-500 px-4 text-xs font-extrabold text-white shadow-[0_10px_30px_rgba(105,72,255,.25)] transition hover:-translate-y-px hover:shadow-[0_15px_38px_rgba(105,72,255,.34)] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:translate-y-0"
         >
           {nextLabel}
           <Icon name="chevron" className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

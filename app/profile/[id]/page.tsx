@@ -1,9 +1,11 @@
+import type { CSSProperties } from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { getPublicProfile } from '@/lib/public-profile-server';
 import UserIdentity from '@/components/identity/UserIdentity';
 import UserAvatarWithFrame from '@/components/profile/UserAvatarWithFrame';
+import { premiumStudioCssVariables } from '@/lib/premium-studio';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -73,10 +75,14 @@ export default async function PublicProfilePage({ params }: Props) {
 
   const joinedDate = formatJoinedDate(profile.createdAt);
   const watchTime = formatWatchTime(profile.stats.activeMs);
+  const premiumStyle = profile.premiumStudio
+    ? (premiumStudioCssVariables(profile.premiumStudio) as CSSProperties)
+    : undefined;
 
   return (
     <main
-      className={`profile-v2 profile-v2--public premium-profile-theme--${profile.premiumTheme}`}
+      className={`profile-v2 profile-v2--public premium-profile-theme--${profile.premiumTheme} ${profile.premiumStudio ? 'premium-profile-custom' : ''}`}
+      style={premiumStyle}
     >
       <section className="profile-v2__hero">
         <div className="profile-v2__banner">
@@ -121,7 +127,13 @@ export default async function PublicProfilePage({ params }: Props) {
 
                   {profile.premium && (
                     <span className="animebox-premium-badge" title="AnimeBox Premium">
-                      ✦ Premium
+                      <img
+                        className="animebox-premium-badge__icon"
+                        src="/premium/premium-user.webp"
+                        alt=""
+                        aria-hidden="true"
+                      />
+                      Premium
                     </span>
                   )}
 

@@ -129,7 +129,7 @@ export default function SidebarMembership() {
       aria-label={state.premium ? 'AnimeBox Premium активен' : 'Открыть AnimeBox Premium'}
     >
       <span className="sidebar-membership__icon" aria-hidden="true">
-        ✦
+        <img src="/premium/premium-user.webp" alt="" />
       </span>
 
       <span className="sidebar-membership__copy">

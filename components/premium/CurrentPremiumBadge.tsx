@@ -36,5 +36,15 @@ export default function CurrentPremiumBadge() {
 
   if (!active) return null;
 
-  return <span className="animebox-premium-badge" title="AnimeBox Premium">✦ Premium</span>;
+  return (
+    <span className="animebox-premium-badge" title="AnimeBox Premium">
+      <img
+        className="animebox-premium-badge__icon"
+        src="/premium/premium-user.webp"
+        alt=""
+        aria-hidden="true"
+      />
+      Premium
+    </span>
+  );
 }
