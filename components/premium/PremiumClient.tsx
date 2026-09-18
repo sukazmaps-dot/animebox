@@ -27,6 +27,7 @@ export default function PremiumClient() {
   const [plans, setPlans] = useState<PremiumCatalogPlan[]>([]);
   const [buying, setBuying] = useState<PremiumPlanId | ''>('');
   const [paymentStatus, setPaymentStatus] = useState('');
+  const [managingSubscription, setManagingSubscription] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -104,7 +105,9 @@ export default function PremiumClient() {
         throw new Error(
           payload.error === 'plan_not_available'
             ? 'Этот Premium-тариф пока не включён.'
-            : 'Не удалось открыть оплату Premium.',
+            : payload.error === 'recurring_already_exists'
+              ? 'Месячная подписка уже оформлена. Управлять автопродлением можно выше.'
+              : 'Не удалось открыть оплату Premium.',
         );
       }
 
@@ -156,6 +159,50 @@ export default function PremiumClient() {
     }
   }
 
+  async function manageRecurringSubscription(action: 'cancel' | 'resume') {
+    if (!user?.id || managingSubscription) return;
+
+    setManagingSubscription(true);
+    setError('');
+    setPaymentStatus('');
+
+    try {
+      const response = await fetch('/api/premium/subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({ action }),
+        cache: 'no-store',
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok || !payload.ok) {
+        throw new Error('Не удалось изменить автопродление.');
+      }
+
+      clearPremiumMeCache();
+      const next = await getPremiumMe({ force: true });
+      setData(next);
+
+      setPaymentStatus(
+        action === 'cancel'
+          ? 'Автопродление отключено. Premium останется активным до конца оплаченного периода.'
+          : 'Автопродление снова включено.',
+      );
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Не удалось изменить автопродление.',
+      );
+    } finally {
+      setManagingSubscription(false);
+    }
+  }
+
   const subscription = data?.subscription;
   const endDate = subscription
     ? new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(subscription.endsAt))
@@ -186,6 +233,34 @@ export default function PremiumClient() {
                 <strong>Premium активен</strong>
               </div>
               <small>До {endDate}</small>
+
+              {subscription.plan === 'monthly' &&
+                subscription.source === 'telegram_stars' &&
+                subscription.telegramSubscriptionChargeId && (
+                  <div className="premium-status__renewal">
+                    <span>
+                      {subscription.autoRenew
+                        ? 'Автопродление: включено'
+                        : 'Автопродление: отключено'}
+                    </span>
+
+                    <button
+                      type="button"
+                      disabled={managingSubscription}
+                      onClick={() =>
+                        void manageRecurringSubscription(
+                          subscription.autoRenew ? 'cancel' : 'resume',
+                        )
+                      }
+                    >
+                      {managingSubscription
+                        ? 'Сохраняем…'
+                        : subscription.autoRenew
+                          ? 'Отключить автопродление'
+                          : 'Включить снова'}
+                    </button>
+                  </div>
+                )}
             </div>
           )}
 
@@ -254,6 +329,11 @@ export default function PremiumClient() {
             >
               <span>{plan.id === 'monthly' ? 'MONTHLY' : 'YEARLY'}</span>
               <strong>{plan.label}</strong>
+              <small className="premium-plan__billing">
+                {plan.billingMode === 'recurring'
+                  ? 'Автопродление каждые 30 дней'
+                  : 'Разовая оплата за 365 дней'}
+              </small>
 
               {plan.active && plan.telegramStarsAmount ? (
                 <>
@@ -268,7 +348,11 @@ export default function PremiumClient() {
                       disabled={Boolean(buying)}
                       onClick={() => void buyPremium(plan.id)}
                     >
-                      {buying === plan.id ? 'Открываем…' : 'Выбрать'}
+                      {buying === plan.id
+                        ? 'Открываем…'
+                        : plan.billingMode === 'recurring'
+                          ? 'Подписаться'
+                          : 'Купить на год'}
                     </button>
                   ) : (
                     <Link
