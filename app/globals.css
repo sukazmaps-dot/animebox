@@ -2,6 +2,7 @@
 
 
 :root {
+  --animebox-css-ready: 1;
   --bg: #050a14;
   --bg-2: #07101d;
   --panel: #0b1524;
