@@ -287,6 +287,35 @@ export default function PremiumClient() {
         </div>
       </section>
 
+      {data?.payments?.length ? (
+        <section className="premium-history">
+          <div className="premium-section-head">
+            <span>ИСТОРИЯ</span>
+            <h2>Платежи Premium</h2>
+          </div>
+          <div className="premium-history__list">
+            {data.payments.map((payment) => (
+              <div key={payment.id} className="premium-history__row">
+                <div>
+                  <strong>
+                    {payment.product_code === 'premium_yearly'
+                      ? 'Premium · 12 месяцев'
+                      : 'Premium · 1 месяц'}
+                  </strong>
+                  <small>
+                    {new Date(payment.paid_at || payment.created_at).toLocaleString('ru-RU')}
+                  </small>
+                </div>
+                <span>
+                  {Number(payment.amount).toLocaleString('ru-RU')} {payment.currency}
+                </span>
+                <b>{payment.status === 'paid' ? 'Оплачено' : payment.status === 'refunded' ? 'Возврат' : payment.status}</b>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <section className="premium-note">
         <div>
           <strong>Спонсорство остаётся отдельным.</strong>
