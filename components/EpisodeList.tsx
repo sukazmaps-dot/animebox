@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { communityRequest } from '@/lib/community-client';
 import {
@@ -267,6 +267,87 @@ export default function EpisodeList({
     seasonData.seasons.length > 1 || seasonData.extras.length > 0;
   const extrasActive = activeTab === 'extras';
 
+  const seasonTabsRef = useRef<HTMLDivElement | null>(null);
+  const [canScrollSeasonLeft, setCanScrollSeasonLeft] = useState(false);
+  const [canScrollSeasonRight, setCanScrollSeasonRight] = useState(false);
+
+  const updateSeasonScrollState = useCallback(() => {
+    const track = seasonTabsRef.current;
+    if (!track) return;
+
+    const maxScrollLeft = Math.max(0, track.scrollWidth - track.clientWidth);
+    setCanScrollSeasonLeft(track.scrollLeft > 4);
+    setCanScrollSeasonRight(track.scrollLeft < maxScrollLeft - 4);
+  }, []);
+
+  const scrollSeasonTabs = useCallback((direction: 'left' | 'right') => {
+    const track = seasonTabsRef.current;
+    if (!track) return;
+
+    const amount = Math.max(260, track.clientWidth * 0.72);
+    track.scrollBy({
+      left: direction === 'left' ? -amount : amount,
+      behavior: 'smooth',
+    });
+  }, []);
+
+  useEffect(() => {
+    const track = seasonTabsRef.current;
+    if (!track) return;
+
+    const onScroll = () => updateSeasonScrollState();
+    const resizeObserver = new ResizeObserver(updateSeasonScrollState);
+
+    resizeObserver.observe(track);
+    track.addEventListener('scroll', onScroll, { passive: true });
+
+    const frame = requestAnimationFrame(updateSeasonScrollState);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      resizeObserver.disconnect();
+      track.removeEventListener('scroll', onScroll);
+    };
+  }, [
+    seasonData.extras.length,
+    seasonData.seasons.length,
+    updateSeasonScrollState,
+  ]);
+
+  useEffect(() => {
+    const track = seasonTabsRef.current;
+    if (!track) return;
+
+    const activeElement = track.querySelector<HTMLElement>(
+      '[data-season-tab-active="true"]',
+    );
+    if (!activeElement) return;
+
+    const trackRect = track.getBoundingClientRect();
+    const activeRect = activeElement.getBoundingClientRect();
+    const safeInset = 20;
+
+    if (activeRect.left < trackRect.left + safeInset) {
+      track.scrollBy({
+        left: activeRect.left - trackRect.left - safeInset,
+        behavior: 'smooth',
+      });
+    } else if (activeRect.right > trackRect.right - safeInset) {
+      track.scrollBy({
+        left: activeRect.right - trackRect.right + safeInset,
+        behavior: 'smooth',
+      });
+    }
+
+    const frame = requestAnimationFrame(updateSeasonScrollState);
+    return () => cancelAnimationFrame(frame);
+  }, [
+    activeTab,
+    seasonData.extras.length,
+    seasonData.seasons.length,
+    updateSeasonScrollState,
+  ]);
+
   return (
     <div>
       {hasSeasonTabs && (
@@ -283,11 +364,13 @@ export default function EpisodeList({
             )}
           </div>
 
-          <div
-            className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            role="tablist"
-            aria-label="Сезоны аниме"
-          >
+          <div className="relative">
+            <div
+              ref={seasonTabsRef}
+              className="flex gap-2 overflow-x-auto pb-2 pr-1 scroll-smooth overscroll-x-contain [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden"
+              role="tablist"
+              aria-label="Сезоны аниме"
+            >
             {seasonData.seasons.map((season) => {
               const active = activeTab === seasonKey(season.id);
 
@@ -297,6 +380,7 @@ export default function EpisodeList({
                   type="button"
                   role="tab"
                   aria-selected={active}
+                  data-season-tab-active={active ? 'true' : undefined}
                   onClick={() => {
                     setActiveTab(seasonKey(season.id));
                     setSelectedGroupId(null);
@@ -349,6 +433,7 @@ export default function EpisodeList({
                 type="button"
                 role="tab"
                 aria-selected={extrasActive}
+                data-season-tab-active={extrasActive ? 'true' : undefined}
                 onClick={() => {
                   setActiveTab('extras');
                   setSelectedGroupId(null);
@@ -365,7 +450,34 @@ export default function EpisodeList({
                 </span>
               </button>
             )}
+            </div>
+
+            {canScrollSeasonLeft && (
+              <button
+                type="button"
+                onClick={() => scrollSeasonTabs('left')}
+                aria-label="Показать предыдущие сезоны"
+                className="absolute left-1 top-1/2 z-20 hidden h-9 w-9 -translate-y-[60%] place-items-center rounded-full border border-violet-300/35 bg-slate-950/90 text-white shadow-[0_10px_28px_rgba(0,0,0,0.40)] backdrop-blur transition hover:border-violet-300/70 hover:bg-violet-500/25 md:grid"
+              >
+                <SeasonChevron direction="left" />
+              </button>
+            )}
+
+            {canScrollSeasonRight && (
+              <button
+                type="button"
+                onClick={() => scrollSeasonTabs('right')}
+                aria-label="Показать следующие сезоны"
+                className="absolute right-1 top-1/2 z-20 hidden h-9 w-9 -translate-y-[60%] place-items-center rounded-full border border-violet-300/35 bg-slate-950/90 text-white shadow-[0_10px_28px_rgba(0,0,0,0.40)] backdrop-blur transition hover:border-violet-300/70 hover:bg-violet-500/25 md:grid"
+              >
+                <SeasonChevron direction="right" />
+              </button>
+            )}
           </div>
+
+          <p className="mt-1 text-[10px] text-white/30 md:hidden">
+            Свайпните по сезонам влево или вправо
+          </p>
         </div>
       )}
 
@@ -503,6 +615,27 @@ export default function EpisodeList({
         </>
       )}
     </div>
+  );
+}
+
+
+function SeasonChevron({ direction }: { direction: 'left' | 'right' }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d={direction === 'left' ? 'M15 18L9 12L15 6' : 'M9 6L15 12L9 18'}
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 

@@ -1,10 +1,11 @@
 'use client';
 
-import { animeHref } from '@/lib/anime-url';
+import { animeHref, animeWatchHref } from '@/lib/anime-url';
 
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -89,6 +90,30 @@ function isValidAnime(
   );
 }
 
+function getRealDescription(
+  value?: string | null,
+): string | null {
+  const text = value?.trim();
+
+  if (!text) {
+    return null;
+  }
+
+  const normalized = text
+    .toLocaleLowerCase('ru-RU')
+    .replace(/[.!…]+$/g, '')
+    .trim();
+
+  if (
+    normalized === 'описание отсутствует' ||
+    normalized === 'русское описание для этого аниме пока отсутствует'
+  ) {
+    return null;
+  }
+
+  return text;
+}
+
 const AMBIENT_FALLBACKS = [
   [112, 84, 255],
   [55, 118, 255],
@@ -156,22 +181,39 @@ export default function HomeHeroCarousel({
   const [paused, setPaused] =
     useState(false);
 
+  const swipeGesture = useRef({
+    pointerId: null as number | null,
+    startX: 0,
+    startY: 0,
+    startedAt: 0,
+    ignore: false,
+  });
+
   /*
-   * undefined = сейчас загружается
-   * null = русского описания нет
-   * string = описание загружено
+   * Cache only descriptions that had to be requested separately.
+   * Missing key = request is still pending for this slide.
    */
-  const [
-    localizedDescription,
-    setLocalizedDescription,
-  ] = useState<string | null | undefined>(
-    undefined,
-  );
+  const [localizedDescriptions, setLocalizedDescriptions] =
+    useState<Record<number, string | null>>({});
+
+  const safeActiveIndex =
+    slides.length > 0
+      ? activeIndex % slides.length
+      : 0;
 
   const anime =
-    slides[activeIndex] ??
+    slides[safeActiveIndex] ??
     slides[0] ??
     null;
+
+  const embeddedDescription =
+    getRealDescription(anime?.description);
+
+  const localizedDescription =
+    embeddedDescription ??
+    (anime
+      ? localizedDescriptions[anime.id]
+      : null);
 
 
   useEffect(() => {
@@ -186,10 +228,6 @@ export default function HomeHeroCarousel({
       root.style.removeProperty('--anime-ambient-rgb');
     };
   }, [anime]);
-
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [slides.length]);
 
   useEffect(() => {
     if (
@@ -217,56 +255,37 @@ export default function HomeHeroCarousel({
   ]);
 
   /*
-   * Подгружаем полную карточку
-   * только для активного Hero.
-   *
-   * Именно detail endpoint должен
-   * вернуть русское описание Shikimori.
+   * Подгружаем полную карточку только когда в выдаче нет настоящего
+   * описания. Заглушки вроде «Описание отсутствует» не считаются данными.
    */
   useEffect(() => {
-    if (!anime?.id) {
-      setLocalizedDescription(null);
+    if (
+      !anime?.id ||
+      embeddedDescription ||
+      Object.prototype.hasOwnProperty.call(localizedDescriptions, anime.id)
+    ) {
       return;
     }
 
-    const embeddedDescription =
-      anime.description?.trim();
-
-    if (embeddedDescription) {
-      setLocalizedDescription(
-        embeddedDescription,
-      );
-      return;
-    }
-
-    const controller =
-      new AbortController();
-
-    setLocalizedDescription(
-      undefined,
-    );
+    const animeId = anime.id;
+    const controller = new AbortController();
 
     getAnimeById(
-      anime.id,
-      {
-        signal:
-          controller.signal,
-      },
+      animeId,
+      { signal: controller.signal },
     )
       .then((fullAnime) => {
-        if (
-          controller.signal.aborted
-        ) {
+        if (controller.signal.aborted) {
           return;
         }
 
         const description =
-          fullAnime?.description
-            ?.trim() || null;
+          getRealDescription(fullAnime?.description);
 
-        setLocalizedDescription(
-          description,
-        );
+        setLocalizedDescriptions((current) => ({
+          ...current,
+          [animeId]: description,
+        }));
       })
       .catch((error: unknown) => {
         if (
@@ -277,19 +296,24 @@ export default function HomeHeroCarousel({
         }
 
         console.error(
-          `Не удалось загрузить описание anime ${anime.id}:`,
+          `Не удалось загрузить описание anime ${animeId}:`,
           error,
         );
 
-        setLocalizedDescription(
-          null,
-        );
+        setLocalizedDescriptions((current) => ({
+          ...current,
+          [animeId]: null,
+        }));
       });
 
     return () => {
       controller.abort();
     };
-  }, [anime?.description, anime?.id]);
+  }, [
+    anime?.id,
+    embeddedDescription,
+    localizedDescriptions,
+  ]);
 
   if (
     slides.length === 0 ||
@@ -363,6 +387,113 @@ export default function HomeHeroCarousel({
     element.style.setProperty('--hero-parallax-y', '0px');
   };
 
+  const showPreviousSlide = () => {
+    if (slides.length < 2) return;
+
+    setActiveIndex(
+      (current) =>
+        (current - 1 + slides.length) % slides.length,
+    );
+  };
+
+  const showNextSlide = () => {
+    if (slides.length < 2) return;
+
+    setActiveIndex(
+      (current) =>
+        (current + 1) % slides.length,
+    );
+  };
+
+  const handleSwipePointerDown = (
+    event: ReactPointerEvent<HTMLElement>,
+  ) => {
+    if (
+      event.pointerType !== 'touch' ||
+      slides.length < 2
+    ) {
+      return;
+    }
+
+    const target = event.target as Element | null;
+    const ignore = Boolean(
+      target?.closest(
+        'a, button, input, textarea, select, [data-no-hero-swipe]',
+      ),
+    );
+
+    swipeGesture.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startedAt: performance.now(),
+      ignore,
+    };
+
+    if (!ignore) {
+      setPaused(true);
+
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Pointer capture can be unavailable in some embedded browsers.
+      }
+    }
+  };
+
+  const finishSwipeGesture = (
+    event: ReactPointerEvent<HTMLElement>,
+    cancelled = false,
+  ) => {
+    const gesture = swipeGesture.current;
+
+    if (
+      gesture.pointerId == null ||
+      gesture.pointerId !== event.pointerId
+    ) {
+      return;
+    }
+
+    swipeGesture.current.pointerId = null;
+
+    if (!gesture.ignore) {
+      try {
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+      } catch {
+        // Safe fallback for Telegram/WebView implementations.
+      }
+    }
+
+    setPaused(false);
+
+    if (cancelled || gesture.ignore) {
+      return;
+    }
+
+    const deltaX = event.clientX - gesture.startX;
+    const deltaY = event.clientY - gesture.startY;
+    const elapsed = performance.now() - gesture.startedAt;
+    const width = event.currentTarget.getBoundingClientRect().width;
+    const threshold = Math.min(90, Math.max(48, width * 0.12));
+
+    const isHorizontalSwipe =
+      Math.abs(deltaX) >= threshold &&
+      Math.abs(deltaX) > Math.abs(deltaY) * 1.2 &&
+      elapsed <= 1200;
+
+    if (!isHorizontalSwipe) {
+      return;
+    }
+
+    if (deltaX > 0) {
+      showPreviousSlide();
+    } else {
+      showNextSlide();
+    }
+  };
+
   return (
     <section
       className={`page-hero home-hero-carousel ${bannerImage ? 'has-banner' : 'no-banner'}`}
@@ -373,7 +504,10 @@ export default function HomeHeroCarousel({
       style={{
         ['--hero-ambient-rgb' as string]: `${ambientR}, ${ambientG}, ${ambientB}`,
       }}
+      onPointerDown={handleSwipePointerDown}
       onPointerMove={handlePointerMove}
+      onPointerUp={(event) => finishSwipeGesture(event)}
+      onPointerCancel={(event) => finishSwipeGesture(event, true)}
       onPointerLeave={(event) => {
         resetParallax(event.currentTarget);
         setPaused(false);
@@ -437,7 +571,7 @@ export default function HomeHeroCarousel({
           {title}
         </h1>
 
-        <p>
+        <p className="home-hero-carousel__description">
           {localizedDescription ===
           undefined
             ? 'Загружаем описание…'
@@ -472,7 +606,7 @@ export default function HomeHeroCarousel({
         <div className="hero-actions">
           <Link
             className="btn btn--primary"
-            href={animeHref(anime)}
+            href={animeWatchHref(anime)}
           >
             <Icon name="play" />
 
@@ -493,18 +627,8 @@ export default function HomeHeroCarousel({
           <button
             type="button"
             aria-label="Предыдущая рекомендация"
-            className="home-hero-carousel__arrow"
-            onClick={() =>
-              setActiveIndex(
-                (current) =>
-                  (
-                    current -
-                    1 +
-                    slides.length
-                  ) %
-                  slides.length,
-              )
-            }
+            className="home-hero-carousel__arrow home-hero-carousel__arrow--prev"
+            onClick={showPreviousSlide}
           >
             ‹
           </button>
@@ -538,14 +662,8 @@ export default function HomeHeroCarousel({
           <button
             type="button"
             aria-label="Следующая рекомендация"
-            className="home-hero-carousel__arrow"
-            onClick={() =>
-              setActiveIndex(
-                (current) =>
-                  (current + 1) %
-                  slides.length,
-              )
-            }
+            className="home-hero-carousel__arrow home-hero-carousel__arrow--next"
+            onClick={showNextSlide}
           >
             ›
           </button>

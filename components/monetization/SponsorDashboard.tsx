@@ -109,6 +109,7 @@ export default function SponsorDashboard({ history = false }: { history?: boolea
         </div>
         <div className="sponsor-v3-dashboard-actions">
           {data?.sponsor && <Link className="btn btn--ghost" href="/settings/sponsor">Оформление</Link>}
+          {!history && <Link className="btn btn--ghost" href="/support/history">История</Link>}
           <Link className="btn btn--ghost" href="/supporters">Спонсоры</Link>
           <button className="btn btn--ghost" onClick={reload} disabled={loading}>
             Обновить

@@ -101,7 +101,7 @@ export default function NotificationSettingsClient() {
     }
 
     if (!user) {
-      window.location.replace('/login');
+      window.location.replace('/login?next=%2Fnotifications');
 
       return () => {
         active = false;
@@ -127,7 +127,7 @@ export default function NotificationSettingsClient() {
             throw new Error('Сессия Telegram ещё синхронизируется. Попробуй ещё раз.');
           }
 
-          window.location.replace('/login');
+          window.location.replace('/login?next=%2Fnotifications');
           return;
         }
 

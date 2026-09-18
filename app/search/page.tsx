@@ -35,7 +35,7 @@ async function loadInitialCatalog(): Promise<Anime[]> {
   try {
     return await getAnimesWithShikimori({
       page: 1,
-      limit: 15,
+      limit: 16,
       order: 'ranked',
     });
   } catch (error) {
@@ -53,7 +53,7 @@ function CatalogFallback() {
       </div>
       <section className="section">
         <div className="loading-grid">
-          {Array.from({ length: 15 }).map((_, index) => (
+          {Array.from({ length: 16 }).map((_, index) => (
             <div key={index} className="skeleton skeleton--card" />
           ))}
         </div>

@@ -38,6 +38,10 @@ type UnifiedPayment = {
   paid_at: string | null;
   refunded_at: string | null;
   metadata: Record<string, unknown> | null;
+  integrity_status: 'ok' | 'needs_review' | 'disputed' | 'reconciliation_error';
+  integrity_note: string | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
   created_at: string;
 };
 
@@ -226,13 +230,31 @@ export default function MonetizationAdmin() {
     void runAction({ action: 'note', paymentId: payment.id, note }, `payment-note:${payment.id}`);
   }
 
+  function reviewUnifiedPayment(payment: UnifiedPayment) {
+    const raw = window.prompt(
+      'Статус проверки: ok / needs_review / disputed / reconciliation_error',
+      payment.integrity_status || 'ok',
+    );
+    if (!raw) return;
+    const integrityStatus = raw.trim() as UnifiedPayment['integrity_status'];
+    if (!['ok', 'needs_review', 'disputed', 'reconciliation_error'].includes(integrityStatus)) return;
+    const note = integrityStatus === 'ok'
+      ? ''
+      : (window.prompt('Причина / заметка для проверки:', payment.integrity_note ?? '') ?? '');
+    if (integrityStatus !== 'ok' && note.trim().length < 3) return;
+    void runAction(
+      { action: 'payment_integrity', transactionId: payment.id, integrityStatus, note },
+      `integrity:${payment.id}`,
+    );
+  }
+
   return (
     <main className="sponsor-v2-admin sponsor-v3-admin">
       <div className="sponsor-v25-head">
         <div>
-          <span>UNIFIED PAYMENTS V1</span>
+          <span>MONETIZATION RELIABILITY · STAGE 2.5</span>
           <h1>Монетизация AnimeBox</h1>
-          <p>Stars, DonatePay, единый ledger, спонсоры, аналитика и возвраты.</p>
+          <p>Stars, DonatePay, единый ledger, ручное управление, сверка и защищённые возвраты.</p>
         </div>
         <div className="sponsor-v25-actions">
           <button disabled={loading || actionId === 'reconcile'} onClick={() => void runAction({ action: 'reconcile' }, 'reconcile')}>
@@ -347,7 +369,7 @@ export default function MonetizationAdmin() {
           <h2>Unified Payments</h2>
           <div className="sponsor-v2-table sponsor-v25-table">
             <table>
-              <thead><tr><th>Дата</th><th>Пользователь</th><th>Провайдер</th><th>Продукт</th><th>Сумма</th><th>Статус</th></tr></thead>
+              <thead><tr><th>Дата</th><th>Пользователь</th><th>Провайдер</th><th>Продукт</th><th>Сумма</th><th>Статус</th><th>Проверка</th><th /></tr></thead>
               <tbody>
                 {data.unifiedPayments.map((payment) => (
                   <tr key={payment.id}>
@@ -357,6 +379,20 @@ export default function MonetizationAdmin() {
                     <td>{payment.product_code}</td>
                     <td>{unifiedAmount(payment)}</td>
                     <td><span className="sponsor-v25-status" data-status={payment.status}>{payment.status}</span></td>
+                    <td>
+                      <div className="sponsor-v25-integrity">
+                        <span className="sponsor-v25-status" data-status={payment.integrity_status}>{payment.integrity_status}</span>
+                        {payment.integrity_note && <small>{payment.integrity_note}</small>}
+                      </div>
+                    </td>
+                    <td>
+                      <button
+                        disabled={Boolean(actionId)}
+                        onClick={() => reviewUnifiedPayment(payment)}
+                      >
+                        {actionId === `integrity:${payment.id}` ? 'Сохраняем…' : 'Проверить'}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

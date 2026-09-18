@@ -12,6 +12,7 @@ import {
   markTelegramStarsPaymentRefunded,
   recordTelegramStarsPayment,
 } from '@/lib/payments/providers/telegram-stars';
+import type { PaymentIntegrityStatus } from '@/lib/monetization-reliability';
 
 type PaymentRow = {
   id: string;
@@ -42,6 +43,26 @@ async function addEvent(
     details,
   });
   if (error) console.error('[Stars reconcile] event insert failed', error);
+}
+
+async function updateUnifiedIntegrity(
+  externalId: string,
+  status: PaymentIntegrityStatus,
+  note: string | null,
+) {
+  const { error } = await adminClient()
+    .from('payment_transactions')
+    .update({
+      integrity_status: status,
+      integrity_note: note,
+      reviewed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('provider', 'telegram_stars')
+    .eq('external_id', externalId);
+
+  if (error?.code === '42703' || error?.code === 'PGRST204') return;
+  if (error) throw error;
 }
 
 async function resolveAnimeBoxUserId(telegramId: number) {
@@ -119,6 +140,7 @@ export async function reconcileStarPayments({
         refundedAt,
         source: 'reconciliation',
       });
+      await updateUnifiedIntegrity(payment.telegram_payment_charge_id, 'ok', null);
 
       refunded += 1;
       continue;
@@ -135,6 +157,11 @@ export async function reconcileStarPayments({
         .eq('id', payment.id);
       if (error) throw error;
       await addEvent(payment.id, 'reconciliation_not_found');
+      await updateUnifiedIntegrity(
+        payment.telegram_payment_charge_id,
+        'needs_review',
+        'Транзакция не найдена в текущем окне Telegram. Финансовый статус не изменён.',
+      );
       notFound += 1;
       continue;
     }
@@ -163,6 +190,11 @@ export async function reconcileStarPayments({
         telegram_amount: incoming.amount,
         telegram_user_id: telegramUserId,
       });
+      await updateUnifiedIntegrity(
+        payment.telegram_payment_charge_id,
+        'reconciliation_error',
+        `Telegram mismatch: amount=${incoming.amount}, user=${telegramUserId}`,
+      );
       mismatched += 1;
       continue;
     }
@@ -187,6 +219,7 @@ export async function reconcileStarPayments({
       createdAt: payment.created_at,
       source: 'reconciliation',
     });
+    await updateUnifiedIntegrity(payment.telegram_payment_charge_id, 'ok', null);
     verified += 1;
   }
 
@@ -237,6 +270,7 @@ export async function reconcileStarPayments({
         createdAt: new Date(tx.date * 1000).toISOString(),
         source: 'reconciliation',
       });
+      await updateUnifiedIntegrity(tx.id, 'ok', null);
       recovered += 1;
     }
   }

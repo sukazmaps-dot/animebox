@@ -1,0 +1,145 @@
+/* =========================================================
+   AnimeBox — hero carousel controls v5
+   Keep navigation physically separate from CTA buttons.
+   Loaded after all previous layout layers on purpose.
+   ========================================================= */
+
+/* The navigation layer covers the hero only as an inert overlay.
+   Individual controls opt back into pointer events. */
+.home-hero-carousel__nav {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 8 !important;
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  transform: none !important;
+  pointer-events: none !important;
+}
+
+.home-hero-carousel__arrow {
+  position: absolute !important;
+  top: 50% !important;
+  bottom: auto !important;
+  margin: 0 !important;
+  transform: translateY(-50%) !important;
+  width: 42px !important;
+  height: 42px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 12px !important;
+  background: rgba(7, 11, 21, .66) !important;
+  border: 1px solid rgba(255, 255, 255, .14) !important;
+  color: #eef1ff !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .24);
+  pointer-events: auto !important;
+  z-index: 2;
+}
+
+.home-hero-carousel__arrow--prev {
+  left: 14px !important;
+  right: auto !important;
+}
+
+.home-hero-carousel__arrow--next {
+  right: 14px !important;
+  left: auto !important;
+}
+
+.home-hero-carousel__arrow:hover {
+  background: rgba(112, 76, 255, .80) !important;
+  border-color: rgba(168, 137, 255, .60) !important;
+}
+
+.home-hero-carousel__arrow:active {
+  transform: translateY(-50%) scale(.96) !important;
+}
+
+/* Pagination lives in its own bottom-centre zone and can no longer sit
+   inside the CTA row. */
+.home-hero-carousel__dots {
+  position: absolute !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: 16px !important;
+  transform: translateX(-50%) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  pointer-events: auto !important;
+  z-index: 2;
+}
+
+/* Keep primary actions above the decorative/background layers and reserve
+   the lower centre for pagination. */
+.home-hero-carousel .hero-actions {
+  position: relative;
+  z-index: 9;
+}
+
+/* Side controls need a small safety gutter so they never sit over readable
+   hero copy on desktop. This does not move the CTA row itself. */
+@media (min-width: 769px) {
+  .home-hero-carousel__content {
+    padding-left: max(68px, 5.25%) !important;
+    padding-right: 68px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-hero-carousel__arrow {
+    top: 46% !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+    font-size: 22px !important;
+  }
+
+  .home-hero-carousel__arrow--prev {
+    left: 8px !important;
+  }
+
+  .home-hero-carousel__arrow--next {
+    right: 8px !important;
+  }
+
+  .home-hero-carousel__dots {
+    bottom: 12px !important;
+  }
+
+  /* v4 gives the hero content safe bottom padding; keep the text/buttons
+     inside that space and leave only a narrow side gutter for arrows. */
+  .home-grid .home-hero-carousel__content {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .home-hero-carousel__arrow {
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  .home-hero-carousel__arrow--prev {
+    left: 6px !important;
+  }
+
+  .home-hero-carousel__arrow--next {
+    right: 6px !important;
+  }
+
+  .home-grid .home-hero-carousel__content {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-hero-carousel__arrow {
+    transition: none !important;
+  }
+}

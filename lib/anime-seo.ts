@@ -299,9 +299,27 @@ export function buildAnimeStructuredData(
     genre: anime.genres?.length ? anime.genres : undefined,
     datePublished,
     inLanguage: 'ru-RU',
-    sameAs: anime.idMal
-      ? [`https://myanimelist.net/anime/${anime.idMal}`]
-      : undefined,
+    mainEntityOfPage: canonicalUrl,
+    identifier: [
+      {
+        '@type': 'PropertyValue',
+        propertyID: 'AniList',
+        value: String(anime.id),
+      },
+      ...(anime.idMal
+        ? [
+            {
+              '@type': 'PropertyValue',
+              propertyID: 'MyAnimeList',
+              value: String(anime.idMal),
+            },
+          ]
+        : []),
+    ],
+    sameAs: uniqueStrings([
+      `https://anilist.co/anime/${anime.id}`,
+      anime.idMal ? `https://myanimelist.net/anime/${anime.idMal}` : null,
+    ]),
   };
 
   if (movieLike(anime)) {

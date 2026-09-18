@@ -10,7 +10,7 @@ export function cleanDescription(
   html?: string | null,
 ): string {
   if (!html) {
-    return 'Описание отсутствует.';
+    return '';
   }
 
   return html

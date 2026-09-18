@@ -23,11 +23,19 @@ import './mobile-readability.css';
 import './typography-polish.css';
 import './performance.css';
 import './hierarchy-pass.css';
+import './feedback-v1.css';
+import './mobile-moderate-v4.css';
+import './hero-controls-v5.css';
+import './hero-teaser-v6.css';
+import './hero-swipe-v7.css';
+import './ad-layout-v8.css';
+import './monetization-reliability-v10.css';
 
 import Navbar from '@/components/Navbar';
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
 import { AuthStateProvider } from '@/components/AuthStateProvider';
+import SiteFooter from '@/components/SiteFooter';
 
 import { Analytics } from '@vercel/analytics/next';
 
@@ -41,6 +49,7 @@ import { SUPPORT_EMAIL } from '@/lib/contact';
 const websiteStructuredData = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
+  '@id': `${SITE_URL}#website`,
 
   name: 'AnimeBox',
 
@@ -60,6 +69,7 @@ const websiteStructuredData = {
 const organizationStructuredData = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
+  '@id': `${SITE_URL}#organization`,
 
   name: 'AnimeBox',
   alternateName: 'YourAnimeBox',
@@ -77,6 +87,7 @@ const organizationStructuredData = {
   },
 
   sameAs: [
+    'https://t.me/YourAnimeBox',
     'https://t.me/YourAnimeBoxBot',
   ],
 
@@ -124,9 +135,6 @@ export const metadata: Metadata = {
     'расписание аниме',
   ],
 
-  alternates: {
-    canonical: SITE_URL,
-  },
 
   robots: {
     index: true,
@@ -376,6 +384,8 @@ export default function RootLayout({
               <main className="page-content">
                 {children}
               </main>
+
+              <SiteFooter />
             </div>
 
             <Analytics />

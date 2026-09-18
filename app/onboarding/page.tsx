@@ -10,9 +10,23 @@ import { useRouter } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/client';
 
+
+function safeReturnPath(value: string | null) {
+  return value && value.startsWith('/') && !value.startsWith('//')
+    ? value
+    : '/profile';
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
 
+  const [nextPath] = useState(() =>
+    safeReturnPath(
+      typeof window === 'undefined'
+        ? null
+        : new URLSearchParams(window.location.search).get('next'),
+    ),
+  );
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
 
@@ -22,6 +36,7 @@ export default function OnboardingPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    const target = nextPath;
     const supabase = createClient();
 
     async function loadUser() {
@@ -47,7 +62,7 @@ export default function OnboardingPage() {
        * onboarding больше не нужен.
        */
       if (profile?.username?.trim()) {
-        router.replace('/profile');
+        router.replace(target);
         return;
       }
 
@@ -71,7 +86,7 @@ export default function OnboardingPage() {
     }
 
     loadUser();
-  }, [router]);
+  }, [nextPath, router]);
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -138,7 +153,7 @@ export default function OnboardingPage() {
         throw profileError;
       }
 
-      router.replace('/profile');
+      router.replace(nextPath);
       router.refresh();
     } catch (error) {
       console.error(error);

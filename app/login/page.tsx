@@ -14,7 +14,22 @@ import {
   createClient,
 } from '@/lib/supabase/client';
 
+
+function safeReturnPath(value: string | null) {
+  return value && value.startsWith('/') && !value.startsWith('//')
+    ? value
+    : '/profile';
+}
+
 export default function LoginPage() {
+  const [nextPath] = useState(() =>
+    safeReturnPath(
+      typeof window === 'undefined'
+        ? null
+        : new URLSearchParams(window.location.search).get('next'),
+    ),
+  );
+
   const [email, setEmail] =
     useState('');
 
@@ -131,9 +146,7 @@ export default function LoginPage() {
       return;
     }
 
-    window.location.replace(
-      '/profile',
-    );
+    window.location.replace(nextPath);
   }
 
   return (
@@ -156,12 +169,12 @@ export default function LoginPage() {
         <div className="auth-social">
           <GoogleAuthButton
             label="Войти через Google"
-            next="/profile"
+            next={nextPath}
           />
 
           <TelegramAuthButton
             label="Войти через Telegram"
-            next="/profile"
+            next={nextPath}
             onError={(value) => {
               setError(value);
             }}
@@ -322,7 +335,7 @@ export default function LoginPage() {
         <div className="auth-card__switch">
           Нет аккаунта?{' '}
 
-          <Link href="/register">
+          <Link href={nextPath === '/profile' ? '/register' : `/register?next=${encodeURIComponent(nextPath)}`}>
             Создать аккаунт
           </Link>
         </div>

@@ -12,8 +12,9 @@ import {
 import Icon from './Icon';
 import AuthUserButton from './AuthUserButton';
 import MobileAccountNav from './MobileAccountNav';
+import SidebarMembership from './SidebarMembership';
+import { useAuthState } from '@/components/AuthStateProvider';
 import { TELEGRAM_MINI_APP_URL } from '@/lib/telegram-links';
-import { buildSupportMailto } from '@/lib/contact';
 
 const mainNav = [
   {
@@ -54,149 +55,80 @@ function NavbarContent() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, loading: authLoading } = useAuthState();
 
   const [searchValue, setSearchValue] = useState('');
 
-  /*
-   * Если пользователь находится на странице поиска,
-   * синхронизируем поле с ?search=
-   */
   useEffect(() => {
     if (pathname === '/search') {
       // URL query is external navigation state; mirror it into the controlled input.
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSearchValue(
-        searchParams.get('search') ?? '',
-      );
+      setSearchValue(searchParams.get('search') ?? '');
     }
   }, [pathname, searchParams]);
 
-  /*
-   * На /search обновляем URL автоматически,
-   * но с debounce, чтобы не делать переход
-   * после каждого символа моментально.
-   */
   useEffect(() => {
-    if (pathname !== '/search') {
-      return;
-    }
+    if (pathname !== '/search') return;
 
     const value = searchValue.trim();
+    const currentValue = searchParams.get('search')?.trim() ?? '';
 
-    const currentValue =
-      searchParams.get('search')?.trim() ?? '';
-
-    if (value === currentValue) {
-      return;
-    }
+    if (value === currentValue) return;
 
     const timer = window.setTimeout(() => {
-      const params = new URLSearchParams(
-        searchParams.toString(),
-      );
+      const params = new URLSearchParams(searchParams.toString());
 
-      if (value) {
-        params.set('search', value);
-      } else {
-        params.delete('search');
-      }
+      if (value) params.set('search', value);
+      else params.delete('search');
 
       const queryString = params.toString();
 
-      router.replace(
-        queryString
-          ? `/search?${queryString}`
-          : '/search',
-        {
-          scroll: false,
-        },
-      );
+      router.replace(queryString ? `/search?${queryString}` : '/search', {
+        scroll: false,
+      });
     }, 350);
 
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [
-    pathname,
-    router,
-    searchParams,
-    searchValue,
-  ]);
+    return () => window.clearTimeout(timer);
+  }, [pathname, router, searchParams, searchValue]);
 
-  function submitSearch(
-    event: React.FormEvent<HTMLFormElement>,
-  ) {
+  function submitSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const value = searchValue.trim();
 
-    /*
-     * Если мы уже на /search,
-     * просто обновляем параметры URL.
-     */
     if (pathname === '/search') {
-      const params = new URLSearchParams(
-        searchParams.toString(),
-      );
+      const params = new URLSearchParams(searchParams.toString());
 
-      if (value) {
-        params.set('search', value);
-      } else {
-        params.delete('search');
-      }
+      if (value) params.set('search', value);
+      else params.delete('search');
 
       const queryString = params.toString();
 
-      router.replace(
-        queryString
-          ? `/search?${queryString}`
-          : '/search',
-        {
-          scroll: false,
-        },
-      );
-
+      router.replace(queryString ? `/search?${queryString}` : '/search', {
+        scroll: false,
+      });
       return;
     }
 
-    /*
-     * Пустой запрос просто открывает каталог.
-     */
     if (!value) {
       router.push('/search');
       return;
     }
 
-    router.push(
-      `/search?search=${encodeURIComponent(
-        value,
-      )}`,
-    );
+    router.push(`/search?search=${encodeURIComponent(value)}`);
   }
 
   function isActive(href: string) {
-    if (href === '/') {
-      return pathname === '/';
-    }
-
+    if (href === '/') return pathname === '/';
     return pathname.startsWith(href);
   }
 
-
-
   return (
     <>
-      {/* =========================
-          DESKTOP SIDEBAR
-          ========================= */}
-
+      {/* Desktop / tablet sidebar. On phones it is replaced by mobile-nav. */}
       <aside className="sidebar">
         <div className="brand">
-          <Link
-            href="/"
-            className="brand__link"
-            aria-label="AnimeBox — главная"
-          >
+          <Link href="/" className="brand__link" aria-label="AnimeBox — главная">
             <span className="brand__mark">
               <Image
                 src="/logo.png"
@@ -207,20 +139,14 @@ function NavbarContent() {
               />
             </span>
 
-            <span>
+            <span className="brand__copy">
               <strong>ANIMEBOX</strong>
-
-              <small>
-                Смотри. Отслеживай. Живи.
-              </small>
+              <small>Смотри. Отслеживай. Живи.</small>
             </span>
           </Link>
         </div>
 
-        <nav
-          className="sidebar__nav"
-          aria-label="Основная навигация"
-        >
+        <nav className="sidebar__nav" aria-label="Основная навигация">
           {mainNav.map((item) => {
             const active = isActive(item.href);
 
@@ -228,15 +154,11 @@ function NavbarContent() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`sidebar__item ${
-                  active ? 'is-active' : ''
-                }`}
-                aria-current={
-                  active ? 'page' : undefined
-                }
+                className={`sidebar__item ${active ? 'is-active' : ''}`}
+                aria-current={active ? 'page' : undefined}
+                title={item.label}
               >
                 <Icon name={item.icon} />
-
                 <span>{item.label}</span>
               </Link>
             );
@@ -245,88 +167,76 @@ function NavbarContent() {
 
         <div className="sidebar__divider" />
 
-        <div className="sidebar__label">
-          Сервис
+        <div className="sidebar__label">Поддержка</div>
+
+        <div className="sidebar__membership-block">
+          <SidebarMembership />
+
+          <Link
+            href="/support"
+            className={`sidebar__item sidebar__support ${
+              isActive('/support') ? 'is-active' : ''
+            }`}
+            aria-current={isActive('/support') ? 'page' : undefined}
+            title="Поддержать AnimeBox"
+          >
+            <Icon name="heart" />
+            <span>
+              <strong>Поддержать AnimeBox</strong>
+              <small>Stars, Boosty и другие способы</small>
+            </span>
+          </Link>
         </div>
 
-        <nav className="sidebar__nav sidebar__nav--muted">
-          <Link
-            href="/notifications"
-            className={`sidebar__item sidebar__item--utility ${isActive('/notifications') ? 'is-active' : ''}`}
-          >
-            <img
-              className="topbar__asset-icon topbar__asset-icon--notification"
-              src="/brand/icons/notification.svg"
-              alt=""
-              aria-hidden="true"
-            />
-            <span>Уведомления</span>
-          </Link>
+        <div className="sidebar__divider sidebar__divider--service" />
 
+        <nav className="sidebar__nav sidebar__nav--muted" aria-label="Сервисы">
           <a
             href={telegramUrl}
             className="sidebar__item sidebar__item--utility sidebar__item--external"
             target="_blank"
             rel="noreferrer"
+            title="Telegram Mini App"
           >
             <Icon name="telegram" />
             <span>Telegram Mini App</span>
           </a>
-
-          <a
-            href={buildSupportMailto('Поддержка AnimeBox')}
-            className="sidebar__item sidebar__item--utility"
-          >
-            <Icon name="mail" />
-            <span>Написать в поддержку</span>
-          </a>
-
-          <Link
-            href="/about"
-            className={`sidebar__item sidebar__item--utility ${
-              isActive('/about')
-                ? 'is-active'
-                : ''
-            }`}
-            aria-current={
-              isActive('/about')
-                ? 'page'
-                : undefined
-            }
-          >
-            <Icon name="info" />
-            <span>О проекте</span>
-          </Link>
-
-          <Link
-            href="/premium"
-            className={`sidebar__item sidebar__item--premium ${isActive('/premium') ? 'is-active' : ''}`}
-          >
-            <Icon name="star" />
-            <span>AnimeBox Premium</span>
-          </Link>
-
-          <Link
-            href="/support"
-            className={`sidebar__item sidebar__item--utility ${isActive('/support') ? 'is-active' : ''}`}
-          >
-            <Icon name="heart" />
-            <span>Поддержать проект</span>
-          </Link>
         </nav>
 
+        {!authLoading && user && (
+          <div className="sidebar__account">
+            <div className="sidebar__label">Аккаунт</div>
+
+            <nav className="sidebar__nav sidebar__nav--muted" aria-label="Аккаунт">
+              <Link
+                href="/profile"
+                className={`sidebar__item sidebar__item--utility ${
+                  isActive('/profile') ? 'is-active' : ''
+                }`}
+                title="Профиль"
+              >
+                <Icon name="user" />
+                <span>Профиль</span>
+              </Link>
+
+              <Link
+                href="/settings"
+                className={`sidebar__item sidebar__item--utility ${
+                  isActive('/settings') ? 'is-active' : ''
+                }`}
+                title="Настройки"
+              >
+                <Icon name="menu" />
+                <span>Настройки</span>
+              </Link>
+            </nav>
+          </div>
+        )}
       </aside>
 
-      {/* =========================
-          TOPBAR
-          ========================= */}
-
+      {/* Topbar keeps only global actions: search, notifications, account. */}
       <header className="topbar">
-        <form
-          className="topbar__search"
-          onSubmit={submitSearch}
-          role="search"
-        >
+        <form className="topbar__search" onSubmit={submitSearch} role="search">
           <img
             className="topbar__asset-icon topbar__asset-icon--search"
             src="/brand/icons/search.svg"
@@ -336,11 +246,7 @@ function NavbarContent() {
 
           <input
             value={searchValue}
-            onChange={(event) =>
-              setSearchValue(
-                event.target.value,
-              )
-            }
+            onChange={(event) => setSearchValue(event.target.value)}
             aria-label="Поиск аниме"
             placeholder="Поиск аниме, например: One Piece..."
             autoComplete="off"
@@ -348,38 +254,25 @@ function NavbarContent() {
         </form>
 
         <div className="topbar__actions">
-          <Link
-            href="/notifications"
-            className="topbar__icon"
-            aria-label="Уведомления"
-          >
-            <Icon name="bell" />
-          </Link>
-
-          <Link
-            href="/about"
-            className="topbar__login"
-          >
-            О проекте
-          </Link>
+          {!authLoading && user && (
+            <Link
+              href="/notifications"
+              className="topbar__icon"
+              aria-label="Уведомления"
+            >
+              <Icon name="bell" />
+            </Link>
+          )}
 
           <AuthUserButton />
         </div>
       </header>
 
-      {/* =========================
-          MOBILE NAVIGATION
-          ========================= */}
-
-      <nav
-        className="mobile-nav"
-        aria-label="Мобильная навигация"
-      >
+      {/* Phone navigation stays compact. */}
+      <nav className="mobile-nav" aria-label="Мобильная навигация">
         <Link
           href="/"
-          className={`mobile-nav__item ${
-            isActive('/') ? 'is-active' : ''
-          }`}
+          className={`mobile-nav__item ${isActive('/') ? 'is-active' : ''}`}
           aria-current={isActive('/') ? 'page' : undefined}
         >
           <Icon name="home" />
@@ -388,9 +281,7 @@ function NavbarContent() {
 
         <Link
           href="/search"
-          className={`mobile-nav__item ${
-            isActive('/search') ? 'is-active' : ''
-          }`}
+          className={`mobile-nav__item ${isActive('/search') ? 'is-active' : ''}`}
           aria-current={isActive('/search') ? 'page' : undefined}
         >
           <Icon name="anime" />
@@ -399,9 +290,7 @@ function NavbarContent() {
 
         <Link
           href="/list"
-          className={`mobile-nav__item ${
-            isActive('/list') ? 'is-active' : ''
-          }`}
+          className={`mobile-nav__item ${isActive('/list') ? 'is-active' : ''}`}
           aria-current={isActive('/list') ? 'page' : undefined}
         >
           <Icon name="tracker" />
@@ -414,22 +303,12 @@ function NavbarContent() {
   );
 }
 
-/* =========================
-   SUSPENSE FALLBACK
-   ========================= */
-
 function NavbarFallback() {
   return (
     <>
-      <aside
-        className="sidebar"
-        aria-hidden="true"
-      >
+      <aside className="sidebar" aria-hidden="true">
         <div className="brand">
-          <Link
-            href="/"
-            className="brand__link"
-          >
+          <Link href="/" className="brand__link">
             <span className="brand__mark">
               <Image
                 src="/logo.png"
@@ -440,21 +319,15 @@ function NavbarFallback() {
               />
             </span>
 
-            <span>
+            <span className="brand__copy">
               <strong>ANIMEBOX</strong>
-
-              <small>
-                Смотри. Отслеживай. Живи.
-              </small>
+              <small>Смотри. Отслеживай. Живи.</small>
             </span>
           </Link>
         </div>
       </aside>
 
-      <header
-        className="topbar"
-        aria-hidden="true"
-      >
+      <header className="topbar" aria-hidden="true">
         <div className="topbar__search">
           <img
             className="topbar__asset-icon topbar__asset-icon--search"
@@ -477,9 +350,7 @@ function NavbarFallback() {
 
 export default function Navbar() {
   return (
-    <Suspense
-      fallback={<NavbarFallback />}
-    >
+    <Suspense fallback={<NavbarFallback />}>
       <NavbarContent />
     </Suspense>
   );

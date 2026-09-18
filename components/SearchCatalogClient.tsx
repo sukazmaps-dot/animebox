@@ -49,7 +49,7 @@ export default function SearchCatalogClient({
   const [pageState, setPageState] = useState({ query, page: 1 });
   const page = pageState.query === query ? pageState.page : 1;
   const initialRenderRef = useRef(true);
-  const [hasNextPage, setHasNextPage] = useState(initialResults.length >= 15);
+  const [hasNextPage, setHasNextPage] = useState(initialResults.length >= 16);
 
   useEffect(() => {
     // Skip only the initial unfiltered browser request: SSR already supplied it.
@@ -77,7 +77,7 @@ export default function SearchCatalogClient({
           {
             search: query || undefined,
             page,
-            limit: 15,
+            limit: 16,
             order: 'ranked',
             genre: selectedGenre ?? undefined,
             mood: selectedMood,
@@ -88,7 +88,7 @@ export default function SearchCatalogClient({
         if (controller.signal.aborted) return;
 
         setResults(data);
-        setHasNextPage(data.length === 15);
+        setHasNextPage(data.length === 16);
       } catch (err: unknown) {
         if (isAbortError(err)) return;
         setResults([]);
@@ -103,6 +103,10 @@ export default function SearchCatalogClient({
   }, [initialResults, page, query, selectedGenre, selectedMood]);
 
   const hasFilters = selectedGenre !== null || selectedMood !== 'any';
+  const showCatalogAd = !loading && results.length >= 8;
+  const catalogAdBreakIndex = results.length > 10 ? 10 : results.length;
+  const catalogLead = showCatalogAd ? results.slice(0, catalogAdBreakIndex) : results;
+  const catalogTail = showCatalogAd ? results.slice(catalogAdBreakIndex) : [];
 
   return (
     <div className="search-page">
@@ -183,25 +187,37 @@ export default function SearchCatalogClient({
             <span>{error}</span>
           </div>
         ) : results.length ? (
-          <div className="anime-grid">
-            {results.map((anime) => (
-              <AnimeCard key={anime.id} anime={anime} />
-            ))}
-          </div>
+          <>
+            <div className="anime-grid">
+              {catalogLead.map((anime) => (
+                <AnimeCard key={anime.id} anime={anime} />
+              ))}
+            </div>
+
+            {showCatalogAd && (
+              <div className="catalog-ad-break" aria-label="Рекламная пауза">
+                <AdSlot
+                  placement="catalog-after-results"
+                  format="horizontal"
+                  className="monetization-ad--catalog"
+                />
+              </div>
+            )}
+
+            {catalogTail.length > 0 && (
+              <div className="anime-grid anime-grid--after-ad">
+                {catalogTail.map((anime) => (
+                  <AnimeCard key={anime.id} anime={anime} />
+                ))}
+              </div>
+            )}
+          </>
         ) : (
           <div className={`empty-state ${styles.assetEmpty}`}>
             <img className={styles.emptyMascot} src="/brand/illustrations/empty-search.webp" alt="" aria-hidden="true" />
             <strong>Ничего не найдено</strong>
             <span>Попробуй изменить запрос, жанр или настроение.</span>
           </div>
-        )}
-
-        {!loading && results.length > 0 && (
-          <AdSlot
-            placement="catalog-after-results"
-            format="horizontal"
-            className="monetization-ad--catalog"
-          />
         )}
 
         {!loading && results.length > 0 && (

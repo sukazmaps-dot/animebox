@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { buildStaticPageMetadata } from '@/lib/static-page-seo';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildStaticPageMetadata({
   title: 'Условия поддержки AnimeBox',
   description: 'Условия добровольной поддержки и AnimeBox Premium.',
-};
+  path: '/terms',
+});
 
 export default function TermsPage() {
   return (

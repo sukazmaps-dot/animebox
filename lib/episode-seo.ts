@@ -102,10 +102,13 @@ function isoDuration(minutes?: number | null): string | undefined {
 }
 
 /**
- * Schema.org object for a confirmed playable episode. We deliberately avoid
- * inventing uploadDate/contentUrl values: provider availability proves that
- * the episode exists, but it does not give AnimeBox a trustworthy publication
- * timestamp or a stable first-party media URL.
+ * Schema.org graph for a confirmed playable episode.
+ *
+ * TVEpisode carries the episode semantics (episodeNumber / season / series),
+ * while VideoObject describes the playable media. We intentionally do not
+ * invent uploadDate, contentUrl or embedUrl values because provider
+ * availability does not give us a trustworthy first-party publication time
+ * or a stable public media URL.
  */
 export function buildEpisodeVideoStructuredData(
   anime: Anime,
@@ -117,36 +120,64 @@ export function buildEpisodeVideoStructuredData(
   const thumbnail = episodeThumbnail(anime);
   const description = buildEpisodeSeoDescription(anime, episode, true);
   const duration = isoDuration(anime.duration);
+  const animeUrl = canonicalUrl.split('/episode/')[0];
 
-  const partOfSeries = {
+  const seriesId = `${animeUrl}#series`;
+  const seasonId = `${animeUrl}#season`;
+  const episodeId = `${canonicalUrl}#episode`;
+  const videoId = `${canonicalUrl}#video`;
+
+  const series = {
     '@type': 'TVSeries',
+    '@id': seriesId,
     name: identity.baseTitle || identity.title,
-    url: canonicalUrl.split('/episode/')[0],
+    url: animeUrl,
   };
 
-  const isPartOf = identity.seasonNumber
+  const season = identity.seasonNumber
     ? {
         '@type': 'TVSeason',
+        '@id': seasonId,
         name: identity.pageHeading,
+        url: animeUrl,
         seasonNumber: identity.seasonNumber,
-        partOfSeries,
+        partOfSeries: { '@id': seriesId },
       }
-    : partOfSeries;
+    : null;
 
-  return {
-    '@context': 'https://schema.org',
+  const tvEpisode = {
+    '@type': 'TVEpisode',
+    '@id': episodeId,
+    name,
+    description,
+    url: canonicalUrl,
+    episodeNumber: episode,
+    image: thumbnail,
+    inLanguage: 'ru-RU',
+    ...(season
+      ? { partOfSeason: { '@id': seasonId } }
+      : { partOfSeries: { '@id': seriesId } }),
+    video: { '@id': videoId },
+  };
+
+  const video = {
     '@type': 'VideoObject',
+    '@id': videoId,
     name,
     description,
     url: canonicalUrl,
     thumbnailUrl: thumbnail,
     duration,
     inLanguage: 'ru-RU',
-    episodeNumber: episode,
-    isPartOf,
+    isPartOf: { '@id': episodeId },
     potentialAction: {
       '@type': 'WatchAction',
       target: canonicalUrl,
     },
+  };
+
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [series, ...(season ? [season] : []), tvEpisode, video],
   };
 }

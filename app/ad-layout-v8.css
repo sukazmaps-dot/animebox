@@ -1,0 +1,146 @@
+/* =========================================================
+   AnimeBox — Ad Layout v8
+   Moderate placements for the current desktop/mobile UI.
+
+   Principles:
+   - ads live only between content sections, never over Hero/player/nav;
+   - no sticky/fixed advertising;
+   - catalog break happens after a meaningful amount of content;
+   - provider content can shrink to the viewport without overflowing;
+   - empty/loading slots reserve effectively no visual space;
+   - Premium/ad-free users are removed in React before provider mount.
+   ========================================================= */
+
+/* Every slot participates in normal document flow only. */
+.monetization-ad-slot {
+  position: relative !important;
+  inset: auto !important;
+  z-index: 0 !important;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  clear: both;
+}
+
+.monetization-ad-slot:not(.is-rendered) {
+  /* Keep a 1px observer target so lazy loading still triggers, but no
+     visible placeholder/CLS is introduced before the provider is ready. */
+  min-height: 1px !important;
+  margin-block: 0 !important;
+}
+
+/* Keep provider output inside the content column. We intentionally do not
+   crop vertical creatives: the slot simply becomes as tall as its creative. */
+.monetization-ad-slot .monetization-ad,
+.monetization-ad-slot .monetization-ad__surface,
+.monetization-ad-slot .monetization-ad__mount,
+.monetization-ad-slot iframe,
+.monetization-ad-slot img {
+  box-sizing: border-box;
+  max-width: 100% !important;
+}
+
+.monetization-ad-slot iframe {
+  display: block;
+  margin-inline: auto;
+}
+
+/* Home: after Continue/Mood/Smart feed, before the next discovery section. */
+.monetization-ad-slot[data-ad-slot='home-after-smart-feed'].is-rendered {
+  margin: 18px 0 34px;
+}
+
+/* Catalog: a deliberate full-width break between card grids. */
+.catalog-ad-break {
+  width: 100%;
+  min-width: 0;
+  margin: 22px 0;
+}
+
+.catalog-ad-break:empty,
+.catalog-ad-break:has(.monetization-ad-slot:not(.is-rendered)) {
+  margin-block: 0;
+}
+
+.search-page .anime-grid--after-ad {
+  margin-top: 0;
+}
+
+/* Anime detail: separate discussion from discovery/related titles. */
+.monetization-ad-slot[data-ad-slot='anime-detail-before-related'].is-rendered {
+  margin: 10px 0 28px;
+}
+
+/* Watch page: deliberately below comments. Never place it in the player or
+   controls region. */
+.episode-ad-break {
+  width: 100%;
+  min-width: 0;
+  margin-top: 22px;
+}
+
+.episode-ad-break:empty,
+.episode-ad-break:has(.monetization-ad-slot:not(.is-rendered)) {
+  margin-top: 0;
+  padding-bottom: 0;
+}
+
+.monetization-ad-slot[data-ad-slot='watch-below-engagement'].is-rendered {
+  margin-top: 0;
+  padding-bottom: 6px;
+}
+
+/* The shell should be quieter than primary content. */
+.monetization-ad-slot.is-rendered .monetization-ad {
+  width: min(100%, 760px);
+  margin-inline: auto;
+}
+
+@media (max-width: 768px) {
+  /* Mobile advertising is allowed only as a section break. It must never
+     touch the fixed bottom navigation or imitate a content card. */
+  .monetization-ad-slot.is-rendered .monetization-ad {
+    width: 100%;
+    margin: 0 auto;
+    padding: 7px;
+    border-radius: 14px;
+  }
+
+  .monetization-ad-slot[data-ad-slot='home-after-smart-feed'].is-rendered {
+    margin: 20px 0 30px;
+  }
+
+  .catalog-ad-break {
+    margin: 18px 0;
+  }
+
+  .episode-ad-break {
+    margin-top: 18px;
+    padding-bottom: 8px;
+  }
+
+  .monetization-ad__meta {
+    padding-bottom: 6px;
+  }
+
+  .monetization-ad__surface {
+    border-radius: 10px;
+  }
+}
+
+@media (max-width: 420px) {
+  .monetization-ad-slot.is-rendered .monetization-ad {
+    padding: 6px;
+    border-radius: 12px;
+  }
+
+  .catalog-ad-break {
+    margin: 16px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .monetization-ad-slot.is-rendered .monetization-ad {
+    animation: none !important;
+  }
+}

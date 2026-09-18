@@ -49,7 +49,9 @@ export async function GET(request: Request) {
 
   // Новый Google-пользователь должен сначала выбрать AnimeBox username.
   if (!profile?.username?.trim()) {
-    return NextResponse.redirect(new URL('/onboarding', requestUrl.origin));
+    const onboardingUrl = new URL('/onboarding', requestUrl.origin);
+    onboardingUrl.searchParams.set('next', safeNext);
+    return NextResponse.redirect(onboardingUrl);
   }
 
   return NextResponse.redirect(new URL(safeNext, requestUrl.origin));

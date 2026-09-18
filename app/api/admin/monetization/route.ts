@@ -5,12 +5,22 @@ import { reconcileStarPayments } from '@/lib/star-reconciliation';
 import { isDonatePayConfigured } from '@/lib/payments/providers/donatepay';
 import { syncDonatePayTransactions } from '@/lib/payments/sync-donatepay';
 import { markTelegramStarsPaymentRefunded } from '@/lib/payments/providers/telegram-stars';
+import {
+  claimMonetizationOperation,
+  finishMonetizationOperation,
+  setPaymentIntegrityStatus,
+  type PaymentIntegrityStatus,
+} from '@/lib/monetization-reliability';
 
 const PAGE_SIZE = 25;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function missingRelation(error: { code?: string } | null | undefined) {
   return error?.code === '42P01' || error?.code === 'PGRST205';
+}
+
+function missingColumn(error: { code?: string } | null | undefined) {
+  return error?.code === '42703' || error?.code === 'PGRST204';
 }
 
 export async function GET(request: Request) {
@@ -77,7 +87,7 @@ export async function GET(request: Request) {
     let unifiedQuery = admin
       .from('payment_transactions')
       .select(
-        'id,user_id,provider,product_code,external_id,external_user_id,status,amount,currency,provider_status,provider_created_at,paid_at,refunded_at,metadata,created_at',
+        'id,user_id,provider,product_code,external_id,external_user_id,status,amount,currency,provider_status,provider_created_at,paid_at,refunded_at,metadata,created_at,integrity_status,integrity_note,reviewed_at,reviewed_by',
         { count: 'exact' },
       )
       .is('archived_at', null)
@@ -130,12 +140,36 @@ export async function GET(request: Request) {
     const payments = await paymentsQuery.range(from, to);
     if (payments.error) throw payments.error;
 
-    const unifiedResult = await unifiedQuery.range(from, to);
+    let unifiedResult = await unifiedQuery.range(from, to);
+    if (unifiedResult.error && missingColumn(unifiedResult.error)) {
+      let fallbackUnifiedQuery = admin
+        .from('payment_transactions')
+        .select(
+          'id,user_id,provider,product_code,external_id,external_user_id,status,amount,currency,provider_status,provider_created_at,paid_at,refunded_at,metadata,created_at',
+          { count: 'exact' },
+        )
+        .is('archived_at', null)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
+      if (q) {
+        const ids = matchedProfiles.map((item) => item.id);
+        if (ids.length) fallbackUnifiedQuery = fallbackUnifiedQuery.in('user_id', ids);
+        else if (/^\d{4,20}$/.test(q)) fallbackUnifiedQuery = fallbackUnifiedQuery.eq('external_user_id', q);
+      }
+      unifiedResult = (await fallbackUnifiedQuery.range(from, to)) as unknown as typeof unifiedResult;
+    }
+
     const unifiedPayments = unifiedResult.error && missingRelation(unifiedResult.error)
       ? []
       : unifiedResult.error
         ? (() => { throw unifiedResult.error; })()
-        : unifiedResult.data ?? [];
+        : (unifiedResult.data ?? []).map((item) => ({
+            ...item,
+            integrity_status: 'integrity_status' in item ? item.integrity_status : 'ok',
+            integrity_note: 'integrity_note' in item ? item.integrity_note : null,
+            reviewed_at: 'reviewed_at' in item ? item.reviewed_at : null,
+            reviewed_by: 'reviewed_by' in item ? item.reviewed_by : null,
+          }));
     const unifiedCount = unifiedResult.error && missingRelation(unifiedResult.error)
       ? 0
       : unifiedResult.count ?? 0;
@@ -221,6 +255,8 @@ export async function POST(request: Request) {
       starsDelta?: number;
       reason?: string;
       note?: string;
+      transactionId?: string;
+      integrityStatus?: PaymentIntegrityStatus;
     };
 
     const action = body.action?.trim();
@@ -290,6 +326,37 @@ export async function POST(request: Request) {
       return response({ ok: true });
     }
 
+    if (action === 'payment_integrity') {
+      const { user, role } = await requireAdmin(['owner', 'admin']);
+      const transactionId = body.transactionId?.trim() ?? '';
+      const integrityStatus = body.integrityStatus;
+      const allowed: PaymentIntegrityStatus[] = ['ok', 'needs_review', 'disputed', 'reconciliation_error'];
+      if (!UUID_RE.test(transactionId)) throw new ApiError(400, 'Некорректный unified payment.');
+      if (!integrityStatus || !allowed.includes(integrityStatus)) {
+        throw new ApiError(400, 'Некорректный статус проверки.');
+      }
+      const note = (body.note ?? '').trim().slice(0, 1000);
+      if (integrityStatus !== 'ok' && note.length < 3) {
+        throw new ApiError(400, 'Для проблемного платежа укажи причину.');
+      }
+      const result = await setPaymentIntegrityStatus({
+        transactionId,
+        status: integrityStatus,
+        note,
+        actorUserId: user.id,
+      });
+      await writeAdminAudit({
+        actorId: user.id,
+        actorRole: role,
+        action: 'payment.integrity',
+        targetType: 'payment_transaction',
+        targetId: transactionId,
+        reason: note || undefined,
+        details: { integrity_status: integrityStatus, changed: result.changed },
+      });
+      return response({ ok: true, result });
+    }
+
     const paymentId = body.paymentId?.trim();
     if (!paymentId) throw new ApiError(400, 'Не указан платёж.');
 
@@ -312,24 +379,57 @@ export async function POST(request: Request) {
       if (payment.status === 'refunded') throw new ApiError(409, 'Платёж уже возвращён.');
       if (payment.status !== 'confirmed') throw new ApiError(409, 'Возврат доступен только для подтверждённого платежа.');
       const reason = (body.reason ?? '').trim().slice(0, 500) || 'Возврат администратором';
+      const operation = await claimMonetizationOperation({
+        operationKey: `telegram-stars-refund:${payment.telegram_payment_charge_id}`,
+        operationType: 'telegram_stars.refund',
+        targetType: 'star_payment',
+        targetId: payment.id,
+        actorUserId: user.id,
+        metadata: { amount: payment.amount, telegram_id: payment.telegram_id, reason },
+      });
+      if (!operation.claimed) {
+        throw new ApiError(409, operation.status === 'completed'
+          ? 'Этот возврат уже был выполнен.'
+          : 'Возврат уже выполняется другим запросом.');
+      }
+
       await admin.from('star_payment_events').insert({ payment_id: payment.id, event_type: 'refund_requested', actor_user_id: user.id, details: { reason, amount: payment.amount } });
+      let providerRefundCompleted = false;
       try {
         await refundStarPayment({ botToken, userId: Number(payment.telegram_id), telegramPaymentChargeId: payment.telegram_payment_charge_id });
+        providerRefundCompleted = true;
+        const now = new Date().toISOString();
+
+        // The external money-moving action is complete. Lock the operation now,
+        // before local bookkeeping, so a transient DB error can never trigger a
+        // second provider refund on retry. Reconciliation repairs local state.
+        await finishMonetizationOperation({
+          id: operation.id,
+          status: 'completed',
+          metadata: { provider_refund_completed: true, refunded_at: now, reason },
+        });
+
+        const { error: updateError } = await admin.from('star_payments').update({ status: 'refunded', reconciliation_status: 'refunded', refunded_at: now, refund_reason: reason, reconciliation_error: null, telegram_verified_at: now }).eq('id', payment.id);
+        if (updateError) throw updateError;
+        await admin.from('star_payment_events').insert({ payment_id: payment.id, event_type: 'refund_completed', actor_user_id: user.id, details: { reason, amount: payment.amount } });
+        await markTelegramStarsPaymentRefunded({
+          telegramPaymentChargeId: payment.telegram_payment_charge_id,
+          refundedAt: now,
+          source: 'admin',
+        });
+        await writeAdminAudit({ actorId: user.id, actorRole: role, action: 'stars.refund', targetType: 'star_payment', targetId: payment.id, reason, details: { amount: payment.amount, telegram_id: payment.telegram_id } });
+        return response({ ok: true });
       } catch (refundError) {
-        await admin.from('star_payment_events').insert({ payment_id: payment.id, event_type: 'refund_failed', actor_user_id: user.id, details: { reason, error: refundError instanceof Error ? refundError.message : 'unknown_error' } });
+        const message = refundError instanceof Error ? refundError.message : 'unknown_error';
+        await admin.from('star_payment_events').insert({ payment_id: payment.id, event_type: providerRefundCompleted ? 'refund_local_sync_failed' : 'refund_failed', actor_user_id: user.id, details: { reason, error: message } });
+        await finishMonetizationOperation({
+          id: operation.id,
+          status: providerRefundCompleted ? 'completed' : 'failed',
+          error: message,
+          metadata: { reason, provider_refund_completed: providerRefundCompleted, local_sync_failed: providerRefundCompleted },
+        });
         throw refundError;
       }
-      const now = new Date().toISOString();
-      const { error: updateError } = await admin.from('star_payments').update({ status: 'refunded', reconciliation_status: 'refunded', refunded_at: now, refund_reason: reason, reconciliation_error: null, telegram_verified_at: now }).eq('id', payment.id);
-      if (updateError) throw updateError;
-      await admin.from('star_payment_events').insert({ payment_id: payment.id, event_type: 'refund_completed', actor_user_id: user.id, details: { reason, amount: payment.amount } });
-      await markTelegramStarsPaymentRefunded({
-        telegramPaymentChargeId: payment.telegram_payment_charge_id,
-        refundedAt: now,
-        source: 'admin',
-      });
-      await writeAdminAudit({ actorId: user.id, actorRole: role, action: 'stars.refund', targetType: 'star_payment', targetId: payment.id, reason, details: { amount: payment.amount, telegram_id: payment.telegram_id } });
-      return response({ ok: true });
     }
 
     throw new ApiError(400, 'Неизвестное действие.');

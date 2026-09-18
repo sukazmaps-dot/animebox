@@ -851,6 +851,65 @@ export default async function AnimePage({
 
 
       {/* =====================================================
+          ФАКТЫ О ТАЙТЛЕ — полезный видимый контент + SEO
+          ===================================================== */}
+
+      <section className="mx-auto max-w-7xl px-4 pb-5 md:px-6" aria-labelledby="anime-facts-title">
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.025] p-4 md:p-5">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-300/70">
+                Коротко о тайтле
+              </span>
+              <h2 id="anime-facts-title" className="mt-1 text-lg font-bold text-white">
+                Информация об аниме
+              </h2>
+            </div>
+          </div>
+
+          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {resolved.startDate?.year && (
+              <div className="rounded-xl border border-white/[0.05] bg-black/10 p-3">
+                <dt className="text-[10px] uppercase tracking-wider text-white/35">Год</dt>
+                <dd className="mt-1 font-semibold text-white/85">{resolved.startDate.year}</dd>
+              </div>
+            )}
+
+            {anime.kind && (
+              <div className="rounded-xl border border-white/[0.05] bg-black/10 p-3">
+                <dt className="text-[10px] uppercase tracking-wider text-white/35">Формат</dt>
+                <dd className="mt-1 font-semibold text-white/85">{anime.kind}</dd>
+              </div>
+            )}
+
+            {episodesCount && (
+              <div className="rounded-xl border border-white/[0.05] bg-black/10 p-3">
+                <dt className="text-[10px] uppercase tracking-wider text-white/35">Эпизоды</dt>
+                <dd className="mt-1 font-semibold text-white/85">{episodesCount}</dd>
+              </div>
+            )}
+
+            {seoIdentity.seasonLabel && (
+              <div className="rounded-xl border border-white/[0.05] bg-black/10 p-3">
+                <dt className="text-[10px] uppercase tracking-wider text-white/35">Продолжение</dt>
+                <dd className="mt-1 font-semibold text-white/85">{seoIdentity.seasonLabel}</dd>
+              </div>
+            )}
+
+            {resolved.genres?.length > 0 && (
+              <div className="col-span-2 rounded-xl border border-white/[0.05] bg-black/10 p-3 sm:col-span-2 lg:col-span-1">
+                <dt className="text-[10px] uppercase tracking-wider text-white/35">Жанры</dt>
+                <dd className="mt-1 line-clamp-2 font-semibold text-white/85">
+                  {resolved.genres.slice(0, 4).join(' · ')}
+                </dd>
+              </div>
+            )}
+          </dl>
+        </div>
+      </section>
+
+
+      {/* =====================================================
           БИБЛИОТЕКА
           ===================================================== */}
 

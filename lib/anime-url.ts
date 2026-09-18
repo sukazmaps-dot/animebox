@@ -12,3 +12,9 @@ export function animeHref(anime: { id: number | string; slug?: string | null }):
   // Old localStorage entries remain usable through the numeric redirect.
   return `/anime/${encodeURIComponent(anime.slug || String(anime.id))}`;
 }
+
+export function animeWatchHref(anime: { id: number | string; slug?: string | null }, episode = 1): string {
+  const base = animeHref(anime);
+  const safeEpisode = Number.isInteger(episode) && episode > 0 ? episode : 1;
+  return `${base}/watch?ep=${safeEpisode}`;
+}

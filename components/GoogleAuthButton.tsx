@@ -115,7 +115,9 @@ export default function GoogleAuthButton({
         if (profileError) throw profileError;
 
         window.location.replace(
-          profile?.username?.trim() ? safeNext : '/onboarding',
+          profile?.username?.trim()
+            ? safeNext
+            : `/onboarding?next=${encodeURIComponent(safeNext)}`,
         );
       } catch (loginError) {
         console.error('Google ID token login failed:', loginError);

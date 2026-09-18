@@ -133,9 +133,9 @@ export default function AdsAdminPage() {
     <main className="admin-v1-page admin-ads-page">
       <header className="admin-v1-header">
         <div>
-          <span>MONETIZATION · ADS V1</span>
+          <span>MONETIZATION · ADS V2</span>
           <h1>Лёгкая реклама</h1>
-          <p>Глобальный выключатель, места показа и ограничение частоты без вмешательства в плеер.</p>
+          <p>Спокойные рекламные паузы между контентом, лимиты показа и полный запрет рекламы поверх плеера.</p>
         </div>
         <button type="button" disabled={!draft || saving || !data?.persistenceAvailable} onClick={() => void save()}>
           {saving ? 'Сохраняем…' : saved ? 'Сохранено ✓' : 'Сохранить'}
@@ -197,7 +197,7 @@ export default function AdsAdminPage() {
             <div>
               <span>ГЛОБАЛЬНЫЙ ПОКАЗ</span>
               <h2>Реклама на AnimeBox</h2>
-              <p>Мгновенно выключает все рекламные слоты без нового deploy. Sponsor/Patron и staff с ad-free всё равно не видят рекламу.</p>
+              <p>Мгновенно выключает все рекламные слоты без нового deploy. Premium, пользователи с ad-free спонсорским бонусом и staff всё равно не видят рекламу.</p>
             </div>
             <Switch
               label="Глобальный показ рекламы"

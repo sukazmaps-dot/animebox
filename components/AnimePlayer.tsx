@@ -789,7 +789,7 @@ export default function AnimePlayer({
           <p className="mt-1 text-xs font-semibold text-white/35">{episodeMeta}</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="anime-player__toolbar flex flex-wrap items-center gap-2">
           {sources.length > 1 && (
             <div className="flex items-center rounded-2xl border border-white/[0.07] bg-black/20 p-1">
               {sources.map((source, index) => {
@@ -811,6 +811,30 @@ export default function AnimePlayer({
                 );
               })}
             </div>
+          )}
+
+
+          <PlayerDropdown
+            label="Серия"
+            value={String(episodeNumber)}
+            options={episodeOptions}
+            onChange={selectEpisode}
+            icon={<Icon name="play" className="h-3.5 w-3.5" />}
+          />
+
+          {translationOptions.length > 0 && (
+            <PlayerDropdown
+              label={currentSource?.name === 'Kodik' ? 'Озвучка' : 'Качество'}
+              value={String(activeTranslationIndex)}
+              options={translationOptions}
+              onChange={selectTranslation}
+              align="right"
+              icon={
+                <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+                  <path d="M5 9v6M9 6v12M13 8v8M17 5v14M21 10v4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                </svg>
+              }
+            />
           )}
 
           <button
@@ -836,32 +860,6 @@ export default function AnimePlayer({
             <span className="hidden sm:inline">{fullscreenActive ? 'Выйти из полного экрана' : 'Полный экран'}</span>
           </button>
         </div>
-      </div>
-
-      {/* Custom controls */}
-      <div className="grid gap-2.5 border-b border-white/[0.05] bg-white/[0.01] px-4 py-3 sm:grid-cols-2 sm:px-5 md:grid-cols-[minmax(190px,230px)_minmax(240px,1fr)] md:px-6">
-        <PlayerDropdown
-          label="Серия"
-          value={String(episodeNumber)}
-          options={episodeOptions}
-          onChange={selectEpisode}
-          icon={<Icon name="play" className="h-3.5 w-3.5" />}
-        />
-
-        {translationOptions.length > 0 && (
-          <PlayerDropdown
-            label={currentSource?.name === 'Kodik' ? 'Озвучка' : 'Качество'}
-            value={String(activeTranslationIndex)}
-            options={translationOptions}
-            onChange={selectTranslation}
-            align="right"
-            icon={
-              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
-                <path d="M5 9v6M9 6v12M13 8v8M17 5v14M21 10v4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-              </svg>
-            }
-          />
-        )}
       </div>
 
       {/* Player shell */}

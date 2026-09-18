@@ -140,6 +140,15 @@ export default function AdSlot({
   useEffect(() => {
     let active = true;
 
+    // Premium/ad-free accounts never even start the ad provider/config flow.
+    // This is stronger than visually hiding a rendered creative.
+    if (!authLoading && entitlementsResolved && adFree) {
+      releaseAdExposure(placement);
+      return () => {
+        active = false;
+      };
+    }
+
     void getAdRuntimeConfig()
       .then((next) => {
         if (active) setConfig(next);
@@ -167,7 +176,7 @@ export default function AdSlot({
       active = false;
       window.removeEventListener('animebox:ads-config-updated', refresh);
     };
-  }, [placement]);
+  }, [adFree, authLoading, entitlementsResolved, placement]);
 
   const eligible = Boolean(
     MONETIZATION_ENABLED &&
@@ -235,11 +244,21 @@ export default function AdSlot({
       (config.provider === 'house' || config.provider === 'adsterra'),
   );
 
+  // Once access is resolved as ad-free, render no ad DOM at all. This avoids
+  // empty shells and guarantees paid users cannot receive third-party mounts.
+  if (!authLoading && entitlementsResolved && adFree) return null;
+
+  // Likewise, a resolved disabled placement should not reserve layout space.
+  if (config && (!config.enabled || config.provider === 'none' || !config.placements[placement])) {
+    return null;
+  }
+
   return (
     <div
       ref={slotRef}
-      className={`monetization-ad-slot ${rendered ? 'is-rendered' : ''} ${reserved ? 'is-loading' : ''}`.trim()}
+      className={`monetization-ad-slot monetization-ad-slot--${placement} ${rendered ? 'is-rendered' : ''} ${reserved ? 'is-loading' : ''}`.trim()}
       data-ad-slot={placement}
+      data-ad-format={resolvedFormat}
       data-ad-state={providerFailed ? 'failed' : rendered ? 'rendered' : reserved ? 'loading' : 'idle'}
     >
       {shouldRenderProvider && config ? (

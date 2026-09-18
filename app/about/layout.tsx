@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
+import { buildStaticPageMetadata } from '@/lib/static-page-seo';
+
+export const metadata: Metadata = buildStaticPageMetadata({
   title: 'О проекте',
   description:
     'AnimeBox — anime tracker и сообщество: поиск аниме, личная библиотека, прогресс по сериям, расписание, профили, достижения и обсуждения эпизодов.',
-  alternates: {
-    canonical: '/about',
-  },
-};
+  path: '/about',
+});
 
 export default function AboutLayout({
   children,

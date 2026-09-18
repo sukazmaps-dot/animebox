@@ -1,0 +1,101 @@
+/* AnimeBox monetization reliability v10 */
+.support-history-page {
+  width: min(1080px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 44px 0 72px;
+}
+
+.support-history-head {
+  margin-bottom: 22px;
+}
+
+.support-history-head > span {
+  color: #a991ff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+
+.support-history-head h1 {
+  margin: 8px 0 8px;
+  font-size: clamp(30px, 4vw, 46px);
+}
+
+.support-history-head p {
+  max-width: 720px;
+  color: rgba(226, 232, 255, .68);
+}
+
+.support-history-head > div {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.support-history-card {
+  border: 1px solid rgba(150, 124, 255, .16);
+  border-radius: 20px;
+  background: rgba(11, 17, 31, .82);
+  overflow: hidden;
+}
+
+.support-history-list {
+  display: grid;
+}
+
+.support-history-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: center;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(143, 159, 205, .11);
+}
+
+.support-history-item:last-child { border-bottom: 0; }
+.support-history-item > div:first-child { min-width: 0; display: grid; gap: 4px; }
+.support-history-item strong { color: #f5f7ff; }
+.support-history-item small { color: rgba(193, 204, 235, .55); }
+.support-history-provider { color: #9f8cff; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.support-history-meta { display: flex; align-items: center; justify-content: flex-end; gap: 9px; flex-wrap: wrap; }
+
+.support-history-status,
+.support-history-integrity {
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid rgba(148, 163, 184, .2);
+  background: rgba(148, 163, 184, .08);
+}
+
+.support-history-status[data-status='paid'] { color: #8cf0c0; border-color: rgba(71, 225, 160, .25); }
+.support-history-status[data-status='refunded'],
+.support-history-status[data-status='partially_refunded'] { color: #ffbe7d; border-color: rgba(255, 171, 89, .26); }
+.support-history-status[data-status='failed'],
+.support-history-integrity[data-status='reconciliation_error'] { color: #ff8eae; border-color: rgba(255, 94, 139, .3); }
+.support-history-integrity[data-status='needs_review'] { color: #ffd477; border-color: rgba(255, 201, 87, .28); }
+.support-history-integrity[data-status='disputed'] { color: #ff9fb7; border-color: rgba(255, 93, 137, .35); }
+
+.support-history-empty { padding: 42px 24px; text-align: center; }
+.support-history-empty strong { font-size: 20px; }
+.support-history-empty p { color: rgba(213, 220, 242, .63); }
+.support-history-pager { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 16px; border-top: 1px solid rgba(143, 159, 205, .11); }
+.support-history-pager button { border: 1px solid rgba(145, 124, 255, .2); border-radius: 10px; padding: 8px 12px; background: rgba(111, 81, 255, .09); color: #e9e6ff; }
+.support-history-pager button:disabled { opacity: .4; }
+
+.sponsor-v25-integrity {
+  display: grid;
+  gap: 5px;
+}
+.sponsor-v25-integrity small { max-width: 240px; color: rgba(211, 219, 242, .58); }
+.sponsor-v25-status[data-status='needs_review'] { color: #ffd477; }
+.sponsor-v25-status[data-status='disputed'],
+.sponsor-v25-status[data-status='reconciliation_error'] { color: #ff92b2; }
+
+@media (max-width: 768px) {
+  .support-history-page { width: min(100% - 24px, 1080px); padding: 26px 0 96px; }
+  .support-history-item { grid-template-columns: 1fr; gap: 12px; padding: 16px; }
+  .support-history-meta { justify-content: flex-start; }
+}

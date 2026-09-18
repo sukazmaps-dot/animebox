@@ -22,8 +22,8 @@ export const AD_PLACEMENT_DEFINITIONS: Record<AdPlacement, AdPlacementDefinition
     format: 'horizontal',
   },
   'catalog-after-results': {
-    label: 'Каталог · после результатов',
-    description: 'Один блок после сетки результатов, до пагинации.',
+    label: 'Каталог · после 10 карточек',
+    description: 'Один спокойный блок после первых 10 результатов; при короткой выдаче показывается только после 8+ карточек.',
     format: 'horizontal',
   },
   'anime-detail-before-related': {
@@ -32,8 +32,8 @@ export const AD_PLACEMENT_DEFINITIONS: Record<AdPlacement, AdPlacementDefinition
     format: 'native',
   },
   'watch-below-engagement': {
-    label: 'Просмотр · ниже действий',
-    description: 'Никогда не перекрывает плеер: показывается ниже трекера, уведомлений и комментариев.',
+    label: 'Просмотр · после обсуждения',
+    description: 'Самый осторожный слот: после плеера, трекера, списка серий и комментариев; никогда не перекрывает просмотр.',
     format: 'horizontal',
   },
 };

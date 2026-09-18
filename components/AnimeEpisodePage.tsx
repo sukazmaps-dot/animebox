@@ -563,12 +563,6 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
         </a>
       </section>
 
-      <AdSlot
-        placement="watch-below-engagement"
-        format="horizontal"
-        className="monetization-ad--watch"
-      />
-
       <section className="detail__section episode-page__body">
         <div className="episode-page__info">
           <div className="episode-page__poster-shell">
@@ -581,7 +575,11 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
           </div>
 
           <div>
-            <h1 className="episode-page__title">{title}</h1>
+            <h1 className="episode-page__title">{title} — {episodeNumber} серия</h1>
+
+            <p className="mt-2 text-sm font-medium text-violet-200/70">
+              Эпизод {episodeNumber} · прогресс просмотра сохраняется автоматически
+            </p>
 
             {description && (
               <p className="episode-page__description">{description}</p>
@@ -617,6 +615,14 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
         animeId={anime.id}
         episode={episodeNumber}
       />
+
+      <div className="episode-ad-break" aria-label="Рекламная пауза">
+        <AdSlot
+          placement="watch-below-engagement"
+          format="horizontal"
+          className="monetization-ad--watch"
+        />
+      </div>
     </div>
     
   );

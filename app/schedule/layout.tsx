@@ -1,14 +1,40 @@
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
+import { SITE_URL } from '@/lib/seo-config';
+import { buildStaticPageMetadata } from '@/lib/static-page-seo';
+
+const description =
+  'Расписание новых эпизодов аниме на AnimeBox: узнай, какие серии выходят сегодня и в ближайшие дни.';
+
+export const metadata: Metadata = buildStaticPageMetadata({
   title: 'Расписание выхода аниме',
-  description:
-    'Расписание новых эпизодов аниме на AnimeBox: узнай, какие серии выходят сегодня и в ближайшие дни.',
-  alternates: {
-    canonical: '/schedule',
+  description,
+  path: '/schedule',
+});
+
+const scheduleStructuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  '@id': `${SITE_URL}/schedule#page`,
+  name: 'Расписание выхода аниме',
+  description,
+  url: `${SITE_URL}/schedule`,
+  inLanguage: 'ru-RU',
+  isPartOf: {
+    '@id': `${SITE_URL}#website`,
   },
 };
 
 export default function ScheduleLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return children;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(scheduleStructuredData).replace(/</g, '\\u003c'),
+        }}
+      />
+      {children}
+    </>
+  );
 }

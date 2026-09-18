@@ -1,0 +1,18 @@
+/* =========================================================
+   AnimeBox — mobile hero swipe v7
+   Vertical page scrolling remains native. Horizontal touch
+   gestures are reserved for switching recommendation slides.
+   ========================================================= */
+
+@media (hover: none) and (pointer: coarse) {
+  .home-hero-carousel {
+    touch-action: pan-y pinch-zoom;
+    overscroll-behavior-x: contain;
+  }
+
+  /* Links and controls keep their normal tap behaviour. */
+  .home-hero-carousel a,
+  .home-hero-carousel button {
+    touch-action: manipulation;
+  }
+}

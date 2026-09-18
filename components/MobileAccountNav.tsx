@@ -59,6 +59,7 @@ export default function MobileAccountNav({ pathname }: Props) {
     pathname.startsWith('/schedule') ||
     pathname.startsWith('/about') ||
     pathname.startsWith('/leaderboard') ||
+    pathname.startsWith('/premium') ||
     pathname.startsWith('/support');
 
   async function logout() {
@@ -243,6 +244,19 @@ export default function MobileAccountNav({ pathname }: Props) {
                 <span>
                   <strong>Лидерборд</strong>
                   <small>Топ-100 по времени просмотра</small>
+                </span>
+                <Icon name="chevron" />
+              </Link>
+
+              <Link
+                href="/premium"
+                className="mobile-account__link"
+                onClick={() => setOpen(false)}
+              >
+                <Icon name="star" />
+                <span>
+                  <strong>AnimeBox Premium</strong>
+                  <small>Подписка, бонусы и статус</small>
                 </span>
                 <Icon name="chevron" />
               </Link>

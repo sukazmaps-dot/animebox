@@ -1,0 +1,338 @@
+/* =========================================================
+   AnimeBox — Mobile Moderate v4
+   Final mobile override, loaded after feedback-v1.css.
+
+   Goals:
+   - force the home page back to a true one-column phone layout;
+   - keep Hero readable without turning it into an oversized poster;
+   - show a compact Top Anime block directly after Hero;
+   - keep catalog/tracker cards as a strict two-column grid;
+   - never center an orphan card as a special oversized row;
+   - keep typography calm and readable rather than globally enlarged.
+   ========================================================= */
+
+.home-top-anime-panel--mobile {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* ---------- Home shell: one real column ---------- */
+  .home-page,
+  .home-grid,
+  .home-grid--main,
+  .home-grid--main > .main-column {
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .home-grid.home-grid--main {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-auto-flow: row !important;
+    gap: 0 !important;
+  }
+
+  .home-grid--main > .main-column {
+    grid-column: 1 !important;
+  }
+
+  /* Desktop right rail is intentionally removed from the phone flow.
+     Its useful Top Anime content is rendered once in the main column. */
+  .home-grid--main > .right-rail {
+    display: none !important;
+  }
+
+  .home-top-anime-panel--mobile {
+    display: block !important;
+    width: 100%;
+    min-width: 0;
+    margin-top: 14px;
+    overflow: hidden;
+    border-radius: 16px !important;
+  }
+
+  .home-top-anime-panel--mobile .panel__head {
+    padding: 14px 14px 10px !important;
+  }
+
+  .home-top-anime-panel--mobile .panel__body {
+    padding-inline: 10px;
+    padding-bottom: 7px;
+  }
+
+  .home-top-anime-panel--mobile .rank-item {
+    min-height: 62px !important;
+    padding: 7px 4px !important;
+  }
+
+  .home-top-anime-panel--mobile .rank-item > div:first-of-type {
+    width: 38px !important;
+    height: 50px !important;
+  }
+
+  .home-top-anime-panel--mobile .rank-item strong {
+    font-size: 13px !important;
+    line-height: 1.3 !important;
+  }
+
+  /* ---------- Hero: compact, readable, stable ---------- */
+  .home-grid .page-hero.home-hero-carousel,
+  .home-grid .page-hero.page-hero--empty {
+    width: 100% !important;
+    height: 368px !important;
+    min-height: 368px !important;
+    max-height: 368px !important;
+    border-radius: 16px !important;
+  }
+
+  .home-grid .page-hero__content,
+  .home-grid .home-hero-carousel__content {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100% !important;
+    padding: 22px 18px 70px !important;
+  }
+
+  .home-grid .page-hero__eyebrow {
+    margin-bottom: 11px !important;
+    gap: 6px;
+  }
+
+  .home-grid .pill,
+  .home-hero-carousel__facts span {
+    font-size: 11px !important;
+  }
+
+  .home-hero-carousel__kicker {
+    max-width: 92%;
+    font-size: 10.5px !important;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .home-grid .page-hero h1,
+  .home-hero-carousel__content h1 {
+    max-width: 94%;
+    margin-top: 8px;
+    font-size: clamp(27px, 8vw, 35px) !important;
+    line-height: 1.04 !important;
+    letter-spacing: -.04em;
+    -webkit-line-clamp: 2 !important;
+  }
+
+  .home-grid .page-hero p,
+  .home-hero-carousel__content > p {
+    max-width: 92%;
+    margin: 10px 0 12px !important;
+    color: rgba(226, 229, 239, .82) !important;
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+    -webkit-line-clamp: 2 !important;
+  }
+
+  .home-hero-carousel__facts {
+    min-height: 20px !important;
+    margin-bottom: 12px !important;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .home-grid .hero-actions {
+    display: grid !important;
+    width: min(100%, 310px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px !important;
+  }
+
+  .home-grid .hero-actions .btn {
+    min-width: 0;
+    min-height: 42px !important;
+    justify-content: center;
+    padding-inline: 12px !important;
+    font-size: 12.5px !important;
+  }
+
+  .home-grid .page-hero__overlay {
+    background:
+      linear-gradient(90deg, rgba(5, 8, 18, .93) 0%, rgba(5, 8, 18, .68) 58%, rgba(5, 8, 18, .28) 100%),
+      linear-gradient(0deg, rgba(5, 8, 18, .92), rgba(5, 8, 18, .08) 68%) !important;
+  }
+
+  .home-grid .page-hero__backdrop {
+    background-position: 66% center !important;
+  }
+
+  .home-hero-carousel__nav {
+    left: 14px !important;
+    right: 14px !important;
+    bottom: 12px !important;
+  }
+
+  .home-hero-carousel__arrow {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+    font-size: 23px !important;
+  }
+
+  .home-hero-carousel__dot,
+  .home-hero-carousel__dot.is-active {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .home-hero-carousel__dot::after {
+    width: 6px !important;
+    height: 6px !important;
+  }
+
+  .home-hero-carousel__dot.is-active::after {
+    width: 15px !important;
+  }
+
+  /* ---------- Home spacing: deliberately moderate ---------- */
+  .home-grid .section,
+  .home-grid--main .smart-feed-section {
+    margin-top: 30px !important;
+  }
+
+  .home-grid .section + .section {
+    margin-top: 34px !important;
+  }
+
+  .home-grid .section + .section::before {
+    top: -18px !important;
+  }
+
+  .home-grid .section-head {
+    margin-bottom: 14px !important;
+  }
+
+  .home-grid .section-title {
+    font-size: 17px !important;
+  }
+
+  .home-grid .section-link {
+    min-height: 36px;
+    font-size: 11.5px !important;
+  }
+
+  /* Weekly schedule should scroll its tabs instead of shrinking labels. */
+  .home-grid .schedule__tabs {
+    display: flex !important;
+    width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  .home-grid .schedule__tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .home-grid .schedule__tab {
+    flex: 0 0 auto;
+    min-width: 78px;
+    padding: 9px 11px !important;
+    font-size: 11.5px !important;
+  }
+
+  /* ---------- Catalog / tracker: two columns, no centered orphan ---------- */
+  .search-page .anime-grid,
+  .tracker-page .anime-grid,
+  .search-page .loading-grid,
+  .tracker-page .loading-grid {
+    display: grid !important;
+    width: 100% !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-auto-flow: row !important;
+    gap: 10px !important;
+  }
+
+  .search-page .anime-grid > *,
+  .tracker-page .anime-grid > * {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+
+  /* An odd result stays in column one like a normal grid item. It must never
+     become a special centered card, which looked like a broken layout. */
+  .search-page .anime-grid > :last-child:nth-child(odd),
+  .tracker-page .anime-grid > :last-child:nth-child(odd) {
+    grid-column: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    justify-self: stretch !important;
+  }
+
+  .search-page .anime-card.anime-card,
+  .tracker-page .anime-card.anime-card {
+    margin: 0 !important;
+  }
+
+  .search-page .anime-card__body,
+  .tracker-page .anime-card__body {
+    padding: 10px 9px 11px !important;
+  }
+
+  .search-page .anime-card__body h3,
+  .tracker-page .anime-card__body h3 {
+    font-size: 12.5px !important;
+    line-height: 1.35 !important;
+  }
+
+  .search-page .anime-card__meta,
+  .tracker-page .anime-card__meta {
+    font-size: 10.5px !important;
+  }
+
+  .search-page .anime-card__tags span,
+  .tracker-page .anime-card__tags span {
+    font-size: 9.5px !important;
+  }
+
+  .pagination {
+    justify-content: center;
+    margin-top: 22px;
+  }
+}
+
+@media (max-width: 390px) {
+  .home-grid .page-hero.home-hero-carousel,
+  .home-grid .page-hero.page-hero--empty {
+    height: 350px !important;
+    min-height: 350px !important;
+    max-height: 350px !important;
+  }
+
+  .home-grid .page-hero__content,
+  .home-grid .home-hero-carousel__content {
+    padding: 18px 15px 66px !important;
+  }
+
+  .home-grid .page-hero h1,
+  .home-hero-carousel__content h1 {
+    font-size: clamp(25px, 8.2vw, 31px) !important;
+  }
+
+  .home-grid .page-hero p,
+  .home-hero-carousel__content > p {
+    font-size: 12.5px !important;
+  }
+
+  .home-grid .hero-actions {
+    width: 100%;
+  }
+
+  .search-page .anime-grid,
+  .tracker-page .anime-grid,
+  .search-page .loading-grid,
+  .tracker-page .loading-grid {
+    gap: 8px !important;
+  }
+}

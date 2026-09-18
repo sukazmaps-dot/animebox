@@ -14,6 +14,13 @@ import {
   createClient,
 } from '@/lib/supabase/client';
 
+
+function safeReturnPath(value: string | null) {
+  return value && value.startsWith('/') && !value.startsWith('//')
+    ? value
+    : '/profile';
+}
+
 function isDuplicateEmailError(
   code?: string,
   message?: string,
@@ -39,6 +46,14 @@ function isDuplicateEmailError(
 }
 
 export default function RegisterPage() {
+  const [nextPath] = useState(() =>
+    safeReturnPath(
+      typeof window === 'undefined'
+        ? null
+        : new URLSearchParams(window.location.search).get('next'),
+    ),
+  );
+
   const [
     username,
     setUsername,
@@ -266,9 +281,7 @@ export default function RegisterPage() {
         return;
       }
 
-      window.location.replace(
-        '/profile',
-      );
+      window.location.replace(nextPath);
 
       return;
     }
@@ -304,12 +317,12 @@ export default function RegisterPage() {
         <div className="auth-social">
           <GoogleAuthButton
             label="Продолжить через Google"
-            next="/profile"
+            next={nextPath}
           />
 
           <TelegramAuthButton
             label="Продолжить через Telegram"
-            next="/profile"
+            next={nextPath}
             onError={(value) => {
               setMessage('');
               setError(value);
@@ -567,7 +580,7 @@ export default function RegisterPage() {
 
         <div className="auth-card__switch">
           Уже есть аккаунт?{' '}
-          <Link href="/login">
+          <Link href={nextPath === '/profile' ? '/login' : `/login?next=${encodeURIComponent(nextPath)}`}>
             Войти
           </Link>
         </div>

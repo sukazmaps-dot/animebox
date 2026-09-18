@@ -358,6 +358,8 @@ export default function TelegramAuthButton({
   ] =
     useState(false);
 
+  const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/profile';
+
   async function login() {
     if (loading) {
       return;
@@ -668,7 +670,7 @@ export default function TelegramAuthButton({
             },
       });
 
-      window.location.replace(next);
+      window.location.replace(safeNext);
     } catch (error) {
       console.error(
         '[Telegram Auth]',
