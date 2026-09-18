@@ -42,6 +42,7 @@ export async function getPremiumCatalog(): Promise<PremiumCatalogPlan[]> {
       durationDays: numberOrNull(metadata.duration_days) ?? definition.durationDays,
       active: Boolean(row?.active),
       telegramStarsAmount: numberOrNull(metadata.telegram_stars_amount),
+      billingMode: definition.billingMode,
     };
   });
 }
@@ -100,5 +101,6 @@ export async function updatePremiumPlanConfig({
     durationDays: definition.durationDays,
     active,
     telegramStarsAmount,
+    billingMode: definition.billingMode,
   } satisfies PremiumCatalogPlan;
 }
