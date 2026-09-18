@@ -20,7 +20,13 @@ export type PremiumSubscription = {
   startsAt: string;
   endsAt: string;
   cancelledAt: string | null;
+  autoRenew: boolean;
+  autoRenewCancelledAt: string | null;
+  telegramSubscriptionChargeId: string | null;
 };
+
+const SUBSCRIPTION_SELECT =
+  'id,user_id,plan,status,source,transaction_id,starts_at,ends_at,cancelled_at,auto_renew,auto_renew_cancelled_at,telegram_subscription_charge_id';
 
 function mapSubscription(row: Record<string, unknown>): PremiumSubscription {
   return {
@@ -33,6 +39,15 @@ function mapSubscription(row: Record<string, unknown>): PremiumSubscription {
     startsAt: String(row.starts_at),
     endsAt: String(row.ends_at),
     cancelledAt: typeof row.cancelled_at === 'string' ? row.cancelled_at : null,
+    autoRenew: row.auto_renew === true,
+    autoRenewCancelledAt:
+      typeof row.auto_renew_cancelled_at === 'string'
+        ? row.auto_renew_cancelled_at
+        : null,
+    telegramSubscriptionChargeId:
+      typeof row.telegram_subscription_charge_id === 'string'
+        ? row.telegram_subscription_charge_id
+        : null,
   };
 }
 
@@ -54,7 +69,7 @@ async function expirePremiumForUser(userId: string) {
 
   const { error: subscriptionError } = await admin
     .from('premium_subscriptions')
-    .update({ status: 'expired', updated_at: now })
+    .update({ status: 'expired', auto_renew: false, updated_at: now })
     .in('id', ids);
 
   if (subscriptionError) throw subscriptionError;
@@ -77,11 +92,35 @@ export async function getPremiumStatus(userId: string) {
 
   const { data, error } = await admin
     .from('premium_subscriptions')
-    .select('id,user_id,plan,status,source,transaction_id,starts_at,ends_at,cancelled_at')
+    .select(SUBSCRIPTION_SELECT)
     .eq('user_id', userId)
     .in('status', ['active', 'grace_period'])
     .gt('ends_at', now)
     .order('ends_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  return data ? mapSubscription(data as unknown as Record<string, unknown>) : null;
+}
+
+export async function getPremiumRecurringSubscription(userId: string) {
+  const admin = createSupabaseAdmin();
+  const now = new Date().toISOString();
+
+  await expirePremiumForUser(userId);
+
+  const { data, error } = await admin
+    .from('premium_subscriptions')
+    .select(SUBSCRIPTION_SELECT)
+    .eq('user_id', userId)
+    .eq('plan', 'monthly')
+    .eq('source', 'telegram_stars')
+    .in('status', ['active', 'grace_period'])
+    .gt('ends_at', now)
+    .not('telegram_subscription_charge_id', 'is', null)
+    .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
@@ -115,12 +154,13 @@ export async function grantPremium({
       source: 'admin',
       starts_at: startsAt,
       ends_at: endsAt,
+      auto_renew: false,
       metadata: {
         actor_user_id: actorUserId,
         reason: reason?.trim() || null,
       },
     })
-    .select('id,user_id,plan,status,source,transaction_id,starts_at,ends_at,cancelled_at')
+    .select(SUBSCRIPTION_SELECT)
     .single();
 
   if (error) throw error;
@@ -181,6 +221,7 @@ export async function revokePremium({
     .from('premium_subscriptions')
     .update({
       status: 'cancelled',
+      auto_renew: false,
       cancelled_at: now,
       ends_at: safeEndsAt,
       updated_at: now,
