@@ -24,6 +24,9 @@ export default function PremiumClient() {
   const [data, setData] = useState<PremiumMe | null>(null);
   const [loading, setLoading] = useState(Boolean(user?.id));
   const [error, setError] = useState('');
+  const [plans, setPlans] = useState<PremiumCatalogPlan[]>([]);
+  const [buying, setBuying] = useState<PremiumPlanId | ''>('');
+  const [paymentStatus, setPaymentStatus] = useState('');
 
   useEffect(() => {
     if (!user?.id) {
