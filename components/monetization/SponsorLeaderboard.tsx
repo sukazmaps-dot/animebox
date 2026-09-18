@@ -132,7 +132,7 @@ export default function SponsorLeaderboard() {
   const rest = useMemo(() => data?.entries.slice(3) ?? [], [data]);
 
   return (
-    <main className={styles.page}>
+    <main className={`${styles.page} sponsor-leaderboard-page`}>
       <section className={styles.hero}>
         <div className={styles.heroGlow} aria-hidden="true" />
         <span className={styles.eyebrow}>ANIMEBOX · SUPPORTERS HALL</span>

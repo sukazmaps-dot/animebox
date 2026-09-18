@@ -1,0 +1,494 @@
+/* =========================================================
+   AnimeBox mobile layout hardening
+   Loaded LAST from app/layout.tsx on purpose.
+
+   Goals:
+   - one canonical mobile shell below 768px;
+   - no horizontal document scroll;
+   - Telegram subscription gate is layout-transparent;
+   - catalog/tracker cards remain a stable two-column grid;
+   - support/supporters pages never overflow narrow screens.
+   ========================================================= */
+
+/* The Telegram gate is an application wrapper, not a sizing container. */
+.telegram-subscription-gate,
+.telegram-subscription-gate__content {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.telegram-subscription-gate {
+  position: relative;
+  overflow-x: clip;
+}
+
+.telegram-subscription-gate__content {
+  position: relative;
+  overflow-x: clip;
+}
+
+/* A locked Mini App can scale/blur its content without creating a page-wide
+   horizontal scrollbar. */
+.telegram-subscription-gate__content.is-locked {
+  transform-origin: center top;
+  overflow: clip;
+}
+
+/* =========================================================
+   Mobile application shell
+   ========================================================= */
+@media (max-width: 768px) {
+  :root {
+    --ab-mobile-topbar-height: 56px;
+    --ab-mobile-nav-height: 62px;
+    --ab-mobile-inline: 12px;
+  }
+
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: clip !important;
+  }
+
+  body {
+    padding-bottom: calc(
+      var(--ab-mobile-nav-height) + 24px + env(safe-area-inset-bottom)
+    );
+  }
+
+  .telegram-subscription-gate,
+  .telegram-subscription-gate__content {
+    width: 100%;
+    max-width: 100vw;
+    min-width: 0;
+    min-height: 100dvh;
+  }
+
+  /* Desktop sidebar must never participate in phone layout. */
+  .sidebar {
+    display: none !important;
+  }
+
+  /* Single source of truth for the fixed phone header. */
+  .topbar {
+    box-sizing: border-box;
+    top: 0;
+    left: 0 !important;
+    right: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    height: var(--ab-mobile-topbar-height) !important;
+    min-width: 0;
+    padding: 8px var(--ab-mobile-inline) !important;
+  }
+
+  .topbar__search {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: 40px !important;
+  }
+
+  .topbar__search input {
+    min-width: 0;
+  }
+
+  .topbar__actions {
+    display: none !important;
+  }
+
+  /* Remove every older sidebar offset / competing mobile top padding. */
+  .app-shell {
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 100dvh;
+    margin-left: 0 !important;
+    padding-top: var(--ab-mobile-topbar-height) !important;
+    overflow-x: clip;
+  }
+
+  .page-content {
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding:
+      12px
+      var(--ab-mobile-inline)
+      calc(var(--ab-mobile-nav-height) + 34px + env(safe-area-inset-bottom)) !important;
+    overflow-x: clip;
+  }
+
+  .page-content > * {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  /* Telegram safe-area values are additive; they should not reintroduce a
+     second, conflicting topbar height. */
+  html.telegram-mini-app .topbar {
+    top: var(--animebox-safe-top, 0px) !important;
+  }
+
+  html.telegram-mini-app .app-shell {
+    padding-top: calc(
+      var(--ab-mobile-topbar-height) + var(--animebox-safe-top, 0px)
+    ) !important;
+  }
+
+  html.telegram-mini-app .page-content {
+    padding-bottom: calc(
+      var(--ab-mobile-nav-height) + 34px + var(--animebox-safe-bottom, 0px)
+    ) !important;
+  }
+
+  /* Purpose-built bottom navigation. Four destinations are rendered by
+     components/Navbar.tsx; keep the grid in sync with that markup. */
+  .mobile-nav {
+    box-sizing: border-box;
+    left: var(--ab-mobile-inline) !important;
+    right: var(--ab-mobile-inline) !important;
+    bottom: max(6px, env(safe-area-inset-bottom)) !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0;
+    min-height: var(--ab-mobile-nav-height) !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  html.telegram-mini-app .mobile-nav {
+    bottom: calc(6px + var(--animebox-safe-bottom, 0px)) !important;
+  }
+
+  .mobile-nav__item {
+    min-width: 0;
+  }
+
+  /* =======================================================
+     Catalog / tracker: strict two-column phone grid
+     ======================================================= */
+  .search-page,
+  .tracker-page {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .search-page .anime-grid,
+  .tracker-page .anime-grid,
+  .search-page .loading-grid,
+  .tracker-page .loading-grid {
+    display: grid !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-auto-flow: row !important;
+    grid-auto-rows: auto !important;
+    align-items: start !important;
+    gap: 10px !important;
+  }
+
+  .search-page .anime-grid > *,
+  .tracker-page .anime-grid > * {
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    align-self: start !important;
+  }
+
+  /* Undo the old height:0 + padding-ratio workaround. Modern Chromium,
+     Android WebView and Telegram WebView support aspect-ratio reliably; a
+     single ratio prevents one card from becoming landscape while another is
+     portrait. */
+  .search-page .anime-card.anime-card,
+  .tracker-page .anime-card.anime-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    align-self: start !important;
+  }
+
+  .search-page .anime-card.anime-card .anime-card__image-wrap,
+  .tracker-page .anime-card.anime-card .anime-card__image-wrap {
+    position: relative !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding-top: 0 !important;
+    aspect-ratio: 2 / 3 !important;
+    flex: 0 0 auto !important;
+  }
+
+  .search-page .anime-card__image-fill,
+  .tracker-page .anime-card__image-fill {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .search-page .anime-card__body,
+  .tracker-page .anime-card__body {
+    min-width: 0;
+    min-height: 76px;
+  }
+
+  /* If the page has an odd number of cards, keep the orphan the same width as
+     a normal column but center it instead of leaving a visually broken gutter. */
+  .search-page .anime-grid > :last-child:nth-child(odd),
+  .tracker-page .anime-grid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1 !important;
+    width: calc((100% - 10px) / 2) !important;
+    justify-self: center !important;
+  }
+
+  .pagination {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .pagination button {
+    min-width: 0;
+    padding-inline: 12px;
+    white-space: nowrap;
+  }
+
+  .pagination span {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  /* =======================================================
+     /support page (the screen with "Твой путь спонсора")
+     ======================================================= */
+  .support-page.sponsor-v2-page {
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0;
+    margin: 0 auto !important;
+    padding: 0 0 28px !important;
+    overflow-x: clip;
+  }
+
+  .support-page__hero {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin-bottom: 16px;
+    padding: 22px 18px !important;
+    border-radius: 22px;
+  }
+
+  .support-page__hero-copy {
+    max-width: 100% !important;
+  }
+
+  .support-page__hero h1 {
+    max-width: 100%;
+    margin: 9px 0 12px;
+    font-size: clamp(29px, 9vw, 40px) !important;
+    line-height: 1.02;
+    overflow-wrap: anywhere;
+  }
+
+  .support-page__hero p {
+    max-width: 100%;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .support-page__hero-art {
+    right: -56px !important;
+    bottom: -54px !important;
+    width: 190px !important;
+    max-width: 52vw;
+    opacity: .18 !important;
+  }
+
+  .sponsor-v2-panel,
+  .support-box,
+  .sponsor-v2-tier {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .sponsor-v2-panel {
+    margin: 14px 0 !important;
+    padding: 18px 16px !important;
+    border-radius: 19px;
+  }
+
+  .sponsor-v2-heading {
+    width: 100%;
+    min-width: 0;
+    align-items: stretch !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .sponsor-v2-heading > div:first-child {
+    min-width: 0;
+  }
+
+  .sponsor-v3-dashboard-actions {
+    display: grid !important;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .sponsor-v3-dashboard-actions > * {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .sponsor-v3-dashboard-actions > :only-child,
+  .sponsor-v3-dashboard-actions > :nth-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  .sponsor-v2-total {
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+    gap: 10px !important;
+    margin: 17px 0 8px !important;
+  }
+
+  .sponsor-v2-total > strong {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: 7px;
+    font-size: clamp(32px, 10vw, 40px) !important;
+    line-height: 1 !important;
+    white-space: nowrap;
+  }
+
+  .sponsor-v2-total .animebox-star-icon {
+    width: 27px !important;
+    height: 27px !important;
+    flex: 0 0 27px !important;
+  }
+
+  .sponsor-v3-benefit-chips {
+    max-width: 100%;
+  }
+
+  .sponsor-v2-next {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .sponsor-v2-next__amount {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+
+  .sponsor-v2-tiers {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    margin: 16px 0 !important;
+  }
+
+  .sponsor-v2-tier {
+    padding: 20px 18px !important;
+  }
+
+  .sponsor-v2-price {
+    display: flex;
+    max-width: 100%;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 36px !important;
+  }
+
+  .support-box {
+    padding: 20px 16px !important;
+    border-radius: 20px;
+  }
+
+  /* =======================================================
+     /supporters public leaderboard
+     ======================================================= */
+  .sponsor-leaderboard-page {
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-inline: auto !important;
+    overflow-x: clip;
+  }
+
+  .sponsor-leaderboard-page *,
+  .sponsor-leaderboard-page *::before,
+  .sponsor-leaderboard-page *::after {
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .sponsor-leaderboard-page img,
+  .sponsor-leaderboard-page svg {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 390px) {
+  :root {
+    --ab-mobile-inline: 9px;
+  }
+
+  .search-page .anime-grid,
+  .tracker-page .anime-grid,
+  .search-page .loading-grid,
+  .tracker-page .loading-grid {
+    gap: 8px !important;
+  }
+
+  .search-page .anime-grid > :last-child:nth-child(odd),
+  .tracker-page .anime-grid > :last-child:nth-child(odd) {
+    width: calc((100% - 8px) / 2) !important;
+  }
+
+  .sponsor-v3-dashboard-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .sponsor-v3-dashboard-actions > * {
+    grid-column: 1 !important;
+  }
+
+  .support-page__hero {
+    padding: 20px 15px !important;
+  }
+
+  .sponsor-v2-panel,
+  .support-box {
+    padding-inline: 14px !important;
+  }
+}

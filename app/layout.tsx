@@ -16,6 +16,7 @@ import './sponsor-v2.css';
 import './monetization-v3.css';
 import './asset-pack-v1.css';
 import './engagement-v1.css';
+import './mobile-layout-fix.css';
 
 import Navbar from '@/components/Navbar';
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
