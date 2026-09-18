@@ -6,7 +6,7 @@ export type PaymentStatus =
   | 'partially_refunded'
   | 'refunded';
 
-export type PaymentProvider = 'telegram_stars' | 'donatepay' | 'admin' | (string & {});
+export type PaymentProvider = 'telegram_stars' | 'donatepay' | 'boosty' | 'admin' | (string & {});
 
 export type RecordPaymentTransactionInput = {
   userId?: string | null;
