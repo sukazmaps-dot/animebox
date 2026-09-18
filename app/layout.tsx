@@ -13,6 +13,7 @@ import './card-layout.css';
 import './smart-home.css';
 import './monetization.css';
 import './boosty-support.css';
+import './premium.css';
 import './donatepay-claim.css';
 import './sponsor-v2.css';
 import './monetization-v3.css';
