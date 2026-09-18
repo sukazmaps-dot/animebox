@@ -229,23 +229,57 @@ export default function PremiumClient() {
       <section className="premium-plan">
         <div>
           <span className="premium-eyebrow">ТАРИФЫ</span>
-          <h2>Monthly и Yearly уже заложены в архитектуру</h2>
+          <h2>Выбери срок Premium</h2>
           <p>
-            Мы не включали продажу с выдуманной ценой. Когда утвердим стоимость и способ оплаты, checkout подключится к уже готовым payment_products → transactions → entitlements.
+            Оплата проходит через Telegram Stars. После подтверждения Telegram
+            AnimeBox автоматически активирует доступ на аккаунте.
           </p>
+
+          {paymentStatus && (
+            <div className="premium-payment-status" role="status">
+              {paymentStatus}
+            </div>
+          )}
         </div>
 
         <div className="premium-plan__cards">
-          <article>
-            <span>MONTHLY</span>
-            <strong>1 месяц</strong>
-            <small>Цена будет задана отдельно</small>
-          </article>
-          <article>
-            <span>YEARLY</span>
-            <strong>12 месяцев</strong>
-            <small>Цена будет задана отдельно</small>
-          </article>
+          {plans.map((plan) => (
+            <article
+              key={plan.id}
+              className={plan.active ? 'is-active' : 'is-disabled'}
+            >
+              <span>{plan.id === 'monthly' ? 'MONTHLY' : 'YEARLY'}</span>
+              <strong>{plan.label}</strong>
+
+              {plan.active && plan.telegramStarsAmount ? (
+                <>
+                  <b className="premium-plan__price">
+                    ★ {plan.telegramStarsAmount}
+                  </b>
+
+                  {user ? (
+                    <button
+                      type="button"
+                      className="premium-cta premium-cta--primary"
+                      disabled={Boolean(buying)}
+                      onClick={() => void buyPremium(plan.id)}
+                    >
+                      {buying === plan.id ? 'Открываем…' : 'Выбрать'}
+                    </button>
+                  ) : (
+                    <Link
+                      className="premium-cta premium-cta--primary"
+                      href="/login"
+                    >
+                      Войти и купить
+                    </Link>
+                  )}
+                </>
+              ) : (
+                <small>Тариф пока не открыт для продажи</small>
+              )}
+            </article>
+          ))}
         </div>
       </section>
 
