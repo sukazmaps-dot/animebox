@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 
 import SponsorBadge from '@/components/monetization/SponsorBadge';
 import type { SponsorTier } from '@/lib/sponsor';
+import BoostyClaimsPanel from '@/components/admin/BoostyClaimsPanel';
 
 type Payment = {
   id: string;
@@ -278,6 +279,8 @@ export default function MonetizationAdmin() {
             </div>
             {data.donatePaySync?.last_error && <p className="sponsor-v25-error" role="alert">DonatePay: {data.donatePaySync.last_error}</p>}
           </section>
+
+          <BoostyClaimsPanel />
 
           {data.analytics && (
             <section className="sponsor-v3-analytics">
