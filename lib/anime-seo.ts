@@ -179,17 +179,30 @@ function seoFacts(anime: Anime): string[] {
   return facts;
 }
 
-export function buildAnimeSeoDescription(anime: Anime, identity = getAnimeSeoIdentity(anime)): string {
+export function buildAnimeSeoTitle(
+  anime: Anime,
+  identity = getAnimeSeoIdentity(anime),
+): string {
+  const intent = movieLike(anime) ? 'смотреть аниме-фильм онлайн' : 'смотреть аниме онлайн';
+  return truncateSeoText(`${identity.pageHeading} — ${intent}`, 64);
+}
+
+export function buildAnimeSeoDescription(
+  anime: Anime,
+  identity = getAnimeSeoIdentity(anime),
+): string {
   const cleanedDescription = cleanSeoText(cleanShikimoriDescription(anime.description));
   const facts = seoFacts(anime);
   const factsText = facts.length ? ` ${facts.join(' · ')}.` : '';
 
-  const intent = identity.seasonLabel
-    ? `${identity.pageHeading}: описание, список серий, порядок сезонов и отслеживание просмотра на AnimeBox.`
-    : `${identity.pageHeading}: описание, список серий, связанные части и отслеживание просмотра на AnimeBox.`;
+  const seasonIntent = identity.seasonLabel
+    ? ' Смотрите серии, порядок сезонов и продолжайте просмотр с сохранением прогресса.'
+    : ' Смотрите серии, сохраняйте прогресс и находите связанные части.';
 
   return truncateSeoText(
-    `${intent}${factsText}${cleanedDescription ? ` ${cleanedDescription}` : ''}`,
+    `Смотреть аниме «${identity.pageHeading}» онлайн на AnimeBox.${factsText}${seasonIntent}${
+      cleanedDescription ? ` ${cleanedDescription}` : ''
+    }`,
     158,
   );
 }
@@ -230,7 +243,7 @@ export function buildAnimeMetadata(anime: Anime, canonicalUrl: string): Metadata
   const index = shouldIndexAnime(anime);
 
   return {
-    title: `${identity.pageHeading} — аниме`,
+    title: buildAnimeSeoTitle(anime, identity),
     description,
     alternates: {
       canonical: canonicalUrl,
@@ -240,13 +253,13 @@ export function buildAnimeMetadata(anime: Anime, canonicalUrl: string): Metadata
       url: canonicalUrl,
       siteName: 'AnimeBox',
       locale: 'ru_RU',
-      title: `${identity.pageHeading} | AnimeBox`,
+      title: `${identity.pageHeading} — смотреть онлайн`,
       description,
       images: images.length ? images.map((url) => ({ url })) : undefined,
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${identity.pageHeading} | AnimeBox`,
+      title: `${identity.pageHeading} — смотреть онлайн`,
       description,
       images: images.length ? images.slice(0, 1) : undefined,
     },

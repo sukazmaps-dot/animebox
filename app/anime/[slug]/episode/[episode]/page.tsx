@@ -5,7 +5,12 @@ import AnimeEpisodePage from '@/components/AnimeEpisodePage';
 import { getAnimeSeoIdentity } from '@/lib/anime-seo';
 import { resolveAnimeRoute } from '@/lib/anime-route';
 import { animeHref } from '@/lib/anime-url';
-import { isEpisodeIndexable } from '@/lib/episode-seo';
+import {
+  buildEpisodeSeoDescription,
+  buildEpisodeSeoTitle,
+  buildEpisodeVideoStructuredData,
+  isEpisodeIndexable,
+} from '@/lib/episode-seo';
 import { SITE_URL } from '@/lib/seo-config';
 
 const parseEpisode = (value: string): number | null => {
@@ -32,10 +37,9 @@ export async function generateMetadata({
   const identity = getAnimeSeoIdentity(anime);
   const canonical = `${SITE_URL}${animeHref(anime)}/episode/${number}`;
   const index = await isEpisodeIndexable(anime.id, number);
-  const title = `${identity.pageHeading} — ${number} серия`;
-  const description = index
-    ? `${title}: доступная серия, плеер, комментарии и сохранение прогресса просмотра на AnimeBox.`
-    : `${title}: страница серии AnimeBox.`;
+  const title = buildEpisodeSeoTitle(anime, number);
+  const description = buildEpisodeSeoDescription(anime, number, index);
+  const socialTitle = `${identity.pageHeading} — ${number} серия`;
 
   return {
     title,
@@ -46,7 +50,7 @@ export async function generateMetadata({
       url: canonical,
       siteName: 'AnimeBox',
       locale: 'ru_RU',
-      title: `${title} | AnimeBox`,
+      title: `${socialTitle} | AnimeBox`,
       description,
       images: anime.bannerImage
         ? [{ url: anime.bannerImage }]
@@ -56,7 +60,7 @@ export async function generateMetadata({
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${title} | AnimeBox`,
+      title: `${socialTitle} | AnimeBox`,
       description,
       images: anime.bannerImage
         ? [anime.bannerImage]
@@ -95,5 +99,62 @@ export default async function EpisodePage({
     permanentRedirect(`${animeHref(anime)}/episode/${number}`);
   }
 
-  return <AnimeEpisodePage key={anime.slug} anime={anime} requestedEpisode={number} />;
+  const canonical = `${SITE_URL}${animeHref(anime)}/episode/${number}`;
+  const indexable = await isEpisodeIndexable(anime.id, number);
+  const identity = getAnimeSeoIdentity(anime);
+
+  const breadcrumbStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'AnimeBox',
+        item: SITE_URL,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: identity.pageHeading,
+        item: `${SITE_URL}${animeHref(anime)}`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: `${number} серия`,
+        item: canonical,
+      },
+    ],
+  };
+
+  const videoStructuredData = indexable
+    ? buildEpisodeVideoStructuredData(anime, number, canonical)
+    : null;
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbStructuredData).replace(/</g, '\\u003c'),
+        }}
+      />
+
+      {videoStructuredData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(videoStructuredData).replace(/</g, '\\u003c'),
+          }}
+        />
+      )}
+
+      <AnimeEpisodePage
+        key={anime.slug}
+        anime={anime}
+        requestedEpisode={number}
+      />
+    </>
+  );
 }

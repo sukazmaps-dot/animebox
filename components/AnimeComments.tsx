@@ -5,28 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { communityRequest } from '@/lib/community-client';
 import { createClient } from '@/lib/supabase/client';
 import UserIdentity from '@/components/identity/UserIdentity';
-import type { PublicIdentityRole } from '@/lib/identity';
-import type { SponsorStatus } from '@/lib/sponsor';
-
-type Comment = {
-  id: string;
-  user_id: string | null;
-  parent_id: string | null;
-  body: string;
-  is_spoiler: boolean;
-  depth: number;
-  created_at: string;
-  deleted_at: string | null;
-  author?: {
-    username: string | null;
-    avatarUrl: string | null;
-    ogNumber: number | null;
-    sponsor: SponsorStatus | null;
-    role: PublicIdentityRole;
-  } | null;
-};
-
-type Page = { comments: Comment[]; nextCursor: string | null };
+import type { CommunityComment, CommunityCommentsPage } from '@/types/community-comments';
 
 export function SpoilerText({ text, spoiler }: { text: string; spoiler: boolean }) {
   const [revealed, setRevealed] = useState(false);
@@ -147,7 +126,7 @@ function CommentNode({
   currentUserId,
 }: {
   animeId: number;
-  comment: Comment;
+  comment: CommunityComment;
   currentUserId: string | null;
 }) {
   const [reply, setReply] = useState(false);
@@ -206,7 +185,7 @@ function CommentNode({
                   </span>
                 )}
               </span>
-              <time dateTime={comment.created_at}>
+              <time dateTime={comment.created_at} suppressHydrationWarning>
                 {new Date(comment.created_at).toLocaleString('ru-RU', {
                   day: '2-digit',
                   month: 'short',
@@ -236,7 +215,7 @@ function CommentNode({
                   </span>
                 )}
               </span>
-              <time dateTime={comment.created_at}>
+              <time dateTime={comment.created_at} suppressHydrationWarning>
                 {new Date(comment.created_at).toLocaleString('ru-RU', {
                   day: '2-digit',
                   month: 'short',
@@ -305,14 +284,16 @@ function CommentBranch({
   animeId,
   parentId,
   currentUserId,
+  initialPage = null,
 }: {
   animeId: number;
   parentId: string | null;
   currentUserId: string | null;
+  initialPage?: CommunityCommentsPage | null;
 }) {
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [busy, setBusy] = useState(true);
+  const [comments, setComments] = useState<CommunityComment[]>(() => initialPage?.comments ?? []);
+  const [nextCursor, setNextCursor] = useState<string | null>(() => initialPage?.nextCursor ?? null);
+  const [busy, setBusy] = useState(!initialPage);
   const [error, setError] = useState('');
 
   async function load(cursor: string | null) {
@@ -320,7 +301,7 @@ function CommentBranch({
     setError('');
 
     try {
-      const page = await communityRequest<Page>(
+      const page = await communityRequest<CommunityCommentsPage>(
         `comments?animeId=${animeId}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}${parentId ? `&parent=${parentId}` : ''}`,
       );
 
@@ -341,7 +322,7 @@ function CommentBranch({
     let active = true;
     const path = `comments?animeId=${animeId}${parentId ? `&parent=${parentId}` : ''}`;
 
-    communityRequest<Page>(path)
+    communityRequest<CommunityCommentsPage>(path)
       .then((page) => {
         if (!active) return;
         setComments(page.comments);
@@ -384,7 +365,13 @@ function CommentBranch({
   );
 }
 
-export default function AnimeComments({ animeId }: { animeId: number }) {
+export default function AnimeComments({
+  animeId,
+  initialPage = null,
+}: {
+  animeId: number;
+  initialPage?: CommunityCommentsPage | null;
+}) {
   const [revision, setRevision] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
@@ -438,6 +425,7 @@ export default function AnimeComments({ animeId }: { animeId: number }) {
         animeId={animeId}
         parentId={null}
         currentUserId={currentUserId}
+        initialPage={revision === 0 ? initialPage : null}
       />
     </section>
   );
