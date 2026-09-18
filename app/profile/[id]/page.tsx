@@ -117,6 +117,12 @@ export default async function PublicProfilePage({ params }: Props) {
                     />
                   </h1>
 
+                  {profile.premium && (
+                    <span className="animebox-premium-badge" title="AnimeBox Premium">
+                      ✦ Premium
+                    </span>
+                  )}
+
                   {profile.ogNumber && (
                     <span
                       className="animebox-og-badge"
