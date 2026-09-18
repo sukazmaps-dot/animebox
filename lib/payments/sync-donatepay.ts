@@ -13,6 +13,13 @@ import {
 
 const PROVIDER = 'donatepay';
 const INTERACTIVE_COOLDOWN_MS = 20_000;
+const DEFAULT_IMPORT_FROM = '2026-09-18T00:00:00.000Z';
+
+function donatePayImportFromMs() {
+  const configured = process.env.DONATEPAY_IMPORT_FROM?.trim() || DEFAULT_IMPORT_FROM;
+  const parsed = Date.parse(configured);
+  return Number.isFinite(parsed) ? parsed : Date.parse(DEFAULT_IMPORT_FROM);
+}
 
 function maxNumericId(values: string[]) {
   let max: bigint | null = null;
@@ -66,7 +73,13 @@ export async function syncDonatePayTransactions(
     // One DonatePay request per sync run. Historical clients document a strict
     // rate limit, so cron/manual retries remain intentionally conservative.
     const transactions = await fetchDonatePayTransactions({ after: cursor, limit: 100 });
-    const ordered = [...transactions].sort((a, b) => {
+    const importFromMs = donatePayImportFromMs();
+    const eligibleTransactions = transactions.filter((item) => {
+      const createdMs = Date.parse(item.createdAt);
+      return Number.isFinite(createdMs) && createdMs >= importFromMs;
+    });
+
+    const ordered = [...eligibleTransactions].sort((a, b) => {
       if (/^\d+$/.test(a.id) && /^\d+$/.test(b.id)) {
         const left = BigInt(a.id);
         const right = BigInt(b.id);
@@ -132,6 +145,8 @@ export async function syncDonatePayTransactions(
           last_error: null,
           metadata: {
             last_batch_count: transactions.length,
+            eligible_batch_count: eligibleTransactions.length,
+            import_from: new Date(importFromMs).toISOString(),
             last_imported_count: imported,
             last_claimed_count: claimed,
             initial_sync_latest_only: !cursor,
@@ -146,6 +161,7 @@ export async function syncDonatePayTransactions(
     return {
       configured: true,
       scanned: transactions.length,
+      eligible: eligibleTransactions.length,
       imported,
       claimed,
       cursor: nextCursor,
