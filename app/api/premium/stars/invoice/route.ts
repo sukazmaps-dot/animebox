@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { userClient } from '@/lib/community-server';
 import { getPremiumPlan } from '@/lib/premium-catalog-server';
 import { isPremiumPlanId } from '@/lib/premium';
+import { getPremiumRecurringSubscription } from '@/lib/premium-server';
 import { createPremiumInvoiceLink } from '@/lib/telegram-stars';
 import { validateTelegramInitData } from '@/lib/telegram/validate-init-data';
 
@@ -38,6 +39,17 @@ export async function POST(request: Request) {
         { ok: false, error: 'plan_not_available' },
         { status: 409 },
       );
+    }
+
+    if (plan.billingMode === 'recurring') {
+      const existingRecurring = await getPremiumRecurringSubscription(user.id);
+
+      if (existingRecurring) {
+        return NextResponse.json(
+          { ok: false, error: 'recurring_already_exists' },
+          { status: 409 },
+        );
+      }
     }
 
     const initData = typeof body?.initData === 'string' ? body.initData.trim() : '';
