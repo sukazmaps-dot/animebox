@@ -4,7 +4,7 @@
 create table if not exists public.ad_settings (
   id text primary key,
   enabled boolean not null default true,
-  max_ads_per_session integer not null default 3,
+  max_ads_per_session integer not null default 2,
   min_seconds_between_ads integer not null default 120,
   placements jsonb not null default '{
     "home-after-smart-feed": true,
@@ -35,7 +35,7 @@ insert into public.ad_settings (
 values (
   'global',
   true,
-  3,
+  2,
   120,
   '{
     "home-after-smart-feed": true,

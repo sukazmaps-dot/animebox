@@ -538,3 +538,88 @@ html.telegram-mini-app .support-box__web-only {
     overflow: hidden;
   }
 }
+
+/* =========================================================
+   AnimeBox Ad System v1.1 · calm ads
+   Viewport lazy-loading + compact presentation
+   ========================================================= */
+
+.monetization-ad-slot {
+  width: 100%;
+  min-width: 0;
+  min-height: 1px;
+}
+
+.monetization-ad-slot:not(.is-rendered) {
+  margin: 0;
+}
+
+.monetization-ad-slot .monetization-ad {
+  width: min(100%, 980px);
+  margin: 22px auto;
+}
+
+.monetization-ad-slot.is-loading:not(.is-rendered) .monetization-ad {
+  min-height: 1px;
+  margin-block: 0;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.monetization-ad-slot.is-loading:not(.is-rendered) .monetization-ad__mount {
+  min-height: 1px;
+}
+
+.monetization-ad-slot.is-rendered .monetization-ad {
+  animation: animebox-ad-reveal 180ms ease-out both;
+}
+
+.monetization-ad__mount--adsterra {
+  width: 100%;
+  min-height: 0;
+  overflow: visible;
+}
+
+.adsterra-native-host,
+.adsterra-native-host > div[id^='container-'] {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+@keyframes animebox-ad-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 720px) {
+  .monetization-ad-slot .monetization-ad {
+    width: 100%;
+    margin: 18px auto;
+    border-radius: 14px;
+  }
+
+  .monetization-ad-slot.is-loading:not(.is-rendered) .monetization-ad {
+    margin-block: 0;
+  }
+
+  .monetization-ad__label {
+    top: 7px;
+    right: 9px;
+    font-size: 8px;
+    letter-spacing: .1em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .monetization-ad-slot.is-rendered .monetization-ad {
+    animation: none;
+  }
+}

@@ -60,7 +60,7 @@ export const DEFAULT_AD_PLACEMENTS: AdPlacementFlags = {
 
 export const DEFAULT_AD_SETTINGS: AdStoredSettings = {
   enabled: true,
-  maxAdsPerSession: 3,
+  maxAdsPerSession: 2,
   minSecondsBetweenAds: 120,
   placements: DEFAULT_AD_PLACEMENTS,
 };

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import AdsterraNativeBanner from '@/components/monetization/AdsterraNativeBanner';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuthState } from '@/components/AuthStateProvider';
 import {
@@ -16,9 +16,11 @@ import {
   type AdRuntimeConfig,
 } from '@/lib/ads';
 import {
+  beginAdExposure,
   clearAdConfigCache,
+  commitAdExposure,
   getAdRuntimeConfig,
-  reserveAdExposure,
+  releaseAdExposure,
 } from '@/lib/ads-client';
 import {
   AD_PROVIDER,
@@ -35,11 +37,12 @@ type AdSlotProps = {
 /**
  * Provider-agnostic ad mount.
  *
- * Rules:
+ * UX rules:
  * - never renders for sponsor/staff accounts with the adFree entitlement;
- * - obeys runtime placement switches from /admin/ads;
- * - reserves only a small number of ad exposures per browser session;
- * - applies a global cooldown between ad blocks;
+ * - lazily starts the provider only when the slot is approaching the viewport;
+ * - counts a session impression only after the provider actually rendered;
+ * - no-fill / ad-block failures do not consume the cap or cooldown;
+ * - the same placement is shown at most once per browser session;
  * - provider=none renders nothing, so enabling the ad system before a provider
  *   is connected never creates empty holes in the UI.
  */
@@ -50,6 +53,8 @@ export default function AdSlot({
 }: AdSlotProps) {
   const { user, loading: authLoading } = useAuthState();
   const cached = useMemo(() => peekSponsorMe(user?.id, 1), [user?.id]);
+  const slotRef = useRef<HTMLDivElement>(null);
+
   const [adFree, setAdFree] = useState(
     Boolean(cached?.benefits.adFree || cached?.role),
   );
@@ -57,11 +62,25 @@ export default function AdSlot({
     !user?.id || Boolean(cached),
   );
   const [config, setConfig] = useState<AdRuntimeConfig | null>(null);
+  const [nearViewport, setNearViewport] = useState(false);
   const [reserved, setReserved] = useState(false);
+  const [rendered, setRendered] = useState(false);
   const [providerFailed, setProviderFailed] = useState(false);
 
   const resolvedFormat = format ?? AD_PLACEMENT_DEFINITIONS[placement].format;
-  const handleProviderError = useCallback(() => setProviderFailed(true), []);
+
+  const handleProviderReady = useCallback(() => {
+    commitAdExposure(placement);
+    setRendered(true);
+    setProviderFailed(false);
+  }, [placement]);
+
+  const handleProviderError = useCallback(() => {
+    releaseAdExposure(placement);
+    setReserved(false);
+    setRendered(false);
+    setProviderFailed(true);
+  }, [placement]);
 
   useEffect(() => {
     let active = true;
@@ -131,7 +150,10 @@ export default function AdSlot({
 
     const refresh = () => {
       clearAdConfigCache();
+      releaseAdExposure(placement);
+      setNearViewport(false);
       setReserved(false);
+      setRendered(false);
       setProviderFailed(false);
       void getAdRuntimeConfig({ force: true })
         .then((next) => {
@@ -145,7 +167,7 @@ export default function AdSlot({
       active = false;
       window.removeEventListener('animebox:ads-config-updated', refresh);
     };
-  }, []);
+  }, [placement]);
 
   const eligible = Boolean(
     MONETIZATION_ENABLED &&
@@ -160,45 +182,97 @@ export default function AdSlot({
   );
 
   useEffect(() => {
-    if (!eligible || !config || reserved) return;
-    const allowed = reserveAdExposure(placement, config);
+    if (!eligible || nearViewport || providerFailed) return;
+    const node = slotRef.current;
+    if (!node) return;
+
+    if (typeof IntersectionObserver === 'undefined') {
+      queueMicrotask(() => setNearViewport(true));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        setNearViewport(true);
+        observer.disconnect();
+      },
+      {
+        // Start loading before the slot becomes visible so the third-party
+        // widget is usually ready by the time the user reaches it.
+        rootMargin: '650px 0px',
+        threshold: 0.01,
+      },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [eligible, nearViewport, providerFailed]);
+
+  useEffect(() => {
+    if (!eligible || !nearViewport || !config || reserved || providerFailed) return;
+    const allowed = beginAdExposure(placement, config);
     if (!allowed) return;
     queueMicrotask(() => setReserved(true));
-  }, [config, eligible, placement, reserved]);
+  }, [config, eligible, nearViewport, placement, providerFailed, reserved]);
 
-  if (!eligible || !reserved || !config || providerFailed) return null;
+  useEffect(() => {
+    if (!reserved || rendered || config?.provider !== 'house') return;
+    queueMicrotask(() => handleProviderReady());
+  }, [config?.provider, handleProviderReady, rendered, reserved]);
+
+  useEffect(() => {
+    return () => {
+      if (reserved && !rendered) releaseAdExposure(placement);
+    };
+  }, [placement, rendered, reserved]);
+
+  const shouldRenderProvider = Boolean(
+    eligible &&
+      reserved &&
+      config &&
+      !providerFailed &&
+      (config.provider === 'house' || config.provider === 'adsterra'),
+  );
 
   return (
-    <aside
-      className={`monetization-ad monetization-ad--${resolvedFormat} ${className}`.trim()}
-      data-ad-placement={placement}
-      data-ad-provider={config.provider}
-      aria-label="Реклама"
+    <div
+      ref={slotRef}
+      className={`monetization-ad-slot ${rendered ? 'is-rendered' : ''} ${reserved ? 'is-loading' : ''}`.trim()}
+      data-ad-slot={placement}
+      data-ad-state={providerFailed ? 'failed' : rendered ? 'rendered' : reserved ? 'loading' : 'idle'}
     >
-      <span className="monetization-ad__label">Реклама</span>
-
-      {config.provider === 'house' ? (
-        <Link className="monetization-ad__house" href="/support">
-          <span>AnimeBox</span>
-          <strong>Помоги проекту расти без навязчивой рекламы</strong>
-          <small>Поддержка проекта отключает наши рекламные блоки на подходящих уровнях.</small>
-          <b>Поддержать →</b>
-        </Link>
-      ) : config.provider === 'adsterra' ? (
-        <div
-          className="monetization-ad__mount monetization-ad__mount--adsterra"
-          data-ad-mount={placement}
-          data-ad-format={resolvedFormat}
+      {shouldRenderProvider && config ? (
+        <aside
+          className={`monetization-ad monetization-ad--${resolvedFormat} ${className}`.trim()}
+          data-ad-placement={placement}
+          data-ad-provider={config.provider}
+          aria-label="Реклама"
+          aria-busy={!rendered}
         >
-          <AdsterraNativeBanner onError={handleProviderError} />
-        </div>
-      ) : (
-        <div
-          className="monetization-ad__mount"
-          data-ad-mount={placement}
-          data-ad-format={resolvedFormat}
-        />
-      )}
-    </aside>
+          {rendered && <span className="monetization-ad__label">Реклама</span>}
+
+          {config.provider === 'house' ? (
+            <Link className="monetization-ad__house" href="/support">
+              <span>AnimeBox</span>
+              <strong>Помоги проекту расти без навязчивой рекламы</strong>
+              <small>Поддержка проекта отключает наши рекламные блоки на подходящих уровнях.</small>
+              <b>Поддержать →</b>
+            </Link>
+          ) : (
+            <div
+              className="monetization-ad__mount monetization-ad__mount--adsterra"
+              data-ad-mount={placement}
+              data-ad-format={resolvedFormat}
+            >
+              <AdsterraNativeBanner
+                onReady={handleProviderReady}
+                onError={handleProviderError}
+              />
+            </div>
+          )}
+        </aside>
+      ) : null}
+    </div>
   );
 }
