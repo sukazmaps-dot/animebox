@@ -16,7 +16,7 @@ import MySponsorBadge from '@/components/monetization/MySponsorBadge';
 import UserAvatarWithFrame from '@/components/profile/UserAvatarWithFrame';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import CurrentPremiumBadge from '@/components/premium/CurrentPremiumBadge';
-import type { PremiumProfileTheme } from '@/lib/premium-studio';
+import { isPremiumProfileTheme, type PremiumProfileTheme } from '@/lib/premium-studio';
 
 type Profile = {
   id: string;
