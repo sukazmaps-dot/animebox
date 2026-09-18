@@ -261,6 +261,45 @@ export async function POST(request: Request) {
       const reason = typeof body.reason === 'string' ? body.reason.trim().slice(0, 500) : '';
       if (!UUID_RE.test(subscriptionId)) throw new ApiError(400, 'Некорректная подписка.');
 
+      const admin = adminClient();
+      const { data: subscriptionToRevoke, error: subscriptionLookupError } = await admin
+        .from('premium_subscriptions')
+        .select('source,transaction_id,telegram_subscription_charge_id')
+        .eq('id', subscriptionId)
+        .maybeSingle();
+
+      if (subscriptionLookupError) throw subscriptionLookupError;
+
+      if (
+        subscriptionToRevoke?.source === 'telegram_stars' &&
+        subscriptionToRevoke.telegram_subscription_charge_id
+      ) {
+        const { data: transaction, error: transactionError } = await admin
+          .from('payment_transactions')
+          .select('external_user_id')
+          .eq('id', subscriptionToRevoke.transaction_id)
+          .maybeSingle();
+
+        if (transactionError) throw transactionError;
+
+        const telegramId = Number(transaction?.external_user_id ?? 0);
+        const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
+
+        if (
+          botToken &&
+          Number.isSafeInteger(telegramId) &&
+          telegramId > 0
+        ) {
+          await editUserStarSubscription({
+            botToken,
+            userId: telegramId,
+            telegramPaymentChargeId:
+              subscriptionToRevoke.telegram_subscription_charge_id,
+            isCanceled: true,
+          });
+        }
+      }
+
       const result = await revokePremium({
         subscriptionId,
         actorUserId: user.id,
