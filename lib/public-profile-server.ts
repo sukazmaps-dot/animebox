@@ -7,12 +7,13 @@ import type { SponsorStatus } from '@/lib/sponsor';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
 import type { PublicIdentityRole } from '@/lib/identity';
 import { achievementIcon } from '@/lib/achievement-icons';
-import { getUserEntitlements } from '@/lib/entitlements-server';
+import { getEffectiveUserEntitlements } from '@/lib/entitlements-server';
 import {
   studioSettingsFromRow,
   type PremiumProfileTheme,
   type PremiumStudioSettings,
 } from '@/lib/premium-studio';
+import { resolveProfileAppearance } from '@/lib/profile-appearance';
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -152,10 +153,10 @@ export async function getPublicProfile(
       .maybeSingle(),
     getWatchSummary(userId),
     getSponsorStatus(userId),
-    getUserEntitlements(userId).catch(() => null),
+    getEffectiveUserEntitlements(userId).catch(() => null),
     admin
       .from('premium_profile_settings')
-      .select('theme,primary_color,accent_color,text_color,glow_strength,border_style,avatar_path,banner_path,sync_player_theme')
+      .select('theme,primary_color,accent_color,text_color,glow_strength,border_style,avatar_path,avatar_static_path,banner_path,banner_static_path,sync_player_theme')
       .eq('user_id', userId)
       .maybeSingle()
       .then((result) => (result.error ? null : result.data)),
@@ -207,18 +208,20 @@ export async function getPublicProfile(
       };
     });
 
-  const studioSettings =
-    entitlements?.premiumThemes && premiumSettings
-      ? studioSettingsFromRow(premiumSettings as Record<string, unknown>)
-      : null;
+  const storedStudioSettings = premiumSettings
+    ? studioSettingsFromRow(premiumSettings as Record<string, unknown>)
+    : null;
+  const premiumActive = Boolean(entitlements?.premiumThemes && entitlements?.profileStudio);
+  const appearance = resolveProfileAppearance({
+    baseAvatarPath: profile.avatar_path,
+    baseBannerPath: profile.banner_path,
+    premiumStudio: storedStudioSettings,
+    premiumActive,
+  });
 
   const avatarUrl =
-    toPublicStorageUrl(admin, studioSettings?.avatarPath || profile.avatar_path) ||
-    '/default-avatar.webp';
-  const bannerUrl = toPublicStorageUrl(
-    admin,
-    studioSettings?.bannerPath || profile.banner_path,
-  );
+    toPublicStorageUrl(admin, appearance.avatarPath) || '/default-avatar.webp';
+  const bannerUrl = toPublicStorageUrl(admin, appearance.bannerPath);
 
   return {
     id: profile.id,
@@ -232,9 +235,9 @@ export async function getPublicProfile(
         ? ogResult.data.og_number
         : null,
     sponsor,
-    premium: Boolean(entitlements?.premiumBadge),
-    premiumTheme: studioSettings?.theme ?? 'default',
-    premiumStudio: studioSettings,
+    premium: Boolean(entitlements?.premiumBadge && premiumActive),
+    premiumTheme: appearance.premiumStudio?.theme ?? 'default',
+    premiumStudio: appearance.premiumStudio,
     role: publicIdentityRoleFor(userId),
     stats: {
       episodes,

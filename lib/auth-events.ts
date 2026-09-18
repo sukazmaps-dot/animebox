@@ -4,6 +4,7 @@ export type AuthProfileSnapshot = {
   id: string;
   username: string | null;
   avatar_path: string | null;
+  display_avatar_path?: string | null;
 };
 
 export type AuthChangedDetail = {

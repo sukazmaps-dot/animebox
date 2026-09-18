@@ -10,6 +10,7 @@ import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import { notifyAuthChanged } from '@/lib/auth-events';
 import { readProfileCache, saveProfileCache } from '@/lib/profile-cache';
 import { createClient } from '@/lib/supabase/client';
+import type { PremiumStudioSettings } from '@/lib/premium-studio';
 
 type EditorTab = 'profile' | 'appearance' | 'premium';
 
@@ -60,6 +61,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [removeAvatar, setRemoveAvatar] = useState(false);
   const [removeBanner, setRemoveBanner] = useState(false);
+  const [premiumSettings, setPremiumSettings] = useState<PremiumStudioSettings | null>(null);
+  const [premiumActive, setPremiumActive] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -101,6 +104,43 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
     return () => { active = false; };
   }, [authLoading, router, supabase, user]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setPremiumSettings(null);
+      setPremiumActive(false);
+      return;
+    }
+
+    let active = true;
+    const loadAppearance = () => {
+      void fetch('/api/premium/studio', { cache: 'no-store' })
+        .then(async (response) => {
+          if (!response.ok || !active) return;
+          const payload = (await response.json()) as {
+            allowed?: boolean;
+            settings?: PremiumStudioSettings;
+          };
+          setPremiumSettings(payload.settings ?? null);
+          setPremiumActive(Boolean(payload.allowed));
+        })
+        .catch(() => {
+          if (!active) return;
+          setPremiumSettings(null);
+          setPremiumActive(false);
+        });
+    };
+
+    loadAppearance();
+    window.addEventListener('animebox:premium-studio-updated', loadAppearance);
+    window.addEventListener('animebox:entitlements-changed', loadAppearance);
+
+    return () => {
+      active = false;
+      window.removeEventListener('animebox:premium-studio-updated', loadAppearance);
+      window.removeEventListener('animebox:entitlements-changed', loadAppearance);
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     return () => {
@@ -156,6 +196,24 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   const currentBannerUrl = publicMediaUrl(profile?.banner_path);
   const displayedAvatar = removeAvatar ? '/default-avatar.webp' : avatarPreview || currentAvatarUrl;
   const displayedBanner = removeBanner ? null : bannerPreview || currentBannerUrl;
+
+  const premiumAnimatedAvatar = publicMediaUrl(premiumSettings?.avatarPath);
+  const premiumStaticAvatar = publicMediaUrl(premiumSettings?.avatarStaticPath);
+  const premiumAnimatedBanner = publicMediaUrl(premiumSettings?.bannerPath);
+  const premiumStaticBanner = publicMediaUrl(premiumSettings?.bannerStaticPath);
+
+  const resolvedAvatarPreview = premiumActive
+    ? premiumAnimatedAvatar || premiumStaticAvatar || displayedAvatar
+    : premiumStaticAvatar || displayedAvatar;
+  const resolvedBannerPreview = premiumActive
+    ? premiumAnimatedBanner || premiumStaticBanner || displayedBanner
+    : premiumStaticBanner || displayedBanner;
+  const premiumAvatarOverride = Boolean(
+    premiumActive ? premiumAnimatedAvatar || premiumStaticAvatar : premiumStaticAvatar,
+  );
+  const premiumBannerOverride = Boolean(
+    premiumActive ? premiumAnimatedBanner || premiumStaticBanner : premiumStaticBanner,
+  );
 
   const dirty = Boolean(
     profile && (
@@ -276,6 +334,22 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       setError(requestError instanceof Error ? requestError.message : 'Не удалось сохранить профиль.');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function clearPremiumFallbackMedia() {
+    if (!user?.id) return;
+    setError('');
+    setSaved('');
+    try {
+      const response = await fetch('/api/premium/studio?media=all', { method: 'DELETE' });
+      const payload = (await response.json()) as { settings?: PremiumStudioSettings; error?: string };
+      if (!response.ok) throw new Error(payload.error || 'Не удалось вернуть базовые медиа.');
+      setPremiumSettings(payload.settings ?? null);
+      setSaved('Снова используются базовые аватар и баннер ✓');
+      window.dispatchEvent(new Event('animebox:premium-studio-updated'));
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Не удалось вернуть базовые медиа.');
     }
   }
 
@@ -404,6 +478,23 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                     </div>
                   </div>
 
+                  {(premiumAvatarOverride || premiumBannerOverride) && (
+                    <div className="profile-editor-v17__appearance-status">
+                      <strong>{premiumActive ? 'Premium-оформление сейчас перекрывает базовые медиа' : 'Premium закончился — используется статический fallback'}</strong>
+                      <p>
+                        {premiumActive
+                          ? 'Базовый аватар и баннер остаются запасными. Итоговый preview справа показывает то, что реально видят пользователи.'
+                          : 'Анимации и Premium-эффекты выключены, но сохранённые статические WEBP-версии аватара/баннера остаются активны.'}
+                      </p>
+                      <div className="profile-editor-v17__appearance-actions">
+                        <button type="button" onClick={() => switchTab('premium')}>Открыть Premium Studio</button>
+                        <button type="button" className="is-secondary" onClick={() => void clearPremiumFallbackMedia()}>
+                          Использовать базовые медиа
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="profile-editor-v13__premium-callout">
                     <img src="/premium/premium-user.webp" alt="" aria-hidden="true" />
                     <div>
@@ -429,11 +520,11 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
                 <article className="profile-editor-v13__profile-preview">
                   <div className="profile-editor-v13__preview-banner">
-                    {displayedBanner ? <img src={displayedBanner} alt="" aria-hidden="true" /> : <div />}
+                    {resolvedBannerPreview ? <img src={resolvedBannerPreview} alt="" aria-hidden="true" /> : <div />}
                     <span />
                   </div>
                   <div className="profile-editor-v13__preview-body">
-                    <img src={displayedAvatar} alt="" />
+                    <img src={resolvedAvatarPreview} alt="" />
                     <div>
                       <span>ANIMEBOX USER</span>
                       <h3>{username.trim() || 'Пользователь'}</h3>
@@ -443,7 +534,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                 </article>
 
                 <div className="profile-editor-v13__preview-note">
-                  Premium-настройки имеют отдельный live-preview во вкладке Premium Studio.
+                  Это итоговый профиль: базовые данные + активный Premium override или статический fallback после окончания подписки.
                 </div>
               </div>
             </aside>

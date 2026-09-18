@@ -26,7 +26,9 @@ const STUDIO_COLUMNS = [
   'glow_strength',
   'border_style',
   'avatar_path',
+  'avatar_static_path',
   'banner_path',
+  'banner_static_path',
   'sync_player_theme',
 ].join(',');
 
@@ -95,7 +97,9 @@ function readSettings(body: Record<string, unknown>, userId: string): PremiumStu
     glowStrength: Math.round(glowStrength),
     borderStyle,
     avatarPath: safeMediaPath(body.avatarPath, userId),
+    avatarStaticPath: safeMediaPath(body.avatarStaticPath, userId),
     bannerPath: safeMediaPath(body.bannerPath, userId),
+    bannerStaticPath: safeMediaPath(body.bannerStaticPath, userId),
     syncPlayerTheme: body.syncPlayerTheme,
   };
 }
@@ -120,7 +124,10 @@ export async function GET() {
     return response({
       allowed,
       theme: settings.theme,
-      settings: allowed ? settings : DEFAULT_PREMIUM_STUDIO_SETTINGS,
+      // Keep the saved appearance available to the owner after expiry so
+      // AnimeBox can resolve static media fallbacks without re-enabling
+      // Premium-only colors/effects. The client still receives allowed=false.
+      settings,
       entitlements,
     });
   } catch (error) {
@@ -148,7 +155,9 @@ export async function POST(request: Request) {
           glow_strength: settings.glowStrength,
           border_style: settings.borderStyle,
           avatar_path: settings.avatarPath,
+          avatar_static_path: settings.avatarStaticPath,
           banner_path: settings.bannerPath,
+          banner_static_path: settings.bannerStaticPath,
           sync_player_theme: settings.syncPlayerTheme,
           updated_at: new Date().toISOString(),
         },
@@ -158,6 +167,72 @@ export async function POST(request: Request) {
     if (error) throw error;
 
     return response({ ok: true, theme: settings.theme, settings });
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { user } = await userClient();
+    const url = new URL(request.url);
+    const media = url.searchParams.get('media') || 'all';
+
+    if (!['avatar', 'banner', 'all'].includes(media)) {
+      throw new ApiError(400, 'Неизвестный тип Premium-медиа.');
+    }
+
+    const admin = adminClient();
+    const { data: row, error: lookupError } = await admin
+      .from('premium_profile_settings')
+      .select(STUDIO_COLUMNS)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (lookupError) throw lookupError;
+    if (!row) return response({ ok: true, settings: DEFAULT_PREMIUM_STUDIO_SETTINGS });
+
+    const current = studioSettingsFromRow(row as unknown as Record<string, unknown>);
+    const next: PremiumStudioSettings = {
+      ...current,
+      ...(media === 'avatar' || media === 'all'
+        ? { avatarPath: null, avatarStaticPath: null }
+        : {}),
+      ...(media === 'banner' || media === 'all'
+        ? { bannerPath: null, bannerStaticPath: null }
+        : {}),
+    };
+
+    const { error: updateError } = await admin
+      .from('premium_profile_settings')
+      .update({
+        avatar_path: next.avatarPath,
+        avatar_static_path: next.avatarStaticPath,
+        banner_path: next.bannerPath,
+        banner_static_path: next.bannerStaticPath,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', user.id);
+
+    if (updateError) throw updateError;
+
+    const paths = [
+      ...(media === 'avatar' || media === 'all'
+        ? [current.avatarPath, current.avatarStaticPath]
+        : []),
+      ...(media === 'banner' || media === 'all'
+        ? [current.bannerPath, current.bannerStaticPath]
+        : []),
+    ].filter((path): path is string => Boolean(path && path.startsWith(`${user.id}/premium/`)));
+
+    if (paths.length) {
+      const { error: removeError } = await admin.storage
+        .from('profile-media')
+        .remove([...new Set(paths)]);
+      if (removeError) console.error('[Premium Studio] media cleanup:', removeError);
+    }
+
+    return response({ ok: true, settings: next });
   } catch (error) {
     return failure(error);
   }

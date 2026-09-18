@@ -47,10 +47,11 @@ export default function MobileAccountNav({ pathname }: Props) {
 
   const username = profile?.username?.trim() || 'Пользователь';
 
-  const avatarUrl = profile?.avatar_path
+  const displayAvatarPath = profile?.display_avatar_path || profile?.avatar_path;
+  const avatarUrl = displayAvatarPath
     ? supabase.storage
         .from('profile-media')
-        .getPublicUrl(profile.avatar_path).data.publicUrl
+        .getPublicUrl(displayAvatarPath).data.publicUrl
     : '/default-avatar.webp';
 
   const accountSectionActive =

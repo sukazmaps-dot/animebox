@@ -18,7 +18,9 @@ export type PremiumStudioSettings = {
   glowStrength: number;
   borderStyle: PremiumBorderStyle;
   avatarPath: string | null;
+  avatarStaticPath: string | null;
   bannerPath: string | null;
+  bannerStaticPath: string | null;
   syncPlayerTheme: boolean;
 };
 
@@ -30,7 +32,9 @@ export const DEFAULT_PREMIUM_STUDIO_SETTINGS: PremiumStudioSettings = {
   glowStrength: 36,
   borderStyle: 'neon',
   avatarPath: null,
+  avatarStaticPath: null,
   bannerPath: null,
+  bannerStaticPath: null,
   syncPlayerTheme: true,
 };
 
@@ -129,7 +133,9 @@ export function studioSettingsFromRow(
     glowStrength: readGlow(row.glow_strength),
     borderStyle: isPremiumBorderStyle(rawBorder) ? rawBorder : 'neon',
     avatarPath: stringOrNull(row.avatar_path),
+    avatarStaticPath: stringOrNull(row.avatar_static_path),
     bannerPath: stringOrNull(row.banner_path),
+    bannerStaticPath: stringOrNull(row.banner_static_path),
     syncPlayerTheme:
       typeof row.sync_player_theme === 'boolean'
         ? row.sync_player_theme

@@ -21,6 +21,7 @@ import {
   premiumStudioCssVariables,
   type PremiumStudioSettings,
 } from '@/lib/premium-studio';
+import { resolveProfileAppearance } from '@/lib/profile-appearance';
 
 type Profile = {
   id: string;
@@ -47,6 +48,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [premiumStudio, setPremiumStudio] = useState<PremiumStudioSettings | null>(null);
+  const [premiumActive, setPremiumActive] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -202,6 +204,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user?.id) {
       setPremiumStudio(null);
+      setPremiumActive(false);
       return;
     }
 
@@ -215,10 +218,14 @@ export default function ProfilePage() {
             settings?: PremiumStudioSettings;
           };
           if (!response.ok || !active) return;
-          setPremiumStudio(payload.allowed ? payload.settings ?? DEFAULT_PREMIUM_STUDIO_SETTINGS : null);
+          setPremiumStudio(payload.settings ?? DEFAULT_PREMIUM_STUDIO_SETTINGS);
+          setPremiumActive(Boolean(payload.allowed));
         })
         .catch(() => {
-          if (active) setPremiumStudio(null);
+          if (active) {
+            setPremiumStudio(null);
+            setPremiumActive(false);
+          }
         });
     };
 
@@ -258,25 +265,29 @@ export default function ProfilePage() {
 
   const supabase = createClient();
 
-  const effectiveAvatarPath = premiumStudio?.avatarPath || profile.avatar_path;
-  const effectiveBannerPath = premiumStudio?.bannerPath || profile.banner_path;
+  const appearance = resolveProfileAppearance({
+    baseAvatarPath: profile.avatar_path,
+    baseBannerPath: profile.banner_path,
+    premiumStudio,
+    premiumActive,
+  });
 
-  const avatarUrl = effectiveAvatarPath
+  const avatarUrl = appearance.avatarPath
     ? supabase.storage
         .from('profile-media')
-        .getPublicUrl(effectiveAvatarPath)
+        .getPublicUrl(appearance.avatarPath)
         .data.publicUrl
     : '/default-avatar.webp';
 
-  const bannerUrl = effectiveBannerPath
+  const bannerUrl = appearance.bannerPath
     ? supabase.storage
         .from('profile-media')
-        .getPublicUrl(effectiveBannerPath)
+        .getPublicUrl(appearance.bannerPath)
         .data.publicUrl
     : null;
 
-  const premiumStyle = premiumStudio
-    ? (premiumStudioCssVariables(premiumStudio) as CSSProperties)
+  const premiumStyle = appearance.premiumStudio
+    ? (premiumStudioCssVariables(appearance.premiumStudio) as CSSProperties)
     : undefined;
 
   const joinedDate = new Intl.DateTimeFormat('ru-RU', {
@@ -286,7 +297,7 @@ export default function ProfilePage() {
 
   return (
     <main
-      className={`profile-v2 premium-profile-theme--${premiumStudio?.theme ?? 'default'} ${premiumStudio ? 'premium-profile-custom' : ''}`}
+      className={`profile-v2 premium-profile-theme--${appearance.premiumStudio?.theme ?? 'default'} ${appearance.premiumStudio ? 'premium-profile-custom' : ''}`}
       style={premiumStyle}
     >
       {/* PROFILE HERO */}

@@ -618,3 +618,102 @@
   .profile-editor-v13__avatar-editor { display: grid; grid-template-columns: 66px 1fr; }
   .profile-editor-v13__avatar-editor > img { width: 66px; height: 66px; border-radius: 20px; }
 }
+
+/* =========================================================
+   AnimeBox v17 — unified appearance status
+   ========================================================= */
+.profile-editor-v17__appearance-status {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 18px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 16px 18px;
+  border: 1px solid rgba(166, 119, 255, .16);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 0 0, rgba(127, 77, 255, .10), transparent 38%),
+    rgba(255, 255, 255, .018);
+}
+
+.profile-editor-v17__appearance-status strong {
+  color: #f2ecff;
+  font-size: 13px;
+}
+
+.profile-editor-v17__appearance-status p {
+  grid-column: 1;
+  margin: 0;
+  color: rgba(232, 225, 246, .52);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.profile-editor-v17__appearance-status button {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(184, 140, 255, .22);
+  border-radius: 12px;
+  background: rgba(126, 77, 255, .11);
+  color: #eee6ff;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .profile-editor-v17__appearance-status {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-editor-v17__appearance-status p,
+  .profile-editor-v17__appearance-status button {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+.profile-editor-v17__appearance-actions {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.profile-editor-v17__appearance-actions button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(184, 140, 255, .22);
+  border-radius: 12px;
+  background: rgba(126, 77, 255, .11);
+  color: #eee6ff;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.profile-editor-v17__appearance-actions button.is-secondary {
+  border-color: rgba(255,255,255,.08);
+  background: rgba(255,255,255,.025);
+  color: rgba(239,233,248,.62);
+}
+
+@media (max-width: 640px) {
+  .profile-editor-v17__appearance-actions {
+    grid-column: 1;
+    grid-row: auto;
+    justify-content: stretch;
+  }
+
+  .profile-editor-v17__appearance-actions button {
+    flex: 1 1 100%;
+  }
+}
+.profile-editor-v17__appearance-actions button {
+  grid-column: auto;
+  grid-row: auto;
+}

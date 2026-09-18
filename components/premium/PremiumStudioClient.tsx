@@ -47,6 +47,43 @@ function fileExtension(file: File) {
   return 'webp';
 }
 
+
+async function staticWebpFallback(file: File, kind: UploadKind) {
+  let bitmap: ImageBitmap | null = null;
+  try {
+    bitmap = await createImageBitmap(file);
+
+    const targetWidth = kind === 'avatar' ? 512 : 1500;
+    const targetHeight = kind === 'avatar' ? 512 : 500;
+    const canvas = document.createElement('canvas');
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+
+    const context = canvas.getContext('2d', { alpha: true });
+    if (!context) throw new Error('Canvas недоступен.');
+
+    const scale = Math.max(targetWidth / bitmap.width, targetHeight / bitmap.height);
+    const drawWidth = bitmap.width * scale;
+    const drawHeight = bitmap.height * scale;
+    const dx = (targetWidth - drawWidth) / 2;
+    const dy = (targetHeight - drawHeight) / 2;
+
+    context.drawImage(bitmap, dx, dy, drawWidth, drawHeight);
+
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (value) => value ? resolve(value) : reject(new Error('Не удалось создать статический WEBP.')),
+        'image/webp',
+        kind === 'avatar' ? 0.84 : 0.80,
+      );
+    });
+
+    return blob;
+  } finally {
+    bitmap?.close();
+  }
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
@@ -274,8 +311,8 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
     return supabase.storage.from('profile-media').getPublicUrl(path).data.publicUrl;
   }
 
-  const avatarUrl = publicMediaUrl(settings.avatarPath) || '/premium/premium-user.webp';
-  const bannerUrl = publicMediaUrl(settings.bannerPath);
+  const avatarUrl = publicMediaUrl(settings.avatarPath || settings.avatarStaticPath) || '/premium/premium-user.webp';
+  const bannerUrl = publicMediaUrl(settings.bannerPath || settings.bannerStaticPath);
 
   async function persistSettings(
     next: PremiumStudioSettings,
@@ -360,31 +397,58 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
       if (userError || !user) throw new Error('Сначала войди в AnimeBox.');
 
       const extension = fileExtension(file);
-      newPath = `${user.id}/premium/${kind}-${Date.now()}.${extension}`;
+      const stamp = Date.now();
+      newPath = `${user.id}/premium/${kind}-${stamp}.${extension}`;
+      const staticPath = `${user.id}/premium/${kind}-static-${stamp}.webp`;
+      const staticBlob = await staticWebpFallback(file, kind);
 
       const { error: uploadError } = await supabase.storage
         .from('profile-media')
         .upload(newPath, file, {
-          cacheControl: '3600',
+          cacheControl: '31536000',
           upsert: false,
           contentType: file.type,
         });
 
       if (uploadError) throw uploadError;
 
+      const { error: staticUploadError } = await supabase.storage
+        .from('profile-media')
+        .upload(staticPath, staticBlob, {
+          cacheControl: '31536000',
+          upsert: false,
+          contentType: 'image/webp',
+        });
+
+      if (staticUploadError) {
+        await supabase.storage.from('profile-media').remove([newPath]);
+        throw staticUploadError;
+      }
+
       const oldPath = kind === 'avatar' ? settings.avatarPath : settings.bannerPath;
+      const oldStaticPath = kind === 'avatar' ? settings.avatarStaticPath : settings.bannerStaticPath;
       const next = {
         ...settings,
-        ...(kind === 'avatar' ? { avatarPath: newPath } : { bannerPath: newPath }),
+        ...(kind === 'avatar'
+          ? { avatarPath: newPath, avatarStaticPath: staticPath }
+          : { bannerPath: newPath, bannerStaticPath: staticPath }),
       };
 
-      await persistSettings(
-        next,
-        kind === 'avatar' ? 'Premium-аватар обновлён ✓' : 'Premium-баннер обновлён ✓',
-      );
+      try {
+        await persistSettings(
+          next,
+          kind === 'avatar' ? 'Premium-аватар обновлён ✓' : 'Premium-баннер обновлён ✓',
+        );
+      } catch (persistError) {
+        await supabase.storage.from('profile-media').remove([newPath, staticPath]);
+        throw persistError;
+      }
 
-      if (oldPath && oldPath !== newPath && oldPath.includes('/premium/')) {
-        void supabase.storage.from('profile-media').remove([oldPath]);
+      const obsolete = [oldPath, oldStaticPath]
+        .filter((path): path is string => Boolean(path && path.includes('/premium/')))
+        .filter((path) => path !== newPath && path !== staticPath);
+      if (obsolete.length) {
+        void supabase.storage.from('profile-media').remove([...new Set(obsolete)]);
       }
     } catch (requestError) {
       if (newPath) {
@@ -406,17 +470,22 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
     if (!allowed || saving || uploading) return;
 
     const oldPath = kind === 'avatar' ? settings.avatarPath : settings.bannerPath;
-    if (!oldPath) return;
+    const oldStaticPath = kind === 'avatar' ? settings.avatarStaticPath : settings.bannerStaticPath;
+    if (!oldPath && !oldStaticPath) return;
 
     const next = {
       ...settings,
-      ...(kind === 'avatar' ? { avatarPath: null } : { bannerPath: null }),
+      ...(kind === 'avatar'
+        ? { avatarPath: null, avatarStaticPath: null }
+        : { bannerPath: null, bannerStaticPath: null }),
     };
 
     try {
       await persistSettings(next, kind === 'avatar' ? 'Premium-аватар сброшен' : 'Premium-баннер сброшен');
-      if (oldPath.includes('/premium/')) {
-        void supabase.storage.from('profile-media').remove([oldPath]);
+      const obsolete = [oldPath, oldStaticPath]
+        .filter((path): path is string => Boolean(path && path.includes('/premium/')));
+      if (obsolete.length) {
+        void supabase.storage.from('profile-media').remove([...new Set(obsolete)]);
       }
     } catch {
       // persistSettings already surfaces the error.
@@ -435,8 +504,10 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
         <span>PREMIUM STUDIO</span>
         <h1>Собственный профиль и тема плеера</h1>
         <p>
-          AnimeBox Premium открывает палитру цветов, Premium-аватар и баннер,
-          а также синхронизацию акцента с оболочкой AnimeBox Player.
+          AnimeBox Premium открывает палитру цветов, анимированный аватар и баннер,
+          а также синхронизацию акцента с оболочкой AnimeBox Player. После окончания
+          подписки анимации и Premium-эффекты отключаются, а статические WEBP-версии
+          аватара и баннера остаются в профиле.
         </p>
         <Link className="premium-cta premium-cta--primary" href="/premium">
           Открыть AnimeBox Premium
@@ -641,13 +712,13 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
                 <article>
                   <div className="premium-studio-v12__media-preview is-avatar"><img src={avatarUrl} alt="Предпросмотр Premium-аватара" /></div>
                   <div className="premium-studio-v16__media-copy"><strong>Аватар</strong><small>до 5 МБ · WEBP / GIF / PNG / JPG</small></div>
-                  <div><button type="button" disabled={Boolean(uploading) || saving} onClick={() => avatarInputRef.current?.click()}>{uploading === 'avatar' ? 'Загрузка…' : 'Заменить аватар'}</button>{settings.avatarPath && <button type="button" className="is-ghost" onClick={() => void removeMedia('avatar')}>Сбросить</button>}</div>
+                  <div><button type="button" disabled={Boolean(uploading) || saving} onClick={() => avatarInputRef.current?.click()}>{uploading === 'avatar' ? 'Загрузка…' : 'Заменить аватар'}</button>{(settings.avatarPath || settings.avatarStaticPath) && <button type="button" className="is-ghost" onClick={() => void removeMedia('avatar')}>Сбросить</button>}</div>
                   <input ref={avatarInputRef} hidden type="file" accept="image/webp,image/gif,image/png,image/jpeg" onChange={(event) => void uploadMedia('avatar', event.target.files?.[0])} />
                 </article>
                 <article>
                   <div className="premium-studio-v12__media-preview is-banner">{bannerUrl ? <img src={bannerUrl} alt="Предпросмотр Premium-баннера" /> : <span>Premium Banner</span>}</div>
                   <div className="premium-studio-v16__media-copy"><strong>Баннер</strong><small>до 12 МБ · рекомендуется 1500×500</small></div>
-                  <div><button type="button" disabled={Boolean(uploading) || saving} onClick={() => bannerInputRef.current?.click()}>{uploading === 'banner' ? 'Загрузка…' : 'Заменить баннер'}</button>{settings.bannerPath && <button type="button" className="is-ghost" onClick={() => void removeMedia('banner')}>Сбросить</button>}</div>
+                  <div><button type="button" disabled={Boolean(uploading) || saving} onClick={() => bannerInputRef.current?.click()}>{uploading === 'banner' ? 'Загрузка…' : 'Заменить баннер'}</button>{(settings.bannerPath || settings.bannerStaticPath) && <button type="button" className="is-ghost" onClick={() => void removeMedia('banner')}>Сбросить</button>}</div>
                   <input ref={bannerInputRef} hidden type="file" accept="image/webp,image/gif,image/png,image/jpeg" onChange={(event) => void uploadMedia('banner', event.target.files?.[0])} />
                 </article>
               </div>
@@ -669,7 +740,9 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
                 setSettings((current) => ({
                   ...preset,
                   avatarPath: current.avatarPath,
+                  avatarStaticPath: current.avatarStaticPath,
                   bannerPath: current.bannerPath,
+                  bannerStaticPath: current.bannerStaticPath,
                 }));
                 setSaved('');
               }}

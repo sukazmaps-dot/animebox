@@ -13,6 +13,8 @@ import {
 import type { User } from '@supabase/supabase-js';
 
 import { createClient } from '@/lib/supabase/client';
+import { resolveProfileAppearance } from '@/lib/profile-appearance';
+import type { PremiumStudioSettings } from '@/lib/premium-studio';
 import {
   AUTH_CHANGED_EVENT,
   type AuthChangedDetail,
@@ -106,6 +108,7 @@ function fallbackProfile(user: User): AuthProfileSnapshot {
     id: user.id,
     username,
     avatar_path: null,
+    display_avatar_path: null,
   };
 }
 
@@ -175,14 +178,38 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const nextProfile: AuthProfileSnapshot = data
+    let nextProfile: AuthProfileSnapshot = data
       ? {
           id: data.id,
           username: data.username,
           avatar_path: data.avatar_path,
+          display_avatar_path: data.avatar_path,
         }
       : fallbackProfile(verifiedUser);
 
+    try {
+      const studioResponse = await fetch('/api/premium/studio', { cache: 'no-store' });
+      if (studioResponse.ok) {
+        const payload = (await studioResponse.json()) as {
+          allowed?: boolean;
+          settings?: PremiumStudioSettings;
+        };
+        const appearance = resolveProfileAppearance({
+          baseAvatarPath: nextProfile.avatar_path,
+          baseBannerPath: null,
+          premiumStudio: payload.settings ?? null,
+          premiumActive: Boolean(payload.allowed),
+        });
+        nextProfile = {
+          ...nextProfile,
+          display_avatar_path: appearance.avatarPath,
+        };
+      }
+    } catch {
+      // Shell avatar falls back to the base profile if Premium appearance lookup fails.
+    }
+
+    if (serial !== refreshSerial.current) return;
     setProfile(nextProfile);
     saveCachedProfile(nextProfile);
   }, [supabase]);
@@ -283,6 +310,12 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
             typeof optimisticProfile?.avatar_path === 'string'
               ? optimisticProfile.avatar_path
               : null,
+          display_avatar_path:
+            typeof optimisticProfile?.display_avatar_path === 'string'
+              ? optimisticProfile.display_avatar_path
+              : typeof optimisticProfile?.avatar_path === 'string'
+                ? optimisticProfile.avatar_path
+                : null,
         };
 
         setProfile(nextProfile);
@@ -296,11 +329,15 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
     }
 
     window.addEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);
+    window.addEventListener('animebox:premium-studio-updated', refresh);
+    window.addEventListener('animebox:entitlements-changed', refresh);
 
     return () => {
       active = false;
       subscription.unsubscribe();
       window.removeEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);
+      window.removeEventListener('animebox:premium-studio-updated', refresh);
+      window.removeEventListener('animebox:entitlements-changed', refresh);
     };
   }, [refresh, supabase]);
 
