@@ -14,6 +14,17 @@ export type PremiumMe = {
     cancelledAt: string | null;
   };
   entitlements: Entitlements;
+  payments: Array<{
+    id: string;
+    provider: string;
+    product_code: 'premium_monthly' | 'premium_yearly' | string;
+    status: string;
+    amount: number;
+    currency: string;
+    paid_at: string | null;
+    refunded_at: string | null;
+    created_at: string;
+  }>;
 };
 
 let cached: { data: PremiumMe; expiresAt: number } | null = null;
