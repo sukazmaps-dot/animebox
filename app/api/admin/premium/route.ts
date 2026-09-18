@@ -116,6 +116,88 @@ export async function POST(request: Request) {
       return response({ ok: true, plan });
     }
 
+    if (action === 'refund') {
+      const owner = await requireAdmin(['owner']);
+      const transactionId =
+        typeof body.transactionId === 'string' ? body.transactionId.trim() : '';
+      const reason =
+        typeof body.reason === 'string'
+          ? body.reason.trim().slice(0, 500)
+          : 'Возврат AnimeBox Premium';
+
+      if (!UUID_RE.test(transactionId)) {
+        throw new ApiError(400, 'Некорректный Premium-платёж.');
+      }
+
+      const admin = adminClient();
+      const { data: transaction, error: transactionError } = await admin
+        .from('payment_transactions')
+        .select('id,provider,product_code,external_id,external_user_id,status,amount,currency')
+        .eq('id', transactionId)
+        .single();
+
+      if (transactionError) throw transactionError;
+
+      if (
+        transaction.provider !== 'telegram_stars' ||
+        !['premium_monthly', 'premium_yearly'].includes(transaction.product_code)
+      ) {
+        throw new ApiError(409, 'Для этого Premium-платежа автоматический возврат недоступен.');
+      }
+
+      if (transaction.status === 'refunded') {
+        throw new ApiError(409, 'Платёж уже возвращён.');
+      }
+
+      if (transaction.status !== 'paid') {
+        throw new ApiError(409, 'Возврат доступен только для оплаченного Premium.');
+      }
+
+      const telegramId = Number(transaction.external_user_id);
+      if (!Number.isSafeInteger(telegramId) || telegramId <= 0) {
+        throw new ApiError(409, 'Не найден Telegram-плательщик для возврата.');
+      }
+
+      const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
+      if (!botToken) throw new ApiError(500, 'TELEGRAM_BOT_TOKEN не настроен.');
+
+      await refundStarPayment({
+        botToken,
+        userId: telegramId,
+        telegramPaymentChargeId: transaction.external_id,
+      });
+
+      const now = new Date().toISOString();
+
+      await markTelegramStarsPaymentRefunded({
+        telegramPaymentChargeId: transaction.external_id,
+        refundedAt: now,
+        source: 'admin',
+      });
+
+      const access = await deactivatePremiumForTransaction({
+        transactionId: transaction.id,
+        note: reason,
+      });
+
+      await writeAdminAudit({
+        actorId: owner.user.id,
+        actorRole: owner.role,
+        action: 'premium.refund',
+        targetType: 'payment_transaction',
+        targetId: transaction.id,
+        reason,
+        details: {
+          amount: transaction.amount,
+          currency: transaction.currency,
+          telegram_id: telegramId,
+          access,
+        },
+      });
+
+      return response({ ok: true, access });
+    }
+
     if (action === 'grant') {
       const userId = typeof body.userId === 'string' ? body.userId.trim() : '';
       const days = Number(body.days);
