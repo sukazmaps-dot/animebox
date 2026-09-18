@@ -107,7 +107,9 @@ export default function PremiumClient() {
             ? 'Этот Premium-тариф пока не включён.'
             : payload.error === 'recurring_already_exists'
               ? 'Месячная подписка уже оформлена. Управлять автопродлением можно выше.'
-              : 'Не удалось открыть оплату Premium.',
+              : payload.error === 'cancel_recurring_first'
+                ? 'Сначала отключи автопродление месячной подписки, чтобы не платить за два тарифа одновременно.'
+                : 'Не удалось открыть оплату Premium.',
         );
       }
 
@@ -205,6 +207,7 @@ export default function PremiumClient() {
 
   const subscription = data?.subscription;
   const recurringSubscription = data?.recurringSubscription;
+  const yearlyBlockedByRecurring = Boolean(recurringSubscription?.autoRenew);
   const endDate = subscription
     ? new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(subscription.endsAt))
     : null;
@@ -344,14 +347,19 @@ export default function PremiumClient() {
                     <button
                       type="button"
                       className="premium-cta premium-cta--primary"
-                      disabled={Boolean(buying)}
+                      disabled={
+                        Boolean(buying) ||
+                        (plan.id === 'yearly' && yearlyBlockedByRecurring)
+                      }
                       onClick={() => void buyPremium(plan.id)}
                     >
                       {buying === plan.id
                         ? 'Открываем…'
-                        : plan.billingMode === 'recurring'
-                          ? 'Подписаться'
-                          : 'Купить на год'}
+                        : plan.id === 'yearly' && yearlyBlockedByRecurring
+                          ? 'Сначала отключи месячную'
+                          : plan.billingMode === 'recurring'
+                            ? 'Подписаться'
+                            : 'Купить на год'}
                     </button>
                   ) : (
                     <Link
