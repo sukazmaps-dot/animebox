@@ -34,6 +34,7 @@ import './mobile-home-ending-v11.css';
 import './premium-studio-v12.css';
 import './profile-editor-v13.css';
 import './premium-profile-v14.css';
+import './boosty-premium-v18.css';
 
 import Navbar from '@/components/Navbar';
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { useAuthState } from '@/components/AuthStateProvider';
+import BoostyPremiumBridge from '@/components/premium/BoostyPremiumBridge';
 import { clearPremiumMeCache, getPremiumMe, type PremiumMe } from '@/lib/entitlements-client';
 import type { PremiumCatalogPlan, PremiumPlanId } from '@/lib/premium';
 
@@ -28,6 +29,14 @@ export default function PremiumClient() {
   const [buying, setBuying] = useState<PremiumPlanId | ''>('');
   const [paymentStatus, setPaymentStatus] = useState('');
   const [managingSubscription, setManagingSubscription] = useState(false);
+
+  async function refreshPremiumState() {
+    if (!user?.id) return;
+    clearPremiumMeCache();
+    const next = await getPremiumMe({ force: true });
+    setData(next);
+    window.dispatchEvent(new Event('animebox:entitlements-changed'));
+  }
 
   useEffect(() => {
     let active = true;
@@ -185,9 +194,7 @@ export default function PremiumClient() {
         throw new Error('Не удалось изменить автопродление.');
       }
 
-      clearPremiumMeCache();
-      const next = await getPremiumMe({ force: true });
-      setData(next);
+      await refreshPremiumState();
 
       setPaymentStatus(
         action === 'cancel'
@@ -388,6 +395,11 @@ export default function PremiumClient() {
           ))}
         </div>
       </section>
+
+      <BoostyPremiumBridge
+        authenticated={Boolean(user?.id)}
+        onPremiumChanged={refreshPremiumState}
+      />
 
       {data?.payments?.length ? (
         <section className="premium-history">

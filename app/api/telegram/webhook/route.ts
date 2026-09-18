@@ -277,6 +277,26 @@ export async function POST(request: NextRequest) {
 
     /**
      * =====================================================
+     * Admin/setup helper: reveal the numeric group ID.
+     * Useful once when configuring BOOSTY_PREMIUM_CHAT_ID.
+     * =====================================================
+     */
+    const messageText = typeof message?.text === 'string' ? message.text.trim() : '';
+    const chatType = typeof message?.chat?.type === 'string' ? message.chat.type : '';
+    if (
+      chatId &&
+      (chatType === 'group' || chatType === 'supergroup') &&
+      (messageText === '/animebox_chat_id' || messageText === '/animebox_chat_id@YourAnimeBoxBot')
+    ) {
+      await sendMessage(
+        chatId,
+        `AnimeBox chat ID: <code>${chatId}</code>\nДобавь его в Vercel как <code>BOOSTY_PREMIUM_CHAT_ID</code>.`,
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    /**
+     * =====================================================
      * Telegram Stars: successful payment
      * =====================================================
      */
