@@ -16,6 +16,20 @@ export type PremiumMe = {
     autoRenewCancelledAt: string | null;
     telegramSubscriptionChargeId: string | null;
   };
+  recurringSubscription: null | {
+    id: string;
+    userId: string;
+    plan: 'monthly';
+    status: 'active' | 'grace_period' | 'expired' | 'cancelled' | 'refunded';
+    source: string;
+    transactionId: string | null;
+    startsAt: string;
+    endsAt: string;
+    cancelledAt: string | null;
+    autoRenew: boolean;
+    autoRenewCancelledAt: string | null;
+    telegramSubscriptionChargeId: string | null;
+  };
   entitlements: Entitlements;
   payments: Array<{
     id: string;
