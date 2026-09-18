@@ -93,6 +93,40 @@ export default function PremiumAdminPanel() {
     }
   }
 
+  async function configurePlan(planId: PremiumPlanId) {
+    const draft = planDrafts[planId];
+    setBusy(`plan:${planId}`);
+    setError('');
+
+    try {
+      const response = await fetch('/api/admin/premium', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'configure_plan',
+          planId,
+          telegramStarsAmount: draft.amount.trim() || null,
+          active: draft.active,
+        }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Не удалось сохранить тариф');
+      }
+
+      setRefresh((value) => value + 1);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Не удалось сохранить тариф',
+      );
+    } finally {
+      setBusy('');
+    }
+  }
+
   async function grant() {
     if (!selectedUser) return;
     setBusy('grant');
