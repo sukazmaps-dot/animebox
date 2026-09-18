@@ -242,6 +242,9 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        <link rel="preconnect" href="https://cdn.anilist.co" crossOrigin="" />
+        <link rel="dns-prefetch" href="//cdn.anilist.co" />
+        <link rel="dns-prefetch" href="//shikimori.one" />
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
@@ -291,7 +294,7 @@ export default function RootLayout({
         {/* Yandex.Metrika counter 112789274 */}
         <Script
           id="yandex-metrika"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{
             __html: `
               (function(m,e,t,r,i,k,a){
