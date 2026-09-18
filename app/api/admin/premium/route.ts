@@ -11,7 +11,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-
 
 export async function GET(request: Request) {
   try {
-    await requireAdmin(['owner', 'admin']);
+    const { role } = await requireAdmin(['owner', 'admin']);
     const admin = adminClient();
     const now = new Date().toISOString();
     const q = new URL(request.url).searchParams.get('q')?.trim().slice(0, 120) ?? '';
@@ -56,6 +56,7 @@ export async function GET(request: Request) {
       profiles: profiles.data ?? [],
       matches,
       plans: await getPremiumCatalog(),
+      canRefund: role === 'owner',
     });
   } catch (error) {
     return failure(error);
