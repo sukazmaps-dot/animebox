@@ -6,6 +6,7 @@ import {
   SUPPORT_STAR_PACKS,
   type SupportStarAmount,
 } from '@/lib/monetization';
+import type { PremiumPlanId } from '@/lib/premium';
 
 type TelegramApiResponse<T> = {
   ok: boolean;
@@ -15,6 +16,16 @@ type TelegramApiResponse<T> = {
 
 export type ParsedSupportPayload = {
   amount: SupportStarAmount;
+  telegramId: number;
+  createdAt: number;
+};
+
+export type ParsedPremiumPayload = {
+  plan: PremiumPlanId;
+  productCode: 'premium_monthly' | 'premium_yearly';
+  animeboxUserId: string;
+  amount: number;
+  durationDays: number;
   telegramId: number;
   createdAt: number;
 };
@@ -111,6 +122,149 @@ export function parseSupportPayload(payload: unknown): ParsedSupportPayload | nu
   }
 
   return { amount, telegramId, createdAt };
+}
+
+const PREMIUM_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function createPremiumPayload({
+  plan,
+  productCode,
+  animeboxUserId,
+  amount,
+  durationDays,
+  telegramId,
+}: {
+  plan: PremiumPlanId;
+  productCode: 'premium_monthly' | 'premium_yearly';
+  animeboxUserId: string;
+  amount: number;
+  durationDays: number;
+  telegramId?: number | null;
+}) {
+  const safeTelegramId =
+    Number.isSafeInteger(telegramId) && Number(telegramId) > 0
+      ? Number(telegramId)
+      : 0;
+
+  if (!PREMIUM_UUID_RE.test(animeboxUserId)) {
+    throw new Error('Invalid AnimeBox user id for Premium invoice');
+  }
+
+  if (!Number.isInteger(amount) || amount <= 0) {
+    throw new Error('Invalid Premium amount');
+  }
+
+  if (!Number.isInteger(durationDays) || durationDays < 1 || durationDays > 3660) {
+    throw new Error('Invalid Premium duration');
+  }
+
+  const createdAt = Math.floor(Date.now() / 1000);
+  const nonce = randomBytes(6).toString('hex');
+
+  return [
+    'animebox_premium',
+    'v1',
+    plan,
+    productCode,
+    animeboxUserId,
+    amount,
+    durationDays,
+    safeTelegramId,
+    createdAt,
+    nonce,
+  ].join(':');
+}
+
+export function parsePremiumPayload(payload: unknown): ParsedPremiumPayload | null {
+  if (typeof payload !== 'string') return null;
+
+  const match = payload.match(
+    /^animebox_premium:v1:(monthly|yearly):(premium_monthly|premium_yearly):([0-9a-f-]{36}):(\d+):(\d+):(\d+):(\d+):([a-f0-9]{12})$/i,
+  );
+
+  if (!match) return null;
+
+  const plan = match[1] as PremiumPlanId;
+  const productCode = match[2] as ParsedPremiumPayload['productCode'];
+  const animeboxUserId = match[3];
+  const amount = Number(match[4]);
+  const durationDays = Number(match[5]);
+  const telegramId = Number(match[6]);
+  const createdAt = Number(match[7]);
+
+  const productMatchesPlan =
+    (plan === 'monthly' && productCode === 'premium_monthly') ||
+    (plan === 'yearly' && productCode === 'premium_yearly');
+
+  if (
+    !productMatchesPlan ||
+    !PREMIUM_UUID_RE.test(animeboxUserId) ||
+    !Number.isInteger(amount) ||
+    amount <= 0 ||
+    !Number.isInteger(durationDays) ||
+    durationDays < 1 ||
+    durationDays > 3660 ||
+    !Number.isSafeInteger(telegramId) ||
+    telegramId < 0 ||
+    !Number.isSafeInteger(createdAt) ||
+    createdAt <= 0
+  ) {
+    return null;
+  }
+
+  return {
+    plan,
+    productCode,
+    animeboxUserId,
+    amount,
+    durationDays,
+    telegramId,
+    createdAt,
+  };
+}
+
+export async function createPremiumInvoiceLink({
+  botToken,
+  plan,
+  productCode,
+  animeboxUserId,
+  amount,
+  durationDays,
+  telegramId,
+}: {
+  botToken: string;
+  plan: PremiumPlanId;
+  productCode: 'premium_monthly' | 'premium_yearly';
+  animeboxUserId: string;
+  amount: number;
+  durationDays: number;
+  telegramId?: number | null;
+}) {
+  const payload = createPremiumPayload({
+    plan,
+    productCode,
+    animeboxUserId,
+    amount,
+    durationDays,
+    telegramId,
+  });
+
+  const invoiceUrl = await callTelegramApi<string>(botToken, 'createInvoiceLink', {
+    title: plan === 'yearly' ? 'AnimeBox Premium · 12 месяцев' : 'AnimeBox Premium · 1 месяц',
+    description:
+      'AnimeBox Premium: без рекламы и с расширенными возможностями профиля.',
+    payload,
+    currency: 'XTR',
+    prices: [
+      {
+        label: plan === 'yearly' ? 'AnimeBox Premium · год' : 'AnimeBox Premium · месяц',
+        amount,
+      },
+    ],
+  });
+
+  return { invoiceUrl, payload };
 }
 
 export async function createSupportInvoiceLink({
