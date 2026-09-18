@@ -222,7 +222,7 @@ export default function SponsorDashboard({ history = false }: { history?: boolea
                           <time dateTime={donation.paid_at ?? donation.created_at}>
                             {new Date(donation.paid_at ?? donation.created_at).toLocaleString('ru-RU')}
                           </time>
-                          <small>{STATUS_LABEL[donation.status] ?? donation.status} · DonatePay</small>
+                          <small>{STATUS_LABEL[donation.status] ?? donation.status} · {donation.provider === 'boosty' ? 'Boosty' : donation.provider === 'donatepay' ? 'DonatePay' : donation.provider}</small>
                           {donation.comment && <small>{donation.comment}</small>}
                         </div>
                         <strong>
@@ -233,7 +233,7 @@ export default function SponsorDashboard({ history = false }: { history?: boolea
                     ))}
                   </ul>
                 ) : (
-                  <p>Привязанные донаты через DonatePay появятся здесь.</p>
+                  <p>Привязанные донаты через DonatePay и Boosty появятся здесь.</p>
                 )}
               </div>
 
