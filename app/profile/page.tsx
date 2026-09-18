@@ -196,6 +196,40 @@ export default function ProfilePage() {
     user,
   ]);
 
+  useEffect(() => {
+    if (!user?.id) {
+      setPremiumTheme('default');
+      return;
+    }
+
+    let active = true;
+
+    const loadTheme = () => {
+      void fetch('/api/premium/studio', { cache: 'no-store' })
+        .then(async (response) => {
+          const payload = (await response.json()) as { theme?: string };
+          if (!response.ok || !active) return;
+
+          if (payload.theme && isPremiumProfileTheme(payload.theme)) {
+            setPremiumTheme(payload.theme);
+          } else {
+            setPremiumTheme('default');
+          }
+        })
+        .catch(() => {
+          if (active) setPremiumTheme('default');
+        });
+    };
+
+    loadTheme();
+    window.addEventListener('animebox:premium-studio-updated', loadTheme);
+
+    return () => {
+      active = false;
+      window.removeEventListener('animebox:premium-studio-updated', loadTheme);
+    };
+  }, [user?.id]);
+
   if (loading) {
     return (
       <main className="profile-v2">
