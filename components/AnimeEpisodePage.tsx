@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import EpisodeComments from '@/components/EpisodeComments';
+import LibraryStatusControl from '@/components/LibraryStatusControl';
+import AnimeNotificationControl from '@/components/AnimeNotificationControl';
 import type { Anime } from '@/types/anime';
 import {
   addAnimeToList,
@@ -540,6 +542,26 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
       )}
 
       <EpisodeCompletion key={`${anime.id}:${episodeNumber}`} animeId={anime.id} episode={episodeNumber} />
+
+      <section className="episode-engagement-grid" aria-label="Отслеживание и уведомления">
+        <LibraryStatusControl animeId={anime.id} variant="compact" />
+
+        <AnimeNotificationControl
+          animeId={anime.id}
+          animeSlug={anime.slug || String(anime.id)}
+          animeTitle={title}
+          episodesAired={anime.episodesAired || 0}
+          variant="compact"
+        />
+
+        <a href="#episode-comments" className="episode-engagement-comments">
+          <span className="episode-engagement-comments__eyebrow">Community</span>
+          <strong>Обсудить {episodeNumber}-ю серию</strong>
+          <span>Отдельная ветка только для этого эпизода — меньше случайных спойлеров.</span>
+          <b>Перейти к комментариям ↓</b>
+        </a>
+      </section>
+
       <section className="detail__section episode-page__body">
         <div className="episode-page__info">
           <div className="episode-page__poster-shell">
@@ -585,9 +607,9 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
         />
       </section>
       <EpisodeComments
-  animeId={anime.id}
-  episode={episodeNumber}
-/>
+        animeId={anime.id}
+        episode={episodeNumber}
+      />
     </div>
     
   );

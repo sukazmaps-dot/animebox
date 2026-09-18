@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -69,12 +70,15 @@ export default function AnimeNotificationControl({
   animeSlug,
   animeTitle,
   episodesAired,
+  variant = 'card',
 }: {
   animeId: number;
   animeSlug: string;
   animeTitle: string;
   episodesAired: number | null;
+  variant?: 'card' | 'compact';
 }) {
+  const compact = variant === 'compact';
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -201,12 +205,32 @@ export default function AnimeNotificationControl({
   }
 
   return (
-    <section className="anime-notification-control">
+    <section
+      className={
+        compact
+          ? 'anime-notification-control is-compact'
+          : 'anime-notification-control'
+      }
+    >
+      <div className="anime-notification-control__art" aria-hidden="true">
+        <Image
+          src="/brand/illustrations/empty-notifications.webp"
+          alt=""
+          width={190}
+          height={150}
+          sizes={compact ? '72px' : '(max-width: 700px) 96px, 150px'}
+        />
+      </div>
+
       <div className="anime-notification-control__copy">
-        <span className="anime-notification-control__eyebrow">
-          Telegram
-        </span>
-        <h2>Новые серии без пропусков</h2>
+        <div className="anime-notification-control__eyebrow-row">
+          <span className="anime-notification-control__eyebrow">Telegram</span>
+          {enabled && (
+            <span className="anime-notification-control__status">Активно</span>
+          )}
+        </div>
+
+        <h2>{compact ? 'Не пропускай новые серии' : 'Новые серии без пропусков'}</h2>
         <p>
           AnimeBox пришлёт сообщение, когда по расписанию выйдет следующая
           серия этого тайтла.
@@ -234,12 +258,12 @@ export default function AnimeNotificationControl({
                 : !telegramLinked
                   ? 'Подключить Telegram'
                   : enabled
-                    ? '🔔 Уведомления включены'
-                    : '🔕 Уведомлять о сериях'}
+                    ? 'Уведомления включены'
+                    : 'Отслеживать новые серии'}
         </button>
 
         {authenticated && telegramLinked && (
-          <Link href="/notifications">Настройки</Link>
+          <Link href="/notifications">Настроить</Link>
         )}
       </div>
 

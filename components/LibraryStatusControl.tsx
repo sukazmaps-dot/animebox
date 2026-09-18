@@ -19,10 +19,13 @@ const statusIcons: Record<LibraryStatus, string> = {
 export default function LibraryStatusControl({
   animeId,
   initialStatus,
+  variant = 'default',
 }: {
   animeId: number;
   initialStatus?: LibraryStatus;
+  variant?: 'default' | 'compact';
 }) {
+  const compact = variant === 'compact';
   const [status, setStatus] = useState<LibraryStatus | ''>(
     initialStatus ?? '',
   );
@@ -30,10 +33,7 @@ export default function LibraryStatusControl({
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (initialStatus) {
-      setStatus(initialStatus);
-      return;
-    }
+    if (initialStatus) return;
 
     let active = true;
 
@@ -79,7 +79,7 @@ export default function LibraryStatusControl({
   }
 
   return (
-    <section className="community-library-control">
+    <section className={compact ? 'community-library-control is-compact' : 'community-library-control'}>
       <div className="community-library-control__top">
         <div className="community-library-control__info">
           <div className="community-library-control__icon" aria-hidden="true">
@@ -88,9 +88,9 @@ export default function LibraryStatusControl({
 
           <div>
             <span className="community-library-control__eyebrow">
-              Личная библиотека
+              {compact ? 'Трекинг' : 'Личная библиотека'}
             </span>
-            <h2>В моей библиотеке</h2>
+            <h2>{compact ? 'Отслеживать аниме' : 'В моей библиотеке'}</h2>
           </div>
         </div>
 
@@ -138,7 +138,9 @@ export default function LibraryStatusControl({
 
       <div className="community-library-control__footer">
         <p>
-          Статус «Просмотрено» не отмечает серии автоматически.
+          {compact
+            ? 'Выбери статус — AnimeBox сохранит тайтл в библиотеке и покажет его в трекере.'
+            : 'Статус «Просмотрено» не отмечает серии автоматически.'}
         </p>
 
         {message && (

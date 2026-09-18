@@ -249,6 +249,11 @@ export default function EpisodeComments({
     setError,
   ] = useState('');
 
+  const [
+    sortMode,
+    setSortMode,
+  ] = useState<'newest' | 'oldest'>('newest');
+
   const loadComments =
     useCallback(
       async (
@@ -445,8 +450,23 @@ export default function EpisodeComments({
     };
   }, [comments]);
 
+  const sortedRoots = useMemo(() => {
+    const next = [...roots];
+
+    next.sort((a, b) => {
+      const left = Date.parse(a.created_at);
+      const right = Date.parse(b.created_at);
+
+      return sortMode === 'newest'
+        ? right - left
+        : left - right;
+    });
+
+    return next;
+  }, [roots, sortMode]);
+
   return (
-    <section className="episode-comments">
+    <section className="episode-comments" id="episode-comments">
       <header className="episode-comments__header">
         <div>
           <span className="episode-comments__eyebrow">
@@ -463,10 +483,36 @@ export default function EpisodeComments({
           </p>
         </div>
 
-        <span className="episode-comments__count">
-          {comments.length}
-        </span>
+        <div className="episode-comments__header-actions">
+          <div className="episode-comments__sort" role="group" aria-label="Сортировка комментариев">
+            <button
+              type="button"
+              className={sortMode === 'newest' ? 'is-active' : ''}
+              aria-pressed={sortMode === 'newest'}
+              onClick={() => setSortMode('newest')}
+            >
+              Новые
+            </button>
+            <button
+              type="button"
+              className={sortMode === 'oldest' ? 'is-active' : ''}
+              aria-pressed={sortMode === 'oldest'}
+              onClick={() => setSortMode('oldest')}
+            >
+              Сначала старые
+            </button>
+          </div>
+
+          <span className="episode-comments__count" title="Комментарии и ответы">
+            {comments.length}
+          </span>
+        </div>
       </header>
+
+      <div className="episode-comments__scope">
+        <span>Серия {episode}</span>
+        <p>Здесь обсуждают только этот эпизод. Комментарии со спойлерами скрываются до клика.</p>
+      </div>
 
       <form
         className="episode-comments__form"
@@ -568,7 +614,7 @@ export default function EpisodeComments({
         </div>
       ) : (
         <div className="episode-comments__list">
-          {roots.map((comment) => (
+          {sortedRoots.map((comment) => (
             <CommentNode
               key={comment.id}
               comment={comment}

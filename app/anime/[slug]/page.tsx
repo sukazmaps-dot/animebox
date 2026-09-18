@@ -11,14 +11,13 @@ import AnimeFranchise, {
 import AnimeImageCascade from '@/components/AnimeImageCascade';
 import AnimeDetailControls from '@/components/AnimeDetailControls';
 import AnimeNotificationControl from '@/components/AnimeNotificationControl';
-import AnimeComments from '@/components/AnimeComments';
+import EpisodeDiscussionHub from '@/components/EpisodeDiscussionHub';
 import RelatedAnime, { RelatedAnimeLoading } from '@/components/RelatedAnime';
 
 import { resolveAnimeRoute } from '@/lib/anime-route';
 import { animeHref } from '@/lib/anime-url';
 import { createImageCascade } from '@/lib/image-cascade';
 import { cleanShikimoriDescription } from '@/lib/shikimori-text';
-import { getCachedTopLevelComments } from '@/lib/community-comments-server';
 import { SITE_URL } from '@/lib/seo-config';
 import {
   buildAnimeMetadata,
@@ -386,16 +385,6 @@ export default async function AnimePage({
       },
     ],
   };
-
-  // Render the first public comment page into the server HTML so useful UGC
-  // is visible to search engines. The client component refreshes after
-  // hydration, so this short-lived snapshot never blocks fresh discussion.
-  const initialComments = await getCachedTopLevelComments(numericId).catch(
-    (error) => {
-      console.error('Anime comments SSR:', error);
-      return null;
-    },
-  );
 
   /* =========================================================
      PAGE
@@ -940,13 +929,14 @@ export default async function AnimePage({
 
 
       {/* =====================================================
-          ОБСУЖДЕНИЕ / UGC
+          ОБСУЖДЕНИЯ СЕРИЙ
           ===================================================== */}
 
       <section className="anime-detail-after-hero mx-auto max-w-7xl px-4 pb-8 md:px-6">
-        <AnimeComments
-          animeId={numericId}
-          initialPage={initialComments}
+        <EpisodeDiscussionHub
+          animeSlug={resolved.slug}
+          animeTitle={anime.russian || anime.name}
+          latestEpisode={Math.max(1, anime.episodes_aired || 1)}
         />
       </section>
 

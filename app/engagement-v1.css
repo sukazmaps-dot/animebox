@@ -1,0 +1,554 @@
+/* =========================================================
+   AnimeBox Engagement UX v1
+   - episode-first discussions
+   - compact watch-page tracking
+   - notification artwork CTA
+   ========================================================= */
+
+/* ---------- Anime title: episode discussion hub ---------- */
+.episode-discussion-hub {
+  position: relative;
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr) minmax(210px, auto);
+  align-items: center;
+  gap: 24px;
+  overflow: hidden;
+  padding: 24px 26px;
+  border: 1px solid rgba(139, 103, 255, .18);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 8% 12%, rgba(124, 87, 255, .12), transparent 33%),
+    radial-gradient(circle at 92% 90%, rgba(71, 120, 255, .07), transparent 35%),
+    linear-gradient(145deg, rgba(11, 13, 25, .98), rgba(7, 9, 18, .98));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .24), inset 0 1px rgba(255, 255, 255, .018);
+}
+
+.episode-discussion-hub::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto auto 9%;
+  width: 42%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(171, 135, 255, .58), transparent);
+  pointer-events: none;
+}
+
+.episode-discussion-hub__art {
+  display: grid;
+  place-items: center;
+  min-height: 130px;
+}
+
+.episode-discussion-hub__art img {
+  width: 160px;
+  height: 120px;
+  object-fit: contain;
+  opacity: .9;
+  filter: drop-shadow(0 16px 30px rgba(78, 52, 177, .18));
+}
+
+.episode-discussion-hub__copy { min-width: 0; }
+
+.episode-discussion-hub__eyebrow,
+.episode-engagement-comments__eyebrow {
+  display: block;
+  margin-bottom: 7px;
+  color: #9a82ff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.episode-discussion-hub h2 {
+  margin: 0;
+  color: #f5f3ff;
+  font-size: clamp(20px, 2.2vw, 29px);
+  line-height: 1.12;
+}
+
+.episode-discussion-hub p {
+  max-width: 670px;
+  margin: 9px 0 0;
+  color: rgba(174, 184, 210, .72);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.episode-discussion-hub__actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-top: 17px;
+}
+
+.episode-discussion-hub__primary,
+.episode-discussion-hub__secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 11px;
+  font-size: 10px;
+  font-weight: 850;
+  text-decoration: none;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+
+.episode-discussion-hub__primary {
+  border: 1px solid rgba(154, 113, 255, .34);
+  background: linear-gradient(135deg, rgba(108, 77, 229, .88), rgba(139, 78, 225, .88));
+  color: #fff;
+  box-shadow: 0 10px 28px rgba(90, 58, 205, .23);
+}
+
+.episode-discussion-hub__secondary {
+  border: 1px solid rgba(157, 169, 201, .12);
+  background: rgba(255, 255, 255, .025);
+  color: rgba(216, 221, 239, .72);
+}
+
+.episode-discussion-hub__primary:hover,
+.episode-discussion-hub__secondary:hover {
+  transform: translateY(-1px);
+}
+
+.episode-discussion-hub__meta {
+  display: grid;
+  gap: 9px;
+  align-content: center;
+}
+
+.episode-discussion-hub__meta span {
+  position: relative;
+  padding: 10px 12px 10px 28px;
+  border: 1px solid rgba(151, 164, 194, .10);
+  border-radius: 11px;
+  background: rgba(9, 14, 26, .72);
+  color: rgba(185, 195, 216, .67);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.episode-discussion-hub__meta span::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  background: #8868ff;
+  box-shadow: 0 0 12px rgba(136, 104, 255, .46);
+}
+
+/* ---------- Notification CTA ---------- */
+.anime-notification-control {
+  grid-template-columns: 132px minmax(0, 1fr) auto;
+  grid-template-areas:
+    'art copy actions'
+    'art message message';
+  gap: 18px;
+  min-height: 150px;
+  padding: 18px 20px;
+  border-color: rgba(133, 101, 255, .20);
+  background:
+    radial-gradient(circle at 9% 50%, rgba(116, 73, 255, .13), transparent 28%),
+    radial-gradient(circle at 88% 10%, rgba(234, 191, 87, .06), transparent 28%),
+    linear-gradient(145deg, rgba(11, 16, 31, .98), rgba(7, 11, 22, .98));
+}
+
+.anime-notification-control__art {
+  grid-area: art;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+}
+
+.anime-notification-control__art img {
+  width: 122px;
+  height: 104px;
+  object-fit: contain;
+  filter: drop-shadow(0 15px 28px rgba(104, 68, 224, .24));
+}
+
+.anime-notification-control__copy { grid-area: copy; align-self: center; }
+.anime-notification-control__actions { grid-area: actions; align-self: center; }
+.anime-notification-control__message { grid-area: message; }
+
+.anime-notification-control__eyebrow-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 20px;
+}
+
+.anime-notification-control__status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 8px;
+  border: 1px solid rgba(76, 210, 157, .22);
+  border-radius: 999px;
+  background: rgba(39, 145, 104, .10);
+  color: #78ddb3;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.anime-notification-control__button {
+  min-height: 44px;
+  border-color: rgba(139, 104, 255, .28);
+  background: linear-gradient(135deg, rgba(92, 71, 210, .92), rgba(125, 74, 210, .92));
+  box-shadow: 0 10px 26px rgba(78, 53, 182, .20);
+}
+
+.anime-notification-control__button:hover:not(:disabled) {
+  border-color: rgba(170, 137, 255, .52);
+  background: linear-gradient(135deg, rgba(105, 81, 231, .98), rgba(141, 82, 228, .98));
+  box-shadow: 0 13px 32px rgba(78, 53, 182, .28);
+}
+
+.anime-notification-control__button.is-enabled {
+  border-color: rgba(70, 208, 153, .30);
+  background: rgba(35, 135, 99, .14);
+  box-shadow: none;
+}
+
+.anime-notification-control__actions > a {
+  color: #a895ff;
+}
+
+/* ---------- Watch page: retention actions ---------- */
+.episode-engagement-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0 18px;
+}
+
+.episode-engagement-grid > * {
+  min-width: 0;
+  min-height: 100%;
+}
+
+.episode-engagement-grid .community-library-control.is-compact,
+.episode-engagement-grid .anime-notification-control.is-compact,
+.episode-engagement-comments {
+  margin: 0;
+  border: 1px solid rgba(143, 157, 191, .10);
+  border-radius: 17px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(111, 78, 221, .055), transparent 35%),
+    linear-gradient(145deg, rgba(10, 16, 29, .96), rgba(7, 12, 22, .96));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .14), inset 0 1px rgba(255, 255, 255, .018);
+}
+
+.episode-engagement-grid .community-library-control.is-compact {
+  padding: 16px;
+}
+
+.community-library-control.is-compact .community-library-control__icon {
+  width: 34px;
+  height: 34px;
+}
+
+.community-library-control.is-compact .community-library-control__eyebrow {
+  font-size: 8px;
+}
+
+.community-library-control.is-compact h2 {
+  font-size: 16px;
+}
+
+.community-library-control.is-compact .community-library-control__current {
+  padding: 6px 8px;
+  font-size: 8px;
+}
+
+.community-library-control.is-compact .community-library-control__statuses {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.community-library-control.is-compact .community-library-status {
+  min-height: 38px;
+  padding: 0 9px;
+  border-radius: 10px;
+}
+
+.community-library-control.is-compact .community-library-status__label {
+  font-size: 8px;
+}
+
+.community-library-control.is-compact .community-library-status__icon {
+  width: 18px;
+  height: 18px;
+}
+
+.community-library-control.is-compact .community-library-control__footer {
+  margin-top: 10px;
+  padding-top: 9px;
+}
+
+.community-library-control.is-compact .community-library-control__footer p {
+  max-width: none;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.episode-engagement-grid .anime-notification-control.is-compact {
+  grid-template-columns: 66px minmax(0, 1fr);
+  grid-template-areas:
+    'art copy'
+    'actions actions'
+    'message message';
+  gap: 11px 12px;
+  min-height: 0;
+  padding: 16px;
+}
+
+.anime-notification-control.is-compact .anime-notification-control__art {
+  align-self: center;
+}
+
+.anime-notification-control.is-compact .anime-notification-control__art img {
+  width: 62px;
+  height: 62px;
+}
+
+.anime-notification-control.is-compact h2 {
+  font-size: 15px;
+}
+
+.anime-notification-control.is-compact p {
+  margin-top: 4px;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.anime-notification-control.is-compact .anime-notification-control__eyebrow {
+  margin: 0;
+  font-size: 8px;
+}
+
+.anime-notification-control.is-compact .anime-notification-control__actions {
+  justify-content: flex-start;
+}
+
+.anime-notification-control.is-compact .anime-notification-control__button {
+  flex: 1 1 150px;
+  min-height: 38px;
+  padding-inline: 11px;
+  font-size: 9px;
+}
+
+.anime-notification-control.is-compact .anime-notification-control__actions > a {
+  font-size: 9px;
+}
+
+.episode-engagement-comments {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 17px;
+  color: inherit;
+  text-decoration: none;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.episode-engagement-comments:hover {
+  transform: translateY(-1px);
+  border-color: rgba(139, 105, 255, .23);
+  background:
+    radial-gradient(circle at 100% 0, rgba(111, 78, 221, .09), transparent 36%),
+    linear-gradient(145deg, rgba(11, 18, 32, .98), rgba(8, 13, 24, .98));
+}
+
+.episode-engagement-comments strong {
+  color: #f3f1ff;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.episode-engagement-comments > span:not(.episode-engagement-comments__eyebrow) {
+  margin-top: 7px;
+  color: rgba(156, 171, 200, .62);
+  font-size: 8px;
+  line-height: 1.55;
+}
+
+.episode-engagement-comments b {
+  margin-top: 14px;
+  color: #a18dff;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+/* ---------- Episode comments: clearer per-episode scope ---------- */
+.episode-comments {
+  scroll-margin-top: 88px;
+}
+
+.episode-comments__header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.episode-comments__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid rgba(147, 159, 190, .10);
+  border-radius: 10px;
+  background: rgba(8, 13, 24, .65);
+}
+
+.episode-comments__sort button {
+  min-height: 28px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: rgba(145, 158, 185, .66);
+  font: inherit;
+  font-size: 8px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.episode-comments__sort button.is-active {
+  background: rgba(112, 81, 218, .13);
+  color: #b5a6ff;
+  box-shadow: inset 0 0 0 1px rgba(142, 109, 255, .15);
+}
+
+.episode-comments__scope {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -2px 0 13px;
+  padding: 9px 11px;
+  border: 1px solid rgba(145, 157, 188, .08);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .018);
+}
+
+.episode-comments__scope > span {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border: 1px solid rgba(138, 105, 255, .15);
+  border-radius: 999px;
+  background: rgba(111, 80, 220, .075);
+  color: #aa98ff;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.episode-comments__scope p {
+  margin: 0;
+  color: rgba(145, 158, 184, .58);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+@media (max-width: 1050px) {
+  .episode-discussion-hub {
+    grid-template-columns: 130px minmax(0, 1fr);
+  }
+
+  .episode-discussion-hub__meta {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .episode-engagement-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .episode-engagement-comments {
+    grid-column: 1 / -1;
+    min-height: 130px;
+  }
+}
+
+@media (max-width: 700px) {
+  .episode-discussion-hub {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .episode-discussion-hub__art {
+    min-height: 90px;
+  }
+
+  .episode-discussion-hub__art img {
+    width: 120px;
+    height: 90px;
+  }
+
+  .episode-discussion-hub__meta {
+    grid-template-columns: 1fr;
+  }
+
+  .episode-discussion-hub__primary,
+  .episode-discussion-hub__secondary {
+    width: 100%;
+  }
+
+  .anime-notification-control:not(.is-compact) {
+    grid-template-columns: 82px minmax(0, 1fr);
+    grid-template-areas:
+      'art copy'
+      'actions actions'
+      'message message';
+    gap: 12px;
+  }
+
+  .anime-notification-control:not(.is-compact) .anime-notification-control__art img {
+    width: 76px;
+    height: 76px;
+  }
+
+  .anime-notification-control__actions {
+    justify-content: stretch;
+  }
+
+  .anime-notification-control__button {
+    width: 100%;
+  }
+
+  .episode-engagement-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .episode-engagement-comments {
+    grid-column: auto;
+  }
+
+  .episode-comments__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .episode-comments__header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .episode-comments__scope {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
