@@ -129,3 +129,5 @@
 }
 
 .podiumCard:has([data-sponsor-tier=premium]) .podiumName,.row:has([data-sponsor-tier=premium]) .rowNameLine>strong{color:#c3a1ff}.podiumCard:has([data-sponsor-tier=patron]) .podiumName,.row:has([data-sponsor-tier=patron]) .rowNameLine>strong{color:#f4cf81}.row:has([data-sponsor-tier=premium]) .user>img{outline:2px solid #b68bff}.row:has([data-sponsor-tier=patron]) .user>img{outline:2px solid #f1c873}
+
+.modeSwitch{display:inline-flex;gap:4px;margin-top:16px;padding:4px;border:1px solid #ffffff12;border-radius:14px;background:#090b13aa}.modeSwitch a,.modeSwitch span{min-width:105px;padding:9px 13px;border-radius:10px;color:#8f889b;font-size:11px;font-weight:750;text-align:center;text-decoration:none}.modeSwitch span{color:#fff;background:linear-gradient(135deg,#8454d2,#a06de9);box-shadow:0 7px 22px #7444c733}.modeSwitch a:hover{color:#fff;background:#ffffff08}@media(max-width:520px){.modeSwitch{display:flex;width:100%}.modeSwitch a,.modeSwitch span{flex:1;min-width:0}}

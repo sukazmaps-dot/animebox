@@ -111,6 +111,11 @@ export default function LeaderboardClient() {
         <p>Любимые истории становятся частью твоей. Знакомься с теми, кто смотрит вместе с тобой — и найди своё место среди них.</p>
         <div className={styles.heroMeta}><span>ТОП 100</span><span>По времени просмотра</span></div>
 
+        <div className={styles.modeSwitch} aria-label="Тип рейтинга">
+          <span aria-current="page">Просмотры</span>
+          <Link href="/supporters">Спонсоры</Link>
+        </div>
+
         <div className={styles.tabs} role="group" aria-label="Период рейтинга">
           {(Object.keys(periodLabels) as Period[]).map((item) => (
             <button
