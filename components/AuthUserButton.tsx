@@ -141,6 +141,11 @@ export default function AuthUserButton() {
               <span>Избранное</span>
               <small>→</small>
             </Link>
+
+            <Link href="/premium" onClick={() => setOpen(false)}>
+              <span>AnimeBox Premium</span>
+              <small>→</small>
+            </Link>
           </div>
 
           <div className="auth-user__divider" />
