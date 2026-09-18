@@ -75,7 +75,9 @@ export default async function PublicProfilePage({ params }: Props) {
   const watchTime = formatWatchTime(profile.stats.activeMs);
 
   return (
-    <main className="profile-v2 profile-v2--public">
+    <main
+      className={`profile-v2 profile-v2--public premium-profile-theme--${profile.premiumTheme}`}
+    >
       <section className="profile-v2__hero">
         <div className="profile-v2__banner">
           {profile.bannerUrl ? (
