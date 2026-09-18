@@ -359,6 +359,20 @@ export default function ProfilePage() {
       <SponsorDashboard history />
       <CommunityProfile />
 
+      <section className="profile-v2__bottom-card profile-v2__bottom-card--premium">
+        <div>
+          <span className="profile-v2__eyebrow">AnimeBox Premium</span>
+          <h2>Profile Studio</h2>
+          <p>
+            Выбирай Premium-тему профиля и настраивай оформление аккаунта.
+          </p>
+        </div>
+
+        <Link href="/profile/studio">
+          Открыть Profile Studio →
+        </Link>
+      </section>
+
       {/* FAVORITES */}
 
       <section className="profile-v2__bottom-card">
