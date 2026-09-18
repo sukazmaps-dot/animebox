@@ -246,13 +246,13 @@ function NavbarContent() {
         <div className="sidebar__divider" />
 
         <div className="sidebar__label">
-          Полезное
+          Сервис
         </div>
 
         <nav className="sidebar__nav sidebar__nav--muted">
           <Link
             href="/notifications"
-            className={`sidebar__item ${isActive('/notifications') ? 'is-active' : ''}`}
+            className={`sidebar__item sidebar__item--utility ${isActive('/notifications') ? 'is-active' : ''}`}
           >
             <img
               className="topbar__asset-icon topbar__asset-icon--notification"
@@ -265,7 +265,7 @@ function NavbarContent() {
 
           <a
             href={telegramUrl}
-            className="sidebar__item"
+            className="sidebar__item sidebar__item--utility sidebar__item--external"
             target="_blank"
             rel="noreferrer"
           >
@@ -275,7 +275,7 @@ function NavbarContent() {
 
           <a
             href={buildSupportMailto('Поддержка AnimeBox')}
-            className="sidebar__item"
+            className="sidebar__item sidebar__item--utility"
           >
             <Icon name="mail" />
             <span>Написать в поддержку</span>
@@ -283,7 +283,7 @@ function NavbarContent() {
 
           <Link
             href="/about"
-            className={`sidebar__item ${
+            className={`sidebar__item sidebar__item--utility ${
               isActive('/about')
                 ? 'is-active'
                 : ''
@@ -300,7 +300,7 @@ function NavbarContent() {
 
           <Link
             href="/premium"
-            className={`sidebar__item ${isActive('/premium') ? 'is-active' : ''}`}
+            className={`sidebar__item sidebar__item--premium ${isActive('/premium') ? 'is-active' : ''}`}
           >
             <Icon name="star" />
             <span>AnimeBox Premium</span>
@@ -308,7 +308,7 @@ function NavbarContent() {
 
           <Link
             href="/support"
-            className={`sidebar__item ${isActive('/support') ? 'is-active' : ''}`}
+            className={`sidebar__item sidebar__item--utility ${isActive('/support') ? 'is-active' : ''}`}
           >
             <Icon name="heart" />
             <span>Поддержать проект</span>

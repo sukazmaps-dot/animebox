@@ -624,7 +624,23 @@ export default function HomePage() {
         </div>
 
       <aside className="right-rail">
-        <div className="panel home-library-panel">
+        <div className="panel right-rail__primary">
+          <div className="panel__head panel__head--branded">
+            <span className="panel__title-with-icon">
+              <img src="/brand/brand-mark.png" alt="" aria-hidden="true" />
+              Топ аниме
+            </span>
+            <span className="section-link">Сегодня</span>
+          </div>
+
+          <div className="panel__body">
+            {popular.slice(0, 5).map((anime, index) => (
+              <TopAnimeItem key={anime.id} anime={anime} rank={index + 1} />
+            ))}
+          </div>
+        </div>
+
+        <div className="panel home-library-panel right-rail__secondary">
           <span className="home-library-panel__symbol home-library-panel__symbol--brand" aria-hidden="true">
             <img src="/brand/brand-mark.png" alt="" />
           </span>
@@ -647,23 +663,7 @@ export default function HomePage() {
           />
         </div>
 
-        <div className="panel">
-          <div className="panel__head panel__head--branded">
-            <span className="panel__title-with-icon">
-              <img src="/brand/brand-mark.png" alt="" aria-hidden="true" />
-              Топ аниме
-            </span>
-            <span className="section-link">Сегодня</span>
-          </div>
-
-          <div className="panel__body">
-            {popular.slice(0, 5).map((anime, index) => (
-              <TopAnimeItem key={anime.id} anime={anime} rank={index + 1} />
-            ))}
-          </div>
-        </div>
-
-        <div className="panel">
+        <div className="panel right-rail__secondary">
           <div className="panel__head">Ближайшие серии</div>
 
           <div className="panel__body rank-list">

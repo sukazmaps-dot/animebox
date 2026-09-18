@@ -22,6 +22,7 @@ import './mobile-layout-fix.css';
 import './mobile-readability.css';
 import './typography-polish.css';
 import './performance.css';
+import './hierarchy-pass.css';
 
 import Navbar from '@/components/Navbar';
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
