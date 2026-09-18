@@ -28,7 +28,7 @@ alter table public.premium_subscriptions enable row level security;
 insert into public.payment_products (code, name, product_type, active, metadata)
 values
   ('premium_monthly', 'AnimeBox Premium · месяц', 'subscription', false,
-    '{"entitlements":["adFree","premiumBadge","profileStudio","animatedAvatar","extraShowcases","premiumThemes"]}'::jsonb),
+    '{"entitlements":["adFree","premiumBadge","profileStudio","premiumThemes"]}'::jsonb),
   ('premium_yearly', 'AnimeBox Premium · год', 'subscription', false,
     '{"entitlements":["adFree","premiumBadge","profileStudio","animatedAvatar","extraShowcases","premiumThemes"]}'::jsonb)
 on conflict (code) do update

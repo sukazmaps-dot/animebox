@@ -18,6 +18,8 @@ type CacheEntry<T> = {
  */
 const listCache = new Map<string, CacheEntry<Anime[]>>();
 const detailCache = new Map<number, CacheEntry<Anime | null>>();
+const listInflight = new Map<string, Promise<Anime[]>>();
+const detailInflight = new Map<number, Promise<Anime | null>>();
 
 const LIST_CACHE_TTL = 5 * 60 * 1000;
 const SEARCH_CACHE_TTL = 60 * 1000;
@@ -46,11 +48,19 @@ function writeCache<T>(
   key: string | number,
   data: T,
   ttl: number,
+  maxEntries = 120,
 ): T {
+  cache.delete(key);
   cache.set(key, {
     data,
     expiresAt: Date.now() + ttl,
   });
+
+  while (cache.size > maxEntries) {
+    const oldestKey = cache.keys().next().value as string | number | undefined;
+    if (oldestKey === undefined) break;
+    cache.delete(oldestKey);
+  }
 
   return data;
 }
@@ -103,47 +113,54 @@ export async function getAnimes(
     return cached;
   }
 
-  const response = await fetch(
-    `/api/anime${queryString ? `?${queryString}` : ''}`,
-    {
-      signal: fetchOptions?.signal,
-
-      /*
-       * Сервер сам задаёт Cache-Control.
-       * В том числе короткий cache для поиска, чтобы back/forward и
-       * повторный запрос не запускали AniList + Shikimori заново.
-       */
-      cache: 'default',
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `Anime API HTTP ${response.status}`,
+  const load = async () => {
+    const response = await fetch(
+      `/api/anime${queryString ? `?${queryString}` : ''}`,
+      {
+        signal: fetchOptions?.signal,
+        cache: 'default',
+      },
     );
-  }
 
-  const data = (await response.json()) as {
-    anime?: Anime[];
-    error?: string;
+    if (!response.ok) {
+      throw new Error(`Anime API HTTP ${response.status}`);
+    }
+
+    const data = (await response.json()) as {
+      anime?: Anime[];
+      error?: string;
+    };
+
+    if (!Array.isArray(data.anime)) {
+      throw new Error(data.error || 'Некорректный ответ Anime API');
+    }
+
+    const ttl = options.search?.trim()
+      ? SEARCH_CACHE_TTL
+      : LIST_CACHE_TTL;
+
+    return writeCache(
+      listCache,
+      cacheKey,
+      data.anime,
+      ttl,
+      80,
+    );
   };
 
-  if (!Array.isArray(data.anime)) {
-    throw new Error(
-      data.error || 'Некорректный ответ Anime API',
-    );
+  if (fetchOptions?.signal) {
+    return load();
   }
 
-  const ttl = options.search?.trim()
-    ? SEARCH_CACHE_TTL
-    : LIST_CACHE_TTL;
+  const pending = listInflight.get(cacheKey);
+  if (pending) return pending;
 
-  return writeCache(
-    listCache,
-    cacheKey,
-    data.anime,
-    ttl,
-  );
+  const request = load().finally(() => {
+    listInflight.delete(cacheKey);
+  });
+
+  listInflight.set(cacheKey, request);
+  return request;
 }
 
 export async function getAnimeById(
@@ -167,40 +184,56 @@ export async function getAnimeById(
     return cached;
   }
 
-  const response = await fetch(
-    `/api/anime/${numericId}`,
-    {
-      signal: fetchOptions?.signal,
-      cache: 'default',
-    },
-  );
+  const load = async () => {
+    const response = await fetch(
+      `/api/anime/${numericId}`,
+      {
+        signal: fetchOptions?.signal,
+        cache: 'default',
+      },
+    );
 
-  if (response.status === 404) {
+    if (response.status === 404) {
+      return writeCache(
+        detailCache,
+        numericId,
+        null,
+        60 * 1000,
+        160,
+      );
+    }
+
+    if (!response.ok) {
+      throw new Error(`Anime API HTTP ${response.status}`);
+    }
+
+    const data = (await response.json()) as {
+      anime?: Anime | null;
+      error?: string;
+    };
+
     return writeCache(
       detailCache,
       numericId,
-      null,
-      60 * 1000,
+      data.anime ?? null,
+      DETAIL_CACHE_TTL,
+      160,
     );
-  }
-
-  if (!response.ok) {
-    throw new Error(
-      `Anime API HTTP ${response.status}`,
-    );
-  }
-
-  const data = (await response.json()) as {
-    anime?: Anime | null;
-    error?: string;
   };
 
-  return writeCache(
-    detailCache,
-    numericId,
-    data.anime ?? null,
-    DETAIL_CACHE_TTL,
-  );
+  if (fetchOptions?.signal) {
+    return load();
+  }
+
+  const pending = detailInflight.get(numericId);
+  if (pending) return pending;
+
+  const request = load().finally(() => {
+    detailInflight.delete(numericId);
+  });
+
+  detailInflight.set(numericId, request);
+  return request;
 }
 
 export function isAbortError(

@@ -7,8 +7,6 @@ export const PREMIUM_ENTITLEMENTS: EntitlementKey[] = [
   'adFree',
   'premiumBadge',
   'profileStudio',
-  'animatedAvatar',
-  'extraShowcases',
   'premiumThemes',
 ];
 
