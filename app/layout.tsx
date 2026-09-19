@@ -29,6 +29,7 @@ import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
 import { AuthStateProvider } from '@/components/AuthStateProvider';
 import AppChrome from '@/components/AppChrome';
 import CssRecoveryBridge from '@/components/CssRecoveryBridge';
+import ProductAnalyticsTracker from '@/components/analytics/ProductAnalyticsTracker';
 
 import { Analytics } from '@vercel/analytics/next';
 
@@ -325,6 +326,7 @@ export default function RootLayout({
               внутри Telegram или браузера */}
 
           <TelegramMiniAppBridge />
+          <ProductAnalyticsTracker />
 
           <TelegramSubscriptionGate>
             <AppChrome>{children}</AppChrome>
