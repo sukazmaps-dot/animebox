@@ -3,6 +3,12 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import type { DataConnection, Peer as PeerInstance } from 'peerjs';
+import {
+  createWatchPartyPeer,
+  describeWatchPartyPeerError,
+  detectWatchPartyRoute,
+  type WatchPartyNetworkRoute,
+} from '@/lib/watch-party-network-client';
 
 import { createClient } from '@/lib/supabase/client';
 import { premiumMediaStyle, type PremiumMediaTransform } from '@/lib/premium-studio';
@@ -102,6 +108,17 @@ function formatPlayerTime(seconds: number | null | undefined) {
   return `${minutes}:${String(rest).padStart(2, '0')}`;
 }
 
+function inspectWatchPartyRoute(
+  connection: DataConnection,
+  report: (route: WatchPartyNetworkRoute) => void,
+) {
+  window.setTimeout(() => {
+    void detectWatchPartyRoute(connection).then((route) => {
+      if (route !== 'unknown') report(route);
+    });
+  }, 650);
+}
+
 export default function WatchPartyPanel({
   animeTitle,
   animeSlug,
@@ -125,6 +142,8 @@ export default function WatchPartyPanel({
   const [lastController, setLastController] = useState('');
   const [mobileSection, setMobileSection] = useState<MobileSection>('chat');
   const [roomIdentities, setRoomIdentities] = useState<Record<string, RoomPublicIdentity>>({});
+  const [networkRoute, setNetworkRoute] = useState<WatchPartyNetworkRoute>('unknown');
+  const [signalingMode, setSignalingMode] = useState<'peerjs-cloud' | 'self-hosted'>('peerjs-cloud');
 
   const theaterPath = watchPartyTheaterPath(animeSlug, episodeNumber);
   const episodePath = `/anime/${encodeURIComponent(animeSlug)}/episode/${episodeNumber}`;
@@ -428,6 +447,8 @@ export default function WatchPartyPanel({
     setChatText('');
     setPlayerState(null);
     setLastController('');
+    setNetworkRoute('unknown');
+    setSignalingMode('peerjs-cloud');
     setStatus('idle');
   }, [destroyTransport]);
 
@@ -469,6 +490,9 @@ export default function WatchPartyPanel({
 
     connection.on('open', () => {
       window.clearTimeout(negotiationTimer);
+      inspectWatchPartyRoute(connection, (route) => {
+        setNetworkRoute((current) => current === 'relay' ? current : route);
+      });
       if (intentionalCloseRef.current || peer.destroyed || !peer.id) return;
 
       handshakeTimer = window.setTimeout(() => {
@@ -638,8 +662,9 @@ export default function WatchPartyPanel({
     identityRef.current = identity;
     if (intentionalCloseRef.current) return;
 
-    const { Peer } = await import('peerjs');
-    const peer = new Peer({ debug: 1 });
+    const { peer, network } = await createWatchPartyPeer();
+    setSignalingMode(network.signalingMode);
+    setNetworkRoute('unknown');
     peerRef.current = peer;
 
     scheduleGuestReconnectRef.current = () => {
@@ -688,7 +713,7 @@ export default function WatchPartyPanel({
         return;
       }
       setStatus('error');
-      setError('Не удалось установить соединение. Попробуй обновить страницу.');
+      setError(describeWatchPartyPeerError(peerError, network));
     });
   }, [attachGuestConnection, redirectToRegistration, resolveIdentity]);
 
@@ -710,9 +735,10 @@ export default function WatchPartyPanel({
     identityRef.current = identity;
     if (intentionalCloseRef.current) return;
 
-    const { Peer } = await import('peerjs');
     const hostPeerId = watchPartyHostPeerId(invite.roomId);
-    const peer = new Peer(hostPeerId, { debug: 1 });
+    const { peer, network } = await createWatchPartyPeer(hostPeerId);
+    setSignalingMode(network.signalingMode);
+    setNetworkRoute('unknown');
     peerRef.current = peer;
 
     const hostParticipant: WatchPartyParticipant = {
@@ -760,6 +786,9 @@ export default function WatchPartyPanel({
 
       connection.on('open', () => {
         window.clearTimeout(negotiationTimer);
+        inspectWatchPartyRoute(connection, (route) => {
+          setNetworkRoute((current) => current === 'relay' ? current : route);
+        });
         handshakeTimer = window.setTimeout(() => {
           if (accepted) return;
           pendingHostConnectionsRef.current.delete(connection.peer);
@@ -901,7 +930,7 @@ export default function WatchPartyPanel({
         peer.reconnect();
       } catch {
         setStatus('error');
-        setError('Связь с PeerJS Cloud потеряна. Обнови страницу, чтобы вернуть комнату.');
+        setError('Связь с сервером Watch Together потеряна. Обнови страницу, чтобы вернуть комнату.');
       }
     });
 
@@ -930,7 +959,7 @@ export default function WatchPartyPanel({
         return;
       }
       setStatus('error');
-      setError('Не удалось создать комнату. Попробуй ещё раз.');
+      setError(describeWatchPartyPeerError(peerError, network));
     });
   }, [
     appendChatMessage,
@@ -1031,6 +1060,40 @@ export default function WatchPartyPanel({
       cancelled = true;
     };
   }, [mode, startGuest, startHost, theaterPath]);
+
+  useEffect(() => {
+    const onOffline = () => {
+      if (roleRef.current) {
+        setStatus('reconnecting');
+        setError('Интернет-соединение потеряно. Ждём восстановления сети…');
+      }
+    };
+
+    const onOnline = () => {
+      if (intentionalCloseRef.current || hostEndedRef.current) return;
+      setError('');
+
+      const peer = peerRef.current;
+      if (peer?.disconnected && !peer.destroyed) {
+        try {
+          peer.reconnect();
+        } catch {
+          // Guest reconnect below can still recreate the DataConnection.
+        }
+      }
+
+      if (roleRef.current === 'guest') {
+        scheduleGuestReconnectRef.current();
+      }
+    };
+
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('online', onOnline);
+    return () => {
+      window.removeEventListener('offline', onOffline);
+      window.removeEventListener('online', onOnline);
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -1200,7 +1263,28 @@ export default function WatchPartyPanel({
               <span>{label}</span>
             </div>
           </div>
-          <span className={styles.role}>{role === 'host' ? 'HOST' : 'GUEST'}</span>
+          <div className={styles.connectionBadges}>
+            <span
+              className={styles.networkRoute}
+              data-route={networkRoute}
+              title={networkRoute === 'relay'
+                ? 'Соединение идёт через TURN relay'
+                : networkRoute === 'p2p'
+                  ? 'Прямое WebRTC P2P соединение'
+                  : signalingMode === 'self-hosted'
+                    ? 'AnimeBox signaling подключён, ICE маршрут определяется'
+                    : 'Используется резервный PeerJS Cloud signaling'}
+            >
+              {networkRoute === 'relay'
+                ? 'TURN RELAY'
+                : networkRoute === 'p2p'
+                  ? 'P2P'
+                  : signalingMode === 'self-hosted'
+                    ? 'ICE'
+                    : 'CLOUD'}
+            </span>
+            <span className={styles.role}>{role === 'host' ? 'HOST' : 'GUEST'}</span>
+          </div>
         </div>
 
         {mode === 'theater' && (
