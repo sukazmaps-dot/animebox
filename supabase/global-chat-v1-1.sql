@@ -188,7 +188,7 @@ begin
 end;
 $$;
 
-revoke all on function public.create_chat_message(text, uuid, uuid) from public;
+revoke all on function public.create_chat_message(text, uuid, uuid) from public, anon, authenticated;
 grant execute on function public.create_chat_message(text, uuid, uuid) to authenticated;
 
 
@@ -245,5 +245,28 @@ begin
 end;
 $$;
 
-revoke all on function public.toggle_chat_reaction(uuid, text) from public;
+revoke all on function public.toggle_chat_reaction(uuid, text) from public, anon, authenticated;
 grant execute on function public.toggle_chat_reaction(uuid, text) to authenticated;
+
+
+-- FK indexes used by moderation/notification lookups.
+create index if not exists chat_notifications_actor_id_idx on public.chat_notifications(actor_id);
+create index if not exists chat_notifications_message_id_idx on public.chat_notifications(message_id);
+create index if not exists chat_reactions_user_id_idx on public.chat_reactions(user_id);
+create index if not exists chat_reports_reporter_id_idx on public.chat_reports(reporter_id);
+create index if not exists chat_reports_resolved_by_idx on public.chat_reports(resolved_by) where resolved_by is not null;
+create index if not exists chat_settings_pinned_message_id_idx on public.chat_settings(pinned_message_id) where pinned_message_id is not null;
+create index if not exists chat_settings_updated_by_idx on public.chat_settings(updated_by) where updated_by is not null;
+
+-- Explicit ACL hardening. REVOKE FROM PUBLIC alone does not remove an older
+-- grant made directly to anon/authenticated.
+revoke all on function public.create_chat_message(text, uuid, uuid) from public, anon, authenticated;
+grant execute on function public.create_chat_message(text, uuid, uuid) to authenticated;
+revoke all on function public.delete_chat_message(uuid) from public, anon, authenticated;
+grant execute on function public.delete_chat_message(uuid) to authenticated;
+revoke all on function public.toggle_chat_reaction(uuid, text) from public, anon, authenticated;
+grant execute on function public.toggle_chat_reaction(uuid, text) to authenticated;
+revoke all on function public.broadcast_chat_message_change() from public, anon, authenticated;
+revoke all on function public.broadcast_chat_reaction_change() from public, anon, authenticated;
+grant execute on function public.broadcast_chat_message_change() to service_role;
+grant execute on function public.broadcast_chat_reaction_change() to service_role;

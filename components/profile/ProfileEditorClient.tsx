@@ -10,6 +10,11 @@ import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import { notifyAuthChanged } from '@/lib/auth-events';
 import { readProfileCache, saveProfileCache } from '@/lib/profile-cache';
 import { createClient } from '@/lib/supabase/client';
+import {
+  discardPrivateProfileMedia,
+  uploadPrivateProfileMedia,
+  type PendingProfileMediaUpload,
+} from '@/lib/profile-media-upload-client';
 import type { PremiumStudioSettings } from '@/lib/premium-studio';
 
 type EditorTab = 'profile' | 'appearance' | 'style';
@@ -30,11 +35,6 @@ type Props = {
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
-function extensionFor(file: File) {
-  if (file.type === 'image/png') return 'png';
-  if (file.type === 'image/webp') return 'webp';
-  return 'jpg';
-}
 
 function normalizedTab(value: string | null | undefined): EditorTab {
   if (value === 'appearance') return value;
@@ -250,37 +250,33 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     }
 
     setSaving(true);
-    let uploadedAvatarPath: string | null = null;
-    let uploadedBannerPath: string | null = null;
+    const pendingMedia: PendingProfileMediaUpload[] = [];
+    let reviewQueued = false;
 
     try {
       let finalAvatarPath = removeAvatar ? null : profile.avatar_path;
       let finalBannerPath = removeBanner ? null : profile.banner_path;
 
       if (avatarFile && !removeAvatar) {
-        uploadedAvatarPath = `${user.id}/avatar-${Date.now()}.${extensionFor(avatarFile)}`;
-        const { error: uploadError } = await supabase.storage
-          .from('profile-media')
-          .upload(uploadedAvatarPath, avatarFile, {
-            cacheControl: '3600',
-            upsert: false,
-            contentType: avatarFile.type,
-          });
-        if (uploadError) throw uploadError;
-        finalAvatarPath = uploadedAvatarPath;
+        const upload = await uploadPrivateProfileMedia({
+          scope: 'base',
+          kind: 'avatar',
+          variant: 'original',
+          body: avatarFile,
+        });
+        pendingMedia.push(upload);
+        finalAvatarPath = upload.publicPath;
       }
 
       if (bannerFile && !removeBanner) {
-        uploadedBannerPath = `${user.id}/banner-${Date.now()}.${extensionFor(bannerFile)}`;
-        const { error: uploadError } = await supabase.storage
-          .from('profile-media')
-          .upload(uploadedBannerPath, bannerFile, {
-            cacheControl: '3600',
-            upsert: false,
-            contentType: bannerFile.type,
-          });
-        if (uploadError) throw uploadError;
-        finalBannerPath = uploadedBannerPath;
+        const upload = await uploadPrivateProfileMedia({
+          scope: 'base',
+          kind: 'banner',
+          variant: 'original',
+          body: bannerFile,
+        });
+        pendingMedia.push(upload);
+        finalBannerPath = upload.publicPath;
       }
 
       const studioDraft = premiumDirty ? premiumStudioRef.current?.getDraft() ?? premiumSettings : null;
@@ -299,20 +295,20 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
               }
             : {}),
           ...(premiumDirty && studioDraft ? { studio: studioDraft } : {}),
+          ...(pendingMedia.length ? { pendingMedia } : {}),
         }),
       });
       const payload = (await response.json()) as {
         profile?: ProfileRow;
         settings?: PremiumStudioSettings;
         error?: string;
+        mediaReviewQueued?: boolean;
       };
 
       if (!response.ok) {
-        const freshFiles = [uploadedAvatarPath, uploadedBannerPath].filter(
-          (path): path is string => Boolean(path),
-        );
-        if (freshFiles.length) {
-          await supabase.storage.from('profile-media').remove(freshFiles);
+        reviewQueued = Boolean(payload.mediaReviewQueued);
+        if (!reviewQueued && pendingMedia.length) {
+          await discardPrivateProfileMedia(pendingMedia);
         }
         throw new Error(payload.error || 'Не удалось сохранить профиль.');
       }
@@ -352,6 +348,9 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       });
       setSaved('Профиль и оформление сохранены ✓');
     } catch (requestError) {
+      if (!reviewQueued && pendingMedia.length) {
+        await discardPrivateProfileMedia(pendingMedia);
+      }
       setError(requestError instanceof Error ? requestError.message : 'Не удалось сохранить профиль.');
     } finally {
       setSaving(false);

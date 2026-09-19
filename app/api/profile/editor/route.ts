@@ -58,6 +58,78 @@ type ExistingProfile = {
   created_at: string;
 };
 
+
+type PendingMediaUpload = {
+  scope: 'base' | 'premium';
+  kind: 'avatar' | 'banner';
+  variant: 'original' | 'static';
+  publicPath: string;
+  quarantinePath: string;
+};
+
+function readPendingMedia(value: unknown, userId: string): PendingMediaUpload[] {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value) || value.length > 8) {
+    throw new ApiError(400, 'Некорректный список загруженных медиа.');
+  }
+
+  return value.map((raw) => {
+    const item = objectValue(raw, 'Медиа');
+    const scope = item.scope;
+    const kind = item.kind;
+    const variant = item.variant;
+    const publicPath = typeof item.publicPath === 'string' ? item.publicPath.trim() : '';
+    const quarantinePath = typeof item.quarantinePath === 'string' ? item.quarantinePath.trim() : '';
+
+    if (scope !== 'base' && scope !== 'premium') throw new ApiError(400, 'Некорректный scope медиа.');
+    if (kind !== 'avatar' && kind !== 'banner') throw new ApiError(400, 'Некорректный тип медиа.');
+    if (variant !== 'original' && variant !== 'static') throw new ApiError(400, 'Некорректный вариант медиа.');
+    if (scope === 'base' && variant !== 'original') throw new ApiError(400, 'Базовое медиа не может иметь static-вариант.');
+
+    const q = quarantinePath.split('/');
+    if (q.length !== 6 || q[0] !== userId || q[1] !== 'pending' || q[2] !== scope || q[3] !== kind) {
+      throw new ApiError(400, 'Некорректный путь приватной загрузки.');
+    }
+    const uploadId = q[4];
+    const qMatch = q[5]?.match(/^(original|static)\.(jpg|png|webp|gif)$/i);
+    if (!/^[0-9a-f-]{36}$/i.test(uploadId) || !qMatch || qMatch[1] !== variant) {
+      throw new ApiError(400, 'Некорректный идентификатор приватной загрузки.');
+    }
+
+    const extension = qMatch[2].toLowerCase();
+    const expectedPublic = scope === 'premium'
+      ? `${userId}/premium/${kind}${variant === 'static' ? '-static' : ''}-${uploadId}.${extension}`
+      : `${userId}/${kind}-${uploadId}.${extension}`;
+
+    if (publicPath !== expectedPublic) {
+      throw new ApiError(400, 'Публичный путь не соответствует приватной загрузке.');
+    }
+
+    return { scope, kind, variant, publicPath, quarantinePath };
+  });
+}
+
+function pendingCandidate(
+  uploads: PendingMediaUpload[],
+  scope: PendingMediaUpload['scope'],
+  kind: PendingMediaUpload['kind'],
+  variant: PendingMediaUpload['variant'],
+  path: string,
+) {
+  const match = uploads.find((item) =>
+    item.scope === scope &&
+    item.kind === kind &&
+    item.variant === variant &&
+    item.publicPath === path
+  );
+
+  if (!match) {
+    throw new ApiError(409, 'Новый аватар или баннер должен быть загружен через приватную проверку AnimeBox.');
+  }
+
+  return { variant, path, quarantinePath: match.quarantinePath };
+}
+
 function objectValue(value: unknown, label: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new ApiError(400, `${label}: некорректные данные.`);
@@ -201,6 +273,7 @@ function changedMediaGroups(
   oldProfile: ExistingProfile,
   settings: PremiumStudioSettings | null,
   oldSettings: PremiumStudioSettings,
+  pendingMedia: PendingMediaUpload[],
 ): ProfileMediaCandidateGroup[] {
   const groups: ProfileMediaCandidateGroup[] = [];
 
@@ -212,7 +285,7 @@ function changedMediaGroups(
         avatarPath: profilePatch.avatar_path,
         expectedPreviousPath: oldProfile.avatar_path,
       },
-      candidates: [{ variant: 'original', path: profilePatch.avatar_path }],
+      candidates: [pendingCandidate(pendingMedia, 'base', 'avatar', 'original', profilePatch.avatar_path)],
     });
   }
 
@@ -224,7 +297,7 @@ function changedMediaGroups(
         bannerPath: profilePatch.banner_path,
         expectedPreviousPath: oldProfile.banner_path,
       },
-      candidates: [{ variant: 'original', path: profilePatch.banner_path }],
+      candidates: [pendingCandidate(pendingMedia, 'base', 'banner', 'original', profilePatch.banner_path)],
     });
   }
 
@@ -246,9 +319,9 @@ function changedMediaGroups(
           expectedPreviousPath: oldSettings.avatarPath,
         },
         candidates: [
-          { variant: 'original', path: settings.avatarPath },
+          pendingCandidate(pendingMedia, 'premium', 'avatar', 'original', settings.avatarPath),
           ...(settings.avatarStaticPath && settings.avatarStaticPath !== settings.avatarPath
-            ? [{ variant: 'static' as const, path: settings.avatarStaticPath }]
+            ? [pendingCandidate(pendingMedia, 'premium', 'avatar', 'static', settings.avatarStaticPath)]
             : []),
         ],
       });
@@ -271,9 +344,9 @@ function changedMediaGroups(
           expectedPreviousPath: oldSettings.bannerPath,
         },
         candidates: [
-          { variant: 'original', path: settings.bannerPath },
+          pendingCandidate(pendingMedia, 'premium', 'banner', 'original', settings.bannerPath),
           ...(settings.bannerStaticPath && settings.bannerStaticPath !== settings.bannerPath
-            ? [{ variant: 'static' as const, path: settings.bannerStaticPath }]
+            ? [pendingCandidate(pendingMedia, 'premium', 'banner', 'static', settings.bannerStaticPath)]
             : []),
         ],
       });
@@ -330,6 +403,7 @@ export async function POST(request: Request) {
     const allowed = Boolean(entitlements.profileStudio && entitlements.premiumThemes);
     const profilePatch = hasProfile ? readProfilePatch(body.profile, user.id) : null;
     const settings = hasStudio ? readStudioSettings(body.studio, user.id) : null;
+    const pendingMedia = readPendingMedia(body.pendingMedia, user.id);
 
     if (settings && !allowed) {
       throw new ApiError(403, 'Расширенное оформление доступно только с AnimeBox Premium.');
@@ -349,7 +423,7 @@ export async function POST(request: Request) {
     // profile media. Existing unchanged paths are intentionally not re-scanned.
     await screenProfileMediaGroups(
       user.id,
-      changedMediaGroups(profilePatch, oldProfile, settings, oldSettings),
+      changedMediaGroups(profilePatch, oldProfile, settings, oldSettings, pendingMedia),
     );
 
     let committedProfile = oldProfileResult.data;
@@ -406,6 +480,13 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    if (
+      error instanceof ApiError &&
+      error.status === 409 &&
+      error.message.includes('дополнительную проверку')
+    ) {
+      return response({ error: error.message, mediaReviewQueued: true }, 409);
+    }
     return failure(error);
   }
 }

@@ -5,6 +5,11 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
+import {
+  discardPrivateProfileMedia,
+  uploadPrivateProfileMedia,
+  type PendingProfileMediaUpload,
+} from '@/lib/profile-media-upload-client';
 import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor';
 import {
   DEFAULT_PREMIUM_STUDIO_SETTINGS,
@@ -28,6 +33,7 @@ type StudioResponse = {
   theme?: PremiumProfileTheme;
   settings?: PremiumStudioSettings;
   error?: string;
+  mediaReviewQueued?: boolean;
 };
 
 export type PremiumStudioHandle = {
@@ -68,14 +74,6 @@ const ALLOWED_MEDIA_TYPES = new Set([
   'image/jpeg',
 ]);
 
-function fileExtension(file: File) {
-  const ext = file.name.split('.').pop()?.toLowerCase();
-  if (ext && ['webp', 'gif', 'png', 'jpg', 'jpeg'].includes(ext)) return ext;
-  if (file.type === 'image/gif') return 'gif';
-  if (file.type === 'image/png') return 'png';
-  if (file.type === 'image/jpeg') return 'jpg';
-  return 'webp';
-}
 
 
 async function staticWebpFallback(file: File, kind: UploadKind) {
@@ -434,6 +432,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   async function persistSettings(
     next: PremiumStudioSettings,
     message = 'Настройки сохранены ✓',
+    pendingMedia: PendingProfileMediaUpload[] = [],
   ) {
     setSaving(true);
     setError('');
@@ -443,12 +442,16 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       const response = await fetch('/api/profile/editor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studio: next }),
+        body: JSON.stringify({ studio: next, ...(pendingMedia.length ? { pendingMedia } : {}) }),
       });
       const payload = (await response.json()) as StudioResponse;
 
       if (!response.ok) {
-        throw new Error(payload.error || 'Не удалось сохранить Profile Studio');
+        const requestError = new Error(payload.error || 'Не удалось сохранить Profile Studio') as Error & {
+          mediaReviewQueued?: boolean;
+        };
+        requestError.mediaReviewQueued = Boolean(payload.mediaReviewQueued);
+        throw requestError;
       }
 
       const committed = payload.settings ?? next;
@@ -601,20 +604,10 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     }
 
     setUploading(kind);
+    const pendingMedia: PendingProfileMediaUpload[] = [];
+    let reviewQueued = false;
 
-    let newPath = '';
     try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError || !user) throw new Error('Сначала войди в AnimeBox.');
-
-      const extension = fileExtension(file);
-      const stamp = Date.now();
-      newPath = `${user.id}/premium/${kind}-${stamp}.${extension}`;
-      const staticPath = `${user.id}/premium/${kind}-static-${stamp}.webp`;
       const fallback = await staticWebpFallback(file, kind);
       const staticBlob = fallback.blob;
 
@@ -636,28 +629,22 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
         );
       }
 
-      const { error: uploadError } = await supabase.storage
-        .from('profile-media')
-        .upload(newPath, file, {
-          cacheControl: '31536000',
-          upsert: false,
-          contentType: file.type,
-        });
+      const originalUpload = await uploadPrivateProfileMedia({
+        scope: 'premium',
+        kind,
+        variant: 'original',
+        body: file,
+      });
+      pendingMedia.push(originalUpload);
 
-      if (uploadError) throw uploadError;
-
-      const { error: staticUploadError } = await supabase.storage
-        .from('profile-media')
-        .upload(staticPath, staticBlob, {
-          cacheControl: '31536000',
-          upsert: false,
-          contentType: 'image/webp',
-        });
-
-      if (staticUploadError) {
-        await supabase.storage.from('profile-media').remove([newPath]);
-        throw staticUploadError;
-      }
+      const staticUpload = await uploadPrivateProfileMedia({
+        scope: 'premium',
+        kind,
+        variant: 'static',
+        body: staticBlob,
+        mimeType: 'image/webp',
+      });
+      pendingMedia.push(staticUpload);
 
       const oldPath = kind === 'avatar' ? settings.avatarPath : settings.bannerPath;
       const oldStaticPath = kind === 'avatar' ? settings.avatarStaticPath : settings.bannerStaticPath;
@@ -665,15 +652,15 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
         ...settings,
         ...(kind === 'avatar'
           ? {
-              avatarPath: newPath,
-              avatarStaticPath: staticPath,
+              avatarPath: originalUpload.publicPath,
+              avatarStaticPath: staticUpload.publicPath,
               avatarPositionX: transform.x,
               avatarPositionY: transform.y,
               avatarZoom: transform.zoom,
             }
           : {
-              bannerPath: newPath,
-              bannerStaticPath: staticPath,
+              bannerPath: originalUpload.publicPath,
+              bannerStaticPath: staticUpload.publicPath,
               bannerPositionX: transform.x,
               bannerPositionY: transform.y,
               bannerZoom: transform.zoom,
@@ -684,22 +671,29 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
         await persistSettings(
           next,
           kind === 'avatar' ? 'Premium-аватар обновлён ✓' : 'Premium-баннер обновлён ✓',
+          pendingMedia,
         );
       } catch (persistError) {
-        await supabase.storage.from('profile-media').remove([newPath, staticPath]);
+        reviewQueued = Boolean(
+          persistError &&
+          typeof persistError === 'object' &&
+          'mediaReviewQueued' in persistError &&
+          (persistError as { mediaReviewQueued?: boolean }).mediaReviewQueued,
+        );
+        if (!reviewQueued) await discardPrivateProfileMedia(pendingMedia);
         throw persistError;
       }
 
       const obsolete = [oldPath, oldStaticPath]
         .filter((path): path is string => Boolean(path && path.includes('/premium/')))
-        .filter((path) => path !== newPath && path !== staticPath);
+        .filter((path) => path !== originalUpload.publicPath && path !== staticUpload.publicPath);
       if (obsolete.length) {
         void supabase.storage.from('profile-media').remove([...new Set(obsolete)]);
       }
       return true;
     } catch (requestError) {
-      if (newPath) {
-        void supabase.storage.from('profile-media').remove([newPath]);
+      if (!reviewQueued && pendingMedia.length) {
+        await discardPrivateProfileMedia(pendingMedia);
       }
       setError(
         requestError instanceof Error

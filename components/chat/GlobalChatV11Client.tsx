@@ -148,7 +148,9 @@ export default function GlobalChatV11Client({ initialPage }: { initialPage: Chat
   const [notice, setNotice] = useState('');
   const [onlineCount, setOnlineCount] = useState(0);
   const [connection, setConnection] = useState<Connection>('connecting');
-  const [browserOnline, setBrowserOnline] = useState(true);
+  const [browserOnline, setBrowserOnline] = useState(() =>
+    typeof navigator === 'undefined' ? true : navigator.onLine,
+  );
   const [reactionPicker, setReactionPicker] = useState<string | null>(null);
   const [myReactionState, setMyReactionState] = useState<Record<string, boolean>>({});
   const [hasNewBelow, setHasNewBelow] = useState(false);
@@ -190,8 +192,8 @@ export default function GlobalChatV11Client({ initialPage }: { initialPage: Chat
 
   useEffect(() => {
     if (!user?.id) {
-      setMe(null);
-      return;
+      const frame = window.requestAnimationFrame(() => setMe(null));
+      return () => window.cancelAnimationFrame(frame);
     }
     let active = true;
     void getChatMe()
@@ -215,7 +217,6 @@ export default function GlobalChatV11Client({ initialPage }: { initialPage: Chat
   useEffect(() => {
     const onOnline = () => { setBrowserOnline(true); setConnection((current) => current === 'offline' ? 'reconnecting' : current); };
     const onOffline = () => { setBrowserOnline(false); setConnection('offline'); };
-    setBrowserOnline(navigator.onLine);
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
     return () => { window.removeEventListener('online', onOnline); window.removeEventListener('offline', onOffline); };
@@ -461,7 +462,7 @@ export default function GlobalChatV11Client({ initialPage }: { initialPage: Chat
     if (!me?.lastSeenAt) return null;
     const seen = Date.parse(me.lastSeenAt);
     return messages.find((message) => Date.parse(message.created_at) > seen && message.user_id !== user?.id)?.id ?? null;
-  }, [me?.lastSeenAt, messages, user?.id]);
+  }, [me, messages, user?.id]);
 
   const composerAvatarUrl = useMemo(() => {
     const path = profile?.display_avatar_path || profile?.avatar_path;
@@ -605,7 +606,7 @@ export default function GlobalChatV11Client({ initialPage }: { initialPage: Chat
                               <button type="button" onClick={() => void moderate(message, 'mute10')}>Mute 10 минут</button>
                               <button type="button" onClick={() => void moderate(message, 'mute60')}>Mute 1 час</button>
                               <button type="button" onClick={() => void moderate(message, 'mute1440')}>Mute 24 часа</button>
-                              {me.role !== 'moderator' && <button type="button" className={styles.dangerAction} onClick={() => void moderate(message, 'ban')}>Ban пользователя</button>}
+                              {me && me.role !== 'moderator' && <button type="button" className={styles.dangerAction} onClick={() => void moderate(message, 'ban')}>Ban пользователя</button>}
                             </div>
                           )}
                         </div>

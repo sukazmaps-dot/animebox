@@ -246,9 +246,9 @@ begin
 end;
 $$;
 
-revoke all on function public.create_chat_message(text, uuid, uuid) from public;
-revoke all on function public.delete_chat_message(uuid) from public;
-revoke all on function public.toggle_chat_reaction(uuid, text) from public;
+revoke all on function public.create_chat_message(text, uuid, uuid) from public, anon, authenticated;
+revoke all on function public.delete_chat_message(uuid) from public, anon, authenticated;
+revoke all on function public.toggle_chat_reaction(uuid, text) from public, anon, authenticated;
 grant execute on function public.create_chat_message(text, uuid, uuid) to authenticated;
 grant execute on function public.delete_chat_message(uuid) to authenticated;
 grant execute on function public.toggle_chat_reaction(uuid, text) to authenticated;
@@ -307,3 +307,10 @@ drop trigger if exists chat_reactions_realtime_broadcast on public.chat_reaction
 create trigger chat_reactions_realtime_broadcast
 after insert or delete on public.chat_reactions
 for each row execute function public.broadcast_chat_reaction_change();
+
+
+-- Trigger helpers are internal only; do not expose them as Data API RPCs.
+revoke all on function public.broadcast_chat_message_change() from public, anon, authenticated;
+revoke all on function public.broadcast_chat_reaction_change() from public, anon, authenticated;
+grant execute on function public.broadcast_chat_message_change() to service_role;
+grant execute on function public.broadcast_chat_reaction_change() to service_role;

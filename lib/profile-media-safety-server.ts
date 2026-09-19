@@ -1,7 +1,6 @@
 import 'server-only';
 
 import { createHash } from 'node:crypto';
-import { basename } from 'node:path';
 
 import { ApiError, adminClient } from '@/lib/community-server';
 
@@ -12,6 +11,7 @@ export type ProfileMediaVariant = 'original' | 'static';
 export type ProfileMediaCandidate = {
   variant: ProfileMediaVariant;
   path: string;
+  quarantinePath: string;
 };
 
 export type ProfileMediaCandidateGroup = {
@@ -221,10 +221,12 @@ async function moderateWithOpenAI(bytes: Buffer, mimeType: string): Promise<Mode
 
 async function loadAndModerate(candidate: ProfileMediaCandidate): Promise<LoadedMedia> {
   const admin = adminClient();
-  const { data, error } = await admin.storage.from(PUBLIC_BUCKET).download(candidate.path);
+  const { data, error } = await admin.storage
+    .from(QUARANTINE_BUCKET)
+    .download(candidate.quarantinePath);
 
   if (error || !data) {
-    throw new ApiError(400, 'Не удалось проверить загруженное изображение. Загрузите файл заново.');
+    throw new ApiError(400, 'Не удалось проверить приватно загруженное изображение. Загрузите файл заново.');
   }
 
   const bytes = Buffer.from(await data.arrayBuffer());
@@ -310,18 +312,6 @@ async function quarantineGroup(
 
   try {
     for (const item of items) {
-      const quarantinePath = `${userId}/${groupId}/${item.candidate.variant}-${basename(item.candidate.path)}`;
-
-      const { error: uploadError } = await admin.storage
-        .from(QUARANTINE_BUCKET)
-        .upload(quarantinePath, item.bytes, {
-          contentType: item.mimeType,
-          cacheControl: '0',
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-
       const { data: inserted, error: insertError } = await admin
         .from('profile_media_moderation')
         .insert({
@@ -331,7 +321,7 @@ async function quarantineGroup(
           kind: group.kind,
           variant: item.candidate.variant,
           public_path: item.candidate.path,
-          quarantine_path: quarantinePath,
+          quarantine_path: item.candidate.quarantinePath,
           sha256: item.sha256,
           mime_type: item.mimeType,
           file_size: item.size,
@@ -351,6 +341,7 @@ async function quarantineGroup(
       if (inserted?.id) insertedIds.push(String(inserted.id));
     }
 
+    // Defense in depth: a pending file must never exist in the public bucket.
     const publicPaths = items.map((item) => item.candidate.path);
     if (publicPaths.length) {
       const { error: removeError } = await admin.storage.from(PUBLIC_BUCKET).remove(publicPaths);
@@ -361,8 +352,38 @@ async function quarantineGroup(
       await admin.from('profile_media_moderation').delete().in('id', insertedIds);
     }
     await admin.from('profile_media_review_groups').delete().eq('id', groupId);
+    const quarantinePaths = items.map((item) => item.candidate.quarantinePath);
+    if (quarantinePaths.length) {
+      await admin.storage.from(QUARANTINE_BUCKET).remove(quarantinePaths);
+    }
     throw error;
   }
+}
+
+async function approveImmediately(
+  userId: string,
+  group: ProfileMediaCandidateGroup,
+  item: LoadedMedia,
+) {
+  const admin = adminClient();
+  const uploaded = await admin.storage.from(PUBLIC_BUCKET).upload(item.candidate.path, item.bytes, {
+    contentType: item.mimeType,
+    cacheControl: '31536000',
+    upsert: false,
+  });
+  if (uploaded.error) throw uploaded.error;
+
+  try {
+    await recordImmediate(userId, group, item, 'approved');
+  } catch (error) {
+    await admin.storage.from(PUBLIC_BUCKET).remove([item.candidate.path]);
+    throw error;
+  }
+
+  const cleanup = await admin.storage
+    .from(QUARANTINE_BUCKET)
+    .remove([item.candidate.quarantinePath]);
+  if (cleanup.error) console.error('[ProfileMediaSafety] approved quarantine cleanup:', cleanup.error);
 }
 
 export async function screenProfileMediaGroups(
@@ -382,10 +403,16 @@ export async function screenProfileMediaGroups(
         })),
       );
 
-      const paths = items.map((item) => item.candidate.path);
-      if (paths.length) {
-        const { error } = await adminClient().storage.from(PUBLIC_BUCKET).remove(paths);
-        if (error) console.error('[ProfileMediaSafety] rejected cleanup:', error);
+      const admin = adminClient();
+      const publicPaths = items.map((item) => item.candidate.path);
+      const quarantinePaths = items.map((item) => item.candidate.quarantinePath);
+      if (publicPaths.length) {
+        const { error } = await admin.storage.from(PUBLIC_BUCKET).remove(publicPaths);
+        if (error) console.error('[ProfileMediaSafety] rejected public cleanup:', error);
+      }
+      if (quarantinePaths.length) {
+        const { error } = await admin.storage.from(QUARANTINE_BUCKET).remove(quarantinePaths);
+        if (error) console.error('[ProfileMediaSafety] rejected quarantine cleanup:', error);
       }
 
       throw new ApiError(
@@ -404,7 +431,7 @@ export async function screenProfileMediaGroups(
     }
 
     for (const item of items) {
-      await recordImmediate(userId, group, item, 'approved');
+      await approveImmediately(userId, group, item);
     }
   }
 }
