@@ -388,14 +388,14 @@ export default function ProfilePage() {
       <section className="profile-v2__bottom-card profile-v2__bottom-card--premium">
         <div>
           <span className="profile-v2__eyebrow">AnimeBox Premium</span>
-          <h2>Profile Studio</h2>
+          <h2>Редактор стиля</h2>
           <p>
-            Настраивай цвета, Premium-аватар, баннер, glow и тему оболочки плеера.
+            Профиль, оформление и Premium-возможности теперь настраиваются в одном месте.
           </p>
         </div>
 
-        <Link href="/profile/edit?tab=premium">
-          Открыть Profile Studio →
+        <Link href="/profile/edit?tab=style">
+          Открыть редактор →
         </Link>
       </section>
 

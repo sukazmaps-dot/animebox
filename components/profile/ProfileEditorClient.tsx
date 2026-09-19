@@ -1,18 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { useAuthState } from '@/components/AuthStateProvider';
-import PremiumStudioClient from '@/components/premium/PremiumStudioClient';
+import PremiumStudioClient, { type PremiumStudioHandle } from '@/components/premium/PremiumStudioClient';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import { notifyAuthChanged } from '@/lib/auth-events';
 import { readProfileCache, saveProfileCache } from '@/lib/profile-cache';
 import { createClient } from '@/lib/supabase/client';
 import type { PremiumStudioSettings } from '@/lib/premium-studio';
 
-type EditorTab = 'profile' | 'appearance' | 'premium';
+type EditorTab = 'profile' | 'appearance' | 'style';
 
 type ProfileRow = {
   id: string;
@@ -37,7 +37,8 @@ function extensionFor(file: File) {
 }
 
 function normalizedTab(value: string | null | undefined): EditorTab {
-  if (value === 'appearance' || value === 'premium') return value;
+  if (value === 'appearance') return value;
+  if (value === 'style' || value === 'premium') return 'style';
   return 'profile';
 }
 
@@ -63,6 +64,9 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   const [removeBanner, setRemoveBanner] = useState(false);
   const [premiumSettings, setPremiumSettings] = useState<PremiumStudioSettings | null>(null);
   const [premiumActive, setPremiumActive] = useState(false);
+  const premiumStudioRef = useRef<PremiumStudioHandle | null>(null);
+  const [premiumDirty, setPremiumDirty] = useState(false);
+  const [premiumBusy, setPremiumBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -114,7 +118,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
     let active = true;
     const loadAppearance = () => {
-      void fetch('/api/premium/studio', { cache: 'no-store' })
+      void fetch('/api/profile/editor', { cache: 'no-store' })
         .then(async (response) => {
           if (!response.ok || !active) return;
           const payload = (await response.json()) as {
@@ -215,7 +219,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     premiumActive ? premiumAnimatedBanner || premiumStaticBanner : premiumStaticBanner,
   );
 
-  const dirty = Boolean(
+  const baseDirty = Boolean(
     profile && (
       username.trim() !== (profile.username ?? '').trim() ||
       bio.trim() !== (profile.bio ?? '').trim() ||
@@ -225,9 +229,10 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       removeBanner
     )
   );
+  const dirty = baseDirty || premiumDirty;
 
-  async function saveBaseProfile() {
-    if (!profile || !user || saving) return;
+  async function saveProfile() {
+    if (!profile || !user || saving || premiumBusy || !dirty) return;
 
     const cleanUsername = username.trim();
     const cleanBio = bio.trim();
@@ -278,37 +283,53 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         finalBannerPath = uploadedBannerPath;
       }
 
-      const { data, error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          username: cleanUsername,
-          bio: cleanBio || null,
-          avatar_path: finalAvatarPath,
-          banner_path: finalBannerPath,
-        })
-        .eq('id', user.id)
-        .select('id, username, bio, avatar_path, banner_path, created_at')
-        .single();
+      const studioDraft = premiumDirty ? premiumStudioRef.current?.getDraft() ?? premiumSettings : null;
+      const response = await fetch('/api/profile/editor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(baseDirty
+            ? {
+                profile: {
+                  username: cleanUsername,
+                  bio: cleanBio,
+                  avatarPath: finalAvatarPath,
+                  bannerPath: finalBannerPath,
+                },
+              }
+            : {}),
+          ...(premiumDirty && studioDraft ? { studio: studioDraft } : {}),
+        }),
+      });
+      const payload = (await response.json()) as {
+        profile?: ProfileRow;
+        settings?: PremiumStudioSettings;
+        error?: string;
+      };
 
-      if (updateError) {
+      if (!response.ok) {
         const freshFiles = [uploadedAvatarPath, uploadedBannerPath].filter(
           (path): path is string => Boolean(path),
         );
         if (freshFiles.length) {
           await supabase.storage.from('profile-media').remove(freshFiles);
         }
-        if (updateError.code === '23505') {
-          throw new Error('Этот ник уже занят.');
-        }
-        throw updateError;
+        throw new Error(payload.error || 'Не удалось сохранить профиль.');
       }
 
+      const next = payload.profile ?? profile;
       const oldFiles: string[] = [];
-      if (profile.avatar_path && profile.avatar_path !== data.avatar_path) oldFiles.push(profile.avatar_path);
-      if (profile.banner_path && profile.banner_path !== data.banner_path) oldFiles.push(profile.banner_path);
+      if (baseDirty) {
+        if (profile.avatar_path && profile.avatar_path !== next.avatar_path) oldFiles.push(profile.avatar_path);
+        if (profile.banner_path && profile.banner_path !== next.banner_path) oldFiles.push(profile.banner_path);
+      }
       if (oldFiles.length) void supabase.storage.from('profile-media').remove(oldFiles);
 
-      const next = data as ProfileRow;
+      if (payload.settings) {
+        setPremiumSettings(payload.settings);
+        premiumStudioRef.current?.markSaved(payload.settings);
+        setPremiumDirty(false);
+      }
       setProfile(next);
       setUsername(next.username ?? '');
       setBio(next.bio ?? '');
@@ -329,7 +350,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           avatar_path: next.avatar_path,
         },
       });
-      setSaved('Профиль сохранён ✓');
+      setSaved('Профиль и оформление сохранены ✓');
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Не удалось сохранить профиль.');
     } finally {
@@ -384,13 +405,11 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           </div>
 
           <div className="profile-editor-v13__header-actions">
-            {dirty && activeTab !== 'premium' && <small>Есть несохранённые изменения</small>}
+            {dirty && <small>Есть несохранённые изменения</small>}
             <Link href="/profile">← В профиль</Link>
-            {activeTab !== 'premium' && (
-              <button type="button" disabled={!dirty || saving} onClick={() => void saveBaseProfile()}>
-                {saving ? 'Сохраняем…' : dirty ? 'Сохранить' : 'Сохранено'}
-              </button>
-            )}
+            <button type="button" disabled={!dirty || saving || premiumBusy} onClick={() => void saveProfile()}>
+              {saving ? 'Сохраняем…' : dirty ? 'Сохранить всё' : 'Сохранено'}
+            </button>
           </div>
         </header>
 
@@ -401,14 +420,26 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           <button className={activeTab === 'appearance' ? 'is-active' : ''} onClick={() => switchTab('appearance')} type="button">
             Оформление
           </button>
-          <button className={activeTab === 'premium' ? 'is-active is-premium' : 'is-premium'} onClick={() => switchTab('premium')} type="button">
-            <img src="/premium/premium-user.webp" alt="" aria-hidden="true" /> Premium Studio
+          <button className={activeTab === 'style' ? 'is-active is-premium' : 'is-premium'} onClick={() => switchTab('style')} type="button">
+            <img src="/premium/premium-user.webp" alt="" aria-hidden="true" /> Стиль
           </button>
         </nav>
 
-        {activeTab === 'premium' ? (
+        {activeTab === 'style' ? (
           <div className="profile-editor-v13__premium-tab">
-            <PremiumStudioClient embedded />
+            <PremiumStudioClient
+              ref={premiumStudioRef}
+              embedded
+              hideDock
+              initialSettings={premiumSettings}
+              initialAllowed={premiumActive}
+              onDirtyChange={setPremiumDirty}
+              onBusyChange={setPremiumBusy}
+              onSettingsCommitted={(settings) => {
+                setPremiumSettings(settings);
+                setPremiumDirty(false);
+              }}
+            />
           </div>
         ) : (
           <div className="profile-editor-v13__workspace">
@@ -487,7 +518,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                           : 'Анимации и Premium-эффекты выключены, но сохранённые статические WEBP-версии аватара/баннера остаются активны.'}
                       </p>
                       <div className="profile-editor-v17__appearance-actions">
-                        <button type="button" onClick={() => switchTab('premium')}>Открыть Premium Studio</button>
+                        <button type="button" onClick={() => switchTab('style')}>Открыть Стиль</button>
                         <button type="button" className="is-secondary" onClick={() => void clearPremiumFallbackMedia()}>
                           Использовать базовые медиа
                         </button>
@@ -499,9 +530,9 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                     <img src="/premium/premium-user.webp" alt="" aria-hidden="true" />
                     <div>
                       <strong>Хочешь анимированный баннер, glow и собственную палитру?</strong>
-                      <p>Открой вкладку Premium Studio — все расширенные настройки теперь находятся здесь же.</p>
+                      <p>Открой вкладку «Стиль» — Premium-возможности встроены в тот же редактор.</p>
                     </div>
-                    <button type="button" onClick={() => switchTab('premium')}>Открыть Premium</button>
+                    <button type="button" onClick={() => switchTab('style')}>Открыть стиль</button>
                   </div>
                 </section>
               )}
@@ -541,14 +572,12 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           </div>
         )}
 
-        {activeTab !== 'premium' && (
-          <div className="profile-editor-v13__mobile-save">
-            <Link href="/profile">Отмена</Link>
-            <button type="button" disabled={!dirty || saving} onClick={() => void saveBaseProfile()}>
-              {saving ? 'Сохраняем…' : 'Сохранить изменения'}
-            </button>
-          </div>
-        )}
+        <div className="profile-editor-v13__mobile-save">
+          <Link href="/profile">Отмена</Link>
+          <button type="button" disabled={!dirty || saving || premiumBusy} onClick={() => void saveProfile()}>
+            {saving ? 'Сохраняем…' : 'Сохранить изменения'}
+          </button>
+        </div>
       </section>
     </main>
   );

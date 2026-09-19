@@ -1,0 +1,312 @@
+import {
+  ApiError,
+  adminClient,
+  failure,
+  readBody,
+  response,
+  userClient,
+} from '@/lib/community-server';
+import { getEffectiveUserEntitlements } from '@/lib/entitlements-server';
+import {
+  isHexColor,
+  isPremiumBorderStyle,
+  isPremiumProfileTheme,
+  studioSettingsFromRow,
+  type PremiumStudioSettings,
+} from '@/lib/premium-studio';
+
+export const dynamic = 'force-dynamic';
+
+const PROFILE_COLUMNS = 'id,username,bio,avatar_path,banner_path,created_at';
+const STUDIO_COLUMNS = [
+  'theme',
+  'primary_color',
+  'accent_color',
+  'text_color',
+  'glow_strength',
+  'border_style',
+  'avatar_path',
+  'avatar_static_path',
+  'avatar_position_x',
+  'avatar_position_y',
+  'avatar_zoom',
+  'banner_path',
+  'banner_static_path',
+  'banner_position_x',
+  'banner_position_y',
+  'banner_zoom',
+  'sync_player_theme',
+].join(',');
+
+type ProfilePatch = {
+  username: string;
+  bio: string | null;
+  avatar_path: string | null;
+  banner_path: string | null;
+};
+
+function objectValue(value: unknown, label: string): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new ApiError(400, `${label}: некорректные данные.`);
+  }
+  return value as Record<string, unknown>;
+}
+
+function safeBaseMediaPath(value: unknown, userId: string, label: string) {
+  if (value === null || value === '') return null;
+  if (typeof value !== 'string') throw new ApiError(400, `${label}: некорректный путь.`);
+  const path = value.trim();
+  if (
+    path.length > 360 ||
+    !path.startsWith(`${userId}/`) ||
+    path.includes('/premium/') ||
+    path.includes('..') ||
+    path.includes('\\')
+  ) {
+    throw new ApiError(400, `${label}: некорректный путь.`);
+  }
+  return path;
+}
+
+function readProfilePatch(value: unknown, userId: string): ProfilePatch {
+  const data = objectValue(value, 'Профиль');
+  const username = typeof data.username === 'string' ? data.username.trim() : '';
+  const bio = typeof data.bio === 'string' ? data.bio.trim() : '';
+
+  if (username.length < 3 || username.length > 24) {
+    throw new ApiError(400, 'Ник должен содержать от 3 до 24 символов.');
+  }
+  if (bio.length > 300) {
+    throw new ApiError(400, 'Описание не может быть длиннее 300 символов.');
+  }
+
+  return {
+    username,
+    bio: bio || null,
+    avatar_path: safeBaseMediaPath(data.avatarPath, userId, 'Аватар'),
+    banner_path: safeBaseMediaPath(data.bannerPath, userId, 'Баннер'),
+  };
+}
+
+function safePremiumMediaPath(value: unknown, userId: string) {
+  if (value === null || value === '') return null;
+  if (typeof value !== 'string') {
+    throw new ApiError(400, 'Некорректный путь Premium-медиа.');
+  }
+  const path = value.trim();
+  if (
+    path.length > 360 ||
+    !path.startsWith(`${userId}/premium/`) ||
+    path.includes('..') ||
+    path.includes('\\')
+  ) {
+    throw new ApiError(400, 'Некорректный путь Premium-медиа.');
+  }
+  return path;
+}
+
+function readPosition(value: unknown, label: string) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0 || number > 100) {
+    throw new ApiError(400, `${label} должна быть от 0 до 100.`);
+  }
+  return Math.round(number * 10) / 10;
+}
+
+function readZoom(value: unknown, label: string) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 1 || number > 3) {
+    throw new ApiError(400, `${label} должен быть от 1 до 3.`);
+  }
+  return Math.round(number * 100) / 100;
+}
+
+function readStudioSettings(value: unknown, userId: string): PremiumStudioSettings {
+  const data = objectValue(value, 'Оформление');
+  const theme = typeof data.theme === 'string' ? data.theme.trim() : '';
+  const primaryColor = typeof data.primaryColor === 'string' ? data.primaryColor.trim().toUpperCase() : '';
+  const accentColor = typeof data.accentColor === 'string' ? data.accentColor.trim().toUpperCase() : '';
+  const textColor = typeof data.textColor === 'string' ? data.textColor.trim().toUpperCase() : '';
+  const borderStyle = typeof data.borderStyle === 'string' ? data.borderStyle.trim() : '';
+  const glowStrength = Number(data.glowStrength);
+
+  if (!isPremiumProfileTheme(theme)) throw new ApiError(400, 'Неизвестная тема профиля.');
+  if (!isHexColor(primaryColor) || !isHexColor(accentColor) || !isHexColor(textColor)) {
+    throw new ApiError(400, 'Цвета должны быть в формате #RRGGBB.');
+  }
+  if (!isPremiumBorderStyle(borderStyle)) throw new ApiError(400, 'Неизвестный стиль рамки.');
+  if (!Number.isFinite(glowStrength) || glowStrength < 0 || glowStrength > 100) {
+    throw new ApiError(400, 'Интенсивность свечения должна быть от 0 до 100.');
+  }
+  if (typeof data.syncPlayerTheme !== 'boolean') {
+    throw new ApiError(400, 'Некорректная настройка темы плеера.');
+  }
+
+  return {
+    theme,
+    primaryColor,
+    accentColor,
+    textColor,
+    glowStrength: Math.round(glowStrength),
+    borderStyle,
+    avatarPath: safePremiumMediaPath(data.avatarPath, userId),
+    avatarStaticPath: safePremiumMediaPath(data.avatarStaticPath, userId),
+    avatarPositionX: readPosition(data.avatarPositionX, 'Позиция аватара по X'),
+    avatarPositionY: readPosition(data.avatarPositionY, 'Позиция аватара по Y'),
+    avatarZoom: readZoom(data.avatarZoom, 'Масштаб аватара'),
+    bannerPath: safePremiumMediaPath(data.bannerPath, userId),
+    bannerStaticPath: safePremiumMediaPath(data.bannerStaticPath, userId),
+    bannerPositionX: readPosition(data.bannerPositionX, 'Позиция баннера по X'),
+    bannerPositionY: readPosition(data.bannerPositionY, 'Позиция баннера по Y'),
+    bannerZoom: readZoom(data.bannerZoom, 'Масштаб баннера'),
+    syncPlayerTheme: data.syncPlayerTheme,
+  };
+}
+
+function studioRow(settings: PremiumStudioSettings, userId: string) {
+  return {
+    user_id: userId,
+    theme: settings.theme,
+    primary_color: settings.primaryColor,
+    accent_color: settings.accentColor,
+    text_color: settings.textColor,
+    glow_strength: settings.glowStrength,
+    border_style: settings.borderStyle,
+    avatar_path: settings.avatarPath,
+    avatar_static_path: settings.avatarStaticPath,
+    avatar_position_x: settings.avatarPositionX,
+    avatar_position_y: settings.avatarPositionY,
+    avatar_zoom: settings.avatarZoom,
+    banner_path: settings.bannerPath,
+    banner_static_path: settings.bannerStaticPath,
+    banner_position_x: settings.bannerPositionX,
+    banner_position_y: settings.bannerPositionY,
+    banner_zoom: settings.bannerZoom,
+    sync_player_theme: settings.syncPlayerTheme,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export async function GET() {
+  try {
+    const { user } = await userClient();
+    const admin = adminClient();
+    const [profileResult, studioResult, entitlements] = await Promise.all([
+      admin.from('profiles').select(PROFILE_COLUMNS).eq('id', user.id).single(),
+      admin.from('premium_profile_settings').select(STUDIO_COLUMNS).eq('user_id', user.id).maybeSingle(),
+      getEffectiveUserEntitlements(user.id),
+    ]);
+
+    if (profileResult.error) throw profileResult.error;
+    if (studioResult.error) throw studioResult.error;
+
+    const settings = studioSettingsFromRow(
+      studioResult.data as Record<string, unknown> | null,
+    );
+    const allowed = Boolean(entitlements.profileStudio && entitlements.premiumThemes);
+
+    return response({
+      profile: profileResult.data,
+      settings,
+      studio: settings,
+      allowed,
+      capabilities: {
+        premium: allowed,
+        profileStudio: Boolean(entitlements.profileStudio),
+        premiumThemes: Boolean(entitlements.premiumThemes),
+        animatedMedia: Boolean(entitlements.animatedAvatar),
+      },
+    });
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const { user } = await userClient();
+    const body = await readBody(request);
+    const hasProfile = Object.prototype.hasOwnProperty.call(body, 'profile');
+    const hasStudio = Object.prototype.hasOwnProperty.call(body, 'studio');
+
+    if (!hasProfile && !hasStudio) {
+      throw new ApiError(400, 'Нет изменений для сохранения.');
+    }
+
+    const admin = adminClient();
+    const entitlements = await getEffectiveUserEntitlements(user.id);
+    const allowed = Boolean(entitlements.profileStudio && entitlements.premiumThemes);
+    const profilePatch = hasProfile ? readProfilePatch(body.profile, user.id) : null;
+    const settings = hasStudio ? readStudioSettings(body.studio, user.id) : null;
+
+    if (settings && !allowed) {
+      throw new ApiError(403, 'Расширенное оформление доступно только с AnimeBox Premium.');
+    }
+
+    const [oldProfileResult, oldStudioResult] = await Promise.all([
+      admin.from('profiles').select(PROFILE_COLUMNS).eq('id', user.id).single(),
+      admin.from('premium_profile_settings').select(STUDIO_COLUMNS).eq('user_id', user.id).maybeSingle(),
+    ]);
+    if (oldProfileResult.error) throw oldProfileResult.error;
+    if (oldStudioResult.error) throw oldStudioResult.error;
+
+    let committedProfile = oldProfileResult.data;
+    let committedSettings = studioSettingsFromRow(
+      oldStudioResult.data as Record<string, unknown> | null,
+    );
+    let profileWritten = false;
+
+    if (profilePatch) {
+      const { data, error } = await admin
+        .from('profiles')
+        .update(profilePatch)
+        .eq('id', user.id)
+        .select(PROFILE_COLUMNS)
+        .single();
+
+      if (error?.code === '23505') throw new ApiError(409, 'Этот ник уже занят.');
+      if (error) throw error;
+      committedProfile = data;
+      profileWritten = true;
+    }
+
+    if (settings) {
+      const { error } = await admin
+        .from('premium_profile_settings')
+        .upsert(studioRow(settings, user.id), { onConflict: 'user_id' });
+
+      if (error) {
+        if (profileWritten) {
+          const old = oldProfileResult.data;
+          await admin
+            .from('profiles')
+            .update({
+              username: old.username,
+              bio: old.bio,
+              avatar_path: old.avatar_path,
+              banner_path: old.banner_path,
+            })
+            .eq('id', user.id);
+        }
+        throw error;
+      }
+      committedSettings = settings;
+    }
+
+    return response({
+      ok: true,
+      profile: committedProfile,
+      settings: committedSettings,
+      studio: committedSettings,
+      allowed,
+      capabilities: {
+        premium: allowed,
+        profileStudio: Boolean(entitlements.profileStudio),
+        premiumThemes: Boolean(entitlements.premiumThemes),
+        animatedMedia: Boolean(entitlements.animatedAvatar),
+      },
+    });
+  } catch (error) {
+    return failure(error);
+  }
+}

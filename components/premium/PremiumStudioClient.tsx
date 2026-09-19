@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
 import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor';
@@ -28,6 +28,22 @@ type StudioResponse = {
   theme?: PremiumProfileTheme;
   settings?: PremiumStudioSettings;
   error?: string;
+};
+
+export type PremiumStudioHandle = {
+  getDraft: () => PremiumStudioSettings;
+  markSaved: (settings?: PremiumStudioSettings) => void;
+  isDirty: () => boolean;
+};
+
+type PremiumStudioClientProps = {
+  embedded?: boolean;
+  hideDock?: boolean;
+  initialSettings?: PremiumStudioSettings | null;
+  initialAllowed?: boolean | null;
+  onDirtyChange?: (dirty: boolean) => void;
+  onBusyChange?: (busy: boolean) => void;
+  onSettingsCommitted?: (settings: PremiumStudioSettings) => void;
 };
 
 type UploadKind = 'avatar' | 'banner';
@@ -285,19 +301,29 @@ function StudioColorField({
   );
 }
 
-export default function PremiumStudioClient({ embedded = false }: { embedded?: boolean }) {
+const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientProps>(function PremiumStudioClient({
+  embedded = false,
+  hideDock = false,
+  initialSettings = null,
+  initialAllowed = null,
+  onDirtyChange,
+  onBusyChange,
+  onSettingsCommitted,
+}, ref) {
   const supabase = useMemo(() => createClient(), []);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const mediaObjectUrlRef = useRef<string | null>(null);
 
   const [settings, setSettings] = useState<PremiumStudioSettings>(
-    DEFAULT_PREMIUM_STUDIO_SETTINGS,
+    () => initialSettings ?? DEFAULT_PREMIUM_STUDIO_SETTINGS,
   );
   const [savedSettings, setSavedSettings] = useState<PremiumStudioSettings>(
-    DEFAULT_PREMIUM_STUDIO_SETTINGS,
+    () => initialSettings ?? DEFAULT_PREMIUM_STUDIO_SETTINGS,
   );
-  const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [allowed, setAllowed] = useState<boolean | null>(
+    () => initialSettings ? Boolean(initialAllowed) : null,
+  );
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<UploadKind | ''>('');
   const [error, setError] = useState('');
@@ -307,9 +333,11 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
   const mediaEditorOpen = Boolean(mediaEditor);
 
   useEffect(() => {
+    if (initialSettings) return;
+
     let active = true;
 
-    void fetch('/api/premium/studio', { cache: 'no-store' })
+    void fetch('/api/profile/editor', { cache: 'no-store' })
       .then(async (response) => {
         const payload = (await response.json()) as StudioResponse;
         if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить Profile Studio');
@@ -333,7 +361,7 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialAllowed, initialSettings]);
 
   useEffect(() => {
     if (!mediaEditorOpen) return;
@@ -362,6 +390,24 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
   }, []);
 
   const dirty = JSON.stringify(settings) !== JSON.stringify(savedSettings);
+
+  useImperativeHandle(ref, () => ({
+    getDraft: () => settings,
+    markSaved: (nextSettings = settings) => {
+      setSettings(nextSettings);
+      setSavedSettings(nextSettings);
+      setSaved('Настройки сохранены ✓');
+    },
+    isDirty: () => dirty,
+  }), [dirty, settings]);
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+
+  useEffect(() => {
+    onBusyChange?.(saving || Boolean(uploading));
+  }, [onBusyChange, saving, uploading]);
   const contrast = contrastRatio(settings.textColor, settings.primaryColor);
   const safeTextColor = resolveReadableTextColor(settings.textColor, settings.primaryColor);
   const contrastProtected = safeTextColor !== settings.textColor;
@@ -394,10 +440,10 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
     setSaved('');
 
     try {
-      const response = await fetch('/api/premium/studio', {
+      const response = await fetch('/api/profile/editor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(next),
+        body: JSON.stringify({ studio: next }),
       });
       const payload = (await response.json()) as StudioResponse;
 
@@ -409,6 +455,7 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
       setSettings(committed);
       setSavedSettings(committed);
       setSaved(message);
+      onSettingsCommitted?.(committed);
       window.dispatchEvent(new Event('animebox:premium-studio-updated'));
       return committed;
     } catch (requestError) {
@@ -977,6 +1024,7 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
             </section>
           )}
         </div>
+        {!hideDock && (
         <div className="premium-studio-v15__dock">
           <div className="premium-studio-v15__dock-status">
             <strong>{dirty ? 'Есть несохранённые изменения' : 'Все изменения сохранены'}</strong>
@@ -1017,6 +1065,7 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
             </button>
           </div>
         </div>
+        )}
 
         {(saved || error) && (
           <div className="premium-studio-v15__messages">
@@ -1077,4 +1126,6 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
       )}
     </div>
   );
-}
+});
+
+export default PremiumStudioClient;
