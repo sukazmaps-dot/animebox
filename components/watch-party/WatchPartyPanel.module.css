@@ -1364,3 +1364,13 @@
     font-size: 6px;
   }
 }
+
+/* =========================================================
+   WATCH TOGETHER · SERVER RELAY FALLBACK v2.2
+   ========================================================= */
+
+.networkRoute[data-route='server'] {
+  border-color: rgba(34, 211, 238, 0.22);
+  background: rgba(6, 182, 212, 0.08);
+  color: rgba(165, 243, 252, 0.92);
+}

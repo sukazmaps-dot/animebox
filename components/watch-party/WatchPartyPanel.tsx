@@ -9,6 +9,10 @@ import {
   detectWatchPartyRoute,
   type WatchPartyNetworkRoute,
 } from '@/lib/watch-party-network-client';
+import {
+  openWatchPartyRelay,
+  type WatchPartyRelay,
+} from '@/lib/watch-party-relay-client';
 
 import { createClient } from '@/lib/supabase/client';
 import { premiumMediaStyle, type PremiumMediaTransform } from '@/lib/premium-studio';
@@ -80,6 +84,7 @@ const CHAT_SEND_COOLDOWN_MS = 650;
 const NEGOTIATION_TIMEOUT_MS = 30_000;
 const HANDSHAKE_TIMEOUT_MS = 10_000;
 const MAX_RECONNECT_ATTEMPTS = 7;
+const SERVER_RELAY_FALLBACK_MS = 3_500;
 
 function sanitizeDisplayName(value: string | null | undefined) {
   const clean = value?.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 32);
@@ -173,6 +178,11 @@ export default function WatchPartyPanel({
   const chatMessagesRef = useRef<HTMLDivElement | null>(null);
   const startHostRef = useRef<(invite: WatchPartyInvite) => void>(() => undefined);
   const requestedIdentityIdsRef = useRef(new Set<string>());
+  const relayRef = useRef<WatchPartyRelay | null>(null);
+  const relayFallbackTimerRef = useRef<number | null>(null);
+  const guestWelcomedRef = useRef(false);
+  const guestTransportRef = useRef<'p2p' | 'server' | null>(null);
+  const relayHostGuestIdsRef = useRef(new Set<string>());
 
   const publishParticipants = useCallback((next: WatchPartyParticipant[]) => {
     const sorted = [...next]
@@ -284,6 +294,10 @@ export default function WatchPartyPanel({
     for (const connection of hostConnectionsRef.current.values()) {
       send(connection, packet);
     }
+
+    if (roleRef.current === 'host' && relayRef.current) {
+      void relayRef.current.send(packet);
+    }
   }, [send]);
 
   const appendChatMessage = useCallback((message: WatchPartyChatMessage) => {
@@ -383,10 +397,8 @@ export default function WatchPartyPanel({
     const next = [...participantsRef.current.values()];
     publishParticipants(next);
     const packet: WatchPartyPacket = { type: 'PARTICIPANTS', participants: next };
-    for (const connection of hostConnectionsRef.current.values()) {
-      send(connection, packet);
-    }
-  }, [publishParticipants, send]);
+    broadcast(packet);
+  }, [broadcast, publishParticipants]);
 
   const clearTimers = useCallback(() => {
     if (reconnectTimerRef.current != null) {
@@ -401,6 +413,10 @@ export default function WatchPartyPanel({
       window.clearInterval(syncTimerRef.current);
       syncTimerRef.current = null;
     }
+    if (relayFallbackTimerRef.current != null) {
+      window.clearTimeout(relayFallbackTimerRef.current);
+      relayFallbackTimerRef.current = null;
+    }
   }, []);
 
   const destroyTransport = useCallback(() => {
@@ -413,6 +429,12 @@ export default function WatchPartyPanel({
     const peer = peerRef.current;
     peerRef.current = null;
     if (peer && !peer.destroyed) peer.destroy();
+    const relay = relayRef.current;
+    relayRef.current = null;
+    if (relay) void relay.close();
+    relayHostGuestIdsRef.current.clear();
+    guestWelcomedRef.current = false;
+    guestTransportRef.current = null;
   }, [clearTimers]);
 
   const resetParty = useCallback((removeHostClaim = true) => {
@@ -453,6 +475,32 @@ export default function WatchPartyPanel({
   }, [destroyTransport]);
 
   const scheduleGuestReconnectRef = useRef<() => void>(() => undefined);
+
+  const ensureHostTimers = useCallback(() => {
+    if (roleRef.current !== 'host') return;
+
+    if (heartbeatTimerRef.current == null) {
+      heartbeatTimerRef.current = window.setInterval(() => {
+        broadcast({ type: 'ROOM_HEARTBEAT', sentAt: Date.now() });
+      }, HOST_HEARTBEAT_MS);
+    }
+
+    if (syncTimerRef.current == null) {
+      syncTimerRef.current = window.setInterval(() => {
+        sendHostSync();
+      }, PLAYER_SYNC_MS);
+    }
+  }, [broadcast, sendHostSync]);
+
+  const sendGuestPacket = useCallback((packet: WatchPartyPacket) => {
+    if (guestTransportRef.current === 'server' && relayRef.current) {
+      void relayRef.current.send(packet);
+      return true;
+    }
+
+    const connection = guestConnectionRef.current;
+    return connection?.open ? send(connection, packet) : false;
+  }, [send]);
 
   const attachGuestConnection = useCallback((peer: PeerInstance, invite: WatchPartyInvite, identity: PartyIdentity) => {
     if (intentionalCloseRef.current || hostEndedRef.current) return;
@@ -533,7 +581,13 @@ export default function WatchPartyPanel({
           connection.close();
           return;
         }
+        if (guestTransportRef.current === 'server') {
+          connection.close();
+          return;
+        }
         welcomed = true;
+        guestWelcomedRef.current = true;
+        guestTransportRef.current = 'p2p';
         clearAttemptTimers();
         reconnectAttemptRef.current = 0;
         publishParticipants(packet.participants);
@@ -628,7 +682,12 @@ export default function WatchPartyPanel({
     connection.on('close', () => {
       clearAttemptTimers();
       if (guestConnectionRef.current === connection) guestConnectionRef.current = null;
-      if (intentionalCloseRef.current || hostEndedRef.current || reconnectQueued) return;
+      if (
+        intentionalCloseRef.current ||
+        hostEndedRef.current ||
+        reconnectQueued ||
+        guestTransportRef.current === 'server'
+      ) return;
       reconnectQueued = true;
       setStatus('reconnecting');
       scheduleGuestReconnectRef.current();
@@ -636,7 +695,12 @@ export default function WatchPartyPanel({
 
     connection.on('error', () => {
       clearAttemptTimers();
-      if (intentionalCloseRef.current || hostEndedRef.current || reconnectQueued) return;
+      if (
+        intentionalCloseRef.current ||
+        hostEndedRef.current ||
+        reconnectQueued ||
+        guestTransportRef.current === 'server'
+      ) return;
       reconnectQueued = true;
       setStatus('reconnecting');
       scheduleGuestReconnectRef.current();
@@ -662,13 +726,174 @@ export default function WatchPartyPanel({
     identityRef.current = identity;
     if (intentionalCloseRef.current) return;
 
+    guestWelcomedRef.current = false;
+    guestTransportRef.current = null;
+
+    const startServerRelay = async () => {
+      if (
+        intentionalCloseRef.current ||
+        hostEndedRef.current ||
+        guestWelcomedRef.current ||
+        relayRef.current
+      ) return;
+
+      try {
+        const relay = await openWatchPartyRelay(invite, (packet) => {
+          if (intentionalCloseRef.current || hostEndedRef.current) return;
+
+          if (packet.type === 'WELCOME') {
+            if (packet.roomId !== invite.roomId || packet.protocol !== WATCH_PARTY_PROTOCOL) return;
+            if (guestTransportRef.current === 'p2p') return;
+
+            guestWelcomedRef.current = true;
+            guestTransportRef.current = 'server';
+            reconnectAttemptRef.current = 0;
+            publishParticipants(packet.participants);
+            setNetworkRoute('server');
+            setError('');
+            setStatus('active');
+            guestConnectionRef.current?.close();
+            return;
+          }
+
+          if (guestTransportRef.current !== 'server') return;
+
+          if (packet.type === 'PARTICIPANTS') {
+            publishParticipants(packet.participants);
+            return;
+          }
+
+          if (packet.type === 'PLAYER_APPLY') {
+            if (packet.seq <= lastAppliedSeqRef.current) return;
+            lastAppliedSeqRef.current = packet.seq;
+            const playing = packet.action === 'play'
+              ? true
+              : packet.action === 'pause'
+                ? false
+                : playerStateRef.current?.playing ?? false;
+            setLastController(`${packet.actorName}: ${packet.action === 'play' ? '▶ воспроизведение' : packet.action === 'pause' ? '❚❚ пауза' : '↔ перемотка'}`);
+            dispatchPlayerCommand({
+              action: packet.action,
+              episode: packet.episode,
+              position: packet.position,
+              playing,
+              seq: packet.seq,
+            });
+            return;
+          }
+
+          if (packet.type === 'PLAYER_SYNC') {
+            if (packet.seq < lastAppliedSeqRef.current) return;
+            const state = playerStateRef.current;
+            const networkAdjusted = packet.playing
+              ? packet.position + Math.min(2, Math.max(0, (Date.now() - packet.sentAt) / 1000))
+              : packet.position;
+
+            if (!state) {
+              dispatchPlayerCommand({
+                action: packet.playing ? 'play' : 'pause',
+                episode: packet.episode,
+                position: networkAdjusted,
+                playing: packet.playing,
+                seq: packet.seq,
+              });
+              return;
+            }
+            if (state.episode !== packet.episode) return;
+
+            const drift = Math.abs(state.position - networkAdjusted);
+            if (state.playing !== packet.playing) {
+              dispatchPlayerCommand({
+                action: packet.playing ? 'play' : 'pause',
+                episode: packet.episode,
+                position: networkAdjusted,
+                playing: packet.playing,
+                seq: packet.seq,
+              });
+            } else if (drift >= PLAYER_DRIFT_SEEK_SECONDS) {
+              dispatchPlayerCommand({
+                action: 'seek',
+                episode: packet.episode,
+                position: networkAdjusted,
+                playing: packet.playing,
+                seq: packet.seq,
+              });
+            }
+            return;
+          }
+
+          if (packet.type === 'CHAT_MESSAGE') {
+            appendChatMessage(packet.message);
+            return;
+          }
+
+          if (packet.type === 'HOST_ENDED') {
+            hostEndedRef.current = true;
+            setStatus('ended');
+            setError('Хост завершил совместный просмотр.');
+            return;
+          }
+
+          if (packet.type === 'REJECT') {
+            hostEndedRef.current = true;
+            setStatus('error');
+            setError(rejectMessage(packet.reason));
+          }
+        });
+
+        if (intentionalCloseRef.current || hostEndedRef.current || guestWelcomedRef.current) {
+          await relay.close();
+          return;
+        }
+
+        relayRef.current = relay;
+        setError('WebRTC недоступен — подключаем защищённый серверный relay…');
+
+        const hello: WatchPartyPacket = {
+          type: 'HELLO',
+          protocol: WATCH_PARTY_PROTOCOL,
+          roomId: invite.roomId,
+          secret: invite.secret,
+          participant: {
+            id: relay.id,
+            userId: identity.userId,
+            name: identity.displayName,
+            host: false,
+            joinedAt: Date.now(),
+          },
+        };
+
+        // Broadcast has no durable queue. Retry HELLO briefly so a host
+        // that is finishing its Realtime subscription cannot miss it.
+        for (let attempt = 0; attempt < 5 && !guestWelcomedRef.current; attempt += 1) {
+          await relay.send(hello);
+          if (guestWelcomedRef.current) break;
+          await new Promise((resolve) => window.setTimeout(resolve, 1_200));
+        }
+      } catch {
+        if (!guestWelcomedRef.current) {
+          setError('Не удалось открыть резервный relay. Продолжаем попытки WebRTC…');
+        }
+      }
+    };
+
+    relayFallbackTimerRef.current = window.setTimeout(() => {
+      relayFallbackTimerRef.current = null;
+      void startServerRelay();
+    }, SERVER_RELAY_FALLBACK_MS);
+
     const { peer, network } = await createWatchPartyPeer();
     setSignalingMode(network.signalingMode);
     setNetworkRoute('unknown');
     peerRef.current = peer;
 
     scheduleGuestReconnectRef.current = () => {
-      if (intentionalCloseRef.current || hostEndedRef.current || peer.destroyed) return;
+      if (
+        intentionalCloseRef.current ||
+        hostEndedRef.current ||
+        peer.destroyed ||
+        guestTransportRef.current === 'server'
+      ) return;
       if (reconnectTimerRef.current != null) return;
 
       const attempt = reconnectAttemptRef.current + 1;
@@ -699,13 +924,13 @@ export default function WatchPartyPanel({
     });
 
     peer.on('disconnected', () => {
-      if (intentionalCloseRef.current || hostEndedRef.current) return;
+      if (intentionalCloseRef.current || hostEndedRef.current || guestTransportRef.current === 'server') return;
       setStatus('reconnecting');
       scheduleGuestReconnectRef.current();
     });
 
     peer.on('error', (peerError) => {
-      if (intentionalCloseRef.current || hostEndedRef.current) return;
+      if (intentionalCloseRef.current || hostEndedRef.current || guestTransportRef.current === 'server') return;
       const type = 'type' in peerError ? String(peerError.type) : '';
       if (type === 'peer-unavailable' || type === 'network' || type === 'disconnected') {
         setStatus('reconnecting');
@@ -749,6 +974,116 @@ export default function WatchPartyPanel({
       joinedAt: Date.now(),
     };
     participantsRef.current.set(hostPeerId, hostParticipant);
+
+    void openWatchPartyRelay(invite, (packet, senderId) => {
+      if (intentionalCloseRef.current) return;
+
+      if (packet.type === 'HELLO') {
+        if (
+          packet.protocol !== WATCH_PARTY_PROTOCOL ||
+          packet.roomId !== invite.roomId ||
+          packet.secret !== invite.secret ||
+          packet.participant.host ||
+          packet.participant.id !== senderId
+        ) {
+          void relayRef.current?.send({ type: 'REJECT', reason: 'invalid_room' }, senderId);
+          return;
+        }
+
+        if (
+          !participantsRef.current.has(senderId) &&
+          participantsRef.current.size >= WATCH_PARTY_MAX_PARTICIPANTS
+        ) {
+          void relayRef.current?.send({ type: 'REJECT', reason: 'room_full' }, senderId);
+          return;
+        }
+
+        relayHostGuestIdsRef.current.add(senderId);
+        participantsRef.current.set(senderId, {
+          ...packet.participant,
+          id: senderId,
+          joinedAt: Date.now(),
+        });
+
+        const current = [...participantsRef.current.values()];
+        void relayRef.current?.send({
+          type: 'WELCOME',
+          protocol: WATCH_PARTY_PROTOCOL,
+          roomId: invite.roomId,
+          participants: current,
+        }, senderId);
+        broadcastParticipants();
+        setNetworkRoute('server');
+
+        const state = currentPlayerSnapshot();
+        if (state) {
+          void relayRef.current?.send({
+            type: 'PLAYER_SYNC',
+            seq: hostSeqRef.current,
+            episode: state.episode,
+            position: state.position,
+            playing: state.playing,
+            sentAt: Date.now(),
+          }, senderId);
+        }
+        return;
+      }
+
+      const participant = participantsRef.current.get(senderId);
+      if (!participant || participant.host || !relayHostGuestIdsRef.current.has(senderId)) return;
+
+      if (packet.type === 'PLAYER_ACTION') {
+        if (packet.episode !== episodeNumber) return;
+        sequencePlayerAction(
+          {
+            actionId: packet.actionId,
+            action: packet.action,
+            episode: packet.episode,
+            position: packet.position,
+            playing: packet.action === 'play'
+              ? true
+              : packet.action === 'pause'
+                ? false
+                : playerStateRef.current?.playing ?? false,
+            observedAt: packet.sentAt,
+          },
+          { userId: participant.userId, displayName: participant.name },
+          true,
+        );
+        return;
+      }
+
+      if (packet.type === 'CHAT_SEND') {
+        if (chatIdsRef.current.has(packet.id)) return;
+        const now = Date.now();
+        const previous = hostPeerChatAtRef.current.get(senderId) ?? 0;
+        if (now - previous < CHAT_SEND_COOLDOWN_MS) return;
+        hostPeerChatAtRef.current.set(senderId, now);
+
+        const message: WatchPartyChatMessage = {
+          id: packet.id,
+          userId: participant.userId,
+          name: participant.name,
+          host: false,
+          text: packet.text,
+          sentAt: now,
+        };
+        appendChatMessage(message);
+        broadcast({ type: 'CHAT_MESSAGE', message });
+      }
+    }).then((relay) => {
+      if (intentionalCloseRef.current) {
+        void relay.close();
+        return;
+      }
+      relayRef.current = relay;
+      publishParticipants([...participantsRef.current.values()]);
+      setError('');
+      setStatus('active');
+      ensureHostTimers();
+    }).catch(() => {
+      // PeerJS remains the primary path if Supabase Realtime is unavailable.
+    });
 
     peer.on('connection', (connection) => {
       if (intentionalCloseRef.current) {
@@ -914,13 +1249,7 @@ export default function WatchPartyPanel({
       publishParticipants([...participantsRef.current.values()]);
       setError('');
       setStatus('active');
-      heartbeatTimerRef.current = window.setInterval(() => {
-        const packet: WatchPartyPacket = { type: 'ROOM_HEARTBEAT', sentAt: Date.now() };
-        for (const connection of hostConnectionsRef.current.values()) send(connection, packet);
-      }, HOST_HEARTBEAT_MS);
-      syncTimerRef.current = window.setInterval(() => {
-        sendHostSync();
-      }, PLAYER_SYNC_MS);
+      ensureHostTimers();
     });
 
     peer.on('disconnected', () => {
@@ -965,6 +1294,8 @@ export default function WatchPartyPanel({
     appendChatMessage,
     broadcast,
     broadcastParticipants,
+    currentPlayerSnapshot,
+    ensureHostTimers,
     episodeNumber,
     publishParticipants,
     redirectToRegistration,
@@ -994,9 +1325,7 @@ export default function WatchPartyPanel({
       }
 
       if (roleRef.current === 'guest') {
-        const connection = guestConnectionRef.current;
-        if (!connection?.open) return;
-        send(connection, {
+        sendGuestPacket({
           type: 'PLAYER_ACTION',
           actionId: detail.actionId,
           action: detail.action,
@@ -1014,7 +1343,7 @@ export default function WatchPartyPanel({
       window.removeEventListener(WATCH_PARTY_PLAYER_STATE_EVENT, onPlayerState);
       window.removeEventListener(WATCH_PARTY_PLAYER_ACTION_EVENT, onPlayerAction);
     };
-  }, [episodeNumber, send, sequencePlayerAction]);
+  }, [episodeNumber, sendGuestPacket, sequencePlayerAction]);
 
   useEffect(() => {
     startHostRef.current = (nextInvite) => {
@@ -1082,7 +1411,7 @@ export default function WatchPartyPanel({
         }
       }
 
-      if (roleRef.current === 'guest') {
+      if (roleRef.current === 'guest' && guestTransportRef.current !== 'server') {
         scheduleGuestReconnectRef.current();
       }
     };
@@ -1191,11 +1520,10 @@ export default function WatchPartyPanel({
       return;
     }
 
-    const connection = guestConnectionRef.current;
-    if (roleRef.current === 'guest' && connection?.open) {
-      send(connection, { type: 'CHAT_SEND', id, text, sentAt: now });
+    if (roleRef.current === 'guest') {
+      sendGuestPacket({ type: 'CHAT_SEND', id, text, sentAt: now });
     }
-  }, [appendChatMessage, broadcast, chatText, send, status]);
+  }, [appendChatMessage, broadcast, chatText, sendGuestPacket, status]);
 
   const leaveParty = useCallback(() => {
     const finish = (removeHostClaim: boolean) => {
@@ -1207,15 +1535,13 @@ export default function WatchPartyPanel({
 
     if (roleRef.current === 'host') {
       intentionalCloseRef.current = true;
-      for (const connection of hostConnectionsRef.current.values()) {
-        send(connection, { type: 'HOST_ENDED', reason: 'host_left' });
-      }
+      broadcast({ type: 'HOST_ENDED', reason: 'host_left' });
       window.setTimeout(() => finish(true), 80);
       return;
     }
 
     finish(false);
-  }, [episodePath, mode, resetParty, send]);
+  }, [broadcast, episodePath, mode, resetParty]);
 
   useEffect(() => {
     if (mode !== 'theater') return;
@@ -1267,17 +1593,21 @@ export default function WatchPartyPanel({
             <span
               className={styles.networkRoute}
               data-route={networkRoute}
-              title={networkRoute === 'relay'
-                ? 'Соединение идёт через TURN relay'
-                : networkRoute === 'p2p'
+              title={networkRoute === 'server'
+                ? 'WebRTC заблокирован: команды и чат идут через защищённый серверный WebSocket relay'
+                : networkRoute === 'relay'
+                  ? 'Соединение идёт через TURN relay'
+                  : networkRoute === 'p2p'
                   ? 'Прямое WebRTC P2P соединение'
                   : signalingMode === 'self-hosted'
                     ? 'AnimeBox signaling подключён, ICE маршрут определяется'
                     : 'Используется резервный PeerJS Cloud signaling'}
             >
-              {networkRoute === 'relay'
-                ? 'TURN RELAY'
-                : networkRoute === 'p2p'
+              {networkRoute === 'server'
+                ? 'WS RELAY'
+                : networkRoute === 'relay'
+                  ? 'TURN RELAY'
+                  : networkRoute === 'p2p'
                   ? 'P2P'
                   : signalingMode === 'self-hosted'
                     ? 'ICE'
@@ -1548,7 +1878,7 @@ export default function WatchPartyPanel({
 
         <div className={styles.footer}>
           <span className={styles.note}>
-            Чат и команды плеера идут через WebRTC DataChannel. Видео каждый участник загружает напрямую у провайдера. Максимум {WATCH_PARTY_MAX_PARTICIPANTS} человек.
+            Чат и команды идут через WebRTC, TURN или защищённый WS relay. Видео каждый участник загружает напрямую у провайдера. Максимум {WATCH_PARTY_MAX_PARTICIPANTS} человек.
           </span>
           <div className={styles.actions}>
             {inviteUrl && status !== 'ended' && status !== 'error' && (

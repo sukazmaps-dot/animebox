@@ -2,7 +2,7 @@
 
 import type { DataConnection, PeerOptions, Peer as PeerInstance } from 'peerjs';
 
-export type WatchPartyNetworkRoute = 'unknown' | 'p2p' | 'relay';
+export type WatchPartyNetworkRoute = 'unknown' | 'p2p' | 'relay' | 'server';
 export type WatchPartySignalingMode = 'peerjs-cloud' | 'self-hosted';
 
 export type WatchPartyNetworkConfig = {
@@ -211,9 +211,6 @@ export async function detectWatchPartyRoute(
       });
     }
 
-    // TypeScript does not model assignments performed inside RTCStatsReport.forEach
-    // for control-flow narrowing. Preserve the runtime value with an explicit
-    // assertion before reading the candidate-pair fields.
     const chosenPair = selectedPair as Record<string, unknown> | null;
     if (!chosenPair) return 'unknown';
 
@@ -248,19 +245,19 @@ export function describeWatchPartyPeerError(
     type === 'socket-closed'
   ) {
     return network.signalingMode === 'self-hosted'
-      ? 'Не удалось связаться с сервером Watch Together. Проверь сеть или VPN — AnimeBox попробует восстановить соединение.'
-      : 'Не удалось связаться с PeerJS Cloud. Для стабильной работы настрой AnimeBox signaling server.';
+      ? 'Не удалось связаться с сервером Watch Together. AnimeBox попробует резервный серверный канал.'
+      : 'PeerJS Cloud недоступен. AnimeBox попробует резервный серверный канал.';
   }
 
   if (type === 'webrtc') {
     return network.turnConfigured
-      ? 'WebRTC не смог построить маршрут даже через TURN. Попробуй переподключить VPN или сменить сеть.'
-      : 'Прямое WebRTC-соединение заблокировано сетью/NAT. TURN fallback пока не настроен.';
+      ? 'WebRTC не смог построить маршрут через ICE/TURN. Переключаемся на резервный серверный канал.'
+      : 'Прямое WebRTC-соединение заблокировано сетью/NAT. Переключаемся на резервный серверный канал.';
   }
 
   if (type === 'peer-unavailable') {
-    return 'Хост комнаты пока недоступен. AnimeBox попробует переподключиться.';
+    return 'Хост пока не найден через WebRTC. AnimeBox попробует резервный серверный канал.';
   }
 
-  return 'Не удалось установить соединение Watch Together. Попробуй обновить страницу или сменить сеть.';
+  return 'WebRTC временно недоступен. AnimeBox попробует резервный серверный канал.';
 }
