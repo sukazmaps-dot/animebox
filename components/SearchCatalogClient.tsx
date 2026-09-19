@@ -11,6 +11,7 @@ import type { CatalogMood } from '@/lib/catalog-moods';
 import type { Anime } from '@/types/anime';
 import AdSlot from '@/components/monetization/AdSlot';
 import { parseAnimeSearchIntent } from '@/lib/search-intent';
+import { CATALOG_AD_BREAK_INDEX, CATALOG_PAGE_SIZE } from '@/lib/catalog-pagination';
 
 import styles from './SearchCatalogClient.module.css';
 
@@ -49,7 +50,7 @@ export default function SearchCatalogClient({
   const [pageState, setPageState] = useState({ query, page: 1 });
   const page = pageState.query === query ? pageState.page : 1;
   const initialRenderRef = useRef(true);
-  const [hasNextPage, setHasNextPage] = useState(initialResults.length >= 16);
+  const [hasNextPage, setHasNextPage] = useState(initialResults.length >= CATALOG_PAGE_SIZE);
 
   useEffect(() => {
     // Skip only the initial unfiltered browser request: SSR already supplied it.
@@ -77,7 +78,7 @@ export default function SearchCatalogClient({
           {
             search: query || undefined,
             page,
-            limit: 16,
+            limit: CATALOG_PAGE_SIZE,
             order: 'ranked',
             genre: selectedGenre ?? undefined,
             mood: selectedMood,
@@ -88,7 +89,7 @@ export default function SearchCatalogClient({
         if (controller.signal.aborted) return;
 
         setResults(data);
-        setHasNextPage(data.length === 16);
+        setHasNextPage(data.length === CATALOG_PAGE_SIZE);
       } catch (err: unknown) {
         if (isAbortError(err)) return;
         setResults([]);
@@ -104,7 +105,9 @@ export default function SearchCatalogClient({
 
   const hasFilters = selectedGenre !== null || selectedMood !== 'any';
   const showCatalogAd = !loading && results.length >= 8;
-  const catalogAdBreakIndex = results.length > 10 ? 10 : results.length;
+  const catalogAdBreakIndex = results.length > CATALOG_AD_BREAK_INDEX
+    ? CATALOG_AD_BREAK_INDEX
+    : results.length;
   const catalogLead = showCatalogAd ? results.slice(0, catalogAdBreakIndex) : results;
   const catalogTail = showCatalogAd ? results.slice(catalogAdBreakIndex) : [];
 
