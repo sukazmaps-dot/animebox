@@ -8,20 +8,13 @@
   padding: 12px 0 4px;
 }
 
-.genreScroller {
-  display: flex;
-  align-items: center;
-  gap: 7px;
+.genreRail {
   min-width: 0;
   flex: 1 1 auto;
-  overflow-x: auto;
-  padding: 0 1px;
-  scrollbar-width: none;
-  overscroll-behavior-inline: contain;
 }
 
-.genreScroller::-webkit-scrollbar {
-  display: none;
+.genreRailButton {
+  scroll-margin-inline: 42px;
 }
 
 .allGenres {
@@ -29,10 +22,21 @@
 }
 
 .moodHint {
+  flex: 0 0 auto;
   margin-left: auto;
   color: #665f7d;
   font-size: 8px;
   white-space: nowrap;
+}
+
+/* On medium desktop widths the explanatory microcopy steals enough space from
+   the horizontal genre rail to leave a 5–10px sliver of the next active chip.
+   The relationship is already obvious from the controls themselves, so hide
+   the hint before compressing the actual navigation. */
+@media (max-width: 1180px) {
+  .moodHint {
+    display: none;
+  }
 }
 
 @media (max-width: 760px) {
@@ -41,18 +45,17 @@
     row-gap: 9px;
   }
 
-  .genreScroller {
+  .genreRail {
     order: 3;
-    flex-basis: 100%;
-    margin-inline: -14px;
-    padding-inline: 14px;
+    flex: 1 0 100%;
+    width: 100%;
+    min-width: 0;
   }
 
   .moodHint {
     display: none;
   }
 }
-
 
 .assetEmpty {
   position: relative;

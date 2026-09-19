@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 
 import AnimeCard from '@/components/AnimeCard';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
+import HorizontalNavRail from '@/components/ui/HorizontalNavRail';
 import MoodFilter from '@/components/catalog/MoodFilter';
 import { getAnimes, isAbortError } from '@/lib/anime-client';
 import type { CatalogMood } from '@/lib/catalog-moods';
@@ -147,12 +148,17 @@ export default function SearchCatalogClient({
           }}
         />
 
-        <div className={styles.genreScroller} aria-label="Жанры аниме">
+        <HorizontalNavRail
+          className={styles.genreRail}
+          ariaLabel="Жанры аниме"
+          stepRatio={0.62}
+        >
           {GENRES.map((genre) => (
             <button
               key={genre.id}
               type="button"
-              className={`genre-btn ${selectedGenre === genre.id ? 'is-active' : ''}`}
+              data-rail-active={selectedGenre === genre.id ? 'true' : undefined}
+              className={`genre-btn ${styles.genreRailButton} ${selectedGenre === genre.id ? 'is-active' : ''}`}
               onClick={() => {
                 setSelectedGenre(genre.id);
                 setPageState({ query, page: 1 });
@@ -161,7 +167,7 @@ export default function SearchCatalogClient({
               {genre.russian}
             </button>
           ))}
-        </div>
+        </HorizontalNavRail>
 
         <span className={styles.moodHint}>жанр + настроение работают вместе</span>
       </div>

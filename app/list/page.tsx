@@ -131,6 +131,23 @@ export default function MyListPage() {
     return data.stats[value];
   }
 
+  function removeLocally(animeId: number) {
+    setData((current) => {
+      if (!current) return current;
+
+      const removed = current.library.find((item) => item.anime_id === animeId);
+      if (!removed) return current;
+
+      return {
+        library: current.library.filter((item) => item.anime_id !== animeId),
+        stats: {
+          ...current.stats,
+          [removed.status]: Math.max(0, current.stats[removed.status] - 1),
+        },
+      };
+    });
+  }
+
   return (
     <main className="detail tracker-page">
       <header className="tracker-hero">
@@ -274,6 +291,8 @@ export default function MyListPage() {
                     <LibraryStatusControl
                       animeId={item.anime_id}
                       initialStatus={item.status}
+                      variant="compact"
+                      onRemoved={() => removeLocally(item.anime_id)}
                     />
                   </div>
                 </article>

@@ -2,6 +2,7 @@ import { registerAnime } from '@/lib/anime-registry';
 import { animeHref } from '@/lib/anime-url';
 import Link from 'next/link';
 import AnimeImageCascade from '@/components/AnimeImageCascade';
+import HorizontalNavRail from '@/components/ui/HorizontalNavRail';
 import {
   FRANCHISE_CATEGORY_LABELS,
   getPrimarySeasonItems,
@@ -79,7 +80,10 @@ export default async function AnimeFranchise({
               <span className="text-xs text-white/35">{seasons.length}</span>
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <HorizontalNavRail
+              ariaLabel="Сезоны и части франшизы"
+              stepRatio={0.74}
+            >
               {seasons.map((item) => {
                 const title =
                   item.title.russian ||
@@ -107,6 +111,7 @@ export default async function AnimeFranchise({
                   <div
                     key={item.id}
                     aria-current="page"
+                    data-rail-active="true"
                     className="min-w-[150px] max-w-[190px] shrink-0 rounded-xl border border-violet-400/55 bg-violet-500/15 px-3 py-2.5 text-white"
                   >
                     {content}
@@ -123,7 +128,7 @@ export default async function AnimeFranchise({
                   </Link>
                 );
               })}
-            </div>
+            </HorizontalNavRail>
           </div>
         )}
 
