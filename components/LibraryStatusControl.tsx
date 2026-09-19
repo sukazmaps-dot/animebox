@@ -182,43 +182,51 @@ export default function LibraryStatusControl({
       </div>
 
       {status && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-3">
+        <div className="community-library-remove-row">
           {!confirmRemove ? (
             <button
               type="button"
               disabled={busy}
               onClick={() => setConfirmRemove(true)}
-              className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-rose-400/15 bg-rose-400/[0.04] px-3 text-[11px] font-semibold text-rose-200/70 transition hover:border-rose-400/35 hover:bg-rose-400/[0.09] hover:text-rose-100 disabled:cursor-wait disabled:opacity-50"
+              className="community-library-remove"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                <path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              Удалить из трекера
+              <span className="community-library-remove__icon" aria-hidden="true">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+              <span>Удалить из трекера</span>
             </button>
           ) : (
-            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Подтверждение удаления из трекера">
-              <span className="text-[11px] text-slate-400">Удалить только из библиотеки?</span>
+            <div
+              className="community-library-remove-confirm"
+              role="group"
+              aria-label="Подтверждение удаления из трекера"
+            >
+              <span className="community-library-remove-confirm__copy">
+                Удалить из библиотеки?
+              </span>
               <button
                 type="button"
                 disabled={busy}
                 onClick={() => void removeFromTracker()}
-                className="inline-flex min-h-9 items-center rounded-lg border border-rose-400/35 bg-rose-500/15 px-3 text-[11px] font-bold text-rose-100 transition hover:bg-rose-500/25 disabled:cursor-wait disabled:opacity-50"
+                className="community-library-remove-confirm__danger"
               >
-                {busy ? 'Удаляем…' : 'Да, удалить'}
+                {busy ? 'Удаляем…' : 'Удалить'}
               </button>
               <button
                 type="button"
                 disabled={busy}
                 onClick={() => setConfirmRemove(false)}
-                className="inline-flex min-h-9 items-center rounded-lg border border-white/10 bg-white/[0.03] px-3 text-[11px] font-semibold text-slate-300 transition hover:bg-white/[0.06] disabled:opacity-50"
+                className="community-library-remove-confirm__cancel"
               >
                 Отмена
               </button>
             </div>
           )}
 
-          <span className="text-[10px] leading-4 text-slate-500">
-            История просмотра и прогресс не удаляются.
+          <span className="community-library-remove__note">
+            Прогресс и история просмотра сохранятся.
           </span>
         </div>
       )}
