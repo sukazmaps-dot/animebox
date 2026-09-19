@@ -949,12 +949,12 @@ body {
     padding: 12px 12px calc(92px + env(safe-area-inset-bottom));
   }
 
-  /* Four primary destinations only. Secondary destinations live in Profile. */
+  /* Five primary destinations. Secondary destinations live in Profile. */
   .mobile-nav {
     left: 14px;
     right: 14px;
     bottom: max(6px, env(safe-area-inset-bottom));
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 3px;
     min-height: var(--mobile-nav-height);
     padding: 4px;

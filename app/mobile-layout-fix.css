@@ -150,7 +150,7 @@
     ) !important;
   }
 
-  /* Purpose-built bottom navigation. Four destinations are rendered by
+  /* Purpose-built bottom navigation. Five destinations are rendered by
      components/Navbar.tsx; keep the grid in sync with that markup. */
   .mobile-nav {
     box-sizing: border-box;
@@ -161,7 +161,7 @@
     max-width: none !important;
     min-width: 0;
     min-height: var(--ab-mobile-nav-height) !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   }
 
   html.telegram-mini-app .mobile-nav {

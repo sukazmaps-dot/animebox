@@ -1,0 +1,8 @@
+html[data-animebox-reduce-motion='true'] *,
+html[data-animebox-reduce-motion='true'] *::before,
+html[data-animebox-reduce-motion='true'] *::after {
+  scroll-behavior: auto !important;
+  animation-duration: .001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: .001ms !important;
+}

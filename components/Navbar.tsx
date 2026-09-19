@@ -43,6 +43,11 @@ const mainNav = [
     icon: 'heart' as const,
   },
   {
+    href: '/watch-together',
+    label: 'Watch Together',
+    icon: 'users' as const,
+  },
+  {
     href: '/leaderboard',
     label: 'Рейтинг',
     icon: 'trophy' as const,
@@ -248,7 +253,7 @@ function NavbarContent() {
             value={searchValue}
             onChange={(event) => setSearchValue(event.target.value)}
             aria-label="Поиск аниме"
-            placeholder="Поиск аниме, например: One Piece..."
+            placeholder="Умный поиск: Наруто 2 сезон, One Piece..."
             autoComplete="off"
           />
         </form>
@@ -297,6 +302,15 @@ function NavbarContent() {
           <span>Трекер</span>
         </Link>
 
+        <Link
+          href="/watch-together"
+          className={`mobile-nav__item ${isActive('/watch-together') ? 'is-active' : ''}`}
+          aria-current={isActive('/watch-together') ? 'page' : undefined}
+        >
+          <Icon name="users" />
+          <span>Вместе</span>
+        </Link>
+
         <MobileAccountNav pathname={pathname} />
       </nav>
     </>
@@ -340,7 +354,7 @@ function NavbarFallback() {
             value=""
             readOnly
             tabIndex={-1}
-            placeholder="Поиск аниме, например: One Piece..."
+            placeholder="Умный поиск: Наруто 2 сезон, One Piece..."
           />
         </div>
       </header>

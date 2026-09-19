@@ -19,7 +19,8 @@ type IconName =
   | 'clock'
   | 'spark'
   | 'trophy'
-  | 'mail';
+  | 'mail'
+  | 'users';
 
 type Props = SVGProps<SVGSVGElement> & { name: IconName };
 
@@ -76,5 +77,7 @@ export default function Icon({ name, ...props }: Props) {
       return <svg {...common}><path d="M8 4h8v4a4 4 0 0 1-8 0V4Z"/><path d="M8 6H5v1a4 4 0 0 0 4 4M16 6h3v1a4 4 0 0 1-4 4M12 12v4M9 20h6M10 16h4v4h-4z"/></svg>;
     case 'mail':
       return <svg {...common}><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg>;
+    case 'users':
+      return <svg {...common}><circle cx="9" cy="8" r="3.2"/><path d="M3.5 18.5a5.5 5.5 0 0 1 11 0"/><circle cx="17.2" cy="9.2" r="2.4"/><path d="M15.2 14.2a4.7 4.7 0 0 1 5.3 4.3"/></svg>;
   }
 }

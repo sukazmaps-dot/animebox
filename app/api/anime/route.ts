@@ -14,11 +14,17 @@ import {
   parseAnimeSearchIntent,
   rankAnimeForSearchIntent,
 } from '@/lib/search-intent';
+import {
+  buildSmartSearchFallbacks,
+  mergeAnimeCandidates,
+  rankAnimeForSmartSearch,
+} from '@/lib/smart-search';
 
 import type {
   GetAnimesOptions,
   AniListListOrder,
 } from '@/lib/anilist';
+import type { Anime } from '@/types/anime';
 
 export const runtime = 'nodejs';
 export const revalidate = 900;
@@ -62,8 +68,7 @@ export async function GET(
   /*
    * Mood is a second ranking axis, not a fake genre. When it is active we
    * retrieve a wider candidate pool, keep AniList/Shikimori genre filtering,
-   * then rerank those candidates by atmosphere. This lets combinations like
-   * "Drama + Стекло" work without mixing mood IDs into genre IDs.
+   * then rerank those candidates by atmosphere.
    */
   const hasStructuredSearch = Boolean(
     searchIntent?.seasonNumber || searchIntent?.partNumber || searchIntent?.episodeNumber,
@@ -88,14 +93,58 @@ export async function GET(
   };
 
   try {
-    const candidates = await getAnimesWithShikimori(options);
-    const intentRanked = searchIntent
-      ? rankAnimeForSearchIntent(candidates, searchIntent)
+    const primary = await getAnimesWithShikimori(options);
+    let candidates: Anime[] = primary;
+    let fallbackUsed: string | null = null;
+
+    /*
+     * Smart fallback is intentionally bounded. Healthy searches make exactly
+     * one provider request. Only weak/empty first-page searches get one extra
+     * attempt (two only when the first result set was completely empty).
+     * This keeps AniList/Shikimori rate pressure predictable.
+     */
+    if (rawSearch && search && page === 1 && primary.length < 4) {
+      const fallbacks = buildSmartSearchFallbacks(rawSearch, search);
+      const attempts = primary.length === 0 ? fallbacks.slice(0, 2) : fallbacks.slice(0, 1);
+
+      for (const fallback of attempts) {
+        const extra = await getAnimesWithShikimori({
+          ...options,
+          page: 1,
+          search: fallback,
+          limit: Math.min(50, Math.max(upstreamLimit, 20)),
+        });
+
+        if (extra.length > 0) {
+          candidates = mergeAnimeCandidates(candidates, extra);
+          fallbackUsed ??= fallback;
+        }
+
+        if (candidates.length >= Math.min(limit, 8)) break;
+      }
+    }
+
+    const smartRanked = rawSearch
+      ? rankAnimeForSmartSearch(candidates, searchIntent?.titleQuery || rawSearch)
       : candidates;
+    const intentRanked = searchIntent
+      ? rankAnimeForSearchIntent(smartRanked, searchIntent)
+      : smartRanked;
     const anime = rankAnimeByCatalogMood(intentRanked, mood).slice(0, limit);
 
     return NextResponse.json(
-      { anime },
+      {
+        anime,
+        ...(rawSearch
+          ? {
+              searchMeta: {
+                requested: rawSearch,
+                understoodAs: searchIntent?.titleQuery || rawSearch,
+                fallbackUsed,
+              },
+            }
+          : {}),
+      },
       {
         headers: {
           'Cache-Control':

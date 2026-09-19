@@ -36,10 +36,12 @@ import './profile-editor-v13.css';
 import './premium-profile-v14.css';
 import './boosty-premium-v18.css';
 import './premium-media-performance-v19.css';
+import './user-preferences.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
 import { AuthStateProvider } from '@/components/AuthStateProvider';
+import UserPreferencesBridge from '@/components/UserPreferencesBridge';
 import AppChrome from '@/components/AppChrome';
 
 import { Analytics } from '@vercel/analytics/next';
@@ -377,6 +379,7 @@ export default function RootLayout({
         />
 
         <AuthStateProvider>
+          <UserPreferencesBridge />
           {/* Определяет, открыт AnimeBox
               внутри Telegram или браузера */}
 

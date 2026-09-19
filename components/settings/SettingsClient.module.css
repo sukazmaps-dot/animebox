@@ -1,0 +1,248 @@
+.page {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 34px 24px 72px;
+}
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+  padding: 28px;
+  border: 1px solid rgba(167, 139, 250, .12);
+  border-radius: 26px;
+  background: linear-gradient(135deg, rgba(18, 23, 42, .96), rgba(8, 11, 22, .98));
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .24);
+}
+
+.heroGlow {
+  position: absolute;
+  width: 380px;
+  height: 260px;
+  top: -150px;
+  right: 8%;
+  border-radius: 50%;
+  background: rgba(124, 84, 255, .18);
+  filter: blur(70px);
+  pointer-events: none;
+}
+
+.eyebrow,
+.cardHead small {
+  color: rgba(185, 164, 255, .62);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .18em;
+}
+
+.hero h1 {
+  margin: 5px 0 6px;
+  color: #fff;
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 950;
+  letter-spacing: -.04em;
+}
+
+.hero p,
+.cardCopy {
+  margin: 0;
+  color: rgba(220, 215, 238, .52);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.accountChip {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 240px;
+  padding: 11px 14px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 18px;
+  background: rgba(255,255,255,.03);
+}
+
+.avatar {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #111629;
+  box-shadow: 0 0 0 1px rgba(167,139,250,.22), 0 10px 24px rgba(0,0,0,.3);
+}
+
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.accountChip strong, .accountChip small { display: block; max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.accountChip strong { color: #fff; font-size: 13px; }
+.accountChip small { margin-top: 2px; color: rgba(255,255,255,.34); font-size: 10px; }
+
+.toast {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: 1px solid rgba(139,92,246,.16);
+  border-radius: 13px;
+  background: rgba(124,84,255,.07);
+  color: rgba(235,229,255,.78);
+  font-size: 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.card {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid rgba(255,255,255,.065);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(14,18,32,.92), rgba(8,11,21,.94));
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 15px;
+}
+
+.cardHead h2 {
+  margin: 2px 0 0;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.cardIcon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(167,139,250,.14);
+  border-radius: 12px;
+  background: rgba(124,84,255,.08);
+  color: #b8a3ff;
+}
+
+.cardIcon svg { width: 18px; height: 18px; }
+
+.settingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 13px 0;
+  border-top: 1px solid rgba(255,255,255,.045);
+}
+
+.settingRow strong { color: rgba(255,255,255,.88); font-size: 13px; }
+.settingRow p { max-width: 520px; margin: 4px 0 0; color: rgba(255,255,255,.36); font-size: 11px; line-height: 1.55; }
+
+.toggle {
+  position: relative;
+  width: 46px;
+  height: 26px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 999px;
+  background: rgba(255,255,255,.07);
+  transition: .18s ease;
+}
+
+.toggle span {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 2px;
+  top: 2px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.72);
+  transition: transform .18s ease, background .18s ease;
+}
+
+.toggle[data-on='true'] { border-color: rgba(139,92,246,.42); background: linear-gradient(90deg, #6d46df, #855df0); }
+.toggle[data-on='true'] span { transform: translateX(20px); background: #fff; }
+.toggle:disabled { cursor: not-allowed; opacity: .38; }
+
+.inlineLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 7px;
+  color: #b9a6ff;
+  font-size: 11px;
+  font-weight: 800;
+}
+.inlineLink svg { width: 13px; height: 13px; }
+
+.linkGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.linkGrid a {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.055);
+  border-radius: 14px;
+  background: rgba(255,255,255,.022);
+  transition: border-color .18s ease, background .18s ease, transform .18s ease;
+}
+.linkGrid a:hover { transform: translateY(-1px); border-color: rgba(139,92,246,.2); background: rgba(124,84,255,.055); }
+.linkGrid strong, .linkGrid small { display: block; }
+.linkGrid strong { color: rgba(255,255,255,.86); font-size: 12px; }
+.linkGrid small { margin-top: 3px; color: rgba(255,255,255,.31); font-size: 10px; line-height: 1.4; }
+
+.actionRow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.primaryAction, .secondaryAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 39px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 900;
+}
+.primaryAction { background: linear-gradient(90deg, #7048e8, #8a5cf6); color: #fff; box-shadow: 0 10px 26px rgba(112,72,232,.23); }
+.secondaryAction { border: 1px solid rgba(255,255,255,.07); background: rgba(255,255,255,.03); color: rgba(255,255,255,.65); }
+
+.dangerCard { grid-column: 1 / -1; }
+.dangerRows { display: grid; gap: 0; border-top: 1px solid rgba(255,255,255,.045); }
+.dangerRows > div { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,.04); }
+.dangerRows span strong, .dangerRows span small { display: block; }
+.dangerRows span strong { color: rgba(255,255,255,.8); font-size: 12px; }
+.dangerRows span small { margin-top: 3px; color: rgba(255,255,255,.3); font-size: 10px; }
+.dangerRows button { min-width: 82px; min-height: 34px; border: 1px solid rgba(255,255,255,.07); border-radius: 10px; background: rgba(255,255,255,.03); color: rgba(255,255,255,.58); font-size: 10px; font-weight: 800; }
+.dangerRows button:disabled { opacity: .3; }
+.dangerRows .logoutButton { border-color: rgba(255,100,130,.14); background: rgba(255,80,110,.055); color: #ff9eb2; }
+
+.loading { padding: 80px 20px; text-align: center; color: rgba(255,255,255,.45); }
+
+@media (max-width: 860px) {
+  .page { padding: 22px 14px 92px; }
+  .hero { align-items: flex-start; flex-direction: column; padding: 22px; }
+  .accountChip { width: 100%; min-width: 0; }
+  .grid { grid-template-columns: 1fr; }
+  .dangerCard { grid-column: auto; }
+}
+
+@media (max-width: 560px) {
+  .hero { border-radius: 20px; }
+  .card { padding: 16px; border-radius: 18px; }
+  .linkGrid { grid-template-columns: 1fr; }
+  .settingRow { align-items: flex-start; }
+  .dangerRows > div { align-items: flex-start; flex-direction: column; }
+  .dangerRows button { width: 100%; }
+}
