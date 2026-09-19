@@ -10,8 +10,7 @@ import { adminClient } from '@/lib/community-server';
 import { getSponsorStatuses } from '@/lib/sponsor-server';
 import { assertCanComment } from '@/lib/admin-server';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
-import { resolveProfileAppearance } from '@/lib/profile-appearance';
-import { studioSettingsFromRow } from '@/lib/premium-studio';
+import { resolvePublicAppearances, type PublicResolvedAppearance } from '@/lib/public-avatar-server';
 
 const MAX_COMMENT_LENGTH = 4000;
 
@@ -29,14 +28,6 @@ type ProfileRow = {
   avatar_path: string | null;
 };
 
-type PremiumProfileRow = {
-  user_id: string;
-  avatar_path: string | null;
-  avatar_static_path: string | null;
-  avatar_position_x: number | null;
-  avatar_position_y: number | null;
-  avatar_zoom: number | null;
-};
 
 
 /* ========================================================
@@ -93,34 +84,6 @@ function parsePositiveInteger(
  * Если в БД почему-то уже лежит полный URL,
  * второй раз через Storage его не пропускаем.
  */
-function getAvatarUrl(
-  supabase: ReturnType<typeof adminClient>,
-  avatarPath: string | null,
-) {
-  if (!avatarPath) {
-    return null;
-  }
-
-  if (
-    avatarPath.startsWith('http://') ||
-    avatarPath.startsWith('https://')
-  ) {
-    return avatarPath;
-  }
-
-  const {
-    data,
-  } = supabase.storage
-    .from('profile-media')
-    .getPublicUrl(
-      avatarPath,
-    );
-
-  return (
-    data.publicUrl ||
-    null
-  );
-}
 
 
 /* ========================================================
@@ -264,14 +227,8 @@ export async function GET(
     let sponsorByUser =
       new Map<string, import('@/lib/sponsor').SponsorStatus>();
 
-    let profileClient:
-      ReturnType<typeof adminClient> | null = null;
-
-    const premiumSettingsByUser =
-      new Map<string, PremiumProfileRow>();
-
-    const premiumActiveUsers =
-      new Set<string>();
+    let appearanceByUser =
+      new Map<string, PublicResolvedAppearance>();
 
 
     if (userIds.length > 0) {
@@ -281,16 +238,12 @@ export async function GET(
          * Декорируем комментарии только на сервере через service_role,
          * не открывая таблицу браузеру.
          */
-        profileClient = adminClient();
-
-        const nowIso = new Date().toISOString();
+        const profileClient = adminClient();
 
         const [
           profileResult,
           ogResult,
           sponsorResult,
-          premiumSettingsResult,
-          premiumSubscriptionsResult,
         ] = await Promise.all([
           profileClient
             .from('profiles')
@@ -311,44 +264,9 @@ export async function GET(
               userIds,
             ),
           getSponsorStatuses(userIds),
-          profileClient
-            .from('premium_profile_settings')
-            .select('user_id,avatar_path,avatar_static_path,avatar_position_x,avatar_position_y,avatar_zoom')
-            .in('user_id', userIds),
-          profileClient
-            .from('premium_subscriptions')
-            .select('user_id')
-            .in('user_id', userIds)
-            .in('status', ['active', 'grace_period'])
-            .gt('ends_at', nowIso),
         ]);
 
         sponsorByUser = sponsorResult;
-
-        if (premiumSettingsResult.error) {
-          console.error(
-            '[GET COMMENT PREMIUM SETTINGS]',
-            premiumSettingsResult.error,
-          );
-        } else {
-          for (const row of premiumSettingsResult.data ?? []) {
-            premiumSettingsByUser.set(
-              String(row.user_id),
-              row as PremiumProfileRow,
-            );
-          }
-        }
-
-        if (premiumSubscriptionsResult.error) {
-          console.error(
-            '[GET COMMENT PREMIUM STATUS]',
-            premiumSubscriptionsResult.error,
-          );
-        } else {
-          for (const row of premiumSubscriptionsResult.data ?? []) {
-            premiumActiveUsers.add(String(row.user_id));
-          }
-        }
 
 
         if (profileResult.error) {
@@ -360,6 +278,13 @@ export async function GET(
           profiles =
             (profileResult.data ??
               []) as ProfileRow[];
+
+          appearanceByUser = await resolvePublicAppearances(
+            profiles.map((profile) => ({
+              id: profile.id,
+              avatar_path: profile.avatar_path,
+            })),
+          );
         }
 
         if (ogResult.error) {
@@ -427,31 +352,14 @@ export async function GET(
               : undefined;
 
 
-          const premiumRow =
+          const appearance =
             comment.user_id
-              ? premiumSettingsByUser.get(comment.user_id) ?? null
+              ? appearanceByUser.get(comment.user_id) ?? null
               : null;
-
-          const appearance = profile
-            ? resolveProfileAppearance({
-                baseAvatarPath: profile.avatar_path,
-                baseBannerPath: null,
-                premiumStudio: premiumRow
-                  ? studioSettingsFromRow(premiumRow as unknown as Record<string, unknown>)
-                  : null,
-                premiumActive: Boolean(
-                  comment.user_id && premiumActiveUsers.has(comment.user_id),
-                ),
-              })
-            : null;
 
           const avatarUrl =
-            appearance && profileClient
-              ? getAvatarUrl(
-                  profileClient,
-                  appearance.avatarPath,
-                )
-              : null;
+            appearance?.avatarUrl ?? null;
+
 
 
           return {
@@ -920,13 +828,20 @@ export async function POST(
     }
 
 
-    const avatarUrl =
-      profile
-        ? getAvatarUrl(
-            supabase,
-            profile.avatar_path,
-          )
-        : null;
+    const appearanceByUser = profile
+      ? await resolvePublicAppearances([
+          {
+            id: profile.id,
+            avatar_path: profile.avatar_path,
+          },
+        ])
+      : new Map();
+
+    const appearance = profile
+      ? appearanceByUser.get(profile.id) ?? null
+      : null;
+
+    const avatarUrl = appearance?.avatarUrl ?? null;
 
 
     return NextResponse.json(
@@ -940,6 +855,10 @@ export async function POST(
                   profile.username,
 
                 avatarUrl,
+                avatarTransform: appearance?.avatarTransform ?? null,
+                sponsor: null,
+                role: publicIdentityRoleFor(user.id),
+                ogNumber: null,
               }
             : null,
         },

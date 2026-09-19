@@ -6,8 +6,7 @@ import {
   response,
   userClient,
 } from '@/lib/community-server';
-import { studioSettingsFromRow } from '@/lib/premium-studio';
-import { resolveProfileAppearance } from '@/lib/profile-appearance';
+import { resolvePublicAppearances } from '@/lib/public-avatar-server';
 import { getPublicIdentityRoles } from '@/lib/identity-server';
 import { getSponsorStatuses } from '@/lib/sponsor-server';
 
@@ -21,27 +20,7 @@ type ProfileIdentityRow = {
   avatar_path: string | null;
 };
 
-type PremiumSettingsRow = Record<string, unknown> & {
-  user_id?: string;
-};
 
-type EntitlementRow = {
-  user_id: string;
-  entitlement: string;
-};
-
-function publicAvatarUrl(
-  admin: ReturnType<typeof adminClient>,
-  path: string | null,
-) {
-  if (!path) return '/default-avatar.webp';
-  if (path.startsWith('http://') || path.startsWith('https://')) return path;
-
-  return (
-    admin.storage.from('profile-media').getPublicUrl(path).data.publicUrl ||
-    '/default-avatar.webp'
-  );
-}
 
 export async function POST(request: Request) {
   try {
@@ -65,67 +44,35 @@ export async function POST(request: Request) {
     }
 
     const admin = adminClient();
-    const now = new Date().toISOString();
     const rolesByUser = getPublicIdentityRoles(userIds);
 
-    const [profilesResult, premiumSettingsResult, entitlementsResult, sponsorStatuses] = await Promise.all([
+    const [profilesResult, sponsorStatuses] = await Promise.all([
       admin
         .from('profiles')
         .select('id,username,avatar_path')
         .in('id', userIds),
-      admin
-        .from('premium_profile_settings')
-        .select('user_id,avatar_path,avatar_static_path,avatar_position_x,avatar_position_y,avatar_zoom')
-        .in('user_id', userIds),
-      admin
-        .from('user_entitlements')
-        .select('user_id,entitlement')
-        .in('user_id', userIds)
-        .in('entitlement', ['profileStudio', 'premiumThemes'])
-        .eq('active', true)
-        .lte('starts_at', now)
-        .or(`expires_at.is.null,expires_at.gt.${now}`),
       getSponsorStatuses(userIds),
     ]);
 
     if (profilesResult.error) throw profilesResult.error;
-    if (premiumSettingsResult.error) throw premiumSettingsResult.error;
-    if (entitlementsResult.error) throw entitlementsResult.error;
 
-    const settingsByUser = new Map<string, PremiumSettingsRow>();
-    for (const row of (premiumSettingsResult.data ?? []) as PremiumSettingsRow[]) {
-      if (typeof row.user_id === 'string') settingsByUser.set(row.user_id, row);
-    }
+    const profiles = (profilesResult.data ?? []) as ProfileIdentityRow[];
+    const appearanceByUser = await resolvePublicAppearances(
+      profiles.map((profile) => ({
+        id: profile.id,
+        avatar_path: profile.avatar_path,
+      })),
+    );
 
-    const entitlementsByUser = new Map<string, Set<string>>();
-    for (const row of (entitlementsResult.data ?? []) as EntitlementRow[]) {
-      const values = entitlementsByUser.get(row.user_id) ?? new Set<string>();
-      values.add(row.entitlement);
-      entitlementsByUser.set(row.user_id, values);
-    }
-
-    const users = ((profilesResult.data ?? []) as ProfileIdentityRow[]).map((profile) => {
-      const storedStudio = settingsByUser.get(profile.id);
-      const studioSettings = storedStudio
-        ? studioSettingsFromRow(storedStudio)
-        : null;
-      const entitlements = entitlementsByUser.get(profile.id);
-      const premiumActive = Boolean(
-        entitlements?.has('profileStudio') && entitlements?.has('premiumThemes'),
-      );
-      const appearance = resolveProfileAppearance({
-        baseAvatarPath: profile.avatar_path,
-        baseBannerPath: null,
-        premiumStudio: studioSettings,
-        premiumActive,
-      });
+    const users = profiles.map((profile) => {
+      const appearance = appearanceByUser.get(profile.id);
 
       return {
         userId: profile.id,
         username: profile.username?.trim() || 'Пользователь',
-        avatarUrl: publicAvatarUrl(admin, appearance.avatarPath),
-        avatarTransform: appearance.avatarTransform,
-        premium: premiumActive,
+        avatarUrl: appearance?.avatarUrl ?? '/default-avatar.webp',
+        avatarTransform: appearance?.avatarTransform ?? { x: 50, y: 50, zoom: 1 },
+        premium: appearance?.premiumBadge ?? false,
         role: rolesByUser.get(profile.id) ?? null,
         sponsor: sponsorStatuses.get(profile.id) ?? null,
       };

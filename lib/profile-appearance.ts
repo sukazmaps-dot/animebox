@@ -28,11 +28,13 @@ export function resolveProfileAppearance({
   baseBannerPath,
   premiumStudio,
   premiumActive,
+  premiumMediaActive = premiumActive,
 }: {
   baseAvatarPath: string | null | undefined;
   baseBannerPath: string | null | undefined;
   premiumStudio: PremiumStudioSettings | null | undefined;
   premiumActive: boolean;
+  premiumMediaActive?: boolean;
 }): ResolvedProfileAppearance {
   const baseAvatar = baseAvatarPath || null;
   const baseBanner = baseBannerPath || null;
@@ -43,7 +45,7 @@ export function resolveProfileAppearance({
   let bannerSource: ResolvedProfileAppearance['bannerSource'] = baseBanner ? 'base' : 'none';
 
   if (premiumStudio) {
-    if (premiumActive && premiumStudio.avatarPath) {
+    if (premiumMediaActive && premiumStudio.avatarPath) {
       avatarPath = premiumStudio.avatarPath;
       avatarSource = 'premium-animated';
     } else if (premiumStudio.avatarStaticPath) {
@@ -51,7 +53,7 @@ export function resolveProfileAppearance({
       avatarSource = 'premium-static';
     }
 
-    if (premiumActive && premiumStudio.bannerPath) {
+    if (premiumMediaActive && premiumStudio.bannerPath) {
       bannerPath = premiumStudio.bannerPath;
       bannerSource = 'premium-animated';
     } else if (premiumStudio.bannerStaticPath) {

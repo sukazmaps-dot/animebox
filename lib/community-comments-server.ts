@@ -5,8 +5,7 @@ import { unstable_cache } from 'next/cache';
 import { adminClient, ApiError } from '@/lib/community-server';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
 import { getSponsorStatuses } from '@/lib/sponsor-server';
-import { resolveProfileAppearance } from '@/lib/profile-appearance';
-import { studioSettingsFromRow } from '@/lib/premium-studio';
+import { resolvePublicAppearances } from '@/lib/public-avatar-server';
 import type {
   CommunityComment,
   CommunityCommentsPage,
@@ -69,14 +68,7 @@ async function enrichAuthors(
 
   try {
     const admin = adminClient();
-    const nowIso = new Date().toISOString();
-    const [
-      profilesResult,
-      ogResult,
-      sponsorByUser,
-      premiumSettingsResult,
-      premiumSubscriptionsResult,
-    ] = await Promise.all([
+    const [profilesResult, ogResult, sponsorByUser] = await Promise.all([
       admin
         .from('profiles')
         .select('id,username,avatar_path')
@@ -86,16 +78,6 @@ async function enrichAuthors(
         .select('user_id,og_number')
         .in('user_id', ids),
       getSponsorStatuses(ids),
-      admin
-        .from('premium_profile_settings')
-        .select('user_id,avatar_path,avatar_static_path,avatar_position_x,avatar_position_y,avatar_zoom')
-        .in('user_id', ids),
-      admin
-        .from('premium_subscriptions')
-        .select('user_id')
-        .in('user_id', ids)
-        .in('status', ['active', 'grace_period'])
-        .gt('ends_at', nowIso),
     ]);
 
     if (profilesResult.error) throw profilesResult.error;
@@ -104,23 +86,13 @@ async function enrichAuthors(
       // that migration.
       console.error('Comment OG enrichment:', ogResult.error);
     }
-    if (premiumSettingsResult.error) {
-      console.error('Comment Premium settings enrichment:', premiumSettingsResult.error);
-    }
-    if (premiumSubscriptionsResult.error) {
-      console.error('Comment Premium status enrichment:', premiumSubscriptionsResult.error);
-    }
 
-    const premiumSettingsByUser = new Map(
-      (premiumSettingsResult.error ? [] : premiumSettingsResult.data ?? []).map((row) => [
-        String(row.user_id),
-        row as Record<string, unknown>,
-      ] as const),
-    );
-    const premiumActiveUsers = new Set(
-      (premiumSubscriptionsResult.error ? [] : premiumSubscriptionsResult.data ?? []).map((row) =>
-        String(row.user_id),
-      ),
+    const profiles = profilesResult.data ?? [];
+    const appearanceByUser = await resolvePublicAppearances(
+      profiles.map((profile) => ({
+        id: profile.id,
+        avatar_path: profile.avatar_path,
+      })),
     );
 
     const ogByUser = new Map<string, number>();
@@ -131,19 +103,9 @@ async function enrichAuthors(
     }
 
     const authors = new Map(
-      (profilesResult.data ?? []).map((profile) => {
-        const premiumRow = premiumSettingsByUser.get(profile.id) ?? null;
-        const appearance = resolveProfileAppearance({
-          baseAvatarPath: profile.avatar_path,
-          baseBannerPath: null,
-          premiumStudio: premiumRow ? studioSettingsFromRow(premiumRow) : null,
-          premiumActive: premiumActiveUsers.has(profile.id),
-        });
-        const avatarUrl = appearance.avatarPath
-          ? admin.storage
-              .from('profile-media')
-              .getPublicUrl(appearance.avatarPath).data.publicUrl
-          : null;
+      profiles.map((profile) => {
+        const appearance = appearanceByUser.get(profile.id);
+        const avatarUrl = appearance?.avatarUrl ?? null;
 
         return [
           profile.id,
@@ -153,7 +115,7 @@ async function enrichAuthors(
                 ? profile.username.trim() || null
                 : null,
             avatarUrl,
-            avatarTransform: appearance.avatarTransform,
+            avatarTransform: appearance?.avatarTransform ?? null,
             ogNumber: ogByUser.get(profile.id) ?? null,
             sponsor: sponsorByUser.get(profile.id) ?? null,
             role: publicIdentityRoleFor(profile.id),

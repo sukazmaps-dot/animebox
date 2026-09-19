@@ -7,6 +7,7 @@ import styles from './Leaderboard.module.css';
 import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
+import { premiumMediaStyle, type PremiumMediaTransform } from '@/lib/premium-studio';
 
 type Period = 'week' | 'month' | 'all';
 
@@ -15,6 +16,7 @@ type Entry = {
   userId: string;
   username: string;
   avatarUrl: string;
+  avatarTransform: PremiumMediaTransform;
   activeMs: number;
   episodes: number;
   lastWatchedAt: string | null;
@@ -55,7 +57,7 @@ const rankTitles: Record<number, string> = { 1: 'На вершине', 2: 'Се�
 function Avatar({ entry, className = '' }: { entry: Entry; className?: string }) {
   const [failed, setFailed] = useState(false);
   return entry.avatarUrl && !failed
-    ? <img className={className} src={entry.avatarUrl} alt="" onError={() => setFailed(true)} />
+    ? <img className={className} src={entry.avatarUrl} alt="" style={premiumMediaStyle(entry.avatarTransform)} onError={() => setFailed(true)} />
     : <span aria-hidden="true" className={`${styles.avatarFallback} ${className}`}>{entry.username.slice(0, 1).toUpperCase() || '?'}</span>;
 }
 

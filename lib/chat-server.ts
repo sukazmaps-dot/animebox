@@ -4,8 +4,7 @@ import { unstable_cache } from 'next/cache';
 
 import { ApiError, adminClient } from '@/lib/community-server';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
-import { resolveProfileAppearance } from '@/lib/profile-appearance';
-import { studioSettingsFromRow } from '@/lib/premium-studio';
+import { resolvePublicAppearances } from '@/lib/public-avatar-server';
 import { getSponsorStatuses } from '@/lib/sponsor-server';
 import {
   CHAT_REACTIONS,
@@ -47,13 +46,6 @@ function parseCursor(value?: string | null): Cursor | null {
   }
 }
 
-function storagePublicUrl(
-  admin: ReturnType<typeof adminClient>,
-  path: string | null | undefined,
-) {
-  if (!path) return null;
-  return admin.storage.from('profile-media').getPublicUrl(path).data.publicUrl;
-}
 
 export async function getChatAuthors(userIds: string[]): Promise<Map<string, ChatAuthor>> {
   const ids = [...new Set(userIds.filter((id) => UUID.test(id)))].slice(0, 60);
@@ -61,64 +53,34 @@ export async function getChatAuthors(userIds: string[]): Promise<Map<string, Cha
   if (!ids.length) return result;
 
   const admin = adminClient();
-  const nowIso = new Date().toISOString();
 
-  const [profilesResult, sponsorByUser, premiumSettingsResult, entitlementsResult] =
-    await Promise.all([
-      admin.from('profiles').select('id,username,avatar_path').in('id', ids),
-      getSponsorStatuses(ids),
-      admin
-        .from('premium_profile_settings')
-        .select('user_id,avatar_path,avatar_static_path,avatar_position_x,avatar_position_y,avatar_zoom')
-        .in('user_id', ids),
-      admin
-        .from('user_entitlements')
-        .select('user_id,entitlement')
-        .in('user_id', ids)
-        .eq('active', true)
-        .lte('starts_at', nowIso)
-        .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
-        .in('entitlement', ['premiumBadge', 'profileStudio', 'premiumThemes']),
-    ]);
+  const [profilesResult, sponsorByUser] = await Promise.all([
+    admin.from('profiles').select('id,username,avatar_path').in('id', ids),
+    getSponsorStatuses(ids),
+  ]);
 
   if (profilesResult.error) throw profilesResult.error;
 
-  const premiumSettingsByUser = new Map(
-    (premiumSettingsResult.error ? [] : premiumSettingsResult.data ?? []).map((row) => [
-      String(row.user_id),
-      row as Record<string, unknown>,
-    ] as const),
+  const profiles = profilesResult.data ?? [];
+  const appearanceByUser = await resolvePublicAppearances(
+    profiles.map((profile) => ({
+      id: profile.id,
+      avatar_path: profile.avatar_path,
+    })),
   );
 
-  const entitlementsByUser = new Map<string, Set<string>>();
-  for (const row of entitlementsResult.error ? [] : entitlementsResult.data ?? []) {
-    const userId = String(row.user_id);
-    const current = entitlementsByUser.get(userId) ?? new Set<string>();
-    current.add(String(row.entitlement));
-    entitlementsByUser.set(userId, current);
-  }
-
-  for (const profile of profilesResult.data ?? []) {
-    const premiumRow = premiumSettingsByUser.get(profile.id) ?? null;
-    const entitlements = entitlementsByUser.get(profile.id) ?? new Set<string>();
-    const premium = entitlements.has('premiumBadge');
-    const studioActive = entitlements.has('profileStudio') && entitlements.has('premiumThemes');
-    const appearance = resolveProfileAppearance({
-      baseAvatarPath: profile.avatar_path,
-      baseBannerPath: null,
-      premiumStudio: premiumRow ? studioSettingsFromRow(premiumRow) : null,
-      premiumActive: studioActive,
-    });
+  for (const profile of profiles) {
+    const appearance = appearanceByUser.get(profile.id);
 
     result.set(profile.id, {
       id: profile.id,
       username:
         typeof profile.username === 'string' ? profile.username.trim() || null : null,
-      avatarUrl: storagePublicUrl(admin, appearance.avatarPath),
-      avatarTransform: appearance.avatarTransform,
+      avatarUrl: appearance?.avatarUrl ?? '/default-avatar.webp',
+      avatarTransform: appearance?.avatarTransform ?? null,
       sponsor: sponsorByUser.get(profile.id) ?? null,
       role: publicIdentityRoleFor(profile.id),
-      premium,
+      premium: appearance?.premiumBadge ?? false,
     });
   }
 
@@ -131,7 +93,7 @@ export async function getChatAuthors(userIds: string[]): Promise<Map<string, Cha
       avatarTransform: null,
       sponsor: sponsorByUser.get(id) ?? null,
       role: publicIdentityRoleFor(id),
-      premium: entitlementsByUser.get(id)?.has('premiumBadge') ?? false,
+      premium: false,
     });
   }
 

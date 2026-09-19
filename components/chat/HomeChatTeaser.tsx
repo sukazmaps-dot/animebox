@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import type { HomeChatTeaserMessage } from '@/types/chat';
+import { premiumMediaStyle } from '@/lib/premium-studio';
 import styles from './HomeChatTeaser.module.css';
 
 function relativeTime(value: string) {
@@ -89,6 +90,7 @@ export default function HomeChatTeaser() {
                   alt=""
                   className={styles.avatar}
                   loading="lazy"
+                  style={premiumMediaStyle(message.author?.avatarTransform)}
                 />
                 <span className={styles.copy}>
                   <span className={styles.meta}>

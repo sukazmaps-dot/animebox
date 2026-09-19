@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { adminClient, failure } from '@/lib/community-server';
 import { getSponsorStatuses } from '@/lib/sponsor-server';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
+import { resolvePublicAppearances } from '@/lib/public-avatar-server';
 
 type LeaderboardPeriod = 'week' | 'month' | 'all';
 
@@ -21,16 +22,6 @@ function normalizePeriod(value: string | null): LeaderboardPeriod {
   return 'week';
 }
 
-function avatarUrl(path: string | null) {
-  if (!path) return '/default-avatar.webp';
-  if (/^https?:\/\//i.test(path)) return path;
-
-  const admin = adminClient();
-  return (
-    admin.storage.from('profile-media').getPublicUrl(path).data.publicUrl ||
-    '/default-avatar.webp'
-  );
-}
 
 export async function GET(request: Request) {
   try {
@@ -53,22 +44,33 @@ export async function GET(request: Request) {
     if (error) throw error;
 
     const rows = (Array.isArray(data) ? data : []) as LeaderboardRow[];
-    const sponsorByUser = await getSponsorStatuses(
-      rows.map((row) => row.user_id),
-    );
+    const [sponsorByUser, appearanceByUser] = await Promise.all([
+      getSponsorStatuses(rows.map((row) => row.user_id)),
+      resolvePublicAppearances(
+        rows.map((row) => ({
+          id: row.user_id,
+          avatar_path: row.avatar_path,
+        })),
+      ),
+    ]);
 
-    const normalized = rows.map((row) => ({
+    const normalized = rows.map((row) => {
+      const appearance = appearanceByUser.get(row.user_id);
+
+      return ({
       rank: Number(row.rank_no),
       userId: row.user_id,
       username: row.username || 'Пользователь',
-      avatarUrl: avatarUrl(row.avatar_path),
+      avatarUrl: appearance?.avatarUrl ?? '/default-avatar.webp',
+      avatarTransform: appearance?.avatarTransform ?? { x: 50, y: 50, zoom: 1 },
       activeMs: Number(row.active_ms) || 0,
       episodes: Number(row.episodes) || 0,
       lastWatchedAt: row.last_watched_at,
       isCurrentUser: Boolean(row.is_current_user),
       sponsor: sponsorByUser.get(row.user_id) ?? null,
       role: publicIdentityRoleFor(row.user_id),
-    }));
+    });
+    });
 
     return Response.json(
       {

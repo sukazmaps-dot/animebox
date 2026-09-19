@@ -215,11 +215,13 @@ export async function getPublicProfile(
     ? studioSettingsFromRow(premiumSettings as Record<string, unknown>)
     : null;
   const premiumActive = Boolean(entitlements?.premiumThemes && entitlements?.profileStudio);
+  const premiumMediaActive = Boolean(entitlements?.animatedAvatar || premiumActive);
   const appearance = resolveProfileAppearance({
     baseAvatarPath: profile.avatar_path,
     baseBannerPath: profile.banner_path,
     premiumStudio: storedStudioSettings,
     premiumActive,
+    premiumMediaActive,
   });
 
   const avatarUrl =
@@ -238,7 +240,7 @@ export async function getPublicProfile(
         ? ogResult.data.og_number
         : null,
     sponsor,
-    premium: Boolean(entitlements?.premiumBadge && premiumActive),
+    premium: Boolean(entitlements?.premiumBadge),
     premiumTheme: appearance.premiumStudio?.theme ?? 'default',
     premiumStudio: appearance.premiumStudio,
     avatarTransform: appearance.avatarTransform,

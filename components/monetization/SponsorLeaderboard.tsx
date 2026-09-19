@@ -9,6 +9,7 @@ import UserAvatarWithFrame from '@/components/profile/UserAvatarWithFrame';
 import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus, SponsorTier } from '@/lib/sponsor';
+import { premiumMediaStyle, type PremiumMediaTransform } from '@/lib/premium-studio';
 
 import styles from './SponsorLeaderboard.module.css';
 
@@ -19,6 +20,7 @@ type Entry = {
   userId: string;
   username: string;
   avatarUrl: string;
+  avatarTransform: PremiumMediaTransform;
   periodStars: number;
   totalStars: number;
   showStarAmount: boolean;
@@ -32,6 +34,7 @@ type Recent = {
   userId: string;
   username: string;
   avatarUrl: string;
+  avatarTransform: PremiumMediaTransform;
   amount: number;
   showStarAmount: boolean;
   createdAt: string;
@@ -234,6 +237,7 @@ export default function SponsorLeaderboard() {
                     role={entry.role}
                     sponsor={entry.sponsor}
                     className={styles.avatarFrame}
+                    mediaTransform={entry.avatarTransform}
                   />
                   <span className={styles.rankSeal}>{entry.rank}</span>
                 </div>
@@ -282,7 +286,7 @@ export default function SponsorLeaderboard() {
                   <Link href={`/profile/${entry.userId}`} className={`${styles.row} ${entry.isCurrentUser ? styles.current : ''}`} key={entry.userId}>
                     <strong className={styles.rowRank}>#{entry.rank}</strong>
                     <span className={styles.userCell}>
-                      <UserAvatarWithFrame src={entry.avatarUrl} alt="" role={entry.role} sponsor={entry.sponsor} className={styles.rowAvatar} />
+                      <UserAvatarWithFrame src={entry.avatarUrl} alt="" role={entry.role} sponsor={entry.sponsor} className={styles.rowAvatar} mediaTransform={entry.avatarTransform} />
                       <span>
                         <UserIdentity username={entry.username} role={entry.role} sponsor={entry.sponsor} compact />
                         {entry.isCurrentUser && <small>Это ты</small>}
@@ -302,7 +306,7 @@ export default function SponsorLeaderboard() {
               <div className={styles.recentGrid}>
                 {data.recent.map((item) => (
                   <Link href={`/profile/${item.userId}`} className={styles.recentCard} key={item.id}>
-                    <img src={item.avatarUrl} alt="" />
+                    <img src={item.avatarUrl} alt="" style={premiumMediaStyle(item.avatarTransform)} />
                     <span><strong>{item.username}</strong><small>{relativeDate(item.createdAt)}</small></span>
                     <b>{item.showStarAmount ? <>{item.amount.toLocaleString('ru-RU')} <AnimeBoxStar size={17} /></> : 'Поддержал проект'}</b>
                   </Link>

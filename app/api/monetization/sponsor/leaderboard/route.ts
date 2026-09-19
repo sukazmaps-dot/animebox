@@ -7,6 +7,7 @@ import {
   type SponsorTier,
 } from '@/lib/sponsor';
 import { sponsorPublicCosmeticsFromRow } from '@/lib/sponsor-benefits-server';
+import { resolvePublicAppearances } from '@/lib/public-avatar-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,14 +66,6 @@ function isMissingRelation(error: { code?: string } | null | undefined) {
   return error?.code === '42P01' || error?.code === 'PGRST205';
 }
 
-function avatarUrl(path: string | null) {
-  if (!path) return '/default-avatar.webp';
-  if (/^https?:\/\//i.test(path)) return path;
-  return (
-    adminClient().storage.from('profile-media').getPublicUrl(path).data.publicUrl ||
-    '/default-avatar.webp'
-  );
-}
 
 async function loadDirectory(userIds: string[]) {
   if (!userIds.length) return [] as DirectoryRow[];
@@ -200,6 +193,13 @@ export async function GET(request: Request) {
         .map((row) => [row.user_id, row]),
     );
 
+    const appearanceByUser = await resolvePublicAppearances(
+      [...profileByUser.values()].map((profile) => ({
+        id: profile.id,
+        avatar_path: profile.avatar_path,
+      })),
+    );
+
     const visibleSponsorIds = visibleIds.filter((id) => {
       const total = Number(directoryByUser.get(id)?.total_stars ?? 0);
       return total >= 25 && profileByUser.has(id);
@@ -279,7 +279,8 @@ export async function GET(request: Request) {
           rank: 0,
           userId,
           username: profile.username?.trim() || 'Пользователь',
-          avatarUrl: avatarUrl(profile.avatar_path),
+          avatarUrl: appearanceByUser.get(userId)?.avatarUrl ?? '/default-avatar.webp',
+          avatarTransform: appearanceByUser.get(userId)?.avatarTransform ?? { x: 50, y: 50, zoom: 1 },
           periodStars: stars,
           totalStars,
           showStarAmount: preference?.show_star_amount !== false,
@@ -326,7 +327,8 @@ export async function GET(request: Request) {
           id: payment.id,
           userId,
           username: profile.username?.trim() || 'Пользователь',
-          avatarUrl: avatarUrl(profile.avatar_path),
+          avatarUrl: appearanceByUser.get(userId)?.avatarUrl ?? '/default-avatar.webp',
+          avatarTransform: appearanceByUser.get(userId)?.avatarTransform ?? { x: 50, y: 50, zoom: 1 },
           amount: Number(payment.amount),
           showStarAmount: preference?.show_star_amount !== false,
           createdAt: payment.created_at,
