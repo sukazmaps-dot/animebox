@@ -14,6 +14,10 @@ import {
   studioSettingsFromRow,
   type PremiumStudioSettings,
 } from '@/lib/premium-studio';
+import {
+  screenProfileMediaGroups,
+  type ProfileMediaCandidateGroup,
+} from '@/lib/profile-media-safety-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +49,15 @@ type ProfilePatch = {
   banner_path: string | null;
 };
 
+type ExistingProfile = {
+  id: string;
+  username: string | null;
+  bio: string | null;
+  avatar_path: string | null;
+  banner_path: string | null;
+  created_at: string;
+};
+
 function objectValue(value: unknown, label: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new ApiError(400, `${label}: некорректные данные.`);
@@ -68,31 +81,9 @@ function safeBaseMediaPath(value: unknown, userId: string, label: string) {
   return path;
 }
 
-function readProfilePatch(value: unknown, userId: string): ProfilePatch {
-  const data = objectValue(value, 'Профиль');
-  const username = typeof data.username === 'string' ? data.username.trim() : '';
-  const bio = typeof data.bio === 'string' ? data.bio.trim() : '';
-
-  if (username.length < 3 || username.length > 24) {
-    throw new ApiError(400, 'Ник должен содержать от 3 до 24 символов.');
-  }
-  if (bio.length > 300) {
-    throw new ApiError(400, 'Описание не может быть длиннее 300 символов.');
-  }
-
-  return {
-    username,
-    bio: bio || null,
-    avatar_path: safeBaseMediaPath(data.avatarPath, userId, 'Аватар'),
-    banner_path: safeBaseMediaPath(data.bannerPath, userId, 'Баннер'),
-  };
-}
-
 function safePremiumMediaPath(value: unknown, userId: string) {
   if (value === null || value === '') return null;
-  if (typeof value !== 'string') {
-    throw new ApiError(400, 'Некорректный путь Premium-медиа.');
-  }
+  if (typeof value !== 'string') throw new ApiError(400, 'Некорректный путь Premium-медиа.');
   const path = value.trim();
   if (
     path.length > 360 ||
@@ -103,6 +94,24 @@ function safePremiumMediaPath(value: unknown, userId: string) {
     throw new ApiError(400, 'Некорректный путь Premium-медиа.');
   }
   return path;
+}
+
+function readProfilePatch(value: unknown, userId: string): ProfilePatch {
+  const data = objectValue(value, 'Профиль');
+  const username = typeof data.username === 'string' ? data.username.trim() : '';
+  const bio = typeof data.bio === 'string' ? data.bio.trim() : '';
+
+  if (username.length < 3 || username.length > 24) {
+    throw new ApiError(400, 'Ник должен содержать от 3 до 24 символов.');
+  }
+  if (bio.length > 300) throw new ApiError(400, 'Описание не может быть длиннее 300 символов.');
+
+  return {
+    username,
+    bio: bio || null,
+    avatar_path: safeBaseMediaPath(data.avatarPath, userId, 'Аватар'),
+    banner_path: safeBaseMediaPath(data.bannerPath, userId, 'Баннер'),
+  };
 }
 
 function readPosition(value: unknown, label: string) {
@@ -187,6 +196,93 @@ function studioRow(settings: PremiumStudioSettings, userId: string) {
   };
 }
 
+function changedMediaGroups(
+  profilePatch: ProfilePatch | null,
+  oldProfile: ExistingProfile,
+  settings: PremiumStudioSettings | null,
+  oldSettings: PremiumStudioSettings,
+): ProfileMediaCandidateGroup[] {
+  const groups: ProfileMediaCandidateGroup[] = [];
+
+  if (profilePatch?.avatar_path && profilePatch.avatar_path !== oldProfile.avatar_path) {
+    groups.push({
+      scope: 'base',
+      kind: 'avatar',
+      applyPayload: {
+        avatarPath: profilePatch.avatar_path,
+        expectedPreviousPath: oldProfile.avatar_path,
+      },
+      candidates: [{ variant: 'original', path: profilePatch.avatar_path }],
+    });
+  }
+
+  if (profilePatch?.banner_path && profilePatch.banner_path !== oldProfile.banner_path) {
+    groups.push({
+      scope: 'base',
+      kind: 'banner',
+      applyPayload: {
+        bannerPath: profilePatch.banner_path,
+        expectedPreviousPath: oldProfile.banner_path,
+      },
+      candidates: [{ variant: 'original', path: profilePatch.banner_path }],
+    });
+  }
+
+  if (settings) {
+    const avatarChanged =
+      settings.avatarPath !== oldSettings.avatarPath ||
+      settings.avatarStaticPath !== oldSettings.avatarStaticPath;
+
+    if (avatarChanged && settings.avatarPath) {
+      groups.push({
+        scope: 'premium',
+        kind: 'avatar',
+        applyPayload: {
+          avatarPath: settings.avatarPath,
+          avatarStaticPath: settings.avatarStaticPath,
+          avatarPositionX: settings.avatarPositionX,
+          avatarPositionY: settings.avatarPositionY,
+          avatarZoom: settings.avatarZoom,
+          expectedPreviousPath: oldSettings.avatarPath,
+        },
+        candidates: [
+          { variant: 'original', path: settings.avatarPath },
+          ...(settings.avatarStaticPath && settings.avatarStaticPath !== settings.avatarPath
+            ? [{ variant: 'static' as const, path: settings.avatarStaticPath }]
+            : []),
+        ],
+      });
+    }
+
+    const bannerChanged =
+      settings.bannerPath !== oldSettings.bannerPath ||
+      settings.bannerStaticPath !== oldSettings.bannerStaticPath;
+
+    if (bannerChanged && settings.bannerPath) {
+      groups.push({
+        scope: 'premium',
+        kind: 'banner',
+        applyPayload: {
+          bannerPath: settings.bannerPath,
+          bannerStaticPath: settings.bannerStaticPath,
+          bannerPositionX: settings.bannerPositionX,
+          bannerPositionY: settings.bannerPositionY,
+          bannerZoom: settings.bannerZoom,
+          expectedPreviousPath: oldSettings.bannerPath,
+        },
+        candidates: [
+          { variant: 'original', path: settings.bannerPath },
+          ...(settings.bannerStaticPath && settings.bannerStaticPath !== settings.bannerPath
+            ? [{ variant: 'static' as const, path: settings.bannerStaticPath }]
+            : []),
+        ],
+      });
+    }
+  }
+
+  return groups;
+}
+
 export async function GET() {
   try {
     const { user } = await userClient();
@@ -200,9 +296,7 @@ export async function GET() {
     if (profileResult.error) throw profileResult.error;
     if (studioResult.error) throw studioResult.error;
 
-    const settings = studioSettingsFromRow(
-      studioResult.data as Record<string, unknown> | null,
-    );
+    const settings = studioSettingsFromRow(studioResult.data as Record<string, unknown> | null);
     const allowed = Boolean(entitlements.profileStudio && entitlements.premiumThemes);
 
     return response({
@@ -229,9 +323,7 @@ export async function POST(request: Request) {
     const hasProfile = Object.prototype.hasOwnProperty.call(body, 'profile');
     const hasStudio = Object.prototype.hasOwnProperty.call(body, 'studio');
 
-    if (!hasProfile && !hasStudio) {
-      throw new ApiError(400, 'Нет изменений для сохранения.');
-    }
+    if (!hasProfile && !hasStudio) throw new ApiError(400, 'Нет изменений для сохранения.');
 
     const admin = adminClient();
     const entitlements = await getEffectiveUserEntitlements(user.id);
@@ -250,10 +342,18 @@ export async function POST(request: Request) {
     if (oldProfileResult.error) throw oldProfileResult.error;
     if (oldStudioResult.error) throw oldStudioResult.error;
 
-    let committedProfile = oldProfileResult.data;
-    let committedSettings = studioSettingsFromRow(
-      oldStudioResult.data as Record<string, unknown> | null,
+    const oldProfile = oldProfileResult.data as ExistingProfile;
+    const oldSettings = studioSettingsFromRow(oldStudioResult.data as Record<string, unknown> | null);
+
+    // New avatar/banner paths must be approved before they can become public
+    // profile media. Existing unchanged paths are intentionally not re-scanned.
+    await screenProfileMediaGroups(
+      user.id,
+      changedMediaGroups(profilePatch, oldProfile, settings, oldSettings),
     );
+
+    let committedProfile = oldProfileResult.data;
+    let committedSettings = oldSettings;
     let profileWritten = false;
 
     if (profilePatch) {
@@ -277,14 +377,13 @@ export async function POST(request: Request) {
 
       if (error) {
         if (profileWritten) {
-          const old = oldProfileResult.data;
           await admin
             .from('profiles')
             .update({
-              username: old.username,
-              bio: old.bio,
-              avatar_path: old.avatar_path,
-              banner_path: old.banner_path,
+              username: oldProfile.username,
+              bio: oldProfile.bio,
+              avatar_path: oldProfile.avatar_path,
+              banner_path: oldProfile.banner_path,
             })
             .eq('id', user.id);
         }

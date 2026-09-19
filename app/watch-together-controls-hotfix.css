@@ -1,0 +1,55 @@
+/* =========================================================
+   AnimeBox Watch Together controls hotfix
+
+   The Series / Voiceover dropdowns are absolutely positioned under the
+   toolbar. The theater layout previously put overflow-x:auto + overflow-y:hidden
+   on that toolbar, so the menu opened but was clipped and looked unclickable.
+   Keep the compact toolbar while allowing the dropdown layer to escape it.
+   ========================================================= */
+
+.animebox-watch-together-theater .watch-together-player .watch-together-player-header {
+  position: relative;
+  z-index: 80;
+  overflow: visible !important;
+}
+
+.animebox-watch-together-theater .watch-together-player .watch-together-player-toolbar {
+  position: relative;
+  z-index: 90;
+  overflow: visible !important;
+  flex-wrap: wrap !important;
+}
+
+.animebox-watch-together-theater .watch-together-player .watch-together-player-toolbar > div {
+  position: relative;
+  overflow: visible !important;
+}
+
+.animebox-watch-together-theater .watch-together-player .premium-player-dropdown-trigger.is-open {
+  position: relative;
+  z-index: 110;
+}
+
+.animebox-watch-together-theater .watch-together-player .premium-player-dropdown-trigger.is-open + div {
+  z-index: 2147480000 !important;
+}
+
+.animebox-watch-together-theater .watch-together-player .watch-together-player-stage-shell {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 700px) {
+  .animebox-watch-together-theater .watch-together-player .watch-together-player-toolbar {
+    flex-wrap: nowrap !important;
+  }
+
+  .animebox-watch-together-theater .watch-together-player .watch-together-player-toolbar > div {
+    flex: 0 0 auto;
+  }
+
+  .animebox-watch-together-theater .watch-together-player .premium-player-dropdown-trigger.is-open + div {
+    min-width: min(260px, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px);
+  }
+}
