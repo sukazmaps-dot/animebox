@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/boosty-premium",
       "schedule": "17 3 * * *"
+    },
+    {
+      "path": "/api/cron/premium-lifecycle",
+      "schedule": "47 3 * * *"
     }
   ]
 }

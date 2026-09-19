@@ -31,6 +31,29 @@ type Data = {
 };
 
 type PlanDraft = { amount: string; active: boolean };
+type StatusFilter = 'live' | 'all' | Subscription['status'];
+type SourceFilter = 'all' | 'telegram_stars' | 'boosty_telegram' | 'admin' | 'other';
+
+const sourceLabels: Record<string, string> = {
+  telegram_stars: 'Telegram Stars',
+  boosty_telegram: 'Boosty',
+  admin: 'Manual',
+};
+
+const statusLabels: Record<Subscription['status'], string> = {
+  active: 'Active',
+  grace_period: 'Grace',
+  expired: 'Expired',
+  cancelled: 'Cancelled',
+  refunded: 'Refunded',
+};
+
+function sourceFilterFor(source: string): SourceFilter {
+  if (source === 'telegram_stars' || source === 'boosty_telegram' || source === 'admin') {
+    return source;
+  }
+  return 'other';
+}
 
 export default function PremiumAdminPanel() {
   const [data, setData] = useState<Data | null>(null);
@@ -38,10 +61,12 @@ export default function PremiumAdminPanel() {
   const [matches, setMatches] = useState<{ id: string; username: string | null }[]>([]);
   const [selectedUser, setSelectedUser] = useState('');
   const [days, setDays] = useState('30');
-  const [reason, setReason] = useState('Тестовый / ручной Premium grant');
+  const [reason, setReason] = useState('Ручной Premium grant');
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [refresh, setRefresh] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('live');
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [planDrafts, setPlanDrafts] = useState<Record<PremiumPlanId, PlanDraft>>({
     monthly: { amount: '', active: false },
     yearly: { amount: '', active: false },
@@ -68,7 +93,11 @@ export default function PremiumAdminPanel() {
   useEffect(() => {
     let active = true;
     void load().catch((requestError) => {
-      if (active) setError(requestError instanceof Error ? requestError.message : 'Не удалось загрузить Premium');
+      if (active) {
+        setError(
+          requestError instanceof Error ? requestError.message : 'Не удалось загрузить Premium',
+        );
+      }
     });
     return () => {
       active = false;
@@ -79,6 +108,34 @@ export default function PremiumAdminPanel() {
     () => new Map((data?.profiles ?? []).map((profile) => [profile.id, profile.username || profile.id])),
     [data?.profiles],
   );
+
+  const now = Date.parse(data?.now ?? new Date().toISOString());
+  const visibleSubscriptions = useMemo(() => {
+    return (data?.subscriptions ?? []).filter((subscription) => {
+      const isLive =
+        ['active', 'grace_period'].includes(subscription.status) &&
+        Date.parse(subscription.ends_at) > now;
+      const statusMatches =
+        statusFilter === 'all'
+          ? true
+          : statusFilter === 'live'
+            ? isLive
+            : subscription.status === statusFilter;
+      const sourceMatches =
+        sourceFilter === 'all' || sourceFilterFor(subscription.source) === sourceFilter;
+      return statusMatches && sourceMatches;
+    });
+  }, [data?.subscriptions, now, sourceFilter, statusFilter]);
+
+  const liveCount = (data?.subscriptions ?? []).filter(
+    (subscription) =>
+      ['active', 'grace_period'].includes(subscription.status) &&
+      Date.parse(subscription.ends_at) > now,
+  ).length;
+  const graceCount = (data?.subscriptions ?? []).filter(
+    (subscription) =>
+      subscription.status === 'grace_period' && Date.parse(subscription.ends_at) > now,
+  ).length;
 
   async function search(event: FormEvent) {
     event.preventDefault();
@@ -115,18 +172,10 @@ export default function PremiumAdminPanel() {
         }),
       });
       const payload = await response.json();
-
-      if (!response.ok) {
-        throw new Error(payload.error || 'Не удалось сохранить тариф');
-      }
-
+      if (!response.ok) throw new Error(payload.error || 'Не удалось сохранить тариф');
       setRefresh((value) => value + 1);
     } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Не удалось сохранить тариф',
-      );
+      setError(requestError instanceof Error ? requestError.message : 'Не удалось сохранить тариф');
     } finally {
       setBusy('');
     }
@@ -160,17 +209,57 @@ export default function PremiumAdminPanel() {
     }
   }
 
-  async function refundPremium(subscription: Subscription) {
-    if (!subscription.transaction_id || subscription.source !== 'telegram_stars') {
-      return;
+  async function recheck(subscription: Subscription) {
+    setBusy(`recheck:${subscription.id}`);
+    setError('');
+    try {
+      const response = await fetch('/api/admin/premium', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'recheck', subscriptionId: subscription.id }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Не удалось перепроверить Premium');
+      setRefresh((value) => value + 1);
+      window.dispatchEvent(new Event('animebox:entitlements-changed'));
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error ? requestError.message : 'Не удалось перепроверить Premium',
+      );
+    } finally {
+      setBusy('');
     }
+  }
 
-    const note =
-      window.prompt(
-        'Причина возврата Premium:',
-        'Возврат AnimeBox Premium',
-      ) ?? '';
+  async function extend(subscription: Subscription, extensionDays: number) {
+    setBusy(`extend:${subscription.id}`);
+    setError('');
+    try {
+      const response = await fetch('/api/admin/premium', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'extend',
+          subscriptionId: subscription.id,
+          days: extensionDays,
+          reason: `Подарочное продление +${extensionDays} дней`,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Premium не продлён');
+      setRefresh((value) => value + 1);
+      window.dispatchEvent(new Event('animebox:entitlements-changed'));
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Premium не продлён');
+    } finally {
+      setBusy('');
+    }
+  }
 
+  async function refundPremium(subscription: Subscription) {
+    if (!subscription.transaction_id || subscription.source !== 'telegram_stars') return;
+
+    const note = window.prompt('Причина возврата Premium:', 'Возврат AnimeBox Premium') ?? '';
     if (!note.trim()) return;
 
     setBusy(`refund:${subscription.id}`);
@@ -187,18 +276,12 @@ export default function PremiumAdminPanel() {
         }),
       });
       const payload = await response.json();
-
-      if (!response.ok) {
-        throw new Error(payload.error || 'Не удалось вернуть Premium-платёж');
-      }
-
+      if (!response.ok) throw new Error(payload.error || 'Не удалось вернуть Premium-платёж');
       setRefresh((value) => value + 1);
       window.dispatchEvent(new Event('animebox:entitlements-changed'));
     } catch (requestError) {
       setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Не удалось вернуть Premium-платёж',
+        requestError instanceof Error ? requestError.message : 'Не удалось вернуть Premium-платёж',
       );
     } finally {
       setBusy('');
@@ -227,28 +310,26 @@ export default function PremiumAdminPanel() {
     }
   }
 
-  const now = Date.parse(data?.now ?? new Date().toISOString());
-  const active = (data?.subscriptions ?? []).filter(
-    (subscription) =>
-      ['active', 'grace_period'].includes(subscription.status) &&
-      Date.parse(subscription.ends_at) > now,
-  );
-
   return (
-    <section className="premium-admin">
+    <section className="premium-admin premium-admin--v20">
       <div className="premium-admin__head">
         <div>
-          <span>PREMIUM V1</span>
-          <h2>AnimeBox Premium</h2>
-          <p>Тарифы, Telegram Stars checkout, автопродление, refunds и ручные grants.</p>
+          <span>PREMIUM V20</span>
+          <h2>Premium lifecycle</h2>
+          <p>Stars, Boosty и manual-доступ теперь сходятся в единый entitlement lifecycle.</p>
         </div>
         <Link href="/premium">Открыть Premium →</Link>
+      </div>
+
+      <div className="premium-admin-v20__summary">
+        <article><span>LIVE</span><strong>{liveCount}</strong><small>активных источников</small></article>
+        <article><span>GRACE</span><strong>{graceCount}</strong><small>ожидают перепроверки</small></article>
+        <article><span>RECENT</span><strong>{data?.subscriptions.length ?? 0}</strong><small>записей загружено</small></article>
       </div>
 
       <div className="premium-admin__plans">
         {(data?.plans ?? []).map((plan) => {
           const draft = planDrafts[plan.id];
-
           return (
             <article key={plan.id}>
               <div>
@@ -271,10 +352,7 @@ export default function PremiumAdminPanel() {
                   onChange={(event) =>
                     setPlanDrafts((current) => ({
                       ...current,
-                      [plan.id]: {
-                        ...current[plan.id],
-                        amount: event.target.value,
-                      },
+                      [plan.id]: { ...current[plan.id], amount: event.target.value },
                     }))
                   }
                   placeholder="Цена"
@@ -288,10 +366,7 @@ export default function PremiumAdminPanel() {
                   onChange={(event) =>
                     setPlanDrafts((current) => ({
                       ...current,
-                      [plan.id]: {
-                        ...current[plan.id],
-                        active: event.target.checked,
-                      },
+                      [plan.id]: { ...current[plan.id], active: event.target.checked },
                     }))
                   }
                 />
@@ -303,9 +378,7 @@ export default function PremiumAdminPanel() {
                 disabled={busy === `plan:${plan.id}`}
                 onClick={() => void configurePlan(plan.id)}
               >
-                {busy === `plan:${plan.id}`
-                  ? 'Сохраняем…'
-                  : 'Сохранить тариф'}
+                {busy === `plan:${plan.id}` ? 'Сохраняем…' : 'Сохранить тариф'}
               </button>
             </article>
           );
@@ -351,63 +424,110 @@ export default function PremiumAdminPanel() {
         </div>
       )}
 
+      <div className="premium-admin-v20__filters" aria-label="Фильтры Premium">
+        <div>
+          {(['live', 'active', 'grace_period', 'expired', 'cancelled', 'refunded', 'all'] as StatusFilter[]).map((value) => (
+            <button
+              type="button"
+              key={value}
+              className={statusFilter === value ? 'is-active' : ''}
+              onClick={() => setStatusFilter(value)}
+            >
+              {value === 'live' ? 'Live' : value === 'all' ? 'Все' : statusLabels[value as Subscription['status']]}
+            </button>
+          ))}
+        </div>
+        <div>
+          {(['all', 'telegram_stars', 'boosty_telegram', 'admin', 'other'] as SourceFilter[]).map((value) => (
+            <button
+              type="button"
+              key={value}
+              className={sourceFilter === value ? 'is-active' : ''}
+              onClick={() => setSourceFilter(value)}
+            >
+              {value === 'all' ? 'Все источники' : value === 'other' ? 'Другие' : sourceLabels[value]}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {error && <p className="sponsor-v25-error" role="alert">{error}</p>}
 
-      <div className="sponsor-v2-table sponsor-v25-table">
+      <div className="sponsor-v2-table sponsor-v25-table premium-admin-v20__table">
         <table>
           <thead><tr><th>Пользователь</th><th>План</th><th>Источник</th><th>До</th><th>Продление</th><th>Статус</th><th /></tr></thead>
           <tbody>
-            {active.map((subscription) => (
-              <tr key={subscription.id}>
-                <td>
-                  <Link className="sponsor-v2-profile-link" href={`/profile/${subscription.user_id}`}>
-                    {profileMap.get(subscription.user_id) || subscription.user_id} <span aria-hidden="true">↗</span>
-                  </Link>
-                </td>
-                <td>{subscription.plan}</td>
-                <td>{subscription.source}</td>
-                <td>{new Date(subscription.ends_at).toLocaleString('ru-RU')}</td>
-                <td>
-                  {subscription.plan === 'monthly' &&
-                  subscription.source === 'telegram_stars'
-                    ? subscription.auto_renew
-                      ? 'Авто'
-                      : 'Отключено'
-                    : '—'}
-                </td>
-                <td><span className="sponsor-v25-status" data-status={subscription.status}>{subscription.status}</span></td>
-                <td>
-                  <div className="premium-admin__row-actions">
-                    <button
-                      className="is-danger"
-                      disabled={Boolean(busy)}
-                      onClick={() => void revoke(subscription)}
-                    >
-                      {busy === `revoke:${subscription.id}`
-                        ? 'Отключаем…'
-                        : 'Отключить'}
-                    </button>
+            {visibleSubscriptions.map((subscription) => {
+              const isLive =
+                ['active', 'grace_period'].includes(subscription.status) &&
+                Date.parse(subscription.ends_at) > now;
 
-                    {data?.canRefund &&
-                      subscription.source === 'telegram_stars' &&
-                      subscription.transaction_id && (
+              return (
+                <tr key={subscription.id}>
+                  <td>
+                    <Link className="sponsor-v2-profile-link" href={`/profile/${subscription.user_id}`}>
+                      {profileMap.get(subscription.user_id) || subscription.user_id} <span aria-hidden="true">↗</span>
+                    </Link>
+                  </td>
+                  <td>{subscription.plan}</td>
+                  <td>{sourceLabels[subscription.source] || subscription.source}</td>
+                  <td>{new Date(subscription.ends_at).toLocaleString('ru-RU')}</td>
+                  <td>
+                    {subscription.plan === 'monthly' && subscription.source === 'telegram_stars'
+                      ? subscription.auto_renew ? 'Авто' : 'Отключено'
+                      : '—'}
+                  </td>
+                  <td><span className="sponsor-v25-status" data-status={subscription.status}>{statusLabels[subscription.status]}</span></td>
+                  <td>
+                    <div className="premium-admin__row-actions">
+                      <button
+                        type="button"
+                        disabled={Boolean(busy)}
+                        onClick={() => void recheck(subscription)}
+                      >
+                        {busy === `recheck:${subscription.id}` ? 'Проверяем…' : 'Recheck'}
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={Boolean(busy)}
+                        onClick={() => void extend(subscription, 30)}
+                        title="Добавит отдельный manual-доступ и не изменит платёж Boosty/Stars"
+                      >
+                        {busy === `extend:${subscription.id}` ? 'Продлеваем…' : '+30 дней'}
+                      </button>
+
+                      {isLive && (
                         <button
                           type="button"
+                          className="is-danger"
                           disabled={Boolean(busy)}
-                          onClick={() => void refundPremium(subscription)}
+                          onClick={() => void revoke(subscription)}
                         >
-                          {busy === `refund:${subscription.id}`
-                            ? 'Возвращаем…'
-                            : 'Вернуть Stars'}
+                          {busy === `revoke:${subscription.id}` ? 'Отключаем…' : 'Отключить'}
                         </button>
                       )}
-                  </div>
-                </td>
-              </tr>
-            ))}
+
+                      {data?.canRefund &&
+                        subscription.source === 'telegram_stars' &&
+                        subscription.transaction_id &&
+                        subscription.status !== 'refunded' && (
+                          <button
+                            type="button"
+                            disabled={Boolean(busy)}
+                            onClick={() => void refundPremium(subscription)}
+                          >
+                            {busy === `refund:${subscription.id}` ? 'Возвращаем…' : 'Вернуть Stars'}
+                          </button>
+                        )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
-        {!active.length && <p>Активных Premium-подписок пока нет.</p>}
+        {!visibleSubscriptions.length && <p>По этим фильтрам Premium-подписок нет.</p>}
       </div>
     </section>
   );

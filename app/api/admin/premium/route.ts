@@ -1,6 +1,12 @@
 import { ApiError, adminClient, failure, readBody, response } from '@/lib/community-server';
 import { requireAdmin, writeAdminAudit } from '@/lib/admin-server';
-import { grantPremium, revokePremium } from '@/lib/premium-server';
+import {
+  getEffectivePremiumState,
+  grantPremium,
+  reconcileAllPremiumLifecycle,
+  reconcilePremiumForUser,
+  revokePremium,
+} from '@/lib/premium-server';
 import { getPremiumCatalog, updatePremiumPlanConfig } from '@/lib/premium-catalog-server';
 import { isPremiumPlanId } from '@/lib/premium';
 import {
@@ -12,6 +18,7 @@ import {
   deactivatePremiumForTransaction,
   resolvePremiumSubscriptionForTransaction,
 } from '@/lib/premium-refund-server';
+import { verifyBoostyPremiumForUser } from '@/lib/boosty-premium';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -19,6 +26,7 @@ export async function GET(request: Request) {
   try {
     const { role } = await requireAdmin(['owner', 'admin']);
     const admin = adminClient();
+    await reconcileAllPremiumLifecycle(500);
     const now = new Date().toISOString();
     const q = new URL(request.url).searchParams.get('q')?.trim().slice(0, 120) ?? '';
 
@@ -254,6 +262,87 @@ export async function POST(request: Request) {
       });
 
       return response({ ok: true, subscription });
+    }
+
+    if (action === 'extend') {
+      const subscriptionId = typeof body.subscriptionId === 'string' ? body.subscriptionId.trim() : '';
+      const days = Number(body.days);
+      const reason = typeof body.reason === 'string' ? body.reason.trim().slice(0, 500) : '';
+
+      if (!UUID_RE.test(subscriptionId)) throw new ApiError(400, 'Некорректная подписка.');
+      if (!Number.isInteger(days) || days < 1 || days > 3660) {
+        throw new ApiError(400, 'Продление должно быть от 1 до 3660 дней.');
+      }
+
+      const admin = adminClient();
+      const { data: target, error: targetError } = await admin
+        .from('premium_subscriptions')
+        .select('user_id')
+        .eq('id', subscriptionId)
+        .maybeSingle();
+      if (targetError) throw targetError;
+      if (!target?.user_id) throw new ApiError(404, 'Подписка не найдена.');
+
+      // Extension is an admin/manual overlay. We never mutate the paid
+      // provider lease itself, so Boosty/Stars remain auditable and independent.
+      const subscription = await grantPremium({
+        userId: String(target.user_id),
+        days,
+        actorUserId: user.id,
+        reason: reason || `Admin extension +${days} days`,
+      });
+
+      const lifecycle = await getEffectivePremiumState(String(target.user_id));
+
+      await writeAdminAudit({
+        actorId: user.id,
+        actorRole: role,
+        action: 'premium.extend',
+        targetType: 'premium_subscription',
+        targetId: subscriptionId,
+        reason,
+        details: {
+          manual_subscription_id: subscription.id,
+          days,
+          effective_ends_at: lifecycle.endsAt,
+        },
+      });
+
+      return response({ ok: true, subscription, lifecycle });
+    }
+
+    if (action === 'recheck') {
+      const subscriptionId = typeof body.subscriptionId === 'string' ? body.subscriptionId.trim() : '';
+      if (!UUID_RE.test(subscriptionId)) throw new ApiError(400, 'Некорректная подписка.');
+
+      const admin = adminClient();
+      const { data: target, error: targetError } = await admin
+        .from('premium_subscriptions')
+        .select('user_id,source')
+        .eq('id', subscriptionId)
+        .maybeSingle();
+      if (targetError) throw targetError;
+      if (!target?.user_id) throw new ApiError(404, 'Подписка не найдена.');
+
+      const targetUserId = String(target.user_id);
+      if (target.source === 'boosty_telegram') {
+        await verifyBoostyPremiumForUser(targetUserId, { force: true });
+      } else {
+        await reconcilePremiumForUser(targetUserId);
+      }
+
+      const lifecycle = await getEffectivePremiumState(targetUserId);
+
+      await writeAdminAudit({
+        actorId: user.id,
+        actorRole: role,
+        action: 'premium.recheck',
+        targetType: 'premium_subscription',
+        targetId: subscriptionId,
+        details: { source: target.source, lifecycle },
+      });
+
+      return response({ ok: true, lifecycle });
     }
 
     if (action === 'revoke') {

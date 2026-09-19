@@ -1,6 +1,9 @@
 import { adminClient, failure, response, userClient } from '@/lib/community-server';
 import { getEffectiveUserEntitlements } from '@/lib/entitlements-server';
-import { getPremiumRecurringSubscription, getPremiumStatus } from '@/lib/premium-server';
+import {
+  getEffectivePremiumState,
+  getPremiumRecurringSubscription,
+} from '@/lib/premium-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,8 +11,13 @@ export async function GET() {
   try {
     const { user } = await userClient();
     const admin = adminClient();
-    const [subscription, recurringSubscription, entitlements, paymentsResult] = await Promise.all([
-      getPremiumStatus(user.id),
+
+    // Lifecycle reconciliation happens before the effective entitlement read,
+    // so the client never sees an expired subscription together with stale
+    // Premium feature flags.
+    const lifecycle = await getEffectivePremiumState(user.id);
+
+    const [recurringSubscription, entitlements, paymentsResult] = await Promise.all([
       getPremiumRecurringSubscription(user.id),
       getEffectiveUserEntitlements(user.id),
       admin
@@ -24,8 +32,10 @@ export async function GET() {
     if (paymentsResult.error) throw paymentsResult.error;
 
     return response({
-      premium: Boolean(subscription),
-      subscription,
+      premium: lifecycle.active,
+      lifecycle,
+      // Backward compatibility for components that still read subscription.
+      subscription: lifecycle.subscription,
       recurringSubscription,
       entitlements,
       payments: paymentsResult.data ?? [],

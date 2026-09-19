@@ -1,35 +1,40 @@
 import type { Entitlements } from '@/lib/payments/entitlements';
 
+type PremiumSubscriptionClient = {
+  id: string;
+  userId: string;
+  plan: 'monthly' | 'yearly' | 'manual';
+  status: 'active' | 'grace_period' | 'expired' | 'cancelled' | 'refunded';
+  source: string;
+  transactionId: string | null;
+  startsAt: string;
+  endsAt: string;
+  cancelledAt: string | null;
+  autoRenew: boolean;
+  autoRenewCancelledAt: string | null;
+  telegramSubscriptionChargeId: string | null;
+};
+
+type PremiumLifecycleSource = 'telegram_stars' | 'boosty' | 'manual' | 'mixed' | 'other';
+
+type PremiumLifecycleClient = {
+  active: boolean;
+  state: 'inactive' | 'active' | 'grace_period';
+  source: PremiumLifecycleSource;
+  sources: Exclude<PremiumLifecycleSource, 'mixed'>[];
+  subscription: PremiumSubscriptionClient | null;
+  subscriptions: PremiumSubscriptionClient[];
+  startsAt: string | null;
+  endsAt: string | null;
+  graceUntil: string | null;
+  autoRenew: boolean;
+};
+
 export type PremiumMe = {
   premium: boolean;
-  subscription: null | {
-    id: string;
-    userId: string;
-    plan: 'monthly' | 'yearly' | 'manual';
-    status: 'active' | 'grace_period' | 'expired' | 'cancelled' | 'refunded';
-    source: string;
-    transactionId: string | null;
-    startsAt: string;
-    endsAt: string;
-    cancelledAt: string | null;
-    autoRenew: boolean;
-    autoRenewCancelledAt: string | null;
-    telegramSubscriptionChargeId: string | null;
-  };
-  recurringSubscription: null | {
-    id: string;
-    userId: string;
-    plan: 'monthly';
-    status: 'active' | 'grace_period' | 'expired' | 'cancelled' | 'refunded';
-    source: string;
-    transactionId: string | null;
-    startsAt: string;
-    endsAt: string;
-    cancelledAt: string | null;
-    autoRenew: boolean;
-    autoRenewCancelledAt: string | null;
-    telegramSubscriptionChargeId: string | null;
-  };
+  lifecycle: PremiumLifecycleClient;
+  subscription: PremiumSubscriptionClient | null;
+  recurringSubscription: (PremiumSubscriptionClient & { plan: 'monthly' }) | null;
   entitlements: Entitlements;
   payments: Array<{
     id: string;

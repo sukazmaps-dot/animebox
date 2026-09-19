@@ -11,6 +11,22 @@ import type { PremiumCatalogPlan, PremiumPlanId } from '@/lib/premium';
 type PremiumCatalogResponse = { plans: PremiumCatalogPlan[] };
 type InvoiceResponse = { ok?: boolean; invoiceUrl?: string; error?: string };
 
+
+function premiumSourceLabel(source: PremiumMe['lifecycle']['source']) {
+  if (source === 'telegram_stars') return 'Telegram Stars';
+  if (source === 'boosty') return 'Boosty';
+  if (source === 'manual') return 'AnimeBox · manual';
+  if (source === 'mixed') return 'Несколько источников';
+  return 'AnimeBox Premium';
+}
+
+function premiumSourceChip(source: PremiumMe['lifecycle']['sources'][number]) {
+  if (source === 'telegram_stars') return 'Stars';
+  if (source === 'boosty') return 'Boosty';
+  if (source === 'manual') return 'Manual';
+  return 'Other';
+}
+
 const BENEFITS = [
   ['Без рекламы', 'Рекламные блоки AnimeBox отключаются на всём сайте.'],
   ['Premium badge', 'Отдельный Premium-статус в своём и публичном профиле.'],
@@ -212,12 +228,15 @@ export default function PremiumClient() {
     }
   }
 
-  const subscription = data?.subscription;
+  const lifecycle = data?.lifecycle;
+  const subscription = lifecycle?.subscription ?? data?.subscription;
   const recurringSubscription = data?.recurringSubscription;
   const yearlyBlockedByRecurring = Boolean(recurringSubscription?.autoRenew);
-  const endDate = subscription
-    ? new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(subscription.endsAt))
-    : null;
+  const endDate = lifecycle?.endsAt
+    ? new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(lifecycle.endsAt))
+    : subscription
+      ? new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(subscription.endsAt))
+      : null;
 
   return (
     <main className="premium-page">
@@ -238,20 +257,43 @@ export default function PremiumClient() {
 
           {user && loading && <div className="premium-status">Проверяем Premium…</div>}
 
-          {user && !loading && data?.premium && subscription && (
-            <div className="premium-status premium-status--active">
+          {user && !loading && data?.premium && subscription && lifecycle && (
+            <div
+              className={`premium-status premium-status--active ${lifecycle.state === 'grace_period' ? 'premium-status--grace' : ''}`}
+            >
               <div>
-                <span>PREMIUM ACTIVE</span>
-                <strong>Premium активен</strong>
+                <span>{lifecycle.state === 'grace_period' ? 'PREMIUM GRACE' : 'PREMIUM ACTIVE'}</span>
+                <strong>
+                  {lifecycle.state === 'grace_period'
+                    ? 'Premium временно сохранён'
+                    : 'Premium активен'}
+                </strong>
               </div>
-              <small>До {endDate}</small>
+              <small>{endDate ? `${lifecycle.state === 'grace_period' ? 'Grace до' : 'Доступ до'} ${endDate}` : 'Доступ активен'}</small>
+
+              <div className="premium-status__lifecycle">
+                <span>
+                  Источник
+                  <b>{premiumSourceLabel(lifecycle.source)}</b>
+                </span>
+                <span>
+                  Состояние
+                  <b>{lifecycle.state === 'grace_period' ? 'Grace period' : 'Active'}</b>
+                </span>
+                {lifecycle.sources.length > 1 && (
+                  <span className="premium-status__sources">
+                    Защита от пересечений
+                    <b>{lifecycle.sources.map(premiumSourceChip).join(' + ')}</b>
+                  </span>
+                )}
+              </div>
 
               {recurringSubscription?.telegramSubscriptionChargeId && (
                 <div className="premium-status__renewal">
                   <span>
                     {recurringSubscription.autoRenew
-                      ? 'Месячное автопродление: включено'
-                      : 'Месячное автопродление: отключено'}
+                      ? 'Месячное автопродление Stars: включено'
+                      : 'Месячное автопродление Stars: отключено'}
                   </span>
 
                   <button
