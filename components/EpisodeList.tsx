@@ -246,6 +246,7 @@ export default function EpisodeList({
   );
 
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const episodeListRef = useRef<HTMLDivElement | null>(null);
 
   const selectedGroupIndex = useMemo(() => {
     if (selectedGroupId) {
@@ -262,6 +263,23 @@ export default function EpisodeList({
         (episode) => episode >= activeGroup.from && episode <= activeGroup.to,
       )
     : [];
+
+  /*
+   * The episode grid itself is a scroll container on long-running shows.
+   * React reuses the same DOM node when switching between 50-episode groups,
+   * so the browser would otherwise keep the old scrollTop and a newly selected
+   * group could appear to start at episode 458 instead of 451. Reset only when
+   * the logical group/season changes; normal scrolling inside a group is kept.
+   */
+  useEffect(() => {
+    const list = episodeListRef.current;
+    if (!list || !activeGroup) return;
+
+    list.scrollTo({
+      top: 0,
+      behavior: 'auto',
+    });
+  }, [activeGroup?.id, selectedAnimeId]);
 
   const hasSeasonTabs =
     seasonData.seasons.length > 1 || seasonData.extras.length > 0;
@@ -581,7 +599,7 @@ export default function EpisodeList({
             </div>
           )}
 
-          <div className="episode-list">
+          <div ref={episodeListRef} className="episode-list">
             {visibleEpisodes.map((number) => {
               const isCurrent =
                 selectedIsCurrent && number === currentEpisode;
