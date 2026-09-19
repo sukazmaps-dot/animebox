@@ -1,3 +1,5 @@
+import type { PremiumMediaTransform } from '@/lib/premium-studio';
+
 export const AUTH_CHANGED_EVENT = 'animebox:auth-changed';
 
 export type AuthProfileSnapshot = {
@@ -5,6 +7,7 @@ export type AuthProfileSnapshot = {
   username: string | null;
   avatar_path: string | null;
   display_avatar_path?: string | null;
+  display_avatar_transform?: PremiumMediaTransform | null;
 };
 
 export type AuthChangedDetail = {

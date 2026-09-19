@@ -10,6 +10,12 @@ export type PremiumProfileTheme = (typeof PREMIUM_PROFILE_THEMES)[number];
 export const PREMIUM_BORDER_STYLES = ['soft', 'neon', 'sharp'] as const;
 export type PremiumBorderStyle = (typeof PREMIUM_BORDER_STYLES)[number];
 
+export type PremiumMediaTransform = {
+  x: number;
+  y: number;
+  zoom: number;
+};
+
 export type PremiumStudioSettings = {
   theme: PremiumProfileTheme;
   primaryColor: string;
@@ -19,8 +25,14 @@ export type PremiumStudioSettings = {
   borderStyle: PremiumBorderStyle;
   avatarPath: string | null;
   avatarStaticPath: string | null;
+  avatarPositionX: number;
+  avatarPositionY: number;
+  avatarZoom: number;
   bannerPath: string | null;
   bannerStaticPath: string | null;
+  bannerPositionX: number;
+  bannerPositionY: number;
+  bannerZoom: number;
   syncPlayerTheme: boolean;
 };
 
@@ -33,8 +45,14 @@ export const DEFAULT_PREMIUM_STUDIO_SETTINGS: PremiumStudioSettings = {
   borderStyle: 'neon',
   avatarPath: null,
   avatarStaticPath: null,
+  avatarPositionX: 50,
+  avatarPositionY: 50,
+  avatarZoom: 1,
   bannerPath: null,
   bannerStaticPath: null,
+  bannerPositionX: 50,
+  bannerPositionY: 50,
+  bannerZoom: 1,
   syncPlayerTheme: true,
 };
 
@@ -108,6 +126,18 @@ function readGlow(value: unknown) {
   return Math.max(0, Math.min(100, Math.round(number)));
 }
 
+function readPosition(value: unknown, fallback = 50) {
+  const number = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.max(0, Math.min(100, Math.round(number * 10) / 10));
+}
+
+function readZoom(value: unknown, fallback = 1) {
+  const number = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.max(1, Math.min(3, Math.round(number * 100) / 100));
+}
+
 export function studioSettingsFromRow(
   row?: Record<string, unknown> | null,
 ): PremiumStudioSettings {
@@ -134,8 +164,14 @@ export function studioSettingsFromRow(
     borderStyle: isPremiumBorderStyle(rawBorder) ? rawBorder : 'neon',
     avatarPath: stringOrNull(row.avatar_path),
     avatarStaticPath: stringOrNull(row.avatar_static_path),
+    avatarPositionX: readPosition(row.avatar_position_x),
+    avatarPositionY: readPosition(row.avatar_position_y),
+    avatarZoom: readZoom(row.avatar_zoom),
     bannerPath: stringOrNull(row.banner_path),
     bannerStaticPath: stringOrNull(row.banner_static_path),
+    bannerPositionX: readPosition(row.banner_position_x),
+    bannerPositionY: readPosition(row.banner_position_y),
+    bannerZoom: readZoom(row.banner_zoom),
     syncPlayerTheme:
       typeof row.sync_player_theme === 'boolean'
         ? row.sync_player_theme
@@ -235,3 +271,36 @@ export function premiumStudioCssVariables(settings: PremiumStudioSettings) {
     '--ab-premium-glow-strength': String(settings.glowStrength),
   };
 }
+
+export function premiumMediaTransform(
+  settings: PremiumStudioSettings | null | undefined,
+  kind: 'avatar' | 'banner',
+): PremiumMediaTransform {
+  if (!settings) return { x: 50, y: 50, zoom: 1 };
+
+  return kind === 'avatar'
+    ? {
+        x: settings.avatarPositionX,
+        y: settings.avatarPositionY,
+        zoom: settings.avatarZoom,
+      }
+    : {
+        x: settings.bannerPositionX,
+        y: settings.bannerPositionY,
+        zoom: settings.bannerZoom,
+      };
+}
+
+export function premiumMediaStyle(transform?: PremiumMediaTransform | null) {
+  const safe = transform ?? { x: 50, y: 50, zoom: 1 };
+  const x = Math.max(0, Math.min(100, safe.x));
+  const y = Math.max(0, Math.min(100, safe.y));
+  const zoom = Math.max(1, Math.min(3, safe.zoom));
+
+  return {
+    objectPosition: `${x}% ${y}%`,
+    transform: `scale(${zoom})`,
+    transformOrigin: `${x}% ${y}%`,
+  };
+}
+

@@ -109,6 +109,7 @@ function fallbackProfile(user: User): AuthProfileSnapshot {
     username,
     avatar_path: null,
     display_avatar_path: null,
+    display_avatar_transform: null,
   };
 }
 
@@ -184,6 +185,7 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
           username: data.username,
           avatar_path: data.avatar_path,
           display_avatar_path: data.avatar_path,
+          display_avatar_transform: null,
         }
       : fallbackProfile(verifiedUser);
 
@@ -203,6 +205,7 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
         nextProfile = {
           ...nextProfile,
           display_avatar_path: appearance.avatarPath,
+          display_avatar_transform: appearance.avatarTransform,
         };
       }
     } catch {
@@ -316,6 +319,8 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
               : typeof optimisticProfile?.avatar_path === 'string'
                 ? optimisticProfile.avatar_path
                 : null,
+          display_avatar_transform:
+            optimisticProfile?.display_avatar_transform ?? null,
         };
 
         setProfile(nextProfile);

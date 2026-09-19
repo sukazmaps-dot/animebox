@@ -1,4 +1,8 @@
-import type { PremiumStudioSettings } from '@/lib/premium-studio';
+import {
+  premiumMediaTransform,
+  type PremiumMediaTransform,
+  type PremiumStudioSettings,
+} from '@/lib/premium-studio';
 
 export type ResolvedProfileAppearance = {
   avatarPath: string | null;
@@ -7,6 +11,8 @@ export type ResolvedProfileAppearance = {
   premiumStudio: PremiumStudioSettings | null;
   avatarSource: 'premium-animated' | 'premium-static' | 'base' | 'default';
   bannerSource: 'premium-animated' | 'premium-static' | 'base' | 'none';
+  avatarTransform: PremiumMediaTransform;
+  bannerTransform: PremiumMediaTransform;
 };
 
 /**
@@ -61,5 +67,13 @@ export function resolveProfileAppearance({
     premiumStudio: premiumActive ? premiumStudio ?? null : null,
     avatarSource,
     bannerSource,
+    avatarTransform:
+      avatarSource === 'premium-animated' || avatarSource === 'premium-static'
+        ? premiumMediaTransform(premiumStudio, 'avatar')
+        : { x: 50, y: 50, zoom: 1 },
+    bannerTransform:
+      bannerSource === 'premium-animated' || bannerSource === 'premium-static'
+        ? premiumMediaTransform(premiumStudio, 'banner')
+        : { x: 50, y: 50, zoom: 1 },
   };
 }

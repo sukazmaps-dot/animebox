@@ -27,8 +27,14 @@ const STUDIO_COLUMNS = [
   'border_style',
   'avatar_path',
   'avatar_static_path',
+  'avatar_position_x',
+  'avatar_position_y',
+  'avatar_zoom',
   'banner_path',
   'banner_static_path',
+  'banner_position_x',
+  'banner_position_y',
+  'banner_zoom',
   'sync_player_theme',
 ].join(',');
 
@@ -59,6 +65,23 @@ function safeMediaPath(value: unknown, userId: string) {
   }
 
   return path;
+}
+
+
+function readPosition(value: unknown, label: string) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0 || number > 100) {
+    throw new ApiError(400, `${label} должна быть от 0 до 100.`);
+  }
+  return Math.round(number * 10) / 10;
+}
+
+function readZoom(value: unknown, label: string) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 1 || number > 3) {
+    throw new ApiError(400, `${label} должен быть от 1 до 3.`);
+  }
+  return Math.round(number * 100) / 100;
 }
 
 function readSettings(body: Record<string, unknown>, userId: string): PremiumStudioSettings {
@@ -98,8 +121,14 @@ function readSettings(body: Record<string, unknown>, userId: string): PremiumStu
     borderStyle,
     avatarPath: safeMediaPath(body.avatarPath, userId),
     avatarStaticPath: safeMediaPath(body.avatarStaticPath, userId),
+    avatarPositionX: readPosition(body.avatarPositionX, 'Позиция аватара по X'),
+    avatarPositionY: readPosition(body.avatarPositionY, 'Позиция аватара по Y'),
+    avatarZoom: readZoom(body.avatarZoom, 'Масштаб аватара'),
     bannerPath: safeMediaPath(body.bannerPath, userId),
     bannerStaticPath: safeMediaPath(body.bannerStaticPath, userId),
+    bannerPositionX: readPosition(body.bannerPositionX, 'Позиция баннера по X'),
+    bannerPositionY: readPosition(body.bannerPositionY, 'Позиция баннера по Y'),
+    bannerZoom: readZoom(body.bannerZoom, 'Масштаб баннера'),
     syncPlayerTheme: body.syncPlayerTheme,
   };
 }
@@ -156,8 +185,14 @@ export async function POST(request: Request) {
           border_style: settings.borderStyle,
           avatar_path: settings.avatarPath,
           avatar_static_path: settings.avatarStaticPath,
+          avatar_position_x: settings.avatarPositionX,
+          avatar_position_y: settings.avatarPositionY,
+          avatar_zoom: settings.avatarZoom,
           banner_path: settings.bannerPath,
           banner_static_path: settings.bannerStaticPath,
+          banner_position_x: settings.bannerPositionX,
+          banner_position_y: settings.bannerPositionY,
+          banner_zoom: settings.bannerZoom,
           sync_player_theme: settings.syncPlayerTheme,
           updated_at: new Date().toISOString(),
         },
@@ -196,10 +231,22 @@ export async function DELETE(request: Request) {
     const next: PremiumStudioSettings = {
       ...current,
       ...(media === 'avatar' || media === 'all'
-        ? { avatarPath: null, avatarStaticPath: null }
+        ? {
+            avatarPath: null,
+            avatarStaticPath: null,
+            avatarPositionX: 50,
+            avatarPositionY: 50,
+            avatarZoom: 1,
+          }
         : {}),
       ...(media === 'banner' || media === 'all'
-        ? { bannerPath: null, bannerStaticPath: null }
+        ? {
+            bannerPath: null,
+            bannerStaticPath: null,
+            bannerPositionX: 50,
+            bannerPositionY: 50,
+            bannerZoom: 1,
+          }
         : {}),
     };
 
@@ -208,8 +255,14 @@ export async function DELETE(request: Request) {
       .update({
         avatar_path: next.avatarPath,
         avatar_static_path: next.avatarStaticPath,
+        avatar_position_x: next.avatarPositionX,
+        avatar_position_y: next.avatarPositionY,
+        avatar_zoom: next.avatarZoom,
         banner_path: next.bannerPath,
         banner_static_path: next.bannerStaticPath,
+        banner_position_x: next.bannerPositionX,
+        banner_position_y: next.bannerPositionY,
+        banner_zoom: next.bannerZoom,
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', user.id);

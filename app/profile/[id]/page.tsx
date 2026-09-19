@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { getPublicProfile } from '@/lib/public-profile-server';
 import UserIdentity from '@/components/identity/UserIdentity';
 import UserAvatarWithFrame from '@/components/profile/UserAvatarWithFrame';
-import { premiumStudioCssVariables } from '@/lib/premium-studio';
+import { premiumMediaStyle, premiumStudioCssVariables } from '@/lib/premium-studio';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -91,6 +91,7 @@ export default async function PublicProfilePage({ params }: Props) {
               src={profile.bannerUrl}
               alt={`Баннер ${profile.username}`}
               className="profile-v2__banner-image"
+              style={premiumMediaStyle(profile.bannerTransform) as CSSProperties}
             />
           ) : (
             <img
@@ -110,6 +111,7 @@ export default async function PublicProfilePage({ params }: Props) {
             alt={`Аватар ${profile.username}`}
             role={profile.role}
             sponsor={profile.sponsor}
+            mediaTransform={profile.avatarTransform}
           />
 
           <div className="profile-v2__identity-main">

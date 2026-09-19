@@ -33,6 +33,9 @@ type PremiumProfileRow = {
   user_id: string;
   avatar_path: string | null;
   avatar_static_path: string | null;
+  avatar_position_x: number | null;
+  avatar_position_y: number | null;
+  avatar_zoom: number | null;
 };
 
 
@@ -310,7 +313,7 @@ export async function GET(
           getSponsorStatuses(userIds),
           profileClient
             .from('premium_profile_settings')
-            .select('user_id,avatar_path,avatar_static_path')
+            .select('user_id,avatar_path,avatar_static_path,avatar_position_x,avatar_position_y,avatar_zoom')
             .in('user_id', userIds),
           profileClient
             .from('premium_subscriptions')
@@ -460,6 +463,7 @@ export async function GET(
                     profile.username,
 
                   avatarUrl,
+                  avatarTransform: appearance?.avatarTransform ?? null,
 
                   ogNumber:
                     comment.user_id

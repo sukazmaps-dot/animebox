@@ -4,6 +4,7 @@ import Link from 'next/link';
 import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
+import { premiumMediaStyle, type PremiumMediaTransform } from '@/lib/premium-studio';
 
 import {
   FormEvent,
@@ -28,6 +29,7 @@ type CommentItem = {
   author?: {
     username: string | null;
     avatarUrl: string | null;
+    avatarTransform: PremiumMediaTransform | null;
     ogNumber: number | null;
     sponsor: SponsorStatus | null;
     role: PublicIdentityRole;
@@ -92,16 +94,19 @@ function CommentNode({
             className="episode-comment__profile-link"
             aria-label={`Открыть профиль ${username}`}
           >
-            <img
-              src={avatar}
-              alt=""
-              width={36}
-              height={36}
-              loading="lazy"
-              decoding="async"
-              fetchPriority="low"
-              className="episode-comment__avatar"
-            />
+            <span className="episode-comment__avatar-shell">
+              <img
+                src={avatar}
+                alt=""
+                width={36}
+                height={36}
+                loading="lazy"
+                decoding="async"
+                fetchPriority="low"
+                className="episode-comment__avatar"
+                style={premiumMediaStyle(comment.author?.avatarTransform)}
+              />
+            </span>
 
             <div className="episode-comment__author">
               <span className="animebox-comment-author-line">
@@ -128,16 +133,19 @@ function CommentNode({
           </Link>
         ) : (
           <>
-            <img
-              src={avatar}
-              alt=""
-              width={36}
-              height={36}
-              loading="lazy"
-              decoding="async"
-              fetchPriority="low"
-              className="episode-comment__avatar"
-            />
+            <span className="episode-comment__avatar-shell">
+              <img
+                src={avatar}
+                alt=""
+                width={36}
+                height={36}
+                loading="lazy"
+                decoding="async"
+                fetchPriority="low"
+                className="episode-comment__avatar"
+                style={premiumMediaStyle(comment.author?.avatarTransform)}
+              />
+            </span>
 
             <div className="episode-comment__author">
               <span className="animebox-comment-author-line">

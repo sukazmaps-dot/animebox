@@ -88,7 +88,7 @@ async function enrichAuthors(
       getSponsorStatuses(ids),
       admin
         .from('premium_profile_settings')
-        .select('user_id,avatar_path,avatar_static_path')
+        .select('user_id,avatar_path,avatar_static_path,avatar_position_x,avatar_position_y,avatar_zoom')
         .in('user_id', ids),
       admin
         .from('premium_subscriptions')
@@ -153,6 +153,7 @@ async function enrichAuthors(
                 ? profile.username.trim() || null
                 : null,
             avatarUrl,
+            avatarTransform: appearance.avatarTransform,
             ogNumber: ogByUser.get(profile.id) ?? null,
             sponsor: sponsorByUser.get(profile.id) ?? null,
             role: publicIdentityRoleFor(profile.id),

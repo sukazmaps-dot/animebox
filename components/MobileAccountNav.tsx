@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Icon from '@/components/Icon';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/components/AuthStateProvider';
+import { premiumMediaStyle } from '@/lib/premium-studio';
 import { TELEGRAM_MINI_APP_URL } from '@/lib/telegram-links';
 import { buildSupportMailto } from '@/lib/contact';
 
@@ -82,7 +83,7 @@ export default function MobileAccountNav({ pathname }: Props) {
         aria-label={profile ? `Профиль ${username}` : 'Аккаунт'}
       >
         <span className={`mobile-nav__avatar ${loading ? 'is-loading' : ''}`}>
-          {profile ? <img src={avatarUrl} alt="" /> : <Icon name="user" />}
+          {profile ? <img src={avatarUrl} alt="" style={premiumMediaStyle(profile?.display_avatar_transform)} /> : <Icon name="user" />}
         </span>
         <span>Профиль</span>
       </button>
@@ -108,7 +109,7 @@ export default function MobileAccountNav({ pathname }: Props) {
             <div className="mobile-account__identity">
               <span className="mobile-account__avatar">
                 {profile ? (
-                  <img src={avatarUrl} alt={`Аватар ${username}`} />
+                  <img src={avatarUrl} alt={`Аватар ${username}`} style={premiumMediaStyle(profile?.display_avatar_transform)} />
                 ) : (
                   <Icon name="user" />
                 )}

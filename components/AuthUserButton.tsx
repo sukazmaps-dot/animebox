@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/components/AuthStateProvider';
+import { premiumMediaStyle } from '@/lib/premium-studio';
 
 export default function AuthUserButton() {
   const {
@@ -104,7 +105,7 @@ export default function AuthUserButton() {
         aria-label="Меню аккаунта"
       >
         <span className="auth-user__avatar">
-          <img src={avatarUrl} alt={`Аватар ${username}`} />
+          <img src={avatarUrl} alt={`Аватар ${username}`} style={premiumMediaStyle(profile?.display_avatar_transform)} />
         </span>
 
         <span className="auth-user__username">{username}</span>
@@ -116,7 +117,7 @@ export default function AuthUserButton() {
         <div className="auth-user__dropdown">
           <div className="auth-user__profile">
             <span className="auth-user__profile-avatar">
-              <img src={avatarUrl} alt={`Аватар ${username}`} />
+              <img src={avatarUrl} alt={`Аватар ${username}`} style={premiumMediaStyle(profile?.display_avatar_transform)} />
             </span>
 
             <div>

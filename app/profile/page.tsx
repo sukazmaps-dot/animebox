@@ -18,6 +18,7 @@ import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import CurrentPremiumBadge from '@/components/premium/CurrentPremiumBadge';
 import {
   DEFAULT_PREMIUM_STUDIO_SETTINGS,
+  premiumMediaStyle,
   premiumStudioCssVariables,
   type PremiumStudioSettings,
 } from '@/lib/premium-studio';
@@ -309,6 +310,7 @@ export default function ProfilePage() {
               src={bannerUrl}
               alt="Баннер профиля"
               className="profile-v2__banner-image"
+              style={premiumMediaStyle(appearance.bannerTransform) as CSSProperties}
             />
           ) : (
             <img
@@ -327,6 +329,7 @@ export default function ProfilePage() {
             src={avatarUrl}
             alt={`Аватар ${username}`}
             loadCurrentIdentity
+            mediaTransform={appearance.avatarTransform}
           />
 
           <div className="profile-v2__identity-main">

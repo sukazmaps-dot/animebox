@@ -10,6 +10,10 @@ import {
   type SponsorTier,
 } from '@/lib/sponsor';
 import { getSponsorMe, peekSponsorMe } from '@/lib/sponsor-me-client';
+import {
+  premiumMediaStyle,
+  type PremiumMediaTransform,
+} from '@/lib/premium-studio';
 
 type Props = {
   src: string;
@@ -18,6 +22,7 @@ type Props = {
   sponsor?: SponsorStatus | null;
   loadCurrentIdentity?: boolean;
   className?: string;
+  mediaTransform?: PremiumMediaTransform | null;
 };
 
 type IdentityState = {
@@ -39,6 +44,7 @@ export default function UserAvatarWithFrame({
   sponsor = null,
   loadCurrentIdentity = false,
   className = '',
+  mediaTransform = null,
 }: Props) {
   const { user } = useAuthState();
   const cached = loadCurrentIdentity ? peekSponsorMe(user?.id, 1) : null;
@@ -122,13 +128,19 @@ export default function UserAvatarWithFrame({
       className={`profile-v2__avatar-wrap relative h-[88px] w-[88px] shrink-0 overflow-visible sm:h-[116px] sm:w-[116px] ${className}`.trim()}
       data-avatar-frame={frameKind ?? 'none'}
     >
-      <img
-        src={src}
-        alt={alt}
-        className={`absolute left-1/2 top-1/2 z-[1] -translate-x-1/2 -translate-y-1/2 rounded-full object-cover ring-4 ring-[#091221] transition-[width,height] duration-200 ${
+      <div
+        className={`absolute left-1/2 top-1/2 z-[1] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full ring-4 ring-[#091221] transition-[width,height] duration-200 ${
           frameSrc ? 'h-[85%] w-[85%]' : 'h-full w-full'
         }`}
-      />
+      >
+        <img
+          src={src}
+          alt={alt}
+          className="h-full w-full select-none object-cover"
+          style={premiumMediaStyle(mediaTransform)}
+          draggable={false}
+        />
+      </div>
 
       {frameSrc && (
         <img

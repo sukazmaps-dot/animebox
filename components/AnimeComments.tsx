@@ -6,6 +6,7 @@ import { communityRequest } from '@/lib/community-client';
 import { createClient } from '@/lib/supabase/client';
 import UserIdentity from '@/components/identity/UserIdentity';
 import type { CommunityComment, CommunityCommentsPage } from '@/types/community-comments';
+import { premiumMediaStyle } from '@/lib/premium-studio';
 
 export function SpoilerText({ text, spoiler }: { text: string; spoiler: boolean }) {
   const [revealed, setRevealed] = useState(false);
@@ -167,7 +168,7 @@ function CommentNode({
             className="community-comment__identity community-comment__profile-link"
             aria-label={`Открыть профиль ${username}`}
           >
-            <img src={avatar} width="38" height="38" loading="lazy" decoding="async" fetchPriority="low" alt="" className="community-comment__avatar" />
+            <span className="community-comment__avatar-shell"><img src={avatar} width="38" height="38" loading="lazy" decoding="async" fetchPriority="low" alt="" className="community-comment__avatar" style={premiumMediaStyle(comment.author?.avatarTransform)} /></span>
             <div>
               <span className="animebox-comment-author-line">
                 <UserIdentity
@@ -197,7 +198,7 @@ function CommentNode({
           </Link>
         ) : (
           <div className="community-comment__identity">
-            <img src={avatar} width="38" height="38" loading="lazy" decoding="async" fetchPriority="low" alt="" className="community-comment__avatar" />
+            <span className="community-comment__avatar-shell"><img src={avatar} width="38" height="38" loading="lazy" decoding="async" fetchPriority="low" alt="" className="community-comment__avatar" style={premiumMediaStyle(comment.author?.avatarTransform)} /></span>
             <div>
               <span className="animebox-comment-author-line">
                 <UserIdentity

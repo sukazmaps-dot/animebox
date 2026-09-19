@@ -10,6 +10,7 @@ import { achievementIcon } from '@/lib/achievement-icons';
 import { getEffectiveUserEntitlements } from '@/lib/entitlements-server';
 import {
   studioSettingsFromRow,
+  type PremiumMediaTransform,
   type PremiumProfileTheme,
   type PremiumStudioSettings,
 } from '@/lib/premium-studio';
@@ -38,6 +39,8 @@ export type PublicProfileData = {
   premium: boolean;
   premiumTheme: PremiumProfileTheme;
   premiumStudio: PremiumStudioSettings | null;
+  avatarTransform: PremiumMediaTransform;
+  bannerTransform: PremiumMediaTransform;
   role: PublicIdentityRole;
   stats: {
     episodes: number;
@@ -156,7 +159,7 @@ export async function getPublicProfile(
     getEffectiveUserEntitlements(userId).catch(() => null),
     admin
       .from('premium_profile_settings')
-      .select('theme,primary_color,accent_color,text_color,glow_strength,border_style,avatar_path,avatar_static_path,banner_path,banner_static_path,sync_player_theme')
+      .select('theme,primary_color,accent_color,text_color,glow_strength,border_style,avatar_path,avatar_static_path,avatar_position_x,avatar_position_y,avatar_zoom,banner_path,banner_static_path,banner_position_x,banner_position_y,banner_zoom,sync_player_theme')
       .eq('user_id', userId)
       .maybeSingle()
       .then((result) => (result.error ? null : result.data)),
@@ -238,6 +241,8 @@ export async function getPublicProfile(
     premium: Boolean(entitlements?.premiumBadge && premiumActive),
     premiumTheme: appearance.premiumStudio?.theme ?? 'default',
     premiumStudio: appearance.premiumStudio,
+    avatarTransform: appearance.avatarTransform,
+    bannerTransform: appearance.bannerTransform,
     role: publicIdentityRoleFor(userId),
     stats: {
       episodes,

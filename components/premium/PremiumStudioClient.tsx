@@ -5,6 +5,7 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
+import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor';
 import {
   DEFAULT_PREMIUM_STUDIO_SETTINGS,
   PREMIUM_BORDER_STYLES,
@@ -13,9 +14,11 @@ import {
   contrastRatio,
   isHexColor,
   resolveReadableTextColor,
+  premiumMediaStyle,
   premiumStudioCssVariables,
   premiumThemePreset,
   type PremiumBorderStyle,
+  type PremiumMediaTransform,
   type PremiumProfileTheme,
   type PremiumStudioSettings,
 } from '@/lib/premium-studio';
@@ -28,6 +31,14 @@ type StudioResponse = {
 };
 
 type UploadKind = 'avatar' | 'banner';
+
+type MediaEditorState = {
+  kind: UploadKind;
+  mode: 'upload' | 'edit';
+  src: string;
+  file?: File;
+  transform: PremiumMediaTransform;
+};
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const MAX_BANNER_BYTES = 6 * 1024 * 1024;
@@ -56,8 +67,17 @@ async function staticWebpFallback(file: File, kind: UploadKind) {
   try {
     bitmap = await createImageBitmap(file);
 
-    const targetWidth = kind === 'avatar' ? 512 : 1500;
-    const targetHeight = kind === 'avatar' ? 512 : 500;
+    /*
+     * Preserve the source aspect ratio instead of permanently center-cropping
+     * the first frame. Crop/zoom/position are stored as six tiny numbers and
+     * applied at render time, so animated media stays animated and the static
+     * fallback can use the same framing after Premium expires.
+     */
+    const maxWidth = kind === 'avatar' ? 512 : 1500;
+    const maxHeight = kind === 'avatar' ? 512 : 900;
+    const resize = Math.min(1, maxWidth / bitmap.width, maxHeight / bitmap.height);
+    const targetWidth = Math.max(1, Math.round(bitmap.width * resize));
+    const targetHeight = Math.max(1, Math.round(bitmap.height * resize));
     const canvas = document.createElement('canvas');
     canvas.width = targetWidth;
     canvas.height = targetHeight;
@@ -65,13 +85,7 @@ async function staticWebpFallback(file: File, kind: UploadKind) {
     const context = canvas.getContext('2d', { alpha: true });
     if (!context) throw new Error('Canvas недоступен.');
 
-    const scale = Math.max(targetWidth / bitmap.width, targetHeight / bitmap.height);
-    const drawWidth = bitmap.width * scale;
-    const drawHeight = bitmap.height * scale;
-    const dx = (targetWidth - drawWidth) / 2;
-    const dy = (targetHeight - drawHeight) / 2;
-
-    context.drawImage(bitmap, dx, dy, drawWidth, drawHeight);
+    context.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
 
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(
@@ -86,6 +100,17 @@ async function staticWebpFallback(file: File, kind: UploadKind) {
       sourceWidth: bitmap.width,
       sourceHeight: bitmap.height,
     };
+  } finally {
+    bitmap?.close();
+  }
+}
+
+
+async function readImageDimensions(file: File) {
+  let bitmap: ImageBitmap | null = null;
+  try {
+    bitmap = await createImageBitmap(file);
+    return { width: bitmap.width, height: bitmap.height };
   } finally {
     bitmap?.close();
   }
@@ -264,6 +289,7 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
   const supabase = useMemo(() => createClient(), []);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
+  const mediaObjectUrlRef = useRef<string | null>(null);
 
   const [settings, setSettings] = useState<PremiumStudioSettings>(
     DEFAULT_PREMIUM_STUDIO_SETTINGS,
@@ -277,6 +303,8 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
   const [studioSection, setStudioSection] = useState<'appearance' | 'effects' | 'media'>('appearance');
+  const [mediaEditor, setMediaEditor] = useState<MediaEditorState | null>(null);
+  const mediaEditorOpen = Boolean(mediaEditor);
 
   useEffect(() => {
     let active = true;
@@ -307,6 +335,32 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
     };
   }, []);
 
+  useEffect(() => {
+    if (!mediaEditorOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (mediaObjectUrlRef.current) {
+        URL.revokeObjectURL(mediaObjectUrlRef.current);
+        mediaObjectUrlRef.current = null;
+      }
+      setMediaEditor(null);
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [mediaEditorOpen]);
+
+  useEffect(() => () => {
+    if (mediaObjectUrlRef.current) URL.revokeObjectURL(mediaObjectUrlRef.current);
+  }, []);
+
   const dirty = JSON.stringify(settings) !== JSON.stringify(savedSettings);
   const contrast = contrastRatio(settings.textColor, settings.primaryColor);
   const safeTextColor = resolveReadableTextColor(settings.textColor, settings.primaryColor);
@@ -320,6 +374,16 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
 
   const avatarUrl = publicMediaUrl(settings.avatarPath || settings.avatarStaticPath) || '/premium/premium-user.webp';
   const bannerUrl = publicMediaUrl(settings.bannerPath || settings.bannerStaticPath);
+  const avatarTransform = {
+    x: settings.avatarPositionX,
+    y: settings.avatarPositionY,
+    zoom: settings.avatarZoom,
+  };
+  const bannerTransform = {
+    x: settings.bannerPositionX,
+    y: settings.bannerPositionY,
+    zoom: settings.bannerZoom,
+  };
 
   async function persistSettings(
     next: PremiumStudioSettings,
@@ -371,7 +435,25 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
     setSaved('');
   }
 
-  async function uploadMedia(kind: UploadKind, file: File | undefined) {
+  function resetMediaInput(kind: UploadKind) {
+    if (kind === 'avatar' && avatarInputRef.current) avatarInputRef.current.value = '';
+    if (kind === 'banner' && bannerInputRef.current) bannerInputRef.current.value = '';
+  }
+
+  function releasePendingMediaUrl() {
+    if (!mediaObjectUrlRef.current) return;
+    URL.revokeObjectURL(mediaObjectUrlRef.current);
+    mediaObjectUrlRef.current = null;
+  }
+
+  function closeMediaEditor() {
+    const kind = mediaEditor?.kind;
+    releasePendingMediaUrl();
+    setMediaEditor(null);
+    if (kind) resetMediaInput(kind);
+  }
+
+  async function prepareMediaUpload(kind: UploadKind, file: File | undefined) {
     if (!file || !allowed || uploading || saving) return;
 
     setError('');
@@ -379,6 +461,7 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
 
     if (!ALLOWED_MEDIA_TYPES.has(file.type)) {
       setError('Поддерживаются WEBP, animated WEBP, GIF, PNG и JPG.');
+      resetMediaInput(kind);
       return;
     }
 
@@ -389,7 +472,85 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
           ? 'Premium-аватар должен быть не больше 2 МБ — это сохраняет быстрые комментарии и профиль.'
           : 'Premium-баннер должен быть не больше 6 МБ — большие анимации сильно нагружают мобильные устройства.',
       );
+      resetMediaInput(kind);
       return;
+    }
+
+    try {
+      const dimensions = await readImageDimensions(file);
+      if (kind === 'avatar' && (
+        dimensions.width > MAX_AVATAR_SOURCE_DIMENSION ||
+        dimensions.height > MAX_AVATAR_SOURCE_DIMENSION
+      )) {
+        throw new Error(
+          `Premium-аватар должен быть максимум ${MAX_AVATAR_SOURCE_DIMENSION}×${MAX_AVATAR_SOURCE_DIMENSION}px.`,
+        );
+      }
+      if (kind === 'banner' && (
+        dimensions.width > MAX_BANNER_SOURCE_WIDTH ||
+        dimensions.height > MAX_BANNER_SOURCE_HEIGHT
+      )) {
+        throw new Error(
+          `Premium-баннер должен быть максимум ${MAX_BANNER_SOURCE_WIDTH}×${MAX_BANNER_SOURCE_HEIGHT}px.`,
+        );
+      }
+
+      releasePendingMediaUrl();
+      const src = URL.createObjectURL(file);
+      mediaObjectUrlRef.current = src;
+      setMediaEditor({
+        kind,
+        mode: 'upload',
+        src,
+        file,
+        transform: { x: 50, y: 50, zoom: 1 },
+      });
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Не удалось открыть изображение для настройки.',
+      );
+      resetMediaInput(kind);
+    }
+  }
+
+  function editExistingMedia(kind: UploadKind) {
+    const src = kind === 'avatar' ? avatarUrl : bannerUrl;
+    if (!src) return;
+
+    releasePendingMediaUrl();
+    setMediaEditor({
+      kind,
+      mode: 'edit',
+      src,
+      transform: kind === 'avatar' ? avatarTransform : bannerTransform,
+    });
+  }
+
+  async function uploadMedia(
+    kind: UploadKind,
+    file: File | undefined,
+    transform: PremiumMediaTransform,
+  ): Promise<boolean> {
+    if (!file || !allowed || uploading || saving) return false;
+
+    setError('');
+    setSaved('');
+
+    if (!ALLOWED_MEDIA_TYPES.has(file.type)) {
+      setError('Поддерживаются WEBP, animated WEBP, GIF, PNG и JPG.');
+      return false;
+    }
+
+    const maxBytes = kind === 'avatar' ? MAX_AVATAR_BYTES : MAX_BANNER_BYTES;
+    if (file.size > maxBytes) {
+      setError(
+        kind === 'avatar'
+          ? 'Premium-аватар должен быть не больше 2 МБ — это сохраняет быстрые комментарии и профиль.'
+          : 'Premium-баннер должен быть не больше 6 МБ — большие анимации сильно нагружают мобильные устройства.',
+      );
+      return false;
     }
 
     setUploading(kind);
@@ -456,8 +617,20 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
       const next = {
         ...settings,
         ...(kind === 'avatar'
-          ? { avatarPath: newPath, avatarStaticPath: staticPath }
-          : { bannerPath: newPath, bannerStaticPath: staticPath }),
+          ? {
+              avatarPath: newPath,
+              avatarStaticPath: staticPath,
+              avatarPositionX: transform.x,
+              avatarPositionY: transform.y,
+              avatarZoom: transform.zoom,
+            }
+          : {
+              bannerPath: newPath,
+              bannerStaticPath: staticPath,
+              bannerPositionX: transform.x,
+              bannerPositionY: transform.y,
+              bannerZoom: transform.zoom,
+            }),
       };
 
       try {
@@ -476,6 +649,7 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
       if (obsolete.length) {
         void supabase.storage.from('profile-media').remove([...new Set(obsolete)]);
       }
+      return true;
     } catch (requestError) {
       if (newPath) {
         void supabase.storage.from('profile-media').remove([newPath]);
@@ -485,11 +659,40 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
           ? requestError.message
           : 'Не удалось загрузить Premium-медиа.',
       );
+      return false;
     } finally {
       setUploading('');
       if (kind === 'avatar' && avatarInputRef.current) avatarInputRef.current.value = '';
       if (kind === 'banner' && bannerInputRef.current) bannerInputRef.current.value = '';
     }
+  }
+
+  async function confirmMediaEditor() {
+    const editor = mediaEditor;
+    if (!editor || saving || uploading) return;
+
+    if (editor.mode === 'upload') {
+      const uploaded = await uploadMedia(editor.kind, editor.file, editor.transform);
+      if (uploaded) closeMediaEditor();
+      return;
+    }
+
+    setSettings((current) => ({
+      ...current,
+      ...(editor.kind === 'avatar'
+        ? {
+            avatarPositionX: editor.transform.x,
+            avatarPositionY: editor.transform.y,
+            avatarZoom: editor.transform.zoom,
+          }
+        : {
+            bannerPositionX: editor.transform.x,
+            bannerPositionY: editor.transform.y,
+            bannerZoom: editor.transform.zoom,
+          }),
+    }));
+    setSaved('');
+    closeMediaEditor();
   }
 
   async function removeMedia(kind: UploadKind) {
@@ -502,8 +705,20 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
     const next = {
       ...settings,
       ...(kind === 'avatar'
-        ? { avatarPath: null, avatarStaticPath: null }
-        : { bannerPath: null, bannerStaticPath: null }),
+        ? {
+            avatarPath: null,
+            avatarStaticPath: null,
+            avatarPositionX: 50,
+            avatarPositionY: 50,
+            avatarZoom: 1,
+          }
+        : {
+            bannerPath: null,
+            bannerStaticPath: null,
+            bannerPositionX: 50,
+            bannerPositionY: 50,
+            bannerZoom: 1,
+          }),
     };
 
     try {
@@ -619,11 +834,11 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
                 style={cssVars as CSSProperties}
               >
                 <div className="premium-studio-v12__preview-banner premium-studio-v15__preview-banner">
-                  {bannerUrl && <img src={bannerUrl} alt="" aria-hidden="true" loading="lazy" decoding="async" />}
+                  {bannerUrl && <img src={bannerUrl} alt="" aria-hidden="true" loading="lazy" decoding="async" style={premiumMediaStyle(bannerTransform) as CSSProperties} />}
                   <div />
                 </div>
                 <div className="premium-studio-v12__preview-body premium-studio-v15__preview-body">
-                  <img className="premium-studio-v12__preview-avatar" src={avatarUrl} alt="" loading="lazy" decoding="async" />
+                  <img className="premium-studio-v12__preview-avatar" src={avatarUrl} alt="" loading="lazy" decoding="async" style={premiumMediaStyle(avatarTransform) as CSSProperties} />
                   <div className="premium-studio-v15__preview-copy">
                     <div className="premium-studio-v15__preview-badges">
                       <span>ANIMEBOX PREMIUM</span>
@@ -730,22 +945,33 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
               <div className="premium-studio-v12__section-head premium-studio-v15__section-head">
                 <div>
                   <h2>Premium-медиа</h2>
-                  <p>Аватар и баннер могут быть анимированными. WEBP/GIF воспроизводятся автоматически.</p>
+                  <p>Сначала выбери файл. AnimeBox сразу откроет удобный редактор: для аватара — квадратный кадр, для баннера — подгонку под широкую область профиля.</p>
                 </div>
               </div>
 
-              <div className="premium-studio-v12__media-grid premium-studio-v15__media-grid premium-studio-v16__media-grid">
-                <article>
-                  <div className="premium-studio-v12__media-preview is-avatar"><img src={avatarUrl} alt="Предпросмотр Premium-аватара" /></div>
-                  <div className="premium-studio-v16__media-copy"><strong>Аватар</strong><small>до 5 МБ · WEBP / GIF / PNG / JPG</small></div>
-                  <div><button type="button" disabled={Boolean(uploading) || saving} onClick={() => avatarInputRef.current?.click()}>{uploading === 'avatar' ? 'Загрузка…' : 'Заменить аватар'}</button>{(settings.avatarPath || settings.avatarStaticPath) && <button type="button" className="is-ghost" onClick={() => void removeMedia('avatar')}>Сбросить</button>}</div>
-                  <input ref={avatarInputRef} hidden type="file" accept="image/webp,image/gif,image/png,image/jpeg" onChange={(event) => void uploadMedia('avatar', event.target.files?.[0])} />
+              <div className="premium-studio-v12__media-grid premium-studio-v15__media-grid premium-studio-v16__media-grid premium-studio-v19__media-grid">
+                <article className="premium-studio-v19__media-card">
+                  <div className="premium-studio-v12__media-preview is-avatar"><img src={avatarUrl} alt="Предпросмотр Premium-аватара" style={premiumMediaStyle(avatarTransform) as CSSProperties} /></div>
+                  <div className="premium-studio-v16__media-copy"><strong>Аватар</strong><small>до 2 МБ · WEBP / GIF / PNG / JPG</small></div>
+                  <p className="premium-studio-v19__media-hint">После выбора файла откроется кадрирование 1:1. Перетащи лицо/главный объект в нужную точку и увеличь при необходимости.</p>
+                  <div className="premium-studio-v19__media-actions">
+                    <button type="button" disabled={Boolean(uploading) || saving} onClick={() => avatarInputRef.current?.click()}>{uploading === 'avatar' ? 'Загрузка…' : settings.avatarPath || settings.avatarStaticPath ? 'Заменить аватар' : 'Загрузить аватар'}</button>
+                    {(settings.avatarPath || settings.avatarStaticPath) && <button type="button" className="is-ghost" onClick={() => editExistingMedia('avatar')}>Изменить кадр</button>}
+                    {(settings.avatarPath || settings.avatarStaticPath) && <button type="button" className="is-ghost is-danger" onClick={() => void removeMedia('avatar')}>Сбросить</button>}
+                  </div>
+                  <input ref={avatarInputRef} hidden type="file" accept="image/webp,image/gif,image/png,image/jpeg" onChange={(event) => void prepareMediaUpload('avatar', event.target.files?.[0])} />
                 </article>
-                <article>
-                  <div className="premium-studio-v12__media-preview is-banner">{bannerUrl ? <img src={bannerUrl} alt="Предпросмотр Premium-баннера" /> : <span>Premium Banner</span>}</div>
-                  <div className="premium-studio-v16__media-copy"><strong>Баннер</strong><small>до 12 МБ · рекомендуется 1500×500</small></div>
-                  <div><button type="button" disabled={Boolean(uploading) || saving} onClick={() => bannerInputRef.current?.click()}>{uploading === 'banner' ? 'Загрузка…' : 'Заменить баннер'}</button>{(settings.bannerPath || settings.bannerStaticPath) && <button type="button" className="is-ghost" onClick={() => void removeMedia('banner')}>Сбросить</button>}</div>
-                  <input ref={bannerInputRef} hidden type="file" accept="image/webp,image/gif,image/png,image/jpeg" onChange={(event) => void uploadMedia('banner', event.target.files?.[0])} />
+
+                <article className="premium-studio-v19__media-card">
+                  <div className="premium-studio-v12__media-preview is-banner">{bannerUrl ? <img src={bannerUrl} alt="Предпросмотр Premium-баннера" style={premiumMediaStyle(bannerTransform) as CSSProperties} /> : <span>Premium Banner</span>}</div>
+                  <div className="premium-studio-v16__media-copy"><strong>Баннер</strong><small>до 6 МБ · исходник до 2400×1200</small></div>
+                  <p className="premium-studio-v19__media-hint">Для баннера не нужен «кроп» как у аватара: после загрузки ты подгоняешь изображение под реальную широкую рамку профиля.</p>
+                  <div className="premium-studio-v19__media-actions">
+                    <button type="button" disabled={Boolean(uploading) || saving} onClick={() => bannerInputRef.current?.click()}>{uploading === 'banner' ? 'Загрузка…' : settings.bannerPath || settings.bannerStaticPath ? 'Заменить баннер' : 'Загрузить баннер'}</button>
+                    {bannerUrl && <button type="button" className="is-ghost" onClick={() => editExistingMedia('banner')}>Подогнать баннер</button>}
+                    {(settings.bannerPath || settings.bannerStaticPath) && <button type="button" className="is-ghost is-danger" onClick={() => void removeMedia('banner')}>Сбросить</button>}
+                  </div>
+                  <input ref={bannerInputRef} hidden type="file" accept="image/webp,image/gif,image/png,image/jpeg" onChange={(event) => void prepareMediaUpload('banner', event.target.files?.[0])} />
                 </article>
               </div>
             </section>
@@ -769,6 +995,12 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
                   avatarStaticPath: current.avatarStaticPath,
                   bannerPath: current.bannerPath,
                   bannerStaticPath: current.bannerStaticPath,
+                  avatarPositionX: current.avatarPositionX,
+                  avatarPositionY: current.avatarPositionY,
+                  avatarZoom: current.avatarZoom,
+                  bannerPositionX: current.bannerPositionX,
+                  bannerPositionY: current.bannerPositionY,
+                  bannerZoom: current.bannerZoom,
                 }));
                 setSaved('');
               }}
@@ -793,6 +1025,56 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
           </div>
         )}
       </div>
+
+      {mediaEditor && (
+        <div
+          className="premium-media-editor-modal"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !uploading && !saving) closeMediaEditor();
+          }}
+        >
+          <section
+            className={`premium-media-editor-modal__dialog ${mediaEditor.kind === 'banner' ? 'is-banner' : 'is-avatar'}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="premium-media-editor-title"
+          >
+            <div className="premium-media-editor-modal__top">
+              <div>
+                <span>{mediaEditor.kind === 'avatar' ? 'PREMIUM AVATAR' : 'PREMIUM BANNER'}</span>
+                <h2 id="premium-media-editor-title">
+                  {mediaEditor.kind === 'avatar' ? 'Настрой кадр аватара' : 'Подгони баннер под профиль'}
+                </h2>
+                <p>
+                  {mediaEditor.kind === 'avatar'
+                    ? 'Аватар будет круглым, но редактируем квадрат 1:1 — так позиция одинаково работает в профиле, комментариях и меню.'
+                    : 'Это не отдельный кроп-файл: широкая рамка показывает реальную область баннера. Оригинал и анимация сохраняются.'}
+                </p>
+              </div>
+              <button type="button" className="premium-media-editor-modal__close" onClick={closeMediaEditor} disabled={Boolean(uploading) || saving} aria-label="Закрыть редактор">×</button>
+            </div>
+
+            <PremiumMediaCropEditor
+              kind={mediaEditor.kind}
+              src={mediaEditor.src}
+              value={mediaEditor.transform}
+              onChange={(transform) => setMediaEditor((current) => current ? { ...current, transform } : current)}
+            />
+
+            <div className="premium-media-editor-modal__actions">
+              <button type="button" className="is-secondary" onClick={closeMediaEditor} disabled={Boolean(uploading) || saving}>Отмена</button>
+              <button type="button" className="is-primary" onClick={() => void confirmMediaEditor()} disabled={Boolean(uploading) || saving}>
+                {uploading === mediaEditor.kind
+                  ? 'Загрузка…'
+                  : mediaEditor.mode === 'upload'
+                    ? mediaEditor.kind === 'avatar' ? 'Сохранить аватар' : 'Сохранить баннер'
+                    : mediaEditor.kind === 'avatar' ? 'Применить кадр' : 'Применить подгонку'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

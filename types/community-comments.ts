@@ -1,5 +1,6 @@
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
+import type { PremiumMediaTransform } from '@/lib/premium-studio';
 
 export type CommunityComment = {
   id: string;
@@ -13,6 +14,7 @@ export type CommunityComment = {
   author?: {
     username: string | null;
     avatarUrl: string | null;
+    avatarTransform: PremiumMediaTransform | null;
     ogNumber: number | null;
     sponsor: SponsorStatus | null;
     role: PublicIdentityRole;
