@@ -20,7 +20,8 @@ type IconName =
   | 'spark'
   | 'trophy'
   | 'mail'
-  | 'users';
+  | 'users'
+  | 'chat';
 
 type Props = SVGProps<SVGSVGElement> & { name: IconName };
 
@@ -79,5 +80,7 @@ export default function Icon({ name, ...props }: Props) {
       return <svg {...common}><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg>;
     case 'users':
       return <svg {...common}><circle cx="9" cy="8" r="3.2"/><path d="M3.5 18.5a5.5 5.5 0 0 1 11 0"/><circle cx="17.2" cy="9.2" r="2.4"/><path d="M15.2 14.2a4.7 4.7 0 0 1 5.3 4.3"/></svg>;
+    case 'chat':
+      return <svg {...common}><path d="M21 11.5a8 8 0 0 1-8 8H7l-4 2 1.4-4.2A8.5 8.5 0 1 1 21 11.5Z"/><path d="M8 10h8M8 14h5"/></svg>;
   }
 }

@@ -1,0 +1,228 @@
+.card {
+  position: relative;
+  overflow: hidden;
+  margin-top: 22px;
+  padding: 22px;
+  border: 1px solid rgba(164, 121, 255, .18);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 88% 10%, rgba(142, 84, 255, .16), transparent 34%),
+    linear-gradient(145deg, rgba(20, 19, 34, .98), rgba(10, 13, 24, .98));
+  box-shadow: 0 18px 60px rgba(0, 0, 0, .22);
+}
+
+.glow {
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  right: -100px;
+  top: -120px;
+  border-radius: 999px;
+  background: rgba(126, 78, 255, .16);
+  filter: blur(44px);
+  pointer-events: none;
+}
+
+.head {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: #a98cff;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .18em;
+}
+
+.head h2 {
+  margin: 0;
+  color: #f4f0ff;
+  font-size: clamp(21px, 3vw, 29px);
+  letter-spacing: -.035em;
+}
+
+.head p {
+  margin: 7px 0 0;
+  color: #928aa6;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.openLink {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid rgba(176, 140, 255, .28);
+  border-radius: 13px;
+  background: rgba(126, 80, 255, .1);
+  color: #d9ccff;
+  font-size: 11px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.messages {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.message {
+  display: flex;
+  min-width: 0;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, .07);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .025);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color .18s ease, background .18s ease, transform .18s ease;
+}
+
+.message:hover {
+  transform: translateY(-1px);
+  border-color: rgba(174, 133, 255, .24);
+  background: rgba(137, 91, 255, .06);
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .1);
+}
+
+.copy {
+  min-width: 0;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
+}
+
+.meta strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #ede8f8;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta em {
+  padding: 2px 5px;
+  border: 1px solid rgba(190, 139, 255, .25);
+  border-radius: 999px;
+  background: rgba(160, 84, 255, .1);
+  color: #cdb5ff;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.meta small {
+  margin-left: auto;
+  color: #6e687d;
+  font-size: 9px;
+}
+
+.body {
+  display: -webkit-box;
+  margin-top: 5px;
+  overflow: hidden;
+  color: #aca5ba;
+  font-size: 11px;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.empty {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px dashed rgba(176, 142, 255, .2);
+  border-radius: 17px;
+  background: rgba(255, 255, 255, .02);
+  color: #9f96ae;
+  text-decoration: none;
+}
+
+.emptyIcon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(145, 91, 255, .12);
+  color: #b493ff;
+}
+
+.empty strong,
+.empty small {
+  display: block;
+}
+
+.empty strong {
+  color: #ece5fa;
+  font-size: 12px;
+}
+
+.empty small {
+  margin-top: 3px;
+  font-size: 10px;
+}
+
+.empty > :last-child {
+  margin-left: auto;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 13px;
+  color: #756e83;
+  font-size: 10px;
+}
+
+.liveDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #66e2ae;
+  box-shadow: 0 0 10px rgba(102, 226, 174, .5);
+}
+
+@media (max-width: 820px) {
+  .messages { grid-template-columns: 1fr; }
+  .message:nth-child(n + 3) { display: none; }
+}
+
+@media (max-width: 560px) {
+  .card { margin-top: 16px; padding: 16px; border-radius: 20px; }
+  .head { align-items: center; }
+  .head p { display: none; }
+  .openLink { min-height: 34px; padding: 0 10px; }
+}

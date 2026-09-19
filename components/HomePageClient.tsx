@@ -23,6 +23,7 @@ import ScheduleItem from '@/components/ScheduleItem';
 import { readTasteProfile, setTasteMood, type TasteMood } from '@/lib/personalization';
 import AdSlot from '@/components/monetization/AdSlot';
 import { SupportAnimeBoxCard } from '@/components/monetization/SupportAnimeBox';
+import HomeChatTeaser from '@/components/chat/HomeChatTeaser';
 
 const subscribeHydration = () => () => {};
 
@@ -512,6 +513,8 @@ export default function HomePage({
             />
           )}
         </section>
+
+        <HomeChatTeaser />
 
         <AdSlot
           placement="home-after-smart-feed"

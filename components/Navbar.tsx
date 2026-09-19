@@ -43,6 +43,11 @@ const mainNav = [
     icon: 'heart' as const,
   },
   {
+    href: '/chat',
+    label: 'Чат',
+    icon: 'chat' as const,
+  },
+  {
     href: '/watch-together',
     label: 'Watch Together',
     icon: 'users' as const,
@@ -303,12 +308,12 @@ function NavbarContent() {
         </Link>
 
         <Link
-          href="/watch-together"
-          className={`mobile-nav__item ${isActive('/watch-together') ? 'is-active' : ''}`}
-          aria-current={isActive('/watch-together') ? 'page' : undefined}
+          href="/chat"
+          className={`mobile-nav__item ${isActive('/chat') ? 'is-active' : ''}`}
+          aria-current={isActive('/chat') ? 'page' : undefined}
         >
-          <Icon name="users" />
-          <span>Вместе</span>
+          <Icon name="chat" />
+          <span>Чат</span>
         </Link>
 
         <MobileAccountNav pathname={pathname} />
