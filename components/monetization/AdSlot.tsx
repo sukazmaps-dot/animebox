@@ -27,6 +27,7 @@ import {
   ADS_ENABLED,
   MONETIZATION_ENABLED,
 } from '@/lib/monetization';
+import { trackMonetizationClientEvent } from '@/lib/monetization-events-client';
 
 type AdSlotProps = {
   placement: AdPlacement;
@@ -64,21 +65,38 @@ export default function AdSlot({
   const [reserved, setReserved] = useState(false);
   const [rendered, setRendered] = useState(false);
   const [providerFailed, setProviderFailed] = useState(false);
+  const eventStateRef = useRef({ requested: false, filled: false, noFill: false });
 
   const resolvedFormat = format ?? AD_PLACEMENT_DEFINITIONS[placement].format;
 
   const handleProviderReady = useCallback(() => {
     commitAdExposure(placement);
+    if (!eventStateRef.current.filled) {
+      eventStateRef.current.filled = true;
+      trackMonetizationClientEvent('ad_slot_filled', {
+        source: config?.provider ?? AD_PROVIDER,
+        entityId: placement,
+        metadata: { placement, format: resolvedFormat },
+      });
+    }
     setRendered(true);
     setProviderFailed(false);
-  }, [placement]);
+  }, [config?.provider, placement, resolvedFormat]);
 
   const handleProviderError = useCallback(() => {
     releaseAdExposure(placement);
+    if (!eventStateRef.current.noFill) {
+      eventStateRef.current.noFill = true;
+      trackMonetizationClientEvent('ad_slot_no_fill', {
+        source: config?.provider ?? AD_PROVIDER,
+        entityId: placement,
+        metadata: { placement, format: resolvedFormat },
+      });
+    }
     setReserved(false);
     setRendered(false);
     setProviderFailed(true);
-  }, [placement]);
+  }, [config?.provider, placement, resolvedFormat]);
 
   useEffect(() => {
     let active = true;
@@ -164,6 +182,7 @@ export default function AdSlot({
       setReserved(false);
       setRendered(false);
       setProviderFailed(false);
+      eventStateRef.current = { requested: false, filled: false, noFill: false };
       void getAdRuntimeConfig({ force: true })
         .then((next) => {
           if (active) setConfig(next);
@@ -222,8 +241,16 @@ export default function AdSlot({
     if (!eligible || !nearViewport || !config || reserved || providerFailed) return;
     const allowed = beginAdExposure(placement, config);
     if (!allowed) return;
+    if (!eventStateRef.current.requested) {
+      eventStateRef.current.requested = true;
+      trackMonetizationClientEvent('ad_slot_requested', {
+        source: config.provider,
+        entityId: placement,
+        metadata: { placement, format: resolvedFormat },
+      });
+    }
     queueMicrotask(() => setReserved(true));
-  }, [config, eligible, nearViewport, placement, providerFailed, reserved]);
+  }, [config, eligible, nearViewport, placement, providerFailed, reserved, resolvedFormat]);
 
   useEffect(() => {
     if (!reserved || rendered || config?.provider !== 'house') return;
@@ -253,6 +280,8 @@ export default function AdSlot({
     return null;
   }
 
+  if (providerFailed) return null;
+
   return (
     <div
       ref={slotRef}
@@ -278,7 +307,16 @@ export default function AdSlot({
 
           <div className="monetization-ad__surface">
             {config.provider === 'house' ? (
-              <Link className="monetization-ad__house" href="/support">
+              <Link
+                className="monetization-ad__house"
+                href="/support"
+                onClick={() => trackMonetizationClientEvent('ad_slot_clicked', {
+                  source: 'house',
+                  entityId: placement,
+                  metadata: { placement, format: resolvedFormat },
+                  flush: true,
+                })}
+              >
                 <span>AnimeBox</span>
                 <strong>Помоги проекту расти без навязчивой рекламы</strong>
                 <small>Поддержка проекта отключает наши рекламные блоки на подходящих уровнях.</small>

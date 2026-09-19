@@ -1,0 +1,645 @@
+.viewport {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 10px;
+  padding-top: max(10px, env(safe-area-inset-top));
+  padding-right: max(10px, env(safe-area-inset-right));
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  padding-left: max(10px, env(safe-area-inset-left));
+  background:
+    radial-gradient(circle at 16% 0%, rgba(95, 73, 220, 0.15), transparent 33%),
+    radial-gradient(circle at 88% 8%, rgba(139, 92, 246, 0.08), transparent 28%),
+    #040710;
+  color: #fff;
+}
+
+.viewport::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.01) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent 76%);
+}
+
+.shell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  width: min(1880px, 100%);
+  height: 100%;
+  min-height: 0;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  min-height: 46px;
+  padding: 5px 6px 5px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 14px;
+  background: rgba(8, 11, 22, 0.8);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.18);
+}
+
+.brandRow {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.brandMark {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 35% 25%, rgba(167, 139, 250, 0.32), transparent 40%),
+    rgba(124, 92, 255, 0.08);
+  color: #cabfff;
+  font-size: 13px;
+  box-shadow: inset 0 0 22px rgba(124, 92, 255, 0.08);
+}
+
+.brandCopy {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.brandCopy span {
+  display: block;
+  overflow: hidden;
+  color: rgba(167, 139, 250, 0.65);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brandCopy strong {
+  display: block;
+  max-width: 100%;
+  margin-top: 2px;
+  overflow: hidden;
+  color: rgba(249, 248, 255, 0.94);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.headerActions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+}
+
+.headerStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid rgba(85, 214, 160, 0.12);
+  border-radius: 9px;
+  background: rgba(85, 214, 160, 0.04);
+  color: rgba(172, 235, 207, 0.72);
+  font-size: 7px;
+  font-weight: 800;
+}
+
+.headerStatus::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #55d6a0;
+  box-shadow: 0 0 12px rgba(85, 214, 160, 0.48);
+}
+
+.exitButton,
+.chatToggle {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(238, 241, 252, 0.72);
+  font-size: 8px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.exitButton:hover,
+.chatToggle:hover {
+  border-color: rgba(167, 139, 250, 0.2);
+  background: rgba(139, 92, 246, 0.07);
+  color: #fff;
+}
+
+.chatToggle {
+  display: none;
+}
+
+.content {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(320px, 24vw, 455px);
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.playerColumn {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  align-items: stretch;
+  justify-items: stretch;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.045);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 10%, rgba(124, 92, 255, 0.075), transparent 38%),
+    rgba(2, 4, 10, 0.82);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.28);
+}
+
+.playerWrap {
+  width: 100%;
+  height: 100%;
+  max-width: 1480px;
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.sourceError {
+  margin: 6px 8px 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(245, 158, 11, 0.16);
+  border-radius: 10px;
+  background: rgba(120, 53, 15, 0.12);
+  color: rgba(253, 186, 116, 0.86);
+  font-size: 9px;
+  text-align: center;
+}
+
+.roomColumn {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.drawerBackdrop {
+  display: none;
+}
+
+.loadingPlayer {
+  position: relative;
+  display: grid;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 18px;
+  background: #02040a;
+}
+
+.loadingInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: rgba(233, 237, 250, 0.45);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-top-color: rgba(167, 139, 250, 0.9);
+  border-radius: 50%;
+  animation: spin 0.85s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* The normal AnimePlayer has its own cinema title/header. Watch Together
+   already owns the page header, so keep only the useful source controls. */
+:global(.watch-together-player-root),
+:global(.watch-together-player-mount) {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+:global(.watch-together-player-mount) {
+  display: block;
+}
+
+:global(.animebox-premium-player.watch-together-player) {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  overflow: hidden;
+  border-radius: 18px;
+}
+
+:global(.watch-together-player .watch-together-player-stage-shell) {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  container-type: size;
+}
+
+:global(.watch-together-player .watch-together-player-viewport) {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: auto !important;
+}
+
+/* On modern desktop browsers, fit a true 16:9 viewport inside the remaining
+   player row using both available width and available height. The fallback
+   above still prevents clipping in older WebViews. */
+@supports (width: 1cqw) {
+  :global(.watch-together-player .watch-together-player-viewport) {
+    width: min(100cqw, calc(100cqh * 16 / 9));
+    height: auto;
+    max-height: 100cqh;
+    aspect-ratio: 16 / 9 !important;
+  }
+}
+
+:global(.watch-together-player .premium-player-glow) {
+  display: none;
+}
+
+:global(.watch-together-player .watch-together-player-header) {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 7px 8px;
+}
+
+:global(.watch-together-player .watch-together-player-toolbar) {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+:global(.watch-together-player .watch-together-player-toolbar::-webkit-scrollbar) {
+  display: none;
+}
+
+:global(.watch-together-player .premium-player-dropdown-trigger) {
+  min-height: 36px;
+  min-width: 150px;
+  border-radius: 10px;
+  padding-inline: 10px;
+}
+
+:global(.watch-together-player .premium-player-control-icon) {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+}
+
+:global(.watch-together-player .premium-player-source),
+:global(.watch-together-player .premium-player-toolbar-button) {
+  min-height: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+}
+
+:global(.watch-together-player .watch-together-player-nav) {
+  gap: 6px;
+  padding: 7px 8px;
+}
+
+:global(.watch-together-player .watch-together-player-nav > button) {
+  min-height: 38px;
+}
+
+:global(html.animebox-watch-together-theater),
+:global(body.animebox-watch-together-theater) {
+  width: 100%;
+  height: 100%;
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
+:global(body.animebox-watch-together-theater) {
+  padding: 0 !important;
+}
+
+:global(.watch-together-app-shell) {
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 1120px) {
+  .content {
+    grid-template-columns: minmax(0, 1fr) clamp(300px, 30vw, 390px);
+  }
+
+  :global(.watch-together-player .premium-player-dropdown-trigger) {
+    min-width: 138px;
+  }
+}
+
+@media (max-width: 700px) and (orientation: portrait) {
+  .viewport {
+    padding: 5px;
+    padding-top: max(5px, env(safe-area-inset-top));
+    padding-right: max(5px, env(safe-area-inset-right));
+    padding-bottom: max(5px, env(safe-area-inset-bottom));
+    padding-left: max(5px, env(safe-area-inset-left));
+  }
+
+  .shell {
+    gap: 5px;
+  }
+
+  .header {
+    min-height: 40px;
+    gap: 7px;
+    padding: 3px 4px 3px 7px;
+    border-radius: 11px;
+  }
+
+  .brandRow {
+    gap: 7px;
+  }
+
+  .brandMark {
+    width: 27px;
+    height: 27px;
+    flex-basis: 27px;
+    border-radius: 8px;
+    font-size: 12px;
+  }
+
+  .brandCopy span {
+    font-size: 6px;
+  }
+
+  .brandCopy strong {
+    font-size: 9px;
+  }
+
+  .headerStatus {
+    display: none;
+  }
+
+  .exitButton {
+    min-height: 28px;
+    padding-inline: 8px;
+    font-size: 7px;
+  }
+
+  .content {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(245px, 44dvh) minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .playerColumn {
+    display: grid;
+    border-radius: 12px;
+  }
+
+  .playerWrap {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    padding: 3px;
+  }
+
+  .roomColumn {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  :global(.animebox-premium-player.watch-together-player) {
+    border-radius: 12px;
+  }
+
+  :global(.watch-together-player .watch-together-player-header) {
+    padding: 4px;
+  }
+
+  :global(.watch-together-player .watch-together-player-toolbar) {
+    justify-content: flex-start;
+    gap: 4px;
+  }
+
+  :global(.watch-together-player .premium-player-dropdown-trigger) {
+    min-width: 122px;
+    min-height: 32px;
+    padding-inline: 7px;
+    border-radius: 8px;
+  }
+
+  :global(.watch-together-player .premium-player-control-icon) {
+    display: none;
+  }
+
+  :global(.watch-together-player .premium-player-source),
+  :global(.watch-together-player .premium-player-toolbar-button) {
+    min-height: 32px;
+    height: 32px;
+    padding-inline: 9px;
+    border-radius: 8px;
+    font-size: 9px;
+  }
+
+  :global(.watch-together-player .watch-together-player-nav) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 4px;
+    padding: 4px;
+  }
+
+  :global(.watch-together-player .watch-together-player-nav > div) {
+    display: none;
+  }
+
+  :global(.watch-together-player .watch-together-player-nav > button) {
+    min-height: 32px;
+    padding-inline: 8px;
+    font-size: 9px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 620px) {
+  .viewport {
+    padding: 4px;
+    padding-top: max(4px, env(safe-area-inset-top));
+    padding-right: max(4px, env(safe-area-inset-right));
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
+    padding-left: max(4px, env(safe-area-inset-left));
+  }
+
+  .shell {
+    gap: 4px;
+  }
+
+  .header {
+    min-height: 34px;
+    padding: 2px 4px 2px 7px;
+    border-radius: 9px;
+  }
+
+  .brandMark {
+    width: 25px;
+    height: 25px;
+    flex-basis: 25px;
+    border-radius: 8px;
+  }
+
+  .brandCopy strong {
+    font-size: 8px;
+  }
+
+  .brandCopy span,
+  .headerStatus {
+    font-size: 6px;
+  }
+
+  .headerStatus {
+    min-height: 26px;
+  }
+
+  .exitButton,
+  .chatToggle {
+    min-height: 26px;
+    padding-inline: 8px;
+    font-size: 7px;
+  }
+
+  .chatToggle {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .content {
+    display: block;
+    min-height: 0;
+  }
+
+  .playerColumn {
+    width: 100%;
+    height: 100%;
+    border-radius: 11px;
+  }
+
+  .playerWrap {
+    width: min(100%, calc((100dvh - 46px) * 1.78));
+    height: 100%;
+    padding: 2px;
+  }
+
+  :global(.watch-together-player .watch-together-player-header) {
+    padding: 3px 4px;
+  }
+
+  :global(.watch-together-player .premium-player-dropdown-trigger),
+  :global(.watch-together-player .premium-player-source),
+  :global(.watch-together-player .premium-player-toolbar-button) {
+    min-height: 28px;
+    height: 28px;
+    border-radius: 7px;
+  }
+
+  :global(.watch-together-player .premium-player-dropdown-trigger) {
+    min-width: 112px;
+  }
+
+  :global(.watch-together-player .watch-together-player-nav) {
+    padding: 3px 4px;
+  }
+
+  :global(.watch-together-player .watch-together-player-nav > button) {
+    min-height: 29px;
+  }
+
+  .roomColumn {
+    position: absolute;
+    z-index: 20;
+    inset: 0 0 0 auto;
+    width: min(390px, 44vw);
+    min-width: 270px;
+    transform: translateX(calc(100% + 10px));
+    transition: transform 180ms ease;
+    filter: drop-shadow(-18px 0 46px rgba(0, 0, 0, 0.34));
+  }
+
+  .roomColumn[data-open='true'] {
+    transform: translateX(0);
+  }
+
+  .drawerBackdrop {
+    position: absolute;
+    z-index: 19;
+    inset: 0;
+    display: none;
+    border: 0;
+    background: rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(2px);
+  }
+
+  .drawerBackdrop[data-open='true'] {
+    display: block;
+  }
+}

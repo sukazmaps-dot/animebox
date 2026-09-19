@@ -7,6 +7,7 @@ import SponsorBadge from '@/components/monetization/SponsorBadge';
 import type { SponsorTier } from '@/lib/sponsor';
 import BoostyClaimsPanel from '@/components/admin/BoostyClaimsPanel';
 import PremiumAdminPanel from '@/components/admin/PremiumAdminPanel';
+import MonetizationAnalyticsDashboard from '@/components/admin/MonetizationAnalyticsDashboard';
 
 type Payment = {
   id: string;
@@ -270,6 +271,8 @@ export default function MonetizationAdmin() {
           <button disabled={loading} onClick={() => setRefresh((value) => value + 1)}>Обновить</button>
         </div>
       </div>
+
+      <MonetizationAnalyticsDashboard />
 
       <form className="sponsor-v3-admin-search" onSubmit={submitSearch}>
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ник, UUID или Telegram ID" />

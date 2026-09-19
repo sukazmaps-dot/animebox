@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { PREMIUM_ENTITLEMENTS } from '@/lib/premium-server';
+import { trackMonetizationEvents } from '@/lib/monetization-events-server';
 
 export type BoostyBridgeState =
   | 'not_configured'
@@ -250,6 +251,15 @@ async function markSubscriptionInactive({
       .eq('source', 'premium')
       .eq('source_id', subscriptionId);
     if (entitlementError) throw entitlementError;
+
+    await trackMonetizationEvents([{
+      eventName: 'premium_expired',
+      userId,
+      source: 'boosty_telegram',
+      entityId: subscriptionId,
+      dedupeKey: `premium_expired:${subscriptionId}`,
+      metadata: { provider: 'boosty', verification: 'telegram_group' },
+    }]);
   }
 }
 
@@ -299,6 +309,13 @@ export async function verifyBoostyPremiumForUser(
       updated_at: nowIso,
     }, { onConflict: 'user_id' });
     if (saveError) throw saveError;
+    await trackMonetizationEvents([{
+      eventName: 'boosty_check',
+      userId,
+      source: 'boosty_telegram',
+      entityId: telegramId,
+      metadata: { result: 'error', error: message.slice(0, 250) },
+    }]);
     return mapLink({
       ...existingLink,
       status: 'error',
@@ -313,6 +330,7 @@ export async function verifyBoostyPremiumForUser(
       ? existingLink.subscription_id
       : null;
     let startsAt = nowIso;
+    let createdSubscription = false;
 
     if (subscriptionId) {
       const { data: existingSubscription, error: subscriptionLookupError } = await admin
@@ -409,6 +427,7 @@ export async function verifyBoostyPremiumForUser(
       if (createError) throw createError;
       subscriptionId = String(subscription.id);
       startsAt = String(subscription.starts_at);
+      createdSubscription = true;
     }
 
     await upsertEntitlements({ userId, subscriptionId, startsAt, expiresAt: leaseUntil });
@@ -426,6 +445,33 @@ export async function verifyBoostyPremiumForUser(
       updated_at: nowIso,
     }, { onConflict: 'user_id' }).select('status,member_status,subscription_id,last_verified_at,last_success_at,grace_until,last_error').single();
     if (saveError) throw saveError;
+
+    await trackMonetizationEvents([
+      {
+        eventName: 'boosty_check',
+        userId,
+        source: 'boosty_telegram',
+        entityId: subscriptionId,
+        metadata: { result: 'active', member_status: membership.status },
+      },
+      {
+        eventName: 'boosty_verified',
+        userId,
+        source: 'boosty_telegram',
+        entityId: subscriptionId,
+        metadata: { member_status: membership.status },
+      },
+      ...(createdSubscription
+        ? [{
+            eventName: 'premium_activated' as const,
+            userId,
+            source: 'boosty_telegram',
+            entityId: subscriptionId,
+            dedupeKey: `premium_activated:${subscriptionId}`,
+            metadata: { plan: 'monthly', provider: 'boosty' },
+          }]
+        : []),
+    ]);
 
     return mapLink(savedLink as Record<string, unknown>, true, telegramId);
   }
@@ -467,6 +513,14 @@ export async function verifyBoostyPremiumForUser(
     updated_at: nowIso,
   }, { onConflict: 'user_id' }).select('status,member_status,subscription_id,last_verified_at,last_success_at,grace_until,last_error').single();
   if (saveError) throw saveError;
+
+  await trackMonetizationEvents([{
+    eventName: 'boosty_check',
+    userId,
+    source: 'boosty_telegram',
+    entityId: subscriptionId ?? telegramId,
+    metadata: { result: nextState, member_status: membership.status },
+  }]);
 
   return mapLink(savedLink as Record<string, unknown>, true, telegramId);
 }

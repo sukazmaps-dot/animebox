@@ -18,6 +18,23 @@ export type KodikProviderSkipSignal = {
 export type KodikPlayerHandle = {
   play: () => void;
   pause: () => void;
+  seek: (seconds: number) => void;
+  getState: () => {
+    positionSeconds: number;
+    durationSeconds: number | null;
+    playing: boolean;
+  };
+};
+
+export type KodikPlaybackActionEvent = {
+  action: 'play' | 'pause' | 'seek';
+  positionSeconds: number;
+};
+
+export type KodikPlaybackStateEvent = {
+  positionSeconds: number;
+  durationSeconds: number | null;
+  playing: boolean;
 };
 
 type Props = {
@@ -27,6 +44,8 @@ type Props = {
   resumeSeconds?: number;
   onReady?: () => void;
   onTimeUpdate?: (sample: KodikTimeSample) => void;
+  onPlaybackAction?: (event: KodikPlaybackActionEvent) => void;
+  onPlaybackState?: (event: KodikPlaybackStateEvent) => void;
   onProviderSkip?: (signal: KodikProviderSkipSignal) => void;
   onEnded?: () => void;
 };
@@ -194,6 +213,8 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
   resumeSeconds = 0,
   onReady,
   onTimeUpdate,
+  onPlaybackAction,
+  onPlaybackState,
   onProviderSkip,
   onEnded,
 }, ref) {
@@ -204,6 +225,10 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
   const resumeAppliedRef = useRef(false);
   const endedFiredRef = useRef(false);
   const pendingPlayRef = useRef(false);
+  const playingRef = useRef(false);
+  const lastSampleAtRef = useRef<number | null>(null);
+  const lastAdvanceAtRef = useRef<number | null>(null);
+  const pauseInferenceTimerRef = useRef<number | null>(null);
 
   const playerSrc = useMemo(
     () => buildPlayerUrl(src, episodeNumber),
@@ -239,11 +264,26 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
     () => ({
       play() {
         pendingPlayRef.current = true;
+        playingRef.current = true;
         postApiCommand('play');
       },
       pause() {
         pendingPlayRef.current = false;
+        playingRef.current = false;
         postApiCommand('pause');
+      },
+      seek(seconds) {
+        if (!Number.isFinite(seconds) || seconds < 0) return;
+        const normalized = Math.min(28_800, Math.max(0, seconds));
+        currentPositionRef.current = normalized;
+        postApiCommand('seek', { seconds: normalized });
+      },
+      getState() {
+        return {
+          positionSeconds: currentPositionRef.current ?? 0,
+          durationSeconds: durationRef.current,
+          playing: playingRef.current,
+        };
       },
     }),
     [postApiCommand],
@@ -264,6 +304,13 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
     resumeAppliedRef.current = false;
     endedFiredRef.current = false;
     pendingPlayRef.current = false;
+    playingRef.current = false;
+    lastSampleAtRef.current = null;
+    lastAdvanceAtRef.current = null;
+    if (pauseInferenceTimerRef.current != null) {
+      window.clearTimeout(pauseInferenceTimerRef.current);
+      pauseInferenceTimerRef.current = null;
+    }
   }, [playerSrc, resumeSeconds]);
 
   useEffect(() => {
@@ -271,6 +318,44 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
       if (endedFiredRef.current) return;
       endedFiredRef.current = true;
       onEnded?.();
+    }
+
+    function emitPlaybackState() {
+      onPlaybackState?.({
+        positionSeconds: currentPositionRef.current ?? 0,
+        durationSeconds: durationRef.current,
+        playing: playingRef.current,
+      });
+    }
+
+    function emitPlaybackAction(action: KodikPlaybackActionEvent['action'], position?: number) {
+      const nextPosition =
+        typeof position === 'number' && Number.isFinite(position)
+          ? Math.max(0, position)
+          : currentPositionRef.current ?? 0;
+
+      onPlaybackAction?.({ action, positionSeconds: nextPosition });
+    }
+
+    function markPlaying() {
+      lastAdvanceAtRef.current = Date.now();
+      if (!playingRef.current) {
+        playingRef.current = true;
+        emitPlaybackAction('play');
+      }
+      emitPlaybackState();
+
+      if (pauseInferenceTimerRef.current != null) {
+        window.clearTimeout(pauseInferenceTimerRef.current);
+      }
+
+      pauseInferenceTimerRef.current = window.setTimeout(() => {
+        if (Date.now() - (lastAdvanceAtRef.current ?? 0) < 1_700) return;
+        if (!playingRef.current) return;
+        playingRef.current = false;
+        emitPlaybackAction('pause');
+        emitPlaybackState();
+      }, 1_850);
     }
 
     function forceRouteEpisode() {
@@ -325,10 +410,25 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
         const time = readTimeValue(value);
         if (!time || time.position < 0) return;
 
+        const previousPosition = currentPositionRef.current;
+        const previousSampleAt = lastSampleAtRef.current;
+        const now = Date.now();
         currentPositionRef.current = time.position;
+        lastSampleAtRef.current = now;
 
         if (time.duration != null && time.duration > 0) {
           durationRef.current = time.duration;
+        }
+
+        if (previousPosition != null && previousSampleAt != null) {
+          const delta = time.position - previousPosition;
+          const wallSeconds = Math.max(0.05, (now - previousSampleAt) / 1000);
+
+          if (Math.abs(delta) > Math.max(3, wallSeconds * 2.5 + 1.25)) {
+            emitPlaybackAction('seek', time.position);
+          } else if (delta > 0.04) {
+            markPlaying();
+          }
         }
 
         if (
@@ -360,6 +460,8 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
           origin: event.origin || null,
         });
 
+        emitPlaybackState();
+
         if (
           knownDuration != null &&
           knownDuration > 0 &&
@@ -371,11 +473,38 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
         return;
       }
 
+      if (key === 'kodik_player_play' || key === 'kodik_player_playing' || key === 'kodik_player_resume') {
+        playingRef.current = true;
+        lastAdvanceAtRef.current = Date.now();
+        emitPlaybackAction('play');
+        emitPlaybackState();
+        return;
+      }
+
+      if (key === 'kodik_player_pause' || key === 'kodik_player_paused') {
+        playingRef.current = false;
+        emitPlaybackAction('pause');
+        emitPlaybackState();
+        return;
+      }
+
+      if (key === 'kodik_player_seek' || key === 'kodik_player_seeked') {
+        const seek = readTimeValue(value);
+        if (seek && seek.position >= 0) {
+          currentPositionRef.current = seek.position;
+          emitPlaybackAction('seek', seek.position);
+          emitPlaybackState();
+        }
+        return;
+      }
+
       if (
         key === 'kodik_player_ended' ||
         key === 'kodik_player_end' ||
         key === 'kodik_player_video_ended'
       ) {
+        playingRef.current = false;
+        emitPlaybackState();
         fireEndedOnce();
         return;
       }
@@ -441,8 +570,21 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
 
     return () => {
       window.removeEventListener('message', onMessage);
+      if (pauseInferenceTimerRef.current != null) {
+        window.clearTimeout(pauseInferenceTimerRef.current);
+        pauseInferenceTimerRef.current = null;
+      }
     };
-  }, [episodeNumber, expectedOrigin, onEnded, onProviderSkip, onTimeUpdate, resumeSeconds]);
+  }, [
+    episodeNumber,
+    expectedOrigin,
+    onEnded,
+    onPlaybackAction,
+    onPlaybackState,
+    onProviderSkip,
+    onTimeUpdate,
+    resumeSeconds,
+  ]);
 
   return (
     <>

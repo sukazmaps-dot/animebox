@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import type { EntitlementKey } from '@/lib/payments/entitlements';
+import { trackMonetizationEvents } from '@/lib/monetization-events-server';
 
 export const PREMIUM_ENTITLEMENTS: EntitlementKey[] = [
   'adFree',
@@ -146,7 +147,7 @@ export async function reconcilePremiumForUser(userId: string) {
 
   const { data: expired, error: expiredLookupError } = await admin
     .from('premium_subscriptions')
-    .select('id')
+    .select('id,user_id,source,plan,ends_at')
     .eq('user_id', userId)
     .in('status', ['active', 'grace_period'])
     .lte('ends_at', now);
@@ -160,6 +161,17 @@ export async function reconcilePremiumForUser(userId: string) {
       .update({ status: 'expired', auto_renew: false, updated_at: now })
       .in('id', expiredIds);
     if (subscriptionError) throw subscriptionError;
+
+    await trackMonetizationEvents(
+      (expired ?? []).map((item) => ({
+        eventName: 'premium_expired' as const,
+        userId: String(item.user_id),
+        source: String(item.source),
+        entityId: String(item.id),
+        dedupeKey: `premium_expired:${item.id}`,
+        metadata: { plan: item.plan, ends_at: item.ends_at },
+      })),
+    );
   }
 
   const { data: liveRows, error: liveError } = await admin
@@ -336,7 +348,20 @@ export async function grantPremium({
   }
 
   await reconcilePremiumForUser(userId);
-  return mapSubscription(subscriptionRow);
+  const subscription = mapSubscription(subscriptionRow);
+  await trackMonetizationEvents([{
+    eventName: 'premium_activated',
+    userId,
+    source: 'admin',
+    entityId: subscription.id,
+    dedupeKey: `premium_activated:${subscription.id}`,
+    metadata: {
+      plan: subscription.plan,
+      granted_days: days,
+      actor_user_id: actorUserId,
+    },
+  }]);
+  return subscription;
 }
 
 export async function revokePremium({
@@ -422,6 +447,17 @@ export async function reconcileAllPremiumLifecycle(limit = 500) {
       .eq('source', 'premium')
       .in('source_id', expiredIds);
     if (entitlementError) throw entitlementError;
+
+    await trackMonetizationEvents(
+      expired.map((item) => ({
+        eventName: 'premium_expired' as const,
+        userId: item.userId,
+        source: item.source,
+        entityId: item.id,
+        dedupeKey: `premium_expired:${item.id}`,
+        metadata: { plan: item.plan, ends_at: item.endsAt },
+      })),
+    );
   }
 
   if (live.length) {

@@ -1,7 +1,7 @@
 'use client';
 
 import type { CSSProperties, ReactNode } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '@/components/Icon';
 import KodikPlayer, { type KodikPlayerHandle } from '@/components/KodikPlayer';
 import { useWatchSession } from '@/components/useWatchSession';
@@ -11,6 +11,18 @@ import {
   resolveReadableTextColor,
   type PremiumStudioSettings,
 } from '@/lib/premium-studio';
+import {
+  WATCH_PARTY_PLAYER_ACTION_EVENT,
+  WATCH_PARTY_PLAYER_COMMAND_EVENT,
+  WATCH_PARTY_PLAYER_CONTROL_EVENT,
+  WATCH_PARTY_PLAYER_STATE_EVENT,
+  createWatchPartyMessageId,
+  type WatchPartyPlayerAction,
+  type WatchPartyPlayerActionDetail,
+  type WatchPartyPlayerCommandDetail,
+  type WatchPartyPlayerControlDetail,
+  type WatchPartyPlayerStateDetail,
+} from '@/lib/watch-party';
 
 export type TranslationOption = {
   title: string;
@@ -58,6 +70,7 @@ interface AnimePlayerProps {
   onNext?: () => void;
   onEnded?: () => void;
   onEpisodeChange?: (episode: number) => void;
+  watchTogetherMode?: boolean;
 }
 
 type DropdownOption = {
@@ -284,6 +297,7 @@ export default function AnimePlayer({
   onNext,
   onEnded,
   onEpisodeChange,
+  watchTogetherMode = false,
 }: AnimePlayerProps) {
   const [activeSourceIndex, setActiveSourceIndex] = useState(0);
   const [activeTranslationIndex, setActiveTranslationIndex] = useState(0);
@@ -305,6 +319,21 @@ export default function AnimePlayer({
   const telegramOrientationOwnedRef = useRef(false);
   const telegramWasFullscreenRef = useRef(false);
   const telegramVerticalSwipesWereEnabledRef = useRef<boolean | null>(null);
+  const partySuppressUntilRef = useRef(0);
+  const pendingPartyCommandRef = useRef<WatchPartyPlayerCommandDetail | null>(null);
+  const lastPartyActionRef = useRef<{
+    action: WatchPartyPlayerAction;
+    position: number;
+    at: number;
+  } | null>(null);
+  const partyStateRef = useRef<WatchPartyPlayerStateDetail>({
+    episode: episodeNumber,
+    position: 0,
+    duration: null,
+    playing: false,
+    observedAt: 0,
+    source: 'native',
+  });
 
   const currentSource = sources[activeSourceIndex];
   const currentTranslation = currentSource?.translations[activeTranslationIndex];
@@ -322,6 +351,123 @@ export default function AnimePlayer({
 
   const trackableNativeVideo = !isIframe && Boolean(videoLink);
 
+  const publishPartyState = useCallback((input: {
+    position: number;
+    duration?: number | null;
+    playing: boolean;
+  }) => {
+    const detail: WatchPartyPlayerStateDetail = {
+      episode: episodeNumber,
+      position: Math.max(0, Number.isFinite(input.position) ? input.position : 0),
+      duration:
+        input.duration != null && Number.isFinite(input.duration) && input.duration > 0
+          ? input.duration
+          : null,
+      playing: input.playing,
+      observedAt: Date.now(),
+      source: isKodik ? 'kodik' : 'native',
+    };
+
+    partyStateRef.current = detail;
+    window.dispatchEvent(
+      new CustomEvent<WatchPartyPlayerStateDetail>(WATCH_PARTY_PLAYER_STATE_EVENT, { detail }),
+    );
+  }, [episodeNumber, isKodik]);
+
+  const publishPartyAction = useCallback((
+    action: WatchPartyPlayerAction,
+    position: number,
+    playing: boolean,
+  ) => {
+    const now = Date.now();
+    if (now < partySuppressUntilRef.current) return;
+
+    const normalizedPosition = Math.max(0, Number.isFinite(position) ? position : 0);
+    const previous = lastPartyActionRef.current;
+    if (
+      previous &&
+      previous.action === action &&
+      Math.abs(previous.position - normalizedPosition) < 0.9 &&
+      now - previous.at < 850
+    ) {
+      return;
+    }
+
+    lastPartyActionRef.current = { action, position: normalizedPosition, at: now };
+    const detail: WatchPartyPlayerActionDetail = {
+      actionId: createWatchPartyMessageId(),
+      action,
+      episode: episodeNumber,
+      position: normalizedPosition,
+      playing,
+      observedAt: now,
+    };
+
+    window.dispatchEvent(
+      new CustomEvent<WatchPartyPlayerActionDetail>(WATCH_PARTY_PLAYER_ACTION_EVENT, { detail }),
+    );
+  }, [episodeNumber]);
+
+  const applyPartyCommand = useCallback((
+    detail: WatchPartyPlayerCommandDetail,
+    remote: boolean,
+  ) => {
+    if (detail.episode !== episodeNumber) return;
+    if (remote) partySuppressUntilRef.current = Date.now() + 2_800;
+
+    const target = Math.max(0, Math.min(28_800, detail.position));
+
+    if (isKodik) {
+      setStarted(true);
+      const player = kodikPlayerRef.current;
+      if (!player) {
+        pendingPartyCommandRef.current = detail;
+        return;
+      }
+
+      const state = player.getState();
+      if (detail.action === 'seek' || Math.abs(state.positionSeconds - target) > 2.2) {
+        player.seek(target);
+      }
+      if (detail.action === 'play') player.play();
+      if (detail.action === 'pause') player.pause();
+
+      publishPartyState({
+        position: target,
+        duration: state.durationSeconds,
+        playing: detail.action === 'play' ? true : detail.action === 'pause' ? false : detail.playing,
+      });
+      return;
+    }
+
+    const video = videoRef.current;
+    if (!started || !video) {
+      pendingPartyCommandRef.current = detail;
+      setStarted(true);
+      return;
+    }
+
+    if (detail.action === 'seek' || Math.abs(video.currentTime - target) > 2.2) {
+      try {
+        video.currentTime = target;
+      } catch {
+        // Metadata may still be loading; the pending state below will retry.
+      }
+    }
+
+    if (detail.action === 'play') {
+      void video.play().catch(() => undefined);
+    } else if (detail.action === 'pause') {
+      video.pause();
+    }
+
+    publishPartyState({
+      position: target,
+      duration: Number.isFinite(video.duration) && video.duration > 0 ? video.duration : null,
+      playing: detail.action === 'play' ? true : detail.action === 'pause' ? false : !video.paused,
+    });
+  }, [episodeNumber, isKodik, publishPartyState, started]);
+
   const watchSession = useWatchSession({
     enabled: started && (isKodik || trackableNativeVideo),
     animeId,
@@ -331,6 +477,74 @@ export default function AnimePlayer({
   });
 
   const trackingMessage = watchSession.message;
+
+  useEffect(() => {
+    function onPartyCommand(event: Event) {
+      const detail = (event as CustomEvent<WatchPartyPlayerCommandDetail>).detail;
+      if (!detail) return;
+      applyPartyCommand(detail, true);
+    }
+
+    function onPartyControl(event: Event) {
+      const control = (event as CustomEvent<WatchPartyPlayerControlDetail>).detail;
+      if (!control) return;
+
+      const state = partyStateRef.current;
+      const position =
+        typeof control.position === 'number' && Number.isFinite(control.position)
+          ? Math.max(0, control.position)
+          : state.position;
+      const playing =
+        control.action === 'play'
+          ? true
+          : control.action === 'pause'
+            ? false
+            : state.playing;
+      const command: WatchPartyPlayerCommandDetail = {
+        action: control.action,
+        episode: episodeNumber,
+        position,
+        playing,
+        seq: 0,
+      };
+
+      applyPartyCommand(command, false);
+      publishPartyAction(control.action, position, playing);
+      partySuppressUntilRef.current = Date.now() + 1_200;
+    }
+
+    window.addEventListener(WATCH_PARTY_PLAYER_COMMAND_EVENT, onPartyCommand);
+    window.addEventListener(WATCH_PARTY_PLAYER_CONTROL_EVENT, onPartyControl);
+
+    return () => {
+      window.removeEventListener(WATCH_PARTY_PLAYER_COMMAND_EVENT, onPartyCommand);
+      window.removeEventListener(WATCH_PARTY_PLAYER_CONTROL_EVENT, onPartyControl);
+    };
+  }, [applyPartyCommand, episodeNumber, publishPartyAction]);
+
+  useEffect(() => {
+    const pending = pendingPartyCommandRef.current;
+    if (!pending || !started) return;
+    if (isKodik && !kodikPlayerRef.current) return;
+    if (!isKodik && !videoRef.current) return;
+
+    pendingPartyCommandRef.current = null;
+    applyPartyCommand(pending, true);
+  }, [applyPartyCommand, isKodik, playerReady, started, videoLink]);
+
+  useEffect(() => {
+    partyStateRef.current = {
+      episode: episodeNumber,
+      position: 0,
+      duration: null,
+      playing: false,
+      observedAt: Date.now(),
+      source: isKodik ? 'kodik' : 'native',
+    };
+    pendingPartyCommandRef.current = null;
+    partySuppressUntilRef.current = 0;
+    lastPartyActionRef.current = null;
+  }, [episodeNumber, isKodik, videoLink]);
 
   const episodeMeta = totalEpisodes
     ? totalEpisodesKnown
@@ -775,7 +989,15 @@ export default function AnimePlayer({
      * so the viewer does not have to press Kodik's play button a second time.
      */
     if (isKodik) {
-      kodikPlayerRef.current?.play();
+      const player = kodikPlayerRef.current;
+      player?.play();
+      const state = player?.getState();
+      publishPartyAction('play', state?.positionSeconds ?? 0, true);
+      publishPartyState({
+        position: state?.positionSeconds ?? 0,
+        duration: state?.durationSeconds ?? null,
+        playing: true,
+      });
       setStarted(true);
       return;
     }
@@ -829,7 +1051,7 @@ export default function AnimePlayer({
   const playerBody = (
     <section
       style={brandStyles}
-      className={`animebox-premium-player ${syncedPremiumTheme ? 'is-premium-themed' : ''} relative overflow-visible rounded-[28px] border border-[color:var(--player-border)] bg-[linear-gradient(180deg,rgba(14,19,35,.985),rgba(6,9,18,.99))] [box-shadow:var(--player-shadow)] ${
+      className={`animebox-premium-player ${watchTogetherMode ? 'watch-together-player' : ''} ${syncedPremiumTheme ? 'is-premium-themed' : ''} relative overflow-visible rounded-[28px] border border-[color:var(--player-border)] bg-[linear-gradient(180deg,rgba(14,19,35,.985),rgba(6,9,18,.99))] [box-shadow:var(--player-shadow)] ${
         theaterMode ? 'mx-auto w-full max-w-[1480px]' : ''
       }`}
     >
@@ -837,22 +1059,28 @@ export default function AnimePlayer({
       <div className="premium-player-glow pointer-events-none absolute -inset-12 -z-10 bg-[radial-gradient(ellipse_at_center,rgba(121,78,255,.16),transparent_65%)] blur-3xl" />
 
       {/* Premium header */}
-      <div className="flex flex-col gap-5 border-b border-white/[0.055] px-4 py-4 sm:px-5 md:flex-row md:items-end md:justify-between md:px-6 md:py-5">
-        <div className="min-w-0">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="premium-player-dot h-1.5 w-1.5 rounded-full bg-violet-400 shadow-[0_0_14px_rgba(167,139,250,.95)]" />
-            <span className="premium-player-accent-text text-[9px] font-extrabold uppercase tracking-[0.2em] text-violet-300/65">
-              AnimeBox Cinema
-            </span>
+      <div
+        className={`${
+          watchTogetherMode ? 'watch-together-player-header' : ''
+        } flex flex-col gap-5 border-b border-white/[0.055] px-4 py-4 sm:px-5 md:flex-row md:items-end md:justify-between md:px-6 md:py-5`}
+      >
+        {!watchTogetherMode && (
+          <div className="min-w-0">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="premium-player-dot h-1.5 w-1.5 rounded-full bg-violet-400 shadow-[0_0_14px_rgba(167,139,250,.95)]" />
+              <span className="premium-player-accent-text text-[9px] font-extrabold uppercase tracking-[0.2em] text-violet-300/65">
+                AnimeBox Cinema
+              </span>
+            </div>
+
+            <h1 className="truncate text-base font-black tracking-[-0.025em] text-white sm:text-lg md:text-xl">
+              {title}
+            </h1>
+            <p className="mt-1 text-xs font-semibold text-white/35">{episodeMeta}</p>
           </div>
+        )}
 
-          <h1 className="truncate text-base font-black tracking-[-0.025em] text-white sm:text-lg md:text-xl">
-            {title}
-          </h1>
-          <p className="mt-1 text-xs font-semibold text-white/35">{episodeMeta}</p>
-        </div>
-
-        <div className="anime-player__toolbar flex flex-wrap items-center gap-2">
+        <div className={`anime-player__toolbar ${watchTogetherMode ? 'watch-together-player-toolbar' : ''} flex flex-wrap items-center gap-2`}>
           {sources.length > 1 && (
             <div className="flex items-center rounded-2xl border border-white/[0.07] bg-black/20 p-1">
               {sources.map((source, index) => {
@@ -900,17 +1128,19 @@ export default function AnimePlayer({
             />
           )}
 
-          <button
-            type="button"
-            onClick={() => setTheaterMode((current) => !current)}
-            className="premium-player-toolbar-button inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 text-[11px] font-bold text-white/55 transition hover:border-violet-400/20 hover:bg-violet-500/[0.07] hover:text-white"
-          >
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
-              <path d="M4 7h16v10H4z" stroke="currentColor" strokeWidth="1.7" />
-              <path d="M8 20h8M12 17v3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-            </svg>
-            <span className="hidden sm:inline">{theaterMode ? 'Обычный режим' : 'Кинотеатр'}</span>
-          </button>
+          {!watchTogetherMode && (
+            <button
+              type="button"
+              onClick={() => setTheaterMode((current) => !current)}
+              className="premium-player-toolbar-button inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 text-[11px] font-bold text-white/55 transition hover:border-violet-400/20 hover:bg-violet-500/[0.07] hover:text-white"
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+                <path d="M4 7h16v10H4z" stroke="currentColor" strokeWidth="1.7" />
+                <path d="M8 20h8M12 17v3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+              </svg>
+              <span className="hidden sm:inline">{theaterMode ? 'Обычный режим' : 'Кинотеатр'}</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -926,10 +1156,14 @@ export default function AnimePlayer({
       </div>
 
       {/* Player shell */}
-      <div className="relative bg-[radial-gradient(circle_at_50%_0%,rgba(98,68,190,.10),transparent_48%)] p-2.5 sm:p-3.5 md:p-4">
+      <div
+        className={`relative bg-[radial-gradient(circle_at_50%_0%,rgba(98,68,190,.10),transparent_48%)] p-2.5 sm:p-3.5 md:p-4 ${
+          watchTogetherMode ? 'watch-together-player-stage-shell' : ''
+        }`}
+      >
         <div
           ref={playerViewportRef}
-          className={`${
+          className={`${watchTogetherMode && !fullscreenActive ? 'watch-together-player-viewport' : ''} ${
             telegramPseudoFullscreen
               ? 'fixed inset-0 z-[2147483000] m-0 max-w-none overflow-hidden rounded-none border-0 bg-black shadow-none ring-0'
               : fullscreen
@@ -964,6 +1198,21 @@ export default function AnimePlayer({
               resumeSeconds={resumeSeconds}
               onReady={() => setPlayerReady(true)}
               onTimeUpdate={watchSession.onSample}
+              onPlaybackAction={(event) => {
+                const state = kodikPlayerRef.current?.getState();
+                publishPartyAction(
+                  event.action,
+                  event.positionSeconds,
+                  event.action === 'play' ? true : event.action === 'pause' ? false : state?.playing ?? false,
+                );
+              }}
+              onPlaybackState={(event) => {
+                publishPartyState({
+                  position: event.positionSeconds,
+                  duration: event.durationSeconds,
+                  playing: event.playing,
+                });
+              }}
               onProviderSkip={watchSession.onProviderSkip}
               onEnded={onEnded}
             />
@@ -1067,14 +1316,32 @@ export default function AnimePlayer({
                     onEnded={onEnded}
                     onTimeUpdate={(event) => {
                       const video = event.currentTarget;
+                      const duration =
+                        Number.isFinite(video.duration) && video.duration > 0
+                          ? video.duration
+                          : null;
                       watchSession.onSample({
                         positionSeconds: video.currentTime,
-                        durationSeconds:
-                          Number.isFinite(video.duration) && video.duration > 0
-                            ? video.duration
-                            : null,
+                        durationSeconds: duration,
                         origin: window.location.origin,
                       });
+                      publishPartyState({
+                        position: video.currentTime,
+                        duration,
+                        playing: !video.paused && !video.ended,
+                      });
+                    }}
+                    onPlay={(event) => {
+                      const video = event.currentTarget;
+                      publishPartyAction('play', video.currentTime, true);
+                    }}
+                    onPause={(event) => {
+                      const video = event.currentTarget;
+                      if (!video.ended) publishPartyAction('pause', video.currentTime, false);
+                    }}
+                    onSeeked={(event) => {
+                      const video = event.currentTarget;
+                      publishPartyAction('seek', video.currentTime, !video.paused && !video.ended);
                     }}
                   >
                     Ваш браузер не поддерживает воспроизведение видео.
@@ -1122,7 +1389,7 @@ export default function AnimePlayer({
       </div>
 
       {/* Bottom navigation */}
-      <div className="grid grid-cols-2 gap-2 border-t border-white/[0.05] bg-black/10 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(170px,230px)_minmax(0,1fr)] sm:items-center sm:px-4 md:p-4 md:px-5">
+      <div className={`${watchTogetherMode ? 'watch-together-player-nav' : ''} grid grid-cols-2 gap-2 border-t border-white/[0.05] bg-black/10 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(170px,230px)_minmax(0,1fr)] sm:items-center sm:px-4 md:p-4 md:px-5`}>
         <button
           type="button"
           onClick={onPrev}
@@ -1166,7 +1433,9 @@ export default function AnimePlayer({
   );
 
   return (
-    <div className={`relative isolate w-full ${theaterMode ? 'z-[10001]' : ''}`}>
+    <div
+      className={`relative isolate w-full ${watchTogetherMode ? 'watch-together-player-root h-full min-h-0' : ''} ${theaterMode ? 'z-[10001]' : ''}`}
+    >
       {theaterMode && (
         <button
           type="button"
@@ -1180,7 +1449,9 @@ export default function AnimePlayer({
         className={
           theaterMode
             ? 'fixed inset-x-3 top-1/2 z-[10002] max-h-[96vh] -translate-y-1/2 overflow-y-auto md:inset-x-8'
-            : ''
+            : watchTogetherMode
+              ? 'watch-together-player-mount h-full min-h-0'
+              : ''
         }
       >
         {playerBody}

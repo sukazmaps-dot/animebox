@@ -19,6 +19,7 @@ import {
 } from '@/lib/premium-payment-server';
 import { getSponsorStatus } from '@/lib/sponsor-server';
 import { SPONSOR_META, type SponsorStatus } from '@/lib/sponsor';
+import { trackMonetizationEvents } from '@/lib/monetization-events-server';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
@@ -353,6 +354,35 @@ export async function POST(request: NextRequest) {
             isFirstRecurring,
             subscriptionExpirationDate,
           });
+
+          await trackMonetizationEvents([
+            {
+              eventName: 'premium_payment_success',
+              userId: premiumPayload.animeboxUserId,
+              source: 'telegram_stars',
+              entityId: transaction.id,
+              value: premiumPayload.amount,
+              currency: 'XTR',
+              dedupeKey: `premium_payment_success:${transaction.id}`,
+              metadata: {
+                plan: premiumPayload.plan,
+                is_recurring: isRecurring,
+                is_first_recurring: isFirstRecurring,
+              },
+            },
+            ...(!isRecurring || isFirstRecurring
+              ? [{
+                  eventName: 'premium_activated' as const,
+                  userId: premiumPayload.animeboxUserId,
+                  source: 'telegram_stars',
+                  entityId: subscription.id,
+                  value: premiumPayload.amount,
+                  currency: 'XTR',
+                  dedupeKey: `premium_activated:${transaction.id}`,
+                  metadata: { plan: premiumPayload.plan, transaction_id: transaction.id },
+                }]
+              : []),
+          ]);
 
           const until = new Intl.DateTimeFormat('ru-RU', {
             day: '2-digit',

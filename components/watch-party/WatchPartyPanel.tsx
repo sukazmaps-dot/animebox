@@ -1,0 +1,1483 @@
+'use client';
+
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
+import type { DataConnection, Peer as PeerInstance } from 'peerjs';
+
+import { createClient } from '@/lib/supabase/client';
+import { premiumMediaStyle, type PremiumMediaTransform } from '@/lib/premium-studio';
+import UserIdentity from '@/components/identity/UserIdentity';
+import type { PublicIdentityRole } from '@/lib/identity';
+import type { SponsorStatus } from '@/lib/sponsor';
+import {
+  WATCH_PARTY_EXIT_EVENT,
+  WATCH_PARTY_MAX_PARTICIPANTS,
+  WATCH_PARTY_PLAYER_ACTION_EVENT,
+  WATCH_PARTY_PLAYER_COMMAND_EVENT,
+  WATCH_PARTY_PLAYER_CONTROL_EVENT,
+  WATCH_PARTY_PLAYER_STATE_EVENT,
+  WATCH_PARTY_PROTOCOL,
+  buildWatchPartyUrl,
+  claimWatchPartyHostTab,
+  clearWatchPartyFromLocation,
+  clearWatchPartyHostTab,
+  createWatchPartyInvite,
+  createWatchPartyMessageId,
+  parseWatchPartyPacket,
+  sanitizeWatchPartyChatText,
+  isWatchPartyHostTab,
+  readWatchPartyInviteFromLocation,
+  watchPartyHostPeerId,
+  watchPartyTheaterPath,
+  watchPartyHostSessionKey,
+  watchPartyInitials,
+  watchPartyReturnPath,
+  type WatchPartyChatMessage,
+  type WatchPartyInvite,
+  type WatchPartyPacket,
+  type WatchPartyParticipant,
+  type WatchPartyPlayerActionDetail,
+  type WatchPartyPlayerCommandDetail,
+  type WatchPartyPlayerControlDetail,
+  type WatchPartyPlayerStateDetail,
+} from '@/lib/watch-party';
+
+import styles from './WatchPartyPanel.module.css';
+
+type PartyRole = 'host' | 'guest' | null;
+type PartyStatus = 'idle' | 'connecting' | 'active' | 'reconnecting' | 'ended' | 'error';
+type MobileSection = 'chat' | 'participants' | 'controls';
+
+type PartyIdentity = {
+  userId: string;
+  displayName: string;
+};
+
+type RoomPublicIdentity = {
+  userId: string;
+  username: string;
+  avatarUrl: string;
+  avatarTransform: PremiumMediaTransform;
+  premium: boolean;
+  role: PublicIdentityRole;
+  sponsor: SponsorStatus | null;
+};
+
+type RoomIdentitiesResponse = {
+  users?: RoomPublicIdentity[];
+};
+
+const HOST_HEARTBEAT_MS = 15_000;
+const PLAYER_SYNC_MS = 4_000;
+const PLAYER_DRIFT_SEEK_SECONDS = 3;
+const CHAT_SEND_COOLDOWN_MS = 650;
+const NEGOTIATION_TIMEOUT_MS = 30_000;
+const HANDSHAKE_TIMEOUT_MS = 10_000;
+const MAX_RECONNECT_ATTEMPTS = 7;
+
+function sanitizeDisplayName(value: string | null | undefined) {
+  const clean = value?.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 32);
+  return clean || 'Гость';
+}
+
+function rejectMessage(reason: Extract<WatchPartyPacket, { type: 'REJECT' }>['reason']) {
+  if (reason === 'room_full') return 'Комната уже заполнена.';
+  if (reason === 'protocol_mismatch') return 'Версия Watch Together не совпадает. Обнови страницу.';
+  return 'Ссылка на комнату недействительна.';
+}
+
+function statusLabel(status: PartyStatus, role: PartyRole, participants: number) {
+  if (status === 'connecting') return role === 'host' ? 'Создаём P2P-комнату…' : 'Подключаемся к комнате…';
+  if (status === 'reconnecting') return 'Восстанавливаем P2P-соединение…';
+  if (status === 'ended') return 'Комната завершена';
+  if (status === 'error') return 'Не удалось подключиться';
+  if (status === 'active') return `${participants}/${WATCH_PARTY_MAX_PARTICIPANTS} участников онлайн`;
+  return '';
+}
+
+function formatPlayerTime(seconds: number | null | undefined) {
+  const safe = Math.max(0, Number.isFinite(seconds) ? Number(seconds) : 0);
+  const minutes = Math.floor(safe / 60);
+  const rest = Math.floor(safe % 60);
+  return `${minutes}:${String(rest).padStart(2, '0')}`;
+}
+
+export default function WatchPartyPanel({
+  animeTitle,
+  animeSlug,
+  episodeNumber,
+  mode = 'inline',
+}: {
+  animeTitle: string;
+  animeSlug: string;
+  episodeNumber: number;
+  mode?: 'inline' | 'theater';
+}) {
+  const [role, setRole] = useState<PartyRole>(null);
+  const [status, setStatus] = useState<PartyStatus>('idle');
+  const [participants, setParticipants] = useState<WatchPartyParticipant[]>([]);
+  const [inviteUrl, setInviteUrl] = useState('');
+  const [error, setError] = useState('');
+  const [copyLabel, setCopyLabel] = useState('Копировать ссылку');
+  const [messages, setMessages] = useState<WatchPartyChatMessage[]>([]);
+  const [chatText, setChatText] = useState('');
+  const [playerState, setPlayerState] = useState<WatchPartyPlayerStateDetail | null>(null);
+  const [lastController, setLastController] = useState('');
+  const [mobileSection, setMobileSection] = useState<MobileSection>('chat');
+  const [roomIdentities, setRoomIdentities] = useState<Record<string, RoomPublicIdentity>>({});
+
+  const theaterPath = watchPartyTheaterPath(animeSlug, episodeNumber);
+  const episodePath = `/anime/${encodeURIComponent(animeSlug)}/episode/${episodeNumber}`;
+
+  const peerRef = useRef<PeerInstance | null>(null);
+  const guestConnectionRef = useRef<DataConnection | null>(null);
+  const hostConnectionsRef = useRef(new Map<string, DataConnection>());
+  const pendingHostConnectionsRef = useRef(new Set<string>());
+  const participantsRef = useRef(new Map<string, WatchPartyParticipant>());
+  const inviteRef = useRef<WatchPartyInvite | null>(null);
+  const roleRef = useRef<PartyRole>(null);
+  const intentionalCloseRef = useRef(false);
+  const hostEndedRef = useRef(false);
+  const reconnectAttemptRef = useRef(0);
+  const hostReclaimAttemptRef = useRef(0);
+  const reconnectTimerRef = useRef<number | null>(null);
+  const heartbeatTimerRef = useRef<number | null>(null);
+  const syncTimerRef = useRef<number | null>(null);
+  const identityPromiseRef = useRef<Promise<PartyIdentity | null> | null>(null);
+  const identityRef = useRef<PartyIdentity | null>(null);
+  const playerStateRef = useRef<WatchPartyPlayerStateDetail | null>(null);
+  const hostSeqRef = useRef(0);
+  const lastAppliedSeqRef = useRef(0);
+  const chatIdsRef = useRef(new Set<string>());
+  const lastChatSentAtRef = useRef(0);
+  const hostPeerChatAtRef = useRef(new Map<string, number>());
+  const chatMessagesRef = useRef<HTMLDivElement | null>(null);
+  const startHostRef = useRef<(invite: WatchPartyInvite) => void>(() => undefined);
+  const requestedIdentityIdsRef = useRef(new Set<string>());
+
+  const publishParticipants = useCallback((next: WatchPartyParticipant[]) => {
+    const sorted = [...next]
+      .sort((left, right) => Number(right.host) - Number(left.host) || left.joinedAt - right.joinedAt)
+      .slice(0, WATCH_PARTY_MAX_PARTICIPANTS);
+    setParticipants(sorted);
+  }, []);
+
+  const resolveIdentity = useCallback(async (): Promise<PartyIdentity | null> => {
+    if (!identityPromiseRef.current) {
+      identityPromiseRef.current = (async () => {
+        try {
+          const supabase = createClient();
+          const { data, error: userError } = await supabase.auth.getUser();
+          const user = data.user;
+          if (userError || !user) return null;
+
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          const metadataName =
+            typeof user.user_metadata?.username === 'string'
+              ? user.user_metadata.username
+              : typeof user.user_metadata?.name === 'string'
+                ? user.user_metadata.name
+                : null;
+
+          return {
+            userId: user.id,
+            displayName: sanitizeDisplayName(
+              profile?.username || metadataName || user.email?.split('@')[0],
+            ),
+          };
+        } catch {
+          return null;
+        }
+      })();
+    }
+
+    return identityPromiseRef.current;
+  }, []);
+
+  useEffect(() => {
+    const missingIds = [...new Set(participants.map((participant) => participant.userId))]
+      .filter((userId) => !roomIdentities[userId] && !requestedIdentityIdsRef.current.has(userId))
+      .slice(0, WATCH_PARTY_MAX_PARTICIPANTS);
+
+    if (missingIds.length === 0) return;
+
+    for (const userId of missingIds) {
+      requestedIdentityIdsRef.current.add(userId);
+    }
+
+    let active = true;
+
+    void fetch('/api/watch-party/identities', {
+      method: 'POST',
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userIds: missingIds }),
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`watch_party_identity_http_${response.status}`);
+        return (await response.json()) as RoomIdentitiesResponse;
+      })
+      .then((payload) => {
+        if (!active || !Array.isArray(payload.users)) return;
+
+        setRoomIdentities((current) => {
+          const next = { ...current };
+          for (const identity of payload.users ?? []) {
+            if (!identity?.userId) continue;
+            next[identity.userId] = identity;
+          }
+          return next;
+        });
+      })
+      .catch(() => {
+        for (const userId of missingIds) {
+          requestedIdentityIdsRef.current.delete(userId);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [participants, roomIdentities]);
+
+  const redirectToRegistration = useCallback(() => {
+    intentionalCloseRef.current = true;
+    const next = watchPartyReturnPath();
+    window.location.replace(`/register?next=${encodeURIComponent(next)}`);
+  }, []);
+
+  const send = useCallback((connection: DataConnection, packet: WatchPartyPacket) => {
+    if (!connection.open) return false;
+    try {
+      connection.send(packet);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const broadcast = useCallback((packet: WatchPartyPacket) => {
+    for (const connection of hostConnectionsRef.current.values()) {
+      send(connection, packet);
+    }
+  }, [send]);
+
+  const appendChatMessage = useCallback((message: WatchPartyChatMessage) => {
+    if (chatIdsRef.current.has(message.id)) return;
+    chatIdsRef.current.add(message.id);
+    setMessages((current) => [...current, message].slice(-100));
+  }, []);
+
+  const dispatchPlayerCommand = useCallback((detail: WatchPartyPlayerCommandDetail) => {
+    window.dispatchEvent(
+      new CustomEvent<WatchPartyPlayerCommandDetail>(WATCH_PARTY_PLAYER_COMMAND_EVENT, { detail }),
+    );
+  }, []);
+
+  const currentPlayerSnapshot = useCallback(() => {
+    const state = playerStateRef.current;
+    if (!state || state.episode !== episodeNumber) return null;
+
+    const elapsed = state.playing
+      ? Math.max(0, (Date.now() - state.observedAt) / 1000)
+      : 0;
+
+    return {
+      ...state,
+      position: Math.max(0, state.position + elapsed),
+      observedAt: Date.now(),
+    };
+  }, [episodeNumber]);
+
+  const sendHostSync = useCallback((connection?: DataConnection) => {
+    if (roleRef.current !== 'host') return;
+    const state = currentPlayerSnapshot();
+    if (!state) return;
+
+    const packet: WatchPartyPacket = {
+      type: 'PLAYER_SYNC',
+      seq: hostSeqRef.current,
+      episode: state.episode,
+      position: state.position,
+      playing: state.playing,
+      sentAt: Date.now(),
+    };
+
+    if (connection) send(connection, packet);
+    else broadcast(packet);
+  }, [broadcast, currentPlayerSnapshot, send]);
+
+  const sequencePlayerAction = useCallback((
+    action: WatchPartyPlayerActionDetail,
+    actor: PartyIdentity,
+    applyLocally: boolean,
+  ) => {
+    if (roleRef.current !== 'host') return;
+    const seq = hostSeqRef.current + 1;
+    hostSeqRef.current = seq;
+
+    const packet: WatchPartyPacket = {
+      type: 'PLAYER_APPLY',
+      seq,
+      actionId: action.actionId,
+      actorUserId: actor.userId,
+      actorName: actor.displayName,
+      action: action.action,
+      episode: action.episode,
+      position: action.position,
+      sentAt: Date.now(),
+    };
+
+    const nextPlaying =
+      action.action === 'play' ? true : action.action === 'pause' ? false : action.playing;
+    const previous = playerStateRef.current;
+    playerStateRef.current = {
+      episode: action.episode,
+      position: action.position,
+      duration: previous?.episode === action.episode ? previous.duration : null,
+      playing: nextPlaying,
+      observedAt: Date.now(),
+      source: previous?.source ?? 'kodik',
+    };
+    setPlayerState(playerStateRef.current);
+    setLastController(`${actor.displayName}: ${action.action === 'play' ? '▶ воспроизведение' : action.action === 'pause' ? '❚❚ пауза' : '↔ перемотка'}`);
+
+    if (applyLocally) {
+      dispatchPlayerCommand({
+        action: action.action,
+        episode: action.episode,
+        position: action.position,
+        playing: nextPlaying,
+        seq,
+      });
+    }
+
+    broadcast(packet);
+  }, [broadcast, dispatchPlayerCommand]);
+
+  const broadcastParticipants = useCallback(() => {
+    const next = [...participantsRef.current.values()];
+    publishParticipants(next);
+    const packet: WatchPartyPacket = { type: 'PARTICIPANTS', participants: next };
+    for (const connection of hostConnectionsRef.current.values()) {
+      send(connection, packet);
+    }
+  }, [publishParticipants, send]);
+
+  const clearTimers = useCallback(() => {
+    if (reconnectTimerRef.current != null) {
+      window.clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    if (heartbeatTimerRef.current != null) {
+      window.clearInterval(heartbeatTimerRef.current);
+      heartbeatTimerRef.current = null;
+    }
+    if (syncTimerRef.current != null) {
+      window.clearInterval(syncTimerRef.current);
+      syncTimerRef.current = null;
+    }
+  }, []);
+
+  const destroyTransport = useCallback(() => {
+    clearTimers();
+    guestConnectionRef.current?.close();
+    guestConnectionRef.current = null;
+    for (const connection of hostConnectionsRef.current.values()) connection.close();
+    hostConnectionsRef.current.clear();
+    pendingHostConnectionsRef.current.clear();
+    const peer = peerRef.current;
+    peerRef.current = null;
+    if (peer && !peer.destroyed) peer.destroy();
+  }, [clearTimers]);
+
+  const resetParty = useCallback((removeHostClaim = true) => {
+    intentionalCloseRef.current = true;
+    destroyTransport();
+    const invite = inviteRef.current;
+    if (removeHostClaim && invite) {
+      try {
+        sessionStorage.removeItem(watchPartyHostSessionKey(invite.roomId));
+      } catch {
+        // sessionStorage can be unavailable in strict/private browser modes.
+      }
+      clearWatchPartyHostTab(invite);
+    }
+    inviteRef.current = null;
+    roleRef.current = null;
+    reconnectAttemptRef.current = 0;
+    hostReclaimAttemptRef.current = 0;
+    hostEndedRef.current = false;
+    participantsRef.current.clear();
+    playerStateRef.current = null;
+    hostSeqRef.current = 0;
+    lastAppliedSeqRef.current = 0;
+    chatIdsRef.current.clear();
+    hostPeerChatAtRef.current.clear();
+    clearWatchPartyFromLocation();
+    setRole(null);
+    setParticipants([]);
+    setInviteUrl('');
+    setError('');
+    setMessages([]);
+    setChatText('');
+    setPlayerState(null);
+    setLastController('');
+    setStatus('idle');
+  }, [destroyTransport]);
+
+  const scheduleGuestReconnectRef = useRef<() => void>(() => undefined);
+
+  const attachGuestConnection = useCallback((peer: PeerInstance, invite: WatchPartyInvite, identity: PartyIdentity) => {
+    if (intentionalCloseRef.current || hostEndedRef.current) return;
+
+    const connection = peer.connect(watchPartyHostPeerId(invite.roomId), {
+      reliable: true,
+      serialization: 'json',
+      metadata: {
+        protocol: WATCH_PARTY_PROTOCOL,
+        roomId: invite.roomId,
+      },
+    });
+    guestConnectionRef.current?.close();
+    guestConnectionRef.current = connection;
+
+    let welcomed = false;
+    let reconnectQueued = false;
+    let handshakeTimer: number | null = null;
+    const negotiationTimer = window.setTimeout(() => {
+      if (welcomed || connection.open || intentionalCloseRef.current || hostEndedRef.current) return;
+      reconnectQueued = true;
+      setStatus('reconnecting');
+      setError('P2P negotiation заняла слишком долго. Пробуем подключиться ещё раз…');
+      connection.close();
+      scheduleGuestReconnectRef.current();
+    }, NEGOTIATION_TIMEOUT_MS);
+
+    const clearAttemptTimers = () => {
+      window.clearTimeout(negotiationTimer);
+      if (handshakeTimer != null) {
+        window.clearTimeout(handshakeTimer);
+        handshakeTimer = null;
+      }
+    };
+
+    connection.on('open', () => {
+      window.clearTimeout(negotiationTimer);
+      if (intentionalCloseRef.current || peer.destroyed || !peer.id) return;
+
+      handshakeTimer = window.setTimeout(() => {
+        if (welcomed || intentionalCloseRef.current || hostEndedRef.current) return;
+        reconnectQueued = true;
+        setStatus('reconnecting');
+        setError('Хост открыл соединение, но не подтвердил комнату. Переподключаемся…');
+        connection.close();
+        scheduleGuestReconnectRef.current();
+      }, HANDSHAKE_TIMEOUT_MS);
+
+      const participant: WatchPartyParticipant = {
+        id: peer.id,
+        userId: identity.userId,
+        name: identity.displayName,
+        host: false,
+        joinedAt: Date.now(),
+      };
+      send(connection, {
+        type: 'HELLO',
+        protocol: WATCH_PARTY_PROTOCOL,
+        roomId: invite.roomId,
+        secret: invite.secret,
+        participant,
+      });
+    });
+
+    connection.on('data', (value) => {
+      const packet = parseWatchPartyPacket(value);
+      if (!packet) return;
+
+      if (packet.type === 'WELCOME') {
+        if (packet.roomId !== invite.roomId) return;
+        if (packet.protocol !== WATCH_PARTY_PROTOCOL) {
+          hostEndedRef.current = true;
+          setStatus('error');
+          setError('Версия Watch Together не совпадает. Обнови страницу.');
+          connection.close();
+          return;
+        }
+        welcomed = true;
+        clearAttemptTimers();
+        reconnectAttemptRef.current = 0;
+        publishParticipants(packet.participants);
+        setError('');
+        setStatus('active');
+        return;
+      }
+
+      if (packet.type === 'PARTICIPANTS') {
+        if (welcomed) publishParticipants(packet.participants);
+        return;
+      }
+
+      if (packet.type === 'PLAYER_APPLY') {
+        if (!welcomed || packet.seq <= lastAppliedSeqRef.current) return;
+        lastAppliedSeqRef.current = packet.seq;
+        const playing =
+          packet.action === 'play' ? true : packet.action === 'pause' ? false : playerStateRef.current?.playing ?? false;
+        setLastController(`${packet.actorName}: ${packet.action === 'play' ? '▶ воспроизведение' : packet.action === 'pause' ? '❚❚ пауза' : '↔ перемотка'}`);
+        dispatchPlayerCommand({
+          action: packet.action,
+          episode: packet.episode,
+          position: packet.position,
+          playing,
+          seq: packet.seq,
+        });
+        return;
+      }
+
+      if (packet.type === 'PLAYER_SYNC') {
+        if (!welcomed || packet.seq < lastAppliedSeqRef.current) return;
+        const state = playerStateRef.current;
+        const networkAdjusted = packet.playing
+          ? packet.position + Math.min(2, Math.max(0, (Date.now() - packet.sentAt) / 1000))
+          : packet.position;
+
+        if (!state) {
+          dispatchPlayerCommand({
+            action: packet.playing ? 'play' : 'pause',
+            episode: packet.episode,
+            position: networkAdjusted,
+            playing: packet.playing,
+            seq: packet.seq,
+          });
+          return;
+        }
+        if (state.episode !== packet.episode) return;
+
+        const drift = Math.abs(state.position - networkAdjusted);
+
+        if (state.playing !== packet.playing) {
+          dispatchPlayerCommand({
+            action: packet.playing ? 'play' : 'pause',
+            episode: packet.episode,
+            position: networkAdjusted,
+            playing: packet.playing,
+            seq: packet.seq,
+          });
+        } else if (drift >= PLAYER_DRIFT_SEEK_SECONDS) {
+          dispatchPlayerCommand({
+            action: 'seek',
+            episode: packet.episode,
+            position: networkAdjusted,
+            playing: packet.playing,
+            seq: packet.seq,
+          });
+        }
+        return;
+      }
+
+      if (packet.type === 'CHAT_MESSAGE') {
+        if (welcomed) appendChatMessage(packet.message);
+        return;
+      }
+
+      if (packet.type === 'HOST_ENDED') {
+        hostEndedRef.current = true;
+        setStatus('ended');
+        setError('Хост завершил совместный просмотр.');
+        connection.close();
+        return;
+      }
+
+      if (packet.type === 'REJECT') {
+        hostEndedRef.current = true;
+        setStatus('error');
+        setError(rejectMessage(packet.reason));
+        connection.close();
+      }
+    });
+
+    connection.on('close', () => {
+      clearAttemptTimers();
+      if (guestConnectionRef.current === connection) guestConnectionRef.current = null;
+      if (intentionalCloseRef.current || hostEndedRef.current || reconnectQueued) return;
+      reconnectQueued = true;
+      setStatus('reconnecting');
+      scheduleGuestReconnectRef.current();
+    });
+
+    connection.on('error', () => {
+      clearAttemptTimers();
+      if (intentionalCloseRef.current || hostEndedRef.current || reconnectQueued) return;
+      reconnectQueued = true;
+      setStatus('reconnecting');
+      scheduleGuestReconnectRef.current();
+    });
+
+  }, [appendChatMessage, dispatchPlayerCommand, publishParticipants, send]);
+
+  const startGuest = useCallback(async (invite: WatchPartyInvite) => {
+    intentionalCloseRef.current = false;
+    hostEndedRef.current = false;
+    roleRef.current = 'guest';
+    inviteRef.current = invite;
+    setRole('guest');
+    setStatus('connecting');
+    setError('');
+    setInviteUrl(buildWatchPartyUrl(invite));
+
+    const identity = await resolveIdentity();
+    if (!identity) {
+      redirectToRegistration();
+      return;
+    }
+    identityRef.current = identity;
+    if (intentionalCloseRef.current) return;
+
+    const { Peer } = await import('peerjs');
+    const peer = new Peer({ debug: 1 });
+    peerRef.current = peer;
+
+    scheduleGuestReconnectRef.current = () => {
+      if (intentionalCloseRef.current || hostEndedRef.current || peer.destroyed) return;
+      if (reconnectTimerRef.current != null) return;
+
+      const attempt = reconnectAttemptRef.current + 1;
+      reconnectAttemptRef.current = attempt;
+      if (attempt > MAX_RECONNECT_ATTEMPTS) {
+        setStatus('ended');
+        setError('Хост недоступен. Комната, вероятно, завершена.');
+        return;
+      }
+
+      const delay = Math.min(8_000, 700 * 2 ** (attempt - 1));
+      reconnectTimerRef.current = window.setTimeout(() => {
+        reconnectTimerRef.current = null;
+        if (peer.disconnected && !peer.destroyed) {
+          try {
+            peer.reconnect();
+          } catch {
+            // A new data connection below can still succeed if signaling recovered.
+          }
+        }
+        attachGuestConnection(peer, invite, identity);
+      }, delay);
+    };
+
+    peer.on('open', () => {
+      reconnectAttemptRef.current = 0;
+      attachGuestConnection(peer, invite, identity);
+    });
+
+    peer.on('disconnected', () => {
+      if (intentionalCloseRef.current || hostEndedRef.current) return;
+      setStatus('reconnecting');
+      scheduleGuestReconnectRef.current();
+    });
+
+    peer.on('error', (peerError) => {
+      if (intentionalCloseRef.current || hostEndedRef.current) return;
+      const type = 'type' in peerError ? String(peerError.type) : '';
+      if (type === 'peer-unavailable' || type === 'network' || type === 'disconnected') {
+        setStatus('reconnecting');
+        scheduleGuestReconnectRef.current();
+        return;
+      }
+      setStatus('error');
+      setError('P2P-соединение не удалось установить. Попробуй обновить страницу.');
+    });
+  }, [attachGuestConnection, redirectToRegistration, resolveIdentity]);
+
+  const startHost = useCallback(async (invite: WatchPartyInvite) => {
+    intentionalCloseRef.current = false;
+    hostEndedRef.current = false;
+    roleRef.current = 'host';
+    inviteRef.current = invite;
+    setRole('host');
+    setStatus('connecting');
+    setError('');
+    setInviteUrl(buildWatchPartyUrl(invite));
+
+    const identity = await resolveIdentity();
+    if (!identity) {
+      redirectToRegistration();
+      return;
+    }
+    identityRef.current = identity;
+    if (intentionalCloseRef.current) return;
+
+    const { Peer } = await import('peerjs');
+    const hostPeerId = watchPartyHostPeerId(invite.roomId);
+    const peer = new Peer(hostPeerId, { debug: 1 });
+    peerRef.current = peer;
+
+    const hostParticipant: WatchPartyParticipant = {
+      id: hostPeerId,
+      userId: identity.userId,
+      name: identity.displayName,
+      host: true,
+      joinedAt: Date.now(),
+    };
+    participantsRef.current.set(hostPeerId, hostParticipant);
+
+    peer.on('connection', (connection) => {
+      if (intentionalCloseRef.current) {
+        connection.close();
+        return;
+      }
+
+      if (
+        hostConnectionsRef.current.size + pendingHostConnectionsRef.current.size >=
+        WATCH_PARTY_MAX_PARTICIPANTS - 1
+      ) {
+        connection.on('open', () => {
+          send(connection, { type: 'REJECT', reason: 'room_full' });
+          window.setTimeout(() => connection.close(), 80);
+        });
+        return;
+      }
+
+      pendingHostConnectionsRef.current.add(connection.peer);
+      let accepted = false;
+      let handshakeTimer: number | null = null;
+      const negotiationTimer = window.setTimeout(() => {
+        if (accepted || connection.open) return;
+        pendingHostConnectionsRef.current.delete(connection.peer);
+        connection.close();
+      }, NEGOTIATION_TIMEOUT_MS);
+
+      const clearConnectionTimers = () => {
+        window.clearTimeout(negotiationTimer);
+        if (handshakeTimer != null) {
+          window.clearTimeout(handshakeTimer);
+          handshakeTimer = null;
+        }
+      };
+
+      connection.on('open', () => {
+        window.clearTimeout(negotiationTimer);
+        handshakeTimer = window.setTimeout(() => {
+          if (accepted) return;
+          pendingHostConnectionsRef.current.delete(connection.peer);
+          connection.close();
+        }, HANDSHAKE_TIMEOUT_MS);
+      });
+
+      connection.on('data', (value) => {
+        const packet = parseWatchPartyPacket(value);
+        if (!packet) return;
+
+        if (!accepted) {
+          if (packet.type !== 'HELLO') return;
+
+          if (packet.protocol !== WATCH_PARTY_PROTOCOL) {
+            send(connection, { type: 'REJECT', reason: 'protocol_mismatch' });
+            connection.close();
+            return;
+          }
+          if (packet.roomId !== invite.roomId || packet.secret !== invite.secret) {
+            send(connection, { type: 'REJECT', reason: 'invalid_room' });
+            connection.close();
+            return;
+          }
+          if (packet.participant.id !== connection.peer || packet.participant.host) {
+            send(connection, { type: 'REJECT', reason: 'invalid_room' });
+            connection.close();
+            return;
+          }
+          if (hostConnectionsRef.current.size >= WATCH_PARTY_MAX_PARTICIPANTS - 1) {
+            send(connection, { type: 'REJECT', reason: 'room_full' });
+            connection.close();
+            return;
+          }
+
+          accepted = true;
+          clearConnectionTimers();
+          pendingHostConnectionsRef.current.delete(connection.peer);
+          hostConnectionsRef.current.set(connection.peer, connection);
+          participantsRef.current.set(connection.peer, {
+            ...packet.participant,
+            joinedAt: Date.now(),
+          });
+          const current = [...participantsRef.current.values()];
+          send(connection, {
+            type: 'WELCOME',
+            protocol: WATCH_PARTY_PROTOCOL,
+            roomId: invite.roomId,
+            participants: current,
+          });
+          broadcastParticipants();
+          window.setTimeout(() => sendHostSync(connection), 120);
+          return;
+        }
+
+        const participant = participantsRef.current.get(connection.peer);
+        if (!participant || participant.host) return;
+
+        if (packet.type === 'PLAYER_ACTION') {
+          if (packet.episode !== episodeNumber) return;
+          sequencePlayerAction(
+            {
+              actionId: packet.actionId,
+              action: packet.action,
+              episode: packet.episode,
+              position: packet.position,
+              playing:
+                packet.action === 'play'
+                  ? true
+                  : packet.action === 'pause'
+                    ? false
+                    : playerStateRef.current?.playing ?? false,
+              observedAt: packet.sentAt,
+            },
+            { userId: participant.userId, displayName: participant.name },
+            true,
+          );
+          return;
+        }
+
+        if (packet.type === 'CHAT_SEND') {
+          if (chatIdsRef.current.has(packet.id)) return;
+          const now = Date.now();
+          const previous = hostPeerChatAtRef.current.get(connection.peer) ?? 0;
+          if (now - previous < CHAT_SEND_COOLDOWN_MS) return;
+          hostPeerChatAtRef.current.set(connection.peer, now);
+
+          const message: WatchPartyChatMessage = {
+            id: packet.id,
+            userId: participant.userId,
+            name: participant.name,
+            host: false,
+            text: packet.text,
+            sentAt: now,
+          };
+          appendChatMessage(message);
+          broadcast({ type: 'CHAT_MESSAGE', message });
+        }
+      });
+
+      connection.on('close', () => {
+        clearConnectionTimers();
+        pendingHostConnectionsRef.current.delete(connection.peer);
+        if (!accepted) return;
+        hostConnectionsRef.current.delete(connection.peer);
+        participantsRef.current.delete(connection.peer);
+        broadcastParticipants();
+      });
+
+      connection.on('error', () => {
+        clearConnectionTimers();
+        pendingHostConnectionsRef.current.delete(connection.peer);
+        if (!accepted) return;
+        hostConnectionsRef.current.delete(connection.peer);
+        participantsRef.current.delete(connection.peer);
+        broadcastParticipants();
+      });
+
+    });
+
+    peer.on('open', () => {
+      hostReclaimAttemptRef.current = 0;
+      publishParticipants([...participantsRef.current.values()]);
+      setError('');
+      setStatus('active');
+      heartbeatTimerRef.current = window.setInterval(() => {
+        const packet: WatchPartyPacket = { type: 'ROOM_HEARTBEAT', sentAt: Date.now() };
+        for (const connection of hostConnectionsRef.current.values()) send(connection, packet);
+      }, HOST_HEARTBEAT_MS);
+      syncTimerRef.current = window.setInterval(() => {
+        sendHostSync();
+      }, PLAYER_SYNC_MS);
+    });
+
+    peer.on('disconnected', () => {
+      if (intentionalCloseRef.current || peer.destroyed) return;
+      setStatus('reconnecting');
+      try {
+        peer.reconnect();
+      } catch {
+        setStatus('error');
+        setError('Связь с PeerJS Cloud потеряна. Обнови страницу, чтобы вернуть комнату.');
+      }
+    });
+
+    peer.on('error', (peerError) => {
+      if (intentionalCloseRef.current) return;
+      const type = 'type' in peerError ? String(peerError.type) : '';
+      if (type === 'unavailable-id') {
+        const attempt = hostReclaimAttemptRef.current + 1;
+        hostReclaimAttemptRef.current = attempt;
+        if (attempt <= 3) {
+          setStatus('reconnecting');
+          setError('Возвращаем комнату после переподключения…');
+          window.setTimeout(() => {
+            if (intentionalCloseRef.current) return;
+            if (peerRef.current === peer) peerRef.current = null;
+            startHostRef.current(invite);
+          }, attempt * 900);
+          return;
+        }
+        setStatus('error');
+        setError('Эта комната ещё активна в другой вкладке. Закрой её или используй текущую вкладку хоста.');
+        return;
+      }
+      if (type === 'network' || type === 'disconnected') {
+        setStatus('reconnecting');
+        return;
+      }
+      setStatus('error');
+      setError('Не удалось создать P2P-комнату. Попробуй ещё раз.');
+    });
+  }, [
+    appendChatMessage,
+    broadcast,
+    broadcastParticipants,
+    episodeNumber,
+    publishParticipants,
+    redirectToRegistration,
+    resolveIdentity,
+    send,
+    sendHostSync,
+    sequencePlayerAction,
+  ]);
+
+  useEffect(() => {
+    function onPlayerState(event: Event) {
+      const detail = (event as CustomEvent<WatchPartyPlayerStateDetail>).detail;
+      if (!detail || detail.episode !== episodeNumber) return;
+      playerStateRef.current = detail;
+      setPlayerState(detail);
+    }
+
+    function onPlayerAction(event: Event) {
+      const detail = (event as CustomEvent<WatchPartyPlayerActionDetail>).detail;
+      if (!detail || detail.episode !== episodeNumber) return;
+      const identity = identityRef.current;
+      if (!identity) return;
+
+      if (roleRef.current === 'host') {
+        sequencePlayerAction(detail, identity, false);
+        return;
+      }
+
+      if (roleRef.current === 'guest') {
+        const connection = guestConnectionRef.current;
+        if (!connection?.open) return;
+        send(connection, {
+          type: 'PLAYER_ACTION',
+          actionId: detail.actionId,
+          action: detail.action,
+          episode: detail.episode,
+          position: detail.position,
+          sentAt: detail.observedAt,
+        });
+      }
+    }
+
+    window.addEventListener(WATCH_PARTY_PLAYER_STATE_EVENT, onPlayerState);
+    window.addEventListener(WATCH_PARTY_PLAYER_ACTION_EVENT, onPlayerAction);
+
+    return () => {
+      window.removeEventListener(WATCH_PARTY_PLAYER_STATE_EVENT, onPlayerState);
+      window.removeEventListener(WATCH_PARTY_PLAYER_ACTION_EVENT, onPlayerAction);
+    };
+  }, [episodeNumber, send, sequencePlayerAction]);
+
+  useEffect(() => {
+    startHostRef.current = (nextInvite) => {
+      void startHost(nextInvite);
+    };
+  }, [startHost]);
+
+  useEffect(() => {
+    const invite = readWatchPartyInviteFromLocation();
+    if (!invite) return;
+
+    if (mode === 'inline') {
+      window.location.replace(buildWatchPartyUrl(invite, theaterPath));
+      return;
+    }
+
+    let hostClaim = false;
+    try {
+      hostClaim =
+        sessionStorage.getItem(watchPartyHostSessionKey(invite.roomId)) === invite.secret &&
+        isWatchPartyHostTab(invite);
+    } catch {
+      hostClaim = false;
+    }
+
+    /*
+     * React Strict Mode intentionally runs client effects through a
+     * setup -> cleanup -> setup cycle in development. The old one-shot
+     * boot guard made the cleanup win, so an invite URL could remain in the
+     * idle state forever on `next dev`. Keep this effect restartable instead:
+     * the first scheduled boot is cancelled by its cleanup, while the second
+     * setup starts a fresh host/guest transport. Production follows the same
+     * code path without depending on Strict Mode behaviour.
+     */
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+      void (hostClaim ? startHost(invite) : startGuest(invite));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, startGuest, startHost, theaterPath]);
+
+  useEffect(() => {
+    return () => {
+      intentionalCloseRef.current = true;
+      destroyTransport();
+    };
+  }, [destroyTransport]);
+
+  useEffect(() => {
+    const node = chatMessagesRef.current;
+    if (!node) return;
+    node.scrollTop = node.scrollHeight;
+  }, [messages]);
+
+  const createRoom = useCallback(() => {
+    if (status !== 'idle') return;
+    const invite = createWatchPartyInvite();
+    try {
+      sessionStorage.setItem(watchPartyHostSessionKey(invite.roomId), invite.secret);
+      claimWatchPartyHostTab(invite);
+    } catch {
+      // Host recovery after refresh is optional when storage is unavailable.
+      claimWatchPartyHostTab(invite);
+    }
+    const nextUrl = buildWatchPartyUrl(invite, mode === 'inline' ? theaterPath : undefined);
+
+    if (mode === 'inline') {
+      window.location.assign(nextUrl);
+      return;
+    }
+
+    window.history.replaceState(window.history.state, '', nextUrl);
+    void startHost(invite);
+  }, [mode, startHost, status, theaterPath]);
+
+  const copyInvite = useCallback(async () => {
+    if (!inviteUrl) return;
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopyLabel('Ссылка скопирована');
+      window.setTimeout(() => setCopyLabel('Копировать ссылку'), 1_800);
+    } catch {
+      setCopyLabel('Не удалось скопировать');
+      window.setTimeout(() => setCopyLabel('Копировать ссылку'), 1_800);
+    }
+  }, [inviteUrl]);
+
+  const dispatchPartyControl = useCallback((detail: WatchPartyPlayerControlDetail) => {
+    if (status !== 'active') return;
+    window.dispatchEvent(
+      new CustomEvent<WatchPartyPlayerControlDetail>(WATCH_PARTY_PLAYER_CONTROL_EVENT, { detail }),
+    );
+  }, [status]);
+
+  const seekRelative = useCallback((delta: number) => {
+    const state = currentPlayerSnapshot() ?? playerStateRef.current;
+    if (!state) return;
+    dispatchPartyControl({
+      action: 'seek',
+      position: Math.max(0, Math.min(state.duration ?? 28_800, state.position + delta)),
+    });
+  }, [currentPlayerSnapshot, dispatchPartyControl]);
+
+  const togglePartyPlayback = useCallback(() => {
+    const state = currentPlayerSnapshot() ?? playerStateRef.current;
+    dispatchPartyControl({ action: state?.playing ? 'pause' : 'play' });
+  }, [currentPlayerSnapshot, dispatchPartyControl]);
+
+  const submitChat = useCallback((event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (status !== 'active') return;
+    const text = sanitizeWatchPartyChatText(chatText);
+    if (!text) return;
+
+    const now = Date.now();
+    if (now - lastChatSentAtRef.current < CHAT_SEND_COOLDOWN_MS) return;
+    lastChatSentAtRef.current = now;
+    setChatText('');
+
+    const identity = identityRef.current;
+    if (!identity) return;
+    const id = createWatchPartyMessageId();
+
+    if (roleRef.current === 'host') {
+      const message: WatchPartyChatMessage = {
+        id,
+        userId: identity.userId,
+        name: identity.displayName,
+        host: true,
+        text,
+        sentAt: now,
+      };
+      appendChatMessage(message);
+      broadcast({ type: 'CHAT_MESSAGE', message });
+      return;
+    }
+
+    const connection = guestConnectionRef.current;
+    if (roleRef.current === 'guest' && connection?.open) {
+      send(connection, { type: 'CHAT_SEND', id, text, sentAt: now });
+    }
+  }, [appendChatMessage, broadcast, chatText, send, status]);
+
+  const leaveParty = useCallback(() => {
+    const finish = (removeHostClaim: boolean) => {
+      resetParty(removeHostClaim);
+      if (mode === 'theater') {
+        window.location.replace(episodePath);
+      }
+    };
+
+    if (roleRef.current === 'host') {
+      intentionalCloseRef.current = true;
+      for (const connection of hostConnectionsRef.current.values()) {
+        send(connection, { type: 'HOST_ENDED', reason: 'host_left' });
+      }
+      window.setTimeout(() => finish(true), 80);
+      return;
+    }
+
+    finish(false);
+  }, [episodePath, mode, resetParty, send]);
+
+  useEffect(() => {
+    if (mode !== 'theater') return;
+
+    const onExit = () => {
+      leaveParty();
+    };
+
+    window.addEventListener(WATCH_PARTY_EXIT_EVENT, onExit);
+    return () => window.removeEventListener(WATCH_PARTY_EXIT_EVENT, onExit);
+  }, [leaveParty, mode]);
+
+  if (status === 'idle') {
+    return (
+      <section className={`${styles.panel} ${mode === 'theater' ? styles.theaterPanel : ''}`} aria-label="Watch Together">
+        <div className={styles.inner}>
+          <div className={styles.icon} aria-hidden="true">✦</div>
+          <div className={styles.copy}>
+            <span className={styles.eyebrow}>WATCH TOGETHER · P2P BETA</span>
+            <h2 className={styles.title}>Смотреть {episodeNumber}-ю серию вместе</h2>
+            <p className={styles.description}>
+              Создай приватную P2P-комнату для «{animeTitle}». Комната работает напрямую между браузерами: общий чат и управление плеером синхронизируются через P2P.
+            </p>
+          </div>
+          <div className={styles.actions}>
+            <button type="button" className={styles.primary} onClick={createRoom}>
+              Смотреть вместе
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const label = statusLabel(status, role, participants.length);
+
+  return (
+    <section className={`${styles.panel} ${mode === 'theater' ? styles.theaterPanel : ''}`} aria-label="Watch Together room">
+      <div className={styles.activeInner}>
+        <div className={styles.activeHead}>
+          <div className={styles.statusLine}>
+            <span className={styles.statusDot} data-state={status} aria-hidden="true" />
+            <div className={styles.statusText}>
+              <strong>Watch Together · {episodeNumber} серия</strong>
+              <span>{label}</span>
+            </div>
+          </div>
+          <span className={styles.role}>{role === 'host' ? 'HOST' : 'GUEST'}</span>
+        </div>
+
+        {mode === 'theater' && (
+          <div className={styles.mobileTabs} aria-label="Разделы комнаты">
+            <button
+              type="button"
+              data-active={mobileSection === 'chat'}
+              onClick={() => setMobileSection('chat')}
+            >
+              Чат
+            </button>
+            <button
+              type="button"
+              data-active={mobileSection === 'participants'}
+              onClick={() => setMobileSection('participants')}
+            >
+              Участники
+              <span>{participants.length}</span>
+            </button>
+            <button
+              type="button"
+              data-active={mobileSection === 'controls'}
+              onClick={() => setMobileSection('controls')}
+            >
+              Управление
+            </button>
+          </div>
+        )}
+
+        {participants.length > 0 && (
+          <div
+            className={`${styles.participants} ${styles.participantsSection}`}
+            data-mobile-active={mobileSection === 'participants'}
+            aria-label="Участники комнаты"
+          >
+            {participants.map((participant) => {
+              const publicIdentity = roomIdentities[participant.userId];
+              const displayName = publicIdentity?.username || participant.name;
+
+              return (
+                <a
+                  className={styles.participant}
+                  key={participant.id}
+                  href={`/profile/${encodeURIComponent(participant.userId)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`Открыть профиль ${displayName}`}
+                  aria-label={`Открыть профиль ${displayName} в новой вкладке`}
+                >
+                  <span className={styles.avatar}>
+                    {watchPartyInitials(displayName)}
+                    {publicIdentity?.avatarUrl && (
+                      <Image
+                        className={styles.avatarImage}
+                        src={publicIdentity.avatarUrl}
+                        alt=""
+                        aria-hidden="true"
+                        fill
+                        unoptimized
+                        sizes="32px"
+                        draggable={false}
+                        style={premiumMediaStyle(publicIdentity.avatarTransform)}
+                        onError={(event) => {
+                          event.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    )}
+                  </span>
+                  <span className={styles.participantIdentity}>
+                    <UserIdentity
+                      username={displayName}
+                      role={publicIdentity?.role ?? null}
+                      sponsor={publicIdentity?.sponsor ?? null}
+                      compact
+                    />
+                    {publicIdentity?.premium && (
+                      <span className={styles.premiumBadge} title="AnimeBox Premium">
+                        <Image
+                          src="/premium/premium-user.webp"
+                          alt=""
+                          width={16}
+                          height={16}
+                          aria-hidden="true"
+                          unoptimized
+                        />
+                        <span>Premium</span>
+                      </span>
+                    )}
+                  </span>
+                  {participant.host && (
+                    <span className={styles.hostBadge} title="Хост комнаты">
+                      <svg viewBox="0 0 20 20" aria-hidden="true">
+                        <path d="M4.5 6.5 7.3 9l2.7-5 2.7 5 2.8-2.5-1.2 7H5.7l-1.2-7Z" fill="currentColor" />
+                        <path d="M6 15.5h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                      </svg>
+                      <span>HOST</span>
+                    </span>
+                  )}
+                </a>
+              );
+            })}
+          </div>
+        )}
+
+        <div
+          className={`${styles.syncCard} ${styles.controlsSection}`}
+          data-mobile-active={mobileSection === 'controls'}
+        >
+          <div className={styles.syncMeta}>
+            <span className={styles.syncEyebrow}>PLAYER SYNC · EVERYONE CAN CONTROL</span>
+            <strong>{playerState?.playing ? 'Смотрим синхронно' : 'Пауза у комнаты'}</strong>
+            <small>
+              {formatPlayerTime(playerState?.position)}
+              {playerState?.duration ? ` / ${formatPlayerTime(playerState.duration)}` : ''}
+              {lastController ? ` · ${lastController}` : ''}
+            </small>
+          </div>
+          <div className={styles.syncControls} aria-label="Управление совместным просмотром">
+            <button
+              type="button"
+              onClick={() => seekRelative(-10)}
+              disabled={status !== 'active' || !playerState}
+              aria-label="Назад на 10 секунд"
+            >
+              −10
+            </button>
+            <button
+              type="button"
+              className={styles.syncPrimary}
+              onClick={togglePartyPlayback}
+              disabled={status !== 'active'}
+              aria-label={playerState?.playing ? 'Поставить комнату на паузу' : 'Продолжить просмотр у всех'}
+            >
+              {playerState?.playing ? '❚❚ Пауза' : '▶ Смотреть'}
+            </button>
+            <button
+              type="button"
+              onClick={() => seekRelative(10)}
+              disabled={status !== 'active' || !playerState}
+              aria-label="Вперёд на 10 секунд"
+            >
+              +10
+            </button>
+          </div>
+        </div>
+
+        <div
+          className={`${styles.chat} ${styles.chatSection}`}
+          data-mobile-active={mobileSection === 'chat'}
+        >
+          <div className={styles.chatHead}>
+            <div>
+              <span>LIVE CHAT · P2P</span>
+              <strong>Чат комнаты</strong>
+            </div>
+            <small>{messages.length ? `${messages.length} сообщений` : 'без истории на сервере'}</small>
+          </div>
+
+          <div ref={chatMessagesRef} className={styles.chatMessages} aria-live="polite">
+            {messages.length === 0 ? (
+              <div className={styles.chatEmpty}>Напиши первое сообщение — оно останется только у участников этой комнаты.</div>
+            ) : (
+              messages.map((message) => {
+                const publicIdentity = roomIdentities[message.userId];
+                const displayName = publicIdentity?.username || message.name;
+                const profileHref = `/profile/${encodeURIComponent(message.userId)}`;
+
+                return (
+                  <div className={styles.chatMessage} key={message.id}>
+                    <a
+                      className={styles.chatAvatar}
+                      href={profileHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={`Открыть профиль ${displayName}`}
+                      aria-label={`Открыть профиль ${displayName} в новой вкладке`}
+                    >
+                      {watchPartyInitials(displayName)}
+                      {publicIdentity?.avatarUrl && (
+                        <Image
+                          className={styles.avatarImage}
+                          src={publicIdentity.avatarUrl}
+                          alt=""
+                          aria-hidden="true"
+                          fill
+                          unoptimized
+                          sizes="32px"
+                          draggable={false}
+                          style={premiumMediaStyle(publicIdentity.avatarTransform)}
+                          onError={(event) => {
+                            event.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      )}
+                    </a>
+                    <div className={styles.chatBubble}>
+                      <div className={styles.chatAuthor}>
+                        <div className={styles.chatIdentityRow}>
+                          <a
+                            className={styles.chatAuthorLink}
+                            href={profileHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <UserIdentity
+                              username={displayName}
+                              role={publicIdentity?.role ?? null}
+                              sponsor={publicIdentity?.sponsor ?? null}
+                              compact
+                            />
+                          </a>
+                          {publicIdentity?.premium && (
+                            <span className={styles.chatPremiumBadge} title="AnimeBox Premium">
+                              <Image
+                                src="/premium/premium-user.webp"
+                                alt=""
+                                width={14}
+                                height={14}
+                                aria-hidden="true"
+                                unoptimized
+                              />
+                              Premium
+                            </span>
+                          )}
+                          {message.host && (
+                            <span className={`${styles.hostBadge} ${styles.chatHostBadge}`} title="Хост комнаты">
+                              <svg viewBox="0 0 20 20" aria-hidden="true">
+                                <path d="M4.5 6.5 7.3 9l2.7-5 2.7 5 2.8-2.5-1.2 7H5.7l-1.2-7Z" fill="currentColor" />
+                                <path d="M6 15.5h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                              </svg>
+                              <span>HOST</span>
+                            </span>
+                          )}
+                        </div>
+                        <time>{new Date(message.sentAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</time>
+                      </div>
+                      <p>{message.text}</p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <form className={styles.chatForm} onSubmit={submitChat}>
+            <input
+              value={chatText}
+              onChange={(event) => setChatText(event.target.value.slice(0, 500))}
+              placeholder="Написать в комнату…"
+              maxLength={500}
+              disabled={status !== 'active'}
+              autoComplete="off"
+            />
+            <button type="submit" disabled={status !== 'active' || !chatText.trim()}>
+              Отправить
+            </button>
+          </form>
+        </div>
+
+        {error && <p className={styles.error} role="status">{error}</p>}
+
+        <div className={styles.footer}>
+          <span className={styles.note}>
+            Чат и команды плеера идут через WebRTC DataChannel. Видео каждый участник загружает напрямую у провайдера. Максимум {WATCH_PARTY_MAX_PARTICIPANTS} человек.
+          </span>
+          <div className={styles.actions}>
+            {inviteUrl && status !== 'ended' && status !== 'error' && (
+              <button type="button" className={styles.secondary} onClick={() => void copyInvite()}>
+                {copyLabel}
+              </button>
+            )}
+            <button type="button" className={styles.danger} onClick={leaveParty}>
+              {role === 'host' ? 'Завершить комнату' : 'Покинуть'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

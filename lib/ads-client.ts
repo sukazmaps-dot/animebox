@@ -77,6 +77,21 @@ function clearStalePending(state: SessionState, now: number) {
   }
 }
 
+function effectiveAdLimits(config: AdRuntimeConfig) {
+  const mobile =
+    typeof window !== 'undefined' &&
+    (window.matchMedia?.('(max-width: 720px)').matches ?? window.innerWidth <= 720);
+
+  return {
+    maxAdsPerSession: mobile
+      ? Math.min(Math.max(0, config.maxAdsPerSession), 1)
+      : Math.max(0, config.maxAdsPerSession),
+    minSecondsBetweenAds: mobile
+      ? Math.max(180, Math.max(0, config.minSecondsBetweenAds))
+      : Math.max(0, config.minSecondsBetweenAds),
+  };
+}
+
 /**
  * Reserve a provider request without counting it as an impression yet.
  * The real impression is committed only after the provider injects visible ad
@@ -91,11 +106,12 @@ export function beginAdExposure(
 
   const state = readSession();
   const now = Date.now();
-  const cooldownMs = Math.max(0, config.minSecondsBetweenAds) * 1000;
+  const limits = effectiveAdLimits(config);
+  const cooldownMs = limits.minSecondsBetweenAds * 1000;
 
   clearStalePending(state, now);
 
-  if (state.count >= config.maxAdsPerSession) {
+  if (state.count >= limits.maxAdsPerSession) {
     saveSession(state);
     return false;
   }

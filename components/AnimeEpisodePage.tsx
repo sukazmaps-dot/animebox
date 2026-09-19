@@ -24,6 +24,9 @@ import type { EpisodeAvailabilityResponse } from '@/types/episode-availability';
 
 import EpisodeCompletion from '@/components/EpisodeCompletion';
 import AnimePlayer, { PlayerSource } from '@/components/AnimePlayer';
+import WatchPartyPanel from '@/components/watch-party/WatchPartyPanel';
+import theaterStyles from '@/components/watch-party/WatchTogetherTheater.module.css';
+import { WATCH_PARTY_EXIT_EVENT } from '@/lib/watch-party';
 import AnimeImage from '@/components/AnimeImage';
 import EpisodeList from '@/components/EpisodeList';
 import type { EpisodeSeasonTab, EpisodeSeasonsResponse } from '@/types/episode-seasons';
@@ -52,9 +55,10 @@ type KodikApiResponse = {
   error?: string;
 };
 
-export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: Anime; requestedEpisode: number }) {
+export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode = false }: { anime: Anime; requestedEpisode: number; theaterMode?: boolean }) {
   const router = useRouter();
   const animeIdParam = anime.slug as string;
+  const [theaterChatOpen, setTheaterChatOpen] = useState(false);
   const [watchedUpTo, setWatchedUpTo] = useState(0);
   const [providerEpisodes, setProviderEpisodes] = useState<number[]>([]);
   const [sources, setSources] = useState<PlayerSource[]>([]);
@@ -89,6 +93,18 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
 
     return requestedEpisode;
   }, [requestedEpisode]);
+
+  useEffect(() => {
+    if (!theaterMode) return;
+
+    document.documentElement.classList.add('animebox-watch-together-theater');
+    document.body.classList.add('animebox-watch-together-theater');
+
+    return () => {
+      document.documentElement.classList.remove('animebox-watch-together-theater');
+      document.body.classList.remove('animebox-watch-together-theater');
+    };
+  }, [theaterMode]);
 
   useEffect(() => {
     let active = true;
@@ -455,8 +471,27 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
     (currentSeasonEpisodes > 0 && episodeNumber < currentSeasonEpisodes) ||
     Boolean(seasonRoute.next && nextSeasonFirstEpisode);
 
+  const navigateToEpisode = (slug: string, number: number) => {
+    if (!theaterMode) {
+      router.push(`/anime/${slug}/episode/${number}`);
+      return;
+    }
+
+    const current = new URL(window.location.href);
+    const next = new URL(
+      `/watch-together/${encodeURIComponent(slug)}/episode/${number}`,
+      window.location.origin,
+    );
+    const roomId = current.searchParams.get('party');
+
+    if (roomId) next.searchParams.set('party', roomId);
+    next.hash = current.hash;
+
+    router.push(`${next.pathname}${next.search}${next.hash}`);
+  };
+
   const goToEpisode = (number: number) => {
-    router.push(`/anime/${animeIdParam}/episode/${number}`);
+    navigateToEpisode(animeIdParam, number);
   };
 
   const goToPrevious = () => {
@@ -466,9 +501,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
     }
 
     if (seasonRoute.previous && previousSeasonLastEpisode) {
-      router.push(
-        `/anime/${seasonRoute.previous.slug}/episode/${previousSeasonLastEpisode}`,
-      );
+      navigateToEpisode(seasonRoute.previous.slug, previousSeasonLastEpisode);
     }
   };
 
@@ -479,7 +512,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
     }
 
     if (seasonRoute.next && nextSeasonFirstEpisode) {
-      router.push(`/anime/${seasonRoute.next.slug}/episode/1`);
+      navigateToEpisode(seasonRoute.next.slug, 1);
     }
   };
 
@@ -492,6 +525,103 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
     undefined;
 
   const description = cleanShikimoriDescription(anime.description);
+
+  if (theaterMode) {
+    return (
+      <div className={theaterStyles.viewport}>
+        <div className={theaterStyles.shell}>
+          <header className={theaterStyles.header}>
+            <div className={theaterStyles.brandRow}>
+              <span className={theaterStyles.brandMark} aria-hidden="true">✦</span>
+              <div className={theaterStyles.brandCopy}>
+                <span>ANIMEBOX · WATCH TOGETHER</span>
+                <strong>{title} · {episodeNumber} серия</strong>
+              </div>
+            </div>
+
+            <div className={theaterStyles.headerActions}>
+              <span className={theaterStyles.headerStatus}>P2P ROOM</span>
+              <button
+                type="button"
+                className={theaterStyles.chatToggle}
+                onClick={() => setTheaterChatOpen((current) => !current)}
+                aria-expanded={theaterChatOpen}
+              >
+                {theaterChatOpen ? 'Скрыть чат' : 'Чат'}
+              </button>
+              <button
+                type="button"
+                className={theaterStyles.exitButton}
+                onClick={() => window.dispatchEvent(new Event(WATCH_PARTY_EXIT_EVENT))}
+              >
+                ← К серии
+              </button>
+            </div>
+          </header>
+
+          <div className={theaterStyles.content}>
+            <main className={theaterStyles.playerColumn}>
+              <div className={theaterStyles.playerWrap}>
+                {waitingForSources ? (
+                  <div className={theaterStyles.loadingPlayer}>
+                    <div className={theaterStyles.loadingInner}>
+                      <span className={theaterStyles.spinner} aria-hidden="true" />
+                      <span>Подбираем лучший источник…</span>
+                    </div>
+                  </div>
+                ) : (
+                  <AnimePlayer
+                    animeId={anime.id}
+                    key={`${expectedSourceIdentity}:theater`}
+                    title={title}
+                    episodeNumber={episodeNumber}
+                    totalEpisodes={availableEpisodes}
+                    totalEpisodesKnown={totalEpisodesKnown}
+                    poster={poster}
+                    sources={sources}
+                    hasPrev={hasPrev}
+                    hasNext={hasNext}
+                    prevLabel={atFirstEpisode && seasonRoute.previous ? 'Пред. сезон' : 'Пред. серия'}
+                    nextLabel={atLastKnownEpisode && seasonRoute.next ? 'След. сезон' : 'След. серия'}
+                    onPrev={goToPrevious}
+                    onNext={goToNext}
+                    onEnded={hasNext ? goToNext : undefined}
+                    onEpisodeChange={goToEpisode}
+                    watchTogetherMode
+                  />
+                )}
+
+                {!waitingForSources && sources.length === 0 && sourceMessage && (
+                  <div className={theaterStyles.sourceError}>{sourceMessage}</div>
+                )}
+              </div>
+            </main>
+
+            <button
+              type="button"
+              className={theaterStyles.drawerBackdrop}
+              data-open={theaterChatOpen}
+              aria-label="Закрыть чат"
+              onClick={() => setTheaterChatOpen(false)}
+            />
+
+            <aside
+              className={theaterStyles.roomColumn}
+              data-open={theaterChatOpen}
+              aria-label="Комната Watch Together"
+            >
+              <WatchPartyPanel
+                animeTitle={title}
+                animeSlug={animeIdParam}
+                episodeNumber={episodeNumber}
+                mode="theater"
+              />
+            </aside>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="detail episode-page pt-10 md:pt-12">
@@ -535,6 +665,13 @@ export default function AnimeEpisodePage({ anime, requestedEpisode }: { anime: A
           onEpisodeChange={goToEpisode}
         />
       )}
+
+      <WatchPartyPanel
+        animeTitle={title}
+        animeSlug={animeIdParam}
+        episodeNumber={episodeNumber}
+        mode="inline"
+      />
 
       {!waitingForSources && sources.length === 0 && sourceMessage && (
         <div className="mt-3 rounded-lg border border-amber-900/40 bg-amber-950/20 py-3 text-center text-sm text-amber-400">

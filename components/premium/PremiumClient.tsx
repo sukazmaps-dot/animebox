@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useAuthState } from '@/components/AuthStateProvider';
 import BoostyPremiumBridge from '@/components/premium/BoostyPremiumBridge';
 import { clearPremiumMeCache, getPremiumMe, type PremiumMe } from '@/lib/entitlements-client';
 import type { PremiumCatalogPlan, PremiumPlanId } from '@/lib/premium';
+import { trackMonetizationClientEvent } from '@/lib/monetization-events-client';
 
 type PremiumCatalogResponse = { plans: PremiumCatalogPlan[] };
 type InvoiceResponse = { ok?: boolean; invoiceUrl?: string; error?: string };
@@ -45,6 +46,16 @@ export default function PremiumClient() {
   const [buying, setBuying] = useState<PremiumPlanId | ''>('');
   const [paymentStatus, setPaymentStatus] = useState('');
   const [managingSubscription, setManagingSubscription] = useState(false);
+  const pageViewTracked = useRef(false);
+
+  useEffect(() => {
+    if (pageViewTracked.current) return;
+    pageViewTracked.current = true;
+    trackMonetizationClientEvent('premium_page_view', {
+      source: 'premium_page',
+      metadata: { authenticated: Boolean(user?.id) },
+    });
+  }, [user?.id]);
 
   async function refreshPremiumState() {
     if (!user?.id) return;
@@ -137,6 +148,19 @@ export default function PremiumClient() {
                 : 'Не удалось открыть оплату Premium.',
         );
       }
+
+      const selectedPlan = plans.find((item) => item.id === plan);
+      trackMonetizationClientEvent('premium_checkout_started', {
+        source: 'telegram_stars',
+        entityId: plan,
+        value: selectedPlan?.telegramStarsAmount ?? undefined,
+        currency: 'XTR',
+        metadata: {
+          plan,
+          billing_mode: selectedPlan?.billingMode ?? null,
+        },
+        flush: true,
+      });
 
       const refreshAfterPayment = async () => {
         setPaymentStatus('Оплата подтверждена. Активируем Premium…');
@@ -245,7 +269,7 @@ export default function PremiumClient() {
           <span className="premium-eyebrow">ANIMEBOX PREMIUM</span>
           <h1>Больше персонализации.<br />Меньше отвлекающего.</h1>
           <p>
-            Premium — отдельный продукт AnimeBox: без рекламы, с полноценным Premium Studio,
+            Premium — отдельный продукт AnimeBox: без рекламных блоков AnimeBox, с полноценным Premium Studio,
             собственной палитрой профиля, анимированными медиа и темой оболочки плеера.
           </p>
 
@@ -374,6 +398,10 @@ export default function PremiumClient() {
           <p>
             Оплата проходит через Telegram Stars. После подтверждения Telegram
             AnimeBox автоматически активирует доступ на аккаунте.
+          </p>
+          <p>
+            Premium отключает только рекламу AnimeBox. Сторонний iframe-плеер может показывать
+            собственную рекламу — AnimeBox не управляет рекламой внутри такого плеера.
           </p>
 
           {paymentStatus && (
