@@ -140,9 +140,18 @@ async function approveGroup(groupId: string, actorId: string, actorRole: 'owner'
         .eq('user_id', group.user_id)
         .maybeSingle();
       if (current.error) throw current.error;
+
+      // Supabase infers a union from the dynamic select above:
+      // { avatar_path } | { banner_path }. Narrow it to an optional shape before
+      // reading either field so TypeScript can safely type-check the route.
+      const currentData = current.data as {
+        avatar_path?: string | null;
+        banner_path?: string | null;
+      } | null;
+
       const currentPath = group.kind === 'avatar'
-        ? (current.data?.avatar_path ?? null)
-        : (current.data?.banner_path ?? null);
+        ? (currentData?.avatar_path ?? null)
+        : (currentData?.banner_path ?? null);
       stale = expectedPreviousPath !== undefined && currentPath !== expectedPreviousPath;
 
       if (!stale) {
