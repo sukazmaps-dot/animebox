@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import '../community.css';
 export const metadata: Metadata = {
   title: 'Избранное',
   robots: {

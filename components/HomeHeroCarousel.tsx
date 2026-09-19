@@ -252,9 +252,21 @@ export default function HomeHeroCarousel({
   const embeddedDescription =
     getRealDescription(anime?.description);
 
+  const hasLocalizedDescription = Boolean(
+    anime &&
+      Object.prototype.hasOwnProperty.call(
+        localizedDescriptions,
+        anime.id,
+      ),
+  );
+
+  // Keep the initial hero copy stable for LCP. A missing description no
+  // longer renders a temporary "loading" string that is replaced several
+  // seconds after first paint. The richer client-side description may be
+  // fetched only after the visitor has interacted with the page.
   const localizedDescription =
     embeddedDescription ??
-    (anime
+    (anime && hasLocalizedDescription
       ? localizedDescriptions[anime.id]
       : null);
 
@@ -333,6 +345,7 @@ export default function HomeHeroCarousel({
    */
   useEffect(() => {
     if (
+      !autoplayUnlocked ||
       !anime?.id ||
       embeddedDescription ||
       Object.prototype.hasOwnProperty.call(localizedDescriptions, anime.id)
@@ -384,6 +397,7 @@ export default function HomeHeroCarousel({
     };
   }, [
     anime?.id,
+    autoplayUnlocked,
     embeddedDescription,
     localizedDescriptions,
   ]);
@@ -649,11 +663,8 @@ export default function HomeHeroCarousel({
         </h1>
 
         <p className="home-hero-carousel__description">
-          {localizedDescription ===
-          undefined
-            ? 'Загружаем описание…'
-            : localizedDescription ||
-              'Русское описание для этого аниме пока отсутствует.'}
+          {localizedDescription ||
+            'Русское описание для этого аниме пока отсутствует.'}
         </p>
 
         <div className="home-hero-carousel__facts">
