@@ -247,6 +247,9 @@ export default function EpisodeList({
 
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const episodeListRef = useRef<HTMLDivElement | null>(null);
+  const groupTabsRef = useRef<HTMLDivElement | null>(null);
+  const [canScrollGroupLeft, setCanScrollGroupLeft] = useState(false);
+  const [canScrollGroupRight, setCanScrollGroupRight] = useState(false);
 
   const selectedGroupIndex = useMemo(() => {
     if (selectedGroupId) {
@@ -280,6 +283,63 @@ export default function EpisodeList({
       behavior: 'auto',
     });
   }, [activeGroup?.id, selectedAnimeId]);
+
+  const updateGroupScrollState = useCallback(() => {
+    const track = groupTabsRef.current;
+    if (!track) return;
+
+    const maxScrollLeft = Math.max(0, track.scrollWidth - track.clientWidth);
+    setCanScrollGroupLeft(track.scrollLeft > 4);
+    setCanScrollGroupRight(track.scrollLeft < maxScrollLeft - 4);
+  }, []);
+
+  const scrollGroupTabs = useCallback((direction: 'left' | 'right') => {
+    const track = groupTabsRef.current;
+    if (!track) return;
+
+    const amount = Math.max(320, track.clientWidth * 0.78);
+    track.scrollBy({
+      left: direction === 'left' ? -amount : amount,
+      behavior: 'smooth',
+    });
+  }, []);
+
+  useEffect(() => {
+    const track = groupTabsRef.current;
+    if (!track || groups.length <= 1) return;
+
+    const onScroll = () => updateGroupScrollState();
+    const resizeObserver = new ResizeObserver(updateGroupScrollState);
+
+    resizeObserver.observe(track);
+    track.addEventListener('scroll', onScroll, { passive: true });
+    const frame = requestAnimationFrame(updateGroupScrollState);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      resizeObserver.disconnect();
+      track.removeEventListener('scroll', onScroll);
+    };
+  }, [groups.length, updateGroupScrollState]);
+
+  useEffect(() => {
+    const track = groupTabsRef.current;
+    if (!track || groups.length <= 1) return;
+
+    const activeElement = track.querySelector<HTMLElement>(
+      '[data-episode-group-active="true"]',
+    );
+    if (!activeElement) return;
+
+    activeElement.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center',
+    });
+
+    const frame = requestAnimationFrame(updateGroupScrollState);
+    return () => cancelAnimationFrame(frame);
+  }, [groups.length, selectedGroupIndex, updateGroupScrollState]);
 
   const hasSeasonTabs =
     seasonData.seasons.length > 1 || seasonData.extras.length > 0;
@@ -563,38 +623,64 @@ export default function EpisodeList({
                 </span>
               </div>
 
-              <div
-                className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                role="tablist"
-                aria-label="Группы эпизодов"
-              >
-                {groups.map((group, index) => {
-                  const active = index === selectedGroupIndex;
+              <div className="relative">
+                <div
+                  ref={groupTabsRef}
+                  className="flex gap-2 overflow-x-auto px-1 pb-2 scroll-smooth overscroll-x-contain [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden"
+                  role="tablist"
+                  aria-label="Группы эпизодов"
+                >
+                  {groups.map((group, index) => {
+                    const active = index === selectedGroupIndex;
 
-                  return (
-                    <button
-                      key={group.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={active}
-                      onClick={() => setSelectedGroupId(group.id)}
-                      className={`shrink-0 rounded-xl border px-3 py-2 text-left transition-colors ${
-                        active
-                          ? 'border-violet-400/60 bg-violet-500/20 text-white'
-                          : 'border-white/10 bg-white/[0.03] text-white/60 hover:border-violet-400/35 hover:text-white'
-                      }`}
-                    >
-                      <span className="block text-xs font-semibold">
-                        {group.kind === 'arc' ? group.title : `Серии ${group.title}`}
-                      </span>
-                      {group.kind === 'arc' && (
-                        <span className="mt-0.5 block text-[10px] text-white/40">
-                          {group.from}–{group.to}
+                    return (
+                      <button
+                        key={group.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={active}
+                        data-episode-group-active={active ? 'true' : undefined}
+                        onClick={() => setSelectedGroupId(group.id)}
+                        className={`shrink-0 rounded-xl border px-3 py-2 text-left transition-colors ${
+                          active
+                            ? 'border-violet-400/60 bg-violet-500/20 text-white'
+                            : 'border-white/10 bg-white/[0.03] text-white/60 hover:border-violet-400/35 hover:text-white'
+                        }`}
+                      >
+                        <span className="block text-xs font-semibold">
+                          {group.kind === 'arc' ? group.title : `Серии ${group.title}`}
                         </span>
-                      )}
-                    </button>
-                  );
-                })}
+                        {group.kind === 'arc' && (
+                          <span className="mt-0.5 block text-[10px] text-white/40">
+                            {group.from}–{group.to}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {canScrollGroupLeft && (
+                  <button
+                    type="button"
+                    onClick={() => scrollGroupTabs('left')}
+                    aria-label="Показать предыдущие группы эпизодов"
+                    className="absolute left-1 top-1/2 z-20 hidden h-9 w-9 -translate-y-[60%] place-items-center rounded-full border border-violet-300/35 bg-slate-950/95 text-white shadow-[0_10px_28px_rgba(0,0,0,0.45)] backdrop-blur transition hover:border-violet-300/70 hover:bg-violet-500/25 md:grid"
+                  >
+                    <SeasonChevron direction="left" />
+                  </button>
+                )}
+
+                {canScrollGroupRight && (
+                  <button
+                    type="button"
+                    onClick={() => scrollGroupTabs('right')}
+                    aria-label="Показать следующие группы эпизодов"
+                    className="absolute right-1 top-1/2 z-20 hidden h-9 w-9 -translate-y-[60%] place-items-center rounded-full border border-violet-300/35 bg-slate-950/95 text-white shadow-[0_10px_28px_rgba(0,0,0,0.45)] backdrop-blur transition hover:border-violet-300/70 hover:bg-violet-500/25 md:grid"
+                  >
+                    <SeasonChevron direction="right" />
+                  </button>
+                )}
               </div>
             </div>
           )}

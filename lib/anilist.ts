@@ -135,6 +135,8 @@ const LIST_QUERY = `
       media(
         type: ANIME
         format_in: [TV, TV_SHORT, MOVIE, OVA, ONA, SPECIAL]
+        countryOfOrigin: JP
+        isAdult: false
         sort: $sort
         status: $status
         search: $search
@@ -452,6 +454,13 @@ export async function getAnimes(
       );
     }
 
+    /*
+     * Keep the broad eligibility filters inside AniList itself. Previously we
+     * requested exactly 16 mixed-origin rows and only then removed non-JP /
+     * adult entries locally. A page could therefore collapse to 4–6 cards and
+     * look like the catalog had ended. The local predicate remains as the
+     * final safety net for rare excluded tags.
+     */
     const anilistAnimes =
       json.data?.Page?.media?.filter(isCatalogAnime).map(
         (media) =>
