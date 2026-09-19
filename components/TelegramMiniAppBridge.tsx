@@ -8,6 +8,11 @@ import {
   enableTelegramAutoLogin,
   isTelegramAutoLoginDisabled,
 } from '@/lib/telegram-auto-login';
+import {
+  getLoadedTelegramWebApp,
+  hasTelegramMiniAppLaunchParams,
+  loadTelegramWebApp,
+} from '@/lib/telegram-webapp-loader';
 
 type ApiResponse = {
   ok?: boolean;
@@ -102,14 +107,72 @@ function isAuthScreen(pathname: string) {
 
 export default function TelegramMiniAppBridge() {
   const [errorText, setErrorText] = useState('');
+  const [telegramSdkReady, setTelegramSdkReady] = useState(false);
 
   useEffect(() => {
+    const root = document.documentElement;
+    let cancelled = false;
+
+    const alreadyLoaded = getLoadedTelegramWebApp();
+
+    if (alreadyLoaded) {
+      root.dataset.telegram = 'true';
+
+      window.queueMicrotask(() => {
+        if (!cancelled) setTelegramSdkReady(true);
+      });
+
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (!hasTelegramMiniAppLaunchParams()) {
+      root.dataset.telegram = 'false';
+      root.dataset.telegramVerified = 'false';
+      root.dataset.telegramAuthenticated = 'false';
+      root.classList.remove('telegram-mini-app');
+      return;
+    }
+
+    // A real Mini App launch gets the SDK after hydration. Ordinary browsers
+    // never request telegram-web-app.js, which keeps it out of the critical
+    // rendering path for Lighthouse and regular AnimeBox visitors.
+    root.dataset.telegram = 'loading';
+
+    void loadTelegramWebApp()
+      .then((telegram) => {
+        if (!cancelled && telegram) {
+          setTelegramSdkReady(true);
+        }
+      })
+      .catch((error) => {
+        console.error('[AnimeBox Telegram] SDK load:', error);
+
+        if (!cancelled) {
+          root.dataset.telegram = 'false';
+          root.dataset.telegramVerified = 'false';
+          root.dataset.telegramAuthenticated = 'false';
+          setErrorText(
+            'Не удалось загрузить Telegram Mini App. Закрой и открой его заново.',
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!telegramSdkReady) return;
+
     const tg = window.Telegram?.WebApp;
     const initData = tg?.initData?.trim();
     const telegramId = tg?.initDataUnsafe?.user?.id;
 
-    // telegram-web-app.js is intentionally loaded on the public website too.
-    // Do not treat the existence of the SDK as a Mini App launch.
+    // Defensive validation after the conditional SDK load. A browser visit
+    // never reaches this branch because it has no Telegram launch data.
     if (
       !tg ||
       !initData ||
@@ -505,7 +568,7 @@ export default function TelegramMiniAppBridge() {
       delete root.dataset.telegramFullscreen;
       root.classList.remove('telegram-mini-app');
     };
-  }, []);
+  }, [telegramSdkReady]);
 
   if (!errorText) return null;
 

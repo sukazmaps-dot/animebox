@@ -3434,57 +3434,178 @@ button { cursor: pointer; }
   margin-top: 24px;
 }
 
-.google-auth-button {
+.google-auth-button-wrap {
   width: 100%;
-  height: 44px;
+}
 
-  display: flex;
+.google-auth-button {
+  position: relative;
+
+  width: 100%;
+  min-height: 48px;
+
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 18px;
   align-items: center;
-  justify-content: center;
 
   gap: 10px;
 
-  border: 1px solid rgba(145, 160, 190, 0.14);
-  border-radius: 11px;
+  padding: 8px 13px;
 
-  background: rgba(255, 255, 255, 0.035);
+  overflow: hidden;
 
-  color: #e9edf5;
+  border:
+    1px solid rgba(145, 130, 255, 0.22);
+  border-radius: 12px;
 
+  background:
+    radial-gradient(
+      circle at 12% 10%,
+      rgba(111, 88, 255, 0.12),
+      transparent 38%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(18, 27, 47, 0.96),
+      rgba(10, 17, 32, 0.96)
+    );
+
+  color: #f2f4fb;
+
+  font: inherit;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 800;
 
   cursor: pointer;
 
-  transition: 0.2s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 10px 28px rgba(0, 0, 0, 0.14);
+
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
-.google-auth-button:hover {
-  border-color: rgba(145, 160, 190, 0.25);
-  background: rgba(255, 255, 255, 0.065);
+.google-auth-button::after {
+  content: '';
+
+  pointer-events: none;
+
+  position: absolute;
+  inset: 0;
+
+  opacity: 0;
+
+  background:
+    linear-gradient(
+      105deg,
+      transparent 20%,
+      rgba(151, 119, 255, 0.08) 52%,
+      transparent 82%
+    );
+
+  transform: translateX(-28%);
+
+  transition:
+    opacity 0.18s ease,
+    transform 0.28s ease;
+}
+
+.google-auth-button:hover:not(:disabled) {
   transform: translateY(-1px);
+
+  border-color:
+    rgba(151, 126, 255, 0.42);
+
+  background:
+    radial-gradient(
+      circle at 12% 10%,
+      rgba(111, 88, 255, 0.17),
+      transparent 40%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(20, 30, 52, 0.98),
+      rgba(12, 20, 37, 0.98)
+    );
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 13px 34px rgba(0, 0, 0, 0.2),
+    0 0 24px rgba(103, 78, 255, 0.07);
+}
+
+.google-auth-button:hover:not(:disabled)::after {
+  opacity: 1;
+  transform: translateX(28%);
+}
+
+.google-auth-button:focus-visible {
+  outline: 0;
+
+  border-color:
+    rgba(165, 143, 255, 0.58);
+
+  box-shadow:
+    0 0 0 3px rgba(111, 88, 255, 0.11),
+    0 13px 34px rgba(0, 0, 0, 0.18);
 }
 
 .google-auth-button:disabled {
-  opacity: 0.6;
+  opacity: 0.62;
   cursor: wait;
   transform: none;
 }
 
 .google-auth-button__icon {
-  width: 23px;
-  height: 23px;
+  width: 30px;
+  height: 30px;
 
   display: grid;
   place-items: center;
 
-  border-radius: 50%;
+  border:
+    1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9px;
 
-  background: #fff;
-  color: #4285f4;
+  background:
+    rgba(255, 255, 255, 0.96);
 
-  font-size: 12px;
-  font-weight: 900;
+  box-shadow:
+    0 5px 14px rgba(0, 0, 0, 0.18);
+}
+
+.google-auth-button__label {
+  position: relative;
+  z-index: 1;
+
+  min-width: 0;
+
+  text-align: left;
+  letter-spacing: -0.01em;
+}
+
+.google-auth-button__arrow {
+  position: relative;
+  z-index: 1;
+
+  color: #8174ff;
+
+  font-size: 15px;
+  font-weight: 500;
+
+  transition:
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.google-auth-button:hover:not(:disabled)
+.google-auth-button__arrow {
+  color: #b2a8ff;
+  transform: translateX(2px);
 }
 
 .google-auth-button__error {

@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import '../boosty-support.css';
+import '../monetization-reliability-v10.css';
 import AdminShell from '@/components/admin/AdminShell';
 import './admin.css';
 

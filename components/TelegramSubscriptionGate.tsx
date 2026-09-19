@@ -7,6 +7,11 @@ import {
   useEffect,
   useState,
 } from 'react';
+import {
+  getLoadedTelegramWebApp,
+  hasTelegramMiniAppLaunchParams,
+  loadTelegramWebApp,
+} from '@/lib/telegram-webapp-loader';
 
 type GateState =
   | 'detecting'
@@ -25,27 +30,7 @@ type GateResponse = {
 };
 
 function getTelegramMiniApp(): TelegramWebApp | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  const telegram = window.Telegram?.WebApp;
-  const initData = telegram?.initData?.trim();
-  const telegramId = telegram?.initDataUnsafe?.user?.id;
-
-  // The Telegram SDK is loaded on the normal website too, therefore the
-  // existence of window.Telegram/WebApp alone MUST NOT activate the gate.
-  // A real Mini App launch must contain signed initData and a Telegram user.
-  if (
-    !telegram ||
-    !initData ||
-    !Number.isSafeInteger(telegramId) ||
-    Number(telegramId) <= 0
-  ) {
-    return null;
-  }
-
-  return telegram;
+  return getLoadedTelegramWebApp();
 }
 
 function gateErrorText(code?: string) {
@@ -82,11 +67,12 @@ export default function TelegramSubscriptionGate({
   const [checkingAgain, setCheckingAgain] = useState(false);
 
   const checkMembership = useCallback(async (isRetry = false) => {
-    const telegram = getTelegramMiniApp();
+    // Normal website visits must not download Telegram's SDK or briefly lock
+    // the page. A verified preloaded WebApp also counts as a Mini App launch,
+    // which keeps this robust if Telegram strips launch params after boot.
+    let telegram = getLoadedTelegramWebApp();
 
-    // youranimebox.com opened in Chrome/Safari/normal Telegram browser:
-    // no subscription gate at all.
-    if (!telegram) {
+    if (!telegram && !hasTelegramMiniAppLaunchParams()) {
       document.documentElement.dataset.telegramSubscribed = 'not-applicable';
       setCheckingAgain(false);
       setState('allowed');
@@ -100,6 +86,12 @@ export default function TelegramSubscriptionGate({
     }
 
     try {
+      telegram ??= await loadTelegramWebApp();
+
+      if (!telegram) {
+        throw new Error('telegram_sdk_unavailable');
+      }
+
       const response = await fetch('/api/telegram/subscription-check', {
         method: 'POST',
         headers: {

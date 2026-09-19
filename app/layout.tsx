@@ -5,13 +5,11 @@ import './globals.css';
 import './visual-refresh.css';
 import './community.css';
 import './design-v5.css';
-import './notifications.css';
 import './telegram-logout.css';
 import './home-rails.css';
 import './card-layout.css';
 import './smart-home.css';
 import './monetization.css';
-import './boosty-support.css';
 import './premium.css';
 import './donatepay-claim.css';
 import './sponsor-v2.css';
@@ -29,13 +27,8 @@ import './hero-controls-v5.css';
 import './hero-teaser-v6.css';
 import './hero-swipe-v7.css';
 import './ad-layout-v8.css';
-import './monetization-reliability-v10.css';
 import './mobile-home-ending-v11.css';
-import './premium-studio-v12.css';
-import './profile-editor-v13.css';
-import './premium-profile-v14.css';
-import './boosty-premium-v18.css';
-import './premium-media-performance-v19.css';
+import './premium-shell.css';
 import './schedule-width-fix-v20.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
@@ -265,15 +258,6 @@ export default function RootLayout({
       </head>
 
       <body>
-        {/* Keep Telegram available before the Mini App bridge runs, but keep
-            next/script outside the explicit <head>. Next will still schedule
-            beforeInteractive globally from the root layout. This avoids the
-            React 19 / Next 16 Turbopack script-in-head dev warning. */}
-        <Script
-          src="https://telegram.org/js/telegram-web-app.js"
-          strategy="beforeInteractive"
-        />
-
         <CssRecoveryBridge />
 
         {/* Yandex.Metrika counter 112789274 */}

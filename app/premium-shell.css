@@ -1,0 +1,8 @@
+/* Premium chrome shared by every route. Keep this tiny so the full Studio
+   stylesheet can stay route-scoped. */
+.sidebar-membership__icon img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(155, 93, 255, .35));
+}
