@@ -1136,3 +1136,41 @@
   width: 16px;
   height: 16px;
 }
+
+/* =========================================================
+   AnimeBox Smart Home v3.1 — mobile visual cleanup
+   Keep state readable, but avoid stacking glossy highlights on small screens.
+   ========================================================= */
+@media (max-width: 720px) {
+  .mood-chip.is-active {
+    border-color: rgba(151, 128, 255, .42);
+    background: rgba(104, 78, 218, .16);
+    box-shadow: 0 7px 18px rgba(47, 31, 125, .10);
+  }
+
+  .mood-chip__image {
+    filter: drop-shadow(0 0 5px rgba(139, 91, 255, .18));
+    transform: none;
+  }
+
+  .mood-chip.is-active .mood-chip__icon {
+    transform: none;
+    filter: none;
+  }
+
+  .mood-chip.is-active .mood-chip__image {
+    filter: drop-shadow(0 0 6px rgba(145, 102, 255, .28));
+  }
+
+  .smart-card__plan {
+    box-shadow: 0 7px 18px -13px rgba(124, 86, 255, .72);
+  }
+
+  .smart-card__plan::before {
+    display: none;
+  }
+
+  .smart-card__plan-icon {
+    background: rgba(255, 255, 255, .08);
+  }
+}

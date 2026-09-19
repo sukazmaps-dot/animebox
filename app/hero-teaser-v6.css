@@ -53,3 +53,23 @@
   }
 }
 
+
+/* Performance Stage 1.1: keep the copy stable without pushing CTA to the
+   bottom edge of the fixed-height hero. Title/description clamps already
+   bound the content, so a normal local gap is enough and avoids the large
+   empty band that margin-top:auto created. */
+.home-hero-carousel__content {
+  min-height: 0;
+  animation-fill-mode: none !important;
+}
+
+.home-hero-carousel .hero-actions {
+  margin-top: 18px;
+  padding-top: 0;
+}
+
+@media (max-width: 768px) {
+  .home-hero-carousel .hero-actions {
+    margin-top: 13px;
+  }
+}

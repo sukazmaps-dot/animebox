@@ -87,8 +87,8 @@ function rejectMessage(reason: Extract<WatchPartyPacket, { type: 'REJECT' }>['re
 }
 
 function statusLabel(status: PartyStatus, role: PartyRole, participants: number) {
-  if (status === 'connecting') return role === 'host' ? 'Создаём P2P-комнату…' : 'Подключаемся к комнате…';
-  if (status === 'reconnecting') return 'Восстанавливаем P2P-соединение…';
+  if (status === 'connecting') return role === 'host' ? 'Создаём комнату…' : 'Подключаемся к комнате…';
+  if (status === 'reconnecting') return 'Восстанавливаем соединение…';
   if (status === 'ended') return 'Комната завершена';
   if (status === 'error') return 'Не удалось подключиться';
   if (status === 'active') return `${participants}/${WATCH_PARTY_MAX_PARTICIPANTS} участников онлайн`;
@@ -454,7 +454,7 @@ export default function WatchPartyPanel({
       if (welcomed || connection.open || intentionalCloseRef.current || hostEndedRef.current) return;
       reconnectQueued = true;
       setStatus('reconnecting');
-      setError('P2P negotiation заняла слишком долго. Пробуем подключиться ещё раз…');
+      setError('Подключение заняло слишком долго. Пробуем ещё раз…');
       connection.close();
       scheduleGuestReconnectRef.current();
     }, NEGOTIATION_TIMEOUT_MS);
@@ -688,7 +688,7 @@ export default function WatchPartyPanel({
         return;
       }
       setStatus('error');
-      setError('P2P-соединение не удалось установить. Попробуй обновить страницу.');
+      setError('Не удалось установить соединение. Попробуй обновить страницу.');
     });
   }, [attachGuestConnection, redirectToRegistration, resolveIdentity]);
 
@@ -930,7 +930,7 @@ export default function WatchPartyPanel({
         return;
       }
       setStatus('error');
-      setError('Не удалось создать P2P-комнату. Попробуй ещё раз.');
+      setError('Не удалось создать комнату. Попробуй ещё раз.');
     });
   }, [
     appendChatMessage,
@@ -1171,10 +1171,10 @@ export default function WatchPartyPanel({
         <div className={styles.inner}>
           <div className={styles.icon} aria-hidden="true">✦</div>
           <div className={styles.copy}>
-            <span className={styles.eyebrow}>WATCH TOGETHER · P2P BETA</span>
+            <span className={styles.eyebrow}>WATCH TOGETHER</span>
             <h2 className={styles.title}>Смотреть {episodeNumber}-ю серию вместе</h2>
             <p className={styles.description}>
-              Создай приватную P2P-комнату для «{animeTitle}». Комната работает напрямую между браузерами: общий чат и управление плеером синхронизируются через P2P.
+              Создай приватную комнату для «{animeTitle}», пригласи друзей по ссылке и смотри серию синхронно. В комнате есть общий чат и управление просмотром.
             </p>
           </div>
           <div className={styles.actions}>
@@ -1353,7 +1353,7 @@ export default function WatchPartyPanel({
         >
           <div className={styles.chatHead}>
             <div>
-              <span>LIVE CHAT · P2P</span>
+              <span>LIVE CHAT</span>
               <strong>Чат комнаты</strong>
             </div>
             <small>{messages.length ? `${messages.length} сообщений` : 'без истории на сервере'}</small>

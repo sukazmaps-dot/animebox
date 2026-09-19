@@ -2,7 +2,7 @@
 
 import { animeHref } from '@/lib/anime-url';
 
-import { startTransition, useEffect, useMemo, useState } from 'react';
+import { startTransition, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import type { Anime, AnimeImage as AnimeImageType } from '@/types/anime';
 
@@ -22,6 +22,8 @@ import ScheduleItem from '@/components/ScheduleItem';
 import { readTasteProfile, setTasteMood, type TasteMood } from '@/lib/personalization';
 import AdSlot from '@/components/monetization/AdSlot';
 import { SupportAnimeBoxCard } from '@/components/monetization/SupportAnimeBox';
+
+const subscribeHydration = () => () => {};
 
 type HomeScheduleItem = {
   id: number;
@@ -154,7 +156,7 @@ function HomeTopAnimePanel({
     >
       <div className="panel__head panel__head--branded">
         <span className="panel__title-with-icon">
-          <img src="/brand/brand-mark.png" alt="" aria-hidden="true" />
+          <img src="/brand/brand-mark.webp" alt="" aria-hidden="true" />
           Топ аниме
         </span>
         <span className="section-link">Сегодня</span>
@@ -169,11 +171,20 @@ function HomeTopAnimePanel({
   );
 }
 
-export default function HomePage() {
-  const [popular, setPopular] = useState<Anime[]>([]);
-  const [ongoing, setOngoing] = useState<Anime[]>([]);
-  const [popularLoading, setPopularLoading] = useState(true);
-  const [ongoingLoading, setOngoingLoading] = useState(true);
+export default function HomePage({
+  initialPopular = [],
+  initialOngoing = [],
+}: {
+  initialPopular?: Anime[];
+  initialOngoing?: Anime[];
+}) {
+  const hasInitialPopular = initialPopular.length > 0;
+  const hasInitialOngoing = initialOngoing.length > 0;
+
+  const [popular, setPopular] = useState<Anime[]>(initialPopular);
+  const [ongoing, setOngoing] = useState<Anime[]>(initialOngoing);
+  const [popularLoading, setPopularLoading] = useState(!hasInitialPopular);
+  const [ongoingLoading, setOngoingLoading] = useState(!hasInitialOngoing);
   const [popularError, setPopularError] = useState('');
   const [ongoingError, setOngoingError] = useState('');
 
@@ -182,6 +193,7 @@ export default function HomePage() {
   const [watchHistory, setWatchHistory] = useState<AnimeHistoryEntry[]>([]);
   const [mood, setMood] = useState<TasteMood>('any');
   const [tasteRevision, setTasteRevision] = useState(0);
+  const hydrated = useSyncExternalStore(subscribeHydration, () => true, () => false);
 
   const [scheduleItems, setScheduleItems] = useState<HomeScheduleItem[]>([]);
   const [scheduleDays] = useState<ScheduleDay[]>(createScheduleDays);
@@ -198,70 +210,66 @@ export default function HomePage() {
    * Наличие видео проверяется уже при открытии тайтла/серии.
    */
   useEffect(() => {
-    const popularController = new AbortController();
-    const ongoingController = new AbortController();
+    const popularController = hasInitialPopular ? null : new AbortController();
+    const ongoingController = hasInitialOngoing ? null : new AbortController();
 
     /*
-     * Два блока загружаются независимо.
-     * Раньше Promise.all держал весь первый экран, пока не завершатся ОБА
-     * запроса. Теперь быстрый блок появляется сразу, не ожидая медленный.
+     * SSR normally supplies both lists, so the real hero is already present in
+     * the first HTML and its LCP image can start immediately. These requests
+     * are only a resilience fallback for an upstream/cache miss on the server.
      */
-    getAnimes(
-      {
-        limit: 20,
-        page: 1,
-        order: 'ranked',
-      },
-      { signal: popularController.signal },
-    )
-      .then((data) => {
-        if (!popularController.signal.aborted) {
-          setPopular(data);
-        }
-      })
-      .catch((err: unknown) => {
-        if (!(err instanceof Error && err.name === 'AbortError')) {
-          console.error(err);
-          setPopularError('Не удалось загрузить популярное.');
-        }
-      })
-      .finally(() => {
-        if (!popularController.signal.aborted) {
-          setPopularLoading(false);
-        }
-      });
+    if (popularController) {
+      getAnimes(
+        {
+          limit: 20,
+          page: 1,
+          order: 'ranked',
+        },
+        { signal: popularController.signal },
+      )
+        .then((data) => {
+          if (!popularController.signal.aborted) setPopular(data);
+        })
+        .catch((err: unknown) => {
+          if (!(err instanceof Error && err.name === 'AbortError')) {
+            console.error(err);
+            setPopularError('Не удалось загрузить популярное.');
+          }
+        })
+        .finally(() => {
+          if (!popularController.signal.aborted) setPopularLoading(false);
+        });
+    }
 
-    getAnimes(
-      {
-        limit: 20,
-        page: 1,
-        order: 'popularity',
-        status: 'ongoing',
-      },
-      { signal: ongoingController.signal },
-    )
-      .then((data) => {
-        if (!ongoingController.signal.aborted) {
-          setOngoing(data);
-        }
-      })
-      .catch((err: unknown) => {
-        if (!(err instanceof Error && err.name === 'AbortError')) {
-          console.error(err);
-          setOngoingError('Не удалось загрузить онгоинги.');
-        }
-      })
-      .finally(() => {
-        if (!ongoingController.signal.aborted) {
-          setOngoingLoading(false);
-        }
-      });
+    if (ongoingController) {
+      getAnimes(
+        {
+          limit: 20,
+          page: 1,
+          order: 'popularity',
+          status: 'ongoing',
+        },
+        { signal: ongoingController.signal },
+      )
+        .then((data) => {
+          if (!ongoingController.signal.aborted) setOngoing(data);
+        })
+        .catch((err: unknown) => {
+          if (!(err instanceof Error && err.name === 'AbortError')) {
+            console.error(err);
+            setOngoingError('Не удалось загрузить онгоинги.');
+          }
+        })
+        .finally(() => {
+          if (!ongoingController.signal.aborted) setOngoingLoading(false);
+        });
+    }
 
     return () => {
-      popularController.abort();
-      ongoingController.abort();
+      popularController?.abort();
+      ongoingController?.abort();
     };
-  }, []);
+  }, [hasInitialOngoing, hasInitialPopular]);
 
   /*
    * История просмотра хранится в localStorage.
@@ -377,6 +385,11 @@ export default function HomePage() {
    * actually changes.
    */
   const smartRecommendations = useMemo(() => {
+    // localStorage-backed ranking cannot be deterministic during SSR.
+    // Defer it until after hydration so React sees the exact same first tree
+    // on the server and in the browser.
+    if (!hydrated) return [];
+
     // Re-read local-first signals when their revision changes.
     void historyRevision;
     void tasteRevision;
@@ -385,7 +398,7 @@ export default function HomePage() {
       mood,
       limit: 30,
     });
-  }, [popular, ongoing, mood, historyRevision, tasteRevision]);
+  }, [hydrated, popular, ongoing, mood, historyRevision, tasteRevision]);
 
   const progress = useMemo(() => {
     void historyRevision;
@@ -475,7 +488,6 @@ export default function HomePage() {
                   <img src="/brand/icons/sections/recommendations.svg" alt="" />
                 </span>
                 <h2 className="section-title">Подобрано для тебя</h2>
-                <span className="smart-feed-heading__badge">SMART V3</span>
               </div>
               <p>Лента догружается сама, а причина рекомендации остаётся видна на каждой карточке.</p>
             </div>
@@ -485,8 +497,8 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {popularLoading && ongoingLoading && smartRecommendations.length === 0 ? (
-            <div className="loading-grid">
+          {!hydrated || (popularLoading && ongoingLoading && smartRecommendations.length === 0) ? (
+            <div className="loading-grid" aria-label="Загружаем персональные рекомендации">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="skeleton skeleton--card" />
               ))}
@@ -666,7 +678,7 @@ export default function HomePage() {
 
         <div className="panel home-library-panel right-rail__secondary">
           <span className="home-library-panel__symbol home-library-panel__symbol--brand" aria-hidden="true">
-            <img src="/brand/brand-mark.png" alt="" />
+            <img src="/brand/brand-mark.webp" alt="" />
           </span>
           <span className="home-library-panel__eyebrow">ТВОЯ КОЛЛЕКЦИЯ</span>
           <h2>
@@ -681,8 +693,11 @@ export default function HomePage() {
 
           <img
             className="home-library-panel__mascot"
-            src="/brand/animebox-mascot.png"
+            src="/brand/animebox-mascot.webp"
             alt=""
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
             aria-hidden="true"
           />
         </div>

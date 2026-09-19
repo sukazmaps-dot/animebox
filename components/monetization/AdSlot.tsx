@@ -226,16 +226,20 @@ export default function AdSlot({
         observer.disconnect();
       },
       {
-        // Start loading before the slot becomes visible so the third-party
-        // widget is usually ready by the time the user reaches it.
-        rootMargin: '650px 0px',
+        // The home slot sits below the recommendation feed. Starting a third-
+        // party creative 650px early can make it compete with the hero/LCP and
+        // poster rail. Other placements keep the wider prefetch window.
+        rootMargin:
+          placement === 'home-after-smart-feed'
+            ? '180px 0px'
+            : '650px 0px',
         threshold: 0.01,
       },
     );
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, [eligible, nearViewport, providerFailed]);
+  }, [eligible, nearViewport, placement, providerFailed]);
 
   useEffect(() => {
     if (!eligible || !nearViewport || !config || reserved || providerFailed) return;

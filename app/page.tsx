@@ -2,6 +2,9 @@ import type { Metadata } from 'next';
 
 import HomePageClient from '@/components/HomePageClient';
 import { SITE_URL } from '@/lib/seo-config';
+import { getHomeInitialFeed } from '@/lib/home-feed-server';
+
+export const revalidate = 900;
 
 const description =
   'Смотри аниме, сохраняй прогресс, собирай свою коллекцию и находи новые тайтлы с персональными рекомендациями.';
@@ -36,6 +39,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function HomePage() {
-  return <HomePageClient />;
+export default async function HomePage() {
+  const initialFeed = await getHomeInitialFeed();
+
+  return (
+    <HomePageClient
+      initialPopular={initialFeed.popular}
+      initialOngoing={initialFeed.ongoing}
+    />
+  );
 }

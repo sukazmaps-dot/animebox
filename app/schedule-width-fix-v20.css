@@ -1,0 +1,97 @@
+/* =========================================================
+   AnimeBox — Home schedule width fix v20
+   Loaded last on purpose so older visual/mobile layers cannot widen
+   the weekly schedule past the main content column.
+   ========================================================= */
+
+.home-grid--main,
+.home-grid--main > .main-column,
+.home-page .schedule,
+.home-page .schedule__tabs,
+.home-page .schedule__cards,
+.home-page .schedule__card {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+.home-page .schedule {
+  width: 100%;
+  overflow: hidden;
+}
+
+.home-page .schedule__tabs {
+  width: 100% !important;
+  margin-right: 0 !important;
+  padding: 4px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+}
+
+.home-page .schedule__tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.home-page .schedule__tab {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.home-page .schedule__cards {
+  width: 100%;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 10px;
+}
+
+.home-page .schedule__card {
+  width: 100%;
+  overflow: hidden;
+  grid-template-columns: 46px minmax(0, 1fr) auto !important;
+}
+
+.home-page .schedule__card > div {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.home-page .schedule__card strong {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-page .schedule__time {
+  min-width: 0;
+  max-width: 92px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* A normal laptop/desktop main column is too narrow for four useful cards.
+   Use a deliberate 2x2 layout instead of letting four cards squeeze/overflow. */
+@media (min-width: 721px) and (max-width: 1599px) {
+  .home-page .schedule__cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .home-page .schedule__card {
+    grid-template-columns: 50px minmax(0, 1fr) auto !important;
+    min-height: 70px;
+  }
+}
+
+@media (max-width: 720px) {
+  .home-page .schedule__cards {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .home-page .schedule__card {
+    grid-template-columns: 58px minmax(0, 1fr) auto !important;
+  }
+}

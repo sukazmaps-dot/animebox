@@ -1,6 +1,6 @@
 'use client';
 
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 
 import AnimeImage from '@/components/AnimeImage';
@@ -61,15 +61,25 @@ export default function WatchTogetherHub() {
   const [error, setError] = useState('');
   const [inviteInput, setInviteInput] = useState('');
   const [inviteError, setInviteError] = useState('');
-  const [lastRoom] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null;
-    try {
-      const stored = window.localStorage.getItem(LAST_ROOM_KEY);
-      return stored && validInviteUrl(stored) ? stored : null;
-    } catch {
-      return null;
-    }
-  });
+  const lastRoom = useSyncExternalStore(
+    (onStoreChange) => {
+      const onStorage = (event: StorageEvent) => {
+        if (event.key === LAST_ROOM_KEY) onStoreChange();
+      };
+
+      window.addEventListener('storage', onStorage);
+      return () => window.removeEventListener('storage', onStorage);
+    },
+    () => {
+      try {
+        const stored = window.localStorage.getItem(LAST_ROOM_KEY);
+        return stored && validInviteUrl(stored) ? stored : null;
+      } catch {
+        return null;
+      }
+    },
+    () => null,
+  );
 
   const intent = useMemo(
     () => (query.trim() ? parseAnimeSearchIntent(query.trim()) : null),
@@ -169,13 +179,13 @@ export default function WatchTogetherHub() {
           <span className={styles.eyebrow}>WATCH TOGETHER</span>
           <h1>Смотри аниме вместе с друзьями</h1>
           <p>
-            Найди тайтл, выбери серию и создай приватную P2P-комнату. Плеер,
-            перемотка и чат синхронизируются между участниками.
+            Найди тайтл, выбери серию и создай приватную комнату. Смотри
+            синхронно, общайся в чате и приглашай друзей по ссылке.
           </p>
           <div className={styles.features}>
             <span><i />до 8 участников</span>
-            <span><i />P2P чат</span>
-            <span><i />общий play / pause / seek</span>
+            <span><i />чат комнаты</span>
+            <span><i />синхронное управление</span>
           </div>
         </div>
 

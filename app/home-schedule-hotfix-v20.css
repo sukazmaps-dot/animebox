@@ -1,0 +1,124 @@
+/* =========================================================
+   AnimeBox Home Schedule containment hotfix v20
+
+   The schedule lives inside the Home main column. Older layout layers used
+   negative margins / calc widths for mobile tabs and a fixed 4-column grid.
+   In mixed desktop/tablet widths that could make the section wider than its
+   grid track. Keep every schedule layer shrinkable and let the cards choose
+   the number of columns from the real available width.
+   ========================================================= */
+
+.home-grid,
+.home-grid .main-column,
+.home-page .schedule,
+.home-page .schedule__tabs,
+.home-page .schedule__cards,
+.home-page .schedule__card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.home-page .schedule {
+  width: 100%;
+  overflow: hidden;
+}
+
+.home-page .schedule .section-head,
+.home-page .schedule .section-title {
+  min-width: 0;
+}
+
+/* Never make the tab strip wider than the schedule itself. On small widths
+   the labels scroll inside the strip instead of pushing the whole page. */
+.home-page .schedule__tabs {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-inline: 0 !important;
+  padding: 4px !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.home-page .schedule__tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.home-page .schedule__tab {
+  flex: 0 0 auto;
+  min-width: 84px;
+  scroll-snap-align: start;
+  white-space: nowrap;
+}
+
+/* 4 columns when they genuinely fit, then naturally 3/2/1. This is based on
+   the main-column width rather than the viewport width, which matters while
+   the right rail is still visible. */
+.home-page .schedule__cards {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(245px, 100%), 1fr)) !important;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.home-page .schedule__card {
+  width: 100%;
+  overflow: hidden;
+  grid-template-columns: 44px minmax(0, 1fr) minmax(0, max-content);
+}
+
+.home-page .schedule__card > * {
+  min-width: 0;
+}
+
+.home-page .schedule__card > div:not(.schedule__time) {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.home-page .schedule__card strong {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-page .schedule__time {
+  min-width: 0;
+  max-width: 86px;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .home-page .schedule__tab {
+    min-width: 92px;
+  }
+
+  .home-page .schedule__cards {
+    grid-template-columns: 1fr !important;
+  }
+
+  .home-page .schedule__card {
+    grid-template-columns: 58px minmax(0, 1fr) auto;
+  }
+}
+
+@media (max-width: 390px) {
+  .home-page .schedule__card {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .home-page .schedule__time {
+    grid-column: 2;
+    justify-self: start;
+    max-width: 100%;
+    text-align: left;
+  }
+}

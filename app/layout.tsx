@@ -36,13 +36,13 @@ import './profile-editor-v13.css';
 import './premium-profile-v14.css';
 import './boosty-premium-v18.css';
 import './premium-media-performance-v19.css';
-import './user-preferences.css';
+import './schedule-width-fix-v20.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
 import { AuthStateProvider } from '@/components/AuthStateProvider';
-import UserPreferencesBridge from '@/components/UserPreferencesBridge';
 import AppChrome from '@/components/AppChrome';
+import CssRecoveryBridge from '@/components/CssRecoveryBridge';
 
 import { Analytics } from '@vercel/analytics/next';
 
@@ -262,51 +262,19 @@ export default function RootLayout({
         <link rel="preconnect" href="https://cdn.anilist.co" crossOrigin="" />
         <link rel="dns-prefetch" href="//cdn.anilist.co" />
         <link rel="dns-prefetch" href="//shikimori.one" />
+      </head>
+
+      <body>
+        {/* Keep Telegram available before the Mini App bridge runs, but keep
+            next/script outside the explicit <head>. Next will still schedule
+            beforeInteractive globally from the root layout. This avoids the
+            React 19 / Next 16 Turbopack script-in-head dev warning. */}
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
         />
 
-        <script
-          id="animebox-css-recovery"
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function () {
-                var key = 'animebox:css-recovery:v1';
-
-                function cssIsReady() {
-                  try {
-                    return getComputedStyle(document.documentElement)
-                      .getPropertyValue('--animebox-css-ready')
-                      .trim() === '1';
-                  } catch (_) {
-                    return true;
-                  }
-                }
-
-                function recover() {
-                  if (cssIsReady()) {
-                    try { sessionStorage.removeItem(key); } catch (_) {}
-                    return;
-                  }
-
-                  try {
-                    if (sessionStorage.getItem(key) === '1') return;
-                    sessionStorage.setItem(key, '1');
-                  } catch (_) {}
-
-                  var url = new URL(window.location.href);
-                  url.searchParams.set('__abx_css_recover', String(Date.now()));
-                  window.location.replace(url.toString());
-                }
-
-                window.addEventListener('load', function () {
-                  window.setTimeout(recover, 120);
-                }, { once: true });
-              })();
-            `,
-          }}
-        />
+        <CssRecoveryBridge />
 
         {/* Yandex.Metrika counter 112789274 */}
         <Script
@@ -336,9 +304,8 @@ export default function RootLayout({
             `,
           }}
         />
-      </head>
 
-      <body>
+
         <noscript>
           <div>
             <img
@@ -379,7 +346,6 @@ export default function RootLayout({
         />
 
         <AuthStateProvider>
-          <UserPreferencesBridge />
           {/* Определяет, открыт AnimeBox
               внутри Telegram или браузера */}
 

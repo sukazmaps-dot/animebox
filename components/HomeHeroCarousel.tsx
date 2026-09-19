@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 
 import Link from 'next/link';
@@ -35,6 +36,11 @@ import {
   getAnimeById,
   isAbortError,
 } from '@/lib/anime-client';
+
+
+function subscribeHydrationReady() {
+  return () => undefined;
+}
 
 interface HomeHeroCarouselProps {
   popular: Anime[];
@@ -159,19 +165,47 @@ export default function HomeHeroCarousel({
     [popular, ongoing],
   );
 
-  const candidates = useMemo(
-    () =>
-      getRecommendedAnime(
-        source,
-        6,
-      ).filter(isValidAnime),
-    [source],
+  /*
+   * Keep the very first SSR/LCP slide deterministic. getRecommendedAnime()
+   * reads browser-local taste/history, so calling it during the first client
+   * render can produce a different order than the server HTML and swap the
+   * LCP image during hydration. Personalization is enabled only after mount,
+   * while source[0] stays pinned as the first slide.
+   */
+  const personalizationReady = useSyncExternalStore(
+    subscribeHydrationReady,
+    () => true,
+    () => false,
   );
 
-  const slides =
-    candidates.length > 0
-      ? candidates
-      : source.slice(0, 6);
+  const personalizedCandidates = useMemo(
+    () =>
+      personalizationReady
+        ? getRecommendedAnime(source, 6).filter(isValidAnime)
+        : [],
+    [personalizationReady, source],
+  );
+
+  const slides = useMemo(() => {
+    if (source.length === 0) return [];
+
+    const first = source[0];
+    const ordered = personalizationReady
+      ? [first, ...personalizedCandidates, ...source]
+      : source;
+
+    const seen = new Set<number>();
+    const unique: Anime[] = [];
+
+    for (const item of ordered) {
+      if (!isValidAnime(item) || seen.has(item.id)) continue;
+      seen.add(item.id);
+      unique.push(item);
+      if (unique.length >= 6) break;
+    }
+
+    return unique;
+  }, [personalizationReady, personalizedCandidates, source]);
 
   const [
     activeIndex,
@@ -528,8 +562,10 @@ export default function HomeHeroCarousel({
           src={bannerImage}
           alt=""
           fill
-          priority={activeIndex === 0}
-          sizes="(max-width: 760px) 100vw, (max-width: 1280px) 75vw, 980px"
+          priority={safeActiveIndex === 0}
+          fetchPriority={safeActiveIndex === 0 ? 'high' : 'auto'}
+          quality={80}
+          sizes="(max-width: 720px) 100vw, (max-width: 1200px) 72vw, (max-width: 1700px) 75vw, 1160px"
           className="page-hero__backdrop home-hero-carousel__backdrop is-visible"
           aria-hidden="true"
         />
@@ -543,9 +579,11 @@ export default function HomeHeroCarousel({
       >
         <div className="page-hero__eyebrow">
           <span className="pill pill--accent">
-            {activeIndex === 0
-              ? 'Для тебя'
-              : 'Рекомендация'}
+            {safeActiveIndex === 0
+              ? 'Рекомендуем'
+              : personalizationReady
+                ? 'Для тебя'
+                : 'Рекомендация'}
           </span>
 
           {isOngoing && (

@@ -23,7 +23,6 @@ import {
 import type { EpisodeAvailabilityResponse } from '@/types/episode-availability';
 
 import EpisodeCompletion from '@/components/EpisodeCompletion';
-import { useUserPreferences } from '@/components/useUserPreferences';
 import AnimePlayer, { PlayerSource } from '@/components/AnimePlayer';
 import WatchPartyPanel from '@/components/watch-party/WatchPartyPanel';
 import theaterStyles from '@/components/watch-party/WatchTogetherTheater.module.css';
@@ -58,7 +57,6 @@ type KodikApiResponse = {
 
 export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode = false }: { anime: Anime; requestedEpisode: number; theaterMode?: boolean }) {
   const router = useRouter();
-  const { autoNextEpisode } = useUserPreferences();
   const animeIdParam = anime.slug as string;
   const [theaterChatOpen, setTheaterChatOpen] = useState(false);
   const [watchedUpTo, setWatchedUpTo] = useState(0);
@@ -542,7 +540,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
             </div>
 
             <div className={theaterStyles.headerActions}>
-              <span className={theaterStyles.headerStatus}>P2P ROOM</span>
+              <span className={theaterStyles.headerStatus}>КОМНАТА</span>
               <button
                 type="button"
                 className={theaterStyles.chatToggle}
@@ -587,7 +585,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
                     nextLabel={atLastKnownEpisode && seasonRoute.next ? 'След. сезон' : 'След. серия'}
                     onPrev={goToPrevious}
                     onNext={goToNext}
-                    onEnded={hasNext && autoNextEpisode ? goToNext : undefined}
+                    onEnded={hasNext ? goToNext : undefined}
                     onEpisodeChange={goToEpisode}
                     watchTogetherMode
                   />
@@ -663,7 +661,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           nextLabel={atLastKnownEpisode && seasonRoute.next ? 'След. сезон' : 'След. серия'}
           onPrev={goToPrevious}
           onNext={goToNext}
-          onEnded={hasNext && autoNextEpisode ? goToNext : undefined}
+          onEnded={hasNext ? goToNext : undefined}
           onEpisodeChange={goToEpisode}
         />
       )}

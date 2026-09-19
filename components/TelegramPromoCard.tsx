@@ -5,7 +5,14 @@ export default function TelegramPromoCard() {
   return (
     <section className="flex min-w-0 flex-col items-center rounded-2xl border border-violet-400/20 bg-gradient-to-br from-slate-900 to-slate-950 p-5 text-center sm:p-6">
       <div className="mx-auto mb-4 w-full max-w-[180px] shrink-0">
-        <img src="/brand/telegram-cta.png" alt="" className="block h-auto w-full object-contain" />
+        <img
+          src="/brand/telegram-cta.webp"
+          alt=""
+          loading="lazy"
+          decoding="async"
+          fetchPriority="low"
+          className="block h-auto w-full object-contain"
+        />
       </div>
       <div className="w-full min-w-0">
         <p className="text-xs font-bold tracking-wider text-violet-400">ANIMEBOX × TELEGRAM</p>
