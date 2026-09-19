@@ -655,6 +655,8 @@ export default function HomePage({
                         item.media.title.english || item.media.title.romaji
                       }
                       className="anime-schedule-image"
+                      sizes="58px"
+                      quality={60}
                     />
 
                     <div style={{ minWidth: 0, overflow: 'hidden' }}>

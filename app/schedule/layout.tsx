@@ -1,3 +1,4 @@
+import '../schedule-width-fix-v20.css';
 import type { Metadata } from 'next';
 
 import { SITE_URL } from '@/lib/seo-config';

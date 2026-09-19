@@ -53,6 +53,8 @@ export default function HomeContinueWatching({
                   englishName={anime.title?.english || anime.title?.romaji}
                   className="continue-smart-card__image"
                   loading="lazy"
+                  sizes="54px"
+                  quality={60}
                 />
                 <span className="continue-smart-card__play" aria-hidden="true">▶</span>
               </div>

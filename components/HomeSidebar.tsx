@@ -36,7 +36,7 @@ export function UpcomingPanel({ items }: { items: Anime[] }) {
               href={animeHref(anime)}
               className="group grid grid-cols-[32px_1fr_auto] items-center gap-2.5 rounded-xl px-2 py-2 transition-all duration-300 hover:bg-white/[0.045]"
             >
-              <AnimeImage image={anime.image} alt={anime.russian} className="h-10 w-8 rounded-md object-cover transition duration-300 group-hover:scale-105" />
+              <AnimeImage image={anime.image} alt={anime.russian} sizes="32px" quality={60} className="h-10 w-8 rounded-md object-cover transition duration-300 group-hover:scale-105" />
               <div className="min-w-0">
                 <div className="truncate text-[10px] font-semibold text-slate-100">{anime.russian}</div>
                 <div className="mt-1 flex items-center gap-1.5 text-[9px] text-slate-500">

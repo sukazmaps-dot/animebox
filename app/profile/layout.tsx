@@ -1,3 +1,4 @@
+import '../premium.css';
 import type { Metadata } from 'next';
 import '../premium-studio-v12.css';
 import '../profile-editor-v13.css';

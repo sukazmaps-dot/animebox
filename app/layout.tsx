@@ -9,7 +9,6 @@ import './home-rails.css';
 import './card-layout.css';
 import './smart-home.css';
 import './monetization.css';
-import './premium.css';
 import './asset-pack-v1.css';
 import './mobile-layout-fix.css';
 import './mobile-readability.css';
@@ -24,7 +23,6 @@ import './hero-swipe-v7.css';
 import './ad-layout-v8.css';
 import './mobile-home-ending-v11.css';
 import './premium-shell.css';
-import './schedule-width-fix-v20.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
@@ -247,8 +245,6 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <link rel="preconnect" href="https://s4.anilist.co" crossOrigin="" />
-        <link rel="dns-prefetch" href="//s4.anilist.co" />
         <link rel="dns-prefetch" href="//shikimori.one" />
       </head>
 

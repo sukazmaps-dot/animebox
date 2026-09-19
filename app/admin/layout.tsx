@@ -1,3 +1,4 @@
+import '../premium.css';
 import type { Metadata } from 'next';
 import '../boosty-support.css';
 import '../monetization-reliability-v10.css';

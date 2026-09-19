@@ -43,7 +43,7 @@ export default function ScheduleItem({ href, title, image, episode, dateLabel, a
   return (
     <Link href={href} className="flex min-w-0 items-center justify-between gap-2 border-b border-slate-800 py-3 last:border-b-0 hover:bg-white/[0.03] focus-visible:outline-2 focus-visible:outline-violet-400">
       <div className="h-12 w-8 shrink-0 overflow-hidden rounded-md">
-        <AnimeImage image={image} alt={title} />
+        <AnimeImage image={image} alt={title} sizes="32px" quality={60} />
       </div>
       <div className="min-w-0 flex-1">
         <h3 title={title} className="truncate text-sm font-semibold text-slate-100">{title}</h3>

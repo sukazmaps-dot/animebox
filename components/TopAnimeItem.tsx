@@ -13,7 +13,7 @@ export default function TopAnimeItem({ anime, rank }: { anime: Anime; rank: numb
       </span>
       {/* Dimensions belong to the wrapper: AnimeImage renders its own div. */}
       <div className="h-16 w-12 shrink-0 overflow-hidden rounded-md">
-        <AnimeImage image={anime.coverImage || anime.image} alt={title} />
+        <AnimeImage image={anime.coverImage || anime.image} alt={title} sizes="48px" quality={60} />
       </div>
       <div className="min-w-0 flex-1">
         <h3 title={title} className="truncate text-sm font-semibold text-slate-100 group-hover:text-violet-300">{title}</h3>

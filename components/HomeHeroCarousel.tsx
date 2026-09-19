@@ -583,7 +583,13 @@ export default function HomeHeroCarousel({
 
   return (
     <section
-      className={`page-hero home-hero-carousel ${bannerImage ? 'has-banner' : 'no-banner'}`}
+      className={[
+        'page-hero',
+        'home-hero-carousel',
+        bannerImage ? 'has-banner' : 'no-banner',
+        autoplayUnlocked ? 'is-motion-ready' : '',
+        autoplayUnlocked && safeActiveIndex !== 0 ? 'is-slide-transition' : '',
+      ].filter(Boolean).join(' ')}
       aria-label="Рекомендации аниме"
       onMouseEnter={() =>
         setPaused(true)
@@ -617,7 +623,7 @@ export default function HomeHeroCarousel({
           fill
           priority={safeActiveIndex === 0}
           fetchPriority={safeActiveIndex === 0 ? 'high' : 'auto'}
-          quality={80}
+          quality={70}
           sizes="(max-width: 720px) 100vw, (max-width: 1200px) 72vw, (max-width: 1700px) 75vw, 1160px"
           className="page-hero__backdrop home-hero-carousel__backdrop is-visible"
           aria-hidden="true"
