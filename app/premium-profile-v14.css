@@ -1662,4 +1662,19 @@
     justify-self: stretch;
   }
 }
-\n\n/* =========================================================\n   AnimeBox Premium hero glow safety v18.4\n   A bright/white accent combined with the old 70px glow looked like a\n   second grey rounded card around the banner. Keep the user's glow, but\n   confine the hero halo close to the card so light accents stay elegant.\n   ========================================================= */\n.profile-v2.premium-profile-custom .profile-v2__hero {\n  box-shadow:\n    0 24px 64px rgba(0, 0, 0, .30),\n    0 0 38px -16px rgba(\n      var(--ab-premium-accent-rgb),\n      var(--ab-premium-glow-soft-alpha)\n    ) !important;\n}\n
+
+
+/* =========================================================
+   AnimeBox Premium hero glow safety v18.4
+   A bright/white accent combined with the old 70px glow looked like a
+   second grey rounded card around the banner. Keep the user's glow, but
+   confine the hero halo close to the card so light accents stay elegant.
+   ========================================================= */
+.profile-v2.premium-profile-custom .profile-v2__hero {
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, .30),
+    0 0 38px -16px rgba(
+      var(--ab-premium-accent-rgb),
+      var(--ab-premium-glow-soft-alpha)
+    ) !important;
+}
