@@ -1,6 +1,13 @@
 'use client';
 
-import type { ChatAuthor, ChatMessagesPage, ChatReaction } from '@/types/chat';
+import type {
+  ChatAuthor,
+  ChatMeState,
+  ChatMessagesPage,
+  ChatReaction,
+  ChatReportReason,
+  ChatSettingsState,
+} from '@/types/chat';
 
 async function readJson<T>(response: Response): Promise<T> {
   const data = (await response.json()) as T & { error?: string };
@@ -56,4 +63,48 @@ export async function fetchChatAuthors(ids: string[]) {
     cache: 'no-store',
   });
   return readJson<{ authors: ChatAuthor[] }>(response).then((value) => value.authors);
+}
+
+export async function getChatSettings() {
+  const response = await fetch('/api/chat/settings', { cache: 'no-store' });
+  return readJson<ChatSettingsState>(response);
+}
+
+export async function getChatMe() {
+  const response = await fetch('/api/chat/me', { cache: 'no-store' });
+  return readJson<ChatMeState>(response);
+}
+
+export async function markChatSeen() {
+  const response = await fetch('/api/chat/me', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'mark_seen' }),
+    cache: 'no-store',
+  });
+  return readJson<{ ok: boolean; seenAt: string }>(response);
+}
+
+export async function reportChatMessage(input: {
+  messageId: string;
+  reason: ChatReportReason;
+  details?: string;
+}) {
+  const response = await fetch('/api/chat/reports', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+    cache: 'no-store',
+  });
+  return readJson<{ ok: boolean }>(response);
+}
+
+export async function moderateCommunity(input: Record<string, unknown>) {
+  const response = await fetch('/api/admin/community', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+    cache: 'no-store',
+  });
+  return readJson<{ ok: boolean }>(response);
 }

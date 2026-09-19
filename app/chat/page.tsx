@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import GlobalChatClient from '@/components/chat/GlobalChatClient';
+import GlobalChatV11Client from '@/components/chat/GlobalChatV11Client';
 import { getChatMessagesPage } from '@/lib/chat-server';
 import type { ChatMessagesPage } from '@/types/chat';
 
@@ -16,10 +16,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ChatPage() {
-  let initialPage: ChatMessagesPage = {
-    messages: [],
-    nextCursor: null,
-  };
+  let initialPage: ChatMessagesPage = { messages: [], nextCursor: null };
 
   try {
     initialPage = await getChatMessagesPage();
@@ -27,5 +24,5 @@ export default async function ChatPage() {
     console.error('[Chat page] initial history unavailable', error);
   }
 
-  return <GlobalChatClient initialPage={initialPage} />;
+  return <GlobalChatV11Client initialPage={initialPage} />;
 }

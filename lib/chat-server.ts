@@ -27,9 +27,7 @@ function parseCursor(value?: string | null): Cursor | null {
 
   try {
     if (value.length > 500) throw new Error('cursor too long');
-    const parsed = JSON.parse(
-      Buffer.from(value, 'base64url').toString('utf8'),
-    ) as Partial<Cursor>;
+    const parsed = JSON.parse(Buffer.from(value, 'base64url').toString('utf8')) as Partial<Cursor>;
 
     if (
       typeof parsed.time !== 'string' ||
@@ -46,36 +44,28 @@ function parseCursor(value?: string | null): Cursor | null {
   }
 }
 
-
 export async function getChatAuthors(userIds: string[]): Promise<Map<string, ChatAuthor>> {
   const ids = [...new Set(userIds.filter((id) => UUID.test(id)))].slice(0, 60);
   const result = new Map<string, ChatAuthor>();
   if (!ids.length) return result;
 
   const admin = adminClient();
-
   const [profilesResult, sponsorByUser] = await Promise.all([
     admin.from('profiles').select('id,username,avatar_path').in('id', ids),
     getSponsorStatuses(ids),
   ]);
-
   if (profilesResult.error) throw profilesResult.error;
 
   const profiles = profilesResult.data ?? [];
   const appearanceByUser = await resolvePublicAppearances(
-    profiles.map((profile) => ({
-      id: profile.id,
-      avatar_path: profile.avatar_path,
-    })),
+    profiles.map((profile) => ({ id: profile.id, avatar_path: profile.avatar_path })),
   );
 
   for (const profile of profiles) {
     const appearance = appearanceByUser.get(profile.id);
-
     result.set(profile.id, {
       id: profile.id,
-      username:
-        typeof profile.username === 'string' ? profile.username.trim() || null : null,
+      username: typeof profile.username === 'string' ? profile.username.trim() || null : null,
       avatarUrl: appearance?.avatarUrl ?? '/default-avatar.webp',
       avatarTransform: appearance?.avatarTransform ?? null,
       sponsor: sponsorByUser.get(profile.id) ?? null,
@@ -146,20 +136,15 @@ export async function getChatMessagesPage({
   limit?: number;
 } = {}): Promise<ChatMessagesPage> {
   const before = parseCursor(cursor);
-  const pageSize = Math.max(
-    1,
-    Math.min(MAX_LIMIT, Number.isSafeInteger(limit) ? limit : DEFAULT_LIMIT),
-  );
+  const pageSize = Math.max(1, Math.min(MAX_LIMIT, Number.isSafeInteger(limit) ? limit : DEFAULT_LIMIT));
 
   const admin = adminClient();
   let query = admin
     .from('chat_messages')
-    .select('id,user_id,body,reply_to,created_at,edited_at,deleted_at');
+    .select('id,user_id,body,reply_to,created_at,edited_at,deleted_at,kind');
 
   if (before) {
-    query = query.or(
-      `created_at.lt.${before.time},and(created_at.eq.${before.time},id.lt.${before.id})`,
-    );
+    query = query.or(`created_at.lt.${before.time},and(created_at.eq.${before.time},id.lt.${before.id})`);
   }
 
   const result = await query
@@ -178,9 +163,7 @@ export async function getChatMessagesPage({
     messages: decorated,
     nextCursor:
       descending.length > pageSize && oldest
-        ? Buffer.from(
-            JSON.stringify({ time: oldest.created_at, id: oldest.id }),
-          ).toString('base64url')
+        ? Buffer.from(JSON.stringify({ time: oldest.created_at, id: oldest.id })).toString('base64url')
         : null,
   };
 }
@@ -189,13 +172,16 @@ export const getCachedHomeChatTeaser = unstable_cache(
   async (): Promise<HomeChatTeaserMessage[]> => {
     try {
       const page = await getChatMessagesPage({ limit: 3 });
-      return page.messages.map(({ id, body, created_at, deleted_at, author }) => ({
-        id,
-        body,
-        created_at,
-        deleted_at,
-        author,
-      }));
+      return page.messages
+        .filter((message) => message.kind !== 'system')
+        .slice(-3)
+        .map(({ id, body, created_at, deleted_at, author }) => ({
+          id,
+          body,
+          created_at,
+          deleted_at,
+          author,
+        }));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (/chat_messages|chat_reactions|relation|schema cache/i.test(message)) return [];
@@ -203,6 +189,6 @@ export const getCachedHomeChatTeaser = unstable_cache(
       return [];
     }
   },
-  ['animebox-home-chat-teaser-v1'],
+  ['animebox-home-chat-teaser-v1-1'],
   { revalidate: 60 },
 );
