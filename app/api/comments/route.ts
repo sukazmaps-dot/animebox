@@ -10,6 +10,8 @@ import { adminClient } from '@/lib/community-server';
 import { getSponsorStatuses } from '@/lib/sponsor-server';
 import { assertCanComment } from '@/lib/admin-server';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
+import { resolveProfileAppearance } from '@/lib/profile-appearance';
+import { studioSettingsFromRow } from '@/lib/premium-studio';
 
 const MAX_COMMENT_LENGTH = 4000;
 
@@ -25,6 +27,12 @@ type ProfileRow = {
   id: string;
   username: string | null;
   avatar_path: string | null;
+};
+
+type PremiumProfileRow = {
+  user_id: string;
+  avatar_path: string | null;
+  avatar_static_path: string | null;
 };
 
 
@@ -256,6 +264,12 @@ export async function GET(
     let profileClient:
       ReturnType<typeof adminClient> | null = null;
 
+    const premiumSettingsByUser =
+      new Map<string, PremiumProfileRow>();
+
+    const premiumActiveUsers =
+      new Set<string>();
+
 
     if (userIds.length > 0) {
       try {
@@ -266,30 +280,72 @@ export async function GET(
          */
         profileClient = adminClient();
 
-        const [profileResult, ogResult, sponsorResult] =
-          await Promise.all([
-            profileClient
-              .from('profiles')
-              .select(`
-                id,
-                username,
-                avatar_path
-              `)
-              .in(
-                'id',
-                userIds,
-              ),
-            profileClient
-              .from('og_members')
-              .select('user_id,og_number')
-              .in(
-                'user_id',
-                userIds,
-              ),
-            getSponsorStatuses(userIds),
-          ]);
+        const nowIso = new Date().toISOString();
+
+        const [
+          profileResult,
+          ogResult,
+          sponsorResult,
+          premiumSettingsResult,
+          premiumSubscriptionsResult,
+        ] = await Promise.all([
+          profileClient
+            .from('profiles')
+            .select(`
+              id,
+              username,
+              avatar_path
+            `)
+            .in(
+              'id',
+              userIds,
+            ),
+          profileClient
+            .from('og_members')
+            .select('user_id,og_number')
+            .in(
+              'user_id',
+              userIds,
+            ),
+          getSponsorStatuses(userIds),
+          profileClient
+            .from('premium_profile_settings')
+            .select('user_id,avatar_path,avatar_static_path')
+            .in('user_id', userIds),
+          profileClient
+            .from('premium_subscriptions')
+            .select('user_id')
+            .in('user_id', userIds)
+            .in('status', ['active', 'grace_period'])
+            .gt('ends_at', nowIso),
+        ]);
 
         sponsorByUser = sponsorResult;
+
+        if (premiumSettingsResult.error) {
+          console.error(
+            '[GET COMMENT PREMIUM SETTINGS]',
+            premiumSettingsResult.error,
+          );
+        } else {
+          for (const row of premiumSettingsResult.data ?? []) {
+            premiumSettingsByUser.set(
+              String(row.user_id),
+              row as PremiumProfileRow,
+            );
+          }
+        }
+
+        if (premiumSubscriptionsResult.error) {
+          console.error(
+            '[GET COMMENT PREMIUM STATUS]',
+            premiumSubscriptionsResult.error,
+          );
+        } else {
+          for (const row of premiumSubscriptionsResult.data ?? []) {
+            premiumActiveUsers.add(String(row.user_id));
+          }
+        }
 
 
         if (profileResult.error) {
@@ -368,11 +424,29 @@ export async function GET(
               : undefined;
 
 
+          const premiumRow =
+            comment.user_id
+              ? premiumSettingsByUser.get(comment.user_id) ?? null
+              : null;
+
+          const appearance = profile
+            ? resolveProfileAppearance({
+                baseAvatarPath: profile.avatar_path,
+                baseBannerPath: null,
+                premiumStudio: premiumRow
+                  ? studioSettingsFromRow(premiumRow as unknown as Record<string, unknown>)
+                  : null,
+                premiumActive: Boolean(
+                  comment.user_id && premiumActiveUsers.has(comment.user_id),
+                ),
+              })
+            : null;
+
           const avatarUrl =
-            profile && profileClient
+            appearance && profileClient
               ? getAvatarUrl(
                   profileClient,
-                  profile.avatar_path,
+                  appearance.avatarPath,
                 )
               : null;
 

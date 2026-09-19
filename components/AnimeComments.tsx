@@ -167,7 +167,7 @@ function CommentNode({
             className="community-comment__identity community-comment__profile-link"
             aria-label={`Открыть профиль ${username}`}
           >
-            <img src={avatar} width="38" height="38" loading="lazy" alt="" className="community-comment__avatar" />
+            <img src={avatar} width="38" height="38" loading="lazy" decoding="async" fetchPriority="low" alt="" className="community-comment__avatar" />
             <div>
               <span className="animebox-comment-author-line">
                 <UserIdentity
@@ -197,7 +197,7 @@ function CommentNode({
           </Link>
         ) : (
           <div className="community-comment__identity">
-            <img src={avatar} width="38" height="38" loading="lazy" alt="" className="community-comment__avatar" />
+            <img src={avatar} width="38" height="38" loading="lazy" decoding="async" fetchPriority="low" alt="" className="community-comment__avatar" />
             <div>
               <span className="animebox-comment-author-line">
                 <UserIdentity

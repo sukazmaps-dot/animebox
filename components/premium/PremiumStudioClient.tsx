@@ -29,8 +29,11 @@ type StudioResponse = {
 
 type UploadKind = 'avatar' | 'banner';
 
-const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
-const MAX_BANNER_BYTES = 12 * 1024 * 1024;
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+const MAX_BANNER_BYTES = 6 * 1024 * 1024;
+const MAX_AVATAR_SOURCE_DIMENSION = 1024;
+const MAX_BANNER_SOURCE_WIDTH = 2400;
+const MAX_BANNER_SOURCE_HEIGHT = 1200;
 const ALLOWED_MEDIA_TYPES = new Set([
   'image/webp',
   'image/gif',
@@ -78,7 +81,11 @@ async function staticWebpFallback(file: File, kind: UploadKind) {
       );
     });
 
-    return blob;
+    return {
+      blob,
+      sourceWidth: bitmap.width,
+      sourceHeight: bitmap.height,
+    };
   } finally {
     bitmap?.close();
   }
@@ -379,8 +386,8 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
     if (file.size > maxBytes) {
       setError(
         kind === 'avatar'
-          ? 'Premium-аватар должен быть не больше 5 МБ.'
-          : 'Premium-баннер должен быть не больше 12 МБ.',
+          ? 'Premium-аватар должен быть не больше 2 МБ — это сохраняет быстрые комментарии и профиль.'
+          : 'Premium-баннер должен быть не больше 6 МБ — большие анимации сильно нагружают мобильные устройства.',
       );
       return;
     }
@@ -400,7 +407,26 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
       const stamp = Date.now();
       newPath = `${user.id}/premium/${kind}-${stamp}.${extension}`;
       const staticPath = `${user.id}/premium/${kind}-static-${stamp}.webp`;
-      const staticBlob = await staticWebpFallback(file, kind);
+      const fallback = await staticWebpFallback(file, kind);
+      const staticBlob = fallback.blob;
+
+      if (kind === 'avatar' && (
+        fallback.sourceWidth > MAX_AVATAR_SOURCE_DIMENSION ||
+        fallback.sourceHeight > MAX_AVATAR_SOURCE_DIMENSION
+      )) {
+        throw new Error(
+          `Premium-аватар должен быть максимум ${MAX_AVATAR_SOURCE_DIMENSION}×${MAX_AVATAR_SOURCE_DIMENSION}px.`,
+        );
+      }
+
+      if (kind === 'banner' && (
+        fallback.sourceWidth > MAX_BANNER_SOURCE_WIDTH ||
+        fallback.sourceHeight > MAX_BANNER_SOURCE_HEIGHT
+      )) {
+        throw new Error(
+          `Premium-баннер должен быть максимум ${MAX_BANNER_SOURCE_WIDTH}×${MAX_BANNER_SOURCE_HEIGHT}px.`,
+        );
+      }
 
       const { error: uploadError } = await supabase.storage
         .from('profile-media')
@@ -593,11 +619,11 @@ export default function PremiumStudioClient({ embedded = false }: { embedded?: b
                 style={cssVars as CSSProperties}
               >
                 <div className="premium-studio-v12__preview-banner premium-studio-v15__preview-banner">
-                  {bannerUrl && <img src={bannerUrl} alt="" aria-hidden="true" />}
+                  {bannerUrl && <img src={bannerUrl} alt="" aria-hidden="true" loading="lazy" decoding="async" />}
                   <div />
                 </div>
                 <div className="premium-studio-v12__preview-body premium-studio-v15__preview-body">
-                  <img className="premium-studio-v12__preview-avatar" src={avatarUrl} alt="" />
+                  <img className="premium-studio-v12__preview-avatar" src={avatarUrl} alt="" loading="lazy" decoding="async" />
                   <div className="premium-studio-v15__preview-copy">
                     <div className="premium-studio-v15__preview-badges">
                       <span>ANIMEBOX PREMIUM</span>

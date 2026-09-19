@@ -1,0 +1,24 @@
+/* AnimeBox v19 — lightweight Premium media on community surfaces */
+
+/* Large comment threads stay cheap to paint while off-screen. */
+.episode-comment,
+.community-comment {
+  content-visibility: auto;
+  contain-intrinsic-block-size: 112px;
+}
+
+/* Animated Premium avatars are intentionally tiny community assets.
+   The source is lazy-loaded/async-decoded by the component; these rules
+   avoid accidental layout expansion while it is decoding. */
+.episode-comment__avatar,
+.community-comment__avatar {
+  contain: layout paint;
+  flex: 0 0 auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .episode-comment__avatar,
+  .community-comment__avatar {
+    scroll-behavior: auto;
+  }
+}

@@ -5,6 +5,8 @@ import { unstable_cache } from 'next/cache';
 import { adminClient, ApiError } from '@/lib/community-server';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
 import { getSponsorStatuses } from '@/lib/sponsor-server';
+import { resolveProfileAppearance } from '@/lib/profile-appearance';
+import { studioSettingsFromRow } from '@/lib/premium-studio';
 import type {
   CommunityComment,
   CommunityCommentsPage,
@@ -67,7 +69,14 @@ async function enrichAuthors(
 
   try {
     const admin = adminClient();
-    const [profilesResult, ogResult, sponsorByUser] = await Promise.all([
+    const nowIso = new Date().toISOString();
+    const [
+      profilesResult,
+      ogResult,
+      sponsorByUser,
+      premiumSettingsResult,
+      premiumSubscriptionsResult,
+    ] = await Promise.all([
       admin
         .from('profiles')
         .select('id,username,avatar_path')
@@ -77,6 +86,16 @@ async function enrichAuthors(
         .select('user_id,og_number')
         .in('user_id', ids),
       getSponsorStatuses(ids),
+      admin
+        .from('premium_profile_settings')
+        .select('user_id,avatar_path,avatar_static_path')
+        .in('user_id', ids),
+      admin
+        .from('premium_subscriptions')
+        .select('user_id')
+        .in('user_id', ids)
+        .in('status', ['active', 'grace_period'])
+        .gt('ends_at', nowIso),
     ]);
 
     if (profilesResult.error) throw profilesResult.error;
@@ -85,6 +104,24 @@ async function enrichAuthors(
       // that migration.
       console.error('Comment OG enrichment:', ogResult.error);
     }
+    if (premiumSettingsResult.error) {
+      console.error('Comment Premium settings enrichment:', premiumSettingsResult.error);
+    }
+    if (premiumSubscriptionsResult.error) {
+      console.error('Comment Premium status enrichment:', premiumSubscriptionsResult.error);
+    }
+
+    const premiumSettingsByUser = new Map(
+      (premiumSettingsResult.error ? [] : premiumSettingsResult.data ?? []).map((row) => [
+        String(row.user_id),
+        row as Record<string, unknown>,
+      ] as const),
+    );
+    const premiumActiveUsers = new Set(
+      (premiumSubscriptionsResult.error ? [] : premiumSubscriptionsResult.data ?? []).map((row) =>
+        String(row.user_id),
+      ),
+    );
 
     const ogByUser = new Map<string, number>();
     for (const row of ogResult.error ? [] : ogResult.data ?? []) {
@@ -95,10 +132,17 @@ async function enrichAuthors(
 
     const authors = new Map(
       (profilesResult.data ?? []).map((profile) => {
-        const avatarUrl = profile.avatar_path
+        const premiumRow = premiumSettingsByUser.get(profile.id) ?? null;
+        const appearance = resolveProfileAppearance({
+          baseAvatarPath: profile.avatar_path,
+          baseBannerPath: null,
+          premiumStudio: premiumRow ? studioSettingsFromRow(premiumRow) : null,
+          premiumActive: premiumActiveUsers.has(profile.id),
+        });
+        const avatarUrl = appearance.avatarPath
           ? admin.storage
               .from('profile-media')
-              .getPublicUrl(profile.avatar_path).data.publicUrl
+              .getPublicUrl(appearance.avatarPath).data.publicUrl
           : null;
 
         return [

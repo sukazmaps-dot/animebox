@@ -97,6 +97,9 @@ function CommentNode({
               alt=""
               width={36}
               height={36}
+              loading="lazy"
+              decoding="async"
+              fetchPriority="low"
               className="episode-comment__avatar"
             />
 
@@ -130,6 +133,9 @@ function CommentNode({
               alt=""
               width={36}
               height={36}
+              loading="lazy"
+              decoding="async"
+              fetchPriority="low"
               className="episode-comment__avatar"
             />
 
