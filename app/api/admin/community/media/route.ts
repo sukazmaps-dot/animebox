@@ -102,7 +102,6 @@ async function approveGroup(groupId: string, actorId: string, actorRole: 'owner'
 
     const now = new Date().toISOString();
 
-    // Mark approved before applying paths: DB triggers only permit approved media.
     const rowsResult = await admin
       .from('profile_media_moderation')
       .update({ status: 'approved', reviewed_by: actorId, reviewed_at: now, updated_at: now })
@@ -141,9 +140,6 @@ async function approveGroup(groupId: string, actorId: string, actorRole: 'owner'
         .maybeSingle();
       if (current.error) throw current.error;
 
-      // Supabase infers a union from the dynamic select above:
-      // { avatar_path } | { banner_path }. Narrow it to an optional shape before
-      // reading either field so TypeScript can safely type-check the route.
       const currentData = current.data as {
         avatar_path?: string | null;
         banner_path?: string | null;
