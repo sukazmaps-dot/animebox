@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import Image from 'next/image';
 
 import type {
   AnimeImage as ImageData,
@@ -25,7 +26,34 @@ type Props = {
   className?: string;
   loading?: 'lazy' | 'eager';
   preferOriginal?: boolean;
+  sizes?: string;
+  quality?: number;
 };
+
+const DEFAULT_SIZES =
+  '(max-width: 560px) 42vw, (max-width: 900px) 28vw, (max-width: 1280px) 18vw, 190px';
+
+function canUseNextImage(source: string): boolean {
+  if (!source || source.startsWith('/')) {
+    return false;
+  }
+
+  try {
+    const { hostname } = new URL(source);
+
+    return (
+      hostname === 'cdn.anilist.co' ||
+      /^s[1-4]\.anilist\.co$/.test(hostname) ||
+      hostname === 'cdn.myanimelist.net' ||
+      hostname === 'api.jikan.moe' ||
+      hostname.endsWith('.jikan.moe') ||
+      hostname.endsWith('.shikimori.one') ||
+      hostname.endsWith('.shikimori.me')
+    );
+  } catch {
+    return false;
+  }
+}
 
 export default function AnimeImage({
   image,
@@ -33,19 +61,11 @@ export default function AnimeImage({
   englishName,
   className = '',
   loading = 'lazy',
+  sizes = DEFAULT_SIZES,
+  quality = 70,
 }: Props) {
   const imageRef =
     useRef<HTMLImageElement>(null);
-
-  const [
-    sourceIndex,
-    setSourceIndex,
-  ] = useState(0);
-
-  const [
-    loaded,
-    setLoaded,
-  ] = useState(false);
 
   const sources = useMemo(() => {
     const candidates =
@@ -62,10 +82,23 @@ export default function AnimeImage({
   const sourcesKey =
     sources.join('|');
 
-  useEffect(() => {
-    setSourceIndex(0);
-    setLoaded(false);
-  }, [sourcesKey]);
+  const [imageState, setImageState] = useState(() => ({
+    key: sourcesKey,
+    sourceIndex: 0,
+    loaded: false,
+  }));
+
+  // Reset synchronously as derived render state when the anime/source list
+  // changes. This avoids a second render caused by setState inside an effect.
+  const sourceIndex =
+    imageState.key === sourcesKey
+      ? imageState.sourceIndex
+      : 0;
+
+  const loaded =
+    imageState.key === sourcesKey
+      ? imageState.loaded
+      : false;
 
   const current =
     sources[sourceIndex] ??
@@ -80,23 +113,28 @@ export default function AnimeImage({
     'Аниме';
 
   const goToNextSource = () => {
-    setLoaded(false);
+    setImageState((previous) => {
+      const previousIndex =
+        previous.key === sourcesKey
+          ? previous.sourceIndex
+          : 0;
 
-    setSourceIndex(
-      (previousIndex) => {
-        const nextIndex =
-          previousIndex + 1;
+      const nextIndex = previousIndex + 1;
 
-        if (
-          nextIndex >=
-          sources.length
-        ) {
-          return previousIndex;
-        }
+      if (nextIndex >= sources.length) {
+        return {
+          key: sourcesKey,
+          sourceIndex: previousIndex,
+          loaded: previous.key === sourcesKey ? previous.loaded : false,
+        };
+      }
 
-        return nextIndex;
-      },
-    );
+      return {
+        key: sourcesKey,
+        sourceIndex: nextIndex,
+        loaded: false,
+      };
+    });
   };
 
   const handleLoad = (
@@ -109,7 +147,11 @@ export default function AnimeImage({
       element.naturalWidth > 0 &&
       element.naturalHeight > 0
     ) {
-      setLoaded(true);
+      setImageState({
+        key: sourcesKey,
+        sourceIndex,
+        loaded: true,
+      });
     }
   };
 
@@ -117,57 +159,69 @@ export default function AnimeImage({
     if (!isFallback) {
       goToNextSource();
     } else {
-      setLoaded(true);
+      setImageState({
+        key: sourcesKey,
+        sourceIndex,
+        loaded: true,
+      });
     }
   };
 
   /**
-   * Поддержка картинок из browser cache.
-   *
-   * image.src всегда абсолютный URL,
-   * поэтому current тоже приводим к абсолютному.
+   * Поддержка изображений, которые браузер/Next Image уже взял из cache.
+   * State update выполняем в animation frame, а не синхронно внутри effect.
    */
   useEffect(() => {
-    const element =
-      imageRef.current;
+    const element = imageRef.current;
 
-    if (!element) {
+    if (!element || !element.complete) {
       return;
     }
 
-    const resolvedCurrent =
-      new URL(
-        current,
-        window.location.href,
-      ).href;
+    const frame = window.requestAnimationFrame(() => {
+      if (
+        element.naturalWidth > 0 &&
+        element.naturalHeight > 0
+      ) {
+        setImageState({
+          key: sourcesKey,
+          sourceIndex,
+          loaded: true,
+        });
+        return;
+      }
 
-    if (
-      element.src !==
-      resolvedCurrent
-    ) {
-      return;
-    }
+      if (!isFallback) {
+        setImageState((previous) => {
+          const previousIndex =
+            previous.key === sourcesKey
+              ? previous.sourceIndex
+              : sourceIndex;
+          const nextIndex = Math.min(
+            previousIndex + 1,
+            sources.length - 1,
+          );
 
-    if (!element.complete) {
-      return;
-    }
+          return {
+            key: sourcesKey,
+            sourceIndex: nextIndex,
+            loaded: false,
+          };
+        });
+      }
+    });
 
-    if (
-      element.naturalWidth > 0 &&
-      element.naturalHeight > 0
-    ) {
-      setLoaded(true);
-      return;
-    }
-
-    if (!isFallback) {
-      goToNextSource();
-    }
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
   }, [
     current,
     isFallback,
+    sourceIndex,
     sources.length,
+    sourcesKey,
   ]);
+
 
   return (
     <div className="relative h-full w-full min-h-0 overflow-hidden bg-slate-950">
@@ -179,24 +233,46 @@ export default function AnimeImage({
           />
         )}
 
-      <img
-        key={current}
-        ref={imageRef}
-        src={current}
-        alt={resolvedAlt}
-        loading={loading}
-        decoding="async"
-        referrerPolicy="no-referrer"
-        onLoad={handleLoad}
-        onError={handleError}
-        className={[
-          'relative z-10 block h-full w-full object-cover transition-opacity duration-300',
-          loaded || isFallback
-            ? 'opacity-100'
-            : 'opacity-0',
-          className,
-        ].join(' ')}
-      />
+      {canUseNextImage(current) ? (
+        <Image
+          key={current}
+          ref={imageRef}
+          src={current}
+          alt={resolvedAlt}
+          fill
+          sizes={sizes}
+          quality={quality}
+          loading={loading}
+          decoding="async"
+          referrerPolicy="no-referrer"
+          onLoad={handleLoad}
+          onError={handleError}
+          className={[
+            'relative z-10 block h-full w-full object-cover transition-opacity duration-300',
+            loaded ? 'opacity-100' : 'opacity-0',
+            className,
+          ].join(' ')}
+        />
+      ) : (
+        <img
+          key={current}
+          ref={imageRef}
+          src={current}
+          alt={resolvedAlt}
+          loading={loading}
+          decoding="async"
+          referrerPolicy="no-referrer"
+          onLoad={handleLoad}
+          onError={handleError}
+          className={[
+            'relative z-10 block h-full w-full object-cover transition-opacity duration-300',
+            loaded || isFallback
+              ? 'opacity-100'
+              : 'opacity-0',
+            className,
+          ].join(' ')}
+        />
+      )}
 
       {isFallback && (
         <div

@@ -215,6 +215,15 @@ export default function HomeHeroCarousel({
   const [paused, setPaused] =
     useState(false);
 
+  // Do not rotate the largest above-the-fold content before the visitor has
+  // interacted with the page. A timed hero swap can become a new LCP
+  // candidate several seconds after first paint (and Lighthouse/Core Web
+  // Vitals will correctly report that late swap as LCP). Once the first
+  // pointer/keyboard/wheel interaction happens, LCP has been finalized and
+  // the carousel may safely resume its normal autoplay behaviour.
+  const [autoplayUnlocked, setAutoplayUnlocked] =
+    useState(false);
+
   const swipeGesture = useRef({
     pointerId: null as number | null,
     startX: 0,
@@ -264,7 +273,36 @@ export default function HomeHeroCarousel({
   }, [anime]);
 
   useEffect(() => {
+    if (autoplayUnlocked) {
+      return;
+    }
+
+    const unlockAutoplay = () => {
+      setAutoplayUnlocked(true);
+    };
+
+    window.addEventListener('pointerdown', unlockAutoplay, {
+      once: true,
+      passive: true,
+    });
+    window.addEventListener('wheel', unlockAutoplay, {
+      once: true,
+      passive: true,
+    });
+    window.addEventListener('keydown', unlockAutoplay, {
+      once: true,
+    });
+
+    return () => {
+      window.removeEventListener('pointerdown', unlockAutoplay);
+      window.removeEventListener('wheel', unlockAutoplay);
+      window.removeEventListener('keydown', unlockAutoplay);
+    };
+  }, [autoplayUnlocked]);
+
+  useEffect(() => {
     if (
+      !autoplayUnlocked ||
       paused ||
       slides.length < 2
     ) {
@@ -284,6 +322,7 @@ export default function HomeHeroCarousel({
       window.clearInterval(timer);
     };
   }, [
+    autoplayUnlocked,
     paused,
     slides.length,
   ]);

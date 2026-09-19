@@ -82,6 +82,8 @@ export default function AnimeCard({
             }
             className="anime-card__image"
             loading="lazy"
+            sizes="(max-width: 560px) 39vw, (max-width: 900px) 26vw, (max-width: 1280px) 17vw, 180px"
+            quality={68}
           />
         </div>
 

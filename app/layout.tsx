@@ -252,8 +252,8 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <link rel="preconnect" href="https://cdn.anilist.co" crossOrigin="" />
-        <link rel="dns-prefetch" href="//cdn.anilist.co" />
+        <link rel="preconnect" href="https://s4.anilist.co" crossOrigin="" />
+        <link rel="dns-prefetch" href="//s4.anilist.co" />
         <link rel="dns-prefetch" href="//shikimori.one" />
       </head>
 

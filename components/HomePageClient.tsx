@@ -4,6 +4,7 @@ import { animeHref } from '@/lib/anime-url';
 
 import { startTransition, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import type { Anime, AnimeImage as AnimeImageType } from '@/types/anime';
 
 import AnimeCard from '@/components/AnimeCard';
@@ -156,7 +157,7 @@ function HomeTopAnimePanel({
     >
       <div className="panel__head panel__head--branded">
         <span className="panel__title-with-icon">
-          <img src="/brand/brand-mark.webp" alt="" aria-hidden="true" />
+          <Image src="/brand/brand-mark.webp" alt="" width={20} height={20} sizes="20px" aria-hidden="true" />
           Топ аниме
         </span>
         <span className="section-link">Сегодня</span>
@@ -678,7 +679,7 @@ export default function HomePage({
 
         <div className="panel home-library-panel right-rail__secondary">
           <span className="home-library-panel__symbol home-library-panel__symbol--brand" aria-hidden="true">
-            <img src="/brand/brand-mark.webp" alt="" />
+            <Image src="/brand/brand-mark.webp" alt="" width={20} height={20} sizes="20px" />
           </span>
           <span className="home-library-panel__eyebrow">ТВОЯ КОЛЛЕКЦИЯ</span>
           <h2>
