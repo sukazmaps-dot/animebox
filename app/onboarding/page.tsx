@@ -9,6 +9,7 @@ import {
 import { useRouter } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/client';
+import { trackProductClientEvent } from '@/lib/product-events-client';
 
 
 function safeReturnPath(value: string | null) {
@@ -36,6 +37,11 @@ export default function OnboardingPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    trackProductClientEvent('onboarding_started', {
+      source: 'web',
+      path: '/onboarding',
+    });
+
     const target = nextPath;
     const supabase = createClient();
 
@@ -152,6 +158,13 @@ export default function OnboardingPage() {
 
         throw profileError;
       }
+
+      trackProductClientEvent('onboarding_completed', {
+        source: 'web',
+        path: '/onboarding',
+        metadata: { usernameLength: cleanUsername.length },
+        flush: true,
+      });
 
       router.replace(nextPath);
       router.refresh();

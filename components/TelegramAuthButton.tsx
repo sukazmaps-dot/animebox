@@ -28,6 +28,12 @@ type TelegramLoginApi = {
 type Props = {
   label?: string;
   next?: string;
+  navigateOnSuccess?: boolean;
+
+  onSuccess?: (result: {
+    userId: string;
+    created: boolean;
+  }) => void | Promise<void>;
 
   onError?: (
     message: string,
@@ -350,6 +356,9 @@ export default function TelegramAuthButton({
   next =
     '/profile',
 
+  navigateOnSuccess = true,
+
+  onSuccess,
   onError,
 }: Props) {
   const [
@@ -692,6 +701,16 @@ export default function TelegramAuthButton({
               avatar_path: null,
             },
       });
+
+      await onSuccess?.({
+        userId: loginData.user.id,
+        created: Boolean(data.created),
+      });
+
+      if (!navigateOnSuccess) {
+        setLoading(false);
+        return;
+      }
 
       window.location.replace(safeNext);
     } catch (error) {

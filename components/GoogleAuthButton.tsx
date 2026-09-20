@@ -5,9 +5,16 @@ import { useCallback, useRef, useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
 
+type GoogleAuthSuccess = {
+  userId: string;
+  needsOnboarding: boolean;
+};
+
 type GoogleAuthButtonProps = {
   label?: string;
   next?: string;
+  navigateOnSuccess?: boolean;
+  onSuccess?: (result: GoogleAuthSuccess) => void | Promise<void>;
 };
 
 type GoogleCredentialResponse = {
@@ -72,6 +79,8 @@ async function sha256Hex(value: string) {
 export default function GoogleAuthButton({
   label = 'Продолжить через Google',
   next = '/profile',
+  navigateOnSuccess = true,
+  onSuccess,
 }: GoogleAuthButtonProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const initializedRef = useRef(false);
@@ -114,10 +123,22 @@ export default function GoogleAuthButton({
 
         if (profileError) throw profileError;
 
+        const needsOnboarding = !profile?.username?.trim();
+
+        await onSuccess?.({
+          userId: user.id,
+          needsOnboarding,
+        });
+
+        if (!navigateOnSuccess) {
+          setLoading(false);
+          return;
+        }
+
         window.location.replace(
-          profile?.username?.trim()
-            ? safeNext
-            : `/onboarding?next=${encodeURIComponent(safeNext)}`,
+          needsOnboarding
+            ? `/onboarding?next=${encodeURIComponent(safeNext)}`
+            : safeNext,
         );
       } catch (loginError) {
         console.error('Google ID token login failed:', loginError);
@@ -125,7 +146,7 @@ export default function GoogleAuthButton({
         setLoading(false);
       }
     },
-    [safeNext],
+    [navigateOnSuccess, onSuccess, safeNext],
   );
 
   const initializeGoogle = useCallback(async () => {

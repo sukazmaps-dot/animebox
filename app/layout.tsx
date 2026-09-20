@@ -24,10 +24,13 @@ import './ad-layout-v8.css';
 import './mobile-home-ending-v11.css';
 import './premium-shell.css';
 import './design-v2-content-first.css';
+import './auth-modal-v2.css';
+import './activation-v2.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
 import { AuthStateProvider } from '@/components/AuthStateProvider';
+import { AuthModalProvider } from '@/components/AuthModalProvider';
 import AppChrome from '@/components/AppChrome';
 import CssRecoveryBridge from '@/components/CssRecoveryBridge';
 import ProductAnalyticsTracker from '@/components/analytics/ProductAnalyticsTracker';
@@ -324,17 +327,19 @@ export default function RootLayout({
         />
 
         <AuthStateProvider>
-          {/* Определяет, открыт AnimeBox
-              внутри Telegram или браузера */}
+          <AuthModalProvider>
+            {/* Определяет, открыт AnimeBox
+                внутри Telegram или браузера */}
 
-          <TelegramMiniAppBridge />
-          <ProductAnalyticsTracker />
-          <ProgressionCelebration />
+            <TelegramMiniAppBridge />
+            <ProductAnalyticsTracker />
+            <ProgressionCelebration />
 
-          <TelegramSubscriptionGate>
-            <AppChrome>{children}</AppChrome>
-            <Analytics />
-          </TelegramSubscriptionGate>
+            <TelegramSubscriptionGate>
+              <AppChrome>{children}</AppChrome>
+              <Analytics />
+            </TelegramSubscriptionGate>
+          </AuthModalProvider>
         </AuthStateProvider>
       </body>
     </html>

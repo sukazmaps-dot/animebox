@@ -27,6 +27,7 @@ import { readTasteProfile, setTasteMood, type TasteMood } from '@/lib/personaliz
 import { SupportAnimeBoxCard } from '@/components/monetization/SupportAnimeBox';
 import HomeChatTeaser from '@/components/chat/HomeChatTeaser';
 import HomePersonalPulse from '@/components/HomePersonalPulse';
+import HomeActivationPanel from '@/components/HomeActivationPanel';
 
 const subscribeHydration = () => () => {};
 
@@ -706,9 +707,14 @@ export default function HomePage({
           <HomeHeroCarousel popular={popular} ongoing={ongoing} />
         )}
 
-        <HomeTopAnimePanel popular={popular} mobile />
+        <HomeActivationPanel
+          hasHistory={hasWatchHistory}
+          hasContinue={continueWatchingItems.length > 0}
+        />
 
         <HomeContinueWatching items={continueWatchingItems} />
+
+        <HomeTopAnimePanel popular={popular} mobile />
 
         <HomePersonalPulse />
 
@@ -726,7 +732,7 @@ export default function HomePage({
           }}
         />
 
-        <section className="section smart-feed-section">
+        <section id="animebox-for-you" className="section smart-feed-section">
           <div className="section-head">
             <div className="smart-feed-heading">
               <span className="smart-section-eyebrow">Для тебя</span>
