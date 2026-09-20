@@ -254,8 +254,6 @@ export default function RootLayout({
     >
       <head>
         <link rel="dns-prefetch" href="//shikimori.one" />
-        <link rel="preconnect" href="https://cdn.anilist.co" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://shikimori.one" crossOrigin="anonymous" />
       </head>
 
       <body>
