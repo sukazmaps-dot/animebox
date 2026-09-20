@@ -1,5 +1,7 @@
 import {
   getTelegramProfile,
+  getNotificationDeliverySummary,
+  getNotificationServiceHealth,
   notificationFailure,
   notificationResponse,
   requireNotificationUser,
@@ -14,8 +16,13 @@ export async function GET() {
   try {
     const { client, user } = await requireNotificationUser();
 
-    const [settingsResult, subscriptionsResult, telegramProfile] =
-      await Promise.all([
+    const [
+      settingsResult,
+      subscriptionsResult,
+      telegramProfile,
+      serviceHealth,
+      lastDelivery,
+    ] = await Promise.all([
         client
           .from('notification_settings')
           .select('telegram_enabled, telegram_verified_at, updated_at')
@@ -27,6 +34,8 @@ export async function GET() {
           .eq('user_id', user.id)
           .order('updated_at', { ascending: false }),
         getTelegramProfile(user.id),
+        getNotificationServiceHealth(),
+        getNotificationDeliverySummary(user.id),
       ]);
 
     if (settingsResult.error) throw settingsResult.error;
@@ -38,6 +47,8 @@ export async function GET() {
       telegramEnabled: settingsResult.data?.telegram_enabled === true,
       telegramVerifiedAt: settingsResult.data?.telegram_verified_at ?? null,
       subscriptions: subscriptionsResult.data ?? [],
+      serviceHealth,
+      lastDelivery,
     });
   } catch (error) {
     return notificationFailure(error);

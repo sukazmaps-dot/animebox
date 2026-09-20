@@ -11,6 +11,7 @@ type SubscriptionResponse = {
   enabled?: boolean;
   telegramLinked?: boolean;
   telegramReady?: boolean;
+  animeFinished?: boolean;
   error?: string;
   message?: string;
 };
@@ -42,6 +43,8 @@ function humanizeError(code?: string, message?: string) {
       return 'Разреши боту AnimeBox отправлять сообщения в Telegram.';
     case 'telegram_not_configured':
       return 'Telegram-уведомления временно не настроены.';
+    case 'anime_finished':
+      return 'Тайтл уже завершён — новых серий по расписанию не ожидается.';
     default:
       return message || 'Не удалось изменить уведомления.';
   }
@@ -70,12 +73,14 @@ export default function AnimeNotificationControl({
   animeSlug,
   animeTitle,
   episodesAired,
+  isFinished = false,
   variant = 'card',
 }: {
   animeId: number;
   animeSlug: string;
   animeTitle: string;
   episodesAired: number | null;
+  isFinished?: boolean;
   variant?: 'card' | 'compact';
 }) {
   const compact = variant === 'compact';
@@ -85,6 +90,7 @@ export default function AnimeNotificationControl({
   const [authenticated, setAuthenticated] = useState(true);
   const [telegramLinked, setTelegramLinked] = useState(false);
   const [telegramReady, setTelegramReady] = useState(false);
+  const [finished, setFinished] = useState(isFinished);
   const [enabled, setEnabled] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -116,6 +122,7 @@ export default function AnimeNotificationControl({
         setAuthenticated(true);
         setTelegramLinked(Boolean(data.telegramLinked));
         setTelegramReady(Boolean(data.telegramReady));
+        setFinished(Boolean(data.animeFinished ?? isFinished));
         setEnabled(Boolean(data.enabled));
       } catch (error) {
         if ((error as Error).name !== 'AbortError') {
@@ -129,13 +136,18 @@ export default function AnimeNotificationControl({
     void load();
 
     return () => controller.abort();
-  }, [animeId]);
+  }, [animeId, isFinished]);
 
   async function toggle() {
     if (busy) return;
 
     if (!authenticated) {
       router.push('/login');
+      return;
+    }
+
+    if (finished && !enabled) {
+      setMessage('Тайтл завершён — новых серий по расписанию не ожидается.');
       return;
     }
 
@@ -232,8 +244,9 @@ export default function AnimeNotificationControl({
 
         <h2>{compact ? 'Не пропускай новые серии' : 'Новые серии без пропусков'}</h2>
         <p>
-          AnimeBox пришлёт сообщение, когда по расписанию выйдет следующая
-          серия этого тайтла.
+          {finished && !enabled
+            ? 'Тайтл уже завершён. Для него больше не нужно ждать новые серии.'
+            : 'AnimeBox пришлёт сообщение, когда серия реально появится в плеере.'}
         </p>
       </div>
 
@@ -245,7 +258,7 @@ export default function AnimeNotificationControl({
               ? 'anime-notification-control__button is-enabled'
               : 'anime-notification-control__button'
           }
-          disabled={loading || busy}
+          disabled={loading || busy || (finished && !enabled)}
           aria-pressed={enabled}
           onClick={() => void toggle()}
         >
@@ -255,11 +268,13 @@ export default function AnimeNotificationControl({
               ? 'Сохраняем…'
               : !authenticated
                 ? 'Войти для уведомлений'
-                : !telegramLinked
-                  ? 'Подключить Telegram'
-                  : enabled
-                    ? 'Уведомления включены'
-                    : 'Отслеживать новые серии'}
+                : finished && !enabled
+                  ? 'Тайтл завершён'
+                  : !telegramLinked
+                    ? 'Подключить Telegram'
+                    : enabled
+                      ? 'Уведомления включены'
+                      : 'Отслеживать новые серии'}
         </button>
 
         {authenticated && telegramLinked && (

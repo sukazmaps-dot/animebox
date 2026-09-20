@@ -228,3 +228,143 @@ export async function getTelegramProfile(userId: string) {
 
   return data;
 }
+
+
+export type NotificationServiceHealth = {
+  status: 'unknown' | 'ok' | 'degraded' | 'failed';
+  lastRunAt: string | null;
+  lastSuccessAt: string | null;
+  lastErrorAt: string | null;
+  checked: number;
+  matched: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+  playerAvailable: number;
+  waitingForPlayer: number;
+  availabilityUnknown: number;
+  durationMs: number;
+  lastErrorCode: string | null;
+};
+
+export async function getNotificationServiceHealth(): Promise<NotificationServiceHealth> {
+  const admin = createSupabaseAdmin();
+  const { data, error } = await admin
+    .from('notification_service_health')
+    .select('status,last_run_at,last_success_at,last_error_at,checked,matched,sent,failed,skipped,player_available,waiting_for_player,availability_unknown,duration_ms,last_error_code')
+    .eq('id', 1)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  return {
+    status:
+      data?.status === 'ok' ||
+      data?.status === 'degraded' ||
+      data?.status === 'failed'
+        ? data.status
+        : 'unknown',
+    lastRunAt: data?.last_run_at ?? null,
+    lastSuccessAt: data?.last_success_at ?? null,
+    lastErrorAt: data?.last_error_at ?? null,
+    checked: Number(data?.checked ?? 0),
+    matched: Number(data?.matched ?? 0),
+    sent: Number(data?.sent ?? 0),
+    failed: Number(data?.failed ?? 0),
+    skipped: Number(data?.skipped ?? 0),
+    playerAvailable: Number(data?.player_available ?? 0),
+    waitingForPlayer: Number(data?.waiting_for_player ?? 0),
+    availabilityUnknown: Number(data?.availability_unknown ?? 0),
+    durationMs: Number(data?.duration_ms ?? 0),
+    lastErrorCode: data?.last_error_code ?? null,
+  };
+}
+
+export async function getNotificationDeliverySummary(userId: string) {
+  const admin = createSupabaseAdmin();
+  const { data, error } = await admin
+    .from('notification_deliveries')
+    .select('status,sent_at,attempted_at,error_code,anime_id,episode')
+    .eq('user_id', userId)
+    .order('attempted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  return data
+    ? {
+        status: data.status,
+        sentAt: data.sent_at ?? null,
+        attemptedAt: data.attempted_at ?? null,
+        errorCode: data.error_code ?? null,
+        animeId: Number(data.anime_id),
+        episode: Number(data.episode),
+      }
+    : null;
+}
+
+export async function getAnimeNotificationEligibility(animeId: number) {
+  const admin = createSupabaseAdmin();
+  const { data, error } = await admin
+    .from('anime_catalog')
+    .select('finished,total_episodes')
+    .eq('id', animeId)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  return {
+    known: Boolean(data),
+    finished: data?.finished === true,
+    totalEpisodes:
+      data?.total_episodes == null
+        ? null
+        : Math.max(0, Number(data.total_episodes) || 0),
+  };
+}
+
+export async function recordNotificationServiceHealth(input: {
+  status: 'ok' | 'degraded' | 'failed';
+  checked?: number;
+  matched?: number;
+  sent?: number;
+  failed?: number;
+  skipped?: number;
+  playerAvailable?: number;
+  waitingForPlayer?: number;
+  availabilityUnknown?: number;
+  durationMs?: number;
+  errorCode?: string | null;
+}) {
+  const admin = createSupabaseAdmin();
+  const now = new Date().toISOString();
+
+  const payload = {
+    id: 1,
+    status: input.status,
+    last_run_at: now,
+    ...(input.status === 'failed'
+      ? { last_error_at: now }
+      : { last_success_at: now }),
+    checked: Math.max(0, Math.floor(input.checked ?? 0)),
+    matched: Math.max(0, Math.floor(input.matched ?? 0)),
+    sent: Math.max(0, Math.floor(input.sent ?? 0)),
+    failed: Math.max(0, Math.floor(input.failed ?? 0)),
+    skipped: Math.max(0, Math.floor(input.skipped ?? 0)),
+    player_available: Math.max(0, Math.floor(input.playerAvailable ?? 0)),
+    waiting_for_player: Math.max(0, Math.floor(input.waitingForPlayer ?? 0)),
+    availability_unknown: Math.max(0, Math.floor(input.availabilityUnknown ?? 0)),
+    duration_ms: Math.max(0, Math.floor(input.durationMs ?? 0)),
+    last_error_code: input.errorCode ?? null,
+    updated_at: now,
+  };
+
+  const { error } = await admin
+    .from('notification_service_health')
+    .upsert(payload, { onConflict: 'id' });
+
+  if (error) {
+    console.error('[Notifications] health update failed:', error);
+  }
+}

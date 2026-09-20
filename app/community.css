@@ -3402,3 +3402,38 @@ label input:checked + span::before {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* =========================================================
+   PROFILE PROGRESSION V3 · CHALLENGE SUMMARY
+   ========================================================= */
+
+.profile-v5__challenges {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 16px;
+  align-items: center;
+  margin-top: 12px;
+  padding: 16px 18px;
+  border: 1px solid rgba(151, 117, 255, .13);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 12% 50%, rgba(224, 119, 71, .08), transparent 30%),
+    rgba(9, 16, 29, .84);
+}
+.profile-v5__challenge-streak strong,
+.profile-v5__challenge-streak small { display:block; }
+.profile-v5__challenge-streak strong { margin-top:4px;color:#f2edf9;font-size:20px;letter-spacing:-.02em; }
+.profile-v5__challenge-streak small { margin-top:3px;color:rgba(156,169,196,.50);font-size:8px; }
+.profile-v5__challenge-progress { display:flex;gap:8px; }
+.profile-v5__challenge-progress>div { min-width:84px;padding:9px 11px;border:1px solid rgba(255,255,255,.055);border-radius:11px;background:rgba(255,255,255,.018); }
+.profile-v5__challenge-progress span,
+.profile-v5__challenge-progress strong { display:block; }
+.profile-v5__challenge-progress span { color:rgba(153,166,193,.46);font-size:7px; }
+.profile-v5__challenge-progress strong { margin-top:4px;color:rgba(231,225,247,.88);font-size:13px; }
+.profile-v5__challenge-link { color:#a991ff;font-size:9px;font-weight:850;text-decoration:none;white-space:nowrap; }
+@media (max-width:720px) {
+  .profile-v5__challenges { grid-template-columns:1fr; }
+  .profile-v5__challenge-progress { width:100%; }
+  .profile-v5__challenge-progress>div { flex:1 1 0; }
+}

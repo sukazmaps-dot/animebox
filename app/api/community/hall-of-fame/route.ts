@@ -57,7 +57,7 @@ export async function GET(request: Request) {
           .in('id', userIds),
         admin
           .from('user_progression')
-          .select('user_id,total_xp,activity_xp,premium_bonus_xp,achievement_xp')
+          .select('user_id,total_xp,activity_xp,premium_bonus_xp,achievement_xp,challenge_xp')
           .in('user_id', userIds),
       ]);
 

@@ -17,12 +17,40 @@ type Subscription = {
   updated_at: string;
 };
 
+type NotificationHealth = {
+  status: 'unknown' | 'ok' | 'degraded' | 'failed';
+  lastRunAt: string | null;
+  lastSuccessAt: string | null;
+  lastErrorAt: string | null;
+  checked: number;
+  matched: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+  playerAvailable: number;
+  waitingForPlayer: number;
+  availabilityUnknown: number;
+  durationMs: number;
+  lastErrorCode: string | null;
+};
+
+type LastDelivery = {
+  status: string;
+  sentAt: string | null;
+  attemptedAt: string | null;
+  errorCode: string | null;
+  animeId: number;
+  episode: number;
+};
+
 type SettingsResponse = {
   ok?: boolean;
   telegramLinked?: boolean;
   telegramEnabled?: boolean;
   telegramVerifiedAt?: string | null;
   subscriptions?: Subscription[];
+  serviceHealth?: NotificationHealth;
+  lastDelivery?: LastDelivery | null;
   error?: string;
   message?: string;
 };
@@ -73,9 +101,12 @@ export default function NotificationSettingsClient() {
 
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [telegramLinked, setTelegramLinked] = useState(false);
   const [telegramEnabled, setTelegramEnabled] = useState(false);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [serviceHealth, setServiceHealth] = useState<NotificationHealth | null>(null);
+  const [lastDelivery, setLastDelivery] = useState<LastDelivery | null>(null);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -142,6 +173,8 @@ export default function NotificationSettingsClient() {
         setTelegramLinked(Boolean(data.telegramLinked));
         setTelegramEnabled(Boolean(data.telegramEnabled));
         setSubscriptions(data.subscriptions ?? []);
+        setServiceHealth(data.serviceHealth ?? null);
+        setLastDelivery(data.lastDelivery ?? null);
       } catch (error) {
         if (!active || (error as Error).name === 'AbortError') return;
 
@@ -205,6 +238,41 @@ export default function NotificationSettingsClient() {
     }
   }
 
+  async function testTelegram() {
+    if (testing || !telegramLinked) return;
+
+    setTesting(true);
+    setMessage('');
+
+    try {
+      const allowed = await requestTelegramWriteAccess();
+      if (!allowed) {
+        throw new Error('Telegram не дал разрешение на сообщения от бота.');
+      }
+
+      const response = await fetch('/api/notifications/test', {
+        method: 'POST',
+        cache: 'no-store',
+      });
+      const data = await readJson(response);
+
+      if (!response.ok || !data.ok) {
+        throw new Error(errorMessage(data));
+      }
+
+      setTelegramEnabled(true);
+      setMessage('Тест отправлен. Проверь личные сообщения от AnimeBox Bot.');
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Не удалось отправить тестовое уведомление.',
+      );
+    } finally {
+      setTesting(false);
+    }
+  }
+
   async function disableSubscription(animeId: number) {
     if (busy) return;
     setBusy(true);
@@ -235,6 +303,14 @@ export default function NotificationSettingsClient() {
   }
 
   const activeSubscriptions = subscriptions.filter((item) => item.enabled);
+  const healthTimestamp = serviceHealth?.lastRunAt
+    ? Date.parse(serviceHealth.lastRunAt)
+    : 0;
+  const healthFresh =
+    healthTimestamp > 0 && Date.now() - healthTimestamp < 15 * 60 * 1000;
+  const serviceOnline =
+    healthFresh &&
+    (serviceHealth?.status === 'ok' || serviceHealth?.status === 'degraded');
 
   if (loading) {
     return (
@@ -256,9 +332,15 @@ export default function NotificationSettingsClient() {
           </p>
         </div>
 
-        <div className="notifications-hero__status">
-          <span className={telegramLinked ? 'is-online' : ''} />
-          {telegramLinked ? 'Telegram подключён' : 'Telegram не подключён'}
+        <div className="notifications-hero__actions">
+          <div className="notifications-hero__status">
+            <span className={telegramLinked ? 'is-online' : ''} />
+            {telegramLinked ? 'Telegram подключён' : 'Telegram не подключён'}
+          </div>
+          <div className="notifications-hero__status">
+            <span className={serviceOnline ? 'is-online' : ''} />
+            {serviceOnline ? 'Сервис уведомлений работает' : 'Проверяем сервис уведомлений'}
+          </div>
         </div>
       </section>
 
@@ -289,6 +371,33 @@ export default function NotificationSettingsClient() {
             >
               Открыть Telegram Mini App
             </a>
+          </div>
+        )}
+
+        {telegramLinked && (
+          <div className="notifications-test-row">
+            <div>
+              <strong>Проверка доставки</strong>
+              <span>
+                {lastDelivery?.sentAt
+                  ? `Последняя успешная доставка: ${new Date(lastDelivery.sentAt).toLocaleString('ru-RU')}`
+                  : 'Отправь тест, чтобы убедиться, что бот может писать тебе в личные сообщения.'}
+              </span>
+              {serviceHealth?.waitingForPlayer ? (
+                <span>
+                  Сейчас ожидаем появление в плеере: {serviceHealth.waitingForPlayer}
+                </span>
+              ) : null}
+            </div>
+
+            <button
+              type="button"
+              className="notification-master"
+              disabled={testing || busy}
+              onClick={() => void testTelegram()}
+            >
+              {testing ? 'Отправляем…' : 'Отправить тест'}
+            </button>
           </div>
         )}
       </section>

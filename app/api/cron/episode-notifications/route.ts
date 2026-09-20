@@ -5,6 +5,7 @@ import { checkKodikEpisodeAvailability } from '@/lib/kodik-episode-availability'
 import {
   escapeTelegramHtml,
   sendTelegramMessage,
+  recordNotificationServiceHealth,
   NotificationError,
 } from '@/lib/notifications-server';
 
@@ -104,13 +105,50 @@ function secureEqual(left: string, right: string) {
 
 function authorizeCron(request: Request) {
   const expected = process.env.CRON_SECRET?.trim();
-  const provided = request.headers.get('x-cron-secret')?.trim() ?? '';
+  const direct = request.headers.get('x-cron-secret')?.trim() ?? '';
+  const bearer =
+    request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim() ?? '';
 
-  if (!expected || !provided || !secureEqual(expected, provided)) {
-    return false;
-  }
+  return Boolean(
+    expected &&
+      ((direct && secureEqual(expected, direct)) ||
+        (bearer && secureEqual(expected, bearer))),
+  );
+}
 
-  return true;
+type WorkerStats = {
+  ok: true;
+  checked: number;
+  matched: number;
+  sent: number;
+  failed: number;
+  skipped?: number;
+  playerAvailable?: number;
+  waitingForPlayer?: number;
+  availabilityUnknown?: number;
+  durationMs?: number;
+};
+
+async function successResponse(stats: WorkerStats) {
+  await recordNotificationServiceHealth({
+    status:
+      (stats.failed ?? 0) > 0 || (stats.availabilityUnknown ?? 0) > 0
+        ? 'degraded'
+        : 'ok',
+    checked: stats.checked,
+    matched: stats.matched,
+    sent: stats.sent,
+    failed: stats.failed,
+    skipped: stats.skipped,
+    playerAvailable: stats.playerAvailable,
+    waitingForPlayer: stats.waitingForPlayer,
+    availabilityUnknown: stats.availabilityUnknown,
+    durationMs: stats.durationMs,
+  });
+
+  return Response.json(stats, {
+    headers: { 'Cache-Control': 'no-store' },
+  });
 }
 
 async function fetchRecentAiringItems(nowSeconds: number) {
@@ -197,10 +235,15 @@ export async function POST(request: Request) {
     const airingItems = await fetchRecentAiringItems(nowSeconds);
 
     if (!airingItems.length) {
-      return Response.json(
-        { ok: true, checked: 0, matched: 0, sent: 0, failed: 0 },
-        { headers: { 'Cache-Control': 'no-store' } },
-      );
+      return successResponse({
+        ok: true,
+        checked: 0,
+        matched: 0,
+        sent: 0,
+        failed: 0,
+        skipped: 0,
+        durationMs: Date.now() - startedAt,
+      });
     }
 
     const animeIds = [...new Set(airingItems.map((item) => item.media!.id))];
@@ -216,16 +259,15 @@ export async function POST(request: Request) {
     const subscriptions = (subscriptionsData ?? []) as SubscriptionRow[];
 
     if (!subscriptions.length) {
-      return Response.json(
-        {
-          ok: true,
-          checked: airingItems.length,
-          matched: 0,
-          sent: 0,
-          failed: 0,
-        },
-        { headers: { 'Cache-Control': 'no-store' } },
-      );
+      return successResponse({
+        ok: true,
+        checked: airingItems.length,
+        matched: 0,
+        sent: 0,
+        failed: 0,
+        skipped: 0,
+        durationMs: Date.now() - startedAt,
+      });
     }
 
     const userIds = [...new Set(subscriptions.map((item) => item.user_id))];
@@ -484,23 +526,31 @@ export async function POST(request: Request) {
       }
     }
 
-    return Response.json(
-      {
-        ok: true,
-        checked: airingItems.length,
-        matched,
-        sent,
-        failed,
-        skipped,
-        playerAvailable,
-        waitingForPlayer,
-        availabilityUnknown,
-        durationMs: Date.now() - startedAt,
-      },
-      { headers: { 'Cache-Control': 'no-store' } },
-    );
+    return successResponse({
+      ok: true,
+      checked: airingItems.length,
+      matched,
+      sent,
+      failed,
+      skipped,
+      playerAvailable,
+      waitingForPlayer,
+      availabilityUnknown,
+      durationMs: Date.now() - startedAt,
+    });
   } catch (error) {
     console.error('[Episode notifications] cron failed:', error);
+
+    await recordNotificationServiceHealth({
+      status: 'failed',
+      durationMs: Date.now() - startedAt,
+      errorCode:
+        error instanceof NotificationError
+          ? error.code
+          : error instanceof Error
+            ? error.message.slice(0, 120)
+            : 'cron_failed',
+    });
 
     return Response.json(
       {
@@ -516,11 +566,16 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (authorizeCron(request)) {
+    return POST(request);
+  }
+
   return Response.json(
     {
       ok: true,
       service: 'animebox-episode-notifications',
+      scheduler: 'supabase-cron',
       method: 'POST',
     },
     { headers: { 'Cache-Control': 'no-store' } },

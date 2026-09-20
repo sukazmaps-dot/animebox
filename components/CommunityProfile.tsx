@@ -222,6 +222,39 @@ export default function CommunityProfile() {
         </div>
       </section>
 
+      <section className="profile-v5__challenges" aria-label="Ежедневные задания и серия активности">
+        <div className="profile-v5__challenge-streak">
+          <span className="profile-v2__eyebrow">Серия активности</span>
+          <strong>🔥 {data.challenges.streak.current}</strong>
+          <small>
+            дней подряд · рекорд {data.challenges.streak.longest}
+          </small>
+        </div>
+
+        <div className="profile-v5__challenge-progress">
+          <div>
+            <span>Сегодня</span>
+            <strong>
+              {data.challenges.daily.filter((item) => Boolean(item.completedAt)).length}
+              {' / '}
+              {data.challenges.daily.length}
+            </strong>
+          </div>
+          <div>
+            <span>Неделя</span>
+            <strong>
+              {data.challenges.weekly.filter((item) => Boolean(item.completedAt)).length}
+              {' / '}
+              {data.challenges.weekly.length}
+            </strong>
+          </div>
+        </div>
+
+        <Link className="profile-v5__challenge-link" href="/challenges">
+          Открыть задания →
+        </Link>
+      </section>
+
       <section className="profile-v2__stats" aria-label="Статистика просмотра">
         <article className="profile-v2__stat">
           <span className="profile-v2__stat-label">Завершено тайтлов</span>

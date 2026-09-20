@@ -21,6 +21,14 @@ type AchievementToast = {
   xpReward: number;
 };
 
+type ChallengeToast = {
+  kind: 'challenge';
+  key: string;
+  title: string;
+  description: string;
+  xpReward: number;
+};
+
 type LevelToast = {
   kind: 'level';
   key: string;
@@ -29,7 +37,7 @@ type LevelToast = {
   rankAfter: string;
 };
 
-type Toast = AchievementToast | LevelToast;
+type Toast = AchievementToast | ChallengeToast | LevelToast;
 
 type InboxEvent = {
   id: number;
@@ -42,6 +50,12 @@ type InboxEvent = {
     description: string;
     icon: string;
     rarity: AchievementRarity;
+    xpReward: number;
+  }[];
+  challenges: {
+    code: string;
+    title: string;
+    description: string;
     xpReward: number;
   }[];
 };
@@ -71,6 +85,16 @@ export default function ProgressionCelebration() {
       const next: Toast[] = [];
 
       for (const event of events) {
+        for (const challenge of event.challenges ?? []) {
+          next.push({
+            kind: 'challenge',
+            key: `challenge:${event.id}:${challenge.code}`,
+            title: challenge.title,
+            description: challenge.description,
+            xpReward: challenge.xpReward,
+          });
+        }
+
         for (const achievement of event.achievements ?? []) {
           next.push({
             kind: 'achievement',
@@ -161,6 +185,28 @@ export default function ProgressionCelebration() {
           <strong>{active.levelAfter}</strong>
         </div>
         <span className={styles.rank}>{active.rankAfter}</span>
+      </aside>
+    );
+  }
+
+  if (active.kind === 'challenge') {
+    return (
+      <aside
+        className={`${styles.toast} ${styles.challengeToast}`}
+        role="status"
+        aria-live="polite"
+      >
+        <span className={styles.glow} aria-hidden="true" />
+        <div className={styles.challengeIcon} aria-hidden="true">✓</div>
+        <div className={styles.copy}>
+          <span className={styles.eyebrow}>ЗАДАНИЕ ВЫПОЛНЕНО</span>
+          <strong>{active.title}</strong>
+          <p>{active.description}</p>
+          <div className={styles.meta}>
+            <span>CHALLENGE</span>
+            <b>+{active.xpReward} XP</b>
+          </div>
+        </div>
       </aside>
     );
   }

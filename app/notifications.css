@@ -122,3 +122,21 @@
   .notifications-test-row,
   .notifications-list__item { align-items: flex-start; flex-direction: column; }
 }
+
+
+.notifications-test-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(148,163,184,.09);
+  border-radius: 13px;
+  background: rgba(255,255,255,.018);
+}
+.notifications-test-row>div { min-width:0; }
+.notifications-test-row strong,
+.notifications-test-row span { display:block; }
+.notifications-test-row strong { color:#edf1ff;font-size:11px; }
+.notifications-test-row span { margin-top:4px;color:#7f8da5;font-size:9px;line-height:1.45; }

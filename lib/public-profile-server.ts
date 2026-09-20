@@ -186,7 +186,7 @@ export async function getPublicProfile(
       .then((result) => (result.error ? null : result.data)),
     admin
       .from('user_progression')
-      .select('total_xp,activity_xp,premium_bonus_xp,achievement_xp')
+      .select('total_xp,activity_xp,premium_bonus_xp,achievement_xp,challenge_xp')
       .eq('user_id', userId)
       .maybeSingle(),
     admin

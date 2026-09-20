@@ -1,5 +1,6 @@
 import { failure, response, userClient } from '@/lib/community-server';
 import { getUserEntitlements } from '@/lib/entitlements-server';
+import { getUserChallengesSnapshot } from '@/lib/challenges-server';
 import { normalizeProgression } from '@/lib/progression';
 import { getTitleWatchOverviews } from '@/lib/watch-server';
 
@@ -7,9 +8,10 @@ export async function GET() {
   try {
     const { client, user } = await userClient();
 
-    const [{ data, error }, entitlements] = await Promise.all([
+    const [{ data, error }, entitlements, challenges] = await Promise.all([
       client.rpc('my_community_profile'),
       getUserEntitlements(user.id).catch(() => null),
+      getUserChallengesSnapshot(user.id),
     ]);
     if (error) throw error;
 
@@ -47,6 +49,7 @@ export async function GET() {
         profile.progression,
         Boolean(entitlements?.premiumBadge),
       ),
+      challenges,
       featuredAchievements: Array.isArray(profile.featured_achievements)
         ? profile.featured_achievements.filter(
             (code): code is string => typeof code === 'string',

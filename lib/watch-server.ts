@@ -1346,6 +1346,21 @@ export async function getRecentWatchTitles(
   );
 }
 
+export async function getWatchSessionAcceptedMs(
+  userId: string,
+  sessionId: string,
+) {
+  const watch = watchClient();
+  const { data, error } = await watch.rpc('session_accepted_ms', {
+    p_user_id: userId,
+    p_session_id: sessionId,
+  });
+  throwIfError(error);
+
+  const value = Number(Array.isArray(data) ? data[0] : data);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+}
+
 export async function endWatchSession(input: {
   userId: string;
   sessionId: string;

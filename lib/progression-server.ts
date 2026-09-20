@@ -7,6 +7,7 @@ export type ProgressionSyncResult = {
   total_xp?: number;
   earned_now?: number;
   premium_bonus_now?: number;
+  challenge_xp?: number;
   unlocked?: {
     code?: string;
     title?: string;

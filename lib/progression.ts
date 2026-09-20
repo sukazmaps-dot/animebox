@@ -33,6 +33,7 @@ export type ProfileProgression = {
   activityXp: number;
   premiumBonusXp: number;
   achievementXp: number;
+  challengeXp: number;
   level: number;
   rank: string;
   rankKey:
@@ -138,6 +139,9 @@ export function normalizeProgression(
     ),
     achievementXp: safeNumber(
       record.achievement_xp ?? record.achievementXp,
+    ),
+    challengeXp: safeNumber(
+      record.challenge_xp ?? record.challengeXp,
     ),
     ...derived,
     premiumBoostActive,

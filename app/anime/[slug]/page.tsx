@@ -940,6 +940,7 @@ export default async function AnimePage({
           animeSlug={resolved.slug}
           animeTitle={anime.russian || anime.name}
           episodesAired={anime.episodes_aired || 0}
+          isFinished={String(resolved.status).toUpperCase() === 'FINISHED'}
         />
 
       </section>

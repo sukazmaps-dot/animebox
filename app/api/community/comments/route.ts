@@ -11,6 +11,7 @@ import {
 import { getPublicCommentsPage } from '@/lib/community-comments-server';
 import { assertCanComment } from '@/lib/admin-server';
 import { syncUserProgression } from '@/lib/progression-server';
+import { syncUserChallenges } from '@/lib/challenges-server';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -79,12 +80,25 @@ export async function POST(request: Request) {
     let progressionUpdated = false;
 
     try {
+      const challenge = await syncUserChallenges({
+        userId: user.id,
+        eventKey: `comment:${String(data)}`,
+        comments: 1,
+      });
+      progressionUpdated =
+        progressionUpdated || Number(challenge?.reward_xp ?? 0) > 0;
+    } catch (challengeError) {
+      console.error('[comments] challenge sync failed:', challengeError);
+    }
+
+    try {
       const progression = await syncUserProgression({
         userId: user.id,
         eventKey: `comment:${String(data)}`,
         reason: 'comment_created',
       });
-      progressionUpdated = Number(progression?.earned_now ?? 0) > 0;
+      progressionUpdated =
+        progressionUpdated || Number(progression?.earned_now ?? 0) > 0;
     } catch (progressionError) {
       console.error('[comments] progression sync failed:', progressionError);
     }

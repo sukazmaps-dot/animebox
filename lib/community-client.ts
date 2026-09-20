@@ -1,4 +1,5 @@
 import type { ProfileProgression, AchievementCategory, AchievementRarity } from '@/lib/progression';
+import type { ChallengeSnapshot } from '@/lib/challenges';
 import type { WatchTitleOverview } from '@/types/watch';
 
 export async function communityRequest<T>(
@@ -50,9 +51,11 @@ export type CommunityProfile = {
     action_titles: number;
     fantasy_titles: number;
     comedy_titles: number;
+    longest_streak: number;
     comments: number;
   } & Record<LibraryStatus, number>;
   progression: ProfileProgression;
+  challenges: ChallengeSnapshot;
   featuredAchievements: string[];
   achievements: {
     code: string;

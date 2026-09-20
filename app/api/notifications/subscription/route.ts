@@ -1,6 +1,7 @@
 import {
   escapeTelegramHtml,
   getTelegramProfile,
+  getAnimeNotificationEligibility,
   notificationFailure,
   notificationResponse,
   positiveAnimeId,
@@ -22,8 +23,12 @@ export async function GET(request: Request) {
       new URL(request.url).searchParams.get('animeId'),
     );
 
-    const [subscriptionResult, settingsResult, telegramProfile] =
-      await Promise.all([
+    const [
+      subscriptionResult,
+      settingsResult,
+      telegramProfile,
+      eligibility,
+    ] = await Promise.all([
         client
           .from('anime_notification_subscriptions')
           .select('anime_id, enabled, min_episode, anime_slug, anime_title, created_at, updated_at')
@@ -36,6 +41,7 @@ export async function GET(request: Request) {
           .eq('user_id', user.id)
           .maybeSingle(),
         getTelegramProfile(user.id),
+        getAnimeNotificationEligibility(animeId),
       ]);
 
     if (subscriptionResult.error) throw subscriptionResult.error;
@@ -49,6 +55,7 @@ export async function GET(request: Request) {
           settingsResult.data?.telegram_verified_at,
       ),
       enabled: subscriptionResult.data?.enabled === true,
+      animeFinished: eligibility.finished,
       subscription: subscriptionResult.data ?? null,
     });
   } catch (error) {
@@ -85,6 +92,15 @@ export async function POST(request: Request) {
     const episodesAired = safeEpisode(body.episodesAired);
     const animeSlug = safeSlug(body.animeSlug, animeId);
     const animeTitle = safeTitle(body.animeTitle);
+    const eligibility = await getAnimeNotificationEligibility(animeId);
+
+    if (eligibility.finished) {
+      throw new NotificationError(
+        409,
+        'anime_finished',
+        'Тайтл уже завершён — новых серий по расписанию не ожидается.',
+      );
+    }
 
     const telegramProfile = await getTelegramProfile(user.id);
     const telegramId = telegramProfile?.telegram_id;

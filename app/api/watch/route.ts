@@ -12,10 +12,12 @@ import {
   getEpisodeWatchState,
   getLatestWatchState,
   getTitleWatchOverviews,
+  getWatchSessionAcceptedMs,
   recordWatchHeartbeat,
   startWatchSession,
 } from '@/lib/watch-server';
 import { syncUserProgression } from '@/lib/progression-server';
+import { syncUserChallenges } from '@/lib/challenges-server';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -182,6 +184,7 @@ export async function POST(request: Request) {
 
       if (result.newlyCompleted) {
         const admin = adminClient();
+        let completedTitleNow = false;
 
         try {
           const [overview] = await getTitleWatchOverviews(
@@ -190,6 +193,8 @@ export async function POST(request: Request) {
           );
 
           if (overview?.fullyCompleted) {
+            completedTitleNow = true;
+
             const { error: statusError } = await admin
               .from('anime_library')
               .update({
@@ -206,6 +211,17 @@ export async function POST(request: Request) {
           }
         } catch (syncError) {
           console.error('[watch] title completion sync failed:', syncError);
+        }
+
+        try {
+          await syncUserChallenges({
+            userId: user.id,
+            eventKey: `episode:${result.animeId}:${result.episode}`,
+            completedEpisodes: 1,
+            completedTitles: completedTitleNow ? 1 : 0,
+          });
+        } catch (challengeError) {
+          console.error('[watch] challenge sync failed:', challengeError);
         }
 
         try {
@@ -230,17 +246,42 @@ export async function POST(request: Request) {
         positionMs: positionMs(body.positionMs, true),
       });
 
+      let progressionUpdated = false;
+
       try {
-        await syncUserProgression({
+        const acceptedMs = await getWatchSessionAcceptedMs(
+          user.id,
+          endedSessionId,
+        );
+
+        const challengeResult = await syncUserChallenges({
+          userId: user.id,
+          eventKey: `watch:end:${endedSessionId}`,
+          activeMs: acceptedMs,
+        });
+
+        progressionUpdated =
+          Number(challengeResult?.reward_xp ?? 0) > 0;
+      } catch (challengeError) {
+        console.error('[watch] challenge end sync failed:', challengeError);
+      }
+
+      try {
+        const progression = await syncUserProgression({
           userId: user.id,
           eventKey: `watch:end:${endedSessionId}`,
           reason: 'watch_session_end',
         });
+        progressionUpdated =
+          progressionUpdated || Number(progression?.earned_now ?? 0) > 0;
       } catch (progressionError) {
         console.error('[watch] progression end sync failed:', progressionError);
       }
 
-      return response(result);
+      return response({
+        ...result,
+        progressionUpdated,
+      });
     }
 
     throw new ApiError(400, 'Неизвестное действие трекера просмотра.');
