@@ -71,8 +71,6 @@ export default function Moderation() {
 
   useEffect(() => {
     const controller = new AbortController();
-    setError('');
-
     fetch(`/api/admin/comments?page=${page}&state=${state}`, {
       cache: 'no-store',
       signal: controller.signal,
@@ -80,6 +78,7 @@ export default function Moderation() {
       .then(async (response) => {
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.error || 'Ошибка');
+        setError('');
         setData(payload);
       })
       .catch((loadError) => {
