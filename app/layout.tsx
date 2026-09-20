@@ -26,6 +26,8 @@ import './premium-shell.css';
 import './design-v2-content-first.css';
 import './auth-modal-v2.css';
 import './activation-v2.css';
+import './anime-page-v3.css';
+import './performance-v2.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
@@ -252,6 +254,8 @@ export default function RootLayout({
     >
       <head>
         <link rel="dns-prefetch" href="//shikimori.one" />
+        <link rel="preconnect" href="https://cdn.anilist.co" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://shikimori.one" crossOrigin="anonymous" />
       </head>
 
       <body>

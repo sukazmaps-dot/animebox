@@ -91,6 +91,13 @@ async function cachedDecision(sha256: string): Promise<ModerationResult | null> 
 
   if (!data) return null;
 
+  // Old v1 rejects were produced with intentionally conservative thresholds.
+  // Re-evaluate them under the v2 policy so harmless anime art does not stay
+  // permanently blocked just because its hash was seen before the policy update.
+  if (data.status === 'rejected' && data.reason !== 'unsafe_profile_media_v2') {
+    return null;
+  }
+
   return {
     decision: data.status === 'approved' ? 'approve' : 'block',
     reason: data.reason || (data.status === 'approved' ? 'cached_approved' : 'cached_rejected'),
@@ -102,7 +109,18 @@ async function cachedDecision(sha256: string): Promise<ModerationResult | null> 
   };
 }
 
-async function moderateWithOpenAI(bytes: Buffer, mimeType: string): Promise<ModerationResult> {
+type ModerationContext = {
+  scope: ProfileMediaScope;
+  kind: ProfileMediaKind;
+};
+
+const MODERATION_TIMEOUT_MS = 9_000;
+
+async function moderateWithOpenAI(
+  bytes: Buffer,
+  mimeType: string,
+  context: ModerationContext,
+): Promise<ModerationResult> {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
 
   if (!apiKey) {
@@ -119,23 +137,32 @@ async function moderateWithOpenAI(bytes: Buffer, mimeType: string): Promise<Mode
 
   try {
     const dataUrl = `data:${mimeType};base64,${bytes.toString('base64')}`;
-    const response = await fetch('https://api.openai.com/v1/moderations', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'omni-moderation-latest',
-        input: [
-          {
-            type: 'image_url',
-            image_url: { url: dataUrl },
-          },
-        ],
-      }),
-      cache: 'no-store',
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), MODERATION_TIMEOUT_MS);
+    let response: Response;
+
+    try {
+      response = await fetch('https://api.openai.com/v1/moderations', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'omni-moderation-latest',
+          input: [
+            {
+              type: 'image_url',
+              image_url: { url: dataUrl },
+            },
+          ],
+        }),
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!response.ok) {
       console.error('[ProfileMediaSafety] moderation HTTP', response.status);
@@ -166,19 +193,31 @@ async function moderateWithOpenAI(bytes: Buffer, mimeType: string): Promise<Mode
     const sexualScore = finiteScore(scores.sexual);
     const sexualMinorsScore = finiteScore(scores['sexual/minors']);
     const graphicScore = finiteScore(scores['violence/graphic']);
+    const violenceScore = finiteScore(scores.violence);
+    const selfHarmScore = Math.max(
+      finiteScore(scores['self-harm']),
+      finiteScore(scores['self-harm/intent']),
+      finiteScore(scores['self-harm/instructions']),
+    );
+    const hateThreatScore = finiteScore(scores['hate/threatening']);
 
+    // Profile-media policy v2: only high-confidence severe content is blocked
+    // automatically. Stylised anime art often receives small non-zero scores;
+    // those should not turn a harmless avatar into a hard rejection.
     const hardBlock =
       Boolean(categories['sexual/minors']) ||
-      Boolean(categories['violence/graphic']) ||
-      (Boolean(categories.sexual) && sexualScore >= 0.5) ||
-      sexualScore >= 0.72 ||
-      sexualMinorsScore >= 0.03 ||
-      graphicScore >= 0.5;
+      sexualMinorsScore >= 0.02 ||
+      (Boolean(categories.sexual) && sexualScore >= 0.88) ||
+      sexualScore >= 0.94 ||
+      (Boolean(categories['violence/graphic']) && graphicScore >= 0.82) ||
+      graphicScore >= 0.9 ||
+      selfHarmScore >= 0.88 ||
+      hateThreatScore >= 0.88;
 
     if (hardBlock) {
       return {
         decision: 'block',
-        reason: 'unsafe_profile_media',
+        reason: 'unsafe_profile_media_v2',
         provider: 'openai',
         model: payload.model || 'omni-moderation-latest',
         categories,
@@ -187,18 +226,17 @@ async function moderateWithOpenAI(bytes: Buffer, mimeType: string): Promise<Mode
       };
     }
 
+    const bannerMultiplier = context.kind === 'banner' ? 1.12 : 1;
     const needsReview =
-      Boolean(result?.flagged) ||
-      sexualScore >= 0.24 ||
-      graphicScore >= 0.2 ||
-      Boolean(categories.violence) ||
-      Boolean(categories.hate) ||
-      Boolean(categories['hate/threatening']) ||
-      Boolean(categories['self-harm']);
+      sexualScore >= 0.62 * bannerMultiplier ||
+      graphicScore >= 0.55 * bannerMultiplier ||
+      violenceScore >= 0.72 * bannerMultiplier ||
+      selfHarmScore >= 0.62 ||
+      hateThreatScore >= 0.62;
 
     return {
       decision: needsReview ? 'review' : 'approve',
-      reason: needsReview ? 'borderline_profile_media' : 'safe_profile_media',
+      reason: needsReview ? 'borderline_profile_media_v2' : 'safe_profile_media_v2',
       provider: 'openai',
       model: payload.model || 'omni-moderation-latest',
       categories,
@@ -207,9 +245,10 @@ async function moderateWithOpenAI(bytes: Buffer, mimeType: string): Promise<Mode
     };
   } catch (error) {
     console.error('[ProfileMediaSafety] moderation request failed:', error);
+    const timeout = error instanceof Error && error.name === 'AbortError';
     return {
       decision: 'review',
-      reason: 'moderation_unavailable',
+      reason: timeout ? 'moderation_timeout' : 'moderation_unavailable',
       provider: 'openai',
       model: 'omni-moderation-latest',
       categories: {},
@@ -219,7 +258,10 @@ async function moderateWithOpenAI(bytes: Buffer, mimeType: string): Promise<Mode
   }
 }
 
-async function loadAndModerate(candidate: ProfileMediaCandidate): Promise<LoadedMedia> {
+async function loadAndModerate(
+  candidate: ProfileMediaCandidate,
+  context: ModerationContext,
+): Promise<LoadedMedia> {
   const admin = adminClient();
   const { data, error } = await admin.storage
     .from(QUARANTINE_BUCKET)
@@ -235,19 +277,11 @@ async function loadAndModerate(candidate: ProfileMediaCandidate): Promise<Loaded
   const animated = detectAnimation(bytes, mimeType);
 
   const cached = await cachedDecision(sha256);
-  let moderation = cached ?? (await moderateWithOpenAI(bytes, mimeType));
+  const moderation = cached ?? (await moderateWithOpenAI(bytes, mimeType, context));
 
-  // v1 intentionally fails closed for animated user media. Image moderation
-  // is reliable for a still frame, but an unsafe frame can appear later in a
-  // GIF/animated WebP. These files go to the manual queue unless their exact
-  // hash was already manually approved before.
-  if (animated && !cached && moderation.decision === 'approve') {
-    moderation = {
-      ...moderation,
-      decision: 'review',
-      reason: 'animated_media_manual_review',
-    };
-  }
+  // v2 no longer sends every animated avatar to manual review by default.
+  // The constrained upload sizes plus the provider decision are used instead;
+  // suspicious/flagged animation still lands in the normal review queue.
 
   return {
     candidate,
@@ -393,7 +427,8 @@ export async function screenProfileMediaGroups(
   for (const group of groups) {
     if (!group.candidates.length) continue;
 
-    const items = await Promise.all(group.candidates.map(loadAndModerate));
+    const context: ModerationContext = { scope: group.scope, kind: group.kind };
+    const items = await Promise.all(group.candidates.map((candidate) => loadAndModerate(candidate, context)));
     const blocked = items.find((item) => item.moderation.decision === 'block');
 
     if (blocked) {
@@ -417,7 +452,7 @@ export async function screenProfileMediaGroups(
 
       throw new ApiError(
         422,
-        'Изображение не прошло правила AnimeBox. Выберите другой аватар или баннер.',
+        'Изображение содержит материал, который нельзя использовать в публичном профиле AnimeBox. Выберите другое изображение.',
       );
     }
 
@@ -426,7 +461,7 @@ export async function screenProfileMediaGroups(
       await quarantineGroup(userId, group, items);
       throw new ApiError(
         409,
-        'Изображение отправлено на дополнительную проверку. Пока останется прежнее оформление.',
+        'Мы не стали отклонять изображение автоматически: оно отправлено на дополнительную проверку. Пока останется прежнее оформление.',
       );
     }
 

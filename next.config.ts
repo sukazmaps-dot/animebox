@@ -43,7 +43,6 @@ const nextConfig: NextConfig = {
 
     const htmlRoutes = [
       '/',
-      '/anime/:path*',
       '/search/:path*',
       '/schedule/:path*',
       '/list/:path*',
@@ -70,8 +69,19 @@ const nextConfig: NextConfig = {
       },
     ];
 
+    // Anime detail HTML is public and contains no server-rendered account data.
+    // Keep watch/episode routes uncached, but let the CDN reuse the detail page
+    // briefly so cold TTFB does not punish mobile Lighthouse or real users.
+    const animeDetailHeaders = [
+      { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=300, stale-while-revalidate=3600' },
+      { key: 'Vercel-CDN-Cache-Control', value: 'public, max-age=300, stale-while-revalidate=3600' },
+      { key: 'Cloudflare-CDN-Cache-Control', value: 'public, max-age=300, stale-while-revalidate=3600' },
+    ];
+
     return [
       ...htmlRoutes.map((source) => ({ source, headers: htmlNoStoreHeaders })),
+      { source: '/anime/:slug/:path*', headers: htmlNoStoreHeaders },
+      { source: '/anime/:slug', headers: animeDetailHeaders },
       { source: '/ui/:path*', headers: staticHeaders },
       { source: '/backgrounds/:path*', headers: staticHeaders },
       { source: '/brand/:path*', headers: staticHeaders },

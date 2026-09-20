@@ -13,6 +13,7 @@ import { readProfileCache, saveProfileCache } from '@/lib/profile-cache';
 import { createClient } from '@/lib/supabase/client';
 import {
   discardPrivateProfileMedia,
+  profileMediaFetchWithTimeout,
   uploadPrivateProfileMedia,
   type PendingProfileMediaUpload,
 } from '@/lib/profile-media-upload-client';
@@ -372,7 +373,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       }
 
       const studioDraft = premiumDirty ? premiumStudioRef.current?.getDraft() ?? premiumSettings : null;
-      const response = await fetch('/api/profile/editor', {
+      const response = await profileMediaFetchWithTimeout('/api/profile/editor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -389,7 +390,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           ...(premiumDirty && studioDraft ? { studio: studioDraft } : {}),
           ...(pendingMedia.length ? { pendingMedia } : {}),
         }),
-      });
+      }, 20_000);
       const payload = (await response.json()) as {
         profile?: ProfileRow;
         settings?: PremiumStudioSettings;

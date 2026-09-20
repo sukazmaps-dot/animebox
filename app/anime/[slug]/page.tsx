@@ -20,6 +20,7 @@ import { resolveAnimeRoute } from '@/lib/anime-route';
 import { animeHref } from '@/lib/anime-url';
 import { createImageCascade } from '@/lib/image-cascade';
 import { cleanShikimoriDescription } from '@/lib/shikimori-text';
+import { animeContentFacts, animeFormatLabel, animeStatusLabel } from '@/lib/anime-content-intelligence';
 import { SITE_URL } from '@/lib/seo-config';
 import {
   buildAnimeMetadata,
@@ -244,6 +245,13 @@ export default async function AnimePage({
     anime.episodes_aired ||
     null;
 
+  const contentFacts = animeContentFacts({
+    ...resolved,
+    episodes: episodesCount,
+  });
+  const formatLabel = animeFormatLabel(anime.kind);
+  const statusLabel = animeStatusLabel(anime.status);
+
 
   /* =========================================================
      Объект для контролов
@@ -394,7 +402,7 @@ export default async function AnimePage({
 
   return (
     <main
-      className="
+      className="anime-detail-v3
         min-h-screen
         overflow-hidden
         bg-[#08080c]
@@ -428,17 +436,15 @@ export default async function AnimePage({
             ===================== */}
 
         {imageCascade.banner && (
-          <div
-            className="
-              absolute
-              inset-0
-              bg-cover
-              bg-center
-            "
-            style={{
-              backgroundImage:
-                `url("${imageCascade.banner}")`,
-            }}
+          <img
+            src={imageCascade.banner}
+            alt=""
+            aria-hidden="true"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            className="anime-detail-v3__banner absolute inset-0 h-full w-full object-cover object-center"
           />
         )}
 
@@ -553,6 +559,7 @@ export default async function AnimePage({
                     'Аниме'
                   }
                   loading="eager"
+                  fetchPriority="high"
                 />
 
               </div>
@@ -604,7 +611,7 @@ export default async function AnimePage({
                         `${accentColor}66`,
                     }}
                   >
-                    {anime.kind.toUpperCase()}
+                    {formatLabel || anime.kind}
                   </span>
                 )}
 
@@ -627,17 +634,7 @@ export default async function AnimePage({
                     "
                   >
 
-                    {anime.status ===
-                      'released' ||
-                    anime.status ===
-                      'FINISHED'
-                      ? 'Вышло'
-                      : anime.status ===
-                            'ongoing' ||
-                          anime.status ===
-                            'RELEASING'
-                        ? 'Онгоинг'
-                        : anime.status}
+                    {statusLabel || anime.status}
 
                   </span>
                 )}
@@ -852,60 +849,60 @@ export default async function AnimePage({
 
 
       {/* =====================================================
-          ФАКТЫ О ТАЙТЛЕ — полезный видимый контент + SEO
+          CONTENT INTELLIGENCE / КОРОТКИЙ ПАСПОРТ ТАЙТЛА
           ===================================================== */}
 
-      <section className="mx-auto max-w-7xl px-4 pb-5 md:px-6" aria-labelledby="anime-facts-title">
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.025] p-4 md:p-5">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-300/70">
-                Коротко о тайтле
-              </span>
-              <h2 id="anime-facts-title" className="mt-1 text-lg font-bold text-white">
-                Информация об аниме
-              </h2>
-            </div>
+      <section className="anime-detail-v3__facts mx-auto max-w-7xl px-4 pb-5 md:px-6" aria-labelledby="anime-facts-title">
+        <div className="anime-detail-v3__facts-shell">
+          <div className="anime-detail-v3__facts-heading">
+            <span>Паспорт тайтла</span>
+            <h2 id="anime-facts-title">Главное без лишнего</h2>
           </div>
 
-          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {resolved.startDate?.year && (
-              <div className="rounded-xl border border-white/[0.05] bg-black/10 p-3">
-                <dt className="text-[10px] uppercase tracking-wider text-white/35">Год</dt>
-                <dd className="mt-1 font-semibold text-white/85">{resolved.startDate.year}</dd>
+          <dl className="anime-detail-v3__facts-list">
+            {contentFacts.release && (
+              <div>
+                <dt>Выход</dt>
+                <dd>{contentFacts.release}</dd>
               </div>
             )}
 
-            {anime.kind && (
-              <div className="rounded-xl border border-white/[0.05] bg-black/10 p-3">
-                <dt className="text-[10px] uppercase tracking-wider text-white/35">Формат</dt>
-                <dd className="mt-1 font-semibold text-white/85">{anime.kind}</dd>
+            {contentFacts.format && (
+              <div>
+                <dt>Формат</dt>
+                <dd>{contentFacts.format}</dd>
               </div>
             )}
 
-            {episodesCount && (
-              <div className="rounded-xl border border-white/[0.05] bg-black/10 p-3">
-                <dt className="text-[10px] uppercase tracking-wider text-white/35">Эпизоды</dt>
-                <dd className="mt-1 font-semibold text-white/85">{episodesCount}</dd>
+            {contentFacts.episodes && (
+              <div>
+                <dt>Объём</dt>
+                <dd>{contentFacts.episodes}</dd>
+              </div>
+            )}
+
+            {contentFacts.status && (
+              <div>
+                <dt>Статус</dt>
+                <dd>{contentFacts.status}</dd>
               </div>
             )}
 
             {seoIdentity.seasonLabel && (
-              <div className="rounded-xl border border-white/[0.05] bg-black/10 p-3">
-                <dt className="text-[10px] uppercase tracking-wider text-white/35">Продолжение</dt>
-                <dd className="mt-1 font-semibold text-white/85">{seoIdentity.seasonLabel}</dd>
-              </div>
-            )}
-
-            {resolved.genres?.length > 0 && (
-              <div className="col-span-2 rounded-xl border border-white/[0.05] bg-black/10 p-3 sm:col-span-2 lg:col-span-1">
-                <dt className="text-[10px] uppercase tracking-wider text-white/35">Жанры</dt>
-                <dd className="mt-1 line-clamp-2 font-semibold text-white/85">
-                  {resolved.genres.slice(0, 4).join(' · ')}
-                </dd>
+              <div>
+                <dt>Часть</dt>
+                <dd>{seoIdentity.seasonLabel}</dd>
               </div>
             )}
           </dl>
+
+          {resolved.genres?.length > 0 && (
+            <div className="anime-detail-v3__genres" aria-label="Жанры">
+              {resolved.genres.slice(0, 6).map((genre) => (
+                <span key={genre}>{genre}</span>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

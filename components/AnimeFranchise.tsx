@@ -15,7 +15,7 @@ import { getAnimeFranchiseWithShikimori } from '@/lib/combined-anime';
 const CATEGORIES: FranchiseCategory[] = [
   'series', 'movies', 'ova', 'specials', 'spinOffs', 'other',
 ];
-const SECTION_CLASS = 'mx-auto max-w-7xl px-4 pb-12 pt-4 md:px-6';
+const SECTION_CLASS = 'anime-franchise-v3 mx-auto max-w-7xl px-4 pb-12 pt-4 md:px-6';
 
 export function AnimeFranchiseLoading() {
   return (
@@ -60,8 +60,9 @@ export default async function AnimeFranchise({
   return (
     <section className={SECTION_CLASS} aria-labelledby="franchise-heading">
       <div className="border-t border-white/10 pt-8">
-        <h2 id="franchise-heading" className="text-xl font-bold tracking-tight md:text-2xl">Франшиза</h2>
-        <p className="mt-2 text-sm text-white/50">Связанные части по дате выхода</p>
+        <span className="anime-franchise-v3__eyebrow">Content Intelligence</span>
+        <h2 id="franchise-heading" className="anime-franchise-v3__title">Порядок выхода</h2>
+        <p className="anime-franchise-v3__subtitle">AnimeBox связывает сезоны, части, фильмы и спецвыпуски одной франшизы.</p>
         {franchise.partial && (
           <p className="mt-3 text-sm text-amber-200/80" role="status">
             Показана часть франшизы. Некоторые связи пока не загружены.
@@ -72,10 +73,8 @@ export default async function AnimeFranchise({
           <div className="mt-6">
             <div className="mb-3 flex items-end justify-between gap-3">
               <div>
-                <h3 className="text-sm font-semibold text-white/85">Сезоны / части</h3>
-                <p className="mt-1 text-xs text-white/40">
-                  Части одного сезона не получают лишний номер
-                </p>
+                <h3 className="text-sm font-semibold text-white/85">Основная линия</h3>
+                <p className="mt-1 text-xs text-white/40">По порядку релиза · split-cour остаётся частью одного сезона</p>
               </div>
               <span className="text-xs text-white/35">{seasons.length}</span>
             </div>
@@ -84,7 +83,7 @@ export default async function AnimeFranchise({
               ariaLabel="Сезоны и части франшизы"
               stepRatio={0.74}
             >
-              {seasons.map((item) => {
+              {seasons.map((item, index) => {
                 const title =
                   item.title.russian ||
                   (item.isCurrent && currentTitle) ||
@@ -95,14 +94,11 @@ export default async function AnimeFranchise({
 
                 const content = (
                   <>
-                    <span className="block text-sm font-bold">{item.label}</span>
-                    <span className="mt-1 block max-w-44 truncate text-[11px] text-white/45" title={title}>
-                      {title}
-                    </span>
+                    <span className="anime-franchise-v3__step" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+                    <span className="anime-franchise-v3__season-label">{item.label}</span>
+                    <span className="anime-franchise-v3__season-title" title={title}>{title}</span>
                     {item.startDate?.year && (
-                      <span className="mt-1 block text-[10px] text-white/30">
-                        {item.startDate.year}
-                      </span>
+                      <span className="anime-franchise-v3__year">{item.startDate.year}</span>
                     )}
                   </>
                 );
@@ -112,17 +108,17 @@ export default async function AnimeFranchise({
                     key={item.id}
                     aria-current="page"
                     data-rail-active="true"
-                    className="min-w-[150px] max-w-[190px] shrink-0 rounded-xl border border-violet-400/55 bg-violet-500/15 px-3 py-2.5 text-white"
+                    className="anime-franchise-v3__season is-current min-w-[164px] max-w-[210px] shrink-0 text-white"
                   >
                     {content}
-                    <span className="mt-1.5 block text-[10px] font-medium text-violet-300">Вы здесь</span>
+                    <span className="anime-franchise-v3__current">Сейчас</span>
                   </div>
                 ) : (
                   <Link
                     key={item.id}
                     href={animeHref(item)}
                     prefetch={false}
-                    className="min-w-[150px] max-w-[190px] shrink-0 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-white/75 transition-colors hover:border-violet-400/40 hover:bg-white/[0.07] hover:text-white"
+                    className="anime-franchise-v3__season min-w-[164px] max-w-[210px] shrink-0 text-white/75"
                   >
                     {content}
                   </Link>
@@ -165,12 +161,12 @@ export default async function AnimeFranchise({
                     return (
                       <li key={item.id}>
                         {item.isCurrent ? (
-                          <div aria-current="page" className="flex h-full gap-3 rounded-xl border border-violet-400/40 bg-violet-400/10 p-2">{content}</div>
+                          <div aria-current="page" className="anime-franchise-v3__related is-current flex h-full gap-3 p-2">{content}</div>
                         ) : (
                           <Link
                             href={animeHref(item)}
                             prefetch={false}
-                            className="flex h-full gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-2 transition-colors hover:border-violet-400/40 hover:bg-white/[0.07] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400"
+                            className="anime-franchise-v3__related flex h-full gap-3 p-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400"
                           >{content}</Link>
                         )}
                       </li>

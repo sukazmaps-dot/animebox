@@ -7,6 +7,7 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState }
 import { createClient } from '@/lib/supabase/client';
 import {
   discardPrivateProfileMedia,
+  profileMediaFetchWithTimeout,
   uploadPrivateProfileMedia,
   type PendingProfileMediaUpload,
 } from '@/lib/profile-media-upload-client';
@@ -439,11 +440,11 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     setSaved('');
 
     try {
-      const response = await fetch('/api/profile/editor', {
+      const response = await profileMediaFetchWithTimeout('/api/profile/editor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ studio: next, ...(pendingMedia.length ? { pendingMedia } : {}) }),
-      });
+      }, 20_000);
       const payload = (await response.json()) as StudioResponse;
 
       if (!response.ok) {

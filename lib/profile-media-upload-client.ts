@@ -18,6 +18,44 @@ type PrepareArgs = {
   mimeType?: string;
 };
 
+
+const SIGNED_URL_TIMEOUT_MS = 10_000;
+const STORAGE_UPLOAD_TIMEOUT_MS = 30_000;
+
+export async function profileMediaFetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeoutMs: number,
+) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Сервер слишком долго отвечает. Попробуйте ещё раз.');
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+async function withUploadTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timer = 0;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = window.setTimeout(() => {
+      reject(new Error('Загрузка изображения заняла слишком много времени. Проверьте соединение и повторите попытку.'));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 type PrepareResponse = {
   bucket?: string;
   quarantinePath?: string;
@@ -33,7 +71,7 @@ export async function uploadPrivateProfileMedia({
   body,
   mimeType = body.type,
 }: PrepareArgs): Promise<PendingProfileMediaUpload> {
-  const response = await fetch('/api/profile/media/upload-url', {
+  const response = await profileMediaFetchWithTimeout('/api/profile/media/upload-url', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -43,7 +81,7 @@ export async function uploadPrivateProfileMedia({
       mimeType,
       size: body.size,
     }),
-  });
+  }, SIGNED_URL_TIMEOUT_MS);
   const payload = (await response.json()) as PrepareResponse;
 
   if (
@@ -56,12 +94,15 @@ export async function uploadPrivateProfileMedia({
   }
 
   const supabase = createClient();
-  const uploaded = await supabase.storage
-    .from('profile-media-quarantine')
-    .uploadToSignedUrl(payload.quarantinePath, payload.token, body, {
-      cacheControl: '0',
-      contentType: mimeType,
-    });
+  const uploaded = await withUploadTimeout(
+    supabase.storage
+      .from('profile-media-quarantine')
+      .uploadToSignedUrl(payload.quarantinePath, payload.token, body, {
+        cacheControl: '0',
+        contentType: mimeType,
+      }),
+    STORAGE_UPLOAD_TIMEOUT_MS,
+  );
 
   if (uploaded.error) throw uploaded.error;
 

@@ -241,10 +241,23 @@ export function buildAnimeMetadata(anime: Anime, canonicalUrl: string): Metadata
   const description = buildAnimeSeoDescription(anime, identity);
   const images = seoImages(anime);
   const index = shouldIndexAnime(anime);
+  const keywords = uniqueStrings([
+    identity.title,
+    identity.baseTitle,
+    identity.pageHeading,
+    ...identity.aliases.slice(0, 10),
+    ...(anime.genres ?? []).slice(0, 6),
+    identity.seasonLabel,
+    movieLike(anime) ? 'аниме фильм' : 'аниме сериал',
+    'смотреть аниме',
+    'AnimeBox',
+  ]).slice(0, 24);
 
   return {
     title: buildAnimeSeoTitle(anime, identity),
     description,
+    keywords,
+    category: 'anime',
     alternates: {
       canonical: canonicalUrl,
     },
@@ -320,6 +333,10 @@ export function buildAnimeStructuredData(
       `https://anilist.co/anime/${anime.id}`,
       anime.idMal ? `https://myanimelist.net/anime/${anime.idMal}` : null,
     ]),
+    potentialAction: {
+      '@type': 'WatchAction',
+      target: canonicalUrl,
+    },
   };
 
   if (movieLike(anime)) {

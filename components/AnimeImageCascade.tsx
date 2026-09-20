@@ -20,6 +20,7 @@ type AnimeImageCascadeProps = {
   alt?: string;
   className?: string;
   loading?: 'lazy' | 'eager';
+  fetchPriority?: 'high' | 'low' | 'auto';
 };
 
 export default function AnimeImageCascade({
@@ -27,6 +28,7 @@ export default function AnimeImageCascade({
   alt = 'Аниме',
   className = '',
   loading = 'eager',
+  fetchPriority = 'auto',
 }: AnimeImageCascadeProps) {
   const candidates = useMemo<string[]>(() => {
     const result: string[] = [];
@@ -176,6 +178,7 @@ export default function AnimeImageCascade({
         src={current}
         alt={alt}
         loading={loading}
+        fetchPriority={fetchPriority}
         decoding="async"
         referrerPolicy="no-referrer"
         onLoad={handleLoad}

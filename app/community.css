@@ -3674,3 +3674,173 @@ label input:checked + span::before {
     border-left: 0;
   }
 }
+
+/* =========================================================
+   PROFILE PROGRESSION V6 · INTERACTIVE IDENTITY PASS
+   ========================================================= */
+.profile-v6__progression {
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 220px);
+  gap: 18px;
+  padding: 0;
+  border-top: 1px solid var(--ab-border);
+  border-bottom: 1px solid var(--ab-border);
+}
+
+.profile-v6__progression-core {
+  position: relative;
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr) 22px;
+  gap: 16px;
+  align-items: center;
+  min-width: 0;
+  padding: 18px 14px 18px 0;
+  border-right: 1px solid var(--ab-border);
+  color: inherit;
+  text-decoration: none;
+  transition: background .18s ease, border-color .18s ease;
+}
+
+.profile-v6__progression-core:hover {
+  background: rgba(120, 104, 238, .035);
+}
+
+.profile-v6__progression-core:focus-visible,
+.profile-v6__challenges-link:focus-visible {
+  outline: 2px solid rgba(155, 132, 255, .72);
+  outline-offset: 4px;
+}
+
+.profile-v6__level-orb {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  transition: border-color .18s ease, background .18s ease;
+}
+
+.profile-v6__progression-core:hover .profile-v6__level-orb {
+  border-color: rgba(143, 124, 244, .34);
+  background: rgba(120, 104, 238, .07);
+}
+
+.profile-v6__progression-arrow {
+  align-self: center;
+  color: rgba(172, 157, 244, .48);
+  font-size: 18px;
+  transition: color .18s ease, transform .18s ease;
+}
+
+.profile-v6__progression-core:hover .profile-v6__progression-arrow {
+  color: #b7a9ff;
+  transform: translateX(3px);
+}
+
+.profile-v6__xp-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.profile-v6__xp-sources span {
+  padding: 3px 6px;
+  border-left: 1px solid rgba(135, 119, 226, .28);
+  color: rgba(151, 164, 191, .46);
+  font-size: 7px;
+  font-weight: 650;
+  letter-spacing: .02em;
+}
+
+.profile-v6__challenges-link {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .18s ease, border-color .18s ease;
+}
+
+.profile-v6__challenges-link:hover {
+  background: rgba(120, 104, 238, .025);
+}
+
+.profile-v6__streak-rail {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  width: min(210px, 100%);
+  margin-top: 9px;
+}
+
+.profile-v6__streak-rail i {
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .07);
+}
+
+.profile-v6__streak-rail i.is-active {
+  background: #d78157;
+}
+
+.profile-v5__challenge-progress small {
+  display: block;
+  margin-top: 2px;
+  color: rgba(153, 166, 193, .34);
+  font-size: 7px;
+}
+
+.profile-v6__challenges-link .profile-v5__challenge-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 0 8px 10px;
+  color: #a99aff;
+}
+
+.profile-v6__challenges-link .profile-v5__challenge-link b {
+  font-size: 14px;
+  transition: transform .18s ease;
+}
+
+.profile-v6__challenges-link:hover .profile-v5__challenge-link b {
+  transform: translateX(3px);
+}
+
+@media (max-width: 820px) {
+  .profile-v6__progression {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-v6__progression-core {
+    border-right: 0;
+    border-bottom: 1px solid var(--ab-border);
+    padding-right: 0;
+  }
+
+  .profile-v6__progression .profile-v3__progression-side {
+    padding-bottom: 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  .profile-v6__progression-core {
+    grid-template-columns: 62px minmax(0, 1fr) 18px;
+    gap: 11px;
+    padding: 15px 0;
+  }
+
+  .profile-v6__level-orb {
+    width: 58px;
+    height: 58px;
+    border-radius: 14px;
+  }
+
+  .profile-v6__level-orb strong {
+    font-size: 24px;
+  }
+
+  .profile-v6__xp-sources {
+    display: none;
+  }
+
+  .profile-v6__challenges-link {
+    padding: 14px 0;
+  }
+}

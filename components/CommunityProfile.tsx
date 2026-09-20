@@ -172,63 +172,95 @@ export default function CommunityProfile() {
   return (
     <>
       <section
-        className="profile-v3__progression"
+        className="profile-v3__progression profile-v6__progression"
         data-rank={progression.rankKey}
         aria-label="Уровень AnimeBox"
       >
-        <div className="profile-v3__level-orb">
-          <span>LEVEL</span>
-          <strong>{progression.level}</strong>
-          <small>/ {progression.maxLevel}</small>
-        </div>
+        <Link
+          href="/achievements"
+          className="profile-v6__progression-core"
+          aria-label={`Уровень ${progression.level}: ${progression.rank}. Открыть прогресс и достижения`}
+        >
+          <div className="profile-v3__level-orb profile-v6__level-orb" aria-hidden="true">
+            <span>LVL</span>
+            <strong>{progression.level}</strong>
+            <small>из {progression.maxLevel}</small>
+          </div>
 
-        <div className="profile-v3__progression-main">
-          <div className="profile-v3__progression-title">
-            <div>
-              <span className="profile-v2__eyebrow">AnimeBox Progression</span>
-              <h2>{progression.rank}</h2>
+          <div className="profile-v3__progression-main">
+            <div className="profile-v3__progression-title">
+              <div>
+                <span className="profile-v2__eyebrow">Прогресс аккаунта</span>
+                <h2>{progression.rank}</h2>
+              </div>
+              <strong>{progression.totalXp.toLocaleString('ru-RU')} XP</strong>
             </div>
-            <strong>{progression.totalXp.toLocaleString('ru-RU')} XP</strong>
+
+            <div
+              className="profile-v3__xp-track"
+              role="progressbar"
+              aria-label="Прогресс до следующего уровня"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(progression.progressPct)}
+            >
+              <span style={{ width: `${progression.progressPct}%` }} />
+            </div>
+
+            <div className="profile-v3__xp-meta">
+              {progression.nextLevelXp == null ? (
+                <span>Максимальный уровень достигнут</span>
+              ) : (
+                <>
+                  <span>
+                    {progression.levelProgressXp.toLocaleString('ru-RU')} / {progression.levelSpanXp.toLocaleString('ru-RU')} XP
+                  </span>
+                  <span>До LV.{progression.level + 1}: {progression.xpToNext.toLocaleString('ru-RU')} XP</span>
+                </>
+              )}
+            </div>
+
+            <div className="profile-v6__xp-sources" aria-hidden="true">
+              <span>Серии</span>
+              <span>Активность</span>
+              <span>Комментарии</span>
+              <span>Достижения</span>
+            </div>
           </div>
 
-          <div className="profile-v3__xp-track" aria-hidden="true">
-            <span style={{ width: `${progression.progressPct}%` }} />
-          </div>
+          <span className="profile-v6__progression-arrow" aria-hidden="true">→</span>
+        </Link>
 
-          <div className="profile-v3__xp-meta">
-            {progression.nextLevelXp == null ? (
-              <span>Максимальный уровень достигнут</span>
-            ) : (
-              <>
-                <span>
-                  {progression.levelProgressXp.toLocaleString('ru-RU')} / {progression.levelSpanXp.toLocaleString('ru-RU')} XP уровня
-                </span>
-                <span>до LV.{progression.level + 1}: {progression.xpToNext.toLocaleString('ru-RU')} XP</span>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="profile-v3__progression-side">
+        <aside className="profile-v3__progression-side">
           <span className={`profile-v3__xp-boost ${progression.premiumBoostActive ? 'is-active' : ''}`}>
             {progression.premiumBoostActive ? '+20% XP · Premium' : 'Premium · +20% XP'}
           </span>
           <small>
             {progression.premiumBoostActive
               ? 'Бонус действует на новый XP за активность.'
-              : 'Достижения дают одинаковый XP всем.'}
+              : 'Открой достижения и посмотри, как быстрее повышать уровень.'}
           </small>
           <Link href="/achievements">Все достижения →</Link>
-        </div>
+        </aside>
       </section>
 
-      <section className="profile-v5__challenges" aria-label="Ежедневные задания и серия активности">
+      <Link
+        className="profile-v5__challenges profile-v6__challenges-link"
+        href="/challenges"
+        aria-label="Открыть задания и серию активности"
+      >
         <div className="profile-v5__challenge-streak">
           <span className="profile-v2__eyebrow">Серия активности</span>
-          <strong>🔥 {data.challenges.streak.current}</strong>
-          <small>
-            дней подряд · рекорд {data.challenges.streak.longest}
-          </small>
+          <strong>🔥 {data.challenges.streak.current} {data.challenges.streak.current === 1 ? 'день' : 'дн.'}</strong>
+          <small>Личный рекорд · {data.challenges.streak.longest}</small>
+          <div className="profile-v6__streak-rail" aria-hidden="true">
+            {Array.from({ length: 7 }, (_, index) => (
+              <i
+                key={index}
+                className={index < Math.min(7, data.challenges.streak.current) ? 'is-active' : ''}
+              />
+            ))}
+          </div>
         </div>
 
         <div className="profile-v5__challenge-progress">
@@ -239,6 +271,7 @@ export default function CommunityProfile() {
               {' / '}
               {data.challenges.daily.length}
             </strong>
+            <small>заданий</small>
           </div>
           <div>
             <span>Неделя</span>
@@ -247,13 +280,14 @@ export default function CommunityProfile() {
               {' / '}
               {data.challenges.weekly.length}
             </strong>
+            <small>заданий</small>
           </div>
         </div>
 
-        <Link className="profile-v5__challenge-link" href="/challenges">
-          Открыть задания →
-        </Link>
-      </section>
+        <span className="profile-v5__challenge-link">
+          Открыть задания <b aria-hidden="true">→</b>
+        </span>
+      </Link>
 
       <section className="profile-v2__stats" aria-label="Статистика просмотра">
         <article className="profile-v2__stat">

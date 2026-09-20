@@ -1,0 +1,41 @@
+/* =========================================================
+   PERFORMANCE PASS V2
+   Paint less below the fold and keep persistent mobile chrome cheap.
+   ========================================================= */
+
+.home-page .section.schedule,
+.home-page .right-rail,
+.profile-v3__achievements,
+.profile-v4__featured {
+  content-visibility: auto;
+  contain-intrinsic-size: 560px;
+}
+
+/* Reserve the carousel footprint before personalised data arrives. */
+.home-page .home-hero-carousel,
+.home-page .page-hero--empty {
+  contain: layout paint;
+}
+
+@media (max-width: 720px) {
+  /* Large live backdrop blurs are expensive on low/mid-range Android GPUs.
+     The surfaces are already opaque enough on mobile to keep contrast. */
+  .topbar,
+  .sidebar {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .topbar {
+    background: rgba(6, 10, 20, .96);
+  }
+
+  .sidebar {
+    background: rgba(8, 12, 27, .98);
+  }
+
+  .home-page .section.schedule,
+  .home-page .right-rail {
+    contain-intrinsic-size: 720px;
+  }
+}
