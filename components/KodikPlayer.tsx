@@ -43,6 +43,7 @@ type Props = {
   episodeNumber?: number;
   resumeSeconds?: number;
   onReady?: () => void;
+  onError?: () => void;
   onTimeUpdate?: (sample: KodikTimeSample) => void;
   onPlaybackAction?: (event: KodikPlaybackActionEvent) => void;
   onPlaybackState?: (event: KodikPlaybackStateEvent) => void;
@@ -212,6 +213,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
   episodeNumber,
   resumeSeconds = 0,
   onReady,
+  onError,
   onTimeUpdate,
   onPlaybackAction,
   onPlaybackState,
@@ -596,6 +598,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
         allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
         allowFullScreen
         onLoad={handleLoad}
+        onError={onError}
       />
 
     </>

@@ -96,6 +96,10 @@ type DropdownProps = {
   align?: 'left' | 'right';
 };
 
+function normalizeMediaLink(url: string): string {
+  return url.startsWith('//') ? `https:${url}` : url;
+}
+
 function toProxyHls(url: string): string {
   if (!/^https?:\/\//i.test(url)) return url;
   return `/api/hls?url=${encodeURIComponent(url)}`;
@@ -112,6 +116,11 @@ const TRANSLATION_PREFERENCE_PREFIX = 'animebox:translation:v1';
 const LOCAL_PROGRESS_SAVE_INTERVAL_MS = 10_000;
 const LOCAL_RESUME_MIN_SECONDS = 10;
 const LOCAL_RESUME_END_GUARD_SECONDS = 20;
+const PLAYER_READY_TIMEOUT_MS = 14_000;
+const SOURCE_SWITCH_NOTICE_MS = 5_500;
+
+type SourceLoadState = 'idle' | 'loading' | 'ready' | 'error' | 'timeout';
+type PlayerFailureKind = Extract<SourceLoadState, 'error' | 'timeout'>;
 
 function normalizePreferenceValue(value?: string) {
   return value?.trim().toLocaleLowerCase('ru-RU') || '';
@@ -315,6 +324,10 @@ export default function AnimePlayer({
   const [activeSourceIndex, setActiveSourceIndex] = useState(0);
   const [activeTranslationIndex, setActiveTranslationIndex] = useState(0);
   const [playerError, setPlayerError] = useState<string | null>(null);
+  const [playerFailureKind, setPlayerFailureKind] = useState<PlayerFailureKind | null>(null);
+  const [sourceNotice, setSourceNotice] = useState<string | null>(null);
+  const [sourceStatuses, setSourceStatuses] = useState<Record<string, SourceLoadState>>({});
+  const [playerAttempt, setPlayerAttempt] = useState(0);
   const [started, setStarted] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
   const [theaterMode, setTheaterMode] = useState(false);
@@ -326,6 +339,7 @@ export default function AnimePlayer({
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const kodikPlayerRef = useRef<KodikPlayerHandle | null>(null);
+  const failedCandidatesRef = useRef<Set<string>>(new Set());
   const resumeAppliedRef = useRef(false);
   const localProgressRef = useRef<{
     positionSeconds: number;
@@ -357,7 +371,7 @@ export default function AnimePlayer({
   const currentSource = sources[activeSourceIndex];
   const currentTranslation = currentSource?.translations[activeTranslationIndex];
   const rawLink = currentTranslation?.url || src || '';
-  const normalizedLink = rawLink.startsWith('//') ? `https:${rawLink}` : rawLink;
+  const normalizedLink = normalizeMediaLink(rawLink);
   const mediaType =
     currentTranslation?.type ||
     currentSource?.type ||
@@ -367,6 +381,12 @@ export default function AnimePlayer({
   const isIframe = mediaType === 'iframe' || isKodik;
   const isHls = mediaType === 'hls';
   const videoLink = isHls ? toProxyHls(normalizedLink) : normalizedLink;
+  const currentSourceName = sourceLabel(currentSource?.name);
+  const currentCandidateKey = [
+    currentSource?.name || 'direct',
+    currentTranslation?.title || String(activeTranslationIndex),
+    normalizedLink || src || '',
+  ].join('::');
 
   const trackableNativeVideo = !isIframe && Boolean(videoLink);
 
@@ -1079,6 +1099,145 @@ export default function AnimePlayer({
     };
   }, []);
 
+  const setSourceStatus = useCallback((sourceName: string | undefined, status: SourceLoadState) => {
+    const key = sourceName?.trim() || 'Источник';
+    setSourceStatuses((current) => {
+      if (current[key] === status) return current;
+      return { ...current, [key]: status };
+    });
+  }, []);
+
+  const markPlayerReady = useCallback(() => {
+    setPlayerReady(true);
+    setPlayerError(null);
+    setPlayerFailureKind(null);
+    setSourceStatus(currentSource?.name, 'ready');
+  }, [currentSource?.name, setSourceStatus]);
+
+  const findFallbackCandidate = useCallback(() => {
+    if (sources.length < 2) return null;
+
+    const preferredTranslation = normalizePreferenceValue(currentTranslation?.title);
+
+    for (let offset = 1; offset <= sources.length; offset += 1) {
+      const sourceIndex = (activeSourceIndex + offset) % sources.length;
+      if (sourceIndex === activeSourceIndex) continue;
+
+      const source = sources[sourceIndex];
+      if (!source?.translations?.length) continue;
+
+      const matchingIndex = preferredTranslation
+        ? source.translations.findIndex(
+            (translation) =>
+              normalizePreferenceValue(translation.title) === preferredTranslation,
+          )
+        : -1;
+      const translationIndex = matchingIndex >= 0 ? matchingIndex : 0;
+      const translation = source.translations[translationIndex];
+      if (!translation?.url?.trim()) continue;
+
+      const candidateKey = [
+        source.name || 'direct',
+        translation.title || String(translationIndex),
+        normalizeMediaLink(translation.url),
+      ].join('::');
+
+      if (failedCandidatesRef.current.has(candidateKey)) continue;
+
+      return { sourceIndex, translationIndex, source, candidateKey };
+    }
+
+    return null;
+  }, [activeSourceIndex, currentTranslation?.title, sources]);
+
+  const switchToFallback = useCallback((failureMessage: string) => {
+    const fallback = findFallbackCandidate();
+    if (!fallback) return false;
+
+    const from = currentSourceName;
+    const to = sourceLabel(fallback.source.name);
+
+    setActiveSourceIndex(fallback.sourceIndex);
+    setActiveTranslationIndex(fallback.translationIndex);
+    setPlayerReady(false);
+    setPlayerError(null);
+    setPlayerFailureKind(null);
+    setPlayerAttempt((current) => current + 1);
+    setSourceStatus(fallback.source.name, 'loading');
+    setSourceNotice(`${failureMessage} Переключили ${from} → ${to}.`);
+
+    return true;
+  }, [currentSourceName, findFallbackCandidate, setSourceStatus]);
+
+  const failCurrentSource = useCallback((kind: PlayerFailureKind, message: string) => {
+    failedCandidatesRef.current.add(currentCandidateKey);
+    setPlayerReady(false);
+    setSourceStatus(currentSource?.name, kind);
+
+    const reason = kind === 'timeout'
+      ? `${currentSourceName} не ответил вовремя.`
+      : `${currentSourceName} не удалось запустить.`;
+
+    if (switchToFallback(reason)) return;
+
+    setPlayerFailureKind(kind);
+    setPlayerError(message);
+  }, [currentCandidateKey, currentSource?.name, currentSourceName, setSourceStatus, switchToFallback]);
+
+  const retryCurrentSource = useCallback(() => {
+    failedCandidatesRef.current.delete(currentCandidateKey);
+    setPlayerError(null);
+    setPlayerFailureKind(null);
+    setPlayerReady(false);
+    setSourceNotice(null);
+    setSourceStatus(currentSource?.name, 'loading');
+    setPlayerAttempt((current) => current + 1);
+  }, [currentCandidateKey, currentSource?.name, setSourceStatus]);
+
+  useEffect(() => {
+    if (!sourceNotice) return;
+
+    const timer = window.setTimeout(() => setSourceNotice(null), SOURCE_SWITCH_NOTICE_MS);
+    return () => window.clearTimeout(timer);
+  }, [sourceNotice]);
+
+  useEffect(() => {
+    if (!started || !videoLink || playerReady || playerError) return;
+
+    const timer = window.setTimeout(() => {
+      failCurrentSource(
+        'timeout',
+        'Источник слишком долго загружался. Попробуйте повторить или выбрать другой источник.',
+      );
+    }, PLAYER_READY_TIMEOUT_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    currentCandidateKey,
+    failCurrentSource,
+    playerAttempt,
+    playerError,
+    playerReady,
+    started,
+    videoLink,
+  ]);
+
+  useEffect(() => {
+    if (!started || !playerError) return;
+    if (!failedCandidatesRef.current.has(currentCandidateKey)) return;
+
+    // A fallback provider may arrive after the first source has already failed.
+    // Retry the automatic switch whenever the parent publishes new sources.
+    switchToFallback(`${currentSourceName} недоступен.`);
+  }, [
+    currentCandidateKey,
+    currentSourceName,
+    playerError,
+    sources,
+    started,
+    switchToFallback,
+  ]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -1126,7 +1285,7 @@ export default function AnimePlayer({
     let hls: Hls | null = null;
 
     const onVideoError = () => {
-      setPlayerError('Не удалось воспроизвести HLS-поток.');
+      failCurrentSource('error', 'Не удалось воспроизвести HLS-поток.');
     };
 
     video.addEventListener('error', onVideoError);
@@ -1146,7 +1305,7 @@ export default function AnimePlayer({
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setPlayerReady(true);
+        markPlayerReady();
         void video.play().catch(() => undefined);
       });
 
@@ -1158,13 +1317,13 @@ export default function AnimePlayer({
         } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
           hls?.recoverMediaError();
         } else {
-          setPlayerError(data.details || 'Ошибка HLS-потока.');
+          failCurrentSource('error', data.details || 'Ошибка HLS-потока.');
           hls?.destroy();
         }
       });
     } else {
       window.setTimeout(() => {
-        setPlayerError('Этот браузер не поддерживает HLS.');
+        failCurrentSource('error', 'Этот браузер не поддерживает HLS.');
       }, 0);
     }
 
@@ -1172,13 +1331,33 @@ export default function AnimePlayer({
       video.removeEventListener('error', onVideoError);
       hls?.destroy();
     };
-  }, [videoLink, isHls, started]);
+  }, [failCurrentSource, isHls, markPlayerReady, playerAttempt, started, videoLink]);
 
   function selectSource(index: number) {
+    if (!Number.isSafeInteger(index) || index < 0 || index >= sources.length) return;
+
+    if (index === activeSourceIndex && playerError) {
+      retryCurrentSource();
+      return;
+    }
+
+    const source = sources[index];
+    const rememberedTitle = source ? readTranslationPreference(animeId, source.name) : null;
+    const rememberedValue = normalizePreferenceValue(rememberedTitle || undefined);
+    const rememberedIndex = rememberedValue
+      ? source?.translations.findIndex(
+          (translation) => normalizePreferenceValue(translation.title) === rememberedValue,
+        ) ?? -1
+      : -1;
+
     setActiveSourceIndex(index);
-    setActiveTranslationIndex(0);
+    setActiveTranslationIndex(rememberedIndex >= 0 ? rememberedIndex : 0);
     setPlayerError(null);
+    setPlayerFailureKind(null);
+    setSourceNotice(null);
     setPlayerReady(false);
+    setSourceStatus(source?.name, started ? 'loading' : 'idle');
+    setPlayerAttempt((current) => current + 1);
   }
 
   function selectTranslation(id: string) {
@@ -1202,7 +1381,11 @@ export default function AnimePlayer({
     }
 
     setPlayerError(null);
+    setPlayerFailureKind(null);
+    setSourceNotice(null);
     setPlayerReady(false);
+    setSourceStatus(source.name, started ? 'loading' : 'idle');
+    setPlayerAttempt((current) => current + 1);
   }
 
   function selectEpisode(id: string) {
@@ -1214,6 +1397,11 @@ export default function AnimePlayer({
   }
 
   function startPlayback() {
+    setPlayerError(null);
+    setPlayerFailureKind(null);
+    setSourceNotice(null);
+    if (!playerReady) setSourceStatus(currentSource?.name, 'loading');
+
     /*
      * Kodik is preloaded behind the AnimeBox cover. Sending play from the
      * original click keeps the provider start inside the same user gesture,
@@ -1316,6 +1504,7 @@ export default function AnimePlayer({
             <div className="flex items-center rounded-2xl border border-white/[0.07] bg-black/20 p-1">
               {sources.map((source, index) => {
                 const active = activeSourceIndex === index;
+                const status = sourceStatuses[source.name] || 'idle';
 
                 return (
                   <button
@@ -1328,7 +1517,23 @@ export default function AnimePlayer({
                         : 'text-white/40 hover:bg-white/[0.05] hover:text-white/75'
                     }`}
                   >
-                    {sourceLabel(source.name)}
+                    <span className="inline-flex items-center gap-1.5">
+                      <span
+                        aria-hidden="true"
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          status === 'ready'
+                            ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,.65)]'
+                            : status === 'loading'
+                              ? 'animate-pulse bg-violet-300'
+                              : status === 'timeout'
+                                ? 'bg-amber-400'
+                                : status === 'error'
+                                  ? 'bg-red-400'
+                                  : 'bg-white/20'
+                        }`}
+                      />
+                      {sourceLabel(source.name)}
+                    </span>
                   </button>
                 );
               })}
@@ -1392,6 +1597,16 @@ export default function AnimePlayer({
           watchTogetherMode ? 'watch-together-player-stage-shell' : ''
         }`}
       >
+        {sourceNotice && (
+          <div
+            role="status"
+            className="mb-2.5 flex items-center gap-2 rounded-xl border border-violet-400/15 bg-violet-500/[0.07] px-3 py-2 text-[11px] font-semibold text-violet-100/80 sm:mb-3"
+          >
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-violet-300 shadow-[0_0_9px_rgba(196,181,253,.55)]" />
+            <span>{sourceNotice}</span>
+          </div>
+        )}
+
         <div
           ref={playerViewportRef}
           className={`${watchTogetherMode && !fullscreenActive ? 'watch-together-player-viewport' : ''} ${
@@ -1422,12 +1637,15 @@ export default function AnimePlayer({
           {isKodik && videoLink && (
             <KodikPlayer
               ref={kodikPlayerRef}
-              key={`${videoLink}:${episodeNumber}`}
+              key={`${videoLink}:${episodeNumber}:${playerAttempt}`}
               src={videoLink}
               title={`${title} — серия ${episodeNumber}`}
               episodeNumber={episodeNumber}
               resumeSeconds={resumeSeconds}
-              onReady={() => setPlayerReady(true)}
+              onReady={markPlayerReady}
+              onError={() =>
+                failCurrentSource('error', 'Kodik не удалось загрузить. Попробуйте другой источник.')
+              }
               onTimeUpdate={handleTimeSample}
               onPlaybackAction={(event) => {
                 const state = kodikPlayerRef.current?.getState();
@@ -1521,7 +1739,7 @@ export default function AnimePlayer({
               {!isKodik && (
                 isIframe ? (
                   <iframe
-                    key={videoLink}
+                    key={`${videoLink}:${playerAttempt}`}
                     src={videoLink}
                     width="100%"
                     height="100%"
@@ -1529,12 +1747,15 @@ export default function AnimePlayer({
                     allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
                     allowFullScreen
                     title="Anime player"
-                    onLoad={() => setPlayerReady(true)}
+                    onLoad={markPlayerReady}
+                    onError={() =>
+                      failCurrentSource('error', 'Внешний плеер не удалось загрузить.')
+                    }
                   />
                 ) : (
                   <video
                     ref={videoRef}
-                    key={videoLink}
+                    key={`${videoLink}:${playerAttempt}`}
                     className="absolute inset-0 h-full w-full bg-black object-contain"
                     controls
                     autoPlay
@@ -1543,7 +1764,12 @@ export default function AnimePlayer({
                     poster={poster || undefined}
                     preload="auto"
                     src={!isHls ? videoLink : undefined}
-                    onCanPlay={() => setPlayerReady(true)}
+                    onCanPlay={markPlayerReady}
+                    onError={() => {
+                      if (!isHls) {
+                        failCurrentSource('error', 'Видео не удалось загрузить.')
+                      }
+                    }}
                     onEnded={handlePlaybackEnded}
                     onTimeUpdate={(event) => {
                       const video = event.currentTarget;
@@ -1608,11 +1834,53 @@ export default function AnimePlayer({
             </button>
           )}
 
-          {playerError && !isIframe && (
-            <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/80 p-6 text-center backdrop-blur-md">
-              <div className="max-w-sm rounded-2xl border border-red-400/15 bg-red-500/10 px-5 py-4">
-                <p className="text-sm font-bold text-red-100">Не удалось запустить видео</p>
-                <p className="mt-1 text-xs text-red-200/65">{playerError}</p>
+          {playerError && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/85 p-5 text-center backdrop-blur-md">
+              <div className="w-full max-w-md rounded-2xl border border-white/[0.10] bg-[#0b0f1b]/95 p-5 shadow-[0_24px_70px_rgba(0,0,0,.55)]">
+                <div className={`mx-auto flex h-11 w-11 items-center justify-center rounded-2xl border ${
+                  playerFailureKind === 'timeout'
+                    ? 'border-amber-400/20 bg-amber-500/10 text-amber-200'
+                    : 'border-red-400/20 bg-red-500/10 text-red-200'
+                }`}>
+                  !
+                </div>
+                <p className="mt-3 text-sm font-extrabold text-white">
+                  {playerFailureKind === 'timeout' ? 'Источник не ответил' : 'Не удалось запустить видео'}
+                </p>
+                <p className="mt-1.5 text-xs leading-5 text-white/45">{playerError}</p>
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
+                  <button
+                    type="button"
+                    onClick={retryCurrentSource}
+                    className="inline-flex min-h-10 items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 to-indigo-500 px-4 text-xs font-extrabold text-white shadow-[0_10px_28px_rgba(105,72,255,.22)] transition hover:-translate-y-px"
+                  >
+                    Повторить
+                  </button>
+                  {sources.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const fallback = findFallbackCandidate();
+                        if (fallback) {
+                          setActiveSourceIndex(fallback.sourceIndex);
+                          setActiveTranslationIndex(fallback.translationIndex);
+                          setPlayerError(null);
+                          setPlayerFailureKind(null);
+                          setPlayerReady(false);
+                          setSourceStatus(fallback.source.name, 'loading');
+                          setPlayerAttempt((current) => current + 1);
+                        } else {
+                          const nextIndex = (activeSourceIndex + 1) % sources.length;
+                          failedCandidatesRef.current.clear();
+                          selectSource(nextIndex);
+                        }
+                      }}
+                      className="inline-flex min-h-10 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.04] px-4 text-xs font-bold text-white/65 transition hover:bg-white/[0.07] hover:text-white"
+                    >
+                      Другой источник
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
