@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KodikProviderSkipSignal } from '@/components/KodikPlayer';
+import { invalidateTrackerSnapshot } from '@/lib/tracker-client';
+import { invalidateCommunityProfile } from '@/lib/community-profile-cache';
 
 const HEARTBEAT_INTERVAL_MS = 10_000;
 const ACTIVE_ADVANCE_WINDOW_MS = 15_000;
@@ -42,6 +44,7 @@ type HeartbeatResponse = {
 
 type Options = {
   enabled: boolean;
+  userId?: string | null;
   animeId?: number;
   episode: number;
   requiredEpisodes?: number | null;
@@ -124,6 +127,7 @@ function progressPercent(coverageMs: number, eligibleDurationMs: number | null) 
 
 export function useWatchSession({
   enabled,
+  userId,
   animeId,
   episode,
   requiredEpisodes,
@@ -361,6 +365,12 @@ export function useWatchSession({
           completed: result.completed,
         });
 
+        if (userId) {
+          invalidateTrackerSnapshot(userId);
+          invalidateCommunityProfile(userId);
+        }
+        window.dispatchEvent(new Event('watch-state-updated'));
+
         if (result.newlyCompleted) {
           setMessage('Серия засчитана: подтверждено не менее 90% просмотра.');
           window.dispatchEvent(new Event('episode-completed'));
@@ -385,7 +395,7 @@ export function useWatchSession({
         sendingRef.current = false;
       }
     },
-    [animeId, enabled, publishProgress, startSession],
+    [animeId, enabled, publishProgress, startSession, userId],
   );
 
   const onSample = useCallback(
@@ -574,7 +584,15 @@ export function useWatchSession({
             positionMs: latestPositionRef.current,
           },
           true,
-        ).catch(() => undefined);
+        )
+          .then(() => {
+            if (userId) {
+              invalidateTrackerSnapshot(userId);
+              invalidateCommunityProfile(userId);
+            }
+            window.dispatchEvent(new Event('watch-state-updated'));
+          })
+          .catch(() => undefined);
       }
 
       sessionRef.current = null;
@@ -582,7 +600,7 @@ export function useWatchSession({
       startingRef.current = null;
       sendingRef.current = false;
     };
-  }, [animeId, enabled, episode, sendHeartbeat, sourceUrl]);
+  }, [animeId, enabled, episode, sendHeartbeat, sourceUrl, userId]);
 
   return {
     onSample,

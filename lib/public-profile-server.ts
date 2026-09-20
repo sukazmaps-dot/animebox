@@ -1,7 +1,6 @@
 import 'server-only';
 
 import { adminClient } from '@/lib/community-server';
-import { getWatchSummary } from '@/lib/watch-server';
 import { getSponsorStatus } from '@/lib/sponsor-server';
 import type { SponsorStatus } from '@/lib/sponsor';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
@@ -84,6 +83,11 @@ function toPublicStorageUrl(
   );
 }
 
+function numberValue(value: unknown) {
+  const number = Number(value ?? 0);
+  return Number.isFinite(number) && number > 0 ? number : 0;
+}
+
 function stringValue(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
@@ -129,8 +133,7 @@ export async function getPublicProfile(
   const profile = profileData as ProfileRow;
 
   const [
-    libraryResult,
-    commentsResult,
+    metricsResult,
     awardsResult,
     definitionsResult,
     ogResult,
@@ -139,11 +142,7 @@ export async function getPublicProfile(
     entitlements,
     premiumSettings,
   ] = await Promise.all([
-    admin.from('anime_library').select('status').eq('user_id', userId),
-    admin
-      .from('comments')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId),
+    admin.rpc('community_metrics', { p_user: userId }),
     admin.from('user_achievements').select('*').eq('user_id', userId),
     admin
       .from('achievements')
@@ -154,7 +153,6 @@ export async function getPublicProfile(
       .select('og_number')
       .eq('user_id', userId)
       .maybeSingle(),
-    getWatchSummary(userId),
     getSponsorStatus(userId),
     getEffectiveUserEntitlements(userId).catch(() => null),
     admin
@@ -165,11 +163,8 @@ export async function getPublicProfile(
       .then((result) => (result.error ? null : result.data)),
   ]);
 
-  if (libraryResult.error) {
-    console.error('Public profile library stats:', libraryResult.error);
-  }
-  if (commentsResult.error) {
-    console.error('Public profile comment stats:', commentsResult.error);
+  if (metricsResult.error) {
+    console.error('Public profile watch metrics:', metricsResult.error);
   }
   if (awardsResult.error) {
     console.error('Public profile awards:', awardsResult.error);
@@ -182,10 +177,18 @@ export async function getPublicProfile(
     console.error('Public profile OG badge:', ogResult.error);
   }
 
-  const episodes = watchSummary.completedEpisodes;
-  const comments = commentsResult.error ? 0 : commentsResult.count ?? 0;
-  const library = libraryResult.error ? [] : libraryResult.data ?? [];
-  const titles = library.filter((item) => item.status === 'completed').length;
+  const metrics =
+    !metricsResult.error &&
+    metricsResult.data &&
+    typeof metricsResult.data === 'object' &&
+    !Array.isArray(metricsResult.data)
+      ? (metricsResult.data as Record<string, unknown>)
+      : {};
+
+  const episodes = numberValue(metrics.episodes);
+  const titles = numberValue(metrics.titles);
+  const comments = numberValue(metrics.comments);
+  const activeMs = numberValue(metrics.active_ms);
 
   const earnedByCode = new Map<string, string | null>();
 
@@ -249,8 +252,8 @@ export async function getPublicProfile(
     stats: {
       episodes,
       titles,
-      minutes: Math.floor(watchSummary.activeMs / 60_000),
-      activeMs: Math.floor(watchSummary.activeMs),
+      minutes: Math.floor(activeMs / 60_000),
+      activeMs: Math.floor(activeMs),
       comments,
     },
     achievements,

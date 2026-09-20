@@ -11,6 +11,7 @@ import {
   removeWatchProgress,
   saveWatchProgress,
 } from '@/lib/watch-progress';
+import { setAnimeProgress } from '@/lib/anime-storage';
 import Hls from 'hls.js';
 import {
   hexToRgb,
@@ -489,6 +490,7 @@ export default function AnimePlayer({
       Boolean(user?.id) &&
       started &&
       (isKodik || trackableNativeVideo),
+    userId: user?.id ?? null,
     animeId,
     episode: episodeNumber,
     requiredEpisodes: totalEpisodes,
@@ -546,6 +548,10 @@ export default function AnimePlayer({
         removeWatchProgress(animeId, episodeNumber);
         lastLocalProgressSavedAtRef.current = now;
         return;
+      }
+
+      if (sample.positionSeconds >= LOCAL_RESUME_MIN_SECONDS) {
+        setAnimeProgress(animeId, episodeNumber);
       }
 
       saveWatchProgress(

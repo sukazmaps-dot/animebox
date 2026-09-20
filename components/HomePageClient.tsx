@@ -17,6 +17,9 @@ import HomeHeroCarousel from '@/components/HomeHeroCarousel';
 import { getAnimes } from '@/lib/anime-client';
 import { getPersonalizedRecommendations } from '@/lib/recommendations';
 import { readAnimeProgressMap, readWatchHistory, type AnimeHistoryEntry } from '@/lib/anime-storage';
+import { getWatchProgress } from '@/lib/watch-progress';
+import { useAuthState } from '@/components/AuthStateProvider';
+import type { RecentWatchResponse, WatchTitleOverview } from '@/types/watch';
 import TelegramPromoCard from '@/components/TelegramPromoCard';
 import TopAnimeItem from '@/components/TopAnimeItem';
 import ScheduleItem from '@/components/ScheduleItem';
@@ -190,9 +193,11 @@ export default function HomePage({
   const [popularError, setPopularError] = useState('');
   const [ongoingError, setOngoingError] = useState('');
 
+  const { user, loading: authLoading } = useAuthState();
   const [historyRevision, setHistoryRevision] = useState('');
   const [hasWatchHistory, setHasWatchHistory] = useState(false);
   const [watchHistory, setWatchHistory] = useState<AnimeHistoryEntry[]>([]);
+  const [serverContinue, setServerContinue] = useState<WatchTitleOverview[]>([]);
   const [mood, setMood] = useState<TasteMood>('any');
   const [tasteRevision, setTasteRevision] = useState(0);
   const hydrated = useSyncExternalStore(subscribeHydration, () => true, () => false);
@@ -312,6 +317,52 @@ export default function HomePage({
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, []);
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!user?.id) {
+      queueMicrotask(() => setServerContinue([]));
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const loadRecent = () => {
+      void fetch('/api/watch/recent?limit=4', {
+        signal: controller.signal,
+        cache: 'no-store',
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error(`Recent watch HTTP ${response.status}`);
+          }
+          return (await response.json()) as RecentWatchResponse;
+        })
+        .then((data) => {
+          if (!controller.signal.aborted) {
+            setServerContinue(
+              Array.isArray(data.items) ? data.items : [],
+            );
+          }
+        })
+        .catch((error: unknown) => {
+          if (
+            !(error instanceof Error && error.name === 'AbortError')
+          ) {
+            console.debug('[Home] recent watch unavailable');
+          }
+        });
+    };
+
+    loadRecent();
+    window.addEventListener('watch-state-updated', loadRecent);
+
+    return () => {
+      controller.abort();
+      window.removeEventListener('watch-state-updated', loadRecent);
+    };
+  }, [authLoading, user?.id]);
 
   useEffect(() => {
     const refreshTaste = () => {
@@ -454,14 +505,126 @@ export default function HomePage({
     return readAnimeProgressMap();
   }, [historyRevision]);
 
-  const continueWatchingItems = useMemo(
-    () =>
-      watchHistory.slice(0, 4).map((anime) => ({
+  const continueWatchingItems = useMemo(() => {
+    const localById = new Map(
+      watchHistory.map((anime) => [anime.id, anime] as const),
+    );
+    const catalogueById = new Map(
+      [...popular, ...ongoing].map((anime) => [anime.id, anime] as const),
+    );
+
+    const localItems = watchHistory.flatMap((anime) => {
+      const episode = progress[String(anime.id)] ?? 0;
+      if (episode <= 0) return [];
+
+      const exact = getWatchProgress(anime.id, episode);
+      if (!exact || exact.currentTime < 10) return [];
+
+      return [{
         anime,
-        episode: Math.max(1, progress[String(anime.id)] ?? 1),
-      })),
-    [progress, watchHistory],
-  );
+        episode,
+        resumeSeconds: Math.floor(exact.currentTime),
+        totalEpisodes:
+          anime.episodes && anime.episodes > 0
+            ? anime.episodes
+            : null,
+        sortAt: exact.updatedAt,
+      }];
+    });
+
+    if (!user?.id) {
+      return localItems
+        .sort((a, b) => b.sortAt - a.sortAt)
+        .slice(0, 4);
+    }
+
+    const serverItems = serverContinue.flatMap((state) => {
+      if (!state.resumeEpisode) return [];
+
+      const localAnime = localById.get(state.animeId);
+      const catalogueAnime = catalogueById.get(state.animeId);
+      const sourceAnime = localAnime ?? catalogueAnime;
+
+      const anime: AnimeHistoryEntry = sourceAnime
+        ? {
+            ...sourceAnime,
+            lastViewedAt:
+              state.lastWatchedAt &&
+              Number.isFinite(Date.parse(state.lastWatchedAt))
+                ? Date.parse(state.lastWatchedAt)
+                : Date.now(),
+            viewCount:
+              'viewCount' in sourceAnime &&
+              typeof sourceAnime.viewCount === 'number'
+                ? sourceAnime.viewCount
+                : 1,
+          }
+        : {
+            id: state.animeId,
+            title: {
+              russian: state.title,
+              romaji: state.title,
+              english: null,
+              native: null,
+            },
+            genres: [],
+            episodes: state.totalEpisodes,
+            coverImage: null,
+            lastViewedAt:
+              state.lastWatchedAt &&
+              Number.isFinite(Date.parse(state.lastWatchedAt))
+                ? Date.parse(state.lastWatchedAt)
+                : Date.now(),
+            viewCount: 1,
+          };
+
+      const serverAt =
+        state.lastWatchedAt &&
+        Number.isFinite(Date.parse(state.lastWatchedAt))
+          ? Date.parse(state.lastWatchedAt)
+          : 0;
+      const exact = getWatchProgress(
+        state.animeId,
+        state.resumeEpisode,
+      );
+      const localIsNewer = Boolean(
+        exact &&
+          exact.currentTime >= 10 &&
+          exact.updatedAt > serverAt,
+      );
+
+      return [{
+        anime,
+        episode: state.resumeEpisode,
+        resumeSeconds: localIsNewer
+          ? Math.floor(exact!.currentTime)
+          : Math.floor(state.resumePositionMs / 1000),
+        completedEpisodes: state.completedEpisodes,
+        totalEpisodes: state.totalEpisodes,
+        sortAt: localIsNewer ? exact!.updatedAt : serverAt,
+      }];
+    });
+
+    const serverIds = new Set(
+      serverItems.map((item) => item.anime.id),
+    );
+
+    return [
+      ...serverItems,
+      ...localItems.filter(
+        (item) => !serverIds.has(item.anime.id),
+      ),
+    ]
+      .sort((a, b) => b.sortAt - a.sortAt)
+      .slice(0, 4);
+  }, [
+    ongoing,
+    popular,
+    progress,
+    serverContinue,
+    user?.id,
+    watchHistory,
+  ]);
 
   const fallbackItems = ongoing.length > 0 ? ongoing : popular;
   const heroLoading =

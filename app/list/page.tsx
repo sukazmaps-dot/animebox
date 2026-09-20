@@ -16,6 +16,13 @@ import LibraryStatusControl from '@/components/LibraryStatusControl';
 
 type Filter = LibraryStatus | 'all';
 
+function formatResumeTime(milliseconds: number) {
+  const seconds = Math.max(0, Math.floor(milliseconds / 1000));
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return `${minutes}:${String(remainder).padStart(2, '0')}`;
+}
+
 const filterIcons: Record<Filter, string> = {
   all: '/brand/brand-mark.png',
   watching: '/brand/icons/watching.svg',
@@ -286,6 +293,65 @@ export default function MyListPage() {
                       </Link>
                     </div>
                   </div>
+
+                  {item.progress && item.progress.trackedEpisodes > 0 && (
+                    <div className="mt-3 rounded-xl border border-violet-400/10 bg-violet-500/[0.035] p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <span className="block text-[9px] font-extrabold uppercase tracking-[0.16em] text-violet-300/45">
+                            Подтверждённый просмотр
+                          </span>
+                          <strong className="mt-1 block text-xs text-white/80">
+                            {item.progress.fullyCompleted
+                              ? 'Тайтл полностью просмотрен'
+                              : item.progress.resumeEpisode
+                                ? `Серия ${item.progress.resumeEpisode}`
+                                : item.progress.latestEpisode
+                                  ? `Последняя серия: ${item.progress.latestEpisode}`
+                                  : 'Прогресс сохранён'}
+                          </strong>
+                        </div>
+
+                        <span className="text-[11px] font-bold text-violet-200/75">
+                          {item.progress.totalEpisodes
+                            ? `${item.progress.completedEpisodes} / ${item.progress.totalEpisodes} серий`
+                            : `${item.progress.completedEpisodes} серий подтверждено`}
+                        </span>
+                      </div>
+
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.055]">
+                        <span
+                          className="block h-full rounded-full bg-gradient-to-r from-violet-500 to-indigo-400"
+                          style={{
+                            width: `${Math.min(
+                              100,
+                              Math.max(
+                                0,
+                                item.progress.totalEpisodes
+                                  ? (item.progress.completedEpisodes /
+                                      item.progress.totalEpisodes) *
+                                      100
+                                  : item.progress.progressPercent ?? 0,
+                              ),
+                            )}%`,
+                          }}
+                        />
+                      </div>
+
+                      {item.progress.resumeEpisode && (
+                        <Link
+                          href={`/anime/${item.anime_id}/episode/${item.progress.resumeEpisode}`}
+                          className="mt-2 inline-flex min-h-9 items-center gap-2 rounded-lg border border-violet-400/15 bg-violet-500/[0.07] px-3 text-[11px] font-bold text-violet-100 transition hover:bg-violet-500/[0.12]"
+                        >
+                          Продолжить
+                          {item.progress.resumePositionMs >= 10_000
+                            ? ` · ${formatResumeTime(item.progress.resumePositionMs)}`
+                            : ''}
+                          <span aria-hidden="true">→</span>
+                        </Link>
+                      )}
+                    </div>
+                  )}
 
                   <div className="tracker-card__controls">
                     <LibraryStatusControl

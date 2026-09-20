@@ -10,7 +10,17 @@ import type { AnimeHistoryEntry } from '@/lib/anime-storage';
 export type ContinueWatchingItem = {
   anime: AnimeHistoryEntry;
   episode: number;
+  resumeSeconds?: number;
+  completedEpisodes?: number;
+  totalEpisodes?: number | null;
 };
+
+function formatResumeTime(seconds: number) {
+  const safe = Math.max(0, Math.floor(seconds));
+  const minutes = Math.floor(safe / 60);
+  const remainder = safe % 60;
+  return `${minutes}:${String(remainder).padStart(2, '0')}`;
+}
 
 export default function HomeContinueWatching({
   items,
@@ -33,12 +43,24 @@ export default function HomeContinueWatching({
       </div>
 
       <div className="continue-smart-grid">
-        {items.slice(0, 4).map(({ anime, episode }) => {
+        {items.slice(0, 4).map(({
+          anime,
+          episode,
+          resumeSeconds = 0,
+          completedEpisodes,
+          totalEpisodes: explicitTotalEpisodes,
+        }) => {
           const title = getAnimeTitle(anime);
-          const totalEpisodes = anime.episodes && anime.episodes > 0 ? anime.episodes : null;
-          const progress = totalEpisodes
-            ? Math.min(100, Math.max(4, (episode / totalEpisodes) * 100))
-            : 18;
+          const totalEpisodes =
+            explicitTotalEpisodes ??
+            (anime.episodes && anime.episodes > 0 ? anime.episodes : null);
+          const titleProgress =
+            completedEpisodes != null && totalEpisodes
+              ? (completedEpisodes / totalEpisodes) * 100
+              : totalEpisodes
+                ? (episode / totalEpisodes) * 100
+                : 18;
+          const progress = Math.min(100, Math.max(4, titleProgress));
 
           return (
             <Link
@@ -60,13 +82,22 @@ export default function HomeContinueWatching({
               </div>
 
               <div className="continue-smart-card__body">
-                <span className="continue-smart-card__eyebrow">ЭПИЗОД {Math.max(1, episode)}</span>
+                <span className="continue-smart-card__eyebrow">
+                  ЭПИЗОД {Math.max(1, episode)}
+                  {resumeSeconds >= 10 ? ` · ${formatResumeTime(resumeSeconds)}` : ''}
+                </span>
                 <strong title={title}>{title}</strong>
                 <div className="continue-smart-card__progress" aria-hidden="true">
                   <i style={{ width: `${progress}%` }} />
                 </div>
                 <small>
-                  {totalEpisodes ? `${episode} из ${totalEpisodes}` : 'Продолжить с места просмотра'}
+                  {resumeSeconds >= 10
+                    ? `Продолжить с ${formatResumeTime(resumeSeconds)}`
+                    : completedEpisodes != null && totalEpisodes
+                      ? `${completedEpisodes} из ${totalEpisodes} серий подтверждено`
+                      : totalEpisodes
+                        ? `${episode} из ${totalEpisodes}`
+                        : 'Продолжить с места просмотра'}
                 </small>
               </div>
 

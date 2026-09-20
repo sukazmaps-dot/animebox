@@ -2,6 +2,7 @@ import 'server-only';
 
 import { adminClient, ApiError, ensureAnime } from '@/lib/community-server';
 import { coveredSeconds, mergePlayedRanges } from '@/lib/played-coverage';
+import type { WatchTitleOverview } from '@/types/watch';
 
 const MAX_EPISODE_MS = 28_800_000;
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
@@ -976,6 +977,329 @@ export async function getCompletedEpisodes(
         typeof value === 'number' && Number.isSafeInteger(value) && value > 0,
     )
     .sort((a, b) => a - b);
+}
+
+const WATCH_QUERY_CHUNK = 100;
+
+function chunkValues<T>(values: T[], size = WATCH_QUERY_CHUNK) {
+  const chunks: T[][] = [];
+  for (let index = 0; index < values.length; index += size) {
+    chunks.push(values.slice(index, index + size));
+  }
+  return chunks;
+}
+
+function safeTimestamp(value: unknown) {
+  if (typeof value !== 'string') return 0;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function watchPercent(coverageMs: number, eligibleDurationMs: number | null) {
+  if (!eligibleDurationMs || eligibleDurationMs <= 0) return null;
+
+  return Math.min(
+    100,
+    Math.max(0, Math.round((coverageMs / eligibleDurationMs) * 100)),
+  );
+}
+
+export async function getTitleWatchOverviews(
+  userId: string,
+  animeIds: number[],
+): Promise<WatchTitleOverview[]> {
+  const normalizedAnimeIds = [
+    ...new Set(
+      animeIds
+        .map((value) => Number(value))
+        .filter(
+          (value) => Number.isSafeInteger(value) && value > 0,
+        ),
+    ),
+  ];
+
+  if (normalizedAnimeIds.length === 0) return [];
+
+  const watch = watchClient();
+  const admin = adminClient();
+
+  const episodeRows: Array<{
+    id: string;
+    anime_id: number;
+    episode_number: number;
+    duration_ms: number | null;
+  }> = [];
+
+  for (const batch of chunkValues(normalizedAnimeIds)) {
+    const { data, error } = await watch
+      .from('episodes')
+      .select('id,anime_id,episode_number,duration_ms')
+      .in('anime_id', batch);
+    throwIfError(error);
+
+    for (const row of data ?? []) {
+      if (typeof row.id !== 'string') continue;
+      episodeRows.push({
+        id: row.id,
+        anime_id: Number(row.anime_id),
+        episode_number: Number(row.episode_number),
+        duration_ms:
+          row.duration_ms == null ? null : Number(row.duration_ms),
+      });
+    }
+  }
+
+  const catalogRows: Array<{
+    id: number;
+    title: string;
+    total_episodes: number | null;
+    finished: boolean;
+  }> = [];
+
+  for (const batch of chunkValues(normalizedAnimeIds)) {
+    const { data, error } = await admin
+      .from('anime_catalog')
+      .select('id,title,total_episodes,finished')
+      .in('id', batch);
+
+    if (error) throw error;
+
+    for (const row of data ?? []) {
+      catalogRows.push({
+        id: Number(row.id),
+        title:
+          typeof row.title === 'string' && row.title.trim()
+            ? row.title.trim()
+            : `Аниме #${row.id}`,
+        total_episodes:
+          row.total_episodes == null ? null : Number(row.total_episodes),
+        finished: Boolean(row.finished),
+      });
+    }
+  }
+
+  const catalogByAnime = new Map(
+    catalogRows.map((row) => [row.id, row] as const),
+  );
+  const episodeById = new Map(
+    episodeRows.map((row) => [row.id, row] as const),
+  );
+
+  const progressRows: Array<{
+    episode_id: string;
+    watched_ranges: unknown;
+    excluded_ranges: unknown;
+    active_ms: number;
+    completed_at: string | null;
+    resume_position_ms: number;
+    last_watched_at: string | null;
+  }> = [];
+
+  const episodeIds = episodeRows.map((row) => row.id);
+
+  for (const batch of chunkValues(episodeIds)) {
+    const { data, error } = await watch
+      .from('progress')
+      .select(
+        'episode_id,watched_ranges,excluded_ranges,active_ms,completed_at,resume_position_ms,last_watched_at',
+      )
+      .eq('user_id', userId)
+      .in('episode_id', batch);
+    throwIfError(error);
+
+    for (const row of data ?? []) {
+      progressRows.push({
+        episode_id: String(row.episode_id),
+        watched_ranges: row.watched_ranges,
+        excluded_ranges: row.excluded_ranges,
+        active_ms: Number(row.active_ms ?? 0),
+        completed_at:
+          typeof row.completed_at === 'string' ? row.completed_at : null,
+        resume_position_ms: Number(row.resume_position_ms ?? 0),
+        last_watched_at:
+          typeof row.last_watched_at === 'string'
+            ? row.last_watched_at
+            : null,
+      });
+    }
+  }
+
+  const state = new Map<
+    number,
+    WatchTitleOverview & { latestTimestamp: number }
+  >();
+
+  for (const animeId of normalizedAnimeIds) {
+    const catalog = catalogByAnime.get(animeId);
+    state.set(animeId, {
+      animeId,
+      title: catalog?.title ?? `Аниме #${animeId}`,
+      totalEpisodes: catalog?.total_episodes ?? null,
+      trackedEpisodes: 0,
+      completedEpisodes: 0,
+      activeMs: 0,
+      latestEpisode: null,
+      resumeEpisode: null,
+      resumePositionMs: 0,
+      durationMs: null,
+      progressPercent: null,
+      latestCompleted: false,
+      fullyCompleted: false,
+      lastWatchedAt: null,
+      latestTimestamp: 0,
+    });
+  }
+
+  for (const progress of progressRows) {
+    const episode = episodeById.get(progress.episode_id);
+    if (!episode) continue;
+
+    const current = state.get(episode.anime_id);
+    if (!current) continue;
+
+    current.trackedEpisodes += 1;
+    current.activeMs += Math.max(0, progress.active_ms);
+
+    const completed = Boolean(progress.completed_at);
+    if (completed) current.completedEpisodes += 1;
+
+    const watchedAt = safeTimestamp(progress.last_watched_at);
+
+    if (
+      current.latestEpisode == null ||
+      watchedAt >= current.latestTimestamp
+    ) {
+      const effective = effectiveWatchProgress(
+        normalizeRanges(progress.watched_ranges),
+        normalizeRanges(progress.excluded_ranges),
+        episode.duration_ms,
+      );
+
+      current.latestTimestamp = watchedAt;
+      current.latestEpisode = episode.episode_number;
+      current.resumePositionMs = Math.max(
+        0,
+        Math.round(progress.resume_position_ms),
+      );
+      current.durationMs = episode.duration_ms;
+      current.progressPercent = completed
+        ? 100
+        : watchPercent(
+            effective.coverageMs,
+            effective.eligibleDurationMs,
+          );
+      current.latestCompleted = completed;
+      current.lastWatchedAt = progress.last_watched_at;
+    }
+  }
+
+  return [...state.values()].map((item) => {
+    const catalog = catalogByAnime.get(item.animeId);
+    const totalEpisodes =
+      catalog?.total_episodes != null && catalog.total_episodes > 0
+        ? catalog.total_episodes
+        : null;
+    const fullyCompleted = Boolean(
+      catalog?.finished &&
+        totalEpisodes &&
+        item.completedEpisodes >= totalEpisodes,
+    );
+
+    const resumeEpisode =
+      !fullyCompleted &&
+      item.latestEpisode != null &&
+      !item.latestCompleted
+        ? item.latestEpisode
+        : null;
+
+    return {
+      animeId: item.animeId,
+      title: item.title,
+      totalEpisodes,
+      trackedEpisodes: item.trackedEpisodes,
+      completedEpisodes: item.completedEpisodes,
+      activeMs: item.activeMs,
+      latestEpisode: item.latestEpisode,
+      resumeEpisode,
+      resumePositionMs:
+        resumeEpisode == null ? 0 : item.resumePositionMs,
+      durationMs: item.durationMs,
+      progressPercent: item.progressPercent,
+      latestCompleted: item.latestCompleted,
+      fullyCompleted,
+      lastWatchedAt: item.lastWatchedAt,
+    };
+  });
+}
+
+export async function getRecentWatchTitles(
+  userId: string,
+  limit = 4,
+): Promise<WatchTitleOverview[]> {
+  const safeLimit = Math.min(12, Math.max(1, Math.floor(limit)));
+  const watch = watchClient();
+
+  const { data: recentProgress, error: progressError } = await watch
+    .from('progress')
+    .select('episode_id,last_watched_at')
+    .eq('user_id', userId)
+    .order('last_watched_at', { ascending: false })
+    .limit(Math.max(24, safeLimit * 12));
+  throwIfError(progressError);
+
+  const episodeIds = [
+    ...new Set(
+      (recentProgress ?? [])
+        .map((row) => String(row.episode_id || ''))
+        .filter(Boolean),
+    ),
+  ];
+
+  if (episodeIds.length === 0) return [];
+
+  const episodeById = new Map<string, number>();
+
+  for (const batch of chunkValues(episodeIds)) {
+    const { data, error } = await watch
+      .from('episodes')
+      .select('id,anime_id')
+      .in('id', batch);
+    throwIfError(error);
+
+    for (const row of data ?? []) {
+      if (typeof row.id === 'string') {
+        episodeById.set(row.id, Number(row.anime_id));
+      }
+    }
+  }
+
+  const recentAnimeIds: number[] = [];
+  const seen = new Set<number>();
+
+  for (const row of recentProgress ?? []) {
+    const animeId = episodeById.get(String(row.episode_id));
+    if (!animeId || seen.has(animeId)) continue;
+    seen.add(animeId);
+    recentAnimeIds.push(animeId);
+  }
+
+  const overviews = await getTitleWatchOverviews(
+    userId,
+    recentAnimeIds,
+  );
+
+  return overviews
+    .filter(
+      (item) =>
+        item.trackedEpisodes > 0 &&
+        item.resumeEpisode != null,
+    )
+    .sort(
+      (a, b) =>
+        safeTimestamp(b.lastWatchedAt) -
+        safeTimestamp(a.lastWatchedAt),
+    )
+    .slice(0, safeLimit);
 }
 
 export async function endWatchSession(input: {

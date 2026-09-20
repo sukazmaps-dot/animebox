@@ -1,15 +1,11 @@
 import { failure, response, userClient } from '@/lib/community-server';
-import { getWatchSummary } from '@/lib/watch-server';
+import { getTitleWatchOverviews } from '@/lib/watch-server';
 
 export async function GET() {
   try {
     const { client, user } = await userClient();
 
-    const [{ data, error }, watchSummary] = await Promise.all([
-      client.rpc('my_community_profile'),
-      getWatchSummary(user.id),
-    ]);
-
+    const { data, error } = await client.rpc('my_community_profile');
     if (error) throw error;
 
     if (!data || typeof data !== 'object' || Array.isArray(data)) {
@@ -17,20 +13,47 @@ export async function GET() {
     }
 
     const profile = data as Record<string, unknown>;
-    const rawStats = profile.stats;
+    const rawLibrary = Array.isArray(profile.library)
+      ? profile.library
+      : [];
 
-    if (!rawStats || typeof rawStats !== 'object' || Array.isArray(rawStats)) {
-      return response(data);
-    }
+    const animeIds = rawLibrary
+      .map((item) => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) {
+          return null;
+        }
+
+        const id = Number(
+          (item as Record<string, unknown>).anime_id,
+        );
+
+        return Number.isSafeInteger(id) && id > 0 ? id : null;
+      })
+      .filter((value): value is number => value !== null);
+
+    const overviews = await getTitleWatchOverviews(user.id, animeIds);
+    const progressByAnime = new Map(
+      overviews.map((item) => [item.animeId, item] as const),
+    );
 
     return response({
       ...profile,
-      stats: {
-        ...(rawStats as Record<string, unknown>),
-        episodes: watchSummary.completedEpisodes,
-        minutes: Math.floor(watchSummary.activeMs / 60_000),
-        active_ms: Math.floor(watchSummary.activeMs),
-      },
+      library: rawLibrary.map((item) => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) {
+          return item;
+        }
+
+        const row = item as Record<string, unknown>;
+        const animeId = Number(row.anime_id);
+
+        return {
+          ...row,
+          progress:
+            Number.isSafeInteger(animeId) && animeId > 0
+              ? progressByAnime.get(animeId) ?? null
+              : null,
+        };
+      }),
     });
   } catch (error) {
     return failure(error);

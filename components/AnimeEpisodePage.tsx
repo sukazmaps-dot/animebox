@@ -12,7 +12,6 @@ import {
   addAnimeToList,
   getAnimeProgress,
   recordAnimeView,
-  setAnimeProgress,
 } from '@/lib/anime-storage';
 import { cleanShikimoriDescription } from '@/lib/shikimori-text';
 import { getAnimeTitle } from '@/lib/anime-display';
@@ -146,8 +145,10 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
   useEffect(() => {
     if (!anime) return;
 
+    // Opening an episode page is browsing, not proof of playback.
+    // Exact guest progress is written by AnimePlayer after real time samples;
+    // authenticated progress comes only from animebox_watch.
     addAnimeToList(anime);
-    setAnimeProgress(anime.id, episodeNumber);
     recordAnimeView(anime);
 
     queueMicrotask(() => {

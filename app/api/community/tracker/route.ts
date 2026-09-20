@@ -5,6 +5,7 @@ import {
   userClient,
 } from '@/lib/community-server';
 import type { LibraryStatus } from '@/lib/community-client';
+import { getTitleWatchOverviews } from '@/lib/watch-server';
 
 const VALID_STATUS = new Set<LibraryStatus>([
   'watching',
@@ -54,7 +55,21 @@ export async function GET() {
       ];
     });
 
-    return response({ stats, library });
+    const overviews = await getTitleWatchOverviews(
+      user.id,
+      library.map((item) => item.anime_id),
+    );
+    const progressByAnime = new Map(
+      overviews.map((item) => [item.animeId, item] as const),
+    );
+
+    return response({
+      stats,
+      library: library.map((item) => ({
+        ...item,
+        progress: progressByAnime.get(item.anime_id) ?? null,
+      })),
+    });
   } catch (error) {
     return failure(error);
   }

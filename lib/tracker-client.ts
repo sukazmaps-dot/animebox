@@ -1,10 +1,16 @@
 'use client';
 
 import type { LibraryStatus } from '@/lib/community-client';
+import type { WatchTitleOverview } from '@/types/watch';
 
 export type TrackerSnapshot = {
   stats: Record<LibraryStatus, number>;
-  library: { anime_id: number; title: string; status: LibraryStatus }[];
+  library: {
+    anime_id: number;
+    title: string;
+    status: LibraryStatus;
+    progress?: WatchTitleOverview | null;
+  }[];
 };
 
 type CacheEntry = { data: TrackerSnapshot; expiresAt: number };

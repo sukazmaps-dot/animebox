@@ -1,3 +1,5 @@
+import type { WatchTitleOverview } from '@/types/watch';
+
 export async function communityRequest<T>(
   path: string,
   body?: unknown,
@@ -42,5 +44,10 @@ export type CommunityProfile = {
     metric: 'episodes' | 'shonen_titles' | 'comments';
     threshold: number;
   }[];
-  library: { anime_id: number; title: string; status: LibraryStatus }[];
+  library: {
+    anime_id: number;
+    title: string;
+    status: LibraryStatus;
+    progress?: WatchTitleOverview | null;
+  }[];
 };

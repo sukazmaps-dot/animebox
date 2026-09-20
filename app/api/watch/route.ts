@@ -1,5 +1,6 @@
 import {
   ApiError,
+  adminClient,
   failure,
   positiveInteger,
   readBody,
@@ -100,7 +101,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { client, user } = await userClient();
+    const { user } = await userClient();
     const body = await readBody(request);
     const action = String(body.action || '');
 
@@ -119,6 +120,26 @@ export async function POST(request: Request) {
         positionMs: positionMs(body.positionMs, true),
         durationMs: optionalPositiveInteger(body.durationMs, 28_800_000),
       });
+
+      const admin = adminClient();
+      const { error: libraryError } = await admin
+        .from('anime_library')
+        .upsert(
+          {
+            user_id: user.id,
+            anime_id: animeId,
+            status: 'watching',
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: 'user_id,anime_id',
+            ignoreDuplicates: true,
+          },
+        );
+
+      if (libraryError) {
+        console.error('[watch] auto library sync failed:', libraryError);
+      }
 
       return response(result, 201);
     }
@@ -142,15 +163,13 @@ export async function POST(request: Request) {
       });
 
       if (result.newlyCompleted) {
-        // Keep the existing community history/achievements in sync with the
-        // stricter server-side watch tracker when duration is known.
-        const { error } = await client.rpc('record_episode', {
-          p_anime: result.animeId,
-          p_episode: result.episode,
-          p_completed: true,
-          p_source: 'player',
-        });
-        if (error) console.error('[watch] record_episode sync failed:', error);
+        const { error } = await adminClient().rpc(
+          'award_achievements',
+          { p_user: user.id },
+        );
+        if (error) {
+          console.error('[watch] achievement sync failed:', error);
+        }
       }
 
       return response(result);
