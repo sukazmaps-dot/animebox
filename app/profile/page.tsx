@@ -14,6 +14,7 @@ import CommunityProfile from '@/components/CommunityProfile';
 import SponsorDashboard from '@/components/monetization/SponsorDashboard';
 import MySponsorBadge from '@/components/monetization/MySponsorBadge';
 import UserAvatarWithFrame from '@/components/profile/UserAvatarWithFrame';
+import ProfileAnimeIdentityLoader from '@/components/profile/ProfileAnimeIdentityLoader';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import CurrentPremiumBadge from '@/components/premium/CurrentPremiumBadge';
 import {
@@ -343,10 +344,10 @@ export default function ProfilePage() {
                   {profile.og_number && (
                     <span
                       className="animebox-og-badge"
-                      title="Один из первых 100 активных пользователей AnimeBox"
+                      title="Постоянный номер одного из первых 100 активных участников AnimeBox"
                     >
                       <span aria-hidden="true">◆</span>
-                      OG #{String(profile.og_number).padStart(3, '0')}
+                      FOUNDING #{String(profile.og_number).padStart(3, '0')}
                     </span>
                   )}
                 </div>
@@ -383,6 +384,10 @@ export default function ProfilePage() {
       </section>
 
       <SponsorDashboard history />
+      <ProfileAnimeIdentityLoader
+        premium={premiumActive}
+        foundingNumber={profile.og_number}
+      />
       <CommunityProfile />
 
       <section className="profile-v2__bottom-card profile-v2__bottom-card--premium">
