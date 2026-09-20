@@ -116,6 +116,67 @@ type ModerationContext = {
 
 const MODERATION_TIMEOUT_MS = 9_000;
 
+async function moderationErrorDetails(response: Response) {
+  try {
+    const payload = (await response.json()) as {
+      error?: {
+        code?: string | null;
+        type?: string | null;
+        message?: string | null;
+      };
+    };
+    return {
+      code: payload.error?.code?.trim() || null,
+      type: payload.error?.type?.trim() || null,
+      message: payload.error?.message?.trim() || null,
+    };
+  } catch {
+    return { code: null, type: null, message: null };
+  }
+}
+
+function quotaLikeModerationError(details: {
+  code: string | null;
+  type: string | null;
+  message: string | null;
+}) {
+  const haystack = [details.code, details.type, details.message]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return /insufficient_quota|credit|billing|spend|quota/.test(haystack);
+}
+
+function technicalModerationReason(reason: string) {
+  return (
+    reason === 'moderation_provider_not_configured' ||
+    reason === 'moderation_rate_limited' ||
+    reason === 'moderation_quota_unavailable' ||
+    reason === 'moderation_timeout' ||
+    reason === 'moderation_unavailable' ||
+    reason.startsWith('moderation_http_')
+  );
+}
+
+function moderationTechnicalMessage(reason: string) {
+  if (reason === 'moderation_provider_not_configured') {
+    return 'Сервис проверки изображений пока не настроен. Старое оформление сохранено — попробуйте позже.';
+  }
+  if (reason === 'moderation_quota_unavailable') {
+    return 'Сервис проверки изображений временно недоступен из-за лимита API. Старое оформление сохранено — попробуйте позже.';
+  }
+  if (reason === 'moderation_rate_limited') {
+    return 'Сервис проверки изображений сейчас перегружен. Подождите немного и повторите загрузку.';
+  }
+  if (reason === 'moderation_timeout') {
+    return 'Проверка изображения заняла слишком много времени. Старое оформление сохранено — попробуйте ещё раз.';
+  }
+  return 'Сервис проверки изображений временно недоступен. Старое оформление сохранено — попробуйте позже.';
+}
+
+const MODERATION_RETRY_DELAYS_MS = [0, 700, 1_800] as const;
+
 async function moderateWithOpenAI(
   bytes: Buffer,
   mimeType: string,
@@ -135,14 +196,20 @@ async function moderateWithOpenAI(
     };
   }
 
-  try {
-    const dataUrl = `data:${mimeType};base64,${bytes.toString('base64')}`;
+  const dataUrl = `data:${mimeType};base64,${bytes.toString('base64')}`;
+  let lastFailureReason = 'moderation_unavailable';
+
+  for (let attempt = 0; attempt < MODERATION_RETRY_DELAYS_MS.length; attempt += 1) {
+    const delay = MODERATION_RETRY_DELAYS_MS[attempt];
+    if (delay > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), MODERATION_TIMEOUT_MS);
-    let response: Response;
 
     try {
-      response = await fetch('https://api.openai.com/v1/moderations', {
+      const response = await fetch('https://api.openai.com/v1/moderations', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -160,108 +227,151 @@ async function moderateWithOpenAI(
         cache: 'no-store',
         signal: controller.signal,
       });
-    } finally {
-      clearTimeout(timeout);
-    }
 
-    if (!response.ok) {
-      console.error('[ProfileMediaSafety] moderation HTTP', response.status);
-      return {
-        decision: 'review',
-        reason: `moderation_http_${response.status}`,
-        provider: 'openai',
-        model: 'omni-moderation-latest',
-        categories: {},
-        scores: {},
-        raw: null,
+      if (!response.ok) {
+        const details = await moderationErrorDetails(response);
+        const quotaUnavailable =
+          response.status === 429 && quotaLikeModerationError(details);
+
+        if (quotaUnavailable) {
+          return {
+            decision: 'review',
+            reason: 'moderation_quota_unavailable',
+            provider: 'openai',
+            model: 'omni-moderation-latest',
+            categories: {},
+            scores: {},
+            raw: {
+              http_status: response.status,
+              error_code: details.code,
+              error_type: details.type,
+            },
+          };
+        }
+
+        const retryable =
+          response.status === 429 ||
+          response.status === 500 ||
+          response.status === 502 ||
+          response.status === 503 ||
+          response.status === 504;
+
+        lastFailureReason =
+          response.status === 429
+            ? 'moderation_rate_limited'
+            : `moderation_http_${response.status}`;
+
+        if (retryable && attempt < MODERATION_RETRY_DELAYS_MS.length - 1) {
+          continue;
+        }
+
+        console.error('[ProfileMediaSafety] moderation HTTP', response.status, details.code);
+        return {
+          decision: 'review',
+          reason: lastFailureReason,
+          provider: 'openai',
+          model: 'omni-moderation-latest',
+          categories: {},
+          scores: {},
+          raw: {
+            http_status: response.status,
+            error_code: details.code,
+            error_type: details.type,
+          },
+        };
+      }
+
+      const payload = (await response.json()) as {
+        model?: string;
+        results?: Array<{
+          flagged?: boolean;
+          categories?: Record<string, boolean>;
+          category_scores?: Record<string, number>;
+        }>;
       };
-    }
 
-    const payload = (await response.json()) as {
-      model?: string;
-      results?: Array<{
-        flagged?: boolean;
-        categories?: Record<string, boolean>;
-        category_scores?: Record<string, number>;
-      }>;
-    };
+      const result = payload.results?.[0];
+      const categories = result?.categories ?? {};
+      const scores = result?.category_scores ?? {};
 
-    const result = payload.results?.[0];
-    const categories = result?.categories ?? {};
-    const scores = result?.category_scores ?? {};
+      const sexualScore = finiteScore(scores.sexual);
+      const sexualMinorsScore = finiteScore(scores['sexual/minors']);
+      const graphicScore = finiteScore(scores['violence/graphic']);
+      const violenceScore = finiteScore(scores.violence);
+      const selfHarmScore = Math.max(
+        finiteScore(scores['self-harm']),
+        finiteScore(scores['self-harm/intent']),
+        finiteScore(scores['self-harm/instructions']),
+      );
+      const hateThreatScore = finiteScore(scores['hate/threatening']);
 
-    const sexualScore = finiteScore(scores.sexual);
-    const sexualMinorsScore = finiteScore(scores['sexual/minors']);
-    const graphicScore = finiteScore(scores['violence/graphic']);
-    const violenceScore = finiteScore(scores.violence);
-    const selfHarmScore = Math.max(
-      finiteScore(scores['self-harm']),
-      finiteScore(scores['self-harm/intent']),
-      finiteScore(scores['self-harm/instructions']),
-    );
-    const hateThreatScore = finiteScore(scores['hate/threatening']);
+      const hardBlock =
+        Boolean(categories['sexual/minors']) ||
+        sexualMinorsScore >= 0.02 ||
+        (Boolean(categories.sexual) && sexualScore >= 0.88) ||
+        sexualScore >= 0.94 ||
+        (Boolean(categories['violence/graphic']) && graphicScore >= 0.82) ||
+        graphicScore >= 0.9 ||
+        selfHarmScore >= 0.88 ||
+        hateThreatScore >= 0.88;
 
-    // Profile-media policy v2: only high-confidence severe content is blocked
-    // automatically. Stylised anime art often receives small non-zero scores;
-    // those should not turn a harmless avatar into a hard rejection.
-    const hardBlock =
-      Boolean(categories['sexual/minors']) ||
-      sexualMinorsScore >= 0.02 ||
-      (Boolean(categories.sexual) && sexualScore >= 0.88) ||
-      sexualScore >= 0.94 ||
-      (Boolean(categories['violence/graphic']) && graphicScore >= 0.82) ||
-      graphicScore >= 0.9 ||
-      selfHarmScore >= 0.88 ||
-      hateThreatScore >= 0.88;
+      if (hardBlock) {
+        return {
+          decision: 'block',
+          reason: 'unsafe_profile_media_v2',
+          provider: 'openai',
+          model: payload.model || 'omni-moderation-latest',
+          categories,
+          scores,
+          raw: payload as unknown as Record<string, unknown>,
+        };
+      }
 
-    if (hardBlock) {
+      const bannerMultiplier = context.kind === 'banner' ? 1.12 : 1;
+      const needsReview =
+        sexualScore >= 0.62 * bannerMultiplier ||
+        graphicScore >= 0.55 * bannerMultiplier ||
+        violenceScore >= 0.72 * bannerMultiplier ||
+        selfHarmScore >= 0.62 ||
+        hateThreatScore >= 0.62;
+
       return {
-        decision: 'block',
-        reason: 'unsafe_profile_media_v2',
+        decision: needsReview ? 'review' : 'approve',
+        reason: needsReview ? 'borderline_profile_media_v2' : 'safe_profile_media_v2',
         provider: 'openai',
         model: payload.model || 'omni-moderation-latest',
         categories,
         scores,
         raw: payload as unknown as Record<string, unknown>,
       };
+    } catch (error) {
+      const timedOut = error instanceof Error && error.name === 'AbortError';
+      lastFailureReason = timedOut ? 'moderation_timeout' : 'moderation_unavailable';
+
+      if (attempt < MODERATION_RETRY_DELAYS_MS.length - 1) {
+        continue;
+      }
+
+      console.error('[ProfileMediaSafety] moderation request failed:', error);
+    } finally {
+      clearTimeout(timeout);
     }
-
-    const bannerMultiplier = context.kind === 'banner' ? 1.12 : 1;
-    const needsReview =
-      sexualScore >= 0.62 * bannerMultiplier ||
-      graphicScore >= 0.55 * bannerMultiplier ||
-      violenceScore >= 0.72 * bannerMultiplier ||
-      selfHarmScore >= 0.62 ||
-      hateThreatScore >= 0.62;
-
-    return {
-      decision: needsReview ? 'review' : 'approve',
-      reason: needsReview ? 'borderline_profile_media_v2' : 'safe_profile_media_v2',
-      provider: 'openai',
-      model: payload.model || 'omni-moderation-latest',
-      categories,
-      scores,
-      raw: payload as unknown as Record<string, unknown>,
-    };
-  } catch (error) {
-    console.error('[ProfileMediaSafety] moderation request failed:', error);
-    const timeout = error instanceof Error && error.name === 'AbortError';
-    return {
-      decision: 'review',
-      reason: timeout ? 'moderation_timeout' : 'moderation_unavailable',
-      provider: 'openai',
-      model: 'omni-moderation-latest',
-      categories: {},
-      scores: {},
-      raw: null,
-    };
   }
+
+  return {
+    decision: 'review',
+    reason: lastFailureReason,
+    provider: 'openai',
+    model: 'omni-moderation-latest',
+    categories: {},
+    scores: {},
+    raw: null,
+  };
 }
 
-async function loadAndModerate(
+async function loadMediaCandidate(
   candidate: ProfileMediaCandidate,
-  context: ModerationContext,
-): Promise<LoadedMedia> {
+): Promise<Omit<LoadedMedia, 'moderation'>> {
   const admin = adminClient();
   const { data, error } = await admin.storage
     .from(QUARANTINE_BUCKET)
@@ -276,13 +386,6 @@ async function loadAndModerate(
   const sha256 = createHash('sha256').update(bytes).digest('hex');
   const animated = detectAnimation(bytes, mimeType);
 
-  const cached = await cachedDecision(sha256);
-  const moderation = cached ?? (await moderateWithOpenAI(bytes, mimeType, context));
-
-  // v2 no longer sends every animated avatar to manual review by default.
-  // The constrained upload sizes plus the provider decision are used instead;
-  // suspicious/flagged animation still lands in the normal review queue.
-
   return {
     candidate,
     bytes,
@@ -290,15 +393,61 @@ async function loadAndModerate(
     size: bytes.byteLength,
     sha256,
     animated,
-    moderation,
   };
+}
+
+async function moderateGroup(
+  group: ProfileMediaCandidateGroup,
+): Promise<LoadedMedia[]> {
+  const loaded = await Promise.all(
+    group.candidates.map((candidate) => loadMediaCandidate(candidate)),
+  );
+  if (!loaded.length) return [];
+
+  const context: ModerationContext = { scope: group.scope, kind: group.kind };
+  const primary =
+    loaded.find((item) => item.candidate.variant === 'original') ?? loaded[0];
+
+  const primaryCached = await cachedDecision(primary.sha256);
+  const primaryModeration =
+    primaryCached ??
+    (await moderateWithOpenAI(primary.bytes, primary.mimeType, context));
+
+  const items: LoadedMedia[] = [];
+
+  for (const item of loaded) {
+    if (item === primary) {
+      items.push({ ...item, moderation: primaryModeration });
+      continue;
+    }
+
+    const cached = await cachedDecision(item.sha256);
+
+    // Static avatar/banner variants are generated from the already checked
+    // original. Cropping/resizing cannot introduce new unsafe content, so one
+    // provider request is enough for the whole upload group.
+    const moderation =
+      cached ??
+      ({
+        ...primaryModeration,
+        raw: {
+          inherited_from_variant: primary.candidate.variant,
+          inherited_from_sha256: primary.sha256,
+          source_reason: primaryModeration.reason,
+        },
+      } satisfies ModerationResult);
+
+    items.push({ ...item, moderation });
+  }
+
+  return items;
 }
 
 async function recordImmediate(
   userId: string,
   group: ProfileMediaCandidateGroup,
   item: LoadedMedia,
-  status: 'approved' | 'rejected',
+  status: 'approved' | 'rejected' | 'review',
 ) {
   const { error } = await adminClient().from('profile_media_moderation').insert({
     user_id: userId,
@@ -427,15 +576,16 @@ export async function screenProfileMediaGroups(
   for (const group of groups) {
     if (!group.candidates.length) continue;
 
-    const context: ModerationContext = { scope: group.scope, kind: group.kind };
-    const items = await Promise.all(group.candidates.map((candidate) => loadAndModerate(candidate, context)));
+    const items = await moderateGroup(group);
     const blocked = items.find((item) => item.moderation.decision === 'block');
 
     if (blocked) {
       await Promise.all(
-        items.map((item) => recordImmediate(userId, group, item, 'rejected').catch((error) => {
-          console.error('[ProfileMediaSafety] rejected audit write:', error);
-        })),
+        items.map((item) =>
+          recordImmediate(userId, group, item, 'rejected').catch((error) => {
+            console.error('[ProfileMediaSafety] rejected audit write:', error);
+          }),
+        ),
       );
 
       const admin = adminClient();
@@ -456,12 +606,45 @@ export async function screenProfileMediaGroups(
       );
     }
 
+    const technicalReview = items.find(
+      (item) =>
+        item.moderation.decision === 'review' &&
+        technicalModerationReason(item.moderation.reason),
+    );
+
+    if (technicalReview) {
+      // Provider/config/rate-limit failures are operational problems, not a
+      // statement about the user's image. Keep an audit row, clean temporary
+      // files, preserve current profile media, and ask the user to retry.
+      await Promise.all(
+        items.map((item) =>
+          recordImmediate(userId, group, item, 'review').catch((error) => {
+            console.error('[ProfileMediaSafety] technical review audit:', error);
+          }),
+        ),
+      );
+
+      const quarantinePaths = items.map((item) => item.candidate.quarantinePath);
+      if (quarantinePaths.length) {
+        const { error } = await adminClient()
+          .storage
+          .from(QUARANTINE_BUCKET)
+          .remove(quarantinePaths);
+        if (error) console.error('[ProfileMediaSafety] technical quarantine cleanup:', error);
+      }
+
+      throw new ApiError(
+        503,
+        moderationTechnicalMessage(technicalReview.moderation.reason),
+      );
+    }
+
     const review = items.some((item) => item.moderation.decision === 'review');
     if (review) {
       await quarantineGroup(userId, group, items);
       throw new ApiError(
         409,
-        'Мы не стали отклонять изображение автоматически: оно отправлено на дополнительную проверку. Пока останется прежнее оформление.',
+        'Изображение не отклонено, но требует дополнительной проверки. Пока останется прежнее оформление.',
       );
     }
 
