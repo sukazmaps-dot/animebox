@@ -1397,3 +1397,136 @@
     min-height: 118px !important;
   }
 }
+
+
+/* =========================================================
+   Design v2.2 — hero navigation owns one layout model
+   hero-controls-v5 used an absolute overlay model. The current
+   markup uses one bottom flex row, so explicitly neutralize every
+   legacy geometry rule instead of layering coordinates on top.
+   ========================================================= */
+
+.home-grid .home-hero-carousel .home-hero-carousel__nav {
+  position: absolute !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  top: auto !important;
+  left: 44px !important;
+  right: 22px !important;
+  bottom: 20px !important;
+  width: auto !important;
+  height: 30px !important;
+  transform: none !important;
+  pointer-events: none !important;
+}
+
+.home-grid .home-hero-carousel .home-hero-carousel__counter {
+  display: inline-flex !important;
+  align-items: center !important;
+  flex: 0 0 auto !important;
+  min-width: 46px !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+}
+
+.home-grid .home-hero-carousel .home-hero-carousel__dots {
+  position: static !important;
+  inset: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex: 1 1 auto !important;
+  max-width: 260px !important;
+  gap: 5px !important;
+  margin: 0 !important;
+  transform: none !important;
+  pointer-events: auto !important;
+}
+
+.home-grid .home-hero-carousel .home-hero-carousel__dot,
+.home-grid .home-hero-carousel .home-hero-carousel__dot.is-active {
+  position: static !important;
+  width: 26px !important;
+  height: 2px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 2px !important;
+  background: rgba(228, 233, 240, .18) !important;
+  box-shadow: none !important;
+}
+
+.home-grid .home-hero-carousel .home-hero-carousel__dot.is-active {
+  width: 44px !important;
+  background: var(--ab-accent) !important;
+}
+
+.home-grid .home-hero-carousel .home-hero-carousel__dot::after {
+  display: none !important;
+  content: none !important;
+}
+
+.home-grid .home-hero-carousel .home-hero-carousel__arrows {
+  position: static !important;
+  display: flex !important;
+  align-items: center !important;
+  flex: 0 0 auto !important;
+  gap: 5px !important;
+  margin: 0 0 0 auto !important;
+  transform: none !important;
+  pointer-events: auto !important;
+}
+
+.home-grid .home-hero-carousel .home-hero-carousel__arrow,
+.home-grid .home-hero-carousel .home-hero-carousel__arrow--prev,
+.home-grid .home-hero-carousel .home-hero-carousel__arrow--next {
+  position: static !important;
+  inset: auto !important;
+  width: 32px !important;
+  height: 30px !important;
+  margin: 0 !important;
+  border-radius: 7px !important;
+  transform: none !important;
+  font-size: 13px !important;
+}
+
+.home-grid .home-hero-carousel .home-hero-carousel__arrow:active {
+  transform: scale(.96) !important;
+}
+
+@media (max-width: 720px) {
+  .home-grid .home-hero-carousel .home-hero-carousel__nav {
+    left: 17px !important;
+    right: 13px !important;
+    bottom: 14px !important;
+    height: 28px !important;
+    gap: 8px !important;
+  }
+
+  .home-grid .home-hero-carousel .home-hero-carousel__counter {
+    min-width: 42px !important;
+  }
+
+  .home-grid .home-hero-carousel .home-hero-carousel__dots {
+    max-width: 155px !important;
+    gap: 4px !important;
+  }
+
+  .home-grid .home-hero-carousel .home-hero-carousel__dot,
+  .home-grid .home-hero-carousel .home-hero-carousel__dot.is-active {
+    width: 17px !important;
+    height: 2px !important;
+  }
+
+  .home-grid .home-hero-carousel .home-hero-carousel__dot.is-active {
+    width: 28px !important;
+  }
+
+  .home-grid .home-hero-carousel .home-hero-carousel__arrow,
+  .home-grid .home-hero-carousel .home-hero-carousel__arrow--prev,
+  .home-grid .home-hero-carousel .home-hero-carousel__arrow--next {
+    width: 29px !important;
+    height: 28px !important;
+    font-size: 12px !important;
+  }
+}
