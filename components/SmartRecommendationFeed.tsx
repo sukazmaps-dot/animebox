@@ -356,11 +356,13 @@ export default function SmartRecommendationFeed({
     };
   }, []);
 
-  /* Warm exactly one page ahead after the first paint. */
+  /* Warm exactly one page ahead, but keep it outside the LCP window.
+     The first recommendation batch is already present, so this request is
+     speculative and should never compete with the hero on slow mobile data. */
   useEffect(() => {
     const timer = window.setTimeout(() => {
       prefetchCandidatePage(page, bucket);
-    }, 350);
+    }, 5_000);
 
     return () => window.clearTimeout(timer);
   }, [bucket, page]);

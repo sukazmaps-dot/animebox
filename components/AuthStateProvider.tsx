@@ -257,12 +257,21 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
 
         setUser(session.user);
         setProfile(cached ?? fallbackProfile(session.user));
+
+        // A real local session should still be verified and its profile
+        // refreshed from the server. Anonymous visitors do not need this
+        // network round-trip during the critical rendering window.
+        setLoading(false);
+        void refresh();
+        return;
       }
 
-      // Do not block the shell on a network round-trip.
-      setLoading(false);
+      setUser(null);
+      setProfile(null);
 
-      void refresh();
+      // No local session = no Supabase getUser/profile/Premium requests.
+      // onAuthStateChange still handles a login that happens later.
+      setLoading(false);
     }
 
     void hydrateFromLocalSession();

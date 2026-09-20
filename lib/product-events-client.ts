@@ -24,7 +24,7 @@ type TrackOptions = Omit<ClientEvent, 'eventName' | 'eventId' | 'sessionId'> & {
 const SESSION_KEY = 'animebox:product-session:v1';
 const MAX_QUEUE = 50;
 const MAX_BATCH = 20;
-const FLUSH_DELAY_MS = 1_200;
+const FLUSH_DELAY_MS = 5_000;
 
 let queue: ClientEvent[] = [];
 let timer: number | null = null;

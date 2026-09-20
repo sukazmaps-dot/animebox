@@ -54,3 +54,27 @@ img{
     transition-duration:.01ms!important;
   }
 }
+
+
+/* =========================================================
+   Performance Stage 2 — protect the critical mobile paint.
+   The carousel can animate after user interaction, but Lighthouse and real
+   first-time visitors should see the final first frame immediately.
+   ========================================================= */
+
+.home-hero-carousel:not(.is-motion-ready) .home-hero-carousel__backdrop,
+.home-hero-carousel:not(.is-motion-ready) .home-hero-carousel__content {
+  animation: none !important;
+  transition: none !important;
+}
+
+@media (max-width: 720px) {
+  .home-grid .section,
+  .right-rail > * {
+    animation: none !important;
+  }
+
+  .episode-countdown__dot {
+    animation: none !important;
+  }
+}

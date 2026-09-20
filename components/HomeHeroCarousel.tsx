@@ -623,8 +623,8 @@ export default function HomeHeroCarousel({
           fill
           priority={safeActiveIndex === 0}
           fetchPriority={safeActiveIndex === 0 ? 'high' : 'auto'}
-          quality={70}
-          sizes="(max-width: 720px) 100vw, (max-width: 1200px) 72vw, (max-width: 1700px) 75vw, 1160px"
+          quality={60}
+          sizes="(max-width: 390px) calc(100vw - 18px), (max-width: 720px) calc(100vw - 24px), (max-width: 1200px) 72vw, (max-width: 1700px) 75vw, 1160px"
           className="page-hero__backdrop home-hero-carousel__backdrop is-visible"
           aria-hidden="true"
         />

@@ -2,7 +2,7 @@
 
 import { animeHref } from '@/lib/anime-url';
 
-import { startTransition, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { startTransition, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Anime, AnimeImage as AnimeImageType } from '@/types/anime';
@@ -198,6 +198,7 @@ export default function HomePage({
   const hydrated = useSyncExternalStore(subscribeHydration, () => true, () => false);
 
   const [scheduleItems, setScheduleItems] = useState<HomeScheduleItem[]>([]);
+  const scheduleSectionRef = useRef<HTMLElement | null>(null);
   const [scheduleDays] = useState<ScheduleDay[]>(createScheduleDays);
   const [selectedScheduleDay, setSelectedScheduleDay] = useState(
     () => scheduleDays[0]?.key ?? '',
@@ -340,6 +341,10 @@ export default function HomePage({
    */
   useEffect(() => {
     const controller = new AbortController();
+    let observer: IntersectionObserver | null = null;
+    let fallbackTimer: number | null = null;
+    let desktopTimer: number | null = null;
+    let started = false;
 
     async function loadSchedule() {
       try {
@@ -376,9 +381,51 @@ export default function HomePage({
       }
     }
 
-    void loadSchedule();
+    const start = () => {
+      if (started || controller.signal.aborted) return;
+      started = true;
+      observer?.disconnect();
+      if (fallbackTimer !== null) window.clearTimeout(fallbackTimer);
+      void loadSchedule();
+    };
 
-    return () => controller.abort();
+    const mobile = window.matchMedia('(max-width: 720px)').matches;
+
+    if (!mobile) {
+      // Desktop has the compact "Ближайшие серии" panel in the visible
+      // right rail, so keep it responsive while still letting LCP start first.
+      desktopTimer = window.setTimeout(start, 700);
+    } else if (
+      typeof IntersectionObserver !== 'undefined' &&
+      scheduleSectionRef.current
+    ) {
+      // On phones the schedule is several screens below the hero. Do not let
+      // this API request compete with the LCP image on slow 4G.
+      observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) start();
+        },
+        {
+          rootMargin: '700px 0px',
+          threshold: 0.01,
+        },
+      );
+
+      observer.observe(scheduleSectionRef.current);
+
+      // Accessibility / unusual browser fallback: data still arrives even if
+      // the observer never fires.
+      fallbackTimer = window.setTimeout(start, 8_000);
+    } else {
+      fallbackTimer = window.setTimeout(start, 4_500);
+    }
+
+    return () => {
+      controller.abort();
+      observer?.disconnect();
+      if (fallbackTimer !== null) window.clearTimeout(fallbackTimer);
+      if (desktopTimer !== null) window.clearTimeout(desktopTimer);
+    };
   }, []);
 
   /*
@@ -589,7 +636,7 @@ export default function HomePage({
           )}
         </section>
 
-        <section className="section schedule">
+        <section ref={scheduleSectionRef} className="section schedule">
           <div className="section-head">
             <h2 className="section-title">
               <span className="section-title__icon section-title__icon--ui" aria-hidden="true">
