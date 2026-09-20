@@ -62,10 +62,16 @@ const nextConfig: NextConfig = {
     ];
 
     const staticHeaders = [
-      { key: 'Cache-Control', value: 'public, max-age=3600' },
+      // Brand assets are versioned by deploy and change rarely. A longer
+      // browser TTL avoids paying the same image/icon cost on every visit.
+      { key: 'Cache-Control', value: 'public, max-age=604800, stale-while-revalidate=86400' },
       {
         key: 'Vercel-CDN-Cache-Control',
-        value: 'public, max-age=604800, stale-while-revalidate=86400',
+        value: 'public, max-age=2592000, stale-while-revalidate=604800',
+      },
+      {
+        key: 'Cloudflare-CDN-Cache-Control',
+        value: 'public, max-age=2592000, stale-while-revalidate=604800',
       },
     ];
 
