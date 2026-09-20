@@ -30,3 +30,5 @@ jobs:
           app/admin/moderation/page.tsx
           app/profile/page.tsx
           app/profile/[id]/page.tsx
+      - name: Next build
+        run: npm run build
