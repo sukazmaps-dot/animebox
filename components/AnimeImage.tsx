@@ -17,7 +17,7 @@ import {
 } from '@/lib/image-service';
 
 const FALLBACK =
-  '/anime-placeholder.svg';
+  '/brand/brand-mark.webp';
 
 type Props = {
   image?: ImageData | null;
@@ -233,7 +233,21 @@ export default function AnimeImage({
           />
         )}
 
-      {canUseNextImage(current) ? (
+      {isFallback ? (
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 z-10 flex items-center justify-center bg-[radial-gradient(circle_at_50%_35%,rgba(124,58,237,0.20),transparent_48%),linear-gradient(145deg,#11162a,#080b16)]"
+        >
+          <Image
+            src="/brand/brand-mark.webp"
+            alt=""
+            width={40}
+            height={40}
+            sizes="40px"
+            className="h-10 w-10 object-contain opacity-55"
+          />
+        </div>
+      ) : canUseNextImage(current) ? (
         <Image
           key={current}
           ref={imageRef}
@@ -272,17 +286,6 @@ export default function AnimeImage({
             className,
           ].join(' ')}
         />
-      )}
-
-      {isFallback && (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-gradient-to-t from-black/80 via-black/30 to-black/20"
-        >
-          <span className="rounded-md border border-white/10 bg-black/50 px-3 py-1.5 text-[10px] font-bold tracking-[0.18em] text-white/65 backdrop-blur">
-            NO IMAGE
-          </span>
-        </div>
       )}
     </div>
   );

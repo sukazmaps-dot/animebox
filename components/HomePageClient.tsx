@@ -544,10 +544,19 @@ export default function HomePage({
       const localAnime = localById.get(state.animeId);
       const catalogueAnime = catalogueById.get(state.animeId);
       const sourceAnime = localAnime ?? catalogueAnime;
+      const serverCoverImage = state.posterUrl
+        ? {
+            extraLarge: state.posterUrl,
+            large: state.posterUrl,
+            medium: state.posterUrl,
+          }
+        : null;
 
       const anime: AnimeHistoryEntry = sourceAnime
         ? {
             ...sourceAnime,
+            slug: sourceAnime.slug || state.slug || undefined,
+            coverImage: sourceAnime.coverImage || serverCoverImage,
             lastViewedAt:
               state.lastWatchedAt &&
               Number.isFinite(Date.parse(state.lastWatchedAt))
@@ -561,6 +570,7 @@ export default function HomePage({
           }
         : {
             id: state.animeId,
+            slug: state.slug || undefined,
             title: {
               russian: state.title,
               romaji: state.title,
@@ -569,7 +579,7 @@ export default function HomePage({
             },
             genres: [],
             episodes: state.totalEpisodes,
-            coverImage: null,
+            coverImage: serverCoverImage,
             lastViewedAt:
               state.lastWatchedAt &&
               Number.isFinite(Date.parse(state.lastWatchedAt))

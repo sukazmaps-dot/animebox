@@ -49,18 +49,139 @@ export function failure(error: unknown) {
   console.error('Community API:', error);
   return response({ error: 'Не удалось сохранить или загрузить данные. Проверь миграцию и настройки сервера.' }, 503);
 }
+type AnimeCatalogMetadata = {
+  id: number;
+  title: string;
+  total_episodes: number | null;
+  finished: boolean;
+  genres: string[];
+  poster_url: string | null;
+  slug: string | null;
+  updated_at: string;
+};
+
+function animePosterUrl(anime: Awaited<ReturnType<typeof getAnimeByIdWithShikimori>>) {
+  if (!anime) return null;
+
+  return (
+    anime.coverImage?.extraLarge ||
+    anime.coverImage?.large ||
+    anime.coverImage?.medium ||
+    anime.image?.original ||
+    anime.image?.large ||
+    anime.image?.medium ||
+    anime.image?.preview ||
+    null
+  );
+}
+
+function animeCatalogPayload(
+  anime: NonNullable<Awaited<ReturnType<typeof getAnimeByIdWithShikimori>>>,
+  previousGenres: string[] = [],
+) {
+  return {
+    id: anime.id,
+    title: getAnimeTitle(anime),
+    total_episodes:
+      anime.episodes && anime.episodes > 0
+        ? anime.episodes
+        : null,
+    finished: ['FINISHED', 'released', 'Вышло'].includes(
+      anime.status ?? '',
+    ),
+    genres: [
+      ...new Set([
+        ...previousGenres,
+        ...(anime.genres ?? []),
+      ]),
+    ],
+    poster_url: animePosterUrl(anime),
+    slug:
+      typeof anime.slug === 'string' && anime.slug.trim()
+        ? anime.slug.trim()
+        : null,
+    updated_at: new Date().toISOString(),
+  };
+}
+
 // Only server-fetched catalog metadata can affect achievement conditions.
 export async function ensureAnime(id: number) {
   const admin = adminClient();
-  const { data, error } = await admin.from('anime_catalog').select('updated_at,genres').eq('id', id).maybeSingle();
+  const { data, error } = await admin
+    .from('anime_catalog')
+    .select(
+      'id,title,total_episodes,finished,genres,poster_url,slug,updated_at',
+    )
+    .eq('id', id)
+    .maybeSingle();
+
   if (error) throw error;
-  if (data && Date.now() - Date.parse(data.updated_at) < 86400000) return;
+
+  if (
+    data &&
+    Date.now() - Date.parse(data.updated_at) < 86_400_000
+  ) {
+    return data as AnimeCatalogMetadata;
+  }
+
   const anime = await getAnimeByIdWithShikimori(id);
-  if (!anime || anime.id !== id) throw new ApiError(404, 'Аниме не найдено.');
-  const { error: saveError } = await admin.from('anime_catalog').upsert({
-    id, title: getAnimeTitle(anime), total_episodes: anime.episodes && anime.episodes > 0 ? anime.episodes : null,
-    finished: ['FINISHED', 'released', 'Вышло'].includes(anime.status ?? ''),
-    genres: [...new Set([...(data?.genres ?? []), ...(anime.genres ?? [])])], updated_at: new Date().toISOString(),
-  });
+  if (!anime || anime.id !== id) {
+    throw new ApiError(404, 'Аниме не найдено.');
+  }
+
+  const { data: saved, error: saveError } = await admin
+    .from('anime_catalog')
+    .upsert(
+      animeCatalogPayload(
+        anime,
+        Array.isArray(data?.genres) ? data.genres : [],
+      ),
+    )
+    .select(
+      'id,title,total_episodes,finished,genres,poster_url,slug,updated_at',
+    )
+    .single();
+
   if (saveError) throw saveError;
+  return saved as AnimeCatalogMetadata;
+}
+
+export async function ensureAnimeArtwork(id: number) {
+  const admin = adminClient();
+  const { data, error } = await admin
+    .from('anime_catalog')
+    .select(
+      'id,title,total_episodes,finished,genres,poster_url,slug,updated_at',
+    )
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  // slug doubles as an "artwork metadata was checked" marker. This avoids
+  // hammering AniList/Shikimori for titles that genuinely have no poster.
+  if (data?.slug) {
+    return data as AnimeCatalogMetadata;
+  }
+
+  const anime = await getAnimeByIdWithShikimori(id);
+  if (!anime || anime.id !== id) {
+    throw new ApiError(404, 'Аниме не найдено.');
+  }
+
+  const { data: saved, error: saveError } = await admin
+    .from('anime_catalog')
+    .upsert(
+      animeCatalogPayload(
+        anime,
+        Array.isArray(data?.genres) ? data.genres : [],
+      ),
+    )
+    .select(
+      'id,title,total_episodes,finished,genres,poster_url,slug,updated_at',
+    )
+    .single();
+
+  if (saveError) throw saveError;
+  return saved as AnimeCatalogMetadata;
 }

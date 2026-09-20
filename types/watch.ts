@@ -1,6 +1,8 @@
 export type WatchTitleOverview = {
   animeId: number;
   title: string;
+  slug: string | null;
+  posterUrl: string | null;
   totalEpisodes: number | null;
   trackedEpisodes: number;
   completedEpisodes: number;

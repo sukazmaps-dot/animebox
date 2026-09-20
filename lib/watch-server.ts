@@ -1,6 +1,11 @@
 import 'server-only';
 
-import { adminClient, ApiError, ensureAnime } from '@/lib/community-server';
+import {
+  adminClient,
+  ApiError,
+  ensureAnime,
+  ensureAnimeArtwork,
+} from '@/lib/community-server';
 import { coveredSeconds, mergePlayedRanges } from '@/lib/played-coverage';
 import type { WatchTitleOverview } from '@/types/watch';
 
@@ -1054,12 +1059,14 @@ export async function getTitleWatchOverviews(
     title: string;
     total_episodes: number | null;
     finished: boolean;
+    poster_url: string | null;
+    slug: string | null;
   }> = [];
 
   for (const batch of chunkValues(normalizedAnimeIds)) {
     const { data, error } = await admin
       .from('anime_catalog')
-      .select('id,title,total_episodes,finished')
+      .select('id,title,total_episodes,finished,poster_url,slug')
       .in('id', batch);
 
     if (error) throw error;
@@ -1074,6 +1081,14 @@ export async function getTitleWatchOverviews(
         total_episodes:
           row.total_episodes == null ? null : Number(row.total_episodes),
         finished: Boolean(row.finished),
+        poster_url:
+          typeof row.poster_url === 'string' && row.poster_url.trim()
+            ? row.poster_url.trim()
+            : null,
+        slug:
+          typeof row.slug === 'string' && row.slug.trim()
+            ? row.slug.trim()
+            : null,
       });
     }
   }
@@ -1134,6 +1149,8 @@ export async function getTitleWatchOverviews(
     state.set(animeId, {
       animeId,
       title: catalog?.title ?? `Аниме #${animeId}`,
+      slug: catalog?.slug ?? null,
+      posterUrl: catalog?.poster_url ?? null,
       totalEpisodes: catalog?.total_episodes ?? null,
       trackedEpisodes: 0,
       completedEpisodes: 0,
@@ -1215,6 +1232,8 @@ export async function getTitleWatchOverviews(
     return {
       animeId: item.animeId,
       title: item.title,
+      slug: item.slug,
+      posterUrl: item.posterUrl,
       totalEpisodes,
       trackedEpisodes: item.trackedEpisodes,
       completedEpisodes: item.completedEpisodes,
@@ -1288,7 +1307,7 @@ export async function getRecentWatchTitles(
     recentAnimeIds,
   );
 
-  return overviews
+  const recent = overviews
     .filter(
       (item) =>
         item.trackedEpisodes > 0 &&
@@ -1300,6 +1319,31 @@ export async function getRecentWatchTitles(
         safeTimestamp(a.lastWatchedAt),
     )
     .slice(0, safeLimit);
+
+  return Promise.all(
+    recent.map(async (item) => {
+      if (item.slug) return item;
+
+      try {
+        const catalog = await ensureAnimeArtwork(item.animeId);
+
+        return {
+          ...item,
+          title: catalog.title || item.title,
+          slug: catalog.slug ?? item.slug,
+          posterUrl: catalog.poster_url ?? item.posterUrl,
+          totalEpisodes:
+            catalog.total_episodes ?? item.totalEpisodes,
+        };
+      } catch (error) {
+        console.warn(
+          `[watch] artwork metadata unavailable for anime ${item.animeId}`,
+          error,
+        );
+        return item;
+      }
+    }),
+  );
 }
 
 export async function endWatchSession(input: {
