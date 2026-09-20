@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { getPublicProfile } from '@/lib/public-profile-server';
 import UserIdentity from '@/components/identity/UserIdentity';
 import UserAvatarWithFrame from '@/components/profile/UserAvatarWithFrame';
+import ProfileAnimeIdentity from '@/components/profile/ProfileAnimeIdentity';
 import { premiumMediaStyle, premiumStudioCssVariables } from '@/lib/premium-studio';
 import { formatSeasonRange, seasonPlacementLabel } from '@/lib/seasons';
 import { ACHIEVEMENT_RARITY_LABELS } from '@/lib/progression';
@@ -151,10 +152,10 @@ export default async function PublicProfilePage({ params }: Props) {
                   {profile.ogNumber && (
                     <span
                       className="animebox-og-badge"
-                      title="Один из первых 100 активных пользователей AnimeBox"
+                      title="Постоянный номер одного из первых 100 активных участников AnimeBox"
                     >
                       <span aria-hidden="true">◆</span>
-                      OG #{String(profile.ogNumber).padStart(3, '0')}
+                      FOUNDING #{String(profile.ogNumber).padStart(3, '0')}
                     </span>
                   )}
                 </div>
@@ -190,6 +191,19 @@ export default async function PublicProfilePage({ params }: Props) {
           </div>
         </div>
       </section>
+
+      <ProfileAnimeIdentity
+        premium={profile.premium}
+        foundingNumber={profile.ogNumber}
+        level={profile.progression.level}
+        rank={profile.progression.rank}
+        stats={{
+          episodes: profile.stats.episodes,
+          titles: profile.stats.titles,
+          activeMs: profile.stats.activeMs,
+          comments: profile.stats.comments,
+        }}
+      />
 
       {profile.featuredAchievements.length > 0 && (
         <section className="profile-v4__featured">
