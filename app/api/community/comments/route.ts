@@ -10,6 +10,7 @@ import {
 } from '@/lib/community-server';
 import { getPublicCommentsPage } from '@/lib/community-comments-server';
 import { assertCanComment } from '@/lib/admin-server';
+import { syncUserProgression } from '@/lib/progression-server';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -74,6 +75,17 @@ export async function POST(request: Request) {
     });
 
     if (error) throw error;
+
+    try {
+      await syncUserProgression({
+        userId: user.id,
+        eventKey: `comment:${String(data)}`,
+        reason: 'comment_created',
+      });
+    } catch (progressionError) {
+      console.error('[comments] progression sync failed:', progressionError);
+    }
+
     return response({ id: data }, 201);
   } catch (error) {
     return failure(error);

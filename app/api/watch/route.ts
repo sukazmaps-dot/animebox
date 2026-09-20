@@ -15,6 +15,7 @@ import {
   recordWatchHeartbeat,
   startWatchSession,
 } from '@/lib/watch-server';
+import { syncUserProgression } from '@/lib/progression-server';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -181,13 +182,6 @@ export async function POST(request: Request) {
 
       if (result.newlyCompleted) {
         const admin = adminClient();
-        const { error } = await admin.rpc(
-          'award_achievements',
-          { p_user: user.id },
-        );
-        if (error) {
-          console.error('[watch] achievement sync failed:', error);
-        }
 
         try {
           const [overview] = await getTitleWatchOverviews(
@@ -213,17 +207,38 @@ export async function POST(request: Request) {
         } catch (syncError) {
           console.error('[watch] title completion sync failed:', syncError);
         }
+
+        try {
+          await syncUserProgression({
+            userId: user.id,
+            eventKey: `watch:episode:${result.animeId}:${result.episode}`,
+            reason: 'episode_completed',
+          });
+        } catch (progressionError) {
+          console.error('[watch] progression sync failed:', progressionError);
+        }
       }
 
       return response(result);
     }
 
     if (action === 'end') {
+      const endedSessionId = sessionId(body.sessionId);
       const result = await endWatchSession({
         userId: user.id,
-        sessionId: sessionId(body.sessionId),
+        sessionId: endedSessionId,
         positionMs: positionMs(body.positionMs, true),
       });
+
+      try {
+        await syncUserProgression({
+          userId: user.id,
+          eventKey: `watch:end:${endedSessionId}`,
+          reason: 'watch_session_end',
+        });
+      } catch (progressionError) {
+        console.error('[watch] progression end sync failed:', progressionError);
+      }
 
       return response(result);
     }

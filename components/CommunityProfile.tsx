@@ -1,10 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useAuthState } from '@/components/AuthStateProvider';
 import Link from 'next/link';
-import { achievementIcon } from '@/lib/achievement-icons';
 
+import { useAuthState } from '@/components/AuthStateProvider';
+import { achievementIcon } from '@/lib/achievement-icons';
+import {
+  ACHIEVEMENT_RARITY_LABELS,
+  type AchievementRarity,
+} from '@/lib/progression';
 import {
   statusLabels,
   type CommunityProfile as ProfileData,
@@ -23,26 +27,33 @@ function WatchTime({ activeMs }: { activeMs: number }) {
   const seconds = totalSeconds % 60;
 
   if (hours > 0) {
-    return (
-      <>
-        {hours}<em>ч</em> {minutes}<em>м</em>
-      </>
-    );
+    return <>{hours}<em>ч</em> {minutes}<em>м</em></>;
   }
 
   if (minutes > 0) {
-    return (
-      <>
-        {minutes}<em>м</em> {seconds}<em>с</em>
-      </>
-    );
+    return <>{minutes}<em>м</em> {seconds}<em>с</em></>;
   }
 
-  return (
-    <>
-      {seconds}<em>с</em>
-    </>
-  );
+  return <>{seconds}<em>с</em></>;
+}
+
+function metricValue(stats: ProfileData['stats'], metric: string) {
+  const value = (stats as Record<string, unknown>)[metric];
+  const number = Number(value ?? 0);
+  return Number.isFinite(number) && number > 0 ? number : 0;
+}
+
+function achievementPercent(
+  stats: ProfileData['stats'],
+  achievement: ProfileData['achievements'][number],
+) {
+  const current = Math.min(metricValue(stats, achievement.metric), achievement.threshold);
+  return {
+    current,
+    percent: achievement.earned_at
+      ? 100
+      : Math.min(100, Math.round((current / Math.max(1, achievement.threshold)) * 100)),
+  };
 }
 
 export default function CommunityProfile() {
@@ -65,8 +76,8 @@ export default function CommunityProfile() {
         },
         library: profile.library,
       });
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Ошибка профиля.');
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Ошибка профиля.');
     }
   }, [user]);
 
@@ -96,22 +107,24 @@ export default function CommunityProfile() {
           library: profile.library,
         });
       })
-      .catch((error) => {
+      .catch((loadError) => {
         if (active) {
-          setError(error instanceof Error ? error.message : 'Ошибка профиля.');
+          setError(loadError instanceof Error ? loadError.message : 'Ошибка профиля.');
         }
       });
 
-    const handleLibraryUpdated = () => {
+    const handleProgressUpdated = () => {
       invalidateCommunityProfile(user.id);
       if (active) void load(true);
     };
 
-    window.addEventListener('library-updated', handleLibraryUpdated);
+    window.addEventListener('library-updated', handleProgressUpdated);
+    window.addEventListener('animebox:progression-updated', handleProgressUpdated);
 
     return () => {
       active = false;
-      window.removeEventListener('library-updated', handleLibraryUpdated);
+      window.removeEventListener('library-updated', handleProgressUpdated);
+      window.removeEventListener('animebox:progression-updated', handleProgressUpdated);
     };
   }, [user?.id, load]);
 
@@ -119,9 +132,7 @@ export default function CommunityProfile() {
     return (
       <section className="profile-v2__community-error" role="alert">
         <span>{error}</span>
-        <button type="button" onClick={() => void load(true)}>
-          Повторить
-        </button>
+        <button type="button" onClick={() => void load(true)}>Повторить</button>
       </section>
     );
   }
@@ -134,10 +145,79 @@ export default function CommunityProfile() {
     );
   }
 
-  const { stats } = data;
+  const { stats, progression } = data;
+  const unlockedCount = data.achievements.filter((item) => Boolean(item.earned_at)).length;
+  const achievementPreview = [...data.achievements]
+    .sort((a, b) => {
+      const aUnlocked = Boolean(a.earned_at);
+      const bUnlocked = Boolean(b.earned_at);
+
+      if (aUnlocked !== bUnlocked) return aUnlocked ? -1 : 1;
+
+      if (aUnlocked && bUnlocked) {
+        return Date.parse(b.earned_at || '') - Date.parse(a.earned_at || '');
+      }
+
+      return (
+        achievementPercent(stats, b).percent -
+        achievementPercent(stats, a).percent
+      );
+    })
+    .slice(0, 6);
 
   return (
     <>
+      <section
+        className="profile-v3__progression"
+        data-rank={progression.rankKey}
+        aria-label="Уровень AnimeBox"
+      >
+        <div className="profile-v3__level-orb">
+          <span>LEVEL</span>
+          <strong>{progression.level}</strong>
+          <small>/ {progression.maxLevel}</small>
+        </div>
+
+        <div className="profile-v3__progression-main">
+          <div className="profile-v3__progression-title">
+            <div>
+              <span className="profile-v2__eyebrow">AnimeBox Progression</span>
+              <h2>{progression.rank}</h2>
+            </div>
+            <strong>{progression.totalXp.toLocaleString('ru-RU')} XP</strong>
+          </div>
+
+          <div className="profile-v3__xp-track" aria-hidden="true">
+            <span style={{ width: `${progression.progressPct}%` }} />
+          </div>
+
+          <div className="profile-v3__xp-meta">
+            {progression.nextLevelXp == null ? (
+              <span>Максимальный уровень достигнут</span>
+            ) : (
+              <>
+                <span>
+                  {progression.levelProgressXp.toLocaleString('ru-RU')} / {progression.levelSpanXp.toLocaleString('ru-RU')} XP уровня
+                </span>
+                <span>до LV.{progression.level + 1}: {progression.xpToNext.toLocaleString('ru-RU')} XP</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="profile-v3__progression-side">
+          <span className={`profile-v3__xp-boost ${progression.premiumBoostActive ? 'is-active' : ''}`}>
+            {progression.premiumBoostActive ? '+20% XP · Premium' : 'Premium · +20% XP'}
+          </span>
+          <small>
+            {progression.premiumBoostActive
+              ? 'Бонус действует на новый XP за активность.'
+              : 'Достижения дают одинаковый XP всем.'}
+          </small>
+          <Link href="/achievements">Все достижения →</Link>
+        </div>
+      </section>
+
       <section className="profile-v2__stats" aria-label="Статистика просмотра">
         <article className="profile-v2__stat">
           <span className="profile-v2__stat-label">Завершено тайтлов</span>
@@ -153,9 +233,7 @@ export default function CommunityProfile() {
 
         <article className="profile-v2__stat">
           <span className="profile-v2__stat-label">Время просмотра</span>
-          <strong>
-            <WatchTime activeMs={stats.active_ms} />
-          </strong>
+          <strong><WatchTime activeMs={stats.active_ms} /></strong>
           <small>По данным плеера</small>
         </article>
 
@@ -183,10 +261,7 @@ export default function CommunityProfile() {
               <h2>Мои аниме</h2>
               <p>Тайтлы, которые сейчас находятся в твоей библиотеке.</p>
             </div>
-
-            <Link href="/list">
-              Открыть трекер <span aria-hidden="true">→</span>
-            </Link>
+            <Link href="/list">Открыть трекер <span aria-hidden="true">→</span></Link>
           </div>
 
           {data.library.length ? (
@@ -200,21 +275,11 @@ export default function CommunityProfile() {
                   <span className="profile-v2__library-mark" aria-hidden="true">
                     <img src="/brand/brand-mark.png" alt="" />
                   </span>
-
-                  <span className="profile-v2__library-title" title={item.title}>
-                    {item.title}
-                  </span>
-
-                  <span
-                    className="profile-v2__library-status"
-                    data-status={item.status}
-                  >
+                  <span className="profile-v2__library-title" title={item.title}>{item.title}</span>
+                  <span className="profile-v2__library-status" data-status={item.status}>
                     {statusLabels[item.status]}
                   </span>
-
-                  <span className="profile-v2__library-arrow" aria-hidden="true">
-                    →
-                  </span>
+                  <span className="profile-v2__library-arrow" aria-hidden="true">→</span>
                 </Link>
               ))}
 
@@ -233,43 +298,40 @@ export default function CommunityProfile() {
                 aria-hidden="true"
               />
               <strong>Твоя коллекция пока пуста</strong>
-              <p>
-                Найди первое аниме, добавь его в библиотеку и начни собирать
-                историю просмотров.
-              </p>
+              <p>Найди первое аниме, добавь его в библиотеку и начни собирать историю просмотров.</p>
               <Link href="/search">Найти аниме</Link>
             </div>
           )}
         </section>
 
-        <section className="profile-v2__achievements">
+        <section className="profile-v2__achievements profile-v3__achievements">
           <div className="profile-v2__section-head">
             <div>
               <span className="profile-v2__eyebrow">Прогресс</span>
               <h2>Достижения</h2>
-              <p>Небольшие отметки твоего пути в AnimeBox.</p>
+              <p>{unlockedCount} / {data.achievements.length} открыто</p>
             </div>
+            <Link href="/achievements">Все →</Link>
           </div>
 
           <div className="profile-v2__achievement-list">
-            {data.achievements.map((achievement) => {
-              const current = Math.min(
-                stats[achievement.metric],
-                achievement.threshold,
-              );
-              const progress = Math.round(
-                (current / achievement.threshold) * 100,
-              );
+            {achievementPreview.map((achievement) => {
+              const progress = achievementPercent(stats, achievement);
               const unlocked = Boolean(achievement.earned_at);
+              const rarity = achievement.rarity as AchievementRarity;
 
               return (
                 <article
-                  className={`profile-v2__achievement ${
-                    unlocked ? 'is-unlocked' : ''
-                  }`}
+                  className={`profile-v2__achievement ${unlocked ? 'is-unlocked' : ''}`}
+                  data-rarity={rarity}
                   key={achievement.code}
                 >
-                  <img src={achievementIcon(achievement.code, achievement.icon)} alt="" width="52" height="52" />
+                  <img
+                    src={achievementIcon(achievement.code, achievement.icon)}
+                    alt=""
+                    width="52"
+                    height="52"
+                  />
 
                   <div className="profile-v2__achievement-copy">
                     <div className="profile-v2__achievement-title">
@@ -277,17 +339,19 @@ export default function CommunityProfile() {
                       <small>
                         {unlocked
                           ? 'Получено'
-                          : `${current} / ${achievement.threshold}`}
+                          : `${progress.current} / ${achievement.threshold}`}
                       </small>
                     </div>
 
                     <p>{achievement.description}</p>
 
-                    <div
-                      className="profile-v2__achievement-progress"
-                      aria-hidden="true"
-                    >
-                      <span style={{ width: `${unlocked ? 100 : progress}%` }} />
+                    <div className="profile-v3__achievement-meta">
+                      <span data-rarity={rarity}>{ACHIEVEMENT_RARITY_LABELS[rarity]}</span>
+                      <span>+{achievement.xp_reward} XP</span>
+                    </div>
+
+                    <div className="profile-v2__achievement-progress" aria-hidden="true">
+                      <span style={{ width: `${progress.percent}%` }} />
                     </div>
                   </div>
                 </article>

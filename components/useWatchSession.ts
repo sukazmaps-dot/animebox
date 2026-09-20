@@ -375,6 +375,7 @@ export function useWatchSession({
           setMessage('Серия засчитана: подтверждено не менее 90% просмотра.');
           window.dispatchEvent(new Event('episode-completed'));
           window.dispatchEvent(new Event('library-updated'));
+          window.dispatchEvent(new Event('animebox:progression-updated'));
         } else {
           setMessage('');
         }
@@ -592,6 +593,7 @@ export function useWatchSession({
               invalidateCommunityProfile(userId);
             }
             window.dispatchEvent(new Event('watch-state-updated'));
+            window.dispatchEvent(new Event('animebox:progression-updated'));
           })
           .catch(() => undefined);
       }

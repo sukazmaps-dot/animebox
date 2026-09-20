@@ -127,6 +127,13 @@ export default async function PublicProfilePage({ params }: Props) {
                     />
                   </h1>
 
+                  <span
+                    className="inline-flex min-h-6 items-center rounded-full border border-violet-400/20 bg-violet-400/10 px-2.5 text-[9px] font-black tracking-[0.04em] text-violet-200"
+                    title={`${profile.progression.totalXp.toLocaleString('ru-RU')} XP`}
+                  >
+                    LV.{profile.progression.level} · {profile.progression.rank}
+                  </span>
+
                   {profile.premium && (
                     <span className="animebox-premium-badge" title="AnimeBox Premium">
                       <img

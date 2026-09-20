@@ -8,6 +8,7 @@ import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
 import { premiumMediaStyle, type PremiumMediaTransform } from '@/lib/premium-studio';
+import type { ProfileProgression } from '@/lib/progression';
 
 type Period = 'week' | 'month' | 'all';
 
@@ -23,6 +24,7 @@ type Entry = {
   isCurrentUser: boolean;
   sponsor: SponsorStatus | null;
   role: PublicIdentityRole;
+  progression: ProfileProgression;
 };
 
 type Payload = {
@@ -188,6 +190,7 @@ export default function LeaderboardClient() {
                     nameClassName={styles.podiumName}
                   />
                 </div>
+                <span className={styles.levelBadge}>LV.{entry.progression.level} · {entry.progression.rank}</span>
                 {entry.isCurrentUser && <span className={styles.youBadge}>Это ты</span>}
                 <span className={styles.time}>{formatWatchTime(entry.activeMs)}</span>
                 <span className={styles.timeLabel}>подтверждённого просмотра</span>
@@ -235,7 +238,10 @@ export default function LeaderboardClient() {
                         compact
                       />
                     </span>
-                    {entry.isCurrentUser && <small>Это ты</small>}
+                    <small>
+                      {entry.isCurrentUser ? 'Это ты · ' : ''}
+                      LV.{entry.progression.level} · {entry.progression.rank}
+                    </small>
                   </span>
                 </span>
                 <span className={styles.episodes}>{entry.episodes}</span>

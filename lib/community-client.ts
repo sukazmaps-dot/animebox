@@ -1,3 +1,4 @@
+import type { ProfileProgression, AchievementCategory, AchievementRarity } from '@/lib/progression';
 import type { WatchTitleOverview } from '@/types/watch';
 
 export async function communityRequest<T>(
@@ -31,18 +32,29 @@ export type CommunityProfile = {
     episodes: number;
     titles: number;
     minutes: number;
+    watch_minutes: number;
     active_ms: number;
     shonen_titles: number;
+    romance_titles: number;
+    action_titles: number;
+    fantasy_titles: number;
+    comedy_titles: number;
     comments: number;
   } & Record<LibraryStatus, number>;
+  progression: ProfileProgression;
   achievements: {
     code: string;
     title: string;
     description: string;
     icon: string;
     earned_at: string | null;
-    metric: 'episodes' | 'shonen_titles' | 'comments';
+    metric: string;
     threshold: number;
+    category: AchievementCategory;
+    rarity: AchievementRarity;
+    xp_reward: number;
+    hidden: boolean;
+    sort_order: number;
   }[];
   library: {
     anime_id: number;

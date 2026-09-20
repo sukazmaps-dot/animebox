@@ -1,11 +1,16 @@
 import { failure, response, userClient } from '@/lib/community-server';
+import { getUserEntitlements } from '@/lib/entitlements-server';
+import { normalizeProgression } from '@/lib/progression';
 import { getTitleWatchOverviews } from '@/lib/watch-server';
 
 export async function GET() {
   try {
     const { client, user } = await userClient();
 
-    const { data, error } = await client.rpc('my_community_profile');
+    const [{ data, error }, entitlements] = await Promise.all([
+      client.rpc('my_community_profile'),
+      getUserEntitlements(user.id).catch(() => null),
+    ]);
     if (error) throw error;
 
     if (!data || typeof data !== 'object' || Array.isArray(data)) {
@@ -38,6 +43,10 @@ export async function GET() {
 
     return response({
       ...profile,
+      progression: normalizeProgression(
+        profile.progression,
+        Boolean(entitlements?.premiumBadge),
+      ),
       library: rawLibrary.map((item) => {
         if (!item || typeof item !== 'object' || Array.isArray(item)) {
           return item;

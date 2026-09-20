@@ -3,6 +3,7 @@ import { adminClient, failure } from '@/lib/community-server';
 import { getSponsorStatuses } from '@/lib/sponsor-server';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
 import { resolvePublicAppearances } from '@/lib/public-avatar-server';
+import { normalizeProgression } from '@/lib/progression';
 
 type LeaderboardPeriod = 'week' | 'month' | 'all';
 
@@ -44,7 +45,16 @@ export async function GET(request: Request) {
     if (error) throw error;
 
     const rows = (Array.isArray(data) ? data : []) as LeaderboardRow[];
-    const [sponsorByUser, appearanceByUser] = await Promise.all([
+    const userIds = rows.map((row) => row.user_id);
+
+    if (rows.length === 0) {
+      return Response.json(
+        { period, entries: [], me: null },
+        { headers: { 'Cache-Control': 'private, no-store' } },
+      );
+    }
+
+    const [sponsorByUser, appearanceByUser, progressionResult] = await Promise.all([
       getSponsorStatuses(rows.map((row) => row.user_id)),
       resolvePublicAppearances(
         rows.map((row) => ({
@@ -52,7 +62,20 @@ export async function GET(request: Request) {
           avatar_path: row.avatar_path,
         })),
       ),
+      admin
+        .from('user_progression')
+        .select('user_id,total_xp,activity_xp,premium_bonus_xp,achievement_xp')
+        .in('user_id', userIds),
     ]);
+
+    if (progressionResult.error) throw progressionResult.error;
+
+    const progressionByUser = new Map(
+      (progressionResult.data ?? []).map((row) => [
+        row.user_id,
+        normalizeProgression(row),
+      ] as const),
+    );
 
     const normalized = rows.map((row) => {
       const appearance = appearanceByUser.get(row.user_id);
@@ -69,6 +92,7 @@ export async function GET(request: Request) {
       isCurrentUser: Boolean(row.is_current_user),
       sponsor: sponsorByUser.get(row.user_id) ?? null,
       role: publicIdentityRoleFor(row.user_id),
+      progression: progressionByUser.get(row.user_id) ?? normalizeProgression(null),
     });
     });
 

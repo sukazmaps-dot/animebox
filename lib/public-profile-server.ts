@@ -14,6 +14,7 @@ import {
   type PremiumStudioSettings,
 } from '@/lib/premium-studio';
 import { resolveProfileAppearance } from '@/lib/profile-appearance';
+import { normalizeProgression, type ProfileProgression } from '@/lib/progression';
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -41,6 +42,7 @@ export type PublicProfileData = {
   avatarTransform: PremiumMediaTransform;
   bannerTransform: PremiumMediaTransform;
   role: PublicIdentityRole;
+  progression: ProfileProgression;
   stats: {
     episodes: number;
     titles: number;
@@ -140,6 +142,7 @@ export async function getPublicProfile(
     sponsor,
     entitlements,
     premiumSettings,
+    progressionResult,
   ] = await Promise.all([
     admin.rpc('community_metrics', { p_user: userId }),
     admin.from('user_achievements').select('*').eq('user_id', userId),
@@ -160,6 +163,11 @@ export async function getPublicProfile(
       .eq('user_id', userId)
       .maybeSingle()
       .then((result) => (result.error ? null : result.data)),
+    admin
+      .from('user_progression')
+      .select('total_xp,activity_xp,premium_bonus_xp,achievement_xp')
+      .eq('user_id', userId)
+      .maybeSingle(),
   ]);
 
   if (metricsResult.error) {
@@ -248,6 +256,10 @@ export async function getPublicProfile(
     avatarTransform: appearance.avatarTransform,
     bannerTransform: appearance.bannerTransform,
     role: publicIdentityRoleFor(userId),
+    progression: normalizeProgression(
+      progressionResult.error ? null : progressionResult.data,
+      Boolean(entitlements?.premiumBadge),
+    ),
     stats: {
       episodes,
       titles,

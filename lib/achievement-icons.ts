@@ -16,11 +16,24 @@ export function achievementIcon(code: string, fallback?: string | null) {
   if (exact) return exact;
 
   if (normalized.includes('comment')) return '/brand/achievements/comments.svg';
-  if (normalized.includes('completed')) return '/brand/achievements/first-completed.svg';
-  if (normalized.includes('collector') || normalized.includes('shonen')) {
+  if (normalized.includes('completed') || normalized.startsWith('titles_')) {
+    return normalized === 'first_completed'
+      ? '/brand/achievements/first-completed.svg'
+      : '/brand/achievements/anime-collector.svg';
+  }
+  if (
+    normalized.includes('collector') ||
+    normalized.includes('shonen') ||
+    normalized.includes('romance') ||
+    normalized.includes('action') ||
+    normalized.includes('fantasy') ||
+    normalized.includes('comedy')
+  ) {
     return '/brand/achievements/anime-collector.svg';
   }
-  if (normalized.includes('marathon')) return '/brand/achievements/marathon.svg';
+  if (normalized.includes('marathon') || normalized.startsWith('watch_')) {
+    return '/brand/achievements/marathon.svg';
+  }
   if (normalized.includes('episode')) {
     return normalized.includes('first')
       ? '/brand/achievements/first-episode.svg'
