@@ -4,6 +4,22 @@ const nextConfig: NextConfig = {
   // One canonical URL style: /anime/title-id (without a trailing slash).
   trailingSlash: false,
   poweredByHeader: false,
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'www.youranimebox.com',
+          },
+        ],
+        destination: 'https://youranimebox.com/:path*',
+        permanent: true,
+      },
+    ];
+  },
+
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.shikimori.one' },

@@ -365,6 +365,29 @@ export default function TelegramAuthButton({
       return;
     }
 
+    /*
+     * Telegram Login binds its OAuth flow to the exact browser origin.
+     * Never start nonce/OAuth on the legacy www host: the nonce cookie is
+     * host-only and must be created on the same canonical host that finishes
+     * the login flow.
+     */
+    if (
+      window.location.hostname.toLowerCase() ===
+      'www.youranimebox.com'
+    ) {
+      const canonicalUrl =
+        new URL(window.location.href);
+
+      canonicalUrl.hostname =
+        'youranimebox.com';
+
+      window.location.replace(
+        canonicalUrl.toString(),
+      );
+
+      return;
+    }
+
     setLoading(true);
 
     try {
