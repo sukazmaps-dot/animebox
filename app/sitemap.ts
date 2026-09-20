@@ -16,6 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: SITE_URL, changeFrequency: 'daily', priority: 1 },
     { url: `${SITE_URL}/search`, changeFrequency: 'daily', priority: 0.9 },
     { url: `${SITE_URL}/schedule`, changeFrequency: 'daily', priority: 0.8 },
+    { url: `${SITE_URL}/watch-together`, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${SITE_URL}/about`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${SITE_URL}/premium`, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${SITE_URL}/support`, changeFrequency: 'monthly', priority: 0.4 },

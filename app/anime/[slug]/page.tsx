@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { cache, Suspense } from 'react';
 
@@ -943,6 +944,41 @@ export default async function AnimePage({
 
       </section>
 
+
+
+      {/* =====================================================
+          WATCH TOGETHER / LONG-TAIL SEO + ПЕРЕЛИНКОВКА
+          ===================================================== */}
+
+      <section
+        className="mx-auto max-w-7xl px-4 pb-6 md:px-6"
+        aria-labelledby="watch-together-anime-title"
+      >
+        <div className="flex flex-col gap-4 rounded-2xl border border-violet-400/10 bg-violet-500/[0.035] p-4 sm:flex-row sm:items-center sm:justify-between md:p-5">
+          <div className="min-w-0">
+            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-300/70">
+              Watch Together
+            </span>
+            <h2
+              id="watch-together-anime-title"
+              className="mt-1 text-lg font-bold text-white md:text-xl"
+            >
+              Смотреть {seoIdentity.pageHeading} вместе с другом
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/55">
+              Создай приватную комнату AnimeBox, пригласи друга по ссылке и смотри серии
+              синхронно — даже если вы находитесь далеко друг от друга.
+            </p>
+          </div>
+
+          <Link
+            href="/watch-together"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-violet-300/20 bg-violet-500/10 px-4 text-sm font-semibold text-violet-100 transition hover:border-violet-300/35 hover:bg-violet-500/15"
+          >
+            Смотреть вместе →
+          </Link>
+        </div>
+      </section>
 
       {/* =====================================================
           ФРАНШИЗА
