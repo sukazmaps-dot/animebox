@@ -1,0 +1,32 @@
+name: Patch 5 Check
+
+on:
+  push:
+    branches:
+      - patch-5-profile-identity-premium-v2
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: ESLint changed code
+        run: >-
+          npx eslint
+          components/profile/ProfileAnimeIdentity.tsx
+          components/profile/ProfileAnimeIdentityLoader.tsx
+          lib/profile-media-safety-server.ts
+          lib/profile-media-health-server.ts
+          app/api/admin/moderation-health/route.ts
+          app/admin/moderation/page.tsx
+          app/profile/page.tsx
+          app/profile/[id]/page.tsx
