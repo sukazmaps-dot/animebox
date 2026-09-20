@@ -24,10 +24,7 @@ export default function ProfileAnimeIdentityLoader({
   );
 
   useEffect(() => {
-    if (!user?.id) {
-      setData(null);
-      return;
-    }
+    if (!user?.id) return;
 
     let active = true;
     const userId = user.id;
@@ -56,7 +53,7 @@ export default function ProfileAnimeIdentityLoader({
     };
   }, [user?.id]);
 
-  if (!data) return null;
+  if (!user?.id || !data) return null;
 
   const { stats, progression } = data;
 
