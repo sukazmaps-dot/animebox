@@ -24,7 +24,6 @@ import TelegramPromoCard from '@/components/TelegramPromoCard';
 import TopAnimeItem from '@/components/TopAnimeItem';
 import ScheduleItem from '@/components/ScheduleItem';
 import { readTasteProfile, setTasteMood, type TasteMood } from '@/lib/personalization';
-import AdSlot from '@/components/monetization/AdSlot';
 import { SupportAnimeBoxCard } from '@/components/monetization/SupportAnimeBox';
 import HomeChatTeaser from '@/components/chat/HomeChatTeaser';
 import HomePersonalPulse from '@/components/HomePersonalPulse';
@@ -150,7 +149,7 @@ function HomeTopAnimePanel({
   popular,
   mobile = false,
 }: HomeTopAnimePanelProps) {
-  const items = popular.slice(0, mobile ? 3 : 5);
+  const items = popular.slice(0, mobile ? 3 : 6);
 
   return (
     <div
@@ -765,11 +764,6 @@ export default function HomePage({
 
         <HomeChatTeaser />
 
-        <AdSlot
-          placement="home-after-smart-feed"
-          format="horizontal"
-        />
-
         <section className="section">
           <div className="section-head">
             <h2 className="section-title">
@@ -797,7 +791,7 @@ export default function HomePage({
             </div>
           ) : (
             <div className="anime-grid">
-              {popular.slice(0, 6).map((anime) => (
+              {popular.slice(0, 10).map((anime) => (
                 <AnimeCard
                   key={anime.id}
                   anime={anime}
@@ -835,7 +829,7 @@ export default function HomePage({
             </div>
           ) : (
             <div className="anime-grid">
-              {fallbackItems.slice(0, 6).map((anime) => (
+              {fallbackItems.slice(0, 10).map((anime) => (
                 <AnimeCard
                   key={anime.id}
                   anime={anime}
@@ -939,36 +933,10 @@ export default function HomePage({
       <aside className="right-rail">
         <HomeTopAnimePanel popular={popular} />
 
-        <div className="panel home-library-panel right-rail__secondary">
-          <span className="home-library-panel__symbol home-library-panel__symbol--brand" aria-hidden="true">
-            <Image src="/brand/brand-mark.webp" alt="" width={20} height={20} sizes="20px" />
-          </span>
-          <span className="home-library-panel__eyebrow">Твоя коллекция</span>
-          <h2>
-            Хорошие истории
-            <br />
-            остаются с тобой.
-          </h2>
-          <p>Сохраняй тайтлы и возвращайся к любимым аниме.</p>
-          <Link className="btn btn--primary" href="/list">
-            Открыть трекер <span aria-hidden="true">↗</span>
-          </Link>
-
-          <img
-            className="home-library-panel__mascot"
-            src="/brand/animebox-mascot.webp"
-            alt=""
-            loading="lazy"
-            decoding="async"
-            fetchPriority="low"
-            aria-hidden="true"
-          />
-        </div>
-
-        <div className="panel right-rail__secondary">
+        <div className="panel home-upcoming-panel">
           <div className="panel__head">Ближайшие серии</div>
 
-          <div className="panel__body rank-list">
+          <div className="panel__body rank-list home-upcoming-panel__list">
             {scheduleLoading ? (
               Array.from({ length: 5 }).map((_, index) => (
                 <div key={index} className="rank-item skeleton" />
@@ -997,9 +965,36 @@ export default function HomePage({
           </div>
         </div>
 
-        <SupportAnimeBoxCard />
+        <div className="home-utility-grid">
+          <div className="panel home-library-panel right-rail__secondary">
+            <span className="home-library-panel__symbol home-library-panel__symbol--brand" aria-hidden="true">
+              <Image src="/brand/brand-mark.webp" alt="" width={20} height={20} sizes="20px" />
+            </span>
+            <span className="home-library-panel__eyebrow">Твоя коллекция</span>
+            <h2>
+              Хорошие истории
+              <br />
+              остаются с тобой.
+            </h2>
+            <p>Сохраняй тайтлы и возвращайся к любимым аниме.</p>
+            <Link className="btn btn--primary" href="/list">
+              Открыть трекер <span aria-hidden="true">↗</span>
+            </Link>
 
-        <TelegramPromoCard />
+            <img
+              className="home-library-panel__mascot"
+              src="/brand/animebox-mascot.webp"
+              alt=""
+              loading="lazy"
+              decoding="async"
+              fetchPriority="low"
+              aria-hidden="true"
+            />
+          </div>
+
+          <SupportAnimeBoxCard />
+          <TelegramPromoCard />
+        </div>
       </aside>
       </div>
     </div>

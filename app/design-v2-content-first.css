@@ -1219,3 +1219,181 @@
     transition: none !important;
   }
 }
+
+
+/* =========================================================
+   Design v2.1 — home layout repair
+   ========================================================= */
+
+.home-grid .home-hero-carousel .home-hero-carousel__nav {
+  top: auto !important;
+  left: 44px !important;
+  right: 22px !important;
+  bottom: 20px !important;
+  width: auto !important;
+  height: auto !important;
+  transform: none !important;
+}
+
+.home-grid .home-hero-carousel .home-hero-carousel__arrow {
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+}
+
+/* Two complete catalogue rows on desktop: no orphan card + four empty cells. */
+.home-grid .anime-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+/* Utility shelf is now three independent levels instead of one stretched row. */
+.right-rail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  margin-top: 40px;
+  padding-top: 20px;
+}
+
+.right-rail > .home-top-anime-panel--desktop,
+.right-rail > .home-upcoming-panel,
+.right-rail > .home-utility-grid {
+  grid-column: 1 / -1;
+}
+
+.home-top-anime-panel--desktop .panel__body {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 16px;
+  row-gap: 0;
+  padding: 0 12px 10px;
+}
+
+.home-top-anime-panel--desktop .top-anime-item:nth-child(-n+3) {
+  border-top: 0;
+}
+
+.home-upcoming-panel {
+  min-height: 0;
+}
+
+.home-upcoming-panel__list {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0 12px;
+  padding: 0 12px 10px !important;
+}
+
+.home-upcoming-panel__list > a {
+  min-width: 0;
+  border-bottom: 0 !important;
+}
+
+.home-utility-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
+.home-utility-grid > * {
+  align-self: start;
+  height: auto !important;
+  min-height: 132px !important;
+}
+
+.home-utility-grid .home-library-panel,
+.home-utility-grid .home-utility-card {
+  min-height: 132px !important;
+}
+
+.home-utility-card {
+  grid-template-rows: auto auto;
+}
+
+.home-utility-card__link {
+  margin-top: 16px;
+}
+
+@media (min-width: 1700px) {
+  .home-grid .anime-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1000px) {
+  .home-grid .anime-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .home-grid .anime-grid > :nth-child(n+9) {
+    display: none;
+  }
+
+  .home-top-anime-panel--desktop .panel__body {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-upcoming-panel__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-utility-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-utility-grid > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .home-grid .home-hero-carousel .home-hero-carousel__nav {
+    left: 17px !important;
+    right: 13px !important;
+    bottom: 14px !important;
+  }
+
+  .home-grid .anime-grid > :nth-child(n+9) {
+    display: flex;
+  }
+
+  .right-rail {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    margin-top: 32px;
+    padding-top: 16px;
+  }
+
+  .home-upcoming-panel__list {
+    display: grid !important;
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: min(82vw, 330px);
+    gap: 10px;
+    overflow-x: auto;
+    padding: 0 12px 12px !important;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .home-upcoming-panel__list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .home-upcoming-panel__list > a {
+    scroll-snap-align: start;
+  }
+
+  .home-utility-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-utility-grid > :last-child {
+    grid-column: auto;
+  }
+
+  .home-utility-grid > * {
+    min-height: 118px !important;
+  }
+}

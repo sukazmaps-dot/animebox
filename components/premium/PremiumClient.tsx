@@ -29,7 +29,7 @@ function premiumSourceChip(source: PremiumMe['lifecycle']['sources'][number]) {
 }
 
 const BENEFITS = [
-  ['Без рекламы', 'Рекламные блоки AnimeBox отключаются на всём сайте.'],
+  ['+20% XP', 'Больше XP за обычную подтверждённую активность просмотра.'],
   ['Premium badge', 'Отдельный Premium-статус в своём и публичном профиле.'],
   ['Premium Studio', 'Своя палитра: фон, accent, текст, glow и стиль рамки.'],
   ['Анимированный профиль', 'Premium-аватар и баннер поддерживают animated WEBP и GIF.'],
@@ -267,10 +267,10 @@ export default function PremiumClient() {
       <section className="premium-hero">
         <div className="premium-hero__copy">
           <span className="premium-eyebrow">ANIMEBOX PREMIUM</span>
-          <h1>Больше персонализации.<br />Меньше отвлекающего.</h1>
+          <h1>Больше персонализации.<br />Больше твоего AnimeBox.</h1>
           <p>
-            Premium — отдельный продукт AnimeBox: без рекламных блоков AnimeBox, с полноценным Premium Studio,
-            собственной палитрой профиля, анимированными медиа и темой оболочки плеера.
+            Premium расширяет персонализацию AnimeBox: +20% XP за обычную активность,
+            Premium Studio, собственная палитра профиля, анимированные медиа и тема оболочки плеера.
           </p>
 
           {!authLoading && !user && (
@@ -399,11 +399,6 @@ export default function PremiumClient() {
             Оплата проходит через Telegram Stars. После подтверждения Telegram
             AnimeBox автоматически активирует доступ на аккаунте.
           </p>
-          <p>
-            Premium отключает только рекламу AnimeBox. Сторонний iframe-плеер может показывать
-            собственную рекламу — AnimeBox не управляет рекламой внутри такого плеера.
-          </p>
-
           {paymentStatus && (
             <div className="premium-payment-status" role="status">
               {paymentStatus}
@@ -503,7 +498,7 @@ export default function PremiumClient() {
       <section className="premium-note">
         <div>
           <strong>Спонсорство остаётся отдельным.</strong>
-          <p>Накопительные Stars-tier и Premium больше не являются одной сущностью. Существующие спонсорские ad-free преимущества сохранены через compatibility layer.</p>
+          <p>Накопительные Stars-tier и Premium остаются отдельными системами: спонсорство показывает вклад в проект, а Premium открывает дополнительные возможности аккаунта.</p>
         </div>
         <Link href="/support">Поддержать AnimeBox →</Link>
       </section>

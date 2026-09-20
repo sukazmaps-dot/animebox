@@ -1,9 +1,9 @@
 export const MONETIZATION_ENABLED =
   process.env.NEXT_PUBLIC_MONETIZATION_ENABLED !== 'false';
 
-export const ADS_ENABLED =
-  MONETIZATION_ENABLED &&
-  process.env.NEXT_PUBLIC_ADS_ENABLED === 'true';
+// Banner ads are intentionally paused. Keep the ad stack and analytics
+// intact so a future native/direct campaign can be re-enabled deliberately.
+export const ADS_ENABLED = false;
 
 export const AD_PROVIDER =
   process.env.NEXT_PUBLIC_AD_PROVIDER?.trim() || 'none';
