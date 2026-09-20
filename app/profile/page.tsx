@@ -7,7 +7,6 @@ import Link from 'next/link';
 
 import { createClient } from '@/lib/supabase/client';
 import { readProfileCache, saveProfileCache } from '@/lib/profile-cache';
-import { notifyAuthChanged } from '@/lib/auth-events';
 import { isTelegramMiniAppRuntime } from '@/lib/telegram-auto-login';
 import { useAuthState } from '@/components/AuthStateProvider';
 import CommunityProfile from '@/components/CommunityProfile';
@@ -204,11 +203,7 @@ export default function ProfilePage() {
   ]);
 
   useEffect(() => {
-    if (!user?.id) {
-      setPremiumStudio(null);
-      setPremiumActive(false);
-      return;
-    }
+    if (!user?.id) return;
 
     let active = true;
 
