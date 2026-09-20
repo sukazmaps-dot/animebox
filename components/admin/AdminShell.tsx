@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 const links = [
   { href: '/admin', label: 'Обзор', icon: '◫' },
   { href: '/admin/analytics', label: 'Аналитика', icon: '⌁' },
+  { href: '/admin/player', label: 'Плеер', icon: '▶' },
   { href: '/admin/users', label: 'Пользователи', icon: '◎' },
   { href: '/admin/moderation', label: 'Модерация', icon: '◇' },
   { href: '/admin/monetization', label: 'Монетизация', icon: '✦' },

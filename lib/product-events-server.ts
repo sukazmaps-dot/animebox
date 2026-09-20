@@ -7,6 +7,11 @@ export const PRODUCT_CLIENT_EVENT_NAMES = [
   'anime_open',
   'chat_open',
   'registration_session',
+  'player_source_selected',
+  'player_source_ready',
+  'player_source_failed',
+  'player_source_switched',
+  'player_started',
 ] as const;
 
 export type ProductClientEventName = (typeof PRODUCT_CLIENT_EVENT_NAMES)[number];

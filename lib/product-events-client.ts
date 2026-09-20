@@ -4,7 +4,12 @@ export type ProductClientEventName =
   | 'page_view'
   | 'anime_open'
   | 'chat_open'
-  | 'registration_session';
+  | 'registration_session'
+  | 'player_source_selected'
+  | 'player_source_ready'
+  | 'player_source_failed'
+  | 'player_source_switched'
+  | 'player_started';
 
 type ClientEvent = {
   eventName: ProductClientEventName;

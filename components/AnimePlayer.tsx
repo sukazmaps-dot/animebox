@@ -12,6 +12,25 @@ import {
   saveWatchProgress,
 } from '@/lib/watch-progress';
 import { setAnimeProgress } from '@/lib/anime-storage';
+import { trackProductClientEvent } from '@/lib/product-events-client';
+import {
+  mediaTypeToDeliveryMode,
+  parseProviderReportedQuality,
+  playerDeliveryLabel,
+  playerQualityLabel,
+  verifiedVideoQuality,
+  type PlayerQualityInfo,
+  type PlayerSourceMode,
+} from '@/lib/player-platform';
+import {
+  rankPlayerSources,
+  readManualProviderPreference,
+  readPlayerSourceMode,
+  recordSourceFailure,
+  recordSourceReady,
+  writeManualProviderPreference,
+  writePlayerSourceMode,
+} from '@/lib/player-source-health-client';
 import Hls from 'hls.js';
 import {
   hexToRgb,
@@ -110,6 +129,19 @@ function sourceLabel(name?: string) {
   if (name === 'Kodik') return 'Kodik';
   if (name === 'AniLiberty') return 'AniLiberty';
   return name;
+}
+
+function getPlayerSurface() {
+  if (typeof window === 'undefined') return 'web';
+
+  const telegram = window as Window & {
+    Telegram?: { WebApp?: unknown };
+  };
+  if (telegram.Telegram?.WebApp) return 'telegram';
+
+  return window.matchMedia?.('(pointer: coarse)').matches || window.innerWidth < 768
+    ? 'mobile'
+    : 'desktop';
 }
 
 const TRANSLATION_PREFERENCE_PREFIX = 'animebox:translation:v1';
@@ -328,6 +360,8 @@ export default function AnimePlayer({
   const [sourceNotice, setSourceNotice] = useState<string | null>(null);
   const [sourceStatuses, setSourceStatuses] = useState<Record<string, SourceLoadState>>({});
   const [playerAttempt, setPlayerAttempt] = useState(0);
+  const [sourceMode, setSourceMode] = useState<PlayerSourceMode>(() => readPlayerSourceMode());
+  const [verifiedQuality, setVerifiedQuality] = useState<PlayerQualityInfo | null>(null);
   const [started, setStarted] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
   const [theaterMode, setTheaterMode] = useState(false);
@@ -340,6 +374,17 @@ export default function AnimePlayer({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const kodikPlayerRef = useRef<KodikPlayerHandle | null>(null);
   const failedCandidatesRef = useRef<Set<string>>(new Set());
+  const sourceAttemptRef = useRef<{
+    id: string;
+    startedAt: number;
+    readyTracked: boolean;
+    failureTracked: boolean;
+  } | null>(null);
+  const playRequestAtRef = useRef<number | null>(null);
+  const playbackStartTrackedRef = useRef<Set<string>>(new Set());
+  const sourceSelectionReasonRef = useRef<
+    'initial_auto' | 'manual' | 'manual_preference' | 'auto_score' | 'fallback' | 'retry' | 'translation'
+  >(sourceMode === 'manual' ? 'manual_preference' : 'initial_auto');
   const resumeAppliedRef = useRef(false);
   const localProgressRef = useRef<{
     positionSeconds: number;
@@ -382,13 +427,68 @@ export default function AnimePlayer({
   const isHls = mediaType === 'hls';
   const videoLink = isHls ? toProxyHls(normalizedLink) : normalizedLink;
   const currentSourceName = sourceLabel(currentSource?.name);
+  const deliveryMode = mediaTypeToDeliveryMode(mediaType);
+  const currentSourceType = currentTranslation?.type || currentSource?.type || mediaType;
+  const reportedQuality = parseProviderReportedQuality(currentTranslation?.title);
+  const qualityInfo = verifiedQuality || reportedQuality;
+  const qualitySummary = playerQualityLabel(qualityInfo, deliveryMode);
+  const deliverySummary = playerDeliveryLabel(deliveryMode);
   const currentCandidateKey = [
     currentSource?.name || 'direct',
     currentTranslation?.title || String(activeTranslationIndex),
     normalizedLink || src || '',
   ].join('::');
+  const currentAttemptId = `${currentCandidateKey}::${playerAttempt}`;
 
   const trackableNativeVideo = !isIframe && Boolean(videoLink);
+
+  const trackPlayerEvent = useCallback((
+    eventName: Parameters<typeof trackProductClientEvent>[0],
+    metadata: Record<string, unknown> = {},
+    flush = false,
+  ) => {
+    trackProductClientEvent(eventName, {
+      source: currentSourceName,
+      path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+      entityType: 'episode',
+      entityId: animeId ? `${animeId}:${episodeNumber}` : `episode:${episodeNumber}`,
+      metadata: {
+        provider: currentSourceName,
+        episode: episodeNumber,
+        deliveryMode,
+        translation: currentTranslation?.title || null,
+        surface: getPlayerSurface(),
+        watchTogether: watchTogetherMode,
+        attempt: playerAttempt,
+        ...metadata,
+      },
+      flush,
+    });
+  }, [
+    animeId,
+    currentSourceName,
+    currentTranslation?.title,
+    deliveryMode,
+    episodeNumber,
+    playerAttempt,
+    watchTogetherMode,
+  ]);
+
+  const markConfirmedPlaybackStart = useCallback((signal: 'timeupdate' | 'play') => {
+    if (!started) return;
+    if (playbackStartTrackedRef.current.has(currentAttemptId)) return;
+
+    playbackStartTrackedRef.current.add(currentAttemptId);
+    const clickToPlayMs = playRequestAtRef.current == null
+      ? null
+      : Math.max(0, Math.round(performance.now() - playRequestAtRef.current));
+
+    trackPlayerEvent('player_started', {
+      signal,
+      confirmed: signal === 'timeupdate' || !isIframe,
+      clickToPlayMs,
+    }, true);
+  }, [currentAttemptId, isIframe, started, trackPlayerEvent]);
 
   const publishPartyState = useCallback((input: {
     position: number;
@@ -594,6 +694,7 @@ export default function AnimePlayer({
       durationSeconds?: number | null;
       origin?: string | null;
     }) => {
+      markConfirmedPlaybackStart('timeupdate');
       persistGuestProgress(sample);
       serverWatchSample(sample);
 
@@ -608,6 +709,7 @@ export default function AnimePlayer({
       }
     },
     [
+      markConfirmedPlaybackStart,
       onPlaybackQualified,
       persistGuestProgress,
       serverWatchSample,
@@ -1099,6 +1201,30 @@ export default function AnimePlayer({
     };
   }, []);
 
+  useEffect(() => {
+    failedCandidatesRef.current.clear();
+    playbackStartTrackedRef.current.clear();
+    playRequestAtRef.current = null;
+    sourceSelectionReasonRef.current = readPlayerSourceMode() === 'manual' ? 'manual_preference' : 'initial_auto';
+    queueMicrotask(() => setVerifiedQuality(null));
+  }, [animeId, episodeNumber]);
+
+  useEffect(() => {
+    if (!videoLink) return;
+    if (sourceAttemptRef.current?.id === currentAttemptId) return;
+
+    sourceAttemptRef.current = {
+      id: currentAttemptId,
+      startedAt: performance.now(),
+      readyTracked: false,
+      failureTracked: false,
+    };
+
+    trackPlayerEvent('player_source_selected', {
+      selectionReason: sourceSelectionReasonRef.current,
+    });
+  }, [currentAttemptId, trackPlayerEvent, videoLink]);
+
   const setSourceStatus = useCallback((sourceName: string | undefined, status: SourceLoadState) => {
     const key = sourceName?.trim() || 'Источник';
     setSourceStatuses((current) => {
@@ -1108,19 +1234,36 @@ export default function AnimePlayer({
   }, []);
 
   const markPlayerReady = useCallback(() => {
+    const attempt = sourceAttemptRef.current;
+    if (attempt?.id === currentAttemptId && !attempt.readyTracked) {
+      attempt.readyTracked = true;
+      const startupMs = Math.max(0, Math.round(performance.now() - attempt.startedAt));
+      recordSourceReady(currentSourceName, currentSourceType, startupMs);
+      trackPlayerEvent('player_source_ready', { startupMs });
+    }
+
     setPlayerReady(true);
     setPlayerError(null);
     setPlayerFailureKind(null);
     setSourceStatus(currentSource?.name, 'ready');
-  }, [currentSource?.name, setSourceStatus]);
+  }, [
+    currentAttemptId,
+    currentSource?.name,
+    currentSourceName,
+    currentSourceType,
+    setSourceStatus,
+    trackPlayerEvent,
+  ]);
 
   const findFallbackCandidate = useCallback(() => {
     if (sources.length < 2) return null;
 
     const preferredTranslation = normalizePreferenceValue(currentTranslation?.title);
+    const sourceIndexes = sourceMode === 'auto'
+      ? rankPlayerSources(sources).map((item) => item.index)
+      : Array.from({ length: sources.length - 1 }, (_, offset) => (activeSourceIndex + offset + 1) % sources.length);
 
-    for (let offset = 1; offset <= sources.length; offset += 1) {
-      const sourceIndex = (activeSourceIndex + offset) % sources.length;
+    for (const sourceIndex of sourceIndexes) {
       if (sourceIndex === activeSourceIndex) continue;
 
       const source = sources[sourceIndex];
@@ -1148,7 +1291,7 @@ export default function AnimePlayer({
     }
 
     return null;
-  }, [activeSourceIndex, currentTranslation?.title, sources]);
+  }, [activeSourceIndex, currentTranslation?.title, sourceMode, sources]);
 
   const switchToFallback = useCallback((failureMessage: string) => {
     const fallback = findFallbackCandidate();
@@ -1157,8 +1300,17 @@ export default function AnimePlayer({
     const from = currentSourceName;
     const to = sourceLabel(fallback.source.name);
 
+    trackPlayerEvent('player_source_switched', {
+      fromProvider: from,
+      toProvider: to,
+      reason: 'source_failure',
+      automatic: true,
+    }, true);
+
+    sourceSelectionReasonRef.current = 'fallback';
     setActiveSourceIndex(fallback.sourceIndex);
     setActiveTranslationIndex(fallback.translationIndex);
+    setVerifiedQuality(null);
     setPlayerReady(false);
     setPlayerError(null);
     setPlayerFailureKind(null);
@@ -1167,12 +1319,22 @@ export default function AnimePlayer({
     setSourceNotice(`${failureMessage} Переключили ${from} → ${to}.`);
 
     return true;
-  }, [currentSourceName, findFallbackCandidate, setSourceStatus]);
+  }, [currentSourceName, findFallbackCandidate, setSourceStatus, trackPlayerEvent]);
 
   const failCurrentSource = useCallback((kind: PlayerFailureKind, message: string) => {
     failedCandidatesRef.current.add(currentCandidateKey);
     setPlayerReady(false);
     setSourceStatus(currentSource?.name, kind);
+
+    const attempt = sourceAttemptRef.current;
+    if (attempt?.id === currentAttemptId && !attempt.failureTracked) {
+      attempt.failureTracked = true;
+      recordSourceFailure(currentSourceName, currentSourceType, kind);
+      trackPlayerEvent('player_source_failed', {
+        failureKind: kind,
+        wasReady: attempt.readyTracked,
+      }, true);
+    }
 
     const reason = kind === 'timeout'
       ? `${currentSourceName} не ответил вовремя.`
@@ -1182,13 +1344,24 @@ export default function AnimePlayer({
 
     setPlayerFailureKind(kind);
     setPlayerError(message);
-  }, [currentCandidateKey, currentSource?.name, currentSourceName, setSourceStatus, switchToFallback]);
+  }, [
+    currentAttemptId,
+    currentCandidateKey,
+    currentSource?.name,
+    currentSourceName,
+    currentSourceType,
+    setSourceStatus,
+    switchToFallback,
+    trackPlayerEvent,
+  ]);
 
   const retryCurrentSource = useCallback(() => {
     failedCandidatesRef.current.delete(currentCandidateKey);
+    sourceSelectionReasonRef.current = 'retry';
     setPlayerError(null);
     setPlayerFailureKind(null);
     setPlayerReady(false);
+    setVerifiedQuality(null);
     setSourceNotice(null);
     setSourceStatus(currentSource?.name, 'loading');
     setPlayerAttempt((current) => current + 1);
@@ -1333,11 +1506,14 @@ export default function AnimePlayer({
     };
   }, [failCurrentSource, isHls, markPlayerReady, playerAttempt, started, videoLink]);
 
-  function selectSource(index: number) {
+  const applySourceSelection = useCallback((
+    index: number,
+    reason: 'manual' | 'manual_preference' | 'auto_score',
+  ) => {
     if (!Number.isSafeInteger(index) || index < 0 || index >= sources.length) return;
 
-    if (index === activeSourceIndex && playerError) {
-      retryCurrentSource();
+    if (index === activeSourceIndex) {
+      if (playerError && reason === 'manual') retryCurrentSource();
       return;
     }
 
@@ -1349,15 +1525,61 @@ export default function AnimePlayer({
           (translation) => normalizePreferenceValue(translation.title) === rememberedValue,
         ) ?? -1
       : -1;
+    const nextName = sourceLabel(source?.name);
 
+    trackPlayerEvent('player_source_switched', {
+      fromProvider: currentSourceName,
+      toProvider: nextName,
+      reason,
+      automatic: reason === 'auto_score',
+    }, true);
+
+    sourceSelectionReasonRef.current = reason;
+    if (started) playRequestAtRef.current = performance.now();
     setActiveSourceIndex(index);
     setActiveTranslationIndex(rememberedIndex >= 0 ? rememberedIndex : 0);
+    setVerifiedQuality(null);
     setPlayerError(null);
     setPlayerFailureKind(null);
-    setSourceNotice(null);
+    setSourceNotice(
+      reason === 'auto_score'
+        ? `Автовыбор: ${nextName} сейчас выглядит надёжнее на этом устройстве.`
+        : null,
+    );
     setPlayerReady(false);
     setSourceStatus(source?.name, started ? 'loading' : 'idle');
     setPlayerAttempt((current) => current + 1);
+  }, [
+    activeSourceIndex,
+    animeId,
+    currentSourceName,
+    playerError,
+    retryCurrentSource,
+    setSourceStatus,
+    sources,
+    started,
+    trackPlayerEvent,
+  ]);
+
+  function selectSource(index: number) {
+    const source = sources[index];
+    setSourceMode('manual');
+    writePlayerSourceMode('manual');
+    writeManualProviderPreference(source?.name || null);
+    applySourceSelection(index, 'manual');
+  }
+
+  function enableAutoSource() {
+    setSourceMode('auto');
+    writePlayerSourceMode('auto');
+
+    const best = rankPlayerSources(sources)[0];
+    if (best && best.index !== activeSourceIndex && !started) {
+      applySourceSelection(best.index, 'auto_score');
+      return;
+    }
+
+    setSourceNotice('Автовыбор источника включён. AnimeBox учтёт скорость и последние сбои на этом устройстве.');
   }
 
   function selectTranslation(id: string) {
@@ -1374,7 +1596,10 @@ export default function AnimePlayer({
       return;
     }
 
+    sourceSelectionReasonRef.current = 'translation';
+    if (started) playRequestAtRef.current = performance.now();
     setActiveTranslationIndex(nextIndex);
+    setVerifiedQuality(null);
 
     if (translation.title?.trim()) {
       writeTranslationPreference(animeId, source.name, translation.title);
@@ -1388,6 +1613,26 @@ export default function AnimePlayer({
     setPlayerAttempt((current) => current + 1);
   }
 
+  useEffect(() => {
+    if (sourceMode !== 'manual' || started || sources.length < 2) return;
+
+    const preferred = readManualProviderPreference();
+    if (!preferred) return;
+    const preferredIndex = sources.findIndex((source) => source.name === preferred);
+    if (preferredIndex < 0 || preferredIndex === activeSourceIndex) return;
+
+    queueMicrotask(() => applySourceSelection(preferredIndex, 'manual_preference'));
+  }, [activeSourceIndex, applySourceSelection, sourceMode, sources, started]);
+
+  useEffect(() => {
+    if (sourceMode !== 'auto' || started || sources.length < 2) return;
+
+    const best = rankPlayerSources(sources)[0];
+    if (!best || best.index === activeSourceIndex) return;
+
+    queueMicrotask(() => applySourceSelection(best.index, 'auto_score'));
+  }, [activeSourceIndex, applySourceSelection, sourceMode, sources, started]);
+
   function selectEpisode(id: string) {
     const nextEpisode = Number(id);
     if (!Number.isSafeInteger(nextEpisode) || nextEpisode < 1) return;
@@ -1397,6 +1642,7 @@ export default function AnimePlayer({
   }
 
   function startPlayback() {
+    playRequestAtRef.current = performance.now();
     setPlayerError(null);
     setPlayerFailureKind(null);
     setSourceNotice(null);
@@ -1501,20 +1747,40 @@ export default function AnimePlayer({
 
         <div className={`anime-player__toolbar ${watchTogetherMode ? 'watch-together-player-toolbar' : ''} flex flex-wrap items-center gap-2`}>
           {sources.length > 1 && (
-            <div className="flex items-center rounded-2xl border border-white/[0.07] bg-black/20 p-1">
+            <div className="flex max-w-full items-center overflow-x-auto rounded-2xl border border-white/[0.07] bg-black/20 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <button
+                type="button"
+                onClick={enableAutoSource}
+                title="AnimeBox выбирает источник по скорости и последним сбоям на этом устройстве"
+                className={`premium-player-source shrink-0 rounded-xl px-3.5 py-2 text-[11px] font-extrabold transition-all duration-200 ${
+                  sourceMode === 'auto'
+                    ? 'bg-gradient-to-r from-violet-600 to-indigo-500 text-white shadow-[0_8px_26px_rgba(105,72,255,.30)]'
+                    : 'text-white/40 hover:bg-white/[0.05] hover:text-white/75'
+                }`}
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-violet-300 shadow-[0_0_8px_rgba(196,181,253,.55)]" />
+                  Авто
+                </span>
+              </button>
+
               {sources.map((source, index) => {
                 const active = activeSourceIndex === index;
                 const status = sourceStatuses[source.name] || 'idle';
+                const manualActive = active && sourceMode === 'manual';
 
                 return (
                   <button
                     key={`${source.name}-${index}`}
                     type="button"
                     onClick={() => selectSource(index)}
-                    className={`premium-player-source ${active ? 'is-active' : ''} rounded-xl px-3.5 py-2 text-[11px] font-extrabold transition-all duration-200 ${
-                      active
+                    aria-pressed={manualActive}
+                    className={`premium-player-source ${active ? 'is-active' : ''} shrink-0 rounded-xl px-3.5 py-2 text-[11px] font-extrabold transition-all duration-200 ${
+                      manualActive
                         ? 'bg-gradient-to-r from-violet-600 to-indigo-500 text-white shadow-[0_8px_26px_rgba(105,72,255,.30)]'
-                        : 'text-white/40 hover:bg-white/[0.05] hover:text-white/75'
+                        : active
+                          ? 'bg-white/[0.07] text-white/80'
+                          : 'text-white/40 hover:bg-white/[0.05] hover:text-white/75'
                     }`}
                   >
                     <span className="inline-flex items-center gap-1.5">
@@ -1540,6 +1806,26 @@ export default function AnimePlayer({
             </div>
           )}
 
+          <div
+            className="hidden min-h-11 min-w-[180px] items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.025] px-3.5 lg:flex"
+            title={qualitySummary}
+          >
+            <span className={`h-2 w-2 shrink-0 rounded-full ${
+              qualityInfo?.confidence === 'verified'
+                ? 'bg-emerald-400 shadow-[0_0_9px_rgba(52,211,153,.5)]'
+                : qualityInfo?.confidence === 'provider-reported'
+                  ? 'bg-amber-300'
+                  : 'bg-white/25'
+            }`} />
+            <span className="min-w-0">
+              <span className="block text-[9px] font-extrabold uppercase tracking-[0.16em] text-white/30">
+                Качество · {deliverySummary}
+              </span>
+              <span className="mt-0.5 block truncate text-[11px] font-bold text-white/75">
+                {qualitySummary}
+              </span>
+            </span>
+          </div>
 
           <PlayerDropdown
             label="Серия"
@@ -1764,6 +2050,10 @@ export default function AnimePlayer({
                     poster={poster || undefined}
                     preload="auto"
                     src={!isHls ? videoLink : undefined}
+                    onLoadedMetadata={(event) => {
+                      const video = event.currentTarget;
+                      setVerifiedQuality(verifiedVideoQuality(video.videoWidth, video.videoHeight));
+                    }}
                     onCanPlay={markPlayerReady}
                     onError={() => {
                       if (!isHls) {
@@ -1790,6 +2080,7 @@ export default function AnimePlayer({
                     }}
                     onPlay={(event) => {
                       const video = event.currentTarget;
+                      markConfirmedPlaybackStart('play');
                       publishPartyAction('play', video.currentTime, true);
                     }}
                     onPause={(event) => {
@@ -1861,18 +2152,17 @@ export default function AnimePlayer({
                       type="button"
                       onClick={() => {
                         const fallback = findFallbackCandidate();
+                        setSourceMode('manual');
+                        writePlayerSourceMode('manual');
+
                         if (fallback) {
-                          setActiveSourceIndex(fallback.sourceIndex);
-                          setActiveTranslationIndex(fallback.translationIndex);
-                          setPlayerError(null);
-                          setPlayerFailureKind(null);
-                          setPlayerReady(false);
-                          setSourceStatus(fallback.source.name, 'loading');
-                          setPlayerAttempt((current) => current + 1);
+                          writeManualProviderPreference(sources[fallback.sourceIndex]?.name || null);
+                          applySourceSelection(fallback.sourceIndex, 'manual');
                         } else {
                           const nextIndex = (activeSourceIndex + 1) % sources.length;
                           failedCandidatesRef.current.clear();
-                          selectSource(nextIndex);
+                          writeManualProviderPreference(sources[nextIndex]?.name || null);
+                          applySourceSelection(nextIndex, 'manual');
                         }
                       }}
                       className="inline-flex min-h-10 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.04] px-4 text-xs font-bold text-white/65 transition hover:bg-white/[0.07] hover:text-white"
@@ -1901,7 +2191,7 @@ export default function AnimePlayer({
 
         <div className="order-first col-span-2 flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-xl border border-violet-400/[0.10] bg-violet-500/[0.035] px-3 text-center sm:order-none sm:col-span-1">
           <span className="shrink-0 text-[9px] font-extrabold uppercase tracking-[0.16em] text-violet-300/55">
-            {sourceLabel(currentSource?.name)}
+            {sourceLabel(currentSource?.name)} · {qualityInfo?.label || deliverySummary}
           </span>
           <span
             aria-hidden="true"
