@@ -793,8 +793,11 @@ export default function AnimePlayer({
       .then((payload) => {
         if (!active || !payload?.state) return;
 
-        const serverUpdatedAt = payload.state.watchedAt
+        const parsedServerUpdatedAt = payload.state.watchedAt
           ? Date.parse(payload.state.watchedAt)
+          : 0;
+        const serverUpdatedAt = Number.isFinite(parsedServerUpdatedAt)
+          ? parsedServerUpdatedAt
           : 0;
         const localUpdatedAt = localProgress?.updatedAt ?? 0;
 
@@ -818,12 +821,21 @@ export default function AnimePlayer({
             ? null
             : Math.floor(payload.state.durationMs / 1000);
 
-        if (positionSeconds < LOCAL_RESUME_MIN_SECONDS) return;
-        if (
-          durationSeconds != null &&
-          durationSeconds - positionSeconds <=
-            LOCAL_RESUME_END_GUARD_SECONDS
-        ) {
+        const serverHasResume =
+          positionSeconds >= LOCAL_RESUME_MIN_SECONDS &&
+          (
+            durationSeconds == null ||
+            durationSeconds - positionSeconds >
+              LOCAL_RESUME_END_GUARD_SECONDS
+          );
+
+        if (!serverHasResume) {
+          // The authenticated state is newer and explicitly says there is no
+          // useful resume point. Do not leave an older guest position active.
+          if (!watchTogetherMode) {
+            removeWatchProgress(animeId, episodeNumber);
+          }
+          setResumeSeconds(0);
           return;
         }
 
