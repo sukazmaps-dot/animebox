@@ -112,7 +112,7 @@ export default function ChallengesClient() {
     <main className={styles.page}>
       <section className={styles.hero}>
         <div>
-          <span className={styles.eyebrow}>ANIMEBOX · CHALLENGES</span>
+          <span className={styles.eyebrow}>AnimeBox · Задания</span>
           <h1>Задания</h1>
           <p>
             Небольшие цели за реальный просмотр. Никаких кликов ради XP — прогресс считается только по подтверждённой активности.
@@ -134,7 +134,7 @@ export default function ChallengesClient() {
 
       <section className={styles.section}>
         <header>
-          <div><span>ЕЖЕДНЕВНЫЕ</span><h2>Сегодня</h2></div>
+          <div><span>Ежедневные</span><h2>Сегодня</h2></div>
           <small>Сброс в 00:00 UTC</small>
         </header>
         <div className={styles.grid}>
@@ -144,7 +144,7 @@ export default function ChallengesClient() {
 
       <section className={styles.section}>
         <header>
-          <div><span>НЕДЕЛЬНЫЕ</span><h2>Эта неделя</h2></div>
+          <div><span>Недельные</span><h2>Эта неделя</h2></div>
           <small>Новый цикл каждый понедельник</small>
         </header>
         <div className={styles.grid}>

@@ -134,3 +134,20 @@
   pointer-events: none;
   scroll-snap-align: none !important;
 }
+
+
+/* Design System v1 */
+.arrow {
+  width: 38px;
+  height: 38px;
+  border-color: var(--ab-border-strong);
+  border-radius: var(--ab-radius-sm);
+  background: rgba(12,18,28,.96);
+  box-shadow: 0 10px 24px rgba(0,0,0,.22);
+  backdrop-filter: blur(10px);
+}
+.arrow:hover {
+  border-color: rgba(120,104,238,.38);
+  background: var(--ab-surface-2);
+  box-shadow: 0 12px 28px rgba(0,0,0,.25);
+}

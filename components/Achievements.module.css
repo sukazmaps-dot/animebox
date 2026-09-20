@@ -332,3 +332,81 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Design System v1 */
+.hero {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-lg);
+  background: var(--ab-surface-1);
+  box-shadow: none;
+}
+.eyebrow {
+  color: #9186e7;
+  font-weight: 650;
+  letter-spacing: .08em;
+}
+.hero h1 {
+  font-weight: 760;
+  letter-spacing: -.035em;
+}
+.level {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  background: var(--ab-surface-2);
+}
+.level span {
+  color: #a49af1;
+  font-weight: 760;
+}
+.summary > div {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  background: var(--ab-surface-1);
+}
+.levelTrack span {
+  background: var(--ab-accent);
+  box-shadow: none;
+}
+.filters button,
+.sorts {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-sm);
+  background: var(--ab-surface-1);
+}
+.filters button {
+  font-weight: 650;
+}
+.filters button.active,
+.sorts button.activeSort {
+  border-color: rgba(120,104,238,.28);
+  background: var(--ab-accent-soft);
+  color: #ddd8ff;
+}
+.card {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  background: var(--ab-surface-1);
+}
+.card[data-rarity='rare'] {
+  border-color: rgba(120,104,238,.22);
+}
+.card[data-rarity='epic'] {
+  border-color: rgba(182,104,219,.26);
+  box-shadow: none;
+}
+.card[data-rarity='legendary'] {
+  border-color: rgba(217,171,88,.32);
+  background: #12151d;
+}
+.icon {
+  border-radius: var(--ab-radius-md);
+  background: rgba(120,104,238,.07);
+}
+.cardTop {
+  font-weight: 700;
+  letter-spacing: .05em;
+}
+.progress span {
+  background: var(--ab-accent);
+}

@@ -338,3 +338,59 @@
     display: none;
   }
 }
+
+
+/* Design System v1 */
+.hero {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-lg);
+  background: var(--ab-surface-1);
+}
+.eyebrow,
+.seasonHead span {
+  color: #9186e7;
+  font-weight: 650;
+  letter-spacing: .08em;
+}
+.hero h1 {
+  font-weight: 760;
+  letter-spacing: -.035em;
+}
+.heroStats > div,
+.state,
+.season {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  background: var(--ab-surface-1);
+}
+.tabs {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-sm);
+  background: var(--ab-surface-1);
+}
+.tabs button {
+  font-weight: 650;
+}
+.tabs button.active {
+  background: var(--ab-accent-soft);
+  color: #ddd8ff;
+}
+.podiumCard {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  background: var(--ab-surface-2);
+}
+.podiumCard[data-place='1'] {
+  border-color: rgba(217,171,88,.30);
+  background: #15140f;
+}
+.place {
+  font-weight: 700;
+}
+.row {
+  border-color: rgba(151,164,188,.07);
+  border-radius: var(--ab-radius-sm);
+}
+.row > span {
+  font-weight: 650;
+}

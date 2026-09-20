@@ -152,7 +152,7 @@ export default function AchievementsClient() {
     <main className={styles.page}>
       <section className={styles.hero}>
         <div>
-          <span className={styles.eyebrow}>ANIMEBOX PROGRESSION</span>
+          <span className={styles.eyebrow}>AnimeBox · Прогресс</span>
           <h1>Достижения</h1>
           <p>
             Просмотр, коллекция, время и активность превращаются в постоянный прогресс профиля.

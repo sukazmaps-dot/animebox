@@ -147,3 +147,120 @@
   font-weight: 850;
   letter-spacing: .02em;
 }
+
+
+/* Design System v1 */
+.hero {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-xl);
+  background: var(--ab-surface-1);
+}
+.hero::after,
+.cardTexture {
+  display: none;
+}
+.eyebrow {
+  color: #978de9;
+  font-weight: 650;
+  letter-spacing: .09em;
+}
+.eyebrow > span {
+  box-shadow: none;
+}
+.hero h1 {
+  font-weight: 760;
+}
+.hero h1 em {
+  color: #b8aff4;
+  background: none;
+  -webkit-text-fill-color: currentColor;
+}
+.heroEmblem {
+  opacity: .07;
+  box-shadow: none;
+}
+.heroMeta span:first-child {
+  border-color: var(--ab-border);
+  font-weight: 650;
+}
+.tabs,
+.modeSwitch {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-sm);
+  background: var(--ab-surface-1);
+}
+.tabs button,
+.modeSwitch a,
+.modeSwitch span {
+  font-weight: 650;
+}
+.tabs .activeTab,
+.modeSwitch span {
+  background: var(--ab-accent-soft);
+  color: #e5e1ff;
+  box-shadow: none;
+}
+.periodBadge,
+.levelBadge,
+.youBadge {
+  border-radius: 7px;
+}
+.podiumCard {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-lg);
+  background: var(--ab-surface-1);
+  box-shadow: none;
+}
+.podiumCard[data-rank='1'] {
+  border-color: rgba(217,171,88,.34);
+  background: #15140f;
+  box-shadow: none;
+}
+.rankArtwork {
+  opacity: .08;
+  filter: none;
+}
+.podiumCard[data-rank='1'] .rankArtwork {
+  opacity: .11;
+}
+.avatarRing {
+  box-shadow: none;
+}
+.rankSeal {
+  border-radius: 7px;
+  font-weight: 750;
+}
+.crown {
+  filter: none;
+  animation: none;
+}
+.personal,
+.board,
+.state {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  background: var(--ab-surface-1);
+}
+.personalAction {
+  border-color: rgba(120,104,238,.24);
+  border-radius: var(--ab-radius-sm);
+  background: var(--ab-accent);
+}
+.row.current {
+  background: var(--ab-accent-soft);
+  box-shadow: inset 2px 0 var(--ab-accent);
+}
+@media (hover:hover) {
+  .podiumCard:hover {
+    transform: translateY(-2px);
+    border-color: rgba(120,104,238,.28);
+    box-shadow: 0 12px 28px rgba(0,0,0,.18);
+  }
+  .podiumCard[data-rank='1']:hover {
+    border-color: rgba(217,171,88,.42);
+  }
+  .podiumCard:hover .rankArtwork {
+    opacity: .12;
+    transform: translateX(-50%) scale(1.02);
+  }
+}

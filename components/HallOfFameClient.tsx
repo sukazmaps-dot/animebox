@@ -82,7 +82,7 @@ export default function HallOfFameClient() {
     <main className={styles.page}>
       <section className={styles.hero}>
         <div>
-          <span className={styles.eyebrow}>ANIMEBOX · HALL OF FAME</span>
+          <span className={styles.eyebrow}>AnimeBox · История сезонов</span>
           <h1>Зал славы</h1>
           <p>
             Итоги завершённых сезонов сохраняются навсегда. Новая неделя и новый месяц дают каждому шанс войти в историю AnimeBox.

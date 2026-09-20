@@ -3437,3 +3437,144 @@ label input:checked + span::before {
   .profile-v5__challenge-progress { width:100%; }
   .profile-v5__challenge-progress>div { flex:1 1 0; }
 }
+
+
+/* =========================================================
+   DESIGN SYSTEM V1 · COMMUNITY / PROFILE / TRACKER
+   ========================================================= */
+
+.anime-detail-after-hero .community-discussion,
+.empty-library-cta,
+.tracker-hero,
+.tracker-summary,
+.tracker-card,
+.tracker-empty,
+.profile-v3__progression,
+.profile-v3__showcase,
+.profile-v4__featured,
+.profile-v5__challenges {
+  border-color: var(--ab-border);
+  background: var(--ab-surface-1);
+  box-shadow: none;
+}
+
+.anime-detail-after-hero .community-discussion,
+.empty-library-cta,
+.tracker-hero {
+  border-radius: var(--ab-radius-lg);
+}
+
+.anime-detail-after-hero .community-discussion::after,
+.empty-library-cta__glow,
+.tracker-hero::after,
+.profile-v3__progression::after {
+  display: none;
+}
+
+.anime-detail-after-hero .community-discussion::before {
+  left: 0;
+  right: auto;
+  top: 18px;
+  bottom: 18px;
+  width: 3px;
+  height: auto;
+  border-radius: 2px;
+  background: var(--ab-accent);
+  opacity: 1;
+}
+
+.anime-detail-after-hero .community-discussion__eyebrow,
+.episode-comments__eyebrow,
+.community-library-control__eyebrow,
+.tracker-eyebrow,
+.profile-v2__eyebrow {
+  color: #9186e7;
+  font-weight: 650;
+  letter-spacing: .07em;
+}
+
+.anime-detail-after-hero .community-discussion__icon,
+.empty-library-cta__icon,
+.community-library-control__icon,
+.tracker-hero__mark {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  background: var(--ab-accent-soft);
+  box-shadow: none;
+}
+
+.empty-library-cta__label {
+  color: #9186e7;
+  font-weight: 650;
+  letter-spacing: .07em;
+}
+
+.empty-library-cta h3 {
+  font-weight: 740;
+}
+
+.empty-library-cta__button,
+.anime-detail-after-hero .community-form__submit-row button,
+.episode-comments__controls button,
+.community-library-status.is-active,
+.tracker-error__login {
+  border-radius: var(--ab-radius-sm);
+  background: var(--ab-accent);
+  box-shadow: none;
+}
+
+.anime-detail-after-hero .community-comment,
+.episode-comment,
+.community-library-control,
+.episode-comments,
+.profile-v3__showcase-card,
+.profile-v4__featured-card,
+.profile-v5__challenge-progress > div {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  background: var(--ab-surface-2);
+  box-shadow: none;
+}
+
+.tracker-card {
+  border-radius: var(--ab-radius-md);
+}
+
+.tracker-card:hover,
+.episode-comment:hover,
+.anime-detail-after-hero .community-comment:hover {
+  transform: none;
+  border-color: rgba(120,104,238,.20);
+  background: var(--ab-surface-2);
+}
+
+.profile-v3__level-orb {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  background: var(--ab-surface-2);
+  box-shadow: none;
+}
+
+.profile-v3__level-orb strong {
+  font-weight: 760;
+}
+
+.profile-v3__xp-track > span {
+  background: var(--ab-accent);
+  box-shadow: none;
+}
+
+.profile-v3__xp-boost,
+.profile-v4__season-titles > span {
+  border-radius: 7px;
+}
+
+.profile-v4__featured-card[data-rarity='legendary'],
+.profile-v3__showcase-card[data-rarity='legendary'] {
+  border-color: rgba(217,171,88,.30);
+  background: #15140f;
+}
+
+.profile-v5__challenge-streak strong {
+  font-weight: 740;
+}

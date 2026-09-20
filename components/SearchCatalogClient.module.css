@@ -100,3 +100,17 @@
   .assetEmpty { min-height: 220px; }
   .emptyMascot { width: 96px; }
 }
+
+
+/* Design System v1 */
+.assetEmpty {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  background: var(--ab-surface-1);
+}
+.assetEmpty::before {
+  display: none;
+}
+.emptyMascot {
+  filter: drop-shadow(0 12px 22px rgba(0,0,0,.22));
+}

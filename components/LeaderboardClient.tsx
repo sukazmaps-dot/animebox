@@ -110,7 +110,7 @@ export default function LeaderboardClient() {
     <main className={styles.page}>
       <section className={styles.hero}>
         <div className={styles.heroEmblem}><img src="/ui/animebox-rank-1.webp" alt="" aria-hidden="true" /></div>
-        <span className={styles.eyebrow}><span /> ANIMEBOX · LEADERBOARD</span>
+        <span className={styles.eyebrow}><span /> AnimeBox · Рейтинг</span>
         <h1>Твоя история.<br /><em>Твоё место в топе.</em></h1>
         <p>Любимые истории становятся частью твоей. Знакомься с теми, кто смотрит вместе с тобой — и найди своё место среди них.</p>
         <div className={styles.heroMeta}><span>ТОП 100</span><span>По времени просмотра</span></div>

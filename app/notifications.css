@@ -140,3 +140,75 @@
 .notifications-test-row span { display:block; }
 .notifications-test-row strong { color:#edf1ff;font-size:11px; }
 .notifications-test-row span { margin-top:4px;color:#7f8da5;font-size:9px;line-height:1.45; }
+
+
+/* =========================================================
+   DESIGN SYSTEM V1 · NOTIFICATIONS
+   ========================================================= */
+
+.notifications-hero,
+.notifications-card,
+.anime-notification-control,
+.notifications-empty,
+.notifications-test-row {
+  border-color: var(--ab-border);
+  background: var(--ab-surface-1);
+  box-shadow: none;
+}
+
+.notifications-hero {
+  border-radius: var(--ab-radius-lg);
+}
+
+.notifications-card,
+.anime-notification-control {
+  border-radius: var(--ab-radius-md);
+}
+
+.notifications-hero::before,
+.notifications-hero::after,
+.anime-notification-control::before,
+.anime-notification-control::after {
+  display: none !important;
+}
+
+.notifications-card__head span {
+  color: #9186e7;
+  font-weight: 650;
+  letter-spacing: .07em;
+}
+
+.notifications-hero h1,
+.notifications-card__head h2,
+.anime-notification-control h2 {
+  font-weight: 740;
+  letter-spacing: -.025em;
+}
+
+.notifications-hero__status,
+.notifications-hero__bot,
+.notification-master,
+.notifications-list__item button,
+.notifications-empty a,
+.anime-notification-control__button,
+.anime-notification-control__actions > a {
+  border-radius: var(--ab-radius-sm);
+}
+
+.notification-master,
+.notifications-empty a,
+.anime-notification-control__button:not(.is-enabled) {
+  box-shadow: none;
+}
+
+.notification-master.is-enabled,
+.anime-notification-control__button.is-enabled {
+  border-color: rgba(99,201,157,.24);
+  background: rgba(99,201,157,.09);
+}
+
+.notifications-list__item {
+  border-color: rgba(151,164,188,.08);
+  border-radius: var(--ab-radius-sm);
+  background: var(--ab-surface-2);
+}
