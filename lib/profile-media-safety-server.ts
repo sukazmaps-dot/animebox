@@ -202,7 +202,7 @@ async function moderateWithOpenAI(
   for (let attempt = 0; attempt < MODERATION_RETRY_DELAYS_MS.length; attempt += 1) {
     const delay = MODERATION_RETRY_DELAYS_MS[attempt];
     if (delay > 0) {
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await new Promise<void>((resolve) => setTimeout(resolve, delay));
     }
 
     const controller = new AbortController();
