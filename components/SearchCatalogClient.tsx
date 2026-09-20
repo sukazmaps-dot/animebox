@@ -12,6 +12,13 @@ import type { CatalogMood } from '@/lib/catalog-moods';
 import type { Anime } from '@/types/anime';
 import AdSlot from '@/components/monetization/AdSlot';
 import { parseAnimeSearchIntent } from '@/lib/search-intent';
+import {
+  describeSmartDiscoveryIntent,
+  parseSmartDiscoveryQuery,
+  rankSmartDiscoveryCandidates,
+} from '@/lib/smart-discovery';
+import { fetchTasteGraph, readCachedTasteGraph, type TasteGraph } from '@/lib/taste-graph';
+import { trackProductClientEvent } from '@/lib/product-events-client';
 import { CATALOG_AD_BREAK_INDEX, CATALOG_PAGE_SIZE } from '@/lib/catalog-pagination';
 
 import styles from './SearchCatalogClient.module.css';
@@ -42,9 +49,18 @@ export default function SearchCatalogClient({
     () => (query ? parseAnimeSearchIntent(query) : null),
     [query],
   );
+  const discoveryIntent = useMemo(
+    () => (query ? parseSmartDiscoveryQuery(query) : null),
+    [query],
+  );
+  const discoveryDescription = useMemo(
+    () => (discoveryIntent?.isDiscovery ? describeSmartDiscoveryIntent(discoveryIntent) : []),
+    [discoveryIntent],
+  );
 
   const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
   const [selectedMood, setSelectedMood] = useState<CatalogMood>('any');
+  const [tasteGraph, setTasteGraph] = useState<TasteGraph | null>(() => readCachedTasteGraph());
   const [results, setResults] = useState<Anime[]>(initialResults);
   const [loading, setLoading] = useState(initialResults.length === 0);
   const [error, setError] = useState('');
@@ -52,6 +68,27 @@ export default function SearchCatalogClient({
   const page = pageState.query === query ? pageState.page : 1;
   const initialRenderRef = useRef(true);
   const [hasNextPage, setHasNextPage] = useState(initialResults.length >= CATALOG_PAGE_SIZE);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetchTasteGraph(controller.signal)
+      .then((graph) => {
+        if (graph) setTasteGraph(graph);
+      })
+      .catch((error) => {
+        if (error instanceof Error && error.name === 'AbortError') return;
+      });
+
+    const onTasteGraph = (event: Event) => {
+      const graph = (event as CustomEvent<TasteGraph>).detail ?? readCachedTasteGraph();
+      if (graph) setTasteGraph(graph);
+    };
+    window.addEventListener('animebox-taste-graph-updated', onTasteGraph);
+    return () => {
+      controller.abort();
+      window.removeEventListener('animebox-taste-graph-updated', onTasteGraph);
+    };
+  }, []);
 
   useEffect(() => {
     // Skip only the initial unfiltered browser request: SSR already supplied it.
@@ -75,22 +112,56 @@ export default function SearchCatalogClient({
       setError('');
 
       try {
-        const data = await getAnimes(
-          {
-            search: query || undefined,
-            page,
-            limit: CATALOG_PAGE_SIZE,
-            order: 'ranked',
-            genre: selectedGenre ?? undefined,
-            mood: selectedMood,
-          },
-          { signal: controller.signal },
-        );
+        if (query && discoveryIntent?.isDiscovery && page === 1) {
+          const params = new URLSearchParams({
+            q: query,
+            limit: String(Math.max(CATALOG_PAGE_SIZE, 30)),
+          });
+          const response = await fetch(`/api/discovery?${params.toString()}`, {
+            signal: controller.signal,
+            cache: 'no-store',
+            headers: { Accept: 'application/json' },
+          });
+          if (!response.ok) throw new Error(`Discovery HTTP ${response.status}`);
+          const payload = (await response.json()) as { items?: Anime[] };
+          const items = Array.isArray(payload.items) ? payload.items : [];
+          const personalized = rankSmartDiscoveryCandidates(items, discoveryIntent, { tasteGraph });
 
-        if (controller.signal.aborted) return;
+          if (controller.signal.aborted) return;
+          setResults(personalized.slice(0, Math.max(CATALOG_PAGE_SIZE, 30)));
+          setHasNextPage(false);
+          trackProductClientEvent('smart_discovery_search', {
+            source: 'search',
+            path: '/search',
+            entityType: 'search_query',
+            entityId: query.slice(0, 255),
+            metadata: {
+              similar_to: discoveryIntent.similarTo,
+              include_genres: discoveryIntent.includeGenres,
+              exclude_terms: discoveryIntent.excludeTerms,
+              max_episodes: discoveryIntent.maxEpisodes,
+              min_episodes: discoveryIntent.minEpisodes,
+              results: personalized.length,
+            },
+          });
+        } else {
+          const data = await getAnimes(
+            {
+              search: query || undefined,
+              page,
+              limit: CATALOG_PAGE_SIZE,
+              order: 'ranked',
+              genre: selectedGenre ?? undefined,
+              mood: selectedMood,
+            },
+            { signal: controller.signal },
+          );
 
-        setResults(data);
-        setHasNextPage(data.length === CATALOG_PAGE_SIZE);
+          if (controller.signal.aborted) return;
+
+          setResults(data);
+          setHasNextPage(data.length === CATALOG_PAGE_SIZE);
+        }
       } catch (err: unknown) {
         if (isAbortError(err)) return;
         setResults([]);
@@ -102,7 +173,7 @@ export default function SearchCatalogClient({
 
     void load();
     return () => controller.abort();
-  }, [initialResults, page, query, selectedGenre, selectedMood]);
+  }, [discoveryIntent, initialResults, page, query, selectedGenre, selectedMood, tasteGraph]);
 
   const hasFilters = selectedGenre !== null || selectedMood !== 'any';
   const showCatalogAd = !loading && results.length >= 8;
@@ -117,7 +188,13 @@ export default function SearchCatalogClient({
       <div className="page-heading">
         <h1>Каталог аниме</h1>
         <p>Ищи тайтлы по названию, жанру и атмосфере — и добавляй их в свой трекер</p>
-        {searchIntent &&
+        {discoveryIntent?.isDiscovery && discoveryDescription.length > 0 && (
+          <div className={styles.smartDiscoveryHint}>
+            <span className={styles.smartDiscoveryBadge}>Smart Search</span>
+            <span>{discoveryDescription.join(' · ')}</span>
+          </div>
+        )}
+        {!discoveryIntent?.isDiscovery && searchIntent &&
           searchIntent.titleQuery !== searchIntent.normalized && (
             <p className="mt-2 text-xs text-violet-200/70">
               Понял запрос: <strong className="text-violet-100">{searchIntent.titleQuery}</strong>

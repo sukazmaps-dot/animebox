@@ -18,6 +18,7 @@ import {
 } from '@/lib/watch-server';
 import { syncUserProgression } from '@/lib/progression-server';
 import { syncUserChallenges } from '@/lib/challenges-server';
+import { trackProductEvents } from '@/lib/product-events-server';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -232,6 +233,44 @@ export async function POST(request: Request) {
           });
         } catch (progressionError) {
           console.error('[watch] progression sync failed:', progressionError);
+        }
+
+        // Attribute a confirmed episode completion to a recent recommendation
+        // start. This is server-side so refreshes/devices cannot fabricate the
+        // final conversion merely by clicking a card.
+        try {
+          const admin = adminClient();
+          const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+          const { data: attributedStart } = await admin
+            .from('product_events')
+            .select('id,session_id,source,metadata,created_at')
+            .eq('user_id', user.id)
+            .eq('event_name', 'recommendation_started')
+            .eq('entity_id', String(result.animeId))
+            .gte('created_at', since)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (attributedStart) {
+            await trackProductEvents([{
+              eventName: 'recommendation_completed',
+              userId: user.id,
+              sessionId: attributedStart.session_id,
+              source: attributedStart.source ?? 'recommendation',
+              path: `/anime/${result.animeId}/episode/${result.episode}`,
+              entityType: 'anime_id',
+              entityId: String(result.animeId),
+              metadata: {
+                episode: result.episode,
+                recommendation_started_at: attributedStart.created_at,
+                recommendation: attributedStart.metadata ?? {},
+              },
+              dedupeKey: `recommendation-completed:${user.id}:${result.animeId}:${result.episode}`,
+            }]);
+          }
+        } catch (attributionError) {
+          console.error('[watch] recommendation attribution failed:', attributionError);
         }
       }
 

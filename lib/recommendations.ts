@@ -1,5 +1,6 @@
 import type { Anime } from '@/types/anime';
 import {
+  readAnimeFavorites,
   readAnimeList,
   readWatchHistory,
 } from '@/lib/anime-storage';
@@ -8,12 +9,20 @@ import {
   readTasteProfile,
   type TasteMood,
 } from '@/lib/personalization';
+import {
+  animeGenreAffinity,
+  episodeLengthAffinity,
+  readCachedTasteGraph,
+  type TasteGraph,
+} from '@/lib/taste-graph';
 
 export type RankedRecommendation = {
   anime: Anime;
   score: number;
   reason: string;
-  source: 'watch_history' | 'taste_mood' | 'engagement' | 'discovery';
+  reasons: string[];
+  matchScore: number | null;
+  source: 'watch_history' | 'taste_mood' | 'engagement' | 'taste_graph' | 'discovery';
 };
 
 type MoodConfig = {
@@ -180,6 +189,7 @@ export function getPersonalizedRecommendations(
   options?: {
     mood?: TasteMood;
     limit?: number;
+    tasteGraph?: TasteGraph | null;
   },
 ): RankedRecommendation[] {
   if (typeof window === 'undefined') return [];
@@ -189,14 +199,16 @@ export function getPersonalizedRecommendations(
   const limit = Math.max(1, options?.limit ?? 20);
   const history = readWatchHistory();
   const saved = readAnimeList();
+  const favorites = readAnimeFavorites();
   const engagementScores = buildDirectEngagementScores();
+  const tasteGraph = options?.tasteGraph ?? readCachedTasteGraph();
 
   const hiddenIds = new Set(profile.hiddenAnimeIds);
   const watchedIds = new Set(history.map((item) => item.id));
   const savedIds = new Set(saved.map((item) => item.id));
+  const favoriteIds = new Set(favorites.map((item) => item.id));
 
   const genreWeight = new Map<string, number>();
-  const genreLabel = new Map<string, string>();
 
   history.forEach((item, index) => {
     const ageDays = Math.max(0, (Date.now() - item.lastViewedAt) / 86_400_000);
@@ -209,17 +221,23 @@ export function getPersonalizedRecommendations(
       const genre = normalizeGenre(rawGenre);
       if (!genre) continue;
       genreWeight.set(genre, (genreWeight.get(genre) ?? 0) + weight);
-      if (!genreLabel.has(genre)) genreLabel.set(genre, rawGenre);
     }
   });
 
-  // Saving a title is explicit positive feedback, but weaker than actual viewing.
   for (const item of saved) {
     for (const rawGenre of item.genres ?? []) {
       const genre = normalizeGenre(rawGenre);
       if (!genre) continue;
       genreWeight.set(genre, (genreWeight.get(genre) ?? 0) + 0.4);
-      if (!genreLabel.has(genre)) genreLabel.set(genre, rawGenre);
+    }
+  }
+
+  // Favorites are an explicit preference and deserve more weight than a plan.
+  for (const item of favorites) {
+    for (const rawGenre of item.genres ?? []) {
+      const genre = normalizeGenre(rawGenre);
+      if (!genre) continue;
+      genreWeight.set(genre, (genreWeight.get(genre) ?? 0) + 1.05);
     }
   }
 
@@ -235,15 +253,12 @@ export function getPersonalizedRecommendations(
     history.slice(0, 12).map((item) => getAnimeTitle(item).toLowerCase()),
   );
 
-  return uniqueById(candidates)
+  const scored = uniqueById(candidates)
     .filter((anime) => !hiddenIds.has(anime.id))
     .filter((anime) => !watchedIds.has(anime.id))
     .map((anime, index) => {
       const matchingGenres = (anime.genres ?? [])
-        .map((genre) => ({
-          raw: genre,
-          normalized: normalizeGenre(genre),
-        }))
+        .map((genre) => ({ raw: genre, normalized: normalizeGenre(genre) }))
         .filter(({ normalized }) => (normalizedGenreWeight.get(normalized) ?? 0) > 0)
         .sort(
           (a, b) =>
@@ -257,36 +272,43 @@ export function getPersonalizedRecommendations(
             matchingGenres
               .slice(0, 3)
               .reduce(
-                (sum, { normalized }) =>
-                  sum + (normalizedGenreWeight.get(normalized) ?? 0),
+                (sum, { normalized }) => sum + (normalizedGenreWeight.get(normalized) ?? 0),
                 0,
               ) / 2.1,
           )
         : 0;
 
+      const graphAffinity = animeGenreAffinity(anime, tasteGraph);
+      const lengthAffinity = episodeLengthAffinity(anime, tasteGraph);
       const moodScore = moodAffinity(anime, mood);
       const ratingScore = normalizeRating(anime);
-      const engagementScore = Math.max(0, engagementScores.get(anime.id) ?? 0);
-      const ongoingBonus = ['RELEASING', 'Онгоинг', 'ongoing'].includes(anime.status ?? '')
-        ? 0.035
-        : 0;
+      const engagementRaw = engagementScores.get(anime.id) ?? 0;
+      const engagementScore = Math.max(0, engagementRaw);
+      const negativeEngagement = Math.max(0, -engagementRaw);
+      const ongoingBonus = ['RELEASING', 'Онгоинг', 'ongoing'].includes(anime.status ?? '') ? 0.035 : 0;
       const discoveryBonus = index < 14 ? 0.04 : Math.max(0, 0.025 - index * 0.0005);
       const savedBonus = savedIds.has(anime.id) ? 0.035 : 0;
+      const favoriteBonus = favoriteIds.has(anime.id) ? 0.075 : 0;
       const title = getAnimeTitle(anime);
       const duplicateTitlePenalty = recentTitles.has(title.toLowerCase()) ? -0.45 : 0;
 
       const hasHistory = history.length > 0;
       const score =
-        genreScore * (hasHistory ? 0.5 : 0.12) +
-        moodScore * (mood === 'any' ? 0 : hasHistory ? 0.25 : 0.46) +
-        ratingScore * (hasHistory ? 0.15 : 0.32) +
+        genreScore * (hasHistory ? 0.38 : 0.08) +
+        graphAffinity.positive * 0.28 -
+        graphAffinity.negative * 0.32 +
+        lengthAffinity * (tasteGraph?.confidence ? 0.07 : 0) +
+        moodScore * (mood === 'any' ? 0 : hasHistory ? 0.18 : 0.38) +
+        ratingScore * (hasHistory ? 0.11 : 0.28) +
         engagementScore +
         discoveryBonus +
         ongoingBonus +
         savedBonus +
+        favoriteBonus -
+        negativeEngagement * 0.9 +
         duplicateTitlePenalty;
 
-      const reason = chooseReason({
+      const primary = chooseReason({
         anime,
         mood,
         moodScore,
@@ -294,14 +316,83 @@ export function getPersonalizedRecommendations(
         engagementScore,
       });
 
+      const reasons: string[] = [];
+      const graphMatches = graphAffinity.matches;
+      const localMatches = matchingGenres.map(({ raw }) => raw);
+      const tasteMatches = [...new Set([...graphMatches, ...localMatches])].slice(0, 2);
+      if (tasteMatches.length) reasons.push(`Совпадает со вкусом: ${tasteMatches.join(' · ')}`);
+      if (mood !== 'any' && moodScore > 0) reasons.push(`Под настроение «${MOOD_CONFIG[mood].label}»`);
+      if (lengthAffinity >= 0.72 && tasteGraph?.preferredEpisodeCount) {
+        reasons.push(`Похожая длина: около ${tasteGraph.preferredEpisodeCount} серий`);
+      }
+      if (engagementScore >= 0.055) reasons.push('Ты уже обращал внимание на этот тайтл');
+      if (ratingScore >= 0.82 && reasons.length < 2) reasons.push('Высокая оценка сообщества');
+      if (!reasons.length) reasons.push(primary.reason);
+
+      const evidence = Math.max(
+        history.length >= 2 ? 0.35 : 0,
+        tasteGraph?.confidence ?? 0,
+      );
+      const matchBasis = Math.max(
+        0,
+        Math.min(
+          1,
+          genreScore * 0.34 +
+            graphAffinity.positive * 0.3 +
+            moodScore * 0.16 +
+            lengthAffinity * 0.08 +
+            ratingScore * 0.12 -
+            graphAffinity.negative * 0.24,
+        ),
+      );
+      const matchScore = evidence >= 0.18
+        ? Math.max(58, Math.min(97, Math.round(58 + matchBasis * 39)))
+        : null;
+
+      const source = graphAffinity.positive >= Math.max(0.3, genreScore)
+        ? 'taste_graph'
+        : primary.source;
+
       return {
         anime,
         score,
-        ...reason,
+        reason: reasons[0] ?? primary.reason,
+        reasons: reasons.slice(0, 3),
+        matchScore,
+        source,
       } satisfies RankedRecommendation;
     })
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+    .sort((a, b) => b.score - a.score);
+
+  // Small maximal-marginal-relevance pass. It keeps relevance high but avoids
+  // a row where every card repeats the exact same two genres.
+  const remaining = scored.slice(0, Math.max(limit * 3, 40));
+  const selected: RankedRecommendation[] = [];
+
+  while (remaining.length && selected.length < limit) {
+    let bestIndex = 0;
+    let bestScore = Number.NEGATIVE_INFINITY;
+
+    for (let index = 0; index < Math.min(remaining.length, 24); index += 1) {
+      const candidate = remaining[index];
+      const candidateGenres = new Set((candidate.anime.genres ?? []).map(normalizeGenre));
+      let overlap = 0;
+      for (const picked of selected.slice(-5)) {
+        const pickedGenres = new Set((picked.anime.genres ?? []).map(normalizeGenre));
+        const shared = [...candidateGenres].filter((genre) => pickedGenres.has(genre)).length;
+        overlap = Math.max(overlap, shared / Math.max(1, candidateGenres.size));
+      }
+      const diversifiedScore = candidate.score - overlap * 0.1;
+      if (diversifiedScore > bestScore) {
+        bestScore = diversifiedScore;
+        bestIndex = index;
+      }
+    }
+
+    selected.push(remaining.splice(bestIndex, 1)[0]);
+  }
+
+  return selected;
 }
 
 export function getRecommendedAnime(candidates: Anime[], limit = 8): Anime[] {

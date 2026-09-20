@@ -8,6 +8,7 @@ const links = [
   { href: '/admin/analytics', label: 'Аналитика', icon: '⌁' },
   { href: '/admin/activation', label: 'Активация', icon: '↗' },
   { href: '/admin/player', label: 'Плеер', icon: '▶' },
+  { href: '/admin/recommendations', label: 'Рекомендации', icon: '✦' },
   { href: '/admin/users', label: 'Пользователи', icon: '◎' },
   { href: '/admin/moderation', label: 'Модерация', icon: '◇' },
   { href: '/admin/monetization', label: 'Монетизация', icon: '✦' },

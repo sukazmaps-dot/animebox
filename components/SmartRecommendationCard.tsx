@@ -56,7 +56,7 @@ export default function SmartRecommendationCard({
   recommendationSessionId?: string;
   onHidden: (animeId: number) => void;
 }) {
-  const { anime, reason } = recommendation;
+  const { anime, reason, reasons, matchScore } = recommendation;
   const title = getAnimeTitle(anime);
   const rootRef = useRef<HTMLElement | null>(null);
   const impressionIdRef = useRef<string>(createImpressionId(anime.id, position));
@@ -87,6 +87,8 @@ export default function SmartRecommendationCard({
               source: 'smart_feed',
               mood,
               recommendationSessionId,
+              matchScore: matchScore ?? undefined,
+              reason,
             });
             observer.disconnect();
           }, 1000);
@@ -104,7 +106,7 @@ export default function SmartRecommendationCard({
       if (timer !== null) window.clearTimeout(timer);
       observer.disconnect();
     };
-  }, [anime.id, mood, position, recommendationSessionId]);
+  }, [anime.id, matchScore, mood, position, reason, recommendationSessionId]);
 
   function trackOpen() {
     trackRecommendationEvent({
@@ -115,6 +117,8 @@ export default function SmartRecommendationCard({
       source: 'smart_feed',
       mood,
       recommendationSessionId,
+      matchScore: matchScore ?? undefined,
+      reason,
     });
   }
 
@@ -139,6 +143,8 @@ export default function SmartRecommendationCard({
       mood,
       recommendationSessionId,
       dwellMs: Math.min(dwellMs, 30_000),
+      matchScore: matchScore ?? undefined,
+      reason,
     });
   }
 
@@ -163,6 +169,8 @@ export default function SmartRecommendationCard({
         source: 'smart_feed',
         mood,
         recommendationSessionId,
+        matchScore: matchScore ?? undefined,
+        reason,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message.toLowerCase() : '';
@@ -180,6 +188,8 @@ export default function SmartRecommendationCard({
       source: 'smart_feed',
       mood,
       recommendationSessionId,
+      matchScore: matchScore ?? undefined,
+      reason,
     });
     onHidden(anime.id);
   }
@@ -243,6 +253,16 @@ export default function SmartRecommendationCard({
             {anime.score ?? anime.averageScore ?? '—'}
           </div>
 
+          {matchScore != null && (
+            <div
+              className="smart-card__match"
+              title={reasons.join(' · ')}
+              aria-label={`${matchScore}% совпадение с твоим вкусом`}
+            >
+              {matchScore}%
+            </div>
+          )}
+
           <div className="smart-card__open">
             <span>Открыть</span>
             <span aria-hidden="true">↗</span>
@@ -261,7 +281,7 @@ export default function SmartRecommendationCard({
           <span>{formatDuration(anime.duration)}</span>
         </div>
 
-        <p className="smart-card__reason">
+        <p className="smart-card__reason" title={reasons.join(' · ')}>
           <span aria-hidden="true">✦</span>
           {reason}
         </p>

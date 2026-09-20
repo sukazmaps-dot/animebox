@@ -276,6 +276,16 @@ function mapMediaToAnime(
         translateGenre,
       ),
 
+    // Keep lightweight AniList tags for Smart Discovery constraints such as
+    // "без гарема". They are public catalogue metadata and remain optional
+    // for every existing consumer of Anime.
+    tags: Array.isArray(media.tags)
+      ? media.tags
+          .map((tag: { name?: string | null } | null) => tag?.name?.trim() ?? '')
+          .filter(Boolean)
+          .slice(0, 40)
+      : [],
+
     studios:
       media.studios?.nodes
         ?.filter(

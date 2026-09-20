@@ -18,6 +18,15 @@ export const PRODUCT_CLIENT_EVENT_NAMES = [
   'player_source_failed',
   'player_source_switched',
   'player_started',
+  'recommendation_impression',
+  'recommendation_dwell',
+  'recommendation_click',
+  'recommendation_planned',
+  'recommendation_dismiss',
+  'recommendation_mood_change',
+  'recommendation_started',
+  'recommendation_completed',
+  'smart_discovery_search',
 ] as const;
 
 export type ProductClientEventName = (typeof PRODUCT_CLIENT_EVENT_NAMES)[number];

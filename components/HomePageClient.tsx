@@ -24,6 +24,7 @@ import TelegramPromoCard from '@/components/TelegramPromoCard';
 import TopAnimeItem from '@/components/TopAnimeItem';
 import ScheduleItem from '@/components/ScheduleItem';
 import { readTasteProfile, setTasteMood, type TasteMood } from '@/lib/personalization';
+import { fetchTasteGraph } from '@/lib/taste-graph';
 import { SupportAnimeBoxCard } from '@/components/monetization/SupportAnimeBox';
 import HomeChatTeaser from '@/components/chat/HomeChatTeaser';
 import HomePersonalPulse from '@/components/HomePersonalPulse';
@@ -286,6 +287,18 @@ export default function HomePage({
    * возврата с плеера, в том числе через back/forward cache браузера.
    */
   useEffect(() => {
+    if (authLoading || !user?.id) return;
+
+    const controller = new AbortController();
+    void fetchTasteGraph(controller.signal).catch((error) => {
+      if (error instanceof Error && error.name === 'AbortError') return;
+      console.warn('Taste Graph refresh failed:', error);
+    });
+
+    return () => controller.abort();
+  }, [authLoading, user?.id]);
+
+  useEffect(() => {
     const refreshHistory = () => {
       const history = readWatchHistory();
 
@@ -373,9 +386,11 @@ export default function HomePage({
 
     refreshTaste();
     window.addEventListener('animebox-taste-changed', refreshTaste);
+    window.addEventListener('animebox-taste-graph-updated', refreshTaste);
 
     return () => {
       window.removeEventListener('animebox-taste-changed', refreshTaste);
+      window.removeEventListener('animebox-taste-graph-updated', refreshTaste);
     };
   }, []);
 

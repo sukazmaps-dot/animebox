@@ -15,7 +15,16 @@ export type ProductClientEventName =
   | 'player_source_ready'
   | 'player_source_failed'
   | 'player_source_switched'
-  | 'player_started';
+  | 'player_started'
+  | 'recommendation_impression'
+  | 'recommendation_dwell'
+  | 'recommendation_click'
+  | 'recommendation_planned'
+  | 'recommendation_dismiss'
+  | 'recommendation_mood_change'
+  | 'recommendation_started'
+  | 'recommendation_completed'
+  | 'smart_discovery_search';
 
 type ClientEvent = {
   eventName: ProductClientEventName;
@@ -36,6 +45,8 @@ const SESSION_KEY = 'animebox:product-session:v1';
 const MAX_QUEUE = 50;
 const MAX_BATCH = 20;
 const FLUSH_DELAY_MS = 5_000;
+const RECOMMENDATION_ATTRIBUTION_PREFIX = 'animebox:recommendation-attribution:v1:';
+const RECOMMENDATION_ATTRIBUTION_TTL_MS = 48 * 60 * 60 * 1000;
 
 let queue: ClientEvent[] = [];
 let timer: number | null = null;
@@ -129,6 +140,53 @@ function installLifecycleListeners() {
   });
 }
 
+function recommendationStartedEvent(options: TrackOptions): ClientEvent | null {
+  const rawEntity = options.entityId?.trim() ?? '';
+  const animeId = Number.parseInt(rawEntity.split(':')[0] ?? '', 10);
+  if (!Number.isSafeInteger(animeId) || animeId <= 0) return null;
+
+  try {
+    const key = `${RECOMMENDATION_ATTRIBUTION_PREFIX}${animeId}`;
+    const raw = window.sessionStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as {
+      openedAt?: number;
+      startedSent?: boolean;
+      impressionId?: string | null;
+      recommendationSessionId?: string | null;
+      source?: string | null;
+      matchScore?: number | null;
+      reason?: string | null;
+    };
+    const openedAt = Number(parsed.openedAt ?? 0);
+    if (!openedAt || Date.now() - openedAt > RECOMMENDATION_ATTRIBUTION_TTL_MS) {
+      window.sessionStorage.removeItem(key);
+      return null;
+    }
+    if (parsed.startedSent) return null;
+
+    window.sessionStorage.setItem(key, JSON.stringify({ ...parsed, startedSent: true }));
+    return {
+      eventName: 'recommendation_started',
+      eventId: randomId(),
+      sessionId: getProductAnalyticsSessionId(),
+      source: parsed.source || 'recommendation',
+      path: options.path,
+      entityType: 'anime_id',
+      entityId: String(animeId),
+      metadata: {
+        impression_id: parsed.impressionId ?? null,
+        recommendation_session_id: parsed.recommendationSessionId ?? null,
+        match_score: parsed.matchScore ?? null,
+        reason: parsed.reason?.slice(0, 180) ?? null,
+        player_source: options.source ?? null,
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function trackProductClientEvent(
   eventName: ProductClientEventName,
   options: TrackOptions = {},
@@ -143,6 +201,11 @@ export function trackProductClientEvent(
     sessionId: getProductAnalyticsSessionId(),
     ...rest,
   });
+
+  if (eventName === 'player_started') {
+    const attributed = recommendationStartedEvent(rest);
+    if (attributed) queue.push(attributed);
+  }
 
   if (queue.length > MAX_QUEUE) queue = queue.slice(-MAX_QUEUE);
 

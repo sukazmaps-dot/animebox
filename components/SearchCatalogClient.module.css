@@ -114,3 +114,26 @@
 .emptyMascot {
   filter: drop-shadow(0 12px 22px rgba(0,0,0,.22));
 }
+
+.smartDiscoveryHint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+  color: rgba(233, 213, 255, 0.82);
+  font-size: 12px;
+}
+
+.smartDiscoveryBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 9px;
+  border: 1px solid rgba(192, 132, 252, 0.28);
+  border-radius: 999px;
+  background: rgba(109, 40, 217, 0.14);
+  color: rgba(243, 232, 255, 0.98);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}

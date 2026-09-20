@@ -1,8 +1,10 @@
 import type { Anime } from '@/types/anime';
+import { trackProductClientEvent } from '@/lib/product-events-client';
 
 export const TASTE_PROFILE_STORAGE_KEY = 'animebox_taste_profile_v1';
 export const RECOMMENDATION_EVENTS_STORAGE_KEY = 'animebox_recommendation_events_v1';
-export const RECOMMENDATION_MODEL_VERSION = 'smart-v3-infinite';
+export const RECOMMENDATION_MODEL_VERSION = 'taste-v2-smart-discovery';
+export const RECOMMENDATION_ATTRIBUTION_PREFIX = 'animebox:recommendation-attribution:v1:';
 
 export type TasteMood = 'any' | 'comfort' | 'tension' | 'emotion' | 'adventure';
 
@@ -31,6 +33,8 @@ export type RecommendationEvent = {
   mood?: TasteMood;
   recommendationSessionId?: string;
   dwellMs?: number;
+  matchScore?: number;
+  reason?: string;
   createdAt: number;
 };
 
@@ -175,6 +179,55 @@ export function trackRecommendationEvent(
     RECOMMENDATION_EVENTS_STORAGE_KEY,
     JSON.stringify(next),
   );
+
+  if (event.type === 'open' && event.animeId) {
+    try {
+      window.sessionStorage.setItem(
+        `${RECOMMENDATION_ATTRIBUTION_PREFIX}${event.animeId}`,
+        JSON.stringify({
+          animeId: event.animeId,
+          impressionId: event.impressionId ?? null,
+          recommendationSessionId: event.recommendationSessionId ?? null,
+          source: event.source,
+          matchScore: event.matchScore ?? null,
+          reason: event.reason ?? null,
+          openedAt: Date.now(),
+          startedSent: false,
+        }),
+      );
+    } catch {
+      // Attribution is best-effort; navigation must never depend on storage.
+    }
+  }
+
+  const serverEvent = {
+    impression: 'recommendation_impression',
+    dwell: 'recommendation_dwell',
+    open: 'recommendation_click',
+    planned: 'recommendation_planned',
+    not_interested: 'recommendation_dismiss',
+    mood_change: 'recommendation_mood_change',
+  } as const;
+
+  // Dwell is intentionally sampled by duration to avoid turning a hover into
+  // noisy telemetry. Product analytics remains best-effort and never blocks UI.
+  if (event.type !== 'dwell' || (event.dwellMs ?? 0) >= 1_500) {
+    trackProductClientEvent(serverEvent[event.type], {
+      source: event.source,
+      entityType: event.animeId ? 'anime_id' : 'recommendation_context',
+      entityId: event.animeId ? String(event.animeId) : event.mood ?? 'feed',
+      metadata: {
+        impression_id: event.impressionId ?? null,
+        position: event.position ?? null,
+        mood: event.mood ?? null,
+        recommendation_session_id: event.recommendationSessionId ?? null,
+        dwell_ms: event.dwellMs ?? null,
+        match_score: event.matchScore ?? null,
+        reason: event.reason?.slice(0, 180) ?? null,
+        model_version: event.modelVersion ?? RECOMMENDATION_MODEL_VERSION,
+      },
+    });
+  }
 }
 
 export function readRecommendationEvents(): RecommendationEvent[] {
