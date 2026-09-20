@@ -5,6 +5,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '@/components/Icon';
 import KodikPlayer, { type KodikPlayerHandle } from '@/components/KodikPlayer';
 import { useWatchSession } from '@/components/useWatchSession';
+import { useAuthState } from '@/components/AuthStateProvider';
+import {
+  getWatchProgress,
+  removeWatchProgress,
+  saveWatchProgress,
+} from '@/lib/watch-progress';
 import Hls from 'hls.js';
 import {
   hexToRgb,
@@ -101,6 +107,9 @@ function sourceLabel(name?: string) {
 }
 
 const TRANSLATION_PREFERENCE_PREFIX = 'animebox:translation:v1';
+const LOCAL_PROGRESS_SAVE_INTERVAL_MS = 10_000;
+const LOCAL_RESUME_MIN_SECONDS = 10;
+const LOCAL_RESUME_END_GUARD_SECONDS = 20;
 
 function normalizePreferenceValue(value?: string) {
   return value?.trim().toLocaleLowerCase('ru-RU') || '';
@@ -299,6 +308,7 @@ export default function AnimePlayer({
   onEpisodeChange,
   watchTogetherMode = false,
 }: AnimePlayerProps) {
+  const { user, loading: authLoading } = useAuthState();
   const [activeSourceIndex, setActiveSourceIndex] = useState(0);
   const [activeTranslationIndex, setActiveTranslationIndex] = useState(0);
   const [playerError, setPlayerError] = useState<string | null>(null);
@@ -314,6 +324,11 @@ export default function AnimePlayer({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const kodikPlayerRef = useRef<KodikPlayerHandle | null>(null);
   const resumeAppliedRef = useRef(false);
+  const localProgressRef = useRef<{
+    positionSeconds: number;
+    durationSeconds: number;
+  } | null>(null);
+  const lastLocalProgressSavedAtRef = useRef(0);
   const playerViewportRef = useRef<HTMLDivElement | null>(null);
   const telegramFullscreenOwnedRef = useRef(false);
   const telegramOrientationOwnedRef = useRef(false);
@@ -469,7 +484,11 @@ export default function AnimePlayer({
   }, [episodeNumber, isKodik, publishPartyState, started]);
 
   const watchSession = useWatchSession({
-    enabled: started && (isKodik || trackableNativeVideo),
+    enabled:
+      !authLoading &&
+      Boolean(user?.id) &&
+      started &&
+      (isKodik || trackableNativeVideo),
     animeId,
     episode: episodeNumber,
     requiredEpisodes: totalEpisodes,
@@ -477,6 +496,90 @@ export default function AnimePlayer({
   });
 
   const trackingMessage = watchSession.message;
+  const serverWatchSample = watchSession.onSample;
+
+  const persistGuestProgress = useCallback(
+    (
+      sample: {
+        positionSeconds: number;
+        durationSeconds?: number | null;
+      },
+      force = false,
+    ) => {
+      if (
+        user?.id ||
+        watchTogetherMode ||
+        !animeId ||
+        !Number.isFinite(sample.positionSeconds) ||
+        sample.positionSeconds < 0
+      ) {
+        return;
+      }
+
+      const durationSeconds =
+        sample.durationSeconds != null &&
+        Number.isFinite(sample.durationSeconds) &&
+        sample.durationSeconds > 0
+          ? sample.durationSeconds
+          : localProgressRef.current?.durationSeconds ?? 0;
+
+      localProgressRef.current = {
+        positionSeconds: sample.positionSeconds,
+        durationSeconds,
+      };
+
+      const now = Date.now();
+
+      if (
+        !force &&
+        now - lastLocalProgressSavedAtRef.current <
+          LOCAL_PROGRESS_SAVE_INTERVAL_MS
+      ) {
+        return;
+      }
+
+      if (
+        durationSeconds > 0 &&
+        durationSeconds - sample.positionSeconds <=
+          LOCAL_RESUME_END_GUARD_SECONDS
+      ) {
+        removeWatchProgress(animeId, episodeNumber);
+        lastLocalProgressSavedAtRef.current = now;
+        return;
+      }
+
+      saveWatchProgress(
+        animeId,
+        episodeNumber,
+        sample.positionSeconds,
+        durationSeconds,
+      );
+      lastLocalProgressSavedAtRef.current = now;
+    },
+    [animeId, episodeNumber, user?.id, watchTogetherMode],
+  );
+
+  const handleTimeSample = useCallback(
+    (sample: {
+      positionSeconds: number;
+      durationSeconds?: number | null;
+      origin?: string | null;
+    }) => {
+      persistGuestProgress(sample);
+      serverWatchSample(sample);
+    },
+    [persistGuestProgress, serverWatchSample],
+  );
+
+  const handlePlaybackEnded = useCallback(() => {
+    if (animeId && !watchTogetherMode) {
+      removeWatchProgress(animeId, episodeNumber);
+    }
+
+    localProgressRef.current = null;
+    setResumeSeconds(0);
+    onEnded?.();
+  }, [animeId, episodeNumber, onEnded, watchTogetherMode]);
 
   useEffect(() => {
     function onPartyCommand(event: Event) {
@@ -637,23 +740,77 @@ export default function AnimePlayer({
   useEffect(() => {
     let active = true;
     resumeAppliedRef.current = false;
+    localProgressRef.current = null;
+    lastLocalProgressSavedAtRef.current = 0;
+
+    if (!animeId) {
+      queueMicrotask(() => {
+        if (active) setResumeSeconds(0);
+      });
+
+      return () => {
+        active = false;
+      };
+    }
+
+    const localProgress = watchTogetherMode
+      ? null
+      : getWatchProgress(animeId, episodeNumber);
+
+    const localPosition =
+      localProgress &&
+      localProgress.currentTime >= LOCAL_RESUME_MIN_SECONDS &&
+      (localProgress.duration <= 0 ||
+        localProgress.duration - localProgress.currentTime >
+          LOCAL_RESUME_END_GUARD_SECONDS)
+        ? Math.floor(localProgress.currentTime)
+        : 0;
+
+    if (localProgress && localPosition <= 0) {
+      removeWatchProgress(animeId, episodeNumber);
+    }
+
     queueMicrotask(() => {
-      if (active) setResumeSeconds(0);
+      if (active) setResumeSeconds(localPosition);
     });
 
-    if (!animeId) return;
+    // Guest resume is intentionally local-only. It must not create server
+    // watch-time, achievements or leaderboard credit before registration.
+    if (authLoading || !user?.id) {
+      return () => {
+        active = false;
+      };
+    }
 
     fetch(`/api/watch?animeId=${encodeURIComponent(String(animeId))}&episode=${encodeURIComponent(String(episodeNumber))}`, {
       method: 'GET',
       cache: 'no-store',
     })
       .then(async (response) => {
-        if (response.status === 401) return null;
         if (!response.ok) return null;
         return (await response.json()) as WatchStateResponse;
       })
       .then((payload) => {
-        if (!active || !payload?.state || payload.state.completed) return;
+        if (!active || !payload?.state) return;
+
+        const serverUpdatedAt = payload.state.watchedAt
+          ? Date.parse(payload.state.watchedAt)
+          : 0;
+        const localUpdatedAt = localProgress?.updatedAt ?? 0;
+
+        // A position saved while the visitor was a guest is the freshest
+        // source until authenticated tracking has produced a newer state.
+        if (localPosition > 0 && localUpdatedAt > serverUpdatedAt) {
+          return;
+        }
+
+        if (payload.state.completed) {
+          if (!watchTogetherMode) {
+            removeWatchProgress(animeId, episodeNumber);
+          }
+          setResumeSeconds(0);
+          return;
+        }
 
         const positionSeconds = Math.floor(payload.state.positionMs / 1000);
         const durationSeconds =
@@ -661,11 +818,18 @@ export default function AnimePlayer({
             ? null
             : Math.floor(payload.state.durationMs / 1000);
 
-        if (positionSeconds < 10) return;
-        if (durationSeconds != null && durationSeconds - positionSeconds < 20) {
+        if (positionSeconds < LOCAL_RESUME_MIN_SECONDS) return;
+        if (
+          durationSeconds != null &&
+          durationSeconds - positionSeconds <=
+            LOCAL_RESUME_END_GUARD_SECONDS
+        ) {
           return;
         }
 
+        if (!watchTogetherMode) {
+          removeWatchProgress(animeId, episodeNumber);
+        }
         setResumeSeconds(positionSeconds);
       })
       .catch(() => undefined);
@@ -673,7 +837,37 @@ export default function AnimePlayer({
     return () => {
       active = false;
     };
-  }, [animeId, episodeNumber]);
+  }, [animeId, authLoading, episodeNumber, user?.id, watchTogetherMode]);
+
+  useEffect(() => {
+    const flushLocalProgress = () => {
+      const latest = localProgressRef.current;
+      if (!latest) return;
+
+      persistGuestProgress(
+        {
+          positionSeconds: latest.positionSeconds,
+          durationSeconds: latest.durationSeconds,
+        },
+        true,
+      );
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        flushLocalProgress();
+      }
+    };
+
+    window.addEventListener('pagehide', flushLocalProgress);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      flushLocalProgress();
+      window.removeEventListener('pagehide', flushLocalProgress);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [persistGuestProgress]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -1197,7 +1391,7 @@ export default function AnimePlayer({
               episodeNumber={episodeNumber}
               resumeSeconds={resumeSeconds}
               onReady={() => setPlayerReady(true)}
-              onTimeUpdate={watchSession.onSample}
+              onTimeUpdate={handleTimeSample}
               onPlaybackAction={(event) => {
                 const state = kodikPlayerRef.current?.getState();
                 publishPartyAction(
@@ -1214,7 +1408,7 @@ export default function AnimePlayer({
                 });
               }}
               onProviderSkip={watchSession.onProviderSkip}
-              onEnded={onEnded}
+              onEnded={handlePlaybackEnded}
             />
           )}
 
@@ -1313,14 +1507,14 @@ export default function AnimePlayer({
                     preload="auto"
                     src={!isHls ? videoLink : undefined}
                     onCanPlay={() => setPlayerReady(true)}
-                    onEnded={onEnded}
+                    onEnded={handlePlaybackEnded}
                     onTimeUpdate={(event) => {
                       const video = event.currentTarget;
                       const duration =
                         Number.isFinite(video.duration) && video.duration > 0
                           ? video.duration
                           : null;
-                      watchSession.onSample({
+                      handleTimeSample({
                         positionSeconds: video.currentTime,
                         durationSeconds: duration,
                         origin: window.location.origin,
