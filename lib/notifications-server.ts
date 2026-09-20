@@ -341,12 +341,8 @@ export async function recordNotificationServiceHealth(input: {
   const now = new Date().toISOString();
 
   const payload = {
-    id: 1,
     status: input.status,
     last_run_at: now,
-    ...(input.status === 'failed'
-      ? { last_error_at: now }
-      : { last_success_at: now }),
     checked: Math.max(0, Math.floor(input.checked ?? 0)),
     matched: Math.max(0, Math.floor(input.matched ?? 0)),
     sent: Math.max(0, Math.floor(input.sent ?? 0)),
@@ -360,9 +356,23 @@ export async function recordNotificationServiceHealth(input: {
     updated_at: now,
   };
 
-  const { error } = await admin
-    .from('notification_service_health')
-    .upsert(payload, { onConflict: 'id' });
+  const query = admin
+    .from('notification_service_health');
+
+  const { error } =
+    input.status === 'failed'
+      ? await query
+          .update({
+            ...payload,
+            last_error_at: now,
+          })
+          .eq('id', 1)
+      : await query
+          .update({
+            ...payload,
+            last_success_at: now,
+          })
+          .eq('id', 1);
 
   if (error) {
     console.error('[Notifications] health update failed:', error);
