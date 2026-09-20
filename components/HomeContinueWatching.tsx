@@ -33,7 +33,7 @@ export default function HomeContinueWatching({
     <section className="section continue-watching-section">
       <div className="section-head">
         <div>
-          <span className="smart-section-eyebrow">ВОЗВРАЩАЙСЯ В ИСТОРИЮ</span>
+          <span className="smart-section-eyebrow">Твоя история</span>
           <h2 className="section-title">Продолжить просмотр</h2>
         </div>
 

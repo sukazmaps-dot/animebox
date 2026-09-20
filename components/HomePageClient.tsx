@@ -27,6 +27,7 @@ import { readTasteProfile, setTasteMood, type TasteMood } from '@/lib/personaliz
 import AdSlot from '@/components/monetization/AdSlot';
 import { SupportAnimeBoxCard } from '@/components/monetization/SupportAnimeBox';
 import HomeChatTeaser from '@/components/chat/HomeChatTeaser';
+import HomePersonalPulse from '@/components/HomePersonalPulse';
 
 const subscribeHydration = () => () => {};
 
@@ -505,6 +506,32 @@ export default function HomePage({
     return readAnimeProgressMap();
   }, [historyRevision]);
 
+  const personalEpisodeByAnime = useMemo(() => {
+    const map = new Map<number, number>();
+
+    for (const [animeId, episode] of Object.entries(progress)) {
+      const id = Number(animeId);
+      const value = Number(episode);
+
+      if (Number.isInteger(id) && id > 0 && Number.isInteger(value) && value > 0) {
+        map.set(id, value);
+      }
+    }
+
+    for (const state of serverContinue) {
+      if (
+        Number.isInteger(state.animeId) &&
+        state.animeId > 0 &&
+        Number.isInteger(state.resumeEpisode) &&
+        Number(state.resumeEpisode) > 0
+      ) {
+        map.set(state.animeId, Number(state.resumeEpisode));
+      }
+    }
+
+    return map;
+  }, [progress, serverContinue]);
+
   const continueWatchingItems = useMemo(() => {
     const localById = new Map(
       watchHistory.map((anime) => [anime.id, anime] as const),
@@ -684,6 +711,8 @@ export default function HomePage({
 
         <HomeContinueWatching items={continueWatchingItems} />
 
+        <HomePersonalPulse />
+
         <HomeMoodPicker
           value={mood}
           onChange={(nextMood) => {
@@ -711,7 +740,7 @@ export default function HomePage({
                 </span>
                 <h2 className="section-title">Подобрано для тебя</h2>
               </div>
-              <p>Лента догружается сама, а причина рекомендации остаётся видна на каждой карточке.</p>
+              <p>Рекомендации меняются по истории просмотра, вкусу и выбранному настроению.</p>
             </div>
 
             <Link className="section-link" href="/search">
@@ -768,8 +797,12 @@ export default function HomePage({
             </div>
           ) : (
             <div className="anime-grid">
-              {popular.slice(0, 5).map((anime) => (
-                <AnimeCard key={anime.id} anime={anime} />
+              {popular.slice(0, 6).map((anime) => (
+                <AnimeCard
+                  key={anime.id}
+                  anime={anime}
+                  watchedEpisode={personalEpisodeByAnime.get(anime.id) ?? null}
+                />
               ))}
             </div>
           )}
@@ -802,8 +835,12 @@ export default function HomePage({
             </div>
           ) : (
             <div className="anime-grid">
-              {fallbackItems.slice(0, 5).map((anime) => (
-                <AnimeCard key={anime.id} anime={anime} />
+              {fallbackItems.slice(0, 6).map((anime) => (
+                <AnimeCard
+                  key={anime.id}
+                  anime={anime}
+                  watchedEpisode={personalEpisodeByAnime.get(anime.id) ?? null}
+                />
               ))}
             </div>
           )}

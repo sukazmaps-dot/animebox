@@ -23,6 +23,7 @@ import './hero-swipe-v7.css';
 import './ad-layout-v8.css';
 import './mobile-home-ending-v11.css';
 import './premium-shell.css';
+import './design-v2-content-first.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';

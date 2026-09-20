@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 
 import { useAuthState } from '@/components/AuthStateProvider';
@@ -71,25 +70,22 @@ export function SupportAnimeBoxCard() {
   if (!MONETIZATION_ENABLED) return null;
 
   return (
-    <div className="panel support-animebox-card">
-      <span className="support-animebox-card__eyebrow">ПОДДЕРЖАТЬ ANIMEBOX</span>
-      <Image
-        src="/brand/illustrations/support-stars.webp"
-        width={360}
-        height={240}
-        alt=""
-        aria-hidden="true"
-        className="support-animebox-card__art"
-        unoptimized
-      />
-      <h2>Помоги проекту расти</h2>
-      <p>
-        Серверы, домен и новые функции требуют ресурсов. Любая поддержка помогает развивать AnimeBox дальше.
-      </p>
-      <Link className="btn btn--primary" href="/support">
-        Поддержать проект
+    <section className="panel home-utility-card home-utility-card--support">
+      <div className="home-utility-card__icon" aria-hidden="true">
+        <AnimeBoxStar size={20} />
+      </div>
+
+      <div className="home-utility-card__copy">
+        <span>Поддержка</span>
+        <strong>Помоги AnimeBox расти</strong>
+        <p>Инфраструктура, новые функции и развитие проекта.</p>
+      </div>
+
+      <Link className="home-utility-card__link" href="/support">
+        Подробнее
+        <span aria-hidden="true">→</span>
       </Link>
-    </div>
+    </section>
   );
 }
 

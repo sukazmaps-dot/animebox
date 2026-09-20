@@ -624,7 +624,7 @@ export default function HomeHeroCarousel({
           priority={safeActiveIndex === 0}
           fetchPriority={safeActiveIndex === 0 ? 'high' : 'auto'}
           quality={60}
-          sizes="(max-width: 390px) calc(100vw - 18px), (max-width: 720px) calc(100vw - 24px), (max-width: 1200px) 72vw, (max-width: 1700px) 75vw, 1160px"
+          sizes="(max-width: 390px) calc(100vw - 18px), (max-width: 720px) calc(100vw - 24px), (max-width: 1200px) calc(100vw - 100px), (max-width: 1700px) calc(100vw - 300px), 1380px"
           className="page-hero__backdrop home-hero-carousel__backdrop is-visible"
           aria-hidden="true"
         />
@@ -636,8 +636,9 @@ export default function HomeHeroCarousel({
         className="page-hero__content home-hero-carousel__content"
         key={`content-${anime.id}`}
       >
-        <div className="page-hero__eyebrow">
-          <span className="pill pill--accent">
+        <div className="home-hero-carousel__label">
+          <span className="home-hero-carousel__signature" aria-hidden="true" />
+          <span>
             {safeActiveIndex === 0
               ? 'Рекомендуем'
               : personalizationReady
@@ -645,16 +646,8 @@ export default function HomeHeroCarousel({
                 : 'Рекомендация'}
           </span>
 
-          {isOngoing && (
-            <span className="pill">
-              Онгоинг
-            </span>
-          )}
-
           {anime.score != null && (
-            <span className="pill">
-              ★ {anime.score}
-            </span>
+            <strong>★ {anime.score}</strong>
           )}
         </div>
 
@@ -674,11 +667,9 @@ export default function HomeHeroCarousel({
         </p>
 
         <div className="home-hero-carousel__facts">
-          <span>
-            {formatLabel(
-              anime.format,
-            )}
-          </span>
+          <span>{formatLabel(anime.format)}</span>
+
+          {isOngoing && <span className="is-status">Онгоинг</span>}
 
           {episodeCount != null && (
             <span>
@@ -688,13 +679,9 @@ export default function HomeHeroCarousel({
             </span>
           )}
 
-          {genres
-            .slice(0, 2)
-            .map((genre) => (
-              <span key={genre}>
-                {genre}
-              </span>
-            ))}
+          {genres.slice(0, 2).map((genre) => (
+            <span key={genre}>{genre}</span>
+          ))}
         </div>
 
         <div className="hero-actions">
@@ -718,49 +705,46 @@ export default function HomeHeroCarousel({
 
       {slides.length > 1 && (
         <div className="home-hero-carousel__nav">
-          <button
-            type="button"
-            aria-label="Предыдущая рекомендация"
-            className="home-hero-carousel__arrow home-hero-carousel__arrow--prev"
-            onClick={showPreviousSlide}
-          >
-            ‹
-          </button>
+          <span className="home-hero-carousel__counter" aria-hidden="true">
+            {String(safeActiveIndex + 1).padStart(2, '0')}
+            <i>/</i>
+            {String(slides.length).padStart(2, '0')}
+          </span>
 
           <div className="home-hero-carousel__dots">
-            {slides.map(
-              (item, index) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  aria-pressed={index === activeIndex}
-                  aria-label={`Открыть рекомендацию ${
-                    index + 1
-                  }`}
-                  className={`home-hero-carousel__dot ${
-                    index ===
-                    activeIndex
-                      ? 'is-active'
-                      : ''
-                  }`}
-                  onClick={() =>
-                    setActiveIndex(
-                      index,
-                    )
-                  }
-                />
-              ),
-            )}
+            {slides.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={index === activeIndex}
+                aria-label={`Открыть рекомендацию ${index + 1}`}
+                className={`home-hero-carousel__dot ${
+                  index === activeIndex ? 'is-active' : ''
+                }`}
+                onClick={() => setActiveIndex(index)}
+              />
+            ))}
           </div>
 
-          <button
-            type="button"
-            aria-label="Следующая рекомендация"
-            className="home-hero-carousel__arrow home-hero-carousel__arrow--next"
-            onClick={showNextSlide}
-          >
-            ›
-          </button>
+          <div className="home-hero-carousel__arrows">
+            <button
+              type="button"
+              aria-label="Предыдущая рекомендация"
+              className="home-hero-carousel__arrow home-hero-carousel__arrow--prev"
+              onClick={showPreviousSlide}
+            >
+              ←
+            </button>
+
+            <button
+              type="button"
+              aria-label="Следующая рекомендация"
+              className="home-hero-carousel__arrow home-hero-carousel__arrow--next"
+              onClick={showNextSlide}
+            >
+              →
+            </button>
+          </div>
         </div>
       )}
     </section>

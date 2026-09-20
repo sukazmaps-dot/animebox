@@ -155,3 +155,55 @@ Before merging:
 6. Does mobile preserve the same hierarchy?
 7. Are empty/loading/error states handled?
 8. Does the page have its own composition rather than repeating hero → stats → tabs → card grid without reason?
+
+
+## v2 — Content First & Signature UI
+
+The home experience should make AnimeBox technology visible without turning the page into a dashboard full of boxes.
+
+### Home hierarchy
+
+1. Hero: one title, one primary action, concise metadata.
+2. Continue Watching: the user's real resume state.
+3. Personal pulse: level, streak, daily challenge progress, verified episode count.
+4. Personal recommendations.
+5. Broad catalogue rows.
+6. Utility shelf: tracker, upcoming episodes, support, Telegram.
+
+The desktop home should not dedicate a permanent right sidebar to promotional cards. Anime content gets the full reading width first.
+
+### Signature anime card
+
+The AnimeBox catalogue card is deliberately not a framed SaaS card.
+
+- Poster is the dominant object.
+- Outer card surface is transparent.
+- Score and state live on the poster.
+- A thin violet progress rail communicates watched progress.
+- For watched titles the metadata becomes a functional action: `Продолжить · эпизод N`.
+- Hover moves the poster by at most 2px and never adds a large glow.
+- Genre chips are not part of the default card anatomy.
+
+This personal watch-state treatment is a product signature and should not be replaced by decorative badges.
+
+### Signature hero
+
+Hero navigation uses a small numeric counter plus thin progress segments rather than carousel dots.
+
+Hero metadata is plain text with separators. Pills are reserved for real statuses, not every fact.
+
+The main CTA is intentionally near-white on the home hero. Violet remains the structural brand accent, so it does not compete with anime artwork.
+
+### Technology should be visible
+
+Existing systems should surface where they help the user make a decision:
+
+- resume position,
+- verified progress,
+- level/rank,
+- streak,
+- challenge completion,
+- next episode availability,
+- recommendation reason.
+
+Do not invent fake percentages or activity. If a data point is not available, omit it.
