@@ -120,7 +120,7 @@ export default function ChallengesClient() {
         </div>
 
         <div className={styles.streak}>
-          <span>🔥 СЕРИЯ</span>
+          <span>Серия активности</span>
           <strong>{data.streak.current}</strong>
           <small>дней подряд · рекорд {data.streak.longest}</small>
         </div>

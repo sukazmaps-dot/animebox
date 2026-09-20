@@ -701,7 +701,7 @@ export default function HomePage({
         <section className="section smart-feed-section">
           <div className="section-head">
             <div className="smart-feed-heading">
-              <span className="smart-section-eyebrow">ПЕРСОНАЛЬНАЯ ЛЕНТА</span>
+              <span className="smart-section-eyebrow">Для тебя</span>
               <div className="smart-feed-heading__line">
                 <span
                   className="section-title__icon section-title__icon--asset smart-feed-heading__asset"
@@ -906,7 +906,7 @@ export default function HomePage({
           <span className="home-library-panel__symbol home-library-panel__symbol--brand" aria-hidden="true">
             <Image src="/brand/brand-mark.webp" alt="" width={20} height={20} sizes="20px" />
           </span>
-          <span className="home-library-panel__eyebrow">ТВОЯ КОЛЛЕКЦИЯ</span>
+          <span className="home-library-panel__eyebrow">Твоя коллекция</span>
           <h2>
             Хорошие истории
             <br />

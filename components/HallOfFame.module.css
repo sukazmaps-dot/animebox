@@ -394,3 +394,85 @@
 .row > span {
   font-weight: 650;
 }
+
+
+/* Design System v1.1 · archive composition */
+.hero {
+  align-items: end;
+  padding: 8px 0 24px;
+  border: 0;
+  border-bottom: 1px solid var(--ab-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.hero > div:first-child {
+  max-width: 720px;
+}
+
+.heroStats {
+  display: flex;
+  gap: 20px;
+}
+
+.heroStats > div {
+  min-width: 90px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.heroStats > div + div {
+  padding-left: 20px;
+  border-left: 1px solid var(--ab-border);
+}
+
+.toolbar {
+  margin: 16px 0 26px;
+}
+
+.seasons {
+  gap: 30px;
+}
+
+.season {
+  padding: 0 0 28px;
+  border: 0;
+  border-bottom: 1px solid var(--ab-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.seasonHead {
+  margin-bottom: 14px;
+}
+
+.podiumCard {
+  background: var(--ab-surface-1);
+}
+
+.rest {
+  margin-top: 8px;
+}
+
+.row {
+  border-left: 0;
+  border-right: 0;
+  border-radius: 0;
+}
+
+@media (max-width: 720px) {
+  .hero {
+    align-items: stretch;
+    padding-top: 4px;
+  }
+
+  .heroStats {
+    width: auto;
+  }
+
+  .season {
+    padding-bottom: 22px;
+  }
+}

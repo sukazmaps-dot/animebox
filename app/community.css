@@ -3578,3 +3578,99 @@ label input:checked + span::before {
 .profile-v5__challenge-streak strong {
   font-weight: 740;
 }
+
+
+/* =========================================================
+   DESIGN SYSTEM V1.1 · PROFILE COMPOSITION
+   ========================================================= */
+
+.profile-v3__progression {
+  grid-template-columns: 88px minmax(0, 1fr) minmax(170px, 220px);
+  padding: 18px 0;
+  border: 0;
+  border-top: 1px solid var(--ab-border);
+  border-bottom: 1px solid var(--ab-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.profile-v3__level-orb {
+  width: 76px;
+  height: 76px;
+}
+
+.profile-v3__level-orb span {
+  font-weight: 650;
+  letter-spacing: .09em;
+}
+
+.profile-v3__xp-boost {
+  border-radius: 7px;
+  font-weight: 650;
+}
+
+.profile-v3__showcase {
+  padding: 0 0 14px;
+  border: 0;
+  border-bottom: 1px solid var(--ab-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.profile-v4__featured {
+  padding: 18px 0;
+  border: 0;
+  border-top: 1px solid var(--ab-border);
+  border-bottom: 1px solid var(--ab-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.profile-v4__featured-card > div > span,
+.profile-v3__achievement-meta {
+  font-weight: 650;
+  letter-spacing: .05em;
+}
+
+.profile-v3__achievement-meta span {
+  border-radius: 6px;
+  background: transparent;
+}
+
+.profile-v5__challenges {
+  padding: 14px 0;
+  border: 0;
+  border-top: 1px solid var(--ab-border);
+  border-bottom: 1px solid var(--ab-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.profile-v5__challenge-progress > div {
+  border: 0;
+  border-left: 1px solid var(--ab-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+@media (max-width: 820px) {
+  .profile-v3__progression {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+
+  .profile-v3__level-orb {
+    width: 68px;
+    height: 68px;
+  }
+}
+
+@media (max-width: 520px) {
+  .profile-v3__progression {
+    grid-template-columns: 1fr;
+    padding: 16px 0;
+  }
+
+  .profile-v5__challenge-progress > div:first-child {
+    border-left: 0;
+  }
+}

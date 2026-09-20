@@ -324,11 +324,11 @@ export default function NotificationSettingsClient() {
     <div className="notifications-page__content">
       <section className="notifications-hero">
         <div>
-          <span className="notifications-hero__eyebrow">ANIMEBOX × TELEGRAM</span>
+          <span className="notifications-hero__eyebrow">AnimeBox · Telegram</span>
           <h1>Уведомления о новых сериях</h1>
           <p>
             Подпишись на конкретный тайтл — AnimeBox напишет тебе в Telegram,
-            когда по расписанию выйдет следующая серия.
+            когда новая серия появится в плеере.
           </p>
         </div>
 

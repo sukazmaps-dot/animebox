@@ -113,7 +113,7 @@ export default function LeaderboardClient() {
         <span className={styles.eyebrow}><span /> AnimeBox · Рейтинг</span>
         <h1>Твоя история.<br /><em>Твоё место в топе.</em></h1>
         <p>Любимые истории становятся частью твоей. Знакомься с теми, кто смотрит вместе с тобой — и найди своё место среди них.</p>
-        <div className={styles.heroMeta}><span>ТОП 100</span><span>По времени просмотра</span></div>
+        <div className={styles.heroMeta}><span>Топ-100</span><span>По времени просмотра</span></div>
 
         <div className={styles.modeSwitch} aria-label="Тип рейтинга">
           <span aria-current="page">Просмотры</span>
@@ -156,7 +156,7 @@ export default function LeaderboardClient() {
       ) : data ? (
         <>
           <div className={styles.sectionHeading}>
-            <div><span className={styles.eyebrow}>ЛУЧШИЕ ИЗ ЛУЧШИХ</span><h2>Пьедестал AnimeBox</h2></div>
+            <div><span className={styles.eyebrow}>Пьедестал</span><h2>Пьедестал AnimeBox</h2></div>
             <span className={styles.periodBadge}>{periodLabels[period]}</span>
           </div>
           <section className={styles.podium} aria-label="Топ-3">
@@ -203,7 +203,7 @@ export default function LeaderboardClient() {
           <section className={styles.personal} aria-label="Твоё место в рейтинге">
             <div className={styles.personalIcon}><Crown /></div>
             <div className={styles.personalText}>
-              <span className={styles.eyebrow}>{me ? 'ТВОЯ ПОЗИЦИЯ' : 'ТВОЯ ИСТОРИЯ ВПЕРЕДИ'}</span>
+              <span className={styles.eyebrow}>{me ? 'Твоя позиция' : 'Твоё место в рейтинге'}</span>
               <h2>{me ? (me.rank <= 3 ? 'Ты уже на пьедестале' : `Твоё место — #${me.rank}`) : 'Здесь может быть твоё имя'}</h2>
               <p>{me ? `${formatWatchTime(me.activeMs)} просмотра за выбранный период` : 'Смотри любимые аниме в AnimeBox — подтверждённое время учитывается в рейтинге автоматически.'}</p>
               {gap !== null && <p className={styles.gap}>Разрыв с третьим местом: {gap === 0 ? 'одинаковое время' : formatWatchTime(gap)}. Рейтинг меняется вместе с активностью участников.</p>}

@@ -410,3 +410,86 @@
 .progress span {
   background: var(--ab-accent);
 }
+
+
+/* Design System v1.1 · composition */
+.hero {
+  align-items: end;
+  padding: 10px 0 22px;
+  border: 0;
+  border-bottom: 1px solid var(--ab-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.hero > div:first-child {
+  max-width: 680px;
+}
+
+.hero h1 {
+  margin-top: 5px;
+}
+
+.level {
+  min-width: 210px;
+  padding: 14px 16px;
+}
+
+.summary {
+  gap: 0;
+  margin-top: 0;
+  border-bottom: 1px solid var(--ab-border);
+}
+
+.summary > div {
+  position: relative;
+  padding: 15px 18px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.summary > div + div::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 1px;
+  background: var(--ab-border);
+}
+
+.summary strong {
+  font-size: 16px;
+}
+
+.levelTrack {
+  margin: 12px 0 0;
+}
+
+.controls {
+  margin-top: 20px;
+}
+
+.card {
+  min-height: 142px;
+}
+
+@media (max-width: 760px) {
+  .hero {
+    align-items: stretch;
+    padding-top: 4px;
+  }
+
+  .summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .summary > div:nth-child(3)::before {
+    display: none;
+  }
+
+  .summary > div:nth-child(n+3) {
+    border-top: 1px solid var(--ab-border);
+  }
+}

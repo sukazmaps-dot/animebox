@@ -103,3 +103,103 @@
 .card[data-complete='true'] .progress span {
   background: var(--ab-success);
 }
+
+
+/* Design System v1.1 · composition */
+.hero {
+  align-items: end;
+  padding: 10px 0 22px;
+  border: 0;
+  border-bottom: 1px solid var(--ab-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.hero > div:first-child {
+  max-width: 700px;
+}
+
+.streak {
+  min-width: 180px;
+  justify-items: start;
+  padding: 13px 15px;
+}
+
+.streak strong {
+  font-size: 34px;
+}
+
+.infoStrip {
+  gap: 0;
+  margin: 0 0 28px;
+  border-bottom: 1px solid var(--ab-border);
+}
+
+.infoStrip > div {
+  position: relative;
+  padding: 14px 18px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.infoStrip > div + div::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 13px;
+  bottom: 13px;
+  width: 1px;
+  background: var(--ab-border);
+}
+
+.section {
+  margin-top: 30px;
+}
+
+.section + .section {
+  padding-top: 2px;
+}
+
+.section header {
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(151,164,188,.07);
+}
+
+.grid {
+  gap: 10px;
+}
+
+.card {
+  min-height: 162px;
+}
+
+.footerCard {
+  margin-top: 30px;
+  border-left: 3px solid rgba(120,104,238,.34);
+  border-radius: var(--ab-radius-sm);
+  background: transparent;
+}
+
+@media (max-width:760px) {
+  .hero {
+    align-items: stretch;
+    padding-top: 4px;
+  }
+
+  .streak {
+    min-width: 0;
+  }
+
+  .infoStrip {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .infoStrip > div {
+    padding-inline: 10px;
+  }
+
+  .footerCard {
+    border-left-width: 2px;
+  }
+}

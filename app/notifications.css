@@ -212,3 +212,69 @@
   border-radius: var(--ab-radius-sm);
   background: var(--ab-surface-2);
 }
+
+
+/* Design System v1.1 · settings composition */
+.notifications-hero {
+  align-items: end;
+  padding: 8px 0 22px;
+  border: 0;
+  border-bottom: 1px solid var(--ab-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.notifications-hero__eyebrow {
+  color: #9186e7;
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: .08em;
+}
+
+.notifications-hero__actions {
+  align-items: flex-end;
+}
+
+.notifications-hero__status {
+  border: 0;
+  padding: 3px 0;
+  background: transparent;
+}
+
+.notifications-card {
+  padding: 0 0 22px;
+  border: 0;
+  border-bottom: 1px solid var(--ab-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.notifications-card + .notifications-card {
+  margin-top: 28px;
+}
+
+.notifications-card__head {
+  margin-bottom: 12px;
+}
+
+.notifications-test-row {
+  border-radius: var(--ab-radius-sm);
+  background: var(--ab-surface-1);
+}
+
+.notifications-list__item {
+  border-left: 0;
+  border-right: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+@media (max-width: 720px) {
+  .notifications-hero {
+    align-items: stretch;
+  }
+
+  .notifications-hero__actions {
+    align-items: flex-start;
+  }
+}
