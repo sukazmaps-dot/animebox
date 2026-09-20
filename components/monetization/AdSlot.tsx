@@ -65,7 +65,12 @@ export default function AdSlot({
   const [reserved, setReserved] = useState(false);
   const [rendered, setRendered] = useState(false);
   const [providerFailed, setProviderFailed] = useState(false);
-  const eventStateRef = useRef({ requested: false, filled: false, noFill: false });
+  const eventStateRef = useRef({
+    requested: false,
+    filled: false,
+    impression: false,
+    noFill: false,
+  });
 
   const resolvedFormat = format ?? AD_PLACEMENT_DEFINITIONS[placement].format;
 
@@ -182,7 +187,12 @@ export default function AdSlot({
       setReserved(false);
       setRendered(false);
       setProviderFailed(false);
-      eventStateRef.current = { requested: false, filled: false, noFill: false };
+      eventStateRef.current = {
+        requested: false,
+        filled: false,
+        impression: false,
+        noFill: false,
+      };
       void getAdRuntimeConfig({ force: true })
         .then((next) => {
           if (active) setConfig(next);
@@ -260,6 +270,116 @@ export default function AdSlot({
     if (!reserved || rendered || config?.provider !== 'house') return;
     queueMicrotask(() => handleProviderReady());
   }, [config?.provider, handleProviderReady, rendered, reserved]);
+
+  useEffect(() => {
+    if (
+      !eligible ||
+      !rendered ||
+      eventStateRef.current.impression ||
+      typeof IntersectionObserver === 'undefined'
+    ) {
+      return;
+    }
+
+    const node = slotRef.current;
+    if (!node) return;
+
+    let visibleEnough = false;
+    let viewTimer: number | null = null;
+
+    const clearViewTimer = () => {
+      if (viewTimer == null) return;
+      window.clearTimeout(viewTimer);
+      viewTimer = null;
+    };
+
+    const commitImpression = () => {
+      if (
+        !visibleEnough ||
+        document.visibilityState !== 'visible' ||
+        eventStateRef.current.impression
+      ) {
+        return;
+      }
+
+      eventStateRef.current.impression = true;
+      trackMonetizationClientEvent('ad_slot_impression', {
+        source: config?.provider ?? AD_PROVIDER,
+        entityId: placement,
+        metadata: {
+          placement,
+          format: resolvedFormat,
+          provider: config?.provider ?? AD_PROVIDER,
+          visibility_threshold: 0.5,
+          minimum_visible_ms: 1000,
+        },
+      });
+    };
+
+    const scheduleViewTimer = () => {
+      if (
+        !visibleEnough ||
+        document.visibilityState !== 'visible' ||
+        viewTimer != null ||
+        eventStateRef.current.impression
+      ) {
+        return;
+      }
+
+      viewTimer = window.setTimeout(() => {
+        viewTimer = null;
+        commitImpression();
+      }, 1000);
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        visibleEnough = Boolean(
+          entry?.isIntersecting &&
+            entry.intersectionRatio >= 0.5,
+        );
+
+        if (visibleEnough) {
+          scheduleViewTimer();
+        } else {
+          clearViewTimer();
+        }
+      },
+      {
+        threshold: [0, 0.5, 1],
+      },
+    );
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        scheduleViewTimer();
+      } else {
+        clearViewTimer();
+      }
+    };
+
+    observer.observe(node);
+    document.addEventListener(
+      'visibilitychange',
+      onVisibilityChange,
+    );
+
+    return () => {
+      clearViewTimer();
+      observer.disconnect();
+      document.removeEventListener(
+        'visibilitychange',
+        onVisibilityChange,
+      );
+    };
+  }, [
+    config?.provider,
+    eligible,
+    placement,
+    rendered,
+    resolvedFormat,
+  ]);
 
   useEffect(() => {
     return () => {

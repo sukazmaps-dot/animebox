@@ -33,10 +33,13 @@ export type MonetizationDashboard = {
   ads: {
     requested: number;
     filled: number;
+    impressions: number;
     noFill: number;
     clicks: number;
     houseFills: number;
+    houseImpressions: number;
     fillRatePct: number;
+    viewabilityPct: number;
     noFillRatePct: number;
     ctrPct: number | null;
     ctrScope: 'house_only' | 'unavailable';
@@ -51,6 +54,7 @@ export type MonetizationDashboard = {
     donatePayRevenueRub: number;
     adRequests: number;
     adFills: number;
+    adImpressions: number;
     adNoFill: number;
   }>;
   recentPayments: Array<{

@@ -5,6 +5,7 @@ type ClientEventName =
   | 'premium_checkout_started'
   | 'ad_slot_requested'
   | 'ad_slot_filled'
+  | 'ad_slot_impression'
   | 'ad_slot_no_fill'
   | 'ad_slot_clicked';
 

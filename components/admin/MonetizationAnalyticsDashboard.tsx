@@ -20,7 +20,8 @@ type SeriesKey =
   | 'premiumViews'
   | 'checkouts'
   | 'adRequests'
-  | 'adFills';
+  | 'adFills'
+  | 'adImpressions';
 
 function number(value: unknown, maximumFractionDigits = 0) {
   const numeric = Number(value);
@@ -213,6 +214,7 @@ export default function MonetizationAnalyticsDashboard() {
             <MiniLine data={dashboard.timeSeries} valueKey="premiumActivations" label="Premium activations" />
             <MiniLine data={dashboard.timeSeries} valueKey="premiumViews" label="Premium views" />
             <MiniLine data={dashboard.timeSeries} valueKey="adFills" label="Ad fills" />
+            <MiniLine data={dashboard.timeSeries} valueKey="adImpressions" label="Viewable ad impressions" />
           </div>
 
           <div className={styles.columns}>
@@ -250,10 +252,11 @@ export default function MonetizationAnalyticsDashboard() {
             <div className={styles.adStats}>
               <div><span>Requested</span><strong>{number(dashboard.ads.requested)}</strong></div>
               <div><span>Filled</span><strong>{number(dashboard.ads.filled)}</strong><small>{pct(dashboard.ads.fillRatePct)} fill rate</small></div>
+              <div><span>Impressions</span><strong>{number(dashboard.ads.impressions)}</strong><small>{pct(dashboard.ads.viewabilityPct)} viewability</small></div>
               <div><span>No-fill</span><strong>{number(dashboard.ads.noFill)}</strong><small>{pct(dashboard.ads.noFillRatePct)}</small></div>
-              <div><span>CTR</span><strong>{pct(dashboard.ads.ctrPct)}</strong><small>{dashboard.ads.ctrScope === 'house_only' ? 'house ads only' : 'provider CTR unavailable'}</small></div>
+              <div><span>CTR</span><strong>{pct(dashboard.ads.ctrPct)}</strong><small>{dashboard.ads.ctrScope === 'house_only' ? 'clicks / viewable house impressions' : 'provider CTR unavailable'}</small></div>
             </div>
-            <p className={styles.note}>Premium скрывает только рекламные блоки AnimeBox. Реклама внутри стороннего iframe-плеера принадлежит провайдеру плеера и этой системой не управляется.</p>
+            <p className={styles.note}>Impression засчитывается только когда минимум 50% рекламного блока находится в видимой области не менее 1 секунды. Premium скрывает только рекламные блоки AnimeBox. Реклама внутри стороннего iframe-плеера принадлежит провайдеру плеера и этой системой не управляется.</p>
           </article>
 
           <article className={styles.panel}>

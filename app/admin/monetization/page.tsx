@@ -253,9 +253,9 @@ export default function MonetizationAdmin() {
     <main className="sponsor-v2-admin sponsor-v3-admin">
       <div className="sponsor-v25-head">
         <div>
-          <span>MONETIZATION RELIABILITY · STAGE 2.5</span>
+          <span>PRODUCTION MONETIZATION · STAGE 4</span>
           <h1>Монетизация AnimeBox</h1>
-          <p>Stars, DonatePay, единый ledger, ручное управление, сверка и защищённые возвраты.</p>
+          <p>Premium lifecycle, revenue, conversion funnel, viewable ad impressions, единый ledger и production reliability.</p>
         </div>
         <div className="sponsor-v25-actions">
           <button disabled={loading || actionId === 'reconcile'} onClick={() => void runAction({ action: 'reconcile' }, 'reconcile')}>
