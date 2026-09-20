@@ -55,7 +55,9 @@ export async function getAnimeFranchiseWithShikimori(
         if (!item || typeof item !== 'object') continue;
         if (typeof item.id === 'number' && batch.includes(item.id) &&
             typeof item.russian === 'string' && item.russian.trim()) {
-          titles.set(item.id, item.russian.trim());
+          const russian = item.russian.trim();
+          titles.set(item.id, russian);
+          rememberRussianTitle(item.id, russian);
         }
       }
     } catch (error) {
@@ -87,6 +89,72 @@ const SHIKIMORI_HEADERS = {
   'User-Agent': 'AnimeBoxApp',
   Accept: 'application/json',
 };
+
+const russianTitleCache = new Map<number, string>();
+const RUSSIAN_TITLE_CACHE_LIMIT = 2500;
+
+function rememberRussianTitle(id: number, title: string | null | undefined) {
+  const normalized = title?.trim();
+  if (!Number.isSafeInteger(id) || id <= 0 || !normalized) return;
+  russianTitleCache.delete(id);
+  russianTitleCache.set(id, normalized);
+  while (russianTitleCache.size > RUSSIAN_TITLE_CACHE_LIMIT) {
+    const oldest = russianTitleCache.keys().next().value as number | undefined;
+    if (oldest == null) break;
+    russianTitleCache.delete(oldest);
+  }
+}
+
+async function fetchShikimoriListByIds(
+  ids: number[],
+  signal?: AbortSignal,
+): Promise<Map<number, ShikimoriAnime>> {
+  const result = new Map<number, ShikimoriAnime>();
+  const chunks: number[][] = [];
+  for (let index = 0; index < ids.length; index += 12) {
+    chunks.push(ids.slice(index, index + 12));
+  }
+
+  const settled = await Promise.allSettled(
+    chunks.map(async (chunk) => {
+      const params = new URLSearchParams({
+        ids: chunk.join(','),
+        limit: String(chunk.length),
+      });
+      const response = await fetchWithRetry(`${SHIKIMORI_API}/animes?${params}`, {
+        headers: SHIKIMORI_HEADERS,
+        signal,
+        next: { revalidate: 3600 },
+      });
+      if (!response.ok) throw new Error(`Shikimori HTTP ${response.status}`);
+      const data: unknown = await response.json();
+      if (!Array.isArray(data)) throw new Error('Invalid Shikimori list response');
+      return data as ShikimoriAnime[];
+    }),
+  );
+
+  for (const batch of settled) {
+    if (batch.status !== 'fulfilled') continue;
+    for (const item of batch.value) {
+      if (typeof item.id !== 'number' || item.id <= 0) continue;
+      result.set(item.id, item);
+      rememberRussianTitle(item.id, item.russian);
+    }
+  }
+
+  for (const id of ids) {
+    if (result.has(id)) continue;
+    const cached = russianTitleCache.get(id);
+    if (cached) result.set(id, { id, russian: cached });
+  }
+
+  if (settled.some((batch) => batch.status === 'rejected') && result.size === 0) {
+    const rejected = settled.find((batch) => batch.status === 'rejected');
+    if (rejected?.status === 'rejected') throw rejected.reason;
+  }
+
+  return result;
+}
 
 
 type ShikimoriSearchAnime = {
@@ -333,83 +401,12 @@ async function loadAnimesWithShikimori(
 
   try {
     /*
-     * У Shikimori список имеет собственный limit.
-     *
-     * Без него API может вернуть только часть
-     * тайтлов из ids, поэтому большая часть
-     * главной оставалась на английском.
+     * Локализацию грузим небольшими независимыми пачками. Если один запрос
+     * Shikimori временно падает, главная больше не откатывается целиком на
+     * английские AniList-title. Успешные русские названия сохраняются в
+     * process-cache и используются как мягкий fallback при следующем сбое.
      */
-    const params =
-      new URLSearchParams();
-
-    params.set(
-      'ids',
-      malIds.join(','),
-    );
-
-    params.set(
-      'limit',
-      String(
-        Math.min(
-          Math.max(
-            malIds.length,
-            1,
-          ),
-          50,
-        ),
-      ),
-    );
-
-    const response =
-      await fetchWithRetry(
-        `${SHIKIMORI_API}/animes?${params.toString()}`,
-        {
-          headers:
-            SHIKIMORI_HEADERS,
-
-          signal:
-            fetchOptions?.signal,
-
-          next: {
-            revalidate: 3600,
-          },
-        },
-      );
-
-    if (!response.ok) {
-      throw new Error(
-        `Shikimori HTTP ${response.status}`,
-      );
-    }
-
-    const data =
-      (await response.json()) as
-        ShikimoriAnime[];
-
-    if (!Array.isArray(data)) {
-      return anilistAnimes;
-    }
-
-    const shikiMap =
-      new Map<
-        number,
-        ShikimoriAnime
-      >();
-
-    for (const item of data) {
-      if (
-        typeof item.id !==
-          'number' ||
-        item.id <= 0
-      ) {
-        continue;
-      }
-
-      shikiMap.set(
-        item.id,
-        item,
-      );
-    }
+    const shikiMap = await fetchShikimoriListByIds(malIds, fetchOptions?.signal);
 
     return anilistAnimes.map(
       (anime) => {
@@ -519,6 +516,8 @@ async function loadAnimeByIdWithShikimori(
 
     const russianTitle =
       shiki.russian?.trim();
+
+    if (malId && russianTitle) rememberRussianTitle(malId, russianTitle);
 
     return {
       ...anime,

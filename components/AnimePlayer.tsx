@@ -4,6 +4,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '@/components/Icon';
 import KodikPlayer, { type KodikPlayerHandle } from '@/components/KodikPlayer';
+import DirectVideoPlayer from '@/components/DirectVideoPlayer';
 import { useWatchSession } from '@/components/useWatchSession';
 import { useAuthState } from '@/components/AuthStateProvider';
 import {
@@ -31,7 +32,6 @@ import {
   writeManualProviderPreference,
   writePlayerSourceMode,
 } from '@/lib/player-source-health-client';
-import Hls from 'hls.js';
 import {
   hexToRgb,
   resolveReadableTextColor,
@@ -119,9 +119,21 @@ function normalizeMediaLink(url: string): string {
   return url.startsWith('//') ? `https:${url}` : url;
 }
 
-function toProxyHls(url: string): string {
+const HLS_PROXY_HOSTS = ['libria.fun', 'anilibria.top', 'anilibria.tv', 'anilibria.app'];
+
+function toPlaybackHls(url: string): string {
   if (!/^https?:\/\//i.test(url)) return url;
-  return `/api/hls?url=${encodeURIComponent(url)}`;
+
+  try {
+    const target = new URL(url);
+    const shouldProxy = HLS_PROXY_HOSTS.some(
+      (allowed) => target.hostname === allowed || target.hostname.endsWith(`.${allowed}`),
+    );
+
+    return shouldProxy ? `/api/hls?url=${encodeURIComponent(url)}` : url;
+  } catch {
+    return url;
+  }
 }
 
 function sourceLabel(name?: string) {
@@ -425,7 +437,7 @@ export default function AnimePlayer({
   const isKodik = mediaType === 'kodik';
   const isIframe = mediaType === 'iframe' || isKodik;
   const isHls = mediaType === 'hls';
-  const videoLink = isHls ? toProxyHls(normalizedLink) : normalizedLink;
+  const videoLink = isHls ? toPlaybackHls(normalizedLink) : normalizedLink;
   const currentSourceName = sourceLabel(currentSource?.name);
   const deliveryMode = mediaTypeToDeliveryMode(mediaType);
   const currentSourceType = currentTranslation?.type || currentSource?.type || mediaType;
@@ -1451,61 +1463,6 @@ export default function AnimePlayer({
     };
   }, [activeSourceIndex, animeId, sources]);
 
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!started || !video || !isHls || !videoLink) return;
-
-    let hls: Hls | null = null;
-
-    const onVideoError = () => {
-      failCurrentSource('error', 'Не удалось воспроизвести HLS-поток.');
-    };
-
-    video.addEventListener('error', onVideoError);
-
-    if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = videoLink;
-      video.load();
-    } else if (Hls.isSupported()) {
-      hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false,
-        backBufferLength: 90,
-        maxBufferLength: 30,
-      });
-
-      hls.loadSource(videoLink);
-      hls.attachMedia(video);
-
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        markPlayerReady();
-        void video.play().catch(() => undefined);
-      });
-
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        if (!data.fatal) return;
-
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-          hls?.startLoad();
-        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-          hls?.recoverMediaError();
-        } else {
-          failCurrentSource('error', data.details || 'Ошибка HLS-потока.');
-          hls?.destroy();
-        }
-      });
-    } else {
-      window.setTimeout(() => {
-        failCurrentSource('error', 'Этот браузер не поддерживает HLS.');
-      }, 0);
-    }
-
-    return () => {
-      video.removeEventListener('error', onVideoError);
-      hls?.destroy();
-    };
-  }, [failCurrentSource, isHls, markPlayerReady, playerAttempt, started, videoLink]);
-
   const applySourceSelection = useCallback((
     index: number,
     reason: 'manual' | 'manual_preference' | 'auto_score',
@@ -2039,61 +1996,44 @@ export default function AnimePlayer({
                     }
                   />
                 ) : (
-                  <video
+                  <DirectVideoPlayer
                     ref={videoRef}
                     key={`${videoLink}:${playerAttempt}`}
-                    className="absolute inset-0 h-full w-full bg-black object-contain"
-                    controls
-                    autoPlay
-                    playsInline
-                    muted={false}
+                    src={videoLink}
+                    isHls={isHls}
+                    title={`${title} — серия ${episodeNumber}`}
                     poster={poster || undefined}
-                    preload="auto"
-                    src={!isHls ? videoLink : undefined}
-                    onLoadedMetadata={(event) => {
-                      const video = event.currentTarget;
-                      setVerifiedQuality(verifiedVideoQuality(video.videoWidth, video.videoHeight));
-                    }}
-                    onCanPlay={markPlayerReady}
-                    onError={() => {
-                      if (!isHls) {
-                        failCurrentSource('error', 'Видео не удалось загрузить.')
-                      }
+                    fullscreenActive={fullscreenActive}
+                    onToggleFullscreen={toggleFullscreen}
+                    onReady={markPlayerReady}
+                    onError={(message) => failCurrentSource('error', message)}
+                    onLoadedMetadata={(width, height) => {
+                      setVerifiedQuality(verifiedVideoQuality(width, height));
                     }}
                     onEnded={handlePlaybackEnded}
-                    onTimeUpdate={(event) => {
-                      const video = event.currentTarget;
-                      const duration =
-                        Number.isFinite(video.duration) && video.duration > 0
-                          ? video.duration
-                          : null;
+                    onTimeUpdate={({ positionSeconds, durationSeconds }) => {
                       handleTimeSample({
-                        positionSeconds: video.currentTime,
-                        durationSeconds: duration,
+                        positionSeconds,
+                        durationSeconds,
                         origin: window.location.origin,
                       });
                       publishPartyState({
-                        position: video.currentTime,
-                        duration,
-                        playing: !video.paused && !video.ended,
+                        position: positionSeconds,
+                        duration: durationSeconds,
+                        playing: !videoRef.current?.paused && !videoRef.current?.ended,
                       });
                     }}
-                    onPlay={(event) => {
-                      const video = event.currentTarget;
+                    onPlay={(positionSeconds) => {
                       markConfirmedPlaybackStart('play');
-                      publishPartyAction('play', video.currentTime, true);
+                      publishPartyAction('play', positionSeconds, true);
                     }}
-                    onPause={(event) => {
-                      const video = event.currentTarget;
-                      if (!video.ended) publishPartyAction('pause', video.currentTime, false);
+                    onPause={(positionSeconds) => {
+                      publishPartyAction('pause', positionSeconds, false);
                     }}
-                    onSeeked={(event) => {
-                      const video = event.currentTarget;
-                      publishPartyAction('seek', video.currentTime, !video.paused && !video.ended);
+                    onSeeked={(positionSeconds, playing) => {
+                      publishPartyAction('seek', positionSeconds, playing);
                     }}
-                  >
-                    Ваш браузер не поддерживает воспроизведение видео.
-                  </video>
+                  />
                 )
               )}
             </>

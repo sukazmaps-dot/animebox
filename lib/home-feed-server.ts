@@ -31,9 +31,9 @@ const loadHomeInitialFeed = unstable_cache(
       ongoing: ongoingResult.status === 'fulfilled' ? ongoingResult.value : [],
     };
   },
-  ['animebox-home-initial-feed-v1'],
+  ['animebox-home-initial-feed-v2-russian-first'],
   {
-    revalidate: 900,
+    revalidate: 300,
     tags: ['animebox-home-feed'],
   },
 );

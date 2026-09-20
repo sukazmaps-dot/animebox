@@ -43,6 +43,20 @@ type SourceApiResponse = {
   error?: string;
 };
 
+
+const DIRECT_PLAYER_ENABLED = process.env.NEXT_PUBLIC_DIRECT_PLAYER_ENABLED === 'true';
+
+type DirectSourceApiResponse = {
+  enabled?: boolean;
+  provider?: string;
+  streams?: Array<{
+    title: string;
+    url: string;
+    type: 'hls' | 'video';
+    quality?: string | null;
+  }>;
+  reason?: string;
+};
 type KodikApiResponse = {
   name?: string;
   translations?: Array<{
@@ -183,18 +197,63 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         const withoutSameSource = current.filter((item) => item.name !== source.name);
         const next = [...withoutSameSource, source];
 
-        // Kodik is the primary provider, so keep it first without changing
-        // the selected source after the player has already appeared.
-        return next.sort((a, b) => {
-          if (a.name === 'Kodik') return -1;
-          if (b.name === 'Kodik') return 1;
-          return 0;
-        });
+        // Direct AnimeBox playback wins when available; Kodik remains the
+        // first iframe fallback. The direct source is feature-flagged server-side.
+        const priority = (name: string) => {
+          if (name === 'AnimeBox Direct') return 0;
+          if (name === 'Kodik') return 1;
+          return 2;
+        };
+
+        return next.sort((a, b) => priority(a.name) - priority(b.name));
       });
 
       setSourceIdentity(identity);
       setSourceMessage('');
       setLoadingSources(false);
+    }
+
+    async function loadDirect() {
+      if (!DIRECT_PLAYER_ENABLED) return false;
+      const shikimoriId = anime.idMal || anime.mal_id;
+      if (!shikimoriId) return false;
+
+      try {
+        const response = await fetch(
+          `/api/player/direct-source?shikimoriId=${encodeURIComponent(String(shikimoriId))}&episode=${encodeURIComponent(String(episodeNumber))}`,
+          {
+            signal: controller.signal,
+            cache: 'no-store',
+          },
+        );
+
+        const data = (await response.json()) as DirectSourceApiResponse;
+
+        if (!response.ok || !data.enabled || !Array.isArray(data.streams) || data.streams.length === 0) {
+          return false;
+        }
+
+        const translations = data.streams
+          .filter((stream) => Boolean(stream?.url?.trim()))
+          .map((stream) => ({
+            title: stream.title || stream.quality || 'Авто',
+            url: stream.url,
+            type: stream.type,
+          }));
+
+        if (translations.length === 0) return false;
+
+        publishSource({
+          name: 'AnimeBox Direct',
+          type: translations[0]?.type || 'hls',
+          translations,
+        });
+        return true;
+      } catch (error) {
+        if (controller.signal.aborted) throw error;
+        console.warn('[Direct Player] source unavailable:', error);
+        return false;
+      }
     }
 
     async function loadKodik() {
@@ -323,17 +382,28 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
       try {
         /*
-         * Important performance rule:
-         * as soon as Kodik is ready, show the player immediately.
-         * AniLiberty then loads as a background fallback instead of blocking
-         * the whole page for up to ~24 seconds.
+         * Direct Player is the preferred path only when the server-side feature
+         * flag is enabled and a real direct stream is available. The endpoint
+         * returns immediately while disabled, so current Kodik startup is not
+         * penalized before provider terms are confirmed.
          */
+        const directReady = await loadDirect();
+
+        if (!active || controller.signal.aborted) return;
+
+        if (directReady) {
+          // Keep iframe/HLS fallbacks warm in the background without delaying
+          // the custom AnimeBox Player.
+          void loadKodik().catch(() => undefined);
+          void loadFallback().catch(() => undefined);
+          return;
+        }
+
         const kodikReady = await loadKodik();
 
         if (!active || controller.signal.aborted) return;
 
         if (kodikReady) {
-          // Do not await this before showing the player.
           void loadFallback().catch(() => undefined);
           return;
         }
@@ -763,7 +833,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         />
       </div>
     </div>
-    
+
   );
 }
 
