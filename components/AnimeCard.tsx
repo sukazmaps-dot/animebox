@@ -45,10 +45,12 @@ export default function AnimeCard({
   anime,
   compact = false,
   watchedEpisode = null,
+  discoveryMatch = null,
 }: {
   anime: Anime;
   compact?: boolean;
   watchedEpisode?: number | null;
+  discoveryMatch?: { percent: number; reasons?: string[] } | null;
 }) {
   const title = getAnimeTitle(anime);
   const year = yearLabel(anime);
@@ -115,6 +117,13 @@ export default function AnimeCard({
         <h3 title={title} className="line-clamp-2">
           {title}
         </h3>
+
+        {discoveryMatch && (
+          <div className="anime-card__match" title={discoveryMatch.reasons?.join(' · ')}>
+            <strong>{discoveryMatch.percent}%</strong>
+            <span>{discoveryMatch.reasons?.[0] || 'совпадение'}</span>
+          </div>
+        )}
 
         {episode ? (
           <div className="anime-card__personal">

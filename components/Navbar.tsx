@@ -67,39 +67,77 @@ function NavbarContent() {
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuthState();
 
-  const [searchValue, setSearchValue] = useState('');
+  const [searchValue, setSearchValue] = useState(() => (
+    pathname === '/search' ? searchParams.get('search') ?? '' : ''
+  ));
+
+  function emitLiveSearch(value: string) {
+    window.dispatchEvent(new CustomEvent('animebox-search-input', {
+      detail: { query: value },
+    }));
+  }
+
+  function syncSearchFromLocation() {
+    const params = new URLSearchParams(window.location.search);
+    const value = params.get('search') ?? '';
+    setSearchValue(value);
+    emitLiveSearch(value);
+  }
 
   useEffect(() => {
-    if (pathname === '/search') {
-      // URL query is external navigation state; mirror it into the controlled input.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSearchValue(searchParams.get('search') ?? '');
-    }
-  }, [pathname, searchParams]);
+    if (pathname !== '/search') return;
+    // Read from the browser URL only when entering the page. We intentionally
+    // do not mirror every useSearchParams update back into the input: doing so
+    // could overwrite fresh keystrokes with an older navigation result.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    syncSearchFromLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      if (window.location.pathname === '/search') syncSearchFromLocation();
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const onSearchInput = (event: Event) => {
+      const detail = (event as CustomEvent<{ query?: unknown }>).detail;
+      if (typeof detail?.query !== 'string') return;
+      setSearchValue(detail.query);
+    };
+    window.addEventListener('animebox-search-input', onSearchInput);
+    return () => window.removeEventListener('animebox-search-input', onSearchInput);
+  }, []);
 
   useEffect(() => {
     if (pathname !== '/search') return;
 
     const value = searchValue.trim();
-    const currentValue = searchParams.get('search')?.trim() ?? '';
-
-    if (value === currentValue) return;
-
     const timer = window.setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
+      const url = new URL(window.location.href);
+      const currentValue = url.searchParams.get('search')?.trim() ?? '';
+      if (value === currentValue) return;
 
-      if (value) params.set('search', value);
-      else params.delete('search');
+      if (value) url.searchParams.set('search', value);
+      else url.searchParams.delete('search');
 
-      const queryString = params.toString();
-
-      router.replace(queryString ? `/search?${queryString}` : '/search', {
-        scroll: false,
-      });
-    }, 350);
+      // Native history keeps the address shareable without starting a full
+      // App Router navigation (and therefore without rerunning the server page)
+      // on every keystroke. Next.js integrates these history updates with
+      // useSearchParams.
+      window.history.replaceState(
+        window.history.state,
+        '',
+        `${url.pathname}${url.search}${url.hash}`,
+      );
+    }, 140);
 
     return () => window.clearTimeout(timer);
-  }, [pathname, router, searchParams, searchValue]);
+  }, [pathname, searchValue]);
 
   function submitSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -107,16 +145,15 @@ function NavbarContent() {
     const value = searchValue.trim();
 
     if (pathname === '/search') {
-      const params = new URLSearchParams(searchParams.toString());
-
-      if (value) params.set('search', value);
-      else params.delete('search');
-
-      const queryString = params.toString();
-
-      router.replace(queryString ? `/search?${queryString}` : '/search', {
-        scroll: false,
-      });
+      const url = new URL(window.location.href);
+      if (value) url.searchParams.set('search', value);
+      else url.searchParams.delete('search');
+      window.history.replaceState(
+        window.history.state,
+        '',
+        `${url.pathname}${url.search}${url.hash}`,
+      );
+      emitLiveSearch(value);
       return;
     }
 
@@ -256,7 +293,11 @@ function NavbarContent() {
 
           <input
             value={searchValue}
-            onChange={(event) => setSearchValue(event.target.value)}
+            onChange={(event) => {
+              const value = event.target.value;
+              setSearchValue(value);
+              if (pathname === '/search') emitLiveSearch(value);
+            }}
             aria-label="Поиск аниме"
             placeholder="Умный поиск: Наруто 2 сезон, One Piece..."
             autoComplete="off"

@@ -1530,3 +1530,28 @@
     font-size: 12px !important;
   }
 }
+
+/* Smart Discovery confidence is shown only when a card came from the natural-
+   language discovery pipeline. Regular catalog cards remain unchanged. */
+.anime-card__match {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  margin-top: 6px;
+  color: rgba(196,181,253,.72);
+  font-size: 8px;
+  line-height: 1.2;
+}
+
+.anime-card__match strong {
+  flex: 0 0 auto;
+  color: rgba(221,214,254,.96);
+  font-size: 9px;
+}
+
+.anime-card__match span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

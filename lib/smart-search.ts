@@ -165,3 +165,53 @@ export function mergeAnimeCandidates(...groups: Anime[][]) {
   }
   return [...byId.values()];
 }
+
+const CYRILLIC_TO_LATIN: Record<string, string> = {
+  а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'y',
+  к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f',
+  х: 'h', ц: 'c', ч: 'ch', ш: 'sh', щ: 'sch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya',
+};
+
+export function transliterateSearchQuery(value: string) {
+  return compact(
+    value
+      .toLocaleLowerCase('ru-RU')
+      .split('')
+      .map((char) => CYRILLIC_TO_LATIN[char] ?? char)
+      .join(''),
+  );
+}
+
+/**
+ * Small bounded list used only when exact entity resolution failed. Keeping it
+ * bounded is important: typo tolerance must not multiply provider traffic for
+ * every healthy search.
+ */
+export function buildEntityResolutionQueries(value: string) {
+  const source = compact(value);
+  const result: string[] = [];
+  const seen = new Set<string>();
+
+  const append = (candidate: string) => {
+    const clean = compact(candidate);
+    const key = normalize(clean);
+    if (!clean || clean.length < 2 || seen.has(key)) return;
+    seen.add(key);
+    result.push(clean);
+  };
+
+  append(source);
+  append(swapKeyboardLayout(source));
+
+  if (/[а-яё]/iu.test(source)) {
+    append(transliterateSearchQuery(source));
+  }
+
+  const tokens = meaningfulTokens(source).sort((a, b) => b.length - a.length);
+  const longest = tokens[0];
+  if (longest && longest.length >= 6) {
+    append(longest.slice(0, Math.max(4, longest.length - 2)));
+  }
+
+  return result.slice(0, 4);
+}

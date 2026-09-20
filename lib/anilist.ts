@@ -1528,3 +1528,101 @@ export function isAbortError(
       'AbortError'
   );
 }
+
+const RECOMMENDATIONS_QUERY = `
+  query AnimeRecommendations($id: Int!, $perPage: Int!) {
+    Media(id: $id, type: ANIME) {
+      recommendations(page: 1, perPage: $perPage, sort: RATING_DESC) {
+        nodes {
+          rating
+          mediaRecommendation {
+            id
+            type
+            isAdult
+            countryOfOrigin
+            tags { name }
+            idMal
+            title {
+              romaji
+              english
+              native
+            }
+            synonyms
+            averageScore
+            episodes
+            nextAiringEpisode { episode }
+            status
+            format
+            genres
+            startDate {
+              year
+              month
+              day
+            }
+            coverImage {
+              extraLarge
+              large
+              medium
+              color
+            }
+            bannerImage
+          }
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * AniList's own recommendation graph is the best first candidate source for
+ * natural-language requests like "похожее на Фрирен". Failures are soft: the
+ * discovery route always has genre/global fallbacks.
+ */
+export async function getAnimeRecommendationsById(
+  id: number,
+  limit = 30,
+  signal?: AbortSignal,
+): Promise<Anime[]> {
+  if (!Number.isSafeInteger(id) || id <= 0) return [];
+  const perPage = Math.min(50, Math.max(5, Math.round(limit)));
+
+  try {
+    const response = await fetchWithRetry(ANILIST_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        query: RECOMMENDATIONS_QUERY,
+        variables: { id, perPage },
+      }),
+      signal,
+      next: { revalidate: 3600 },
+    });
+
+    if (!response.ok) return [];
+    const json = await response.json() as {
+      data?: {
+        Media?: {
+          recommendations?: {
+            nodes?: Array<{
+              rating?: number | null;
+              mediaRecommendation?: AniListMedia | null;
+            } | null>;
+          } | null;
+        } | null;
+      };
+    };
+
+    return (json.data?.Media?.recommendations?.nodes ?? [])
+      .map((node) => node?.mediaRecommendation)
+      .filter((media): media is AniListMedia => Boolean(media))
+      .map((media) => mapMediaToAnime(media))
+      .filter((anime) => anime.catalogEligible !== false);
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') throw error;
+    console.warn('AniList recommendations request failed:', error);
+    return [];
+  }
+}

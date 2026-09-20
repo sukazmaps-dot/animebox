@@ -63,12 +63,17 @@ function CatalogFallback() {
   );
 }
 
-export default async function SearchPage() {
-  const initialResults = await loadInitialCatalog();
+export default async function SearchPage({ searchParams }: SearchPageProps) {
+  const params = await searchParams;
+  const query = typeof params.search === 'string' ? params.search.trim() : '';
+  // Search result URLs are client-driven and noindex. Do not block first paint
+  // on an unrelated popular-catalog request when the user already supplied a
+  // query; SearchCatalogClient will resolve it immediately.
+  const initialResults = query ? [] : await loadInitialCatalog();
 
   return (
     <Suspense fallback={<CatalogFallback />}>
-      <SearchCatalogClient initialResults={initialResults} />
+      <SearchCatalogClient initialResults={initialResults} initialQuery={query} />
     </Suspense>
   );
 }

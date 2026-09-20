@@ -1,9 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-
 import AnimeCard from '@/components/AnimeCard';
+import AnimeImage from '@/components/AnimeImage';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import HorizontalNavRail from '@/components/ui/HorizontalNavRail';
 import MoodFilter from '@/components/catalog/MoodFilter';
@@ -14,14 +13,20 @@ import AdSlot from '@/components/monetization/AdSlot';
 import { parseAnimeSearchIntent } from '@/lib/search-intent';
 import {
   describeSmartDiscoveryIntent,
+  discoveryConstraintChips,
   parseSmartDiscoveryQuery,
   rankSmartDiscoveryCandidates,
+  removeDiscoveryConstraint,
+  smartDiscoveryMatch,
 } from '@/lib/smart-discovery';
+import { getSmartDiscovery, type SmartDiscoveryResponse } from '@/lib/discovery-client';
 import { fetchTasteGraph, readCachedTasteGraph, type TasteGraph } from '@/lib/taste-graph';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 import { CATALOG_AD_BREAK_INDEX, CATALOG_PAGE_SIZE } from '@/lib/catalog-pagination';
 
 import styles from './SearchCatalogClient.module.css';
+
+const SEARCH_DEBOUNCE_MS = 120;
 
 const GENRES = [
   { id: 1, russian: 'Экшен' },
@@ -38,13 +43,26 @@ const GENRES = [
   { id: 37, russian: 'Сверхъестественное' },
 ] as const;
 
+type DiscoveryMeta = Pick<SmartDiscoveryResponse, 'seed' | 'meta'>;
+
+function seedTitle(seed: SmartDiscoveryResponse['seed']) {
+  if (!seed) return '';
+  return seed.russian || seed.title?.russian || seed.title?.english || seed.title?.romaji || 'Аниме';
+}
+
 export default function SearchCatalogClient({
   initialResults,
+  initialQuery = '',
 }: {
   initialResults: Anime[];
+  initialQuery?: string;
 }) {
-  const searchParams = useSearchParams();
-  const query = searchParams.get('search')?.trim() ?? '';
+  const normalizedInitialQuery = initialQuery.trim();
+  const [liveQuery, setLiveQuery] = useState(normalizedInitialQuery);
+  const [query, setQuery] = useState(normalizedInitialQuery);
+  const liveQueryRef = useRef(liveQuery);
+  const requestSequenceRef = useRef(0);
+
   const searchIntent = useMemo(
     () => (query ? parseAnimeSearchIntent(query) : null),
     [query],
@@ -57,17 +75,46 @@ export default function SearchCatalogClient({
     () => (discoveryIntent?.isDiscovery ? describeSmartDiscoveryIntent(discoveryIntent) : []),
     [discoveryIntent],
   );
+  const discoveryChips = useMemo(
+    () => (discoveryIntent?.isDiscovery ? discoveryConstraintChips(discoveryIntent) : []),
+    [discoveryIntent],
+  );
 
   const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
   const [selectedMood, setSelectedMood] = useState<CatalogMood>('any');
   const [tasteGraph, setTasteGraph] = useState<TasteGraph | null>(() => readCachedTasteGraph());
   const [results, setResults] = useState<Anime[]>(initialResults);
-  const [loading, setLoading] = useState(initialResults.length === 0);
+  const [loading, setLoading] = useState(Boolean(normalizedInitialQuery) || initialResults.length === 0);
   const [error, setError] = useState('');
+  const [discoveryMeta, setDiscoveryMeta] = useState<DiscoveryMeta | null>(null);
   const [pageState, setPageState] = useState({ query, page: 1 });
   const page = pageState.query === query ? pageState.page : 1;
   const initialRenderRef = useRef(true);
   const [hasNextPage, setHasNextPage] = useState(initialResults.length >= CATALOG_PAGE_SIZE);
+
+  useEffect(() => {
+    liveQueryRef.current = liveQuery;
+  }, [liveQuery]);
+
+  useEffect(() => {
+    const onLiveSearch = (event: Event) => {
+      const detail = (event as CustomEvent<{ query?: unknown }>).detail;
+      const next = typeof detail?.query === 'string' ? detail.query : '';
+      liveQueryRef.current = next;
+      setLiveQuery(next);
+    };
+    window.addEventListener('animebox-search-input', onLiveSearch);
+    return () => window.removeEventListener('animebox-search-input', onLiveSearch);
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const next = liveQuery.trim();
+      setQuery((current) => current === next ? current : next);
+      setPageState({ query: next, page: 1 });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [liveQuery]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -75,8 +122,8 @@ export default function SearchCatalogClient({
       .then((graph) => {
         if (graph) setTasteGraph(graph);
       })
-      .catch((error) => {
-        if (error instanceof Error && error.name === 'AbortError') return;
+      .catch((tasteError) => {
+        if (tasteError instanceof Error && tasteError.name === 'AbortError') return;
       });
 
     const onTasteGraph = (event: Event) => {
@@ -101,11 +148,14 @@ export default function SearchCatalogClient({
         page === 1 &&
         initialResults.length > 0
       ) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setLoading(false);
         return;
       }
     }
 
     const controller = new AbortController();
+    const requestId = ++requestSequenceRef.current;
 
     async function load() {
       setLoading(true);
@@ -113,22 +163,19 @@ export default function SearchCatalogClient({
 
       try {
         if (query && discoveryIntent?.isDiscovery && page === 1) {
-          const params = new URLSearchParams({
-            q: query,
-            limit: String(Math.max(CATALOG_PAGE_SIZE, 30)),
+          const payload = await getSmartDiscovery(
+            query,
+            Math.max(CATALOG_PAGE_SIZE, 30),
+            controller.signal,
+          );
+          const personalized = rankSmartDiscoveryCandidates(payload.items, discoveryIntent, {
+            tasteGraph,
+            strict: false,
           });
-          const response = await fetch(`/api/discovery?${params.toString()}`, {
-            signal: controller.signal,
-            cache: 'no-store',
-            headers: { Accept: 'application/json' },
-          });
-          if (!response.ok) throw new Error(`Discovery HTTP ${response.status}`);
-          const payload = (await response.json()) as { items?: Anime[] };
-          const items = Array.isArray(payload.items) ? payload.items : [];
-          const personalized = rankSmartDiscoveryCandidates(items, discoveryIntent, { tasteGraph });
 
-          if (controller.signal.aborted) return;
+          if (controller.signal.aborted || requestId !== requestSequenceRef.current) return;
           setResults(personalized.slice(0, Math.max(CATALOG_PAGE_SIZE, 30)));
+          setDiscoveryMeta({ seed: payload.seed, meta: payload.meta });
           setHasNextPage(false);
           trackProductClientEvent('smart_discovery_search', {
             source: 'search',
@@ -141,6 +188,9 @@ export default function SearchCatalogClient({
               exclude_terms: discoveryIntent.excludeTerms,
               max_episodes: discoveryIntent.maxEpisodes,
               min_episodes: discoveryIntent.minEpisodes,
+              min_year: discoveryIntent.minYear,
+              relaxed: Boolean(payload.meta?.relaxed),
+              seed_resolved: Boolean(payload.meta?.seedResolved),
               results: personalized.length,
             },
           });
@@ -157,23 +207,39 @@ export default function SearchCatalogClient({
             { signal: controller.signal },
           );
 
-          if (controller.signal.aborted) return;
-
+          if (controller.signal.aborted || requestId !== requestSequenceRef.current) return;
           setResults(data);
+          setDiscoveryMeta(null);
           setHasNextPage(data.length === CATALOG_PAGE_SIZE);
         }
-      } catch (err: unknown) {
-        if (isAbortError(err)) return;
+      } catch (loadError: unknown) {
+        if (isAbortError(loadError) || controller.signal.aborted) return;
+        if (requestId !== requestSequenceRef.current) return;
         setResults([]);
+        setDiscoveryMeta(null);
         setError('Не удалось загрузить аниме. Попробуйте ещё раз.');
       } finally {
-        if (!controller.signal.aborted) setLoading(false);
+        if (!controller.signal.aborted && requestId === requestSequenceRef.current) {
+          setLoading(false);
+        }
       }
     }
 
     void load();
     return () => controller.abort();
   }, [discoveryIntent, initialResults, page, query, selectedGenre, selectedMood, tasteGraph]);
+
+  function applySearchQuery(nextValue: string) {
+    const next = nextValue.replace(/\s+/g, ' ').trim();
+    liveQueryRef.current = next;
+    setLiveQuery(next);
+    window.dispatchEvent(new CustomEvent('animebox-search-input', { detail: { query: next } }));
+
+    const url = new URL(window.location.href);
+    if (next) url.searchParams.set('search', next);
+    else url.searchParams.delete('search');
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+  }
 
   const hasFilters = selectedGenre !== null || selectedMood !== 'any';
   const showCatalogAd = !loading && results.length >= 8;
@@ -182,18 +248,80 @@ export default function SearchCatalogClient({
     : results.length;
   const catalogLead = showCatalogAd ? results.slice(0, catalogAdBreakIndex) : results;
   const catalogTail = showCatalogAd ? results.slice(catalogAdBreakIndex) : [];
+  const refreshing = loading && results.length > 0;
+  const recognizedSeed = discoveryMeta?.seed ?? null;
+  const discoverySeedForMatch = recognizedSeed
+    ? { genres: recognizedSeed.genres ?? [], episodes: recognizedSeed.episodes ?? null }
+    : null;
+  const closestQuery = discoveryIntent?.similarTo
+    ? `похожее на ${discoveryIntent.similarTo}`
+    : discoveryIntent?.includeGenres[0] ?? '';
 
   return (
     <div className="search-page">
       <div className="page-heading">
         <h1>Каталог аниме</h1>
         <p>Ищи тайтлы по названию, жанру и атмосфере — и добавляй их в свой трекер</p>
+
         {discoveryIntent?.isDiscovery && discoveryDescription.length > 0 && (
           <div className={styles.smartDiscoveryHint}>
             <span className={styles.smartDiscoveryBadge}>Smart Search</span>
             <span>{discoveryDescription.join(' · ')}</span>
           </div>
         )}
+
+        {discoveryIntent?.isDiscovery && discoveryChips.length > 0 && (
+          <div className={styles.discoveryChips} aria-label="Понятые условия поиска">
+            {discoveryChips.map((chip) => {
+              const removable = chip.id !== 'similar';
+              return (
+                <button
+                  key={chip.id}
+                  type="button"
+                  className={styles.discoveryChip}
+                  disabled={!removable}
+                  title={removable ? 'Убрать это условие' : 'Распознанный референс'}
+                  onClick={() => {
+                    if (!removable) return;
+                    applySearchQuery(removeDiscoveryConstraint(query, chip.id));
+                  }}
+                >
+                  {chip.label}
+                  {removable ? <span aria-hidden="true">×</span> : null}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {recognizedSeed && (
+          <div className={styles.seedCard}>
+            <div className={styles.seedPoster}>
+              <AnimeImage
+                image={recognizedSeed.coverImage}
+                alt={seedTitle(recognizedSeed)}
+                englishName={recognizedSeed.title?.english || recognizedSeed.title?.romaji}
+                sizes="48px"
+                quality={60}
+              />
+            </div>
+            <div>
+              <span>Ищем похожее на</span>
+              <strong>{seedTitle(recognizedSeed)}</strong>
+              <small>
+                {recognizedSeed.startDate?.year ? `${recognizedSeed.startDate.year} · ` : ''}
+                {recognizedSeed.episodes ? `${recognizedSeed.episodes} серий` : 'длительность уточняется'}
+              </small>
+            </div>
+          </div>
+        )}
+
+        {discoveryMeta?.meta?.relaxed && (
+          <p className={styles.relaxedHint}>
+            Точных совпадений по всем условиям мало — показываем ближайшие варианты.
+          </p>
+        )}
+
         {!discoveryIntent?.isDiscovery && searchIntent &&
           searchIntent.titleQuery !== searchIntent.normalized && (
             <p className="mt-2 text-xs text-violet-200/70">
@@ -249,15 +377,17 @@ export default function SearchCatalogClient({
         <span className={styles.moodHint}>жанр + настроение работают вместе</span>
       </div>
 
-      <section className="section">
+      <section className="section" aria-busy={loading}>
         <div className="section-head">
           <h2 className="section-title">
-            {query || hasFilters ? 'Результаты поиска' : 'Популярное аниме'}
+            {liveQuery.trim() || hasFilters ? 'Результаты поиска' : 'Популярное аниме'}
           </h2>
-          <span className="section-link">Страница {page}</span>
+          <span className="section-link">
+            {refreshing ? 'Ищем…' : `Страница ${page}`}
+          </span>
         </div>
 
-        {loading ? (
+        {loading && results.length === 0 ? (
           <div>
             <AnimeBoxLoader label="Подбираем аниме…" size={46} />
             <div className="loading-grid" aria-hidden="true">
@@ -274,9 +404,16 @@ export default function SearchCatalogClient({
           </div>
         ) : results.length ? (
           <>
+            {refreshing && <div className={styles.refreshLine} aria-hidden="true" />}
             <div className="anime-grid">
               {catalogLead.map((anime) => (
-                <AnimeCard key={anime.id} anime={anime} />
+                <AnimeCard
+                  key={anime.id}
+                  anime={anime}
+                  discoveryMatch={discoveryIntent?.isDiscovery
+                    ? smartDiscoveryMatch(anime, discoveryIntent, { seed: discoverySeedForMatch, tasteGraph })
+                    : null}
+                />
               ))}
             </div>
 
@@ -293,7 +430,13 @@ export default function SearchCatalogClient({
             {catalogTail.length > 0 && (
               <div className="anime-grid anime-grid--after-ad">
                 {catalogTail.map((anime) => (
-                  <AnimeCard key={anime.id} anime={anime} />
+                  <AnimeCard
+                    key={anime.id}
+                    anime={anime}
+                    discoveryMatch={discoveryIntent?.isDiscovery
+                      ? smartDiscoveryMatch(anime, discoveryIntent, { seed: discoverySeedForMatch, tasteGraph })
+                      : null}
+                  />
                 ))}
               </div>
             )}
@@ -301,12 +444,36 @@ export default function SearchCatalogClient({
         ) : (
           <div className={`empty-state ${styles.assetEmpty}`}>
             <img className={styles.emptyMascot} src="/brand/illustrations/empty-search.webp" alt="" aria-hidden="true" />
-            <strong>Ничего не найдено</strong>
-            <span>Попробуй изменить запрос, жанр или настроение.</span>
+            <strong>{discoveryIntent?.isDiscovery ? 'Точных совпадений не нашли' : 'Ничего не найдено'}</strong>
+            <span>
+              {discoveryIntent?.similarTo && discoveryMeta?.meta?.seedResolved === false
+                ? `Не удалось уверенно распознать «${discoveryIntent.similarTo}». Попробуй другое написание.`
+                : 'Попробуй изменить запрос, жанр или настроение.'}
+            </span>
+            <div className={styles.emptyActions}>
+              {discoveryIntent?.isDiscovery && closestQuery && closestQuery !== query && (
+                <button type="button" onClick={() => applySearchQuery(closestQuery)}>
+                  Показать ближайшие
+                </button>
+              )}
+              {(query || hasFilters) && (
+                <button
+                  type="button"
+                  className={styles.secondaryAction}
+                  onClick={() => {
+                    setSelectedGenre(null);
+                    setSelectedMood('any');
+                    applySearchQuery('');
+                  }}
+                >
+                  Очистить поиск
+                </button>
+              )}
+            </div>
           </div>
         )}
 
-        {!loading && results.length > 0 && (
+        {!loading && results.length > 0 && !discoveryIntent?.isDiscovery && (
           <div className="pagination">
             <button
               type="button"

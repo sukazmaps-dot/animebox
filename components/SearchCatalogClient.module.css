@@ -137,3 +137,156 @@
   font-weight: 800;
   letter-spacing: 0.02em;
 }
+
+.discoveryChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.discoveryChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid rgba(139, 92, 246, .28);
+  border-radius: 999px;
+  background: rgba(76, 29, 149, .14);
+  color: rgba(237, 233, 254, .9);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.discoveryChip:disabled {
+  cursor: default;
+  opacity: .92;
+}
+
+.discoveryChip:not(:disabled):hover {
+  border-color: rgba(167, 139, 250, .48);
+  background: rgba(91, 33, 182, .22);
+}
+
+.discoveryChip span {
+  color: rgba(196, 181, 253, .75);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.seedCard {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(100%, 420px);
+  margin-top: 12px;
+  padding: 8px 11px 8px 8px;
+  border: 1px solid rgba(139, 92, 246, .2);
+  border-radius: 12px;
+  background: rgba(17, 24, 39, .55);
+}
+
+.seedPoster {
+  width: 38px;
+  height: 52px;
+  overflow: hidden;
+  flex: 0 0 auto;
+  border-radius: 8px;
+}
+
+.seedPoster :global(img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.seedCard > div:last-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.seedCard span,
+.seedCard small {
+  color: rgba(196, 181, 253, .64);
+  font-size: 10px;
+}
+
+.seedCard strong {
+  overflow: hidden;
+  color: rgba(245, 243, 255, .96);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relaxedHint {
+  margin-top: 8px;
+  color: rgba(196, 181, 253, .7);
+  font-size: 11px;
+}
+
+.refreshLine {
+  height: 2px;
+  margin: -2px 0 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(139, 92, 246, .12);
+}
+
+.refreshLine::after {
+  content: '';
+  display: block;
+  width: 34%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, rgba(167, 139, 250, .8), transparent);
+  animation: searchRefresh 1s ease-in-out infinite;
+}
+
+.emptyActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.emptyActions button {
+  min-height: 38px;
+  padding: 8px 13px;
+  border: 1px solid rgba(139, 92, 246, .34);
+  border-radius: 10px;
+  background: rgba(109, 40, 217, .18);
+  color: rgba(245, 243, 255, .95);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.emptyActions .secondaryAction {
+  border-color: var(--ab-border);
+  background: rgba(255, 255, 255, .025);
+  color: rgba(226, 232, 240, .74);
+}
+
+@keyframes searchRefresh {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(330%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .refreshLine::after { animation: none; width: 100%; opacity: .5; }
+}
+
+@media (max-width: 560px) {
+  .discoveryChips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .discoveryChips::-webkit-scrollbar { display: none; }
+  .discoveryChip { flex: 0 0 auto; }
+  .seedCard { width: 100%; }
+}
