@@ -76,17 +76,20 @@ export async function POST(request: Request) {
 
     if (error) throw error;
 
+    let progressionUpdated = false;
+
     try {
-      await syncUserProgression({
+      const progression = await syncUserProgression({
         userId: user.id,
         eventKey: `comment:${String(data)}`,
         reason: 'comment_created',
       });
+      progressionUpdated = Number(progression?.earned_now ?? 0) > 0;
     } catch (progressionError) {
       console.error('[comments] progression sync failed:', progressionError);
     }
 
-    return response({ id: data }, 201);
+    return response({ id: data, progressionUpdated }, 201);
   } catch (error) {
     return failure(error);
   }

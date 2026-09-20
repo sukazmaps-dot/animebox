@@ -66,7 +66,7 @@
 
 .summary {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   margin-top: 14px;
 }
@@ -269,4 +269,66 @@
   .card { grid-template-columns: 52px minmax(0,1fr); padding: 14px; }
   .icon { width: 52px; height: 52px; }
   .icon img { width: 40px; height: 40px; }
+}
+
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 24px 0 14px;
+}
+
+.controls .filters {
+  flex: 1 1 auto;
+  margin: 0;
+}
+
+.sorts {
+  display: inline-flex;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: 4px;
+  border: 1px solid rgba(137, 150, 180, .10);
+  border-radius: 10px;
+  background: rgba(9, 16, 29, .72);
+}
+
+.sorts button {
+  min-height: 31px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: rgba(177, 188, 211, .52);
+  font-size: 8px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.sorts button.activeSort {
+  background: rgba(121, 82, 226, .14);
+  color: #e6ddff;
+}
+
+@media (max-width: 900px) {
+  .summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sorts {
+    overflow-x: auto;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .summary {
+    grid-template-columns: 1fr;
+  }
 }

@@ -34,8 +34,8 @@ type Payload = {
 };
 
 const periodLabels: Record<Period, string> = {
-  week: '7 дней',
-  month: '30 дней',
+  week: 'Неделя',
+  month: 'Месяц',
   all: 'Всё время',
 };
 
@@ -110,7 +110,7 @@ export default function LeaderboardClient() {
     <main className={styles.page}>
       <section className={styles.hero}>
         <div className={styles.heroEmblem}><img src="/ui/animebox-rank-1.webp" alt="" aria-hidden="true" /></div>
-        <span className={styles.eyebrow}><span /> ANIMEBOX · HALL OF FAME</span>
+        <span className={styles.eyebrow}><span /> ANIMEBOX · LEADERBOARD</span>
         <h1>Твоя история.<br /><em>Твоё место в топе.</em></h1>
         <p>Любимые истории становятся частью твоей. Знакомься с теми, кто смотрит вместе с тобой — и найди своё место среди них.</p>
         <div className={styles.heroMeta}><span>ТОП 100</span><span>По времени просмотра</span></div>
@@ -118,6 +118,7 @@ export default function LeaderboardClient() {
         <div className={styles.modeSwitch} aria-label="Тип рейтинга">
           <span aria-current="page">Просмотры</span>
           <Link href="/supporters">Спонсоры</Link>
+          <Link href="/hall-of-fame">Зал славы</Link>
         </div>
 
         <div className={styles.tabs} role="group" aria-label="Период рейтинга">
@@ -254,8 +255,8 @@ export default function LeaderboardClient() {
 
           <p className={styles.note}>
             Честный рейтинг: учитывается подтверждённое время просмотра в плеере.
-            Ручные отметки не добавляют время. Вклад каждого эпизода за выбранный период
-            ограничен его длительностью.
+            Недельный и месячный сезоны начинаются заново в календарных границах UTC.
+            Ручные отметки не добавляют время, а завершённые сезоны сохраняются в Зале славы.
           </p>
         </>
       ) : null}

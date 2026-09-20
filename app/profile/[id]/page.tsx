@@ -6,6 +6,8 @@ import { getPublicProfile } from '@/lib/public-profile-server';
 import UserIdentity from '@/components/identity/UserIdentity';
 import UserAvatarWithFrame from '@/components/profile/UserAvatarWithFrame';
 import { premiumMediaStyle, premiumStudioCssVariables } from '@/lib/premium-studio';
+import { formatSeasonRange, seasonPlacementLabel } from '@/lib/seasons';
+import { ACHIEVEMENT_RARITY_LABELS } from '@/lib/progression';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -171,9 +173,53 @@ export default async function PublicProfilePage({ params }: Props) {
             <div className="profile-v2__meta">
               <span>В AnimeBox с {joinedDate}</span>
             </div>
+
+            {profile.seasonTitles.length > 0 && (
+              <div className="profile-v4__season-titles" aria-label="Сезонные титулы">
+                {profile.seasonTitles.map((title) => (
+                  <span
+                    key={`${title.periodType}:${title.periodKey}:${title.place}`}
+                    data-place={title.place}
+                    title={formatSeasonRange(title.startsAt, title.endsAt)}
+                  >
+                    {seasonPlacementLabel(title.place, title.periodType)}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
+
+      {profile.featuredAchievements.length > 0 && (
+        <section className="profile-v4__featured">
+          <div className="profile-v2__section-head">
+            <div>
+              <span className="profile-v2__eyebrow">Витрина профиля</span>
+              <h2>Избранные достижения</h2>
+              <p>Три достижения, которые пользователь решил показать первыми.</p>
+            </div>
+          </div>
+
+          <div className="profile-v4__featured-grid">
+            {profile.featuredAchievements.map((achievement) => (
+              <article
+                className="profile-v4__featured-card"
+                data-rarity={achievement.rarity}
+                key={achievement.code}
+              >
+                <img src={achievement.icon} alt="" width="58" height="58" />
+                <div>
+                  <span>{ACHIEVEMENT_RARITY_LABELS[achievement.rarity]}</span>
+                  <strong>{achievement.title}</strong>
+                  <p>{achievement.description}</p>
+                </div>
+                <b>+{achievement.xpReward} XP</b>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="profile-v2__stats" aria-label="Публичная статистика">
         <article className="profile-v2__stat">
@@ -215,6 +261,7 @@ export default async function PublicProfilePage({ params }: Props) {
             {profile.achievements.map((achievement) => (
               <article
                 className="profile-v2__achievement is-unlocked"
+                data-rarity={achievement.rarity}
                 key={achievement.code}
               >
                 <img src={achievement.icon} alt="" width="52" height="52" />
@@ -226,6 +273,10 @@ export default async function PublicProfilePage({ params }: Props) {
                   </div>
 
                   <p>{achievement.description}</p>
+                  <div className="profile-v3__achievement-meta">
+                    <span data-rarity={achievement.rarity}>{ACHIEVEMENT_RARITY_LABELS[achievement.rarity]}</span>
+                    <span>+{achievement.xpReward} XP</span>
+                  </div>
                 </div>
               </article>
             ))}

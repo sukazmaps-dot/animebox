@@ -3202,3 +3202,203 @@ label input:checked + span::before {
     gap: 4px;
   }
 }
+
+
+/* =========================================================
+   PROFILE PROGRESSION V2 · SHOWCASE + SEASON TITLES
+   ========================================================= */
+
+.profile-v3__achievement-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-v3__showcase {
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid rgba(148, 112, 255, .14);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 0 0, rgba(132, 83, 244, .08), transparent 40%),
+    rgba(255,255,255,.015);
+}
+
+.profile-v3__showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.profile-v3__showcase-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  padding: 9px;
+  border: 1px solid rgba(135, 149, 179, .10);
+  border-radius: 11px;
+  background: rgba(8, 15, 27, .66);
+}
+
+.profile-v3__showcase-card[data-rarity='rare'] {
+  border-color: rgba(142, 111, 255, .22);
+}
+
+.profile-v3__showcase-card[data-rarity='epic'] {
+  border-color: rgba(207, 93, 255, .27);
+}
+
+.profile-v3__showcase-card[data-rarity='legendary'] {
+  border-color: rgba(238, 190, 94, .32);
+  background:
+    radial-gradient(circle at 0 0, rgba(219, 155, 69, .07), transparent 55%),
+    rgba(8, 15, 27, .66);
+}
+
+.profile-v3__showcase-card img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.profile-v3__showcase-card strong,
+.profile-v3__showcase-card small {
+  display: block;
+}
+
+.profile-v3__showcase-card strong {
+  overflow: hidden;
+  color: #eeeafc;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-v3__showcase-card small {
+  margin-top: 3px;
+  color: rgba(164, 177, 202, .48);
+  font-size: 7px;
+}
+
+.profile-v4__season-titles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.profile-v4__season-titles > span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 27px;
+  padding: 0 9px;
+  border: 1px solid rgba(139, 113, 220, .16);
+  border-radius: 999px;
+  background: rgba(104, 75, 187, .07);
+  color: rgba(205, 194, 238, .72);
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.profile-v4__season-titles > span[data-place='1'] {
+  border-color: rgba(235, 188, 92, .28);
+  background: rgba(190, 125, 45, .08);
+  color: #e9c477;
+}
+
+.profile-v4__featured {
+  margin-top: 14px;
+  padding: 18px;
+  border: 1px solid rgba(148, 112, 255, .14);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(134, 84, 245, .09), transparent 34%),
+    rgba(9, 16, 29, .82);
+}
+
+.profile-v4__featured-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.profile-v4__featured-card {
+  position: relative;
+  min-width: 0;
+  min-height: 112px;
+  display: grid;
+  grid-template-columns: 58px minmax(0,1fr);
+  gap: 11px;
+  align-items: center;
+  padding: 13px;
+  border: 1px solid rgba(139, 151, 181, .10);
+  border-radius: 14px;
+  background: rgba(8, 15, 27, .72);
+}
+
+.profile-v4__featured-card[data-rarity='epic'] {
+  border-color: rgba(207, 92, 255, .27);
+}
+
+.profile-v4__featured-card[data-rarity='legendary'] {
+  border-color: rgba(236, 188, 92, .33);
+  background:
+    radial-gradient(circle at 0 0, rgba(219, 155, 69, .08), transparent 48%),
+    rgba(8, 15, 27, .72);
+}
+
+.profile-v4__featured-card img {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+}
+
+.profile-v4__featured-card > div {
+  min-width: 0;
+}
+
+.profile-v4__featured-card > div > span {
+  color: #9e84ef;
+  font-size: 7px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+}
+
+.profile-v4__featured-card strong {
+  display: block;
+  margin-top: 3px;
+  color: #f0ecff;
+  font-size: 11px;
+}
+
+.profile-v4__featured-card p {
+  margin: 4px 0 0;
+  color: rgba(169, 182, 207, .52);
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.profile-v4__featured-card > b {
+  position: absolute;
+  right: 10px;
+  top: 9px;
+  color: rgba(190, 169, 247, .60);
+  font-size: 8px;
+}
+
+@media (max-width: 760px) {
+  .profile-v3__achievement-actions {
+    align-items: flex-end;
+    flex-direction: column;
+  }
+
+  .profile-v3__showcase-grid,
+  .profile-v4__featured-grid {
+    grid-template-columns: 1fr;
+  }
+}

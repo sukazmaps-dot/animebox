@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 
 import { useAuthState } from '@/components/AuthStateProvider';
+import AchievementShowcaseEditor from '@/components/AchievementShowcaseEditor';
 import { achievementIcon } from '@/lib/achievement-icons';
 import {
   ACHIEVEMENT_CATEGORY_LABELS,
@@ -14,12 +15,14 @@ import {
 import type { CommunityProfile } from '@/lib/community-client';
 import {
   getCommunityProfileCached,
+  invalidateCommunityProfile,
   peekCommunityProfile,
 } from '@/lib/community-profile-cache';
 
 import styles from './Achievements.module.css';
 
 type Filter = 'all' | AchievementCategory;
+type SortMode = 'smart' | 'earned' | 'near' | 'rarity';
 
 const FILTERS: Filter[] = [
   'all',
@@ -35,12 +38,24 @@ function metricValue(stats: CommunityProfile['stats'], metric: string) {
   return Number.isFinite(value) && value > 0 ? value : 0;
 }
 
+function formatEarnedAt(value: string) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return 'Получено';
+
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(date);
+}
+
 export default function AchievementsClient() {
   const { user, loading: authLoading } = useAuthState();
   const [data, setData] = useState<CommunityProfile | null>(
     () => peekCommunityProfile(user?.id),
   );
   const [filter, setFilter] = useState<Filter>('all');
+  const [sort, setSort] = useState<SortMode>('smart');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -65,10 +80,46 @@ export default function AchievementsClient() {
 
   const visible = useMemo(() => {
     if (!data) return [];
-    return data.achievements.filter(
+
+    const rarityWeight: Record<AchievementRarity, number> = {
+      common: 1,
+      uncommon: 2,
+      rare: 3,
+      epic: 4,
+      legendary: 5,
+    };
+
+    const rows = data.achievements.filter(
       (achievement) => filter === 'all' || achievement.category === filter,
     );
-  }, [data, filter]);
+
+    return [...rows].sort((a, b) => {
+      const aEarned = Boolean(a.earned_at);
+      const bEarned = Boolean(b.earned_at);
+      const aCurrent = Math.min(metricValue(data.stats, a.metric), a.threshold);
+      const bCurrent = Math.min(metricValue(data.stats, b.metric), b.threshold);
+      const aProgress = aEarned ? 1 : aCurrent / Math.max(1, a.threshold);
+      const bProgress = bEarned ? 1 : bCurrent / Math.max(1, b.threshold);
+
+      if (sort === 'earned') {
+        if (aEarned !== bEarned) return aEarned ? -1 : 1;
+        return Date.parse(b.earned_at || '') - Date.parse(a.earned_at || '');
+      }
+
+      if (sort === 'near') {
+        if (aEarned !== bEarned) return aEarned ? 1 : -1;
+        return bProgress - aProgress || a.threshold - b.threshold;
+      }
+
+      if (sort === 'rarity') {
+        return rarityWeight[b.rarity] - rarityWeight[a.rarity] || a.sort_order - b.sort_order;
+      }
+
+      if (aEarned !== bEarned) return aEarned ? -1 : 1;
+      if (!aEarned && !bEarned) return bProgress - aProgress || a.sort_order - b.sort_order;
+      return Date.parse(b.earned_at || '') - Date.parse(a.earned_at || '');
+    });
+  }, [data, filter, sort]);
 
   if (authLoading) {
     return <main className={styles.page}><div className={styles.state}>Загружаем достижения…</div></main>;
@@ -132,24 +183,59 @@ export default function AchievementsClient() {
           <span>Premium boost</span>
           <strong>{progression.premiumBoostActive ? '+20% активен' : '+20% XP'}</strong>
         </div>
+        <div>
+          <span>Витрина профиля</span>
+          <strong>{data.featuredAchievements.length} / 3</strong>
+        </div>
       </section>
 
       <div className={styles.levelTrack} aria-hidden="true">
         <span style={{ width: `${progression.progressPct}%` }} />
       </div>
 
-      <nav className={styles.filters} aria-label="Категории достижений">
-        {FILTERS.map((item) => (
-          <button
-            type="button"
-            key={item}
-            className={filter === item ? styles.active : ''}
-            onClick={() => setFilter(item)}
-          >
-            {item === 'all' ? 'Все' : ACHIEVEMENT_CATEGORY_LABELS[item]}
-          </button>
-        ))}
-      </nav>
+      <div className={styles.controls}>
+        <nav className={styles.filters} aria-label="Категории достижений">
+          {FILTERS.map((item) => (
+            <button
+              type="button"
+              key={item}
+              className={filter === item ? styles.active : ''}
+              onClick={() => setFilter(item)}
+            >
+              {item === 'all' ? 'Все' : ACHIEVEMENT_CATEGORY_LABELS[item]}
+            </button>
+          ))}
+        </nav>
+
+        <div className={styles.sorts} aria-label="Сортировка достижений">
+          {([
+            ['smart', 'Умно'],
+            ['near', 'Ближайшие'],
+            ['earned', 'Полученные'],
+            ['rarity', 'Редкость'],
+          ] as const).map(([value, label]) => (
+            <button
+              type="button"
+              key={value}
+              className={sort === value ? styles.activeSort : ''}
+              onClick={() => setSort(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <AchievementShowcaseEditor
+          achievements={data.achievements}
+          featuredCodes={data.featuredAchievements}
+          onSaved={(codes) => {
+            setData((current) =>
+              current ? { ...current, featuredAchievements: codes } : current,
+            );
+            if (user?.id) invalidateCommunityProfile(user.id);
+          }}
+        />
+      </div>
 
       <section className={styles.grid}>
         {visible.map((achievement) => {
@@ -187,8 +273,16 @@ export default function AchievementsClient() {
                 </div>
 
                 <div className={styles.cardBottom}>
-                  <span>{earned ? 'Получено' : `${current} / ${achievement.threshold}`}</span>
-                  <span>{ACHIEVEMENT_CATEGORY_LABELS[achievement.category]}</span>
+                  <span>
+                    {earned && achievement.earned_at
+                      ? formatEarnedAt(achievement.earned_at)
+                      : `${current} / ${achievement.threshold}`}
+                  </span>
+                  <span>
+                    {data.featuredAchievements.includes(achievement.code)
+                      ? '★ В витрине'
+                      : ACHIEVEMENT_CATEGORY_LABELS[achievement.category]}
+                  </span>
                 </div>
               </div>
             </article>

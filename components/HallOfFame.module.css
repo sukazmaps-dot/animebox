@@ -1,0 +1,340 @@
+.page {
+  width: min(1140px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 38px 0 90px;
+  color: #f2efff;
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 34px;
+  border: 1px solid rgba(151, 117, 255, .17);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 85% 10%, rgba(134, 83, 246, .17), transparent 34%),
+    linear-gradient(145deg, #0d1424, #080d18);
+}
+
+.eyebrow {
+  color: #a286ff;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: .14em;
+}
+
+.hero h1 {
+  margin: 8px 0 8px;
+  font-size: clamp(34px, 5vw, 58px);
+  letter-spacing: -.045em;
+}
+
+.hero p {
+  max-width: 650px;
+  margin: 0;
+  color: rgba(186, 196, 218, .58);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.heroStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(95px, 1fr));
+  gap: 8px;
+  align-self: center;
+}
+
+.heroStats > div {
+  padding: 15px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 14px;
+  background: rgba(255,255,255,.025);
+}
+
+.heroStats strong,
+.heroStats span {
+  display: block;
+}
+
+.heroStats strong {
+  font-size: 23px;
+}
+
+.heroStats span {
+  margin-top: 4px;
+  color: rgba(161, 175, 201, .50);
+  font-size: 8px;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin: 18px 0 22px;
+}
+
+.toolbar > a {
+  color: #a88fff;
+  font-size: 10px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.tabs {
+  display: inline-flex;
+  gap: 5px;
+  padding: 5px;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 12px;
+  background: rgba(8, 13, 24, .82);
+}
+
+.tabs button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(172, 183, 207, .60);
+  font-size: 10px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.tabs button.active {
+  background: rgba(124, 82, 232, .16);
+  color: #ece5ff;
+}
+
+.state {
+  min-height: 310px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 9px;
+  padding: 30px;
+  border: 1px solid rgba(138, 150, 180, .10);
+  border-radius: 20px;
+  background: rgba(9, 16, 29, .88);
+  color: rgba(185, 196, 218, .62);
+  text-align: center;
+}
+
+.state strong {
+  color: #efebff;
+  font-size: 18px;
+}
+
+.state a {
+  margin-top: 6px;
+  color: #aa90ff;
+  text-decoration: none;
+}
+
+.seasons {
+  display: grid;
+  gap: 20px;
+}
+
+.season {
+  padding: 18px;
+  border: 1px solid rgba(136, 149, 180, .10);
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(10, 18, 32, .95), rgba(8, 13, 24, .95));
+}
+
+.seasonHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+
+.seasonHead span {
+  color: #8f76e8;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .13em;
+}
+
+.seasonHead h2 {
+  margin: 4px 0 0;
+  font-size: 20px;
+}
+
+.seasonHead small {
+  color: rgba(164, 176, 202, .48);
+  font-size: 9px;
+}
+
+.podium {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 9px;
+}
+
+.podiumCard {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  padding: 20px 12px 15px;
+  border: 1px solid rgba(142, 119, 214, .13);
+  border-radius: 16px;
+  background: rgba(255,255,255,.018);
+  color: inherit;
+  text-decoration: none;
+}
+
+.podiumCard[data-place='1'] {
+  border-color: rgba(235, 190, 101, .28);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(221, 160, 74, .08), transparent 55%),
+    rgba(255,255,255,.02);
+}
+
+.place {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  color: rgba(176, 158, 233, .58);
+  font-size: 9px;
+  font-weight: 950;
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  border: 2px solid rgba(157, 124, 255, .20);
+  border-radius: 50%;
+  background: #101625;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.podiumCard > strong {
+  max-width: 100%;
+  overflow: hidden;
+  margin-top: 4px;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.podiumCard > small {
+  color: rgba(174, 183, 204, .52);
+  font-size: 8px;
+}
+
+.podiumCard > b {
+  margin-top: 3px;
+  color: #c2abff;
+  font-size: 13px;
+}
+
+.podiumCard > span:last-child {
+  color: rgba(151, 165, 191, .46);
+  font-size: 8px;
+}
+
+.rest {
+  display: grid;
+  gap: 5px;
+  margin-top: 9px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 42px minmax(0,1fr) 80px 110px;
+  gap: 10px;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 11px;
+  border: 1px solid rgba(255,255,255,.045);
+  border-radius: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.row > b {
+  color: #9b83e8;
+  font-size: 10px;
+}
+
+.row > span {
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row > small {
+  color: rgba(157, 169, 195, .46);
+  font-size: 8px;
+}
+
+.row > strong {
+  color: rgba(225, 219, 247, .75);
+  font-size: 9px;
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+  .page {
+    width: calc(100% - 20px);
+    padding-top: 20px;
+  }
+
+  .hero {
+    flex-direction: column;
+    padding: 22px 18px;
+  }
+
+  .heroStats {
+    width: 100%;
+  }
+
+  .podium {
+    grid-template-columns: 1fr;
+  }
+
+  .podiumCard {
+    grid-template-columns: 56px minmax(0,1fr) auto;
+    justify-items: start;
+    align-items: center;
+    text-align: left;
+  }
+
+  .avatar {
+    grid-row: 1 / span 4;
+    width: 52px;
+    height: 52px;
+  }
+
+  .podiumCard > b {
+    grid-column: 3;
+    grid-row: 1 / span 4;
+  }
+
+  .place {
+    display: none;
+  }
+
+  .row {
+    grid-template-columns: 34px minmax(0,1fr) 72px;
+  }
+
+  .row > small {
+    display: none;
+  }
+}

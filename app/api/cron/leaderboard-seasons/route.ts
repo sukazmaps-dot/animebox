@@ -1,7 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 
-import { reconcileAllPremiumLifecycle } from '@/lib/premium-server';
 import { finalizeRecentLeaderboardSeasons } from '@/lib/leaderboard-seasons-server';
 
 export const runtime = 'nodejs';
@@ -32,22 +31,20 @@ export async function GET(request: Request) {
   }
 
   try {
-    const url = new URL(request.url);
-    const requestedLimit = Number(url.searchParams.get('limit') || '500');
-    const result = await reconcileAllPremiumLifecycle(requestedLimit);
-    const seasons = await finalizeRecentLeaderboardSeasons().catch((error) => {
-      console.error('[Leaderboard seasons piggyback cron]', error);
-      return [];
-    });
-    return NextResponse.json({ ok: true, ...result, leaderboardSeasons: seasons });
+    const seasons = await finalizeRecentLeaderboardSeasons();
+
+    return NextResponse.json(
+      { ok: true, seasons },
+      { headers: { 'Cache-Control': 'no-store' } },
+    );
   } catch (error) {
-    console.error('[Premium lifecycle cron]', error);
+    console.error('[Leaderboard seasons cron]', error);
     return NextResponse.json(
       {
         ok: false,
-        error: error instanceof Error ? error.message : 'premium_lifecycle_cron_failed',
+        error: error instanceof Error ? error.message : 'leaderboard_seasons_cron_failed',
       },
-      { status: 500 },
+      { status: 500, headers: { 'Cache-Control': 'no-store' } },
     );
   }
 }

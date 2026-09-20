@@ -47,6 +47,11 @@ export async function GET() {
         profile.progression,
         Boolean(entitlements?.premiumBadge),
       ),
+      featuredAchievements: Array.isArray(profile.featured_achievements)
+        ? profile.featured_achievements.filter(
+            (code): code is string => typeof code === 'string',
+          )
+        : [],
       library: rawLibrary.map((item) => {
         if (!item || typeof item !== 'object' || Array.isArray(item)) {
           return item;

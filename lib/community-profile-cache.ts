@@ -3,7 +3,7 @@
 import { communityRequest, type CommunityProfile } from '@/lib/community-client';
 
 const TTL_MS = 45_000;
-const PREFIX = 'animebox:community-profile:v4:';
+const PREFIX = 'animebox:community-profile:v5:';
 type CacheEntry = { data: CommunityProfile; expiresAt: number };
 const memory = new Map<string, CacheEntry>();
 const inflight = new Map<string, Promise<CommunityProfile>>();

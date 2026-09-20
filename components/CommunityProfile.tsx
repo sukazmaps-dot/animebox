@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import { useAuthState } from '@/components/AuthStateProvider';
+import AchievementShowcaseEditor from '@/components/AchievementShowcaseEditor';
 import { achievementIcon } from '@/lib/achievement-icons';
 import {
   ACHIEVEMENT_RARITY_LABELS,
@@ -147,6 +148,9 @@ export default function CommunityProfile() {
 
   const { stats, progression } = data;
   const unlockedCount = data.achievements.filter((item) => Boolean(item.earned_at)).length;
+  const featuredAchievements = data.featuredAchievements
+    .map((code) => data.achievements.find((item) => item.code === code))
+    .filter((item): item is ProfileData['achievements'][number] => Boolean(item));
   const achievementPreview = [...data.achievements]
     .sort((a, b) => {
       const aUnlocked = Boolean(a.earned_at);
@@ -311,8 +315,46 @@ export default function CommunityProfile() {
               <h2>Достижения</h2>
               <p>{unlockedCount} / {data.achievements.length} открыто</p>
             </div>
-            <Link href="/achievements">Все →</Link>
+            <div className="profile-v3__achievement-actions">
+              <AchievementShowcaseEditor
+                achievements={data.achievements}
+                featuredCodes={data.featuredAchievements}
+                onSaved={(codes) => {
+                  setData((current) =>
+                    current ? { ...current, featuredAchievements: codes } : current,
+                  );
+                  if (user?.id) invalidateCommunityProfile(user.id);
+                }}
+              />
+              <Link href="/achievements">Все →</Link>
+            </div>
           </div>
+
+          {featuredAchievements.length > 0 && (
+            <div className="profile-v3__showcase">
+              <span className="profile-v2__eyebrow">Витрина профиля</span>
+              <div className="profile-v3__showcase-grid">
+                {featuredAchievements.map((achievement) => (
+                  <article
+                    key={achievement.code}
+                    data-rarity={achievement.rarity}
+                    className="profile-v3__showcase-card"
+                  >
+                    <img
+                      src={achievementIcon(achievement.code, achievement.icon)}
+                      alt=""
+                      width="44"
+                      height="44"
+                    />
+                    <div>
+                      <strong>{achievement.title}</strong>
+                      <small>{ACHIEVEMENT_RARITY_LABELS[achievement.rarity]}</small>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="profile-v2__achievement-list">
             {achievementPreview.map((achievement) => {

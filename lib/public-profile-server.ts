@@ -14,7 +14,12 @@ import {
   type PremiumStudioSettings,
 } from '@/lib/premium-studio';
 import { resolveProfileAppearance } from '@/lib/profile-appearance';
-import { normalizeProgression, type ProfileProgression } from '@/lib/progression';
+import {
+  normalizeProgression,
+  type AchievementRarity,
+  type ProfileProgression,
+} from '@/lib/progression';
+import type { SeasonPeriod } from '@/lib/seasons';
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -25,6 +30,16 @@ export type PublicAchievement = {
   description: string;
   icon: string;
   earnedAt: string | null;
+  rarity: AchievementRarity;
+  xpReward: number;
+};
+
+export type PublicSeasonTitle = {
+  place: number;
+  periodType: SeasonPeriod;
+  periodKey: string;
+  startsAt: string;
+  endsAt: string;
 };
 
 export type PublicProfileData = {
@@ -43,6 +58,8 @@ export type PublicProfileData = {
   bannerTransform: PremiumMediaTransform;
   role: PublicIdentityRole;
   progression: ProfileProgression;
+  featuredAchievements: PublicAchievement[];
+  seasonTitles: PublicSeasonTitle[];
   stats: {
     episodes: number;
     titles: number;
@@ -67,6 +84,8 @@ type AchievementDefinition = {
   title: string;
   description: string;
   icon: string;
+  rarity: AchievementRarity;
+  xp_reward: number;
 };
 
 function toPublicStorageUrl(
@@ -143,12 +162,14 @@ export async function getPublicProfile(
     entitlements,
     premiumSettings,
     progressionResult,
+    featuredResult,
+    seasonEntriesResult,
   ] = await Promise.all([
     admin.rpc('community_metrics', { p_user: userId }),
     admin.from('user_achievements').select('*').eq('user_id', userId),
     admin
       .from('achievements')
-      .select('code,title,description,icon')
+      .select('code,title,description,icon,rarity,xp_reward')
       .order('threshold', { ascending: true }),
     admin
       .from('og_members')
@@ -168,6 +189,16 @@ export async function getPublicProfile(
       .select('total_xp,activity_xp,premium_bonus_xp,achievement_xp')
       .eq('user_id', userId)
       .maybeSingle(),
+    admin
+      .from('profile_featured_achievements')
+      .select('achievement_code,position')
+      .eq('user_id', userId)
+      .order('position', { ascending: true }),
+    admin
+      .from('leaderboard_season_entries')
+      .select('season_id,place')
+      .eq('user_id', userId)
+      .lte('place', 3),
   ]);
 
   if (metricsResult.error) {
@@ -218,8 +249,65 @@ export async function getPublicProfile(
         description: definition.description,
         icon: achievementIcon(definition.code, definition.icon),
         earnedAt: earnedByCode.get(definition.code) ?? null,
+        rarity: definition.rarity,
+        xpReward: Number(definition.xp_reward ?? 0),
       };
     });
+
+  const achievementByCode = new Map(
+    achievements.map((achievement) => [achievement.code, achievement] as const),
+  );
+
+  const featuredAchievements = (
+    featuredResult.error ? [] : featuredResult.data ?? []
+  )
+    .map((row) => achievementByCode.get(row.achievement_code))
+    .filter((item): item is PublicAchievement => Boolean(item));
+
+  const seasonEntryRows = seasonEntriesResult.error
+    ? []
+    : seasonEntriesResult.data ?? [];
+  const seasonIds = [
+    ...new Set(seasonEntryRows.map((row) => row.season_id)),
+  ];
+
+  let seasonTitles: PublicSeasonTitle[] = [];
+
+  if (seasonIds.length) {
+    const { data: seasons, error: seasonsError } = await admin
+      .from('leaderboard_seasons')
+      .select('id,period_type,period_key,starts_at,ends_at')
+      .in('id', seasonIds);
+
+    if (seasonsError) {
+      console.error('Public profile season titles:', seasonsError);
+    } else {
+      const seasonById = new Map(
+        (seasons ?? []).map((season) => [season.id, season] as const),
+      );
+
+      seasonTitles = seasonEntryRows
+        .map((entry) => {
+          const season = seasonById.get(entry.season_id);
+          if (!season) return null;
+
+          return {
+            place: Number(entry.place),
+            periodType: season.period_type as SeasonPeriod,
+            periodKey: season.period_key,
+            startsAt: season.starts_at,
+            endsAt: season.ends_at,
+          };
+        })
+        .filter((item): item is PublicSeasonTitle => Boolean(item))
+        .sort(
+          (a, b) =>
+            Date.parse(b.endsAt) - Date.parse(a.endsAt) ||
+            a.place - b.place,
+        )
+        .slice(0, 4);
+    }
+  }
 
   const storedStudioSettings = premiumSettings
     ? studioSettingsFromRow(premiumSettings as Record<string, unknown>)
@@ -260,6 +348,8 @@ export async function getPublicProfile(
       progressionResult.error ? null : progressionResult.data,
       Boolean(entitlements?.premiumBadge),
     ),
+    featuredAchievements,
+    seasonTitles,
     stats: {
       episodes,
       titles,

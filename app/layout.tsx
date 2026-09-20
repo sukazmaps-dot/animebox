@@ -30,6 +30,7 @@ import { AuthStateProvider } from '@/components/AuthStateProvider';
 import AppChrome from '@/components/AppChrome';
 import CssRecoveryBridge from '@/components/CssRecoveryBridge';
 import ProductAnalyticsTracker from '@/components/analytics/ProductAnalyticsTracker';
+import ProgressionCelebration from '@/components/ProgressionCelebration';
 
 import { Analytics } from '@vercel/analytics/next';
 
@@ -327,6 +328,7 @@ export default function RootLayout({
 
           <TelegramMiniAppBridge />
           <ProductAnalyticsTracker />
+          <ProgressionCelebration />
 
           <TelegramSubscriptionGate>
             <AppChrome>{children}</AppChrome>

@@ -4,7 +4,7 @@ import type { WatchTitleOverview } from '@/types/watch';
 export async function communityRequest<T>(
   path: string,
   body?: unknown,
-  explicitMethod?: 'GET' | 'POST' | 'DELETE',
+  explicitMethod?: 'GET' | 'POST' | 'PUT' | 'DELETE',
 ): Promise<T> {
   const method = explicitMethod ?? (body === undefined ? 'GET' : 'POST');
   const result = await fetch(`/api/community/${path}`, {
@@ -16,6 +16,17 @@ export async function communityRequest<T>(
 
   const data = await result.json();
   if (!result.ok) throw new Error(data.error || 'Ошибка сервера.');
+
+  if (
+    typeof window !== 'undefined' &&
+    data &&
+    typeof data === 'object' &&
+    !Array.isArray(data) &&
+    Boolean((data as Record<string, unknown>).progressionUpdated)
+  ) {
+    window.dispatchEvent(new Event('animebox:progression-updated'));
+  }
+
   return data as T;
 }
 
@@ -42,6 +53,7 @@ export type CommunityProfile = {
     comments: number;
   } & Record<LibraryStatus, number>;
   progression: ProfileProgression;
+  featuredAchievements: string[];
   achievements: {
     code: string;
     title: string;
