@@ -39,3 +39,60 @@
     contain-intrinsic-size: 720px;
   }
 }
+
+
+/* =========================================================
+   PATCH 5 · LIGHTHOUSE STABILITY
+   Reserve the mobile top-list footprint and make carousel controls real
+   touch targets without making the visual marks oversized.
+   ========================================================= */
+
+@media (max-width: 720px) {
+  .home-top-anime-panel--mobile {
+    min-height: 258px;
+    contain: layout paint;
+  }
+
+  .home-top-anime-panel--mobile .panel__body {
+    min-height: 210px;
+  }
+
+  .home-top-anime-panel--mobile .top-anime-item {
+    min-height: 70px;
+  }
+
+  .home-hero-carousel__arrow {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .home-hero-carousel__dots {
+    gap: 0 !important;
+    max-width: min(264px, calc(100% - 44px)) !important;
+  }
+
+  .home-hero-carousel__dot,
+  .home-hero-carousel__dot.is-active {
+    position: relative;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  .home-hero-carousel__dot::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 8px;
+    right: 8px;
+    height: 2px;
+    border-radius: 2px;
+    background: rgba(228, 233, 240, .18);
+    transform: translateY(-50%);
+  }
+
+  .home-hero-carousel__dot.is-active::after {
+    background: var(--ab-accent);
+  }
+}
