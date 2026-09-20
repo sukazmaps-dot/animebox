@@ -137,7 +137,6 @@ export async function getPublicProfile(
     awardsResult,
     definitionsResult,
     ogResult,
-    watchSummary,
     sponsor,
     entitlements,
     premiumSettings,
