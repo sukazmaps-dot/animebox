@@ -11,6 +11,7 @@ import {
   endWatchSession,
   getEpisodeWatchState,
   getLatestWatchState,
+  getTitleWatchOverviews,
   recordWatchHeartbeat,
   startWatchSession,
 } from '@/lib/watch-server';
@@ -139,6 +140,22 @@ export async function POST(request: Request) {
 
       if (libraryError) {
         console.error('[watch] auto library sync failed:', libraryError);
+      } else {
+        // A real playback session is enough to promote "planned" to
+        // "watching". Explicit dropped/completed choices are preserved.
+        const { error: promoteError } = await admin
+          .from('anime_library')
+          .update({
+            status: 'watching',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', user.id)
+          .eq('anime_id', animeId)
+          .eq('status', 'planned');
+
+        if (promoteError) {
+          console.error('[watch] planned -> watching sync failed:', promoteError);
+        }
       }
 
       return response(result, 201);
@@ -163,12 +180,38 @@ export async function POST(request: Request) {
       });
 
       if (result.newlyCompleted) {
-        const { error } = await adminClient().rpc(
+        const admin = adminClient();
+        const { error } = await admin.rpc(
           'award_achievements',
           { p_user: user.id },
         );
         if (error) {
           console.error('[watch] achievement sync failed:', error);
+        }
+
+        try {
+          const [overview] = await getTitleWatchOverviews(
+            user.id,
+            [result.animeId],
+          );
+
+          if (overview?.fullyCompleted) {
+            const { error: statusError } = await admin
+              .from('anime_library')
+              .update({
+                status: 'completed',
+                updated_at: new Date().toISOString(),
+              })
+              .eq('user_id', user.id)
+              .eq('anime_id', result.animeId)
+              .in('status', ['watching', 'planned']);
+
+            if (statusError) {
+              console.error('[watch] completed status sync failed:', statusError);
+            }
+          }
+        } catch (syncError) {
+          console.error('[watch] title completion sync failed:', syncError);
         }
       }
 

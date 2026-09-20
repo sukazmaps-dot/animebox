@@ -12,6 +12,7 @@ import {
   addAnimeToList,
   getAnimeProgress,
   recordAnimeView,
+  setAnimeProgress,
 } from '@/lib/anime-storage';
 import { cleanShikimoriDescription } from '@/lib/shikimori-text';
 import { getAnimeTitle } from '@/lib/anime-display';
@@ -143,18 +144,17 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
   }, [anime.id]);
 
   useEffect(() => {
-    if (!anime) return;
-
-    // Opening an episode page is browsing, not proof of playback.
-    // Exact guest progress is written by AnimePlayer after real time samples;
-    // authenticated progress comes only from animebox_watch.
-    addAnimeToList(anime);
-    recordAnimeView(anime);
-
     queueMicrotask(() => {
       setWatchedUpTo(getAnimeProgress(anime.id));
     });
-  }, [anime, animeIdParam, episodeNumber]);
+  }, [anime.id, episodeNumber]);
+
+  const handlePlaybackQualified = () => {
+    addAnimeToList(anime);
+    setAnimeProgress(anime.id, episodeNumber);
+    recordAnimeView(anime);
+    setWatchedUpTo(episodeNumber);
+  };
 
   const expectedSourceIdentity = `${animeIdParam}:${episodeNumber}`;
 
@@ -662,6 +662,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           nextLabel={atLastKnownEpisode && seasonRoute.next ? 'След. сезон' : 'След. серия'}
           onPrev={goToPrevious}
           onNext={goToNext}
+          onPlaybackQualified={handlePlaybackQualified}
           onEnded={hasNext ? goToNext : undefined}
           onEpisodeChange={goToEpisode}
         />

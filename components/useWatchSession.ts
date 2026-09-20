@@ -374,6 +374,7 @@ export function useWatchSession({
         if (result.newlyCompleted) {
           setMessage('Серия засчитана: подтверждено не менее 90% просмотра.');
           window.dispatchEvent(new Event('episode-completed'));
+          window.dispatchEvent(new Event('library-updated'));
         } else {
           setMessage('');
         }

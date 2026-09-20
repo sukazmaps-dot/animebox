@@ -77,6 +77,7 @@ interface AnimePlayerProps {
   onNext?: () => void;
   onEnded?: () => void;
   onEpisodeChange?: (episode: number) => void;
+  onPlaybackQualified?: () => void;
   watchTogetherMode?: boolean;
 }
 
@@ -307,6 +308,7 @@ export default function AnimePlayer({
   onNext,
   onEnded,
   onEpisodeChange,
+  onPlaybackQualified,
   watchTogetherMode = false,
 }: AnimePlayerProps) {
   const { user, loading: authLoading } = useAuthState();
@@ -330,6 +332,7 @@ export default function AnimePlayer({
     durationSeconds: number;
   } | null>(null);
   const lastLocalProgressSavedAtRef = useRef(0);
+  const playbackQualifiedRef = useRef(false);
   const playerViewportRef = useRef<HTMLDivElement | null>(null);
   const telegramFullscreenOwnedRef = useRef(false);
   const telegramOrientationOwnedRef = useRef(false);
@@ -573,8 +576,23 @@ export default function AnimePlayer({
     }) => {
       persistGuestProgress(sample);
       serverWatchSample(sample);
+
+      if (
+        !watchTogetherMode &&
+        !playbackQualifiedRef.current &&
+        Number.isFinite(sample.positionSeconds) &&
+        sample.positionSeconds >= LOCAL_RESUME_MIN_SECONDS
+      ) {
+        playbackQualifiedRef.current = true;
+        onPlaybackQualified?.();
+      }
     },
-    [persistGuestProgress, serverWatchSample],
+    [
+      onPlaybackQualified,
+      persistGuestProgress,
+      serverWatchSample,
+      watchTogetherMode,
+    ],
   );
 
   const handlePlaybackEnded = useCallback(() => {
@@ -748,6 +766,7 @@ export default function AnimePlayer({
     resumeAppliedRef.current = false;
     localProgressRef.current = null;
     lastLocalProgressSavedAtRef.current = 0;
+    playbackQualifiedRef.current = false;
 
     if (!animeId) {
       queueMicrotask(() => {
