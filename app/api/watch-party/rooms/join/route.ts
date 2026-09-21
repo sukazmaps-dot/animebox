@@ -20,25 +20,35 @@ export async function POST(request: Request) {
     const { user } = await userClient();
     const body = await readBody(request);
     const roomId = text(body.roomId, 24).toLowerCase();
+    const code = text(body.roomCode, 6).replace(/^#/, '').toUpperCase();
+    const byRoomId = isWatchPartyRoomId(roomId);
+    const byCode = /^[A-F0-9]{6}$/.test(code);
 
-    if (!isWatchPartyRoomId(roomId)) {
-      throw new ApiError(400, 'Некорректная комната.');
+    if (!byRoomId && !byCode) {
+      throw new ApiError(400, 'Некорректная комната или код.');
     }
 
     const admin = adminClient();
-    const { data: room, error } = await admin
+    let roomQuery = admin
       .from('watch_party_rooms')
       .select(
         'id,join_secret,host_user_id,anime_slug,anime_title,episode,visibility,status,participant_count,max_participants,last_heartbeat_at,expires_at',
-      )
-      .eq('id', roomId)
-      .maybeSingle();
+      );
+
+    roomQuery = byRoomId
+      ? roomQuery.eq('id', roomId)
+      : roomQuery.eq('room_code', code);
+
+    const { data: room, error } = await roomQuery.maybeSingle();
 
     if (error) throw error;
     if (!room) throw new ApiError(404, 'Комната не найдена.');
 
-    if (room.visibility !== 'public') {
+    if (byRoomId && room.visibility !== 'public') {
       throw new ApiError(403, 'Эта комната доступна только по приглашению.');
+    }
+    if (byCode && room.visibility === 'private') {
+      throw new ApiError(403, 'Для приватной комнаты нужна полная invite-ссылка.');
     }
     if (room.status === 'ended') throw new ApiError(410, 'Комната уже завершена.');
     if (Date.parse(room.expires_at) <= Date.now()) {
