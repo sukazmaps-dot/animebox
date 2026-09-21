@@ -13,6 +13,8 @@ export type TelegramVerifiedUser = {
   is_premium?: boolean;
 };
 
+export const TELEGRAM_MINI_APP_AUTH_MAX_AGE_SECONDS = 6 * 60 * 60;
+
 type ValidationResult =
   | {
       ok: true;
