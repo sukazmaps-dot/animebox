@@ -1941,6 +1941,10 @@ export default function WatchPartyPanel({
   }
 
   const label = statusLabel(status, role, participants.length);
+  const currentUserId = identityRef.current?.userId ?? '';
+  const hasVoted = Boolean(
+    voteState?.voters.includes(currentUserId),
+  );
 
   return (
     <section className={`${styles.panel} ${mode === 'theater' ? styles.theaterPanel : ''}`} aria-label="Watch Together room">
@@ -1980,6 +1984,17 @@ export default function WatchPartyPanel({
             <span className={styles.role}>{role === 'host' ? 'HOST' : 'GUEST'}</span>
           </div>
         </div>
+
+        {reactions.length > 0 && (
+          <div className={styles.reactionCloud} aria-live="polite" aria-label="Реакции комнаты">
+            {reactions.map((reaction) => (
+              <span key={reaction.id} title={reaction.name}>
+                <b>{REACTION_EMOJI[reaction.reaction]}</b>
+                <small>{reaction.name}</small>
+              </span>
+            ))}
+          </div>
+        )}
 
         {mode === 'theater' && (
           <div className={styles.mobileTabs} aria-label="Разделы комнаты">
@@ -2125,6 +2140,71 @@ export default function WatchPartyPanel({
           </div>
         </div>
 
+        <div className={styles.socialTools}>
+          <div className={styles.reactionBar} aria-label="Быстрые реакции">
+            <span>Реакция</span>
+            {(Object.keys(REACTION_EMOJI) as WatchPartyReactionKind[]).map((reaction) => (
+              <button
+                type="button"
+                key={reaction}
+                disabled={status !== 'active'}
+                onClick={() => sendReaction(reaction)}
+                aria-label={`Реакция ${reaction}`}
+              >
+                {REACTION_EMOJI[reaction]}
+              </button>
+            ))}
+          </div>
+
+          <div className={styles.votePanel}>
+            {voteState ? (
+              <>
+                <div>
+                  <span>NEXT EPISODE</span>
+                  <strong>
+                    Серия {voteState.episode}?
+                  </strong>
+                  <small>
+                    За {voteState.yes} · Против {voteState.no}
+                    {!voteState.active ? ' · голосование завершено' : ''}
+                  </small>
+                </div>
+                {voteState.active && !hasVoted && (
+                  <div className={styles.voteActions}>
+                    <button type="button" onClick={() => castVote('yes')}>Да</button>
+                    <button type="button" onClick={() => castVote('no')}>Нет</button>
+                  </div>
+                )}
+                {voteState.active && hasVoted && (
+                  <span className={styles.voteDone}>Голос учтён</span>
+                )}
+              </>
+            ) : role === 'host' ? (
+              <>
+                <div>
+                  <span>NEXT EPISODE</span>
+                  <strong>Что смотрим дальше?</strong>
+                  <small>Запусти короткое голосование для всей комнаты.</small>
+                </div>
+                <button
+                  type="button"
+                  className={styles.voteStart}
+                  disabled={status !== 'active'}
+                  onClick={startNextEpisodeVote}
+                >
+                  Голосование
+                </button>
+              </>
+            ) : (
+              <div>
+                <span>NEXT EPISODE</span>
+                <strong>Хост может запустить голосование</strong>
+                <small>Результат появится здесь у всех участников.</small>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div
           className={`${styles.chat} ${styles.chatSection}`}
           data-mobile-active={mobileSection === 'chat'}
@@ -2248,6 +2328,15 @@ export default function WatchPartyPanel({
             {inviteUrl && status !== 'ended' && status !== 'error' && (
               <button type="button" className={styles.secondary} onClick={() => void copyInvite()}>
                 {copyLabel}
+              </button>
+            )}
+            {role === 'guest' && (
+              <button
+                type="button"
+                className={styles.secondary}
+                onClick={() => void reportRoom()}
+              >
+                {reportLabel}
               </button>
             )}
             <button type="button" className={styles.danger} onClick={leaveParty}>
