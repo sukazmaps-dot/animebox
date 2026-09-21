@@ -1,0 +1,38 @@
+name: Patch 7 Check
+
+on:
+  push:
+    branches:
+      - patch-7-watch-together-v2-public-rooms
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: ESLint changed code
+        run: >-
+          npx eslint
+          lib/watch-party.ts
+          lib/watch-party-rooms-server.ts
+          app/api/watch-party/rooms/route.ts
+          app/api/watch-party/rooms/[roomId]/heartbeat/route.ts
+          app/api/watch-party/rooms/[roomId]/end/route.ts
+          app/api/watch-party/rooms/[roomId]/report/route.ts
+          app/api/watch-party/rooms/[roomId]/transfer/route.ts
+          components/watch-party/WatchTogetherHub.tsx
+          components/watch-party/WatchPartyPanel.tsx
+          components/AnimePlayer.tsx
+          lib/product-events-client.ts
+          lib/product-events-server.ts
+      - name: Production build
+        run: npm run build
