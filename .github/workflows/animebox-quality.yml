@@ -69,6 +69,10 @@ jobs:
           lib/product-events-server.ts
           app/api/telegram/subscription-check/route.ts
           components/TelegramWelcomePromo.tsx
+          components/TelegramMiniAppBridge.tsx
+          components/AnimeComments.tsx
+          components/EpisodeComments.tsx
+          lib/profile-live-sync.ts
           components/GoogleAuthButton.tsx
           components/TelegramAuthButton.tsx
           components/AuthModalProvider.tsx
