@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -199,6 +200,7 @@ export default function NotificationSettingsClient() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [serviceHealth, setServiceHealth] =
     useState<NotificationHealth | null>(null);
+  const [serviceOnline, setServiceOnline] = useState(false);
   const [lastDelivery, setLastDelivery] = useState<LastDelivery | null>(null);
   const [inbox, setInbox] = useState<InboxItem[]>([]);
   const [message, setMessage] = useState('');
@@ -264,7 +266,18 @@ export default function NotificationSettingsClient() {
         setTelegramLinked(Boolean(data.telegramLinked));
         setTelegramEnabled(Boolean(data.telegramEnabled));
         setSubscriptions(data.subscriptions ?? []);
-        setServiceHealth(data.serviceHealth ?? null);
+        const nextHealth = data.serviceHealth ?? null;
+        setServiceHealth(nextHealth);
+        setServiceOnline(
+          Boolean(
+            nextHealth?.lastRunAt &&
+              Number.isFinite(Date.parse(nextHealth.lastRunAt)) &&
+              Date.now() - Date.parse(nextHealth.lastRunAt) <
+                15 * 60 * 1000 &&
+              (nextHealth.status === 'ok' ||
+                nextHealth.status === 'degraded'),
+          ),
+        );
         setLastDelivery(data.lastDelivery ?? null);
         setInbox(data.inbox ?? []);
         setMessage('');
@@ -545,17 +558,6 @@ export default function NotificationSettingsClient() {
     }
   }
 
-  const healthTimestamp = serviceHealth?.lastRunAt
-    ? Date.parse(serviceHealth.lastRunAt)
-    : 0;
-  const healthFresh =
-    healthTimestamp > 0 &&
-    Date.now() - healthTimestamp < 15 * 60 * 1000;
-  const serviceOnline =
-    healthFresh &&
-    (serviceHealth?.status === 'ok' ||
-      serviceHealth?.status === 'degraded');
-
   if (loading) {
     return (
       <div className="notifications-page__loading">
@@ -626,10 +628,13 @@ export default function NotificationSettingsClient() {
 
         {inboxGroups.length === 0 ? (
           <div className="notifications-empty">
-            <img
+            <Image
               className="notifications-empty__art"
               src="/brand/illustrations/empty-notifications.webp"
               alt=""
+              width={128}
+              height={128}
+              sizes="128px"
               aria-hidden="true"
             />
             <p>
@@ -760,10 +765,13 @@ export default function NotificationSettingsClient() {
 
         {subscriptions.length === 0 ? (
           <div className="notifications-empty">
-            <img
+            <Image
               className="notifications-empty__art"
               src="/brand/illustrations/empty-notifications.webp"
               alt=""
+              width={128}
+              height={128}
+              sizes="128px"
               aria-hidden="true"
             />
             <p>
