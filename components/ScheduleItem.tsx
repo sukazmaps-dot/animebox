@@ -37,11 +37,21 @@ function EpisodeCountdown({ airingAt }: { airingAt: number }) {
   );
 }
 
-export default function ScheduleItem({ href, title, image, episode, dateLabel, airingAt }: {
-  href: string; title: string; image: ImageData | null; episode: number; dateLabel: string; airingAt: number;
+export default function ScheduleItem({ href, title, image, episode, dateLabel, airingAt, onOpen }: {
+  href: string;
+  title: string;
+  image: ImageData | null;
+  episode: number;
+  dateLabel: string;
+  airingAt: number;
+  onOpen?: () => void;
 }) {
   return (
-    <Link href={href} className="flex min-w-0 items-center justify-between gap-2 border-b border-slate-800 py-3 last:border-b-0 hover:bg-white/[0.03] focus-visible:outline-2 focus-visible:outline-violet-400">
+    <Link
+      href={href}
+      onClick={onOpen}
+      className="flex min-w-0 items-center justify-between gap-2 border-b border-slate-800 py-3 last:border-b-0 hover:bg-white/[0.03] focus-visible:outline-2 focus-visible:outline-violet-400"
+    >
       <div className="h-12 w-8 shrink-0 overflow-hidden rounded-md">
         <AnimeImage image={image} alt={title} sizes="32px" quality={60} />
       </div>
