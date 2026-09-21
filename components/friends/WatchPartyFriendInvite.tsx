@@ -38,8 +38,10 @@ export default function WatchPartyFriendInvite({
     if (!open || friends.length) return;
 
     let active = true;
-    setLoading(true);
-    void fetch('/api/friends', { cache: 'no-store' })
+    queueMicrotask(() => {
+      if (!active) return;
+      setLoading(true);
+      void fetch('/api/friends', { cache: 'no-store' })
       .then(async (response) => {
         const payload = (await response.json()) as FriendsResponse;
         if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить друзей.');
@@ -54,6 +56,7 @@ export default function WatchPartyFriendInvite({
       .finally(() => {
         if (active) setLoading(false);
       });
+    });
 
     return () => {
       active = false;
