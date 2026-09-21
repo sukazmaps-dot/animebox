@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { getAnimeByIdWithShikimori } from '@/lib/combined-anime';
 import { getEpisodeProviderAvailability } from '@/lib/episode-provider-availability';
+import { syncSeoEpisodeIndex } from '@/lib/seo-episode-index';
 
 export const runtime = 'nodejs';
 
@@ -24,6 +25,14 @@ export async function GET(
 
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(12_000)]);
     const availability = await getEpisodeProviderAvailability(anime, { signal });
+
+    if (availability.status === 'available' && availability.episodes.length) {
+      try {
+        await syncSeoEpisodeIndex(anime, availability);
+      } catch (indexError) {
+        console.warn('[episode-availability] SEO index sync failed:', indexError);
+      }
+    }
 
     const cacheControl =
       availability.status === 'available'
