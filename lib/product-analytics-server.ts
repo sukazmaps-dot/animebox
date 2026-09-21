@@ -149,7 +149,7 @@ const cachedDashboard = unstable_cache(
       retentionSurfaces: summarizeRetentionSurfaces(surfaceRows),
     } satisfies ProductAnalyticsDashboard;
   },
-  ['animebox-product-analytics-dashboard-v2'],
+  ['animebox-product-analytics-dashboard-v3'],
   { revalidate: 60, tags: ['product-analytics-dashboard'] },
 );
 
