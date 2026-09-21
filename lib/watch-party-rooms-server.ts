@@ -313,14 +313,6 @@ export async function reportWatchPartyRoom(
   const reason = cleanText(input.reason, 300);
   if (reason.length < 3) throw new ApiError(400, 'Укажи причину жалобы.');
 
-  const rawTargetUserId = cleanText(input.targetUserId, 64);
-  const targetUserId =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      rawTargetUserId,
-    )
-      ? rawTargetUserId
-      : null;
-
   const admin = adminClient();
   const { data: room, error: roomError } = await admin
     .from('watch_party_rooms')
@@ -349,7 +341,7 @@ export async function reportWatchPartyRoom(
   const { error } = await admin.from('watch_party_room_reports').insert({
     room_id: id,
     reporter_user_id: user.id,
-    target_user_id: targetUserId ?? room.host_user_id,
+    target_user_id: room.host_user_id,
     reason,
   });
   if (error) throw error;
