@@ -86,6 +86,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
   useEffect(() => {
     let active = true;
+    let cachedFrame: number | null = null;
 
     if (authLoading) return () => { active = false; };
     if (!user) {
@@ -95,10 +96,13 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
     const cached = readProfileCache<ProfileRow>(user.id);
     if (cached?.username) {
-      setProfile(cached);
-      setUsername(cached.username ?? '');
-      setBio(cached.bio ?? '');
-      setLoading(false);
+      cachedFrame = window.requestAnimationFrame(() => {
+        if (!active) return;
+        setProfile(cached);
+        setUsername(cached.username ?? '');
+        setBio(cached.bio ?? '');
+        setLoading(false);
+      });
     }
 
     void supabase
@@ -122,14 +126,19 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         setLoading(false);
       });
 
-    return () => { active = false; };
+    return () => {
+      active = false;
+      if (cachedFrame != null) window.cancelAnimationFrame(cachedFrame);
+    };
   }, [authLoading, router, supabase, user]);
 
   useEffect(() => {
     if (!user?.id) {
-      setPremiumSettings(null);
-      setPremiumActive(false);
-      return;
+      const frame = window.requestAnimationFrame(() => {
+        setPremiumSettings(null);
+        setPremiumActive(false);
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
 
     let active = true;
@@ -344,7 +353,6 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
     setSaving(true);
     const pendingMedia: PendingProfileMediaUpload[] = [];
-    let reviewQueued = false;
 
     try {
       let finalAvatarPath = removeAvatar ? null : profile.avatar_path;
@@ -395,12 +403,10 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         profile?: ProfileRow;
         settings?: PremiumStudioSettings;
         error?: string;
-        mediaReviewQueued?: boolean;
       };
 
       if (!response.ok) {
-        reviewQueued = Boolean(payload.mediaReviewQueued);
-        if (!reviewQueued && pendingMedia.length) {
+        if (pendingMedia.length) {
           await discardPrivateProfileMedia(pendingMedia);
         }
         throw new Error(payload.error || 'Не удалось сохранить профиль.');
@@ -441,7 +447,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       });
       setSaved('Профиль и оформление сохранены ✓');
     } catch (requestError) {
-      if (!reviewQueued && pendingMedia.length) {
+      if (pendingMedia.length) {
         await discardPrivateProfileMedia(pendingMedia);
       }
       setError(requestError instanceof Error ? requestError.message : 'Не удалось сохранить профиль.');
