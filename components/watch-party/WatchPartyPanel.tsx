@@ -640,6 +640,48 @@ export default function WatchPartyPanel({
     return connection?.open ? send(connection, packet) : false;
   }, [send]);
 
+  const handleGuestAuthorityPacket = useCallback((
+    packet: Extract<WatchPartyPacket, { type: 'HOST_TRANSFER' | 'KICKED' }>,
+    invite: WatchPartyInvite,
+    identity: PartyIdentity,
+  ) => {
+    if (packet.type === 'KICKED') {
+      intentionalCloseRef.current = true;
+      hostEndedRef.current = true;
+      destroyTransport();
+      setStatus('ended');
+      setError('Хост исключил тебя из комнаты.');
+      return true;
+    }
+
+    setStatus('reconnecting');
+
+    if (packet.newHostUserId === identity.userId) {
+      setError('Тебе передают управление комнатой…');
+
+      try {
+        sessionStorage.setItem(
+          watchPartyHostSessionKey(invite.roomId),
+          invite.secret,
+        );
+        claimWatchPartyHostTab(invite);
+      } catch {
+        claimWatchPartyHostTab(invite);
+      }
+
+      intentionalCloseRef.current = true;
+      destroyTransport();
+
+      window.setTimeout(() => {
+        startHostRef.current(invite);
+      }, 650);
+    } else {
+      setError('Хост передаёт управление другому участнику. Переподключаемся…');
+    }
+
+    return true;
+  }, [destroyTransport]);
+
   const attachGuestConnection = useCallback((peer: PeerInstance, invite: WatchPartyInvite, identity: PartyIdentity) => {
     if (intentionalCloseRef.current || hostEndedRef.current) return;
 
@@ -812,6 +854,11 @@ export default function WatchPartyPanel({
         return;
       }
 
+      if (packet.type === 'HOST_TRANSFER' || packet.type === 'KICKED') {
+        handleGuestAuthorityPacket(packet, invite, identity);
+        return;
+      }
+
       if (packet.type === 'HOST_ENDED') {
         hostEndedRef.current = true;
         setStatus('ended');
@@ -855,7 +902,14 @@ export default function WatchPartyPanel({
       scheduleGuestReconnectRef.current();
     });
 
-  }, [appendChatMessage, appendReaction, dispatchPlayerCommand, publishParticipants, send]);
+  }, [
+    appendChatMessage,
+    appendReaction,
+    dispatchPlayerCommand,
+    handleGuestAuthorityPacket,
+    publishParticipants,
+    send,
+  ]);
 
   const startGuest = useCallback(async (invite: WatchPartyInvite) => {
     intentionalCloseRef.current = false;
@@ -988,7 +1042,12 @@ export default function WatchPartyPanel({
             return;
           }
 
-          if (packet.type === 'HOST_ENDED') {
+          if (packet.type === 'HOST_TRANSFER' || packet.type === 'KICKED') {
+        handleGuestAuthorityPacket(packet, invite, identity);
+        return;
+      }
+
+      if (packet.type === 'HOST_ENDED') {
             hostEndedRef.current = true;
             setStatus('ended');
             setError('Хост завершил совместный просмотр.');
@@ -1105,6 +1164,7 @@ export default function WatchPartyPanel({
     appendChatMessage,
     appendReaction,
     attachGuestConnection,
+    handleGuestAuthorityPacket,
     dispatchPlayerCommand,
     publishParticipants,
     redirectToRegistration,
