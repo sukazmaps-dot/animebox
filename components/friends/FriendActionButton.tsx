@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { useAuthState } from '@/components/AuthStateProvider';
+import { notifySocialNotificationsChanged } from '@/components/SocialNotificationBadge';
 
 type FriendshipState =
   | 'none'
@@ -111,6 +112,7 @@ export default function FriendActionButton({
       if (!response.ok) throw new Error(payload.error || 'Не удалось обновить заявку.');
       setState(payload.state ?? 'none');
       if ((payload.state ?? 'none') === 'none') setFriendshipId(null);
+      notifySocialNotificationsChanged();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Не удалось обновить заявку.');
     } finally {
