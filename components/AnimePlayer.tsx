@@ -1124,6 +1124,21 @@ export default function AnimePlayer({
     root.style.overflow = 'hidden';
     root.classList.add('animebox-player-telegram-fullscreen');
 
+    const syncPlayerViewport = () => {
+      const visualHeight = window.visualViewport?.height;
+      const height =
+        typeof visualHeight === 'number' && Number.isFinite(visualHeight) && visualHeight > 0
+          ? visualHeight
+          : window.innerHeight;
+
+      root.style.setProperty('--animebox-player-viewport-height', `${Math.round(height)}px`);
+    };
+
+    syncPlayerViewport();
+    window.visualViewport?.addEventListener('resize', syncPlayerViewport);
+    window.addEventListener('resize', syncPlayerViewport);
+    window.addEventListener('orientationchange', syncPlayerViewport);
+
     telegramWasFullscreenRef.current = Boolean(telegram?.isFullscreen);
     telegramFullscreenOwnedRef.current = false;
     telegramOrientationOwnedRef.current = false;
@@ -1175,6 +1190,10 @@ export default function AnimePlayer({
       body.style.overscrollBehavior = previousBodyOverscroll;
       root.style.overflow = previousRootOverflow;
       root.classList.remove('animebox-player-telegram-fullscreen');
+      root.style.removeProperty('--animebox-player-viewport-height');
+      window.visualViewport?.removeEventListener('resize', syncPlayerViewport);
+      window.removeEventListener('resize', syncPlayerViewport);
+      window.removeEventListener('orientationchange', syncPlayerViewport);
 
       try {
         // Undo only the gesture change AnimeBox made for pseudo-fullscreen.
@@ -1861,7 +1880,7 @@ export default function AnimePlayer({
 
         <div
           ref={playerViewportRef}
-          className={`${watchTogetherMode && !fullscreenActive ? 'watch-together-player-viewport' : ''} ${
+          className={`${watchTogetherMode && !fullscreenActive ? 'watch-together-player-viewport' : ''} ${telegramPseudoFullscreen ? 'animebox-telegram-player-viewport' : ''} ${
             telegramPseudoFullscreen
               ? 'fixed inset-0 z-[2147483000] m-0 max-w-none overflow-hidden rounded-none border-0 bg-black shadow-none ring-0'
               : fullscreen
@@ -1878,7 +1897,7 @@ export default function AnimePlayer({
                   bottom: 0,
                   left: 0,
                   width: '100vw',
-                  height: 'var(--animebox-tg-stable-height, 100dvh)',
+                  height: 'var(--animebox-player-viewport-height, 100dvh)',
                   maxWidth: 'none',
                   margin: 0,
                   zIndex: 2147483000,
