@@ -1370,8 +1370,11 @@ export default function WatchPartyPanel({
   ]);
 
   const startHost = useCallback(async (invite: WatchPartyInvite) => {
+    const generation = transportGenerationRef.current + 1;
+    transportGenerationRef.current = generation;
     intentionalCloseRef.current = false;
     hostEndedRef.current = false;
+    hostTransportReadyRef.current = false;
     roleRef.current = 'host';
     inviteRef.current = invite;
     setRole('host');
@@ -1385,7 +1388,24 @@ export default function WatchPartyPanel({
       return;
     }
     identityRef.current = identity;
-    if (intentionalCloseRef.current) return;
+    if (
+      intentionalCloseRef.current ||
+      transportGenerationRef.current !== generation
+    ) return;
+
+    hostStartupTimerRef.current = window.setTimeout(() => {
+      hostStartupTimerRef.current = null;
+      if (
+        transportGenerationRef.current !== generation ||
+        intentionalCloseRef.current ||
+        hostTransportReadyRef.current
+      ) {
+        return;
+      }
+
+      setStatus('error');
+      setError('Не удалось открыть канал комнаты. Проверь соединение и создай комнату ещё раз.');
+    }, HOST_STARTUP_TIMEOUT_MS);
 
     const hostPeerId = watchPartyHostPeerId(invite.roomId);
     const { peer, network } = await createWatchPartyPeer(hostPeerId);
@@ -1403,7 +1423,10 @@ export default function WatchPartyPanel({
     participantsRef.current.set(hostPeerId, hostParticipant);
 
     void openWatchPartyRelay(invite, (packet, senderId) => {
-      if (intentionalCloseRef.current) return;
+      if (
+        intentionalCloseRef.current ||
+        transportGenerationRef.current !== generation
+      ) return;
 
       if (packet.type === 'HELLO') {
         if (
@@ -1417,9 +1440,16 @@ export default function WatchPartyPanel({
           return;
         }
 
+        const uniqueParticipantCount = new Set(
+          [...participantsRef.current.values()].map((participant) => participant.userId),
+        ).size;
+
         if (
           !participantsRef.current.has(senderId) &&
-          participantsRef.current.size >= WATCH_PARTY_MAX_PARTICIPANTS
+          ![...participantsRef.current.values()].some(
+            (participant) => participant.userId === packet.participant.userId,
+          ) &&
+          uniqueParticipantCount >= WATCH_PARTY_MAX_PARTICIPANTS
         ) {
           void relayRef.current?.send({ type: 'REJECT', reason: 'room_full' }, senderId);
           return;
@@ -1508,18 +1538,66 @@ export default function WatchPartyPanel({
       if (packet.type === 'VOTE_CAST') {
         handleHostVote(participant.userId, packet.vote);
       }
+    }, {
+      presence: {
+        userId: identity.userId,
+        name: identity.displayName,
+        host: true,
+        joinedAt: hostParticipant.joinedAt,
+      },
+      onPresence: (members) => {
+        if (transportGenerationRef.current !== generation) return;
+
+        const liveRelayIds = new Set(
+          members
+            .filter((member) => !member.host)
+            .map((member) => member.relayId),
+        );
+        let changed = false;
+
+        for (const relayId of [...relayHostGuestIdsRef.current]) {
+          if (liveRelayIds.has(relayId)) continue;
+          relayHostGuestIdsRef.current.delete(relayId);
+          participantsRef.current.delete(relayId);
+          changed = true;
+        }
+
+        if (changed) {
+          broadcastParticipants();
+          void syncRegisteredRoom();
+        }
+      },
+      onStatus: (relayStatus) => {
+        if (transportGenerationRef.current !== generation) return;
+        if (
+          relayStatus !== 'open' &&
+          !(peerRef.current && !peerRef.current.destroyed && !peerRef.current.disconnected)
+        ) {
+          setStatus('reconnecting');
+          setError('Восстанавливаем канал комнаты…');
+        }
+      },
     }).then((relay) => {
-      if (intentionalCloseRef.current) {
+      if (
+        intentionalCloseRef.current ||
+        transportGenerationRef.current !== generation
+      ) {
         void relay.close();
         return;
       }
       relayRef.current = relay;
+      hostTransportReadyRef.current = true;
+      if (hostStartupTimerRef.current != null) {
+        window.clearTimeout(hostStartupTimerRef.current);
+        hostStartupTimerRef.current = null;
+      }
       publishParticipants([...participantsRef.current.values()]);
+      setNetworkRoute('server');
       setError('');
       setStatus('active');
       ensureHostTimers();
     }).catch(() => {
-      // PeerJS remains the primary path if Supabase Realtime is unavailable.
+      // WebRTC remains available if Realtime is temporarily unavailable.
     });
 
     peer.on('connection', (connection) => {
@@ -1528,12 +1606,20 @@ export default function WatchPartyPanel({
         return;
       }
 
+      const p2pLimit = relayRef.current?.isOpen()
+        ? P2P_ACCELERATOR_GUEST_LIMIT
+        : WATCH_PARTY_MAX_PARTICIPANTS - 1;
+
       if (
         hostConnectionsRef.current.size + pendingHostConnectionsRef.current.size >=
-        WATCH_PARTY_MAX_PARTICIPANTS - 1
+        p2pLimit
       ) {
         connection.on('open', () => {
-          send(connection, { type: 'REJECT', reason: 'room_full' });
+          // Large rooms use the Realtime room bus. Do not make the host keep
+          // dozens of WebRTC DataChannels just to synchronize tiny events.
+          if (!relayRef.current?.isOpen()) {
+            send(connection, { type: 'REJECT', reason: 'room_full' });
+          }
           window.setTimeout(() => connection.close(), 80);
         });
         return;
@@ -1590,8 +1676,13 @@ export default function WatchPartyPanel({
             connection.close();
             return;
           }
-          if (hostConnectionsRef.current.size >= WATCH_PARTY_MAX_PARTICIPANTS - 1) {
-            send(connection, { type: 'REJECT', reason: 'room_full' });
+          const currentP2pLimit = relayRef.current?.isOpen()
+            ? P2P_ACCELERATOR_GUEST_LIMIT
+            : WATCH_PARTY_MAX_PARTICIPANTS - 1;
+          if (hostConnectionsRef.current.size >= currentP2pLimit) {
+            if (!relayRef.current?.isOpen()) {
+              send(connection, { type: 'REJECT', reason: 'room_full' });
+            }
             connection.close();
             return;
           }
@@ -1692,7 +1783,13 @@ export default function WatchPartyPanel({
     });
 
     peer.on('open', () => {
+      if (transportGenerationRef.current !== generation) return;
       hostReclaimAttemptRef.current = 0;
+      hostTransportReadyRef.current = true;
+      if (hostStartupTimerRef.current != null) {
+        window.clearTimeout(hostStartupTimerRef.current);
+        hostStartupTimerRef.current = null;
+      }
       publishParticipants([...participantsRef.current.values()]);
       setError('');
       setStatus('active');
@@ -1700,20 +1797,43 @@ export default function WatchPartyPanel({
     });
 
     peer.on('disconnected', () => {
-      if (intentionalCloseRef.current || peer.destroyed) return;
-      setStatus('reconnecting');
+      if (
+        intentionalCloseRef.current ||
+        peer.destroyed ||
+        transportGenerationRef.current !== generation
+      ) return;
+
       try {
         peer.reconnect();
       } catch {
-        setStatus('error');
-        setError('Связь с сервером Watch Together потеряна. Обнови страницу, чтобы вернуть комнату.');
+        // Realtime can keep the room alive while PeerJS signaling recovers.
       }
+
+      if (relayRef.current?.isOpen()) {
+        setNetworkRoute('server');
+        setError('');
+        setStatus('active');
+        return;
+      }
+
+      setStatus('reconnecting');
+      setError('Восстанавливаем соединение комнаты…');
     });
 
     peer.on('error', (peerError) => {
-      if (intentionalCloseRef.current) return;
+      if (
+        intentionalCloseRef.current ||
+        transportGenerationRef.current !== generation
+      ) return;
       const type = 'type' in peerError ? String(peerError.type) : '';
       if (type === 'unavailable-id') {
+        if (relayRef.current?.isOpen()) {
+          setNetworkRoute('server');
+          setError('');
+          setStatus('active');
+          return;
+        }
+
         const attempt = hostReclaimAttemptRef.current + 1;
         hostReclaimAttemptRef.current = attempt;
         if (attempt <= 3) {
@@ -1731,9 +1851,23 @@ export default function WatchPartyPanel({
         return;
       }
       if (type === 'network' || type === 'disconnected') {
+        if (relayRef.current?.isOpen()) {
+          setNetworkRoute('server');
+          setError('');
+          setStatus('active');
+          return;
+        }
         setStatus('reconnecting');
         return;
       }
+
+      if (relayRef.current?.isOpen()) {
+        setNetworkRoute('server');
+        setError('');
+        setStatus('active');
+        return;
+      }
+
       setStatus('error');
       setError(describeWatchPartyPeerError(peerError, network));
     });
