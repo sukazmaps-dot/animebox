@@ -46,9 +46,10 @@ export default function WatchPartyFriendInvite({
   episode: number;
 }) {
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 700px)').matches,
+  );
   const [anchor, setAnchor] = useState<AnchorState>({
     left: VIEWPORT_GUTTER,
     top: VIEWPORT_GUTTER,
@@ -61,11 +62,8 @@ export default function WatchPartyFriendInvite({
   const [error, setError] = useState('');
 
   useEffect(() => {
-    setMounted(true);
-
     const media = window.matchMedia('(max-width: 700px)');
     const sync = () => setIsMobile(media.matches);
-    sync();
     media.addEventListener('change', sync);
 
     return () => media.removeEventListener('change', sync);
@@ -205,7 +203,7 @@ export default function WatchPartyFriendInvite({
   } satisfies CSSProperties;
 
   const dialog =
-    mounted && open
+    open && typeof document !== 'undefined'
       ? createPortal(
           <div
             className={styles.backdrop}
