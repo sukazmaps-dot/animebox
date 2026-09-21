@@ -41,7 +41,9 @@ export type ProductClientEventName =
   | 'watch_party_reaction_sent'
   | 'watch_party_vote_cast'
   | 'watch_party_room_ended'
-  | 'watch_party_room_reported';
+  | 'watch_party_room_reported'
+  | 'watch_party_host_transferred'
+  | 'watch_party_participant_kicked';
 
 type ClientEvent = {
   eventName: ProductClientEventName;
