@@ -35,6 +35,15 @@ export const PRODUCT_CLIENT_EVENT_NAMES = [
   'recommendation_started',
   'recommendation_completed',
   'smart_discovery_search',
+  'watch_party_hub_view',
+  'watch_party_room_created',
+  'watch_party_public_room_join',
+  'watch_party_room_started',
+  'watch_party_invite_shared',
+  'watch_party_reaction_sent',
+  'watch_party_vote_cast',
+  'watch_party_room_ended',
+  'watch_party_room_reported',
 ] as const;
 
 export type ProductClientEventName = (typeof PRODUCT_CLIENT_EVENT_NAMES)[number];
