@@ -30,6 +30,7 @@ import './anime-page-v3.css';
 import './performance-v2.css';
 import './tma-mobile-ux-v21.css';
 import './patch11-growth.css';
+import './patch11-3.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
