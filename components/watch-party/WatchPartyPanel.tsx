@@ -1150,8 +1150,30 @@ export default function WatchPartyPanel({
           },
           onStatus: (relayStatus) => {
             if (transportGenerationRef.current !== generation) return;
+
+            if (relayStatus === 'open') {
+              const liveRelay = relayRef.current;
+              if (liveRelay) {
+                relayWelcomedRef.current = false;
+                void liveRelay.send({
+                  type: 'HELLO',
+                  protocol: WATCH_PARTY_PROTOCOL,
+                  roomId: invite.roomId,
+                  secret: invite.secret,
+                  participant: {
+                    id: liveRelay.id,
+                    userId: identity.userId,
+                    name: identity.displayName,
+                    host: false,
+                    joinedAt: Date.now(),
+                  },
+                });
+              }
+              return;
+            }
+
+            relayWelcomedRef.current = false;
             if (
-              relayStatus !== 'open' &&
               guestTransportRef.current === 'server' &&
               !(guestConnectionRef.current?.open)
             ) {
