@@ -1561,3 +1561,68 @@
     font-size: 7px;
   }
 }
+
+
+/* Patch 7 · host handoff */
+.hostTools {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin-top: 9px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,.05);
+  border-radius: 12px;
+  background: rgba(255,255,255,.016);
+}
+
+.hostTools > span {
+  color: rgba(185,193,215,.42);
+  font-size: 7.5px;
+  font-weight: 850;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.hostTools > div {
+  min-width: 0;
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.hostTools > div::-webkit-scrollbar {
+  display: none;
+}
+
+.hostTools button {
+  flex: 0 0 auto;
+  min-height: 29px;
+  max-width: 150px;
+  padding: 0 9px;
+  overflow: hidden;
+  border: 1px solid rgba(139,92,246,.15);
+  border-radius: 8px;
+  background: rgba(124,92,255,.055);
+  color: rgba(218,213,244,.72);
+  font-size: 8px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.hostTools button:hover {
+  border-color: rgba(139,92,246,.30);
+  background: rgba(124,92,255,.10);
+  color: #eeeaff;
+}
+
+@media (max-width: 760px) {
+  .hostTools {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
