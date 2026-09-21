@@ -26,7 +26,11 @@ function dismissedRecently() {
   }
 }
 
-export default function TelegramPromoCard() {
+export default function TelegramPromoCard({
+  placement = 'home_right_rail',
+}: {
+  placement?: 'home_right_rail' | 'watch_together';
+}) {
   const rootRef = useRef<HTMLElement | null>(null);
   const impressionSentRef = useRef(false);
   const [ready, setReady] = useState(false);
@@ -62,13 +66,13 @@ export default function TelegramPromoCard() {
 
         impressionSentRef.current = true;
         trackProductClientEvent('telegram_promo_impression', {
-          source: 'home_right_rail',
+          source: placement,
           path: window.location.pathname,
           entityType: 'telegram_channel',
           entityId: TELEGRAM_CHANNEL_HANDLE,
           metadata: {
             campaign_id: CAMPAIGN_ID,
-            placement: 'home_right_rail',
+            placement,
           },
         });
         observer.disconnect();
@@ -78,7 +82,7 @@ export default function TelegramPromoCard() {
 
     observer.observe(rootRef.current);
     return () => observer.disconnect();
-  }, [hidden, ready]);
+  }, [hidden, placement, ready]);
 
   function dismissPromo() {
     try {
@@ -88,13 +92,13 @@ export default function TelegramPromoCard() {
     }
 
     trackProductClientEvent('telegram_promo_dismiss', {
-      source: 'home_right_rail',
+      source: placement,
       path: window.location.pathname,
       entityType: 'telegram_channel',
       entityId: TELEGRAM_CHANNEL_HANDLE,
       metadata: {
         campaign_id: CAMPAIGN_ID,
-        placement: 'home_right_rail',
+        placement,
         dismiss_ttl_days: 7,
       },
       flush: true,
@@ -105,13 +109,13 @@ export default function TelegramPromoCard() {
 
   function handleChannelClick(event: React.MouseEvent<HTMLAnchorElement>) {
     trackProductClientEvent('telegram_promo_click', {
-      source: 'home_right_rail',
+      source: placement,
       path: window.location.pathname,
       entityType: 'telegram_channel',
       entityId: TELEGRAM_CHANNEL_HANDLE,
       metadata: {
         campaign_id: CAMPAIGN_ID,
-        placement: 'home_right_rail',
+        placement,
       },
       flush: true,
     });
@@ -128,7 +132,7 @@ export default function TelegramPromoCard() {
   return (
     <section
       ref={rootRef}
-      className="panel telegram-growth-card"
+      className={`panel telegram-growth-card ${placement === 'watch_together' ? 'telegram-growth-card--watch-together' : ''}`}
       aria-label="Telegram-канал AnimeBox"
     >
       <button
@@ -158,10 +162,15 @@ export default function TelegramPromoCard() {
 
       <div className="telegram-growth-card__copy">
         <span className="telegram-growth-card__eyebrow">ANIMEBOX · TELEGRAM</span>
-        <strong>Будь ближе к проекту</strong>
+        <strong>
+          {placement === 'watch_together'
+            ? 'Watch Together развивается вместе с комьюнити'
+            : 'Будь ближе к проекту'}
+        </strong>
         <p>
-          Патчи, новые функции, планы AnimeBox и важные объявления — в нашем
-          официальном канале.
+          {placement === 'watch_together'
+            ? 'Следи за новыми social-функциями, открытыми комнатами и крупными обновлениями AnimeBox.'
+            : 'Патчи, новые функции, планы AnimeBox и важные объявления — в нашем официальном канале.'}
         </p>
       </div>
 
