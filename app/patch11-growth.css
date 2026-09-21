@@ -1,0 +1,214 @@
+/* Patch 11.1 · Telegram Growth */
+
+.telegram-growth-card {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  border-color: rgba(124, 104, 238, .18);
+  background:
+    radial-gradient(circle at 88% 12%, rgba(104, 86, 255, .16), transparent 34%),
+    linear-gradient(180deg, rgba(15, 20, 34, .98), rgba(9, 14, 24, .98));
+}
+
+.telegram-growth-card::after {
+  content: '';
+  position: absolute;
+  inset: auto -26% -36% 38%;
+  height: 150px;
+  border-radius: 50%;
+  background: rgba(91, 74, 226, .12);
+  filter: blur(36px);
+  pointer-events: none;
+}
+
+.telegram-growth-card__dismiss {
+  position: absolute;
+  z-index: 4;
+  top: 9px;
+  right: 9px;
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 8px;
+  background: rgba(6, 10, 18, .62);
+  color: rgba(220, 224, 238, .58);
+  font-size: 15px;
+  line-height: 1;
+  backdrop-filter: blur(8px);
+}
+
+.telegram-growth-card__dismiss:hover {
+  color: #fff;
+  border-color: rgba(255,255,255,.14);
+  background: rgba(14, 19, 31, .88);
+}
+
+.telegram-growth-card__visual {
+  position: relative;
+  height: 116px;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255,255,255,.055);
+  background:
+    linear-gradient(180deg, rgba(107, 90, 255, .12), rgba(13, 18, 30, .1)),
+    rgba(8, 13, 23, .82);
+}
+
+.telegram-growth-card__visual::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(8, 13, 23, .82) 0%, rgba(8, 13, 23, .15) 55%, rgba(8, 13, 23, .02) 100%),
+    linear-gradient(180deg, transparent 54%, rgba(8, 13, 23, .58) 100%);
+  pointer-events: none;
+}
+
+.telegram-growth-card__brand {
+  position: absolute;
+  z-index: 3;
+  left: 14px;
+  bottom: 13px;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(164, 149, 255, .2);
+  border-radius: 12px;
+  background: rgba(87, 72, 220, .16);
+  color: #b9adff;
+  box-shadow: 0 10px 28px rgba(0,0,0,.2);
+  backdrop-filter: blur(8px);
+}
+
+.telegram-growth-card__brand svg {
+  width: 19px;
+  height: 19px;
+}
+
+.telegram-growth-card__image {
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  width: 190px;
+  height: auto;
+  transform: translateY(-50%);
+  opacity: .68;
+  object-fit: contain;
+  filter: saturate(.9) contrast(.96);
+}
+
+.telegram-growth-card__copy {
+  position: relative;
+  z-index: 2;
+  padding: 14px 14px 0;
+}
+
+.telegram-growth-card__eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: #998bff;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.telegram-growth-card__copy strong {
+  display: block;
+  color: #f0f1f8;
+  font-size: 14px;
+  line-height: 1.25;
+  letter-spacing: -.02em;
+}
+
+.telegram-growth-card__copy p {
+  margin: 7px 0 0;
+  color: #79869a;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.telegram-growth-card__benefits {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 11px 14px 0;
+}
+
+.telegram-growth-card__benefits span {
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 7px;
+  border: 1px solid rgba(136, 119, 240, .12);
+  border-radius: 999px;
+  background: rgba(120, 104, 238, .055);
+  color: rgba(198, 192, 239, .72);
+  font-size: 7px;
+  font-weight: 750;
+}
+
+.telegram-growth-card__cta {
+  position: relative;
+  z-index: 2;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 13px;
+  padding: 0 12px;
+  border: 1px solid rgba(145, 128, 255, .24);
+  border-radius: 10px;
+  background: rgba(120, 104, 238, .12);
+  color: #e4e0ff;
+  transition:
+    transform .16s ease,
+    border-color .16s ease,
+    background .16s ease;
+}
+
+.telegram-growth-card__cta:hover {
+  transform: translateY(-1px);
+  border-color: rgba(157, 143, 255, .38);
+  background: rgba(120, 104, 238, .18);
+}
+
+.telegram-growth-card__cta > span:first-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.telegram-growth-card__cta small {
+  color: rgba(184, 191, 211, .45);
+  font-size: 7px;
+  font-weight: 650;
+}
+
+.telegram-growth-card__cta > span:last-child {
+  color: #9f91ff;
+  font-size: 13px;
+}
+
+@media (max-width: 980px) {
+  .telegram-growth-card__visual {
+    height: 130px;
+  }
+
+  .telegram-growth-card__copy strong {
+    font-size: 15px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .telegram-growth-card__cta {
+    transition: none;
+  }
+}
