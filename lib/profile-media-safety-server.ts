@@ -446,10 +446,18 @@ async function recordImmediate(
   if (error) throw error;
 }
 
+type QuarantineOptions = {
+  automationState?: 'manual' | 'retry';
+  autoAttempts?: number;
+  nextAutoCheckAt?: string | null;
+  autoLastReason?: string | null;
+};
+
 async function quarantineGroup(
   userId: string,
   group: ProfileMediaCandidateGroup,
   items: LoadedMedia[],
+  options: QuarantineOptions = {},
 ) {
   const admin = adminClient();
   const groupId = crypto.randomUUID();
@@ -461,6 +469,11 @@ async function quarantineGroup(
     kind: group.kind,
     status: 'review',
     apply_payload: group.applyPayload,
+    automation_state: options.automationState ?? 'manual',
+    auto_attempts: options.autoAttempts ?? 0,
+    next_auto_check_at: options.nextAutoCheckAt ?? null,
+    last_auto_check_at: options.autoAttempts ? new Date().toISOString() : null,
+    auto_last_reason: options.autoLastReason ?? null,
   });
 
   if (groupError) throw groupError;
@@ -587,16 +600,17 @@ export async function screenProfileMediaGroups(
     );
 
     if (technicalReview) {
-      // Automatic moderation being unavailable must not make profile media
-      // impossible to change. Fail closed: keep the new file private in the
-      // quarantine bucket and route it to the human moderation queue. The
-      // user's currently published avatar/banner stays untouched until an
-      // owner/admin/moderator explicitly approves the review group.
-      await quarantineGroup(userId, group, items);
+      // Keep the upload private and let the automatic queue retry it.
+      await quarantineGroup(userId, group, items, {
+        automationState: 'retry',
+        autoAttempts: 1,
+        nextAutoCheckAt: new Date(Date.now() + 30_000).toISOString(),
+        autoLastReason: technicalReview.moderation.reason,
+      });
 
       throw new ApiError(
         409,
-        'Автоматическая модерация временно недоступна. Изображение отправлено на дополнительную проверку модератору; пока останется прежнее оформление.',
+        'Автопроверка временно задержалась. Изображение осталось приватным и будет проверено повторно автоматически.',
       );
     }
 
