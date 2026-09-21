@@ -252,10 +252,11 @@ export default function WatchPartyFriendInvite({
                       const wasSent = sent.has(friend.userId);
                       return (
                         <div key={friend.userId} className={styles.friend}>
-                          <span
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
                             className={styles.avatar}
-                            style={{ backgroundImage: `url("${friend.avatarUrl.replace(/["\\]/g, '')}")` }}
-                            aria-hidden="true"
+                            src={friend.avatarUrl}
+                            alt=""
                           />
                           <span className={styles.name}>{friend.username}</span>
                           <button
