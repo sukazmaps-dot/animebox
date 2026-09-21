@@ -344,7 +344,6 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
     setSaving(true);
     const pendingMedia: PendingProfileMediaUpload[] = [];
-    let reviewQueued = false;
 
     try {
       let finalAvatarPath = removeAvatar ? null : profile.avatar_path;
@@ -395,12 +394,10 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         profile?: ProfileRow;
         settings?: PremiumStudioSettings;
         error?: string;
-        mediaReviewQueued?: boolean;
       };
 
       if (!response.ok) {
-        reviewQueued = Boolean(payload.mediaReviewQueued);
-        if (!reviewQueued && pendingMedia.length) {
+        if (pendingMedia.length) {
           await discardPrivateProfileMedia(pendingMedia);
         }
         throw new Error(payload.error || 'Не удалось сохранить профиль.');
@@ -441,7 +438,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       });
       setSaved('Профиль и оформление сохранены ✓');
     } catch (requestError) {
-      if (!reviewQueued && pendingMedia.length) {
+      if (pendingMedia.length) {
         await discardPrivateProfileMedia(pendingMedia);
       }
       setError(requestError instanceof Error ? requestError.message : 'Не удалось сохранить профиль.');
