@@ -18,6 +18,7 @@ import { createClient } from '@/lib/supabase/client';
 import { premiumMediaStyle, type PremiumMediaTransform } from '@/lib/premium-studio';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 import UserIdentity from '@/components/identity/UserIdentity';
+import WatchPartyFriendInvite from '@/components/friends/WatchPartyFriendInvite';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
 import {
@@ -2838,9 +2839,16 @@ export default function WatchPartyPanel({
           </span>
           <div className={styles.actions}>
             {inviteUrl && status !== 'ended' && status !== 'error' && (
-              <button type="button" className={styles.secondary} onClick={() => void copyInvite()}>
-                {copyLabel}
-              </button>
+              <>
+                <WatchPartyFriendInvite
+                  inviteUrl={inviteUrl}
+                  animeTitle={animeTitle}
+                  episode={episodeNumber}
+                />
+                <button type="button" className={styles.secondary} onClick={() => void copyInvite()}>
+                  {copyLabel}
+                </button>
+              </>
             )}
             <button type="button" className={styles.danger} onClick={leaveParty}>
               {role === 'host' ? 'Завершить комнату' : 'Покинуть'}
