@@ -168,6 +168,7 @@ export default function WatchPartyPanel({
   const [reactions, setReactions] = useState<WatchPartyReaction[]>([]);
   const [voteState, setVoteState] = useState<WatchPartyVoteState | null>(null);
   const [reportLabel, setReportLabel] = useState('Пожаловаться');
+  const [currentUserId, setCurrentUserId] = useState('');
 
   const theaterPath = watchPartyTheaterPath(animeSlug, episodeNumber);
   const episodePath = `/anime/${encodeURIComponent(animeSlug)}/episode/${episodeNumber}`;
@@ -559,6 +560,7 @@ export default function WatchPartyPanel({
     setReactions([]);
     setVoteState(null);
     setReportLabel('Пожаловаться');
+    setCurrentUserId('');
     setNetworkRoute('unknown');
     setSignalingMode('peerjs-cloud');
     setStatus('idle');
@@ -871,6 +873,7 @@ export default function WatchPartyPanel({
       return;
     }
     identityRef.current = identity;
+    setCurrentUserId(identity.userId);
     if (intentionalCloseRef.current) return;
 
     guestWelcomedRef.current = false;
@@ -1098,7 +1101,15 @@ export default function WatchPartyPanel({
       setStatus('error');
       setError(describeWatchPartyPeerError(peerError, network));
     });
-  }, [attachGuestConnection, redirectToRegistration, resolveIdentity]);
+  }, [
+    appendChatMessage,
+    appendReaction,
+    attachGuestConnection,
+    dispatchPlayerCommand,
+    publishParticipants,
+    redirectToRegistration,
+    resolveIdentity,
+  ]);
 
   const startHost = useCallback(async (invite: WatchPartyInvite) => {
     intentionalCloseRef.current = false;
@@ -1116,6 +1127,7 @@ export default function WatchPartyPanel({
       return;
     }
     identityRef.current = identity;
+    setCurrentUserId(identity.userId);
     if (intentionalCloseRef.current) return;
 
     const hostPeerId = watchPartyHostPeerId(invite.roomId);
@@ -1941,9 +1953,8 @@ export default function WatchPartyPanel({
   }
 
   const label = statusLabel(status, role, participants.length);
-  const currentUserId = identityRef.current?.userId ?? '';
   const hasVoted = Boolean(
-    voteState?.voters.includes(currentUserId),
+    currentUserId && voteState?.voters.includes(currentUserId),
   );
 
   return (
