@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
 import { notifyAuthChanged } from '@/lib/auth-events';
+import { markTelegramWelcomePending } from '@/lib/telegram-growth-client';
 import {
   enableTelegramAutoLogin,
   isTelegramMiniAppRuntime,
@@ -714,9 +715,14 @@ export default function TelegramAuthButton({
             },
       });
 
+      const created = Boolean(data.created);
+      if (created) {
+        markTelegramWelcomePending(loginData.user.id, 'telegram_web');
+      }
+
       await onSuccess?.({
         userId: loginData.user.id,
-        created: Boolean(data.created),
+        created,
       });
 
       if (!navigateOnSuccess) {
