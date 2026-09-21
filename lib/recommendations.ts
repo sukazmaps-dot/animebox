@@ -11,6 +11,7 @@ import {
 } from '@/lib/personalization';
 import {
   animeGenreAffinity,
+  completedGenreAffinity,
   episodeLengthAffinity,
   readCachedTasteGraph,
   type TasteGraph,
@@ -207,6 +208,10 @@ export function getPersonalizedRecommendations(
   const watchedIds = new Set(history.map((item) => item.id));
   const savedIds = new Set(saved.map((item) => item.id));
   const favoriteIds = new Set(favorites.map((item) => item.id));
+  const serverExcludedIds = new Set(tasteGraph?.excludedAnimeIds ?? []);
+  const hasHistory =
+    history.length > 0 ||
+    (tasteGraph?.sampleSize ?? 0) > 0;
 
   const genreWeight = new Map<string, number>();
 
@@ -256,6 +261,9 @@ export function getPersonalizedRecommendations(
   const scored = uniqueById(candidates)
     .filter((anime) => !hiddenIds.has(anime.id))
     .filter((anime) => !watchedIds.has(anime.id))
+    .filter((anime) => !serverExcludedIds.has(anime.id))
+    .filter((anime) => !savedIds.has(anime.id))
+    .filter((anime) => !favoriteIds.has(anime.id))
     .map((anime, index) => {
       const matchingGenres = (anime.genres ?? [])
         .map((genre) => ({ raw: genre, normalized: normalizeGenre(genre) }))
@@ -279,6 +287,7 @@ export function getPersonalizedRecommendations(
         : 0;
 
       const graphAffinity = animeGenreAffinity(anime, tasteGraph);
+      const completedAffinity = completedGenreAffinity(anime, tasteGraph);
       const lengthAffinity = episodeLengthAffinity(anime, tasteGraph);
       const moodScore = moodAffinity(anime, mood);
       const ratingScore = normalizeRating(anime);
@@ -292,10 +301,10 @@ export function getPersonalizedRecommendations(
       const title = getAnimeTitle(anime);
       const duplicateTitlePenalty = recentTitles.has(title.toLowerCase()) ? -0.45 : 0;
 
-      const hasHistory = history.length > 0;
       const score =
-        genreScore * (hasHistory ? 0.38 : 0.08) +
-        graphAffinity.positive * 0.28 -
+        genreScore * (hasHistory ? 0.34 : 0.08) +
+        graphAffinity.positive * 0.25 +
+        completedAffinity.positive * 0.13 -
         graphAffinity.negative * 0.32 +
         lengthAffinity * (tasteGraph?.confidence ? 0.07 : 0) +
         moodScore * (mood === 'any' ? 0 : hasHistory ? 0.18 : 0.38) +
@@ -317,6 +326,13 @@ export function getPersonalizedRecommendations(
       });
 
       const reasons: string[] = [];
+      if (completedAffinity.matches.length > 0) {
+        reasons.push(
+          `Похоже на то, что ты досматриваешь: ${completedAffinity.matches
+            .slice(0, 2)
+            .join(' · ')}`,
+        );
+      }
       const graphMatches = graphAffinity.matches;
       const localMatches = matchingGenres.map(({ raw }) => raw);
       const tasteMatches = [...new Set([...graphMatches, ...localMatches])].slice(0, 2);
@@ -337,8 +353,9 @@ export function getPersonalizedRecommendations(
         0,
         Math.min(
           1,
-          genreScore * 0.34 +
-            graphAffinity.positive * 0.3 +
+          genreScore * 0.3 +
+            graphAffinity.positive * 0.26 +
+            completedAffinity.positive * 0.14 +
             moodScore * 0.16 +
             lengthAffinity * 0.08 +
             ratingScore * 0.12 -
