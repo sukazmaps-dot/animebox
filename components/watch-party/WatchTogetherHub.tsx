@@ -350,17 +350,79 @@ export default function WatchTogetherHub() {
     }
   }
 
-  function joinInvite(event: FormEvent<HTMLFormElement>) {
+  async function joinInvite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setInviteError('');
 
-    const target = validInviteUrl(inviteInput.trim());
-    if (!target) {
-      setInviteError('Вставь полную ссылку AnimeBox Watch Together из приглашения друга.');
+    const raw = inviteInput.trim();
+    const target = validInviteUrl(raw);
+
+    if (target) {
+      try {
+        window.localStorage.setItem(LAST_ROOM_KEY, target);
+      } catch {
+        // Resume shortcut is optional.
+      }
+      window.location.replace(target);
       return;
     }
 
-    window.location.replace(target);
+    const roomCode = raw.replace(/^#/, '').toUpperCase();
+    if (!/^[A-F0-9]{6}$/.test(roomCode)) {
+      setInviteError('Вставь invite-ссылку или шестизначный код комнаты.');
+      return;
+    }
+
+    setJoiningRoomId('code');
+
+    try {
+      const response = await fetch('/api/watch-party/rooms/join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        cache: 'no-store',
+        body: JSON.stringify({ roomCode }),
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        roomUrl?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.ok || !payload.roomUrl) {
+        if (response.status === 401) {
+          window.location.replace('/login?next=%2Fwatch-together');
+          return;
+        }
+        throw new Error(payload.error || 'Комната по этому коду не найдена.');
+      }
+
+      const fullUrl = new URL(payload.roomUrl, window.location.origin).toString();
+      try {
+        window.localStorage.setItem(LAST_ROOM_KEY, fullUrl);
+      } catch {
+        // Resume shortcut is optional.
+      }
+
+      trackProductClientEvent('watch_party_public_room_join', {
+        source: 'watch_together_code',
+        path: '/watch-together',
+        entityType: 'watch_party_room',
+        metadata: { room_code: roomCode },
+        flush: true,
+      });
+
+      window.location.replace(payload.roomUrl);
+    } catch (joinError) {
+      setJoiningRoomId('');
+      setInviteError(
+        joinError instanceof Error
+          ? joinError.message
+          : 'Не удалось войти в комнату.',
+      );
+    }
   }
 
   return (
@@ -383,16 +445,18 @@ export default function WatchTogetherHub() {
 
         <form className={styles.joinCard} onSubmit={joinInvite}>
           <span className={styles.joinEyebrow}>Уже пригласили?</span>
-          <strong>Войти по ссылке друга</strong>
-          <p>Вставь invite-ссылку — AnimeBox сразу откроет нужную комнату.</p>
+          <strong>Войти по ссылке или коду</strong>
+          <p>Вставь invite-ссылку или код вида #A1B2C3.</p>
           <div className={styles.joinInput}>
             <input
               value={inviteInput}
               onChange={(event) => setInviteInput(event.target.value)}
-              placeholder="https://youranimebox.com/watch-together/..."
+              placeholder="Invite-ссылка или #A1B2C3"
               autoComplete="off"
             />
-            <button type="submit">Войти</button>
+            <button type="submit" disabled={joiningRoomId === 'code'}>
+              {joiningRoomId === 'code' ? 'Ищем…' : 'Войти'}
+            </button>
           </div>
           {inviteError && <span className={styles.error}>{inviteError}</span>}
           {lastRoom && (
