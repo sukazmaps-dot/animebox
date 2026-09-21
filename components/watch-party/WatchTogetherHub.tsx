@@ -287,6 +287,35 @@ export default function WatchTogetherHub() {
     }
   }
 
+  async function reportRoom(roomId: string) {
+    if (!user?.id) {
+      setRoomsError('Войди в AnimeBox, чтобы отправить жалобу.');
+      return;
+    }
+
+    const reason = window.prompt('Что не так с этой комнатой?')?.trim();
+    if (!reason) return;
+
+    try {
+      const response = await fetch(
+        `/api/watch-party/rooms/${encodeURIComponent(roomId)}/report`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason }),
+          cache: 'no-store',
+        },
+      );
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(payload.error || 'report_failed');
+      setRoomsError('Жалоба отправлена модерации AnimeBox.');
+    } catch (error) {
+      setRoomsError(
+        error instanceof Error ? error.message : 'Не удалось отправить жалобу.',
+      );
+    }
+  }
+
   function joinInvite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setInviteError('');
@@ -399,25 +428,35 @@ export default function WatchTogetherHub() {
                     <p>
                       Серия {room.episode} · host {room.host.username} · код {room.roomCode}
                     </p>
-                    <a
-                      href={href}
-                      onClick={() => {
-                        trackProductClientEvent('watch_party_public_join_click', {
-                          source: 'watch_together_hub',
-                          path: '/watch-together',
-                          entityType: 'watch_party_room',
-                          entityId: room.roomId,
-                          metadata: {
-                            anime_id: room.animeId,
-                            episode: room.episode,
-                            participant_count: room.participantCount,
-                          },
-                          flush: true,
-                        });
-                      }}
-                    >
-                      Присоединиться
-                    </a>
+                    <div className={styles.publicRoomActions}>
+                      <a
+                        href={href}
+                        onClick={() => {
+                          trackProductClientEvent('watch_party_public_join_click', {
+                            source: 'watch_together_hub',
+                            path: '/watch-together',
+                            entityType: 'watch_party_room',
+                            entityId: room.roomId,
+                            metadata: {
+                              anime_id: room.animeId,
+                              episode: room.episode,
+                              participant_count: room.participantCount,
+                            },
+                            flush: true,
+                          });
+                        }}
+                      >
+                        Присоединиться
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => void reportRoom(room.roomId)}
+                        aria-label="Пожаловаться на комнату"
+                        title="Пожаловаться"
+                      >
+                        ···
+                      </button>
+                    </div>
                   </div>
                 </article>
               );
