@@ -202,6 +202,7 @@ export default function WatchTogetherHub() {
   }), [rooms]);
 
   const loadPublicRooms = useCallback(async () => {
+    setRoomsLoading(true);
     try {
       const response = await fetch('/api/watch-party/rooms?limit=30', {
         cache: 'no-store',
@@ -382,9 +383,10 @@ export default function WatchTogetherHub() {
       setRoomsNotice('Жалоба отправлена модерации AnimeBox.');
       window.setTimeout(() => setRoomsNotice(''), 4_000);
     } catch (error) {
-      setRoomsError(
+      setRoomsNotice(
         error instanceof Error ? error.message : 'Не удалось отправить жалобу.',
       );
+      window.setTimeout(() => setRoomsNotice(''), 4_000);
     }
   }
 
