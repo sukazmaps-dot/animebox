@@ -17,6 +17,8 @@ const RETENTION_SURFACE_EVENTS = [
   'continue_watching_click',
   'continue_watching_started',
   'personal_home_view',
+  'personal_schedule_impression',
+  'personal_schedule_click',
   'notification_center_open',
   'notification_subscription_toggle',
 ] as const;
@@ -100,6 +102,18 @@ function summarizeRetentionSurfaces(rows: SurfaceEventRow[]) {
     personalHome: {
       views: count('personal_home_view'),
       users: uniqueUsers('personal_home_view'),
+    },
+    personalSchedule: {
+      impressions: count('personal_schedule_impression'),
+      clicks: count('personal_schedule_click'),
+      users: uniqueUsers(
+        'personal_schedule_impression',
+        'personal_schedule_click',
+      ),
+      ctrPct: percent(
+        count('personal_schedule_click'),
+        count('personal_schedule_impression'),
+      ),
     },
     notificationCenter: {
       opens: count('notification_center_open'),
