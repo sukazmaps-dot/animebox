@@ -572,6 +572,7 @@ export default function HomePage({
           anime.episodes && anime.episodes > 0
             ? anime.episodes
             : null,
+        lastWatchedAt: exact.updatedAt,
         sortAt: exact.updatedAt,
       }];
     });
@@ -658,6 +659,7 @@ export default function HomePage({
           : Math.floor(state.resumePositionMs / 1000),
         completedEpisodes: state.completedEpisodes,
         totalEpisodes: state.totalEpisodes,
+        lastWatchedAt: localIsNewer ? exact!.updatedAt : serverAt,
         sortAt: localIsNewer ? exact!.updatedAt : serverAt,
       }];
     });
@@ -707,6 +709,74 @@ export default function HomePage({
     personalizedHome,
     smartRecommendations.length,
   ]);
+
+  const personalAnimeIds = useMemo(() => {
+    const ids = new Set<number>();
+
+    for (const anime of watchHistory) {
+      if (Number.isSafeInteger(anime.id) && anime.id > 0) ids.add(anime.id);
+    }
+    for (const item of serverContinue) {
+      if (Number.isSafeInteger(item.animeId) && item.animeId > 0) {
+        ids.add(item.animeId);
+      }
+    }
+
+    return ids;
+  }, [serverContinue, watchHistory]);
+
+  const personalScheduleItems = useMemo(() => {
+    if (!personalizedHome || personalAnimeIds.size === 0) return [];
+
+    const nowSeconds = Math.floor(clockNow / 1000);
+    const recentWindowStart = nowSeconds - 6 * 60 * 60;
+    const futureWindowEnd = nowSeconds + 72 * 60 * 60;
+
+    return scheduleItems
+      .filter(
+        (item) =>
+          personalAnimeIds.has(item.media.id) &&
+          item.airingAt >= recentWindowStart &&
+          item.airingAt <= futureWindowEnd,
+      )
+      .sort((a, b) => a.airingAt - b.airingAt)
+      .slice(0, 4);
+  }, [
+    clockNow,
+    personalAnimeIds,
+    personalizedHome,
+    scheduleItems,
+  ]);
+
+  const personalScheduleSignature = personalScheduleItems
+    .map((item) => `${item.media.id}:${item.episode}:${item.airingAt}`)
+    .join('|');
+  const personalScheduleTrackedRef = useRef('');
+
+  useEffect(() => {
+    if (
+      !personalScheduleSignature ||
+      personalScheduleTrackedRef.current === personalScheduleSignature
+    ) {
+      return;
+    }
+
+    personalScheduleTrackedRef.current = personalScheduleSignature;
+    trackProductClientEvent('personal_schedule_impression', {
+      source: 'personal_home',
+      path: '/',
+      entityType: 'surface',
+      entityId: 'personal_schedule',
+      metadata: {
+        count: personalScheduleItems.length,
+        items: personalScheduleItems.map((item) => ({
+          anime_id: item.media.id,
+          episode: item.episode,
+          airing_at: item.airingAt,
+        })),
+      },
+    });
+  }, [personalScheduleItems, personalScheduleSignature]);
 
   const fallbackItems = ongoing.length > 0 ? ongoing : popular;
   const heroLoading =
@@ -762,6 +832,60 @@ export default function HomePage({
         {!personalizedHome && <HomeTopAnimePanel popular={popular} mobile />}
 
         <HomePersonalPulse />
+
+        {personalScheduleItems.length > 0 && (
+          <section className="section personal-schedule-section">
+            <div className="section-head">
+              <div>
+                <span className="smart-section-eyebrow">Твои онгоинги</span>
+                <h2 className="section-title">Новые серии для тебя</h2>
+                <p>
+                  Ближайшие релизы тайтлов, к которым ты уже возвращался.
+                </p>
+              </div>
+              <Link className="section-link" href="/notifications">
+                Настроить уведомления →
+              </Link>
+            </div>
+
+            <div className="personal-schedule-grid">
+              {personalScheduleItems.map((item) => {
+                const title = getScheduleTitle(item);
+                const watchHref = `${animeHref(item.media)}/watch?ep=${Math.max(
+                  1,
+                  item.episode,
+                )}`;
+
+                return (
+                  <div className="personal-schedule-card" key={item.id}>
+                    <ScheduleItem
+                      href={watchHref}
+                      title={title}
+                      image={item.media.coverImage}
+                      episode={item.episode}
+                      dateLabel={formatUpcomingDate(item.airingAt)}
+                      airingAt={item.airingAt}
+                      onOpen={() => {
+                        trackProductClientEvent('personal_schedule_click', {
+                          source: 'personal_home',
+                          path: '/',
+                          entityType: 'episode',
+                          entityId: `${item.media.id}:${item.episode}`,
+                          metadata: {
+                            anime_id: item.media.id,
+                            episode: item.episode,
+                            airing_at: item.airingAt,
+                          },
+                          flush: true,
+                        });
+                      }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         <HomeMoodPicker
           value={mood}
