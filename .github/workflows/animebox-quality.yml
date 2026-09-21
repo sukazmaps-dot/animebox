@@ -55,17 +55,12 @@ jobs:
           lib/seo-episodes.ts
           app/episodes/sitemap.ts
           app/robots.ts
-          lib/profile-media-safety-server.ts
           lib/profile-media-publish-server.ts
-          lib/profile-media-review-server.ts
-          lib/profile-media-auto-review-server.ts
-          app/api/cron/profile-media-moderation/route.ts
           app/api/profile/editor/route.ts
           components/profile/ProfileEditorClient.tsx
           components/premium/PremiumStudioClient.tsx
           app/api/admin/community/media/route.ts
           app/admin/moderation/page.tsx
-          lib/profile-media-health-server.ts
           components/TelegramPromoCard.tsx
           components/TelegramSubscriptionGate.tsx
           lib/telegram-links.ts
