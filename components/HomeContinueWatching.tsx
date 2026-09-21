@@ -1,16 +1,22 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useRef } from 'react';
 
 import AnimeImage from '@/components/AnimeImage';
 import { getAnimeTitle } from '@/lib/anime-display';
 import { animeHref } from '@/lib/anime-url';
 import type { AnimeHistoryEntry } from '@/lib/anime-storage';
+import {
+  rememberContinueWatchingAttribution,
+  trackProductClientEvent,
+} from '@/lib/product-events-client';
 
 export type ContinueWatchingItem = {
   anime: AnimeHistoryEntry;
   episode: number;
   resumeSeconds?: number;
+  resumeMode?: 'resume' | 'next';
   completedEpisodes?: number;
   totalEpisodes?: number | null;
 };
@@ -27,6 +33,32 @@ export default function HomeContinueWatching({
 }: {
   items: ContinueWatchingItem[];
 }) {
+  const impressionSignature = items
+    .slice(0, 4)
+    .map((item) => `${item.anime.id}:${item.episode}:${item.resumeMode ?? 'resume'}`)
+    .join('|');
+  const lastImpressionRef = useRef('');
+
+  useEffect(() => {
+    if (!impressionSignature || lastImpressionRef.current === impressionSignature) return;
+
+    lastImpressionRef.current = impressionSignature;
+    trackProductClientEvent('continue_watching_impression', {
+      source: 'home_continue',
+      path: '/',
+      entityType: 'surface',
+      entityId: 'home_continue',
+      metadata: {
+        count: Math.min(items.length, 4),
+        items: items.slice(0, 4).map((item) => ({
+          anime_id: item.anime.id,
+          episode: item.episode,
+          mode: item.resumeMode ?? 'resume',
+        })),
+      },
+    });
+  }, [impressionSignature, items]);
+
   if (items.length === 0) return null;
 
   return (
@@ -47,6 +79,7 @@ export default function HomeContinueWatching({
           anime,
           episode,
           resumeSeconds = 0,
+          resumeMode = 'resume',
           completedEpisodes,
           totalEpisodes: explicitTotalEpisodes,
         }) => {
@@ -67,6 +100,26 @@ export default function HomeContinueWatching({
               key={anime.id}
               href={`${animeHref(anime)}/watch?ep=${Math.max(1, episode)}`}
               className="continue-smart-card"
+              onClick={() => {
+                rememberContinueWatchingAttribution({
+                  animeId: anime.id,
+                  episode: Math.max(1, episode),
+                  mode: resumeMode,
+                });
+                trackProductClientEvent('continue_watching_click', {
+                  source: 'home_continue',
+                  path: '/',
+                  entityType: 'episode',
+                  entityId: `${anime.id}:${Math.max(1, episode)}`,
+                  metadata: {
+                    anime_id: anime.id,
+                    episode: Math.max(1, episode),
+                    mode: resumeMode,
+                    resume_seconds: Math.max(0, Math.floor(resumeSeconds)),
+                  },
+                  flush: true,
+                });
+              }}
             >
               <div className="continue-smart-card__poster">
                 <AnimeImage
@@ -83,21 +136,25 @@ export default function HomeContinueWatching({
 
               <div className="continue-smart-card__body">
                 <span className="continue-smart-card__eyebrow">
-                  ЭПИЗОД {Math.max(1, episode)}
-                  {resumeSeconds >= 10 ? ` · ${formatResumeTime(resumeSeconds)}` : ''}
+                  {resumeMode === 'next' ? 'СЛЕДУЮЩАЯ СЕРИЯ' : `ЭПИЗОД ${Math.max(1, episode)}`}
+                  {resumeMode !== 'next' && resumeSeconds >= 10
+                    ? ` · ${formatResumeTime(resumeSeconds)}`
+                    : ''}
                 </span>
                 <strong title={title}>{title}</strong>
                 <div className="continue-smart-card__progress" aria-hidden="true">
                   <i style={{ width: `${progress}%` }} />
                 </div>
                 <small>
-                  {resumeSeconds >= 10
-                    ? `Продолжить с ${formatResumeTime(resumeSeconds)}`
-                    : completedEpisodes != null && totalEpisodes
-                      ? `${completedEpisodes} из ${totalEpisodes} серий подтверждено`
-                      : totalEpisodes
-                        ? `${episode} из ${totalEpisodes}`
-                        : 'Продолжить с места просмотра'}
+                  {resumeMode === 'next'
+                    ? `Открыть ${Math.max(1, episode)} серию`
+                    : resumeSeconds >= 10
+                      ? `Продолжить с ${formatResumeTime(resumeSeconds)}`
+                      : completedEpisodes != null && totalEpisodes
+                        ? `${completedEpisodes} из ${totalEpisodes} серий подтверждено`
+                        : totalEpisodes
+                          ? `${episode} из ${totalEpisodes}`
+                          : 'Продолжить с места просмотра'}
                 </small>
               </div>
 
