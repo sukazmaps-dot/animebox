@@ -1,7 +1,7 @@
 import type { Anime } from '@/types/anime';
 
-export const TASTE_GRAPH_VERSION = 'taste-v3';
-export const TASTE_GRAPH_CACHE_KEY = 'animebox:taste-graph:v3';
+export const TASTE_GRAPH_VERSION = 'taste-v4';
+export const TASTE_GRAPH_CACHE_KEY = 'animebox:taste-graph:v4';
 export const TASTE_GRAPH_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
 export type TasteGraph = {
@@ -10,6 +10,8 @@ export type TasteGraph = {
   confidence: number;
   sampleSize: number;
   completedEpisodes: number;
+  completionRate: number;
+  bingeScore: number;
   preferredEpisodeCount: number | null;
   genreWeights: Record<string, number>;
   negativeGenreWeights: Record<string, number>;
@@ -85,6 +87,8 @@ export function sanitizeTasteGraph(value: unknown): TasteGraph | null {
     confidence: clamp(finite(raw.confidence)),
     sampleSize: Math.max(0, Math.round(finite(raw.sampleSize))),
     completedEpisodes: Math.max(0, Math.round(finite(raw.completedEpisodes))),
+    completionRate: clamp(finite(raw.completionRate)),
+    bingeScore: clamp(finite(raw.bingeScore)),
     preferredEpisodeCount,
     genreWeights: toWeights(raw.genreWeights),
     negativeGenreWeights: toWeights(raw.negativeGenreWeights),
