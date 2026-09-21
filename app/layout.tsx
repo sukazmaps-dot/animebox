@@ -28,6 +28,7 @@ import './auth-modal-v2.css';
 import './activation-v2.css';
 import './anime-page-v3.css';
 import './performance-v2.css';
+import './tma-mobile-ux-v21.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
