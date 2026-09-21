@@ -46,8 +46,8 @@ type LoadedMedia = {
 const PUBLIC_BUCKET = 'profile-media';
 const QUARANTINE_BUCKET = 'profile-media-quarantine';
 
-const AUTO_MODERATION_ENABLED =
-  process.env.PROFILE_MEDIA_AUTO_MODERATION?.trim().toLowerCase() === 'true';
+// Patch 11 policy: AI profile-media moderation is fully disabled.
+const AUTO_MODERATION_ENABLED = false;
 
 function maxAllowedBytes(scope: ProfileMediaScope, kind: ProfileMediaKind) {
   if (scope === 'premium') {
@@ -636,6 +636,17 @@ export async function screenProfileMediaGroups(
     if (!group.candidates.length) continue;
 
     const items = await moderateGroup(group);
+
+    // Patch 11 post-moderation mode: after technical validation, publish
+    // immediately. This explicit fast path prevents stale Vercel env vars from
+    // re-enabling the old OpenAI review / retry flow.
+    if (!AUTO_MODERATION_ENABLED) {
+      for (const item of items) {
+        await approveImmediately(userId, group, item);
+      }
+      continue;
+    }
+
     const blocked = items.find((item) => item.moderation.decision === 'block');
 
     if (blocked) {
