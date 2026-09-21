@@ -42,7 +42,7 @@ async function rejectGroup(groupId: string, actorId: string, actorRole: 'owner' 
   const now = new Date().toISOString();
   const { error: rowsError } = await admin
     .from('profile_media_moderation')
-    .update({ status: 'rejected', reviewed_by: actorId, reviewed_at: now, updated_at: now })
+    .update({ status: 'rejected', automation_state: 'done', reviewed_by: actorId, reviewed_at: now, updated_at: now })
     .eq('review_group_id', groupId)
     .eq('status', 'review');
   if (rowsError) throw rowsError;
@@ -180,6 +180,7 @@ async function approveGroup(groupId: string, actorId: string, actorRole: 'owner'
       .from('profile_media_review_groups')
       .update({
         status: stale ? 'stale' : 'approved',
+        automation_state: 'done',
         reviewed_by: actorId,
         reviewed_at: now,
         updated_at: now,
@@ -223,6 +224,7 @@ export async function GET() {
       .from('profile_media_review_groups')
       .select('id,user_id,scope,kind,status,apply_payload,created_at')
       .eq('status', 'review')
+      .eq('automation_state', 'manual')
       .order('created_at', { ascending: true })
       .limit(100);
     if (error) throw error;
