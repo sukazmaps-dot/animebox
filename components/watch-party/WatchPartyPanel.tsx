@@ -772,6 +772,17 @@ export default function WatchPartyPanel({
         return;
       }
 
+      if (packet.type === 'REACTION') {
+        appendReaction(packet.reaction);
+        return;
+      }
+
+      if (packet.type === 'VOTE_STATE') {
+        voteStateRef.current = packet.vote;
+        setVoteState(packet.vote);
+        return;
+      }
+
       if (packet.type === 'CHAT_MESSAGE') {
         if (welcomed) appendChatMessage(packet.message);
         return;
@@ -820,7 +831,7 @@ export default function WatchPartyPanel({
       scheduleGuestReconnectRef.current();
     });
 
-  }, [appendChatMessage, dispatchPlayerCommand, publishParticipants, send]);
+  }, [appendChatMessage, appendReaction, dispatchPlayerCommand, publishParticipants, send]);
 
   const startGuest = useCallback(async (invite: WatchPartyInvite) => {
     intentionalCloseRef.current = false;
@@ -936,7 +947,18 @@ export default function WatchPartyPanel({
             return;
           }
 
-          if (packet.type === 'CHAT_MESSAGE') {
+          if (packet.type === 'REACTION') {
+        appendReaction(packet.reaction);
+        return;
+      }
+
+      if (packet.type === 'VOTE_STATE') {
+        voteStateRef.current = packet.vote;
+        setVoteState(packet.vote);
+        return;
+      }
+
+      if (packet.type === 'CHAT_MESSAGE') {
             appendChatMessage(packet.message);
             return;
           }
@@ -1167,7 +1189,17 @@ export default function WatchPartyPanel({
         return;
       }
 
-      if (packet.type === 'CHAT_SEND') {
+      if (packet.type === 'REACTION_SEND') {
+          acceptReaction(participant, packet.id, packet.reaction);
+          return;
+        }
+
+        if (packet.type === 'VOTE_CAST') {
+          handleVoteCast(participant, packet);
+          return;
+        }
+
+        if (packet.type === 'CHAT_SEND') {
         if (chatIdsRef.current.has(packet.id)) return;
         const now = Date.now();
         const previous = hostPeerChatAtRef.current.get(senderId) ?? 0;
@@ -1318,6 +1350,16 @@ export default function WatchPartyPanel({
           return;
         }
 
+        if (packet.type === 'REACTION_SEND') {
+          acceptReaction(participant, packet.id, packet.reaction);
+          return;
+        }
+
+        if (packet.type === 'VOTE_CAST') {
+          handleVoteCast(participant, packet);
+          return;
+        }
+
         if (packet.type === 'CHAT_SEND') {
           if (chatIdsRef.current.has(packet.id)) return;
           const now = Date.now();
@@ -1405,12 +1447,14 @@ export default function WatchPartyPanel({
       setError(describeWatchPartyPeerError(peerError, network));
     });
   }, [
+    acceptReaction,
     appendChatMessage,
     broadcast,
     broadcastParticipants,
     currentPlayerSnapshot,
     ensureHostTimers,
     episodeNumber,
+    handleVoteCast,
     publishParticipants,
     redirectToRegistration,
     resolveIdentity,
