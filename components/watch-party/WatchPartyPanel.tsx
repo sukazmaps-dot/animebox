@@ -576,25 +576,6 @@ export default function WatchPartyPanel({
 
   const scheduleGuestReconnectRef = useRef<() => void>(() => undefined);
 
-  const ensureHostTimers = useCallback(() => {
-    if (roleRef.current !== 'host') return;
-
-    if (heartbeatTimerRef.current == null) {
-      heartbeatTimerRef.current = window.setInterval(() => {
-        broadcast({ type: 'ROOM_HEARTBEAT', sentAt: Date.now() });
-        void syncRegisteredRoom();
-      }, HOST_HEARTBEAT_MS);
-
-      void syncRegisteredRoom();
-    }
-
-    if (syncTimerRef.current == null) {
-      syncTimerRef.current = window.setInterval(() => {
-        sendHostSync();
-      }, PLAYER_SYNC_MS);
-    }
-  }, [broadcast, sendHostSync, syncRegisteredRoom]);
-
   const syncRegisteredRoom = useCallback(async () => {
     if (roleRef.current !== 'host') return;
 
@@ -630,6 +611,26 @@ export default function WatchPartyPanel({
       // Lobby registration is best-effort. P2P/relay playback must continue.
     }
   }, [episodeNumber, status]);
+
+  const ensureHostTimers = useCallback(() => {
+    if (roleRef.current !== 'host') return;
+
+    if (heartbeatTimerRef.current == null) {
+      heartbeatTimerRef.current = window.setInterval(() => {
+        broadcast({ type: 'ROOM_HEARTBEAT', sentAt: Date.now() });
+        void syncRegisteredRoom();
+      }, HOST_HEARTBEAT_MS);
+
+      void syncRegisteredRoom();
+    }
+
+    if (syncTimerRef.current == null) {
+      syncTimerRef.current = window.setInterval(() => {
+        sendHostSync();
+      }, PLAYER_SYNC_MS);
+    }
+  }, [broadcast, sendHostSync, syncRegisteredRoom]);
+
 
   const sendGuestPacket = useCallback((packet: WatchPartyPacket) => {
     if (guestTransportRef.current === 'server' && relayRef.current) {
