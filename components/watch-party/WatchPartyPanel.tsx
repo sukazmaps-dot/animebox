@@ -89,7 +89,6 @@ const CHAT_SEND_COOLDOWN_MS = 650;
 const NEGOTIATION_TIMEOUT_MS = 18_000;
 const HANDSHAKE_TIMEOUT_MS = 8_000;
 const MAX_RECONNECT_ATTEMPTS = 6;
-const SERVER_RELAY_FALLBACK_MS = 0;
 const HOST_STARTUP_TIMEOUT_MS = 15_000;
 const GUEST_HEALTH_CHECK_MS = 10_000;
 const HOST_STALE_MS = 45_000;
@@ -961,6 +960,8 @@ export default function WatchPartyPanel({
   ]);
 
   const startGuest = useCallback(async (invite: WatchPartyInvite) => {
+    const generation = transportGenerationRef.current + 1;
+    transportGenerationRef.current = generation;
     intentionalCloseRef.current = false;
     hostEndedRef.current = false;
     roleRef.current = 'guest';
@@ -976,35 +977,57 @@ export default function WatchPartyPanel({
       return;
     }
     identityRef.current = identity;
-    if (intentionalCloseRef.current) return;
+    if (
+      intentionalCloseRef.current ||
+      transportGenerationRef.current !== generation
+    ) return;
 
     guestWelcomedRef.current = false;
+    relayWelcomedRef.current = false;
     guestTransportRef.current = null;
+    lastHostSeenAtRef.current = Date.now();
 
     const startServerRelay = async () => {
       if (
         intentionalCloseRef.current ||
         hostEndedRef.current ||
-        guestWelcomedRef.current ||
+        transportGenerationRef.current !== generation ||
         relayRef.current
       ) return;
 
       try {
         const relay = await openWatchPartyRelay(invite, (packet) => {
-          if (intentionalCloseRef.current || hostEndedRef.current) return;
+          if (
+            intentionalCloseRef.current ||
+            hostEndedRef.current ||
+            transportGenerationRef.current !== generation
+          ) return;
+
+          lastHostSeenAtRef.current = Date.now();
 
           if (packet.type === 'WELCOME') {
             if (packet.roomId !== invite.roomId || packet.protocol !== WATCH_PARTY_PROTOCOL) return;
-            if (guestTransportRef.current === 'p2p') return;
+
+            relayWelcomedRef.current = true;
+            reconnectAttemptRef.current = 0;
+            publishParticipants(packet.participants);
+
+            if (guestTransportRef.current === 'p2p' && guestConnectionRef.current?.open) {
+              // Keep Realtime subscribed as a hot standby. If WebRTC dies, the
+              // room can switch transports without a visible reconnect cycle.
+              return;
+            }
 
             guestWelcomedRef.current = true;
             guestTransportRef.current = 'server';
-            reconnectAttemptRef.current = 0;
-            publishParticipants(packet.participants);
             setNetworkRoute('server');
             setError('');
             setStatus('active');
             guestConnectionRef.current?.close();
+            return;
+          }
+
+          if (packet.type === 'ROOM_HEARTBEAT') {
             return;
           }
 
@@ -1106,15 +1129,51 @@ export default function WatchPartyPanel({
             setStatus('error');
             setError(rejectMessage(packet.reason));
           }
+        }, {
+          presence: {
+            userId: identity.userId,
+            name: identity.displayName,
+            host: false,
+            joinedAt: Date.now(),
+          },
+          onPresence: (members) => {
+            if (transportGenerationRef.current !== generation) return;
+            publishParticipants(
+              members.map((member) => ({
+                id: member.relayId,
+                userId: member.userId,
+                name: member.name,
+                host: member.host,
+                joinedAt: member.joinedAt,
+              })),
+            );
+          },
+          onStatus: (relayStatus) => {
+            if (transportGenerationRef.current !== generation) return;
+            if (
+              relayStatus !== 'open' &&
+              guestTransportRef.current === 'server' &&
+              !(guestConnectionRef.current?.open)
+            ) {
+              setStatus('reconnecting');
+              setError('Восстанавливаем канал комнаты…');
+            }
+          },
         });
 
-        if (intentionalCloseRef.current || hostEndedRef.current || guestWelcomedRef.current) {
+        if (
+          intentionalCloseRef.current ||
+          hostEndedRef.current ||
+          transportGenerationRef.current !== generation
+        ) {
           await relay.close();
           return;
         }
 
         relayRef.current = relay;
-        setError('WebRTC недоступен — подключаем защищённый серверный relay…');
+        if (guestTransportRef.current !== 'p2p') {
+          setError('Подтверждаем вход в комнату…');
+        }
 
         const hello: WatchPartyPacket = {
           type: 'HELLO',
@@ -1132,35 +1191,65 @@ export default function WatchPartyPanel({
 
         // Broadcast has no durable queue. Retry HELLO briefly so a host
         // that is finishing its Realtime subscription cannot miss it.
-        for (let attempt = 0; attempt < 5 && !guestWelcomedRef.current; attempt += 1) {
+        for (let attempt = 0; attempt < 5 && !relayWelcomedRef.current; attempt += 1) {
           await relay.send(hello);
-          if (guestWelcomedRef.current) break;
-          await new Promise((resolve) => window.setTimeout(resolve, 1_200));
+          if (relayWelcomedRef.current) break;
+          await new Promise((resolve) => window.setTimeout(resolve, 1_000));
         }
       } catch {
-        if (!guestWelcomedRef.current) {
-          setError('Не удалось открыть резервный relay. Продолжаем попытки WebRTC…');
+        if (
+          transportGenerationRef.current === generation &&
+          !guestWelcomedRef.current
+        ) {
+          setError('Realtime пока недоступен. Пробуем прямое соединение…');
         }
       }
     };
 
-    relayFallbackTimerRef.current = window.setTimeout(() => {
-      relayFallbackTimerRef.current = null;
-      void startServerRelay();
-    }, SERVER_RELAY_FALLBACK_MS);
+    void startServerRelay();
 
-    const { peer, network } = await createWatchPartyPeer();
+    let peerBundle: Awaited<ReturnType<typeof createWatchPartyPeer>>;
+    try {
+      peerBundle = await createWatchPartyPeer();
+    } catch {
+      if (
+        transportGenerationRef.current === generation &&
+        !relayWelcomedRef.current
+      ) {
+        setError('WebRTC недоступен. Ждём резервный канал комнаты…');
+      }
+      return;
+    }
+
+    const { peer, network } = peerBundle;
+    if (
+      transportGenerationRef.current !== generation ||
+      intentionalCloseRef.current
+    ) {
+      if (!peer.destroyed) peer.destroy();
+      return;
+    }
+
     setSignalingMode(network.signalingMode);
-    setNetworkRoute('unknown');
+    if (!relayWelcomedRef.current) setNetworkRoute('unknown');
     peerRef.current = peer;
 
     scheduleGuestReconnectRef.current = () => {
       if (
         intentionalCloseRef.current ||
         hostEndedRef.current ||
-        peer.destroyed ||
-        guestTransportRef.current === 'server'
+        transportGenerationRef.current !== generation ||
+        peer.destroyed
       ) return;
+
+      if (relayWelcomedRef.current && relayRef.current?.isOpen()) {
+        guestWelcomedRef.current = true;
+        guestTransportRef.current = 'server';
+        setNetworkRoute('server');
+        setError('');
+        setStatus('active');
+        return;
+      }
       if (reconnectTimerRef.current != null) return;
 
       const attempt = reconnectAttemptRef.current + 1;
@@ -1171,7 +1260,8 @@ export default function WatchPartyPanel({
         return;
       }
 
-      const delay = Math.min(8_000, 700 * 2 ** (attempt - 1));
+      const jitter = Math.floor(Math.random() * 280);
+      const delay = Math.min(8_000, 700 * 2 ** (attempt - 1)) + jitter;
       reconnectTimerRef.current = window.setTimeout(() => {
         reconnectTimerRef.current = null;
         if (peer.disconnected && !peer.destroyed) {
@@ -1186,18 +1276,48 @@ export default function WatchPartyPanel({
     };
 
     peer.on('open', () => {
+      if (transportGenerationRef.current !== generation) return;
       reconnectAttemptRef.current = 0;
       attachGuestConnection(peer, invite, identity);
     });
 
     peer.on('disconnected', () => {
-      if (intentionalCloseRef.current || hostEndedRef.current || guestTransportRef.current === 'server') return;
+      if (
+        intentionalCloseRef.current ||
+        hostEndedRef.current ||
+        transportGenerationRef.current !== generation
+      ) return;
+
+      // PeerJS signaling can disappear while an established DataChannel is
+      // still healthy. Do not flash "reconnecting" unless both transports are
+      // actually unavailable.
+      if (guestConnectionRef.current?.open) return;
+      if (relayWelcomedRef.current && relayRef.current?.isOpen()) {
+        guestTransportRef.current = 'server';
+        setNetworkRoute('server');
+        setError('');
+        setStatus('active');
+        return;
+      }
+
       setStatus('reconnecting');
       scheduleGuestReconnectRef.current();
     });
 
     peer.on('error', (peerError) => {
-      if (intentionalCloseRef.current || hostEndedRef.current || guestTransportRef.current === 'server') return;
+      if (
+        intentionalCloseRef.current ||
+        hostEndedRef.current ||
+        transportGenerationRef.current !== generation
+      ) return;
+      if (guestConnectionRef.current?.open) return;
+      if (relayWelcomedRef.current && relayRef.current?.isOpen()) {
+        guestTransportRef.current = 'server';
+        setNetworkRoute('server');
+        setError('');
+        setStatus('active');
+        return;
+      }
       const type = 'type' in peerError ? String(peerError.type) : '';
       if (type === 'peer-unavailable' || type === 'network' || type === 'disconnected') {
         setStatus('reconnecting');
@@ -1207,6 +1327,37 @@ export default function WatchPartyPanel({
       setStatus('error');
       setError(describeWatchPartyPeerError(peerError, network));
     });
+
+    if (healthTimerRef.current == null) {
+      healthTimerRef.current = window.setInterval(() => {
+        if (
+          roleRef.current !== 'guest' ||
+          intentionalCloseRef.current ||
+          hostEndedRef.current ||
+          transportGenerationRef.current !== generation
+        ) {
+          return;
+        }
+
+        const lastSeen = lastHostSeenAtRef.current;
+        if (!lastSeen || Date.now() - lastSeen < HOST_STALE_MS) return;
+
+        if (guestConnectionRef.current?.open) {
+          // The P2P channel itself is alive; wait for the next room heartbeat
+          // before disturbing playback.
+          return;
+        }
+
+        if (relayWelcomedRef.current && relayRef.current?.isOpen()) {
+          setError('Хост временно не отвечает. Канал комнаты остаётся подключён.');
+          return;
+        }
+
+        setStatus('reconnecting');
+        setError('Связь с комнатой потеряна. Восстанавливаем соединение…');
+        scheduleGuestReconnectRef.current();
+      }, GUEST_HEALTH_CHECK_MS);
+    }
   }, [
     acceptHostTransfer,
     appendChatMessage,
