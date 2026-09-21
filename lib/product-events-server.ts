@@ -44,6 +44,8 @@ export const PRODUCT_CLIENT_EVENT_NAMES = [
   'watch_party_vote_cast',
   'watch_party_room_ended',
   'watch_party_room_reported',
+  'watch_party_host_transferred',
+  'watch_party_participant_kicked',
 ] as const;
 
 export type ProductClientEventName = (typeof PRODUCT_CLIENT_EVENT_NAMES)[number];
