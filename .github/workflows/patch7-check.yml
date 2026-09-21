@@ -29,6 +29,10 @@ jobs:
           app/api/watch-party/rooms/route.ts
           app/api/watch-party/rooms/join/route.ts
           app/api/watch-party/rooms/report/route.ts
+          app/api/watch-party/rooms/transfer/route.ts
+          lib/product-analytics.ts
+          lib/product-analytics-server.ts
+          components/admin/ProductAnalyticsDashboard.tsx
           components/watch-party/WatchTogetherHub.tsx
           components/watch-party/WatchPartyPanel.tsx
       - name: Production build
