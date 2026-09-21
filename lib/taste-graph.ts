@@ -1,7 +1,7 @@
 import type { Anime } from '@/types/anime';
 
-export const TASTE_GRAPH_VERSION = 'taste-v2';
-export const TASTE_GRAPH_CACHE_KEY = 'animebox:taste-graph:v2';
+export const TASTE_GRAPH_VERSION = 'taste-v3';
+export const TASTE_GRAPH_CACHE_KEY = 'animebox:taste-graph:v3';
 export const TASTE_GRAPH_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
 export type TasteGraph = {
@@ -13,6 +13,10 @@ export type TasteGraph = {
   preferredEpisodeCount: number | null;
   genreWeights: Record<string, number>;
   negativeGenreWeights: Record<string, number>;
+  completedGenreWeights: Record<string, number>;
+  excludedAnimeIds: number[];
+  completedAnimeIds: number[];
+  droppedAnimeIds: number[];
   topGenres: string[];
 };
 
@@ -66,6 +70,15 @@ export function sanitizeTasteGraph(value: unknown): TasteGraph | null {
     ? null
     : Math.max(1, Math.min(2000, Math.round(finite(raw.preferredEpisodeCount))));
 
+  const toIds = (candidate: unknown) => {
+    if (!Array.isArray(candidate)) return [];
+    return [...new Set(
+      candidate
+        .map((item) => Math.round(finite(item)))
+        .filter((item) => Number.isSafeInteger(item) && item > 0),
+    )].slice(0, 2000);
+  };
+
   return {
     version: TASTE_GRAPH_VERSION,
     generatedAt: typeof raw.generatedAt === 'string' ? raw.generatedAt : new Date().toISOString(),
@@ -75,6 +88,10 @@ export function sanitizeTasteGraph(value: unknown): TasteGraph | null {
     preferredEpisodeCount,
     genreWeights: toWeights(raw.genreWeights),
     negativeGenreWeights: toWeights(raw.negativeGenreWeights),
+    completedGenreWeights: toWeights(raw.completedGenreWeights),
+    excludedAnimeIds: toIds(raw.excludedAnimeIds),
+    completedAnimeIds: toIds(raw.completedAnimeIds),
+    droppedAnimeIds: toIds(raw.droppedAnimeIds),
     topGenres,
   };
 }
@@ -144,6 +161,28 @@ export function animeGenreAffinity(anime: Pick<Anime, 'genres'>, graph: TasteGra
   return {
     positive: clamp(positive / 2.2),
     negative: clamp(negative / 1.8),
+    matches: matches.slice(0, 3),
+  };
+}
+
+export function completedGenreAffinity(
+  anime: Pick<Anime, 'genres'>,
+  graph: TasteGraph | null | undefined,
+) {
+  if (!graph) return { positive: 0, matches: [] as string[] };
+
+  const matches: string[] = [];
+  let positive = 0;
+
+  for (const rawGenre of anime.genres ?? []) {
+    const genre = normalizeTasteToken(rawGenre);
+    const weight = graph.completedGenreWeights[genre] ?? 0;
+    positive += weight;
+    if (weight >= 0.28) matches.push(rawGenre);
+  }
+
+  return {
+    positive: clamp(positive / 2),
     matches: matches.slice(0, 3),
   };
 }
