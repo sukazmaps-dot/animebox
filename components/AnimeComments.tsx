@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import UserIdentity from '@/components/identity/UserIdentity';
 import type { CommunityComment, CommunityCommentsPage } from '@/types/community-comments';
 import { premiumMediaStyle } from '@/lib/premium-studio';
+import { PROFILE_APPEARANCE_CHANGED_EVENT } from '@/lib/profile-live-sync';
 
 export function SpoilerText({ text, spoiler }: { text: string; spoiler: boolean }) {
   const [revealed, setRevealed] = useState(false);
@@ -391,6 +392,17 @@ export default function AnimeComments({
     });
 
     return () => listener.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const refreshAppearance = () => {
+      setRevision((value) => value + 1);
+    };
+
+    window.addEventListener(PROFILE_APPEARANCE_CHANGED_EVENT, refreshAppearance);
+    return () => {
+      window.removeEventListener(PROFILE_APPEARANCE_CHANGED_EVENT, refreshAppearance);
+    };
   }, []);
 
   return (
