@@ -34,7 +34,6 @@ type StudioResponse = {
   theme?: PremiumProfileTheme;
   settings?: PremiumStudioSettings;
   error?: string;
-  mediaReviewQueued?: boolean;
 };
 
 export type PremiumStudioHandle = {
@@ -448,11 +447,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       const payload = (await response.json()) as StudioResponse;
 
       if (!response.ok) {
-        const requestError = new Error(payload.error || 'Не удалось сохранить Profile Studio') as Error & {
-          mediaReviewQueued?: boolean;
-        };
-        requestError.mediaReviewQueued = Boolean(payload.mediaReviewQueued);
-        throw requestError;
+        throw new Error(payload.error || 'Не удалось сохранить Profile Studio');
       }
 
       const committed = payload.settings ?? next;
@@ -606,7 +601,6 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
 
     setUploading(kind);
     const pendingMedia: PendingProfileMediaUpload[] = [];
-    let reviewQueued = false;
 
     try {
       const fallback = await staticWebpFallback(file, kind);
@@ -668,22 +662,11 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
             }),
       };
 
-      try {
-        await persistSettings(
-          next,
-          kind === 'avatar' ? 'Premium-аватар обновлён ✓' : 'Premium-баннер обновлён ✓',
-          pendingMedia,
-        );
-      } catch (persistError) {
-        reviewQueued = Boolean(
-          persistError &&
-          typeof persistError === 'object' &&
-          'mediaReviewQueued' in persistError &&
-          (persistError as { mediaReviewQueued?: boolean }).mediaReviewQueued,
-        );
-        if (!reviewQueued) await discardPrivateProfileMedia(pendingMedia);
-        throw persistError;
-      }
+      await persistSettings(
+        next,
+        kind === 'avatar' ? 'Premium-аватар обновлён ✓' : 'Premium-баннер обновлён ✓',
+        pendingMedia,
+      );
 
       const obsolete = [oldPath, oldStaticPath]
         .filter((path): path is string => Boolean(path && path.includes('/premium/')))
@@ -693,7 +676,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       }
       return true;
     } catch (requestError) {
-      if (!reviewQueued && pendingMedia.length) {
+      if (pendingMedia.length) {
         await discardPrivateProfileMedia(pendingMedia);
       }
       setError(
