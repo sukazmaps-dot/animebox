@@ -37,11 +37,13 @@ export default function TelegramPromoCard({
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
-    const subscribed =
-      document.documentElement.dataset.telegramSubscribed === 'true';
+    const frame = window.requestAnimationFrame(() => {
+      const subscribed =
+        document.documentElement.dataset.telegramSubscribed === 'true';
 
-    setHidden(subscribed || dismissedRecently());
-    setReady(true);
+      setHidden(subscribed || dismissedRecently());
+      setReady(true);
+    });
 
     const observer = new MutationObserver(() => {
       if (document.documentElement.dataset.telegramSubscribed === 'true') {
@@ -54,7 +56,10 @@ export default function TelegramPromoCard({
       attributeFilter: ['data-telegram-subscribed'],
     });
 
-    return () => observer.disconnect();
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   }, []);
 
   useEffect(() => {
