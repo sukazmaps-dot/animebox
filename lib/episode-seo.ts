@@ -5,6 +5,7 @@ import { unstable_cache } from 'next/cache';
 import { getAnimeSeoIdentity } from '@/lib/anime-seo';
 import { resolveAnimeRoute } from '@/lib/anime-route';
 import { getEpisodeProviderAvailability } from '@/lib/episode-provider-availability';
+import { syncSeoEpisodeIndex } from '@/lib/seo-episode-index';
 import { truncateSeoText } from '@/lib/seo-text';
 import type { Anime } from '@/types/anime';
 
@@ -24,6 +25,14 @@ const getCachedEpisodeSeoAvailability = unstable_cache(
       const availability = await getEpisodeProviderAvailability(anime, {
         signal: AbortSignal.timeout(1_800),
       });
+
+      if (availability.status === 'available' && availability.episodes.length) {
+        try {
+          await syncSeoEpisodeIndex(anime, availability);
+        } catch (indexError) {
+          console.warn('[episode-seo] fresh index sync failed:', indexError);
+        }
+      }
 
       return {
         status: availability.status,
@@ -114,6 +123,7 @@ export function buildEpisodeVideoStructuredData(
   anime: Anime,
   episode: number,
   canonicalUrl: string,
+  options: { uploadDate?: string | null } = {},
 ) {
   const identity = getAnimeSeoIdentity(anime);
   const name = `${identity.pageHeading} — ${episode} серия`;
@@ -154,6 +164,7 @@ export function buildEpisodeVideoStructuredData(
     episodeNumber: episode,
     image: thumbnail,
     inLanguage: 'ru-RU',
+    ...(options.uploadDate ? { datePublished: options.uploadDate } : {}),
     ...(season
       ? { partOfSeason: { '@id': seasonId } }
       : { partOfSeries: { '@id': seriesId } }),
@@ -169,6 +180,7 @@ export function buildEpisodeVideoStructuredData(
     thumbnailUrl: thumbnail,
     duration,
     inLanguage: 'ru-RU',
+    ...(options.uploadDate ? { uploadDate: options.uploadDate } : {}),
     isPartOf: { '@id': episodeId },
     potentialAction: {
       '@type': 'WatchAction',
