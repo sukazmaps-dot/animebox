@@ -155,11 +155,17 @@ export default function WatchTogetherHub() {
   }, []);
 
   useEffect(() => {
-    void loadPublicRooms();
+    const initialTimer = window.setTimeout(() => {
+      void loadPublicRooms();
+    }, 0);
     const timer = window.setInterval(() => {
       void loadPublicRooms();
     }, 20_000);
-    return () => window.clearInterval(timer);
+
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(timer);
+    };
   }, [loadPublicRooms]);
 
 
@@ -407,6 +413,9 @@ export default function WatchTogetherHub() {
                 <article className={styles.publicRoomCard} key={room.roomId}>
                   <div className={styles.publicRoomPoster}>
                     {room.coverUrl ? (
+                      // Public room artwork can come from AniList/Shikimori/CDN
+                      // hosts that are not part of Next Image's static allowlist.
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img src={room.coverUrl} alt="" loading="lazy" />
                     ) : (
                       <span>AB</span>
