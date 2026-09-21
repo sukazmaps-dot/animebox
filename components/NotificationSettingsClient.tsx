@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuthState } from '@/components/AuthStateProvider';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
+import { trackProductClientEvent } from '@/lib/product-events-client';
 import { isTelegramMiniAppRuntime } from '@/lib/telegram-auto-login';
 
 type Subscription = {
@@ -43,6 +44,27 @@ type LastDelivery = {
   episode: number;
 };
 
+type InboxItem = {
+  id: number;
+  animeId: number;
+  animeTitle: string;
+  animeSlug: string;
+  episode: number;
+  sentAt: string;
+  readAt: string | null;
+};
+
+type InboxGroup = {
+  animeId: number;
+  animeTitle: string;
+  animeSlug: string;
+  latestEpisode: number;
+  latestSentAt: string;
+  ids: number[];
+  episodes: number[];
+  unread: number;
+};
+
 type SettingsResponse = {
   ok?: boolean;
   telegramLinked?: boolean;
@@ -51,6 +73,8 @@ type SettingsResponse = {
   subscriptions?: Subscription[];
   serviceHealth?: NotificationHealth;
   lastDelivery?: LastDelivery | null;
+  inbox?: InboxItem[];
+  unreadCount?: number;
   error?: string;
   message?: string;
 };
@@ -91,6 +115,73 @@ function errorMessage(data: SettingsResponse) {
   }
 }
 
+function groupInbox(items: InboxItem[]): InboxGroup[] {
+  const groups = new Map<number, InboxGroup>();
+
+  for (const item of items) {
+    const existing = groups.get(item.animeId);
+
+    if (!existing) {
+      groups.set(item.animeId, {
+        animeId: item.animeId,
+        animeTitle: item.animeTitle,
+        animeSlug: item.animeSlug,
+        latestEpisode: item.episode,
+        latestSentAt: item.sentAt,
+        ids: [item.id],
+        episodes: [item.episode],
+        unread: item.readAt ? 0 : 1,
+      });
+      continue;
+    }
+
+    existing.ids.push(item.id);
+    if (!existing.episodes.includes(item.episode)) {
+      existing.episodes.push(item.episode);
+    }
+    if (!item.readAt) existing.unread += 1;
+
+    if (Date.parse(item.sentAt) > Date.parse(existing.latestSentAt)) {
+      existing.latestSentAt = item.sentAt;
+      existing.latestEpisode = item.episode;
+      existing.animeTitle = item.animeTitle;
+      existing.animeSlug = item.animeSlug;
+    }
+  }
+
+  return [...groups.values()]
+    .map((group) => ({
+      ...group,
+      episodes: group.episodes.sort((a, b) => b - a),
+    }))
+    .sort(
+      (a, b) =>
+        Date.parse(b.latestSentAt) - Date.parse(a.latestSentAt),
+    );
+}
+
+function formatDeliveryDate(value: string) {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return '';
+
+  const date = new Date(timestamp);
+  const now = new Date();
+  const sameDay =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+
+  return sameDay
+    ? date.toLocaleTimeString('ru-RU', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : date.toLocaleDateString('ru-RU', {
+        day: '2-digit',
+        month: 'short',
+      });
+}
+
 export default function NotificationSettingsClient() {
   const {
     user,
@@ -102,12 +193,16 @@ export default function NotificationSettingsClient() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [inboxBusy, setInboxBusy] = useState(false);
   const [telegramLinked, setTelegramLinked] = useState(false);
   const [telegramEnabled, setTelegramEnabled] = useState(false);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [serviceHealth, setServiceHealth] = useState<NotificationHealth | null>(null);
+  const [serviceHealth, setServiceHealth] =
+    useState<NotificationHealth | null>(null);
   const [lastDelivery, setLastDelivery] = useState<LastDelivery | null>(null);
+  const [inbox, setInbox] = useState<InboxItem[]>([]);
   const [message, setMessage] = useState('');
+  const centerTrackedRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -142,20 +237,16 @@ export default function NotificationSettingsClient() {
 
     async function loadSettings() {
       try {
-        setLoading(true);
-        setMessage('');
-
         const response = await fetch('/api/notifications/settings', {
           cache: 'no-store',
           signal: controller.signal,
         });
 
         if (response.status === 401) {
-          // The provider already says we have a user. A transient 401 can occur
-          // while the Telegram-created browser session is finishing its cookie
-          // sync, so do not bounce the Mini App to /login immediately.
           if (isTelegramMiniAppRuntime()) {
-            throw new Error('Сессия Telegram ещё синхронизируется. Попробуй ещё раз.');
+            throw new Error(
+              'Сессия Telegram ещё синхронизируется. Попробуй ещё раз.',
+            );
           }
 
           window.location.replace('/login?next=%2Fnotifications');
@@ -175,11 +266,29 @@ export default function NotificationSettingsClient() {
         setSubscriptions(data.subscriptions ?? []);
         setServiceHealth(data.serviceHealth ?? null);
         setLastDelivery(data.lastDelivery ?? null);
+        setInbox(data.inbox ?? []);
+        setMessage('');
+
+        if (!centerTrackedRef.current) {
+          centerTrackedRef.current = true;
+          trackProductClientEvent('notification_center_open', {
+            source: inTelegram ? 'telegram_mini_app' : 'web',
+            path: '/notifications',
+            entityType: 'surface',
+            entityId: 'notification_center',
+            metadata: {
+              unread_count: Number(data.unreadCount ?? 0),
+              subscriptions: data.subscriptions?.length ?? 0,
+            },
+          });
+        }
       } catch (error) {
         if (!active || (error as Error).name === 'AbortError') return;
 
         setMessage(
-          error instanceof Error ? error.message : 'Не удалось загрузить настройки.',
+          error instanceof Error
+            ? error.message
+            : 'Не удалось загрузить настройки.',
         );
       } finally {
         if (active) setLoading(false);
@@ -201,6 +310,16 @@ export default function NotificationSettingsClient() {
     telegramMiniApp,
     user,
   ]);
+
+  const inboxGroups = useMemo(() => groupInbox(inbox), [inbox]);
+  const unreadCount = useMemo(
+    () => inbox.reduce((sum, item) => sum + (item.readAt ? 0 : 1), 0),
+    [inbox],
+  );
+  const activeSubscriptions = useMemo(
+    () => subscriptions.filter((item) => item.enabled),
+    [subscriptions],
+  );
 
   async function toggleGlobal() {
     if (busy || !telegramLinked) return;
@@ -230,9 +349,17 @@ export default function NotificationSettingsClient() {
       if (!response.ok || !data.ok) throw new Error(errorMessage(data));
 
       setTelegramEnabled(next);
-      setMessage(next ? 'Telegram-уведомления включены.' : 'Все Telegram-уведомления приостановлены.');
+      setMessage(
+        next
+          ? 'Telegram-уведомления включены.'
+          : 'Все Telegram-уведомления приостановлены.',
+      );
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Не удалось обновить настройку.');
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Не удалось обновить настройку.',
+      );
     } finally {
       setBusy(false);
     }
@@ -247,7 +374,9 @@ export default function NotificationSettingsClient() {
     try {
       const allowed = await requestTelegramWriteAccess();
       if (!allowed) {
-        throw new Error('Telegram не дал разрешение на сообщения от бота.');
+        throw new Error(
+          'Telegram не дал разрешение на сообщения от бота.',
+        );
       }
 
       const response = await fetch('/api/notifications/test', {
@@ -261,7 +390,9 @@ export default function NotificationSettingsClient() {
       }
 
       setTelegramEnabled(true);
-      setMessage('Тест отправлен. Проверь личные сообщения от AnimeBox Bot.');
+      setMessage(
+        'Тест отправлен. Проверь личные сообщения от AnimeBox Bot.',
+      );
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -273,49 +404,165 @@ export default function NotificationSettingsClient() {
     }
   }
 
-  async function disableSubscription(animeId: number) {
+  async function toggleSubscription(item: Subscription) {
     if (busy) return;
+
+    const next = !item.enabled;
     setBusy(true);
     setMessage('');
 
     try {
+      if (next) {
+        const allowed = await requestTelegramWriteAccess();
+        if (!allowed) {
+          throw new Error(
+            'Telegram не дал разрешение на сообщения от бота.',
+          );
+        }
+      }
+
       const response = await fetch('/api/notifications/subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         cache: 'no-store',
-        body: JSON.stringify({ animeId, enabled: false }),
+        body: JSON.stringify(
+          next
+            ? {
+                animeId: item.anime_id,
+                enabled: true,
+                episodesAired: Math.max(0, item.min_episode - 1),
+                animeSlug: item.anime_slug,
+                animeTitle: item.anime_title,
+              }
+            : {
+                animeId: item.anime_id,
+                enabled: false,
+              },
+        ),
       });
       const data = await readJson(response);
 
-      if (!response.ok || !data.ok) throw new Error(errorMessage(data));
+      if (!response.ok || !data.ok) {
+        throw new Error(errorMessage(data));
+      }
 
       setSubscriptions((current) =>
-        current.map((item) =>
-          item.anime_id === animeId ? { ...item, enabled: false } : item,
+        current.map((subscription) =>
+          subscription.anime_id === item.anime_id
+            ? { ...subscription, enabled: next }
+            : subscription,
         ),
       );
-      setMessage('Подписка выключена.');
+      if (next) setTelegramEnabled(true);
+
+      trackProductClientEvent('notification_subscription_toggle', {
+        source: 'notification_center',
+        path: '/notifications',
+        entityType: 'anime_id',
+        entityId: String(item.anime_id),
+        metadata: {
+          enabled: next,
+          min_episode: item.min_episode,
+        },
+      });
+
+      setMessage(
+        next
+          ? 'Подписка включена.'
+          : 'Подписка выключена.',
+      );
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Не удалось выключить подписку.');
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Не удалось обновить подписку.',
+      );
     } finally {
       setBusy(false);
     }
   }
 
-  const activeSubscriptions = subscriptions.filter((item) => item.enabled);
+  function markInboxOptimistic(ids: number[]) {
+    const idSet = new Set(ids);
+    const readAt = new Date().toISOString();
+
+    setInbox((current) =>
+      current.map((item) =>
+        idSet.has(item.id) && !item.readAt
+          ? { ...item, readAt }
+          : item,
+      ),
+    );
+  }
+
+  async function markInboxRead(ids: number[]) {
+    if (!ids.length) return;
+
+    markInboxOptimistic(ids);
+
+    try {
+      await fetch('/api/notifications/inbox', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+        cache: 'no-store',
+        keepalive: true,
+      });
+    } catch {
+      // Read state is non-critical and can be retried on the next page visit.
+    }
+  }
+
+  async function markAllRead() {
+    if (inboxBusy || unreadCount === 0) return;
+    setInboxBusy(true);
+
+    const unreadIds = inbox
+      .filter((item) => !item.readAt)
+      .map((item) => item.id);
+
+    markInboxOptimistic(unreadIds);
+
+    try {
+      const response = await fetch('/api/notifications/inbox', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ all: true }),
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        throw new Error('Не удалось отметить уведомления прочитанными.');
+      }
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Не удалось обновить уведомления.',
+      );
+    } finally {
+      setInboxBusy(false);
+    }
+  }
+
   const healthTimestamp = serviceHealth?.lastRunAt
     ? Date.parse(serviceHealth.lastRunAt)
     : 0;
   const healthFresh =
-    healthTimestamp > 0 && Date.now() - healthTimestamp < 15 * 60 * 1000;
+    healthTimestamp > 0 &&
+    Date.now() - healthTimestamp < 15 * 60 * 1000;
   const serviceOnline =
     healthFresh &&
-    (serviceHealth?.status === 'ok' || serviceHealth?.status === 'degraded');
+    (serviceHealth?.status === 'ok' ||
+      serviceHealth?.status === 'degraded');
 
   if (loading) {
     return (
       <div className="notifications-page__loading">
-        <AnimeBoxLoader label="Загружаем уведомления…" size={48} />
+        <AnimeBoxLoader
+          label="Загружаем уведомления…"
+          size={48}
+        />
       </div>
     );
   }
@@ -324,24 +571,117 @@ export default function NotificationSettingsClient() {
     <div className="notifications-page__content">
       <section className="notifications-hero">
         <div>
-          <span className="notifications-hero__eyebrow">AnimeBox · Telegram</span>
-          <h1>Уведомления о новых сериях</h1>
+          <span className="notifications-hero__eyebrow">
+            AnimeBox · Notifications
+          </span>
+          <h1>Центр уведомлений</h1>
           <p>
-            Подпишись на конкретный тайтл — AnimeBox напишет тебе в Telegram,
-            когда новая серия появится в плеере.
+            Новые серии остаются здесь и одновременно могут приходить
+            в Telegram. Открывай нужную серию одним нажатием и управляй
+            подписками без повторного поиска тайтла.
           </p>
         </div>
 
         <div className="notifications-hero__actions">
           <div className="notifications-hero__status">
             <span className={telegramLinked ? 'is-online' : ''} />
-            {telegramLinked ? 'Telegram подключён' : 'Telegram не подключён'}
+            {telegramLinked
+              ? 'Telegram подключён'
+              : 'Telegram не подключён'}
           </div>
           <div className="notifications-hero__status">
             <span className={serviceOnline ? 'is-online' : ''} />
-            {serviceOnline ? 'Сервис уведомлений работает' : 'Проверяем сервис уведомлений'}
+            {serviceOnline
+              ? 'Доставка работает'
+              : 'Проверяем доставку'}
           </div>
         </div>
+      </section>
+
+      <section className="notifications-card notifications-inbox">
+        <div className="notifications-card__head">
+          <div>
+            <span>Последние события</span>
+            <h2>
+              Новые серии
+              {unreadCount > 0 && (
+                <b className="notifications-inbox__count">
+                  {unreadCount}
+                </b>
+              )}
+            </h2>
+          </div>
+
+          {unreadCount > 0 && (
+            <button
+              type="button"
+              className="notification-master"
+              disabled={inboxBusy}
+              onClick={() => void markAllRead()}
+            >
+              {inboxBusy ? 'Сохраняем…' : 'Прочитать все'}
+            </button>
+          )}
+        </div>
+
+        {inboxGroups.length === 0 ? (
+          <div className="notifications-empty">
+            <img
+              className="notifications-empty__art"
+              src="/brand/illustrations/empty-notifications.webp"
+              alt=""
+              aria-hidden="true"
+            />
+            <p>
+              Здесь появятся серии тайтлов, на которые ты подписан.
+            </p>
+            <Link href="/search">Найти аниме</Link>
+          </div>
+        ) : (
+          <div className="notifications-inbox__list">
+            {inboxGroups.map((group) => (
+              <Link
+                key={group.animeId}
+                href={`/anime/${group.animeSlug}/episode/${group.latestEpisode}`}
+                className={
+                  group.unread > 0
+                    ? 'notifications-inbox__item is-unread'
+                    : 'notifications-inbox__item'
+                }
+                onClick={() => {
+                  if (group.unread > 0) {
+                    void markInboxRead(group.ids);
+                  }
+                }}
+              >
+                <span
+                  className="notifications-inbox__marker"
+                  aria-hidden="true"
+                />
+                <div className="notifications-inbox__copy">
+                  <strong>{group.animeTitle}</strong>
+                  <span>
+                    {group.episodes.length > 1
+                      ? `Новые серии: ${group.episodes
+                          .slice(0, 4)
+                          .sort((a, b) => a - b)
+                          .join(', ')}`
+                      : `Вышла ${group.latestEpisode} серия`}
+                  </span>
+                </div>
+                <time dateTime={group.latestSentAt}>
+                  {formatDeliveryDate(group.latestSentAt)}
+                </time>
+                <span
+                  className="notifications-inbox__arrow"
+                  aria-hidden="true"
+                >
+                  →
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="notifications-card">
@@ -353,7 +693,11 @@ export default function NotificationSettingsClient() {
 
           <button
             type="button"
-            className={telegramEnabled ? 'notification-master is-enabled' : 'notification-master'}
+            className={
+              telegramEnabled
+                ? 'notification-master is-enabled'
+                : 'notification-master'
+            }
             disabled={busy || !telegramLinked}
             onClick={() => void toggleGlobal()}
           >
@@ -380,12 +724,15 @@ export default function NotificationSettingsClient() {
               <strong>Проверка доставки</strong>
               <span>
                 {lastDelivery?.sentAt
-                  ? `Последняя успешная доставка: ${new Date(lastDelivery.sentAt).toLocaleString('ru-RU')}`
+                  ? `Последняя успешная доставка: ${new Date(
+                      lastDelivery.sentAt,
+                    ).toLocaleString('ru-RU')}`
                   : 'Отправь тест, чтобы убедиться, что бот может писать тебе в личные сообщения.'}
               </span>
               {serviceHealth?.waitingForPlayer ? (
                 <span>
-                  Сейчас ожидаем появление в плеере: {serviceHealth.waitingForPlayer}
+                  Сейчас ожидаем появление в плеере:{' '}
+                  {serviceHealth.waitingForPlayer}
                 </span>
               ) : null}
             </div>
@@ -413,8 +760,16 @@ export default function NotificationSettingsClient() {
 
         {subscriptions.length === 0 ? (
           <div className="notifications-empty">
-            <img className="notifications-empty__art" src="/brand/illustrations/empty-notifications.webp" alt="" aria-hidden="true" />
-            <p>Пока нет подписок. Открой аниме и нажми «Уведомлять о сериях».</p>
+            <img
+              className="notifications-empty__art"
+              src="/brand/illustrations/empty-notifications.webp"
+              alt=""
+              aria-hidden="true"
+            />
+            <p>
+              Пока нет подписок. Открой аниме и нажми
+              «Уведомлять о сериях».
+            </p>
             <Link href="/search">Открыть каталог</Link>
           </div>
         ) : (
@@ -422,10 +777,16 @@ export default function NotificationSettingsClient() {
             {subscriptions.map((item) => (
               <article
                 key={item.anime_id}
-                className={item.enabled ? 'notifications-list__item' : 'notifications-list__item is-disabled'}
+                className={
+                  item.enabled
+                    ? 'notifications-list__item'
+                    : 'notifications-list__item is-disabled'
+                }
               >
                 <div>
-                  <Link href={`/anime/${item.anime_slug}`}>{item.anime_title}</Link>
+                  <Link href={`/anime/${item.anime_slug}`}>
+                    {item.anime_title}
+                  </Link>
                   <span>
                     {item.enabled
                       ? `Следим начиная с ${item.min_episode} серии`
@@ -433,22 +794,28 @@ export default function NotificationSettingsClient() {
                   </span>
                 </div>
 
-                {item.enabled && (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void disableSubscription(item.anime_id)}
-                  >
-                    Выключить
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className={item.enabled ? '' : 'is-enable'}
+                  disabled={busy}
+                  onClick={() => void toggleSubscription(item)}
+                >
+                  {item.enabled ? 'Выключить' : 'Включить'}
+                </button>
               </article>
             ))}
           </div>
         )}
       </section>
 
-      {message && <div className="notifications-page__message" role="status">{message}</div>}
+      {message && (
+        <div
+          className="notifications-page__message"
+          role="status"
+        >
+          {message}
+        </div>
+      )}
     </div>
   );
 }
