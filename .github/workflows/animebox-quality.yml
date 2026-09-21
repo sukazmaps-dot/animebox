@@ -64,7 +64,6 @@ jobs:
           lib/profile-media-health-server.ts
           components/TelegramPromoCard.tsx
           components/TelegramSubscriptionGate.tsx
-          components/watch-party/WatchTogetherHub.tsx
           lib/telegram-links.ts
           lib/product-events-client.ts
           lib/product-events-server.ts
