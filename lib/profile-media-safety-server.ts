@@ -159,22 +159,6 @@ function technicalModerationReason(reason: string) {
   );
 }
 
-function moderationTechnicalMessage(reason: string) {
-  if (reason === 'moderation_provider_not_configured') {
-    return 'Сервис проверки изображений пока не настроен. Старое оформление сохранено — попробуйте позже.';
-  }
-  if (reason === 'moderation_quota_unavailable') {
-    return 'Сервис проверки изображений временно недоступен из-за лимита API. Старое оформление сохранено — попробуйте позже.';
-  }
-  if (reason === 'moderation_rate_limited') {
-    return 'Сервис проверки изображений сейчас перегружен. Подождите немного и повторите загрузку.';
-  }
-  if (reason === 'moderation_timeout') {
-    return 'Проверка изображения заняла слишком много времени. Старое оформление сохранено — попробуйте ещё раз.';
-  }
-  return 'Сервис проверки изображений временно недоступен. Старое оформление сохранено — попробуйте позже.';
-}
-
 const MODERATION_RETRY_DELAYS_MS = [0, 700, 1_800] as const;
 
 async function moderateWithOpenAI(
@@ -622,7 +606,7 @@ export async function screenProfileMediaGroups(
 
       throw new ApiError(
         409,
-        `${moderationTechnicalMessage(technicalReview.moderation.reason)} Изображение отправлено на ручную проверку.`,
+        'Автоматическая модерация временно недоступна. Изображение отправлено на дополнительную проверку модератору; пока останется прежнее оформление.',
       );
     }
 
