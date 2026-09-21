@@ -786,7 +786,13 @@ export default function HomePage({
                   className="section-title__icon section-title__icon--asset smart-feed-heading__asset"
                   aria-hidden="true"
                 >
-                  <img src="/brand/icons/sections/recommendations.svg" alt="" />
+                  <Image
+                    src="/brand/icons/sections/recommendations.svg"
+                    alt=""
+                    width={16}
+                    height={16}
+                    sizes="16px"
+                  />
                 </span>
                 <h2 className="section-title">Подобрано для тебя</h2>
               </div>
@@ -821,7 +827,13 @@ export default function HomePage({
           <div className="section-head">
             <h2 className="section-title">
               <span className="section-title__icon section-title__icon--asset" aria-hidden="true">
-                <img src="/brand/icons/sections/popular.svg" alt="" />
+                <Image
+                  src="/brand/icons/sections/popular.svg"
+                  alt=""
+                  width={16}
+                  height={16}
+                  sizes="16px"
+                />
               </span>
               Популярные аниме
             </h2>
@@ -859,7 +871,13 @@ export default function HomePage({
           <div className="section-head">
             <h2 className="section-title">
               <span className="section-title__icon section-title__icon--asset" aria-hidden="true">
-                <img src="/brand/icons/sections/ongoing.svg" alt="" />
+                <Image
+                  src="/brand/icons/sections/ongoing.svg"
+                  alt=""
+                  width={16}
+                  height={16}
+                  sizes="16px"
+                />
               </span>
               Продолжающиеся
             </h2>
@@ -1034,13 +1052,14 @@ export default function HomePage({
               Открыть трекер <span aria-hidden="true">↗</span>
             </Link>
 
-            <img
+            <Image
               className="home-library-panel__mascot"
               src="/brand/animebox-mascot.webp"
               alt=""
+              width={68}
+              height={76}
+              sizes="68px"
               loading="lazy"
-              decoding="async"
-              fetchPriority="low"
               aria-hidden="true"
             />
           </div>
