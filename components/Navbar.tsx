@@ -349,12 +349,12 @@ function NavbarContent() {
         </Link>
 
         <Link
-          href="/chat"
-          className={`mobile-nav__item ${isActive('/chat') ? 'is-active' : ''}`}
-          aria-current={isActive('/chat') ? 'page' : undefined}
+          href="/watch-together"
+          className={`mobile-nav__item ${isActive('/watch-together') ? 'is-active' : ''}`}
+          aria-current={isActive('/watch-together') ? 'page' : undefined}
         >
-          <Icon name="chat" />
-          <span>Чат</span>
+          <Icon name="users" />
+          <span>Вместе</span>
         </Link>
 
         <MobileAccountNav pathname={pathname} />
