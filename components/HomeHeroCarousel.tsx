@@ -112,12 +112,50 @@ function getRealDescription(
 
   if (
     normalized === 'описание отсутствует' ||
-    normalized === 'русское описание для этого аниме пока отсутствует'
+    normalized === 'русское описание для этого аниме пока отсутствует' ||
+    normalized === 'no description' ||
+    normalized === 'description unavailable'
   ) {
     return null;
   }
 
   return text;
+}
+
+function getHeroDescriptionFallback(anime: Anime): string {
+  const genres = Array.isArray(anime.genres)
+    ? anime.genres.filter((genre): genre is string => typeof genre === 'string' && Boolean(genre.trim()))
+    : [];
+
+  const episodeCount = getEpisodeCount(anime);
+  const format = formatLabel(anime.format);
+  const genreText = genres.slice(0, 3).join(', ');
+
+  if (isAnimeOngoing(anime)) {
+    if (genreText && episodeCount != null) {
+      return `Онгоинг · ${genreText}. Уже вышло ${episodeCount} эп. — подробности и новые серии доступны на странице тайтла.`;
+    }
+
+    if (genreText) {
+      return `Сейчас выходит · ${genreText}. Открой страницу тайтла, чтобы посмотреть серии и добавить аниме в свой список.`;
+    }
+
+    return 'Сейчас выходит. Открой страницу тайтла, чтобы посмотреть доступные серии и добавить аниме в свой список.';
+  }
+
+  if (genreText && episodeCount != null) {
+    return `${format} · ${genreText}. ${episodeCount} эп. — подробнее о тайтле, сезонах и просмотре на его странице.`;
+  }
+
+  if (genreText) {
+    return `${format} · ${genreText}. Подробнее о тайтле, сезонах и просмотре — на его странице.`;
+  }
+
+  if (episodeCount != null) {
+    return `${format} · ${episodeCount} эп. Открой страницу тайтла, чтобы узнать больше и начать просмотр.`;
+  }
+
+  return 'Открой страницу тайтла, чтобы узнать больше, посмотреть доступные серии и добавить аниме в свой список.';
 }
 
 const AMBIENT_FALLBACKS = [
@@ -662,8 +700,7 @@ export default function HomeHeroCarousel({
         </h1>
 
         <p className="home-hero-carousel__description">
-          {localizedDescription ||
-            'Русское описание для этого аниме пока отсутствует.'}
+          {localizedDescription || getHeroDescriptionFallback(anime)}
         </p>
 
         <div className="home-hero-carousel__facts">
