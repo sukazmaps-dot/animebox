@@ -34,7 +34,7 @@ jobs:
       - name: TypeScript
         run: npx tsc --noEmit
 
-      - name: Watch Together lint
+      - name: Targeted lint
         run: >-
           npx eslint
           lib/watch-party.ts
@@ -61,6 +61,14 @@ jobs:
           app/api/profile/editor/route.ts
           app/api/admin/community/media/route.ts
           app/admin/moderation/page.tsx
+          lib/profile-media-health-server.ts
+          components/TelegramPromoCard.tsx
+          components/TelegramSubscriptionGate.tsx
+          components/watch-party/WatchTogetherHub.tsx
+          lib/telegram-links.ts
+          lib/product-events-client.ts
+          lib/product-events-server.ts
+          app/api/telegram/subscription-check/route.ts
 
       - name: Production build
         run: npm run build
