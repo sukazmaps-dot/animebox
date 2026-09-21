@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 
-import { validateTelegramInitData } from '@/lib/telegram/validate-init-data';
+import {
+  TELEGRAM_MINI_APP_AUTH_MAX_AGE_SECONDS,
+  validateTelegramInitData,
+} from '@/lib/telegram/validate-init-data';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 
 export const runtime = 'nodejs';
@@ -68,6 +71,7 @@ export async function POST(
       validateTelegramInitData(
         initData,
         botToken,
+        TELEGRAM_MINI_APP_AUTH_MAX_AGE_SECONDS,
       );
 
     if (!telegramResult.ok) {
