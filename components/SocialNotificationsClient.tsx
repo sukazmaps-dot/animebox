@@ -124,10 +124,10 @@ export default function SocialNotificationsClient() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
-      setLoading(false);
+      queueMicrotask(() => setLoading(false));
       return;
     }
-    void load();
+    queueMicrotask(() => void load());
   }, [authLoading, load, user]);
 
   async function markRead(ids?: number[]) {
