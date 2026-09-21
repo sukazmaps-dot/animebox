@@ -1,0 +1,180 @@
+/* =========================================================
+   AnimeBox Patch 6.1 · Telegram Mini App + phone UX hotfix
+   Loaded LAST. This file is the final contract for phone navigation,
+   home rails and Telegram-bound account presentation.
+   ========================================================= */
+
+@media (max-width: 768px) {
+  :root {
+    --ab-mobile-nav-height: 62px;
+    --ab-mobile-nav-gap: 14px;
+    --ab-mobile-inline: 12px;
+  }
+
+  /* Keep the five primary actions readable on 360–430px devices. */
+  .mobile-nav {
+    left: 10px !important;
+    right: 10px !important;
+    min-height: var(--ab-mobile-nav-height) !important;
+    padding: 4px !important;
+    gap: 2px !important;
+    border-radius: 18px !important;
+  }
+
+  .mobile-nav__item {
+    min-width: 0 !important;
+    min-height: 52px !important;
+    padding-inline: 2px !important;
+  }
+
+  .mobile-nav__item span {
+    max-width: 100%;
+    font-size: 10px !important;
+    line-height: 1.05 !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-nav__item svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  /* Home catalogue sections are swipe rails on phones.
+     A later desktop rule used to overwrite this with repeat(5), which is why
+     the first card was shifted and the next one was clipped in Telegram. */
+  .home-page .anime-grid,
+  .home-page .loading-grid {
+    display: grid !important;
+    grid-template-columns: none !important;
+    grid-auto-flow: column !important;
+    grid-auto-columns: clamp(146px, 42vw, 166px) !important;
+    align-items: stretch !important;
+    gap: 11px !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin-inline: calc(-1 * var(--ab-mobile-inline)) !important;
+    padding:
+      2px
+      var(--ab-mobile-inline)
+      12px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: var(--ab-mobile-inline);
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .home-page .anime-grid::-webkit-scrollbar,
+  .home-page .loading-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .home-page .anime-grid > *,
+  .home-page .loading-grid > * {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    grid-column: auto !important;
+    justify-self: stretch !important;
+    scroll-snap-align: start;
+  }
+
+  .home-page .anime-card.anime-card {
+    height: 100% !important;
+    align-self: stretch !important;
+  }
+
+  .home-page .anime-card__image-wrap {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 2 / 3 !important;
+  }
+
+  /* Keep badges inside each poster instead of letting the partially-visible
+     next card make them look cut by the document edge. */
+  .home-page .anime-card__rating {
+    left: 7px !important;
+  }
+
+  .home-page .anime-card__state {
+    right: 7px !important;
+    max-width: calc(100% - 52px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* The fixed nav owns the bottom safe area. Keep a reliable scroll target
+     clearance at the end of pages without reintroducing the old giant gap. */
+  .app-shell {
+    scroll-padding-bottom: calc(
+      var(--ab-mobile-nav-height) + 24px + env(safe-area-inset-bottom)
+    );
+  }
+
+  .site-footer {
+    margin-bottom: calc(
+      var(--ab-mobile-nav-height) + 18px + env(safe-area-inset-bottom)
+    ) !important;
+  }
+
+  .mobile-account__telegram-bound {
+    display: block;
+    width: 100%;
+    color: rgba(157, 173, 201, .74);
+    font-size: 11px;
+    line-height: 1.45;
+    text-align: center;
+  }
+}
+
+@media (max-width: 390px) {
+  .home-page .anime-grid,
+  .home-page .loading-grid {
+    grid-auto-columns: clamp(138px, 43vw, 154px) !important;
+    gap: 9px !important;
+  }
+
+  .mobile-nav__item span {
+    font-size: 9.5px !important;
+  }
+}
+
+/* Telegram-specific final layer. Verified initData is the identity anchor;
+   the UI should never look like a generic OAuth login surface inside TMA. */
+@media (max-width: 768px) {
+  html.telegram-mini-app .mobile-nav {
+    bottom: calc(6px + var(--animebox-safe-bottom, 0px)) !important;
+  }
+
+  html.telegram-mini-app .mobile-account {
+    bottom: calc(
+      var(--ab-mobile-nav-height) + 18px + var(--animebox-safe-bottom, 0px)
+    ) !important;
+  }
+
+  html.telegram-mini-app .mobile-account__auth-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  html.telegram-mini-app .mobile-account__auth-button--primary {
+    min-height: 44px;
+  }
+
+  html.telegram-mini-app .site-footer {
+    margin-bottom: calc(
+      var(--ab-mobile-nav-height) + 18px + var(--animebox-safe-bottom, 0px)
+    ) !important;
+  }
+
+  html.telegram-mini-app .app-shell {
+    scroll-padding-bottom: calc(
+      var(--ab-mobile-nav-height) + 26px + var(--animebox-safe-bottom, 0px)
+    );
+  }
+}
