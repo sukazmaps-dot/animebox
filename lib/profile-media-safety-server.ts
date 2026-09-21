@@ -167,7 +167,6 @@ type ModerationContext = {
 };
 
 const MODERATION_TIMEOUT_MS = 5_000;
-const AUTO_REVIEW_MAX_ATTEMPTS = 5;
 
 async function moderationErrorDetails(response: Response) {
   try {
