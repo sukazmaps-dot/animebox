@@ -21,53 +21,8 @@ type Data = {
   hasMore: boolean;
 };
 
-type MediaHealth = {
-  status: 'disabled' | 'healthy' | 'degraded' | 'unavailable' | 'not_configured' | 'idle';
-  enabled: boolean;
-  configured: boolean;
-  provider: 'openai';
-  model: string;
-  checked24h: number;
-  approved24h: number;
-  rejected24h: number;
-  borderline24h: number;
-  technicalFailures24h: number;
-  rateLimited24h: number;
-  quotaFailures24h: number;
-  latestReason: string | null;
-  latestAt: string | null;
-};
-
-const healthCopy: Record<MediaHealth['status'], { title: string; detail: string }> = {
-  disabled: {
-    title: 'AI-модерация отключена',
-    detail: 'Аватары и баннеры публикуются сразу после технической проверки. Нарушения обрабатываются через ручную модерацию.',
-  },
-  healthy: {
-    title: 'Медиа-модерация работает',
-    detail: 'Новые аватары и баннеры проходят автоматическую проверку.',
-  },
-  degraded: {
-    title: 'Автомодерация нестабильна',
-    detail: 'Есть свежие rate-limit или сетевые ошибки. Новые медиа остаются приватными и уходят в ручную очередь.',
-  },
-  unavailable: {
-    title: 'Автомодерация недоступна',
-    detail: 'API сообщает о лимите/quota. Новые аватары и баннеры не публикуются автоматически — их нужно проверить вручную.',
-  },
-  not_configured: {
-    title: 'Автомодерация не настроена',
-    detail: 'На сервере отсутствует OPENAI_API_KEY. Новые медиа направляются в ручную очередь.',
-  },
-  idle: {
-    title: 'Ожидаем первую проверку',
-    detail: 'Провайдер настроен, но за последние 24 часа нет финальных результатов.',
-  },
-};
-
 export default function Moderation() {
   const [data, setData] = useState<Data | null>(null);
-  const [health, setHealth] = useState<MediaHealth | null>(null);
   const [state, setState] = useState('all');
   const [page, setPage] = useState(1);
   const [error, setError] = useState('');
@@ -94,25 +49,6 @@ export default function Moderation() {
 
     return () => controller.abort();
   }, [page, state, refresh]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    fetch('/api/admin/moderation-health', {
-      cache: 'no-store',
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        const payload = (await response.json()) as {
-          ok?: boolean;
-          health?: MediaHealth;
-        };
-        if (response.ok && payload.health) setHealth(payload.health);
-      })
-      .catch(() => undefined);
-
-    return () => controller.abort();
-  }, [refresh]);
 
   async function act(comment: Comment, action: 'remove' | 'restore') {
     const reason =
@@ -148,93 +84,65 @@ export default function Moderation() {
     }
   }
 
-  const healthText = health ? healthCopy[health.status] : null;
-
   return (
     <main className="admin-v1-page">
       <header className="admin-v1-header">
         <div>
           <span>СООБЩЕСТВО</span>
           <h1>Модерация</h1>
-          <p>Комментарии и состояние автоматической проверки пользовательских медиа.</p>
+          <p>Комментарии и ручной контроль пользовательских медиа. AI-проверка удалена из AnimeBox.</p>
         </div>
         <button type="button" onClick={() => setRefresh((value) => value + 1)}>
           Обновить
         </button>
       </header>
 
-      {health && healthText && (
-        <section className="admin-v1-card">
-          <div className="admin-v1-card-head">
-            <div>
-              <span>PROFILE MEDIA</span>
-              <h2>{healthText.title}</h2>
-            </div>
-            <code>{health.provider} · {health.model}</code>
+      <section className="admin-v1-card">
+        <div className="admin-v1-card-head">
+          <div>
+            <span>PROFILE MEDIA</span>
+            <h2>Post-moderation</h2>
           </div>
+          <code>technical checks · manual control</code>
+        </div>
 
-          <p>{healthText.detail}</p>
+        <p>
+          Аватары и баннеры применяются сразу после технической проверки файла.
+          OpenAI, rate-limit, retry и blocking-очередь больше не участвуют в сохранении профиля.
+        </p>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Link
-              href="/admin/community/media"
-              className="rounded-xl border border-violet-400/20 bg-violet-500/[0.08] px-4 py-2 text-sm font-bold text-violet-100"
-            >
-              Открыть очередь медиа →
-            </Link>
-          </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            href="/admin/community/media"
+            className="rounded-xl border border-violet-400/20 bg-violet-500/[0.08] px-4 py-2 text-sm font-bold text-violet-100"
+          >
+            Старая очередь медиа →
+          </Link>
+        </div>
 
-          <div className="admin-v1-metrics">
-            {health.enabled ? (
-              <>
-                <article>
-                  <span>Проверок 24ч</span>
-                  <strong>{health.checked24h}</strong>
-                  <small>audit-записи по avatar/banner</small>
-                </article>
-                <article>
-                  <span>Одобрено</span>
-                  <strong>{health.approved24h}</strong>
-                  <small>без ручной проверки</small>
-                </article>
-                <article>
-                  <span>Технические сбои</span>
-                  <strong>{health.technicalFailures24h}</strong>
-                  <small>rate-limit / timeout / provider</small>
-                </article>
-                <article>
-                  <span>429 / quota</span>
-                  <strong>{health.rateLimited24h + health.quotaFailures24h}</strong>
-                  <small>{health.latestReason || 'ошибок нет'}</small>
-                </article>
-              </>
-            ) : (
-              <>
-                <article>
-                  <span>Режим</span>
-                  <strong>POST</strong>
-                  <small>медиа применяется сразу</small>
-                </article>
-                <article>
-                  <span>AI запросы</span>
-                  <strong>0</strong>
-                  <small>blocking-проверка выключена</small>
-                </article>
-                <article>
-                  <span>Защита</span>
-                  <strong>ON</strong>
-                  <small>MIME · size · signature</small>
-                </article>
-                <article>
-                  <span>Ручная модерация</span>
-                  <strong>ON</strong>
-                  <small>удаление и очередь сохранены</small>
-                </article>
-              </>
-            )}
-          </div>
-        </section>
-      )}
+        <div className="admin-v1-metrics">
+          <article>
+            <span>AI запросы</span>
+            <strong>0</strong>
+            <small>код автомодерации удалён</small>
+          </article>
+          <article>
+            <span>Публикация</span>
+            <strong>POST</strong>
+            <small>сразу после техпроверки</small>
+          </article>
+          <article>
+            <span>Защита</span>
+            <strong>ON</strong>
+            <small>MIME · size · signature</small>
+          </article>
+          <article>
+            <span>Ручной контроль</span>
+            <strong>ON</strong>
+            <small>админ может обработать legacy-очередь</small>
+          </article>
+        </div>
+      </section>
 
       {error && <div className="admin-v1-error">{error}</div>}
 

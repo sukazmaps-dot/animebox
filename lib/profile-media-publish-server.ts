@@ -17,7 +17,6 @@ export type ProfileMediaCandidate = {
 export type ProfileMediaCandidateGroup = {
   scope: ProfileMediaScope;
   kind: ProfileMediaKind;
-  applyPayload: Record<string, unknown>;
   candidates: ProfileMediaCandidate[];
 };
 
@@ -183,16 +182,28 @@ export async function publishProfileMediaGroups(
       for (const item of items) validateTechnicalMedia(group, item);
 
       for (const item of items) {
+        const uploadBody = Uint8Array.from(item.bytes).buffer;
         const uploaded = await adminClient()
           .storage
           .from(PUBLIC_BUCKET)
-          .upload(item.candidate.path, item.bytes, {
+          .upload(item.candidate.path, uploadBody, {
             contentType: item.mimeType,
             cacheControl: '31536000',
             upsert: false,
           });
 
-        if (uploaded.error) throw uploaded.error;
+        if (uploaded.error) {
+          console.error('[ProfileMediaPublish] public upload failed:', {
+            path: item.candidate.path,
+            mimeType: item.mimeType,
+            size: item.size,
+            error: uploaded.error,
+          });
+          throw new ApiError(
+            503,
+            'Не удалось опубликовать изображение в хранилище. Попробуйте ещё раз через несколько секунд.',
+          );
+        }
 
         result.publishedPaths.push(item.candidate.path);
         result.quarantinePaths.push(item.candidate.quarantinePath);

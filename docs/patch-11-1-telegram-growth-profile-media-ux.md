@@ -9,15 +9,14 @@
 - Keep the bot/Mini App identity separate from the public channel identity.
 
 ## Profile Media UX
-- Automatic AI moderation is opt-in via PROFILE_MEDIA_AUTO_MODERATION=true.
-- Default behavior: technical validation -> immediate publish/apply.
-- Keep upload size/MIME constraints and add server-side image signature validation.
-- Keep manual admin removal/reporting infrastructure.
-- Automatic retry worker must no-op while moderation is disabled.
-- Existing moderation tables remain intact for a future re-enable.
+- AI moderation is removed from the active AnimeBox profile-media architecture.
+- Flow: private quarantine upload -> technical validation -> immediate publish/apply.
+- Keep upload size/MIME constraints and server-side image signature validation.
+- Keep manual admin control for legacy review entries and post-moderation workflows.
+- There is no OpenAI moderation request, retry worker, quota dependency, or feature flag.
 
 ## Acceptance
-- Safe profile media saves without OpenAI latency when flag is absent/false.
+- Safe profile media saves without any OpenAI dependency.
 - Telegram channel promo never blocks the page.
 - Promo analytics are accepted by /api/analytics/product.
 - TypeScript, targeted ESLint and production build pass.
