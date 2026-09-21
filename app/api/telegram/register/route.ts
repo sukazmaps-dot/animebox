@@ -5,6 +5,7 @@ import {
 import { NextResponse } from 'next/server';
 
 import {
+  TELEGRAM_MINI_APP_AUTH_MAX_AGE_SECONDS,
   validateTelegramInitData,
 } from '@/lib/telegram/validate-init-data';
 
@@ -117,7 +118,7 @@ export async function POST(
       validateTelegramInitData(
         initData,
         botToken,
-        5 * 60,
+        TELEGRAM_MINI_APP_AUTH_MAX_AGE_SECONDS,
       );
 
     if (!telegramResult.ok) {
