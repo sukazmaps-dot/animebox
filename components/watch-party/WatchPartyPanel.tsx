@@ -168,7 +168,7 @@ export default function WatchPartyPanel({
   const [participants, setParticipants] = useState<WatchPartyParticipant[]>([]);
   const [inviteUrl, setInviteUrl] = useState('');
   const [error, setError] = useState('');
-  const [copyLabel, setCopyLabel] = useState('Пригласить');
+  const [copyLabel, setCopyLabel] = useState('Скопировать ссылку');
   const [messages, setMessages] = useState<WatchPartyChatMessage[]>([]);
   const [chatText, setChatText] = useState('');
   const [playerState, setPlayerState] = useState<WatchPartyPlayerStateDetail | null>(null);
@@ -2153,10 +2153,10 @@ export default function WatchPartyPanel({
         flush: true,
       });
       setCopyLabel('Ссылка скопирована');
-      window.setTimeout(() => setCopyLabel('Пригласить'), 1_800);
+      window.setTimeout(() => setCopyLabel('Скопировать ссылку'), 1_800);
     } catch {
       setCopyLabel('Не удалось скопировать');
-      window.setTimeout(() => setCopyLabel('Пригласить'), 1_800);
+      window.setTimeout(() => setCopyLabel('Скопировать ссылку'), 1_800);
     }
   }, [inviteUrl]);
 
