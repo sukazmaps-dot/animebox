@@ -291,6 +291,12 @@ export function getPersonalizedRecommendations(
       const lengthAffinity = episodeLengthAffinity(anime, tasteGraph);
       const moodScore = moodAffinity(anime, mood);
       const ratingScore = normalizeRating(anime);
+      const completionRate = tasteGraph?.completionRate ?? 0;
+      const bingeScore = tasteGraph?.bingeScore ?? 0;
+      const shortFinishedAffinity =
+        isFinished(anime) && anime.episodes && anime.episodes <= 24
+          ? completionRate * 0.06 + bingeScore * 0.05
+          : 0;
       const engagementRaw = engagementScores.get(anime.id) ?? 0;
       const engagementScore = Math.max(0, engagementRaw);
       const negativeEngagement = Math.max(0, -engagementRaw);
@@ -309,6 +315,7 @@ export function getPersonalizedRecommendations(
         lengthAffinity * (tasteGraph?.confidence ? 0.07 : 0) +
         moodScore * (mood === 'any' ? 0 : hasHistory ? 0.18 : 0.38) +
         ratingScore * (hasHistory ? 0.11 : 0.28) +
+        shortFinishedAffinity +
         engagementScore +
         discoveryBonus +
         ongoingBonus +
@@ -341,6 +348,23 @@ export function getPersonalizedRecommendations(
       if (lengthAffinity >= 0.72 && tasteGraph?.preferredEpisodeCount) {
         reasons.push(`Похожая длина: около ${tasteGraph.preferredEpisodeCount} серий`);
       }
+      if (
+        isFinished(anime) &&
+        anime.episodes &&
+        anime.episodes <= 24 &&
+        completionRate >= 0.65 &&
+        reasons.length < 2
+      ) {
+        reasons.push('Ты часто досматриваешь завершённые тайтлы');
+      }
+      if (
+        anime.episodes &&
+        anime.episodes <= 13 &&
+        bingeScore >= 0.45 &&
+        reasons.length < 2
+      ) {
+        reasons.push('Подходит под твой темп просмотра');
+      }
       if (engagementScore >= 0.055) reasons.push('Ты уже обращал внимание на этот тайтл');
       if (ratingScore >= 0.82 && reasons.length < 2) reasons.push('Высокая оценка сообщества');
       if (!reasons.length) reasons.push(primary.reason);
@@ -358,7 +382,8 @@ export function getPersonalizedRecommendations(
             completedAffinity.positive * 0.14 +
             moodScore * 0.16 +
             lengthAffinity * 0.08 +
-            ratingScore * 0.12 -
+            ratingScore * 0.12 +
+            shortFinishedAffinity * 0.7 -
             graphAffinity.negative * 0.24,
         ),
       );
