@@ -178,3 +178,65 @@
     );
   }
 }
+
+
+/* =========================================================
+   PATCH 7 · ANDROID PLAYER FULLSCREEN
+   One viewport owner only: AnimeBox pseudo-fullscreen fills the
+   visual viewport while Telegram stays expanded in the background.
+   ========================================================= */
+html.animebox-player-telegram-fullscreen,
+html.animebox-player-telegram-fullscreen body {
+  width: 100% !important;
+  height: var(--animebox-player-viewport-height, 100dvh) !important;
+  min-height: var(--animebox-player-viewport-height, 100dvh) !important;
+  max-height: var(--animebox-player-viewport-height, 100dvh) !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  touch-action: none;
+}
+
+html.animebox-player-telegram-fullscreen .app-shell,
+html.animebox-player-telegram-fullscreen .page-content,
+html.animebox-player-telegram-fullscreen .site-footer,
+html.animebox-player-telegram-fullscreen .mobile-nav,
+html.animebox-player-telegram-fullscreen .topbar,
+html.animebox-player-telegram-fullscreen .sidebar {
+  pointer-events: none !important;
+}
+
+html.animebox-player-telegram-fullscreen .mobile-nav,
+html.animebox-player-telegram-fullscreen .topbar,
+html.animebox-player-telegram-fullscreen .sidebar {
+  visibility: hidden !important;
+}
+
+html.animebox-player-telegram-fullscreen .animebox-telegram-player-viewport {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  width: 100dvw !important;
+  height: var(--animebox-player-viewport-height, 100dvh) !important;
+  min-height: var(--animebox-player-viewport-height, 100dvh) !important;
+  max-height: var(--animebox-player-viewport-height, 100dvh) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
+  background: #000 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  z-index: 2147483600 !important;
+  pointer-events: auto !important;
+  touch-action: manipulation;
+}
+
+html.animebox-player-telegram-fullscreen .animebox-telegram-player-viewport iframe,
+html.animebox-player-telegram-fullscreen .animebox-telegram-player-viewport video {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+}
