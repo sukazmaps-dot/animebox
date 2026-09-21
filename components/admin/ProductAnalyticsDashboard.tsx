@@ -271,6 +271,19 @@ export default function ProductAnalyticsDashboard() {
                 </article>
 
                 <article className={styles.surfaceCard}>
+                  <span>PERSONAL RELEASES</span>
+                  <strong>{pct(surfaces.personalSchedule.ctrPct)}</strong>
+                  <small>
+                    {number(surfaces.personalSchedule.clicks)} кликов из{' '}
+                    {number(surfaces.personalSchedule.impressions)} показов
+                  </small>
+                  <div className={styles.surfaceMeta}>
+                    <b>{number(surfaces.personalSchedule.users)}</b>
+                    <span>users</span>
+                  </div>
+                </article>
+
+                <article className={styles.surfaceCard}>
                   <span>NOTIFICATION CENTER</span>
                   <strong>{number(surfaces.notificationCenter.opens)}</strong>
                   <small>открытий центра уведомлений</small>
