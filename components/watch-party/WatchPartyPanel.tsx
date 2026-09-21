@@ -1242,6 +1242,12 @@ export default function WatchPartyPanel({
           roomId: invite.roomId,
           participants: current,
         }, senderId);
+        if (voteStateRef.current) {
+          void relayRef.current?.send(
+            { type: 'VOTE_STATE', vote: voteStateRef.current },
+            senderId,
+          );
+        }
         broadcastParticipants();
         setNetworkRoute('server');
 
@@ -1414,6 +1420,12 @@ export default function WatchPartyPanel({
             roomId: invite.roomId,
             participants: current,
           });
+          if (voteStateRef.current) {
+            send(connection, {
+              type: 'VOTE_STATE',
+              vote: voteStateRef.current,
+            });
+          }
           broadcastParticipants();
           window.setTimeout(() => sendHostSync(connection), 120);
           return;
