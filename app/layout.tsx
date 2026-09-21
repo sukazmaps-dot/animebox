@@ -29,6 +29,7 @@ import './activation-v2.css';
 import './anime-page-v3.css';
 import './performance-v2.css';
 import './tma-mobile-ux-v21.css';
+import './patch11-growth.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
@@ -43,6 +44,7 @@ import { Analytics } from '@vercel/analytics/next';
 
 import { SITE_URL } from '@/lib/seo-config';
 import { SUPPORT_EMAIL } from '@/lib/contact';
+import { TELEGRAM_BOT_URL, TELEGRAM_CHANNEL_URL } from '@/lib/telegram-links';
 
 /* =========================================================
    SEO / Structured Data
@@ -89,8 +91,8 @@ const organizationStructuredData = {
   },
 
   sameAs: [
-    'https://t.me/YourAnimeBox',
-    'https://t.me/YourAnimeBoxBot',
+    TELEGRAM_CHANNEL_URL,
+    TELEGRAM_BOT_URL,
   ],
 
   contactPoint: {
