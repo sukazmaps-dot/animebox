@@ -41,6 +41,9 @@ export const PRODUCT_CLIENT_EVENT_NAMES = [
   'watch_party_reaction',
   'watch_party_vote',
   'watch_party_invite_shared',
+  'telegram_promo_impression',
+  'telegram_promo_click',
+  'telegram_promo_dismiss',
 ] as const;
 
 export type ProductClientEventName = (typeof PRODUCT_CLIENT_EVENT_NAMES)[number];
