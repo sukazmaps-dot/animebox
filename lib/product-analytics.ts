@@ -74,6 +74,21 @@ export type ProductAnalyticsDashboard = {
       users: number;
       subscriptionToggles: number;
     };
+    watchTogether: {
+      hubViews: number;
+      roomsCreated: number;
+      publicJoins: number;
+      roomsStarted: number;
+      inviteShares: number;
+      reactions: number;
+      votes: number;
+      roomsEnded: number;
+      reports: number;
+      hostTransfers: number;
+      kicks: number;
+      users: number;
+      hubToRoomPct: number;
+    };
   };
   timeSeries: Array<{
     date: string;
