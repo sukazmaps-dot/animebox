@@ -278,3 +278,143 @@
     align-items: flex-start;
   }
 }
+
+
+/* =========================================================
+   PATCH 6 · NOTIFICATION CENTER V2
+   ========================================================= */
+
+.notifications-inbox__count {
+  display: inline-flex;
+  min-width: 24px;
+  height: 24px;
+  margin-left: 9px;
+  padding: 0 7px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(145, 134, 231, .26);
+  border-radius: 999px;
+  background: rgba(145, 134, 231, .08);
+  color: #b9aff7;
+  font-size: 10px;
+  vertical-align: middle;
+}
+
+.notifications-inbox__list {
+  display: grid;
+  border-top: 1px solid var(--ab-border);
+}
+
+.notifications-inbox__item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto 28px;
+  min-height: 62px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 2px;
+  border-bottom: 1px solid rgba(151, 164, 188, .075);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    background-color .16s ease,
+    border-color .16s ease;
+}
+
+.notifications-inbox__item:hover,
+.notifications-inbox__item:focus-visible {
+  background: rgba(255, 255, 255, .018);
+  border-color: rgba(145, 134, 231, .18);
+  outline: none;
+}
+
+.notifications-inbox__marker {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(151, 164, 188, .22);
+}
+
+.notifications-inbox__item.is-unread .notifications-inbox__marker {
+  background: #9186e7;
+}
+
+.notifications-inbox__copy {
+  min-width: 0;
+}
+
+.notifications-inbox__copy strong,
+.notifications-inbox__copy span {
+  display: block;
+}
+
+.notifications-inbox__copy strong {
+  overflow: hidden;
+  color: rgba(243, 245, 255, .94);
+  font-size: 12px;
+  font-weight: 720;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notifications-inbox__copy span {
+  margin-top: 4px;
+  color: rgba(151, 164, 188, .56);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.notifications-inbox__item.is-unread .notifications-inbox__copy strong {
+  color: #fff;
+}
+
+.notifications-inbox__item time {
+  color: rgba(151, 164, 188, .42);
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.notifications-inbox__arrow {
+  color: rgba(185, 175, 247, .56);
+  font-size: 14px;
+  text-align: center;
+}
+
+.notifications-list__item button.is-enable {
+  border-color: rgba(145, 134, 231, .22);
+  color: #b9aff7;
+}
+
+.notification-master,
+.notifications-list__item button {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.notifications-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 260px;
+}
+
+@media (max-width: 700px) {
+  .notifications-inbox__item {
+    grid-template-columns: 8px minmax(0, 1fr) auto;
+    gap: 9px;
+    min-height: 66px;
+    padding: 12px 0;
+  }
+
+  .notifications-inbox__item time {
+    grid-column: 2;
+    margin-top: -7px;
+  }
+
+  .notifications-inbox__arrow {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+
+  .notifications-inbox .notifications-card__head {
+    align-items: flex-start;
+  }
+}
