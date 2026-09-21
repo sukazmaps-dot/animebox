@@ -32,7 +32,16 @@ export type ProductClientEventName =
   | 'recommendation_mood_change'
   | 'recommendation_started'
   | 'recommendation_completed'
-  | 'smart_discovery_search';
+  | 'smart_discovery_search'
+  | 'watch_party_hub_view'
+  | 'watch_party_room_created'
+  | 'watch_party_public_room_join'
+  | 'watch_party_room_started'
+  | 'watch_party_invite_shared'
+  | 'watch_party_reaction_sent'
+  | 'watch_party_vote_cast'
+  | 'watch_party_room_ended'
+  | 'watch_party_room_reported';
 
 type ClientEvent = {
   eventName: ProductClientEventName;
