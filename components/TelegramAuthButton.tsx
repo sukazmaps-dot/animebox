@@ -4,7 +4,10 @@ import { useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
 import { notifyAuthChanged } from '@/lib/auth-events';
-import { enableTelegramAutoLogin } from '@/lib/telegram-auto-login';
+import {
+  enableTelegramAutoLogin,
+  isTelegramMiniAppRuntime,
+} from '@/lib/telegram-auto-login';
 
 type TelegramAuthResult = {
   id_token?: string;
@@ -371,6 +374,15 @@ export default function TelegramAuthButton({
 
   async function login() {
     if (loading) {
+      return;
+    }
+
+    // Telegram OAuth must never open inside a Telegram Mini App. The Mini
+    // App already provides signed initData; TelegramMiniAppBridge verifies it
+    // server-side and restores the linked AnimeBox account automatically.
+    if (isTelegramMiniAppRuntime()) {
+      enableTelegramAutoLogin();
+      window.location.reload();
       return;
     }
 
