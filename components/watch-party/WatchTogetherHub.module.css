@@ -967,12 +967,18 @@
   white-space: nowrap;
 }
 
-.publicRoomCopy a {
+.publicRoomActions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 11px;
+}
+
+.publicRoomActions a {
   display: inline-flex;
   min-height: 34px;
   align-items: center;
   justify-content: center;
-  margin-top: 11px;
   padding: 0 12px;
   border-radius: 9px;
   background: rgba(111, 80, 255, .13);
@@ -980,6 +986,16 @@
   font-size: 9px;
   font-weight: 850;
   text-decoration: none;
+}
+
+.publicRoomActions button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 9px;
+  background: rgba(255,255,255,.025);
+  color: #766f89;
+  cursor: pointer;
 }
 
 .publicEmpty {
