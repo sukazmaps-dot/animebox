@@ -21,6 +21,17 @@ const RETENTION_SURFACE_EVENTS = [
   'personal_schedule_click',
   'notification_center_open',
   'notification_subscription_toggle',
+  'watch_party_hub_view',
+  'watch_party_room_created',
+  'watch_party_public_room_join',
+  'watch_party_room_started',
+  'watch_party_invite_shared',
+  'watch_party_reaction_sent',
+  'watch_party_vote_cast',
+  'watch_party_room_ended',
+  'watch_party_room_reported',
+  'watch_party_host_transferred',
+  'watch_party_participant_kicked',
 ] as const;
 
 type SurfaceEventRow = {
@@ -122,6 +133,29 @@ function summarizeRetentionSurfaces(rows: SurfaceEventRow[]) {
         'notification_subscription_toggle',
       ),
     },
+    watchTogether: {
+      hubViews: count('watch_party_hub_view'),
+      roomsCreated: count('watch_party_room_created'),
+      publicJoins: count('watch_party_public_room_join'),
+      roomsStarted: count('watch_party_room_started'),
+      inviteShares: count('watch_party_invite_shared'),
+      reactions: count('watch_party_reaction_sent'),
+      votes: count('watch_party_vote_cast'),
+      roomsEnded: count('watch_party_room_ended'),
+      reports: count('watch_party_room_reported'),
+      hostTransfers: count('watch_party_host_transferred'),
+      kicks: count('watch_party_participant_kicked'),
+      users: uniqueUsers(
+        'watch_party_hub_view',
+        'watch_party_room_created',
+        'watch_party_public_room_join',
+        'watch_party_room_started',
+      ),
+      hubToRoomPct: percent(
+        count('watch_party_room_created') + count('watch_party_public_room_join'),
+        count('watch_party_hub_view'),
+      ),
+    },
   } satisfies ProductAnalyticsDashboard['retentionSurfaces'];
 }
 
@@ -149,7 +183,7 @@ const cachedDashboard = unstable_cache(
       retentionSurfaces: summarizeRetentionSurfaces(surfaceRows),
     } satisfies ProductAnalyticsDashboard;
   },
-  ['animebox-product-analytics-dashboard-v3'],
+  ['animebox-product-analytics-dashboard-v4'],
   { revalidate: 60, tags: ['product-analytics-dashboard'] },
 );
 
