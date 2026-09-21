@@ -248,7 +248,6 @@ export async function GET() {
       .from('profile_media_review_groups')
       .select('id,user_id,scope,kind,status,apply_payload,created_at')
       .eq('status', 'review')
-      .eq('automation_state', 'manual')
       .order('created_at', { ascending: true })
       .limit(100);
     if (error) throw error;
