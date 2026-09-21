@@ -41,7 +41,10 @@ export type ProductClientEventName =
   | 'watch_party_invite_shared'
   | 'telegram_promo_impression'
   | 'telegram_promo_click'
-  | 'telegram_promo_dismiss';
+  | 'telegram_promo_dismiss'
+  | 'telegram_welcome_impression'
+  | 'telegram_welcome_click'
+  | 'telegram_welcome_dismiss';
 
 type ClientEvent = {
   eventName: ProductClientEventName;
