@@ -24,6 +24,24 @@ export type WatchPartyParticipant = {
 };
 
 export type WatchPartyPlayerAction = 'play' | 'pause' | 'seek';
+export type WatchPartyReaction = 'love' | 'cry' | 'fire' | 'wow' | 'dead' | 'peak';
+export type WatchPartyVote = 'next' | 'wait' | 'stop';
+
+export type WatchPartyReactionEvent = {
+  id: string;
+  userId: string;
+  name: string;
+  reaction: WatchPartyReaction;
+  sentAt: number;
+};
+
+export type WatchPartyVoteState = {
+  next: number;
+  wait: number;
+  stop: number;
+  total: number;
+  sentAt: number;
+};
 
 export type WatchPartyPlayerStateDetail = {
   episode: number;
@@ -131,6 +149,25 @@ export type WatchPartyPacket =
   | {
       type: 'CHAT_MESSAGE';
       message: WatchPartyChatMessage;
+    }
+  | {
+      type: 'REACTION_SEND';
+      id: string;
+      reaction: WatchPartyReaction;
+      sentAt: number;
+    }
+  | {
+      type: 'REACTION';
+      reaction: WatchPartyReactionEvent;
+    }
+  | {
+      type: 'VOTE_CAST';
+      vote: WatchPartyVote;
+      sentAt: number;
+    }
+  | {
+      type: 'VOTE_STATE';
+      state: WatchPartyVoteState;
     };
 
 export type WatchPartyInvite = {
@@ -311,6 +348,60 @@ function parseMessageId(value: unknown) {
   return typeof value === 'string' && MESSAGE_ID_RE.test(value) ? value : null;
 }
 
+function parseReaction(value: unknown): WatchPartyReaction | null {
+  return value === 'love' ||
+    value === 'cry' ||
+    value === 'fire' ||
+    value === 'wow' ||
+    value === 'dead' ||
+    value === 'peak'
+    ? value
+    : null;
+}
+
+function parseVote(value: unknown): WatchPartyVote | null {
+  return value === 'next' || value === 'wait' || value === 'stop'
+    ? value
+    : null;
+}
+
+function parseReactionEvent(value: unknown): WatchPartyReactionEvent | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const id = parseMessageId(record.id);
+  const userId = typeof record.userId === 'string' ? record.userId : '';
+  const name = cleanParticipantName(record.name);
+  const reaction = parseReaction(record.reaction);
+  const sentAt = parseTimestamp(record.sentAt);
+
+  if (!id || !USER_ID_RE.test(userId) || !name || !reaction || !sentAt) {
+    return null;
+  }
+
+  return { id, userId, name, reaction, sentAt };
+}
+
+function parseVoteState(value: unknown): WatchPartyVoteState | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const next = Number(record.next);
+  const wait = Number(record.wait);
+  const stop = Number(record.stop);
+  const total = Number(record.total);
+  const sentAt = parseTimestamp(record.sentAt);
+
+  if (
+    ![next, wait, stop, total].every(
+      (item) => Number.isSafeInteger(item) && item >= 0 && item <= WATCH_PARTY_MAX_PARTICIPANTS,
+    ) ||
+    !sentAt
+  ) {
+    return null;
+  }
+
+  return { next, wait, stop, total, sentAt };
+}
+
 function parseChatMessage(value: unknown): WatchPartyChatMessage | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;
@@ -474,6 +565,30 @@ export function parseWatchPartyPacket(value: unknown): WatchPartyPacket | null {
     case 'CHAT_MESSAGE': {
       const message = parseChatMessage(record.message);
       return message ? { type: 'CHAT_MESSAGE', message } : null;
+    }
+
+    case 'REACTION_SEND': {
+      const id = parseMessageId(record.id);
+      const reaction = parseReaction(record.reaction);
+      const sentAt = parseTimestamp(record.sentAt);
+      if (!id || !reaction || !sentAt) return null;
+      return { type: 'REACTION_SEND', id, reaction, sentAt };
+    }
+
+    case 'REACTION': {
+      const reaction = parseReactionEvent(record.reaction);
+      return reaction ? { type: 'REACTION', reaction } : null;
+    }
+
+    case 'VOTE_CAST': {
+      const vote = parseVote(record.vote);
+      const sentAt = parseTimestamp(record.sentAt);
+      return vote && sentAt ? { type: 'VOTE_CAST', vote, sentAt } : null;
+    }
+
+    case 'VOTE_STATE': {
+      const state = parseVoteState(record.state);
+      return state ? { type: 'VOTE_STATE', state } : null;
     }
 
     default:
