@@ -284,6 +284,24 @@ export default function ProductAnalyticsDashboard() {
                 </article>
 
                 <article className={styles.surfaceCard}>
+                  <span>WATCH TOGETHER</span>
+                  <strong>{pct(surfaces.watchTogether.hubToRoomPct)}</strong>
+                  <small>
+                    hub → создать или войти в открытую комнату
+                  </small>
+                  <div className={styles.surfaceMeta}>
+                    <b>{number(surfaces.watchTogether.roomsCreated)}</b>
+                    <span>created</span>
+                    <b>{number(surfaces.watchTogether.publicJoins)}</b>
+                    <span>public joins</span>
+                    <b>{number(surfaces.watchTogether.roomsStarted)}</b>
+                    <span>started</span>
+                    <b>{number(surfaces.watchTogether.users)}</b>
+                    <span>users</span>
+                  </div>
+                </article>
+
+                <article className={styles.surfaceCard}>
                   <span>NOTIFICATION CENTER</span>
                   <strong>{number(surfaces.notificationCenter.opens)}</strong>
                   <small>открытий центра уведомлений</small>
