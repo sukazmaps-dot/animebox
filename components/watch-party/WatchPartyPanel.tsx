@@ -688,7 +688,11 @@ export default function WatchPartyPanel({
   }, [send]);
 
   const attachGuestConnection = useCallback((peer: PeerInstance, invite: WatchPartyInvite, identity: PartyIdentity) => {
-    if (intentionalCloseRef.current || hostEndedRef.current) return;
+    if (
+      intentionalCloseRef.current ||
+      hostEndedRef.current ||
+      peerRef.current !== peer
+    ) return;
 
     const connection = peer.connect(watchPartyHostPeerId(invite.roomId), {
       reliable: true,
@@ -704,25 +708,54 @@ export default function WatchPartyPanel({
     let welcomed = false;
     let reconnectQueued = false;
     let handshakeTimer: number | null = null;
-    const negotiationTimer = window.setTimeout(() => {
-      if (welcomed || connection.open || intentionalCloseRef.current || hostEndedRef.current) return;
-      reconnectQueued = true;
-      setStatus('reconnecting');
-      setError('Подключение заняло слишком долго. Пробуем ещё раз…');
-      connection.close();
-      scheduleGuestReconnectRef.current();
-    }, NEGOTIATION_TIMEOUT_MS);
+    let negotiationTimer: number | null = null;
 
     const clearAttemptTimers = () => {
-      window.clearTimeout(negotiationTimer);
+      if (negotiationTimer != null) {
+        window.clearTimeout(negotiationTimer);
+        negotiationTimer = null;
+      }
       if (handshakeTimer != null) {
         window.clearTimeout(handshakeTimer);
         handshakeTimer = null;
       }
     };
 
+    const activateRelayStandby = () => {
+      if (!relayWelcomedRef.current || !relayRef.current?.isOpen()) return false;
+      guestWelcomedRef.current = true;
+      guestTransportRef.current = 'server';
+      lastHostSeenAtRef.current = Date.now();
+      reconnectAttemptRef.current = 0;
+      clearAttemptTimers();
+      setNetworkRoute('server');
+      setError('');
+      setStatus('active');
+      return true;
+    };
+
+    negotiationTimer = window.setTimeout(() => {
+      if (welcomed || connection.open || intentionalCloseRef.current || hostEndedRef.current) return;
+      if (activateRelayStandby()) {
+        connection.close();
+        return;
+      }
+      reconnectQueued = true;
+      setStatus('reconnecting');
+      setError('Подключение заняло слишком долго. Пробуем резервный маршрут…');
+      connection.close();
+      scheduleGuestReconnectRef.current();
+    }, NEGOTIATION_TIMEOUT_MS);
+
     connection.on('open', () => {
-      window.clearTimeout(negotiationTimer);
+      if (guestConnectionRef.current !== connection) {
+        connection.close();
+        return;
+      }
+      if (negotiationTimer != null) {
+        window.clearTimeout(negotiationTimer);
+        negotiationTimer = null;
+      }
       inspectWatchPartyRoute(connection, (route) => {
         setNetworkRoute((current) => current === 'relay' ? current : route);
       });
@@ -730,9 +763,13 @@ export default function WatchPartyPanel({
 
       handshakeTimer = window.setTimeout(() => {
         if (welcomed || intentionalCloseRef.current || hostEndedRef.current) return;
+        if (activateRelayStandby()) {
+          connection.close();
+          return;
+        }
         reconnectQueued = true;
         setStatus('reconnecting');
-        setError('Хост открыл соединение, но не подтвердил комнату. Переподключаемся…');
+        setError('Хост не подтвердил WebRTC. Пробуем резервный маршрут…');
         connection.close();
         scheduleGuestReconnectRef.current();
       }, HANDSHAKE_TIMEOUT_MS);
@@ -754,8 +791,10 @@ export default function WatchPartyPanel({
     });
 
     connection.on('data', (value) => {
+      if (guestConnectionRef.current !== connection) return;
       const packet = parseWatchPartyPacket(value);
       if (!packet) return;
+      lastHostSeenAtRef.current = Date.now();
 
       if (packet.type === 'WELCOME') {
         if (packet.roomId !== invite.roomId) return;
@@ -773,6 +812,7 @@ export default function WatchPartyPanel({
         welcomed = true;
         guestWelcomedRef.current = true;
         guestTransportRef.current = 'p2p';
+        lastHostSeenAtRef.current = Date.now();
         clearAttemptTimers();
         reconnectAttemptRef.current = 0;
         publishParticipants(packet.participants);
@@ -881,13 +921,16 @@ export default function WatchPartyPanel({
 
     connection.on('close', () => {
       clearAttemptTimers();
-      if (guestConnectionRef.current === connection) guestConnectionRef.current = null;
+      const isCurrent = guestConnectionRef.current === connection;
+      if (isCurrent) guestConnectionRef.current = null;
+      if (!isCurrent) return;
       if (
         intentionalCloseRef.current ||
         hostEndedRef.current ||
         reconnectQueued ||
         guestTransportRef.current === 'server'
       ) return;
+      if (activateRelayStandby()) return;
       reconnectQueued = true;
       setStatus('reconnecting');
       scheduleGuestReconnectRef.current();
@@ -895,12 +938,14 @@ export default function WatchPartyPanel({
 
     connection.on('error', () => {
       clearAttemptTimers();
+      if (guestConnectionRef.current !== connection) return;
       if (
         intentionalCloseRef.current ||
         hostEndedRef.current ||
         reconnectQueued ||
         guestTransportRef.current === 'server'
       ) return;
+      if (activateRelayStandby()) return;
       reconnectQueued = true;
       setStatus('reconnecting');
       scheduleGuestReconnectRef.current();
