@@ -1374,3 +1374,190 @@
   background: rgba(6, 182, 212, 0.08);
   color: rgba(165, 243, 252, 0.92);
 }
+
+
+/* Patch 7 · room reactions + next-episode voting */
+.socialBar {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.reactions,
+.voteBox {
+  min-width: 0;
+  border: 1px solid rgba(255,255,255,.055);
+  border-radius: 13px;
+  background: rgba(255,255,255,.018);
+}
+
+.reactions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+}
+
+.reactions button {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #f2efff;
+  font-size: 15px;
+  font-weight: 850;
+  cursor: pointer;
+  transition: 140ms ease;
+}
+
+.reactions button:last-child {
+  font-size: 8px;
+  letter-spacing: .05em;
+}
+
+.reactions button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: rgba(124,92,255,.10);
+}
+
+.reactions button:disabled {
+  opacity: .35;
+  cursor: default;
+}
+
+.voteBox {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px 7px 11px;
+}
+
+.voteBox > span {
+  color: rgba(210,214,232,.55);
+  font-size: 8px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.voteBox > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.voteBox button {
+  min-width: 0;
+  height: 31px;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 8px;
+  background: rgba(255,255,255,.025);
+  color: rgba(227,230,242,.62);
+  font-size: 8px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.voteBox button[data-active='true'] {
+  border-color: rgba(139,92,246,.32);
+  background: rgba(124,92,255,.13);
+  color: #ddd6ff;
+}
+
+.liveReactions {
+  position: absolute;
+  z-index: 30;
+  inset: 56px 12px auto auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  pointer-events: none;
+}
+
+.liveReactions > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 1px solid rgba(167,139,250,.13);
+  border-radius: 999px;
+  background: rgba(6,9,18,.88);
+  box-shadow: 0 8px 24px rgba(0,0,0,.24);
+  animation: watchPartyReactionIn 2.4s ease both;
+}
+
+.liveReactions b {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.liveReactions small {
+  max-width: 110px;
+  overflow: hidden;
+  color: rgba(234,237,247,.68);
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes watchPartyReactionIn {
+  0% { opacity: 0; transform: translateY(8px) scale(.92); }
+  12%, 78% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-10px) scale(.96); }
+}
+
+@media (max-width: 760px) {
+  .socialBar {
+    grid-template-columns: 1fr;
+  }
+
+  .reactions {
+    justify-content: space-between;
+  }
+
+  .reactions button {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .voteBox {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .voteBox > span {
+    white-space: normal;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 620px) {
+  .theaterPanel .socialBar {
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .theaterPanel .reactions {
+    padding: 4px;
+  }
+
+  .theaterPanel .reactions button {
+    min-width: 29px;
+    height: 29px;
+    font-size: 13px;
+  }
+
+  .theaterPanel .voteBox {
+    padding-block: 4px;
+  }
+
+  .theaterPanel .voteBox button {
+    height: 28px;
+    font-size: 7px;
+  }
+}
