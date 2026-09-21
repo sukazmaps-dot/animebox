@@ -15,6 +15,7 @@ import {
 } from '@/lib/watch-party-relay-client';
 
 import { createClient } from '@/lib/supabase/client';
+import { trackProductClientEvent } from '@/lib/product-events-client';
 import { premiumMediaStyle, type PremiumMediaTransform } from '@/lib/premium-studio';
 import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
@@ -46,6 +47,10 @@ import {
   type WatchPartyInvite,
   type WatchPartyPacket,
   type WatchPartyParticipant,
+  type WatchPartyReaction,
+  type WatchPartyReactionKind,
+  type WatchPartyVoteChoice,
+  type WatchPartyVoteState,
   type WatchPartyPlayerActionDetail,
   type WatchPartyPlayerCommandDetail,
   type WatchPartyPlayerControlDetail,
@@ -85,6 +90,17 @@ const NEGOTIATION_TIMEOUT_MS = 30_000;
 const HANDSHAKE_TIMEOUT_MS = 10_000;
 const MAX_RECONNECT_ATTEMPTS = 7;
 const SERVER_RELAY_FALLBACK_MS = 3_500;
+const DIRECTORY_HEARTBEAT_MS = 15_000;
+const REACTION_SEND_COOLDOWN_MS = 700;
+
+const REACTION_EMOJI: Record<WatchPartyReactionKind, string> = {
+  love: '❤️',
+  cry: '😭',
+  fire: '🔥',
+  wow: '😳',
+  dead: '💀',
+  peak: '✦',
+};
 
 function sanitizeDisplayName(value: string | null | undefined) {
   const clean = value?.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 32);
@@ -149,6 +165,9 @@ export default function WatchPartyPanel({
   const [roomIdentities, setRoomIdentities] = useState<Record<string, RoomPublicIdentity>>({});
   const [networkRoute, setNetworkRoute] = useState<WatchPartyNetworkRoute>('unknown');
   const [signalingMode, setSignalingMode] = useState<'peerjs-cloud' | 'self-hosted'>('peerjs-cloud');
+  const [reactions, setReactions] = useState<WatchPartyReaction[]>([]);
+  const [voteState, setVoteState] = useState<WatchPartyVoteState | null>(null);
+  const [reportLabel, setReportLabel] = useState('Пожаловаться');
 
   const theaterPath = watchPartyTheaterPath(animeSlug, episodeNumber);
   const episodePath = `/anime/${encodeURIComponent(animeSlug)}/episode/${episodeNumber}`;
@@ -180,6 +199,11 @@ export default function WatchPartyPanel({
   const requestedIdentityIdsRef = useRef(new Set<string>());
   const relayRef = useRef<WatchPartyRelay | null>(null);
   const relayFallbackTimerRef = useRef<number | null>(null);
+  const directoryHeartbeatTimerRef = useRef<number | null>(null);
+  const roomStartedTrackedRef = useRef(false);
+  const lastReactionSentAtRef = useRef(0);
+  const hostPeerReactionAtRef = useRef(new Map<string, number>());
+  const voteChoicesRef = useRef(new Map<string, WatchPartyVoteChoice>());
   const guestWelcomedRef = useRef(false);
   const guestTransportRef = useRef<'p2p' | 'server' | null>(null);
   const relayHostGuestIdsRef = useRef(new Set<string>());
@@ -300,6 +324,37 @@ export default function WatchPartyPanel({
     }
   }, [send]);
 
+  const appendReaction = useCallback((reaction: WatchPartyReaction) => {
+    setReactions((current) => [...current, reaction].slice(-10));
+    window.setTimeout(() => {
+      setReactions((current) => current.filter((item) => item.id !== reaction.id));
+    }, 2_400);
+  }, []);
+
+  const publishVoteState = useCallback((next: WatchPartyVoteState) => {
+    setVoteState(next);
+    broadcast({ type: 'VOTE_STATE', vote: next });
+  }, [broadcast]);
+
+  const handleVoteCast = useCallback((
+    participant: WatchPartyParticipant,
+    packet: Extract<WatchPartyPacket, { type: 'VOTE_CAST' }>,
+  ) => {
+    const current = voteState;
+    if (!current?.active || packet.id !== current.id) return;
+    if (voteChoicesRef.current.has(participant.userId)) return;
+
+    voteChoicesRef.current.set(participant.userId, packet.choice);
+    const next: WatchPartyVoteState = {
+      ...current,
+      yes: current.yes + (packet.choice === 'yes' ? 1 : 0),
+      no: current.no + (packet.choice === 'no' ? 1 : 0),
+      voters: [...current.voters, participant.userId].slice(0, WATCH_PARTY_MAX_PARTICIPANTS),
+      sentAt: Date.now(),
+    };
+    publishVoteState(next);
+  }, [publishVoteState, voteState]);
+
   const appendChatMessage = useCallback((message: WatchPartyChatMessage) => {
     if (chatIdsRef.current.has(message.id)) return;
     chatIdsRef.current.add(message.id);
@@ -417,6 +472,10 @@ export default function WatchPartyPanel({
       window.clearTimeout(relayFallbackTimerRef.current);
       relayFallbackTimerRef.current = null;
     }
+    if (directoryHeartbeatTimerRef.current != null) {
+      window.clearInterval(directoryHeartbeatTimerRef.current);
+      directoryHeartbeatTimerRef.current = null;
+    }
   }, []);
 
   const destroyTransport = useCallback(() => {
@@ -460,6 +519,9 @@ export default function WatchPartyPanel({
     lastAppliedSeqRef.current = 0;
     chatIdsRef.current.clear();
     hostPeerChatAtRef.current.clear();
+    hostPeerReactionAtRef.current.clear();
+    voteChoicesRef.current.clear();
+    roomStartedTrackedRef.current = false;
     clearWatchPartyFromLocation();
     setRole(null);
     setParticipants([]);
@@ -469,6 +531,9 @@ export default function WatchPartyPanel({
     setChatText('');
     setPlayerState(null);
     setLastController('');
+    setReactions([]);
+    setVoteState(null);
+    setReportLabel('Пожаловаться');
     setNetworkRoute('unknown');
     setSignalingMode('peerjs-cloud');
     setStatus('idle');
