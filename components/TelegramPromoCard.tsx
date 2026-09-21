@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useRef, useState } from 'react';
+import { type MouseEvent, useEffect, useRef, useState } from 'react';
 
 import Icon from '@/components/Icon';
 import { trackProductClientEvent } from '@/lib/product-events-client';
@@ -107,7 +107,7 @@ export default function TelegramPromoCard({
     setHidden(true);
   }
 
-  function handleChannelClick(event: React.MouseEvent<HTMLAnchorElement>) {
+  function handleChannelClick(event: MouseEvent<HTMLAnchorElement>) {
     trackProductClientEvent('telegram_promo_click', {
       source: placement,
       path: window.location.pathname,
