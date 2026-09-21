@@ -9,6 +9,8 @@ import PremiumStudioClient, { type PremiumStudioHandle } from '@/components/prem
 import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import { notifyAuthChanged } from '@/lib/auth-events';
+import { notifyProfileAppearanceChanged } from '@/lib/profile-live-sync';
+import { resolveProfileAppearance } from '@/lib/profile-appearance';
 import { readProfileCache, saveProfileCache } from '@/lib/profile-cache';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -58,7 +60,11 @@ function normalizedTab(value: string | null | undefined): EditorTab {
 export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
-  const { user, loading: authLoading } = useAuthState();
+  const {
+    user,
+    loading: authLoading,
+    refresh: refreshAuth,
+  } = useAuthState();
 
   const [activeTab, setActiveTab] = useState<EditorTab>(normalizedTab(initialTab));
   const [profile, setProfile] = useState<ProfileRow | null>(null);
@@ -437,14 +443,36 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       setAvatarPreview(null);
       setBannerPreview(null);
       saveProfileCache(user.id, next);
+
+      const committedStudio =
+        payload.settings ??
+        premiumSettings;
+
+      const appearance = resolveProfileAppearance({
+        baseAvatarPath: next.avatar_path,
+        baseBannerPath: next.banner_path,
+        premiumStudio: committedStudio,
+        premiumActive,
+      });
+
       notifyAuthChanged({
         userId: user.id,
         profile: {
           id: user.id,
           username: next.username,
           avatar_path: next.avatar_path,
+          display_avatar_path: appearance.avatarPath,
+          display_avatar_transform: appearance.avatarTransform,
         },
       });
+
+      notifyProfileAppearanceChanged(user.id);
+      if (payload.settings) {
+        window.dispatchEvent(new Event('animebox:premium-studio-updated'));
+      }
+      void refreshAuth();
+      router.refresh();
+
       setSaved('Профиль и оформление сохранены ✓');
     } catch (requestError) {
       if (pendingMedia.length) {
@@ -467,6 +495,9 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       setPremiumSettings(payload.settings ?? null);
       setSaved('Снова используются базовые аватар и баннер ✓');
       window.dispatchEvent(new Event('animebox:premium-studio-updated'));
+      notifyProfileAppearanceChanged(user.id);
+      void refreshAuth();
+      router.refresh();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Не удалось вернуть базовые медиа.');
     }
