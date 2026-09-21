@@ -50,6 +50,25 @@ export type ProductAnalyticsDashboard = {
     d7: RetentionMetric;
     d30: RetentionMetric;
   };
+  retentionSurfaces: {
+    continueWatching: {
+      impressions: number;
+      clicks: number;
+      started: number;
+      users: number;
+      impressionToClickPct: number;
+      clickToPlayPct: number;
+    };
+    personalHome: {
+      views: number;
+      users: number;
+    };
+    notificationCenter: {
+      opens: number;
+      users: number;
+      subscriptionToggles: number;
+    };
+  };
   timeSeries: Array<{
     date: string;
     activeUsers: number;
