@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import { useAuthState } from '@/components/AuthStateProvider';
+import { notifySocialNotificationsChanged } from '@/components/SocialNotificationBadge';
 
 type FriendCard = {
   friendshipId: string;
@@ -134,6 +135,7 @@ export default function FriendsPageClient() {
       setError(payload.error || 'Не удалось обновить заявку.');
       return;
     }
+    notifySocialNotificationsChanged();
     await load();
   }
 
