@@ -96,3 +96,56 @@
     background: var(--ab-accent);
   }
 }
+
+
+/* =========================================================
+   PATCH 6 · PERSONAL HOME
+   Compact release rail for titles the user already watches.
+   ========================================================= */
+
+.personal-schedule-section {
+  content-visibility: auto;
+  contain-intrinsic-size: 220px;
+}
+
+.personal-schedule-section .section-head p {
+  margin: 6px 0 0;
+  color: rgba(151, 163, 184, .68);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.personal-schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  padding: 2px 14px;
+  border: 1px solid rgba(148, 163, 184, .10);
+  border-radius: 14px;
+  background: rgba(9, 18, 31, .66);
+  contain: layout paint;
+}
+
+.personal-schedule-card {
+  min-width: 0;
+}
+
+.personal-schedule-card > a {
+  min-height: 70px;
+}
+
+@media (max-width: 720px) {
+  .personal-schedule-section {
+    contain-intrinsic-size: 360px;
+  }
+
+  .personal-schedule-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding-inline: 12px;
+  }
+
+  .personal-schedule-section .section-head {
+    align-items: flex-start;
+  }
+}
