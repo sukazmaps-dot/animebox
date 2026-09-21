@@ -20,9 +20,7 @@ import {
   type ProfileProgression,
 } from '@/lib/progression';
 import type { SeasonPeriod } from '@/lib/seasons';
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+import { isUuid } from '@/lib/uuid';
 
 export type PublicAchievement = {
   code: string;
@@ -134,7 +132,7 @@ function achievementDate(row: Record<string, unknown>) {
 export async function getPublicProfile(
   userId: string,
 ): Promise<PublicProfileData | null> {
-  if (!UUID_RE.test(userId)) return null;
+  if (!isUuid(userId)) return null;
 
   const admin = adminClient();
 

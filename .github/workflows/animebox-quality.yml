@@ -53,6 +53,12 @@ jobs:
           components/AnimePlayer.tsx
           components/HomeHeroCarousel.tsx
           lib/seo-episodes.ts
+          lib/seo-episode-index.ts
+          lib/episode-seo.ts
+          lib/uuid.ts
+          app/anime/[slug]/episode/[episode]/page.tsx
+          app/api/anime/[slug]/episode-availability/route.ts
+          components/AnimeEpisodePage.tsx
           app/episodes/sitemap.ts
           app/robots.ts
           lib/profile-media-publish-server.ts

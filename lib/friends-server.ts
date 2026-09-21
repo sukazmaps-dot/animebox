@@ -3,9 +3,7 @@ import 'server-only';
 import { ApiError, adminClient } from '@/lib/community-server';
 import { resolvePublicAppearances } from '@/lib/public-avatar-server';
 import { createSocialNotification } from '@/lib/social-notifications-server';
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
+import { isUuid } from '@/lib/uuid';
 
 export type FriendshipState =
   | 'none'
@@ -40,7 +38,7 @@ function canonicalPair(left: string, right: string) {
 }
 
 function assertUserId(value: string) {
-  if (!UUID_RE.test(value)) throw new ApiError(400, 'Некорректный пользователь.');
+  if (!isUuid(value)) throw new ApiError(400, 'Некорректный пользователь.');
 }
 
 async function friendshipByPair(userId: string, targetUserId: string) {
