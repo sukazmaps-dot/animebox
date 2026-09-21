@@ -12,15 +12,16 @@ import {
 
 const DISMISS_KEY = 'animebox:telegram-channel-promo-dismissed:v1';
 const DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const CAMPAIGN_ID = 'patch11-channel-growth-v1';
+const CAMPAIGN_ID = 'patch11-channel-growth-v2';
+
+type Placement = 'home_right_rail' | 'watch_together';
 
 function dismissedRecently() {
   try {
     const raw = window.localStorage.getItem(DISMISS_KEY);
     if (!raw) return false;
     const timestamp = Number(raw);
-    if (!Number.isFinite(timestamp)) return false;
-    return Date.now() - timestamp < DISMISS_TTL_MS;
+    return Number.isFinite(timestamp) && Date.now() - timestamp < DISMISS_TTL_MS;
   } catch {
     return false;
   }
@@ -29,7 +30,7 @@ function dismissedRecently() {
 export default function TelegramPromoCard({
   placement = 'home_right_rail',
 }: {
-  placement?: 'home_right_rail' | 'watch_together';
+  placement?: Placement;
 }) {
   const rootRef = useRef<HTMLElement | null>(null);
   const impressionSentRef = useRef(false);
@@ -40,7 +41,6 @@ export default function TelegramPromoCard({
     const frame = window.requestAnimationFrame(() => {
       const subscribed =
         document.documentElement.dataset.telegramSubscribed === 'true';
-
       setHidden(subscribed || dismissedRecently());
       setReady(true);
     });
@@ -68,17 +68,13 @@ export default function TelegramPromoCard({
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry?.isIntersecting || entry.intersectionRatio < 0.45) return;
-
         impressionSentRef.current = true;
         trackProductClientEvent('telegram_promo_impression', {
           source: placement,
           path: window.location.pathname,
           entityType: 'telegram_channel',
           entityId: TELEGRAM_CHANNEL_HANDLE,
-          metadata: {
-            campaign_id: CAMPAIGN_ID,
-            placement,
-          },
+          metadata: { campaign_id: CAMPAIGN_ID, placement },
         });
         observer.disconnect();
       },
@@ -118,10 +114,7 @@ export default function TelegramPromoCard({
       path: window.location.pathname,
       entityType: 'telegram_channel',
       entityId: TELEGRAM_CHANNEL_HANDLE,
-      metadata: {
-        campaign_id: CAMPAIGN_ID,
-        placement,
-      },
+      metadata: { campaign_id: CAMPAIGN_ID, placement },
       flush: true,
     });
 
@@ -134,10 +127,12 @@ export default function TelegramPromoCard({
 
   if (!ready || hidden) return null;
 
+  const community = placement === 'watch_together';
+
   return (
     <section
       ref={rootRef}
-      className={`panel telegram-growth-card ${placement === 'watch_together' ? 'telegram-growth-card--watch-together' : ''}`}
+      className={'panel telegram-growth-card ' + (community ? 'telegram-growth-card--community' : 'telegram-growth-card--compact')}
       aria-label="Telegram-канал AnimeBox"
     >
       <button
@@ -150,54 +145,63 @@ export default function TelegramPromoCard({
         ×
       </button>
 
-      <div className="telegram-growth-card__visual" aria-hidden="true">
-        <div className="telegram-growth-card__brand">
-          <Icon name="telegram" />
-        </div>
+      <div className="telegram-growth-card__aurora" aria-hidden="true" />
+
+      <div className="telegram-growth-card__art" aria-hidden="true">
         <Image
           src="/brand/telegram-cta.webp"
           alt=""
-          width={220}
-          height={140}
-          sizes="220px"
-          className="telegram-growth-card__image"
+          width={420}
+          height={300}
+          sizes={community ? '(max-width: 760px) 300px, 420px' : '180px'}
           loading="lazy"
         />
       </div>
 
-      <div className="telegram-growth-card__copy">
-        <span className="telegram-growth-card__eyebrow">ANIMEBOX · TELEGRAM</span>
-        <strong>
-          {placement === 'watch_together'
-            ? 'Watch Together развивается вместе с комьюнити'
-            : 'Будь ближе к проекту'}
-        </strong>
-        <p>
-          {placement === 'watch_together'
-            ? 'Следи за новыми social-функциями, открытыми комнатами и крупными обновлениями AnimeBox.'
-            : 'Патчи, новые функции, планы AnimeBox и важные объявления — в нашем официальном канале.'}
-        </p>
-      </div>
+      <div className="telegram-growth-card__content">
+        <div className="telegram-growth-card__brand">
+          <span className="telegram-growth-card__telegram-icon">
+            <Icon name="telegram" />
+          </span>
+          <span>
+            <small>ANIMEBOX · TELEGRAM</small>
+            <b>{community ? 'SOCIAL HUB' : 'OFFICIAL CHANNEL'}</b>
+          </span>
+        </div>
 
-      <div className="telegram-growth-card__benefits" aria-label="Что публикуем в канале">
-        <span>Патчи раньше остальных</span>
-        <span>Новости проекта</span>
-        <span>Комьюнити</span>
-      </div>
+        <div className="telegram-growth-card__copy">
+          <h3>
+            {community
+              ? 'Watch Together живёт вместе с комьюнити'
+              : 'Будь ближе к AnimeBox'}
+          </h3>
+          <p>
+            {community
+              ? 'Открытые комнаты, social-функции, крупные обновления и планы проекта — в Telegram AnimeBox.'
+              : 'Патчи, новые функции и важные новости проекта — без лишнего шума.'}
+          </p>
+        </div>
 
-      <a
-        href={TELEGRAM_CHANNEL_URL}
-        target="_blank"
-        rel="noreferrer"
-        className="telegram-growth-card__cta"
-        onClick={handleChannelClick}
-      >
-        <span>
-          Открыть {TELEGRAM_CHANNEL_HANDLE}
-          <small>официальный канал AnimeBox</small>
-        </span>
-        <span aria-hidden="true">↗</span>
-      </a>
+        <div className="telegram-growth-card__benefits" aria-label="Преимущества Telegram-канала">
+          <span>Патчи</span>
+          <span>{community ? 'Watch Together' : 'Планы'}</span>
+          <span>Комьюнити</span>
+        </div>
+
+        <a
+          href={TELEGRAM_CHANNEL_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="telegram-growth-card__cta"
+          onClick={handleChannelClick}
+        >
+          <span>
+            {community ? 'Открыть Telegram-комьюнити' : 'Перейти в ' + TELEGRAM_CHANNEL_HANDLE}
+            <small>официальный канал AnimeBox</small>
+          </span>
+          <b aria-hidden="true">↗</b>
+        </a>
+      </div>
     </section>
   );
 }

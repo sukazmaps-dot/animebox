@@ -4,10 +4,12 @@ import Script from 'next/script';
 import { useCallback, useRef, useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
+import { markTelegramWelcomePending } from '@/lib/telegram-growth-client';
 
 type GoogleAuthSuccess = {
   userId: string;
   needsOnboarding: boolean;
+  created: boolean;
 };
 
 type GoogleAuthButtonProps = {
@@ -124,10 +126,20 @@ export default function GoogleAuthButton({
         if (profileError) throw profileError;
 
         const needsOnboarding = !profile?.username?.trim();
+        const createdAt = Date.parse(user.created_at || '');
+        const created =
+          Number.isFinite(createdAt) &&
+          Date.now() - createdAt >= 0 &&
+          Date.now() - createdAt <= 2 * 60 * 1000;
+
+        if (created) {
+          markTelegramWelcomePending(user.id, 'google');
+        }
 
         await onSuccess?.({
           userId: user.id,
           needsOnboarding,
+          created,
         });
 
         if (!navigateOnSuccess) {

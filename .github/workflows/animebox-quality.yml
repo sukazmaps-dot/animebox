@@ -68,6 +68,12 @@ jobs:
           lib/product-events-client.ts
           lib/product-events-server.ts
           app/api/telegram/subscription-check/route.ts
+          components/TelegramWelcomePromo.tsx
+          components/GoogleAuthButton.tsx
+          components/TelegramAuthButton.tsx
+          components/AuthModalProvider.tsx
+          app/register/page.tsx
+          lib/telegram-growth-client.ts
 
       - name: Production build
         run: npm run build

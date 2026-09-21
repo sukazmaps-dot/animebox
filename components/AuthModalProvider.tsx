@@ -19,6 +19,7 @@ import TelegramAuthButton from '@/components/TelegramAuthButton';
 import { useAuthState } from '@/components/AuthStateProvider';
 import { createClient } from '@/lib/supabase/client';
 import { trackProductClientEvent } from '@/lib/product-events-client';
+import { markTelegramWelcomePending } from '@/lib/telegram-growth-client';
 
 type AuthMode = 'login' | 'register';
 
@@ -376,6 +377,7 @@ function AuthModal({
       }
 
       if (data.session) {
+        markTelegramWelcomePending(data.session.user.id, 'email');
         await completeAuth();
       } else {
         setMessage('Аккаунт создан. Подтверди email по письму, затем войди в AnimeBox.');

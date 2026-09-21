@@ -13,6 +13,7 @@ import TelegramAuthButton from '@/components/TelegramAuthButton';
 import {
   createClient,
 } from '@/lib/supabase/client';
+import { markTelegramWelcomePending } from '@/lib/telegram-growth-client';
 
 
 function safeReturnPath(value: string | null) {
@@ -281,6 +282,7 @@ export default function RegisterPage() {
         return;
       }
 
+      markTelegramWelcomePending(session.user.id, 'email');
       window.location.replace(nextPath);
 
       return;
