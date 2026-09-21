@@ -118,10 +118,10 @@ export default function FriendsPageClient() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
-      setLoading(false);
+      queueMicrotask(() => setLoading(false));
       return;
     }
-    void load();
+    queueMicrotask(() => void load());
   }, [authLoading, load, user]);
 
   async function patch(friendshipId: string, action: 'accept' | 'decline' | 'cancel') {
