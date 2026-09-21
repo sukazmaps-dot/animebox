@@ -20,13 +20,6 @@ import type {
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const ACTIVE_STATUSES = new Set<WatchPartyRoomStatus>([
-  'waiting',
-  'watching',
-  'paused',
-  'voting',
-]);
-
 function text(value: unknown, max: number) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
 }
