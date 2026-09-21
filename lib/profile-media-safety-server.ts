@@ -401,7 +401,12 @@ async function loadMediaCandidate(
   }
 
   const bytes = Buffer.from(await data.arrayBuffer());
-  const mimeType = data.type || inferMimeType(candidate.path);
+  const storageMime = data.type?.trim().toLowerCase();
+  const mimeType =
+    storageMime &&
+    ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(storageMime)
+      ? storageMime
+      : inferMimeType(candidate.path);
   const sha256 = createHash('sha256').update(bytes).digest('hex');
   const animated = detectAnimation(bytes, mimeType);
 
