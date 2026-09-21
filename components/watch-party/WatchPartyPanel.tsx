@@ -2210,67 +2210,88 @@ export default function WatchPartyPanel({
             {participants.map((participant) => {
               const publicIdentity = roomIdentities[participant.userId];
               const displayName = publicIdentity?.username || participant.name;
+              const canModerate = role === 'host' && !participant.host;
 
               return (
-                <a
-                  className={styles.participant}
-                  key={participant.id}
-                  href={`/profile/${encodeURIComponent(participant.userId)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={`Открыть профиль ${displayName}`}
-                  aria-label={`Открыть профиль ${displayName} в новой вкладке`}
-                >
-                  <span className={styles.avatar}>
-                    {watchPartyInitials(displayName)}
-                    {publicIdentity?.avatarUrl && (
-                      <Image
-                        className={styles.avatarImage}
-                        src={publicIdentity.avatarUrl}
-                        alt=""
-                        aria-hidden="true"
-                        fill
-                        unoptimized
-                        sizes="32px"
-                        draggable={false}
-                        style={premiumMediaStyle(publicIdentity.avatarTransform)}
-                        onError={(event) => {
-                          event.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    )}
-                  </span>
-                  <span className={styles.participantIdentity}>
-                    <UserIdentity
-                      username={displayName}
-                      role={publicIdentity?.role ?? null}
-                      sponsor={publicIdentity?.sponsor ?? null}
-                      compact
-                    />
-                    {publicIdentity?.premium && (
-                      <span className={styles.premiumBadge} title="AnimeBox Premium">
+                <div className={styles.participantRow} key={participant.id}>
+                  <a
+                    className={styles.participant}
+                    href={`/profile/${encodeURIComponent(participant.userId)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={`Открыть профиль ${displayName}`}
+                    aria-label={`Открыть профиль ${displayName} в новой вкладке`}
+                  >
+                    <span className={styles.avatar}>
+                      {watchPartyInitials(displayName)}
+                      {publicIdentity?.avatarUrl && (
                         <Image
-                          src="/premium/premium-user.webp"
+                          className={styles.avatarImage}
+                          src={publicIdentity.avatarUrl}
                           alt=""
-                          width={16}
-                          height={16}
                           aria-hidden="true"
+                          fill
                           unoptimized
+                          sizes="32px"
+                          draggable={false}
+                          style={premiumMediaStyle(publicIdentity.avatarTransform)}
+                          onError={(event) => {
+                            event.currentTarget.style.display = 'none';
+                          }}
                         />
-                        <span>Premium</span>
+                      )}
+                    </span>
+                    <span className={styles.participantIdentity}>
+                      <UserIdentity
+                        username={displayName}
+                        role={publicIdentity?.role ?? null}
+                        sponsor={publicIdentity?.sponsor ?? null}
+                        compact
+                      />
+                      {publicIdentity?.premium && (
+                        <span className={styles.premiumBadge} title="AnimeBox Premium">
+                          <Image
+                            src="/premium/premium-user.webp"
+                            alt=""
+                            width={16}
+                            height={16}
+                            aria-hidden="true"
+                            unoptimized
+                          />
+                          <span>Premium</span>
+                        </span>
+                      )}
+                    </span>
+                    {participant.host && (
+                      <span className={styles.hostBadge} title="Хост комнаты">
+                        <svg viewBox="0 0 20 20" aria-hidden="true">
+                          <path d="M4.5 6.5 7.3 9l2.7-5 2.7 5 2.8-2.5-1.2 7H5.7l-1.2-7Z" fill="currentColor" />
+                          <path d="M6 15.5h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                        </svg>
+                        <span>HOST</span>
                       </span>
                     )}
-                  </span>
-                  {participant.host && (
-                    <span className={styles.hostBadge} title="Хост комнаты">
-                      <svg viewBox="0 0 20 20" aria-hidden="true">
-                        <path d="M4.5 6.5 7.3 9l2.7-5 2.7 5 2.8-2.5-1.2 7H5.7l-1.2-7Z" fill="currentColor" />
-                        <path d="M6 15.5h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                      </svg>
-                      <span>HOST</span>
-                    </span>
+                  </a>
+
+                  {canModerate && (
+                    <div className={styles.participantActions}>
+                      <button
+                        type="button"
+                        onClick={() => void transferHost(participant)}
+                        title={`Передать управление ${displayName}`}
+                      >
+                        Хост
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => kickParticipant(participant)}
+                        title={`Исключить ${displayName}`}
+                      >
+                        ×
+                      </button>
+                    </div>
                   )}
-                </a>
+                </div>
               );
             })}
           </div>
