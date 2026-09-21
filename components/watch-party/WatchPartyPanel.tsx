@@ -90,6 +90,7 @@ const NEGOTIATION_TIMEOUT_MS = 18_000;
 const HANDSHAKE_TIMEOUT_MS = 8_000;
 const MAX_RECONNECT_ATTEMPTS = 6;
 const HOST_STARTUP_TIMEOUT_MS = 15_000;
+const IDENTITY_BOOT_TIMEOUT_MS = 4_000;
 const GUEST_HEALTH_CHECK_MS = 10_000;
 const HOST_STALE_MS = 45_000;
 const P2P_ACCELERATOR_GUEST_LIMIT = 6;
@@ -273,27 +274,31 @@ export default function WatchPartyPanel({
       identityPromiseRef.current = (async () => {
         try {
           const supabase = createClient();
-          const { data, error: userError } = await supabase.auth.getUser();
-          const user = data.user;
-          if (userError || !user) return null;
+          const sessionResult = await Promise.race([
+            supabase.auth.getSession(),
+            new Promise<null>((resolve) => {
+              window.setTimeout(() => resolve(null), IDENTITY_BOOT_TIMEOUT_MS);
+            }),
+          ]);
 
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('username')
-            .eq('id', user.id)
-            .maybeSingle();
+          if (!sessionResult) return null;
+
+          const user = sessionResult.data.session?.user;
+          if (!user) return null;
 
           const metadataName =
             typeof user.user_metadata?.username === 'string'
               ? user.user_metadata.username
-              : typeof user.user_metadata?.name === 'string'
-                ? user.user_metadata.name
-                : null;
+              : typeof user.user_metadata?.full_name === 'string'
+                ? user.user_metadata.full_name
+                : typeof user.user_metadata?.name === 'string'
+                  ? user.user_metadata.name
+                  : null;
 
           return {
             userId: user.id,
             displayName: sanitizeDisplayName(
-              profile?.username || metadataName || user.email?.split('@')[0],
+              metadataName || user.email?.split('@')[0],
             ),
           };
         } catch {
@@ -302,7 +307,9 @@ export default function WatchPartyPanel({
       })();
     }
 
-    return identityPromiseRef.current;
+    const identity = await identityPromiseRef.current;
+    if (!identity) identityPromiseRef.current = null;
+    return identity;
   }, []);
 
   useEffect(() => {
@@ -1426,17 +1433,9 @@ export default function WatchPartyPanel({
     setError('');
     setInviteUrl(buildWatchPartyUrl(invite));
 
-    const identity = await resolveIdentity();
-    if (!identity) {
-      redirectToRegistration();
-      return;
-    }
-    identityRef.current = identity;
-    if (
-      intentionalCloseRef.current ||
-      transportGenerationRef.current !== generation
-    ) return;
-
+    // Start the watchdog before any async identity/network work. Previously a
+    // stalled Supabase identity lookup could leave the room on
+    // "Создаём комнату…" forever because the watchdog had not been armed yet.
     hostStartupTimerRef.current = window.setTimeout(() => {
       hostStartupTimerRef.current = null;
       if (
@@ -1447,9 +1446,26 @@ export default function WatchPartyPanel({
         return;
       }
 
+      hostBootKeyRef.current = null;
       setStatus('error');
-      setError('Не удалось открыть канал комнаты. Проверь соединение и создай комнату ещё раз.');
+      setError('Запуск комнаты занял слишком много времени. Попробуй ещё раз.');
     }, HOST_STARTUP_TIMEOUT_MS);
+
+    const identity = await resolveIdentity();
+    if (!identity) {
+      if (hostStartupTimerRef.current != null) {
+        window.clearTimeout(hostStartupTimerRef.current);
+        hostStartupTimerRef.current = null;
+      }
+      hostBootKeyRef.current = null;
+      redirectToRegistration();
+      return;
+    }
+    identityRef.current = identity;
+    if (
+      intentionalCloseRef.current ||
+      transportGenerationRef.current !== generation
+    ) return;
 
     const hostPeerId = watchPartyHostPeerId(invite.roomId);
     let peerBundle: Awaited<ReturnType<typeof createWatchPartyPeer>>;
