@@ -15,9 +15,12 @@ import {
   type PremiumStudioSettings,
 } from '@/lib/premium-studio';
 import {
-  screenProfileMediaGroups,
+  finalizeProfileMediaPublish,
+  publishProfileMediaGroups,
+  rollbackProfileMediaPublish,
   type ProfileMediaCandidateGroup,
-} from '@/lib/profile-media-safety-server';
+  type ProfileMediaPublishResult,
+} from '@/lib/profile-media-publish-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -390,6 +393,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  let mediaPublish: ProfileMediaPublishResult | null = null;
+
   try {
     const { user } = await userClient();
     const body = await readBody(request);
@@ -419,9 +424,10 @@ export async function POST(request: Request) {
     const oldProfile = oldProfileResult.data as ExistingProfile;
     const oldSettings = studioSettingsFromRow(oldStudioResult.data as Record<string, unknown> | null);
 
-    // New avatar/banner paths must be approved before they can become public
-    // profile media. Existing unchanged paths are intentionally not re-scanned.
-    await screenProfileMediaGroups(
+    // Patch 11 post-moderation pipeline:
+    // quarantine -> technical validation -> public storage.
+    // AI moderation/review/retry is deliberately not part of profile saving.
+    mediaPublish = await publishProfileMediaGroups(
       user.id,
       changedMediaGroups(profilePatch, oldProfile, settings, oldSettings, pendingMedia),
     );
@@ -466,6 +472,9 @@ export async function POST(request: Request) {
       committedSettings = settings;
     }
 
+    await finalizeProfileMediaPublish(mediaPublish);
+    mediaPublish = null;
+
     return response({
       ok: true,
       profile: committedProfile,
@@ -480,22 +489,8 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    if (
-      error instanceof ApiError &&
-      error.status === 409 &&
-      (
-        error.message.includes('дополнительную проверку') ||
-        error.message.includes('проверено повторно автоматически')
-      )
-    ) {
-      return response(
-        {
-          error: error.message,
-          mediaReviewQueued: true,
-          mediaReviewAutomatic: error.message.includes('проверено повторно автоматически'),
-        },
-        409,
-      );
+    if (mediaPublish) {
+      await rollbackProfileMediaPublish(mediaPublish);
     }
     return failure(error);
   }
