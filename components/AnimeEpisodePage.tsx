@@ -589,6 +589,20 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
   const title = getAnimeTitle(anime);
 
+  const previousHref =
+    episodeNumber > 1
+      ? `/anime/${animeIdParam}/episode/${episodeNumber - 1}`
+      : seasonRoute.previous && previousSeasonLastEpisode
+        ? `/anime/${seasonRoute.previous.slug}/episode/${previousSeasonLastEpisode}`
+        : null;
+
+  const nextHref =
+    currentSeasonEpisodes > 0 && episodeNumber < currentSeasonEpisodes
+      ? `/anime/${animeIdParam}/episode/${episodeNumber + 1}`
+      : seasonRoute.next && nextSeasonFirstEpisode
+        ? `/anime/${seasonRoute.next.slug}/episode/1`
+        : null;
+
   const poster =
     anime.coverImage?.extraLarge ||
     anime.coverImage?.large ||
@@ -696,13 +710,15 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
   return (
     <div className="detail episode-page pt-10 md:pt-12">
-      <Link
-        href={`/anime/${animeIdParam}`}
-        className="group mb-1 inline-flex w-fit items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2 text-[11px] font-semibold text-white/45 transition hover:border-white/[0.10] hover:bg-white/[0.045] hover:text-white/80"
-      >
-        <span className="transition-transform group-hover:-translate-x-0.5">←</span>
-        <span className="max-w-[70vw] truncate">Назад к {title}</span>
-      </Link>
+      <nav className="episode-seo-breadcrumbs" aria-label="Навигационная цепочка">
+        <Link href="/">AnimeBox</Link>
+        <span aria-hidden="true">›</span>
+        <Link href="/search">Каталог</Link>
+        <span aria-hidden="true">›</span>
+        <Link href={`/anime/${animeIdParam}`}>{title}</Link>
+        <span aria-hidden="true">›</span>
+        <span aria-current="page">{episodeNumber} серия</span>
+      </nav>
 
       {waitingForSources ? (
         <div className="relative isolate overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(14,19,34,0.98),rgba(7,10,20,0.98))] p-3 shadow-[0_28px_90px_rgba(0,0,0,0.50)] md:p-4">
@@ -738,18 +754,35 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         />
       )}
 
+      {!waitingForSources && sources.length === 0 && sourceMessage && (
+        <div className="mt-3 rounded-lg border border-amber-900/40 bg-amber-950/20 py-3 text-center text-sm text-amber-400">
+          {sourceMessage}
+        </div>
+      )}
+
+      <section className="episode-seo-context" aria-label="О серии">
+        <div>
+          <span className="episode-seo-context__eyebrow">Сейчас смотрят</span>
+          <strong>{episodeNumber} серия · {title}</strong>
+          <p>
+            Прогресс сохраняется автоматически. Можно перейти к соседним сериям
+            или вернуться к карточке тайтла.
+          </p>
+        </div>
+
+        <nav className="episode-seo-context__links" aria-label="Соседние эпизоды">
+          {previousHref ? <Link href={previousHref}>← Предыдущая</Link> : <span />}
+          <Link href={`/anime/${animeIdParam}`}>Все серии</Link>
+          {nextHref ? <Link href={nextHref}>Следующая →</Link> : <span />}
+        </nav>
+      </section>
+
       <WatchPartyPanel
         animeTitle={title}
         animeSlug={animeIdParam}
         episodeNumber={episodeNumber}
         mode="inline"
       />
-
-      {!waitingForSources && sources.length === 0 && sourceMessage && (
-        <div className="mt-3 rounded-lg border border-amber-900/40 bg-amber-950/20 py-3 text-center text-sm text-amber-400">
-          {sourceMessage}
-        </div>
-      )}
 
       <EpisodeCompletion key={`${anime.id}:${episodeNumber}`} animeId={anime.id} episode={episodeNumber} />
 
