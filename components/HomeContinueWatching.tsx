@@ -19,6 +19,7 @@ export type ContinueWatchingItem = {
   resumeMode?: 'resume' | 'next';
   completedEpisodes?: number;
   totalEpisodes?: number | null;
+  lastWatchedAt?: number | null;
 };
 
 function formatResumeTime(seconds: number) {
@@ -26,6 +27,22 @@ function formatResumeTime(seconds: number) {
   const minutes = Math.floor(safe / 60);
   const remainder = safe % 60;
   return `${minutes}:${String(remainder).padStart(2, '0')}`;
+}
+
+function formatLastWatched(timestamp?: number | null) {
+  if (!timestamp || !Number.isFinite(timestamp)) return null;
+  const ageMs = Math.max(0, Date.now() - timestamp);
+  const minutes = Math.floor(ageMs / 60_000);
+  if (minutes < 2) return 'только что';
+  if (minutes < 60) return `${minutes} мин. назад`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} ч. назад`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} дн. назад`;
+  return new Date(timestamp).toLocaleDateString('ru-RU', {
+    day: '2-digit',
+    month: 'short',
+  });
 }
 
 export default function HomeContinueWatching({
@@ -82,6 +99,7 @@ export default function HomeContinueWatching({
           resumeMode = 'resume',
           completedEpisodes,
           totalEpisodes: explicitTotalEpisodes,
+          lastWatchedAt,
         }) => {
           const title = getAnimeTitle(anime);
           const totalEpisodes =
@@ -94,6 +112,7 @@ export default function HomeContinueWatching({
                 ? (episode / totalEpisodes) * 100
                 : 18;
           const progress = Math.min(100, Math.max(4, titleProgress));
+          const lastWatchedLabel = formatLastWatched(lastWatchedAt);
 
           return (
             <Link
@@ -155,6 +174,7 @@ export default function HomeContinueWatching({
                         : totalEpisodes
                           ? `${episode} из ${totalEpisodes}`
                           : 'Продолжить с места просмотра'}
+                  {lastWatchedLabel ? ` · ${lastWatchedLabel}` : ''}
                 </small>
               </div>
 
