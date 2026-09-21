@@ -22,7 +22,6 @@ import {
 } from '@/lib/auth-events';
 import {
   TELEGRAM_AUTOLOGIN_CHANGED_EVENT,
-  disableTelegramAutoLogin,
   enableTelegramAutoLogin,
   isTelegramAutoLoginDisabled,
   isTelegramMiniAppRuntime,
@@ -359,9 +358,12 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
     refreshSerial.current += 1;
 
     if (isTelegramMiniAppRuntime()) {
-      disableTelegramAutoLogin();
+      // Mini App identity is anchored to verified Telegram initData.
+      // Signing out clears only the current Supabase session; the next Mini
+      // App boot is allowed to restore the same linked AnimeBox account.
+      enableTelegramAutoLogin();
       setTelegramMiniApp(true);
-      setTelegramAutoLoginDisabled(true);
+      setTelegramAutoLoginDisabled(false);
     }
 
     clearCachedProfile();
