@@ -330,6 +330,15 @@ export default function WatchTogetherHub() {
         flush: true,
       });
 
+      try {
+        window.localStorage.setItem(
+          LAST_ROOM_KEY,
+          new URL(payload.roomUrl, window.location.origin).toString(),
+        );
+      } catch {
+        // Resume shortcut is optional.
+      }
+
       window.location.replace(payload.roomUrl);
     } catch (joinError) {
       setJoiningRoomId('');
