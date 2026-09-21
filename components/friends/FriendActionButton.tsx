@@ -33,12 +33,14 @@ export default function FriendActionButton({
   useEffect(() => {
     if (loading) return;
     if (!user || user.id === targetUserId) {
-      setReady(true);
+      queueMicrotask(() => setReady(true));
       return;
     }
 
     let active = true;
-    void fetch(`/api/friends?userId=${encodeURIComponent(targetUserId)}`, {
+    queueMicrotask(() => {
+      if (!active) return;
+      void fetch(`/api/friends?userId=${encodeURIComponent(targetUserId)}`, {
       cache: 'no-store',
     })
       .then(async (response) => {
@@ -54,6 +56,7 @@ export default function FriendActionButton({
         setError(requestError instanceof Error ? requestError.message : 'Не удалось проверить дружбу.');
         setReady(true);
       });
+    });
 
     return () => {
       active = false;
