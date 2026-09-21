@@ -1506,7 +1506,7 @@ export default function WatchPartyPanel({
         source: 'watch_party_room',
         path: window.location.pathname,
         entityType: 'watch_party_room',
-        entityId: inviteRef.current?.roomId ?? null,
+        entityId: inviteRef.current?.roomId ?? undefined,
         flush: true,
       });
       setCopyLabel('Ссылка скопирована');
