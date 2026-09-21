@@ -637,8 +637,8 @@ export default function WatchTogetherHub() {
             <div>
               {([
                 ['public', 'Открытая', 'Видна всем во «Вместе»'],
-                ['unlisted', 'По ссылке', 'Только по invite-ссылке'],
-                ['private', 'Приватная', 'Не показывается в lobby'],
+                ['unlisted', 'По ссылке', 'Ссылка или код, без lobby'],
+                ['private', 'Приватная', 'Только полная invite-ссылка'],
               ] as const).map(([value, label, hint]) => (
                 <button
                   type="button"
@@ -692,8 +692,8 @@ export default function WatchTogetherHub() {
                 {visibility === 'public'
                   ? 'появится в открытом lobby'
                   : visibility === 'unlisted'
-                    ? 'вход только по ссылке'
-                    : 'приватный режим'}
+                    ? 'вход по ссылке или коду'
+                    : 'только по приватной ссылке'}
               </small>
             </span>
             <Icon name="chevron" />
