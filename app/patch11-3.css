@@ -454,3 +454,147 @@
     text-overflow: ellipsis;
   }
 }
+
+
+/* ---------- Patch 11.3.1 · Premium-linked profile accents ---------- */
+.profile-v2 {
+  --profile-accent: var(--ab-premium-accent, #7c4dff);
+  --profile-accent-rgb: var(--ab-premium-accent-rgb, 124, 77, 255);
+  --profile-primary: var(--ab-premium-primary, #101426);
+}
+
+/* Series activity / streak inherits the user's Premium palette. */
+.profile-v5__challenges.profile-v6__challenges-link {
+  border-color: rgba(var(--profile-accent-rgb), .18) !important;
+  background:
+    radial-gradient(circle at 4% 50%, rgba(var(--profile-accent-rgb), .13), transparent 31%),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--profile-primary) 72%, #0d101b 28%),
+      rgba(8, 10, 18, .98)
+    ) !important;
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.03),
+    0 14px 38px rgba(var(--profile-accent-rgb), .055);
+}
+
+.profile-v5__challenge-link,
+.profile-v5__challenges .profile-v2__eyebrow {
+  color: color-mix(in srgb, var(--profile-accent) 78%, white 22%) !important;
+}
+
+.profile-v5__challenge-progress > div {
+  border-color: rgba(var(--profile-accent-rgb), .10) !important;
+  background: rgba(var(--profile-accent-rgb), .035) !important;
+}
+
+.profile-v6__streak-rail i.is-active {
+  background: var(--profile-accent) !important;
+  box-shadow: 0 0 12px rgba(var(--profile-accent-rgb), .30);
+}
+
+/* Featured achievements: palette follows Premium while rarity remains readable. */
+.profile-v3__showcase,
+.profile-v4__featured {
+  border-color: rgba(var(--profile-accent-rgb), .18) !important;
+  background:
+    radial-gradient(circle at 0 0, rgba(var(--profile-accent-rgb), .12), transparent 42%),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--profile-primary) 68%, #0b0f1b 32%),
+      rgba(8, 10, 18, .96)
+    ) !important;
+}
+
+.profile-v4__featured {
+  background:
+    radial-gradient(circle at 90% 0%, rgba(var(--profile-accent-rgb), .13), transparent 38%),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--profile-primary) 68%, #0b0f1b 32%),
+      rgba(8, 10, 18, .96)
+    ) !important;
+}
+
+.profile-v3__showcase-card,
+.profile-v4__featured-card {
+  border-color: rgba(var(--profile-accent-rgb), .13);
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--profile-accent-rgb), .055),
+      rgba(8, 15, 27, .72)
+    );
+}
+
+.profile-v3__showcase-card strong,
+.profile-v4__featured-card strong {
+  color: var(--ab-premium-text, #f0ecff);
+}
+
+.profile-v3__showcase-card small,
+.profile-v4__featured-card > div > span,
+.profile-v4__featured-card > b {
+  color: color-mix(in srgb, var(--profile-accent) 74%, white 26%);
+}
+
+/* Preserve achievement rarity semantics with a subtle rarity edge. */
+.profile-v3__showcase-card[data-rarity='epic'],
+.profile-v4__featured-card[data-rarity='epic'] {
+  box-shadow:
+    inset 2px 0 rgba(207, 92, 255, .52),
+    0 10px 28px rgba(var(--profile-accent-rgb), .035);
+}
+
+.profile-v3__showcase-card[data-rarity='legendary'],
+.profile-v4__featured-card[data-rarity='legendary'] {
+  box-shadow:
+    inset 2px 0 rgba(236, 188, 92, .62),
+    0 10px 28px rgba(var(--profile-accent-rgb), .035);
+}
+
+.profile-v3__showcase-card[data-rarity='rare'] {
+  box-shadow:
+    inset 2px 0 rgba(142, 111, 255, .50),
+    0 10px 28px rgba(var(--profile-accent-rgb), .035);
+}
+
+
+/* ---------- Patch 11.3.1 · profile section gutter repair ---------- */
+.profile-v3__showcase,
+.profile-v4__featured {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding: 17px 18px !important;
+  overflow: hidden;
+  border: 1px solid rgba(var(--profile-accent-rgb), .18) !important;
+  border-radius: 17px !important;
+}
+
+.profile-v3__showcase-grid,
+.profile-v4__featured-grid {
+  width: 100%;
+  min-width: 0;
+}
+
+.profile-v3__showcase-card,
+.profile-v4__featured-card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 600px) {
+  .profile-v3__showcase,
+  .profile-v4__featured {
+    padding: 15px 14px !important;
+    border-radius: 15px !important;
+  }
+
+  .profile-v3__showcase-grid,
+  .profile-v4__featured-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
