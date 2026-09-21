@@ -7,6 +7,7 @@ import {
   useEffect,
   useState,
 } from 'react';
+import { TELEGRAM_CHANNEL_URL } from '@/lib/telegram-links';
 import {
   getLoadedTelegramWebApp,
   hasTelegramMiniAppLaunchParams,
@@ -19,7 +20,7 @@ type GateState =
   | 'allowed'
   | 'blocked';
 
-const CHANNEL_URL_FALLBACK = 'https://t.me/YourAnimeBox';
+const CHANNEL_URL_FALLBACK = TELEGRAM_CHANNEL_URL;
 
 type GateResponse = {
   ok?: boolean;
