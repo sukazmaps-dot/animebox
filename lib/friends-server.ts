@@ -201,6 +201,13 @@ export async function actOnFriendship(
 
     if (updateError) throw updateError;
 
+    await admin
+      .from('social_notifications')
+      .update({ read_at: now })
+      .eq('user_id', userId)
+      .eq('type', 'friend_request')
+      .contains('payload', { friendshipId });
+
     await createSocialNotification({
       userId: otherUserId,
       actorId: userId,
@@ -224,6 +231,22 @@ export async function actOnFriendship(
     .eq('id', friendshipId);
 
   if (deleteError) throw deleteError;
+
+  if (action === 'cancel') {
+    await admin
+      .from('social_notifications')
+      .delete()
+      .eq('user_id', otherUserId)
+      .eq('type', 'friend_request')
+      .contains('payload', { friendshipId });
+  } else {
+    await admin
+      .from('social_notifications')
+      .update({ read_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq('type', 'friend_request')
+      .contains('payload', { friendshipId });
+  }
 
   return { state: 'none' as const };
 }
