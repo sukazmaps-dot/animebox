@@ -1,9 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import { trackProductClientEvent } from '@/lib/product-events-client';
+
+import styles from './WatchPartyFriendInvite.module.css';
 
 type FriendCard = {
   friendshipId: string;
@@ -18,6 +27,15 @@ type FriendsResponse = {
   error?: string;
 };
 
+type AnchorState = {
+  left: number;
+  top: number;
+  placement: 'above' | 'below';
+};
+
+const DESKTOP_POPOVER_WIDTH = 320;
+const VIEWPORT_GUTTER = 12;
+
 export default function WatchPartyFriendInvite({
   inviteUrl,
   animeTitle,
@@ -27,12 +45,81 @@ export default function WatchPartyFriendInvite({
   animeTitle: string;
   episode: number;
 }) {
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [anchor, setAnchor] = useState<AnchorState>({
+    left: VIEWPORT_GUTTER,
+    top: VIEWPORT_GUTTER,
+    placement: 'above',
+  });
   const [friends, setFriends] = useState<FriendCard[]>([]);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [sent, setSent] = useState<Set<string>>(() => new Set());
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    setMounted(true);
+
+    const media = window.matchMedia('(max-width: 700px)');
+    const sync = () => setIsMobile(media.matches);
+    sync();
+    media.addEventListener('change', sync);
+
+    return () => media.removeEventListener('change', sync);
+  }, []);
+
+  const updateAnchor = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger || typeof window === 'undefined') return;
+
+    const rect = trigger.getBoundingClientRect();
+    const width = Math.min(
+      DESKTOP_POPOVER_WIDTH,
+      Math.max(220, window.innerWidth - VIEWPORT_GUTTER * 2),
+    );
+    const maxLeft = Math.max(
+      VIEWPORT_GUTTER,
+      window.innerWidth - width - VIEWPORT_GUTTER,
+    );
+    const left = Math.min(
+      Math.max(VIEWPORT_GUTTER, rect.right - width),
+      maxLeft,
+    );
+
+    setAnchor({
+      left,
+      top: rect.top >= 340 ? rect.top - 8 : rect.bottom + 8,
+      placement: rect.top >= 340 ? 'above' : 'below',
+    });
+  }, []);
+
+  const close = useCallback(() => {
+    setOpen(false);
+    setError('');
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    updateAnchor();
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') close();
+    };
+
+    window.addEventListener('resize', updateAnchor);
+    window.addEventListener('scroll', updateAnchor, true);
+    window.addEventListener('keydown', handleEscape);
+
+    return () => {
+      window.removeEventListener('resize', updateAnchor);
+      window.removeEventListener('scroll', updateAnchor, true);
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [close, open, updateAnchor]);
 
   useEffect(() => {
     if (!open || friends.length) return;
@@ -42,20 +129,26 @@ export default function WatchPartyFriendInvite({
       if (!active) return;
       setLoading(true);
       void fetch('/api/friends', { cache: 'no-store' })
-      .then(async (response) => {
-        const payload = (await response.json()) as FriendsResponse;
-        if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить друзей.');
-        if (!active) return;
-        setFriends(payload.friends ?? []);
-        setError('');
-      })
-      .catch((requestError) => {
-        if (!active) return;
-        setError(requestError instanceof Error ? requestError.message : 'Не удалось загрузить друзей.');
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+        .then(async (response) => {
+          const payload = (await response.json()) as FriendsResponse;
+          if (!response.ok) {
+            throw new Error(payload.error || 'Не удалось загрузить друзей.');
+          }
+          if (!active) return;
+          setFriends(payload.friends ?? []);
+          setError('');
+        })
+        .catch((requestError) => {
+          if (!active) return;
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : 'Не удалось загрузить друзей.',
+          );
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
     });
 
     return () => {
@@ -80,7 +173,9 @@ export default function WatchPartyFriendInvite({
         }),
       });
       const payload = (await response.json()) as { error?: string };
-      if (!response.ok) throw new Error(payload.error || 'Не удалось отправить приглашение.');
+      if (!response.ok) {
+        throw new Error(payload.error || 'Не удалось отправить приглашение.');
+      }
 
       setSent((current) => new Set(current).add(friend.userId));
       trackProductClientEvent('watch_party_invite_shared', {
@@ -94,64 +189,128 @@ export default function WatchPartyFriendInvite({
         },
       });
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Не удалось отправить приглашение.');
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Не удалось отправить приглашение.',
+      );
     } finally {
       setBusyId(null);
     }
   }
 
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        className="min-h-9 rounded-xl border border-violet-400/20 bg-violet-500/[0.08] px-3 text-xs font-black text-violet-100"
-      >
-        Позвать друга
-      </button>
+  const desktopStyle = {
+    left: anchor.left,
+    top: anchor.top,
+  } satisfies CSSProperties;
 
-      {open && (
-        <div className="absolute bottom-[calc(100%+8px)] right-0 z-40 w-[300px] max-w-[82vw] rounded-2xl border border-violet-400/15 bg-[#0a0e19]/[0.98] p-3 shadow-2xl backdrop-blur-xl">
-          <div className="mb-3 flex items-center justify-between">
-            <div>
-              <strong className="block text-sm text-white">Пригласить друзей</strong>
-              <span className="text-[10px] text-slate-500">Уведомление появится в AnimeBox</span>
-            </div>
-            <button type="button" onClick={() => setOpen(false)} className="text-slate-500 hover:text-white">×</button>
-          </div>
+  const dialog =
+    mounted && open
+      ? createPortal(
+          <div
+            className={styles.backdrop}
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) close();
+            }}
+          >
+            <section
+              className={[
+                styles.sheet,
+                isMobile ? styles.mobile : styles.desktop,
+                !isMobile && anchor.placement === 'above'
+                  ? styles.above
+                  : styles.below,
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              style={isMobile ? undefined : desktopStyle}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Пригласить друзей в комнату"
+            >
+              <header className={styles.header}>
+                <div className={styles.headerCopy}>
+                  <strong>Пригласить друзей</strong>
+                  <span>Уведомление появится прямо в AnimeBox</span>
+                </div>
+                <button
+                  type="button"
+                  className={styles.close}
+                  onClick={close}
+                  aria-label="Закрыть список друзей"
+                >
+                  ×
+                </button>
+              </header>
 
-          {loading ? (
-            <div className="py-5 text-center text-xs text-slate-500">Загружаем друзей…</div>
-          ) : friends.length ? (
-            <div className="max-h-64 space-y-1 overflow-y-auto">
-              {friends.map((friend) => {
-                const wasSent = sent.has(friend.userId);
-                return (
-                  <div key={friend.userId} className="flex items-center gap-2 rounded-xl border border-white/[0.05] bg-white/[0.02] p-2">
-                    <img src={friend.avatarUrl} alt="" className="h-9 w-9 rounded-full object-cover" />
-                    <span className="min-w-0 flex-1 truncate text-xs font-bold text-slate-200">{friend.username}</span>
-                    <button
-                      type="button"
-                      disabled={wasSent || busyId === friend.userId}
-                      onClick={() => void invite(friend)}
-                      className="rounded-lg border border-violet-400/15 bg-violet-500/10 px-2.5 py-1.5 text-[10px] font-black text-violet-100 disabled:opacity-55"
-                    >
-                      {wasSent ? 'Отправлено ✓' : busyId === friend.userId ? '…' : 'Позвать'}
-                    </button>
+              <div className={styles.body}>
+                {loading ? (
+                  <div className={styles.loading}>Загружаем друзей…</div>
+                ) : friends.length ? (
+                  <div className={styles.list}>
+                    {friends.map((friend) => {
+                      const wasSent = sent.has(friend.userId);
+                      return (
+                        <div key={friend.userId} className={styles.friend}>
+                          <span
+                            className={styles.avatar}
+                            style={{ backgroundImage: `url("${friend.avatarUrl.replace(/["\\]/g, '')}")` }}
+                            aria-hidden="true"
+                          />
+                          <span className={styles.name}>{friend.username}</span>
+                          <button
+                            type="button"
+                            disabled={wasSent || busyId === friend.userId}
+                            onClick={() => void invite(friend)}
+                            className={styles.invite}
+                          >
+                            {wasSent
+                              ? 'Отправлено ✓'
+                              : busyId === friend.userId
+                                ? '…'
+                                : 'Позвать'}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-white/8 p-4 text-center">
-              <p className="text-xs text-slate-500">Сначала добавь друзей в AnimeBox.</p>
-              <Link href="/friends" className="mt-2 inline-flex text-xs font-black text-violet-300">Открыть друзей →</Link>
-            </div>
-          )}
+                ) : (
+                  <div className={styles.empty}>
+                    <p>Сначала добавь друзей в AnimeBox.</p>
+                    <Link href="/friends" onClick={close}>
+                      Открыть друзей →
+                    </Link>
+                  </div>
+                )}
+              </div>
 
-          {error && <p className="mt-2 text-[10px] font-bold text-rose-300">{error}</p>}
-        </div>
-      )}
+              {error && (
+                <p className={styles.error} role="status">
+                  {error}
+                </p>
+              )}
+            </section>
+          </div>,
+          document.body,
+        )
+      : null;
+
+  return (
+    <div className={styles.root}>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => {
+          updateAnchor();
+          setOpen((current) => !current);
+        }}
+        className={styles.trigger}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+      >
+        Друзья
+      </button>
+      {dialog}
     </div>
   );
 }
