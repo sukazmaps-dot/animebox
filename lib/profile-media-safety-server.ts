@@ -613,29 +613,16 @@ export async function screenProfileMediaGroups(
     );
 
     if (technicalReview) {
-      // Provider/config/rate-limit failures are operational problems, not a
-      // statement about the user's image. Keep an audit row, clean temporary
-      // files, preserve current profile media, and ask the user to retry.
-      await Promise.all(
-        items.map((item) =>
-          recordImmediate(userId, group, item, 'review').catch((error) => {
-            console.error('[ProfileMediaSafety] technical review audit:', error);
-          }),
-        ),
-      );
-
-      const quarantinePaths = items.map((item) => item.candidate.quarantinePath);
-      if (quarantinePaths.length) {
-        const { error } = await adminClient()
-          .storage
-          .from(QUARANTINE_BUCKET)
-          .remove(quarantinePaths);
-        if (error) console.error('[ProfileMediaSafety] technical quarantine cleanup:', error);
-      }
+      // Automatic moderation being unavailable must not make profile media
+      // impossible to change. Fail closed: keep the new file private in the
+      // quarantine bucket and route it to the human moderation queue. The
+      // user's currently published avatar/banner stays untouched until an
+      // owner/admin/moderator explicitly approves the review group.
+      await quarantineGroup(userId, group, items);
 
       throw new ApiError(
-        503,
-        moderationTechnicalMessage(technicalReview.moderation.reason),
+        409,
+        `${moderationTechnicalMessage(technicalReview.moderation.reason)} Изображение отправлено на ручную проверку.`,
       );
     }
 
