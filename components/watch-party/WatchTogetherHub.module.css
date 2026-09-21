@@ -1116,3 +1116,461 @@
     min-height: 48px;
   }
 }
+
+
+/* =========================================================
+   PATCH 8 · WATCH TOGETHER PUBLIC LOBBY V2
+   ========================================================= */
+.publicRoomsTop {
+  display: grid;
+  gap: 15px;
+}
+
+.refreshButton:disabled {
+  opacity: .55;
+  cursor: progress !important;
+}
+
+.lobbyStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 150px)) minmax(180px, 1fr);
+  align-items: stretch;
+  gap: 8px;
+}
+
+.lobbyStats > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, .055);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .018);
+}
+
+.lobbyStats strong {
+  color: #f2efff;
+  font-size: 18px;
+  line-height: 1;
+  letter-spacing: -.04em;
+}
+
+.lobbyStats span {
+  margin-top: 5px;
+  color: #6f6a80;
+  font-size: 8px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.lobbyStats > small {
+  align-self: center;
+  justify-self: end;
+  color: #5f5a70;
+  font-size: 8px;
+  text-align: right;
+}
+
+.lobbyToolbar {
+  display: grid;
+  grid-template-columns: auto minmax(220px, 360px);
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.lobbyTabs {
+  display: inline-flex;
+  gap: 5px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, .055);
+  border-radius: 12px;
+  background: rgba(2, 5, 12, .48);
+}
+
+.lobbyTabs button {
+  min-height: 32px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #777084;
+  font-size: 8px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.lobbyTabs button[data-active='true'] {
+  background: rgba(111, 80, 255, .14);
+  color: #d0c8ff;
+  box-shadow: inset 0 0 0 1px rgba(137, 111, 255, .15);
+}
+
+.roomSearch {
+  min-width: 0;
+  height: 39px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid rgba(129, 104, 255, .11);
+  border-radius: 11px;
+  background: rgba(3, 7, 16, .65);
+}
+
+.roomSearch > svg {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  color: #7368aa;
+}
+
+.roomSearch input {
+  min-width: 0;
+  flex: 1;
+  height: 100%;
+  outline: none;
+  border: 0;
+  background: transparent;
+  color: #ece9fa;
+  font-size: 9px;
+}
+
+.roomSearch button {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 7px;
+  background: rgba(255,255,255,.035);
+  color: #777084;
+  cursor: pointer;
+}
+
+.lobbyNotice {
+  margin-top: 10px;
+  padding: 9px 11px;
+  border: 1px solid rgba(92, 203, 154, .14);
+  border-radius: 10px;
+  background: rgba(72, 182, 132, .055);
+  color: #83cfae;
+  font-size: 9px;
+}
+
+.publicRoomGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 11px;
+}
+
+.publicRoomCard {
+  position: relative;
+  grid-template-columns: 94px minmax(0, 1fr);
+  gap: 13px;
+  min-height: 176px;
+  padding: 10px;
+  border-color: rgba(255, 255, 255, .065);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(111, 80, 255, .045), transparent 42%),
+    rgba(255, 255, 255, .018);
+  transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+
+.publicRoomCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(128, 101, 255, .18);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(111, 80, 255, .08), transparent 45%),
+    rgba(255, 255, 255, .022);
+}
+
+.publicRoomCard[data-full='true'] {
+  opacity: .68;
+}
+
+.publicRoomPoster {
+  width: 94px;
+  min-height: 146px;
+  aspect-ratio: auto;
+}
+
+.liveBadge {
+  position: absolute;
+  z-index: 3;
+  top: 6px;
+  left: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 20px;
+  padding: 0 6px;
+  border-radius: 7px;
+  background: rgba(7, 11, 19, .82);
+  color: #9be6c4;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  backdrop-filter: blur(8px);
+}
+
+.liveBadge i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #63d59f;
+  box-shadow: 0 0 10px rgba(99, 213, 159, .75);
+}
+
+.publicRoomCopy {
+  justify-content: flex-start;
+  padding: 2px 1px 1px 0;
+}
+
+.roomMetaTop {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.roomMetaTop > span:last-child {
+  flex: 0 0 auto;
+  color: #595565;
+  font-size: 7px;
+}
+
+.publicRoomCopy h3 {
+  margin: 7px 0 2px;
+  font-size: 12px;
+}
+
+.roomEpisode {
+  color: #8c82c0 !important;
+  font-size: 8px !important;
+  font-weight: 750;
+}
+
+.roomHostLine {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.roomHostAvatar {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(133, 109, 255, .15);
+  border-radius: 50%;
+  background: rgba(111, 80, 255, .09);
+  color: #b5aaf7;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.roomHostLine > span:last-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.roomHostLine small {
+  color: #575265;
+  font-size: 6px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.roomHostLine strong {
+  overflow: hidden;
+  color: #bdb8cc;
+  font-size: 8px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.occupancy {
+  width: 100%;
+  margin-top: 9px;
+}
+
+.occupancy > div {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .045);
+}
+
+.occupancy > div > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(99, 79, 255, .86), rgba(91, 204, 158, .86));
+}
+
+.occupancy small {
+  display: block;
+  margin-top: 4px;
+  color: #625d70;
+  font-size: 7px;
+}
+
+.roomDetails {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.roomDetails span {
+  padding: 3px 5px;
+  border: 1px solid rgba(255, 255, 255, .045);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, .018);
+  color: #686276;
+  font-size: 6.5px;
+  font-weight: 800;
+}
+
+.publicRoomActions {
+  width: 100%;
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.publicRoomActions a,
+.fullRoomButton {
+  flex: 1;
+  min-width: 0;
+  min-height: 34px;
+}
+
+.publicRoomActions a {
+  gap: 6px;
+}
+
+.publicRoomActions a svg {
+  width: 11px;
+  height: 11px;
+}
+
+.fullRoomButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border: 1px solid rgba(255,255,255,.05);
+  border-radius: 9px;
+  background: rgba(255,255,255,.025);
+  color: #686274;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+@media (max-width: 1380px) {
+  .publicRoomGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1040px) {
+  .publicRoomGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lobbyStats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .lobbyStats > small {
+    grid-column: 1 / -1;
+    justify-self: start;
+    text-align: left;
+  }
+}
+
+@media (max-width: 720px) {
+  .lobbyToolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .lobbyTabs {
+    width: 100%;
+  }
+
+  .lobbyTabs button {
+    flex: 1;
+  }
+
+  .roomSearch {
+    width: 100%;
+  }
+
+  .roomSearch input {
+    font-size: 16px;
+  }
+
+  .publicRoomGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .publicRoomCard {
+    grid-template-columns: 82px minmax(0, 1fr);
+    min-height: 158px;
+  }
+
+  .publicRoomPoster {
+    width: 82px;
+    min-height: 138px;
+  }
+}
+
+@media (max-width: 460px) {
+  .publicRooms .sectionHead {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .refreshButton {
+    width: 100%;
+  }
+
+  .lobbyStats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .lobbyStats > div {
+    min-height: 56px;
+    padding: 8px;
+  }
+
+  .lobbyStats strong {
+    font-size: 15px;
+  }
+
+  .lobbyStats span {
+    font-size: 6.5px;
+  }
+
+  .publicRoomCard {
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 10px;
+    padding: 8px;
+  }
+
+  .publicRoomPoster {
+    width: 76px;
+    min-height: 128px;
+  }
+}

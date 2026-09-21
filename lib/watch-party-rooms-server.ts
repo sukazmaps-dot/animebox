@@ -14,6 +14,7 @@ export type WatchPartyRoomStatus = 'waiting' | 'watching' | 'paused' | 'voting' 
 const ROOM_ID_RE = /^[a-f0-9]{24}$/;
 const ROOM_SECRET_RE = /^[a-f0-9]{32}$/;
 const ROOM_HEARTBEAT_TTL_MS = 2 * 60 * 1000;
+const ROOM_REPORT_COOLDOWN_MS = 10 * 60 * 1000;
 
 function cleanText(value: unknown, max: number) {
   if (typeof value !== 'string') return '';
@@ -146,6 +147,30 @@ export async function listPublicWatchPartyRooms(limit = 12) {
   const staleBefore = new Date(now - ROOM_HEARTBEAT_TTL_MS).toISOString();
   const nowIso = new Date(now).toISOString();
 
+  // Keep the registry clean as part of normal lobby traffic. A room that
+  // stopped heartbeating for two minutes is not joinable anymore.
+  await admin
+    .from('watch_party_rooms')
+    .update({
+      status: 'ended',
+      participant_count: 0,
+      ended_at: nowIso,
+      updated_at: nowIso,
+    })
+    .neq('status', 'ended')
+    .lt('last_heartbeat_at', staleBefore);
+
+  await admin
+    .from('watch_party_rooms')
+    .update({
+      status: 'ended',
+      participant_count: 0,
+      ended_at: nowIso,
+      updated_at: nowIso,
+    })
+    .neq('status', 'ended')
+    .lte('expires_at', nowIso);
+
   const { data, error } = await admin
     .from('watch_party_rooms')
     .select(
@@ -194,7 +219,11 @@ export async function listPublicWatchPartyRooms(limit = 12) {
       id: row.host_user_id,
       username: hostNames.get(row.host_user_id) || 'Пользователь',
     },
+    createdAt: row.created_at,
     updatedAt: row.updated_at,
+    lastHeartbeatAt: row.last_heartbeat_at,
+    expiresAt: row.expires_at,
+    isFull: row.participant_count >= row.max_participants,
   }));
 }
 
@@ -284,18 +313,35 @@ export async function reportWatchPartyRoom(
   const reason = cleanText(input.reason, 300);
   if (reason.length < 3) throw new ApiError(400, 'Укажи причину жалобы.');
 
-  const rawTargetUserId = cleanText(input.targetUserId, 64);
-  const targetUserId =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      rawTargetUserId,
-    )
-      ? rawTargetUserId
-      : null;
+  const admin = adminClient();
+  const { data: room, error: roomError } = await admin
+    .from('watch_party_rooms')
+    .select('id,host_user_id')
+    .eq('id', id)
+    .maybeSingle();
 
-  const { error } = await adminClient().from('watch_party_room_reports').insert({
+  if (roomError) throw roomError;
+  if (!room) throw new ApiError(404, 'Комната не найдена.');
+
+  const cooldownSince = new Date(Date.now() - ROOM_REPORT_COOLDOWN_MS).toISOString();
+  const { data: recentReport, error: recentReportError } = await admin
+    .from('watch_party_room_reports')
+    .select('id')
+    .eq('room_id', id)
+    .eq('reporter_user_id', user.id)
+    .gte('created_at', cooldownSince)
+    .limit(1)
+    .maybeSingle();
+
+  if (recentReportError) throw recentReportError;
+  if (recentReport) {
+    throw new ApiError(429, 'Жалоба на эту комнату уже отправлена.');
+  }
+
+  const { error } = await admin.from('watch_party_room_reports').insert({
     room_id: id,
     reporter_user_id: user.id,
-    target_user_id: targetUserId,
+    target_user_id: room.host_user_id,
     reason,
   });
   if (error) throw error;
@@ -334,7 +380,7 @@ export async function transferWatchPartyRoomHost(
   if (room.status === 'ended') throw new ApiError(409, 'Комната уже завершена.');
 
   const now = new Date().toISOString();
-  const { error } = await admin
+  const { data: transferred, error } = await admin
     .from('watch_party_rooms')
     .update({
       host_user_id: targetUserId,
@@ -342,7 +388,12 @@ export async function transferWatchPartyRoomHost(
       last_heartbeat_at: now,
     })
     .eq('id', id)
-    .eq('host_user_id', user.id);
+    .eq('host_user_id', user.id)
+    .select('id')
+    .maybeSingle();
 
   if (error) throw error;
+  if (!transferred) {
+    throw new ApiError(409, 'Host комнаты уже изменился. Обнови комнату и попробуй снова.');
+  }
 }

@@ -1800,8 +1800,12 @@ export default function WatchPartyPanel({
 
       const direct = hostConnectionsRef.current.get(target.id);
       if (direct) send(direct, packet);
+
+      // Realtime Broadcast is async. Wait for its ACK before closing the
+      // channel, otherwise a server-relay guest can miss HOST_TRANSFER while
+      // the database has already moved host_user_id to that guest.
       if (relayRef.current) {
-        void relayRef.current.send(packet, target.id);
+        await relayRef.current.send(packet, target.id);
       }
 
       intentionalCloseRef.current = true;

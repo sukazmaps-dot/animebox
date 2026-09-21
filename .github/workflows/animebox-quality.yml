@@ -1,0 +1,54 @@
+name: AnimeBox Quality Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: animebox-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Watch Together lint
+        run: >-
+          npx eslint
+          lib/watch-party.ts
+          lib/watch-party-rooms-server.ts
+          lib/watch-party-network-client.ts
+          lib/watch-party-relay-client.ts
+          app/api/watch-party/rooms/route.ts
+          app/api/watch-party/rooms/[roomId]/heartbeat/route.ts
+          app/api/watch-party/rooms/[roomId]/end/route.ts
+          app/api/watch-party/rooms/[roomId]/report/route.ts
+          app/api/watch-party/rooms/[roomId]/transfer/route.ts
+          components/watch-party/WatchTogetherHub.tsx
+          components/watch-party/WatchPartyPanel.tsx
+          components/AnimePlayer.tsx
+
+      - name: Production build
+        run: npm run build
