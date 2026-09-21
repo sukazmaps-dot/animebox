@@ -51,6 +51,10 @@ import {
   type WatchPartyPlayerCommandDetail,
   type WatchPartyPlayerControlDetail,
   type WatchPartyPlayerStateDetail,
+  type WatchPartyReaction,
+  type WatchPartyReactionEvent,
+  type WatchPartyVote,
+  type WatchPartyVoteState,
 } from '@/lib/watch-party';
 
 import styles from './WatchPartyPanel.module.css';
@@ -86,6 +90,24 @@ const NEGOTIATION_TIMEOUT_MS = 30_000;
 const HANDSHAKE_TIMEOUT_MS = 10_000;
 const MAX_RECONNECT_ATTEMPTS = 7;
 const SERVER_RELAY_FALLBACK_MS = 3_500;
+const REACTION_COOLDOWN_MS = 850;
+
+const REACTION_OPTIONS: Array<{ value: WatchPartyReaction; label: string }> = [
+  { value: 'love', label: '❤️' },
+  { value: 'cry', label: '😭' },
+  { value: 'fire', label: '🔥' },
+  { value: 'wow', label: '😳' },
+  { value: 'dead', label: '💀' },
+  { value: 'peak', label: 'PEAK' },
+];
+
+const EMPTY_VOTE_STATE: WatchPartyVoteState = {
+  next: 0,
+  wait: 0,
+  stop: 0,
+  total: 0,
+  sentAt: 0,
+};
 
 function sanitizeDisplayName(value: string | null | undefined) {
   const clean = value?.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 32);
@@ -150,6 +172,9 @@ export default function WatchPartyPanel({
   const [roomIdentities, setRoomIdentities] = useState<Record<string, RoomPublicIdentity>>({});
   const [networkRoute, setNetworkRoute] = useState<WatchPartyNetworkRoute>('unknown');
   const [signalingMode, setSignalingMode] = useState<'peerjs-cloud' | 'self-hosted'>('peerjs-cloud');
+  const [liveReactions, setLiveReactions] = useState<WatchPartyReactionEvent[]>([]);
+  const [voteState, setVoteState] = useState<WatchPartyVoteState>(EMPTY_VOTE_STATE);
+  const [myVote, setMyVote] = useState<WatchPartyVote | null>(null);
 
   const theaterPath = watchPartyTheaterPath(animeSlug, episodeNumber);
   const episodePath = `/anime/${encodeURIComponent(animeSlug)}/episode/${episodeNumber}`;
@@ -184,6 +209,28 @@ export default function WatchPartyPanel({
   const guestWelcomedRef = useRef(false);
   const guestTransportRef = useRef<'p2p' | 'server' | null>(null);
   const relayHostGuestIdsRef = useRef(new Set<string>());
+  const lastReactionSentAtRef = useRef(0);
+  const voteByUserRef = useRef(new Map<string, WatchPartyVote>());
+
+  const publishReaction = useCallback((reaction: WatchPartyReactionEvent) => {
+    setLiveReactions((current) => [...current, reaction].slice(-10));
+    window.setTimeout(() => {
+      setLiveReactions((current) => current.filter((item) => item.id !== reaction.id));
+    }, 2_400);
+  }, []);
+
+  const publishVoteState = useCallback(() => {
+    const votes = [...voteByUserRef.current.values()];
+    const state: WatchPartyVoteState = {
+      next: votes.filter((vote) => vote === 'next').length,
+      wait: votes.filter((vote) => vote === 'wait').length,
+      stop: votes.filter((vote) => vote === 'stop').length,
+      total: votes.length,
+      sentAt: Date.now(),
+    };
+    setVoteState(state);
+    return state;
+  }, []);
 
   const publishParticipants = useCallback((next: WatchPartyParticipant[]) => {
     const sorted = [...next]
@@ -300,6 +347,28 @@ export default function WatchPartyPanel({
       void relayRef.current.send(packet);
     }
   }, [send]);
+
+  const handleHostReaction = useCallback((
+    participant: Pick<WatchPartyParticipant, 'userId' | 'name'>,
+    id: string,
+    reaction: WatchPartyReaction,
+  ) => {
+    const event: WatchPartyReactionEvent = {
+      id,
+      userId: participant.userId,
+      name: participant.name,
+      reaction,
+      sentAt: Date.now(),
+    };
+    publishReaction(event);
+    broadcast({ type: 'REACTION', reaction: event });
+  }, [broadcast, publishReaction]);
+
+  const handleHostVote = useCallback((userId: string, vote: WatchPartyVote) => {
+    voteByUserRef.current.set(userId, vote);
+    const state = publishVoteState();
+    broadcast({ type: 'VOTE_STATE', state });
+  }, [broadcast, publishVoteState]);
 
   const appendChatMessage = useCallback((message: WatchPartyChatMessage) => {
     if (chatIdsRef.current.has(message.id)) return;
@@ -461,6 +530,10 @@ export default function WatchPartyPanel({
     lastAppliedSeqRef.current = 0;
     chatIdsRef.current.clear();
     hostPeerChatAtRef.current.clear();
+    voteByUserRef.current.clear();
+    setVoteState(EMPTY_VOTE_STATE);
+    setMyVote(null);
+    setLiveReactions([]);
     clearWatchPartyFromLocation();
     setRole(null);
     setParticipants([]);
@@ -703,6 +776,16 @@ export default function WatchPartyPanel({
         return;
       }
 
+      if (packet.type === 'REACTION') {
+        if (welcomed) publishReaction(packet.reaction);
+        return;
+      }
+
+      if (packet.type === 'VOTE_STATE') {
+        if (welcomed) setVoteState(packet.state);
+        return;
+      }
+
       if (packet.type === 'HOST_ENDED') {
         hostEndedRef.current = true;
         setStatus('ended');
@@ -864,6 +947,16 @@ export default function WatchPartyPanel({
 
           if (packet.type === 'CHAT_MESSAGE') {
             appendChatMessage(packet.message);
+            return;
+          }
+
+          if (packet.type === 'REACTION') {
+            publishReaction(packet.reaction);
+            return;
+          }
+
+          if (packet.type === 'VOTE_STATE') {
+            setVoteState(packet.state);
             return;
           }
 
@@ -1110,6 +1203,16 @@ export default function WatchPartyPanel({
         };
         appendChatMessage(message);
         broadcast({ type: 'CHAT_MESSAGE', message });
+        return;
+      }
+
+      if (packet.type === 'REACTION_SEND') {
+        handleHostReaction(participant, packet.id, packet.reaction);
+        return;
+      }
+
+      if (packet.type === 'VOTE_CAST') {
+        handleHostVote(participant.userId, packet.vote);
       }
     }).then((relay) => {
       if (intentionalCloseRef.current) {
@@ -1261,6 +1364,16 @@ export default function WatchPartyPanel({
           };
           appendChatMessage(message);
           broadcast({ type: 'CHAT_MESSAGE', message });
+          return;
+        }
+
+        if (packet.type === 'REACTION_SEND') {
+          handleHostReaction(participant, packet.id, packet.reaction);
+          return;
+        }
+
+        if (packet.type === 'VOTE_CAST') {
+          handleHostVote(participant.userId, packet.vote);
         }
       });
 
@@ -1333,6 +1446,8 @@ export default function WatchPartyPanel({
   }, [
     appendChatMessage,
     broadcast,
+    handleHostReaction,
+    handleHostVote,
     broadcastParticipants,
     currentPlayerSnapshot,
     ensureHostTimers,
@@ -1537,6 +1652,66 @@ export default function WatchPartyPanel({
     const state = currentPlayerSnapshot() ?? playerStateRef.current;
     dispatchPartyControl({ action: state?.playing ? 'pause' : 'play' });
   }, [currentPlayerSnapshot, dispatchPartyControl]);
+
+  const sendReaction = useCallback((reaction: WatchPartyReaction) => {
+    if (status !== 'active') return;
+    const identity = identityRef.current;
+    if (!identity) return;
+
+    const now = Date.now();
+    if (now - lastReactionSentAtRef.current < REACTION_COOLDOWN_MS) return;
+    lastReactionSentAtRef.current = now;
+
+    const id = createWatchPartyMessageId();
+    if (roleRef.current === 'host') {
+      handleHostReaction(
+        { userId: identity.userId, name: identity.displayName },
+        id,
+        reaction,
+      );
+    } else {
+      sendGuestPacket({
+        type: 'REACTION_SEND',
+        id,
+        reaction,
+        sentAt: now,
+      });
+    }
+
+    trackProductClientEvent('watch_party_reaction', {
+      source: 'watch_party_room',
+      path: window.location.pathname,
+      entityType: 'watch_party_room',
+      entityId: inviteRef.current?.roomId,
+      metadata: { reaction },
+    });
+  }, [handleHostReaction, sendGuestPacket, status]);
+
+  const castVote = useCallback((vote: WatchPartyVote) => {
+    if (status !== 'active') return;
+    const identity = identityRef.current;
+    if (!identity) return;
+
+    setMyVote(vote);
+
+    if (roleRef.current === 'host') {
+      handleHostVote(identity.userId, vote);
+    } else {
+      sendGuestPacket({
+        type: 'VOTE_CAST',
+        vote,
+        sentAt: Date.now(),
+      });
+    }
+
+    trackProductClientEvent('watch_party_vote', {
+      source: 'watch_party_room',
+      path: window.location.pathname,
+      entityType: 'watch_party_room',
+      entityId: inviteRef.current?.roomId,
+      metadata: { vote, episode: episodeNumber },
+    });
+  }, [episodeNumber, handleHostVote, sendGuestPacket, status]);
 
   const submitChat = useCallback((event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1842,6 +2017,63 @@ export default function WatchPartyPanel({
             </button>
           </div>
         </div>
+
+        <div className={styles.socialBar}>
+          <div className={styles.reactions} aria-label="Быстрые реакции">
+            {REACTION_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => sendReaction(option.value)}
+                disabled={status !== 'active'}
+                aria-label={`Реакция ${option.value}`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          <div className={styles.voteBox}>
+            <span>Следующая серия?</span>
+            <div>
+              <button
+                type="button"
+                data-active={myVote === 'next'}
+                onClick={() => castVote('next')}
+              >
+                Да · {voteState.next}
+              </button>
+              <button
+                type="button"
+                data-active={myVote === 'wait'}
+                onClick={() => castVote('wait')}
+              >
+                +5 мин · {voteState.wait}
+              </button>
+              <button
+                type="button"
+                data-active={myVote === 'stop'}
+                onClick={() => castVote('stop')}
+              >
+                Стоп · {voteState.stop}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {liveReactions.length > 0 && (
+          <div className={styles.liveReactions} aria-live="polite">
+            {liveReactions.map((item) => {
+              const option = REACTION_OPTIONS.find((entry) => entry.value === item.reaction);
+              return (
+                <span key={item.id}>
+                  <b>{option?.label ?? '✦'}</b>
+                  <small>{item.name}</small>
+                </span>
+              );
+            })}
+          </div>
+        )}
 
         <div
           className={`${styles.chat} ${styles.chatSection}`}
