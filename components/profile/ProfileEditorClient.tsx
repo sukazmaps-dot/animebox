@@ -86,6 +86,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
   useEffect(() => {
     let active = true;
+    let cachedFrame: number | null = null;
 
     if (authLoading) return () => { active = false; };
     if (!user) {
@@ -95,10 +96,13 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
     const cached = readProfileCache<ProfileRow>(user.id);
     if (cached?.username) {
-      setProfile(cached);
-      setUsername(cached.username ?? '');
-      setBio(cached.bio ?? '');
-      setLoading(false);
+      cachedFrame = window.requestAnimationFrame(() => {
+        if (!active) return;
+        setProfile(cached);
+        setUsername(cached.username ?? '');
+        setBio(cached.bio ?? '');
+        setLoading(false);
+      });
     }
 
     void supabase
@@ -122,14 +126,19 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         setLoading(false);
       });
 
-    return () => { active = false; };
+    return () => {
+      active = false;
+      if (cachedFrame != null) window.cancelAnimationFrame(cachedFrame);
+    };
   }, [authLoading, router, supabase, user]);
 
   useEffect(() => {
     if (!user?.id) {
-      setPremiumSettings(null);
-      setPremiumActive(false);
-      return;
+      const frame = window.requestAnimationFrame(() => {
+        setPremiumSettings(null);
+        setPremiumActive(false);
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
 
     let active = true;
