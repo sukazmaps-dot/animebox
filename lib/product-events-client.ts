@@ -20,6 +20,8 @@ export type ProductClientEventName =
   | 'continue_watching_click'
   | 'continue_watching_started'
   | 'personal_home_view'
+  | 'personal_schedule_impression'
+  | 'personal_schedule_click'
   | 'notification_center_open'
   | 'notification_subscription_toggle'
   | 'recommendation_impression'
