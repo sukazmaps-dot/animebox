@@ -125,6 +125,7 @@ export async function getWatchPartyNetworkConfig(): Promise<WatchPartyNetworkCon
       method: 'GET',
       cache: 'no-store',
       headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(4_000),
     });
 
     if (!response.ok) return FALLBACK_CONFIG;
