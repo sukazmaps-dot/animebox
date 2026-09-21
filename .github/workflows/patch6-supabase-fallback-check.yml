@@ -1,0 +1,30 @@
+name: Patch 6 Supabase Fallback Check
+
+on:
+  push:
+    branches:
+      - patch-6-retention-personalization-v2
+  workflow_dispatch:
+
+jobs:
+  no-public-supabase-env:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Confirm public Supabase env is absent
+        shell: bash
+        run: |
+          test -z "${NEXT_PUBLIC_SUPABASE_URL:-}"
+          test -z "${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}"
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Lint hardened config
+        run: npx eslint lib/supabase/config.ts lib/supabase/client.ts lib/supabase/server.ts
+      - name: Production build without public Supabase env
+        run: npm run build
