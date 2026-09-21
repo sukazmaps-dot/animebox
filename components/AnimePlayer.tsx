@@ -1140,7 +1140,16 @@ export default function AnimePlayer({
       // enabled so document scrolling continues to work on Android.
       telegram?.disableVerticalSwipes?.();
 
-      if (!telegramWasFullscreenRef.current && telegram?.requestFullscreen) {
+      // Android Telegram WebView is intentionally kept in AnimeBox pseudo
+      // fullscreen. Calling Telegram.requestFullscreen() at the same time as
+      // our fixed viewport creates two competing viewport owners and produces
+      // the clipped/offset state seen on Android. expand() + fixed 100dvh is
+      // stable and keeps the media element mounted.
+      if (
+        !telegramAndroidMiniApp &&
+        !telegramWasFullscreenRef.current &&
+        telegram?.requestFullscreen
+      ) {
         telegram.requestFullscreen();
         telegramFullscreenOwnedRef.current = true;
       }
@@ -1192,7 +1201,7 @@ export default function AnimePlayer({
         telegramVerticalSwipesWereEnabledRef.current = null;
       }
     };
-  }, [telegramPseudoFullscreen]);
+  }, [telegramAndroidMiniApp, telegramPseudoFullscreen]);
 
   useEffect(() => {
     function onFullscreenChange() {
