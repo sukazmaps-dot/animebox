@@ -13,7 +13,6 @@ export type WatchPartyRoomStatus = 'waiting' | 'watching' | 'paused' | 'voting' 
 
 const ROOM_ID_RE = /^[a-f0-9]{24}$/;
 const ROOM_SECRET_RE = /^[a-f0-9]{32}$/;
-const ROOM_CODE_RE = /^[A-Z0-9]{6}$/;
 const ROOM_HEARTBEAT_TTL_MS = 2 * 60 * 1000;
 
 function cleanText(value: unknown, max: number) {
@@ -285,7 +284,14 @@ export async function reportWatchPartyRoom(
   const reason = cleanText(input.reason, 300);
   if (reason.length < 3) throw new ApiError(400, 'Укажи причину жалобы.');
 
-  const targetUserId = cleanText(input.targetUserId, 64) || null;
+  const rawTargetUserId = cleanText(input.targetUserId, 64);
+  const targetUserId =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      rawTargetUserId,
+    )
+      ? rawTargetUserId
+      : null;
+
   const { error } = await adminClient().from('watch_party_room_reports').insert({
     room_id: id,
     reporter_user_id: user.id,
@@ -295,15 +301,3 @@ export async function reportWatchPartyRoom(
   if (error) throw error;
 }
 
-export function publicRoomJoinPath(room: {
-  animeSlug: string;
-  episode: number;
-  roomId: string;
-  joinSecret: string;
-}) {
-  if (!ROOM_CODE_RE.test('ABC234')) {
-    // Keeps the validator tree-shake-safe while documenting room-code shape.
-    throw new Error('room_code_validator_unreachable');
-  }
-  return `/watch-together/${encodeURIComponent(room.animeSlug)}/episode/${room.episode}?party=${room.roomId}#partyKey=${room.joinSecret}`;
-}
