@@ -22,7 +22,6 @@ export default function MobileAccountNav({ pathname }: Props) {
     loading,
     signOut,
     telegramMiniApp,
-    telegramAutoLoginDisabled,
     resumeTelegramAutoLogin,
   } = useAuthState();
   const [open, setOpen] = useState(false);
@@ -120,12 +119,12 @@ export default function MobileAccountNav({ pathname }: Props) {
                 <strong>{profile ? username : 'AnimeBox аккаунт'}</strong>
                 <span>
                   {profile
-                    ? 'Профиль, коллекция и настройки'
-                    : telegramMiniApp && telegramAutoLoginDisabled
-                      ? 'Автовход через Telegram выключен'
-                      : telegramMiniApp
-                        ? 'Войди через Telegram или другим способом'
-                        : 'Войди, чтобы синхронизировать прогресс'}
+                    ? telegramMiniApp
+                      ? 'Аккаунт автоматически связан с Telegram'
+                      : 'Профиль, коллекция и настройки'
+                    : telegramMiniApp
+                      ? 'Восстанавливаем аккаунт через Telegram'
+                      : 'Войди, чтобы синхронизировать прогресс'}
                 </span>
               </div>
 
@@ -151,16 +150,8 @@ export default function MobileAccountNav({ pathname }: Props) {
                         resumeTelegramAutoLogin();
                       }}
                     >
-                      Войти через Telegram
+                      Повторить вход через Telegram
                     </button>
-
-                    <Link
-                      href="/login"
-                      className="mobile-account__auth-button"
-                      onClick={() => setOpen(false)}
-                    >
-                      Другой способ
-                    </Link>
                   </>
                 ) : (
                   <>
@@ -221,6 +212,19 @@ export default function MobileAccountNav({ pathname }: Props) {
                 <span>
                   <strong>Расписание</strong>
                   <small>Ближайшие новые серии</small>
+                </span>
+                <Icon name="chevron" />
+              </Link>
+
+              <Link
+                href="/chat"
+                className="mobile-account__link"
+                onClick={() => setOpen(false)}
+              >
+                <Icon name="chat" />
+                <span>
+                  <strong>Общий чат</strong>
+                  <small>Общение сообщества AnimeBox</small>
                 </span>
                 <Icon name="chevron" />
               </Link>
@@ -342,9 +346,15 @@ export default function MobileAccountNav({ pathname }: Props) {
 
             {profile && (
               <div className="mobile-account__footer mobile-account__footer--logout-only">
-                <button type="button" onClick={() => void logout()}>
-                  Выйти из аккаунта
-                </button>
+                {telegramMiniApp ? (
+                  <span className="mobile-account__telegram-bound">
+                    Telegram-вход активен · аккаунт восстановится автоматически
+                  </span>
+                ) : (
+                  <button type="button" onClick={() => void logout()}>
+                    Выйти из аккаунта
+                  </button>
+                )}
               </div>
             )}
           </section>
