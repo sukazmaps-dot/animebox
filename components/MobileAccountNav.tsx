@@ -56,6 +56,7 @@ export default function MobileAccountNav({ pathname }: Props) {
 
   const accountSectionActive =
     pathname.startsWith('/profile') ||
+    pathname.startsWith('/friends') ||
     pathname.startsWith('/favorites') ||
     pathname.startsWith('/schedule') ||
     pathname.startsWith('/about') ||
@@ -185,6 +186,21 @@ export default function MobileAccountNav({ pathname }: Props) {
                   <span>
                     <strong>Мой профиль</strong>
                     <small>Аватар, баннер и описание</small>
+                  </span>
+                  <Icon name="chevron" />
+                </Link>
+              )}
+
+              {profile && (
+                <Link
+                  href="/friends"
+                  className="mobile-account__link"
+                  onClick={() => setOpen(false)}
+                >
+                  <Icon name="users" />
+                  <span>
+                    <strong>Друзья</strong>
+                    <small>Заявки и совместные просмотры</small>
                   </span>
                   <Icon name="chevron" />
                 </Link>
