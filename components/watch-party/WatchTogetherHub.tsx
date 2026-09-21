@@ -419,6 +419,16 @@ export default function WatchTogetherHub() {
             <span><i />чат комнаты</span>
             <span><i />синхронное управление</span>
           </div>
+          <div className={styles.heroActions}>
+            <a className={styles.heroPrimary} href="#create-room">
+              Создать комнату
+              <span aria-hidden="true">→</span>
+            </a>
+            <a className={styles.heroSecondary} href="#public-rooms">
+              Открытые комнаты
+              <span className={styles.liveDot} aria-hidden="true" />
+            </a>
+          </div>
         </div>
 
         <form className={styles.joinCard} onSubmit={joinInvite}>
@@ -443,7 +453,7 @@ export default function WatchTogetherHub() {
         </form>
       </section>
 
-      <section className={styles.publicRooms} aria-labelledby="public-rooms-title">
+      <section id="public-rooms" className={styles.publicRooms} aria-labelledby="public-rooms-title">
         <div className={styles.publicRoomsTop}>
           <div className={styles.sectionHead}>
             <div>
@@ -532,8 +542,10 @@ export default function WatchTogetherHub() {
           <div className={styles.empty}>{roomsError}</div>
         ) : rooms.length === 0 ? (
           <div className={styles.publicEmpty}>
-            <strong>Пока тихо</strong>
-            <span>Создай первую открытую комнату — она появится здесь автоматически.</span>
+            <span className={styles.emptyPulse} aria-hidden="true">✦</span>
+            <strong>Пока нет открытых комнат</strong>
+            <span>Запусти первую публичную комнату — она сразу появится в LIVE-лобби.</span>
+            <a href="#create-room">Создать публичную комнату →</a>
           </div>
         ) : visibleRooms.length === 0 ? (
           <div className={styles.publicEmpty}>
@@ -658,7 +670,7 @@ export default function WatchTogetherHub() {
         )}
       </section>
 
-      <section className={styles.builder}>
+      <section id="choose-anime" className={styles.builder}>
         <div className={styles.sectionHead}>
           <div>
             <span>1 · ВЫБЕРИ АНИМЕ</span>
@@ -734,7 +746,7 @@ export default function WatchTogetherHub() {
         )}
       </section>
 
-      <section className={styles.roomBuilder} data-ready={selected ? 'true' : undefined}>
+      <section id="create-room" className={styles.roomBuilder} data-ready={selected ? 'true' : undefined}>
         <div className={styles.roomInfo}>
           <span>2 · СОЗДАЙ КОМНАТУ</span>
           <h2>{selected ? getAnimeTitle(selected) : 'Сначала выбери аниме'}</h2>

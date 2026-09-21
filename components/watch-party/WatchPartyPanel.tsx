@@ -167,7 +167,7 @@ export default function WatchPartyPanel({
   const [participants, setParticipants] = useState<WatchPartyParticipant[]>([]);
   const [inviteUrl, setInviteUrl] = useState('');
   const [error, setError] = useState('');
-  const [copyLabel, setCopyLabel] = useState('Копировать ссылку');
+  const [copyLabel, setCopyLabel] = useState('Пригласить');
   const [messages, setMessages] = useState<WatchPartyChatMessage[]>([]);
   const [chatText, setChatText] = useState('');
   const [playerState, setPlayerState] = useState<WatchPartyPlayerStateDetail | null>(null);
@@ -2152,10 +2152,10 @@ export default function WatchPartyPanel({
         flush: true,
       });
       setCopyLabel('Ссылка скопирована');
-      window.setTimeout(() => setCopyLabel('Копировать ссылку'), 1_800);
+      window.setTimeout(() => setCopyLabel('Пригласить'), 1_800);
     } catch {
       setCopyLabel('Не удалось скопировать');
-      window.setTimeout(() => setCopyLabel('Копировать ссылку'), 1_800);
+      window.setTimeout(() => setCopyLabel('Пригласить'), 1_800);
     }
   }, [inviteUrl]);
 
@@ -2433,11 +2433,27 @@ export default function WatchPartyPanel({
           <div className={styles.statusLine}>
             <span className={styles.statusDot} data-state={status} aria-hidden="true" />
             <div className={styles.statusText}>
-              <strong>Watch Together · {episodeNumber} серия</strong>
-              <span>{label}</span>
+              <strong>{animeTitle}</strong>
+              <span>{episodeNumber} серия · {label}</span>
             </div>
           </div>
           <div className={styles.connectionBadges}>
+            <span className={styles.roomHealth} data-state={status}>
+              {status === 'active'
+                ? 'Синхронизация стабильна'
+                : status === 'reconnecting'
+                  ? 'Восстанавливаем'
+                  : status === 'connecting'
+                    ? 'Подключаем'
+                    : status === 'ended'
+                      ? 'Завершена'
+                      : status === 'error'
+                        ? 'Ошибка'
+                        : 'Готово'}
+            </span>
+            <span className={styles.participantCountBadge}>
+              {participants.length}/{WATCH_PARTY_MAX_PARTICIPANTS}
+            </span>
             <span
               className={styles.networkRoute}
               data-route={networkRoute}
@@ -2452,14 +2468,14 @@ export default function WatchPartyPanel({
                     : 'Используется резервный PeerJS Cloud signaling'}
             >
               {networkRoute === 'server'
-                ? 'WS RELAY'
+                ? 'Relay'
                 : networkRoute === 'relay'
-                  ? 'TURN RELAY'
+                  ? 'TURN'
                   : networkRoute === 'p2p'
-                  ? 'P2P'
-                  : signalingMode === 'self-hosted'
-                    ? 'ICE'
-                    : 'CLOUD'}
+                    ? 'P2P'
+                    : signalingMode === 'self-hosted'
+                      ? 'ICE'
+                      : 'Cloud'}
             </span>
             <span className={styles.role}>{role === 'host' ? 'HOST' : 'GUEST'}</span>
           </div>
@@ -2493,8 +2509,13 @@ export default function WatchPartyPanel({
         )}
 
         {participants.length > 0 && (
-          <div
-            className={`${styles.participants} ${styles.participantsSection}`}
+          <>
+            <div className={styles.participantsHead}>
+              <span>Участники</span>
+              <small>{participants.length} в комнате</small>
+            </div>
+            <div
+              className={`${styles.participants} ${styles.participantsSection}`}
             data-mobile-active={mobileSection === 'participants'}
             aria-label="Участники комнаты"
           >
@@ -2564,7 +2585,8 @@ export default function WatchPartyPanel({
                 </a>
               );
             })}
-          </div>
+            </div>
+          </>
         )}
 
         {role === 'host' && participants.some((participant) => !participant.host) && (
@@ -2644,28 +2666,34 @@ export default function WatchPartyPanel({
           </div>
 
           <div className={styles.voteBox}>
-            <span>Следующая серия?</span>
+            <div className={styles.voteHeading}>
+              <span>Следующая серия?</span>
+              <small>{voteState.total ? `${voteState.total} голосов` : 'голосование открыто'}</small>
+            </div>
             <div>
               <button
                 type="button"
                 data-active={myVote === 'next'}
                 onClick={() => castVote('next')}
               >
-                Да · {voteState.next}
+                <span>Следующая</span>
+                <strong>{voteState.next}</strong>
               </button>
               <button
                 type="button"
                 data-active={myVote === 'wait'}
                 onClick={() => castVote('wait')}
               >
-                +5 мин · {voteState.wait}
+                <span>+5 минут</span>
+                <strong>{voteState.wait}</strong>
               </button>
               <button
                 type="button"
                 data-active={myVote === 'stop'}
                 onClick={() => castVote('stop')}
               >
-                Стоп · {voteState.stop}
+                <span>Стоп</span>
+                <strong>{voteState.stop}</strong>
               </button>
             </div>
           </div>
@@ -2699,7 +2727,11 @@ export default function WatchPartyPanel({
 
           <div ref={chatMessagesRef} className={styles.chatMessages} aria-live="polite">
             {messages.length === 0 ? (
-              <div className={styles.chatEmpty}>Напиши первое сообщение — оно останется только у участников этой комнаты.</div>
+              <div className={styles.chatEmpty}>
+                <span aria-hidden="true">✦</span>
+                <strong>Чат пока тихий</strong>
+                <small>Напиши первым — сообщения видят только участники этой комнаты.</small>
+              </div>
             ) : (
               messages.map((message) => {
                 const publicIdentity = roomIdentities[message.userId];
@@ -2802,7 +2834,7 @@ export default function WatchPartyPanel({
 
         <div className={styles.footer}>
           <span className={styles.note}>
-            Чат и команды идут через WebRTC, TURN или защищённый WS relay. Видео каждый участник загружает напрямую у провайдера. Максимум {WATCH_PARTY_MAX_PARTICIPANTS} человек.
+            AnimeBox синхронизирует только управление, чат и реакции. Видео каждый участник получает напрямую от выбранного плеера.
           </span>
           <div className={styles.actions}>
             {inviteUrl && status !== 'ended' && status !== 'error' && (

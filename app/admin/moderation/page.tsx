@@ -43,16 +43,16 @@ const healthCopy: Record<MediaHealth['status'], { title: string; detail: string 
     detail: 'Новые аватары и баннеры проходят автоматическую проверку.',
   },
   degraded: {
-    title: 'Медиа-модерация нестабильна',
-    detail: 'Есть свежие rate-limit или сетевые ошибки. Старое оформление пользователей сохраняется.',
+    title: 'Автомодерация нестабильна',
+    detail: 'Есть свежие rate-limit или сетевые ошибки. Новые медиа остаются приватными и уходят в ручную очередь.',
   },
   unavailable: {
-    title: 'Медиа-модерация недоступна',
-    detail: 'API сообщает о лимите/quota. Проверь billing и limits провайдера.',
+    title: 'Автомодерация недоступна',
+    detail: 'API сообщает о лимите/quota. Новые аватары и баннеры не публикуются автоматически — их нужно проверить вручную.',
   },
   not_configured: {
-    title: 'Провайдер не настроен',
-    detail: 'На сервере отсутствует OPENAI_API_KEY.',
+    title: 'Автомодерация не настроена',
+    detail: 'На сервере отсутствует OPENAI_API_KEY. Новые медиа направляются в ручную очередь.',
   },
   idle: {
     title: 'Ожидаем первую проверку',
@@ -169,6 +169,15 @@ export default function Moderation() {
           </div>
 
           <p>{healthText.detail}</p>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              href="/admin/community/media"
+              className="rounded-xl border border-violet-400/20 bg-violet-500/[0.08] px-4 py-2 text-sm font-bold text-violet-100"
+            >
+              Открыть очередь медиа →
+            </Link>
+          </div>
 
           <div className="admin-v1-metrics">
             <article>

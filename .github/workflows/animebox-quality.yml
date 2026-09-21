@@ -54,6 +54,8 @@ jobs:
           lib/seo-episodes.ts
           app/episodes/sitemap.ts
           app/robots.ts
+          lib/profile-media-safety-server.ts
+          app/admin/moderation/page.tsx
 
       - name: Production build
         run: npm run build

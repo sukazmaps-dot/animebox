@@ -1720,3 +1720,293 @@
     min-width: 68px;
   }
 }
+
+
+/* =========================================================
+   PATCH 10 · WATCH TOGETHER SOCIAL UI V1
+   ========================================================= */
+.activeHead {
+  align-items: flex-start;
+}
+
+.statusText strong {
+  max-width: 440px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.connectionBadges {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.roomHealth,
+.participantCountBadge {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .035em;
+  white-space: nowrap;
+}
+
+.roomHealth {
+  border: 1px solid rgba(85, 214, 160, .16);
+  background: rgba(85, 214, 160, .055);
+  color: rgba(150, 236, 198, .88);
+}
+
+.roomHealth::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: #55d6a0;
+  box-shadow: 0 0 10px rgba(85, 214, 160, .6);
+}
+
+.roomHealth[data-state='connecting'],
+.roomHealth[data-state='reconnecting'] {
+  border-color: rgba(245, 198, 106, .16);
+  background: rgba(245, 198, 106, .05);
+  color: rgba(247, 210, 139, .88);
+}
+
+.roomHealth[data-state='connecting']::before,
+.roomHealth[data-state='reconnecting']::before {
+  background: #f5c66a;
+  box-shadow: 0 0 10px rgba(245, 198, 106, .45);
+}
+
+.roomHealth[data-state='error'],
+.roomHealth[data-state='ended'] {
+  border-color: rgba(251, 113, 133, .14);
+  background: rgba(251, 113, 133, .045);
+  color: rgba(253, 164, 175, .82);
+}
+
+.roomHealth[data-state='error']::before,
+.roomHealth[data-state='ended']::before {
+  background: #fb7185;
+  box-shadow: 0 0 10px rgba(251, 113, 133, .4);
+}
+
+.participantCountBadge {
+  border: 1px solid rgba(139, 92, 246, .14);
+  background: rgba(124, 92, 255, .055);
+  color: rgba(207, 199, 255, .8);
+}
+
+.participantsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 11px;
+  padding: 0 2px;
+}
+
+.participantsHead > span {
+  color: rgba(232, 230, 247, .68);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.participantsHead > small {
+  color: rgba(178, 184, 205, .38);
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.participants {
+  margin-top: 6px;
+}
+
+.socialBar {
+  gap: 8px;
+}
+
+.reactions {
+  position: relative;
+  overflow: hidden;
+}
+
+.reactions::after {
+  content: '';
+  position: absolute;
+  inset: auto 12% 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124, 92, 255, .28), transparent);
+  pointer-events: none;
+}
+
+.reactions button {
+  position: relative;
+}
+
+.reactions button:hover:not(:disabled) {
+  box-shadow: inset 0 0 0 1px rgba(139, 92, 246, .10);
+}
+
+.voteBox {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 7px;
+}
+
+.voteHeading {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.voteHeading > span {
+  color: rgba(226, 224, 241, .72);
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.voteHeading > small {
+  color: rgba(174, 180, 201, .35);
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.voteBox > div:last-child {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: visible;
+}
+
+.voteBox button {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  padding: 0 9px;
+  text-align: left;
+}
+
+.voteBox button > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voteBox button > strong {
+  min-width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255,255,255,.045);
+  color: rgba(235,232,249,.72);
+  font-size: 7px;
+}
+
+.voteBox button[data-active='true'] > strong {
+  background: rgba(139,92,246,.22);
+  color: #eeeaff;
+}
+
+.chatEmpty {
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 18px;
+  color: rgba(176, 182, 202, .34);
+  text-align: center;
+}
+
+.chatEmpty > span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 2px;
+  border: 1px solid rgba(139, 92, 246, .13);
+  border-radius: 50%;
+  background: rgba(124, 92, 255, .06);
+  color: rgba(180, 166, 255, .65);
+}
+
+.chatEmpty > strong {
+  color: rgba(229, 227, 242, .62);
+  font-size: 9px;
+}
+
+.chatEmpty > small {
+  max-width: 280px;
+  color: rgba(176, 182, 202, .34);
+  font-size: 7px;
+  line-height: 1.5;
+}
+
+.theaterPanel .footer .secondary {
+  border-color: rgba(139, 92, 246, .20);
+  background: rgba(124, 92, 255, .09);
+  color: #d8d0ff;
+}
+
+.theaterPanel .footer .secondary:hover {
+  border-color: rgba(139, 92, 246, .34);
+  background: rgba(124, 92, 255, .14);
+}
+
+@media (max-width: 700px) and (orientation: portrait) {
+  .theaterPanel .participantsHead {
+    display: none;
+  }
+
+  .theaterPanel .roomHealth {
+    display: none;
+  }
+
+  .theaterPanel .participantCountBadge,
+  .theaterPanel .networkRoute,
+  .theaterPanel .role {
+    min-height: 20px;
+    padding-inline: 6px;
+    font-size: 6px;
+  }
+
+  .theaterPanel .voteHeading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .theaterPanel .voteBox > div:last-child {
+    grid-template-columns: repeat(3, minmax(82px, 1fr));
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 620px) {
+  .theaterPanel .participantsHead {
+    margin-top: 5px;
+  }
+
+  .theaterPanel .roomHealth {
+    display: none;
+  }
+
+  .theaterPanel .voteBox button {
+    padding-inline: 7px;
+  }
+}

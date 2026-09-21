@@ -1574,3 +1574,187 @@
     min-height: 128px;
   }
 }
+
+
+/* =========================================================
+   PATCH 10 · WATCH TOGETHER SOCIAL UI V1
+   ========================================================= */
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.heroActions a {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 850;
+  text-decoration: none;
+  transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+
+.heroActions a:hover {
+  transform: translateY(-1px);
+}
+
+.heroPrimary {
+  border: 1px solid rgba(157, 133, 255, .34);
+  background: linear-gradient(135deg, rgba(111, 78, 255, .96), rgba(116, 96, 255, .88));
+  color: #fff;
+  box-shadow: 0 12px 32px rgba(89, 64, 224, .20);
+}
+
+.heroSecondary {
+  border: 1px solid rgba(255, 255, 255, .075);
+  background: rgba(255, 255, 255, .028);
+  color: rgba(235, 233, 249, .72);
+}
+
+.liveDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #55d6a0;
+  box-shadow: 0 0 12px rgba(85, 214, 160, .7);
+}
+
+#public-rooms,
+#create-room,
+#choose-anime {
+  scroll-margin-top: 90px;
+}
+
+.publicRooms {
+  position: relative;
+  overflow: hidden;
+}
+
+.publicRooms::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(126, 99, 255, .20), transparent);
+  pointer-events: none;
+}
+
+.lobbyStats > div {
+  position: relative;
+  overflow: hidden;
+}
+
+.lobbyStats > div::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(112, 84, 255, .65), rgba(85, 214, 160, .32));
+  opacity: .5;
+}
+
+.publicRoomCard {
+  isolation: isolate;
+}
+
+.publicRoomCard::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: auto 8% 0;
+  height: 32%;
+  border-radius: 50%;
+  background: rgba(106, 82, 255, .05);
+  filter: blur(28px);
+  pointer-events: none;
+}
+
+.publicRoomCard:hover .publicRoomPoster img {
+  transform: scale(1.035);
+}
+
+.publicRoomPoster img {
+  transition: transform .22s ease;
+}
+
+.publicEmpty {
+  min-height: 210px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 28px;
+  border: 1px dashed rgba(139, 110, 255, .12);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(112, 84, 255, .075), transparent 42%),
+    rgba(255, 255, 255, .01);
+  color: #716b82;
+  text-align: center;
+}
+
+.publicEmpty strong {
+  color: #e9e5ff;
+  font-size: 13px;
+}
+
+.publicEmpty > span:not(.emptyPulse) {
+  max-width: 520px;
+  color: #6f697d;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.publicEmpty a {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+  padding: 0 12px;
+  border: 1px solid rgba(139, 110, 255, .18);
+  border-radius: 10px;
+  background: rgba(111, 78, 255, .08);
+  color: #bdb4ff;
+  font-size: 9px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.emptyPulse {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(139, 110, 255, .16);
+  border-radius: 50%;
+  background: rgba(111, 78, 255, .08);
+  color: #9c8cff;
+  box-shadow: 0 0 28px rgba(111, 78, 255, .10);
+}
+
+@media (max-width: 720px) {
+  .heroActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .heroActions a {
+    width: 100%;
+  }
+}
+
+@media (max-width: 460px) {
+  .heroActions {
+    grid-template-columns: 1fr;
+  }
+}
