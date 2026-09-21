@@ -1626,3 +1626,97 @@
     gap: 6px;
   }
 }
+
+
+/* =========================================================
+   PATCH 9 · NETWORK V3 / SOCIAL BAR POLISH
+   ========================================================= */
+.theaterPanel .socialBar {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+  margin-top: 7px;
+}
+
+.theaterPanel .reactions {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  width: 100%;
+  gap: 4px;
+  padding: 5px;
+}
+
+.theaterPanel .reactions button {
+  width: 100%;
+  min-width: 0;
+  height: 31px;
+  padding: 0 4px;
+}
+
+.theaterPanel .voteBox {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 6px;
+  padding: 8px;
+}
+
+.theaterPanel .voteBox > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  white-space: normal;
+}
+
+.theaterPanel .voteBox > div {
+  grid-template-columns: repeat(3, minmax(72px, 1fr));
+  width: 100%;
+  gap: 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.theaterPanel .voteBox > div::-webkit-scrollbar {
+  display: none;
+}
+
+.theaterPanel .voteBox button {
+  min-width: 72px;
+  height: 32px;
+  padding: 0 7px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) and (orientation: portrait) {
+  .theaterPanel .socialBar {
+    margin-top: 6px;
+  }
+
+  .theaterPanel .reactions button {
+    height: 34px;
+  }
+
+  .theaterPanel .voteBox > div {
+    grid-template-columns: repeat(3, minmax(82px, 1fr));
+  }
+}
+
+@media (orientation: landscape) and (max-height: 620px) {
+  .theaterPanel .socialBar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .theaterPanel .voteBox {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 6px;
+  }
+
+  .theaterPanel .voteBox > div {
+    grid-template-columns: repeat(3, minmax(68px, 1fr));
+  }
+
+  .theaterPanel .voteBox button {
+    min-width: 68px;
+  }
+}

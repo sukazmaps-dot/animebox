@@ -411,11 +411,11 @@ export default function WatchTogetherHub() {
           <span className={styles.eyebrow}>WATCH TOGETHER</span>
           <h1>Смотри аниме вместе с друзьями</h1>
           <p>
-            Найди тайтл, выбери серию и создай приватную комнату. Смотри
+            Найди тайтл, выбери серию и создай комнату. Смотри
             синхронно, общайся в чате и приглашай друзей по ссылке.
           </p>
           <div className={styles.features}>
-            <span><i />до 8 участников</span>
+            <span><i />до 50 участников</span>
             <span><i />чат комнаты</span>
             <span><i />синхронное управление</span>
           </div>
@@ -814,7 +814,7 @@ export default function WatchTogetherHub() {
           <h2 id="watch-together-guide">Как смотреть аниме вместе с другом онлайн</h2>
           <p>
             Watch Together в AnimeBox создан для совместного просмотра аниме через интернет.
-            Выберите тайтл и серию, создайте приватную комнату и отправьте ссылку другу —
+            Выберите тайтл и серию, создайте комнату и отправьте ссылку друзьям —
             участники смогут смотреть одну серию вместе, даже находясь на расстоянии.
           </p>
         </div>
@@ -828,7 +828,7 @@ export default function WatchTogetherHub() {
           <article>
             <b>02</b>
             <h3>Создайте комнату</h3>
-            <p>AnimeBox создаст приватную Watch Together комнату и подготовит invite-ссылку.</p>
+            <p>AnimeBox создаст Watch Together комнату выбранной видимости и подготовит invite-ссылку.</p>
           </article>
           <article>
             <b>03</b>
@@ -860,7 +860,7 @@ export default function WatchTogetherHub() {
           <div className={styles.faqList}>
             <details>
               <summary>Как смотреть аниме вместе с другом онлайн?</summary>
-              <p>Откройте Watch Together, выберите аниме и серию, создайте приватную комнату и отправьте другу invite-ссылку.</p>
+              <p>Откройте Watch Together, выберите аниме и серию, создайте комнату и отправьте друзьям invite-ссылку или откройте её в публичном lobby.</p>
             </details>
             <details>
               <summary>Можно ли смотреть аниме вместе на расстоянии?</summary>
@@ -872,7 +872,7 @@ export default function WatchTogetherHub() {
             </details>
             <details>
               <summary>Сколько человек может смотреть вместе?</summary>
-              <p>Одна комната AnimeBox Watch Together рассчитана максимум на 8 участников.</p>
+              <p>Одна комната AnimeBox Watch Together рассчитана максимум на 50 участников. Видео каждый зритель получает напрямую от плеера, а AnimeBox синхронизирует только лёгкие события комнаты.</p>
             </details>
             <details>
               <summary>Нужен ли отдельный сервис, чтобы смотреть видео вместе с другом?</summary>

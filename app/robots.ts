@@ -1,6 +1,10 @@
 import type { MetadataRoute } from 'next';
 
-import { ANIME_SITEMAP_SHARDS, SITE_URL } from '@/lib/seo-config';
+import {
+  ANIME_SITEMAP_SHARDS,
+  EPISODE_SITEMAP_SHARDS,
+  SITE_URL,
+} from '@/lib/seo-config';
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -20,6 +24,10 @@ export default function robots(): MetadataRoute.Robots {
       ...Array.from(
         { length: ANIME_SITEMAP_SHARDS },
         (_, id) => `${SITE_URL}/anime/sitemap/${id}.xml`,
+      ),
+      ...Array.from(
+        { length: EPISODE_SITEMAP_SHARDS },
+        (_, id) => `${SITE_URL}/episodes/sitemap/${id}.xml`,
       ),
     ],
   };
