@@ -280,6 +280,130 @@ export async function getNotificationServiceHealth(): Promise<NotificationServic
   };
 }
 
+export type NotificationInboxItem = {
+  id: number;
+  animeId: number;
+  animeTitle: string;
+  animeSlug: string;
+  episode: number;
+  sentAt: string;
+  readAt: string | null;
+};
+
+export async function getNotificationInbox(
+  userId: string,
+  limit = 20,
+): Promise<NotificationInboxItem[]> {
+  const admin = createSupabaseAdmin();
+  const safeLimit = Math.min(50, Math.max(1, Math.floor(limit)));
+
+  const { data, error } = await admin
+    .from('notification_deliveries')
+    .select('id,anime_id,episode,sent_at,created_at,read_at')
+    .eq('user_id', userId)
+    .eq('status', 'sent')
+    .order('sent_at', { ascending: false, nullsFirst: false })
+    .limit(safeLimit);
+
+  if (error) throw error;
+
+  const rows = data ?? [];
+  if (!rows.length) return [];
+
+  const animeIds = [...new Set(
+    rows
+      .map((row) => Number(row.anime_id))
+      .filter((id) => Number.isSafeInteger(id) && id > 0),
+  )];
+
+  const catalogById = new Map<number, { title: string; slug: string }>();
+
+  if (animeIds.length) {
+    const { data: catalog, error: catalogError } = await admin
+      .from('anime_catalog')
+      .select('id,title,slug')
+      .in('id', animeIds);
+
+    if (catalogError) throw catalogError;
+
+    for (const row of catalog ?? []) {
+      const animeId = Number(row.id);
+      if (!Number.isSafeInteger(animeId) || animeId <= 0) continue;
+      catalogById.set(animeId, {
+        title:
+          typeof row.title === 'string' && row.title.trim()
+            ? row.title.trim()
+            : `Аниме #${animeId}`,
+        slug:
+          typeof row.slug === 'string' && row.slug.trim()
+            ? row.slug.trim()
+            : String(animeId),
+      });
+    }
+  }
+
+  return rows.flatMap((row) => {
+    const animeId = Number(row.anime_id);
+    const episode = Number(row.episode);
+    const sentAt =
+      typeof row.sent_at === 'string'
+        ? row.sent_at
+        : typeof row.created_at === 'string'
+          ? row.created_at
+          : null;
+
+    if (
+      !Number.isSafeInteger(animeId) ||
+      animeId <= 0 ||
+      !Number.isSafeInteger(episode) ||
+      episode <= 0 ||
+      !sentAt
+    ) {
+      return [];
+    }
+
+    const catalog = catalogById.get(animeId);
+
+    return [{
+      id: Number(row.id),
+      animeId,
+      animeTitle: catalog?.title ?? `Аниме #${animeId}`,
+      animeSlug: catalog?.slug ?? String(animeId),
+      episode,
+      sentAt,
+      readAt: typeof row.read_at === 'string' ? row.read_at : null,
+    }];
+  });
+}
+
+export async function markNotificationInboxRead(
+  userId: string,
+  deliveryIds?: number[],
+) {
+  const admin = createSupabaseAdmin();
+  const ids = [...new Set(
+    (deliveryIds ?? [])
+      .map((value) => Number(value))
+      .filter((value) => Number.isSafeInteger(value) && value > 0),
+  )].slice(0, 50);
+
+  let query = admin
+    .from('notification_deliveries')
+    .update({ read_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .eq('status', 'sent')
+    .is('read_at', null);
+
+  if (ids.length) {
+    query = query.in('id', ids);
+  }
+
+  const { error } = await query;
+  if (error) throw error;
+
+  return { updated: true };
+}
+
 export async function getNotificationDeliverySummary(userId: string) {
   const admin = createSupabaseAdmin();
   const { data, error } = await admin
