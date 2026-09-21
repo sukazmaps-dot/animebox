@@ -267,6 +267,17 @@ function NavbarContent() {
               </Link>
 
               <Link
+                href="/friends"
+                className={`sidebar__item sidebar__item--utility ${
+                  isActive('/friends') ? 'is-active' : ''
+                }`}
+                title="Друзья"
+              >
+                <Icon name="users" />
+                <span>Друзья</span>
+              </Link>
+
+              <Link
                 href="/settings"
                 className={`sidebar__item sidebar__item--utility ${
                   isActive('/settings') ? 'is-active' : ''
