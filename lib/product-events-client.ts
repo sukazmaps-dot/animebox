@@ -1,50 +1,8 @@
 'use client';
 
-export type ProductClientEventName =
-  | 'page_view'
-  | 'anime_open'
-  | 'chat_open'
-  | 'registration_session'
-  | 'auth_modal_opened'
-  | 'auth_mode_changed'
-  | 'auth_completed'
-  | 'onboarding_started'
-  | 'onboarding_completed'
-  | 'personal_home_activation'
-  | 'player_source_selected'
-  | 'player_source_ready'
-  | 'player_source_failed'
-  | 'player_source_switched'
-  | 'player_started'
-  | 'continue_watching_impression'
-  | 'continue_watching_click'
-  | 'continue_watching_started'
-  | 'personal_home_view'
-  | 'personal_schedule_impression'
-  | 'personal_schedule_click'
-  | 'notification_center_open'
-  | 'notification_subscription_toggle'
-  | 'recommendation_impression'
-  | 'recommendation_dwell'
-  | 'recommendation_click'
-  | 'recommendation_planned'
-  | 'recommendation_dismiss'
-  | 'recommendation_mood_change'
-  | 'recommendation_started'
-  | 'recommendation_completed'
-  | 'smart_discovery_search'
-  | 'watch_party_room_created'
-  | 'watch_party_public_join_click'
-  | 'watch_party_joined'
-  | 'watch_party_reaction'
-  | 'watch_party_vote'
-  | 'watch_party_invite_shared'
-  | 'telegram_promo_impression'
-  | 'telegram_promo_click'
-  | 'telegram_promo_dismiss'
-  | 'telegram_welcome_impression'
-  | 'telegram_welcome_click'
-  | 'telegram_welcome_dismiss';
+import type { ProductClientEventName } from '@/lib/product-event-names';
+
+export type { ProductClientEventName } from '@/lib/product-event-names';
 
 type ClientEvent = {
   eventName: ProductClientEventName;
