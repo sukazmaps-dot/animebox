@@ -9,6 +9,7 @@ export type WatchTitleOverview = {
   activeMs: number;
   latestEpisode: number | null;
   resumeEpisode: number | null;
+  resumeMode: 'resume' | 'next' | null;
   resumePositionMs: number;
   durationMs: number | null;
   progressPercent: number | null;
