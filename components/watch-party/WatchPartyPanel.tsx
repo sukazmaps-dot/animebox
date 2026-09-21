@@ -189,6 +189,8 @@ export default function WatchPartyPanel({
   const participantsRef = useRef(new Map<string, WatchPartyParticipant>());
   const inviteRef = useRef<WatchPartyInvite | null>(null);
   const roleRef = useRef<PartyRole>(null);
+  const statusRef = useRef<PartyStatus>('idle');
+  const hostBootKeyRef = useRef<string | null>(null);
   const intentionalCloseRef = useRef(false);
   const hostEndedRef = useRef(false);
   const reconnectAttemptRef = useRef(0);
@@ -221,6 +223,10 @@ export default function WatchPartyPanel({
   const relayHostGuestIdsRef = useRef(new Set<string>());
   const lastReactionSentAtRef = useRef(0);
   const voteByUserRef = useRef(new Map<string, WatchPartyVote>());
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
 
   const publishReaction = useCallback((reaction: WatchPartyReactionEvent) => {
     setLiveReactions((current) => [...current, reaction].slice(-10));
@@ -540,6 +546,7 @@ export default function WatchPartyPanel({
     guestTransportRef.current = null;
     lastHostSeenAtRef.current = 0;
     hostTransportReadyRef.current = false;
+    hostBootKeyRef.current = null;
   }, [clearTimers]);
 
   const acceptHostTransfer = useCallback((
@@ -618,7 +625,7 @@ export default function WatchPartyPanel({
 
     const state = playerStateRef.current;
     const nextStatus =
-      status === 'ended'
+      statusRef.current === 'ended'
         ? 'ended'
         : state?.playing
           ? 'watching'
@@ -649,7 +656,7 @@ export default function WatchPartyPanel({
     } catch {
       // Lobby registration is best-effort. P2P/relay playback must continue.
     }
-  }, [episodeNumber, status]);
+  }, [episodeNumber]);
 
   const ensureHostTimers = useCallback(() => {
     if (roleRef.current !== 'host') return;
@@ -1392,6 +1399,21 @@ export default function WatchPartyPanel({
   ]);
 
   const startHost = useCallback(async (invite: WatchPartyInvite) => {
+    const bootKey = `${invite.roomId}:${invite.secret}`;
+
+    // Booting the same host room twice used to create a lifecycle loop:
+    // status -> callback identity -> boot effect -> startHost again.
+    // Treat room bootstrap as idempotent and only restart after an explicit
+    // transport teardown/reclaim clears hostBootKeyRef.
+    if (
+      hostBootKeyRef.current === bootKey &&
+      roleRef.current === 'host' &&
+      !intentionalCloseRef.current
+    ) {
+      return;
+    }
+
+    hostBootKeyRef.current = bootKey;
     const generation = transportGenerationRef.current + 1;
     transportGenerationRef.current = generation;
     intentionalCloseRef.current = false;
@@ -1430,7 +1452,35 @@ export default function WatchPartyPanel({
     }, HOST_STARTUP_TIMEOUT_MS);
 
     const hostPeerId = watchPartyHostPeerId(invite.roomId);
-    const { peer, network } = await createWatchPartyPeer(hostPeerId);
+    let peerBundle: Awaited<ReturnType<typeof createWatchPartyPeer>>;
+
+    try {
+      peerBundle = await createWatchPartyPeer(hostPeerId);
+    } catch {
+      if (hostStartupTimerRef.current != null) {
+        window.clearTimeout(hostStartupTimerRef.current);
+        hostStartupTimerRef.current = null;
+      }
+      if (
+        transportGenerationRef.current === generation &&
+        !intentionalCloseRef.current
+      ) {
+        hostBootKeyRef.current = null;
+        setStatus('error');
+        setError('Не удалось запустить канал комнаты. Попробуй создать её ещё раз.');
+      }
+      return;
+    }
+
+    const { peer, network } = peerBundle;
+    if (
+      transportGenerationRef.current !== generation ||
+      intentionalCloseRef.current
+    ) {
+      if (!peer.destroyed) peer.destroy();
+      return;
+    }
+
     setSignalingMode(network.signalingMode);
     setNetworkRoute('unknown');
     peerRef.current = peer;
@@ -1864,6 +1914,7 @@ export default function WatchPartyPanel({
           window.setTimeout(() => {
             if (intentionalCloseRef.current) return;
             if (peerRef.current === peer) peerRef.current = null;
+            hostBootKeyRef.current = null;
             startHostRef.current(invite);
           }, attempt * 900);
           return;
@@ -1981,25 +2032,29 @@ export default function WatchPartyPanel({
     }
 
     /*
-     * React Strict Mode intentionally runs client effects through a
-     * setup -> cleanup -> setup cycle in development. The old one-shot
-     * boot guard made the cleanup win, so an invite URL could remain in the
-     * idle state forever on `next dev`. Keep this effect restartable instead:
-     * the first scheduled boot is cancelled by its cleanup, while the second
-     * setup starts a fresh host/guest transport. Production follows the same
-     * code path without depending on Strict Mode behaviour.
+     * Room bootstrap must depend only on the invite/location, not on callback
+     * identities. startHost/startGuest legitimately change when networking
+     * internals change; putting them in this effect's dependency list caused
+     * status transitions to reboot the same room indefinitely.
+     *
+     * The refs above always point at the latest callbacks, while this effect
+     * runs only when the actual theater target changes.
      */
     let cancelled = false;
 
     queueMicrotask(() => {
       if (cancelled) return;
-      void (hostClaim ? startHost(invite) : startGuest(invite));
+      if (hostClaim) {
+        startHostRef.current(invite);
+      } else {
+        startGuestRef.current(invite);
+      }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [mode, startGuest, startHost, theaterPath]);
+  }, [mode, theaterPath]);
 
   useEffect(() => {
     const onOffline = () => {
