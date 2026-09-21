@@ -162,6 +162,7 @@ export default function ProductAnalyticsDashboard() {
 
   const kpis = dashboard?.kpis;
   const premium = dashboard?.funnels.premium;
+  const surfaces = dashboard?.retentionSurfaces;
 
   return (
     <section className={styles.dashboard} aria-label="AnimeBox Product Analytics">
@@ -230,6 +231,63 @@ export default function ProductAnalyticsDashboard() {
               <RetentionCard label="D30 retention" metric={dashboard.retention.d30} />
             </div>
           </div>
+
+          {surfaces && (
+            <section className={styles.retentionSection}>
+              <div className={styles.sectionHead}>
+                <div>
+                  <span>PATCH 6 · RETENTION SURFACES</span>
+                  <h2>Что возвращает пользователя в AnimeBox</h2>
+                </div>
+                <small>{range} дней · product_events</small>
+              </div>
+
+              <div className={styles.surfaceGrid}>
+                <article className={styles.surfaceCard}>
+                  <span>CONTINUE WATCHING</span>
+                  <strong>
+                    {pct(surfaces.continueWatching.impressionToClickPct)}
+                  </strong>
+                  <small>
+                    {number(surfaces.continueWatching.clicks)} кликов из{' '}
+                    {number(surfaces.continueWatching.impressions)} показов
+                  </small>
+                  <div className={styles.surfaceMeta}>
+                    <b>{pct(surfaces.continueWatching.clickToPlayPct)}</b>
+                    <span>click → play</span>
+                    <b>{number(surfaces.continueWatching.users)}</b>
+                    <span>users</span>
+                  </div>
+                </article>
+
+                <article className={styles.surfaceCard}>
+                  <span>PERSONAL HOME</span>
+                  <strong>{number(surfaces.personalHome.views)}</strong>
+                  <small>персональных открытий главной</small>
+                  <div className={styles.surfaceMeta}>
+                    <b>{number(surfaces.personalHome.users)}</b>
+                    <span>unique users</span>
+                  </div>
+                </article>
+
+                <article className={styles.surfaceCard}>
+                  <span>NOTIFICATION CENTER</span>
+                  <strong>{number(surfaces.notificationCenter.opens)}</strong>
+                  <small>открытий центра уведомлений</small>
+                  <div className={styles.surfaceMeta}>
+                    <b>{number(surfaces.notificationCenter.users)}</b>
+                    <span>users</span>
+                    <b>
+                      {number(
+                        surfaces.notificationCenter.subscriptionToggles,
+                      )}
+                    </b>
+                    <span>toggles</span>
+                  </div>
+                </article>
+              </div>
+            </section>
+          )}
 
           <div className={styles.funnels}>
             <FunnelCard title="Anime page → Play" subtitle="DISCOVERY → WATCH" metric={dashboard.funnels.animeToPlay} />
