@@ -1374,3 +1374,199 @@
   background: rgba(6, 182, 212, 0.08);
   color: rgba(165, 243, 252, 0.92);
 }
+
+
+/* Patch 7 · social room layer */
+.reactionCloud {
+  position: absolute;
+  z-index: 20;
+  right: 18px;
+  top: 70px;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.reactionCloud > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 999px;
+  background: rgba(7, 10, 22, .88);
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  animation: watchPartyReaction 2.35s ease forwards;
+}
+
+.reactionCloud b {
+  font-size: 19px;
+  line-height: 1;
+}
+
+.reactionCloud small {
+  max-width: 120px;
+  overflow: hidden;
+  color: #bac3d4;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes watchPartyReaction {
+  0% { opacity: 0; transform: translateY(8px) scale(.9); }
+  12%, 76% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-16px) scale(.96); }
+}
+
+.socialTools {
+  display: grid;
+  grid-template-columns: minmax(0, .8fr) minmax(260px, 1.2fr);
+  gap: 10px;
+}
+
+.reactionBar,
+.votePanel {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, .09);
+  border-radius: 14px;
+  background: rgba(8, 16, 30, .72);
+}
+
+.reactionBar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px;
+}
+
+.reactionBar > span {
+  margin-right: auto;
+  color: #6f7f96;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.reactionBar button {
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 10px;
+  background: rgba(255,255,255,.035);
+  font-size: 17px;
+  transition: transform .14s ease, background .14s ease;
+}
+
+.reactionBar button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: rgba(117, 87, 255, .13);
+}
+
+.reactionBar button:disabled {
+  opacity: .35;
+}
+
+.votePanel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 10px;
+}
+
+.votePanel > div:first-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.votePanel span,
+.votePanel strong,
+.votePanel small {
+  display: block;
+}
+
+.votePanel > div:first-child > span {
+  color: #907cff;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.votePanel strong {
+  margin-top: 2px;
+  color: #e9edf6;
+  font-size: 10px;
+}
+
+.votePanel small {
+  margin-top: 2px;
+  color: #6e7e95;
+  font-size: 8px;
+}
+
+.voteActions {
+  display: flex;
+  gap: 5px;
+}
+
+.voteActions button,
+.voteStart {
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid rgba(142, 119, 255, .20);
+  border-radius: 9px;
+  background: rgba(105, 80, 255, .12);
+  color: #e8e2ff;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.voteDone {
+  flex: 0 0 auto;
+  color: #84d9ad !important;
+  font-size: 8px !important;
+  font-weight: 800;
+}
+
+@media (max-width: 720px) {
+  .reactionCloud {
+    top: 58px;
+    right: 10px;
+  }
+
+  .socialTools {
+    grid-template-columns: 1fr;
+  }
+
+  .reactionBar {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .reactionBar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .reactionBar button {
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+  }
+
+  .votePanel {
+    min-height: 58px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reactionCloud > span {
+    animation: none;
+  }
+}
