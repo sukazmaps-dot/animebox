@@ -1457,6 +1457,10 @@ export default function WatchPartyPanel({
     try {
       peerBundle = await createWatchPartyPeer(hostPeerId);
     } catch {
+      if (hostStartupTimerRef.current != null) {
+        window.clearTimeout(hostStartupTimerRef.current);
+        hostStartupTimerRef.current = null;
+      }
       if (
         transportGenerationRef.current === generation &&
         !intentionalCloseRef.current
