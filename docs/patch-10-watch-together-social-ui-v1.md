@@ -43,3 +43,17 @@ Turn Watch Together from a technically functional sidebar/lobby into a clear soc
 - Public lobby has clear create/join/discover flows even with zero rooms.
 - Existing Watch Together protocol behavior is unchanged.
 - TypeScript, targeted ESLint and production build pass.
+
+
+### 5. Profile media moderation reliability
+- If OpenAI moderation is rate-limited, unavailable, timed out, or not configured, keep the upload private in `profile-media-quarantine`.
+- Create a real `profile_media_review_groups` entry instead of a detached audit-only row.
+- Keep the currently published avatar/banner unchanged until manual approval.
+- Route the user to the existing additional-review flow (`mediaReviewQueued`).
+- Make the admin moderation health screen explicitly link to the manual media queue and explain fail-closed behavior.
+
+## Moderation acceptance criteria
+- Technical provider failures never publish unreviewed media.
+- Technical provider failures no longer delete the candidate before human review.
+- New technical-review uploads appear in `/admin/community/media`.
+- Approve/reject continues to use the existing quarantine -> public promotion flow.
