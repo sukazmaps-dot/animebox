@@ -29,6 +29,7 @@ import { SupportAnimeBoxCard } from '@/components/monetization/SupportAnimeBox';
 import HomeChatTeaser from '@/components/chat/HomeChatTeaser';
 import HomePersonalPulse from '@/components/HomePersonalPulse';
 import HomeActivationPanel from '@/components/HomeActivationPanel';
+import { trackProductClientEvent } from '@/lib/product-events-client';
 
 const subscribeHydration = () => () => {};
 
@@ -682,6 +683,31 @@ export default function HomePage({
     watchHistory,
   ]);
 
+  const personalizedHome =
+    Boolean(user?.id) &&
+    (hasWatchHistory || serverContinue.length > 0);
+
+  const personalHomeTrackedRef = useRef(false);
+  useEffect(() => {
+    if (!personalizedHome || personalHomeTrackedRef.current) return;
+    personalHomeTrackedRef.current = true;
+
+    trackProductClientEvent('personal_home_view', {
+      source: 'home',
+      path: '/',
+      entityType: 'surface',
+      entityId: 'personal_home',
+      metadata: {
+        has_continue: continueWatchingItems.length > 0,
+        recommendation_count: smartRecommendations.length,
+      },
+    });
+  }, [
+    continueWatchingItems.length,
+    personalizedHome,
+    smartRecommendations.length,
+  ]);
+
   const fallbackItems = ongoing.length > 0 ? ongoing : popular;
   const heroLoading =
     popularLoading &&
@@ -733,7 +759,7 @@ export default function HomePage({
 
         <HomeContinueWatching items={continueWatchingItems} />
 
-        <HomeTopAnimePanel popular={popular} mobile />
+        {!personalizedHome && <HomeTopAnimePanel popular={popular} mobile />}
 
         <HomePersonalPulse />
 
@@ -786,6 +812,8 @@ export default function HomePage({
             />
           )}
         </section>
+
+        {personalizedHome && <HomeTopAnimePanel popular={popular} mobile />}
 
         <HomeChatTeaser />
 
