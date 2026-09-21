@@ -235,7 +235,7 @@ export default function WatchTogetherHub() {
 
       if (!registerResponse.ok || !registerPayload.ok) {
         if (registerResponse.status === 401) {
-          window.location.assign('/login?next=%2Fwatch-together');
+          window.location.replace('/login?next=%2Fwatch-together');
           return;
         }
         throw new Error(registerPayload.error || 'Не удалось создать комнату.');
@@ -285,7 +285,7 @@ export default function WatchTogetherHub() {
       // The room itself has a dedicated copy button if clipboard permission is denied.
     }
 
-    window.location.href = roomUrl;
+    window.location.replace(roomUrl);
   }
 
   async function joinPublicRoom(room: PublicWatchPartyRoom) {
@@ -311,7 +311,7 @@ export default function WatchTogetherHub() {
 
       if (!response.ok || !payload.ok || !payload.roomUrl) {
         if (response.status === 401) {
-          window.location.assign('/login?next=%2Fwatch-together');
+          window.location.replace('/login?next=%2Fwatch-together');
           return;
         }
         throw new Error(payload.error || 'Не удалось войти в комнату.');
@@ -330,7 +330,7 @@ export default function WatchTogetherHub() {
         flush: true,
       });
 
-      window.location.href = payload.roomUrl;
+      window.location.replace(payload.roomUrl);
     } catch (joinError) {
       setJoiningRoomId('');
       setPublicRoomsError(
@@ -351,7 +351,7 @@ export default function WatchTogetherHub() {
       return;
     }
 
-    window.location.assign(target);
+    window.location.replace(target);
   }
 
   return (
