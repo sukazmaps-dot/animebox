@@ -17,7 +17,6 @@ export type ProfileMediaCandidate = {
 export type ProfileMediaCandidateGroup = {
   scope: ProfileMediaScope;
   kind: ProfileMediaKind;
-  applyPayload: Record<string, unknown>;
   candidates: ProfileMediaCandidate[];
 };
 
