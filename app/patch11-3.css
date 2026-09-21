@@ -558,3 +558,43 @@
     inset 2px 0 rgba(142, 111, 255, .50),
     0 10px 28px rgba(var(--profile-accent-rgb), .035);
 }
+
+
+/* ---------- Patch 11.3.1 · profile section gutter repair ---------- */
+.profile-v3__showcase,
+.profile-v4__featured {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding: 17px 18px !important;
+  overflow: hidden;
+  border: 1px solid rgba(var(--profile-accent-rgb), .18) !important;
+  border-radius: 17px !important;
+}
+
+.profile-v3__showcase-grid,
+.profile-v4__featured-grid {
+  width: 100%;
+  min-width: 0;
+}
+
+.profile-v3__showcase-card,
+.profile-v4__featured-card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 600px) {
+  .profile-v3__showcase,
+  .profile-v4__featured {
+    padding: 15px 14px !important;
+    border-radius: 15px !important;
+  }
+
+  .profile-v3__showcase-grid,
+  .profile-v4__featured-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
