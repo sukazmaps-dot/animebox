@@ -233,6 +233,28 @@ export async function GET() {
 
     const sampleSize = library.length + completedByAnime.size + events.length;
     const completedEpisodes = history.length;
+
+    const completionStatuses = library.filter((item) => {
+      const status = item.status.trim().toLowerCase();
+      return status === 'completed' || status === 'dropped' || status === 'watching';
+    });
+    const completedTitles = completionStatuses.filter(
+      (item) => item.status.trim().toLowerCase() === 'completed',
+    ).length;
+    const completionRate = completionStatuses.length
+      ? clamp(completedTitles / completionStatuses.length)
+      : 0;
+
+    const sevenDaysAgo = Date.now() - 7 * 86_400_000;
+    const recentCompletedEpisodes = history.filter((item) => {
+      if (!item.completed_at) return false;
+      const timestamp = Date.parse(item.completed_at);
+      return Number.isFinite(timestamp) && timestamp >= sevenDaysAgo;
+    }).length;
+    // 28+ verified episode completions in seven days is treated as a strong
+    // binge signal. It is bounded and never used as a user-facing judgement.
+    const bingeScore = clamp(recentCompletedEpisodes / 28);
+
     const confidence = clamp(1 - Math.exp(-sampleSize / 14));
     const topGenres = Object.entries(genreWeights)
       .sort((a, b) => b[1] - a[1])
@@ -245,6 +267,8 @@ export async function GET() {
       confidence,
       sampleSize,
       completedEpisodes,
+      completionRate,
+      bingeScore,
       preferredEpisodeCount: median(positiveEpisodeCounts.slice(0, 120)),
       genreWeights,
       negativeGenreWeights,
