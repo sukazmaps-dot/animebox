@@ -1117,7 +1117,16 @@ export default function WatchPartyPanel({
       setStatus('error');
       setError(describeWatchPartyPeerError(peerError, network));
     });
-  }, [attachGuestConnection, redirectToRegistration, resolveIdentity]);
+  }, [
+    acceptHostTransfer,
+    appendChatMessage,
+    attachGuestConnection,
+    dispatchPlayerCommand,
+    publishParticipants,
+    publishReaction,
+    redirectToRegistration,
+    resolveIdentity,
+  ]);
 
   const startHost = useCallback(async (invite: WatchPartyInvite) => {
     intentionalCloseRef.current = false;
