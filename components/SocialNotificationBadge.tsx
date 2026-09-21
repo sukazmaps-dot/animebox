@@ -35,7 +35,7 @@ export default function SocialNotificationBadge() {
   }, [user?.id]);
 
   useEffect(() => {
-    void refresh();
+    queueMicrotask(() => void refresh());
     const timer = window.setInterval(() => void refresh(), 30_000);
 
     const onVisible = () => {
