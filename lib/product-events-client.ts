@@ -16,6 +16,12 @@ export type ProductClientEventName =
   | 'player_source_failed'
   | 'player_source_switched'
   | 'player_started'
+  | 'continue_watching_impression'
+  | 'continue_watching_click'
+  | 'continue_watching_started'
+  | 'personal_home_view'
+  | 'notification_center_open'
+  | 'notification_subscription_toggle'
   | 'recommendation_impression'
   | 'recommendation_dwell'
   | 'recommendation_click'
@@ -47,6 +53,8 @@ const MAX_BATCH = 20;
 const FLUSH_DELAY_MS = 5_000;
 const RECOMMENDATION_ATTRIBUTION_PREFIX = 'animebox:recommendation-attribution:v1:';
 const RECOMMENDATION_ATTRIBUTION_TTL_MS = 48 * 60 * 60 * 1000;
+const CONTINUE_ATTRIBUTION_PREFIX = 'animebox:continue-attribution:v2:';
+const CONTINUE_ATTRIBUTION_TTL_MS = 12 * 60 * 60 * 1000;
 
 let queue: ClientEvent[] = [];
 let timer: number | null = null;
@@ -140,6 +148,93 @@ function installLifecycleListeners() {
   });
 }
 
+export function rememberContinueWatchingAttribution(input: {
+  animeId: number;
+  episode: number;
+  mode: 'resume' | 'next';
+}) {
+  if (typeof window === 'undefined') return;
+  if (!Number.isSafeInteger(input.animeId) || input.animeId <= 0) return;
+  if (!Number.isSafeInteger(input.episode) || input.episode <= 0) return;
+
+  try {
+    window.sessionStorage.setItem(
+      `${CONTINUE_ATTRIBUTION_PREFIX}${input.animeId}`,
+      JSON.stringify({
+        openedAt: Date.now(),
+        episode: input.episode,
+        mode: input.mode,
+        startedSent: false,
+      }),
+    );
+  } catch {
+    // Attribution is analytics-only; playback must never depend on storage.
+  }
+}
+
+function continueWatchingStartedEvent(options: TrackOptions): ClientEvent | null {
+  const rawEntity = options.entityId?.trim() ?? '';
+  const [animePart, episodePart] = rawEntity.split(':');
+  const animeId = Number.parseInt(animePart ?? '', 10);
+  const playerEpisode = Number.parseInt(episodePart ?? '', 10);
+
+  if (!Number.isSafeInteger(animeId) || animeId <= 0) return null;
+
+  try {
+    const key = `${CONTINUE_ATTRIBUTION_PREFIX}${animeId}`;
+    const raw = window.sessionStorage.getItem(key);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as {
+      openedAt?: number;
+      episode?: number;
+      mode?: 'resume' | 'next';
+      startedSent?: boolean;
+    };
+
+    const openedAt = Number(parsed.openedAt ?? 0);
+    if (!openedAt || Date.now() - openedAt > CONTINUE_ATTRIBUTION_TTL_MS) {
+      window.sessionStorage.removeItem(key);
+      return null;
+    }
+    if (parsed.startedSent) return null;
+
+    const expectedEpisode = Number(parsed.episode ?? 0);
+    if (
+      Number.isSafeInteger(playerEpisode) &&
+      playerEpisode > 0 &&
+      Number.isSafeInteger(expectedEpisode) &&
+      expectedEpisode > 0 &&
+      playerEpisode !== expectedEpisode
+    ) {
+      return null;
+    }
+
+    window.sessionStorage.setItem(
+      key,
+      JSON.stringify({ ...parsed, startedSent: true }),
+    );
+
+    return {
+      eventName: 'continue_watching_started',
+      eventId: randomId(),
+      sessionId: getProductAnalyticsSessionId(),
+      source: 'home_continue',
+      path: options.path,
+      entityType: 'episode',
+      entityId: rawEntity || String(animeId),
+      metadata: {
+        anime_id: animeId,
+        episode: expectedEpisode || playerEpisode || null,
+        mode: parsed.mode ?? 'resume',
+        player_source: options.source ?? null,
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
 function recommendationStartedEvent(options: TrackOptions): ClientEvent | null {
   const rawEntity = options.entityId?.trim() ?? '';
   const animeId = Number.parseInt(rawEntity.split(':')[0] ?? '', 10);
@@ -203,8 +298,11 @@ export function trackProductClientEvent(
   });
 
   if (eventName === 'player_started') {
-    const attributed = recommendationStartedEvent(rest);
-    if (attributed) queue.push(attributed);
+    const recommendationAttribution = recommendationStartedEvent(rest);
+    if (recommendationAttribution) queue.push(recommendationAttribution);
+
+    const continueAttribution = continueWatchingStartedEvent(rest);
+    if (continueAttribution) queue.push(continueAttribution);
   }
 
   if (queue.length > MAX_QUEUE) queue = queue.slice(-MAX_QUEUE);
