@@ -4,10 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
 import { notifyAuthChanged } from '@/lib/auth-events';
-import {
-  enableTelegramAutoLogin,
-  isTelegramAutoLoginDisabled,
-} from '@/lib/telegram-auto-login';
+import { enableTelegramAutoLogin } from '@/lib/telegram-auto-login';
 import {
   getLoadedTelegramWebApp,
   hasTelegramMiniAppLaunchParams,
@@ -197,8 +194,11 @@ export default function TelegramMiniAppBridge() {
     root.dataset.telegram = 'true';
     root.classList.add('telegram-mini-app');
 
-    const autoLoginDisabled = isTelegramAutoLoginDisabled();
-    root.dataset.telegramAutologin = autoLoginDisabled ? 'disabled' : 'enabled';
+    // A verified Mini App launch is the identity source. Clear the old
+    // "guest mode" flag left by previous versions so users can never get
+    // permanently locked out after pressing logout.
+    enableTelegramAutoLogin();
+    root.dataset.telegramAutologin = 'enabled';
 
     telegram.ready();
     telegram.expand();
@@ -477,6 +477,20 @@ export default function TelegramMiniAppBridge() {
           return false;
         }
 
+        if (
+          error instanceof ApiError &&
+          (
+            error.message === 'account_has_other_telegram' ||
+            error.message === 'telegram_already_linked'
+          )
+        ) {
+          // A stale browser session belongs to another AnimeBox account.
+          // Inside TMA, verified Telegram identity wins: clear only the local
+          // Supabase session and continue with /api/telegram/session.
+          await supabase.auth.signOut({ scope: 'local' });
+          return false;
+        }
+
         throw error;
       }
     }
@@ -535,12 +549,7 @@ export default function TelegramMiniAppBridge() {
       }
     }
 
-    if (autoLoginDisabled) {
-      root.dataset.telegramVerified = 'false';
-      root.dataset.telegramAuthenticated = 'false';
-    } else {
-      void initialize();
-    }
+    void initialize();
 
     return () => {
       destroyed = true;
