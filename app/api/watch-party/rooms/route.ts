@@ -87,6 +87,18 @@ export async function GET() {
     const staleCutoff = new Date(Date.now() - 90_000).toISOString();
     const now = new Date().toISOString();
 
+    // Opportunistic cleanup keeps abandoned rooms out of the directory even
+    // without a separate cron job. Direct invite transport is unaffected.
+    await admin
+      .from('watch_party_rooms')
+      .update({
+        status: 'ended',
+        ended_at: now,
+        updated_at: now,
+      })
+      .neq('status', 'ended')
+      .or(`last_heartbeat_at.lt.${staleCutoff},expires_at.lte.${now}`);
+
     const { data, error } = await admin
       .from('watch_party_rooms')
       .select(
