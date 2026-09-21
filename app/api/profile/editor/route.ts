@@ -22,6 +22,7 @@ import {
   type ProfileMediaPublishResult,
 } from '@/lib/profile-media-publish-server';
 
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const PROFILE_COLUMNS = 'id,username,bio,avatar_path,banner_path,created_at';
