@@ -55,6 +55,11 @@ jobs:
           app/episodes/sitemap.ts
           app/robots.ts
           lib/profile-media-safety-server.ts
+          lib/profile-media-review-server.ts
+          lib/profile-media-auto-review-server.ts
+          app/api/cron/profile-media-moderation/route.ts
+          app/api/profile/editor/route.ts
+          app/api/admin/community/media/route.ts
           app/admin/moderation/page.tsx
 
       - name: Production build

@@ -114,7 +114,8 @@ type ModerationContext = {
   kind: ProfileMediaKind;
 };
 
-const MODERATION_TIMEOUT_MS = 9_000;
+const MODERATION_TIMEOUT_MS = 5_000;
+const AUTO_REVIEW_MAX_ATTEMPTS = 5;
 
 async function moderationErrorDetails(response: Response) {
   try {
@@ -159,11 +160,8 @@ function technicalModerationReason(reason: string) {
   );
 }
 
-const MODERATION_RETRY_DELAYS_MS = [0, 700, 1_800] as const;
-
 async function moderateWithOpenAI(
-  bytes: Buffer,
-  mimeType: string,
+  imageUrl: string,
   context: ModerationContext,
 ): Promise<ModerationResult> {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
@@ -180,79 +178,38 @@ async function moderateWithOpenAI(
     };
   }
 
-  const dataUrl = `data:${mimeType};base64,${bytes.toString('base64')}`;
-  let lastFailureReason = 'moderation_unavailable';
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), MODERATION_TIMEOUT_MS);
 
-  for (let attempt = 0; attempt < MODERATION_RETRY_DELAYS_MS.length; attempt += 1) {
-    const delay = MODERATION_RETRY_DELAYS_MS[attempt];
-    if (delay > 0) {
-      await new Promise<void>((resolve) => setTimeout(resolve, delay));
-    }
+  try {
+    const response = await fetch('https://api.openai.com/v1/moderations', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'omni-moderation-latest',
+        input: [
+          {
+            type: 'image_url',
+            image_url: { url: imageUrl },
+          },
+        ],
+      }),
+      cache: 'no-store',
+      signal: controller.signal,
+    });
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), MODERATION_TIMEOUT_MS);
+    if (!response.ok) {
+      const details = await moderationErrorDetails(response);
+      const quotaUnavailable =
+        response.status === 429 && quotaLikeModerationError(details);
 
-    try {
-      const response = await fetch('https://api.openai.com/v1/moderations', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'omni-moderation-latest',
-          input: [
-            {
-              type: 'image_url',
-              image_url: { url: dataUrl },
-            },
-          ],
-        }),
-        cache: 'no-store',
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        const details = await moderationErrorDetails(response);
-        const quotaUnavailable =
-          response.status === 429 && quotaLikeModerationError(details);
-
-        if (quotaUnavailable) {
-          return {
-            decision: 'review',
-            reason: 'moderation_quota_unavailable',
-            provider: 'openai',
-            model: 'omni-moderation-latest',
-            categories: {},
-            scores: {},
-            raw: {
-              http_status: response.status,
-              error_code: details.code,
-              error_type: details.type,
-            },
-          };
-        }
-
-        const retryable =
-          response.status === 429 ||
-          response.status === 500 ||
-          response.status === 502 ||
-          response.status === 503 ||
-          response.status === 504;
-
-        lastFailureReason =
-          response.status === 429
-            ? 'moderation_rate_limited'
-            : `moderation_http_${response.status}`;
-
-        if (retryable && attempt < MODERATION_RETRY_DELAYS_MS.length - 1) {
-          continue;
-        }
-
-        console.error('[ProfileMediaSafety] moderation HTTP', response.status, details.code);
+      if (quotaUnavailable) {
         return {
           decision: 'review',
-          reason: lastFailureReason,
+          reason: 'moderation_quota_unavailable',
           provider: 'openai',
           model: 'omni-moderation-latest',
           categories: {},
@@ -265,92 +222,118 @@ async function moderateWithOpenAI(
         };
       }
 
-      const payload = (await response.json()) as {
-        model?: string;
-        results?: Array<{
-          flagged?: boolean;
-          categories?: Record<string, boolean>;
-          category_scores?: Record<string, number>;
-        }>;
-      };
+      const reason =
+        response.status === 429
+          ? 'moderation_rate_limited'
+          : `moderation_http_${response.status}`;
 
-      const result = payload.results?.[0];
-      const categories = result?.categories ?? {};
-      const scores = result?.category_scores ?? {};
-
-      const sexualScore = finiteScore(scores.sexual);
-      const sexualMinorsScore = finiteScore(scores['sexual/minors']);
-      const graphicScore = finiteScore(scores['violence/graphic']);
-      const violenceScore = finiteScore(scores.violence);
-      const selfHarmScore = Math.max(
-        finiteScore(scores['self-harm']),
-        finiteScore(scores['self-harm/intent']),
-        finiteScore(scores['self-harm/instructions']),
-      );
-      const hateThreatScore = finiteScore(scores['hate/threatening']);
-
-      const hardBlock =
-        Boolean(categories['sexual/minors']) ||
-        sexualMinorsScore >= 0.02 ||
-        (Boolean(categories.sexual) && sexualScore >= 0.88) ||
-        sexualScore >= 0.94 ||
-        (Boolean(categories['violence/graphic']) && graphicScore >= 0.82) ||
-        graphicScore >= 0.9 ||
-        selfHarmScore >= 0.88 ||
-        hateThreatScore >= 0.88;
-
-      if (hardBlock) {
-        return {
-          decision: 'block',
-          reason: 'unsafe_profile_media_v2',
-          provider: 'openai',
-          model: payload.model || 'omni-moderation-latest',
-          categories,
-          scores,
-          raw: payload as unknown as Record<string, unknown>,
-        };
-      }
-
-      const bannerMultiplier = context.kind === 'banner' ? 1.12 : 1;
-      const needsReview =
-        sexualScore >= 0.62 * bannerMultiplier ||
-        graphicScore >= 0.55 * bannerMultiplier ||
-        violenceScore >= 0.72 * bannerMultiplier ||
-        selfHarmScore >= 0.62 ||
-        hateThreatScore >= 0.62;
-
+      console.error('[ProfileMediaSafety] moderation HTTP', response.status, details.code);
       return {
-        decision: needsReview ? 'review' : 'approve',
-        reason: needsReview ? 'borderline_profile_media_v2' : 'safe_profile_media_v2',
+        decision: 'review',
+        reason,
+        provider: 'openai',
+        model: 'omni-moderation-latest',
+        categories: {},
+        scores: {},
+        raw: {
+          http_status: response.status,
+          error_code: details.code,
+          error_type: details.type,
+        },
+      };
+    }
+
+    const payload = (await response.json()) as {
+      model?: string;
+      results?: Array<{
+        flagged?: boolean;
+        categories?: Record<string, boolean>;
+        category_scores?: Record<string, number>;
+      }>;
+    };
+
+    const result = payload.results?.[0];
+    const categories = result?.categories ?? {};
+    const scores = result?.category_scores ?? {};
+
+    const sexualScore = finiteScore(scores.sexual);
+    const sexualMinorsScore = finiteScore(scores['sexual/minors']);
+    const graphicScore = finiteScore(scores['violence/graphic']);
+    const violenceScore = finiteScore(scores.violence);
+    const selfHarmScore = Math.max(
+      finiteScore(scores['self-harm']),
+      finiteScore(scores['self-harm/intent']),
+      finiteScore(scores['self-harm/instructions']),
+    );
+    const hateThreatScore = finiteScore(scores['hate/threatening']);
+
+    const hardBlock =
+      Boolean(categories['sexual/minors']) ||
+      sexualMinorsScore >= 0.02 ||
+      (Boolean(categories.sexual) && sexualScore >= 0.88) ||
+      sexualScore >= 0.94 ||
+      (Boolean(categories['violence/graphic']) && graphicScore >= 0.82) ||
+      graphicScore >= 0.9 ||
+      selfHarmScore >= 0.88 ||
+      hateThreatScore >= 0.88;
+
+    if (hardBlock) {
+      return {
+        decision: 'block',
+        reason: 'unsafe_profile_media_v2',
         provider: 'openai',
         model: payload.model || 'omni-moderation-latest',
         categories,
         scores,
         raw: payload as unknown as Record<string, unknown>,
       };
-    } catch (error) {
-      const timedOut = error instanceof Error && error.name === 'AbortError';
-      lastFailureReason = timedOut ? 'moderation_timeout' : 'moderation_unavailable';
-
-      if (attempt < MODERATION_RETRY_DELAYS_MS.length - 1) {
-        continue;
-      }
-
-      console.error('[ProfileMediaSafety] moderation request failed:', error);
-    } finally {
-      clearTimeout(timeout);
     }
+
+    const bannerMultiplier = context.kind === 'banner' ? 1.12 : 1;
+    const needsReview =
+      sexualScore >= 0.62 * bannerMultiplier ||
+      graphicScore >= 0.55 * bannerMultiplier ||
+      violenceScore >= 0.72 * bannerMultiplier ||
+      selfHarmScore >= 0.62 ||
+      hateThreatScore >= 0.62;
+
+    return {
+      decision: needsReview ? 'review' : 'approve',
+      reason: needsReview ? 'borderline_profile_media_v2' : 'safe_profile_media_v2',
+      provider: 'openai',
+      model: payload.model || 'omni-moderation-latest',
+      categories,
+      scores,
+      raw: payload as unknown as Record<string, unknown>,
+    };
+  } catch (error) {
+    const timedOut = error instanceof Error && error.name === 'AbortError';
+    console.error('[ProfileMediaSafety] moderation request failed:', error);
+    return {
+      decision: 'review',
+      reason: timedOut ? 'moderation_timeout' : 'moderation_unavailable',
+      provider: 'openai',
+      model: 'omni-moderation-latest',
+      categories: {},
+      scores: {},
+      raw: null,
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function moderationSignedUrl(quarantinePath: string) {
+  const signed = await adminClient()
+    .storage
+    .from(QUARANTINE_BUCKET)
+    .createSignedUrl(quarantinePath, 2 * 60);
+
+  if (signed.error || !signed.data?.signedUrl) {
+    throw signed.error || new Error('Failed to create moderation signed URL');
   }
 
-  return {
-    decision: 'review',
-    reason: lastFailureReason,
-    provider: 'openai',
-    model: 'omni-moderation-latest',
-    categories: {},
-    scores: {},
-    raw: null,
-  };
+  return signed.data.signedUrl;
 }
 
 async function loadMediaCandidate(
@@ -395,7 +378,10 @@ async function moderateGroup(
   const primaryCached = await cachedDecision(primary.sha256);
   const primaryModeration =
     primaryCached ??
-    (await moderateWithOpenAI(primary.bytes, primary.mimeType, context));
+    (await moderateWithOpenAI(
+      await moderationSignedUrl(primary.candidate.quarantinePath),
+      context,
+    ));
 
   const items: LoadedMedia[] = [];
 
@@ -456,10 +442,18 @@ async function recordImmediate(
   if (error) throw error;
 }
 
+type QuarantineOptions = {
+  automationState?: 'manual' | 'retry';
+  autoAttempts?: number;
+  nextAutoCheckAt?: string | null;
+  autoLastReason?: string | null;
+};
+
 async function quarantineGroup(
   userId: string,
   group: ProfileMediaCandidateGroup,
   items: LoadedMedia[],
+  options: QuarantineOptions = {},
 ) {
   const admin = adminClient();
   const groupId = crypto.randomUUID();
@@ -471,6 +465,11 @@ async function quarantineGroup(
     kind: group.kind,
     status: 'review',
     apply_payload: group.applyPayload,
+    automation_state: options.automationState ?? 'manual',
+    auto_attempts: options.autoAttempts ?? 0,
+    next_auto_check_at: options.nextAutoCheckAt ?? null,
+    last_auto_check_at: options.autoAttempts ? new Date().toISOString() : null,
+    auto_last_reason: options.autoLastReason ?? null,
   });
 
   if (groupError) throw groupError;
@@ -597,16 +596,17 @@ export async function screenProfileMediaGroups(
     );
 
     if (technicalReview) {
-      // Automatic moderation being unavailable must not make profile media
-      // impossible to change. Fail closed: keep the new file private in the
-      // quarantine bucket and route it to the human moderation queue. The
-      // user's currently published avatar/banner stays untouched until an
-      // owner/admin/moderator explicitly approves the review group.
-      await quarantineGroup(userId, group, items);
+      // Keep the upload private and let the automatic queue retry it.
+      await quarantineGroup(userId, group, items, {
+        automationState: 'retry',
+        autoAttempts: 1,
+        nextAutoCheckAt: new Date(Date.now() + 30_000).toISOString(),
+        autoLastReason: technicalReview.moderation.reason,
+      });
 
       throw new ApiError(
         409,
-        'Автоматическая модерация временно недоступна. Изображение отправлено на дополнительную проверку модератору; пока останется прежнее оформление.',
+        'Автопроверка временно задержалась. Изображение осталось приватным и будет проверено повторно автоматически.',
       );
     }
 

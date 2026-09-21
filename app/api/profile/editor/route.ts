@@ -483,9 +483,19 @@ export async function POST(request: Request) {
     if (
       error instanceof ApiError &&
       error.status === 409 &&
-      error.message.includes('дополнительную проверку')
+      (
+        error.message.includes('дополнительную проверку') ||
+        error.message.includes('проверено повторно автоматически')
+      )
     ) {
-      return response({ error: error.message, mediaReviewQueued: true }, 409);
+      return response(
+        {
+          error: error.message,
+          mediaReviewQueued: true,
+          mediaReviewAutomatic: error.message.includes('проверено повторно автоматически'),
+        },
+        409,
+      );
     }
     return failure(error);
   }
