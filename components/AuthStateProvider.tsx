@@ -15,6 +15,7 @@ import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import { resolveProfileAppearance } from '@/lib/profile-appearance';
 import type { PremiumStudioSettings } from '@/lib/premium-studio';
+import { PROFILE_APPEARANCE_CHANGED_EVENT } from '@/lib/profile-live-sync';
 import {
   AUTH_CHANGED_EVENT,
   type AuthChangedDetail,
@@ -341,16 +342,22 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
       }, 0);
     }
 
+    const refreshAppearance = () => {
+      void refresh();
+    };
+
     window.addEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);
-    window.addEventListener('animebox:premium-studio-updated', refresh);
-    window.addEventListener('animebox:entitlements-changed', refresh);
+    window.addEventListener('animebox:premium-studio-updated', refreshAppearance);
+    window.addEventListener(PROFILE_APPEARANCE_CHANGED_EVENT, refreshAppearance);
+    window.addEventListener('animebox:entitlements-changed', refreshAppearance);
 
     return () => {
       active = false;
       subscription.unsubscribe();
       window.removeEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);
-      window.removeEventListener('animebox:premium-studio-updated', refresh);
-      window.removeEventListener('animebox:entitlements-changed', refresh);
+      window.removeEventListener('animebox:premium-studio-updated', refreshAppearance);
+      window.removeEventListener(PROFILE_APPEARANCE_CHANGED_EVENT, refreshAppearance);
+      window.removeEventListener('animebox:entitlements-changed', refreshAppearance);
     };
   }, [refresh, supabase]);
 

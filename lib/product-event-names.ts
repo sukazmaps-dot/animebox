@@ -43,6 +43,9 @@ export const PRODUCT_CLIENT_EVENT_NAMES = [
   'telegram_welcome_impression',
   'telegram_welcome_click',
   'telegram_welcome_dismiss',
+  'registration_welcome_impression',
+  'registration_welcome_action',
+  'registration_welcome_dismiss',
 ] as const;
 
 export type ProductClientEventName = (typeof PRODUCT_CLIENT_EVENT_NAMES)[number];

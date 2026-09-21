@@ -1,10 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
+import { useAuthState } from '@/components/AuthStateProvider';
+import { notifyAuthChanged } from '@/lib/auth-events';
+import { notifyProfileAppearanceChanged } from '@/lib/profile-live-sync';
 import {
   discardPrivateProfileMedia,
   profileMediaFetchWithTimeout,
@@ -309,6 +313,12 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   onBusyChange,
   onSettingsCommitted,
 }, ref) {
+  const router = useRouter();
+  const {
+    user,
+    profile: authProfile,
+    refresh: refreshAuth,
+  } = useAuthState();
   const supabase = useMemo(() => createClient(), []);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -456,7 +466,40 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       setSavedSettings(committed);
       setSaved(message);
       onSettingsCommitted?.(committed);
+
+      if (user?.id) {
+        const premiumAvatarPath =
+          committed.avatarPath ||
+          committed.avatarStaticPath ||
+          null;
+
+        notifyAuthChanged({
+          userId: user.id,
+          profile: {
+            id: user.id,
+            username: authProfile?.username ?? null,
+            avatar_path: authProfile?.avatar_path ?? null,
+            display_avatar_path:
+              premiumAvatarPath ??
+              authProfile?.avatar_path ??
+              null,
+            display_avatar_transform:
+              premiumAvatarPath
+                ? {
+                    x: committed.avatarPositionX,
+                    y: committed.avatarPositionY,
+                    zoom: committed.avatarZoom,
+                  }
+                : null,
+          },
+        });
+
+        notifyProfileAppearanceChanged(user.id);
+        void refreshAuth();
+      }
+
       window.dispatchEvent(new Event('animebox:premium-studio-updated'));
+      router.refresh();
       return committed;
     } catch (requestError) {
       setError(

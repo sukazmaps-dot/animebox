@@ -5,6 +5,7 @@ import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
 import { premiumMediaStyle, type PremiumMediaTransform } from '@/lib/premium-studio';
+import { PROFILE_APPEARANCE_CHANGED_EVENT } from '@/lib/profile-live-sync';
 
 import {
   FormEvent,
@@ -350,6 +351,17 @@ export default function EpisodeComments({
 
     return () => {
       controller.abort();
+    };
+  }, [loadComments]);
+
+  useEffect(() => {
+    const reloadAppearance = () => {
+      void loadComments();
+    };
+
+    window.addEventListener(PROFILE_APPEARANCE_CHANGED_EVENT, reloadAppearance);
+    return () => {
+      window.removeEventListener(PROFILE_APPEARANCE_CHANGED_EVENT, reloadAppearance);
     };
   }, [loadComments]);
 

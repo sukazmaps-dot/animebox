@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { notifyAuthChanged } from '@/lib/auth-events';
 import { enableTelegramAutoLogin } from '@/lib/telegram-auto-login';
+import { markTelegramWelcomePending } from '@/lib/telegram-growth-client';
 import {
   getLoadedTelegramWebApp,
   hasTelegramMiniAppLaunchParams,
@@ -360,6 +361,10 @@ export default function TelegramMiniAppBridge() {
       if (error || !loginData.session || !loginData.user) {
         console.error('[Telegram Mini App] verifyOtp:', error);
         throw new Error('supabase_login_failed');
+      }
+
+      if (data.created) {
+        markTelegramWelcomePending(loginData.user.id, 'telegram_mini_app');
       }
 
       markAuthenticated(loginData.user.id, {
