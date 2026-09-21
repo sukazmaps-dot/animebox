@@ -1875,6 +1875,116 @@ export default function WatchPartyPanel({
     });
   }, [handleVoteCast, sendGuestPacket]);
 
+  const kickParticipant = useCallback((participant: WatchPartyParticipant) => {
+    if (roleRef.current !== 'host' || participant.host) return;
+    if (!window.confirm(`Исключить ${participant.name} из комнаты?`)) return;
+
+    const connection = hostConnectionsRef.current.get(participant.id);
+    if (connection?.open) {
+      send(connection, { type: 'KICKED', reason: 'host_kick' });
+      window.setTimeout(() => connection.close(), 100);
+    }
+
+    if (relayHostGuestIdsRef.current.has(participant.id)) {
+      void relayRef.current?.send(
+        { type: 'KICKED', reason: 'host_kick' },
+        participant.id,
+      );
+      relayHostGuestIdsRef.current.delete(participant.id);
+    }
+
+    hostConnectionsRef.current.delete(participant.id);
+    participantsRef.current.delete(participant.id);
+    broadcastParticipants();
+    void updateDirectoryRoom();
+
+    trackProductClientEvent('watch_party_participant_kicked', {
+      source: 'watch_together_room',
+      path: window.location.pathname,
+      entityType: 'watch_party_room',
+      entityId: inviteRef.current?.roomId,
+      metadata: {
+        target_user_id: participant.userId,
+      },
+    });
+  }, [broadcastParticipants, send, updateDirectoryRoom]);
+
+  const transferHost = useCallback(async (participant: WatchPartyParticipant) => {
+    if (roleRef.current !== 'host' || participant.host) return;
+    const invite = inviteRef.current;
+    if (!invite) return;
+    if (!window.confirm(`Передать управление комнатой пользователю ${participant.name}?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/watch-party/rooms/transfer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        cache: 'no-store',
+        body: JSON.stringify({
+          roomId: invite.roomId,
+          newHostUserId: participant.userId,
+        }),
+      });
+
+      const payload = (await response.json()) as { ok?: boolean; error?: string };
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || 'Не удалось передать управление.');
+      }
+
+      broadcast({
+        type: 'HOST_TRANSFER',
+        newHostUserId: participant.userId,
+        sentAt: Date.now(),
+      });
+
+      trackProductClientEvent('watch_party_host_transferred', {
+        source: 'watch_together_room',
+        path: window.location.pathname,
+        entityType: 'watch_party_room',
+        entityId: invite.roomId,
+        metadata: {
+          new_host_user_id: participant.userId,
+        },
+        flush: true,
+      });
+
+      setStatus('reconnecting');
+      setError(`Передаём управление пользователю ${participant.name}…`);
+
+      window.setTimeout(() => {
+        intentionalCloseRef.current = true;
+
+        try {
+          sessionStorage.removeItem(watchPartyHostSessionKey(invite.roomId));
+        } catch {
+          // Storage is optional.
+        }
+        clearWatchPartyHostTab(invite);
+
+        destroyTransport();
+        participantsRef.current.clear();
+        setParticipants([]);
+        roleRef.current = null;
+        setRole(null);
+
+        window.setTimeout(() => {
+          void startGuest(invite);
+        }, 650);
+      }, 220);
+    } catch (transferError) {
+      setError(
+        transferError instanceof Error
+          ? transferError.message
+          : 'Не удалось передать управление.',
+      );
+    }
+  }, [broadcast, destroyTransport, startGuest]);
+
   const reportRoom = useCallback(async () => {
     const invite = inviteRef.current;
     if (!invite || reportLabel !== 'Пожаловаться') return;
