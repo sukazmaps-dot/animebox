@@ -3,7 +3,8 @@ import 'server-only';
 import { adminClient } from '@/lib/community-server';
 
 export type ProfileMediaModerationHealth = {
-  status: 'healthy' | 'degraded' | 'unavailable' | 'not_configured' | 'idle';
+  status: 'disabled' | 'healthy' | 'degraded' | 'unavailable' | 'not_configured' | 'idle';
+  enabled: boolean;
   configured: boolean;
   provider: 'openai';
   model: string;
@@ -31,6 +32,8 @@ function isTechnical(reason: string | null) {
 }
 
 export async function getProfileMediaModerationHealth(): Promise<ProfileMediaModerationHealth> {
+  const enabled =
+    process.env.PROFILE_MEDIA_AUTO_MODERATION?.trim().toLowerCase() === 'true';
   const configured = Boolean(process.env.OPENAI_API_KEY?.trim());
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
@@ -61,14 +64,15 @@ export async function getProfileMediaModerationHealth(): Promise<ProfileMediaMod
   const freshTechnicalFailure =
     latestAgeMs <= 15 * 60 * 1000 && isTechnical(latest?.reason ?? null);
 
-  let status: ProfileMediaModerationHealth['status'] = 'idle';
-  if (!configured) status = 'not_configured';
-  else if (quota > 0 && freshTechnicalFailure) status = 'unavailable';
-  else if (freshTechnicalFailure || rateLimited >= 3) status = 'degraded';
-  else if (approved > 0 || rejected > 0 || borderline > 0) status = 'healthy';
+  let status: ProfileMediaModerationHealth['status'] = enabled ? 'idle' : 'disabled';
+  if (enabled && !configured) status = 'not_configured';
+  else if (enabled && quota > 0 && freshTechnicalFailure) status = 'unavailable';
+  else if (enabled && (freshTechnicalFailure || rateLimited >= 3)) status = 'degraded';
+  else if (enabled && (approved > 0 || rejected > 0 || borderline > 0)) status = 'healthy';
 
   return {
     status,
+    enabled,
     configured,
     provider: 'openai',
     model: 'omni-moderation-latest',
