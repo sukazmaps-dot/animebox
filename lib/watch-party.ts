@@ -168,6 +168,11 @@ export type WatchPartyPacket =
   | {
       type: 'VOTE_STATE';
       state: WatchPartyVoteState;
+    }
+  | {
+      type: 'HOST_TRANSFER';
+      targetUserId: string;
+      sentAt: number;
     };
 
 export type WatchPartyInvite = {
@@ -589,6 +594,14 @@ export function parseWatchPartyPacket(value: unknown): WatchPartyPacket | null {
     case 'VOTE_STATE': {
       const state = parseVoteState(record.state);
       return state ? { type: 'VOTE_STATE', state } : null;
+    }
+
+    case 'HOST_TRANSFER': {
+      const targetUserId =
+        typeof record.targetUserId === 'string' ? record.targetUserId : '';
+      const sentAt = parseTimestamp(record.sentAt);
+      if (!USER_ID_RE.test(targetUserId) || !sentAt) return null;
+      return { type: 'HOST_TRANSFER', targetUserId, sentAt };
     }
 
     default:
