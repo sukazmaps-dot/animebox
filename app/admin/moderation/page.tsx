@@ -22,7 +22,8 @@ type Data = {
 };
 
 type MediaHealth = {
-  status: 'healthy' | 'degraded' | 'unavailable' | 'not_configured' | 'idle';
+  status: 'disabled' | 'healthy' | 'degraded' | 'unavailable' | 'not_configured' | 'idle';
+  enabled: boolean;
   configured: boolean;
   provider: 'openai';
   model: string;
@@ -38,6 +39,10 @@ type MediaHealth = {
 };
 
 const healthCopy: Record<MediaHealth['status'], { title: string; detail: string }> = {
+  disabled: {
+    title: 'AI-модерация отключена',
+    detail: 'Аватары и баннеры публикуются сразу после технической проверки. Нарушения обрабатываются через ручную модерацию.',
+  },
   healthy: {
     title: 'Медиа-модерация работает',
     detail: 'Новые аватары и баннеры проходят автоматическую проверку.',
@@ -180,26 +185,53 @@ export default function Moderation() {
           </div>
 
           <div className="admin-v1-metrics">
-            <article>
-              <span>Проверок 24ч</span>
-              <strong>{health.checked24h}</strong>
-              <small>audit-записи по avatar/banner</small>
-            </article>
-            <article>
-              <span>Одобрено</span>
-              <strong>{health.approved24h}</strong>
-              <small>без ручной проверки</small>
-            </article>
-            <article>
-              <span>Технические сбои</span>
-              <strong>{health.technicalFailures24h}</strong>
-              <small>rate-limit / timeout / provider</small>
-            </article>
-            <article>
-              <span>429 / quota</span>
-              <strong>{health.rateLimited24h + health.quotaFailures24h}</strong>
-              <small>{health.latestReason || 'ошибок нет'}</small>
-            </article>
+            {health.enabled ? (
+              <>
+                <article>
+                  <span>Проверок 24ч</span>
+                  <strong>{health.checked24h}</strong>
+                  <small>audit-записи по avatar/banner</small>
+                </article>
+                <article>
+                  <span>Одобрено</span>
+                  <strong>{health.approved24h}</strong>
+                  <small>без ручной проверки</small>
+                </article>
+                <article>
+                  <span>Технические сбои</span>
+                  <strong>{health.technicalFailures24h}</strong>
+                  <small>rate-limit / timeout / provider</small>
+                </article>
+                <article>
+                  <span>429 / quota</span>
+                  <strong>{health.rateLimited24h + health.quotaFailures24h}</strong>
+                  <small>{health.latestReason || 'ошибок нет'}</small>
+                </article>
+              </>
+            ) : (
+              <>
+                <article>
+                  <span>Режим</span>
+                  <strong>POST</strong>
+                  <small>медиа применяется сразу</small>
+                </article>
+                <article>
+                  <span>AI запросы</span>
+                  <strong>0</strong>
+                  <small>blocking-проверка выключена</small>
+                </article>
+                <article>
+                  <span>Защита</span>
+                  <strong>ON</strong>
+                  <small>MIME · size · signature</small>
+                </article>
+                <article>
+                  <span>Ручная модерация</span>
+                  <strong>ON</strong>
+                  <small>удаление и очередь сохранены</small>
+                </article>
+              </>
+            )}
           </div>
         </section>
       )}

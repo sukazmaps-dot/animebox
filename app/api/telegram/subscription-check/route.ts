@@ -4,6 +4,7 @@ import {
   checkRequiredTelegramMembership,
   TelegramMembershipError,
 } from '@/lib/telegram/channel-membership';
+import { TELEGRAM_CHANNEL_URL } from '@/lib/telegram-links';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,7 +12,7 @@ export const dynamic = 'force-dynamic';
 function getChannelUrl() {
   return (
     process.env.TELEGRAM_CHANNEL_URL?.trim() ||
-    'https://t.me/YourAnimeBox'
+    TELEGRAM_CHANNEL_URL
   );
 }
 

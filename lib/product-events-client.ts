@@ -38,7 +38,10 @@ export type ProductClientEventName =
   | 'watch_party_joined'
   | 'watch_party_reaction'
   | 'watch_party_vote'
-  | 'watch_party_invite_shared';
+  | 'watch_party_invite_shared'
+  | 'telegram_promo_impression'
+  | 'telegram_promo_click'
+  | 'telegram_promo_dismiss';
 
 type ClientEvent = {
   eventName: ProductClientEventName;

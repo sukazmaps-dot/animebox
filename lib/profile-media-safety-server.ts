@@ -46,6 +46,58 @@ type LoadedMedia = {
 const PUBLIC_BUCKET = 'profile-media';
 const QUARANTINE_BUCKET = 'profile-media-quarantine';
 
+const AUTO_MODERATION_ENABLED =
+  process.env.PROFILE_MEDIA_AUTO_MODERATION?.trim().toLowerCase() === 'true';
+
+function maxAllowedBytes(scope: ProfileMediaScope, kind: ProfileMediaKind) {
+  if (scope === 'premium') {
+    return kind === 'avatar' ? 2 * 1024 * 1024 : 6 * 1024 * 1024;
+  }
+  return 5 * 1024 * 1024;
+}
+
+function hasExpectedImageSignature(bytes: Buffer, mimeType: string) {
+  if (mimeType === 'image/jpeg') {
+    return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  }
+
+  if (mimeType === 'image/png') {
+    const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    return bytes.length >= signature.length && bytes.subarray(0, signature.length).equals(signature);
+  }
+
+  if (mimeType === 'image/gif') {
+    const header = bytes.subarray(0, 6).toString('ascii');
+    return header === 'GIF87a' || header === 'GIF89a';
+  }
+
+  if (mimeType === 'image/webp') {
+    return (
+      bytes.length >= 12 &&
+      bytes.subarray(0, 4).toString('ascii') === 'RIFF' &&
+      bytes.subarray(8, 12).toString('ascii') === 'WEBP'
+    );
+  }
+
+  return false;
+}
+
+function validateTechnicalMedia(
+  group: ProfileMediaCandidateGroup,
+  item: Omit<LoadedMedia, 'moderation'>,
+) {
+  if (item.size < 1 || item.size > maxAllowedBytes(group.scope, group.kind)) {
+    throw new ApiError(413, 'Изображение превышает допустимый размер.');
+  }
+
+  if (!hasExpectedImageSignature(item.bytes, item.mimeType)) {
+    throw new ApiError(
+      400,
+      'Файл не прошёл техническую проверку изображения. Загрузите JPG, PNG, WebP или GIF заново.',
+    );
+  }
+}
+
 function inferMimeType(path: string) {
   const lower = path.toLowerCase();
   if (lower.endsWith('.gif')) return 'image/gif';
@@ -115,7 +167,6 @@ type ModerationContext = {
 };
 
 const MODERATION_TIMEOUT_MS = 5_000;
-const AUTO_REVIEW_MAX_ATTEMPTS = 5;
 
 async function moderationErrorDetails(response: Response) {
   try {
@@ -349,7 +400,12 @@ async function loadMediaCandidate(
   }
 
   const bytes = Buffer.from(await data.arrayBuffer());
-  const mimeType = data.type || inferMimeType(candidate.path);
+  const storageMime = data.type?.trim().toLowerCase();
+  const mimeType =
+    storageMime &&
+    ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(storageMime)
+      ? storageMime
+      : inferMimeType(candidate.path);
   const sha256 = createHash('sha256').update(bytes).digest('hex');
   const animated = detectAnimation(bytes, mimeType);
 
@@ -370,6 +426,26 @@ async function moderateGroup(
     group.candidates.map((candidate) => loadMediaCandidate(candidate)),
   );
   if (!loaded.length) return [];
+
+  for (const item of loaded) validateTechnicalMedia(group, item);
+
+  if (!AUTO_MODERATION_ENABLED) {
+    return loaded.map((item) => ({
+      ...item,
+      moderation: {
+        decision: 'approve',
+        reason: 'technical_checks_only',
+        provider: 'disabled',
+        model: null,
+        categories: {},
+        scores: {},
+        raw: {
+          auto_moderation_enabled: false,
+          technical_checks_passed: true,
+        },
+      },
+    }));
+  }
 
   const context: ModerationContext = { scope: group.scope, kind: group.kind };
   const primary =

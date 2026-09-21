@@ -6,6 +6,7 @@ import Link from 'next/link';
 import AnimeImage from '@/components/AnimeImage';
 import Icon from '@/components/Icon';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
+import TelegramPromoCard from '@/components/TelegramPromoCard';
 import { useAuthState } from '@/components/AuthStateProvider';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 import { getAnimes, isAbortError } from '@/lib/anime-client';
@@ -669,6 +670,8 @@ export default function WatchTogetherHub() {
           </div>
         )}
       </section>
+
+      <TelegramPromoCard placement="watch_together" />
 
       <section id="choose-anime" className={styles.builder}>
         <div className={styles.sectionHead}>

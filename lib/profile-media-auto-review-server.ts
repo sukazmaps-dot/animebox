@@ -348,6 +348,18 @@ async function processGroup(group: {
 }
 
 export async function processAutomaticProfileMediaReviews(limit = 4) {
+  if (process.env.PROFILE_MEDIA_AUTO_MODERATION?.trim().toLowerCase() !== 'true') {
+    return {
+      disabled: true,
+      checked: 0,
+      approved: 0,
+      rejected: 0,
+      retry: 0,
+      manual: 0,
+      skipped: 0,
+    };
+  }
+
   const admin = adminClient();
   const safeLimit = Math.max(1, Math.min(10, Math.floor(limit)));
 
