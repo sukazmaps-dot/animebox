@@ -1,5 +1,5 @@
-export const WATCH_PARTY_PROTOCOL = 3;
-export const WATCH_PARTY_MAX_PARTICIPANTS = 8;
+export const WATCH_PARTY_PROTOCOL = 4;
+export const WATCH_PARTY_MAX_PARTICIPANTS = 50;
 export const WATCH_PARTY_ROOM_PREFIX = 'abx-party';
 
 export const WATCH_PARTY_PLAYER_STATE_EVENT = 'animebox:watch-party-player-state';
