@@ -114,6 +114,13 @@ export async function requestFriendship(userId: string, targetUserId: string) {
 
     if (error) throw error;
 
+    await admin
+      .from('social_notifications')
+      .update({ read_at: now })
+      .eq('user_id', userId)
+      .eq('type', 'friend_request')
+      .contains('payload', { friendshipId: existing.id });
+
     await createSocialNotification({
       userId: targetUserId,
       actorId: userId,
