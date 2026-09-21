@@ -3,10 +3,6 @@ import 'server-only';
 import { createHash } from 'node:crypto';
 
 import { ApiError, adminClient } from '@/lib/community-server';
-import {
-  approveProfileMediaReviewGroup,
-  rejectProfileMediaReviewGroup,
-} from '@/lib/profile-media-review-server';
 
 export type ProfileMediaScope = 'base' | 'premium';
 export type ProfileMediaKind = 'avatar' | 'banner';
