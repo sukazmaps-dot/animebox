@@ -63,6 +63,12 @@ export type ProductAnalyticsDashboard = {
       views: number;
       users: number;
     };
+    personalSchedule: {
+      impressions: number;
+      clicks: number;
+      users: number;
+      ctrPct: number;
+    };
     notificationCenter: {
       opens: number;
       users: number;
