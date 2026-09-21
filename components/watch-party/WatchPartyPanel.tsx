@@ -544,6 +544,45 @@ export default function WatchPartyPanel({
 
   const scheduleGuestReconnectRef = useRef<() => void>(() => undefined);
 
+  const updateDirectoryRoom = useCallback(async (
+    nextStatus?: 'waiting' | 'watching' | 'paused' | 'voting' | 'ended',
+  ) => {
+    if (roleRef.current !== 'host') return;
+    const invite = inviteRef.current;
+    if (!invite) return;
+
+    const currentState = playerStateRef.current;
+    const derivedStatus =
+      nextStatus ??
+      (voteStateRef.current?.active
+        ? 'voting'
+        : currentState
+          ? currentState.playing
+            ? 'watching'
+            : 'paused'
+          : 'waiting');
+
+    try {
+      await fetch('/api/watch-party/rooms', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        cache: 'no-store',
+        keepalive: derivedStatus === 'ended',
+        body: JSON.stringify({
+          roomId: invite.roomId,
+          status: derivedStatus,
+          participantCount: participantsRef.current.size || 1,
+          episode: episodeNumber,
+        }),
+      });
+    } catch {
+      // Public directory presence is best-effort. Room transport must continue.
+    }
+  }, [episodeNumber]);
+
   const ensureHostTimers = useCallback(() => {
     if (roleRef.current !== 'host') return;
 
@@ -558,7 +597,14 @@ export default function WatchPartyPanel({
         sendHostSync();
       }, PLAYER_SYNC_MS);
     }
-  }, [broadcast, sendHostSync]);
+
+    if (directoryHeartbeatTimerRef.current == null) {
+      void updateDirectoryRoom();
+      directoryHeartbeatTimerRef.current = window.setInterval(() => {
+        void updateDirectoryRoom();
+      }, DIRECTORY_HEARTBEAT_MS);
+    }
+  }, [broadcast, sendHostSync, updateDirectoryRoom]);
 
   const sendGuestPacket = useCallback((packet: WatchPartyPacket) => {
     if (guestTransportRef.current === 'server' && relayRef.current) {
@@ -1505,6 +1551,28 @@ export default function WatchPartyPanel({
     node.scrollTop = node.scrollHeight;
   }, [messages]);
 
+  useEffect(() => {
+    if (status !== 'active' || roomStartedTrackedRef.current) return;
+    const invite = inviteRef.current;
+    if (!invite) return;
+
+    roomStartedTrackedRef.current = true;
+    trackProductClientEvent('watch_party_room_started', {
+      source: 'watch_together_room',
+      path: window.location.pathname,
+      entityType: 'watch_party_room',
+      entityId: invite.roomId,
+      metadata: {
+        role: roleRef.current,
+        episode: episodeNumber,
+      },
+    });
+
+    if (roleRef.current === 'host') {
+      void updateDirectoryRoom();
+    }
+  }, [episodeNumber, status, updateDirectoryRoom]);
+
   const createRoom = useCallback(() => {
     if (status !== 'idle') return;
     const invite = createWatchPartyInvite();
@@ -1531,6 +1599,12 @@ export default function WatchPartyPanel({
     try {
       await navigator.clipboard.writeText(inviteUrl);
       setCopyLabel('Ссылка скопирована');
+      trackProductClientEvent('watch_party_invite_shared', {
+        source: 'watch_together_room',
+        path: window.location.pathname,
+        entityType: 'watch_party_room',
+        entityId: inviteRef.current?.roomId,
+      });
       window.setTimeout(() => setCopyLabel('Копировать ссылку'), 1_800);
     } catch {
       setCopyLabel('Не удалось скопировать');
@@ -1558,6 +1632,173 @@ export default function WatchPartyPanel({
     const state = currentPlayerSnapshot() ?? playerStateRef.current;
     dispatchPartyControl({ action: state?.playing ? 'pause' : 'play' });
   }, [currentPlayerSnapshot, dispatchPartyControl]);
+
+  const acceptReaction = useCallback((
+    participant: Pick<WatchPartyParticipant, 'id' | 'userId' | 'name'>,
+    id: string,
+    reactionKind: WatchPartyReactionKind,
+  ) => {
+    const now = Date.now();
+    const previous = hostPeerReactionAtRef.current.get(participant.id) ?? 0;
+    if (now - previous < REACTION_SEND_COOLDOWN_MS) return;
+    hostPeerReactionAtRef.current.set(participant.id, now);
+
+    const reaction: WatchPartyReaction = {
+      id,
+      userId: participant.userId,
+      name: participant.name,
+      reaction: reactionKind,
+      sentAt: now,
+    };
+
+    appendReaction(reaction);
+    broadcast({ type: 'REACTION', reaction });
+  }, [appendReaction, broadcast]);
+
+  const sendReaction = useCallback((reactionKind: WatchPartyReactionKind) => {
+    if (status !== 'active') return;
+    const identity = identityRef.current;
+    if (!identity) return;
+
+    const now = Date.now();
+    if (now - lastReactionSentAtRef.current < REACTION_SEND_COOLDOWN_MS) return;
+    lastReactionSentAtRef.current = now;
+
+    const id = createWatchPartyMessageId();
+
+    if (roleRef.current === 'host') {
+      acceptReaction(
+        {
+          id: watchPartyHostPeerId(inviteRef.current?.roomId ?? '000000000000000000000000'),
+          userId: identity.userId,
+          name: identity.displayName,
+        },
+        id,
+        reactionKind,
+      );
+    } else {
+      sendGuestPacket({
+        type: 'REACTION_SEND',
+        id,
+        reaction: reactionKind,
+        sentAt: now,
+      });
+    }
+
+    trackProductClientEvent('watch_party_reaction_sent', {
+      source: 'watch_together_room',
+      path: window.location.pathname,
+      entityType: 'watch_party_room',
+      entityId: inviteRef.current?.roomId,
+      metadata: { reaction: reactionKind },
+    });
+  }, [acceptReaction, sendGuestPacket, status]);
+
+  const startNextEpisodeVote = useCallback(() => {
+    if (status !== 'active' || roleRef.current !== 'host') return;
+    const identity = identityRef.current;
+    if (!identity) return;
+
+    const id = createWatchPartyMessageId();
+    voteChoicesRef.current.clear();
+    voteChoicesRef.current.set(identity.userId, 'yes');
+
+    const next: WatchPartyVoteState = {
+      id,
+      episode: episodeNumber + 1,
+      yes: 1,
+      no: 0,
+      voters: [identity.userId],
+      active: true,
+      sentAt: Date.now(),
+    };
+    publishVoteState(next);
+    void updateDirectoryRoom('voting');
+
+    window.setTimeout(() => {
+      const current = voteStateRef.current;
+      if (!current || current.id !== id || !current.active) return;
+      publishVoteState({ ...current, active: false, sentAt: Date.now() });
+      void updateDirectoryRoom();
+    }, 25_000);
+  }, [episodeNumber, publishVoteState, status, updateDirectoryRoom]);
+
+  const castVote = useCallback((choice: WatchPartyVoteChoice) => {
+    const current = voteStateRef.current;
+    const identity = identityRef.current;
+    if (!current?.active || !identity) return;
+    if (current.voters.includes(identity.userId)) return;
+
+    if (roleRef.current === 'host') {
+      const hostParticipant = [...participantsRef.current.values()].find(
+        (participant) => participant.host,
+      );
+      if (hostParticipant) {
+        handleVoteCast(hostParticipant, {
+          type: 'VOTE_CAST',
+          id: current.id,
+          choice,
+          sentAt: Date.now(),
+        });
+      }
+    } else {
+      sendGuestPacket({
+        type: 'VOTE_CAST',
+        id: current.id,
+        choice,
+        sentAt: Date.now(),
+      });
+    }
+
+    trackProductClientEvent('watch_party_vote_cast', {
+      source: 'watch_together_room',
+      path: window.location.pathname,
+      entityType: 'watch_party_room',
+      entityId: inviteRef.current?.roomId,
+      metadata: {
+        choice,
+        next_episode: current.episode,
+      },
+    });
+  }, [handleVoteCast, sendGuestPacket]);
+
+  const reportRoom = useCallback(async () => {
+    const invite = inviteRef.current;
+    if (!invite || reportLabel !== 'Пожаловаться') return;
+
+    const reason = window.prompt(
+      'Что не так с этой комнатой? Опиши кратко причину жалобы.',
+      'Нарушение правил',
+    )?.trim();
+    if (!reason) return;
+
+    try {
+      const response = await fetch('/api/watch-party/rooms/report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        cache: 'no-store',
+        body: JSON.stringify({
+          roomId: invite.roomId,
+          reason,
+        }),
+      });
+      if (!response.ok) throw new Error('report_failed');
+      setReportLabel('Жалоба отправлена');
+      trackProductClientEvent('watch_party_room_reported', {
+        source: 'watch_together_room',
+        path: window.location.pathname,
+        entityType: 'watch_party_room',
+        entityId: invite.roomId,
+        flush: true,
+      });
+    } catch {
+      setReportLabel('Не удалось отправить');
+      window.setTimeout(() => setReportLabel('Пожаловаться'), 1_800);
+    }
+  }, [reportLabel]);
 
   const submitChat = useCallback((event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1604,12 +1845,23 @@ export default function WatchPartyPanel({
     if (roleRef.current === 'host') {
       intentionalCloseRef.current = true;
       broadcast({ type: 'HOST_ENDED', reason: 'host_left' });
+      void updateDirectoryRoom('ended');
+      trackProductClientEvent('watch_party_room_ended', {
+        source: 'watch_together_room',
+        path: window.location.pathname,
+        entityType: 'watch_party_room',
+        entityId: inviteRef.current?.roomId,
+        metadata: {
+          participants: participantsRef.current.size,
+        },
+        flush: true,
+      });
       window.setTimeout(() => finish(true), 80);
       return;
     }
 
     finish(false);
-  }, [broadcast, episodePath, mode, resetParty]);
+  }, [broadcast, episodePath, mode, resetParty, updateDirectoryRoom]);
 
   useEffect(() => {
     if (mode !== 'theater') return;
