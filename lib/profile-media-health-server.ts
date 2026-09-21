@@ -32,8 +32,7 @@ function isTechnical(reason: string | null) {
 }
 
 export async function getProfileMediaModerationHealth(): Promise<ProfileMediaModerationHealth> {
-  const enabled =
-    process.env.PROFILE_MEDIA_AUTO_MODERATION?.trim().toLowerCase() === 'true';
+  const enabled = false;
   const configured = Boolean(process.env.OPENAI_API_KEY?.trim());
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
