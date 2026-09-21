@@ -1723,15 +1723,12 @@ export default function WatchPartyPanel({
     const id = createWatchPartyMessageId();
 
     if (roleRef.current === 'host') {
-      acceptReaction(
-        {
-          id: watchPartyHostPeerId(inviteRef.current?.roomId ?? '000000000000000000000000'),
-          userId: identity.userId,
-          name: identity.displayName,
-        },
-        id,
-        reactionKind,
+      const hostParticipant = [...participantsRef.current.values()].find(
+        (participant) => participant.host,
       );
+      if (hostParticipant) {
+        acceptReaction(hostParticipant, id, reactionKind);
+      }
     } else {
       sendGuestPacket({
         type: 'REACTION_SEND',
