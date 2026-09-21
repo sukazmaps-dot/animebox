@@ -16,6 +16,7 @@ import {
 
 import { createClient } from '@/lib/supabase/client';
 import { premiumMediaStyle, type PremiumMediaTransform } from '@/lib/premium-studio';
+import { trackProductClientEvent } from '@/lib/product-events-client';
 import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
@@ -482,7 +483,10 @@ export default function WatchPartyPanel({
     if (heartbeatTimerRef.current == null) {
       heartbeatTimerRef.current = window.setInterval(() => {
         broadcast({ type: 'ROOM_HEARTBEAT', sentAt: Date.now() });
+        void syncRegisteredRoom();
       }, HOST_HEARTBEAT_MS);
+
+      void syncRegisteredRoom();
     }
 
     if (syncTimerRef.current == null) {
@@ -490,7 +494,43 @@ export default function WatchPartyPanel({
         sendHostSync();
       }, PLAYER_SYNC_MS);
     }
-  }, [broadcast, sendHostSync]);
+  }, [broadcast, sendHostSync, syncRegisteredRoom]);
+
+  const syncRegisteredRoom = useCallback(async () => {
+    if (roleRef.current !== 'host') return;
+
+    const invite = inviteRef.current;
+    if (!invite) return;
+
+    const state = playerStateRef.current;
+    const nextStatus =
+      status === 'ended'
+        ? 'ended'
+        : state?.playing
+          ? 'watching'
+          : state
+            ? 'paused'
+            : 'waiting';
+
+    try {
+      await fetch(
+        `/api/watch-party/rooms/${encodeURIComponent(invite.roomId)}/heartbeat`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            participantCount: Math.max(1, participantsRef.current.size),
+            status: nextStatus,
+            episode: state?.episode ?? episodeNumber,
+          }),
+          cache: 'no-store',
+          keepalive: true,
+        },
+      );
+    } catch {
+      // Lobby registration is best-effort. P2P/relay playback must continue.
+    }
+  }, [episodeNumber, status]);
 
   const sendGuestPacket = useCallback((packet: WatchPartyPacket) => {
     if (guestTransportRef.current === 'server' && relayRef.current) {
@@ -1462,6 +1502,13 @@ export default function WatchPartyPanel({
     if (!inviteUrl) return;
     try {
       await navigator.clipboard.writeText(inviteUrl);
+      trackProductClientEvent('watch_party_invite_shared', {
+        source: 'watch_party_room',
+        path: window.location.pathname,
+        entityType: 'watch_party_room',
+        entityId: inviteRef.current?.roomId ?? null,
+        flush: true,
+      });
       setCopyLabel('Ссылка скопирована');
       window.setTimeout(() => setCopyLabel('Копировать ссылку'), 1_800);
     } catch {
@@ -1536,12 +1583,47 @@ export default function WatchPartyPanel({
     if (roleRef.current === 'host') {
       intentionalCloseRef.current = true;
       broadcast({ type: 'HOST_ENDED', reason: 'host_left' });
-      window.setTimeout(() => finish(true), 80);
+
+      const roomId = inviteRef.current?.roomId;
+      if (roomId) {
+        void fetch(
+          `/api/watch-party/rooms/${encodeURIComponent(roomId)}/end`,
+          {
+            method: 'POST',
+            cache: 'no-store',
+            keepalive: true,
+          },
+        ).catch(() => undefined);
+      }
+
+      window.setTimeout(() => finish(true), 120);
       return;
     }
 
     finish(false);
   }, [broadcast, episodePath, mode, resetParty]);
+
+  const joinedTrackedRef = useRef(false);
+
+  useEffect(() => {
+    if (status !== 'active' || joinedTrackedRef.current) return;
+    const invite = inviteRef.current;
+    if (!invite) return;
+
+    joinedTrackedRef.current = true;
+    trackProductClientEvent('watch_party_joined', {
+      source: role === 'host' ? 'room_host' : 'room_guest',
+      path: window.location.pathname,
+      entityType: 'watch_party_room',
+      entityId: invite.roomId,
+      metadata: {
+        role,
+        participants: participants.length,
+        episode: episodeNumber,
+      },
+      flush: true,
+    });
+  }, [episodeNumber, participants.length, role, status]);
 
   useEffect(() => {
     if (mode !== 'theater') return;
