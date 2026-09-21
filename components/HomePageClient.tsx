@@ -566,6 +566,7 @@ export default function HomePage({
         anime,
         episode,
         resumeSeconds: Math.floor(exact.currentTime),
+        resumeMode: 'resume' as const,
         totalEpisodes:
           anime.episodes && anime.episodes > 0
             ? anime.episodes
@@ -648,6 +649,9 @@ export default function HomePage({
       return [{
         anime,
         episode: state.resumeEpisode,
+        resumeMode: localIsNewer
+          ? ('resume' as const)
+          : (state.resumeMode ?? 'resume'),
         resumeSeconds: localIsNewer
           ? Math.floor(exact!.currentTime)
           : Math.floor(state.resumePositionMs / 1000),
