@@ -120,6 +120,15 @@ export type WatchPartyPacket =
       reason: 'host_left' | 'host_closed';
     }
   | {
+      type: 'HOST_TRANSFER';
+      newHostUserId: string;
+      sentAt: number;
+    }
+  | {
+      type: 'KICKED';
+      reason: 'host_kick';
+    }
+  | {
       type: 'REJECT';
       reason: 'invalid_room' | 'room_full' | 'protocol_mismatch';
     }
@@ -494,6 +503,21 @@ export function parseWatchPartyPacket(value: unknown): WatchPartyPacket | null {
     case 'HOST_ENDED': {
       if (record.reason !== 'host_left' && record.reason !== 'host_closed') return null;
       return { type: 'HOST_ENDED', reason: record.reason };
+    }
+
+    case 'HOST_TRANSFER': {
+      const newHostUserId =
+        typeof record.newHostUserId === 'string' ? record.newHostUserId : '';
+      const sentAt = parseTimestamp(record.sentAt);
+      return USER_ID_RE.test(newHostUserId) && sentAt
+        ? { type: 'HOST_TRANSFER', newHostUserId, sentAt }
+        : null;
+    }
+
+    case 'KICKED': {
+      return record.reason === 'host_kick'
+        ? { type: 'KICKED', reason: 'host_kick' }
+        : null;
     }
 
     case 'REJECT': {
