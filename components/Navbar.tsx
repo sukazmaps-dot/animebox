@@ -12,6 +12,7 @@ import {
 import Icon from './Icon';
 import AuthUserButton from './AuthUserButton';
 import MobileAccountNav from './MobileAccountNav';
+import SocialNotificationBadge from './SocialNotificationBadge';
 import SidebarMembership from './SidebarMembership';
 import { useAuthState } from '@/components/AuthStateProvider';
 import { TELEGRAM_MINI_APP_URL } from '@/lib/telegram-links';
@@ -267,6 +268,17 @@ function NavbarContent() {
               </Link>
 
               <Link
+                href="/friends"
+                className={`sidebar__item sidebar__item--utility ${
+                  isActive('/friends') ? 'is-active' : ''
+                }`}
+                title="Друзья"
+              >
+                <Icon name="users" />
+                <span>Друзья</span>
+              </Link>
+
+              <Link
                 href="/settings"
                 className={`sidebar__item sidebar__item--utility ${
                   isActive('/settings') ? 'is-active' : ''
@@ -308,10 +320,11 @@ function NavbarContent() {
           {!authLoading && user && (
             <Link
               href="/notifications"
-              className="topbar__icon"
+              className="topbar__icon relative"
               aria-label="Уведомления"
             >
               <Icon name="bell" />
+              <SocialNotificationBadge />
             </Link>
           )}
 

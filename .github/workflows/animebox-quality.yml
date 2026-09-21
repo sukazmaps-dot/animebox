@@ -69,6 +69,19 @@ jobs:
           lib/product-events-server.ts
           app/api/telegram/subscription-check/route.ts
           components/TelegramWelcomePromo.tsx
+          components/MobileAccountNav.tsx
+          app/profile/[id]/page.tsx
+          app/friends/page.tsx
+          components/SocialNotificationBadge.tsx
+          components/SocialNotificationsClient.tsx
+          components/friends/WatchPartyFriendInvite.tsx
+          components/friends/FriendsPageClient.tsx
+          components/friends/FriendActionButton.tsx
+          app/api/social/notifications/route.ts
+          app/api/friends/invite/route.ts
+          app/api/friends/route.ts
+          lib/social-notifications-server.ts
+          lib/friends-server.ts
           components/TelegramMiniAppBridge.tsx
           components/AnimeComments.tsx
           components/EpisodeComments.tsx

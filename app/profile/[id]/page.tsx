@@ -6,6 +6,7 @@ import { getPublicProfile } from '@/lib/public-profile-server';
 import UserIdentity from '@/components/identity/UserIdentity';
 import UserAvatarWithFrame from '@/components/profile/UserAvatarWithFrame';
 import ProfileAnimeIdentity from '@/components/profile/ProfileAnimeIdentity';
+import FriendActionButton from '@/components/friends/FriendActionButton';
 import { premiumMediaStyle, premiumStudioCssVariables } from '@/lib/premium-studio';
 import { formatSeasonRange, seasonPlacementLabel } from '@/lib/seasons';
 import { ACHIEVEMENT_RARITY_LABELS } from '@/lib/progression';
@@ -173,6 +174,10 @@ export default async function PublicProfilePage({ params }: Props) {
 
             <div className="profile-v2__meta">
               <span>В AnimeBox с {joinedDate}</span>
+            </div>
+
+            <div className="mt-4">
+              <FriendActionButton targetUserId={profile.id} />
             </div>
 
             {profile.seasonTitles.length > 0 && (
