@@ -12,6 +12,7 @@ import {
 import Icon from './Icon';
 import AuthUserButton from './AuthUserButton';
 import MobileAccountNav from './MobileAccountNav';
+import SocialNotificationBadge from './SocialNotificationBadge';
 import SidebarMembership from './SidebarMembership';
 import { useAuthState } from '@/components/AuthStateProvider';
 import { TELEGRAM_MINI_APP_URL } from '@/lib/telegram-links';
@@ -319,10 +320,11 @@ function NavbarContent() {
           {!authLoading && user && (
             <Link
               href="/notifications"
-              className="topbar__icon"
+              className="topbar__icon relative"
               aria-label="Уведомления"
             >
               <Icon name="bell" />
+              <SocialNotificationBadge />
             </Link>
           )}
 
