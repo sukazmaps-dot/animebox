@@ -1570,3 +1570,51 @@
     animation: none;
   }
 }
+
+
+/* Patch 7 · host moderation */
+.participantRow {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+}
+
+.participantActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.participantActions button {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 7px;
+  border: 1px solid rgba(148, 163, 184, .08);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .025);
+  color: rgba(190, 199, 220, .58);
+  font: inherit;
+  font-size: 7.5px;
+  font-weight: 800;
+}
+
+.participantActions button:hover {
+  border-color: rgba(151, 128, 255, .24);
+  background: rgba(113, 83, 255, .10);
+  color: #fff;
+}
+
+.participantActions button:last-child:hover {
+  border-color: rgba(255, 102, 124, .24);
+  background: rgba(255, 76, 104, .08);
+  color: #ff9eac;
+}
+
+@media (max-width: 720px) {
+  .participantActions button {
+    min-width: 36px;
+    height: 36px;
+    font-size: 8px;
+  }
+}
