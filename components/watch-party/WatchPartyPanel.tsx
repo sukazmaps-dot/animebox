@@ -357,6 +357,28 @@ export default function WatchPartyPanel({
     publishVoteState(next);
   }, [publishVoteState]);
 
+  const acceptReaction = useCallback((
+    participant: Pick<WatchPartyParticipant, 'id' | 'userId' | 'name'>,
+    id: string,
+    reactionKind: WatchPartyReactionKind,
+  ) => {
+    const now = Date.now();
+    const previous = hostPeerReactionAtRef.current.get(participant.id) ?? 0;
+    if (now - previous < REACTION_SEND_COOLDOWN_MS) return;
+    hostPeerReactionAtRef.current.set(participant.id, now);
+
+    const reaction: WatchPartyReaction = {
+      id,
+      userId: participant.userId,
+      name: participant.name,
+      reaction: reactionKind,
+      sentAt: now,
+    };
+
+    appendReaction(reaction);
+    broadcast({ type: 'REACTION', reaction });
+  }, [appendReaction, broadcast]);
+
   const appendChatMessage = useCallback((message: WatchPartyChatMessage) => {
     if (chatIdsRef.current.has(message.id)) return;
     chatIdsRef.current.add(message.id);
@@ -1676,28 +1698,6 @@ export default function WatchPartyPanel({
     const state = currentPlayerSnapshot() ?? playerStateRef.current;
     dispatchPartyControl({ action: state?.playing ? 'pause' : 'play' });
   }, [currentPlayerSnapshot, dispatchPartyControl]);
-
-  const acceptReaction = useCallback((
-    participant: Pick<WatchPartyParticipant, 'id' | 'userId' | 'name'>,
-    id: string,
-    reactionKind: WatchPartyReactionKind,
-  ) => {
-    const now = Date.now();
-    const previous = hostPeerReactionAtRef.current.get(participant.id) ?? 0;
-    if (now - previous < REACTION_SEND_COOLDOWN_MS) return;
-    hostPeerReactionAtRef.current.set(participant.id, now);
-
-    const reaction: WatchPartyReaction = {
-      id,
-      userId: participant.userId,
-      name: participant.name,
-      reaction: reactionKind,
-      sentAt: now,
-    };
-
-    appendReaction(reaction);
-    broadcast({ type: 'REACTION', reaction });
-  }, [appendReaction, broadcast]);
 
   const sendReaction = useCallback((reactionKind: WatchPartyReactionKind) => {
     if (status !== 'active') return;
