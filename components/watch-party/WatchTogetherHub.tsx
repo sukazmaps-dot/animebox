@@ -44,7 +44,11 @@ type PublicWatchPartyRoom = {
     id: string;
     username: string;
   };
+  createdAt: string;
   updatedAt: string;
+  lastHeartbeatAt: string;
+  expiresAt: string;
+  isFull: boolean;
 };
 
 type PublicRoomsResponse = {
@@ -53,6 +57,24 @@ type PublicRoomsResponse = {
 };
 
 type RoomVisibility = 'public' | 'unlisted' | 'private';
+type RoomSort = 'popular' | 'recent' | 'available';
+
+function roomStatusLabel(status: PublicWatchPartyRoom['status']) {
+  if (status === 'watching') return 'Смотрят сейчас';
+  if (status === 'paused') return 'На паузе';
+  if (status === 'voting') return 'Голосуют';
+  return 'Ждут участников';
+}
+
+function roomAgeLabel(createdAt: string) {
+  const created = new Date(createdAt).getTime();
+  if (!Number.isFinite(created)) return 'только что';
+  const minutes = Math.max(0, Math.floor((Date.now() - created) / 60_000));
+  if (minutes < 1) return 'только что';
+  if (minutes < 60) return `${minutes} мин назад`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours} ч назад`;
+}
 
 function animeCoverUrl(anime: Anime | null) {
   if (!anime) return null;
@@ -111,6 +133,10 @@ export default function WatchTogetherHub() {
   const [rooms, setRooms] = useState<PublicWatchPartyRoom[]>([]);
   const [roomsLoading, setRoomsLoading] = useState(true);
   const [roomsError, setRoomsError] = useState('');
+  const [roomsNotice, setRoomsNotice] = useState('');
+  const [roomSearch, setRoomSearch] = useState('');
+  const [roomSort, setRoomSort] = useState<RoomSort>('popular');
+  const [lastRoomsRefreshAt, setLastRoomsRefreshAt] = useState<number | null>(null);
   const [createError, setCreateError] = useState('');
   const [creatingRoom, setCreatingRoom] = useState(false);
   const lastRoom = useSyncExternalStore(
@@ -137,9 +163,47 @@ export default function WatchTogetherHub() {
     () => (query.trim() ? parseAnimeSearchIntent(query.trim()) : null),
     [query],
   );
+
+  const visibleRooms = useMemo(() => {
+    const needle = roomSearch.trim().toLocaleLowerCase('ru-RU');
+    const filtered = rooms.filter((room) => {
+      if (roomSort === 'available' && room.isFull) return false;
+      if (!needle) return true;
+      return [
+        room.animeTitle,
+        room.host.username,
+        room.roomCode,
+        String(room.episode),
+      ].some((value) => value.toLocaleLowerCase('ru-RU').includes(needle));
+    });
+
+    return [...filtered].sort((left, right) => {
+      if (roomSort === 'recent') {
+        return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+      }
+
+      if (roomSort === 'available') {
+        const leftSpots = left.maxParticipants - left.participantCount;
+        const rightSpots = right.maxParticipants - right.participantCount;
+        return rightSpots - leftSpots ||
+          new Date(right.lastHeartbeatAt).getTime() - new Date(left.lastHeartbeatAt).getTime();
+      }
+
+      return right.participantCount - left.participantCount ||
+        Number(right.status === 'watching') - Number(left.status === 'watching') ||
+        new Date(right.lastHeartbeatAt).getTime() - new Date(left.lastHeartbeatAt).getTime();
+    });
+  }, [roomSearch, roomSort, rooms]);
+
+  const roomStats = useMemo(() => ({
+    rooms: rooms.length,
+    viewers: rooms.reduce((sum, room) => sum + room.participantCount, 0),
+    available: rooms.filter((room) => !room.isFull).length,
+  }), [rooms]);
+
   const loadPublicRooms = useCallback(async () => {
     try {
-      const response = await fetch('/api/watch-party/rooms?limit=12', {
+      const response = await fetch('/api/watch-party/rooms?limit=30', {
         cache: 'no-store',
         headers: { Accept: 'application/json' },
       });
@@ -147,6 +211,7 @@ export default function WatchTogetherHub() {
       if (!response.ok) throw new Error(payload.error || 'rooms_failed');
       setRooms(payload.rooms ?? []);
       setRoomsError('');
+      setLastRoomsRefreshAt(Date.now());
     } catch {
       setRoomsError('Не удалось обновить список открытых комнат.');
     } finally {
@@ -160,7 +225,7 @@ export default function WatchTogetherHub() {
     }, 0);
     const timer = window.setInterval(() => {
       void loadPublicRooms();
-    }, 20_000);
+    }, 15_000);
 
     return () => {
       window.clearTimeout(initialTimer);
@@ -314,7 +379,8 @@ export default function WatchTogetherHub() {
       );
       const payload = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(payload.error || 'report_failed');
-      setRoomsError('Жалоба отправлена модерации AnimeBox.');
+      setRoomsNotice('Жалоба отправлена модерации AnimeBox.');
+      window.setTimeout(() => setRoomsNotice(''), 4_000);
     } catch (error) {
       setRoomsError(
         error instanceof Error ? error.message : 'Не удалось отправить жалобу.',
@@ -376,17 +442,87 @@ export default function WatchTogetherHub() {
       </section>
 
       <section className={styles.publicRooms} aria-labelledby="public-rooms-title">
-        <div className={styles.sectionHead}>
-          <div>
-            <span>ОТКРЫТЫЕ КОМНАТЫ</span>
-            <h2 id="public-rooms-title">Сейчас смотрят вместе</h2>
+        <div className={styles.publicRoomsTop}>
+          <div className={styles.sectionHead}>
+            <div>
+              <span>ОТКРЫТЫЕ КОМНАТЫ · LIVE</span>
+              <h2 id="public-rooms-title">Сейчас смотрят вместе</h2>
+            </div>
+            <button
+              type="button"
+              className={styles.refreshButton}
+              onClick={() => void loadPublicRooms()}
+              disabled={roomsLoading}
+            >
+              {roomsLoading ? 'Обновляем…' : 'Обновить'}
+            </button>
           </div>
-          <button type="button" onClick={() => void loadPublicRooms()}>
-            Обновить
-          </button>
+
+          <div className={styles.lobbyStats} aria-label="Статистика открытых комнат">
+            <div>
+              <strong>{roomStats.rooms}</strong>
+              <span>живых комнат</span>
+            </div>
+            <div>
+              <strong>{roomStats.viewers}</strong>
+              <span>смотрят сейчас</span>
+            </div>
+            <div>
+              <strong>{roomStats.available}</strong>
+              <span>можно войти</span>
+            </div>
+            <small>
+              {lastRoomsRefreshAt
+                ? `обновлено ${new Date(lastRoomsRefreshAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`
+                : 'live-список обновляется автоматически'}
+            </small>
+          </div>
         </div>
 
-        {roomsLoading ? (
+        <div className={styles.lobbyToolbar}>
+          <div className={styles.lobbyTabs} role="tablist" aria-label="Сортировка комнат">
+            {([
+              ['popular', 'Популярные'],
+              ['recent', 'Новые'],
+              ['available', 'Есть места'],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={roomSort === value}
+                data-active={roomSort === value}
+                onClick={() => setRoomSort(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <label className={styles.roomSearch}>
+            <Icon name="search" />
+            <input
+              value={roomSearch}
+              onChange={(event) => setRoomSearch(event.target.value)}
+              placeholder="Аниме, host или код комнаты"
+              autoComplete="off"
+              aria-label="Поиск открытой комнаты"
+            />
+            {roomSearch && (
+              <button
+                type="button"
+                onClick={() => setRoomSearch('')}
+                aria-label="Очистить поиск комнат"
+              >
+                ×
+              </button>
+            )}
+          </label>
+        </div>
+
+        {roomsNotice && <div className={styles.lobbyNotice}>{roomsNotice}</div>}
+
+        {roomsLoading && rooms.length === 0 ? (
           <div className={styles.loading}>
             <AnimeBoxLoader label="Ищем живые комнаты…" size={38} />
           </div>
@@ -397,9 +533,14 @@ export default function WatchTogetherHub() {
             <strong>Пока тихо</strong>
             <span>Создай первую открытую комнату — она появится здесь автоматически.</span>
           </div>
+        ) : visibleRooms.length === 0 ? (
+          <div className={styles.publicEmpty}>
+            <strong>Под этот фильтр комнат нет</strong>
+            <span>Сбрось поиск или переключись на другую подборку.</span>
+          </div>
         ) : (
           <div className={styles.publicRoomGrid}>
-            {rooms.map((room) => {
+            {visibleRooms.map((room) => {
               const invite = {
                 roomId: room.roomId,
                 secret: room.joinSecret,
@@ -408,9 +549,17 @@ export default function WatchTogetherHub() {
                 invite,
                 watchPartyTheaterPath(room.animeSlug, room.episode),
               );
+              const occupancy = Math.min(
+                100,
+                Math.round((room.participantCount / Math.max(1, room.maxParticipants)) * 100),
+              );
 
               return (
-                <article className={styles.publicRoomCard} key={room.roomId}>
+                <article
+                  className={styles.publicRoomCard}
+                  data-full={room.isFull ? 'true' : undefined}
+                  key={room.roomId}
+                >
                   <div className={styles.publicRoomPoster}>
                     {room.coverUrl ? (
                       // Public room artwork can come from AniList/Shikimori/CDN
@@ -420,43 +569,76 @@ export default function WatchTogetherHub() {
                     ) : (
                       <span>AB</span>
                     )}
+                    <span className={styles.liveBadge}>
+                      <i />
+                      LIVE
+                    </span>
                     <b>{room.participantCount}/{room.maxParticipants}</b>
                   </div>
 
                   <div className={styles.publicRoomCopy}>
-                    <span className={styles.roomStatus} data-status={room.status}>
-                      {room.status === 'watching'
-                        ? 'Смотрят сейчас'
-                        : room.status === 'paused'
-                          ? 'Пауза'
-                          : room.status === 'voting'
-                            ? 'Голосование'
-                            : 'Ждут участников'}
-                    </span>
+                    <div className={styles.roomMetaTop}>
+                      <span className={styles.roomStatus} data-status={room.status}>
+                        {roomStatusLabel(room.status)}
+                      </span>
+                      <span>{roomAgeLabel(room.createdAt)}</span>
+                    </div>
+
                     <h3>{room.animeTitle}</h3>
-                    <p>
-                      Серия {room.episode} · host {room.host.username} · код {room.roomCode}
-                    </p>
+                    <p className={styles.roomEpisode}>Серия {room.episode}</p>
+
+                    <div className={styles.roomHostLine}>
+                      <span className={styles.roomHostAvatar}>
+                        {room.host.username.trim().slice(0, 1).toUpperCase() || '?'}
+                      </span>
+                      <span>
+                        <small>HOST</small>
+                        <strong>{room.host.username}</strong>
+                      </span>
+                    </div>
+
+                    <div className={styles.occupancy}>
+                      <div>
+                        <span style={{ width: `${occupancy}%` }} />
+                      </div>
+                      <small>
+                        {room.isFull
+                          ? 'Комната заполнена'
+                          : `Свободно ${room.maxParticipants - room.participantCount} мест`}
+                      </small>
+                    </div>
+
+                    <div className={styles.roomDetails}>
+                      <span>{room.language.toUpperCase()}</span>
+                      <span>Код {room.roomCode}</span>
+                    </div>
+
                     <div className={styles.publicRoomActions}>
-                      <a
-                        href={href}
-                        onClick={() => {
-                          trackProductClientEvent('watch_party_public_join_click', {
-                            source: 'watch_together_hub',
-                            path: '/watch-together',
-                            entityType: 'watch_party_room',
-                            entityId: room.roomId,
-                            metadata: {
-                              anime_id: room.animeId,
-                              episode: room.episode,
-                              participant_count: room.participantCount,
-                            },
-                            flush: true,
-                          });
-                        }}
-                      >
-                        Присоединиться
-                      </a>
+                      {room.isFull ? (
+                        <span className={styles.fullRoomButton}>Заполнена</span>
+                      ) : (
+                        <a
+                          href={href}
+                          onClick={() => {
+                            trackProductClientEvent('watch_party_public_join_click', {
+                              source: 'watch_together_hub',
+                              path: '/watch-together',
+                              entityType: 'watch_party_room',
+                              entityId: room.roomId,
+                              metadata: {
+                                anime_id: room.animeId,
+                                episode: room.episode,
+                                participant_count: room.participantCount,
+                                sort: roomSort,
+                              },
+                              flush: true,
+                            });
+                          }}
+                        >
+                          Присоединиться
+                          <Icon name="chevron" />
+                        </a>
+                      )}
                       <button
                         type="button"
                         onClick={() => void reportRoom(room.roomId)}
