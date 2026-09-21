@@ -1711,26 +1711,71 @@ export default function WatchPartyPanel({
     }
   }, [episodeNumber, status, updateDirectoryRoom]);
 
-  const createRoom = useCallback(() => {
+  const createRoom = useCallback(async () => {
     if (status !== 'idle') return;
     const invite = createWatchPartyInvite();
+
+    try {
+      const response = await fetch('/api/watch-party/rooms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        cache: 'no-store',
+        body: JSON.stringify({
+          roomId: invite.roomId,
+          joinSecret: invite.secret,
+          animeSlug,
+          animeTitle,
+          episode: episodeNumber,
+          visibility: 'unlisted',
+          language: 'ru',
+        }),
+      });
+
+      if (response.status === 401) {
+        redirectToRegistration();
+        return;
+      }
+      if (!response.ok) {
+        // Directory registration is a reliability/social layer. The direct
+        // P2P invite can still work if this best-effort write is unavailable.
+        console.warn('[Watch Together] directory registration failed', response.status);
+      }
+    } catch {
+      // Keep the direct room available during a temporary directory outage.
+    }
+
     try {
       sessionStorage.setItem(watchPartyHostSessionKey(invite.roomId), invite.secret);
       claimWatchPartyHostTab(invite);
     } catch {
-      // Host recovery after refresh is optional when storage is unavailable.
       claimWatchPartyHostTab(invite);
     }
-    const nextUrl = buildWatchPartyUrl(invite, mode === 'inline' ? theaterPath : undefined);
+
+    const nextUrl = buildWatchPartyUrl(
+      invite,
+      mode === 'inline' ? theaterPath : undefined,
+    );
 
     if (mode === 'inline') {
-      window.location.assign(nextUrl);
+      window.location.replace(nextUrl);
       return;
     }
 
     window.history.replaceState(window.history.state, '', nextUrl);
     void startHost(invite);
-  }, [mode, startHost, status, theaterPath]);
+  }, [
+    animeSlug,
+    animeTitle,
+    episodeNumber,
+    mode,
+    redirectToRegistration,
+    startHost,
+    status,
+    theaterPath,
+  ]);
 
   const copyInvite = useCallback(async () => {
     if (!inviteUrl) return;
