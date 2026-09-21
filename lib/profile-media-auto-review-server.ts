@@ -23,6 +23,7 @@ type ModerationResult = {
 const QUARANTINE_BUCKET = 'profile-media-quarantine';
 const MODERATION_TIMEOUT_MS = 5_000;
 const MAX_AUTO_ATTEMPTS = 5;
+const AUTO_MODERATION_ENABLED = false;
 
 function finiteScore(value: unknown) {
   const number = Number(value);
@@ -348,7 +349,7 @@ async function processGroup(group: {
 }
 
 export async function processAutomaticProfileMediaReviews(limit = 4) {
-  if (process.env.PROFILE_MEDIA_AUTO_MODERATION?.trim().toLowerCase() !== 'true') {
+  if (!AUTO_MODERATION_ENABLED) {
     return {
       disabled: true,
       checked: 0,
