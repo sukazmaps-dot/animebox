@@ -1,6 +1,7 @@
 import {
   getTelegramProfile,
   getNotificationDeliverySummary,
+  getNotificationInbox,
   getNotificationServiceHealth,
   notificationFailure,
   notificationResponse,
@@ -22,6 +23,7 @@ export async function GET() {
       telegramProfile,
       serviceHealth,
       lastDelivery,
+      inbox,
     ] = await Promise.all([
         client
           .from('notification_settings')
@@ -36,6 +38,7 @@ export async function GET() {
         getTelegramProfile(user.id),
         getNotificationServiceHealth(),
         getNotificationDeliverySummary(user.id),
+        getNotificationInbox(user.id, 24),
       ]);
 
     if (settingsResult.error) throw settingsResult.error;
@@ -49,6 +52,8 @@ export async function GET() {
       subscriptions: subscriptionsResult.data ?? [],
       serviceHealth,
       lastDelivery,
+      inbox,
+      unreadCount: inbox.filter((item) => !item.readAt).length,
     });
   } catch (error) {
     return notificationFailure(error);
