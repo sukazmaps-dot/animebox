@@ -1,6 +1,7 @@
 'use client';
 
 import { type FormEvent, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 
 import AnimeImage from '@/components/AnimeImage';
@@ -284,7 +285,7 @@ export default function WatchTogetherHub() {
       // The room itself has a dedicated copy button if clipboard permission is denied.
     }
 
-    window.location.assign(roomUrl);
+    window.location.href = roomUrl;
   }
 
   async function joinPublicRoom(room: PublicWatchPartyRoom) {
@@ -329,7 +330,7 @@ export default function WatchTogetherHub() {
         flush: true,
       });
 
-      window.location.assign(payload.roomUrl);
+      window.location.href = payload.roomUrl;
     } catch (joinError) {
       setJoiningRoomId('');
       setPublicRoomsError(
@@ -415,7 +416,13 @@ export default function WatchTogetherHub() {
               <article className={styles.publicRoom} key={room.id}>
                 <div className={styles.publicRoomPoster}>
                   {room.coverUrl ? (
-                    <img src={room.coverUrl} alt="" loading="lazy" />
+                    <Image
+                      src={room.coverUrl}
+                      alt=""
+                      fill
+                      sizes="90px"
+                      unoptimized
+                    />
                   ) : (
                     <span>{room.animeTitle.slice(0, 1)}</span>
                   )}
