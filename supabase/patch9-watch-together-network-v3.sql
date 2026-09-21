@@ -18,3 +18,9 @@ alter table public.watch_party_rooms
 update public.watch_party_rooms
 set max_participants = 50
 where status <> 'ended' and max_participants < 50;
+
+
+-- Episode SEO sitemap reads only confirmed completed viewing rows.
+create index if not exists episodes_history_seo_completed_idx
+  on public.episodes_history (completed_at desc, anime_id, episode_number)
+  where completed = true and completed_at is not null;
