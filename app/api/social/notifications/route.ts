@@ -1,4 +1,5 @@
 import {
+  countUnreadSocialNotifications,
   listSocialNotifications,
   markSocialNotificationsRead,
 } from '@/lib/social-notifications-server';
@@ -18,8 +19,10 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const limit = Number(url.searchParams.get('limit') ?? 30);
 
-    const notifications = await listSocialNotifications(user.id, limit);
-    const unread = notifications.filter((item) => !item.readAt).length;
+    const [notifications, unread] = await Promise.all([
+      listSocialNotifications(user.id, limit),
+      countUnreadSocialNotifications(user.id),
+    ]);
 
     return response({ notifications, unread });
   } catch (error) {
