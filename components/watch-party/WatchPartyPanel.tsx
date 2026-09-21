@@ -204,6 +204,7 @@ export default function WatchPartyPanel({
   const lastReactionSentAtRef = useRef(0);
   const hostPeerReactionAtRef = useRef(new Map<string, number>());
   const voteChoicesRef = useRef(new Map<string, WatchPartyVoteChoice>());
+  const voteStateRef = useRef<WatchPartyVoteState | null>(null);
   const guestWelcomedRef = useRef(false);
   const guestTransportRef = useRef<'p2p' | 'server' | null>(null);
   const relayHostGuestIdsRef = useRef(new Set<string>());
@@ -332,6 +333,7 @@ export default function WatchPartyPanel({
   }, []);
 
   const publishVoteState = useCallback((next: WatchPartyVoteState) => {
+    voteStateRef.current = next;
     setVoteState(next);
     broadcast({ type: 'VOTE_STATE', vote: next });
   }, [broadcast]);
@@ -340,7 +342,7 @@ export default function WatchPartyPanel({
     participant: WatchPartyParticipant,
     packet: Extract<WatchPartyPacket, { type: 'VOTE_CAST' }>,
   ) => {
-    const current = voteState;
+    const current = voteStateRef.current;
     if (!current?.active || packet.id !== current.id) return;
     if (voteChoicesRef.current.has(participant.userId)) return;
 
@@ -353,7 +355,7 @@ export default function WatchPartyPanel({
       sentAt: Date.now(),
     };
     publishVoteState(next);
-  }, [publishVoteState, voteState]);
+  }, [publishVoteState]);
 
   const appendChatMessage = useCallback((message: WatchPartyChatMessage) => {
     if (chatIdsRef.current.has(message.id)) return;
@@ -521,6 +523,7 @@ export default function WatchPartyPanel({
     hostPeerChatAtRef.current.clear();
     hostPeerReactionAtRef.current.clear();
     voteChoicesRef.current.clear();
+    voteStateRef.current = null;
     roomStartedTrackedRef.current = false;
     clearWatchPartyFromLocation();
     setRole(null);
