@@ -153,3 +153,15 @@ export async function requireSocialNotificationOwnership(
   if (error) throw error;
   if (!data) throw new ApiError(404, 'Уведомление не найдено.');
 }
+
+
+export async function countUnreadSocialNotifications(userId: string) {
+  const { count, error } = await adminClient()
+    .from('social_notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .is('read_at', null);
+
+  if (error) throw error;
+  return Math.max(0, Number(count ?? 0));
+}
