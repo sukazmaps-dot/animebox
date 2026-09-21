@@ -1157,6 +1157,7 @@ export async function getTitleWatchOverviews(
       activeMs: 0,
       latestEpisode: null,
       resumeEpisode: null,
+      resumeMode: null,
       resumePositionMs: 0,
       durationMs: null,
       progressPercent: null,
@@ -1222,12 +1223,29 @@ export async function getTitleWatchOverviews(
         item.completedEpisodes >= totalEpisodes,
     );
 
-    const resumeEpisode =
-      !fullyCompleted &&
-      item.latestEpisode != null &&
-      !item.latestCompleted
-        ? item.latestEpisode
-        : null;
+    let resumeEpisode: number | null = null;
+    let resumeMode: WatchTitleOverview['resumeMode'] = null;
+    let resumePositionMs = 0;
+    let progressPercent = item.progressPercent;
+
+    if (!fullyCompleted && item.latestEpisode != null) {
+      if (!item.latestCompleted) {
+        resumeEpisode = item.latestEpisode;
+        resumeMode = 'resume';
+        resumePositionMs = item.resumePositionMs;
+      } else {
+        const nextEpisode = item.latestEpisode + 1;
+        const withinKnownSeries =
+          totalEpisodes == null || nextEpisode <= totalEpisodes;
+
+        if (withinKnownSeries) {
+          resumeEpisode = nextEpisode;
+          resumeMode = 'next';
+          resumePositionMs = 0;
+          progressPercent = 0;
+        }
+      }
+    }
 
     return {
       animeId: item.animeId,
@@ -1240,10 +1258,10 @@ export async function getTitleWatchOverviews(
       activeMs: item.activeMs,
       latestEpisode: item.latestEpisode,
       resumeEpisode,
-      resumePositionMs:
-        resumeEpisode == null ? 0 : item.resumePositionMs,
-      durationMs: item.durationMs,
-      progressPercent: item.progressPercent,
+      resumeMode,
+      resumePositionMs,
+      durationMs: resumeMode === 'resume' ? item.durationMs : null,
+      progressPercent,
       latestCompleted: item.latestCompleted,
       fullyCompleted,
       lastWatchedAt: item.lastWatchedAt,
