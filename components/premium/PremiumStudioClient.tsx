@@ -201,7 +201,8 @@ function StudioColorField({
   const hsv = useMemo(() => hexToHsv(value), [value]);
 
   useEffect(() => {
-    setDraft(value);
+    const frame = window.requestAnimationFrame(() => setDraft(value));
+    return () => window.cancelAnimationFrame(frame);
   }, [value]);
 
   useEffect(() => {
