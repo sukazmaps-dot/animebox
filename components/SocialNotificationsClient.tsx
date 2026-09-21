@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuthState } from '@/components/AuthStateProvider';
+import { notifySocialNotificationsChanged } from '@/components/SocialNotificationBadge';
 
 type SocialNotification = {
   id: number;
@@ -145,6 +146,7 @@ export default function SocialNotificationsClient() {
           : item,
       ),
     );
+    notifySocialNotificationsChanged();
   }
 
   if (!user || (loading && items.length === 0)) return null;
