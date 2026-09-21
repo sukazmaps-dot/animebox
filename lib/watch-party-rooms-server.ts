@@ -301,3 +301,48 @@ export async function reportWatchPartyRoom(
   if (error) throw error;
 }
 
+
+
+export async function transferWatchPartyRoomHost(
+  roomId: string,
+  targetUserId: string,
+) {
+  const { user } = await userClient();
+  const id = roomId.trim().toLowerCase();
+
+  if (!ROOM_ID_RE.test(id)) throw new ApiError(400, 'Некорректная комната.');
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      targetUserId,
+    )
+  ) {
+    throw new ApiError(400, 'Некорректный новый host.');
+  }
+
+  const admin = adminClient();
+  const { data: room, error: roomError } = await admin
+    .from('watch_party_rooms')
+    .select('host_user_id,status')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (roomError) throw roomError;
+  if (!room) throw new ApiError(404, 'Комната не найдена.');
+  if (room.host_user_id !== user.id) {
+    throw new ApiError(403, 'Только текущий host может передать управление.');
+  }
+  if (room.status === 'ended') throw new ApiError(409, 'Комната уже завершена.');
+
+  const now = new Date().toISOString();
+  const { error } = await admin
+    .from('watch_party_rooms')
+    .update({
+      host_user_id: targetUserId,
+      updated_at: now,
+      last_heartbeat_at: now,
+    })
+    .eq('id', id)
+    .eq('host_user_id', user.id);
+
+  if (error) throw error;
+}
