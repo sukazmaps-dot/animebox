@@ -1,11 +1,13 @@
 'use client';
 
-import { type FormEvent, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { type FormEvent, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 
 import AnimeImage from '@/components/AnimeImage';
 import Icon from '@/components/Icon';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
+import { useAuthState } from '@/components/AuthStateProvider';
+import { trackProductClientEvent } from '@/lib/product-events-client';
 import { getAnimes, isAbortError } from '@/lib/anime-client';
 import { getAnimeOriginalTitle, getAnimeTitle } from '@/lib/anime-display';
 import { parseAnimeSearchIntent } from '@/lib/search-intent';
@@ -23,6 +25,49 @@ import type { Anime } from '@/types/anime';
 import styles from './WatchTogetherHub.module.css';
 
 const LAST_ROOM_KEY = 'animebox:watch-together:last-room:v1';
+
+type PublicWatchPartyRoom = {
+  roomId: string;
+  joinSecret: string;
+  roomCode: string;
+  animeId: number | null;
+  animeSlug: string;
+  animeTitle: string;
+  coverUrl: string | null;
+  episode: number;
+  visibility: 'public';
+  status: 'waiting' | 'watching' | 'paused' | 'voting';
+  language: string;
+  participantCount: number;
+  maxParticipants: number;
+  host: {
+    id: string;
+    username: string;
+  };
+  updatedAt: string;
+};
+
+type PublicRoomsResponse = {
+  rooms?: PublicWatchPartyRoom[];
+  error?: string;
+};
+
+type RoomVisibility = 'public' | 'unlisted' | 'private';
+
+function animeCoverUrl(anime: Anime | null) {
+  if (!anime) return null;
+  return (
+    anime.coverImage?.extraLarge ||
+    anime.coverImage?.large ||
+    anime.coverImage?.medium ||
+    anime.image?.original ||
+    anime.image?.large ||
+    anime.image?.medium ||
+    anime.image?.preview ||
+    null
+  );
+}
+
 
 function episodeLimit(anime: Anime | null) {
   if (!anime) return 1;
@@ -53,6 +98,7 @@ function validInviteUrl(value: string) {
 }
 
 export default function WatchTogetherHub() {
+  const { user } = useAuthState();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Anime[]>([]);
   const [selected, setSelected] = useState<Anime | null>(null);
@@ -61,6 +107,12 @@ export default function WatchTogetherHub() {
   const [error, setError] = useState('');
   const [inviteInput, setInviteInput] = useState('');
   const [inviteError, setInviteError] = useState('');
+  const [visibility, setVisibility] = useState<RoomVisibility>('unlisted');
+  const [rooms, setRooms] = useState<PublicWatchPartyRoom[]>([]);
+  const [roomsLoading, setRoomsLoading] = useState(true);
+  const [roomsError, setRoomsError] = useState('');
+  const [createError, setCreateError] = useState('');
+  const [creatingRoom, setCreatingRoom] = useState(false);
   const lastRoom = useSyncExternalStore(
     (onStoreChange) => {
       const onStorage = (event: StorageEvent) => {
@@ -85,6 +137,31 @@ export default function WatchTogetherHub() {
     () => (query.trim() ? parseAnimeSearchIntent(query.trim()) : null),
     [query],
   );
+  const loadPublicRooms = useCallback(async () => {
+    try {
+      const response = await fetch('/api/watch-party/rooms?limit=12', {
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+      });
+      const payload = (await response.json()) as PublicRoomsResponse;
+      if (!response.ok) throw new Error(payload.error || 'rooms_failed');
+      setRooms(payload.rooms ?? []);
+      setRoomsError('');
+    } catch {
+      setRoomsError('Не удалось обновить список открытых комнат.');
+    } finally {
+      setRoomsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadPublicRooms();
+    const timer = window.setInterval(() => {
+      void loadPublicRooms();
+    }, 20_000);
+    return () => window.clearInterval(timer);
+  }, [loadPublicRooms]);
+
 
   useEffect(() => {
     const controller = new AbortController();
@@ -127,35 +204,87 @@ export default function WatchTogetherHub() {
   }
 
   async function createRoom() {
-    if (!selected) return;
+    if (!selected || creatingRoom) return;
+
+    if (!user?.id) {
+      setCreateError('Войди в AnimeBox, чтобы создать комнату.');
+      return;
+    }
+
+    setCreatingRoom(true);
+    setCreateError('');
 
     const selectedEpisode = safeEpisode(episode, selected);
     const invite = createWatchPartyInvite();
     const slug = selected.slug || String(selected.id);
-
-    try {
-      sessionStorage.setItem(watchPartyHostSessionKey(invite.roomId), invite.secret);
-      claimWatchPartyHostTab(invite);
-    } catch {
-      claimWatchPartyHostTab(invite);
-    }
-
     const target = watchPartyTheaterPath(slug, selectedEpisode);
     const roomUrl = buildWatchPartyUrl(invite, target);
 
     try {
-      window.localStorage.setItem(LAST_ROOM_KEY, roomUrl);
-    } catch {
-      // Resume shortcut is optional.
-    }
+      const response = await fetch('/api/watch-party/rooms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          roomId: invite.roomId,
+          joinSecret: invite.secret,
+          animeId: selected.id,
+          animeSlug: slug,
+          animeTitle: getAnimeTitle(selected),
+          coverUrl: animeCoverUrl(selected),
+          episode: selectedEpisode,
+          visibility,
+          language: 'ru',
+        }),
+        cache: 'no-store',
+      });
 
-    try {
-      await navigator.clipboard.writeText(roomUrl);
-    } catch {
-      // The room itself has a dedicated copy button if clipboard permission is denied.
-    }
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || 'Не удалось зарегистрировать комнату.');
+      }
 
-    window.location.assign(roomUrl);
+      try {
+        sessionStorage.setItem(watchPartyHostSessionKey(invite.roomId), invite.secret);
+        claimWatchPartyHostTab(invite);
+      } catch {
+        claimWatchPartyHostTab(invite);
+      }
+
+      try {
+        window.localStorage.setItem(LAST_ROOM_KEY, roomUrl);
+      } catch {
+        // Resume shortcut is optional.
+      }
+
+      try {
+        await navigator.clipboard.writeText(roomUrl);
+      } catch {
+        // The room itself has a dedicated copy button if clipboard permission is denied.
+      }
+
+      trackProductClientEvent('watch_party_room_created', {
+        source: 'watch_together_hub',
+        path: '/watch-together',
+        entityType: 'watch_party_room',
+        entityId: invite.roomId,
+        metadata: {
+          anime_id: selected.id,
+          episode: selectedEpisode,
+          visibility,
+        },
+        flush: true,
+      });
+
+      window.location.assign(roomUrl);
+    } catch (error) {
+      setCreateError(
+        error instanceof Error ? error.message : 'Не удалось создать комнату.',
+      );
+      setCreatingRoom(false);
+    }
   }
 
   function joinInvite(event: FormEvent<HTMLFormElement>) {
@@ -209,6 +338,92 @@ export default function WatchTogetherHub() {
             </a>
           )}
         </form>
+      </section>
+
+      <section className={styles.publicRooms} aria-labelledby="public-rooms-title">
+        <div className={styles.sectionHead}>
+          <div>
+            <span>ОТКРЫТЫЕ КОМНАТЫ</span>
+            <h2 id="public-rooms-title">Сейчас смотрят вместе</h2>
+          </div>
+          <button type="button" onClick={() => void loadPublicRooms()}>
+            Обновить
+          </button>
+        </div>
+
+        {roomsLoading ? (
+          <div className={styles.loading}>
+            <AnimeBoxLoader label="Ищем живые комнаты…" size={38} />
+          </div>
+        ) : roomsError && rooms.length === 0 ? (
+          <div className={styles.empty}>{roomsError}</div>
+        ) : rooms.length === 0 ? (
+          <div className={styles.publicEmpty}>
+            <strong>Пока тихо</strong>
+            <span>Создай первую открытую комнату — она появится здесь автоматически.</span>
+          </div>
+        ) : (
+          <div className={styles.publicRoomGrid}>
+            {rooms.map((room) => {
+              const invite = {
+                roomId: room.roomId,
+                secret: room.joinSecret,
+              };
+              const href = buildWatchPartyUrl(
+                invite,
+                watchPartyTheaterPath(room.animeSlug, room.episode),
+              );
+
+              return (
+                <article className={styles.publicRoomCard} key={room.roomId}>
+                  <div className={styles.publicRoomPoster}>
+                    {room.coverUrl ? (
+                      <img src={room.coverUrl} alt="" loading="lazy" />
+                    ) : (
+                      <span>AB</span>
+                    )}
+                    <b>{room.participantCount}/{room.maxParticipants}</b>
+                  </div>
+
+                  <div className={styles.publicRoomCopy}>
+                    <span className={styles.roomStatus} data-status={room.status}>
+                      {room.status === 'watching'
+                        ? 'Смотрят сейчас'
+                        : room.status === 'paused'
+                          ? 'Пауза'
+                          : room.status === 'voting'
+                            ? 'Голосование'
+                            : 'Ждут участников'}
+                    </span>
+                    <h3>{room.animeTitle}</h3>
+                    <p>
+                      Серия {room.episode} · host {room.host.username} · код {room.roomCode}
+                    </p>
+                    <a
+                      href={href}
+                      onClick={() => {
+                        trackProductClientEvent('watch_party_public_join_click', {
+                          source: 'watch_together_hub',
+                          path: '/watch-together',
+                          entityType: 'watch_party_room',
+                          entityId: room.roomId,
+                          metadata: {
+                            anime_id: room.animeId,
+                            episode: room.episode,
+                            participant_count: room.participantCount,
+                          },
+                          flush: true,
+                        });
+                      }}
+                    >
+                      Присоединиться
+                    </a>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       <section className={styles.builder}>
@@ -298,6 +513,27 @@ export default function WatchTogetherHub() {
           </p>
         </div>
 
+        <div className={styles.visibilityPicker}>
+          <span>Кто может найти комнату</span>
+          <div>
+            {([
+              ['public', 'Открытая', 'Видна всем в разделе «Вместе»'],
+              ['unlisted', 'По ссылке', 'Не показывается в общем списке'],
+              ['private', 'Приватная', 'Только по приглашению'],
+            ] as const).map(([value, label, hint]) => (
+              <button
+                key={value}
+                type="button"
+                data-active={visibility === value}
+                onClick={() => setVisibility(value)}
+              >
+                <strong>{label}</strong>
+                <small>{hint}</small>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className={styles.roomControls}>
           <label>
             <span>Серия</span>
@@ -327,17 +563,18 @@ export default function WatchTogetherHub() {
           <button
             type="button"
             className={styles.createButton}
-            disabled={!selected}
+            disabled={!selected || creatingRoom}
             onClick={() => void createRoom()}
           >
             <Icon name="users" />
             <span>
-              <strong>Создать комнату</strong>
-              <small>и пригласить друга</small>
+              <strong>{creatingRoom ? 'Создаём комнату…' : 'Создать комнату'}</strong>
+              <small>{visibility === 'public' ? 'появится в открытом lobby' : 'и пригласить друга'}</small>
             </span>
             <Icon name="chevron" />
           </button>
         </div>
+        {createError && <div className={styles.error}>{createError}</div>}
       </section>
       <section className={styles.seoContent} aria-labelledby="watch-together-guide">
         <div className={styles.seoIntro}>
