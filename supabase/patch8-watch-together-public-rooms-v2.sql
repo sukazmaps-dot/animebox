@@ -53,6 +53,10 @@ create index if not exists watch_party_room_reports_room_idx
 create index if not exists watch_party_room_reports_reporter_idx
   on public.watch_party_room_reports (reporter_user_id, room_id, created_at desc);
 
+create index if not exists watch_party_room_reports_target_idx
+  on public.watch_party_room_reports (target_user_id, created_at desc)
+  where target_user_id is not null;
+
 alter table public.watch_party_rooms enable row level security;
 alter table public.watch_party_room_reports enable row level security;
 
