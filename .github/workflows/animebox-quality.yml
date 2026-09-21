@@ -60,8 +60,6 @@ jobs:
           lib/profile-media-auto-review-server.ts
           app/api/cron/profile-media-moderation/route.ts
           app/api/profile/editor/route.ts
-          components/profile/ProfileEditorClient.tsx
-          components/premium/PremiumStudioClient.tsx
           app/api/admin/community/media/route.ts
           app/admin/moderation/page.tsx
           lib/profile-media-health-server.ts
