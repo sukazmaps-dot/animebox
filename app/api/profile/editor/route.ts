@@ -285,10 +285,6 @@ function changedMediaGroups(
     groups.push({
       scope: 'base',
       kind: 'avatar',
-      applyPayload: {
-        avatarPath: profilePatch.avatar_path,
-        expectedPreviousPath: oldProfile.avatar_path,
-      },
       candidates: [pendingCandidate(pendingMedia, 'base', 'avatar', 'original', profilePatch.avatar_path)],
     });
   }
@@ -297,10 +293,6 @@ function changedMediaGroups(
     groups.push({
       scope: 'base',
       kind: 'banner',
-      applyPayload: {
-        bannerPath: profilePatch.banner_path,
-        expectedPreviousPath: oldProfile.banner_path,
-      },
       candidates: [pendingCandidate(pendingMedia, 'base', 'banner', 'original', profilePatch.banner_path)],
     });
   }
@@ -314,15 +306,7 @@ function changedMediaGroups(
       groups.push({
         scope: 'premium',
         kind: 'avatar',
-        applyPayload: {
-          avatarPath: settings.avatarPath,
-          avatarStaticPath: settings.avatarStaticPath,
-          avatarPositionX: settings.avatarPositionX,
-          avatarPositionY: settings.avatarPositionY,
-          avatarZoom: settings.avatarZoom,
-          expectedPreviousPath: oldSettings.avatarPath,
-        },
-        candidates: [
+      candidates: [
           pendingCandidate(pendingMedia, 'premium', 'avatar', 'original', settings.avatarPath),
           ...(settings.avatarStaticPath && settings.avatarStaticPath !== settings.avatarPath
             ? [pendingCandidate(pendingMedia, 'premium', 'avatar', 'static', settings.avatarStaticPath)]
@@ -339,15 +323,7 @@ function changedMediaGroups(
       groups.push({
         scope: 'premium',
         kind: 'banner',
-        applyPayload: {
-          bannerPath: settings.bannerPath,
-          bannerStaticPath: settings.bannerStaticPath,
-          bannerPositionX: settings.bannerPositionX,
-          bannerPositionY: settings.bannerPositionY,
-          bannerZoom: settings.bannerZoom,
-          expectedPreviousPath: oldSettings.bannerPath,
-        },
-        candidates: [
+      candidates: [
           pendingCandidate(pendingMedia, 'premium', 'banner', 'original', settings.bannerPath),
           ...(settings.bannerStaticPath && settings.bannerStaticPath !== settings.bannerPath
             ? [pendingCandidate(pendingMedia, 'premium', 'banner', 'static', settings.bannerStaticPath)]
@@ -446,7 +422,10 @@ export async function POST(request: Request) {
         .single();
 
       if (error?.code === '23505') throw new ApiError(409, 'Этот ник уже занят.');
-      if (error) throw error;
+      if (error) {
+        console.error('[ProfileEditor] profile update failed:', error);
+        throw new ApiError(503, 'Не удалось записать профиль в базу данных. Попробуйте ещё раз.');
+      }
       committedProfile = data;
       profileWritten = true;
     }
@@ -468,7 +447,8 @@ export async function POST(request: Request) {
             })
             .eq('id', user.id);
         }
-        throw error;
+        console.error('[ProfileEditor] studio upsert failed:', error);
+        throw new ApiError(503, 'Не удалось записать настройки Premium Studio. Попробуйте ещё раз.');
       }
       committedSettings = settings;
     }
