@@ -65,6 +65,7 @@ jobs:
           components/TelegramPromoCard.tsx
           components/TelegramSubscriptionGate.tsx
           lib/telegram-links.ts
+          lib/product-event-names.ts
           lib/product-events-client.ts
           lib/product-events-server.ts
           app/api/telegram/subscription-check/route.ts
