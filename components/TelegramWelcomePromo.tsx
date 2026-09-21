@@ -62,13 +62,13 @@ export default function TelegramWelcomePromo() {
   }, [loading, pathname, telegramMiniApp, user]);
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(resolveWelcome);
+    const timer = window.setTimeout(resolveWelcome, 900);
     const unsubscribe = subscribeTelegramWelcomePending(() => {
-      window.requestAnimationFrame(resolveWelcome);
+      window.setTimeout(resolveWelcome, 900);
     });
 
     return () => {
-      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
       unsubscribe();
     };
   }, [resolveWelcome]);
