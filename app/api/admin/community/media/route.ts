@@ -1,11 +1,35 @@
 import { ApiError, adminClient, failure, readBody, response } from '@/lib/community-server';
 import { requireAdmin, writeAdminAudit } from '@/lib/admin-server';
-import { signedReviewMedia } from '@/lib/profile-media-safety-server';
 
 export const dynamic = 'force-dynamic';
 
 const PUBLIC_BUCKET = 'profile-media';
 const QUARANTINE_BUCKET = 'profile-media-quarantine';
+
+async function signedReviewMedia(groupId: string) {
+  const admin = adminClient();
+  const { data, error } = await admin
+    .from('profile_media_moderation')
+    .select('id,variant,quarantine_path,mime_type,animated,reason,categories,category_scores')
+    .eq('review_group_id', groupId)
+    .eq('status', 'review')
+    .order('variant', { ascending: true });
+
+  if (error) throw error;
+
+  return Promise.all(
+    (data ?? []).map(async (item) => {
+      let signedUrl: string | null = null;
+      if (item.quarantine_path) {
+        const signed = await admin.storage
+          .from(QUARANTINE_BUCKET)
+          .createSignedUrl(item.quarantine_path, 15 * 60);
+        signedUrl = signed.data?.signedUrl ?? null;
+      }
+      return { ...item, signedUrl };
+    }),
+  );
+}
 
 async function loadGroup(groupId: string) {
   const admin = adminClient();
