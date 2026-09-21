@@ -134,6 +134,7 @@ export async function GET() {
     const catalog = new Map(catalogRows.map((row) => [Number(row.id), row]));
     const positive = new Map<string, number>();
     const negative = new Map<string, number>();
+    const completedPositive = new Map<string, number>();
     const positiveEpisodeCounts: number[] = [];
     const completedByAnime = new Map<number, number>();
 
@@ -156,17 +157,40 @@ export async function GET() {
       }
     };
 
+    const addCompletedGenres = (animeId: number, weight: number) => {
+      const row = catalog.get(animeId);
+      if (!row) return;
+      for (const rawGenre of row.genres ?? []) {
+        const genre = normalizeTasteToken(rawGenre);
+        if (!genre) continue;
+        completedPositive.set(
+          genre,
+          (completedPositive.get(genre) ?? 0) + weight,
+        );
+      }
+    };
+
     for (const item of library) {
       const animeId = Number(item.anime_id);
       const recency = recencyMultiplier(item.updated_at);
-      if (item.status === 'completed') addGenres(animeId, 2.2 * recency);
-      else if (item.status === 'watching') addGenres(animeId, 1.35 * recency);
-      else if (item.status === 'planned') addGenres(animeId, 0.42 * recency);
-      else if (item.status === 'dropped') addGenres(animeId, 1.4 * recency, true);
+      const status = item.status.trim().toLowerCase();
+
+      if (status === 'completed') {
+        addGenres(animeId, 2.2 * recency);
+        addCompletedGenres(animeId, 2.5 * recency);
+      } else if (status === 'watching') {
+        addGenres(animeId, 1.35 * recency);
+      } else if (status === 'planned') {
+        addGenres(animeId, 0.42 * recency);
+      } else if (status === 'dropped') {
+        addGenres(animeId, 1.4 * recency, true);
+      }
     }
 
     for (const [animeId, count] of completedByAnime) {
-      addGenres(animeId, Math.min(1.8, 0.3 + Math.log2(count + 1) * 0.34));
+      const weight = Math.min(1.8, 0.3 + Math.log2(count + 1) * 0.34);
+      addGenres(animeId, weight);
+      addCompletedGenres(animeId, Math.min(2.1, weight * 1.15));
     }
 
     for (const event of events) {
@@ -182,6 +206,31 @@ export async function GET() {
 
     const genreWeights = normalizeWeights(positive);
     const negativeGenreWeights = normalizeWeights(negative);
+    const completedGenreWeights = normalizeWeights(completedPositive);
+
+    const libraryIds = library
+      .map((item) => Number(item.anime_id))
+      .filter((id) => Number.isSafeInteger(id) && id > 0);
+    const completedAnimeIds = [...new Set([
+      ...library
+        .filter((item) => item.status.trim().toLowerCase() === 'completed')
+        .map((item) => Number(item.anime_id)),
+      ...completedByAnime.keys(),
+    ])]
+      .filter((id) => Number.isSafeInteger(id) && id > 0)
+      .slice(0, 2000);
+    const droppedAnimeIds = [...new Set(
+      library
+        .filter((item) => item.status.trim().toLowerCase() === 'dropped')
+        .map((item) => Number(item.anime_id)),
+    )]
+      .filter((id) => Number.isSafeInteger(id) && id > 0)
+      .slice(0, 2000);
+    const excludedAnimeIds = [...new Set([
+      ...libraryIds,
+      ...completedAnimeIds,
+    ])].slice(0, 2000);
+
     const sampleSize = library.length + completedByAnime.size + events.length;
     const completedEpisodes = history.length;
     const confidence = clamp(1 - Math.exp(-sampleSize / 14));
@@ -199,6 +248,10 @@ export async function GET() {
       preferredEpisodeCount: median(positiveEpisodeCounts.slice(0, 120)),
       genreWeights,
       negativeGenreWeights,
+      completedGenreWeights,
+      excludedAnimeIds,
+      completedAnimeIds,
+      droppedAnimeIds,
       topGenres,
     };
 
