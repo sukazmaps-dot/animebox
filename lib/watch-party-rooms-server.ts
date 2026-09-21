@@ -7,6 +7,7 @@ import {
   adminClient,
   userClient,
 } from '@/lib/community-server';
+import { WATCH_PARTY_MAX_PARTICIPANTS } from '@/lib/watch-party';
 
 export type WatchPartyRoomVisibility = 'public' | 'unlisted' | 'private';
 export type WatchPartyRoomStatus = 'waiting' | 'watching' | 'paused' | 'voting' | 'ended';
@@ -124,7 +125,7 @@ export async function createWatchPartyRoom(input: Record<string, unknown>) {
       status: 'waiting',
       language: cleanText(input.language, 8) || 'ru',
       participant_count: 1,
-      max_participants: 8,
+      max_participants: WATCH_PARTY_MAX_PARTICIPANTS,
       room_code: roomCode,
       created_at: now.toISOString(),
       updated_at: now.toISOString(),
@@ -236,7 +237,10 @@ export async function heartbeatWatchPartyRoom(
   if (!ROOM_ID_RE.test(id)) throw new ApiError(400, 'Некорректная комната.');
 
   const now = new Date().toISOString();
-  const participantCount = Math.min(8, Math.max(1, positiveInt(input.participantCount)));
+  const participantCount = Math.min(
+    WATCH_PARTY_MAX_PARTICIPANTS,
+    Math.max(1, positiveInt(input.participantCount)),
+  );
   const status = roomStatus(input.status);
   const episode = positiveInt(input.episode);
   const admin = adminClient();
