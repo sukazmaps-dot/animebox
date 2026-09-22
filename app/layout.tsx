@@ -40,6 +40,7 @@ import './patch12-3-home-retention.css';
 import './patch12-3-1-mobile-cwv.css';
 import './patch12-3-2-mobile-rhythm.css';
 import './patch12-3-3-mood-density.css';
+import './patch12-3-4-premium-profile-theme.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';

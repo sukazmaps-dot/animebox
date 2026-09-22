@@ -1,0 +1,271 @@
+/* =========================================================
+   AnimeBox Patch 12.3.4 — Premium Profile Theme Completion
+   One Premium palette for the entire profile surface.
+   ========================================================= */
+
+.profile-v2.premium-profile-custom {
+  /* Compatibility aliases for old profile/streak rules. */
+  --profile-theme-accent: var(--ab-premium-accent);
+  --profile-theme-accent-rgb: var(--ab-premium-accent-rgb);
+  --profile-theme-primary: var(--ab-premium-primary);
+  --profile-theme-text: var(--ab-premium-text);
+  --profile-theme-text-rgb: var(--ab-premium-text-rgb);
+  --profile-theme-on-accent: var(--ab-premium-on-accent);
+  --profile-theme-surface: var(--ab-profile-surface);
+  --profile-theme-surface-2: var(--ab-profile-surface-2);
+  --profile-theme-border: var(--ab-profile-border);
+  --profile-theme-border-soft: var(--ab-profile-border-soft);
+
+  --profile-accent: var(--ab-premium-accent);
+  --profile-accent-rgb: var(--ab-premium-accent-rgb);
+}
+
+/* Major lower-profile surfaces now belong to the same Premium palette. */
+.profile-v2.premium-profile-custom :where(
+  .profile-v3__progression,
+  .profile-v6__progression,
+  .profile-v5__challenges,
+  .profile-v2__stat,
+  .profile-v2__status-strip,
+  .profile-v2__library,
+  .profile-v2__achievements,
+  .profile-v2__bottom-card,
+  .profile-v3__showcase,
+  .profile-v4__featured
+) {
+  border-color: var(--profile-theme-border) !important;
+  color: var(--profile-theme-text) !important;
+}
+
+.profile-v2.premium-profile-custom :where(
+  .profile-v3__progression,
+  .profile-v6__progression,
+  .profile-v5__challenges
+) {
+  background:
+    radial-gradient(circle at 88% 4%, rgba(var(--profile-theme-accent-rgb), var(--ab-premium-glow-soft-alpha)), transparent 32%),
+    linear-gradient(145deg, var(--profile-theme-surface-2), var(--profile-theme-surface)) !important;
+  box-shadow:
+    inset 0 1px rgba(var(--profile-theme-text-rgb), .025),
+    0 18px 46px rgba(0,0,0,.14) !important;
+}
+
+/* Account progression */
+.profile-v2.premium-profile-custom .profile-v6__progression-core {
+  color: var(--profile-theme-text) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v3__level-orb {
+  border-color: color-mix(in srgb, var(--profile-theme-accent) 34%, rgba(var(--profile-theme-text-rgb), .08)) !important;
+  background:
+    radial-gradient(circle at 50% 32%, rgba(var(--profile-theme-accent-rgb), .18), transparent 58%),
+    color-mix(in srgb, var(--profile-theme-primary) 82%, rgba(var(--profile-theme-text-rgb), .035)) !important;
+  color: var(--profile-theme-text) !important;
+  box-shadow: inset 0 1px rgba(var(--profile-theme-text-rgb), .035);
+}
+
+.profile-v2.premium-profile-custom .profile-v3__level-orb :where(span, small) {
+  color: color-mix(in srgb, var(--profile-theme-accent) 70%, var(--profile-theme-text) 30%) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v3__level-orb strong {
+  color: var(--profile-theme-text) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v3__progression-title > strong,
+.profile-v2.premium-profile-custom .profile-v6__progression-arrow,
+.profile-v2.premium-profile-custom .profile-v3__progression-side > a {
+  color: color-mix(in srgb, var(--profile-theme-accent) 74%, var(--profile-theme-text) 26%) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v3__xp-track {
+  background: rgba(var(--profile-theme-text-rgb), .07) !important;
+  box-shadow: inset 0 1px rgba(var(--profile-theme-text-rgb), .025) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v3__xp-track > span {
+  background: linear-gradient(
+    90deg,
+    var(--profile-theme-accent),
+    color-mix(in srgb, var(--profile-theme-accent) 70%, white 30%)
+  ) !important;
+  box-shadow: 0 0 16px rgba(var(--profile-theme-accent-rgb), .30) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v3__xp-meta,
+.profile-v2.premium-profile-custom .profile-v6__xp-sources {
+  color: var(--ab-profile-muted) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v6__xp-sources > span {
+  border-color: var(--profile-theme-border-soft) !important;
+  background: rgba(var(--profile-theme-text-rgb), .035) !important;
+  color: var(--ab-profile-muted) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v3__xp-boost {
+  border-color: color-mix(in srgb, var(--profile-theme-accent) 26%, rgba(var(--profile-theme-text-rgb), .08)) !important;
+  background: rgba(var(--profile-theme-accent-rgb), .08) !important;
+  color: color-mix(in srgb, var(--profile-theme-accent) 72%, var(--profile-theme-text) 28%) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v3__xp-boost.is-active {
+  border-color: color-mix(in srgb, var(--profile-theme-accent) 50%, rgba(var(--profile-theme-text-rgb), .10)) !important;
+  background: rgba(var(--profile-theme-accent-rgb), .16) !important;
+  color: var(--profile-theme-text) !important;
+}
+
+/* Streak / challenges */
+.profile-v2.premium-profile-custom .profile-v5__challenges {
+  --streak-accent: var(--profile-theme-accent);
+  --streak-text: var(--profile-theme-text);
+}
+
+.profile-v2.premium-profile-custom .profile-v5__challenge-progress {
+  border-color: var(--profile-theme-border-soft) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v5__challenge-progress > div {
+  border-color: var(--profile-theme-border-soft) !important;
+  color: var(--profile-theme-text) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v5__challenge-progress > div > span,
+.profile-v2.premium-profile-custom .profile-v5__challenge-progress > div > small {
+  color: var(--ab-profile-muted) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v5__challenge-progress > div > strong,
+.profile-v2.premium-profile-custom .profile-v5__challenge-link {
+  color: var(--profile-theme-text) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v5__challenge-link b {
+  color: var(--profile-theme-accent) !important;
+}
+
+/* Stats and tracker status */
+.profile-v2.premium-profile-custom .profile-v2__stat {
+  background:
+    radial-gradient(circle at 95% 0%, rgba(var(--profile-theme-accent-rgb), .06), transparent 42%),
+    color-mix(in srgb, var(--profile-theme-primary) 86%, rgba(var(--profile-theme-text-rgb), .025)) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v2__stat-label {
+  color: color-mix(in srgb, var(--profile-theme-accent) 68%, var(--profile-theme-text) 32%) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v2__stat strong {
+  color: var(--profile-theme-text) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v2__status-chip {
+  border-color: color-mix(in srgb, var(--profile-theme-accent) 18%, rgba(var(--profile-theme-text-rgb), .08)) !important;
+  background: color-mix(in srgb, var(--profile-theme-primary) 88%, rgba(var(--profile-theme-accent-rgb), .05)) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v2__status-chip :where(span, strong) {
+  color: var(--profile-theme-text) !important;
+}
+
+/* Library */
+.profile-v2.premium-profile-custom .profile-v2__library-row {
+  border-color: var(--profile-theme-border-soft) !important;
+  background: color-mix(in srgb, var(--profile-theme-primary) 88%, rgba(var(--profile-theme-text-rgb), .025)) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v2__library-row:hover {
+  border-color: color-mix(in srgb, var(--profile-theme-accent) 36%, rgba(var(--profile-theme-text-rgb), .08)) !important;
+  background: color-mix(in srgb, var(--profile-theme-primary) 82%, rgba(var(--profile-theme-accent-rgb), .10)) !important;
+}
+
+.profile-v2.premium-profile-custom :where(
+  .profile-v2__library-arrow,
+  .profile-v2__library-more,
+  .profile-v2__library-empty a,
+  .profile-v2__section-head > a
+) {
+  color: color-mix(in srgb, var(--profile-theme-accent) 72%, var(--profile-theme-text) 28%) !important;
+}
+
+/* Achievements: theme the shell/progress, keep rarity meaning. */
+.profile-v2.premium-profile-custom .profile-v2__achievements {
+  background:
+    radial-gradient(circle at 92% 0%, rgba(var(--profile-theme-accent-rgb), .07), transparent 34%),
+    linear-gradient(150deg, var(--profile-theme-surface-2), var(--profile-theme-surface)) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v3__showcase {
+  border-color: var(--profile-theme-border-soft) !important;
+  background: color-mix(in srgb, var(--profile-theme-primary) 86%, rgba(var(--profile-theme-accent-rgb), .04)) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v3__showcase-card {
+  background: color-mix(in srgb, var(--profile-theme-primary) 84%, rgba(var(--profile-theme-text-rgb), .035)) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v3__showcase-card:not([data-rarity='rare']):not([data-rarity='epic']):not([data-rarity='legendary']),
+.profile-v2.premium-profile-custom .profile-v2__achievement:not([data-rarity='rare']):not([data-rarity='epic']):not([data-rarity='legendary']) {
+  border-color: var(--profile-theme-border-soft) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v2__achievement.is-unlocked:not([data-rarity='rare']):not([data-rarity='epic']):not([data-rarity='legendary']) {
+  border-color: color-mix(in srgb, var(--profile-theme-accent) 28%, rgba(var(--profile-theme-text-rgb), .08)) !important;
+  background: rgba(var(--profile-theme-accent-rgb), .055) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v2__achievement-progress {
+  background: rgba(var(--profile-theme-text-rgb), .07) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v2__achievement-progress > span {
+  background: linear-gradient(
+    90deg,
+    var(--profile-theme-accent),
+    color-mix(in srgb, var(--profile-theme-accent) 72%, white 28%)
+  ) !important;
+  box-shadow: 0 0 14px rgba(var(--profile-theme-accent-rgb), .24) !important;
+}
+
+.profile-v2.premium-profile-custom .profile-v3__achievement-actions > a {
+  border-color: color-mix(in srgb, var(--profile-theme-accent) 26%, rgba(var(--profile-theme-text-rgb), .08)) !important;
+  background: rgba(var(--profile-theme-accent-rgb), .08) !important;
+  color: var(--profile-theme-text) !important;
+}
+
+/* Bottom actions and keyboard focus */
+.profile-v2.premium-profile-custom :where(
+  .profile-v2__bottom-card a,
+  .profile-v3__progression a,
+  .profile-v5__challenges,
+  .profile-v2__library a,
+  .profile-v2__achievements a,
+  button
+):focus-visible {
+  outline-color: color-mix(in srgb, var(--profile-theme-accent) 72%, white 28%) !important;
+}
+
+/* Mobile keeps the theme but avoids adding expensive glow layers. */
+@media (max-width: 768px) {
+  .profile-v2.premium-profile-custom :where(
+    .profile-v3__progression,
+    .profile-v6__progression,
+    .profile-v5__challenges,
+    .profile-v2__stat,
+    .profile-v2__achievements,
+    .profile-v3__showcase
+  ) {
+    box-shadow: inset 0 1px rgba(var(--profile-theme-text-rgb), .018) !important;
+  }
+
+  .profile-v2.premium-profile-custom .profile-v3__xp-track > span,
+  .profile-v2.premium-profile-custom .profile-v2__achievement-progress > span {
+    box-shadow: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-v2.premium-profile-custom * {
+    transition-duration: .001ms !important;
+  }
+}

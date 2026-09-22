@@ -339,3 +339,48 @@
   background: var(--ab-accent);
   box-shadow: none;
 }
+
+/* Patch 12.3.4 — inherit the owning profile theme. */
+.trigger {
+  border-color: color-mix(in srgb, var(--profile-theme-accent, var(--ab-accent)) 24%, transparent);
+  background: color-mix(in srgb, var(--profile-theme-accent, var(--ab-accent)) 9%, transparent);
+  color: color-mix(in srgb, var(--profile-theme-accent, var(--ab-accent)) 72%, white 28%);
+}
+
+.trigger:hover {
+  border-color: color-mix(in srgb, var(--profile-theme-accent, var(--ab-accent)) 42%, transparent);
+  background: color-mix(in srgb, var(--profile-theme-accent, var(--ab-accent)) 14%, transparent);
+}
+
+.modal {
+  border-color: color-mix(in srgb, var(--profile-theme-accent, var(--ab-accent)) 22%, var(--ab-border));
+  background:
+    radial-gradient(circle at 90% 0%, color-mix(in srgb, var(--profile-theme-accent, var(--ab-accent)) 10%, transparent), transparent 34%),
+    var(--profile-theme-surface, var(--ab-bg-raised));
+}
+
+.header span {
+  color: color-mix(in srgb, var(--profile-theme-accent, var(--ab-accent)) 78%, white 22%);
+}
+
+.slot[data-filled='true'],
+.item[data-active='true'] {
+  border-color: color-mix(in srgb, var(--profile-theme-accent, var(--ab-accent)) 30%, transparent);
+  background: color-mix(in srgb, var(--profile-theme-accent, var(--ab-accent)) 10%, transparent);
+}
+
+.item[data-active='true'] b {
+  background: color-mix(in srgb, var(--profile-theme-accent, var(--ab-accent)) 13%, transparent);
+  color: color-mix(in srgb, var(--profile-theme-accent, var(--ab-accent)) 72%, white 28%);
+}
+
+.item[data-rarity='legendary'][data-active='true'] {
+  border-color: rgba(217,171,88,.34);
+  background: #15140f;
+}
+
+.primary {
+  border-color: color-mix(in srgb, var(--profile-theme-accent, var(--ab-accent)) 38%, transparent);
+  background: var(--profile-theme-accent, var(--ab-accent));
+  color: var(--profile-theme-on-accent, #fff);
+}
