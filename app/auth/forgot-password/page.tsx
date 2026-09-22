@@ -2,14 +2,18 @@
 
 import { FormEvent, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/client';
 
 export default function ForgotPasswordPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
+  const [verifying, setVerifying] = useState(false);
 
   const supabase = createClient();
 
@@ -74,6 +78,34 @@ export default function ForgotPasswordPage() {
     }
   }
 
+  async function verifyCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const token = code.replace(/\s/g, '');
+    if (!/^\d{6}$/.test(token)) {
+      setError('Введите шестизначный код из письма.');
+      return;
+    }
+
+    setError('');
+    setVerifying(true);
+    try {
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        email: email.trim().toLowerCase(),
+        token,
+        type: 'recovery',
+      });
+      if (verifyError || !data.session) {
+        throw verifyError ?? new Error('Recovery session missing');
+      }
+      router.replace('/auth/update-password');
+    } catch (verifyError) {
+      console.error('[Password Recovery Code]', verifyError);
+      setError('Код неверен или истёк. Запросите новое письмо.');
+    } finally {
+      setVerifying(false);
+    }
+  }
+
   return (
     <main className="mx-auto flex min-h-[70vh] max-w-md items-center px-4">
       <section className="w-full rounded-2xl border border-white/10 bg-[#0b1220] p-6 shadow-2xl">
@@ -90,8 +122,30 @@ export default function ForgotPasswordPage() {
           <div className="mt-6">
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-300">
               Если аккаунт с таким email существует,
-              письмо для восстановления отправлено.
+              письмо для восстановления отправлено. Перейди по ссылке или введи код из письма.
             </div>
+
+            <form onSubmit={verifyCode} className="mt-5 space-y-3">
+              <label htmlFor="recovery-code" className="block text-sm text-white/70">
+                Код восстановления
+              </label>
+              <input
+                id="recovery-code"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                value={code}
+                onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
+                placeholder="6 цифр"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-violet-500"
+              />
+              {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
+              <button type="submit" disabled={verifying} className="w-full rounded-xl bg-violet-600 px-4 py-3 font-semibold text-white disabled:opacity-50">
+                {verifying ? 'Проверяем…' : 'Продолжить'}
+              </button>
+            </form>
 
             <Link
               href="/login"

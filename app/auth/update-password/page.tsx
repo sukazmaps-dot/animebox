@@ -38,28 +38,21 @@ export default function UpdatePasswordPage() {
 
     async function check() {
       const currentUrl = new URL(window.location.href);
-      const recoveryCode = currentUrl.searchParams.get('code');
       const recoveryTokenHash = currentUrl.searchParams.get('token_hash');
       const recoveryType = currentUrl.searchParams.get('type');
 
+      if (currentUrl.searchParams.has('error')) {
+        if (active) {
+          setValidSession(false);
+          setChecking(false);
+        }
+        return;
+      }
+
       try {
-        if (recoveryCode) {
-          const { error: exchangeError } =
-            await supabase.auth.exchangeCodeForSession(
-              recoveryCode,
-            );
-
-          if (exchangeError) {
-            throw exchangeError;
-          }
-
-          currentUrl.searchParams.delete('code');
-          window.history.replaceState(
-            window.history.state,
-            '',
-            `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`,
-          );
-        } else if (
+        // createBrowserClient exchanges PKCE ?code= automatically on init.
+        // Exchanging here a second time consumes an already-used code.
+        if (
           recoveryTokenHash &&
           recoveryType === 'recovery'
         ) {
@@ -107,13 +100,7 @@ export default function UpdatePasswordPage() {
         return;
       }
 
-      const {
-        data: sessionData,
-      } = await supabase.auth.getSession();
-
-      if (!active) return;
-
-      setValidSession(Boolean(sessionData.session));
+      setValidSession(false);
       setChecking(false);
     }
 
