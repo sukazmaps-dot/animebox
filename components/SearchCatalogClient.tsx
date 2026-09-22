@@ -296,7 +296,7 @@ export default function SearchCatalogClient({
     <div className="search-page">
       <div className="page-heading">
         <h1>Каталог</h1>
-        <p>Ищи аниме по названию, нескольким жанрам, году и статусу — настроение осталось отдельным быстрым фильтром.</p>
+        <p>Найди историю под своё настроение.</p>
         <div className={styles.catalogTabs} aria-label="Раздел каталога">
           <button type="button" className={view === 'catalog' ? styles.catalogTabActive : styles.catalogTab} onClick={() => applyView('catalog')}>Каталог</button>
           <button type="button" className={view === 'saved' ? styles.catalogTabActive : styles.catalogTab} onClick={() => applyView('saved')}>
@@ -334,14 +334,14 @@ export default function SearchCatalogClient({
       <div className={styles.filterBar}>
         {view === 'catalog' && <MoodFilter value={selectedMood} onChange={(mood) => { setSelectedMood(mood); setPageState({ query, page: 1 }); }} />}
         <button type="button" className={`${styles.filterToggle} ${filtersOpen || filterCount > 0 ? styles.filterToggleActive : ''}`} aria-expanded={filtersOpen} onClick={() => { setOpenPicker(null); setFiltersOpen((current) => !current); }}>
-          <span aria-hidden="true">☰</span>Фильтры{filterCount > 0 ? <b>{filterCount}</b> : null}
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2" fill="currentColor" stroke="none"/><circle cx="16" cy="17" r="2" fill="currentColor" stroke="none"/></svg>Фильтры{filterCount > 0 ? <b>{filterCount}</b> : null}
         </button>
       </div>
 
       {filtersOpen && (
         <div className={styles.filterPanel}>
           <div className={styles.filterPanelHead}>
-            <div><strong>Фильтры каталога</strong><span>Жанры можно выбирать одновременно</span></div>
+            <div><strong>Настроить подборку</strong><span>Можно выбрать несколько жанров</span></div>
             {hasStructuredFilters && <button type="button" onClick={clearStructuredFilters}>Сбросить</button>}
           </div>
           <div className={styles.filterGroup}>
@@ -372,7 +372,7 @@ export default function SearchCatalogClient({
                 {selectedStatus === 'ongoing' ? 'Онгоинг' : selectedStatus === 'finished' ? 'Завершено' : 'Любой'}<span aria-hidden="true">⌄</span>
               </button>
               {openPicker === 'status' && (
-                <div id="catalog-status-options" className={styles.filterPickerMenu} aria-label="Выбрать статус">
+                <div id="catalog-status-options" className={styles.filterPickerMenu} data-picker="status" aria-label="Выбрать статус">
                   {([['any', 'Любой'], ['ongoing', 'Онгоинг'], ['finished', 'Завершено']] as const).map(([status, label]) => <button key={status} type="button" aria-pressed={selectedStatus === status} onClick={() => { setSelectedStatus(status); setPageState({ query, page: 1 }); setOpenPicker(null); }}>{label}</button>)}
                 </div>
               )}
@@ -381,7 +381,7 @@ export default function SearchCatalogClient({
         </div>
       )}
 
-      <section className="section" aria-busy={displayLoading}>
+      <section className={`section ${styles.catalogResults}`} aria-busy={displayLoading}>
         <div className="section-head">
           <h2 className="section-title">{view === 'saved' ? 'Сохранённые' : liveQuery.trim() || hasFilters ? 'Результаты' : 'Популярное'}</h2>
           <span className="section-link">{view === 'saved' ? `${displayResults.length} сохранено` : refreshing ? 'Ищем…' : `Страница ${page}`}</span>
