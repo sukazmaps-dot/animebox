@@ -44,6 +44,7 @@ import './patch12-5-player-identity.css';
 import './patch12-5-6-mobile-chrome-player-spacing.css';
 import './mobile-simplification.css';
 import './home-editorial-hero.css';
+import './patch12-6-mobile-home-final.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';

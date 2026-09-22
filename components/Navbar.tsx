@@ -158,14 +158,14 @@ function NavbarContent() {
       const delta = currentY - state.lastY;
       state.lastY = currentY;
 
-      if (currentY < 84 || navigationShouldStayVisible()) {
+      if (currentY < 110 || navigationShouldStayVisible()) {
         state.travel = 0;
         state.direction = null;
         setHidden(false);
         return;
       }
 
-      if (Math.abs(delta) < 3) return;
+      if (Math.abs(delta) < 4) return;
 
       const direction: 'up' | 'down' = delta > 0 ? 'down' : 'up';
 
@@ -178,12 +178,12 @@ function NavbarContent() {
       state.travel += Math.abs(delta);
 
       const cooldownPassed =
-        performance.now() - state.lastToggleAt >= 260;
+        performance.now() - state.lastToggleAt >= 360;
 
       if (
         direction === 'down' &&
         !state.hidden &&
-        state.travel >= 52 &&
+        state.travel >= 72 &&
         cooldownPassed
       ) {
         setHidden(true);
@@ -191,7 +191,7 @@ function NavbarContent() {
       } else if (
         direction === 'up' &&
         state.hidden &&
-        state.travel >= 34 &&
+        state.travel >= 44 &&
         cooldownPassed
       ) {
         setHidden(false);
