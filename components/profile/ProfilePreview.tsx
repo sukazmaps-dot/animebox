@@ -282,6 +282,7 @@ export default function ProfilePreview({
                 ref={cardRef}
                 className={styles.card}
                 data-placement={placement}
+                data-premium={data?.premium ? 'true' : 'false'}
                 style={{
                   ...themeStyle,
                   top: position.top,
@@ -309,50 +310,50 @@ export default function ProfilePreview({
                   </div>
                 ) : data ? (
                   <>
-                    <div className={styles.banner}>
-                      {data.bannerUrl ? (
-                        <picture className={styles.bannerMedia}>
-                          {data.bannerStaticUrl &&
-                            data.bannerStaticUrl !== data.bannerUrl && (
-                              <source
-                                media="(max-width: 640px), (prefers-reduced-motion: reduce)"
-                                srcSet={data.bannerStaticUrl}
-                              />
-                            )}
+                    <div className={styles.hero}>
+                      <div className={styles.banner}>
+                        {data.bannerUrl ? (
+                          <picture className={styles.bannerMedia}>
+                            {data.bannerStaticUrl &&
+                              data.bannerStaticUrl !== data.bannerUrl && (
+                                <source
+                                  media="(prefers-reduced-motion: reduce)"
+                                  srcSet={data.bannerStaticUrl}
+                                />
+                              )}
+                            <img
+                              src={data.bannerUrl}
+                              alt=""
+                              loading="eager"
+                              decoding="async"
+                              style={premiumMediaStyle(data.bannerTransform)}
+                            />
+                          </picture>
+                        ) : (
                           <img
-                            src={data.bannerUrl}
+                            src="/brand/profile-banner-default.webp"
                             alt=""
-                            loading="lazy"
+                            loading="eager"
                             decoding="async"
-                            style={premiumMediaStyle(data.bannerTransform)}
                           />
-                        </picture>
-                      ) : (
-                        <img
-                          src="/brand/profile-banner-default.webp"
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      )}
-                    </div>
+                        )}
+                      </div>
 
-                    <div className={styles.body}>
-                      <div className={styles.identity}>
+                      <div className={styles.heroIdentity}>
                         <span className={styles.avatarShell}>
                           <picture className={styles.avatarMedia}>
                             {data.avatarStaticUrl !== data.avatarUrl && (
                               <source
-                                media="(max-width: 640px), (prefers-reduced-motion: reduce)"
+                                media="(prefers-reduced-motion: reduce)"
                                 srcSet={data.avatarStaticUrl}
                               />
                             )}
                             <img
                               src={data.avatarUrl}
                               alt=""
-                              width={78}
-                              height={78}
-                              loading="lazy"
+                              width={72}
+                              height={72}
+                              loading="eager"
                               decoding="async"
                               style={premiumMediaStyle(data.avatarTransform)}
                             />
@@ -378,7 +379,9 @@ export default function ProfilePreview({
                           </span>
                         </div>
                       </div>
+                    </div>
 
+                    <div className={styles.body}>
                       {data.bio && <p className={styles.bio}>{data.bio}</p>}
 
                       <div className={styles.metaGrid}>
