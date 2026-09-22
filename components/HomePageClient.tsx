@@ -138,8 +138,8 @@ function createScheduleDays(): ScheduleDay[] {
 function getScheduleTitle(item: HomeScheduleItem): string {
   return (
     item.media.title.russian ||
-    item.media.title.english ||
     item.media.title.romaji ||
+    item.media.title.english ||
     item.media.title.native ||
     'Без названия'
   );
@@ -189,7 +189,7 @@ function HomeTopAnimePanel({
 
   return (
     <div
-      className={`panel right-rail__primary home-top-anime-panel ${
+      className={`home-top-anime-panel ${
         mobile
           ? 'home-top-anime-panel--mobile'
           : 'home-top-anime-panel--desktop'

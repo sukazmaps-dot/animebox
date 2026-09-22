@@ -1,5 +1,25 @@
 import type { Anime } from '@/types/anime';
 
+function getCyrillicAlias(anime: Anime): string | null {
+  const candidates = [
+    anime.name,
+    ...(Array.isArray(anime.synonyms) ? anime.synonyms : []),
+  ];
+
+  for (const candidate of candidates) {
+    const value =
+      typeof candidate === 'string'
+        ? candidate.trim()
+        : '';
+
+    if (value && /[А-Яа-яЁё]/.test(value)) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
 export function getAnimeTitle(
   anime: Anime | null | undefined,
 ): string {
@@ -7,11 +27,15 @@ export function getAnimeTitle(
     return 'Без названия';
   }
 
+  const cyrillicAlias =
+    getCyrillicAlias(anime);
+
   return (
     anime.title?.russian?.trim() ||
     anime.russian?.trim() ||
-    anime.title?.english?.trim() ||
+    cyrillicAlias ||
     anime.title?.romaji?.trim() ||
+    anime.title?.english?.trim() ||
     anime.title?.native?.trim() ||
     anime.name?.trim() ||
     'Без названия'

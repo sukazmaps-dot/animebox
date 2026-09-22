@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Icon from '@/components/Icon';
 
 import type { HomeChatTeaserMessage } from '@/types/chat';
 import { premiumMediaStyle } from '@/lib/premium-studio';
@@ -69,9 +68,6 @@ export default function HomeChatTeaser() {
   }, []);
   return (
     <>
-    <Link href="/chat" className={styles.mobileFab} aria-label="Открыть общий чат" title="Общий чат">
-      <Icon name="chat" width={23} height={23} />
-    </Link>
     <section className={styles.card} aria-labelledby="home-chat-title">
       <div className={styles.glow} aria-hidden="true" />
       <div className={styles.head}>

@@ -356,3 +356,11 @@
     gap: 10px;
   }
 }
+
+/* Mobile auth belongs to the persistent bottom navigation account sheet.
+   Do not render a detached duplicate sign-in CTA on the home feed. */
+@media (max-width: 768px) {
+  .home-page .home-activation-v2--guest {
+    display: none !important;
+  }
+}
