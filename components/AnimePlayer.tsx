@@ -1519,6 +1519,29 @@ export default function AnimePlayer({
     trackPlayerEvent,
   ]);
 
+  useEffect(() => {
+    if (
+      videoLink ||
+      sourceMode !== 'auto' ||
+      sources.length < 2
+    ) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      switchToFallback(
+        currentSourceName + ' не содержит видео для этой серии.',
+      );
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    currentSourceName,
+    sourceMode,
+    sources.length,
+    switchToFallback,
+    videoLink,
+  ]);
   const failCurrentSource = useCallback((kind: PlayerFailureKind, message: string) => {
     failedCandidatesRef.current.add(currentCandidateKey);
     setPlayerReady(false);
@@ -1894,7 +1917,7 @@ export default function AnimePlayer({
         } animebox-player-header flex flex-col gap-5 px-4 py-4 sm:px-5 md:flex-row md:items-end md:justify-between md:px-6 md:py-5`}
       >
         {!watchTogetherMode && (
-          <div className="min-w-0">
+          <div className="animebox-player-titleblock min-w-0">
             <div className="mb-2 flex items-center gap-2">
               <span className="premium-player-dot h-1.5 w-1.5 rounded-full bg-violet-400 shadow-[0_0_14px_rgba(167,139,250,.95)]" />
               <span className="premium-player-accent-text text-[9px] font-extrabold uppercase tracking-[0.2em] text-violet-300/65">
@@ -1909,14 +1932,15 @@ export default function AnimePlayer({
           </div>
         )}
 
-        <div className={`anime-player__toolbar ${watchTogetherMode ? 'watch-together-player-toolbar' : ''} flex flex-wrap items-center gap-2`}>
+        <div className={`anime-player__toolbar animebox-player-toolbar ${watchTogetherMode ? 'watch-together-player-toolbar' : ''} flex flex-wrap items-center gap-2`}>
           {sources.length > 1 && (
             <div className="animebox-player-source-switcher flex max-w-full items-center overflow-x-auto p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <button
                 type="button"
                 onClick={enableAutoSource}
+                aria-pressed={sourceMode === 'auto'}
                 title="AnimeBox выбирает источник по скорости и последним сбоям на этом устройстве"
-                className={`premium-player-source shrink-0 rounded-xl px-3.5 py-2 text-[11px] font-extrabold transition-all duration-200 ${
+                className={`premium-player-source ${sourceMode === 'auto' ? 'is-active' : ''} shrink-0 rounded-xl px-3.5 py-2 text-[11px] font-extrabold transition-all duration-200 ${
                   sourceMode === 'auto'
                     ? 'bg-gradient-to-r from-violet-600 to-indigo-500 text-white shadow-[0_8px_26px_rgba(105,72,255,.30)]'
                     : 'text-white/40 hover:bg-white/[0.05] hover:text-white/75'
@@ -2118,14 +2142,40 @@ export default function AnimePlayer({
           )}
 
           {!videoLink ? (
-            <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.04] text-xl text-white/35">
+            <div className="animebox-player-empty-source flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+              <div className="animebox-player-empty-source__icon" aria-hidden="true">
                 ▶
               </div>
               <div>
-                <p className="text-sm font-extrabold text-white/75">Видео недоступно</p>
-                <p className="mt-1 text-xs text-white/35">Для этой серии пока не найден источник.</p>
+                <p className="animebox-player-empty-source__title">
+                  Для этой серии нет видео у выбранного источника
+                </p>
+                <p className="animebox-player-empty-source__copy">
+                  AnimeBox проверит доступные резервные источники автоматически.
+                </p>
               </div>
+              {sources.length > 1 && (
+                <button
+                  type="button"
+                  className="animebox-player-empty-source__action"
+                  onClick={() => {
+                    const fallback = findFallbackCandidate();
+                    if (!fallback) return;
+
+                    setSourceMode('manual');
+                    writePlayerSourceMode('manual');
+                    writeManualProviderPreference(
+                      sources[fallback.sourceIndex]?.name || null,
+                    );
+                    applySourceSelection(
+                      fallback.sourceIndex,
+                      'manual',
+                    );
+                  }}
+                >
+                  Проверить другой источник
+                </button>
+              )}
             </div>
           ) : !started ? (
             <button
@@ -2153,8 +2203,8 @@ export default function AnimePlayer({
 
               <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,6,13,.20),rgba(4,6,13,.72)),radial-gradient(circle_at_center,rgba(126,87,255,.12),transparent_32%)] backdrop-blur-[2px]" />
 
-              <div className="absolute inset-0 flex flex-col items-center justify-center px-5 text-center">
-                <div className="relative mb-5">
+              <div className="animebox-player-cover-copy absolute inset-0 flex flex-col items-center justify-center px-5 text-center">
+                <div className="animebox-player-resume-cta relative mb-4">
                   <span className="absolute inset-0 animate-ping rounded-full bg-violet-500/20 [animation-duration:2.2s]" />
                   <span className="absolute -inset-4 rounded-full border border-violet-300/10 bg-violet-500/[0.04]" />
                   <span className="premium-player-play-button relative flex h-[86px] w-[86px] items-center justify-center rounded-full border border-white/20 bg-gradient-to-br from-violet-500 via-violet-600 to-indigo-600 shadow-[0_20px_65px_rgba(105,72,255,.48),inset_0_1px_0_rgba(255,255,255,.28)] transition duration-300 group-hover:scale-105">
@@ -2326,9 +2376,9 @@ export default function AnimePlayer({
           )}
 
           {playerError && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/85 p-5 text-center backdrop-blur-md">
+            <div className="animebox-player-error-screen absolute inset-0 z-50 flex items-center justify-center p-5 text-center">
               <div className="animebox-player-error-card w-full max-w-md p-5">
-                <div className={`mx-auto flex h-11 w-11 items-center justify-center rounded-2xl border ${
+                <div className={`animebox-player-error-icon mx-auto flex h-11 w-11 items-center justify-center ${
                   playerFailureKind === 'timeout'
                     ? 'border-amber-400/20 bg-amber-500/10 text-amber-200'
                     : 'border-red-400/20 bg-red-500/10 text-red-200'
@@ -2343,7 +2393,7 @@ export default function AnimePlayer({
                   <button
                     type="button"
                     onClick={retryCurrentSource}
-                    className="inline-flex min-h-10 items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 to-indigo-500 px-4 text-xs font-extrabold text-white shadow-[0_10px_28px_rgba(105,72,255,.22)] transition hover:-translate-y-px"
+                    className="animebox-player-error-primary inline-flex min-h-10 items-center justify-center px-4 text-xs font-extrabold text-white transition"
                   >
                     Повторить
                   </button>
@@ -2365,7 +2415,7 @@ export default function AnimePlayer({
                           applySourceSelection(nextIndex, 'manual');
                         }
                       }}
-                      className="inline-flex min-h-10 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.04] px-4 text-xs font-bold text-white/65 transition hover:bg-white/[0.07] hover:text-white"
+                      className="animebox-player-error-secondary inline-flex min-h-10 items-center justify-center px-4 text-xs font-bold transition"
                     >
                       Другой источник
                     </button>

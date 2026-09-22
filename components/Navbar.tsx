@@ -73,6 +73,8 @@ function NavbarContent() {
     travel: 0,
     direction: null as 'up' | 'down' | null,
     raf: 0,
+    hidden: false,
+    lastToggleAt: 0,
   });
 
   function emitLiveSearch(value: string) {
@@ -122,36 +124,77 @@ function NavbarContent() {
     state.lastY = window.scrollY;
     state.travel = 0;
     state.direction = null;
+    state.hidden = false;
+    state.lastToggleAt = 0;
     setMobileNavHidden(false);
+
+    const setHidden = (hidden: boolean) => {
+      if (state.hidden === hidden) return;
+      state.hidden = hidden;
+      state.lastToggleAt = performance.now();
+      setMobileNavHidden(hidden);
+    };
+
+    const navigationShouldStayVisible = () => {
+      const active = document.activeElement;
+      const typing =
+        active instanceof HTMLInputElement ||
+        active instanceof HTMLTextAreaElement ||
+        active instanceof HTMLSelectElement ||
+        (active instanceof HTMLElement && active.isContentEditable);
+      const modalOpen = Boolean(
+        document.querySelector(
+          '[role="dialog"][aria-modal="true"], [data-mobile-nav-lock="true"]',
+        ),
+      );
+
+      return typing || modalOpen;
+    };
 
     const update = () => {
       state.raf = 0;
+
       const currentY = Math.max(0, window.scrollY);
       const delta = currentY - state.lastY;
       state.lastY = currentY;
 
-      if (currentY < 72) {
+      if (currentY < 84 || navigationShouldStayVisible()) {
         state.travel = 0;
         state.direction = null;
-        setMobileNavHidden(false);
+        setHidden(false);
         return;
       }
 
-      if (Math.abs(delta) < 2) return;
+      if (Math.abs(delta) < 3) return;
 
       const direction: 'up' | 'down' = delta > 0 ? 'down' : 'up';
+
       if (state.direction !== direction) {
         state.direction = direction;
-        state.travel = 0;
+        state.travel = Math.abs(delta);
+        return;
       }
 
       state.travel += Math.abs(delta);
 
-      if (direction === 'down' && state.travel >= 34) {
-        setMobileNavHidden(true);
+      const cooldownPassed =
+        performance.now() - state.lastToggleAt >= 260;
+
+      if (
+        direction === 'down' &&
+        !state.hidden &&
+        state.travel >= 52 &&
+        cooldownPassed
+      ) {
+        setHidden(true);
         state.travel = 0;
-      } else if (direction === 'up' && state.travel >= 24) {
-        setMobileNavHidden(false);
+      } else if (
+        direction === 'up' &&
+        state.hidden &&
+        state.travel >= 34 &&
+        cooldownPassed
+      ) {
+        setHidden(false);
         state.travel = 0;
       }
     };
@@ -161,10 +204,17 @@ function NavbarContent() {
       state.raf = window.requestAnimationFrame(update);
     };
 
+    const onFocusIn = () => {
+      state.travel = 0;
+      setHidden(false);
+    };
+
     window.addEventListener('scroll', onScroll, { passive: true });
+    document.addEventListener('focusin', onFocusIn);
 
     return () => {
       window.removeEventListener('scroll', onScroll);
+      document.removeEventListener('focusin', onFocusIn);
       if (state.raf) window.cancelAnimationFrame(state.raf);
       state.raf = 0;
     };
