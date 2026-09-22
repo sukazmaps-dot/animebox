@@ -50,7 +50,7 @@ export default function ProfilePage() {
   const [error, setError] = useState('');
   const [premiumStudio, setPremiumStudio] = useState<PremiumStudioSettings | null>(null);
   const [premiumActive, setPremiumActive] = useState(false);
-  const [preferStaticPremiumMedia, setPreferStaticPremiumMedia] = useState(false);
+  const [preferStaticPremiumMedia, setPreferStaticPremiumMedia] = useState(true);
 
   useEffect(() => {
     const media = window.matchMedia(
