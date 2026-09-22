@@ -426,3 +426,150 @@
     min-height: 226px;
   }
 }
+
+/* Patch 12.4.3 — podium avatar composition
+   Keep artwork, avatar crop and rank badge in one coordinate system. */
+.avatarStage {
+  --podium-avatar-size: 72px;
+  --podium-art-size: 116px;
+
+  position: relative;
+  isolation: isolate;
+  width: var(--podium-art-size);
+  height: var(--podium-art-size);
+  display: grid;
+  place-items: center;
+  flex: 0 0 var(--podium-art-size);
+  margin: 14px 0 8px;
+}
+
+.podiumCard[data-rank='1'] .avatarStage {
+  --podium-avatar-size: 90px;
+  --podium-art-size: 142px;
+  margin: 18px 0 8px;
+}
+
+.rankArtwork,
+.podiumCard[data-rank='1'] .rankArtwork {
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: .12;
+  filter: none;
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.podiumCard[data-rank='1'] .rankArtwork {
+  opacity: .15;
+}
+
+.avatarRing {
+  position: relative;
+  z-index: 2;
+  width: calc(var(--podium-avatar-size) + 10px);
+  height: calc(var(--podium-avatar-size) + 10px);
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  padding: 4px;
+  overflow: visible;
+  border-radius: 50%;
+}
+
+.avatarClip {
+  width: var(--podium-avatar-size);
+  height: var(--podium-avatar-size);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid #10111c;
+  border-radius: 50%;
+  background: #0b0e17;
+}
+
+.avatarRing .avatarClip img,
+.avatarRing .avatarClip .avatarFallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  border: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  transform-origin: center;
+}
+
+.rankSeal {
+  z-index: 4;
+  left: 50%;
+  bottom: 5px;
+  transform: translateX(-50%);
+}
+
+.crown {
+  z-index: 5;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+@media (hover:hover) {
+  .podiumCard:hover .rankArtwork {
+    opacity: .16;
+    transform: translate(-50%, -50%) scale(1.02);
+  }
+
+  .podiumCard[data-rank='1']:hover .rankArtwork {
+    opacity: .18;
+  }
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding-bottom: calc(118px + env(safe-area-inset-bottom));
+  }
+
+  .avatarStage {
+    --podium-avatar-size: 58px;
+    --podium-art-size: 94px;
+    margin: 10px 0 5px;
+  }
+
+  .podiumCard[data-rank='1'] .avatarStage {
+    --podium-avatar-size: 76px;
+    --podium-art-size: 120px;
+    margin: 12px 0 6px;
+  }
+
+  .rankSeal {
+    width: 24px;
+    height: 24px;
+    bottom: 3px;
+    border-width: 2px;
+    font-size: 10px;
+  }
+
+  .crown {
+    top: -8px;
+    width: 42px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 390px) {
+  .avatarStage {
+    --podium-avatar-size: 54px;
+    --podium-art-size: 88px;
+  }
+
+  .podiumCard[data-rank='1'] .avatarStage {
+    --podium-avatar-size: 72px;
+    --podium-art-size: 112px;
+  }
+}
+

@@ -169,12 +169,6 @@ export default function LeaderboardClient() {
                 aria-label={`${entry.rank} место: ${entry.username}, ${formatWatchTime(entry.activeMs)}`}
               >
                 <span className={styles.cardTexture} aria-hidden="true" />
-                <img
-                  className={styles.rankArtwork}
-                  src={`/ui/animebox-rank-${entry.rank}.webp`}
-                  alt=""
-                  aria-hidden="true"
-                />
                 <span className={styles.placeLabel}>{entry.rank === 1 ? 'ЛИДЕР РЕЙТИНГА' : `${String(entry.rank).padStart(2, '0')} / ПРИЗОВОЕ МЕСТО`}</span>
                 <ProfilePreview
                   userId={entry.userId}
@@ -182,8 +176,18 @@ export default function LeaderboardClient() {
                   className={styles.profilePreviewTrigger}
                 >
                   <span className={styles.avatarStage}>
+                    <img
+                      className={styles.rankArtwork}
+                      src={`/ui/animebox-rank-${entry.rank}.webp`}
+                      alt=""
+                      aria-hidden="true"
+                    />
                     {entry.rank === 1 && <Crown className={styles.crown} />}
-                    <span className={styles.avatarRing}><Avatar entry={entry} /></span>
+                    <span className={styles.avatarRing}>
+                      <span className={styles.avatarClip}>
+                        <Avatar entry={entry} />
+                      </span>
+                    </span>
                     <span className={styles.rankSeal}>{entry.rank}</span>
                   </span>
                 </ProfilePreview>
