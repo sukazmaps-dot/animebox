@@ -30,11 +30,10 @@ export default function EpisodeDiscussionHub({
       </div>
 
       <div className="episode-discussion-hub__copy">
-        <span className="episode-discussion-hub__eyebrow">AnimeBox Community</span>
-        <h2 id="episode-discussion-hub-title">Обсуждения теперь привязаны к сериям</h2>
+        <span className="episode-discussion-hub__eyebrow">После серии</span>
+        <h2 id="episode-discussion-hub-title">Обсуждай без лишних спойлеров</h2>
         <p>
-          Так меньше случайных спойлеров: у каждой серии «{animeTitle}» своя ветка,
-          ответы и отдельная отметка спойлера.
+          У каждой серии «{animeTitle}» своя ветка. Спойлеры скрыты, пока ты сам их не откроешь.
         </p>
 
         <div className="episode-discussion-hub__actions">

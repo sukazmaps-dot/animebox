@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
-import { cache, Suspense } from 'react';
+import { cache, Suspense, type CSSProperties } from 'react';
 
 import LibraryStatusControl from '@/components/LibraryStatusControl';
 
@@ -13,6 +13,7 @@ import AnimeImageCascade from '@/components/AnimeImageCascade';
 import AnimeDetailControls from '@/components/AnimeDetailControls';
 import AnimeNotificationControl from '@/components/AnimeNotificationControl';
 import EpisodeDiscussionHub from '@/components/EpisodeDiscussionHub';
+import EpisodeList from '@/components/EpisodeList';
 import RelatedAnime, { RelatedAnimeLoading } from '@/components/RelatedAnime';
 import AdSlot from '@/components/monetization/AdSlot';
 
@@ -402,12 +403,13 @@ export default async function AnimePage({
 
   return (
     <main
-      className="anime-detail-v3
+      className="anime-detail-v3 anime-detail-v4
         min-h-screen
         overflow-hidden
         bg-[#08080c]
         text-white
       "
+      style={{ '--anime-page-accent': accentColor } as CSSProperties}
     >
       <script
         type="application/ld+json"
@@ -428,7 +430,7 @@ export default async function AnimePage({
           HERO / ОПИСАНИЕ ТАЙТЛА
           ===================================================== */}
 
-      <section className="relative overflow-hidden">
+      <section className="anime-detail-v4__hero-shell relative overflow-hidden">
 
 
         {/* =====================
@@ -441,7 +443,7 @@ export default async function AnimePage({
             alt=""
             aria-hidden="true"
             loading="eager"
-            fetchPriority="high"
+            fetchPriority="low"
             decoding="async"
             referrerPolicy="no-referrer"
             className="anime-detail-v3__banner absolute inset-0 h-full w-full object-cover object-center"
@@ -577,12 +579,18 @@ export default async function AnimePage({
                 min-w-0
               "
             >
+              <nav className="anime-detail-v4__breadcrumbs" aria-label="Навигация по каталогу">
+                <Link href="/search">Каталог</Link>
+                <span aria-hidden="true">/</span>
+                <span aria-current="page">{anime.russian || anime.name}</span>
+              </nav>
 
 
               {/* Тип / статус */}
 
               <div
                 className="
+                  anime-detail-v4__chips
                   mb-4
 
                   flex
@@ -594,6 +602,7 @@ export default async function AnimePage({
                 {anime.kind && (
                   <span
                     className="
+                      anime-detail-v4__chip
                       rounded-full
 
                       border
@@ -619,6 +628,7 @@ export default async function AnimePage({
                 {anime.status && (
                   <span
                     className="
+                      anime-detail-v4__chip
                       rounded-full
 
                       border
@@ -646,7 +656,7 @@ export default async function AnimePage({
 
               {seoIdentity.seasonLabel && (
                 <div className="mb-3">
-                  <span className="inline-flex rounded-full border border-violet-400/25 bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-200">
+                  <span className="anime-detail-v4__chip anime-detail-v4__season-chip inline-flex rounded-full border px-3 py-1 text-xs font-semibold">
                     {seoIdentity.seasonLabel}
                   </span>
                 </div>
@@ -656,6 +666,7 @@ export default async function AnimePage({
 
               <h1
                 className="
+                  anime-detail-v4__title
                   text-3xl
                   font-black
                   tracking-tight
@@ -676,6 +687,7 @@ export default async function AnimePage({
 
                   <p
                     className="
+                      anime-detail-v4__original-title
                       mt-2
 
                       text-lg
@@ -688,7 +700,7 @@ export default async function AnimePage({
                 )}
 
               {visibleAlternateNames.length > 0 && (
-                <p className="mt-3 max-w-3xl text-xs leading-5 text-white/35 md:text-sm">
+                <p className="anime-detail-v4__aliases mt-3 max-w-3xl text-xs leading-5 text-white/35 md:text-sm">
                   <span className="text-white/50">Другие названия:</span>{' '}
                   {visibleAlternateNames.join(' · ')}
                 </p>
@@ -700,6 +712,7 @@ export default async function AnimePage({
               {anime.description && (
                 <p
                   className="
+                    anime-detail-v4__description
                     mt-6
 
                     max-w-3xl
@@ -724,6 +737,7 @@ export default async function AnimePage({
 
               <div
                 className="
+                  anime-detail-v4__metrics
                   mt-6
 
                   flex
@@ -855,8 +869,8 @@ export default async function AnimePage({
       <section className="anime-detail-v3__facts mx-auto max-w-7xl px-4 pb-5 md:px-6" aria-labelledby="anime-facts-title">
         <div className="anime-detail-v3__facts-shell">
           <div className="anime-detail-v3__facts-heading">
-            <span>Паспорт тайтла</span>
-            <h2 id="anime-facts-title">Главное без лишнего</h2>
+            <span>О тайтле</span>
+            <h2 id="anime-facts-title">Коротко</h2>
           </div>
 
           <dl className="anime-detail-v3__facts-list">
@@ -906,40 +920,65 @@ export default async function AnimePage({
         </div>
       </section>
 
+      {/* =====================================================
+          СЕЗОНЫ / ЭПИЗОДЫ
+          ===================================================== */}
+
+      <section
+        className="anime-detail-v4__episodes mx-auto max-w-7xl px-4 pb-6 pt-2 md:px-6"
+        aria-labelledby="anime-episodes-title"
+      >
+        <div className="anime-detail-v4__section-head">
+          <div>
+            <span>СЕРИИ</span>
+            <h2 id="anime-episodes-title">Сезоны и эпизоды</h2>
+            <p>Выбери часть и продолжай с нужной серии.</p>
+          </div>
+          <Link href={`${animeHref(resolved)}/watch`}>Открыть просмотр →</Link>
+        </div>
+
+        <div className="detail__episodes anime-detail-v4__episode-list">
+          <EpisodeList
+            trackingAnimeId={numericId}
+            animeId={resolved.slug}
+            episodes={anime.episodes}
+            episodesAired={anime.episodes_aired}
+            totalEpisodesKnown={Boolean(anime.episodes && anime.episodes > 0)}
+          />
+        </div>
+      </section>
+
 
       {/* =====================================================
           БИБЛИОТЕКА
           ===================================================== */}
 
       <section
-        className="
-          anime-detail-library-section
-
-          mx-auto
-          max-w-7xl
-
-          px-4
-          pt-2
-          pb-4
-
-          md:px-6
-        "
+        className="anime-detail-library-section anime-detail-v4__personal mx-auto max-w-7xl px-4 pb-6 pt-2 md:px-6"
+        aria-labelledby="anime-personal-title"
       >
+        <div className="anime-detail-v4__section-head anime-detail-v4__section-head--compact">
+          <div>
+            <span>МОЙ ANIMEBOX</span>
+            <h2 id="anime-personal-title">Сохрани тайтл под себя</h2>
+          </div>
+        </div>
 
-        <LibraryStatusControl
-          animeId={
-            numericId
-          }
-        />
+        <div className="anime-detail-v4__personal-grid">
+          <LibraryStatusControl
+            animeId={numericId}
+            variant="compact"
+          />
 
-        <AnimeNotificationControl
-          animeId={numericId}
-          animeSlug={resolved.slug}
-          animeTitle={anime.russian || anime.name}
-          episodesAired={anime.episodes_aired || 0}
-          isFinished={String(resolved.status).toUpperCase() === 'FINISHED'}
-        />
-
+          <AnimeNotificationControl
+            animeId={numericId}
+            animeSlug={resolved.slug}
+            animeTitle={anime.russian || anime.name}
+            episodesAired={anime.episodes_aired || 0}
+            isFinished={String(resolved.status).toUpperCase() === 'FINISHED'}
+            variant="compact"
+          />
+        </div>
       </section>
 
 
@@ -949,31 +988,22 @@ export default async function AnimePage({
           ===================================================== */}
 
       <section
-        className="mx-auto max-w-7xl px-4 pb-6 md:px-6"
+        className="anime-detail-v4__watch-together mx-auto max-w-7xl px-4 pb-7 md:px-6"
         aria-labelledby="watch-together-anime-title"
       >
-        <div className="flex flex-col gap-4 rounded-2xl border border-violet-400/10 bg-violet-500/[0.035] p-4 sm:flex-row sm:items-center sm:justify-between md:p-5">
+        <div className="anime-detail-v4__watch-together-inner">
           <div className="min-w-0">
-            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-300/70">
-              Watch Together
-            </span>
-            <h2
-              id="watch-together-anime-title"
-              className="mt-1 text-lg font-bold text-white md:text-xl"
-            >
-              Смотреть {seoIdentity.pageHeading} вместе с другом
+            <span>ВМЕСТЕ</span>
+            <h2 id="watch-together-anime-title">
+              Смотреть «${seoIdentity.pageHeading}» с друзьями
             </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/55">
-              Создай приватную комнату AnimeBox, пригласи друга по ссылке и смотри серии
-              синхронно — даже если вы находитесь далеко друг от друга.
+            <p>
+              Открой комнату, отправь ссылку — AnimeBox синхронизирует просмотр.
             </p>
           </div>
 
-          <Link
-            href="/watch-together"
-            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-violet-300/20 bg-violet-500/10 px-4 text-sm font-semibold text-violet-100 transition hover:border-violet-300/35 hover:bg-violet-500/15"
-          >
-            Смотреть вместе →
+          <Link href="/watch-together">
+            Открыть комнаты <span aria-hidden="true">→</span>
           </Link>
         </div>
       </section>

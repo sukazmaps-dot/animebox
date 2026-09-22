@@ -321,11 +321,11 @@ export default function AnimeDetailControls({
 
   return (
     <>
-      {trackerMessage && <p role="status">{trackerMessage}</p>}
-      <div className="mt-7 flex flex-wrap gap-3">
+      {trackerMessage && <p className="anime-detail-actions__message" role="status">{trackerMessage}</p>}
+      <div className="anime-detail-actions mt-7 flex flex-wrap gap-3">
         <button
           type="button"
-          className="btn btn--primary"
+          className="btn btn--primary anime-detail-actions__watch"
           onClick={handleWatch}
           disabled={episodeAvailabilityPending || episodesUnavailable}
           title={
@@ -350,7 +350,7 @@ export default function AnimeDetailControls({
 
         <button
           type="button"
-          className={`btn ${
+          className={`btn anime-detail-actions__favorite ${
             favorite
               ? 'btn--primary'
               : 'btn--ghost'
@@ -366,7 +366,7 @@ export default function AnimeDetailControls({
         {!saved && (
           <button
             type="button"
-            className="btn btn--ghost"
+            className="btn btn--ghost anime-detail-actions__tracker"
             onClick={
               handleAddToTracker
             }
@@ -377,7 +377,7 @@ export default function AnimeDetailControls({
 
         {watchingState ===
           'watching' && (
-          <span className="self-center text-sm text-emerald-300">
+          <span className="anime-detail-actions__state is-watching self-center text-sm">
             Смотрю ·{' '}
             {progressText}
           </span>
@@ -394,7 +394,7 @@ export default function AnimeDetailControls({
         {watchingState ===
           'all' &&
           saved && (
-            <span className="self-center text-sm text-white/50">
+            <span className="anime-detail-actions__state self-center text-sm">
               Сохранено в трекере
             </span>
           )}

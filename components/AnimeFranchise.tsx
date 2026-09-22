@@ -60,9 +60,9 @@ export default async function AnimeFranchise({
   return (
     <section className={SECTION_CLASS} aria-labelledby="franchise-heading">
       <div className="border-t border-white/10 pt-8">
-        <span className="anime-franchise-v3__eyebrow">Content Intelligence</span>
-        <h2 id="franchise-heading" className="anime-franchise-v3__title">Порядок выхода</h2>
-        <p className="anime-franchise-v3__subtitle">AnimeBox связывает сезоны, части, фильмы и спецвыпуски одной франшизы.</p>
+        <span className="anime-franchise-v3__eyebrow">Франшиза</span>
+        <h2 id="franchise-heading" className="anime-franchise-v3__title">Порядок частей</h2>
+        <p className="anime-franchise-v3__subtitle">Сезоны, фильмы и спецвыпуски по порядку выхода.</p>
         {franchise.partial && (
           <p className="mt-3 text-sm text-amber-200/80" role="status">
             Показана часть франшизы. Некоторые связи пока не загружены.
@@ -74,7 +74,7 @@ export default async function AnimeFranchise({
             <div className="mb-3 flex items-end justify-between gap-3">
               <div>
                 <h3 className="text-sm font-semibold text-white/85">Основная линия</h3>
-                <p className="mt-1 text-xs text-white/40">По порядку релиза · split-cour остаётся частью одного сезона</p>
+                <p className="mt-1 text-xs text-white/40">От первого сезона к следующей части</p>
               </div>
               <span className="text-xs text-white/35">{seasons.length}</span>
             </div>
