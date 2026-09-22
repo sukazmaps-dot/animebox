@@ -8,7 +8,6 @@
   object-position:65% center;
 }
 
-.home-grid .section:not(:first-child),
 .right-rail > .panel,
 .profile-v2__bottom-card,
 .premium-benefits,
@@ -33,7 +32,6 @@ img{
     object-position:70% center;
   }
 
-  .home-grid .section:not(:first-child),
   .right-rail > .panel,
   .profile-v2__bottom-card,
   .premium-benefits,

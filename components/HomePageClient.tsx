@@ -1157,8 +1157,8 @@ export default function HomePage({
               <span>{popularError}</span>
             </div>
           ) : (
-            <div className="anime-grid">
-              {popular.slice(0, 8).map((anime) => (
+            <div className="anime-grid home-anime-grid">
+              {popular.slice(0, 14).map((anime) => (
                 <AnimeCard
                   key={anime.id}
                   anime={anime}
@@ -1201,8 +1201,8 @@ export default function HomePage({
               <span>{ongoingError}</span>
             </div>
           ) : (
-            <div className="anime-grid">
-              {fallbackItems.slice(0, 8).map((anime) => (
+            <div className="anime-grid home-anime-grid">
+              {fallbackItems.slice(0, 14).map((anime) => (
                 <AnimeCard
                   key={anime.id}
                   anime={anime}

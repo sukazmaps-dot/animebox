@@ -418,3 +418,113 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+
+/* =========================================================
+   Patch 12.5.4.1 — Home layout regression hotfix
+   Fix incomplete desktop rows and legacy Mood spacing without
+   changing Home data or recommendation logic.
+   ========================================================= */
+
+/* Two complete rows at the desktop grid breakpoints:
+   5 cols -> 10, 6 cols -> 12, 7 cols -> 14. */
+@media (min-width: 1001px) and (max-width: 1320px) {
+  .home-page .home-anime-grid > :nth-child(n + 11) {
+    display: none;
+  }
+}
+
+@media (min-width: 1321px) and (max-width: 1699px) {
+  .home-page .home-anime-grid > :nth-child(n + 13) {
+    display: none;
+  }
+}
+
+@media (min-width: 1700px) {
+  .home-page .home-anime-grid > :nth-child(n) {
+    display: flex;
+  }
+}
+
+/* Tablet still uses five columns in the current Home contract. */
+@media (min-width: 721px) and (max-width: 1000px) {
+  .home-page .home-anime-grid > :nth-child(n + 11) {
+    display: none;
+  }
+}
+
+/* Keep the old mobile content density: four 2-card rows / horizontal equivalents. */
+@media (max-width: 720px) {
+  .home-page .home-anime-grid > :nth-child(n + 9) {
+    display: none;
+  }
+}
+
+/* Mood is a compact control strip, not a full-width empty dashboard band. */
+@media (min-width: 1001px) {
+  .home-page .mood-picker {
+    grid-template-columns: minmax(220px, 280px) minmax(0, 760px) !important;
+    justify-content: space-between;
+    gap: 24px !important;
+    margin-top: 18px !important;
+    padding: 10px 0 9px !important;
+    border-bottom: 0 !important;
+  }
+
+  .home-page .mood-picker__intro h2 {
+    font-size: 16px !important;
+  }
+
+  .home-page .mood-picker__intro p {
+    margin-top: 4px !important;
+    font-size: 9.5px !important;
+  }
+
+  .home-page .mood-picker__options {
+    width: 100%;
+    max-width: 760px;
+    justify-self: end;
+    grid-template-columns: repeat(5, minmax(118px, 1fr)) !important;
+    gap: 7px !important;
+  }
+
+  .home-page .mood-chip {
+    min-height: 44px !important;
+    max-height: 44px !important;
+    height: 44px !important;
+    padding: 5px 8px !important;
+  }
+
+  .home-page .mood-chip__icon {
+    width: 28px !important;
+    height: 28px !important;
+    flex: 0 0 28px;
+  }
+
+  .home-page .mood-chip__image {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  .home-page .mood-chip__copy strong {
+    font-size: 10.5px !important;
+  }
+
+  .home-page .mood-chip__copy small {
+    font-size: 8.5px !important;
+  }
+
+  .home-page .home-grid--main .smart-feed-section {
+    margin-top: 16px !important;
+  }
+}
+
+/* Card text/meta baseline stays stable across mixed long/short titles. */
+.home-page .home-anime-grid .anime-card--signature .anime-card__body h3 {
+  min-height: 32px;
+}
+
+.home-page .home-anime-grid .anime-card__meta,
+.home-page .home-anime-grid .anime-card__personal {
+  min-height: 18px;
+}
