@@ -242,14 +242,10 @@
 }
 
 .bio {
-  margin: 10px 0 0;
-  padding: 11px 12px;
-  border: 1px solid rgba(255,255,255,.055);
-  border-radius: 12px;
-  background: rgba(255,255,255,.018);
-  color: rgba(229,233,243,.72);
+  margin: 9px 1px 0;
+  color: rgba(229,233,243,.68);
   font-size: 10.5px;
-  line-height: 1.58;
+  line-height: 1.55;
 }
 
 .metaGrid {
@@ -329,24 +325,23 @@
   height: 29px;
   display: grid;
   place-items: center;
-  overflow: hidden;
-  border-radius: 9px;
 }
 
 .flameCrop img {
-  width: 31px;
-  height: 31px;
+  width: 28px;
+  height: 28px;
   max-width: 100%;
   object-fit: contain;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--profile-preview-accent) 24%, transparent));
 }
 
 .actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
-  gap: 9px;
-  margin-top: 13px;
-  padding-top: 13px;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 1px solid rgba(255,255,255,.065);
 }
 
@@ -355,7 +350,7 @@
 }
 
 .openProfile {
-  min-height: 40px;
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
