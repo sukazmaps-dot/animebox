@@ -16,6 +16,7 @@ import SocialNotificationBadge from './SocialNotificationBadge';
 import SidebarMembership from './SidebarMembership';
 import { useAuthState } from '@/components/AuthStateProvider';
 import { TELEGRAM_MINI_APP_URL } from '@/lib/telegram-links';
+import { BRAND_SLOGAN } from '@/lib/brand';
 
 const mainNav = [
   {
@@ -189,7 +190,7 @@ function NavbarContent() {
 
             <span className="brand__copy">
               <strong>ANIMEBOX</strong>
-              <small>Смотри аниме и управляй своим списком.</small>
+              <small>{BRAND_SLOGAN}</small>
             </span>
           </Link>
         </div>
@@ -394,7 +395,7 @@ function NavbarFallback() {
 
             <span className="brand__copy">
               <strong>ANIMEBOX</strong>
-              <small>Смотри аниме и управляй своим списком.</small>
+              <small>{BRAND_SLOGAN}</small>
             </span>
           </Link>
         </div>

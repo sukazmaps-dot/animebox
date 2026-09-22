@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'AnimeBox — аниме и трекер',
     short_name: 'AnimeBox',
     description:
-      'Каталог аниме, расписание новых серий, личный трекер и прогресс просмотра.',
+      'Твой личный аниме-уголок.',
     start_url: '/',
     display: 'standalone',
     background_color: '#080912',

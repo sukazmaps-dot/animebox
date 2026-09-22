@@ -57,6 +57,7 @@ import TelegramWelcomePromo from '@/components/TelegramWelcomePromo';
 import { Analytics } from '@vercel/analytics/next';
 
 import { SITE_URL } from '@/lib/seo-config';
+import { BRAND_SLOGAN, BRAND_TITLE } from '@/lib/brand';
 import { SUPPORT_EMAIL } from '@/lib/contact';
 import { TELEGRAM_BOT_URL, TELEGRAM_CHANNEL_URL } from '@/lib/telegram-links';
 
@@ -79,7 +80,7 @@ const websiteStructuredData = {
   url: SITE_URL,
 
   description:
-    'AnimeBox — аниме-трекер с просмотром, списками, релизами и комнатами для совместного просмотра.',
+    BRAND_SLOGAN,
 
   inLanguage: 'ru-RU',
 };
@@ -126,7 +127,7 @@ export const metadata: Metadata = {
 
   title: {
     default:
-      'AnimeBox — смотри аниме и веди свой список',
+      BRAND_TITLE,
 
     template:
       '%s | AnimeBox',
@@ -183,7 +184,7 @@ export const metadata: Metadata = {
     siteName: 'AnimeBox',
 
     title:
-      'AnimeBox — смотри аниме и веди свой список',
+      BRAND_TITLE,
 
     description:
       'Смотри аниме, отмечай серии, следи за онгоингами и заходи в комнаты совместного просмотра.',
@@ -196,7 +197,7 @@ export const metadata: Metadata = {
         height: 630,
 
         alt:
-          'AnimeBox — смотри аниме и веди свой список',
+          BRAND_TITLE,
       },
     ],
   },
@@ -209,7 +210,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
 
     title:
-      'AnimeBox — смотри аниме и веди свой список',
+      BRAND_TITLE,
 
     description:
       'Смотри аниме, отмечай серии и держи свой список в порядке.',
