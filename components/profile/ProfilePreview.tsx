@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 
 import FriendActionButton from '@/components/friends/FriendActionButton';
+import StreakDisplay from '@/components/profile/StreakDisplay';
 import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
@@ -43,6 +44,8 @@ type PreviewData = {
   streak: {
     current: number;
     longest: number;
+    lastActiveDate: string | null;
+    todayKey: string;
   };
 };
 
@@ -385,18 +388,13 @@ export default function ProfilePreview({
                       {data.bio && <p className={styles.bio}>{data.bio}</p>}
 
                       <div className={styles.metaGrid}>
-                        <div className={styles.metaCard}>
-                          <span className={styles.metaIcon} aria-hidden="true">
-                            <span className={styles.flameCrop}>
-                              <img src="/brand/profile/streak-fire.webp" alt="" />
-                            </span>
-                          </span>
-                          <span>
-                            <small>Серия активности</small>
-                            <strong>{data.streak.current} дн.</strong>
-                            <em>рекорд {data.streak.longest}</em>
-                          </span>
-                        </div>
+                        <StreakDisplay
+                          current={data.streak.current}
+                          longest={data.streak.longest}
+                          lastActiveDate={data.streak.lastActiveDate}
+                          todayKey={data.streak.todayKey}
+                          variant="compact"
+                        />
 
                         <div className={styles.metaCard}>
                           <span className={styles.metaGlyph} aria-hidden="true">✦</span>
