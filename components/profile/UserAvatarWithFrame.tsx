@@ -17,6 +17,7 @@ import {
 
 type Props = {
   src: string;
+  mobileSrc?: string | null;
   alt: string;
   role?: PublicIdentityRole;
   sponsor?: SponsorStatus | null;
@@ -39,6 +40,7 @@ const FRAME_BY_KIND: Record<'owner' | SponsorTier, string> = {
 
 export default function UserAvatarWithFrame({
   src,
+  mobileSrc = null,
   alt,
   role = null,
   sponsor = null,
@@ -133,13 +135,21 @@ export default function UserAvatarWithFrame({
           frameSrc ? 'h-[85%] w-[85%]' : 'h-full w-full'
         }`}
       >
-        <img
-          src={src}
-          alt={alt}
-          className="h-full w-full select-none object-cover"
-          style={premiumMediaStyle(mediaTransform)}
-          draggable={false}
-        />
+        <picture className="block h-full w-full">
+          {mobileSrc && mobileSrc !== src && (
+            <source
+              media="(max-width: 768px), (prefers-reduced-motion: reduce)"
+              srcSet={mobileSrc}
+            />
+          )}
+          <img
+            src={src}
+            alt={alt}
+            className="h-full w-full select-none object-cover"
+            style={premiumMediaStyle(mediaTransform)}
+            draggable={false}
+          />
+        </picture>
       </div>
 
       {frameSrc && (
