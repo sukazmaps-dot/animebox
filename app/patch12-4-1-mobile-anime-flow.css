@@ -1,0 +1,308 @@
+/* =========================================================
+   AnimeBox Patch 12.4.1 — Mobile Anime Flow Polish
+   ========================================================= */
+
+@media (max-width: 720px) {
+  .episode-page,
+  .tracker-page {
+    padding-bottom: calc(118px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .episode-page .episode-comments {
+    margin-top: 14px;
+    padding: 12px;
+  }
+
+  .episode-page .episode-comments__header {
+    gap: 10px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+
+  .episode-page .episode-comments__header h2 {
+    font-size: 18px;
+  }
+
+  .episode-page .episode-comments__header p {
+    margin-top: 4px;
+    font-size: 10.5px;
+  }
+
+  .episode-page .episode-comments__scope {
+    margin-bottom: 9px;
+    padding: 7px 9px;
+  }
+
+  .episode-page .episode-comments__form {
+    padding: 9px;
+  }
+
+  .episode-page .episode-comments__form textarea {
+    min-height: 64px !important;
+    max-height: 180px;
+    padding: 6px 4px 9px;
+  }
+
+  .episode-page .episode-comments__controls {
+    gap: 8px;
+    padding-top: 8px;
+  }
+
+  .episode-page .episode-comments__empty {
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 18px 10px !important;
+  }
+
+  .episode-page .episode-comments__empty--illustrated {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 3px;
+  }
+
+  .episode-page .episode-comments__empty--illustrated img {
+    width: 84px !important;
+    max-height: 74px;
+    margin: 0 !important;
+    object-fit: contain;
+  }
+
+  .episode-page .episode-comments__empty--illustrated strong {
+    margin-top: 4px;
+    font-size: 12px;
+  }
+
+  .episode-page .episode-comments__empty--illustrated span {
+    margin-top: 1px;
+    font-size: 10px;
+  }
+
+  .episode-page .episode-engagement-grid {
+    gap: 8px;
+  }
+
+  .episode-page .episode-engagement-grid > * {
+    border-radius: 13px !important;
+  }
+
+  .tracker-page {
+    padding-inline: 12px !important;
+  }
+
+  .tracker-page .tracker-hero {
+    margin-bottom: 14px;
+    padding: 16px !important;
+    border-radius: 18px !important;
+  }
+
+  .tracker-page .tracker-hero__brand {
+    gap: 12px;
+  }
+
+  .tracker-page .tracker-hero__mark {
+    width: 52px;
+    height: 52px;
+    flex: 0 0 52px;
+  }
+
+  .tracker-page .tracker-hero h1 {
+    font-size: 28px !important;
+  }
+
+  .tracker-page .tracker-hero p {
+    margin-top: 4px;
+    font-size: 11px !important;
+  }
+
+  .tracker-page .tracker-filters {
+    margin-bottom: 12px;
+    gap: 5px;
+  }
+
+  .tracker-page .tracker-filter {
+    min-height: 42px !important;
+    padding: 0 9px !important;
+  }
+
+  .tracker-page .tracker-list {
+    gap: 12px !important;
+  }
+
+  .tracker-page .tracker-card {
+    padding: 14px !important;
+    border-radius: 16px !important;
+  }
+
+  .tracker-page .tracker-card__top {
+    gap: 10px;
+  }
+
+  .tracker-page .tracker-card__label {
+    font-size: 8px !important;
+  }
+
+  .tracker-page .tracker-card__title a {
+    font-size: 13px !important;
+    line-height: 1.35;
+  }
+
+  .tracker-page .tracker-card__right {
+    gap: 7px;
+  }
+
+  .tracker-page .tracker-card__open {
+    display: none;
+  }
+
+  .tracker-page .tracker-card__progress {
+    margin-top: 10px !important;
+    padding: 10px !important;
+    border-radius: 11px !important;
+  }
+
+  .tracker-page .tracker-card__progress a {
+    min-height: 36px !important;
+    margin-top: 8px !important;
+  }
+
+  .tracker-page .tracker-card__controls {
+    margin-top: 10px !important;
+  }
+
+  .tracker-page .tracker-card__controls .community-library-control.is-compact {
+    padding: 10px !important;
+    border-radius: 12px !important;
+  }
+
+  .tracker-page .tracker-card__controls .community-library-control__top,
+  .tracker-page .tracker-card__controls .community-library-control__footer {
+    display: none;
+  }
+
+  .tracker-page .tracker-card__controls .community-library-control__statuses {
+    gap: 6px !important;
+  }
+
+  .tracker-page .tracker-card__controls .community-library-status {
+    min-height: 44px !important;
+  }
+
+  .tracker-page .community-library-remove-row {
+    margin-top: 8px !important;
+    padding-top: 8px !important;
+  }
+
+  .telegram-growth-card--community {
+    min-height: 0 !important;
+    grid-template-columns: 1fr !important;
+    margin: 14px 0 !important;
+    border-radius: 18px !important;
+  }
+
+  .telegram-growth-card--community .telegram-growth-card__content {
+    grid-column: 1 !important;
+    padding: 17px 16px !important;
+  }
+
+  .telegram-growth-card--community .telegram-growth-card__art {
+    display: none !important;
+  }
+
+  .telegram-growth-card--community .telegram-growth-card__copy h3 {
+    max-width: 300px;
+    margin-top: 12px !important;
+    font-size: 20px !important;
+    line-height: 1.12;
+  }
+
+  .telegram-growth-card--community .telegram-growth-card__copy p {
+    margin-top: 6px;
+    font-size: 9.5px !important;
+    line-height: 1.5;
+  }
+
+  .telegram-growth-card--community .telegram-growth-card__benefits {
+    margin-top: 10px;
+  }
+
+  .telegram-growth-card--community .telegram-growth-card__cta {
+    min-height: 44px !important;
+    margin-top: 12px !important;
+  }
+
+  .anime-detail-v4__episodes,
+  .anime-detail-v4__personal,
+  .anime-detail-v4__watch-together {
+    padding-bottom: 18px !important;
+  }
+
+  .anime-detail-v4__section-head {
+    margin-bottom: 10px;
+  }
+
+  .anime-detail-v4__section-head p {
+    max-width: 260px;
+    line-height: 1.4;
+  }
+
+  .anime-detail-v4__episode-list {
+    padding: 10px !important;
+  }
+
+  .anime-detail-v4__episode-list .episode-list {
+    gap: 6px !important;
+  }
+
+  .anime-detail-v4__episode-list .episode-list__item {
+    min-height: 54px;
+    padding: 8px 5px !important;
+  }
+
+  .anime-detail-v4__episode-list .episode-list__number {
+    font-size: 14px !important;
+  }
+
+  .anime-detail-v4 .anime-franchise-v3__season {
+    min-height: 72px;
+    padding: 10px;
+  }
+
+  .anime-detail-v4 .anime-franchise-v3__season-title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .anime-detail-v4 .anime-detail-franchise-section {
+    padding-bottom: 26px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .episode-page,
+  .tracker-page {
+    padding-bottom: calc(112px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .tracker-page {
+    padding-inline: 9px !important;
+  }
+
+  .tracker-page .tracker-card {
+    padding: 12px !important;
+  }
+
+  .tracker-page .tracker-card__controls .community-library-status {
+    min-height: 42px !important;
+  }
+
+  .telegram-growth-card--community .telegram-growth-card__content {
+    padding: 15px 14px !important;
+  }
+
+  .anime-detail-v4__episode-list {
+    padding-inline: 8px !important;
+  }
+}

@@ -128,8 +128,13 @@ export default function MyListPage() {
 
   const filteredLibrary = useMemo(() => {
     if (!data) return [];
-    if (filter === 'all') return data.library;
-    return data.library.filter((item) => item.status === filter);
+
+    const unique = Array.from(
+      new Map(data.library.map((item) => [item.anime_id, item])).values(),
+    );
+
+    if (filter === 'all') return unique;
+    return unique.filter((item) => item.status === filter);
   }, [data, filter]);
 
   function filterCount(value: Filter) {
@@ -295,7 +300,7 @@ export default function MyListPage() {
                   </div>
 
                   {item.progress && item.progress.trackedEpisodes > 0 && (
-                    <div className="mt-3 rounded-xl border border-violet-400/10 bg-violet-500/[0.035] p-3">
+                    <div className="tracker-card__progress mt-3 rounded-xl border border-violet-400/10 bg-violet-500/[0.035] p-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="min-w-0">
                           <span className="block text-[9px] font-extrabold uppercase tracking-[0.16em] text-violet-300/45">

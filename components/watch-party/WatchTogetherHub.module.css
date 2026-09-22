@@ -1758,3 +1758,31 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Patch 12.4.1 — mobile flow density */
+@media (max-width: 620px) {
+  .page {
+    padding-bottom: calc(118px + env(safe-area-inset-bottom));
+  }
+
+  .publicRooms {
+    padding: 14px 10px;
+  }
+
+  .publicEmpty {
+    min-height: 190px;
+    padding: 22px 14px;
+  }
+
+  .builder {
+    padding: 14px 10px;
+  }
+
+  .roomBuilder {
+    padding: 15px 12px;
+  }
+
+  .searchBox {
+    margin-top: 14px;
+  }
+}
