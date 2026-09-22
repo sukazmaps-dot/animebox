@@ -729,25 +729,6 @@ export default function HomeHeroCarousel({
             ))}
           </div>
 
-          <div className="home-hero-carousel__arrows">
-            <button
-              type="button"
-              aria-label="Предыдущая рекомендация"
-              className="home-hero-carousel__arrow home-hero-carousel__arrow--prev"
-              onClick={showPreviousSlide}
-            >
-              ←
-            </button>
-
-            <button
-              type="button"
-              aria-label="Следующая рекомендация"
-              className="home-hero-carousel__arrow home-hero-carousel__arrow--next"
-              onClick={showNextSlide}
-            >
-              →
-            </button>
-          </div>
         </div>
       )}
     </section>

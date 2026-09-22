@@ -86,6 +86,8 @@ export default function SearchCatalogClient({
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<CatalogStatus>('any');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [openPicker, setOpenPicker] = useState<'year' | 'status' | null>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
   const [selectedMood, setSelectedMood] = useState<CatalogMood>('any');
   const [favorites, setFavorites] = useState<Anime[]>([]);
   const [tasteGraph, setTasteGraph] = useState<TasteGraph | null>(() => readCachedTasteGraph());
@@ -99,6 +101,22 @@ export default function SearchCatalogClient({
   const [hasNextPage, setHasNextPage] = useState(initialResults.length >= CATALOG_PAGE_SIZE);
 
   useEffect(() => { liveQueryRef.current = liveQuery; }, [liveQuery]);
+
+  useEffect(() => {
+    if (!openPicker) return;
+    const dismiss = (event: PointerEvent) => {
+      if (event.target instanceof Node && !pickerRef.current?.contains(event.target)) setOpenPicker(null);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenPicker(null);
+    };
+    document.addEventListener('pointerdown', dismiss);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('pointerdown', dismiss);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [openPicker]);
 
   useEffect(() => {
     const syncFavorites = () => setFavorites(readAnimeFavorites());
@@ -238,6 +256,7 @@ export default function SearchCatalogClient({
     setPageState({ query, page: 1 });
   }
   function clearStructuredFilters() {
+    setOpenPicker(null);
     setSelectedGenres([]);
     setSelectedYear(null);
     setSelectedStatus('any');
@@ -314,7 +333,7 @@ export default function SearchCatalogClient({
 
       <div className={styles.filterBar}>
         {view === 'catalog' && <MoodFilter value={selectedMood} onChange={(mood) => { setSelectedMood(mood); setPageState({ query, page: 1 }); }} />}
-        <button type="button" className={`${styles.filterToggle} ${filtersOpen || filterCount > 0 ? styles.filterToggleActive : ''}`} aria-expanded={filtersOpen} onClick={() => setFiltersOpen((current) => !current)}>
+        <button type="button" className={`${styles.filterToggle} ${filtersOpen || filterCount > 0 ? styles.filterToggleActive : ''}`} aria-expanded={filtersOpen} onClick={() => { setOpenPicker(null); setFiltersOpen((current) => !current); }}>
           <span aria-hidden="true">☰</span>Фильтры{filterCount > 0 ? <b>{filterCount}</b> : null}
         </button>
       </div>
@@ -334,9 +353,30 @@ export default function SearchCatalogClient({
               })}
             </div>
           </div>
-          <div className={styles.filterSelectGrid}>
-            <label><span className={styles.filterLabel}>Год выпуска</span><select value={selectedYear ?? ''} onChange={(event) => { const value = Number(event.target.value); setSelectedYear(Number.isSafeInteger(value) && value > 0 ? value : null); setPageState({ query, page: 1 }); }}><option value="">Любой год</option>{YEARS.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
-            <label><span className={styles.filterLabel}>Статус</span><select value={selectedStatus} onChange={(event) => { setSelectedStatus(event.target.value as CatalogStatus); setPageState({ query, page: 1 }); }}><option value="any">Любой</option><option value="ongoing">Онгоинг</option><option value="finished">Завершено</option></select></label>
+          <div ref={pickerRef} className={styles.filterSelectGrid}>
+            <div className={styles.filterPicker}>
+              <span className={styles.filterLabel}>Год выпуска</span>
+              <button type="button" className={styles.filterPickerTrigger} aria-expanded={openPicker === 'year'} aria-controls="catalog-year-options" onClick={() => setOpenPicker((current) => current === 'year' ? null : 'year')}>
+                {selectedYear ?? 'Любой год'}<span aria-hidden="true">⌄</span>
+              </button>
+              {openPicker === 'year' && (
+                <div id="catalog-year-options" className={styles.filterPickerMenu} aria-label="Выбрать год выпуска">
+                  <button type="button" aria-pressed={selectedYear === null} onClick={() => { setSelectedYear(null); setPageState({ query, page: 1 }); setOpenPicker(null); }}>Любой год</button>
+                  {YEARS.map((year) => <button key={year} type="button" aria-pressed={selectedYear === year} onClick={() => { setSelectedYear(year); setPageState({ query, page: 1 }); setOpenPicker(null); }}>{year}</button>)}
+                </div>
+              )}
+            </div>
+            <div className={styles.filterPicker}>
+              <span className={styles.filterLabel}>Статус</span>
+              <button type="button" className={styles.filterPickerTrigger} aria-expanded={openPicker === 'status'} aria-controls="catalog-status-options" onClick={() => setOpenPicker((current) => current === 'status' ? null : 'status')}>
+                {selectedStatus === 'ongoing' ? 'Онгоинг' : selectedStatus === 'finished' ? 'Завершено' : 'Любой'}<span aria-hidden="true">⌄</span>
+              </button>
+              {openPicker === 'status' && (
+                <div id="catalog-status-options" className={styles.filterPickerMenu} aria-label="Выбрать статус">
+                  {([['any', 'Любой'], ['ongoing', 'Онгоинг'], ['finished', 'Завершено']] as const).map(([status, label]) => <button key={status} type="button" aria-pressed={selectedStatus === status} onClick={() => { setSelectedStatus(status); setPageState({ query, page: 1 }); setOpenPicker(null); }}>{label}</button>)}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

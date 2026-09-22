@@ -484,6 +484,60 @@
 }
 .filterSelectGrid select:focus { box-shadow: 0 0 0 2px rgba(147,130,230,.12); }
 
+.filterPicker { position: relative; min-width: 0; }
+.filterPickerTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid rgba(194,201,218,.08);
+  border-radius: 6px;
+  background: var(--ab-surface-2);
+  color: var(--ab-text-soft);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.filterPickerTrigger:hover,
+.filterPickerTrigger[aria-expanded="true"] { background: var(--ab-surface-3); color: var(--ab-text); }
+.filterPickerTrigger:focus-visible,
+.filterPickerMenu button:focus-visible { outline: 2px solid var(--ab-accent); outline-offset: 2px; }
+.filterPickerTrigger > span { font-size: 19px; line-height: 1; color: var(--ab-muted); }
+.filterPickerMenu {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  max-height: 232px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 5px;
+  border: 1px solid rgba(194,201,218,.14);
+  border-radius: 7px;
+  background: #141b28;
+  box-shadow: 0 16px 38px rgba(0,0,0,.4);
+  scrollbar-width: thin;
+}
+.filterPickerMenu button {
+  display: block;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ab-text-soft);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.filterPickerMenu button:hover,
+.filterPickerMenu button[aria-pressed="true"] { background: rgba(147,130,230,.16); color: #f2efff; }
+
 @media (max-width: 760px) {
   .catalogTabs { width: 100%; }
   .catalogTab,
@@ -497,6 +551,7 @@
   .genreSelected { justify-content: space-between; min-height: 38px; font-size: 11px; }
   .filterSelectGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .filterSelectGrid select { min-height: 42px; font-size: 12px; }
+  .filterPickerMenu { position: relative; top: auto; margin-top: 6px; max-height: 212px; }
 }
 @media (max-width: 390px) {
   .filterSelectGrid { grid-template-columns: 1fr; }
