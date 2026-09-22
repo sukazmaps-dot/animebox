@@ -38,6 +38,7 @@ import './patch12-1-home-identity.css';
 import './patch12-2-visual-consistency.css';
 import './patch12-3-home-retention.css';
 import './patch12-3-1-mobile-cwv.css';
+import './patch12-3-2-mobile-rhythm.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';

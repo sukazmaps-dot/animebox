@@ -51,12 +51,35 @@ export default function HomePersonalPulse() {
     return (
       <section
         className="home-pulse home-pulse--placeholder"
-        aria-hidden="true"
+        aria-label="Загружаем твой прогресс AnimeBox"
+        aria-busy="true"
       >
-        <span className="home-pulse__placeholder-line is-wide" />
-        <span className="home-pulse__placeholder-line" />
-        <span className="home-pulse__placeholder-line" />
-        <span className="home-pulse__placeholder-line" />
+        <div className="home-pulse__identity">
+          <span className="home-pulse__rail" aria-hidden="true" />
+          <div>
+            <span>Твой AnimeBox</span>
+            <strong>Загружаем прогресс…</strong>
+          </div>
+        </div>
+
+        <div className="home-pulse__metric">
+          <span>Серия</span>
+          <strong className="home-pulse__placeholder-value" aria-hidden="true" />
+        </div>
+
+        <div className="home-pulse__metric">
+          <span>Сегодня</span>
+          <strong className="home-pulse__placeholder-value" aria-hidden="true" />
+        </div>
+
+        <div className="home-pulse__metric home-pulse__metric--watch">
+          <span>Подтверждено</span>
+          <strong className="home-pulse__placeholder-value" aria-hidden="true" />
+        </div>
+
+        <span className="home-pulse__link home-pulse__placeholder-link" aria-hidden="true">
+          Прогресс <span>→</span>
+        </span>
       </section>
     );
   }

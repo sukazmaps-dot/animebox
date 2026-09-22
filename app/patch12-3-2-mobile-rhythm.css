@@ -1,0 +1,150 @@
+/* =========================================================
+   AnimeBox Patch 12.3.2 — Mobile Home rhythm + layout stability
+   Final scoped contract for spacing on small screens.
+   ========================================================= */
+
+@media (max-width: 720px) {
+  .home-page {
+    --home-mobile-gap-tight: 12px;
+    --home-mobile-gap: 18px;
+    --home-mobile-gap-section: 26px;
+    --home-mobile-gap-major: 28px;
+    --home-section-gap: var(--home-mobile-gap-section);
+  }
+
+  /*
+   * Older Home generations still contain 30/34/38/44px !important rules.
+   * This file is loaded last and owns spacing only for direct Home content.
+   */
+  .home-page .home-grid .main-column > .section {
+    margin-top: var(--home-mobile-gap-section) !important;
+  }
+
+  .home-page .home-grid .main-column > .section + .section {
+    margin-top: var(--home-mobile-gap-major) !important;
+  }
+
+  /* Personal surfaces belong to one visual cluster. */
+  .home-page .home-grid .main-column > .home-retention + .home-top-anime-panel--mobile,
+  .home-page .home-grid .main-column > .home-retention + .home-pulse,
+  .home-page .home-grid .main-column > .home-top-anime-panel--mobile + .home-pulse {
+    margin-top: var(--home-mobile-gap) !important;
+  }
+
+  .home-page .home-grid .main-column > .home-pulse {
+    margin-bottom: 0 !important;
+  }
+
+  .home-page .home-grid .main-column > .home-pulse + .personal-schedule-section {
+    margin-top: var(--home-mobile-gap) !important;
+  }
+
+  /*
+   * This is the gap visible in the Telegram screenshot:
+   * personal schedule already owns its card geometry, then mood added another
+   * independent 28px margin. Keep one deliberate transition instead.
+   */
+  .home-page .home-grid .main-column > .personal-schedule-section {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .home-page .personal-schedule-grid,
+  .home-page .personal-schedule-card:last-child {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .home-page .home-grid .main-column > .personal-schedule-section + .mood-picker,
+  .home-page .home-grid .main-column > .home-pulse + .mood-picker {
+    margin-top: 16px !important;
+  }
+
+  .home-page .home-grid .main-column > .mood-picker {
+    margin-bottom: 0 !important;
+  }
+
+  .home-page .home-grid .main-column > .mood-picker + .smart-feed-section {
+    margin-top: var(--home-mobile-gap-section) !important;
+  }
+
+  /* Mood is one fixed-height rail; copy never stretches the whole row. */
+  .home-page .mood-picker {
+    padding-block: 12px !important;
+  }
+
+  .home-page .mood-picker__options {
+    align-items: stretch;
+  }
+
+  .home-page .mood-chip {
+    min-height: 56px;
+    max-height: 56px;
+  }
+
+  .home-page .mood-chip__copy {
+    min-width: 0;
+  }
+
+  .home-page .mood-chip__copy strong,
+  .home-page .mood-chip__copy small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Loading profile keeps exactly the real pulse structure instead of a blank strip. */
+  .home-page .home-pulse--placeholder {
+    min-height: 60px;
+    opacity: .78;
+  }
+
+  .home-page .home-pulse__placeholder-value {
+    width: 62px;
+    height: 8px;
+    display: block;
+    margin-top: 7px;
+    border-radius: 999px;
+    background: rgba(151, 164, 188, .10);
+  }
+
+  .home-page .home-pulse__placeholder-link {
+    pointer-events: none;
+    opacity: .55;
+  }
+
+  /* Schedule rows do not reserve phantom vertical space after the last item. */
+  .home-page .personal-schedule-card:last-child > a {
+    padding-bottom: 12px;
+    border-bottom: 0;
+  }
+
+  /* Keep the fixed mobile nav from covering the end of horizontally tall cards. */
+  .home-page {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 390px) {
+  .home-page {
+    --home-mobile-gap: 16px;
+    --home-mobile-gap-section: 24px;
+    --home-mobile-gap-major: 26px;
+  }
+
+  .home-page .home-grid .main-column > .personal-schedule-section + .mood-picker,
+  .home-page .home-grid .main-column > .home-pulse + .mood-picker {
+    margin-top: 14px !important;
+  }
+
+  .home-page .mood-chip {
+    min-height: 54px;
+    max-height: 54px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-page .home-pulse__placeholder-value {
+    animation: none !important;
+  }
+}
