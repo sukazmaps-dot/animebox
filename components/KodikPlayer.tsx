@@ -435,7 +435,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
 
         if (
           !resumeAppliedRef.current &&
-          resumeSeconds >= 10 &&
+          resumeSeconds > 0 &&
           iframeRef.current?.contentWindow
         ) {
           if (time.position < resumeSeconds - 5) {
