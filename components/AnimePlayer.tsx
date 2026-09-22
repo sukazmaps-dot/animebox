@@ -9,7 +9,10 @@ import { useWatchSession } from '@/components/useWatchSession';
 import { useAuthState } from '@/components/AuthStateProvider';
 import {
   getWatchProgress,
+  hasResumePosition,
+  isUsableResumePosition,
   removeWatchProgress,
+  resumeEndGuardSeconds,
   saveWatchProgress,
 } from '@/lib/watch-progress';
 import { setAnimeProgress } from '@/lib/anime-storage';
@@ -398,6 +401,11 @@ export default function AnimePlayer({
     'initial_auto' | 'manual' | 'manual_preference' | 'auto_score' | 'fallback' | 'retry' | 'translation'
   >(sourceMode === 'manual' ? 'manual_preference' : 'initial_auto');
   const resumeAppliedRef = useRef(false);
+  const resumeGateRef = useRef<{
+    targetSeconds: number;
+    createdAt: number;
+  } | null>(null);
+  const latestPlaybackPositionSecondsRef = useRef(0);
   const localProgressRef = useRef<{
     positionSeconds: number;
     durationSeconds: number;
@@ -424,6 +432,21 @@ export default function AnimePlayer({
     observedAt: 0,
     source: 'native',
   });
+
+  const applyResumeTarget = useCallback((seconds: number) => {
+    const target = Number.isFinite(seconds)
+      ? Math.max(0, Math.floor(seconds))
+      : 0;
+
+    resumeGateRef.current =
+      target > 0
+        ? {
+            targetSeconds: target,
+            createdAt: Date.now(),
+          }
+        : null;
+    setResumeSeconds(target);
+  }, []);
 
   const currentSource = sources[activeSourceIndex];
   const currentTranslation = currentSource?.translations[activeTranslationIndex];
@@ -635,7 +658,7 @@ export default function AnimePlayer({
   const trackingMessage = watchSession.message;
   const serverWatchSample = watchSession.onSample;
 
-  const persistGuestProgress = useCallback(
+  const persistLocalProgress = useCallback(
     (
       sample: {
         positionSeconds: number;
@@ -644,7 +667,6 @@ export default function AnimePlayer({
       force = false,
     ) => {
       if (
-        user?.id ||
         watchTogetherMode ||
         !animeId ||
         !Number.isFinite(sample.positionSeconds) ||
@@ -678,10 +700,14 @@ export default function AnimePlayer({
       if (
         durationSeconds > 0 &&
         durationSeconds - sample.positionSeconds <=
-          LOCAL_RESUME_END_GUARD_SECONDS
+          resumeEndGuardSeconds(durationSeconds)
       ) {
-        removeWatchProgress(animeId, episodeNumber);
+        removeWatchProgress(animeId, episodeNumber, user?.id ?? null);
         lastLocalProgressSavedAtRef.current = now;
+        return;
+      }
+
+      if (!isUsableResumePosition(sample.positionSeconds, durationSeconds)) {
         return;
       }
 
@@ -694,6 +720,7 @@ export default function AnimePlayer({
         episodeNumber,
         sample.positionSeconds,
         durationSeconds,
+        user?.id ?? null,
       );
       lastLocalProgressSavedAtRef.current = now;
     },
@@ -707,7 +734,28 @@ export default function AnimePlayer({
       origin?: string | null;
     }) => {
       markConfirmedPlaybackStart('timeupdate');
-      persistGuestProgress(sample);
+      latestPlaybackPositionSecondsRef.current = Math.max(
+        0,
+        Number.isFinite(sample.positionSeconds) ? sample.positionSeconds : 0,
+      );
+
+      const resumeGate = resumeGateRef.current;
+      if (resumeGate) {
+        const resumeLanded =
+          sample.positionSeconds >= Math.max(0, resumeGate.targetSeconds - 5);
+        const resumeTimedOut = Date.now() - resumeGate.createdAt > 12_000;
+
+        if (resumeLanded || resumeTimedOut) {
+          resumeGateRef.current = null;
+        } else {
+          // Provider startup samples (0s -> 1s -> forced resume) must not
+          // overwrite the crash journal or be interpreted by the server as
+          // watched time / an opening skip before the resume seek lands.
+          return;
+        }
+      }
+
+      persistLocalProgress(sample);
       serverWatchSample(sample);
 
       if (
@@ -723,7 +771,7 @@ export default function AnimePlayer({
     [
       markConfirmedPlaybackStart,
       onPlaybackQualified,
-      persistGuestProgress,
+      persistLocalProgress,
       serverWatchSample,
       watchTogetherMode,
     ],
@@ -731,13 +779,24 @@ export default function AnimePlayer({
 
   const handlePlaybackEnded = useCallback(() => {
     if (animeId && !watchTogetherMode) {
-      removeWatchProgress(animeId, episodeNumber);
+      removeWatchProgress(animeId, episodeNumber, user?.id ?? null);
+      if (user?.id) {
+        removeWatchProgress(animeId, episodeNumber, null);
+      }
     }
 
     localProgressRef.current = null;
-    setResumeSeconds(0);
+    latestPlaybackPositionSecondsRef.current = 0;
+    applyResumeTarget(0);
     onEnded?.();
-  }, [animeId, episodeNumber, onEnded, watchTogetherMode]);
+  }, [
+    animeId,
+    applyResumeTarget,
+    episodeNumber,
+    onEnded,
+    user?.id,
+    watchTogetherMode,
+  ]);
 
   useEffect(() => {
     function onPartyCommand(event: Event) {
@@ -898,13 +957,15 @@ export default function AnimePlayer({
   useEffect(() => {
     let active = true;
     resumeAppliedRef.current = false;
+    resumeGateRef.current = null;
+    latestPlaybackPositionSecondsRef.current = 0;
     localProgressRef.current = null;
     lastLocalProgressSavedAtRef.current = 0;
     playbackQualifiedRef.current = false;
 
     if (!animeId) {
       queueMicrotask(() => {
-        if (active) setResumeSeconds(0);
+        if (active) applyResumeTarget(0);
       });
 
       return () => {
@@ -912,29 +973,38 @@ export default function AnimePlayer({
       };
     }
 
-    const localProgress = watchTogetherMode
+    const viewerId = user?.id ?? null;
+    const scopedLocalProgress = watchTogetherMode
       ? null
-      : getWatchProgress(animeId, episodeNumber);
+      : getWatchProgress(animeId, episodeNumber, viewerId);
+    const guestFallbackProgress =
+      !watchTogetherMode && user?.id
+        ? getWatchProgress(animeId, episodeNumber, null)
+        : null;
 
-    const localPosition =
-      localProgress &&
-      localProgress.currentTime >= LOCAL_RESUME_MIN_SECONDS &&
-      (localProgress.duration <= 0 ||
-        localProgress.duration - localProgress.currentTime >
-          LOCAL_RESUME_END_GUARD_SECONDS)
-        ? Math.floor(localProgress.currentTime)
-        : 0;
+    const localProgress =
+      [scopedLocalProgress, guestFallbackProgress]
+        .filter((item): item is NonNullable<typeof item> => Boolean(item))
+        .sort((a, b) => b.updatedAt - a.updatedAt)[0] ?? null;
 
-    if (localProgress && localPosition <= 0) {
-      removeWatchProgress(animeId, episodeNumber);
+    if (scopedLocalProgress && !hasResumePosition(scopedLocalProgress)) {
+      removeWatchProgress(animeId, episodeNumber, viewerId);
+    }
+    if (guestFallbackProgress && !hasResumePosition(guestFallbackProgress)) {
+      removeWatchProgress(animeId, episodeNumber, null);
     }
 
+    const localPosition = hasResumePosition(localProgress)
+      ? Math.floor(localProgress.currentTime)
+      : 0;
+
     queueMicrotask(() => {
-      if (active) setResumeSeconds(localPosition);
+      if (active) applyResumeTarget(localPosition);
     });
 
-    // Guest resume is intentionally local-only. It must not create server
-    // watch-time, achievements or leaderboard credit before registration.
+    // Local storage is a crash journal only. Authenticated watch-time,
+    // achievements and completion continue to come exclusively from the
+    // server heartbeat/coverage pipeline.
     if (authLoading || !user?.id) {
       return () => {
         active = false;
@@ -960,62 +1030,72 @@ export default function AnimePlayer({
           : 0;
         const localUpdatedAt = localProgress?.updatedAt ?? 0;
 
-        // A position saved while the visitor was a guest is the freshest
-        // source until authenticated tracking has produced a newer state.
+        // A newer device-local crash journal wins only as a resume position.
+        // It still grants zero server watch credit.
         if (localPosition > 0 && localUpdatedAt > serverUpdatedAt) {
+          if (
+            localProgress &&
+            localProgress.viewerKey === 'guest' &&
+            user.id
+          ) {
+            saveWatchProgress(
+              animeId,
+              episodeNumber,
+              localProgress.currentTime,
+              localProgress.duration,
+              user.id,
+            );
+            removeWatchProgress(animeId, episodeNumber, null);
+          }
           return;
         }
 
         if (payload.state.completed) {
-          if (!watchTogetherMode) {
-            removeWatchProgress(animeId, episodeNumber);
-          }
-          setResumeSeconds(0);
+          removeWatchProgress(animeId, episodeNumber, user.id);
+          removeWatchProgress(animeId, episodeNumber, null);
+          applyResumeTarget(0);
           return;
         }
 
         const positionSeconds = Math.floor(payload.state.positionMs / 1000);
         const durationSeconds =
           payload.state.durationMs == null
-            ? null
+            ? 0
             : Math.floor(payload.state.durationMs / 1000);
 
-        const serverHasResume =
-          positionSeconds >= LOCAL_RESUME_MIN_SECONDS &&
-          (
-            durationSeconds == null ||
-            durationSeconds - positionSeconds >
-              LOCAL_RESUME_END_GUARD_SECONDS
-          );
-
-        if (!serverHasResume) {
-          // The authenticated state is newer and explicitly says there is no
-          // useful resume point. Do not leave an older guest position active.
-          if (!watchTogetherMode) {
-            removeWatchProgress(animeId, episodeNumber);
-          }
-          setResumeSeconds(0);
+        if (!isUsableResumePosition(positionSeconds, durationSeconds)) {
+          removeWatchProgress(animeId, episodeNumber, user.id);
+          removeWatchProgress(animeId, episodeNumber, null);
+          applyResumeTarget(0);
           return;
         }
 
-        if (!watchTogetherMode) {
-          removeWatchProgress(animeId, episodeNumber);
-        }
-        setResumeSeconds(positionSeconds);
+        // The server won the freshness merge. Clear older local copies; a new
+        // crash journal will be written again as soon as playback advances.
+        removeWatchProgress(animeId, episodeNumber, user.id);
+        removeWatchProgress(animeId, episodeNumber, null);
+        applyResumeTarget(positionSeconds);
       })
       .catch(() => undefined);
 
     return () => {
       active = false;
     };
-  }, [animeId, authLoading, episodeNumber, user?.id, watchTogetherMode]);
+  }, [
+    animeId,
+    applyResumeTarget,
+    authLoading,
+    episodeNumber,
+    user?.id,
+    watchTogetherMode,
+  ]);
 
   useEffect(() => {
     const flushLocalProgress = () => {
       const latest = localProgressRef.current;
       if (!latest) return;
 
-      persistGuestProgress(
+      persistLocalProgress(
         {
           positionSeconds: latest.positionSeconds,
           durationSeconds: latest.durationSeconds,
@@ -1038,7 +1118,7 @@ export default function AnimePlayer({
       window.removeEventListener('pagehide', flushLocalProgress);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, [persistGuestProgress]);
+  }, [persistLocalProgress]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -1337,6 +1417,10 @@ export default function AnimePlayer({
     const fallback = findFallbackCandidate();
     if (!fallback) return false;
 
+    if (started && latestPlaybackPositionSecondsRef.current > 0) {
+      applyResumeTarget(latestPlaybackPositionSecondsRef.current);
+    }
+
     const from = currentSourceName;
     const to = sourceLabel(fallback.source.name);
 
@@ -1359,7 +1443,14 @@ export default function AnimePlayer({
     setSourceNotice(`${failureMessage} Переключили ${from} → ${to}.`);
 
     return true;
-  }, [currentSourceName, findFallbackCandidate, setSourceStatus, trackPlayerEvent]);
+  }, [
+    applyResumeTarget,
+    currentSourceName,
+    findFallbackCandidate,
+    setSourceStatus,
+    started,
+    trackPlayerEvent,
+  ]);
 
   const failCurrentSource = useCallback((kind: PlayerFailureKind, message: string) => {
     failedCandidatesRef.current.add(currentCandidateKey);
@@ -1396,6 +1487,9 @@ export default function AnimePlayer({
   ]);
 
   const retryCurrentSource = useCallback(() => {
+    if (started && latestPlaybackPositionSecondsRef.current > 0) {
+      applyResumeTarget(latestPlaybackPositionSecondsRef.current);
+    }
     failedCandidatesRef.current.delete(currentCandidateKey);
     sourceSelectionReasonRef.current = 'retry';
     setPlayerError(null);
@@ -1405,7 +1499,13 @@ export default function AnimePlayer({
     setSourceNotice(null);
     setSourceStatus(currentSource?.name, 'loading');
     setPlayerAttempt((current) => current + 1);
-  }, [currentCandidateKey, currentSource?.name, setSourceStatus]);
+  }, [
+    applyResumeTarget,
+    currentCandidateKey,
+    currentSource?.name,
+    setSourceStatus,
+    started,
+  ]);
 
   useEffect(() => {
     if (!sourceNotice) return;
@@ -1520,7 +1620,12 @@ export default function AnimePlayer({
     }, true);
 
     sourceSelectionReasonRef.current = reason;
-    if (started) playRequestAtRef.current = performance.now();
+    if (started) {
+      playRequestAtRef.current = performance.now();
+      if (latestPlaybackPositionSecondsRef.current > 0) {
+        applyResumeTarget(latestPlaybackPositionSecondsRef.current);
+      }
+    }
     setActiveSourceIndex(index);
     setActiveTranslationIndex(rememberedIndex >= 0 ? rememberedIndex : 0);
     setVerifiedQuality(null);
@@ -1537,6 +1642,7 @@ export default function AnimePlayer({
   }, [
     activeSourceIndex,
     animeId,
+    applyResumeTarget,
     currentSourceName,
     playerError,
     retryCurrentSource,
@@ -1582,7 +1688,12 @@ export default function AnimePlayer({
     }
 
     sourceSelectionReasonRef.current = 'translation';
-    if (started) playRequestAtRef.current = performance.now();
+    if (started) {
+      playRequestAtRef.current = performance.now();
+      if (latestPlaybackPositionSecondsRef.current > 0) {
+        applyResumeTarget(latestPlaybackPositionSecondsRef.current);
+      }
+    }
     setActiveTranslationIndex(nextIndex);
     setVerifiedQuality(null);
 
@@ -1701,18 +1812,16 @@ export default function AnimePlayer({
   const playerBody = (
     <section
       style={brandStyles}
-      className={`animebox-premium-player ${watchTogetherMode ? 'watch-together-player' : ''} ${syncedPremiumTheme ? 'is-premium-themed' : ''} relative overflow-visible rounded-[28px] border border-[color:var(--player-border)] bg-[linear-gradient(180deg,rgba(14,19,35,.985),rgba(6,9,18,.99))] [box-shadow:var(--player-shadow)] ${
+      className={`animebox-premium-player ${watchTogetherMode ? 'watch-together-player' : ''} ${syncedPremiumTheme ? 'is-premium-themed' : ''} relative overflow-visible ${
         theaterMode ? 'mx-auto w-full max-w-[1480px]' : ''
       }`}
     >
       <div className="premium-player-accent-line pointer-events-none absolute inset-x-20 top-0 h-px bg-gradient-to-r from-transparent via-violet-400/70 to-transparent" />
-      <div className="premium-player-glow pointer-events-none absolute -inset-12 -z-10 bg-[radial-gradient(ellipse_at_center,rgba(121,78,255,.16),transparent_65%)] blur-3xl" />
-
       {/* Premium header */}
       <div
         className={`${
           watchTogetherMode ? 'watch-together-player-header' : ''
-        } flex flex-col gap-5 border-b border-white/[0.055] px-4 py-4 sm:px-5 md:flex-row md:items-end md:justify-between md:px-6 md:py-5`}
+        } animebox-player-header flex flex-col gap-5 px-4 py-4 sm:px-5 md:flex-row md:items-end md:justify-between md:px-6 md:py-5`}
       >
         {!watchTogetherMode && (
           <div className="min-w-0">
@@ -1732,7 +1841,7 @@ export default function AnimePlayer({
 
         <div className={`anime-player__toolbar ${watchTogetherMode ? 'watch-together-player-toolbar' : ''} flex flex-wrap items-center gap-2`}>
           {sources.length > 1 && (
-            <div className="flex max-w-full items-center overflow-x-auto rounded-2xl border border-white/[0.07] bg-black/20 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="animebox-player-source-switcher flex max-w-full items-center overflow-x-auto p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <button
                 type="button"
                 onClick={enableAutoSource}
@@ -1792,7 +1901,7 @@ export default function AnimePlayer({
           )}
 
           <div
-            className="hidden min-h-11 min-w-[180px] items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.025] px-3.5 lg:flex"
+            className="animebox-player-quality hidden min-h-11 min-w-[180px] items-center gap-3 px-3.5 lg:flex"
             title={qualitySummary}
           >
             <span className={`h-2 w-2 shrink-0 rounded-full ${
@@ -1864,14 +1973,14 @@ export default function AnimePlayer({
 
       {/* Player shell */}
       <div
-        className={`relative bg-[radial-gradient(circle_at_50%_0%,rgba(98,68,190,.10),transparent_48%)] p-2.5 sm:p-3.5 md:p-4 ${
+        className={`animebox-player-stage-shell relative p-2.5 sm:p-3.5 md:p-4 ${
           watchTogetherMode ? 'watch-together-player-stage-shell' : ''
         }`}
       >
         {sourceNotice && (
           <div
             role="status"
-            className="mb-2.5 flex items-center gap-2 rounded-xl border border-violet-400/15 bg-violet-500/[0.07] px-3 py-2 text-[11px] font-semibold text-violet-100/80 sm:mb-3"
+            className="animebox-player-notice mb-2.5 flex items-center gap-2 px-3 py-2 text-[11px] font-semibold sm:mb-3"
           >
             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-violet-300 shadow-[0_0_9px_rgba(196,181,253,.55)]" />
             <span>{sourceNotice}</span>
@@ -1885,7 +1994,7 @@ export default function AnimePlayer({
               ? 'fixed inset-0 z-[2147483000] m-0 max-w-none overflow-hidden rounded-none border-0 bg-black shadow-none ring-0'
               : fullscreen
                 ? 'relative h-screen w-screen overflow-hidden rounded-none border-0 bg-black'
-                : 'relative aspect-video w-full overflow-hidden rounded-[22px] border border-violet-400/[0.12] bg-black shadow-[0_28px_80px_rgba(0,0,0,.55),0_0_50px_rgba(105,72,255,.055)] ring-1 ring-black/40'
+                : 'animebox-player-viewport relative aspect-video w-full overflow-hidden bg-black'
           } transition-all duration-300`}
           style={
             telegramPseudoFullscreen
@@ -1952,7 +2061,7 @@ export default function AnimePlayer({
             <button
               type="button"
               onClick={startPlayback}
-              className="group absolute inset-0 z-30 isolate overflow-hidden text-white"
+              className="animebox-player-cover group absolute inset-0 z-30 isolate overflow-hidden text-white"
               aria-label={`Смотреть ${title}, серия ${episodeNumber}`}
             >
               {poster ? (
@@ -1994,14 +2103,14 @@ export default function AnimePlayer({
                 </p>
               </div>
 
-              <div className="absolute bottom-4 left-4 rounded-full border border-white/[0.12] bg-black/40 px-3 py-1.5 text-[10px] font-extrabold text-white/70 backdrop-blur-md">
+              <div className="animebox-player-provider-badge absolute bottom-4 left-4 px-3 py-1.5 text-[10px] font-extrabold">
                 {sourceLabel(currentSource?.name)}
               </div>
             </button>
           ) : (
             <>
               {!playerReady && !playerError && (
-                <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-[#05070d]/90 backdrop-blur-md">
+                <div className="animebox-player-loading pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-3">
                   <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-violet-400" />
                   <span className="text-xs font-bold text-white/45">Запускаем AnimeBox Player…</span>
                 </div>
@@ -2095,7 +2204,7 @@ export default function AnimePlayer({
 
           {playerError && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/85 p-5 text-center backdrop-blur-md">
-              <div className="w-full max-w-md rounded-2xl border border-white/[0.10] bg-[#0b0f1b]/95 p-5 shadow-[0_24px_70px_rgba(0,0,0,.55)]">
+              <div className="animebox-player-error-card w-full max-w-md p-5">
                 <div className={`mx-auto flex h-11 w-11 items-center justify-center rounded-2xl border ${
                   playerFailureKind === 'timeout'
                     ? 'border-amber-400/20 bg-amber-500/10 text-amber-200'
@@ -2146,18 +2255,18 @@ export default function AnimePlayer({
       </div>
 
       {/* Bottom navigation */}
-      <div className={`${watchTogetherMode ? 'watch-together-player-nav' : ''} grid grid-cols-2 gap-2 border-t border-white/[0.05] bg-black/10 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(170px,230px)_minmax(0,1fr)] sm:items-center sm:px-4 md:p-4 md:px-5`}>
+      <div className={`animebox-player-nav ${watchTogetherMode ? 'watch-together-player-nav' : ''} grid grid-cols-2 gap-2 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(170px,230px)_minmax(0,1fr)] sm:items-center sm:px-4 md:p-4 md:px-5`}>
         <button
           type="button"
           onClick={onPrev}
           disabled={!hasPrev}
-          className="group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-4 text-xs font-bold text-white/55 transition hover:border-white/[0.12] hover:bg-white/[0.05] hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+          className="animebox-player-prev-button group inline-flex min-h-11 items-center justify-center gap-2 px-4 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-25"
         >
           <Icon name="chevron" className="h-4 w-4 rotate-180 transition-transform group-hover:-translate-x-0.5" />
           {prevLabel}
         </button>
 
-        <div className="order-first col-span-2 flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-xl border border-violet-400/[0.10] bg-violet-500/[0.035] px-3 text-center sm:order-none sm:col-span-1">
+        <div className="animebox-player-meta order-first col-span-2 flex min-h-11 min-w-0 items-center justify-center gap-2 px-3 text-center sm:order-none sm:col-span-1">
           <span className="shrink-0 text-[9px] font-extrabold uppercase tracking-[0.16em] text-violet-300/55">
             {sourceLabel(currentSource?.name)} · {qualityInfo?.label || deliverySummary}
           </span>
@@ -2174,7 +2283,7 @@ export default function AnimePlayer({
           type="button"
           onClick={onNext}
           disabled={!hasNext}
-          className="premium-player-next-button group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-500 px-4 text-xs font-extrabold text-white shadow-[0_10px_30px_rgba(105,72,255,.25)] transition hover:-translate-y-px hover:shadow-[0_15px_38px_rgba(105,72,255,.34)] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:translate-y-0"
+          className="premium-player-next-button group inline-flex min-h-11 items-center justify-center gap-2 px-4 text-xs font-extrabold text-white transition disabled:cursor-not-allowed disabled:opacity-30"
         >
           {nextLabel}
           <Icon name="chevron" className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

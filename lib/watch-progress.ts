@@ -4,15 +4,26 @@ export type WatchProgress = {
   currentTime: number;
   duration: number;
   updatedAt: number;
+  /**
+   * Local crash-resume scope. Old records without this field are treated as
+   * guest progress for backwards compatibility.
+   */
+  viewerKey?: string;
 };
 
 const STORAGE_KEY = 'anime-tracker-watch-progress';
 const MAX_PROGRESS_ITEMS = 80;
 const MAX_PROGRESS_AGE_MS = 120 * 24 * 60 * 60 * 1000;
+const GUEST_VIEWER_KEY = 'guest';
 
 function finiteNonNegative(value: unknown): number | null {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function viewerKey(viewerId?: string | null) {
+  const normalized = typeof viewerId === 'string' ? viewerId.trim() : '';
+  return normalized ? `user:${normalized}` : GUEST_VIEWER_KEY;
 }
 
 function normalizeProgress(value: unknown): WatchProgress | null {
@@ -43,6 +54,10 @@ function normalizeProgress(value: unknown): WatchProgress | null {
     currentTime,
     duration,
     updatedAt,
+    viewerKey:
+      typeof record.viewerKey === 'string' && record.viewerKey.trim()
+        ? record.viewerKey
+        : GUEST_VIEWER_KEY,
   };
 }
 
@@ -95,26 +110,62 @@ function writeProgress(progress: WatchProgress[]) {
   }
 }
 
-export function getLatestWatchProgress(animeId: number): WatchProgress | null {
-  return readProgress().find((item) => item.animeId === animeId) ?? null;
+export function resumeStartThresholdSeconds(durationSeconds: number) {
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return 10;
+  return Math.min(10, Math.max(3, durationSeconds * 0.04));
+}
+
+export function resumeEndGuardSeconds(durationSeconds: number) {
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return 20;
+  return Math.min(20, Math.max(6, durationSeconds * 0.04));
+}
+
+export function isUsableResumePosition(
+  currentTime: number,
+  duration: number,
+) {
+  if (!Number.isFinite(currentTime) || currentTime < 0) return false;
+
+  const minimum = resumeStartThresholdSeconds(duration);
+  if (currentTime < minimum) return false;
+
+  if (!Number.isFinite(duration) || duration <= 0) return true;
+  return duration - currentTime > resumeEndGuardSeconds(duration);
+}
+
+export function getLatestWatchProgress(
+  animeId: number,
+  viewerId?: string | null,
+): WatchProgress | null {
+  const key = viewerKey(viewerId);
+  return (
+    readProgress().find(
+      (item) => item.animeId === animeId && (item.viewerKey ?? GUEST_VIEWER_KEY) === key,
+    ) ?? null
+  );
 }
 
 export function hasResumePosition(progress: WatchProgress | null): progress is WatchProgress {
-  return Boolean(progress && progress.currentTime >= 10 &&
-    (progress.duration <= 0 || progress.duration - progress.currentTime > 20));
+  return Boolean(
+    progress &&
+      isUsableResumePosition(progress.currentTime, progress.duration),
+  );
 }
 
 export function getWatchProgress(
   animeId: number,
   episode: number,
+  viewerId?: string | null,
 ): WatchProgress | null {
+  const key = viewerKey(viewerId);
   const progress = readProgress();
 
   return (
     progress.find(
       (item) =>
         item.animeId === animeId &&
-        item.episode === episode,
+        item.episode === episode &&
+        (item.viewerKey ?? GUEST_VIEWER_KEY) === key,
     ) || null
   );
 }
@@ -124,6 +175,7 @@ export function saveWatchProgress(
   episode: number,
   currentTime: number,
   duration: number,
+  viewerId?: string | null,
 ) {
   if (
     !Number.isFinite(animeId) ||
@@ -137,6 +189,7 @@ export function saveWatchProgress(
   }
 
   const progress = readProgress();
+  const key = viewerKey(viewerId);
 
   const item: WatchProgress = {
     animeId: Math.floor(animeId),
@@ -144,6 +197,7 @@ export function saveWatchProgress(
     currentTime,
     duration: Number.isFinite(duration) && duration > 0 ? duration : 0,
     updatedAt: Date.now(),
+    viewerKey: key,
   };
 
   const next = [
@@ -152,7 +206,8 @@ export function saveWatchProgress(
       (saved) =>
         !(
           saved.animeId === item.animeId &&
-          saved.episode === item.episode
+          saved.episode === item.episode &&
+          (saved.viewerKey ?? GUEST_VIEWER_KEY) === key
         ),
     ),
   ];
@@ -163,14 +218,17 @@ export function saveWatchProgress(
 export function removeWatchProgress(
   animeId: number,
   episode: number,
+  viewerId?: string | null,
 ) {
   const progress = readProgress();
+  const key = viewerKey(viewerId);
 
   const next = progress.filter(
     (item) =>
       !(
         item.animeId === animeId &&
-        item.episode === episode
+        item.episode === episode &&
+        (item.viewerKey ?? GUEST_VIEWER_KEY) === key
       ),
   );
 

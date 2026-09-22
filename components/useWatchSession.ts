@@ -293,7 +293,7 @@ export function useWatchSession({
   ]);
 
   const sendHeartbeat = useCallback(
-    async (force = false) => {
+    async (force = false, keepalive = false) => {
       if (
         sendingRef.current ||
         disabledRef.current ||
@@ -336,14 +336,17 @@ export function useWatchSession({
 
       try {
         const providerSkip = pendingProviderSkipRef.current;
-        const result = await watchRequest<HeartbeatResponse>({
-          action: 'heartbeat',
-          sessionId: sessionRef.current,
-          seq,
-          positionMs: position,
-          durationMs: latestDurationRef.current,
-          providerSkip,
-        });
+        const result = await watchRequest<HeartbeatResponse>(
+          {
+            action: 'heartbeat',
+            sessionId: sessionRef.current,
+            seq,
+            positionMs: position,
+            durationMs: latestDurationRef.current,
+            providerSkip,
+          },
+          keepalive,
+        );
 
         seqRef.current = seq;
         lastSentPositionRef.current = position;
@@ -567,7 +570,7 @@ export function useWatchSession({
 
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') {
-        void sendHeartbeat(true);
+        void sendHeartbeat(true, true);
       }
     };
 
