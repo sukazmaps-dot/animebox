@@ -49,8 +49,16 @@ export async function getProfilePreview(userId: string) {
   const resolved = appearanceMap.get(userId);
   if (!resolved) return null;
 
-  // Mini profiles are intentionally static even when the full Premium profile
-  // uses animated media. This keeps comments/friends cheap on mobile GPUs.
+  const appearance = resolveProfileAppearance({
+    baseAvatarPath: profile.avatar_path,
+    baseBannerPath: profile.banner_path,
+    premiumStudio: resolved.premiumStudio,
+    premiumActive: resolved.premiumStudioActive,
+    premiumMediaActive: resolved.premiumStudioActive,
+  });
+
+  // Keep static fallbacks available so mobile and reduced-motion users don't
+  // pay the rendering cost of animated Premium media in every social surface.
   const lightweight = resolveProfileAppearance({
     baseAvatarPath: profile.avatar_path,
     baseBannerPath: profile.banner_path,
@@ -80,15 +88,18 @@ export async function getProfilePreview(userId: string) {
     bio,
     createdAt: profile.created_at,
     avatarUrl:
+      publicStorageUrl(admin, appearance.avatarPath) || '/default-avatar.webp',
+    avatarStaticUrl:
       publicStorageUrl(admin, lightweight.avatarPath) || '/default-avatar.webp',
-    bannerUrl: publicStorageUrl(admin, lightweight.bannerPath),
-    avatarTransform: lightweight.avatarTransform,
-    bannerTransform: lightweight.bannerTransform,
+    bannerUrl: publicStorageUrl(admin, appearance.bannerPath),
+    bannerStaticUrl: publicStorageUrl(admin, lightweight.bannerPath),
+    avatarTransform: appearance.avatarTransform,
+    bannerTransform: appearance.bannerTransform,
     premium: resolved.premiumBadge,
-    premiumTheme: lightweight.premiumStudio?.theme ?? 'default',
-    primaryColor: lightweight.premiumStudio?.primaryColor ?? '#101426',
-    accentColor: lightweight.premiumStudio?.accentColor ?? '#7C4DFF',
-    textColor: lightweight.premiumStudio?.textColor ?? '#F5F3FF',
+    premiumTheme: appearance.premiumStudio?.theme ?? 'default',
+    primaryColor: appearance.premiumStudio?.primaryColor ?? '#101426',
+    accentColor: appearance.premiumStudio?.accentColor ?? '#7C4DFF',
+    textColor: appearance.premiumStudio?.textColor ?? '#F5F3FF',
     role: publicIdentityRoleFor(userId),
     sponsor,
     progression: {
