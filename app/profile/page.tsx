@@ -50,6 +50,19 @@ export default function ProfilePage() {
   const [error, setError] = useState('');
   const [premiumStudio, setPremiumStudio] = useState<PremiumStudioSettings | null>(null);
   const [premiumActive, setPremiumActive] = useState(false);
+  const [preferStaticPremiumMedia, setPreferStaticPremiumMedia] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia(
+      '(max-width: 768px), (prefers-reduced-motion: reduce)',
+    );
+
+    const syncPreference = () => setPreferStaticPremiumMedia(media.matches);
+    syncPreference();
+    media.addEventListener('change', syncPreference);
+
+    return () => media.removeEventListener('change', syncPreference);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -267,6 +280,7 @@ export default function ProfilePage() {
     baseBannerPath: profile.banner_path,
     premiumStudio,
     premiumActive,
+    premiumMediaActive: premiumActive && !preferStaticPremiumMedia,
   });
 
   const avatarUrl = appearance.avatarPath
