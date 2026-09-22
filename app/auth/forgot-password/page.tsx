@@ -40,21 +40,8 @@ export default function ForgotPasswordPage() {
     setError('');
 
     try {
-      const recoveryCallback = new URL(
-        '/auth/callback',
-        window.location.origin,
-      );
-      recoveryCallback.searchParams.set(
-        'intent',
-        'recovery',
-      );
-      recoveryCallback.searchParams.set(
-        'next',
-        '/auth/update-password',
-      );
-
       const redirectTo =
-        recoveryCallback.toString();
+        `${window.location.origin}/auth/update-password`;
 
       const { error } =
         await supabase.auth.resetPasswordForEmail(

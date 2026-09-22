@@ -37,6 +37,63 @@ export default function UpdatePasswordPage() {
     let active = true;
 
     async function check() {
+      const currentUrl = new URL(window.location.href);
+      const recoveryCode = currentUrl.searchParams.get('code');
+      const recoveryTokenHash = currentUrl.searchParams.get('token_hash');
+      const recoveryType = currentUrl.searchParams.get('type');
+
+      try {
+        if (recoveryCode) {
+          const { error: exchangeError } =
+            await supabase.auth.exchangeCodeForSession(
+              recoveryCode,
+            );
+
+          if (exchangeError) {
+            throw exchangeError;
+          }
+
+          currentUrl.searchParams.delete('code');
+          window.history.replaceState(
+            window.history.state,
+            '',
+            `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`,
+          );
+        } else if (
+          recoveryTokenHash &&
+          recoveryType === 'recovery'
+        ) {
+          const { error: verifyError } =
+            await supabase.auth.verifyOtp({
+              token_hash: recoveryTokenHash,
+              type: 'recovery',
+            });
+
+          if (verifyError) {
+            throw verifyError;
+          }
+
+          currentUrl.searchParams.delete('token_hash');
+          currentUrl.searchParams.delete('type');
+          window.history.replaceState(
+            window.history.state,
+            '',
+            `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`,
+          );
+        }
+      } catch (recoveryError) {
+        console.error(
+          '[Password Recovery Session]',
+          recoveryError,
+        );
+
+        if (active) {
+          setValidSession(false);
+          setChecking(false);
+        }
+        return;
+      }
+
       const {
         data: userData,
         error: userError,

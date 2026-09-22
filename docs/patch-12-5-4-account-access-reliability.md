@@ -7,13 +7,15 @@ exchanged for a Supabase session, so a fresh link could immediately appear
 invalid.
 
 New flow:
-1. resetPasswordForEmail redirects to /auth/callback?intent=recovery;
-2. callback exchanges the PKCE code for a session (or verifies recovery token_hash);
-3. Supabase session cookies are written server-side;
-4. callback redirects to /auth/update-password;
-5. password page validates the authenticated user/session before enabling updateUser.
+1. resetPasswordForEmail keeps the already-known /auth/update-password redirect;
+2. the client page reads the one-time PKCE code (or recovery token_hash);
+3. it exchanges/verifies that value with Supabase before calling getUser/getSession;
+4. the one-time code is removed from the address bar immediately after success;
+5. only an authenticated recovery session can enable updateUser.
 
-Recovery deliberately bypasses normal Google onboarding checks.
+The server /auth/callback route also understands recovery links as a defensive
+fallback, but password recovery no longer depends on that path being allowlisted
+in Supabase Redirect URLs.
 
 ## Admin concealment
 /admin now calls requireAdmin() in the server layout before AdminShell renders.
