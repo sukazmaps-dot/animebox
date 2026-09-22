@@ -15,7 +15,7 @@
   position: fixed;
   z-index: 10000;
   inset: 0;
-  background: rgba(2, 4, 10, .08);
+  background: transparent;
 }
 
 .card {
@@ -37,7 +37,7 @@
     0 28px 90px rgba(0,0,0,.58),
     0 0 0 1px rgba(255,255,255,.015) inset;
   isolation: isolate;
-  animation: profilePreviewIn 160ms ease both;
+  animation: profilePreviewIn 120ms ease both;
 }
 
 .card::before {
@@ -95,6 +95,13 @@
   pointer-events: none;
   background:
     linear-gradient(180deg, transparent 28%, rgba(4,6,12,.14) 62%, rgba(7,10,18,.84) 100%);
+}
+
+.bannerMedia,
+.avatarMedia {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .banner img {
@@ -367,8 +374,21 @@
 }
 
 @keyframes profilePreviewIn {
-  from { opacity: 0; transform: translateY(5px) scale(.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+
+/* Desktop popover is measured from the real rendered card. Keep its geometry
+   deterministic: no transform-based entrance and no scroll-chasing motion. */
+@media (min-width: 641px) {
+  .card[data-placement='above'] {
+    transform-origin: bottom center;
+  }
+
+  .card[data-placement='below'] {
+    transform-origin: top center;
+  }
 }
 
 @media (max-width: 640px) {

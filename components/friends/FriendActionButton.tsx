@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { useAuthState } from '@/components/AuthStateProvider';
 import { notifySocialNotificationsChanged } from '@/components/SocialNotificationBadge';
+import styles from './FriendActionButton.module.css';
 
 type FriendshipState =
   | 'none'
@@ -20,8 +21,10 @@ type StatusResponse = {
 
 export default function FriendActionButton({
   targetUserId,
+  variant = 'default',
 }: {
   targetUserId: string;
+  variant?: 'default' | 'profile-preview';
 }) {
   const { user, loading } = useAuthState();
   const [state, setState] = useState<FriendshipState>('none');
@@ -63,15 +66,24 @@ export default function FriendActionButton({
     };
   }, [loading, targetUserId, user]);
 
+  const preview = variant === 'profile-preview';
+
   if (loading || !ready) {
-    return <div className="h-10 w-36 animate-pulse rounded-xl bg-white/[0.04]" aria-hidden="true" />;
+    return (
+      <div
+        className={preview ? styles.previewSkeleton : 'h-10 w-36 animate-pulse rounded-xl bg-white/[0.04]'}
+        aria-hidden="true"
+      />
+    );
   }
 
   if (!user) {
     return (
       <Link
         href={`/login?next=${encodeURIComponent(`/profile/${targetUserId}`)}`}
-        className="inline-flex min-h-10 items-center rounded-xl border border-violet-400/20 bg-violet-500/10 px-4 text-sm font-bold text-violet-100"
+        className={preview
+          ? styles.previewPrimary
+          : 'inline-flex min-h-10 items-center rounded-xl border border-violet-400/20 bg-violet-500/10 px-4 text-sm font-bold text-violet-100'}
       >
         Войти, чтобы добавить
       </Link>
@@ -143,13 +155,15 @@ export default function FriendActionButton({
   }
 
   return (
-    <div className="flex max-w-full flex-wrap items-center gap-2">
+    <div className={preview ? styles.previewRoot : 'flex max-w-full flex-wrap items-center gap-2'}>
       {state === 'none' && (
         <button
           type="button"
           disabled={busy}
           onClick={() => void requestFriend()}
-          className="min-h-10 rounded-xl border border-violet-400/25 bg-violet-500/12 px-4 text-sm font-black text-violet-100 transition hover:-translate-y-px hover:border-violet-300/40 disabled:opacity-50"
+          className={preview
+            ? styles.previewPrimary
+            : 'min-h-10 rounded-xl border border-violet-400/25 bg-violet-500/12 px-4 text-sm font-black text-violet-100 transition hover:-translate-y-px hover:border-violet-300/40 disabled:opacity-50'}
         >
           {busy ? 'Отправляем…' : '+ Добавить в друзья'}
         </button>
@@ -160,7 +174,9 @@ export default function FriendActionButton({
           type="button"
           disabled={busy}
           onClick={() => void act('cancel')}
-          className="min-h-10 rounded-xl border border-white/10 bg-white/[0.035] px-4 text-sm font-bold text-slate-300 disabled:opacity-50"
+          className={preview
+            ? styles.previewSecondary
+            : 'min-h-10 rounded-xl border border-white/10 bg-white/[0.035] px-4 text-sm font-bold text-slate-300 disabled:opacity-50'}
         >
           {busy ? 'Отменяем…' : 'Заявка отправлена · отменить'}
         </button>
@@ -172,7 +188,9 @@ export default function FriendActionButton({
             type="button"
             disabled={busy}
             onClick={() => void act('accept')}
-            className="min-h-10 rounded-xl border border-violet-400/25 bg-violet-500/15 px-4 text-sm font-black text-violet-100 disabled:opacity-50"
+            className={preview
+              ? styles.previewPrimary
+              : 'min-h-10 rounded-xl border border-violet-400/25 bg-violet-500/15 px-4 text-sm font-black text-violet-100 disabled:opacity-50'}
           >
             Принять заявку
           </button>
@@ -180,7 +198,9 @@ export default function FriendActionButton({
             type="button"
             disabled={busy}
             onClick={() => void act('decline')}
-            className="min-h-10 rounded-xl border border-white/10 bg-white/[0.03] px-4 text-sm font-bold text-slate-400 disabled:opacity-50"
+            className={preview
+              ? styles.previewSecondary
+              : 'min-h-10 rounded-xl border border-white/10 bg-white/[0.03] px-4 text-sm font-bold text-slate-400 disabled:opacity-50'}
           >
             Отклонить
           </button>
@@ -191,7 +211,9 @@ export default function FriendActionButton({
         <>
           <Link
             href="/friends"
-            className="inline-flex min-h-10 items-center rounded-xl border border-emerald-400/20 bg-emerald-400/[0.07] px-4 text-sm font-black text-emerald-200"
+            className={preview
+              ? styles.previewAccepted
+              : 'inline-flex min-h-10 items-center rounded-xl border border-emerald-400/20 bg-emerald-400/[0.07] px-4 text-sm font-black text-emerald-200'}
           >
             ✓ В друзьях
           </Link>
@@ -199,14 +221,20 @@ export default function FriendActionButton({
             type="button"
             disabled={busy}
             onClick={() => void removeFriend()}
-            className="min-h-10 rounded-xl border border-white/8 bg-transparent px-3 text-xs font-bold text-slate-500 hover:text-rose-300 disabled:opacity-50"
+            className={preview
+              ? styles.previewDanger
+              : 'min-h-10 rounded-xl border border-white/8 bg-transparent px-3 text-xs font-bold text-slate-500 hover:text-rose-300 disabled:opacity-50'}
           >
             Удалить
           </button>
         </>
       )}
 
-      {error && <span className="basis-full text-xs font-semibold text-rose-300">{error}</span>}
+      {error && (
+        <span className={preview ? styles.previewError : 'basis-full text-xs font-semibold text-rose-300'}>
+          {error}
+        </span>
+      )}
     </div>
   );
 }

@@ -23,7 +23,9 @@ type PreviewData = {
   bio: string | null;
   createdAt: string;
   avatarUrl: string;
+  avatarStaticUrl: string;
   bannerUrl: string | null;
+  bannerStaticUrl: string | null;
   avatarTransform: PremiumMediaTransform;
   bannerTransform: PremiumMediaTransform;
   premium: boolean;
@@ -97,6 +99,7 @@ export default function ProfilePreview({
   className?: string;
 }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const cardRef = useRef<HTMLElement>(null);
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<PreviewData | null>(
     () => previewCache.get(userId)?.data ?? null,
@@ -104,6 +107,7 @@ export default function ProfilePreview({
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [position, setPosition] = useState({ top: 12, left: 12 });
+  const [placement, setPlacement] = useState<'above' | 'below'>('below');
 
   useEffect(() => {
     if (!open) return;
@@ -150,22 +154,41 @@ export default function ProfilePreview({
   useEffect(() => {
     if (!open) return;
 
+    const mobileQuery = window.matchMedia('(max-width: 640px)');
+
     const updatePosition = () => {
-      const rect = triggerRef.current?.getBoundingClientRect();
-      if (!rect) return;
+      if (mobileQuery.matches) return;
 
-      const cardWidth = Math.min(360, window.innerWidth - 24);
-      const estimatedHeight = 430;
+      const trigger = triggerRef.current?.getBoundingClientRect();
+      const card = cardRef.current?.getBoundingClientRect();
+      if (!trigger || !card) return;
+
+      const margin = 12;
+      const gap = 12;
+      const cardWidth = card.width;
+      const cardHeight = card.height;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      const preferredLeft =
+        trigger.left + trigger.width / 2 - cardWidth / 2;
       const left = Math.min(
-        Math.max(12, rect.left),
-        Math.max(12, window.innerWidth - cardWidth - 12),
+        Math.max(margin, preferredLeft),
+        Math.max(margin, viewportWidth - cardWidth - margin),
       );
-      const below = rect.bottom + 9;
-      const top =
-        below + estimatedHeight <= window.innerHeight - 12
-          ? below
-          : Math.max(12, rect.top - estimatedHeight - 9);
 
+      const spaceBelow = viewportHeight - trigger.bottom - margin;
+      const spaceAbove = trigger.top - margin;
+      const openAbove = spaceBelow < cardHeight && spaceAbove > spaceBelow;
+
+      const top = openAbove
+        ? Math.max(margin, trigger.top - gap - cardHeight)
+        : Math.min(
+            trigger.bottom + gap,
+            Math.max(margin, viewportHeight - cardHeight - margin),
+          );
+
+      setPlacement(openAbove ? 'above' : 'below');
       setPosition({ top, left });
     };
 
@@ -173,16 +196,50 @@ export default function ProfilePreview({
       if (event.key === 'Escape') setOpen(false);
     };
 
+    const onScroll = (event: Event) => {
+      if (mobileQuery.matches) return;
+      const target = event.target;
+      if (target instanceof Node && cardRef.current?.contains(target)) return;
+
+      // Desktop popovers close on page/parent scroll instead of chasing the
+      // trigger around the viewport, which looks unstable and cheap.
+      setOpen(false);
+    };
+
     const frame = window.requestAnimationFrame(updatePosition);
+    const observer =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => {
+            window.requestAnimationFrame(updatePosition);
+          })
+        : null;
+
+    if (cardRef.current) observer?.observe(cardRef.current);
+
     window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('scroll', onScroll, true);
     window.addEventListener('keydown', onKeyDown);
+    document.addEventListener('fullscreenchange', updatePosition);
 
     return () => {
       window.cancelAnimationFrame(frame);
+      observer?.disconnect();
       window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('scroll', onScroll, true);
       window.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('fullscreenchange', updatePosition);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || typeof window === 'undefined') return;
+    if (!window.matchMedia('(max-width: 640px)').matches) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
     };
   }, [open]);
 
@@ -222,7 +279,9 @@ export default function ProfilePreview({
               }}
             >
               <section
+                ref={cardRef}
                 className={styles.card}
+                data-placement={placement}
                 style={{
                   ...themeStyle,
                   top: position.top,
@@ -252,13 +311,22 @@ export default function ProfilePreview({
                   <>
                     <div className={styles.banner}>
                       {data.bannerUrl ? (
-                        <img
-                          src={data.bannerUrl}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                          style={premiumMediaStyle(data.bannerTransform)}
-                        />
+                        <picture className={styles.bannerMedia}>
+                          {data.bannerStaticUrl &&
+                            data.bannerStaticUrl !== data.bannerUrl && (
+                              <source
+                                media="(max-width: 640px), (prefers-reduced-motion: reduce)"
+                                srcSet={data.bannerStaticUrl}
+                              />
+                            )}
+                          <img
+                            src={data.bannerUrl}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                            style={premiumMediaStyle(data.bannerTransform)}
+                          />
+                        </picture>
                       ) : (
                         <img
                           src="/brand/profile-banner-default.webp"
@@ -272,15 +340,23 @@ export default function ProfilePreview({
                     <div className={styles.body}>
                       <div className={styles.identity}>
                         <span className={styles.avatarShell}>
-                          <img
-                            src={data.avatarUrl}
-                            alt=""
-                            width={72}
-                            height={72}
-                            loading="lazy"
-                            decoding="async"
-                            style={premiumMediaStyle(data.avatarTransform)}
-                          />
+                          <picture className={styles.avatarMedia}>
+                            {data.avatarStaticUrl !== data.avatarUrl && (
+                              <source
+                                media="(max-width: 640px), (prefers-reduced-motion: reduce)"
+                                srcSet={data.avatarStaticUrl}
+                              />
+                            )}
+                            <img
+                              src={data.avatarUrl}
+                              alt=""
+                              width={78}
+                              height={78}
+                              loading="lazy"
+                              decoding="async"
+                              style={premiumMediaStyle(data.avatarTransform)}
+                            />
+                          </picture>
                         </span>
 
                         <div className={styles.identityCopy}>
@@ -330,7 +406,10 @@ export default function ProfilePreview({
                       </div>
 
                       <div className={styles.actions}>
-                        <FriendActionButton targetUserId={data.id} />
+                        <FriendActionButton
+                          targetUserId={data.id}
+                          variant="profile-preview"
+                        />
                         <Link
                           href={`/profile/${data.id}`}
                           className={styles.openProfile}
