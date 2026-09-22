@@ -181,7 +181,7 @@ export default function HomeContinueWatching({
                     : resumeSeconds >= 10
                       ? `Продолжить с ${formatResumeTime(resumeSeconds)}`
                       : completedEpisodes != null && totalEpisodes
-                        ? `${completedEpisodes} из ${totalEpisodes} серий подтверждено`
+                        ? `${completedEpisodes} / ${totalEpisodes} серий`
                         : totalEpisodes
                           ? `${episode} из ${totalEpisodes}`
                           : 'Продолжить с места просмотра'}

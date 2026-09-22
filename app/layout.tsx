@@ -46,6 +46,7 @@ import './mobile-simplification.css';
 import './home-editorial-hero.css';
 import './patch12-6-mobile-home-final.css';
 import './patch12-6-1-mobile-hero.css';
+import './patch12-6-2-home-rails-typography.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';

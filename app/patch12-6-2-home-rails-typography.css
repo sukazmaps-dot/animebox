@@ -1,0 +1,426 @@
+/* =========================================================
+   AnimeBox Patch 12.6.2 — Home Rails & Typography
+   Final mobile home language: poster-first, compact, editorial.
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .home-page {
+    --ab-mobile-rail-card: clamp(144px, 40vw, 162px);
+    --ab-mobile-rail-gap: 10px;
+  }
+
+  /* -------------------------------------------------------
+     Hero refinement from real-device feedback.
+     The wide banner is ambience; portrait art must read first.
+     ------------------------------------------------------- */
+  .home-page .home-hero-carousel .home-hero-carousel__backdrop {
+    opacity: .20 !important;
+    filter: blur(2.4px) saturate(.72) contrast(1.02) !important;
+    object-position: 58% 28% !important;
+    transform: none !important;
+  }
+
+  .home-page .home-hero-carousel__mobile-keyart {
+    top: -2%;
+    right: -5%;
+    width: 62%;
+    height: 82%;
+    opacity: 1;
+  }
+
+  .home-page .home-hero-carousel__mobile-keyart::after {
+    background:
+      linear-gradient(90deg, #070a11 0%, rgba(7,10,17,.54) 17%, transparent 51%),
+      linear-gradient(0deg, #070a11 0%, rgba(7,10,17,.36) 18%, transparent 55%);
+  }
+
+  .home-page .home-hero-carousel .page-hero__overlay {
+    background:
+      linear-gradient(90deg, rgba(7,10,17,.96) 0%, rgba(7,10,17,.72) 31%, rgba(7,10,17,.12) 69%, transparent 100%),
+      linear-gradient(0deg, #070a11 0%, rgba(7,10,17,.92) 18%, rgba(7,10,17,.18) 56%, transparent 100%) !important;
+  }
+
+  /* -------------------------------------------------------
+     Section type scale. One hierarchy across the whole feed.
+     ------------------------------------------------------- */
+  .home-page .section-head {
+    align-items: flex-end !important;
+    gap: 10px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .home-page .section-title,
+  .home-page .home-top-anime-panel .panel__title-with-icon,
+  .home-page .mood-picker__intro h2 {
+    color: #f0eef5 !important;
+    font-size: 18px !important;
+    font-weight: 760 !important;
+    line-height: 1.2 !important;
+    letter-spacing: -.025em !important;
+  }
+
+  .home-page .section-link {
+    margin-bottom: 1px;
+    color: #85899a !important;
+    font-size: 11px !important;
+    font-weight: 650 !important;
+  }
+
+  .home-page .smart-section-eyebrow,
+  .home-page .mood-picker__eyebrow {
+    color: #777b8b !important;
+    font-size: 9px !important;
+    font-weight: 700 !important;
+    letter-spacing: .06em !important;
+    text-transform: none !important;
+  }
+
+  .home-page .section-title__icon {
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 7px !important;
+    box-shadow: none !important;
+  }
+
+  /* -------------------------------------------------------
+     Regular anime rails.
+     Same geometry everywhere; poster and title carry the card.
+     ------------------------------------------------------- */
+  .home-page .home-anime-grid {
+    display: grid !important;
+    grid-template-columns: none !important;
+    grid-auto-flow: column !important;
+    grid-auto-columns: var(--ab-mobile-rail-card) !important;
+    align-items: stretch !important;
+    gap: var(--ab-mobile-rail-gap) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-inline: 0 !important;
+    padding: 2px 0 8px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-padding-inline: 0 !important;
+    scroll-snap-type: x mandatory !important;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .home-page .home-anime-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .home-page .home-anime-grid .anime-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    scroll-snap-align: start;
+    scroll-snap-stop: normal;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .home-page .home-anime-grid .anime-card__image-wrap {
+    overflow: hidden;
+    border: 1px solid rgba(215, 218, 228, .10);
+    border-radius: 9px !important;
+    background: #11141c;
+  }
+
+  .home-page .home-anime-grid .anime-card__body {
+    padding: 8px 1px 0 !important;
+    background: transparent !important;
+  }
+
+  .home-page .home-anime-grid .anime-card__body h3 {
+    min-height: 34px !important;
+    margin: 0 !important;
+    color: #eceaf1 !important;
+    font-size: 13px !important;
+    font-weight: 690 !important;
+    line-height: 1.3 !important;
+    -webkit-line-clamp: 2 !important;
+  }
+
+  .home-page .home-anime-grid .anime-card__meta {
+    min-height: 15px !important;
+    margin-top: 5px !important;
+    gap: 4px !important;
+    overflow: hidden;
+    color: #777c8d !important;
+    font-size: 10.5px !important;
+    line-height: 1.35 !important;
+    white-space: nowrap;
+  }
+
+  .home-page .home-anime-grid .anime-card__tags {
+    display: none !important;
+  }
+
+  .home-page .home-anime-grid .anime-card__rating,
+  .home-page .home-anime-grid .anime-card__state {
+    min-height: 22px !important;
+    padding-inline: 6px !important;
+    border-radius: 6px !important;
+    font-size: 10px !important;
+    backdrop-filter: blur(8px);
+  }
+
+  /* -------------------------------------------------------
+     Smart recommendations use the SAME poster rhythm.
+     Explanatory data still exists, but it does not dominate mobile.
+     ------------------------------------------------------- */
+  .home-page .smart-feed-heading > p {
+    display: none !important;
+  }
+
+  .home-page .smart-feed-heading__line {
+    gap: 7px !important;
+  }
+
+  .home-page .smart-feed-heading__asset {
+    width: 24px !important;
+    height: 24px !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .home-page .smart-feed__slide {
+    width: var(--ab-mobile-rail-card) !important;
+    contain-intrinsic-size: 156px 340px;
+  }
+
+  .home-page .smart-card {
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .home-page .smart-card__poster {
+    overflow: hidden;
+    border: 1px solid rgba(215, 218, 228, .10);
+    border-radius: 9px !important;
+  }
+
+  .home-page .smart-card__body {
+    padding: 8px 1px 0 !important;
+  }
+
+  .home-page .smart-card__title {
+    min-height: 34px !important;
+    color: #eceaf1 !important;
+    font-size: 13px !important;
+    font-weight: 690 !important;
+    line-height: 1.3 !important;
+  }
+
+  .home-page .smart-card__meta {
+    margin-top: 5px !important;
+    color: #777c8d !important;
+    font-size: 10.5px !important;
+  }
+
+  .home-page .smart-card__reason {
+    display: none !important;
+  }
+
+  .home-page .smart-card__open {
+    display: none !important;
+  }
+
+  .home-page .smart-card__rating {
+    min-height: 22px !important;
+    padding-inline: 6px !important;
+    border-radius: 6px !important;
+    font-size: 10px !important;
+  }
+
+  .home-page .smart-card__match {
+    top: 8px !important;
+    right: 8px !important;
+    min-width: 42px !important;
+    height: 24px !important;
+    border-radius: 6px !important;
+    background: rgba(9,11,17,.82) !important;
+    box-shadow: none !important;
+    font-size: 10px !important;
+  }
+
+  .home-page .smart-card__actions {
+    grid-template-columns: minmax(0, 1fr) 30px !important;
+    gap: 6px !important;
+    padding-top: 7px !important;
+  }
+
+  .home-page .smart-card__plan {
+    min-height: 31px !important;
+    padding-inline: 8px !important;
+    border-color: rgba(176, 164, 222, .18) !important;
+    border-radius: 7px !important;
+    background: rgba(255,255,255,.035) !important;
+    box-shadow: none !important;
+    color: #bcb5d4 !important;
+    font-size: 10.5px !important;
+  }
+
+  .home-page .smart-card__plan-icon {
+    width: 16px !important;
+    height: 16px !important;
+    flex-basis: 16px !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  .home-page .smart-card__dismiss {
+    min-height: 31px !important;
+    border-radius: 7px !important;
+    background: transparent !important;
+  }
+
+  /* -------------------------------------------------------
+     Mood selector becomes a compact tool, not another dashboard panel.
+     ------------------------------------------------------- */
+  .home-page .mood-picker {
+    display: block !important;
+    margin-top: 20px !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .home-page .mood-picker__intro {
+    display: block !important;
+    margin-bottom: 9px !important;
+  }
+
+  .home-page .mood-picker__intro p {
+    display: none !important;
+  }
+
+  .home-page .mood-picker__eyebrow {
+    display: block;
+    margin-bottom: 3px !important;
+  }
+
+  .home-page .mood-picker__options {
+    display: flex !important;
+    grid-template-columns: none !important;
+    gap: 7px !important;
+    margin: 0 !important;
+    padding: 0 0 5px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .home-page .mood-picker__options::-webkit-scrollbar {
+    display: none;
+  }
+
+  .home-page .mood-chip,
+  .home-page .mood-chip:first-child {
+    grid-column: auto !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 38px !important;
+    gap: 6px !important;
+    padding: 5px 9px 5px 6px !important;
+    border-color: rgba(207, 213, 228, .10) !important;
+    border-radius: 8px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    scroll-snap-align: start;
+  }
+
+  .home-page .mood-chip.is-active {
+    border-color: rgba(154, 129, 255, .34) !important;
+    background: rgba(111, 83, 236, .10) !important;
+  }
+
+  .home-page .mood-chip__icon {
+    width: 27px !important;
+    height: 27px !important;
+  }
+
+  .home-page .mood-chip__image {
+    width: 27px !important;
+    height: 27px !important;
+  }
+
+  .home-page .mood-chip__copy strong {
+    font-size: 11.5px !important;
+    font-weight: 680 !important;
+  }
+
+  .home-page .mood-chip__copy small {
+    display: none !important;
+  }
+
+  /* -------------------------------------------------------
+     Continue: deliberate 10px peek, not an accidental half-card.
+     ------------------------------------------------------- */
+  .home-page .continue-watching-section .continue-smart-grid {
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 8px !important;
+    padding: 2px 0 7px !important;
+    overflow-x: auto !important;
+    scroll-padding-inline: 0 !important;
+    scroll-snap-type: x mandatory !important;
+  }
+
+  .home-page .continue-watching-section .continue-smart-card {
+    flex: 0 0 calc(100% - 18px) !important;
+    width: calc(100% - 18px) !important;
+    max-width: calc(100% - 18px) !important;
+  }
+
+  .home-page .continue-watching-section .continue-smart-card__body small {
+    color: #858a99 !important;
+    font-size: 10.5px !important;
+  }
+
+  /* Top anime uses the same width as every other rail. */
+  .home-page .home-top-anime-panel--mobile .panel__body {
+    grid-auto-columns: var(--ab-mobile-rail-card) !important;
+    gap: var(--ab-mobile-rail-gap) !important;
+    margin-inline: 0 !important;
+    padding: 0 0 8px !important;
+    scroll-padding-inline: 0 !important;
+    scroll-snap-type: x mandatory !important;
+  }
+
+  .home-page .home-top-anime-panel--mobile .top-anime-item--editorial .top-anime-item__copy strong {
+    font-size: 13px !important;
+    font-weight: 690 !important;
+    line-height: 1.3 !important;
+    -webkit-line-clamp: 2 !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .home-page {
+    --ab-mobile-rail-card: clamp(138px, 40.5vw, 150px);
+  }
+
+  .home-page .section-title,
+  .home-page .home-top-anime-panel .panel__title-with-icon,
+  .home-page .mood-picker__intro h2 {
+    font-size: 17px !important;
+  }
+
+  .home-page .continue-watching-section .continue-smart-card {
+    flex-basis: calc(100% - 16px) !important;
+    width: calc(100% - 16px) !important;
+    max-width: calc(100% - 16px) !important;
+  }
+}
