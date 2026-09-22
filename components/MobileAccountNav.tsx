@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 
 import Icon from '@/components/Icon';
@@ -71,25 +72,8 @@ export default function MobileAccountNav({ pathname }: Props) {
     window.location.replace('/');
   }
 
-  return (
-    <>
-      <button
-        type="button"
-        className={`mobile-nav__item mobile-nav__profile ${
-          accountSectionActive || open ? 'is-active' : ''
-        }`}
-        onClick={() => setOpen((current) => !current)}
-        aria-expanded={open}
-        aria-controls="mobile-account-sheet"
-        aria-label={profile ? `Профиль ${username}` : 'Аккаунт'}
-      >
-        <span className={`mobile-nav__avatar ${loading ? 'is-loading' : ''}`}>
-          {profile ? <img src={avatarUrl} alt="" style={premiumMediaStyle(profile?.display_avatar_transform)} /> : <Icon name="user" />}
-        </span>
-        <span>Профиль</span>
-      </button>
 
-      {open && (
+  const accountSheet = open ? (
         <>
           <button
             type="button"
@@ -103,6 +87,7 @@ export default function MobileAccountNav({ pathname }: Props) {
             className="mobile-account"
             role="dialog"
             aria-modal="true"
+            data-mobile-nav-lock="true"
             aria-label="Меню аккаунта AnimeBox"
           >
             <div className="mobile-account__handle" />
@@ -375,7 +360,29 @@ export default function MobileAccountNav({ pathname }: Props) {
             )}
           </section>
         </>
-      )}
+
+  ) : null;
+  return (
+    <>
+      <button
+        type="button"
+        className={`mobile-nav__item mobile-nav__profile ${
+          accountSectionActive || open ? 'is-active' : ''
+        }`}
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
+        aria-controls="mobile-account-sheet"
+        aria-label={profile ? `Профиль ${username}` : 'Аккаунт'}
+      >
+        <span className={`mobile-nav__avatar ${loading ? 'is-loading' : ''}`}>
+          {profile ? <img src={avatarUrl} alt="" style={premiumMediaStyle(profile?.display_avatar_transform)} /> : <Icon name="user" />}
+        </span>
+        <span>Профиль</span>
+      </button>
+
+      {accountSheet && typeof document !== 'undefined'
+        ? createPortal(accountSheet, document.body)
+        : null}
     </>
   );
 }
