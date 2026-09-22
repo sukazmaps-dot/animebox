@@ -252,14 +252,15 @@ export default function CommunityProfile() {
         <div className="profile-v5__challenge-streak">
           <span className="profile-v2__eyebrow">Серия активности</span>
           <strong className="profile-v6__streak-value">
-            <img
-              className="profile-v6__streak-fire"
-              src="/brand/profile/streak-fire.webp"
-              alt=""
-              width="34"
-              height="34"
-              aria-hidden="true"
-            />
+            <span className="profile-v6__streak-fire-shell" aria-hidden="true">
+              <img
+                className="profile-v6__streak-fire"
+                src="/brand/profile/streak-fire.webp"
+                alt=""
+                width="42"
+                height="42"
+              />
+            </span>
             <span className="profile-v6__streak-copy">
               <b>{data.challenges.streak.current}</b>
               <span>{data.challenges.streak.current === 1 ? 'день' : 'дн.'}</span>
