@@ -1,0 +1,163 @@
+/* =========================================================
+   AnimeBox Patch 12.3.3 — Mood Density + Final Home Polish
+   Mood is a quick filter, not a full content section.
+   ========================================================= */
+
+.home-page .mood-picker {
+  grid-template-columns: minmax(210px, .52fr) minmax(0, 2.35fr) !important;
+  align-items: center !important;
+  gap: 14px !important;
+  min-height: 0 !important;
+  height: auto !important;
+  margin-top: 18px !important;
+  padding: 9px 0 !important;
+}
+
+.home-page .mood-picker__intro {
+  align-self: center;
+  min-width: 0;
+}
+
+.home-page .mood-picker__eyebrow {
+  margin-bottom: 3px;
+  font-size: 8px;
+}
+
+.home-page .mood-picker__intro h2 {
+  margin: 0;
+  font-size: 15px !important;
+  line-height: 1.15 !important;
+}
+
+.home-page .mood-picker__intro p {
+  margin: 4px 0 0 !important;
+  max-width: 250px;
+  font-size: 8.5px !important;
+  line-height: 1.35 !important;
+}
+
+.home-page .mood-picker__options {
+  min-width: 0;
+  align-items: center;
+  gap: 6px !important;
+}
+
+.home-page .mood-chip {
+  min-height: 48px !important;
+  max-height: 48px !important;
+  height: 48px;
+  gap: 7px !important;
+  padding: 5px 7px !important;
+}
+
+.home-page .mood-chip__icon {
+  width: 30px !important;
+  height: 30px !important;
+  flex: 0 0 30px;
+}
+
+.home-page .mood-chip__image {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+.home-page .mood-chip__copy {
+  min-width: 0;
+  gap: 1px !important;
+}
+
+.home-page .mood-chip__copy strong {
+  font-size: 9.5px !important;
+  line-height: 1.15 !important;
+}
+
+.home-page .mood-chip__copy small {
+  display: block;
+  overflow: hidden;
+  font-size: 7.5px !important;
+  line-height: 1.2 !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The active state should read as selection, not inflate the block. */
+.home-page .mood-chip.is-active {
+  box-shadow: inset 2px 0 0 var(--ab-accent) !important;
+}
+
+@media (max-width: 1000px) {
+  .home-page .mood-picker {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .home-page .mood-picker__intro p {
+    max-width: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .home-page .mood-picker {
+    margin-top: 16px !important;
+    padding-block: 9px !important;
+    gap: 8px !important;
+  }
+
+  .home-page .mood-picker__intro {
+    padding-right: 12px;
+  }
+
+  .home-page .mood-picker__intro h2 {
+    font-size: 15px !important;
+  }
+
+  .home-page .mood-picker__intro p {
+    display: block !important;
+    margin-top: 3px !important;
+    font-size: 9px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .home-page .mood-picker__options {
+    gap: 6px !important;
+  }
+
+  .home-page .mood-chip {
+    min-height: 50px !important;
+    max-height: 50px !important;
+    height: 50px;
+  }
+
+  .home-page .mood-chip__copy strong {
+    font-size: 10px !important;
+  }
+
+  .home-page .mood-chip__copy small {
+    font-size: 8px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .home-page .mood-picker {
+    margin-top: 14px !important;
+  }
+
+  .home-page .mood-chip {
+    min-height: 48px !important;
+    max-height: 48px !important;
+    height: 48px;
+  }
+
+  .home-page .mood-chip__icon {
+    width: 28px !important;
+    height: 28px !important;
+    flex-basis: 28px;
+  }
+
+  .home-page .mood-chip__image {
+    width: 30px !important;
+    height: 30px !important;
+  }
+}

@@ -13,31 +13,31 @@ const MOODS: Array<{
   {
     value: 'any',
     label: 'Мой вкус',
-    hint: 'По тому, что ты уже смотрел',
+    hint: 'По истории',
     icon: '/brand/emojis/moods/mood-any-cat.webp',
   },
   {
     value: 'comfort',
     label: 'Уют',
-    hint: 'Ламповые истории для отдыха',
+    hint: 'Спокойно и тепло',
     icon: '/brand/emojis/moods/mood-cozy-cup.webp',
   },
   {
     value: 'tension',
     label: 'Триллер',
-    hint: 'Саспенс, загадки и экшен',
+    hint: 'Тайны и риск',
     icon: '/brand/emojis/moods/mood-dark-kitsune.webp',
   },
   {
     value: 'emotion',
     label: 'Драма',
-    hint: 'Стекло и сильные сюжеты',
+    hint: 'Сильные эмоции',
     icon: '/brand/emojis/moods/mood-cry.webp',
   },
   {
     value: 'adventure',
     label: 'Другие миры',
-    hint: 'Фэнтези, приключения и экшен',
+    hint: 'Миры и приключения',
     icon: '/brand/emojis/moods/mood-hype-fire.webp',
   },
 ];
@@ -55,7 +55,7 @@ export default function HomeMoodPicker({
         <span className="mood-picker__eyebrow">Настроение</span>
         <div>
           <h2 id="mood-picker-title">Какое настроение на вечер?</h2>
-          <p>Выбери вайб — подборка перестроится под него.</p>
+          <p>Выбери настроение — подстроим подборку.</p>
         </div>
       </div>
 
