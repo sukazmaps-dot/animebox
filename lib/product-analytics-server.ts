@@ -87,6 +87,8 @@ function summarizeRetentionSurfaces(rows: SurfaceEventRow[]) {
   const started = count('continue_watching_started');
 
   return {
+    sampledEvents: rows.length,
+    truncated: rows.length >= 10_000,
     continueWatching: {
       impressions,
       clicks,
@@ -149,7 +151,7 @@ const cachedDashboard = unstable_cache(
       retentionSurfaces: summarizeRetentionSurfaces(surfaceRows),
     } satisfies ProductAnalyticsDashboard;
   },
-  ['animebox-product-analytics-dashboard-v3'],
+  ['animebox-product-analytics-dashboard-v4'],
   { revalidate: 60, tags: ['product-analytics-dashboard'] },
 );
 

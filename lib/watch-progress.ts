@@ -95,6 +95,15 @@ function writeProgress(progress: WatchProgress[]) {
   }
 }
 
+export function getLatestWatchProgress(animeId: number): WatchProgress | null {
+  return readProgress().find((item) => item.animeId === animeId) ?? null;
+}
+
+export function hasResumePosition(progress: WatchProgress | null): progress is WatchProgress {
+  return Boolean(progress && progress.currentTime >= 10 &&
+    (progress.duration <= 0 || progress.duration - progress.currentTime > 20));
+}
+
 export function getWatchProgress(
   animeId: number,
   episode: number,

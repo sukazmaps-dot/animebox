@@ -51,6 +51,8 @@ export type ProductAnalyticsDashboard = {
     d30: RetentionMetric;
   };
   retentionSurfaces: {
+    sampledEvents: number;
+    truncated: boolean;
     continueWatching: {
       impressions: number;
       clicks: number;

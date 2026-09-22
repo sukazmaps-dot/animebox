@@ -75,9 +75,9 @@ export default function HomeActivationPanel({
           <div><strong>Найди первое аниме</strong><small>Каталог, поиск и рекомендации</small></div>
           <b>→</b>
         </Link>
-        <Link href="/list" onClick={() => track('open_tracker')}>
+        <Link href="/search" onClick={() => track('open_tracker')}>
           <span>02</span>
-          <div><strong>Добавь в трекер</strong><small>Watching / Planned / Completed</small></div>
+          <div><strong>Добавь в трекер</strong><small>Выбери аниме и сохрани в свой список</small></div>
           <b>→</b>
         </Link>
         <a href="#animebox-for-you" onClick={() => track('open_recommendations')}>

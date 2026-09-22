@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import styles from './HomeContinueWatching.module.css';
 import { useEffect, useRef } from 'react';
 
 import AnimeImage from '@/components/AnimeImage';
@@ -79,7 +80,7 @@ export default function HomeContinueWatching({
   if (items.length === 0) return null;
 
   return (
-    <section className="section continue-watching-section">
+    <section className={`section continue-watching-section ${styles.section}`}>
       <div className="section-head">
         <div>
           <span className="smart-section-eyebrow">Твоя история</span>
@@ -100,7 +101,7 @@ export default function HomeContinueWatching({
           completedEpisodes,
           totalEpisodes: explicitTotalEpisodes,
           lastWatchedAt,
-        }) => {
+        }, index) => {
           const title = getAnimeTitle(anime);
           const totalEpisodes =
             explicitTotalEpisodes ??
@@ -108,17 +109,15 @@ export default function HomeContinueWatching({
           const titleProgress =
             completedEpisodes != null && totalEpisodes
               ? (completedEpisodes / totalEpisodes) * 100
-              : totalEpisodes
-                ? (episode / totalEpisodes) * 100
-                : 18;
-          const progress = Math.min(100, Math.max(4, titleProgress));
+              : 0;
+          const progress = Math.min(100, Math.max(0, titleProgress));
           const lastWatchedLabel = formatLastWatched(lastWatchedAt);
 
           return (
             <Link
               key={anime.id}
               href={`${animeHref(anime)}/watch?ep=${Math.max(1, episode)}`}
-              className="continue-smart-card"
+              className={`continue-smart-card ${index === 0 ? styles.featured : ""}`}
               onClick={() => {
                 rememberContinueWatchingAttribution({
                   animeId: anime.id,
@@ -146,8 +145,8 @@ export default function HomeContinueWatching({
                   alt={title}
                   englishName={anime.title?.english || anime.title?.romaji}
                   className="continue-smart-card__image"
-                  loading="lazy"
-                  sizes="54px"
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                  sizes={index === 0 ? '(max-width: 600px) 76px, 96px' : '54px'}
                   quality={60}
                 />
                 <span className="continue-smart-card__play" aria-hidden="true">▶</span>
@@ -161,9 +160,9 @@ export default function HomeContinueWatching({
                     : ''}
                 </span>
                 <strong title={title}>{title}</strong>
-                <div className="continue-smart-card__progress" aria-hidden="true">
+                {completedEpisodes != null && Boolean(totalEpisodes) && <div className="continue-smart-card__progress" role="progressbar" aria-label="Просмотрено серий" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}>
                   <i style={{ width: `${progress}%` }} />
-                </div>
+                </div>}
                 <small>
                   {resumeMode === 'next'
                     ? `Открыть ${Math.max(1, episode)} серию`
@@ -178,7 +177,7 @@ export default function HomeContinueWatching({
                 </small>
               </div>
 
-              <span className="continue-smart-card__arrow" aria-hidden="true">→</span>
+              <span className={`continue-smart-card__arrow ${index === 0 ? styles.action : ''}`} aria-hidden="true">{index === 0 ? 'Смотреть →' : '→'}</span>
             </Link>
           );
         })}

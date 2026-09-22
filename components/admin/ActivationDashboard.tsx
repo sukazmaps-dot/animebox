@@ -40,15 +40,21 @@ export default function ActivationDashboard() {
       {error && <div className={styles.error}>{error}</div>}
       {loading && !dashboard && <div className={styles.loading}>Собираем Activation funnel…</div>}
       {dashboard && k && <>
+        {dashboard.truncated && <p role="status">Выборка ограничена первыми 20 000 событиями периода. Показатели неполные; выбери меньший период.</p>}
         <div className={styles.kpis}>
           <article><span>Visit sessions</span><strong>{num(k.visitSessions)}</strong><small>{dashboard.rangeDays} дней</small></article>
-          <article><span>Auth completion</span><strong>{pct(k.authCompletionRate)}</strong><small>{num(k.authCompletedSessions)} completed</small></article>
+          <article><span>Auth completion</span><strong>{pct(k.authCompletionRate)}</strong><small>{num(dashboard.authFunnel[1].sessions)} завершили после открытия входа</small></article>
           <article><span>Registrations</span><strong>{num(k.registrationSessions)}</strong><small>{num(k.onboardingCompletedSessions)} onboarding completed</small></article>
-          <article><span>Visit → play</span><strong>{pct(k.visitToPlayRate)}</strong><small>{num(k.playerStartSessions)} sessions started playback</small></article>
+          <article><span>Visit → play</span><strong>{pct(k.visitToPlayRate)}</strong><small>{num(dashboard.funnel[2].sessions)} прошли путь от визита до просмотра</small></article>
         </div>
         <section className={styles.panel}>
           <div className={styles.panelHead}><div><span>FUNNEL</span><h2>От визита до просмотра</h2></div><small>{num(dashboard.sampledEvents)} событий</small></div>
           <div className={styles.funnel}>{dashboard.funnel.map((stage) => <div className={styles.stage} key={stage.key}><strong>{stage.label}</strong><div className={styles.bar}><i style={{ width: `${Math.max(2, Math.min(100, stage.rateFromVisits))}%` }} /></div><small>{num(stage.sessions)} · {pct(stage.rateFromVisits)}</small></div>)}</div>
+        </section>
+        <section className={styles.panel}>
+          <div className={styles.panelHead}><div><span>AUTH</span><h2>От открытия входа до авторизации</h2></div></div>
+          <p>Шаги считаются последовательно в одной сессии. Вход не обязателен для воронки просмотра; автоматический вход учитывается в общих событиях.</p>
+          <div className={styles.funnel}>{dashboard.authFunnel.map((stage) => <div className={styles.stage} key={stage.key}><strong>{stage.label}</strong><div className={styles.bar}><i style={{ width: `${stage.rateFromVisits}%` }} /></div><small>{num(stage.sessions)} · {pct(stage.rateFromVisits)}</small></div>)}</div>
         </section>
         <section className={styles.panel}>
           <div className={styles.panelHead}><div><span>SOURCES</span><h2>Где проходит авторизация</h2></div></div>

@@ -98,5 +98,8 @@ jobs:
           app/register/page.tsx
           lib/telegram-growth-client.ts
 
+      - name: Retention regression checks
+        run: node tests/retention.cjs
+
       - name: Production build
         run: npm run build

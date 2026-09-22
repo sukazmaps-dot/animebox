@@ -1,4 +1,5 @@
 import 'server-only';
+import { orderedFunnelCounts } from '@/lib/ordered-funnel';
 
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import type {
@@ -132,24 +133,22 @@ export async function getActivationDashboard(days: number): Promise<ActivationDa
   const animeOpen = setFor('anime_open').size;
   const playerStart = setFor('player_started').size;
 
+  const watchSteps = orderedFunnelCounts(rows, ['page_view', 'anime_open', 'player_started']);
+  const authSteps = orderedFunnelCounts(rows, ['auth_modal_opened', 'auth_completed']);
   const rawStages = [
-    ['visit', 'Visit', visits],
-    ['auth_open', 'Auth opened', authOpened],
-    ['auth_complete', 'Auth completed', authCompleted],
-    ['anime_open', 'Anime opened', animeOpen],
-    ['player_start', 'Player started', playerStart],
+    ['visit', 'Визит', watchSteps[0]],
+    ['anime_open', 'Открыл аниме', watchSteps[1]],
+    ['player_start', 'Начал просмотр', watchSteps[2]],
   ] as const;
-
-  const funnel: ActivationStage[] = rawStages.map(([key, label, sessions], index) => {
-    const previous = index > 0 ? rawStages[index - 1][2] : null;
-    return {
-      key,
-      label,
-      sessions,
-      rateFromPrevious: previous == null ? null : pct(sessions, previous),
-      rateFromVisits: pct(sessions, visits),
-    };
-  });
+  const funnel: ActivationStage[] = rawStages.map(([key, label, sessions], index) => ({
+    key, label, sessions,
+    rateFromPrevious: index === 0 ? null : pct(sessions, rawStages[index - 1][2]),
+    rateFromVisits: pct(sessions, watchSteps[0]),
+  }));
+  const authFunnel: ActivationStage[] = [
+    { key: 'auth_open', label: 'Открыл вход', sessions: authSteps[0], rateFromPrevious: null, rateFromVisits: authSteps[0] > 0 ? 100 : 0 },
+    { key: 'auth_complete', label: 'Завершил вход', sessions: authSteps[1], rateFromPrevious: pct(authSteps[1], authSteps[0]), rateFromVisits: pct(authSteps[1], authSteps[0]) },
+  ];
 
   return {
     rangeDays,
@@ -165,10 +164,11 @@ export async function getActivationDashboard(days: number): Promise<ActivationDa
       onboardingCompletedSessions: onboardingCompleted,
       animeOpenSessions: animeOpen,
       playerStartSessions: playerStart,
-      authCompletionRate: pct(authCompleted, authOpened),
-      visitToPlayRate: pct(playerStart, visits),
+      authCompletionRate: pct(authSteps[1], authSteps[0]),
+      visitToPlayRate: pct(watchSteps[2], watchSteps[0]),
     },
     funnel,
+    authFunnel,
     surfaces: [...surfaceMap.values()]
       .map((surface) => ({
         source: surface.source,

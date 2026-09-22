@@ -17,7 +17,7 @@ import HomeHeroCarousel from '@/components/HomeHeroCarousel';
 import { getAnimes } from '@/lib/anime-client';
 import { getPersonalizedRecommendations } from '@/lib/recommendations';
 import { readAnimeProgressMap, readWatchHistory, type AnimeHistoryEntry } from '@/lib/anime-storage';
-import { getWatchProgress } from '@/lib/watch-progress';
+import { getLatestWatchProgress, hasResumePosition } from '@/lib/watch-progress';
 import { useAuthState } from '@/components/AuthStateProvider';
 import type { RecentWatchResponse, WatchTitleOverview } from '@/types/watch';
 import TelegramPromoCard from '@/components/TelegramPromoCard';
@@ -304,7 +304,7 @@ export default function HomePage({
       const history = readWatchHistory();
 
       setHasWatchHistory(history.length > 0);
-      setWatchHistory(history);
+      setWatchHistory([...history]);
       setHistoryRevision(
         history
           .map((item) => `${item.id}:${item.viewCount}:${item.lastViewedAt}`)
@@ -323,12 +323,14 @@ export default function HomePage({
     window.addEventListener('focus', refreshHistory);
     window.addEventListener('pageshow', refreshHistory);
     window.addEventListener('storage', refreshHistory);
+    window.addEventListener('watch-state-updated', refreshHistory);
     document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
       window.removeEventListener('focus', refreshHistory);
       window.removeEventListener('pageshow', refreshHistory);
       window.removeEventListener('storage', refreshHistory);
+      window.removeEventListener('watch-state-updated', refreshHistory);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, []);
@@ -343,7 +345,10 @@ export default function HomePage({
 
     const controller = new AbortController();
 
+    let inFlight = false;
     const loadRecent = () => {
+      if (inFlight || controller.signal.aborted) return;
+      inFlight = true;
       void fetch('/api/watch/recent?limit=4', {
         signal: controller.signal,
         cache: 'no-store',
@@ -367,15 +372,22 @@ export default function HomePage({
           ) {
             console.debug('[Home] recent watch unavailable');
           }
-        });
+        }).finally(() => { inFlight = false; });
     };
 
+    const onVisible = () => { if (document.visibilityState === 'visible') loadRecent(); };
     loadRecent();
+    window.addEventListener('focus', loadRecent);
+    window.addEventListener('pageshow', loadRecent);
+    document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('watch-state-updated', loadRecent);
 
     return () => {
       controller.abort();
       window.removeEventListener('watch-state-updated', loadRecent);
+      window.removeEventListener('focus', loadRecent);
+      window.removeEventListener('pageshow', loadRecent);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [authLoading, user?.id]);
 
@@ -557,11 +569,9 @@ export default function HomePage({
     );
 
     const localItems = watchHistory.flatMap((anime) => {
-      const episode = progress[String(anime.id)] ?? 0;
-      if (episode <= 0) return [];
-
-      const exact = getWatchProgress(anime.id, episode);
-      if (!exact || exact.currentTime < 10) return [];
+      const exact = getLatestWatchProgress(anime.id);
+      if (!hasResumePosition(exact)) return [];
+      const episode = exact.episode;
 
       return [{
         anime,
@@ -584,7 +594,12 @@ export default function HomePage({
     }
 
     const serverItems = serverContinue.flatMap((state) => {
-      if (!state.resumeEpisode) return [];
+      if (!state.resumeEpisode) {
+        const local = localItems.find((item) => item.anime.id === state.animeId);
+        const serverAt = state.lastWatchedAt ? Date.parse(state.lastWatchedAt) : 0;
+        return local && local.sortAt > (Number.isFinite(serverAt) ? serverAt : 0)
+          ? [{ ...local, completedEpisodes: state.completedEpisodes }] : [];
+      }
 
       const localAnime = localById.get(state.animeId);
       const catalogueAnime = catalogueById.get(state.animeId);
@@ -638,19 +653,15 @@ export default function HomePage({
         Number.isFinite(Date.parse(state.lastWatchedAt))
           ? Date.parse(state.lastWatchedAt)
           : 0;
-      const exact = getWatchProgress(
-        state.animeId,
-        state.resumeEpisode,
-      );
+      const exact = getLatestWatchProgress(state.animeId);
       const localIsNewer = Boolean(
-        exact &&
-          exact.currentTime >= 10 &&
+        hasResumePosition(exact) &&
           exact.updatedAt > serverAt,
       );
 
       return [{
         anime,
-        episode: state.resumeEpisode,
+        episode: localIsNewer ? exact!.episode : state.resumeEpisode,
         resumeMode: localIsNewer
           ? ('resume' as const)
           : (state.resumeMode ?? 'resume'),
@@ -665,7 +676,7 @@ export default function HomePage({
     });
 
     const serverIds = new Set(
-      serverItems.map((item) => item.anime.id),
+      serverContinue.map((item) => item.animeId),
     );
 
     return [
@@ -679,7 +690,6 @@ export default function HomePage({
   }, [
     ongoing,
     popular,
-    progress,
     serverContinue,
     user?.id,
     watchHistory,
@@ -808,6 +818,7 @@ export default function HomePage({
     <div className="home-page">
       <div className="home-grid home-grid--main">
         <div className="main-column">
+        <HomeContinueWatching items={continueWatchingItems} />
         {heroLoading ? (
           <section className="page-hero page-hero--empty">
             <div className="page-hero__content">
@@ -827,7 +838,6 @@ export default function HomePage({
           hasContinue={continueWatchingItems.length > 0}
         />
 
-        <HomeContinueWatching items={continueWatchingItems} />
 
         {!personalizedHome && <HomeTopAnimePanel popular={popular} mobile />}
 
@@ -838,9 +848,9 @@ export default function HomePage({
             <div className="section-head">
               <div>
                 <span className="smart-section-eyebrow">Твои онгоинги</span>
-                <h2 className="section-title">Новые серии для тебя</h2>
+                <h2 className="section-title">Расписание твоих аниме</h2>
                 <p>
-                  Ближайшие релизы тайтлов, к которым ты уже возвращался.
+                  Время эфира в Японии. Перевод и озвучка могут появиться позже.
                 </p>
               </div>
               <Link className="section-link" href="/notifications">

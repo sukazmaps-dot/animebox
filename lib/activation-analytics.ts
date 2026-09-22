@@ -34,5 +34,6 @@ export type ActivationDashboard = {
     visitToPlayRate: number;
   };
   funnel: ActivationStage[];
+  authFunnel: ActivationStage[];
   surfaces: ActivationSurface[];
 };

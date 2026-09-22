@@ -239,7 +239,7 @@ export default function ProductAnalyticsDashboard() {
                   <span>PATCH 6 · RETENTION SURFACES</span>
                   <h2>Что возвращает пользователя в AnimeBox</h2>
                 </div>
-                <small>{range} дней · product_events</small>
+                <small>{range} дней · {number(surfaces.sampledEvents)} событий{surfaces.truncated ? " · выборка ограничена, показатели неполные" : ""}</small>
               </div>
 
               <div className={styles.surfaceGrid}>
