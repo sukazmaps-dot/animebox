@@ -91,12 +91,20 @@ export default async function PublicProfilePage({ params }: Props) {
       <section className="profile-v2__hero">
         <div className="profile-v2__banner">
           {profile.bannerUrl ? (
-            <img
-              src={profile.bannerUrl}
-              alt={`Баннер ${profile.username}`}
-              className="profile-v2__banner-image"
-              style={premiumMediaStyle(profile.bannerTransform) as CSSProperties}
-            />
+            <picture className="profile-v2__banner-picture">
+              {profile.bannerMobileUrl && profile.bannerMobileUrl !== profile.bannerUrl && (
+                <source
+                  media="(max-width: 768px), (prefers-reduced-motion: reduce)"
+                  srcSet={profile.bannerMobileUrl}
+                />
+              )}
+              <img
+                src={profile.bannerUrl}
+                alt={`Баннер ${profile.username}`}
+                className="profile-v2__banner-image"
+                style={premiumMediaStyle(profile.bannerTransform) as CSSProperties}
+              />
+            </picture>
           ) : (
             <img
               src="/brand/profile-banner-default.webp"
@@ -112,6 +120,7 @@ export default async function PublicProfilePage({ params }: Props) {
         <div className="profile-v2__identity">
           <UserAvatarWithFrame
             src={profile.avatarUrl}
+            mobileSrc={profile.avatarMobileUrl}
             alt={`Аватар ${profile.username}`}
             role={profile.role}
             sponsor={profile.sponsor}
