@@ -1,0 +1,39 @@
+/* =========================================================
+   AnimeBox Patch 11.4.4 · Streak System v2
+   ========================================================= */
+
+.profile-v5__challenges.profile-v6__challenges-link {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.profile-v5__challenges.profile-v6__challenges-link > :first-child {
+  min-width: 0;
+}
+
+.profile-v5__challenges.profile-v6__challenges-link .profile-v5__challenge-progress {
+  align-self: center;
+}
+
+.profile-v5__challenges.profile-v6__challenges-link .profile-v5__challenge-link {
+  grid-column: 2;
+  justify-self: end;
+  align-self: end;
+  padding-right: 2px;
+}
+
+@media (max-width: 820px) {
+  .profile-v5__challenges.profile-v6__challenges-link {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-v5__challenges.profile-v6__challenges-link .profile-v5__challenge-progress,
+  .profile-v5__challenges.profile-v6__challenges-link .profile-v5__challenge-link {
+    grid-column: 1;
+  }
+
+  .profile-v5__challenges.profile-v6__challenges-link .profile-v5__challenge-link {
+    justify-self: start;
+  }
+}
