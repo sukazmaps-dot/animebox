@@ -1,0 +1,186 @@
+/* =========================================================
+   AnimeBox Patch 12.6.1 — Mobile Hero 2.0
+   Mobile is composed as key-art, not a stretched desktop banner.
+   ========================================================= */
+
+.home-hero-carousel__mobile-keyart {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .home-page .page-hero.home-hero-carousel {
+    min-height: 326px !important;
+    height: 326px !important;
+    max-height: 326px !important;
+    overflow: hidden;
+    border-radius: 12px !important;
+    background: #070a11 !important;
+  }
+
+  /* Wide AniList banner is only ambience on phones. */
+  .home-page .home-hero-carousel .home-hero-carousel__backdrop {
+    z-index: 0;
+    opacity: .34 !important;
+    object-fit: cover;
+    object-position: 58% 24% !important;
+    filter: blur(1.6px) saturate(.82) contrast(1.03) !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+
+  /* Portrait art carries the composition and stays sharp. */
+  .home-page .home-hero-carousel__mobile-keyart {
+    position: absolute;
+    z-index: 0;
+    top: 0;
+    right: -2%;
+    display: block;
+    width: 57%;
+    height: 77%;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: .98;
+  }
+
+  .home-page .home-hero-carousel__mobile-keyart::after {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(90deg, #070a11 0%, rgba(7,10,17,.72) 15%, transparent 48%),
+      linear-gradient(0deg, #070a11 0%, rgba(7,10,17,.45) 18%, transparent 58%);
+  }
+
+  .home-page .home-hero-carousel__mobile-keyart-image {
+    object-fit: cover !important;
+    object-position: center 18% !important;
+    filter: saturate(.96) contrast(1.045);
+  }
+
+  .home-page .home-hero-carousel .page-hero__overlay {
+    z-index: 1;
+    background:
+      linear-gradient(90deg, rgba(7,10,17,.96) 0%, rgba(7,10,17,.78) 34%, rgba(7,10,17,.22) 70%, rgba(7,10,17,.08) 100%),
+      linear-gradient(0deg, #070a11 0%, rgba(7,10,17,.94) 18%, rgba(7,10,17,.30) 58%, transparent 100%) !important;
+  }
+
+  .home-page .page-hero__content.home-hero-carousel__content {
+    position: relative;
+    z-index: 2;
+    justify-content: flex-end !important;
+    min-height: 326px !important;
+    height: 326px !important;
+    padding: 18px 16px 58px !important;
+  }
+
+  .home-page .home-hero-carousel h1,
+  .home-page .home-hero-carousel h1.is-long-title {
+    display: -webkit-box !important;
+    max-width: 82% !important;
+    overflow: hidden !important;
+    font-size: clamp(26px, 7vw, 32px) !important;
+    line-height: 1.04 !important;
+    letter-spacing: -.035em !important;
+    text-wrap: balance;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2 !important;
+  }
+
+  .home-page .home-hero-carousel h1.is-long-title {
+    font-size: clamp(23px, 6.25vw, 28px) !important;
+  }
+
+  .home-page .home-hero-carousel .hero-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+    width: min(100%, 330px);
+    gap: 8px !important;
+    margin-top: 14px !important;
+  }
+
+  .home-page .home-hero-carousel .hero-actions .btn {
+    width: 100%;
+    min-width: 0;
+    min-height: 38px !important;
+    padding-inline: 10px !important;
+    border-radius: 8px !important;
+    font-size: 11.5px !important;
+  }
+
+  .home-page .home-hero-carousel .home-hero-carousel__nav {
+    left: 16px !important;
+    right: 14px !important;
+    bottom: 10px !important;
+    gap: 7px !important;
+  }
+
+  .home-page .home-hero-carousel .home-hero-carousel__dot,
+  .home-page .home-hero-carousel .home-hero-carousel__dot.is-active {
+    width: 27px !important;
+    height: 24px !important;
+  }
+
+  .home-page .home-hero-carousel .home-hero-carousel__dot::before {
+    height: 2px !important;
+  }
+
+  .home-page .continue-watching-section {
+    margin-top: 15px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .home-page .page-hero.home-hero-carousel {
+    min-height: 306px !important;
+    height: 306px !important;
+    max-height: 306px !important;
+  }
+
+  .home-page .page-hero__content.home-hero-carousel__content {
+    min-height: 306px !important;
+    height: 306px !important;
+    padding: 16px 14px 54px !important;
+  }
+
+  .home-page .home-hero-carousel__mobile-keyart {
+    right: -5%;
+    width: 60%;
+    height: 75%;
+  }
+
+  .home-page .home-hero-carousel h1,
+  .home-page .home-hero-carousel h1.is-long-title {
+    max-width: 86% !important;
+    font-size: clamp(24px, 7vw, 28px) !important;
+  }
+
+  .home-page .home-hero-carousel h1.is-long-title {
+    font-size: 22px !important;
+  }
+
+  .home-page .home-hero-carousel .hero-actions {
+    width: 100%;
+  }
+
+  .home-page .home-hero-carousel .hero-actions .btn {
+    min-height: 37px !important;
+    font-size: 11px !important;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .home-page .home-hero-carousel__backdrop {
+    transform: none !important;
+    transition: opacity 420ms ease !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-page .home-hero-carousel__backdrop,
+  .home-page .home-hero-carousel__mobile-keyart-image {
+    transform: none !important;
+    transition: none !important;
+  }
+}

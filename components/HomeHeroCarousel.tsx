@@ -278,6 +278,15 @@ export default function HomeHeroCarousel({
       anime.bannerImage,
     );
 
+  const mobileKeyArt =
+    normalizeImageUrl(
+      anime.coverImage?.extraLarge ||
+      anime.coverImage?.large ||
+      anime.image?.original ||
+      anime.image?.large ||
+      anime.image?.medium,
+    );
+
   const [ambientR, ambientG, ambientB] = getAmbientRgb(anime);
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLElement>) => {
@@ -446,11 +455,28 @@ export default function HomeHeroCarousel({
           priority={safeActiveIndex === 0}
           fetchPriority={safeActiveIndex === 0 ? 'high' : 'auto'}
           decoding="async"
-          quality={55}
-          sizes="(max-width: 390px) calc(100vw - 18px), (max-width: 720px) calc(100vw - 24px), (max-width: 1200px) calc(100vw - 100px), (max-width: 1700px) calc(100vw - 300px), 1380px"
+          quality={82}
+          sizes="(max-width: 390px) calc(100vw - 20px), (max-width: 768px) calc(100vw - 24px), (max-width: 1200px) calc(100vw - 100px), (max-width: 1700px) calc(100vw - 300px), 1380px"
           className="page-hero__backdrop home-hero-carousel__backdrop is-visible"
           aria-hidden="true"
         />
+      )}
+
+      {mobileKeyArt && (
+        <div className="home-hero-carousel__mobile-keyart" aria-hidden="true">
+          <Image
+            key={`${anime.id}-mobile-keyart`}
+            src={mobileKeyArt}
+            alt=""
+            fill
+            priority={safeActiveIndex === 0}
+            fetchPriority={safeActiveIndex === 0 ? 'high' : 'auto'}
+            decoding="async"
+            quality={88}
+            sizes="(max-width: 390px) 54vw, (max-width: 768px) 50vw, 1px"
+            className="home-hero-carousel__mobile-keyart-image"
+          />
+        </div>
       )}
 
       <div className="page-hero__overlay" />
