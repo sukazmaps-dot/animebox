@@ -1786,3 +1786,90 @@
     margin-top: 14px;
   }
 }
+
+/* Patch 12.4.2 — shared visual scale */
+.hero {
+  padding: 28px;
+  border-radius: var(--ab-ui-radius-lg);
+}
+
+.joinCard {
+  padding: var(--ab-ui-pad-lg);
+  border-radius: var(--ab-ui-radius-md);
+}
+
+.joinInput input,
+.joinInput button {
+  min-height: var(--ab-ui-control-md);
+  border-radius: var(--ab-ui-radius-sm);
+}
+
+.builder {
+  margin-top: var(--ab-ui-section-desktop);
+  padding: var(--ab-ui-pad-lg);
+  border-radius: var(--ab-ui-radius-lg);
+}
+
+.searchBox {
+  height: var(--ab-ui-control-lg);
+  margin-top: var(--ab-ui-gap-lg);
+  border-radius: var(--ab-ui-radius-md);
+}
+
+.results {
+  gap: var(--ab-ui-gap-md);
+}
+
+.animeCard {
+  grid-template-columns: 64px minmax(0, 1fr) 26px;
+  gap: var(--ab-ui-gap-sm);
+  min-height: 96px;
+  padding: var(--ab-ui-pad-sm);
+  border-radius: var(--ab-ui-radius-md);
+}
+
+.poster {
+  width: 64px;
+  height: 82px;
+  border-radius: var(--ab-ui-radius-sm);
+}
+
+@media (max-width: 620px) {
+  .page {
+    padding-inline: 10px;
+  }
+
+  .hero {
+    padding: var(--ab-ui-pad-lg);
+    border-radius: var(--ab-ui-radius-lg);
+  }
+
+  .heroCopy h1 {
+    font-size: clamp(28px, 8vw, 38px);
+  }
+
+  .joinCard,
+  .builder,
+  .roomBuilder,
+  .publicRooms {
+    padding: var(--ab-ui-pad-md);
+    border-radius: var(--ab-ui-radius-md);
+  }
+
+  .searchBox {
+    height: var(--ab-ui-control-lg);
+    margin-top: var(--ab-ui-gap-md);
+    border-radius: var(--ab-ui-radius-md);
+  }
+
+  .animeCard {
+    min-height: 90px;
+    grid-template-columns: 60px minmax(0, 1fr) 24px;
+    padding: 8px;
+  }
+
+  .poster {
+    width: 60px;
+    height: 76px;
+  }
+}

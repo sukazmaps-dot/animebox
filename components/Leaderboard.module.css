@@ -336,3 +336,93 @@
     padding-inline: 10px;
   }
 }
+
+/* Patch 12.4.2 — shared visual scale */
+.hero {
+  padding: 28px;
+  border-radius: var(--ab-ui-radius-lg);
+}
+
+.tabs {
+  border-radius: var(--ab-ui-radius-md);
+}
+
+.tabs button,
+.personalAction {
+  min-height: var(--ab-ui-control-md);
+  border-radius: var(--ab-ui-radius-sm);
+}
+
+.podium {
+  gap: var(--ab-ui-gap-md);
+}
+
+.podiumCard {
+  min-height: 318px;
+  padding: 20px 16px 0;
+  border-radius: var(--ab-ui-radius-md);
+}
+
+.podiumCard[data-rank='1'] {
+  min-height: 354px;
+}
+
+.personal,
+.board,
+.state {
+  border-radius: var(--ab-ui-radius-md);
+}
+
+.personal {
+  gap: var(--ab-ui-gap-md);
+  padding: var(--ab-ui-pad-lg);
+}
+
+.row {
+  min-height: 70px;
+}
+
+@media (max-width: 760px) {
+  .hero {
+    padding: var(--ab-ui-pad-lg);
+    border-radius: var(--ab-ui-radius-lg);
+  }
+
+  .podium {
+    gap: var(--ab-ui-gap-sm);
+  }
+
+  .podiumCard[data-rank='1'] {
+    min-height: 282px;
+  }
+
+  .podiumCard {
+    min-height: 236px;
+    padding: 14px 10px 0;
+    border-radius: var(--ab-ui-radius-md);
+  }
+
+  .personal {
+    gap: var(--ab-ui-gap-md);
+    padding: var(--ab-ui-pad-md);
+  }
+
+  .boardHeader,
+  .row {
+    padding: 11px 10px;
+  }
+
+  .row {
+    min-height: 64px;
+  }
+}
+
+@media (max-width: 390px) {
+  .podiumCard[data-rank='1'] {
+    min-height: 270px;
+  }
+
+  .podiumCard {
+    min-height: 226px;
+  }
+}

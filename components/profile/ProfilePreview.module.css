@@ -587,3 +587,83 @@
     font-size: 9px;
   }
 }
+
+/* Patch 12.4.2 — shared visual scale */
+.card {
+  width: min(360px, calc(100vw - 20px));
+  border-radius: var(--ab-ui-radius-lg);
+}
+
+.banner {
+  height: 96px;
+}
+
+.heroIdentity {
+  min-height: 56px;
+  gap: var(--ab-ui-gap-sm);
+  padding-inline: var(--ab-ui-pad-md);
+}
+
+.body {
+  padding: 0 var(--ab-ui-pad-md) var(--ab-ui-pad-md);
+}
+
+.avatarShell {
+  flex-basis: 64px;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--ab-ui-radius-md);
+}
+
+.metaGrid {
+  gap: var(--ab-ui-gap-sm);
+  margin-top: var(--ab-ui-gap-sm);
+}
+
+.metaCard {
+  min-height: 58px;
+  padding: 8px 9px;
+  border-radius: var(--ab-ui-radius-sm);
+}
+
+.actions {
+  gap: var(--ab-ui-gap-sm);
+  margin-top: var(--ab-ui-gap-sm);
+  padding-top: var(--ab-ui-gap-sm);
+}
+
+.openProfile {
+  min-height: var(--ab-ui-control-md);
+  border-radius: var(--ab-ui-radius-sm);
+}
+
+@media (max-width: 640px) {
+  .card {
+    max-height: min(640px, calc(100dvh - 16px));
+    border-radius: var(--ab-ui-radius-lg) var(--ab-ui-radius-lg) var(--ab-ui-radius-md) var(--ab-ui-radius-md);
+  }
+
+  .banner {
+    height: 100px;
+  }
+
+  .heroIdentity {
+    min-height: 54px;
+    margin-top: -25px;
+    padding-inline: 12px;
+  }
+
+  .body {
+    padding-inline: 12px;
+  }
+
+  .avatarShell {
+    flex-basis: 62px;
+    width: 62px;
+    height: 62px;
+  }
+
+  .metaCard {
+    min-height: 56px;
+  }
+}
