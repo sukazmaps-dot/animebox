@@ -45,7 +45,9 @@ export type PublicProfileData = {
   username: string;
   bio: string | null;
   avatarUrl: string;
+  avatarMobileUrl: string;
   bannerUrl: string | null;
+  bannerMobileUrl: string | null;
   createdAt: string;
   ogNumber: number | null;
   sponsor: SponsorStatus | null;
@@ -319,17 +321,29 @@ export async function getPublicProfile(
     premiumActive,
     premiumMediaActive,
   });
+  const mobileAppearance = resolveProfileAppearance({
+    baseAvatarPath: profile.avatar_path,
+    baseBannerPath: profile.banner_path,
+    premiumStudio: storedStudioSettings,
+    premiumActive,
+    premiumMediaActive: false,
+  });
 
   const avatarUrl =
     toPublicStorageUrl(admin, appearance.avatarPath) || '/default-avatar.webp';
+  const avatarMobileUrl =
+    toPublicStorageUrl(admin, mobileAppearance.avatarPath) || '/default-avatar.webp';
   const bannerUrl = toPublicStorageUrl(admin, appearance.bannerPath);
+  const bannerMobileUrl = toPublicStorageUrl(admin, mobileAppearance.bannerPath);
 
   return {
     id: profile.id,
     username: profile.username?.trim() || 'Пользователь',
     bio: profile.bio?.trim() || null,
     avatarUrl,
+    avatarMobileUrl,
     bannerUrl,
+    bannerMobileUrl,
     createdAt: profile.created_at,
     ogNumber:
       !ogResult.error && typeof ogResult.data?.og_number === 'number'
