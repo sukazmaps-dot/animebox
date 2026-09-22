@@ -39,6 +39,7 @@ import './patch12-3-3-mood-density.css';
 import './patch12-3-4-premium-profile-theme.css';
 import './patch12-4-1-mobile-anime-flow.css';
 import './patch12-4-2-visual-scale.css';
+import './patch12-4-5-identity-foundation.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';

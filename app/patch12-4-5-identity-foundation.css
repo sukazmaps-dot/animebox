@@ -1,0 +1,445 @@
+/* =========================================================
+   AnimeBox Patch 12.4.5 — Identity Foundation
+   Anti-AI/SaaS visual grammar for future feature patches.
+
+   Principles:
+   - ink-tinted dark surfaces, not generic #000 / gray SaaS;
+   - standard UI is sharper than feature surfaces;
+   - surface contrast before borders/glow;
+   - editorial rhythm instead of repeated card shells;
+   - brand violet is an accent, not ambient decoration everywhere;
+   - warm signal color is reserved for tiny editorial markers.
+   ========================================================= */
+
+:root {
+  /* Ink palette */
+  --ab-bg: #080a11;
+  --ab-bg-raised: #0a0e17;
+  --ab-surface-1: #0d121c;
+  --ab-surface-2: #121927;
+  --ab-surface-3: #182130;
+
+  --ab-border: rgba(194, 201, 218, .065);
+  --ab-border-strong: rgba(194, 201, 218, .12);
+
+  --ab-text: #f1f0ed;
+  --ab-text-soft: #cbcdd3;
+  --ab-muted: #8b94a6;
+  --ab-muted-2: #646d7e;
+
+  /* AnimeBox iris + editorial warm signal. */
+  --ab-accent: #9382e6;
+  --ab-accent-hover: #a291ec;
+  --ab-accent-soft: rgba(147, 130, 230, .10);
+  --ab-signal: #e7a074;
+  --ab-signal-soft: rgba(231, 160, 116, .10);
+
+  /* Deliberate radius contrast: standard UI is sharp, features stay soft. */
+  --ab-radius-sm: 6px;
+  --ab-radius-md: 8px;
+  --ab-radius-lg: 18px;
+  --ab-radius-xl: 22px;
+
+  --ab-ui-radius-sm: 6px;
+  --ab-ui-radius-md: 8px;
+  --ab-ui-radius-lg: 18px;
+
+  --ab-shadow-card: 0 12px 32px rgba(0, 0, 0, .14);
+  --ab-shadow-feature: 0 18px 48px rgba(0, 0, 0, .20);
+}
+
+html {
+  background: var(--ab-bg);
+}
+
+body {
+  background:
+    linear-gradient(180deg, #080a11 0%, #0a0d15 46%, #080a11 100%);
+  color: var(--ab-text);
+}
+
+/* =========================================================
+   SURFACE GRAMMAR
+   Standard surfaces should be separated primarily by tone.
+   ========================================================= */
+
+:where(
+  .panel,
+  .tracker-card,
+  .episode-comments,
+  .community-library-control,
+  .anime-notification-control,
+  .profile-v2__stat,
+  .profile-v2__library,
+  .profile-v2__achievements,
+  .profile-v2__bottom-card
+) {
+  border-color: transparent;
+  background: var(--ab-surface-1);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.022),
+    0 10px 26px rgba(0,0,0,.08);
+}
+
+:where(
+  .page-hero,
+  .tracker-hero,
+  .profile-v2__hero,
+  .anime-detail-v4__hero-shell
+) {
+  border-color: rgba(203, 207, 222, .08);
+  box-shadow: var(--ab-shadow-feature);
+}
+
+/* Avoid the default "every card has a glowing outline" pattern. */
+:where(
+  .panel,
+  .tracker-card,
+  .episode-comments,
+  .community-library-control,
+  .anime-notification-control
+):hover {
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.028),
+    0 12px 28px rgba(0,0,0,.10);
+}
+
+/* =========================================================
+   CONTROLS
+   ========================================================= */
+
+:where(
+  .btn,
+  .topbar__search,
+  .search-box,
+  .tracker-filter,
+  .community-library-status,
+  .anime-notification-control__button
+) {
+  border-radius: var(--ab-radius-sm) !important;
+}
+
+.btn {
+  letter-spacing: .005em;
+}
+
+.btn--primary {
+  border: 0;
+  background: var(--ab-accent);
+  color: #fff;
+  box-shadow: none;
+}
+
+.btn--primary:hover {
+  background: var(--ab-accent-hover);
+  filter: none;
+}
+
+.btn--ghost {
+  border-color: transparent;
+  background: var(--ab-surface-2);
+}
+
+.btn--ghost:hover {
+  border-color: transparent;
+  background: var(--ab-surface-3);
+}
+
+.topbar__search,
+.search-box {
+  border-color: transparent;
+  background: var(--ab-surface-2);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.018);
+}
+
+.topbar__search:focus-within,
+.search-box:focus-within {
+  border-color: rgba(147,130,230,.24);
+  box-shadow: 0 0 0 2px rgba(147,130,230,.09);
+}
+
+/* =========================================================
+   SIDEBAR / APP CHROME
+   ========================================================= */
+
+.sidebar {
+  border-right-color: rgba(197, 202, 218, .055);
+  background:
+    linear-gradient(180deg, rgba(8,10,17,.965), rgba(10,12,22,.96) 62%, rgba(13,13,27,.98)),
+    url('/backgrounds/sidebar-japan.webp') center bottom / cover no-repeat;
+}
+
+.sidebar::before {
+  opacity: .10;
+  mix-blend-mode: normal;
+}
+
+.sidebar__item {
+  border-color: transparent;
+  border-radius: 6px;
+}
+
+.sidebar__item:hover {
+  border-color: transparent;
+  background: rgba(255,255,255,.035);
+}
+
+.sidebar__item.is-active {
+  border-color: transparent;
+  background: rgba(147,130,230,.11);
+  box-shadow: inset 2px 0 0 var(--ab-accent);
+}
+
+.sidebar__divider {
+  background: rgba(198,203,218,.055);
+}
+
+.brand__mark {
+  border-color: transparent;
+  border-radius: 7px;
+  background: rgba(147,130,230,.08);
+  box-shadow: none;
+}
+
+.topbar {
+  border-bottom-color: rgba(197,202,218,.055);
+  background: rgba(8,10,17,.94);
+}
+
+/* =========================================================
+   EDITORIAL HOME RHYTHM
+   CSS counters keep markup/logic untouched.
+   ========================================================= */
+
+.home-page .main-column {
+  counter-reset: ab-home-section;
+}
+
+.home-page .main-column > .section {
+  counter-increment: ab-home-section;
+  position: relative;
+  padding-top: 18px;
+  border-top: 1px solid rgba(196,201,216,.07);
+}
+
+.home-page .main-column > .section > .section-head {
+  position: relative;
+  padding-left: 32px;
+}
+
+.home-page .main-column > .section > .section-head::before {
+  content: counter(ab-home-section, decimal-leading-zero);
+  position: absolute;
+  top: 1px;
+  left: 0;
+  color: var(--ab-signal);
+  font-size: 8px;
+  font-weight: 850;
+  line-height: 1.25;
+  letter-spacing: .08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.home-page .main-column > .section > .section-head::after {
+  content: '';
+  position: absolute;
+  top: 15px;
+  left: 0;
+  width: 18px;
+  height: 1px;
+  background: rgba(231,160,116,.32);
+}
+
+.home-grid .section-title {
+  padding-left: 0;
+  color: var(--ab-text);
+  font-weight: 690;
+  letter-spacing: -.025em;
+}
+
+.home-grid .section-link {
+  color: var(--ab-muted-2);
+  text-decoration: none;
+}
+
+.home-grid .section-link:hover {
+  color: var(--ab-signal);
+}
+
+/* Shortcuts read as an editorial strip, not four SaaS cards. */
+.home-shortcuts {
+  border-color: rgba(196,201,216,.055);
+  border-radius: 8px;
+  background: rgba(196,201,216,.04);
+}
+
+.home-shortcuts__item {
+  background: #0b0f18;
+}
+
+.home-shortcuts__item:hover {
+  background: #101620;
+}
+
+.home-shortcuts__index {
+  color: var(--ab-signal);
+  opacity: .72;
+}
+
+/* =========================================================
+   CONTENT CARDS
+   Keep media dominant; reduce generic glow/rounding.
+   ========================================================= */
+
+.anime-card--signature .anime-card__image-wrap {
+  border: 0;
+  border-radius: 7px;
+  background: var(--ab-surface-2);
+  box-shadow: 0 10px 26px rgba(0,0,0,.13);
+  transition:
+    transform 180ms cubic-bezier(.2,.75,.25,1),
+    box-shadow 180ms ease;
+}
+
+.anime-card--signature:hover .anime-card__image-wrap {
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(0,0,0,.18);
+}
+
+.anime-card--signature:hover .anime-card__image {
+  transform: scale(1.012) translateY(-1px);
+  filter: saturate(1.025) contrast(1.01);
+}
+
+.anime-card--signature .anime-card__rating,
+.anime-card--signature .anime-card__state {
+  border-color: rgba(255,255,255,.055);
+  border-radius: 5px;
+  background: rgba(7,9,14,.82);
+  backdrop-filter: none;
+}
+
+.anime-card--signature .anime-card__body h3 {
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+
+.anime-card--signature .anime-card__meta {
+  color: var(--ab-muted-2);
+}
+
+/* Status/progress carries brand color; passive chrome does not. */
+.anime-card__watch-progress i,
+.progress i {
+  background: var(--ab-accent);
+}
+
+/* =========================================================
+   SMALL SURFACES / CHIPS
+   ========================================================= */
+
+.schedule__tab,
+.genre-btn,
+.pagination button,
+.status-control {
+  border-radius: 6px;
+}
+
+.schedule__tab,
+.genre-btn,
+.pagination button {
+  border-color: transparent;
+  background: var(--ab-surface-2);
+}
+
+.schedule__tab.is-active,
+.genre-btn.is-active {
+  border-color: transparent;
+  background: var(--ab-accent);
+  box-shadow: none;
+}
+
+.schedule__card {
+  border-color: transparent;
+  border-radius: 8px;
+  background: var(--ab-surface-1);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.018);
+}
+
+.empty-state {
+  border-color: rgba(196,201,216,.08);
+  border-radius: 8px;
+  background: rgba(196,201,216,.018);
+}
+
+/* =========================================================
+   FEATURE SURFACES
+   The contrast in radius is intentional.
+   ========================================================= */
+
+.home-grid .page-hero.home-hero-carousel {
+  border-color: rgba(196,201,216,.08);
+  border-radius: 18px;
+  background: #0a0d14;
+  box-shadow: var(--ab-shadow-feature);
+}
+
+.home-hero-carousel::after {
+  opacity: .32;
+}
+
+.home-hero-carousel__signature {
+  width: 2px;
+  border-radius: 0;
+  background: var(--ab-signal);
+}
+
+.home-hero-carousel__label {
+  letter-spacing: .035em;
+}
+
+/* =========================================================
+   MOBILE
+   Preserve touch sizes; only visual geometry changes.
+   ========================================================= */
+
+@media (max-width: 720px) {
+  .home-page .main-column > .section {
+    padding-top: 15px;
+  }
+
+  .home-page .main-column > .section > .section-head {
+    padding-left: 28px;
+  }
+
+  .home-page .main-column > .section > .section-head::after {
+    width: 15px;
+  }
+
+  .home-shortcuts {
+    border-radius: 0;
+  }
+
+  .home-shortcuts__item {
+    border-color: rgba(196,201,216,.06);
+    border-radius: 8px;
+  }
+
+  .anime-card--signature .anime-card__image-wrap {
+    border-radius: 6px;
+  }
+
+  .home-grid .page-hero.home-hero-carousel {
+    border-radius: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anime-card--signature .anime-card__image-wrap,
+  .anime-card--signature .anime-card__image {
+    transition: none !important;
+    transform: none !important;
+  }
+}
