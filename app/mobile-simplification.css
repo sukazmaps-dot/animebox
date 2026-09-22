@@ -1,0 +1,169 @@
+/* Phone home and room lobby: fewer panels, readable titles, three real covers. */
+.home-activation-v2__mobile-entry { display: none !important; }
+
+@media (max-width: 768px) {
+  .home-page .home-top-anime-panel--mobile {
+    min-height: 0;
+    contain: none;
+  }
+
+  .home-page .home-top-anime-panel--mobile .panel__head {
+    padding: 14px 14px 8px !important;
+    font-size: 15px;
+  }
+
+  .home-page .home-top-anime-panel--mobile .panel__body {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 9px;
+    min-height: 0;
+    padding: 4px 12px 14px;
+  }
+
+  .home-page .home-top-anime-panel--mobile .top-anime-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 7px;
+    min-width: 0;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: 0;
+    text-decoration: none;
+  }
+
+  .home-page .home-top-anime-panel--mobile .top-anime-item__poster {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 2 / 3;
+    border-radius: 9px;
+    background: #191a2b;
+  }
+
+  .home-page .home-top-anime-panel--mobile .top-anime-item__rank {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 1;
+    padding: 3px 5px;
+    border-radius: 5px;
+    background: rgba(9, 10, 21, .82);
+    color: white;
+    font-size: 11px;
+  }
+
+  .home-page .home-top-anime-panel--mobile .top-anime-item__copy strong {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+    font-size: 12px !important;
+    line-height: 1.28;
+    color: #eeeaf6;
+  }
+
+  .home-page .home-top-anime-panel--mobile .top-anime-item__copy span {
+    display: none;
+  }
+
+  .home-page .home-activation-v2--guest {
+    display: inline-flex;
+    width: auto;
+    min-width: 0;
+    margin: 10px 0 2px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    overflow: visible;
+  }
+
+  .home-page .home-activation-v2--guest::after,
+  .home-page .home-activation-v2__guest-copy,
+  .home-page .home-activation-v2__desktop-login,
+  .home-page .home-activation-v2__desktop-register {
+    display: none !important;
+  }
+
+  .home-page .home-activation-v2--guest .home-activation-v2__actions {
+    display: block;
+  }
+
+  .home-page .home-activation-v2__mobile-entry {
+    display: grid !important;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    min-height: 48px;
+    padding: 0;
+    border-radius: 14px;
+  }
+
+  .home-page .home-activation-v2__mobile-entry span {
+    display: none;
+  }
+
+  .home-page .home-shortcuts__item strong {
+    font-size: 13px;
+  }
+
+  .home-page .home-shortcuts__item small {
+    display: none;
+  }
+}
+
+/* The old horizontal scroll container clipped both absolutely positioned menus. */
+@media (max-width: 900px) {
+  .animebox-premium-player .animebox-player-header {
+    position: relative;
+    z-index: 20;
+    overflow: visible;
+  }
+
+  .animebox-premium-player .animebox-player-toolbar {
+    overflow: visible !important;
+    flex-wrap: wrap !important;
+  }
+
+  .animebox-premium-player .animebox-player-stage-shell {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .animebox-premium-player .animebox-player-toolbar {
+    display: flex;
+    width: 100%;
+    gap: 6px !important;
+  }
+
+  .animebox-premium-player .animebox-player-source-switcher {
+    flex: 0 0 100%;
+  }
+
+  .animebox-premium-player .premium-player-dropdown {
+    flex: 1 1 calc(50% - 3px);
+    min-width: 0;
+  }
+
+  .animebox-premium-player .premium-player-dropdown-trigger {
+    gap: 6px;
+    padding-inline: 8px;
+  }
+
+  .animebox-premium-player .premium-player-control-icon {
+    display: none;
+  }
+
+  .animebox-premium-player .premium-player-dropdown-trigger span.block:first-child {
+    font-size: 10px;
+  }
+
+  .animebox-premium-player .premium-player-dropdown-trigger + div {
+    width: min(300px, calc(100vw - 36px));
+    min-width: 0;
+    max-width: calc(100vw - 36px);
+  }
+}

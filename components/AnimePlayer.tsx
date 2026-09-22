@@ -241,7 +241,7 @@ function PlayerDropdown({
   }, []);
 
   return (
-    <div ref={rootRef} className="relative min-w-0">
+    <div ref={rootRef} className="premium-player-dropdown relative min-w-0">
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}

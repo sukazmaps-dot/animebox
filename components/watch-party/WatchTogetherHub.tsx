@@ -137,7 +137,6 @@ export default function WatchTogetherHub() {
   const [roomsNotice, setRoomsNotice] = useState('');
   const [roomSearch, setRoomSearch] = useState('');
   const [roomSort, setRoomSort] = useState<RoomSort>('popular');
-  const [lastRoomsRefreshAt, setLastRoomsRefreshAt] = useState<number | null>(null);
   const [createError, setCreateError] = useState('');
   const [creatingRoom, setCreatingRoom] = useState(false);
   const lastRoom = useSyncExternalStore(
@@ -196,11 +195,10 @@ export default function WatchTogetherHub() {
     });
   }, [roomSearch, roomSort, rooms]);
 
-  const roomStats = useMemo(() => ({
-    rooms: rooms.length,
-    viewers: rooms.reduce((sum, room) => sum + room.participantCount, 0),
-    available: rooms.filter((room) => !room.isFull).length,
-  }), [rooms]);
+  const viewerCount = useMemo(
+    () => rooms.reduce((sum, room) => sum + room.participantCount, 0),
+    [rooms],
+  );
 
   const loadPublicRooms = useCallback(async () => {
     setRoomsLoading(true);
@@ -213,7 +211,6 @@ export default function WatchTogetherHub() {
       if (!response.ok) throw new Error(payload.error || 'rooms_failed');
       setRooms(payload.rooms ?? []);
       setRoomsError('');
-      setLastRoomsRefreshAt(Date.now());
     } catch {
       setRoomsError('Не удалось обновить список открытых комнат.');
     } finally {
@@ -471,24 +468,10 @@ export default function WatchTogetherHub() {
             </button>
           </div>
 
-          <div className={styles.lobbyStats} aria-label="Статистика открытых комнат">
-            <div>
-              <strong>{roomStats.rooms}</strong>
-              <span>живых комнат</span>
-            </div>
-            <div>
-              <strong>{roomStats.viewers}</strong>
-              <span>смотрят сейчас</span>
-            </div>
-            <div>
-              <strong>{roomStats.available}</strong>
-              <span>можно войти</span>
-            </div>
-            <small>
-              {lastRoomsRefreshAt
-                ? `обновлено ${new Date(lastRoomsRefreshAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`
-                : 'live-список обновляется автоматически'}
-            </small>
+          <div className={styles.lobbyStats} aria-label={`${viewerCount} зрителей в открытых комнатах`}>
+            <Icon name="users" width={18} height={18} />
+            <strong>{viewerCount}</strong>
+            <span>смотрят сейчас</span>
           </div>
         </div>
 

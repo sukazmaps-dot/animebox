@@ -4,6 +4,7 @@ import Link from 'next/link';
 
 import { useAuthModal } from '@/components/AuthModalProvider';
 import { useAuthState } from '@/components/AuthStateProvider';
+import Icon from '@/components/Icon';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 
 function track(action: string) {
@@ -29,7 +30,7 @@ export default function HomeActivationPanel({
   if (!user) {
     return (
       <section className="home-activation-v2 home-activation-v2--guest" aria-label="Войти в AnimeBox">
-        <div>
+        <div className="home-activation-v2__guest-copy">
           <span className="home-activation-v2__eyebrow">ТВОЙ ANIMEBOX</span>
           <h2>Не теряй серию, на которой остановился</h2>
           <p>Войди, чтобы продолжать с того же места и хранить свой список в AnimeBox.</p>
@@ -37,6 +38,19 @@ export default function HomeActivationPanel({
         <div className="home-activation-v2__actions">
           <button
             type="button"
+            className="home-activation-v2__mobile-entry"
+            aria-label="Войти или создать аккаунт"
+            onClick={() => {
+              track('open_auth');
+              openAuth({ mode: 'login', intent: 'account', next: '/' });
+            }}
+          >
+            <Icon name="user" width={22} height={22} />
+            <span>Войти или создать аккаунт</span>
+          </button>
+          <button
+            type="button"
+            className="home-activation-v2__desktop-login"
             onClick={() => {
               track('open_auth');
               openAuth({ mode: 'login', intent: 'account', next: '/' });
@@ -46,7 +60,7 @@ export default function HomeActivationPanel({
           </button>
           <button
             type="button"
-            className="is-secondary"
+            className="is-secondary home-activation-v2__desktop-register"
             onClick={() => {
               track('open_register');
               openAuth({ mode: 'register', intent: 'account', next: '/' });

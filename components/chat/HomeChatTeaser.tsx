@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Icon from '@/components/Icon';
 
 import type { HomeChatTeaserMessage } from '@/types/chat';
 import { premiumMediaStyle } from '@/lib/premium-studio';
@@ -31,6 +32,7 @@ export default function HomeChatTeaser() {
   const [messages, setMessages] = useState<HomeChatTeaserMessage[]>([]);
 
   useEffect(() => {
+    if (window.matchMedia('(max-width: 768px)').matches) return;
     const controller = new AbortController();
     const run = () => {
       void fetch('/api/chat/teaser', { signal: controller.signal, cache: 'default' })
@@ -66,6 +68,10 @@ export default function HomeChatTeaser() {
     };
   }, []);
   return (
+    <>
+    <Link href="/chat" className={styles.mobileFab} aria-label="Открыть общий чат" title="Общий чат">
+      <Icon name="chat" width={23} height={23} />
+    </Link>
     <section className={styles.card} aria-labelledby="home-chat-title">
       <div className={styles.glow} aria-hidden="true" />
       <div className={styles.head}>
@@ -122,5 +128,6 @@ export default function HomeChatTeaser() {
         Читать можно без аккаунта. Чтобы писать — достаточно войти.
       </div>
     </section>
+    </>
   );
 }

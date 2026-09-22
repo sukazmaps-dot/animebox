@@ -23,8 +23,8 @@ export default function TopAnimeItem({
         <AnimeImage
           image={anime.coverImage || anime.image}
           alt={title}
-          sizes="44px"
-          quality={60}
+          sizes="(max-width: 768px) 30vw, 44px"
+          quality={70}
         />
       </div>
 
