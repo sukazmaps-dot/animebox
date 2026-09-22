@@ -26,16 +26,7 @@ import {
   normalizeImageUrl,
 } from '@/lib/image-service';
 
-import {
-  getAnimeOriginalTitle,
-  getAnimeTitle,
-  isAnimeOngoing,
-} from '@/lib/anime-display';
-
-import {
-  getAnimeById,
-  isAbortError,
-} from '@/lib/anime-client';
+import { getAnimeTitle } from '@/lib/anime-display';
 
 
 function subscribeHydrationReady() {
@@ -47,45 +38,6 @@ interface HomeHeroCarouselProps {
   ongoing: Anime[];
 }
 
-function getEpisodeCount(
-  anime: Anime,
-): number | null {
-  return anime.episodes &&
-    anime.episodes > 0
-    ? anime.episodes
-    : null;
-}
-
-function formatLabel(
-  format: string | null | undefined,
-): string {
-  if (!format) {
-    return 'ANIME';
-  }
-
-  const labels: Record<string, string> = {
-    TV: 'TV',
-    'ТВ': 'TV',
-
-    TV_SHORT: 'TV SHORT',
-    'ТВ (Короткое)': 'TV SHORT',
-
-    MOVIE: 'ФИЛЬМ',
-    'Фильм': 'ФИЛЬМ',
-
-    OVA: 'OVA',
-    ONA: 'ONA',
-
-    SPECIAL: 'СПЕЦВЫПУСК',
-    'Спешл': 'СПЕЦВЫПУСК',
-
-    MUSIC: 'МУЗЫКА',
-    'Клип': 'МУЗЫКА',
-  };
-
-  return labels[format] ?? format;
-}
-
 function isValidAnime(
   value: Anime | null | undefined,
 ): value is Anime {
@@ -94,32 +46,6 @@ function isValidAnime(
       Number.isInteger(value.id) &&
       value.id > 0,
   );
-}
-
-function getRealDescription(
-  value?: string | null,
-): string | null {
-  const text = value?.trim();
-
-  if (!text) {
-    return null;
-  }
-
-  const normalized = text
-    .toLocaleLowerCase('ru-RU')
-    .replace(/[.!…]+$/g, '')
-    .trim();
-
-  if (
-    normalized === 'описание отсутствует' ||
-    normalized === 'русское описание для этого аниме пока отсутствует' ||
-    normalized === 'no description' ||
-    normalized === 'description unavailable'
-  ) {
-    return null;
-  }
-
-  return text;
 }
 
 const AMBIENT_FALLBACKS = [
@@ -234,13 +160,6 @@ export default function HomeHeroCarousel({
     ignore: false,
   });
 
-  /*
-   * Cache only descriptions that had to be requested separately.
-   * Missing key = request is still pending for this slide.
-   */
-  const [localizedDescriptions, setLocalizedDescriptions] =
-    useState<Record<number, string | null>>({});
-
   const safeActiveIndex =
     slides.length > 0
       ? activeIndex % slides.length
@@ -250,28 +169,6 @@ export default function HomeHeroCarousel({
     slides[safeActiveIndex] ??
     slides[0] ??
     null;
-
-  const embeddedDescription =
-    getRealDescription(anime?.description);
-
-  const hasLocalizedDescription = Boolean(
-    anime &&
-      Object.prototype.hasOwnProperty.call(
-        localizedDescriptions,
-        anime.id,
-      ),
-  );
-
-  // Keep the initial hero copy stable for LCP. A missing description no
-  // longer renders a temporary "loading" string that is replaced several
-  // seconds after first paint. The richer client-side description may be
-  // fetched only after the visitor has interacted with the page.
-  const localizedDescription =
-    embeddedDescription ??
-    (anime && hasLocalizedDescription
-      ? localizedDescriptions[anime.id]
-      : null);
-
 
   useEffect(() => {
     if (!anime) return;
@@ -341,69 +238,6 @@ export default function HomeHeroCarousel({
     slides.length,
   ]);
 
-  /*
-   * Подгружаем полную карточку только когда в выдаче нет настоящего
-   * описания. Заглушки вроде «Описание отсутствует» не считаются данными.
-   */
-  useEffect(() => {
-    if (
-      !autoplayUnlocked ||
-      !anime?.id ||
-      embeddedDescription ||
-      Object.prototype.hasOwnProperty.call(localizedDescriptions, anime.id)
-    ) {
-      return;
-    }
-
-    const animeId = anime.id;
-    const controller = new AbortController();
-
-    getAnimeById(
-      animeId,
-      { signal: controller.signal },
-    )
-      .then((fullAnime) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        const description =
-          getRealDescription(fullAnime?.description);
-
-        setLocalizedDescriptions((current) => ({
-          ...current,
-          [animeId]: description,
-        }));
-      })
-      .catch((error: unknown) => {
-        if (
-          controller.signal.aborted ||
-          isAbortError(error)
-        ) {
-          return;
-        }
-
-        console.error(
-          `Не удалось загрузить описание anime ${animeId}:`,
-          error,
-        );
-
-        setLocalizedDescriptions((current) => ({
-          ...current,
-          [animeId]: null,
-        }));
-      });
-
-    return () => {
-      controller.abort();
-    };
-  }, [
-    anime?.id,
-    autoplayUnlocked,
-    embeddedDescription,
-    localizedDescriptions,
-  ]);
-
   if (
     slides.length === 0 ||
     !anime
@@ -439,24 +273,10 @@ export default function HomeHeroCarousel({
   const title =
     getAnimeTitle(anime);
 
-  const originalTitle =
-    getAnimeOriginalTitle(anime);
-
   const bannerImage =
     normalizeImageUrl(
       anime.bannerImage,
     );
-
-  const episodeCount =
-    getEpisodeCount(anime);
-
-  const isOngoing =
-    isAnimeOngoing(anime);
-
-  const genres =
-    Array.isArray(anime.genres)
-      ? anime.genres
-      : [];
 
   const [ambientR, ambientG, ambientB] = getAmbientRgb(anime);
 
@@ -639,54 +459,9 @@ export default function HomeHeroCarousel({
         className="page-hero__content home-hero-carousel__content"
         key={`content-${anime.id}`}
       >
-        <div className="home-hero-carousel__label">
-          <span className="home-hero-carousel__signature" aria-hidden="true" />
-          <span>
-            {safeActiveIndex === 0
-              ? 'Сегодня в AnimeBox'
-              : personalizationReady
-                ? 'Твой выбор'
-                : 'Ещё один вариант'}
-          </span>
-
-          {anime.score != null && (
-            <strong>★ {anime.score}</strong>
-          )}
-        </div>
-
-        {originalTitle && (
-          <span className="home-hero-carousel__kicker">
-            {originalTitle}
-          </span>
-        )}
-
-        <h1>
+        <h1 className={title.length > 55 ? 'is-long-title' : undefined}>
           {title}
         </h1>
-
-        {localizedDescription && (
-          <p className="home-hero-carousel__description">
-            {localizedDescription}
-          </p>
-        )}
-
-        <div className="home-hero-carousel__facts">
-          <span>{formatLabel(anime.format)}</span>
-
-          {isOngoing && <span className="is-status">Онгоинг</span>}
-
-          {episodeCount != null && (
-            <span>
-              {isOngoing
-                ? `Вышло ${episodeCount}`
-                : `${episodeCount} эп.`}
-            </span>
-          )}
-
-          {genres.slice(0, 2).map((genre) => (
-            <span key={genre}>{genre}</span>
-          ))}
-        </div>
 
         <div className="hero-actions">
           <Link

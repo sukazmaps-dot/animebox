@@ -27,41 +27,22 @@
   padding: 42px 64px 70px !important;
 }
 
-.home-grid .home-hero-carousel .home-hero-carousel__label {
-  margin-bottom: 15px;
-  color: #dedce6;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .01em;
-}
-
-.home-grid .home-hero-carousel .home-hero-carousel__kicker {
-  margin-bottom: 9px;
-  color: rgba(237,237,242,.65);
-  font-size: 11px;
-  letter-spacing: .035em;
-}
-
 .home-grid .home-hero-carousel h1 {
   max-width: 690px;
-  font-size: clamp(38px, 4.1vw, 64px);
-  line-height: 1.03;
+  display: block !important;
+  overflow: visible !important;
+  -webkit-line-clamp: unset !important;
+  font-size: clamp(38px, 4.1vw, 60px) !important;
+  line-height: 1.08 !important;
   overflow-wrap: anywhere;
 }
 
-.home-grid .home-hero-carousel .home-hero-carousel__description {
-  max-width: 550px !important;
-  margin: 16px 0 10px !important;
-  color: rgba(241,241,246,.83) !important;
-  font-size: 14px !important;
-  line-height: 1.55 !important;
-  -webkit-line-clamp: 2 !important;
+.home-grid .home-hero-carousel h1.is-long-title {
+  font-size: clamp(30px, 3.2vw, 47px) !important;
 }
 
-.home-grid .home-hero-carousel .home-hero-carousel__facts {
-  margin: 16px 0 23px;
-  color: rgba(236,236,242,.76);
-  font-size: 12px;
+.home-grid .home-hero-carousel .hero-actions {
+  margin-top: 24px;
 }
 
 .home-grid .home-hero-carousel .hero-actions .btn {
@@ -131,26 +112,15 @@
 
   .home-grid .home-hero-carousel h1 {
     max-width: 100%;
-    font-size: clamp(28px, 7.6vw, 37px);
-    line-height: 1.08;
-    -webkit-line-clamp: 3;
+    font-size: clamp(28px, 7.6vw, 37px) !important;
   }
 
-  .home-grid .home-hero-carousel .home-hero-carousel__kicker {
-    font-size: 10px;
+  .home-grid .home-hero-carousel h1.is-long-title {
+    font-size: clamp(23px, 6vw, 30px) !important;
   }
 
-  .home-grid .home-hero-carousel .home-hero-carousel__description {
-    margin: 9px 0 0 !important;
-    font-size: 13px !important;
-    line-height: 1.4 !important;
-    -webkit-line-clamp: 2 !important;
-  }
-
-  .home-grid .home-hero-carousel .home-hero-carousel__facts {
-    max-height: none;
-    margin: 11px 0 15px;
-    font-size: 11px;
+  .home-grid .home-hero-carousel .hero-actions {
+    margin-top: 19px;
   }
 
   .home-grid .home-hero-carousel .hero-actions .btn {
