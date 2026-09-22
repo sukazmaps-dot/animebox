@@ -995,7 +995,7 @@ export default async function AnimePage({
           <div className="min-w-0">
             <span>ВМЕСТЕ</span>
             <h2 id="watch-together-anime-title">
-              Смотреть «${seoIdentity.pageHeading}» с друзьями
+              Смотреть «{seoIdentity.pageHeading}» с друзьями
             </h2>
             <p>
               Открой комнату, отправь ссылку — AnimeBox синхронизирует просмотр.
