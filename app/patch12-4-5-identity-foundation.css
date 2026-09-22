@@ -533,8 +533,8 @@ body {
     grid-template-columns: minmax(220px, 280px) minmax(560px, 760px) !important;
     justify-content: start !important;
     column-gap: 24px !important;
-    width: fit-content;
-    max-width: 100%;
+    width: 100%;
+    max-width: none;
   }
 
   .home-page .mood-picker__options {
@@ -593,5 +593,72 @@ body {
 
   .smart-feed__rail [role='region'] {
     padding-right: 28px;
+  }
+}
+
+
+/* =========================================================
+   Patch 12.5.4.3 — Home visual cascade cleanup
+   One final contract for section headings and the Mood divider.
+   ========================================================= */
+
+/* globals.css still defines an absolute ::before marker while later Home
+   styles removed its padding. Make the marker a real flex item so it can
+   never overlap the first glyph or drift with different title sizes. */
+.home-page .section-title {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-left: 0 !important;
+  line-height: 1.18;
+}
+
+.home-page .section-title::before {
+  content: '';
+  position: static;
+  inset: auto;
+  flex: 0 0 2px;
+  width: 2px;
+  height: 14px;
+  margin: 0;
+  border-radius: 2px;
+  background: var(--ab-signal, var(--ab-accent));
+  transform: none;
+}
+
+/* The visual marker replaces the legacy per-section asset on Home.
+   Keeping one marker grammar prevents mixed icon/bar alignment. */
+.home-page .section-title__icon {
+  display: none !important;
+}
+
+/* Continue Watching has an eyebrow above the title; keep the marker
+   centered on the title line rather than visually attached to the eyebrow. */
+.home-page .continue-watching-section .section-title {
+  min-height: 20px;
+}
+
+/* Mood itself must remain full-width because its top divider belongs to
+   the page rhythm. Only the internal grid is compact and left aligned. */
+@media (min-width: 1001px) {
+  .home-page .mood-picker {
+    width: 100% !important;
+    max-width: none !important;
+    justify-content: start !important;
+  }
+
+  .home-page .mood-picker__options {
+    justify-self: start !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .home-page .section-title {
+    gap: 6px;
+  }
+
+  .home-page .section-title::before {
+    height: 13px;
   }
 }
