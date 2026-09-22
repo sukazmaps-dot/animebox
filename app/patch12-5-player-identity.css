@@ -379,6 +379,14 @@
   max-width: 620px;
   font-size: clamp(15px, 1.35vw, 20px);
   line-height: 1.22;
+  /* Long localized names need two lines instead of Tailwind's truncate. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
 }
 
 .animebox-player-toolbar {
@@ -614,6 +622,14 @@
 
   .animebox-player-quality {
     display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  /* The header stacks below md; the desktop 340px flex basis would become height. */
+  .animebox-player-titleblock {
+    flex: 0 1 auto;
+    width: 100%;
   }
 }
 

@@ -633,6 +633,17 @@ body {
   display: none !important;
 }
 
+/* Keep the recommendation marker outside the text box. This heading sits
+   inside a separate flex row and its legacy pseudo element can touch text. */
+.home-page .smart-feed-heading__line .section-title {
+  padding-left: 10px !important;
+  border-left: 2px solid var(--ab-signal, var(--ab-accent));
+}
+
+.home-page .smart-feed-heading__line .section-title::before {
+  content: none;
+}
+
 /* Continue Watching has an eyebrow above the title; keep the marker
    centered on the title line rather than visually attached to the eyebrow. */
 .home-page .continue-watching-section .section-title {
