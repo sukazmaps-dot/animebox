@@ -138,7 +138,7 @@ export default function UserAvatarWithFrame({
         <picture className="block h-full w-full">
           {mobileSrc && mobileSrc !== src && (
             <source
-              media="(max-width: 768px), (prefers-reduced-motion: reduce)"
+              media="(prefers-reduced-motion: reduce)"
               srcSet={mobileSrc}
             />
           )}
