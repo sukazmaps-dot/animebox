@@ -88,8 +88,8 @@ const organizationStructuredData = {
     url: `${SITE_URL}/brand/favicon.png`,
     contentUrl: `${SITE_URL}/brand/favicon.png`,
 
-    width: 512,
-    height: 512,
+    width: 192,
+    height: 192,
   },
 
   sameAs: [
@@ -216,13 +216,12 @@ export const metadata: Metadata = {
       {
         url: '/brand/favicon.png',
         type: 'image/png',
-        sizes: '512x512',
+        sizes: '192x192',
       },
 
       {
         url: '/favicon.ico',
         type: 'image/x-icon',
-        sizes: '256x256',
       },
     ],
 
