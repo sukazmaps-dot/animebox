@@ -45,7 +45,21 @@ export default function HomePersonalPulse() {
     [profile],
   );
 
-  if (!user || !profile) return null;
+  if (!user) return null;
+
+  if (!profile) {
+    return (
+      <section
+        className="home-pulse home-pulse--placeholder"
+        aria-hidden="true"
+      >
+        <span className="home-pulse__placeholder-line is-wide" />
+        <span className="home-pulse__placeholder-line" />
+        <span className="home-pulse__placeholder-line" />
+        <span className="home-pulse__placeholder-line" />
+      </section>
+    );
+  }
 
   const dailyTotal = profile.challenges.daily.length;
   const streak = profile.challenges.streak.current;

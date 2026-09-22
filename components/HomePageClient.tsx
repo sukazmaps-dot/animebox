@@ -917,20 +917,21 @@ export default function HomePage({
     <div className="home-page">
       <div className="home-grid home-grid--main">
         <div className="main-column">
-        <HomeContinueWatching items={continueWatchingItems} />
         {heroLoading ? (
           <section className="page-hero page-hero--empty">
             <div className="page-hero__content">
               <span className="pill pill--accent">ANIMEBOX</span>
 
-              <h1>Подбираем аниме для тебя…</h1>
+              <h1>Загружаем AnimeBox…</h1>
 
-              <p>Загружаем популярное и персональные рекомендации.</p>
+              <p>Секунду — собираем главную.</p>
             </div>
           </section>
         ) : (
           <HomeHeroCarousel popular={popular} ongoing={ongoing} />
         )}
+
+        <HomeContinueWatching items={continueWatchingItems} />
 
         <HomeActivationPanel
           hasHistory={hasWatchHistory}
@@ -942,15 +943,15 @@ export default function HomePage({
             <span className="home-shortcuts__index">01</span>
             <span>
               <strong>Каталог</strong>
-              <small>Найти новый тайтл</small>
+              <small>По жанрам и тегам</small>
             </span>
             <b aria-hidden="true">↗</b>
           </Link>
           <Link href="/schedule" className="home-shortcuts__item">
             <span className="home-shortcuts__index">02</span>
             <span>
-              <strong>Сегодня</strong>
-              <small>Что выходит сейчас</small>
+              <strong>Релизы сегодня</strong>
+              <small>Свежие эпизоды</small>
             </span>
             <b aria-hidden="true">→</b>
           </Link>
@@ -958,15 +959,15 @@ export default function HomePage({
             <span className="home-shortcuts__index">03</span>
             <span>
               <strong>Мой список</strong>
-              <small>Вернуться к своему</small>
+              <small>Продолжить просмотр</small>
             </span>
             <b aria-hidden="true">→</b>
           </Link>
           <Link href="/watch-together" className="home-shortcuts__item">
             <span className="home-shortcuts__index">04</span>
             <span>
-              <strong>Смотреть вместе</strong>
-              <small>Комнаты AnimeBox</small>
+              <strong>Комнаты</strong>
+              <small>Смотреть с друзьями</small>
             </span>
             <b aria-hidden="true">→</b>
           </Link>
@@ -1319,13 +1320,13 @@ export default function HomePage({
             </span>
             <span className="home-library-panel__eyebrow">Твоя коллекция</span>
             <h2>
-              Хорошие истории
+              Ни один эпизод
               <br />
-              остаются с тобой.
+              не потеряется.
             </h2>
-            <p>Сохраняй тайтлы и возвращайся к любимым аниме.</p>
+            <p>Отмечай просмотренное, следи за новыми сериями и держи список в порядке.</p>
             <Link className="btn btn--primary" href="/list">
-              Открыть трекер <span aria-hidden="true">↗</span>
+              Открыть список <span aria-hidden="true">↗</span>
             </Link>
 
             <Image

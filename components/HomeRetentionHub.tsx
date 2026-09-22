@@ -202,6 +202,11 @@ export default function HomeRetentionHub({
 
   if (!episode && !completion && !room) return null;
 
+  const signalCount =
+    Number(Boolean(episode)) +
+    Number(Boolean(completion)) +
+    Number(Boolean(room));
+
   const episodeImage = episode?.coverImage ?? null;
   const completionImage = completion?.posterUrl
     ? {
@@ -222,6 +227,7 @@ export default function HomeRetentionHub({
     <section
       ref={sectionRef}
       className="home-retention"
+      data-count={signalCount}
       aria-labelledby="home-retention-title"
     >
       <div className="home-retention__head">

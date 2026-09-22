@@ -1,0 +1,183 @@
+/* =========================================================
+   AnimeBox Patch 12.3.1 — Mobile UX + Tone + Core Web Vitals
+   ========================================================= */
+
+.home-retention__rail {
+  min-height: 90px;
+}
+
+.home-retention[data-count='1'] .home-retention__rail {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.home-retention[data-count='1'] .home-retention__card {
+  width: 100%;
+  max-width: none;
+}
+
+.home-retention[data-count='2'] .home-retention__rail {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.home-retention__copy strong,
+.home-retention__copy em,
+.home-shortcuts__item strong,
+.home-shortcuts__item small {
+  min-width: 0;
+}
+
+.home-hero-carousel__counter,
+.anime-card__rating,
+.continue-smart-card__eyebrow,
+.continue-smart-card__progress,
+.home-pulse__metric strong,
+.home-retention__copy em,
+.schedule__time,
+.rank-item {
+  font-variant-numeric: tabular-nums;
+}
+
+.home-pulse--placeholder {
+  min-height: 60px;
+  pointer-events: none;
+}
+
+.home-pulse__placeholder-line {
+  width: 112px;
+  height: 10px;
+  display: block;
+  margin-inline: 18px;
+  border-radius: 999px;
+  background: rgba(151, 164, 188, .07);
+}
+
+.home-pulse__placeholder-line.is-wide {
+  width: 176px;
+  margin-left: 0;
+}
+
+.home-shortcuts__item > span:nth-child(2) {
+  display: grid;
+  row-gap: 4px;
+}
+
+.home-shortcuts__item strong,
+.home-shortcuts__item small {
+  display: block;
+  line-height: 1.25;
+}
+
+@media (max-width: 720px) {
+  .home-grid .page-hero.no-banner,
+  .home-grid .page-hero--empty {
+    background:
+      radial-gradient(circle at 82% 16%, rgba(91, 64, 168, .34), transparent 38%),
+      linear-gradient(145deg, #0d1221, #080b14 72%);
+  }
+
+  .home-hero-carousel__backdrop,
+  .home-hero-carousel.is-motion-ready .home-hero-carousel__backdrop {
+    transform: none !important;
+    filter: none !important;
+  }
+
+  .home-retention {
+    padding-right: 13px;
+  }
+
+  .home-retention__rail {
+    min-height: 84px;
+    padding-right: 0;
+  }
+
+  .home-retention[data-count='1'] .home-retention__rail {
+    display: grid;
+    overflow: visible;
+  }
+
+  .home-retention[data-count='1'] .home-retention__card {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .home-retention[data-count='2'] .home-retention__rail,
+  .home-retention[data-count='3'] .home-retention__rail {
+    display: flex;
+    overflow-x: auto;
+    padding-right: 0;
+  }
+
+  .home-retention[data-count='2'] .home-retention__card,
+  .home-retention[data-count='3'] .home-retention__card {
+    width: min(78vw, 300px);
+    min-width: min(78vw, 300px);
+  }
+
+  .home-retention__head {
+    padding-right: 0;
+  }
+
+  .home-retention__head h2 {
+    max-width: 220px;
+    line-height: 1.18;
+  }
+
+  .home-shortcuts__item {
+    align-content: center;
+  }
+
+  .home-shortcuts__item strong {
+    font-size: 12px;
+  }
+
+  .home-shortcuts__item small {
+    font-size: 10px;
+    white-space: normal;
+  }
+
+  .home-pulse--placeholder {
+    overflow: hidden;
+  }
+
+  .home-pulse__placeholder-line {
+    flex: 1 1 90px;
+    min-width: 52px;
+    margin-inline: 8px;
+  }
+
+  .home-pulse__placeholder-line.is-wide {
+    flex-basis: 140px;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 390px) {
+  .home-retention {
+    padding: 12px;
+  }
+
+  .home-retention__head {
+    gap: 10px;
+  }
+
+  .home-retention__head h2 {
+    max-width: 190px;
+    font-size: 14.5px;
+  }
+
+  .home-retention__head > a {
+    font-size: 10px;
+  }
+
+  .home-retention[data-count='2'] .home-retention__card,
+  .home-retention[data-count='3'] .home-retention__card {
+    width: min(82vw, 286px);
+    min-width: min(82vw, 286px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-pulse__placeholder-line {
+    animation: none !important;
+  }
+}

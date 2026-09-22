@@ -157,7 +157,7 @@ export default function HomeContinueWatching({
                   alt={title}
                   englishName={anime.title?.english || anime.title?.romaji}
                   className="continue-smart-card__image"
-                  loading={index === 0 ? 'eager' : 'lazy'}
+                  loading="lazy"
                   sizes={index === 0 ? '(max-width: 600px) 76px, 96px' : '54px'}
                   quality={60}
                 />

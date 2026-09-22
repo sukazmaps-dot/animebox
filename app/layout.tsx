@@ -37,6 +37,7 @@ import './patch11-4-5.css';
 import './patch12-1-home-identity.css';
 import './patch12-2-visual-consistency.css';
 import './patch12-3-home-retention.css';
+import './patch12-3-1-mobile-cwv.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
@@ -73,7 +74,7 @@ const websiteStructuredData = {
   url: SITE_URL,
 
   description:
-    'AnimeBox — платформа для просмотра и отслеживания аниме с персональными рекомендациями.',
+    'AnimeBox — аниме-трекер с просмотром, списками, релизами и комнатами для совместного просмотра.',
 
   inLanguage: 'ru-RU',
 };
@@ -120,14 +121,14 @@ export const metadata: Metadata = {
 
   title: {
     default:
-      'AnimeBox — Смотри. Отслеживай. Живи.',
+      'AnimeBox — смотри аниме и веди свой список',
 
     template:
       '%s | AnimeBox',
   },
 
   description:
-    'Смотри аниме, сохраняй прогресс, собирай свою коллекцию и находи новые тайтлы с персональными рекомендациями.',
+    'Смотри аниме, отмечай серии, следи за онгоингами и заходи в комнаты совместного просмотра.',
 
   applicationName: 'AnimeBox',
 
@@ -177,10 +178,10 @@ export const metadata: Metadata = {
     siteName: 'AnimeBox',
 
     title:
-      'AnimeBox — Смотри. Отслеживай. Живи.',
+      'AnimeBox — смотри аниме и веди свой список',
 
     description:
-      'Смотри аниме, сохраняй прогресс, собирай свою коллекцию и находи новые тайтлы с персональными рекомендациями.',
+      'Смотри аниме, отмечай серии, следи за онгоингами и заходи в комнаты совместного просмотра.',
 
     images: [
       {
@@ -190,7 +191,7 @@ export const metadata: Metadata = {
         height: 630,
 
         alt:
-          'AnimeBox — Смотри. Отслеживай. Живи.',
+          'AnimeBox — смотри аниме и веди свой список',
       },
     ],
   },
@@ -203,10 +204,10 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
 
     title:
-      'AnimeBox — Смотри. Отслеживай. Живи.',
+      'AnimeBox — смотри аниме и веди свой список',
 
     description:
-      'Смотри аниме, сохраняй прогресс и находи новые тайтлы с персональными рекомендациями.',
+      'Смотри аниме, отмечай серии и держи свой список в порядке.',
 
     images: [
       `${SITE_URL}/og/animebox-share-v2.jpg`,

@@ -77,8 +77,8 @@ export function SupportAnimeBoxCard() {
 
       <div className="home-utility-card__copy">
         <span>Поддержка</span>
-        <strong>Помоги AnimeBox расти</strong>
-        <p>Инфраструктура, новые функции и развитие проекта.</p>
+        <strong>AnimeBox держится на сообществе</strong>
+        <p>Поддержка помогает оплачивать серверы и быстрее выпускать новые функции.</p>
       </div>
 
       <Link className="home-utility-card__link" href="/support">
@@ -307,7 +307,7 @@ export default function SupportAnimeBox() {
         <span className="support-box__eyebrow">ANIMEBOX SUPPORT</span>
         <h2>Поддержать развитие AnimeBox</h2>
         <p>
-          Поддержка добровольная. Telegram Stars открывают накопительные уровни спонсорства и оформление профиля. Средства идут на инфраструктуру и развитие проекта.
+          AnimeBox — независимый проект. Поддержка добровольная: она помогает оплачивать серверы и быстрее выпускать новые функции. Telegram Stars также открывают накопительные уровни спонсорства и оформление профиля.
         </p>
       </div>
 

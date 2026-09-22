@@ -12,32 +12,32 @@ const MOODS: Array<{
 }> = [
   {
     value: 'any',
-    label: 'Как обычно',
-    hint: 'Баланс твоего вкуса',
+    label: 'Мой вкус',
+    hint: 'По тому, что ты уже смотрел',
     icon: '/brand/emojis/moods/mood-any-cat.webp',
   },
   {
     value: 'comfort',
     label: 'Уют',
-    hint: 'Спокойнее и теплее',
+    hint: 'Ламповые истории для отдыха',
     icon: '/brand/emojis/moods/mood-cozy-cup.webp',
   },
   {
     value: 'tension',
-    label: 'Напряжение',
-    hint: 'Драйв, тайны, риск',
+    label: 'Триллер',
+    hint: 'Саспенс, загадки и экшен',
     icon: '/brand/emojis/moods/mood-dark-kitsune.webp',
   },
   {
     value: 'emotion',
-    label: 'Эмоции',
-    hint: 'Драма и сильные истории',
+    label: 'Драма',
+    hint: 'Стекло и сильные сюжеты',
     icon: '/brand/emojis/moods/mood-cry.webp',
   },
   {
     value: 'adventure',
-    label: 'Приключение',
-    hint: 'Миры, путь, экшен',
+    label: 'Другие миры',
+    hint: 'Фэнтези, приключения и экшен',
     icon: '/brand/emojis/moods/mood-hype-fire.webp',
   },
 ];
@@ -52,10 +52,10 @@ export default function HomeMoodPicker({
   return (
     <section className="mood-picker" aria-labelledby="mood-picker-title">
       <div className="mood-picker__intro">
-        <span className="mood-picker__eyebrow">Сегодня вечером</span>
+        <span className="mood-picker__eyebrow">Настроение</span>
         <div>
-          <h2 id="mood-picker-title">Какой сегодня вечер?</h2>
-          <p>Уют, напряжение, эмоции или приключение — выбери свой вайб.</p>
+          <h2 id="mood-picker-title">Какое настроение на вечер?</h2>
+          <p>Выбери вайб — подборка перестроится под него.</p>
         </div>
       </div>
 

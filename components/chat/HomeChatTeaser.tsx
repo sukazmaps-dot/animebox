@@ -70,9 +70,9 @@ export default function HomeChatTeaser() {
       <div className={styles.glow} aria-hidden="true" />
       <div className={styles.head}>
         <div>
-          <span className={styles.eyebrow}>ANIMEBOX COMMUNITY</span>
+          <span className={styles.eyebrow}>ANIMEBOX CHAT</span>
           <h2 id="home-chat-title">Общий чат</h2>
-          <p>Обсуждай серии, находи людей и показывай свой статус.</p>
+          <p>Флудилка, онгоинги и компания для совместного просмотра.</p>
         </div>
         <Link href="/chat" className={styles.openLink}>
           Открыть чат <span aria-hidden="true">→</span>
@@ -110,8 +110,8 @@ export default function HomeChatTeaser() {
         <Link href="/chat" className={styles.empty}>
           <span className={styles.emptyIcon}>✦</span>
           <span>
-            <strong>Чат уже открыт</strong>
-            <small>Зайди первым и начни разговор.</small>
+            <strong>Загляни в чат</strong>
+            <small>Обсуди серию или найди компанию на вечер.</small>
           </span>
           <span aria-hidden="true">→</span>
         </Link>
