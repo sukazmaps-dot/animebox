@@ -1,0 +1,309 @@
+/* =========================================================
+   AnimeBox 12.5.3 — Anime page layout hotfix
+   Fixes empty-space regressions without changing page logic.
+   ========================================================= */
+
+/* These sections are already async/SSR bounded. The old intrinsic-size
+   placeholders could reserve hundreds of phantom pixels while scrolling. */
+.anime-detail-v4 .anime-detail-library-section,
+.anime-detail-v4 .anime-detail-franchise-section {
+  content-visibility: visible;
+  contain-intrinsic-size: none;
+}
+
+/* ---------------------------------------------------------
+   Episodes: use the wide desktop canvas instead of a tall empty panel.
+   --------------------------------------------------------- */
+.anime-detail-v4__episode-list {
+  padding: 14px;
+  border-radius: 11px;
+}
+
+.episode-list-shell {
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .episode-list-shell.has-seasons {
+    display: grid;
+    grid-template-columns: minmax(172px, 215px) minmax(0, 1fr);
+    align-items: start;
+    gap: 18px;
+  }
+
+  .episode-list-shell.has-seasons .episode-list__seasons {
+    min-width: 0;
+    margin-bottom: 0 !important;
+    padding-right: 14px;
+    border-right: 1px solid rgba(255,255,255,.06);
+  }
+
+  .episode-list__seasons-head {
+    margin-bottom: 8px !important;
+  }
+
+  .episode-list__season-tabs {
+    display: grid !important;
+    grid-auto-flow: row !important;
+    grid-auto-columns: unset !important;
+    gap: 6px !important;
+    max-height: 322px;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    padding: 0 4px 0 0 !important;
+    scroll-snap-type: none !important;
+  }
+
+  .episode-list__season-tabs > button {
+    width: 100%;
+    min-width: 0 !important;
+    max-width: none !important;
+    min-height: 58px;
+    padding: 9px 10px !important;
+    border-radius: 7px !important;
+  }
+
+  .episode-list__seasons .absolute {
+    display: none !important;
+  }
+
+  .episode-list__content {
+    min-width: 0;
+    padding-top: 1px;
+  }
+}
+
+.anime-detail-v4__episode-list .episode-list {
+  grid-template-columns: repeat(auto-fill, minmax(78px, 92px));
+  justify-content: start;
+  gap: 8px;
+}
+
+.anime-detail-v4__episode-list .episode-list__item {
+  min-height: 66px;
+  padding: 9px 6px !important;
+  border-radius: 7px;
+}
+
+.anime-detail-v4__episode-list .episode-list__meta {
+  margin: 0 0 9px;
+}
+
+/* ---------------------------------------------------------
+   Personal block: equal visual density, no oversized empty Telegram card.
+   --------------------------------------------------------- */
+.anime-detail-v4__personal {
+  content-visibility: visible;
+  contain-intrinsic-size: none;
+}
+
+.anime-detail-v4__personal-grid {
+  align-items: stretch;
+  gap: 12px;
+}
+
+.anime-detail-v4__personal-grid > section {
+  height: auto;
+  min-height: 0;
+  border-radius: 11px !important;
+}
+
+.anime-detail-v4__personal-grid .community-library-control.is-compact {
+  padding: 14px !important;
+}
+
+.anime-detail-v4__personal-grid .community-library-control__top {
+  margin-bottom: 10px;
+}
+
+.anime-detail-v4__personal-grid .community-library-control__statuses {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.anime-detail-v4__personal-grid .community-library-status {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+}
+
+.anime-detail-v4__personal-grid .anime-notification-control.is-compact {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 0 !important;
+  padding: 14px 16px !important;
+}
+
+.anime-detail-v4__personal-grid .anime-notification-control__art {
+  position: static !important;
+  width: 64px !important;
+  min-width: 64px;
+  height: 58px !important;
+  display: grid;
+  place-items: center;
+  margin: 0 !important;
+  opacity: .92;
+}
+
+.anime-detail-v4__personal-grid .anime-notification-control__art img {
+  width: 56px !important;
+  height: 56px !important;
+  object-fit: contain;
+}
+
+.anime-detail-v4__personal-grid .anime-notification-control__copy {
+  min-width: 0;
+}
+
+.anime-detail-v4__personal-grid .anime-notification-control__copy h2 {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.anime-detail-v4__personal-grid .anime-notification-control__copy p {
+  margin-top: 5px;
+  max-width: 410px;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.anime-detail-v4__personal-grid .anime-notification-control__actions {
+  min-width: 150px;
+  justify-self: end;
+}
+
+.anime-detail-v4__personal-grid .anime-notification-control__button {
+  min-height: 38px !important;
+  white-space: nowrap;
+}
+
+.anime-detail-v4__personal-grid .anime-notification-control__message {
+  grid-column: 2 / -1;
+}
+
+/* ---------------------------------------------------------
+   Watch Together + franchise: remove the large visual valley.
+   --------------------------------------------------------- */
+.anime-detail-v4__watch-together {
+  padding-bottom: 18px !important;
+}
+
+.anime-detail-franchise-section {
+  padding-top: 0 !important;
+  padding-bottom: 28px !important;
+}
+
+.anime-franchise-v3__inner {
+  padding-top: 22px !important;
+}
+
+.anime-franchise-v3__groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 24px 18px;
+}
+
+.anime-franchise-v3__group {
+  min-width: 0;
+}
+
+.anime-franchise-v3__group:has(li:nth-child(3)) {
+  grid-column: 1 / -1;
+}
+
+.anime-franchise-v3__group-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 9px;
+}
+
+.anime-franchise-v3__related {
+  min-height: 106px;
+  border-radius: 8px;
+}
+
+.anime-franchise-v3__group .anime-franchise-v3__related > div:first-child {
+  height: 90px !important;
+  width: 60px !important;
+  border-radius: 6px !important;
+}
+
+.anime-franchise-v3__group .anime-franchise-v3__related p {
+  line-height: 1.35;
+}
+
+/* No decorative counter anywhere in Home hero after 12.5.3. */
+.home-hero-carousel__counter {
+  display: none !important;
+}
+
+@media (max-width: 899px) {
+  .episode-list-shell.has-seasons {
+    display: block;
+  }
+
+  .episode-list__seasons {
+    margin-bottom: 12px !important;
+    padding-right: 0;
+    border-right: 0;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control.is-compact {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control__actions {
+    grid-column: 1 / -1;
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control__button {
+    width: 100%;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control__message {
+    grid-column: 1 / -1;
+  }
+
+  .anime-franchise-v3__groups {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .anime-franchise-v3__group:has(li:nth-child(3)) {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .anime-detail-v4__episode-list {
+    padding: 9px !important;
+  }
+
+  .anime-detail-v4__episode-list .episode-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .anime-detail-v4__episode-list .episode-list__item {
+    min-height: 54px;
+    padding: 7px 4px !important;
+  }
+
+  .anime-detail-v4__personal-grid .community-library-control__statuses {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control.is-compact {
+    padding: 12px !important;
+  }
+
+  .anime-franchise-v3__group-list {
+    grid-template-columns: 1fr;
+  }
+}

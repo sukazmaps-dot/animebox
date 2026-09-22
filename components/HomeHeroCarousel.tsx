@@ -743,12 +743,6 @@ export default function HomeHeroCarousel({
 
       {slides.length > 1 && (
         <div className="home-hero-carousel__nav">
-          <span className="home-hero-carousel__counter" aria-hidden="true">
-            {String(safeActiveIndex + 1).padStart(2, '0')}
-            <i>/</i>
-            {String(slides.length).padStart(2, '0')}
-          </span>
-
           <div className="home-hero-carousel__dots">
             {slides.map((item, index) => (
               <button

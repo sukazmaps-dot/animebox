@@ -15,7 +15,7 @@ import { getAnimeFranchiseWithShikimori } from '@/lib/combined-anime';
 const CATEGORIES: FranchiseCategory[] = [
   'series', 'movies', 'ova', 'specials', 'spinOffs', 'other',
 ];
-const SECTION_CLASS = 'anime-franchise-v3 mx-auto max-w-7xl px-4 pb-12 pt-4 md:px-6';
+const SECTION_CLASS = 'anime-franchise-v3 mx-auto max-w-7xl px-4 pb-8 pt-2 md:px-6';
 
 export function AnimeFranchiseLoading() {
   return (
@@ -59,7 +59,7 @@ export default async function AnimeFranchise({
 
   return (
     <section className={SECTION_CLASS} aria-labelledby="franchise-heading">
-      <div className="border-t border-white/10 pt-8">
+      <div className="anime-franchise-v3__inner border-t border-white/10 pt-6">
         <span className="anime-franchise-v3__eyebrow">Франшиза</span>
         <h2 id="franchise-heading" className="anime-franchise-v3__title">Порядок частей</h2>
         <p className="anime-franchise-v3__subtitle">Сезоны, фильмы и спецвыпуски по порядку выхода.</p>
@@ -128,19 +128,19 @@ export default async function AnimeFranchise({
           </div>
         )}
 
-        <div className="mt-6 space-y-7">
+        <div className="anime-franchise-v3__groups mt-6">
           {CATEGORIES.map((category) => {
             if (category === 'series' && hasSeasonSwitcher) return null;
 
             const items = franchise.groups[category];
             if (!items.length) return null;
             return (
-              <div key={category}>
+              <div key={category} className="anime-franchise-v3__group">
                 <h3 className="mb-3 text-sm font-semibold text-white/80">
                   {FRANCHISE_CATEGORY_LABELS[category]}
                   <span className="ml-2 text-white/40">{items.length}</span>
                 </h3>
-                <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <ul className="anime-franchise-v3__group-list">
                   {items.map((item) => {
                     const title = item.title.russian || (item.isCurrent && currentTitle) || item.title.romaji || item.title.english || item.title.native || 'Без названия';
                     const sources = [item.coverImage.extraLarge, item.coverImage.large, item.coverImage.medium]

@@ -427,10 +427,10 @@ export default function EpisodeList({
   ]);
 
   return (
-    <div>
+    <div className={`episode-list-shell ${hasSeasonTabs ? 'has-seasons' : ''}`}>
       {hasSeasonTabs && (
-        <div className="mb-5">
-          <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="episode-list__seasons mb-5">
+          <div className="episode-list__seasons-head mb-2 flex items-center justify-between gap-3">
             <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/45">
               Сезоны и части
             </span>
@@ -445,7 +445,7 @@ export default function EpisodeList({
           <div className="relative">
             <div
               ref={seasonTabsRef}
-              className="flex gap-2 overflow-x-auto pb-2 pr-1 scroll-smooth overscroll-x-contain [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden"
+              className="episode-list__season-tabs flex gap-2 overflow-x-auto pb-2 pr-1 scroll-smooth overscroll-x-contain [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden"
               role="tablist"
               aria-label="Сезоны аниме"
             >
@@ -559,6 +559,7 @@ export default function EpisodeList({
         </div>
       )}
 
+      <div className="episode-list__content">
       {extrasActive ? (
         <ExtrasGrid items={seasonData.extras} />
       ) : availabilityLoading ? (
@@ -718,6 +719,7 @@ export default function EpisodeList({
           </div>
         </>
       )}
+      </div>
     </div>
   );
 }
