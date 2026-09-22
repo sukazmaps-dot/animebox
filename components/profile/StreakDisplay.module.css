@@ -1,0 +1,347 @@
+.root {
+  --streak-accent: var(--profile-preview-accent, var(--ab-premium-accent, #8b5cf6));
+  --streak-text: var(--profile-preview-text, var(--ab-premium-text, #f7f3ff));
+  --streak-muted: rgba(199, 207, 224, .52);
+  position: relative;
+  isolation: isolate;
+}
+
+.full,
+.hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "flame main record"
+    "milestone milestone milestone";
+  align-items: center;
+  gap: 12px 16px;
+  min-width: 0;
+  padding: 18px 20px 16px;
+  border: 1px solid color-mix(in srgb, var(--streak-accent) 17%, rgba(255,255,255,.06));
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 9% 30%, color-mix(in srgb, var(--streak-accent) 9%, transparent), transparent 31%),
+    rgba(255,255,255,.012);
+}
+
+.hero {
+  min-width: 250px;
+  padding: 15px 16px 14px;
+}
+
+.flameStage {
+  grid-area: flame;
+  position: relative;
+  width: 58px;
+  height: 68px;
+  display: grid;
+  place-items: center;
+}
+
+.flameStage img {
+  position: relative;
+  z-index: 2;
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+  transition: filter 180ms ease, opacity 180ms ease, transform 180ms ease;
+}
+
+.flameAura {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--streak-accent) 22%, transparent);
+  filter: blur(17px);
+  opacity: .45;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.main {
+  grid-area: main;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.heading {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.heading > span {
+  color: color-mix(in srgb, var(--streak-accent) 74%, white 26%);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.heading > em {
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--streak-accent) 8%, transparent);
+  color: rgba(214, 220, 235, .48);
+  font-size: 7px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.value {
+  color: var(--streak-text);
+  font-size: clamp(21px, 3vw, 30px);
+  font-weight: 900;
+  letter-spacing: -.035em;
+  line-height: 1.05;
+}
+
+.hint {
+  max-width: 520px;
+  color: var(--streak-muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.record {
+  grid-area: record;
+  min-width: 116px;
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  text-align: right;
+}
+
+.record span {
+  color: rgba(183, 193, 213, .42);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.record strong {
+  color: rgba(242, 244, 250, .78);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.milestone {
+  grid-area: milestone;
+  display: grid;
+  gap: 7px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,.05);
+}
+
+.milestoneMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: rgba(173, 184, 206, .44);
+  font-size: 7.5px;
+  font-weight: 750;
+}
+
+.milestoneMeta b {
+  color: color-mix(in srgb, var(--streak-accent) 62%, white 38%);
+  font-size: 8px;
+}
+
+.rail {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.rail i {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.055);
+  box-shadow: inset 0 1px rgba(255,255,255,.02);
+}
+
+.rail i[data-active='true'] {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--streak-accent) 78%, #ff9ad8 22%),
+    color-mix(in srgb, var(--streak-accent) 64%, #ffd59a 36%)
+  );
+  box-shadow: 0 0 10px color-mix(in srgb, var(--streak-accent) 22%, transparent);
+}
+
+.compact {
+  min-width: 0;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 9px;
+  border: 1px solid rgba(255,255,255,.05);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 14% 50%, color-mix(in srgb, var(--streak-accent) 8%, transparent), transparent 44%),
+    rgba(255,255,255,.012);
+}
+
+.compactFlame {
+  position: relative;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+}
+
+.compactFlame img {
+  width: 37px;
+  height: 37px;
+  object-fit: contain;
+  transition: filter 180ms ease, opacity 180ms ease, transform 180ms ease;
+}
+
+.compactCopy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.compactCopy small {
+  color: rgba(177,188,211,.42);
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.compactCopy strong {
+  overflow: hidden;
+  color: rgba(246,247,252,.92);
+  font-size: 12px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compactCopy em {
+  overflow: hidden;
+  color: rgba(178,186,207,.42);
+  font-size: 7.5px;
+  font-style: normal;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.root[data-tier='inactive'] .flameStage img,
+.root[data-tier='inactive'] .compactFlame img {
+  opacity: .32;
+  filter: grayscale(.28) saturate(.58) brightness(.72);
+  transform: scale(.92);
+}
+
+.root[data-tier='inactive'] .flameAura {
+  opacity: .08;
+}
+
+.root[data-tier='warm'] .flameStage img,
+.root[data-tier='warm'] .compactFlame img {
+  filter: saturate(.92) brightness(.96) drop-shadow(0 0 5px color-mix(in srgb, var(--streak-accent) 18%, transparent));
+}
+
+.root[data-tier='active'] .flameStage img,
+.root[data-tier='active'] .compactFlame img {
+  filter: saturate(1.06) brightness(1.02) drop-shadow(0 0 7px color-mix(in srgb, var(--streak-accent) 26%, transparent));
+}
+
+.root[data-tier='hot'] .flameStage img,
+.root[data-tier='hot'] .compactFlame img {
+  filter: saturate(1.14) brightness(1.07) drop-shadow(0 0 9px color-mix(in srgb, var(--streak-accent) 34%, transparent));
+}
+
+.root[data-tier='hot'] .flameAura {
+  opacity: .58;
+  transform: scale(1.05);
+}
+
+.root[data-tier='blazing'] .flameStage img,
+.root[data-tier='blazing'] .compactFlame img {
+  filter:
+    saturate(1.2)
+    brightness(1.1)
+    drop-shadow(0 0 11px color-mix(in srgb, var(--streak-accent) 42%, transparent));
+  transform: scale(1.04);
+}
+
+.root[data-tier='blazing'] .flameAura {
+  opacity: .72;
+  transform: scale(1.12);
+}
+
+.root[data-tier='legendary'] .flameStage img,
+.root[data-tier='legendary'] .compactFlame img {
+  filter:
+    saturate(1.3)
+    brightness(1.14)
+    drop-shadow(0 0 12px color-mix(in srgb, var(--streak-accent) 52%, transparent))
+    drop-shadow(0 0 18px rgba(255, 201, 126, .12));
+  transform: scale(1.07);
+}
+
+.root[data-tier='legendary'] .flameAura {
+  opacity: .9;
+  transform: scale(1.2);
+}
+
+.root[data-active-today='true'] .heading > em {
+  background: rgba(84, 211, 160, .075);
+  color: rgba(141, 235, 198, .72);
+}
+
+@media (max-width: 720px) {
+  .full,
+  .hero {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "flame main"
+      "record record"
+      "milestone milestone";
+    gap: 10px 12px;
+    padding: 15px 15px 13px;
+  }
+
+  .flameStage {
+    width: 50px;
+    height: 58px;
+  }
+
+  .flameStage img {
+    width: 47px;
+    height: 47px;
+  }
+
+  .record {
+    min-width: 0;
+    grid-template-columns: auto 1fr;
+    align-items: baseline;
+    justify-items: start;
+    gap: 7px;
+    text-align: left;
+  }
+
+  .record strong {
+    font-size: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flameStage img,
+  .compactFlame img,
+  .flameAura {
+    transition: none !important;
+  }
+}

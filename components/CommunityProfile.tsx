@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 import { useAuthState } from '@/components/AuthStateProvider';
 import AchievementShowcaseEditor from '@/components/AchievementShowcaseEditor';
+import StreakDisplay from '@/components/profile/StreakDisplay';
 import { achievementIcon } from '@/lib/achievement-icons';
 import {
   ACHIEVEMENT_RARITY_LABELS,
@@ -249,33 +250,13 @@ export default function CommunityProfile() {
         href="/challenges"
         aria-label="Открыть задания и серию активности"
       >
-        <div className="profile-v5__challenge-streak">
-          <span className="profile-v2__eyebrow">Серия активности</span>
-          <strong className="profile-v6__streak-value">
-            <span className="profile-v6__streak-fire-shell" aria-hidden="true">
-              <img
-                className="profile-v6__streak-fire"
-                src="/brand/profile/streak-fire.webp"
-                alt=""
-                width="42"
-                height="42"
-              />
-            </span>
-            <span className="profile-v6__streak-copy">
-              <b>{data.challenges.streak.current}</b>
-              <span>{data.challenges.streak.current === 1 ? 'день' : 'дн.'}</span>
-            </span>
-          </strong>
-          <small>Личный рекорд · {data.challenges.streak.longest}</small>
-          <div className="profile-v6__streak-rail" aria-hidden="true">
-            {Array.from({ length: 7 }, (_, index) => (
-              <i
-                key={index}
-                className={index < Math.min(7, data.challenges.streak.current) ? 'is-active' : ''}
-              />
-            ))}
-          </div>
-        </div>
+        <StreakDisplay
+          current={data.challenges.streak.current}
+          longest={data.challenges.streak.longest}
+          lastActiveDate={data.challenges.streak.lastActiveDate}
+          todayKey={data.challenges.todayKey}
+          variant="full"
+        />
 
         <div className="profile-v5__challenge-progress">
           <div>

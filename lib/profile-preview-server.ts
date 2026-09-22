@@ -110,6 +110,8 @@ export async function getProfilePreview(userId: string) {
     streak: {
       current: challenges?.streak.current ?? 0,
       longest: challenges?.streak.longest ?? 0,
+      lastActiveDate: challenges?.streak.lastActiveDate ?? null,
+      todayKey: challenges?.todayKey ?? '',
     },
   };
 }

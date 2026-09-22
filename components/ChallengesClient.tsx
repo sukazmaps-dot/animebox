@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 
 import { useAuthState } from '@/components/AuthStateProvider';
+import StreakDisplay from '@/components/profile/StreakDisplay';
 import {
   challengeMetricLabel,
   challengePercent,
@@ -119,11 +120,14 @@ export default function ChallengesClient() {
           </p>
         </div>
 
-        <div className={styles.streak}>
-          <span>Серия активности</span>
-          <strong>{data.streak.current}</strong>
-          <small>дней подряд · рекорд {data.streak.longest}</small>
-        </div>
+        <StreakDisplay
+          current={data.streak.current}
+          longest={data.streak.longest}
+          lastActiveDate={data.streak.lastActiveDate}
+          todayKey={data.todayKey}
+          variant="hero"
+          className={styles.streakV2}
+        />
       </section>
 
       <section className={styles.infoStrip}>
