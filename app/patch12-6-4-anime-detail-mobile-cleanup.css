@@ -1,0 +1,294 @@
+/* =========================================================
+   AnimeBox Patch 12.6.4 — Anime Detail Mobile Cleanup
+   Fix Telegram overlap + compact personal/watch-together blocks.
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .anime-detail-v4__personal {
+    padding-bottom: 18px !important;
+  }
+
+  .anime-detail-v4__personal-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .anime-detail-v4__personal-grid > section {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: hidden;
+    border-radius: 10px !important;
+  }
+
+  /* Personal library: same functionality, less vertical weight. */
+  .anime-detail-v4__personal-grid .community-library-control.is-compact {
+    padding: 12px !important;
+  }
+
+  .anime-detail-v4__personal-grid .community-library-control__top {
+    margin-bottom: 9px !important;
+  }
+
+  .anime-detail-v4__personal-grid .community-library-control__info {
+    gap: 9px !important;
+  }
+
+  .anime-detail-v4__personal-grid .community-library-control__icon {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 10px !important;
+  }
+
+  .anime-detail-v4__personal-grid .community-library-control__eyebrow {
+    font-size: 9px !important;
+  }
+
+  .anime-detail-v4__personal-grid .community-library-control__info h2 {
+    margin-top: 2px !important;
+    font-size: 18px !important;
+    line-height: 1.15 !important;
+  }
+
+  .anime-detail-v4__personal-grid .community-library-control__statuses {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+
+  .anime-detail-v4__personal-grid .community-library-status {
+    min-height: 48px !important;
+    padding: 7px 9px !important;
+    border-radius: 9px !important;
+  }
+
+  .anime-detail-v4__personal-grid .community-library-status__icon {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .anime-detail-v4__personal-grid .community-library-status__label {
+    font-size: 10.5px !important;
+  }
+
+  .anime-detail-v4__personal-grid .community-library-control__footer {
+    margin-top: 9px !important;
+    padding-top: 0 !important;
+    border-top: 0 !important;
+  }
+
+  .anime-detail-v4__personal-grid .community-library-control__footer p {
+    margin: 0 !important;
+    color: #717788 !important;
+    font-size: 10px !important;
+    line-height: 1.45 !important;
+  }
+
+  /* Telegram card: hard mobile contract.
+     Row 1 = illustration + copy. Row 2 = actions. Nothing may overlap. */
+  .anime-detail-v4__personal-grid .anime-notification-control.is-compact {
+    display: grid !important;
+    grid-template-columns: 52px minmax(0, 1fr) !important;
+    grid-template-areas:
+      "art copy"
+      "actions actions"
+      "message message" !important;
+    align-items: start !important;
+    column-gap: 10px !important;
+    row-gap: 9px !important;
+    padding: 12px !important;
+    overflow: hidden !important;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control__art {
+    grid-area: art !important;
+    position: static !important;
+    align-self: start !important;
+    width: 52px !important;
+    min-width: 52px !important;
+    height: 52px !important;
+    margin: 0 !important;
+    opacity: .92 !important;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control__art img {
+    width: 50px !important;
+    height: 50px !important;
+    object-fit: contain !important;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control__copy {
+    grid-area: copy !important;
+    min-width: 0 !important;
+    padding-top: 1px !important;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control__eyebrow-row {
+    gap: 6px !important;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control__eyebrow {
+    font-size: 9px !important;
+    letter-spacing: .08em !important;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control__status {
+    font-size: 8px !important;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control__copy h2 {
+    margin: 3px 0 0 !important;
+    overflow: hidden;
+    color: #eceaf2 !important;
+    font-size: 16px !important;
+    line-height: 1.2 !important;
+    text-overflow: ellipsis;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control__copy p {
+    display: -webkit-box !important;
+    max-width: none !important;
+    margin: 4px 0 0 !important;
+    overflow: hidden !important;
+    color: #717788 !important;
+    font-size: 10px !important;
+    line-height: 1.4 !important;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control__actions {
+    grid-area: actions !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    justify-self: stretch !important;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control__button {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 38px !important;
+    height: 38px !important;
+    padding: 0 12px !important;
+    overflow: hidden !important;
+    border-radius: 8px !important;
+    font-size: 10.5px !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control__actions > a {
+    min-width: max-content !important;
+    padding: 8px 4px !important;
+    color: #a28cff !important;
+    font-size: 10.5px !important;
+    font-weight: 680 !important;
+    white-space: nowrap;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control__message {
+    grid-area: message !important;
+    grid-column: auto !important;
+    margin: 0 !important;
+    font-size: 10px !important;
+  }
+
+  /* Watch Together: editorial block, not another oversized card. */
+  .anime-detail-v4__watch-together {
+    padding-top: 16px !important;
+    padding-bottom: 18px !important;
+  }
+
+  .anime-detail-v4__watch-together-inner {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    padding: 0 !important;
+  }
+
+  .anime-detail-v4__watch-together-inner > div:first-child > span {
+    font-size: 9px !important;
+    letter-spacing: .09em !important;
+  }
+
+  .anime-detail-v4__watch-together-inner h2 {
+    margin-top: 7px !important;
+    max-width: 100% !important;
+    font-size: clamp(20px, 5.8vw, 24px) !important;
+    line-height: 1.22 !important;
+    letter-spacing: -.025em !important;
+  }
+
+  .anime-detail-v4__watch-together-inner p {
+    margin-top: 7px !important;
+    color: #737989 !important;
+    font-size: 11px !important;
+    line-height: 1.45 !important;
+  }
+
+  .anime-detail-v4__watch-together-inner > a {
+    min-height: 42px !important;
+    width: 100% !important;
+    padding: 0 12px !important;
+    border-radius: 9px !important;
+    box-shadow: none !important;
+    font-size: 11px !important;
+  }
+
+  /* Franchise handoff: remove the visual hole between sections. */
+  .anime-detail-franchise-section {
+    padding-top: 0 !important;
+    padding-bottom: 22px !important;
+  }
+
+  .anime-franchise-v3__inner {
+    padding-top: 18px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .anime-detail-v4__personal-grid .community-library-control.is-compact,
+  .anime-detail-v4__personal-grid .anime-notification-control.is-compact {
+    padding: 10px !important;
+  }
+
+  .anime-detail-v4__personal-grid .community-library-status {
+    min-height: 46px !important;
+    padding-inline: 7px !important;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control.is-compact {
+    grid-template-columns: 46px minmax(0, 1fr) !important;
+    column-gap: 8px !important;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control__art {
+    width: 46px !important;
+    min-width: 46px !important;
+    height: 46px !important;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control__art img {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control__copy h2 {
+    font-size: 15px !important;
+  }
+
+  .anime-detail-v4__personal-grid .anime-notification-control__actions {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 6px !important;
+  }
+
+  .anime-detail-v4__watch-together-inner h2 {
+    font-size: 20px !important;
+  }
+}

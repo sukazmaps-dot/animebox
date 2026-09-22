@@ -48,6 +48,7 @@ import './patch12-6-mobile-home-final.css';
 import './patch12-6-1-mobile-hero.css';
 import './patch12-6-2-home-rails-typography.css';
 import './patch12-6-3-mobile-nav-home-cleanup.css';
+import './patch12-6-4-anime-detail-mobile-cleanup.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
