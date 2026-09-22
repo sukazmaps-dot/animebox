@@ -1,0 +1,118 @@
+/* =========================================================
+   AnimeBox Patch 11.4 · Social Profile v2
+   Mobile Premium performance + streak branding
+   ========================================================= */
+
+.profile-v6__streak-value {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+}
+
+.profile-v6__streak-fire {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  object-fit: contain;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 10px rgba(var(--profile-accent-rgb, 124, 77, 255), .26));
+}
+
+.profile-v6__streak-copy {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.profile-v6__streak-copy b {
+  color: inherit;
+  font: inherit;
+}
+
+/* Paint lower profile sections only when they approach the viewport. */
+.profile-v2__content,
+.profile-v2__public-achievements,
+.profile-v4__featured,
+.profile-v3__showcase {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 420px;
+}
+
+/* Mobile Premium profiles keep the palette but drop expensive large-area effects. */
+@media (max-width: 768px) {
+  .profile-v2.premium-profile-custom {
+    box-shadow: none !important;
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--ab-premium-primary) 82%, #060913 18%),
+        color-mix(in srgb, var(--ab-premium-primary) 92%, #03050a 8%)
+      ) !important;
+  }
+
+  .profile-v2.premium-profile-custom::before {
+    border-color: rgba(var(--ab-premium-text-rgb), .025) !important;
+  }
+
+  .profile-v2.premium-profile-custom .profile-v2__hero {
+    box-shadow:
+      0 14px 34px rgba(0,0,0,.22),
+      0 0 22px -14px rgba(var(--ab-premium-accent-rgb), .22) !important;
+  }
+
+  .profile-v2.premium-profile-custom :where(
+    .profile-v2__stat,
+    .profile-v2__status-strip,
+    .profile-v2__library,
+    .profile-v2__achievements,
+    .profile-v2__bottom-card,
+    .profile-v3__showcase,
+    .profile-v4__featured,
+    .profile-v5__challenges,
+    .profile-v6__progression
+  ) {
+    box-shadow: inset 0 1px rgba(var(--ab-premium-text-rgb), .018) !important;
+  }
+
+  .profile-v2.premium-profile-custom :where(
+    .profile-v2__eyebrow,
+    .profile-v2__stat-label,
+    .profile-v2__online,
+    .profile-v2__library-arrow
+  ) {
+    text-shadow: none !important;
+  }
+
+  .profile-v2.premium-profile-custom .profile-v2__online::before,
+  .profile-v2.premium-profile-custom .profile-v2__achievement-progress > span,
+  .profile-v2.premium-profile-custom .profile-v3__xp-track > span,
+  .profile-v2.premium-profile-custom .profile-v6__streak-rail i.is-active {
+    box-shadow: none !important;
+  }
+
+  .profile-v6__streak-fire {
+    width: 30px;
+    height: 30px;
+    flex-basis: 30px;
+    filter: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .profile-v2__content,
+  .profile-v2__public-achievements,
+  .profile-v4__featured,
+  .profile-v3__showcase {
+    contain-intrinsic-size: auto 520px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-v2.premium-profile-custom *,
+  .profile-v6__streak-fire {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
