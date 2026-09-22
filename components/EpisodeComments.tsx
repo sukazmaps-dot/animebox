@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import ProfilePreview from '@/components/profile/ProfilePreview';
 import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
@@ -90,10 +90,10 @@ function CommentNode({
     >
       <header className="episode-comment__header">
         {comment.user_id ? (
-          <Link
-            href={`/profile/${comment.user_id}`}
+          <ProfilePreview
+            userId={comment.user_id}
+            username={username}
             className="episode-comment__profile-link"
-            aria-label={`Открыть профиль ${username}`}
           >
             <span className="episode-comment__avatar-shell">
               <img
@@ -131,7 +131,7 @@ function CommentNode({
                 {formatDate(comment.created_at)}
               </time>
             </div>
-          </Link>
+          </ProfilePreview>
         ) : (
           <>
             <span className="episode-comment__avatar-shell">

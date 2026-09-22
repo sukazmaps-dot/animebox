@@ -267,6 +267,14 @@ export default function ProfilePage() {
     baseBannerPath: profile.banner_path,
     premiumStudio,
     premiumActive,
+    premiumMediaActive: premiumActive,
+  });
+  const mobileAppearance = resolveProfileAppearance({
+    baseAvatarPath: profile.avatar_path,
+    baseBannerPath: profile.banner_path,
+    premiumStudio,
+    premiumActive,
+    premiumMediaActive: false,
   });
 
   const avatarUrl = appearance.avatarPath
@@ -280,6 +288,20 @@ export default function ProfilePage() {
     ? supabase.storage
         .from('profile-media')
         .getPublicUrl(appearance.bannerPath)
+        .data.publicUrl
+    : null;
+
+  const mobileAvatarUrl = mobileAppearance.avatarPath
+    ? supabase.storage
+        .from('profile-media')
+        .getPublicUrl(mobileAppearance.avatarPath)
+        .data.publicUrl
+    : '/default-avatar.webp';
+
+  const mobileBannerUrl = mobileAppearance.bannerPath
+    ? supabase.storage
+        .from('profile-media')
+        .getPublicUrl(mobileAppearance.bannerPath)
         .data.publicUrl
     : null;
 
@@ -302,12 +324,20 @@ export default function ProfilePage() {
       <section className="profile-v2__hero">
         <div className="profile-v2__banner">
           {bannerUrl ? (
-            <img
-              src={bannerUrl}
-              alt="Баннер профиля"
-              className="profile-v2__banner-image"
-              style={premiumMediaStyle(appearance.bannerTransform) as CSSProperties}
-            />
+            <picture className="profile-v2__banner-picture">
+              {mobileBannerUrl && mobileBannerUrl !== bannerUrl && (
+                <source
+                  media="(max-width: 768px), (prefers-reduced-motion: reduce)"
+                  srcSet={mobileBannerUrl}
+                />
+              )}
+              <img
+                src={bannerUrl}
+                alt="Баннер профиля"
+                className="profile-v2__banner-image"
+                style={premiumMediaStyle(appearance.bannerTransform) as CSSProperties}
+              />
+            </picture>
           ) : (
             <img
               src="/brand/profile-banner-default.webp"
@@ -323,6 +353,7 @@ export default function ProfilePage() {
         <div className="profile-v2__identity">
           <UserAvatarWithFrame
             src={avatarUrl}
+            mobileSrc={mobileAvatarUrl}
             alt={`Аватар ${username}`}
             loadCurrentIdentity
             mediaTransform={appearance.avatarTransform}
