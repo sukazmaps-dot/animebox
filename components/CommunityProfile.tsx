@@ -256,6 +256,7 @@ export default function CommunityProfile() {
           lastActiveDate={data.challenges.streak.lastActiveDate}
           todayKey={data.challenges.todayKey}
           variant="full"
+          className="profile-streak-v2"
         />
 
         <div className="profile-v5__challenge-progress">

@@ -1,0 +1,63 @@
+/* =========================================================
+   AnimeBox Patch 11.4.5 · Premium Mobile + Streak Final
+   ========================================================= */
+
+/* The profile already owns the outer challenge surface.
+   Keep the streak itself visually open instead of card-inside-card. */
+.profile-v5__challenges .profile-streak-v2 {
+  padding: 2px 0 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Compact the task counters so streak remains the focal point on phones. */
+.profile-v5__challenges.profile-v6__challenges-link .profile-v5__challenge-progress {
+  gap: 0;
+  border-top: 1px solid var(--ab-border);
+}
+
+.profile-v5__challenges.profile-v6__challenges-link .profile-v5__challenge-progress > div {
+  min-width: 0;
+  min-height: 0;
+  padding: 9px 14px 5px;
+  border: 0;
+  border-left: 1px solid var(--ab-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.profile-v5__challenges.profile-v6__challenges-link .profile-v5__challenge-progress > div:first-child {
+  border-left: 0;
+}
+
+@media (max-width: 820px) {
+  .profile-v5__challenges.profile-v6__challenges-link {
+    gap: 10px;
+    padding-block: 12px;
+  }
+
+  .profile-v5__challenges .profile-streak-v2 {
+    padding-top: 0 !important;
+  }
+
+  .profile-v5__challenges.profile-v6__challenges-link .profile-v5__challenge-progress {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-v5__challenges.profile-v6__challenges-link .profile-v5__challenge-link {
+    padding: 5px 0 2px;
+  }
+}
+
+@media (max-width: 520px) {
+  .profile-v5__challenges.profile-v6__challenges-link {
+    margin-top: 10px;
+  }
+
+  .profile-v5__challenges.profile-v6__challenges-link .profile-v5__challenge-progress > div {
+    padding: 8px 10px 4px;
+  }
+}

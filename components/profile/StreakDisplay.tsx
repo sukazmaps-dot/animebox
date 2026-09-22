@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
+import type { CSSProperties } from 'react';
 import {
   streakActiveToday,
   streakDays,
@@ -98,12 +99,10 @@ export default function StreakDisplay({
           aria-valuemax={milestone.target}
           aria-valuenow={Math.min(current, milestone.target)}
         >
-          {Array.from({ length: 7 }, (_, index) => (
-            <i
-              key={index}
-              data-active={index < milestone.filledSegments ? 'true' : 'false'}
-            />
-          ))}
+          <span
+            className={styles.railFill}
+            style={{ '--streak-progress': `${milestone.percent}%` } as CSSProperties}
+          />
         </div>
       </div>
     </div>

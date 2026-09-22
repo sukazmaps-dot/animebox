@@ -94,7 +94,7 @@ export default async function PublicProfilePage({ params }: Props) {
             <picture className="profile-v2__banner-picture">
               {profile.bannerMobileUrl && profile.bannerMobileUrl !== profile.bannerUrl && (
                 <source
-                  media="(max-width: 768px), (prefers-reduced-motion: reduce)"
+                  media="(prefers-reduced-motion: reduce)"
                   srcSet={profile.bannerMobileUrl}
                 />
               )}
