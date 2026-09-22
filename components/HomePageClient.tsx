@@ -196,16 +196,15 @@ function HomeTopAnimePanel({
       }`}
     >
       <div className="panel__head panel__head--branded">
-        <span className="panel__title-with-icon">
+        <h2 className="panel__title-with-icon">
           <Image src="/brand/brand-mark.webp" alt="" width={20} height={20} sizes="20px" aria-hidden="true" />
           Топ аниме
-        </span>
-        <span className="section-link">Сегодня</span>
+        </h2>
       </div>
 
       <div className="panel__body">
         {items.map((anime, index) => (
-          <TopAnimeItem key={anime.id} anime={anime} rank={index + 1} />
+          <TopAnimeItem key={anime.id} anime={anime} rank={index + 1} editorial />
         ))}
       </div>
     </div>

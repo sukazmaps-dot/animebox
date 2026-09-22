@@ -90,9 +90,21 @@
   background: var(--ab-accent);
 }
 
+/* Keyboard focus belongs to the indicator line, not a square around its hit area. */
+.home-grid .home-hero-carousel .home-hero-carousel__dot:focus-visible {
+  outline: none !important;
+}
+
+.home-grid .home-hero-carousel .home-hero-carousel__dot:focus-visible::before {
+  height: 5px;
+  box-shadow: 0 0 0 2px rgba(7, 9, 14, .9), 0 0 0 4px var(--ab-accent);
+}
+
 @media (max-width: 768px) {
-  .home-grid .page-hero.home-hero-carousel {
-    min-height: 400px;
+  .home-page .home-grid .page-hero.home-hero-carousel {
+    height: auto !important;
+    min-height: 400px !important;
+    max-height: none !important;
     border-radius: 9px;
   }
 
@@ -138,6 +150,12 @@
   .home-grid .home-hero-carousel .home-hero-carousel__dot,
   .home-grid .home-hero-carousel .home-hero-carousel__dot.is-active {
     width: 30px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .home-grid .home-hero-carousel h1.is-long-title {
+    font-size: 22px !important;
   }
 }
 

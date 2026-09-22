@@ -7,14 +7,16 @@ import type { Anime } from '@/types/anime';
 export default function TopAnimeItem({
   anime,
   rank,
+  editorial = false,
 }: {
   anime: Anime;
   rank: number;
+  editorial?: boolean;
 }) {
   const title = getAnimeTitle(anime);
 
   return (
-    <Link href={animeHref(anime)} className="top-anime-item">
+    <Link href={animeHref(anime)} className={`top-anime-item${editorial ? ' top-anime-item--editorial' : ''}`}>
       <span className="top-anime-item__rank">
         {String(rank).padStart(2, '0')}
       </span>
@@ -23,7 +25,7 @@ export default function TopAnimeItem({
         <AnimeImage
           image={anime.coverImage || anime.image}
           alt={title}
-          sizes="(max-width: 768px) 30vw, 44px"
+          sizes={editorial ? '(max-width: 768px) 42vw, (max-width: 1200px) 24vw, 17vw' : '(max-width: 768px) 30vw, 44px'}
           quality={70}
         />
       </div>
