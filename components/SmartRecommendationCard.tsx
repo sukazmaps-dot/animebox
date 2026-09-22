@@ -244,8 +244,8 @@ export default function SmartRecommendationCard({
             englishName={anime.title?.english || anime.title?.romaji}
             className="smart-card__image"
             loading="lazy"
-            sizes="(max-width: 560px) 42vw, (max-width: 900px) 28vw, (max-width: 1280px) 19vw, 210px"
-            quality={68}
+            sizes="(max-width: 560px) 41vw, (max-width: 900px) 27vw, (max-width: 1280px) 18vw, 205px"
+            quality={62}
           />
 
           <div className="smart-card__rating">

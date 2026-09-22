@@ -5,12 +5,12 @@ import { animeHref } from '@/lib/anime-url';
 import { startTransition, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import type { Anime, AnimeImage as AnimeImageType } from '@/types/anime';
 
 import AnimeCard from '@/components/AnimeCard';
 import HomeContinueWatching from '@/components/HomeContinueWatching';
 import HomeMoodPicker from '@/components/HomeMoodPicker';
-import SmartRecommendationFeed from '@/components/SmartRecommendationFeed';
 import Icon from '@/components/Icon';
 import AnimeImage from '@/components/AnimeImage';
 import HomeHeroCarousel from '@/components/HomeHeroCarousel';
@@ -20,13 +20,10 @@ import { readAnimeProgressMap, readWatchHistory, type AnimeHistoryEntry } from '
 import { getLatestWatchProgress, hasResumePosition } from '@/lib/watch-progress';
 import { useAuthState } from '@/components/AuthStateProvider';
 import type { RecentWatchResponse, WatchTitleOverview } from '@/types/watch';
-import TelegramPromoCard from '@/components/TelegramPromoCard';
 import TopAnimeItem from '@/components/TopAnimeItem';
 import ScheduleItem from '@/components/ScheduleItem';
 import { readTasteProfile, setTasteMood, type TasteMood } from '@/lib/personalization';
 import { fetchTasteGraph } from '@/lib/taste-graph';
-import { SupportAnimeBoxCard } from '@/components/monetization/SupportAnimeBox';
-import HomeChatTeaser from '@/components/chat/HomeChatTeaser';
 import HomePersonalPulse from '@/components/HomePersonalPulse';
 import HomeActivationPanel from '@/components/HomeActivationPanel';
 import HomeRetentionHub, {
@@ -34,6 +31,38 @@ import HomeRetentionHub, {
   type HomeRetentionEpisodeSignal,
 } from '@/components/HomeRetentionHub';
 import { trackProductClientEvent } from '@/lib/product-events-client';
+
+const SmartRecommendationFeed = dynamic(
+  () => import('@/components/SmartRecommendationFeed'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="loading-grid" aria-hidden="true">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="skeleton skeleton--card" />
+        ))}
+      </div>
+    ),
+  },
+);
+
+const HomeChatTeaser = dynamic(
+  () => import('@/components/chat/HomeChatTeaser'),
+  { ssr: false },
+);
+
+const TelegramPromoCard = dynamic(
+  () => import('@/components/TelegramPromoCard'),
+  { ssr: false },
+);
+
+const SupportAnimeBoxCard = dynamic(
+  () =>
+    import('@/components/monetization/SupportAnimeBox').then(
+      (module) => module.SupportAnimeBoxCard,
+    ),
+  { ssr: false },
+);
 
 const subscribeHydration = () => () => {};
 
@@ -529,7 +558,7 @@ export default function HomePage({
 
     return getPersonalizedRecommendations([...popular, ...ongoing], {
       mood,
-      limit: 30,
+      limit: 12,
     });
   }, [hydrated, popular, ongoing, mood, historyRevision, tasteRevision]);
 
@@ -1133,7 +1162,7 @@ export default function HomePage({
             </div>
           ) : (
             <div className="anime-grid">
-              {popular.slice(0, 10).map((anime) => (
+              {popular.slice(0, 8).map((anime) => (
                 <AnimeCard
                   key={anime.id}
                   anime={anime}
@@ -1177,7 +1206,7 @@ export default function HomePage({
             </div>
           ) : (
             <div className="anime-grid">
-              {fallbackItems.slice(0, 10).map((anime) => (
+              {fallbackItems.slice(0, 8).map((anime) => (
                 <AnimeCard
                   key={anime.id}
                   anime={anime}

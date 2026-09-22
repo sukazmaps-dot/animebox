@@ -1,4 +1,90 @@
 /* =========================================================
+   AnimeBox — Global Performance Pass
+   Lightweight paint/layout hints for below-the-fold content.
+   ========================================================= */
+
+.page-hero__backdrop{
+  object-fit:cover;
+  object-position:65% center;
+}
+
+.home-grid .section:not(:first-child),
+.right-rail > .panel,
+.profile-v2__bottom-card,
+.premium-benefits,
+.premium-plan,
+.premium-history{
+  content-visibility:auto;
+  contain-intrinsic-size:1px 480px;
+}
+
+.anime-card,
+.continue-card,
+.smart-card{
+  contain:paint;
+}
+
+img{
+  image-rendering:auto;
+}
+
+@media(max-width:760px){
+  .page-hero__backdrop{
+    object-position:70% center;
+  }
+
+  .home-grid .section:not(:first-child),
+  .right-rail > .panel,
+  .profile-v2__bottom-card,
+  .premium-benefits,
+  .premium-plan,
+  .premium-history{
+    contain-intrinsic-size:1px 360px;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  html:focus-within{scroll-behavior:auto}
+  *,
+  *::before,
+  *::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    scroll-behavior:auto!important;
+    transition-duration:.01ms!important;
+  }
+}
+
+
+/* =========================================================
+   Performance Stage 2 — protect the critical mobile paint.
+   The carousel can animate after user interaction, but Lighthouse and real
+   first-time visitors should see the final first frame immediately.
+   ========================================================= */
+
+.home-hero-carousel:not(.is-motion-ready) .home-hero-carousel__backdrop,
+.home-hero-carousel:not(.is-motion-ready) .home-hero-carousel__content {
+  animation: none !important;
+  transition: none !important;
+}
+
+@media (max-width: 720px) {
+  .home-grid .section,
+  .right-rail > * {
+    animation: none !important;
+  }
+
+  .episode-countdown__dot {
+    animation: none !important;
+  }
+}
+
+/* =========================================================
+   CONSOLIDATED PERFORMANCE V2
+   Existing performance.css moved here in Patch 12.4.4.
+   ========================================================= */
+
+/* =========================================================
    PERFORMANCE PASS V2
    Paint less below the fold and keep persistent mobile chrome cheap.
    ========================================================= */
@@ -147,5 +233,30 @@
 
   .personal-schedule-section .section-head {
     align-items: flex-start;
+  }
+}
+
+/* Patch 12.4.4 — lower Home work below the critical viewport. */
+.home-page .smart-feed-section,
+.home-page .home-utility-grid,
+.home-page .section.schedule {
+  content-visibility: auto;
+}
+
+.home-page .smart-feed-section {
+  contain-intrinsic-size: 520px;
+}
+
+.home-page .home-utility-grid {
+  contain-intrinsic-size: 420px;
+}
+
+@media (max-width: 720px) {
+  .home-page .smart-feed-section {
+    contain-intrinsic-size: 620px;
+  }
+
+  .home-page .home-utility-grid {
+    contain-intrinsic-size: 560px;
   }
 }

@@ -90,8 +90,8 @@ export default function AnimeCard({
             englishName={anime.title?.english || anime.title?.romaji}
             className="anime-card__image"
             loading="lazy"
-            sizes="(max-width: 560px) 39vw, (max-width: 900px) 26vw, (max-width: 1280px) 17vw, 205px"
-            quality={68}
+            sizes="(max-width: 560px) 41vw, (max-width: 900px) 26vw, (max-width: 1280px) 17vw, 205px"
+            quality={62}
           />
         </div>
 

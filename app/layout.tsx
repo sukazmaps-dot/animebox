@@ -1,6 +1,4 @@
 import type { Metadata, Viewport } from 'next';
-import Script from 'next/script';
-
 import './globals.css';
 import './visual-refresh.css';
 import './design-v5.css';
@@ -13,7 +11,6 @@ import './asset-pack-v1.css';
 import './mobile-layout-fix.css';
 import './mobile-readability.css';
 import './typography-polish.css';
-import './performance.css';
 import './hierarchy-pass.css';
 import './feedback-v1.css';
 import './mobile-moderate-v4.css';
@@ -26,7 +23,6 @@ import './premium-shell.css';
 import './design-v2-content-first.css';
 import './auth-modal-v2.css';
 import './activation-v2.css';
-import './anime-page-v3.css';
 import './performance-v2.css';
 import './tma-mobile-ux-v21.css';
 import './patch11-growth.css';
@@ -41,7 +37,6 @@ import './patch12-3-1-mobile-cwv.css';
 import './patch12-3-2-mobile-rhythm.css';
 import './patch12-3-3-mood-density.css';
 import './patch12-3-4-premium-profile-theme.css';
-import './patch12-4-anime-page-foundation.css';
 import './patch12-4-1-mobile-anime-flow.css';
 import './patch12-4-2-visual-scale.css';
 
@@ -52,6 +47,7 @@ import { AuthModalProvider } from '@/components/AuthModalProvider';
 import AppChrome from '@/components/AppChrome';
 import CssRecoveryBridge from '@/components/CssRecoveryBridge';
 import ProductAnalyticsTracker from '@/components/analytics/ProductAnalyticsTracker';
+import DeferredYandexMetrika from '@/components/analytics/DeferredYandexMetrika';
 import ProgressionCelebration from '@/components/ProgressionCelebration';
 import TelegramWelcomePromo from '@/components/TelegramWelcomePromo';
 
@@ -277,34 +273,8 @@ export default function RootLayout({
       <body>
         <CssRecoveryBridge />
 
-        {/* Yandex.Metrika counter 112789274 */}
-        <Script
-          id="yandex-metrika"
-          strategy="lazyOnload"
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function(m,e,t,r,i,k,a){
-                m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-                m[i].l=1*new Date();
-                for (var j = 0; j < document.scripts.length; j++) {
-                  if (document.scripts[j].src === r) { return; }
-                }
-                k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
-              })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=112789274', 'ym');
-
-              ym(112789274, 'init', {
-                ssr: true,
-                webvisor: true,
-                clickmap: true,
-                ecommerce: "dataLayer",
-                referrer: document.referrer,
-                url: location.href,
-                accurateTrackBounce: true,
-                trackLinks: true
-              });
-            `,
-          }}
-        />
+        {/* Yandex.Metrika loads after first interaction or idle timeout. */}
+        <DeferredYandexMetrika />
 
 
         <noscript>
