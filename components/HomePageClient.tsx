@@ -29,6 +29,10 @@ import { SupportAnimeBoxCard } from '@/components/monetization/SupportAnimeBox';
 import HomeChatTeaser from '@/components/chat/HomeChatTeaser';
 import HomePersonalPulse from '@/components/HomePersonalPulse';
 import HomeActivationPanel from '@/components/HomeActivationPanel';
+import HomeRetentionHub, {
+  type HomeRetentionCompletionSignal,
+  type HomeRetentionEpisodeSignal,
+} from '@/components/HomeRetentionHub';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 
 const subscribeHydration = () => () => {};
@@ -349,7 +353,7 @@ export default function HomePage({
     const loadRecent = () => {
       if (inFlight || controller.signal.aborted) return;
       inFlight = true;
-      void fetch('/api/watch/recent?limit=4', {
+      void fetch('/api/watch/recent?limit=12', {
         signal: controller.signal,
         cache: 'no-store',
       })
@@ -758,6 +762,101 @@ export default function HomePage({
     scheduleItems,
   ]);
 
+  const personalAnimeIdList = useMemo(
+    () => [...personalAnimeIds],
+    [personalAnimeIds],
+  );
+
+  const retentionEpisodeSignal = useMemo<HomeRetentionEpisodeSignal | null>(() => {
+    if (personalAnimeIds.size === 0 || scheduleItems.length === 0) return null;
+
+    const nowSeconds = Math.floor(clockNow / 1000);
+    const windowStart = nowSeconds - 6 * 60 * 60;
+    const windowEnd = nowSeconds + 24 * 60 * 60;
+    const candidates = scheduleItems.filter(
+      (item) =>
+        personalAnimeIds.has(item.media.id) &&
+        item.airingAt >= windowStart &&
+        item.airingAt <= windowEnd,
+    );
+
+    const released = candidates
+      .filter((item) => item.airingAt <= nowSeconds)
+      .sort((a, b) => b.airingAt - a.airingAt)[0];
+    const upcoming = candidates
+      .filter((item) => item.airingAt > nowSeconds)
+      .sort((a, b) => a.airingAt - b.airingAt)[0];
+    const item = released ?? upcoming;
+
+    if (!item) return null;
+
+    return {
+      animeId: item.media.id,
+      slug: null,
+      title: getScheduleTitle(item),
+      episode: Math.max(1, item.episode),
+      airingAt: item.airingAt,
+      coverImage: item.media.coverImage,
+      released: Boolean(released),
+    };
+  }, [clockNow, personalAnimeIds, scheduleItems]);
+
+  const retentionCompletionSignal = useMemo<HomeRetentionCompletionSignal | null>(() => {
+    const candidates = serverContinue.flatMap((state) => {
+      const total = Number(state.totalEpisodes ?? 0);
+      const completed = Number(state.completedEpisodes ?? 0);
+
+      if (
+        state.fullyCompleted ||
+        !Number.isSafeInteger(total) ||
+        total <= 0 ||
+        !Number.isSafeInteger(completed) ||
+        completed < 0
+      ) {
+        return [];
+      }
+
+      const remaining = total - completed;
+      if (remaining < 1 || remaining > 3) return [];
+
+      const fallbackEpisode = Math.min(total, Math.max(1, completed + 1));
+      const nextEpisode =
+        state.resumeEpisode &&
+        Number.isSafeInteger(state.resumeEpisode) &&
+        state.resumeEpisode > 0
+          ? Math.min(total, state.resumeEpisode)
+          : fallbackEpisode;
+
+      const lastWatchedAt = state.lastWatchedAt
+        ? Date.parse(state.lastWatchedAt)
+        : 0;
+
+      return [{
+        animeId: state.animeId,
+        slug: state.slug,
+        title: state.title,
+        posterUrl: state.posterUrl,
+        completedEpisodes: completed,
+        totalEpisodes: total,
+        remainingEpisodes: remaining,
+        nextEpisode,
+        lastWatchedAt: Number.isFinite(lastWatchedAt) ? lastWatchedAt : 0,
+      }];
+    });
+
+    candidates.sort(
+      (a, b) =>
+        a.remainingEpisodes - b.remainingEpisodes ||
+        b.lastWatchedAt - a.lastWatchedAt,
+    );
+
+    const distinct = candidates.find(
+      (item) => item.animeId !== retentionEpisodeSignal?.animeId,
+    );
+
+    return distinct ?? candidates[0] ?? null;
+  }, [retentionEpisodeSignal?.animeId, serverContinue]);
+
   const personalScheduleSignature = personalScheduleItems
     .map((item) => `${item.media.id}:${item.episode}:${item.airingAt}`)
     .join('|');
@@ -872,6 +971,15 @@ export default function HomePage({
             <b aria-hidden="true">→</b>
           </Link>
         </nav>
+
+        {(hasWatchHistory || serverContinue.length > 0) && (
+          <HomeRetentionHub
+            episode={retentionEpisodeSignal}
+            completion={retentionCompletionSignal}
+            personalAnimeIds={personalAnimeIdList}
+            enableRooms={Boolean(user?.id)}
+          />
+        )}
 
         {!personalizedHome && <HomeTopAnimePanel popular={popular} mobile />}
 

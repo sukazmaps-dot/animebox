@@ -1,0 +1,233 @@
+/* =========================================================
+   AnimeBox Patch 12.3 — Home Retention v2
+   Personal return signals without turning Home into a dashboard.
+   ========================================================= */
+
+.home-retention {
+  min-width: 0;
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius-lg);
+  background:
+    linear-gradient(110deg, rgba(120, 104, 238, .045), transparent 38%),
+    var(--ab-surface-1);
+}
+
+.home-retention__head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 12px;
+}
+
+.home-retention__head > div {
+  min-width: 0;
+}
+
+.home-retention__head span {
+  display: block;
+  margin-bottom: 5px;
+  color: #9188db;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .11em;
+}
+
+.home-retention__head h2 {
+  margin: 0;
+  color: var(--ab-text);
+  font-size: 17px;
+  line-height: 1.15;
+  letter-spacing: -.025em;
+}
+
+.home-retention__head > a {
+  flex: 0 0 auto;
+  color: var(--ab-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.home-retention__rail {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.home-retention__card {
+  min-width: 0;
+  min-height: 90px;
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 8px 8px;
+  border: 1px solid rgba(151, 164, 188, .09);
+  border-radius: var(--ab-radius-md);
+  background: #090e17;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.home-retention__poster {
+  position: relative;
+  width: 58px;
+  height: 74px;
+  overflow: hidden;
+  display: block;
+  border-radius: 9px;
+  background: var(--ab-surface-2);
+}
+
+.home-retention__poster > * {
+  width: 100%;
+  height: 100%;
+}
+
+.home-retention__poster img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.home-retention__copy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.home-retention__copy small {
+  color: #9188db;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+
+.home-retention__copy strong {
+  overflow: hidden;
+  color: var(--ab-text-soft);
+  font-size: 11.5px;
+  font-weight: 750;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-retention__copy em {
+  overflow: hidden;
+  color: var(--ab-muted);
+  font-size: 9.5px;
+  font-style: normal;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-retention__card > b {
+  color: #777f92;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+@media (hover: hover) {
+  .home-retention__card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(120, 104, 238, .25);
+    background: #0b111c;
+  }
+
+  .home-retention__card:hover > b {
+    color: #c6bfff;
+  }
+}
+
+@media (max-width: 1080px) {
+  .home-retention__rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-retention__card:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .home-retention {
+    margin-top: 14px;
+    padding: 13px 0 13px 13px;
+    border-radius: var(--ab-radius-md);
+  }
+
+  .home-retention__head {
+    padding-right: 13px;
+    margin-bottom: 10px;
+  }
+
+  .home-retention__head h2 {
+    font-size: 15px;
+  }
+
+  .home-retention__head > a {
+    font-size: 11px;
+  }
+
+  .home-retention__rail {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 0 13px 2px 0;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    overscroll-behavior-inline: contain;
+  }
+
+  .home-retention__rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .home-retention__card,
+  .home-retention__card:last-child:nth-child(odd) {
+    width: min(78vw, 300px);
+    min-width: min(78vw, 300px);
+    min-height: 84px;
+    grid-column: auto;
+    scroll-snap-align: start;
+  }
+
+  .home-retention__copy small {
+    font-size: 9px;
+  }
+
+  .home-retention__copy strong {
+    font-size: 12.5px;
+  }
+
+  .home-retention__copy em {
+    font-size: 10.5px;
+  }
+}
+
+@media (max-width: 390px) {
+  .home-retention__card,
+  .home-retention__card:last-child:nth-child(odd) {
+    width: min(82vw, 286px);
+    min-width: min(82vw, 286px);
+    grid-template-columns: 54px minmax(0, 1fr) auto;
+  }
+
+  .home-retention__poster {
+    width: 54px;
+    height: 70px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-retention__card {
+    transition: none !important;
+  }
+}

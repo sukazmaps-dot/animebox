@@ -83,7 +83,7 @@ export default function HomeContinueWatching({
     <section className={`section continue-watching-section ${styles.section}`}>
       <div className="section-head">
         <div>
-          <span className="smart-section-eyebrow">Твоя история</span>
+          <span className="smart-section-eyebrow">Вернуться сегодня</span>
           <h2 className="section-title">Продолжить просмотр</h2>
         </div>
 
@@ -134,6 +134,18 @@ export default function HomeContinueWatching({
                     episode: Math.max(1, episode),
                     mode: resumeMode,
                     resume_seconds: Math.max(0, Math.floor(resumeSeconds)),
+                  },
+                  flush: true,
+                });
+                trackProductClientEvent('home_resume_click', {
+                  source: 'home_retention',
+                  path: '/',
+                  entityType: 'episode',
+                  entityId: `${anime.id}:${Math.max(1, episode)}`,
+                  metadata: {
+                    anime_id: anime.id,
+                    episode: Math.max(1, episode),
+                    mode: resumeMode,
                   },
                   flush: true,
                 });
