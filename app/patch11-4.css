@@ -30,6 +30,20 @@
   font: inherit;
 }
 
+
+.profile-v2__banner-picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.profile-v2__banner-picture > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 /* Paint lower profile sections only when they approach the viewport. */
 .profile-v2__content,
 .profile-v2__public-achievements,
