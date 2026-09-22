@@ -189,7 +189,7 @@ function NavbarContent() {
 
             <span className="brand__copy">
               <strong>ANIMEBOX</strong>
-              <small>Смотри. Отслеживай. Живи.</small>
+              <small>Смотри аниме и управляй своим списком.</small>
             </span>
           </Link>
         </div>
@@ -394,7 +394,7 @@ function NavbarFallback() {
 
             <span className="brand__copy">
               <strong>ANIMEBOX</strong>
-              <small>Смотри. Отслеживай. Живи.</small>
+              <small>Смотри аниме и управляй своим списком.</small>
             </span>
           </Link>
         </div>
