@@ -32,8 +32,8 @@
 .flameStage {
   grid-area: flame;
   position: relative;
-  width: 58px;
-  height: 68px;
+  width: 66px;
+  height: 72px;
   display: grid;
   place-items: center;
 }
@@ -41,8 +41,8 @@
 .flameStage img {
   position: relative;
   z-index: 2;
-  width: 54px;
-  height: 54px;
+  width: 62px;
+  height: 62px;
   object-fit: contain;
   transition: filter 180ms ease, opacity 180ms ease, transform 180ms ease;
 }
@@ -153,25 +153,28 @@
 }
 
 .rail {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 5px;
-}
-
-.rail i {
-  height: 4px;
+  position: relative;
+  height: 5px;
+  overflow: hidden;
   border-radius: 999px;
   background: rgba(255,255,255,.055);
   box-shadow: inset 0 1px rgba(255,255,255,.02);
 }
 
-.rail i[data-active='true'] {
+.railFill {
+  --streak-progress: 0%;
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--streak-progress);
+  min-width: 0;
+  border-radius: inherit;
   background: linear-gradient(
     90deg,
     color-mix(in srgb, var(--streak-accent) 78%, #ff9ad8 22%),
     color-mix(in srgb, var(--streak-accent) 64%, #ffd59a 36%)
   );
-  box-shadow: 0 0 10px color-mix(in srgb, var(--streak-accent) 22%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--streak-accent) 24%, transparent);
+  transition: width 180ms ease;
 }
 
 .compact {
@@ -190,16 +193,16 @@
 
 .compactFlame {
   position: relative;
-  flex: 0 0 38px;
-  width: 38px;
-  height: 42px;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 46px;
   display: grid;
   place-items: center;
 }
 
 .compactFlame img {
-  width: 37px;
-  height: 37px;
+  width: 41px;
+  height: 41px;
   object-fit: contain;
   transition: filter 180ms ease, opacity 180ms ease, transform 180ms ease;
 }
@@ -341,7 +344,8 @@
 @media (prefers-reduced-motion: reduce) {
   .flameStage img,
   .compactFlame img,
-  .flameAura {
+  .flameAura,
+  .railFill {
     transition: none !important;
   }
 }
