@@ -43,7 +43,7 @@ export default function StreakDisplay({
         data-active-today={activeToday ? 'true' : 'false'}
       >
         <span className={styles.compactFlame} aria-hidden="true">
-          <img src="/brand/profile/streak-fire.webp" alt="" />
+          <img src="/brand/profile/streak-fire-v2.webp" alt="" />
         </span>
         <span className={styles.compactCopy}>
           <small>Серия активности</small>
@@ -62,7 +62,7 @@ export default function StreakDisplay({
     >
       <div className={styles.flameStage} aria-hidden="true">
         <span className={styles.flameAura} />
-        <img src="/brand/profile/streak-fire.webp" alt="" />
+        <img src="/brand/profile/streak-fire-v2.webp" alt="" />
       </div>
 
       <div className={styles.main}>
