@@ -6,12 +6,15 @@ import {
   useState,
 } from 'react';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/client';
 
 export default function UpdatePasswordPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const recoveryError =
+    searchParams.get('error') === 'invalid_recovery';
 
   const [password, setPassword] =
     useState('');
@@ -37,17 +40,34 @@ export default function UpdatePasswordPage() {
     let active = true;
 
     async function check() {
+      if (recoveryError) {
+        if (active) {
+          setValidSession(false);
+          setChecking(false);
+        }
+        return;
+      }
+
       const {
-        data,
-      } =
-        await supabase.auth.getSession();
+        data: userData,
+        error: userError,
+      } = await supabase.auth.getUser();
 
       if (!active) return;
 
-      if (data.session) {
+      if (!userError && userData.user) {
         setValidSession(true);
+        setChecking(false);
+        return;
       }
 
+      const {
+        data: sessionData,
+      } = await supabase.auth.getSession();
+
+      if (!active) return;
+
+      setValidSession(Boolean(sessionData.session));
       setChecking(false);
     }
 
@@ -74,7 +94,7 @@ export default function UpdatePasswordPage() {
       active = false;
       listener.subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, [recoveryError, supabase]);
 
   async function submit(
     event: FormEvent<HTMLFormElement>,
@@ -142,7 +162,9 @@ export default function UpdatePasswordPage() {
           </h1>
 
           <p className="mt-2 text-sm text-white/50">
-            Ссылка могла устареть или уже быть использована.
+            {recoveryError
+              ? 'Не удалось подтвердить recovery-сессию. Ссылка могла устареть, быть использована или открыться без кода подтверждения.'
+              : 'Ссылка могла устареть или уже быть использована.'}
           </p>
 
           <button
