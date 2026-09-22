@@ -203,7 +203,11 @@ export default function ProfilePreview({
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label={`Открыть мини-профиль ${username || 'пользователя'}`}
-        onClick={() => setOpen(true)}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setOpen(true);
+        }}
       >
         {children}
       </button>
@@ -280,6 +284,7 @@ export default function ProfilePreview({
                         </span>
 
                         <div className={styles.identityCopy}>
+                          <span className={styles.kicker}>AnimeBox profile</span>
                           <span className={styles.nameLine}>
                             <UserIdentity
                               username={data.username}
@@ -291,21 +296,37 @@ export default function ProfilePreview({
                               <span className={styles.premiumBadge}>Premium</span>
                             )}
                           </span>
-                          <span className={styles.level}>
-                            LV.{data.progression.level} · {data.progression.rank}
+                          <span className={styles.levelRow}>
+                            <span className={styles.levelBadge}>LV.{data.progression.level}</span>
+                            <span className={styles.rankLabel}>{data.progression.rank}</span>
                           </span>
                         </div>
                       </div>
 
                       {data.bio && <p className={styles.bio}>{data.bio}</p>}
 
-                      <div className={styles.meta}>
-                        <span className={styles.streak}>
-                          <img src="/brand/profile/streak-fire.webp" alt="" aria-hidden="true" />
-                          <b>{data.streak.current}</b>
-                          <span>дн. серия</span>
-                        </span>
-                        <span>В AnimeBox с {joinedLabel(data.createdAt)}</span>
+                      <div className={styles.metaGrid}>
+                        <div className={styles.metaCard}>
+                          <span className={styles.metaIcon} aria-hidden="true">
+                            <span className={styles.flameCrop}>
+                              <img src="/brand/profile/streak-fire.webp" alt="" />
+                            </span>
+                          </span>
+                          <span>
+                            <small>Серия активности</small>
+                            <strong>{data.streak.current} дн.</strong>
+                            <em>рекорд {data.streak.longest}</em>
+                          </span>
+                        </div>
+
+                        <div className={styles.metaCard}>
+                          <span className={styles.metaGlyph} aria-hidden="true">✦</span>
+                          <span>
+                            <small>В AnimeBox</small>
+                            <strong>{joinedLabel(data.createdAt)}</strong>
+                            <em>{data.progression.totalXp.toLocaleString('ru-RU')} XP</em>
+                          </span>
+                        </div>
                       </div>
 
                       <div className={styles.actions}>
@@ -323,7 +344,7 @@ export default function ProfilePreview({
                 ) : null}
               </section>
             </div>,
-            document.body,
+            (document.fullscreenElement ?? document.body),
           )
         : null}
     </>
