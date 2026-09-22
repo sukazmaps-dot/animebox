@@ -6,15 +6,12 @@ import {
   useState,
 } from 'react';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/client';
 
 export default function UpdatePasswordPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const recoveryError =
-    searchParams.get('error') === 'invalid_recovery';
 
   const [password, setPassword] =
     useState('');
@@ -40,14 +37,6 @@ export default function UpdatePasswordPage() {
     let active = true;
 
     async function check() {
-      if (recoveryError) {
-        if (active) {
-          setValidSession(false);
-          setChecking(false);
-        }
-        return;
-      }
-
       const {
         data: userData,
         error: userError,
@@ -94,7 +83,7 @@ export default function UpdatePasswordPage() {
       active = false;
       listener.subscription.unsubscribe();
     };
-  }, [recoveryError, supabase]);
+  }, [supabase]);
 
   async function submit(
     event: FormEvent<HTMLFormElement>,
@@ -162,9 +151,7 @@ export default function UpdatePasswordPage() {
           </h1>
 
           <p className="mt-2 text-sm text-white/50">
-            {recoveryError
-              ? 'Не удалось подтвердить recovery-сессию. Ссылка могла устареть, быть использована или открыться без кода подтверждения.'
-              : 'Ссылка могла устареть или уже быть использована.'}
+            Ссылка могла устареть, уже быть использована или открыться без recovery-сессии.
           </p>
 
           <button
