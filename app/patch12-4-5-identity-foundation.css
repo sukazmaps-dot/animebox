@@ -426,40 +426,6 @@ body {
    changing Home data or recommendation logic.
    ========================================================= */
 
-/* Two complete rows at the desktop grid breakpoints:
-   5 cols -> 10, 6 cols -> 12, 7 cols -> 14. */
-@media (min-width: 1001px) and (max-width: 1320px) {
-  .home-page .home-anime-grid > :nth-child(n + 11) {
-    display: none;
-  }
-}
-
-@media (min-width: 1321px) and (max-width: 1699px) {
-  .home-page .home-anime-grid > :nth-child(n + 13) {
-    display: none;
-  }
-}
-
-@media (min-width: 1700px) {
-  .home-page .home-anime-grid > :nth-child(n) {
-    display: flex;
-  }
-}
-
-/* Tablet still uses five columns in the current Home contract. */
-@media (min-width: 721px) and (max-width: 1000px) {
-  .home-page .home-anime-grid > :nth-child(n + 11) {
-    display: none;
-  }
-}
-
-/* Keep the old mobile content density: four 2-card rows / horizontal equivalents. */
-@media (max-width: 720px) {
-  .home-page .home-anime-grid > :nth-child(n + 9) {
-    display: none;
-  }
-}
-
 /* Mood is a compact control strip, not a full-width empty dashboard band. */
 @media (min-width: 1001px) {
   .home-page .mood-picker {
@@ -527,4 +493,105 @@ body {
 .home-page .home-anime-grid .anime-card__meta,
 .home-page .home-anime-grid .anime-card__personal {
   min-height: 18px;
+}
+
+
+/* =========================================================
+   Patch 12.5.4.2 — Home grid source-of-truth fix
+   Desktop card count now follows the actual 5-column grid.
+   ========================================================= */
+
+/* Desktop: one deterministic contract. No nth-child card-count logic. */
+@media (min-width: 1001px) {
+  .home-page .home-anime-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Tablet: current layout is four columns, so keep two complete rows. */
+@media (min-width: 721px) and (max-width: 1000px) {
+  .home-page .home-anime-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .home-page .home-anime-grid > :nth-child(n + 9) {
+    display: none;
+  }
+}
+
+/* Mobile retains the established eight-card density / horizontal behavior. */
+@media (max-width: 720px) {
+  .home-page .home-anime-grid > :nth-child(n + 9) {
+    display: none;
+  }
+}
+
+/* Mood content should read as one compact tool, not two islands
+   pushed to opposite edges of a full-width band. */
+@media (min-width: 1001px) {
+  .home-page .mood-picker {
+    grid-template-columns: minmax(220px, 280px) minmax(560px, 760px) !important;
+    justify-content: start !important;
+    column-gap: 24px !important;
+    width: fit-content;
+    max-width: 100%;
+  }
+
+  .home-page .mood-picker__options {
+    justify-self: start !important;
+  }
+}
+
+/* Smart recommendations are a horizontal rail.
+   The fade and inset make the clipped final card an intentional affordance. */
+.smart-feed__rail {
+  position: relative;
+  isolation: isolate;
+}
+
+.smart-feed__rail::after {
+  content: '';
+  position: absolute;
+  z-index: 8;
+  top: 0;
+  right: 0;
+  bottom: 10px;
+  width: 54px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(7, 10, 17, 0),
+    rgba(7, 10, 17, .86) 72%,
+    rgba(7, 10, 17, .98)
+  );
+}
+
+.smart-feed__rail [role='region'] {
+  padding-right: 42px;
+}
+
+@media (hover: hover) and (min-width: 768px) {
+  .smart-feed__rail button[aria-label='Прокрутить вперёд'] {
+    opacity: .72;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(-50%) scale(.94);
+  }
+
+  .smart-feed__rail:hover button[aria-label='Прокрутить вперёд'],
+  .smart-feed__rail:focus-within button[aria-label='Прокрутить вперёд'] {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+@media (max-width: 767px) {
+  .smart-feed__rail::after {
+    width: 28px;
+    bottom: 8px;
+  }
+
+  .smart-feed__rail [role='region'] {
+    padding-right: 28px;
+  }
 }

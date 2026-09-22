@@ -1158,7 +1158,7 @@ export default function HomePage({
             </div>
           ) : (
             <div className="anime-grid home-anime-grid">
-              {popular.slice(0, 14).map((anime) => (
+              {popular.slice(0, 10).map((anime) => (
                 <AnimeCard
                   key={anime.id}
                   anime={anime}
@@ -1202,7 +1202,7 @@ export default function HomePage({
             </div>
           ) : (
             <div className="anime-grid home-anime-grid">
-              {fallbackItems.slice(0, 14).map((anime) => (
+              {fallbackItems.slice(0, 10).map((anime) => (
                 <AnimeCard
                   key={anime.id}
                   anime={anime}

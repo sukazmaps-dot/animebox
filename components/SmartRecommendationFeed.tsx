@@ -451,6 +451,7 @@ export default function SmartRecommendationFeed({
       >
         <ScrollRow
           key={`smart-feed-row-${rowVersion}`}
+          className="smart-feed__rail"
           ariaLabel="Подобрано для тебя"
           stepRatio={0.8}
           hasMore={hasMore}
