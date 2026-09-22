@@ -24,6 +24,8 @@
   --profile-preview-text: #f5f3ff;
 
   position: fixed;
+  display: flex;
+  flex-direction: column;
   width: min(380px, calc(100vw - 24px));
   max-height: min(620px, calc(100dvh - 24px));
   overflow: hidden;
@@ -38,6 +40,13 @@
     0 0 0 1px rgba(255,255,255,.015) inset;
   isolation: isolate;
   animation: profilePreviewIn 120ms ease both;
+}
+
+.card[data-premium='true'] {
+  box-shadow:
+    0 30px 94px rgba(0,0,0,.6),
+    0 0 34px color-mix(in srgb, var(--profile-preview-accent) 10%, transparent),
+    0 0 0 1px rgba(255,255,255,.015) inset;
 }
 
 .card::before {
@@ -81,9 +90,15 @@
   color: #fff;
 }
 
+.hero {
+  position: relative;
+  flex: 0 0 auto;
+  padding-bottom: 10px;
+}
+
 .banner {
   position: relative;
-  height: 126px;
+  height: 106px;
   overflow: hidden;
   background: #090c16;
 }
@@ -112,30 +127,33 @@
   transform-origin: center;
 }
 
+.heroIdentity {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  min-height: 60px;
+  margin-top: -28px;
+  padding: 0 17px;
+}
+
 .body {
   position: relative;
-  max-height: calc(min(620px, 100dvh - 24px) - 126px);
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   padding: 0 17px 17px;
   scrollbar-width: thin;
 }
 
-.identity {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: flex-end;
-  gap: 13px;
-  margin-top: -39px;
-}
-
 .avatarShell {
-  flex: 0 0 78px;
-  width: 78px;
-  height: 78px;
+  flex: 0 0 72px;
+  width: 72px;
+  height: 72px;
   overflow: hidden;
   border: 3px solid color-mix(in srgb, var(--profile-preview-primary) 78%, #050812 22%);
-  border-radius: 22px;
+  border-radius: 18px;
   background: #111827;
   box-shadow:
     0 12px 30px rgba(0,0,0,.36),
@@ -151,9 +169,11 @@
 
 .identityCopy {
   min-width: 0;
+  flex: 1 1 auto;
   display: grid;
   gap: 5px;
-  padding-bottom: 4px;
+  padding-bottom: 3px;
+  overflow: hidden;
 }
 
 .kicker {
@@ -168,8 +188,9 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
+  overflow: hidden;
   color: var(--profile-preview-text);
   font-size: 15px;
   font-weight: 850;
@@ -221,14 +242,10 @@
 }
 
 .bio {
-  margin: 15px 0 0;
-  padding: 11px 12px;
-  border: 1px solid rgba(255,255,255,.055);
-  border-radius: 12px;
-  background: rgba(255,255,255,.018);
-  color: rgba(229,233,243,.72);
+  margin: 9px 1px 0;
+  color: rgba(229,233,243,.68);
   font-size: 10.5px;
-  line-height: 1.58;
+  line-height: 1.55;
 }
 
 .metaGrid {
@@ -308,26 +325,23 @@
   height: 29px;
   display: grid;
   place-items: center;
-  overflow: hidden;
-  border-radius: 9px;
 }
 
 .flameCrop img {
-  width: 37px;
-  height: 37px;
-  max-width: none;
-  object-fit: cover;
-  transform: scale(1.12);
-  mix-blend-mode: screen;
+  width: 28px;
+  height: 28px;
+  max-width: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--profile-preview-accent) 24%, transparent));
 }
 
 .actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
-  gap: 9px;
-  margin-top: 13px;
-  padding-top: 13px;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 1px solid rgba(255,255,255,.065);
 }
 
@@ -336,7 +350,7 @@
 }
 
 .openProfile {
-  min-height: 40px;
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -425,24 +439,30 @@
   }
 
   .banner {
-    height: 122px;
+    height: 112px;
+  }
+
+  .hero {
+    padding-bottom: 10px;
+  }
+
+  .heroIdentity {
+    gap: 10px;
+    min-height: 58px;
+    margin-top: -27px;
+    padding-inline: 14px;
   }
 
   .body {
-    max-height: calc(min(680px, 100dvh - 16px) - 122px);
     padding-inline: 14px;
     padding-bottom: max(15px, env(safe-area-inset-bottom));
   }
 
-  .identity {
-    gap: 11px;
-  }
-
   .avatarShell {
-    flex-basis: 74px;
-    width: 74px;
-    height: 74px;
-    border-radius: 20px;
+    flex-basis: 68px;
+    width: 68px;
+    height: 68px;
+    border-radius: 17px;
   }
 
   .metaGrid {
