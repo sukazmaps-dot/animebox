@@ -162,7 +162,6 @@ function getPlayerSurface() {
 const TRANSLATION_PREFERENCE_PREFIX = 'animebox:translation:v1';
 const LOCAL_PROGRESS_SAVE_INTERVAL_MS = 10_000;
 const LOCAL_RESUME_MIN_SECONDS = 10;
-const LOCAL_RESUME_END_GUARD_SECONDS = 20;
 const PLAYER_READY_TIMEOUT_MS = 14_000;
 const SOURCE_SWITCH_NOTICE_MS = 5_500;
 const AUTO_NEXT_COUNTDOWN_SECONDS = 8;
@@ -838,16 +837,16 @@ export default function AnimePlayer({
       return;
     }
 
-    if (autoNextSeconds <= 0) {
-      continueFromEndScreen();
-      return;
-    }
-
     const timer = window.setTimeout(() => {
+      if (autoNextSeconds <= 0) {
+        continueFromEndScreen();
+        return;
+      }
+
       setAutoNextSeconds((seconds) =>
         seconds == null ? null : Math.max(0, seconds - 1),
       );
-    }, 1_000);
+    }, autoNextSeconds <= 0 ? 0 : 1_000);
 
     return () => window.clearTimeout(timer);
   }, [
