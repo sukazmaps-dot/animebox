@@ -31,8 +31,8 @@ export default function HomeActivationPanel({
       <section className="home-activation-v2 home-activation-v2--guest" aria-label="Войти в AnimeBox">
         <div>
           <span className="home-activation-v2__eyebrow">ТВОЙ ANIMEBOX</span>
-          <h2>Сохрани прогресс, не покидая эту страницу</h2>
-          <p>Вход откроется поверх AnimeBox. После авторизации ты останешься здесь же.</p>
+          <h2>Не теряй серию, на которой остановился</h2>
+          <p>Войди, чтобы продолжать с того же места и хранить свой список в AnimeBox.</p>
         </div>
         <div className="home-activation-v2__actions">
           <button
@@ -64,25 +64,25 @@ export default function HomeActivationPanel({
   return (
     <section className="home-activation-v2" aria-label="Настроить персональный AnimeBox">
       <div className="home-activation-v2__intro">
-        <span className="home-activation-v2__eyebrow">ПЕРСОНАЛЬНАЯ ГЛАВНАЯ</span>
-        <h2>{username}, настроим AnimeBox за минуту</h2>
-        <p>Пара действий даст рекомендации больше сигналов и заполнит твою главную.</p>
+        <span className="home-activation-v2__eyebrow">СОБЕРИ СВОЙ ANIMEBOX</span>
+        <h2>{username}, начнём с пары тайтлов</h2>
+        <p>Добавь то, что уже смотришь или давно хотел посмотреть — дальше главная станет твоей.</p>
       </div>
 
       <div className="home-activation-v2__steps">
         <Link href="/search" onClick={() => track('discover_anime')}>
           <span>01</span>
-          <div><strong>Найди первое аниме</strong><small>Каталог, поиск и рекомендации</small></div>
+          <div><strong>Найди свой тайтл</strong><small>Поиск, каталог и свежие находки</small></div>
           <b>→</b>
         </Link>
         <Link href="/search" onClick={() => track('open_tracker')}>
           <span>02</span>
-          <div><strong>Добавь в трекер</strong><small>Выбери аниме и сохрани в свой список</small></div>
+          <div><strong>Сохрани в список</strong><small>Чтобы не потерять и вернуться позже</small></div>
           <b>→</b>
         </Link>
         <a href="#animebox-for-you" onClick={() => track('open_recommendations')}>
           <span>03</span>
-          <div><strong>Выбери настроение</strong><small>Подстроим ленту «Для тебя»</small></div>
+          <div><strong>Выбери настроение</strong><small>Уют, драма, драйв или приключение</small></div>
           <b>↓</b>
         </a>
       </div>

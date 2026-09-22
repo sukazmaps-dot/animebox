@@ -52,10 +52,10 @@ export default function HomeMoodPicker({
   return (
     <section className="mood-picker" aria-labelledby="mood-picker-title">
       <div className="mood-picker__intro">
-        <span className="mood-picker__eyebrow">Настроение</span>
+        <span className="mood-picker__eyebrow">Сегодня вечером</span>
         <div>
-          <h2 id="mood-picker-title">Что хочется посмотреть?</h2>
-          <p>Переключатель сразу перестраивает персональную ленту.</p>
+          <h2 id="mood-picker-title">Какой сегодня вечер?</h2>
+          <p>Уют, напряжение, эмоции или приключение — выбери свой вайб.</p>
         </div>
       </div>
 

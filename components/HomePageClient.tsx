@@ -838,6 +838,40 @@ export default function HomePage({
           hasContinue={continueWatchingItems.length > 0}
         />
 
+        <nav className="home-shortcuts" aria-label="Быстрые переходы AnimeBox">
+          <Link href="/search" className="home-shortcuts__item">
+            <span className="home-shortcuts__index">01</span>
+            <span>
+              <strong>Каталог</strong>
+              <small>Найти новый тайтл</small>
+            </span>
+            <b aria-hidden="true">↗</b>
+          </Link>
+          <Link href="/schedule" className="home-shortcuts__item">
+            <span className="home-shortcuts__index">02</span>
+            <span>
+              <strong>Сегодня</strong>
+              <small>Что выходит сейчас</small>
+            </span>
+            <b aria-hidden="true">→</b>
+          </Link>
+          <Link href="/list" className="home-shortcuts__item">
+            <span className="home-shortcuts__index">03</span>
+            <span>
+              <strong>Мой список</strong>
+              <small>Вернуться к своему</small>
+            </span>
+            <b aria-hidden="true">→</b>
+          </Link>
+          <Link href="/watch-together" className="home-shortcuts__item">
+            <span className="home-shortcuts__index">04</span>
+            <span>
+              <strong>Смотреть вместе</strong>
+              <small>Комнаты AnimeBox</small>
+            </span>
+            <b aria-hidden="true">→</b>
+          </Link>
+        </nav>
 
         {!personalizedHome && <HomeTopAnimePanel popular={popular} mobile />}
 
@@ -914,7 +948,7 @@ export default function HomePage({
         <section id="animebox-for-you" className="section smart-feed-section">
           <div className="section-head">
             <div className="smart-feed-heading">
-              <span className="smart-section-eyebrow">Для тебя</span>
+              <span className="smart-section-eyebrow">После титров</span>
               <div className="smart-feed-heading__line">
                 <span
                   className="section-title__icon section-title__icon--asset smart-feed-heading__asset"
@@ -928,9 +962,9 @@ export default function HomePage({
                     sizes="16px"
                   />
                 </span>
-                <h2 className="section-title">Подобрано для тебя</h2>
+                <h2 className="section-title">Что смотреть дальше</h2>
               </div>
-              <p>Рекомендации меняются по истории просмотра, вкусу и выбранному настроению.</p>
+              <p>Тайтлы под твой сегодняшний вайб и то, что уже успело зацепить.</p>
             </div>
 
             <Link className="section-link" href="/search">
