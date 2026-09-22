@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
+import ProfilePreview from '@/components/profile/ProfilePreview';
 import { useAuthState } from '@/components/AuthStateProvider';
 import { notifySocialNotificationsChanged } from '@/components/SocialNotificationBadge';
 
@@ -36,17 +37,25 @@ function PersonCard({
 }) {
   return (
     <article className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-3">
-      <Link href={`/profile/${item.userId}`} className="shrink-0">
+      <ProfilePreview
+        userId={item.userId}
+        username={item.username}
+        className="shrink-0"
+      >
         <img
           src={item.avatarUrl}
           alt=""
           className="h-12 w-12 rounded-full border border-violet-400/15 object-cover"
         />
-      </Link>
+      </ProfilePreview>
       <div className="min-w-0 flex-1">
-        <Link href={`/profile/${item.userId}`} className="block truncate text-sm font-black text-slate-100 hover:text-violet-200">
+        <ProfilePreview
+          userId={item.userId}
+          username={item.username}
+          className="block max-w-full truncate text-sm font-black text-slate-100 hover:text-violet-200"
+        >
           {item.username}
-        </Link>
+        </ProfilePreview>
         <span className="text-[11px] font-semibold text-slate-500">
           {item.direction === 'friend'
             ? 'Друг AnimeBox'
