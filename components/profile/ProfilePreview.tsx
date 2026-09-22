@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable @next/next/no-img-element */
 
 import type { CSSProperties, ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
@@ -172,12 +173,13 @@ export default function ProfilePreview({
       if (event.key === 'Escape') setOpen(false);
     };
 
-    updatePosition();
+    const frame = window.requestAnimationFrame(updatePosition);
     window.addEventListener('resize', updatePosition);
     window.addEventListener('scroll', updatePosition, true);
     window.addEventListener('keydown', onKeyDown);
 
     return () => {
+      window.cancelAnimationFrame(frame);
       window.removeEventListener('resize', updatePosition);
       window.removeEventListener('scroll', updatePosition, true);
       window.removeEventListener('keydown', onKeyDown);
