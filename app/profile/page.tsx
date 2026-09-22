@@ -327,7 +327,7 @@ export default function ProfilePage() {
             <picture className="profile-v2__banner-picture">
               {mobileBannerUrl && mobileBannerUrl !== bannerUrl && (
                 <source
-                  media="(max-width: 768px), (prefers-reduced-motion: reduce)"
+                  media="(prefers-reduced-motion: reduce)"
                   srcSet={mobileBannerUrl}
                 />
               )}
