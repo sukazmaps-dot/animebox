@@ -2157,7 +2157,14 @@ body {
   }
 
   .home-library-panel__mascot {
-    display: none !important;
+    display: block !important;
+    right: -18px !important;
+    bottom: -14px !important;
+    width: 108px !important;
+    height: 108px !important;
+    opacity: .14 !important;
+    filter: saturate(.9) drop-shadow(0 10px 28px rgba(84, 60, 190, .20)) !important;
+    transform: rotate(-5deg) translateZ(0) !important;
   }
 
   .home-library-panel .btn {
