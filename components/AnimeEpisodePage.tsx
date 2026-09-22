@@ -709,7 +709,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
   }
 
   return (
-    <div className="detail episode-page pt-10 md:pt-12">
+    <div className="detail episode-page">
       <nav className="episode-seo-breadcrumbs" aria-label="Навигационная цепочка">
         <Link href="/">AnimeBox</Link>
         <span aria-hidden="true">›</span>

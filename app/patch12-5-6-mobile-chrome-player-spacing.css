@@ -1,0 +1,57 @@
+/* =========================================================
+   AnimeBox Patch 12.5.6 — Mobile Chrome + Player Spacing
+   Final breakpoint contract for app chrome and episode pages.
+   ========================================================= */
+
+/* Episode pages already live inside .page-content, which owns the spacing
+   below the fixed topbar. Do not add a second top padding before the player. */
+.episode-page {
+  padding-top: 0 !important;
+}
+
+/* Desktop/tablet and phone chrome must never render at the same time. */
+@media (min-width: 769px) {
+  .mobile-nav {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .sidebar {
+    display: flex !important;
+  }
+}
+
+/* 721–768px used to be an overlap zone: newer mobile rules enabled the
+   bottom nav while older desktop rules could still leave the sidebar visible.
+   Make <=768px a single, explicit phone shell. */
+@media (max-width: 768px) {
+  .sidebar {
+    display: none !important;
+  }
+
+  .mobile-nav {
+    display: grid !important;
+    box-sizing: border-box !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    overflow: visible !important;
+
+    /* Patch 12.5.5 used paint containment for animation stability. Paint
+       containment also clips descendants and made breakpoint regressions much
+       harder to recover from. The account sheet is now portalled to body, so
+       layout containment is enough for the nav motion. */
+    contain: layout !important;
+  }
+
+  .mobile-nav__item,
+  .mobile-nav__profile {
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+}
