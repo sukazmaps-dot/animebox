@@ -203,3 +203,16 @@
     border-left-width: 2px;
   }
 }
+
+
+/* Patch 11.4.4 · shared Streak System v2 */
+.streakV2 {
+  width: min(360px, 100%);
+  flex: 0 0 auto;
+}
+
+@media (max-width: 760px) {
+  .streakV2 {
+    width: 100%;
+  }
+}
