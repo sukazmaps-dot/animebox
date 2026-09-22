@@ -969,7 +969,6 @@ export default function HomePage({
 
         <nav className="home-shortcuts" aria-label="Быстрые переходы AnimeBox">
           <Link href="/search" className="home-shortcuts__item">
-            <span className="home-shortcuts__index">01</span>
             <span>
               <strong>Каталог</strong>
               <small>По жанрам и тегам</small>
@@ -977,7 +976,6 @@ export default function HomePage({
             <b aria-hidden="true">↗</b>
           </Link>
           <Link href="/schedule" className="home-shortcuts__item">
-            <span className="home-shortcuts__index">02</span>
             <span>
               <strong>Релизы сегодня</strong>
               <small>Свежие эпизоды</small>
@@ -985,7 +983,6 @@ export default function HomePage({
             <b aria-hidden="true">→</b>
           </Link>
           <Link href="/list" className="home-shortcuts__item">
-            <span className="home-shortcuts__index">03</span>
             <span>
               <strong>Мой список</strong>
               <small>Продолжить просмотр</small>
@@ -993,7 +990,6 @@ export default function HomePage({
             <b aria-hidden="true">→</b>
           </Link>
           <Link href="/watch-together" className="home-shortcuts__item">
-            <span className="home-shortcuts__index">04</span>
             <span>
               <strong>Комнаты</strong>
               <small>Смотреть с друзьями</small>

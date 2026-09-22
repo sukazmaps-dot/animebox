@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -26,7 +26,7 @@ const mainNav = [
   },
   {
     href: '/search',
-    label: 'Аниме',
+    label: 'Каталог',
     icon: 'anime' as const,
   },
   {
@@ -38,11 +38,6 @@ const mainNav = [
     href: '/list',
     label: 'Трекер',
     icon: 'tracker' as const,
-  },
-  {
-    href: '/favorites',
-    label: 'Избранное',
-    icon: 'heart' as const,
   },
   {
     href: '/chat',
@@ -72,6 +67,13 @@ function NavbarContent() {
   const [searchValue, setSearchValue] = useState(() => (
     pathname === '/search' ? searchParams.get('search') ?? '' : ''
   ));
+  const [mobileNavHidden, setMobileNavHidden] = useState(false);
+  const mobileNavScrollRef = useRef({
+    lastY: 0,
+    travel: 0,
+    direction: null as 'up' | 'down' | null,
+    raf: 0,
+  });
 
   function emitLiveSearch(value: string) {
     window.dispatchEvent(new CustomEvent('animebox-search-input', {
@@ -114,6 +116,59 @@ function NavbarContent() {
     window.addEventListener('animebox-search-input', onSearchInput);
     return () => window.removeEventListener('animebox-search-input', onSearchInput);
   }, []);
+
+  useEffect(() => {
+    const state = mobileNavScrollRef.current;
+    state.lastY = window.scrollY;
+    state.travel = 0;
+    state.direction = null;
+    setMobileNavHidden(false);
+
+    const update = () => {
+      state.raf = 0;
+      const currentY = Math.max(0, window.scrollY);
+      const delta = currentY - state.lastY;
+      state.lastY = currentY;
+
+      if (currentY < 72) {
+        state.travel = 0;
+        state.direction = null;
+        setMobileNavHidden(false);
+        return;
+      }
+
+      if (Math.abs(delta) < 2) return;
+
+      const direction: 'up' | 'down' = delta > 0 ? 'down' : 'up';
+      if (state.direction !== direction) {
+        state.direction = direction;
+        state.travel = 0;
+      }
+
+      state.travel += Math.abs(delta);
+
+      if (direction === 'down' && state.travel >= 34) {
+        setMobileNavHidden(true);
+        state.travel = 0;
+      } else if (direction === 'up' && state.travel >= 24) {
+        setMobileNavHidden(false);
+        state.travel = 0;
+      }
+    };
+
+    const onScroll = () => {
+      if (state.raf) return;
+      state.raf = window.requestAnimationFrame(update);
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (state.raf) window.cancelAnimationFrame(state.raf);
+      state.raf = 0;
+    };
+  }, [pathname]);
 
   useEffect(() => {
     if (pathname !== '/search') return;
@@ -334,7 +389,10 @@ function NavbarContent() {
       </header>
 
       {/* Phone navigation stays compact. */}
-      <nav className="mobile-nav" aria-label="Мобильная навигация">
+      <nav
+        className={`mobile-nav ${mobileNavHidden ? 'is-hidden' : ''}`}
+        aria-label="Мобильная навигация"
+      >
         <Link
           href="/"
           className={`mobile-nav__item ${isActive('/') ? 'is-active' : ''}`}
@@ -350,7 +408,7 @@ function NavbarContent() {
           aria-current={isActive('/search') ? 'page' : undefined}
         >
           <Icon name="anime" />
-          <span>Аниме</span>
+          <span>Каталог</span>
         </Link>
 
         <Link

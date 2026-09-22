@@ -29,7 +29,7 @@
 
   .mobile-nav__item span {
     max-width: 100%;
-    font-size: 10px !important;
+    font-size: 11px !important;
     line-height: 1.05 !important;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -98,12 +98,14 @@
   /* Keep badges inside each poster instead of letting the partially-visible
      next card make them look cut by the document edge. */
   .home-page .anime-card__rating {
-    left: 7px !important;
+    left: auto !important;
+    right: 7px !important;
   }
 
   .home-page .anime-card__state {
-    right: 7px !important;
-    max-width: calc(100% - 52px);
+    left: 7px !important;
+    right: auto !important;
+    max-width: calc(100% - 58px);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -141,7 +143,7 @@
   }
 
   .mobile-nav__item span {
-    font-size: 9.5px !important;
+    font-size: 10px !important;
   }
 }
 
@@ -239,4 +241,34 @@ html.animebox-player-telegram-fullscreen .animebox-telegram-player-viewport vide
   max-width: none !important;
   max-height: none !important;
   border-radius: 0 !important;
+}
+
+
+/* Patch 12.5.2 — direction-aware phone navigation */
+@media (max-width: 768px) {
+  .mobile-nav {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+    transition: transform 210ms cubic-bezier(.2,.72,.2,1), opacity 150ms ease !important;
+    will-change: transform;
+  }
+
+  .mobile-nav.is-hidden {
+    transform: translate3d(0, calc(100% + 24px), 0);
+    opacity: .18;
+    pointer-events: none;
+  }
+
+  .page-heading h1 {
+    font-size: clamp(28px, 8vw, 36px);
+  }
+
+  .page-heading p {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-nav { transition: none !important; }
 }

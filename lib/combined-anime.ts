@@ -202,8 +202,11 @@ async function searchRussianAnime(
 
   params.set('search', query.normalize('NFKC').replace(/[‐‑–—-]/g, ' ').replace(/\s+/g, ' ').trim());
   params.set('page', String(Math.max(1, options.page ?? 1)));
-  if (options.genre != null) params.set('genre', String(options.genre));
+  if (options.genres?.length) params.set('genre', options.genres.join(','));
+  else if (options.genre != null) params.set('genre', String(options.genre));
   if (options.status === 'ongoing') params.set('status', 'ongoing');
+  if (options.status === 'finished') params.set('status', 'released');
+  if (options.year != null) params.set('season', String(options.year));
   params.set(
     'limit',
     String(

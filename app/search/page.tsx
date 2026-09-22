@@ -66,14 +66,19 @@ function CatalogFallback() {
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
   const query = typeof params.search === 'string' ? params.search.trim() : '';
+  const initialView = params.view === 'saved' ? 'saved' : 'catalog';
   // Search result URLs are client-driven and noindex. Do not block first paint
   // on an unrelated popular-catalog request when the user already supplied a
   // query; SearchCatalogClient will resolve it immediately.
-  const initialResults = query ? [] : await loadInitialCatalog();
+  const initialResults = query || initialView === 'saved' ? [] : await loadInitialCatalog();
 
   return (
     <Suspense fallback={<CatalogFallback />}>
-      <SearchCatalogClient initialResults={initialResults} initialQuery={query} />
+      <SearchCatalogClient
+        initialResults={initialResults}
+        initialQuery={query}
+        initialView={initialView}
+      />
     </Suspense>
   );
 }

@@ -93,11 +93,17 @@ export async function getAnimes(
     params.set('status', options.status);
   }
 
+  if (options.year != null) {
+    params.set('year', String(options.year));
+  }
+
   if (options.search?.trim()) {
     params.set('search', options.search.trim());
   }
 
-  if (options.genre != null) {
+  if (options.genres?.length) {
+    params.set('genres', options.genres.join(','));
+  } else if (options.genre != null) {
     params.set('genre', String(options.genre));
   }
 

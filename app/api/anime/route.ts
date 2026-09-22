@@ -57,11 +57,26 @@ export async function GET(
   const searchIntent = rawSearch ? parseAnimeSearchIntent(rawSearch) : null;
   const search = searchIntent?.titleQuery || rawSearch;
 
-  const status = params.get('status') === 'ongoing'
-    ? 'ongoing'
-    : undefined;
+  const statusRaw = params.get('status');
+  const status =
+    statusRaw === 'ongoing' || statusRaw === 'finished'
+      ? statusRaw
+      : undefined;
 
   const genreRaw = params.get('genre');
+  const genresRaw = params.get('genres');
+  const genres = (genresRaw || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .slice(0, 6);
+  const requestedYear = Number.parseInt(params.get('year') || '', 10);
+  const year =
+    Number.isSafeInteger(requestedYear) &&
+    requestedYear >= 1940 &&
+    requestedYear <= new Date().getFullYear() + 2
+      ? requestedYear
+      : undefined;
   const moodRaw = params.get('mood');
   const mood = isCatalogMood(moodRaw) ? moodRaw : 'any';
 
@@ -89,7 +104,9 @@ export async function GET(
         : 'ranked',
     status,
     search,
-    genre: genreRaw ?? undefined,
+    genre: genres.length === 0 ? genreRaw ?? undefined : undefined,
+    genres: genres.length > 0 ? genres : undefined,
+    year,
   };
 
   try {

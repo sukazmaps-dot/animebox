@@ -98,9 +98,11 @@ export type GetAnimesOptions = {
   limit?: number;
   page?: number;
   order?: AniListListOrder;
-  status?: 'ongoing';
+  status?: 'ongoing' | 'finished';
   search?: string;
   genre?: number | string;
+  genres?: Array<number | string>;
+  year?: number;
 };
 
 // AniList response is normalized by mapMediaToAnime below.
@@ -126,7 +128,8 @@ const LIST_QUERY = `
     $sort: [MediaSort]
     $status: MediaStatus
     $search: String
-    $genre: String
+    $genres: [String]
+    $seasonYear: Int
   ) {
     Page(
       page: $page
@@ -140,7 +143,8 @@ const LIST_QUERY = `
         sort: $sort
         status: $status
         search: $search
-        genre: $genre
+        genre_in: $genres
+        seasonYear: $seasonYear
       ) {
         id
         type
@@ -381,6 +385,8 @@ export async function getAnimes(
     status,
     search,
     genre,
+    genres,
+    year,
   } = options;
 
   const sort =
@@ -421,18 +427,32 @@ export async function getAnimes(
               sort,
 
               status:
-                status ===
-                'ongoing'
+                status === 'ongoing'
                   ? 'RELEASING'
-                  : undefined,
+                  : status === 'finished'
+                    ? 'FINISHED'
+                    : undefined,
 
               search:
                 search?.trim() ||
                 undefined,
 
-              genre:
-                genre != null
-                  ? ({ '1': 'Action', '2': 'Adventure', '4': 'Comedy', '8': 'Drama', '10': 'Fantasy', '14': 'Horror', '22': 'Romance', '24': 'Sci-Fi', '7': 'Mystery', '36': 'Slice of Life', '30': 'Sports', '37': 'Supernatural' } as Record<string, string>)[String(genre)] || String(genre)
+              genres: (() => {
+                const map = ({ '1': 'Action', '2': 'Adventure', '4': 'Comedy', '8': 'Drama', '10': 'Fantasy', '14': 'Horror', '22': 'Romance', '24': 'Sci-Fi', '7': 'Mystery', '36': 'Slice of Life', '30': 'Sports', '37': 'Supernatural' } as Record<string, string>);
+                const values = genres?.length
+                  ? genres
+                  : genre != null
+                    ? [genre]
+                    : [];
+                const normalized = values
+                  .map((value) => map[String(value)] || String(value))
+                  .filter(Boolean);
+                return normalized.length > 0 ? normalized : undefined;
+              })(),
+
+              seasonYear:
+                Number.isSafeInteger(year) && Number(year) >= 1940
+                  ? Number(year)
                   : undefined,
             },
           }),
