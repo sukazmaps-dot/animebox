@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import styles from './Leaderboard.module.css';
 import UserIdentity from '@/components/identity/UserIdentity';
+import ProfilePreview from '@/components/profile/ProfilePreview';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
 import { premiumMediaStyle, type PremiumMediaTransform } from '@/lib/premium-studio';
@@ -161,8 +162,7 @@ export default function LeaderboardClient() {
           </div>
           <section className={styles.podium} aria-label="Топ-3">
             {topThree.map((entry) => (
-              <Link
-                href={`/profile/${entry.userId}`}
+              <article
                 className={`${styles.podiumCard} ${entry.isCurrentUser ? styles.current : ''}`}
                 data-rank={entry.rank}
                 key={entry.userId}
@@ -176,13 +176,23 @@ export default function LeaderboardClient() {
                   aria-hidden="true"
                 />
                 <span className={styles.placeLabel}>{entry.rank === 1 ? 'ЛИДЕР РЕЙТИНГА' : `${String(entry.rank).padStart(2, '0')} / ПРИЗОВОЕ МЕСТО`}</span>
-                <div className={styles.avatarStage}>
-                  {entry.rank === 1 && <Crown className={styles.crown} />}
-                  <div className={styles.avatarRing}><Avatar entry={entry} /></div>
-                  <span className={styles.rankSeal}>{entry.rank}</span>
-                </div>
+                <ProfilePreview
+                  userId={entry.userId}
+                  username={entry.username}
+                  className={styles.profilePreviewTrigger}
+                >
+                  <span className={styles.avatarStage}>
+                    {entry.rank === 1 && <Crown className={styles.crown} />}
+                    <span className={styles.avatarRing}><Avatar entry={entry} /></span>
+                    <span className={styles.rankSeal}>{entry.rank}</span>
+                  </span>
+                </ProfilePreview>
                 <span className={styles.rankTitle}>{rankTitles[entry.rank]}</span>
-                <div className={styles.nameLine}>
+                <ProfilePreview
+                  userId={entry.userId}
+                  username={entry.username}
+                  className={`${styles.nameLine} ${styles.profilePreviewName}`}
+                >
                   <UserIdentity
                     username={entry.username}
                     role={entry.role}
@@ -190,13 +200,16 @@ export default function LeaderboardClient() {
                     compact
                     nameClassName={styles.podiumName}
                   />
-                </div>
+                </ProfilePreview>
                 <span className={styles.levelBadge}>LV.{entry.progression.level} · {entry.progression.rank}</span>
                 {entry.isCurrentUser && <span className={styles.youBadge}>Это ты</span>}
                 <span className={styles.time}>{formatWatchTime(entry.activeMs)}</span>
                 <span className={styles.timeLabel}>подтверждённого просмотра</span>
-                <div className={styles.cardFooter}><span>{entry.episodes} эп. в зачёте</span><span>Профиль ↗</span></div>
-              </Link>
+                <div className={styles.cardFooter}>
+                  <span>{entry.episodes} эп. в зачёте</span>
+                  <Link href={`/profile/${entry.userId}`}>Профиль ↗</Link>
+                </div>
+              </article>
             ))}
           </section>
 
@@ -222,13 +235,16 @@ export default function LeaderboardClient() {
             </div>
 
             {rest.map((entry) => (
-              <Link
-                href={`/profile/${entry.userId}`}
+              <div
                 className={`${styles.row} ${entry.isCurrentUser ? styles.current : ''}`}
                 key={entry.userId}
               >
                 <strong className={styles.rank}>#{entry.rank}</strong>
-                <span className={styles.user}>
+                <ProfilePreview
+                  userId={entry.userId}
+                  username={entry.username}
+                  className={`${styles.user} ${styles.profilePreviewRow}`}
+                >
                   <Avatar entry={entry} />
                   <span>
                     <span className={styles.rowNameLine}>
@@ -244,10 +260,10 @@ export default function LeaderboardClient() {
                       LV.{entry.progression.level} · {entry.progression.rank}
                     </small>
                   </span>
-                </span>
+                </ProfilePreview>
                 <span className={styles.episodes}>{entry.episodes}</span>
                 <strong className={styles.rowTime}>{formatWatchTime(entry.activeMs)}</strong>
-              </Link>
+              </div>
             ))}
           </section>
 
