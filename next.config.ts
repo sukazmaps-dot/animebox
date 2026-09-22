@@ -92,6 +92,7 @@ const nextConfig: NextConfig = {
       { source: '/anime/:slug/:path*', headers: htmlNoStoreHeaders },
       { source: '/anime/:slug', headers: animeDetailHeaders },
       { source: '/ui/:path*', headers: staticHeaders },
+      { source: '/premium/:path*', headers: staticHeaders },
       { source: '/backgrounds/:path*', headers: staticHeaders },
       { source: '/brand/:path*', headers: staticHeaders },
       { source: '/og/:path*', headers: staticHeaders },
