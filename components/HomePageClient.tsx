@@ -602,7 +602,7 @@ export default function HomePage({
     );
 
     const localItems = watchHistory.flatMap((anime) => {
-      const exact = getLatestWatchProgress(anime.id);
+      const exact = getLatestWatchProgress(anime.id, user?.id ?? null);
       if (!hasResumePosition(exact)) return [];
       const episode = exact.episode;
 
@@ -686,7 +686,7 @@ export default function HomePage({
         Number.isFinite(Date.parse(state.lastWatchedAt))
           ? Date.parse(state.lastWatchedAt)
           : 0;
-      const exact = getLatestWatchProgress(state.animeId);
+      const exact = getLatestWatchProgress(state.animeId, user?.id ?? null);
       const localIsNewer = Boolean(
         hasResumePosition(exact) &&
           exact.updatedAt > serverAt,

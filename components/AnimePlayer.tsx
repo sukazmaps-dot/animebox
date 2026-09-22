@@ -165,6 +165,7 @@ const LOCAL_RESUME_MIN_SECONDS = 10;
 const LOCAL_RESUME_END_GUARD_SECONDS = 20;
 const PLAYER_READY_TIMEOUT_MS = 14_000;
 const SOURCE_SWITCH_NOTICE_MS = 5_500;
+const AUTO_NEXT_COUNTDOWN_SECONDS = 8;
 
 type SourceLoadState = 'idle' | 'loading' | 'ready' | 'error' | 'timeout';
 type PlayerFailureKind = Extract<SourceLoadState, 'error' | 'timeout'>;
@@ -384,6 +385,8 @@ export default function AnimePlayer({
   const [telegramAndroidMiniApp, setTelegramAndroidMiniApp] = useState(false);
   const [telegramPseudoFullscreen, setTelegramPseudoFullscreen] = useState(false);
   const [resumeSeconds, setResumeSeconds] = useState(0);
+  const [endScreenOpen, setEndScreenOpen] = useState(false);
+  const [autoNextSeconds, setAutoNextSeconds] = useState<number | null>(null);
   const [premiumStudio, setPremiumStudio] = useState<PremiumStudioSettings | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -412,6 +415,7 @@ export default function AnimePlayer({
   } | null>(null);
   const lastLocalProgressSavedAtRef = useRef(0);
   const playbackQualifiedRef = useRef(false);
+  const endedFlowRef = useRef(false);
   const playerViewportRef = useRef<HTMLDivElement | null>(null);
   const telegramFullscreenOwnedRef = useRef(false);
   const telegramOrientationOwnedRef = useRef(false);
@@ -777,7 +781,18 @@ export default function AnimePlayer({
     ],
   );
 
+  const continueFromEndScreen = useCallback(() => {
+    if (!hasNext || !onEnded) return;
+
+    setEndScreenOpen(false);
+    setAutoNextSeconds(null);
+    onEnded();
+  }, [hasNext, onEnded]);
+
   const handlePlaybackEnded = useCallback(() => {
+    if (endedFlowRef.current) return;
+    endedFlowRef.current = true;
+
     if (animeId && !watchTogetherMode) {
       removeWatchProgress(animeId, episodeNumber, user?.id ?? null);
       if (user?.id) {
@@ -788,15 +803,68 @@ export default function AnimePlayer({
     localProgressRef.current = null;
     latestPlaybackPositionSecondsRef.current = 0;
     applyResumeTarget(0);
-    onEnded?.();
+
+    // Push the final observed position before any route transition. This keeps
+    // Continue Watching / completion state current even when the viewer lets
+    // auto-next move immediately to another episode.
+    void watchSession.flushProgress().catch(() => undefined);
+
+    if (watchTogetherMode) {
+      onEnded?.();
+      return;
+    }
+
+    setEndScreenOpen(true);
+    setAutoNextSeconds(
+      hasNext && onEnded ? AUTO_NEXT_COUNTDOWN_SECONDS : null,
+    );
   }, [
     animeId,
     applyResumeTarget,
     episodeNumber,
+    hasNext,
     onEnded,
     user?.id,
+    watchSession,
     watchTogetherMode,
   ]);
+
+  useEffect(() => {
+    if (
+      !endScreenOpen ||
+      autoNextSeconds == null ||
+      watchTogetherMode
+    ) {
+      return;
+    }
+
+    if (autoNextSeconds <= 0) {
+      continueFromEndScreen();
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setAutoNextSeconds((seconds) =>
+        seconds == null ? null : Math.max(0, seconds - 1),
+      );
+    }, 1_000);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    autoNextSeconds,
+    continueFromEndScreen,
+    endScreenOpen,
+    watchTogetherMode,
+  ]);
+
+  useEffect(() => {
+    endedFlowRef.current = false;
+    queueMicrotask(() => {
+      setEndScreenOpen(false);
+      setAutoNextSeconds(null);
+    });
+  }, [animeId, episodeNumber]);
+
 
   useEffect(() => {
     function onPartyCommand(event: Event) {
@@ -1738,6 +1806,9 @@ export default function AnimePlayer({
   }
 
   function startPlayback() {
+    endedFlowRef.current = false;
+    setEndScreenOpen(false);
+    setAutoNextSeconds(null);
     playRequestAtRef.current = performance.now();
     setPlayerError(null);
     setPlayerFailureKind(null);
@@ -2174,6 +2245,59 @@ export default function AnimePlayer({
                 )
               )}
             </>
+          )}
+
+          {endScreenOpen && !watchTogetherMode && (
+            <div className="animebox-player-end-screen absolute inset-0 z-[65] flex items-center justify-center p-5 text-center">
+              <div className="animebox-player-end-card w-full max-w-md">
+                <span className="animebox-player-end-kicker">
+                  ЭПИЗОД {episodeNumber} · КОНЕЦ
+                </span>
+
+                <h3>
+                  {hasNext ? 'Следующая серия готова' : 'На этом пока всё'}
+                </h3>
+
+                <p>
+                  {hasNext
+                    ? autoNextSeconds == null
+                      ? 'Автопереход остановлен. Можно перейти дальше вручную.'
+                      : `Перейдём дальше через ${autoNextSeconds} сек. Прогресс уже сохраняется.`
+                    : 'Это последняя доступная серия этого тайтла или сезона.'}
+                </p>
+
+                <div className="animebox-player-end-actions">
+                  {hasNext && onEnded && (
+                    <button
+                      type="button"
+                      className="animebox-player-end-primary"
+                      onClick={continueFromEndScreen}
+                    >
+                      {nextLabel}
+                      {autoNextSeconds != null ? ` · ${autoNextSeconds}` : ''}
+                    </button>
+                  )}
+
+                  {hasNext && autoNextSeconds != null ? (
+                    <button
+                      type="button"
+                      className="animebox-player-end-secondary"
+                      onClick={() => setAutoNextSeconds(null)}
+                    >
+                      Остаться
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="animebox-player-end-secondary"
+                      onClick={() => setEndScreenOpen(false)}
+                    >
+                      Вернуться к серии
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           )}
 
           {telegramAndroidMiniApp && started && videoLink && (

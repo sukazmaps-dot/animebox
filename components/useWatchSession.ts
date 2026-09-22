@@ -608,9 +608,21 @@ export function useWatchSession({
     };
   }, [animeId, enabled, episode, sendHeartbeat, sourceUrl, userId]);
 
+  const flushProgress = useCallback(async () => {
+    await sendHeartbeat(true, true);
+
+    if (userId) {
+      invalidateTrackerSnapshot(userId);
+      invalidateCommunityProfile(userId);
+    }
+
+    window.dispatchEvent(new Event('watch-state-updated'));
+  }, [sendHeartbeat, userId]);
+
   return {
     onSample,
     onProviderSkip,
+    flushProgress,
     message,
     progressPercent: percent,
     completed,

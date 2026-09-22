@@ -240,3 +240,107 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+
+/* =========================================================
+   12.5.1 — Intentional episode ending
+   ========================================================= */
+
+.animebox-player-end-screen {
+  background:
+    linear-gradient(180deg, rgba(5,7,11,.82), rgba(5,7,11,.94));
+}
+
+.animebox-player-end-card {
+  padding: 24px;
+  border: 1px solid rgba(204,208,220,.08);
+  border-radius: 10px;
+  background: #0c1018;
+  box-shadow: 0 22px 58px rgba(0,0,0,.42);
+}
+
+.animebox-player-end-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ab-signal);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .13em;
+}
+
+.animebox-player-end-card h3 {
+  margin: 10px 0 0;
+  color: var(--ab-text);
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 720;
+  letter-spacing: -.03em;
+}
+
+.animebox-player-end-card p {
+  max-width: 360px;
+  margin: 10px auto 0;
+  color: var(--ab-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.animebox-player-end-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.animebox-player-end-primary,
+.animebox-player-end-secondary {
+  min-height: 42px;
+  padding: 0 15px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 780;
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.animebox-player-end-primary {
+  border: 0;
+  background: var(--player-accent);
+  color: var(--player-on-accent, #fff);
+}
+
+.animebox-player-end-secondary {
+  border: 0;
+  background: #151b26;
+  color: #aeb3bf;
+}
+
+@media (hover: hover) {
+  .animebox-player-end-primary:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+  }
+
+  .animebox-player-end-secondary:hover {
+    background: #1b2330;
+    color: #f1f0ed;
+  }
+}
+
+@media (max-width: 520px) {
+  .animebox-player-end-card {
+    padding: 20px 16px;
+    border-radius: 8px;
+  }
+
+  .animebox-player-end-actions {
+    flex-direction: column;
+  }
+
+  .animebox-player-end-primary,
+  .animebox-player-end-secondary {
+    width: 100%;
+  }
+}
