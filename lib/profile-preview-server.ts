@@ -54,7 +54,7 @@ export async function getProfilePreview(userId: string) {
     baseBannerPath: profile.banner_path,
     premiumStudio: resolved.premiumStudio,
     premiumActive: resolved.premiumStudioActive,
-    premiumMediaActive: resolved.premiumStudioActive,
+    premiumMediaActive: resolved.premiumMediaActive,
   });
 
   // Keep static fallbacks available so mobile and reduced-motion users don't
