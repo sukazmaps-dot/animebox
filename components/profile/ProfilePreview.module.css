@@ -486,3 +486,104 @@
     transition: none !important;
   }
 }
+
+/* Patch 12.2 — Visual consistency */
+.card {
+  border-color: color-mix(in srgb, var(--profile-preview-accent) 22%, rgba(255,255,255,.07));
+  border-radius: var(--ab-radius-lg);
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--profile-preview-primary) 94%, #11182a 6%),
+    #070a12
+  );
+  box-shadow: var(--ab-shadow-float);
+}
+
+.card[data-premium='true'] {
+  box-shadow:
+    var(--ab-shadow-float),
+    0 0 24px color-mix(in srgb, var(--profile-preview-accent) 8%, transparent);
+}
+
+.card::before {
+  opacity: .55;
+}
+
+.close {
+  border-radius: var(--ab-radius-sm);
+  backdrop-filter: none;
+}
+
+.avatarShell {
+  border-radius: var(--ab-radius-lg);
+  box-shadow: 0 10px 26px rgba(0,0,0,.28);
+}
+
+.kicker {
+  font-size: 8.5px;
+  font-weight: 850;
+  letter-spacing: .11em;
+}
+
+.premiumBadge {
+  font-size: 8px;
+}
+
+.levelBadge,
+.rankLabel {
+  font-size: 9px;
+}
+
+.bio {
+  font-size: 11.5px;
+}
+
+.metaCard {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  background: rgba(255,255,255,.016);
+}
+
+.metaCard small,
+.metaCard em {
+  font-size: 8.5px;
+}
+
+.metaCard strong {
+  font-size: 11.5px;
+}
+
+.metaIcon,
+.metaGlyph {
+  border-radius: var(--ab-radius-sm);
+  background: rgba(255,255,255,.018);
+}
+
+.openProfile {
+  border-radius: var(--ab-radius-sm);
+  font-size: 10.5px;
+}
+
+@media (max-width: 640px) {
+  .layer {
+    padding: 8px;
+    backdrop-filter: none;
+  }
+
+  .card {
+    border-radius: 20px 20px 14px 14px;
+  }
+
+  .kicker {
+    font-size: 9px;
+  }
+
+  .bio {
+    font-size: 12px;
+  }
+
+  .metaCard small,
+  .metaCard em {
+    font-size: 9px;
+  }
+}

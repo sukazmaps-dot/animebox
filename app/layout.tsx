@@ -35,6 +35,7 @@ import './patch11-4.css';
 import './patch11-4-4.css';
 import './patch11-4-5.css';
 import './patch12-1-home-identity.css';
+import './patch12-2-visual-consistency.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';

@@ -289,3 +289,50 @@
   outline: 2px solid #dab9ff;
   outline-offset: 4px;
 }
+
+/* Patch 12.2 — mobile consistency */
+@media (max-width: 760px) {
+  .podiumCard[data-rank='1'] {
+    min-height: 310px;
+  }
+
+  .podiumCard {
+    min-height: 258px;
+  }
+
+  .placeLabel,
+  .rankTitle,
+  .cardFooter {
+    font-size: 10px;
+  }
+
+  .row {
+    min-width: 0;
+  }
+
+  .rowNameLine,
+  .user > span:not(.avatarFallback) {
+    min-width: 0;
+  }
+
+  .user strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 390px) {
+  .podium {
+    gap: 9px;
+  }
+
+  .podiumCard[data-rank='1'] {
+    min-height: 292px;
+  }
+
+  .podiumCard {
+    min-height: 242px;
+    padding-inline: 10px;
+  }
+}

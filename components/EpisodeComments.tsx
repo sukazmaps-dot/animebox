@@ -496,7 +496,7 @@ export default function EpisodeComments({
       <header className="episode-comments__header">
         <div>
           <span className="episode-comments__eyebrow">
-            ANIMEBOX COMMUNITY
+            ПОСЛЕ СЕРИИ
           </span>
 
           <h2>

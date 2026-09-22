@@ -2010,3 +2010,107 @@
     padding-inline: 7px;
   }
 }
+
+/* Patch 12.2 — Visual consistency */
+.panel {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-lg);
+  background: var(--ab-surface-1);
+  box-shadow: none;
+}
+
+.panel::before {
+  display: none;
+}
+
+.icon {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  background: var(--ab-accent-soft);
+  box-shadow: none;
+}
+
+.primary,
+.secondary,
+.danger,
+.syncControls button,
+.chatForm input,
+.chatForm button {
+  border-radius: var(--ab-radius-sm);
+}
+
+.primary {
+  border-color: rgba(120,104,238,.28);
+  background: var(--ab-accent);
+  box-shadow: none;
+}
+
+.secondary {
+  border-color: var(--ab-border);
+  background: var(--ab-surface-2);
+}
+
+.syncCard,
+.chat,
+.chatBubble,
+.participant {
+  border-color: var(--ab-border);
+  background: rgba(255,255,255,.018);
+  box-shadow: none;
+}
+
+.syncCard {
+  border-radius: var(--ab-radius-md);
+}
+
+.chat {
+  border-radius: var(--ab-radius-md);
+}
+
+.hostBadge {
+  background: var(--ab-accent-soft);
+  box-shadow: none;
+}
+
+.statusDot {
+  box-shadow: none;
+}
+
+.statusDot[data-state='connecting'],
+.statusDot[data-state='reconnecting'],
+.statusDot[data-state='error'],
+.statusDot[data-state='ended'] {
+  box-shadow: none;
+}
+
+.theaterPanel {
+  background: var(--ab-bg-raised);
+  box-shadow: none;
+}
+
+@media (max-width: 760px) {
+  .panel:not(.theaterPanel) .eyebrow {
+    font-size: 10px;
+  }
+
+  .panel:not(.theaterPanel) .description {
+    font-size: 11.5px;
+  }
+
+  .panel:not(.theaterPanel) .statusText strong {
+    font-size: 12px;
+  }
+
+  .panel:not(.theaterPanel) .statusText span,
+  .panel:not(.theaterPanel) .participantIdentity,
+  .panel:not(.theaterPanel) .note,
+  .panel:not(.theaterPanel) .error {
+    font-size: 10.5px;
+  }
+
+  .panel:not(.theaterPanel) .chatBubble p,
+  .panel:not(.theaterPanel) .chatForm input,
+  .panel:not(.theaterPanel) .chatForm button {
+    font-size: 11.5px;
+  }
+}

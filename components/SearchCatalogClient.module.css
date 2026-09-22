@@ -290,3 +290,54 @@
   .discoveryChip { flex: 0 0 auto; }
   .seedCard { width: 100%; }
 }
+
+/* Patch 12.2 — Visual consistency */
+.filterBar {
+  gap: 8px;
+  padding-top: 10px;
+}
+
+.smartDiscoveryBadge,
+.discoveryChip,
+.seedCard,
+.emptyActions button {
+  border-color: var(--ab-border);
+  background: var(--ab-surface-1);
+  box-shadow: none;
+}
+
+.smartDiscoveryBadge {
+  color: #cfc8ff;
+}
+
+.discoveryChip {
+  color: var(--ab-text-soft);
+}
+
+.discoveryChip:not(:disabled):hover {
+  border-color: rgba(120,104,238,.28);
+  background: var(--ab-accent-soft);
+}
+
+.seedCard {
+  border-radius: var(--ab-radius-md);
+}
+
+.refreshLine {
+  background: rgba(120,104,238,.08);
+}
+
+@media (max-width: 760px) {
+  .filterBar {
+    row-gap: 8px;
+    padding-top: 8px;
+  }
+
+  .allGenres {
+    min-height: 38px;
+  }
+
+  .genreRail {
+    padding-bottom: 2px;
+  }
+}

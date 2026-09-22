@@ -1,0 +1,609 @@
+/* =========================================================
+   AnimeBox Patch 12.2 — Visual Consistency Pass
+   Finish Design System V1 without rewriting feature CSS.
+   ========================================================= */
+
+:root {
+  --ab-space-1: 6px;
+  --ab-space-2: 10px;
+  --ab-space-3: 14px;
+  --ab-space-4: 18px;
+  --ab-space-5: 24px;
+  --ab-control-sm: 36px;
+  --ab-control-md: 40px;
+  --ab-control-lg: 44px;
+  --ab-focus-ring: 0 0 0 3px rgba(120, 104, 238, .16);
+  --ab-shadow-card: 0 12px 30px rgba(0, 0, 0, .16);
+}
+
+.page-content,
+.home-page,
+.search-page,
+.detail,
+.profile-v2,
+.episode-comments {
+  min-width: 0;
+}
+
+.section-head > *,
+.page-heading > *,
+.detail__main,
+.detail__side,
+.profile-v2__identity-main {
+  min-width: 0;
+}
+
+:where(a, button, input, textarea, select):focus-visible {
+  outline: 2px solid rgba(164, 151, 255, .78);
+  outline-offset: 3px;
+}
+
+.btn {
+  min-height: var(--ab-control-md);
+  padding-inline: 16px;
+  border-radius: var(--ab-radius-sm);
+}
+
+.btn--primary {
+  background: var(--ab-accent);
+  box-shadow: none;
+}
+
+.btn--ghost {
+  border: 1px solid var(--ab-border);
+  background: var(--ab-surface-1);
+}
+
+.panel,
+.detail__section,
+.detail__side-panel {
+  border-color: var(--ab-border);
+  background: var(--ab-surface-1);
+  box-shadow: none;
+}
+
+.empty-state {
+  min-width: 0;
+  border: 1px dashed var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  background: rgba(255,255,255,.012);
+}
+
+.empty-state strong {
+  color: var(--ab-text-soft);
+}
+
+.anime-card {
+  overflow: hidden;
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  background: var(--ab-surface-1);
+  box-shadow: none;
+}
+
+.anime-card__image-wrap {
+  border-radius: calc(var(--ab-radius-md) - 1px) calc(var(--ab-radius-md) - 1px) 0 0;
+  background: var(--ab-surface-2);
+}
+
+.anime-card__shine {
+  height: 38%;
+  background: linear-gradient(180deg, transparent, rgba(2, 5, 10, .62));
+}
+
+.anime-card__rating,
+.anime-card__state {
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 6px;
+  background: rgba(5, 8, 14, .76);
+  box-shadow: none;
+  backdrop-filter: blur(6px);
+}
+
+.anime-card__body {
+  min-width: 0;
+  padding: 10px 10px 12px;
+}
+
+.anime-card__body h3 {
+  min-height: 2.8em;
+  color: var(--ab-text);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.anime-card__meta {
+  color: var(--ab-muted);
+}
+
+.anime-card__personal {
+  border-color: rgba(120,104,238,.18);
+  background: var(--ab-accent-soft);
+}
+
+@media (hover: hover) {
+  .anime-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(120,104,238,.3);
+    box-shadow: var(--ab-shadow-card);
+  }
+
+  .anime-card:hover .anime-card__image {
+    transform: scale(1.025);
+  }
+}
+
+/* Profile shell: same surfaces as the rest of AnimeBox, premium media stays intact. */
+.profile-v2__hero,
+.profile-v2__stat,
+.profile-v2__library,
+.profile-v2__achievements,
+.profile-v2__bottom-card,
+.profile-v2__loading {
+  border-color: var(--ab-border);
+  background: var(--ab-surface-1);
+  box-shadow: none;
+}
+
+.profile-v2__hero {
+  border-radius: var(--ab-radius-xl);
+}
+
+.profile-v2__stat {
+  border-radius: var(--ab-radius-md);
+}
+
+.profile-v2__library,
+.profile-v2__achievements,
+.profile-v2__bottom-card,
+.profile-v2__loading {
+  border-radius: var(--ab-radius-lg);
+}
+
+.profile-v2__edit,
+.profile-v2__library-empty a {
+  border-color: rgba(120,104,238,.24);
+  border-radius: var(--ab-radius-sm);
+  background: var(--ab-accent-soft);
+  color: #d7d1ff;
+  box-shadow: none;
+}
+
+.profile-v2__library-icon {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  background: var(--ab-surface-2);
+}
+
+.profile-v2__achievement {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-md);
+}
+
+.profile-v2__achievement.is-unlocked {
+  border-color: rgba(120,104,238,.2);
+  background: var(--ab-accent-soft);
+}
+
+.profile-edit-modal__window,
+.auth-card,
+.auth-user__dropdown {
+  border-color: var(--ab-border);
+  background: var(--ab-bg-raised);
+  box-shadow: var(--ab-shadow-float);
+}
+
+.profile-edit-modal__field input,
+.profile-edit-modal__field textarea,
+.auth-form input {
+  border-color: var(--ab-border);
+  border-radius: var(--ab-radius-sm);
+  background: #080d15;
+}
+
+.profile-edit-modal__save,
+.auth-form__submit,
+.auth-nav-register {
+  background: var(--ab-accent);
+  box-shadow: none;
+}
+
+/* Episode comments: flat conversation hierarchy instead of cards inside cards. */
+.episode-comments {
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius-lg);
+  background: var(--ab-surface-1);
+  box-shadow: none;
+}
+
+.episode-comments__header {
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--ab-border);
+}
+
+.episode-comments__eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: #978de9;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .11em;
+}
+
+.episode-comments__header h2 {
+  margin: 0;
+  color: var(--ab-text);
+  font-size: 20px;
+  letter-spacing: -.02em;
+}
+
+.episode-comments__header p {
+  margin: 6px 0 0;
+  color: var(--ab-muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.episode-comments__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.episode-comments__sort {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius-sm);
+  background: #080d15;
+}
+
+.episode-comments__sort button {
+  min-height: 30px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ab-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.episode-comments__sort button.is-active {
+  background: var(--ab-accent-soft);
+  color: #ddd8ff;
+}
+
+.episode-comments__count {
+  min-width: 32px;
+  min-height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0 8px;
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius-sm);
+  background: var(--ab-surface-2);
+  color: var(--ab-text-soft);
+}
+
+.episode-comments__scope {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -2px 0 12px;
+  padding: 9px 11px;
+  border-left: 2px solid rgba(120,104,238,.52);
+  background: rgba(120,104,238,.055);
+}
+
+.episode-comments__scope span {
+  flex: 0 0 auto;
+  color: #c7c0ff;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.episode-comments__scope p {
+  margin: 0;
+  color: var(--ab-muted);
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.episode-comments__form {
+  padding: 11px;
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  background: #080d15;
+}
+
+.episode-comments__controls button {
+  min-height: var(--ab-control-sm);
+  padding: 0 13px;
+  border-radius: var(--ab-radius-sm);
+  background: var(--ab-accent);
+  box-shadow: none;
+}
+
+.episode-comments__replying {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 7px 9px;
+  border-radius: 7px;
+  background: var(--ab-accent-soft);
+  color: var(--ab-text-soft);
+  font-size: 10px;
+}
+
+.episode-comments__replying button {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(255,255,255,.04);
+  color: var(--ab-muted);
+}
+
+.episode-comments__list {
+  gap: 0;
+  margin-top: 14px;
+}
+
+.episode-comment {
+  min-width: 0;
+  padding: 14px 2px;
+  border-top: 1px solid var(--ab-border);
+}
+
+.episode-comments__list > .episode-comment:first-child {
+  border-top: 0;
+}
+
+.episode-comment--reply {
+  padding-block: 11px;
+}
+
+.episode-comment__header,
+.episode-comment__profile-link {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.episode-comment__profile-link {
+  width: max-content;
+  max-width: 100%;
+}
+
+.episode-comment__avatar-shell {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  overflow: hidden;
+  border: 1px solid var(--ab-border);
+  border-radius: 10px;
+  background: var(--ab-surface-2);
+}
+
+.episode-comment__avatar {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.episode-comment__author {
+  min-width: 0;
+}
+
+.episode-comment__author time {
+  display: block;
+  margin-top: 3px;
+  color: var(--ab-muted-2);
+}
+
+.episode-comment__body {
+  padding-left: 46px;
+}
+
+.episode-comment__body p {
+  margin: 8px 0 0;
+  color: #cdd5e1;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.episode-comment__deleted {
+  color: var(--ab-muted) !important;
+  font-style: italic;
+}
+
+.episode-comment__spoiler {
+  margin-top: 8px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius-sm);
+  background: var(--ab-surface-2);
+  color: var(--ab-text-soft);
+  font-size: 10px;
+}
+
+.episode-comment__actions {
+  padding-left: 46px;
+  margin-top: 7px;
+}
+
+.episode-comment__actions button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #9187df;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.episode-comment__children {
+  margin: 10px 0 0 46px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(120,104,238,.22);
+}
+
+.episode-comments__empty {
+  padding: 30px 18px;
+  color: var(--ab-muted);
+}
+
+.episode-comments__empty--illustrated img {
+  width: min(112px, 34vw);
+  height: auto;
+  object-fit: contain;
+  opacity: .86;
+  filter: drop-shadow(0 12px 24px rgba(0,0,0,.18));
+}
+
+.episode-comments__empty--illustrated strong,
+.episode-comments__empty--illustrated span {
+  display: block;
+}
+
+.episode-comments__empty--illustrated strong {
+  margin-top: 8px;
+  color: var(--ab-text-soft);
+  font-size: 13px;
+}
+
+.episode-comments__empty--illustrated span {
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+@media (max-width: 760px) {
+  .page-content {
+    max-width: 100%;
+  }
+
+  .section-head {
+    gap: 12px;
+  }
+
+  .episode-comments {
+    padding: 14px;
+    border-radius: var(--ab-radius-md);
+  }
+
+  .episode-comments__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .episode-comments__header-actions {
+    justify-content: space-between;
+  }
+
+  .episode-comments__sort {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .episode-comments__sort button {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .episode-comments__scope {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .episode-comments__controls {
+    flex-wrap: wrap;
+  }
+
+  .episode-comments__length {
+    margin-left: auto;
+  }
+
+  .episode-comments__controls button {
+    min-width: 104px;
+  }
+
+  .episode-comment__body,
+  .episode-comment__actions {
+    padding-left: 0;
+  }
+
+  .episode-comment__children {
+    margin-left: 12px;
+    padding-left: 10px;
+  }
+
+  .profile-v2 {
+    width: calc(100% - 20px);
+  }
+
+  .profile-v2__identity {
+    min-width: 0;
+  }
+
+  .profile-v2__title-row h1 {
+    overflow-wrap: anywhere;
+  }
+
+  .profile-v2__stats {
+    gap: 8px;
+  }
+
+  .profile-v2__stat {
+    padding: 14px;
+  }
+
+  .profile-v2__library,
+  .profile-v2__achievements {
+    padding: 18px 15px;
+  }
+}
+
+@media (max-width: 390px) {
+  .episode-comments {
+    padding-inline: 12px;
+  }
+
+  .episode-comments__controls button {
+    width: 100%;
+  }
+
+  .episode-comments__length {
+    order: 2;
+  }
+
+  .episode-comments__controls button {
+    order: 3;
+  }
+
+  .profile-v2__stats {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anime-card,
+  .anime-card__image,
+  .btn,
+  .episode-comments button,
+  .profile-v2__edit {
+    transition: none !important;
+  }
+}
