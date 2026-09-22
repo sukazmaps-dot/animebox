@@ -8,6 +8,7 @@ import {
   userClient,
 } from '@/lib/community-server';
 import { WATCH_PARTY_MAX_PARTICIPANTS } from '@/lib/watch-party';
+import { consumeRateLimit } from '@/lib/api-rate-limit';
 
 export type WatchPartyRoomVisibility = 'public' | 'unlisted' | 'private';
 export type WatchPartyRoomStatus = 'waiting' | 'watching' | 'paused' | 'voting' | 'ended';
@@ -79,6 +80,11 @@ async function uniqueRoomCode() {
 
 export async function createWatchPartyRoom(input: Record<string, unknown>) {
   const { user } = await userClient();
+  if (!(await consumeRateLimit(`user:${user.id}`, {
+    scope: 'room_create_user', limit: 4, windowSeconds: 60,
+  }))) {
+    throw new ApiError(429, 'Слишком частое создание комнат. Попробуй через минуту.');
+  }
 
   const id = cleanText(input.roomId, 24).toLowerCase();
   const joinSecret = cleanText(input.joinSecret, 32).toLowerCase();
@@ -148,30 +154,6 @@ export async function listPublicWatchPartyRooms(limit = 12) {
   const staleBefore = new Date(now - ROOM_HEARTBEAT_TTL_MS).toISOString();
   const nowIso = new Date(now).toISOString();
 
-  // Keep the registry clean as part of normal lobby traffic. A room that
-  // stopped heartbeating for two minutes is not joinable anymore.
-  await admin
-    .from('watch_party_rooms')
-    .update({
-      status: 'ended',
-      participant_count: 0,
-      ended_at: nowIso,
-      updated_at: nowIso,
-    })
-    .neq('status', 'ended')
-    .lt('last_heartbeat_at', staleBefore);
-
-  await admin
-    .from('watch_party_rooms')
-    .update({
-      status: 'ended',
-      participant_count: 0,
-      ended_at: nowIso,
-      updated_at: nowIso,
-    })
-    .neq('status', 'ended')
-    .lte('expires_at', nowIso);
-
   const { data, error } = await admin
     .from('watch_party_rooms')
     .select(
@@ -226,6 +208,28 @@ export async function listPublicWatchPartyRooms(limit = 12) {
     expiresAt: row.expires_at,
     isFull: row.participant_count >= row.max_participants,
   }));
+}
+
+/** Run from the existing authenticated daily cron, never from lobby traffic. */
+export async function cleanupWatchPartyRooms() {
+  const admin = adminClient();
+  const now = new Date();
+  const endedAt = now.toISOString();
+  const staleBefore = new Date(now.getTime() - ROOM_HEARTBEAT_TTL_MS).toISOString();
+
+  const expired = await admin.from('watch_party_rooms')
+    .update({ status: 'ended', participant_count: 0, ended_at: endedAt, updated_at: endedAt })
+    .neq('status', 'ended').lte('expires_at', endedAt);
+  if (expired.error) throw expired.error;
+
+  const stale = await admin.from('watch_party_rooms')
+    .update({ status: 'ended', participant_count: 0, ended_at: endedAt, updated_at: endedAt })
+    .neq('status', 'ended').lt('last_heartbeat_at', staleBefore);
+  if (stale.error) throw stale.error;
+
+  const buckets = await admin.from('api_rate_buckets')
+    .delete().lt('window_start', new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString());
+  if (buckets.error) throw buckets.error;
 }
 
 export async function heartbeatWatchPartyRoom(

@@ -5,6 +5,11 @@
 # TURN/TLS :443 cannot bind the same public IP:443 at the same time as nginx.
 # For the strongest restrictive-network fallback, put TURN :443 on another
 # public IP / VPS, or use an L4 TLS multiplexer.
+# This file must be included inside nginx's http {} block. If Cloudflare sits
+# in front of peer.youranimebox.com, first configure nginx real_ip with trusted
+# Cloudflare ranges; otherwise these per-IP limits would group users by proxy.
+limit_conn_zone $binary_remote_addr zone=peer_connections:10m;
+limit_req_zone $binary_remote_addr zone=peer_handshakes:10m rate=12r/s;
 
 server {
     listen 443 ssl;
@@ -14,6 +19,12 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/peer.youranimebox.com/privkey.pem;
 
     location /peerjs/ {
+        # WebSocket upgrades stay counted as concurrent connections.
+        limit_conn peer_connections 24;
+        limit_req zone=peer_handshakes burst=24 nodelay;
+        limit_conn_status 429;
+        limit_req_status 429;
+
         proxy_pass http://127.0.0.1:9000;
         proxy_http_version 1.1;
 

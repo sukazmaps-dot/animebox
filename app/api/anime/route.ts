@@ -25,13 +25,23 @@ import type {
   AniListListOrder,
 } from '@/lib/anilist';
 import type { Anime } from '@/types/anime';
+import { consumeIpRateLimit, rateLimitResponse } from '@/lib/api-rate-limit';
 
 export const runtime = 'nodejs';
-export const revalidate = 900;
+export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
 ) {
+  try {
+    if (!(await consumeIpRateLimit(request, { scope: 'anime_catalog', limit: 90, windowSeconds: 60 }))) {
+      return rateLimitResponse();
+    }
+  } catch (error) {
+    console.error('[Anime catalog] rate limit unavailable', error);
+    return NextResponse.json({ error: 'Каталог временно недоступен.' }, { status: 503 });
+  }
+
   const params = request.nextUrl.searchParams;
 
   const requestedLimit = Number.parseInt(

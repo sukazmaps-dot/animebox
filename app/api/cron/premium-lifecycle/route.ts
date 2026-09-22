@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 
 import { reconcileAllPremiumLifecycle } from '@/lib/premium-server';
 import { finalizeRecentLeaderboardSeasons } from '@/lib/leaderboard-seasons-server';
+import { cleanupWatchPartyRooms } from '@/lib/watch-party-rooms-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -34,12 +35,16 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const requestedLimit = Number(url.searchParams.get('limit') || '500');
+    const roomsCleaned = await cleanupWatchPartyRooms().then(() => true).catch((error) => {
+      console.error('[Watch party cleanup cron]', error);
+      return false;
+    });
     const result = await reconcileAllPremiumLifecycle(requestedLimit);
     const seasons = await finalizeRecentLeaderboardSeasons().catch((error) => {
       console.error('[Leaderboard seasons piggyback cron]', error);
       return [];
     });
-    return NextResponse.json({ ok: true, ...result, leaderboardSeasons: seasons });
+    return NextResponse.json({ ok: true, ...result, leaderboardSeasons: seasons, roomsCleaned });
   } catch (error) {
     console.error('[Premium lifecycle cron]', error);
     return NextResponse.json(
