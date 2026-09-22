@@ -18,6 +18,7 @@ import { createClient } from '@/lib/supabase/client';
 import { premiumMediaStyle, type PremiumMediaTransform } from '@/lib/premium-studio';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 import UserIdentity from '@/components/identity/UserIdentity';
+import ProfilePreview from '@/components/profile/ProfilePreview';
 import WatchPartyFriendInvite from '@/components/friends/WatchPartyFriendInvite';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
@@ -2525,14 +2526,11 @@ export default function WatchPartyPanel({
               const displayName = publicIdentity?.username || participant.name;
 
               return (
-                <a
+                <ProfilePreview
                   className={styles.participant}
                   key={participant.id}
-                  href={`/profile/${encodeURIComponent(participant.userId)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={`Открыть профиль ${displayName}`}
-                  aria-label={`Открыть профиль ${displayName} в новой вкладке`}
+                  userId={participant.userId}
+                  username={displayName}
                 >
                   <span className={styles.avatar}>
                     {watchPartyInitials(displayName)}
@@ -2583,7 +2581,7 @@ export default function WatchPartyPanel({
                       <span>HOST</span>
                     </span>
                   )}
-                </a>
+                </ProfilePreview>
               );
             })}
             </div>
@@ -2737,17 +2735,12 @@ export default function WatchPartyPanel({
               messages.map((message) => {
                 const publicIdentity = roomIdentities[message.userId];
                 const displayName = publicIdentity?.username || message.name;
-                const profileHref = `/profile/${encodeURIComponent(message.userId)}`;
-
                 return (
                   <div className={styles.chatMessage} key={message.id}>
-                    <a
+                    <ProfilePreview
                       className={styles.chatAvatar}
-                      href={profileHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title={`Открыть профиль ${displayName}`}
-                      aria-label={`Открыть профиль ${displayName} в новой вкладке`}
+                      userId={message.userId}
+                      username={displayName}
                     >
                       {watchPartyInitials(displayName)}
                       {publicIdentity?.avatarUrl && (
@@ -2766,15 +2759,14 @@ export default function WatchPartyPanel({
                           }}
                         />
                       )}
-                    </a>
+                    </ProfilePreview>
                     <div className={styles.chatBubble}>
                       <div className={styles.chatAuthor}>
                         <div className={styles.chatIdentityRow}>
-                          <a
+                          <ProfilePreview
                             className={styles.chatAuthorLink}
-                            href={profileHref}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            userId={message.userId}
+                            username={displayName}
                           >
                             <UserIdentity
                               username={displayName}
@@ -2782,7 +2774,7 @@ export default function WatchPartyPanel({
                               sponsor={publicIdentity?.sponsor ?? null}
                               compact
                             />
-                          </a>
+                          </ProfilePreview>
                           {publicIdentity?.premium && (
                             <span className={styles.chatPremiumBadge} title="AnimeBox Premium">
                               <Image
