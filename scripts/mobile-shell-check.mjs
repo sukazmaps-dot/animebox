@@ -13,6 +13,17 @@ function read(path) {
   return readFileSync(full, 'utf8');
 }
 
+function isWebp(path) {
+  const full = join(root, path);
+  if (!existsSync(full)) return false;
+  const buffer = readFileSync(full);
+  return (
+    buffer.length >= 12 &&
+    buffer.toString('ascii', 0, 4) === 'RIFF' &&
+    buffer.toString('ascii', 8, 12) === 'WEBP'
+  );
+}
+
 const layout = read('app/layout.tsx');
 const navbar = read('components/Navbar.tsx');
 const account = read('components/MobileAccountNav.tsx');
@@ -59,6 +70,15 @@ for (const [label, needle] of [
 ]) {
   if (!promo.includes(needle)) {
     failures.push(`TelegramPromoCard: missing ${label}.`);
+  }
+}
+
+for (const asset of [
+  'public/brand/telegram-cta.webp',
+  'public/backgrounds/telegram-promo.webp',
+]) {
+  if (!isWebp(asset)) {
+    failures.push(`${asset}: Telegram promo fallback asset is missing or not a valid WebP container.`);
   }
 }
 
