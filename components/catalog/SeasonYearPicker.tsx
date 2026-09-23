@@ -5,6 +5,7 @@ import {
   CATALOG_SEASON_LABELS,
   createCatalogSeasonOptions,
   formatCatalogSeason,
+  getCurrentAnimeSeason,
   type CatalogSeasonValue,
 } from '@/lib/catalog-season';
 import styles from './SeasonYearPicker.module.css';
@@ -22,9 +23,25 @@ export default function SeasonYearPicker({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const currentSeason = useMemo(() => getCurrentAnimeSeason(), []);
   const options = useMemo(
     () => createCatalogSeasonOptions(minYear, maxYear),
     [minYear, maxYear],
+  );
+
+  const years = useMemo(() => {
+    const grouped = new Map<number, CatalogSeasonValue[]>();
+    for (const option of options) {
+      const list = grouped.get(option.year) ?? [];
+      list.push(option);
+      grouped.set(option.year, list);
+    }
+    return [...grouped.entries()];
+  }, [options]);
+
+  const quickOptions = useMemo(
+    () => options.filter((option) => option.year === currentSeason.year),
+    [currentSeason.year, options],
   );
 
   useEffect(() => {
@@ -47,6 +64,11 @@ export default function SeasonYearPicker({
     };
   }, [open]);
 
+  const choose = (next: CatalogSeasonValue | null) => {
+    onChange(next);
+    setOpen(false);
+  };
+
   return (
     <div ref={rootRef} className={styles.root}>
       <button
@@ -67,38 +89,76 @@ export default function SeasonYearPicker({
             role="option"
             aria-selected={value === null}
             className={value === null ? styles.optionActive : styles.option}
-            onClick={() => {
-              onChange(null);
-              setOpen(false);
-            }}
+            onClick={() => choose(null)}
           >
             Любой сезон
           </button>
 
-          {options.map((option, index) => {
-            const active = value?.year === option.year && value.season === option.season;
-            const previousYear = index > 0 ? options[index - 1]?.year : null;
-            const showYear = index === 0 || previousYear !== option.year;
+          <div className={styles.currentBlock}>
+            <span>Текущий сезон</span>
+            <button
+              type="button"
+              role="option"
+              aria-selected={
+                value?.year === currentSeason.year &&
+                value.season === currentSeason.season
+              }
+              className={
+                value?.year === currentSeason.year &&
+                value.season === currentSeason.season
+                  ? styles.currentActive
+                  : styles.current
+              }
+              onClick={() => choose(currentSeason)}
+            >
+              {formatCatalogSeason(currentSeason)}
+            </button>
+          </div>
 
-            return (
-              <div key={`${option.season}-${option.year}`}>
-                {showYear ? <div className={styles.yearLabel}>{option.year}</div> : null}
+          <div className={styles.quickGrid} aria-label="Сезоны текущего года">
+            {quickOptions.map((option) => {
+              const active = value?.year === option.year && value.season === option.season;
+              return (
                 <button
+                  key={`quick-${option.season}-${option.year}`}
                   type="button"
                   role="option"
                   aria-selected={active}
-                  className={active ? styles.optionActive : styles.option}
-                  onClick={() => {
-                    onChange(option);
-                    setOpen(false);
-                  }}
+                  className={active ? styles.quickActive : styles.quick}
+                  onClick={() => choose(option)}
                 >
-                  <span>{CATALOG_SEASON_LABELS[option.season]}</span>
-                  {active ? <span aria-hidden="true">✓</span> : null}
+                  {CATALOG_SEASON_LABELS[option.season]}
                 </button>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+
+          <div className={styles.archive}>
+            {years
+              .filter(([year]) => year !== currentSeason.year)
+              .map(([year, yearOptions]) => (
+                <div key={year} className={styles.yearGroup}>
+                  <div className={styles.yearLabel}>{year}</div>
+                  <div className={styles.yearGrid}>
+                    {yearOptions.map((option) => {
+                      const active = value?.year === option.year && value.season === option.season;
+                      return (
+                        <button
+                          key={`${option.season}-${option.year}`}
+                          type="button"
+                          role="option"
+                          aria-selected={active}
+                          className={active ? styles.optionActive : styles.option}
+                          onClick={() => choose(option)}
+                        >
+                          {CATALOG_SEASON_LABELS[option.season]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+          </div>
         </div>
       )}
     </div>

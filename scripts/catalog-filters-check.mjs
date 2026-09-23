@@ -14,7 +14,10 @@ function read(path) {
 }
 
 const catalog = read('components/SearchCatalogClient.tsx');
-const catalogCss = read('components/SearchCatalogClient.module.css');
+const filterPanel = read('components/catalog/CatalogFilterPanel.tsx');
+const mobileFilters = read('components/catalog/CatalogMobileFilters.tsx');
+const activeFilters = read('components/catalog/ActiveCatalogFilters.tsx');
+const studioPicker = read('components/catalog/StudioPicker.tsx');
 const seasonPicker = read('components/catalog/SeasonYearPicker.tsx');
 const filterState = read('lib/catalog-filter-state.ts');
 const seasonHelpers = read('lib/catalog-season.ts');
@@ -25,17 +28,33 @@ const searchPage = read('app/search/page.tsx');
 
 for (const [label, source, needle] of [
   ['single filter state', catalog, 'useState<CatalogFiltersState>'],
-  ['demographic controls', catalog, 'CATALOG_DEMOGRAPHICS'],
-  ['anime-specific discovery controls', catalog, 'CATALOG_DISCOVERY_FILTERS'],
-  ['studio controls', catalog, 'CATALOG_STUDIOS'],
-  ['sort controls', catalog, 'CATALOG_SORTS'],
-  ['season-year picker', catalog, '<SeasonYearPicker'],
+  ['modular desktop filters', catalog, '<CatalogFilterPanel'],
+  ['mobile accordion filters', catalog, '<CatalogMobileFilters'],
+  ['active filter chips', catalog, '<ActiveCatalogFilters'],
+  ['browser history push', catalog, 'window.history.pushState'],
+  ['browser history restore', catalog, "window.addEventListener('popstate'"],
+  ['request cancellation', catalog, 'new AbortController()'],
+  ['request sequence guard', catalog, 'requestSequenceRef'],
+  ['stale refresh state', catalog, 'resultsRefreshing'],
+  ['useful empty state', catalog, 'relaxationActions'],
+  ['demographic controls', filterPanel, 'CATALOG_DEMOGRAPHICS'],
+  ['anime-specific discovery controls', filterPanel, 'CATALOG_DISCOVERY_FILTERS'],
+  ['studio picker', filterPanel, '<StudioPicker'],
+  ['sort controls', filterPanel, 'CATALOG_SORTS'],
+  ['mobile one-section accordion', mobileFilters, 'openSection'],
+  ['mobile results button', mobileFilters, 'Показать результаты'],
+  ['active chip removal', activeFilters, '<FilterChip'],
+  ['searchable studio list', studioPicker, 'visibleStudios'],
   ['state type', filterState, 'export type CatalogFiltersState'],
   ['URL serialization', filterState, 'writeCatalogFiltersToUrl'],
   ['URL parsing', filterState, 'parseCatalogFilters'],
+  ['browser URL parser', filterState, 'parseCatalogFiltersFromSearchParams'],
+  ['filter equality guard', filterState, 'catalogFiltersEqual'],
   ['provider projection', filterState, 'catalogFiltersToProviderOptions'],
   ['month to anime season', seasonHelpers, 'monthToCatalogSeason'],
+  ['current anime season', seasonHelpers, 'getCurrentAnimeSeason'],
   ['controlled season picker', seasonPicker, 'onChange: (value: CatalogSeasonValue | null) => void'],
+  ['grouped season archive', seasonPicker, 'yearGroup'],
 ]) {
   if (!source.includes(needle)) failures.push(`Catalog UI/state: missing ${label}.`);
 }
@@ -45,8 +64,6 @@ for (const legacy of ['selectedYear', 'SEASON_OPTIONS', 'FORMAT_OPTIONS']) {
 }
 
 for (const [label, source, needle] of [
-  ['catalog sort choices', catalogCss, '.sortChoices'],
-  ['catalog sort active state', catalogCss, '.sortChoiceActive'],
   ['client studio serialization', client, "params.set('studios'"],
   ['API studio parsing', api, "params.get('studios')"],
   ['API updated sort', api, "orderRaw === 'updated'"],
@@ -70,4 +87,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('[AnimeBox Catalog Filters] State-driven anime-native filter invariants passed.');
+console.log('[AnimeBox Catalog Filters] UX + reliability invariants passed.');

@@ -1,0 +1,150 @@
+.root {
+  position: relative;
+  min-width: 0;
+}
+
+.selected {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 7px;
+  scrollbar-width: none;
+}
+
+.selected::-webkit-scrollbar {
+  display: none;
+}
+
+.trigger {
+  display: flex;
+  width: 100%;
+  min-height: 39px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 10px;
+  border: 0;
+  border-bottom: 1px solid rgba(204, 208, 219, .1);
+  background: transparent;
+  color: var(--ab-text-soft);
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.trigger:hover,
+.trigger[aria-expanded='true'] {
+  border-bottom-color: rgba(151, 136, 231, .42);
+}
+
+.trigger:focus-visible,
+.search input:focus-visible,
+.option:focus-visible,
+.optionActive:focus-visible {
+  outline: 2px solid var(--ab-accent);
+  outline-offset: 2px;
+}
+
+.chevron,
+.chevronOpen {
+  color: var(--ab-muted);
+  font-size: 18px;
+  line-height: 1;
+  transition: transform .16s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.menu {
+  position: absolute;
+  z-index: 70;
+  top: calc(100% + 6px);
+  left: 0;
+  width: min(330px, 100%);
+  padding: 6px;
+  border: 1px solid rgba(194, 201, 218, .14);
+  border-radius: 7px;
+  background: #111721;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, .38);
+}
+
+.search {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.search input {
+  width: 100%;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid rgba(204, 208, 219, .09);
+  border-radius: 5px;
+  background: #0d131c;
+  color: var(--ab-text-soft);
+  font-size: 11px;
+}
+
+.search input::placeholder {
+  color: var(--ab-muted-2);
+}
+
+.options {
+  max-height: 250px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.option,
+.optionActive {
+  display: flex;
+  width: 100%;
+  min-height: 36px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #aeb5c2;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.option:hover {
+  background: rgba(255,255,255,.025);
+  color: var(--ab-text);
+}
+
+.optionActive {
+  background: rgba(151, 136, 231, .13);
+  color: #eee9ff;
+  box-shadow: inset 2px 0 0 var(--ab-iris);
+}
+
+.empty {
+  display: block;
+  padding: 12px 9px;
+  color: var(--ab-muted-2);
+  font-size: 10px;
+}
+
+@media (max-width: 600px) {
+  .menu {
+    position: relative;
+    top: auto;
+    width: 100%;
+    margin-top: 6px;
+    box-shadow: none;
+  }
+
+  .trigger,
+  .option,
+  .optionActive {
+    min-height: 42px;
+    font-size: 12px;
+  }
+}

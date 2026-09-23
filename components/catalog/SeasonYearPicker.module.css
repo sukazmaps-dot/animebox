@@ -6,7 +6,7 @@
 .trigger {
   display: flex;
   width: 100%;
-  min-height: 38px;
+  min-height: 39px;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -27,7 +27,11 @@
 
 .trigger:focus-visible,
 .option:focus-visible,
-.optionActive:focus-visible {
+.optionActive:focus-visible,
+.current:focus-visible,
+.currentActive:focus-visible,
+.quick:focus-visible,
+.quickActive:focus-visible {
   outline: 2px solid var(--ab-accent);
   outline-offset: 2px;
 }
@@ -46,55 +50,121 @@
 
 .menu {
   position: absolute;
-  z-index: 60;
+  z-index: 65;
   top: calc(100% + 6px);
   left: 0;
-  width: min(320px, 100%);
-  max-height: 300px;
+  width: min(360px, 100%);
+  max-height: 390px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 5px;
+  padding: 7px;
   border: 1px solid rgba(194, 201, 218, .14);
-  border-radius: 6px;
+  border-radius: 7px;
   background: #111721;
   box-shadow: 0 16px 38px rgba(0, 0, 0, .38);
   scrollbar-width: thin;
 }
 
+.currentBlock {
+  display: grid;
+  gap: 5px;
+  margin: 7px 0 8px;
+  padding: 9px;
+  border: 1px solid rgba(151,136,231,.11);
+  border-radius: 5px;
+  background: rgba(151,136,231,.035);
+}
+
+.currentBlock > span,
 .yearLabel {
-  padding: 9px 10px 4px;
   color: #747d8d;
   font-size: 9px;
   font-weight: 720;
-  letter-spacing: .05em;
+  letter-spacing: .04em;
 }
 
-.option,
-.optionActive {
-  display: flex;
-  width: 100%;
+.current,
+.currentActive {
   min-height: 34px;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 10px;
+  padding: 0 9px;
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: var(--ab-text-soft);
+  color: #cfd4de;
   font-size: 11px;
+  font-weight: 650;
   text-align: left;
   cursor: pointer;
 }
 
-.option:hover {
+.currentActive {
+  background: rgba(151, 136, 231, .13);
+  color: #eee9ff;
+  box-shadow: inset 2px 0 0 var(--ab-iris);
+}
+
+.quickGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.quick,
+.quickActive,
+.option,
+.optionActive {
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ab-text-soft);
+  font-size: 10.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.quick,
+.quickActive {
+  text-align: center;
+}
+
+.quick:hover,
+.option:hover,
+.current:hover {
   background: rgba(255, 255, 255, .025);
   color: var(--ab-text);
 }
 
+.quickActive,
 .optionActive {
   background: rgba(151, 136, 231, .13);
   color: #eee9ff;
   box-shadow: inset 2px 0 0 var(--ab-iris);
+}
+
+.archive {
+  display: grid;
+  gap: 4px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(204,208,219,.055);
+}
+
+.yearGroup {
+  display: grid;
+  gap: 4px;
+  padding: 6px 0;
+}
+
+.yearLabel {
+  padding: 0 4px;
+}
+
+.yearGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
 }
 
 @media (max-width: 600px) {
@@ -107,14 +177,18 @@
     position: relative;
     top: auto;
     width: 100%;
-    max-height: 250px;
+    max-height: 330px;
     margin-top: 6px;
     box-shadow: none;
   }
 
+  .current,
+  .currentActive,
+  .quick,
+  .quickActive,
   .option,
   .optionActive {
     min-height: 38px;
-    font-size: 12px;
+    font-size: 11.5px;
   }
 }
