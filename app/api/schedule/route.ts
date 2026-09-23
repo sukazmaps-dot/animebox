@@ -6,6 +6,10 @@ import {
 
 import { fetchWithRetry } from '@/lib/fetch-retry';
 import { isCatalogAnime } from '@/lib/catalog-filter';
+import {
+  privateNoStoreHeaders,
+  publicApiCacheHeaders,
+} from '@/lib/edge-cache-policy';
 
 const ANILIST_API_URL =
   'https://graphql.anilist.co';
@@ -584,10 +588,11 @@ export async function GET(
           ),
       },
       {
-        headers: {
-          'Cache-Control':
-            'public, max-age=60, s-maxage=300, stale-while-revalidate=900',
-        },
+        headers: publicApiCacheHeaders({
+          browserSeconds: 30,
+          edgeSeconds: 300,
+          staleWhileRevalidateSeconds: 900,
+        }),
       },
     );
   } catch (error) {
@@ -603,6 +608,7 @@ export async function GET(
       },
       {
         status: 502,
+        headers: privateNoStoreHeaders(),
       },
     );
   }
