@@ -626,20 +626,6 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
   const title = getAnimeTitle(anime);
 
-  const previousHref =
-    episodeNumber > 1
-      ? `/anime/${animeIdParam}/episode/${episodeNumber - 1}`
-      : seasonRoute.previous && previousSeasonLastEpisode
-        ? `/anime/${seasonRoute.previous.slug}/episode/${previousSeasonLastEpisode}`
-        : null;
-
-  const nextHref =
-    currentSeasonEpisodes > 0 && episodeNumber < currentSeasonEpisodes
-      ? `/anime/${animeIdParam}/episode/${episodeNumber + 1}`
-      : seasonRoute.next && nextSeasonFirstEpisode
-        ? `/anime/${seasonRoute.next.slug}/episode/1`
-        : null;
-
   const poster =
     anime.coverImage?.extraLarge ||
     anime.coverImage?.large ||
@@ -804,15 +790,17 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           <span className="episode-seo-context__eyebrow">Сейчас смотрят</span>
           <strong>{episodeNumber} серия · {title}</strong>
           <p>
-            Прогресс сохраняется автоматически. Можно перейти к соседним сериям
-            или вернуться к карточке тайтла.
+            Прогресс сохраняется автоматически. Переход между соседними сериями
+            уже доступен прямо под плеером.
           </p>
         </div>
 
-        <nav className="episode-seo-context__links" aria-label="Соседние эпизоды">
-          {previousHref ? <Link href={previousHref}>← Предыдущая</Link> : <span />}
+        <nav
+          className="episode-seo-context__links"
+          aria-label="Все эпизоды"
+          style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}
+        >
           <Link href={`/anime/${animeIdParam}`}>Все серии</Link>
-          {nextHref ? <Link href={nextHref}>Следующая →</Link> : <span />}
         </nav>
       </section>
 
