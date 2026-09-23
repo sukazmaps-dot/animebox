@@ -1,9 +1,7 @@
-import { adminRoleFor, requireAdmin, writeAdminAudit, type AdminRole } from '@/lib/admin-server';
+import { assertCanModerateTarget, requireAdmin, requireAdminMutation, writeAdminAudit, type AdminRole } from '@/lib/admin-server';
 import { ApiError, adminClient, readBody, response } from '@/lib/community-server';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const ROLE_RANK: Record<AdminRole, number> = { moderator: 1, admin: 2, owner: 3 };
-
 function cleanText(value: unknown, max = 500) {
   if (typeof value !== 'string') return '';
   return value.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
@@ -13,19 +11,12 @@ function requireSenior(role: AdminRole) {
   if (role === 'moderator') throw new ApiError(403, 'Это действие доступно только владельцу или администратору.');
 }
 
-function canModerate(actorRole: AdminRole, targetId: string) {
-  const targetRole = adminRoleFor(targetId);
-  if (!targetRole) return;
-  if (ROLE_RANK[targetRole] >= ROLE_RANK[actorRole]) {
-    throw new ApiError(403, 'Нельзя применить это действие к равной или более высокой роли.');
-  }
-}
-
 async function deleteMessage(messageId: string, actorId: string, actorRole: AdminRole) {
   const admin = adminClient();
   const message = await admin.from('chat_messages').select('id,user_id,deleted_at').eq('id', messageId).maybeSingle();
   if (message.error) throw message.error;
   if (!message.data) throw new ApiError(404, 'Сообщение не найдено.');
+  assertCanModerateTarget(actorId, actorRole, message.data.user_id);
   if (!message.data.deleted_at) {
     const update = await admin
       .from('chat_messages')
@@ -53,8 +44,11 @@ async function restrictUser(input: {
   actorRole: AdminRole;
 }) {
   if (!UUID.test(input.targetId)) throw new ApiError(400, 'Некорректный пользователь.');
-  canModerate(input.actorRole, input.targetId);
-  if (input.status === 'banned') requireSenior(input.actorRole);
+  assertCanModerateTarget(input.actorId, input.actorRole, input.targetId);
+  if (input.status === 'banned') {
+    requireSenior(input.actorRole);
+    if (!input.note) throw new ApiError(400, 'Для блокировки укажи причину.');
+  }
 
   const now = new Date();
   const expiresAt = input.status === 'muted' && input.minutes
@@ -176,7 +170,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { user, role } = await requireAdmin();
+    const { user, role } = await requireAdminMutation(request);
     const body = await readBody(request);
     const action = body.action;
     const admin = adminClient();
