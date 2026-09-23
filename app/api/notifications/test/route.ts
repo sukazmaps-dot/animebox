@@ -14,8 +14,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  assertBrowserMutationRequest(request);
   try {
+    assertBrowserMutationRequest(request);
     const { client, user } = await requireNotificationUser();
     const limited = await enforceIpAndUserRateLimit(request, user.id, {
       ip: { scope: 'notification_test_ip', limit: 12, windowSeconds: 600 },
