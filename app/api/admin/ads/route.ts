@@ -5,7 +5,7 @@ import {
   readBody,
   response,
 } from '@/lib/community-server';
-import { requireAdmin, writeAdminAudit } from '@/lib/admin-server';
+import { requireAdmin, requireAdminMutation, writeAdminAudit } from '@/lib/admin-server';
 import {
   AD_PLACEMENTS,
   normalizePlacementFlags,
@@ -39,7 +39,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { user, role } = await requireAdmin(['owner', 'admin']);
+    const { user, role } = await requireAdminMutation(request, ['owner', 'admin']);
     const body = await readBody(request);
     const current = await readStoredAdSettings();
 
@@ -92,6 +92,7 @@ export async function POST(request: Request) {
       targetType: 'ad_settings',
       targetId: 'global',
       details: settings,
+      request,
     });
 
     return response({ ok: true, settings });
