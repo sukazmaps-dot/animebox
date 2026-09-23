@@ -366,18 +366,19 @@
     color: #aaa3c6 !important;
   }
 
-  @media (hover:hover) and (pointer:fine) {
-    .episode-list__item:hover {
-      background: rgba(255,255,255,.018) !important;
-    }
+}
 
-    .episode-list__item:hover .episode-list__number {
-      color: #fff !important;
-    }
+@media (min-width: 769px) and (hover:hover) and (pointer:fine) {
+  .episode-list__item:hover {
+    background: rgba(255,255,255,.018) !important;
+  }
 
-    .episode-list__item:hover .episode-list__label {
-      color: var(--ab-ember) !important;
-    }
+  .episode-list__item:hover .episode-list__number {
+    color: #fff !important;
+  }
+
+  .episode-list__item:hover .episode-list__label {
+    color: var(--ab-ember) !important;
   }
 }
 
