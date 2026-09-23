@@ -15,7 +15,7 @@ function positiveInteger(value: string | null) {
 export async function GET(request: NextRequest) {
   const limited = await enforceIpRateLimit(request, {
     scope: 'episode_timeline_ip',
-    limit: 90,
+    limit: 30,
     windowSeconds: 60,
   });
   if (limited) return limited;
