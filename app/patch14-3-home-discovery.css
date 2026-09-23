@@ -1,0 +1,697 @@
+/* =========================================================
+   AnimeBox Patch 14.3 — Home & Discovery
+
+   Product rule:
+   the Home page is a media/editorial feed, not a dashboard.
+   Content art + viewing context should carry hierarchy.
+   ========================================================= */
+
+.home-page {
+  --home-section-gap: 34px;
+}
+
+.home-page .main-column {
+  min-width: 0;
+}
+
+.home-page .section {
+  margin-top: var(--home-section-gap);
+}
+
+.home-page .section-head {
+  gap: 18px;
+  margin-bottom: 13px;
+}
+
+.home-page .section-title {
+  padding-left: 0 !important;
+  color: var(--ab-text);
+  font-size: clamp(18px, 1.55vw, 22px);
+  font-weight: 710;
+  letter-spacing: -.024em;
+}
+
+.home-page .section-head p {
+  max-width: 680px;
+  margin: 5px 0 0;
+  color: var(--ab-muted-2);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.home-page .section-link {
+  color: var(--ab-muted-2);
+  font-size: 10px;
+  font-weight: 640;
+}
+
+.home-page .section-link:hover {
+  color: var(--ab-ember);
+}
+
+/* ---------------------------------------------------------
+   HERO
+   Keep it cinematic, reduce "landing page" decoration.
+   --------------------------------------------------------- */
+
+.home-page .home-hero-carousel {
+  border-color: rgba(204,208,219,.075) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 16px 42px rgba(0,0,0,.16) !important;
+}
+
+.home-page .home-hero-carousel__label {
+  text-transform: none;
+  letter-spacing: .025em;
+}
+
+.home-page .home-hero-carousel__signature {
+  width: 2px;
+  border-radius: 0;
+  background: var(--ab-iris);
+}
+
+.home-page .home-hero-carousel__dot {
+  border-radius: 0;
+}
+
+.home-page .home-hero-carousel__arrow {
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+/* ---------------------------------------------------------
+   CONTINUE WATCHING
+   A shelf of actual viewing sessions, not promo cards.
+   --------------------------------------------------------- */
+
+.home-page .continue-watching-section {
+  margin-top: 24px !important;
+  padding-top: 0;
+  border-top: 0 !important;
+}
+
+.home-page .continue-watching-section .smart-section-eyebrow {
+  display: none !important;
+}
+
+.home-page .continue-watching-section .section-head {
+  margin-bottom: 10px;
+}
+
+.home-page .continue-smart-grid {
+  gap: 0 !important;
+  overflow: hidden;
+  border-top: 1px solid var(--ab-line);
+  border-bottom: 1px solid var(--ab-line);
+}
+
+.home-page .continue-smart-card,
+.home-page .continue-smart-card:first-child {
+  min-height: 104px;
+  margin: 0 !important;
+  padding: 10px 12px !important;
+  border: 0 !important;
+  border-right: 1px solid var(--ab-line) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.home-page .continue-smart-card:last-child {
+  border-right: 0 !important;
+}
+
+.home-page .continue-smart-card:hover {
+  transform: none !important;
+  background: rgba(255,255,255,.016) !important;
+}
+
+.home-page .continue-smart-card__poster {
+  overflow: hidden;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+
+.home-page .continue-smart-card__play {
+  border-radius: 50%;
+  box-shadow: none !important;
+}
+
+.home-page .continue-smart-card__eyebrow {
+  color: #9c93c8 !important;
+  font-size: 9px !important;
+  font-weight: 640 !important;
+  letter-spacing: .015em !important;
+  text-transform: none !important;
+}
+
+.home-page .continue-smart-card__body strong {
+  color: #e9e7e4 !important;
+  font-weight: 680 !important;
+}
+
+.home-page .continue-smart-card__progress {
+  height: 2px !important;
+  border-radius: 0 !important;
+  background: rgba(204,208,219,.09) !important;
+}
+
+.home-page .continue-smart-card__progress i {
+  border-radius: 0 !important;
+  background: var(--ab-iris) !important;
+}
+
+.home-page .continue-smart-card__body small {
+  color: var(--ab-muted-2) !important;
+}
+
+.home-page .continue-smart-card__arrow {
+  color: #686f7d !important;
+}
+
+/* ---------------------------------------------------------
+   QUICK NAV / ONBOARDING
+   Both remain utilities and no longer compete with content.
+   --------------------------------------------------------- */
+
+.home-page .home-shortcuts {
+  margin-top: 16px;
+  margin-bottom: 0;
+}
+
+.home-page .home-shortcuts__item {
+  min-height: 58px;
+}
+
+.home-page .home-activation-v2 {
+  margin-top: 18px;
+  margin-bottom: 0;
+}
+
+/* ---------------------------------------------------------
+   RETENTION / PERSONAL PULSE
+   Signals should read as a timeline, not nested dashboards.
+   --------------------------------------------------------- */
+
+.home-page .home-retention {
+  margin-top: 24px;
+}
+
+.home-page .home-pulse {
+  margin-top: 20px;
+  border-color: var(--ab-line);
+}
+
+.home-page .home-pulse__rail {
+  background: var(--ab-iris);
+}
+
+/* ---------------------------------------------------------
+   DISCOVERY SCENE
+   Mood and recommendations are one product interaction.
+   --------------------------------------------------------- */
+
+.home-discovery-flow {
+  position: relative;
+  margin-top: 34px;
+  padding: 20px 0 24px;
+  border-top: 1px solid var(--ab-line-strong);
+  border-bottom: 1px solid var(--ab-line);
+}
+
+.home-discovery-flow .mood-picker {
+  margin: 0 !important;
+  padding: 0 0 17px !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.home-discovery-flow .mood-picker__intro {
+  align-self: center;
+}
+
+.home-discovery-flow .mood-picker__eyebrow {
+  color: var(--ab-muted-2) !important;
+  font-size: 9px;
+  letter-spacing: .025em !important;
+}
+
+.home-discovery-flow .mood-picker__intro h2 {
+  margin-top: 3px;
+  color: var(--ab-text);
+  font-size: 15px;
+  font-weight: 690;
+  letter-spacing: -.018em;
+}
+
+.home-discovery-flow .mood-picker__intro p {
+  margin-top: 4px;
+  color: var(--ab-muted-2);
+  font-size: 9px;
+}
+
+.home-discovery-flow .mood-picker__options {
+  gap: 0 !important;
+  border-top: 1px solid rgba(204,208,219,.04);
+  border-bottom: 1px solid rgba(204,208,219,.04);
+}
+
+.home-discovery-flow .mood-chip {
+  min-height: 50px;
+  border: 0 !important;
+  border-right: 1px solid rgba(204,208,219,.045) !important;
+  border-left: 2px solid transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.home-discovery-flow .mood-chip:last-child {
+  border-right: 0 !important;
+}
+
+.home-discovery-flow .mood-chip:hover {
+  transform: none;
+  background: rgba(255,255,255,.014) !important;
+}
+
+.home-discovery-flow .mood-chip.is-active {
+  border-left-color: var(--ab-iris) !important;
+  background: linear-gradient(90deg, var(--ab-iris-faint), transparent 88%) !important;
+}
+
+.home-discovery-flow .mood-chip__copy strong {
+  font-size: 10px;
+  font-weight: 660;
+}
+
+.home-discovery-flow .mood-chip__copy small {
+  color: var(--ab-muted-2);
+  font-size: 8px;
+}
+
+.home-discovery-flow .smart-feed-section {
+  margin-top: 18px !important;
+  padding-top: 0 !important;
+  border-top: 0 !important;
+}
+
+.home-discovery-flow .smart-feed-heading .smart-section-eyebrow,
+.home-discovery-flow .smart-feed-heading__asset {
+  display: none !important;
+}
+
+.home-discovery-flow .smart-feed-heading p {
+  color: var(--ab-muted-2);
+}
+
+.home-discovery-flow .smart-feed__stage {
+  margin-inline: 0;
+}
+
+/* Recommendation cards: poster-first editorial objects. */
+.home-discovery-flow .smart-card {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.home-discovery-flow .smart-card__poster {
+  overflow: hidden;
+  border: 1px solid rgba(204,208,219,.045) !important;
+  border-radius: 7px !important;
+  background: var(--ab-surface-2);
+  box-shadow: 0 8px 22px rgba(0,0,0,.12);
+}
+
+.home-discovery-flow .smart-card__poster::after {
+  background: linear-gradient(180deg, transparent 72%, rgba(5,7,11,.52)) !important;
+}
+
+.home-discovery-flow .smart-card__rating,
+.home-discovery-flow .smart-card__match {
+  border: 0 !important;
+  border-radius: 4px !important;
+  background: rgba(6,8,12,.84) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+.home-discovery-flow .smart-card__match {
+  border-left: 2px solid var(--ab-iris) !important;
+}
+
+.home-discovery-flow .smart-card__open {
+  opacity: 0;
+  border: 0 !important;
+  border-radius: 4px !important;
+  background: rgba(6,8,12,.82) !important;
+  box-shadow: none !important;
+  transition: opacity var(--ab-fast) ease;
+}
+
+@media (hover:hover) and (pointer:fine) {
+  .home-discovery-flow .smart-card:hover .smart-card__open {
+    opacity: 1;
+  }
+
+  .home-discovery-flow .smart-card:hover .smart-card__poster {
+    transform: translateY(-2px);
+    border-color: rgba(151,136,231,.15) !important;
+    box-shadow: 0 12px 28px rgba(0,0,0,.17);
+  }
+}
+
+.home-discovery-flow .smart-card__body {
+  padding: 9px 1px 0 !important;
+}
+
+.home-discovery-flow .smart-card__title {
+  min-height: 0;
+  color: #e7e5e2;
+  font-size: 11.5px;
+  font-weight: 675;
+  line-height: 1.35;
+}
+
+.home-discovery-flow .smart-card__meta {
+  margin-top: 4px;
+  color: var(--ab-muted-2);
+  font-size: 8px;
+}
+
+.home-discovery-flow .smart-card__reason {
+  min-height: 0;
+  margin-top: 6px;
+  padding-left: 7px;
+  border-left: 1px solid rgba(151,136,231,.45);
+  color: #8f89a5;
+  font-size: 8.5px;
+  line-height: 1.35;
+}
+
+.home-discovery-flow .smart-card__actions {
+  padding-top: 7px;
+}
+
+.home-discovery-flow .smart-card__plan {
+  min-height: 28px;
+  border: 0 !important;
+  border-bottom: 1px solid var(--ab-line) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #aaa6b1;
+}
+
+.home-discovery-flow .smart-card__plan:hover:not(:disabled) {
+  border-bottom-color: rgba(151,136,231,.35) !important;
+  background: transparent !important;
+  color: #ded9f1;
+}
+
+.home-discovery-flow .smart-card__dismiss {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #5f6674;
+}
+
+/* ---------------------------------------------------------
+   CATALOGUE SECTIONS
+   Use editorial separators, not panel stacks.
+   --------------------------------------------------------- */
+
+.home-page .main-column > .section:not(.continue-watching-section):not(.smart-feed-section) {
+  padding-top: 22px;
+  border-top: 1px solid var(--ab-line);
+}
+
+.home-page .personal-schedule-section {
+  padding-top: 20px !important;
+}
+
+.home-page .personal-schedule-card {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.home-page .anime-grid {
+  gap: 18px 14px;
+}
+
+.home-page .anime-card__image-wrap,
+.home-page .anime-card--signature .anime-card__image-wrap {
+  border-radius: 7px !important;
+}
+
+/* Mobile top ranking becomes an embedded editorial list. */
+.home-page .home-top-anime-panel--mobile {
+  margin-top: 28px;
+  padding: 18px 0 0;
+  border-top: 1px solid var(--ab-line);
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.home-page .home-top-anime-panel--mobile .panel__head,
+.home-page .home-top-anime-panel--mobile .panel__body {
+  padding-inline: 0 !important;
+}
+
+.home-page .home-top-anime-panel--mobile .top-anime-item {
+  border-color: var(--ab-line);
+}
+
+/* ---------------------------------------------------------
+   MOBILE
+   First screen: hero -> resume -> useful navigation.
+   Less empty space, partial next-card peeking for continuity.
+   --------------------------------------------------------- */
+
+@media (max-width: 720px) {
+  .home-page {
+    --home-section-gap: 28px;
+  }
+
+  .home-page .home-hero-carousel {
+    min-height: 330px !important;
+    border-radius: 9px !important;
+  }
+
+  .home-page .home-hero-carousel__content {
+    padding: 24px 22px 54px !important;
+  }
+
+  .home-page .page-hero h1 {
+    max-width: 88%;
+    font-size: clamp(27px, 9vw, 38px) !important;
+    line-height: 1.04 !important;
+  }
+
+  .home-page .home-hero-carousel__description {
+    max-width: 88%;
+    margin-top: 10px !important;
+    font-size: 10.5px !important;
+    line-height: 1.5 !important;
+    -webkit-line-clamp: 2 !important;
+  }
+
+  .home-page .home-hero-carousel__nav {
+    left: 22px !important;
+    right: 16px !important;
+    bottom: 14px !important;
+  }
+
+  .home-page .continue-watching-section {
+    margin-top: 20px !important;
+  }
+
+  .home-page .continue-watching-section .section-title {
+    font-size: 18px !important;
+  }
+
+  .home-page .continue-smart-grid {
+    display: flex !important;
+    gap: 0 !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    margin-right: -12px;
+    padding: 0 12px 0 0 !important;
+    border-right: 0;
+    scroll-padding-right: 12px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .home-page .continue-smart-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .home-page .continue-smart-card,
+  .home-page .continue-smart-card:first-child {
+    flex: 0 0 min(86vw, 410px) !important;
+    width: min(86vw, 410px) !important;
+    height: 104px !important;
+    min-height: 104px !important;
+    max-height: 104px !important;
+    grid-template-columns: 60px minmax(0, 1fr) 18px !important;
+    gap: 9px !important;
+    padding: 9px 10px !important;
+    border-right: 1px solid var(--ab-line) !important;
+    scroll-snap-align: start;
+  }
+
+  .home-page .continue-smart-card__poster {
+    width: 60px !important;
+    height: 84px !important;
+  }
+
+  .home-page .continue-smart-card__body strong {
+    font-size: 12.5px !important;
+  }
+
+  .home-page .continue-smart-card__body small {
+    max-width: 100%;
+    font-size: 8.5px !important;
+  }
+
+  .home-page .home-shortcuts {
+    margin-top: 14px;
+  }
+
+  .home-page .home-shortcuts__item {
+    min-height: 55px;
+    padding-inline: 12px;
+  }
+
+  .home-page .home-retention,
+  .home-page .home-pulse {
+    margin-top: 20px;
+  }
+
+  .home-discovery-flow {
+    margin-top: 28px;
+    padding: 16px 0 20px;
+  }
+
+  .home-discovery-flow .mood-picker {
+    gap: 12px !important;
+    padding-bottom: 14px !important;
+  }
+
+  .home-discovery-flow .mood-picker__intro {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .home-discovery-flow .mood-picker__intro > div {
+    min-width: 0;
+  }
+
+  .home-discovery-flow .mood-picker__intro p {
+    display: none;
+  }
+
+  .home-discovery-flow .mood-picker__options {
+    display: flex !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin-right: -12px;
+    padding-right: 12px;
+    border: 0;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .home-discovery-flow .mood-picker__options::-webkit-scrollbar {
+    display: none;
+  }
+
+  .home-discovery-flow .mood-chip {
+    flex: 0 0 auto;
+    min-width: 116px;
+    min-height: 44px;
+    padding: 5px 9px !important;
+    border-right: 1px solid var(--ab-line) !important;
+    scroll-snap-align: start;
+  }
+
+  .home-discovery-flow .mood-chip__icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .home-discovery-flow .mood-chip__image {
+    width: 31px;
+    height: 31px;
+  }
+
+  .home-discovery-flow .smart-feed-section {
+    margin-top: 12px !important;
+  }
+
+  .home-discovery-flow .smart-feed-section .section-head {
+    align-items: flex-end;
+  }
+
+  .home-discovery-flow .smart-feed-heading p {
+    display: none;
+  }
+
+  .home-discovery-flow .smart-card__open {
+    display: none !important;
+  }
+
+  .home-discovery-flow .smart-card__actions {
+    grid-template-columns: minmax(0, 1fr) 26px;
+  }
+
+  .home-page .main-column > .section:not(.continue-watching-section):not(.smart-feed-section) {
+    padding-top: 18px;
+  }
+
+  .home-page .anime-grid {
+    gap: 16px 10px;
+  }
+
+  .home-page .section-head {
+    margin-bottom: 11px;
+  }
+
+  .home-page .section-link {
+    font-size: 9.5px;
+  }
+}
+
+@media (max-width: 390px) {
+  .home-page .home-hero-carousel {
+    min-height: 312px !important;
+  }
+
+  .home-page .page-hero h1 {
+    font-size: clamp(25px, 8.7vw, 34px) !important;
+  }
+
+  .home-page .continue-smart-card,
+  .home-page .continue-smart-card:first-child {
+    flex-basis: 88vw !important;
+    width: 88vw !important;
+  }
+
+  .home-discovery-flow .mood-chip {
+    min-width: 108px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-discovery-flow .smart-card__poster,
+  .home-page .continue-smart-card {
+    transition: none !important;
+  }
+}
