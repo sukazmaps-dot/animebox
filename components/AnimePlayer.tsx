@@ -1,6 +1,7 @@
 'use client';
 
 import type { CSSProperties, ReactNode } from 'react';
+import type { EpisodeTimelineMeta } from '@/types/episode-timeline';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '@/components/Icon';
 import KodikPlayer, { type KodikPlayerHandle } from '@/components/KodikPlayer';
@@ -91,6 +92,7 @@ interface AnimePlayerProps {
   poster?: string;
   sources?: PlayerSource[];
   src?: string;
+  timeline?: EpisodeTimelineMeta | null;
   hasPrev?: boolean;
   hasNext?: boolean;
   prevLabel?: string;
@@ -160,11 +162,11 @@ function getPlayerSurface() {
 }
 
 const TRANSLATION_PREFERENCE_PREFIX = 'animebox:translation:v1';
-const LOCAL_PROGRESS_SAVE_INTERVAL_MS = 10_000;
+const LOCAL_PROGRESS_SAVE_INTERVAL_MS = 5_000;
 const LOCAL_RESUME_MIN_SECONDS = 10;
 const PLAYER_READY_TIMEOUT_MS = 14_000;
 const SOURCE_SWITCH_NOTICE_MS = 5_500;
-const AUTO_NEXT_COUNTDOWN_SECONDS = 8;
+const AUTO_NEXT_COUNTDOWN_SECONDS = 5;
 
 type SourceLoadState = 'idle' | 'loading' | 'ready' | 'error' | 'timeout';
 type PlayerFailureKind = Extract<SourceLoadState, 'error' | 'timeout'>;
@@ -356,6 +358,7 @@ export default function AnimePlayer({
   poster,
   sources = [],
   src,
+  timeline = null,
   hasPrev = false,
   hasNext = false,
   prevLabel = 'Пред. серия',
@@ -386,6 +389,10 @@ export default function AnimePlayer({
   const [resumeSeconds, setResumeSeconds] = useState(0);
   const [endScreenOpen, setEndScreenOpen] = useState(false);
   const [autoNextSeconds, setAutoNextSeconds] = useState<number | null>(null);
+  const [skipOpeningVisible, setSkipOpeningVisible] = useState(false);
+  const [endingPromptOpen, setEndingPromptOpen] = useState(false);
+  const [endingNextSeconds, setEndingNextSeconds] = useState<number | null>(null);
+  const [autoNextCancelled, setAutoNextCancelled] = useState(false);
   const [premiumStudio, setPremiumStudio] = useState<PremiumStudioSettings | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
