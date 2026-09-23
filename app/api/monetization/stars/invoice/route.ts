@@ -9,11 +9,20 @@ import { createSupportInvoiceLink } from '@/lib/telegram-stars';
 import { validateTelegramInitData } from '@/lib/telegram/validate-init-data';
 import { readJsonBody } from '@/lib/community-server';
 
+import { enforceIpRateLimit } from '@/lib/api-rate-limit';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
+    const limited = await enforceIpRateLimit(request, {
+      scope: 'support_invoice_ip',
+      limit: 30,
+      windowSeconds: 60,
+    });
+    if (limited) return limited;
+
     if (!TELEGRAM_STARS_ENABLED) {
       return NextResponse.json(
         {
