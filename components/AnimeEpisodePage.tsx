@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import EpisodeComments from '@/components/EpisodeComments';
@@ -214,8 +214,9 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
     const controller = new AbortController();
     let active = true;
+    let publishedAny = false;
     const identity = `${animeIdParam}:${episodeNumber}`;
-    const timeout = window.setTimeout(() => controller.abort(), 24_000);
+    const timeout = window.setTimeout(() => controller.abort(), 10_000);
 
     queueMicrotask(() => {
       if (!active) return;
@@ -230,6 +231,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         return;
       }
 
+      publishedAny = true;
       setSources((current) => {
         const withoutSameSource = current.filter((item) => item.name !== source.name);
         const next = [...withoutSameSource, source];
@@ -436,18 +438,38 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           return;
         }
 
-        const kodikReady = await loadKodik();
+        // Kodik and AniLiberty are independent fallbacks. Resolve them in
+        // parallel and publish whichever becomes playable first instead of
+        // waiting for one provider to time out before trying the next.
+        const [kodikResult, fallbackResult] = await Promise.allSettled([
+          loadKodik(),
+          loadFallback(),
+        ]);
 
-        if (!active || controller.signal.aborted) return;
+        if (!active) return;
 
-        if (kodikReady) {
-          void loadFallback().catch(() => undefined);
+        if (controller.signal.aborted) {
+          if (!publishedAny) {
+            setSourceIdentity(identity);
+            setLoadingSources(false);
+            setSourceMessage(
+              'Проверка источников заняла слишком много времени. Попробуйте ещё раз.',
+            );
+          }
           return;
         }
 
-        fallbackReason = await loadFallback();
+        const kodikReady =
+          kodikResult.status === 'fulfilled' && kodikResult.value === true;
+        const fallbackReady = publishedAny;
+        fallbackReason =
+          fallbackResult.status === 'fulfilled'
+            ? fallbackResult.value
+            : '';
 
-        if (!active || controller.signal.aborted) return;
+        if (kodikReady || fallbackReady) {
+          return;
+        }
 
         setSourceIdentity(identity);
         setLoadingSources(false);
@@ -625,6 +647,13 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
   };
 
   const title = getAnimeTitle(anime);
+  const accentColor = anime.coverImage?.color || '#7c68ee';
+  const titleAccentStyle = {
+    '--anime-page-accent': accentColor,
+    '--ab-accent': accentColor,
+    '--ab-iris': accentColor,
+    '--ab-ember': accentColor,
+  } as CSSProperties;
 
   const poster =
     anime.coverImage?.extraLarge ||
@@ -733,7 +762,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
   }
 
   return (
-    <div className="detail episode-page">
+    <div className="detail episode-page anime-title-accent-scope" style={titleAccentStyle}>
       <nav className="episode-seo-breadcrumbs" aria-label="Навигационная цепочка">
         <Link href="/">AnimeBox</Link>
         <span aria-hidden="true">›</span>

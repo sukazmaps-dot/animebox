@@ -10,7 +10,7 @@ export async function GET() {
   return Response.json(
     {
       ok: true,
-      build: 'patch-9.2-auth-bootstrap',
+      build: 'patch-15-scale-stability',
       commit: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
       environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? null,
       protocol: WATCH_PARTY_PROTOCOL,

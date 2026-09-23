@@ -44,14 +44,18 @@ export default function ForgotPasswordPage() {
     setError('');
 
     try {
-      const redirectTo =
-        `${window.location.origin}/auth/update-password`;
+      const redirectTo = new URL(
+        '/auth/callback',
+        window.location.origin,
+      );
+      redirectTo.searchParams.set('intent', 'recovery');
+      redirectTo.searchParams.set('next', '/auth/update-password');
 
       const { error } =
         await supabase.auth.resetPasswordForEmail(
           value,
           {
-            redirectTo,
+            redirectTo: redirectTo.toString(),
           },
         );
 

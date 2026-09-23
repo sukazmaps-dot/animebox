@@ -193,7 +193,7 @@ export default function EpisodeList({
   }, [activeSeason?.episodes, currentCount, selectedIsCurrent]);
 
   const episodeNumbers = useMemo(() => {
-    if (!availability) return [];
+    if (!availability) return metadataEpisodeNumbers;
     if (availability.status === 'available') return availability.episodes;
     if (availability.status === 'unavailable') return [];
 
@@ -618,9 +618,9 @@ export default function EpisodeList({
       <div className="episode-list__content">
       {extrasActive ? (
         <ExtrasGrid items={seasonData.extras} />
-      ) : availabilityLoading ? (
+      ) : availabilityLoading && metadataEpisodeNumbers.length === 0 ? (
         <div className="empty-state" aria-busy="true">
-          <span>Проверяем серии, которые реально доступны в плеере…</span>
+          <span>Уточняем доступные серии…</span>
         </div>
       ) : availability?.status === 'unavailable' ? (
         <div className="empty-state">
@@ -651,6 +651,13 @@ export default function EpisodeList({
         </div>
       ) : (
         <>
+          {availabilityLoading && metadataEpisodeNumbers.length > 0 && (
+            <div className="episode-list__verification" role="status" aria-live="polite">
+              <span aria-hidden="true" />
+              Уточняем доступность в фоне
+            </div>
+          )}
+
           <div className="episode-list__toolbar">
             <div className="episode-list__meta">
               {selectedIsCurrent && !totalEpisodesKnown

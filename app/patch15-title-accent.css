@@ -1,0 +1,140 @@
+/* AnimeBox Patch 15 — title-driven accent unification
+   The AniList cover accent becomes the single local accent source for title
+   pages, episode pages and inherited rails such as "Похожие аниме". */
+
+.anime-detail-v4,
+.anime-title-accent-scope {
+  --ab-accent: var(--anime-page-accent, #7c68ee);
+  --ab-iris: var(--anime-page-accent, #7c68ee);
+  --ab-iris-strong: color-mix(
+    in srgb,
+    var(--anime-page-accent, #7c68ee) 72%,
+    white 28%
+  );
+  --ab-accent-soft: color-mix(
+    in srgb,
+    var(--anime-page-accent, #7c68ee) 15%,
+    transparent
+  );
+  --ab-ember: var(--anime-page-accent, #7c68ee);
+}
+
+.anime-detail-v4 .section-title::before,
+.anime-title-accent-scope .section-title::before {
+  background: var(--anime-page-accent, #7c68ee);
+}
+
+.anime-detail-v4 .section-title__icon,
+.anime-title-accent-scope .section-title__icon,
+.anime-detail-v4 .section-link:hover,
+.anime-title-accent-scope .section-link:hover {
+  color: color-mix(
+    in srgb,
+    var(--anime-page-accent, #7c68ee) 74%,
+    white 26%
+  );
+}
+
+.anime-detail-v4 .episode-list-shell,
+.anime-title-accent-scope .episode-list-shell {
+  --episode-current: var(--anime-page-accent, #7c68ee);
+}
+
+.anime-detail-v4 .episode-list__season-tab[aria-selected='true'],
+.anime-title-accent-scope .episode-list__season-tab[aria-selected='true'],
+.anime-detail-v4 .episode-list__group-tab[aria-selected='true'],
+.anime-title-accent-scope .episode-list__group-tab[aria-selected='true'] {
+  border-bottom-color: var(--anime-page-accent, #7c68ee) !important;
+}
+
+.anime-detail-v4 .episode-list__progress i,
+.anime-title-accent-scope .episode-list__progress i {
+  background: var(--anime-page-accent, #7c68ee);
+}
+
+.anime-detail-v4 .episode-list__item.is-current,
+.anime-title-accent-scope .episode-list__item.is-current {
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--anime-page-accent, #7c68ee) 12%, transparent),
+      transparent 88%
+    ) !important;
+}
+
+.anime-detail-v4 .episode-list__item.is-current .episode-list__label,
+.anime-title-accent-scope .episode-list__item.is-current .episode-list__label {
+  color: color-mix(
+    in srgb,
+    var(--anime-page-accent, #7c68ee) 72%,
+    white 28%
+  ) !important;
+}
+
+@media (hover:hover) and (pointer:fine) {
+  .anime-detail-v4 .episode-list__item:hover,
+  .anime-title-accent-scope .episode-list__item:hover {
+    background:
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--anime-page-accent, #7c68ee) 8%, transparent),
+        rgba(255,255,255,.012)
+      ) !important;
+  }
+
+  .anime-detail-v4 .episode-list__item:hover .episode-list__label,
+  .anime-title-accent-scope .episode-list__item:hover .episode-list__label {
+    color: color-mix(
+      in srgb,
+      var(--anime-page-accent, #7c68ee) 76%,
+      white 24%
+    ) !important;
+  }
+
+  .anime-detail-v4 .episode-list__extra:hover,
+  .anime-title-accent-scope .episode-list__extra:hover {
+    border-left-color: var(--anime-page-accent, #7c68ee) !important;
+  }
+}
+
+.episode-list__verification {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 24px;
+  margin: 0 0 7px;
+  color: var(--ab-muted-2);
+  font-size: 9px;
+  font-weight: 620;
+}
+
+.episode-list__verification > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--anime-page-accent, #7c68ee);
+  box-shadow:
+    0 0 0 3px color-mix(
+      in srgb,
+      var(--anime-page-accent, #7c68ee) 12%,
+      transparent
+    );
+  animation: episode-verification-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes episode-verification-pulse {
+  0%,
+  100% {
+    opacity: .38;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .episode-list__verification > span {
+    animation: none;
+  }
+}

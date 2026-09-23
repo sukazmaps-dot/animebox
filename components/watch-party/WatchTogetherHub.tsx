@@ -1,6 +1,14 @@
 'use client';
 
-import { type FormEvent, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import Link from 'next/link';
 
 import AnimeImage from '@/components/AnimeImage';
@@ -26,6 +34,8 @@ import type { Anime } from '@/types/anime';
 import styles from './WatchTogetherHub.module.css';
 
 const LAST_ROOM_KEY = 'animebox:watch-together:last-room:v1';
+const ROOM_REFRESH_VISIBLE_MS = 30_000;
+const ROOM_REFRESH_MIN_GAP_MS = 8_000;
 
 type PublicWatchPartyRoom = {
   roomId: string;
@@ -138,6 +148,8 @@ export default function WatchTogetherHub() {
   const [roomSearch, setRoomSearch] = useState('');
   const [roomSort, setRoomSort] = useState<RoomSort>('popular');
   const [createError, setCreateError] = useState('');
+  const roomRequestRef = useRef<AbortController | null>(null);
+  const lastRoomRefreshAtRef = useRef(0);
   const [creatingRoom, setCreatingRoom] = useState(false);
   const lastRoom = useSyncExternalStore(
     (onStoreChange) => {
@@ -200,35 +212,70 @@ export default function WatchTogetherHub() {
     [rooms],
   );
 
-  const loadPublicRooms = useCallback(async () => {
+  const loadPublicRooms = useCallback(async (force = false) => {
+    const now = Date.now();
+    if (
+      !force &&
+      now - lastRoomRefreshAtRef.current < ROOM_REFRESH_MIN_GAP_MS
+    ) {
+      return;
+    }
+
+    roomRequestRef.current?.abort();
+    const controller = new AbortController();
+    roomRequestRef.current = controller;
+    lastRoomRefreshAtRef.current = now;
     setRoomsLoading(true);
+
     try {
       const response = await fetch('/api/watch-party/rooms?limit=30', {
-        cache: 'no-store',
         headers: { Accept: 'application/json' },
+        signal: controller.signal,
       });
       const payload = (await response.json()) as PublicRoomsResponse;
       if (!response.ok) throw new Error(payload.error || 'rooms_failed');
+      if (controller.signal.aborted) return;
       setRooms(payload.rooms ?? []);
       setRoomsError('');
     } catch {
+      if (controller.signal.aborted) return;
       setRoomsError('Не удалось обновить список открытых комнат.');
     } finally {
-      setRoomsLoading(false);
+      if (roomRequestRef.current === controller) {
+        roomRequestRef.current = null;
+      }
+      if (!controller.signal.aborted) setRoomsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    const initialTimer = window.setTimeout(() => {
+    const refreshIfVisible = () => {
+      if (document.visibilityState !== 'visible') return;
       void loadPublicRooms();
-    }, 0);
-    const timer = window.setInterval(() => {
-      void loadPublicRooms();
-    }, 15_000);
+    };
+
+    const initialTimer = window.setTimeout(refreshIfVisible, 0);
+    const timer = window.setInterval(
+      refreshIfVisible,
+      ROOM_REFRESH_VISIBLE_MS,
+    );
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void loadPublicRooms(true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('focus', refreshIfVisible);
 
     return () => {
       window.clearTimeout(initialTimer);
       window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('focus', refreshIfVisible);
+      roomRequestRef.current?.abort();
+      roomRequestRef.current = null;
     };
   }, [loadPublicRooms]);
 
@@ -461,7 +508,7 @@ export default function WatchTogetherHub() {
             <button
               type="button"
               className={styles.refreshButton}
-              onClick={() => void loadPublicRooms()}
+              onClick={() => void loadPublicRooms(true)}
               disabled={roomsLoading}
             >
               {roomsLoading ? 'Обновляем…' : 'Обновить'}

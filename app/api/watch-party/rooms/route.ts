@@ -9,21 +9,42 @@ import {
   listPublicWatchPartyRooms,
 } from '@/lib/watch-party-rooms-server';
 import { consumeIpRateLimit, rateLimitResponse } from '@/lib/api-rate-limit';
+import {
+  privateNoStoreHeaders,
+  publicApiCacheHeaders,
+} from '@/lib/edge-cache-policy';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
-    if (!(await consumeIpRateLimit(request, { scope: 'room_list', limit: 60, windowSeconds: 60 }))) {
-      return rateLimitResponse();
-    }
     const rawLimit = Number(new URL(request.url).searchParams.get('limit') || 12);
     const limit = Number.isSafeInteger(rawLimit) ? Math.min(30, Math.max(1, rawLimit)) : 12;
     const rooms = await listPublicWatchPartyRooms(limit);
-    return response({ rooms });
+
+    return Response.json(
+      { rooms },
+      {
+        headers: publicApiCacheHeaders({
+          browserSeconds: 5,
+          edgeSeconds: 12,
+          staleWhileRevalidateSeconds: 24,
+        }),
+      },
+    );
   } catch (error) {
-    return failure(error);
+    const result = failure(error);
+    const headers = new Headers(result.headers);
+    for (const [key, value] of Object.entries(privateNoStoreHeaders())) {
+      headers.set(key, value);
+    }
+
+    return new Response(result.body, {
+      status: result.status,
+      statusText: result.statusText,
+      headers,
+    });
   }
 }
 

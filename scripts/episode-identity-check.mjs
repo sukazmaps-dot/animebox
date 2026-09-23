@@ -24,10 +24,27 @@ if (!layout.includes(importNeedle)) {
   failures.push('layout.tsx: Episode Identity stylesheet is not imported.');
 }
 
-const lastCssImport = layout.lastIndexOf("import './");
 const identityImport = layout.indexOf(importNeedle);
-if (identityImport < 0 || identityImport !== lastCssImport) {
-  failures.push('layout.tsx: Episode Identity must remain the last global CSS layer.');
+const patch15ImportNeedle = "import './patch15-title-accent.css';";
+const patch15Import = layout.indexOf(patch15ImportNeedle);
+
+if (identityImport < 0) {
+  failures.push('layout.tsx: Episode Identity stylesheet import is missing.');
+}
+
+if (patch15Import >= 0 && patch15Import <= identityImport) {
+  failures.push(
+    'layout.tsx: Patch 15 title accent override must load after Episode Identity.',
+  );
+}
+
+if (patch15Import < 0) {
+  const lastCssImport = layout.lastIndexOf("import './");
+  if (identityImport !== lastCssImport) {
+    failures.push(
+      'layout.tsx: Episode Identity must remain the final episode-layout CSS layer.',
+    );
+  }
 }
 
 for (const [label, needle] of [

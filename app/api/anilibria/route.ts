@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ reason: 'stale_season_selection' }, { status: 409 });
   }
 
-  const signal = AbortSignal.any([request.signal, AbortSignal.timeout(20000)]);
+  const signal = AbortSignal.any([request.signal, AbortSignal.timeout(9_000)]);
   let uncertain = false;
   let reason = 'not_found';
 
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     const fetchJson = async (url: string): Promise<unknown> => {
       const response = await fetch(url, {
         headers: { Accept: 'application/json' },
-        signal: AbortSignal.any([signal, AbortSignal.timeout(4000)]),
+        signal: AbortSignal.any([signal, AbortSignal.timeout(2_800)]),
         next: { revalidate: 120 },
         redirect: 'error',
       });
