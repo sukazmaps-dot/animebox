@@ -101,7 +101,7 @@ export async function GET(request: Request) {
               userId: entry.user_id,
               place: Number(entry.place),
               activeMs: Number(entry.active_ms) || 0,
-              episodes: Number(entry.episodes) || 0,
+              completedEpisodes: Number(entry.episodes) || 0,
               username: entry.username_snapshot || 'Пользователь',
               avatarUrl: appearance?.avatarUrl ?? '/default-avatar.webp',
               avatarTransform: appearance?.avatarTransform ?? { x: 50, y: 50, zoom: 1 },
