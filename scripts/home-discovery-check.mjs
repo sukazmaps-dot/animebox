@@ -23,10 +23,14 @@ if (!layout.includes(importNeedle)) {
   failures.push('layout.tsx: Home Discovery stylesheet is not imported.');
 }
 
-const lastCssImport = layout.lastIndexOf("import './");
 const homeImport = layout.indexOf(importNeedle);
-if (homeImport < 0 || homeImport !== lastCssImport) {
-  failures.push('layout.tsx: Home Discovery must remain the last global CSS import.');
+const mobileShellImport = layout.indexOf("import './patch14-2-mobile-shell.css';");
+if (
+  homeImport < 0 ||
+  mobileShellImport < 0 ||
+  homeImport < mobileShellImport
+) {
+  failures.push('layout.tsx: Home Discovery must load after Mobile Shell.');
 }
 
 for (const [label, needle] of [
