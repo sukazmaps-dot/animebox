@@ -9,9 +9,16 @@ import {
   ApiError,
 } from '@/lib/community-server';
 
+import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
+
 export async function POST(request: Request) {
   try {
-    const { client } = await userClient();
+    const { client, user } = await userClient();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'community_library_write_ip', limit: 90, windowSeconds: 60 },
+      user: { scope: 'community_library_write_user', limit: 60, windowSeconds: 60 },
+    });
+    if (limited) return limited;
     const body = await readBody(request);
     const id = positiveInteger(body.animeId);
 
@@ -41,6 +48,11 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const { user } = await userClient();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'community_library_delete_ip', limit: 90, windowSeconds: 60 },
+      user: { scope: 'community_library_delete_user', limit: 60, windowSeconds: 60 },
+    });
+    if (limited) return limited;
     const body = await readBody(request);
     const id = positiveInteger(body.animeId);
 
