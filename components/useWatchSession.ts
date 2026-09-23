@@ -5,7 +5,7 @@ import type { KodikProviderSkipSignal } from '@/components/KodikPlayer';
 import { invalidateTrackerSnapshot } from '@/lib/tracker-client';
 import { invalidateCommunityProfile } from '@/lib/community-profile-cache';
 
-const HEARTBEAT_INTERVAL_MS = 10_000;
+const HEARTBEAT_INTERVAL_MS = 20_000;
 const ACTIVE_ADVANCE_WINDOW_MS = 15_000;
 const MIN_ACTIVE_DELTA_MS = 100;
 const MAX_SAMPLE_ADVANCE_MS = 30_000;

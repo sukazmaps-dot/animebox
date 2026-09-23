@@ -14,6 +14,7 @@ const FOUND_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const EMPTY_TTL_MS = 12 * 60 * 60 * 1000;
 const ERROR_TTL_MS = 30 * 60 * 1000;
 const MISSING_IDENTITY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const PLAYER_URL_REFRESH_TTL_MS = 24 * 60 * 60 * 1000;
 
 type TimelineRow = {
   anime_id: number | string;
@@ -218,10 +219,37 @@ export async function recordEpisodePlayerUrl(input: {
   const playerUrl = canonicalEpisodePlayerUrl(input.playerUrl, input.episode);
   if (!playerUrl) return;
 
+  const admin = adminClient();
+  const nowMs = Date.now();
+  const { data: existing, error: readError } = await admin
+    .from('episode_timeline_meta')
+    .select('video_player_url,video_verified_at')
+    .eq('anime_id', input.animeId)
+    .eq('episode_number', input.episode)
+    .maybeSingle();
+
+  if (!readError && existing?.video_player_url === playerUrl) {
+    const verifiedAt =
+      typeof existing.video_verified_at === 'string'
+        ? Date.parse(existing.video_verified_at)
+        : Number.NaN;
+
+    if (
+      Number.isFinite(verifiedAt) &&
+      nowMs - verifiedAt < PLAYER_URL_REFRESH_TTL_MS
+    ) {
+      return;
+    }
+  }
+
+  if (readError) {
+    console.warn('[episode-timeline] player URL cache read failed:', readError.message);
+  }
+
   await ensureAnime(input.animeId);
 
-  const now = new Date().toISOString();
-  const { error } = await adminClient()
+  const now = new Date(nowMs).toISOString();
+  const { error } = await admin
     .from('episode_timeline_meta')
     .upsert(
       {
