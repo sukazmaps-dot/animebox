@@ -46,6 +46,9 @@ if (!continueWatching.includes("'Следующая серия'") || !continueWa
 }
 
 for (const [label, needle] of [
+  ['desktop hides mobile Top Anime', '.home-page .home-top-anime-panel--mobile'],
+  ['desktop compact Top Anime poster', 'width: 42px !important'],
+  ['mobile hides desktop Top Anime', '.home-page .home-top-anime-panel--desktop'],
   ['editorial discovery scene', '.home-discovery-flow'],
   ['continue shelf de-cardification', '.home-page .continue-smart-card'],
   ['poster-first smart cards', '.home-discovery-flow .smart-card__poster'],
