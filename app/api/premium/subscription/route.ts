@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { optionalServerSecret } from '@/lib/env/server';
 
 import { adminClient, readJsonBody, userClient } from '@/lib/community-server';
 import { getPremiumRecurringSubscription } from '@/lib/premium-server';
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
+    const botToken = optionalServerSecret('TELEGRAM_BOT_TOKEN');
 
     if (!botToken) {
       return NextResponse.json(
