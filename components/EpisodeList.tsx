@@ -539,7 +539,7 @@ export default function EpisodeList({
                     setActiveTab(seasonKey(season.id));
                     setSelectedGroupId(null);
                   }}
-                  className={`group min-w-[118px] shrink-0 rounded-xl border px-3.5 py-2.5 text-left transition-all duration-200 ${
+                  className={`episode-list__season-tab group min-w-[118px] shrink-0 rounded-xl border px-3.5 py-2.5 text-left transition-all duration-200 ${
                     active
                       ? 'border-violet-400/55 bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_22px_rgba(124,58,237,0.30)]'
                       : 'border-slate-800/80 bg-slate-900/50 text-gray-400 hover:border-violet-400/35 hover:bg-slate-900/80 hover:text-white'
@@ -592,7 +592,7 @@ export default function EpisodeList({
                   setActiveTab('extras');
                   setSelectedGroupId(null);
                 }}
-                className={`min-w-[128px] shrink-0 rounded-xl border px-3.5 py-2.5 text-left transition-all duration-200 ${
+                className={`episode-list__season-tab episode-list__season-tab--extras min-w-[128px] shrink-0 rounded-xl border px-3.5 py-2.5 text-left transition-all duration-200 ${
                   extrasActive
                     ? 'border-violet-400/55 bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_22px_rgba(124,58,237,0.30)]'
                     : 'border-slate-800/80 bg-slate-900/50 text-gray-400 hover:border-violet-400/35 hover:bg-slate-900/80 hover:text-white'
@@ -703,7 +703,7 @@ export default function EpisodeList({
               <div className="relative">
                 <div
                   ref={groupTabsRef}
-                  className="flex gap-2 overflow-x-auto px-1 pb-2 scroll-smooth overscroll-x-contain [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden"
+                  className="episode-list__group-tabs flex gap-2 overflow-x-auto px-1 pb-2 scroll-smooth overscroll-x-contain [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden"
                   role="tablist"
                   aria-label="Группы эпизодов"
                 >
@@ -718,7 +718,7 @@ export default function EpisodeList({
                         aria-selected={active}
                         data-episode-group-active={active ? 'true' : undefined}
                         onClick={() => setSelectedGroupId(group.id)}
-                        className={`shrink-0 rounded-xl border px-3 py-2 text-left transition-colors ${
+                        className={`episode-list__group-tab shrink-0 rounded-xl border px-3 py-2 text-left transition-colors ${
                           active
                             ? 'border-violet-400/60 bg-violet-500/20 text-white'
                             : 'border-white/10 bg-white/[0.03] text-white/60 hover:border-violet-400/35 hover:text-white'
@@ -900,7 +900,7 @@ function ExtrasGrid({ items }: { items: EpisodeExtraItem[] }) {
           key={item.id}
           href={`/anime/${item.slug}`}
           prefetch={false}
-          className="group rounded-xl border border-white/10 bg-white/[0.03] p-3 transition-all hover:-translate-y-0.5 hover:border-violet-400/35 hover:bg-violet-500/[0.07]"
+          className="episode-list__extra group rounded-xl border border-white/10 bg-white/[0.03] p-3 transition-all hover:-translate-y-0.5 hover:border-violet-400/35 hover:bg-violet-500/[0.07]"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
