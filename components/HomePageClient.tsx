@@ -961,6 +961,8 @@ export default function HomePage({
 
         <HomeContinueWatching items={continueWatchingItems} />
 
+        <HomePersonalPulse />
+
         <HomeActivationPanel
           hasHistory={hasWatchHistory}
           hasContinue={continueWatchingItems.length > 0}
@@ -1007,8 +1009,6 @@ export default function HomePage({
         )}
 
         {!personalizedHome && <HomeTopAnimePanel popular={popular} mobile />}
-
-        <HomePersonalPulse />
 
         {personalScheduleItems.length > 0 && (
           <section className="section personal-schedule-section">
@@ -1082,7 +1082,7 @@ export default function HomePage({
           <section id="animebox-for-you" className="section smart-feed-section">
             <div className="section-head">
               <div className="smart-feed-heading">
-                <span className="smart-section-eyebrow">После титров</span>
+                <span className="smart-section-eyebrow">Для тебя</span>
                 <div className="smart-feed-heading__line">
                   <span
                     className="section-title__icon section-title__icon--asset smart-feed-heading__asset"
@@ -1126,7 +1126,7 @@ export default function HomePage({
 
         <HomeChatTeaser />
 
-        <section className="section">
+        <section className="section home-catalog-section home-catalog-section--popular">
           <div className="section-head">
             <h2 className="section-title">
               <span className="section-title__icon section-title__icon--asset" aria-hidden="true">
@@ -1170,7 +1170,7 @@ export default function HomePage({
           )}
         </section>
 
-        <section className="section">
+        <section className="section home-catalog-section home-catalog-section--ongoing">
           <div className="section-head">
             <h2 className="section-title">
               <span className="section-title__icon section-title__icon--asset" aria-hidden="true">
