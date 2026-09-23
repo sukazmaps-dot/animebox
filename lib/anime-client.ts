@@ -119,6 +119,10 @@ export async function getAnimes(
     params.set('tags', options.tags.join(','));
   }
 
+  if (options.studioNames?.length) {
+    params.set('studios', options.studioNames.join(','));
+  }
+
   if (options.mood && options.mood !== 'any') {
     params.set('mood', options.mood);
   }
