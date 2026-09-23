@@ -167,9 +167,12 @@ export function writeCatalogFiltersToUrl(
 
 export function catalogFiltersToProviderOptions(filters: CatalogFiltersState) {
   const genres: string[] = [];
-  const tags = filters.demographics
-    .map((id) => CATALOG_DEMOGRAPHICS.find((item) => item.id === id)?.providerTag)
-    .filter((value): value is string => Boolean(value));
+  const tags: string[] = [];
+
+  for (const id of filters.demographics) {
+    const option = CATALOG_DEMOGRAPHICS.find((item) => item.id === id);
+    if (option) tags.push(option.providerTag);
+  }
 
   for (const id of filters.discovery) {
     const option = CATALOG_DISCOVERY_FILTERS.find((item) => item.id === id);
@@ -178,9 +181,11 @@ export function catalogFiltersToProviderOptions(filters: CatalogFiltersState) {
     else tags.push(option.value);
   }
 
-  const studioNames = filters.studios
-    .map((id) => CATALOG_STUDIOS.find((item) => item.id === id)?.providerName)
-    .filter((value): value is string => Boolean(value));
+  const studioNames: string[] = [];
+  for (const id of filters.studios) {
+    const studio = CATALOG_STUDIOS.find((item) => item.id === id);
+    if (studio) studioNames.push(studio.providerName);
+  }
 
   return {
     genres,
