@@ -97,6 +97,14 @@ export async function getAnimes(
     params.set('year', String(options.year));
   }
 
+  if (options.format) {
+    params.set('format', options.format);
+  }
+
+  if (options.season) {
+    params.set('season', options.season);
+  }
+
   if (options.search?.trim()) {
     params.set('search', options.search.trim());
   }
