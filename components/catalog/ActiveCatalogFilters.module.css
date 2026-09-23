@@ -1,0 +1,52 @@
+.bar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0 4px;
+}
+
+.rail {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 2px 0 4px;
+  scrollbar-width: none;
+}
+
+.rail::-webkit-scrollbar {
+  display: none;
+}
+
+.clear {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: var(--ab-muted);
+  font-size: 10px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.clear:hover {
+  color: var(--ab-text-soft);
+}
+
+.clear:focus-visible {
+  outline: 2px solid var(--ab-accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .bar {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .clear {
+    min-height: 32px;
+  }
+}
