@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
+import { optionalServerSecret } from '@/lib/env/server';
 
 import { isDonatePayConfigured } from '@/lib/payments/providers/donatepay';
 import { syncDonatePayTransactions } from '@/lib/payments/sync-donatepay';
@@ -15,7 +16,7 @@ function secureEqual(left: string, right: string) {
 }
 
 function authorized(request: Request) {
-  const expected = process.env.CRON_SECRET?.trim();
+  const expected = optionalServerSecret('CRON_SECRET');
   const direct = request.headers.get('x-cron-secret')?.trim() ?? '';
   const bearer = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim() ?? '';
   return Boolean(expected && ((direct && secureEqual(direct, expected)) || (bearer && secureEqual(bearer, expected))));

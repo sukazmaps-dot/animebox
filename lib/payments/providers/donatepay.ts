@@ -1,4 +1,5 @@
 import 'server-only';
+import { optionalServerSecret } from '@/lib/env/server';
 
 const DEFAULT_BASE_URL = 'https://donatepay.ru/api/v1';
 const DEFAULT_CURRENCY = 'RUB';
@@ -27,7 +28,7 @@ export class DonatePayApiError extends Error {
 }
 
 export function isDonatePayConfigured() {
-  return Boolean(process.env.DONATEPAY_API_TOKEN?.trim());
+  return Boolean(optionalServerSecret('DONATEPAY_API_TOKEN'));
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -180,7 +181,7 @@ export async function fetchDonatePayTransactions({
   after?: string | null;
   limit?: number;
 } = {}) {
-  const token = process.env.DONATEPAY_API_TOKEN?.trim();
+  const token = optionalServerSecret('DONATEPAY_API_TOKEN');
   if (!token) throw new Error('DONATEPAY_API_TOKEN is not configured.');
 
   const base = (process.env.DONATEPAY_API_BASE_URL?.trim() || DEFAULT_BASE_URL).replace(/\/$/, '');

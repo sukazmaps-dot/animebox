@@ -1,3 +1,4 @@
+import { optionalServerSecret } from '@/lib/env/server';
 import {
   randomBytes,
 } from 'node:crypto';
@@ -95,9 +96,7 @@ export async function POST(
     }
 
     const botToken =
-      process.env
-        .TELEGRAM_BOT_TOKEN
-        ?.trim();
+      optionalServerSecret('TELEGRAM_BOT_TOKEN');
 
     if (!botToken) {
       return json(

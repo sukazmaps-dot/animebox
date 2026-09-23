@@ -1,3 +1,4 @@
+import { optionalServerSecret } from '@/lib/env/server';
 import { NextResponse } from 'next/server';
 
 import { validateTelegramInitData } from '@/lib/telegram/validate-init-data';
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
     }
 
     const botToken =
-      process.env.TELEGRAM_BOT_TOKEN?.trim();
+      optionalServerSecret('TELEGRAM_BOT_TOKEN');
 
     if (!botToken) {
       console.error(

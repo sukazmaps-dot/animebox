@@ -1,4 +1,5 @@
 import 'server-only';
+import { optionalServerSecret } from '@/lib/env/server';
 
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { PREMIUM_ENTITLEMENTS } from '@/lib/premium-server';
@@ -47,7 +48,7 @@ function graceHours() {
 }
 
 function config() {
-  const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim() || '';
+  const botToken = optionalServerSecret('TELEGRAM_BOT_TOKEN') || '';
   const chatId = process.env.BOOSTY_PREMIUM_CHAT_ID?.trim() || '';
   return {
     botToken,

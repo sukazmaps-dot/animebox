@@ -1,4 +1,5 @@
 import 'server-only';
+import { optionalServerSecret } from '@/lib/env/server';
 
 import { validateTelegramInitData } from '@/lib/telegram/validate-init-data';
 
@@ -35,7 +36,10 @@ export class TelegramMembershipError extends Error {
 }
 
 function requiredEnv(name: string) {
-  const value = process.env[name]?.trim();
+  const value =
+    name === 'TELEGRAM_BOT_TOKEN'
+      ? optionalServerSecret('TELEGRAM_BOT_TOKEN')
+      : process.env[name]?.trim();
 
   if (!value) {
     throw new TelegramMembershipError(

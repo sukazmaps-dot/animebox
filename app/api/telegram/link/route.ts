@@ -1,3 +1,4 @@
+import { optionalServerSecret } from '@/lib/env/server';
 import { NextResponse } from 'next/server';
 
 import {
@@ -53,7 +54,7 @@ export async function POST(
      * 1. Проверяем Telegram.
      */
     const botToken =
-      process.env.TELEGRAM_BOT_TOKEN?.trim();
+      optionalServerSecret('TELEGRAM_BOT_TOKEN');
 
     if (!botToken) {
       return NextResponse.json(
