@@ -2,7 +2,7 @@ import 'server-only';
 
 import type { User } from '@supabase/supabase-js';
 
-import { consumeIpAndUserRateLimit } from '@/lib/api-rate-limit';
+import { consumeIpAndUserRateLimit, consumeRateLimit } from '@/lib/api-rate-limit';
 import { ApiError, adminClient, userClient } from '@/lib/community-server';
 
 export type AdminRole = 'owner' | 'admin' | 'moderator';
@@ -44,6 +44,29 @@ export async function requireAdmin(
 
   if (!role || !allowed.includes(role)) {
     throw new ApiError(403, 'Нет доступа к этому разделу админ-панели.');
+  }
+
+  try {
+    const permitted = await consumeRateLimit(`admin:${user.id}`, {
+      scope: 'admin_access_user',
+      limit: 300,
+      windowSeconds: 60,
+    });
+
+    if (!permitted) {
+      throw new ApiError(
+        429,
+        'Слишком много запросов к админ-панели. Подожди минуту.',
+      );
+    }
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+
+    console.error('[Admin security] access limiter unavailable', error);
+    throw new ApiError(
+      503,
+      'Защита админ-панели временно недоступна. Попробуй через минуту.',
+    );
   }
 
   return { user, role };
