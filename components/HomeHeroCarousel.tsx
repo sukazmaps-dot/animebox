@@ -246,8 +246,10 @@ export default function HomeHeroCarousel({
     null;
 
   useEffect(() => {
-    setBackdropAttemptIndex(0);
-    setMobileAttemptIndex(0);
+    queueMicrotask(() => {
+      setBackdropAttemptIndex(0);
+      setMobileAttemptIndex(0);
+    });
   }, [anime?.id]);
 
   useEffect(() => {
