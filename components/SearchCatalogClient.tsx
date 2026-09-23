@@ -39,6 +39,7 @@ import {
   DEFAULT_CATALOG_FILTERS,
   catalogFilterCount,
   catalogFiltersAreDefault,
+  catalogFiltersEqual,
   catalogFiltersToProviderOptions,
   parseCatalogFiltersFromSearchParams,
   writeCatalogFiltersToUrl,
@@ -289,6 +290,7 @@ export default function SearchCatalogClient({
     window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
   }
   function commitFilters(next: CatalogFiltersState) {
+    if (catalogFiltersEqual(filters, next)) return;
     filterHistoryModeRef.current = 'push';
     setFilters(next);
     setPageState({ query, page: 1 });
@@ -348,7 +350,7 @@ export default function SearchCatalogClient({
         const option = CATALOG_DEMOGRAPHICS.find((item) => item.id === id);
         return option ? [option.providerTag] : [];
       });
-      if (demographicTags.length > 0 && !demographicTags.every((tag) => favoriteMatchesTag(anime, tag))) return false;
+      if (demographicTags.length > 0 && !demographicTags.some((tag) => favoriteMatchesTag(anime, tag))) return false;
 
       for (const id of filters.discovery) {
         const option = CATALOG_DISCOVERY_FILTERS.find((item) => item.id === id);
