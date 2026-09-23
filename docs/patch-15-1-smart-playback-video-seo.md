@@ -47,9 +47,11 @@ Provider failure is fail-open for playback: the episode simply has no skip butto
 The existing player now:
 
 - persists the local crash/resume journal every 5 seconds instead of 10;
-- shows `Пропустить опенинг` only inside the stored opening interval;
+- automatically skips the stored opening interval once per episode;
 - uses Kodik postMessage seek or the native HTMLVideoElement depending on source;
+- keeps `Пропустить опенинг` as a fallback only when the automatic seek is not acknowledged;
 - reports a skip signal into the existing watch heartbeat logic so skipped OP time is not treated as normal viewing coverage;
+- does not repeatedly auto-skip when the viewer seeks back into the opening after the first attempt;
 - starts a 5-second next-episode prompt at the stored ending start;
 - falls back to the last 10 seconds when no ending timestamp exists;
 - provides an explicit cancel action;
@@ -104,10 +106,12 @@ The following migrations were applied to production during the patch:
 ## Acceptance checks
 
 1. Open an episode with AniSkip metadata.
-2. During OP, the AnimeBox skip button appears only inside the OP interval.
-3. Clicking it seeks to OP end and normal watch coverage does not credit the skipped interval.
-4. At ED start, the 5-second next episode card appears.
-5. Cancel prevents automatic navigation.
-6. Resume survives refresh with at most ~5 seconds of local loss.
-7. `/video-sitemap.xml` is valid XML and only includes entries with real content/player URLs.
-8. Episode JSON-LD never points `contentUrl` at the AnimeBox watch page.
+2. When playback reaches the OP interval, AnimeBox automatically seeks to the OP end.
+3. Seeking back into the OP does not trigger another forced automatic skip in the same episode.
+4. If the automatic seek is not acknowledged, the manual `Пропустить опенинг` fallback appears.
+5. The skipped interval is reported through watch integrity instead of being credited as normal viewing coverage.
+6. At ED start, the 5-second next episode card appears.
+7. Cancel prevents automatic navigation.
+8. Resume survives refresh with at most ~5 seconds of local loss.
+9. `/video-sitemap.xml` is valid XML and only includes entries with real content/player URLs.
+10. Episode JSON-LD never points `contentUrl` at the AnimeBox watch page.
