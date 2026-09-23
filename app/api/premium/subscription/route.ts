@@ -4,12 +4,19 @@ import { adminClient, readJsonBody, userClient } from '@/lib/community-server';
 import { getPremiumRecurringSubscription } from '@/lib/premium-server';
 import { editUserStarSubscription } from '@/lib/telegram-stars';
 
+import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
     const { user } = await userClient();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'premium_subscription_ip', limit: 24, windowSeconds: 60 },
+      user: { scope: 'premium_subscription_user', limit: 12, windowSeconds: 60 },
+    });
+    if (limited) return limited;
     const body = await readJsonBody(request);
     const action = typeof body?.action === 'string' ? body.action.trim() : '';
 
