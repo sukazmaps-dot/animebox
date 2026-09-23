@@ -1064,61 +1064,63 @@ export default function HomePage({
           </section>
         )}
 
-        <HomeMoodPicker
-          value={mood}
-          onChange={(nextMood) => {
-            if (nextMood === mood) return;
+        <div className="home-discovery-flow">
+          <HomeMoodPicker
+            value={mood}
+            onChange={(nextMood) => {
+              if (nextMood === mood) return;
 
-            // Active chip responds immediately. The localStorage/event refresh
-            // is lower priority so it cannot compete with the feed animation.
-            setMood(nextMood);
-            startTransition(() => {
-              setTasteMood(nextMood);
-            });
-          }}
-        />
+              // Active chip responds immediately. The localStorage/event refresh
+              // is lower priority so it cannot compete with the feed animation.
+              setMood(nextMood);
+              startTransition(() => {
+                setTasteMood(nextMood);
+              });
+            }}
+          />
 
-        <section id="animebox-for-you" className="section smart-feed-section">
-          <div className="section-head">
-            <div className="smart-feed-heading">
-              <span className="smart-section-eyebrow">После титров</span>
-              <div className="smart-feed-heading__line">
-                <span
-                  className="section-title__icon section-title__icon--asset smart-feed-heading__asset"
-                  aria-hidden="true"
-                >
-                  <Image
-                    src="/brand/icons/sections/recommendations.svg"
-                    alt=""
-                    width={16}
-                    height={16}
-                    sizes="16px"
-                  />
-                </span>
-                <h2 className="section-title">Что смотреть дальше</h2>
+          <section id="animebox-for-you" className="section smart-feed-section">
+            <div className="section-head">
+              <div className="smart-feed-heading">
+                <span className="smart-section-eyebrow">После титров</span>
+                <div className="smart-feed-heading__line">
+                  <span
+                    className="section-title__icon section-title__icon--asset smart-feed-heading__asset"
+                    aria-hidden="true"
+                  >
+                    <Image
+                      src="/brand/icons/sections/recommendations.svg"
+                      alt=""
+                      width={16}
+                      height={16}
+                      sizes="16px"
+                    />
+                  </span>
+                  <h2 className="section-title">Что смотреть дальше</h2>
+                </div>
+                <p>Подборка меняется вместе с твоим настроением и историей просмотра.</p>
               </div>
-              <p>Тайтлы под твой сегодняшний вайб и то, что уже успело зацепить.</p>
+
+              <Link className="section-link" href="/search">
+                Весь каталог →
+              </Link>
             </div>
 
-            <Link className="section-link" href="/search">
-              Весь каталог →
-            </Link>
-          </div>
-
-          {!hydrated || (popularLoading && ongoingLoading && smartRecommendations.length === 0) ? (
-            <div className="loading-grid" aria-label="Загружаем персональные рекомендации">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="skeleton skeleton--card" />
-              ))}
-            </div>
-          ) : (
-            <SmartRecommendationFeed
-              items={smartRecommendations}
-              mood={mood}
-              hasWatchHistory={hasWatchHistory}
-            />
-          )}
-        </section>
+            {!hydrated || (popularLoading && ongoingLoading && smartRecommendations.length === 0) ? (
+              <div className="loading-grid" aria-label="Загружаем персональные рекомендации">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="skeleton skeleton--card" />
+                ))}
+              </div>
+            ) : (
+              <SmartRecommendationFeed
+                items={smartRecommendations}
+                mood={mood}
+                hasWatchHistory={hasWatchHistory}
+              />
+            )}
+          </section>
+        </div>
 
         {personalizedHome && <HomeTopAnimePanel popular={popular} mobile />}
 
