@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { optionalServerSecret } from '@/lib/env/server';
 
 import { userClient } from '@/lib/community-server';
 import { getPremiumPlan } from '@/lib/premium-catalog-server';
@@ -13,7 +14,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   try {
     const { user } = await userClient();
-    const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
+    const botToken = optionalServerSecret('TELEGRAM_BOT_TOKEN');
 
     if (!botToken) {
       return NextResponse.json(

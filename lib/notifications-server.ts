@@ -1,4 +1,5 @@
 import 'server-only';
+import { optionalServerSecret } from '@/lib/env/server';
 
 import { createClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
@@ -130,7 +131,7 @@ export async function sendTelegramMessage(options: {
   webAppUrl?: string;
   buttonText?: string;
 }) {
-  const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
+  const token = optionalServerSecret('TELEGRAM_BOT_TOKEN');
 
   if (!token) {
     throw new NotificationError(

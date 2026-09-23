@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { optionalServerSecret } from '@/lib/env/server';
 
 import { escapeTelegramHtml } from '@/lib/notifications-server';
 import { getUserSubscriptions } from '@/lib/telegram/bot-subscriptions';
@@ -21,8 +22,8 @@ import { getSponsorStatus } from '@/lib/sponsor-server';
 import { SPONSOR_META, type SponsorStatus } from '@/lib/sponsor';
 import { trackMonetizationEvents } from '@/lib/monetization-events-server';
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
+const BOT_TOKEN = optionalServerSecret('TELEGRAM_BOT_TOKEN');
+const WEBHOOK_SECRET = optionalServerSecret('TELEGRAM_WEBHOOK_SECRET');
 
 const SITE_URL = 'https://youranimebox.com';
 

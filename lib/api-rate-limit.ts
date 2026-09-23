@@ -4,6 +4,7 @@ import { createHmac } from 'node:crypto';
 import { isIP } from 'node:net';
 
 import { adminClient } from '@/lib/community-server';
+import { optionalServerSecret } from '@/lib/env/server';
 
 type RateLimit = { scope: string; limit: number; windowSeconds: number };
 
@@ -15,7 +16,7 @@ function clientAddress(request: Request) {
 }
 
 export async function consumeRateLimit(key: string, policy: RateLimit) {
-  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const secret = optionalServerSecret('SUPABASE_SERVICE_ROLE_KEY');
   if (!secret) throw new Error('Rate limiting is not configured');
 
   const digest = createHmac('sha256', secret).update(key).digest('hex');

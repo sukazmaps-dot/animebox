@@ -1,4 +1,5 @@
 import 'server-only';
+import { optionalServerSecret } from '@/lib/env/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdmin } from '@supabase/supabase-js';
 import { getAnimeByIdWithShikimori } from '@/lib/combined-anime';
@@ -14,7 +15,7 @@ export function positiveInteger(value: unknown): number {
   return value;
 }
 export function adminClient() {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key = optionalServerSecret('SUPABASE_SERVICE_ROLE_KEY');
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!key || !url) throw new ApiError(503, 'На сервере не настроен Supabase service role.');
   return createAdmin(url, key, { auth: { persistSession: false } });

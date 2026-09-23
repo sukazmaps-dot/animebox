@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "security:check": "node scripts/security-boundary-check.mjs",
+    "prebuild": "npm run security:check"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
