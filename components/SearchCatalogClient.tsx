@@ -5,7 +5,9 @@ import AnimeCard from '@/components/AnimeCard';
 import AnimeImage from '@/components/AnimeImage';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import MoodFilter from '@/components/catalog/MoodFilter';
-import SeasonYearPicker from '@/components/catalog/SeasonYearPicker';
+import CatalogFilterPanel from '@/components/catalog/CatalogFilterPanel';
+import CatalogMobileFilters from '@/components/catalog/CatalogMobileFilters';
+import ActiveCatalogFilters, { catalogActiveFilterLabels } from '@/components/catalog/ActiveCatalogFilters';
 import { getAnimes, isAbortError } from '@/lib/anime-client';
 import type { CatalogMood } from '@/lib/catalog-moods';
 import type { Anime } from '@/types/anime';
@@ -33,18 +35,16 @@ import {
 import {
   CATALOG_DEMOGRAPHICS,
   CATALOG_DISCOVERY_FILTERS,
-  CATALOG_FORMATS,
-  CATALOG_SORTS,
-  CATALOG_STATUSES,
   CATALOG_STUDIOS,
   DEFAULT_CATALOG_FILTERS,
   catalogFilterCount,
   catalogFiltersAreDefault,
   catalogFiltersToProviderOptions,
+  parseCatalogFiltersFromSearchParams,
   writeCatalogFiltersToUrl,
   type CatalogFiltersState,
 } from '@/lib/catalog-filter-state';
-import { monthToCatalogSeason } from '@/lib/catalog-season';
+import { formatCatalogSeason, monthToCatalogSeason } from '@/lib/catalog-season';
 import styles from './SearchCatalogClient.module.css';
 
 const SEARCH_DEBOUNCE_MS = 120;
@@ -92,6 +92,8 @@ export default function SearchCatalogClient({
   const [query, setQuery] = useState(normalizedInitialQuery);
   const liveQueryRef = useRef(liveQuery);
   const requestSequenceRef = useRef(0);
+  const filterHistoryModeRef = useRef<'replace' | 'push' | 'restore' | 'none'>('replace');
+  const emptyResultSignatureRef = useRef('');
   const searchIntent = useMemo(() => (query ? parseAnimeSearchIntent(query) : null), [query]);
   const discoveryIntent = useMemo(() => (query ? parseSmartDiscoveryQuery(query) : null), [query]);
   const discoveryDescription = useMemo(() => (discoveryIntent?.isDiscovery ? describeSmartDiscoveryIntent(discoveryIntent) : []), [discoveryIntent]);
@@ -105,6 +107,7 @@ export default function SearchCatalogClient({
   const [results, setResults] = useState<Anime[]>(initialResults);
   const [loading, setLoading] = useState(initialView === 'catalog' && (Boolean(normalizedInitialQuery) || initialResults.length === 0));
   const [error, setError] = useState('');
+  const [retryNonce, setRetryNonce] = useState(0);
   const [discoveryMeta, setDiscoveryMeta] = useState<DiscoveryMeta | null>(null);
   const [pageState, setPageState] = useState({ query, page: 1 });
   const page = pageState.query === query ? pageState.page : 1;
@@ -226,21 +229,49 @@ export default function SearchCatalogClient({
         }
       } catch (loadError: unknown) {
         if (isAbortError(loadError) || controller.signal.aborted || requestId !== requestSequenceRef.current) return;
-        setResults([]);
         setDiscoveryMeta(null);
-        setError('Не удалось загрузить аниме. Попробуйте ещё раз.');
+        setError('Не удалось обновить каталог. Показываем последние доступные результаты.');
       } finally {
         if (!controller.signal.aborted && requestId === requestSequenceRef.current) setLoading(false);
       }
     }
     void load();
     return () => controller.abort();
-  }, [discoveryIntent, filters, initialResults, page, query, selectedMood, tasteGraph, view]);
+  }, [discoveryIntent, filters, initialResults, page, query, retryNonce, selectedMood, tasteGraph, view]);
 
   useEffect(() => {
+    const mode = filterHistoryModeRef.current;
+
+    if (mode === 'restore') {
+      filterHistoryModeRef.current = 'none';
+      return;
+    }
+
     const url = writeCatalogFiltersToUrl(new URL(window.location.href), filters);
-    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+    const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+    if (nextUrl !== currentUrl) {
+      if (mode === 'push') {
+        window.history.pushState(window.history.state, '', nextUrl);
+      } else {
+        window.history.replaceState(window.history.state, '', nextUrl);
+      }
+    }
+
+    filterHistoryModeRef.current = 'none';
   }, [filters]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      filterHistoryModeRef.current = 'restore';
+      setFilters(parseCatalogFiltersFromSearchParams(new URL(window.location.href).searchParams));
+      setPageState({ query: liveQueryRef.current.trim(), page: 1 });
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   function applySearchQuery(nextValue: string) {
     const next = nextValue.replace(/\s+/g, ' ').trim();
@@ -257,29 +288,53 @@ export default function SearchCatalogClient({
     if (nextView === 'saved') url.searchParams.set('view', 'saved'); else url.searchParams.delete('view');
     window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
   }
-  function patchFilters(
-    update: (current: CatalogFiltersState) => CatalogFiltersState,
-  ) {
-    setFilters(update);
+  function commitFilters(next: CatalogFiltersState) {
+    filterHistoryModeRef.current = 'push';
+    setFilters(next);
     setPageState({ query, page: 1 });
   }
-  function toggleFilterList(
-    key: 'demographics' | 'discovery' | 'studios',
-    value: string,
-  ) {
-    patchFilters((current) => {
-      const values = current[key];
-      return {
-        ...current,
-        [key]: values.includes(value)
-          ? values.filter((item) => item !== value)
-          : [...values, value],
-      };
-    });
-  }
+
   function clearStructuredFilters() {
-    setFilters(DEFAULT_CATALOG_FILTERS);
-    setPageState({ query, page: 1 });
+    if (catalogFiltersAreDefault(filters)) return;
+    trackProductClientEvent('catalog_filters_cleared', {
+      source: 'catalog',
+      path: '/search',
+      entityType: 'catalog_filters',
+      entityId: 'all',
+      metadata: { active_filter_count: catalogFilterCount(filters) },
+    });
+    commitFilters(DEFAULT_CATALOG_FILTERS);
+  }
+
+  function trackCatalogFilterChange(filter: string, value: string) {
+    trackProductClientEvent(
+      filter === 'sort' ? 'catalog_sort_changed' : 'catalog_filter_changed',
+      {
+        source: 'catalog',
+        path: '/search',
+        entityType: 'catalog_filter',
+        entityId: filter,
+        metadata: {
+          filter,
+          value,
+          active_filter_count: catalogFilterCount(filters),
+        },
+      },
+    );
+  }
+
+  function toggleFiltersPanel() {
+    const next = !filtersOpen;
+    setFiltersOpen(next);
+    if (next) {
+      trackProductClientEvent('catalog_filter_panel_opened', {
+        source: 'catalog',
+        path: '/search',
+        entityType: 'surface',
+        entityId: 'catalog_filters',
+        metadata: { active_filter_count: catalogFilterCount(filters) },
+      });
+    }
   }
 
   const savedResults = useMemo(() => {
