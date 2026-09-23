@@ -18,6 +18,11 @@ import type {
   EpisodeSeasonTab,
   EpisodeSeasonsResponse,
 } from '@/types/episode-seasons';
+import type {
+  EpisodeWatchListItem,
+  EpisodeWatchListResponse,
+} from '@/types/watch';
+import type { WatchProgressEventDetail } from '@/components/useWatchSession';
 
 interface EpisodeListProps {
   animeId: string | number;
@@ -69,6 +74,7 @@ export default function EpisodeList({
   });
   const [activeTab, setActiveTab] = useState(seasonKey(trackingAnimeId));
   const [completedEpisodes, setCompletedEpisodes] = useState<number[]>([]);
+  const [episodeProgress, setEpisodeProgress] = useState<EpisodeWatchListItem[]>([]);
   const [availability, setAvailability] = useState<EpisodeAvailabilityResponse | null>(
     () => peekEpisodeAvailability(trackingAnimeId),
   );
@@ -193,24 +199,69 @@ export default function EpisodeList({
     let active = true;
 
     const refresh = () =>
-      communityRequest<{ episodes: number[] }>(
+      communityRequest<EpisodeWatchListResponse>(
         `episodes?animeId=${selectedAnimeId}`,
       )
         .then((data) => {
-          if (active) setCompletedEpisodes(data.episodes);
+          if (!active) return;
+          setCompletedEpisodes(data.episodes);
+          setEpisodeProgress(Array.isArray(data.progress) ? data.progress : []);
         })
         .catch(() => {
-          if (active) setCompletedEpisodes([]);
+          if (!active) return;
+          setCompletedEpisodes([]);
+          setEpisodeProgress([]);
         });
+
+    const onWatchProgress = (event: Event) => {
+      const detail = (event as CustomEvent<WatchProgressEventDetail>).detail;
+      if (!active || !detail || detail.animeId !== selectedAnimeId) return;
+
+      setEpisodeProgress((current) => {
+        const nextItem: EpisodeWatchListItem = {
+          episode: detail.episode,
+          positionMs: 0,
+          durationMs: detail.durationMs,
+          coverageMs: detail.coverageMs,
+          eligibleDurationMs: detail.eligibleDurationMs,
+          percent: detail.completed ? 100 : detail.percent,
+          completed: detail.completed,
+          watchedAt: new Date().toISOString(),
+        };
+
+        return [
+          ...current.filter((item) => item.episode !== detail.episode),
+          nextItem,
+        ].sort((a, b) => a.episode - b.episode);
+      });
+
+      if (detail.completed) {
+        setCompletedEpisodes((current) =>
+          current.includes(detail.episode)
+            ? current
+            : [...current, detail.episode].sort((a, b) => a - b),
+        );
+      }
+    };
 
     void refresh();
     window.addEventListener('episode-completed', refresh);
+    window.addEventListener('watch-progress', onWatchProgress as EventListener);
 
     return () => {
       active = false;
       window.removeEventListener('episode-completed', refresh);
+      window.removeEventListener('watch-progress', onWatchProgress as EventListener);
     };
   }, [selectedAnimeId]);
+
+  const progressByEpisode = useMemo(
+    () =>
+      new Map(
+        episodeProgress.map((item) => [item.episode, item] as const),
+      ),
+    [episodeProgress],
+  );
 
   const groups = useMemo(
     () => getEpisodeGroups(selectedAnimeId, selectedCount),
@@ -280,9 +331,34 @@ export default function EpisodeList({
 
     list.scrollTo({
       top: 0,
+      left: 0,
       behavior: 'auto',
     });
   }, [activeGroup?.id, selectedAnimeId]);
+
+  useEffect(() => {
+    const list = episodeListRef.current;
+    if (!list || !selectedIsCurrent || !currentEpisode) return;
+
+    const frame = requestAnimationFrame(() => {
+      const current = list.querySelector<HTMLElement>(
+        '[data-episode-current="true"]',
+      );
+      current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [
+    activeGroup?.id,
+    currentEpisode,
+    selectedAnimeId,
+    selectedIsCurrent,
+    visibleEpisodes.length,
+  ]);
 
   const updateGroupScrollState = useCallback(() => {
     const track = groupTabsRef.current;
@@ -431,7 +507,7 @@ export default function EpisodeList({
       {hasSeasonTabs && (
         <div className="episode-list__seasons mb-5">
           <div className="episode-list__seasons-head mb-2 flex items-center justify-between gap-3">
-            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/45">
+            <span className="episode-list__micro-heading">
               Сезоны и части
             </span>
 
@@ -616,7 +692,7 @@ export default function EpisodeList({
           {groups.length > 1 && (
             <div className="mb-4">
               <div className="mb-2 flex items-center justify-between gap-3">
-                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/45">
+                <span className="episode-list__micro-heading">
                   Части / арки
                 </span>
                 <span className="text-xs text-white/35">
@@ -686,20 +762,50 @@ export default function EpisodeList({
             </div>
           )}
 
-          <div ref={episodeListRef} className="episode-list">
+          <div
+            ref={episodeListRef}
+            className="episode-list"
+            role="list"
+            aria-label="Эпизоды"
+          >
             {visibleEpisodes.map((number) => {
+              const progress = progressByEpisode.get(number);
               const isCurrent =
                 selectedIsCurrent && number === currentEpisode;
-              const isWatched =
-                !isCurrent && completedEpisodes.includes(number);
+              const isCompleted =
+                Boolean(progress?.completed) || completedEpisodes.includes(number);
+              const percent = isCompleted
+                ? 100
+                : progress?.percent != null
+                  ? Math.max(0, Math.min(99, Math.round(progress.percent)))
+                  : 0;
+              const isPartial = !isCompleted && percent > 0;
 
               const className = [
                 'episode-list__item',
                 isCurrent ? 'is-current' : '',
-                isWatched ? 'is-watched' : '',
+                isCompleted ? 'is-watched' : '',
+                isPartial ? 'is-partial' : '',
               ]
                 .filter(Boolean)
                 .join(' ');
+
+              const numberLabel =
+                number < 100 ? String(number).padStart(2, '0') : String(number);
+              const statusLabel = isCurrent
+                ? 'Сейчас'
+                : isCompleted
+                  ? 'Завершено'
+                  : isPartial
+                    ? `${percent}% просмотрено`
+                    : 'Серия';
+              const ariaLabel = isCurrent
+                ? `${number} серия, сейчас смотрите`
+                : isCompleted
+                  ? `${number} серия, завершена`
+                  : isPartial
+                    ? `${number} серия, просмотрено ${percent}%`
+                    : `${number} серия`;
 
               return (
                 <Link
@@ -707,11 +813,45 @@ export default function EpisodeList({
                   href={`/anime/${selectedAnimeSlug}/episode/${number}`}
                   prefetch={false}
                   className={className}
+                  role="listitem"
+                  aria-current={isCurrent ? 'page' : undefined}
+                  aria-label={ariaLabel}
+                  data-episode-current={isCurrent ? 'true' : undefined}
+                  data-episode-state={
+                    isCurrent
+                      ? 'current'
+                      : isCompleted
+                        ? 'completed'
+                        : isPartial
+                          ? 'partial'
+                          : 'unwatched'
+                  }
                 >
-                  <span className="episode-list__number">{number}</span>
-                  <span className="episode-list__label">Серия {number}</span>
-                  {isWatched && (
-                    <span className="episode-list__check">✓</span>
+                  <span className="episode-list__marker" aria-hidden="true" />
+                  <span className="episode-list__number">{numberLabel}</span>
+
+                  <span className="episode-list__copy">
+                    <strong className="episode-list__label">{statusLabel}</strong>
+                    <small>
+                      {isPartial && progress?.positionMs
+                        ? `Продолжить с ${formatEpisodeTime(progress.positionMs)}`
+                        : isCompleted
+                          ? 'Просмотр подтверждён'
+                          : isCurrent
+                            ? `Эпизод ${number}`
+                            : `Эпизод ${number}`}
+                    </small>
+                  </span>
+
+                  <span
+                    className="episode-list__progress"
+                    aria-hidden="true"
+                  >
+                    <i style={{ width: `${percent}%` }} />
+                  </span>
+
+                  {isCompleted && (
+                    <span className="episode-list__check" aria-hidden="true">✓</span>
                   )}
                 </Link>
               );
@@ -724,6 +864,13 @@ export default function EpisodeList({
   );
 }
 
+
+function formatEpisodeTime(milliseconds: number) {
+  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
 
 function SeasonChevron({ direction }: { direction: 'left' | 'right' }) {
   return (
