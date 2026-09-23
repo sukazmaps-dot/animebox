@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { optionalServerSecret } from '@/lib/env/server';
 
-import { userClient } from '@/lib/community-server';
+import { readBody, userClient } from '@/lib/community-server';
 import { getPremiumPlan } from '@/lib/premium-catalog-server';
 import { isPremiumPlanId } from '@/lib/premium';
 import { getPremiumRecurringSubscription } from '@/lib/premium-server';
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json();
+    const body = await readBody(request);
     const planId = typeof body?.plan === 'string' ? body.plan.trim() : '';
 
     if (!isPremiumPlanId(planId)) {
