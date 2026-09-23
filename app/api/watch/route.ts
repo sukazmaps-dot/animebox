@@ -20,6 +20,8 @@ import { syncUserProgression } from '@/lib/progression-server';
 import { syncUserChallenges } from '@/lib/challenges-server';
 import { trackProductEvents } from '@/lib/product-events-server';
 
+import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function optionalPositiveInteger(value: unknown, max = 100_000) {
@@ -107,6 +109,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { user } = await userClient();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'watch_write_ip', limit: 600, windowSeconds: 60 },
+      user: { scope: 'watch_write_user', limit: 300, windowSeconds: 60 },
+    });
+    if (limited) return limited;
     const body = await readBody(request);
     const action = String(body.action || '');
 
