@@ -315,18 +315,30 @@ async function searchRussianAnime(
     throw new Error('Не удалось сопоставить результаты Shikimori с AniList');
   }
 
-  if (requestedGenres.length > 0 || options.tags?.length) {
+  if (requestedGenres.length > 0 || options.tags?.length || options.studioNames?.length) {
     const requestedGenreOptions = requestedGenres
       .map((value) => findAnimeGenre(value))
       .filter((value): value is NonNullable<typeof value> => Boolean(value));
     const requestedTagOptions = (options.tags ?? [])
       .map((value) => findAnimeTag(value))
       .filter((value): value is NonNullable<typeof value> => Boolean(value));
-
-    aniListMatches = aniListMatches.filter((anime) =>
-      requestedGenreOptions.every((genre) => animeTaxonomyValueMatches(anime.genres, genre)) &&
-      requestedTagOptions.every((tag) => animeTaxonomyValueMatches(anime.tags, tag)),
+    const requestedStudios = new Set(
+      (options.studioNames ?? []).map((value) => normalizeSearchText(value)),
     );
+
+    aniListMatches = aniListMatches.filter((anime) => {
+      const animeStudios = new Set(
+        (Array.isArray(anime.studios) ? anime.studios : [])
+          .map((studio: { name?: unknown }) => typeof studio?.name === 'string' ? normalizeSearchText(studio.name) : '')
+          .filter(Boolean),
+      );
+
+      return (
+        requestedGenreOptions.every((genre) => animeTaxonomyValueMatches(anime.genres, genre)) &&
+        requestedTagOptions.every((tag) => animeTaxonomyValueMatches(anime.tags, tag)) &&
+        [...requestedStudios].every((studio) => animeStudios.has(studio))
+      );
+    });
   }
 
   const byMalId = new Map(
