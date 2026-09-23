@@ -101,6 +101,7 @@ export default function AnimeNotificationControl({
   const [finished, setFinished] = useState(isFinished);
   const [enabled, setEnabled] = useState(false);
   const [message, setMessage] = useState('');
+  const terminalFinished = finished && !enabled;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -240,7 +241,7 @@ export default function AnimeNotificationControl({
           <motion.span
             className="anime-notification-control__bell"
             animate={
-              reducedMotion || enabled
+              reducedMotion || enabled || finished
                 ? undefined
                 : { rotate: [-7, 7, -7] }
             }
@@ -269,44 +270,55 @@ export default function AnimeNotificationControl({
           )}
         </div>
 
-        <h2>{compact ? 'Не пропускай новые серии' : 'Новая серия — сразу в Telegram'}</h2>
+        <h2>
+          {terminalFinished
+            ? 'Тайтл завершён'
+            : compact
+              ? 'Не пропускай новые серии'
+              : 'Новая серия — сразу в Telegram'}
+        </h2>
         <p>
-          {finished && !enabled
-            ? 'Тайтл уже завершён. Для него больше не нужно ждать новые серии.'
+          {terminalFinished
+            ? 'Новых серий больше не ожидается.'
             : 'AnimeBox отправит уведомление только когда серия действительно появится в плеере.'}
         </p>
       </div>
 
       <div className="anime-notification-control__actions">
-        <button
-          type="button"
-          className={
-            enabled
-              ? 'ab-action ab-action--secondary anime-notification-control__button is-enabled'
-              : 'ab-action ab-action--primary anime-notification-control__button'
-          }
-          disabled={loading || busy || (finished && !enabled)}
-          aria-pressed={enabled}
-          onClick={() => void toggle()}
-        >
-          {loading
-            ? 'Проверяем…'
-            : busy
-              ? 'Сохраняем…'
-              : !authenticated
-                ? 'Войти для уведомлений'
-                : finished && !enabled
-                  ? 'Тайтл завершён'
+        {terminalFinished ? (
+          <span className="anime-notification-control__finished-status" aria-label="Тайтл завершён">
+            <CheckCircleIcon size={15} weight="fill" aria-hidden="true" />
+            Завершено
+          </span>
+        ) : (
+          <button
+            type="button"
+            className={
+              enabled
+                ? 'ab-action ab-action--secondary anime-notification-control__button is-enabled'
+                : 'ab-action ab-action--primary anime-notification-control__button'
+            }
+            disabled={loading || busy}
+            aria-pressed={enabled}
+            onClick={() => void toggle()}
+          >
+            {loading
+              ? 'Проверяем…'
+              : busy
+                ? 'Сохраняем…'
+                : !authenticated
+                  ? 'Войти для уведомлений'
                   : !telegramLinked
                     ? 'Подключить Telegram'
                     : enabled
                       ? 'Уведомления включены'
                       : 'Отслеживать серии'}
-        </button>
+          </button>
+        )}
 
-        {authenticated && telegramLinked && (
+        {authenticated && telegramLinked && !terminalFinished && (
           <Link href="/notifications" className="anime-notification-control__settings">
-            <GearSixIcon size={15} weight="regular" aria-hidden="true" />
+            <GearSixIcon size={17} weight="regular" aria-hidden="true" />
             Настроить
           </Link>
         )}
