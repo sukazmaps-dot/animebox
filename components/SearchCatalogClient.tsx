@@ -289,9 +289,10 @@ export default function SearchCatalogClient({
         const title = normalizedText([getAnimeTitle(anime), anime.title?.romaji, anime.title?.english, anime.title?.native].filter(Boolean).join(' '));
         if (!title.includes(normalizedQuery)) return false;
       }
-      const demographicTags = filters.demographics
-        .map((id) => CATALOG_DEMOGRAPHICS.find((item) => item.id === id)?.providerTag)
-        .filter((value): value is string => Boolean(value));
+      const demographicTags = filters.demographics.flatMap<string>((id) => {
+        const option = CATALOG_DEMOGRAPHICS.find((item) => item.id === id);
+        return option ? [option.providerTag] : [];
+      });
       if (demographicTags.length > 0 && !demographicTags.every((tag) => favoriteMatchesTag(anime, tag))) return false;
 
       for (const id of filters.discovery) {
@@ -301,9 +302,10 @@ export default function SearchCatalogClient({
         if (option.provider === 'tag' && !favoriteMatchesTag(anime, option.value)) return false;
       }
 
-      const studioNames = filters.studios
-        .map((id) => CATALOG_STUDIOS.find((item) => item.id === id)?.providerName)
-        .filter((value): value is string => Boolean(value));
+      const studioNames = filters.studios.flatMap<string>((id) => {
+        const studio = CATALOG_STUDIOS.find((item) => item.id === id);
+        return studio ? [studio.providerName] : [];
+      });
       if (studioNames.length > 0 && !studioNames.every((studio) => favoriteMatchesStudio(anime, studio))) return false;
 
       if (filters.season && Number(anime.startDate?.year ?? 0) !== filters.season.year) return false;
