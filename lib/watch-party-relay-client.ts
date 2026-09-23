@@ -201,61 +201,79 @@ export async function openWatchPartyRelay(
 
     options.onStatus?.('connecting');
 
-    await new Promise<void>((resolve, reject) => {
-      const timer = window.setTimeout(() => {
-        if (initialSettled) return;
-        initialSettled = true;
-        options.onStatus?.('error');
-        reject(new Error('relay_subscribe_timeout'));
-      }, RELAY_SUBSCRIBE_TIMEOUT_MS);
-
-      channel.subscribe(async (status) => {
-        if (closed) return;
-
-        if (status === 'SUBSCRIBED') {
-          open = true;
-          options.onStatus?.('open');
-
-          if (options.presence) {
-            await channel.track({
-              ...options.presence,
-              relayId: id,
-              onlineAt: Date.now(),
-            });
-          }
-
-          flushPresence();
-
-          if (!initialSettled) {
-            initialSettled = true;
-            window.clearTimeout(timer);
-            resolve();
-          }
-          return;
-        }
-
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          open = false;
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const timer = window.setTimeout(() => {
+          if (initialSettled) return;
+          initialSettled = true;
           options.onStatus?.('error');
-          if (!initialSettled) {
-            initialSettled = true;
-            window.clearTimeout(timer);
-            reject(new Error(`relay_subscribe_${status.toLowerCase()}`));
-          }
-          return;
-        }
+          reject(new Error('relay_subscribe_timeout'));
+        }, RELAY_SUBSCRIBE_TIMEOUT_MS);
 
-        if (status === 'CLOSED') {
-          open = false;
-          options.onStatus?.('closed');
-          if (!initialSettled) {
-            initialSettled = true;
-            window.clearTimeout(timer);
-            reject(new Error('relay_subscribe_closed'));
+        channel.subscribe(async (status) => {
+          if (closed) return;
+
+          if (status === 'SUBSCRIBED') {
+            open = true;
+            options.onStatus?.('open');
+
+            if (options.presence) {
+              await channel.track({
+                ...options.presence,
+                relayId: id,
+                onlineAt: Date.now(),
+              });
+            }
+
+            flushPresence();
+
+            if (!initialSettled) {
+              initialSettled = true;
+              window.clearTimeout(timer);
+              resolve();
+            }
+            return;
           }
-        }
+
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            open = false;
+            options.onStatus?.('error');
+            if (!initialSettled) {
+              initialSettled = true;
+              window.clearTimeout(timer);
+              reject(new Error(`relay_subscribe_${status.toLowerCase()}`));
+            }
+            return;
+          }
+
+          if (status === 'CLOSED') {
+            open = false;
+            options.onStatus?.('closed');
+            if (!initialSettled) {
+              initialSettled = true;
+              window.clearTimeout(timer);
+              reject(new Error('relay_subscribe_closed'));
+            }
+          }
+        });
       });
-    });
+    } catch (error) {
+      closed = true;
+      open = false;
+
+      if (presenceTimer != null) {
+        window.clearTimeout(presenceTimer);
+        presenceTimer = null;
+      }
+
+      try {
+        await supabase.removeChannel(channel);
+      } catch {
+        // Failed subscriptions must not leak a Realtime channel.
+      }
+
+      throw error;
+    }
 
     const relay: WatchPartyRelay = {
       id,
