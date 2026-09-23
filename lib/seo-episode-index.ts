@@ -16,6 +16,14 @@ export type SeoEpisodeIndexEntry = {
 };
 
 const CHUNK_SIZE = 200;
+const SEO_CONFIRM_TTL_MS = 6 * 60 * 60 * 1000;
+const PLAYER_VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
+
+function isOlderThan(value: unknown, nowMs: number, ttlMs: number) {
+  if (typeof value !== 'string' || !value) return true;
+  const parsed = Date.parse(value);
+  return !Number.isFinite(parsed) || nowMs - parsed >= ttlMs;
+}
 
 function thumbnailFor(anime: Anime) {
   return (
@@ -54,7 +62,8 @@ export async function syncSeoEpisodeIndex(
   if (!slug) return;
 
   const admin = adminClient();
-  const now = new Date().toISOString();
+  const nowMs = Date.now();
+  const now = new Date(nowMs).toISOString();
 
   const kodikPlayerBase =
     availability.providers.find(
@@ -78,59 +87,116 @@ export async function syncSeoEpisodeIndex(
 
     const { data: existing, error: existingError } = await admin
       .from('seo_episode_index')
-      .select('episode_number,first_available_at')
+      .select(
+        'episode_number,first_available_at,last_confirmed_at,slug,thumbnail_url,provider,indexable',
+      )
       .eq('anime_id', anime.id)
       .in('episode_number', chunk);
 
     if (existingError) throw existingError;
 
-    const firstAvailable = new Map<number, string>();
+    const existingByEpisode = new Map<
+      number,
+      {
+        first_available_at?: string | null;
+        last_confirmed_at?: string | null;
+        slug?: string | null;
+        thumbnail_url?: string | null;
+        provider?: string | null;
+        indexable?: boolean | null;
+      }
+    >();
+
     for (const row of existing ?? []) {
       const episode = Number(row.episode_number);
       if (!Number.isSafeInteger(episode)) continue;
-      if (typeof row.first_available_at === 'string' && row.first_available_at) {
-        firstAvailable.set(episode, row.first_available_at);
-      }
+      existingByEpisode.set(episode, row);
     }
 
-    const rows = chunk.map((episode) => ({
-      anime_id: anime.id,
-      episode_number: episode,
-      slug,
-      first_available_at: firstAvailable.get(episode) ?? now,
-      last_confirmed_at: now,
-      thumbnail_url: thumbnailUrl,
-      provider,
-      indexable: true,
-    }));
+    const rows = chunk.flatMap((episode) => {
+      const current = existingByEpisode.get(episode);
+      const metadataChanged =
+        !current ||
+        current.slug !== slug ||
+        (current.thumbnail_url ?? null) !== thumbnailUrl ||
+        current.provider !== provider ||
+        current.indexable !== true;
+      const confirmationStale =
+        !current ||
+        isOlderThan(current.last_confirmed_at, nowMs, SEO_CONFIRM_TTL_MS);
 
-    const { error } = await admin
-      .from('seo_episode_index')
-      .upsert(rows, { onConflict: 'anime_id,episode_number' });
+      if (!metadataChanged && !confirmationStale) return [];
 
-    if (error) throw error;
+      return [{
+        anime_id: anime.id,
+        episode_number: episode,
+        slug,
+        first_available_at:
+          typeof current?.first_available_at === 'string' && current.first_available_at
+            ? current.first_available_at
+            : now,
+        last_confirmed_at: now,
+        thumbnail_url: thumbnailUrl,
+        provider,
+        indexable: true,
+      }];
+    });
+
+    if (rows.length) {
+      const { error } = await admin
+        .from('seo_episode_index')
+        .upsert(rows, { onConflict: 'anime_id,episode_number' });
+
+      if (error) throw error;
+    }
 
     if (kodikPlayerBase) {
-      const timelineRows = chunk.flatMap((episode) => {
-        const playerUrl = canonicalEpisodePlayerUrl(kodikPlayerBase, episode);
-        return playerUrl
-          ? [{
-              anime_id: anime.id,
-              episode_number: episode,
-              video_player_url: playerUrl,
-              video_verified_at: now,
-              updated_at: now,
-            }]
-          : [];
-      });
+      const { data: existingTimeline, error: timelineReadError } = await admin
+        .from('episode_timeline_meta')
+        .select('episode_number,video_player_url,video_verified_at')
+        .eq('anime_id', anime.id)
+        .in('episode_number', chunk);
 
-      if (timelineRows.length) {
-        const { error: timelineError } = await admin
-          .from('episode_timeline_meta')
-          .upsert(timelineRows, { onConflict: 'anime_id,episode_number' });
+      if (timelineReadError) {
+        console.warn('[episode-seo] player URL read failed:', timelineReadError);
+      } else {
+        const timelineByEpisode = new Map(
+          (existingTimeline ?? []).map((row) => [Number(row.episode_number), row] as const),
+        );
 
-        if (timelineError) {
-          console.warn('[episode-seo] player URL seed failed:', timelineError);
+        const timelineRows = chunk.flatMap((episode) => {
+          const playerUrl = canonicalEpisodePlayerUrl(kodikPlayerBase, episode);
+          if (!playerUrl) return [];
+
+          const current = timelineByEpisode.get(episode);
+          const urlChanged = current?.video_player_url !== playerUrl;
+          const verificationStale =
+            !current ||
+            isOlderThan(
+              current.video_verified_at,
+              nowMs,
+              PLAYER_VERIFY_TTL_MS,
+            );
+
+          if (!urlChanged && !verificationStale) return [];
+
+          return [{
+            anime_id: anime.id,
+            episode_number: episode,
+            video_player_url: playerUrl,
+            video_verified_at: now,
+            updated_at: now,
+          }];
+        });
+
+        if (timelineRows.length) {
+          const { error: timelineError } = await admin
+            .from('episode_timeline_meta')
+            .upsert(timelineRows, { onConflict: 'anime_id,episode_number' });
+
+          if (timelineError) {
+            console.warn('[episode-seo] player URL seed failed:', timelineError);
+          }
         }
       }
     }
