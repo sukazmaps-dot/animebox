@@ -51,6 +51,38 @@ function extensionOf(file: File) {
   return file.name.split('.').pop()?.trim().toLowerCase() ?? '';
 }
 
+async function stabilizePickedFile(file: File): Promise<File> {
+  try {
+    // Copy the bytes while the native picker still owns a valid handle.
+    // This matters on Android/Samsung where clearing <input type="file">
+    // can invalidate the content:// backed File before async decoding starts.
+    const buffer = await file.arrayBuffer();
+
+    if (!buffer.byteLength) {
+      throw new Error('empty buffer');
+    }
+
+    return new File(
+      [buffer],
+      file.name || 'animebox-image',
+      {
+        type: file.type || 'application/octet-stream',
+        lastModified: file.lastModified || Date.now(),
+      },
+    );
+  } catch (error) {
+    console.warn('[ProfileMedia] failed to materialize picked file', {
+      type: file.type,
+      size: file.size,
+      error,
+    });
+
+    throw new Error(
+      'Не удалось прочитать выбранное изображение. Попробуй выбрать файл ещё раз.',
+    );
+  }
+}
+
 function hintedKind(file: File): PickedImageKind | null {
   const mime = file.type.trim().toLowerCase();
   const extension = extensionOf(file);
@@ -163,6 +195,8 @@ export async function detectPickedImageKind(
 async function decodeNative(
   blob: Blob,
 ): Promise<DecodedImage> {
+  let bitmapError: unknown = null;
+
   if (typeof createImageBitmap === 'function') {
     try {
       // Avoid ImageBitmapOptions here: some Android Chromium/WebView builds
@@ -180,8 +214,13 @@ async function decodeNative(
       }
 
       bitmap.close();
-    } catch {
-      // Fall through to the browser image decoder below.
+    } catch (error) {
+      bitmapError = error;
+      console.warn('[ProfileMedia] createImageBitmap failed, using img fallback', {
+        type: blob.type,
+        size: blob.size,
+        error,
+      });
     }
   }
 
@@ -192,12 +231,19 @@ async function decodeNative(
   try {
     await new Promise<void>((resolve, reject) => {
       image.onload = () => resolve();
-      image.onerror = () =>
+      image.onerror = () => {
+        console.warn('[ProfileMedia] HTMLImageElement decode failed', {
+          type: blob.type,
+          size: blob.size,
+          bitmapError,
+        });
+
         reject(
           new Error(
             'Браузер не смог декодировать это изображение.',
           ),
         );
+      };
       image.src = url;
     });
 
@@ -424,8 +470,11 @@ export async function normalizePickedImage(
     );
   }
 
-  const kind = await detectPickedImageKind(file);
-  const decoded = await decodePickedImage(file, kind);
+  // Materialize the picker-backed File before any later async work. This
+  // decouples decoding from Android's temporary content:// permission/handle.
+  const stableFile = await stabilizePickedFile(file);
+  const kind = await detectPickedImageKind(stableFile);
+  const decoded = await decodePickedImage(stableFile, kind);
 
   try {
     return await redrawAndSanitize(decoded);

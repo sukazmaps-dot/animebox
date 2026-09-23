@@ -659,8 +659,12 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                             type="file"
                             accept="image/jpeg,image/jpg,image/png,image/webp,image/avif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.avif,.heic,.heif"
                             onChange={(event) => {
-                              void stageMedia('banner', event.target.files?.[0]);
-                              event.currentTarget.value = '';
+                              const input = event.currentTarget;
+                              const file = input.files?.[0];
+
+                              void stageMedia('banner', file).finally(() => {
+                                input.value = '';
+                              });
                             }}
                           />
                         </label>
@@ -683,8 +687,12 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                               type="file"
                               accept="image/jpeg,image/jpg,image/png,image/webp,image/avif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.avif,.heic,.heif"
                               onChange={(event) => {
-                                void stageMedia('avatar', event.target.files?.[0]);
-                                event.currentTarget.value = '';
+                                const input = event.currentTarget;
+                                const file = input.files?.[0];
+
+                                void stageMedia('avatar', file).finally(() => {
+                                  input.value = '';
+                                });
                               }}
                             />
                           </label>
