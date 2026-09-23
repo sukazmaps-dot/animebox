@@ -1,5 +1,5 @@
 import { ApiError, adminClient, failure, readBody, response } from '@/lib/community-server';
-import { requireAdmin, writeAdminAudit } from '@/lib/admin-server';
+import { assertCanModerateTarget, requireAdmin, requireAdminMutation, writeAdminAudit } from '@/lib/admin-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,6 +46,7 @@ async function loadGroup(groupId: string) {
 async function rejectGroup(groupId: string, actorId: string, actorRole: 'owner' | 'admin' | 'moderator') {
   const admin = adminClient();
   const group = await loadGroup(groupId);
+  assertCanModerateTarget(actorId, actorRole, String(group.user_id));
 
   const { data: media, error: mediaError } = await admin
     .from('profile_media_moderation')
@@ -90,6 +91,7 @@ async function rejectGroup(groupId: string, actorId: string, actorRole: 'owner' 
 async function approveGroup(groupId: string, actorId: string, actorRole: 'owner' | 'admin' | 'moderator') {
   const admin = adminClient();
   const group = await loadGroup(groupId);
+  assertCanModerateTarget(actorId, actorRole, String(group.user_id));
 
   if (group.status !== 'review') {
     throw new ApiError(409, 'Эта заявка уже обработана.');
@@ -276,7 +278,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { user, role } = await requireAdmin();
+    const { user, role } = await requireAdminMutation(request);
     const body = await readBody(request);
     const groupId = typeof body.groupId === 'string' ? body.groupId.trim() : '';
     const action = body.action;
