@@ -84,15 +84,15 @@ Additional validated constraints guarantee that base avatar/banner paths:
 
 The migration was applied to production and an authenticated-role simulation confirmed that direct `telegram_id` modification is rejected.
 
-## Critical finding: direct episode-comment RPC bypass
+## Critical finding: direct comment RPC bypass
 
-`create_episode_comment` is intentionally callable by authenticated users because it is the database mutation primitive behind comments.
+Both `create_episode_comment` and the older community `create_comment` RPC are intentionally callable by authenticated users because they are database mutation primitives behind the two current comment surfaces.
 
-The HTTP API checked admin mute/ban state and had app-level rate limits, but a caller could invoke the RPC directly.
+The HTTP APIs checked admin mute/ban state, but a caller could invoke these RPCs directly.
 
 ### Fix
 
-The RPC now independently:
+Both RPCs now independently:
 
 - requires `auth.uid()`;
 - checks `admin_user_controls`;
@@ -104,7 +104,7 @@ The RPC now independently:
 - remains unavailable to `anon`;
 - grants execution only to `authenticated`.
 
-Production verification confirmed the restriction guard and serialization are present.
+Production verification confirmed the episode RPC restriction guard and serialization are present; the legacy community RPC was then hardened with the same boundary.
 
 ## Cron authentication cleanup
 
