@@ -422,6 +422,9 @@ export default function AnimePlayer({
   const lastLocalProgressSavedAtRef = useRef(0);
   const playbackQualifiedRef = useRef(false);
   const endedFlowRef = useRef(false);
+  const openingAutoSkipAttemptedRef = useRef(false);
+  const openingSkipTargetRef = useRef<number | null>(null);
+  const openingSkipFallbackTimerRef = useRef<number | null>(null);
   const playerViewportRef = useRef<HTMLDivElement | null>(null);
   const telegramFullscreenOwnedRef = useRef(false);
   const telegramOrientationOwnedRef = useRef(false);
@@ -738,6 +741,91 @@ export default function AnimePlayer({
     [animeId, episodeNumber, user?.id, watchTogetherMode],
   );
 
+  const clearOpeningSkipFallback = useCallback(() => {
+    if (openingSkipFallbackTimerRef.current != null) {
+      window.clearTimeout(openingSkipFallbackTimerRef.current);
+      openingSkipFallbackTimerRef.current = null;
+    }
+  }, []);
+
+  const requestOpeningSkip = useCallback(
+    (mode: 'auto' | 'manual') => {
+      const opening = timeline?.opening;
+      if (!opening || !smartSeekSupported || watchTogetherMode) return false;
+
+      const fromSeconds = latestPlaybackPositionSecondsRef.current;
+      const targetSeconds = opening.endMs / 1000;
+      const durationSeconds =
+        isKodik
+          ? kodikPlayerRef.current?.getState().durationSeconds ?? null
+          : videoRef.current && Number.isFinite(videoRef.current.duration)
+            ? videoRef.current.duration
+            : null;
+
+      let requested = false;
+
+      if (isKodik) {
+        const player = kodikPlayerRef.current;
+        if (player) {
+          watchSession.onProviderSkip({
+            kind: 'opening',
+            atSeconds: fromSeconds,
+            durationSeconds,
+            origin: typeof window !== 'undefined' ? window.location.origin : null,
+          });
+          player.seek(targetSeconds);
+          requested = true;
+        }
+      } else if (videoRef.current) {
+        try {
+          watchSession.onProviderSkip({
+            kind: 'opening',
+            atSeconds: fromSeconds,
+            durationSeconds,
+            origin: typeof window !== 'undefined' ? window.location.origin : null,
+          });
+          videoRef.current.currentTime = targetSeconds;
+          requested = true;
+        } catch {
+          requested = false;
+        }
+      }
+
+      if (!requested) {
+        if (mode === 'manual') setSkipOpeningVisible(true);
+        return false;
+      }
+
+      openingSkipTargetRef.current = targetSeconds;
+      setSkipOpeningVisible(false);
+      clearOpeningSkipFallback();
+
+      // Kodik/native seek acknowledgement is asynchronous. If the observed
+      // position does not reach the OP end quickly, expose the manual button
+      // as a fallback instead of repeatedly forcing automatic seeks.
+      openingSkipFallbackTimerRef.current = window.setTimeout(() => {
+        openingSkipFallbackTimerRef.current = null;
+
+        if (
+          latestPlaybackPositionSecondsRef.current <
+          Math.max(0, targetSeconds - 1.5)
+        ) {
+          setSkipOpeningVisible(true);
+        }
+      }, 1_800);
+
+      return true;
+    },
+    [
+      clearOpeningSkipFallback,
+      isKodik,
+      smartSeekSupported,
+      timeline,
+      watchSession,
+      watchTogetherMode,
+    ],
+  );
+
   const handleTimeSample = useCallback(
     (sample: {
       positionSeconds: number;
@@ -773,15 +861,39 @@ export default function AnimePlayer({
       serverWatchSample(sample);
 
       const opening = timeline?.opening;
-      const shouldShowOpeningSkip = Boolean(
+      const openingStartSeconds = opening ? opening.startMs / 1000 : null;
+      const openingEndSeconds = opening ? opening.endMs / 1000 : null;
+      const insideOpening =
+        openingStartSeconds != null &&
+        openingEndSeconds != null &&
+        positionSeconds >= openingStartSeconds &&
+        positionSeconds < openingEndSeconds;
+
+      const pendingOpeningTarget = openingSkipTargetRef.current;
+      if (
+        pendingOpeningTarget != null &&
+        positionSeconds >= Math.max(0, pendingOpeningTarget - 1.5)
+      ) {
+        openingSkipTargetRef.current = null;
+        clearOpeningSkipFallback();
+        setSkipOpeningVisible(false);
+      }
+
+      if (
         !watchTogetherMode &&
         smartSeekSupported &&
-        opening &&
-        positionSeconds >= opening.startMs / 1000 &&
-        positionSeconds < opening.endMs / 1000,
-      );
-
-      setSkipOpeningVisible(shouldShowOpeningSkip);
+        insideOpening &&
+        !openingAutoSkipAttemptedRef.current
+      ) {
+        // One automatic attempt per episode. If the provider refuses/drops
+        // the seek, requestOpeningSkip exposes the manual fallback button.
+        openingAutoSkipAttemptedRef.current = true;
+        if (!requestOpeningSkip('auto')) {
+          setSkipOpeningVisible(true);
+        }
+      } else if (!insideOpening) {
+        setSkipOpeningVisible(false);
+      }
 
       if (
         !watchTogetherMode &&
@@ -835,7 +947,9 @@ export default function AnimePlayer({
       markConfirmedPlaybackStart,
       onEnded,
       onPlaybackQualified,
+      clearOpeningSkipFallback,
       persistLocalProgress,
+      requestOpeningSkip,
       serverWatchSample,
       smartSeekSupported,
       timeline,
@@ -844,36 +958,8 @@ export default function AnimePlayer({
   );
 
   const skipOpening = useCallback(() => {
-    const opening = timeline?.opening;
-    if (!opening || !smartSeekSupported || watchTogetherMode) return;
-
-    const fromSeconds = latestPlaybackPositionSecondsRef.current;
-    const targetSeconds = opening.endMs / 1000;
-
-    watchSession.onProviderSkip({
-      kind: 'opening',
-      atSeconds: fromSeconds,
-      durationSeconds:
-        isKodik
-          ? kodikPlayerRef.current?.getState().durationSeconds ?? null
-          : videoRef.current && Number.isFinite(videoRef.current.duration)
-            ? videoRef.current.duration
-            : null,
-      origin: typeof window !== 'undefined' ? window.location.origin : null,
-    });
-
-    if (isKodik) {
-      kodikPlayerRef.current?.seek(targetSeconds);
-    } else if (videoRef.current) {
-      try {
-        videoRef.current.currentTime = targetSeconds;
-      } catch {
-        return;
-      }
-    }
-
-    setSkipOpeningVisible(false);
-  }, [isKodik, smartSeekSupported, timeline, watchSession, watchTogetherMode]);
+    requestOpeningSkip('manual');
+  }, [requestOpeningSkip]);
 
   const cancelEndingAutoNext = useCallback(() => {
     setAutoNextCancelled(true);
@@ -999,6 +1085,10 @@ export default function AnimePlayer({
 
   useEffect(() => {
     endedFlowRef.current = false;
+    openingAutoSkipAttemptedRef.current = false;
+    openingSkipTargetRef.current = null;
+    clearOpeningSkipFallback();
+
     queueMicrotask(() => {
       setEndScreenOpen(false);
       setAutoNextSeconds(null);
@@ -1007,7 +1097,11 @@ export default function AnimePlayer({
       setEndingNextSeconds(null);
       setAutoNextCancelled(false);
     });
-  }, [animeId, episodeNumber]);
+
+    return () => {
+      clearOpeningSkipFallback();
+    };
+  }, [animeId, clearOpeningSkipFallback, episodeNumber]);
 
 
   useEffect(() => {
