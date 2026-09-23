@@ -3,6 +3,11 @@ import 'server-only';
 import { createHash } from 'node:crypto';
 
 import { ApiError, adminClient } from '@/lib/community-server';
+import {
+  inspectProfileImageBytes,
+  type InspectedProfileImage,
+  type SupportedProfileImageMime,
+} from '@/lib/profile-media-inspect-server';
 
 export type ProfileMediaScope = 'base' | 'premium';
 export type ProfileMediaKind = 'avatar' | 'banner';
@@ -23,10 +28,10 @@ export type ProfileMediaCandidateGroup = {
 type LoadedMedia = {
   candidate: ProfileMediaCandidate;
   bytes: Buffer;
-  mimeType: string;
+  storageMime: string | null;
+  inspection: InspectedProfileImage;
   size: number;
   sha256: string;
-  animated: boolean;
 };
 
 type AuditRow = {
@@ -37,7 +42,7 @@ type AuditRow = {
   public_path: string;
   quarantine_path: null;
   sha256: string;
-  mime_type: string;
+  mime_type: SupportedProfileImageMime;
   file_size: number;
   animated: boolean;
   status: 'approved';
@@ -49,6 +54,10 @@ type AuditRow = {
   moderation_result: {
     ai_moderation_enabled: false;
     technical_checks_passed: true;
+    detected_mime: SupportedProfileImageMime;
+    width: number;
+    height: number;
+    animated: boolean;
   };
 };
 
@@ -60,6 +69,14 @@ export type ProfileMediaPublishResult = {
 
 const PUBLIC_BUCKET = 'profile-media';
 const QUARANTINE_BUCKET = 'profile-media-quarantine';
+const UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const RECOGNIZED_STORAGE_MIMES = new Set<SupportedProfileImageMime>([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+]);
 
 function maxAllowedBytes(scope: ProfileMediaScope, kind: ProfileMediaKind) {
   if (scope === 'premium') {
@@ -68,45 +85,91 @@ function maxAllowedBytes(scope: ProfileMediaScope, kind: ProfileMediaKind) {
   return 5 * 1024 * 1024;
 }
 
-function inferMimeType(path: string) {
-  const lower = path.toLowerCase();
-  if (lower.endsWith('.gif')) return 'image/gif';
-  if (lower.endsWith('.png')) return 'image/png';
-  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
-  return 'image/webp';
+function mediaGeometryLimit(
+  scope: ProfileMediaScope,
+  kind: ProfileMediaKind,
+  variant: ProfileMediaVariant,
+) {
+  if (scope === 'premium' && variant === 'static') {
+    return kind === 'avatar'
+      ? { maxWidth: 512, maxHeight: 512, maxPixels: 512 * 512 }
+      : { maxWidth: 1500, maxHeight: 900, maxPixels: 1500 * 900 };
+  }
+
+  if (kind === 'avatar') {
+    return {
+      maxWidth: 1024,
+      maxHeight: 1024,
+      maxPixels: 1024 * 1024,
+    };
+  }
+
+  return {
+    maxWidth: 2400,
+    maxHeight: 1200,
+    maxPixels: 2400 * 1200,
+  };
 }
 
-function hasExpectedImageSignature(bytes: Buffer, mimeType: string) {
-  if (mimeType === 'image/jpeg') {
-    return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+function allowedDetectedMime(
+  scope: ProfileMediaScope,
+  variant: ProfileMediaVariant,
+  mimeType: SupportedProfileImageMime,
+) {
+  if (variant === 'static') {
+    return scope === 'premium' && mimeType === 'image/webp';
   }
 
-  if (mimeType === 'image/png') {
-    const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-    return bytes.length >= signature.length && bytes.subarray(0, signature.length).equals(signature);
-  }
-
-  if (mimeType === 'image/gif') {
-    const header = bytes.subarray(0, 6).toString('ascii');
-    return header === 'GIF87a' || header === 'GIF89a';
-  }
-
-  if (mimeType === 'image/webp') {
+  if (scope === 'base') {
     return (
-      bytes.length >= 12 &&
-      bytes.subarray(0, 4).toString('ascii') === 'RIFF' &&
-      bytes.subarray(8, 12).toString('ascii') === 'WEBP'
+      mimeType === 'image/jpeg' ||
+      mimeType === 'image/png' ||
+      mimeType === 'image/webp'
     );
   }
 
-  return false;
+  return (
+    mimeType === 'image/jpeg' ||
+    mimeType === 'image/png' ||
+    mimeType === 'image/webp' ||
+    mimeType === 'image/gif'
+  );
 }
 
-function detectAnimation(bytes: Buffer, mimeType: string) {
-  if (mimeType === 'image/gif') return true;
-  if (mimeType === 'image/webp') return bytes.includes(Buffer.from('ANIM'));
-  if (mimeType === 'image/png') return bytes.includes(Buffer.from('acTL'));
-  return false;
+function validateCandidateOwnership(
+  userId: string,
+  group: ProfileMediaCandidateGroup,
+  candidate: ProfileMediaCandidate,
+) {
+  const parts = candidate.quarantinePath.split('/');
+  if (parts.length !== 6) {
+    throw new ApiError(400, 'Некорректный путь приватного изображения.');
+  }
+
+  const [owner, pending, scope, kind, uploadId, fileName] = parts;
+  if (
+    owner !== userId ||
+    pending !== 'pending' ||
+    scope !== group.scope ||
+    kind !== group.kind ||
+    !UUID.test(uploadId)
+  ) {
+    throw new ApiError(400, 'Приватное изображение не принадлежит этому профилю.');
+  }
+
+  const fileMatch = fileName?.match(/^(original|static)\.(jpg|png|webp|gif)$/i);
+  if (!fileMatch || fileMatch[1] !== candidate.variant) {
+    throw new ApiError(400, 'Некорректный вариант приватного изображения.');
+  }
+
+  const extension = fileMatch[2].toLowerCase();
+  const expectedPublic = group.scope === 'premium'
+    ? `${userId}/premium/${group.kind}${candidate.variant === 'static' ? '-static' : ''}-${uploadId}.${extension}`
+    : `${userId}/${group.kind}-${uploadId}.${extension}`;
+
+  if (candidate.path !== expectedPublic) {
+    throw new ApiError(400, 'Публичный путь изображения не соответствует приватной загрузке.');
+  }
 }
 
 async function loadCandidate(candidate: ProfileMediaCandidate): Promise<LoadedMedia> {
@@ -123,20 +186,29 @@ async function loadCandidate(candidate: ProfileMediaCandidate): Promise<LoadedMe
   }
 
   const bytes = Buffer.from(await data.arrayBuffer());
-  const storageMime = data.type?.trim().toLowerCase();
-  const mimeType =
-    storageMime &&
-    ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(storageMime)
-      ? storageMime
-      : inferMimeType(candidate.path);
+  const inspection = inspectProfileImageBytes(bytes);
+
+  if (!inspection) {
+    throw new ApiError(
+      400,
+      'Файл не является поддерживаемым JPG, PNG, WebP или GIF изображением.',
+    );
+  }
+
+  const rawStorageMime = data.type?.trim().toLowerCase() || '';
+  const storageMime = RECOGNIZED_STORAGE_MIMES.has(
+    rawStorageMime as SupportedProfileImageMime,
+  )
+    ? rawStorageMime
+    : null;
 
   return {
     candidate,
     bytes,
-    mimeType,
+    storageMime,
+    inspection,
     size: bytes.byteLength,
     sha256: createHash('sha256').update(bytes).digest('hex'),
-    animated: detectAnimation(bytes, mimeType),
   };
 }
 
@@ -148,10 +220,57 @@ function validateTechnicalMedia(
     throw new ApiError(413, 'Изображение превышает допустимый размер.');
   }
 
-  if (!hasExpectedImageSignature(item.bytes, item.mimeType)) {
+  const { inspection } = item;
+
+  if (!allowedDetectedMime(group.scope, item.candidate.variant, inspection.mimeType)) {
+    throw new ApiError(400, 'Этот формат изображения нельзя использовать в выбранном режиме.');
+  }
+
+  if (item.storageMime && item.storageMime !== inspection.mimeType) {
     throw new ApiError(
       400,
-      'Файл не прошёл техническую проверку изображения. Загрузите JPG, PNG, WebP или GIF заново.',
+      'MIME загруженного файла не соответствует его реальному содержимому.',
+    );
+  }
+
+  const pathExtension = item.candidate.path.split('.').pop()?.toLowerCase();
+  if (pathExtension !== inspection.extension) {
+    throw new ApiError(
+      400,
+      'Расширение изображения не соответствует его реальному формату.',
+    );
+  }
+
+  const geometry = mediaGeometryLimit(
+    group.scope,
+    group.kind,
+    item.candidate.variant,
+  );
+
+  const pixels = inspection.width * inspection.height;
+  if (
+    !Number.isSafeInteger(inspection.width) ||
+    !Number.isSafeInteger(inspection.height) ||
+    inspection.width < 1 ||
+    inspection.height < 1 ||
+    inspection.width > geometry.maxWidth ||
+    inspection.height > geometry.maxHeight ||
+    !Number.isSafeInteger(pixels) ||
+    pixels > geometry.maxPixels
+  ) {
+    throw new ApiError(
+      413,
+      `Слишком большое разрешение изображения. Максимум ${geometry.maxWidth}×${geometry.maxHeight}px.`,
+    );
+  }
+
+  if (
+    inspection.animated &&
+    (group.scope === 'base' || item.candidate.variant === 'static')
+  ) {
+    throw new ApiError(
+      400,
+      'Анимация разрешена только для оригинального Premium-медиа.',
     );
   }
 }
@@ -175,8 +294,19 @@ export async function publishProfileMediaGroups(
   };
 
   try {
+    const seenPrivatePaths = new Set<string>();
+
     for (const group of groups) {
       if (!group.candidates.length) continue;
+
+      for (const candidate of group.candidates) {
+        validateCandidateOwnership(userId, group, candidate);
+
+        if (seenPrivatePaths.has(candidate.quarantinePath)) {
+          throw new ApiError(400, 'Одна приватная загрузка не может использоваться несколько раз.');
+        }
+        seenPrivatePaths.add(candidate.quarantinePath);
+      }
 
       const items = await Promise.all(group.candidates.map(loadCandidate));
       for (const item of items) validateTechnicalMedia(group, item);
@@ -187,7 +317,7 @@ export async function publishProfileMediaGroups(
           .storage
           .from(PUBLIC_BUCKET)
           .upload(item.candidate.path, uploadBody, {
-            contentType: item.mimeType,
+            contentType: item.inspection.mimeType,
             cacheControl: '31536000',
             upsert: false,
           });
@@ -195,8 +325,10 @@ export async function publishProfileMediaGroups(
         if (uploaded.error) {
           console.error('[ProfileMediaPublish] public upload failed:', {
             path: item.candidate.path,
-            mimeType: item.mimeType,
+            mimeType: item.inspection.mimeType,
             size: item.size,
+            width: item.inspection.width,
+            height: item.inspection.height,
             error: uploaded.error,
           });
           throw new ApiError(
@@ -215,9 +347,9 @@ export async function publishProfileMediaGroups(
           public_path: item.candidate.path,
           quarantine_path: null,
           sha256: item.sha256,
-          mime_type: item.mimeType,
+          mime_type: item.inspection.mimeType,
           file_size: item.size,
-          animated: item.animated,
+          animated: item.inspection.animated,
           status: 'approved',
           reason: 'technical_checks_only',
           provider: 'disabled',
@@ -227,6 +359,10 @@ export async function publishProfileMediaGroups(
           moderation_result: {
             ai_moderation_enabled: false,
             technical_checks_passed: true,
+            detected_mime: item.inspection.mimeType,
+            width: item.inspection.width,
+            height: item.inspection.height,
+            animated: item.inspection.animated,
           },
         });
       }
