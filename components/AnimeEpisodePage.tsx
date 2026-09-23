@@ -21,6 +21,7 @@ import {
   peekEpisodeAvailability,
 } from '@/lib/episode-availability-client';
 import type { EpisodeAvailabilityResponse } from '@/types/episode-availability';
+import type { EpisodeTimelineMeta, EpisodeTimelineResponse } from '@/types/episode-timeline';
 
 import EpisodeCompletion from '@/components/EpisodeCompletion';
 import AnimePlayer, { PlayerSource } from '@/components/AnimePlayer';
@@ -84,6 +85,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     useState<EpisodeAvailabilityResponse | null>(
       () => peekEpisodeAvailability(anime.id),
     );
+  const [timeline, setTimeline] = useState<EpisodeTimelineMeta | null>(null);
 
   const metadataEpisodes = Math.max(anime.episodes || 0, anime.episodesAired || 0) || null;
   const providerMaxEpisode = providerEpisodes.length
@@ -107,6 +109,41 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
     return requestedEpisode;
   }, [requestedEpisode]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
+    queueMicrotask(() => {
+      if (active) setTimeline(null);
+    });
+
+    fetch(
+      `/api/episodes/timeline?animeId=${encodeURIComponent(String(anime.id))}&episode=${encodeURIComponent(String(episodeNumber))}`,
+      {
+        signal: controller.signal,
+        cache: 'no-store',
+      },
+    )
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as EpisodeTimelineResponse;
+      })
+      .then((payload) => {
+        if (active && payload?.ok) {
+          setTimeline(payload.timeline);
+        }
+      })
+      .catch((error) => {
+        if (!active || controller.signal.aborted) return;
+        console.warn('[Episode Timeline] metadata unavailable:', error);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [anime.id, episodeNumber]);
 
   useEffect(() => {
     if (!theaterMode) return;
@@ -262,7 +299,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
       try {
         const response = await fetch(
-          `/api/players/kodik?shikimoriId=${encodeURIComponent(String(shikimoriId))}&episode=${encodeURIComponent(String(episodeNumber))}`,
+          `/api/players/kodik?shikimoriId=${encodeURIComponent(String(shikimoriId))}&animeId=${encodeURIComponent(String(anime.id))}&episode=${encodeURIComponent(String(episodeNumber))}`,
           {
             signal: controller.signal,
             cache: 'no-store',
@@ -664,6 +701,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
                     totalEpisodesKnown={totalEpisodesKnown}
                     poster={poster}
                     sources={sources}
+                    timeline={timeline}
                     hasPrev={hasPrev}
                     hasNext={hasNext}
                     prevLabel={atFirstEpisode && seasonRoute.previous ? 'Пред. сезон' : 'Пред. серия'}
@@ -742,6 +780,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           totalEpisodesKnown={totalEpisodesKnown}
           poster={poster}
           sources={sources}
+          timeline={timeline}
           hasPrev={hasPrev}
           hasNext={hasNext}
           prevLabel={atFirstEpisode && seasonRoute.previous ? 'Пред. сезон' : 'Пред. серия'}
