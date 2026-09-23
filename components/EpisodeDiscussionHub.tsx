@@ -16,7 +16,6 @@ type Props = {
 
 export default function EpisodeDiscussionHub({
   animeSlug,
-  animeTitle,
   latestEpisode,
 }: Props) {
   const safeLatestEpisode =
@@ -27,8 +26,8 @@ export default function EpisodeDiscussionHub({
   return (
     <section className="episode-discussion-hub" aria-labelledby="episode-discussion-hub-title">
       <div className="episode-discussion-hub__visual">
-        <AnimeBoxIconCore size="large" className="episode-discussion-hub__icon-core">
-          <ChatCircleTextIcon size={42} weight="light" />
+        <AnimeBoxIconCore size="default" className="episode-discussion-hub__icon-core">
+          <ChatCircleTextIcon size={32} weight="light" />
         </AnimeBoxIconCore>
       </div>
 
@@ -36,7 +35,7 @@ export default function EpisodeDiscussionHub({
         <span className="episode-discussion-hub__eyebrow">После серии</span>
         <h2 id="episode-discussion-hub-title">Обсуждай без лишних спойлеров</h2>
         <p>
-          У каждой серии «{animeTitle}» своя ветка. Спойлеры остаются скрытыми,
+          У каждой серии своя ветка обсуждения. Спойлеры скрыты,
           пока ты сам не решишь их открыть.
         </p>
 
@@ -54,7 +53,7 @@ export default function EpisodeDiscussionHub({
               href={`/anime/${animeSlug}/episode/1#episode-comments`}
               className="ab-action ab-action--secondary episode-discussion-hub__secondary"
             >
-              С 1 серии
+              К первой серии
             </Link>
           )}
         </div>
