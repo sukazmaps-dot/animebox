@@ -1,0 +1,507 @@
+/* =========================================================
+   AnimeBox Patch 14.1.1 — Anti-AI Design Pass
+
+   Purpose:
+   - remove generic "premium AI dashboard" motifs;
+   - make hierarchy come from content, spacing and type;
+   - reserve violet for state/action instead of ambient decoration;
+   - stop turning every feature into a floating rounded card.
+   ========================================================= */
+
+/* =========================================================
+   MICRO TYPOGRAPHY
+   Human/editorial labels instead of generated-dashboard chrome.
+   ========================================================= */
+
+:where(
+  .smart-section-eyebrow,
+  .home-activation-v2__eyebrow,
+  .mood-picker__eyebrow,
+  .home-retention__head span,
+  .home-retention__copy small,
+  .continue-smart-card__eyebrow,
+  .episode-seo-context__eyebrow
+) {
+  text-transform: none !important;
+  letter-spacing: .025em !important;
+  font-weight: 650 !important;
+}
+
+:where(
+  .smart-section-eyebrow,
+  .home-activation-v2__eyebrow,
+  .mood-picker__eyebrow,
+  .home-retention__head span
+) {
+  color: var(--ab-muted-2) !important;
+}
+
+/* Generic "AI badge" pills become compact labels, not glowing capsules. */
+.pill {
+  min-height: 24px;
+  padding-inline: 8px;
+  border-radius: var(--ab-radius-xs);
+  border-color: var(--ab-line);
+  background: rgba(255,255,255,.025);
+  box-shadow: none;
+  letter-spacing: .03em;
+}
+
+.pill--accent {
+  border-color: rgba(151,136,231,.16);
+  background: var(--ab-iris-faint);
+  color: #c9c0f6;
+}
+
+/* =========================================================
+   HOME SHORTCUTS
+   Navigation strip, not four generated feature cards.
+   ========================================================= */
+
+.home-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  margin-block: 18px 4px;
+  border: 0;
+  border-top: 1px solid var(--ab-line);
+  border-bottom: 1px solid var(--ab-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.home-shortcuts__item {
+  min-height: 66px;
+  padding: 13px 15px;
+  border: 0;
+  border-right: 1px solid var(--ab-line);
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transition:
+    background var(--ab-fast) ease,
+    color var(--ab-fast) ease;
+}
+
+.home-shortcuts__item:last-child {
+  border-right: 0;
+}
+
+.home-shortcuts__item strong {
+  color: var(--ab-text-soft);
+  font-size: 12px;
+  font-weight: 690;
+  letter-spacing: -.01em;
+}
+
+.home-shortcuts__item small {
+  margin-top: 3px;
+  color: var(--ab-muted-2);
+  font-size: 9px;
+}
+
+.home-shortcuts__item > b {
+  color: #6d7584;
+  font-weight: 500;
+  transition: color var(--ab-fast) ease, transform var(--ab-fast) ease;
+}
+
+@media (hover:hover) and (pointer:fine) {
+  .home-shortcuts__item:hover {
+    background: rgba(255,255,255,.018) !important;
+  }
+
+  .home-shortcuts__item:hover strong {
+    color: var(--ab-text);
+  }
+
+  .home-shortcuts__item:hover > b {
+    color: var(--ab-ember);
+    transform: translateX(2px);
+  }
+}
+
+/* =========================================================
+   HOME ACTIVATION
+   Product onboarding should read like an editorial utility,
+   not a neon SaaS conversion banner.
+   ========================================================= */
+
+.home-activation-v2 {
+  overflow: visible;
+  margin: 22px 0 8px;
+  padding: 18px 0;
+  border: 0;
+  border-top: 1px solid var(--ab-line);
+  border-bottom: 1px solid var(--ab-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.home-activation-v2::after {
+  display: none !important;
+}
+
+.home-activation-v2 h2 {
+  color: var(--ab-text);
+  font-size: clamp(18px, 1.8vw, 23px);
+  font-weight: 710;
+}
+
+.home-activation-v2 p {
+  color: var(--ab-muted);
+}
+
+.home-activation-v2__steps {
+  gap: 0;
+  border-left: 1px solid var(--ab-line);
+}
+
+.home-activation-v2__steps a {
+  min-height: 72px;
+  padding: 11px 14px;
+  border: 0;
+  border-right: 1px solid var(--ab-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: background var(--ab-fast) ease;
+}
+
+.home-activation-v2__steps > a > span {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--ab-radius-xs);
+  background: var(--ab-iris-faint);
+  color: #aea3e6;
+  font-weight: 720;
+}
+
+.home-activation-v2__steps small {
+  color: var(--ab-muted-2);
+}
+
+.home-activation-v2__steps b {
+  color: var(--ab-muted-2);
+  font-weight: 500;
+}
+
+.home-activation-v2__actions button {
+  min-height: 40px;
+  border-radius: var(--ab-radius-sm);
+  border-color: transparent;
+  background: var(--ab-iris);
+  box-shadow: none;
+  font-weight: 720;
+}
+
+.home-activation-v2__actions button.is-secondary {
+  border-color: var(--ab-line);
+  background: var(--ab-surface-2);
+  color: var(--ab-text-soft);
+}
+
+@media (hover:hover) and (pointer:fine) {
+  .home-activation-v2__steps a:hover {
+    transform: none;
+    border-color: inherit;
+    background: rgba(255,255,255,.018);
+  }
+}
+
+/* =========================================================
+   MOOD PICKER
+   A compact recommendation tool, not a row of promotional cards.
+   ========================================================= */
+
+.mood-picker {
+  border-color: var(--ab-line);
+}
+
+.mood-chip {
+  min-height: 48px;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mood-chip:hover {
+  border-color: transparent;
+  border-left-color: var(--ab-line-strong);
+  background: rgba(255,255,255,.015);
+}
+
+.mood-chip.is-active {
+  border-color: transparent;
+  border-left-color: var(--ab-iris);
+  background: linear-gradient(90deg, var(--ab-iris-faint), transparent 88%);
+  box-shadow: none;
+}
+
+.mood-chip__copy strong {
+  font-weight: 670;
+}
+
+.mood-chip__copy small {
+  color: var(--ab-muted-2);
+}
+
+/* =========================================================
+   RETENTION HUB
+   Different signals share one editorial rail rather than
+   multiple floating glass cards.
+   ========================================================= */
+
+.home-retention {
+  margin-top: 24px;
+  padding: 18px 0 8px;
+  border: 0;
+  border-top: 1px solid var(--ab-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.home-retention::before,
+.home-retention::after {
+  display: none !important;
+}
+
+.home-retention__head {
+  margin-bottom: 10px;
+}
+
+.home-retention__head h2 {
+  color: var(--ab-text);
+  font-weight: 710;
+  letter-spacing: -.02em;
+}
+
+.home-retention__head > a {
+  color: var(--ab-muted-2);
+  font-weight: 650;
+}
+
+.home-retention__head > a:hover {
+  color: var(--ab-ember);
+}
+
+.home-retention__rail {
+  gap: 0;
+  border-top: 1px solid rgba(204,208,219,.04);
+}
+
+.home-retention__card {
+  min-width: 0;
+  border: 0;
+  border-right: 1px solid var(--ab-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: background var(--ab-fast) ease;
+}
+
+.home-retention__card:last-child {
+  border-right: 0;
+}
+
+.home-retention__poster {
+  border-radius: var(--ab-radius-xs);
+  box-shadow: none;
+}
+
+.home-retention__copy small {
+  color: var(--ab-muted-2);
+}
+
+.home-retention__copy strong {
+  color: var(--ab-text-soft);
+  font-weight: 690;
+}
+
+.home-retention__copy em {
+  color: var(--ab-muted-2);
+  font-style: normal;
+}
+
+.home-retention__card > b {
+  color: var(--ab-muted-2);
+  font-weight: 500;
+}
+
+@media (hover:hover) and (pointer:fine) {
+  .home-retention__card:hover {
+    transform: none;
+    border-color: var(--ab-line);
+    background: rgba(255,255,255,.016);
+    box-shadow: none;
+  }
+
+  .home-retention__card:hover > b {
+    color: var(--ab-ember);
+  }
+}
+
+/* =========================================================
+   PERSONAL PULSE
+   Keep the useful data strip; remove dashboard ornament.
+   ========================================================= */
+
+.home-pulse {
+  border-color: var(--ab-line);
+}
+
+.home-pulse__rail {
+  width: 2px;
+  border-radius: 0;
+  background: var(--ab-iris);
+}
+
+.home-pulse__identity strong,
+.home-pulse__metric strong {
+  color: var(--ab-text-soft);
+  font-weight: 670;
+}
+
+.home-pulse__link {
+  color: var(--ab-muted);
+}
+
+.home-pulse__link:hover {
+  color: var(--ab-ember);
+}
+
+/* =========================================================
+   ANIME CARDS
+   Poster + title first. Remove decorative shine / AI gloss.
+   ========================================================= */
+
+.anime-card__shine {
+  display: none !important;
+}
+
+.anime-card__image-wrap,
+.anime-card--signature .anime-card__image-wrap {
+  overflow: hidden;
+  border-color: rgba(204,208,219,.04);
+  box-shadow: 0 7px 20px rgba(0,0,0,.13);
+}
+
+.anime-card__rating,
+.anime-card__state {
+  box-shadow: none !important;
+}
+
+.anime-card__match {
+  border: 0 !important;
+  border-left: 2px solid rgba(151,136,231,.48) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.anime-card__personal > span {
+  width: 2px;
+  border-radius: 0;
+  background: var(--ab-iris);
+}
+
+/* =========================================================
+   GENERIC ANTI-TEMPLATE RULES
+   Do not blanket-style every feature as glassmorphism.
+   ========================================================= */
+
+:where(
+  .panel,
+  .tracker-card,
+  .episode-seo-context,
+  .community-library-control,
+  .anime-notification-control
+) {
+  backdrop-filter: none;
+}
+
+:where(
+  .panel,
+  .tracker-card,
+  .episode-seo-context
+)::before,
+:where(
+  .panel,
+  .tracker-card,
+  .episode-seo-context
+)::after {
+  filter: none;
+}
+
+/* =========================================================
+   MOBILE
+   Preserve rhythm without stacking giant rounded promo cards.
+   ========================================================= */
+
+@media (max-width: 760px) {
+  .home-shortcuts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-shortcuts__item {
+    min-height: 62px;
+    border-right: 1px solid var(--ab-line);
+    border-bottom: 1px solid var(--ab-line);
+  }
+
+  .home-shortcuts__item:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .home-shortcuts__item:nth-last-child(-n + 2) {
+    border-bottom: 0;
+  }
+
+  .home-activation-v2 {
+    padding: 16px 0;
+  }
+
+  .home-activation-v2__steps {
+    border-left: 0;
+    border-top: 1px solid var(--ab-line);
+  }
+
+  .home-activation-v2__steps a {
+    border-right: 0;
+    border-bottom: 1px solid var(--ab-line);
+  }
+
+  .home-activation-v2__steps a:last-child {
+    border-bottom: 0;
+  }
+
+  .mood-picker {
+    padding-block: 12px;
+  }
+
+  .mood-chip {
+    min-height: 46px;
+  }
+
+  .home-retention {
+    padding-top: 15px;
+  }
+
+  .home-retention__rail {
+    display: block;
+  }
+
+  .home-retention__card {
+    border-right: 0;
+    border-bottom: 1px solid var(--ab-line);
+  }
+
+  .home-retention__card:last-child {
+    border-bottom: 0;
+  }
+}
