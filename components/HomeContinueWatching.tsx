@@ -166,7 +166,7 @@ export default function HomeContinueWatching({
 
               <div className="continue-smart-card__body">
                 <span className="continue-smart-card__eyebrow">
-                  {resumeMode === 'next' ? 'СЛЕДУЮЩАЯ СЕРИЯ' : `ЭПИЗОД ${Math.max(1, episode)}`}
+                  {resumeMode === 'next' ? 'Следующая серия' : `Эпизод ${Math.max(1, episode)}`}
                   {resumeMode !== 'next' && resumeSeconds >= 10
                     ? ` · ${formatResumeTime(resumeSeconds)}`
                     : ''}
