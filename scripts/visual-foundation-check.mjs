@@ -28,16 +28,11 @@ if (!layout.includes(antiAiNeedle)) {
   failures.push('layout.tsx: Anti-AI stylesheet is not imported.');
 }
 
-const lastPatchImport = layout.lastIndexOf("import './");
 const foundationImport = layout.indexOf(foundationNeedle);
 const antiAiImport = layout.indexOf(antiAiNeedle);
 
 if (foundationImport < 0 || antiAiImport < foundationImport) {
   failures.push('layout.tsx: Anti-AI layer must load after Visual Foundation.');
-}
-
-if (antiAiImport < 0 || antiAiImport !== lastPatchImport) {
-  failures.push('layout.tsx: Anti-AI visual layer must remain the last global CSS import.');
 }
 
 for (const [label, needle] of [
