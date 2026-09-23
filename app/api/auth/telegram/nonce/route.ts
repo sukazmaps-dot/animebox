@@ -42,7 +42,7 @@ export async function POST(request: Request) {
         process.env.NODE_ENV ===
         'production',
 
-      sameSite: 'lax',
+      sameSite: 'strict',
 
       path:
         '/api/auth/telegram',
