@@ -12,6 +12,30 @@ export type PickedImageKind =
   | 'avif'
   | 'heic';
 
+const CANONICAL_MIME: Record<PickedImageKind, string> = {
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  avif: 'image/avif',
+  heic: 'image/heic',
+};
+
+function canonicalBlob(
+  file: File,
+  kind: PickedImageKind,
+): Blob {
+  const expectedType = CANONICAL_MIME[kind];
+
+  if (file.type.trim().toLowerCase() === expectedType) {
+    return file;
+  }
+
+  // Android/Samsung file pickers can expose a perfectly valid JPG/PNG as
+  // application/octet-stream or with an empty MIME. The bytes were already
+  // verified above, so normalize only the Blob MIME before browser decoding.
+  return file.slice(0, file.size, expectedType);
+}
+
 type DecodedImage = {
   source: CanvasImageSource;
   width: number;
@@ -141,9 +165,10 @@ async function decodeNative(
 ): Promise<DecodedImage> {
   if (typeof createImageBitmap === 'function') {
     try {
-      const bitmap = await createImageBitmap(blob, {
-        imageOrientation: 'from-image',
-      });
+      // Avoid ImageBitmapOptions here: some Android Chromium/WebView builds
+      // reject otherwise valid images when unsupported options are supplied.
+      // The default path already respects normal browser image orientation.
+      const bitmap = await createImageBitmap(blob);
 
       if (bitmap.width && bitmap.height) {
         return {
@@ -234,14 +259,26 @@ async function decodePickedImage(
   file: File,
   kind: PickedImageKind,
 ) {
+  const normalizedBlob = canonicalBlob(file, kind);
+
   if (kind === 'heic') {
-    return decodeHeic(file);
+    // heic2any also benefits from a canonical image/heic Blob type.
+    const normalizedFile = new File(
+      [normalizedBlob],
+      file.name || 'animebox.heic',
+      {
+        type: CANONICAL_MIME.heic,
+        lastModified: file.lastModified || Date.now(),
+      },
+    );
+
+    return decodeHeic(normalizedFile);
   }
 
-  // AVIF is decoded natively in current Chrome/Safari/Firefox. Once decoded,
-  // it follows the exact same Canvas/WebP sanitation path as JPEG/PNG/WebP.
+  // AVIF/JPEG/PNG/WebP now reach the decoder with a canonical MIME even when
+  // Android's picker originally returned application/octet-stream or "".
   try {
-    return await decodeNative(file);
+    return await decodeNative(normalizedBlob);
   } catch (error) {
     if (kind === 'avif') {
       throw new Error(
