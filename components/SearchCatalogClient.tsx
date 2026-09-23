@@ -24,23 +24,17 @@ import { trackProductClientEvent } from '@/lib/product-events-client';
 import { CATALOG_AD_BREAK_INDEX, CATALOG_PAGE_SIZE } from '@/lib/catalog-pagination';
 import { ANIME_FAVORITES_STORAGE_KEY, readAnimeFavorites } from '@/lib/anime-storage';
 import { getAnimeTitle, isAnimeOngoing } from '@/lib/anime-display';
+import {
+  ANIME_AUDIENCES,
+  ANIME_GENRES,
+  ANIME_THEMES,
+  animeTaxonomyValueMatches,
+  findAnimeGenre,
+  findAnimeTag,
+} from '@/lib/anime-taxonomy';
 import styles from './SearchCatalogClient.module.css';
 
 const SEARCH_DEBOUNCE_MS = 120;
-const GENRES = [
-  { id: 1, russian: 'Экшен', aliases: ['action', 'экшен'] },
-  { id: 2, russian: 'Приключения', aliases: ['adventure', 'приключения'] },
-  { id: 4, russian: 'Комедия', aliases: ['comedy', 'комедия'] },
-  { id: 8, russian: 'Драма', aliases: ['drama', 'драма'] },
-  { id: 10, russian: 'Фэнтези', aliases: ['fantasy', 'фэнтези'] },
-  { id: 14, russian: 'Ужасы', aliases: ['horror', 'ужасы'] },
-  { id: 22, russian: 'Романтика', aliases: ['romance', 'романтика'] },
-  { id: 24, russian: 'Фантастика', aliases: ['sci-fi', 'sci fi', 'фантастика'] },
-  { id: 7, russian: 'Детектив', aliases: ['mystery', 'тайна', 'детектив'] },
-  { id: 36, russian: 'Повседневность', aliases: ['slice of life', 'повседневность'] },
-  { id: 30, russian: 'Спорт', aliases: ['sports', 'спорт'] },
-  { id: 37, russian: 'Сверхъестественное', aliases: ['supernatural', 'сверхъестественное'] },
-] as const;
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: Math.max(1, CURRENT_YEAR - 1979) }, (_, index) => CURRENT_YEAR - index);
 
@@ -74,11 +68,13 @@ function seedTitle(seed: SmartDiscoveryResponse['seed']) {
 function normalizedText(value: string) {
   return value.toLocaleLowerCase('ru-RU').replace(/ё/g, 'е').trim();
 }
-function favoriteMatchesGenre(anime: Anime, genreId: number) {
-  const genre = GENRES.find((item) => item.id === genreId);
-  if (!genre) return true;
-  const values = (anime.genres ?? []).map((value) => normalizedText(String(value)));
-  return genre.aliases.some((alias) => values.includes(normalizedText(alias)));
+function favoriteMatchesGenre(anime: Anime, genreValue: string) {
+  const genre = findAnimeGenre(genreValue);
+  return genre ? animeTaxonomyValueMatches(anime.genres, genre) : true;
+}
+function favoriteMatchesTag(anime: Anime, tagValue: string) {
+  const tag = findAnimeTag(tagValue);
+  return tag ? animeTaxonomyValueMatches(anime.tags, tag) : true;
 }
 
 export default function SearchCatalogClient({
@@ -101,7 +97,8 @@ export default function SearchCatalogClient({
   const discoveryDescription = useMemo(() => (discoveryIntent?.isDiscovery ? describeSmartDiscoveryIntent(discoveryIntent) : []), [discoveryIntent]);
   const discoveryChips = useMemo(() => (discoveryIntent?.isDiscovery ? discoveryConstraintChips(discoveryIntent) : []), [discoveryIntent]);
 
-  const [selectedGenres, setSelectedGenres] = useState<number[]>([]);
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<CatalogStatus>('any');
   const [selectedFormat, setSelectedFormat] = useState<CatalogFormat>('any');
@@ -198,7 +195,7 @@ export default function SearchCatalogClient({
     }
     if (initialRenderRef.current) {
       initialRenderRef.current = false;
-      if (!query && selectedGenres.length === 0 && selectedYear === null && selectedStatus === 'any' && selectedFormat === 'any' && selectedSeason === 'any' && selectedMood === 'any' && page === 1 && initialResults.length > 0) {
+      if (!query && selectedGenres.length === 0 && selectedTags.length === 0 && selectedYear === null && selectedStatus === 'any' && selectedFormat === 'any' && selectedSeason === 'any' && selectedMood === 'any' && page === 1 && initialResults.length > 0) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(false);
         return;
@@ -211,7 +208,7 @@ export default function SearchCatalogClient({
       setLoading(true);
       setError('');
       try {
-        if (query && discoveryIntent?.isDiscovery && page === 1 && selectedGenres.length === 0 && selectedYear === null && selectedStatus === 'any' && selectedFormat === 'any' && selectedSeason === 'any') {
+        if (query && discoveryIntent?.isDiscovery && page === 1 && selectedGenres.length === 0 && selectedTags.length === 0 && selectedYear === null && selectedStatus === 'any' && selectedFormat === 'any' && selectedSeason === 'any') {
           const payload = await getSmartDiscovery(query, Math.max(CATALOG_PAGE_SIZE, 30), controller.signal);
           const personalized = rankSmartDiscoveryCandidates(payload.items, discoveryIntent, { tasteGraph, strict: false });
           if (controller.signal.aborted || requestId !== requestSequenceRef.current) return;
@@ -235,6 +232,7 @@ export default function SearchCatalogClient({
             limit: CATALOG_PAGE_SIZE,
             order: 'ranked',
             genres: selectedGenres.length > 0 ? selectedGenres : undefined,
+            tags: selectedTags.length > 0 ? selectedTags : undefined,
             year: selectedYear ?? undefined,
             status: selectedStatus === 'any' ? undefined : selectedStatus,
             format: selectedFormat === 'any' ? undefined : selectedFormat,
@@ -257,7 +255,7 @@ export default function SearchCatalogClient({
     }
     void load();
     return () => controller.abort();
-  }, [discoveryIntent, initialResults, page, query, selectedFormat, selectedGenres, selectedMood, selectedSeason, selectedStatus, selectedYear, tasteGraph, view]);
+  }, [discoveryIntent, initialResults, page, query, selectedFormat, selectedGenres, selectedMood, selectedSeason, selectedStatus, selectedTags, selectedYear, tasteGraph, view]);
 
   function applySearchQuery(nextValue: string) {
     const next = nextValue.replace(/\s+/g, ' ').trim();
@@ -274,13 +272,18 @@ export default function SearchCatalogClient({
     if (nextView === 'saved') url.searchParams.set('view', 'saved'); else url.searchParams.delete('view');
     window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
   }
-  function toggleGenre(id: number) {
-    setSelectedGenres((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]);
+  function toggleGenre(value: string) {
+    setSelectedGenres((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
+    setPageState({ query, page: 1 });
+  }
+  function toggleTag(value: string) {
+    setSelectedTags((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
     setPageState({ query, page: 1 });
   }
   function clearStructuredFilters() {
     setOpenPicker(null);
     setSelectedGenres([]);
+    setSelectedTags([]);
     setSelectedYear(null);
     setSelectedStatus('any');
     setSelectedFormat('any');
@@ -295,7 +298,8 @@ export default function SearchCatalogClient({
         const title = normalizedText([getAnimeTitle(anime), anime.title?.romaji, anime.title?.english, anime.title?.native].filter(Boolean).join(' '));
         if (!title.includes(normalizedQuery)) return false;
       }
-      if (selectedGenres.length > 0 && !selectedGenres.every((genreId) => favoriteMatchesGenre(anime, genreId))) return false;
+      if (selectedGenres.length > 0 && !selectedGenres.every((genreValue) => favoriteMatchesGenre(anime, genreValue))) return false;
+      if (selectedTags.length > 0 && !selectedTags.every((tagValue) => favoriteMatchesTag(anime, tagValue))) return false;
       if (selectedYear != null && Number(anime.startDate?.year ?? 0) !== selectedYear) return false;
       if (selectedStatus === 'ongoing' && !isAnimeOngoing(anime)) return false;
       if (selectedStatus === 'finished' && isAnimeOngoing(anime)) return false;
@@ -330,10 +334,11 @@ export default function SearchCatalogClient({
 
       return true;
     });
-  }, [favorites, query, selectedFormat, selectedGenres, selectedSeason, selectedStatus, selectedYear]);
+  }, [favorites, query, selectedFormat, selectedGenres, selectedSeason, selectedStatus, selectedTags, selectedYear]);
 
   const hasStructuredFilters =
     selectedGenres.length > 0 ||
+    selectedTags.length > 0 ||
     selectedYear !== null ||
     selectedStatus !== 'any' ||
     selectedFormat !== 'any' ||
@@ -341,6 +346,7 @@ export default function SearchCatalogClient({
   const hasFilters = hasStructuredFilters || (view === 'catalog' && selectedMood !== 'any');
   const filterCount =
     selectedGenres.length +
+    selectedTags.length +
     (selectedYear == null ? 0 : 1) +
     (selectedStatus === 'any' ? 0 : 1) +
     (selectedFormat === 'any' ? 0 : 1) +
@@ -407,7 +413,7 @@ export default function SearchCatalogClient({
           <div className={styles.filterPanelHead}>
             <div>
               <strong>Аниме-фильтры</strong>
-              <span>Жанр, формат, сезон выхода и статус — без киношной формы поиска.</span>
+              <span>Жанры, аниме-темы, аудитория, формат и сезон выхода — всё в терминах аниме.</span>
             </div>
             {hasStructuredFilters && <button type="button" onClick={clearStructuredFilters}>Сбросить всё</button>}
           </div>
@@ -415,17 +421,55 @@ export default function SearchCatalogClient({
           <div className={styles.filterGroup}>
             <span className={styles.filterLabel}>Жанры</span>
             <div className={styles.genreGrid}>
-              {GENRES.map((genre) => {
-                const active = selectedGenres.includes(genre.id);
+              {ANIME_GENRES.map((genre) => {
+                const active = selectedGenres.includes(genre.value);
                 return (
                   <button
-                    key={genre.id}
+                    key={genre.value}
                     type="button"
                     aria-pressed={active}
                     className={active ? styles.genreSelected : styles.genreOption}
-                    onClick={() => toggleGenre(genre.id)}
+                    onClick={() => toggleGenre(genre.value)}
                   >
-                    {genre.russian}
+                    {genre.label}
+                    {active ? <span aria-hidden="true">✓</span> : null}
+                  </button>
+                );
+              })}
+            </div>
+
+            <span className={`${styles.filterLabel} ${styles.filterSubLabel}`}>Аниме-темы</span>
+            <div className={styles.genreGrid}>
+              {ANIME_THEMES.map((tag) => {
+                const active = selectedTags.includes(tag.value);
+                return (
+                  <button
+                    key={tag.value}
+                    type="button"
+                    aria-pressed={active}
+                    className={active ? styles.genreSelected : styles.genreOption}
+                    onClick={() => toggleTag(tag.value)}
+                  >
+                    {tag.label}
+                    {active ? <span aria-hidden="true">✓</span> : null}
+                  </button>
+                );
+              })}
+            </div>
+
+            <span className={`${styles.filterLabel} ${styles.filterSubLabel}`}>Аудитория</span>
+            <div className={styles.genreGrid}>
+              {ANIME_AUDIENCES.map((tag) => {
+                const active = selectedTags.includes(tag.value);
+                return (
+                  <button
+                    key={tag.value}
+                    type="button"
+                    aria-pressed={active}
+                    className={active ? styles.genreSelected : styles.genreOption}
+                    onClick={() => toggleTag(tag.value)}
+                  >
+                    {tag.label}
                     {active ? <span aria-hidden="true">✓</span> : null}
                   </button>
                 );
