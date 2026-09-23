@@ -232,7 +232,7 @@ export default function HomeRetentionHub({
     >
       <div className="home-retention__head">
         <div>
-          <span>ТВОЙ ВЕЧЕР</span>
+          <span>Твой вечер</span>
           <h2 id="home-retention-title">Что ждёт тебя в AnimeBox</h2>
         </div>
         <Link href="/list">Мой список →</Link>
@@ -277,7 +277,7 @@ export default function HomeRetentionHub({
               />
             </span>
             <span className="home-retention__copy">
-              <small>{episode.released ? 'НОВАЯ СЕРИЯ' : 'СЕГОДНЯ'}</small>
+              <small>{episode.released ? 'Новая серия' : 'Сегодня'}</small>
               <strong>{episode.title}</strong>
               <em>
                 {episode.released
@@ -324,7 +324,7 @@ export default function HomeRetentionHub({
               />
             </span>
             <span className="home-retention__copy">
-              <small>ФИНИШ РЯДОМ</small>
+              <small>Финиш рядом</small>
               <strong>{completion.title}</strong>
               <em>
                 {completion.remainingEpisodes === 1
@@ -367,7 +367,7 @@ export default function HomeRetentionHub({
               />
             </span>
             <span className="home-retention__copy">
-              <small>СМОТРЯТ СЕЙЧАС</small>
+              <small>Смотрят сейчас</small>
               <strong>{room.animeTitle}</strong>
               <em>
                 Серия {room.episode} · {room.host.username} · {room.participantCount} онлайн
