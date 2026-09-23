@@ -1,0 +1,85 @@
+# /etc/nginx/sites-available/animebox
+#
+# Prerequisites:
+# - valid Let's Encrypt certificate for youranimebox.com + www.youranimebox.com
+# - /etc/nginx/snippets/animebox-origin-secret.conf created locally on the VPS
+# - 00-animebox-gateway-http.conf loaded from /etc/nginx/conf.d/
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name youranimebox.com www.youranimebox.com;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        default_type text/plain;
+    }
+
+    location = /__gateway-health {
+        default_type text/plain;
+        add_header Cache-Control "no-store" always;
+        add_header X-AnimeBox-Gateway "ru-v1" always;
+        return 200 "animebox-ru-gateway-ok\n";
+    }
+
+    return 308 https://youranimebox.com$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name www.youranimebox.com;
+
+    ssl_certificate /etc/letsencrypt/live/youranimebox.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/youranimebox.com/privkey.pem;
+
+    return 308 https://youranimebox.com$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name youranimebox.com;
+
+    ssl_certificate /etc/letsencrypt/live/youranimebox.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/youranimebox.com/privkey.pem;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_cache shared:AnimeBoxTLS:10m;
+    ssl_session_timeout 1d;
+
+    # Avatar/banner uploads accept up to 16 MiB in the app.
+    client_max_body_size 20m;
+
+    location = /__gateway-health {
+        default_type text/plain;
+        add_header Cache-Control "no-store" always;
+        add_header X-AnimeBox-Gateway "ru-v1" always;
+        return 200 "animebox-ru-gateway-ok\n";
+    }
+
+    # Immutable Next build assets are safe to cache at the gateway.
+    location ^~ /_next/static/ {
+        include snippets/animebox-proxy-common.conf;
+        include snippets/animebox-origin-secret.conf;
+
+        proxy_cache animebox_static;
+        proxy_cache_valid 200 30d;
+        proxy_cache_lock on;
+
+        add_header X-AnimeBox-Gateway "ru-v1" always;
+        add_header X-AnimeBox-Cache $upstream_cache_status always;
+
+        proxy_pass https://animebox_vercel_origin;
+    }
+
+    # Do NOT cache HTML or APIs here: AnimeBox has auth, profiles and live state.
+    location / {
+        include snippets/animebox-proxy-common.conf;
+        include snippets/animebox-origin-secret.conf;
+
+        add_header X-AnimeBox-Gateway "ru-v1" always;
+
+        proxy_pass https://animebox_vercel_origin;
+    }
+}
