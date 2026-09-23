@@ -19,11 +19,6 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const { client, user } = await requireNotificationUser();
-    const limited = await enforceIpAndUserRateLimit(request, user.id, {
-      ip: { scope: 'notification_settings_write_ip', limit: 40, windowSeconds: 60 },
-      user: { scope: 'notification_settings_write_user', limit: 30, windowSeconds: 60 },
-    });
-    if (limited) return limited;
 
     const [
       settingsResult,
@@ -71,6 +66,12 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const { client, user } = await requireNotificationUser();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'notification_settings_write_ip', limit: 40, windowSeconds: 60 },
+      user: { scope: 'notification_settings_write_user', limit: 30, windowSeconds: 60 },
+    });
+    if (limited) return limited;
+
     const body = await readJsonBody(request);
 
     if (typeof body.telegramEnabled !== 'boolean') {
