@@ -101,6 +101,11 @@ export async function GET(
     .map((value) => value.trim())
     .filter(Boolean)
     .slice(0, 6);
+  const tags = (params.get('tags') || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .slice(0, 6);
   const requestedYear = Number.parseInt(params.get('year') || '', 10);
   const year =
     Number.isSafeInteger(requestedYear) &&
@@ -137,6 +142,7 @@ export async function GET(
     search,
     genre: genres.length === 0 ? genreRaw ?? undefined : undefined,
     genres: genres.length > 0 ? genres : undefined,
+    tags: tags.length > 0 ? tags : undefined,
     year,
     format,
     season,

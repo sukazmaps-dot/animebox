@@ -58,6 +58,7 @@ import './patch14-1-visual-foundation.css';
 import './patch14-1-1-anti-ai-design.css';
 import './patch14-2-mobile-shell.css';
 import './patch14-3-home-discovery.css';
+import './patch14-3-2-catalog-taxonomy-top-fix.css';
 import './patch14-5-episode-identity.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';

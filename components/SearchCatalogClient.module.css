@@ -739,6 +739,10 @@
   text-transform: none;
 }
 
+.filterSubLabel {
+  margin-top: 18px;
+}
+
 .genreGrid {
   gap: 0;
   border-top: 1px solid rgba(204,208,219,.045);

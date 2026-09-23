@@ -11,6 +11,7 @@ import { getAnimeFranchise, type AnimeFranchise } from '@/lib/anime-franchise';
 import type { GetAnimesOptions } from '@/lib/anilist';
 
 import { fetchWithRetry } from '@/lib/fetch-retry';
+import { animeTaxonomyValueMatches, findAnimeGenre, findAnimeTag, toShikimoriGenreIds } from '@/lib/anime-taxonomy';
 
 import {
   cleanShikimoriDescription,
@@ -202,8 +203,13 @@ async function searchRussianAnime(
 
   params.set('search', query.normalize('NFKC').replace(/[‐‑–—-]/g, ' ').replace(/\s+/g, ' ').trim());
   params.set('page', String(Math.max(1, options.page ?? 1)));
-  if (options.genres?.length) params.set('genre', options.genres.join(','));
-  else if (options.genre != null) params.set('genre', String(options.genre));
+  const requestedGenres = options.genres?.length
+    ? options.genres
+    : options.genre != null
+      ? [options.genre]
+      : [];
+  const shikimoriGenreIds = toShikimoriGenreIds(requestedGenres);
+  if (shikimoriGenreIds.length > 0) params.set('genre', shikimoriGenreIds.join(','));
   if (options.status === 'ongoing') params.set('status', 'ongoing');
   if (options.status === 'finished') params.set('status', 'released');
   if (options.status === 'upcoming') params.set('status', 'anons');
@@ -307,6 +313,20 @@ async function searchRussianAnime(
 
   if (aniListMatches.length === 0) {
     throw new Error('Не удалось сопоставить результаты Shikimori с AniList');
+  }
+
+  if (requestedGenres.length > 0 || options.tags?.length) {
+    const requestedGenreOptions = requestedGenres
+      .map((value) => findAnimeGenre(value))
+      .filter((value): value is NonNullable<typeof value> => Boolean(value));
+    const requestedTagOptions = (options.tags ?? [])
+      .map((value) => findAnimeTag(value))
+      .filter((value): value is NonNullable<typeof value> => Boolean(value));
+
+    aniListMatches = aniListMatches.filter((anime) =>
+      requestedGenreOptions.every((genre) => animeTaxonomyValueMatches(anime.genres, genre)) &&
+      requestedTagOptions.every((tag) => animeTaxonomyValueMatches(anime.tags, tag)),
+    );
   }
 
   const byMalId = new Map(

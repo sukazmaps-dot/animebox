@@ -1,6 +1,7 @@
 import { isCatalogAnime } from '@/lib/catalog-filter';
 import type { Anime } from '@/types/anime';
 import { fetchWithRetry } from '@/lib/fetch-retry';
+import { normalizeAniListGenres } from '@/lib/anime-taxonomy';
 
 const ANILIST_API_URL = 'https://graphql.anilist.co';
 
@@ -102,6 +103,7 @@ export type GetAnimesOptions = {
   search?: string;
   genre?: number | string;
   genres?: Array<number | string>;
+  tags?: string[];
   year?: number;
   format?: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL';
   season?: 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL';
@@ -131,6 +133,7 @@ const LIST_QUERY = `
     $status: MediaStatus
     $search: String
     $genres: [String]
+    $tags: [String]
     $formats: [MediaFormat]
     $season: MediaSeason
     $seasonYear: Int
@@ -148,6 +151,7 @@ const LIST_QUERY = `
         status: $status
         search: $search
         genre_in: $genres
+        tag_in: $tags
         season: $season
         seasonYear: $seasonYear
       ) {
@@ -391,6 +395,7 @@ export async function getAnimes(
     search,
     genre,
     genres,
+    tags,
     year,
     format,
     season,
@@ -447,17 +452,17 @@ export async function getAnimes(
                 undefined,
 
               genres: (() => {
-                const map = ({ '1': 'Action', '2': 'Adventure', '4': 'Comedy', '8': 'Drama', '10': 'Fantasy', '14': 'Horror', '22': 'Romance', '24': 'Sci-Fi', '7': 'Mystery', '36': 'Slice of Life', '30': 'Sports', '37': 'Supernatural' } as Record<string, string>);
                 const values = genres?.length
                   ? genres
                   : genre != null
                     ? [genre]
                     : [];
-                const normalized = values
-                  .map((value) => map[String(value)] || String(value))
-                  .filter(Boolean);
+                const normalized = normalizeAniListGenres(values);
                 return normalized.length > 0 ? normalized : undefined;
               })(),
+
+              tags:
+                tags?.map((value) => value.trim()).filter(Boolean).slice(0, 6) || undefined,
 
               formats: format
                 ? [format]
