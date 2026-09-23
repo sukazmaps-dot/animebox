@@ -50,7 +50,7 @@ export function assertBrowserMutationRequest(request: Request) {
 
 export async function readJsonBody(
   request: Request,
-  options: { maxBytes?: number } = {},
+  options: { maxBytes?: number; requireContentType?: boolean } = {},
 ): Promise<Record<string, unknown>> {
   assertBrowserMutationRequest(request);
 
@@ -58,6 +58,7 @@ export async function readJsonBody(
   const contentType = request.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase();
 
   if (
+    options.requireContentType !== false &&
     contentType !== 'application/json' &&
     !(contentType?.startsWith('application/') && contentType.endsWith('+json'))
   ) {
@@ -88,7 +89,7 @@ export async function readJsonBody(
 }
 
 export async function readBody(request: Request): Promise<Record<string, unknown>> {
-  return readJsonBody(request);
+  return readJsonBody(request, { requireContentType: false });
 }
 export function response(data: unknown, status = 200) {
   return Response.json(data, { status, headers: { 'Cache-Control': 'private, no-store' } });
