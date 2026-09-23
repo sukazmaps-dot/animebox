@@ -1,5 +1,6 @@
 import { ApiError, adminClient, readBody, response, userClient } from '@/lib/community-server';
 import type { ChatReportReason } from '@/types/chat';
+import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REASONS: ChatReportReason[] = ['spam', 'abuse', 'nsfw', 'spoiler', 'scam', 'other'];
@@ -7,6 +8,12 @@ const REASONS: ChatReportReason[] = ['spam', 'abuse', 'nsfw', 'spoiler', 'scam',
 export async function POST(request: Request) {
   try {
     const { user } = await userClient();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'chat_report_ip', limit: 30, windowSeconds: 3600 },
+      user: { scope: 'chat_report_user', limit: 10, windowSeconds: 3600 },
+    });
+    if (limited) return limited;
+
     const body = await readBody(request);
     const messageId = typeof body.messageId === 'string' ? body.messageId : '';
     const reason = typeof body.reason === 'string' ? body.reason as ChatReportReason : null;

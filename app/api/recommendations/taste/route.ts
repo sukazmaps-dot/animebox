@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { TASTE_GRAPH_VERSION, normalizeTasteToken, type TasteGraph } from '@/lib/taste-graph';
+import { enforceIpAndUserRateLimit, enforceIpRateLimit } from '@/lib/api-rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -63,8 +64,13 @@ function normalizeWeights(weights: Map<string, number>) {
   );
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const ipLimited = await enforceIpRateLimit(request, {
+      scope: 'taste_graph_ip', limit: 30, windowSeconds: 60,
+    });
+    if (ipLimited) return ipLimited;
+
     const supabase = await createClient();
     const { data: authData } = await supabase.auth.getUser();
     const userId = authData.user?.id;
@@ -72,6 +78,12 @@ export async function GET() {
     if (!userId) {
       return NextResponse.json({ graph: null }, { status: 401, headers: { 'Cache-Control': 'private, no-store' } });
     }
+
+    const limited = await enforceIpAndUserRateLimit(request, userId, {
+      ip: { scope: 'taste_graph_auth_ip', limit: 30, windowSeconds: 60 },
+      user: { scope: 'taste_graph_user', limit: 12, windowSeconds: 60 },
+    });
+    if (limited) return limited;
 
     const admin = createSupabaseAdmin();
     const [libraryResult, historyResult, eventsResult] = await Promise.all([

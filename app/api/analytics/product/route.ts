@@ -5,6 +5,7 @@ import {
   type ProductClientEventName,
   type ProductEventInput,
 } from '@/lib/product-events-server';
+import { enforceIpRateLimit } from '@/lib/api-rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,11 @@ function safePath(value: unknown) {
 
 export async function POST(request: Request) {
   try {
+    const limited = await enforceIpRateLimit(request, {
+      scope: 'product_analytics_ip', limit: 180, windowSeconds: 60,
+    });
+    if (limited) return limited;
+
     const origin = request.headers.get('origin');
     if (origin && origin !== new URL(request.url).origin) {
       return Response.json({ ok: false }, { status: 403 });

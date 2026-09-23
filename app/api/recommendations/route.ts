@@ -3,6 +3,7 @@ import { unstable_cache } from 'next/cache';
 
 import { getAnimesWithShikimori } from '@/lib/combined-anime';
 import type { AniListListOrder, GetAnimesOptions } from '@/lib/anilist';
+import { enforceIpRateLimit } from '@/lib/api-rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -61,6 +62,11 @@ const getCachedCandidatePage = unstable_cache(
  * keeps exploration stable while producing at most four cache variants.
  */
 export async function GET(request: NextRequest) {
+  const limited = await enforceIpRateLimit(request, {
+    scope: 'recommendations_ip', limit: 120, windowSeconds: 60,
+  });
+  if (limited) return limited;
+
   const params = request.nextUrl.searchParams;
 
   const page = clampInteger(params.get('page'), 1, 1, 10_000);

@@ -7,6 +7,7 @@ import {
   response,
   userClient,
 } from '@/lib/community-server';
+import { enforceIpAndUserRateLimit, enforceIpRateLimit } from '@/lib/api-rate-limit';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MENTION_RE = /@([\p{L}\p{N}_.-]{3,24})/gu;
@@ -67,6 +68,11 @@ async function createChatNotifications(input: {
 
 export async function GET(request: Request) {
   try {
+    const limited = await enforceIpRateLimit(request, {
+      scope: 'chat_read_ip', limit: 180, windowSeconds: 60,
+    });
+    if (limited) return limited;
+
     const params = new URL(request.url).searchParams;
     return response(await getChatMessagesPage({ cursor: params.get('cursor') }));
   } catch (error) {
@@ -77,6 +83,12 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { client, user } = await userClient();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'chat_write_ip', limit: 90, windowSeconds: 60 },
+      user: { scope: 'chat_write_user', limit: 45, windowSeconds: 60 },
+    });
+    if (limited) return limited;
+
     try {
       await assertCanComment(user.id);
     } catch (moderationError) {
@@ -133,6 +145,12 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const { client, user } = await userClient();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'chat_delete_ip', limit: 60, windowSeconds: 60 },
+      user: { scope: 'chat_delete_user', limit: 30, windowSeconds: 60 },
+    });
+    if (limited) return limited;
+
     const body = await readBody(request);
     if (typeof body.id !== 'string' || !UUID.test(body.id)) throw new ApiError(400, 'Некорректное сообщение.');
 

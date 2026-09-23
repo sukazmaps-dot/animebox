@@ -1,11 +1,18 @@
 import { CHAT_REACTIONS, type ChatReaction } from '@/types/chat';
 import { ApiError, readBody, response, userClient } from '@/lib/community-server';
+import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(request: Request) {
   try {
-    const { client } = await userClient();
+    const { client, user } = await userClient();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'chat_reaction_ip', limit: 240, windowSeconds: 60 },
+      user: { scope: 'chat_reaction_user', limit: 120, windowSeconds: 60 },
+    });
+    if (limited) return limited;
+
     const body = await readBody(request);
 
     if (
