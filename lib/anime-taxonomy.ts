@@ -28,6 +28,7 @@ export const ANIME_GENRES = [
 
 export const ANIME_THEMES = [
   { value: 'Isekai', label: 'Исекай', aliases: ['isekai', 'исекай'] },
+  { value: 'Cyberpunk', label: 'Киберпанк', aliases: ['cyberpunk', 'киберпанк'] },
   { value: 'Reincarnation', label: 'Реинкарнация', aliases: ['reincarnation', 'реинкарнация'] },
   { value: 'School', label: 'Школа', aliases: ['school', 'школа'] },
   { value: 'Harem', label: 'Гарем', aliases: ['harem', 'гарем'] },
