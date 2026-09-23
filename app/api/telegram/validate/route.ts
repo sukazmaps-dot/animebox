@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 
 import { validateTelegramInitData } from '@/lib/telegram/validate-init-data';
 import { enforceIpRateLimit } from '@/lib/api-rate-limit';
+import { readBody } from '@/lib/community-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
     });
     if (limited) return limited;
 
-    const body = await request.json();
+    const body = await readBody(request);
 
     const initData =
       typeof body?.initData === 'string'
