@@ -24,12 +24,12 @@ export async function GET() {
       overviews.map((item) => [item.animeId, item] as const),
     );
 
-    const {
-      watch_overview_rows: _watchOverviewRows,
-      premium_badge: premiumBadge,
-      featured_achievements: featuredAchievements,
-      ...publicProfile
-    } = profile;
+    const premiumBadge = profile.premium_badge;
+    const featuredAchievements = profile.featured_achievements;
+    const publicProfile = { ...profile };
+    delete publicProfile.watch_overview_rows;
+    delete publicProfile.premium_badge;
+    delete publicProfile.featured_achievements;
 
     return response({
       ...publicProfile,
