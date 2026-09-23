@@ -39,6 +39,25 @@ const nextConfig: NextConfig = {
   },
 
   async headers() {
+    const securityHeaders = [
+      {
+        key: 'Strict-Transport-Security',
+        value: 'max-age=31536000; includeSubDomains',
+      },
+      {
+        key: 'X-Content-Type-Options',
+        value: 'nosniff',
+      },
+      {
+        key: 'Referrer-Policy',
+        value: 'strict-origin-when-cross-origin',
+      },
+      {
+        key: 'Permissions-Policy',
+        value: 'geolocation=(), payment=(), usb=()',
+      },
+    ];
+
     const htmlNoStoreHeaders = [
       { key: 'Cache-Control', value: 'no-cache, max-age=0, must-revalidate' },
       { key: 'Cloudflare-CDN-Cache-Control', value: 'no-store' },
@@ -88,6 +107,7 @@ const nextConfig: NextConfig = {
     ];
 
     return [
+      { source: '/:path*', headers: securityHeaders },
       ...htmlRoutes.map((source) => ({ source, headers: htmlNoStoreHeaders })),
       { source: '/anime/:slug/:path*', headers: htmlNoStoreHeaders },
       { source: '/anime/:slug', headers: animeDetailHeaders },
