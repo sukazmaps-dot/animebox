@@ -792,7 +792,7 @@ export default function AnimePlayer({
       }
 
       if (!requested) {
-        if (mode === 'manual') setSkipOpeningVisible(true);
+        if (mode === 'manual' && !isKodik) setSkipOpeningVisible(true);
         return false;
       }
 
@@ -807,8 +807,9 @@ export default function AnimePlayer({
         openingSkipFallbackTimerRef.current = null;
 
         if (
+          !isKodik &&
           latestPlaybackPositionSecondsRef.current <
-          Math.max(0, targetSeconds - 1.5)
+            Math.max(0, targetSeconds - 1.5)
         ) {
           setSkipOpeningVisible(true);
         }
@@ -888,7 +889,7 @@ export default function AnimePlayer({
         // One automatic attempt per episode. If the provider refuses/drops
         // the seek, requestOpeningSkip exposes the manual fallback button.
         openingAutoSkipAttemptedRef.current = true;
-        if (!requestOpeningSkip('auto')) {
+        if (!requestOpeningSkip('auto') && !isKodik) {
           setSkipOpeningVisible(true);
         }
       } else if (!insideOpening) {
@@ -2539,7 +2540,7 @@ export default function AnimePlayer({
             </>
           )}
 
-          {skipOpeningVisible && !watchTogetherMode && (
+          {skipOpeningVisible && !watchTogetherMode && !isKodik && (
             <button
               type="button"
               onClick={skipOpening}
