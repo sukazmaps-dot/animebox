@@ -4,6 +4,8 @@ import {
   notificationResponse,
   requireNotificationUser,
 } from '@/lib/notifications-server';
+import { readJsonBody } from '@/lib/community-server';
+import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,10 +13,13 @@ export const dynamic = 'force-dynamic';
 export async function PATCH(request: Request) {
   try {
     const { user } = await requireNotificationUser();
-    const body = (await request.json().catch(() => ({}))) as {
-      ids?: unknown;
-      all?: unknown;
-    };
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'notification_inbox_write_ip', limit: 120, windowSeconds: 60 },
+      user: { scope: 'notification_inbox_write_user', limit: 90, windowSeconds: 60 },
+    });
+    if (limited) return limited;
+
+    const body = await readJsonBody(request);
 
     const ids = Array.isArray(body.ids)
       ? body.ids
