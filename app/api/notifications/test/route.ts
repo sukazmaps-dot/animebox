@@ -8,6 +8,8 @@ import {
 } from '@/lib/notifications-server';
 import { assertBrowserMutationRequest } from '@/lib/community-server';
 
+import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +17,11 @@ export async function POST(request: Request) {
   assertBrowserMutationRequest(request);
   try {
     const { client, user } = await requireNotificationUser();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'notification_test_ip', limit: 12, windowSeconds: 600 },
+      user: { scope: 'notification_test_user', limit: 5, windowSeconds: 600 },
+    });
+    if (limited) return limited;
     const telegramProfile = await getTelegramProfile(user.id);
 
     if (!telegramProfile?.telegram_id) {
