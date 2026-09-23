@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { adminClient, readBody, userClient } from '@/lib/community-server';
+import { adminClient, readJsonBody, userClient } from '@/lib/community-server';
 import { getPremiumRecurringSubscription } from '@/lib/premium-server';
 import { editUserStarSubscription } from '@/lib/telegram-stars';
 
@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   try {
     const { user } = await userClient();
-    const body = await readBody(request);
+    const body = await readJsonBody(request);
     const action = typeof body?.action === 'string' ? body.action.trim() : '';
 
     if (action !== 'cancel' && action !== 'resume') {
