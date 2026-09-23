@@ -1,4 +1,4 @@
-import { failure, response, userClient } from '@/lib/community-server';
+import { assertBrowserMutationRequest, failure, response, userClient } from '@/lib/community-server';
 import {
   getBoostyPremiumBridgeStatus,
   verifyBoostyPremiumForUser,
@@ -19,10 +19,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const origin = request.headers.get('origin');
-    if (origin && origin !== new URL(request.url).origin) {
-      return response({ ok: false, error: 'invalid_origin' }, 403);
-    }
+    assertBrowserMutationRequest(request);
     const { user } = await userClient();
     const status = await verifyBoostyPremiumForUser(user.id);
     return response({ ok: true, ...status });
