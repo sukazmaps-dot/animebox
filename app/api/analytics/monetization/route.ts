@@ -1,3 +1,4 @@
+import { readJsonBody } from '@/lib/community-server';
 import { createClient } from '@/lib/supabase/server';
 import {
   trackMonetizationEvents,
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
       return Response.json({ ok: false }, { status: 413 });
     }
 
-    const body = (await request.json().catch(() => null)) as { events?: unknown } | null;
+    const body = await readJsonBody(request, { maxBytes: 32_000 });
     const rawEvents = Array.isArray(body?.events) ? body.events.slice(0, 20) : [];
     if (!rawEvents.length) {
       return Response.json({ ok: true, accepted: 0 });
