@@ -53,6 +53,7 @@ import './patch12-6-5-mobile-hero-media.css';
 import './patch12-6-6-profile-banner-pipeline.css';
 import './patch12-6-7-hero-reliability.css';
 import './patch12-6-8-profile-banner-cropper.css';
+import './patch12-6-9-mobile-schedule-v2.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
