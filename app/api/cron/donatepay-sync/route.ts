@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { optionalServerSecret } from '@/lib/env/server';
 
 import { isDonatePayConfigured } from '@/lib/payments/providers/donatepay';
 import { syncDonatePayTransactions } from '@/lib/payments/sync-donatepay';
