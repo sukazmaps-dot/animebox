@@ -8,21 +8,16 @@ import {
 
 import { useRouter } from 'next/navigation';
 
+import { safeInternalPath } from '@/lib/browser-navigation';
 import { createClient } from '@/lib/supabase/client';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 
-
-function safeReturnPath(value: string | null) {
-  return value && value.startsWith('/') && !value.startsWith('//')
-    ? value
-    : '/profile';
-}
 
 export default function OnboardingPage() {
   const router = useRouter();
 
   const [nextPath] = useState(() =>
-    safeReturnPath(
+    safeInternalPath(
       typeof window === 'undefined'
         ? null
         : new URLSearchParams(window.location.search).get('next'),
