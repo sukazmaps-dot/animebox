@@ -537,7 +537,6 @@ export default function SearchCatalogClient({
               </div>
             </div>
           </div>
-          </div>
         </div>
       )}
 
