@@ -105,7 +105,7 @@ for (const [label, needle] of [
 }
 
 const profileMigration = read(
-  'supabase/migrations/20260923133000_profile_server_managed_fields.sql',
+  'supabase/migrations/20260923104806_profile_server_managed_fields.sql',
 );
 for (const [label, needle] of [
   ['server-managed profile trigger', 'profiles_protect_server_managed_fields'],
@@ -119,14 +119,14 @@ for (const [label, needle] of [
 }
 
 const metadataMigration = read(
-  'supabase/migrations/20260923134500_profile_metadata_integrity.sql',
+  'supabase/migrations/20260923105539_profile_metadata_integrity.sql',
 );
 if (!metadataMigration.includes('new.created_at is distinct from old.created_at')) {
   failures.push('profile metadata migration: created_at integrity guard is missing.');
 }
 
 const commentRpcMigration = read(
-  'supabase/migrations/20260923141000_episode_comment_rpc_hardening.sql',
+  'supabase/migrations/20260923105741_episode_comment_rpc_hardening.sql',
 );
 for (const [label, needle] of [
   ['moderation restriction guard', 'COMMENT_RESTRICTED'],
@@ -140,7 +140,7 @@ for (const [label, needle] of [
 }
 
 const legacyCommentRpcMigration = read(
-  'supabase/migrations/20260923142500_legacy_comment_rpc_hardening.sql',
+  'supabase/migrations/20260923110330_legacy_comment_rpc_hardening.sql',
 );
 
 for (const [label, needle] of [
