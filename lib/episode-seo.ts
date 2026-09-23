@@ -138,10 +138,9 @@ function safeHttpsUrl(value?: string | null): string | undefined {
  * Schema.org graph for a confirmed playable episode.
  *
  * TVEpisode carries the episode semantics (episodeNumber / season / series),
- * while VideoObject describes the playable media. We intentionally do not
- * invent uploadDate, contentUrl or embedUrl values because provider
- * availability does not give us a trustworthy first-party publication time
- * or a stable public media URL.
+ * while VideoObject describes the playable media. Media URLs are included
+ * only when the server has a recently confirmed content/player URL; the
+ * watch-page URL is never reused as a fake contentUrl/embedUrl.
  */
 export function buildEpisodeVideoStructuredData(
   anime: Anime,
