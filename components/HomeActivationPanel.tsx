@@ -31,7 +31,7 @@ export default function HomeActivationPanel({
     return (
       <section className="home-activation-v2 home-activation-v2--guest" aria-label="Войти в AnimeBox">
         <div className="home-activation-v2__guest-copy">
-          <span className="home-activation-v2__eyebrow">ТВОЙ ANIMEBOX</span>
+          <span className="home-activation-v2__eyebrow">Твой AnimeBox</span>
           <h2>Не теряй серию, на которой остановился</h2>
           <p>Войди, чтобы продолжать с того же места и хранить свой список в AnimeBox.</p>
         </div>
@@ -78,7 +78,7 @@ export default function HomeActivationPanel({
   return (
     <section className="home-activation-v2" aria-label="Настроить персональный AnimeBox">
       <div className="home-activation-v2__intro">
-        <span className="home-activation-v2__eyebrow">СОБЕРИ СВОЙ ANIMEBOX</span>
+        <span className="home-activation-v2__eyebrow">Собери свой AnimeBox</span>
         <h2>{username}, начнём с пары тайтлов</h2>
         <p>Добавь то, что уже смотришь или давно хотел посмотреть — дальше главная станет твоей.</p>
       </div>
