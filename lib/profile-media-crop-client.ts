@@ -165,7 +165,7 @@ export async function prepareBaseProfileMedia(
     canvas.width = outputWidth;
     canvas.height = outputHeight;
 
-    const context = canvas.getContext('2d', { alpha: false });
+    const context = canvas.getContext('2d', { alpha: true });
     if (!context) {
       throw new Error('Браузер не смог подготовить изображение.');
     }

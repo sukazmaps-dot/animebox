@@ -1,6 +1,6 @@
 'use client';
 
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 import {
@@ -100,7 +100,7 @@ export default function PremiumMediaCropEditor({
       if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
       if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
 
-      const context = canvas.getContext('2d', { alpha: false });
+      const context = canvas.getContext('2d', { alpha: true });
       if (!context) return;
 
       const crop = calculateProfileMediaCropRect(
@@ -184,7 +184,7 @@ export default function PremiumMediaCropEditor({
   return (
     <div
       className={`premium-media-crop ${avatar ? 'is-avatar' : 'is-banner'}`}
-      style={{ '--crop-aspect': String(PROFILE_MEDIA_ASPECT[kind]) } as React.CSSProperties}
+      style={{ '--crop-aspect': String(PROFILE_MEDIA_ASPECT[kind]) } as CSSProperties}
     >
       <div className="premium-media-crop__head">
         <span>
