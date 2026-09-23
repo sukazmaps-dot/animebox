@@ -214,6 +214,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
     const controller = new AbortController();
     let active = true;
+    let publishedAny = false;
     const identity = `${animeIdParam}:${episodeNumber}`;
     const timeout = window.setTimeout(() => controller.abort(), 10_000);
 
@@ -230,6 +231,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         return;
       }
 
+      publishedAny = true;
       setSources((current) => {
         const withoutSameSource = current.filter((item) => item.name !== source.name);
         const next = [...withoutSameSource, source];
@@ -448,8 +450,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
         const kodikReady =
           kodikResult.status === 'fulfilled' && kodikResult.value === true;
-        const fallbackReady =
-          sourceIdentity === identity || sources.length > 0;
+        const fallbackReady = publishedAny;
         fallbackReason =
           fallbackResult.status === 'fulfilled'
             ? fallbackResult.value
