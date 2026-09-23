@@ -14,7 +14,7 @@ import {
   type SponsorTier,
 } from '@/lib/sponsor';
 
-type PreferenceRow = {
+export type PreferenceRow = {
   user_id: string;
   selected_frame: string | null;
   name_style: string | null;
