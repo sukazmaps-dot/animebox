@@ -35,7 +35,7 @@ function publicStorageUrl(
   path: string | null | undefined,
 ) {
   if (!path) return null;
-  if (/^https?:\/\//i.test(path)) return path;
+  if (/^https?:\/\//i.test(path)) return null;
   return admin.storage.from('profile-media').getPublicUrl(path).data.publicUrl || null;
 }
 
