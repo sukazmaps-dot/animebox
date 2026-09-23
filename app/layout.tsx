@@ -55,6 +55,7 @@ import './patch12-6-7-hero-reliability.css';
 import './patch12-6-8-profile-banner-cropper.css';
 import './patch12-6-9-mobile-schedule-v2.css';
 import './patch14-1-visual-foundation.css';
+import './patch14-1-1-anti-ai-design.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
