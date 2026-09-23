@@ -1072,3 +1072,103 @@
     transition: none !important;
   }
 }
+
+/* ---------- Home collection card · visual-language microfix ---------- */
+.home-page .home-library-panel {
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 18px !important;
+  border: 1px solid rgba(178, 160, 255, .12) !important;
+  border-radius: 15px !important;
+  background:
+    radial-gradient(circle at 92% 12%, rgba(120, 88, 255, .10), transparent 33%),
+    linear-gradient(145deg, rgba(15,20,31,.985), rgba(8,12,20,.99)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025) !important;
+}
+
+.home-page .home-library-panel::before,
+.home-page .home-library-panel::after {
+  display: none !important;
+}
+
+.home-page .home-library-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.home-page .home-library-panel__symbol {
+  position: static !important;
+  width: 34px !important;
+  height: 34px !important;
+  flex: 0 0 34px;
+  display: inline-grid !important;
+  place-items: center;
+  margin: 0 !important;
+  border: 1px solid rgba(171, 150, 255, .16);
+  border-radius: 10px;
+  background: rgba(126, 99, 220, .055);
+  color: #b7a7fb !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.home-page .home-library-panel__eyebrow {
+  color: #9585df !important;
+  font-size: 8px !important;
+  font-weight: 850 !important;
+  letter-spacing: .14em !important;
+}
+
+.home-page .home-library-panel h2 {
+  max-width: 290px;
+  margin: 16px 0 8px !important;
+  color: #f3f4f8 !important;
+  font-size: 18px !important;
+  font-weight: 720 !important;
+  line-height: 1.18 !important;
+  letter-spacing: -.03em !important;
+  text-wrap: balance;
+}
+
+.home-page .home-library-panel p {
+  max-width: 340px !important;
+  margin: 0 !important;
+  color: #8f99aa !important;
+  font-size: 10.5px !important;
+  line-height: 1.58 !important;
+}
+
+.home-page .home-library-panel .btn {
+  width: fit-content !important;
+  min-width: 148px;
+  min-height: 40px !important;
+  margin-top: 16px !important;
+  justify-content: center !important;
+  gap: 8px;
+  padding-inline: 14px !important;
+  border-radius: 10px !important;
+}
+
+@media (max-width: 720px) {
+  .home-page .home-library-panel {
+    padding: 16px !important;
+  }
+
+  .home-page .home-library-panel h2 {
+    max-width: 100%;
+    font-size: 17px !important;
+  }
+
+  .home-page .home-library-panel p {
+    max-width: 100% !important;
+  }
+
+  .home-page .home-library-panel .btn {
+    width: 100% !important;
+  }
+}
+

@@ -163,6 +163,14 @@ export default function AdSlot({
   useEffect(() => {
     let active = true;
 
+    // Ads are globally paused in the current AnimeBox product. Do not start
+    // config/provider work while the runtime is intentionally disabled.
+    if (!MONETIZATION_ENABLED || !ADS_ENABLED || AD_PROVIDER === 'none') {
+      return () => {
+        active = false;
+      };
+    }
+
     // Premium/ad-free accounts never even start the ad provider/config flow.
     // This is stronger than visually hiding a rendered creative.
     if (!authLoading && entitlementsResolved && adFree) {
@@ -394,6 +402,11 @@ export default function AdSlot({
       !providerFailed &&
       (config.provider === 'house' || config.provider === 'adsterra'),
   );
+
+  // Banner ads are currently paused platform-wide. Returning null here is
+  // important: an idle 1px slot is still visible as a stray pixel/line inside
+  // tightly-spaced pages even when no provider ever mounts.
+  if (!MONETIZATION_ENABLED || !ADS_ENABLED || AD_PROVIDER === 'none') return null;
 
   // Once access is resolved as ad-free, render no ad DOM at all. This avoids
   // empty shells and guarantees paid users cannot receive third-party mounts.
