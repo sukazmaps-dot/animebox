@@ -177,7 +177,7 @@ const LIST_QUERY = `
         status
         format
         genres
-        studios(isMain: true) {
+        studios {
           nodes {
             id
             name
