@@ -20,7 +20,7 @@ type Entry = {
   avatarUrl: string;
   avatarTransform: PremiumMediaTransform;
   activeMs: number;
-  episodes: number;
+  completedEpisodes: number;
   lastWatchedAt: string | null;
   isCurrentUser: boolean;
   sponsor: SponsorStatus | null;
@@ -210,7 +210,7 @@ export default function LeaderboardClient() {
                 <span className={styles.time}>{formatWatchTime(entry.activeMs)}</span>
                 <span className={styles.timeLabel}>подтверждённого просмотра</span>
                 <div className={styles.cardFooter}>
-                  <span>{entry.episodes} эп. в зачёте</span>
+                  <span>{entry.completedEpisodes} эп. завершено</span>
                   <Link href={`/profile/${entry.userId}`}>Профиль ↗</Link>
                 </div>
               </article>
@@ -234,7 +234,7 @@ export default function LeaderboardClient() {
             <div className={styles.boardHeader}>
               <span>Место</span>
               <span>Пользователь</span>
-              <span>Серии</span>
+              <span>Завершено</span>
               <span>Время</span>
             </div>
 
@@ -265,7 +265,7 @@ export default function LeaderboardClient() {
                     </small>
                   </span>
                 </ProfilePreview>
-                <span className={styles.episodes}>{entry.episodes}</span>
+                <span className={styles.episodes}>{entry.completedEpisodes}</span>
                 <strong className={styles.rowTime}>{formatWatchTime(entry.activeMs)}</strong>
               </div>
             ))}
@@ -274,7 +274,7 @@ export default function LeaderboardClient() {
           )}
 
           <p className={styles.note}>
-            Честный рейтинг: учитывается подтверждённое время просмотра в плеере.
+            Честный рейтинг: учитывается подтверждённое время просмотра в плеере, а завершённой серия считается после ≥90% доступного просмотра.
             Недельный и месячный сезоны начинаются заново в календарных границах UTC.
             Ручные отметки не добавляют время, а завершённые сезоны сохраняются в Зале славы.
           </p>
