@@ -389,7 +389,7 @@ export async function resolveEpisodeTimeline(input: {
       recap_start_ms: recap?.startMs ?? null,
       recap_end_ms: recap?.endMs ?? null,
       skip_source: 'aniskip',
-      skip_confidence: found ? 0.85 : null,
+      skip_confidence: null,
       skip_lookup_status: found ? 'found' : 'empty',
       skip_checked_at: now,
       updated_at: now,
