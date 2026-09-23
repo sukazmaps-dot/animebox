@@ -34,7 +34,7 @@ export const CATALOG_DISCOVERY_FILTERS = [
 
 export const CATALOG_FORMATS: Array<{ value: CatalogFormat; label: string }> = [
   { value: 'TV', label: 'TV-сериал' },
-  { value: 'MOVIE', label: 'Полнометражный фильм' },
+  { value: 'MOVIE', label: 'Фильм' },
   { value: 'OVA', label: 'OVA' },
   { value: 'ONA', label: 'ONA' },
   { value: 'SPECIAL', label: 'Спешл' },
@@ -131,6 +131,32 @@ export function parseCatalogFilters(
     studios,
     sort: SORT_VALUES.has(sortRaw as CatalogSort) ? sortRaw as CatalogSort : 'rating',
   };
+}
+
+export function parseCatalogFiltersFromSearchParams(
+  params: URLSearchParams,
+): CatalogFiltersState {
+  const record: Record<string, string> = {};
+  params.forEach((value, key) => {
+    record[key] = value;
+  });
+  return parseCatalogFilters(record);
+}
+
+export function catalogFiltersEqual(
+  left: CatalogFiltersState,
+  right: CatalogFiltersState,
+): boolean {
+  return (
+    left.format === right.format &&
+    left.status === right.status &&
+    left.sort === right.sort &&
+    left.season?.season === right.season?.season &&
+    left.season?.year === right.season?.year &&
+    left.demographics.join(',') === right.demographics.join(',') &&
+    left.discovery.join(',') === right.discovery.join(',') &&
+    left.studios.join(',') === right.studios.join(',')
+  );
 }
 
 export function writeCatalogFiltersToUrl(
