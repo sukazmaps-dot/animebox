@@ -1,5 +1,5 @@
-import { ApiError, adminClient, failure, response } from '@/lib/community-server';
-import { requireAdmin, writeAdminAudit } from '@/lib/admin-server';
+import { ApiError, adminClient, failure, readBody, response } from '@/lib/community-server';
+import { requireAdmin, requireAdminMutation, writeAdminAudit } from '@/lib/admin-server';
 import { getMyStarBalance, refundStarPayment } from '@/lib/telegram-stars';
 import { reconcileStarPayments } from '@/lib/star-reconciliation';
 import { isDonatePayConfigured } from '@/lib/payments/providers/donatepay';
@@ -247,7 +247,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as {
+    await requireAdminMutation(request, ['owner', 'admin']);
+    const rawBody = await readBody(request);
+    const body = rawBody as {
       action?: string;
       paymentId?: string;
       userId?: string;
