@@ -7,7 +7,7 @@ import {
   ensureAnimeArtwork,
 } from '@/lib/community-server';
 import { coveredSeconds, mergePlayedRanges } from '@/lib/played-coverage';
-import type { WatchTitleOverview } from '@/types/watch';
+import type { EpisodeWatchListItem, WatchTitleOverview } from '@/types/watch';
 
 const MAX_EPISODE_MS = 28_800_000;
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
@@ -939,6 +939,104 @@ export async function getEpisodeWatchState(
         ? progress.last_watched_at
         : null,
   };
+}
+
+export async function getEpisodeWatchList(
+  userId: string,
+  animeId: number,
+): Promise<EpisodeWatchListItem[]> {
+  const watch = watchClient();
+
+  const { data: episodes, error: episodesError } = await watch
+    .from('episodes')
+    .select('id,episode_number,duration_ms')
+    .eq('anime_id', animeId)
+    .order('episode_number', { ascending: true });
+  throwIfError(episodesError);
+
+  const rows = (episodes ?? []).filter(
+    (row) =>
+      typeof row.id === 'string' &&
+      Number.isSafeInteger(Number(row.episode_number)) &&
+      Number(row.episode_number) > 0,
+  );
+
+  if (rows.length === 0) return [];
+
+  const episodeById = new Map(
+    rows.map((row) => [
+      String(row.id),
+      {
+        episode: Number(row.episode_number),
+        durationMs:
+          row.duration_ms == null
+            ? null
+            : Math.round(asNonNegativeNumber(row.duration_ms)),
+      },
+    ]),
+  );
+
+  const progressRows: Array<{
+    episode_id: string;
+    resume_position_ms: number;
+    watched_ranges: unknown;
+    excluded_ranges: unknown;
+    completed_at: string | null;
+    last_watched_at: string | null;
+  }> = [];
+
+  for (const batch of chunkValues(Array.from(episodeById.keys()))) {
+    const { data, error } = await watch
+      .from('progress')
+      .select(
+        'episode_id,resume_position_ms,watched_ranges,excluded_ranges,completed_at,last_watched_at',
+      )
+      .eq('user_id', userId)
+      .in('episode_id', batch);
+    throwIfError(error);
+
+    for (const row of data ?? []) {
+      progressRows.push({
+        episode_id: String(row.episode_id),
+        resume_position_ms: Number(row.resume_position_ms ?? 0),
+        watched_ranges: row.watched_ranges,
+        excluded_ranges: row.excluded_ranges,
+        completed_at:
+          typeof row.completed_at === 'string' ? row.completed_at : null,
+        last_watched_at:
+          typeof row.last_watched_at === 'string' ? row.last_watched_at : null,
+      });
+    }
+  }
+
+  return progressRows
+    .flatMap((progress): EpisodeWatchListItem[] => {
+      const episode = episodeById.get(progress.episode_id);
+      if (!episode) return [];
+
+      const effective = effectiveWatchProgress(
+        normalizeRanges(progress.watched_ranges),
+        normalizeRanges(progress.excluded_ranges),
+        episode.durationMs,
+      );
+      const completed = Boolean(progress.completed_at);
+
+      return [{
+        episode: episode.episode,
+        positionMs: Math.round(
+          Math.max(0, asNonNegativeNumber(progress.resume_position_ms)),
+        ),
+        durationMs: episode.durationMs,
+        coverageMs: effective.coverageMs,
+        eligibleDurationMs: effective.eligibleDurationMs,
+        percent: completed
+          ? 100
+          : watchPercent(effective.coverageMs, effective.eligibleDurationMs),
+        completed,
+        watchedAt: progress.last_watched_at,
+      }];
+    })
+    .sort((a, b) => a.episode - b.episode);
 }
 
 export async function getCompletedEpisodes(
