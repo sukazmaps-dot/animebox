@@ -5,6 +5,7 @@ export type EpisodeAvailabilityProvider = {
   status: EpisodeAvailabilityStatus;
   episodes: number[];
   reason: string;
+  playerUrl?: string | null;
 };
 
 export type EpisodeAvailabilityResponse = {
