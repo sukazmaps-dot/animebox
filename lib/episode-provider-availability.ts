@@ -89,6 +89,10 @@ async function getKodikEpisodes(
       status: 'available',
       episodes: rangeTo(maxEpisode),
       reason: '',
+      playerUrl:
+        typeof results[0]?.link === 'string' && results[0].link.trim()
+          ? results[0].link.trim()
+          : null,
     };
   } catch (error) {
     return {
