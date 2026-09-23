@@ -1,6 +1,7 @@
 import 'server-only';
 
-import { adminClient } from '@/lib/community-server';
+import { adminClient, ensureAnime } from '@/lib/community-server';
+import { canonicalEpisodePlayerUrl } from '@/lib/episode-timeline-server';
 import type { Anime } from '@/types/anime';
 import type { EpisodeAvailabilityResponse } from '@/types/episode-availability';
 
@@ -54,6 +55,19 @@ export async function syncSeoEpisodeIndex(
 
   const admin = adminClient();
   const now = new Date().toISOString();
+
+  // Keep the timeline table's FK target present before we opportunistically
+  // seed stable player URLs for Google video discovery.
+  await ensureAnime(anime.id);
+
+  const kodikPlayerBase =
+    availability.providers.find(
+      (provider) =>
+        provider.name === 'kodik' &&
+        provider.status === 'available' &&
+        typeof provider.playerUrl === 'string' &&
+        provider.playerUrl.trim(),
+    )?.playerUrl ?? null;
   const thumbnailUrl = thumbnailFor(anime);
   const provider = providerFor(availability);
 
@@ -93,6 +107,31 @@ export async function syncSeoEpisodeIndex(
       .upsert(rows, { onConflict: 'anime_id,episode_number' });
 
     if (error) throw error;
+
+    if (kodikPlayerBase) {
+      const timelineRows = chunk.flatMap((episode) => {
+        const playerUrl = canonicalEpisodePlayerUrl(kodikPlayerBase, episode);
+        return playerUrl
+          ? [{
+              anime_id: anime.id,
+              episode_number: episode,
+              video_player_url: playerUrl,
+              video_verified_at: now,
+              updated_at: now,
+            }]
+          : [];
+      });
+
+      if (timelineRows.length) {
+        const { error: timelineError } = await admin
+          .from('episode_timeline_meta')
+          .upsert(timelineRows, { onConflict: 'anime_id,episode_number' });
+
+        if (timelineError) {
+          console.warn('[episode-seo] player URL seed failed:', timelineError);
+        }
+      }
+    }
   }
 }
 
