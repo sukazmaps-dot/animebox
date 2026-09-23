@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-import type { ProductionHealthSnapshot } from '@/lib/production-health-server';
+import type { ProductionHealthSnapshot } from '@/lib/production-health';
 
 import styles from './ProductionHealthDashboard.module.css';
 
