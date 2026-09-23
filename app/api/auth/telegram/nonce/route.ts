@@ -44,8 +44,7 @@ export async function POST(request: Request) {
 
       sameSite: 'strict',
 
-      path:
-        '/api/auth/telegram',
+      path: '/api/auth/telegram',
 
       maxAge:
         5 * 60,
