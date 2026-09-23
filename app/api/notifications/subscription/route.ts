@@ -22,11 +22,6 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     const { client, user } = await requireNotificationUser();
-    const limited = await enforceIpAndUserRateLimit(request, user.id, {
-      ip: { scope: 'notification_subscription_write_ip', limit: 60, windowSeconds: 60 },
-      user: { scope: 'notification_subscription_write_user', limit: 45, windowSeconds: 60 },
-    });
-    if (limited) return limited;
     const animeId = positiveAnimeId(
       new URL(request.url).searchParams.get('animeId'),
     );
@@ -74,6 +69,12 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { client, user } = await requireNotificationUser();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'notification_subscription_write_ip', limit: 60, windowSeconds: 60 },
+      user: { scope: 'notification_subscription_write_user', limit: 45, windowSeconds: 60 },
+    });
+    if (limited) return limited;
+
     const body = await readJsonBody(request);
 
     const animeId = positiveAnimeId(body.animeId);
