@@ -1,0 +1,92 @@
+/* The library, notification controls and account entry share one restrained surface language. */
+.tracker-empty,
+.tracker-guest {
+  background: #121720;
+  border: 1px solid rgba(192, 201, 221, .13);
+  border-radius: 14px;
+  box-shadow: none;
+}
+.tracker-empty { min-height: 296px; padding: 28px 24px; }
+.tracker-empty-art { display: block; width: 150px; height: 102px; margin: 0 auto 14px; color: #a3a9bd; }
+.tracker-empty h2 { font-size: 21px; font-weight: 750; letter-spacing: -.025em; }
+.tracker-empty p { max-width: 380px; font-size: 13px; line-height: 1.6; }
+.tracker-empty > a { min-height: 42px; padding-inline: 16px; background: #6750b8; border-color: #846bda; color: #fff; }
+.tracker-guest { width: min(100%, 540px); margin: 18px auto; padding: 34px 28px; text-align: center; }
+.tracker-empty-art--compact { width: 124px; height: 84px; }
+.tracker-guest h2 { margin: 0; color: #f1eff8; font-size: 23px; letter-spacing: -.03em; }
+.tracker-guest p { margin: 10px auto 18px; max-width: 350px; color: #a7afbf; font-size: 14px; line-height: 1.6; }
+.tracker-guest a { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 42px; padding: 0 18px; border: 1px solid #8f7ada; border-radius: 8px; background: #6450b3; color: #fff; font-weight: 700; text-decoration: none; }
+.tracker-guest a:hover, .tracker-empty > a:hover { background: #735dc8; }
+.tracker-guest a:focus-visible, .tracker-empty > a:focus-visible { outline: 2px solid #c4afff; outline-offset: 3px; }
+.tracker-filters { border-radius: 10px; background: #111620; border-color: rgba(190,200,220,.14); }
+.tracker-filter { border-radius: 7px; }
+
+.anime-notification-control:not(.is-compact) {
+  grid-template-columns: 50px minmax(0, 1fr) auto;
+  grid-template-areas: 'art copy actions' 'art message message';
+  min-height: 0;
+  padding: 20px 22px;
+  gap: 14px;
+}
+.anime-notification-control { background: #121720; border-color: rgba(192,201,221,.13); }
+.anime-notification-control__art { align-self: center; }
+.anime-notification-control__symbol { display: grid; width: 48px; height: 48px; place-items: center; border: 1px solid rgba(182,163,235,.25); border-radius: 9px; background: rgba(141,116,201,.09); color: #c5b2f2; }
+.anime-notification-control__symbol svg { transition: transform .26s ease; }
+.anime-notification-control:hover .anime-notification-control__symbol svg { transform: rotate(-8deg); }
+.anime-notification-control__copy h2 { font-size: 17px; letter-spacing: -.015em; }
+.anime-notification-control__copy p { font-size: 12px; }
+.anime-notification-control__button:not(.is-enabled) { background: #6550b8; border-color: #836bd2; box-shadow: none; }
+.anime-notification-control__button:not(.is-enabled):hover:not(:disabled) { background: #755fc9; box-shadow: none; }
+.anime-notification-control.is-compact .anime-notification-control__art { min-width: 48px; }
+.anime-notification-control.is-compact .anime-notification-control__symbol { width: 48px; height: 48px; }
+
+.auth-modal-v2__dialog { border-color: rgba(199,190,225,.18); border-radius: 15px; background: #10141e; }
+.auth-modal-v2__story { background: linear-gradient(155deg,#211b31,#141a27) !important; }
+.auth-modal-v2__story::after, .auth-modal-v2__glow { display: none; }
+.auth-modal-v2__brand { margin-bottom: 64px; }
+.auth-modal-v2__story h2 { font-size: clamp(30px,3.6vw,44px); line-height: 1.05; }
+.auth-modal-v2__story p { color: #b5b7c7; }
+.auth-modal-v2__mode { gap: 3px; border: 1px solid rgba(203,196,223,.19); border-radius: 9px; background: #171b26; }
+.auth-modal-v2__mode button { border-radius: 6px; color: #b2afc2; transition: background .18s ease, color .18s ease; }
+.auth-modal-v2__mode button.is-active { background: #6550b8; color: #fff; box-shadow: none; }
+.auth-modal-v2__mode button:hover:not(.is-active) { background: rgba(168,145,222,.11); color: #fff; }
+.auth-modal-v2__mode button:focus-visible { outline: 2px solid #c5affd; outline-offset: 2px; }
+.auth-modal-v2__submit { border-radius: 8px; background: #6650b9; box-shadow: none; }
+
+.telegram-welcome__dialog--hub { border-color: rgba(194,181,223,.19); border-radius: 15px; background: #111620; }
+.telegram-welcome__dialog--hub::after { display: none; }
+.telegram-welcome__art--animebox { background: linear-gradient(155deg,#211b31,#171c29); }
+.registration-welcome__logo-shell { width: 112px; height: 112px; border-radius: 15px; background: #171b2a; box-shadow: none; }
+.registration-welcome__logo-shell img { width: 78px; height: 78px; }
+.registration-welcome__action { min-height: 76px; border-color: rgba(192,201,221,.13); border-radius: 9px; background: #171d29; }
+.registration-welcome__action:hover { border-color: rgba(181,158,238,.5); background: #202537; }
+.registration-welcome__action-icon { border-radius: 6px; background: rgba(150,126,210,.12); }
+.registration-welcome__action strong { font-size: 12px; }
+.registration-welcome__action small { font-size: 10px; color: #aeb7c9; }
+.registration-welcome__continue { border-radius: 8px; background: #6550b8; box-shadow: none; }
+
+/* Google registration's final profile step uses the same quieter account surface. */
+.onboarding-card { border-color: rgba(194,181,223,.2); border-radius: 14px; background: #121720; box-shadow: none; }
+.onboarding-card .auth-card__badge { color: #bda9ec; letter-spacing: .11em; }
+.onboarding-account { border-color: rgba(192,201,221,.14); border-radius: 9px; background: #171d29; }
+.onboarding-account__avatar { border-radius: 7px; background: #6550b8; }
+.onboarding-card .auth-form__submit { border-radius: 8px; background: #6550b8; box-shadow: none; }
+
+@media (max-width: 760px) {
+  .anime-notification-control:not(.is-compact) { grid-template-columns: 48px minmax(0,1fr); grid-template-areas: 'art copy' 'actions actions' 'message message'; padding: 16px; }
+  .anime-notification-control:not(.is-compact) .anime-notification-control__actions { justify-content: stretch; }
+  .anime-notification-control:not(.is-compact) .anime-notification-control__button { width: 100%; }
+  .auth-modal-v2__dialog { border-radius: 0; }
+  .auth-modal-v2__brand { margin-bottom: 16px; }
+  .telegram-welcome__dialog--hub { border-radius: 12px; }
+  .registration-welcome__logo-shell { width: 76px; height: 76px; }
+  .registration-welcome__logo-shell img { width: 54px; height: 54px; }
+}
+@media (max-width: 390px) {
+  .anime-detail-v4__personal-grid .anime-notification-control__symbol { width: 46px; height: 46px; }
+  .tracker-guest { padding: 26px 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .anime-notification-control__symbol svg { transition: none; }
+  .anime-notification-control:hover .anime-notification-control__symbol svg { transform: none; }
+}

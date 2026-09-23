@@ -473,6 +473,10 @@
   filter: drop-shadow(0 12px 24px rgba(0,0,0,.18));
 }
 
+.episode-comments__empty--illustrated > div {
+  margin: 0 auto 8px;
+}
+
 .episode-comments__empty--illustrated strong,
 .episode-comments__empty--illustrated span {
   display: block;

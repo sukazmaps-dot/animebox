@@ -47,6 +47,8 @@
   filter: drop-shadow(0 16px 30px rgba(78, 52, 177, .18));
 }
 
+.episode-discussion-hub__art > div { width: 96px; height: 96px; }
+
 .episode-discussion-hub__copy { min-width: 0; }
 
 .episode-discussion-hub__eyebrow,

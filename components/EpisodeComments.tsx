@@ -1,6 +1,7 @@
 'use client';
 
 import ProfilePreview from '@/components/profile/ProfilePreview';
+import PlaceholderIcon from '@/components/ui/PlaceholderIcon';
 import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
@@ -632,11 +633,7 @@ export default function EpisodeComments({
         </div>
       ) : roots.length === 0 ? (
         <div className="episode-comments__empty episode-comments__empty--illustrated">
-          <img
-            src="/brand/empty-comments.png"
-            alt=""
-            aria-hidden="true"
-          />
+          <PlaceholderIcon variant="discussion" />
           <strong>Пока здесь тихо</strong>
           <span>Будь первым, кто обсудит эту серию.</span>
         </div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { useAuthState } from '@/components/AuthStateProvider';
 import { getPremiumMe } from '@/lib/entitlements-client';
+import Icon from '@/components/Icon';
 
 export default function CurrentPremiumBadge() {
   const { user } = useAuthState();
@@ -38,12 +39,7 @@ export default function CurrentPremiumBadge() {
 
   return (
     <span className="animebox-premium-badge" title="AnimeBox Premium">
-      <img
-        className="animebox-premium-badge__icon"
-        src="/premium/premium-user.webp"
-        alt=""
-        aria-hidden="true"
-      />
+      <Icon name="crown" className="animebox-premium-badge__icon" size={15} weight="fill" />
       Premium
     </span>
   );

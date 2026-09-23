@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useMemo, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import styles from './Leaderboard.module.css';
 import UserIdentity from '@/components/identity/UserIdentity';
@@ -9,6 +10,7 @@ import ProfilePreview from '@/components/profile/ProfilePreview';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
 import { premiumMediaStyle, type PremiumMediaTransform } from '@/lib/premium-studio';
+import Icon from '@/components/Icon';
 import type { ProfileProgression } from '@/lib/progression';
 
 type Period = 'week' | 'month' | 'all';
@@ -51,10 +53,6 @@ function formatWatchTime(ms: number) {
   return `${hours} ч ${minutes} мин`;
 }
 
-function Crown({ className = '' }: { className?: string }) {
-  return <svg className={className} viewBox="0 0 64 56" fill="none" aria-hidden="true"><path d="m8 17 13 10L32 8l11 19 13-10-6 28H14L8 17Z" fill="currentColor" fillOpacity=".16" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round"/><path d="M16 50h32M22 37h20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/><circle cx="8" cy="14" r="3" fill="currentColor"/><circle cx="32" cy="5" r="3" fill="currentColor"/><circle cx="56" cy="14" r="3" fill="currentColor"/></svg>;
-}
-
 const rankTitles: Record<number, string> = { 1: 'На вершине', 2: 'Серебряный призёр', 3: 'Бронзовый призёр' };
 
 function Avatar({ entry, className = '' }: { entry: Entry; className?: string }) {
@@ -65,6 +63,7 @@ function Avatar({ entry, className = '' }: { entry: Entry; className?: string })
 }
 
 export default function LeaderboardClient() {
+  const reduceMotion = useReducedMotion();
   const [period, setPeriod] = useState<Period>('week');
   const [data, setData] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -110,35 +109,68 @@ export default function LeaderboardClient() {
   return (
     <main className={styles.page}>
       <section className={styles.hero}>
-        <div className={styles.heroEmblem}><img src="/ui/animebox-rank-1.webp" alt="" aria-hidden="true" /></div>
-        <span className={styles.eyebrow}><span /> AnimeBox · Рейтинг</span>
-        <h1>Твоя история.<br /><em>Твоё место в топе.</em></h1>
-        <p>Любимые истории становятся частью твоей. Знакомься с теми, кто смотрит вместе с тобой — и найди своё место среди них.</p>
-        <div className={styles.heroMeta}><span>Топ-100</span><span>По времени просмотра</span></div>
+        <div className={styles.heroAura} aria-hidden="true" />
+        <div className={styles.heroEmblem} aria-hidden="true"><Icon name="trophy" size={90} weight="regular" /></div>
 
-        <div className={styles.modeSwitch} aria-label="Тип рейтинга">
-          <span aria-current="page">Просмотры</span>
-          <Link href="/supporters">Спонсоры</Link>
-          <Link href="/hall-of-fame">Зал славы</Link>
+        <div className={styles.heroCopy}>
+          <span className={styles.eyebrow}><span /> AnimeBox · Рейтинг</span>
+          <h1>Твоё место в топе.</h1>
+          <p>Сравни время просмотра с другими зрителями AnimeBox.</p>
+          <div className={styles.heroMeta}><span>Топ-100</span><span>По подтверждённому времени просмотра</span></div>
         </div>
 
-        <div className={styles.tabs} role="group" aria-label="Период рейтинга">
-          {(Object.keys(periodLabels) as Period[]).map((item) => (
-            <button
-              type="button"
-              aria-pressed={period === item}
-              className={period === item ? styles.activeTab : ''}
-              key={item}
-              onClick={() => {
-                if (item === period) return;
-                setLoading(true);
-                setError('');
-                setPeriod(item);
-              }}
-            >
-              {periodLabels[item]}
-            </button>
-          ))}
+        <div className={styles.heroStatus} aria-label="Твоя статистика рейтинга">
+          {me ? (
+            <>
+              <div><span>ТВОЯ ПОЗИЦИЯ</span><strong>#{me.rank}</strong></div>
+              <div><span>ПРОСМОТР</span><strong>{formatWatchTime(me.activeMs)}</strong></div>
+              <div><span>ЗАВЕРШЕНО</span><strong>{me.completedEpisodes} эп.</strong></div>
+            </>
+          ) : (
+            <div className={styles.heroStatusEmpty}>
+              <span>ТВОЯ ПОЗИЦИЯ</span>
+              <strong>—</strong>
+              <small>Начни смотреть — место появится здесь</small>
+            </div>
+          )}
+        </div>
+
+        <div className={styles.heroControls}>
+          <div className={styles.modeSwitch} aria-label="Тип рейтинга">
+            <span aria-current="page"><i aria-hidden="true" />Просмотры</span>
+            <Link href="/supporters">Спонсоры</Link>
+            <Link href="/hall-of-fame">Зал славы</Link>
+          </div>
+
+          <div className={styles.tabs} role="group" aria-label="Период рейтинга">
+            {(Object.keys(periodLabels) as Period[]).map((item) => {
+              const selected = period === item;
+              return (
+                <button
+                  type="button"
+                  aria-pressed={selected}
+                  className={selected ? styles.activeTab : ''}
+                  key={item}
+                  onClick={() => {
+                    if (item === period) return;
+                    setLoading(true);
+                    setError('');
+                    setPeriod(item);
+                  }}
+                >
+                  {selected && (
+                    <motion.span
+                      layoutId="leaderboard-period-active"
+                      className={styles.tabIndicator}
+                      transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 34 }}
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span className={styles.tabLabel}>{periodLabels[item]}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -169,20 +201,24 @@ export default function LeaderboardClient() {
                 aria-label={`${entry.rank} место: ${entry.username}, ${formatWatchTime(entry.activeMs)}`}
               >
                 <span className={styles.cardTexture} aria-hidden="true" />
-                <span className={styles.placeLabel}>{entry.rank === 1 ? 'ЛИДЕР РЕЙТИНГА' : `${String(entry.rank).padStart(2, '0')} / ПРИЗОВОЕ МЕСТО`}</span>
+                <span className={styles.rankGhost} aria-hidden="true">{entry.rank}</span>
+                <span className={styles.placeLabel}>{entry.rank === 1 ? 'ЛИДЕР РЕЙТИНГА' : `${entry.rank} / ПРИЗОВОЕ МЕСТО`}</span>
                 <ProfilePreview
                   userId={entry.userId}
                   username={entry.username}
                   className={styles.profilePreviewTrigger}
                 >
                   <span className={styles.avatarStage}>
-                    <img
-                      className={styles.rankArtwork}
-                      src={`/ui/animebox-rank-${entry.rank}.webp`}
-                      alt=""
-                      aria-hidden="true"
-                    />
-                    {entry.rank === 1 && <Crown className={styles.crown} />}
+                    {entry.rank === 1 && (
+                      <motion.span
+                        className={styles.crownFloat}
+                        animate={reduceMotion ? undefined : { y: [0, -3, 0], rotate: [-2, 2, -2] }}
+                        transition={{ duration: 3.6, repeat: Infinity, ease: 'easeInOut' }}
+                        aria-hidden="true"
+                      >
+                        <Icon name="crown" className={styles.crown} size={38} weight="fill" />
+                      </motion.span>
+                    )}
                     <span className={styles.avatarRing}>
                       <span className={styles.avatarClip}>
                         <Avatar entry={entry} />
@@ -218,14 +254,22 @@ export default function LeaderboardClient() {
           </section>
 
           <section className={styles.personal} aria-label="Твоё место в рейтинге">
-            <div className={styles.personalIcon}><Crown /></div>
+            <div className={styles.personalIcon}>
+              {me ? <strong>#{me.rank}</strong> : <Icon name="crown" size={26} weight="regular" />}
+            </div>
             <div className={styles.personalText}>
               <span className={styles.eyebrow}>{me ? 'Твоя позиция' : 'Твоё место в рейтинге'}</span>
-              <h2>{me ? (me.rank <= 3 ? 'Ты уже на пьедестале' : `Твоё место — #${me.rank}`) : 'Здесь может быть твоё имя'}</h2>
-              <p>{me ? `${formatWatchTime(me.activeMs)} просмотра за выбранный период` : 'Смотри любимые аниме в AnimeBox — подтверждённое время учитывается в рейтинге автоматически.'}</p>
-              {gap !== null && <p className={styles.gap}>Разрыв с третьим местом: {gap === 0 ? 'одинаковое время' : formatWatchTime(gap)}. Рейтинг меняется вместе с активностью участников.</p>}
+              <h2>{me ? (me.rank <= 3 ? 'Ты уже на пьедестале' : 'Держишь место в рейтинге') : 'Здесь может быть твоё имя'}</h2>
+              {gap !== null && <p className={styles.gap}>До третьего места: {gap === 0 ? 'одинаковое время' : formatWatchTime(gap)}</p>}
             </div>
-            <Link className={styles.personalAction} href={me ? `/profile/${me.userId}` : '/search'}>{me ? 'Мой профиль' : 'Выбрать аниме'} <span aria-hidden="true">↗</span></Link>
+            {me && (
+              <div className={styles.personalStats} aria-label="Твоя статистика">
+                <span><small>Время</small><strong>{formatWatchTime(me.activeMs)}</strong></span>
+                <span><small>Серии</small><strong>{me.completedEpisodes}</strong></span>
+                <span><small>Уровень</small><strong>LV.{me.progression.level}</strong></span>
+              </div>
+            )}
+            <Link className={styles.personalAction} href={me ? `/profile/${me.userId}` : '/search'}>{me ? 'Профиль' : 'Выбрать аниме'} <span aria-hidden="true">↗</span></Link>
           </section>
 
           {rest.length > 0 && <div className={styles.sectionHeading}><h2>В одном ряду с лучшими</h2><span className={styles.periodBadge}>#{rest[0].rank} — #{rest[rest.length - 1].rank}</span></div>}
@@ -236,6 +280,7 @@ export default function LeaderboardClient() {
               <span>Пользователь</span>
               <span>Завершено</span>
               <span>Время</span>
+              <span aria-hidden="true" />
             </div>
 
             {rest.map((entry) => (
@@ -267,6 +312,7 @@ export default function LeaderboardClient() {
                 </ProfilePreview>
                 <span className={styles.episodes}>{entry.completedEpisodes}</span>
                 <strong className={styles.rowTime}>{formatWatchTime(entry.activeMs)}</strong>
+                <Link className={styles.rowOpen} href={`/profile/${entry.userId}`} aria-label={`Открыть профиль ${entry.username}`}>↗</Link>
               </div>
             ))}
           </section>

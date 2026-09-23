@@ -309,6 +309,7 @@ export default function HomeHeroCarousel({
   }, []);
 
   useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     if (
       !autoplayUnlocked ||
       paused ||

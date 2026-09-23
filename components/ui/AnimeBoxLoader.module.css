@@ -17,31 +17,29 @@
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  animation: animebox-loader-float 1.8s ease-in-out infinite;
-  filter:
-    drop-shadow(0 0 8px rgba(168, 92, 255, .52))
-    drop-shadow(0 0 18px rgba(99, 111, 255, .22));
+  border: 2px solid rgba(180, 169, 235, .18);
+  border-left-color: #b9a5fa;
+  border-radius: 50%;
+  animation: animebox-loader-spin 1.3s linear infinite;
 }
 
 .orbit::after {
   content: '';
   position: absolute;
-  inset: 13%;
-  border-radius: 999px;
-  box-shadow: 0 0 22px rgba(182, 112, 255, .24);
-  animation: animebox-loader-glow 1.25s ease-in-out infinite alternate;
+  inset: 19%;
+  border: 1px solid rgba(151, 136, 231, .45);
+  border-radius: 50%;
 }
 
-.image {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  animation: animebox-loader-spin 2.15s linear infinite;
+.core {
+  width: 19%;
+  height: 19%;
+  border-radius: 3px;
+  background: #d8cafa;
+  transform: rotate(45deg);
 }
 
-.label {
-  white-space: nowrap;
-}
+.label { white-space: nowrap; }
 
 .compact {
   width: auto;
@@ -54,20 +52,8 @@
   to { transform: rotate(360deg); }
 }
 
-@keyframes animebox-loader-float {
-  0%, 100% { transform: translateY(0) scale(.96); }
-  50% { transform: translateY(-2px) scale(1.04); }
-}
-
-@keyframes animebox-loader-glow {
-  from { opacity: .45; transform: scale(.9); }
-  to { opacity: 1; transform: scale(1.15); }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .orbit,
-  .orbit::after,
-  .image {
+  .orbit {
     animation: none;
   }
 }

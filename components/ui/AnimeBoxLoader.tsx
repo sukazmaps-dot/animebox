@@ -1,5 +1,3 @@
-import Image from 'next/image';
-
 import styles from './AnimeBoxLoader.module.css';
 
 type Props = {
@@ -20,21 +18,14 @@ export default function AnimeBoxLoader({
       className={`${styles.loader} ${compact ? styles.compact : ''} ${className}`.trim()}
       role="status"
       aria-live="polite"
+      aria-label={compact ? label : undefined}
     >
       <span
         className={styles.orbit}
         style={{ width: size, height: size }}
         aria-hidden="true"
       >
-        <Image
-          src="/brand/ui/animebox-loader.webp"
-          width={size}
-          height={size}
-          alt=""
-          className={styles.image}
-          unoptimized
-          priority={false}
-        />
+        <span className={styles.core} />
       </span>
       {!compact && <span className={styles.label}>{label}</span>}
     </div>

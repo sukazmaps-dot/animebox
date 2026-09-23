@@ -6,6 +6,7 @@ import { getPublicProfile } from '@/lib/public-profile-server';
 import UserIdentity from '@/components/identity/UserIdentity';
 import UserAvatarWithFrame from '@/components/profile/UserAvatarWithFrame';
 import ProfileAnimeIdentity from '@/components/profile/ProfileAnimeIdentity';
+import Icon from '@/components/Icon';
 import FriendActionButton from '@/components/friends/FriendActionButton';
 import { premiumMediaStyle, premiumStudioCssVariables } from '@/lib/premium-studio';
 import { formatSeasonRange, seasonPlacementLabel } from '@/lib/seasons';
@@ -149,12 +150,7 @@ export default async function PublicProfilePage({ params }: Props) {
 
                   {profile.premium && (
                     <span className="animebox-premium-badge" title="AnimeBox Premium">
-                      <img
-                        className="animebox-premium-badge__icon"
-                        src="/premium/premium-user.webp"
-                        alt=""
-                        aria-hidden="true"
-                      />
+                      <Icon name="crown" className="animebox-premium-badge__icon" size={15} weight="fill" />
                       Premium
                     </span>
                   )}

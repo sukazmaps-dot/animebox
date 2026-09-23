@@ -325,7 +325,7 @@ function NavbarContent() {
                 aria-current={active ? 'page' : undefined}
                 title={item.label}
               >
-                <Icon name={item.icon} />
+                <span className="sidebar__icon" aria-hidden="true"><Icon name={item.icon} weight={active ? 'fill' : 'regular'} /></span>
                 <span>{item.label}</span>
               </Link>
             );
@@ -347,7 +347,7 @@ function NavbarContent() {
             aria-current={isActive('/support') ? 'page' : undefined}
             title="Поддержать AnimeBox"
           >
-            <Icon name="heart" />
+            <span className="sidebar__icon" aria-hidden="true"><Icon name="heart" weight={isActive('/support') ? 'fill' : 'regular'} /></span>
             <span>
               <strong>Поддержать AnimeBox</strong>
               <small>Stars, Boosty и другие способы</small>
@@ -365,7 +365,7 @@ function NavbarContent() {
             rel="noreferrer"
             title="Telegram Mini App"
           >
-            <Icon name="telegram" />
+            <span className="sidebar__icon" aria-hidden="true"><Icon name="telegram" /></span>
             <span>Telegram Mini App</span>
           </a>
         </nav>
@@ -382,7 +382,7 @@ function NavbarContent() {
                 }`}
                 title="Профиль"
               >
-                <Icon name="user" />
+                <span className="sidebar__icon" aria-hidden="true"><Icon name="user" weight={isActive('/profile') ? 'fill' : 'regular'} /></span>
                 <span>Профиль</span>
               </Link>
 
@@ -393,7 +393,7 @@ function NavbarContent() {
                 }`}
                 title="Друзья"
               >
-                <Icon name="users" />
+                <span className="sidebar__icon" aria-hidden="true"><Icon name="users" weight={isActive('/friends') ? 'fill' : 'regular'} /></span>
                 <span>Друзья</span>
               </Link>
 
@@ -404,7 +404,7 @@ function NavbarContent() {
                 }`}
                 title="Настройки"
               >
-                <Icon name="menu" />
+                <span className="sidebar__icon" aria-hidden="true"><Icon name="menu" weight={isActive('/settings') ? 'fill' : 'regular'} /></span>
                 <span>Настройки</span>
               </Link>
             </nav>

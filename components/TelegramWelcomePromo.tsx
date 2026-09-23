@@ -188,8 +188,6 @@ export default function TelegramWelcomePromo() {
         </button>
 
         <div className="telegram-welcome__art telegram-welcome__art--animebox" aria-hidden="true">
-          <span className="telegram-welcome__orbit telegram-welcome__orbit--one" />
-          <span className="telegram-welcome__orbit telegram-welcome__orbit--two" />
           <div className="registration-welcome__logo-shell">
             <Image
               src="/logo.png"
@@ -203,7 +201,7 @@ export default function TelegramWelcomePromo() {
           <div className="registration-welcome__art-copy">
             <small>ANIMEBOX ACCOUNT</small>
             <strong>Твой профиль готов</strong>
-            <span>Теперь собери AnimeBox под себя.</span>
+            <span>Начни с тайтла, который давно хотел посмотреть.</span>
           </div>
         </div>
 

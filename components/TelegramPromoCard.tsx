@@ -1,9 +1,15 @@
 'use client';
 
-import Image from 'next/image';
+import {
+  ArrowUpRightIcon,
+  ChatCircleDotsIcon,
+  PaperPlaneTiltIcon,
+  UsersThreeIcon,
+} from '@phosphor-icons/react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { type MouseEvent, useEffect, useRef, useState } from 'react';
 
-import Icon from '@/components/Icon';
+import AnimeBoxIconCore from '@/components/ui/AnimeBoxIconCore';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 import {
   TELEGRAM_CHANNEL_HANDLE,
@@ -12,7 +18,7 @@ import {
 
 const DISMISS_KEY = 'animebox:telegram-channel-promo-dismissed:v1';
 const DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const CAMPAIGN_ID = 'patch11-channel-growth-v2';
+const CAMPAIGN_ID = 'animebox-visual-language-v1';
 
 type Placement = 'home_right_rail' | 'watch_together';
 
@@ -34,10 +40,9 @@ export default function TelegramPromoCard({
 }) {
   const rootRef = useRef<HTMLElement | null>(null);
   const impressionSentRef = useRef(false);
+  const reducedMotion = useReducedMotion();
   const [ready, setReady] = useState(false);
   const [hidden, setHidden] = useState(false);
-  const [artSource, setArtSource] = useState('/brand/telegram-cta.webp');
-  const [artHidden, setArtHidden] = useState(false);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -134,7 +139,7 @@ export default function TelegramPromoCard({
   return (
     <section
       ref={rootRef}
-      className={'panel telegram-growth-card ' + (community ? 'telegram-growth-card--community' : 'telegram-growth-card--compact')}
+      className={`panel telegram-growth-card telegram-growth-card--vector ${community ? 'telegram-growth-card--community' : 'telegram-growth-card--compact'}`}
       aria-label="Telegram-канал AnimeBox"
     >
       <button
@@ -149,39 +154,26 @@ export default function TelegramPromoCard({
 
       <div className="telegram-growth-card__aurora" aria-hidden="true" />
 
-      <div
-        className={`telegram-growth-card__art ${artHidden ? 'is-fallback' : ''}`}
-        aria-hidden="true"
-      >
-        {!artHidden ? (
-          <Image
-            src={artSource}
-            alt=""
-            width={420}
-            height={300}
-            sizes={community ? '(max-width: 760px) 300px, 420px' : '180px'}
-            loading="lazy"
-            unoptimized
-            onError={() => {
-              if (artSource !== '/backgrounds/telegram-promo.webp') {
-                setArtSource('/backgrounds/telegram-promo.webp');
-                return;
-              }
-
-              setArtHidden(true);
-            }}
-          />
-        ) : (
-          <span className="telegram-growth-card__art-fallback">
-            <Icon name="telegram" />
-          </span>
-        )}
+      <div className="telegram-growth-card__vector-art" aria-hidden="true">
+        <AnimeBoxIconCore size="large" className="telegram-growth-card__icon-core">
+          <motion.span
+            className="telegram-growth-card__plane"
+            animate={
+              reducedMotion
+                ? undefined
+                : { y: [0, -5, 0], rotate: [0, -3, 0] }
+            }
+            transition={{ duration: 4, ease: 'easeInOut', repeat: Infinity }}
+          >
+            <PaperPlaneTiltIcon size={42} weight="light" />
+          </motion.span>
+        </AnimeBoxIconCore>
       </div>
 
       <div className="telegram-growth-card__content">
         <div className="telegram-growth-card__brand">
-          <span className="telegram-growth-card__telegram-icon">
-            <Icon name="telegram" />
+          <span className="telegram-growth-card__brand-mark">
+            <PaperPlaneTiltIcon size={16} weight="regular" />
           </span>
           <span>
             <small>ANIMEBOX · TELEGRAM</small>
@@ -192,34 +184,32 @@ export default function TelegramPromoCard({
         <div className="telegram-growth-card__copy">
           <h3>
             {community
-              ? 'Watch Together живёт вместе с комьюнити'
+              ? 'Watch Together начинается с комьюнити'
               : 'Будь ближе к AnimeBox'}
           </h3>
           <p>
             {community
-              ? 'Открытые комнаты, social-функции, крупные обновления и планы проекта — в Telegram AnimeBox.'
+              ? 'Открытые комнаты, social-функции и большие обновления — в одном канале.'
               : 'Патчи, новые функции и важные новости проекта — без лишнего шума.'}
           </p>
         </div>
 
         <div className="telegram-growth-card__benefits" aria-label="Преимущества Telegram-канала">
-          <span>Патчи</span>
-          <span>{community ? 'Watch Together' : 'Планы'}</span>
-          <span>Комьюнити</span>
+          <span><ChatCircleDotsIcon size={13} /> Патчи</span>
+          <span><UsersThreeIcon size={13} /> {community ? 'Watch Together' : 'Комьюнити'}</span>
         </div>
 
         <a
           href={TELEGRAM_CHANNEL_URL}
           target="_blank"
           rel="noreferrer"
-          className="telegram-growth-card__cta"
+          className="ab-action ab-action--secondary telegram-growth-card__cta"
           onClick={handleChannelClick}
         >
           <span>
-            {community ? 'Открыть Telegram-комьюнити' : 'Перейти в ' + TELEGRAM_CHANNEL_HANDLE}
-            <small>официальный канал AnimeBox</small>
+            {community ? 'Открыть Telegram' : `Перейти в ${TELEGRAM_CHANNEL_HANDLE}`}
           </span>
-          <b aria-hidden="true">↗</b>
+          <ArrowUpRightIcon size={16} weight="bold" aria-hidden="true" />
         </a>
       </div>
     </section>

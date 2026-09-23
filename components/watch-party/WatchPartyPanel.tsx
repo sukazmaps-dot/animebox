@@ -2,6 +2,7 @@
 
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import Icon from '@/components/Icon';
 import type { DataConnection, Peer as PeerInstance } from 'peerjs';
 import {
   createWatchPartyPeer,
@@ -2560,14 +2561,7 @@ export default function WatchPartyPanel({
                     />
                     {publicIdentity?.premium && (
                       <span className={styles.premiumBadge} title="AnimeBox Premium">
-                        <Image
-                          src="/premium/premium-user.webp"
-                          alt=""
-                          width={16}
-                          height={16}
-                          aria-hidden="true"
-                          unoptimized
-                        />
+                        <Icon name="crown" size={14} weight="fill" />
                         <span>Premium</span>
                       </span>
                     )}
@@ -2777,14 +2771,7 @@ export default function WatchPartyPanel({
                           </ProfilePreview>
                           {publicIdentity?.premium && (
                             <span className={styles.chatPremiumBadge} title="AnimeBox Premium">
-                              <Image
-                                src="/premium/premium-user.webp"
-                                alt=""
-                                width={14}
-                                height={14}
-                                aria-hidden="true"
-                                unoptimized
-                              />
+                              <Icon name="crown" size={14} weight="fill" />
                               Premium
                             </span>
                           )}

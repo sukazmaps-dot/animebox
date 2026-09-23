@@ -1,0 +1,119 @@
+/* Support page: deliberately flat vector art and restrained motion. */
+.support-page .support-page__hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 32%);
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(112deg, #211b32, #171625 63%, #161824);
+}
+.support-page .support-page__hero-copy { max-width: none; }
+.support-heart-art {
+  width: min(100%, 308px);
+  aspect-ratio: 1;
+  justify-self: center;
+  color: #c4a4ff;
+  pointer-events: none;
+}
+.support-heart-art__mark { display: block; width: 100%; height: 100%; overflow: visible; }
+.support-heart-art__orbit { opacity: .4; }
+.support-heart-art__orbit-inner { opacity: .28; }
+.support-heart-art__fill { opacity: .09; }
+.support-heart-art__pulse {
+  transform-origin: 160px 160px;
+  animation: support-heart-beat 3.4s ease-in-out infinite;
+}
+.support-heart-art__stars {
+  transform-origin: 160px 160px;
+  animation: support-stars-turn 36s linear infinite;
+}
+@keyframes support-heart-beat {
+  0%, 30%, 100% { transform: scale(1); }
+  14% { transform: scale(1.045); }
+  21% { transform: scale(1.015); }
+}
+@keyframes support-stars-turn { to { transform: rotate(360deg); } }
+
+/* Links change pages; the button refreshes data. Group their surfaces without tab semantics. */
+.support-page .sponsor-v3-dashboard-actions {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  width: auto;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid rgba(189, 171, 219, .2);
+  border-radius: 11px;
+  background: rgba(8, 10, 19, .58);
+}
+.support-page .sponsor-v3-dashboard-actions > .btn {
+  display: inline-flex;
+  min-height: 37px;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  margin: 0;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  box-shadow: none;
+  color: #c7c4d5;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.25;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .2s ease, color .2s ease;
+}
+.support-page .sponsor-v3-dashboard-actions > .btn:hover,
+.support-page .sponsor-v3-dashboard-actions > .btn:focus-visible {
+  background: rgba(162, 134, 222, .18);
+  color: #fff;
+}
+.support-page .sponsor-v3-dashboard-actions > .btn:focus-visible {
+  outline: 2px solid #c4a4ff;
+  outline-offset: -2px;
+}
+.support-page .sponsor-v3-dashboard-actions > .btn:disabled { opacity: .45; cursor: wait; }
+.support-page .sponsor-v3-dashboard-actions > button:last-child {
+  border-left: 1px solid rgba(189, 171, 219, .18);
+  border-radius: 2px 7px 7px 2px;
+}
+@media (max-width: 700px) {
+  .support-page .support-page__hero {
+    position: relative;
+    display: block;
+    min-height: 220px;
+  }
+  .support-page .support-page__hero-copy { position: relative; z-index: 1; }
+  .support-page .support-page__hero-copy p { max-width: 72%; }
+  .support-heart-art {
+    position: absolute;
+    right: -42px;
+    bottom: -50px;
+    width: 196px;
+    opacity: .27;
+  }
+  .support-page .sponsor-v3-dashboard-actions {
+    display: grid !important;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 2px;
+  }
+  .support-page .sponsor-v3-dashboard-actions > .btn {
+    width: 100%;
+    min-width: 0;
+    grid-column: auto !important;
+    white-space: normal;
+  }
+}
+@media (max-width: 420px) {
+  .support-page .support-page__hero-copy p { max-width: none; }
+  .support-heart-art { opacity: .14; }
+  .support-page .sponsor-v3-dashboard-actions { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .support-heart-art__pulse, .support-heart-art__stars { animation: none; }
+  .support-page .sponsor-v3-dashboard-actions > .btn { transition: none; }
+}

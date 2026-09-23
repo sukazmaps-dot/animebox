@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import Image from 'next/image';
 import SupportAnimeBox from '@/components/monetization/SupportAnimeBox';
+import SupportHeartArt from '@/components/monetization/SupportHeartArt';
 import SponsorDashboard from '@/components/monetization/SponsorDashboard';
 import SponsorBadge from '@/components/monetization/SponsorBadge';
 import AnimeBoxStar from '@/components/monetization/AnimeBoxStar';
@@ -24,7 +24,7 @@ export default function SupportPage(){return <div className="support-page sponso
    <h1>Твоя поддержка.<br/>Будущее AnimeBox.</h1>
    <p>Помоги независимому проекту расти — и добавь своему профилю характер. Каждая звезда идёт в общий прогресс твоего спонсорства.</p>
   </div>
-  <Image src="/brand/illustrations/support-stars.webp" width={720} height={480} alt="" aria-hidden="true" className="support-page__hero-art" priority unoptimized/>
+  <SupportHeartArt/>
  </section>
  <SponsorDashboard/>
  <section aria-label="Уровни спонсорства" className="sponsor-v2-tiers">{tiers.map(t=><article className="sponsor-v2-tier" data-tier={t.tier} key={t.tier}><SponsorBadge tier={t.tier}/><div className="sponsor-v2-price"><strong>{t.amount}</strong><span className="sponsor-v2-price__stars"><AnimeBoxStar size={22} /> суммарно</span></div><h2>{t.title}</h2><ul>{t.perks.map(p=><li key={p}>{p}</li>)}</ul><a className="btn btn--ghost" href="#support-payment">Поддержать проект ↓</a></article>)}</section>

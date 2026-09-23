@@ -16,6 +16,7 @@ import {
   type PendingProfileMediaUpload,
 } from '@/lib/profile-media-upload-client';
 import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor';
+import Icon from '@/components/Icon';
 import {
   DEFAULT_PREMIUM_STUDIO_SETTINGS,
   PREMIUM_BORDER_STYLES,
@@ -810,7 +811,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   if (!allowed) {
     const locked = (
       <section className="premium-studio__locked">
-        <img className="premium-studio-v12__lock-icon" src="/premium/premium-user.webp" alt="" />
+        <Icon name="crown" className="premium-studio-v12__lock-icon" size={60} weight="regular" />
         <span>PREMIUM STUDIO</span>
         <h1>Собственный профиль и тема плеера</h1>
         <p>
@@ -832,7 +833,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     <div className={`premium-studio premium-studio-v12 ${embedded ? 'is-embedded' : ''}`}>
       {!embedded && <div className="premium-studio__head premium-studio-v12__head">
         <div className="premium-studio-v12__title-wrap">
-          <img src="/premium/premium-user.webp" alt="" aria-hidden="true" />
+          <Icon name="crown" size={54} weight="regular" />
           <div>
             <span>ANIMEBOX PREMIUM</span>
             <h1>Premium Studio</h1>

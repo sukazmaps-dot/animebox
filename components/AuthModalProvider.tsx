@@ -416,9 +416,9 @@ function AuthModal({
             <Image src="/logo.png" alt="" width={34} height={34} />
             <span>ANIMEBOX</span>
           </div>
-          <span className="auth-modal-v2__eyebrow">ТВОЙ ANIME HUB</span>
+          <span className="auth-modal-v2__eyebrow">ТВОЙ ЛИЧНЫЙ АНИМЕ-УГОЛОК</span>
           <h2>{state.title || (state.mode === 'login' ? 'Продолжай с того же места' : 'Собери свой AnimeBox')}</h2>
-          <p>Войди, чтобы {sourceLabel(state.intent)}. Текущая страница останется открытой.</p>
+          <p>Войди, чтобы {sourceLabel(state.intent)}. Ты вернёшься туда, где остановился.</p>
           <div className="auth-modal-v2__benefits">
             <span><b>✓</b> Прогресс между устройствами</span>
             <span><b>✓</b> Персональные рекомендации</span>

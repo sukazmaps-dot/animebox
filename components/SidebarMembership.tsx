@@ -1,8 +1,8 @@
 'use client';
 
+import { CrownIcon } from '@phosphor-icons/react';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 
 import { useAuthState } from '@/components/AuthStateProvider';
 import { getPremiumMe, peekPremiumMe } from '@/lib/entitlements-client';
@@ -130,15 +130,7 @@ export default function SidebarMembership() {
       aria-label={state.premium ? 'AnimeBox Premium активен' : 'Открыть AnimeBox Premium'}
     >
       <span className="sidebar-membership__icon" aria-hidden="true">
-        <Image
-          src="/premium/premium-user.webp"
-          alt=""
-          width={24}
-          height={24}
-          sizes="24px"
-          quality={75}
-          priority={false}
-        />
+        <CrownIcon size={20} weight={state.premium ? 'fill' : 'regular'} />
       </span>
 
       <span className="sidebar-membership__copy">
@@ -148,7 +140,7 @@ export default function SidebarMembership() {
             ? premiumEndLabel
               ? `до ${premiumEndLabel}`
               : 'Подписка активна'
-            : 'Без рекламы • бонусы'}
+            : 'Профиль · бонусы'}
         </small>
       </span>
 

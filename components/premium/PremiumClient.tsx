@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import Icon from '@/components/Icon';
 
 import { useAuthState } from '@/components/AuthStateProvider';
 import BoostyPremiumBridge from '@/components/premium/BoostyPremiumBridge';
+import PremiumAiHeroArt from '@/components/premium/PremiumAiHeroArt';
 import { clearPremiumMeCache, getPremiumMe, type PremiumMe } from '@/lib/entitlements-client';
 import type { PremiumCatalogPlan, PremiumPlanId } from '@/lib/premium';
 import { trackMonetizationClientEvent } from '@/lib/monetization-events-client';
@@ -29,16 +31,40 @@ function premiumSourceChip(source: PremiumMe['lifecycle']['sources'][number]) {
 }
 
 const BENEFITS = [
-  ['+20% XP', 'Больше XP за обычную подтверждённую активность просмотра.'],
-  ['Premium badge', 'Отдельный Premium-статус в своём и публичном профиле.'],
-  ['Premium Studio', 'Своя палитра: фон, accent, текст, glow и стиль рамки.'],
-  ['Анимированный профиль', 'Premium-аватар и баннер поддерживают animated WEBP и GIF.'],
-  ['Тема плеера', 'Accent и Primary можно синхронизировать с оболочкой AnimeBox Player.'],
-  ['Накопление срока', 'Новая покупка продлевает уже активный Premium, а не сжигает остаток.'],
+  {
+    icon: 'spark' as const,
+    title: '+20% XP',
+    description: 'Больше XP за обычную подтверждённую активность просмотра.',
+  },
+  {
+    icon: 'star' as const,
+    title: 'Анимированные аватары и баннеры',
+    description: 'Добавляй движение профилю: Premium открывает анимированные аватары, баннеры и расширенное визуальное оформление.',
+  },
+  {
+    icon: 'crown' as const,
+    title: 'Premium badge',
+    description: 'Отдельный Premium-статус в своём и публичном профиле.',
+  },
+  {
+    icon: 'user' as const,
+    title: 'Premium Studio',
+    description: 'Своя палитра: фон, accent, текст, glow и стиль рамки.',
+  },
+  {
+    icon: 'play' as const,
+    title: 'Тема плеера',
+    description: 'Accent и Primary можно синхронизировать с оболочкой AnimeBox Player.',
+  },
+  {
+    icon: 'heart' as const,
+    title: 'Поддержка AnimeBox',
+    description: 'Premium помогает оплачивать инфраструктуру и развивать новые функции.',
+  },
 ] as const;
 
 export default function PremiumClient() {
-  const { user, loading: authLoading } = useAuthState();
+  const { user } = useAuthState();
   const [data, setData] = useState<PremiumMe | null>(null);
   const [loading, setLoading] = useState(Boolean(user?.id));
   const [error, setError] = useState('');
@@ -90,24 +116,30 @@ export default function PremiumClient() {
   }, []);
 
   useEffect(() => {
-    if (!user?.id) {
-      setData(null);
-      setLoading(false);
-      return;
-    }
+    if (!user?.id) return;
 
     let active = true;
-    setLoading(true);
-    void getPremiumMe({ force: true })
-      .then((payload) => {
+
+    const loadPremium = async () => {
+      if (active) setLoading(true);
+
+      try {
+        const payload = await getPremiumMe({ force: true });
         if (active) setData(payload);
-      })
-      .catch((requestError) => {
-        if (active) setError(requestError instanceof Error ? requestError.message : 'Не удалось загрузить Premium');
-      })
-      .finally(() => {
+      } catch (requestError) {
+        if (active) {
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : 'Не удалось загрузить Premium',
+          );
+        }
+      } finally {
         if (active) setLoading(false);
-      });
+      }
+    };
+
+    void loadPremium();
 
     return () => {
       active = false;
@@ -266,20 +298,35 @@ export default function PremiumClient() {
     <main className="premium-page">
       <section className="premium-hero">
         <div className="premium-hero__copy">
-          <span className="premium-eyebrow">ANIMEBOX PREMIUM</span>
-          <h1>Больше персонализации.<br />Больше твоего AnimeBox.</h1>
-          <p>
-            Premium расширяет персонализацию AnimeBox: +20% XP за обычную активность,
-            Premium Studio, собственная палитра профиля, анимированные медиа и тема оболочки плеера.
+          <span className="premium-eyebrow">ANIMEBOX PREMIUM · STAR MODE</span>
+          <h1>Твой AnimeBox.<br />Только ярче.</h1>
+          <p className="premium-hero__lead">
+            Premium объединяет глубокую персонализацию профиля, +20% XP к активности,
+            расширенные комнаты для Watch Together и поддержку развития платформы.
           </p>
 
-          {!authLoading && !user && (
-            <Link className="premium-cta premium-cta--primary" href="/login">
-              Войти в AnimeBox
-            </Link>
-          )}
+          <div className="premium-hero__chips" aria-label="Главные возможности Premium">
+            <span>+20% XP</span>
+            <span>Выделенные Full-HD потоки</span>
+            <span>Premium Studio</span>
+          </div>
 
-          {user && loading && <div className="premium-status">Проверяем Premium…</div>}
+          <div className="premium-hero__actions">
+            {user && data?.premium ? (
+              <Link className="premium-cta premium-cta--primary" href="/profile/edit?tab=premium">
+                Открыть Premium Studio
+              </Link>
+            ) : (
+              <a className="premium-cta premium-cta--primary h-11" href="#premium-plans">
+                Выбрать Premium
+              </a>
+            )}
+            <a className="premium-cta premium-cta--secondary h-11" href="#premium-benefits">
+              Смотреть возможности
+            </a>
+          </div>
+
+          {user && loading && <div className="premium-status premium-status--loading" role="status"><span className="animebox-loader" aria-hidden="true" />Проверяем Premium…</div>}
 
           {user && !loading && data?.premium && subscription && lifecycle && (
             <div
@@ -340,12 +387,6 @@ export default function PremiumClient() {
             </div>
           )}
 
-          {user && !loading && data?.premium && (
-            <Link className="premium-cta premium-cta--primary" href="/profile/edit?tab=premium">
-              Открыть Premium Studio
-            </Link>
-          )}
-
           {user && !loading && !data?.premium && (
             <div className="premium-status">
               <div>
@@ -363,35 +404,50 @@ export default function PremiumClient() {
           {error && <p className="premium-error">{error}</p>}
         </div>
 
-        <div className="premium-hero__orb" aria-hidden="true">
-          <div className="premium-hero__ring" />
-          <img
-            className="premium-hero__premium-icon"
-            src="/premium/premium-user.webp"
-            alt=""
-          />
-        </div>
+        <PremiumAiHeroArt />
       </section>
 
-      <section className="premium-benefits">
+      <section className="premium-benefits" id="premium-benefits">
         <div className="premium-section-head">
-          <span>ЧТО ВХОДИТ</span>
+          <span className="tracking-wider text-xs uppercase text-violet-300/60">ЧТО ВХОДИТ</span>
           <h2>Premium возможности</h2>
-          <p>Доступ определяется единым entitlement-слоем, а не отдельными проверками по страницам.</p>
+          <p>Оформляй профиль под себя и получай больше от просмотра.</p>
         </div>
 
         <div className="premium-benefits__grid">
-          {BENEFITS.map(([title, description]) => (
-            <article key={title}>
-              <span className="premium-benefits__dot" aria-hidden="true">◆</span>
-              <h3>{title}</h3>
-              <p>{description}</p>
+          {BENEFITS.map((benefit) => (
+            <article
+              key={benefit.title}
+              className="bg-slate-900/40 backdrop-blur-md border border-slate-800/60"
+            >
+              <span className="premium-benefits__icon" aria-hidden="true">
+                <Icon name={benefit.icon} size={20} weight="regular" />
+              </span>
+              <h3>{benefit.title}</h3>
+              <p>{benefit.description}</p>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="premium-plan">
+      <section className="premium-support-story">
+        <div className="premium-support-story__copy">
+          <span className="premium-eyebrow">СДЕЛАНО ДЛЯ ANIMEBOX</span>
+          <h2>Premium даёт бонусы тебе и помогает платформе расти.</h2>
+          <p>
+            Поддержка идёт на инфраструктуру, новые функции и развитие AnimeBox.
+            Premium остаётся отдельным продуктом от спонсорских Stars-tier: здесь ты
+            получаешь возможности аккаунта, а спонсорство показывает вклад в проект.
+          </p>
+        </div>
+        <div className="premium-support-story__mark">
+          <span>WITH LOVE · ANIMEBOX</span>
+          <strong>Поддержка без pay-to-win.</strong>
+          <small>Никаких преимуществ в рейтингах или доступе к чужому контенту — только персонализация, удобство и развитие сервиса.</small>
+        </div>
+      </section>
+
+      <section className="premium-plan" id="premium-plans">
         <div>
           <span className="premium-eyebrow">ТАРИФЫ</span>
           <h2>Выбери срок Premium</h2>
@@ -399,6 +455,12 @@ export default function PremiumClient() {
             Оплата проходит через Telegram Stars. После подтверждения Telegram
             AnimeBox автоматически активирует доступ на аккаунте.
           </p>
+          <div className="premium-plan__disclaimer">
+            <Icon name="info" size={17} weight="regular" />
+            <span>
+              Premium развивает AnimeBox
+            </span>
+          </div>
           {paymentStatus && (
             <div className="premium-payment-status" role="status">
               {paymentStatus}
@@ -501,6 +563,31 @@ export default function PremiumClient() {
           <p>Накопительные Stars-tier и Premium остаются отдельными системами: спонсорство показывает вклад в проект, а Premium открывает дополнительные возможности аккаунта.</p>
         </div>
         <Link href="/support">Поддержать AnimeBox →</Link>
+      </section>
+
+      <section className="premium-final-cta">
+        <div className="premium-final-cta__copy">
+          <span>STAR MODE</span>
+          <h2>{data?.premium ? 'Premium уже с тобой.' : 'Сделай AnimeBox ещё больше своим.'}</h2>
+          <p>
+            {data?.premium
+              ? 'Настрой профиль, цвета и Premium-медиа в Studio.'
+              : 'Выбери удобный срок Premium и поддержи дальнейшее развитие AnimeBox.'}
+          </p>
+        </div>
+        {data?.premium ? (
+          <Link className="premium-cta premium-cta--primary" href="/profile/edit?tab=premium">
+            Открыть Studio
+          </Link>
+        ) : user ? (
+          <a className="premium-cta premium-cta--primary h-11" href="#premium-plans">
+            Выбрать тариф
+          </a>
+        ) : (
+          <Link className="premium-cta premium-cta--primary" href="/login">
+            Войти и выбрать Premium
+          </Link>
+        )}
       </section>
     </main>
   );

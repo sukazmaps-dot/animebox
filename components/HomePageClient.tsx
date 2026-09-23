@@ -1343,16 +1343,6 @@ export default function HomePage({
               Открыть список <span aria-hidden="true">↗</span>
             </Link>
 
-            <Image
-              className="home-library-panel__mascot"
-              src="/brand/animebox-mascot.webp"
-              alt=""
-              width={68}
-              height={76}
-              sizes="68px"
-              loading="lazy"
-              aria-hidden="true"
-            />
           </div>
 
           <SupportAnimeBoxCard />

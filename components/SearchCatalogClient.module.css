@@ -88,13 +88,19 @@
 
 .emptyMascot {
   width: clamp(92px, 12vw, 132px);
-  height: auto;
+  height: 92px;
+  display: grid;
+  place-items: center;
   margin: -8px auto 10px;
-  object-fit: contain;
-  filter: drop-shadow(0 18px 28px rgba(83, 55, 196, .28));
+  border: 1px solid rgba(178, 158, 232, .2);
+  border-radius: 10px;
+  background: linear-gradient(140deg, #1c2131, #131922);
+  color: #bdabef;
   pointer-events: none;
   user-select: none;
 }
+
+.emptyMascot svg { width: 64px; height: 64px; }
 
 @media (max-width: 760px) {
   .assetEmpty { min-height: 220px; }
@@ -112,7 +118,7 @@
   display: none;
 }
 .emptyMascot {
-  filter: drop-shadow(0 12px 22px rgba(0,0,0,.22));
+  box-shadow: 10px 10px 0 rgba(137, 117, 204, .07);
 }
 
 .smartDiscoveryHint {

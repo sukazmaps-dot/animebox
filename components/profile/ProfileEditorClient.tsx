@@ -8,6 +8,7 @@ import { useAuthState } from '@/components/AuthStateProvider';
 import PremiumStudioClient, { type PremiumStudioHandle } from '@/components/premium/PremiumStudioClient';
 import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
+import Icon from '@/components/Icon';
 import { notifyAuthChanged } from '@/lib/auth-events';
 import { notifyProfileAppearanceChanged } from '@/lib/profile-live-sync';
 import { resolveProfileAppearance } from '@/lib/profile-appearance';
@@ -592,7 +593,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             Оформление
           </button>
           <button className={activeTab === 'style' ? 'is-active is-premium' : 'is-premium'} onClick={() => switchTab('style')} type="button">
-            <img src="/premium/premium-user.webp" alt="" aria-hidden="true" /> Стиль
+            <Icon name="crown" size={19} weight="fill" /> Стиль
           </button>
         </nav>
 
@@ -728,7 +729,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                   )}
 
                   <div className="profile-editor-v13__premium-callout">
-                    <img src="/premium/premium-user.webp" alt="" aria-hidden="true" />
+                    <Icon name="crown" size={44} weight="regular" />
                     <div>
                       <strong>Хочешь анимированный баннер, glow и собственную палитру?</strong>
                       <p>Открой вкладку «Стиль» — Premium-возможности встроены в тот же редактор.</p>

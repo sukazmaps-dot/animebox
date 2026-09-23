@@ -62,6 +62,9 @@ import './patch14-3-2-catalog-taxonomy-top-fix.css';
 import './patch14-4-1-top-anime-architecture.css';
 import './patch14-5-episode-identity.css';
 import './patch15-title-accent.css';
+import './animebox-identity.css';
+import './patch16-quiet-interactions.css';
+import './animebox-visual-language-v1.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';

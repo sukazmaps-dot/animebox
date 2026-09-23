@@ -228,7 +228,6 @@ export default function SponsorLeaderboard() {
                 key={entry.userId}
               >
                 <span className={styles.podiumTexture} aria-hidden="true" />
-                <img className={styles.rankArt} src={`/ui/animebox-rank-${entry.rank}.webp`} alt="" aria-hidden="true" />
                 <span className={styles.placeLabel}>{entry.rank === 1 ? 'ГЛАВНЫЙ СПОНСОР' : `#${entry.rank} · ПРИЗОВОЕ МЕСТО`}</span>
                 <div className={styles.podiumAvatar}>
                   <UserAvatarWithFrame

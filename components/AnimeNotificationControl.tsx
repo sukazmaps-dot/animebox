@@ -1,9 +1,16 @@
 'use client';
 
-import Image from 'next/image';
+import {
+  BellRingingIcon,
+  CheckCircleIcon,
+  GearSixIcon,
+} from '@phosphor-icons/react';
+import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+
+import AnimeBoxIconCore from '@/components/ui/AnimeBoxIconCore';
 import { telegramMiniAppUrl } from '@/lib/telegram-links';
 
 type SubscriptionResponse = {
@@ -84,6 +91,7 @@ export default function AnimeNotificationControl({
   variant?: 'card' | 'compact';
 }) {
   const compact = variant === 'compact';
+  const reducedMotion = useReducedMotion();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -220,33 +228,52 @@ export default function AnimeNotificationControl({
     <section
       className={
         compact
-          ? 'anime-notification-control is-compact'
-          : 'anime-notification-control'
+          ? 'anime-notification-control is-compact anime-notification-control--luminous'
+          : 'anime-notification-control anime-notification-control--luminous'
       }
     >
-      <div className="anime-notification-control__art" aria-hidden="true">
-        <Image
-          src="/brand/illustrations/empty-notifications.webp"
-          alt=""
-          width={190}
-          height={150}
-          sizes={compact ? '72px' : '(max-width: 700px) 96px, 150px'}
-        />
+      <div className="anime-notification-control__art">
+        <AnimeBoxIconCore
+          size={compact ? 'compact' : 'default'}
+          className="anime-notification-control__icon-core"
+        >
+          <motion.span
+            className="anime-notification-control__bell"
+            animate={
+              reducedMotion || enabled
+                ? undefined
+                : { rotate: [-7, 7, -7] }
+            }
+            transition={{
+              duration: 2.4,
+              ease: 'easeInOut',
+              repeat: Infinity,
+            }}
+          >
+            <BellRingingIcon
+              size={compact ? 24 : 28}
+              weight={enabled ? 'fill' : 'regular'}
+            />
+          </motion.span>
+        </AnimeBoxIconCore>
       </div>
 
       <div className="anime-notification-control__copy">
         <div className="anime-notification-control__eyebrow-row">
-          <span className="anime-notification-control__eyebrow">Telegram</span>
+          <span className="anime-notification-control__eyebrow">Telegram · уведомления</span>
           {enabled && (
-            <span className="anime-notification-control__status">Активно</span>
+            <span className="anime-notification-control__status">
+              <CheckCircleIcon size={13} weight="fill" aria-hidden="true" />
+              Активно
+            </span>
           )}
         </div>
 
-        <h2>{compact ? 'Не пропускай новые серии' : 'Новые серии без пропусков'}</h2>
+        <h2>{compact ? 'Не пропускай новые серии' : 'Новая серия — сразу в Telegram'}</h2>
         <p>
           {finished && !enabled
             ? 'Тайтл уже завершён. Для него больше не нужно ждать новые серии.'
-            : 'AnimeBox пришлёт сообщение, когда серия реально появится в плеере.'}
+            : 'AnimeBox отправит уведомление только когда серия действительно появится в плеере.'}
         </p>
       </div>
 
@@ -255,8 +282,8 @@ export default function AnimeNotificationControl({
           type="button"
           className={
             enabled
-              ? 'anime-notification-control__button is-enabled'
-              : 'anime-notification-control__button'
+              ? 'ab-action ab-action--secondary anime-notification-control__button is-enabled'
+              : 'ab-action ab-action--primary anime-notification-control__button'
           }
           disabled={loading || busy || (finished && !enabled)}
           aria-pressed={enabled}
@@ -274,11 +301,14 @@ export default function AnimeNotificationControl({
                     ? 'Подключить Telegram'
                     : enabled
                       ? 'Уведомления включены'
-                      : 'Отслеживать новые серии'}
+                      : 'Отслеживать серии'}
         </button>
 
         {authenticated && telegramLinked && (
-          <Link href="/notifications">Настроить</Link>
+          <Link href="/notifications" className="anime-notification-control__settings">
+            <GearSixIcon size={15} weight="regular" aria-hidden="true" />
+            Настроить
+          </Link>
         )}
       </div>
 

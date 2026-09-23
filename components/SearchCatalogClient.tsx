@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import AnimeCard from '@/components/AnimeCard';
 import AnimeImage from '@/components/AnimeImage';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
+import PlaceholderIcon from '@/components/ui/PlaceholderIcon';
+import Icon from '@/components/Icon';
 import MoodFilter from '@/components/catalog/MoodFilter';
 import CatalogFilterPanel from '@/components/catalog/CatalogFilterPanel';
 import CatalogMobileFilters from '@/components/catalog/CatalogMobileFilters';
@@ -577,7 +579,7 @@ export default function SearchCatalogClient({
           <div><AnimeBoxLoader label="Подбираем аниме…" size={46} /><div className="loading-grid" aria-hidden="true">{Array.from({ length: 10 }).map((_, index) => <div key={index} className="skeleton skeleton--card" />)}</div></div>
         ) : view === 'catalog' && error && results.length === 0 ? (
           <div className={`empty-state ${styles.assetEmpty}`}>
-            <img className={styles.emptyMascot} src="/ui/animebox-mascot.webp" alt="" aria-hidden="true" />
+            <span className={styles.emptyMascot} aria-hidden="true"><Icon name="search" size={42} /></span>
             <strong>Не удалось загрузить результаты</strong>
             <span>{error}</span>
             <div className={styles.emptyActions}>
@@ -599,7 +601,7 @@ export default function SearchCatalogClient({
           </div>
         ) : (
           <div className={`empty-state ${styles.assetEmpty}`}>
-            <img className={styles.emptyMascot} src={view === 'saved' ? '/brand/illustrations/empty-favorites.webp' : '/brand/illustrations/empty-search.webp'} alt="" aria-hidden="true" />
+            <PlaceholderIcon className={styles.emptyMascot} variant={view === 'saved' ? 'saved' : 'search'} />
             <strong>{view === 'saved' ? favorites.length === 0 ? 'Сохранённых пока нет' : 'Ничего не подходит под фильтры' : discoveryIntent?.isDiscovery ? 'Точных совпадений не нашли' : hasStructuredFilters ? 'Под такую подборку ничего не нашли' : 'Ничего не найдено'}</strong>
             <span>
               {view === 'saved'
