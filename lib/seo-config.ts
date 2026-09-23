@@ -18,13 +18,13 @@ export const ANIME_ITEMS_PER_PAGE = 50;
 /**
  * Episode sitemap settings.
  *
- * Episode URLs are sourced from completed viewing history already stored by
- * AnimeBox. This keeps sitemap generation independent from AniList/Kodik and
- * naturally expands long-tail coverage as real episodes are watched.
+ * Episode URLs are sourced from the server-maintained seo_episode_index.
+ * Provider availability confirms that a route is actually playable before it
+ * becomes indexable, so external outages fail closed instead of generating
+ * thin/non-playable episode URLs.
  *
- * 20 shards × 5,000 history rows gives headroom for 100k completion records.
- * Duplicate user completions are collapsed inside each shard before URLs are
- * emitted, keeping each XML comfortably below the 50k URL sitemap limit.
+ * 20 shards × 5,000 rows gives headroom for 100k confirmed episode URLs while
+ * keeping every XML comfortably below the 50k URL sitemap limit.
  */
 export const EPISODE_SITEMAP_SHARDS = 20;
 export const EPISODE_HISTORY_ROWS_PER_SITEMAP = 5_000;
