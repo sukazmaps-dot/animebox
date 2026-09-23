@@ -34,7 +34,7 @@ for (const [label, needle] of [
   ['scroll direction timestamp', 'directionSince'],
   ['downward hysteresis', 'state.travel >= 82'],
   ['upward hysteresis', 'state.travel >= 58'],
-  ['toggle cooldown', 'state.lastToggleAt >= 520'],
+  ['toggle cooldown', 'now - state.lastToggleAt >= 520'],
   ['modal nav lock', '[data-mobile-nav-lock="true"]'],
 ]) {
   if (!navbar.includes(needle)) {
