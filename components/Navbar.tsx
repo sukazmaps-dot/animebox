@@ -72,6 +72,7 @@ function NavbarContent() {
     lastY: 0,
     travel: 0,
     direction: null as 'up' | 'down' | null,
+    directionSince: 0,
     raf: 0,
     hidden: false,
     lastToggleAt: 0,
@@ -124,6 +125,7 @@ function NavbarContent() {
     state.lastY = window.scrollY;
     state.travel = 0;
     state.direction = null;
+    state.directionSince = performance.now();
     state.hidden = false;
     state.lastToggleAt = 0;
     setMobileNavHidden(false);
@@ -158,44 +160,55 @@ function NavbarContent() {
       const delta = currentY - state.lastY;
       state.lastY = currentY;
 
-      if (currentY < 110 || navigationShouldStayVisible()) {
+      const now = performance.now();
+
+      if (currentY < 96 || navigationShouldStayVisible()) {
         state.travel = 0;
         state.direction = null;
+        state.directionSince = now;
         setHidden(false);
         return;
       }
 
-      if (Math.abs(delta) < 4) return;
+      // Mobile browser chrome and touch inertia often emit tiny reverse deltas.
+      // Ignore them so the nav does not flicker when the user slightly changes
+      // finger direction or the viewport settles after a swipe.
+      if (Math.abs(delta) < 5) return;
 
       const direction: 'up' | 'down' = delta > 0 ? 'down' : 'up';
 
       if (state.direction !== direction) {
         state.direction = direction;
+        state.directionSince = now;
         state.travel = Math.abs(delta);
         return;
       }
 
       state.travel += Math.abs(delta);
 
-      const cooldownPassed =
-        performance.now() - state.lastToggleAt >= 360;
+      const directionStableFor = now - state.directionSince;
+      const cooldownPassed = now - state.lastToggleAt >= 520;
 
       if (
         direction === 'down' &&
         !state.hidden &&
-        state.travel >= 72 &&
+        state.travel >= 82 &&
+        directionStableFor >= 90 &&
         cooldownPassed
       ) {
         setHidden(true);
         state.travel = 0;
+        state.directionSince = now;
       } else if (
         direction === 'up' &&
         state.hidden &&
-        state.travel >= 44 &&
+        state.travel >= 58 &&
+        directionStableFor >= 110 &&
         cooldownPassed
       ) {
         setHidden(false);
         state.travel = 0;
+        state.directionSince = now;
       }
     };
 
