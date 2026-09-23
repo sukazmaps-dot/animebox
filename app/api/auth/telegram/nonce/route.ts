@@ -1,11 +1,13 @@
 import { randomBytes } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { enforceIpRateLimit } from '@/lib/api-rate-limit';
+import { assertBrowserMutationRequest } from '@/lib/community-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
+  assertBrowserMutationRequest(request);
   const limited = await enforceIpRateLimit(request, {
     scope: 'auth_tg_nonce_ip',
     limit: 30,
