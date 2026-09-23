@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { enforceIpRateLimit } from '@/lib/api-rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -163,6 +164,11 @@ async function fetchImage(
 export async function GET(
   request: NextRequest,
 ) {
+  const limited = await enforceIpRateLimit(request, {
+    scope: 'image_proxy_ip', limit: 600, windowSeconds: 60,
+  });
+  if (limited) return limited;
+
   const rawUrl =
     request.nextUrl.searchParams.get('url');
 

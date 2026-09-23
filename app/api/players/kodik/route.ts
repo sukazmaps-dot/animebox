@@ -4,8 +4,14 @@ import {
   filterKodikResultsForEpisode,
   searchKodikByShikimoriId,
 } from '@/lib/kodik-episode-availability';
+import { enforceIpRateLimit } from '@/lib/api-rate-limit';
 
 export async function GET(request: NextRequest) {
+  const limited = await enforceIpRateLimit(request, {
+    scope: 'kodik_lookup_ip', limit: 180, windowSeconds: 60,
+  });
+  if (limited) return limited;
+
   const shikimoriIdParam = request.nextUrl.searchParams.get('shikimoriId');
   const episodeParam = request.nextUrl.searchParams.get('episode');
 
