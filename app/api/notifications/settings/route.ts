@@ -9,7 +9,7 @@ import {
   sendTelegramMessage,
   NotificationError,
 } from '@/lib/notifications-server';
-import { readBody } from '@/lib/community-server';
+import { readJsonBody } from '@/lib/community-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -64,7 +64,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const { client, user } = await requireNotificationUser();
-    const body = await readBody(request);
+    const body = await readJsonBody(request);
 
     if (typeof body.telegramEnabled !== 'boolean') {
       throw new NotificationError(
