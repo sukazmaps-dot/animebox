@@ -6,11 +6,13 @@ import {
   sendTelegramMessage,
   NotificationError,
 } from '@/lib/notifications-server';
+import { assertBrowserMutationRequest } from '@/lib/community-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function POST() {
+export async function POST(request: Request) {
+  assertBrowserMutationRequest(request);
   try {
     const { client, user } = await requireNotificationUser();
     const telegramProfile = await getTelegramProfile(user.id);
