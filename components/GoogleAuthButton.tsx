@@ -3,6 +3,7 @@
 import Script from 'next/script';
 import { useCallback, useRef, useState } from 'react';
 
+import { safeInternalPath } from '@/lib/browser-navigation';
 import { createClient } from '@/lib/supabase/client';
 import { markTelegramWelcomePending } from '@/lib/telegram-growth-client';
 
@@ -90,8 +91,7 @@ export default function GoogleAuthButton({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const safeNext =
-    next.startsWith('/') && !next.startsWith('//') ? next : '/profile';
+  const safeNext = safeInternalPath(next, '/profile');
 
   const finishGoogleLogin = useCallback(
     async (credential: string, nonce: string) => {
