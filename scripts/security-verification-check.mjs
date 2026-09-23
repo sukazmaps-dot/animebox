@@ -32,6 +32,19 @@ function read(path) {
 const routes = walkRoutes(apiRoot);
 let mutationRoutes = 0;
 
+const cronRoutes = routes.filter((file) =>
+  relative(root, file).replaceAll('\\', '/').startsWith('app/api/cron/'),
+);
+
+for (const file of cronRoutes) {
+  const source = readFileSync(file, 'utf8');
+  const name = relative(root, file).replaceAll('\\', '/');
+
+  if (!source.includes('isCronAuthorized(')) {
+    failures.push(`${name}: cron route is missing centralized cron authorization.`);
+  }
+}
+
 for (const file of routes) {
   const source = readFileSync(file, 'utf8');
   const name = relative(root, file).replaceAll('\\', '/');
@@ -53,9 +66,6 @@ for (const file of routes) {
   }
 
   if (name.startsWith('app/api/cron/')) {
-    if (!source.includes('isCronAuthorized(')) {
-      failures.push(`${name}: cron route is missing centralized cron authorization.`);
-    }
     continue;
   }
 
@@ -129,6 +139,21 @@ for (const [label, needle] of [
   }
 }
 
+const legacyCommentRpcMigration = read(
+  'supabase/migrations/20260923142500_legacy_comment_rpc_hardening.sql',
+);
+
+for (const [label, needle] of [
+  ['moderation restriction guard', 'COMMENT_RESTRICTED'],
+  ['per-user serialization', 'pg_advisory_xact_lock'],
+  ['anonymous RPC revoke', 'revoke all on function public.create_comment'],
+  ['authenticated-only execute grant', 'to authenticated'],
+]) {
+  if (!legacyCommentRpcMigration.includes(needle)) {
+    failures.push(`legacy comment RPC migration: missing ${label}.`);
+  }
+}
+
 for (const path of [
   'lib/public-profile-server.ts',
   'lib/public-avatar-server.ts',
@@ -166,5 +191,5 @@ if (failures.length) {
 }
 
 console.log(
-  `[AnimeBox Security Verification] ${routes.length} API routes / ${mutationRoutes} mutation routes passed static verification.`,
+  `[AnimeBox Security Verification] ${routes.length} API routes / ${mutationRoutes} mutation routes / ${cronRoutes.length} cron routes passed static verification.`,
 );
