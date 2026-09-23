@@ -1,5 +1,5 @@
 import { ApiError, adminClient, failure, readBody, response } from '@/lib/community-server';
-import { requireAdmin, writeAdminAudit } from '@/lib/admin-server';
+import { requireAdmin, requireAdminMutation, writeAdminAudit } from '@/lib/admin-server';
 import {
   getEffectivePremiumState,
   grantPremium,
@@ -79,7 +79,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { user, role } = await requireAdmin(['owner', 'admin']);
+    const { user, role } = await requireAdminMutation(request, ['owner', 'admin']);
     const body = await readBody(request);
     const action = typeof body.action === 'string' ? body.action.trim() : '';
 
