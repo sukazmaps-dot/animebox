@@ -144,7 +144,9 @@ Additional application limits were added around high-value or externally expensi
 - sponsor preference writes;
 - notification settings/subscriptions;
 - notification inbox writes;
-- notification test messages.
+- notification test messages;
+- community comment writes/deletes;
+- community library writes/deletes, including the path that may refresh anime metadata.
 
 The notification test limiter is deliberately much tighter because every accepted request can generate an external Telegram message.
 
