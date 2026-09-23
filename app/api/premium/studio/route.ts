@@ -1,6 +1,7 @@
 import {
   ApiError,
   adminClient,
+  assertBrowserMutationRequest,
   failure,
   response,
   userClient,
@@ -69,6 +70,7 @@ export async function POST() {
 
 export async function DELETE(request: Request) {
   try {
+    assertBrowserMutationRequest(request);
     const { user } = await userClient();
     const url = new URL(request.url);
     const media = url.searchParams.get('media') || 'all';
