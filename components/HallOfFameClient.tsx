@@ -16,7 +16,7 @@ type Entry = {
   userId: string;
   place: number;
   activeMs: number;
-  episodes: number;
+  completedEpisodes: number;
   username: string;
   avatarUrl: string;
   avatarTransform: PremiumMediaTransform;
@@ -151,7 +151,7 @@ export default function HallOfFameClient() {
                       <strong>{entry.username}</strong>
                       <small>LV.{entry.progression.level} · {entry.progression.rank}</small>
                       <b>{formatWatchTime(entry.activeMs)}</b>
-                      <span>{entry.episodes} эп. в зачёте</span>
+                      <span>{entry.completedEpisodes} эп. завершено</span>
                     </Link>
                   ))}
                 </div>
