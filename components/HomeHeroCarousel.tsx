@@ -12,7 +12,11 @@ import {
 
 import Link from 'next/link';
 import Image from 'next/image';
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import type {
+  MouseEvent as ReactMouseEvent,
+  PointerEvent as ReactPointerEvent,
+} from 'react';
 
 import type { Anime } from '@/types/anime';
 
@@ -48,6 +52,28 @@ function isValidAnime(
   );
 }
 
+function getMobileHeroImage(anime: Anime): string | null {
+  return normalizeImageUrl(
+    anime.mobileHeroImage ||
+    anime.coverImage?.extraLarge ||
+    anime.image?.original ||
+    anime.coverImage?.large ||
+    anime.image?.large ||
+    anime.image?.medium,
+  );
+}
+
+function getHeroBackdropImage(anime: Anime): string | null {
+  return normalizeImageUrl(
+    anime.bannerImage ||
+    anime.mobileHeroImage ||
+    anime.coverImage?.extraLarge ||
+    anime.image?.original ||
+    anime.coverImage?.large ||
+    anime.image?.large,
+  );
+}
+
 const AMBIENT_FALLBACKS = [
   [112, 84, 255],
   [55, 118, 255],
@@ -79,6 +105,10 @@ export default function HomeHeroCarousel({
   popular,
   ongoing,
 }: HomeHeroCarouselProps) {
+  const router = useRouter();
+  const heroRef = useRef<HTMLElement | null>(null);
+  const suppressHeroClickUntil = useRef(0);
+  const [heroInView, setHeroInView] = useState(true);
   const source = useMemo(
     () =>
       [
@@ -109,7 +139,7 @@ export default function HomeHeroCarousel({
   const personalizedCandidates = useMemo(
     () =>
       personalizationReady
-        ? getRecommendedAnime(source, 6).filter(isValidAnime)
+        ? getRecommendedAnime(source, 5).filter(isValidAnime)
         : [],
     [personalizationReady, source],
   );
@@ -129,7 +159,7 @@ export default function HomeHeroCarousel({
       if (!isValidAnime(item) || seen.has(item.id)) continue;
       seen.add(item.id);
       unique.push(item);
-      if (unique.length >= 6) break;
+      if (unique.length >= 5) break;
     }
 
     return unique;
@@ -212,9 +242,25 @@ export default function HomeHeroCarousel({
   }, [autoplayUnlocked]);
 
   useEffect(() => {
+    const element = heroRef.current;
+    if (!element || typeof IntersectionObserver === 'undefined') return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setHeroInView(entry.isIntersecting && entry.intersectionRatio >= 0.22);
+      },
+      { threshold: [0, 0.22, 0.5] },
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     if (
       !autoplayUnlocked ||
       paused ||
+      !heroInView ||
       slides.length < 2
     ) {
       return;
@@ -235,6 +281,7 @@ export default function HomeHeroCarousel({
   }, [
     autoplayUnlocked,
     paused,
+    heroInView,
     slides.length,
   ]);
 
@@ -273,19 +320,18 @@ export default function HomeHeroCarousel({
   const title =
     getAnimeTitle(anime);
 
-  const bannerImage =
-    normalizeImageUrl(
-      anime.bannerImage,
-    );
+  const bannerImage = getHeroBackdropImage(anime);
+  const mobileKeyArt = getMobileHeroImage(anime);
 
-  const mobileKeyArt =
-    normalizeImageUrl(
-      anime.coverImage?.extraLarge ||
-      anime.coverImage?.large ||
-      anime.image?.original ||
-      anime.image?.large ||
-      anime.image?.medium,
-    );
+  const nextAnime =
+    slides.length > 1
+      ? slides[(safeActiveIndex + 1) % slides.length]
+      : null;
+
+  const nextMobileKeyArt =
+    nextAnime
+      ? getMobileHeroImage(nextAnime)
+      : null;
 
   const [ambientR, ambientG, ambientB] = getAmbientRgb(anime);
 
@@ -405,6 +451,8 @@ export default function HomeHeroCarousel({
       return;
     }
 
+    suppressHeroClickUntil.current = performance.now() + 450;
+
     if (deltaX > 0) {
       showPreviousSlide();
     } else {
@@ -412,8 +460,18 @@ export default function HomeHeroCarousel({
     }
   };
 
+  const openHeroDetails = (event: ReactMouseEvent<HTMLElement>) => {
+    if (performance.now() < suppressHeroClickUntil.current) return;
+
+    const target = event.target as Element | null;
+    if (target?.closest('a, button, input, textarea, select')) return;
+
+    router.push(animeHref(anime));
+  };
+
   return (
     <section
+      ref={heroRef}
       className={[
         'page-hero',
         'home-hero-carousel',
@@ -422,6 +480,7 @@ export default function HomeHeroCarousel({
         autoplayUnlocked && safeActiveIndex !== 0 ? 'is-slide-transition' : '',
       ].filter(Boolean).join(' ')}
       aria-label="Рекомендации аниме"
+      onClick={openHeroDetails}
       onMouseEnter={() =>
         setPaused(true)
       }
@@ -473,8 +532,23 @@ export default function HomeHeroCarousel({
             fetchPriority={safeActiveIndex === 0 ? 'high' : 'auto'}
             decoding="async"
             quality={88}
-            sizes="(max-width: 390px) 54vw, (max-width: 768px) 50vw, 1px"
+            sizes="(max-width: 390px) 52vw, (max-width: 768px) 50vw, 1px"
             className="home-hero-carousel__mobile-keyart-image"
+          />
+        </div>
+      )}
+
+      {nextMobileKeyArt && (
+        <div className="home-hero-carousel__next-peek" aria-hidden="true">
+          <Image
+            key={`${nextAnime?.id ?? 'next'}-mobile-peek`}
+            src={nextMobileKeyArt}
+            alt=""
+            fill
+            decoding="async"
+            quality={60}
+            sizes="12px"
+            className="home-hero-carousel__next-peek-image"
           />
         </div>
       )}
@@ -520,10 +594,10 @@ export default function HomeHeroCarousel({
               <button
                 key={item.id}
                 type="button"
-                aria-pressed={index === activeIndex}
+                aria-pressed={index === safeActiveIndex}
                 aria-label={`Показать: ${getAnimeTitle(item)}`}
                 className={`home-hero-carousel__dot ${
-                  index === activeIndex ? 'is-active' : ''
+                  index === safeActiveIndex ? 'is-active' : ''
                 }`}
                 onClick={() => setActiveIndex(index)}
               />

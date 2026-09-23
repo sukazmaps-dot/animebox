@@ -1,0 +1,221 @@
+/* =========================================================
+   AnimeBox Patch 12.6.5 — Mobile Hero Media System
+   Crisp phone artwork, stronger swipe affordance, motion-lite.
+   ========================================================= */
+
+.home-hero-carousel__next-peek {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .home-page .page-hero.home-hero-carousel {
+    min-height: 296px !important;
+    height: 296px !important;
+    max-height: 296px !important;
+    cursor: pointer;
+    touch-action: pan-y;
+  }
+
+  .home-page .page-hero__content.home-hero-carousel__content {
+    min-height: 296px !important;
+    height: 296px !important;
+    padding: 15px 15px 50px !important;
+  }
+
+  /* The backdrop is only atmosphere. Never stretch it into the foreground. */
+  .home-page .home-hero-carousel .home-hero-carousel__backdrop {
+    opacity: .22 !important;
+    object-fit: cover !important;
+    object-position: 58% 30% !important;
+    filter: blur(2px) saturate(.76) contrast(1.02) !important;
+    transform: none !important;
+  }
+
+  /* Portrait media is the real phone hero. Geometry is close to 2:3 so the
+     source stays sharp and loses far less composition than a wide-banner crop. */
+  .home-page .home-hero-carousel__mobile-keyart {
+    top: 3% !important;
+    right: 10px !important;
+    width: 50% !important;
+    height: 89% !important;
+    overflow: hidden;
+    border-radius: 0 11px 11px 0;
+    opacity: 1 !important;
+    transform: translateZ(0);
+  }
+
+  .home-page .home-hero-carousel__mobile-keyart::after {
+    background:
+      linear-gradient(90deg, #070a11 0%, rgba(7,10,17,.56) 15%, transparent 48%),
+      linear-gradient(0deg, #070a11 0%, rgba(7,10,17,.28) 12%, transparent 42%) !important;
+  }
+
+  .home-page .home-hero-carousel__mobile-keyart-image {
+    object-fit: cover !important;
+    object-position: center 18% !important;
+    filter: none !important;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  /* Lightweight motion starts only after first user interaction because the
+     parent receives is-motion-ready only after LCP has settled. */
+  .home-page .home-hero-carousel.is-motion-ready .home-hero-carousel__mobile-keyart-image {
+    animation: animeboxHeroKeyArtFloat 9s ease-in-out infinite alternate;
+  }
+
+  /* 8–10px next-slide glimpse = swipe affordance without looking broken. */
+  .home-page .home-hero-carousel__next-peek {
+    position: absolute;
+    z-index: 2;
+    top: 23%;
+    right: -1px;
+    display: block;
+    width: 9px;
+    height: 45%;
+    overflow: hidden;
+    border: 1px solid rgba(235, 232, 248, .13);
+    border-right: 0;
+    border-radius: 7px 0 0 7px;
+    opacity: .72;
+    pointer-events: none;
+    box-shadow: -4px 0 12px rgba(0,0,0,.24);
+  }
+
+  .home-page .home-hero-carousel__next-peek-image {
+    object-fit: cover !important;
+    object-position: center top !important;
+  }
+
+  .home-page .home-hero-carousel .page-hero__overlay {
+    background:
+      linear-gradient(90deg, rgba(7,10,17,.98) 0%, rgba(7,10,17,.82) 31%, rgba(7,10,17,.17) 68%, rgba(7,10,17,.04) 100%),
+      linear-gradient(0deg, #070a11 0%, rgba(7,10,17,.91) 17%, rgba(7,10,17,.20) 56%, transparent 100%) !important;
+  }
+
+  .home-page .home-hero-carousel h1,
+  .home-page .home-hero-carousel h1.is-long-title {
+    max-width: 78% !important;
+    font-size: clamp(24px, 6.6vw, 30px) !important;
+    line-height: 1.04 !important;
+    text-shadow: 0 2px 16px rgba(0,0,0,.42);
+  }
+
+  .home-page .home-hero-carousel h1.is-long-title {
+    max-width: 83% !important;
+    font-size: clamp(21px, 5.7vw, 25px) !important;
+  }
+
+  .home-page .home-hero-carousel .hero-actions {
+    width: min(100%, 320px) !important;
+    margin-top: 12px !important;
+  }
+
+  .home-page .home-hero-carousel .hero-actions .btn {
+    position: relative;
+    z-index: 4;
+    min-height: 37px !important;
+  }
+
+  .home-page .home-hero-carousel .hero-actions .btn--ghost {
+    border-color: rgba(234, 232, 242, .24) !important;
+    background: rgba(9, 12, 21, .76) !important;
+    color: #e8e5ee !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Stronger carousel affordance: dots with an elongated active state. */
+  .home-page .home-hero-carousel .home-hero-carousel__nav {
+    left: 15px !important;
+    right: 15px !important;
+    bottom: 9px !important;
+  }
+
+  .home-page .home-hero-carousel .home-hero-carousel__dots {
+    display: flex !important;
+    align-items: center;
+    gap: 7px !important;
+  }
+
+  .home-page .home-hero-carousel .home-hero-carousel__dot,
+  .home-page .home-hero-carousel .home-hero-carousel__dot.is-active {
+    width: 18px !important;
+    height: 24px !important;
+    padding: 0 !important;
+  }
+
+  .home-page .home-hero-carousel .home-hero-carousel__dot::before {
+    top: 50% !important;
+    width: 6px !important;
+    height: 6px !important;
+    margin: 0 auto;
+    border-radius: 999px !important;
+    background: rgba(219, 217, 230, .38) !important;
+    transform: translateY(-50%);
+    transition:
+      width 180ms ease,
+      background 180ms ease,
+      box-shadow 180ms ease !important;
+  }
+
+  .home-page .home-hero-carousel .home-hero-carousel__dot.is-active::before {
+    width: 18px !important;
+    background: #a58cf7 !important;
+    box-shadow: 0 0 10px rgba(151, 126, 239, .24);
+  }
+
+  .home-page .continue-watching-section {
+    margin-top: 13px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .home-page .page-hero.home-hero-carousel {
+    min-height: 284px !important;
+    height: 284px !important;
+    max-height: 284px !important;
+  }
+
+  .home-page .page-hero__content.home-hero-carousel__content {
+    min-height: 284px !important;
+    height: 284px !important;
+    padding: 14px 13px 48px !important;
+  }
+
+  .home-page .home-hero-carousel__mobile-keyart {
+    right: 8px !important;
+    width: 51% !important;
+    height: 88% !important;
+  }
+
+  .home-page .home-hero-carousel h1,
+  .home-page .home-hero-carousel h1.is-long-title {
+    max-width: 84% !important;
+    font-size: 23px !important;
+  }
+
+  .home-page .home-hero-carousel h1.is-long-title {
+    font-size: 20px !important;
+  }
+
+  .home-page .home-hero-carousel .hero-actions {
+    gap: 7px !important;
+  }
+}
+
+@keyframes animeboxHeroKeyArtFloat {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  to {
+    transform: translate3d(0, -3px, 0) scale(1.008);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-page .home-hero-carousel.is-motion-ready .home-hero-carousel__mobile-keyart-image {
+    animation: none !important;
+    transform: none !important;
+  }
+}

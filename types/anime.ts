@@ -53,6 +53,8 @@ export type Anime = {
   coverImage?: AnimeImage | null;
   image?: AnimeImage | null;
   bannerImage?: string | null;
+  /** Optional curated portrait/vertical hero art for phone layouts. */
+  mobileHeroImage?: string | null;
   [key: string]: any;
 };
 
