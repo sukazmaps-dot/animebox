@@ -8,12 +8,19 @@ import { getPremiumRecurringSubscription } from '@/lib/premium-server';
 import { createPremiumInvoiceLink } from '@/lib/telegram-stars';
 import { validateTelegramInitData } from '@/lib/telegram/validate-init-data';
 
+import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
     const { user } = await userClient();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'premium_invoice_ip', limit: 30, windowSeconds: 60 },
+      user: { scope: 'premium_invoice_user', limit: 15, windowSeconds: 60 },
+    });
+    if (limited) return limited;
     const botToken = optionalServerSecret('TELEGRAM_BOT_TOKEN');
 
     if (!botToken) {
