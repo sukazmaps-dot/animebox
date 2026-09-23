@@ -24,6 +24,13 @@ export function formatCatalogSeason(value: CatalogSeasonValue): string {
   return `${CATALOG_SEASON_LABELS[value.season]} ${value.year}`;
 }
 
+export function getCurrentAnimeSeason(date = new Date()): CatalogSeasonValue {
+  return {
+    season: monthToCatalogSeason(date.getMonth() + 1) ?? 'WINTER',
+    year: date.getFullYear(),
+  };
+}
+
 export function createCatalogSeasonOptions(
   minYear = 1980,
   maxYear = new Date().getFullYear() + 1,
