@@ -36,7 +36,7 @@ const GENRES = [
   { id: 14, russian: 'Ужасы', aliases: ['horror', 'ужасы'] },
   { id: 22, russian: 'Романтика', aliases: ['romance', 'романтика'] },
   { id: 24, russian: 'Фантастика', aliases: ['sci-fi', 'sci fi', 'фантастика'] },
-  { id: 7, russian: 'Тайна', aliases: ['mystery', 'тайна'] },
+  { id: 7, russian: 'Детектив', aliases: ['mystery', 'тайна', 'детектив'] },
   { id: 36, russian: 'Повседневность', aliases: ['slice of life', 'повседневность'] },
   { id: 30, russian: 'Спорт', aliases: ['sports', 'спорт'] },
   { id: 37, russian: 'Сверхъестественное', aliases: ['supernatural', 'сверхъестественное'] },
@@ -46,7 +46,26 @@ const YEARS = Array.from({ length: Math.max(1, CURRENT_YEAR - 1979) }, (_, index
 
 type DiscoveryMeta = Pick<SmartDiscoveryResponse, 'seed' | 'meta'>;
 type CatalogView = 'catalog' | 'saved';
-type CatalogStatus = 'any' | 'ongoing' | 'finished';
+type CatalogStatus = 'any' | 'ongoing' | 'finished' | 'upcoming';
+type CatalogFormat = 'any' | 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL';
+type CatalogSeason = 'any' | 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL';
+
+const FORMAT_OPTIONS: Array<{ value: CatalogFormat; label: string }> = [
+  { value: 'any', label: 'Все форматы' },
+  { value: 'TV', label: 'TV-сериал' },
+  { value: 'MOVIE', label: 'Фильм' },
+  { value: 'OVA', label: 'OVA' },
+  { value: 'ONA', label: 'ONA' },
+  { value: 'SPECIAL', label: 'Спешл' },
+];
+
+const SEASON_OPTIONS: Array<{ value: CatalogSeason; label: string }> = [
+  { value: 'any', label: 'Любой сезон' },
+  { value: 'WINTER', label: 'Зима' },
+  { value: 'SPRING', label: 'Весна' },
+  { value: 'SUMMER', label: 'Лето' },
+  { value: 'FALL', label: 'Осень' },
+];
 
 function seedTitle(seed: SmartDiscoveryResponse['seed']) {
   if (!seed) return '';
@@ -85,6 +104,8 @@ export default function SearchCatalogClient({
   const [selectedGenres, setSelectedGenres] = useState<number[]>([]);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<CatalogStatus>('any');
+  const [selectedFormat, setSelectedFormat] = useState<CatalogFormat>('any');
+  const [selectedSeason, setSelectedSeason] = useState<CatalogSeason>('any');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [openPicker, setOpenPicker] = useState<'year' | 'status' | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -177,7 +198,7 @@ export default function SearchCatalogClient({
     }
     if (initialRenderRef.current) {
       initialRenderRef.current = false;
-      if (!query && selectedGenres.length === 0 && selectedYear === null && selectedStatus === 'any' && selectedMood === 'any' && page === 1 && initialResults.length > 0) {
+      if (!query && selectedGenres.length === 0 && selectedYear === null && selectedStatus === 'any' && selectedFormat === 'any' && selectedSeason === 'any' && selectedMood === 'any' && page === 1 && initialResults.length > 0) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(false);
         return;
@@ -190,7 +211,7 @@ export default function SearchCatalogClient({
       setLoading(true);
       setError('');
       try {
-        if (query && discoveryIntent?.isDiscovery && page === 1 && selectedGenres.length === 0 && selectedYear === null && selectedStatus === 'any') {
+        if (query && discoveryIntent?.isDiscovery && page === 1 && selectedGenres.length === 0 && selectedYear === null && selectedStatus === 'any' && selectedFormat === 'any' && selectedSeason === 'any') {
           const payload = await getSmartDiscovery(query, Math.max(CATALOG_PAGE_SIZE, 30), controller.signal);
           const personalized = rankSmartDiscoveryCandidates(payload.items, discoveryIntent, { tasteGraph, strict: false });
           if (controller.signal.aborted || requestId !== requestSequenceRef.current) return;
@@ -216,6 +237,8 @@ export default function SearchCatalogClient({
             genres: selectedGenres.length > 0 ? selectedGenres : undefined,
             year: selectedYear ?? undefined,
             status: selectedStatus === 'any' ? undefined : selectedStatus,
+            format: selectedFormat === 'any' ? undefined : selectedFormat,
+            season: selectedSeason === 'any' ? undefined : selectedSeason,
             mood: selectedMood,
           }, { signal: controller.signal });
           if (controller.signal.aborted || requestId !== requestSequenceRef.current) return;
@@ -234,7 +257,7 @@ export default function SearchCatalogClient({
     }
     void load();
     return () => controller.abort();
-  }, [discoveryIntent, initialResults, page, query, selectedGenres, selectedMood, selectedStatus, selectedYear, tasteGraph, view]);
+  }, [discoveryIntent, initialResults, page, query, selectedFormat, selectedGenres, selectedMood, selectedSeason, selectedStatus, selectedYear, tasteGraph, view]);
 
   function applySearchQuery(nextValue: string) {
     const next = nextValue.replace(/\s+/g, ' ').trim();
@@ -260,6 +283,8 @@ export default function SearchCatalogClient({
     setSelectedGenres([]);
     setSelectedYear(null);
     setSelectedStatus('any');
+    setSelectedFormat('any');
+    setSelectedSeason('any');
     setPageState({ query, page: 1 });
   }
 
@@ -274,13 +299,52 @@ export default function SearchCatalogClient({
       if (selectedYear != null && Number(anime.startDate?.year ?? 0) !== selectedYear) return false;
       if (selectedStatus === 'ongoing' && !isAnimeOngoing(anime)) return false;
       if (selectedStatus === 'finished' && isAnimeOngoing(anime)) return false;
+      if (selectedStatus === 'upcoming' && normalizedText(String(anime.status ?? '')) !== 'анонс') return false;
+
+      if (selectedFormat !== 'any') {
+        const expectedFormat = ({
+          TV: ['тв', 'tv'],
+          MOVIE: ['фильм', 'movie'],
+          OVA: ['ova'],
+          ONA: ['ona'],
+          SPECIAL: ['спешл', 'special'],
+        } as const)[selectedFormat];
+        const actualFormat = normalizedText(String(anime.format ?? ''));
+        if (!expectedFormat.some((value) => actualFormat === value)) return false;
+      }
+
+      if (selectedSeason !== 'any') {
+        const month = Number(anime.startDate?.month ?? 0);
+        const actualSeason =
+          month >= 1 && month <= 3
+            ? 'WINTER'
+            : month >= 4 && month <= 6
+              ? 'SPRING'
+              : month >= 7 && month <= 9
+                ? 'SUMMER'
+                : month >= 10 && month <= 12
+                  ? 'FALL'
+                  : null;
+        if (actualSeason !== selectedSeason) return false;
+      }
+
       return true;
     });
-  }, [favorites, query, selectedGenres, selectedStatus, selectedYear]);
+  }, [favorites, query, selectedFormat, selectedGenres, selectedSeason, selectedStatus, selectedYear]);
 
-  const hasStructuredFilters = selectedGenres.length > 0 || selectedYear !== null || selectedStatus !== 'any';
+  const hasStructuredFilters =
+    selectedGenres.length > 0 ||
+    selectedYear !== null ||
+    selectedStatus !== 'any' ||
+    selectedFormat !== 'any' ||
+    selectedSeason !== 'any';
   const hasFilters = hasStructuredFilters || (view === 'catalog' && selectedMood !== 'any');
-  const filterCount = selectedGenres.length + (selectedYear == null ? 0 : 1) + (selectedStatus === 'any' ? 0 : 1);
+  const filterCount =
+    selectedGenres.length +
+    (selectedYear == null ? 0 : 1) +
+    (selectedStatus === 'any' ? 0 : 1) +
+    (selectedFormat === 'any' ? 0 : 1) +
+    (selectedSeason === 'any' ? 0 : 1);
   const displayResults = view === 'saved' ? savedResults : results;
   const displayLoading = view === 'catalog' && loading;
   const showCatalogAd = view === 'catalog' && !loading && results.length >= 8;
@@ -341,39 +405,129 @@ export default function SearchCatalogClient({
       {filtersOpen && (
         <div className={styles.filterPanel}>
           <div className={styles.filterPanelHead}>
-            <div><strong>Настроить подборку</strong><span>Можно выбрать несколько жанров</span></div>
-            {hasStructuredFilters && <button type="button" onClick={clearStructuredFilters}>Сбросить</button>}
+            <div>
+              <strong>Аниме-фильтры</strong>
+              <span>Жанр, формат, сезон выхода и статус — без киношной формы поиска.</span>
+            </div>
+            {hasStructuredFilters && <button type="button" onClick={clearStructuredFilters}>Сбросить всё</button>}
           </div>
+
           <div className={styles.filterGroup}>
             <span className={styles.filterLabel}>Жанры</span>
             <div className={styles.genreGrid}>
               {GENRES.map((genre) => {
                 const active = selectedGenres.includes(genre.id);
-                return <button key={genre.id} type="button" aria-pressed={active} className={active ? styles.genreSelected : styles.genreOption} onClick={() => toggleGenre(genre.id)}>{genre.russian}{active ? <span aria-hidden="true">✓</span> : null}</button>;
+                return (
+                  <button
+                    key={genre.id}
+                    type="button"
+                    aria-pressed={active}
+                    className={active ? styles.genreSelected : styles.genreOption}
+                    onClick={() => toggleGenre(genre.id)}
+                  >
+                    {genre.russian}
+                    {active ? <span aria-hidden="true">✓</span> : null}
+                  </button>
+                );
               })}
             </div>
           </div>
-          <div ref={pickerRef} className={styles.filterSelectGrid}>
-            <div className={styles.filterPicker}>
-              <span className={styles.filterLabel}>Год выпуска</span>
-              <button type="button" className={styles.filterPickerTrigger} aria-expanded={openPicker === 'year'} aria-controls="catalog-year-options" onClick={() => setOpenPicker((current) => current === 'year' ? null : 'year')}>
-                {selectedYear ?? 'Любой год'}<span aria-hidden="true">⌄</span>
+
+          <div className={styles.animeFilterSide}>
+            <div className={styles.filterGroup}>
+              <span className={styles.filterLabel}>Формат</span>
+              <div className={styles.compactChoiceGrid}>
+                {FORMAT_OPTIONS.map((option) => {
+                  const active = selectedFormat === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={active}
+                      className={active ? styles.compactChoiceActive : styles.compactChoice}
+                      onClick={() => {
+                        setSelectedFormat(option.value);
+                        setPageState({ query, page: 1 });
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <span className={styles.filterLabel}>Сезон выхода</span>
+              <div className={styles.compactChoiceGrid}>
+                {SEASON_OPTIONS.map((option) => {
+                  const active = selectedSeason === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={active}
+                      className={active ? styles.compactChoiceActive : styles.compactChoice}
+                      onClick={() => {
+                        setSelectedSeason(option.value);
+                        setPageState({ query, page: 1 });
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <span className={styles.filterLabel}>Статус</span>
+              <div className={styles.statusChoices}>
+                {([
+                  ['any', 'Любой'],
+                  ['ongoing', 'Онгоинг'],
+                  ['finished', 'Завершено'],
+                  ['upcoming', 'Анонс'],
+                ] as const).map(([status, label]) => {
+                  const active = selectedStatus === status;
+                  return (
+                    <button
+                      key={status}
+                      type="button"
+                      aria-pressed={active}
+                      className={active ? styles.compactChoiceActive : styles.compactChoice}
+                      onClick={() => {
+                        setSelectedStatus(status);
+                        setPageState({ query, page: 1 });
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div ref={pickerRef} className={styles.filterPicker}>
+              <span className={styles.filterLabel}>Год</span>
+              <button
+                type="button"
+                className={styles.filterPickerTrigger}
+                aria-expanded={openPicker === 'year'}
+                aria-controls="catalog-year-options"
+                onClick={() => setOpenPicker((current) => current === 'year' ? null : 'year')}
+              >
+                {selectedYear ?? 'Любой год'}
+                <span aria-hidden="true">⌄</span>
               </button>
               {openPicker === 'year' && (
-                <div id="catalog-year-options" className={styles.filterPickerMenu} aria-label="Выбрать год выпуска">
+                <div id="catalog-year-options" className={styles.filterPickerMenu} aria-label="Выбрать год выхода аниме">
                   <button type="button" aria-pressed={selectedYear === null} onClick={() => { setSelectedYear(null); setPageState({ query, page: 1 }); setOpenPicker(null); }}>Любой год</button>
-                  {YEARS.map((year) => <button key={year} type="button" aria-pressed={selectedYear === year} onClick={() => { setSelectedYear(year); setPageState({ query, page: 1 }); setOpenPicker(null); }}>{year}</button>)}
-                </div>
-              )}
-            </div>
-            <div className={styles.filterPicker}>
-              <span className={styles.filterLabel}>Статус</span>
-              <button type="button" className={styles.filterPickerTrigger} aria-expanded={openPicker === 'status'} aria-controls="catalog-status-options" onClick={() => setOpenPicker((current) => current === 'status' ? null : 'status')}>
-                {selectedStatus === 'ongoing' ? 'Онгоинг' : selectedStatus === 'finished' ? 'Завершено' : 'Любой'}<span aria-hidden="true">⌄</span>
-              </button>
-              {openPicker === 'status' && (
-                <div id="catalog-status-options" className={styles.filterPickerMenu} data-picker="status" aria-label="Выбрать статус">
-                  {([['any', 'Любой'], ['ongoing', 'Онгоинг'], ['finished', 'Завершено']] as const).map(([status, label]) => <button key={status} type="button" aria-pressed={selectedStatus === status} onClick={() => { setSelectedStatus(status); setPageState({ query, page: 1 }); setOpenPicker(null); }}>{label}</button>)}
+                  {YEARS.map((year) => (
+                    <button key={year} type="button" aria-pressed={selectedYear === year} onClick={() => { setSelectedYear(year); setPageState({ query, page: 1 }); setOpenPicker(null); }}>
+                      {year}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
