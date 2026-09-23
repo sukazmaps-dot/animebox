@@ -115,6 +115,10 @@ export async function getAnimes(
     params.set('genre', String(options.genre));
   }
 
+  if (options.tags?.length) {
+    params.set('tags', options.tags.join(','));
+  }
+
   if (options.mood && options.mood !== 'any') {
     params.set('mood', options.mood);
   }
