@@ -143,6 +143,7 @@ export default async function EpisodePage({
           durationMs: videoMeta?.durationMs ?? null,
           contentUrl: videoMeta?.contentUrl ?? null,
           embedUrl: videoMeta?.playerUrl ?? null,
+          thumbnailUrl: indexedEpisode.thumbnailUrl,
         })
       : null;
 
