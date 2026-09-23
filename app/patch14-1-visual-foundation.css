@@ -1,0 +1,491 @@
+/* =========================================================
+   AnimeBox Patch 14.1 — Visual Foundation
+   One visual language for all subsequent 14.x interface work.
+
+   Identity:
+   - INK: near-black blue/graphite base, never generic pure black;
+   - PORCELAIN: warm off-white content, softer than SaaS pure white;
+   - IRIS: AnimeBox violet, reserved for state/action/identity;
+   - EMBER: warm editorial signal, used sparingly for human emphasis;
+   - surfaces separate by tone first, borders second, glow last.
+   ========================================================= */
+
+:root {
+  color-scheme: dark;
+
+  /* Core identity */
+  --ab-ink-0: #07090f;
+  --ab-ink-1: #090d14;
+  --ab-ink-2: #0c111a;
+
+  --ab-surface-1: #0e131d;
+  --ab-surface-2: #121925;
+  --ab-surface-3: #17202d;
+  --ab-surface-4: #1c2635;
+
+  --ab-porcelain: #f3f0ea;
+  --ab-text: var(--ab-porcelain);
+  --ab-text-soft: #c8cad0;
+  --ab-muted: #8d95a5;
+  --ab-muted-2: #626b7b;
+
+  --ab-iris: #9788e7;
+  --ab-iris-hover: #aa9bf0;
+  --ab-iris-strong: #b7aaff;
+  --ab-iris-soft: rgba(151, 136, 231, .11);
+  --ab-iris-faint: rgba(151, 136, 231, .055);
+
+  --ab-ember: #e6a06f;
+  --ab-ember-soft: rgba(230, 160, 111, .10);
+
+  --ab-success: #69d6ad;
+  --ab-danger: #e8849c;
+  --ab-info: #7cb7ed;
+
+  /* Existing aliases stay compatible with older CSS. */
+  --ab-accent: var(--ab-iris);
+  --ab-accent-hover: var(--ab-iris-hover);
+  --ab-accent-soft: var(--ab-iris-soft);
+  --ab-signal: var(--ab-ember);
+  --ab-signal-soft: var(--ab-ember-soft);
+
+  --bg: var(--ab-ink-0);
+  --bg-2: var(--ab-ink-1);
+  --panel: var(--ab-surface-1);
+  --panel-2: var(--ab-surface-2);
+  --text: var(--ab-text);
+  --muted: var(--ab-muted);
+  --accent: var(--ab-iris);
+  --accent-2: var(--ab-iris);
+  --accent-3: var(--ab-info);
+
+  /* Geometry: standard UI is crisp, feature surfaces are softer. */
+  --ab-radius-xs: 5px;
+  --ab-radius-sm: 7px;
+  --ab-radius-md: 10px;
+  --ab-radius-lg: 16px;
+  --ab-radius-xl: 22px;
+  --ab-radius-feature: 24px;
+
+  /* Borders are intentionally quiet. */
+  --ab-line: rgba(204, 208, 219, .065);
+  --ab-line-strong: rgba(204, 208, 219, .115);
+  --ab-line-iris: rgba(151, 136, 231, .24);
+
+  /* Shadows do not carry brand color by default. */
+  --ab-shadow-xs: 0 6px 18px rgba(0, 0, 0, .10);
+  --ab-shadow-sm: 0 12px 30px rgba(0, 0, 0, .15);
+  --ab-shadow-md: 0 20px 48px rgba(0, 0, 0, .21);
+  --ab-shadow-feature: 0 28px 70px rgba(0, 0, 0, .28);
+
+  /* Motion */
+  --ab-ease-out: cubic-bezier(.2, .74, .24, 1);
+  --ab-ease-snap: cubic-bezier(.2, .8, .2, 1);
+  --ab-fast: 140ms;
+  --ab-normal: 190ms;
+}
+
+/* =========================================================
+   BASE CANVAS / TYPE
+   ========================================================= */
+
+html {
+  background: var(--ab-ink-0);
+  color: var(--ab-text);
+  scrollbar-color: #303744 var(--ab-ink-0);
+}
+
+body {
+  background:
+    radial-gradient(70% 45% at 86% -12%, rgba(151, 136, 231, .07), transparent 62%),
+    linear-gradient(180deg, var(--ab-ink-0) 0%, var(--ab-ink-1) 46%, #080b12 100%);
+  color: var(--ab-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(151, 136, 231, .30);
+  color: #fff;
+}
+
+:where(h1, h2, h3, h4, strong, b) {
+  text-wrap: balance;
+}
+
+:where(p, li, dd) {
+  text-wrap: pretty;
+}
+
+:where(button, a, input, textarea, select) {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:where(button, input, textarea, select, a):focus-visible {
+  outline: 2px solid rgba(183, 170, 255, .78);
+  outline-offset: 2px;
+}
+
+/* =========================================================
+   APP CHROME
+   ========================================================= */
+
+.topbar {
+  border-bottom-color: var(--ab-line);
+  background: rgba(7, 9, 15, .92);
+  box-shadow: 0 1px 0 rgba(255,255,255,.015);
+}
+
+.sidebar {
+  border-right-color: var(--ab-line);
+}
+
+.topbar__search,
+.search-box {
+  border: 1px solid transparent;
+  border-radius: var(--ab-radius-md) !important;
+  background: var(--ab-surface-2);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.018);
+  transition:
+    background var(--ab-normal) ease,
+    border-color var(--ab-normal) ease,
+    box-shadow var(--ab-normal) ease;
+}
+
+.topbar__search:focus-within,
+.search-box:focus-within {
+  border-color: var(--ab-line-iris);
+  background: #151c29;
+  box-shadow: 0 0 0 3px rgba(151,136,231,.07);
+}
+
+/* =========================================================
+   SURFACE GRAMMAR
+   ========================================================= */
+
+:where(
+  .panel,
+  .tracker-card,
+  .episode-comments,
+  .episode-seo-context,
+  .community-library-control,
+  .anime-notification-control,
+  .profile-v2__stat,
+  .profile-v2__library,
+  .profile-v2__achievements,
+  .profile-v2__bottom-card,
+  .detail__section,
+  .detail__side-panel
+) {
+  border-color: var(--ab-line);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.008), transparent 42%),
+    var(--ab-surface-1);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.018),
+    var(--ab-shadow-xs);
+}
+
+:where(
+  .page-hero,
+  .tracker-hero,
+  .profile-v2__hero,
+  .anime-detail-v4__hero-shell
+) {
+  border-color: var(--ab-line-strong);
+  box-shadow: var(--ab-shadow-feature);
+}
+
+/* Passive cards do not glow on hover. Media/action creates the response. */
+@media (hover: hover) and (pointer: fine) {
+  :where(
+    .panel,
+    .tracker-card,
+    .community-library-control,
+    .anime-notification-control,
+    .detail__section
+  ):hover {
+    border-color: rgba(204,208,219,.09);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.022),
+      var(--ab-shadow-sm);
+  }
+}
+
+/* =========================================================
+   CONTROLS
+   ========================================================= */
+
+:where(
+  .btn,
+  .topbar__icon,
+  .topbar__login,
+  .topbar__register,
+  .genre-btn,
+  .schedule__tab,
+  .pagination button,
+  .tracker-filter,
+  .status-control
+) {
+  transition:
+    color var(--ab-fast) ease,
+    background var(--ab-fast) ease,
+    border-color var(--ab-fast) ease,
+    transform var(--ab-fast) var(--ab-ease-out),
+    box-shadow var(--ab-fast) ease;
+}
+
+.btn {
+  min-height: 40px;
+  border-radius: var(--ab-radius-sm);
+  font-weight: 720;
+  letter-spacing: .005em;
+}
+
+.btn--primary,
+.topbar__register {
+  border: 1px solid rgba(255,255,255,.04);
+  background: var(--ab-iris);
+  color: #fff;
+  box-shadow: none;
+}
+
+.btn--primary:hover,
+.topbar__register:hover {
+  background: var(--ab-iris-hover);
+  filter: none;
+}
+
+.btn--ghost,
+.topbar__login,
+.topbar__icon {
+  border-color: transparent;
+  background: var(--ab-surface-2);
+  color: var(--ab-text-soft);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.015);
+}
+
+.btn--ghost:hover,
+.topbar__login:hover,
+.topbar__icon:hover {
+  background: var(--ab-surface-3);
+  color: var(--ab-text);
+}
+
+button:active:not(:disabled),
+.btn:active {
+  transform: translateY(1px) scale(.995);
+}
+
+button:disabled,
+.btn[aria-disabled='true'] {
+  cursor: default;
+  opacity: .42;
+}
+
+/* =========================================================
+   CHIPS / FILTERS
+   ========================================================= */
+
+:where(
+  .genre-btn,
+  .schedule__tab,
+  .pagination button,
+  .tracker-filter,
+  .status-control
+) {
+  border-radius: var(--ab-radius-sm);
+  border-color: transparent;
+  background: var(--ab-surface-2);
+  color: var(--ab-muted);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.012);
+}
+
+:where(
+  .genre-btn.is-active,
+  .schedule__tab.is-active,
+  .tracker-filter.is-active
+) {
+  border-color: rgba(151,136,231,.18);
+  background: var(--ab-iris-soft);
+  color: #eeeaff;
+  box-shadow: inset 2px 0 0 var(--ab-iris);
+}
+
+/* =========================================================
+   SECTION RHYTHM
+   ========================================================= */
+
+.section-head,
+.detail__section-header {
+  align-items: baseline;
+}
+
+.section-title,
+.detail__section-header h2 {
+  color: var(--ab-text);
+  font-weight: 720;
+  letter-spacing: -.022em;
+}
+
+.section-link {
+  color: var(--ab-muted-2);
+  font-weight: 650;
+}
+
+.section-link:hover {
+  color: var(--ab-ember);
+}
+
+/* Editorial hairline instead of repeated glowing separators. */
+.home-page .main-column > .section {
+  border-top-color: var(--ab-line);
+}
+
+/* =========================================================
+   MEDIA CARDS
+   ========================================================= */
+
+.anime-card {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.anime-card__image-wrap,
+.anime-card--signature .anime-card__image-wrap {
+  border: 1px solid rgba(204,208,219,.045);
+  border-radius: var(--ab-radius-sm);
+  background: var(--ab-surface-2);
+  box-shadow: var(--ab-shadow-xs);
+}
+
+.anime-card__body {
+  background: transparent;
+}
+
+.anime-card__body h3 {
+  color: #eeece8;
+  font-weight: 660;
+  letter-spacing: -.012em;
+}
+
+.anime-card__meta {
+  color: var(--ab-muted-2);
+}
+
+.anime-card__rating,
+.anime-card__state {
+  border-radius: var(--ab-radius-xs) !important;
+  border-color: rgba(255,255,255,.05) !important;
+  background: rgba(7,9,15,.82) !important;
+  backdrop-filter: blur(8px);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .anime-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .anime-card:hover .anime-card__image-wrap,
+  .anime-card--signature:hover .anime-card__image-wrap {
+    transform: translateY(-2px);
+    border-color: rgba(151,136,231,.16);
+    box-shadow: var(--ab-shadow-sm);
+  }
+
+  .anime-card:hover .anime-card__image {
+    transform: scale(1.018);
+  }
+}
+
+/* =========================================================
+   WATCH / EPISODE CONTEXT
+   ========================================================= */
+
+.episode-seo-context {
+  border-radius: var(--ab-radius-lg);
+}
+
+.episode-seo-context__eyebrow {
+  color: var(--ab-iris);
+}
+
+.episode-seo-context__links a {
+  border-color: rgba(151,136,231,.13);
+  background: var(--ab-surface-2);
+  color: #cfc8ef;
+  box-shadow: none;
+}
+
+.episode-seo-context__links a:hover {
+  border-color: rgba(151,136,231,.25);
+  background: var(--ab-surface-3);
+  color: #fff;
+}
+
+/* =========================================================
+   RESPONSIVE FOUNDATION
+   ========================================================= */
+
+@media (max-width: 760px) {
+  :root {
+    --ab-radius-feature: 20px;
+  }
+
+  body {
+    background:
+      linear-gradient(180deg, var(--ab-ink-0) 0%, var(--ab-ink-1) 58%, #080b12 100%);
+  }
+
+  .page-content {
+    padding-inline: max(14px, env(safe-area-inset-left));
+  }
+
+  :where(
+    .panel,
+    .tracker-card,
+    .episode-comments,
+    .episode-seo-context,
+    .community-library-control,
+    .anime-notification-control
+  ) {
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.016),
+      0 8px 24px rgba(0,0,0,.10);
+  }
+
+  .anime-card__image-wrap,
+  .anime-card--signature .anime-card__image-wrap {
+    border-radius: 6px;
+  }
+
+  /* Mobile is touch-first; avoid hover-looking ambient movement. */
+  .anime-card:hover .anime-card__image-wrap,
+  .anime-card--signature:hover .anime-card__image-wrap,
+  .anime-card:hover .anime-card__image {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(
+    *,
+    *::before,
+    *::after
+  ) {
+    scroll-behavior: auto !important;
+  }
+
+  :where(
+    .btn,
+    button,
+    a,
+    .anime-card,
+    .anime-card__image,
+    .anime-card__image-wrap
+  ) {
+    transition-duration: 0.01ms !important;
+  }
+}
