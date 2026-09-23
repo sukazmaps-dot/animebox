@@ -1,5 +1,7 @@
 import { ApiError, adminClient, failure, readBody, response, userClient } from '@/lib/community-server';
 
+import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +51,11 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const { user } = await userClient();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'boosty_claim_write_ip', limit: 30, windowSeconds: 3600 },
+      user: { scope: 'boosty_claim_write_user', limit: 12, windowSeconds: 3600 },
+    });
+    if (limited) return limited;
     const body = await readBody(request);
     const url = boostyUrl();
     if (!url) throw new ApiError(503, 'Boosty пока не настроен.');
