@@ -69,8 +69,29 @@ export async function GET(
 
   const statusRaw = params.get('status');
   const status =
-    statusRaw === 'ongoing' || statusRaw === 'finished'
+    statusRaw === 'ongoing' ||
+    statusRaw === 'finished' ||
+    statusRaw === 'upcoming'
       ? statusRaw
+      : undefined;
+
+  const formatRaw = params.get('format');
+  const format =
+    formatRaw === 'TV' ||
+    formatRaw === 'MOVIE' ||
+    formatRaw === 'OVA' ||
+    formatRaw === 'ONA' ||
+    formatRaw === 'SPECIAL'
+      ? formatRaw
+      : undefined;
+
+  const seasonRaw = params.get('season');
+  const season =
+    seasonRaw === 'WINTER' ||
+    seasonRaw === 'SPRING' ||
+    seasonRaw === 'SUMMER' ||
+    seasonRaw === 'FALL'
+      ? seasonRaw
       : undefined;
 
   const genreRaw = params.get('genre');
@@ -117,6 +138,8 @@ export async function GET(
     genre: genres.length === 0 ? genreRaw ?? undefined : undefined,
     genres: genres.length > 0 ? genres : undefined,
     year,
+    format,
+    season,
   };
 
   try {
