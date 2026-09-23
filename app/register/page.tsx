@@ -9,18 +9,13 @@ import Link from 'next/link';
 
 import GoogleAuthButton from '@/components/GoogleAuthButton';
 import TelegramAuthButton from '@/components/TelegramAuthButton';
+import { safeInternalPath } from '@/lib/browser-navigation';
 
 import {
   createClient,
 } from '@/lib/supabase/client';
 import { markTelegramWelcomePending } from '@/lib/telegram-growth-client';
 
-
-function safeReturnPath(value: string | null) {
-  return value && value.startsWith('/') && !value.startsWith('//')
-    ? value
-    : '/profile';
-}
 
 function isDuplicateEmailError(
   code?: string,
@@ -48,7 +43,7 @@ function isDuplicateEmailError(
 
 export default function RegisterPage() {
   const [nextPath] = useState(() =>
-    safeReturnPath(
+    safeInternalPath(
       typeof window === 'undefined'
         ? null
         : new URLSearchParams(window.location.search).get('next'),
