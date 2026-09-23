@@ -33,6 +33,7 @@ for (const [label, needle] of [
   ['automatic opening guard', 'openingAutoSkipAttemptedRef.current = true'],
   ['automatic opening seek', "requestOpeningSkip('auto')"],
   ['manual skip fallback UI', 'Пропустить опенинг'],
+  ['Kodik duplicate skip suppression', 'skipOpeningVisible && !watchTogetherMode && !isKodik'],
   ['opening seek watch-integrity signal', 'watchSession.onProviderSkip'],
   ['ending countdown UI', 'endingNextSeconds'],
   ['ending cancel action', 'cancelEndingAutoNext'],
