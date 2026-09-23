@@ -5,7 +5,7 @@ import {
   response,
   userClient,
 } from '@/lib/community-server';
-import { getCompletedEpisodes } from '@/lib/watch-server';
+import { getEpisodeWatchList } from '@/lib/watch-server';
 
 export async function GET(request: Request) {
   try {
@@ -14,9 +14,12 @@ export async function GET(request: Request) {
     );
 
     const { user } = await userClient();
-    const episodes = await getCompletedEpisodes(user.id, animeId);
+    const progress = await getEpisodeWatchList(user.id, animeId);
+    const episodes = progress
+      .filter((item) => item.completed)
+      .map((item) => item.episode);
 
-    return response({ episodes });
+    return response({ episodes, progress });
   } catch (error) {
     return failure(error);
   }
