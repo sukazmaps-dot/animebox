@@ -21,3 +21,20 @@ export type WatchTitleOverview = {
 export type RecentWatchResponse = {
   items: WatchTitleOverview[];
 };
+
+
+export type EpisodeWatchListItem = {
+  episode: number;
+  positionMs: number;
+  durationMs: number | null;
+  coverageMs: number;
+  eligibleDurationMs: number | null;
+  percent: number | null;
+  completed: boolean;
+  watchedAt: string | null;
+};
+
+export type EpisodeWatchListResponse = {
+  episodes: number[];
+  progress: EpisodeWatchListItem[];
+};
