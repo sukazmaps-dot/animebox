@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "security:check": "node scripts/security-boundary-check.mjs",
+    "security:check": "node scripts/security-boundary-check.mjs && node scripts/edge-shield-check.mjs",
     "prebuild": "npm run security:check"
   },
   "dependencies": {
