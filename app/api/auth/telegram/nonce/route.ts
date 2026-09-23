@@ -1,10 +1,18 @@
 import { randomBytes } from 'node:crypto';
 import { NextResponse } from 'next/server';
+import { enforceIpRateLimit } from '@/lib/api-rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function POST() {
+export async function POST(request: Request) {
+  const limited = await enforceIpRateLimit(request, {
+    scope: 'auth_tg_nonce_ip',
+    limit: 30,
+    windowSeconds: 60,
+  });
+  if (limited) return limited;
+
   const nonce =
     randomBytes(32).toString('base64url');
 

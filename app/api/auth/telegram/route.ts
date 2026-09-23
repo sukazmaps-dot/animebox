@@ -18,6 +18,7 @@ import {
 import {
   createSupabaseAdmin,
 } from '@/lib/supabase/admin';
+import { enforceIpRateLimit } from '@/lib/api-rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -98,6 +99,13 @@ export async function POST(
   request: Request,
 ) {
   try {
+    const limited = await enforceIpRateLimit(request, {
+      scope: 'auth_tg_login_ip',
+      limit: 20,
+      windowSeconds: 60,
+    });
+    if (limited) return limited;
+
     const body =
       await request.json();
 

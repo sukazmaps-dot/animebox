@@ -2,12 +2,20 @@ import { optionalServerSecret } from '@/lib/env/server';
 import { NextResponse } from 'next/server';
 
 import { validateTelegramInitData } from '@/lib/telegram/validate-init-data';
+import { enforceIpRateLimit } from '@/lib/api-rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
+    const limited = await enforceIpRateLimit(request, {
+      scope: 'tg_validate_ip',
+      limit: 60,
+      windowSeconds: 60,
+    });
+    if (limited) return limited;
+
     const body = await request.json();
 
     const initData =
