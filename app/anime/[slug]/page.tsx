@@ -930,7 +930,7 @@ export default async function AnimePage({
       >
         <div className="anime-detail-v4__section-head">
           <div>
-            <span>СЕРИИ</span>
+            <span>Эпизоды</span>
             <h2 id="anime-episodes-title">Сезоны и эпизоды</h2>
             <p>Выбери часть и продолжай с нужной серии.</p>
           </div>
