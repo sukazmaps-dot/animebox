@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { optionalServerSecret } from '@/lib/env/server';
+import { readJsonBody } from '@/lib/community-server';
+import { secureServerSecretEqual } from '@/lib/server-request-auth';
 
 import { escapeTelegramHtml } from '@/lib/notifications-server';
 import { getUserSubscriptions } from '@/lib/telegram/bot-subscriptions';
@@ -160,7 +162,7 @@ export async function POST(request: NextRequest) {
       'x-telegram-bot-api-secret-token',
     );
 
-    if (telegramSecret !== WEBHOOK_SECRET) {
+    if (!secureServerSecretEqual(WEBHOOK_SECRET, telegramSecret)) {
       return NextResponse.json(
         {
           ok: false,
@@ -172,7 +174,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const update = await request.json();
+    const update = (await readJsonBody(request, { maxBytes: 256_000 })) as Record<string, any>;
 
     /**
      * =====================================================
