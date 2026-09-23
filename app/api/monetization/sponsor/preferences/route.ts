@@ -22,6 +22,8 @@ import {
 } from '@/lib/sponsor-benefits-server';
 import { getSponsorTotal } from '@/lib/sponsor-server';
 
+import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
+
 function stringField(value: unknown, max = 40) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
 }
@@ -47,6 +49,11 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const { user } = await userClient();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'sponsor_prefs_write_ip', limit: 90, windowSeconds: 60 },
+      user: { scope: 'sponsor_prefs_write_user', limit: 60, windowSeconds: 60 },
+    });
+    if (limited) return limited;
     const body = await readBody(request);
     const totalStars = await getSponsorTotal(user.id);
     const tier = resolveSponsorTier(totalStars);
