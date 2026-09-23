@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import { safeInternalPath } from '@/lib/browser-navigation';
 import { createClient } from '@/lib/supabase/client';
 import { notifyAuthChanged } from '@/lib/auth-events';
 import { markTelegramWelcomePending } from '@/lib/telegram-growth-client';
@@ -371,7 +372,7 @@ export default function TelegramAuthButton({
   ] =
     useState(false);
 
-  const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/profile';
+  const safeNext = safeInternalPath(next, '/profile');
 
   async function login() {
     if (loading) {
