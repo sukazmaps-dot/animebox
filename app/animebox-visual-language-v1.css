@@ -743,7 +743,7 @@
 
 .episode-discussion-hub__meta span {
   position: relative !important;
-  min-height: 54px !important;
+  min-height: 46px !important;
   display: grid !important;
   grid-template-columns: 18px minmax(0,1fr) !important;
   grid-template-rows: auto auto !important;
