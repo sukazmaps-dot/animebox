@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { optionalServerSecret } from '@/lib/env/server';
 
 import {
   listBoostyUsersForRecheck,
