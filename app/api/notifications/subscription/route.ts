@@ -12,7 +12,7 @@ import {
   sendTelegramMessage,
   NotificationError,
 } from '@/lib/notifications-server';
-import { readBody } from '@/lib/community-server';
+import { readJsonBody } from '@/lib/community-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -67,7 +67,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { client, user } = await requireNotificationUser();
-    const body = await readBody(request);
+    const body = await readJsonBody(request);
 
     const animeId = positiveAnimeId(body.animeId);
     const enabled = body.enabled === true;
