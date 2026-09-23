@@ -1,13 +1,19 @@
 import { createClient } from '@/lib/supabase/server';
 import { adminClient, failure } from '@/lib/community-server';
-import { getSponsorStatuses } from '@/lib/sponsor-server';
+import {
+  sponsorStatusFromSnapshot,
+} from '@/lib/sponsor-server';
+import type { PreferenceRow } from '@/lib/sponsor-benefits-server';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
-import { resolvePublicAppearances } from '@/lib/public-avatar-server';
+import {
+  resolvePublicAppearancesFromPreloaded,
+  type PublicAppearancePreload,
+} from '@/lib/public-avatar-server';
 import { normalizeProgression } from '@/lib/progression';
 
 type LeaderboardPeriod = 'week' | 'month' | 'all';
 
-type LeaderboardRow = {
+type LeaderboardBundleRow = {
   rank_no: number | string;
   user_id: string;
   username: string;
@@ -16,6 +22,11 @@ type LeaderboardRow = {
   episodes: number | string;
   last_watched_at: string | null;
   is_current_user: boolean;
+  progression?: unknown;
+  sponsor_total?: number | string | null;
+  sponsor_preferences?: unknown;
+  premium_settings?: unknown;
+  entitlements?: unknown;
 };
 
 function normalizePeriod(value: string | null): LeaderboardPeriod {
@@ -23,6 +34,24 @@ function normalizePeriod(value: string | null): LeaderboardPeriod {
   return 'week';
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function bundleRows(value: unknown): LeaderboardBundleRow[] {
+  const record = asRecord(value);
+  if (!record || !Array.isArray(record.entries)) return [];
+
+  return record.entries.filter(
+    (row): row is LeaderboardBundleRow =>
+      Boolean(row) &&
+      typeof row === 'object' &&
+      !Array.isArray(row) &&
+      typeof (row as Record<string, unknown>).user_id === 'string',
+  );
+}
 
 export async function GET(request: Request) {
   try {
@@ -34,18 +63,18 @@ export async function GET(request: Request) {
     const currentUserId = userData.user?.id ?? null;
 
     const admin = adminClient();
-    const watch = admin.schema('animebox_watch');
-
-    const { data, error } = await watch.rpc('leaderboard', {
-      p_period: period,
-      p_limit: 100,
-      p_user_id: currentUserId,
-    });
+    const { data, error } = await admin.rpc(
+      'community_leaderboard_bundle',
+      {
+        p_period: period,
+        p_limit: 100,
+        p_user_id: currentUserId,
+      },
+    );
 
     if (error) throw error;
 
-    const rows = (Array.isArray(data) ? data : []) as LeaderboardRow[];
-    const userIds = rows.map((row) => row.user_id);
+    const rows = bundleRows(data);
 
     if (rows.length === 0) {
       return Response.json(
@@ -54,46 +83,49 @@ export async function GET(request: Request) {
       );
     }
 
-    const [sponsorByUser, appearanceByUser, progressionResult] = await Promise.all([
-      getSponsorStatuses(rows.map((row) => row.user_id)),
-      resolvePublicAppearances(
-        rows.map((row) => ({
-          id: row.user_id,
-          avatar_path: row.avatar_path,
-        })),
-      ),
-      admin
-        .from('user_progression')
-        .select('user_id,total_xp,activity_xp,premium_bonus_xp,achievement_xp,challenge_xp')
-        .in('user_id', userIds),
-    ]);
+    const preloadByUser = new Map<string, PublicAppearancePreload>();
 
-    if (progressionResult.error) throw progressionResult.error;
+    for (const row of rows) {
+      preloadByUser.set(row.user_id, {
+        premiumSettings: asRecord(row.premium_settings),
+        entitlements: Array.isArray(row.entitlements)
+          ? row.entitlements.filter(
+              (value): value is string => typeof value === 'string',
+            )
+          : [],
+      });
+    }
 
-    const progressionByUser = new Map(
-      (progressionResult.data ?? []).map((row) => [
-        row.user_id,
-        normalizeProgression(row),
-      ] as const),
+    const appearanceByUser = resolvePublicAppearancesFromPreloaded(
+      rows.map((row) => ({
+        id: row.user_id,
+        avatar_path: row.avatar_path,
+      })),
+      preloadByUser,
     );
 
     const normalized = rows.map((row) => {
       const appearance = appearanceByUser.get(row.user_id);
+      const sponsorPreferences = asRecord(row.sponsor_preferences);
 
-      return ({
-      rank: Number(row.rank_no),
-      userId: row.user_id,
-      username: row.username || 'Пользователь',
-      avatarUrl: appearance?.avatarUrl ?? '/default-avatar.webp',
-      avatarTransform: appearance?.avatarTransform ?? { x: 50, y: 50, zoom: 1 },
-      activeMs: Number(row.active_ms) || 0,
-      completedEpisodes: Number(row.episodes) || 0,
-      lastWatchedAt: row.last_watched_at,
-      isCurrentUser: Boolean(row.is_current_user),
-      sponsor: sponsorByUser.get(row.user_id) ?? null,
-      role: publicIdentityRoleFor(row.user_id),
-      progression: progressionByUser.get(row.user_id) ?? normalizeProgression(null),
-    });
+      return {
+        rank: Number(row.rank_no),
+        userId: row.user_id,
+        username: row.username || 'Пользователь',
+        avatarUrl: appearance?.avatarUrl ?? '/default-avatar.webp',
+        avatarTransform:
+          appearance?.avatarTransform ?? { x: 50, y: 50, zoom: 1 },
+        activeMs: Number(row.active_ms) || 0,
+        completedEpisodes: Number(row.episodes) || 0,
+        lastWatchedAt: row.last_watched_at,
+        isCurrentUser: Boolean(row.is_current_user),
+        sponsor: sponsorStatusFromSnapshot(
+          Number(row.sponsor_total ?? 0),
+          sponsorPreferences as PreferenceRow | null,
+        ),
+        role: publicIdentityRoleFor(row.user_id),
+        progression: normalizeProgression(row.progression),
+      };
     });
 
     return Response.json(

@@ -40,12 +40,18 @@ if ((migration.match(/drop index/gi) ?? []).length !== 1) {
   );
 }
 
-if (!profileRoute.includes("client.rpc('my_community_profile')")) {
-  failures.push('DB audit: profile must keep the consolidated profile RPC.');
+if (
+  !profileRoute.includes("client.rpc('my_community_profile_bundle')") &&
+  !profileRoute.includes("client.rpc('my_community_profile')")
+) {
+  failures.push('DB audit: profile must keep a consolidated profile RPC.');
 }
 
-if (!leaderboardRoute.includes("watch.rpc('leaderboard'")) {
-  failures.push('DB audit: leaderboard route must keep the database RPC boundary.');
+if (
+  !leaderboardRoute.includes("'community_leaderboard_bundle'") &&
+  !leaderboardRoute.includes("watch.rpc('leaderboard'")
+) {
+  failures.push('DB audit: leaderboard route must keep a database RPC boundary.');
 }
 
 if (failures.length) {

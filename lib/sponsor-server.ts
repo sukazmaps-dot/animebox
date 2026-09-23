@@ -9,9 +9,23 @@ import {
 import {
   getSponsorPreferenceRows,
   sponsorPublicCosmeticsFromRow,
+  type PreferenceRow,
 } from '@/lib/sponsor-benefits-server';
 
 const DIRECTORY_VIEW = 'sponsor_directory_v3';
+
+export function sponsorStatusFromSnapshot(
+  totalStars: number,
+  preferences?: PreferenceRow | null,
+): SponsorStatus | null {
+  const tier = resolveSponsorTier(totalStars);
+  if (!tier) return null;
+
+  return makeSponsorStatus(
+    totalStars,
+    sponsorPublicCosmeticsFromRow(preferences, tier),
+  );
+}
 
 export async function getSponsorTotal(userId: string): Promise<number> {
   const admin = adminClient();
@@ -63,13 +77,10 @@ export async function getSponsorStatuses(
   for (const row of directory.data ?? []) {
     if (!row.user_id) continue;
     const totalStars = Number(row.total_stars ?? 0);
-    const tier = resolveSponsorTier(totalStars);
-    if (!tier) continue;
-    const cosmetics = sponsorPublicCosmeticsFromRow(
+    const status = sponsorStatusFromSnapshot(
+      totalStars,
       preferences.get(row.user_id),
-      tier,
     );
-    const status = makeSponsorStatus(totalStars, cosmetics);
     if (status) result.set(row.user_id, status);
   }
 

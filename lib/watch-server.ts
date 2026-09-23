@@ -1150,6 +1150,184 @@ function watchPercent(coverageMs: number, eligibleDurationMs: number | null) {
   );
 }
 
+type TitleOverviewRpcRow = {
+  anime_id: number | string;
+  title?: string | null;
+  total_episodes?: number | string | null;
+  finished?: boolean | null;
+  poster_url?: string | null;
+  slug?: string | null;
+  progress?: unknown;
+};
+
+type TitleOverviewProgressRpcRow = {
+  episode_number?: number | string | null;
+  duration_ms?: number | string | null;
+  watched_ranges?: unknown;
+  excluded_ranges?: unknown;
+  active_ms?: number | string | null;
+  completed_at?: string | null;
+  resume_position_ms?: number | string | null;
+  last_watched_at?: string | null;
+};
+
+function normalizedTitleOverviewRows(value: unknown): TitleOverviewRpcRow[] {
+  return Array.isArray(value)
+    ? value.filter(
+        (row): row is TitleOverviewRpcRow =>
+          Boolean(row) && typeof row === 'object' && !Array.isArray(row),
+      )
+    : [];
+}
+
+export function watchTitleOverviewsFromRpcRows(
+  value: unknown,
+): WatchTitleOverview[] {
+  const rows = normalizedTitleOverviewRows(value);
+  const result: WatchTitleOverview[] = [];
+
+  for (const row of rows) {
+    const animeId = Number(row.anime_id);
+    if (!Number.isSafeInteger(animeId) || animeId <= 0) continue;
+
+    const totalEpisodesRaw =
+      row.total_episodes == null ? null : Number(row.total_episodes);
+    const totalEpisodes =
+      totalEpisodesRaw != null &&
+      Number.isSafeInteger(totalEpisodesRaw) &&
+      totalEpisodesRaw > 0
+        ? totalEpisodesRaw
+        : null;
+
+    const progressRows = Array.isArray(row.progress)
+      ? row.progress.filter(
+          (item): item is TitleOverviewProgressRpcRow =>
+            Boolean(item) &&
+            typeof item === 'object' &&
+            !Array.isArray(item),
+        )
+      : [];
+
+    let trackedEpisodes = 0;
+    let completedEpisodes = 0;
+    let activeMs = 0;
+    let latestEpisode: number | null = null;
+    let latestTimestamp = 0;
+    let latestCompleted = false;
+    let resumePositionMs = 0;
+    let durationMs: number | null = null;
+    let progressPercent: number | null = null;
+    let lastWatchedAt: string | null = null;
+
+    for (const progress of progressRows) {
+      const episodeNumber = Number(progress.episode_number);
+      if (!Number.isSafeInteger(episodeNumber) || episodeNumber <= 0) continue;
+
+      trackedEpisodes += 1;
+      activeMs += Math.max(0, Number(progress.active_ms ?? 0) || 0);
+
+      const completed = Boolean(progress.completed_at);
+      if (completed) completedEpisodes += 1;
+
+      const watchedAt = safeTimestamp(progress.last_watched_at);
+      if (latestEpisode == null || watchedAt >= latestTimestamp) {
+        const episodeDurationRaw =
+          progress.duration_ms == null ? null : Number(progress.duration_ms);
+        const episodeDurationMs =
+          episodeDurationRaw != null &&
+          Number.isFinite(episodeDurationRaw) &&
+          episodeDurationRaw > 0
+            ? Math.round(episodeDurationRaw)
+            : null;
+        const effective = effectiveWatchProgress(
+          normalizeRanges(progress.watched_ranges),
+          normalizeRanges(progress.excluded_ranges),
+          episodeDurationMs,
+        );
+
+        latestTimestamp = watchedAt;
+        latestEpisode = episodeNumber;
+        resumePositionMs = Math.max(
+          0,
+          Math.round(Number(progress.resume_position_ms ?? 0) || 0),
+        );
+        durationMs = episodeDurationMs;
+        progressPercent = completed
+          ? 100
+          : watchPercent(
+              effective.coverageMs,
+              effective.eligibleDurationMs,
+            );
+        latestCompleted = completed;
+        lastWatchedAt =
+          typeof progress.last_watched_at === 'string'
+            ? progress.last_watched_at
+            : null;
+      }
+    }
+
+    const fullyCompleted = Boolean(
+      row.finished &&
+        totalEpisodes &&
+        completedEpisodes >= totalEpisodes,
+    );
+
+    let resumeEpisode: number | null = null;
+    let resumeMode: WatchTitleOverview['resumeMode'] = null;
+    let finalResumePositionMs = 0;
+    let finalProgressPercent = progressPercent;
+
+    if (!fullyCompleted && latestEpisode != null) {
+      if (!latestCompleted) {
+        resumeEpisode = latestEpisode;
+        resumeMode = 'resume';
+        finalResumePositionMs = resumePositionMs;
+      } else {
+        const nextEpisode = latestEpisode + 1;
+        const withinKnownSeries =
+          totalEpisodes == null || nextEpisode <= totalEpisodes;
+
+        if (withinKnownSeries) {
+          resumeEpisode = nextEpisode;
+          resumeMode = 'next';
+          finalProgressPercent = 0;
+        }
+      }
+    }
+
+    result.push({
+      animeId,
+      title:
+        typeof row.title === 'string' && row.title.trim()
+          ? row.title.trim()
+          : `Аниме #${animeId}`,
+      slug:
+        typeof row.slug === 'string' && row.slug.trim()
+          ? row.slug.trim()
+          : null,
+      posterUrl:
+        typeof row.poster_url === 'string' && row.poster_url.trim()
+          ? row.poster_url.trim()
+          : null,
+      totalEpisodes,
+      trackedEpisodes,
+      completedEpisodes,
+      activeMs,
+      latestEpisode,
+      resumeEpisode,
+      resumeMode,
+      resumePositionMs: finalResumePositionMs,
+      durationMs: resumeMode === 'resume' ? durationMs : null,
+      progressPercent: finalProgressPercent,
+      latestCompleted,
+      fullyCompleted,
+      lastWatchedAt,
+    });
+  }
+
+  return result;
+}
+
 export async function getTitleWatchOverviews(
   userId: string,
   animeIds: number[],
@@ -1167,247 +1345,19 @@ export async function getTitleWatchOverviews(
   if (normalizedAnimeIds.length === 0) return [];
 
   const watch = watchClient();
-  const admin = adminClient();
-
-  const episodeRows: Array<{
-    id: string;
-    anime_id: number;
-    episode_number: number;
-    duration_ms: number | null;
-  }> = [];
+  const rows: unknown[] = [];
 
   for (const batch of chunkValues(normalizedAnimeIds)) {
-    const { data, error } = await watch
-      .from('episodes')
-      .select('id,anime_id,episode_number,duration_ms')
-      .in('anime_id', batch);
-    throwIfError(error);
-
-    for (const row of data ?? []) {
-      if (typeof row.id !== 'string') continue;
-      episodeRows.push({
-        id: row.id,
-        anime_id: Number(row.anime_id),
-        episode_number: Number(row.episode_number),
-        duration_ms:
-          row.duration_ms == null ? null : Number(row.duration_ms),
-      });
-    }
-  }
-
-  const catalogRows: Array<{
-    id: number;
-    title: string;
-    total_episodes: number | null;
-    finished: boolean;
-    poster_url: string | null;
-    slug: string | null;
-  }> = [];
-
-  for (const batch of chunkValues(normalizedAnimeIds)) {
-    const { data, error } = await admin
-      .from('anime_catalog')
-      .select('id,title,total_episodes,finished,poster_url,slug')
-      .in('id', batch);
-
-    if (error) throw error;
-
-    for (const row of data ?? []) {
-      catalogRows.push({
-        id: Number(row.id),
-        title:
-          typeof row.title === 'string' && row.title.trim()
-            ? row.title.trim()
-            : `Аниме #${row.id}`,
-        total_episodes:
-          row.total_episodes == null ? null : Number(row.total_episodes),
-        finished: Boolean(row.finished),
-        poster_url:
-          typeof row.poster_url === 'string' && row.poster_url.trim()
-            ? row.poster_url.trim()
-            : null,
-        slug:
-          typeof row.slug === 'string' && row.slug.trim()
-            ? row.slug.trim()
-            : null,
-      });
-    }
-  }
-
-  const catalogByAnime = new Map(
-    catalogRows.map((row) => [row.id, row] as const),
-  );
-  const episodeById = new Map(
-    episodeRows.map((row) => [row.id, row] as const),
-  );
-
-  const progressRows: Array<{
-    episode_id: string;
-    watched_ranges: unknown;
-    excluded_ranges: unknown;
-    active_ms: number;
-    completed_at: string | null;
-    resume_position_ms: number;
-    last_watched_at: string | null;
-  }> = [];
-
-  const episodeIds = episodeRows.map((row) => row.id);
-
-  for (const batch of chunkValues(episodeIds)) {
-    const { data, error } = await watch
-      .from('progress')
-      .select(
-        'episode_id,watched_ranges,excluded_ranges,active_ms,completed_at,resume_position_ms,last_watched_at',
-      )
-      .eq('user_id', userId)
-      .in('episode_id', batch);
-    throwIfError(error);
-
-    for (const row of data ?? []) {
-      progressRows.push({
-        episode_id: String(row.episode_id),
-        watched_ranges: row.watched_ranges,
-        excluded_ranges: row.excluded_ranges,
-        active_ms: Number(row.active_ms ?? 0),
-        completed_at:
-          typeof row.completed_at === 'string' ? row.completed_at : null,
-        resume_position_ms: Number(row.resume_position_ms ?? 0),
-        last_watched_at:
-          typeof row.last_watched_at === 'string'
-            ? row.last_watched_at
-            : null,
-      });
-    }
-  }
-
-  const state = new Map<
-    number,
-    WatchTitleOverview & { latestTimestamp: number }
-  >();
-
-  for (const animeId of normalizedAnimeIds) {
-    const catalog = catalogByAnime.get(animeId);
-    state.set(animeId, {
-      animeId,
-      title: catalog?.title ?? `Аниме #${animeId}`,
-      slug: catalog?.slug ?? null,
-      posterUrl: catalog?.poster_url ?? null,
-      totalEpisodes: catalog?.total_episodes ?? null,
-      trackedEpisodes: 0,
-      completedEpisodes: 0,
-      activeMs: 0,
-      latestEpisode: null,
-      resumeEpisode: null,
-      resumeMode: null,
-      resumePositionMs: 0,
-      durationMs: null,
-      progressPercent: null,
-      latestCompleted: false,
-      fullyCompleted: false,
-      lastWatchedAt: null,
-      latestTimestamp: 0,
+    const { data, error } = await watch.rpc('title_overview_rows', {
+      p_user_id: userId,
+      p_anime_ids: batch,
     });
+    throwIfError(error);
+
+    if (Array.isArray(data)) rows.push(...data);
   }
 
-  for (const progress of progressRows) {
-    const episode = episodeById.get(progress.episode_id);
-    if (!episode) continue;
-
-    const current = state.get(episode.anime_id);
-    if (!current) continue;
-
-    current.trackedEpisodes += 1;
-    current.activeMs += Math.max(0, progress.active_ms);
-
-    const completed = Boolean(progress.completed_at);
-    if (completed) current.completedEpisodes += 1;
-
-    const watchedAt = safeTimestamp(progress.last_watched_at);
-
-    if (
-      current.latestEpisode == null ||
-      watchedAt >= current.latestTimestamp
-    ) {
-      const effective = effectiveWatchProgress(
-        normalizeRanges(progress.watched_ranges),
-        normalizeRanges(progress.excluded_ranges),
-        episode.duration_ms,
-      );
-
-      current.latestTimestamp = watchedAt;
-      current.latestEpisode = episode.episode_number;
-      current.resumePositionMs = Math.max(
-        0,
-        Math.round(progress.resume_position_ms),
-      );
-      current.durationMs = episode.duration_ms;
-      current.progressPercent = completed
-        ? 100
-        : watchPercent(
-            effective.coverageMs,
-            effective.eligibleDurationMs,
-          );
-      current.latestCompleted = completed;
-      current.lastWatchedAt = progress.last_watched_at;
-    }
-  }
-
-  return [...state.values()].map((item) => {
-    const catalog = catalogByAnime.get(item.animeId);
-    const totalEpisodes =
-      catalog?.total_episodes != null && catalog.total_episodes > 0
-        ? catalog.total_episodes
-        : null;
-    const fullyCompleted = Boolean(
-      catalog?.finished &&
-        totalEpisodes &&
-        item.completedEpisodes >= totalEpisodes,
-    );
-
-    let resumeEpisode: number | null = null;
-    let resumeMode: WatchTitleOverview['resumeMode'] = null;
-    let resumePositionMs = 0;
-    let progressPercent = item.progressPercent;
-
-    if (!fullyCompleted && item.latestEpisode != null) {
-      if (!item.latestCompleted) {
-        resumeEpisode = item.latestEpisode;
-        resumeMode = 'resume';
-        resumePositionMs = item.resumePositionMs;
-      } else {
-        const nextEpisode = item.latestEpisode + 1;
-        const withinKnownSeries =
-          totalEpisodes == null || nextEpisode <= totalEpisodes;
-
-        if (withinKnownSeries) {
-          resumeEpisode = nextEpisode;
-          resumeMode = 'next';
-          resumePositionMs = 0;
-          progressPercent = 0;
-        }
-      }
-    }
-
-    return {
-      animeId: item.animeId,
-      title: item.title,
-      slug: item.slug,
-      posterUrl: item.posterUrl,
-      totalEpisodes,
-      trackedEpisodes: item.trackedEpisodes,
-      completedEpisodes: item.completedEpisodes,
-      activeMs: item.activeMs,
-      latestEpisode: item.latestEpisode,
-      resumeEpisode,
-      resumeMode,
-      resumePositionMs,
-      durationMs: resumeMode === 'resume' ? item.durationMs : null,
-      progressPercent,
-      latestCompleted: item.latestCompleted,
-      fullyCompleted,
-      lastWatchedAt: item.lastWatchedAt,
-    };
-  });
+  return watchTitleOverviewsFromRpcRows(rows);
 }
 
 export async function getRecentWatchTitles(
