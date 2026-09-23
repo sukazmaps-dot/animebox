@@ -15,16 +15,29 @@ function read(path) {
 
 const layout = read('app/layout.tsx');
 const foundation = read('app/patch14-1-visual-foundation.css');
+const antiAi = read('app/patch14-1-1-anti-ai-design.css');
 
-const importNeedle = "import './patch14-1-visual-foundation.css';";
-if (!layout.includes(importNeedle)) {
+const foundationNeedle = "import './patch14-1-visual-foundation.css';";
+const antiAiNeedle = "import './patch14-1-1-anti-ai-design.css';";
+
+if (!layout.includes(foundationNeedle)) {
   failures.push('layout.tsx: Visual Foundation stylesheet is not imported.');
 }
 
+if (!layout.includes(antiAiNeedle)) {
+  failures.push('layout.tsx: Anti-AI stylesheet is not imported.');
+}
+
 const lastPatchImport = layout.lastIndexOf("import './");
-const foundationImport = layout.indexOf(importNeedle);
-if (foundationImport < 0 || foundationImport !== lastPatchImport) {
-  failures.push('layout.tsx: Visual Foundation must remain the last global CSS import.');
+const foundationImport = layout.indexOf(foundationNeedle);
+const antiAiImport = layout.indexOf(antiAiNeedle);
+
+if (foundationImport < 0 || antiAiImport < foundationImport) {
+  failures.push('layout.tsx: Anti-AI layer must load after Visual Foundation.');
+}
+
+if (antiAiImport < 0 || antiAiImport !== lastPatchImport) {
+  failures.push('layout.tsx: Anti-AI visual layer must remain the last global CSS import.');
 }
 
 for (const [label, needle] of [
@@ -52,6 +65,19 @@ if (!foundation.includes('.episode-seo-context')) {
   failures.push('Visual Foundation: watch-page surface grammar is missing.');
 }
 
+for (const [label, needle] of [
+  ['shortcut de-cardification', '.home-shortcuts'],
+  ['activation de-cardification', '.home-activation-v2'],
+  ['retention editorial rail', '.home-retention'],
+  ['mood tool grammar', '.mood-chip'],
+  ['anime-card shine removal', '.anime-card__shine'],
+  ['dashboard-label normalization', 'text-transform: none !important'],
+]) {
+  if (!antiAi.includes(needle)) {
+    failures.push(`Anti-AI layer: missing ${label}.`);
+  }
+}
+
 if (failures.length) {
   console.error('\n[AnimeBox Visual Foundation] Check failed:\n');
   for (const failure of failures) console.error(` - ${failure}`);
@@ -59,4 +85,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('[AnimeBox Visual Foundation] Static invariants passed.');
+console.log('[AnimeBox Visual Foundation] Foundation + anti-AI invariants passed.');
