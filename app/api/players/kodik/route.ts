@@ -5,6 +5,8 @@ import {
   searchKodikByShikimoriId,
 } from '@/lib/kodik-episode-availability';
 import { enforceIpRateLimit } from '@/lib/api-rate-limit';
+import { resolveAnimeRoute } from '@/lib/anime-route';
+import { recordEpisodePlayerUrl } from '@/lib/episode-timeline-server';
 
 export async function GET(request: NextRequest) {
   const limited = await enforceIpRateLimit(request, {
@@ -14,6 +16,7 @@ export async function GET(request: NextRequest) {
 
   const shikimoriIdParam = request.nextUrl.searchParams.get('shikimoriId');
   const episodeParam = request.nextUrl.searchParams.get('episode');
+  const animeIdParam = request.nextUrl.searchParams.get('animeId');
 
   if (!shikimoriIdParam || !/^\d+$/.test(shikimoriIdParam)) {
     return NextResponse.json(
@@ -66,6 +69,32 @@ export async function GET(request: NextRequest) {
         seen.add(key);
         return true;
       });
+
+    if (
+      episode != null &&
+      animeIdParam &&
+      /^\d+$/.test(animeIdParam) &&
+      translations[0]?.url
+    ) {
+      const animeId = Number(animeIdParam);
+
+      if (Number.isSafeInteger(animeId) && animeId > 0) {
+        try {
+          const anime = await resolveAnimeRoute(String(animeId));
+          const expectedMalId = Number(anime?.idMal ?? anime?.mal_id ?? 0);
+
+          if (anime && expectedMalId === shikimoriId) {
+            await recordEpisodePlayerUrl({
+              animeId,
+              episode,
+              playerUrl: translations[0].url,
+            });
+          }
+        } catch (cacheError) {
+          console.warn('[Kodik] Video SEO player cache skipped:', cacheError);
+        }
+      }
+    }
 
     return NextResponse.json(
       {
