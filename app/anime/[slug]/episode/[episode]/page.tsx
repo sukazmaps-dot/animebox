@@ -13,6 +13,7 @@ import {
 } from '@/lib/episode-seo';
 import { SITE_URL } from '@/lib/seo-config';
 import { getSeoEpisodeIndexEntry } from '@/lib/seo-episode-index';
+import { getEpisodeTimelineForSeo } from '@/lib/episode-timeline-server';
 
 const parseEpisode = (value: string): number | null => {
   const number = Number(value);
@@ -102,9 +103,12 @@ export default async function EpisodePage({
 
   const canonical = `${SITE_URL}${animeHref(anime)}/episode/${number}`;
   const indexable = await isEpisodeIndexable(anime.id, number);
-  const indexedEpisode = indexable
-    ? await getSeoEpisodeIndexEntry(anime.id, number).catch(() => null)
-    : null;
+  const [indexedEpisode, videoMeta] = indexable
+    ? await Promise.all([
+        getSeoEpisodeIndexEntry(anime.id, number).catch(() => null),
+        getEpisodeTimelineForSeo(anime.id, number).catch(() => null),
+      ])
+    : [null, null];
   const identity = getAnimeSeoIdentity(anime);
 
   const breadcrumbStructuredData = {
@@ -136,6 +140,9 @@ export default async function EpisodePage({
     indexable && indexedEpisode?.firstAvailableAt
       ? buildEpisodeVideoStructuredData(anime, number, canonical, {
           uploadDate: indexedEpisode.firstAvailableAt,
+          durationMs: videoMeta?.durationMs ?? null,
+          contentUrl: videoMeta?.contentUrl ?? null,
+          embedUrl: videoMeta?.playerUrl ?? null,
         })
       : null;
 
