@@ -695,3 +695,116 @@
     transition: none !important;
   }
 }
+
+
+/* =========================================================
+   14.3.1 regression fix — Top Anime sizing
+   The mobile editorial rail must never render as a desktop-wide 3-card wall.
+   ========================================================= */
+
+@media (min-width: 721px) {
+  .home-page .home-top-anime-panel--mobile {
+    display: none !important;
+  }
+
+  .home-page .home-top-anime-panel--desktop {
+    display: block !important;
+    min-width: 0;
+    overflow: hidden;
+    border: 0 !important;
+    border-top: 1px solid var(--ab-line) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .home-page .home-top-anime-panel--desktop .panel__head {
+    padding: 11px 0 9px !important;
+  }
+
+  .home-page .home-top-anime-panel--desktop .panel__body {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+    padding: 0 !important;
+  }
+
+  .home-page .home-top-anime-panel--desktop .top-anime-item--editorial {
+    min-width: 0 !important;
+    min-height: 62px !important;
+    display: grid !important;
+    grid-template-columns: 24px 42px minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 7px 0 !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(204,208,219,.055) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .home-page .home-top-anime-panel--desktop .top-anime-item--editorial:last-child {
+    border-bottom: 0 !important;
+  }
+
+  .home-page .home-top-anime-panel--desktop .top-anime-item__rank {
+    align-self: start;
+    padding-top: 2px;
+    color: #716b84 !important;
+    font-size: 10px !important;
+    font-variant-numeric: tabular-nums;
+    font-weight: 650 !important;
+  }
+
+  .home-page .home-top-anime-panel--desktop .top-anime-item__poster {
+    width: 42px !important;
+    height: 56px !important;
+    aspect-ratio: auto !important;
+    overflow: hidden !important;
+    border-radius: 5px !important;
+  }
+
+  .home-page .home-top-anime-panel--desktop .top-anime-item__poster img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+
+  .home-page .home-top-anime-panel--desktop .top-anime-item__copy {
+    min-width: 0 !important;
+  }
+
+  .home-page .home-top-anime-panel--desktop .top-anime-item__copy strong {
+    display: -webkit-box !important;
+    overflow: hidden !important;
+    color: var(--ab-text-soft) !important;
+    font-size: 10.5px !important;
+    font-weight: 670 !important;
+    line-height: 1.28 !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 2 !important;
+  }
+
+  .home-page .home-top-anime-panel--desktop .top-anime-item__copy span {
+    display: block !important;
+    margin-top: 4px !important;
+    overflow: hidden !important;
+    color: var(--ab-muted-2) !important;
+    font-size: 8.5px !important;
+    line-height: 1.2 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .home-page .home-top-anime-panel--desktop {
+    display: none !important;
+  }
+
+  .home-page .home-top-anime-panel--mobile {
+    display: block !important;
+  }
+}
