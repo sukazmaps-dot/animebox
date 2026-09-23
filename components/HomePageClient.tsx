@@ -1329,20 +1329,17 @@ export default function HomePage({
 
         <div className="home-utility-grid">
           <div className="panel home-library-panel right-rail__secondary">
-            <span className="home-library-panel__symbol home-library-panel__symbol--brand" aria-hidden="true">
-              <Image src="/brand/brand-mark.webp" alt="" width={20} height={20} sizes="20px" />
-            </span>
-            <span className="home-library-panel__eyebrow">Твоя коллекция</span>
-            <h2>
-              Ни один эпизод
-              <br />
-              не потеряется.
-            </h2>
-            <p>Отмечай просмотренное, следи за новыми сериями и держи список в порядке.</p>
+            <div className="home-library-panel__head">
+              <span className="home-library-panel__symbol home-library-panel__symbol--vector" aria-hidden="true">
+                <Icon name="tracker" size={18} weight="regular" />
+              </span>
+              <span className="home-library-panel__eyebrow">Твоя коллекция</span>
+            </div>
+            <h2>Всё просмотренное — в одном месте.</h2>
+            <p>Отмечай серии, следи за онгоингами и возвращайся к просмотру без лишнего поиска.</p>
             <Link className="btn btn--primary" href="/list">
-              Открыть список <span aria-hidden="true">↗</span>
+              Открыть трекер <span aria-hidden="true">↗</span>
             </Link>
-
           </div>
 
           <SupportAnimeBoxCard />
