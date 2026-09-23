@@ -106,6 +106,11 @@ export async function GET(
     .map((value) => value.trim())
     .filter(Boolean)
     .slice(0, 6);
+  const studioNames = (params.get('studios') || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .slice(0, 4);
   const requestedYear = Number.parseInt(params.get('year') || '', 10);
   const year =
     Number.isSafeInteger(requestedYear) &&
@@ -137,12 +142,15 @@ export async function GET(
     order:
       orderRaw === 'popularity'
         ? ('popularity' as AniListListOrder)
-        : 'ranked',
+        : orderRaw === 'updated'
+          ? ('updated' as AniListListOrder)
+          : 'ranked',
     status,
     search,
     genre: genres.length === 0 ? genreRaw ?? undefined : undefined,
     genres: genres.length > 0 ? genres : undefined,
     tags: tags.length > 0 ? tags : undefined,
+    studioNames: studioNames.length > 0 ? studioNames : undefined,
     year,
     format,
     season,
