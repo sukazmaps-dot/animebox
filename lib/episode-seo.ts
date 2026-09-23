@@ -151,12 +151,19 @@ export function buildEpisodeVideoStructuredData(
     durationMs?: number | null;
     contentUrl?: string | null;
     embedUrl?: string | null;
+    thumbnailUrl?: string | null;
   } = {},
 ) {
   const identity = getAnimeSeoIdentity(anime);
   const name = `${identity.pageHeading} — ${episode} серия`;
-  const thumbnail = episodeThumbnail(anime);
+  const thumbnail =
+    safeHttpsUrl(options.thumbnailUrl) ??
+    episodeThumbnail(anime);
   const description = buildEpisodeSeoDescription(anime, episode, true);
+
+  if (!thumbnail || !options.uploadDate) {
+    return null;
+  }
   const duration =
     isoDurationMs(options.durationMs) ??
     isoDuration(anime.duration);
