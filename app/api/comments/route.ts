@@ -6,7 +6,7 @@ import {
 import {
   createClient,
 } from '@/lib/supabase/server';
-import { adminClient } from '@/lib/community-server';
+import { adminClient, readBody } from '@/lib/community-server';
 import { getSponsorStatuses } from '@/lib/sponsor-server';
 import { assertCanComment } from '@/lib/admin-server';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
@@ -54,6 +54,7 @@ function sanitizePlainText(
       '',
     )
     .replace(/\r\n?/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
 
@@ -511,17 +512,24 @@ export async function POST(
 
 
     try {
-      payload =
-        await request.json();
-    } catch {
+      payload = await readBody(request);
+    } catch (bodyError) {
+      const status =
+        typeof bodyError === 'object' &&
+        bodyError &&
+        'status' in bodyError &&
+        typeof bodyError.status === 'number'
+          ? bodyError.status
+          : 400;
+
+      const message =
+        bodyError instanceof Error
+          ? bodyError.message
+          : 'Некорректный JSON.';
+
       return NextResponse.json(
-        {
-          error:
-            'Некорректный JSON.',
-        },
-        {
-          status: 400,
-        },
+        { error: message },
+        { status },
       );
     }
 
@@ -544,9 +552,7 @@ export async function POST(
 
 
     const isSpoiler =
-      Boolean(
-        payload.isSpoiler,
-      );
+      payload.isSpoiler === true;
 
 
     const rawBody =
