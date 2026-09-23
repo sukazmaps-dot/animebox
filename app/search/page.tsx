@@ -5,6 +5,11 @@ import SearchCatalogClient from '@/components/SearchCatalogClient';
 import { getAnimesWithShikimori } from '@/lib/combined-anime';
 import type { Anime } from '@/types/anime';
 import { CATALOG_PAGE_SIZE } from '@/lib/catalog-pagination';
+import {
+  catalogFiltersToProviderOptions,
+  parseCatalogFilters,
+  type CatalogFiltersState,
+} from '@/lib/catalog-filter-state';
 
 export const revalidate = 900;
 
@@ -32,12 +37,20 @@ export async function generateMetadata({
   };
 }
 
-async function loadInitialCatalog(): Promise<Anime[]> {
+async function loadInitialCatalog(filters: CatalogFiltersState): Promise<Anime[]> {
   try {
+    const providerFilters = catalogFiltersToProviderOptions(filters);
     return await getAnimesWithShikimori({
       page: 1,
       limit: CATALOG_PAGE_SIZE,
-      order: 'ranked',
+      order: providerFilters.order,
+      genres: providerFilters.genres.length > 0 ? providerFilters.genres : undefined,
+      tags: providerFilters.tags.length > 0 ? providerFilters.tags : undefined,
+      status: providerFilters.status,
+      format: providerFilters.format,
+      season: providerFilters.season,
+      year: providerFilters.year,
+      studioNames: providerFilters.studioNames.length > 0 ? providerFilters.studioNames : undefined,
     });
   } catch (error) {
     console.warn('SSR catalog load failed:', error);
@@ -67,10 +80,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
   const query = typeof params.search === 'string' ? params.search.trim() : '';
   const initialView = params.view === 'saved' ? 'saved' : 'catalog';
+  const initialFilters = parseCatalogFilters(params);
   // Search result URLs are client-driven and noindex. Do not block first paint
   // on an unrelated popular-catalog request when the user already supplied a
   // query; SearchCatalogClient will resolve it immediately.
-  const initialResults = query || initialView === 'saved' ? [] : await loadInitialCatalog();
+  const initialResults = query || initialView === 'saved' ? [] : await loadInitialCatalog(initialFilters);
 
   return (
     <Suspense fallback={<CatalogFallback />}>
@@ -78,6 +92,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         initialResults={initialResults}
         initialQuery={query}
         initialView={initialView}
+        initialFilters={initialFilters}
       />
     </Suspense>
   );
