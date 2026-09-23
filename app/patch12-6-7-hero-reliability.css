@@ -1,0 +1,73 @@
+/* =========================================================
+   AnimeBox Patch 12.6.7 — Hero Reliability & Composition
+   Resilient image coverage on desktop and mobile.
+   ========================================================= */
+
+.home-page .home-hero-carousel {
+  background:
+    radial-gradient(
+      circle at 82% 28%,
+      rgba(var(--hero-ambient-rgb), .20),
+      transparent 46%
+    ),
+    #080c13 !important;
+}
+
+.home-page .home-hero-carousel .home-hero-carousel__backdrop {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center 30% !important;
+}
+
+@media (min-width: 769px) {
+  .home-page .home-hero-carousel.is-backdrop-fallback .home-hero-carousel__backdrop {
+    object-position: 72% 24% !important;
+    transform: scale(1.015) !important;
+    filter: saturate(.92) contrast(1.04) brightness(.88) !important;
+  }
+
+  .home-page .home-hero-carousel.no-banner::before {
+    position: absolute;
+    inset: 0;
+    content: '';
+    pointer-events: none;
+    background:
+      radial-gradient(
+        circle at 76% 35%,
+        rgba(var(--hero-ambient-rgb), .30),
+        transparent 34%
+      ),
+      linear-gradient(
+        120deg,
+        rgba(var(--hero-ambient-rgb), .10),
+        transparent 62%
+      );
+  }
+}
+
+/* The old narrow preview at the right edge looked like a clipped asset. */
+.home-page .home-hero-carousel__next-peek {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .home-page .home-hero-carousel__mobile-keyart {
+    right: 8px !important;
+    width: 52% !important;
+  }
+
+  .home-page .home-hero-carousel__mobile-keyart-image {
+    object-fit: cover !important;
+    object-position: center 20% !important;
+  }
+
+  .home-page .home-hero-carousel.no-banner .page-hero__overlay {
+    background:
+      linear-gradient(90deg, rgba(7,10,17,.98), rgba(7,10,17,.84) 46%, rgba(7,10,17,.42)),
+      linear-gradient(0deg, #070a11, rgba(7,10,17,.62) 42%, transparent)
+      !important;
+  }
+}

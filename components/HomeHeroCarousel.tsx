@@ -52,25 +52,67 @@ function isValidAnime(
   );
 }
 
-function getMobileHeroImage(anime: Anime): string | null {
-  return normalizeImageUrl(
-    anime.mobileHeroImage ||
-    anime.coverImage?.extraLarge ||
-    anime.image?.original ||
-    anime.coverImage?.large ||
-    anime.image?.large ||
-    anime.image?.medium,
+type HeroImageAttempt = {
+  src: string;
+  unoptimized: boolean;
+  fallback: boolean;
+};
+
+function uniqueImageSources(values: Array<string | null | undefined>) {
+  const seen = new Set<string>();
+  const sources: string[] = [];
+
+  for (const value of values) {
+    const normalized = normalizeImageUrl(value);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    sources.push(normalized);
+  }
+
+  return sources;
+}
+
+function buildHeroImageAttempts(sources: string[]): HeroImageAttempt[] {
+  if (!sources.length) return [];
+
+  const [primary, ...fallbacks] = sources;
+
+  return [
+    { src: primary, unoptimized: false, fallback: false },
+    { src: primary, unoptimized: true, fallback: true },
+    ...fallbacks.map((src) => ({
+      src,
+      unoptimized: true,
+      fallback: true,
+    })),
+  ];
+}
+
+function getHeroBackdropAttempts(anime: Anime): HeroImageAttempt[] {
+  return buildHeroImageAttempts(
+    uniqueImageSources([
+      anime.bannerImage,
+      anime.mobileHeroImage,
+      anime.coverImage?.extraLarge,
+      anime.image?.original,
+      anime.coverImage?.large,
+      anime.image?.large,
+      anime.image?.medium,
+    ]),
   );
 }
 
-function getHeroBackdropImage(anime: Anime): string | null {
-  return normalizeImageUrl(
-    anime.bannerImage ||
-    anime.mobileHeroImage ||
-    anime.coverImage?.extraLarge ||
-    anime.image?.original ||
-    anime.coverImage?.large ||
-    anime.image?.large,
+function getMobileHeroAttempts(anime: Anime): HeroImageAttempt[] {
+  return buildHeroImageAttempts(
+    uniqueImageSources([
+      anime.mobileHeroImage,
+      anime.coverImage?.extraLarge,
+      anime.image?.original,
+      anime.coverImage?.large,
+      anime.image?.large,
+      anime.bannerImage,
+      anime.image?.medium,
+    ]),
   );
 }
 
@@ -173,6 +215,9 @@ export default function HomeHeroCarousel({
   const [paused, setPaused] =
     useState(false);
 
+  const [backdropAttemptIndex, setBackdropAttemptIndex] = useState(0);
+  const [mobileAttemptIndex, setMobileAttemptIndex] = useState(0);
+
   // Do not rotate the largest above-the-fold content before the visitor has
   // interacted with the page. A timed hero swap can become a new LCP
   // candidate several seconds after first paint (and Lighthouse/Core Web
@@ -199,6 +244,11 @@ export default function HomeHeroCarousel({
     slides[safeActiveIndex] ??
     slides[0] ??
     null;
+
+  useEffect(() => {
+    setBackdropAttemptIndex(0);
+    setMobileAttemptIndex(0);
+  }, [anime?.id]);
 
   useEffect(() => {
     if (!anime) return;
@@ -320,18 +370,19 @@ export default function HomeHeroCarousel({
   const title =
     getAnimeTitle(anime);
 
-  const bannerImage = getHeroBackdropImage(anime);
-  const mobileKeyArt = getMobileHeroImage(anime);
+  const backdropAttempts = getHeroBackdropAttempts(anime);
+  const mobileAttempts = getMobileHeroAttempts(anime);
 
-  const nextAnime =
-    slides.length > 1
-      ? slides[(safeActiveIndex + 1) % slides.length]
-      : null;
+  const backdropAttempt =
+    backdropAttempts[backdropAttemptIndex] ??
+    null;
 
-  const nextMobileKeyArt =
-    nextAnime
-      ? getMobileHeroImage(nextAnime)
-      : null;
+  const mobileAttempt =
+    mobileAttempts[mobileAttemptIndex] ??
+    null;
+
+  const bannerImage = backdropAttempt?.src ?? null;
+  const mobileKeyArt = mobileAttempt?.src ?? null;
 
   const [ambientR, ambientG, ambientB] = getAmbientRgb(anime);
 
@@ -476,6 +527,7 @@ export default function HomeHeroCarousel({
         'page-hero',
         'home-hero-carousel',
         bannerImage ? 'has-banner' : 'no-banner',
+        backdropAttempt?.fallback ? 'is-backdrop-fallback' : '',
         autoplayUnlocked ? 'is-motion-ready' : '',
         autoplayUnlocked && safeActiveIndex !== 0 ? 'is-slide-transition' : '',
       ].filter(Boolean).join(' ')}
@@ -507,48 +559,41 @@ export default function HomeHeroCarousel({
     >
       {bannerImage && (
         <Image
-          key={`${anime.id}-backdrop`}
+          key={`${anime.id}-backdrop-${backdropAttemptIndex}`}
           src={bannerImage}
           alt=""
           fill
-          priority={safeActiveIndex === 0}
-          fetchPriority={safeActiveIndex === 0 ? 'high' : 'auto'}
+          priority={safeActiveIndex === 0 && backdropAttemptIndex === 0}
+          fetchPriority={safeActiveIndex === 0 && backdropAttemptIndex === 0 ? 'high' : 'auto'}
           decoding="async"
           quality={82}
+          unoptimized={Boolean(backdropAttempt?.unoptimized)}
           sizes="(max-width: 390px) calc(100vw - 20px), (max-width: 768px) calc(100vw - 24px), (max-width: 1200px) calc(100vw - 100px), (max-width: 1700px) calc(100vw - 300px), 1380px"
           className="page-hero__backdrop home-hero-carousel__backdrop is-visible"
           aria-hidden="true"
+          onError={() => {
+            setBackdropAttemptIndex((current) => current + 1);
+          }}
         />
       )}
 
       {mobileKeyArt && (
         <div className="home-hero-carousel__mobile-keyart" aria-hidden="true">
           <Image
-            key={`${anime.id}-mobile-keyart`}
+            key={`${anime.id}-mobile-keyart-${mobileAttemptIndex}`}
             src={mobileKeyArt}
             alt=""
             fill
-            priority={safeActiveIndex === 0}
-            fetchPriority={safeActiveIndex === 0 ? 'high' : 'auto'}
+            priority={safeActiveIndex === 0 && mobileAttemptIndex === 0}
+            fetchPriority={safeActiveIndex === 0 && mobileAttemptIndex === 0 ? 'high' : 'auto'}
             decoding="async"
             quality={88}
+            unoptimized={Boolean(mobileAttempt?.unoptimized)}
             sizes="(max-width: 390px) 52vw, (max-width: 768px) 50vw, 1px"
             className="home-hero-carousel__mobile-keyart-image"
-          />
-        </div>
-      )}
-
-      {nextMobileKeyArt && (
-        <div className="home-hero-carousel__next-peek" aria-hidden="true">
-          <Image
-            key={`${nextAnime?.id ?? 'next'}-mobile-peek`}
-            src={nextMobileKeyArt}
-            alt=""
-            fill
-            decoding="async"
-            quality={60}
-            sizes="12px"
-            className="home-hero-carousel__next-peek-image"
+            onError={() => {
+              setMobileAttemptIndex((current) => current + 1);
+            }}
           />
         </div>
       )}
