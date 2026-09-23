@@ -1,16 +1,7 @@
 import { NextResponse } from 'next/server';
 
+import { safeInternalPath } from '@/lib/browser-navigation';
 import { createClient } from '@/lib/supabase/server';
-
-function safePath(value: string | null, fallback: string) {
-  return (
-    value &&
-    value.startsWith('/') &&
-    !value.startsWith('//')
-  )
-    ? value
-    : fallback;
-}
 
 function recoveryFailureUrl(origin: string) {
   const url = new URL('/auth/update-password', origin);
@@ -29,7 +20,7 @@ export async function GET(request: Request) {
   const requestedNext = requestUrl.searchParams.get('next');
   const safeNext = recovery
     ? '/auth/update-password'
-    : safePath(requestedNext, '/profile');
+    : safeInternalPath(requestedNext, '/profile');
 
   const supabase = await createClient();
 
