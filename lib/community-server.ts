@@ -27,16 +27,68 @@ export async function userClient() {
   if (error || !data.user) throw new ApiError(401, 'Войди в аккаунт.');
   return { client, user: data.user };
 }
-export async function readBody(request: Request): Promise<Record<string, unknown>> {
+const UNSAFE_BROWSER_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+export function assertBrowserMutationRequest(request: Request) {
+  if (!UNSAFE_BROWSER_METHODS.has(request.method.toUpperCase())) return;
+
+  const requestOrigin = new URL(request.url).origin;
   const origin = request.headers.get('origin');
-  if (origin && origin !== new URL(request.url).origin) throw new ApiError(403, 'Недопустимый источник запроса.');
+
+  if (origin && origin !== requestOrigin) {
+    throw new ApiError(403, 'Недопустимый источник запроса.');
+  }
+
+  if (request.headers.get('sec-fetch-site') === 'cross-site') {
+    throw new ApiError(403, 'Cross-site запрос отклонён.');
+  }
+
+  if (request.headers.get('sec-fetch-mode') === 'navigate') {
+    throw new ApiError(403, 'Навигационный запрос к API отклонён.');
+  }
+}
+
+export async function readJsonBody(
+  request: Request,
+  options: { maxBytes?: number } = {},
+): Promise<Record<string, unknown>> {
+  assertBrowserMutationRequest(request);
+
+  const maxBytes = options.maxBytes ?? 20_000;
+  const contentType = request.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase();
+
+  if (
+    contentType !== 'application/json' &&
+    !(contentType?.startsWith('application/') && contentType.endsWith('+json'))
+  ) {
+    throw new ApiError(415, 'API принимает только JSON.');
+  }
+
+  const declaredLength = request.headers.get('content-length');
+  if (declaredLength) {
+    if (!/^\d+$/.test(declaredLength) || Number(declaredLength) > maxBytes) {
+      throw new ApiError(413, 'Запрос слишком большой.');
+    }
+  }
+
   const raw = await request.text();
-  if (raw.length > 20000) throw new ApiError(413, 'Запрос слишком большой.');
+  const byteLength = new TextEncoder().encode(raw).byteLength;
+
+  if (byteLength > maxBytes) {
+    throw new ApiError(413, 'Запрос слишком большой.');
+  }
+
   try {
     const body: unknown = JSON.parse(raw);
     if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error();
     return body as Record<string, unknown>;
-  } catch { throw new ApiError(400, 'Некорректный JSON.'); }
+  } catch {
+    throw new ApiError(400, 'Некорректный JSON.');
+  }
+}
+
+export async function readBody(request: Request): Promise<Record<string, unknown>> {
+  return readJsonBody(request);
 }
 export function response(data: unknown, status = 200) {
   return Response.json(data, { status, headers: { 'Cache-Control': 'private, no-store' } });
