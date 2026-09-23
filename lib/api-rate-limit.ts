@@ -18,8 +18,22 @@ type DualRateLimitPolicy = {
 };
 
 function clientAddress(request: Request) {
-  // Vercel replaces X-Forwarded-For at its edge. Do not trust arbitrary
-  // CF-Connecting-IP values because the direct Vercel URL remains reachable.
+  /*
+   * Once Cloudflare origin authentication is enabled, CF-Connecting-IP is
+   * trusted only when the request also carries our private edge secret.
+   * Before that, keep using Vercel's canonical forwarding header so a client
+   * cannot spoof its rate-limit identity through the direct deployment URL.
+   */
+  const edgeSecret = process.env.ANIMEBOX_EDGE_ORIGIN_SECRET?.trim();
+  const edgeVerified =
+    Boolean(edgeSecret) &&
+    request.headers.get('x-animebox-edge-verify') === edgeSecret;
+
+  if (edgeVerified) {
+    const cloudflare = request.headers.get('cf-connecting-ip')?.trim();
+    if (cloudflare && isIP(cloudflare)) return cloudflare;
+  }
+
   const forwarded = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
   return forwarded && isIP(forwarded) ? forwarded : 'unknown';
 }
