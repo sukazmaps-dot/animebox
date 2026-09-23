@@ -50,13 +50,17 @@ for (const [label, source, needle] of [
   ['client studio serialization', client, "params.set('studios'"],
   ['API studio parsing', api, "params.get('studios')"],
   ['API updated sort', api, "orderRaw === 'updated'"],
-  ['AniList studio variable', anilist, '$studios: [Int]'],
-  ['AniList studio filter', anilist, 'studio_in: $studios'],
+  ['AniList studio metadata', anilist, 'studios {'],
+  ['AniList studio post-filter', anilist, 'requestedStudios'],
   ['AniList updated sort', anilist, 'UPDATED_AT_DESC'],
   ['SSR filter parsing', searchPage, 'parseCatalogFilters(params)'],
   ['SSR filter pass-through', searchPage, 'initialFilters={initialFilters}'],
 ]) {
   if (!source.includes(needle)) failures.push(`Catalog filters: missing ${label}.`);
+}
+
+if (anilist.includes('studio_in:')) {
+  failures.push('Catalog filters: unsupported AniList media studio_in filter must not be used.');
 }
 
 if (failures.length) {
