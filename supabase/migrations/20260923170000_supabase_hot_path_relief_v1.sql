@@ -58,3 +58,24 @@ revoke execute on function public.cleanup_animebox_watch_hot_data(integer, integ
   from public, anon, authenticated;
 grant execute on function public.cleanup_animebox_watch_hot_data(integer, integer)
   to service_role;
+
+
+-- Run retention off the request path once per day. Re-scheduling by name keeps
+-- the migration idempotent across preview/restore workflows.
+do $$
+begin
+  if exists (
+    select 1
+    from cron.job
+    where jobname = 'animebox-watch-hot-data-cleanup'
+  ) then
+    perform cron.unschedule('animebox-watch-hot-data-cleanup');
+  end if;
+
+  perform cron.schedule(
+    'animebox-watch-hot-data-cleanup',
+    '23 4 * * *',
+    'select public.cleanup_animebox_watch_hot_data(14, 30);'
+  );
+end;
+$$;
