@@ -362,16 +362,26 @@ export async function startWatchSession(input: WatchStartInput) {
     Number.isSafeInteger(existingRequired) ? existingRequired : 0,
   );
 
-  const { error: titleSaveError } = await watch.from('titles').upsert(
-    {
-      anime_id: input.animeId,
-      required_episodes: requiredEpisodes,
-      finalized: Boolean(existingTitle?.finalized || (catalog?.finished && catalogEpisodes > 0)),
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'anime_id' },
+  const finalized = Boolean(
+    existingTitle?.finalized || (catalog?.finished && catalogEpisodes > 0),
   );
-  throwIfError(titleSaveError);
+  const titleNeedsWrite =
+    !existingTitle ||
+    Number(existingTitle.required_episodes ?? 0) !== requiredEpisodes ||
+    Boolean(existingTitle.finalized) !== finalized;
+
+  if (titleNeedsWrite) {
+    const { error: titleSaveError } = await watch.from('titles').upsert(
+      {
+        anime_id: input.animeId,
+        required_episodes: requiredEpisodes,
+        finalized,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'anime_id' },
+    );
+    throwIfError(titleSaveError);
+  }
 
   const { data: existingEpisode, error: episodeReadError } = await watch
     .from('episodes')
@@ -412,13 +422,46 @@ export async function startWatchSession(input: WatchStartInput) {
     ranked_enabled: existingEpisode?.ranked_enabled ?? false,
   };
 
-  const { data: episodeRow, error: episodeSaveError } = await watch
-    .from('episodes')
-    .upsert(episodePayload, { onConflict: 'anime_id,episode_number' })
-    .select('id,duration_ms,ranked_enabled')
-    .single();
-  throwIfError(episodeSaveError);
-  if (!episodeRow) throw new ApiError(503, 'Не удалось создать запись серии для трекера.');
+  const existingOrigins = Array.isArray(existingEpisode?.message_origins)
+    ? existingEpisode.message_origins.filter(
+        (item): item is string => typeof item === 'string',
+      )
+    : [];
+  const episodeNeedsWrite =
+    !existingEpisode ||
+    (existingEpisode.duration_ms ?? null) !== episodePayload.duration_ms ||
+    (existingEpisode.source_url ?? null) !== episodePayload.source_url ||
+    Boolean(existingEpisode.required) !== Boolean(episodePayload.required) ||
+    Boolean(existingEpisode.ranked_enabled) !==
+      Boolean(episodePayload.ranked_enabled) ||
+    existingOrigins.join('\u0000') !== origins.join('\u0000');
+
+  let episodeRow:
+    | { id: string; duration_ms: number | null; ranked_enabled: boolean | null }
+    | null = existingEpisode
+      ? {
+          id: String(existingEpisode.id),
+          duration_ms:
+            existingEpisode.duration_ms == null
+              ? null
+              : Number(existingEpisode.duration_ms),
+          ranked_enabled: Boolean(existingEpisode.ranked_enabled),
+        }
+      : null;
+
+  if (episodeNeedsWrite) {
+    const { data, error: episodeSaveError } = await watch
+      .from('episodes')
+      .upsert(episodePayload, { onConflict: 'anime_id,episode_number' })
+      .select('id,duration_ms,ranked_enabled')
+      .single();
+    throwIfError(episodeSaveError);
+    episodeRow = data as typeof episodeRow;
+  }
+
+  if (!episodeRow) {
+    throw new ApiError(503, 'Не удалось создать запись серии для трекера.');
+  }
 
   const now = Date.now();
   const expiresAt = new Date(now + SESSION_TTL_MS).toISOString();
