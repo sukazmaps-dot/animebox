@@ -402,6 +402,82 @@ export default function SearchCatalogClient({
   const recognizedSeed = view === 'catalog' ? discoveryMeta?.seed ?? null : null;
   const discoverySeedForMatch = recognizedSeed ? { genres: recognizedSeed.genres ?? [], episodes: recognizedSeed.episodes ?? null } : null;
   const closestQuery = discoveryIntent?.similarTo ? `похожее на ${discoveryIntent.similarTo}` : discoveryIntent?.includeGenres[0] ?? '';
+  const activeFilterLabels = useMemo(() => catalogActiveFilterLabels(filters), [filters]);
+  const relaxationActions = useMemo(() => {
+    const actions: Array<{ label: string; next: CatalogFiltersState }> = [];
+
+    const lastStudio = filters.studios.at(-1);
+    if (lastStudio) {
+      const studio = CATALOG_STUDIOS.find((item) => item.id === lastStudio);
+      actions.push({
+        label: `Убрать ${studio?.label ?? 'студию'}`,
+        next: { ...filters, studios: filters.studios.filter((id) => id !== lastStudio) },
+      });
+    }
+
+    if (filters.season) {
+      actions.push({
+        label: `Убрать ${formatCatalogSeason(filters.season)}`,
+        next: { ...filters, season: null },
+      });
+    }
+
+    const lastDiscovery = filters.discovery.at(-1);
+    if (lastDiscovery) {
+      const option = CATALOG_DISCOVERY_FILTERS.find((item) => item.id === lastDiscovery);
+      actions.push({
+        label: `Убрать ${option?.label ?? 'тему'}`,
+        next: { ...filters, discovery: filters.discovery.filter((id) => id !== lastDiscovery) },
+      });
+    }
+
+    const lastDemographic = filters.demographics.at(-1);
+    if (lastDemographic) {
+      const option = CATALOG_DEMOGRAPHICS.find((item) => item.id === lastDemographic);
+      actions.push({
+        label: `Убрать ${option?.label ?? 'демографию'}`,
+        next: { ...filters, demographics: filters.demographics.filter((id) => id !== lastDemographic) },
+      });
+    }
+
+    if (filters.format) actions.push({ label: 'Убрать формат', next: { ...filters, format: null } });
+    if (filters.status) actions.push({ label: 'Убрать статус', next: { ...filters, status: null } });
+
+    return actions.slice(0, 2);
+  }, [filters]);
+
+  useEffect(() => {
+    if (
+      view !== 'catalog' ||
+      loading ||
+      error ||
+      results.length > 0 ||
+      (!query && !hasFilters)
+    ) {
+      if (results.length > 0) emptyResultSignatureRef.current = '';
+      return;
+    }
+
+    const signature = JSON.stringify({
+      query,
+      filters,
+      mood: selectedMood,
+    });
+    if (emptyResultSignatureRef.current === signature) return;
+    emptyResultSignatureRef.current = signature;
+
+    trackProductClientEvent('catalog_empty_result', {
+      source: 'catalog',
+      path: '/search',
+      entityType: 'catalog_filters',
+      entityId: query || 'filters',
+      metadata: {
+        query: query || null,
+        active_filters: activeFilterLabels,
+        mood: selectedMood,
+      },
+    });
+  }, [activeFilterLabels, error, filters, hasFilters, loading, query, results.length, selectedMood, view]);
 
   return (
     <div className="search-page">
@@ -444,158 +520,43 @@ export default function SearchCatalogClient({
 
       <div className={styles.filterBar}>
         {view === 'catalog' && <MoodFilter value={selectedMood} onChange={(mood) => { setSelectedMood(mood); setPageState({ query, page: 1 }); }} />}
-        <button type="button" className={`${styles.filterToggle} ${filtersOpen || filterCount > 0 ? styles.filterToggleActive : ''}`} aria-expanded={filtersOpen} onClick={() => setFiltersOpen((current) => !current)}>
+        <button type="button" className={`${styles.filterToggle} ${filtersOpen || filterCount > 0 ? styles.filterToggleActive : ''}`} aria-expanded={filtersOpen} onClick={toggleFiltersPanel}>
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2" fill="currentColor" stroke="none"/><circle cx="16" cy="17" r="2" fill="currentColor" stroke="none"/></svg>Фильтры{filterCount > 0 ? <b>{filterCount}</b> : null}
         </button>
       </div>
 
       {filtersOpen && (
-        <div className={styles.filterPanel}>
-          <div className={styles.filterPanelHead}>
-            <div>
-              <strong>Аниме-фильтры</strong>
-              <span>Демография, сеттинг, сезон, студия и формат — без киношной логики.</span>
-            </div>
-            {hasStructuredFilters && <button type="button" onClick={clearStructuredFilters}>Сбросить всё</button>}
-          </div>
-
-          <div className={styles.filterGroup}>
-            <span className={styles.filterLabel}>Демография</span>
-            <div className={styles.genreGrid}>
-              {CATALOG_DEMOGRAPHICS.map((option) => {
-                const active = filters.demographics.includes(option.id);
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    aria-pressed={active}
-                    className={active ? styles.genreSelected : styles.genreOption}
-                    onClick={() => toggleFilterList('demographics', option.id)}
-                  >
-                    {option.label}
-                    {active ? <span aria-hidden="true">✓</span> : null}
-                  </button>
-                );
-              })}
-            </div>
-
-            <span className={`${styles.filterLabel} ${styles.filterSubLabel}`}>Темы и сеттинг</span>
-            <div className={styles.genreGrid}>
-              {CATALOG_DISCOVERY_FILTERS.map((option) => {
-                const active = filters.discovery.includes(option.id);
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    aria-pressed={active}
-                    className={active ? styles.genreSelected : styles.genreOption}
-                    onClick={() => toggleFilterList('discovery', option.id)}
-                  >
-                    {option.label}
-                    {active ? <span aria-hidden="true">✓</span> : null}
-                  </button>
-                );
-              })}
-            </div>
-
-            <span className={`${styles.filterLabel} ${styles.filterSubLabel}`}>Студии</span>
-            <div className={styles.genreGrid}>
-              {CATALOG_STUDIOS.map((studio) => {
-                const active = filters.studios.includes(studio.id);
-                return (
-                  <button
-                    key={studio.id}
-                    type="button"
-                    aria-pressed={active}
-                    className={active ? styles.genreSelected : styles.genreOption}
-                    onClick={() => toggleFilterList('studios', studio.id)}
-                  >
-                    {studio.label}
-                    {active ? <span aria-hidden="true">✓</span> : null}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className={styles.animeFilterSide}>
-            <div className={styles.filterGroup}>
-              <span className={styles.filterLabel}>Формат релиза</span>
-              <div className={styles.compactChoiceGrid}>
-                {CATALOG_FORMATS.map((option) => {
-                  const active = filters.format === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      aria-pressed={active}
-                      className={active ? styles.compactChoiceActive : styles.compactChoice}
-                      onClick={() => patchFilters((current) => ({
-                        ...current,
-                        format: current.format === option.value ? null : option.value,
-                      }))}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className={styles.filterGroup}>
-              <span className={styles.filterLabel}>Статус</span>
-              <div className={styles.statusChoices}>
-                {CATALOG_STATUSES.map((option) => {
-                  const active = filters.status === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      aria-pressed={active}
-                      className={active ? styles.compactChoiceActive : styles.compactChoice}
-                      onClick={() => patchFilters((current) => ({
-                        ...current,
-                        status: current.status === option.value ? null : option.value,
-                      }))}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className={styles.filterGroup}>
-              <span className={styles.filterLabel}>Аниме-сезон</span>
-              <SeasonYearPicker
-                value={filters.season}
-                onChange={(season) => patchFilters((current) => ({ ...current, season }))}
-              />
-            </div>
-
-            <div className={styles.filterGroup}>
-              <span className={styles.filterLabel}>Сортировка</span>
-              <div className={styles.sortChoices}>
-                {CATALOG_SORTS.map((option) => {
-                  const active = filters.sort === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      aria-pressed={active}
-                      className={active ? styles.sortChoiceActive : styles.sortChoice}
-                      onClick={() => patchFilters((current) => ({ ...current, sort: option.value }))}
-                    >
-                      <strong>{option.label}</strong>
-                      <span>{option.hint}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
+        <>
+          <CatalogFilterPanel
+            filters={filters}
+            onChange={commitFilters}
+            onClear={clearStructuredFilters}
+            onFilterChange={trackCatalogFilterChange}
+          />
+          <CatalogMobileFilters
+            filters={filters}
+            onChange={commitFilters}
+            onClear={clearStructuredFilters}
+            onDone={() => setFiltersOpen(false)}
+            onFilterChange={trackCatalogFilterChange}
+          />
+        </>
       )}
+
+      <ActiveCatalogFilters
+        filters={filters}
+        onChange={commitFilters}
+        onClear={clearStructuredFilters}
+        onRemoved={(filter, value) => {
+          trackProductClientEvent('catalog_filter_removed', {
+            source: 'catalog',
+            path: '/search',
+            entityType: 'catalog_filter',
+            entityId: filter,
+            metadata: { filter, value, active_filter_count: filterCount },
+          });
+        }}
+      />
 
       <section className={`section ${styles.catalogResults}`} aria-busy={displayLoading}>
         <div className="section-head">
@@ -603,29 +564,73 @@ export default function SearchCatalogClient({
           <span className="section-link">{view === 'saved' ? `${displayResults.length} сохранено` : refreshing ? 'Ищем…' : `Страница ${page}`}</span>
         </div>
 
+        {view === 'catalog' && error && results.length > 0 && (
+          <div className={styles.staleNotice} role="status">
+            <span>{error}</span>
+            <button type="button" onClick={() => setRetryNonce((current) => current + 1)}>Повторить</button>
+          </div>
+        )}
+
         {displayLoading && results.length === 0 ? (
           <div><AnimeBoxLoader label="Подбираем аниме…" size={46} /><div className="loading-grid" aria-hidden="true">{Array.from({ length: 10 }).map((_, index) => <div key={index} className="skeleton skeleton--card" />)}</div></div>
-        ) : view === 'catalog' && error ? (
-          <div className={`empty-state ${styles.assetEmpty}`}><img className={styles.emptyMascot} src="/ui/animebox-mascot.webp" alt="" aria-hidden="true" /><strong>Не удалось загрузить результаты</strong><span>{error}</span></div>
+        ) : view === 'catalog' && error && results.length === 0 ? (
+          <div className={`empty-state ${styles.assetEmpty}`}>
+            <img className={styles.emptyMascot} src="/ui/animebox-mascot.webp" alt="" aria-hidden="true" />
+            <strong>Не удалось загрузить результаты</strong>
+            <span>{error}</span>
+            <div className={styles.emptyActions}>
+              <button type="button" onClick={() => setRetryNonce((current) => current + 1)}>Повторить</button>
+            </div>
+          </div>
         ) : displayResults.length ? (
-          view === 'saved' ? (
-            <div className="anime-grid">{savedResults.map((anime) => <AnimeCard key={anime.id} anime={anime} />)}</div>
-          ) : (
-            <>
-              {refreshing && <div className={styles.refreshLine} aria-hidden="true" />}
-              <div className="anime-grid">{catalogLead.map((anime) => <AnimeCard key={anime.id} anime={anime} discoveryMatch={discoveryIntent?.isDiscovery ? smartDiscoveryMatch(anime, discoveryIntent, { seed: discoverySeedForMatch, tasteGraph }) : null} />)}</div>
-              {showCatalogAd && <div className="catalog-ad-break" aria-label="Рекламная пауза"><AdSlot placement="catalog-after-results" format="horizontal" className="monetization-ad--catalog" /></div>}
-              {catalogTail.length > 0 && <div className="anime-grid anime-grid--after-ad">{catalogTail.map((anime) => <AnimeCard key={anime.id} anime={anime} discoveryMatch={discoveryIntent?.isDiscovery ? smartDiscoveryMatch(anime, discoveryIntent, { seed: discoverySeedForMatch, tasteGraph }) : null} />)}</div>}
-            </>
-          )
+          <div className={refreshing ? styles.resultsRefreshing : styles.resultsStable}>
+            {view === 'saved' ? (
+              <div className="anime-grid">{savedResults.map((anime) => <AnimeCard key={anime.id} anime={anime} />)}</div>
+            ) : (
+              <>
+                {refreshing && <div className={styles.refreshLine} aria-hidden="true" />}
+                <div className="anime-grid">{catalogLead.map((anime) => <AnimeCard key={anime.id} anime={anime} discoveryMatch={discoveryIntent?.isDiscovery ? smartDiscoveryMatch(anime, discoveryIntent, { seed: discoverySeedForMatch, tasteGraph }) : null} />)}</div>
+                {showCatalogAd && <div className="catalog-ad-break" aria-label="Рекламная пауза"><AdSlot placement="catalog-after-results" format="horizontal" className="monetization-ad--catalog" /></div>}
+                {catalogTail.length > 0 && <div className="anime-grid anime-grid--after-ad">{catalogTail.map((anime) => <AnimeCard key={anime.id} anime={anime} discoveryMatch={discoveryIntent?.isDiscovery ? smartDiscoveryMatch(anime, discoveryIntent, { seed: discoverySeedForMatch, tasteGraph }) : null} />)}</div>}
+              </>
+            )}
+          </div>
         ) : (
           <div className={`empty-state ${styles.assetEmpty}`}>
             <img className={styles.emptyMascot} src={view === 'saved' ? '/brand/illustrations/empty-favorites.webp' : '/brand/illustrations/empty-search.webp'} alt="" aria-hidden="true" />
-            <strong>{view === 'saved' ? favorites.length === 0 ? 'Сохранённых пока нет' : 'Ничего не подходит под фильтры' : discoveryIntent?.isDiscovery ? 'Точных совпадений не нашли' : 'Ничего не найдено'}</strong>
-            <span>{view === 'saved' ? favorites.length === 0 ? 'Добавляй тайтлы в избранное — они появятся здесь.' : 'Попробуй убрать часть тегов, студию, сезон или статус.' : discoveryIntent?.similarTo && discoveryMeta?.meta?.seedResolved === false ? `Не удалось уверенно распознать «${discoveryIntent.similarTo}». Попробуй другое написание.` : 'Попробуй изменить запрос, фильтры или настроение.'}</span>
+            <strong>{view === 'saved' ? favorites.length === 0 ? 'Сохранённых пока нет' : 'Ничего не подходит под фильтры' : discoveryIntent?.isDiscovery ? 'Точных совпадений не нашли' : hasStructuredFilters ? 'Под такую подборку ничего не нашли' : 'Ничего не найдено'}</strong>
+            <span>
+              {view === 'saved'
+                ? favorites.length === 0
+                  ? 'Добавляй тайтлы в избранное — они появятся здесь.'
+                  : 'Попробуй убрать часть тегов, студию, сезон или статус.'
+                : discoveryIntent?.similarTo && discoveryMeta?.meta?.seedResolved === false
+                  ? `Не удалось уверенно распознать «${discoveryIntent.similarTo}». Попробуй другое написание.`
+                  : activeFilterLabels.length > 0
+                    ? `${activeFilterLabels.join(' · ')}. Попробуй немного расширить условия.`
+                    : 'Попробуй изменить запрос, фильтры или настроение.'}
+            </span>
             <div className={styles.emptyActions}>
+              {view === 'catalog' && relaxationActions.map((action) => (
+                <button
+                  key={action.label}
+                  type="button"
+                  onClick={() => {
+                    trackProductClientEvent('catalog_filter_removed', {
+                      source: 'catalog',
+                      path: '/search',
+                      entityType: 'catalog_filter',
+                      entityId: 'empty_state_relax',
+                      metadata: { label: action.label },
+                    });
+                    commitFilters(action.next);
+                  }}
+                >
+                  {action.label}
+                </button>
+              ))}
               {view === 'catalog' && discoveryIntent?.isDiscovery && closestQuery && closestQuery !== query && <button type="button" onClick={() => applySearchQuery(closestQuery)}>Показать ближайшие</button>}
-              {(query || hasFilters) && <button type="button" className={styles.secondaryAction} onClick={() => { clearStructuredFilters(); setSelectedMood('any'); applySearchQuery(''); }}>Очистить</button>}
+              {(query || hasFilters) && <button type="button" className={styles.secondaryAction} onClick={() => { clearStructuredFilters(); setSelectedMood('any'); applySearchQuery(''); }}>Сбросить всё</button>}
             </div>
           </div>
         )}
