@@ -1,5 +1,5 @@
 import { ApiError, adminClient, failure, readBody, response } from '@/lib/community-server';
-import { requireAdmin, writeAdminAudit } from '@/lib/admin-server';
+import { assertCanModerateTarget, requireAdmin, requireAdminMutation, writeAdminAudit } from '@/lib/admin-server';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const { user, role } = await requireAdmin();
+    const { user, role } = await requireAdminMutation(request);
     const body = await readBody(request);
     const id = typeof body.id === 'string' ? body.id : '';
     const action = typeof body.action === 'string' ? body.action : '';
@@ -68,6 +68,7 @@ export async function PATCH(request: Request) {
       .maybeSingle();
     if (commentError) throw commentError;
     if (!comment) throw new ApiError(404, 'Комментарий не найден.');
+    assertCanModerateTarget(user.id, role, comment.user_id);
 
     if (action === 'remove') {
       if (!comment.deleted_at) {
@@ -111,6 +112,7 @@ export async function PATCH(request: Request) {
       targetId: id,
       reason,
       details: { authorId: comment.user_id },
+      request,
     });
     return response({ success: true });
   } catch (error) {
