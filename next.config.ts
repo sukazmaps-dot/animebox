@@ -53,6 +53,14 @@ const nextConfig: NextConfig = {
         value: 'strict-origin-when-cross-origin',
       },
       {
+        key: 'Cross-Origin-Opener-Policy',
+        value: 'same-origin-allow-popups',
+      },
+      {
+        key: 'X-Permitted-Cross-Domain-Policies',
+        value: 'none',
+      },
+      {
         key: 'Permissions-Policy',
         value: 'geolocation=(), payment=(), usb=()',
       },
@@ -80,6 +88,7 @@ const nextConfig: NextConfig = {
       '/login/:path*',
       '/register/:path*',
       '/onboarding/:path*',
+      '/auth/:path*',
       '/admin/:path*',
     ];
 
