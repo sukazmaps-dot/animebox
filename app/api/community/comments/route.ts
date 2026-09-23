@@ -13,6 +13,8 @@ import { assertCanComment } from '@/lib/admin-server';
 import { syncUserProgression } from '@/lib/progression-server';
 import { syncUserChallenges } from '@/lib/challenges-server';
 
+import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
+
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function sanitizePlainText(value: string) {
@@ -44,6 +46,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { client, user } = await userClient();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'community_comments_write_ip', limit: 30, windowSeconds: 60 },
+      user: { scope: 'community_comments_write_user', limit: 10, windowSeconds: 60 },
+    });
+    if (limited) return limited;
     await assertCanComment(user.id);
     const body = await readBody(request);
     const id = positiveInteger(body.animeId);
@@ -112,6 +119,11 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const { client, user } = await userClient();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'community_comments_delete_ip', limit: 60, windowSeconds: 60 },
+      user: { scope: 'community_comments_delete_user', limit: 30, windowSeconds: 60 },
+    });
+    if (limited) return limited;
     const body = await readBody(request);
 
     if (typeof body.id !== 'string' || !uuid.test(body.id)) {
