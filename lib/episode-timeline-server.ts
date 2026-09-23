@@ -157,9 +157,12 @@ export async function getEpisodeTimelineForSeo(
   const videoVerifiedAt =
     typeof data.video_verified_at === 'string' ? data.video_verified_at : null;
 
+  const verifiedAtMs = videoVerifiedAt ? Date.parse(videoVerifiedAt) : Number.NaN;
+
   if (
     !videoVerifiedAt ||
-    Date.now() - Date.parse(videoVerifiedAt) > 30 * 24 * 60 * 60 * 1000
+    !Number.isFinite(verifiedAtMs) ||
+    Date.now() - verifiedAtMs > 30 * 24 * 60 * 60 * 1000
   ) {
     return {
       durationMs: data.duration_ms == null ? null : Number(data.duration_ms),
