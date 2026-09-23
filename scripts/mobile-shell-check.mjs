@@ -35,10 +35,14 @@ if (!layout.includes(importNeedle)) {
   failures.push('layout.tsx: Mobile Shell stylesheet is not imported.');
 }
 
-const lastCssImport = layout.lastIndexOf("import './");
 const mobileShellImport = layout.indexOf(importNeedle);
-if (mobileShellImport < 0 || mobileShellImport !== lastCssImport) {
-  failures.push('layout.tsx: Mobile Shell must remain the last global CSS import.');
+const antiAiImport = layout.indexOf("import './patch14-1-1-anti-ai-design.css';");
+if (
+  mobileShellImport < 0 ||
+  antiAiImport < 0 ||
+  mobileShellImport < antiAiImport
+) {
+  failures.push('layout.tsx: Mobile Shell must load after the shared anti-AI visual layer.');
 }
 
 for (const [label, needle] of [
