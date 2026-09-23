@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { motion, useReducedMotion } from 'framer-motion';
 
 const SPARKLES = [
@@ -61,14 +60,12 @@ export default function PremiumAiHeroArt() {
             ease: 'easeInOut',
           }}
         >
-          <Image
-            src="/premium/ai-hoshino-premium-hero.webp"
-            alt="Ай Хошино делает жест сердца руками"
-            fill
-            priority
-            sizes="(max-width: 800px) 92vw, 470px"
-            className="premium-ai-hero__image w-full h-full object-cover object-center"
-          />
+        <img
+  src="/premium/ai-hoshino-premium-hero.webp"
+  alt="Ай Хошино делает жест сердца руками"
+  className="premium-ai-hero__image w-full h-full object-cover object-center"
+  draggable={false}
+/>
         </motion.div>
         <div className="premium-ai-hero__image-shade" aria-hidden="true" />
         <div className="premium-ai-hero__caption">
