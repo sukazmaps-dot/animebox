@@ -22,6 +22,7 @@ export default function LoginPage() {
       typeof window === 'undefined'
         ? null
         : new URLSearchParams(window.location.search).get('next'),
+      '/profile',
     ),
   );
 
