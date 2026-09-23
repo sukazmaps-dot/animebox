@@ -75,12 +75,12 @@ export const DEFAULT_CATALOG_FILTERS: CatalogFiltersState = {
   sort: 'rating',
 };
 
-const DEMOGRAPHIC_IDS = new Set(CATALOG_DEMOGRAPHICS.map((item) => item.id));
-const DISCOVERY_IDS = new Set(CATALOG_DISCOVERY_FILTERS.map((item) => item.id));
-const STUDIO_IDS = new Set(CATALOG_STUDIOS.map((item) => item.id));
-const FORMAT_VALUES = new Set(CATALOG_FORMATS.map((item) => item.value));
-const STATUS_VALUES = new Set(CATALOG_STATUSES.map((item) => item.value));
-const SORT_VALUES = new Set(CATALOG_SORTS.map((item) => item.value));
+const DEMOGRAPHIC_IDS = new Set<string>(CATALOG_DEMOGRAPHICS.map((item) => item.id));
+const DISCOVERY_IDS = new Set<string>(CATALOG_DISCOVERY_FILTERS.map((item) => item.id));
+const STUDIO_IDS = new Set<string>(CATALOG_STUDIOS.map((item) => item.id));
+const FORMAT_VALUES = new Set<string>(CATALOG_FORMATS.map((item) => item.value));
+const STATUS_VALUES = new Set<string>(CATALOG_STATUSES.map((item) => item.value));
+const SORT_VALUES = new Set<string>(CATALOG_SORTS.map((item) => item.value));
 const SEASON_VALUES = new Set<CatalogSeason>(['WINTER', 'SPRING', 'SUMMER', 'FALL']);
 
 function firstParam(value: string | string[] | undefined): string {
@@ -97,9 +97,9 @@ function listParam(value: string | string[] | undefined): string[] {
 export function parseCatalogFilters(
   params: Record<string, string | string[] | undefined>,
 ): CatalogFiltersState {
-  const demographics = listParam(params.demo).filter((value) => DEMOGRAPHIC_IDS.has(value as never));
-  const discovery = listParam(params.tags).filter((value) => DISCOVERY_IDS.has(value as never));
-  const studios = listParam(params.studio).filter((value) => STUDIO_IDS.has(value as never));
+  const demographics = listParam(params.demo).filter((value) => DEMOGRAPHIC_IDS.has(value));
+  const discovery = listParam(params.tags).filter((value) => DISCOVERY_IDS.has(value));
+  const studios = listParam(params.studio).filter((value) => STUDIO_IDS.has(value));
 
   const formatRaw = firstParam(params.format).toUpperCase();
   const statusRaw = firstParam(params.status).toLowerCase();
