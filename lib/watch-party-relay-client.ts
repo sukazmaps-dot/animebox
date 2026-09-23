@@ -119,9 +119,7 @@ export async function openWatchPartyRelay(
     }
   }
 
-  let openingPromise!: Promise<WatchPartyRelay>;
-
-  openingPromise = (async () => {
+  const openingPromise: Promise<WatchPartyRelay> = (async () => {
     const supabase = createClient();
     const id = randomId();
     let open = false;
