@@ -15,9 +15,11 @@ const OUTPUTS: Record<ProfileMediaKind, {
     quality: 0.86,
   },
   banner: {
-    aspect: 5,
+    // Phone profile heroes are ~2.4:1. Bake a 2.35:1 master so the crop
+    // editor, mobile profile and uploaded WEBP all share the same framing.
+    aspect: 2.35,
     maxWidth: 1800,
-    quality: 0.82,
+    quality: 0.88,
   },
 };
 

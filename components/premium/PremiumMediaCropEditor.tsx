@@ -1,7 +1,7 @@
 'use client';
 
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   premiumMediaStyle,
@@ -40,7 +40,12 @@ export default function PremiumMediaCropEditor({
 }: Props) {
   const surfaceRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
+  const [imageFailed, setImageFailed] = useState(false);
   const avatar = kind === 'avatar';
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [src]);
 
   function beginDrag(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.button !== 0) return;
@@ -115,7 +120,7 @@ export default function PremiumMediaCropEditor({
 
       <div
         ref={surfaceRef}
-        className="premium-media-crop__surface"
+        className={`premium-media-crop__surface ${imageFailed ? 'is-image-error' : ''}`}
         onPointerDown={beginDrag}
         onPointerMove={moveDrag}
         onPointerUp={endDrag}
@@ -129,7 +134,14 @@ export default function PremiumMediaCropEditor({
           aria-hidden="true"
           draggable={false}
           style={imageStyle}
+          onLoad={() => setImageFailed(false)}
+          onError={() => setImageFailed(true)}
         />
+        {imageFailed && (
+          <span className="premium-media-crop__error" role="status">
+            Не удалось открыть изображение. Выбери файл заново.
+          </span>
+        )}
         <div className="premium-media-crop__guide" aria-hidden="true" />
         <span className="premium-media-crop__hint" aria-hidden="true">
           {avatar ? 'Перетащи для кадрирования' : 'Перетащи для подгонки'}

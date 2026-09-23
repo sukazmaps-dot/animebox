@@ -180,9 +180,14 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   useEffect(() => {
     return () => {
       if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    };
+  }, [avatarPreview]);
+
+  useEffect(() => {
+    return () => {
       if (bannerPreview) URL.revokeObjectURL(bannerPreview);
     };
-  }, [avatarPreview, bannerPreview]);
+  }, [bannerPreview]);
 
   useEffect(() => {
     if (!baseMediaEditor) return;
@@ -223,19 +228,41 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     return null;
   }
 
-  function releaseBaseMediaEditorUrl() {
-    if (!baseMediaObjectUrlRef.current) return;
-    URL.revokeObjectURL(baseMediaObjectUrlRef.current);
+  function releaseBaseMediaEditorUrl(
+    expectedUrl?: string | null,
+    defer = false,
+  ) {
+    const current = baseMediaObjectUrlRef.current;
+    if (!current) return;
+    if (expectedUrl && current !== expectedUrl) return;
+
     baseMediaObjectUrlRef.current = null;
+
+    const revoke = () => URL.revokeObjectURL(current);
+    if (defer) {
+      window.requestAnimationFrame(revoke);
+    } else {
+      revoke();
+    }
   }
 
   function closeBaseMediaEditor() {
     if (baseMediaProcessing) return;
-    releaseBaseMediaEditorUrl();
+    const src = baseMediaEditor?.src ?? null;
     setBaseMediaEditor(null);
+    releaseBaseMediaEditorUrl(src, true);
   }
 
-  function stageMedia(kind: 'avatar' | 'banner', file?: File) {
+  function decodePreviewUrl(src: string) {
+    return new Promise<void>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error('Браузер не смог открыть выбранное изображение.'));
+      image.src = src;
+    });
+  }
+
+  async function stageMedia(kind: 'avatar' | 'banner', file?: File) {
     if (!file || baseMediaProcessing) return;
     const message = validateFile(file);
     if (message) {
@@ -249,12 +276,28 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
     const src = URL.createObjectURL(file);
     baseMediaObjectUrlRef.current = src;
-    setBaseMediaEditor({
-      kind,
-      file,
-      src,
-      transform: { x: 50, y: 50, zoom: 1 },
-    });
+
+    try {
+      await decodePreviewUrl(src);
+
+      if (baseMediaObjectUrlRef.current !== src) {
+        return;
+      }
+
+      setBaseMediaEditor({
+        kind,
+        file,
+        src,
+        transform: { x: 50, y: 50, zoom: 1 },
+      });
+    } catch (previewError) {
+      releaseBaseMediaEditorUrl(src);
+      setError(
+        previewError instanceof Error
+          ? previewError.message
+          : 'Не удалось открыть выбранное изображение.',
+      );
+    }
   }
 
   async function confirmBaseMediaEditor() {
@@ -273,21 +316,20 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       const preview = URL.createObjectURL(optimized);
 
       if (editor.kind === 'avatar') {
-        if (avatarPreview) URL.revokeObjectURL(avatarPreview);
         setAvatarFile(optimized);
         setAvatarPreview(preview);
         setRemoveAvatar(false);
         setSaved('Кадр аватара подготовлен и оптимизирован — нажми «Сохранить всё».');
       } else {
-        if (bannerPreview) URL.revokeObjectURL(bannerPreview);
         setBannerFile(optimized);
         setBannerPreview(preview);
         setRemoveBanner(false);
         setSaved('Баннер подогнан и оптимизирован — нажми «Сохранить всё».');
       }
 
-      releaseBaseMediaEditorUrl();
+      const editorSrc = editor.src;
       setBaseMediaEditor(null);
+      releaseBaseMediaEditorUrl(editorSrc, true);
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -617,7 +659,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                             type="file"
                             accept="image/jpeg,image/png,image/webp"
                             onChange={(event) => {
-                              stageMedia('banner', event.target.files?.[0]);
+                              void stageMedia('banner', event.target.files?.[0]);
                               event.currentTarget.value = '';
                             }}
                           />
@@ -641,7 +683,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                               type="file"
                               accept="image/jpeg,image/png,image/webp"
                               onChange={(event) => {
-                                stageMedia('avatar', event.target.files?.[0]);
+                                void stageMedia('avatar', event.target.files?.[0]);
                                 event.currentTarget.value = '';
                               }}
                             />
