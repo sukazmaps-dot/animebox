@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 
 import { getAnimeByIdWithShikimori } from '@/lib/combined-anime';
 import { getEpisodeProviderAvailability } from '@/lib/episode-provider-availability';
@@ -23,15 +23,17 @@ export async function GET(
       return NextResponse.json({ error: 'Anime not found' }, { status: 404 });
     }
 
-    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(12_000)]);
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(8_000)]);
     const availability = await getEpisodeProviderAvailability(anime, { signal });
 
     if (availability.status === 'available' && availability.episodes.length) {
-      try {
-        await syncSeoEpisodeIndex(anime, availability);
-      } catch (indexError) {
-        console.warn('[episode-availability] SEO index sync failed:', indexError);
-      }
+      after(async () => {
+        try {
+          await syncSeoEpisodeIndex(anime, availability);
+        } catch (indexError) {
+          console.warn('[episode-availability] SEO index sync failed:', indexError);
+        }
+      });
     }
 
     const cacheControl =
