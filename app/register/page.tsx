@@ -47,6 +47,7 @@ export default function RegisterPage() {
       typeof window === 'undefined'
         ? null
         : new URLSearchParams(window.location.search).get('next'),
+      '/profile',
     ),
   );
 
