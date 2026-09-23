@@ -967,3 +967,53 @@
     font-size: 11px;
   }
 }
+
+
+/* Patch 14.4.2 — result refresh and stale-data states */
+.resultsStable,
+.resultsRefreshing {
+  position: relative;
+  min-width: 0;
+  transition: opacity 160ms ease;
+}
+
+.resultsRefreshing {
+  opacity: .55;
+  pointer-events: none;
+}
+
+.staleNotice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 38px;
+  margin: 0 0 12px;
+  padding: 7px 10px;
+  border-top: 1px solid rgba(222, 161, 89, .14);
+  border-bottom: 1px solid rgba(222, 161, 89, .14);
+  color: #b9af9f;
+  font-size: 10px;
+}
+
+.staleNotice button {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: var(--ab-ember);
+  font-size: 10px;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.staleNotice button:focus-visible {
+  outline: 2px solid var(--ab-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resultsStable,
+  .resultsRefreshing {
+    transition: none;
+  }
+}
