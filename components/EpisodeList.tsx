@@ -1,7 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react';
 
 import { communityRequest } from '@/lib/community-client';
 import {
@@ -60,6 +68,7 @@ export default function EpisodeList({
   currentEpisode,
   watchedUpTo = 0,
 }: EpisodeListProps) {
+  const router = useRouter();
   const currentCount =
     episodes && episodes > 0
       ? episodes
@@ -297,10 +306,9 @@ export default function EpisodeList({
   );
 
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [episodeJump, setEpisodeJump] = useState('');
   const episodeListRef = useRef<HTMLDivElement | null>(null);
   const groupTabsRef = useRef<HTMLDivElement | null>(null);
-  const [canScrollGroupLeft, setCanScrollGroupLeft] = useState(false);
-  const [canScrollGroupRight, setCanScrollGroupRight] = useState(false);
 
   const selectedGroupIndex = useMemo(() => {
     if (selectedGroupId) {
@@ -360,44 +368,6 @@ export default function EpisodeList({
     visibleEpisodes.length,
   ]);
 
-  const updateGroupScrollState = useCallback(() => {
-    const track = groupTabsRef.current;
-    if (!track) return;
-
-    const maxScrollLeft = Math.max(0, track.scrollWidth - track.clientWidth);
-    setCanScrollGroupLeft(track.scrollLeft > 4);
-    setCanScrollGroupRight(track.scrollLeft < maxScrollLeft - 4);
-  }, []);
-
-  const scrollGroupTabs = useCallback((direction: 'left' | 'right') => {
-    const track = groupTabsRef.current;
-    if (!track) return;
-
-    const amount = Math.max(320, track.clientWidth * 0.78);
-    track.scrollBy({
-      left: direction === 'left' ? -amount : amount,
-      behavior: 'smooth',
-    });
-  }, []);
-
-  useEffect(() => {
-    const track = groupTabsRef.current;
-    if (!track || groups.length <= 1) return;
-
-    const onScroll = () => updateGroupScrollState();
-    const resizeObserver = new ResizeObserver(updateGroupScrollState);
-
-    resizeObserver.observe(track);
-    track.addEventListener('scroll', onScroll, { passive: true });
-    const frame = requestAnimationFrame(updateGroupScrollState);
-
-    return () => {
-      cancelAnimationFrame(frame);
-      resizeObserver.disconnect();
-      track.removeEventListener('scroll', onScroll);
-    };
-  }, [groups.length, updateGroupScrollState]);
-
   useEffect(() => {
     const track = groupTabsRef.current;
     if (!track || groups.length <= 1) return;
@@ -405,17 +375,27 @@ export default function EpisodeList({
     const activeElement = track.querySelector<HTMLElement>(
       '[data-episode-group-active="true"]',
     );
-    if (!activeElement) return;
-
-    activeElement.scrollIntoView({
+    activeElement?.scrollIntoView({
       behavior: 'smooth',
       block: 'nearest',
       inline: 'center',
     });
+  }, [groups.length, selectedGroupIndex]);
 
-    const frame = requestAnimationFrame(updateGroupScrollState);
-    return () => cancelAnimationFrame(frame);
-  }, [groups.length, selectedGroupIndex, updateGroupScrollState]);
+  const submitEpisodeJump = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const target = Number(episodeJump);
+    if (!Number.isSafeInteger(target) || target <= 0) return;
+    if (!episodeNumbers.includes(target)) return;
+
+    const targetGroup = groups.find(
+      (group) => target >= group.from && target <= group.to,
+    );
+    if (targetGroup) setSelectedGroupId(targetGroup.id);
+
+    router.push(`/anime/${selectedAnimeSlug}/episode/${target}`);
+  };
 
   const hasSeasonTabs =
     seasonData.seasons.length > 1 || seasonData.extras.length > 0;
@@ -671,21 +651,48 @@ export default function EpisodeList({
         </div>
       ) : (
         <>
-          <div className="episode-list__meta">
-            {selectedIsCurrent && !totalEpisodesKnown
-              ? `Вышло ${selectedCount} эпизодов`
-              : `${selectedCount} эпизодов`}
+          <div className="episode-list__toolbar">
+            <div className="episode-list__meta">
+              {selectedIsCurrent && !totalEpisodesKnown
+                ? `Вышло ${selectedCount} эпизодов`
+                : `${selectedCount} эпизодов`}
 
-            {activeSeason && (
-              <span className="ml-2 text-white/35">
-                · {activeSeason.label}
-              </span>
-            )}
+              {activeSeason && (
+                <span className="ml-2 text-white/35">
+                  · {activeSeason.label}
+                </span>
+              )}
 
-            {groups.length > 1 && (
-              <span className="ml-2 text-white/35">
-                · показаны {activeGroup.from}–{activeGroup.to}
-              </span>
+              {groups.length > 1 && (
+                <span className="ml-2 text-white/35">
+                  · показаны {activeGroup.from}–{activeGroup.to}
+                </span>
+              )}
+            </div>
+
+            {selectedCount >= 24 && (
+              <form
+                className="episode-list__jump"
+                onSubmit={submitEpisodeJump}
+                role="search"
+                aria-label="Перейти к серии"
+              >
+                <label htmlFor={`episode-jump-${selectedAnimeId}`}>
+                  К серии
+                </label>
+                <input
+                  id={`episode-jump-${selectedAnimeId}`}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={episodeJump}
+                  onChange={(event) =>
+                    setEpisodeJump(event.target.value.replace(/\D+/g, '').slice(0, 5))
+                  }
+                  placeholder={String(focusEpisode)}
+                  aria-label="Номер серии"
+                />
+                <button type="submit">Перейти</button>
+              </form>
             )}
           </div>
 
@@ -737,27 +744,7 @@ export default function EpisodeList({
                   })}
                 </div>
 
-                {canScrollGroupLeft && (
-                  <button
-                    type="button"
-                    onClick={() => scrollGroupTabs('left')}
-                    aria-label="Показать предыдущие группы эпизодов"
-                    className="absolute left-1 top-1/2 z-20 hidden h-9 w-9 -translate-y-[60%] place-items-center rounded-full border border-violet-300/35 bg-slate-950/95 text-white shadow-[0_10px_28px_rgba(0,0,0,0.45)] backdrop-blur transition hover:border-violet-300/70 hover:bg-violet-500/25 md:grid"
-                  >
-                    <SeasonChevron direction="left" />
-                  </button>
-                )}
 
-                {canScrollGroupRight && (
-                  <button
-                    type="button"
-                    onClick={() => scrollGroupTabs('right')}
-                    aria-label="Показать следующие группы эпизодов"
-                    className="absolute right-1 top-1/2 z-20 hidden h-9 w-9 -translate-y-[60%] place-items-center rounded-full border border-violet-300/35 bg-slate-950/95 text-white shadow-[0_10px_28px_rgba(0,0,0,0.45)] backdrop-blur transition hover:border-violet-300/70 hover:bg-violet-500/25 md:grid"
-                  >
-                    <SeasonChevron direction="right" />
-                  </button>
-                )}
               </div>
             </div>
           )}
