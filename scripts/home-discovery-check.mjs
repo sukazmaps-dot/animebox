@@ -17,6 +17,7 @@ const layout = read('app/layout.tsx');
 const home = read('components/HomePageClient.tsx');
 const continueWatching = read('components/HomeContinueWatching.tsx');
 const css = read('app/patch14-3-home-discovery.css');
+const topAnimeCss = read('app/patch14-4-1-top-anime-architecture.css');
 
 const importNeedle = "import './patch14-3-home-discovery.css';";
 if (!layout.includes(importNeedle)) {
@@ -46,9 +47,6 @@ if (!continueWatching.includes("'Следующая серия'") || !continueWa
 }
 
 for (const [label, needle] of [
-  ['desktop hides mobile Top Anime', '.home-page .home-top-anime-panel--mobile'],
-  ['desktop compact Top Anime poster', 'width: 42px !important'],
-  ['mobile hides desktop Top Anime', '.home-page .home-top-anime-panel--desktop'],
   ['editorial discovery scene', '.home-discovery-flow'],
   ['continue shelf de-cardification', '.home-page .continue-smart-card'],
   ['poster-first smart cards', '.home-discovery-flow .smart-card__poster'],
@@ -57,6 +55,27 @@ for (const [label, needle] of [
   ['compact mobile hero', 'min-height: 330px !important'],
 ]) {
   if (!css.includes(needle)) failures.push(`Home Discovery CSS: missing ${label}.`);
+}
+
+const topAnimeInstances = home.match(/<HomeTopAnimePanel popular=\{popular\} \/>/g) ?? [];
+if (topAnimeInstances.length !== 1) {
+  failures.push(`HomePageClient: expected exactly one Top Anime panel, found ${topAnimeInstances.length}.`);
+}
+
+for (const legacyNeedle of ['home-top-anime-panel--mobile', 'home-top-anime-panel--desktop']) {
+  if (home.includes(legacyNeedle)) {
+    failures.push(`HomePageClient: legacy duplicated Top Anime mode remains: ${legacyNeedle}.`);
+  }
+}
+
+for (const [label, needle] of [
+  ['desktop 3x2 ranking grid', 'grid-template-columns: repeat(3, minmax(0, 1fr))'],
+  ['compact Top Anime poster', 'width: 44px'],
+  ['tablet 2x3 ranking grid', 'grid-template-columns: repeat(2, minmax(0, 1fr))'],
+  ['mobile horizontal ranking rail', 'grid-auto-flow: column'],
+  ['mobile ranking card width', 'grid-auto-columns: min(82vw, 310px)'],
+]) {
+  if (!topAnimeCss.includes(needle)) failures.push(`Top Anime CSS: missing ${label}.`);
 }
 
 if (failures.length) {

@@ -136,7 +136,6 @@ const LIST_QUERY = `
     $search: String
     $genres: [String]
     $tags: [String]
-    $studios: [Int]
     $formats: [MediaFormat]
     $season: MediaSeason
     $seasonYear: Int
@@ -155,7 +154,6 @@ const LIST_QUERY = `
         search: $search
         genre_in: $genres
         tag_in: $tags
-        studio_in: $studios
         season: $season
         seasonYear: $seasonYear
       ) {
@@ -391,98 +389,6 @@ function mapMediaToAnime(
   };
 }
 
-const studioIdCache = new Map<string, number>();
-
-function normalizeStudioName(value: string): string {
-  return value
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
-}
-
-async function resolveAniListStudioId(
-  name: string,
-  signal?: AbortSignal,
-): Promise<number> {
-  const cacheKey = normalizeStudioName(name);
-  const cached = studioIdCache.get(cacheKey);
-  if (cached) return cached;
-
-  const query = `
-    query CatalogStudio($search: String) {
-      Studio(search: $search) {
-        id
-        name
-        isAnimationStudio
-      }
-    }
-  `;
-
-  const response = await fetchWithRetry(
-    ANILIST_API_URL,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        query,
-        variables: { search: name },
-      }),
-      signal,
-      next: { revalidate: 86400 },
-    },
-    1,
-  );
-
-  if (!response.ok) {
-    throw new Error(`AniList studio lookup HTTP ${response.status}`);
-  }
-
-  const json = await response.json() as {
-    data?: {
-      Studio?: {
-        id?: number;
-        name?: string | null;
-        isAnimationStudio?: boolean | null;
-      } | null;
-    };
-    errors?: Array<{ message?: string }>;
-  };
-
-  if (json.errors?.length) {
-    throw new Error(json.errors[0]?.message || 'AniList studio lookup failed');
-  }
-
-  const studio = json.data?.Studio;
-  if (
-    !studio ||
-    typeof studio.id !== 'number' ||
-    normalizeStudioName(studio.name || '') !== cacheKey
-  ) {
-    throw new Error(`AniList studio not found: ${name}`);
-  }
-
-  studioIdCache.set(cacheKey, studio.id);
-  return studio.id;
-}
-
-async function resolveAniListStudioIds(
-  names: string[] | undefined,
-  signal?: AbortSignal,
-): Promise<number[] | undefined> {
-  const uniqueNames = [...new Set((names ?? []).map((value) => value.trim()).filter(Boolean))].slice(0, 4);
-  if (uniqueNames.length === 0) return undefined;
-
-  const ids: number[] = [];
-  for (const name of uniqueNames) {
-    ids.push(await resolveAniListStudioId(name, signal));
-  }
-  return [...new Set(ids)];
-}
-
 export async function getAnimes(
   options: GetAnimesOptions = {},
   fetchOptions?: {
@@ -514,7 +420,6 @@ export async function getAnimes(
           : ['SCORE_DESC'];
 
   try {
-    const studioIds = await resolveAniListStudioIds(studioNames, fetchOptions?.signal);
     const response =
       await fetchWithRetry(
         ANILIST_API_URL,
@@ -538,7 +443,7 @@ export async function getAnimes(
               perPage:
                 Math.min(
                   Math.max(
-                    limit,
+                    studioNames?.length ? Math.max(limit, 50) : limit,
                     1,
                   ),
                   50,
@@ -571,8 +476,6 @@ export async function getAnimes(
 
               tags:
                 tags?.map((value) => value.trim()).filter(Boolean).slice(0, 6) || undefined,
-
-              studios: studioIds,
 
               formats: format
                 ? [format]
@@ -631,14 +534,34 @@ export async function getAnimes(
           ),
       ) ?? [];
 
-    if (
-      anilistAnimes.length ===
-      0
-    ) {
+    const requestedStudios = new Set(
+      (studioNames ?? [])
+        .map((value) => value.normalize('NFKC').toLowerCase().trim())
+        .filter(Boolean),
+    );
+
+    const studioFiltered =
+      requestedStudios.size === 0
+        ? anilistAnimes
+        : anilistAnimes.filter((anime) => {
+            const studios = new Set(
+              (Array.isArray(anime.studios) ? anime.studios : [])
+                .map((studio: { name?: unknown }) =>
+                  typeof studio?.name === 'string'
+                    ? studio.name.normalize('NFKC').toLowerCase().trim()
+                    : '',
+                )
+                .filter(Boolean),
+            );
+
+            return [...requestedStudios].every((studio) => studios.has(studio));
+          });
+
+    if (studioFiltered.length === 0) {
       return [];
     }
 
-    return anilistAnimes;
+    return studioFiltered.slice(0, limit);
   } catch (error) {
     if (
       error instanceof Error &&

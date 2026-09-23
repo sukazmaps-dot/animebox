@@ -178,25 +178,17 @@ function formatUpcomingDate(airingAt: number): string {
 
 type HomeTopAnimePanelProps = {
   popular: Anime[];
-  mobile?: boolean;
 };
 
 function HomeTopAnimePanel({
   popular,
-  mobile = false,
 }: HomeTopAnimePanelProps) {
-  const items = popular.slice(0, mobile ? 3 : 6);
+  const items = popular.slice(0, 6);
 
   return (
-    <div
-      className={`home-top-anime-panel ${
-        mobile
-          ? 'home-top-anime-panel--mobile'
-          : 'home-top-anime-panel--desktop'
-      }`}
-    >
+    <section className="home-top-anime-panel" aria-labelledby="home-top-anime-title">
       <div className="panel__head panel__head--branded">
-        <h2 className="panel__title-with-icon">
+        <h2 id="home-top-anime-title" className="panel__title-with-icon">
           <Image src="/brand/brand-mark.webp" alt="" width={20} height={20} sizes="20px" aria-hidden="true" />
           Топ аниме
         </h2>
@@ -204,10 +196,10 @@ function HomeTopAnimePanel({
 
       <div className="panel__body">
         {items.map((anime, index) => (
-          <TopAnimeItem key={anime.id} anime={anime} rank={index + 1} editorial />
+          <TopAnimeItem key={anime.id} anime={anime} rank={index + 1} />
         ))}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -1008,8 +1000,6 @@ export default function HomePage({
           />
         )}
 
-        {!personalizedHome && <HomeTopAnimePanel popular={popular} mobile />}
-
         {personalScheduleItems.length > 0 && (
           <section className="section personal-schedule-section">
             <div className="section-head">
@@ -1121,8 +1111,6 @@ export default function HomePage({
             )}
           </section>
         </div>
-
-        {personalizedHome && <HomeTopAnimePanel popular={popular} mobile />}
 
         <HomeChatTeaser />
 
