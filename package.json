@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "security:check": "node scripts/security-boundary-check.mjs && node scripts/edge-shield-check.mjs && node scripts/admin-fortress-check.mjs && node scripts/ugc-media-safety-check.mjs && node scripts/browser-session-check.mjs",
+    "security:check": "node scripts/security-boundary-check.mjs && node scripts/edge-shield-check.mjs && node scripts/admin-fortress-check.mjs && node scripts/ugc-media-safety-check.mjs && node scripts/browser-session-check.mjs && node scripts/security-verification-check.mjs",
     "prebuild": "npm run security:check"
   },
   "dependencies": {
