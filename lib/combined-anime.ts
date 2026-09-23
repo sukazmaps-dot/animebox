@@ -206,7 +206,22 @@ async function searchRussianAnime(
   else if (options.genre != null) params.set('genre', String(options.genre));
   if (options.status === 'ongoing') params.set('status', 'ongoing');
   if (options.status === 'finished') params.set('status', 'released');
-  if (options.year != null) params.set('season', String(options.year));
+  if (options.status === 'upcoming') params.set('status', 'anons');
+
+  const shikimoriKind = ({
+    TV: 'tv',
+    MOVIE: 'movie',
+    OVA: 'ova',
+    ONA: 'ona',
+    SPECIAL: 'special',
+  } as const)[options.format ?? 'TV'];
+  if (options.format) params.set('kind', shikimoriKind);
+
+  if (options.year != null && options.season) {
+    params.set('season', `${options.season.toLowerCase()}_${options.year}`);
+  } else if (options.year != null) {
+    params.set('season', String(options.year));
+  }
   params.set(
     'limit',
     String(
