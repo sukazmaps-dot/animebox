@@ -9,6 +9,8 @@ import {
 import { isDonatePayConfigured } from '@/lib/payments/providers/donatepay';
 import { syncDonatePayTransactions } from '@/lib/payments/sync-donatepay';
 
+import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +45,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { user } = await userClient();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'donatepay_claim_write_ip', limit: 40, windowSeconds: 3600 },
+      user: { scope: 'donatepay_claim_write_user', limit: 20, windowSeconds: 3600 },
+    });
+    if (limited) return limited;
     const body = await readBody(request);
     const action = typeof body.action === 'string' ? body.action : 'create';
 
