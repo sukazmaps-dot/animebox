@@ -21,6 +21,7 @@ export default function robots(): MetadataRoute.Robots {
     // Keep the already-submitted root sitemap and expose scalable anime shards.
     sitemap: [
       `${SITE_URL}/sitemap.xml`,
+      `${SITE_URL}/video-sitemap.xml`,
       ...Array.from(
         { length: ANIME_SITEMAP_SHARDS },
         (_, id) => `${SITE_URL}/anime/sitemap/${id}.xml`,
