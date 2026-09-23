@@ -13,17 +13,6 @@ function read(path) {
   return readFileSync(full, 'utf8');
 }
 
-function isWebp(path) {
-  const full = join(root, path);
-  if (!existsSync(full)) return false;
-  const buffer = readFileSync(full);
-  return (
-    buffer.length >= 12 &&
-    buffer.toString('ascii', 0, 4) === 'RIFF' &&
-    buffer.toString('ascii', 8, 12) === 'WEBP'
-  );
-}
-
 const layout = read('app/layout.tsx');
 const navbar = read('components/Navbar.tsx');
 const account = read('components/MobileAccountNav.tsx');
@@ -68,21 +57,13 @@ for (const [label, needle] of [
 }
 
 for (const [label, needle] of [
-  ['static WebP direct loading', 'unoptimized'],
-  ['secondary WebP fallback', '/backgrounds/telegram-promo.webp'],
-  ['final art fallback', 'setArtHidden(true)'],
+  ['vector promo shell', 'telegram-growth-card--vector'],
+  ['shared AnimeBox icon core', 'AnimeBoxIconCore'],
+  ['Telegram vector icon', 'PaperPlaneTiltIcon'],
+  ['reduced motion support', 'useReducedMotion'],
 ]) {
   if (!promo.includes(needle)) {
     failures.push(`TelegramPromoCard: missing ${label}.`);
-  }
-}
-
-for (const asset of [
-  'public/brand/telegram-cta.webp',
-  'public/backgrounds/telegram-promo.webp',
-]) {
-  if (!isWebp(asset)) {
-    failures.push(`${asset}: Telegram promo fallback asset is missing or not a valid WebP container.`);
   }
 }
 
