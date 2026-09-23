@@ -30,8 +30,10 @@ const videoViewMigration = read(
 
 for (const [label, needle] of [
   ['5 second local progress journal', 'LOCAL_PROGRESS_SAVE_INTERVAL_MS = 5_000'],
-  ['skip opening UI', 'Пропустить опенинг'],
-  ['opening seek action', 'watchSession.onProviderSkip'],
+  ['automatic opening guard', 'openingAutoSkipAttemptedRef.current = true'],
+  ['automatic opening seek', "requestOpeningSkip('auto')"],
+  ['manual skip fallback UI', 'Пропустить опенинг'],
+  ['opening seek watch-integrity signal', 'watchSession.onProviderSkip'],
   ['ending countdown UI', 'endingNextSeconds'],
   ['ending cancel action', 'cancelEndingAutoNext'],
 ]) {
