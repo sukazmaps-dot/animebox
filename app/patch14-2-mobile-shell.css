@@ -1,0 +1,516 @@
+/* =========================================================
+   AnimeBox Patch 14.2 — Mobile Shell & Navigation
+
+   Goals:
+   - stable hide/reveal without direction-change jitter;
+   - docked product navigation instead of a floating AI-style pill;
+   - one safe-area model for browser, iOS and Telegram Mini App;
+   - account sheet always above content/nav and scroll-safe;
+   - remove stacked bottom spacing from legacy mobile patches.
+   ========================================================= */
+
+:root {
+  --ab-mobile-nav-core-height: 56px;
+  --ab-shell-safe-top: max(
+    env(safe-area-inset-top, 0px),
+    var(--animebox-safe-top, 0px)
+  );
+  --ab-shell-safe-right: env(safe-area-inset-right, 0px);
+  --ab-shell-safe-bottom: max(
+    env(safe-area-inset-bottom, 0px),
+    var(--animebox-safe-bottom, 0px)
+  );
+  --ab-shell-safe-left: env(safe-area-inset-left, 0px);
+}
+
+@media (min-width: 769px) {
+  .mobile-nav {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --ab-mobile-nav-height: var(--ab-mobile-nav-core-height);
+  }
+
+  /* ---------------------------------------------------------
+     TOP CHROME
+     --------------------------------------------------------- */
+
+  .sidebar {
+    display: none !important;
+  }
+
+  .topbar {
+    z-index: 430 !important;
+    top: var(--ab-shell-safe-top) !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 58px !important;
+    padding:
+      8px
+      max(12px, var(--ab-shell-safe-right))
+      8px
+      max(12px, var(--ab-shell-safe-left)) !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--ab-line) !important;
+    border-radius: 0 !important;
+    background: rgba(7, 9, 15, .97) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .topbar__search {
+    height: 42px !important;
+    min-height: 42px !important;
+    border: 1px solid transparent !important;
+    border-radius: 9px !important;
+    background: var(--ab-surface-2) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.016) !important;
+  }
+
+  .topbar__search:focus-within {
+    border-color: var(--ab-line-iris) !important;
+    background: #151c29 !important;
+    box-shadow: 0 0 0 3px rgba(151,136,231,.055) !important;
+  }
+
+  .topbar__search input {
+    font-size: 13px !important;
+  }
+
+  .app-shell {
+    margin-left: 0 !important;
+    padding-top: calc(58px + var(--ab-shell-safe-top)) !important;
+    scroll-padding-bottom:
+      calc(var(--ab-mobile-nav-core-height) + var(--ab-shell-safe-bottom) + 18px)
+      !important;
+  }
+
+  /* Legacy patches stacked body + main + footer bottom offsets. Keep one
+     document-level safe zone instead. */
+  body {
+    padding-bottom:
+      calc(var(--ab-mobile-nav-core-height) + var(--ab-shell-safe-bottom) + 10px)
+      !important;
+  }
+
+  .page-content {
+    width: 100% !important;
+    padding-top: 14px !important;
+    padding-right: max(12px, var(--ab-shell-safe-right)) !important;
+    padding-bottom: 24px !important;
+    padding-left: max(12px, var(--ab-shell-safe-left)) !important;
+  }
+
+  .site-footer {
+    margin-bottom: 0 !important;
+  }
+
+  /* ---------------------------------------------------------
+     BOTTOM NAV
+     Docked rail. Active state is an Iris marker, not a pill.
+     --------------------------------------------------------- */
+
+  .mobile-nav {
+    position: fixed !important;
+    z-index: 440 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    min-height:
+      calc(var(--ab-mobile-nav-core-height) + var(--ab-shell-safe-bottom))
+      !important;
+    height:
+      calc(var(--ab-mobile-nav-core-height) + var(--ab-shell-safe-bottom))
+      !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 0 !important;
+    padding:
+      2px
+      max(7px, var(--ab-shell-safe-right))
+      var(--ab-shell-safe-bottom)
+      max(7px, var(--ab-shell-safe-left)) !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-top: 1px solid var(--ab-line-strong) !important;
+    border-radius: 0 !important;
+    background: rgba(8, 11, 17, .975) !important;
+    box-shadow: 0 -10px 28px rgba(0,0,0,.18) !important;
+    backdrop-filter: blur(14px) saturate(1.02) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(1.02) !important;
+    contain: layout !important;
+    transform: translate3d(0, 0, 0);
+    transition:
+      transform 220ms var(--ab-ease-out),
+      visibility 0s linear 0s !important;
+    will-change: transform;
+  }
+
+  .mobile-nav.is-hidden {
+    visibility: visible !important;
+    pointer-events: none !important;
+    transform: translate3d(0, calc(100% + 8px), 0) !important;
+    transition:
+      transform 220ms var(--ab-ease-out),
+      visibility 0s linear 220ms !important;
+  }
+
+  .mobile-nav__item,
+  .mobile-nav__profile {
+    position: relative;
+    isolation: isolate;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    min-height: 52px !important;
+    height: 52px !important;
+    gap: 4px !important;
+    padding: 4px 2px 3px !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #767e8e !important;
+    transition:
+      color var(--ab-fast) ease,
+      opacity var(--ab-fast) ease !important;
+  }
+
+  /* Remove the old active rounded rectangle. */
+  .mobile-nav__item::before {
+    display: none !important;
+  }
+
+  .mobile-nav__item::after {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 18px;
+    height: 2px;
+    border-radius: 0 0 2px 2px;
+    background: transparent;
+    content: '';
+    transform: translateX(-50%);
+    transition:
+      width var(--ab-fast) var(--ab-ease-out),
+      background var(--ab-fast) ease;
+  }
+
+  .mobile-nav__item svg {
+    width: 20px !important;
+    height: 20px !important;
+    color: currentColor !important;
+    filter: none !important;
+  }
+
+  .mobile-nav__item > span:last-child {
+    max-width: 100%;
+    overflow: hidden;
+    color: inherit !important;
+    font-size: 10px !important;
+    font-weight: 610 !important;
+    line-height: 1 !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-nav__item.is-active {
+    color: #ece9f3 !important;
+  }
+
+  .mobile-nav__item.is-active::after {
+    width: 24px;
+    background: var(--ab-iris);
+  }
+
+  .mobile-nav__item.is-active svg {
+    color: var(--ab-iris-strong) !important;
+    filter: none !important;
+  }
+
+  .mobile-nav__avatar {
+    position: relative;
+    z-index: 1;
+    width: 21px !important;
+    height: 21px !important;
+    overflow: hidden;
+    border: 1px solid rgba(204,208,219,.13) !important;
+    border-radius: 50% !important;
+    background: var(--ab-surface-3) !important;
+    box-shadow: none !important;
+  }
+
+  .mobile-nav__profile.is-active .mobile-nav__avatar {
+    border-color: rgba(183,170,255,.58) !important;
+    box-shadow: 0 0 0 2px rgba(151,136,231,.08) !important;
+  }
+
+  /* ---------------------------------------------------------
+     ACCOUNT SHEET
+     Portalled to body; never inherit a page stacking context.
+     --------------------------------------------------------- */
+
+  .mobile-account__backdrop {
+    position: fixed !important;
+    z-index: 980 !important;
+    inset: 0 !important;
+    background: rgba(3, 5, 10, .70) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .mobile-account {
+    position: fixed !important;
+    z-index: 990 !important;
+    left: max(10px, var(--ab-shell-safe-left)) !important;
+    right: max(10px, var(--ab-shell-safe-right)) !important;
+    bottom:
+      calc(var(--ab-mobile-nav-core-height) + var(--ab-shell-safe-bottom) + 8px)
+      !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height:
+      min(
+        68dvh,
+        calc(
+          100dvh
+          - var(--ab-shell-safe-top)
+          - var(--ab-shell-safe-bottom)
+          - var(--ab-mobile-nav-core-height)
+          - 30px
+        )
+      )
+      !important;
+    padding: 7px 8px 9px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    border: 1px solid var(--ab-line-strong) !important;
+    border-radius: 16px 16px 11px 11px !important;
+    background: #0d121c !important;
+    box-shadow: 0 22px 64px rgba(0,0,0,.48) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    transform: none !important;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  .mobile-account__handle {
+    width: 26px !important;
+    height: 3px !important;
+    margin: 1px auto 7px !important;
+    border-radius: 2px !important;
+    background: #343b48 !important;
+  }
+
+  .mobile-account__identity {
+    position: sticky;
+    z-index: 2;
+    top: -7px;
+    grid-template-columns: 38px minmax(0, 1fr) 28px !important;
+    gap: 9px !important;
+    margin: 0 -1px;
+    padding: 7px 4px 9px !important;
+    border-bottom: 1px solid var(--ab-line);
+    background: #0d121c !important;
+  }
+
+  .mobile-account__avatar {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 10px !important;
+    border-color: var(--ab-line-strong) !important;
+    box-shadow: none !important;
+  }
+
+  .mobile-account__identity-copy strong {
+    color: var(--ab-text) !important;
+    font-size: 12.5px !important;
+    font-weight: 690 !important;
+  }
+
+  .mobile-account__identity-copy span {
+    margin-top: 2px !important;
+    overflow: hidden;
+    color: var(--ab-muted-2) !important;
+    font-size: 9.5px !important;
+    line-height: 1.3 !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-account__close {
+    width: 28px !important;
+    height: 28px !important;
+    border: 0 !important;
+    border-radius: 7px !important;
+    background: transparent !important;
+    color: var(--ab-muted) !important;
+    box-shadow: none !important;
+  }
+
+  .mobile-account__links {
+    gap: 0 !important;
+    margin-top: 2px;
+  }
+
+  .mobile-account__link {
+    min-height: 42px !important;
+    grid-template-columns: 25px minmax(0, 1fr) 14px !important;
+    gap: 8px !important;
+    padding: 6px 7px !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(204,208,219,.045) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .mobile-account__link:last-child {
+    border-bottom: 0 !important;
+  }
+
+  .mobile-account__link:active {
+    background: rgba(255,255,255,.025) !important;
+  }
+
+  .mobile-account__link > svg:first-child {
+    width: 17px !important;
+    height: 17px !important;
+    color: #9187bd !important;
+  }
+
+  .mobile-account__link > svg:last-child {
+    width: 12px !important;
+    height: 12px !important;
+    color: #4f5664 !important;
+  }
+
+  .mobile-account__link strong {
+    color: #d9d8dd !important;
+    font-size: 11px !important;
+    font-weight: 650 !important;
+  }
+
+  .mobile-account__support {
+    min-height: 46px !important;
+    margin-top: 6px !important;
+    padding: 6px 7px !important;
+    border: 0 !important;
+    border-left: 2px solid rgba(151,136,231,.50) !important;
+    border-radius: 0 !important;
+    background: var(--ab-iris-faint) !important;
+    box-shadow: none !important;
+  }
+
+  .mobile-account__support::after {
+    display: none !important;
+  }
+
+  .mobile-account__auth-button {
+    min-height: 36px !important;
+    border-radius: 7px !important;
+    box-shadow: none !important;
+  }
+
+  .mobile-account__auth-button--primary {
+    border-color: transparent !important;
+    background: var(--ab-iris) !important;
+  }
+
+  /* ---------------------------------------------------------
+     TELEGRAM PROMO ART FAILSAFE
+     If both local WebP assets fail, keep a designed fallback instead
+     of exposing the browser's broken-image glyph.
+     --------------------------------------------------------- */
+
+  .telegram-growth-card__art.is-fallback {
+    display: grid !important;
+    place-items: center;
+  }
+
+  .telegram-growth-card__art-fallback {
+    position: relative;
+    z-index: 2;
+    width: 72px;
+    height: 72px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(151,136,231,.14);
+    border-radius: 50%;
+    background: var(--ab-iris-faint);
+    color: #a99de4;
+  }
+
+  .telegram-growth-card__art-fallback svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* ---------------------------------------------------------
+     TELEGRAM MINI APP
+     Reuse the same shell variables instead of a second nav geometry.
+     --------------------------------------------------------- */
+
+  html.telegram-mini-app .topbar {
+    top: var(--ab-shell-safe-top) !important;
+  }
+
+  html.telegram-mini-app .app-shell {
+    padding-top: calc(58px + var(--ab-shell-safe-top)) !important;
+  }
+
+  html.telegram-mini-app .mobile-nav {
+    bottom: 0 !important;
+    height:
+      calc(var(--ab-mobile-nav-core-height) + var(--ab-shell-safe-bottom))
+      !important;
+    padding-bottom: var(--ab-shell-safe-bottom) !important;
+  }
+
+  html.telegram-mini-app .mobile-account {
+    bottom:
+      calc(var(--ab-mobile-nav-core-height) + var(--ab-shell-safe-bottom) + 8px)
+      !important;
+  }
+
+  html.telegram-mini-app body {
+    padding-bottom:
+      calc(var(--ab-mobile-nav-core-height) + var(--ab-shell-safe-bottom) + 10px)
+      !important;
+  }
+
+  html.telegram-mini-app .page-content {
+    padding-bottom: 24px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .mobile-nav {
+    padding-left: max(4px, var(--ab-shell-safe-left)) !important;
+    padding-right: max(4px, var(--ab-shell-safe-right)) !important;
+  }
+
+  .mobile-nav__item > span:last-child {
+    font-size: 9.5px !important;
+  }
+
+  .mobile-account {
+    left: max(7px, var(--ab-shell-safe-left)) !important;
+    right: max(7px, var(--ab-shell-safe-right)) !important;
+  }
+}
+
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+  .mobile-nav {
+    transition: none !important;
+  }
+}
