@@ -1,0 +1,19 @@
+# /etc/nginx/conf.d/00-animebox-gateway-http.conf
+# Loaded in the nginx http{} context.
+
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      '';
+}
+
+upstream animebox_vercel_origin {
+    server cname.vercel-dns.com:443;
+    keepalive 32;
+}
+
+proxy_cache_path /var/cache/nginx/animebox
+    levels=1:2
+    keys_zone=animebox_static:32m
+    max_size=2g
+    inactive=7d
+    use_temp_path=off;
