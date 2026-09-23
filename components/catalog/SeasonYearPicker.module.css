@@ -1,0 +1,120 @@
+.root {
+  position: relative;
+  min-width: 0;
+}
+
+.trigger {
+  display: flex;
+  width: 100%;
+  min-height: 38px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 10px;
+  border: 0;
+  border-bottom: 1px solid rgba(204, 208, 219, .1);
+  background: transparent;
+  color: var(--ab-text-soft);
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.trigger:hover,
+.trigger[aria-expanded='true'] {
+  border-bottom-color: rgba(151, 136, 231, .42);
+}
+
+.trigger:focus-visible,
+.option:focus-visible,
+.optionActive:focus-visible {
+  outline: 2px solid var(--ab-accent);
+  outline-offset: 2px;
+}
+
+.chevron,
+.chevronOpen {
+  color: var(--ab-muted);
+  font-size: 18px;
+  line-height: 1;
+  transition: transform .16s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.menu {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 6px);
+  left: 0;
+  width: min(320px, 100%);
+  max-height: 300px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 5px;
+  border: 1px solid rgba(194, 201, 218, .14);
+  border-radius: 6px;
+  background: #111721;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, .38);
+  scrollbar-width: thin;
+}
+
+.yearLabel {
+  padding: 9px 10px 4px;
+  color: #747d8d;
+  font-size: 9px;
+  font-weight: 720;
+  letter-spacing: .05em;
+}
+
+.option,
+.optionActive {
+  display: flex;
+  width: 100%;
+  min-height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ab-text-soft);
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.option:hover {
+  background: rgba(255, 255, 255, .025);
+  color: var(--ab-text);
+}
+
+.optionActive {
+  background: rgba(151, 136, 231, .13);
+  color: #eee9ff;
+  box-shadow: inset 2px 0 0 var(--ab-iris);
+}
+
+@media (max-width: 600px) {
+  .trigger {
+    min-height: 42px;
+    font-size: 12px;
+  }
+
+  .menu {
+    position: relative;
+    top: auto;
+    width: 100%;
+    max-height: 250px;
+    margin-top: 6px;
+    box-shadow: none;
+  }
+
+  .option,
+  .optionActive {
+    min-height: 38px;
+    font-size: 12px;
+  }
+}

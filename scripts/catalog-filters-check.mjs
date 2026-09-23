@@ -15,36 +15,46 @@ function read(path) {
 
 const catalog = read('components/SearchCatalogClient.tsx');
 const catalogCss = read('components/SearchCatalogClient.module.css');
+const seasonPicker = read('components/catalog/SeasonYearPicker.tsx');
+const filterState = read('lib/catalog-filter-state.ts');
+const seasonHelpers = read('lib/catalog-season.ts');
 const client = read('lib/anime-client.ts');
 const api = read('app/api/anime/route.ts');
 const anilist = read('lib/anilist.ts');
+const searchPage = read('app/search/page.tsx');
 
-for (const [label, needle] of [
-  ['format state', 'selectedFormat'],
-  ['season state', 'selectedSeason'],
-  ['announcement status', "'upcoming'"],
-  ['anime filter heading', 'Аниме-фильтры'],
-  ['format options', 'FORMAT_OPTIONS'],
-  ['season options', 'SEASON_OPTIONS'],
+for (const [label, source, needle] of [
+  ['single filter state', catalog, 'useState<CatalogFiltersState>'],
+  ['demographic controls', catalog, 'CATALOG_DEMOGRAPHICS'],
+  ['anime-specific discovery controls', catalog, 'CATALOG_DISCOVERY_FILTERS'],
+  ['studio controls', catalog, 'CATALOG_STUDIOS'],
+  ['sort controls', catalog, 'CATALOG_SORTS'],
+  ['season-year picker', catalog, '<SeasonYearPicker'],
+  ['state type', filterState, 'export type CatalogFiltersState'],
+  ['URL serialization', filterState, 'writeCatalogFiltersToUrl'],
+  ['URL parsing', filterState, 'parseCatalogFilters'],
+  ['provider projection', filterState, 'catalogFiltersToProviderOptions'],
+  ['month to anime season', seasonHelpers, 'monthToCatalogSeason'],
+  ['controlled season picker', seasonPicker, 'onChange: (value: CatalogSeasonValue | null) => void'],
 ]) {
-  if (!catalog.includes(needle)) failures.push(`Catalog UI: missing ${label}.`);
+  if (!source.includes(needle)) failures.push(`Catalog UI/state: missing ${label}.`);
 }
 
-for (const [label, needle] of [
-  ['anime filter side', '.animeFilterSide'],
-  ['compact choices', '.compactChoiceGrid'],
-  ['status choices', '.statusChoices'],
-]) {
-  if (!catalogCss.includes(needle)) failures.push(`Catalog CSS: missing ${label}.`);
+for (const legacy of ['selectedYear', 'SEASON_OPTIONS', 'FORMAT_OPTIONS']) {
+  if (catalog.includes(legacy)) failures.push(`Catalog UI: legacy filter state remains: ${legacy}.`);
 }
 
 for (const [label, source, needle] of [
-  ['client format serialization', client, "params.set('format'"],
-  ['client season serialization', client, "params.set('season'"],
-  ['API format parsing', api, "const formatRaw = params.get('format')"],
-  ['API season parsing', api, "const seasonRaw = params.get('season')"],
-  ['AniList format variable', anilist, '$formats: [MediaFormat]'],
-  ['AniList season variable', anilist, '$season: MediaSeason'],
+  ['catalog sort choices', catalogCss, '.sortChoices'],
+  ['catalog sort active state', catalogCss, '.sortChoiceActive'],
+  ['client studio serialization', client, "params.set('studios'"],
+  ['API studio parsing', api, "params.get('studios')"],
+  ['API updated sort', api, "orderRaw === 'updated'"],
+  ['AniList studio variable', anilist, '$studios: [Int]'],
+  ['AniList studio filter', anilist, 'studio_in: $studios'],
+  ['AniList updated sort', anilist, 'UPDATED_AT_DESC'],
+  ['SSR filter parsing', searchPage, 'parseCatalogFilters(params)'],
+  ['SSR filter pass-through', searchPage, 'initialFilters={initialFilters}'],
 ]) {
   if (!source.includes(needle)) failures.push(`Catalog filters: missing ${label}.`);
 }
@@ -56,4 +66,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('[AnimeBox Catalog Filters] Anime-native filter invariants passed.');
+console.log('[AnimeBox Catalog Filters] State-driven anime-native filter invariants passed.');

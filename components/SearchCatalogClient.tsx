@@ -5,6 +5,7 @@ import AnimeCard from '@/components/AnimeCard';
 import AnimeImage from '@/components/AnimeImage';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import MoodFilter from '@/components/catalog/MoodFilter';
+import SeasonYearPicker from '@/components/catalog/SeasonYearPicker';
 import { getAnimes, isAbortError } from '@/lib/anime-client';
 import type { CatalogMood } from '@/lib/catalog-moods';
 import type { Anime } from '@/types/anime';
@@ -25,41 +26,31 @@ import { CATALOG_AD_BREAK_INDEX, CATALOG_PAGE_SIZE } from '@/lib/catalog-paginat
 import { ANIME_FAVORITES_STORAGE_KEY, readAnimeFavorites } from '@/lib/anime-storage';
 import { getAnimeTitle, isAnimeOngoing } from '@/lib/anime-display';
 import {
-  ANIME_AUDIENCES,
-  ANIME_GENRES,
-  ANIME_THEMES,
   animeTaxonomyValueMatches,
   findAnimeGenre,
   findAnimeTag,
 } from '@/lib/anime-taxonomy';
+import {
+  CATALOG_DEMOGRAPHICS,
+  CATALOG_DISCOVERY_FILTERS,
+  CATALOG_FORMATS,
+  CATALOG_SORTS,
+  CATALOG_STATUSES,
+  CATALOG_STUDIOS,
+  DEFAULT_CATALOG_FILTERS,
+  catalogFilterCount,
+  catalogFiltersAreDefault,
+  catalogFiltersToProviderOptions,
+  writeCatalogFiltersToUrl,
+  type CatalogFiltersState,
+} from '@/lib/catalog-filter-state';
+import { monthToCatalogSeason } from '@/lib/catalog-season';
 import styles from './SearchCatalogClient.module.css';
 
 const SEARCH_DEBOUNCE_MS = 120;
-const CURRENT_YEAR = new Date().getFullYear();
-const YEARS = Array.from({ length: Math.max(1, CURRENT_YEAR - 1979) }, (_, index) => CURRENT_YEAR - index);
 
 type DiscoveryMeta = Pick<SmartDiscoveryResponse, 'seed' | 'meta'>;
 type CatalogView = 'catalog' | 'saved';
-type CatalogStatus = 'any' | 'ongoing' | 'finished' | 'upcoming';
-type CatalogFormat = 'any' | 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL';
-type CatalogSeason = 'any' | 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL';
-
-const FORMAT_OPTIONS: Array<{ value: CatalogFormat; label: string }> = [
-  { value: 'any', label: 'Все форматы' },
-  { value: 'TV', label: 'TV-сериал' },
-  { value: 'MOVIE', label: 'Фильм' },
-  { value: 'OVA', label: 'OVA' },
-  { value: 'ONA', label: 'ONA' },
-  { value: 'SPECIAL', label: 'Спешл' },
-];
-
-const SEASON_OPTIONS: Array<{ value: CatalogSeason; label: string }> = [
-  { value: 'any', label: 'Любой сезон' },
-  { value: 'WINTER', label: 'Зима' },
-  { value: 'SPRING', label: 'Весна' },
-  { value: 'SUMMER', label: 'Лето' },
-  { value: 'FALL', label: 'Осень' },
-];
 
 function seedTitle(seed: SmartDiscoveryResponse['seed']) {
   if (!seed) return '';
@@ -76,15 +67,24 @@ function favoriteMatchesTag(anime: Anime, tagValue: string) {
   const tag = findAnimeTag(tagValue);
   return tag ? animeTaxonomyValueMatches(anime.tags, tag) : true;
 }
+function favoriteMatchesStudio(anime: Anime, studioName: string) {
+  const expected = normalizedText(studioName);
+  const studios = Array.isArray(anime.studios) ? anime.studios : [];
+  return studios.some((studio: { name?: unknown }) =>
+    typeof studio?.name === 'string' && normalizedText(studio.name) === expected,
+  );
+}
 
 export default function SearchCatalogClient({
   initialResults,
   initialQuery = '',
   initialView = 'catalog',
+  initialFilters = DEFAULT_CATALOG_FILTERS,
 }: {
   initialResults: Anime[];
   initialQuery?: string;
   initialView?: CatalogView;
+  initialFilters?: CatalogFiltersState;
 }) {
   const normalizedInitialQuery = initialQuery.trim();
   const [view, setView] = useState<CatalogView>(initialView);
@@ -97,15 +97,8 @@ export default function SearchCatalogClient({
   const discoveryDescription = useMemo(() => (discoveryIntent?.isDiscovery ? describeSmartDiscoveryIntent(discoveryIntent) : []), [discoveryIntent]);
   const discoveryChips = useMemo(() => (discoveryIntent?.isDiscovery ? discoveryConstraintChips(discoveryIntent) : []), [discoveryIntent]);
 
-  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<CatalogStatus>('any');
-  const [selectedFormat, setSelectedFormat] = useState<CatalogFormat>('any');
-  const [selectedSeason, setSelectedSeason] = useState<CatalogSeason>('any');
+  const [filters, setFilters] = useState<CatalogFiltersState>(initialFilters);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [openPicker, setOpenPicker] = useState<'year' | 'status' | null>(null);
-  const pickerRef = useRef<HTMLDivElement>(null);
   const [selectedMood, setSelectedMood] = useState<CatalogMood>('any');
   const [favorites, setFavorites] = useState<Anime[]>([]);
   const [tasteGraph, setTasteGraph] = useState<TasteGraph | null>(() => readCachedTasteGraph());
@@ -120,21 +113,6 @@ export default function SearchCatalogClient({
 
   useEffect(() => { liveQueryRef.current = liveQuery; }, [liveQuery]);
 
-  useEffect(() => {
-    if (!openPicker) return;
-    const dismiss = (event: PointerEvent) => {
-      if (event.target instanceof Node && !pickerRef.current?.contains(event.target)) setOpenPicker(null);
-    };
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpenPicker(null);
-    };
-    document.addEventListener('pointerdown', dismiss);
-    document.addEventListener('keydown', escape);
-    return () => {
-      document.removeEventListener('pointerdown', dismiss);
-      document.removeEventListener('keydown', escape);
-    };
-  }, [openPicker]);
 
   useEffect(() => {
     const syncFavorites = () => setFavorites(readAnimeFavorites());
@@ -195,7 +173,7 @@ export default function SearchCatalogClient({
     }
     if (initialRenderRef.current) {
       initialRenderRef.current = false;
-      if (!query && selectedGenres.length === 0 && selectedTags.length === 0 && selectedYear === null && selectedStatus === 'any' && selectedFormat === 'any' && selectedSeason === 'any' && selectedMood === 'any' && page === 1 && initialResults.length > 0) {
+      if (!query && catalogFiltersAreDefault(filters) && selectedMood === 'any' && page === 1 && initialResults.length > 0) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(false);
         return;
@@ -208,7 +186,7 @@ export default function SearchCatalogClient({
       setLoading(true);
       setError('');
       try {
-        if (query && discoveryIntent?.isDiscovery && page === 1 && selectedGenres.length === 0 && selectedTags.length === 0 && selectedYear === null && selectedStatus === 'any' && selectedFormat === 'any' && selectedSeason === 'any') {
+        if (query && discoveryIntent?.isDiscovery && page === 1 && catalogFiltersAreDefault(filters)) {
           const payload = await getSmartDiscovery(query, Math.max(CATALOG_PAGE_SIZE, 30), controller.signal);
           const personalized = rankSmartDiscoveryCandidates(payload.items, discoveryIntent, { tasteGraph, strict: false });
           if (controller.signal.aborted || requestId !== requestSequenceRef.current) return;
@@ -226,17 +204,19 @@ export default function SearchCatalogClient({
             },
           });
         } else {
+          const providerFilters = catalogFiltersToProviderOptions(filters);
           const data = await getAnimes({
             search: query || undefined,
             page,
             limit: CATALOG_PAGE_SIZE,
-            order: 'ranked',
-            genres: selectedGenres.length > 0 ? selectedGenres : undefined,
-            tags: selectedTags.length > 0 ? selectedTags : undefined,
-            year: selectedYear ?? undefined,
-            status: selectedStatus === 'any' ? undefined : selectedStatus,
-            format: selectedFormat === 'any' ? undefined : selectedFormat,
-            season: selectedSeason === 'any' ? undefined : selectedSeason,
+            order: providerFilters.order,
+            genres: providerFilters.genres.length > 0 ? providerFilters.genres : undefined,
+            tags: providerFilters.tags.length > 0 ? providerFilters.tags : undefined,
+            year: providerFilters.year,
+            status: providerFilters.status,
+            format: providerFilters.format,
+            season: providerFilters.season,
+            studioNames: providerFilters.studioNames.length > 0 ? providerFilters.studioNames : undefined,
             mood: selectedMood,
           }, { signal: controller.signal });
           if (controller.signal.aborted || requestId !== requestSequenceRef.current) return;
@@ -255,7 +235,12 @@ export default function SearchCatalogClient({
     }
     void load();
     return () => controller.abort();
-  }, [discoveryIntent, initialResults, page, query, selectedFormat, selectedGenres, selectedMood, selectedSeason, selectedStatus, selectedTags, selectedYear, tasteGraph, view]);
+  }, [discoveryIntent, filters, initialResults, page, query, selectedMood, tasteGraph, view]);
+
+  useEffect(() => {
+    const url = writeCatalogFiltersToUrl(new URL(window.location.href), filters);
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+  }, [filters]);
 
   function applySearchQuery(nextValue: string) {
     const next = nextValue.replace(/\s+/g, ' ').trim();
@@ -272,22 +257,28 @@ export default function SearchCatalogClient({
     if (nextView === 'saved') url.searchParams.set('view', 'saved'); else url.searchParams.delete('view');
     window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
   }
-  function toggleGenre(value: string) {
-    setSelectedGenres((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
+  function patchFilters(
+    update: (current: CatalogFiltersState) => CatalogFiltersState,
+  ) {
+    setFilters(update);
     setPageState({ query, page: 1 });
   }
-  function toggleTag(value: string) {
-    setSelectedTags((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
-    setPageState({ query, page: 1 });
+  function toggleFilterList(
+    key: 'demographics' | 'discovery' | 'studios',
+    value: string,
+  ) {
+    patchFilters((current) => {
+      const values = current[key];
+      return {
+        ...current,
+        [key]: values.includes(value)
+          ? values.filter((item) => item !== value)
+          : [...values, value],
+      };
+    });
   }
   function clearStructuredFilters() {
-    setOpenPicker(null);
-    setSelectedGenres([]);
-    setSelectedTags([]);
-    setSelectedYear(null);
-    setSelectedStatus('any');
-    setSelectedFormat('any');
-    setSelectedSeason('any');
+    setFilters(DEFAULT_CATALOG_FILTERS);
     setPageState({ query, page: 1 });
   }
 
@@ -298,59 +289,54 @@ export default function SearchCatalogClient({
         const title = normalizedText([getAnimeTitle(anime), anime.title?.romaji, anime.title?.english, anime.title?.native].filter(Boolean).join(' '));
         if (!title.includes(normalizedQuery)) return false;
       }
-      if (selectedGenres.length > 0 && !selectedGenres.every((genreValue) => favoriteMatchesGenre(anime, genreValue))) return false;
-      if (selectedTags.length > 0 && !selectedTags.every((tagValue) => favoriteMatchesTag(anime, tagValue))) return false;
-      if (selectedYear != null && Number(anime.startDate?.year ?? 0) !== selectedYear) return false;
-      if (selectedStatus === 'ongoing' && !isAnimeOngoing(anime)) return false;
-      if (selectedStatus === 'finished' && isAnimeOngoing(anime)) return false;
-      if (selectedStatus === 'upcoming' && normalizedText(String(anime.status ?? '')) !== 'анонс') return false;
+      const demographicTags = filters.demographics.flatMap<string>((id) => {
+        const option = CATALOG_DEMOGRAPHICS.find((item) => item.id === id);
+        return option ? [option.providerTag] : [];
+      });
+      if (demographicTags.length > 0 && !demographicTags.every((tag) => favoriteMatchesTag(anime, tag))) return false;
 
-      if (selectedFormat !== 'any') {
+      for (const id of filters.discovery) {
+        const option = CATALOG_DISCOVERY_FILTERS.find((item) => item.id === id);
+        if (!option) continue;
+        if (option.provider === 'genre' && !favoriteMatchesGenre(anime, option.value)) return false;
+        if (option.provider === 'tag' && !favoriteMatchesTag(anime, option.value)) return false;
+      }
+
+      const studioNames = filters.studios.flatMap<string>((id) => {
+        const studio = CATALOG_STUDIOS.find((item) => item.id === id);
+        return studio ? [studio.providerName] : [];
+      });
+      if (studioNames.length > 0 && !studioNames.every((studio) => favoriteMatchesStudio(anime, studio))) return false;
+
+      if (filters.season && Number(anime.startDate?.year ?? 0) !== filters.season.year) return false;
+      if (filters.status === 'ongoing' && !isAnimeOngoing(anime)) return false;
+      if (filters.status === 'finished' && isAnimeOngoing(anime)) return false;
+      if (filters.status === 'upcoming' && normalizedText(String(anime.status ?? '')) !== 'анонс') return false;
+
+      if (filters.format) {
         const expectedFormat = ({
           TV: ['тв', 'tv'],
           MOVIE: ['фильм', 'movie'],
           OVA: ['ova'],
           ONA: ['ona'],
           SPECIAL: ['спешл', 'special'],
-        } as const)[selectedFormat];
+        } as const)[filters.format];
         const actualFormat = normalizedText(String(anime.format ?? ''));
         if (!expectedFormat.some((value) => actualFormat === value)) return false;
       }
 
-      if (selectedSeason !== 'any') {
-        const month = Number(anime.startDate?.month ?? 0);
-        const actualSeason =
-          month >= 1 && month <= 3
-            ? 'WINTER'
-            : month >= 4 && month <= 6
-              ? 'SPRING'
-              : month >= 7 && month <= 9
-                ? 'SUMMER'
-                : month >= 10 && month <= 12
-                  ? 'FALL'
-                  : null;
-        if (actualSeason !== selectedSeason) return false;
+      if (filters.season) {
+        const actualSeason = monthToCatalogSeason(Number(anime.startDate?.month ?? 0));
+        if (actualSeason !== filters.season.season) return false;
       }
 
       return true;
     });
-  }, [favorites, query, selectedFormat, selectedGenres, selectedSeason, selectedStatus, selectedTags, selectedYear]);
+  }, [favorites, filters, query]);
 
-  const hasStructuredFilters =
-    selectedGenres.length > 0 ||
-    selectedTags.length > 0 ||
-    selectedYear !== null ||
-    selectedStatus !== 'any' ||
-    selectedFormat !== 'any' ||
-    selectedSeason !== 'any';
+  const hasStructuredFilters = !catalogFiltersAreDefault(filters);
   const hasFilters = hasStructuredFilters || (view === 'catalog' && selectedMood !== 'any');
-  const filterCount =
-    selectedGenres.length +
-    selectedTags.length +
-    (selectedYear == null ? 0 : 1) +
-    (selectedStatus === 'any' ? 0 : 1) +
-    (selectedFormat === 'any' ? 0 : 1) +
-    (selectedSeason === 'any' ? 0 : 1);
+  const filterCount = catalogFilterCount(filters);
   const displayResults = view === 'saved' ? savedResults : results;
   const displayLoading = view === 'catalog' && loading;
   const showCatalogAd = view === 'catalog' && !loading && results.length >= 8;
@@ -403,7 +389,7 @@ export default function SearchCatalogClient({
 
       <div className={styles.filterBar}>
         {view === 'catalog' && <MoodFilter value={selectedMood} onChange={(mood) => { setSelectedMood(mood); setPageState({ query, page: 1 }); }} />}
-        <button type="button" className={`${styles.filterToggle} ${filtersOpen || filterCount > 0 ? styles.filterToggleActive : ''}`} aria-expanded={filtersOpen} onClick={() => { setOpenPicker(null); setFiltersOpen((current) => !current); }}>
+        <button type="button" className={`${styles.filterToggle} ${filtersOpen || filterCount > 0 ? styles.filterToggleActive : ''}`} aria-expanded={filtersOpen} onClick={() => setFiltersOpen((current) => !current)}>
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2" fill="currentColor" stroke="none"/><circle cx="16" cy="17" r="2" fill="currentColor" stroke="none"/></svg>Фильтры{filterCount > 0 ? <b>{filterCount}</b> : null}
         </button>
       </div>
@@ -413,63 +399,63 @@ export default function SearchCatalogClient({
           <div className={styles.filterPanelHead}>
             <div>
               <strong>Аниме-фильтры</strong>
-              <span>Жанры, аниме-темы, аудитория, формат и сезон выхода — всё в терминах аниме.</span>
+              <span>Демография, сеттинг, сезон, студия и формат — без киношной логики.</span>
             </div>
             {hasStructuredFilters && <button type="button" onClick={clearStructuredFilters}>Сбросить всё</button>}
           </div>
 
           <div className={styles.filterGroup}>
-            <span className={styles.filterLabel}>Жанры</span>
+            <span className={styles.filterLabel}>Демография</span>
             <div className={styles.genreGrid}>
-              {ANIME_GENRES.map((genre) => {
-                const active = selectedGenres.includes(genre.value);
+              {CATALOG_DEMOGRAPHICS.map((option) => {
+                const active = filters.demographics.includes(option.id);
                 return (
                   <button
-                    key={genre.value}
+                    key={option.id}
                     type="button"
                     aria-pressed={active}
                     className={active ? styles.genreSelected : styles.genreOption}
-                    onClick={() => toggleGenre(genre.value)}
+                    onClick={() => toggleFilterList('demographics', option.id)}
                   >
-                    {genre.label}
+                    {option.label}
                     {active ? <span aria-hidden="true">✓</span> : null}
                   </button>
                 );
               })}
             </div>
 
-            <span className={`${styles.filterLabel} ${styles.filterSubLabel}`}>Аниме-темы</span>
+            <span className={`${styles.filterLabel} ${styles.filterSubLabel}`}>Темы и сеттинг</span>
             <div className={styles.genreGrid}>
-              {ANIME_THEMES.map((tag) => {
-                const active = selectedTags.includes(tag.value);
+              {CATALOG_DISCOVERY_FILTERS.map((option) => {
+                const active = filters.discovery.includes(option.id);
                 return (
                   <button
-                    key={tag.value}
+                    key={option.id}
                     type="button"
                     aria-pressed={active}
                     className={active ? styles.genreSelected : styles.genreOption}
-                    onClick={() => toggleTag(tag.value)}
+                    onClick={() => toggleFilterList('discovery', option.id)}
                   >
-                    {tag.label}
+                    {option.label}
                     {active ? <span aria-hidden="true">✓</span> : null}
                   </button>
                 );
               })}
             </div>
 
-            <span className={`${styles.filterLabel} ${styles.filterSubLabel}`}>Аудитория</span>
+            <span className={`${styles.filterLabel} ${styles.filterSubLabel}`}>Студии</span>
             <div className={styles.genreGrid}>
-              {ANIME_AUDIENCES.map((tag) => {
-                const active = selectedTags.includes(tag.value);
+              {CATALOG_STUDIOS.map((studio) => {
+                const active = filters.studios.includes(studio.id);
                 return (
                   <button
-                    key={tag.value}
+                    key={studio.id}
                     type="button"
                     aria-pressed={active}
                     className={active ? styles.genreSelected : styles.genreOption}
-                    onClick={() => toggleTag(tag.value)}
+                    onClick={() => toggleFilterList('studios', studio.id)}
                   >
-                    {tag.label}
+                    {studio.label}
                     {active ? <span aria-hidden="true">✓</span> : null}
                   </button>
                 );
@@ -479,43 +465,20 @@ export default function SearchCatalogClient({
 
           <div className={styles.animeFilterSide}>
             <div className={styles.filterGroup}>
-              <span className={styles.filterLabel}>Формат</span>
+              <span className={styles.filterLabel}>Формат релиза</span>
               <div className={styles.compactChoiceGrid}>
-                {FORMAT_OPTIONS.map((option) => {
-                  const active = selectedFormat === option.value;
+                {CATALOG_FORMATS.map((option) => {
+                  const active = filters.format === option.value;
                   return (
                     <button
                       key={option.value}
                       type="button"
                       aria-pressed={active}
                       className={active ? styles.compactChoiceActive : styles.compactChoice}
-                      onClick={() => {
-                        setSelectedFormat(option.value);
-                        setPageState({ query, page: 1 });
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className={styles.filterGroup}>
-              <span className={styles.filterLabel}>Сезон выхода</span>
-              <div className={styles.compactChoiceGrid}>
-                {SEASON_OPTIONS.map((option) => {
-                  const active = selectedSeason === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      aria-pressed={active}
-                      className={active ? styles.compactChoiceActive : styles.compactChoice}
-                      onClick={() => {
-                        setSelectedSeason(option.value);
-                        setPageState({ query, page: 1 });
-                      }}
+                      onClick={() => patchFilters((current) => ({
+                        ...current,
+                        format: current.format === option.value ? null : option.value,
+                      }))}
                     >
                       {option.label}
                     </button>
@@ -527,53 +490,53 @@ export default function SearchCatalogClient({
             <div className={styles.filterGroup}>
               <span className={styles.filterLabel}>Статус</span>
               <div className={styles.statusChoices}>
-                {([
-                  ['any', 'Любой'],
-                  ['ongoing', 'Онгоинг'],
-                  ['finished', 'Завершено'],
-                  ['upcoming', 'Анонс'],
-                ] as const).map(([status, label]) => {
-                  const active = selectedStatus === status;
+                {CATALOG_STATUSES.map((option) => {
+                  const active = filters.status === option.value;
                   return (
                     <button
-                      key={status}
+                      key={option.value}
                       type="button"
                       aria-pressed={active}
                       className={active ? styles.compactChoiceActive : styles.compactChoice}
-                      onClick={() => {
-                        setSelectedStatus(status);
-                        setPageState({ query, page: 1 });
-                      }}
+                      onClick={() => patchFilters((current) => ({
+                        ...current,
+                        status: current.status === option.value ? null : option.value,
+                      }))}
                     >
-                      {label}
+                      {option.label}
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            <div ref={pickerRef} className={styles.filterPicker}>
-              <span className={styles.filterLabel}>Год</span>
-              <button
-                type="button"
-                className={styles.filterPickerTrigger}
-                aria-expanded={openPicker === 'year'}
-                aria-controls="catalog-year-options"
-                onClick={() => setOpenPicker((current) => current === 'year' ? null : 'year')}
-              >
-                {selectedYear ?? 'Любой год'}
-                <span aria-hidden="true">⌄</span>
-              </button>
-              {openPicker === 'year' && (
-                <div id="catalog-year-options" className={styles.filterPickerMenu} aria-label="Выбрать год выхода аниме">
-                  <button type="button" aria-pressed={selectedYear === null} onClick={() => { setSelectedYear(null); setPageState({ query, page: 1 }); setOpenPicker(null); }}>Любой год</button>
-                  {YEARS.map((year) => (
-                    <button key={year} type="button" aria-pressed={selectedYear === year} onClick={() => { setSelectedYear(year); setPageState({ query, page: 1 }); setOpenPicker(null); }}>
-                      {year}
+            <div className={styles.filterGroup}>
+              <span className={styles.filterLabel}>Аниме-сезон</span>
+              <SeasonYearPicker
+                value={filters.season}
+                onChange={(season) => patchFilters((current) => ({ ...current, season }))}
+              />
+            </div>
+
+            <div className={styles.filterGroup}>
+              <span className={styles.filterLabel}>Сортировка</span>
+              <div className={styles.sortChoices}>
+                {CATALOG_SORTS.map((option) => {
+                  const active = filters.sort === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={active}
+                      className={active ? styles.sortChoiceActive : styles.sortChoice}
+                      onClick={() => patchFilters((current) => ({ ...current, sort: option.value }))}
+                    >
+                      <strong>{option.label}</strong>
+                      <span>{option.hint}</span>
                     </button>
-                  ))}
-                </div>
-              )}
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
@@ -604,7 +567,7 @@ export default function SearchCatalogClient({
           <div className={`empty-state ${styles.assetEmpty}`}>
             <img className={styles.emptyMascot} src={view === 'saved' ? '/brand/illustrations/empty-favorites.webp' : '/brand/illustrations/empty-search.webp'} alt="" aria-hidden="true" />
             <strong>{view === 'saved' ? favorites.length === 0 ? 'Сохранённых пока нет' : 'Ничего не подходит под фильтры' : discoveryIntent?.isDiscovery ? 'Точных совпадений не нашли' : 'Ничего не найдено'}</strong>
-            <span>{view === 'saved' ? favorites.length === 0 ? 'Добавляй тайтлы в избранное — они появятся здесь.' : 'Попробуй убрать часть жанров, год или статус.' : discoveryIntent?.similarTo && discoveryMeta?.meta?.seedResolved === false ? `Не удалось уверенно распознать «${discoveryIntent.similarTo}». Попробуй другое написание.` : 'Попробуй изменить запрос, фильтры или настроение.'}</span>
+            <span>{view === 'saved' ? favorites.length === 0 ? 'Добавляй тайтлы в избранное — они появятся здесь.' : 'Попробуй убрать часть тегов, студию, сезон или статус.' : discoveryIntent?.similarTo && discoveryMeta?.meta?.seedResolved === false ? `Не удалось уверенно распознать «${discoveryIntent.similarTo}». Попробуй другое написание.` : 'Попробуй изменить запрос, фильтры или настроение.'}</span>
             <div className={styles.emptyActions}>
               {view === 'catalog' && discoveryIntent?.isDiscovery && closestQuery && closestQuery !== query && <button type="button" onClick={() => applySearchQuery(closestQuery)}>Показать ближайшие</button>}
               {(query || hasFilters) && <button type="button" className={styles.secondaryAction} onClick={() => { clearStructuredFilters(); setSelectedMood('any'); applySearchQuery(''); }}>Очистить</button>}
