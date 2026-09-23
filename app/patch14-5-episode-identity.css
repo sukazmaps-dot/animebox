@@ -1,0 +1,474 @@
+/* =========================================================
+   AnimeBox Patch 14.5 — Episode Identity
+
+   Episodes are a viewing path, not a spreadsheet.
+   Desktop = horizontal rail.
+   Mobile  = vertical timeline.
+   ========================================================= */
+
+.episode-list-shell {
+  --episode-line: rgba(204, 208, 219, .075);
+  --episode-line-soft: rgba(204, 208, 219, .045);
+  --episode-current: var(--ab-iris);
+  --episode-complete: #6bc8a5;
+}
+
+.episode-list__micro-heading {
+  color: var(--ab-muted-2);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: .025em;
+}
+
+/* ---------------------------------------------------------
+   SEASONS
+   Tabs are navigation, not glowing promo cards.
+   --------------------------------------------------------- */
+
+.episode-list__seasons {
+  margin-bottom: 18px !important;
+}
+
+.episode-list__season-tabs {
+  gap: 0 !important;
+  padding: 0 !important;
+  border-bottom: 1px solid var(--episode-line);
+}
+
+.episode-list__season-tab,
+.episode-list__season-tab[aria-selected='false'],
+.episode-list__season-tab[aria-selected='true'] {
+  min-width: 118px !important;
+  padding: 9px 12px 10px !important;
+  border: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--ab-muted) !important;
+  transform: none !important;
+}
+
+.episode-list__season-tab[aria-selected='true'] {
+  border-bottom-color: var(--ab-iris) !important;
+  color: var(--ab-text) !important;
+}
+
+.episode-list__season-tab > span:first-child {
+  font-weight: 680 !important;
+}
+
+.episode-list__season-tab > span:nth-child(2),
+.episode-list__season-tab > span:nth-child(3) {
+  color: var(--ab-muted-2) !important;
+}
+
+@media (hover:hover) and (pointer:fine) {
+  .episode-list__season-tab:hover {
+    background: rgba(255,255,255,.018) !important;
+    color: var(--ab-text-soft) !important;
+  }
+}
+
+/* ---------------------------------------------------------
+   GROUPS / LONG-RUNNING TITLES
+   Existing 50-episode chunking stays intact.
+   --------------------------------------------------------- */
+
+.episode-list__group-tabs {
+  gap: 0 !important;
+  padding: 0 0 1px !important;
+  border-bottom: 1px solid var(--episode-line-soft);
+}
+
+.episode-list__group-tab,
+.episode-list__group-tab[aria-selected='false'],
+.episode-list__group-tab[aria-selected='true'] {
+  padding: 7px 11px !important;
+  border: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--ab-muted-2) !important;
+}
+
+.episode-list__group-tab[aria-selected='true'] {
+  border-bottom-color: rgba(151,136,231,.72) !important;
+  color: var(--ab-text-soft) !important;
+}
+
+.episode-list__group-tab span {
+  font-weight: 620 !important;
+}
+
+.episode-list__meta {
+  margin: 0 0 10px !important;
+  color: var(--ab-muted-2) !important;
+  font-size: 10px !important;
+}
+
+/* ---------------------------------------------------------
+   DESKTOP EPISODE RAIL
+   --------------------------------------------------------- */
+
+.episode-list,
+.detail__episodes .episode-list {
+  display: flex !important;
+  grid-template-columns: none !important;
+  gap: 0 !important;
+  max-height: none !important;
+  padding: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  border-top: 1px solid var(--episode-line);
+  border-bottom: 1px solid var(--episode-line);
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: #303744 transparent;
+}
+
+.episode-list::-webkit-scrollbar,
+.detail__episodes .episode-list::-webkit-scrollbar {
+  width: auto !important;
+  height: 4px !important;
+}
+
+.episode-list::-webkit-scrollbar-thumb,
+.detail__episodes .episode-list::-webkit-scrollbar-thumb {
+  border-radius: 0 !important;
+  background: #303744 !important;
+}
+
+.episode-list__item,
+.episode-list__item:hover,
+.episode-list__item.is-current,
+.episode-list__item.is-watched,
+.episode-list__item.is-partial {
+  position: relative;
+  flex: 0 0 158px;
+  min-width: 158px;
+  min-height: 94px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-rows: 1fr auto;
+  align-items: center;
+  justify-items: stretch;
+  gap: 2px 9px;
+  padding: 13px 11px 14px;
+  border: 0 !important;
+  border-right: 1px solid var(--episode-line) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--ab-text-soft) !important;
+  text-align: left;
+  text-decoration: none;
+  transform: none !important;
+  scroll-snap-align: center;
+}
+
+.episode-list__item:last-child {
+  border-right: 0 !important;
+}
+
+.episode-list__marker {
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: 0;
+  width: 2px;
+  background: transparent;
+}
+
+.episode-list__number,
+.episode-list__item.is-watched .episode-list__number {
+  grid-row: 1;
+  grid-column: 1;
+  align-self: center;
+  color: #d8d6d1 !important;
+  background: none !important;
+  -webkit-text-fill-color: currentColor !important;
+  font-size: 27px !important;
+  font-variant-numeric: tabular-nums;
+  font-weight: 680 !important;
+  letter-spacing: -.04em;
+  line-height: 1;
+}
+
+.episode-list__copy {
+  grid-row: 1;
+  grid-column: 2;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.episode-list__label,
+.episode-list__item.is-current .episode-list__label {
+  overflow: hidden;
+  color: var(--ab-muted) !important;
+  font-size: 10.5px !important;
+  font-weight: 650 !important;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.episode-list__copy small {
+  overflow: hidden;
+  color: var(--ab-muted-2);
+  font-size: 9px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.episode-list__progress {
+  grid-row: 2;
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 2px;
+  overflow: hidden;
+  background: rgba(204,208,219,.08);
+}
+
+.episode-list__progress i {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--ab-iris);
+  transition: width 220ms var(--ab-ease-out);
+}
+
+.episode-list__check {
+  position: absolute !important;
+  top: 9px !important;
+  right: 9px !important;
+  color: var(--episode-complete) !important;
+  font-size: 10px !important;
+  font-weight: 760 !important;
+}
+
+.episode-list__item.is-current {
+  background:
+    linear-gradient(90deg, rgba(151,136,231,.085), transparent 84%) !important;
+}
+
+.episode-list__item.is-current .episode-list__marker {
+  background: var(--episode-current);
+}
+
+.episode-list__item.is-current .episode-list__number {
+  color: #eeeaff !important;
+}
+
+.episode-list__item.is-current .episode-list__label {
+  color: var(--ab-iris-strong) !important;
+}
+
+.episode-list__item.is-watched .episode-list__marker {
+  background: rgba(107,200,165,.55);
+}
+
+.episode-list__item.is-watched .episode-list__progress i {
+  background: var(--episode-complete);
+}
+
+.episode-list__item.is-watched .episode-list__label {
+  color: #94cbb6 !important;
+}
+
+.episode-list__item.is-partial .episode-list__number {
+  color: #e2dff0 !important;
+}
+
+.episode-list__item.is-partial .episode-list__label {
+  color: #aaa3c6 !important;
+}
+
+@media (hover:hover) and (pointer:fine) {
+  .episode-list__item:hover {
+    background: rgba(255,255,255,.018) !important;
+  }
+
+  .episode-list__item:hover .episode-list__number {
+    color: #fff !important;
+  }
+
+  .episode-list__item:hover .episode-list__label {
+    color: var(--ab-ember) !important;
+  }
+}
+
+/* ---------------------------------------------------------
+   EXTRA PARTS
+   --------------------------------------------------------- */
+
+.episode-list__extra,
+.episode-list__extra:hover {
+  border: 0 !important;
+  border-left: 2px solid var(--episode-line) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.episode-list__extra:hover {
+  border-left-color: var(--ab-ember) !important;
+  background: rgba(255,255,255,.015) !important;
+}
+
+/* ---------------------------------------------------------
+   MOBILE TIMELINE
+   --------------------------------------------------------- */
+
+@media (max-width: 768px) {
+  .episode-list__seasons {
+    margin-bottom: 14px !important;
+  }
+
+  .episode-list__season-tabs {
+    overflow-x: auto !important;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .episode-list__season-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .episode-list__season-tab,
+  .episode-list__season-tab[aria-selected='false'],
+  .episode-list__season-tab[aria-selected='true'] {
+    min-width: 104px !important;
+    padding: 8px 10px 9px !important;
+    scroll-snap-align: start;
+  }
+
+  .episode-list__season-tab > span:nth-child(2) {
+    max-width: 120px !important;
+  }
+
+  .episode-list__group-tabs {
+    scrollbar-width: none;
+  }
+
+  .episode-list__group-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .episode-list,
+  .detail__episodes .episode-list {
+    display: flex !important;
+    flex-direction: column !important;
+    max-height: min(58vh, 520px) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    border-top: 1px solid var(--episode-line) !important;
+    border-bottom: 1px solid var(--episode-line) !important;
+    scroll-snap-type: y proximity;
+    scroll-padding-block: 10px;
+  }
+
+  .episode-list__item,
+  .episode-list__item:hover,
+  .episode-list__item.is-current,
+  .episode-list__item.is-watched,
+  .episode-list__item.is-partial {
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+    min-height: 62px;
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) 18px;
+    grid-template-rows: 1fr 2px;
+    gap: 0 10px;
+    padding: 9px 8px 8px 11px;
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--episode-line-soft) !important;
+    scroll-snap-align: nearest;
+  }
+
+  .episode-list__item:last-child {
+    border-bottom: 0 !important;
+  }
+
+  .episode-list__marker {
+    top: 9px;
+    bottom: 9px;
+  }
+
+  .episode-list__number,
+  .episode-list__item.is-watched .episode-list__number {
+    grid-row: 1;
+    grid-column: 1;
+    font-size: 22px !important;
+  }
+
+  .episode-list__copy {
+    grid-row: 1;
+    grid-column: 2;
+    justify-content: center;
+  }
+
+  .episode-list__label,
+  .episode-list__item.is-current .episode-list__label {
+    font-size: 11px !important;
+  }
+
+  .episode-list__copy small {
+    font-size: 9.5px;
+  }
+
+  .episode-list__progress {
+    grid-row: 2;
+    grid-column: 1 / -1;
+  }
+
+  .episode-list__check {
+    position: static !important;
+    grid-row: 1;
+    grid-column: 3;
+    align-self: center;
+    justify-self: center;
+    font-size: 11px !important;
+  }
+
+  .episode-list__item.is-current {
+    background:
+      linear-gradient(90deg, rgba(151,136,231,.075), transparent 88%) !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .episode-list__season-tab,
+  .episode-list__season-tab[aria-selected='false'],
+  .episode-list__season-tab[aria-selected='true'] {
+    min-width: 96px !important;
+  }
+
+  .episode-list__item,
+  .episode-list__item:hover,
+  .episode-list__item.is-current,
+  .episode-list__item.is-watched,
+  .episode-list__item.is-partial {
+    grid-template-columns: 44px minmax(0, 1fr) 16px;
+    min-height: 60px;
+    padding-left: 9px;
+  }
+
+  .episode-list__number,
+  .episode-list__item.is-watched .episode-list__number {
+    font-size: 21px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .episode-list__progress i {
+    transition: none !important;
+  }
+}
