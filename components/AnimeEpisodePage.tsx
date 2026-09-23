@@ -446,7 +446,18 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           loadFallback(),
         ]);
 
-        if (!active || controller.signal.aborted) return;
+        if (!active) return;
+
+        if (controller.signal.aborted) {
+          if (!publishedAny) {
+            setSourceIdentity(identity);
+            setLoadingSources(false);
+            setSourceMessage(
+              'Проверка источников заняла слишком много времени. Попробуйте ещё раз.',
+            );
+          }
+          return;
+        }
 
         const kodikReady =
           kodikResult.status === 'fulfilled' && kodikResult.value === true;
