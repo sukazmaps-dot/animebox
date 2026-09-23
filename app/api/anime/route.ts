@@ -25,7 +25,10 @@ import type {
   AniListListOrder,
 } from '@/lib/anilist';
 import type { Anime } from '@/types/anime';
-import { consumeIpRateLimit, rateLimitResponse } from '@/lib/api-rate-limit';
+import {
+  privateNoStoreHeaders,
+  publicApiCacheHeaders,
+} from '@/lib/edge-cache-policy';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -33,15 +36,6 @@ export const dynamic = 'force-dynamic';
 export async function GET(
   request: NextRequest,
 ) {
-  try {
-    if (!(await consumeIpRateLimit(request, { scope: 'anime_catalog', limit: 90, windowSeconds: 60 }))) {
-      return rateLimitResponse();
-    }
-  } catch (error) {
-    console.error('[Anime catalog] rate limit unavailable', error);
-    return NextResponse.json({ error: 'Каталог временно недоступен.' }, { status: 503 });
-  }
-
   const params = request.nextUrl.searchParams;
 
   const requestedLimit = Number.parseInt(
@@ -210,12 +204,17 @@ export async function GET(
           : {}),
       },
       {
-        headers: {
-          'Cache-Control':
-            rawSearch?.trim()
-              ? 'private, max-age=60, stale-while-revalidate=120'
-              : 'public, max-age=300, s-maxage=900, stale-while-revalidate=3600',
-        },
+        headers: rawSearch?.trim()
+          ? publicApiCacheHeaders({
+              browserSeconds: 15,
+              edgeSeconds: 120,
+              staleWhileRevalidateSeconds: 300,
+            })
+          : publicApiCacheHeaders({
+              browserSeconds: 60,
+              edgeSeconds: 600,
+              staleWhileRevalidateSeconds: 1800,
+            }),
       },
     );
   } catch (error) {
@@ -225,7 +224,10 @@ export async function GET(
       {
         error: 'Не удалось загрузить список аниме',
       },
-      { status: 502 },
+      {
+        status: 502,
+        headers: privateNoStoreHeaders(),
+      },
     );
   }
 }
