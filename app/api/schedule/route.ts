@@ -315,6 +315,7 @@ export async function GET(
       },
       {
         status: 400,
+        headers: privateNoStoreHeaders(),
       },
     );
   }
@@ -330,6 +331,7 @@ export async function GET(
       },
       {
         status: 400,
+        headers: privateNoStoreHeaders(),
       },
     );
   }
