@@ -11,12 +11,19 @@ import {
 } from '@/lib/notifications-server';
 import { readJsonBody } from '@/lib/community-server';
 
+import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
     const { client, user } = await requireNotificationUser();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'notification_settings_write_ip', limit: 40, windowSeconds: 60 },
+      user: { scope: 'notification_settings_write_user', limit: 30, windowSeconds: 60 },
+    });
+    if (limited) return limited;
 
     const [
       settingsResult,
