@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { isPublicCacheableApiRequest } from '@/lib/edge-cache-policy';
+
 const CANONICAL_HOSTS = new Set([
   'youranimebox.com',
   'www.youranimebox.com',
@@ -59,13 +61,24 @@ function allowedBrowserOrigin(request: NextRequest, origin: string) {
   }
 }
 
-function withShieldHeaders(response: NextResponse, requestId: string, isApi: boolean) {
+function withShieldHeaders(
+  response: NextResponse,
+  requestId: string,
+  isApi: boolean,
+  forcePrivateApiCache = true,
+) {
   response.headers.set('X-AnimeBox-Request-Id', requestId);
   response.headers.set('X-AnimeBox-Shield', 'edge-v1');
 
   if (isApi) {
     response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
-    response.headers.set('Cache-Control', 'private, no-store');
+
+    if (forcePrivateApiCache) {
+      response.headers.set('Cache-Control', 'private, no-store');
+      response.headers.set('CDN-Cache-Control', 'no-store');
+      response.headers.set('Vercel-CDN-Cache-Control', 'no-store');
+      response.headers.set('Cloudflare-CDN-Cache-Control', 'no-store');
+    }
   }
 
   return response;
@@ -88,7 +101,7 @@ function jsonError(
     },
   );
 
-  return withShieldHeaders(response, requestId, true);
+  return withShieldHeaders(response, requestId, true, true);
 }
 
 function validContentLength(value: string | null) {
@@ -208,7 +221,12 @@ export function proxy(request: NextRequest) {
     },
   });
 
-  return withShieldHeaders(response, requestId, isApi);
+  return withShieldHeaders(
+    response,
+    requestId,
+    isApi,
+    !isPublicCacheableApiRequest(pathname, method),
+  );
 }
 
 export const config = {
