@@ -1,5 +1,5 @@
 import { ApiError, adminClient, failure, readBody, response } from '@/lib/community-server';
-import { requireAdmin, writeAdminAudit } from '@/lib/admin-server';
+import { requireAdmin, requireAdminMutation, writeAdminAudit } from '@/lib/admin-server';
 import { recordPaymentTransaction } from '@/lib/payments/service';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -35,7 +35,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { user, role } = await requireAdmin(['owner', 'admin']);
+    const { user, role } = await requireAdminMutation(request, ['owner', 'admin']);
     const body = await readBody(request);
     const action = typeof body.action === 'string' ? body.action.trim() : '';
     const claimId = typeof body.claimId === 'string' ? body.claimId.trim() : '';
