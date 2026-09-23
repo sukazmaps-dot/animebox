@@ -39,6 +39,8 @@ for (const [label, needle] of [
   ['progress bar', 'episode-list__progress'],
   ['human status completed', "'Завершено'"],
   ['human status current', "'Сейчас'"],
+  ['desktop episode jump', 'submitEpisodeJump'],
+  ['desktop jump input', 'episode-list__jump'],
 ]) {
   if (!episodeList.includes(needle)) {
     failures.push(`EpisodeList: missing ${label}.`);
@@ -60,7 +62,9 @@ if (!episodesApi.includes('getEpisodeWatchList') || !episodesApi.includes('progr
 }
 
 for (const [label, needle] of [
-  ['desktop horizontal rail', 'scroll-snap-type: x proximity'],
+  ['desktop navigator grid', 'grid-template-columns: repeat(auto-fill, minmax(205px, 1fr))'],
+  ['desktop vertical overflow', 'overflow-y: auto !important'],
+  ['desktop jump controls', '.episode-list__jump'],
   ['mobile vertical timeline', 'flex-direction: column !important'],
   ['current Iris marker', '.episode-list__item.is-current .episode-list__marker'],
   ['completed state', '.episode-list__item.is-watched'],
@@ -71,6 +75,10 @@ for (const [label, needle] of [
   if (!css.includes(needle)) {
     failures.push(`Episode Identity CSS: missing ${label}.`);
   }
+}
+
+if (episodeList.includes('canScrollGroupLeft') || episodeList.includes('canScrollGroupRight')) {
+  failures.push('EpisodeList: legacy desktop group-arrow state remains.');
 }
 
 if (failures.length) {
