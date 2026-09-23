@@ -21,6 +21,7 @@ export default function OnboardingPage() {
       typeof window === 'undefined'
         ? null
         : new URLSearchParams(window.location.search).get('next'),
+      '/profile',
     ),
   );
   const [username, setUsername] = useState('');
