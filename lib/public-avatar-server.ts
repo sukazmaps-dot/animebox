@@ -30,6 +30,11 @@ type PremiumSettingsRow = Record<string, unknown> & {
   user_id?: string;
 };
 
+export type PublicAppearancePreload = {
+  premiumSettings?: Record<string, unknown> | null;
+  entitlements?: readonly string[] | Set<string> | null;
+};
+
 function publicStorageUrl(
   admin: ReturnType<typeof adminClient>,
   path: string | null | undefined,
@@ -37,6 +42,56 @@ function publicStorageUrl(
   if (!path) return null;
   if (/^https?:\/\//i.test(path)) return null;
   return admin.storage.from('profile-media').getPublicUrl(path).data.publicUrl || null;
+}
+
+export function resolvePublicAppearancesFromPreloaded(
+  profiles: readonly PublicAvatarBaseProfile[],
+  preloadByUser: ReadonlyMap<string, PublicAppearancePreload>,
+): Map<string, PublicResolvedAppearance> {
+  const uniqueProfiles = [
+    ...new Map(profiles.map((profile) => [profile.id, profile])).values(),
+  ];
+  const result = new Map<string, PublicResolvedAppearance>();
+  if (!uniqueProfiles.length) return result;
+
+  const admin = adminClient();
+
+  for (const profile of uniqueProfiles) {
+    const preload = preloadByUser.get(profile.id);
+    const entitlements = new Set(
+      preload?.entitlements instanceof Set
+        ? [...preload.entitlements]
+        : preload?.entitlements ?? [],
+    );
+    const premiumStudioActive =
+      entitlements.has('profileStudio') &&
+      entitlements.has('premiumThemes');
+    const premiumMediaActive =
+      entitlements.has('animatedAvatar') || premiumStudioActive;
+    const studioSettings = preload?.premiumSettings
+      ? studioSettingsFromRow(preload.premiumSettings)
+      : null;
+
+    const appearance = resolveProfileAppearance({
+      baseAvatarPath: profile.avatar_path,
+      baseBannerPath: profile.banner_path ?? null,
+      premiumStudio: studioSettings,
+      premiumActive: premiumStudioActive,
+      premiumMediaActive,
+    });
+
+    result.set(profile.id, {
+      ...appearance,
+      avatarUrl:
+        publicStorageUrl(admin, appearance.avatarPath) || '/default-avatar.webp',
+      bannerUrl: publicStorageUrl(admin, appearance.bannerPath),
+      premiumBadge: entitlements.has('premiumBadge'),
+      premiumMediaActive,
+      premiumStudioActive,
+    });
+  }
+
+  return result;
 }
 
 /**
@@ -100,37 +155,16 @@ export async function resolvePublicAppearances(
     entitlementsByUser.set(row.user_id, set);
   }
 
+  const preloadByUser = new Map<string, PublicAppearancePreload>();
   for (const profile of uniqueProfiles) {
-    const entitlements = entitlementsByUser.get(profile.id) ?? new Set<string>();
-    const premiumStudioActive =
-      entitlements.has('profileStudio') && entitlements.has('premiumThemes');
-
-    // animatedAvatar is the explicit capability. studioActive stays as a
-    // backwards-compatible fallback for existing Premium grants.
-    const premiumMediaActive =
-      entitlements.has('animatedAvatar') || premiumStudioActive;
-
-    const rawSettings = settingsByUser.get(profile.id) ?? null;
-    const studioSettings = rawSettings ? studioSettingsFromRow(rawSettings) : null;
-
-    const appearance = resolveProfileAppearance({
-      baseAvatarPath: profile.avatar_path,
-      baseBannerPath: profile.banner_path ?? null,
-      premiumStudio: studioSettings,
-      premiumActive: premiumStudioActive,
-      premiumMediaActive,
-    });
-
-    result.set(profile.id, {
-      ...appearance,
-      avatarUrl:
-        publicStorageUrl(admin, appearance.avatarPath) || '/default-avatar.webp',
-      bannerUrl: publicStorageUrl(admin, appearance.bannerPath),
-      premiumBadge: entitlements.has('premiumBadge'),
-      premiumMediaActive,
-      premiumStudioActive,
+    preloadByUser.set(profile.id, {
+      premiumSettings: settingsByUser.get(profile.id) ?? null,
+      entitlements: entitlementsByUser.get(profile.id) ?? [],
     });
   }
 
-  return result;
+  return resolvePublicAppearancesFromPreloaded(
+    uniqueProfiles,
+    preloadByUser,
+  );
 }
