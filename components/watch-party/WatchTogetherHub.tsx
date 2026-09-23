@@ -237,7 +237,7 @@ export default function WatchTogetherHub() {
       if (controller.signal.aborted) return;
       setRooms(payload.rooms ?? []);
       setRoomsError('');
-    } catch (loadError) {
+    } catch {
       if (controller.signal.aborted) return;
       setRoomsError('Не удалось обновить список открытых комнат.');
     } finally {
