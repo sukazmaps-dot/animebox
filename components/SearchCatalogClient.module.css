@@ -689,3 +689,215 @@
     font-size: 10px !important;
   }
 }
+
+
+/* =========================================================
+   Patch 14.4 preview — Anime-native catalog controls
+   The catalogue is for anime seasons/formats, not a generic movie DB.
+   ========================================================= */
+
+.filterPanel {
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, .9fr);
+  align-items: start;
+  column-gap: clamp(26px, 3.2vw, 52px);
+  padding: 20px 22px 22px;
+  border: 0;
+  border-top: 1px solid rgba(204,208,219,.08);
+  border-bottom: 1px solid rgba(204,208,219,.08);
+  border-radius: 0;
+  background: transparent;
+}
+
+.filterPanelHead {
+  padding-bottom: 13px;
+  border-bottom: 1px solid rgba(204,208,219,.055);
+}
+
+.filterPanelHead strong {
+  font-size: 15px;
+  font-weight: 710;
+  letter-spacing: -.018em;
+}
+
+.filterPanelHead span {
+  max-width: 680px;
+  color: var(--ab-muted-2);
+  font-size: 10.5px;
+}
+
+.filterPanelHead > button {
+  color: var(--ab-ember);
+  font-weight: 650;
+}
+
+.filterLabel {
+  margin-bottom: 8px;
+  color: var(--ab-muted-2);
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: .02em;
+  text-transform: none;
+}
+
+.genreGrid {
+  gap: 0;
+  border-top: 1px solid rgba(204,208,219,.045);
+  border-left: 1px solid rgba(204,208,219,.045);
+}
+
+.genreOption,
+.genreSelected {
+  min-height: 37px;
+  justify-content: space-between;
+  padding: 0 11px;
+  border: 0;
+  border-right: 1px solid rgba(204,208,219,.045);
+  border-bottom: 1px solid rgba(204,208,219,.045);
+  border-radius: 0;
+  background: transparent;
+  color: #a8afbc;
+  font-size: 11px;
+  font-weight: 630;
+  box-shadow: none;
+}
+
+.genreOption:hover {
+  background: rgba(255,255,255,.016);
+  color: var(--ab-text-soft);
+}
+
+.genreSelected {
+  position: relative;
+  background: var(--ab-iris-faint);
+  color: #ddd7f7;
+  box-shadow: inset 2px 0 0 var(--ab-iris);
+}
+
+.genreSelected span {
+  color: var(--ab-iris-strong);
+}
+
+.animeFilterSide {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding-left: 18px;
+  border-left: 1px solid rgba(204,208,219,.055);
+}
+
+.compactChoiceGrid,
+.statusChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border-top: 1px solid rgba(204,208,219,.045);
+  border-left: 1px solid rgba(204,208,219,.045);
+}
+
+.compactChoice,
+.compactChoiceActive {
+  min-height: 35px;
+  padding: 0 10px;
+  border: 0;
+  border-right: 1px solid rgba(204,208,219,.045);
+  border-bottom: 1px solid rgba(204,208,219,.045);
+  border-radius: 0;
+  background: transparent;
+  color: #929baa;
+  font-size: 10.5px;
+  font-weight: 620;
+  cursor: pointer;
+}
+
+.compactChoice:hover {
+  background: rgba(255,255,255,.016);
+  color: var(--ab-text-soft);
+}
+
+.compactChoiceActive {
+  background: var(--ab-iris-faint);
+  color: #ddd7f7;
+  box-shadow: inset 0 -2px 0 var(--ab-iris);
+}
+
+.filterPickerTrigger {
+  min-height: 38px;
+  border: 0;
+  border-bottom: 1px solid rgba(204,208,219,.1);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ab-text-soft);
+}
+
+.filterPickerTrigger:hover,
+.filterPickerTrigger[aria-expanded="true"] {
+  border-bottom-color: rgba(151,136,231,.42);
+  background: transparent;
+}
+
+.filterPickerMenu {
+  border-radius: 6px;
+  background: #111721;
+}
+
+@media (min-width: 861px) {
+  .genreGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .filterPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .animeFilterSide {
+    padding-left: 0;
+    padding-top: 17px;
+    border-top: 1px solid rgba(204,208,219,.055);
+    border-left: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .filterPanel {
+    margin-inline: -12px;
+    padding: 16px 12px 18px;
+  }
+
+  .filterPanelHead {
+    gap: 10px;
+  }
+
+  .filterPanelHead strong {
+    font-size: 14px;
+  }
+
+  .filterPanelHead span {
+    font-size: 10px;
+  }
+
+  .genreGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .genreOption,
+  .genreSelected {
+    min-height: 39px;
+    font-size: 10.5px;
+  }
+
+  .compactChoiceGrid,
+  .statusChoices {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .compactChoice,
+  .compactChoiceActive {
+    min-height: 38px;
+    justify-content: center;
+    font-size: 10.5px;
+  }
+}
