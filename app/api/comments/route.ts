@@ -11,6 +11,7 @@ import { getSponsorStatuses } from '@/lib/sponsor-server';
 import { assertCanComment } from '@/lib/admin-server';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
 import { resolvePublicAppearances, type PublicResolvedAppearance } from '@/lib/public-avatar-server';
+import { enforceIpAndUserRateLimit, enforceIpRateLimit } from '@/lib/api-rate-limit';
 
 const MAX_COMMENT_LENGTH = 4000;
 
@@ -96,6 +97,13 @@ export async function GET(
   request: NextRequest,
 ) {
   try {
+    const limited = await enforceIpRateLimit(request, {
+      scope: 'comments_read_ip',
+      limit: 120,
+      windowSeconds: 60,
+    });
+    if (limited) return limited;
+
     const animeId =
       parsePositiveInteger(
         request.nextUrl.searchParams.get(
@@ -484,6 +492,12 @@ export async function POST(
         },
       );
     }
+
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'comments_write_ip', limit: 30, windowSeconds: 60 },
+      user: { scope: 'comments_write_user', limit: 10, windowSeconds: 60 },
+    });
+    if (limited) return limited;
 
     await assertCanComment(user.id);
 

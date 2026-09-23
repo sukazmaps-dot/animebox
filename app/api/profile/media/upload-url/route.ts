@@ -9,6 +9,7 @@ import {
   userClient,
 } from '@/lib/community-server';
 import { getEffectiveUserEntitlements } from '@/lib/entitlements-server';
+import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -87,6 +88,12 @@ function validateOwnedQuarantinePath(path: string, userId: string) {
 export async function POST(request: Request) {
   try {
     const { user } = await userClient();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'profile_media_write_ip', limit: 40, windowSeconds: 60 },
+      user: { scope: 'profile_media_write_user', limit: 24, windowSeconds: 60 },
+    });
+    if (limited) return limited;
+
     const body = await readBody(request);
     const scope = body.scope;
     const kind = body.kind;
@@ -139,6 +146,12 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const { user } = await userClient();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'profile_media_delete_ip', limit: 60, windowSeconds: 60 },
+      user: { scope: 'profile_media_delete_user', limit: 40, windowSeconds: 60 },
+    });
+    if (limited) return limited;
+
     const body = await readBody(request);
     const raw = Array.isArray(body.quarantinePaths) ? body.quarantinePaths : [];
     const paths = [...new Set(raw)]

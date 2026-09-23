@@ -21,6 +21,7 @@ import {
   type ProfileMediaCandidateGroup,
   type ProfileMediaPublishResult,
 } from '@/lib/profile-media-publish-server';
+import { enforceIpAndUserRateLimit, enforceUserRateLimit } from '@/lib/api-rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -339,6 +340,11 @@ function changedMediaGroups(
 export async function GET() {
   try {
     const { user } = await userClient();
+    const limited = await enforceUserRateLimit(user.id, {
+      scope: 'profile_editor_read_user', limit: 60, windowSeconds: 60,
+    });
+    if (limited) return limited;
+
     const admin = adminClient();
     const [profileResult, studioResult, entitlements] = await Promise.all([
       admin.from('profiles').select(PROFILE_COLUMNS).eq('id', user.id).single(),
@@ -374,6 +380,12 @@ export async function POST(request: Request) {
 
   try {
     const { user } = await userClient();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: { scope: 'profile_editor_write_ip', limit: 30, windowSeconds: 60 },
+      user: { scope: 'profile_editor_write_user', limit: 12, windowSeconds: 60 },
+    });
+    if (limited) return limited;
+
     const body = await readBody(request);
     const hasProfile = Object.prototype.hasOwnProperty.call(body, 'profile');
     const hasStudio = Object.prototype.hasOwnProperty.call(body, 'studio');
