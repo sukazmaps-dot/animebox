@@ -235,8 +235,16 @@ export async function POST(
      * Одноразовый nonce больше
      * использовать нельзя.
      */
-    cookieStore.delete(
+    cookieStore.set(
       'animebox_tg_nonce',
+      '',
+      {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/api/auth/telegram',
+        maxAge: 0,
+      },
     );
 
     const rawTelegramId =
