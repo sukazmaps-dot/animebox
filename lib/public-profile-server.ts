@@ -94,9 +94,7 @@ function toPublicStorageUrl(
 ) {
   if (!path) return null;
 
-  if (path.startsWith('http://') || path.startsWith('https://')) {
-    return path;
-  }
+  if (/^https?:\/\//i.test(path)) return null;
 
   return (
     admin.storage.from('profile-media').getPublicUrl(path).data.publicUrl ||
