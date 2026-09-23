@@ -9,6 +9,7 @@ import {
   pageItems,
 } from '@/lib/provider-episodes';
 import { extractHlsVideos } from '@/lib/anilibria';
+import { enforceIpRateLimit } from '@/lib/api-rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -19,6 +20,11 @@ const API_BASES = [
 ];
 
 export async function GET(request: NextRequest) {
+  const limited = await enforceIpRateLimit(request, {
+    scope: 'anilibria_lookup_ip', limit: 120, windowSeconds: 60,
+  });
+  if (limited) return limited;
+
   const slug = request.nextUrl.searchParams.get('slug') || '';
   const episode = Number(request.nextUrl.searchParams.get('episode'));
 

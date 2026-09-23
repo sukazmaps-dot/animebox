@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { enforceIpRateLimit } from '@/lib/api-rate-limit';
 
 const ALLOHA_TOKEN = process.env.ALLOHA_API_TOKEN;
 
 export async function GET(request: NextRequest) {
+  const limited = await enforceIpRateLimit(request, {
+    scope: 'alloha_lookup_ip', limit: 120, windowSeconds: 60,
+  });
+  if (limited) return limited;
+
   const shikimoriId = request.nextUrl.searchParams.get('shikimoriId');
 
   if (!shikimoriId) {
