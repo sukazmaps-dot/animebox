@@ -56,10 +56,6 @@ export async function syncSeoEpisodeIndex(
   const admin = adminClient();
   const now = new Date().toISOString();
 
-  // Keep the timeline table's FK target present before we opportunistically
-  // seed stable player URLs for Google video discovery.
-  await ensureAnime(anime.id);
-
   const kodikPlayerBase =
     availability.providers.find(
       (provider) =>
@@ -68,6 +64,12 @@ export async function syncSeoEpisodeIndex(
         typeof provider.playerUrl === 'string' &&
         provider.playerUrl.trim(),
     )?.playerUrl ?? null;
+  if (kodikPlayerBase) {
+    // Keep the timeline table's FK target present before we opportunistically
+    // seed stable player URLs for Google video discovery.
+    await ensureAnime(anime.id);
+  }
+
   const thumbnailUrl = thumbnailFor(anime);
   const provider = providerFor(availability);
 
