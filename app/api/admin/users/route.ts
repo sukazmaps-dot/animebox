@@ -1,5 +1,5 @@
 import { ApiError, adminClient, failure, readBody, response } from '@/lib/community-server';
-import { adminRoleFor, requireAdmin, writeAdminAudit } from '@/lib/admin-server';
+import { adminRoleFor, assertCanModerateTarget, requireAdmin, requireAdminMutation, writeAdminAudit } from '@/lib/admin-server';
 import { resolveSponsorTier } from '@/lib/sponsor';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -37,7 +37,9 @@ export async function GET(request: Request) {
       ids.length
         ? admin.from('sponsor_directory_v3').select('user_id,total_stars').in('user_id', ids)
         : Promise.resolve({ data: [], error: null }),
-      admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+      role === 'moderator'
+        ? Promise.resolve({ data: { users: [] }, error: null })
+        : admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
     ]);
     if (controls.error) throw controls.error;
     if (sponsors.error) throw sponsors.error;
@@ -55,8 +57,9 @@ export async function GET(request: Request) {
       const totalStars = sponsorById.get(profile.id) ?? 0;
       return {
         ...profile,
+        telegram_id: role === 'moderator' ? null : profile.telegram_id,
         avatarUrl,
-        email: authById.get(profile.id)?.email ?? null,
+        email: role === 'moderator' ? null : authById.get(profile.id)?.email ?? null,
         status: control?.status ?? 'active',
         note: control?.note ?? null,
         expiresAt: control?.expires_at ?? null,
@@ -74,7 +77,7 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const { user: actor, role } = await requireAdmin(['owner', 'admin']);
+    const { user: actor, role } = await requireAdminMutation(request, ['owner', 'admin']);
     const body = await readBody(request);
     const userId = typeof body.userId === 'string' ? body.userId : '';
     const status = typeof body.status === 'string' ? body.status : '';
@@ -85,9 +88,7 @@ export async function PATCH(request: Request) {
       throw new ApiError(400, 'Некорректные параметры ограничения.');
     }
     if (expiresAt && !Number.isFinite(Date.parse(expiresAt))) throw new ApiError(400, 'Некорректная дата окончания.');
-    const targetRole = adminRoleFor(userId);
-    if (targetRole === 'owner' && userId !== actor.id) throw new ApiError(403, 'Нельзя изменять другого владельца.');
-    if (targetRole && role !== 'owner') throw new ApiError(403, 'Только владелец может изменять администратора.');
+    assertCanModerateTarget(actor.id, role, userId);
 
     const admin = adminClient();
     const { data: before, error: beforeError } = await admin
@@ -115,6 +116,7 @@ export async function PATCH(request: Request) {
       targetId: userId,
       reason: note,
       details: { before: before ?? { status: 'active' }, after: { status, expiresAt } },
+      request,
     });
 
     return response({ success: true });
