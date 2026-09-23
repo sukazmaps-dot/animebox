@@ -110,6 +110,30 @@ function isoDuration(minutes?: number | null): string | undefined {
   return `PT${Math.max(1, Math.round(minutes))}M`;
 }
 
+function isoDurationMs(durationMs?: number | null): string | undefined {
+  if (
+    !durationMs ||
+    !Number.isFinite(durationMs) ||
+    durationMs < 1_000 ||
+    durationMs > 28_800_000
+  ) {
+    return undefined;
+  }
+
+  return `PT${Math.max(1, Math.round(durationMs / 1000))}S`;
+}
+
+function safeHttpsUrl(value?: string | null): string | undefined {
+  if (!value) return undefined;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Schema.org graph for a confirmed playable episode.
  *
@@ -123,13 +147,22 @@ export function buildEpisodeVideoStructuredData(
   anime: Anime,
   episode: number,
   canonicalUrl: string,
-  options: { uploadDate?: string | null } = {},
+  options: {
+    uploadDate?: string | null;
+    durationMs?: number | null;
+    contentUrl?: string | null;
+    embedUrl?: string | null;
+  } = {},
 ) {
   const identity = getAnimeSeoIdentity(anime);
   const name = `${identity.pageHeading} — ${episode} серия`;
   const thumbnail = episodeThumbnail(anime);
   const description = buildEpisodeSeoDescription(anime, episode, true);
-  const duration = isoDuration(anime.duration);
+  const duration =
+    isoDurationMs(options.durationMs) ??
+    isoDuration(anime.duration);
+  const contentUrl = safeHttpsUrl(options.contentUrl);
+  const embedUrl = safeHttpsUrl(options.embedUrl);
   const animeUrl = canonicalUrl.split('/episode/')[0];
 
   const seriesId = `${animeUrl}#series`;
@@ -181,6 +214,8 @@ export function buildEpisodeVideoStructuredData(
     duration,
     inLanguage: 'ru-RU',
     ...(options.uploadDate ? { uploadDate: options.uploadDate } : {}),
+    ...(contentUrl ? { contentUrl } : {}),
+    ...(!contentUrl && embedUrl ? { embedUrl } : {}),
     isPartOf: { '@id': episodeId },
     potentialAction: {
       '@type': 'WatchAction',
