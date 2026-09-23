@@ -47,8 +47,14 @@ type BaseMediaEditorState = {
   transform: PremiumMediaTransform;
 };
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const MAX_SOURCE_FILE_SIZE = 16 * 1024 * 1024;
+const ALLOWED_TYPES = new Set([
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+]);
+const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp']);
 
 
 function normalizedTab(value: string | null | undefined): EditorTab {
@@ -81,7 +87,9 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [baseMediaEditor, setBaseMediaEditor] = useState<BaseMediaEditorState | null>(null);
   const [baseMediaProcessing, setBaseMediaProcessing] = useState(false);
-  const baseMediaObjectUrlRef = useRef<string | null>(null);
+  const [baseMediaOpening, setBaseMediaOpening] = useState<'avatar' | 'banner' | null>(null);
+  const [baseMediaError, setBaseMediaError] = useState('');
+  const baseMediaRequestRef = useRef(0);
   const [removeAvatar, setRemoveAvatar] = useState(false);
   const [removeBanner, setRemoveBanner] = useState(false);
   const [premiumSettings, setPremiumSettings] = useState<PremiumStudioSettings | null>(null);
@@ -208,12 +216,6 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     };
   }, [baseMediaEditor, baseMediaProcessing]);
 
-  useEffect(() => () => {
-    if (baseMediaObjectUrlRef.current) {
-      URL.revokeObjectURL(baseMediaObjectUrlRef.current);
-    }
-  }, []);
-
   function switchTab(tab: EditorTab) {
     setActiveTab(tab);
     setError('');
@@ -223,66 +225,92 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   }
 
   function validateFile(file: File) {
-    if (!ALLOWED_TYPES.has(file.type)) return 'Поддерживаются JPG, PNG и WEBP.';
-    if (file.size > MAX_FILE_SIZE) return 'Файл должен быть не больше 5 МБ.';
+    const mime = file.type.trim().toLowerCase();
+    const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+    const browserDidNotProvideMime =
+      !mime || mime === 'application/octet-stream';
+
+    if (
+      !ALLOWED_TYPES.has(mime) &&
+      !(browserDidNotProvideMime && ALLOWED_EXTENSIONS.has(extension))
+    ) {
+      return 'Поддерживаются JPG, PNG и WebP.';
+    }
+
+    if (file.size < 1) {
+      return 'Выбранный файл пустой.';
+    }
+
+    if (file.size > MAX_SOURCE_FILE_SIZE) {
+      return 'Исходное изображение должно быть не больше 16 МБ. После кадрирования AnimeBox сам уменьшит его.';
+    }
+
     return null;
   }
 
-  function releaseBaseMediaEditorUrl(
-    expectedUrl?: string | null,
-    defer = false,
-  ) {
-    const current = baseMediaObjectUrlRef.current;
-    if (!current) return;
-    if (expectedUrl && current !== expectedUrl) return;
+  function readFileAsDataUrl(file: File) {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
 
-    baseMediaObjectUrlRef.current = null;
+      reader.onload = () => {
+        if (typeof reader.result !== 'string') {
+          reject(new Error('Не удалось прочитать выбранное изображение.'));
+          return;
+        }
+        resolve(reader.result);
+      };
 
-    const revoke = () => URL.revokeObjectURL(current);
-    if (defer) {
-      window.requestAnimationFrame(revoke);
-    } else {
-      revoke();
-    }
-  }
+      reader.onerror = () =>
+        reject(new Error('Не удалось прочитать выбранное изображение.'));
+      reader.onabort = () =>
+        reject(new Error('Чтение изображения было отменено.'));
 
-  function closeBaseMediaEditor() {
-    if (baseMediaProcessing) return;
-    const src = baseMediaEditor?.src ?? null;
-    setBaseMediaEditor(null);
-    releaseBaseMediaEditorUrl(src, true);
+      reader.readAsDataURL(file);
+    });
   }
 
   function decodePreviewUrl(src: string) {
     return new Promise<void>((resolve, reject) => {
       const image = new Image();
-      image.onload = () => resolve();
-      image.onerror = () => reject(new Error('Браузер не смог открыть выбранное изображение.'));
+      image.decoding = 'async';
+      image.onload = () => {
+        if (!image.naturalWidth || !image.naturalHeight) {
+          reject(new Error('У изображения некорректный размер.'));
+          return;
+        }
+        resolve();
+      };
+      image.onerror = () =>
+        reject(new Error('Браузер не смог открыть выбранное изображение.'));
       image.src = src;
     });
   }
 
+  function closeBaseMediaEditor() {
+    if (baseMediaProcessing) return;
+    setBaseMediaEditor(null);
+  }
+
   async function stageMedia(kind: 'avatar' | 'banner', file?: File) {
-    if (!file || baseMediaProcessing) return;
+    if (!file || baseMediaProcessing || baseMediaOpening) return;
+
     const message = validateFile(file);
     if (message) {
-      setError(message);
+      setBaseMediaError(message);
       return;
     }
 
+    const requestId = ++baseMediaRequestRef.current;
+    setBaseMediaOpening(kind);
+    setBaseMediaError('');
     setError('');
     setSaved('');
-    releaseBaseMediaEditorUrl();
-
-    const src = URL.createObjectURL(file);
-    baseMediaObjectUrlRef.current = src;
 
     try {
+      const src = await readFileAsDataUrl(file);
       await decodePreviewUrl(src);
 
-      if (baseMediaObjectUrlRef.current !== src) {
-        return;
-      }
+      if (baseMediaRequestRef.current !== requestId) return;
 
       setBaseMediaEditor({
         kind,
@@ -291,12 +319,17 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         transform: { x: 50, y: 50, zoom: 1 },
       });
     } catch (previewError) {
-      releaseBaseMediaEditorUrl(src);
-      setError(
+      if (baseMediaRequestRef.current !== requestId) return;
+
+      setBaseMediaError(
         previewError instanceof Error
           ? previewError.message
           : 'Не удалось открыть выбранное изображение.',
       );
+    } finally {
+      if (baseMediaRequestRef.current === requestId) {
+        setBaseMediaOpening(null);
+      }
     }
   }
 
@@ -305,6 +338,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     if (!editor || baseMediaProcessing) return;
 
     setBaseMediaProcessing(true);
+    setBaseMediaError('');
     setError('');
 
     try {
@@ -327,15 +361,14 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         setSaved('Баннер подогнан и оптимизирован — нажми «Сохранить всё».');
       }
 
-      const editorSrc = editor.src;
       setBaseMediaEditor(null);
-      releaseBaseMediaEditorUrl(editorSrc, true);
     } catch (requestError) {
-      setError(
+      const message =
         requestError instanceof Error
           ? requestError.message
-          : 'Не удалось подготовить изображение.',
-      );
+          : 'Не удалось подготовить изображение.';
+      setBaseMediaError(message);
+      setError(message);
     } finally {
       setBaseMediaProcessing(false);
     }
@@ -578,7 +611,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           <div className="profile-editor-v13__header-actions">
             {dirty && <small>Есть несохранённые изменения</small>}
             <Link href="/profile">← В профиль</Link>
-            <button type="button" disabled={!dirty || saving || premiumBusy || baseMediaProcessing} onClick={() => void saveProfile()}>
+            <button type="button" disabled={!dirty || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)} onClick={() => void saveProfile()}>
               {saving ? 'Сохраняем…' : dirty ? 'Сохранить всё' : 'Сохранено'}
             </button>
           </div>
@@ -652,12 +685,12 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                     <div className="profile-editor-v13__banner-editor">
                       {displayedBanner ? <img src={displayedBanner} alt="Предпросмотр баннера" /> : <div>ANIMEBOX PROFILE</div>}
                       <div className="profile-editor-v13__media-actions">
-                        <label>
-                          Сменить и подогнать
+                        <label aria-busy={baseMediaOpening === 'banner'}>
+                          {baseMediaOpening === 'banner' ? 'Открываем…' : 'Сменить и подогнать'}
                           <input
                             hidden
                             type="file"
-                            accept="image/jpeg,image/png,image/webp"
+                            accept="image/jpeg,image/jpg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
                             onChange={(event) => {
                               void stageMedia('banner', event.target.files?.[0]);
                               event.currentTarget.value = '';
@@ -674,14 +707,14 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                       <img src={displayedAvatar} alt="Предпросмотр аватара" />
                       <div>
                         <strong>Аватар профиля</strong>
-                        <small>JPG, PNG или WEBP · до 5 МБ · после выбора откроется кадрирование</small>
+                        <small>JPG, PNG или WebP · исходник до 16 МБ · после кадрирования AnimeBox сам создаст лёгкий WebP</small>
                         <div className="profile-editor-v13__media-actions is-inline">
-                          <label>
-                            Выбрать и кадрировать
+                          <label aria-busy={baseMediaOpening === 'avatar'}>
+                            {baseMediaOpening === 'avatar' ? 'Открываем…' : 'Выбрать и кадрировать'}
                             <input
                               hidden
                               type="file"
-                              accept="image/jpeg,image/png,image/webp"
+                              accept="image/jpeg,image/jpg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
                               onChange={(event) => {
                                 void stageMedia('avatar', event.target.files?.[0]);
                                 event.currentTarget.value = '';
@@ -695,6 +728,12 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                       </div>
                     </div>
                   </div>
+
+                  {baseMediaError && (
+                    <div className="profile-editor-v13__media-error" role="alert">
+                      {baseMediaError}
+                    </div>
+                  )}
 
                   {(premiumAvatarOverride || premiumBannerOverride) && (
                     <div className="profile-editor-v17__appearance-status">
@@ -761,7 +800,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
         <div className="profile-editor-v13__mobile-save">
           <Link href="/profile">Отмена</Link>
-          <button type="button" disabled={!dirty || saving || premiumBusy || baseMediaProcessing} onClick={() => void saveProfile()}>
+          <button type="button" disabled={!dirty || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)} onClick={() => void saveProfile()}>
             {saving ? 'Сохраняем…' : 'Сохранить изменения'}
           </button>
         </div>
