@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 
 import {
   filterKodikResultsForEpisode,
@@ -39,8 +39,13 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const signal = AbortSignal.any([
+      request.signal,
+      AbortSignal.timeout(6_500),
+    ]);
     const results = await searchKodikByShikimoriId(shikimoriId, {
       noStore: episode != null,
+      signal,
     });
     const filtered =
       episode == null
@@ -79,20 +84,24 @@ export async function GET(request: NextRequest) {
       const animeId = Number(animeIdParam);
 
       if (Number.isSafeInteger(animeId) && animeId > 0) {
-        try {
-          const anime = await resolveAnimeRoute(String(animeId));
-          const expectedMalId = Number(anime?.idMal ?? anime?.mal_id ?? 0);
+        const playerUrl = translations[0].url;
 
-          if (anime && expectedMalId === shikimoriId) {
-            await recordEpisodePlayerUrl({
-              animeId,
-              episode,
-              playerUrl: translations[0].url,
-            });
+        after(async () => {
+          try {
+            const anime = await resolveAnimeRoute(String(animeId));
+            const expectedMalId = Number(anime?.idMal ?? anime?.mal_id ?? 0);
+
+            if (anime && expectedMalId === shikimoriId) {
+              await recordEpisodePlayerUrl({
+                animeId,
+                episode,
+                playerUrl,
+              });
+            }
+          } catch (cacheError) {
+            console.warn('[Kodik] Video SEO player cache skipped:', cacheError);
           }
-        } catch (cacheError) {
-          console.warn('[Kodik] Video SEO player cache skipped:', cacheError);
-        }
+        });
       }
     }
 
