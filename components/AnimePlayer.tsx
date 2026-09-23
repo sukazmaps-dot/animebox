@@ -486,6 +486,7 @@ export default function AnimePlayer({
   const currentAttemptId = `${currentCandidateKey}::${playerAttempt}`;
 
   const trackableNativeVideo = !isIframe && Boolean(videoLink);
+  const smartSeekSupported = isKodik || trackableNativeVideo;
 
   const trackPlayerEvent = useCallback((
     eventName: Parameters<typeof trackProductClientEvent>[0],
@@ -744,10 +745,13 @@ export default function AnimePlayer({
       origin?: string | null;
     }) => {
       markConfirmedPlaybackStart('timeupdate');
-      latestPlaybackPositionSecondsRef.current = Math.max(
+
+      const positionSeconds = Math.max(
         0,
         Number.isFinite(sample.positionSeconds) ? sample.positionSeconds : 0,
       );
+
+      latestPlaybackPositionSecondsRef.current = positionSeconds;
 
       const resumeGate = resumeGateRef.current;
       if (resumeGate) {
@@ -768,6 +772,51 @@ export default function AnimePlayer({
       persistLocalProgress(sample);
       serverWatchSample(sample);
 
+      const opening = timeline?.opening;
+      const shouldShowOpeningSkip = Boolean(
+        !watchTogetherMode &&
+        smartSeekSupported &&
+        opening &&
+        positionSeconds >= opening.startMs / 1000 &&
+        positionSeconds < opening.endMs / 1000,
+      );
+
+      setSkipOpeningVisible(shouldShowOpeningSkip);
+
+      if (
+        !watchTogetherMode &&
+        !autoNextCancelled &&
+        !endScreenOpen &&
+        !endingPromptOpen &&
+        hasNext &&
+        onEnded
+      ) {
+        const durationSeconds =
+          sample.durationSeconds != null &&
+          Number.isFinite(sample.durationSeconds) &&
+          sample.durationSeconds > 0
+            ? sample.durationSeconds
+            : timeline?.durationMs
+              ? timeline.durationMs / 1000
+              : null;
+
+        const endingTriggerSeconds =
+          timeline?.ending?.startMs != null
+            ? timeline.ending.startMs / 1000
+            : durationSeconds != null
+              ? Math.max(0, durationSeconds - 10)
+              : null;
+
+        if (
+          endingTriggerSeconds != null &&
+          positionSeconds >= endingTriggerSeconds &&
+          (durationSeconds == null || positionSeconds < durationSeconds - 0.5)
+        ) {
+          setEndingPromptOpen(true);
+          setEndingNextSeconds(AUTO_NEXT_COUNTDOWN_SECONDS);
+        }
+      }
+
       if (
         !watchTogetherMode &&
         !playbackQualifiedRef.current &&
@@ -779,13 +828,58 @@ export default function AnimePlayer({
       }
     },
     [
+      autoNextCancelled,
+      endScreenOpen,
+      endingPromptOpen,
+      hasNext,
       markConfirmedPlaybackStart,
+      onEnded,
       onPlaybackQualified,
       persistLocalProgress,
       serverWatchSample,
+      smartSeekSupported,
+      timeline,
       watchTogetherMode,
     ],
   );
+
+  const skipOpening = useCallback(() => {
+    const opening = timeline?.opening;
+    if (!opening || !smartSeekSupported || watchTogetherMode) return;
+
+    const fromSeconds = latestPlaybackPositionSecondsRef.current;
+    const targetSeconds = opening.endMs / 1000;
+
+    watchSession.onProviderSkip({
+      kind: 'opening',
+      atSeconds: fromSeconds,
+      durationSeconds:
+        isKodik
+          ? kodikPlayerRef.current?.getState().durationSeconds ?? null
+          : videoRef.current && Number.isFinite(videoRef.current.duration)
+            ? videoRef.current.duration
+            : null,
+      origin: typeof window !== 'undefined' ? window.location.origin : null,
+    });
+
+    if (isKodik) {
+      kodikPlayerRef.current?.seek(targetSeconds);
+    } else if (videoRef.current) {
+      try {
+        videoRef.current.currentTime = targetSeconds;
+      } catch {
+        return;
+      }
+    }
+
+    setSkipOpeningVisible(false);
+  }, [isKodik, smartSeekSupported, timeline, watchSession, watchTogetherMode]);
+
+  const cancelEndingAutoNext = useCallback(() => {
+    setAutoNextCancelled(true);
+    setEndingPromptOpen(false);
+    setEndingNextSeconds(null);
+  }, []);
 
   const continueFromEndScreen = useCallback(() => {
     if (!hasNext || !onEnded) return;
@@ -820,13 +914,18 @@ export default function AnimePlayer({
       return;
     }
 
+    setEndingPromptOpen(false);
+    setEndingNextSeconds(null);
     setEndScreenOpen(true);
     setAutoNextSeconds(
-      hasNext && onEnded ? AUTO_NEXT_COUNTDOWN_SECONDS : null,
+      hasNext && onEnded && !autoNextCancelled
+        ? AUTO_NEXT_COUNTDOWN_SECONDS
+        : null,
     );
   }, [
     animeId,
     applyResumeTarget,
+    autoNextCancelled,
     episodeNumber,
     hasNext,
     onEnded,
@@ -864,10 +963,49 @@ export default function AnimePlayer({
   ]);
 
   useEffect(() => {
+    if (
+      !endingPromptOpen ||
+      endingNextSeconds == null ||
+      watchTogetherMode ||
+      !hasNext ||
+      !onEnded
+    ) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      if (endingNextSeconds <= 0) {
+        setEndingPromptOpen(false);
+        setEndingNextSeconds(null);
+        void watchSession.flushProgress().catch(() => undefined);
+        onEnded();
+        return;
+      }
+
+      setEndingNextSeconds((seconds) =>
+        seconds == null ? null : Math.max(0, seconds - 1),
+      );
+    }, endingNextSeconds <= 0 ? 0 : 1_000);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    endingNextSeconds,
+    endingPromptOpen,
+    hasNext,
+    onEnded,
+    watchSession,
+    watchTogetherMode,
+  ]);
+
+  useEffect(() => {
     endedFlowRef.current = false;
     queueMicrotask(() => {
       setEndScreenOpen(false);
       setAutoNextSeconds(null);
+      setSkipOpeningVisible(false);
+      setEndingPromptOpen(false);
+      setEndingNextSeconds(null);
+      setAutoNextCancelled(false);
     });
   }, [animeId, episodeNumber]);
 
@@ -1838,6 +1976,10 @@ export default function AnimePlayer({
     endedFlowRef.current = false;
     setEndScreenOpen(false);
     setAutoNextSeconds(null);
+    setSkipOpeningVisible(false);
+    setEndingPromptOpen(false);
+    setEndingNextSeconds(null);
+    setAutoNextCancelled(false);
     playRequestAtRef.current = performance.now();
     setPlayerError(null);
     setPlayerFailureKind(null);
