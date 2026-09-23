@@ -36,6 +36,8 @@ export default function TelegramPromoCard({
   const impressionSentRef = useRef(false);
   const [ready, setReady] = useState(false);
   const [hidden, setHidden] = useState(false);
+  const [artSource, setArtSource] = useState('/brand/telegram-cta.webp');
+  const [artHidden, setArtHidden] = useState(false);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -147,15 +149,33 @@ export default function TelegramPromoCard({
 
       <div className="telegram-growth-card__aurora" aria-hidden="true" />
 
-      <div className="telegram-growth-card__art" aria-hidden="true">
-        <Image
-          src="/brand/telegram-cta.webp"
-          alt=""
-          width={420}
-          height={300}
-          sizes={community ? '(max-width: 760px) 300px, 420px' : '180px'}
-          loading="lazy"
-        />
+      <div
+        className={`telegram-growth-card__art ${artHidden ? 'is-fallback' : ''}`}
+        aria-hidden="true"
+      >
+        {!artHidden ? (
+          <Image
+            src={artSource}
+            alt=""
+            width={420}
+            height={300}
+            sizes={community ? '(max-width: 760px) 300px, 420px' : '180px'}
+            loading="lazy"
+            unoptimized
+            onError={() => {
+              if (artSource !== '/backgrounds/telegram-promo.webp') {
+                setArtSource('/backgrounds/telegram-promo.webp');
+                return;
+              }
+
+              setArtHidden(true);
+            }}
+          />
+        ) : (
+          <span className="telegram-growth-card__art-fallback">
+            <Icon name="telegram" />
+          </span>
+        )}
       </div>
 
       <div className="telegram-growth-card__content">
