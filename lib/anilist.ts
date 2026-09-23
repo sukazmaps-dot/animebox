@@ -98,11 +98,13 @@ export type GetAnimesOptions = {
   limit?: number;
   page?: number;
   order?: AniListListOrder;
-  status?: 'ongoing' | 'finished';
+  status?: 'ongoing' | 'finished' | 'upcoming';
   search?: string;
   genre?: number | string;
   genres?: Array<number | string>;
   year?: number;
+  format?: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL';
+  season?: 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL';
 };
 
 // AniList response is normalized by mapMediaToAnime below.
@@ -129,6 +131,8 @@ const LIST_QUERY = `
     $status: MediaStatus
     $search: String
     $genres: [String]
+    $formats: [MediaFormat]
+    $season: MediaSeason
     $seasonYear: Int
   ) {
     Page(
@@ -137,13 +141,14 @@ const LIST_QUERY = `
     ) {
       media(
         type: ANIME
-        format_in: [TV, TV_SHORT, MOVIE, OVA, ONA, SPECIAL]
+        format_in: $formats
         countryOfOrigin: JP
         isAdult: false
         sort: $sort
         status: $status
         search: $search
         genre_in: $genres
+        season: $season
         seasonYear: $seasonYear
       ) {
         id
@@ -387,6 +392,8 @@ export async function getAnimes(
     genre,
     genres,
     year,
+    format,
+    season,
   } = options;
 
   const sort =
@@ -431,7 +438,9 @@ export async function getAnimes(
                   ? 'RELEASING'
                   : status === 'finished'
                     ? 'FINISHED'
-                    : undefined,
+                    : status === 'upcoming'
+                      ? 'NOT_YET_RELEASED'
+                      : undefined,
 
               search:
                 search?.trim() ||
@@ -449,6 +458,12 @@ export async function getAnimes(
                   .filter(Boolean);
                 return normalized.length > 0 ? normalized : undefined;
               })(),
+
+              formats: format
+                ? [format]
+                : ['TV', 'TV_SHORT', 'MOVIE', 'OVA', 'ONA', 'SPECIAL'],
+
+              season: season || undefined,
 
               seasonYear:
                 Number.isSafeInteger(year) && Number(year) >= 1940
