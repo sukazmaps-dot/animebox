@@ -1,6 +1,7 @@
 import 'server-only';
 import { optionalServerSecret } from '@/lib/env/server';
 
+import { ApiError } from '@/lib/community-server';
 import { createClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 
@@ -26,6 +27,17 @@ export function notificationResponse(data: unknown, status = 200) {
 }
 
 export function notificationFailure(error: unknown) {
+  if (error instanceof ApiError) {
+    return notificationResponse(
+      {
+        ok: false,
+        error: 'invalid_request',
+        message: error.message,
+      },
+      error.status,
+    );
+  }
+
   if (error instanceof NotificationError) {
     return notificationResponse(
       {
