@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       httpOnly: true,
       secure:
         process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'strict',
       path: '/api/auth/telegram',
       maxAge: 5 * 60,
     },
