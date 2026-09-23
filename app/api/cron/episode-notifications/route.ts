@@ -1,4 +1,3 @@
-import { timingSafeEqual } from 'node:crypto';
 
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { checkKodikEpisodeAvailability } from '@/lib/kodik-episode-availability';
@@ -8,6 +7,8 @@ import {
   recordNotificationServiceHealth,
   NotificationError,
 } from '@/lib/notifications-server';
+
+import { isCronAuthorized } from '@/lib/server-request-auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -94,27 +95,6 @@ type DeliveryRow = {
   attempts: number;
   attempted_at: string | null;
 };
-
-function secureEqual(left: string, right: string) {
-  const a = Buffer.from(left);
-  const b = Buffer.from(right);
-
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
-}
-
-function authorizeCron(request: Request) {
-  const expected = process.env.CRON_SECRET?.trim();
-  const direct = request.headers.get('x-cron-secret')?.trim() ?? '';
-  const bearer =
-    request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim() ?? '';
-
-  return Boolean(
-    expected &&
-      ((direct && secureEqual(expected, direct)) ||
-        (bearer && secureEqual(expected, bearer))),
-  );
-}
 
 type WorkerStats = {
   ok: true;
@@ -220,7 +200,7 @@ function scheduleTitle(item: AiringItem) {
 }
 
 export async function POST(request: Request) {
-  if (!authorizeCron(request)) {
+  if (!isCronAuthorized(request)) {
     return Response.json(
       { ok: false, error: 'unauthorized' },
       { status: 401, headers: { 'Cache-Control': 'no-store' } },
@@ -567,7 +547,7 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  if (authorizeCron(request)) {
+  if (isCronAuthorized(request)) {
     return POST(request);
   }
 
