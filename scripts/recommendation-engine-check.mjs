@@ -10,7 +10,7 @@ const feed = read('components/SmartRecommendationFeed.tsx');
 const productEvents = read('lib/product-event-names.ts');
 const watch = read('components/useWatchSession.ts');
 const migration = read(
-  'supabase/migrations/20260924163000_recommendation_feedback_v1.sql',
+  'supabase/migrations/20260924162438_recommendation_feedback_v1.sql',
 );
 
 const failures = [];
