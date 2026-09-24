@@ -7,6 +7,7 @@ import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import ProfilePreview from '@/components/profile/ProfilePreview';
 import { useAuthState } from '@/components/AuthStateProvider';
 import { notifySocialNotificationsChanged } from '@/components/SocialNotificationBadge';
+import SocialGraphPanels from '@/components/friends/SocialGraphPanels';
 
 type FriendCard = {
   friendshipId: string;
@@ -17,6 +18,7 @@ type FriendCard = {
   direction: 'incoming' | 'outgoing' | 'friend';
   createdAt: string;
   acceptedAt: string | null;
+  online: boolean;
 };
 
 type FriendsResponse = {
@@ -42,11 +44,20 @@ function PersonCard({
         username={item.username}
         className="shrink-0"
       >
-        <img
-          src={item.avatarUrl}
-          alt=""
-          className="h-12 w-12 rounded-full border border-violet-400/15 object-cover"
-        />
+        <span className="relative block h-12 w-12">
+          <img
+            src={item.avatarUrl}
+            alt=""
+            className="h-12 w-12 rounded-full border border-violet-400/15 object-cover"
+          />
+          {item.online && item.direction === 'friend' && (
+            <span
+              className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#090d18] bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.35)]"
+              title="В сети"
+              aria-label="В сети"
+            />
+          )}
+        </span>
       </ProfilePreview>
       <div className="min-w-0 flex-1">
         <ProfilePreview
@@ -58,7 +69,9 @@ function PersonCard({
         </ProfilePreview>
         <span className="text-[11px] font-semibold text-slate-500">
           {item.direction === 'friend'
-            ? 'Друг AnimeBox'
+            ? item.online
+              ? 'В сети · друг AnimeBox'
+              : 'Друг AnimeBox'
             : item.direction === 'incoming'
               ? 'Хочет добавить тебя в друзья'
               : 'Ожидает ответа'}
@@ -177,7 +190,7 @@ export default function FriendsPageClient() {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
       <header className="rounded-3xl border border-violet-400/10 bg-[radial-gradient(circle_at_15%_0%,rgba(124,92,255,.16),transparent_35%),rgba(8,12,22,.75)] p-6 sm:p-8">
-        <span className="text-[10px] font-black tracking-[.16em] text-violet-300">SOCIAL GRAPH · PATCH 11.2.2</span>
+        <span className="text-[10px] font-black tracking-[.16em] text-violet-300">SOCIAL GRAPH · 17.7</span>
         <h1 className="mt-2 text-3xl font-black tracking-tight text-white sm:text-4xl">Друзья AnimeBox</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
           Добавляй знакомых, следи за заявками и приглашай друзей в совместный просмотр.
@@ -190,6 +203,8 @@ export default function FriendsPageClient() {
       </header>
 
       {error && <div className="rounded-2xl border border-rose-400/15 bg-rose-500/[0.06] p-4 text-sm font-bold text-rose-200">{error}</div>}
+
+      <SocialGraphPanels />
 
       {data.incoming.length > 0 && (
         <section className="rounded-3xl border border-white/[0.06] bg-[#090d18]/80 p-5 sm:p-6">
