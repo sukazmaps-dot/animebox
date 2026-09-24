@@ -16,6 +16,7 @@ import {
   type RankedRecommendation,
 } from '@/lib/recommendations';
 import type { RecommendationPage } from '@/types/recommendations';
+import { buildRecommendationRails } from '@/lib/recommendation-rails';
 
 const PAGE_SIZE = 20;
 const MAX_EMPTY_PAGE_HOPS = 3;
@@ -236,6 +237,7 @@ function mergeUnique(
 export default function SmartRecommendationFeed({
   items,
   mood,
+  hasWatchHistory,
 }: {
   items: RankedRecommendation[];
   mood: TasteMood;
@@ -372,6 +374,15 @@ export default function SmartRecommendationFeed({
     [locallyHidden, recommendations],
   );
 
+  const rails = useMemo(
+    () =>
+      buildRecommendationRails(filtered, {
+        mood: displayedMood,
+        hasWatchHistory,
+      }),
+    [displayedMood, filtered, hasWatchHistory],
+  );
+
   const fetchNextPage = useCallback(async () => {
     if (fetchLockRef.current || !hasMore || moodTransitionRef.current) return;
 
@@ -449,43 +460,64 @@ export default function SmartRecommendationFeed({
         }
         aria-busy={isMoodSwapping}
       >
-        <ScrollRow
-          key={`smart-feed-row-${rowVersion}`}
-          className="smart-feed__rail"
-          ariaLabel="Подобрано для тебя"
-          stepRatio={0.8}
-          hasMore={hasMore}
-          onEndReached={() => void fetchNextPage()}
-        >
-          {filtered.map((recommendation, index) => (
-            <div className="smart-feed__slide" key={recommendation.anime.id}>
-              <SmartRecommendationCard
-                recommendation={recommendation}
-                position={index + 1}
-                mood={displayedMood}
-                recommendationSessionId={sessionId}
-                onHidden={(animeId) => {
-                  setLocallyHidden((current) => {
-                    const next = new Set(current);
-                    next.add(animeId);
-                    return next;
-                  });
-                }}
-              />
-            </div>
-          ))}
+        <div className="smart-feed__rails">
+          {rails.map((rail, railIndex) => (
+            <section
+              className="smart-feed__personal-rail"
+              key={`${rail.id}:${rowVersion}`}
+              aria-labelledby={`smart-feed-rail-${rail.id}`}
+            >
+              <header className="smart-feed__rail-heading">
+                <div>
+                  <h3 id={`smart-feed-rail-${rail.id}`}>{rail.title}</h3>
+                  <p>{rail.subtitle}</p>
+                </div>
+              </header>
 
-          {isFetchingMore &&
-            Array.from({ length: 4 }).map((_, index) => (
-              <div
-                className="smart-feed__slide smart-feed__slide--skeleton"
-                key={`smart-feed-skeleton-${index}`}
-                aria-hidden="true"
+              <ScrollRow
+                className="smart-feed__rail"
+                ariaLabel={rail.title}
+                stepRatio={0.82}
+                hasMore={hasMore}
+                onEndReached={() => void fetchNextPage()}
               >
-                <div className="smart-feed__skeleton-card" />
-              </div>
-            ))}
-        </ScrollRow>
+                {rail.items.map((recommendation, index) => (
+                  <div
+                    className="smart-feed__slide"
+                    key={`${rail.id}:${recommendation.anime.id}`}
+                  >
+                    <SmartRecommendationCard
+                      recommendation={recommendation}
+                      position={index + 1}
+                      mood={displayedMood}
+                      source={rail.source}
+                      recommendationSessionId={sessionId}
+                      onHidden={(animeId) => {
+                        setLocallyHidden((current) => {
+                          const next = new Set(current);
+                          next.add(animeId);
+                          return next;
+                        });
+                      }}
+                    />
+                  </div>
+                ))}
+
+                {isFetchingMore &&
+                  railIndex === rails.length - 1 &&
+                  Array.from({ length: 4 }).map((_, index) => (
+                    <div
+                      className="smart-feed__slide smart-feed__slide--skeleton"
+                      key={`smart-feed-skeleton-${index}`}
+                      aria-hidden="true"
+                    >
+                      <div className="smart-feed__skeleton-card" />
+                    </div>
+                  ))}
+              </ScrollRow>
+            </section>
+          ))}
+        </div>
       </div>
 
       {error && (
