@@ -731,7 +731,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
   const navigateToEpisode = (slug: string, number: number) => {
     if (!theaterMode) {
-      router.push(`/anime/${slug}/episode/${number}`);
+      router.push(`/anime/${slug}/episode/${number}`, { scroll: false });
       return;
     }
 
@@ -745,7 +745,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     if (roomId) next.searchParams.set('party', roomId);
     next.hash = current.hash;
 
-    router.push(`${next.pathname}${next.search}${next.hash}`);
+    router.push(`${next.pathname}${next.search}${next.hash}`, { scroll: false });
   };
 
   const goToEpisode = (number: number) => {

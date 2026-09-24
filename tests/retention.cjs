@@ -34,4 +34,22 @@ assert.equal(progress.getLatestWatchProgress(1).episode, 3);
 assert.equal(progress.hasResumePosition(null), false);
 memory.set('anime-tracker-watch-progress', 'broken');
 assert.equal(progress.getLatestWatchProgress(1), null);
+const episodeListSource = fs.readFileSync(
+ path.join(__dirname, '../components/EpisodeList.tsx'),
+ 'utf8',
+);
+assert.equal(
+ episodeListSource.includes('.scrollIntoView('),
+ false,
+ 'EpisodeList must never move the document viewport with scrollIntoView',
+);
+const episodePageSource = fs.readFileSync(
+ path.join(__dirname, '../components/AnimeEpisodePage.tsx'),
+ 'utf8',
+);
+assert.match(
+ episodePageSource,
+ /router\.push\(\`\/anime\/\$\{slug\}\/episode\/\$\{number\}\`, \{ scroll: false \}\)/,
+ 'Player episode navigation must preserve the current viewport',
+);
 console.log('PASS: ordered funnels, independent auth, latest episode, end guard and corrupt storage');
