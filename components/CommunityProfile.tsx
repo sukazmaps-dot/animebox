@@ -358,12 +358,33 @@ export default function CommunityProfile() {
             </div>
           ) : (
             <div className="profile-v2__library-empty">
-              <img
-                className="profile-v2__library-empty-art"
-                src="/brand/empty-library.png"
-                alt=""
-                aria-hidden="true"
-              />
+              <div className="profile-v2__library-empty-art" aria-hidden="true">
+                <span className="profile-v2__library-empty-glow" />
+                <svg
+                  viewBox="0 0 168 126"
+                  role="presentation"
+                  focusable="false"
+                >
+                  <g className="profile-v2__library-empty-stack">
+                    <rect x="28" y="25" width="56" height="78" rx="12" />
+                    <rect x="57" y="16" width="62" height="88" rx="13" />
+                    <rect x="87" y="30" width="54" height="74" rx="12" />
+                  </g>
+                  <g className="profile-v2__library-empty-lines">
+                    <path d="M69 45h38" />
+                    <path d="M69 57h29" />
+                    <path d="M69 69h34" />
+                  </g>
+                  <g className="profile-v2__library-empty-mark">
+                    <circle cx="87" cy="87" r="17" />
+                    <path d="m83 79 12 8-12 8Z" />
+                  </g>
+                  <path
+                    className="profile-v2__library-empty-spark"
+                    d="m126 18 2.4 6.1 6.1 2.4-6.1 2.4-2.4 6.1-2.4-6.1-6.1-2.4 6.1-2.4Z"
+                  />
+                </svg>
+              </div>
               <strong>Твоя коллекция пока пуста</strong>
               <p>Найди первое аниме, добавь его в библиотеку и начни собирать историю просмотров.</p>
               <Link href="/search">Найти аниме</Link>

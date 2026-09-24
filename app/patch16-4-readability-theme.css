@@ -811,3 +811,188 @@ html[data-animebox-theme='light'] .anime-rating-control__clear {
     gap: 7px;
   }
 }
+
+
+/* ---------- Patch 16.4.1 · profile collection empty state ---------- */
+.profile-v2__library-empty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  text-align: center;
+}
+
+.profile-v2__library-empty-art {
+  position: relative;
+  isolation: isolate;
+  width: 150px !important;
+  height: 118px !important;
+  display: grid;
+  place-items: center;
+  margin: 0 0 10px !important;
+  opacity: 1 !important;
+}
+
+.profile-v2__library-empty-art::before {
+  content: '';
+  position: absolute;
+  z-index: -2;
+  inset: 14px 20px 4px;
+  border: 1px solid rgba(146, 124, 231, .11);
+  border-radius: 28px;
+  background:
+    linear-gradient(145deg, rgba(126,97,222,.055), rgba(30,39,57,.02));
+  transform: rotate(-3deg);
+}
+
+.profile-v2__library-empty-glow {
+  position: absolute;
+  z-index: -1;
+  width: 90px;
+  height: 90px;
+  border-radius: 999px;
+  background: rgba(126, 97, 222, .16);
+  filter: blur(30px);
+}
+
+.profile-v2__library-empty-art svg {
+  width: 144px;
+  height: auto;
+  overflow: visible;
+}
+
+.profile-v2__library-empty-stack rect {
+  fill: rgba(17, 23, 35, .94);
+  stroke: rgba(198, 205, 226, .10);
+  stroke-width: 1.5;
+}
+
+.profile-v2__library-empty-stack rect:nth-child(2) {
+  fill: rgba(21, 27, 41, .98);
+  stroke: rgba(155, 132, 239, .24);
+}
+
+.profile-v2__library-empty-lines path {
+  fill: none;
+  stroke: rgba(180, 187, 208, .22);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+.profile-v2__library-empty-mark circle {
+  fill: rgba(126, 97, 222, .13);
+  stroke: rgba(165, 142, 246, .38);
+  stroke-width: 1.5;
+}
+
+.profile-v2__library-empty-mark path {
+  fill: #aa96f4;
+}
+
+.profile-v2__library-empty-spark {
+  fill: rgba(111, 201, 232, .58);
+}
+
+.profile-v2__library-empty strong {
+  font-size: 14px !important;
+  line-height: 1.35;
+}
+
+.profile-v2__library-empty p {
+  max-width: 390px;
+  margin: 7px auto 0;
+  font-size: 11px !important;
+  line-height: 1.6;
+}
+
+.profile-v2__library-empty > a {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 14px;
+  padding: 0 14px;
+  border: 1px solid rgba(156, 132, 239, .18);
+  border-radius: 10px;
+  background: rgba(126, 97, 222, .07);
+  color: #b9aafa;
+  font-size: 10px;
+  font-weight: 800;
+  text-decoration: none;
+  transition:
+    transform .16s ease,
+    border-color .16s ease,
+    background .16s ease;
+}
+
+.profile-v2__library-empty > a:hover {
+  transform: translateY(-1px);
+  border-color: rgba(164, 141, 246, .30);
+  background: rgba(126, 97, 222, .11);
+}
+
+html[data-animebox-theme='light'] .profile-v2__library-empty-art::before {
+  border-color: rgba(75, 63, 88, .10);
+  background:
+    linear-gradient(145deg, rgba(112,87,220,.07), rgba(255,255,255,.42));
+}
+
+html[data-animebox-theme='light'] .profile-v2__library-empty-glow {
+  background: rgba(112, 87, 220, .12);
+}
+
+html[data-animebox-theme='light'] .profile-v2__library-empty-stack rect {
+  fill: rgba(248, 244, 238, .98);
+  stroke: rgba(68, 58, 78, .12);
+}
+
+html[data-animebox-theme='light'] .profile-v2__library-empty-stack rect:nth-child(2) {
+  fill: #fff;
+  stroke: rgba(112,87,220,.22);
+}
+
+html[data-animebox-theme='light'] .profile-v2__library-empty-lines path {
+  stroke: rgba(83, 72, 94, .24);
+}
+
+html[data-animebox-theme='light'] .profile-v2__library-empty-mark circle {
+  fill: rgba(112, 87, 220, .10);
+  stroke: rgba(112,87,220,.28);
+}
+
+html[data-animebox-theme='light'] .profile-v2__library-empty-mark path {
+  fill: #7057dc;
+}
+
+html[data-animebox-theme='light'] .profile-v2__library-empty-spark {
+  fill: rgba(35, 137, 184, .55);
+}
+
+html[data-animebox-theme='light'] .profile-v2__library-empty strong {
+  color: #2a2331 !important;
+}
+
+html[data-animebox-theme='light'] .profile-v2__library-empty p {
+  color: #746b7d !important;
+}
+
+html[data-animebox-theme='light'] .profile-v2__library-empty > a {
+  border-color: rgba(112,87,220,.16);
+  background: rgba(112,87,220,.055);
+  color: #5f46bd;
+}
+
+@media (max-width: 620px) {
+  .profile-v2__library-empty {
+    min-height: 270px;
+    padding: 22px 14px;
+  }
+
+  .profile-v2__library-empty-art {
+    width: 130px !important;
+    height: 102px !important;
+  }
+
+  .profile-v2__library-empty-art svg {
+    width: 124px;
+  }
+}
