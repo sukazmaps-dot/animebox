@@ -550,7 +550,7 @@ export default function HomePage({
 
     return getPersonalizedRecommendations([...popular, ...ongoing], {
       mood,
-      limit: 12,
+      limit: 24,
     });
   }, [hydrated, popular, ongoing, mood, historyRevision, tasteRevision]);
 
