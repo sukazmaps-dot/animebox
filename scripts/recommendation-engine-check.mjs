@@ -4,6 +4,8 @@ const read = (path) =>
   fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
 const candidates = read('app/api/recommendations/route.ts');
+const ranking = read('lib/recommendation-ranking-config.ts');
+const recommendations = read('lib/recommendations.ts');
 const recommendationTypes = read('types/recommendations.ts');
 const taste = read('app/api/recommendations/taste/route.ts');
 const tasteGraph = read('lib/taste-graph.ts');
@@ -139,6 +141,30 @@ if (
   !recommendationTypes.includes('preferred_genre')
 ) {
   failures.push('candidate source response contract is missing');
+}
+if (
+  !ranking.includes("RECOMMENDATION_RANKING_VERSION = '17.8-v1'") ||
+  !ranking.includes('RECOMMENDATION_RANKING_WEIGHTS') ||
+  !ranking.includes('RecommendationScoreComponents') ||
+  !ranking.includes('scoreRecommendation') ||
+  !ranking.includes('recommendationMatchBasis')
+) {
+  failures.push('17.8.4 versioned ranking configuration is incomplete');
+}
+if (
+  !recommendations.includes('scoreRecommendation(') ||
+  !recommendations.includes('ranking.total') ||
+  !recommendations.includes('ranking,') ||
+  !recommendations.includes('RECOMMENDATION_ENGAGEMENT_SIGNALS')
+) {
+  failures.push('recommendation scoring bypasses the 17.8.4 ranking engine');
+}
+if (
+  recommendations.includes('graphAffinity.positive * 0.25') ||
+  recommendations.includes('graphAffinity.negative * 0.32') ||
+  recommendations.includes('negativeEngagement * 0.9')
+) {
+  failures.push('ranking magic weights leaked back into recommendations.ts');
 }
 if (
   !rails.includes("id: 'endless'") ||
