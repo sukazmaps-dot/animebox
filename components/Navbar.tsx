@@ -14,6 +14,7 @@ import AuthUserButton from './AuthUserButton';
 import MobileAccountNav from './MobileAccountNav';
 import SocialNotificationBadge from './SocialNotificationBadge';
 import SidebarMembership from './SidebarMembership';
+import SearchSuggestions from './SearchSuggestions';
 import { useAuthState } from '@/components/AuthStateProvider';
 import { TELEGRAM_MINI_APP_URL } from '@/lib/telegram-links';
 import { BRAND_SLOGAN } from '@/lib/brand';
@@ -453,7 +454,12 @@ function NavbarContent() {
 
       {/* Topbar keeps only global actions: search, notifications, account. */}
       <header className="topbar">
-        <form className="topbar__search" onSubmit={submitSearch} role="search">
+        <form
+          className="topbar__search"
+          onSubmit={submitSearch}
+          role="search"
+          style={{ position: 'relative' }}
+        >
           <img
             className="topbar__asset-icon topbar__asset-icon--search"
             src="/brand/icons/search.svg"
@@ -471,6 +477,11 @@ function NavbarContent() {
             aria-label="Поиск аниме"
             placeholder="Умный поиск: Наруто 2 сезон, One Piece..."
             autoComplete="off"
+          />
+
+          <SearchSuggestions
+            query={searchValue}
+            onChoose={() => setSearchValue('')}
           />
         </form>
 

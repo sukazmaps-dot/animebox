@@ -8,6 +8,11 @@ const searchServer = read('lib/search-index-server.ts');
 const animeApi = read('app/api/anime/route.ts');
 const discovery = read('lib/smart-discovery.ts');
 const discoveryApi = read('app/api/discovery/route.ts');
+const suggestionApi = read('app/api/search/suggestions/route.ts');
+const suggestionUi = read('components/SearchSuggestions.tsx');
+const navbar = read('components/Navbar.tsx');
+const catalog = read('components/SearchCatalogClient.tsx');
+const productEvents = read('lib/product-event-names.ts');
 const migration = read(
   'supabase/migrations/20260925030000_search_intelligence_foundation_v1.sql',
 );
@@ -65,6 +70,29 @@ if (
   !discoveryApi.includes('primaryTag')
 ) {
   failures.push('contextual discovery retrieval is incomplete');
+}
+
+if (
+  !searchServer.includes('searchLocalAnimeSuggestions') ||
+  !suggestionApi.includes('searchLocalAnimeSuggestions') ||
+  !suggestionApi.includes("scope: 'search_suggestions_ip'") ||
+  !suggestionUi.includes('AbortController') ||
+  !suggestionUi.includes('search_suggestion_click') ||
+  !navbar.includes('<SearchSuggestions') ||
+  !catalog.includes('SEARCH_DEBOUNCE_MS = 200')
+) {
+  failures.push('live search suggestions/debounce contract is incomplete');
+}
+
+for (const eventName of [
+  'search_query',
+  'search_zero_result',
+  'search_context_query',
+  'search_suggestion_click',
+]) {
+  if (!productEvents.includes(`'${eventName}'`)) {
+    failures.push(`product events missing ${eventName}`);
+  }
 }
 
 if (failures.length) {

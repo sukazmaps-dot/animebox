@@ -50,7 +50,7 @@ import {
 import { formatCatalogSeason, monthToCatalogSeason } from '@/lib/catalog-season';
 import styles from './SearchCatalogClient.module.css';
 
-const SEARCH_DEBOUNCE_MS = 120;
+const SEARCH_DEBOUNCE_MS = 200;
 
 type DiscoveryMeta = Pick<SmartDiscoveryResponse, 'seed' | 'meta'>;
 type CatalogView = 'catalog' | 'saved';
@@ -97,6 +97,7 @@ export default function SearchCatalogClient({
   const requestSequenceRef = useRef(0);
   const filterHistoryModeRef = useRef<'replace' | 'push' | 'restore' | 'none'>('replace');
   const emptyResultSignatureRef = useRef('');
+  const searchAnalyticsSignatureRef = useRef('');
   const searchIntent = useMemo(() => (query ? parseAnimeSearchIntent(query) : null), [query]);
   const discoveryIntent = useMemo(() => (query ? parseSmartDiscoveryQuery(query) : null), [query]);
   const discoveryDescription = useMemo(() => (discoveryIntent?.isDiscovery ? describeSmartDiscoveryIntent(discoveryIntent) : []), [discoveryIntent]);
@@ -482,6 +483,51 @@ export default function SearchCatalogClient({
       },
     });
   }, [activeFilterLabels, error, filters, hasFilters, loading, query, results.length, selectedMood, view]);
+
+  useEffect(() => {
+    if (view !== 'catalog' || loading || error) return;
+
+    const settled = query.trim();
+    if (settled.length < 2) return;
+
+    const signature = [
+      settled,
+      discoveryIntent?.isDiscovery ? 'context' : 'title',
+      results.map((anime) => anime.id).join(','),
+      catalogFilterCount(filters),
+    ].join('|');
+
+    if (searchAnalyticsSignatureRef.current === signature) return;
+    searchAnalyticsSignatureRef.current = signature;
+
+    trackProductClientEvent(
+      discoveryIntent?.isDiscovery ? 'search_context_query' : 'search_query',
+      {
+        source: 'catalog_search',
+        path: '/search',
+        entityType: 'search_query',
+        entityId: settled.slice(0, 255),
+        metadata: {
+          results: results.length,
+          discovery: Boolean(discoveryIntent?.isDiscovery),
+          active_filter_count: catalogFilterCount(filters),
+        },
+      },
+    );
+
+    if (results.length === 0) {
+      trackProductClientEvent('search_zero_result', {
+        source: 'catalog_search',
+        path: '/search',
+        entityType: 'search_query',
+        entityId: settled.slice(0, 255),
+        metadata: {
+          discovery: Boolean(discoveryIntent?.isDiscovery),
+          active_filter_count: catalogFilterCount(filters),
+        },
+      });
+    }
+  }, [discoveryIntent?.isDiscovery, error, filters, loading, query, results, view]);
 
   return (
     <div className="search-page">

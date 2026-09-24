@@ -13,6 +13,13 @@ export type LocalAnimeSearchHit = {
   score: number;
 };
 
+export type LocalAnimeSuggestion = LocalAnimeSearchHit & {
+  title: string;
+  slug: string | null;
+  posterUrl: string | null;
+  genres: string[];
+};
+
 function uniqueStrings(values: Array<string | null | undefined>) {
   const result: string[] = [];
   const seen = new Set<string>();
@@ -90,6 +97,61 @@ export async function indexAnimeSearchDocuments(items: Anime[]) {
   if (error) {
     console.warn('[Search index] upsert failed:', error.message);
   }
+}
+
+export async function searchLocalAnimeSuggestions(
+  query: string,
+  limit = 6,
+): Promise<LocalAnimeSuggestion[]> {
+  const normalized = normalizeSearchText(query);
+  if (normalized.length < 2) return [];
+
+  const admin = createSupabaseAdmin();
+  const merged = new Map<number, LocalAnimeSuggestion>();
+
+  for (const variant of buildSearchQueryVariants(query).slice(0, 3)) {
+    const { data, error } = await admin.rpc('search_anime_lexical', {
+      query_text: variant,
+      match_count: Math.min(20, Math.max(6, limit * 2)),
+    });
+
+    if (error) {
+      console.warn('[Search index] suggestion RPC failed:', error.message);
+      break;
+    }
+
+    for (const row of data ?? []) {
+      const animeId = Number(row.anime_id);
+      const score = Number(row.similarity_score ?? 0);
+      if (!Number.isSafeInteger(animeId) || animeId <= 0) continue;
+
+      const previous = merged.get(animeId);
+      if (previous && previous.score >= score) continue;
+
+      merged.set(animeId, {
+        animeId,
+        score,
+        title: String(row.title ?? `Anime ${animeId}`),
+        slug:
+          typeof row.slug === 'string' && row.slug.trim()
+            ? row.slug.trim()
+            : null,
+        posterUrl:
+          typeof row.poster_url === 'string' && row.poster_url.trim()
+            ? row.poster_url.trim()
+            : null,
+        genres: Array.isArray(row.genres)
+          ? row.genres
+              .filter((value): value is string => typeof value === 'string')
+              .slice(0, 3)
+          : [],
+      });
+    }
+  }
+
+  return [...merged.values()]
+    .sort((a, b) => b.score - a.score || a.animeId - b.animeId)
+    .slice(0, limit);
 }
 
 export async function searchLocalAnimeIndex(
