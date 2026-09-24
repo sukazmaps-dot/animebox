@@ -10,6 +10,7 @@ import {
 } from '@/lib/community-server';
 import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
 import { createClient } from '@/lib/supabase/server';
+import { trackProductEvents } from '@/lib/product-events-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -113,6 +114,18 @@ export async function POST(request: Request) {
     if (error) throw error;
 
     const summary = await getSummary(animeId);
+
+    await trackProductEvents([
+      {
+        eventName: 'social_rating_set',
+        userId: user.id,
+        source: 'anime_rating',
+        entityType: 'anime',
+        entityId: String(animeId),
+        metadata: { score },
+        dedupeKey: `social-rating:${user.id}:${animeId}:${score}`,
+      },
+    ]);
 
     return response({
       ok: true,
