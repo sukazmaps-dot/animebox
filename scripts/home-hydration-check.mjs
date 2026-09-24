@@ -38,6 +38,53 @@ if (
   failures.push('Personalized recommendations lost their hydration guard.');
 }
 
+
+const continueIndex = home.indexOf('<HomeContinueWatching');
+const discoveryIndex = home.indexOf('className="home-discovery-flow"');
+const personalScheduleIndex = home.indexOf('{personalScheduleItems.length > 0 && (');
+const globalScheduleIndex = home.indexOf(
+  '<section ref={scheduleSectionRef} className="section schedule">',
+);
+const retentionIndex = home.indexOf(
+  '{(hasWatchHistory || serverContinue.length > 0) && (',
+);
+const mainUtilityIndex = home.indexOf(
+  '<div className="home-utility-grid">',
+);
+const asideIndex = home.indexOf('<aside className="right-rail">');
+
+if (
+  !(
+    continueIndex >= 0 &&
+    discoveryIndex > continueIndex &&
+    personalScheduleIndex > discoveryIndex
+  )
+) {
+  failures.push(
+    'Home hierarchy must stay Continue Watching → recommendations → personal schedule.',
+  );
+}
+
+if (
+  !(
+    globalScheduleIndex >= 0 &&
+    retentionIndex > globalScheduleIndex &&
+    mainUtilityIndex > retentionIndex &&
+    mainUtilityIndex < asideIndex
+  )
+) {
+  failures.push(
+    'Informational/utility surfaces must remain at the bottom of the main column.',
+  );
+}
+
+if (
+  asideIndex >= 0 &&
+  home.slice(asideIndex).includes('<div className="home-utility-grid">')
+) {
+  failures.push('Right rail must not duplicate the bottom utility cards.');
+}
+
 if (failures.length) {
   console.error('[AnimeBox Home Hydration] Check failed:');
   failures.forEach((failure) => console.error(`- ${failure}`));
