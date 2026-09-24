@@ -59,6 +59,30 @@ function normalizeUrl(value: string): URL | null {
   }
 }
 
+function buildUpstreamHeaders(url: URL): HeadersInit {
+  const host = url.hostname.toLowerCase();
+  const headers: Record<string, string> = {
+    Accept:
+      'image/avif,image/webp,image/apng,image/svg+xml,image/*;q=0.9,*/*;q=0.5',
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36',
+  };
+
+  // Some Shikimori media endpoints expect their own referrer. Sending that
+  // referrer to AniList/MAL is unnecessary and can make otherwise valid CDN
+  // requests look suspicious, so keep it host-scoped.
+  if (
+    host === 'shikimori.me' ||
+    host.endsWith('.shikimori.me') ||
+    host === 'shikimori.one' ||
+    host.endsWith('.shikimori.one')
+  ) {
+    headers.Referer = 'https://shikimori.one/';
+  }
+
+  return headers;
+}
+
 async function fetchImage(
   initialUrl: URL,
 ): Promise<Response | null> {
@@ -73,13 +97,7 @@ async function fetchImage(
 
     try {
       const response = await fetch(current, {
-        headers: {
-          Accept:
-            'image/avif,image/webp,image/apng,image/svg+xml,image/*;q=0.9,*/*;q=0.5',
-          Referer: 'https://shikimori.me/',
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36',
-        },
+        headers: buildUpstreamHeaders(current),
         redirect: 'manual',
         cache: 'force-cache',
         signal: controller.signal,
@@ -259,8 +277,13 @@ export async function GET(
         'Content-Type': contentType,
         'Cache-Control':
           'public, max-age=86400, s-maxage=2592000, stale-while-revalidate=604800',
+        'Vercel-CDN-Cache-Control':
+          'public, max-age=2592000, stale-while-revalidate=604800',
+        'Cloudflare-CDN-Cache-Control':
+          'public, max-age=2592000, stale-while-revalidate=604800',
         'X-Image-Source':
           sourceUrl.hostname,
+        'X-AnimeBox-Image-Delivery': 'proxy-v2',
       },
     });
   } catch (error) {

@@ -6,7 +6,6 @@ export function normalizeImageUrl(
   if (!value) return null;
 
   const raw = value.trim();
-
   if (!raw) return null;
 
   if (
@@ -46,65 +45,54 @@ export function proxyImageUrl(
 ): string | null {
   const url = normalizeImageUrl(value);
 
-  if (!url) {
-    return null;
-  }
+  if (!url) return null;
+  if (url.startsWith('/')) return url;
 
-  // Локальные изображения проксировать не нужно.
-  if (url.startsWith('/')) {
-    return url;
-  }
-
-  const params = new URLSearchParams({
-    url,
-  });
-
+  const params = new URLSearchParams({ url });
   return `/api/image?${params.toString()}`;
 }
 
 /**
- * Сначала пробуем оригинальный CDN.
- * Если он не загрузился — следующий кандидат будет тот же URL через proxy.
+ * Poster delivery is intentionally direct-first.
+ *
+ * Massive anime grids must not fan every poster through Vercel's /_next/image
+ * transformation service. We first try the original CDN sizes in order, then
+ * use exactly one same-origin proxy fallback for the best original candidate.
  */
+export function buildImageCandidateChain(
+  values: Array<string | null | undefined>,
+): string[] {
+  const originals = Array.from(
+    new Set(
+      values
+        .map(normalizeImageUrl)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+
+  const result = [...originals];
+  const primaryRemote = originals.find((value) => !value.startsWith('/'));
+
+  if (primaryRemote) {
+    const proxied = proxyImageUrl(primaryRemote);
+    if (proxied && proxied !== primaryRemote) {
+      result.push(proxied);
+    }
+  }
+
+  return Array.from(new Set(result));
+}
+
 export function getImageCandidates(
   image?: AnimeImage | null,
 ): string[] {
-  if (!image) {
-    return [];
-  }
+  if (!image) return [];
 
-  const originals = [
+  return buildImageCandidateChain([
     image.extraLarge,
     image.large,
     image.medium,
     image.original,
     image.preview,
-  ]
-    .map(normalizeImageUrl)
-    .filter(
-      (value): value is string =>
-        Boolean(value),
-    );
-
-  const result: string[] = [];
-
-  for (const original of originals) {
-    // 1. Прямая ссылка CDN
-    result.push(original);
-
-    // 2. Fallback через наш proxy
-    const proxied =
-      proxyImageUrl(original);
-
-    if (
-      proxied &&
-      proxied !== original
-    ) {
-      result.push(proxied);
-    }
-  }
-
-  return Array.from(
-    new Set(result),
-  );
+  ]);
 }

@@ -9,8 +9,7 @@ import {
 } from 'react';
 
 import {
-  normalizeImageUrl,
-  proxyImageUrl,
+  buildImageCandidateChain,
 } from '@/lib/image-service';
 
 const FALLBACK = '/anime-placeholder.svg';
@@ -30,39 +29,16 @@ export default function AnimeImageCascade({
   loading = 'eager',
   fetchPriority = 'auto',
 }: AnimeImageCascadeProps) {
-  const candidates = useMemo<string[]>(() => {
-    const result: string[] = [];
-
-    for (const source of sources) {
-      const normalized =
-        normalizeImageUrl(source);
-
-      if (!normalized) {
-        continue;
-      }
-
-      // Сначала пытаемся загрузить картинку напрямую.
-      result.push(normalized);
-
-      // Потом добавляем fallback через наш proxy.
-      const proxied =
-        proxyImageUrl(normalized);
-
-      if (
-        proxied &&
-        proxied !== normalized
-      ) {
-        result.push(proxied);
-      }
-    }
-
-    return Array.from(
-      new Set([
-        ...result,
-        FALLBACK,
-      ]),
-    );
-  }, [sources]);
+  const candidates = useMemo<string[]>(
+    () =>
+      Array.from(
+        new Set([
+          ...buildImageCandidateChain(sources),
+          FALLBACK,
+        ]),
+      ),
+    [sources],
+  );
 
   const [index, setIndex] =
     useState<number>(0);
