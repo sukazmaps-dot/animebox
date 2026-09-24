@@ -276,8 +276,8 @@ export default function ProfileWidgetsShowcase({
       <div className="profile-widgets-shell__head">
         <div>
           <span className="profile-v2__eyebrow">PROFILE IDENTITY</span>
-          <h2>Мой аниме-профиль</h2>
-          <p>Любимые тайтлы, оценки и вкус — в одной персональной витрине.</p>
+          <h2>{publicView ? 'Аниме-профиль' : 'Мой аниме-профиль'}</h2>
+          <p>{publicView ? 'Любимые тайтлы, оценки и профиль вкуса пользователя.' : 'Любимые тайтлы, оценки и вкус — в одной персональной витрине.'}</p>
         </div>
         {actions}
       </div>
