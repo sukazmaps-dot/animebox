@@ -1,0 +1,177 @@
+/* =========================================================
+   AnimeBox Patch 16.6.1 — Mobile Performance & Resilience
+   ========================================================= */
+
+/* Deferred client islands keep a stable footprint before they mount. */
+.deferred-mount {
+  min-width: 0;
+  contain: layout paint style;
+}
+
+.deferred-mount[data-ready='false'] {
+  content-visibility: auto;
+}
+
+.deferred-mount__placeholder {
+  width: 100%;
+  min-height: inherit;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, .06);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(126,97,222,.025), transparent 45%),
+    rgba(255,255,255,.008);
+}
+
+.deferred-mount__placeholder > span {
+  display: block;
+  width: min(240px, 62%);
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, .055);
+}
+
+.deferred-mount__placeholder > span:last-child {
+  width: min(170px, 44%);
+  opacity: .65;
+}
+
+/* Paint/layout work below the critical viewport is isolated. */
+.home-page :where(
+  .home-catalog-section,
+  .smart-feed-section,
+  .section.schedule,
+  .personal-schedule-section,
+  .home-utility-grid,
+  .right-rail > .panel,
+  .home-deferred
+),
+.anime-detail-after-hero,
+.profile-v2__bottom-card,
+.profile-widgets-shell {
+  content-visibility: auto;
+  contain: layout paint style;
+  contain-intrinsic-size: auto 420px;
+}
+
+.home-page .home-catalog-section {
+  contain-intrinsic-size: auto 520px;
+}
+
+.home-page .section.schedule {
+  contain-intrinsic-size: auto 440px;
+}
+
+.home-page .right-rail {
+  contain: layout paint style;
+}
+
+.anime-card {
+  contain: layout paint style;
+}
+
+.anime-card__image-wrap,
+.anime-schedule-image,
+.top-anime-item__image {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(126,97,222,.07), transparent 48%),
+    #0b101a;
+}
+
+/* Touch devices do not need GPU work for hover-only decoration. */
+@media (hover: none) and (pointer: coarse) {
+  .anime-card__shine {
+    display: none !important;
+  }
+
+  .anime-card,
+  .anime-card__image,
+  .home-shortcuts__item,
+  .profile-widget {
+    transition: none !important;
+  }
+
+  .anime-card:hover,
+  .home-shortcuts__item:hover,
+  .profile-widget:hover {
+    transform: none !important;
+  }
+}
+
+/* Mobile: reserve realistic heights so deferred rendering does not move the
+   page when content becomes active. */
+@media (max-width: 720px) {
+  .home-page :where(
+    .home-catalog-section,
+    .smart-feed-section,
+    .section.schedule,
+    .personal-schedule-section,
+    .home-utility-grid,
+    .home-deferred
+  ) {
+    contain-intrinsic-size: auto 560px;
+  }
+
+  .home-deferred--chat {
+    contain-intrinsic-size: auto 150px;
+  }
+
+  .home-deferred--support,
+  .home-deferred--telegram {
+    contain-intrinsic-size: auto 190px;
+  }
+
+  .deferred-mount__placeholder {
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  /* Avoid blur layers competing with image decode/scroll on mobile GPUs.
+     Critical chrome already has opaque fallbacks in earlier layers. */
+  .home-page :where(
+    .panel,
+    .home-retention,
+    .home-shortcuts__item,
+    .schedule__card
+  ) {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+/* Landscape phones can show more columns, so their posters should stay cheap
+   rather than requesting portrait-phone source widths. */
+@media (orientation: landscape) and (max-height: 600px) and (max-width: 1100px) {
+  .home-page .home-catalog-section {
+    contain-intrinsic-size: auto 340px;
+  }
+
+  .home-page :where(
+    .smart-feed-section,
+    .section.schedule,
+    .home-utility-grid
+  ) {
+    contain-intrinsic-size: auto 300px;
+  }
+}
+
+/* Emerging browser hint. Safe no-op where unsupported. */
+@media (prefers-reduced-data: reduce) {
+  .anime-card__shine,
+  .home-hero-carousel__teaser,
+  .hero-teaser {
+    display: none !important;
+  }
+
+  .home-page :where(
+    .panel,
+    .page-hero,
+    .home-retention
+  ) {
+    box-shadow: none !important;
+  }
+}
