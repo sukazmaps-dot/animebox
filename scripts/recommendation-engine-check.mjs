@@ -5,6 +5,7 @@ const read = (path) =>
 
 const candidates = read('app/api/recommendations/route.ts');
 const ranking = read('lib/recommendation-ranking-config.ts');
+const diversity = read('lib/recommendation-diversity.ts');
 const recommendations = read('lib/recommendations.ts');
 const recommendationTypes = read('types/recommendations.ts');
 const taste = read('app/api/recommendations/taste/route.ts');
@@ -165,6 +166,24 @@ if (
   recommendations.includes('negativeEngagement * 0.9')
 ) {
   failures.push('ranking magic weights leaked back into recommendations.ts');
+}
+if (
+  !diversity.includes("RECOMMENDATION_DIVERSITY_VERSION = '17.8-diversity-v1'") ||
+  !diversity.includes('normalizeRecommendationExplorationRate') ||
+  !diversity.includes('targetExploration') ||
+  !diversity.includes('maxFamilyPerFeed') ||
+  !diversity.includes('genreConcentrationPenalty')
+) {
+  failures.push('17.8.5 diversity/exploration policy is incomplete');
+}
+if (
+  !recommendations.includes('diversifyRecommendations(scored') ||
+  !recommendations.includes('explorationRate: tasteGraph?.explorationRate')
+) {
+  failures.push('ranked recommendations bypass the 17.8.5 diversity policy');
+}
+if (recommendations.includes('Small maximal-marginal-relevance pass')) {
+  failures.push('legacy inline MMR logic remains in recommendations.ts');
 }
 if (
   !rails.includes("id: 'endless'") ||
