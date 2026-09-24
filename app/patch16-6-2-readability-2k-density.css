@@ -1,0 +1,657 @@
+/* =========================================================
+   AnimeBox Patch 16.6.2 — Readability & 2K Density
+   Large-screen readability without browser-style global zoom.
+   ========================================================= */
+
+:root {
+  --ab-wide-content: 1440px;
+}
+
+/* ---------------------------------------------------------
+   Telegram promo: content owns height.
+   Never let a parent grid stretch the card into an empty billboard.
+   --------------------------------------------------------- */
+
+.telegram-growth-card--vector {
+  align-self: start !important;
+  height: fit-content !important;
+  max-height: none !important;
+}
+
+.telegram-growth-card--compact.telegram-growth-card--vector {
+  min-height: 0 !important;
+  grid-template-columns: 76px minmax(0, 1fr) !important;
+  align-items: center !important;
+}
+
+.telegram-growth-card--compact.telegram-growth-card--vector
+.telegram-growth-card__vector-art {
+  align-self: stretch;
+  min-height: 164px;
+  padding: 16px 0 16px 14px !important;
+}
+
+.telegram-growth-card--compact.telegram-growth-card--vector
+.telegram-growth-card__content {
+  align-self: center;
+  padding: 16px 42px 16px 10px !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector {
+  min-height: 0 !important;
+  height: fit-content !important;
+  grid-template-columns: 112px minmax(0, 1fr) !important;
+  align-items: center !important;
+  align-self: start !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector
+.telegram-growth-card__vector-art {
+  align-self: stretch;
+  min-height: 172px;
+  padding: 18px 10px 18px 18px !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector
+.telegram-growth-card__content {
+  align-self: center;
+  padding: 20px 52px 20px 10px !important;
+}
+
+.telegram-growth-card--vector .telegram-growth-card__copy h3 {
+  margin-top: 11px !important;
+  font-size: clamp(18px, 1.25vw, 24px) !important;
+  line-height: 1.12 !important;
+}
+
+.telegram-growth-card--vector .telegram-growth-card__copy p {
+  margin-top: 7px !important;
+  max-width: 720px;
+  font-size: 12px !important;
+  line-height: 1.55 !important;
+}
+
+.telegram-growth-card--vector .telegram-growth-card__brand small {
+  font-size: 9.5px !important;
+  letter-spacing: .105em !important;
+}
+
+.telegram-growth-card--vector .telegram-growth-card__brand b {
+  font-size: 8.5px !important;
+}
+
+.telegram-growth-card--vector .telegram-growth-card__benefits {
+  margin-top: 11px !important;
+}
+
+.telegram-growth-card--vector .telegram-growth-card__benefits span {
+  min-height: 28px !important;
+  padding-inline: 9px !important;
+  font-size: 10.5px !important;
+}
+
+.telegram-growth-card--vector .telegram-growth-card__cta {
+  min-height: 44px !important;
+  margin-top: 13px !important;
+  padding-inline: 13px !important;
+  font-size: 12px !important;
+}
+
+.telegram-growth-card--vector .telegram-growth-card__dismiss {
+  top: 12px !important;
+  right: 12px !important;
+  width: 30px !important;
+  height: 30px !important;
+}
+
+.telegram-growth-card--vector .telegram-growth-card__icon-core {
+  transform: scale(.9);
+}
+
+/* ---------------------------------------------------------
+   Normal desktop: remove the last "micro UI" leftovers.
+   --------------------------------------------------------- */
+
+@media (min-width: 1181px) {
+  .sidebar__label,
+  .sidebar-membership__copy small,
+  .sidebar__support small,
+  .section-link,
+  .anime-card__meta,
+  .anime-card__tags span,
+  .schedule__card span,
+  .schedule__time,
+  .rank-item span,
+  .rank-item__score,
+  .site-footer,
+  .episode-comments__controls > span,
+  .episode-comment__actions {
+    font-size: max(10.5px, var(--ab-readable-micro, 10px)) !important;
+  }
+
+  .sidebar__item,
+  .topbar__search input,
+  .anime-card__body h3,
+  .top-anime-item__copy strong,
+  .episode-comment__author,
+  .episode-comments__controls label {
+    font-size: max(12px, var(--ab-readable-small, 11px)) !important;
+  }
+
+  .episode-comment__body,
+  .episode-comments__empty,
+  .episode-comments__replying {
+    font-size: 13px !important;
+    line-height: 1.58 !important;
+  }
+}
+
+/* ---------------------------------------------------------
+   1440p / wide desktop.
+   More usable canvas, slightly larger reading scale.
+   --------------------------------------------------------- */
+
+@media (min-width: 1500px) and (min-height: 760px) {
+  :root {
+    --ab-readable-body: 15px;
+    --ab-readable-small: 12.5px;
+    --ab-readable-micro: 10.75px;
+    --ab-ui-section-title: 18px;
+    --ab-wide-content: 1640px;
+  }
+
+  .page-content {
+    width: min(var(--ab-wide-content), 100%) !important;
+    padding-inline: clamp(30px, 2.1vw, 40px) !important;
+  }
+
+  .home-page .home-grid--main {
+    grid-template-columns: minmax(0, 1fr) minmax(278px, 300px) !important;
+    gap: 22px !important;
+  }
+
+  .sidebar {
+    width: 242px !important;
+    padding-inline: 17px !important;
+  }
+
+  .topbar {
+    left: 242px !important;
+    padding-inline: 32px !important;
+  }
+
+  .app-shell {
+    margin-left: 242px !important;
+  }
+
+  .sidebar__item {
+    min-height: 40px !important;
+    font-size: 12.75px !important;
+  }
+
+  .sidebar__label {
+    font-size: 10.75px !important;
+  }
+
+  .brand__copy strong {
+    font-size: 14px !important;
+  }
+
+  .brand__copy small {
+    font-size: 10.5px !important;
+    line-height: 1.35 !important;
+  }
+
+  .topbar__search {
+    width: min(620px, 48vw) !important;
+    height: 42px !important;
+  }
+
+  .topbar__search input {
+    font-size: 13px !important;
+  }
+
+  .section-title,
+  .panel__head,
+  .anime-detail-v4__section-head h2,
+  .profile-v2__section-head h2,
+  .episode-comments__header h2 {
+    font-size: 18px !important;
+  }
+
+  .section-link {
+    font-size: 11.5px !important;
+  }
+
+  .anime-card__body {
+    padding: 11px 11px 12px !important;
+  }
+
+  .anime-card__body h3 {
+    font-size: 13px !important;
+    line-height: 1.38 !important;
+    -webkit-line-clamp: 2;
+  }
+
+  .anime-card__meta {
+    margin-top: 6px !important;
+    font-size: 10.75px !important;
+  }
+
+  .anime-card__rating,
+  .anime-card__state {
+    font-size: 10.5px !important;
+  }
+
+  .top-anime-item {
+    min-height: 58px;
+  }
+
+  .top-anime-item__copy strong {
+    font-size: 12.5px !important;
+    line-height: 1.34 !important;
+  }
+
+  .top-anime-item__copy span,
+  .top-anime-item__rank {
+    font-size: 10.5px !important;
+  }
+
+  .schedule__card strong,
+  .rank-item strong {
+    font-size: 12.5px !important;
+  }
+
+  .schedule__card span,
+  .schedule__time,
+  .rank-item span,
+  .rank-item__score {
+    font-size: 10.75px !important;
+  }
+
+  .episode-comment__body {
+    font-size: 13.5px !important;
+  }
+
+  .episode-comment__author {
+    font-size: 12.5px !important;
+  }
+
+  .episode-comment__actions button,
+  .episode-comments__controls,
+  .episode-comments__sort,
+  .episode-comments__count {
+    font-size: 11px !important;
+  }
+
+  .profile-widget__title,
+  .profile-v2__stat strong {
+    font-size: 14px !important;
+  }
+
+  .profile-widget__meta,
+  .profile-widget__empty,
+  .profile-v2__stat span {
+    font-size: 11.5px !important;
+  }
+}
+
+/* ---------------------------------------------------------
+   2K desktop: treat the extra pixels as workspace, not dead space.
+   --------------------------------------------------------- */
+
+@media (min-width: 1920px) and (min-height: 900px) {
+  :root {
+    --ab-readable-body: 15.5px;
+    --ab-readable-small: 13.5px;
+    --ab-readable-micro: 11.5px;
+    --ab-ui-section-title: 20px;
+    --ab-wide-content: 1800px;
+  }
+
+  .sidebar {
+    width: 252px !important;
+    padding: 24px 18px 20px !important;
+  }
+
+  .topbar {
+    left: 252px !important;
+    height: 72px !important;
+    padding-inline: 36px !important;
+  }
+
+  .app-shell {
+    margin-left: 252px !important;
+    padding-top: 72px !important;
+  }
+
+  .page-content {
+    width: min(var(--ab-wide-content), calc(100% - 28px)) !important;
+    padding: 30px 38px 46px !important;
+  }
+
+  .home-page .home-grid--main {
+    grid-template-columns: minmax(0, 1fr) 320px !important;
+    gap: 24px !important;
+  }
+
+  .sidebar__item {
+    min-height: 42px !important;
+    grid-template-columns: 26px minmax(0, 1fr) !important;
+    font-size: 13.5px !important;
+  }
+
+  .sidebar__icon {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  .sidebar__label {
+    font-size: 11.5px !important;
+  }
+
+  .sidebar-membership__copy strong,
+  .sidebar__support strong {
+    font-size: 12.5px !important;
+  }
+
+  .sidebar-membership__copy small,
+  .sidebar__support small {
+    font-size: 10.75px !important;
+  }
+
+  .brand__copy strong {
+    font-size: 15px !important;
+  }
+
+  .brand__copy small {
+    font-size: 11px !important;
+  }
+
+  .topbar__search {
+    width: min(720px, 46vw) !important;
+    height: 44px !important;
+  }
+
+  .topbar__search input {
+    font-size: 13.75px !important;
+  }
+
+  .section {
+    margin-top: 24px !important;
+  }
+
+  .section-title,
+  .panel__head,
+  .anime-detail-v4__section-head h2,
+  .profile-v2__section-head h2,
+  .profile-v2__bottom-card h2,
+  .episode-comments__header h2 {
+    font-size: 20px !important;
+  }
+
+  .section-link {
+    font-size: 12.5px !important;
+  }
+
+  .anime-grid {
+    gap: 15px !important;
+  }
+
+  .anime-card__body {
+    padding: 12px 12px 13px !important;
+  }
+
+  .anime-card__body h3 {
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+  }
+
+  .anime-card__meta {
+    font-size: 11.5px !important;
+  }
+
+  .anime-card__rating,
+  .anime-card__state,
+  .anime-card__match {
+    font-size: 11px !important;
+  }
+
+  .panel__body {
+    padding-inline: 12px !important;
+    padding-bottom: 14px !important;
+  }
+
+  .top-anime-item {
+    min-height: 62px;
+    gap: 9px;
+  }
+
+  .top-anime-item__poster {
+    width: 46px !important;
+    flex-basis: 46px !important;
+  }
+
+  .top-anime-item__copy strong {
+    font-size: 13.5px !important;
+  }
+
+  .top-anime-item__copy span,
+  .top-anime-item__rank {
+    font-size: 11.5px !important;
+  }
+
+  .schedule__card {
+    min-height: 70px !important;
+  }
+
+  .schedule__card strong,
+  .rank-item strong {
+    font-size: 13px !important;
+  }
+
+  .schedule__card span,
+  .schedule__time,
+  .rank-item span,
+  .rank-item__score {
+    font-size: 11.5px !important;
+  }
+
+  .episode-comments {
+    padding: 18px !important;
+  }
+
+  .episode-comments__header span,
+  .episode-comments__eyebrow {
+    font-size: 11.5px !important;
+  }
+
+  .episode-comment__author {
+    font-size: 13.5px !important;
+  }
+
+  .episode-comment__body {
+    font-size: 14.5px !important;
+    line-height: 1.62 !important;
+  }
+
+  .episode-comment__actions button,
+  .episode-comments__controls label,
+  .episode-comments__controls > span,
+  .episode-comments__sort,
+  .episode-comments__count {
+    font-size: 12px !important;
+  }
+
+  .episode-comments__form textarea {
+    font-size: 14px !important;
+    line-height: 1.55 !important;
+  }
+
+  .anime-detail-v4__description,
+  .detail__description,
+  .episode-discussion-hub p {
+    font-size: 14px !important;
+  }
+
+  .anime-detail-v3__facts-list dt,
+  .anime-detail-v3__facts-heading span {
+    font-size: 11.5px !important;
+  }
+
+  .anime-detail-v3__facts-list dd {
+    font-size: 14px !important;
+  }
+
+  .profile-widget__title {
+    font-size: 15px !important;
+  }
+
+  .profile-widget__meta,
+  .profile-widget__empty,
+  .profile-v2__stat span,
+  .anime-rating-control__head p,
+  .anime-rating-control__footer {
+    font-size: 12px !important;
+  }
+
+  .anime-rating-control__eyebrow,
+  .anime-rating-control__summary span,
+  .anime-rating-control__summary small,
+  .anime-rating-control__clear,
+  .anime-rating-control__message {
+    font-size: 10.5px !important;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector {
+    grid-template-columns: 124px minmax(0, 1fr) !important;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector
+  .telegram-growth-card__content {
+    padding: 22px 58px 22px 12px !important;
+  }
+
+  .telegram-growth-card--vector .telegram-growth-card__copy p {
+    font-size: 13px !important;
+  }
+
+  .telegram-growth-card--vector .telegram-growth-card__benefits span {
+    font-size: 11px !important;
+  }
+
+  .telegram-growth-card--vector .telegram-growth-card__cta {
+    font-size: 12.5px !important;
+  }
+}
+
+/* ---------------------------------------------------------
+   Very wide / 4K. Cap text growth, expand canvas a little further.
+   --------------------------------------------------------- */
+
+@media (min-width: 2400px) and (min-height: 1100px) {
+  :root {
+    --ab-readable-body: 16px;
+    --ab-readable-small: 14px;
+    --ab-readable-micro: 12px;
+    --ab-ui-section-title: 21px;
+    --ab-wide-content: 1980px;
+  }
+
+  .page-content {
+    width: min(var(--ab-wide-content), calc(100% - 48px)) !important;
+  }
+
+  .home-page .home-grid--main {
+    grid-template-columns: minmax(0, 1fr) 336px !important;
+    gap: 26px !important;
+  }
+
+  .sidebar__item {
+    font-size: 14px !important;
+  }
+
+  .anime-card__body h3 {
+    font-size: 15px !important;
+  }
+
+  .anime-card__meta,
+  .schedule__card span,
+  .schedule__time,
+  .top-anime-item__copy span {
+    font-size: 12px !important;
+  }
+
+  .episode-comment__body {
+    font-size: 15px !important;
+  }
+}
+
+/* ---------------------------------------------------------
+   Tablet/mobile Telegram promo remains compact and readable.
+   --------------------------------------------------------- */
+
+@media (max-width: 760px) {
+  .telegram-growth-card--compact.telegram-growth-card--vector,
+  .telegram-growth-card--community.telegram-growth-card--vector {
+    height: fit-content !important;
+    min-height: 0 !important;
+    grid-template-columns: 62px minmax(0, 1fr) !important;
+    align-items: start !important;
+  }
+
+  .telegram-growth-card--compact.telegram-growth-card--vector
+  .telegram-growth-card__vector-art,
+  .telegram-growth-card--community.telegram-growth-card--vector
+  .telegram-growth-card__vector-art {
+    min-height: 0 !important;
+    align-self: start;
+    justify-content: center !important;
+    padding: 17px 0 0 12px !important;
+  }
+
+  .telegram-growth-card--compact.telegram-growth-card--vector
+  .telegram-growth-card__content,
+  .telegram-growth-card--community.telegram-growth-card--vector
+  .telegram-growth-card__content {
+    padding: 15px 42px 16px 8px !important;
+  }
+
+  .telegram-growth-card--vector .telegram-growth-card__copy h3 {
+    font-size: 17px !important;
+  }
+
+  .telegram-growth-card--vector .telegram-growth-card__copy p {
+    font-size: 11.5px !important;
+  }
+
+  .telegram-growth-card--vector .telegram-growth-card__benefits {
+    grid-column: auto !important;
+  }
+
+  .telegram-growth-card--vector .telegram-growth-card__cta {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .telegram-growth-card--compact.telegram-growth-card--vector,
+  .telegram-growth-card--community.telegram-growth-card--vector {
+    grid-template-columns: 1fr !important;
+  }
+
+  .telegram-growth-card--compact.telegram-growth-card--vector
+  .telegram-growth-card__vector-art,
+  .telegram-growth-card--community.telegram-growth-card--vector
+  .telegram-growth-card__vector-art {
+    display: none !important;
+  }
+
+  .telegram-growth-card--compact.telegram-growth-card--vector
+  .telegram-growth-card__content,
+  .telegram-growth-card--community.telegram-growth-card--vector
+  .telegram-growth-card__content {
+    padding: 16px 42px 16px 16px !important;
+  }
+}
