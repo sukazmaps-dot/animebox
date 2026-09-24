@@ -1,0 +1,184 @@
+/* =========================================================
+   Patch 17.4.2.2 — Public Profile Grid Rebalance
+   Independent activity / insight columns remove the empty row gap
+   produced by the old shared two-column CSS grid.
+   ========================================================= */
+
+.profile-widgets-layout {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.profile-widgets-layout__featured {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-widgets-layout__columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 12px;
+}
+
+.profile-widgets-layout__column {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+/* Activity is a vertical feed when it lives in the left half-column. */
+.profile-widgets-layout__column[data-column='activity']
+  .profile-widget__activity-list {
+  grid-template-columns: 1fr;
+}
+
+/* Watching rows get a small directional response instead of a static arrow. */
+.profile-widget__watching-row {
+  transition:
+    border-color .16s ease,
+    background-color .16s ease,
+    transform .16s ease;
+}
+
+.profile-widget__watching-row:hover {
+  transform: translateY(-1px);
+}
+
+.profile-widget__watching-row .profile-widget__arrow {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  color: rgba(197, 184, 244, .72);
+  transition:
+    transform .22s ease,
+    color .22s ease;
+}
+
+.profile-widget__watching-row:hover .profile-widget__arrow {
+  transform: translateX(3px);
+  color: #d8cdfd;
+}
+
+/* Rating summary: keep the score as the strongest visual anchor. */
+.profile-widget__rating-summary > div:first-child strong {
+  color: #f1e9ff;
+  text-shadow:
+    0 0 10px rgba(168, 85, 247, .28),
+    0 0 22px rgba(99, 102, 241, .12);
+}
+
+/* Taste snapshot should read as a visual signal, not a dry white table. */
+.profile-widget__genre-track {
+  height: 6px;
+  background: rgba(255,255,255,.045);
+  box-shadow: inset 0 1px 1px rgba(0,0,0,.18);
+}
+
+.profile-widget__genre-track i {
+  background:
+    linear-gradient(
+      90deg,
+      #7c3aed 0%,
+      #6366f1 52%,
+      #a78bfa 100%
+    );
+  box-shadow:
+    0 0 12px rgba(124, 58, 237, .24),
+    0 0 22px rgba(99, 102, 241, .10);
+}
+
+.profile-widget__genre {
+  padding: 1px 0;
+}
+
+.profile-widget__genre strong {
+  color: rgba(224, 228, 238, .90);
+}
+
+.profile-widget__genre small {
+  color: rgba(149, 158, 176, .58);
+}
+
+/* Keep insight widgets dense so the right column visually balances watching. */
+.profile-widgets-layout__column[data-column='insights']
+  .profile-widget[data-widget='ratings'],
+.profile-widgets-layout__column[data-column='insights']
+  .profile-widget[data-widget='genres'] {
+  align-self: start;
+}
+
+/* Legacy grid rules remain for editor/older surfaces, but not the new showcase. */
+.profile-widgets-layout .profile-widget[data-widget='favorites'],
+.profile-widgets-layout .profile-widget[data-widget='activity'] {
+  grid-column: auto;
+}
+
+html[data-animebox-theme='light']
+  .profile-widget__rating-summary > div:first-child strong {
+  color: #5d3aa8;
+  text-shadow: 0 0 12px rgba(101, 66, 187, .10);
+}
+
+html[data-animebox-theme='light'] .profile-widget__genre-track {
+  background: rgba(83, 70, 105, .08);
+  box-shadow: inset 0 1px 1px rgba(63, 48, 81, .05);
+}
+
+html[data-animebox-theme='light'] .profile-widget__genre-track i {
+  background:
+    linear-gradient(
+      90deg,
+      #6d42c7 0%,
+      #5d63cf 52%,
+      #9178dc 100%
+    );
+  box-shadow: 0 0 12px rgba(101, 66, 187, .12);
+}
+
+html[data-animebox-theme='light'] .profile-widget__genre strong {
+  color: #4a4453;
+}
+
+html[data-animebox-theme='light'] .profile-widget__genre small {
+  color: #847a8b;
+}
+
+@media (max-width: 900px) {
+  .profile-widgets-layout__columns {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .profile-widgets-layout__column {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 700px) {
+  .profile-widgets-layout {
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .profile-widgets-layout__featured,
+  .profile-widgets-layout__columns,
+  .profile-widgets-layout__column {
+    gap: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-widget__watching-row,
+  .profile-widget__watching-row .profile-widget__arrow {
+    transition-duration: .001ms !important;
+  }
+
+  .profile-widget__watching-row:hover,
+  .profile-widget__watching-row:hover .profile-widget__arrow {
+    transform: none !important;
+  }
+}
