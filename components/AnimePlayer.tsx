@@ -2579,7 +2579,11 @@ export default function AnimePlayer({
                 </h2>
                 <p className="mt-2 text-xs font-semibold text-white/55 sm:text-sm">
                   {resumeSeconds > 0
-                    ? `с ${Math.floor(resumeSeconds / 60)}:${String(resumeSeconds % 60).padStart(2, '0')} · ${currentTranslation?.title || sourceLabel(currentSource?.name)}`
+                    ? `${resumeOrigin === 'server'
+                        ? 'с другого устройства · '
+                        : resumeOrigin === 'local_newer'
+                          ? 'после последнего просмотра · '
+                          : ''}с ${Math.floor(resumeSeconds / 60)}:${String(resumeSeconds % 60).padStart(2, '0')} · ${currentTranslation?.title || sourceLabel(currentSource?.name)}`
                     : currentTranslation?.title || sourceLabel(currentSource?.name)}
                 </p>
               </div>
