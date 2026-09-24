@@ -1,6 +1,7 @@
 import type { ProfileProgression, AchievementCategory, AchievementRarity } from '@/lib/progression';
 import type { ChallengeSnapshot } from '@/lib/challenges';
 import type { WatchTitleOverview } from '@/types/watch';
+import type { ProfileWidgetsData } from '@/types/profile-widgets';
 
 export async function communityRequest<T>(
   path: string,
@@ -57,6 +58,7 @@ export type CommunityProfile = {
   progression: ProfileProgression;
   challenges: ChallengeSnapshot;
   featuredAchievements: string[];
+  widgets: ProfileWidgetsData;
   achievements: {
     code: string;
     title: string;
