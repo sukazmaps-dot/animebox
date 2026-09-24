@@ -1312,3 +1312,82 @@
     width: 154px;
   }
 }
+
+
+/* =========================================================
+   Patch 18.1 — poster geometry invariants
+   Remote image dimensions must never participate in Smart Feed layout.
+   ========================================================= */
+.smart-feed__slide {
+  flex: 0 0 clamp(188px, 16vw, 226px);
+  min-width: clamp(188px, 16vw, 226px);
+  max-width: clamp(188px, 16vw, 226px);
+}
+
+.smart-feed__slide > .smart-card,
+.smart-card__poster-link {
+  width: 100%;
+  min-width: 0;
+}
+
+.smart-card__poster {
+  position: relative;
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  flex: 0 0 auto;
+  aspect-ratio: 2 / 3 !important;
+  contain: layout paint size;
+}
+
+.smart-card__poster > div:first-child {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+.smart-card__poster img,
+.smart-card__image {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  object-fit: cover !important;
+  object-position: center center;
+}
+
+/* content-visibility can reserve a stale intrinsic width for offscreen flex
+   children. Keep paint/layout containment, but let the rail own geometry. */
+.smart-feed__slide {
+  content-visibility: visible;
+  contain: layout paint;
+  contain-intrinsic-size: none;
+}
+
+@media (min-width: 1500px) {
+  .smart-feed__slide {
+    flex-basis: 218px;
+    min-width: 218px;
+    max-width: 218px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .smart-feed__slide {
+    flex-basis: clamp(178px, 24vw, 214px);
+    min-width: clamp(178px, 24vw, 214px);
+    max-width: clamp(178px, 24vw, 214px);
+  }
+}
+
+@media (max-width: 720px) {
+  .smart-feed__slide {
+    flex-basis: clamp(154px, 44vw, 184px);
+    min-width: clamp(154px, 44vw, 184px);
+    max-width: clamp(154px, 44vw, 184px);
+  }
+}
