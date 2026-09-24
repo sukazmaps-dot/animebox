@@ -24,8 +24,11 @@ const inFlight = new Map<number, Promise<CatalogAvailabilityRow | null>>();
 let activeProbes = 0;
 const probeWaiters: Array<() => void> = [];
 
-function schemaMissing(message: string) {
-  return /anime_availability|relation .* does not exist|schema cache/i.test(message);
+function registryUnavailable(message: string) {
+  return (
+    /anime_availability|relation .* does not exist|schema cache/i.test(message) ||
+    /SUPABASE_SERVICE_ROLE_KEY is not configured/i.test(message)
+  );
 }
 
 async function withProbeSlot<T>(work: () => Promise<T>): Promise<T> {
@@ -222,7 +225,7 @@ async function readRows(ids: number[]) {
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    if (!schemaMissing(message)) {
+    if (!registryUnavailable(message)) {
       console.warn('[Catalog Availability] registry read failed:', error);
     }
   }
@@ -392,7 +395,7 @@ async function refreshOne(
       return data as CatalogAvailabilityRow;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if (!schemaMissing(message)) {
+      if (!registryUnavailable(message)) {
         console.warn('[Catalog Availability] registry write failed:', error);
       }
       return null;
@@ -486,7 +489,7 @@ export async function refreshStaleCatalogAvailability(limit = 24) {
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    if (schemaMissing(message)) return { checked: 0, refreshed: 0 };
+    if (registryUnavailable(message)) return { checked: 0, refreshed: 0 };
     throw error;
   }
 }
@@ -556,7 +559,7 @@ export async function getCatalogHealthSnapshot(): Promise<CatalogHealthSnapshot>
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    if (schemaMissing(message)) {
+    if (registryUnavailable(message)) {
       return {
         generatedAt: now,
         counts: { total: 0, playable: 0, unknown: 0, unavailable: 0, stale: 0 },
