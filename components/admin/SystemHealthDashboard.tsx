@@ -53,6 +53,7 @@ export default function SystemHealthDashboard() {
   const [health, setHealth] = useState<SystemHealthSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [resolvingIncidentId, setResolvingIncidentId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -93,6 +94,38 @@ export default function SystemHealthDashboard() {
     () => health?.jobs ?? [],
     [health?.jobs],
   );
+
+  const resolveIncident = useCallback(async (incidentId: string) => {
+    if (resolvingIncidentId) return;
+
+    setResolvingIncidentId(incidentId);
+    setError('');
+
+    try {
+      const response = await fetch(
+        `/api/admin/system-health/incidents/${encodeURIComponent(incidentId)}/resolve`,
+        {
+          method: 'POST',
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error('Не удалось закрыть инцидент.');
+      }
+
+      await load();
+    } catch (resolveError) {
+      setError(
+        resolveError instanceof Error
+          ? resolveError.message
+          : 'Не удалось закрыть инцидент.',
+      );
+    } finally {
+      setResolvingIncidentId(null);
+    }
+  }, [load, resolvingIncidentId]);
 
   return (
     <section className={styles.dashboard} aria-label="AnimeBox System Health">
@@ -275,7 +308,18 @@ export default function SystemHealthDashboard() {
                         {time(incident.lastSeenAt)}
                       </small>
                     </div>
-                    <span>{incident.severity}</span>
+                    <div className={styles.incidentActions}>
+                      <span>{incident.severity}</span>
+                      <button
+                        type="button"
+                        disabled={resolvingIncidentId === incident.id}
+                        onClick={() => void resolveIncident(incident.id)}
+                      >
+                        {resolvingIncidentId === incident.id
+                          ? 'Закрываем…'
+                          : 'Закрыть'}
+                      </button>
+                    </div>
                     {incident.lastMessage && (
                       <p>{incident.lastMessage}</p>
                     )}
