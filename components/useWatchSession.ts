@@ -137,6 +137,7 @@ export function useWatchSession({
   const [message, setMessage] = useState('');
   const [percent, setPercent] = useState<number | null>(null);
   const [completed, setCompleted] = useState(false);
+  const [recovering, setRecovering] = useState(false);
 
   const sessionRef = useRef<string | null>(null);
   const seqRef = useRef(0);
@@ -258,6 +259,7 @@ export function useWatchSession({
         sessionAnchorPositionRef.current = null;
         seqRef.current = 0;
         lastSentPositionRef.current = latestPositionRef.current;
+        setRecovering(false);
         setMessage('');
 
         if (result.durationMs && result.durationMs > 0) {
@@ -279,11 +281,15 @@ export function useWatchSession({
 
         if (status === 401) {
           disabledRef.current = true;
+          setRecovering(false);
           setMessage('');
           return;
         }
 
-        setMessage((error as Error).message);
+        setRecovering(true);
+        setMessage(
+          'Прогресс временно сохраняется на устройстве. Синхронизация восстановится автоматически.',
+        );
       }
     })().finally(() => {
       startingRef.current = null;
@@ -382,6 +388,8 @@ export function useWatchSession({
         }
         window.dispatchEvent(new Event('watch-state-updated'));
 
+        setRecovering(false);
+
         if (result.newlyCompleted) {
           setMessage('Серия засчитана: подтверждено не менее 90% просмотра.');
           window.dispatchEvent(new Event('episode-completed'));
@@ -395,14 +403,24 @@ export function useWatchSession({
 
         if (status === 401) {
           disabledRef.current = true;
+          setRecovering(false);
           setMessage('');
         } else if (status === 404 || status === 409 || status === 410) {
           sessionRef.current = null;
           sessionAnchorPositionRef.current = latestPositionRef.current;
           seqRef.current = 0;
           lastSentPositionRef.current = null;
+          setRecovering(true);
+          setMessage('Восстанавливаем синхронизацию прогресса…');
+
+          queueMicrotask(() => {
+            if (!disabledRef.current) void startSession();
+          });
         } else {
-          setMessage((error as Error).message);
+          setRecovering(true);
+          setMessage(
+            'Прогресс временно сохраняется на устройстве. Синхронизация восстановится автоматически.',
+          );
         }
       } finally {
         sendingRef.current = false;
@@ -568,6 +586,7 @@ export function useWatchSession({
       setMessage('');
       setPercent(null);
       setCompleted(false);
+      setRecovering(false);
     });
 
     if (!enabled || !animeId) return;
@@ -582,11 +601,30 @@ export function useWatchSession({
       }
     };
 
+    const onOffline = () => {
+      if (disabledRef.current) return;
+      setRecovering(true);
+      setMessage(
+        'Нет сети — просмотр продолжится, прогресс пока сохраняется на устройстве.',
+      );
+    };
+
+    const onOnline = () => {
+      if (disabledRef.current) return;
+      setRecovering(true);
+      setMessage('Связь восстановлена. Синхронизируем прогресс…');
+      void sendHeartbeat(true);
+    };
+
     document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('online', onOnline);
 
     return () => {
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('offline', onOffline);
+      window.removeEventListener('online', onOnline);
 
       const sessionId = sessionRef.current;
       if (sessionId) {
@@ -634,5 +672,6 @@ export function useWatchSession({
     message,
     progressPercent: percent,
     completed,
+    recovering,
   };
 }
