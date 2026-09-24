@@ -18,7 +18,7 @@ export default function TopAnimeItem({
   return (
     <Link href={animeHref(anime)} className={`top-anime-item${editorial ? ' top-anime-item--editorial' : ''}`}>
       <span className="top-anime-item__rank">
-        {String(rank).padStart(2, '0')}
+        {String(rank)}
       </span>
 
       <div className="top-anime-item__poster">

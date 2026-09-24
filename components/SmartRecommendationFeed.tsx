@@ -21,6 +21,7 @@ import {
   buildRecommendationRailLayout,
   DEFAULT_RECOMMENDATION_RAIL_LIMIT,
   recommendationMatchesRail,
+  recommendationMatchesRailRelaxed,
   RECOMMENDATION_RAIL_BATCH_SIZE,
   type RecommendationRail,
   type RecommendationRailId,
@@ -29,7 +30,8 @@ import {
 import { readCachedTasteGraph } from '@/lib/taste-graph';
 
 const PAGE_SIZE = 20;
-const MAX_EMPTY_PAGE_HOPS = 3;
+const MAX_EMPTY_PAGE_HOPS = 6;
+const STRICT_EMPTY_PAGE_HOPS = 3;
 const CLIENT_PAGE_CACHE_TTL_MS = 15 * 60 * 1000;
 const CLIENT_PAGE_CACHE_PREFIX = 'animebox:recommendation-page:v6:';
 const MAX_SESSION_CACHE_ENTRIES = 14;
@@ -545,6 +547,13 @@ export default function SmartRecommendationFeed({
           startTransition(() => {
             setRecommendations((current) => mergeUnique(current, fresh));
           });
+
+          // A rail can be temporarily sparse for one cursor window. When
+          // another page yields fresh candidates, let paused rails try again
+          // instead of treating a temporary miss as a permanent end.
+          setExhaustedRails((current) =>
+            current.size > 0 ? new Set() : current,
+          );
         }
 
         const nextPointer = {
@@ -593,28 +602,85 @@ export default function SmartRecommendationFeed({
         next.delete(rail.id);
         return next;
       });
+
+      const currentLimit =
+        railLimits[rail.id] ?? DEFAULT_RECOMMENDATION_RAIL_LIMIT;
+      const targetLimit =
+        Math.max(currentLimit, rail.items.length) +
+        RECOMMENDATION_RAIL_BATCH_SIZE;
+
       setRailLimits((current) => ({
         ...current,
-        [rail.id]:
-          (current[rail.id] ?? DEFAULT_RECOMMENDATION_RAIL_LIMIT) +
-          RECOMMENDATION_RAIL_BATCH_SIZE,
+        [rail.id]: targetLimit,
       }));
 
-      let foundForRail = false;
+      let remaining = Math.max(0, targetLimit - rail.items.length);
+      let claimedForRail = 0;
+
+      const claimCandidates = (
+        candidates: RankedRecommendation[],
+        relaxed: boolean,
+      ) => {
+        if (remaining <= 0) return 0;
+
+        let claimed = 0;
+
+        for (const item of candidates) {
+          if (remaining <= 0) break;
+          if (railOwnershipRef.current.has(item.anime.id)) continue;
+
+          const matches = relaxed
+            ? recommendationMatchesRailRelaxed(item, rail)
+            : recommendationMatchesRail(item, rail);
+
+          if (!matches) continue;
+
+          // Reserve candidates for the rail that actually requested more.
+          // Without this, earlier rails in buildRecommendationRailLayout()
+          // can steal the freshly fetched cards before the triggering rail
+          // gets a chance to render them.
+          railOwnershipRef.current.set(item.anime.id, rail.id);
+          remaining -= 1;
+          claimed += 1;
+        }
+
+        claimedForRail += claimed;
+        return claimed;
+      };
+
+      // First use already-loaded candidates that are not owned by any rail.
+      // This avoids a network request when a previous shared page already
+      // brought in suitable titles.
+      claimCandidates(filtered, false);
 
       try {
         for (
           let attempt = 0;
-          attempt < MAX_EMPTY_PAGE_HOPS && hasMoreRef.current && !foundForRail;
+          attempt < MAX_EMPTY_PAGE_HOPS &&
+          hasMoreRef.current &&
+          remaining > 0;
           attempt += 1
         ) {
           const fresh = await fetchNextCandidateBatch();
-          foundForRail = fresh.some((item) =>
-            recommendationMatchesRail(item, rail),
-          );
+          const relaxed = attempt >= STRICT_EMPTY_PAGE_HOPS;
+          claimCandidates(fresh, relaxed);
         }
 
-        if (!foundForRail && hasMoreRef.current) {
+        if (
+          claimedForRail === 0 &&
+          hasMoreRef.current
+        ) {
+          // Pause only this rail for the current candidate window. A later
+          // successful page fetched by another rail clears this pause so the
+          // row can continue instead of becoming permanently exhausted.
+          setExhaustedRails((current) => {
+            const next = new Set(current);
+            next.add(rail.id);
+            return next;
+          });
+        }
+
+        if (!hasMoreRef.current) {
           setExhaustedRails((current) => {
             const next = new Set(current);
             next.add(rail.id);
@@ -645,7 +711,12 @@ export default function SmartRecommendationFeed({
         });
       }
     },
-    [exhaustedRails, fetchNextCandidateBatch],
+    [
+      exhaustedRails,
+      fetchNextCandidateBatch,
+      filtered,
+      railLimits,
+    ],
   );
 
   if (filtered.length === 0 && !hasMore && loadingRails.size === 0) {

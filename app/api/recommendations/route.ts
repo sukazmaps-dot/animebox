@@ -317,8 +317,13 @@ export async function GET(request: NextRequest) {
       mood,
       bucket,
     });
-    const hasMore = result.items.length >= limit;
-    const nextPage = hasMore && page < MAX_PAGE ? page + 1 : null;
+    // The candidate list is filtered/localized after the upstream page is
+    // fetched. A page can legitimately contain fewer than `limit` eligible
+    // anime while later pages still exist, so "items.length < limit" must not
+    // be interpreted as end-of-catalogue. Probe the next page until an empty
+    // eligible page is reached.
+    const hasMore = result.items.length > 0 && page < MAX_PAGE;
+    const nextPage = hasMore ? page + 1 : null;
     const nextCursor =
       nextPage == null ? null : encodeRecommendationCursor(nextPage);
 

@@ -18,6 +18,7 @@ const home = read('components/HomePageClient.tsx');
 const continueWatching = read('components/HomeContinueWatching.tsx');
 const css = read('app/patch14-3-home-discovery.css');
 const topAnimeCss = read('app/patch14-4-1-top-anime-architecture.css');
+const topAnimeItem = read('components/TopAnimeItem.tsx');
 
 const importNeedle = "import './patch14-3-home-discovery.css';";
 if (!layout.includes(importNeedle)) {
@@ -32,6 +33,13 @@ if (
   homeImport < mobileShellImport
 ) {
   failures.push('layout.tsx: Home Discovery must load after Mobile Shell.');
+}
+
+if (
+  !topAnimeItem.includes('{String(rank)}') ||
+  topAnimeItem.includes("padStart(2, '0')")
+) {
+  failures.push('Top Anime ranks must render as 1, 2, 3… without leading zeroes.');
 }
 
 for (const [label, needle] of [

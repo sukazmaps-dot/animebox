@@ -220,6 +220,7 @@ if (
   !rails.includes('buildRecommendationRailLayout') ||
   !rails.includes('ownership: Map<number, RecommendationRailId>') ||
   !rails.includes('recommendationMatchesRail') ||
+  !rails.includes('recommendationMatchesRailRelaxed') ||
   !feed.includes('hasMore={railHasMore}') ||
   !feed.includes('loading={railLoading}') ||
   !feed.includes('ensureRailDepth(rail)') ||
@@ -237,6 +238,9 @@ if (
 }
 if (
   !feed.includes('sharedBatchPromiseRef') ||
+  !feed.includes('railOwnershipRef.current.set(item.anime.id, rail.id)') ||
+  !feed.includes('STRICT_EMPTY_PAGE_HOPS') ||
+  !candidates.includes('result.items.length > 0 && page < MAX_PAGE') ||
   !feed.includes('MAX_EMPTY_PAGE_HOPS') ||
   !feed.includes('seenRecommendationIdsRef') ||
   !feed.includes('railOwnershipRef') ||

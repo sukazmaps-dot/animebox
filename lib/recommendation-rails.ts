@@ -97,6 +97,30 @@ export function recommendationMatchesRail(
   return false;
 }
 
+export function recommendationMatchesRailRelaxed(
+  item: RankedRecommendation,
+  rail: Pick<RecommendationRail, 'id' | 'genre'>,
+): boolean {
+  if (recommendationMatchesRail(item, rail)) return true;
+
+  if (rail.id === 'explore') {
+    return item.matchScore == null || item.matchScore < 88;
+  }
+
+  if (rail.id === 'quick_watch') {
+    const episodes = Number(item.anime.episodes ?? 0);
+    const format = String(item.anime.format ?? '').toUpperCase();
+
+    return (
+      format === 'MOVIE' ||
+      format === 'ФИЛЬМ' ||
+      (episodes > 0 && episodes <= 24)
+    );
+  }
+
+  return false;
+}
+
 function railLimit(
   limits: RecommendationRailLimits | undefined,
   id: RecommendationRailId,
