@@ -83,7 +83,18 @@ export async function GET() {
     const admin = adminClient();
     const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
 
-    const [settings, reports, commentReports, controls, messagesToday] = await Promise.all([
+    const onlineCutoff = new Date(Date.now() - 2 * 60_000).toISOString();
+
+    const [
+      settings,
+      reports,
+      commentReports,
+      controls,
+      messagesToday,
+      commentsToday,
+      acceptedFriendships,
+      onlineNow,
+    ] = await Promise.all([
       admin.from('chat_settings').select('slow_mode_seconds,pinned_message_id,updated_at').eq('id', 1).maybeSingle(),
       admin
         .from('chat_reports')
@@ -104,6 +115,9 @@ export async function GET() {
         .order('updated_at', { ascending: false })
         .limit(100),
       admin.from('chat_messages').select('*', { count: 'exact', head: true }).gte('created_at', dayAgo),
+      admin.from('comments').select('*', { count: 'exact', head: true }).gte('created_at', dayAgo),
+      admin.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'accepted'),
+      admin.from('social_presence').select('*', { count: 'exact', head: true }).gte('last_seen_at', onlineCutoff),
     ]);
 
     if (settings.error) throw settings.error;
@@ -111,6 +125,9 @@ export async function GET() {
     if (commentReports.error) throw commentReports.error;
     if (controls.error) throw controls.error;
     if (messagesToday.error) throw messagesToday.error;
+    if (commentsToday.error) throw commentsToday.error;
+    if (acceptedFriendships.error) throw acceptedFriendships.error;
+    if (onlineNow.error) throw onlineNow.error;
 
     const reportMessageIds = [...new Set((reports.data ?? []).map((item) => item.message_id))];
     const reportMessages = reportMessageIds.length
@@ -164,7 +181,10 @@ export async function GET() {
       role,
       metrics: {
         messages24h: messagesToday.count ?? 0,
+        comments24h: commentsToday.count ?? 0,
         activeChatters24h: new Set((recentRows.data ?? []).map((item) => item.user_id)).size,
+        acceptedFriendships: acceptedFriendships.count ?? 0,
+        onlineNow: onlineNow.count ?? 0,
         openReports:
           (reports.data?.length ?? 0) +
           (commentReports.data?.length ?? 0),
