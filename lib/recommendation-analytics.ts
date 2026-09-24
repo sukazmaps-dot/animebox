@@ -1,5 +1,15 @@
 export type RecommendationAnalyticsRange = 7 | 30;
 
+export type RecommendationFunnelSlice = {
+  impressions: number;
+  clicks: number;
+  ctrPct: number;
+  started: number;
+  watch15m: number;
+  watch30m: number;
+  completed: number;
+};
+
 export type RecommendationAnalyticsDashboard = {
   rangeDays: RecommendationAnalyticsRange;
   generatedAt: string;
@@ -25,15 +35,31 @@ export type RecommendationAnalyticsDashboard = {
     startedToCompletedPct: number;
     dwellP50Ms: number | null;
   };
-  sources: Array<{
-    source: string;
+  attribution: {
+    recommendationEvents: number;
+    recommendationIdPct: number;
+    recommendationSessionPct: number;
+    algorithmVersionPct: number;
+    rowIdPct: number;
+    positionPct: number;
+    fullyAttributedPct: number;
+  };
+  versions: Array<RecommendationFunnelSlice & {
+    algorithmVersion: string;
+  }>;
+  rows: Array<RecommendationFunnelSlice & {
+    rowId: string;
+    dismissed: number;
+    dismissRatePct: number;
+  }>;
+  positions: Array<{
+    bucket: '1–3' | '4–7' | '8+' | 'unknown';
     impressions: number;
     clicks: number;
     ctrPct: number;
-    started: number;
-    watch15m: number;
-    watch30m: number;
-    completed: number;
+  }>;
+  sources: Array<RecommendationFunnelSlice & {
+    source: string;
   }>;
   daily: Array<{
     date: string;

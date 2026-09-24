@@ -20,6 +20,9 @@ const watch = read('components/useWatchSession.ts');
 const personalization = read('lib/personalization.ts');
 const productClient = read('lib/product-events-client.ts');
 const productServer = read('lib/product-events-server.ts');
+const recommendationAnalytics = read('lib/recommendation-analytics-server.ts');
+const recommendationAnalyticsTypes = read('lib/recommendation-analytics.ts');
+const recommendationAnalyticsUi = read('components/admin/RecommendationAnalyticsDashboard.tsx');
 const productRoute = read('app/api/analytics/product/route.ts');
 const foundationMigration = read(
   'supabase/migrations/20260925010000_discovery_data_foundation_v1.sql',
@@ -216,6 +219,17 @@ if (
 }
 if (!watch.includes('trackRecommendationWatchProgress')) {
   failures.push('player progress is not linked to recommendation attribution');
+}
+if (
+  !recommendationAnalytics.includes('recommendation_id,recommendation_session_id,algorithm_version') ||
+  !recommendationAnalytics.includes('fullyAttributedPct') ||
+  !recommendationAnalytics.includes('rowBreakdown') ||
+  !recommendationAnalytics.includes('positionBucket') ||
+  !recommendationAnalyticsTypes.includes('RecommendationFunnelSlice') ||
+  !recommendationAnalyticsUi.includes('DISCOVERY ENGINE · 17.8') ||
+  !recommendationAnalyticsUi.includes('Algorithm version')
+) {
+  failures.push('17.8.7 recommendation attribution analytics is incomplete');
 }
 
 if (failures.length) {
