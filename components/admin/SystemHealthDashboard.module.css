@@ -1,0 +1,389 @@
+.dashboard {
+  display: grid;
+  gap: 20px;
+  padding: 28px;
+  color: #f5f6fb;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.header h1 {
+  margin: 7px 0 8px;
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: .98;
+  letter-spacing: -.048em;
+}
+
+.header p {
+  max-width: 820px;
+  margin: 0;
+  color: rgba(255,255,255,.5);
+  line-height: 1.6;
+}
+
+.header small {
+  display: block;
+  margin-top: 9px;
+  color: rgba(255,255,255,.32);
+}
+
+.eyebrow,
+.panelHead span {
+  color: #9d8df3;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .14em;
+}
+
+.refresh {
+  min-height: 40px;
+  padding: 0 15px;
+  border: 1px solid rgba(157,141,243,.24);
+  border-radius: 10px;
+  background: rgba(157,141,243,.08);
+  color: #ebe7ff;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.refresh:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+.overall {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  min-height: 78px;
+  padding: 16px 18px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 13px;
+  background: #0d121d;
+}
+
+.overall > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.overall small {
+  display: block;
+  color: rgba(255,255,255,.35);
+  font-size: 9px;
+  font-weight: 780;
+  letter-spacing: .1em;
+}
+
+.overall strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 18px;
+}
+
+.overall p {
+  margin: 0;
+  color: rgba(255,255,255,.42);
+  font-size: 11px;
+}
+
+.statusDot {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: #6bd19c;
+  box-shadow: 0 0 16px rgba(107,209,156,.32);
+}
+
+.overall[data-tone='degraded'] .statusDot {
+  background: #e4a65d;
+  box-shadow: 0 0 16px rgba(228,166,93,.3);
+}
+
+.overall[data-tone='critical'] .statusDot {
+  background: #ef7789;
+  box-shadow: 0 0 18px rgba(239,119,137,.32);
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.kpis article,
+.panel {
+  border: 1px solid rgba(255,255,255,.065);
+  background: #0c111b;
+}
+
+.kpis article {
+  min-height: 108px;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.kpis span {
+  display: block;
+  color: rgba(255,255,255,.38);
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.kpis strong {
+  display: block;
+  margin: 9px 0 3px;
+  font-size: 25px;
+  letter-spacing: -.035em;
+}
+
+.kpis small {
+  color: rgba(255,255,255,.34);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.panel {
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.panelHead {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 17px;
+  border-bottom: 1px solid rgba(255,255,255,.055);
+}
+
+.panelHead > div {
+  display: grid;
+  gap: 4px;
+}
+
+.panelHead strong {
+  font-size: 15px;
+}
+
+.panelHead small {
+  color: rgba(255,255,255,.3);
+  font-size: 9px;
+}
+
+.rows {
+  display: grid;
+}
+
+.providerRow,
+.jobRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px 126px;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 10px 17px;
+  border-bottom: 1px solid rgba(255,255,255,.045);
+}
+
+.providerRow:last-child,
+.jobRow:last-child {
+  border-bottom: 0;
+}
+
+.providerRow > div:first-child,
+.jobRow > div:first-child {
+  min-width: 0;
+}
+
+.providerRow strong,
+.jobRow strong,
+.incidentRow strong {
+  display: block;
+  overflow: hidden;
+  color: rgba(255,255,255,.86);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.providerRow small,
+.jobRow small,
+.incidentRow small {
+  color: rgba(255,255,255,.34);
+  font-size: 9px;
+}
+
+.providerRow > span,
+.jobRow > span {
+  justify-self: start;
+  padding: 4px 7px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 999px;
+  color: rgba(255,255,255,.52);
+  font-size: 9px;
+  font-weight: 760;
+}
+
+.providerRow > span[data-state='healthy'],
+.providerRow > span[data-state='closed'],
+.jobRow > span[data-state='succeeded'] {
+  border-color: rgba(81,189,132,.18);
+  color: #79cea0;
+}
+
+.jobRow > span[data-state='degraded'],
+.jobRow > span[data-state='skipped'] {
+  border-color: rgba(220,157,74,.18);
+  color: #ddb16f;
+}
+
+.jobRow > span[data-state='failed'] {
+  border-color: rgba(228,97,120,.2);
+  color: #e9a0ad;
+}
+
+.providerMeta,
+.jobMeta {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+
+.incidentRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 14px;
+  padding: 13px 17px;
+  border-bottom: 1px solid rgba(255,255,255,.045);
+}
+
+.incidentRow:last-child {
+  border-bottom: 0;
+}
+
+.incidentRow > span {
+  align-self: start;
+  color: #d6aa69;
+  font-size: 9px;
+  font-weight: 780;
+}
+
+.incidentRow[data-severity='critical'] > span {
+  color: #efa0ae;
+}
+
+.incidentRow p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: rgba(255,255,255,.42);
+  font-size: 10px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.metrics {
+  margin: 0;
+}
+
+.metrics > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 44px;
+  padding: 8px 17px;
+  border-bottom: 1px solid rgba(255,255,255,.045);
+}
+
+.metrics > div:last-child {
+  border-bottom: 0;
+}
+
+.metrics dt {
+  color: rgba(255,255,255,.4);
+  font-size: 10px;
+}
+
+.metrics dd {
+  margin: 0;
+  color: rgba(255,255,255,.8);
+  font-size: 10px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.empty,
+.error,
+.loading {
+  padding: 16px 17px;
+  color: rgba(255,255,255,.45);
+  font-size: 11px;
+}
+
+.error,
+.loading {
+  border: 1px solid rgba(255,255,255,.065);
+  border-radius: 10px;
+  background: rgba(255,255,255,.025);
+}
+
+.error {
+  border-color: rgba(226,100,118,.2);
+  color: #f2b1bc;
+}
+
+@media (max-width: 1180px) {
+  .kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 840px) {
+  .dashboard {
+    padding: 18px 14px 28px;
+  }
+
+  .header,
+  .overall {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .refresh {
+    width: 100%;
+  }
+
+  .kpis,
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .providerRow,
+  .jobRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .providerMeta,
+  .jobMeta {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, auto));
+    justify-content: start;
+    justify-items: start;
+    gap: 10px;
+  }
+}
