@@ -8,6 +8,7 @@ const links = [
   { href: '/admin/analytics', label: 'Аналитика', icon: '⌁' },
   { href: '/admin/activation', label: 'Активация', icon: '↗' },
   { href: '/admin/player', label: 'Плеер', icon: '▶' },
+  { href: '/admin/player-sources', label: 'Источники', icon: '⇄' },
   { href: '/admin/health', label: 'Стабильность', icon: '◉' },
   { href: '/admin/recommendations', label: 'Рекомендации', icon: '✦' },
   { href: '/admin/users', label: 'Пользователи', icon: '◎' },
@@ -26,7 +27,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         <div className="admin-v1-brand"><span>AB</span><div><strong>AnimeBox</strong><small>Control Center</small></div></div>
         <nav aria-label="Разделы админ-панели">
           {links.map((link) => {
-            const active = link.href === '/admin' ? pathname === link.href : pathname.startsWith(link.href);
+            const active = link.href === '/admin'
+              ? pathname === link.href
+              : pathname === link.href || pathname.startsWith(`${link.href}/`);
             return <Link key={link.href} href={link.href} className={active ? 'is-active' : ''}><span aria-hidden="true">{link.icon}</span>{link.label}</Link>;
           })}
         </nav>
