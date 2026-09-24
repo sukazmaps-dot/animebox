@@ -7,6 +7,7 @@ const taste = read('app/api/recommendations/taste/route.ts');
 const feedback = read('app/api/recommendations/feedback/route.ts');
 const card = read('components/SmartRecommendationCard.tsx');
 const feed = read('components/SmartRecommendationFeed.tsx');
+const rails = read('lib/recommendation-rails.ts');
 const productEvents = read('lib/product-event-names.ts');
 const watch = read('components/useWatchSession.ts');
 const migration = read(
@@ -26,6 +27,14 @@ if (!taste.includes('recommendation_feedback')) {
 }
 if (!feed.includes('buildRecommendationRails')) {
   failures.push('Netflix-style recommendation rails are not wired');
+}
+if (
+  !rails.includes("id: 'endless'") ||
+  !rails.includes("source: 'smart_feed_endless'") ||
+  !feed.includes("rail.id === 'endless' ? hasMore : false") ||
+  !feed.includes("rail.id === 'endless'")
+) {
+  failures.push('endless recommendation pagination rail is not preserved');
 }
 if (!card.includes('already_watched') || !card.includes('like_more')) {
   failures.push('recommendation card is missing explicit preference controls');
