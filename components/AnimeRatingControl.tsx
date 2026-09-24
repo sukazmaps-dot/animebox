@@ -15,9 +15,8 @@ type RatingPayload = {
   error?: string;
 };
 
-function formatStarScore(score: number) {
-  const stars = score / 2;
-  return Number.isInteger(stars) ? stars.toFixed(0) : stars.toFixed(1);
+function formatRatingScore(score: number) {
+  return Number.isInteger(score) ? score.toFixed(0) : score.toFixed(1);
 }
 
 export default function AnimeRatingControl({
@@ -180,6 +179,8 @@ export default function AnimeRatingControl({
     }
   }
 
+  const visualScore = hoverScore ?? myScore ?? 0;
+
   return (
     <section className="anime-rating-control" aria-labelledby="animebox-rating-title">
       <div className="anime-rating-control__head">
@@ -195,7 +196,7 @@ export default function AnimeRatingControl({
           <span>Сообщество</span>
           <strong>
             {loaded && average != null
-              ? `${(average / 2).toFixed(1)}★`
+              ? `${average.toFixed(1)} / 10`
               : '—'}
           </strong>
           <small>
@@ -207,59 +208,54 @@ export default function AnimeRatingControl({
       </div>
 
       <div
-        className="anime-rating-control__stars"
+        className="anime-rating-control__stars anime-rating-control__stars--ten"
         role="group"
-        aria-label="Поставить оценку от 1 до 10 звёздами"
+        aria-label="Поставить оценку от 1 до 10"
         aria-busy={busyScore != null}
         data-disabled={!user || busyScore != null ? 'true' : 'false'}
         onPointerLeave={() => setHoverScore(null)}
       >
-        {Array.from({ length: 5 }, (_, index) => {
-          const leftScore = index * 2 + 1;
-          const rightScore = leftScore + 1;
-          const visualScore = hoverScore ?? myScore ?? 0;
-          const fillUnits = Math.max(0, Math.min(2, visualScore - index * 2));
-          const fillWidth = `${fillUnits * 50}%`;
+        {Array.from({ length: 10 }, (_, index) => {
+          const score = index + 1;
+          const filled = score <= visualScore;
 
           return (
-            <span
-              key={leftScore}
-              className="anime-rating-control__star"
-              data-filled={fillUnits > 0 ? 'true' : 'false'}
+            <button
+              key={score}
+              type="button"
+              className="anime-rating-control__star-button"
+              data-filled={filled ? 'true' : 'false'}
+              disabled={!user || busyScore != null}
+              aria-label={`Поставить ${score} из 10`}
+              aria-pressed={myScore === score}
+              title={user
+                ? `${score} из 10`
+                : 'Войди, чтобы поставить оценку'}
+              onPointerEnter={() => setHoverScore(score)}
+              onFocus={() => setHoverScore(score)}
+              onBlur={(event) => {
+                const next = event.relatedTarget;
+                if (
+                  !(next instanceof Node) ||
+                  !event.currentTarget.parentElement?.contains(next)
+                ) {
+                  setHoverScore(null);
+                }
+              }}
+              onClick={() => void saveScore(score)}
             >
-              <span className="anime-rating-control__star-base" aria-hidden="true">★</span>
+              <span className="anime-rating-control__star-base" aria-hidden="true">
+                ★
+              </span>
               <span
                 className="anime-rating-control__star-fill"
                 aria-hidden="true"
-                style={{ width: fillWidth }}
+                data-visible={filled ? 'true' : 'false'}
               >
                 ★
               </span>
-              <span className="anime-rating-control__star-hitbox">
-                {[leftScore, rightScore].map((score) => (
-                  <button
-                    key={score}
-                    type="button"
-                    className="anime-rating-control__star-half"
-                    disabled={!user || busyScore != null}
-                    aria-label={`Поставить ${formatStarScore(score)} из 5 звёзд`}
-                    aria-pressed={myScore === score}
-                    title={user
-                      ? `${formatStarScore(score)} из 5 звёзд`
-                      : 'Войди, чтобы поставить оценку'}
-                    onPointerEnter={() => setHoverScore(score)}
-                    onFocus={() => setHoverScore(score)}
-                    onBlur={(event) => {
-                      const next = event.relatedTarget;
-                      if (!(next instanceof Node) || !event.currentTarget.parentElement?.contains(next)) {
-                        setHoverScore(null);
-                      }
-                    }}
-                    onClick={() => void saveScore(score)}
-                  />
-                ))}
-              </span>
-            </span>
+              <span className="sr-only">{score} из 10</span>
+            </button>
           );
         })}
       </div>
@@ -272,8 +268,8 @@ export default function AnimeRatingControl({
             {busyScore != null
               ? 'Сохраняем оценку…'
               : myScore != null
-                ? <>Твоя оценка: <strong>{formatStarScore(myScore)}★</strong></>
-                : 'Нажми на звезду — можно выбрать половину.'}
+                ? <>Твоя оценка: <strong>{formatRatingScore(myScore)} / 10</strong></>
+                : 'Нажми на звезду — одна звезда равна одному баллу.'}
           </span>
         ) : (
           <span>

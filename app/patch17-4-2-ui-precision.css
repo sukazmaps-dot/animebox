@@ -1,0 +1,348 @@
+/* Patch 17.4.2 — 10-point AnimeBox rating precision */
+
+.anime-rating-control__stars--ten {
+  display: grid;
+  grid-template-columns: repeat(10, 34px);
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 15px;
+}
+
+.anime-rating-control__star-button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 38px;
+  min-width: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  user-select: none;
+  transition:
+    transform .14s ease,
+    background-color .14s ease,
+    box-shadow .14s ease;
+}
+
+.anime-rating-control__star-button .anime-rating-control__star-base,
+.anime-rating-control__star-button .anime-rating-control__star-fill {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: visible;
+  width: auto;
+  white-space: nowrap;
+  pointer-events: none;
+  font-size: 31px;
+  line-height: 38px;
+  transition:
+    color .14s ease,
+    opacity .14s ease,
+    transform .14s ease;
+}
+
+.anime-rating-control__star-button .anime-rating-control__star-base {
+  color: rgba(213, 219, 234, .16);
+}
+
+.anime-rating-control__star-button .anime-rating-control__star-fill {
+  color: #f2c96d;
+  opacity: 0;
+  text-shadow: 0 0 18px rgba(242, 201, 109, .12);
+}
+
+.anime-rating-control__star-button[data-filled='true'] .anime-rating-control__star-fill,
+.anime-rating-control__star-button .anime-rating-control__star-fill[data-visible='true'] {
+  opacity: 1;
+}
+
+.anime-rating-control__star-button:focus-visible {
+  outline: 2px solid rgba(173, 151, 255, .9);
+  outline-offset: 2px;
+  background: rgba(126, 91, 221, .08);
+}
+
+.anime-rating-control__star-button:disabled {
+  cursor: not-allowed;
+}
+
+.anime-rating-control__stars--ten[data-disabled='true'] {
+  opacity: .58;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .anime-rating-control__star-button:not(:disabled):hover {
+    transform: translateY(-2px) scale(1.04);
+    background: rgba(242, 201, 109, .045);
+  }
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__star-button .anime-rating-control__star-base {
+  color: rgba(73, 68, 89, .14);
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__star-button .anime-rating-control__star-fill {
+  color: #d89b25;
+  text-shadow: none;
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__star-button:focus-visible {
+  outline-color: rgba(101, 66, 187, .72);
+  background: rgba(101, 66, 187, .06);
+}
+
+@media (max-width: 680px) {
+  .anime-rating-control__stars--ten {
+    grid-template-columns: repeat(10, minmax(22px, 1fr));
+    gap: 2px;
+    width: min(100%, 320px);
+  }
+
+  .anime-rating-control__star-button {
+    width: 100%;
+    min-width: 0;
+    height: 34px;
+    border-radius: 7px;
+  }
+
+  .anime-rating-control__star-button .anime-rating-control__star-base,
+  .anime-rating-control__star-button .anime-rating-control__star-fill {
+    font-size: clamp(22px, 7.2vw, 28px);
+    line-height: 34px;
+  }
+}
+
+@media (max-width: 380px) {
+  .anime-rating-control__stars--ten {
+    gap: 1px;
+  }
+
+  .anime-rating-control__star-button {
+    height: 32px;
+  }
+
+  .anime-rating-control__star-button .anime-rating-control__star-base,
+  .anime-rating-control__star-button .anime-rating-control__star-fill {
+    font-size: clamp(20px, 6.9vw, 25px);
+    line-height: 32px;
+  }
+}
+
+
+/* =========================================================
+   17.4.2 — Shared home service-card grammar
+   Collection + Support must read as one design system.
+   ========================================================= */
+
+.home-page {
+  --ab-service-card-padding: 24px;
+  --ab-service-card-radius: 16px;
+  --ab-service-card-icon: 40px;
+  --ab-service-card-action-height: 40px;
+}
+
+.home-page .home-service-card {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  min-height: 220px !important;
+  height: 100% !important;
+  padding: var(--ab-service-card-padding) !important;
+  border-radius: var(--ab-service-card-radius) !important;
+  gap: 0 !important;
+}
+
+.home-page .home-service-card__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin: 0 0 18px;
+}
+
+.home-page .home-service-card__icon {
+  display: inline-grid;
+  place-items: center;
+  width: var(--ab-service-card-icon);
+  height: var(--ab-service-card-icon);
+  min-width: var(--ab-service-card-icon);
+  border: 1px solid rgba(142, 114, 231, .22);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 50% 15%, rgba(143, 108, 238, .13), transparent 68%),
+    rgba(113, 78, 196, .055);
+  color: #a993ff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+.home-page .home-service-card__icon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.home-page .home-service-card__eyebrow {
+  color: rgba(184, 166, 241, .68);
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 1.2;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.home-page .home-service-card__copy {
+  min-width: 0;
+}
+
+.home-page .home-service-card__copy h2,
+.home-page .home-service-card__copy strong {
+  display: block;
+  margin: 0;
+  color: rgba(244, 246, 252, .96);
+  font-size: clamp(18px, 1.25vw, 21px);
+  font-weight: 820;
+  line-height: 1.12;
+  letter-spacing: -.026em;
+}
+
+.home-page .home-service-card__copy p {
+  max-width: 520px;
+  margin: 11px 0 0 !important;
+  color: rgba(207, 213, 229, .72) !important;
+  font-size: 13px;
+  line-height: 1.55 !important;
+}
+
+.home-page .home-service-card__action {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start !important;
+  min-height: var(--ab-service-card-action-height);
+  margin-top: auto !important;
+  padding: 0 16px !important;
+  border: 1px solid rgba(154, 130, 231, .22) !important;
+  border-radius: 11px !important;
+  background: rgba(121, 88, 212, .075) !important;
+  color: rgba(239, 237, 249, .94) !important;
+  box-shadow: none !important;
+  font-size: 12.5px !important;
+  font-weight: 720 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+
+.home-page .home-service-card__action:hover {
+  border-color: rgba(166, 141, 240, .36) !important;
+  background: rgba(132, 95, 226, .13) !important;
+  color: #fff !important;
+  transform: translateY(-1px);
+}
+
+.home-page .home-service-card__action:focus-visible {
+  outline: 2px solid rgba(174, 151, 255, .72);
+  outline-offset: 2px;
+}
+
+/* Neutralize the older grid-specific card grammar from 17.4. */
+.home-page .home-library-panel--footer,
+.home-page .home-utility-card--support {
+  grid-template-columns: none !important;
+  grid-template-areas: none !important;
+  align-content: initial !important;
+  column-gap: 0 !important;
+  row-gap: 0 !important;
+}
+
+.home-page .home-library-panel--footer h2,
+.home-page .home-library-panel--footer p,
+.home-page .home-library-panel--footer .btn,
+.home-page .home-utility-card--support .home-utility-card__copy,
+.home-page .home-utility-card--support .home-utility-card__link,
+.home-page .home-utility-card--support .home-utility-card__icon {
+  grid-area: auto !important;
+}
+
+/* The old support-only wrappers are superseded by home-service-card. */
+.home-page .home-utility-card--support .home-utility-card__copy,
+.home-page .home-utility-card--support .home-utility-card__link,
+.home-page .home-utility-card--support .home-utility-card__icon {
+  display: none !important;
+}
+
+html[data-animebox-theme='light'] .home-page .home-service-card__icon {
+  border-color: rgba(101, 66, 187, .16);
+  background: rgba(101, 66, 187, .055);
+  color: #6847b1;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
+}
+
+html[data-animebox-theme='light'] .home-page .home-service-card__eyebrow {
+  color: rgba(91, 65, 151, .66);
+}
+
+html[data-animebox-theme='light'] .home-page .home-service-card__copy h2,
+html[data-animebox-theme='light'] .home-page .home-service-card__copy strong {
+  color: #292b3c;
+}
+
+html[data-animebox-theme='light'] .home-page .home-service-card__copy p {
+  color: #686d7e !important;
+}
+
+html[data-animebox-theme='light'] .home-page .home-service-card__action {
+  border-color: rgba(101, 66, 187, .16) !important;
+  background: rgba(101, 66, 187, .055) !important;
+  color: #563994 !important;
+}
+
+html[data-animebox-theme='light'] .home-page .home-service-card__action:hover {
+  border-color: rgba(101, 66, 187, .28) !important;
+  background: rgba(101, 66, 187, .09) !important;
+  color: #472f7f !important;
+}
+
+@media (max-width: 760px) {
+  .home-page {
+    --ab-service-card-padding: 18px;
+    --ab-service-card-icon: 38px;
+  }
+
+  .home-page .home-service-card {
+    min-height: 0 !important;
+  }
+
+  .home-page .home-service-card__head {
+    margin-bottom: 15px;
+  }
+
+  .home-page .home-service-card__copy h2,
+  .home-page .home-service-card__copy strong {
+    font-size: 18px;
+  }
+
+  .home-page .home-service-card__copy p {
+    font-size: 12.5px;
+  }
+
+  .home-page .home-service-card__action {
+    margin-top: 18px !important;
+  }
+}
+
+
+@media (max-width: 1180px) and (min-width: 761px) {
+  .home-page .home-library-panel--footer {
+    grid-column: auto !important;
+  }
+}
