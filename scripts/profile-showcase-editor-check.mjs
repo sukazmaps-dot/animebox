@@ -7,6 +7,10 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const failures = [];
 const editor = read('components/profile/ProfileWidgetEditor.tsx');
 const perf = read('app/patch16-6-1-mobile-performance.css');
+const editorShell = read('components/profile/ProfileEditorClient.tsx');
+const editPage = read('app/profile/edit/page.tsx');
+const profilePage = read('app/profile/page.tsx');
+const miniProfileCss = read('components/profile/ProfilePreview.module.css');
 
 for (const [label, needle] of [
   ['React portal import', "import { createPortal } from 'react-dom';"],
@@ -19,6 +23,26 @@ for (const [label, needle] of [
   if (!editor.includes(needle)) {
     failures.push(`ProfileWidgetEditor: missing ${label}.`);
   }
+}
+
+for (const [label, source, needle] of [
+  ['unified editor tab label', editorShell, 'Профиль и оформление'],
+  ['legacy appearance URL folds into profile', editPage, "params.tab === 'style' || params.tab === 'premium' ? 'style' : 'profile'"],
+  ['single profile editor entry remains', profilePage, 'Редактировать профиль'],
+  ['mobile mini-profile auto height', miniProfileCss, 'height: auto !important'],
+  ['mobile mini-profile body shrink', miniProfileCss, 'flex: 0 1 auto'],
+]) {
+  if (!source.includes(needle)) {
+    failures.push(`${label}: missing expected contract.`);
+  }
+}
+
+if (editorShell.includes("switchTab('appearance')")) {
+  failures.push('Unified profile editor: separate appearance tab returned.');
+}
+
+if (profilePage.includes('profile-v2__bottom-card--premium')) {
+  failures.push('Profile page: duplicate standalone style-editor entry returned.');
 }
 
 if (!perf.includes('.profile-widgets-shell')) {
