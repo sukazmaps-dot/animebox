@@ -128,7 +128,7 @@ function NavbarContent() {
     state.directionSince = performance.now();
     state.hidden = false;
     state.lastToggleAt = 0;
-    setMobileNavHidden(false);
+    queueMicrotask(() => setMobileNavHidden(false));
 
     const setHidden = (hidden: boolean) => {
       if (state.hidden === hidden) return;
