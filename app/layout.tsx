@@ -78,6 +78,7 @@ import { AuthModalProvider } from '@/components/AuthModalProvider';
 import AppChrome from '@/components/AppChrome';
 import CssRecoveryBridge from '@/components/CssRecoveryBridge';
 import UserPreferencesBridge from '@/components/UserPreferencesBridge';
+import OfflineCacheBridge from '@/components/OfflineCacheBridge';
 import ProductAnalyticsTracker from '@/components/analytics/ProductAnalyticsTracker';
 import DeferredYandexMetrika from '@/components/analytics/DeferredYandexMetrika';
 import ProgressionCelebration from '@/components/ProgressionCelebration';
@@ -342,6 +343,7 @@ export default function RootLayout({
       <body>
         <CssRecoveryBridge />
         <UserPreferencesBridge />
+        <OfflineCacheBridge />
 
         {/* Yandex.Metrika loads after first interaction or idle timeout. */}
         <DeferredYandexMetrika />
