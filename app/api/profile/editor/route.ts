@@ -7,6 +7,7 @@ import {
   userClient,
 } from '@/lib/community-server';
 import { getEffectiveUserEntitlements } from '@/lib/entitlements-server';
+import { usernamePolicyError } from '@/lib/auth-identity-policy';
 import {
   isHexColor,
   isPremiumBorderStyle,
@@ -178,8 +179,9 @@ function readProfilePatch(value: unknown, userId: string): ProfilePatch {
   const username = typeof data.username === 'string' ? data.username.trim() : '';
   const bio = typeof data.bio === 'string' ? data.bio.trim() : '';
 
-  if (username.length < 3 || username.length > 24) {
-    throw new ApiError(400, 'Ник должен содержать от 3 до 24 символов.');
+  const usernameError = usernamePolicyError(username);
+  if (usernameError) {
+    throw new ApiError(400, usernameError);
   }
   if (bio.length > 300) throw new ApiError(400, 'Описание не может быть длиннее 300 символов.');
 
@@ -434,6 +436,9 @@ export async function POST(request: Request) {
         .single();
 
       if (error?.code === '23505') throw new ApiError(409, 'Этот ник уже занят.');
+      if (error && /USERNAME_RESERVED/i.test(error.message)) {
+        throw new ApiError(400, 'Этот ник зарезервирован AnimeBox. Выбери другое имя.');
+      }
       if (error) {
         console.error('[ProfileEditor] profile update failed:', error);
         throw new ApiError(503, 'Не удалось записать профиль в базу данных. Попробуйте ещё раз.');
