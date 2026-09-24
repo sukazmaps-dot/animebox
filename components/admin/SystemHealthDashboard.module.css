@@ -387,3 +387,42 @@
     gap: 10px;
   }
 }
+
+
+.incidentActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.incidentActions > span {
+  color: #d6aa69;
+  font-size: 9px;
+  font-weight: 780;
+}
+
+.incidentRow[data-severity='critical'] .incidentActions > span {
+  color: #efa0ae;
+}
+
+.incidentActions button {
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 8px;
+  background: rgba(255,255,255,.025);
+  color: rgba(255,255,255,.54);
+  font-size: 9px;
+  font-weight: 720;
+  cursor: pointer;
+}
+
+.incidentActions button:hover:not(:disabled) {
+  border-color: rgba(157,141,243,.25);
+  color: #e7e2ff;
+}
+
+.incidentActions button:disabled {
+  opacity: .5;
+  cursor: wait;
+}
