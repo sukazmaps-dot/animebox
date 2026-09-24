@@ -73,6 +73,7 @@ import './patch16-6-responsive-layout.css';
 import './patch16-6-1-mobile-performance.css';
 import './patch16-6-2-readability-2k-density.css';
 import './patch16-6-5-profile-studio-gate.css';
+import './patch16-6-6-home-desktop-stability.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
