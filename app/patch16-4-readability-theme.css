@@ -404,3 +404,154 @@ html[data-animebox-theme='light'] .anime-notification-control__settings {
 html[data-animebox-theme='light'] :focus-visible {
   outline-color: rgba(99,72,205,.85);
 }
+
+
+/* ---------- Watch Together Telegram promo repair ---------- */
+.telegram-growth-card--community.telegram-growth-card--vector {
+  width: 100%;
+  min-width: 0;
+  display: grid !important;
+  grid-template-columns: 124px minmax(0, 1fr) !important;
+  align-items: center !important;
+  margin: 18px 0 0 !important;
+  min-height: 188px !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__vector-art {
+  min-width: 0;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  padding: 20px 10px 20px 22px !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__content {
+  min-width: 0;
+  padding: 22px 52px 22px 12px !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__copy {
+  max-width: 720px !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__copy h3 {
+  margin-top: 12px;
+  font-size: clamp(18px, 2vw, 24px) !important;
+  line-height: 1.12;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__copy p {
+  max-width: 620px;
+  font-size: 12px !important;
+  line-height: 1.6 !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__brand small {
+  font-size: 9px !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__brand b {
+  font-size: 8px !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__benefits span {
+  font-size: 10px !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__cta {
+  min-width: 178px;
+  min-height: 42px;
+  margin-top: 15px !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__dismiss {
+  top: 12px;
+  right: 12px;
+}
+
+html[data-animebox-theme='light'] .telegram-growth-card--community.telegram-growth-card--vector {
+  border-color: rgba(60,52,70,.11) !important;
+  background:
+    radial-gradient(circle at 12% 28%, rgba(112,87,220,.10), transparent 30%),
+    radial-gradient(circle at 80% 8%, rgba(35,137,184,.05), transparent 24%),
+    linear-gradient(145deg, rgba(255,255,255,.98), rgba(246,242,236,.98)) !important;
+  box-shadow: 0 18px 42px rgba(73,62,87,.07) !important;
+}
+
+html[data-animebox-theme='light'] .telegram-growth-card--community .telegram-growth-card__copy h3 {
+  color: #251f2d !important;
+}
+
+html[data-animebox-theme='light'] .telegram-growth-card--community .telegram-growth-card__copy p {
+  color: #716879 !important;
+}
+
+html[data-animebox-theme='light'] .telegram-growth-card--community .telegram-growth-card__benefits span {
+  border-color: rgba(60,52,70,.09) !important;
+  background: rgba(50,42,59,.04) !important;
+  color: #655d70 !important;
+}
+
+html[data-animebox-theme='light'] .telegram-growth-card--community .telegram-growth-card__dismiss {
+  border-color: rgba(60,52,70,.10) !important;
+  background: rgba(255,255,255,.82) !important;
+  color: #766c7f !important;
+}
+
+@media (max-width: 760px) {
+  .telegram-growth-card--community.telegram-growth-card--vector {
+    grid-template-columns: 72px minmax(0, 1fr) !important;
+    min-height: 0 !important;
+    align-items: start !important;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__vector-art {
+    align-self: start;
+    justify-content: start;
+    padding: 18px 0 0 16px !important;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__icon-core {
+    transform: scale(.72);
+    transform-origin: top left;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__content {
+    padding: 18px 40px 18px 4px !important;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__copy h3 {
+    font-size: 17px !important;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__copy p {
+    font-size: 11px !important;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__benefits {
+    grid-column: 1 / -1;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__cta {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 460px) {
+  .telegram-growth-card--community.telegram-growth-card--vector {
+    grid-template-columns: 1fr !important;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__vector-art {
+    display: none;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__content {
+    padding: 18px 16px !important;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__copy h3 {
+    padding-right: 22px;
+  }
+}
