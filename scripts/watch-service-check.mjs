@@ -44,10 +44,12 @@ if (!home.includes('placement="home_footer"')) {
 }
 
 if (
-  !feed.includes("rail.id === 'endless' ? hasMore : false") ||
-  !feed.includes('fetchNextPage')
+  !feed.includes('hasMore={railHasMore}') ||
+  !feed.includes('ensureRailDepth(rail)') ||
+  !feed.includes('sharedBatchPromiseRef') ||
+  !feed.includes('loading={railLoading}')
 ) {
-  failures.push('endless recommendation pagination was removed');
+  failures.push('shared per-rail recommendation pagination was removed');
 }
 
 if (
