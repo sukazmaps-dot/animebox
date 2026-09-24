@@ -11,6 +11,8 @@ const transferRoute = read(
   'app/api/watch-party/rooms/[roomId]/transfer/route.ts',
 );
 const productEvents = read('lib/product-event-names.ts');
+const protocol = read('lib/watch-party.ts');
+const episodePage = read('components/AnimeEpisodePage.tsx');
 
 const failures = [];
 
@@ -54,9 +56,20 @@ if (
 if (
   !productEvents.includes("'watch_party_reconnected'") ||
   !productEvents.includes("'watch_party_host_transferred'") ||
-  !productEvents.includes("'watch_party_presence_changed'")
+  !productEvents.includes("'watch_party_presence_changed'") ||
+  !productEvents.includes("'watch_party_sync_drift'")
 ) {
   failures.push('Watch Together resilience telemetry names are missing');
+}
+
+if (
+  !protocol.includes("type: 'EPISODE_CHANGE'") ||
+  !protocol.includes("WATCH_PARTY_EPISODE_CHANGE_EVENT") ||
+  !panel.includes("type: 'EPISODE_CHANGE'") ||
+  !panel.includes('dispatchEpisodeChange') ||
+  !episodePage.includes('WATCH_PARTY_EPISODE_CHANGE_EVENT')
+) {
+  failures.push('Watch Together episode/season route synchronization is incomplete');
 }
 
 if (
