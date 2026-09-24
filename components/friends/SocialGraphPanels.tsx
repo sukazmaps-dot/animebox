@@ -7,6 +7,7 @@ import FriendActionButton from '@/components/friends/FriendActionButton';
 import ProfilePreview from '@/components/profile/ProfilePreview';
 
 import styles from './SocialGraphPanels.module.css';
+import { FRIENDS_CHANGED_EVENT } from '@/lib/friends-events';
 
 type DiscoveryPerson = {
   userId: string;
@@ -137,6 +138,15 @@ export default function SocialGraphPanels() {
     return () => {
       active = false;
     };
+  }, [loadActivity]);
+
+  useEffect(() => {
+    const refresh = () => {
+      void loadActivity();
+      setQuery((current) => current);
+    };
+    window.addEventListener(FRIENDS_CHANGED_EVENT, refresh);
+    return () => window.removeEventListener(FRIENDS_CHANGED_EVENT, refresh);
   }, [loadActivity]);
 
   useEffect(() => {
