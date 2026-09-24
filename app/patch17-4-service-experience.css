@@ -3,11 +3,11 @@
 /* Recommendation feedback controls must read as deliberate actions, not tiny chrome. */
 .smart-card__feedback,
 .smart-card__dismiss {
-  min-width: 38px !important;
-  width: 38px;
-  min-height: 38px !important;
-  height: 38px;
-  border-radius: 11px;
+  min-width: 54px !important;
+  width: 54px;
+  min-height: 36px !important;
+  height: 36px;
+  border-radius: 999px;
 }
 
 .smart-card__feedback svg {
@@ -21,7 +21,11 @@
 }
 
 .smart-card__actions {
-  grid-template-columns: repeat(3, 38px) minmax(0, 1fr) !important;
+  grid-template-columns: repeat(3, 54px) minmax(0, 1fr) !important;
+  grid-template-areas:
+    "feedback-like feedback-watched dismiss ."
+    "plan plan plan plan" !important;
+  column-gap: 6px !important;
   row-gap: 7px !important;
 }
 
@@ -175,14 +179,16 @@
 @media (max-width: 760px) {
   .smart-card__feedback,
   .smart-card__dismiss {
-    min-width: 36px !important;
-    width: 36px;
-    min-height: 36px !important;
-    height: 36px;
+    min-width: 46px !important;
+    width: 46px;
+    min-height: 34px !important;
+    height: 34px;
+    border-radius: 999px;
   }
 
   .smart-card__actions {
-    grid-template-columns: repeat(3, 36px) minmax(0, 1fr) !important;
+    grid-template-columns: repeat(3, 46px) minmax(0, 1fr) !important;
+    column-gap: 5px !important;
   }
 
   .home-page .main-column > .home-utility-grid {
@@ -223,4 +229,20 @@
 .animebox-player-sync-status[data-recovery='true'] {
   color: rgba(196,181,253,.76);
   background: rgba(90,60,170,.08);
+}
+
+
+@media (max-width: 380px) {
+  .smart-card__feedback,
+  .smart-card__dismiss {
+    min-width: 44px !important;
+    width: 44px;
+    min-height: 33px !important;
+    height: 33px;
+  }
+
+  .smart-card__actions {
+    grid-template-columns: repeat(3, 44px) minmax(0, 1fr) !important;
+    column-gap: 4px !important;
+  }
 }

@@ -18,6 +18,15 @@ if (!card.includes('name="heart" size={19}') || !card.includes('name="check" siz
 }
 
 if (
+  !css.includes('min-width: 54px !important') ||
+  !css.includes('width: 54px') ||
+  !css.includes('border-radius: 999px') ||
+  !css.includes('grid-template-columns: repeat(3, 54px) minmax(0, 1fr) !important')
+) {
+  failures.push('recommendation feedback controls are no longer pill-shaped');
+}
+
+if (
   !css.includes('grid-template-columns: repeat(3, minmax(0, 1fr)) !important') ||
   !css.includes('.home-library-panel--footer')
 ) {
