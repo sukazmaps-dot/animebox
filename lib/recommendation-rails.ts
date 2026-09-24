@@ -2,11 +2,24 @@ import type { TasteMood } from '@/lib/personalization';
 import type { RankedRecommendation } from '@/lib/recommendations';
 
 export type RecommendationRail = {
-  id: 'top_match' | 'taste_lane' | 'quick_watch' | 'explore' | 'endless';
+  id:
+    | 'top_match'
+    | 'mood_lane'
+    | 'taste_lane'
+    | 'quick_watch'
+    | 'explore'
+    | 'endless';
   title: string;
   subtitle: string;
   source: string;
   items: RankedRecommendation[];
+};
+
+const MOOD_LABELS: Record<Exclude<TasteMood, 'any'>, string> = {
+  comfort: 'Уют',
+  tension: 'Триллер',
+  emotion: 'Драма',
+  adventure: 'Другие миры',
 };
 
 function normalizeGenre(value: string) {
@@ -84,6 +97,26 @@ export function buildRecommendationRails(
       source: 'smart_feed_top_match',
       items: top,
     });
+  }
+
+  if (options.mood !== 'any') {
+    const moodItems = take(
+      (item) =>
+        item.source === 'taste_mood' ||
+        item.reasons.some((reason) => reason.includes('Под настроение')),
+      7,
+    );
+
+    if (moodItems.length >= 3) {
+      rails.push({
+        id: 'mood_lane',
+        title: `Под настроение «${MOOD_LABELS[options.mood]}»`,
+        subtitle:
+          'Настроение меняет приоритет выдачи, но не запирает тебя в одном жанре.',
+        source: 'smart_feed_mood_lane',
+        items: moodItems,
+      });
+    }
   }
 
   const genre = dominantGenre(pool);
