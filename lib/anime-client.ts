@@ -16,7 +16,24 @@ type CacheEntry<T> = {
  * переходах Главная → Тайтл → Назад, переключении страниц и возврате
  * к недавно открытому каталогу.
  */
+export type AnimeSearchMeta = {
+  requested: string;
+  understoodAs: string;
+  mode: 'title' | 'structured' | 'context';
+  fallbackUsed: string | null;
+  localIndexUsed: boolean;
+  correction: string | null;
+  topMatchKind: string | null;
+  topMatchScore: number | null;
+};
+
+export type AnimeListPayload = {
+  anime: Anime[];
+  searchMeta?: AnimeSearchMeta;
+};
+
 const listCache = new Map<string, CacheEntry<Anime[]>>();
+const searchPayloadCache = new Map<string, CacheEntry<AnimeListPayload>>();
 const detailCache = new Map<number, CacheEntry<Anime | null>>();
 const listInflight = new Map<string, Promise<Anime[]>>();
 const detailInflight = new Map<number, Promise<Anime | null>>();
@@ -69,12 +86,9 @@ export type ClientAnimeListOptions = GetAnimesOptions & {
   mood?: CatalogMood;
 };
 
-export async function getAnimes(
+function buildAnimeListParams(
   options: ClientAnimeListOptions = {},
-  fetchOptions?: {
-    signal?: AbortSignal;
-  },
-): Promise<Anime[]> {
+) {
   const params = new URLSearchParams();
 
   if (options.limit != null) {
@@ -127,6 +141,16 @@ export async function getAnimes(
     params.set('mood', options.mood);
   }
 
+  return params;
+}
+
+export async function getAnimes(
+  options: ClientAnimeListOptions = {},
+  fetchOptions?: {
+    signal?: AbortSignal;
+  },
+): Promise<Anime[]> {
+  const params = buildAnimeListParams(options);
   const queryString = params.toString();
   const cacheKey = queryString || '__default__';
   const cached = readCache(listCache, cacheKey);
@@ -183,6 +207,50 @@ export async function getAnimes(
 
   listInflight.set(cacheKey, request);
   return request;
+}
+
+export async function getAnimesWithMeta(
+  options: ClientAnimeListOptions = {},
+  fetchOptions?: { signal?: AbortSignal },
+): Promise<AnimeListPayload> {
+  const params = buildAnimeListParams(options);
+  const queryString = params.toString();
+  const cacheKey = queryString || '__default__';
+  const cached = readCache(searchPayloadCache, cacheKey);
+  if (cached !== undefined) return cached;
+
+  const response = await fetch(
+    `/api/anime${queryString ? `?${queryString}` : ''}`,
+    {
+      signal: fetchOptions?.signal,
+      cache: 'default',
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Anime API HTTP ${response.status}`);
+  }
+
+  const data = (await response.json()) as {
+    anime?: Anime[];
+    searchMeta?: AnimeSearchMeta;
+    error?: string;
+  };
+
+  if (!Array.isArray(data.anime)) {
+    throw new Error(data.error || 'Некорректный ответ Anime API');
+  }
+
+  return writeCache(
+    searchPayloadCache,
+    cacheKey,
+    {
+      anime: data.anime,
+      ...(data.searchMeta ? { searchMeta: data.searchMeta } : {}),
+    },
+    options.search?.trim() ? SEARCH_CACHE_TTL : LIST_CACHE_TTL,
+    80,
+  );
 }
 
 export async function getAnimeById(

@@ -8,6 +8,10 @@ import {
   searchLocalAnimeSuggestions,
 } from '@/lib/search-index-server';
 import { rankAnimeForSmartSearch } from '@/lib/smart-search';
+import {
+  classifySearchQuery,
+  shouldBootstrapSearchProvider,
+} from '@/lib/search-query';
 
 export const runtime = 'nodejs';
 
@@ -33,11 +37,15 @@ export async function GET(request: NextRequest) {
     : 6;
 
   try {
+    const classification = classifySearchQuery(query);
     let local = await searchLocalAnimeSuggestions(query, limit);
 
     // Prefixes normally stay completely local. Provider lookup only bootstraps
     // the corpus when a reasonably specific query has almost no indexed hits.
-    if (local.length < 2 && query.length >= 4) {
+    if (
+      local.length < 2 &&
+      shouldBootstrapSearchProvider(classification)
+    ) {
       try {
         const provider = await getAnimesWithShikimori({
           page: 1,
@@ -65,6 +73,8 @@ export async function GET(request: NextRequest) {
           posterUrl: item.posterUrl,
           genres: item.genres,
           confidence: Math.round(item.score * 100),
+          matchKind: item.matchKind,
+          matchedText: item.matchedText,
         })),
       },
       {

@@ -1023,3 +1023,42 @@
     transition: none;
   }
 }
+
+
+/* AnimeBox Intelligence 18.0 — typo/correction feedback */
+.searchCorrection {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 7px;
+  margin-top: 9px;
+  color: var(--ab-muted);
+  font-size: 10px;
+}
+
+.searchCorrection button {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #c9c1ff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.searchCorrection button:hover {
+  color: #e0dcff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 560px) {
+  .searchCorrection {
+    width: 100%;
+    align-items: flex-start;
+  }
+}

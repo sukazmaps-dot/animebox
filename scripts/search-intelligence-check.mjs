@@ -5,6 +5,11 @@ const read = (path) =>
 
 const smart = read('lib/smart-search.ts');
 const searchServer = read('lib/search-index-server.ts');
+const searchQuery = read('lib/search-query.ts');
+const regressionCases = read('lib/search-regression-cases.ts');
+const rankerV2Migration = read(
+  'supabase/migrations/20260925043000_intelligence_search_ranker_v2.sql',
+);
 const animeApi = read('app/api/anime/route.ts');
 const discovery = read('lib/smart-discovery.ts');
 const discoveryApi = read('app/api/discovery/route.ts');
@@ -37,6 +42,7 @@ for (const needle of [
   'buildSearchQueryVariants',
   'reverseTransliterateSearchQuery',
   'diceSimilarity',
+  'rankAnimeForSmartSearchDetailed',
 ]) {
   if (!smart.includes(needle)) {
     failures.push(`smart-search missing ${needle}`);
@@ -47,6 +53,9 @@ for (const needle of [
   'searchLocalAnimeIndex',
   'hydrateLocalAnimeHits',
   'indexAnimeSearchDocuments',
+  'search_anime_hybrid_lexical_v2',
+  'matchedText',
+  'matchKind',
 ]) {
   if (!searchServer.includes(needle)) {
     failures.push(`search index server missing ${needle}`);
@@ -54,9 +63,19 @@ for (const needle of [
 }
 
 if (
+  !searchQuery.includes("SearchQueryMode = 'title' | 'structured' | 'context'") ||
+  !searchQuery.includes('classifySearchQuery') ||
+  !searchQuery.includes('shouldBootstrapSearchProvider')
+) {
+  failures.push('18.0 query classification contract is incomplete');
+}
+
+if (
   !animeApi.includes('searchLocalAnimeIndex(rawSearch') ||
   !animeApi.includes('mergeAnimeCandidates(localAnime, candidates)') ||
-  !animeApi.includes('localIndexUsed')
+  !animeApi.includes('localIndexUsed') ||
+  !animeApi.includes('correction') ||
+  !animeApi.includes('topMatchKind')
 ) {
   failures.push('anime API does not merge local fuzzy candidates');
 }
@@ -90,6 +109,9 @@ if (
   !suggestionApi.includes('searchLocalAnimeSuggestions') ||
   !suggestionApi.includes("scope: 'search_suggestions_ip'") ||
   !suggestionUi.includes('AbortController') ||
+  !suggestionUi.includes("event.key === 'ArrowDown'") ||
+  !suggestionUi.includes("event.key === 'Enter'") ||
+  !suggestionUi.includes('highlightTitle') ||
   !suggestionUi.includes('search_suggestion_click') ||
   !navbar.includes('<SearchSuggestions') ||
   !catalog.includes('SEARCH_DEBOUNCE_MS = 200')
@@ -102,6 +124,8 @@ for (const eventName of [
   'search_zero_result',
   'search_context_query',
   'search_suggestion_click',
+  'search_suggestion_keyboard',
+  'search_correction_click',
 ]) {
   if (!productEvents.includes(`'${eventName}'`)) {
     failures.push(`product events missing ${eventName}`);
@@ -138,6 +162,33 @@ if (
   !slugMigration.includes('new.slug')
 ) {
   failures.push('legacy search corpus slug alias backfill is incomplete');
+}
+
+for (const needle of [
+  'search_anime_hybrid_lexical_v2',
+  "match_kind text",
+  "matched_text text",
+  "grant execute on function public.search_anime_hybrid_lexical_v2",
+  "from public, anon, authenticated",
+]) {
+  if (!rankerV2Migration.includes(needle)) {
+    failures.push(`18.0 lexical ranker migration missing ${needle}`);
+  }
+}
+
+for (const query of [
+  'магичиская битва',
+  'friren',
+  'ван писс',
+  'naruta',
+  '2 сезон 4 серия',
+  'девушка аптекарь во дворце',
+  'эльфийка путешествует после смерти героя',
+  'переродился слизью',
+]) {
+  if (!regressionCases.includes(query)) {
+    failures.push(`18.0 regression corpus missing: ${query}`);
+  }
 }
 
 if (

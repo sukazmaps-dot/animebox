@@ -10,7 +10,12 @@ import MoodFilter from '@/components/catalog/MoodFilter';
 import CatalogFilterPanel from '@/components/catalog/CatalogFilterPanel';
 import CatalogMobileFilters from '@/components/catalog/CatalogMobileFilters';
 import ActiveCatalogFilters, { catalogActiveFilterLabels } from '@/components/catalog/ActiveCatalogFilters';
-import { getAnimes, isAbortError } from '@/lib/anime-client';
+import {
+  getAnimes,
+  getAnimesWithMeta,
+  isAbortError,
+  type AnimeSearchMeta,
+} from '@/lib/anime-client';
 import type { CatalogMood } from '@/lib/catalog-moods';
 import type { Anime } from '@/types/anime';
 import AdSlot from '@/components/monetization/AdSlot';
@@ -48,6 +53,7 @@ import {
   type CatalogFiltersState,
 } from '@/lib/catalog-filter-state';
 import { formatCatalogSeason, monthToCatalogSeason } from '@/lib/catalog-season';
+import { classifySearchQuery } from '@/lib/search-query';
 import styles from './SearchCatalogClient.module.css';
 
 const SEARCH_DEBOUNCE_MS = 200;
@@ -98,8 +104,22 @@ export default function SearchCatalogClient({
   const filterHistoryModeRef = useRef<'replace' | 'push' | 'restore' | 'none'>('replace');
   const emptyResultSignatureRef = useRef('');
   const searchAnalyticsSignatureRef = useRef('');
-  const searchIntent = useMemo(() => (query ? parseAnimeSearchIntent(query) : null), [query]);
-  const discoveryIntent = useMemo(() => (query ? parseSmartDiscoveryQuery(query) : null), [query]);
+  const searchClassification = useMemo(
+    () => (query ? classifySearchQuery(query) : null),
+    [query],
+  );
+  const searchIntent = useMemo(
+    () => searchClassification?.titleIntent ?? (
+      query ? parseAnimeSearchIntent(query) : null
+    ),
+    [query, searchClassification],
+  );
+  const discoveryIntent = useMemo(
+    () => searchClassification?.discoveryIntent ?? (
+      query ? parseSmartDiscoveryQuery(query) : null
+    ),
+    [query, searchClassification],
+  );
   const discoveryDescription = useMemo(() => (discoveryIntent?.isDiscovery ? describeSmartDiscoveryIntent(discoveryIntent) : []), [discoveryIntent]);
   const discoveryChips = useMemo(() => (discoveryIntent?.isDiscovery ? discoveryConstraintChips(discoveryIntent) : []), [discoveryIntent]);
 
@@ -113,6 +133,7 @@ export default function SearchCatalogClient({
   const [error, setError] = useState('');
   const [retryNonce, setRetryNonce] = useState(0);
   const [discoveryMeta, setDiscoveryMeta] = useState<DiscoveryMeta | null>(null);
+  const [searchMeta, setSearchMeta] = useState<AnimeSearchMeta | null>(null);
   const [pageState, setPageState] = useState({ query, page: 1 });
   const page = pageState.query === query ? pageState.page : 1;
   const initialRenderRef = useRef(true);
@@ -193,12 +214,19 @@ export default function SearchCatalogClient({
       setLoading(true);
       setError('');
       try {
-        if (query && discoveryIntent?.isDiscovery && page === 1 && catalogFiltersAreDefault(filters)) {
+        if (
+          query &&
+          searchClassification?.mode === 'context' &&
+          discoveryIntent?.isDiscovery &&
+          page === 1 &&
+          catalogFiltersAreDefault(filters)
+        ) {
           const payload = await getSmartDiscovery(query, Math.max(CATALOG_PAGE_SIZE, 30), controller.signal);
           const personalized = rankSmartDiscoveryCandidates(payload.items, discoveryIntent, { tasteGraph, strict: false });
           if (controller.signal.aborted || requestId !== requestSequenceRef.current) return;
           setResults(personalized.slice(0, Math.max(CATALOG_PAGE_SIZE, 30)));
           setDiscoveryMeta({ seed: payload.seed, meta: payload.meta });
+          setSearchMeta(null);
           setHasNextPage(false);
           trackProductClientEvent('smart_discovery_search', {
             source: 'search', path: '/search', entityType: 'search_query', entityId: query.slice(0, 255),
@@ -212,7 +240,7 @@ export default function SearchCatalogClient({
           });
         } else {
           const providerFilters = catalogFiltersToProviderOptions(filters);
-          const data = await getAnimes({
+          const requestOptions = {
             search: query || undefined,
             page,
             limit: CATALOG_PAGE_SIZE,
@@ -225,15 +253,25 @@ export default function SearchCatalogClient({
             season: providerFilters.season,
             studioNames: providerFilters.studioNames.length > 0 ? providerFilters.studioNames : undefined,
             mood: selectedMood,
-          }, { signal: controller.signal });
+          };
+
+          const payload = query
+            ? await getAnimesWithMeta(requestOptions, { signal: controller.signal })
+            : {
+                anime: await getAnimes(requestOptions, { signal: controller.signal }),
+                searchMeta: undefined,
+              };
+
           if (controller.signal.aborted || requestId !== requestSequenceRef.current) return;
-          setResults(data);
+          setResults(payload.anime);
+          setSearchMeta(payload.searchMeta ?? null);
           setDiscoveryMeta(null);
-          setHasNextPage(data.length === CATALOG_PAGE_SIZE);
+          setHasNextPage(payload.anime.length === CATALOG_PAGE_SIZE);
         }
       } catch (loadError: unknown) {
         if (isAbortError(loadError) || controller.signal.aborted || requestId !== requestSequenceRef.current) return;
         setDiscoveryMeta(null);
+        setSearchMeta(null);
         setError('Не удалось обновить каталог. Показываем последние доступные результаты.');
       } finally {
         if (!controller.signal.aborted && requestId === requestSequenceRef.current) setLoading(false);
@@ -407,6 +445,11 @@ export default function SearchCatalogClient({
   const recognizedSeed = view === 'catalog' ? discoveryMeta?.seed ?? null : null;
   const discoverySeedForMatch = recognizedSeed ? { genres: recognizedSeed.genres ?? [], episodes: recognizedSeed.episodes ?? null } : null;
   const closestQuery = discoveryIntent?.similarTo ? `похожее на ${discoveryIntent.similarTo}` : discoveryIntent?.includeGenres[0] ?? '';
+  const searchCorrection =
+    searchMeta?.correction &&
+    normalizedText(searchMeta.correction) !== normalizedText(query)
+      ? searchMeta.correction
+      : null;
   const activeFilterLabels = useMemo(() => catalogActiveFilterLabels(filters), [filters]);
   const relaxationActions = useMemo(() => {
     const actions: Array<{ label: string; next: CatalogFiltersState }> = [];
@@ -509,7 +552,9 @@ export default function SearchCatalogClient({
         entityId: settled.slice(0, 255),
         metadata: {
           results: results.length,
-          discovery: Boolean(discoveryIntent?.isDiscovery),
+          discovery: searchClassification?.mode === 'context',
+          search_mode: searchMeta?.mode ?? searchClassification?.mode ?? 'title',
+          correction: searchMeta?.correction ?? null,
           active_filter_count: catalogFilterCount(filters),
         },
       },
@@ -527,7 +572,16 @@ export default function SearchCatalogClient({
         },
       });
     }
-  }, [discoveryIntent?.isDiscovery, error, filters, loading, query, results, view]);
+  }, [
+    error,
+    filters,
+    loading,
+    query,
+    results,
+    searchClassification?.mode,
+    searchMeta,
+    view,
+  ]);
 
   return (
     <div className="search-page">
@@ -563,8 +617,28 @@ export default function SearchCatalogClient({
           </div>
         )}
         {view === 'catalog' && discoveryMeta?.meta?.relaxed && <p className={styles.relaxedHint}>Точных совпадений по всем условиям мало — показываем ближайшие варианты.</p>}
-        {view === 'catalog' && !discoveryIntent?.isDiscovery && searchIntent && searchIntent.titleQuery !== searchIntent.normalized && (
+        {view === 'catalog' && searchClassification?.mode !== 'context' && searchIntent && searchIntent.titleQuery !== searchIntent.normalized && (
           <p className="mt-2 text-xs text-violet-200/70">Понял запрос: <strong className="text-violet-100">{searchIntent.titleQuery}</strong>{searchIntent.seasonNumber ? ` · сезон ${searchIntent.seasonNumber}` : ''}{searchIntent.partNumber ? ` · часть ${searchIntent.partNumber}` : ''}{searchIntent.episodeNumber ? ` · серия ${searchIntent.episodeNumber}` : ''}</p>
+        )}
+        {view === 'catalog' && searchCorrection && (
+          <div className={styles.searchCorrection} role="status">
+            <span>Возможно, ты искал</span>
+            <button
+              type="button"
+              onClick={() => {
+                trackProductClientEvent('search_correction_click', {
+                  source: 'catalog_search',
+                  path: '/search',
+                  entityType: 'search_query',
+                  entityId: searchCorrection.slice(0, 255),
+                  metadata: { query, correction: searchCorrection },
+                });
+                applySearchQuery(searchCorrection);
+              }}
+            >
+              {searchCorrection}
+            </button>
+          </div>
         )}
       </div>
 
@@ -679,6 +753,11 @@ export default function SearchCatalogClient({
                   {action.label}
                 </button>
               ))}
+              {view === 'catalog' && searchCorrection && (
+                <button type="button" onClick={() => applySearchQuery(searchCorrection)}>
+                  Искать «{searchCorrection}»
+                </button>
+              )}
               {view === 'catalog' && discoveryIntent?.isDiscovery && closestQuery && closestQuery !== query && <button type="button" onClick={() => applySearchQuery(closestQuery)}>Показать ближайшие</button>}
               {(query || hasFilters) && <button type="button" className={styles.secondaryAction} onClick={() => { clearStructuredFilters(); setSelectedMood('any'); applySearchQuery(''); }}>Сбросить всё</button>}
             </div>

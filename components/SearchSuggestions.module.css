@@ -24,8 +24,13 @@
 }
 
 .item:hover,
-.item:focus-visible {
+.item:focus-visible,
+.itemActive {
   background: rgba(124, 104, 238, .10);
+}
+
+.itemActive {
+  box-shadow: inset 2px 0 0 rgba(151, 128, 255, .68);
 }
 
 .poster {
@@ -63,6 +68,13 @@
 .copy strong {
   color: #eff1f7;
   font-size: 11px;
+}
+
+.copy mark {
+  padding: 0;
+  background: transparent;
+  color: #c8bfff;
+  font-weight: 850;
 }
 
 .copy small {

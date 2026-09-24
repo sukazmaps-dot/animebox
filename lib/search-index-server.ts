@@ -11,13 +11,16 @@ import type { Anime } from '@/types/anime';
 export type LocalAnimeSearchHit = {
   animeId: number;
   score: number;
+  title: string | null;
+  slug: string | null;
+  posterUrl: string | null;
+  genres: string[];
+  matchedText: string | null;
+  matchKind: string | null;
 };
 
 export type LocalAnimeSuggestion = LocalAnimeSearchHit & {
   title: string;
-  slug: string | null;
-  posterUrl: string | null;
-  genres: string[];
 };
 
 function uniqueStrings(values: Array<string | null | undefined>) {
@@ -34,6 +37,79 @@ function uniqueStrings(values: Array<string | null | undefined>) {
   }
 
   return result;
+}
+
+function mapSearchRow(row: Record<string, unknown>): LocalAnimeSearchHit | null {
+  const animeId = Number(row.anime_id);
+  if (!Number.isSafeInteger(animeId) || animeId <= 0) return null;
+
+  return {
+    animeId,
+    score: Number(row.similarity_score ?? 0),
+    title:
+      typeof row.title === 'string' && row.title.trim()
+        ? row.title.trim()
+        : null,
+    slug:
+      typeof row.slug === 'string' && row.slug.trim()
+        ? row.slug.trim()
+        : null,
+    posterUrl:
+      typeof row.poster_url === 'string' && row.poster_url.trim()
+        ? row.poster_url.trim()
+        : null,
+    genres: Array.isArray(row.genres)
+      ? row.genres
+          .filter((value): value is string => typeof value === 'string')
+          .slice(0, 6)
+      : [],
+    matchedText:
+      typeof row.matched_text === 'string' && row.matched_text.trim()
+        ? row.matched_text.trim()
+        : null,
+    matchKind:
+      typeof row.match_kind === 'string' && row.match_kind.trim()
+        ? row.match_kind.trim()
+        : null,
+  };
+}
+
+async function runLexicalSearch(
+  query: string,
+  matchCount: number,
+): Promise<LocalAnimeSearchHit[]> {
+  const admin = createSupabaseAdmin();
+
+  const v2 = await admin.rpc('search_anime_hybrid_lexical_v2', {
+    query_text: query,
+    match_count: matchCount,
+  });
+
+  if (!v2.error) {
+    return (v2.data ?? [])
+      .map((row: Record<string, unknown>) => mapSearchRow(row))
+      .filter((row): row is LocalAnimeSearchHit => Boolean(row));
+  }
+
+  if (!/schema cache|does not exist|could not find the function/i.test(v2.error.message)) {
+    console.warn('[Search index] lexical v2 RPC failed:', v2.error.message);
+    return [];
+  }
+
+  // Safe rollout fallback while the application and DB migration propagate.
+  const legacy = await admin.rpc('search_anime_lexical', {
+    query_text: query,
+    match_count: matchCount,
+  });
+
+  if (legacy.error) {
+    console.warn('[Search index] legacy lexical RPC failed:', legacy.error.message);
+    return [];
+  }
+
+  return (legacy.data ?? [])
+    .map((row: Record<string, unknown>) => mapSearchRow(row))
+    .filter((row): row is LocalAnimeSearchHit => Boolean(row));
 }
 
 export async function indexAnimeSearchDocuments(items: Anime[]) {
@@ -103,55 +179,17 @@ export async function searchLocalAnimeSuggestions(
   query: string,
   limit = 6,
 ): Promise<LocalAnimeSuggestion[]> {
-  const normalized = normalizeSearchText(query);
-  if (normalized.length < 2) return [];
+  const hits = await searchLocalAnimeIndex(
+    query,
+    Math.min(20, Math.max(6, limit * 2)),
+  );
 
-  const admin = createSupabaseAdmin();
-  const merged = new Map<number, LocalAnimeSuggestion>();
-
-  for (const variant of buildSearchQueryVariants(query).slice(0, 3)) {
-    const { data, error } = await admin.rpc('search_anime_lexical', {
-      query_text: variant,
-      match_count: Math.min(20, Math.max(6, limit * 2)),
-    });
-
-    if (error) {
-      console.warn('[Search index] suggestion RPC failed:', error.message);
-      break;
-    }
-
-    for (const row of data ?? []) {
-      const animeId = Number(row.anime_id);
-      const score = Number(row.similarity_score ?? 0);
-      if (!Number.isSafeInteger(animeId) || animeId <= 0) continue;
-
-      const previous = merged.get(animeId);
-      if (previous && previous.score >= score) continue;
-
-      merged.set(animeId, {
-        animeId,
-        score,
-        title: String(row.title ?? `Anime ${animeId}`),
-        slug:
-          typeof row.slug === 'string' && row.slug.trim()
-            ? row.slug.trim()
-            : null,
-        posterUrl:
-          typeof row.poster_url === 'string' && row.poster_url.trim()
-            ? row.poster_url.trim()
-            : null,
-        genres: Array.isArray(row.genres)
-          ? row.genres
-              .filter((value: unknown): value is string => typeof value === 'string')
-              .slice(0, 3)
-          : [],
-      });
-    }
-  }
-
-  return [...merged.values()]
-    .sort((a, b) => b.score - a.score || a.animeId - b.animeId)
-    .slice(0, limit);
+  return hits
+    .filter((hit): hit is LocalAnimeSearchHit & { title: string } =>
+      Boolean(hit.title),
+    )
+    .slice(0, limit)
+    .map((hit) => ({ ...hit, title: hit.title }));
 }
 
 export async function searchLocalAnimeIndex(
@@ -161,31 +199,23 @@ export async function searchLocalAnimeIndex(
   const normalized = normalizeSearchText(query);
   if (normalized.length < 2) return [];
 
-  const admin = createSupabaseAdmin();
-  const merged = new Map<number, number>();
+  const merged = new Map<number, LocalAnimeSearchHit>();
 
   for (const variant of buildSearchQueryVariants(query).slice(0, 3)) {
-    const { data, error } = await admin.rpc('search_anime_lexical', {
-      query_text: variant,
-      match_count: Math.min(30, Math.max(6, limit * 2)),
-    });
+    const rows = await runLexicalSearch(
+      variant,
+      Math.min(40, Math.max(8, limit * 2)),
+    );
 
-    if (error) {
-      console.warn('[Search index] lexical RPC failed:', error.message);
-      break;
-    }
-
-    for (const row of data ?? []) {
-      const animeId = Number(row.anime_id);
-      const score = Number(row.similarity_score ?? 0);
-      if (!Number.isSafeInteger(animeId) || animeId <= 0) continue;
-      merged.set(animeId, Math.max(merged.get(animeId) ?? 0, score));
+    for (const row of rows) {
+      const previous = merged.get(row.animeId);
+      if (previous && previous.score >= row.score) continue;
+      merged.set(row.animeId, row);
     }
   }
 
-  return [...merged.entries()]
-    .map(([animeId, score]) => ({ animeId, score }))
-    .sort((a, b) => b.score - a.score)
+  return [...merged.values()]
+    .sort((a, b) => b.score - a.score || a.animeId - b.animeId)
     .slice(0, limit);
 }
 

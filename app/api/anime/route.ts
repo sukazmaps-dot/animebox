@@ -17,8 +17,11 @@ import {
 import {
   buildSmartSearchFallbacks,
   mergeAnimeCandidates,
+  normalizeSearchText,
   rankAnimeForSmartSearch,
+  rankAnimeForSmartSearchDetailed,
 } from '@/lib/smart-search';
+import { classifySearchQuery } from '@/lib/search-query';
 import {
   hydrateLocalAnimeHits,
   indexAnimeSearchDocuments,
@@ -63,7 +66,10 @@ export async function GET(
 
   const orderRaw = params.get('order');
   const rawSearch = params.get('search')?.trim() || undefined;
-  const searchIntent = rawSearch ? parseAnimeSearchIntent(rawSearch) : null;
+  const classification = rawSearch ? classifySearchQuery(rawSearch) : null;
+  const searchIntent = classification?.titleIntent ?? (
+    rawSearch ? parseAnimeSearchIntent(rawSearch) : null
+  );
   const search = searchIntent?.titleQuery || rawSearch;
 
   const statusRaw = params.get('status');
@@ -160,10 +166,11 @@ export async function GET(
     let candidates: Anime[] = primary;
     let fallbackUsed: string | null = null;
     let localIndexUsed = false;
+    let localHits: Awaited<ReturnType<typeof searchLocalAnimeIndex>> = [];
 
     if (rawSearch && page === 1) {
       try {
-        const localHits = await searchLocalAnimeIndex(rawSearch, 12);
+        localHits = await searchLocalAnimeIndex(rawSearch, 16);
         if (localHits.length) {
           const localAnime = await hydrateLocalAnimeHits(localHits);
           candidates = mergeAnimeCandidates(localAnime, candidates);
@@ -201,13 +208,41 @@ export async function GET(
       }
     }
 
+    const smartRankedDetailed = rawSearch
+      ? rankAnimeForSmartSearchDetailed(
+          candidates,
+          searchIntent?.titleQuery || rawSearch,
+        )
+      : [];
     const smartRanked = rawSearch
-      ? rankAnimeForSmartSearch(candidates, searchIntent?.titleQuery || rawSearch)
+      ? smartRankedDetailed.map(({ anime: item }) => item)
       : candidates;
     const intentRanked = searchIntent
       ? rankAnimeForSearchIntent(smartRanked, searchIntent)
       : smartRanked;
     const anime = rankAnimeByCatalogMood(intentRanked, mood).slice(0, limit);
+
+    const normalizedRequested = rawSearch
+      ? normalizeSearchText(rawSearch)
+      : '';
+    const topLocal = localHits[0] ?? null;
+    const correctionText =
+      topLocal?.matchedText || topLocal?.title || null;
+    const normalizedCorrection = correctionText
+      ? normalizeSearchText(correctionText)
+      : '';
+    const correction =
+      rawSearch &&
+      page === 1 &&
+      topLocal &&
+      topLocal.score >= 0.5 &&
+      normalizedCorrection &&
+      normalizedCorrection !== normalizedRequested &&
+      !normalizedCorrection.includes(normalizedRequested) &&
+      !normalizedRequested.includes(normalizedCorrection)
+        ? correctionText
+        : null;
+    const topRank = smartRankedDetailed[0] ?? null;
 
     // Search index writes are best-effort and bounded. Never fail a catalogue
     // request because the auxiliary retrieval corpus is temporarily unavailable.
@@ -221,8 +256,16 @@ export async function GET(
               searchMeta: {
                 requested: rawSearch,
                 understoodAs: searchIntent?.titleQuery || rawSearch,
+                mode: classification?.mode ?? 'title',
                 fallbackUsed,
                 localIndexUsed,
+                correction,
+                topMatchKind: topRank?.matchKind ?? topLocal?.matchKind ?? null,
+                topMatchScore: topRank
+                  ? Math.round(topRank.score)
+                  : topLocal
+                    ? Math.round(topLocal.score * 1000)
+                    : null,
               },
             }
           : {}),

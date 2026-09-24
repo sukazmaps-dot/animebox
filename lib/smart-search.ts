@@ -120,43 +120,129 @@ function diceSimilarity(left: string, right: string) {
   return (2 * shared) / (a.size + b.size);
 }
 
-function scoreTitle(title: string, query: string, queryTokens: string[]) {
+export type SearchMatchKind =
+  | 'exact'
+  | 'prefix'
+  | 'contains'
+  | 'token'
+  | 'fuzzy'
+  | 'weak';
+
+export type SmartSearchRank = {
+  anime: Anime;
+  score: number;
+  matchKind: SearchMatchKind;
+  matchedTitle: string | null;
+};
+
+function scoreTitleDetailed(
+  title: string,
+  query: string,
+  queryTokens: string[],
+): Omit<SmartSearchRank, 'anime'> {
   const normalizedTitle = normalize(title);
-  if (!normalizedTitle) return 0;
+  if (!normalizedTitle) {
+    return { score: 0, matchKind: 'weak', matchedTitle: null };
+  }
 
   let score = 0;
-  if (normalizedTitle === query) score += 1600;
-  else if (normalizedTitle.startsWith(query)) score += 1100;
-  else if (normalizedTitle.includes(query)) score += 780;
-  else if (query.includes(normalizedTitle) && normalizedTitle.length >= 5) score += 520;
+  let matchKind: SearchMatchKind = 'weak';
+
+  if (normalizedTitle === query) {
+    score += 1600;
+    matchKind = 'exact';
+  } else if (normalizedTitle.startsWith(query)) {
+    score += 1100;
+    matchKind = 'prefix';
+  } else if (normalizedTitle.includes(query)) {
+    score += 780;
+    matchKind = 'contains';
+  } else if (query.includes(normalizedTitle) && normalizedTitle.length >= 5) {
+    score += 520;
+    matchKind = 'contains';
+  }
 
   const titleTokens = new Set(normalizedTitle.split(' '));
   let tokenHits = 0;
   for (const token of queryTokens) {
     if (titleTokens.has(token)) tokenHits += 1;
-    else if ([...titleTokens].some((candidate) => candidate.startsWith(token) || token.startsWith(candidate))) {
+    else if (
+      [...titleTokens].some(
+        (candidate) => candidate.startsWith(token) || token.startsWith(candidate),
+      )
+    ) {
       tokenHits += 0.65;
     }
   }
 
-  if (queryTokens.length) score += (tokenHits / queryTokens.length) * 420;
-  score += diceSimilarity(normalizedTitle, query) * 300;
-  return score;
+  const tokenCoverage = queryTokens.length
+    ? tokenHits / queryTokens.length
+    : 0;
+  if (tokenCoverage > 0) {
+    score += tokenCoverage * 420;
+    if (matchKind === 'weak' && tokenCoverage >= 0.5) matchKind = 'token';
+  }
+
+  const fuzzy = diceSimilarity(normalizedTitle, query);
+  score += fuzzy * 300;
+  if (matchKind === 'weak' && fuzzy >= 0.42) matchKind = 'fuzzy';
+
+  return { score, matchKind, matchedTitle: title };
+}
+
+export function rankAnimeForSmartSearchDetailed(
+  candidates: Anime[],
+  queryValue: string,
+): SmartSearchRank[] {
+  const query = normalize(queryValue);
+  if (!query) {
+    return candidates.map((anime) => ({
+      anime,
+      score: 0,
+      matchKind: 'weak',
+      matchedTitle: animeTitles(anime)[0] ?? null,
+    }));
+  }
+
+  const variants = buildSearchQueryVariants(queryValue);
+  const normalizedVariants = variants
+    .map(normalize)
+    .filter(Boolean);
+  const effectiveVariants = normalizedVariants.length
+    ? normalizedVariants
+    : [query];
+
+  return candidates
+    .map((anime, index) => {
+      let best: Omit<SmartSearchRank, 'anime'> = {
+        score: 0,
+        matchKind: 'weak',
+        matchedTitle: null,
+      };
+
+      const titles = animeTitles(anime);
+      effectiveVariants.forEach((variant, variantIndex) => {
+        const tokens = meaningfulTokens(variant);
+        const variantPenalty = Math.max(0.86, 1 - variantIndex * 0.045);
+
+        for (const title of titles) {
+          const candidate = scoreTitleDetailed(title, variant, tokens);
+          const adjustedScore = candidate.score * variantPenalty;
+          if (adjustedScore > best.score) {
+            best = { ...candidate, score: adjustedScore };
+          }
+        }
+      });
+
+      return { anime, index, ...best };
+    })
+    .sort((left, right) => right.score - left.score || left.index - right.index)
+    .map(({ index: _index, ...ranked }) => ranked);
 }
 
 /** Reranks provider-returned candidates; it never invents an anime. */
 export function rankAnimeForSmartSearch(candidates: Anime[], queryValue: string) {
-  const query = normalize(queryValue);
-  if (!query) return candidates;
-  const queryTokens = meaningfulTokens(query);
-
-  return candidates
-    .map((anime, index) => ({
-      anime,
-      index,
-      score: Math.max(0, ...animeTitles(anime).map((title) => scoreTitle(title, query, queryTokens))),
-    }))
-    .sort((left, right) => right.score - left.score || left.index - right.index)
+  return rankAnimeForSmartSearchDetailed(candidates, queryValue)
     .map(({ anime }) => anime);
 }
 
