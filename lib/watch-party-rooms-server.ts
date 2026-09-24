@@ -15,7 +15,7 @@ export type WatchPartyRoomStatus = 'waiting' | 'watching' | 'paused' | 'voting' 
 
 const ROOM_ID_RE = /^[a-f0-9]{24}$/;
 const ROOM_SECRET_RE = /^[a-f0-9]{32}$/;
-const ROOM_HEARTBEAT_TTL_MS = 2 * 60 * 1000;
+const ROOM_HEARTBEAT_TTL_MS = 90_000;
 const ROOM_REPORT_COOLDOWN_MS = 10 * 60 * 1000;
 
 function cleanText(value: unknown, max: number) {

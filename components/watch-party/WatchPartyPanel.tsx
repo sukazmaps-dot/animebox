@@ -85,7 +85,7 @@ type RoomIdentitiesResponse = {
   users?: RoomPublicIdentity[];
 };
 
-const HOST_HEARTBEAT_MS = 45_000;
+const HOST_HEARTBEAT_MS = 20_000;
 const PLAYER_SYNC_MS = 20_000;
 const PLAYER_DRIFT_SEEK_SECONDS = 2;
 const CHAT_SEND_COOLDOWN_MS = 650;
@@ -95,7 +95,7 @@ const MAX_RECONNECT_ATTEMPTS = 6;
 const HOST_STARTUP_TIMEOUT_MS = 15_000;
 const IDENTITY_BOOT_TIMEOUT_MS = 4_000;
 const GUEST_HEALTH_CHECK_MS = 15_000;
-const HOST_STALE_MS = 90_000;
+const HOST_STALE_MS = 75_000;
 const P2P_ACCELERATOR_GUEST_LIMIT = 6;
 const REACTION_COOLDOWN_MS = 850;
 
@@ -227,10 +227,32 @@ export default function WatchPartyPanel({
   const relayHostGuestIdsRef = useRef(new Set<string>());
   const lastReactionSentAtRef = useRef(0);
   const voteByUserRef = useRef(new Map<string, WatchPartyVote>());
+  const wasReconnectingRef = useRef(false);
+  const lastPresenceCountRef = useRef(0);
 
   useEffect(() => {
     statusRef.current = status;
-  }, [status]);
+
+    if (status === 'reconnecting') {
+      wasReconnectingRef.current = true;
+      return;
+    }
+
+    if (status === 'active' && wasReconnectingRef.current) {
+      wasReconnectingRef.current = false;
+      trackProductClientEvent('watch_party_reconnected', {
+        source: roleRef.current === 'host' ? 'room_host' : 'room_guest',
+        path: window.location.pathname,
+        entityType: 'watch_party_room',
+        entityId: inviteRef.current?.roomId,
+        metadata: {
+          role: roleRef.current,
+          route: networkRoute,
+          episode: episodeNumber,
+        },
+      });
+    }
+  }, [episodeNumber, networkRoute, status]);
 
   const publishReaction = useCallback((reaction: WatchPartyReactionEvent) => {
     setLiveReactions((current) => [...current, reaction].slice(-10));
@@ -269,8 +291,27 @@ export default function WatchPartyPanel({
     const sorted = [...byUser.values()]
       .sort((left, right) => Number(right.host) - Number(left.host) || left.joinedAt - right.joinedAt)
       .slice(0, WATCH_PARTY_MAX_PARTICIPANTS);
+
+    const nextCount = sorted.length;
+    if (
+      roleRef.current === 'host' &&
+      lastPresenceCountRef.current !== nextCount
+    ) {
+      lastPresenceCountRef.current = nextCount;
+      trackProductClientEvent('watch_party_presence_changed', {
+        source: 'room_host',
+        path: window.location.pathname,
+        entityType: 'watch_party_room',
+        entityId: inviteRef.current?.roomId,
+        metadata: {
+          participants: nextCount,
+          episode: episodeNumber,
+        },
+      });
+    }
+
     setParticipants(sorted);
-  }, []);
+  }, [episodeNumber]);
 
   const resolveIdentity = useCallback(async (): Promise<PartyIdentity | null> => {
     if (!identityPromiseRef.current) {
@@ -1343,6 +1384,41 @@ export default function WatchPartyPanel({
       scheduleGuestReconnectRef.current();
     });
 
+    peer.on('close', () => {
+      if (
+        intentionalCloseRef.current ||
+        hostEndedRef.current ||
+        transportGenerationRef.current !== generation
+      ) return;
+
+      if (relayWelcomedRef.current && relayRef.current?.isOpen()) {
+        guestTransportRef.current = 'server';
+        setNetworkRoute('server');
+        setError('');
+        setStatus('active');
+        return;
+      }
+
+      if (peerRef.current === peer) peerRef.current = null;
+      setStatus('reconnecting');
+      setError('Перезапускаем соединение с комнатой…');
+
+      const nextInvite = inviteRef.current;
+      if (!nextInvite) return;
+
+      window.setTimeout(() => {
+        if (
+          intentionalCloseRef.current ||
+          hostEndedRef.current ||
+          transportGenerationRef.current !== generation
+        ) return;
+
+        destroyTransport();
+        intentionalCloseRef.current = false;
+        startGuestRef.current(nextInvite);
+      }, 700);
+    });
+
     peer.on('error', (peerError) => {
       if (
         intentionalCloseRef.current ||
@@ -1406,6 +1482,7 @@ export default function WatchPartyPanel({
     publishReaction,
     redirectToRegistration,
     resolveIdentity,
+    destroyTransport,
   ]);
 
   const startHost = useCallback(async (invite: WatchPartyInvite) => {
@@ -1639,18 +1716,38 @@ export default function WatchPartyPanel({
       onPresence: (members) => {
         if (transportGenerationRef.current !== generation) return;
 
+        const liveRelayGuests = members.filter((member) => !member.host);
         const liveRelayIds = new Set(
-          members
-            .filter((member) => !member.host)
-            .map((member) => member.relayId),
+          liveRelayGuests.map((member) => member.relayId),
         );
         let changed = false;
+
+        // Presence is authoritative for the Realtime path. Hydrate guests from
+        // it even when the initial HELLO broadcast was missed during subscribe.
+        for (const member of liveRelayGuests) {
+          const current = participantsRef.current.get(member.relayId);
+          if (
+            !current ||
+            current.userId !== member.userId ||
+            current.name !== member.name ||
+            current.host
+          ) {
+            participantsRef.current.set(member.relayId, {
+              id: member.relayId,
+              userId: member.userId,
+              name: member.name,
+              host: false,
+              joinedAt: member.joinedAt,
+            });
+            changed = true;
+          }
+          relayHostGuestIdsRef.current.add(member.relayId);
+        }
 
         for (const relayId of [...relayHostGuestIdsRef.current]) {
           if (liveRelayIds.has(relayId)) continue;
           relayHostGuestIdsRef.current.delete(relayId);
-          participantsRef.current.delete(relayId);
-          changed = true;
+          if (participantsRef.current.delete(relayId)) changed = true;
         }
 
         if (changed) {
@@ -1794,6 +1891,7 @@ export default function WatchPartyPanel({
             participants: current,
           });
           broadcastParticipants();
+          void syncRegisteredRoom();
           window.setTimeout(() => sendHostSync(connection), 120);
           return;
         }
@@ -1860,6 +1958,7 @@ export default function WatchPartyPanel({
         hostConnectionsRef.current.delete(connection.peer);
         participantsRef.current.delete(connection.peer);
         broadcastParticipants();
+        void syncRegisteredRoom();
       });
 
       connection.on('error', () => {
@@ -1869,6 +1968,7 @@ export default function WatchPartyPanel({
         hostConnectionsRef.current.delete(connection.peer);
         participantsRef.current.delete(connection.peer);
         broadcastParticipants();
+        void syncRegisteredRoom();
       });
 
     });
@@ -1909,6 +2009,36 @@ export default function WatchPartyPanel({
 
       setStatus('reconnecting');
       setError('Восстанавливаем соединение комнаты…');
+    });
+
+    peer.on('close', () => {
+      if (
+        intentionalCloseRef.current ||
+        transportGenerationRef.current !== generation
+      ) return;
+
+      if (relayRef.current?.isOpen()) {
+        setNetworkRoute('server');
+        setError('');
+        setStatus('active');
+        return;
+      }
+
+      if (peerRef.current === peer) peerRef.current = null;
+      hostBootKeyRef.current = null;
+      setStatus('reconnecting');
+      setError('Перезапускаем host-соединение комнаты…');
+
+      window.setTimeout(() => {
+        if (
+          intentionalCloseRef.current ||
+          transportGenerationRef.current !== generation
+        ) return;
+
+        destroyTransport();
+        intentionalCloseRef.current = false;
+        startHostRef.current(invite);
+      }, 700);
     });
 
     peer.on('error', (peerError) => {
@@ -1970,6 +2100,7 @@ export default function WatchPartyPanel({
     handleHostVote,
     broadcastParticipants,
     currentPlayerSnapshot,
+    destroyTransport,
     ensureHostTimers,
     episodeNumber,
     publishParticipants,
@@ -1978,6 +2109,7 @@ export default function WatchPartyPanel({
     send,
     sendHostSync,
     sequencePlayerAction,
+    syncRegisteredRoom,
   ]);
 
   useEffect(() => {
@@ -2085,17 +2217,42 @@ export default function WatchPartyPanel({
 
     const onOnline = () => {
       if (intentionalCloseRef.current || hostEndedRef.current) return;
-      setError('');
+
+      if (relayRef.current?.isOpen()) {
+        setNetworkRoute('server');
+        setError('');
+        setStatus('active');
+        return;
+      }
 
       const peer = peerRef.current;
       if (peer?.disconnected && !peer.destroyed) {
         try {
           peer.reconnect();
         } catch {
-          // Guest reconnect below can still recreate the DataConnection.
+          // A fresh transport is created below if PeerJS cannot reconnect.
         }
       }
 
+      if (!peer || peer.destroyed) {
+        const invite = inviteRef.current;
+        const currentRole = roleRef.current;
+        if (!invite || !currentRole) return;
+
+        setStatus('reconnecting');
+        setError('Связь восстановлена. Перезапускаем комнату…');
+        destroyTransport();
+        intentionalCloseRef.current = false;
+
+        queueMicrotask(() => {
+          if (intentionalCloseRef.current || hostEndedRef.current) return;
+          if (currentRole === 'host') startHostRef.current(invite);
+          else startGuestRef.current(invite);
+        });
+        return;
+      }
+
+      setError('');
       if (roleRef.current === 'guest' && guestTransportRef.current !== 'server') {
         scheduleGuestReconnectRef.current();
       }
@@ -2107,7 +2264,7 @@ export default function WatchPartyPanel({
       window.removeEventListener('offline', onOffline);
       window.removeEventListener('online', onOnline);
     };
-  }, []);
+  }, [destroyTransport]);
 
   useEffect(() => {
     return () => {
@@ -2243,10 +2400,13 @@ export default function WatchPartyPanel({
     });
   }, [episodeNumber, handleHostVote, sendGuestPacket, status]);
 
-  const transferHost = useCallback(async (target: WatchPartyParticipant) => {
-    if (roleRef.current !== 'host' || target.host) return;
+  const transferHost = useCallback(async (
+    target: WatchPartyParticipant,
+    behavior: 'stay' | 'leave' = 'stay',
+  ): Promise<boolean> => {
+    if (roleRef.current !== 'host' || target.host) return false;
     const invite = inviteRef.current;
-    if (!invite) return;
+    if (!invite) return false;
 
     try {
       const response = await fetch(
@@ -2269,19 +2429,44 @@ export default function WatchPartyPanel({
         sentAt: Date.now(),
       };
 
-      const direct = hostConnectionsRef.current.get(target.id);
-      if (direct) send(direct, packet);
+      let delivered = false;
 
-      // Realtime Broadcast is async. Wait for its ACK before closing the
-      // channel, otherwise a server-relay guest can miss HOST_TRANSFER while
-      // the database has already moved host_user_id to that guest.
-      if (relayRef.current) {
-        await relayRef.current.send(packet, target.id);
+      // Every guest keeps the Realtime room bus as a standby. Broadcasting the
+      // transfer is safer than targeting a transport id: P2P and relay ids are
+      // intentionally different, while acceptHostTransfer validates userId.
+      if (relayRef.current?.isOpen()) {
+        delivered = await relayRef.current.send(packet);
       }
+
+      if (!delivered) {
+        const direct = hostConnectionsRef.current.get(target.id);
+        if (direct) delivered = send(direct, packet);
+      }
+
+      if (!delivered) {
+        throw new Error('Новый host потерял соединение. Попробуй другого участника.');
+      }
+
+      trackProductClientEvent('watch_party_host_transferred', {
+        source: behavior === 'leave' ? 'host_leave' : 'host_tools',
+        path: window.location.pathname,
+        entityType: 'watch_party_room',
+        entityId: invite.roomId,
+        metadata: {
+          target_user_id: target.userId,
+          participants: participants.length,
+          episode: episodeNumber,
+        },
+        flush: true,
+      });
 
       intentionalCloseRef.current = true;
       setStatus('reconnecting');
-      setError(`Передаём управление пользователю ${target.name}…`);
+      setError(
+        behavior === 'leave'
+          ? `Передаём комнату пользователю ${target.name} перед выходом…`
+          : `Передаём управление пользователю ${target.name}…`,
+      );
 
       try {
         sessionStorage.removeItem(watchPartyHostSessionKey(invite.roomId));
@@ -2290,7 +2475,20 @@ export default function WatchPartyPanel({
       }
       clearWatchPartyHostTab(invite);
 
+      // Give the direct DataChannel a short flush window. Realtime delivery
+      // already waited for ACK above.
+      if (!relayRef.current?.isOpen()) {
+        await new Promise((resolve) => window.setTimeout(resolve, 140));
+      }
+
       destroyTransport();
+
+      if (behavior === 'leave') {
+        roleRef.current = null;
+        setRole(null);
+        return true;
+      }
+
       roleRef.current = 'guest';
       setRole('guest');
 
@@ -2298,14 +2496,17 @@ export default function WatchPartyPanel({
         intentionalCloseRef.current = false;
         startGuestRef.current(invite);
       }, 900);
+
+      return true;
     } catch (transferError) {
       setError(
         transferError instanceof Error
           ? transferError.message
           : 'Не удалось передать управление.',
       );
+      return false;
     }
-  }, [destroyTransport, send]);
+  }, [destroyTransport, episodeNumber, participants.length, send]);
 
   const submitChat = useCallback((event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -2341,7 +2542,7 @@ export default function WatchPartyPanel({
     }
   }, [appendChatMessage, broadcast, chatText, sendGuestPacket, status]);
 
-  const leaveParty = useCallback(() => {
+  const leaveParty = useCallback(async () => {
     const finish = (removeHostClaim: boolean) => {
       resetParty(removeHostClaim);
       if (mode === 'theater') {
@@ -2350,6 +2551,28 @@ export default function WatchPartyPanel({
     };
 
     if (roleRef.current === 'host') {
+      const guestsByUser = new Map<string, WatchPartyParticipant>();
+      for (const participant of participantsRef.current.values()) {
+        if (participant.host) continue;
+        const current = guestsByUser.get(participant.userId);
+        if (!current || participant.joinedAt < current.joinedAt) {
+          guestsByUser.set(participant.userId, participant);
+        }
+      }
+
+      const successor = [...guestsByUser.values()]
+        .sort((left, right) => left.joinedAt - right.joinedAt)[0];
+
+      // A graceful host exit should not kill an active room. Hand control to
+      // the longest-connected guest; only end the room when nobody can inherit.
+      if (successor) {
+        const transferred = await transferHost(successor, 'leave');
+        if (transferred) {
+          window.setTimeout(() => finish(true), 120);
+          return;
+        }
+      }
+
       intentionalCloseRef.current = true;
       broadcast({ type: 'HOST_ENDED', reason: 'host_left' });
 
@@ -2370,7 +2593,7 @@ export default function WatchPartyPanel({
     }
 
     finish(false);
-  }, [broadcast, episodePath, mode, resetParty]);
+  }, [broadcast, episodePath, mode, resetParty, transferHost]);
 
   const joinedTrackedRef = useRef(false);
 

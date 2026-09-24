@@ -34,8 +34,8 @@ import type { Anime } from '@/types/anime';
 import styles from './WatchTogetherHub.module.css';
 
 const LAST_ROOM_KEY = 'animebox:watch-together:last-room:v1';
-const ROOM_REFRESH_VISIBLE_MS = 30_000;
-const ROOM_REFRESH_MIN_GAP_MS = 8_000;
+const ROOM_REFRESH_VISIBLE_MS = 20_000;
+const ROOM_REFRESH_MIN_GAP_MS = 4_000;
 
 type PublicWatchPartyRoom = {
   roomId: string;
@@ -231,6 +231,7 @@ export default function WatchTogetherHub() {
       const response = await fetch('/api/watch-party/rooms?limit=30', {
         headers: { Accept: 'application/json' },
         signal: controller.signal,
+        cache: 'no-store',
       });
       const payload = (await response.json()) as PublicRoomsResponse;
       if (!response.ok) throw new Error(payload.error || 'rooms_failed');
