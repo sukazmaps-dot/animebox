@@ -226,7 +226,7 @@ html[data-animebox-theme='light'] .anime-rating-control__star-button:focus-visib
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
-  align-self: flex-start;
+  align-self: flex-start !important;
   min-height: var(--ab-service-card-action-height);
   margin-top: auto !important;
   padding: 0 16px !important;
@@ -337,5 +337,12 @@ html[data-animebox-theme='light'] .home-page .home-service-card__action:hover {
 
   .home-page .home-service-card__action {
     margin-top: 18px !important;
+  }
+}
+
+
+@media (max-width: 1180px) and (min-width: 761px) {
+  .home-page .home-library-panel--footer {
+    grid-column: auto !important;
   }
 }
