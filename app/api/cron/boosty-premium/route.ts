@@ -6,6 +6,7 @@ import {
 } from '@/lib/boosty-premium';
 
 import { isCronAuthorized } from '@/lib/server-request-auth';
+import { createSystemJobObserver } from '@/lib/system-observability-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,8 @@ export async function GET(request: Request) {
   if (!isCronAuthorized(request)) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
   }
+
+  const observer = createSystemJobObserver('boosty-premium');
 
   try {
     const url = new URL(request.url);
@@ -46,8 +49,15 @@ export async function GET(request: Request) {
       }
     }
 
+    if (result.errors > 0) {
+      await observer.degraded('boosty_verification_errors', result);
+    } else {
+      await observer.success(result);
+    }
+
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
+    await observer.failed(error);
     console.error('[Boosty Premium cron]', error);
     return NextResponse.json(
       {
