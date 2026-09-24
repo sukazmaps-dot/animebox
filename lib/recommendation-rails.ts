@@ -1,5 +1,6 @@
 import type { TasteMood } from '@/lib/personalization';
 import type { RankedRecommendation } from '@/lib/recommendations';
+import type { TasteGraph } from '@/lib/taste-graph';
 
 export type RecommendationRailId =
   | 'mood_lane'
@@ -30,6 +31,69 @@ export type RecommendationRailLayout = {
 
 export const DEFAULT_RECOMMENDATION_RAIL_LIMIT = 7;
 export const RECOMMENDATION_RAIL_BATCH_SIZE = 6;
+
+type RailOrderTaste = Pick<
+  TasteGraph,
+  'confidence' | 'explorationRate' | 'preferredEpisodeCount'
+>;
+
+export function orderRecommendationRails(
+  rails: RecommendationRail[],
+  options: {
+    mood: TasteMood;
+    hasWatchHistory: boolean;
+    tasteGraph?: RailOrderTaste | null;
+  },
+): RecommendationRail[] {
+  const baseIndex = new Map(
+    rails.map((rail, index) => [rail.id, index] as const),
+  );
+  const graph = options.tasteGraph;
+  const confidentTaste =
+    options.hasWatchHistory && Number(graph?.confidence ?? 0) >= 0.35;
+  const explorationRate = Number(graph?.explorationRate ?? 0.14);
+  const shortPreference =
+    Number(graph?.preferredEpisodeCount ?? 0) > 0 &&
+    Number(graph?.preferredEpisodeCount ?? 0) <= 16;
+
+  const weight = (rail: RecommendationRail) => {
+    if (rail.id === 'mood_lane') {
+      return options.mood === 'any' ? 45 : 0;
+    }
+    if (rail.id === 'top_match') return 10;
+    if (rail.id === 'endless') return 100;
+
+    if (!options.hasWatchHistory) {
+      if (rail.id === 'explore') return 20;
+      if (rail.id === 'quick_watch') return 30;
+      if (rail.id === 'taste_lane') return 40;
+      return 50;
+    }
+
+    if (rail.id === 'taste_lane') {
+      return confidentTaste ? 20 : 36;
+    }
+
+    if (rail.id === 'quick_watch') {
+      return shortPreference ? 24 : explorationRate >= 0.15 ? 34 : 28;
+    }
+
+    if (rail.id === 'explore') {
+      return explorationRate >= 0.15 ? 26 : 38;
+    }
+
+    return 50;
+  };
+
+  return rails
+    .map((rail) => ({
+      rail,
+      order: weight(rail),
+      base: baseIndex.get(rail.id) ?? 999,
+    }))
+    .sort((left, right) => left.order - right.order || left.base - right.base)
+    .map(({ rail }) => rail);
+}
 
 function normalizeGenre(value: string) {
   return value.trim().toLocaleLowerCase('ru-RU');
@@ -139,6 +203,7 @@ export function buildRecommendationRailLayout(
     hasMore: boolean;
     limits?: RecommendationRailLimits;
     ownership?: ReadonlyMap<number, RecommendationRailId>;
+    tasteGraph?: RailOrderTaste | null;
   },
 ): RecommendationRailLayout {
   if (!recommendations.length) {
@@ -298,7 +363,14 @@ export function buildRecommendationRailLayout(
     });
   }
 
-  return { rails, ownership };
+  return {
+    rails: orderRecommendationRails(rails, {
+      mood: options.mood,
+      hasWatchHistory: options.hasWatchHistory,
+      tasteGraph: options.tasteGraph,
+    }),
+    ownership,
+  };
 }
 
 export function buildRecommendationRails(
@@ -309,6 +381,7 @@ export function buildRecommendationRails(
     hasMore: boolean;
     limits?: RecommendationRailLimits;
     ownership?: ReadonlyMap<number, RecommendationRailId>;
+    tasteGraph?: RailOrderTaste | null;
   },
 ): RecommendationRail[] {
   return buildRecommendationRailLayout(recommendations, options).rails;

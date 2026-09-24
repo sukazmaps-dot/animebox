@@ -52,6 +52,12 @@ export type RecommendationAnalyticsDashboard = {
     rowId: string;
     dismissed: number;
     dismissRatePct: number;
+    endReached: number;
+    loadRequests: number;
+    loadAdded: number;
+    loadEmpty: number;
+    loadErrors: number;
+    loadFillPct: number;
   }>;
   positions: Array<{
     bucket: '1–3' | '4–7' | '8+' | 'unknown';

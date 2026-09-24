@@ -18,6 +18,9 @@ const EVENTS = [
   'recommendation_watch_15m',
   'recommendation_watch_30m',
   'recommendation_completed',
+  'recommendation_rail_end_reached',
+  'recommendation_rail_load_result',
+  'recommendation_rail_load_error',
 ] as const;
 
 const PAGE_SIZE = 1000;
@@ -191,7 +194,15 @@ export async function getRecommendationAnalytics(
   >();
   const rowBreakdown = new Map<
     string,
-    FunnelCounts & { rowId: string; dismissed: number }
+    FunnelCounts & {
+      rowId: string;
+      dismissed: number;
+      endReached: number;
+      loadRequests: number;
+      loadAdded: number;
+      loadEmpty: number;
+      loadErrors: number;
+    }
   >();
   const positions = new Map<
     '1–3' | '4–7' | '8+' | 'unknown',
@@ -217,6 +228,7 @@ export async function getRecommendationAnalytics(
   let rowIdEvents = 0;
   let positionEvents = 0;
   let fullyAttributedEvents = 0;
+  let recommendationAttributionEvents = 0;
 
   const bump = (name: string) =>
     counts.set(name, (counts.get(name) ?? 0) + 1);
@@ -230,13 +242,18 @@ export async function getRecommendationAnalytics(
     const rowKey = rowId(row);
     const position = metadataPosition(row);
 
-    if (recId) recommendationIdEvents += 1;
-    if (recSessionId) recommendationSessionEvents += 1;
-    if (versionKey) algorithmVersionEvents += 1;
-    if (rowKey) rowIdEvents += 1;
-    if (position) positionEvents += 1;
-    if (recId && recSessionId && versionKey && rowKey && position) {
-      fullyAttributedEvents += 1;
+    const isRailHealthEvent = row.event_name.startsWith('recommendation_rail_');
+
+    if (!isRailHealthEvent) {
+      recommendationAttributionEvents += 1;
+      if (recId) recommendationIdEvents += 1;
+      if (recSessionId) recommendationSessionEvents += 1;
+      if (versionKey) algorithmVersionEvents += 1;
+      if (rowKey) rowIdEvents += 1;
+      if (position) positionEvents += 1;
+      if (recId && recSessionId && versionKey && rowKey && position) {
+        fullyAttributedEvents += 1;
+      }
     }
 
     const sourceKey = eventSource(row);
@@ -260,9 +277,29 @@ export async function getRecommendationAnalytics(
         rowId: safeRow,
         ...emptyFunnel(),
         dismissed: 0,
+        endReached: 0,
+        loadRequests: 0,
+        loadAdded: 0,
+        loadEmpty: 0,
+        loadErrors: 0,
       };
     applyFunnelEvent(rail, row.event_name);
     if (row.event_name === 'recommendation_dismiss') rail.dismissed += 1;
+    if (row.event_name === 'recommendation_rail_end_reached') {
+      rail.endReached += 1;
+    }
+    if (row.event_name === 'recommendation_rail_load_result') {
+      rail.loadRequests += 1;
+      const claimed = Number(row.metadata?.claimed ?? 0);
+      if (Number.isFinite(claimed) && claimed > 0) {
+        rail.loadAdded += Math.round(claimed);
+      } else {
+        rail.loadEmpty += 1;
+      }
+    }
+    if (row.event_name === 'recommendation_rail_load_error') {
+      rail.loadErrors += 1;
+    }
     rowBreakdown.set(safeRow, rail);
 
     const positionBucket: '1–3' | '4–7' | '8+' | 'unknown' =
@@ -350,13 +387,25 @@ export async function getRecommendationAnalytics(
       dwellP50Ms: median(dwell),
     },
     attribution: {
-      recommendationEvents: rows.length,
-      recommendationIdPct: pct(recommendationIdEvents, rows.length),
-      recommendationSessionPct: pct(recommendationSessionEvents, rows.length),
-      algorithmVersionPct: pct(algorithmVersionEvents, rows.length),
-      rowIdPct: pct(rowIdEvents, rows.length),
-      positionPct: pct(positionEvents, rows.length),
-      fullyAttributedPct: pct(fullyAttributedEvents, rows.length),
+      recommendationEvents: recommendationAttributionEvents,
+      recommendationIdPct: pct(
+        recommendationIdEvents,
+        recommendationAttributionEvents,
+      ),
+      recommendationSessionPct: pct(
+        recommendationSessionEvents,
+        recommendationAttributionEvents,
+      ),
+      algorithmVersionPct: pct(
+        algorithmVersionEvents,
+        recommendationAttributionEvents,
+      ),
+      rowIdPct: pct(rowIdEvents, recommendationAttributionEvents),
+      positionPct: pct(positionEvents, recommendationAttributionEvents),
+      fullyAttributedPct: pct(
+        fullyAttributedEvents,
+        recommendationAttributionEvents,
+      ),
     },
     versions: [...versions.values()]
       .map((version) => ({
@@ -372,6 +421,10 @@ export async function getRecommendationAnalytics(
       .map((rail) => ({
         ...withRates(rail),
         dismissRatePct: pct(rail.dismissed, rail.impressions),
+        loadFillPct: pct(
+          rail.loadRequests - rail.loadEmpty,
+          rail.loadRequests,
+        ),
       }))
       .sort(
         (a, b) =>

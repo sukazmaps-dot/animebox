@@ -27,7 +27,11 @@ import {
   type RecommendationRailId,
   type RecommendationRailLimits,
 } from '@/lib/recommendation-rails';
-import { readCachedTasteGraph } from '@/lib/taste-graph';
+import {
+  readCachedTasteGraph,
+  type TasteGraph,
+} from '@/lib/taste-graph';
+import { trackProductClientEvent } from '@/lib/product-events-client';
 
 const PAGE_SIZE = 20;
 const MAX_EMPTY_PAGE_HOPS = 6;
@@ -341,6 +345,9 @@ export default function SmartRecommendationFeed({
     useState<Set<RecommendationRailId>>(() => new Set());
   const [railErrors, setRailErrors] =
     useState<Set<RecommendationRailId>>(() => new Set());
+  const [tasteGraph, setTasteGraph] = useState<TasteGraph | null>(
+    () => readCachedTasteGraph(),
+  );
 
   const bucket = useMemo(() => getSessionBucket(sessionId), [sessionId]);
 
@@ -448,6 +455,28 @@ export default function SmartRecommendationFeed({
   ]);
 
   useEffect(() => {
+    const onTasteGraphUpdated = (event: Event) => {
+      const next =
+        (event as CustomEvent<TasteGraph>).detail ??
+        readCachedTasteGraph();
+
+      if (next) setTasteGraph(next);
+    };
+
+    window.addEventListener(
+      'animebox-taste-graph-updated',
+      onTasteGraphUpdated,
+    );
+
+    return () => {
+      window.removeEventListener(
+        'animebox-taste-graph-updated',
+        onTasteGraphUpdated,
+      );
+    };
+  }, []);
+
+  useEffect(() => {
     if (!requestControllerRef.current) {
       requestControllerRef.current = new AbortController();
     }
@@ -494,8 +523,16 @@ export default function SmartRecommendationFeed({
         hasMore,
         limits: railLimits,
         ownership: railOwnershipRef.current,
+        tasteGraph,
       }),
-    [displayedMood, filtered, hasMore, hasWatchHistory, railLimits],
+    [
+      displayedMood,
+      filtered,
+      hasMore,
+      hasWatchHistory,
+      railLimits,
+      tasteGraph,
+    ],
   );
 
   useEffect(() => {
@@ -605,6 +642,23 @@ export default function SmartRecommendationFeed({
 
       const currentLimit =
         railLimits[rail.id] ?? DEFAULT_RECOMMENDATION_RAIL_LIMIT;
+      const itemsBefore = rail.items.length;
+      const startPointer = pointerRef.current;
+
+      trackProductClientEvent('recommendation_rail_end_reached', {
+        source: rail.source,
+        path: '/',
+        entityType: 'recommendation_rail',
+        entityId: rail.id,
+        metadata: {
+          row_id: rail.id,
+          current_items: itemsBefore,
+          page: startPointer.page,
+          has_cursor: Boolean(startPointer.cursor),
+          taste_confidence: tasteGraph?.confidence ?? null,
+          exploration_rate: tasteGraph?.explorationRate ?? null,
+        },
+      });
       const targetLimit =
         Math.max(currentLimit, rail.items.length) +
         RECOMMENDATION_RAIL_BATCH_SIZE;
@@ -616,6 +670,7 @@ export default function SmartRecommendationFeed({
 
       let remaining = Math.max(0, targetLimit - rail.items.length);
       let claimedForRail = 0;
+      let pagesScanned = 0;
 
       const claimCandidates = (
         candidates: RankedRecommendation[],
@@ -662,6 +717,7 @@ export default function SmartRecommendationFeed({
           attempt += 1
         ) {
           const fresh = await fetchNextCandidateBatch();
+          pagesScanned += 1;
           const relaxed = attempt >= STRICT_EMPTY_PAGE_HOPS;
           claimCandidates(fresh, relaxed);
         }
@@ -687,6 +743,24 @@ export default function SmartRecommendationFeed({
             return next;
           });
         }
+
+        trackProductClientEvent('recommendation_rail_load_result', {
+          source: rail.source,
+          path: '/',
+          entityType: 'recommendation_rail',
+          entityId: rail.id,
+          metadata: {
+            row_id: rail.id,
+            items_before: itemsBefore,
+            target_limit: targetLimit,
+            claimed: claimedForRail,
+            pages_scanned: pagesScanned,
+            has_more: hasMoreRef.current,
+            exhausted:
+              !hasMoreRef.current ||
+              (claimedForRail === 0 && hasMoreRef.current),
+          },
+        });
       } catch (fetchError) {
         if (
           fetchError instanceof DOMException &&
@@ -696,6 +770,19 @@ export default function SmartRecommendationFeed({
         }
 
         console.error('Recommendation rail pagination:', rail.id, fetchError);
+        trackProductClientEvent('recommendation_rail_load_error', {
+          source: rail.source,
+          path: '/',
+          entityType: 'recommendation_rail',
+          entityId: rail.id,
+          metadata: {
+            row_id: rail.id,
+            items_before: itemsBefore,
+            target_limit: targetLimit,
+            pages_scanned: pagesScanned,
+            page: startPointer.page,
+          },
+        });
         setRailErrors((current) => {
           const next = new Set(current);
           next.add(rail.id);
@@ -716,6 +803,7 @@ export default function SmartRecommendationFeed({
       fetchNextCandidateBatch,
       filtered,
       railLimits,
+      tasteGraph,
     ],
   );
 

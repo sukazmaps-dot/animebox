@@ -221,6 +221,9 @@ if (
   !rails.includes('ownership: Map<number, RecommendationRailId>') ||
   !rails.includes('recommendationMatchesRail') ||
   !rails.includes('recommendationMatchesRailRelaxed') ||
+  !rails.includes('orderRecommendationRails') ||
+  !rails.includes('explorationRate') ||
+  !rails.includes('preferredEpisodeCount') ||
   !feed.includes('hasMore={railHasMore}') ||
   !feed.includes('loading={railLoading}') ||
   !feed.includes('ensureRailDepth(rail)') ||
@@ -266,7 +269,10 @@ if (!card.includes('already_watched') || !card.includes('like_more')) {
 }
 if (
   !productEvents.includes('recommendation_watch_15m') ||
-  !productEvents.includes('recommendation_watch_30m')
+  !productEvents.includes('recommendation_watch_30m') ||
+  !productEvents.includes('recommendation_rail_end_reached') ||
+  !productEvents.includes('recommendation_rail_load_result') ||
+  !productEvents.includes('recommendation_rail_load_error')
 ) {
   failures.push('recommendation watch milestones are not registered');
 }
@@ -279,7 +285,13 @@ if (
   !recommendationAnalytics.includes('rowBreakdown') ||
   !recommendationAnalytics.includes('positionBucket') ||
   !recommendationAnalyticsTypes.includes('RecommendationFunnelSlice') ||
-  !recommendationAnalyticsUi.includes('DISCOVERY ENGINE · 17.8') ||
+  !recommendationAnalyticsTypes.includes('loadFillPct') ||
+  !recommendationAnalytics.includes('recommendationAttributionEvents') ||
+  !recommendationAnalytics.includes('recommendation_rail_load_result') ||
+  !feed.includes("trackProductClientEvent('recommendation_rail_end_reached'") ||
+  !feed.includes("trackProductClientEvent('recommendation_rail_load_result'") ||
+  !feed.includes("trackProductClientEvent('recommendation_rail_load_error'") ||
+  !recommendationAnalyticsUi.includes('INTELLIGENCE CORE · 18.0') ||
   !recommendationAnalyticsUi.includes('Algorithm version')
 ) {
   failures.push('17.8.7 recommendation attribution analytics is incomplete');

@@ -35,7 +35,7 @@ export default function RecommendationAnalyticsDashboard() {
   return (
     <section className={styles.dashboard} aria-label="AnimeBox Recommendation Analytics">
       <header className={styles.header}>
-        <div><span className={styles.eyebrow}>DISCOVERY ENGINE · 17.8</span><h1>Recommendations</h1><p>От показа карточки до реального старта и завершения серии.</p></div>
+        <div><span className={styles.eyebrow}>INTELLIGENCE CORE · 18.0</span><h1>Recommendations</h1><p>От показа карточки до реального старта и завершения серии.</p></div>
         <div className={styles.range}>{([7, 30] as const).map((days) => <button key={days} type="button" className={days === range ? styles.active : ''} onClick={() => { if (days === range) return; setLoading(true); setError(''); setRange(days); }}>{days}d</button>)}</div>
       </header>
       {error && <div className={styles.error}>{error}</div>}
@@ -70,8 +70,8 @@ export default function RecommendationAnalyticsDashboard() {
           <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Version</th><th>Impressions</th><th>Clicks</th><th>CTR</th><th>Play</th><th>15m</th><th>Click → 15m</th><th>Completed</th></tr></thead><tbody>{dashboard.versions.map((version) => <tr key={version.algorithmVersion}><td>{version.algorithmVersion}</td><td>{num(version.impressions)}</td><td>{num(version.clicks)}</td><td>{pct(version.ctrPct)}</td><td>{num(version.started)}</td><td>{num(version.watch15m)}</td><td>{pct(version.clickTo15mPct)}</td><td>{num(version.completed)}</td></tr>)}</tbody></table></div>
         </section>
         <section className={styles.panel}>
-          <div className={styles.panelHead}><div><span>ROWS</span><h2>Эффективность персональных полок</h2></div></div>
-          <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Row</th><th>Impressions</th><th>Clicks</th><th>CTR</th><th>Play</th><th>15m</th><th>Completed</th><th>Dismiss</th></tr></thead><tbody>{dashboard.rows.map((row) => <tr key={row.rowId}><td>{row.rowId}</td><td>{num(row.impressions)}</td><td>{num(row.clicks)}</td><td>{pct(row.ctrPct)}</td><td>{num(row.started)}</td><td>{num(row.watch15m)}</td><td>{num(row.completed)}</td><td>{pct(row.dismissRatePct)}</td></tr>)}</tbody></table></div>
+          <div className={styles.panelHead}><div><span>ROWS</span><h2>Эффективность и здоровье персональных полок</h2></div></div>
+          <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Row</th><th>Impressions</th><th>CTR</th><th>Play</th><th>15m</th><th>Dismiss</th><th>End</th><th>Loads</th><th>Added</th><th>Fill</th><th>Errors</th></tr></thead><tbody>{dashboard.rows.map((row) => <tr key={row.rowId}><td>{row.rowId}</td><td>{num(row.impressions)}</td><td>{pct(row.ctrPct)}</td><td>{num(row.started)}</td><td>{num(row.watch15m)}</td><td>{pct(row.dismissRatePct)}</td><td>{num(row.endReached)}</td><td>{num(row.loadRequests)}</td><td>{num(row.loadAdded)}</td><td>{pct(row.loadFillPct)}</td><td>{num(row.loadErrors)}</td></tr>)}</tbody></table></div>
           <div className={styles.positionStrip}>{dashboard.positions.map((position) => <div key={position.bucket}><span>Позиции {position.bucket}</span><strong>{pct(position.ctrPct)}</strong><small>{num(position.clicks)} / {num(position.impressions)}</small></div>)}</div>
         </section>
         <section className={styles.panel}>
