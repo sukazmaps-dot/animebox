@@ -10,6 +10,10 @@ import {
 } from '@/lib/provider-episodes';
 import { extractHlsVideos } from '@/lib/anilibria';
 import { enforceIpRateLimit } from '@/lib/api-rate-limit';
+import {
+  COPYRIGHT_RESTRICTED_MESSAGE,
+  getPlaybackRestriction,
+} from '@/lib/copyright-server';
 
 export const runtime = 'nodejs';
 
@@ -51,6 +55,29 @@ export async function GET(request: NextRequest) {
 
   const providerSeason = routeRecord?.provider_season || anime.providerSeason || 1;
   const requestedSeason = request.nextUrl.searchParams.get('season');
+
+  const restriction = await getPlaybackRestriction({
+    animeId: anime.id,
+    season: providerSeason,
+    episode,
+    provider: 'AniLiberty',
+  });
+
+  if (restriction) {
+    return NextResponse.json(
+      {
+        hls: [],
+        episodes: [],
+        externalPlayer: null,
+        reason: 'copyright_restricted',
+        message: COPYRIGHT_RESTRICTED_MESSAGE,
+      },
+      {
+        status: 451,
+        headers: { 'Cache-Control': 'private, no-store' },
+      },
+    );
+  }
 
   if (requestedSeason && Number(requestedSeason) !== providerSeason) {
     return NextResponse.json({ reason: 'stale_season_selection' }, { status: 409 });
