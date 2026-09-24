@@ -119,7 +119,10 @@ export default function AnimeImage({
           ? previous.sourceIndex
           : 0;
 
-      const nextIndex = previousIndex + 1;
+      // onError and the cached-image check can report the same failure.
+      // Advance only the candidate belonging to this render.
+      if (previous.key === sourcesKey && previousIndex !== sourceIndex) return previous;
+      const nextIndex = sourceIndex + 1;
 
       if (nextIndex >= sources.length) {
         return {
@@ -147,11 +150,11 @@ export default function AnimeImage({
       element.naturalWidth > 0 &&
       element.naturalHeight > 0
     ) {
-      setImageState({
-        key: sourcesKey,
-        sourceIndex,
-        loaded: true,
-      });
+      setImageState((previous) =>
+        previous.key === sourcesKey && previous.sourceIndex !== sourceIndex
+          ? previous
+          : { key: sourcesKey, sourceIndex, loaded: true },
+      );
     }
   };
 
@@ -183,11 +186,11 @@ export default function AnimeImage({
         element.naturalWidth > 0 &&
         element.naturalHeight > 0
       ) {
-        setImageState({
-          key: sourcesKey,
-          sourceIndex,
-          loaded: true,
-        });
+        setImageState((previous) =>
+          previous.key === sourcesKey && previous.sourceIndex !== sourceIndex
+            ? previous
+            : { key: sourcesKey, sourceIndex, loaded: true },
+        );
         return;
       }
 
@@ -197,8 +200,9 @@ export default function AnimeImage({
             previous.key === sourcesKey
               ? previous.sourceIndex
               : sourceIndex;
+          if (previous.key === sourcesKey && previousIndex !== sourceIndex) return previous;
           const nextIndex = Math.min(
-            previousIndex + 1,
+            sourceIndex + 1,
             sources.length - 1,
           );
 

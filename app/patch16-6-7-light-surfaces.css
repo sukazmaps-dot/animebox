@@ -1,0 +1,145 @@
+/* Light theme component contracts. Media overlays keep their own dark palette. */
+html[data-animebox-theme='light'] {
+  --bg: #f5f6fa;
+  --bg-2: #eceef5;
+  --panel: #fff;
+  --panel-2: #f0f1f8;
+  --text: #252638;
+  --muted: #606479;
+  --line: #dcdfea;
+  --ab-vl-canvas: #f5f6fa;
+  --ab-vl-surface: #fff;
+  --ab-vl-surface-raised: #f0f1f8;
+  --ab-vl-text: #252638;
+  --ab-vl-text-soft: #4c5067;
+  --ab-vl-muted: #606479;
+  --ab-vl-muted-2: #606479;
+}
+html[data-animebox-theme='light'] body {
+  background: radial-gradient(ellipse at 80% 0, #eeebfb 0, transparent 35%), #f5f6fa;
+}
+html[data-animebox-theme='light'] .sidebar,
+html[data-animebox-theme='light'] .topbar,
+html[data-animebox-theme='light'] .mobile-nav {
+  background: rgba(255,255,255,.96) !important;
+  border-color: var(--line) !important;
+}
+html[data-animebox-theme='light'] :is(
+  .panel__head, .panel__title-with-icon, .top-anime-item__copy strong,
+  .continue-smart-card__body strong, .home-shortcuts__item strong,
+  .home-pulse strong, .home-retention__head h2, .home-retention__copy strong,
+  .mood-picker__intro h2, .mood-chip__copy strong, .smart-card__title,
+  .home-library-panel h3, .home-library-panel h2, .sidebar-membership__copy strong,
+  .sidebar__support strong, .smart-feed__empty h3, .home-activation-v2 h2,
+  .home-activation-v2 h3, .schedule-item__title
+) { color: var(--text) !important; text-shadow: none !important; }
+html[data-animebox-theme='light'] :is(
+  .top-anime-item__copy span, .top-anime-item__rank,
+  .continue-smart-card__body small, .continue-smart-card__arrow,
+  .home-shortcuts__item small, .home-pulse small, .home-pulse span,
+  .home-pulse__link, .home-retention__head span, .home-retention__copy small,
+  .home-retention__copy span, .mood-picker__intro p, .mood-chip__copy small,
+  .smart-card__meta, .smart-card__reason, .smart-card__dismiss,
+  .home-library-panel p, .sidebar-membership__copy small,
+  .sidebar-membership__status, .home-activation-v2 p, .schedule-item__meta,
+  .smart-section-eyebrow
+) { color: var(--muted) !important; text-shadow: none !important; }
+html[data-animebox-theme='light'] :is(
+  .continue-smart-card__eyebrow, .home-library-panel__eyebrow,
+  .mood-picker__eyebrow, .sidebar-membership__icon,
+  .home-activation-v2__eyebrow
+) { color: #6542bb !important; }
+html[data-animebox-theme='light'] :is(
+  .continue-smart-card, .personal-schedule-grid, .personal-schedule-card,
+  .home-library-panel, .home-activation-v2, .smart-card,
+  .home-retention__card, .home-pulse, .home-shortcuts__item,
+  .mood-picker, .mood-chip, .sidebar-membership
+) {
+  background: var(--panel) !important;
+  border-color: var(--line) !important;
+  color: var(--text);
+  box-shadow: none !important;
+}
+html[data-animebox-theme='light'] :is(
+  .home-shortcuts__item:hover, .home-retention__card:hover,
+  .continue-smart-card:hover, .mood-chip:hover, .mood-chip.is-active
+) { background: #ede9fa !important; border-color: #c5b7ec !important; }
+html[data-animebox-theme='light'] .smart-feed__rail::after {
+  /* No opaque dark curtain across posters or the action row. */
+  display: none !important;
+}
+html[data-animebox-theme='light'] .smart-card__title {
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+}
+html[data-animebox-theme='light'] .smart-card__meta,
+html[data-animebox-theme='light'] .smart-card__reason {
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+html[data-animebox-theme='light'] .smart-card__plan {
+  background: #eee9fa !important;
+  border-color: #d0c2ee !important;
+  color: #513390 !important;
+}
+html[data-animebox-theme='light'] .smart-card__plan-icon {
+  color: #513390 !important;
+  background: transparent !important;
+}
+html[data-animebox-theme='light'] .smart-card__plan:hover:not(:disabled) {
+  background: #e2d9f5 !important;
+}
+html[data-animebox-theme='light'] .schedule-item {
+  border-color: var(--line) !important;
+}
+html[data-animebox-theme='light'] .schedule-item:hover {
+  background: #f0ecfa !important;
+}
+html[data-animebox-theme='light'] .schedule-item__countdown {
+  background: #eee9fa !important;
+  border-color: #d0c2ee !important;
+  color: #513390 !important;
+}
+html[data-animebox-theme='light'] .schedule-item__countdown > span {
+  color: #513390 !important;
+}
+html[data-animebox-theme='light'] .schedule-item__countdown > .schedule-item__released {
+  color: #146342 !important;
+}
+html[data-animebox-theme='light'] .schedule-item__chevron { color: #606479; }
+html[data-animebox-theme='light'] .topbar :is(.auth-user__trigger, .auth-user__username) {
+  color: var(--text) !important;
+}
+html[data-animebox-theme='light'] .home-library-panel .btn {
+  background: #6542bb !important;
+  color: #fff !important;
+  border-color: #6542bb !important;
+}
+
+html[data-animebox-theme='light'] :is(.auth-user__dropdown, .auth-user__profile, .auth-user__links a) {
+  color: var(--text) !important;
+  background: var(--panel) !important;
+  border-color: var(--line) !important;
+}
+html[data-animebox-theme='light'] .auth-user__profile strong { color: var(--text) !important; }
+html[data-animebox-theme='light'] .auth-user__profile span { color: var(--muted); }
+html[data-animebox-theme='light'] :is(.episode-list__item, .episode-list__seasons) {
+  background: #fff !important;
+  border-color: var(--line) !important;
+}
+html[data-animebox-theme='light'] :is(.episode-list__copy small, .episode-list__meta, .episode-list__season-tab small) {
+  color: var(--muted) !important;
+}
+html[data-animebox-theme='light'] .episode-list__item.is-current,
+html[data-animebox-theme='light'] .episode-list__item:hover { background: #ede9fa !important; }
+html[data-animebox-theme='light'] .episode-list__item.is-watched { background: #eaf6ef !important; }
+html[data-animebox-theme='light'] .episode-list__number { color: #6542bb !important; }
+
+html[data-animebox-theme='light'] :is(
+  .home-pulse strong, .home-shortcuts__item strong, .home-retention__copy strong,
+  .continue-smart-card__body strong, .mood-chip__copy strong
+) { font-size: 14px !important; line-height: 1.4 !important; }
+html[data-animebox-theme='light'] :is(
+  .home-pulse small, .home-shortcuts__item small, .home-retention__copy small,
+  .continue-smart-card__body small, .mood-chip__copy small
+) { font-size: 12px !important; line-height: 1.5 !important; }

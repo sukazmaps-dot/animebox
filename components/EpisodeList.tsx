@@ -822,7 +822,7 @@ export default function EpisodeList({
                   ? 'Завершено'
                   : isPartial
                     ? `${percent}% просмотрено`
-                    : 'Серия';
+                    : '';
               const ariaLabel = isCurrent
                 ? `${number} серия, сейчас смотрите`
                 : isCompleted
@@ -855,16 +855,14 @@ export default function EpisodeList({
                   <span className="episode-list__number">{numberLabel}</span>
 
                   <span className="episode-list__copy">
-                    <strong className="episode-list__label">{statusLabel}</strong>
-                    <small>
-                      {isPartial && progress?.positionMs
-                        ? `Продолжить с ${formatEpisodeTime(progress.positionMs)}`
-                        : isCompleted
-                          ? 'Просмотр подтверждён'
-                          : isCurrent
-                            ? `Эпизод ${number}`
-                            : `Эпизод ${number}`}
-                    </small>
+                    <strong className="episode-list__label">Серия {number}</strong>
+                    {statusLabel && (
+                      <small>
+                        {isPartial && progress?.positionMs
+                          ? `Продолжить с ${formatEpisodeTime(progress.positionMs)}`
+                          : statusLabel}
+                      </small>
+                    )}
                   </span>
 
                   <span

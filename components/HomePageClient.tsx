@@ -1324,6 +1324,7 @@ export default function HomePage({
 
                 return (
                   <ScheduleItem
+                    compact
                     key={item.id}
                     href={animeHref(item.media)}
                     title={title}
