@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const read = (path) =>
   fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
-const migration = read('supabase/migrations/20260924191500_social_community_v2.sql');
+const migration = read('supabase/migrations/20260924193648_social_community_v2.sql');
 const socialServer = read('lib/social-community-server.ts');
 const presence = read('components/social/SocialPresenceHeartbeat.tsx');
 const friends = read('components/friends/FriendsPageClient.tsx');
