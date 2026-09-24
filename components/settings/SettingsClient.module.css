@@ -246,3 +246,182 @@
   .dangerRows > div { align-items: flex-start; flex-direction: column; }
   .dangerRows button { width: 100%; }
 }
+
+
+.themeRow {
+  display: grid;
+  gap: 12px;
+  padding: 13px 0 16px;
+  border-top: 1px solid rgba(255,255,255,.045);
+}
+
+.themeRow > div:first-child > strong {
+  color: rgba(255,255,255,.9);
+  font-size: 13px;
+}
+
+.themeRow > div:first-child > p {
+  max-width: 620px;
+  margin: 4px 0 0;
+  color: rgba(255,255,255,.38);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.themeChoices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.themeChoice {
+  min-width: 0;
+  min-height: 66px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,.065);
+  border-radius: 13px;
+  background: rgba(255,255,255,.025);
+  color: rgba(255,255,255,.64);
+  text-align: left;
+  transition: border-color .18s ease, background .18s ease, transform .18s ease;
+}
+
+.themeChoice:hover {
+  transform: translateY(-1px);
+  border-color: rgba(167,139,250,.22);
+  background: rgba(124,84,255,.055);
+}
+
+.themeChoice[data-active='true'] {
+  border-color: rgba(154,126,246,.34);
+  background:
+    linear-gradient(135deg, rgba(124,84,255,.13), rgba(90,126,255,.055));
+  color: #f4efff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+.themeChoice strong,
+.themeChoice small {
+  display: block;
+}
+
+.themeChoice strong {
+  font-size: 12px;
+}
+
+.themeChoice small {
+  color: rgba(255,255,255,.34);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.themeChoice[data-active='true'] small {
+  color: rgba(235,228,255,.58);
+}
+
+:global(html[data-animebox-theme='light']) .hero {
+  border-color: rgba(112,87,220,.13);
+  background:
+    radial-gradient(circle at 85% 0%, rgba(112,87,220,.09), transparent 32%),
+    linear-gradient(135deg, rgba(255,255,255,.98), rgba(246,242,236,.98));
+  box-shadow: 0 24px 62px rgba(74,62,87,.07);
+}
+
+:global(html[data-animebox-theme='light']) .hero h1,
+:global(html[data-animebox-theme='light']) .accountChip strong,
+:global(html[data-animebox-theme='light']) .cardHead h2,
+:global(html[data-animebox-theme='light']) .settingRow strong,
+:global(html[data-animebox-theme='light']) .themeRow > div:first-child > strong,
+:global(html[data-animebox-theme='light']) .linkGrid strong,
+:global(html[data-animebox-theme='light']) .dangerRows span strong {
+  color: #28212f;
+}
+
+:global(html[data-animebox-theme='light']) .hero p,
+:global(html[data-animebox-theme='light']) .cardCopy,
+:global(html[data-animebox-theme='light']) .settingRow p,
+:global(html[data-animebox-theme='light']) .themeRow > div:first-child > p,
+:global(html[data-animebox-theme='light']) .linkGrid small,
+:global(html[data-animebox-theme='light']) .dangerRows span small,
+:global(html[data-animebox-theme='light']) .accountChip small {
+  color: #746b7c;
+}
+
+:global(html[data-animebox-theme='light']) .card {
+  border-color: rgba(60,52,70,.09);
+  background: linear-gradient(180deg, rgba(255,255,255,.97), rgba(248,244,238,.98));
+  box-shadow: 0 14px 36px rgba(73,62,87,.045);
+}
+
+:global(html[data-animebox-theme='light']) .accountChip,
+:global(html[data-animebox-theme='light']) .linkGrid a,
+:global(html[data-animebox-theme='light']) .secondaryAction,
+:global(html[data-animebox-theme='light']) .dangerRows button {
+  border-color: rgba(60,52,70,.09);
+  background: rgba(52,44,61,.035);
+}
+
+:global(html[data-animebox-theme='light']) .avatar {
+  background: #ece6df;
+  box-shadow: 0 0 0 1px rgba(112,87,220,.16), 0 10px 24px rgba(73,62,87,.10);
+}
+
+:global(html[data-animebox-theme='light']) .settingRow,
+:global(html[data-animebox-theme='light']) .themeRow,
+:global(html[data-animebox-theme='light']) .dangerRows {
+  border-color: rgba(60,52,70,.08);
+}
+
+:global(html[data-animebox-theme='light']) .themeChoice {
+  border-color: rgba(60,52,70,.09);
+  background: rgba(52,44,61,.03);
+  color: #5e5568;
+}
+
+:global(html[data-animebox-theme='light']) .themeChoice:hover {
+  border-color: rgba(112,87,220,.20);
+  background: rgba(112,87,220,.05);
+}
+
+:global(html[data-animebox-theme='light']) .themeChoice[data-active='true'] {
+  border-color: rgba(112,87,220,.28);
+  background: linear-gradient(135deg, rgba(112,87,220,.11), rgba(83,113,210,.05));
+  color: #49358e;
+}
+
+:global(html[data-animebox-theme='light']) .themeChoice small,
+:global(html[data-animebox-theme='light']) .themeChoice[data-active='true'] small {
+  color: #807688;
+}
+
+:global(html[data-animebox-theme='light']) .toast {
+  border-color: rgba(112,87,220,.14);
+  background: rgba(112,87,220,.06);
+  color: #5d4b87;
+}
+
+:global(html[data-animebox-theme='light']) .toggle {
+  border-color: rgba(60,52,70,.12);
+  background: rgba(52,44,61,.07);
+}
+
+:global(html[data-animebox-theme='light']) .toggle span {
+  background: #8d8395;
+}
+
+:global(html[data-animebox-theme='light']) .toggle[data-on='true'] span {
+  background: #fff;
+}
+
+@media (max-width: 560px) {
+  .themeChoices {
+    grid-template-columns: 1fr;
+  }
+
+  .themeChoice {
+    min-height: 56px;
+  }
+}
