@@ -2109,6 +2109,7 @@ export default function WatchPartyPanel({
     send,
     sendHostSync,
     sequencePlayerAction,
+    syncRegisteredRoom,
   ]);
 
   useEffect(() => {
