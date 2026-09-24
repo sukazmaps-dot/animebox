@@ -8,6 +8,10 @@ import ProfilePreview from '@/components/profile/ProfilePreview';
 import { useAuthState } from '@/components/AuthStateProvider';
 import { notifySocialNotificationsChanged } from '@/components/SocialNotificationBadge';
 import SocialGraphPanels from '@/components/friends/SocialGraphPanels';
+import {
+  FRIENDS_CHANGED_EVENT,
+  notifyFriendsChanged,
+} from '@/lib/friends-events';
 
 type FriendCard = {
   friendshipId: string;
@@ -146,6 +150,12 @@ export default function FriendsPageClient() {
     queueMicrotask(() => void load());
   }, [authLoading, load, user]);
 
+  useEffect(() => {
+    const refresh = () => void load();
+    window.addEventListener(FRIENDS_CHANGED_EVENT, refresh);
+    return () => window.removeEventListener(FRIENDS_CHANGED_EVENT, refresh);
+  }, [load]);
+
   async function patch(friendshipId: string, action: 'accept' | 'decline' | 'cancel') {
     const response = await fetch('/api/friends', {
       method: 'PATCH',
@@ -158,6 +168,7 @@ export default function FriendsPageClient() {
       return;
     }
     notifySocialNotificationsChanged();
+    notifyFriendsChanged();
     await load();
   }
 
@@ -170,6 +181,7 @@ export default function FriendsPageClient() {
       setError(payload.error || 'Не удалось удалить друга.');
       return;
     }
+    notifyFriendsChanged();
     await load();
   }
 
