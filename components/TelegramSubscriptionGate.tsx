@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import {
   type ReactNode,
   useCallback,
@@ -66,6 +65,7 @@ export default function TelegramSubscriptionGate({
   const [state, setState] = useState<GateState>('detecting');
   const [channelUrl, setChannelUrl] = useState(CHANNEL_URL_FALLBACK);
   const [checkingAgain, setCheckingAgain] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
 
   const checkMembership = useCallback(async (isRetry = false) => {
     // Normal website visits must not download Telegram's SDK or briefly lock
@@ -215,13 +215,27 @@ export default function TelegramSubscriptionGate({
 
           <div className="telegram-subscription-gate__card">
             <div className="telegram-subscription-gate__logo">
-              <Image
-                src="/brand/favicon.png"
-                alt="AnimeBox"
-                width={58}
-                height={58}
-                priority
-              />
+              {!logoFailed ? (
+                <img
+                  src="/brand/brand-mark.webp"
+                  alt="AnimeBox"
+                  width={58}
+                  height={58}
+                  decoding="sync"
+                  onError={() => setLogoFailed(true)}
+                />
+              ) : (
+                <svg
+                  className="telegram-subscription-gate__logo-fallback"
+                  viewBox="0 0 64 64"
+                  role="img"
+                  aria-label="AnimeBox"
+                >
+                  <path d="M32 7 52 19v26L32 57 12 45V19L32 7Z" />
+                  <path d="m26 22 17 10-17 10V22Z" />
+                  <path d="M19 17 32 10l13 7" />
+                </svg>
+              )}
             </div>
 
             {state === 'checking' ? (
