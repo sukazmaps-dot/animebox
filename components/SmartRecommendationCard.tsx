@@ -262,6 +262,49 @@ export default function SmartRecommendationCard({
     onHidden(anime.id);
   }
 
+  function showLessLikeThis() {
+    trackRecommendationEvent({
+      type: 'not_interested',
+      ...eventContext,
+    });
+    void persistRecommendationFeedback({
+      animeId: anime.id,
+      signal: 'less_like_this',
+      source,
+      reason,
+      modelVersion: RECOMMENDATION_MODEL_VERSION,
+      recommendationId: recommendationIdRef.current,
+      recommendationSessionId,
+      algorithmVersion: RECOMMENDATION_MODEL_VERSION,
+      rowId,
+      position,
+      mood,
+    });
+    onHidden(anime.id);
+  }
+
+  function hideTitle() {
+    hideRecommendation(anime);
+    trackRecommendationEvent({
+      type: 'not_interested',
+      ...eventContext,
+    });
+    void persistRecommendationFeedback({
+      animeId: anime.id,
+      signal: 'hidden',
+      source,
+      reason,
+      modelVersion: RECOMMENDATION_MODEL_VERSION,
+      recommendationId: recommendationIdRef.current,
+      recommendationSessionId,
+      algorithmVersion: RECOMMENDATION_MODEL_VERSION,
+      rowId,
+      position,
+      mood,
+    });
+    onHidden(anime.id);
+  }
+
   const planLabel =
     planState === 'saving'
       ? 'Сохраняем…'
@@ -354,10 +397,31 @@ export default function SmartRecommendationCard({
           <span>{formatDuration(anime.duration)}</span>
         </div>
 
-        <p className="smart-card__reason" title={reasons.join(' · ')}>
-          <span aria-hidden="true">✦</span>
-          {reason}
-        </p>
+        <details className="smart-card__why">
+          <summary className="smart-card__reason" title={reasons.join(' · ')}>
+            <span aria-hidden="true">✦</span>
+            <span className="smart-card__reason-copy">{reason}</span>
+            <span className="smart-card__why-caret" aria-hidden="true">⌄</span>
+          </summary>
+
+          <div className="smart-card__why-panel">
+            <strong>Почему это тебе</strong>
+            <ul>
+              {[...new Set(reasons)].slice(0, 3).map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+
+            <div className="smart-card__why-actions">
+              <button type="button" onClick={showLessLikeThis}>
+                Меньше похожего
+              </button>
+              <button type="button" onClick={hideTitle}>
+                Скрыть тайтл
+              </button>
+            </div>
+          </div>
+        </details>
 
         <div className="smart-card__actions">
           <button
