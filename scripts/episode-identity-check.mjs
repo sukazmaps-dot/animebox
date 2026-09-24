@@ -51,7 +51,9 @@ for (const [label, needle] of [
   ['batch progress state', 'EpisodeWatchListResponse'],
   ['live watch progress listener', "window.addEventListener('watch-progress'"],
   ['current episode semantic', "aria-current={isCurrent ? 'page' : undefined}"],
-  ['current episode auto positioning', "scrollIntoView({"],
+  ['current episode internal auto positioning', 'itemTop = current.offsetTop'],
+  ['current episode container scroll', 'list.scrollTo({'],
+  ['group tab container scroll', 'track.scrollTo({'],
   ['partial episode state', "'is-partial'"],
   ['progress bar', 'episode-list__progress'],
   ['human status completed', "'Завершено'"],
@@ -92,6 +94,12 @@ for (const [label, needle] of [
   if (!css.includes(needle)) {
     failures.push(`Episode Identity CSS: missing ${label}.`);
   }
+}
+
+if (episodeList.includes('scrollIntoView(')) {
+  failures.push(
+    'EpisodeList: document-level scrollIntoView must not return; use container-only scrolling.',
+  );
 }
 
 if (episodeList.includes('canScrollGroupLeft') || episodeList.includes('canScrollGroupRight')) {
