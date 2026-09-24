@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
 
 import { getAnimesWithShikimori } from '@/lib/combined-anime';
-import type { AniListListOrder, GetAnimesOptions } from '@/lib/anilist';
+import type { GetAnimesOptions } from '@/lib/anilist';
 import { findAnimeGenre } from '@/lib/anime-taxonomy';
 import { enforceIpRateLimit } from '@/lib/api-rate-limit';
 
@@ -10,8 +10,10 @@ export const runtime = 'nodejs';
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 30;
+const MAX_PAGE = 10_000;
 const CACHE_SECONDS = 15 * 60;
 const STALE_SECONDS = 24 * 60 * 60;
+const CURSOR_VERSION = 1;
 
 type CandidateMood =
   | 'any'
@@ -26,6 +28,11 @@ type CandidateSource =
   | 'ongoing'
   | 'preferred_genre'
   | 'mood';
+
+type RecommendationCursorPayload = {
+  v: typeof CURSOR_VERSION;
+  p: number;
+};
 
 const MOOD_GENRES: Record<Exclude<CandidateMood, 'any'>, readonly string[]> = {
   comfort: ['Slice of Life', 'Comedy', 'Romance'],
@@ -43,6 +50,38 @@ function clampInteger(
   const parsed = Number.parseInt(value ?? '', 10);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(max, Math.max(min, parsed));
+}
+
+function encodeRecommendationCursor(page: number) {
+  const payload: RecommendationCursorPayload = {
+    v: CURSOR_VERSION,
+    p: Math.min(MAX_PAGE, Math.max(1, Math.trunc(page))),
+  };
+
+  return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+}
+
+function decodeRecommendationCursor(value: string | null): number | null {
+  if (!value || value.length > 96) return null;
+
+  try {
+    const parsed = JSON.parse(
+      Buffer.from(value, 'base64url').toString('utf8'),
+    ) as Partial<RecommendationCursorPayload>;
+
+    if (
+      parsed.v !== CURSOR_VERSION ||
+      !Number.isSafeInteger(parsed.p) ||
+      Number(parsed.p) < 1 ||
+      Number(parsed.p) > MAX_PAGE
+    ) {
+      return null;
+    }
+
+    return Number(parsed.p);
+  } catch {
+    return null;
+  }
 }
 
 function normalizeMood(value: string | null): CandidateMood {
@@ -72,6 +111,12 @@ function selectCandidateSource(input: {
   if (slot === 4) return 'ongoing';
 
   return slot % 2 === 0 ? 'popularity' : 'ranked';
+}
+
+function fallbackSource(source: CandidateSource, page: number): CandidateSource {
+  if (source === 'ranked') return 'popularity';
+  if (source === 'popularity') return 'ranked';
+  return page % 2 === 0 ? 'ranked' : 'popularity';
 }
 
 function sourceOptions(input: {
@@ -141,22 +186,82 @@ const getCachedCandidatePage = unstable_cache(
 
     return getAnimesWithShikimori(options);
   },
-  ['animebox-recommendation-candidates-v5-multisource'],
+  ['animebox-recommendation-candidates-v6-cursor'],
   {
     revalidate: CACHE_SECONDS,
     tags: ['animebox-recommendation-candidates'],
   },
 );
 
+async function loadCandidatePage(input: {
+  page: number;
+  limit: number;
+  source: CandidateSource;
+  tasteGenre: string | null;
+  mood: CandidateMood;
+  bucket: number;
+}) {
+  const { page, limit, source, tasteGenre, mood, bucket } = input;
+
+  try {
+    const items = await getCachedCandidatePage(
+      page,
+      limit,
+      source,
+      tasteGenre,
+      mood,
+      bucket,
+    );
+
+    return {
+      items,
+      candidateSource: source,
+      fallbackFrom: null as CandidateSource | null,
+    };
+  } catch (primaryError) {
+    const fallback = fallbackSource(source, page);
+
+    try {
+      const items = await getCachedCandidatePage(
+        page,
+        limit,
+        fallback,
+        tasteGenre,
+        mood,
+        bucket,
+      );
+
+      console.warn(
+        '[Recommendations] candidate source fallback',
+        source,
+        '->',
+        fallback,
+      );
+
+      return {
+        items,
+        candidateSource: fallback,
+        fallbackFrom: source,
+      };
+    } catch {
+      throw primaryError;
+    }
+  }
+}
+
 /**
  * Multi-source candidate endpoint for the infinite Smart Feed.
  *
  * Candidate retrieval and ranking are intentionally separate:
  * - this endpoint broadens recall with ranked/popular/ongoing/taste/mood pools;
- * - the client ranking layer applies personal exclusions, scoring and MMR.
+ * - the client ranking layer applies personal exclusions, scoring and diversity.
  *
  * A unique recommendation session never enters the URL. The only context is a
  * 0..3 exploration bucket, one canonical genre and one finite mood value.
+ *
+ * Cursor pagination is intentionally opaque and contains only the next public
+ * catalogue page number. The legacy page query remains accepted so old clients
+ * and the first bootstrap request keep working during rollout.
  */
 export async function GET(request: NextRequest) {
   const limited = await enforceIpRateLimit(request, {
@@ -167,8 +272,21 @@ export async function GET(request: NextRequest) {
   if (limited) return limited;
 
   const params = request.nextUrl.searchParams;
+  const rawCursor = params.get('cursor');
+  const cursorPage = decodeRecommendationCursor(rawCursor);
 
-  const page = clampInteger(params.get('page'), 1, 1, 10_000);
+  if (rawCursor && cursorPage == null) {
+    return NextResponse.json(
+      { error: 'invalid_cursor' },
+      {
+        status: 400,
+        headers: { 'Cache-Control': 'private, no-store' },
+      },
+    );
+  }
+
+  const page =
+    cursorPage ?? clampInteger(params.get('page'), 1, 1, MAX_PAGE);
   const limit = clampInteger(
     params.get('limit'),
     DEFAULT_LIMIT,
@@ -183,7 +301,7 @@ export async function GET(request: NextRequest) {
     ? findAnimeGenre(requestedGenre)?.value ?? null
     : null;
 
-  const candidateSource = selectCandidateSource({
+  const requestedSource = selectCandidateSource({
     page,
     bucket,
     hasTasteGenre: Boolean(tasteGenre),
@@ -191,24 +309,29 @@ export async function GET(request: NextRequest) {
   });
 
   try {
-    const items = await getCachedCandidatePage(
+    const result = await loadCandidatePage({
       page,
       limit,
-      candidateSource,
+      source: requestedSource,
       tasteGenre,
       mood,
       bucket,
-    );
-    const hasMore = items.length >= limit;
+    });
+    const hasMore = result.items.length >= limit;
+    const nextPage = hasMore && page < MAX_PAGE ? page + 1 : null;
+    const nextCursor =
+      nextPage == null ? null : encodeRecommendationCursor(nextPage);
 
     return NextResponse.json(
       {
-        items,
+        items: result.items,
         page,
-        nextPage: hasMore ? page + 1 : null,
-        hasMore,
+        nextPage,
+        nextCursor,
+        hasMore: nextCursor != null,
         bucket,
-        candidateSource,
+        candidateSource: result.candidateSource,
+        fallbackFrom: result.fallbackFrom,
         tasteGenre,
         mood,
       },

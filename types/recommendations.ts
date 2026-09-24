@@ -16,9 +16,11 @@ export type RecommendationPage = {
   items: Anime[];
   page: number;
   nextPage: number | null;
+  nextCursor: string | null;
   hasMore: boolean;
   bucket: number;
   candidateSource?: RecommendationCandidateSource;
+  fallbackFrom?: RecommendationCandidateSource | null;
   tasteGenre?: string | null;
   mood?: 'any' | 'comfort' | 'tension' | 'emotion' | 'adventure';
 };

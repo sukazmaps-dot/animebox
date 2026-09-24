@@ -127,11 +127,23 @@ if (
   failures.push('17.8.3 multi-source candidate retrieval is incomplete');
 }
 if (
-  !candidates.includes('animebox-recommendation-candidates-v5-multisource') ||
+  !candidates.includes('animebox-recommendation-candidates-v6-cursor') ||
   !candidates.includes('tasteGenre') ||
   !candidates.includes('bucket')
 ) {
   failures.push('candidate retrieval does not preserve finite shared cache keys');
+}
+if (
+  !candidates.includes('encodeRecommendationCursor') ||
+  !candidates.includes('decodeRecommendationCursor') ||
+  !candidates.includes("error: 'invalid_cursor'") ||
+  !candidates.includes('nextCursor') ||
+  !candidates.includes('fallbackSource') ||
+  !recommendationTypes.includes('nextCursor: string | null') ||
+  !feed.includes("params.set('cursor', pointer.cursor)") ||
+  !feed.includes('data.nextCursor ?? null')
+) {
+  failures.push('17.8.8 cursor/fallback hardening is incomplete');
 }
 if (
   !feed.includes('readCachedTasteGraph') ||

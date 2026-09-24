@@ -22,7 +22,7 @@ import { readCachedTasteGraph } from '@/lib/taste-graph';
 const PAGE_SIZE = 20;
 const MAX_EMPTY_PAGE_HOPS = 3;
 const CLIENT_PAGE_CACHE_TTL_MS = 15 * 60 * 1000;
-const CLIENT_PAGE_CACHE_PREFIX = 'animebox:recommendation-page:v5:';
+const CLIENT_PAGE_CACHE_PREFIX = 'animebox:recommendation-page:v6:';
 const MAX_SESSION_CACHE_ENTRIES = 14;
 const MOOD_SWAP_FADE_OUT_MS = 135;
 
@@ -34,6 +34,11 @@ type CachedPage = {
 type CandidateContext = {
   genre: string | null;
   mood: TasteMood;
+};
+
+type CandidatePointer = {
+  page: number;
+  cursor: string | null;
 };
 
 /* Shared by every SmartRecommendationFeed mount in the current tab. */
@@ -74,11 +79,15 @@ function candidateContextKey(context: CandidateContext): string {
 }
 
 function pageCacheKey(
-  page: number,
+  pointer: CandidatePointer,
   bucket: number,
   context: CandidateContext,
 ): string {
-  return `${CLIENT_PAGE_CACHE_PREFIX}${bucket}:${candidateContextKey(context)}:${PAGE_SIZE}:${page}`;
+  const cursorKey = pointer.cursor
+    ? `cursor-${stableHash(pointer.cursor)}`
+    : `page-${pointer.page}`;
+
+  return `${CLIENT_PAGE_CACHE_PREFIX}${bucket}:${candidateContextKey(context)}:${PAGE_SIZE}:${cursorKey}`;
 }
 
 function readSessionPage(key: string): RecommendationPage | null {
@@ -184,11 +193,11 @@ function readCachedPage(key: string): RecommendationPage | null {
 }
 
 async function loadCandidatePage(
-  page: number,
+  pointer: CandidatePointer,
   bucket: number,
   context: CandidateContext,
 ): Promise<RecommendationPage> {
-  const key = pageCacheKey(page, bucket, context);
+  const key = pageCacheKey(pointer, bucket, context);
   const cached = readCachedPage(key);
 
   if (cached) {
@@ -201,11 +210,16 @@ async function loadCandidatePage(
   }
 
   const params = new URLSearchParams({
-    page: String(page),
     limit: String(PAGE_SIZE),
     bucket: String(bucket),
     mood: context.mood,
   });
+
+  if (pointer.cursor) {
+    params.set('cursor', pointer.cursor);
+  } else {
+    params.set('page', String(pointer.page));
+  }
 
   if (context.genre) {
     params.set('genre', context.genre);
@@ -236,14 +250,14 @@ async function loadCandidatePage(
 }
 
 function prefetchCandidatePage(
-  page: number,
+  pointer: CandidatePointer,
   bucket: number,
   context: CandidateContext,
 ): void {
-  const key = pageCacheKey(page, bucket, context);
+  const key = pageCacheKey(pointer, bucket, context);
   if (readCachedPage(key) || inFlightPageRequests.has(key)) return;
 
-  void loadCandidatePage(page, bucket, context).catch(() => {
+  void loadCandidatePage(pointer, bucket, context).catch(() => {
     // Silent prefetch failure: the real fetch still has normal retry UI.
   });
 }
@@ -291,7 +305,7 @@ export default function SmartRecommendationFeed({
     useState<RankedRecommendation[]>(items);
   const [locallyHidden, setLocallyHidden] =
     useState<Set<number>>(() => new Set());
-  const [page, setPage] = useState(2);
+  const [pointer, setPointer] = useState<CandidatePointer>({ page: 2, cursor: null });
   const [hasMore, setHasMore] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [error, setError] = useState('');
@@ -345,7 +359,7 @@ export default function SmartRecommendationFeed({
         setDisplayedMood(mood);
         setRecommendations(pendingItemsRef.current);
         setLocallyHidden(new Set());
-        setPage(2);
+        setPointer({ page: 2, cursor: null });
         setHasMore(true);
         setError('');
 
@@ -395,14 +409,14 @@ export default function SmartRecommendationFeed({
   useEffect(() => {
     const timer = window.setTimeout(() => {
       prefetchCandidatePage(
-        page,
+        pointer,
         bucket,
         getCandidateContext(displayedMood),
       );
     }, 5_000);
 
     return () => window.clearTimeout(timer);
-  }, [bucket, displayedMood, page]);
+  }, [bucket, displayedMood, pointer]);
 
   const filtered = useMemo(
     () => recommendations.filter(({ anime }) => !locallyHidden.has(anime.id)),
@@ -426,7 +440,7 @@ export default function SmartRecommendationFeed({
     setIsFetchingMore(true);
     setError('');
 
-    let cursor = page;
+    let nextPointer = pointer;
     let moreAvailable: boolean = hasMore;
     let appended = false;
     const candidateContext = getCandidateContext(displayedMood);
@@ -443,7 +457,7 @@ export default function SmartRecommendationFeed({
         attempt += 1
       ) {
         const data = await loadCandidatePage(
-          cursor,
+          nextPointer,
           bucket,
           candidateContext,
         );
@@ -458,10 +472,13 @@ export default function SmartRecommendationFeed({
         }
 
         moreAvailable = data.hasMore;
-        cursor = data.nextPage ?? cursor + 1;
+        nextPointer = {
+          page: data.nextPage ?? nextPointer.page + 1,
+          cursor: data.nextCursor ?? null,
+        };
       }
 
-      setPage(cursor);
+      setPointer(nextPointer);
       setHasMore(moreAvailable);
 
       /*
@@ -469,7 +486,7 @@ export default function SmartRecommendationFeed({
        * IntersectionObserver to accidentally download the whole catalogue.
        */
       if (moreAvailable) {
-        prefetchCandidatePage(cursor, bucket, candidateContext);
+        prefetchCandidatePage(nextPointer, bucket, candidateContext);
       }
     } catch (fetchError) {
       console.error('Recommendation pagination:', fetchError);
@@ -478,7 +495,7 @@ export default function SmartRecommendationFeed({
       fetchLockRef.current = false;
       setIsFetchingMore(false);
     }
-  }, [bucket, displayedMood, hasMore, page]);
+  }, [bucket, displayedMood, hasMore, pointer]);
 
   if (filtered.length === 0 && !hasMore && !isFetchingMore) {
     return (
