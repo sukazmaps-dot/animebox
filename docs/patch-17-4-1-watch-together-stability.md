@@ -43,3 +43,13 @@ lifecycle without replacing the current PeerJS + Supabase Realtime architecture.
   presence and chat, not the video stream itself.
 - Existing room invite URLs and protocol packets stay backwards-compatible.
 - No database migration is required for this patch.
+
+
+## Validation checklist
+
+- disconnect/reconnect a guest with DevTools offline mode
+- hard-close PeerJS while Realtime is available and unavailable
+- join/leave with two browser profiles and verify lobby count changes without waiting 45s
+- leave as host with one guest and verify the guest inherits the room
+- leave as the only host and verify the room ends
+- refresh the public lobby and confirm stale rooms disappear within the new TTL
