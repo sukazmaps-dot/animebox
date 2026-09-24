@@ -414,20 +414,6 @@ export default function ProfilePage() {
       />
       <CommunityProfile />
 
-      <section className="profile-v2__bottom-card profile-v2__bottom-card--premium">
-        <div>
-          <span className="profile-v2__eyebrow">AnimeBox Premium</span>
-          <h2>Редактор стиля</h2>
-          <p>
-            Профиль, оформление и Premium-возможности теперь настраиваются в одном месте.
-          </p>
-        </div>
-
-        <Link href="/profile/edit?tab=style">
-          Открыть редактор →
-        </Link>
-      </section>
-
       {/* FAVORITES */}
 
       <section className="profile-v2__bottom-card">
