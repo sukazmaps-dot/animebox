@@ -258,7 +258,7 @@ if (
 }
 if (
   !card.includes('smart-card__feedback-icon') ||
-  !animeImage.includes('IMAGE_LOAD_TIMEOUT_MS') ||
+  !(animeImage.includes('IMAGE_LOAD_TIMEOUT_MS') || animeImage.includes('PRIMARY_MEDIA_TIMEOUT_MS')) ||
   !smartHomeStyles.includes('contain: layout paint') ||
   !smartHomeStyles.includes('.smart-feed__rail-retry')
 ) {
