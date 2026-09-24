@@ -16,7 +16,7 @@ import {
 } from '@/lib/image-service';
 
 const FALLBACK = '/brand/brand-mark.webp';
-const IMAGE_LOAD_TIMEOUT_MS = 12_000;
+const IMAGE_LOAD_TIMEOUT_MS = 6_000;
 
 type Props = {
   image?: ImageData | null;
@@ -262,7 +262,6 @@ export default function AnimeImage({
             alt={resolvedAlt}
             loading={loading}
             decoding="async"
-            referrerPolicy="no-referrer"
             sizes={sizes}
             onLoad={handleLoad}
             onError={handleError}

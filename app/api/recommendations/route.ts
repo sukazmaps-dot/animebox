@@ -202,6 +202,7 @@ async function loadCandidatePage(input: {
   bucket: number;
 }) {
   const { page, limit, source, tasteGenre, mood, bucket } = input;
+  const fallback = fallbackSource(source, page);
 
   try {
     const items = await getCachedCandidatePage(
@@ -213,13 +214,43 @@ async function loadCandidatePage(input: {
       bucket,
     );
 
+    // A narrow source can legitimately run out before the broad catalogue.
+    // Empty ongoing/mood/genre pages must not terminate the shared cursor.
+    if (items.length > 0 || fallback === source) {
+      return {
+        items,
+        candidateSource: source,
+        fallbackFrom: null as CandidateSource | null,
+      };
+    }
+
+    const fallbackItems = await getCachedCandidatePage(
+      page,
+      limit,
+      fallback,
+      tasteGenre,
+      mood,
+      bucket,
+    );
+
+    if (fallbackItems.length > 0) {
+      console.info(
+        '[Recommendations] empty candidate source fallback',
+        source,
+        '->',
+        fallback,
+        'page',
+        page,
+      );
+    }
+
     return {
-      items,
-      candidateSource: source,
-      fallbackFrom: null as CandidateSource | null,
+      items: fallbackItems,
+      candidateSource: fallback,
+      fallbackFrom: source,
     };
   } catch (primaryError) {
-    const fallback = fallbackSource(source, page);
+    if (fallback === source) throw primaryError;
 
     try {
       const items = await getCachedCandidatePage(
@@ -317,11 +348,9 @@ export async function GET(request: NextRequest) {
       mood,
       bucket,
     });
-    // The candidate list is filtered/localized after the upstream page is
-    // fetched. A page can legitimately contain fewer than `limit` eligible
-    // anime while later pages still exist, so "items.length < limit" must not
-    // be interpreted as end-of-catalogue. Probe the next page until an empty
-    // eligible page is reached.
+    // Short filtered pages and empty narrow-source pages are not EOF. The
+    // loader above first falls back to a broad ranked/popularity source. Only
+    // an empty broad fallback is allowed to terminate the shared cursor.
     const hasMore = result.items.length > 0 && page < MAX_PAGE;
     const nextPage = hasMore ? page + 1 : null;
     const nextCursor =

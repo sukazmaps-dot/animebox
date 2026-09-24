@@ -8,6 +8,7 @@ const cascade = read('components/AnimeImageCascade.tsx');
 const imageService = read('lib/image-service.ts');
 const proxy = read('app/api/image/route.ts');
 const hero = read('components/HomeHeroCarousel.tsx');
+const anilist = read('lib/anilist.ts');
 
 const failures = [];
 
@@ -22,7 +23,7 @@ for (const needle of [
   'data-image-delivery="direct-cdn"',
   'loading={loading}',
   'decoding="async"',
-  'referrerPolicy="no-referrer"',
+  'IMAGE_LOAD_TIMEOUT_MS = 6_000',
 ]) {
   if (!animeImage.includes(needle)) {
     failures.push(`AnimeImage missing ${needle}`);
@@ -31,10 +32,18 @@ for (const needle of [
 
 if (
   !imageService.includes('buildImageCandidateChain') ||
-  !imageService.includes('const result = [...originals]') ||
-  !imageService.includes('const primaryRemote = originals.find')
+  !imageService.includes('prefersImageProxy') ||
+  !imageService.includes("host.endsWith('.shikimori.one')") ||
+  !imageService.includes('const primaryDirect = originals.find')
 ) {
-  failures.push('image candidate chain is not direct-first/single-proxy');
+  failures.push('image candidate chain is not host-aware/direct-first');
+}
+
+if (
+  !anilist.includes('?.medium ??') ||
+  anilist.includes("medium:\n        media.coverImage\n          ?.large ??\n        media.coverImage\n          ?.extraLarge")
+) {
+  failures.push('AniList medium poster fallback is not mapped to the real medium URL');
 }
 
 if (

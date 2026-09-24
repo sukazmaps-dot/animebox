@@ -232,7 +232,10 @@ if (
   !scrollRow.includes('IntersectionObserver') ||
   !scrollRow.includes('root,') ||
   !scrollRow.includes('loading = false') ||
-  !scrollRow.includes('requestAnimationFrame')
+  !scrollRow.includes('requestAnimationFrame') ||
+  !scrollRow.includes('END_PREFETCH_RATIO') ||
+  !scrollRow.includes('remaining <= threshold') ||
+  !scrollRow.includes('endRequestLatchRef')
 ) {
   failures.push('17.8.9 ScrollRow observer/per-frame scroll handling is incomplete');
 }
@@ -241,6 +244,8 @@ if (
   !feed.includes('railOwnershipRef.current.set(item.anime.id, rail.id)') ||
   !feed.includes('STRICT_EMPTY_PAGE_HOPS') ||
   !candidates.includes('result.items.length > 0 && page < MAX_PAGE') ||
+  !candidates.includes('empty candidate source fallback') ||
+  !candidates.includes('fallbackItems.length > 0') ||
   !feed.includes('MAX_EMPTY_PAGE_HOPS') ||
   !feed.includes('seenRecommendationIdsRef') ||
   !feed.includes('railOwnershipRef') ||

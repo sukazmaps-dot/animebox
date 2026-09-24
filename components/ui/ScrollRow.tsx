@@ -22,6 +22,8 @@ type ScrollRowProps = {
 };
 
 const EDGE_EPSILON = 4;
+const END_PREFETCH_RATIO = 0.55;
+const END_PREFETCH_MIN_PX = 180;
 
 export default function ScrollRow({
   children,
@@ -36,6 +38,7 @@ export default function ScrollRow({
   const trackRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const scrollFrameRef = useRef<number | null>(null);
+  const endRequestLatchRef = useRef(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
@@ -44,11 +47,34 @@ export default function ScrollRow({
     if (!track) return;
 
     const { scrollLeft, scrollWidth, clientWidth } = track;
+    const remaining = Math.max(
+      0,
+      scrollWidth - (scrollLeft + clientWidth),
+    );
+    const threshold = Math.max(
+      END_PREFETCH_MIN_PX,
+      clientWidth * END_PREFETCH_RATIO,
+    );
+
     setCanScrollLeft(scrollLeft > EDGE_EPSILON);
     setCanScrollRight(
       scrollLeft + clientWidth < scrollWidth - EDGE_EPSILON,
     );
-  }, []);
+
+    // IntersectionObserver remains the primary trigger. This geometry check
+    // rides on the existing rAF-throttled scroll/resize path and covers edge
+    // cases where a 1px flex sentinel is missed after snap/resize/mutation.
+    if (
+      hasMore &&
+      !loading &&
+      onEndReached &&
+      remaining <= threshold &&
+      !endRequestLatchRef.current
+    ) {
+      endRequestLatchRef.current = true;
+      onEndReached();
+    }
+  }, [hasMore, loading, onEndReached]);
 
   useEffect(() => {
     const track = trackRef.current;
@@ -86,9 +112,21 @@ export default function ScrollRow({
   }, [updateScrollState]);
 
   useEffect(() => {
+    if (loading || !hasMore) {
+      endRequestLatchRef.current = false;
+    }
+
     const frame = requestAnimationFrame(updateScrollState);
     return () => cancelAnimationFrame(frame);
-  }, [children, updateScrollState]);
+  }, [children, hasMore, loading, updateScrollState]);
+
+  useEffect(() => {
+    if (!loading) {
+      endRequestLatchRef.current = false;
+      const frame = requestAnimationFrame(updateScrollState);
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [loading, updateScrollState]);
 
   /*
    * Invisible hook after the final card. The horizontal row itself is the
@@ -103,7 +141,11 @@ export default function ScrollRow({
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry?.isIntersecting) {
+        if (
+          entry?.isIntersecting &&
+          !endRequestLatchRef.current
+        ) {
+          endRequestLatchRef.current = true;
           onEndReached();
         }
       },

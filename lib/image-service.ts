@@ -59,6 +59,22 @@ export function proxyImageUrl(
  * transformation service. We first try the original CDN sizes in order, then
  * use exactly one same-origin proxy fallback for the best original candidate.
  */
+function prefersImageProxy(value: string) {
+  if (value.startsWith('/')) return false;
+
+  try {
+    const host = new URL(value).hostname.toLowerCase();
+    return (
+      host === 'shikimori.one' ||
+      host.endsWith('.shikimori.one') ||
+      host === 'shikimori.me' ||
+      host.endsWith('.shikimori.me')
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function buildImageCandidateChain(
   values: Array<string | null | undefined>,
 ): string[] {
@@ -70,12 +86,29 @@ export function buildImageCandidateChain(
     ),
   );
 
-  const result = [...originals];
-  const primaryRemote = originals.find((value) => !value.startsWith('/'));
+  const result: string[] = [];
 
-  if (primaryRemote) {
-    const proxied = proxyImageUrl(primaryRemote);
-    if (proxied && proxied !== primaryRemote) {
+  for (const original of originals) {
+    if (!prefersImageProxy(original)) {
+      result.push(original);
+      continue;
+    }
+
+    // Shikimori media is more reliable through our host-aware proxy because
+    // it can send the expected Referer. Do not make the browser fail several
+    // hotlink attempts before trying the path that is designed for it.
+    const proxied = proxyImageUrl(original);
+    if (proxied) result.push(proxied);
+    result.push(original);
+  }
+
+  const primaryDirect = originals.find(
+    (value) => !value.startsWith('/') && !prefersImageProxy(value),
+  );
+
+  if (primaryDirect) {
+    const proxied = proxyImageUrl(primaryDirect);
+    if (proxied && proxied !== primaryDirect) {
       result.push(proxied);
     }
   }

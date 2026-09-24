@@ -373,6 +373,8 @@ function mapMediaToAnime(
 
       medium:
         media.coverImage
+          ?.medium ??
+        media.coverImage
           ?.large ??
         media.coverImage
           ?.extraLarge ??
