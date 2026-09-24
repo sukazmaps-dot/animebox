@@ -733,3 +733,130 @@
   grid-column: auto;
   grid-row: auto;
 }
+
+
+/* =========================================================
+   Patch 17.4.2.1 — profile editor precision pass
+   ========================================================= */
+
+.profile-editor-v13__header-actions {
+  gap: 10px;
+}
+
+.profile-editor-v13__save-state {
+  min-height: 40px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(91, 207, 144, .12);
+  border-radius: 11px;
+  background: rgba(48, 157, 98, .035);
+  color: rgba(166, 220, 190, .72);
+  font-size: 10px;
+  font-weight: 720;
+  white-space: nowrap;
+}
+
+.profile-editor-v13__save-state > span {
+  color: #83d7a8;
+  font-size: 12px;
+}
+
+.profile-editor-v13__field input {
+  padding-inline: 16px !important;
+}
+
+.profile-editor-v13__field textarea {
+  padding: 14px 16px !important;
+}
+
+.profile-editor-v13__field > span small {
+  color: rgba(226, 220, 240, .42);
+  transition: color .15s ease;
+}
+
+.profile-editor-v13__field:focus-within > span small {
+  color: rgba(194, 177, 234, .72);
+}
+
+.profile-editor-v13__inline-hint {
+  margin: 14px 2px 0;
+  color: rgba(219, 213, 232, .46);
+  font-size: 10.5px;
+  line-height: 1.55;
+}
+
+.profile-editor-v13__inline-hint strong {
+  color: rgba(212, 196, 247, .66);
+  font-weight: 760;
+}
+
+.profile-editor-v13__media-caption {
+  margin-top: 5px !important;
+  color: rgba(226, 220, 240, .42) !important;
+  font-size: 10px !important;
+  line-height: 1.45;
+}
+
+.profile-editor-v13__media-meta {
+  margin: 0;
+  padding: 2px 2px 0;
+  color: rgba(220, 214, 234, .36);
+  font-size: 9.5px;
+  line-height: 1.5;
+}
+
+.profile-editor-v13__media-actions label {
+  min-width: 82px;
+}
+
+.profile-editor-v13__media-actions label:hover,
+.profile-editor-v13__media-actions label:focus-within {
+  border-color: rgba(167, 129, 255, .26);
+  background: rgba(125, 81, 229, .1);
+}
+
+.profile-editor-v17__appearance-status {
+  grid-template-columns: minmax(0, 1fr) auto !important;
+}
+
+.profile-editor-v17__appearance-actions {
+  align-self: center;
+}
+
+.profile-editor-v17__appearance-actions button.is-secondary {
+  min-height: 38px;
+  border-color: rgba(255,255,255,.08);
+  background: transparent;
+  color: rgba(239,233,248,.66);
+}
+
+.profile-editor-v13__premium-callout button {
+  min-width: 116px;
+}
+
+.profile-editor-v13__preview-sticky {
+  top: 118px;
+}
+
+.profile-editor-v13__preview-note {
+  text-align: center;
+  line-height: 1.45;
+}
+
+@media (max-width: 980px) {
+  .profile-editor-v13__preview-sticky {
+    top: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .profile-editor-v13__save-state {
+    display: none;
+  }
+
+  .profile-editor-v13__media-meta {
+    font-size: 9px;
+  }
+}

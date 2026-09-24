@@ -618,11 +618,20 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           </div>
 
           <div className="profile-editor-v13__header-actions">
-            {dirty && <small>Есть несохранённые изменения</small>}
             <Link href="/profile">← В профиль</Link>
-            <button type="button" disabled={!dirty || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)} onClick={() => void saveProfile()}>
-              {saving ? 'Сохраняем…' : dirty ? 'Сохранить всё' : 'Сохранено'}
-            </button>
+            {dirty || saving ? (
+              <button
+                type="button"
+                disabled={!dirty || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)}
+                onClick={() => void saveProfile()}
+              >
+                {saving ? 'Сохраняем…' : 'Сохранить изменения'}
+              </button>
+            ) : (
+              <span className="profile-editor-v13__save-state" role="status">
+                <span aria-hidden="true">✓</span> Изменения сохранены
+              </span>
+            )}
           </div>
         </header>
 
@@ -719,10 +728,9 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     <textarea value={bio} maxLength={300} rows={7} onChange={(event) => { setBio(event.target.value); setSaved(''); }} />
   </label>
 
-  <div className="profile-editor-v13__hint-card">
-    <strong>Совет</strong>
-    <p>Короткое био и узнаваемый ник лучше читаются в комментариях, рейтинге и публичном профиле.</p>
-  </div>
+  <p className="profile-editor-v13__inline-hint">
+    <strong>Совет:</strong> короткое био и узнаваемый ник лучше читаются в комментариях, рейтинге и публичном профиле.
+  </p>
 </section>
                 <div className="profile-editor-v13__section-divider" aria-hidden="true" />
                 <section className="profile-editor-v13__panel">
@@ -737,8 +745,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                     <div className="profile-editor-v13__banner-editor">
                       {displayedBanner ? <img src={displayedBanner} alt="Предпросмотр баннера" /> : <div>ANIMEBOX PROFILE</div>}
                       <div className="profile-editor-v13__media-actions">
-                        <label aria-busy={baseMediaOpening === 'banner'}>
-                          {baseMediaOpening === 'banner' ? 'Открываем…' : 'Сменить и подогнать'}
+                        <label aria-busy={baseMediaOpening === 'banner'} title="Изменить баннер">
+                          {baseMediaOpening === 'banner' ? 'Открываем…' : 'Изменить'}
                           <input
                             hidden
                             type="file"
@@ -763,10 +771,10 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                       <img src={displayedAvatar} alt="Предпросмотр аватара" />
                       <div>
                         <strong>Аватар профиля</strong>
-                        <small>JPG, PNG, WebP, AVIF, HEIC/HEIF · до 16 МБ · AnimeBox очистит метаданные и подготовит лёгкий WebP</small>
+                        <small className="profile-editor-v13__media-caption">Аватар профиля отображается в комментариях, рейтинге и меню.</small>
                         <div className="profile-editor-v13__media-actions is-inline">
-                          <label aria-busy={baseMediaOpening === 'avatar'}>
-                            {baseMediaOpening === 'avatar' ? 'Открываем…' : 'Выбрать и кадрировать'}
+                          <label aria-busy={baseMediaOpening === 'avatar'} title="Изменить аватар">
+                            {baseMediaOpening === 'avatar' ? 'Открываем…' : 'Изменить'}
                             <input
                               hidden
                               type="file"
@@ -787,6 +795,10 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                         </div>
                       </div>
                     </div>
+
+                    <p className="profile-editor-v13__media-meta">
+                      JPG, PNG, WebP, AVIF, HEIC/HEIF · до 16 МБ · AnimeBox очистит метаданные и подготовит лёгкий WebP.
+                    </p>
                   </div>
 
                   {baseMediaError && (
@@ -804,7 +816,6 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                           : 'Анимации и Premium-эффекты выключены, но сохранённые статические WEBP-версии аватара/баннера остаются активны.'}
                       </p>
                       <div className="profile-editor-v17__appearance-actions">
-                        <button type="button" onClick={() => switchTab('style')}>Открыть Стиль</button>
                         <button type="button" className="is-secondary" onClick={() => void clearPremiumFallbackMedia()}>
                           Использовать базовые медиа
                         </button>
@@ -818,7 +829,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                       <strong>Хочешь анимированный баннер, glow и собственную палитру?</strong>
                       <p>Открой вкладку «Стиль» — Premium-возможности встроены в тот же редактор.</p>
                     </div>
-                    <button type="button" onClick={() => switchTab('style')}>Открыть стиль</button>
+                    <button type="button" onClick={() => switchTab('style')}>Открыть Стиль</button>
                   </div>
                 </section>
               </>
