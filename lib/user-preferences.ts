@@ -1,15 +1,25 @@
 export const USER_PREFERENCES_KEY = 'animebox:user-preferences:v1';
 export const USER_PREFERENCES_EVENT = 'animebox:user-preferences-changed';
 
+export type UserThemePreference = 'dark' | 'light' | 'system';
+
 export type UserPreferences = {
   autoNextEpisode: boolean;
   reduceMotion: boolean;
+  theme: UserThemePreference;
 };
 
 export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   autoNextEpisode: true,
   reduceMotion: false,
+  theme: 'dark',
 };
+
+function normalizeTheme(value: unknown): UserThemePreference {
+  return value === 'light' || value === 'system' || value === 'dark'
+    ? value
+    : DEFAULT_USER_PREFERENCES.theme;
+}
 
 function normalize(value: Partial<UserPreferences> | null | undefined): UserPreferences {
   return {
@@ -21,6 +31,7 @@ function normalize(value: Partial<UserPreferences> | null | undefined): UserPref
       typeof value?.reduceMotion === 'boolean'
         ? value.reduceMotion
         : DEFAULT_USER_PREFERENCES.reduceMotion,
+    theme: normalizeTheme(value?.theme),
   };
 }
 
@@ -36,11 +47,31 @@ export function readUserPreferences(): UserPreferences {
   }
 }
 
+export function resolveUserTheme(
+  preference: UserThemePreference,
+): 'dark' | 'light' {
+  if (preference !== 'system') return preference;
+
+  if (typeof window === 'undefined') {
+    return 'dark';
+  }
+
+  return window.matchMedia('(prefers-color-scheme: light)').matches
+    ? 'light'
+    : 'dark';
+}
+
 export function applyUserPreferences(preferences: UserPreferences) {
   if (typeof document === 'undefined') return;
+
+  const theme = resolveUserTheme(preferences.theme);
+
   document.documentElement.dataset.animeboxReduceMotion = preferences.reduceMotion
     ? 'true'
     : 'false';
+  document.documentElement.dataset.animeboxThemePreference = preferences.theme;
+  document.documentElement.dataset.animeboxTheme = theme;
+  document.documentElement.style.colorScheme = theme;
 }
 
 export function writeUserPreferences(next: UserPreferences) {
