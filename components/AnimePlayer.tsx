@@ -865,6 +865,27 @@ export default function AnimePlayer({
         const resumeTimedOut = Date.now() - resumeGate.createdAt > 12_000;
 
         if (resumeLanded || resumeTimedOut) {
+          const trackedOrigin = resumeOriginRef.current;
+          if (
+            resumeLanded &&
+            !resumeTelemetryTrackedRef.current &&
+            trackedOrigin !== 'none' &&
+            trackedOrigin !== 'source_switch'
+          ) {
+            resumeTelemetryTrackedRef.current = true;
+            trackPlayerEvent('player_resume_applied', {
+              resumeOrigin: trackedOrigin,
+              targetSeconds: resumeGate.targetSeconds,
+              landedSeconds: Math.max(
+                0,
+                Math.floor(sample.positionSeconds),
+              ),
+              driftSeconds: Math.abs(
+                sample.positionSeconds - resumeGate.targetSeconds,
+              ),
+            }, true);
+          }
+
           resumeGateRef.current = null;
         } else {
           // Provider startup samples (0s -> 1s -> forced resume) must not
@@ -968,6 +989,7 @@ export default function AnimePlayer({
       persistLocalProgress,
       requestOpeningSkip,
       serverWatchSample,
+      trackPlayerEvent,
       smartSeekSupported,
       timeline,
       watchTogetherMode,
@@ -1011,6 +1033,11 @@ export default function AnimePlayer({
     // Continue Watching / completion state current even when the viewer lets
     // auto-next move immediately to another episode.
     void watchSession.flushProgress().catch(() => undefined);
+    trackPlayerEvent('player_completed', {
+      hasNext,
+      autoNextEnabled: Boolean(hasNext && onEnded && !autoNextCancelled),
+      watchTogether: watchTogetherMode,
+    }, true);
 
     if (watchTogetherMode) {
       onEnded?.();
@@ -1035,6 +1062,7 @@ export default function AnimePlayer({
     user?.id,
     watchSession,
     watchTogetherMode,
+    trackPlayerEvent,
   ]);
 
   useEffect(() => {
@@ -1777,7 +1805,10 @@ export default function AnimePlayer({
     if (!fallback) return false;
 
     if (started && latestPlaybackPositionSecondsRef.current > 0) {
-      applyResumeTarget(latestPlaybackPositionSecondsRef.current);
+      applyResumeTarget(
+        latestPlaybackPositionSecondsRef.current,
+        'source_switch',
+      );
     }
 
     const from = currentSourceName;
@@ -1789,6 +1820,15 @@ export default function AnimePlayer({
       reason: 'source_failure',
       automatic: true,
     }, true);
+    trackPlayerEvent('player_source_fallback', {
+      fromProvider: from,
+      toProvider: to,
+      resumeSeconds: Math.max(
+        0,
+        Math.floor(latestPlaybackPositionSecondsRef.current),
+      ),
+      failedCandidates: failedCandidatesRef.current.size,
+    }, true);
 
     sourceSelectionReasonRef.current = 'fallback';
     setActiveSourceIndex(fallback.sourceIndex);
@@ -1799,7 +1839,11 @@ export default function AnimePlayer({
     setPlayerFailureKind(null);
     setPlayerAttempt((current) => current + 1);
     setSourceStatus(fallback.source.name, 'loading');
-    setSourceNotice(`${failureMessage} Переключили ${from} → ${to}.`);
+    setSourceNotice(
+      latestPlaybackPositionSecondsRef.current > 0
+        ? `${failureMessage} Переключаем ${from} → ${to}. Позиция просмотра сохранена.`
+        : `${failureMessage} Переключаем ${from} → ${to}.`,
+    );
 
     return true;
   }, [
@@ -1855,6 +1899,11 @@ export default function AnimePlayer({
 
     if (switchToFallback(reason)) return;
 
+    trackPlayerEvent('player_source_exhausted', {
+      failureKind: kind,
+      failedCandidates: failedCandidatesRef.current.size,
+      availableSources: sources.length,
+    }, true);
     setPlayerFailureKind(kind);
     setPlayerError(message);
   }, [
@@ -1864,13 +1913,26 @@ export default function AnimePlayer({
     currentSourceName,
     currentSourceType,
     setSourceStatus,
+    sources.length,
     switchToFallback,
     trackPlayerEvent,
   ]);
 
   const retryCurrentSource = useCallback(() => {
+    trackPlayerEvent('player_retry', {
+      provider: currentSourceName,
+      failureKind: playerFailureKind,
+      resumeSeconds: Math.max(
+        0,
+        Math.floor(latestPlaybackPositionSecondsRef.current),
+      ),
+    }, true);
+
     if (started && latestPlaybackPositionSecondsRef.current > 0) {
-      applyResumeTarget(latestPlaybackPositionSecondsRef.current);
+      applyResumeTarget(
+        latestPlaybackPositionSecondsRef.current,
+        'source_switch',
+      );
     }
     failedCandidatesRef.current.delete(currentCandidateKey);
     sourceSelectionReasonRef.current = 'retry';
@@ -1885,8 +1947,11 @@ export default function AnimePlayer({
     applyResumeTarget,
     currentCandidateKey,
     currentSource?.name,
+    currentSourceName,
+    playerFailureKind,
     setSourceStatus,
     started,
+    trackPlayerEvent,
   ]);
 
   useEffect(() => {
