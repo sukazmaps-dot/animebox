@@ -428,7 +428,7 @@ export function removeDiscoveryConstraint(raw: string, chipId: string) {
   if (chipId === 'completed') next = next.replace(/(?:закончен\p{L}*|завершен\p{L}*|вышло полностью|finished|completed)/giu, ' ');
   if (chipId === 'movie') next = next.replace(/(?:фильм|полнометражк\p{L}*|movie)/giu, ' ');
 
-  if (chipId.startsWith('exclude:')) {
+  if (chipId.startsWith('tag:')) {\n    const tag = chipId.slice('tag:'.length);\n    const definition = CONTEXT_TAGS.find((item) => item.provider === tag);\n\n    for (const alias of definition?.aliases ?? []) {\n      const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\  if (chipId.startsWith('exclude:')) {');\n      next = next.replace(\n        new RegExp(\n          `(?:^|[^\\p{L}\\p{N}_])${escaped}(?=$|[^\\p{L}\\p{N}_])`,\n          'giu',\n        ),\n        ' ',\n      );\n    }\n  }\n  if (chipId.startsWith('exclude:')) {
     const term = chipId.slice('exclude:'.length);
     const definition = EXCLUSION_ALIASES.find((item) => item.term === term);
     for (const alias of definition?.aliases ?? []) {

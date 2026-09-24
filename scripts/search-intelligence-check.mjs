@@ -23,6 +23,9 @@ const sitemap = read('app/sitemap.ts');
 const migration = read(
   'supabase/migrations/20260925030000_search_intelligence_foundation_v1.sql',
 );
+const securityMigration = read(
+  'supabase/migrations/20260925031000_search_intelligence_security_hardening.sql',
+);
 
 const failures = [];
 
@@ -115,6 +118,22 @@ if (
   !sitemap.includes('/anime/ongoing')
 ) {
   failures.push('17.9 SEO landing/canonical/sitemap contract is incomplete');
+}
+
+if (
+  !securityMigration.includes('from public, anon, authenticated') ||
+  !securityMigration.includes('search_anime_lexical') ||
+  !securityMigration.includes('match_anime_semantic') ||
+  !securityMigration.includes('sync_anime_catalog_search_document')
+) {
+  failures.push('search RPC role hardening is incomplete');
+}
+
+if (
+  !discovery.includes("chipId.startsWith('tag:')") ||
+  !discovery.includes('CONTEXT_TAGS.find')
+) {
+  failures.push('context search chips cannot remove tag constraints');
 }
 
 if (failures.length) {
