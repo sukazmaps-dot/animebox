@@ -1,0 +1,147 @@
+/* =========================================================
+   AnimeBox Patch 16.6.5 — Profile Studio Showcase + TG Gate
+   ========================================================= */
+
+.profile-editor-v13__showcase-tab {
+  padding: 24px;
+}
+
+.profile-editor-v13__showcase-title {
+  margin-bottom: 14px;
+}
+
+.profile-editor-v13__showcase-title > div > span {
+  display: block;
+  margin-bottom: 6px;
+  color: #9c86eb;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .15em;
+}
+
+.profile-editor-v13__showcase-state {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  padding: 22px;
+  border: 1px solid rgba(255,255,255,.055);
+  border-radius: 18px;
+  background: rgba(255,255,255,.014);
+  color: rgba(232,226,244,.58);
+}
+
+.profile-editor-v13__showcase-state.is-error {
+  color: #ff9dad;
+}
+
+.profile-editor-v13__showcase-state button {
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid rgba(164,141,246,.18);
+  border-radius: 11px;
+  background: rgba(126,97,222,.08);
+  color: #d8cbff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.profile-widgets-editor--embedded {
+  position: static !important;
+  inset: auto !important;
+  z-index: auto !important;
+  display: block !important;
+  padding: 0 !important;
+  background: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.profile-widgets-editor--embedded .profile-widgets-editor__dialog {
+  width: 100% !important;
+  max-height: none !important;
+  overflow: visible !important;
+  padding: 20px !important;
+  border-radius: 20px !important;
+  box-shadow: none !important;
+}
+
+.profile-widgets-editor--embedded .profile-widgets-editor__actions {
+  position: static !important;
+  bottom: auto !important;
+  margin: 18px 0 0 !important;
+  padding: 14px 0 0 !important;
+  background: transparent !important;
+}
+
+.profile-widgets-editor--embedded .profile-widgets-editor__actions .is-primary {
+  min-width: 190px;
+  margin-left: auto;
+}
+
+.profile-editor-v13[data-editor-tab='showcase'] .profile-editor-v13__header-actions > button {
+  display: none;
+}
+
+.telegram-subscription-gate__logo > img,
+.telegram-subscription-gate__logo-fallback {
+  display: block;
+  width: 58px;
+  height: 58px;
+}
+
+.telegram-subscription-gate__logo > img {
+  object-fit: contain;
+}
+
+.telegram-subscription-gate__logo-fallback {
+  color: #b99bff;
+  filter: drop-shadow(0 0 18px rgba(145,102,255,.28));
+}
+
+.telegram-subscription-gate__logo-fallback path:first-child {
+  fill: rgba(128,82,255,.10);
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.telegram-subscription-gate__logo-fallback path:nth-child(2) {
+  fill: currentColor;
+  opacity: .92;
+}
+
+.telegram-subscription-gate__logo-fallback path:last-child {
+  fill: none;
+  stroke: #efe8ff;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+@media (max-width: 768px) {
+  .profile-editor-v13__showcase-tab {
+    padding: 12px;
+  }
+
+  .profile-widgets-editor--embedded .profile-widgets-editor__dialog {
+    padding: 15px 12px !important;
+    border-radius: 18px !important;
+  }
+
+  .profile-widgets-editor--embedded .profile-widgets-editor__top h2 {
+    font-size: 20px;
+  }
+
+  .profile-widgets-editor--embedded .profile-widgets-editor__results {
+    max-height: 320px;
+  }
+
+  .profile-widgets-editor--embedded .profile-widgets-editor__actions .is-primary {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .profile-editor-v13[data-editor-tab='showcase'] .profile-editor-v13__mobile-save {
+    display: none !important;
+  }
+}
