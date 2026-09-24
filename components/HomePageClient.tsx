@@ -1327,17 +1327,17 @@ export default function HomePage({
 
           <DeferredMount
             className="home-deferred home-deferred--support"
-            minHeight={180}
+            minHeight={148}
             rootMargin="360px 0px"
           >
             <SupportAnimeBoxCard />
           </DeferredMount>
           <DeferredMount
             className="home-deferred home-deferred--telegram"
-            minHeight={190}
+            minHeight={148}
             rootMargin="360px 0px"
           >
-            <TelegramPromoCard />
+            <TelegramPromoCard placement="home_footer" />
           </DeferredMount>
         </div>
         </div>

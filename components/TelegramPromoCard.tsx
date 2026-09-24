@@ -20,7 +20,7 @@ const DISMISS_KEY = 'animebox:telegram-channel-promo-dismissed:v1';
 const DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const CAMPAIGN_ID = 'animebox-visual-language-v1';
 
-type Placement = 'home_right_rail' | 'watch_together';
+type Placement = 'home_right_rail' | 'home_footer' | 'watch_together';
 
 function dismissedRecently() {
   try {

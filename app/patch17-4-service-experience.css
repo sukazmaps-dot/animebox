@@ -1,0 +1,226 @@
+/* Patch 17.4 — Service experience + watch reliability visual layer */
+
+/* Recommendation feedback controls must read as deliberate actions, not tiny chrome. */
+.smart-card__feedback,
+.smart-card__dismiss {
+  min-width: 38px !important;
+  width: 38px;
+  min-height: 38px !important;
+  height: 38px;
+  border-radius: 11px;
+}
+
+.smart-card__feedback svg {
+  width: 19px !important;
+  height: 19px !important;
+}
+
+.smart-card__dismiss {
+  font-size: 19px;
+  line-height: 1;
+}
+
+.smart-card__actions {
+  grid-template-columns: repeat(3, 38px) minmax(0, 1fr) !important;
+  row-gap: 7px !important;
+}
+
+.smart-card__plan {
+  min-height: 38px;
+}
+
+/* The old 16.6 desktop rule forced every home utility grid back to one column
+   because it originally lived in the right rail. 17.3 moved it to main-column;
+   restore a compact service footer and remove the large empty surfaces. */
+.home-page .main-column > .home-utility-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  align-items: stretch !important;
+  gap: 12px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+  margin-top: 6px !important;
+  content-visibility: visible !important;
+  contain: none !important;
+  contain-intrinsic-size: none !important;
+}
+
+.home-page .main-column > .home-utility-grid > * {
+  grid-column: auto !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  content-visibility: visible !important;
+  contain: none !important;
+  contain-intrinsic-size: none !important;
+}
+
+.home-page .main-column > .home-utility-grid .deferred-mount {
+  min-height: 0 !important;
+}
+
+.home-page .main-column > .home-utility-grid .deferred-mount__placeholder {
+  min-height: 148px !important;
+}
+
+.home-page .home-library-panel--footer,
+.home-page .home-utility-card--support,
+.home-page .home-deferred--telegram > .telegram-growth-card {
+  min-height: 148px !important;
+  height: 100% !important;
+}
+
+/* Collection card becomes a compact service card instead of a 250px billboard. */
+.home-page .home-library-panel--footer {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "head action"
+    "title action"
+    "copy action";
+  align-content: center !important;
+  align-items: center !important;
+  column-gap: 18px !important;
+  row-gap: 7px !important;
+  padding: 18px 20px !important;
+}
+
+.home-page .home-library-panel--footer .home-library-panel__head {
+  grid-area: head;
+  margin: 0 !important;
+}
+
+.home-page .home-library-panel--footer h2 {
+  grid-area: title;
+  margin: 0 !important;
+  max-width: 360px;
+  font-size: clamp(17px, 1.25vw, 21px) !important;
+  line-height: 1.08 !important;
+}
+
+.home-page .home-library-panel--footer p {
+  grid-area: copy;
+  margin: 0 !important;
+  max-width: 460px;
+  line-height: 1.45 !important;
+}
+
+.home-page .home-library-panel--footer .btn {
+  grid-area: action;
+  align-self: center;
+  white-space: nowrap;
+}
+
+/* Support card: keep the content dense and vertically centered. */
+.home-page .home-utility-card--support {
+  display: grid !important;
+  grid-template-columns: 36px minmax(0, 1fr);
+  grid-template-areas:
+    "icon copy"
+    "icon link";
+  align-content: center !important;
+  column-gap: 12px !important;
+  row-gap: 10px !important;
+  padding: 17px 18px !important;
+}
+
+.home-page .home-utility-card--support .home-utility-card__icon {
+  grid-area: icon;
+  align-self: start;
+}
+
+.home-page .home-utility-card--support .home-utility-card__copy {
+  grid-area: copy;
+  min-width: 0;
+}
+
+.home-page .home-utility-card--support .home-utility-card__copy p {
+  margin-bottom: 0 !important;
+}
+
+.home-page .home-utility-card--support .home-utility-card__link {
+  grid-area: link;
+  justify-self: start;
+}
+
+/* Telegram footer card no longer reserves a tall right-rail billboard. */
+.home-page .home-deferred--telegram > .telegram-growth-card--compact {
+  min-height: 148px !important;
+  padding: 15px 16px !important;
+  overflow: hidden;
+}
+
+.home-page .home-deferred--telegram .telegram-growth-card__vector-art {
+  transform: scale(.78);
+  transform-origin: center;
+  opacity: .8;
+}
+
+.home-page .home-deferred--telegram .telegram-growth-card__copy p {
+  line-height: 1.38;
+}
+
+@media (max-width: 1180px) {
+  .home-page .main-column > .home-utility-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .home-page .home-library-panel--footer {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .smart-card__feedback,
+  .smart-card__dismiss {
+    min-width: 36px !important;
+    width: 36px;
+    min-height: 36px !important;
+    height: 36px;
+  }
+
+  .smart-card__actions {
+    grid-template-columns: repeat(3, 36px) minmax(0, 1fr) !important;
+  }
+
+  .home-page .main-column > .home-utility-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .home-page .home-library-panel--footer {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-areas:
+      "head"
+      "title"
+      "copy"
+      "action";
+    gap: 9px !important;
+    padding: 16px !important;
+  }
+
+  .home-page .home-library-panel--footer .btn {
+    justify-self: start;
+    margin-top: 2px;
+  }
+
+  .home-page .home-utility-card--support,
+  .home-page .home-deferred--telegram > .telegram-growth-card--compact {
+    min-height: 0 !important;
+  }
+}
+
+/* Progress sync is a secondary status line; keep it readable when recovery is active. */
+.animebox-player-sync-status {
+  border-top: 1px solid rgba(255,255,255,.045);
+  background: rgba(6, 9, 18, .72);
+  color: rgba(226,232,240,.48);
+}
+
+.animebox-player-sync-status[data-recovery='true'] {
+  color: rgba(196,181,253,.76);
+  background: rgba(90,60,170,.08);
+}
