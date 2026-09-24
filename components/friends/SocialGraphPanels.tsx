@@ -91,6 +91,7 @@ export default function SocialGraphPanels() {
     showActivityToFriends: true,
   });
   const [privacyBusy, setPrivacyBusy] = useState(false);
+  const [graphVersion, setGraphVersion] = useState(0);
   const [error, setError] = useState('');
 
   const loadActivity = useCallback(async () => {
@@ -143,7 +144,7 @@ export default function SocialGraphPanels() {
   useEffect(() => {
     const refresh = () => {
       void loadActivity();
-      setQuery((current) => current);
+      setGraphVersion((current) => current + 1);
     };
     window.addEventListener(FRIENDS_CHANGED_EVENT, refresh);
     return () => window.removeEventListener(FRIENDS_CHANGED_EVENT, refresh);
@@ -199,7 +200,7 @@ export default function SocialGraphPanels() {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [query]);
+  }, [graphVersion, query]);
 
   async function updatePrivacy(key: keyof Privacy, value: boolean) {
     if (privacyBusy) return;
