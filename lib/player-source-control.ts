@@ -224,9 +224,9 @@ function normalizeRuntimeState(
 export async function getProviderDecision(
   provider: PlayerProviderKey,
   input: {
-    animeId: number;
+    animeId?: number | null;
     season?: number | null;
-    episode: number;
+    episode?: number | null;
   },
 ): Promise<PlayerProviderPolicy> {
   const control = await loadControlRows();
@@ -248,7 +248,14 @@ export async function getProviderDecision(
     reason = 'environment_disabled';
   } else if (cooldownActive) {
     reason = 'cooldown';
-  } else {
+  } else if (
+    input.animeId != null &&
+    Number.isSafeInteger(input.animeId) &&
+    input.animeId > 0 &&
+    input.episode != null &&
+    Number.isSafeInteger(input.episode) &&
+    input.episode > 0
+  ) {
     const restriction = await getPlaybackRestriction({
       animeId: input.animeId,
       season: input.season ?? null,
