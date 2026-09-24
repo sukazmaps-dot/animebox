@@ -8,8 +8,12 @@ const EVENTS = [
   'recommendation_dwell',
   'recommendation_click',
   'recommendation_planned',
+  'recommendation_like',
   'recommendation_dismiss',
+  'recommendation_already_watched',
   'recommendation_started',
+  'recommendation_watch_15m',
+  'recommendation_watch_30m',
   'recommendation_completed',
 ] as const;
 
@@ -70,25 +74,29 @@ export async function getRecommendationAnalytics(days: number): Promise<Recommen
 
   const counts = new Map<string, number>();
   const dwell: number[] = [];
-  const sources = new Map<string, { source: string; impressions: number; clicks: number; started: number; completed: number }>();
-  const daily = new Map<string, { date: string; impressions: number; clicks: number; started: number; completed: number; dismissed: number }>();
+  const sources = new Map<string, { source: string; impressions: number; clicks: number; started: number; watch15m: number; watch30m: number; completed: number }>();
+  const daily = new Map<string, { date: string; impressions: number; clicks: number; started: number; watch15m: number; watch30m: number; completed: number; dismissed: number }>();
 
   const bump = (name: string) => counts.set(name, (counts.get(name) ?? 0) + 1);
   for (const row of rows) {
     bump(row.event_name);
     const sourceKey = eventSource(row);
-    const source = sources.get(sourceKey) ?? { source: sourceKey, impressions: 0, clicks: 0, started: 0, completed: 0 };
+    const source = sources.get(sourceKey) ?? { source: sourceKey, impressions: 0, clicks: 0, started: 0, watch15m: 0, watch30m: 0, completed: 0 };
     if (row.event_name === 'recommendation_impression') source.impressions += 1;
     if (row.event_name === 'recommendation_click') source.clicks += 1;
     if (row.event_name === 'recommendation_started') source.started += 1;
+    if (row.event_name === 'recommendation_watch_15m') source.watch15m += 1;
+    if (row.event_name === 'recommendation_watch_30m') source.watch30m += 1;
     if (row.event_name === 'recommendation_completed') source.completed += 1;
     sources.set(sourceKey, source);
 
     const date = row.created_at.slice(0, 10);
-    const day = daily.get(date) ?? { date, impressions: 0, clicks: 0, started: 0, completed: 0, dismissed: 0 };
+    const day = daily.get(date) ?? { date, impressions: 0, clicks: 0, started: 0, watch15m: 0, watch30m: 0, completed: 0, dismissed: 0 };
     if (row.event_name === 'recommendation_impression') day.impressions += 1;
     if (row.event_name === 'recommendation_click') day.clicks += 1;
     if (row.event_name === 'recommendation_started') day.started += 1;
+    if (row.event_name === 'recommendation_watch_15m') day.watch15m += 1;
+    if (row.event_name === 'recommendation_watch_30m') day.watch30m += 1;
     if (row.event_name === 'recommendation_completed') day.completed += 1;
     if (row.event_name === 'recommendation_dismiss') day.dismissed += 1;
     daily.set(date, day);
@@ -103,8 +111,12 @@ export async function getRecommendationAnalytics(days: number): Promise<Recommen
   const impressions = counts.get('recommendation_impression') ?? 0;
   const clicks = counts.get('recommendation_click') ?? 0;
   const planned = counts.get('recommendation_planned') ?? 0;
+  const liked = counts.get('recommendation_like') ?? 0;
   const dismissed = counts.get('recommendation_dismiss') ?? 0;
+  const alreadyWatched = counts.get('recommendation_already_watched') ?? 0;
   const started = counts.get('recommendation_started') ?? 0;
+  const watch15m = counts.get('recommendation_watch_15m') ?? 0;
+  const watch30m = counts.get('recommendation_watch_30m') ?? 0;
   const completed = counts.get('recommendation_completed') ?? 0;
 
   return {
@@ -117,10 +129,17 @@ export async function getRecommendationAnalytics(days: number): Promise<Recommen
       clicks,
       ctrPct: pct(clicks, impressions),
       planned,
+      liked,
       dismissed,
+      alreadyWatched,
       dismissRatePct: pct(dismissed, impressions),
       started,
       clickToPlayPct: pct(started, clicks),
+      watch15m,
+      watch30m,
+      clickTo15mPct: pct(watch15m, clicks),
+      startedTo15mPct: pct(watch15m, started),
+      watch15To30Pct: pct(watch30m, watch15m),
       completed,
       startedToCompletedPct: pct(completed, started),
       dwellP50Ms: median(dwell),
