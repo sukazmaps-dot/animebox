@@ -87,11 +87,15 @@ export default function CopyrightAdminClient() {
   }, []);
 
   useEffect(() => {
-    void load().catch((loadError) => {
-      setError(
-        loadError instanceof Error ? loadError.message : 'Ошибка загрузки.',
-      );
-    });
+    const timer = window.setTimeout(() => {
+      void load().catch((loadError) => {
+        setError(
+          loadError instanceof Error ? loadError.message : 'Ошибка загрузки.',
+        );
+      });
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   const selected = useMemo(
