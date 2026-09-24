@@ -111,6 +111,13 @@ jobs:
           app/api/player/direct-source/route.ts
           app/api/anilibria/route.ts
           lib/episode-provider-availability.ts
+          app/layout.tsx
+          lib/user-preferences.ts
+          components/UserPreferencesBridge.tsx
+          components/settings/SettingsClient.tsx
+          components/AnimeRatingControl.tsx
+          app/api/community/rating/route.ts
+          app/anime/[slug]/page.tsx
 
       - name: Retention regression checks
         run: node tests/retention.cjs
