@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useAuthState } from '@/components/AuthStateProvider';
 import AchievementShowcaseEditor from '@/components/AchievementShowcaseEditor';
 import StreakDisplay from '@/components/profile/StreakDisplay';
+import ProfileWidgetsShowcase from '@/components/profile/ProfileWidgetsShowcase';
+import ProfileWidgetEditor from '@/components/profile/ProfileWidgetEditor';
 import { achievementIcon } from '@/lib/achievement-icons';
 import {
   ACHIEVEMENT_RARITY_LABELS,
@@ -319,6 +321,21 @@ export default function CommunityProfile() {
           </div>
         ))}
       </section>
+
+      <ProfileWidgetsShowcase
+        data={data.widgets}
+        actions={
+          <ProfileWidgetEditor
+            data={data.widgets}
+            onSaved={(widgets) => {
+              setData((current) =>
+                current ? { ...current, widgets } : current,
+              );
+              if (user?.id) invalidateCommunityProfile(user.id);
+            }}
+          />
+        }
+      />
 
       <div className="profile-v2__content">
         <section className="profile-v2__library">

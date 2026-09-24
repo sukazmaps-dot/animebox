@@ -1,12 +1,16 @@
 import { failure, response, userClient } from '@/lib/community-server';
 import { normalizeProgression } from '@/lib/progression';
+import { getProfileWidgetsData } from '@/lib/profile-widgets-server';
 import { watchTitleOverviewsFromRpcRows } from '@/lib/watch-server';
 
 export async function GET() {
   try {
-    const { client } = await userClient();
+    const { client, user } = await userClient();
 
-    const { data, error } = await client.rpc('my_community_profile_bundle');
+    const [{ data, error }, widgets] = await Promise.all([
+      client.rpc('my_community_profile_bundle'),
+      getProfileWidgetsData(user.id),
+    ]);
     if (error) throw error;
 
     if (!data || typeof data !== 'object' || Array.isArray(data)) {
@@ -38,6 +42,7 @@ export async function GET() {
         Boolean(premiumBadge),
       ),
       challenges: profile.challenges ?? null,
+      widgets,
       featuredAchievements: Array.isArray(featuredAchievements)
         ? featuredAchievements.filter(
             (code): code is string => typeof code === 'string',

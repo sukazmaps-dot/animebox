@@ -21,6 +21,8 @@ import {
 } from '@/lib/progression';
 import type { SeasonPeriod } from '@/lib/seasons';
 import { isUuid } from '@/lib/uuid';
+import { getProfileWidgetsData } from '@/lib/profile-widgets-server';
+import type { ProfileWidgetsData } from '@/types/profile-widgets';
 
 export type PublicAchievement = {
   code: string;
@@ -68,6 +70,7 @@ export type PublicProfileData = {
     comments: number;
   };
   achievements: PublicAchievement[];
+  widgets: ProfileWidgetsData;
 };
 
 type ProfileRow = {
@@ -162,6 +165,7 @@ export async function getPublicProfile(
     progressionResult,
     featuredResult,
     seasonEntriesResult,
+    widgets,
   ] = await Promise.all([
     admin.rpc('community_metrics', { p_user: userId }),
     admin.from('user_achievements').select('*').eq('user_id', userId),
@@ -197,6 +201,7 @@ export async function getPublicProfile(
       .select('season_id,place')
       .eq('user_id', userId)
       .lte('place', 3),
+    getProfileWidgetsData(userId),
   ]);
 
   if (metricsResult.error) {
@@ -368,5 +373,6 @@ export async function getPublicProfile(
       comments,
     },
     achievements,
+    widgets,
   };
 }
