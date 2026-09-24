@@ -259,7 +259,7 @@ export async function getProfileWidgetsData(userId: string): Promise<ProfileWidg
     const animeId = safeId(row.anime_id);
     const item = animeId ? catalog.get(animeId) : null;
     const score = Number(row.score);
-    if (!item || !Number.isFinite(score)) continue;
+    if (!animeId || !item || !Number.isFinite(score)) continue;
 
     activity.push({
       id: `rating:${animeId}:${row.updated_at}`,
@@ -277,7 +277,7 @@ export async function getProfileWidgetsData(userId: string): Promise<ProfileWidg
   for (const row of libraryRows.slice(0, 14)) {
     const animeId = safeId(row.anime_id);
     const item = animeId ? catalog.get(animeId) : null;
-    if (!item) continue;
+    if (!animeId || !item) continue;
 
     activity.push({
       id: `library:${animeId}:${row.updated_at}`,
