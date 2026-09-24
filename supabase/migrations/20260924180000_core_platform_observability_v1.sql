@@ -142,6 +142,10 @@ $function$;
 revoke all on table public.system_job_runs from public, anon, authenticated;
 revoke all on table public.system_incidents from public, anon, authenticated;
 
+grant select, insert, update, delete on table public.system_job_runs to service_role;
+grant select, insert, update, delete on table public.system_incidents to service_role;
+grant usage, select on sequence public.system_job_runs_id_seq to service_role;
+
 revoke execute on function public.report_system_incident(text, text, text, text, text, jsonb)
   from public, anon, authenticated;
 revoke execute on function public.resolve_system_incident(text)
