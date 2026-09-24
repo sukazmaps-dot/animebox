@@ -1,4 +1,5 @@
 import type { AnimeImage } from '@/types/anime';
+import { buildAnimeBoxMediaCandidates } from '@/lib/media-delivery';
 
 export function normalizeImageUrl(
   value?: string | null,
@@ -53,28 +54,18 @@ export function proxyImageUrl(
 }
 
 /**
- * Poster delivery is intentionally direct-first.
+ * Poster delivery policy:
  *
- * Massive anime grids must not fan every poster through Vercel's /_next/image
- * transformation service. We first try the original CDN sizes in order, then
- * use exactly one same-origin proxy fallback for the best original candidate.
+ * 1. AnimeBox media edge (Cloudflare Worker -> edge cache -> R2 when bound)
+ * 2. optional RU media edge
+ * 3. best original source
+ * 4. one secondary original source
+ * 5. one legacy same-origin proxy fallback
+ *
+ * This keeps the normal path to one request per poster while preserving a
+ * bounded fallback chain. We intentionally do not fan every AniList size
+ * through both direct and proxied URLs.
  */
-function prefersImageProxy(value: string) {
-  if (value.startsWith('/')) return false;
-
-  try {
-    const host = new URL(value).hostname.toLowerCase();
-    return (
-      host === 'shikimori.one' ||
-      host.endsWith('.shikimori.one') ||
-      host === 'shikimori.me' ||
-      host.endsWith('.shikimori.me')
-    );
-  } catch {
-    return false;
-  }
-}
-
 export function buildImageCandidateChain(
   values: Array<string | null | undefined>,
 ): string[] {
@@ -86,32 +77,30 @@ export function buildImageCandidateChain(
     ),
   );
 
-  const result: string[] = [];
+  const local = originals.filter((value) => value.startsWith('/'));
+  const remote = originals.filter((value) => !value.startsWith('/'));
 
-  for (const original of originals) {
-    if (!prefersImageProxy(original)) {
-      result.push(original);
-      continue;
-    }
-
-    // Shikimori media is more reliable through our host-aware proxy because
-    // it can send the expected Referer. Do not make the browser fail several
-    // hotlink attempts before trying the path that is designed for it.
-    const proxied = proxyImageUrl(original);
-    if (proxied) result.push(proxied);
-    result.push(original);
+  if (remote.length === 0) {
+    return local;
   }
 
-  const primaryDirect = originals.find(
-    (value) => !value.startsWith('/') && !prefersImageProxy(value),
-  );
+  const primary = remote[0];
+  const secondary = remote.find((value) => value !== primary) ?? null;
+  const result: string[] = [
+    ...buildAnimeBoxMediaCandidates(primary),
+    primary,
+  ];
 
-  if (primaryDirect) {
-    const proxied = proxyImageUrl(primaryDirect);
-    if (proxied && proxied !== primaryDirect) {
-      result.push(proxied);
-    }
+  if (secondary) {
+    result.push(secondary);
   }
+
+  const legacyProxy = proxyImageUrl(primary);
+  if (legacyProxy && legacyProxy !== primary) {
+    result.push(legacyProxy);
+  }
+
+  result.push(...local);
 
   return Array.from(new Set(result));
 }
