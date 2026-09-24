@@ -368,6 +368,26 @@ function NavbarContent() {
             <span className="sidebar__icon" aria-hidden="true"><Icon name="telegram" /></span>
             <span>Telegram Mini App</span>
           </a>
+
+          <Link
+            href="/about"
+            className={`sidebar__item sidebar__item--utility ${isActive('/about') ? 'is-active' : ''}`}
+            aria-current={isActive('/about') ? 'page' : undefined}
+            title="О проекте"
+          >
+            <span className="sidebar__icon" aria-hidden="true"><Icon name="info" weight={isActive('/about') ? 'fill' : 'regular'} /></span>
+            <span>О проекте</span>
+          </Link>
+
+          <Link
+            href="/copyright"
+            className={`sidebar__item sidebar__item--utility ${isActive('/copyright') ? 'is-active' : ''}`}
+            aria-current={isActive('/copyright') ? 'page' : undefined}
+            title="Правообладателям"
+          >
+            <span className="sidebar__icon" aria-hidden="true"><Icon name="mail" weight={isActive('/copyright') ? 'fill' : 'regular'} /></span>
+            <span>Правообладателям</span>
+          </Link>
         </nav>
 
         {!authLoading && user && (
