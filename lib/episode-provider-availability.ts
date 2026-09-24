@@ -14,6 +14,7 @@ import {
   pageItems,
 } from '@/lib/provider-episodes';
 import { findAnimeRouteById } from '@/lib/anime-registry';
+import { getProviderDecision } from '@/lib/player-source-control';
 
 const ANILIBERTY_BASES = [
   'https://aniliberty.top/api/v1',
@@ -230,10 +231,21 @@ export async function getEpisodeProviderAvailability(
   anime: Anime,
   options: { signal?: AbortSignal } = {},
 ): Promise<EpisodeAvailabilityResponse> {
-  // Kodik is AnimeBox's primary player. When it exposes a trustworthy
-  // `last_episode`, we can answer immediately instead of blocking the episode
-  // grid on several slower AniLiberty mirrors.
-  const kodik = await getKodikEpisodes(anime, options.signal);
+  const [kodikDecision, anilibertyDecision] = await Promise.all([
+    getProviderDecision('kodik', {}),
+    getProviderDecision('aniliberty', {}),
+  ]);
+
+  // Kodik stays the fast path when it is operational. A provider disabled by
+  // Source Control must not continue feeding episode grids or SEO indexes.
+  const kodik: EpisodeAvailabilityProvider = kodikDecision.enabled
+    ? await getKodikEpisodes(anime, options.signal)
+    : {
+        name: 'kodik',
+        status: 'unavailable',
+        episodes: [],
+        reason: 'Provider disabled by Player Source Control.',
+      };
   if (kodik.status === 'available' && kodik.episodes.length) {
     return {
       animeId: anime.id,
@@ -244,7 +256,15 @@ export async function getEpisodeProviderAvailability(
     };
   }
 
-  const aniliberty = await getAniLibertyEpisodes(anime, options.signal);
+  const aniliberty: EpisodeAvailabilityProvider =
+    anilibertyDecision.enabled
+      ? await getAniLibertyEpisodes(anime, options.signal)
+      : {
+          name: 'aniliberty',
+          status: 'unavailable',
+          episodes: [],
+          reason: 'Provider disabled by Player Source Control.',
+        };
   const providers = [kodik, aniliberty];
   const episodes = uniqueEpisodeNumbers(
     providers.flatMap((provider) =>

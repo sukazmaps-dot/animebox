@@ -7,10 +7,11 @@ import {
 import { enforceIpRateLimit } from '@/lib/api-rate-limit';
 import { resolveAnimeRoute } from '@/lib/anime-route';
 import { recordEpisodePlayerUrl } from '@/lib/episode-timeline-server';
+import { COPYRIGHT_RESTRICTED_MESSAGE } from '@/lib/copyright-server';
 import {
-  COPYRIGHT_RESTRICTED_MESSAGE,
-  getPlaybackRestriction,
-} from '@/lib/copyright-server';
+  getProviderDecision,
+  recordProviderResult,
+} from '@/lib/player-source-control';
 
 export async function GET(request: NextRequest) {
   const limited = await enforceIpRateLimit(request, {
@@ -45,42 +46,42 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const providerDecision = await getProviderDecision('kodik', {
+    animeId,
+    season:
+      season != null && Number.isSafeInteger(season) && season > 0
+        ? season
+        : null,
+    episode,
+  });
+
+  if (!providerDecision.enabled) {
+    const restricted = providerDecision.reason === 'copyright_restricted';
+    return NextResponse.json(
+      {
+        name: 'Kodik',
+        status: 'unavailable',
+        maxEpisode: null,
+        translations: [],
+        reason: restricted
+          ? 'copyright_restricted'
+          : 'provider_disabled',
+        message: restricted
+          ? COPYRIGHT_RESTRICTED_MESSAGE
+          : 'Источник Kodik временно недоступен.',
+      },
+      {
+        status: restricted ? 451 : 503,
+        headers: {
+          'Cache-Control': 'private, no-store',
+        },
+      },
+    );
+  }
+
+  const providerStartedAt = Date.now();
+
   try {
-    if (
-      animeId != null &&
-      Number.isSafeInteger(animeId) &&
-      animeId > 0
-    ) {
-      const restriction = await getPlaybackRestriction({
-        animeId,
-        season:
-          season != null && Number.isSafeInteger(season) && season > 0
-            ? season
-            : null,
-        episode,
-        provider: 'Kodik',
-      });
-
-      if (restriction) {
-        return NextResponse.json(
-          {
-            name: 'Kodik',
-            status: 'unavailable',
-            maxEpisode: null,
-            translations: [],
-            reason: 'copyright_restricted',
-            message: COPYRIGHT_RESTRICTED_MESSAGE,
-          },
-          {
-            status: 451,
-            headers: {
-              'Cache-Control': 'private, no-store',
-            },
-          },
-        );
-      }
-    }
-
     const signal = AbortSignal.any([
       request.signal,
       AbortSignal.timeout(6_500),
@@ -88,6 +89,13 @@ export async function GET(request: NextRequest) {
     const results = await searchKodikByShikimoriId(shikimoriId, {
       noStore: episode != null,
       signal,
+    });
+
+    after(async () => {
+      await recordProviderResult('kodik', {
+        ok: true,
+        latencyMs: Date.now() - providerStartedAt,
+      });
     });
     const filtered =
       episode == null
@@ -164,6 +172,14 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error('[Kodik] request failed:', error);
+
+    after(async () => {
+      await recordProviderResult('kodik', {
+        ok: false,
+        latencyMs: Date.now() - providerStartedAt,
+        reason: error instanceof Error ? error.message : 'kodik_request_failed',
+      });
+    });
 
     return NextResponse.json(
       { error: 'Failed to fetch Kodik', status: 'unknown' },

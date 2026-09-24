@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 
+import { COPYRIGHT_RESTRICTED_MESSAGE } from '@/lib/copyright-server';
 import {
-  COPYRIGHT_RESTRICTED_MESSAGE,
-  getPlaybackRestriction,
-} from '@/lib/copyright-server';
+  getProviderDecision,
+  recordProviderResult,
+} from '@/lib/player-source-control';
 import { resolveDirectPlayerStreams } from '@/lib/direct-player-server';
 
 export const runtime = 'nodejs';
@@ -91,27 +92,32 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const restriction = await getPlaybackRestriction({
+  const providerDecision = await getProviderDecision('direct', {
     animeId,
     season:
       Number.isSafeInteger(season) && season > 0
         ? season
         : null,
     episode,
-    provider: 'AnimeBox Direct',
   });
 
-  if (restriction) {
+  if (!providerDecision.enabled) {
+    const restricted = providerDecision.reason === 'copyright_restricted';
+
     return NextResponse.json(
       {
         enabled: false,
         provider: 'AnimeBox Direct',
         streams: [],
-        reason: 'copyright_restricted',
-        message: COPYRIGHT_RESTRICTED_MESSAGE,
+        reason: restricted
+          ? 'copyright_restricted'
+          : 'provider_disabled',
+        message: restricted
+          ? COPYRIGHT_RESTRICTED_MESSAGE
+          : 'AnimeBox Direct временно недоступен.',
       },
       {
-        status: 451,
+        status: restricted ? 451 : 503,
         headers: {
           'Cache-Control': 'private, no-store, max-age=0',
         },
@@ -119,10 +125,29 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const providerStartedAt = Date.now();
+
   const result = await resolveDirectPlayerStreams({
     shikimoriId,
     episode,
     signal: request.signal,
+  });
+
+  const providerFailure = Boolean(
+    result.reason &&
+      (
+        result.reason === 'provider_unavailable' ||
+        result.reason === 'invalid_provider_endpoint' ||
+        result.reason.startsWith('provider_http_')
+      ),
+  );
+
+  after(async () => {
+    await recordProviderResult('direct', {
+      ok: !providerFailure,
+      latencyMs: Date.now() - providerStartedAt,
+      reason: providerFailure ? result.reason : null,
+    });
   });
 
   return NextResponse.json(result, {
