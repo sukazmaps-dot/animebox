@@ -9,6 +9,7 @@ import dynamic from 'next/dynamic';
 import type { Anime, AnimeImage as AnimeImageType } from '@/types/anime';
 
 import AnimeCard from '@/components/AnimeCard';
+import DeferredMount from '@/components/DeferredMount';
 import HomeContinueWatching from '@/components/HomeContinueWatching';
 import HomeMoodPicker from '@/components/HomeMoodPicker';
 import Icon from '@/components/Icon';
@@ -256,7 +257,7 @@ export default function HomePage({
     if (popularController) {
       getAnimes(
         {
-          limit: 20,
+          limit: 12,
           page: 1,
           order: 'ranked',
         },
@@ -279,7 +280,7 @@ export default function HomePage({
     if (ongoingController) {
       getAnimes(
         {
-          limit: 20,
+          limit: 12,
           page: 1,
           order: 'popularity',
           status: 'ongoing',
@@ -1103,16 +1104,30 @@ export default function HomePage({
                 ))}
               </div>
             ) : (
-              <SmartRecommendationFeed
-                items={smartRecommendations}
-                mood={mood}
-                hasWatchHistory={hasWatchHistory}
-              />
+              <DeferredMount
+                className="home-deferred home-deferred--recommendations"
+                minHeight={300}
+                rootMargin="520px 0px"
+                ariaLabel="Персональные рекомендации"
+              >
+                <SmartRecommendationFeed
+                  items={smartRecommendations}
+                  mood={mood}
+                  hasWatchHistory={hasWatchHistory}
+                />
+              </DeferredMount>
             )}
           </section>
         </div>
 
-        <HomeChatTeaser />
+        <DeferredMount
+          className="home-deferred home-deferred--chat"
+          minHeight={150}
+          rootMargin="420px 0px"
+          ariaLabel="Чат AnimeBox"
+        >
+          <HomeChatTeaser />
+        </DeferredMount>
 
         <section className="section home-catalog-section home-catalog-section--popular">
           <div className="section-head">
@@ -1342,8 +1357,20 @@ export default function HomePage({
             </Link>
           </div>
 
-          <SupportAnimeBoxCard />
-          <TelegramPromoCard />
+          <DeferredMount
+            className="home-deferred home-deferred--support"
+            minHeight={180}
+            rootMargin="360px 0px"
+          >
+            <SupportAnimeBoxCard />
+          </DeferredMount>
+          <DeferredMount
+            className="home-deferred home-deferred--telegram"
+            minHeight={190}
+            rootMargin="360px 0px"
+          >
+            <TelegramPromoCard />
+          </DeferredMount>
         </div>
       </aside>
       </div>

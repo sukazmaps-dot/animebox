@@ -125,6 +125,13 @@ const nextConfig: NextConfig = {
       { source: '/backgrounds/:path*', headers: staticHeaders },
       { source: '/brand/:path*', headers: staticHeaders },
       { source: '/og/:path*', headers: staticHeaders },
+      {
+        source: '/animebox-sw.js',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Service-Worker-Allowed', value: '/' },
+        ],
+      },
     ];
   },
 };

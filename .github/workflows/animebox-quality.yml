@@ -59,6 +59,13 @@ jobs:
           app/anime/[slug]/episode/[episode]/page.tsx
           app/api/anime/[slug]/episode-availability/route.ts
           components/Navbar.tsx
+          components/DeferredMount.tsx
+          components/OfflineCacheBridge.tsx
+          components/HomePageClient.tsx
+          components/AnimeImage.tsx
+          components/AnimeCard.tsx
+          lib/home-feed-server.ts
+          next.config.ts
           components/AnimeEpisodePage.tsx
           components/EpisodeList.tsx
           app/episodes/sitemap.ts

@@ -31,7 +31,7 @@ type Props = {
 };
 
 const DEFAULT_SIZES =
-  '(max-width: 560px) 42vw, (max-width: 900px) 28vw, (max-width: 1280px) 18vw, 190px';
+  '(orientation: landscape) and (max-height: 600px) 18vw, (max-width: 480px) 42vw, (max-width: 760px) 31vw, (max-width: 1024px) 22vw, (max-width: 1280px) 18vw, 190px';
 
 function canUseNextImage(source: string): boolean {
   if (!source || source.startsWith('/')) {
