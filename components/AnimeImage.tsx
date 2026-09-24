@@ -20,6 +20,8 @@ const PRIMARY_MEDIA_TIMEOUT_MS = 2_500;
 const FALLBACK_SOURCE_TIMEOUT_MS = 5_000;
 const TRANSIENT_RETRY_DELAY_MS = 30_000;
 
+export type AnimeImageLoadState = 'loading' | 'loaded' | 'fallback';
+
 type Props = {
   image?: ImageData | null;
   alt?: string | null;
@@ -29,6 +31,7 @@ type Props = {
   preferOriginal?: boolean;
   sizes?: string;
   quality?: number;
+  onStateChange?: (state: AnimeImageLoadState) => void;
 };
 
 const DEFAULT_SIZES =
@@ -41,6 +44,7 @@ export default function AnimeImage({
   className = '',
   loading = 'lazy',
   sizes = DEFAULT_SIZES,
+  onStateChange,
 }: Props) {
   const imageRef = useRef<HTMLImageElement>(null);
   const transientRetryCountRef = useRef(0);
@@ -81,6 +85,14 @@ export default function AnimeImage({
     alt?.trim() ||
     englishName?.trim() ||
     'Аниме';
+
+  const publicState: AnimeImageLoadState =
+    isFallback ? 'fallback' : loaded ? 'loaded' : 'loading';
+
+  useEffect(() => {
+    onStateChange?.(publicState);
+  }, [onStateChange, publicState]);
+
 
   const goToNextSource = () => {
     setImageState((previous) => {
