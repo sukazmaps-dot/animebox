@@ -58,6 +58,18 @@ export type DeploymentHealth = {
   region: string | null;
 };
 
+export type PlaybackPlatformHealth = {
+  starts24h: number;
+  sourceFailures24h: number;
+  fallbacks24h: number;
+  sourceExhausted24h: number;
+  resumes24h: number;
+  completions24h: number;
+  wtDriftCorrections24h: number;
+  fallbackRatePct: number | null;
+  exhaustionRatePct: number | null;
+};
+
 export type SystemHealthSnapshot = {
   generatedAt: string;
   status: SystemHealthTone;
@@ -67,6 +79,7 @@ export type SystemHealthSnapshot = {
   jobs: SystemJobHealth[];
   incidents: SystemIncident[];
   notification: NotificationHealth | null;
+  playback: PlaybackPlatformHealth;
   signals: {
     openCriticalIncidents: number;
     openWarningIncidents: number;
