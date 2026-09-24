@@ -11,6 +11,7 @@ import { communityRequest } from '@/lib/community-client';
 import { persistRecommendationFeedback } from '@/lib/recommendation-feedback-client';
 import {
   createImpressionId,
+  createRecommendationId,
   hideRecommendation,
   likeRecommendation,
   markRecommendationWatched,
@@ -53,6 +54,7 @@ export default function SmartRecommendationCard({
   position,
   mood,
   recommendationSessionId,
+  rowId,
   source = 'smart_feed',
   onHidden,
 }: {
@@ -60,12 +62,16 @@ export default function SmartRecommendationCard({
   position: number;
   mood: TasteMood;
   recommendationSessionId?: string;
+  rowId?: string;
   source?: string;
   onHidden: (animeId: number) => void;
 }) {
   const { anime, reason, reasons, matchScore } = recommendation;
   const title = getAnimeTitle(anime);
   const rootRef = useRef<HTMLElement | null>(null);
+  const recommendationIdRef = useRef<string>(
+    createRecommendationId(anime.id, source),
+  );
   const impressionIdRef = useRef<string>(createImpressionId(anime.id, position));
   const impressionSentRef = useRef(false);
   const hoverStartedAtRef = useRef<number | null>(null);
@@ -74,8 +80,10 @@ export default function SmartRecommendationCard({
 
   const eventContext = {
     animeId: anime.id,
+    recommendationId: recommendationIdRef.current,
     impressionId: impressionIdRef.current,
     position,
+    rowId,
     source,
     mood,
     recommendationSessionId,
@@ -101,8 +109,10 @@ export default function SmartRecommendationCard({
             trackRecommendationEvent({
               type: 'impression',
               animeId: anime.id,
+              recommendationId: recommendationIdRef.current,
               impressionId: impressionIdRef.current,
               position,
+              rowId,
               source,
               mood,
               recommendationSessionId,
@@ -132,6 +142,7 @@ export default function SmartRecommendationCard({
     position,
     reason,
     recommendationSessionId,
+    rowId,
     source,
   ]);
 
@@ -198,6 +209,12 @@ export default function SmartRecommendationCard({
       source,
       reason,
       modelVersion: RECOMMENDATION_MODEL_VERSION,
+      recommendationId: recommendationIdRef.current,
+      recommendationSessionId,
+      algorithmVersion: RECOMMENDATION_MODEL_VERSION,
+      rowId,
+      position,
+      mood,
     });
   }
 
@@ -213,6 +230,12 @@ export default function SmartRecommendationCard({
       source,
       reason,
       modelVersion: RECOMMENDATION_MODEL_VERSION,
+      recommendationId: recommendationIdRef.current,
+      recommendationSessionId,
+      algorithmVersion: RECOMMENDATION_MODEL_VERSION,
+      rowId,
+      position,
+      mood,
     });
     onHidden(anime.id);
   }
@@ -229,6 +252,12 @@ export default function SmartRecommendationCard({
       source,
       reason,
       modelVersion: RECOMMENDATION_MODEL_VERSION,
+      recommendationId: recommendationIdRef.current,
+      recommendationSessionId,
+      algorithmVersion: RECOMMENDATION_MODEL_VERSION,
+      rowId,
+      position,
+      mood,
     });
     onHidden(anime.id);
   }
