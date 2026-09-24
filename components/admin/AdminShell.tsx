@@ -9,7 +9,7 @@ const links = [
   { href: '/admin/activation', label: 'Активация', icon: '↗' },
   { href: '/admin/player', label: 'Плеер', icon: '▶' },
   { href: '/admin/player-sources', label: 'Источники', icon: '⇄' },
-  { href: '/admin/health', label: 'Стабильность', icon: '◉' },
+  { href: '/admin/health', label: 'Система', icon: '◉' },
   { href: '/admin/recommendations', label: 'Рекомендации', icon: '✦' },
   { href: '/admin/users', label: 'Пользователи', icon: '◎' },
   { href: '/admin/moderation', label: 'Модерация', icon: '◇' },
