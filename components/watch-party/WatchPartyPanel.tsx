@@ -431,6 +431,21 @@ export default function WatchPartyPanel({
     }
   }, [send]);
 
+  useEffect(() => {
+    if (role !== 'host' || status !== 'active') return;
+
+    const timer = window.setTimeout(() => {
+      broadcast({
+        type: 'EPISODE_CHANGE',
+        animeSlug,
+        episode: episodeNumber,
+        sentAt: Date.now(),
+      });
+    }, 120);
+
+    return () => window.clearTimeout(timer);
+  }, [animeSlug, broadcast, episodeNumber, role, status]);
+
   const handleHostReaction = useCallback((
     participant: Pick<WatchPartyParticipant, 'userId' | 'name'>,
     id: string,
@@ -1551,6 +1566,7 @@ export default function WatchPartyPanel({
     acceptHostTransfer,
     appendChatMessage,
     attachGuestConnection,
+    dispatchEpisodeChange,
     dispatchPlayerCommand,
     publishParticipants,
     publishReaction,
