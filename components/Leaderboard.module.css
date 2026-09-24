@@ -1402,3 +1402,184 @@
     transform: translateX(-50%) !important;
   }
 }
+
+
+/* =========================================================
+   Patch 17.4.2.1 — leaderboard precision pass
+   ========================================================= */
+
+.rankGhost,
+.rankTitle {
+  display: none !important;
+}
+
+.placeLabel {
+  margin-bottom: 2px;
+  color: color-mix(in srgb, var(--accent) 78%, white 22%);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.timeLabel {
+  color: rgba(170, 179, 196, .42) !important;
+  font-size: 9px !important;
+  letter-spacing: .01em;
+}
+
+.cardFooter {
+  min-height: 48px;
+  padding: 0 2px;
+}
+
+.cardProfileAction,
+.personalAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid rgba(151, 135, 205, .18);
+  border-radius: 10px;
+  background: rgba(255,255,255,.025);
+  color: rgba(239, 236, 248, .88) !important;
+  font-size: 10px;
+  font-weight: 750;
+  text-decoration: none;
+  transition:
+    background-color .15s ease,
+    border-color .15s ease,
+    color .15s ease,
+    transform .15s ease;
+}
+
+.cardProfileAction:hover,
+.personalAction:hover {
+  border-color: rgba(173, 151, 255, .34);
+  background: rgba(137, 104, 220, .08);
+  color: #fff !important;
+  transform: translateY(-1px);
+}
+
+.personal {
+  grid-template-columns: 58px minmax(220px, 1fr) minmax(260px, auto) auto !important;
+  align-items: center !important;
+  min-height: 86px;
+  padding: 14px 16px !important;
+}
+
+.personalStats {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(82px, 1fr));
+  align-items: stretch !important;
+  min-width: 282px;
+}
+
+.personalStats > span {
+  display: grid;
+  align-content: center;
+  min-width: 0 !important;
+  padding: 8px 12px !important;
+}
+
+.personalStats small {
+  color: rgba(167, 176, 193, .52) !important;
+  font-size: 8px !important;
+  font-weight: 750 !important;
+  letter-spacing: .06em;
+}
+
+.personalStats strong {
+  margin-top: 4px !important;
+  color: rgba(244, 246, 252, .94) !important;
+  font-size: 11px !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.sectionHeading + .board {
+  margin-top: 12px;
+}
+
+.boardHeader,
+.row {
+  grid-template-columns: 44px minmax(0, 1fr) 96px 122px 32px !important;
+  gap: 12px !important;
+  padding-inline: 16px !important;
+}
+
+.boardHeader {
+  min-height: 42px;
+  padding-block: 0 !important;
+}
+
+.boardHeader span:nth-child(3),
+.boardHeader span:nth-child(4) {
+  text-align: right;
+}
+
+.episodes,
+.rowTime {
+  justify-self: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.rowNameLine strong,
+.user strong {
+  color: rgba(247,248,252,.97);
+  font-weight: 720;
+}
+
+.user small {
+  color: rgba(182, 158, 238, .62) !important;
+}
+
+.rowOpen {
+  justify-self: end;
+}
+
+@media (max-width: 980px) {
+  .personal {
+    grid-template-columns: 52px minmax(0, 1fr) auto !important;
+  }
+
+  .personalStats {
+    grid-column: 2 / -1;
+    grid-row: 2;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .personalAction {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+
+@media (max-width: 760px) {
+  .personal {
+    grid-template-columns: 46px minmax(0, 1fr) !important;
+  }
+
+  .personalStats,
+  .personalAction {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+
+  .boardHeader,
+  .row {
+    grid-template-columns: 34px minmax(0, 1fr) 86px 28px !important;
+    gap: 8px !important;
+    padding-inline: 10px !important;
+  }
+
+  .boardHeader span:nth-child(3),
+  .episodes {
+    display: none;
+  }
+
+  .boardHeader span:nth-child(4) {
+    text-align: right;
+  }
+}
