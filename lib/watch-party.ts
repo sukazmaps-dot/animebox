@@ -1,4 +1,4 @@
-export const WATCH_PARTY_PROTOCOL = 4;
+export const WATCH_PARTY_PROTOCOL = 5;
 export const WATCH_PARTY_MAX_PARTICIPANTS = 50;
 export const WATCH_PARTY_ROOM_PREFIX = 'abx-party';
 
@@ -6,6 +6,7 @@ export const WATCH_PARTY_PLAYER_STATE_EVENT = 'animebox:watch-party-player-state
 export const WATCH_PARTY_PLAYER_ACTION_EVENT = 'animebox:watch-party-player-action';
 export const WATCH_PARTY_PLAYER_COMMAND_EVENT = 'animebox:watch-party-player-command';
 export const WATCH_PARTY_PLAYER_CONTROL_EVENT = 'animebox:watch-party-player-control';
+export const WATCH_PARTY_EPISODE_CHANGE_EVENT = 'animebox:watch-party-episode-change';
 export const WATCH_PARTY_EXIT_EVENT = 'animebox:watch-party-exit';
 
 const ROOM_ID_RE = /^[a-f0-9]{24}$/;
@@ -74,6 +75,11 @@ export type WatchPartyPlayerControlDetail = {
   position?: number;
 };
 
+export type WatchPartyEpisodeChangeDetail = {
+  animeSlug: string;
+  episode: number;
+};
+
 export type WatchPartyChatMessage = {
   id: string;
   userId: string;
@@ -138,6 +144,12 @@ export type WatchPartyPacket =
       episode: number;
       position: number;
       playing: boolean;
+      sentAt: number;
+    }
+  | {
+      type: 'EPISODE_CHANGE';
+      animeSlug: string;
+      episode: number;
       sentAt: number;
     }
   | {
@@ -332,6 +344,19 @@ function parsePlayerAction(value: unknown): WatchPartyPlayerAction | null {
 function parseEpisode(value: unknown) {
   const episode = Number(value);
   return Number.isSafeInteger(episode) && episode >= 1 && episode <= 100_000 ? episode : null;
+}
+
+function parseAnimeSlug(value: unknown) {
+  if (typeof value !== 'string') return null;
+  const slug = value.trim();
+  if (
+    !slug ||
+    slug.length > 180 ||
+    /[\\/?#\u0000-\u001f]/u.test(slug)
+  ) {
+    return null;
+  }
+  return slug;
 }
 
 function parsePosition(value: unknown) {
@@ -557,6 +582,14 @@ export function parseWatchPartyPacket(value: unknown): WatchPartyPacket | null {
         return null;
       }
       return { type: 'PLAYER_SYNC', seq, episode, position, playing: record.playing, sentAt };
+    }
+
+    case 'EPISODE_CHANGE': {
+      const animeSlug = parseAnimeSlug(record.animeSlug);
+      const episode = parseEpisode(record.episode);
+      const sentAt = parseTimestamp(record.sentAt);
+      if (!animeSlug || !episode || !sentAt) return null;
+      return { type: 'EPISODE_CHANGE', animeSlug, episode, sentAt };
     }
 
     case 'CHAT_SEND': {
