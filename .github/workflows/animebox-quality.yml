@@ -128,6 +128,9 @@ jobs:
           components/CommunityProfile.tsx
           components/profile/ProfileWidgetsShowcase.tsx
           components/profile/ProfileWidgetEditor.tsx
+          components/profile/ProfilePreview.tsx
+          components/profile/ProfileEditorClient.tsx
+          app/profile/edit/page.tsx
           lib/profile-widgets-server.ts
           lib/community-server.ts
           types/profile-widgets.ts
