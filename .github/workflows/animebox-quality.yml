@@ -120,6 +120,7 @@ jobs:
           components/profile/ProfileWidgetsShowcase.tsx
           components/profile/ProfileWidgetEditor.tsx
           lib/profile-widgets-server.ts
+          lib/community-server.ts
           types/profile-widgets.ts
           app/api/community/profile-widgets/route.ts
           app/api/community/profile/route.ts
