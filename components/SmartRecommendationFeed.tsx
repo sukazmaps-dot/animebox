@@ -17,17 +17,23 @@ import {
 } from '@/lib/recommendations';
 import type { RecommendationPage } from '@/types/recommendations';
 import { buildRecommendationRails } from '@/lib/recommendation-rails';
+import { readCachedTasteGraph } from '@/lib/taste-graph';
 
 const PAGE_SIZE = 20;
 const MAX_EMPTY_PAGE_HOPS = 3;
 const CLIENT_PAGE_CACHE_TTL_MS = 15 * 60 * 1000;
-const CLIENT_PAGE_CACHE_PREFIX = 'animebox:recommendation-page:v4:';
+const CLIENT_PAGE_CACHE_PREFIX = 'animebox:recommendation-page:v5:';
 const MAX_SESSION_CACHE_ENTRIES = 14;
 const MOOD_SWAP_FADE_OUT_MS = 135;
 
 type CachedPage = {
   expiresAt: number;
   data: RecommendationPage;
+};
+
+type CandidateContext = {
+  genre: string | null;
+  mood: TasteMood;
 };
 
 /* Shared by every SmartRecommendationFeed mount in the current tab. */
@@ -56,8 +62,23 @@ function getSessionBucket(sessionId: string): number {
   return stableHash(sessionId) % 4;
 }
 
-function pageCacheKey(page: number, bucket: number): string {
-  return `${CLIENT_PAGE_CACHE_PREFIX}${bucket}:${PAGE_SIZE}:${page}`;
+function getCandidateContext(mood: TasteMood): CandidateContext {
+  const graph = readCachedTasteGraph();
+  const genre = graph?.topGenres[0]?.trim().slice(0, 64) || null;
+
+  return { genre, mood };
+}
+
+function candidateContextKey(context: CandidateContext): string {
+  return `${context.mood}:${stableHash(context.genre ?? 'none')}`;
+}
+
+function pageCacheKey(
+  page: number,
+  bucket: number,
+  context: CandidateContext,
+): string {
+  return `${CLIENT_PAGE_CACHE_PREFIX}${bucket}:${candidateContextKey(context)}:${PAGE_SIZE}:${page}`;
 }
 
 function readSessionPage(key: string): RecommendationPage | null {
@@ -165,8 +186,9 @@ function readCachedPage(key: string): RecommendationPage | null {
 async function loadCandidatePage(
   page: number,
   bucket: number,
+  context: CandidateContext,
 ): Promise<RecommendationPage> {
-  const key = pageCacheKey(page, bucket);
+  const key = pageCacheKey(page, bucket, context);
   const cached = readCachedPage(key);
 
   if (cached) {
@@ -182,7 +204,12 @@ async function loadCandidatePage(
     page: String(page),
     limit: String(PAGE_SIZE),
     bucket: String(bucket),
+    mood: context.mood,
   });
+
+  if (context.genre) {
+    params.set('genre', context.genre);
+  }
 
   const request = fetch(`/api/recommendations?${params.toString()}`, {
     method: 'GET',
@@ -208,11 +235,15 @@ async function loadCandidatePage(
   return request;
 }
 
-function prefetchCandidatePage(page: number, bucket: number): void {
-  const key = pageCacheKey(page, bucket);
+function prefetchCandidatePage(
+  page: number,
+  bucket: number,
+  context: CandidateContext,
+): void {
+  const key = pageCacheKey(page, bucket, context);
   if (readCachedPage(key) || inFlightPageRequests.has(key)) return;
 
-  void loadCandidatePage(page, bucket).catch(() => {
+  void loadCandidatePage(page, bucket, context).catch(() => {
     // Silent prefetch failure: the real fetch still has normal retry UI.
   });
 }
@@ -363,11 +394,15 @@ export default function SmartRecommendationFeed({
      speculative and should never compete with the hero on slow mobile data. */
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      prefetchCandidatePage(page, bucket);
+      prefetchCandidatePage(
+        page,
+        bucket,
+        getCandidateContext(displayedMood),
+      );
     }, 5_000);
 
     return () => window.clearTimeout(timer);
-  }, [bucket, page]);
+  }, [bucket, displayedMood, page]);
 
   const filtered = useMemo(
     () => recommendations.filter(({ anime }) => !locallyHidden.has(anime.id)),
@@ -394,6 +429,7 @@ export default function SmartRecommendationFeed({
     let cursor = page;
     let moreAvailable: boolean = hasMore;
     let appended = false;
+    const candidateContext = getCandidateContext(displayedMood);
 
     try {
       /*
@@ -406,7 +442,11 @@ export default function SmartRecommendationFeed({
         attempt < MAX_EMPTY_PAGE_HOPS && moreAvailable && !appended;
         attempt += 1
       ) {
-        const data = await loadCandidatePage(cursor, bucket);
+        const data = await loadCandidatePage(
+          cursor,
+          bucket,
+          candidateContext,
+        );
         const ranked = getPersonalizedRecommendations(data.items, {
           mood: displayedMood,
           limit: PAGE_SIZE,
@@ -429,7 +469,7 @@ export default function SmartRecommendationFeed({
        * IntersectionObserver to accidentally download the whole catalogue.
        */
       if (moreAvailable) {
-        prefetchCandidatePage(cursor, bucket);
+        prefetchCandidatePage(cursor, bucket, candidateContext);
       }
     } catch (fetchError) {
       console.error('Recommendation pagination:', fetchError);

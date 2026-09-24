@@ -1,9 +1,16 @@
 import type { Anime } from '@/types/anime';
 
+export type RecommendationCandidateSource =
+  | 'ranked'
+  | 'popularity'
+  | 'ongoing'
+  | 'preferred_genre'
+  | 'mood';
+
 /**
  * Public candidate page for the Smart Feed.
- * Personal ranking still happens in the browser because AnimeBox currently
- * keeps taste/history signals local-first in localStorage.
+ * Personal ranking still happens in the browser. Candidate retrieval only
+ * receives finite public taste buckets so the response remains CDN-cacheable.
  */
 export type RecommendationPage = {
   items: Anime[];
@@ -11,4 +18,7 @@ export type RecommendationPage = {
   nextPage: number | null;
   hasMore: boolean;
   bucket: number;
+  candidateSource?: RecommendationCandidateSource;
+  tasteGenre?: string | null;
+  mood?: 'any' | 'comfort' | 'tension' | 'emotion' | 'adventure';
 };

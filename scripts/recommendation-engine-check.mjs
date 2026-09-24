@@ -3,6 +3,8 @@ import fs from 'node:fs';
 const read = (path) =>
   fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
+const candidates = read('app/api/recommendations/route.ts');
+const recommendationTypes = read('types/recommendations.ts');
 const taste = read('app/api/recommendations/taste/route.ts');
 const tasteGraph = read('lib/taste-graph.ts');
 const feedback = read('app/api/recommendations/feedback/route.ts');
@@ -107,6 +109,36 @@ if (
 }
 if (!feed.includes('buildRecommendationRails')) {
   failures.push('Netflix-style recommendation rails are not wired');
+}
+if (
+  !candidates.includes("'preferred_genre'") ||
+  !candidates.includes("'ongoing'") ||
+  !candidates.includes("'mood'") ||
+  !candidates.includes('findAnimeGenre') ||
+  !candidates.includes('selectCandidateSource')
+) {
+  failures.push('17.8.3 multi-source candidate retrieval is incomplete');
+}
+if (
+  !candidates.includes('animebox-recommendation-candidates-v5-multisource') ||
+  !candidates.includes('tasteGenre') ||
+  !candidates.includes('bucket')
+) {
+  failures.push('candidate retrieval does not preserve finite shared cache keys');
+}
+if (
+  !feed.includes('readCachedTasteGraph') ||
+  !feed.includes('getCandidateContext') ||
+  !feed.includes("params.set('genre', context.genre)") ||
+  !feed.includes('mood: context.mood')
+) {
+  failures.push('Smart Feed does not provide finite taste context to retrieval');
+}
+if (
+  !recommendationTypes.includes('RecommendationCandidateSource') ||
+  !recommendationTypes.includes('preferred_genre')
+) {
+  failures.push('candidate source response contract is missing');
 }
 if (
   !rails.includes("id: 'endless'") ||
