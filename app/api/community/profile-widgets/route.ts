@@ -1,6 +1,6 @@
 import {
   ApiError,
-  ensureAnime,
+  ensureAnimes,
   failure,
   positiveInteger,
   readJsonBody,
@@ -69,74 +69,29 @@ export async function POST(request: Request) {
   try {
     const { client, user } = await userClient();
     const limited = await enforceIpAndUserRateLimit(request, user.id, {
-      ip: { scope: 'profile_widgets_write_ip', limit: 60, windowSeconds: 60 },
-      user: { scope: 'profile_widgets_write_user', limit: 30, windowSeconds: 60 },
+      ip: { scope: 'profile_widgets_write_ip', limit: 45, windowSeconds: 60 },
+      user: { scope: 'profile_widgets_write_user', limit: 20, windowSeconds: 60 },
     });
     if (limited) return limited;
 
     const body = await readJsonBody(request, { maxBytes: 12_000 });
     const action = String(body.action || '');
 
-    if (action === 'save_layout') {
-      const layout = parseLayout(body.layout);
-
-      const { error } = await client
-        .from('profile_widgets')
-        .upsert(
-          layout.map((item) => ({
-            user_id: user.id,
-            ...item,
-            updated_at: new Date().toISOString(),
-          })),
-          { onConflict: 'user_id,widget_key' },
-        );
-
-      if (error) throw error;
-    } else if (action === 'set_favorites') {
-      const animeIds = parseFavoriteIds(body.animeIds);
-
-      await Promise.all(animeIds.map((animeId) => ensureAnime(animeId)));
-
-      const { data: existing, error: existingError } = await client
-        .from('profile_favorite_anime')
-        .select('anime_id')
-        .eq('user_id', user.id);
-
-      if (existingError) throw existingError;
-
-      const nextSet = new Set(animeIds);
-      const removed = (existing ?? [])
-        .map((row) => Number(row.anime_id))
-        .filter((animeId) => Number.isSafeInteger(animeId) && !nextSet.has(animeId));
-
-      if (removed.length) {
-        const { error: deleteError } = await client
-          .from('profile_favorite_anime')
-          .delete()
-          .eq('user_id', user.id)
-          .in('anime_id', removed);
-
-        if (deleteError) throw deleteError;
-      }
-
-      if (animeIds.length) {
-        const { error: upsertError } = await client
-          .from('profile_favorite_anime')
-          .upsert(
-            animeIds.map((animeId, position) => ({
-              user_id: user.id,
-              anime_id: animeId,
-              position,
-              updated_at: new Date().toISOString(),
-            })),
-            { onConflict: 'user_id,anime_id' },
-          );
-
-        if (upsertError) throw upsertError;
-      }
-    } else {
+    if (action !== 'save_identity') {
       throw new ApiError(400, 'Неизвестное действие.');
     }
+
+    const layout = parseLayout(body.layout);
+    const animeIds = parseFavoriteIds(body.animeIds);
+
+    await ensureAnimes(animeIds);
+
+    const { error } = await client.rpc('save_my_profile_identity', {
+      p_layout: layout,
+      p_anime_ids: animeIds,
+    });
+
+    if (error) throw error;
 
     return response({
       ok: true,
