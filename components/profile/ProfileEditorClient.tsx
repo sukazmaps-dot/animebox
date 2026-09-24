@@ -150,8 +150,11 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     if (!user?.id || activeTab !== 'showcase' || showcase) return;
 
     let active = true;
-    setShowcaseLoading(true);
-    setShowcaseError('');
+    queueMicrotask(() => {
+      if (!active) return;
+      setShowcaseLoading(true);
+      setShowcaseError('');
+    });
 
     void communityRequest<{ ok: boolean; widgets: ProfileWidgetsData }>('profile-widgets')
       .then((payload) => {
