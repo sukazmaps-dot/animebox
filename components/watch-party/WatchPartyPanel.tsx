@@ -85,7 +85,7 @@ type RoomIdentitiesResponse = {
   users?: RoomPublicIdentity[];
 };
 
-const HOST_HEARTBEAT_MS = 45_000;
+const HOST_HEARTBEAT_MS = 20_000;
 const PLAYER_SYNC_MS = 20_000;
 const PLAYER_DRIFT_SEEK_SECONDS = 2;
 const CHAT_SEND_COOLDOWN_MS = 650;
@@ -95,7 +95,7 @@ const MAX_RECONNECT_ATTEMPTS = 6;
 const HOST_STARTUP_TIMEOUT_MS = 15_000;
 const IDENTITY_BOOT_TIMEOUT_MS = 4_000;
 const GUEST_HEALTH_CHECK_MS = 15_000;
-const HOST_STALE_MS = 90_000;
+const HOST_STALE_MS = 75_000;
 const P2P_ACCELERATOR_GUEST_LIMIT = 6;
 const REACTION_COOLDOWN_MS = 850;
 
@@ -227,10 +227,32 @@ export default function WatchPartyPanel({
   const relayHostGuestIdsRef = useRef(new Set<string>());
   const lastReactionSentAtRef = useRef(0);
   const voteByUserRef = useRef(new Map<string, WatchPartyVote>());
+  const wasReconnectingRef = useRef(false);
+  const lastPresenceCountRef = useRef(0);
 
   useEffect(() => {
     statusRef.current = status;
-  }, [status]);
+
+    if (status === 'reconnecting') {
+      wasReconnectingRef.current = true;
+      return;
+    }
+
+    if (status === 'active' && wasReconnectingRef.current) {
+      wasReconnectingRef.current = false;
+      trackProductClientEvent('watch_party_reconnected', {
+        source: roleRef.current === 'host' ? 'room_host' : 'room_guest',
+        path: window.location.pathname,
+        entityType: 'watch_party_room',
+        entityId: inviteRef.current?.roomId,
+        metadata: {
+          role: roleRef.current,
+          route: networkRoute,
+          episode: episodeNumber,
+        },
+      });
+    }
+  }, [episodeNumber, networkRoute, status]);
 
   const publishReaction = useCallback((reaction: WatchPartyReactionEvent) => {
     setLiveReactions((current) => [...current, reaction].slice(-10));
@@ -269,8 +291,27 @@ export default function WatchPartyPanel({
     const sorted = [...byUser.values()]
       .sort((left, right) => Number(right.host) - Number(left.host) || left.joinedAt - right.joinedAt)
       .slice(0, WATCH_PARTY_MAX_PARTICIPANTS);
+
+    const nextCount = sorted.length;
+    if (
+      roleRef.current === 'host' &&
+      lastPresenceCountRef.current !== nextCount
+    ) {
+      lastPresenceCountRef.current = nextCount;
+      trackProductClientEvent('watch_party_presence_changed', {
+        source: 'room_host',
+        path: window.location.pathname,
+        entityType: 'watch_party_room',
+        entityId: inviteRef.current?.roomId,
+        metadata: {
+          participants: nextCount,
+          episode: episodeNumber,
+        },
+      });
+    }
+
     setParticipants(sorted);
-  }, []);
+  }, [episodeNumber]);
 
   const resolveIdentity = useCallback(async (): Promise<PartyIdentity | null> => {
     if (!identityPromiseRef.current) {
