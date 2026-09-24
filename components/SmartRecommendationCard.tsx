@@ -4,12 +4,17 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
 import AnimeImage from '@/components/AnimeImage';
+import Icon from '@/components/Icon';
 import { animeHref } from '@/lib/anime-url';
 import { getAnimeTitle } from '@/lib/anime-display';
 import { communityRequest } from '@/lib/community-client';
+import { persistRecommendationFeedback } from '@/lib/recommendation-feedback-client';
 import {
   createImpressionId,
   hideRecommendation,
+  likeRecommendation,
+  markRecommendationWatched,
+  RECOMMENDATION_MODEL_VERSION,
   trackRecommendationEvent,
   type TasteMood,
 } from '@/lib/personalization';
@@ -48,12 +53,14 @@ export default function SmartRecommendationCard({
   position,
   mood,
   recommendationSessionId,
+  source = 'smart_feed',
   onHidden,
 }: {
   recommendation: RankedRecommendation;
   position: number;
   mood: TasteMood;
   recommendationSessionId?: string;
+  source?: string;
   onHidden: (animeId: number) => void;
 }) {
   const { anime, reason, reasons, matchScore } = recommendation;
@@ -63,6 +70,18 @@ export default function SmartRecommendationCard({
   const impressionSentRef = useRef(false);
   const hoverStartedAtRef = useRef<number | null>(null);
   const [planState, setPlanState] = useState<'idle' | 'saving' | 'saved' | 'auth' | 'error'>('idle');
+  const [liked, setLiked] = useState(false);
+
+  const eventContext = {
+    animeId: anime.id,
+    impressionId: impressionIdRef.current,
+    position,
+    source,
+    mood,
+    recommendationSessionId,
+    matchScore: matchScore ?? undefined,
+    reason,
+  };
 
   useEffect(() => {
     const element = rootRef.current;
@@ -81,14 +100,7 @@ export default function SmartRecommendationCard({
             impressionSentRef.current = true;
             trackRecommendationEvent({
               type: 'impression',
-              animeId: anime.id,
-              impressionId: impressionIdRef.current,
-              position,
-              source: 'smart_feed',
-              mood,
-              recommendationSessionId,
-              matchScore: matchScore ?? undefined,
-              reason,
+              ...eventContext,
             });
             observer.disconnect();
           }, 1000);
@@ -106,19 +118,20 @@ export default function SmartRecommendationCard({
       if (timer !== null) window.clearTimeout(timer);
       observer.disconnect();
     };
-  }, [anime.id, matchScore, mood, position, reason, recommendationSessionId]);
+  }, [
+    anime.id,
+    matchScore,
+    mood,
+    position,
+    reason,
+    recommendationSessionId,
+    source,
+  ]);
 
   function trackOpen() {
     trackRecommendationEvent({
       type: 'open',
-      animeId: anime.id,
-      impressionId: impressionIdRef.current,
-      position,
-      source: 'smart_feed',
-      mood,
-      recommendationSessionId,
-      matchScore: matchScore ?? undefined,
-      reason,
+      ...eventContext,
     });
   }
 
@@ -136,15 +149,8 @@ export default function SmartRecommendationCard({
 
     trackRecommendationEvent({
       type: 'dwell',
-      animeId: anime.id,
-      impressionId: impressionIdRef.current,
-      position,
-      source: 'smart_feed',
-      mood,
-      recommendationSessionId,
+      ...eventContext,
       dwellMs: Math.min(dwellMs, 30_000),
-      matchScore: matchScore ?? undefined,
-      reason,
     });
   }
 
@@ -163,14 +169,7 @@ export default function SmartRecommendationCard({
       window.dispatchEvent(new Event('library-updated'));
       trackRecommendationEvent({
         type: 'planned',
-        animeId: anime.id,
-        impressionId: impressionIdRef.current,
-        position,
-        source: 'smart_feed',
-        mood,
-        recommendationSessionId,
-        matchScore: matchScore ?? undefined,
-        reason,
+        ...eventContext,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message.toLowerCase() : '';
@@ -178,18 +177,51 @@ export default function SmartRecommendationCard({
     }
   }
 
+  function likeMore() {
+    if (liked) return;
+    setLiked(true);
+    likeRecommendation(anime);
+    trackRecommendationEvent({
+      type: 'liked',
+      ...eventContext,
+    });
+    void persistRecommendationFeedback({
+      animeId: anime.id,
+      signal: 'like_more',
+      source,
+      reason,
+      modelVersion: RECOMMENDATION_MODEL_VERSION,
+    });
+  }
+
+  function markWatched() {
+    markRecommendationWatched(anime);
+    trackRecommendationEvent({
+      type: 'already_watched',
+      ...eventContext,
+    });
+    void persistRecommendationFeedback({
+      animeId: anime.id,
+      signal: 'already_watched',
+      source,
+      reason,
+      modelVersion: RECOMMENDATION_MODEL_VERSION,
+    });
+    onHidden(anime.id);
+  }
+
   function dismiss() {
     hideRecommendation(anime);
     trackRecommendationEvent({
       type: 'not_interested',
+      ...eventContext,
+    });
+    void persistRecommendationFeedback({
       animeId: anime.id,
-      impressionId: impressionIdRef.current,
-      position,
-      source: 'smart_feed',
-      mood,
-      recommendationSessionId,
-      matchScore: matchScore ?? undefined,
+      signal: 'not_interested',
+      source,
       reason,
+      modelVersion: RECOMMENDATION_MODEL_VERSION,
     });
     onHidden(anime.id);
   }
@@ -271,7 +303,12 @@ export default function SmartRecommendationCard({
       </Link>
 
       <div className="smart-card__body">
-        <Link href={animeHref(anime)} onClick={trackOpen} className="smart-card__title" title={title}>
+        <Link
+          href={animeHref(anime)}
+          onClick={trackOpen}
+          className="smart-card__title"
+          title={title}
+        >
           {title}
         </Link>
 
@@ -294,12 +331,37 @@ export default function SmartRecommendationCard({
             disabled={planState === 'saving' || planState === 'saved'}
           >
             <span
-              className={planState === 'saving' ? 'smart-card__plan-icon is-spinner' : 'smart-card__plan-icon'}
+              className={
+                planState === 'saving'
+                  ? 'smart-card__plan-icon is-spinner'
+                  : 'smart-card__plan-icon'
+              }
               aria-hidden="true"
             >
               {planState === 'saving' ? '' : planIcon}
             </span>
             <span className="smart-card__plan-label">{planLabel}</span>
+          </button>
+
+          <button
+            type="button"
+            className={liked ? 'smart-card__feedback is-active' : 'smart-card__feedback'}
+            onClick={likeMore}
+            aria-pressed={liked}
+            aria-label={`Хочу больше похожего на ${title}`}
+            title="Больше похожего"
+          >
+            <Icon name="heart" size={15} weight={liked ? 'fill' : 'regular'} />
+          </button>
+
+          <button
+            type="button"
+            className="smart-card__feedback"
+            onClick={markWatched}
+            aria-label={`Я уже смотрел ${title}`}
+            title="Уже смотрел"
+          >
+            <Icon name="check" size={15} weight="bold" />
           </button>
 
           <button
