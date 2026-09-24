@@ -6,7 +6,15 @@ import styles from './CommunityAdminClient.module.css';
 
 type Dashboard = {
   role: 'owner' | 'admin' | 'moderator';
-  metrics: { messages24h: number; activeChatters24h: number; openReports: number; restrictedUsers: number };
+  metrics: {
+    messages24h: number;
+    comments24h: number;
+    activeChatters24h: number;
+    acceptedFriendships: number;
+    onlineNow: number;
+    openReports: number;
+    restrictedUsers: number;
+  };
   settings: { slowModeSeconds: number; pinnedMessageId: string | null; updatedAt: string | null };
   reports: Array<{
     id: string; message_id: string; reporter_id: string; reason: string; details: string | null; created_at: string;
@@ -73,7 +81,10 @@ export default function CommunityAdminClient() {
 
       <section className={styles.metrics}>
         <article><span>Сообщений · 24ч</span><strong>{data.metrics.messages24h}</strong></article>
-        <article><span>Писали · 24ч</span><strong>{data.metrics.activeChatters24h}</strong></article>
+        <article><span>Комментариев · 24ч</span><strong>{data.metrics.comments24h}</strong></article>
+        <article><span>Писали в чат · 24ч</span><strong>{data.metrics.activeChatters24h}</strong></article>
+        <article><span>В друзьях</span><strong>{data.metrics.acceptedFriendships}</strong></article>
+        <article><span>Онлайн сейчас</span><strong>{data.metrics.onlineNow}</strong></article>
         <article><span>Открытых жалоб</span><strong>{data.metrics.openReports}</strong></article>
         <article><span>Ограничено</span><strong>{data.metrics.restrictedUsers}</strong></article>
       </section>
