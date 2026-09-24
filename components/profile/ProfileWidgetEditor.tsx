@@ -72,21 +72,6 @@ export default function ProfileWidgetEditor({
   useEffect(() => {
     if (!open) return;
 
-    setLayout(normalizeLayout(data.layout));
-    setFavoriteIds(data.favorites.map((item) => item.animeId));
-    setKnownTitles((current) => ({
-      ...current,
-      ...Object.fromEntries(data.favorites.map((item) => [
-        item.animeId,
-        { title: item.title, posterUrl: item.posterUrl },
-      ])),
-    }));
-    setMessage('');
-  }, [data, open]);
-
-  useEffect(() => {
-    if (!open) return;
-
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
       setSearching(true);
@@ -129,6 +114,22 @@ export default function ProfileWidgetEditor({
     })),
     [favoriteIds, knownTitles],
   );
+
+  function openEditor() {
+    setLayout(normalizeLayout(data.layout));
+    setFavoriteIds(data.favorites.map((item) => item.animeId));
+    setKnownTitles((current) => ({
+      ...current,
+      ...Object.fromEntries(data.favorites.map((item) => [
+        item.animeId,
+        { title: item.title, posterUrl: item.posterUrl },
+      ])),
+    }));
+    setQuery('');
+    setResults([]);
+    setMessage('');
+    setOpen(true);
+  }
 
   function moveWidget(index: number, direction: -1 | 1) {
     const target = index + direction;
@@ -215,7 +216,7 @@ export default function ProfileWidgetEditor({
       <button
         type="button"
         className="profile-widgets-edit-button"
-        onClick={() => setOpen(true)}
+        onClick={openEditor}
       >
         Настроить витрину
       </button>
