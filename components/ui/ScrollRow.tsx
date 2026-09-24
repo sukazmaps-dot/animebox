@@ -16,6 +16,7 @@ type ScrollRowProps = {
   ariaLabel?: string;
   stepRatio?: number;
   hasMore?: boolean;
+  loading?: boolean;
   onEndReached?: () => void;
   endReachedRootMargin?: string;
 };
@@ -28,11 +29,13 @@ export default function ScrollRow({
   ariaLabel = 'Горизонтальная лента',
   stepRatio = 0.8,
   hasMore = false,
+  loading = false,
   onEndReached,
-  endReachedRootMargin = '0px 650px 0px 0px',
+  endReachedRootMargin = '0px 55% 0px 0px',
 }: ScrollRowProps) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const scrollFrameRef = useRef<number | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
@@ -61,12 +64,24 @@ export default function ScrollRow({
     });
     mutationObserver.observe(track, { childList: true, subtree: false });
 
-    track.addEventListener('scroll', updateScrollState, { passive: true });
+    const scheduleScrollState = () => {
+      if (scrollFrameRef.current !== null) return;
+      scrollFrameRef.current = window.requestAnimationFrame(() => {
+        scrollFrameRef.current = null;
+        updateScrollState();
+      });
+    };
+
+    track.addEventListener('scroll', scheduleScrollState, { passive: true });
 
     return () => {
       resizeObserver.disconnect();
       mutationObserver.disconnect();
-      track.removeEventListener('scroll', updateScrollState);
+      track.removeEventListener('scroll', scheduleScrollState);
+      if (scrollFrameRef.current !== null) {
+        window.cancelAnimationFrame(scrollFrameRef.current);
+        scrollFrameRef.current = null;
+      }
     };
   }, [updateScrollState]);
 
@@ -84,7 +99,7 @@ export default function ScrollRow({
     const root = trackRef.current;
     const target = sentinelRef.current;
 
-    if (!root || !target || !onEndReached || !hasMore) return;
+    if (!root || !target || !onEndReached || !hasMore || loading) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -102,7 +117,7 @@ export default function ScrollRow({
     observer.observe(target);
 
     return () => observer.disconnect();
-  }, [endReachedRootMargin, hasMore, onEndReached]);
+  }, [endReachedRootMargin, hasMore, loading, onEndReached]);
 
   const scrollByDirection = useCallback(
     (direction: 'left' | 'right') => {
@@ -113,6 +128,7 @@ export default function ScrollRow({
         direction === 'right' &&
         !canScrollRight &&
         hasMore &&
+        !loading &&
         onEndReached
       ) {
         onEndReached();
@@ -125,7 +141,7 @@ export default function ScrollRow({
         behavior: 'smooth',
       });
     },
-    [canScrollRight, hasMore, onEndReached, stepRatio],
+    [canScrollRight, hasMore, loading, onEndReached, stepRatio],
   );
 
   return (

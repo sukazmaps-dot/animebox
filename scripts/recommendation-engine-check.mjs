@@ -14,6 +14,8 @@ const feedback = read('app/api/recommendations/feedback/route.ts');
 const card = read('components/SmartRecommendationCard.tsx');
 const feed = read('components/SmartRecommendationFeed.tsx');
 const rails = read('lib/recommendation-rails.ts');
+const scrollRow = read('components/ui/ScrollRow.tsx');
+const animeImage = read('components/AnimeImage.tsx');
 const smartHomeStyles = read('app/smart-home.css');
 const productEvents = read('lib/product-event-names.ts');
 const watch = read('components/useWatchSession.ts');
@@ -215,10 +217,40 @@ if (
 if (
   !rails.includes("id: 'endless'") ||
   !rails.includes("source: 'smart_feed_endless'") ||
-  !feed.includes("rail.id === 'endless' ? hasMore : false") ||
-  !feed.includes("rail.id === 'endless'")
+  !rails.includes('buildRecommendationRailLayout') ||
+  !rails.includes('ownership: Map<number, RecommendationRailId>') ||
+  !rails.includes('recommendationMatchesRail') ||
+  !feed.includes('hasMore={railHasMore}') ||
+  !feed.includes('loading={railLoading}') ||
+  !feed.includes('ensureRailDepth(rail)') ||
+  feed.includes("rail.id === 'endless' ? hasMore : false")
 ) {
-  failures.push('endless recommendation pagination rail is not preserved');
+  failures.push('17.8.9 per-rail infinite pagination is incomplete');
+}
+if (
+  !scrollRow.includes('IntersectionObserver') ||
+  !scrollRow.includes('root,') ||
+  !scrollRow.includes('loading = false') ||
+  !scrollRow.includes('requestAnimationFrame')
+) {
+  failures.push('17.8.9 ScrollRow observer/per-frame scroll handling is incomplete');
+}
+if (
+  !feed.includes('sharedBatchPromiseRef') ||
+  !feed.includes('MAX_EMPTY_PAGE_HOPS') ||
+  !feed.includes('seenRecommendationIdsRef') ||
+  !feed.includes('railOwnershipRef') ||
+  !feed.includes('AbortController')
+) {
+  failures.push('17.8.9 shared candidate loader/dedupe lifecycle is incomplete');
+}
+if (
+  !card.includes('smart-card__feedback-icon') ||
+  !animeImage.includes('IMAGE_LOAD_TIMEOUT_MS') ||
+  !smartHomeStyles.includes('contain: layout paint') ||
+  !smartHomeStyles.includes('.smart-feed__rail-retry')
+) {
+  failures.push('17.8.9 card icon/media stability fixes are incomplete');
 }
 if (!card.includes('already_watched') || !card.includes('like_more')) {
   failures.push('recommendation card is missing explicit preference controls');

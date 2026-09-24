@@ -18,6 +18,7 @@ import {
 
 const FALLBACK =
   '/brand/brand-mark.webp';
+const IMAGE_LOAD_TIMEOUT_MS = 12_000;
 
 type Props = {
   image?: ImageData | null;
@@ -174,6 +175,41 @@ export default function AnimeImage({
    * Поддержка изображений, которые браузер/Next Image уже взял из cache.
    * State update выполняем в animation frame, а не синхронно внутри effect.
    */
+  useEffect(() => {
+    if (loaded || isFallback) return;
+
+    const timeout = window.setTimeout(() => {
+      setImageState((previous) => {
+        const previousIndex =
+          previous.key === sourcesKey ? previous.sourceIndex : sourceIndex;
+
+        if (
+          previous.key === sourcesKey &&
+          previousIndex !== sourceIndex
+        ) {
+          return previous;
+        }
+
+        const nextIndex = Math.min(sourceIndex + 1, sources.length - 1);
+        if (nextIndex === sourceIndex) return previous;
+
+        return {
+          key: sourcesKey,
+          sourceIndex: nextIndex,
+          loaded: false,
+        };
+      });
+    }, IMAGE_LOAD_TIMEOUT_MS);
+
+    return () => window.clearTimeout(timeout);
+  }, [
+    isFallback,
+    loaded,
+    sourceIndex,
+    sources.length,
+    sourcesKey,
+  ]);
+
   useEffect(() => {
     const element = imageRef.current;
 

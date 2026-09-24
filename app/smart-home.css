@@ -1248,3 +1248,67 @@
 .smart-card__rating + .smart-card__match {
   top: 46px;
 }
+
+
+/* Patch 17.8.9 — Smart Feed rail pagination + media stability */
+.smart-card__poster {
+  contain: layout paint;
+}
+
+.smart-card__poster > div:first-child {
+  min-height: 100%;
+}
+
+.smart-card__feedback,
+.smart-card__dismiss {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  padding: 0;
+}
+
+.smart-card__feedback svg,
+.smart-card__feedback-icon {
+  display: block;
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+}
+
+.smart-card__feedback-icon {
+  overflow: visible;
+}
+
+.smart-feed__rail-retry {
+  align-self: stretch;
+  width: clamp(168px, 15vw, 210px);
+  min-height: 120px;
+  padding: 14px;
+  border: 1px dashed rgba(155, 133, 255, .22);
+  border-radius: 12px;
+  background: rgba(14, 19, 34, .72);
+  color: #a99ce3;
+  font: inherit;
+  font-size: 9px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.smart-feed__rail-retry:hover {
+  border-color: rgba(169, 148, 255, .42);
+  background: rgba(28, 24, 52, .78);
+  color: #d4ccff;
+}
+
+@media (max-width: 720px) {
+  .smart-card__feedback svg,
+  .smart-card__feedback-icon {
+    width: 18px;
+    height: 18px;
+    flex-basis: 18px;
+  }
+
+  .smart-feed__rail-retry {
+    width: 154px;
+  }
+}

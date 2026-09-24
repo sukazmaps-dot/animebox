@@ -419,7 +419,19 @@ export default function SmartRecommendationCard({
             aria-label={`Не рекомендовать ${title}`}
             title="Не интересно"
           >
-            ×
+            <svg
+              className="smart-card__feedback-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M6.5 6.5l11 11M17.5 6.5l-11 11"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
           </button>
         </div>
       </div>

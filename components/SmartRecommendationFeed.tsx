@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  startTransition,
   useCallback,
   useEffect,
   useMemo,
@@ -16,7 +17,15 @@ import {
   type RankedRecommendation,
 } from '@/lib/recommendations';
 import type { RecommendationPage } from '@/types/recommendations';
-import { buildRecommendationRails } from '@/lib/recommendation-rails';
+import {
+  buildRecommendationRailLayout,
+  DEFAULT_RECOMMENDATION_RAIL_LIMIT,
+  recommendationMatchesRail,
+  RECOMMENDATION_RAIL_BATCH_SIZE,
+  type RecommendationRail,
+  type RecommendationRailId,
+  type RecommendationRailLimits,
+} from '@/lib/recommendation-rails';
 import { readCachedTasteGraph } from '@/lib/taste-graph';
 
 const PAGE_SIZE = 20;
@@ -25,6 +34,7 @@ const CLIENT_PAGE_CACHE_TTL_MS = 15 * 60 * 1000;
 const CLIENT_PAGE_CACHE_PREFIX = 'animebox:recommendation-page:v6:';
 const MAX_SESSION_CACHE_ENTRIES = 14;
 const MOOD_SWAP_FADE_OUT_MS = 135;
+const RAIL_SKELETON_COUNT = 3;
 
 type CachedPage = {
   expiresAt: number;
@@ -196,6 +206,7 @@ async function loadCandidatePage(
   pointer: CandidatePointer,
   bucket: number,
   context: CandidateContext,
+  signal?: AbortSignal,
 ): Promise<RecommendationPage> {
   const key = pageCacheKey(pointer, bucket, context);
   const cached = readCachedPage(key);
@@ -231,6 +242,7 @@ async function loadCandidatePage(
     headers: {
       Accept: 'application/json',
     },
+    signal,
   })
     .then(async (response) => {
       if (!response.ok) {
@@ -288,7 +300,6 @@ export default function SmartRecommendationFeed({
   mood: TasteMood;
   hasWatchHistory: boolean;
 }) {
-  const fetchLockRef = useRef(false);
   const previousMoodRef = useRef(mood);
   const pendingItemsRef = useRef(items);
   const moodTransitionRef = useRef(false);
@@ -296,6 +307,11 @@ export default function SmartRecommendationFeed({
   const transitionTimerRef = useRef<number | null>(null);
   const revealFrameARef = useRef<number | null>(null);
   const revealFrameBRef = useRef<number | null>(null);
+  const requestControllerRef = useRef<AbortController | null>(null);
+  const requestGenerationRef = useRef(0);
+  const sharedBatchPromiseRef = useRef<Promise<RankedRecommendation[]> | null>(null);
+  const railLoadingRef = useRef<Set<RecommendationRailId>>(new Set());
+  const railOwnershipRef = useRef<Map<number, RecommendationRailId>>(new Map());
 
   const [sessionId, setSessionId] = useState(() => createSessionId());
   const [displayedMood, setDisplayedMood] = useState<TasteMood>(mood);
@@ -303,12 +319,26 @@ export default function SmartRecommendationFeed({
   const [rowVersion, setRowVersion] = useState(0);
   const [recommendations, setRecommendations] =
     useState<RankedRecommendation[]>(items);
+  const seenRecommendationIdsRef = useRef<Set<number>>(
+    new Set(items.map(({ anime }) => anime.id)),
+  );
   const [locallyHidden, setLocallyHidden] =
     useState<Set<number>>(() => new Set());
-  const [pointer, setPointer] = useState<CandidatePointer>({ page: 2, cursor: null });
+  const [pointer, setPointer] = useState<CandidatePointer>({
+    page: 2,
+    cursor: null,
+  });
+  const pointerRef = useRef<CandidatePointer>(pointer);
   const [hasMore, setHasMore] = useState(true);
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
-  const [error, setError] = useState('');
+  const hasMoreRef = useRef(true);
+  const [railLimits, setRailLimits] =
+    useState<RecommendationRailLimits>({});
+  const [loadingRails, setLoadingRails] =
+    useState<Set<RecommendationRailId>>(() => new Set());
+  const [exhaustedRails, setExhaustedRails] =
+    useState<Set<RecommendationRailId>>(() => new Set());
+  const [railErrors, setRailErrors] =
+    useState<Set<RecommendationRailId>>(() => new Set());
 
   const bucket = useMemo(() => getSessionBucket(sessionId), [sessionId]);
 
@@ -317,21 +347,30 @@ export default function SmartRecommendationFeed({
     [items],
   );
 
-  /*
-   * Mood changes used to replace/sort the entire row in one React render.
-   * That makes every card teleport to a new position and looks like a layout
-   * glitch. Keep the old row mounted for a tiny fade-out, swap while hidden,
-   * remount ScrollRow at scrollLeft=0, then reveal the new ranking.
-   *
-   * Extra taste/history updates that arrive during the transition only update
-   * pendingItemsRef; they do NOT mutate the visible old row mid-animation.
-   */
+  const replacePointer = useCallback((next: CandidatePointer) => {
+    pointerRef.current = next;
+    setPointer(next);
+  }, []);
+
+  const replaceHasMore = useCallback((next: boolean) => {
+    hasMoreRef.current = next;
+    setHasMore(next);
+  }, []);
+
+  const resetRequestController = useCallback(() => {
+    requestControllerRef.current?.abort();
+    requestControllerRef.current = new AbortController();
+    requestGenerationRef.current += 1;
+    sharedBatchPromiseRef.current = null;
+  }, []);
+
   useEffect(() => {
     pendingItemsRef.current = items;
 
     if (previousMoodRef.current !== mood) {
       previousMoodRef.current = mood;
       moodTransitionRef.current = true;
+      resetRequestController();
 
       transitionTokenRef.current += 1;
       const token = transitionTokenRef.current;
@@ -355,22 +394,28 @@ export default function SmartRecommendationFeed({
       transitionTimerRef.current = window.setTimeout(() => {
         if (transitionTokenRef.current !== token) return;
 
+        const nextItems = pendingItemsRef.current;
         setSessionId(createSessionId());
         setDisplayedMood(mood);
-        setRecommendations(pendingItemsRef.current);
+        setRecommendations(nextItems);
+        seenRecommendationIdsRef.current = new Set(
+          nextItems.map(({ anime }) => anime.id),
+        );
+        railOwnershipRef.current = new Map();
+        railLoadingRef.current = new Set();
         setLocallyHidden(new Set());
-        setPointer({ page: 2, cursor: null });
-        setHasMore(true);
-        setError('');
+        setRailLimits({});
+        setLoadingRails(new Set());
+        setExhaustedRails(new Set());
+        setRailErrors(new Set());
+        replacePointer({ page: 2, cursor: null });
+        replaceHasMore(true);
 
-        // Remounting only the horizontal row resets scrollLeft while it is
-        // invisible, so there is no visible sideways snap.
         setRowVersion((version) => version + 1);
 
         revealFrameARef.current = window.requestAnimationFrame(() => {
           revealFrameBRef.current = window.requestAnimationFrame(() => {
             if (transitionTokenRef.current !== token) return;
-
             setIsMoodSwapping(false);
             moodTransitionRef.current = false;
           });
@@ -380,15 +425,34 @@ export default function SmartRecommendationFeed({
       return;
     }
 
-    if (moodTransitionRef.current) {
-      return;
-    }
+    if (moodTransitionRef.current) return;
 
-    setRecommendations((current) => mergeUnique(current, items));
-  }, [initialSignature, items, mood]);
+    const unseen = items.filter(
+      ({ anime }) => !seenRecommendationIdsRef.current.has(anime.id),
+    );
+    if (unseen.length) {
+      unseen.forEach(({ anime }) =>
+        seenRecommendationIdsRef.current.add(anime.id),
+      );
+      setRecommendations((current) => mergeUnique(current, unseen));
+    }
+  }, [
+    initialSignature,
+    items,
+    mood,
+    replaceHasMore,
+    replacePointer,
+    resetRequestController,
+  ]);
 
   useEffect(() => {
+    if (!requestControllerRef.current) {
+      requestControllerRef.current = new AbortController();
+    }
+
     return () => {
+      requestGenerationRef.current += 1;
+      requestControllerRef.current?.abort();
       transitionTokenRef.current += 1;
 
       if (transitionTimerRef.current !== null) {
@@ -403,9 +467,6 @@ export default function SmartRecommendationFeed({
     };
   }, []);
 
-  /* Warm exactly one page ahead, but keep it outside the LCP window.
-     The first recommendation batch is already present, so this request is
-     speculative and should never compete with the hero on slow mobile data. */
   useEffect(() => {
     const timer = window.setTimeout(() => {
       prefetchCandidatePage(
@@ -423,81 +484,171 @@ export default function SmartRecommendationFeed({
     [locallyHidden, recommendations],
   );
 
-  const rails = useMemo(
+  const railLayout = useMemo(
     () =>
-      buildRecommendationRails(filtered, {
+      buildRecommendationRailLayout(filtered, {
         mood: displayedMood,
         hasWatchHistory,
         hasMore,
+        limits: railLimits,
+        ownership: railOwnershipRef.current,
       }),
-    [displayedMood, filtered, hasMore, hasWatchHistory],
+    [displayedMood, filtered, hasMore, hasWatchHistory, railLimits],
   );
 
-  const fetchNextPage = useCallback(async () => {
-    if (fetchLockRef.current || !hasMore || moodTransitionRef.current) return;
+  useEffect(() => {
+    railOwnershipRef.current = railLayout.ownership;
+  }, [railLayout.ownership]);
 
-    fetchLockRef.current = true;
-    setIsFetchingMore(true);
-    setError('');
+  const rails = railLayout.rails;
 
-    let nextPointer = pointer;
-    let moreAvailable: boolean = hasMore;
-    let appended = false;
+  const fetchNextCandidateBatch = useCallback(async () => {
+    if (!hasMoreRef.current || moodTransitionRef.current) return [];
+
+    const existing = sharedBatchPromiseRef.current;
+    if (existing) return existing;
+
+    if (!requestControllerRef.current || requestControllerRef.current.signal.aborted) {
+      requestControllerRef.current = new AbortController();
+    }
+
+    const generation = requestGenerationRef.current;
     const candidateContext = getCandidateContext(displayedMood);
+    const currentPointer = pointerRef.current;
+    const signal = requestControllerRef.current.signal;
 
-    try {
-      /*
-       * A page can legitimately contain only already-watched/hidden titles.
-       * Hop over a few such pages in one request cycle so the sentinel cannot
-       * get stuck at the end of an apparently empty row.
-       */
-      for (
-        let attempt = 0;
-        attempt < MAX_EMPTY_PAGE_HOPS && moreAvailable && !appended;
-        attempt += 1
-      ) {
-        const data = await loadCandidatePage(
-          nextPointer,
-          bucket,
-          candidateContext,
-        );
+    let request: Promise<RankedRecommendation[]>;
+    request = loadCandidatePage(
+      currentPointer,
+      bucket,
+      candidateContext,
+      signal,
+    )
+      .then((data) => {
+        if (generation !== requestGenerationRef.current || signal.aborted) {
+          return [];
+        }
+
         const ranked = getPersonalizedRecommendations(data.items, {
           mood: displayedMood,
           limit: PAGE_SIZE,
         });
+        const fresh = ranked.filter(
+          ({ anime }) => !seenRecommendationIdsRef.current.has(anime.id),
+        );
 
-        if (ranked.length > 0) {
-          setRecommendations((current) => mergeUnique(current, ranked));
-          appended = true;
+        fresh.forEach(({ anime }) =>
+          seenRecommendationIdsRef.current.add(anime.id),
+        );
+
+        if (fresh.length) {
+          startTransition(() => {
+            setRecommendations((current) => mergeUnique(current, fresh));
+          });
         }
 
-        moreAvailable = data.hasMore;
-        nextPointer = {
-          page: data.nextPage ?? nextPointer.page + 1,
+        const nextPointer = {
+          page: data.nextPage ?? currentPointer.page + 1,
           cursor: data.nextCursor ?? null,
         };
+        replacePointer(nextPointer);
+        replaceHasMore(data.hasMore);
+
+        if (data.hasMore) {
+          prefetchCandidatePage(nextPointer, bucket, candidateContext);
+        }
+
+        return fresh;
+      })
+      .finally(() => {
+        if (sharedBatchPromiseRef.current === request) {
+          sharedBatchPromiseRef.current = null;
+        }
+      });
+
+    sharedBatchPromiseRef.current = request;
+    return request;
+  }, [bucket, displayedMood, replaceHasMore, replacePointer]);
+
+  const ensureRailDepth = useCallback(
+    async (rail: RecommendationRail) => {
+      if (
+        moodTransitionRef.current ||
+        !hasMoreRef.current ||
+        railLoadingRef.current.has(rail.id) ||
+        exhaustedRails.has(rail.id)
+      ) {
+        return;
       }
 
-      setPointer(nextPointer);
-      setHasMore(moreAvailable);
+      railLoadingRef.current.add(rail.id);
+      setLoadingRails((current) => {
+        const next = new Set(current);
+        next.add(rail.id);
+        return next;
+      });
+      setRailErrors((current) => {
+        if (!current.has(rail.id)) return current;
+        const next = new Set(current);
+        next.delete(rail.id);
+        return next;
+      });
+      setRailLimits((current) => ({
+        ...current,
+        [rail.id]:
+          (current[rail.id] ?? DEFAULT_RECOMMENDATION_RAIL_LIMIT) +
+          RECOMMENDATION_RAIL_BATCH_SIZE,
+      }));
 
-      /*
-       * Prefetch only ONE next page. This hides latency without allowing an
-       * IntersectionObserver to accidentally download the whole catalogue.
-       */
-      if (moreAvailable) {
-        prefetchCandidatePage(nextPointer, bucket, candidateContext);
+      let foundForRail = false;
+
+      try {
+        for (
+          let attempt = 0;
+          attempt < MAX_EMPTY_PAGE_HOPS && hasMoreRef.current && !foundForRail;
+          attempt += 1
+        ) {
+          const fresh = await fetchNextCandidateBatch();
+          foundForRail = fresh.some((item) =>
+            recommendationMatchesRail(item, rail),
+          );
+        }
+
+        if (!foundForRail && hasMoreRef.current) {
+          setExhaustedRails((current) => {
+            const next = new Set(current);
+            next.add(rail.id);
+            return next;
+          });
+        }
+      } catch (fetchError) {
+        if (
+          fetchError instanceof DOMException &&
+          fetchError.name === 'AbortError'
+        ) {
+          return;
+        }
+
+        console.error('Recommendation rail pagination:', rail.id, fetchError);
+        setRailErrors((current) => {
+          const next = new Set(current);
+          next.add(rail.id);
+          return next;
+        });
+      } finally {
+        railLoadingRef.current.delete(rail.id);
+        setLoadingRails((current) => {
+          if (!current.has(rail.id)) return current;
+          const next = new Set(current);
+          next.delete(rail.id);
+          return next;
+        });
       }
-    } catch (fetchError) {
-      console.error('Recommendation pagination:', fetchError);
-      setError('Не удалось догрузить рекомендации');
-    } finally {
-      fetchLockRef.current = false;
-      setIsFetchingMore(false);
-    }
-  }, [bucket, displayedMood, hasMore, pointer]);
+    },
+    [exhaustedRails, fetchNextCandidateBatch],
+  );
 
-  if (filtered.length === 0 && !hasMore && !isFetchingMore) {
+  if (filtered.length === 0 && !hasMore && loadingRails.size === 0) {
     return (
       <div className="smart-feed__empty">
         <strong>Подходящих тайтлов в этой подборке пока не осталось</strong>
@@ -519,82 +670,86 @@ export default function SmartRecommendationFeed({
         aria-busy={isMoodSwapping}
       >
         <div className="smart-feed__rails">
-          {rails.map((rail) => (
-            <section
-              className="smart-feed__personal-rail"
-              key={`${rail.id}:${rowVersion}`}
-              aria-labelledby={`smart-feed-rail-${rail.id}`}
-            >
-              <header className="smart-feed__rail-heading">
-                <div>
-                  <div className="smart-feed__rail-titleline">
-                    <span className="smart-feed__rail-badge">{rail.badge}</span>
-                    <h3 id={`smart-feed-rail-${rail.id}`}>{rail.title}</h3>
-                  </div>
-                  <p>{rail.subtitle}</p>
-                </div>
-              </header>
+          {rails.map((rail) => {
+            const railLoading = loadingRails.has(rail.id);
+            const railHasMore = hasMore && !exhaustedRails.has(rail.id);
+            const railFailed = railErrors.has(rail.id);
 
-              <ScrollRow
-                className="smart-feed__rail"
-                ariaLabel={rail.title}
-                stepRatio={0.82}
-                hasMore={rail.id === 'endless' ? hasMore : false}
-                onEndReached={
-                  rail.id === 'endless'
-                    ? () => void fetchNextPage()
-                    : undefined
-                }
+            return (
+              <section
+                className="smart-feed__personal-rail"
+                key={`${rail.id}:${rowVersion}`}
+                aria-labelledby={`smart-feed-rail-${rail.id}`}
               >
-                {rail.items.map((recommendation, index) => (
-                  <div
-                    className="smart-feed__slide"
-                    key={`${rail.id}:${recommendation.anime.id}`}
-                  >
-                    <SmartRecommendationCard
-                      recommendation={recommendation}
-                      position={index + 1}
-                      mood={displayedMood}
-                      rowId={rail.id}
-                      source={rail.source}
-                      recommendationSessionId={sessionId}
-                      onHidden={(animeId) => {
-                        setLocallyHidden((current) => {
-                          const next = new Set(current);
-                          next.add(animeId);
-                          return next;
-                        });
-                      }}
-                    />
+                <header className="smart-feed__rail-heading">
+                  <div>
+                    <div className="smart-feed__rail-titleline">
+                      <span className="smart-feed__rail-badge">{rail.badge}</span>
+                      <h3 id={`smart-feed-rail-${rail.id}`}>{rail.title}</h3>
+                    </div>
+                    <p>{rail.subtitle}</p>
                   </div>
-                ))}
+                </header>
 
-                {isFetchingMore &&
-                  rail.id === 'endless' &&
-                  Array.from({ length: 4 }).map((_, index) => (
+                <ScrollRow
+                  className="smart-feed__rail"
+                  ariaLabel={rail.title}
+                  stepRatio={0.82}
+                  hasMore={railHasMore}
+                  loading={railLoading}
+                  onEndReached={() => void ensureRailDepth(rail)}
+                >
+                  {rail.items.map((recommendation, index) => (
                     <div
-                      className="smart-feed__slide smart-feed__slide--skeleton"
-                      key={`smart-feed-skeleton-${index}`}
-                      aria-hidden="true"
+                      className="smart-feed__slide"
+                      key={`${rail.id}:${recommendation.anime.id}`}
                     >
-                      <div className="smart-feed__skeleton-card" />
+                      <SmartRecommendationCard
+                        recommendation={recommendation}
+                        position={index + 1}
+                        mood={displayedMood}
+                        rowId={rail.id}
+                        source={rail.source}
+                        recommendationSessionId={sessionId}
+                        onHidden={(animeId) => {
+                          setLocallyHidden((current) => {
+                            const next = new Set(current);
+                            next.add(animeId);
+                            return next;
+                          });
+                        }}
+                      />
                     </div>
                   ))}
-              </ScrollRow>
-            </section>
-          ))}
+
+                  {railLoading &&
+                    Array.from({ length: RAIL_SKELETON_COUNT }).map(
+                      (_, index) => (
+                        <div
+                          className="smart-feed__slide smart-feed__slide--skeleton"
+                          key={`smart-feed-${rail.id}-skeleton-${index}`}
+                          aria-hidden="true"
+                        >
+                          <div className="smart-feed__skeleton-card" />
+                        </div>
+                      ),
+                    )}
+
+                  {railFailed && !railLoading && (
+                    <button
+                      type="button"
+                      className="smart-feed__rail-retry"
+                      onClick={() => void ensureRailDepth(rail)}
+                    >
+                      Не удалось загрузить ещё · Повторить
+                    </button>
+                  )}
+                </ScrollRow>
+              </section>
+            );
+          })}
         </div>
       </div>
-
-      {error && (
-        <button
-          type="button"
-          className="smart-feed__retry"
-          onClick={() => void fetchNextPage()}
-        >
-          Повторить загрузку
-        </button>
-      )}
     </div>
   );
 }
