@@ -69,8 +69,6 @@ export default function CopyrightAdminClient() {
   const [reason, setReason] = useState('');
 
   const load = useCallback(async () => {
-    setError('');
-
     const response = await fetch('/api/admin/copyright', {
       cache: 'no-store',
     });
@@ -83,6 +81,7 @@ export default function CopyrightAdminClient() {
       throw new Error(payload.error || 'Не удалось загрузить обращения.');
     }
 
+    setError('');
     setDashboard(payload);
     setSelectedCaseId((current) => current || payload.cases?.[0]?.id || '');
   }, []);
