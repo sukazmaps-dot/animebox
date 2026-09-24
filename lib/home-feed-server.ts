@@ -14,12 +14,12 @@ const loadHomeInitialFeed = unstable_cache(
   async (): Promise<HomeInitialFeed> => {
     const [popularResult, ongoingResult] = await Promise.allSettled([
       getAnimesWithShikimori({
-        limit: 20,
+        limit: 12,
         page: 1,
         order: 'ranked',
       }),
       getAnimesWithShikimori({
-        limit: 20,
+        limit: 12,
         page: 1,
         order: 'popularity',
         status: 'ongoing',
@@ -31,7 +31,7 @@ const loadHomeInitialFeed = unstable_cache(
       ongoing: ongoingResult.status === 'fulfilled' ? ongoingResult.value : [],
     };
   },
-  ['animebox-home-initial-feed-v2-russian-first'],
+  ['animebox-home-initial-feed-v3-mobile-budget'],
   {
     revalidate: 300,
     tags: ['animebox-home-feed'],
