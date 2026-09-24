@@ -11,9 +11,7 @@ import GoogleAuthButton from '@/components/GoogleAuthButton';
 import TelegramAuthButton from '@/components/TelegramAuthButton';
 import { safeInternalPath } from '@/lib/browser-navigation';
 
-import {
-  createClient,
-} from '@/lib/supabase/client';
+import { emailAuthRequest } from '@/lib/email-auth-client';
 
 
 export default function LoginPage() {
@@ -93,56 +91,22 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    const supabase =
-      createClient();
-
-    const {
-      data,
-      error: signInError,
-    } =
-      await supabase.auth.signInWithPassword({
+    try {
+      await emailAuthRequest({
+        mode: 'login',
         email: cleanEmail,
         password,
       });
 
-    if (signInError) {
+      window.location.replace(nextPath);
+    } catch (requestError) {
       setError(
-        'Неверный email или пароль.',
+        requestError instanceof Error
+          ? requestError.message
+          : 'Не удалось войти в AnimeBox.',
       );
-
       setLoading(false);
-
-      return;
     }
-
-    if (!data.session) {
-      setError(
-        'Не удалось создать сессию. Попробуй войти ещё раз.',
-      );
-
-      setLoading(false);
-
-      return;
-    }
-
-    const {
-      data: {
-        session,
-      },
-    } =
-      await supabase.auth.getSession();
-
-    if (!session) {
-      setError(
-        'Сессия не сохранилась. Попробуй войти ещё раз.',
-      );
-
-      setLoading(false);
-
-      return;
-    }
-
-    window.location.replace(nextPath);
   }
 
   return (
