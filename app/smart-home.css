@@ -1200,3 +1200,118 @@
 .smart-card__rating + .smart-card__match {
   top: 46px;
 }
+
+
+/* =========================================================
+   AnimeBox Discovery 17.8.6 — explainable recommendation UI
+   ========================================================= */
+
+.smart-card__why {
+  margin-top: 9px;
+}
+
+.smart-card__why > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.smart-card__why > summary::-webkit-details-marker {
+  display: none;
+}
+
+.smart-card__why .smart-card__reason {
+  display: flex;
+  min-height: 30px;
+  align-items: flex-start;
+  gap: 4px;
+  margin: 0;
+}
+
+.smart-card__reason-copy {
+  display: -webkit-box;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.smart-card__why-caret {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: #7568a9;
+  transition: transform .18s ease;
+}
+
+.smart-card__why[open] .smart-card__why-caret {
+  transform: rotate(180deg);
+}
+
+.smart-card__why-panel {
+  display: grid;
+  gap: 7px;
+  margin-top: 7px;
+  padding: 9px;
+  border: 1px solid rgba(145, 126, 237, .15);
+  border-radius: 9px;
+  background: rgba(13, 18, 34, .94);
+}
+
+.smart-card__why-panel > strong {
+  color: #d8d3ef;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.smart-card__why-panel ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0 0 0 13px;
+  color: #8e98b0;
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.smart-card__why-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.smart-card__why-actions button {
+  min-height: 27px;
+  padding: 0 8px;
+  border: 1px solid rgba(144, 153, 185, .14);
+  border-radius: 7px;
+  background: rgba(20, 26, 45, .9);
+  color: #a5aec2;
+  font: inherit;
+  font-size: 8px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.smart-card__why-actions button:hover {
+  border-color: rgba(165, 139, 255, .28);
+  background: rgba(91, 70, 164, .14);
+  color: #d5cbff;
+}
+
+@media (max-width: 720px) {
+  .smart-card__why-panel {
+    padding: 8px;
+  }
+
+  .smart-card__why-panel > strong,
+  .smart-card__why-panel ul,
+  .smart-card__why-actions button {
+    font-size: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smart-card__why-caret {
+    transition: none;
+  }
+}
