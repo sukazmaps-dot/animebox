@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { useAuthState } from '@/components/AuthStateProvider';
 import { notifySocialNotificationsChanged } from '@/components/SocialNotificationBadge';
 import styles from './FriendActionButton.module.css';
+import { notifyFriendsChanged } from '@/lib/friends-events';
 
 type FriendshipState =
   | 'none'
@@ -106,6 +107,7 @@ export default function FriendActionButton({
       if (!response.ok) throw new Error(payload.error || 'Не удалось отправить заявку.');
       setState(payload.state ?? 'pending_outgoing');
       setFriendshipId(payload.friendshipId ?? friendshipId);
+      notifyFriendsChanged();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Не удалось отправить заявку.');
     } finally {
@@ -128,6 +130,7 @@ export default function FriendActionButton({
       setState(payload.state ?? 'none');
       if ((payload.state ?? 'none') === 'none') setFriendshipId(null);
       notifySocialNotificationsChanged();
+      notifyFriendsChanged();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Не удалось обновить заявку.');
     } finally {
@@ -147,6 +150,7 @@ export default function FriendActionButton({
       if (!response.ok) throw new Error(payload.error || 'Не удалось удалить из друзей.');
       setState('none');
       setFriendshipId(null);
+      notifyFriendsChanged();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Не удалось удалить из друзей.');
     } finally {
