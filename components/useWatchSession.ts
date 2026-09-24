@@ -621,7 +621,7 @@ export function useWatchSession({
     };
 
     const onOffline = () => {
-      if (disabledRef.current) return;
+      if (disabledRef.current || supersededRef.current) return;
       setRecovering(true);
       setMessage(
         'Нет сети — просмотр продолжится, прогресс пока сохраняется на устройстве.',
@@ -629,7 +629,7 @@ export function useWatchSession({
     };
 
     const onOnline = () => {
-      if (disabledRef.current) return;
+      if (disabledRef.current || supersededRef.current) return;
       setRecovering(true);
       setMessage('Связь восстановлена. Синхронизируем прогресс…');
       void sendHeartbeat(true);
