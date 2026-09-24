@@ -13,6 +13,7 @@ import {
   resetUserPreferences,
   writeUserPreferences,
   type UserPreferences,
+  type UserThemePreference,
 } from '@/lib/user-preferences';
 
 import styles from './SettingsClient.module.css';
@@ -26,6 +27,16 @@ type NotificationSettingsResponse = {
 };
 
 const LAST_WATCH_PARTY_ROOM_KEY = 'animebox:watch-together:last-room:v1';
+
+const THEME_OPTIONS: Array<{
+  value: UserThemePreference;
+  label: string;
+  description: string;
+}> = [
+  { value: 'dark', label: 'Тёмная', description: 'Фирменная AnimeBox' },
+  { value: 'light', label: 'Светлая', description: 'Мягкий светлый интерфейс' },
+  { value: 'system', label: 'Системная', description: 'Как на устройстве' },
+];
 
 
 async function requestTelegramWriteAccess() {
@@ -265,6 +276,29 @@ export default function SettingsClient() {
           <div className={styles.cardHead}>
             <span className={styles.cardIcon}><Icon name="spark" /></span>
             <div><small>ИНТЕРФЕЙС</small><h2>Комфорт</h2></div>
+          </div>
+
+          <div className={styles.themeRow}>
+            <div>
+              <strong>Тема AnimeBox</strong>
+              <p>Выбери тёмную, светлую или синхронизацию с настройкой устройства.</p>
+            </div>
+
+            <div className={styles.themeChoices} role="group" aria-label="Тема интерфейса">
+              {THEME_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={styles.themeChoice}
+                  data-active={preferences.theme === option.value ? 'true' : 'false'}
+                  aria-pressed={preferences.theme === option.value}
+                  onClick={() => updatePreference('theme', option.value)}
+                >
+                  <strong>{option.label}</strong>
+                  <small>{option.description}</small>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className={styles.settingRow}>
