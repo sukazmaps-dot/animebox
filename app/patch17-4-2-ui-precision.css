@@ -136,3 +136,206 @@ html[data-animebox-theme='light'] .anime-rating-control__star-button:focus-visib
     line-height: 32px;
   }
 }
+
+
+/* =========================================================
+   17.4.2 — Shared home service-card grammar
+   Collection + Support must read as one design system.
+   ========================================================= */
+
+.home-page {
+  --ab-service-card-padding: 24px;
+  --ab-service-card-radius: 16px;
+  --ab-service-card-icon: 40px;
+  --ab-service-card-action-height: 40px;
+}
+
+.home-page .home-service-card {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  min-height: 220px !important;
+  height: 100% !important;
+  padding: var(--ab-service-card-padding) !important;
+  border-radius: var(--ab-service-card-radius) !important;
+  gap: 0 !important;
+}
+
+.home-page .home-service-card__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin: 0 0 18px;
+}
+
+.home-page .home-service-card__icon {
+  display: inline-grid;
+  place-items: center;
+  width: var(--ab-service-card-icon);
+  height: var(--ab-service-card-icon);
+  min-width: var(--ab-service-card-icon);
+  border: 1px solid rgba(142, 114, 231, .22);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 50% 15%, rgba(143, 108, 238, .13), transparent 68%),
+    rgba(113, 78, 196, .055);
+  color: #a993ff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+.home-page .home-service-card__icon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.home-page .home-service-card__eyebrow {
+  color: rgba(184, 166, 241, .68);
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 1.2;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.home-page .home-service-card__copy {
+  min-width: 0;
+}
+
+.home-page .home-service-card__copy h2,
+.home-page .home-service-card__copy strong {
+  display: block;
+  margin: 0;
+  color: rgba(244, 246, 252, .96);
+  font-size: clamp(18px, 1.25vw, 21px);
+  font-weight: 820;
+  line-height: 1.12;
+  letter-spacing: -.026em;
+}
+
+.home-page .home-service-card__copy p {
+  max-width: 520px;
+  margin: 11px 0 0 !important;
+  color: rgba(207, 213, 229, .72) !important;
+  font-size: 13px;
+  line-height: 1.55 !important;
+}
+
+.home-page .home-service-card__action {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  min-height: var(--ab-service-card-action-height);
+  margin-top: auto !important;
+  padding: 0 16px !important;
+  border: 1px solid rgba(154, 130, 231, .22) !important;
+  border-radius: 11px !important;
+  background: rgba(121, 88, 212, .075) !important;
+  color: rgba(239, 237, 249, .94) !important;
+  box-shadow: none !important;
+  font-size: 12.5px !important;
+  font-weight: 720 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+
+.home-page .home-service-card__action:hover {
+  border-color: rgba(166, 141, 240, .36) !important;
+  background: rgba(132, 95, 226, .13) !important;
+  color: #fff !important;
+  transform: translateY(-1px);
+}
+
+.home-page .home-service-card__action:focus-visible {
+  outline: 2px solid rgba(174, 151, 255, .72);
+  outline-offset: 2px;
+}
+
+/* Neutralize the older grid-specific card grammar from 17.4. */
+.home-page .home-library-panel--footer,
+.home-page .home-utility-card--support {
+  grid-template-columns: none !important;
+  grid-template-areas: none !important;
+  align-content: initial !important;
+  column-gap: 0 !important;
+  row-gap: 0 !important;
+}
+
+.home-page .home-library-panel--footer h2,
+.home-page .home-library-panel--footer p,
+.home-page .home-library-panel--footer .btn,
+.home-page .home-utility-card--support .home-utility-card__copy,
+.home-page .home-utility-card--support .home-utility-card__link,
+.home-page .home-utility-card--support .home-utility-card__icon {
+  grid-area: auto !important;
+}
+
+/* The old support-only wrappers are superseded by home-service-card. */
+.home-page .home-utility-card--support .home-utility-card__copy,
+.home-page .home-utility-card--support .home-utility-card__link,
+.home-page .home-utility-card--support .home-utility-card__icon {
+  display: none !important;
+}
+
+html[data-animebox-theme='light'] .home-page .home-service-card__icon {
+  border-color: rgba(101, 66, 187, .16);
+  background: rgba(101, 66, 187, .055);
+  color: #6847b1;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
+}
+
+html[data-animebox-theme='light'] .home-page .home-service-card__eyebrow {
+  color: rgba(91, 65, 151, .66);
+}
+
+html[data-animebox-theme='light'] .home-page .home-service-card__copy h2,
+html[data-animebox-theme='light'] .home-page .home-service-card__copy strong {
+  color: #292b3c;
+}
+
+html[data-animebox-theme='light'] .home-page .home-service-card__copy p {
+  color: #686d7e !important;
+}
+
+html[data-animebox-theme='light'] .home-page .home-service-card__action {
+  border-color: rgba(101, 66, 187, .16) !important;
+  background: rgba(101, 66, 187, .055) !important;
+  color: #563994 !important;
+}
+
+html[data-animebox-theme='light'] .home-page .home-service-card__action:hover {
+  border-color: rgba(101, 66, 187, .28) !important;
+  background: rgba(101, 66, 187, .09) !important;
+  color: #472f7f !important;
+}
+
+@media (max-width: 760px) {
+  .home-page {
+    --ab-service-card-padding: 18px;
+    --ab-service-card-icon: 38px;
+  }
+
+  .home-page .home-service-card {
+    min-height: 0 !important;
+  }
+
+  .home-page .home-service-card__head {
+    margin-bottom: 15px;
+  }
+
+  .home-page .home-service-card__copy h2,
+  .home-page .home-service-card__copy strong {
+    font-size: 18px;
+  }
+
+  .home-page .home-service-card__copy p {
+    font-size: 12.5px;
+  }
+
+  .home-page .home-service-card__action {
+    margin-top: 18px !important;
+  }
+}
