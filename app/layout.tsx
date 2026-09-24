@@ -79,6 +79,7 @@ import './patch16-6-8-star-rating-light-polish.css';
 import './patch17-3-personalization.css';
 import './patch17-4-service-experience.css';
 import './patch17-4-2-ui-precision.css';
+import './patch17-4-2-2-public-profile-grid.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
