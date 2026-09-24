@@ -5,11 +5,13 @@ const read = (path) =>
 
 const card = read('components/SmartRecommendationCard.tsx');
 const css = read('app/patch17-4-service-experience.css');
+const platformCss = read('app/patch17-6-watch-platform.css');
 const home = read('components/HomePageClient.tsx');
 const feed = read('components/SmartRecommendationFeed.tsx');
 const watch = read('components/useWatchSession.ts');
 const player = read('components/AnimePlayer.tsx');
 const episodePage = read('components/AnimeEpisodePage.tsx');
+const watchServer = read('lib/watch-server.ts');
 
 const failures = [];
 
@@ -18,12 +20,16 @@ if (!card.includes('name="heart" size={19}') || !card.includes('name="check" siz
 }
 
 if (
-  !css.includes('min-width: 54px !important') ||
-  !css.includes('width: 54px') ||
-  !css.includes('border-radius: 999px') ||
-  !css.includes('grid-template-columns: repeat(3, 54px) minmax(0, 1fr) !important')
+  !card.includes('smart-card__feedback--like') ||
+  !card.includes('smart-card__feedback--watched') ||
+  !card.includes('smart-card__feedback--dismiss') ||
+  !platformCss.includes('grid-template-columns: repeat(3, minmax(0, 1fr)) !important') ||
+  !platformCss.includes('grid-area: like !important') ||
+  !platformCss.includes('grid-area: watched !important') ||
+  !platformCss.includes('grid-area: dismiss !important') ||
+  !platformCss.includes('border-radius: 999px !important')
 ) {
-  failures.push('recommendation feedback controls are no longer pill-shaped');
+  failures.push('recommendation feedback controls are no longer visibly wide pills');
 }
 
 if (
@@ -47,10 +53,22 @@ if (
 if (
   !watch.includes("window.addEventListener('online', onOnline)") ||
   !watch.includes("window.addEventListener('offline', onOffline)") ||
-  !watch.includes("status === 404 || status === 409 || status === 410") ||
+  !watch.includes("status === 409") ||
+  !watch.includes('supersededRef.current = true') ||
+  !watch.includes("status === 404 || status === 410") ||
+  !watch.includes('!supersededRef.current') ||
   !watch.includes('void startSession()')
 ) {
-  failures.push('watch progress automatic recovery contract is incomplete');
+  failures.push('watch progress recovery / cross-device ownership contract is incomplete');
+}
+
+if (
+  !watchServer.includes(".select('episode_id,ended_at')") ||
+  !watchServer.includes(".is('ended_at', null)") ||
+  !watchServer.includes(".select('id')") ||
+  !watchServer.includes('if (endedSession?.id && session?.episode_id && positionMs != null)')
+) {
+  failures.push('stale ended watch sessions can overwrite newer resume state');
 }
 
 if (
