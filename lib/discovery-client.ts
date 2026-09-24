@@ -21,6 +21,10 @@ export type SmartDiscoveryResponse = {
     resolvedBy?: string | null;
     candidateCount?: number;
     seedResolved?: boolean;
+    queryMode?: 'title' | 'structured' | 'context';
+    seedMatchKind?: string | null;
+    seedScore?: number | null;
+    contextTags?: string[];
   };
 };
 

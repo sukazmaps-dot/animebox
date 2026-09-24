@@ -325,6 +325,7 @@ export function rankSmartDiscoveryCandidates(
   const seedGenres = new Set((options.seed?.genres ?? []).map(canonicalGenre));
   const seedEpisodes = options.seed?.episodes ?? null;
   const requiredGenres = intent.includeGenres.map(canonicalGenre);
+  const requiredTags = intent.includeTags.map(normalizeTasteToken);
 
   return candidates
     .filter((anime) => !excludedByIntent(anime, intent))
@@ -341,11 +342,26 @@ export function rankSmartDiscoveryCandidates(
         const genres = new Set((anime.genres ?? []).map(canonicalGenre));
         if (!requiredGenres.some((genre) => genres.has(genre))) return false;
       }
+      if (strict && requiredTags.length) {
+        const tags = normalizedTags(anime);
+        const hasRequestedTag = requiredTags.some((required) =>
+          [...tags].some(
+            (tag) => tag === required || tag.includes(required) || required.includes(tag),
+          ),
+        );
+        if (!hasRequestedTag) return false;
+      }
       return true;
     })
     .map((anime, index) => {
       const genres = new Set((anime.genres ?? []).map(canonicalGenre));
       const includedHits = requiredGenres.filter((genre) => genres.has(genre)).length;
+      const tags = normalizedTags(anime);
+      const tagHits = requiredTags.filter((required) =>
+        [...tags].some(
+          (tag) => tag === required || tag.includes(required) || required.includes(tag),
+        ),
+      ).length;
       const seedHits = [...seedGenres].filter((genre) => genres.has(genre)).length;
       const seedSimilarity = seedGenres.size ? seedHits / seedGenres.size : 0;
       const taste = animeGenreAffinity(anime, options.tasteGraph);
@@ -362,14 +378,17 @@ export function rankSmartDiscoveryCandidates(
         }
       }
 
+      // Query relevance dominates. Taste Graph only breaks close contextual
+      // matches; it must never outrank an explicit tag/text/seed match.
       const score =
-        includedHits * 1.2 +
+        includedHits * 1.4 +
+        tagHits * 1.3 +
         seedSimilarity * 1.45 +
-        taste.positive * 0.72 -
-        taste.negative * 0.95 +
-        lengthAffinity * 0.18 +
+        freeTextAffinity * 1.1 +
         lengthIntent * 0.7 +
-        freeTextAffinity * 0.35 +
+        taste.positive * 0.22 -
+        taste.negative * 0.35 +
+        lengthAffinity * 0.08 +
         Math.max(0, 0.18 - index * 0.002);
 
       return { anime, score };

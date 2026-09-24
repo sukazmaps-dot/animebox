@@ -234,7 +234,12 @@ export default function SearchCatalogClient({
               similar_to: discoveryIntent.similarTo, include_genres: discoveryIntent.includeGenres,
               exclude_terms: discoveryIntent.excludeTerms, max_episodes: discoveryIntent.maxEpisodes,
               min_episodes: discoveryIntent.minEpisodes, min_year: discoveryIntent.minYear,
-              relaxed: Boolean(payload.meta?.relaxed), seed_resolved: Boolean(payload.meta?.seedResolved),
+              relaxed: Boolean(payload.meta?.relaxed),
+              seed_resolved: Boolean(payload.meta?.seedResolved),
+              seed_match_kind: payload.meta?.seedMatchKind ?? null,
+              query_mode: payload.meta?.queryMode ?? 'context',
+              context_tags: payload.meta?.contextTags ?? [],
+              candidate_count: payload.meta?.candidateCount ?? null,
               results: personalized.length,
             },
           });
@@ -535,7 +540,7 @@ export default function SearchCatalogClient({
 
     const signature = [
       settled,
-      discoveryIntent?.isDiscovery ? 'context' : 'title',
+      searchClassification?.mode ?? 'title',
       results.map((anime) => anime.id).join(','),
       catalogFilterCount(filters),
     ].join('|');
@@ -544,7 +549,9 @@ export default function SearchCatalogClient({
     searchAnalyticsSignatureRef.current = signature;
 
     trackProductClientEvent(
-      discoveryIntent?.isDiscovery ? 'search_context_query' : 'search_query',
+      searchClassification?.mode === 'context'
+        ? 'search_context_query'
+        : 'search_query',
       {
         source: 'catalog_search',
         path: '/search',
@@ -567,7 +574,8 @@ export default function SearchCatalogClient({
         entityType: 'search_query',
         entityId: settled.slice(0, 255),
         metadata: {
-          discovery: Boolean(discoveryIntent?.isDiscovery),
+          discovery: searchClassification?.mode === 'context',
+          search_mode: searchClassification?.mode ?? 'title',
           active_filter_count: catalogFilterCount(filters),
         },
       });
@@ -595,10 +603,10 @@ export default function SearchCatalogClient({
           </button>
         </div>
 
-        {view === 'catalog' && discoveryIntent?.isDiscovery && discoveryDescription.length > 0 && (
+        {view === 'catalog' && searchClassification?.mode === 'context' && discoveryDescription.length > 0 && (
           <div className={styles.smartDiscoveryHint}><span className={styles.smartDiscoveryBadge}>Smart Search</span><span>{discoveryDescription.join(' · ')}</span></div>
         )}
-        {view === 'catalog' && discoveryIntent?.isDiscovery && discoveryChips.length > 0 && (
+        {view === 'catalog' && searchClassification?.mode === 'context' && discoveryChips.length > 0 && (
           <div className={styles.discoveryChips} aria-label="Понятые условия поиска">
             {discoveryChips.map((chip) => {
               const removable = chip.id !== 'similar';
@@ -713,7 +721,7 @@ export default function SearchCatalogClient({
             ) : (
               <>
                 {refreshing && <div className={styles.refreshLine} aria-hidden="true" />}
-                <div className="anime-grid">{catalogLead.map((anime) => <AnimeCard key={anime.id} anime={anime} discoveryMatch={discoveryIntent?.isDiscovery ? smartDiscoveryMatch(anime, discoveryIntent, { seed: discoverySeedForMatch, tasteGraph }) : null} />)}</div>
+                <div className="anime-grid">{catalogLead.map((anime) => <AnimeCard key={anime.id} anime={anime} discoveryMatch={searchClassification?.mode === 'context' && discoveryIntent ? smartDiscoveryMatch(anime, discoveryIntent, { seed: discoverySeedForMatch, tasteGraph }) : null} />)}</div>
                 {showCatalogAd && <div className="catalog-ad-break" aria-label="Рекламная пауза"><AdSlot placement="catalog-after-results" format="horizontal" className="monetization-ad--catalog" /></div>}
                 {catalogTail.length > 0 && <div className="anime-grid anime-grid--after-ad">{catalogTail.map((anime) => <AnimeCard key={anime.id} anime={anime} discoveryMatch={discoveryIntent?.isDiscovery ? smartDiscoveryMatch(anime, discoveryIntent, { seed: discoverySeedForMatch, tasteGraph }) : null} />)}</div>}
               </>
@@ -722,7 +730,7 @@ export default function SearchCatalogClient({
         ) : (
           <div className={`empty-state ${styles.assetEmpty}`}>
             <PlaceholderIcon className={styles.emptyMascot} variant={view === 'saved' ? 'saved' : 'search'} />
-            <strong>{view === 'saved' ? favorites.length === 0 ? 'Сохранённых пока нет' : 'Ничего не подходит под фильтры' : discoveryIntent?.isDiscovery ? 'Точных совпадений не нашли' : hasStructuredFilters ? 'Под такую подборку ничего не нашли' : 'Ничего не найдено'}</strong>
+            <strong>{view === 'saved' ? favorites.length === 0 ? 'Сохранённых пока нет' : 'Ничего не подходит под фильтры' : searchClassification?.mode === 'context' ? 'Точных совпадений не нашли' : hasStructuredFilters ? 'Под такую подборку ничего не нашли' : 'Ничего не найдено'}</strong>
             <span>
               {view === 'saved'
                 ? favorites.length === 0

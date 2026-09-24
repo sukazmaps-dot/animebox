@@ -5,14 +5,11 @@ import { getAnimesWithShikimori } from '@/lib/combined-anime';
 import { getAnimeRecommendationsById } from '@/lib/anilist';
 import {
   discoveryGenreForProvider,
-  parseSmartDiscoveryQuery,
   rankSmartDiscoveryCandidates,
 } from '@/lib/smart-discovery';
-import {
-  buildEntityResolutionQueries,
-  mergeAnimeCandidates,
-  rankAnimeForSmartSearch,
-} from '@/lib/smart-search';
+import { mergeAnimeCandidates } from '@/lib/smart-search';
+import { classifySearchQuery } from '@/lib/search-query';
+import { resolveSearchEntity } from '@/lib/search-entity-server';
 import type { Anime } from '@/types/anime';
 import {
   hydrateLocalAnimeHits,
@@ -34,60 +31,9 @@ const loadCandidates = unstable_cache(
   { revalidate: 900 },
 );
 
-async function resolveSeedUncached(rawTitle: string) {
-  const queries = buildEntityResolutionQueries(rawTitle);
-  let candidates: Anime[] = [];
-  let resolvedBy: string | null = null;
-
-  // Healthy RU/EN title searches resolve in one request. Fuzzy variants are
-  // only attempted after that request is weak, keeping normal search cheap.
-  const firstQuery = queries[0];
-  if (firstQuery) {
-    try {
-      const first = await getAnimesWithShikimori({
-        page: 1,
-        limit: 12,
-        order: 'ranked',
-        search: firstQuery,
-      });
-      candidates = first;
-      if (first.length) resolvedBy = firstQuery;
-    } catch (error) {
-      console.warn('[Smart Discovery seed primary]', error);
-    }
-  }
-
-  if (candidates.length < 2 && queries.length > 1) {
-    const fallbackResults = await Promise.allSettled(
-      queries.slice(1).map(async (query) => ({
-        query,
-        items: await getAnimesWithShikimori({
-          page: 1,
-          limit: 12,
-          order: 'ranked',
-          search: query,
-        }),
-      })),
-    );
-
-    for (const result of fallbackResults) {
-      if (result.status !== 'fulfilled' || !result.value.items.length) continue;
-      candidates = mergeAnimeCandidates(candidates, result.value.items);
-      resolvedBy ??= result.value.query;
-    }
-  }
-
-  const ranked = rankAnimeForSmartSearch(candidates, rawTitle);
-  return {
-    seed: ranked[0] ?? null,
-    candidates: ranked,
-    resolvedBy,
-  };
-}
-
 const resolveSeed = unstable_cache(
-  resolveSeedUncached,
-  ['animebox-smart-discovery-v2-seed'],
+  resolveSearchEntity,
+  ['animebox-intelligence-v1-seed-resolution'],
   { revalidate: 3600 },
 );
 
@@ -119,22 +65,35 @@ export async function GET(request: NextRequest) {
   const rawQuery = request.nextUrl.searchParams.get('q')?.trim() ?? '';
   const requestedLimit = Number.parseInt(request.nextUrl.searchParams.get('limit') ?? '20', 10);
   const limit = Number.isFinite(requestedLimit) ? Math.min(40, Math.max(5, requestedLimit)) : 20;
-  const intent = parseSmartDiscoveryQuery(rawQuery);
+  const classification = classifySearchQuery(rawQuery);
+  const intent = classification.discoveryIntent;
 
-  if (!rawQuery || !intent.isDiscovery) {
-    return NextResponse.json({ items: [], intent, seed: null }, { status: 400 });
+  if (!rawQuery || classification.mode !== 'context') {
+    return NextResponse.json(
+      {
+        items: [],
+        intent,
+        seed: null,
+        meta: { queryMode: classification.mode },
+      },
+      { status: 400 },
+    );
   }
 
   try {
     let seed: Anime | null = null;
     let seedCandidates: Anime[] = [];
     let resolvedBy: string | null = null;
+    let seedMatchKind: string | null = null;
+    let seedScore: number | null = null;
 
     if (intent.similarTo) {
       const resolution = await resolveSeed(intent.similarTo);
       seed = resolution.seed;
       seedCandidates = resolution.candidates;
       resolvedBy = resolution.resolvedBy;
+      seedMatchKind = resolution.matchKind;
+      seedScore = resolution.score;
 
       if (!seed) {
         return NextResponse.json(
@@ -147,6 +106,9 @@ export async function GET(request: NextRequest) {
               resolvedBy,
               candidateCount: 0,
               seedResolved: false,
+              queryMode: classification.mode,
+              seedMatchKind,
+              seedScore,
             },
           },
           {
@@ -161,6 +123,7 @@ export async function GET(request: NextRequest) {
     const requestedGenre = intent.includeGenres[0] ?? seed?.genres?.[0] ?? null;
     const primaryGenre = discoveryGenreForProvider(requestedGenre);
     const primaryTag = intent.includeTags[0] ?? null;
+    const secondaryTag = intent.includeTags[1] ?? null;
 
     let localContext: Anime[] = [];
     try {
@@ -179,13 +142,17 @@ export async function GET(request: NextRequest) {
     const firstPools = await Promise.allSettled([
       seed ? loadAniListRecommendations(seed.id) : Promise.resolve([] as Anime[]),
       loadCandidates(primaryGenre, primaryTag, 1),
+      secondaryTag
+        ? loadCandidates(null, secondaryTag, 1)
+        : Promise.resolve([] as Anime[]),
       loadCandidates(null, null, 1),
     ]);
 
     const recommended = firstPools[0].status === 'fulfilled' ? firstPools[0].value : [];
     const first = firstPools[1].status === 'fulfilled' ? firstPools[1].value : [];
-    const globalFirst = firstPools[2].status === 'fulfilled' ? firstPools[2].value : [];
-    let candidates = mergeUnique(localContext, seedCandidates, recommended, first, globalFirst)
+    const secondary = firstPools[2].status === 'fulfilled' ? firstPools[2].value : [];
+    const globalFirst = firstPools[3].status === 'fulfilled' ? firstPools[3].value : [];
+    let candidates = mergeUnique(localContext, seedCandidates, recommended, first, secondary, globalFirst)
       .filter((anime) => anime.id !== seed?.id);
 
     // One cached second page is enough for a much healthier pool without
@@ -225,6 +192,10 @@ export async function GET(request: NextRequest) {
           resolvedBy,
           candidateCount: candidates.length,
           seedResolved: Boolean(seed),
+          queryMode: classification.mode,
+          seedMatchKind,
+          seedScore,
+          contextTags: intent.includeTags.slice(0, 3),
         },
       },
       {
@@ -237,7 +208,17 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('[Smart Discovery]', error);
     return NextResponse.json(
-      { items: [], intent, seed: null, meta: { relaxed: false, seedResolved: false }, error: 'discovery_failed' },
+      {
+        items: [],
+        intent,
+        seed: null,
+        meta: {
+          relaxed: false,
+          seedResolved: false,
+          queryMode: classification.mode,
+        },
+        error: 'discovery_failed',
+      },
       { status: 502 },
     );
   }

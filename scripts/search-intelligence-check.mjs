@@ -16,6 +16,7 @@ const rankerV21Migration = read(
 const animeApi = read('app/api/anime/route.ts');
 const discovery = read('lib/smart-discovery.ts');
 const discoveryApi = read('app/api/discovery/route.ts');
+const searchEntityServer = read('lib/search-entity-server.ts');
 const suggestionApi = read('app/api/search/suggestions/route.ts');
 const suggestionUi = read('components/SearchSuggestions.tsx');
 const navbar = read('components/Navbar.tsx');
@@ -102,7 +103,12 @@ if (
   !discovery.includes('CONTEXT_TAGS') ||
   !discovery.includes('anime.description') ||
   !discoveryApi.includes('searchLocalAnimeIndex') ||
-  !discoveryApi.includes('primaryTag')
+  !discoveryApi.includes('primaryTag') ||
+  !discoveryApi.includes('secondaryTag') ||
+  !discoveryApi.includes("classification.mode !== 'context'") ||
+  !searchEntityServer.includes('resolveSearchEntity') ||
+  !searchEntityServer.includes('searchLocalAnimeIndex') ||
+  !searchEntityServer.includes('rankAnimeForSmartSearchDetailed')
 ) {
   failures.push('contextual discovery retrieval is incomplete');
 }
@@ -202,6 +208,15 @@ for (const query of [
   if (!regressionCases.includes(query)) {
     failures.push(`18.0 regression corpus missing: ${query}`);
   }
+}
+
+if (
+  !discovery.includes('requiredTags') ||
+  !discovery.includes('tagHits * 1.3') ||
+  !discovery.includes('freeTextAffinity * 1.1') ||
+  !discovery.includes('taste.positive * 0.22')
+) {
+  failures.push('18.0 contextual relevance/taste tie-break policy is incomplete');
 }
 
 if (
