@@ -76,6 +76,7 @@ import './patch16-6-5-profile-studio-gate.css';
 import './patch16-6-6-home-desktop-stability.css';
 import './patch16-6-7-light-surfaces.css';
 import './patch16-6-8-star-rating-light-polish.css';
+import './patch17-3-personalization.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
