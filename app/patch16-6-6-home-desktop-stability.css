@@ -1,0 +1,167 @@
+/* =========================================================
+   AnimeBox Patch 16.6.6 — Desktop Home Stability
+   Restores the narrow right-rail contract after the 2K density pass.
+   ========================================================= */
+
+/* The current desktop shell intentionally reserves a ~300–320px right rail.
+   Legacy Home CSS still tries to render Top Anime as 3 columns and upcoming
+   episodes as 5 columns inside that rail. Keep the rail narrow, but make its
+   contents vertical and readable. */
+
+@media (min-width: 1001px) {
+  .home-page .right-rail {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-content: start !important;
+    gap: 14px !important;
+    min-width: 0 !important;
+    contain: none !important;
+  }
+
+  /* These panels are visible above/near the fold on desktop. The 16.6.1
+     below-fold containment reservation (420px) creates giant empty surfaces
+     here, so desktop right-rail panels must use their real content height. */
+  .home-page .right-rail > .panel,
+  .home-page .right-rail > .home-top-anime-panel,
+  .home-page .right-rail > .home-utility-grid {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    content-visibility: visible !important;
+    contain: none !important;
+    contain-intrinsic-size: none !important;
+  }
+
+  /* Top Anime: six normal ranking rows instead of a crushed 3×2 grid. */
+  .home-page .home-top-anime-panel .panel__body,
+  .home-page .home-top-anime-panel--desktop .panel__body {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-auto-flow: row !important;
+    gap: 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .home-page .home-top-anime-panel .top-anime-item {
+    display: grid !important;
+    grid-template-columns: 24px 46px minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 9px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 70px !important;
+    padding: 6px 0 !important;
+  }
+
+  .home-page .home-top-anime-panel .top-anime-item__poster {
+    width: 46px !important;
+    min-width: 46px !important;
+    max-width: 46px !important;
+    height: 62px !important;
+    min-height: 62px !important;
+    max-height: 62px !important;
+  }
+
+  .home-page .home-top-anime-panel .top-anime-item__copy {
+    display: block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .home-page .home-top-anime-panel .top-anime-item__copy strong {
+    display: -webkit-box !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    white-space: normal !important;
+    text-overflow: initial !important;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .home-page .home-top-anime-panel .top-anime-item__copy span {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  /* Upcoming: ScheduleItem is a horizontal row component. Give every item the
+     full rail width instead of forcing five ~50px cells. */
+  .home-page .home-upcoming-panel {
+    min-height: 0 !important;
+    height: auto !important;
+  }
+
+  .home-page .home-upcoming-panel__list {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-auto-flow: row !important;
+    gap: 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 0 10px 10px !important;
+    overflow: visible !important;
+  }
+
+  .home-page .home-upcoming-panel__list > a {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 62px !important;
+    border-bottom: 1px solid rgba(148, 163, 184, .07) !important;
+  }
+
+  .home-page .home-upcoming-panel__list > a:last-child {
+    border-bottom: 0 !important;
+  }
+
+  /* Utility cards also live inside the narrow right rail. */
+  .home-page .home-utility-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+    height: auto !important;
+  }
+
+  .home-page .home-utility-grid > *,
+  .home-page .home-utility-grid > :last-child {
+    grid-column: auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    content-visibility: visible !important;
+    contain: none !important;
+    contain-intrinsic-size: none !important;
+  }
+
+  /* "Что смотреть дальше": wide desktops should reveal more titles rather
+     than inflate each poster. */
+  .home-page .smart-feed__slide {
+    width: clamp(168px, 11.5vw, 188px) !important;
+    contain-intrinsic-size: 180px 370px !important;
+  }
+
+  .home-page .smart-feed__rail,
+  .home-page .smart-feed__stage,
+  .home-page .smart-feed {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (min-width: 1920px) and (min-height: 900px) {
+  .home-page .smart-feed__slide {
+    width: 190px !important;
+  }
+}
+
+@media (min-width: 2400px) and (min-height: 1100px) {
+  .home-page .smart-feed__slide {
+    width: 198px !important;
+  }
+}
