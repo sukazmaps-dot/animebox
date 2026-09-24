@@ -68,6 +68,7 @@ import './animebox-identity.css';
 import './patch16-quiet-interactions.css';
 import './animebox-visual-language-v1.css';
 import './patch16-4-readability-theme.css';
+import './patch16-5-profile-widgets.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
