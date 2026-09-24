@@ -7,6 +7,7 @@ import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
 import { premiumMediaStyle, type PremiumMediaTransform } from '@/lib/premium-studio';
 import { PROFILE_APPEARANCE_CHANGED_EVENT } from '@/lib/profile-live-sync';
+import { useAuthState } from '@/components/AuthStateProvider';
 
 import {
   FormEvent,
@@ -47,6 +48,7 @@ type CommentNodeProps = {
   comment: CommentItem;
   childrenMap: Map<string, CommentItem[]>;
   onReply: (comment: CommentItem) => void;
+  viewerId: string | null;
 };
 
 function formatDate(value: string) {
@@ -66,9 +68,17 @@ function CommentNode({
   comment,
   childrenMap,
   onReply,
+  viewerId,
 }: CommentNodeProps) {
   const [spoilerOpen, setSpoilerOpen] =
     useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState<
+    'spam' | 'abuse' | 'spoiler' | 'scam' | 'other'
+  >('spam');
+  const [reportState, setReportState] = useState<
+    'idle' | 'sending' | 'sent'
+  >('idle');
 
   const children =
     childrenMap.get(comment.id) ?? [];
@@ -83,6 +93,7 @@ function CommentNode({
 
   return (
     <article
+      id={`comment-${comment.id}`}
       className={`episode-comment ${
         comment.depth > 0
           ? 'episode-comment--reply'
@@ -197,16 +208,91 @@ function CommentNode({
       </div>
 
       {!comment.deleted_at && (
-        <div className="episode-comment__actions">
-          <button
-            type="button"
-            onClick={() =>
-              onReply(comment)
-            }
-          >
-            Ответить
-          </button>
-        </div>
+        <>
+          <div className="episode-comment__actions">
+            <button
+              type="button"
+              onClick={() =>
+                onReply(comment)
+              }
+            >
+              Ответить
+            </button>
+
+            {viewerId && comment.user_id !== viewerId && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (reportState === 'sent') return;
+                  setReportOpen((current) => !current);
+                }}
+              >
+                {reportState === 'sent' ? 'Жалоба отправлена' : 'Пожаловаться'}
+              </button>
+            )}
+          </div>
+
+          {reportOpen && reportState !== 'sent' && (
+            <div className="episode-comment__report">
+              <select
+                value={reportReason}
+                disabled={reportState === 'sending'}
+                onChange={(event) =>
+                  setReportReason(
+                    event.target.value as
+                      | 'spam'
+                      | 'abuse'
+                      | 'spoiler'
+                      | 'scam'
+                      | 'other',
+                  )
+                }
+                aria-label="Причина жалобы"
+              >
+                <option value="spam">Спам</option>
+                <option value="abuse">Оскорбления</option>
+                <option value="spoiler">Спойлер без отметки</option>
+                <option value="scam">Мошенничество</option>
+                <option value="other">Другое</option>
+              </select>
+
+              <button
+                type="button"
+                disabled={reportState === 'sending'}
+                onClick={async () => {
+                  setReportState('sending');
+
+                  try {
+                    const response = await fetch('/api/comments/report', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        commentId: comment.id,
+                        reason: reportReason,
+                      }),
+                    });
+
+                    if (!response.ok) {
+                      const payload = await response.json().catch(() => ({}));
+                      throw new Error(
+                        typeof payload.error === 'string'
+                          ? payload.error
+                          : 'Не удалось отправить жалобу.',
+                      );
+                    }
+
+                    setReportState('sent');
+                    setReportOpen(false);
+                  } catch {
+                    setReportState('idle');
+                  }
+                }}
+              >
+                {reportState === 'sending' ? 'Отправляем…' : 'Отправить'}
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {children.length > 0 && (
@@ -217,6 +303,7 @@ function CommentNode({
               comment={child}
               childrenMap={childrenMap}
               onReply={onReply}
+              viewerId={viewerId}
             />
           ))}
         </div>
@@ -229,6 +316,7 @@ export default function EpisodeComments({
   animeId,
   episode,
 }: Props) {
+  const { user } = useAuthState();
   const [
     comments,
     setComments,
@@ -646,6 +734,7 @@ export default function EpisodeComments({
               childrenMap={
                 childrenMap
               }
+              viewerId={user?.id ?? null}
               onReply={(comment) => {
                 setParent(comment);
 
