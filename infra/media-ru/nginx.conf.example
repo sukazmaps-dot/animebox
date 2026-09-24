@@ -1,0 +1,26 @@
+# Example server block for media-ru.youranimebox.com.
+# Keep this hostname DNS-only (not proxied through Cloudflare).
+limit_req_zone $binary_remote_addr zone=animebox_media_ru:10m rate=20r/s;
+
+server {
+    listen 443 ssl http2;
+    server_name media-ru.youranimebox.com;
+
+    # Configure your TLS certificate here.
+    # ssl_certificate ...;
+    # ssl_certificate_key ...;
+
+    location / {
+        limit_req zone=animebox_media_ru burst=40 nodelay;
+
+        proxy_pass http://127.0.0.1:8788;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 12s;
+
+        add_header X-Content-Type-Options nosniff always;
+    }
+}

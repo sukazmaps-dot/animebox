@@ -16,7 +16,9 @@ import {
 } from '@/lib/image-service';
 
 const FALLBACK = '/brand/brand-mark.webp';
-const IMAGE_LOAD_TIMEOUT_MS = 6_000;
+const PRIMARY_MEDIA_TIMEOUT_MS = 2_500;
+const FALLBACK_SOURCE_TIMEOUT_MS = 5_000;
+const TRANSIENT_RETRY_DELAY_MS = 30_000;
 
 type Props = {
   image?: ImageData | null;
@@ -41,6 +43,7 @@ export default function AnimeImage({
   sizes = DEFAULT_SIZES,
 }: Props) {
   const imageRef = useRef<HTMLImageElement>(null);
+  const transientRetryCountRef = useRef(0);
 
   const sources = useMemo(
     () =>
@@ -181,7 +184,7 @@ export default function AnimeImage({
           loaded: false,
         };
       });
-    }, IMAGE_LOAD_TIMEOUT_MS);
+    }, sourceIndex === 0 ? PRIMARY_MEDIA_TIMEOUT_MS : FALLBACK_SOURCE_TIMEOUT_MS);
 
     return () => window.clearTimeout(timeout);
   }, [
@@ -191,6 +194,45 @@ export default function AnimeImage({
     sources.length,
     sourcesKey,
   ]);
+
+  useEffect(() => {
+    transientRetryCountRef.current = 0;
+  }, [sourcesKey]);
+
+  useEffect(() => {
+    if (
+      !isFallback ||
+      sources.length <= 1 ||
+      transientRetryCountRef.current >= 1
+    ) {
+      return;
+    }
+
+    const retry = () => {
+      if (transientRetryCountRef.current >= 1) return;
+      transientRetryCountRef.current += 1;
+      setImageState({
+        key: sourcesKey,
+        sourceIndex: 0,
+        loaded: false,
+      });
+    };
+
+    const timer = window.setTimeout(retry, TRANSIENT_RETRY_DELAY_MS);
+    const onOnline = () => retry();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') retry();
+    };
+
+    window.addEventListener('online', onOnline);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('online', onOnline);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [isFallback, sources.length, sourcesKey]);
 
   useEffect(() => {
     const element = imageRef.current;
@@ -226,7 +268,7 @@ export default function AnimeImage({
   return (
     <div
       className="relative h-full w-full min-h-0 overflow-hidden bg-slate-950"
-      data-image-delivery="direct-cdn"
+      data-image-delivery="animebox-media"
     >
       {!loaded && !isFallback && (
         <div

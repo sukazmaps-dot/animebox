@@ -1312,3 +1312,54 @@
     width: 154px;
   }
 }
+
+
+/* =========================================================
+   Patch 18.1 — poster geometry invariants
+   Remote image dimensions must never participate in Smart Feed layout.
+   ========================================================= */
+.smart-feed__slide {
+  flex: 0 0 auto !important;
+  min-width: 0;
+  max-width: none;
+  content-visibility: visible;
+  contain: layout paint;
+  contain-intrinsic-size: none;
+}
+
+.smart-feed__slide > .smart-card,
+.smart-card__poster-link {
+  width: 100%;
+  min-width: 0;
+}
+
+.smart-card__poster {
+  position: relative;
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  flex: 0 0 auto;
+  aspect-ratio: 2 / 3 !important;
+  contain: layout paint size;
+}
+
+.smart-card__poster > div:first-child {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+.smart-card__poster img,
+.smart-card__image {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  object-fit: cover !important;
+  object-position: center center;
+}
+
