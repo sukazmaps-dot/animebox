@@ -156,3 +156,14 @@
 .sentinel {
   contain: strict;
 }
+
+/* Patch 18.3 — bounded horizontal DOM window. */
+.virtualSpacer {
+  flex: 0 0 auto !important;
+  height: 1px;
+  min-width: 0;
+  align-self: center;
+  pointer-events: none;
+  scroll-snap-align: none !important;
+  contain: strict;
+}
