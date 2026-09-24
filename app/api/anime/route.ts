@@ -19,6 +19,11 @@ import {
   mergeAnimeCandidates,
   rankAnimeForSmartSearch,
 } from '@/lib/smart-search';
+import {
+  hydrateLocalAnimeHits,
+  indexAnimeSearchDocuments,
+  searchLocalAnimeIndex,
+} from '@/lib/search-index-server';
 
 import type {
   GetAnimesOptions,
@@ -154,6 +159,20 @@ export async function GET(
     const primary = await getAnimesWithShikimori(options);
     let candidates: Anime[] = primary;
     let fallbackUsed: string | null = null;
+    let localIndexUsed = false;
+
+    if (rawSearch && page === 1) {
+      try {
+        const localHits = await searchLocalAnimeIndex(rawSearch, 12);
+        if (localHits.length) {
+          const localAnime = await hydrateLocalAnimeHits(localHits);
+          candidates = mergeAnimeCandidates(localAnime, candidates);
+          localIndexUsed = localAnime.length > 0;
+        }
+      } catch (localSearchError) {
+        console.warn('[Anime search local index]', localSearchError);
+      }
+    }
 
     /*
      * Smart fallback is intentionally bounded. Healthy searches make exactly
@@ -190,6 +209,10 @@ export async function GET(
       : smartRanked;
     const anime = rankAnimeByCatalogMood(intentRanked, mood).slice(0, limit);
 
+    // Search index writes are best-effort and bounded. Never fail a catalogue
+    // request because the auxiliary retrieval corpus is temporarily unavailable.
+    void indexAnimeSearchDocuments(candidates.slice(0, 30)).catch(() => undefined);
+
     return NextResponse.json(
       {
         anime,
@@ -199,6 +222,7 @@ export async function GET(
                 requested: rawSearch,
                 understoodAs: searchIntent?.titleQuery || rawSearch,
                 fallbackUsed,
+                localIndexUsed,
               },
             }
           : {}),

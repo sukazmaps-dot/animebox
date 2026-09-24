@@ -4,6 +4,7 @@ import {
   getAnimeById as getAniListAnimeById,
   getAniListByMalId,
   getAnimesByMalIds,
+  getAnimesByIds,
 } from '@/lib/anilist';
 
 import type { Anime } from '@/types/anime';
@@ -601,6 +602,43 @@ async function loadAnimeByIdWithShikimori(
     );
 
     return anime;
+  }
+}
+
+export async function getAnimesByIdsWithShikimori(
+  ids: number[],
+  options: { signal?: AbortSignal } = {},
+): Promise<Anime[]> {
+  const animes = await getAnimesByIds(ids, { signal: options.signal });
+  const malIds = [...new Set(
+    animes
+      .map((anime) => anime.idMal)
+      .filter((id): id is number => Number.isSafeInteger(id) && Number(id) > 0),
+  )];
+
+  if (!malIds.length) return animes.map(registerAnime);
+
+  try {
+    const shikimori = await fetchShikimoriListByIds(malIds, options.signal);
+    return animes.map((anime) => {
+      const localized = anime.idMal ? shikimori.get(anime.idMal) : null;
+      const russian = localized?.russian?.trim();
+
+      return registerAnime({
+        ...anime,
+        title: {
+          ...anime.title,
+          russian: russian || anime.title?.russian || null,
+        },
+        description: localized?.description
+          ? cleanShikimoriDescription(localized.description)
+          : anime.description,
+      });
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') throw error;
+    console.warn('Search index localization failed:', error);
+    return animes.map(registerAnime);
   }
 }
 

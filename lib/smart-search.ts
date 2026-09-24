@@ -20,15 +20,19 @@ function compact(value: string) {
   return value.replace(/\s+/g, ' ').trim();
 }
 
-function normalize(value: string) {
+export function normalizeSearchText(value: string) {
   return compact(
     value
       .normalize('NFKC')
       .toLocaleLowerCase('ru-RU')
+      .replace(/ё/g, 'е')
       .replace(/[’'`]/g, '')
+      .replace(/[‐‑–—_]/g, ' ')
       .replace(/[^\p{L}\p{N}]+/gu, ' '),
   );
 }
+
+const normalize = normalizeSearchText;
 
 function translateKeyboard(value: string, map: Record<string, string>) {
   return value
@@ -172,6 +176,62 @@ const CYRILLIC_TO_LATIN: Record<string, string> = {
   х: 'h', ц: 'c', ч: 'ch', ш: 'sh', щ: 'sch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya',
 };
 
+const LATIN_TO_CYRILLIC_DIGRAPHS: Array<[string, string]> = [
+  ['shch', 'щ'],
+  ['sch', 'щ'],
+  ['yo', 'ё'],
+  ['zh', 'ж'],
+  ['kh', 'х'],
+  ['ts', 'ц'],
+  ['ch', 'ч'],
+  ['sh', 'ш'],
+  ['yu', 'ю'],
+  ['ya', 'я'],
+];
+
+const LATIN_TO_CYRILLIC: Record<string, string> = {
+  a: 'а', b: 'б', c: 'к', d: 'д', e: 'е', f: 'ф', g: 'г', h: 'х',
+  i: 'и', j: 'й', k: 'к', l: 'л', m: 'м', n: 'н', o: 'о', p: 'п',
+  q: 'к', r: 'р', s: 'с', t: 'т', u: 'у', v: 'в', w: 'в', x: 'кс',
+  y: 'и', z: 'з',
+};
+
+export function reverseTransliterateSearchQuery(value: string) {
+  let result = value.toLocaleLowerCase('ru-RU');
+
+  for (const [latin, cyrillic] of LATIN_TO_CYRILLIC_DIGRAPHS) {
+    result = result.replaceAll(latin, cyrillic);
+  }
+
+  return compact(
+    result
+      .split('')
+      .map((char) => LATIN_TO_CYRILLIC[char] ?? char)
+      .join(''),
+  );
+}
+
+export function buildSearchQueryVariants(value: string) {
+  const result: string[] = [];
+  const seen = new Set<string>();
+
+  const append = (candidate: string) => {
+    const clean = compact(candidate);
+    const key = normalizeSearchText(clean);
+    if (clean.length < 2 || !key || seen.has(key)) return;
+    seen.add(key);
+    result.push(clean);
+  };
+
+  append(value);
+  append(swapKeyboardLayout(value));
+
+  if (/[а-яё]/iu.test(value)) append(transliterateSearchQuery(value));
+  if (/[a-z]/iu.test(value)) append(reverseTransliterateSearchQuery(value));
+
+  return result.slice(0, 4);
+}
+
 export function transliterateSearchQuery(value: string) {
   return compact(
     value
@@ -189,8 +249,8 @@ export function transliterateSearchQuery(value: string) {
  */
 export function buildEntityResolutionQueries(value: string) {
   const source = compact(value);
-  const result: string[] = [];
-  const seen = new Set<string>();
+  const result = buildSearchQueryVariants(source);
+  const seen = new Set(result.map(normalize));
 
   const append = (candidate: string) => {
     const clean = compact(candidate);
@@ -199,13 +259,6 @@ export function buildEntityResolutionQueries(value: string) {
     seen.add(key);
     result.push(clean);
   };
-
-  append(source);
-  append(swapKeyboardLayout(source));
-
-  if (/[а-яё]/iu.test(source)) {
-    append(transliterateSearchQuery(source));
-  }
 
   const tokens = meaningfulTokens(source).sort((a, b) => b.length - a.length);
   const longest = tokens[0];

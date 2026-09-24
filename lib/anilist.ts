@@ -704,6 +704,70 @@ export async function getAnimesByMalIds(
   }
 }
 
+export async function getAnimesByIds(
+  animeIds: number[],
+  fetchOptions?: {
+    signal?: AbortSignal;
+  },
+): Promise<Anime[]> {
+  const ids = Array.from(
+    new Set(
+      animeIds.filter(
+        (id) => Number.isSafeInteger(id) && id > 0,
+      ),
+    ),
+  ).slice(0, 30);
+
+  if (!ids.length) return [];
+
+  const fields = LIST_QUERY.slice(
+    LIST_QUERY.indexOf('        id'),
+    LIST_QUERY.lastIndexOf('      }'),
+  );
+  const query = `query AnimeByIds($ids: [Int], $limit: Int) {
+    Page(page: 1, perPage: $limit) {
+      media(type: ANIME, id_in: $ids) { ${fields} }
+    }
+  }`;
+
+  const response = await fetchWithRetry(ANILIST_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({
+      query,
+      variables: { ids, limit: ids.length },
+    }),
+    signal: fetchOptions?.signal,
+    next: { revalidate: 900 },
+  });
+
+  if (!response.ok) {
+    throw new Error(`AniList ID batch HTTP ${response.status}`);
+  }
+
+  const json = (await response.json()) as AniListPageResponse;
+  if (json.errors?.length) {
+    throw new Error(json.errors[0]?.message || 'AniList ID batch failed');
+  }
+
+  const mapped = (json.data?.Page?.media ?? [])
+    .filter(Boolean)
+    .map((item) =>
+      mapMediaToAnime(
+        item as Parameters<typeof mapMediaToAnime>[0],
+      ),
+    )
+    .filter((anime) => anime.catalogEligible !== false);
+
+  const byId = new Map(mapped.map((anime) => [anime.id, anime]));
+  return ids
+    .map((id) => byId.get(id))
+    .filter((anime): anime is Anime => Boolean(anime));
+}
+
 const SINGLE_QUERY = `
   query AnimeByMalId($idMal: Int) {
     Media(
