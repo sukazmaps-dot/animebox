@@ -8,6 +8,8 @@ const availability = read('lib/catalog-availability-server.ts');
 const animeRoute = read('app/api/anime/route.ts');
 const recommendations = read('app/api/recommendations/route.ts');
 const suggestions = read('app/api/search/suggestions/route.ts');
+const discovery = read('app/api/discovery/route.ts');
+const related = read('components/RelatedAnime.tsx');
 const animeImage = read('components/AnimeImage.tsx');
 const card = read('components/SmartRecommendationCard.tsx');
 const smartHome = read('app/smart-home.css');
@@ -54,6 +56,13 @@ if (
 
 if (!suggestions.includes('filterAnimeIdsByAvailability')) {
   failures.push('search suggestions do not suppress confirmed unavailable titles');
+}
+
+if (
+  !discovery.includes("filterAnimeByAvailability(\n      candidates,\n      'catalog'") ||
+  !related.includes("filterAnimeByAvailability(\n      filtered,\n      'catalog'")
+) {
+  failures.push('contextual discovery / related titles bypass availability filtering');
 }
 
 if (
