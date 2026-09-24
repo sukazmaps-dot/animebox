@@ -24,6 +24,7 @@ import WatchPartyFriendInvite from '@/components/friends/WatchPartyFriendInvite'
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
 import {
+  WATCH_PARTY_EPISODE_CHANGE_EVENT,
   WATCH_PARTY_EXIT_EVENT,
   WATCH_PARTY_MAX_PARTICIPANTS,
   WATCH_PARTY_PLAYER_ACTION_EVENT,
@@ -47,6 +48,7 @@ import {
   watchPartyInitials,
   watchPartyReturnPath,
   type WatchPartyChatMessage,
+  type WatchPartyEpisodeChangeDetail,
   type WatchPartyInvite,
   type WatchPartyPacket,
   type WatchPartyParticipant,
@@ -462,6 +464,24 @@ export default function WatchPartyPanel({
       new CustomEvent<WatchPartyPlayerCommandDetail>(WATCH_PARTY_PLAYER_COMMAND_EVENT, { detail }),
     );
   }, []);
+
+  const dispatchEpisodeChange = useCallback((
+    detail: WatchPartyEpisodeChangeDetail,
+  ) => {
+    if (
+      detail.animeSlug === animeSlug &&
+      detail.episode === episodeNumber
+    ) {
+      return;
+    }
+
+    window.dispatchEvent(
+      new CustomEvent<WatchPartyEpisodeChangeDetail>(
+        WATCH_PARTY_EPISODE_CHANGE_EVENT,
+        { detail },
+      ),
+    );
+  }, [animeSlug, episodeNumber]);
 
   const currentPlayerSnapshot = useCallback(() => {
     const state = playerStateRef.current;
@@ -884,6 +904,16 @@ export default function WatchPartyPanel({
         return;
       }
 
+      if (packet.type === 'EPISODE_CHANGE') {
+        if (welcomed) {
+          dispatchEpisodeChange({
+            animeSlug: packet.animeSlug,
+            episode: packet.episode,
+          });
+        }
+        return;
+      }
+
       if (packet.type === 'PLAYER_APPLY') {
         if (!welcomed || packet.seq <= lastAppliedSeqRef.current) return;
         lastAppliedSeqRef.current = packet.seq;
@@ -1029,6 +1059,7 @@ export default function WatchPartyPanel({
   }, [
     acceptHostTransfer,
     appendChatMessage,
+    dispatchEpisodeChange,
     dispatchPlayerCommand,
     publishParticipants,
     publishReaction,
@@ -1129,6 +1160,14 @@ export default function WatchPartyPanel({
               position: packet.position,
               playing,
               seq: packet.seq,
+            });
+            return;
+          }
+
+          if (packet.type === 'EPISODE_CHANGE') {
+            dispatchEpisodeChange({
+              animeSlug: packet.animeSlug,
+              episode: packet.episode,
             });
             return;
           }
@@ -1672,6 +1711,12 @@ export default function WatchPartyPanel({
           roomId: invite.roomId,
           participants: current,
         }, senderId);
+        void relayRef.current?.send({
+          type: 'EPISODE_CHANGE',
+          animeSlug,
+          episode: episodeNumber,
+          sentAt: Date.now(),
+        }, senderId);
         broadcastParticipants();
         setNetworkRoute('server');
 
@@ -1924,6 +1969,12 @@ export default function WatchPartyPanel({
             protocol: WATCH_PARTY_PROTOCOL,
             roomId: invite.roomId,
             participants: current,
+          });
+          send(connection, {
+            type: 'EPISODE_CHANGE',
+            animeSlug,
+            episode: episodeNumber,
+            sentAt: Date.now(),
           });
           broadcastParticipants();
           void syncRegisteredRoom();
