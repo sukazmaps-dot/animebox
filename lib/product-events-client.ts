@@ -254,6 +254,113 @@ function recommendationStartedEvent(options: TrackOptions): ClientEvent | null {
   }
 }
 
+
+type RecommendationAttributionState = {
+  animeId?: number;
+  openedAt?: number;
+  startedSent?: boolean;
+  watch15mSent?: boolean;
+  watch30mSent?: boolean;
+  completedSent?: boolean;
+  watchedMs?: number;
+  lastEpisode?: number | null;
+  lastEpisodeActiveMs?: number;
+  impressionId?: string | null;
+  recommendationSessionId?: string | null;
+  source?: string | null;
+  matchScore?: number | null;
+  reason?: string | null;
+};
+
+export function trackRecommendationWatchProgress(input: {
+  animeId: number;
+  episode: number;
+  activeMs: number;
+  completed: boolean;
+}) {
+  if (typeof window === 'undefined') return;
+  if (!Number.isSafeInteger(input.animeId) || input.animeId <= 0) return;
+  if (!Number.isSafeInteger(input.episode) || input.episode <= 0) return;
+
+  try {
+    const key = `${RECOMMENDATION_ATTRIBUTION_PREFIX}${input.animeId}`;
+    const raw = window.sessionStorage.getItem(key);
+    if (!raw) return;
+
+    const parsed = JSON.parse(raw) as RecommendationAttributionState;
+    const openedAt = Number(parsed.openedAt ?? 0);
+    if (
+      !openedAt ||
+      Date.now() - openedAt > RECOMMENDATION_ATTRIBUTION_TTL_MS
+    ) {
+      window.sessionStorage.removeItem(key);
+      return;
+    }
+
+    const currentActiveMs = Math.max(0, Math.round(Number(input.activeMs) || 0));
+    const previousEpisode = Number(parsed.lastEpisode ?? 0);
+    const previousEpisodeActiveMs = Math.max(
+      0,
+      Math.round(Number(parsed.lastEpisodeActiveMs) || 0),
+    );
+    const delta =
+      previousEpisode === input.episode
+        ? Math.max(0, currentActiveMs - previousEpisodeActiveMs)
+        : currentActiveMs;
+    const watchedMs = Math.min(
+      24 * 60 * 60 * 1000,
+      Math.max(0, Math.round(Number(parsed.watchedMs) || 0)) + delta,
+    );
+
+    const next: RecommendationAttributionState = {
+      ...parsed,
+      animeId: input.animeId,
+      watchedMs,
+      lastEpisode: input.episode,
+      lastEpisodeActiveMs: currentActiveMs,
+    };
+
+    const common = {
+      source: parsed.source || 'recommendation',
+      entityType: 'anime_id',
+      entityId: String(input.animeId),
+      metadata: {
+        episode: input.episode,
+        watched_ms: watchedMs,
+        impression_id: parsed.impressionId ?? null,
+        recommendation_session_id: parsed.recommendationSessionId ?? null,
+        match_score: parsed.matchScore ?? null,
+        reason: parsed.reason?.slice(0, 180) ?? null,
+      },
+    } as const;
+
+    if (watchedMs >= 15 * 60 * 1000 && !parsed.watch15mSent) {
+      next.watch15mSent = true;
+      trackProductClientEvent('recommendation_watch_15m', common);
+    }
+
+    if (watchedMs >= 30 * 60 * 1000 && !parsed.watch30mSent) {
+      next.watch30mSent = true;
+      trackProductClientEvent('recommendation_watch_30m', common);
+    }
+
+    if (input.completed && watchedMs > 0 && !parsed.completedSent) {
+      next.completedSent = true;
+      trackProductClientEvent('recommendation_completed', {
+        ...common,
+        metadata: {
+          ...common.metadata,
+          completion_scope: 'episode',
+        },
+      });
+    }
+
+    window.sessionStorage.setItem(key, JSON.stringify(next));
+  } catch {
+    // Recommendation depth analytics must never affect playback.
+  }
+}
+
 export function trackProductClientEvent(
   eventName: ProductClientEventName,
   options: TrackOptions = {},

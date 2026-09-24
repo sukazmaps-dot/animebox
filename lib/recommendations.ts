@@ -78,6 +78,41 @@ function normalizeGenre(value: string): string {
   return value.trim().toLowerCase();
 }
 
+function studioNames(anime: Anime): string[] {
+  const raw = anime.studios;
+  const values: unknown[] = Array.isArray(raw)
+    ? raw
+    : raw && typeof raw === 'object' && Array.isArray((raw as { nodes?: unknown[] }).nodes)
+      ? (raw as { nodes: unknown[] }).nodes
+      : [];
+
+  return values
+    .map((value) => {
+      if (typeof value === 'string') return value;
+      if (value && typeof value === 'object') {
+        const row = value as { name?: unknown; node?: { name?: unknown } };
+        if (typeof row.name === 'string') return row.name;
+        if (typeof row.node?.name === 'string') return row.node.name;
+      }
+      return '';
+    })
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean)
+    .slice(0, 8);
+}
+
+function titleFamilyKey(anime: Anime): string {
+  return getAnimeTitle(anime)
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/(?:season|сезон|part|часть)\s*\d+/giu, ' ')
+    .replace(/\b(?:ii|iii|iv|v|2nd|3rd|second|third)\b/giu, ' ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 72);
+}
+
 function normalizeRating(anime: Anime): number {
   const raw = Number(anime.score ?? anime.averageScore ?? 0);
   if (!Number.isFinite(raw) || raw <= 0) return 0;
@@ -169,7 +204,8 @@ function buildDirectEngagementScores(): Map<number, number> {
       signal = 0.015 + (dwell / 30_000) * 0.035;
     }
     if (event.type === 'planned') signal = 0.075;
-    if (event.type === 'not_interested') signal = -1;
+    if (event.type === 'liked') signal = 0.12;
+    if (event.type === 'not_interested' || event.type === 'already_watched') signal = -1;
 
     if (signal === 0) continue;
 
@@ -205,6 +241,8 @@ export function getPersonalizedRecommendations(
   const tasteGraph = options?.tasteGraph ?? readCachedTasteGraph();
 
   const hiddenIds = new Set(profile.hiddenAnimeIds);
+  const explicitlyWatchedIds = new Set(profile.alreadyWatchedAnimeIds);
+  const likedIds = new Set(profile.likedAnimeIds);
   const watchedIds = new Set(history.map((item) => item.id));
   const savedIds = new Set(saved.map((item) => item.id));
   const favoriteIds = new Set(favorites.map((item) => item.id));
@@ -214,6 +252,7 @@ export function getPersonalizedRecommendations(
     (tasteGraph?.sampleSize ?? 0) > 0;
 
   const genreWeight = new Map<string, number>();
+  const studioWeight = new Map<string, number>();
 
   history.forEach((item, index) => {
     const ageDays = Math.max(0, (Date.now() - item.lastViewedAt) / 86_400_000);
@@ -226,6 +265,10 @@ export function getPersonalizedRecommendations(
       const genre = normalizeGenre(rawGenre);
       if (!genre) continue;
       genreWeight.set(genre, (genreWeight.get(genre) ?? 0) + weight);
+    }
+
+    for (const studio of studioNames(item)) {
+      studioWeight.set(studio, (studioWeight.get(studio) ?? 0) + weight * 0.7);
     }
   });
 
@@ -244,6 +287,21 @@ export function getPersonalizedRecommendations(
       if (!genre) continue;
       genreWeight.set(genre, (genreWeight.get(genre) ?? 0) + 1.05);
     }
+    for (const studio of studioNames(item)) {
+      studioWeight.set(studio, (studioWeight.get(studio) ?? 0) + 0.8);
+    }
+  }
+
+  for (const item of candidates) {
+    if (!likedIds.has(item.id)) continue;
+    for (const rawGenre of item.genres ?? []) {
+      const genre = normalizeGenre(rawGenre);
+      if (!genre) continue;
+      genreWeight.set(genre, (genreWeight.get(genre) ?? 0) + 1.55);
+    }
+    for (const studio of studioNames(item)) {
+      studioWeight.set(studio, (studioWeight.get(studio) ?? 0) + 1.15);
+    }
   }
 
   const preferredGenres = [...genreWeight.entries()]
@@ -254,12 +312,22 @@ export function getPersonalizedRecommendations(
     preferredGenres.map(([genre, weight]) => [genre, weight / maxGenreWeight]),
   );
 
+  const preferredStudios = [...studioWeight.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8);
+  const maxStudioWeight = preferredStudios[0]?.[1] ?? 1;
+  const normalizedStudioWeight = new Map(
+    preferredStudios.map(([studio, weight]) => [studio, weight / maxStudioWeight]),
+  );
+
   const recentTitles = new Set(
     history.slice(0, 12).map((item) => getAnimeTitle(item).toLowerCase()),
   );
 
   const scored = uniqueById(candidates)
     .filter((anime) => !hiddenIds.has(anime.id))
+    .filter((anime) => !explicitlyWatchedIds.has(anime.id))
+    .filter((anime) => !likedIds.has(anime.id))
     .filter((anime) => !watchedIds.has(anime.id))
     .filter((anime) => !serverExcludedIds.has(anime.id))
     .filter((anime) => !savedIds.has(anime.id))
@@ -288,6 +356,16 @@ export function getPersonalizedRecommendations(
 
       const graphAffinity = animeGenreAffinity(anime, tasteGraph);
       const completedAffinity = completedGenreAffinity(anime, tasteGraph);
+      const candidateStudios = studioNames(anime);
+      const studioScore = candidateStudios.length
+        ? Math.min(
+            1,
+            candidateStudios.reduce(
+              (sum, studio) => sum + (normalizedStudioWeight.get(studio) ?? 0),
+              0,
+            ) / 1.5,
+          )
+        : 0;
       const lengthAffinity = episodeLengthAffinity(anime, tasteGraph);
       const moodScore = moodAffinity(anime, mood);
       const ratingScore = normalizeRating(anime);
@@ -310,7 +388,8 @@ export function getPersonalizedRecommendations(
       const score =
         genreScore * (hasHistory ? 0.34 : 0.08) +
         graphAffinity.positive * 0.25 +
-        completedAffinity.positive * 0.13 -
+        completedAffinity.positive * 0.13 +
+        studioScore * 0.08 -
         graphAffinity.negative * 0.32 +
         lengthAffinity * (tasteGraph?.confidence ? 0.07 : 0) +
         moodScore * (mood === 'any' ? 0 : hasHistory ? 0.18 : 0.38) +
@@ -345,6 +424,9 @@ export function getPersonalizedRecommendations(
       const tasteMatches = [...new Set([...graphMatches, ...localMatches])].slice(0, 2);
       if (tasteMatches.length) reasons.push(`Совпадает со вкусом: ${tasteMatches.join(' · ')}`);
       if (mood !== 'any' && moodScore > 0) reasons.push(`Под настроение «${MOOD_CONFIG[mood].label}»`);
+      if (studioScore >= 0.45 && candidateStudios.length && reasons.length < 2) {
+        reasons.push(`Студия в твоём вкусе: ${candidateStudios[0]}`);
+      }
       if (lengthAffinity >= 0.72 && tasteGraph?.preferredEpisodeCount) {
         reasons.push(`Похожая длина: около ${tasteGraph.preferredEpisodeCount} серий`);
       }
@@ -380,6 +462,7 @@ export function getPersonalizedRecommendations(
           genreScore * 0.3 +
             graphAffinity.positive * 0.26 +
             completedAffinity.positive * 0.14 +
+            studioScore * 0.08 +
             moodScore * 0.16 +
             lengthAffinity * 0.08 +
             ratingScore * 0.12 +
@@ -419,12 +502,29 @@ export function getPersonalizedRecommendations(
       const candidate = remaining[index];
       const candidateGenres = new Set((candidate.anime.genres ?? []).map(normalizeGenre));
       let overlap = 0;
+      let sameFamily = false;
+      const candidateFamily = titleFamilyKey(candidate.anime);
       for (const picked of selected.slice(-5)) {
         const pickedGenres = new Set((picked.anime.genres ?? []).map(normalizeGenre));
         const shared = [...candidateGenres].filter((genre) => pickedGenres.has(genre)).length;
         overlap = Math.max(overlap, shared / Math.max(1, candidateGenres.size));
+        if (
+          candidateFamily &&
+          candidateFamily === titleFamilyKey(picked.anime)
+        ) {
+          sameFamily = true;
+        }
       }
-      const diversifiedScore = candidate.score - overlap * 0.1;
+
+      const explorationSlot = selected.length > 0 && selected.length % 6 === 5;
+      const explorationBoost =
+        explorationSlot && candidate.source === 'discovery' ? 0.13 : 0;
+      const familyPenalty = sameFamily ? 0.38 : 0;
+      const diversifiedScore =
+        candidate.score -
+        overlap * 0.12 -
+        familyPenalty +
+        explorationBoost;
       if (diversifiedScore > bestScore) {
         bestScore = diversifiedScore;
         bestIndex = index;

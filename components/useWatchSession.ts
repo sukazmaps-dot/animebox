@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KodikProviderSkipSignal } from '@/components/KodikPlayer';
 import { invalidateTrackerSnapshot } from '@/lib/tracker-client';
 import { invalidateCommunityProfile } from '@/lib/community-profile-cache';
+import { trackRecommendationWatchProgress } from '@/lib/product-events-client';
 
 const HEARTBEAT_INTERVAL_MS = 20_000;
 const ACTIVE_ADVANCE_WINDOW_MS = 15_000;
@@ -202,6 +203,13 @@ export function useWatchSession({
           },
         }),
       );
+
+      trackRecommendationWatchProgress({
+        animeId,
+        episode,
+        activeMs,
+        completed: isCompleted,
+      });
     },
     [animeId, episode],
   );

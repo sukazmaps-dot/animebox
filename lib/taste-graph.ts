@@ -1,7 +1,7 @@
 import type { Anime } from '@/types/anime';
 
-export const TASTE_GRAPH_VERSION = 'taste-v4';
-export const TASTE_GRAPH_CACHE_KEY = 'animebox:taste-graph:v4';
+export const TASTE_GRAPH_VERSION = 'taste-v5';
+export const TASTE_GRAPH_CACHE_KEY = 'animebox:taste-graph:v5';
 export const TASTE_GRAPH_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
 export type TasteGraph = {
@@ -19,6 +19,8 @@ export type TasteGraph = {
   excludedAnimeIds: number[];
   completedAnimeIds: number[];
   droppedAnimeIds: number[];
+  likedAnimeIds: number[];
+  explicitFeedbackCount: number;
   topGenres: string[];
 };
 
@@ -96,6 +98,8 @@ export function sanitizeTasteGraph(value: unknown): TasteGraph | null {
     excludedAnimeIds: toIds(raw.excludedAnimeIds),
     completedAnimeIds: toIds(raw.completedAnimeIds),
     droppedAnimeIds: toIds(raw.droppedAnimeIds),
+    likedAnimeIds: toIds(raw.likedAnimeIds),
+    explicitFeedbackCount: Math.max(0, Math.round(finite(raw.explicitFeedbackCount))),
     topGenres,
   };
 }
