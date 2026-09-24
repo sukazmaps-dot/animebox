@@ -639,8 +639,17 @@
 
 @media (max-width: 640px) {
   .card {
+    height: auto !important;
     max-height: min(640px, calc(100dvh - 16px));
+    flex: 0 1 auto;
+    align-self: flex-end;
     border-radius: var(--ab-ui-radius-lg) var(--ab-ui-radius-lg) var(--ab-ui-radius-md) var(--ab-ui-radius-md);
+  }
+
+  .body {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   .banner {
