@@ -9,6 +9,7 @@ import {
 import { useRouter } from 'next/navigation';
 
 import { safeInternalPath } from '@/lib/browser-navigation';
+import { usernamePolicyError } from '@/lib/auth-identity-policy';
 import { createClient } from '@/lib/supabase/client';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 
@@ -99,14 +100,9 @@ export default function OnboardingPage() {
 
     setError('');
 
-    if (
-      cleanUsername.length < 3 ||
-      cleanUsername.length > 24
-    ) {
-      setError(
-        'Ник должен содержать от 3 до 24 символов.',
-      );
-
+    const usernameError = usernamePolicyError(cleanUsername);
+    if (usernameError) {
+      setError(usernameError);
       return;
     }
 
@@ -144,6 +140,11 @@ export default function OnboardingPage() {
           );
 
       if (profileError) {
+        if (/USERNAME_RESERVED/i.test(profileError.message)) {
+          setError('Этот ник зарезервирован AnimeBox. Выбери другое имя.');
+          return;
+        }
+
         if (profileError.code === '23505') {
           setError(
             'Этот ник уже занят. Попробуй другой.',
