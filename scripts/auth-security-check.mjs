@@ -7,7 +7,7 @@ const register = read('app/register/page.tsx');
 const modal = read('components/AuthModalProvider.tsx');
 const route = read('app/api/auth/email/route.ts');
 const profileRoute = read('app/api/profile/editor/route.ts');
-const migration = read('supabase/migrations/20260924160000_auth_security_username_reservations_v1.sql');
+const migration = read('supabase/migrations/20260924155743_auth_security_username_reservations_v1.sql');
 
 const failures = [];
 
