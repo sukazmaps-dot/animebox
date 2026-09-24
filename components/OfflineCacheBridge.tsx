@@ -4,8 +4,12 @@ import { useEffect } from 'react';
 
 export default function OfflineCacheBridge() {
   useEffect(() => {
+    const localDevelopment =
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1';
+
     if (
-      process.env.NODE_ENV !== 'production' ||
+      localDevelopment ||
       !('serviceWorker' in navigator) ||
       !window.isSecureContext
     ) {
