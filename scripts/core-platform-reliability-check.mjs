@@ -69,15 +69,18 @@ if (
   !healthServer.includes("from('system_job_runs')") ||
   !healthServer.includes("from('system_incidents')") ||
   !healthServer.includes("from('player_provider_runtime')") ||
-  !healthServer.includes("from('notification_service_health')")
+  !healthServer.includes("from('notification_service_health')") ||
+  !healthServer.includes("'player_source_fallback'") ||
+  !healthServer.includes("'player_source_exhausted'") ||
+  !healthServer.includes("'player_resume_applied'")
 ) {
-  failures.push('System Health server lost one or more production signal sources');
+  failures.push('System Health server lost one or more production/watch signal sources');
 }
 
 if (
   !healthRoute.includes("requireAdmin(['owner', 'admin'])") ||
   !dashboard.includes('/api/admin/system-health') ||
-  !dashboard.includes('CORE PLATFORM · 17.5')
+  !dashboard.includes('WATCH PLATFORM · 17.6')
 ) {
   failures.push('admin System Health surface is not protected/wired');
 }
