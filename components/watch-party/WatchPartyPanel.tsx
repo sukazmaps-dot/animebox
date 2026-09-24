@@ -1384,6 +1384,41 @@ export default function WatchPartyPanel({
       scheduleGuestReconnectRef.current();
     });
 
+    peer.on('close', () => {
+      if (
+        intentionalCloseRef.current ||
+        hostEndedRef.current ||
+        transportGenerationRef.current !== generation
+      ) return;
+
+      if (relayWelcomedRef.current && relayRef.current?.isOpen()) {
+        guestTransportRef.current = 'server';
+        setNetworkRoute('server');
+        setError('');
+        setStatus('active');
+        return;
+      }
+
+      if (peerRef.current === peer) peerRef.current = null;
+      setStatus('reconnecting');
+      setError('Перезапускаем соединение с комнатой…');
+
+      const nextInvite = inviteRef.current;
+      if (!nextInvite) return;
+
+      window.setTimeout(() => {
+        if (
+          intentionalCloseRef.current ||
+          hostEndedRef.current ||
+          transportGenerationRef.current !== generation
+        ) return;
+
+        destroyTransport();
+        intentionalCloseRef.current = false;
+        startGuestRef.current(nextInvite);
+      }, 700);
+    });
+
     peer.on('error', (peerError) => {
       if (
         intentionalCloseRef.current ||
@@ -1447,6 +1482,7 @@ export default function WatchPartyPanel({
     publishReaction,
     redirectToRegistration,
     resolveIdentity,
+    destroyTransport,
   ]);
 
   const startHost = useCallback(async (invite: WatchPartyInvite) => {
@@ -1975,6 +2011,36 @@ export default function WatchPartyPanel({
       setError('Восстанавливаем соединение комнаты…');
     });
 
+    peer.on('close', () => {
+      if (
+        intentionalCloseRef.current ||
+        transportGenerationRef.current !== generation
+      ) return;
+
+      if (relayRef.current?.isOpen()) {
+        setNetworkRoute('server');
+        setError('');
+        setStatus('active');
+        return;
+      }
+
+      if (peerRef.current === peer) peerRef.current = null;
+      hostBootKeyRef.current = null;
+      setStatus('reconnecting');
+      setError('Перезапускаем host-соединение комнаты…');
+
+      window.setTimeout(() => {
+        if (
+          intentionalCloseRef.current ||
+          transportGenerationRef.current !== generation
+        ) return;
+
+        destroyTransport();
+        intentionalCloseRef.current = false;
+        startHostRef.current(invite);
+      }, 700);
+    });
+
     peer.on('error', (peerError) => {
       if (
         intentionalCloseRef.current ||
@@ -2034,6 +2100,7 @@ export default function WatchPartyPanel({
     handleHostVote,
     broadcastParticipants,
     currentPlayerSnapshot,
+    destroyTransport,
     ensureHostTimers,
     episodeNumber,
     publishParticipants,
