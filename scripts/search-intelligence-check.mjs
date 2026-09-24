@@ -26,6 +26,9 @@ const migration = read(
 const securityMigration = read(
   'supabase/migrations/20260925031000_search_intelligence_security_hardening.sql',
 );
+const slugMigration = read(
+  'supabase/migrations/20260925032000_search_slug_alias_backfill.sql',
+);
 
 const failures = [];
 
@@ -127,6 +130,14 @@ if (
   !securityMigration.includes('sync_anime_catalog_search_document')
 ) {
   failures.push('search RPC role hardening is incomplete');
+}
+
+if (
+  !slugMigration.includes("concat_ws(' ', search_text, slug)") ||
+  !slugMigration.includes('anime_search_documents_no_client_access') ||
+  !slugMigration.includes('new.slug')
+) {
+  failures.push('legacy search corpus slug alias backfill is incomplete');
 }
 
 if (
