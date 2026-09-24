@@ -3,7 +3,7 @@ import { trackProductClientEvent } from '@/lib/product-events-client';
 
 export const TASTE_PROFILE_STORAGE_KEY = 'animebox_taste_profile_v1';
 export const RECOMMENDATION_EVENTS_STORAGE_KEY = 'animebox_recommendation_events_v1';
-export const RECOMMENDATION_MODEL_VERSION = 'taste-v2-smart-discovery';
+export const RECOMMENDATION_MODEL_VERSION = 'taste-v3-personalized-rails';
 export const RECOMMENDATION_ATTRIBUTION_PREFIX = 'animebox:recommendation-attribution:v1:';
 
 export type TasteMood = 'any' | 'comfort' | 'tension' | 'emotion' | 'adventure';
@@ -11,6 +11,8 @@ export type TasteMood = 'any' | 'comfort' | 'tension' | 'emotion' | 'adventure';
 export type TasteProfile = {
   mood: TasteMood;
   hiddenAnimeIds: number[];
+  likedAnimeIds: number[];
+  alreadyWatchedAnimeIds: number[];
   updatedAt: number;
 };
 
@@ -19,7 +21,9 @@ export type RecommendationEventType =
   | 'dwell'
   | 'open'
   | 'planned'
+  | 'liked'
   | 'not_interested'
+  | 'already_watched'
   | 'mood_change';
 
 export type RecommendationEvent = {
@@ -41,6 +45,8 @@ export type RecommendationEvent = {
 const DEFAULT_PROFILE: TasteProfile = {
   mood: 'any',
   hiddenAnimeIds: [],
+  likedAnimeIds: [],
+  alreadyWatchedAnimeIds: [],
   updatedAt: 0,
 };
 
@@ -52,6 +58,16 @@ function safeJsonParse<T>(value: string | null, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+function sanitizeIds(value: unknown, limit = 300) {
+  return Array.isArray(value)
+    ? [...new Set(
+        value
+          .map(Number)
+          .filter((id) => Number.isSafeInteger(id) && id > 0),
+      )].slice(0, limit)
+    : [];
 }
 
 function isMood(value: unknown): value is TasteMood {
@@ -80,16 +96,11 @@ export function readTasteProfile(): TasteProfile {
     DEFAULT_PROFILE,
   );
 
-  const hiddenAnimeIds = Array.isArray(raw.hiddenAnimeIds)
-    ? raw.hiddenAnimeIds
-        .map(Number)
-        .filter((id) => Number.isSafeInteger(id) && id > 0)
-        .slice(0, 300)
-    : [];
-
   return {
     mood: isMood(raw.mood) ? raw.mood : 'any',
-    hiddenAnimeIds: [...new Set(hiddenAnimeIds)],
+    hiddenAnimeIds: sanitizeIds(raw.hiddenAnimeIds),
+    likedAnimeIds: sanitizeIds(raw.likedAnimeIds),
+    alreadyWatchedAnimeIds: sanitizeIds(raw.alreadyWatchedAnimeIds),
     updatedAt: Number.isFinite(raw.updatedAt) ? Number(raw.updatedAt) : 0,
   };
 }
@@ -101,7 +112,9 @@ export function writeTasteProfile(profile: TasteProfile): void {
     TASTE_PROFILE_STORAGE_KEY,
     JSON.stringify({
       ...profile,
-      hiddenAnimeIds: [...new Set(profile.hiddenAnimeIds)].slice(0, 300),
+      hiddenAnimeIds: sanitizeIds(profile.hiddenAnimeIds),
+      likedAnimeIds: sanitizeIds(profile.likedAnimeIds),
+      alreadyWatchedAnimeIds: sanitizeIds(profile.alreadyWatchedAnimeIds),
       updatedAt: Date.now(),
     }),
   );
@@ -123,15 +136,47 @@ export function setTasteMood(mood: TasteMood): TasteProfile {
   return next;
 }
 
-export function hideRecommendation(anime: Pick<Anime, 'id'>): TasteProfile {
+export function likeRecommendation(anime: Pick<Anime, 'id'>): TasteProfile {
   const current = readTasteProfile();
-  const hiddenAnimeIds = [anime.id, ...current.hiddenAnimeIds].filter(
-    (id, index, items) => items.indexOf(id) === index,
-  );
-
   const next = {
     ...current,
-    hiddenAnimeIds: hiddenAnimeIds.slice(0, 300),
+    likedAnimeIds: sanitizeIds([anime.id, ...current.likedAnimeIds]),
+    hiddenAnimeIds: current.hiddenAnimeIds.filter((id) => id !== anime.id),
+    alreadyWatchedAnimeIds: current.alreadyWatchedAnimeIds.filter(
+      (id) => id !== anime.id,
+    ),
+    updatedAt: Date.now(),
+  };
+
+  writeTasteProfile(next);
+  return next;
+}
+
+export function hideRecommendation(anime: Pick<Anime, 'id'>): TasteProfile {
+  const current = readTasteProfile();
+  const next = {
+    ...current,
+    hiddenAnimeIds: sanitizeIds([anime.id, ...current.hiddenAnimeIds]),
+    likedAnimeIds: current.likedAnimeIds.filter((id) => id !== anime.id),
+    updatedAt: Date.now(),
+  };
+
+  writeTasteProfile(next);
+  return next;
+}
+
+export function markRecommendationWatched(
+  anime: Pick<Anime, 'id'>,
+): TasteProfile {
+  const current = readTasteProfile();
+  const next = {
+    ...current,
+    alreadyWatchedAnimeIds: sanitizeIds([
+      anime.id,
+      ...current.alreadyWatchedAnimeIds,
+    ]),
+    hiddenAnimeIds: current.hiddenAnimeIds.filter((id) => id !== anime.id),
+    likedAnimeIds: current.likedAnimeIds.filter((id) => id !== anime.id),
     updatedAt: Date.now(),
   };
 
@@ -144,6 +189,9 @@ export function restoreRecommendation(animeId: number): TasteProfile {
   const next = {
     ...current,
     hiddenAnimeIds: current.hiddenAnimeIds.filter((id) => id !== animeId),
+    alreadyWatchedAnimeIds: current.alreadyWatchedAnimeIds.filter(
+      (id) => id !== animeId,
+    ),
     updatedAt: Date.now(),
   };
 
@@ -170,10 +218,7 @@ export function trackRecommendationEvent(
     createdAt: Date.now(),
   };
 
-  // Keep a bounded local queue. This is intentionally local-first for now:
-  // the UI can start collecting clean impression/click signals before the
-  // server analytics table is rolled out.
-  const next = [...existing.slice(-249), nextEvent];
+  const next = [...existing.slice(-349), nextEvent];
 
   localStorage.setItem(
     RECOMMENDATION_EVENTS_STORAGE_KEY,
@@ -193,6 +238,12 @@ export function trackRecommendationEvent(
           reason: event.reason ?? null,
           openedAt: Date.now(),
           startedSent: false,
+          watch15mSent: false,
+          watch30mSent: false,
+          completedSent: false,
+          watchedMs: 0,
+          lastEpisode: null,
+          lastEpisodeActiveMs: 0,
         }),
       );
     } catch {
@@ -205,12 +256,12 @@ export function trackRecommendationEvent(
     dwell: 'recommendation_dwell',
     open: 'recommendation_click',
     planned: 'recommendation_planned',
+    liked: 'recommendation_like',
     not_interested: 'recommendation_dismiss',
+    already_watched: 'recommendation_already_watched',
     mood_change: 'recommendation_mood_change',
   } as const;
 
-  // Dwell is intentionally sampled by duration to avoid turning a hover into
-  // noisy telemetry. Product analytics remains best-effort and never blocks UI.
   if (event.type !== 'dwell' || (event.dwellMs ?? 0) >= 1_500) {
     trackProductClientEvent(serverEvent[event.type], {
       source: event.source,
