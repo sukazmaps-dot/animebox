@@ -102,6 +102,15 @@ jobs:
           app/api/admin/copyright/route.ts
           components/CopyrightReportForm.tsx
           components/admin/CopyrightAdminClient.tsx
+          lib/player-source-control.ts
+          types/player-source-policy.ts
+          app/api/player/source-policy/route.ts
+          app/api/admin/player-sources/route.ts
+          components/admin/PlayerSourceControl.tsx
+          app/api/players/kodik/route.ts
+          app/api/player/direct-source/route.ts
+          app/api/anilibria/route.ts
+          lib/episode-provider-availability.ts
 
       - name: Retention regression checks
         run: node tests/retention.cjs
