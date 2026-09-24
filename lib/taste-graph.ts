@@ -1,8 +1,23 @@
 import type { Anime } from '@/types/anime';
 
-export const TASTE_GRAPH_VERSION = 'taste-v5';
-export const TASTE_GRAPH_CACHE_KEY = 'animebox:taste-graph:v5';
-export const TASTE_GRAPH_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+export const TASTE_GRAPH_VERSION = 'taste-v6';
+export const TASTE_GRAPH_CACHE_KEY = 'animebox:taste-graph:v6';
+export const TASTE_GRAPH_CACHE_TTL_MS = 30 * 60 * 1000;
+
+export type TasteMoodWeightKey =
+  | 'comfort'
+  | 'tension'
+  | 'emotion'
+  | 'adventure';
+
+export type TasteSignalBreakdown = {
+  library: number;
+  completedTitles: number;
+  completedEpisodes: number;
+  recommendationEvents: number;
+  explicitFeedback: number;
+  ratings: number;
+};
 
 export type TasteGraph = {
   version: typeof TASTE_GRAPH_VERSION;
@@ -13,6 +28,11 @@ export type TasteGraph = {
   completionRate: number;
   bingeScore: number;
   preferredEpisodeCount: number | null;
+  averageRating: number | null;
+  ratingsCount: number;
+  explorationRate: number;
+  moodWeights: Partial<Record<TasteMoodWeightKey, number>>;
+  signalBreakdown: TasteSignalBreakdown;
   genreWeights: Record<string, number>;
   negativeGenreWeights: Record<string, number>;
   completedGenreWeights: Record<string, number>;
@@ -20,6 +40,9 @@ export type TasteGraph = {
   completedAnimeIds: number[];
   droppedAnimeIds: number[];
   likedAnimeIds: number[];
+  ratedAnimeIds: number[];
+  highRatedAnimeIds: number[];
+  lowRatedAnimeIds: number[];
   explicitFeedbackCount: number;
   topGenres: string[];
 };
@@ -74,6 +97,48 @@ export function sanitizeTasteGraph(value: unknown): TasteGraph | null {
     ? null
     : Math.max(1, Math.min(2000, Math.round(finite(raw.preferredEpisodeCount))));
 
+  const averageRating = raw.averageRating == null
+    ? null
+    : clamp(finite(raw.averageRating), 1, 10);
+
+  const moodWeightsRaw =
+    raw.moodWeights && typeof raw.moodWeights === 'object' && !Array.isArray(raw.moodWeights)
+      ? (raw.moodWeights as Record<string, unknown>)
+      : {};
+  const moodWeights = Object.fromEntries(
+    (['comfort', 'tension', 'emotion', 'adventure'] as TasteMoodWeightKey[])
+      .map((key) => [key, clamp(finite(moodWeightsRaw[key]))] as const)
+      .filter(([, weight]) => weight > 0),
+  ) as Partial<Record<TasteMoodWeightKey, number>>;
+
+  const signalBreakdownRaw =
+    raw.signalBreakdown &&
+    typeof raw.signalBreakdown === 'object' &&
+    !Array.isArray(raw.signalBreakdown)
+      ? (raw.signalBreakdown as Record<string, unknown>)
+      : {};
+
+  const signalBreakdown: TasteSignalBreakdown = {
+    library: Math.max(0, Math.round(finite(signalBreakdownRaw.library))),
+    completedTitles: Math.max(
+      0,
+      Math.round(finite(signalBreakdownRaw.completedTitles)),
+    ),
+    completedEpisodes: Math.max(
+      0,
+      Math.round(finite(signalBreakdownRaw.completedEpisodes)),
+    ),
+    recommendationEvents: Math.max(
+      0,
+      Math.round(finite(signalBreakdownRaw.recommendationEvents)),
+    ),
+    explicitFeedback: Math.max(
+      0,
+      Math.round(finite(signalBreakdownRaw.explicitFeedback)),
+    ),
+    ratings: Math.max(0, Math.round(finite(signalBreakdownRaw.ratings))),
+  };
+
   const toIds = (candidate: unknown) => {
     if (!Array.isArray(candidate)) return [];
     return [...new Set(
@@ -92,6 +157,11 @@ export function sanitizeTasteGraph(value: unknown): TasteGraph | null {
     completionRate: clamp(finite(raw.completionRate)),
     bingeScore: clamp(finite(raw.bingeScore)),
     preferredEpisodeCount,
+    averageRating,
+    ratingsCount: Math.max(0, Math.round(finite(raw.ratingsCount))),
+    explorationRate: clamp(finite(raw.explorationRate, 0.14), 0.08, 0.2),
+    moodWeights,
+    signalBreakdown,
     genreWeights: toWeights(raw.genreWeights),
     negativeGenreWeights: toWeights(raw.negativeGenreWeights),
     completedGenreWeights: toWeights(raw.completedGenreWeights),
@@ -99,6 +169,9 @@ export function sanitizeTasteGraph(value: unknown): TasteGraph | null {
     completedAnimeIds: toIds(raw.completedAnimeIds),
     droppedAnimeIds: toIds(raw.droppedAnimeIds),
     likedAnimeIds: toIds(raw.likedAnimeIds),
+    ratedAnimeIds: toIds(raw.ratedAnimeIds),
+    highRatedAnimeIds: toIds(raw.highRatedAnimeIds),
+    lowRatedAnimeIds: toIds(raw.lowRatedAnimeIds),
     explicitFeedbackCount: Math.max(0, Math.round(finite(raw.explicitFeedbackCount))),
     topGenres,
   };
