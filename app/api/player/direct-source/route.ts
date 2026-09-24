@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+import {
+  COPYRIGHT_RESTRICTED_MESSAGE,
+  getPlaybackRestriction,
+} from '@/lib/copyright-server';
 import { resolveDirectPlayerStreams } from '@/lib/direct-player-server';
 
 export const runtime = 'nodejs';
@@ -24,34 +29,93 @@ function rateLimited(request: NextRequest) {
   const now = Date.now();
   const key = clientKey(request);
   const current = requestBuckets.get(key);
+
   if (!current || current.resetAt <= now) {
     requestBuckets.set(key, { count: 1, resetAt: now + RATE_WINDOW_MS });
     return false;
   }
+
   current.count += 1;
+
   if (requestBuckets.size > 2_000) {
     for (const [bucketKey, bucket] of requestBuckets) {
       if (bucket.resetAt <= now) requestBuckets.delete(bucketKey);
     }
   }
+
   return current.count > RATE_LIMIT;
 }
 
 export async function GET(request: NextRequest) {
   if (rateLimited(request)) {
     return NextResponse.json(
-      { enabled: false, provider: 'Alloha Direct', streams: [], reason: 'rate_limited' },
-      { status: 429, headers: { 'Cache-Control': 'no-store' } },
+      {
+        enabled: false,
+        provider: 'Alloha Direct',
+        streams: [],
+        reason: 'rate_limited',
+      },
+      {
+        status: 429,
+        headers: { 'Cache-Control': 'no-store' },
+      },
     );
   }
 
-  const shikimoriId = Number(request.nextUrl.searchParams.get('shikimoriId'));
+  const shikimoriId = Number(
+    request.nextUrl.searchParams.get('shikimoriId'),
+  );
+  const animeId = Number(request.nextUrl.searchParams.get('animeId'));
+  const season = Number(request.nextUrl.searchParams.get('season'));
   const episode = Number(request.nextUrl.searchParams.get('episode'));
 
-  if (!Number.isSafeInteger(shikimoriId) || shikimoriId <= 0 || !Number.isSafeInteger(episode) || episode <= 0) {
+  if (
+    !Number.isSafeInteger(shikimoriId) ||
+    shikimoriId <= 0 ||
+    !Number.isSafeInteger(animeId) ||
+    animeId <= 0 ||
+    !Number.isSafeInteger(episode) ||
+    episode <= 0
+  ) {
     return NextResponse.json(
-      { enabled: false, provider: 'Alloha Direct', streams: [], reason: 'invalid_request' },
-      { status: 400, headers: { 'Cache-Control': 'no-store' } },
+      {
+        enabled: false,
+        provider: 'Alloha Direct',
+        streams: [],
+        reason: 'invalid_request',
+      },
+      {
+        status: 400,
+        headers: { 'Cache-Control': 'no-store' },
+      },
+    );
+  }
+
+  const restriction = await getPlaybackRestriction({
+    animeId,
+    season:
+      Number.isSafeInteger(season) && season > 0
+        ? season
+        : null,
+    episode,
+    provider: 'AnimeBox Direct',
+  });
+
+  if (restriction) {
+    return NextResponse.json(
+      {
+        enabled: false,
+        provider: 'AnimeBox Direct',
+        streams: [],
+        reason: 'copyright_restricted',
+        message: COPYRIGHT_RESTRICTED_MESSAGE,
+      },
+      {
+        status: 451,
+        headers: {
+          'Cache-Control': 'private, no-store, max-age=0',
+        },
+      },
     );
   }
 

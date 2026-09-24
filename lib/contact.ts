@@ -1,4 +1,5 @@
 export const SUPPORT_EMAIL = 'support@youranimebox.com';
+export const COPYRIGHT_EMAIL = 'copyright@youranimebox.com';
 
 export const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}`;
 

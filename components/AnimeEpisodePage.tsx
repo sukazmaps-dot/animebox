@@ -42,6 +42,7 @@ type SourceApiResponse = {
   externalPlayer?: string | null;
   reason?: string;
   error?: string;
+  message?: string;
 };
 
 
@@ -57,6 +58,7 @@ type DirectSourceApiResponse = {
     quality?: string | null;
   }>;
   reason?: string;
+  message?: string;
 };
 type KodikApiResponse = {
   name?: string;
@@ -68,6 +70,8 @@ type KodikApiResponse = {
   status?: 'available' | 'unavailable' | 'unknown';
   maxEpisode?: number | null;
   error?: string;
+  reason?: string;
+  message?: string;
 };
 
 export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode = false }: { anime: Anime; requestedEpisode: number; theaterMode?: boolean }) {
@@ -259,7 +263,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
       try {
         const response = await fetch(
-          `/api/player/direct-source?shikimoriId=${encodeURIComponent(String(shikimoriId))}&episode=${encodeURIComponent(String(episodeNumber))}`,
+          `/api/player/direct-source?shikimoriId=${encodeURIComponent(String(shikimoriId))}&animeId=${encodeURIComponent(String(anime.id))}&season=${encodeURIComponent(String(anime.providerSeason || 1))}&episode=${encodeURIComponent(String(episodeNumber))}`,
           {
             signal: controller.signal,
             cache: 'no-store',
@@ -267,6 +271,14 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         );
 
         const data = (await response.json()) as DirectSourceApiResponse;
+
+        if (data.reason === 'copyright_restricted') {
+          setSourceMessage(
+            data.message ||
+              'Доступ к источнику ограничен по обращению правообладателя.',
+          );
+          return false;
+        }
 
         if (!response.ok || !data.enabled || !Array.isArray(data.streams) || data.streams.length === 0) {
           return false;
@@ -301,7 +313,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
       try {
         const response = await fetch(
-          `/api/players/kodik?shikimoriId=${encodeURIComponent(String(shikimoriId))}&animeId=${encodeURIComponent(String(anime.id))}&episode=${encodeURIComponent(String(episodeNumber))}`,
+          `/api/players/kodik?shikimoriId=${encodeURIComponent(String(shikimoriId))}&animeId=${encodeURIComponent(String(anime.id))}&season=${encodeURIComponent(String(anime.providerSeason || 1))}&episode=${encodeURIComponent(String(episodeNumber))}`,
           {
             signal: controller.signal,
             cache: 'no-store',
@@ -309,6 +321,14 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         );
 
         const data = (await response.json()) as KodikApiResponse;
+
+        if (data.reason === 'copyright_restricted') {
+          setSourceMessage(
+            data.message ||
+              'Доступ к источнику ограничен по обращению правообладателя.',
+          );
+          return false;
+        }
 
         if (data.maxEpisode && data.maxEpisode > 0) {
           setProviderEpisodes((current) => [
@@ -365,7 +385,18 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         const data = (await response.json()) as SourceApiResponse;
 
         if (!response.ok) {
-          return data.error || data.reason || `Источник HTTP ${response.status}`;
+          if (data.reason === 'copyright_restricted') {
+            setSourceMessage(
+              data.message ||
+                'Доступ к источнику ограничен по обращению правообладателя.',
+            );
+          }
+          return (
+            data.error ||
+            data.message ||
+            data.reason ||
+            `Источник HTTP ${response.status}`
+          );
         }
 
         if (!active || controller.signal.aborted) return '';
@@ -473,11 +504,15 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
         setSourceIdentity(identity);
         setLoadingSources(false);
-        setSourceMessage(
-          ['not_found', 'episode_unavailable'].includes(fallbackReason)
+        setSourceMessage((current) => {
+          if (current) return current;
+          if (fallbackReason === 'copyright_restricted') {
+            return 'Доступ к этой серии ограничен по обращению правообладателя.';
+          }
+          return ['not_found', 'episode_unavailable'].includes(fallbackReason)
             ? 'Видео для этой серии пока недоступно.'
-            : fallbackReason || 'Видеоисточник для этой серии не найден.',
-        );
+            : fallbackReason || 'Видеоисточник для этой серии не найден.';
+        });
       } catch (error) {
         if (!active) return;
 

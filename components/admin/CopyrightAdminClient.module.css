@@ -1,0 +1,309 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(250px, .72fr) minmax(0, 1.55fr);
+  gap: 14px;
+}
+
+.caseList,
+.detail {
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 16px;
+  background: #10131e;
+}
+
+.caseList {
+  align-self: start;
+  overflow: hidden;
+}
+
+.caseButton,
+.caseActive {
+  width: 100%;
+  display: grid;
+  gap: 5px;
+  padding: 14px 15px;
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,.055);
+  background: transparent;
+  color: #d8dce7;
+  text-align: left;
+  cursor: pointer;
+}
+
+.caseActive {
+  background: linear-gradient(
+    90deg,
+    rgba(133, 96, 223, .15),
+    rgba(133, 96, 223, .035)
+  );
+}
+
+.caseTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.caseTop strong {
+  color: #bda9f4;
+  font-size: 9px;
+  letter-spacing: .05em;
+}
+
+.caseTop em {
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.055);
+  color: #8f98aa;
+  font-size: 8px;
+  font-style: normal;
+}
+
+.caseButton b,
+.caseActive b {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.caseButton small,
+.caseActive small {
+  color: #70798d;
+  font-size: 9px;
+}
+
+.detail {
+  padding: 20px;
+}
+
+.detailHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+.detailHead span {
+  color: #957bd9;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .1em;
+}
+
+.detailHead h2 {
+  margin: 4px 0;
+  font-size: 20px;
+}
+
+.detailHead p {
+  margin: 0;
+  color: #7d8799;
+  font-size: 10px;
+}
+
+.detailHead a {
+  color: #b69bf3;
+  font-size: 10px;
+}
+
+.copyBlock,
+.urls,
+.restrictions {
+  margin-top: 17px;
+}
+
+.copyBlock > strong,
+.urls > strong {
+  color: #aab0bf;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.copyBlock p {
+  margin: 7px 0 0;
+  color: #c5cad6;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.urls {
+  display: grid;
+  gap: 6px;
+}
+
+.urls a {
+  overflow: hidden;
+  color: #9f8cdf;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 18px;
+}
+
+.statusActions button,
+.restrictionForm button,
+.restrictions button {
+  padding: 8px 10px;
+  border: 1px solid rgba(159,124,243,.25);
+  border-radius: 8px;
+  background: rgba(145,112,222,.10);
+  color: #d8ccfa;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.restrictionForm {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+  padding: 16px;
+  border: 1px solid rgba(174,144,244,.12);
+  border-radius: 13px;
+  background: #0c1019;
+}
+
+.restrictionForm > div:first-child span {
+  color: #947bd8;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .12em;
+}
+
+.restrictionForm h3 {
+  margin: 4px 0 0;
+  font-size: 15px;
+}
+
+.restrictionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 8px;
+}
+
+.restrictionForm label {
+  display: grid;
+  gap: 5px;
+}
+
+.restrictionForm label span {
+  color: #788296;
+  font-size: 9px;
+}
+
+.restrictionForm input,
+.restrictionForm select,
+.restrictionForm textarea {
+  min-width: 0;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 8px;
+  outline: 0;
+  background: #111621;
+  color: #eef0f6;
+  font: inherit;
+  font-size: 10px;
+}
+
+.restrictionForm input,
+.restrictionForm select {
+  min-height: 36px;
+  padding: 0 9px;
+}
+
+.restrictionForm textarea {
+  padding: 9px;
+  resize: vertical;
+}
+
+.restrictionForm button {
+  width: fit-content;
+}
+
+.restrictions h3 {
+  font-size: 14px;
+}
+
+.restrictions > p {
+  color: #70798b;
+  font-size: 10px;
+}
+
+.restrictions article {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto auto;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255,255,255,.055);
+}
+
+.restrictions article div {
+  display: grid;
+  gap: 2px;
+}
+
+.restrictions article strong {
+  font-size: 10px;
+}
+
+.restrictions article span {
+  color: #747e91;
+  font-size: 9px;
+}
+
+.restrictions article em {
+  color: #74d8a6;
+  font-size: 8px;
+  font-style: normal;
+}
+
+.restrictions article em[data-active="false"] {
+  color: #6d7586;
+}
+
+.statusActions button:disabled,
+.restrictionForm button:disabled,
+.restrictions button:disabled {
+  opacity: .45;
+  cursor: wait;
+}
+
+@media (max-width: 940px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .restrictionGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .detailHead {
+    flex-direction: column;
+  }
+
+  .restrictionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .restrictions article {
+    grid-template-columns: minmax(0,1fr) auto;
+  }
+
+  .restrictions article button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}

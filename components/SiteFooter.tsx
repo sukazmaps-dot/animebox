@@ -14,6 +14,8 @@ export default function SiteFooter() {
 
         <nav className="site-footer__links" aria-label="Сервисные ссылки">
           <Link href="/about">О проекте</Link>
+          <Link href="/copyright">Правообладателям</Link>
+          <Link href="/terms">Условия</Link>
           <a href={buildSupportMailto('Поддержка AnimeBox')}>Поддержка · {SUPPORT_EMAIL}</a>
           <a href={TELEGRAM_MINI_APP_URL} target="_blank" rel="noreferrer">
             Telegram Mini App
