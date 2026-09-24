@@ -1680,18 +1680,38 @@ export default function WatchPartyPanel({
       onPresence: (members) => {
         if (transportGenerationRef.current !== generation) return;
 
+        const liveRelayGuests = members.filter((member) => !member.host);
         const liveRelayIds = new Set(
-          members
-            .filter((member) => !member.host)
-            .map((member) => member.relayId),
+          liveRelayGuests.map((member) => member.relayId),
         );
         let changed = false;
+
+        // Presence is authoritative for the Realtime path. Hydrate guests from
+        // it even when the initial HELLO broadcast was missed during subscribe.
+        for (const member of liveRelayGuests) {
+          const current = participantsRef.current.get(member.relayId);
+          if (
+            !current ||
+            current.userId !== member.userId ||
+            current.name !== member.name ||
+            current.host
+          ) {
+            participantsRef.current.set(member.relayId, {
+              id: member.relayId,
+              userId: member.userId,
+              name: member.name,
+              host: false,
+              joinedAt: member.joinedAt,
+            });
+            changed = true;
+          }
+          relayHostGuestIdsRef.current.add(member.relayId);
+        }
 
         for (const relayId of [...relayHostGuestIdsRef.current]) {
           if (liveRelayIds.has(relayId)) continue;
           relayHostGuestIdsRef.current.delete(relayId);
-          participantsRef.current.delete(relayId);
-          changed = true;
+          if (participantsRef.current.delete(relayId)) changed = true;
         }
 
         if (changed) {
