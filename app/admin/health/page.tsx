@@ -1,9 +1,9 @@
-import ProductionHealthDashboard from '@/components/admin/ProductionHealthDashboard';
+import SystemHealthDashboard from '@/components/admin/SystemHealthDashboard';
 
 export default function ProductionHealthAdminPage() {
   return (
     <main>
-      <ProductionHealthDashboard />
+      <SystemHealthDashboard />
     </main>
   );
 }
