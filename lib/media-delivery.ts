@@ -51,6 +51,13 @@ export function buildAnimeBoxMediaCandidates(
   const primary = getPrimaryMediaOrigin();
   const ru = getRuMediaOrigin();
 
+  try {
+    const sourceOrigin = new URL(source).origin;
+    if (sourceOrigin === primary || sourceOrigin === ru) return [];
+  } catch {
+    return [];
+  }
+
   return Array.from(
     new Set(
       [
