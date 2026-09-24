@@ -8,6 +8,7 @@ import UserAvatarWithFrame from '@/components/profile/UserAvatarWithFrame';
 import ProfileAnimeIdentity from '@/components/profile/ProfileAnimeIdentity';
 import Icon from '@/components/Icon';
 import FriendActionButton from '@/components/friends/FriendActionButton';
+import ProfileWidgetsShowcase from '@/components/profile/ProfileWidgetsShowcase';
 import { premiumMediaStyle, premiumStudioCssVariables } from '@/lib/premium-studio';
 import { formatSeasonRange, seasonPlacementLabel } from '@/lib/seasons';
 import { ACHIEVEMENT_RARITY_LABELS } from '@/lib/progression';
@@ -270,6 +271,8 @@ export default async function PublicProfilePage({ params }: Props) {
           <small>В обсуждениях AnimeBox</small>
         </article>
       </section>
+
+      <ProfileWidgetsShowcase data={profile.widgets} publicView />
 
       <section className="profile-v2__achievements profile-v2__public-achievements">
         <div className="profile-v2__section-head">
