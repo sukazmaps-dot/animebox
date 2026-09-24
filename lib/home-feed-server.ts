@@ -1,14 +1,10 @@
 import 'server-only';
 
 import { unstable_cache } from 'next/cache';
-import { after } from 'next/server';
 
 import { getAnimesWithShikimori } from '@/lib/combined-anime';
 import type { Anime } from '@/types/anime';
-import {
-  filterAnimeByAvailability,
-  refreshCatalogAvailabilityBatch,
-} from '@/lib/catalog-availability-server';
+import { filterAnimeByAvailability } from '@/lib/catalog-availability-server';
 
 type HomeInitialFeed = {
   popular: Anime[];
@@ -52,15 +48,6 @@ export async function getHomeInitialFeed(): Promise<HomeInitialFeed> {
       'catalog',
     );
     const allowed = new Set(availability.items.map((anime) => anime.id));
-
-    if (availability.refreshTargets.length > 0) {
-      after(async () => {
-        await refreshCatalogAvailabilityBatch(
-          availability.refreshTargets,
-          { limit: 6 },
-        );
-      });
-    }
 
     return {
       popular: raw.popular.filter((anime) => allowed.has(anime.id)),
