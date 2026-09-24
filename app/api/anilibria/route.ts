@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { resolveAnimeRoute } from '@/lib/anime-route';
 import { findAnimeRouteById } from '@/lib/anime-registry';
 import {
@@ -10,10 +10,11 @@ import {
 } from '@/lib/provider-episodes';
 import { extractHlsVideos } from '@/lib/anilibria';
 import { enforceIpRateLimit } from '@/lib/api-rate-limit';
+import { COPYRIGHT_RESTRICTED_MESSAGE } from '@/lib/copyright-server';
 import {
-  COPYRIGHT_RESTRICTED_MESSAGE,
-  getPlaybackRestriction,
-} from '@/lib/copyright-server';
+  getProviderDecision,
+  recordProviderResult,
+} from '@/lib/player-source-control';
 
 export const runtime = 'nodejs';
 
@@ -56,24 +57,29 @@ export async function GET(request: NextRequest) {
   const providerSeason = routeRecord?.provider_season || anime.providerSeason || 1;
   const requestedSeason = request.nextUrl.searchParams.get('season');
 
-  const restriction = await getPlaybackRestriction({
+  const providerDecision = await getProviderDecision('aniliberty', {
     animeId: anime.id,
     season: providerSeason,
     episode,
-    provider: 'AniLiberty',
   });
 
-  if (restriction) {
+  if (!providerDecision.enabled) {
+    const restricted = providerDecision.reason === 'copyright_restricted';
+
     return NextResponse.json(
       {
         hls: [],
         episodes: [],
         externalPlayer: null,
-        reason: 'copyright_restricted',
-        message: COPYRIGHT_RESTRICTED_MESSAGE,
+        reason: restricted
+          ? 'copyright_restricted'
+          : 'provider_disabled',
+        message: restricted
+          ? COPYRIGHT_RESTRICTED_MESSAGE
+          : 'AniLiberty временно недоступен.',
       },
       {
-        status: 451,
+        status: restricted ? 451 : 503,
         headers: { 'Cache-Control': 'private, no-store' },
       },
     );
@@ -83,6 +89,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ reason: 'stale_season_selection' }, { status: 409 });
   }
 
+  const providerStartedAt = Date.now();
   const signal = AbortSignal.any([request.signal, AbortSignal.timeout(9_000)]);
   let uncertain = false;
   let reason = 'not_found';
@@ -152,6 +159,13 @@ export async function GET(request: NextRequest) {
       const selected = all.find((item) => episodeOrdinal(item) === episode);
       const hls = selected ? extractHlsVideos(selected, new URL(base).origin) : [];
 
+      after(async () => {
+        await recordProviderResult('aniliberty', {
+          ok: true,
+          latencyMs: Date.now() - providerStartedAt,
+        });
+      });
+
       return NextResponse.json(
         {
           slug: anime.slug,
@@ -171,6 +185,14 @@ export async function GET(request: NextRequest) {
       if (signal.aborted) break;
     }
   }
+
+  after(async () => {
+    await recordProviderResult('aniliberty', {
+      ok: reason !== 'upstream_error',
+      latencyMs: Date.now() - providerStartedAt,
+      reason: reason === 'upstream_error' ? reason : null,
+    });
+  });
 
   return NextResponse.json(
     {
