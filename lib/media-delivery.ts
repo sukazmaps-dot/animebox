@@ -1,5 +1,3 @@
-const DEFAULT_MEDIA_ORIGIN = 'https://media.youranimebox.com';
-
 function normalizeBaseUrl(value?: string | null): string | null {
   const raw = value?.trim();
   if (!raw) return null;
@@ -28,9 +26,7 @@ function normalizeRemoteUrl(value?: string | null): string | null {
 }
 
 export function getPrimaryMediaOrigin(): string | null {
-  return normalizeBaseUrl(
-    process.env.NEXT_PUBLIC_MEDIA_ORIGIN || DEFAULT_MEDIA_ORIGIN,
-  );
+  return normalizeBaseUrl(process.env.NEXT_PUBLIC_MEDIA_ORIGIN);
 }
 
 export function getRuMediaOrigin(): string | null {
