@@ -1378,36 +1378,7 @@ export default function HomePage({
           </div>
         </div>
 
-        <div className="home-utility-grid">
-          <div className="panel home-library-panel right-rail__secondary">
-            <div className="home-library-panel__head">
-              <span className="home-library-panel__symbol home-library-panel__symbol--vector" aria-hidden="true">
-                <Icon name="tracker" size={18} weight="regular" />
-              </span>
-              <span className="home-library-panel__eyebrow">Твоя коллекция</span>
-            </div>
-            <h2>Всё просмотренное — в одном месте.</h2>
-            <p>Отмечай серии, следи за онгоингами и возвращайся к просмотру без лишнего поиска.</p>
-            <Link className="btn btn--primary" href="/list">
-              Открыть трекер <span aria-hidden="true">↗</span>
-            </Link>
-          </div>
-
-          <DeferredMount
-            className="home-deferred home-deferred--support"
-            minHeight={180}
-            rootMargin="360px 0px"
-          >
-            <SupportAnimeBoxCard />
-          </DeferredMount>
-          <DeferredMount
-            className="home-deferred home-deferred--telegram"
-            minHeight={190}
-            rootMargin="360px 0px"
-          >
-            <TelegramPromoCard />
-          </DeferredMount>
-        </div>
+        
       </aside>
       </div>
     </div>
