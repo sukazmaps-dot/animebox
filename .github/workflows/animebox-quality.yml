@@ -116,6 +116,7 @@ jobs:
           components/UserPreferencesBridge.tsx
           components/settings/SettingsClient.tsx
           components/AnimeRatingControl.tsx
+          components/CommunityProfile.tsx
           app/api/community/rating/route.ts
           app/anime/[slug]/page.tsx
 
