@@ -339,10 +339,8 @@ export default function ProfilePage() {
               />
             </picture>
           ) : (
-            <img
-              src="/brand/profile-banner-default.webp"
-              alt=""
-              className="profile-v2__banner-image profile-v2__banner-image--default"
+            <div
+              className="profile-v2__banner-default"
               aria-hidden="true"
             />
           )}
