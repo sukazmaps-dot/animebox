@@ -16,30 +16,6 @@ import { usernamePolicyError } from '@/lib/auth-identity-policy';
 import { markTelegramWelcomePending } from '@/lib/telegram-growth-client';
 
 
-function isDuplicateEmailError(
-  code?: string,
-  message?: string,
-) {
-  const duplicateCodes =
-    new Set([
-      'user_already_exists',
-      'email_exists',
-    ]);
-
-  if (
-    code &&
-    duplicateCodes.has(
-      code,
-    )
-  ) {
-    return true;
-  }
-
-  return /already registered|already exists|already been registered/i.test(
-    message ?? '',
-  );
-}
-
 export default function RegisterPage() {
   const [nextPath] = useState(() =>
     safeInternalPath(
@@ -468,6 +444,7 @@ export default function RegisterPage() {
               }
               placeholder="Введите пароль ещё раз"
               autoComplete="new-password"
+              minLength={8}
               aria-invalid={Boolean(confirmPasswordError)}
               required
             />
