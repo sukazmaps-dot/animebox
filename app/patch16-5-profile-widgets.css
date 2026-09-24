@@ -1344,3 +1344,69 @@ html[data-animebox-theme='light'] .profile-v2.premium-profile-custom .profile-wi
     transition-duration: .001ms !important;
   }
 }
+
+
+/* ---------- Premium Studio: code-only avatar fallback ---------- */
+
+.premium-studio-v20__avatar-placeholder,
+.premium-studio-v20__media-avatar-placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--ab-premium-accent, #8f78e0);
+  background:
+    radial-gradient(circle at 50% 35%, rgba(var(--ab-premium-accent-rgb, 126, 97, 222), .14), transparent 45%),
+    linear-gradient(145deg, rgba(255,255,255,.035), rgba(255,255,255,.012));
+}
+
+.premium-studio-v20__avatar-placeholder {
+  position: relative;
+  z-index: 2;
+  width: 76px;
+  height: 76px;
+  flex: 0 0 76px;
+  margin-top: -38px;
+  border: 2px solid color-mix(in srgb, var(--ab-premium-accent, #8f78e0) 32%, rgba(255,255,255,.09));
+  border-radius: 50%;
+  box-shadow:
+    0 10px 28px rgba(0,0,0,.26),
+    0 0 24px rgba(var(--ab-premium-accent-rgb, 126, 97, 222), .12);
+}
+
+.premium-studio-v20__avatar-placeholder svg {
+  width: 48px;
+  height: 48px;
+}
+
+.premium-studio-v20__avatar-placeholder circle,
+.premium-studio-v20__avatar-placeholder path,
+.premium-studio-v20__media-avatar-placeholder circle,
+.premium-studio-v20__media-avatar-placeholder path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.premium-studio-v20__avatar-placeholder path:last-child {
+  fill: color-mix(in srgb, var(--ab-premium-accent, #8f78e0) 72%, white 28%);
+  stroke: none;
+}
+
+.premium-studio-v20__media-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+}
+
+.premium-studio-v20__media-avatar-placeholder svg {
+  width: 46%;
+  max-width: 72px;
+  opacity: .82;
+}
+
+html[data-animebox-theme='light'] .premium-studio-v20__avatar-placeholder,
+html[data-animebox-theme='light'] .premium-studio-v20__media-avatar-placeholder {
+  background:
+    radial-gradient(circle at 50% 35%, rgba(var(--ab-premium-accent-rgb, 112, 87, 220), .10), transparent 45%),
+    linear-gradient(145deg, rgba(255,255,255,.96), rgba(238,233,226,.94));
+}
