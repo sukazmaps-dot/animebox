@@ -86,8 +86,9 @@ async function runLexicalSearch(
   });
 
   if (!v2.error) {
-    return (v2.data ?? [])
-      .map((row: Record<string, unknown>) => mapSearchRow(row))
+    const rows = (v2.data ?? []) as Array<Record<string, unknown>>;
+    return rows
+      .map((row) => mapSearchRow(row))
       .filter((row): row is LocalAnimeSearchHit => Boolean(row));
   }
 
@@ -107,8 +108,9 @@ async function runLexicalSearch(
     return [];
   }
 
-  return (legacy.data ?? [])
-    .map((row: Record<string, unknown>) => mapSearchRow(row))
+  const rows = (legacy.data ?? []) as Array<Record<string, unknown>>;
+  return rows
+    .map((row) => mapSearchRow(row))
     .filter((row): row is LocalAnimeSearchHit => Boolean(row));
 }
 

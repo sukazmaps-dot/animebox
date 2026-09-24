@@ -10,6 +10,9 @@ const regressionCases = read('lib/search-regression-cases.ts');
 const rankerV2Migration = read(
   'supabase/migrations/20260925043000_intelligence_search_ranker_v2.sql',
 );
+const rankerV21Migration = read(
+  'supabase/migrations/20260925043500_intelligence_search_ranker_v2_1.sql',
+);
 const animeApi = read('app/api/anime/route.ts');
 const discovery = read('lib/smart-discovery.ts');
 const discoveryApi = read('app/api/discovery/route.ts');
@@ -173,6 +176,16 @@ for (const needle of [
 ]) {
   if (!rankerV2Migration.includes(needle)) {
     failures.push(`18.0 lexical ranker migration missing ${needle}`);
+  }
+}
+
+for (const needle of [
+  'shape_closeness',
+  'char_length(s.title_norm)',
+  'grant execute on function public.search_anime_hybrid_lexical_v2',
+]) {
+  if (!rankerV21Migration.includes(needle)) {
+    failures.push(`18.0 lexical ranker v2.1 missing ${needle}`);
   }
 }
 
