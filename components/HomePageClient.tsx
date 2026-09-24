@@ -1311,19 +1311,23 @@ export default function HomePage({
         />
 
         <div className="home-utility-grid">
-          <div className="panel home-library-panel home-library-panel--footer">
-            <div className="home-library-panel__head">
-              <span className="home-library-panel__symbol home-library-panel__symbol--vector" aria-hidden="true">
-                <Icon name="tracker" size={18} weight="regular" />
+          <section className="panel home-library-panel home-library-panel--footer home-service-card">
+            <div className="home-service-card__head">
+              <span className="home-service-card__icon" aria-hidden="true">
+                <Icon name="tracker" size={19} weight="regular" />
               </span>
-              <span className="home-library-panel__eyebrow">Твоя коллекция</span>
+              <span className="home-service-card__eyebrow">Твоя коллекция</span>
             </div>
-            <h2>Всё просмотренное — в одном месте.</h2>
-            <p>Отмечай серии, следи за онгоингами и возвращайся к просмотру без лишнего поиска.</p>
-            <Link className="btn btn--primary" href="/list">
+
+            <div className="home-service-card__copy">
+              <h2>Всё просмотренное — в одном месте.</h2>
+              <p>Отмечай серии, следи за онгоингами и возвращайся к просмотру без лишнего поиска.</p>
+            </div>
+
+            <Link className="btn home-service-card__action" href="/list">
               Открыть трекер <span aria-hidden="true">↗</span>
             </Link>
-          </div>
+          </section>
 
           <DeferredMount
             className="home-deferred home-deferred--support"
