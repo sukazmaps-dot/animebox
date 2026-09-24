@@ -237,12 +237,12 @@ export default function SmartRecommendationCard({
     planState === 'saving'
       ? 'Сохраняем…'
       : planState === 'saved'
-        ? 'В планах'
+        ? 'Сохранено'
         : planState === 'auth'
           ? 'Войти'
           : planState === 'error'
             ? 'Повторить'
-            : 'В планы';
+            : 'В список';
 
   const planIcon =
     planState === 'saved'
@@ -336,6 +336,16 @@ export default function SmartRecommendationCard({
             className={planClassName}
             onClick={() => void addToPlans()}
             disabled={planState === 'saving' || planState === 'saved'}
+            aria-label={
+              planState === 'saved'
+                ? 'Добавлено в список «Буду смотреть»'
+                : 'Добавить в список «Буду смотреть»'
+            }
+            title={
+              planState === 'saved'
+                ? 'Уже в списке «Буду смотреть»'
+                : 'Добавить в список «Буду смотреть»'
+            }
           >
             <span
               className={

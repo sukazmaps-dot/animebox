@@ -555,9 +555,14 @@ export default function HomePage({
   }, [hydrated, popular, ongoing, mood, historyRevision, tasteRevision]);
 
   const progress = useMemo(() => {
+    // Keep the server HTML and the first client hydration pass identical.
+    // readAnimeProgressMap() reads localStorage in the browser, so touching it
+    // before hydration would turn e.g. "онгоинг" into "эп. 1" mid-hydration.
+    if (!hydrated) return {};
+
     void historyRevision;
     return readAnimeProgressMap();
-  }, [historyRevision]);
+  }, [hydrated, historyRevision]);
 
   const personalEpisodeByAnime = useMemo(() => {
     const map = new Map<number, number>();
@@ -954,107 +959,6 @@ export default function HomePage({
 
         <HomeContinueWatching items={continueWatchingItems} />
 
-        <HomePersonalPulse />
-
-        <HomeActivationPanel
-          hasHistory={hasWatchHistory}
-          hasContinue={continueWatchingItems.length > 0}
-        />
-
-        <nav className="home-shortcuts" aria-label="Быстрые переходы AnimeBox">
-          <Link href="/search" className="home-shortcuts__item">
-            <span>
-              <strong>Каталог</strong>
-              <small>По жанрам и тегам</small>
-            </span>
-            <b aria-hidden="true">↗</b>
-          </Link>
-          <Link href="/schedule" className="home-shortcuts__item">
-            <span>
-              <strong>Релизы сегодня</strong>
-              <small>Свежие эпизоды</small>
-            </span>
-            <b aria-hidden="true">→</b>
-          </Link>
-          <Link href="/list" className="home-shortcuts__item">
-            <span>
-              <strong>Мой список</strong>
-              <small>Продолжить просмотр</small>
-            </span>
-            <b aria-hidden="true">→</b>
-          </Link>
-          <Link href="/watch-together" className="home-shortcuts__item">
-            <span>
-              <strong>Комнаты</strong>
-              <small>Смотреть с друзьями</small>
-            </span>
-            <b aria-hidden="true">→</b>
-          </Link>
-        </nav>
-
-        {(hasWatchHistory || serverContinue.length > 0) && (
-          <HomeRetentionHub
-            episode={retentionEpisodeSignal}
-            completion={retentionCompletionSignal}
-            personalAnimeIds={personalAnimeIdList}
-            enableRooms={Boolean(user?.id)}
-          />
-        )}
-
-        {personalScheduleItems.length > 0 && (
-          <section className="section personal-schedule-section">
-            <div className="section-head">
-              <div>
-                <span className="smart-section-eyebrow">Твои онгоинги</span>
-                <h2 className="section-title">Расписание твоих аниме</h2>
-                <p>
-                  Время эфира в Японии. Перевод и озвучка могут появиться позже.
-                </p>
-              </div>
-              <Link className="section-link" href="/notifications">
-                Настроить уведомления →
-              </Link>
-            </div>
-
-            <div className="personal-schedule-grid">
-              {personalScheduleItems.map((item) => {
-                const title = getScheduleTitle(item);
-                const watchHref = `${animeHref(item.media)}/watch?ep=${Math.max(
-                  1,
-                  item.episode,
-                )}`;
-
-                return (
-                  <div className="personal-schedule-card" key={item.id}>
-                    <ScheduleItem
-                      href={watchHref}
-                      title={title}
-                      image={item.media.coverImage}
-                      episode={item.episode}
-                      dateLabel={formatUpcomingDate(item.airingAt)}
-                      airingAt={item.airingAt}
-                      onOpen={() => {
-                        trackProductClientEvent('personal_schedule_click', {
-                          source: 'personal_home',
-                          path: '/',
-                          entityType: 'episode',
-                          entityId: `${item.media.id}:${item.episode}`,
-                          metadata: {
-                            anime_id: item.media.id,
-                            episode: item.episode,
-                            airing_at: item.airingAt,
-                          },
-                          flush: true,
-                        });
-                      }}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
         <div className="home-discovery-flow">
           <HomeMoodPicker
             value={mood}
@@ -1119,6 +1023,91 @@ export default function HomePage({
             )}
           </section>
         </div>
+
+        {personalScheduleItems.length > 0 && (
+          <section className="section personal-schedule-section">
+            <div className="section-head">
+              <div>
+                <span className="smart-section-eyebrow">Твои онгоинги</span>
+                <h2 className="section-title">Расписание твоих аниме</h2>
+                <p>
+                  Время эфира в Японии. Перевод и озвучка могут появиться позже.
+                </p>
+              </div>
+              <Link className="section-link" href="/notifications">
+                Настроить уведомления →
+              </Link>
+            </div>
+
+            <div className="personal-schedule-grid">
+              {personalScheduleItems.map((item) => {
+                const title = getScheduleTitle(item);
+                const watchHref = `${animeHref(item.media)}/watch?ep=${Math.max(
+                  1,
+                  item.episode,
+                )}`;
+
+                return (
+                  <div className="personal-schedule-card" key={item.id}>
+                    <ScheduleItem
+                      href={watchHref}
+                      title={title}
+                      image={item.media.coverImage}
+                      episode={item.episode}
+                      dateLabel={formatUpcomingDate(item.airingAt)}
+                      airingAt={item.airingAt}
+                      onOpen={() => {
+                        trackProductClientEvent('personal_schedule_click', {
+                          source: 'personal_home',
+                          path: '/',
+                          entityType: 'episode',
+                          entityId: `${item.media.id}:${item.episode}`,
+                          metadata: {
+                            anime_id: item.media.id,
+                            episode: item.episode,
+                            airing_at: item.airingAt,
+                          },
+                          flush: true,
+                        });
+                      }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        <nav className="home-shortcuts" aria-label="Быстрые переходы AnimeBox">
+          <Link href="/search" className="home-shortcuts__item">
+            <span>
+              <strong>Каталог</strong>
+              <small>По жанрам и тегам</small>
+            </span>
+            <b aria-hidden="true">↗</b>
+          </Link>
+          <Link href="/schedule" className="home-shortcuts__item">
+            <span>
+              <strong>Релизы сегодня</strong>
+              <small>Свежие эпизоды</small>
+            </span>
+            <b aria-hidden="true">→</b>
+          </Link>
+          <Link href="/list" className="home-shortcuts__item">
+            <span>
+              <strong>Мой список</strong>
+              <small>Продолжить просмотр</small>
+            </span>
+            <b aria-hidden="true">→</b>
+          </Link>
+          <Link href="/watch-together" className="home-shortcuts__item">
+            <span>
+              <strong>Комнаты</strong>
+              <small>Смотреть с друзьями</small>
+            </span>
+            <b aria-hidden="true">→</b>
+          </Link>
+        </nav>
 
         <DeferredMount
           className="home-deferred home-deferred--chat"
@@ -1305,6 +1294,52 @@ export default function HomePage({
             </div>
           )}
         </section>
+{(hasWatchHistory || serverContinue.length > 0) && (
+          <HomeRetentionHub
+            episode={retentionEpisodeSignal}
+            completion={retentionCompletionSignal}
+            personalAnimeIds={personalAnimeIdList}
+            enableRooms={Boolean(user?.id)}
+          />
+        )}
+
+        <HomePersonalPulse />
+
+        <HomeActivationPanel
+          hasHistory={hasWatchHistory}
+          hasContinue={continueWatchingItems.length > 0}
+        />
+
+        <div className="home-utility-grid">
+          <div className="panel home-library-panel home-library-panel--footer">
+            <div className="home-library-panel__head">
+              <span className="home-library-panel__symbol home-library-panel__symbol--vector" aria-hidden="true">
+                <Icon name="tracker" size={18} weight="regular" />
+              </span>
+              <span className="home-library-panel__eyebrow">Твоя коллекция</span>
+            </div>
+            <h2>Всё просмотренное — в одном месте.</h2>
+            <p>Отмечай серии, следи за онгоингами и возвращайся к просмотру без лишнего поиска.</p>
+            <Link className="btn btn--primary" href="/list">
+              Открыть трекер <span aria-hidden="true">↗</span>
+            </Link>
+          </div>
+
+          <DeferredMount
+            className="home-deferred home-deferred--support"
+            minHeight={180}
+            rootMargin="360px 0px"
+          >
+            <SupportAnimeBoxCard />
+          </DeferredMount>
+          <DeferredMount
+            className="home-deferred home-deferred--telegram"
+            minHeight={190}
+            rootMargin="360px 0px"
+          >
+            <TelegramPromoCard />
+          </DeferredMount>
+        </div>
         </div>
 
       <aside className="right-rail">
@@ -1343,36 +1378,7 @@ export default function HomePage({
           </div>
         </div>
 
-        <div className="home-utility-grid">
-          <div className="panel home-library-panel right-rail__secondary">
-            <div className="home-library-panel__head">
-              <span className="home-library-panel__symbol home-library-panel__symbol--vector" aria-hidden="true">
-                <Icon name="tracker" size={18} weight="regular" />
-              </span>
-              <span className="home-library-panel__eyebrow">Твоя коллекция</span>
-            </div>
-            <h2>Всё просмотренное — в одном месте.</h2>
-            <p>Отмечай серии, следи за онгоингами и возвращайся к просмотру без лишнего поиска.</p>
-            <Link className="btn btn--primary" href="/list">
-              Открыть трекер <span aria-hidden="true">↗</span>
-            </Link>
-          </div>
-
-          <DeferredMount
-            className="home-deferred home-deferred--support"
-            minHeight={180}
-            rootMargin="360px 0px"
-          >
-            <SupportAnimeBoxCard />
-          </DeferredMount>
-          <DeferredMount
-            className="home-deferred home-deferred--telegram"
-            minHeight={190}
-            rootMargin="360px 0px"
-          >
-            <TelegramPromoCard />
-          </DeferredMount>
-        </div>
+        
       </aside>
       </div>
     </div>

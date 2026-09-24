@@ -379,8 +379,9 @@ export default function SmartRecommendationFeed({
       buildRecommendationRails(filtered, {
         mood: displayedMood,
         hasWatchHistory,
+        hasMore,
       }),
-    [displayedMood, filtered, hasWatchHistory],
+    [displayedMood, filtered, hasMore, hasWatchHistory],
   );
 
   const fetchNextPage = useCallback(async () => {
@@ -461,7 +462,7 @@ export default function SmartRecommendationFeed({
         aria-busy={isMoodSwapping}
       >
         <div className="smart-feed__rails">
-          {rails.map((rail, railIndex) => (
+          {rails.map((rail) => (
             <section
               className="smart-feed__personal-rail"
               key={`${rail.id}:${rowVersion}`}
@@ -478,8 +479,12 @@ export default function SmartRecommendationFeed({
                 className="smart-feed__rail"
                 ariaLabel={rail.title}
                 stepRatio={0.82}
-                hasMore={hasMore}
-                onEndReached={() => void fetchNextPage()}
+                hasMore={rail.id === 'endless' ? hasMore : false}
+                onEndReached={
+                  rail.id === 'endless'
+                    ? () => void fetchNextPage()
+                    : undefined
+                }
               >
                 {rail.items.map((recommendation, index) => (
                   <div
@@ -504,7 +509,7 @@ export default function SmartRecommendationFeed({
                 ))}
 
                 {isFetchingMore &&
-                  railIndex === rails.length - 1 &&
+                  rail.id === 'endless' &&
                   Array.from({ length: 4 }).map((_, index) => (
                     <div
                       className="smart-feed__slide smart-feed__slide--skeleton"

@@ -2,7 +2,7 @@ import type { TasteMood } from '@/lib/personalization';
 import type { RankedRecommendation } from '@/lib/recommendations';
 
 export type RecommendationRail = {
-  id: 'top_match' | 'taste_lane' | 'quick_watch' | 'explore';
+  id: 'top_match' | 'taste_lane' | 'quick_watch' | 'explore' | 'endless';
   title: string;
   subtitle: string;
   source: string;
@@ -48,6 +48,7 @@ export function buildRecommendationRails(
   options: {
     mood: TasteMood;
     hasWatchHistory: boolean;
+    hasMore: boolean;
   },
 ): RecommendationRail[] {
   if (!recommendations.length) return [];
@@ -132,6 +133,21 @@ export function buildRecommendationRails(
       subtitle: 'Контролируемое исследование, чтобы рекомендации не замыкались в одном жанре.',
       source: 'smart_feed_explore',
       items: explore,
+    });
+  }
+
+  const endlessItems = recommendations.filter(
+    (item) => !used.has(item.anime.id),
+  );
+
+  if (endlessItems.length > 0 || options.hasMore) {
+    rails.push({
+      id: 'endless',
+      title: 'Ещё для тебя',
+      subtitle:
+        'Продолжай листать — AnimeBox догружает новые кандидаты и пересобирает выдачу под твой вкус.',
+      source: 'smart_feed_endless',
+      items: endlessItems,
     });
   }
 
