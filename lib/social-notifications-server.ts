@@ -8,7 +8,9 @@ export type SocialNotificationType =
   | 'friend_accepted'
   | 'watch_party_invite'
   | 'ranking_overtaken'
-  | 'ranking_entered_top10';
+  | 'ranking_entered_top10'
+  | 'comment_reply'
+  | 'comment_mention';
 
 export type SocialNotificationItem = {
   id: number;
