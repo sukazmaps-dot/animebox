@@ -27,7 +27,7 @@ import type {
   PremiumStudioSettings,
 } from '@/lib/premium-studio';
 
-type EditorTab = 'profile' | 'appearance' | 'style';
+type EditorTab = 'profile' | 'style';
 
 type ProfileRow = {
   id: string;
@@ -50,7 +50,6 @@ type BaseMediaEditorState = {
 };
 
 function normalizedTab(value: string | null | undefined): EditorTab {
-  if (value === 'appearance') return value;
   if (value === 'style' || value === 'premium') return 'style';
   return 'profile';
 }
@@ -587,10 +586,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
         <nav className="profile-editor-v13__tabs" aria-label="Разделы редактора профиля">
           <button className={activeTab === 'profile' ? 'is-active' : ''} onClick={() => switchTab('profile')} type="button">
-            Профиль
-          </button>
-          <button className={activeTab === 'appearance' ? 'is-active' : ''} onClick={() => switchTab('appearance')} type="button">
-            Оформление
+            Профиль и оформление
           </button>
           <button className={activeTab === 'style' ? 'is-active is-premium' : 'is-premium'} onClick={() => switchTab('style')} type="button">
             <Icon name="crown" size={19} weight="fill" /> Стиль
@@ -616,31 +612,31 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         ) : (
           <div className="profile-editor-v13__workspace">
             <div className="profile-editor-v13__controls">
-              {activeTab === 'profile' ? (
+              <>
                 <section className="profile-editor-v13__panel">
-                  <div className="profile-editor-v13__section-title">
-                    <div>
-                      <h2>Основная информация</h2>
-                      <p>То, что увидят другие пользователи AnimeBox.</p>
-                    </div>
-                  </div>
+  <div className="profile-editor-v13__section-title">
+    <div>
+      <h2>Основная информация</h2>
+      <p>То, что увидят другие пользователи AnimeBox.</p>
+    </div>
+  </div>
 
-                  <label className="profile-editor-v13__field">
-                    <span><strong>Имя пользователя</strong><small>{username.trim().length}/24</small></span>
-                    <input value={username} maxLength={24} onChange={(event) => { setUsername(event.target.value); setSaved(''); }} />
-                  </label>
+  <label className="profile-editor-v13__field">
+    <span><strong>Имя пользователя</strong><small>{username.trim().length}/24</small></span>
+    <input value={username} maxLength={24} onChange={(event) => { setUsername(event.target.value); setSaved(''); }} />
+  </label>
 
-                  <label className="profile-editor-v13__field">
-                    <span><strong>О себе</strong><small>{bio.length}/300</small></span>
-                    <textarea value={bio} maxLength={300} rows={7} onChange={(event) => { setBio(event.target.value); setSaved(''); }} />
-                  </label>
+  <label className="profile-editor-v13__field">
+    <span><strong>О себе</strong><small>{bio.length}/300</small></span>
+    <textarea value={bio} maxLength={300} rows={7} onChange={(event) => { setBio(event.target.value); setSaved(''); }} />
+  </label>
 
-                  <div className="profile-editor-v13__hint-card">
-                    <strong>Совет</strong>
-                    <p>Короткое био и узнаваемый ник лучше читаются в комментариях, рейтинге и публичном профиле.</p>
-                  </div>
-                </section>
-              ) : (
+  <div className="profile-editor-v13__hint-card">
+    <strong>Совет</strong>
+    <p>Короткое био и узнаваемый ник лучше читаются в комментариях, рейтинге и публичном профиле.</p>
+  </div>
+</section>
+                <div className="profile-editor-v13__section-divider" aria-hidden="true" />
                 <section className="profile-editor-v13__panel">
                   <div className="profile-editor-v13__section-title">
                     <div>
@@ -737,7 +733,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                     <button type="button" onClick={() => switchTab('style')}>Открыть стиль</button>
                   </div>
                 </section>
-              )}
+              </>
 
               {(error || saved) && (
                 <div className={`profile-editor-v13__message ${error ? 'is-error' : ''}`}>{error || saved}</div>
