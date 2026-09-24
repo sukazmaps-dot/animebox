@@ -81,6 +81,8 @@ Patch 16.5 removes the old bitmap default profile banner from owner and public p
 
 The fallback banner is now a CSS-rendered AnimeBox surface and inherits Premium colors when applicable.
 
+Premium Studio no longer falls back to `/premium/premium-user.webp` when no Premium avatar is uploaded. The editor and preview now use a code-drawn SVG avatar placeholder that inherits the selected Premium accent.
+
 The previous profile collection bitmap empty state was already replaced in Patch 16.4.1 with SVG/CSS UI art.
 
 ## Responsive behavior
