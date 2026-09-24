@@ -555,9 +555,14 @@ export default function HomePage({
   }, [hydrated, popular, ongoing, mood, historyRevision, tasteRevision]);
 
   const progress = useMemo(() => {
+    // Keep the server HTML and the first client hydration pass identical.
+    // readAnimeProgressMap() reads localStorage in the browser, so touching it
+    // before hydration would turn e.g. "онгоинг" into "эп. 1" mid-hydration.
+    if (!hydrated) return {};
+
     void historyRevision;
     return readAnimeProgressMap();
-  }, [historyRevision]);
+  }, [hydrated, historyRevision]);
 
   const personalEpisodeByAnime = useMemo(() => {
     const map = new Map<number, number>();
