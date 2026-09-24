@@ -97,6 +97,11 @@ jobs:
           components/AuthModalProvider.tsx
           app/register/page.tsx
           lib/telegram-growth-client.ts
+          lib/copyright-server.ts
+          app/api/copyright/report/route.ts
+          app/api/admin/copyright/route.ts
+          components/CopyrightReportForm.tsx
+          components/admin/CopyrightAdminClient.tsx
 
       - name: Retention regression checks
         run: node tests/retention.cjs
