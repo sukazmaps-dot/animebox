@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import './globals.css';
+import './user-preferences.css';
 import './visual-refresh.css';
 import './design-v5.css';
 import './telegram-logout.css';
@@ -65,6 +67,7 @@ import './patch15-title-accent.css';
 import './animebox-identity.css';
 import './patch16-quiet-interactions.css';
 import './animebox-visual-language-v1.css';
+import './patch16-4-readability-theme.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
@@ -72,6 +75,7 @@ import { AuthStateProvider } from '@/components/AuthStateProvider';
 import { AuthModalProvider } from '@/components/AuthModalProvider';
 import AppChrome from '@/components/AppChrome';
 import CssRecoveryBridge from '@/components/CssRecoveryBridge';
+import UserPreferencesBridge from '@/components/UserPreferencesBridge';
 import ProductAnalyticsTracker from '@/components/analytics/ProductAnalyticsTracker';
 import DeferredYandexMetrika from '@/components/analytics/DeferredYandexMetrika';
 import ProgressionCelebration from '@/components/ProgressionCelebration';
@@ -83,6 +87,34 @@ import { SITE_URL } from '@/lib/seo-config';
 import { BRAND_SLOGAN, BRAND_TITLE } from '@/lib/brand';
 import { SUPPORT_EMAIL } from '@/lib/contact';
 import { TELEGRAM_BOT_URL, TELEGRAM_CHANNEL_URL } from '@/lib/telegram-links';
+import { USER_PREFERENCES_KEY } from '@/lib/user-preferences';
+
+const themeBootstrapScript = `
+(() => {
+  try {
+    const raw = window.localStorage.getItem(${JSON.stringify(USER_PREFERENCES_KEY)});
+    const parsed = raw ? JSON.parse(raw) : null;
+    const preference =
+      parsed?.theme === 'light' || parsed?.theme === 'system' || parsed?.theme === 'dark'
+        ? parsed.theme
+        : 'dark';
+    const theme =
+      preference === 'system'
+        ? window.matchMedia('(prefers-color-scheme: light)').matches
+          ? 'light'
+          : 'dark'
+        : preference;
+    const root = document.documentElement;
+    root.dataset.animeboxThemePreference = preference;
+    root.dataset.animeboxTheme = theme;
+    root.style.colorScheme = theme;
+  } catch {
+    document.documentElement.dataset.animeboxThemePreference = 'dark';
+    document.documentElement.dataset.animeboxTheme = 'dark';
+    document.documentElement.style.colorScheme = 'dark';
+  }
+})();
+`;
 
 /* =========================================================
    SEO / Structured Data
@@ -274,8 +306,11 @@ export const metadata: Metadata = {
    ========================================================= */
 
 export const viewport: Viewport = {
-  themeColor: '#080912',
-  colorScheme: 'dark',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f6f3ee' },
+    { media: '(prefers-color-scheme: dark)', color: '#080912' },
+  ],
+  colorScheme: 'dark light',
 };
 
 /* =========================================================
@@ -294,10 +329,16 @@ export default function RootLayout({
     >
       <head>
         <link rel="dns-prefetch" href="//shikimori.one" />
+        <Script
+          id="animebox-theme-bootstrap"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeBootstrapScript }}
+        />
       </head>
 
       <body>
         <CssRecoveryBridge />
+        <UserPreferencesBridge />
 
         {/* Yandex.Metrika loads after first interaction or idle timeout. */}
         <DeferredYandexMetrika />
