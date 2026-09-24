@@ -27,9 +27,9 @@ export async function GET(request: Request) {
       { rooms },
       {
         headers: publicApiCacheHeaders({
-          browserSeconds: 5,
-          edgeSeconds: 12,
-          staleWhileRevalidateSeconds: 24,
+          browserSeconds: 0,
+          edgeSeconds: 2,
+          staleWhileRevalidateSeconds: 4,
         }),
       },
     );
