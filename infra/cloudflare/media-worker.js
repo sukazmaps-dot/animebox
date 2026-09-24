@@ -1,6 +1,7 @@
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 8_000;
 const CACHE_TTL_SECONDS = 30 * 24 * 60 * 60;
+const inFlightOriginFetches = new Map();
 
 const EXACT_ALLOWED_HOSTS = new Set([
   'shikimori.me',
@@ -209,7 +210,15 @@ export default {
         : r2Hit;
     }
 
-    const origin = await fetchOrigin(source);
+    let originPromise = inFlightOriginFetches.get(hash);
+    if (!originPromise) {
+      originPromise = fetchOrigin(source).finally(() => {
+        inFlightOriginFetches.delete(hash);
+      });
+      inFlightOriginFetches.set(hash, originPromise);
+    }
+
+    const origin = await originPromise;
     if (!origin.response) {
       return new Response('Image unavailable', {
         status: 502,
