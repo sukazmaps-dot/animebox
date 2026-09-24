@@ -128,7 +128,7 @@ function NavbarContent() {
     state.directionSince = performance.now();
     state.hidden = false;
     state.lastToggleAt = 0;
-    setMobileNavHidden(false);
+    queueMicrotask(() => setMobileNavHidden(false));
 
     const setHidden = (hidden: boolean) => {
       if (state.hidden === hidden) return;
@@ -136,6 +136,10 @@ function NavbarContent() {
       state.lastToggleAt = performance.now();
       setMobileNavHidden(hidden);
     };
+
+    const compactLandscapeQuery = window.matchMedia(
+      '(orientation: landscape) and (max-height: 600px) and (max-width: 1100px)',
+    );
 
     const navigationShouldStayVisible = () => {
       const active = document.activeElement;
@@ -150,7 +154,7 @@ function NavbarContent() {
         ),
       );
 
-      return typing || modalOpen;
+      return typing || modalOpen || compactLandscapeQuery.matches;
     };
 
     const update = () => {
@@ -222,11 +226,26 @@ function NavbarContent() {
       setHidden(false);
     };
 
+    const onViewportChange = () => {
+      state.lastY = Math.max(0, window.scrollY);
+      state.travel = 0;
+      state.direction = null;
+      state.directionSince = performance.now();
+
+      if (compactLandscapeQuery.matches) {
+        setHidden(false);
+      }
+    };
+
     window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onViewportChange, { passive: true });
+    compactLandscapeQuery.addEventListener('change', onViewportChange);
     document.addEventListener('focusin', onFocusIn);
 
     return () => {
       window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onViewportChange);
+      compactLandscapeQuery.removeEventListener('change', onViewportChange);
       document.removeEventListener('focusin', onFocusIn);
       if (state.raf) window.cancelAnimationFrame(state.raf);
       state.raf = 0;

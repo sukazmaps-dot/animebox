@@ -58,6 +58,7 @@ jobs:
           lib/uuid.ts
           app/anime/[slug]/episode/[episode]/page.tsx
           app/api/anime/[slug]/episode-availability/route.ts
+          components/Navbar.tsx
           components/AnimeEpisodePage.tsx
           components/EpisodeList.tsx
           app/episodes/sitemap.ts

@@ -69,6 +69,7 @@ import './patch16-quiet-interactions.css';
 import './animebox-visual-language-v1.css';
 import './patch16-4-readability-theme.css';
 import './patch16-5-profile-widgets.css';
+import './patch16-6-responsive-layout.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
@@ -307,6 +308,7 @@ export const metadata: Metadata = {
    ========================================================= */
 
 export const viewport: Viewport = {
+  viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#f6f3ee' },
     { media: '(prefers-color-scheme: dark)', color: '#080912' },
