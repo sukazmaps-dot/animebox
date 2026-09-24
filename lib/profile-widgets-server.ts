@@ -79,7 +79,7 @@ export async function getProfileWidgetsData(userId: string): Promise<ProfileWidg
     activity: arrayValue<ProfileActivityItem>(bundle.activity),
     ratingSummary: {
       count: Number.isFinite(count) ? Math.max(0, Math.trunc(count)) : 0,
-      average: Number.isFinite(average) ? average : null,
+      average: average != null && Number.isFinite(average) ? average : null,
     },
   };
 }
