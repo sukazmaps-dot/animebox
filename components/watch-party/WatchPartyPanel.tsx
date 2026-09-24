@@ -229,6 +229,7 @@ export default function WatchPartyPanel({
   const voteByUserRef = useRef(new Map<string, WatchPartyVote>());
   const wasReconnectingRef = useRef(false);
   const lastPresenceCountRef = useRef(0);
+  const lastDriftTelemetryAtRef = useRef(0);
 
   useEffect(() => {
     statusRef.current = status;
@@ -929,6 +930,23 @@ export default function WatchPartyPanel({
             seq: packet.seq,
           });
         } else if (drift >= PLAYER_DRIFT_SEEK_SECONDS) {
+          const now = Date.now();
+          if (now - lastDriftTelemetryAtRef.current >= 15_000) {
+            lastDriftTelemetryAtRef.current = now;
+            trackProductClientEvent('watch_party_sync_drift', {
+              source: guestTransportRef.current === 'server' ? 'realtime' : 'p2p',
+              path: window.location.pathname,
+              entityType: 'watch_party_room',
+              entityId: inviteRef.current?.roomId,
+              metadata: {
+                drift_seconds: Number(drift.toFixed(2)),
+                episode: packet.episode,
+                playing: packet.playing,
+                route: guestTransportRef.current ?? networkRoute,
+              },
+            });
+          }
+
           dispatchPlayerCommand({
             action: 'seek',
             episode: packet.episode,
@@ -1144,6 +1162,23 @@ export default function WatchPartyPanel({
                 seq: packet.seq,
               });
             } else if (drift >= PLAYER_DRIFT_SEEK_SECONDS) {
+              const now = Date.now();
+              if (now - lastDriftTelemetryAtRef.current >= 15_000) {
+                lastDriftTelemetryAtRef.current = now;
+                trackProductClientEvent('watch_party_sync_drift', {
+                  source: guestTransportRef.current === 'server' ? 'realtime' : 'p2p',
+                  path: window.location.pathname,
+                  entityType: 'watch_party_room',
+                  entityId: inviteRef.current?.roomId,
+                  metadata: {
+                    drift_seconds: Number(drift.toFixed(2)),
+                    episode: packet.episode,
+                    playing: packet.playing,
+                    route: guestTransportRef.current ?? networkRoute,
+                  },
+                });
+              }
+
               dispatchPlayerCommand({
                 action: 'seek',
                 episode: packet.episode,
