@@ -10,10 +10,17 @@ export type RecommendationAnalyticsDashboard = {
     clicks: number;
     ctrPct: number;
     planned: number;
+    liked: number;
     dismissed: number;
+    alreadyWatched: number;
     dismissRatePct: number;
     started: number;
     clickToPlayPct: number;
+    watch15m: number;
+    watch30m: number;
+    clickTo15mPct: number;
+    startedTo15mPct: number;
+    watch15To30Pct: number;
     completed: number;
     startedToCompletedPct: number;
     dwellP50Ms: number | null;
@@ -24,6 +31,8 @@ export type RecommendationAnalyticsDashboard = {
     clicks: number;
     ctrPct: number;
     started: number;
+    watch15m: number;
+    watch30m: number;
     completed: number;
   }>;
   daily: Array<{
@@ -31,6 +40,8 @@ export type RecommendationAnalyticsDashboard = {
     impressions: number;
     clicks: number;
     started: number;
+    watch15m: number;
+    watch30m: number;
     completed: number;
     dismissed: number;
   }>;
