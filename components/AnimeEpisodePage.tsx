@@ -31,6 +31,7 @@ import { WATCH_PARTY_EXIT_EVENT } from '@/lib/watch-party';
 import AnimeImage from '@/components/AnimeImage';
 import EpisodeList from '@/components/EpisodeList';
 import type { EpisodeSeasonTab, EpisodeSeasonsResponse } from '@/types/episode-seasons';
+import type { PlayerProviderKey, PlayerSourcePolicyResponse } from '@/types/player-source-policy';
 
 type SourceApiResponse = {
   episodes?: number[];
@@ -219,6 +220,17 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     const controller = new AbortController();
     let active = true;
     let publishedAny = false;
+    const publishedProviders = new Set<PlayerProviderKey>();
+    let enabledProviders = new Set<PlayerProviderKey>([
+      'direct',
+      'kodik',
+      'aniliberty',
+    ]);
+    let sourcePriority = new Map<PlayerProviderKey, number>([
+      ['direct', 10],
+      ['kodik', 20],
+      ['aniliberty', 30],
+    ]);
     const identity = `${animeIdParam}:${episodeNumber}`;
     const timeout = window.setTimeout(() => controller.abort(), 10_000);
 
@@ -230,23 +242,29 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       setSourceMessage('');
     });
 
+    function providerKeyForSource(name: string): PlayerProviderKey {
+      if (name === 'AnimeBox Direct') return 'direct';
+      if (name === 'Kodik') return 'kodik';
+      return 'aniliberty';
+    }
+
     function publishSource(source: PlayerSource) {
       if (!active || controller.signal.aborted || source.translations.length === 0) {
         return;
       }
 
+      const providerKey = providerKeyForSource(source.name);
+      if (!enabledProviders.has(providerKey)) return;
+
       publishedAny = true;
+      publishedProviders.add(providerKey);
+
       setSources((current) => {
         const withoutSameSource = current.filter((item) => item.name !== source.name);
         const next = [...withoutSameSource, source];
 
-        // Direct AnimeBox playback wins when available; Kodik remains the
-        // first iframe fallback. The direct source is feature-flagged server-side.
-        const priority = (name: string) => {
-          if (name === 'AnimeBox Direct') return 0;
-          if (name === 'Kodik') return 1;
-          return 2;
-        };
+        const priority = (name: string) =>
+          sourcePriority.get(providerKeyForSource(name)) ?? 999;
 
         return next.sort((a, b) => priority(a.name) - priority(b.name));
       });
@@ -451,31 +469,103 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       let fallbackReason = '';
 
       try {
+        try {
+          const policyResponse = await fetch(
+            `/api/player/source-policy?animeId=${encodeURIComponent(String(anime.id))}&season=${encodeURIComponent(String(anime.providerSeason || 1))}&episode=${encodeURIComponent(String(episodeNumber))}`,
+            {
+              signal: controller.signal,
+              cache: 'no-store',
+            },
+          );
+
+          if (policyResponse.ok) {
+            const policy =
+              (await policyResponse.json()) as PlayerSourcePolicyResponse;
+
+            if (policy.ok && Array.isArray(policy.providers)) {
+              enabledProviders = new Set(
+                policy.providers
+                  .filter((provider) => provider.enabled)
+                  .map((provider) => provider.key),
+              );
+              sourcePriority = new Map(
+                policy.providers.map((provider) => [
+                  provider.key,
+                  provider.priority,
+                ]),
+              );
+
+              if (enabledProviders.size === 0) {
+                const copyrightOnly = policy.providers.some(
+                  (provider) =>
+                    provider.reason === 'copyright_restricted',
+                );
+
+                setSourceIdentity(identity);
+                setLoadingSources(false);
+                setSourceMessage(
+                  copyrightOnly
+                    ? 'Доступ к этой серии ограничен по обращению правообладателя.'
+                    : 'Источники просмотра временно недоступны. Попробуйте позже.',
+                );
+                return;
+              }
+            }
+          }
+        } catch (policyError) {
+          if (controller.signal.aborted) throw policyError;
+          console.warn('[Player Source Policy] fallback to defaults:', policyError);
+        }
+
         /*
          * Direct Player is the preferred path only when the server-side feature
          * flag is enabled and a real direct stream is available. The endpoint
          * returns immediately while disabled, so current Kodik startup is not
          * penalized before provider terms are confirmed.
          */
-        const directReady = await loadDirect();
+        const enabledByPriority = [...enabledProviders].sort(
+          (a, b) =>
+            (sourcePriority.get(a) ?? 999) -
+            (sourcePriority.get(b) ?? 999),
+        );
+        const directIsPrimary =
+          enabledByPriority[0] === 'direct' &&
+          enabledProviders.has('direct');
 
-        if (!active || controller.signal.aborted) return;
+        if (directIsPrimary) {
+          const directReady = await loadDirect();
 
-        if (directReady) {
-          // Keep iframe/HLS fallbacks warm in the background without delaying
-          // the custom AnimeBox Player.
-          void loadKodik().catch(() => undefined);
-          void loadFallback().catch(() => undefined);
-          return;
+          if (!active || controller.signal.aborted) return;
+
+          if (directReady) {
+            if (enabledProviders.has('kodik')) {
+              void loadKodik().catch(() => undefined);
+            }
+            if (enabledProviders.has('aniliberty')) {
+              void loadFallback().catch(() => undefined);
+            }
+            return;
+          }
         }
 
-        // Kodik and AniLiberty are independent fallbacks. Resolve them in
-        // parallel and publish whichever becomes playable first instead of
-        // waiting for one provider to time out before trying the next.
-        const [kodikResult, fallbackResult] = await Promise.allSettled([
-          loadKodik(),
-          loadFallback(),
-        ]);
+        const attempts: Array<{
+          key: PlayerProviderKey;
+          promise: Promise<boolean | string>;
+        }> = [];
+
+        if (enabledProviders.has('direct') && !directIsPrimary) {
+          attempts.push({ key: 'direct', promise: loadDirect() });
+        }
+        if (enabledProviders.has('kodik')) {
+          attempts.push({ key: 'kodik', promise: loadKodik() });
+        }
+        if (enabledProviders.has('aniliberty')) {
+          attempts.push({ key: 'aniliberty', promise: loadFallback() });
+        }
+
+        const settled = await Promise.allSettled(
+          attempts.map((attempt) => attempt.promise),
+        );
 
         if (!active) return;
 
@@ -490,15 +580,18 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           return;
         }
 
-        const kodikReady =
-          kodikResult.status === 'fulfilled' && kodikResult.value === true;
-        const fallbackReady = publishedAny;
+        const aniIndex = attempts.findIndex(
+          (attempt) => attempt.key === 'aniliberty',
+        );
+        const aniResult = aniIndex >= 0 ? settled[aniIndex] : null;
+
         fallbackReason =
-          fallbackResult.status === 'fulfilled'
-            ? fallbackResult.value
+          aniResult?.status === 'fulfilled' &&
+          typeof aniResult.value === 'string'
+            ? aniResult.value
             : '';
 
-        if (kodikReady || fallbackReady) {
+        if (publishedAny || publishedProviders.size > 0) {
           return;
         }
 
