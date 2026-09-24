@@ -352,11 +352,27 @@ export default function EpisodeList({
       const current = list.querySelector<HTMLElement>(
         '[data-episode-current="true"]',
       );
-      current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'center',
-      });
+      if (!current) return;
+
+      const itemTop = current.offsetTop;
+      const itemBottom = itemTop + current.offsetHeight;
+      const viewportTop = list.scrollTop;
+      const viewportBottom = viewportTop + list.clientHeight;
+      const safeInset = 12;
+
+      if (itemTop < viewportTop + safeInset) {
+        list.scrollTo({
+          top: Math.max(0, itemTop - safeInset),
+          left: list.scrollLeft,
+          behavior: 'auto',
+        });
+      } else if (itemBottom > viewportBottom - safeInset) {
+        list.scrollTo({
+          top: Math.max(0, itemBottom - list.clientHeight + safeInset),
+          left: list.scrollLeft,
+          behavior: 'auto',
+        });
+      }
     });
 
     return () => cancelAnimationFrame(frame);
@@ -375,11 +391,25 @@ export default function EpisodeList({
     const activeElement = track.querySelector<HTMLElement>(
       '[data-episode-group-active="true"]',
     );
-    activeElement?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'center',
-    });
+    if (!activeElement) return;
+
+    const activeLeft = activeElement.offsetLeft;
+    const activeRight = activeLeft + activeElement.offsetWidth;
+    const viewportLeft = track.scrollLeft;
+    const viewportRight = viewportLeft + track.clientWidth;
+    const safeInset = 12;
+
+    if (activeLeft < viewportLeft + safeInset) {
+      track.scrollTo({
+        left: Math.max(0, activeLeft - safeInset),
+        behavior: 'smooth',
+      });
+    } else if (activeRight > viewportRight - safeInset) {
+      track.scrollTo({
+        left: Math.max(0, activeRight - track.clientWidth + safeInset),
+        behavior: 'smooth',
+      });
+    }
   }, [groups.length, selectedGroupIndex]);
 
   const submitEpisodeJump = (event: FormEvent<HTMLFormElement>) => {
