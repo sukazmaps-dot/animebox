@@ -11,6 +11,7 @@ import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import ProfileWidgetEditor from '@/components/profile/ProfileWidgetEditor';
 import Icon from '@/components/Icon';
 import { notifyAuthChanged } from '@/lib/auth-events';
+import { usernamePolicyError } from '@/lib/auth-identity-policy';
 import { communityRequest } from '@/lib/community-client';
 import { notifyProfileAppearanceChanged } from '@/lib/profile-live-sync';
 import { resolveProfileAppearance } from '@/lib/profile-appearance';
@@ -430,8 +431,9 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     setError('');
     setSaved('');
 
-    if (cleanUsername.length < 3 || cleanUsername.length > 24) {
-      setError('Ник должен содержать от 3 до 24 символов.');
+    const usernameError = usernamePolicyError(cleanUsername);
+    if (usernameError) {
+      setError(usernameError);
       return;
     }
     if (cleanBio.length > 300) {

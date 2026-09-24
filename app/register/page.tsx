@@ -11,35 +11,10 @@ import GoogleAuthButton from '@/components/GoogleAuthButton';
 import TelegramAuthButton from '@/components/TelegramAuthButton';
 import { safeInternalPath } from '@/lib/browser-navigation';
 
-import {
-  createClient,
-} from '@/lib/supabase/client';
+import { emailAuthRequest } from '@/lib/email-auth-client';
+import { usernamePolicyError } from '@/lib/auth-identity-policy';
 import { markTelegramWelcomePending } from '@/lib/telegram-growth-client';
 
-
-function isDuplicateEmailError(
-  code?: string,
-  message?: string,
-) {
-  const duplicateCodes =
-    new Set([
-      'user_already_exists',
-      'email_exists',
-    ]);
-
-  if (
-    code &&
-    duplicateCodes.has(
-      code,
-    )
-  ) {
-    return true;
-  }
-
-  return /already registered|already exists|already been registered/i.test(
-    message ?? '',
-  );
-}
 
 export default function RegisterPage() {
   const [nextPath] = useState(() =>
@@ -146,14 +121,9 @@ export default function RegisterPage() {
 
     let hasError = false;
 
-    if (
-      cleanUsername.length < 3 ||
-      cleanUsername.length > 24
-    ) {
-      setUsernameError(
-        'Ник должен содержать от 3 до 24 символов.',
-      );
-
+    const usernameErrorMessage = usernamePolicyError(cleanUsername);
+    if (usernameErrorMessage) {
+      setUsernameError(usernameErrorMessage);
       hasError = true;
     }
 
@@ -175,9 +145,9 @@ export default function RegisterPage() {
       hasError = true;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       setPasswordError(
-        'Пароль должен содержать минимум 6 символов.',
+        'Пароль должен содержать минимум 8 символов.',
       );
 
       hasError = true;
@@ -205,93 +175,34 @@ export default function RegisterPage() {
 
     setLoading(true);
 
-    const supabase =
-      createClient();
+    try {
+      const result = await emailAuthRequest({
+        mode: 'register',
+        email: cleanEmail,
+        password,
+        username: cleanUsername,
+      });
 
-    const {
-      data,
-      error:
-        signupError,
-    } =
-      await supabase
-        .auth
-        .signUp({
-          email:
-            cleanEmail,
-
-          password,
-
-          options: {
-            data: {
-              username:
-                cleanUsername,
-            },
-          },
-        });
-
-    if (
-      signupError
-    ) {
-      if (
-        isDuplicateEmailError(
-          signupError.code,
-          signupError.message,
-        )
-      ) {
-        setError(
-          'Эта почта уже используется.',
+      if (result.needsEmailConfirmation) {
+        setMessage(
+          'Аккаунт создан. Подтверди email по письму, после этого можно будет войти.',
         );
-      } else {
-        setError(
-          signupError.message,
-        );
-      }
-
-      setLoading(false);
-
-      return;
-    }
-
-    /*
-     * Confirm email выключен:
-     * Supabase сразу возвращает session.
-     */
-    if (
-      data.session
-    ) {
-      const {
-        data: {
-          session,
-        },
-      } =
-        await supabase
-          .auth
-          .getSession();
-
-      if (!session) {
-        setError(
-          'Аккаунт создан, но сессия не сохранилась. Попробуй войти.',
-        );
-
         setLoading(false);
-
         return;
       }
 
-      markTelegramWelcomePending(session.user.id, 'email');
+      if (result.userId) {
+        markTelegramWelcomePending(result.userId, 'email');
+      }
       window.location.replace(nextPath);
-
-      return;
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Не удалось создать аккаунт.',
+      );
+      setLoading(false);
     }
-
-    /*
-     * Fallback если Confirm email включён.
-     */
-    setMessage(
-      'Аккаунт создан. Подтверди email по письму, после этого можно будет войти.',
-    );
-
-    setLoading(false);
   }
 
   return (
@@ -482,9 +393,9 @@ export default function RegisterPage() {
                   ? 'auth-input--error'
                   : undefined
               }
-              placeholder="Минимум 6 символов"
+              placeholder="Минимум 8 символов"
               autoComplete="new-password"
-              minLength={6}
+              minLength={8}
               aria-invalid={Boolean(passwordError)}
               required
             />
@@ -533,6 +444,7 @@ export default function RegisterPage() {
               }
               placeholder="Введите пароль ещё раз"
               autoComplete="new-password"
+              minLength={8}
               aria-invalid={Boolean(confirmPasswordError)}
               required
             />
