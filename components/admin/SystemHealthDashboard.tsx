@@ -131,7 +131,7 @@ export default function SystemHealthDashboard() {
     <section className={styles.dashboard} aria-label="AnimeBox System Health">
       <header className={styles.header}>
         <div>
-          <span className={styles.eyebrow}>CORE PLATFORM · 17.5</span>
+          <span className={styles.eyebrow}>WATCH PLATFORM · 17.6</span>
           <h1>System Health</h1>
           <p>
             Единый production-снимок: база, просмотр, комнаты, внешние
@@ -219,9 +219,66 @@ export default function SystemHealthDashboard() {
               </strong>
               <small>{number(health.signals.openCriticalIncidents)} critical</small>
             </article>
+            <article>
+              <span>Fallback rate · 24h</span>
+              <strong>
+                {health.playback.fallbackRatePct == null
+                  ? '—'
+                  : `${number(health.playback.fallbackRatePct, 2)}%`}
+              </strong>
+              <small>
+                {number(health.playback.fallbacks24h)} переключений ·{' '}
+                {number(health.playback.starts24h)} стартов
+              </small>
+            </article>
           </div>
 
           <div className={styles.grid}>
+            <section className={styles.panel}>
+              <div className={styles.panelHead}>
+                <div>
+                  <span>PLAYBACK · 24H</span>
+                  <strong>Watch Platform</strong>
+                </div>
+                <small>
+                  {health.playback.exhaustionRatePct == null
+                    ? 'без стартов'
+                    : `${number(health.playback.exhaustionRatePct, 2)}% exhausted`}
+                </small>
+              </div>
+
+              <dl className={styles.metrics}>
+                <div>
+                  <dt>Подтверждённых стартов</dt>
+                  <dd>{number(health.playback.starts24h)}</dd>
+                </div>
+                <div>
+                  <dt>Ошибок источника</dt>
+                  <dd>{number(health.playback.sourceFailures24h)}</dd>
+                </div>
+                <div>
+                  <dt>Авто-fallback</dt>
+                  <dd>{number(health.playback.fallbacks24h)}</dd>
+                </div>
+                <div>
+                  <dt>Источники исчерпаны</dt>
+                  <dd>{number(health.playback.sourceExhausted24h)}</dd>
+                </div>
+                <div>
+                  <dt>Resume применён</dt>
+                  <dd>{number(health.playback.resumes24h)}</dd>
+                </div>
+                <div>
+                  <dt>Завершений</dt>
+                  <dd>{number(health.playback.completions24h)}</dd>
+                </div>
+                <div>
+                  <dt>WT drift corrections</dt>
+                  <dd>{number(health.playback.wtDriftCorrections24h)}</dd>
+                </div>
+              </dl>
+            </section>
+
             <section className={styles.panel}>
               <div className={styles.panelHead}>
                 <div>
