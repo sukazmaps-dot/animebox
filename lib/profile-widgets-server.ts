@@ -125,8 +125,7 @@ export async function getProfileWidgetsData(userId: string): Promise<ProfileWidg
       .select('anime_id,score,updated_at')
       .eq('user_id', userId)
       .order('score', { ascending: false })
-      .order('updated_at', { ascending: false })
-      .limit(20),
+      .order('updated_at', { ascending: false }),
     admin
       .from('anime_library')
       .select('anime_id,status,updated_at')
