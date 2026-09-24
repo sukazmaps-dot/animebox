@@ -22,6 +22,7 @@ import {
   scoreRecommendation,
   type RecommendationScoreResult,
 } from '@/lib/recommendation-ranking-config';
+import { diversifyRecommendations } from '@/lib/recommendation-diversity';
 
 export type RankedRecommendation = {
   anime: Anime;
@@ -106,18 +107,6 @@ function studioNames(anime: Anime): string[] {
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean)
     .slice(0, 8);
-}
-
-function titleFamilyKey(anime: Anime): string {
-  return getAnimeTitle(anime)
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/(?:season|сезон|part|часть)\s*\d+/giu, ' ')
-    .replace(/\b(?:ii|iii|iv|v|2nd|3rd|second|third)\b/giu, ' ')
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 72);
 }
 
 function normalizeRating(anime: Anime): number {
@@ -512,52 +501,10 @@ export function getPersonalizedRecommendations(
     })
     .sort((a, b) => b.score - a.score);
 
-  // Small maximal-marginal-relevance pass. It keeps relevance high but avoids
-  // a row where every card repeats the exact same two genres.
-  const remaining = scored.slice(0, Math.max(limit * 3, 40));
-  const selected: RankedRecommendation[] = [];
-
-  while (remaining.length && selected.length < limit) {
-    let bestIndex = 0;
-    let bestScore = Number.NEGATIVE_INFINITY;
-
-    for (let index = 0; index < Math.min(remaining.length, 24); index += 1) {
-      const candidate = remaining[index];
-      const candidateGenres = new Set((candidate.anime.genres ?? []).map(normalizeGenre));
-      let overlap = 0;
-      let sameFamily = false;
-      const candidateFamily = titleFamilyKey(candidate.anime);
-      for (const picked of selected.slice(-5)) {
-        const pickedGenres = new Set((picked.anime.genres ?? []).map(normalizeGenre));
-        const shared = [...candidateGenres].filter((genre) => pickedGenres.has(genre)).length;
-        overlap = Math.max(overlap, shared / Math.max(1, candidateGenres.size));
-        if (
-          candidateFamily &&
-          candidateFamily === titleFamilyKey(picked.anime)
-        ) {
-          sameFamily = true;
-        }
-      }
-
-      const explorationSlot = selected.length > 0 && selected.length % 6 === 5;
-      const explorationBoost =
-        explorationSlot && candidate.source === 'discovery' ? 0.13 : 0;
-      const familyPenalty = sameFamily ? 0.38 : 0;
-      const diversifiedScore =
-        candidate.score -
-        overlap * 0.12 -
-        familyPenalty +
-        explorationBoost;
-      if (diversifiedScore > bestScore) {
-        bestScore = diversifiedScore;
-        bestIndex = index;
-      }
-    }
-
-    selected.push(remaining.splice(bestIndex, 1)[0]);
-  }
-
-  return selected;
+  return diversifyRecommendations(scored, {
+    limit,
+    explorationRate: tasteGraph?.explorationRate ?? 0.14,
+  });
 }
 
 export function getRecommendedAnime(candidates: Anime[], limit = 8): Anime[] {

@@ -4,6 +4,7 @@ const read = (path) =>
   fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
 const candidates = read('app/api/recommendations/route.ts');
+const diversity = read('lib/recommendation-diversity.ts');
 const ranking = read('lib/recommendation-ranking-config.ts');
 const recommendations = read('lib/recommendations.ts');
 const recommendationTypes = read('types/recommendations.ts');
@@ -165,6 +166,28 @@ if (
   recommendations.includes('negativeEngagement * 0.9')
 ) {
   failures.push('ranking magic weights leaked back into recommendations.ts');
+}
+if (
+  !diversity.includes("RECOMMENDATION_DIVERSITY_VERSION = '17.8-v1'") ||
+  !diversity.includes('maxGenreShare: 0.4') ||
+  !diversity.includes('familyOverflowPenalty') ||
+  !diversity.includes('consecutiveStudioPenalty') ||
+  !diversity.includes('explorationCadence') ||
+  !diversity.includes('explorationRate')
+) {
+  failures.push('17.8.5 diversity/exploration contract is incomplete');
+}
+if (
+  !recommendations.includes('diversifyRecommendations(scored') ||
+  !recommendations.includes('tasteGraph?.explorationRate ?? 0.14')
+) {
+  failures.push('ranking does not use dynamic Taste Graph exploration');
+}
+if (
+  recommendations.includes('selected.length % 6 === 5') ||
+  recommendations.includes('overlap * 0.12')
+) {
+  failures.push('legacy fixed-cadence MMR is still active');
 }
 if (
   !rails.includes("id: 'endless'") ||
