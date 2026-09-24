@@ -159,45 +159,79 @@ function animeCatalogPayload(
 }
 
 // Only server-fetched catalog metadata can affect achievement conditions.
-export async function ensureAnime(id: number) {
+export async function ensureAnimes(ids: number[]) {
+  const uniqueIds = [...new Set(ids)].filter(
+    (id) => Number.isSafeInteger(id) && id > 0,
+  );
+
+  if (!uniqueIds.length) return [] as AnimeCatalogMetadata[];
+
   const admin = adminClient();
   const { data, error } = await admin
     .from('anime_catalog')
     .select(
       'id,title,total_episodes,finished,genres,poster_url,slug,updated_at',
     )
-    .eq('id', id)
-    .maybeSingle();
+    .in('id', uniqueIds);
 
   if (error) throw error;
 
-  if (
-    data &&
-    Date.now() - Date.parse(data.updated_at) < 86_400_000
-  ) {
-    return data as AnimeCatalogMetadata;
+  const existing = new Map<number, AnimeCatalogMetadata>();
+  for (const row of (data ?? []) as AnimeCatalogMetadata[]) {
+    existing.set(Number(row.id), row);
   }
 
-  const anime = await getAnimeByIdWithShikimori(id);
-  if (!anime || anime.id !== id) {
+  const now = Date.now();
+  const refreshIds = uniqueIds.filter((id) => {
+    const row = existing.get(id);
+    return !row || now - Date.parse(row.updated_at) >= 86_400_000;
+  });
+
+  if (refreshIds.length) {
+    const fetched = await Promise.all(
+      refreshIds.map(async (id) => {
+        const anime = await getAnimeByIdWithShikimori(id);
+        if (!anime || anime.id !== id) {
+          throw new ApiError(404, 'Аниме не найдено.');
+        }
+
+        return animeCatalogPayload(
+          anime,
+          Array.isArray(existing.get(id)?.genres)
+            ? existing.get(id)!.genres
+            : [],
+        );
+      }),
+    );
+
+    const { data: saved, error: saveError } = await admin
+      .from('anime_catalog')
+      .upsert(fetched)
+      .select(
+        'id,title,total_episodes,finished,genres,poster_url,slug,updated_at',
+      );
+
+    if (saveError) throw saveError;
+
+    for (const row of (saved ?? []) as AnimeCatalogMetadata[]) {
+      existing.set(Number(row.id), row);
+    }
+  }
+
+  return uniqueIds.flatMap((id) => {
+    const row = existing.get(id);
+    return row ? [row] : [];
+  });
+}
+
+export async function ensureAnime(id: number) {
+  const [anime] = await ensureAnimes([id]);
+
+  if (!anime) {
     throw new ApiError(404, 'Аниме не найдено.');
   }
 
-  const { data: saved, error: saveError } = await admin
-    .from('anime_catalog')
-    .upsert(
-      animeCatalogPayload(
-        anime,
-        Array.isArray(data?.genres) ? data.genres : [],
-      ),
-    )
-    .select(
-      'id,title,total_episodes,finished,genres,poster_url,slug,updated_at',
-    )
-    .single();
-
-  if (saveError) throw saveError;
-  return saved as AnimeCatalogMetadata;
+  return anime;
 }
 
 export async function ensureAnimeArtwork(id: number) {
