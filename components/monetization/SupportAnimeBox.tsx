@@ -70,20 +70,21 @@ export function SupportAnimeBoxCard() {
   if (!MONETIZATION_ENABLED) return null;
 
   return (
-    <section className="panel home-utility-card home-utility-card--support">
-      <div className="home-utility-card__icon" aria-hidden="true">
-        <AnimeBoxStar size={20} />
+    <section className="panel home-utility-card home-utility-card--support home-service-card">
+      <div className="home-service-card__head">
+        <span className="home-service-card__icon" aria-hidden="true">
+          <AnimeBoxStar size={19} />
+        </span>
+        <span className="home-service-card__eyebrow">Поддержка</span>
       </div>
 
-      <div className="home-utility-card__copy">
-        <span>Поддержка</span>
-        <strong>AnimeBox держится на сообществе</strong>
+      <div className="home-service-card__copy">
+        <h2>AnimeBox держится на сообществе</h2>
         <p>Поддержка помогает оплачивать серверы и быстрее выпускать новые функции.</p>
       </div>
 
-      <Link className="home-utility-card__link" href="/support">
-        Подробнее
-        <span aria-hidden="true">→</span>
+      <Link className="btn home-service-card__action" href="/support">
+        Подробнее <span aria-hidden="true">↗</span>
       </Link>
     </section>
   );
