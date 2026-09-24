@@ -7,6 +7,10 @@ import {
 import { enforceIpRateLimit } from '@/lib/api-rate-limit';
 import { resolveAnimeRoute } from '@/lib/anime-route';
 import { recordEpisodePlayerUrl } from '@/lib/episode-timeline-server';
+import {
+  COPYRIGHT_RESTRICTED_MESSAGE,
+  getPlaybackRestriction,
+} from '@/lib/copyright-server';
 
 export async function GET(request: NextRequest) {
   const limited = await enforceIpRateLimit(request, {
@@ -17,6 +21,7 @@ export async function GET(request: NextRequest) {
   const shikimoriIdParam = request.nextUrl.searchParams.get('shikimoriId');
   const episodeParam = request.nextUrl.searchParams.get('episode');
   const animeIdParam = request.nextUrl.searchParams.get('animeId');
+  const seasonParam = request.nextUrl.searchParams.get('season');
 
   if (!shikimoriIdParam || !/^\d+$/.test(shikimoriIdParam)) {
     return NextResponse.json(
@@ -27,6 +32,8 @@ export async function GET(request: NextRequest) {
 
   const shikimoriId = Number(shikimoriIdParam);
   const episode = episodeParam == null ? null : Number(episodeParam);
+  const animeId = animeIdParam == null ? null : Number(animeIdParam);
+  const season = seasonParam == null ? null : Number(seasonParam);
 
   if (
     episodeParam != null &&
@@ -39,6 +46,41 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    if (
+      animeId != null &&
+      Number.isSafeInteger(animeId) &&
+      animeId > 0
+    ) {
+      const restriction = await getPlaybackRestriction({
+        animeId,
+        season:
+          season != null && Number.isSafeInteger(season) && season > 0
+            ? season
+            : null,
+        episode,
+        provider: 'Kodik',
+      });
+
+      if (restriction) {
+        return NextResponse.json(
+          {
+            name: 'Kodik',
+            status: 'unavailable',
+            maxEpisode: null,
+            translations: [],
+            reason: 'copyright_restricted',
+            message: COPYRIGHT_RESTRICTED_MESSAGE,
+          },
+          {
+            status: 451,
+            headers: {
+              'Cache-Control': 'private, no-store',
+            },
+          },
+        );
+      }
+    }
+
     const signal = AbortSignal.any([
       request.signal,
       AbortSignal.timeout(6_500),
@@ -67,8 +109,8 @@ export async function GET(request: NextRequest) {
       .filter((item) => item.url.length > 0)
       .filter((item) => {
         const key = item.translationId
-          ? `id:${item.translationId}`
-          : `title:${item.title.toLowerCase()}`;
+          ? 'id:' + item.translationId
+          : 'title:' + item.title.toLowerCase();
 
         if (seen.has(key)) return false;
         seen.add(key);
@@ -77,32 +119,29 @@ export async function GET(request: NextRequest) {
 
     if (
       episode != null &&
-      animeIdParam &&
-      /^\d+$/.test(animeIdParam) &&
+      animeId != null &&
+      Number.isSafeInteger(animeId) &&
+      animeId > 0 &&
       translations[0]?.url
     ) {
-      const animeId = Number(animeIdParam);
+      const playerUrl = translations[0].url;
 
-      if (Number.isSafeInteger(animeId) && animeId > 0) {
-        const playerUrl = translations[0].url;
+      after(async () => {
+        try {
+          const anime = await resolveAnimeRoute(String(animeId));
+          const expectedMalId = Number(anime?.idMal ?? anime?.mal_id ?? 0);
 
-        after(async () => {
-          try {
-            const anime = await resolveAnimeRoute(String(animeId));
-            const expectedMalId = Number(anime?.idMal ?? anime?.mal_id ?? 0);
-
-            if (anime && expectedMalId === shikimoriId) {
-              await recordEpisodePlayerUrl({
-                animeId,
-                episode,
-                playerUrl,
-              });
-            }
-          } catch (cacheError) {
-            console.warn('[Kodik] Video SEO player cache skipped:', cacheError);
+          if (anime && expectedMalId === shikimoriId) {
+            await recordEpisodePlayerUrl({
+              animeId,
+              episode,
+              playerUrl,
+            });
           }
-        });
-      }
+        } catch (cacheError) {
+          console.warn('[Kodik] Video SEO player cache skipped:', cacheError);
+        }
+      });
     }
 
     return NextResponse.json(
