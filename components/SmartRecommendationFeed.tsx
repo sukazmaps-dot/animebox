@@ -379,8 +379,9 @@ export default function SmartRecommendationFeed({
       buildRecommendationRails(filtered, {
         mood: displayedMood,
         hasWatchHistory,
+        hasMore,
       }),
-    [displayedMood, filtered, hasWatchHistory],
+    [displayedMood, filtered, hasMore, hasWatchHistory],
   );
 
   const fetchNextPage = useCallback(async () => {
@@ -461,7 +462,7 @@ export default function SmartRecommendationFeed({
         aria-busy={isMoodSwapping}
       >
         <div className="smart-feed__rails">
-          {rails.map((rail, railIndex) => (
+          {rails.map((rail) => (
             <section
               className="smart-feed__personal-rail"
               key={`${rail.id}:${rowVersion}`}
