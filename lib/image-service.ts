@@ -53,6 +53,20 @@ export function proxyImageUrl(
   return `/api/image?${params.toString()}`;
 }
 
+function prefersLegacyProxy(value: string): boolean {
+  try {
+    const host = new URL(value).hostname.toLowerCase();
+    return (
+      host === 'shikimori.one' ||
+      host.endsWith('.shikimori.one') ||
+      host === 'shikimori.me' ||
+      host.endsWith('.shikimori.me')
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Poster delivery policy:
  *
@@ -86,17 +100,30 @@ export function buildImageCandidateChain(
 
   const primary = remote[0];
   const secondary = remote.find((value) => value !== primary) ?? null;
-  const result: string[] = [
-    ...buildAnimeBoxMediaCandidates(primary),
-    primary,
-  ];
+  const mediaCandidates = buildAnimeBoxMediaCandidates(primary);
+  const legacyProxy = proxyImageUrl(primary);
+  const result: string[] = [...mediaCandidates];
+
+  if (
+    mediaCandidates.length === 0 &&
+    prefersLegacyProxy(primary) &&
+    legacyProxy &&
+    legacyProxy !== primary
+  ) {
+    result.push(legacyProxy, primary);
+  } else {
+    result.push(primary);
+  }
 
   if (secondary) {
     result.push(secondary);
   }
 
-  const legacyProxy = proxyImageUrl(primary);
-  if (legacyProxy && legacyProxy !== primary) {
+  if (
+    legacyProxy &&
+    legacyProxy !== primary &&
+    !result.includes(legacyProxy)
+  ) {
     result.push(legacyProxy);
   }
 
