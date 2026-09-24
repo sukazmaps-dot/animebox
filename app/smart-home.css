@@ -1319,9 +1319,12 @@
    Remote image dimensions must never participate in Smart Feed layout.
    ========================================================= */
 .smart-feed__slide {
-  flex: 0 0 clamp(188px, 16vw, 226px);
-  min-width: clamp(188px, 16vw, 226px);
-  max-width: clamp(188px, 16vw, 226px);
+  flex: 0 0 auto !important;
+  min-width: 0;
+  max-width: none;
+  content-visibility: visible;
+  contain: layout paint;
+  contain-intrinsic-size: none;
 }
 
 .smart-feed__slide > .smart-card,
@@ -1360,34 +1363,3 @@
   object-position: center center;
 }
 
-/* content-visibility can reserve a stale intrinsic width for offscreen flex
-   children. Keep paint/layout containment, but let the rail own geometry. */
-.smart-feed__slide {
-  content-visibility: visible;
-  contain: layout paint;
-  contain-intrinsic-size: none;
-}
-
-@media (min-width: 1500px) {
-  .smart-feed__slide {
-    flex-basis: 218px;
-    min-width: 218px;
-    max-width: 218px;
-  }
-}
-
-@media (max-width: 1000px) {
-  .smart-feed__slide {
-    flex-basis: clamp(178px, 24vw, 214px);
-    min-width: clamp(178px, 24vw, 214px);
-    max-width: clamp(178px, 24vw, 214px);
-  }
-}
-
-@media (max-width: 720px) {
-  .smart-feed__slide {
-    flex-basis: clamp(154px, 44vw, 184px);
-    min-width: clamp(154px, 44vw, 184px);
-    max-width: clamp(154px, 44vw, 184px);
-  }
-}
