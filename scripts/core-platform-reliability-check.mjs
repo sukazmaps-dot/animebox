@@ -4,7 +4,7 @@ const read = (path) =>
   fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
 const migration = read(
-  'supabase/migrations/20260924180000_core_platform_observability_v1.sql',
+  'supabase/migrations/20260924182609_core_platform_observability_v1.sql',
 );
 const observability = read('lib/system-observability-server.ts');
 const healthServer = read('lib/system-health-server.ts');
