@@ -303,11 +303,31 @@ async function refreshOne(
   signal?: AbortSignal,
 ): Promise<CatalogAvailabilityRow | null> {
   return withProbeSlot(async () => {
-    const [kodik, aniliberty, direct] = await Promise.all([
-      probeKodik(anime, signal),
-      probeAniLiberty(anime, signal),
-      probeDirect(anime, signal),
-    ]);
+    const kodik = await probeKodik(anime, signal);
+
+    // Kodik is the primary AnimeBox playback source. A confirmed Kodik hit is
+    // already enough to prove PLAYABLE, so avoid spending extra provider
+    // requests on the common hot path. Secondary providers are probed only
+    // when Kodik cannot prove availability.
+    const [aniliberty, direct] =
+      kodik.status === 'available'
+        ? [
+            {
+              status: previous?.aniliberty_status ?? 'unknown',
+              reason: 'skipped_after_primary_hit',
+            },
+            {
+              status: previous?.direct_status ?? 'unknown',
+              reason: 'skipped_after_primary_hit',
+            },
+          ] satisfies Array<{
+            status: CatalogProviderAvailabilityStatus;
+            reason: string;
+          }>
+        : await Promise.all([
+            probeAniLiberty(anime, signal),
+            probeDirect(anime, signal),
+          ]);
 
     const statuses = [kodik.status, aniliberty.status, direct.status];
     const anyAvailable = statuses.includes('available');
@@ -409,10 +429,28 @@ export async function refreshCatalogAvailabilityBatch(
   const unique = [...new Map(anime.map((item) => [item.id, item])).values()]
     .slice(0, Math.max(1, options.limit ?? 8));
 
+  if (!unique.length) return [];
+
+  const previousRows = await readRows(unique.map((item) => item.id));
+
   return Promise.allSettled(
-    unique.map((item) =>
-      refreshCatalogAvailability(item, { force: options.force }),
-    ),
+    unique.map((item) => {
+      const previous = previousRows.get(item.id);
+
+      if (!options.force && rowIsFresh(previous)) {
+        return Promise.resolve(previous ?? null);
+      }
+
+      const pending = inFlight.get(item.id);
+      if (pending) return pending;
+
+      const request = refreshOne(item, previous).finally(() => {
+        inFlight.delete(item.id);
+      });
+
+      inFlight.set(item.id, request);
+      return request;
+    }),
   );
 }
 
