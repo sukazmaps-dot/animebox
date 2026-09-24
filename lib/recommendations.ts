@@ -16,6 +16,12 @@ import {
   readCachedTasteGraph,
   type TasteGraph,
 } from '@/lib/taste-graph';
+import {
+  RECOMMENDATION_ENGAGEMENT_SIGNALS,
+  recommendationMatchBasis,
+  scoreRecommendation,
+  type RecommendationScoreResult,
+} from '@/lib/recommendation-ranking-config';
 
 export type RankedRecommendation = {
   anime: Anime;
@@ -24,6 +30,7 @@ export type RankedRecommendation = {
   reasons: string[];
   matchScore: number | null;
   source: 'watch_history' | 'taste_mood' | 'engagement' | 'taste_graph' | 'discovery';
+  ranking: RecommendationScoreResult;
 };
 
 type MoodConfig = {
@@ -195,22 +202,36 @@ function buildDirectEngagementScores(): Map<number, number> {
     if (!event.animeId) continue;
 
     const ageDays = Math.max(0, (now - event.createdAt) / 86_400_000);
-    const recency = Math.max(0.25, 1 - ageDays / 45);
+    const signalConfig = RECOMMENDATION_ENGAGEMENT_SIGNALS;
+    const recency = Math.max(
+      signalConfig.recencyFloor,
+      1 - ageDays / signalConfig.recencyDays,
+    );
 
     let signal = 0;
-    if (event.type === 'open') signal = 0.055;
+    if (event.type === 'open') signal = signalConfig.open;
     if (event.type === 'dwell') {
       const dwell = Math.min(30_000, Math.max(0, event.dwellMs ?? 0));
-      signal = 0.015 + (dwell / 30_000) * 0.035;
+      signal =
+        signalConfig.dwellBase +
+        (dwell / 30_000) * signalConfig.dwellMaxBonus;
     }
-    if (event.type === 'planned') signal = 0.075;
-    if (event.type === 'liked') signal = 0.12;
-    if (event.type === 'not_interested' || event.type === 'already_watched') signal = -1;
+    if (event.type === 'planned') signal = signalConfig.planned;
+    if (event.type === 'liked') signal = signalConfig.liked;
+    if (event.type === 'not_interested' || event.type === 'already_watched') {
+      signal = signalConfig.explicitNegative;
+    }
 
     if (signal === 0) continue;
 
     const next = (result.get(event.animeId) ?? 0) + signal * recency;
-    result.set(event.animeId, Math.max(-1, Math.min(0.14, next)));
+    result.set(
+      event.animeId,
+      Math.max(
+        signalConfig.negativeCap,
+        Math.min(signalConfig.positiveCap, next),
+      ),
+    );
   }
 
   return result;
@@ -380,28 +401,33 @@ export function getPersonalizedRecommendations(
       const negativeEngagement = Math.max(0, -engagementRaw);
       const ongoingBonus = ['RELEASING', 'Онгоинг', 'ongoing'].includes(anime.status ?? '') ? 0.035 : 0;
       const discoveryBonus = index < 14 ? 0.04 : Math.max(0, 0.025 - index * 0.0005);
-      const savedBonus = savedIds.has(anime.id) ? 0.035 : 0;
-      const favoriteBonus = favoriteIds.has(anime.id) ? 0.075 : 0;
       const title = getAnimeTitle(anime);
       const duplicateTitlePenalty = recentTitles.has(title.toLowerCase()) ? -0.45 : 0;
 
-      const score =
-        genreScore * (hasHistory ? 0.34 : 0.08) +
-        graphAffinity.positive * 0.25 +
-        completedAffinity.positive * 0.13 +
-        studioScore * 0.08 -
-        graphAffinity.negative * 0.32 +
-        lengthAffinity * (tasteGraph?.confidence ? 0.07 : 0) +
-        moodScore * (mood === 'any' ? 0 : hasHistory ? 0.18 : 0.38) +
-        ratingScore * (hasHistory ? 0.11 : 0.28) +
-        shortFinishedAffinity +
-        engagementScore +
-        discoveryBonus +
-        ongoingBonus +
-        savedBonus +
-        favoriteBonus -
-        negativeEngagement * 0.9 +
-        duplicateTitlePenalty;
+      const ranking = scoreRecommendation(
+        {
+          genre: genreScore,
+          tasteGraphPositive: graphAffinity.positive,
+          completedAffinity: completedAffinity.positive,
+          studioAffinity: studioScore,
+          tasteGraphNegative: graphAffinity.negative,
+          episodeLength: lengthAffinity,
+          mood: moodScore,
+          communityQuality: ratingScore,
+          shortFinished: shortFinishedAffinity,
+          engagementPositive: engagementScore,
+          engagementNegative: negativeEngagement,
+          discovery: discoveryBonus,
+          ongoing: ongoingBonus,
+          duplicateTitle: duplicateTitlePenalty,
+        },
+        {
+          hasHistory,
+          moodActive: mood !== 'any',
+          hasTasteConfidence: Boolean(tasteGraph?.confidence),
+        },
+      );
+      const score = ranking.total;
 
       const primary = chooseReason({
         anime,
@@ -455,21 +481,17 @@ export function getPersonalizedRecommendations(
         history.length >= 2 ? 0.35 : 0,
         tasteGraph?.confidence ?? 0,
       );
-      const matchBasis = Math.max(
-        0,
-        Math.min(
-          1,
-          genreScore * 0.3 +
-            graphAffinity.positive * 0.26 +
-            completedAffinity.positive * 0.14 +
-            studioScore * 0.08 +
-            moodScore * 0.16 +
-            lengthAffinity * 0.08 +
-            ratingScore * 0.12 +
-            shortFinishedAffinity * 0.7 -
-            graphAffinity.negative * 0.24,
-        ),
-      );
+      const matchBasis = recommendationMatchBasis({
+        genre: genreScore,
+        tasteGraphPositive: graphAffinity.positive,
+        completedAffinity: completedAffinity.positive,
+        studioAffinity: studioScore,
+        tasteGraphNegative: graphAffinity.negative,
+        episodeLength: lengthAffinity,
+        mood: moodScore,
+        communityQuality: ratingScore,
+        shortFinished: shortFinishedAffinity,
+      });
       const matchScore = evidence >= 0.18
         ? Math.max(58, Math.min(97, Math.round(58 + matchBasis * 39)))
         : null;
@@ -485,6 +507,7 @@ export function getPersonalizedRecommendations(
         reasons: reasons.slice(0, 3),
         matchScore,
         source,
+        ranking,
       } satisfies RankedRecommendation;
     })
     .sort((a, b) => b.score - a.score);
