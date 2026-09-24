@@ -182,13 +182,9 @@ export default function ProfileWidgetEditor({
     setMessage('');
 
     try {
-      await communityRequest<SaveResponse>('profile-widgets', {
-        action: 'save_layout',
-        layout: layout.map(({ key, visible }) => ({ key, visible })),
-      });
-
       const result = await communityRequest<SaveResponse>('profile-widgets', {
-        action: 'set_favorites',
+        action: 'save_identity',
+        layout: layout.map(({ key, visible }) => ({ key, visible })),
         animeIds: favoriteIds,
       });
 
