@@ -96,6 +96,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   const [showcase, setShowcase] = useState<ProfileWidgetsData | null>(null);
   const [showcaseLoading, setShowcaseLoading] = useState(false);
   const [showcaseError, setShowcaseError] = useState('');
+  const [showcaseReloadKey, setShowcaseReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -146,7 +147,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   }, [authLoading, router, supabase, user]);
 
   useEffect(() => {
-    if (!user?.id || activeTab !== 'showcase' || showcase || showcaseLoading) return;
+    if (!user?.id || activeTab !== 'showcase' || showcase) return;
 
     let active = true;
     setShowcaseLoading(true);
@@ -172,7 +173,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     return () => {
       active = false;
     };
-  }, [activeTab, showcase, showcaseLoading, user?.id]);
+  }, [activeTab, showcase, showcaseReloadKey, user?.id]);
 
   useEffect(() => {
     if (!user?.id) {
@@ -593,14 +594,14 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
   if (!profile) {
     return (
-      <main className="profile-editor-v13">
+      <main className="profile-editor-v13" data-editor-tab={activeTab}>
         <div className="profile-editor-v13__loading">{error || 'Профиль не найден'}</div>
       </main>
     );
   }
 
   return (
-    <main className="profile-editor-v13">
+    <main className="profile-editor-v13" data-editor-tab={activeTab}>
       <div className="profile-editor-v13__ambient" aria-hidden="true" />
 
       <section className="profile-editor-v13__shell">
@@ -672,6 +673,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                   onClick={() => {
                     setShowcaseError('');
                     setShowcase(null);
+                    setShowcaseReloadKey((value) => value + 1);
                   }}
                 >
                   Повторить
