@@ -21,18 +21,19 @@ export async function generateMetadata({
   searchParams,
 }: SearchPageProps): Promise<Metadata> {
   const params = await searchParams;
-  const query = typeof params.search === 'string' ? params.search.trim() : '';
+  const hasDynamicCatalogState = Object.values(params).some((value) =>
+    Array.isArray(value)
+      ? value.some((item) => item.trim().length > 0)
+      : typeof value === 'string' && value.trim().length > 0,
+  );
 
-  if (!query) {
-    return {
-      robots: { index: true, follow: true },
-      alternates: { canonical: '/search' },
-    };
-  }
-
-  // Internal search result URLs can create effectively unlimited duplicates.
+  // Only the clean catalogue URL is indexable. Arbitrary search text and
+  // filter combinations remain useful to users/crawlers through follow links,
+  // but cannot turn into an unbounded set of thin/duplicate index pages.
   return {
-    robots: { index: false, follow: true },
+    robots: hasDynamicCatalogState
+      ? { index: false, follow: true }
+      : { index: true, follow: true },
     alternates: { canonical: '/search' },
   };
 }

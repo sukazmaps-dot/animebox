@@ -13,6 +13,13 @@ const suggestionUi = read('components/SearchSuggestions.tsx');
 const navbar = read('components/Navbar.tsx');
 const catalog = read('components/SearchCatalogClient.tsx');
 const productEvents = read('lib/product-event-names.ts');
+const searchPage = read('app/search/page.tsx');
+const searchSeo = read('lib/search-seo.ts');
+const seoLanding = read('components/SeoAnimeLanding.tsx');
+const genreLanding = read('app/anime/genre/[slug]/page.tsx');
+const yearLanding = read('app/anime/year/[year]/page.tsx');
+const ongoingLanding = read('app/anime/ongoing/page.tsx');
+const sitemap = read('app/sitemap.ts');
 const migration = read(
   'supabase/migrations/20260925030000_search_intelligence_foundation_v1.sql',
 );
@@ -93,6 +100,21 @@ for (const eventName of [
   if (!productEvents.includes(`'${eventName}'`)) {
     failures.push(`product events missing ${eventName}`);
   }
+}
+
+if (
+  !searchPage.includes('hasDynamicCatalogState') ||
+  !searchPage.includes('{ index: false, follow: true }') ||
+  !searchSeo.includes('SEO_GENRE_LANDINGS') ||
+  !genreLanding.includes("alternates: { canonical: path }") ||
+  !yearLanding.includes("alternates: { canonical: path }") ||
+  !ongoingLanding.includes("alternates: { canonical: path }") ||
+  !seoLanding.includes("'@type': 'ItemList'") ||
+  !seoLanding.includes("'@type': 'BreadcrumbList'") ||
+  !sitemap.includes('SEO_GENRE_LANDINGS') ||
+  !sitemap.includes('/anime/ongoing')
+) {
+  failures.push('17.9 SEO landing/canonical/sitemap contract is incomplete');
 }
 
 if (failures.length) {
