@@ -555,3 +555,259 @@ html[data-animebox-theme='light'] .telegram-growth-card--community .telegram-gro
     padding-right: 22px;
   }
 }
+
+
+/* ---------- AnimeBox community rating ---------- */
+.anime-detail-v4__personal-grid > .anime-rating-control {
+  grid-column: 1 / -1;
+}
+
+.anime-rating-control {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(204, 211, 230, .075);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(139,112,255,.075), transparent 30%),
+    linear-gradient(145deg, rgba(15,20,31,.985), rgba(9,13,21,.985));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.025),
+    0 20px 52px rgba(0,0,0,.08);
+}
+
+.anime-rating-control__head {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 18px;
+  align-items: start;
+}
+
+.anime-rating-control__eyebrow {
+  display: block;
+  color: #9584e3;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .14em;
+}
+
+.anime-rating-control h2 {
+  margin: 5px 0 0;
+  color: #f4f4fa;
+  font-size: 19px;
+  font-weight: 760;
+  letter-spacing: -.025em;
+}
+
+.anime-rating-control__head p {
+  max-width: 620px;
+  margin: 6px 0 0;
+  color: #8d97a8;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.anime-rating-control__summary {
+  min-width: 122px;
+  display: grid;
+  justify-items: end;
+  align-content: start;
+  gap: 2px;
+  padding: 9px 10px;
+  border: 1px solid rgba(185,166,255,.12);
+  border-radius: 12px;
+  background: rgba(126,97,222,.055);
+}
+
+.anime-rating-control__summary span,
+.anime-rating-control__summary small {
+  color: #747e90;
+  font-size: 8px;
+}
+
+.anime-rating-control__summary strong {
+  color: #f1c96e;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: -.045em;
+}
+
+.anime-rating-control__scale {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 15px;
+}
+
+.anime-rating-control__scale button {
+  min-width: 0;
+  min-height: 40px;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 9px;
+  background: rgba(255,255,255,.025);
+  color: #8d96a7;
+  font-size: 11px;
+  font-weight: 800;
+  transition:
+    transform .16s ease,
+    border-color .16s ease,
+    background .16s ease,
+    color .16s ease;
+}
+
+.anime-rating-control__scale button:not(:disabled):hover {
+  transform: translateY(-1px);
+  border-color: rgba(159,135,242,.28);
+  background: rgba(126,99,220,.08);
+  color: #ddd4ff;
+}
+
+.anime-rating-control__scale button[data-active='true'] {
+  border-color: rgba(243,199,103,.32);
+  background:
+    linear-gradient(145deg, rgba(218,163,62,.18), rgba(122,90,37,.08));
+  color: #f7d982;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.anime-rating-control__scale button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+.anime-rating-control__footer {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 10px;
+  color: #747e90;
+  font-size: 10px;
+}
+
+.anime-rating-control__footer strong {
+  color: #e7ddff;
+}
+
+.anime-rating-control__footer a {
+  color: #ac9aff;
+  font-weight: 760;
+}
+
+.anime-rating-control__clear {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: #7c7488;
+  font-size: 9px;
+  text-decoration: underline;
+  text-decoration-color: rgba(124,116,136,.35);
+  text-underline-offset: 3px;
+}
+
+.anime-rating-control__clear:hover {
+  color: #d2c7e1;
+}
+
+.anime-rating-control__message {
+  margin-top: 8px;
+  color: #9b8edf;
+  font-size: 9px;
+}
+
+html[data-animebox-theme='light'] .anime-rating-control {
+  border-color: rgba(60,52,70,.10);
+  background:
+    radial-gradient(circle at 90% 0%, rgba(112,87,220,.075), transparent 32%),
+    linear-gradient(145deg, rgba(255,255,255,.985), rgba(248,244,238,.985));
+  box-shadow: 0 18px 42px rgba(73,62,87,.055);
+}
+
+html[data-animebox-theme='light'] .anime-rating-control h2 {
+  color: #28212f;
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__head p,
+html[data-animebox-theme='light'] .anime-rating-control__footer,
+html[data-animebox-theme='light'] .anime-rating-control__summary span,
+html[data-animebox-theme='light'] .anime-rating-control__summary small {
+  color: #746b7d;
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__summary {
+  border-color: rgba(112,87,220,.14);
+  background: rgba(112,87,220,.055);
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__summary strong {
+  color: #9a6b14;
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__scale button {
+  border-color: rgba(60,52,70,.09);
+  background: rgba(52,44,61,.03);
+  color: #665d70;
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__scale button:not(:disabled):hover {
+  border-color: rgba(112,87,220,.22);
+  background: rgba(112,87,220,.055);
+  color: #4c398e;
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__scale button[data-active='true'] {
+  border-color: rgba(178,126,30,.25);
+  background: rgba(215,163,61,.12);
+  color: #80570b;
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__footer strong {
+  color: #4b3b67;
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__clear {
+  color: #766d7f;
+}
+
+@media (max-width: 680px) {
+  .anime-rating-control {
+    padding: 14px 12px;
+    border-radius: 12px;
+  }
+
+  .anime-rating-control__head {
+    grid-template-columns: 1fr;
+    gap: 11px;
+  }
+
+  .anime-rating-control__summary {
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: auto auto 1fr;
+    justify-items: start;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .anime-rating-control__summary strong {
+    font-size: 20px;
+  }
+
+  .anime-rating-control__scale {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .anime-rating-control__scale button {
+    min-height: 38px;
+  }
+
+  .anime-rating-control__footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+  }
+}
