@@ -46,6 +46,7 @@ export type RecommendationAnalyticsDashboard = {
   };
   versions: Array<RecommendationFunnelSlice & {
     algorithmVersion: string;
+    clickTo15mPct: number;
   }>;
   rows: Array<RecommendationFunnelSlice & {
     rowId: string;
