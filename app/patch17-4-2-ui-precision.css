@@ -1,0 +1,138 @@
+/* Patch 17.4.2 — 10-point AnimeBox rating precision */
+
+.anime-rating-control__stars--ten {
+  display: grid;
+  grid-template-columns: repeat(10, 34px);
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 15px;
+}
+
+.anime-rating-control__star-button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 38px;
+  min-width: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  user-select: none;
+  transition:
+    transform .14s ease,
+    background-color .14s ease,
+    box-shadow .14s ease;
+}
+
+.anime-rating-control__star-button .anime-rating-control__star-base,
+.anime-rating-control__star-button .anime-rating-control__star-fill {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: visible;
+  width: auto;
+  white-space: nowrap;
+  pointer-events: none;
+  font-size: 31px;
+  line-height: 38px;
+  transition:
+    color .14s ease,
+    opacity .14s ease,
+    transform .14s ease;
+}
+
+.anime-rating-control__star-button .anime-rating-control__star-base {
+  color: rgba(213, 219, 234, .16);
+}
+
+.anime-rating-control__star-button .anime-rating-control__star-fill {
+  color: #f2c96d;
+  opacity: 0;
+  text-shadow: 0 0 18px rgba(242, 201, 109, .12);
+}
+
+.anime-rating-control__star-button[data-filled='true'] .anime-rating-control__star-fill,
+.anime-rating-control__star-button .anime-rating-control__star-fill[data-visible='true'] {
+  opacity: 1;
+}
+
+.anime-rating-control__star-button:focus-visible {
+  outline: 2px solid rgba(173, 151, 255, .9);
+  outline-offset: 2px;
+  background: rgba(126, 91, 221, .08);
+}
+
+.anime-rating-control__star-button:disabled {
+  cursor: not-allowed;
+}
+
+.anime-rating-control__stars--ten[data-disabled='true'] {
+  opacity: .58;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .anime-rating-control__star-button:not(:disabled):hover {
+    transform: translateY(-2px) scale(1.04);
+    background: rgba(242, 201, 109, .045);
+  }
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__star-button .anime-rating-control__star-base {
+  color: rgba(73, 68, 89, .14);
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__star-button .anime-rating-control__star-fill {
+  color: #d89b25;
+  text-shadow: none;
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__star-button:focus-visible {
+  outline-color: rgba(101, 66, 187, .72);
+  background: rgba(101, 66, 187, .06);
+}
+
+@media (max-width: 680px) {
+  .anime-rating-control__stars--ten {
+    grid-template-columns: repeat(10, minmax(22px, 1fr));
+    gap: 2px;
+    width: min(100%, 320px);
+  }
+
+  .anime-rating-control__star-button {
+    width: 100%;
+    min-width: 0;
+    height: 34px;
+    border-radius: 7px;
+  }
+
+  .anime-rating-control__star-button .anime-rating-control__star-base,
+  .anime-rating-control__star-button .anime-rating-control__star-fill {
+    font-size: clamp(22px, 7.2vw, 28px);
+    line-height: 34px;
+  }
+}
+
+@media (max-width: 380px) {
+  .anime-rating-control__stars--ten {
+    gap: 1px;
+  }
+
+  .anime-rating-control__star-button {
+    height: 32px;
+  }
+
+  .anime-rating-control__star-button .anime-rating-control__star-base,
+  .anime-rating-control__star-button .anime-rating-control__star-fill {
+    font-size: clamp(20px, 6.9vw, 25px);
+    line-height: 32px;
+  }
+}
