@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 
 import SeoAnimeLanding from '@/components/SeoAnimeLanding';
 import { getAnimesWithShikimori } from '@/lib/combined-anime';
+import type { Anime } from '@/types/anime';
 import { isSeoCatalogYear } from '@/lib/search-seo';
 
 export const revalidate = 3600;
@@ -39,7 +40,7 @@ export default async function YearLandingPage({ params }: Props) {
   const year = Number(rawYear);
   if (!isSeoCatalogYear(year)) notFound();
 
-  let items = [];
+  let items: Anime[] = [];
   try {
     items = await getAnimesWithShikimori({
       page: 1,

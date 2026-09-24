@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 
 import SeoAnimeLanding from '@/components/SeoAnimeLanding';
 import { getAnimesWithShikimori } from '@/lib/combined-anime';
+import type { Anime } from '@/types/anime';
 
 export const revalidate = 1800;
 
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 export default async function OngoingAnimePage() {
-  let items = [];
+  let items: Anime[] = [];
 
   try {
     items = await getAnimesWithShikimori({
