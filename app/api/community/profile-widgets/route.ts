@@ -65,6 +65,18 @@ function parseFavoriteIds(value: unknown) {
   return unique;
 }
 
+export async function GET() {
+  try {
+    const { user } = await userClient();
+    return response({
+      ok: true,
+      widgets: await getProfileWidgetsData(user.id),
+    });
+  } catch (error) {
+    return failure(error);
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const { client, user } = await userClient();
