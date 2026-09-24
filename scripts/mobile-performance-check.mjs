@@ -23,7 +23,7 @@ for (const [label, source, needle] of [
   ['service worker public schedule cache', sw, "'/api/schedule'"],
   ['bounded image cache', sw, 'IMAGE_CACHE, 140'],
   ['bounded public data cache', sw, 'DATA_CACHE, 36'],
-  ['production-only SW registration', bridge, "process.env.NODE_ENV !== 'production'"],
+  ['localhost SW exclusion', bridge, "window.location.hostname === 'localhost'"],
   ['post-load SW registration', bridge, "window.addEventListener('load', register"],
   ['deferred IntersectionObserver', deferred, 'new IntersectionObserver'],
   ['save-data aware deferred margin', deferred, 'connection?.saveData'],
