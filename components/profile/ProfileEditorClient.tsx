@@ -583,7 +583,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
   if (loading) {
     return (
-      <main className="profile-editor-v13">
+      <main className="profile-editor-v13" data-editor-tab={activeTab}>
         <div className="profile-editor-v13__loading">
           <AnimeBoxLoader label="Открываем редактор профиля…" size={54} />
         </div>
