@@ -158,6 +158,7 @@ export function useWatchSession({
   const startingRef = useRef<Promise<void> | null>(null);
   const sendingRef = useRef(false);
   const disabledRef = useRef(false);
+  const supersededRef = useRef(false);
 
   const publishProgress = useCallback(
     (input: {
@@ -220,6 +221,7 @@ export function useWatchSession({
       !enabled ||
       !animeId ||
       disabledRef.current ||
+      supersededRef.current ||
       sessionRef.current ||
       startingRef.current ||
       latestPositionRef.current == null ||
@@ -311,6 +313,7 @@ export function useWatchSession({
       if (
         sendingRef.current ||
         disabledRef.current ||
+        supersededRef.current ||
         !enabled ||
         !animeId
       ) {
@@ -405,7 +408,20 @@ export function useWatchSession({
           disabledRef.current = true;
           setRecovering(false);
           setMessage('');
-        } else if (status === 404 || status === 409 || status === 410) {
+        } else if (status === 409) {
+          // A newer playback session on another tab/device owns server
+          // progress now. Do not immediately start a replacement session:
+          // doing so would create a cross-device ownership ping-pong.
+          sessionRef.current = null;
+          supersededRef.current = true;
+          sessionAnchorPositionRef.current = null;
+          seqRef.current = 0;
+          lastSentPositionRef.current = null;
+          setRecovering(false);
+          setMessage(
+            'Просмотр продолжен на другом устройстве. Здесь позиция сохраняется локально.',
+          );
+        } else if (status === 404 || status === 410) {
           sessionRef.current = null;
           sessionAnchorPositionRef.current = latestPositionRef.current;
           seqRef.current = 0;
@@ -414,7 +430,9 @@ export function useWatchSession({
           setMessage('Восстанавливаем синхронизацию прогресса…');
 
           queueMicrotask(() => {
-            if (!disabledRef.current) void startSession();
+            if (!disabledRef.current && !supersededRef.current) {
+              void startSession();
+            }
           });
         } else {
           setRecovering(true);
@@ -570,6 +588,7 @@ export function useWatchSession({
 
   useEffect(() => {
     disabledRef.current = false;
+    supersededRef.current = false;
     sessionRef.current = null;
     sessionAnchorPositionRef.current = null;
     seqRef.current = 0;
@@ -602,7 +621,7 @@ export function useWatchSession({
     };
 
     const onOffline = () => {
-      if (disabledRef.current) return;
+      if (disabledRef.current || supersededRef.current) return;
       setRecovering(true);
       setMessage(
         'Нет сети — просмотр продолжится, прогресс пока сохраняется на устройстве.',
@@ -610,7 +629,7 @@ export function useWatchSession({
     };
 
     const onOnline = () => {
-      if (disabledRef.current) return;
+      if (disabledRef.current || supersededRef.current) return;
       setRecovering(true);
       setMessage('Связь восстановлена. Синхронизируем прогресс…');
       void sendHeartbeat(true);

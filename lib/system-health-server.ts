@@ -157,12 +157,23 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
   const admin = createSupabaseAdmin();
   const productionPromise = getProductionHealthSnapshot();
 
+  const playbackSince = new Date(
+    Date.now() - 24 * 60 * 60 * 1_000,
+  ).toISOString();
+
   const [
     settingsResult,
     runtimeResult,
     jobRunsResult,
     incidentsResult,
     notificationResult,
+    playerStartsResult,
+    playerFailuresResult,
+    playerFallbacksResult,
+    playerExhaustedResult,
+    playerResumesResult,
+    playerCompletionsResult,
+    wtDriftResult,
   ] = await Promise.all([
     admin
       .from('player_provider_settings')
@@ -199,6 +210,41 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
       )
       .limit(1)
       .maybeSingle(),
+    admin
+      .from('product_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_name', 'player_started')
+      .gte('created_at', playbackSince),
+    admin
+      .from('product_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_name', 'player_source_failed')
+      .gte('created_at', playbackSince),
+    admin
+      .from('product_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_name', 'player_source_fallback')
+      .gte('created_at', playbackSince),
+    admin
+      .from('product_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_name', 'player_source_exhausted')
+      .gte('created_at', playbackSince),
+    admin
+      .from('product_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_name', 'player_resume_applied')
+      .gte('created_at', playbackSince),
+    admin
+      .from('product_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_name', 'player_completed')
+      .gte('created_at', playbackSince),
+    admin
+      .from('product_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_name', 'watch_party_sync_drift')
+      .gte('created_at', playbackSince),
   ]);
 
   const production = await productionPromise;
@@ -222,6 +268,26 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
   const notification = notificationResult.error
     ? null
     : notificationHealth(notificationResult.data as NotificationRow | null);
+
+  const playbackCount = (
+    result: { count: number | null; error: unknown },
+  ) => result.error ? 0 : Math.max(0, Number(result.count ?? 0));
+
+  const starts24h = playbackCount(playerStartsResult);
+  const sourceFailures24h = playbackCount(playerFailuresResult);
+  const fallbacks24h = playbackCount(playerFallbacksResult);
+  const sourceExhausted24h = playbackCount(playerExhaustedResult);
+  const resumes24h = playbackCount(playerResumesResult);
+  const completions24h = playbackCount(playerCompletionsResult);
+  const wtDriftCorrections24h = playbackCount(wtDriftResult);
+  const fallbackRatePct =
+    starts24h > 0
+      ? Math.round((fallbacks24h / starts24h) * 10_000) / 100
+      : null;
+  const exhaustionRatePct =
+    starts24h > 0
+      ? Math.round((sourceExhausted24h / starts24h) * 10_000) / 100
+      : null;
 
   const openCriticalIncidents = incidents.filter(
     (item) => item.severity === 'critical',
@@ -268,6 +334,17 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
     jobs,
     incidents,
     notification,
+    playback: {
+      starts24h,
+      sourceFailures24h,
+      fallbacks24h,
+      sourceExhausted24h,
+      resumes24h,
+      completions24h,
+      wtDriftCorrections24h,
+      fallbackRatePct,
+      exhaustionRatePct,
+    },
     signals: {
       openCriticalIncidents,
       openWarningIncidents,

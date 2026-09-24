@@ -170,6 +170,12 @@ const AUTO_NEXT_COUNTDOWN_SECONDS = 5;
 
 type SourceLoadState = 'idle' | 'loading' | 'ready' | 'error' | 'timeout';
 type PlayerFailureKind = Extract<SourceLoadState, 'error' | 'timeout'>;
+type ResumeOrigin =
+  | 'none'
+  | 'local'
+  | 'local_newer'
+  | 'server'
+  | 'source_switch';
 
 function normalizePreferenceValue(value?: string) {
   return value?.trim().toLocaleLowerCase('ru-RU') || '';
@@ -387,6 +393,7 @@ export default function AnimePlayer({
   const [telegramAndroidMiniApp, setTelegramAndroidMiniApp] = useState(false);
   const [telegramPseudoFullscreen, setTelegramPseudoFullscreen] = useState(false);
   const [resumeSeconds, setResumeSeconds] = useState(0);
+  const [resumeOrigin, setResumeOrigin] = useState<ResumeOrigin>('none');
   const [endScreenOpen, setEndScreenOpen] = useState(false);
   const [autoNextSeconds, setAutoNextSeconds] = useState<number | null>(null);
   const [skipOpeningVisible, setSkipOpeningVisible] = useState(false);
@@ -410,6 +417,8 @@ export default function AnimePlayer({
     'initial_auto' | 'manual' | 'manual_preference' | 'auto_score' | 'fallback' | 'retry' | 'translation'
   >(sourceMode === 'manual' ? 'manual_preference' : 'initial_auto');
   const resumeAppliedRef = useRef(false);
+  const resumeTelemetryTrackedRef = useRef(false);
+  const resumeOriginRef = useRef<ResumeOrigin>('none');
   const resumeGateRef = useRef<{
     targetSeconds: number;
     createdAt: number;
@@ -446,7 +455,10 @@ export default function AnimePlayer({
     source: 'native',
   });
 
-  const applyResumeTarget = useCallback((seconds: number) => {
+  const applyResumeTarget = useCallback((
+    seconds: number,
+    origin: ResumeOrigin = 'none',
+  ) => {
     const target = Number.isFinite(seconds)
       ? Math.max(0, Math.floor(seconds))
       : 0;
@@ -458,6 +470,9 @@ export default function AnimePlayer({
             createdAt: Date.now(),
           }
         : null;
+    resumeOriginRef.current = target > 0 ? origin : 'none';
+    resumeTelemetryTrackedRef.current = false;
+    setResumeOrigin(target > 0 ? origin : 'none');
     setResumeSeconds(target);
   }, []);
 
@@ -850,6 +865,27 @@ export default function AnimePlayer({
         const resumeTimedOut = Date.now() - resumeGate.createdAt > 12_000;
 
         if (resumeLanded || resumeTimedOut) {
+          const trackedOrigin = resumeOriginRef.current;
+          if (
+            resumeLanded &&
+            !resumeTelemetryTrackedRef.current &&
+            trackedOrigin !== 'none' &&
+            trackedOrigin !== 'source_switch'
+          ) {
+            resumeTelemetryTrackedRef.current = true;
+            trackPlayerEvent('player_resume_applied', {
+              resumeOrigin: trackedOrigin,
+              targetSeconds: resumeGate.targetSeconds,
+              landedSeconds: Math.max(
+                0,
+                Math.floor(sample.positionSeconds),
+              ),
+              driftSeconds: Math.abs(
+                sample.positionSeconds - resumeGate.targetSeconds,
+              ),
+            }, true);
+          }
+
           resumeGateRef.current = null;
         } else {
           // Provider startup samples (0s -> 1s -> forced resume) must not
@@ -953,6 +989,7 @@ export default function AnimePlayer({
       persistLocalProgress,
       requestOpeningSkip,
       serverWatchSample,
+      trackPlayerEvent,
       smartSeekSupported,
       timeline,
       watchTogetherMode,
@@ -996,6 +1033,11 @@ export default function AnimePlayer({
     // Continue Watching / completion state current even when the viewer lets
     // auto-next move immediately to another episode.
     void watchSession.flushProgress().catch(() => undefined);
+    trackPlayerEvent('player_completed', {
+      hasNext,
+      autoNextEnabled: Boolean(hasNext && onEnded && !autoNextCancelled),
+      watchTogether: watchTogetherMode,
+    }, true);
 
     if (watchTogetherMode) {
       onEnded?.();
@@ -1020,6 +1062,7 @@ export default function AnimePlayer({
     user?.id,
     watchSession,
     watchTogetherMode,
+    trackPlayerEvent,
   ]);
 
   useEffect(() => {
@@ -1307,7 +1350,12 @@ export default function AnimePlayer({
       : 0;
 
     queueMicrotask(() => {
-      if (active) applyResumeTarget(localPosition);
+      if (active) {
+        applyResumeTarget(
+          localPosition,
+          localPosition > 0 ? 'local' : 'none',
+        );
+      }
     });
 
     // Local storage is a crash journal only. Authenticated watch-time,
@@ -1338,9 +1386,47 @@ export default function AnimePlayer({
           : 0;
         const localUpdatedAt = localProgress?.updatedAt ?? 0;
 
-        // A newer device-local crash journal wins only as a resume position.
-        // It still grants zero server watch credit.
-        if (localPosition > 0 && localUpdatedAt > serverUpdatedAt) {
+        if (payload.state.completed) {
+          removeWatchProgress(animeId, episodeNumber, user.id);
+          removeWatchProgress(animeId, episodeNumber, null);
+          applyResumeTarget(0);
+          return;
+        }
+
+        const positionSeconds = Math.floor(payload.state.positionMs / 1000);
+        const durationSeconds =
+          payload.state.durationMs == null
+            ? 0
+            : Math.floor(payload.state.durationMs / 1000);
+        const serverUsable = isUsableResumePosition(
+          positionSeconds,
+          durationSeconds,
+        );
+        const localUsable = localPosition > 0;
+
+        // A 0/near-end server marker is not allowed to erase a useful crash
+        // journal from another device. Among two usable positions the freshest
+        // observation wins; neither source grants watch credit by itself.
+        const localWins =
+          localUsable &&
+          (!serverUsable || localUpdatedAt > serverUpdatedAt);
+
+        if (
+          localUsable &&
+          serverUsable &&
+          Math.abs(localPosition - positionSeconds) >= 15
+        ) {
+          trackPlayerEvent('player_resume_conflict', {
+            localSeconds: localPosition,
+            serverSeconds: positionSeconds,
+            deltaSeconds: Math.abs(localPosition - positionSeconds),
+            selected: localWins ? 'local' : 'server',
+            localAgeMs: Math.max(0, Date.now() - localUpdatedAt),
+            serverAgeMs: Math.max(0, Date.now() - serverUpdatedAt),
+          });
+        }
+
+        if (localWins) {
           if (
             localProgress &&
             localProgress.viewerKey === 'guest' &&
@@ -1355,23 +1441,15 @@ export default function AnimePlayer({
             );
             removeWatchProgress(animeId, episodeNumber, null);
           }
+
+          applyResumeTarget(
+            localPosition,
+            serverUsable ? 'local_newer' : 'local',
+          );
           return;
         }
 
-        if (payload.state.completed) {
-          removeWatchProgress(animeId, episodeNumber, user.id);
-          removeWatchProgress(animeId, episodeNumber, null);
-          applyResumeTarget(0);
-          return;
-        }
-
-        const positionSeconds = Math.floor(payload.state.positionMs / 1000);
-        const durationSeconds =
-          payload.state.durationMs == null
-            ? 0
-            : Math.floor(payload.state.durationMs / 1000);
-
-        if (!isUsableResumePosition(positionSeconds, durationSeconds)) {
+        if (!serverUsable) {
           removeWatchProgress(animeId, episodeNumber, user.id);
           removeWatchProgress(animeId, episodeNumber, null);
           applyResumeTarget(0);
@@ -1382,7 +1460,7 @@ export default function AnimePlayer({
         // crash journal will be written again as soon as playback advances.
         removeWatchProgress(animeId, episodeNumber, user.id);
         removeWatchProgress(animeId, episodeNumber, null);
-        applyResumeTarget(positionSeconds);
+        applyResumeTarget(positionSeconds, 'server');
       })
       .catch(() => undefined);
 
@@ -1396,6 +1474,7 @@ export default function AnimePlayer({
     episodeNumber,
     user?.id,
     watchTogetherMode,
+    trackPlayerEvent,
   ]);
 
   useEffect(() => {
@@ -1726,7 +1805,10 @@ export default function AnimePlayer({
     if (!fallback) return false;
 
     if (started && latestPlaybackPositionSecondsRef.current > 0) {
-      applyResumeTarget(latestPlaybackPositionSecondsRef.current);
+      applyResumeTarget(
+        latestPlaybackPositionSecondsRef.current,
+        'source_switch',
+      );
     }
 
     const from = currentSourceName;
@@ -1738,6 +1820,15 @@ export default function AnimePlayer({
       reason: 'source_failure',
       automatic: true,
     }, true);
+    trackPlayerEvent('player_source_fallback', {
+      fromProvider: from,
+      toProvider: to,
+      resumeSeconds: Math.max(
+        0,
+        Math.floor(latestPlaybackPositionSecondsRef.current),
+      ),
+      failedCandidates: failedCandidatesRef.current.size,
+    }, true);
 
     sourceSelectionReasonRef.current = 'fallback';
     setActiveSourceIndex(fallback.sourceIndex);
@@ -1748,7 +1839,11 @@ export default function AnimePlayer({
     setPlayerFailureKind(null);
     setPlayerAttempt((current) => current + 1);
     setSourceStatus(fallback.source.name, 'loading');
-    setSourceNotice(`${failureMessage} Переключили ${from} → ${to}.`);
+    setSourceNotice(
+      latestPlaybackPositionSecondsRef.current > 0
+        ? `${failureMessage} Переключаем ${from} → ${to}. Позиция просмотра сохранена.`
+        : `${failureMessage} Переключаем ${from} → ${to}.`,
+    );
 
     return true;
   }, [
@@ -1804,6 +1899,11 @@ export default function AnimePlayer({
 
     if (switchToFallback(reason)) return;
 
+    trackPlayerEvent('player_source_exhausted', {
+      failureKind: kind,
+      failedCandidates: failedCandidatesRef.current.size,
+      availableSources: sources.length,
+    }, true);
     setPlayerFailureKind(kind);
     setPlayerError(message);
   }, [
@@ -1813,13 +1913,26 @@ export default function AnimePlayer({
     currentSourceName,
     currentSourceType,
     setSourceStatus,
+    sources.length,
     switchToFallback,
     trackPlayerEvent,
   ]);
 
   const retryCurrentSource = useCallback(() => {
+    trackPlayerEvent('player_retry', {
+      provider: currentSourceName,
+      failureKind: playerFailureKind,
+      resumeSeconds: Math.max(
+        0,
+        Math.floor(latestPlaybackPositionSecondsRef.current),
+      ),
+    }, true);
+
     if (started && latestPlaybackPositionSecondsRef.current > 0) {
-      applyResumeTarget(latestPlaybackPositionSecondsRef.current);
+      applyResumeTarget(
+        latestPlaybackPositionSecondsRef.current,
+        'source_switch',
+      );
     }
     failedCandidatesRef.current.delete(currentCandidateKey);
     sourceSelectionReasonRef.current = 'retry';
@@ -1834,8 +1947,11 @@ export default function AnimePlayer({
     applyResumeTarget,
     currentCandidateKey,
     currentSource?.name,
+    currentSourceName,
+    playerFailureKind,
     setSourceStatus,
     started,
+    trackPlayerEvent,
   ]);
 
   useEffect(() => {
@@ -2463,7 +2579,11 @@ export default function AnimePlayer({
                 </h2>
                 <p className="mt-2 text-xs font-semibold text-white/55 sm:text-sm">
                   {resumeSeconds > 0
-                    ? `с ${Math.floor(resumeSeconds / 60)}:${String(resumeSeconds % 60).padStart(2, '0')} · ${currentTranslation?.title || sourceLabel(currentSource?.name)}`
+                    ? `${resumeOrigin === 'server'
+                        ? 'с другого устройства · '
+                        : resumeOrigin === 'local_newer'
+                          ? 'после последнего просмотра · '
+                          : ''}с ${Math.floor(resumeSeconds / 60)}:${String(resumeSeconds % 60).padStart(2, '0')} · ${currentTranslation?.title || sourceLabel(currentSource?.name)}`
                     : currentTranslation?.title || sourceLabel(currentSource?.name)}
                 </p>
               </div>

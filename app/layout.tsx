@@ -80,6 +80,7 @@ import './patch17-3-personalization.css';
 import './patch17-4-service-experience.css';
 import './patch17-4-2-ui-precision.css';
 import './patch17-4-2-2-public-profile-grid.css';
+import './patch17-6-watch-platform.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';

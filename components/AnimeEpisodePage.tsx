@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import EpisodeComments from '@/components/EpisodeComments';
@@ -27,7 +27,12 @@ import EpisodeCompletion from '@/components/EpisodeCompletion';
 import AnimePlayer, { PlayerSource } from '@/components/AnimePlayer';
 import WatchPartyPanel from '@/components/watch-party/WatchPartyPanel';
 import theaterStyles from '@/components/watch-party/WatchTogetherTheater.module.css';
-import { WATCH_PARTY_EXIT_EVENT } from '@/lib/watch-party';
+import {
+  WATCH_PARTY_EPISODE_CHANGE_EVENT,
+  WATCH_PARTY_EXIT_EVENT,
+  type WatchPartyEpisodeChangeDetail,
+} from '@/lib/watch-party';
+import { trackProductClientEvent } from '@/lib/product-events-client';
 import AnimeImage from '@/components/AnimeImage';
 import EpisodeList from '@/components/EpisodeList';
 import type { EpisodeSeasonTab, EpisodeSeasonsResponse } from '@/types/episode-seasons';
@@ -689,6 +694,17 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
   const waitingForSources = loadingSources || sourceIdentity !== expectedSourceIdentity;
 
   useEffect(() => {
+    const knownCurrentEpisodes =
+      availableEpisodes ??
+      seasonRoute.current?.episodes.length ??
+      0;
+
+    if (knownCurrentEpisodes > 0 && episodeNumber < knownCurrentEpisodes) {
+      router.prefetch(
+        `/anime/${animeIdParam}/episode/${episodeNumber + 1}`,
+      );
+    }
+
     if (seasonRoute.next?.slug && seasonRoute.next.episodes.length > 0) {
       router.prefetch(`/anime/${seasonRoute.next.slug}/episode/1`);
     }
@@ -699,7 +715,15 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         `/anime/${seasonRoute.previous.slug}/episode/${previousLastEpisode}`,
       );
     }
-  }, [router, seasonRoute.next, seasonRoute.previous]);
+  }, [
+    animeIdParam,
+    availableEpisodes,
+    episodeNumber,
+    router,
+    seasonRoute.current?.episodes.length,
+    seasonRoute.next,
+    seasonRoute.previous,
+  ]);
 
   const currentSeasonEpisodes =
     episodeAvailability?.status === 'available'
@@ -729,7 +753,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     (currentSeasonEpisodes > 0 && episodeNumber < currentSeasonEpisodes) ||
     Boolean(seasonRoute.next && nextSeasonFirstEpisode);
 
-  const navigateToEpisode = (slug: string, number: number) => {
+  const navigateToEpisode = useCallback((slug: string, number: number) => {
     if (!theaterMode) {
       router.push(`/anime/${slug}/episode/${number}`, { scroll: false });
       return;
@@ -746,7 +770,47 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     next.hash = current.hash;
 
     router.push(`${next.pathname}${next.search}${next.hash}`, { scroll: false });
-  };
+  }, [router, theaterMode]);
+
+  useEffect(() => {
+    if (!theaterMode) return;
+
+    const onEpisodeChange = (event: Event) => {
+      const detail = (
+        event as CustomEvent<WatchPartyEpisodeChangeDetail>
+      ).detail;
+
+      if (
+        !detail ||
+        !detail.animeSlug ||
+        !Number.isSafeInteger(detail.episode) ||
+        detail.episode < 1 ||
+        (detail.animeSlug === animeIdParam &&
+          detail.episode === episodeNumber)
+      ) {
+        return;
+      }
+
+      navigateToEpisode(detail.animeSlug, detail.episode);
+    };
+
+    window.addEventListener(
+      WATCH_PARTY_EPISODE_CHANGE_EVENT,
+      onEpisodeChange,
+    );
+
+    return () => {
+      window.removeEventListener(
+        WATCH_PARTY_EPISODE_CHANGE_EVENT,
+        onEpisodeChange,
+      );
+    };
+  }, [
+    animeIdParam,
+    episodeNumber,
+    navigateToEpisode,
+    theaterMode,
+  ]);
 
   const goToEpisode = (number: number) => {
     navigateToEpisode(animeIdParam, number);
@@ -765,11 +829,40 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
   const goToNext = () => {
     if (currentSeasonEpisodes > 0 && episodeNumber < currentSeasonEpisodes) {
+      trackProductClientEvent('player_next_episode', {
+        source: theaterMode ? 'watch_together' : 'player',
+        path: window.location.pathname,
+        entityType: 'episode',
+        entityId: `${anime.id}:${episodeNumber}`,
+        metadata: {
+          anime_id: anime.id,
+          from_episode: episodeNumber,
+          to_episode: episodeNumber + 1,
+          transition: 'episode',
+          watch_together: theaterMode,
+        },
+        flush: true,
+      });
       goToEpisode(episodeNumber + 1);
       return;
     }
 
     if (seasonRoute.next && nextSeasonFirstEpisode) {
+      trackProductClientEvent('player_next_season', {
+        source: theaterMode ? 'watch_together' : 'player',
+        path: window.location.pathname,
+        entityType: 'episode',
+        entityId: `${anime.id}:${episodeNumber}`,
+        metadata: {
+          anime_id: anime.id,
+          from_episode: episodeNumber,
+          next_slug: seasonRoute.next.slug,
+          to_episode: 1,
+          transition: 'season',
+          watch_together: theaterMode,
+        },
+        flush: true,
+      });
       navigateToEpisode(seasonRoute.next.slug, 1);
     }
   };

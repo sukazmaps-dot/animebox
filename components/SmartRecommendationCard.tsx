@@ -362,7 +362,9 @@ export default function SmartRecommendationCard({
 
           <button
             type="button"
-            className={liked ? 'smart-card__feedback is-active' : 'smart-card__feedback'}
+            className={liked
+              ? 'smart-card__feedback smart-card__feedback--like is-active'
+              : 'smart-card__feedback smart-card__feedback--like'}
             onClick={likeMore}
             aria-pressed={liked}
             aria-label={`Хочу больше похожего на ${title}`}
@@ -373,7 +375,7 @@ export default function SmartRecommendationCard({
 
           <button
             type="button"
-            className="smart-card__feedback"
+            className="smart-card__feedback smart-card__feedback--watched"
             onClick={markWatched}
             aria-label={`Я уже смотрел ${title}`}
             title="Уже смотрел"
@@ -383,7 +385,7 @@ export default function SmartRecommendationCard({
 
           <button
             type="button"
-            className="smart-card__dismiss"
+            className="smart-card__dismiss smart-card__feedback--dismiss"
             onClick={dismiss}
             aria-label={`Не рекомендовать ${title}`}
             title="Не интересно"
