@@ -48,6 +48,7 @@ export function buildRecommendationRails(
   options: {
     mood: TasteMood;
     hasWatchHistory: boolean;
+    hasMore: boolean;
   },
 ): RecommendationRail[] {
   if (!recommendations.length) return [];
@@ -139,14 +140,16 @@ export function buildRecommendationRails(
     (item) => !used.has(item.anime.id),
   );
 
-  rails.push({
-    id: 'endless',
-    title: 'Ещё для тебя',
-    subtitle:
-      'Продолжай листать — AnimeBox догружает новые кандидаты и пересобирает выдачу под твой вкус.',
-    source: 'smart_feed_endless',
-    items: endlessItems,
-  });
+  if (endlessItems.length > 0 || options.hasMore) {
+    rails.push({
+      id: 'endless',
+      title: 'Ещё для тебя',
+      subtitle:
+        'Продолжай листать — AnimeBox догружает новые кандидаты и пересобирает выдачу под твой вкус.',
+      source: 'smart_feed_endless',
+      items: endlessItems,
+    });
+  }
 
   return rails;
 }
