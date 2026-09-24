@@ -454,6 +454,22 @@ export default function EpisodeComments({
     };
   }, [loadComments]);
 
+  useEffect(() => {
+    if (!comments.length || !window.location.hash.startsWith('#comment-')) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const target = document.querySelector(window.location.hash);
+      target?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [comments]);
+
   async function submit(
     event: FormEvent<HTMLFormElement>,
   ) {
