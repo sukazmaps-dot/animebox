@@ -9,6 +9,7 @@ import {
 } from '@/lib/notifications-server';
 
 import { isCronAuthorized } from '@/lib/server-request-auth';
+import { createSystemJobObserver } from '@/lib/system-observability-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -109,7 +110,10 @@ type WorkerStats = {
   durationMs?: number;
 };
 
-async function successResponse(stats: WorkerStats) {
+async function successResponse(
+  stats: WorkerStats,
+  observer: ReturnType<typeof createSystemJobObserver>,
+) {
   await recordNotificationServiceHealth({
     status:
       (stats.failed ?? 0) > 0 || (stats.availabilityUnknown ?? 0) > 0
@@ -125,6 +129,12 @@ async function successResponse(stats: WorkerStats) {
     availabilityUnknown: stats.availabilityUnknown,
     durationMs: stats.durationMs,
   });
+
+  if ((stats.failed ?? 0) > 0 || (stats.availabilityUnknown ?? 0) > 0) {
+    await observer.degraded('notification_delivery_degraded', stats);
+  } else {
+    await observer.success(stats);
+  }
 
   return Response.json(stats, {
     headers: { 'Cache-Control': 'no-store' },
@@ -208,6 +218,7 @@ export async function POST(request: Request) {
   }
 
   const startedAt = Date.now();
+  const observer = createSystemJobObserver('episode-notifications');
   const admin = createSupabaseAdmin();
   const nowSeconds = Math.floor(Date.now() / 1000);
 
@@ -223,7 +234,7 @@ export async function POST(request: Request) {
         failed: 0,
         skipped: 0,
         durationMs: Date.now() - startedAt,
-      });
+      }, observer);
     }
 
     const animeIds = [...new Set(airingItems.map((item) => item.media!.id))];
@@ -247,7 +258,7 @@ export async function POST(request: Request) {
         failed: 0,
         skipped: 0,
         durationMs: Date.now() - startedAt,
-      });
+      }, observer);
     }
 
     const userIds = [...new Set(subscriptions.map((item) => item.user_id))];
@@ -517,8 +528,9 @@ export async function POST(request: Request) {
       waitingForPlayer,
       availabilityUnknown,
       durationMs: Date.now() - startedAt,
-    });
+    }, observer);
   } catch (error) {
+    await observer.failed(error, { durationMs: Date.now() - startedAt });
     console.error('[Episode notifications] cron failed:', error);
 
     await recordNotificationServiceHealth({
