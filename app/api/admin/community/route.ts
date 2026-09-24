@@ -83,11 +83,17 @@ export async function GET() {
     const admin = adminClient();
     const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
 
-    const [settings, reports, controls, messagesToday] = await Promise.all([
+    const [settings, reports, commentReports, controls, messagesToday] = await Promise.all([
       admin.from('chat_settings').select('slow_mode_seconds,pinned_message_id,updated_at').eq('id', 1).maybeSingle(),
       admin
         .from('chat_reports')
         .select('id,message_id,reporter_id,reason,details,status,created_at')
+        .eq('status', 'open')
+        .order('created_at', { ascending: true })
+        .limit(100),
+      admin
+        .from('comment_reports')
+        .select('id,comment_id,reporter_id,reason,details,status,created_at')
         .eq('status', 'open')
         .order('created_at', { ascending: true })
         .limit(100),
@@ -102,6 +108,7 @@ export async function GET() {
 
     if (settings.error) throw settings.error;
     if (reports.error) throw reports.error;
+    if (commentReports.error) throw commentReports.error;
     if (controls.error) throw controls.error;
     if (messagesToday.error) throw messagesToday.error;
 
@@ -111,11 +118,22 @@ export async function GET() {
       : { data: [], error: null };
     if (reportMessages.error) throw reportMessages.error;
 
+    const reportCommentIds = [...new Set((commentReports.data ?? []).map((item) => item.comment_id))];
+    const reportComments = reportCommentIds.length
+      ? await admin
+          .from('comments')
+          .select('id,user_id,body,deleted_at,anime_id,episode_number')
+          .in('id', reportCommentIds)
+      : { data: [], error: null };
+    if (reportComments.error) throw reportComments.error;
+
     const userIds = [...new Set([
       ...(reports.data ?? []).map((item) => item.reporter_id),
       ...(reportMessages.data ?? []).map((item) => item.user_id),
+      ...(commentReports.data ?? []).map((item) => item.reporter_id),
+      ...(reportComments.data ?? []).map((item) => item.user_id),
       ...(controls.data ?? []).map((item) => item.user_id),
-    ])];
+    ].filter((id): id is string => typeof id === 'string' && Boolean(id)))];
     const profiles = userIds.length
       ? await admin.from('profiles').select('id,username').in('id', userIds)
       : { data: [], error: null };
@@ -123,8 +141,17 @@ export async function GET() {
 
     const profileRows = (profiles.data ?? []) as Array<{ id: string; username: string | null }>;
     const messageRows = (reportMessages.data ?? []) as Array<{ id: string; user_id: string; body: string; deleted_at: string | null }>;
+    const commentRows = (reportComments.data ?? []) as Array<{
+      id: string;
+      user_id: string | null;
+      body: string;
+      deleted_at: string | null;
+      anime_id: number;
+      episode_number: number | null;
+    }>;
     const profileById = new Map<string, string>(profileRows.map((item) => [item.id, item.username?.trim() || 'Пользователь']));
     const messageById = new Map<string, { id: string; user_id: string; body: string; deleted_at: string | null }>(messageRows.map((item) => [item.id, item]));
+    const commentById = new Map(commentRows.map((item) => [item.id, item]));
 
     const recentRows = await admin
       .from('chat_messages')
@@ -138,7 +165,9 @@ export async function GET() {
       metrics: {
         messages24h: messagesToday.count ?? 0,
         activeChatters24h: new Set((recentRows.data ?? []).map((item) => item.user_id)).size,
-        openReports: reports.data?.length ?? 0,
+        openReports:
+          (reports.data?.length ?? 0) +
+          (commentReports.data?.length ?? 0),
         restrictedUsers: controls.data?.length ?? 0,
       },
       settings: {
@@ -154,6 +183,21 @@ export async function GET() {
           authorId: message?.user_id ?? null,
           authorUsername: message?.user_id ? profileById.get(message.user_id) ?? 'Пользователь' : 'Пользователь',
           reporterUsername: profileById.get(item.reporter_id) ?? 'Пользователь',
+        };
+      }),
+      commentReports: (commentReports.data ?? []).map((item) => {
+        const comment = commentById.get(item.comment_id);
+        return {
+          ...item,
+          commentBody: comment?.body ?? 'Комментарий недоступен.',
+          authorId: comment?.user_id ?? null,
+          authorUsername: comment?.user_id
+            ? profileById.get(comment.user_id) ?? 'Пользователь'
+            : 'Пользователь',
+          reporterUsername:
+            profileById.get(item.reporter_id) ?? 'Пользователь',
+          animeId: comment?.anime_id ?? null,
+          episode: comment?.episode_number ?? null,
         };
       }),
       controls: (controls.data ?? []).map((item) => ({
@@ -254,6 +298,96 @@ export async function POST(request: Request) {
       } else {
         await restrictUser({ targetId, status: 'active', note, actorId: user.id, actorRole: role });
       }
+      return response({ ok: true });
+    }
+
+    if (action === 'delete_comment') {
+      const commentId = String(body.commentId ?? '');
+      if (!UUID.test(commentId)) {
+        throw new ApiError(400, 'Некорректный комментарий.');
+      }
+
+      const existing = await admin
+        .from('comments')
+        .select('id,user_id,deleted_at')
+        .eq('id', commentId)
+        .maybeSingle();
+
+      if (existing.error) throw existing.error;
+      if (!existing.data) throw new ApiError(404, 'Комментарий не найден.');
+
+      if (existing.data.user_id) {
+        assertCanModerateTarget(user.id, role, existing.data.user_id);
+      }
+
+      if (!existing.data.deleted_at) {
+        const update = await admin
+          .from('comments')
+          .update({
+            body: 'Комментарий удалён.',
+            is_spoiler: false,
+            deleted_at: new Date().toISOString(),
+          })
+          .eq('id', commentId);
+
+        if (update.error) throw update.error;
+      }
+
+      await admin
+        .from('comment_reports')
+        .update({
+          status: 'actioned',
+          resolved_at: new Date().toISOString(),
+          resolved_by: user.id,
+        })
+        .eq('comment_id', commentId)
+        .eq('status', 'open');
+
+      await writeAdminAudit({
+        actorId: user.id,
+        actorRole: role,
+        action: 'comment_delete',
+        targetType: 'comment',
+        targetId: commentId,
+        details: { authorId: existing.data.user_id },
+      });
+
+      return response({ ok: true });
+    }
+
+    if (action === 'resolve_comment_report') {
+      const reportId = String(body.reportId ?? '');
+      const status =
+        body.status === 'actioned'
+          ? 'actioned'
+          : body.status === 'dismissed'
+            ? 'dismissed'
+            : null;
+
+      if (!UUID.test(reportId) || !status) {
+        throw new ApiError(400, 'Некорректная жалоба.');
+      }
+
+      const update = await admin
+        .from('comment_reports')
+        .update({
+          status,
+          resolved_at: new Date().toISOString(),
+          resolved_by: user.id,
+        })
+        .eq('id', reportId)
+        .eq('status', 'open');
+
+      if (update.error) throw update.error;
+
+      await writeAdminAudit({
+        actorId: user.id,
+        actorRole: role,
+        action: `comment_report_${status}`,
+        targetType: 'comment_report',
+        targetId: reportId,
+      });
+
       return response({ ok: true });
     }
 
