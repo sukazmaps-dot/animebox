@@ -60,8 +60,8 @@ if (
 }
 
 if (
-  !hub.includes('const ROOM_REFRESH_VISIBLE_MS = 12_000') ||
-  !hub.includes('const ROOM_REFRESH_MIN_GAP_MS = 3_000') ||
+  !hub.includes('const ROOM_REFRESH_VISIBLE_MS = 20_000') ||
+  !hub.includes('const ROOM_REFRESH_MIN_GAP_MS = 4_000') ||
   !hub.includes("cache: 'no-store'")
 ) {
   failures.push('public room lobby refresh is not presence-oriented');
