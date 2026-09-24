@@ -17,8 +17,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import GoogleAuthButton from '@/components/GoogleAuthButton';
 import TelegramAuthButton from '@/components/TelegramAuthButton';
 import { useAuthState } from '@/components/AuthStateProvider';
-import { createClient } from '@/lib/supabase/client';
 import { trackProductClientEvent } from '@/lib/product-events-client';
+import { emailAuthRequest } from '@/lib/email-auth-client';
+import { usernamePolicyError } from '@/lib/auth-identity-policy';
 import { markTelegramWelcomePending } from '@/lib/telegram-growth-client';
 
 type AuthMode = 'login' | 'register';
@@ -104,14 +105,6 @@ function sourceLabel(intent: AuthIntent) {
     default:
       return 'сохранить прогресс и персональные рекомендации';
   }
-}
-
-function isDuplicateEmailError(code?: string, message?: string) {
-  return (
-    code === 'user_already_exists' ||
-    code === 'email_exists' ||
-    /already registered|already exists|already been registered/i.test(message ?? '')
-  );
 }
 
 export function AuthModalProvider({ children }: { children: ReactNode }) {
@@ -336,13 +329,14 @@ function AuthModal({
       setError('Введите корректный email.');
       return;
     }
-    if (!password || (state.mode === 'register' && password.length < 6)) {
-      setError(state.mode === 'register' ? 'Пароль должен содержать минимум 6 символов.' : 'Введите пароль.');
+    if (!password || (state.mode === 'register' && password.length < 8)) {
+      setError(state.mode === 'register' ? 'Пароль должен содержать минимум 8 символов.' : 'Введите пароль.');
       return;
     }
     if (state.mode === 'register') {
-      if (cleanUsername.length < 3 || cleanUsername.length > 24) {
-        setError('Ник должен содержать от 3 до 24 символов.');
+      const usernameError = usernamePolicyError(cleanUsername);
+      if (usernameError) {
+        setError(usernameError);
         return;
       }
       if (password !== confirmPassword) {
@@ -353,42 +347,35 @@ function AuthModal({
 
     setLoading(true);
     try {
-      const supabase = createClient();
       if (state.mode === 'login') {
-        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        await emailAuthRequest({
+          mode: 'login',
           email: cleanEmail,
           password,
         });
-        if (signInError || !data.session) throw signInError ?? new Error('session_missing');
         await completeAuth();
         return;
       }
 
-      const { data, error: signupError } = await supabase.auth.signUp({
+      const result = await emailAuthRequest({
+        mode: 'register',
         email: cleanEmail,
         password,
-        options: { data: { username: cleanUsername } },
+        username: cleanUsername,
       });
-      if (signupError) {
-        if (isDuplicateEmailError(signupError.code, signupError.message)) {
-          throw new Error('Эта почта уже используется.');
-        }
-        throw signupError;
+
+      if (result.needsEmailConfirmation) {
+        setMessage('Аккаунт создан. Подтверди email по письму, затем войди в AnimeBox.');
+        return;
       }
 
-      if (data.session) {
-        markTelegramWelcomePending(data.session.user.id, 'email');
-        await completeAuth();
-      } else {
-        setMessage('Аккаунт создан. Подтверди email по письму, затем войди в AnimeBox.');
+      if (result.userId) {
+        markTelegramWelcomePending(result.userId, 'email');
       }
+      await completeAuth();
     } catch (submitError) {
       const raw = submitError instanceof Error ? submitError.message : '';
-      setError(
-        raw === 'Invalid login credentials' || raw === 'session_missing'
-          ? 'Неверный email или пароль.'
-          : raw || 'Не удалось выполнить вход. Попробуй ещё раз.',
-      );
+      setError(raw || 'Не удалось выполнить вход. Попробуй ещё раз.');
     } finally {
       setLoading(false);
     }
