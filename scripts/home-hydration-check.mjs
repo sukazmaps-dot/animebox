@@ -19,10 +19,13 @@ if (!progressBlock.includes('if (!hydrated) return {};')) {
   failures.push('Home progress must not read localStorage during SSR/first hydration pass.');
 }
 
+const guardIndex = progressBlock.indexOf('if (!hydrated) return {};');
+const progressReadIndex = progressBlock.indexOf('return readAnimeProgressMap();');
+
 if (
-  progressBlock.includes('readAnimeProgressMap()') &&
-  progressBlock.indexOf('readAnimeProgressMap()') <
-    progressBlock.indexOf('if (!hydrated) return {};')
+  guardIndex < 0 ||
+  progressReadIndex < 0 ||
+  progressReadIndex < guardIndex
 ) {
   failures.push('readAnimeProgressMap() runs before the hydration guard.');
 }
