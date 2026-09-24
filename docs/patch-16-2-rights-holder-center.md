@@ -43,7 +43,7 @@ A restricted provider cannot simply reappear because a provider lookup found it 
 
 ## Deployment notes
 
-Apply the Supabase migration \`20260924080000_copyright_rights_holder_center_v1.sql\` before relying on the public form or admin center in production.
+Apply the Supabase migration \`20260924083240_copyright_rights_holder_center_v1.sql\` before relying on the public form or admin center in production.
 
 Restriction lookups intentionally fail open while the migration is absent so a partial deploy cannot take playback down platform-wide.
 
