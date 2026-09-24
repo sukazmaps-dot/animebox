@@ -235,16 +235,16 @@ export default function ProfileWidgetEditor({
   const editor = (
         <div
           className={embedded ? 'profile-widgets-editor profile-widgets-editor--embedded' : 'profile-widgets-editor'}
-          role="presentation"
-          data-mobile-nav-lock="true"
+          role={embedded ? undefined : 'presentation'}
+          data-mobile-nav-lock={embedded ? undefined : 'true'}
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !saving) setOpen(false);
+            if (!embedded && event.target === event.currentTarget && !saving) setOpen(false);
           }}
         >
           <section
             className="profile-widgets-editor__dialog"
-            role="dialog"
-            aria-modal="true"
+            role={embedded ? 'region' : 'dialog'}
+            aria-modal={embedded ? undefined : true}
             aria-labelledby="profile-widgets-editor-title"
           >
             <div className="profile-widgets-editor__top">
