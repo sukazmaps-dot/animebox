@@ -6,6 +6,7 @@ import { cleanupWatchPartyRooms } from '@/lib/watch-party-rooms-server';
 import { cleanupApiRateBuckets } from '@/lib/api-rate-limit';
 
 import { isCronAuthorized } from '@/lib/server-request-auth';
+import { createSystemJobObserver } from '@/lib/system-observability-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,8 @@ export async function GET(request: Request) {
   if (!isCronAuthorized(request)) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
   }
+
+  const observer = createSystemJobObserver('premium-lifecycle');
 
   try {
     const url = new URL(request.url);
@@ -34,8 +37,22 @@ export async function GET(request: Request) {
       console.error('[Leaderboard seasons piggyback cron]', error);
       return [];
     });
+    const summary = {
+      ...result,
+      leaderboardSeasons: seasons.length,
+      roomsCleaned,
+      rateBucketsCleaned,
+    };
+
+    if (!roomsCleaned || !rateBucketsCleaned) {
+      await observer.degraded('maintenance_cleanup_partial', summary);
+    } else {
+      await observer.success(summary);
+    }
+
     return NextResponse.json({ ok: true, ...result, leaderboardSeasons: seasons, roomsCleaned, rateBucketsCleaned });
   } catch (error) {
+    await observer.failed(error);
     console.error('[Premium lifecycle cron]', error);
     return NextResponse.json(
       {

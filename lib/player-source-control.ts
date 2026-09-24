@@ -2,6 +2,10 @@ import 'server-only';
 
 import { adminClient } from '@/lib/community-server';
 import { getPlaybackRestriction } from '@/lib/copyright-server';
+import {
+  reportSystemIncident,
+  resolveSystemIncident,
+} from '@/lib/system-observability-server';
 import type {
   PlayerProviderKey,
   PlayerProviderPolicy,
@@ -387,6 +391,10 @@ export async function recordProviderResult(
         });
 
       if (error) throw error;
+
+      if (state === 'healthy') {
+        await resolveSystemIncident(`provider:${provider}`);
+      }
     } else {
       const consecutiveFailures = current.consecutive_failures + 1;
       const unavailable =
@@ -412,6 +420,25 @@ export async function recordProviderResult(
         });
 
       if (error) throw error;
+
+      await reportSystemIncident({
+        fingerprint: `provider:${provider}`,
+        service: 'player-provider',
+        severity: unavailable ? 'critical' : 'warning',
+        title: unavailable
+          ? `${setting.display_name} временно недоступен`
+          : `${setting.display_name} работает нестабильно`,
+        message:
+          result.reason?.trim().slice(0, 500) ||
+          'provider_failure',
+        metadata: {
+          provider,
+          consecutiveFailures,
+          failureThreshold: setting.failure_threshold,
+          latencyMs,
+          cooldownUntil,
+        },
+      });
     }
 
     invalidateProviderControlCache();
