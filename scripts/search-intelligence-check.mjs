@@ -6,6 +6,8 @@ const read = (path) =>
 const smart = read('lib/smart-search.ts');
 const searchServer = read('lib/search-index-server.ts');
 const animeApi = read('app/api/anime/route.ts');
+const discovery = read('lib/smart-discovery.ts');
+const discoveryApi = read('app/api/discovery/route.ts');
 const migration = read(
   'supabase/migrations/20260925030000_search_intelligence_foundation_v1.sql',
 );
@@ -53,6 +55,16 @@ for (const needle of [
   if (!migration.includes(needle)) {
     failures.push(`search migration missing ${needle}`);
   }
+}
+
+if (
+  !discovery.includes('includeTags: string[]') ||
+  !discovery.includes('CONTEXT_TAGS') ||
+  !discovery.includes('anime.description') ||
+  !discoveryApi.includes('searchLocalAnimeIndex') ||
+  !discoveryApi.includes('primaryTag')
+) {
+  failures.push('contextual discovery retrieval is incomplete');
 }
 
 if (failures.length) {

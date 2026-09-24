@@ -12,6 +12,7 @@ export type SmartDiscoveryIntent = {
   isDiscovery: boolean;
   similarTo: string | null;
   includeGenres: string[];
+  includeTags: string[];
   excludeTerms: string[];
   maxEpisodes: number | null;
   minEpisodes: number | null;
@@ -47,6 +48,39 @@ const GENRES: GenreDefinition[] = [
   { label: 'Меха', provider: 'Mecha', aliases: ['меха', 'mecha'] },
   { label: 'Эччи', provider: 'Ecchi', aliases: ['эччи', 'ecchi'] },
 ];
+
+const CONTEXT_TAGS: Array<{
+  label: string;
+  provider: string;
+  aliases: string[];
+}> = [
+  { label: 'Медицина', provider: 'Medicine', aliases: ['аптекар', 'лекар', 'медицин', 'врач', 'medicine', 'pharmac'] },
+  { label: 'Эльфы', provider: 'Elf', aliases: ['эльф', 'elf'] },
+  { label: 'Путешествие', provider: 'Travel', aliases: ['путешеств', 'странств', 'travel', 'journey'] },
+  { label: 'Реинкарнация', provider: 'Reincarnation', aliases: ['перерод', 'реинкарнац', 'reincarnat'] },
+  { label: 'Исекай', provider: 'Isekai', aliases: ['другой мир', 'исекай', 'isekai'] },
+  { label: 'Школа', provider: 'School', aliases: ['школ', 'school', 'академи'] },
+  { label: 'Магия', provider: 'Magic', aliases: ['маг', 'magic', 'волшеб'] },
+  { label: 'Демоны', provider: 'Demons', aliases: ['демон', 'demon'] },
+  { label: 'Вампиры', provider: 'Vampire', aliases: ['вампир', 'vampire'] },
+  { label: 'Еда', provider: 'Food', aliases: ['готов', 'кулинар', 'еда', 'ресторан', 'food', 'cook'] },
+  { label: 'Игры', provider: 'Video Games', aliases: ['видеоигр', 'игровой мир', 'mmorpg', 'video game'] },
+  { label: 'Военное', provider: 'Military', aliases: ['арм', 'военн', 'солдат', 'military'] },
+  { label: 'Политика', provider: 'Politics', aliases: ['двор', 'император', 'королев', 'политик', 'politic', 'royal'] },
+  { label: 'Детектив', provider: 'Detective', aliases: ['расследован', 'детектив', 'detective'] },
+  { label: 'Музыка', provider: 'Music', aliases: ['музык', 'группа', 'айдол', 'music', 'idol'] },
+  { label: 'Самураи', provider: 'Samurai', aliases: ['самура', 'samurai'] },
+  { label: 'История', provider: 'Historical', aliases: ['историч', 'historical'] },
+  { label: 'Время', provider: 'Time Manipulation', aliases: ['путешеств во времени', 'временн петл', 'time travel', 'time loop'] },
+];
+
+function detectContextTags(normalized: string) {
+  return CONTEXT_TAGS
+    .filter(({ aliases }) =>
+      aliases.some((alias) => normalize(normalized).includes(normalize(alias))),
+    )
+    .map(({ provider }) => provider);
+}
 
 const EXCLUSION_ALIASES: Array<{ term: string; aliases: string[] }> = [
   { term: 'harem', aliases: ['гарем', 'гарема', 'harem'] },
@@ -175,6 +209,8 @@ export function parseSmartDiscoveryQuery(raw: string): SmartDiscoveryIntent {
     ...detectMoodGenres(normalized),
   ];
 
+  const includeTags = detectContextTags(normalized);
+
   const excludeTerms = EXCLUSION_ALIASES
     .filter(({ aliases }) => aliases.some((alias) => {
       const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -182,10 +218,13 @@ export function parseSmartDiscoveryQuery(raw: string): SmartDiscoveryIntent {
     }))
     .map(({ term }) => term);
 
-  const discoveryWords = /(?:^|[^\p{L}\p{N}_])(?:посоветуй|подбери|хочу|похож\p{L}*|без|до|короче|длиннее|что-нибудь|что нибудь|something|recommend|similar|после просмотра)(?=$|[^\p{L}\p{N}_])/iu.test(normalized);
+  const discoveryWords = /(?:^|[^\p{L}\p{N}_])(?:посоветуй|подбери|хочу|похож\p{L}*|без|до|короче|длиннее|что-нибудь|что нибудь|something|recommend|similar|после просмотра|про|где|котор\p{L}*)(?=$|[^\p{L}\p{N}_])/iu.test(normalized);
+  const naturalLanguageQuery =
+    normalized.split(/\s+/).filter(Boolean).length >= 4 &&
+    /(?:аниме|про|где|котор\p{L}*|после|девуш|парен|геро|истори)/iu.test(normalized);
   const isDiscovery = Boolean(
-    similarTo || includeGenres.length || excludeTerms.length || maxEpisodes || minEpisodes || minYear ||
-    preferShorter || preferLonger || completedOnly || movieOnly || discoveryWords,
+    similarTo || includeGenres.length || includeTags.length || excludeTerms.length || maxEpisodes || minEpisodes || minYear ||
+    preferShorter || preferLonger || completedOnly || movieOnly || discoveryWords || naturalLanguageQuery,
   );
 
   let freeText = normalized;
@@ -204,6 +243,7 @@ export function parseSmartDiscoveryQuery(raw: string): SmartDiscoveryIntent {
     isDiscovery,
     similarTo,
     includeGenres: [...new Set(includeGenres)],
+    includeTags: [...new Set(includeTags)],
     excludeTerms: [...new Set(excludeTerms)],
     maxEpisodes,
     minEpisodes,
@@ -266,6 +306,7 @@ function textAffinity(anime: Anime, freeText: string) {
     anime.title?.english,
     ...(anime.genres ?? []),
     ...tags,
+    anime.description,
   ].filter(Boolean).join(' '));
   const hits = tokens.filter((token) => haystack.includes(token)).length;
   return hits / tokens.length;
@@ -341,6 +382,7 @@ export function describeSmartDiscoveryIntent(intent: SmartDiscoveryIntent): stri
   const parts: string[] = [];
   if (intent.similarTo) parts.push(`похоже на «${intent.similarTo}»`);
   if (intent.includeGenres.length) parts.push(intent.includeGenres.join(' · '));
+  if (intent.includeTags.length) parts.push(intent.includeTags.slice(0, 3).join(' · '));
   if (intent.maxEpisodes) parts.push(`до ${intent.maxEpisodes} серий`);
   if (intent.minEpisodes) parts.push(`от ${intent.minEpisodes} серий`);
   if (intent.preferShorter) parts.push('короче оригинала');
@@ -361,6 +403,10 @@ export function discoveryConstraintChips(intent: SmartDiscoveryIntent) {
   const chips: Array<{ id: string; label: string }> = [];
   if (intent.similarTo) chips.push({ id: 'similar', label: `Похоже на: ${intent.similarTo}` });
   for (const genre of intent.includeGenres) chips.push({ id: `genre:${genre}`, label: genre });
+  for (const tag of intent.includeTags) {
+    const context = CONTEXT_TAGS.find((item) => item.provider === tag);
+    chips.push({ id: `tag:${tag}`, label: context?.label ?? tag });
+  }
   if (intent.preferShorter) chips.push({ id: 'shorter', label: 'Короче' });
   if (intent.preferLonger) chips.push({ id: 'longer', label: 'Длиннее' });
   if (intent.maxEpisodes) chips.push({ id: 'maxEpisodes', label: `До ${intent.maxEpisodes} серий` });

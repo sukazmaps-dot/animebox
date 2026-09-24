@@ -14,17 +14,23 @@ import {
   rankAnimeForSmartSearch,
 } from '@/lib/smart-search';
 import type { Anime } from '@/types/anime';
+import {
+  hydrateLocalAnimeHits,
+  indexAnimeSearchDocuments,
+  searchLocalAnimeIndex,
+} from '@/lib/search-index-server';
 
 export const runtime = 'nodejs';
 
 const loadCandidates = unstable_cache(
-  async (genre: string | null, page: number) => getAnimesWithShikimori({
+  async (genre: string | null, tag: string | null, page: number) => getAnimesWithShikimori({
     page,
     limit: 50,
     order: page % 2 === 0 ? 'popularity' : 'ranked',
     genre: genre || undefined,
+    tags: tag ? [tag] : undefined,
   }),
-  ['animebox-smart-discovery-v2-candidates'],
+  ['animebox-smart-discovery-v3-candidates'],
   { revalidate: 900 },
 );
 
@@ -154,28 +160,40 @@ export async function GET(request: NextRequest) {
 
     const requestedGenre = intent.includeGenres[0] ?? seed?.genres?.[0] ?? null;
     const primaryGenre = discoveryGenreForProvider(requestedGenre);
+    const primaryTag = intent.includeTags[0] ?? null;
+
+    let localContext: Anime[] = [];
+    try {
+      const localHits = await searchLocalAnimeIndex(
+        intent.freeText || rawQuery,
+        Math.max(10, limit),
+      );
+      localContext = await hydrateLocalAnimeHits(localHits);
+    } catch (localError) {
+      console.warn('[Smart Discovery local corpus]', localError);
+    }
 
     // AniList's recommendation graph + genre/global pools run in parallel.
     // The graph gives "similar to X" semantic quality while global candidates
     // keep the result resilient when that graph or a localized genre fails.
     const firstPools = await Promise.allSettled([
       seed ? loadAniListRecommendations(seed.id) : Promise.resolve([] as Anime[]),
-      loadCandidates(primaryGenre, 1),
-      loadCandidates(null, 1),
+      loadCandidates(primaryGenre, primaryTag, 1),
+      loadCandidates(null, null, 1),
     ]);
 
     const recommended = firstPools[0].status === 'fulfilled' ? firstPools[0].value : [];
     const first = firstPools[1].status === 'fulfilled' ? firstPools[1].value : [];
     const globalFirst = firstPools[2].status === 'fulfilled' ? firstPools[2].value : [];
-    let candidates = mergeUnique(seedCandidates, recommended, first, globalFirst)
+    let candidates = mergeUnique(localContext, seedCandidates, recommended, first, globalFirst)
       .filter((anime) => anime.id !== seed?.id);
 
     // One cached second page is enough for a much healthier pool without
     // turning every keystroke into a burst of upstream traffic.
     if (candidates.length < Math.max(limit * 2, 36)) {
       const secondPools = await Promise.allSettled([
-        loadCandidates(primaryGenre, 2),
-        loadCandidates(null, 2),
+        loadCandidates(primaryGenre, primaryTag, 2),
+        loadCandidates(null, null, 2),
       ]);
       candidates = mergeUnique(
         candidates,
@@ -194,6 +212,8 @@ export async function GET(request: NextRequest) {
       ranked = rankSmartDiscoveryCandidates(candidates, intent, { seed, strict: false });
       relaxed = ranked.length > 0;
     }
+
+    void indexAnimeSearchDocuments(candidates.slice(0, 40)).catch(() => undefined);
 
     return NextResponse.json(
       {
