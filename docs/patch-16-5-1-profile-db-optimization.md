@@ -93,3 +93,19 @@ The optimization reduces network chatter while keeping PostgreSQL work set-orien
 ## UI impact
 
 None. Patch 16.5.1 is an infrastructure/latency patch only.
+
+
+## Production migration
+
+Applied as:
+
+`20260924121513_profile_identity_rpc_optimization_v1`
+
+Post-apply verification confirmed:
+
+- both functions are `SECURITY INVOKER`;
+- both pin `search_path` to an empty value;
+- `profile_identity_bundle` cannot be executed by `anon` or `authenticated`;
+- `save_my_profile_identity` cannot be executed by `anon`;
+- Security Advisor reported no new findings for either RPC;
+- a real existing profile bundle returned the expected layout, watching, genre DNA, activity and rating structures.
