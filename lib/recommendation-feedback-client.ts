@@ -3,7 +3,9 @@
 export type RecommendationFeedbackSignal =
   | 'like_more'
   | 'not_interested'
-  | 'already_watched';
+  | 'already_watched'
+  | 'less_like_this'
+  | 'hidden';
 
 export async function persistRecommendationFeedback(input: {
   animeId: number;
@@ -11,6 +13,12 @@ export async function persistRecommendationFeedback(input: {
   source: string;
   reason?: string | null;
   modelVersion?: string | null;
+  recommendationId?: string | null;
+  recommendationSessionId?: string | null;
+  algorithmVersion?: string | null;
+  rowId?: string | null;
+  position?: number | null;
+  mood?: string | null;
 }): Promise<boolean> {
   try {
     const response = await fetch('/api/recommendations/feedback', {
