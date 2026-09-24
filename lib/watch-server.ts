@@ -1481,7 +1481,7 @@ export async function endWatchSession(input: {
 
   const { data: session, error: sessionReadError } = await watch
     .from('sessions')
-    .select('episode_id')
+    .select('episode_id,ended_at')
     .eq('id', input.sessionId)
     .eq('user_id', input.userId)
     .maybeSingle();
@@ -1495,15 +1495,20 @@ export async function endWatchSession(input: {
 
   if (positionMs != null) payload.last_position_ms = positionMs;
 
-  const { error } = await watch
+  const { data: endedSession, error } = await watch
     .from('sessions')
     .update(payload)
     .eq('id', input.sessionId)
     .eq('user_id', input.userId)
-    .is('ended_at', null);
+    .is('ended_at', null)
+    .select('id')
+    .maybeSingle();
   throwIfError(error);
 
-  if (session?.episode_id && positionMs != null) {
+  // Only the session that successfully transitioned active -> ended may write
+  // its final resume position. A session superseded by a newer device was
+  // already ended by startWatchSession and must never overwrite newer progress.
+  if (endedSession?.id && session?.episode_id && positionMs != null) {
     const { error: progressError } = await watch
       .from('progress')
       .update({
@@ -1516,5 +1521,8 @@ export async function endWatchSession(input: {
     throwIfError(progressError);
   }
 
-  return { ended: true };
+  return {
+    ended: Boolean(endedSession?.id),
+    superseded: Boolean(session?.ended_at && !endedSession?.id),
+  };
 }
