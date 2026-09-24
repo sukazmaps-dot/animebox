@@ -108,11 +108,9 @@ export default async function PublicProfilePage({ params }: Props) {
               />
             </picture>
           ) : (
-            <img
-              src="/brand/profile-banner-default.webp"
-              alt=""
+            <div
+              className="profile-v2__banner-default"
               aria-hidden="true"
-              className="profile-v2__banner-image profile-v2__banner-image--default"
             />
           )}
 
