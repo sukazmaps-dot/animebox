@@ -13,7 +13,9 @@ type SocialNotification = {
     | 'friend_accepted'
     | 'watch_party_invite'
     | 'ranking_overtaken'
-    | 'ranking_entered_top10';
+    | 'ranking_entered_top10'
+    | 'comment_reply'
+    | 'comment_mention';
   createdAt: string;
   readAt: string | null;
   payload: Record<string, unknown>;
@@ -58,6 +60,30 @@ function messageFor(item: SocialNotification) {
         : `${actor} зовёт тебя в совместный просмотр.`,
     };
   }
+  if (item.type === 'comment_reply') {
+    const animeTitle =
+      typeof item.payload.animeTitle === 'string'
+        ? item.payload.animeTitle
+        : 'аниме';
+    const episode = Number(item.payload.episode);
+    return {
+      title: 'Новый ответ',
+      text:
+        Number.isSafeInteger(episode) && episode > 0
+          ? `${actor} ответил тебе в обсуждении «${animeTitle}» · серия ${episode}.`
+          : `${actor} ответил на твой комментарий.`,
+    };
+  }
+  if (item.type === 'comment_mention') {
+    const animeTitle =
+      typeof item.payload.animeTitle === 'string'
+        ? item.payload.animeTitle
+        : 'аниме';
+    return {
+      title: 'Тебя упомянули',
+      text: `${actor} упомянул тебя в обсуждении «${animeTitle}».`,
+    };
+  }
   if (item.type === 'ranking_overtaken') {
     return {
       title: 'Изменение в рейтинге',
@@ -77,6 +103,14 @@ function targetFor(item: SocialNotification) {
     return typeof item.payload.inviteUrl === 'string'
       ? item.payload.inviteUrl
       : '/watch-together';
+  }
+  if (
+    item.type === 'comment_reply' ||
+    item.type === 'comment_mention'
+  ) {
+    return typeof item.payload.href === 'string'
+      ? item.payload.href
+      : '/';
   }
   return '/leaderboard';
 }
@@ -157,7 +191,7 @@ export default function SocialNotificationsClient() {
         <div>
           <span className="text-[9px] font-black tracking-[.14em] text-violet-300">SOCIAL</span>
           <h2 className="mt-1 text-xl font-black text-white">Социальные уведомления</h2>
-          <p className="mt-1 text-xs text-slate-500">Друзья, Watch Together и события рейтинга.</p>
+          <p className="mt-1 text-xs text-slate-500">Друзья, ответы, упоминания, Watch Together и рейтинг.</p>
         </div>
         {unread > 0 && (
           <button
