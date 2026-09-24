@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { buildSupportMailto, SUPPORT_EMAIL } from '@/lib/contact';
+import { BRAND_SLOGAN } from '@/lib/brand';
 import { TELEGRAM_MINI_APP_URL } from '@/lib/telegram-links';
 
 export default function SiteFooter() {
@@ -9,7 +10,7 @@ export default function SiteFooter() {
       <div className="site-footer__inner">
         <div className="site-footer__brand">
           <strong>AnimeBox</strong>
-          <span>Смотри. Отслеживай. Живи.</span>
+          <span>{BRAND_SLOGAN}</span>
         </div>
 
         <nav className="site-footer__links" aria-label="Сервисные ссылки">
