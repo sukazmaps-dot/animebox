@@ -13,6 +13,7 @@ export const dynamic = 'force-dynamic';
 
 const CLIENT_EVENTS = new Set<ProductClientEventName>(PRODUCT_CLIENT_EVENT_NAMES);
 const SAFE_ID = /^[A-Za-z0-9._:-]{8,255}$/;
+const SAFE_VERSION = /^[A-Za-z0-9._:-]{2,80}$/;
 
 function text(value: unknown, max: number) {
   return typeof value === 'string' && value.trim()
@@ -71,15 +72,38 @@ export async function POST(request: Request) {
       const entityId = text(item.entityId, 255);
       const entityType = text(item.entityType, 64);
       const source = text(item.source, 64);
+      const anonymousRaw = text(item.anonymousId, 100);
+      const recommendationRaw = text(item.recommendationId, 120);
+      const recommendationSessionRaw = text(item.recommendationSessionId, 100);
+      const algorithmRaw = text(item.algorithmVersion, 80);
+
+      const anonymousId =
+        anonymousRaw && SAFE_ID.test(anonymousRaw) ? anonymousRaw : null;
+      const recommendationId =
+        recommendationRaw && SAFE_ID.test(recommendationRaw)
+          ? recommendationRaw
+          : null;
+      const recommendationSessionId =
+        recommendationSessionRaw && SAFE_ID.test(recommendationSessionRaw)
+          ? recommendationSessionRaw
+          : null;
+      const algorithmVersion =
+        algorithmRaw && SAFE_VERSION.test(algorithmRaw)
+          ? algorithmRaw
+          : null;
 
       events.push({
         eventName,
         userId,
         sessionId,
+        anonymousId,
         source,
         path: safePath(item.path),
         entityType,
         entityId,
+        recommendationId,
+        recommendationSessionId,
+        algorithmVersion,
         metadata: metadata(item.metadata),
         dedupeKey: `client:${sessionId}:${eventId}`,
       });

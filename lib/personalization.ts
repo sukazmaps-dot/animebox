@@ -3,7 +3,8 @@ import { trackProductClientEvent } from '@/lib/product-events-client';
 
 export const TASTE_PROFILE_STORAGE_KEY = 'animebox_taste_profile_v1';
 export const RECOMMENDATION_EVENTS_STORAGE_KEY = 'animebox_recommendation_events_v1';
-export const RECOMMENDATION_MODEL_VERSION = 'taste-v3-personalized-rails';
+export const RECOMMENDATION_ALGORITHM_VERSION = '17.8-v1';
+export const RECOMMENDATION_MODEL_VERSION = RECOMMENDATION_ALGORITHM_VERSION;
 export const RECOMMENDATION_ATTRIBUTION_PREFIX = 'animebox:recommendation-attribution:v1:';
 
 export type TasteMood = 'any' | 'comfort' | 'tension' | 'emotion' | 'adventure';
@@ -30,8 +31,10 @@ export type RecommendationEvent = {
   id: string;
   type: RecommendationEventType;
   animeId?: number;
+  recommendationId?: string;
   impressionId?: string;
   position?: number;
+  rowId?: string;
   source: string;
   modelVersion: string;
   mood?: TasteMood;
@@ -82,6 +85,15 @@ function makeEventId(): string {
   }
 
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+export function createRecommendationId(animeId: number, source = 'feed'): string {
+  const safeSource = source
+    .replace(/[^A-Za-z0-9._:-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 32) || 'feed';
+
+  return `rec:${animeId}:${safeSource}:${makeEventId()}`;
 }
 
 export function createImpressionId(animeId: number, position: number): string {
@@ -231,8 +243,13 @@ export function trackRecommendationEvent(
         `${RECOMMENDATION_ATTRIBUTION_PREFIX}${event.animeId}`,
         JSON.stringify({
           animeId: event.animeId,
+          recommendationId: event.recommendationId ?? null,
           impressionId: event.impressionId ?? null,
           recommendationSessionId: event.recommendationSessionId ?? null,
+          algorithmVersion: event.modelVersion ?? RECOMMENDATION_ALGORITHM_VERSION,
+          rowId: event.rowId ?? null,
+          position: event.position ?? null,
+          mood: event.mood ?? null,
           source: event.source,
           matchScore: event.matchScore ?? null,
           reason: event.reason ?? null,
@@ -263,19 +280,28 @@ export function trackRecommendationEvent(
   } as const;
 
   if (event.type !== 'dwell' || (event.dwellMs ?? 0) >= 1_500) {
+    const algorithmVersion =
+      event.modelVersion ?? RECOMMENDATION_ALGORITHM_VERSION;
+
     trackProductClientEvent(serverEvent[event.type], {
       source: event.source,
       entityType: event.animeId ? 'anime_id' : 'recommendation_context',
       entityId: event.animeId ? String(event.animeId) : event.mood ?? 'feed',
+      recommendationId: event.recommendationId,
+      recommendationSessionId: event.recommendationSessionId,
+      algorithmVersion,
       metadata: {
+        recommendation_id: event.recommendationId ?? null,
         impression_id: event.impressionId ?? null,
         position: event.position ?? null,
+        row_id: event.rowId ?? null,
         mood: event.mood ?? null,
         recommendation_session_id: event.recommendationSessionId ?? null,
         dwell_ms: event.dwellMs ?? null,
         match_score: event.matchScore ?? null,
         reason: event.reason?.slice(0, 180) ?? null,
-        model_version: event.modelVersion ?? RECOMMENDATION_MODEL_VERSION,
+        model_version: algorithmVersion,
+        algorithm_version: algorithmVersion,
       },
     });
   }

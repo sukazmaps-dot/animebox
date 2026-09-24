@@ -8,10 +8,14 @@ type ClientEvent = {
   eventName: ProductClientEventName;
   eventId: string;
   sessionId: string;
+  anonymousId?: string;
   source?: string;
   path?: string;
   entityType?: string;
   entityId?: string;
+  recommendationId?: string;
+  recommendationSessionId?: string;
+  algorithmVersion?: string;
   metadata?: Record<string, unknown>;
 };
 
@@ -20,6 +24,7 @@ type TrackOptions = Omit<ClientEvent, 'eventName' | 'eventId' | 'sessionId'> & {
 };
 
 const SESSION_KEY = 'animebox:product-session:v1';
+const ANONYMOUS_KEY = 'animebox:anonymous-id:v1';
 const MAX_QUEUE = 50;
 const MAX_BATCH = 20;
 const FLUSH_DELAY_MS = 5_000;
@@ -49,6 +54,18 @@ export function getProductAnalyticsSessionId() {
     return created;
   } catch {
     return randomId();
+  }
+}
+
+export function getProductAnalyticsAnonymousId() {
+  try {
+    const existing = window.localStorage.getItem(ANONYMOUS_KEY)?.trim();
+    if (existing) return existing.slice(0, 100);
+    const created = `anon:${randomId()}`;
+    window.localStorage.setItem(ANONYMOUS_KEY, created);
+    return created;
+  } catch {
+    return `anon:${randomId()}`;
   }
 }
 
@@ -191,6 +208,7 @@ function continueWatchingStartedEvent(options: TrackOptions): ClientEvent | null
       eventName: 'continue_watching_started',
       eventId: randomId(),
       sessionId: getProductAnalyticsSessionId(),
+      anonymousId: getProductAnalyticsAnonymousId(),
       source: 'home_continue',
       path: options.path,
       entityType: 'episode',
@@ -219,8 +237,13 @@ function recommendationStartedEvent(options: TrackOptions): ClientEvent | null {
     const parsed = JSON.parse(raw) as {
       openedAt?: number;
       startedSent?: boolean;
+      recommendationId?: string | null;
       impressionId?: string | null;
       recommendationSessionId?: string | null;
+      algorithmVersion?: string | null;
+      rowId?: string | null;
+      position?: number | null;
+      mood?: string | null;
       source?: string | null;
       matchScore?: number | null;
       reason?: string | null;
@@ -237,13 +260,22 @@ function recommendationStartedEvent(options: TrackOptions): ClientEvent | null {
       eventName: 'recommendation_started',
       eventId: randomId(),
       sessionId: getProductAnalyticsSessionId(),
+      anonymousId: getProductAnalyticsAnonymousId(),
       source: parsed.source || 'recommendation',
       path: options.path,
       entityType: 'anime_id',
       entityId: String(animeId),
+      recommendationId: parsed.recommendationId ?? undefined,
+      recommendationSessionId: parsed.recommendationSessionId ?? undefined,
+      algorithmVersion: parsed.algorithmVersion ?? undefined,
       metadata: {
+        recommendation_id: parsed.recommendationId ?? null,
         impression_id: parsed.impressionId ?? null,
         recommendation_session_id: parsed.recommendationSessionId ?? null,
+        algorithm_version: parsed.algorithmVersion ?? null,
+        row_id: parsed.rowId ?? null,
+        position: parsed.position ?? null,
+        mood: parsed.mood ?? null,
         match_score: parsed.matchScore ?? null,
         reason: parsed.reason?.slice(0, 180) ?? null,
         player_source: options.source ?? null,
@@ -265,8 +297,13 @@ type RecommendationAttributionState = {
   watchedMs?: number;
   lastEpisode?: number | null;
   lastEpisodeActiveMs?: number;
+  recommendationId?: string | null;
   impressionId?: string | null;
   recommendationSessionId?: string | null;
+  algorithmVersion?: string | null;
+  rowId?: string | null;
+  position?: number | null;
+  mood?: string | null;
   source?: string | null;
   matchScore?: number | null;
   reason?: string | null;
@@ -324,11 +361,19 @@ export function trackRecommendationWatchProgress(input: {
       source: parsed.source || 'recommendation',
       entityType: 'anime_id',
       entityId: String(input.animeId),
+      recommendationId: parsed.recommendationId ?? undefined,
+      recommendationSessionId: parsed.recommendationSessionId ?? undefined,
+      algorithmVersion: parsed.algorithmVersion ?? undefined,
       metadata: {
         episode: input.episode,
         watched_ms: watchedMs,
+        recommendation_id: parsed.recommendationId ?? null,
         impression_id: parsed.impressionId ?? null,
         recommendation_session_id: parsed.recommendationSessionId ?? null,
+        algorithm_version: parsed.algorithmVersion ?? null,
+        row_id: parsed.rowId ?? null,
+        position: parsed.position ?? null,
+        mood: parsed.mood ?? null,
         match_score: parsed.matchScore ?? null,
         reason: parsed.reason?.slice(0, 180) ?? null,
       },
@@ -374,6 +419,7 @@ export function trackProductClientEvent(
     eventId: randomId(),
     sessionId: getProductAnalyticsSessionId(),
     ...rest,
+    anonymousId: getProductAnalyticsAnonymousId(),
   });
 
   if (eventName === 'player_started') {
