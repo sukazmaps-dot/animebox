@@ -368,7 +368,7 @@ export default function SmartRecommendationCard({
             aria-label={`Хочу больше похожего на ${title}`}
             title="Больше похожего"
           >
-            <Icon name="heart" size={15} weight={liked ? 'fill' : 'regular'} />
+            <Icon name="heart" size={19} weight={liked ? 'fill' : 'regular'} />
           </button>
 
           <button
@@ -378,7 +378,7 @@ export default function SmartRecommendationCard({
             aria-label={`Я уже смотрел ${title}`}
             title="Уже смотрел"
           >
-            <Icon name="check" size={15} weight="bold" />
+            <Icon name="check" size={19} weight="bold" />
           </button>
 
           <button
