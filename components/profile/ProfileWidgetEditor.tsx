@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { communityRequest } from '@/lib/community-client';
 import { getAnimes, isAbortError } from '@/lib/anime-client';
@@ -68,6 +69,28 @@ export default function ProfileWidgetEditor({
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    if (!open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.dataset.profileWidgetsEditorOpen = 'true';
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !saving) {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      delete document.documentElement.dataset.profileWidgetsEditorOpen;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open, saving]);
 
   useEffect(() => {
     if (!open) return;
@@ -217,10 +240,11 @@ export default function ProfileWidgetEditor({
         Настроить витрину
       </button>
 
-      {open && (
+      {open && typeof document !== 'undefined' && createPortal(
         <div
           className="profile-widgets-editor"
           role="presentation"
+          data-mobile-nav-lock="true"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget && !saving) setOpen(false);
           }}
@@ -404,7 +428,8 @@ export default function ProfileWidgetEditor({
               </button>
             </div>
           </section>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
