@@ -142,7 +142,7 @@ export async function searchLocalAnimeSuggestions(
             : null,
         genres: Array.isArray(row.genres)
           ? row.genres
-              .filter((value): value is string => typeof value === 'string')
+              .filter((value: unknown): value is string => typeof value === 'string')
               .slice(0, 3)
           : [],
       });
