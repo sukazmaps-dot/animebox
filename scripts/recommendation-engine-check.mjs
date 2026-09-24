@@ -14,6 +14,7 @@ const feedback = read('app/api/recommendations/feedback/route.ts');
 const card = read('components/SmartRecommendationCard.tsx');
 const feed = read('components/SmartRecommendationFeed.tsx');
 const rails = read('lib/recommendation-rails.ts');
+const smartHomeStyles = read('app/smart-home.css');
 const productEvents = read('lib/product-event-names.ts');
 const watch = read('components/useWatchSession.ts');
 const personalization = read('lib/personalization.ts');
@@ -184,6 +185,17 @@ if (
 }
 if (recommendations.includes('Small maximal-marginal-relevance pass')) {
   failures.push('legacy inline MMR logic remains in recommendations.ts');
+}
+if (
+  !rails.includes("'mood_lane'") ||
+  !rails.includes("source: 'smart_feed_mood_lane'") ||
+  !rails.includes("badge: 'НАСТРОЕНИЕ'") ||
+  !rails.includes("'Стартовый микс AnimeBox'") ||
+  !feed.includes('smart-feed__rail-titleline') ||
+  !feed.includes('rail.badge') ||
+  !smartHomeStyles.includes('.smart-feed__rail-badge')
+) {
+  failures.push('17.8.6 home discovery presentation is incomplete');
 }
 if (
   !rails.includes("id: 'endless'") ||

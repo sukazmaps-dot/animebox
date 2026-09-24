@@ -510,7 +510,10 @@ export default function SmartRecommendationFeed({
             >
               <header className="smart-feed__rail-heading">
                 <div>
-                  <h3 id={`smart-feed-rail-${rail.id}`}>{rail.title}</h3>
+                  <div className="smart-feed__rail-titleline">
+                    <span className="smart-feed__rail-badge">{rail.badge}</span>
+                    <h3 id={`smart-feed-rail-${rail.id}`}>{rail.title}</h3>
+                  </div>
                   <p>{rail.subtitle}</p>
                 </div>
               </header>

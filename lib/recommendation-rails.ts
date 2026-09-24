@@ -2,10 +2,11 @@ import type { TasteMood } from '@/lib/personalization';
 import type { RankedRecommendation } from '@/lib/recommendations';
 
 export type RecommendationRail = {
-  id: 'top_match' | 'taste_lane' | 'quick_watch' | 'explore' | 'endless';
+  id: 'mood_lane' | 'top_match' | 'taste_lane' | 'quick_watch' | 'explore' | 'endless';
   title: string;
   subtitle: string;
   source: string;
+  badge: string;
   items: RankedRecommendation[];
 };
 
@@ -22,6 +23,13 @@ function isShortWatch(item: RankedRecommendation) {
   if (episodes > 0 && episodes <= 13) return true;
   return episodes > 0 && episodes <= 24 && duration > 0 && duration <= 30;
 }
+
+const MOOD_RAIL_LABELS: Record<Exclude<TasteMood, 'any'>, string> = {
+  comfort: 'Уют',
+  tension: 'Напряжение',
+  emotion: 'Сильные эмоции',
+  adventure: 'Приключение',
+};
 
 function dominantGenre(items: RankedRecommendation[]) {
   const weights = new Map<string, { label: string; weight: number }>();
@@ -73,15 +81,38 @@ export function buildRecommendationRails(
   };
 
   const rails: RecommendationRail[] = [];
+
+  if (options.mood !== 'any') {
+    const moodLabel = MOOD_RAIL_LABELS[options.mood];
+    const moodLane = take(
+      (item) => item.ranking.components.mood > 0,
+      7,
+    );
+
+    if (moodLane.length >= 3) {
+      rails.push({
+        id: 'mood_lane',
+        title: `Под настроение «${moodLabel}»`,
+        subtitle: options.hasWatchHistory
+          ? 'Сейчас выше те тайтлы, которые совпадают и с настроением, и с твоим Taste Graph.'
+          : 'Стартовая подборка под выбранное настроение, пока AnimeBox набирает сигналы вкуса.',
+        source: 'smart_feed_mood_lane',
+        badge: 'НАСТРОЕНИЕ',
+        items: moodLane,
+      });
+    }
+  }
+
   const top = take(() => true, 7);
   if (top.length) {
     rails.push({
       id: 'top_match',
-      title: options.hasWatchHistory ? 'Точно в твоём вкусе' : 'Начни со своего вкуса',
+      title: options.hasWatchHistory ? 'Точно в твоём вкусе' : 'Стартовый микс AnimeBox',
       subtitle: options.hasWatchHistory
         ? 'Самые сильные совпадения по Taste Graph и истории просмотра.'
-        : 'Сильные стартовые варианты, пока AnimeBox изучает твой вкус.',
+        : 'Разные сильные варианты, пока Taste Graph набирает первые устойчивые сигналы.',
       source: 'smart_feed_top_match',
+      badge: options.hasWatchHistory ? 'ВКУС' : 'СТАРТ',
       items: top,
     });
   }
@@ -103,6 +134,7 @@ export function buildRecommendationRails(
           : `Попробуй жанр «${genre}»`,
         subtitle: 'Тот же вкусовой вектор, но без повторения первой полки.',
         source: 'smart_feed_taste_lane',
+        badge: 'ЖАНР',
         items: tasteLane,
       });
     }
@@ -115,6 +147,7 @@ export function buildRecommendationRails(
       title: 'Короткое на вечер',
       subtitle: 'Фильмы и компактные тайтлы, которые проще начать прямо сейчас.',
       source: 'smart_feed_quick_watch',
+      badge: 'БЫСТРО',
       items: quick,
     });
   }
@@ -132,6 +165,7 @@ export function buildRecommendationRails(
       title: 'За пределами привычного',
       subtitle: 'Контролируемое исследование, чтобы рекомендации не замыкались в одном жанре.',
       source: 'smart_feed_explore',
+      badge: 'ИССЛЕДОВАНИЕ',
       items: explore,
     });
   }
@@ -147,6 +181,7 @@ export function buildRecommendationRails(
       subtitle:
         'Продолжай листать — AnimeBox догружает новые кандидаты и пересобирает выдачу под твой вкус.',
       source: 'smart_feed_endless',
+      badge: 'ДЛЯ ТЕБЯ',
       items: endlessItems,
     });
   }
