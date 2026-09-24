@@ -1855,6 +1855,7 @@ export default function WatchPartyPanel({
             participants: current,
           });
           broadcastParticipants();
+          void syncRegisteredRoom();
           window.setTimeout(() => sendHostSync(connection), 120);
           return;
         }
@@ -1921,6 +1922,7 @@ export default function WatchPartyPanel({
         hostConnectionsRef.current.delete(connection.peer);
         participantsRef.current.delete(connection.peer);
         broadcastParticipants();
+        void syncRegisteredRoom();
       });
 
       connection.on('error', () => {
@@ -1930,6 +1932,7 @@ export default function WatchPartyPanel({
         hostConnectionsRef.current.delete(connection.peer);
         participantsRef.current.delete(connection.peer);
         broadcastParticipants();
+        void syncRegisteredRoom();
       });
 
     });
