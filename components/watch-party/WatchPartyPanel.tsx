@@ -2216,17 +2216,42 @@ export default function WatchPartyPanel({
 
     const onOnline = () => {
       if (intentionalCloseRef.current || hostEndedRef.current) return;
-      setError('');
+
+      if (relayRef.current?.isOpen()) {
+        setNetworkRoute('server');
+        setError('');
+        setStatus('active');
+        return;
+      }
 
       const peer = peerRef.current;
       if (peer?.disconnected && !peer.destroyed) {
         try {
           peer.reconnect();
         } catch {
-          // Guest reconnect below can still recreate the DataConnection.
+          // A fresh transport is created below if PeerJS cannot reconnect.
         }
       }
 
+      if (!peer || peer.destroyed) {
+        const invite = inviteRef.current;
+        const currentRole = roleRef.current;
+        if (!invite || !currentRole) return;
+
+        setStatus('reconnecting');
+        setError('Связь восстановлена. Перезапускаем комнату…');
+        destroyTransport();
+        intentionalCloseRef.current = false;
+
+        queueMicrotask(() => {
+          if (intentionalCloseRef.current || hostEndedRef.current) return;
+          if (currentRole === 'host') startHostRef.current(invite);
+          else startGuestRef.current(invite);
+        });
+        return;
+      }
+
+      setError('');
       if (roleRef.current === 'guest' && guestTransportRef.current !== 'server') {
         scheduleGuestReconnectRef.current();
       }
@@ -2238,7 +2263,7 @@ export default function WatchPartyPanel({
       window.removeEventListener('offline', onOffline);
       window.removeEventListener('online', onOnline);
     };
-  }, []);
+  }, [destroyTransport]);
 
   useEffect(() => {
     return () => {
