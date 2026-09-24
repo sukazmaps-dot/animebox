@@ -198,6 +198,22 @@
   min-width: 0;
 }
 
+.profile-editor-v13__controls {
+  display: grid;
+  gap: 14px;
+}
+
+.profile-editor-v13__section-divider {
+  height: 1px;
+  margin: 1px 6px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(157, 109, 255, .14),
+    transparent
+  );
+}
+
 .profile-editor-v13__panel {
   padding: 22px;
   border: 1px solid rgba(255, 255, 255, .055);
