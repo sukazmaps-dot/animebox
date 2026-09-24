@@ -51,9 +51,11 @@ function normalizeLayout(layout: ProfileWidgetLayoutItem[]) {
 export default function ProfileWidgetEditor({
   data,
   onSaved,
+  embedded = false,
 }: {
   data: ProfileWidgetsData;
   onSaved: (widgets: ProfileWidgetsData) => void;
+  embedded?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [layout, setLayout] = useState(() => normalizeLayout(data.layout));
@@ -71,7 +73,7 @@ export default function ProfileWidgetEditor({
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || embedded) return;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -90,10 +92,10 @@ export default function ProfileWidgetEditor({
       delete document.documentElement.dataset.profileWidgetsEditorOpen;
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [open, saving]);
+  }, [embedded, open, saving]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open && !embedded) return;
 
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
@@ -125,7 +127,7 @@ export default function ProfileWidgetEditor({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [open, query]);
+  }, [embedded, open, query]);
 
   const selected = useMemo(
     () => favoriteIds.map((animeId) => ({
@@ -216,7 +218,7 @@ export default function ProfileWidgetEditor({
       window.dispatchEvent(new Event('animebox:profile-widgets-updated'));
 
       window.setTimeout(() => {
-        setOpen(false);
+        if (!embedded) setOpen(false);
         setMessage('');
       }, 650);
     } catch (error) {
@@ -230,29 +232,19 @@ export default function ProfileWidgetEditor({
     }
   }
 
-  return (
-    <>
-      <button
-        type="button"
-        className="profile-widgets-edit-button"
-        onClick={openEditor}
-      >
-        Настроить витрину
-      </button>
-
-      {open && typeof document !== 'undefined' && createPortal(
+  const editor = (
         <div
-          className="profile-widgets-editor"
-          role="presentation"
-          data-mobile-nav-lock="true"
+          className={embedded ? 'profile-widgets-editor profile-widgets-editor--embedded' : 'profile-widgets-editor'}
+          role={embedded ? undefined : 'presentation'}
+          data-mobile-nav-lock={embedded ? undefined : 'true'}
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !saving) setOpen(false);
+            if (!embedded && event.target === event.currentTarget && !saving) setOpen(false);
           }}
         >
           <section
             className="profile-widgets-editor__dialog"
-            role="dialog"
-            aria-modal="true"
+            role={embedded ? 'region' : 'dialog'}
+            aria-modal={embedded ? undefined : true}
             aria-labelledby="profile-widgets-editor-title"
           >
             <div className="profile-widgets-editor__top">
@@ -263,15 +255,17 @@ export default function ProfileWidgetEditor({
                   Выбери, что показывать другим пользователям, расставь блоки и закрепи любимые аниме.
                 </p>
               </div>
-              <button
-                type="button"
-                className="profile-widgets-editor__close"
-                disabled={saving}
-                onClick={() => setOpen(false)}
-                aria-label="Закрыть"
-              >
-                ×
-              </button>
+              {!embedded && (
+                <button
+                  type="button"
+                  className="profile-widgets-editor__close"
+                  disabled={saving}
+                  onClick={() => setOpen(false)}
+                  aria-label="Закрыть"
+                >
+                  ×
+                </button>
+              )}
             </div>
 
             <div className="profile-widgets-editor__section">
@@ -410,27 +404,43 @@ export default function ProfileWidgetEditor({
             )}
 
             <div className="profile-widgets-editor__actions">
-              <button
-                type="button"
-                className="is-secondary"
-                disabled={saving}
-                onClick={() => setOpen(false)}
-              >
-                Отмена
-              </button>
+              {!embedded && (
+                <button
+                  type="button"
+                  className="is-secondary"
+                  disabled={saving}
+                  onClick={() => setOpen(false)}
+                >
+                  Отмена
+                </button>
+              )}
               <button
                 type="button"
                 className="is-primary"
                 disabled={saving}
                 onClick={() => void save()}
               >
-                {saving ? 'Сохраняем…' : 'Сохранить профиль'}
+                {saving ? 'Сохраняем…' : 'Сохранить витрину'}
               </button>
             </div>
           </section>
-        </div>,
-        document.body,
-      )}
+        </div>
+  );
+
+  if (embedded) return editor;
+
+  return (
+    <>
+      <button
+        type="button"
+        className="profile-widgets-edit-button"
+        onClick={openEditor}
+      >
+        Настроить витрину
+      </button>
+      {open && typeof document !== 'undefined'
+        ? createPortal(editor, document.body)
+        : null}
     </>
   );
 }

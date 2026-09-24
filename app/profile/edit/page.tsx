@@ -13,7 +13,7 @@ type PageProps = {
 
 export default async function ProfileEditPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const tab = params.tab === 'style' || params.tab === 'premium' ? 'style' : 'profile';
+  const tab = params.tab === 'style' || params.tab === 'premium' ? 'style' : params.tab === 'showcase' || params.tab === 'widgets' ? 'showcase' : 'profile';
 
   return <ProfileEditorClient initialTab={tab} />;
 }

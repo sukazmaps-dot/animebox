@@ -8,8 +8,10 @@ import { useAuthState } from '@/components/AuthStateProvider';
 import PremiumStudioClient, { type PremiumStudioHandle } from '@/components/premium/PremiumStudioClient';
 import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
+import ProfileWidgetEditor from '@/components/profile/ProfileWidgetEditor';
 import Icon from '@/components/Icon';
 import { notifyAuthChanged } from '@/lib/auth-events';
+import { communityRequest } from '@/lib/community-client';
 import { notifyProfileAppearanceChanged } from '@/lib/profile-live-sync';
 import { resolveProfileAppearance } from '@/lib/profile-appearance';
 import { readProfileCache, saveProfileCache } from '@/lib/profile-cache';
@@ -22,12 +24,13 @@ import {
 } from '@/lib/profile-media-upload-client';
 import { prepareBaseProfileMedia } from '@/lib/profile-media-crop-client';
 import { normalizePickedImage } from '@/lib/profile-media-normalize-client';
+import type { ProfileWidgetsData } from '@/types/profile-widgets';
 import type {
   PremiumMediaTransform,
   PremiumStudioSettings,
 } from '@/lib/premium-studio';
 
-type EditorTab = 'profile' | 'style';
+type EditorTab = 'profile' | 'showcase' | 'style';
 
 type ProfileRow = {
   id: string;
@@ -51,6 +54,7 @@ type BaseMediaEditorState = {
 
 function normalizedTab(value: string | null | undefined): EditorTab {
   if (value === 'style' || value === 'premium') return 'style';
+  if (value === 'showcase' || value === 'widgets') return 'showcase';
   return 'profile';
 }
 
@@ -89,6 +93,10 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   const premiumStudioRef = useRef<PremiumStudioHandle | null>(null);
   const [premiumDirty, setPremiumDirty] = useState(false);
   const [premiumBusy, setPremiumBusy] = useState(false);
+  const [showcase, setShowcase] = useState<ProfileWidgetsData | null>(null);
+  const [showcaseLoading, setShowcaseLoading] = useState(false);
+  const [showcaseError, setShowcaseError] = useState('');
+  const [showcaseReloadKey, setShowcaseReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -137,6 +145,38 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       if (cachedFrame != null) window.cancelAnimationFrame(cachedFrame);
     };
   }, [authLoading, router, supabase, user]);
+
+  useEffect(() => {
+    if (!user?.id || activeTab !== 'showcase' || showcase) return;
+
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      setShowcaseLoading(true);
+      setShowcaseError('');
+    });
+
+    void communityRequest<{ ok: boolean; widgets: ProfileWidgetsData }>('profile-widgets')
+      .then((payload) => {
+        if (active) setShowcase(payload.widgets);
+      })
+      .catch((loadError) => {
+        if (active) {
+          setShowcaseError(
+            loadError instanceof Error
+              ? loadError.message
+              : 'Не удалось загрузить витрину.',
+          );
+        }
+      })
+      .finally(() => {
+        if (active) setShowcaseLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [activeTab, showcase, showcaseReloadKey, user?.id]);
 
   useEffect(() => {
     if (!user?.id) {
@@ -547,7 +587,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
   if (loading) {
     return (
-      <main className="profile-editor-v13">
+      <main className="profile-editor-v13" data-editor-tab={activeTab}>
         <div className="profile-editor-v13__loading">
           <AnimeBoxLoader label="Открываем редактор профиля…" size={54} />
         </div>
@@ -557,14 +597,14 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
   if (!profile) {
     return (
-      <main className="profile-editor-v13">
+      <main className="profile-editor-v13" data-editor-tab={activeTab}>
         <div className="profile-editor-v13__loading">{error || 'Профиль не найден'}</div>
       </main>
     );
   }
 
   return (
-    <main className="profile-editor-v13">
+    <main className="profile-editor-v13" data-editor-tab={activeTab}>
       <div className="profile-editor-v13__ambient" aria-hidden="true" />
 
       <section className="profile-editor-v13__shell">
@@ -588,6 +628,9 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           <button className={activeTab === 'profile' ? 'is-active' : ''} onClick={() => switchTab('profile')} type="button">
             Профиль и оформление
           </button>
+          <button className={activeTab === 'showcase' ? 'is-active' : ''} onClick={() => switchTab('showcase')} type="button">
+            Витрина
+          </button>
           <button className={activeTab === 'style' ? 'is-active is-premium' : 'is-premium'} onClick={() => switchTab('style')} type="button">
             <Icon name="crown" size={19} weight="fill" /> Стиль
           </button>
@@ -608,6 +651,49 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                 setPremiumDirty(false);
               }}
             />
+          </div>
+        ) : activeTab === 'showcase' ? (
+          <div className="profile-editor-v13__showcase-tab">
+            <div className="profile-editor-v13__section-title profile-editor-v13__showcase-title">
+              <div>
+                <span>PROFILE SHOWCASE</span>
+                <h2>Витрина профиля</h2>
+                <p>Собери порядок виджетов и закрепи любимые аниме — всё внутри общего редактора.</p>
+              </div>
+            </div>
+
+            {showcaseLoading && (
+              <div className="profile-editor-v13__showcase-state">
+                <AnimeBoxLoader label="Загружаем витрину…" size={46} />
+              </div>
+            )}
+
+            {!showcaseLoading && showcaseError && (
+              <div className="profile-editor-v13__showcase-state is-error" role="alert">
+                {showcaseError}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowcaseError('');
+                    setShowcase(null);
+                    setShowcaseReloadKey((value) => value + 1);
+                  }}
+                >
+                  Повторить
+                </button>
+              </div>
+            )}
+
+            {!showcaseLoading && showcase && (
+              <ProfileWidgetEditor
+                embedded
+                data={showcase}
+                onSaved={(widgets) => {
+                  setShowcase(widgets);
+                  setSaved('Витрина сохранена ✓');
+                }}
+              />
+            )}
           </div>
         ) : (
           <div className="profile-editor-v13__workspace">
