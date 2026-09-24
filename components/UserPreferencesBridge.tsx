@@ -11,15 +11,38 @@ import {
 
 export default function UserPreferencesBridge() {
   useEffect(() => {
-    applyUserPreferences(readUserPreferences());
+    const applyCurrent = (value?: UserPreferences) => {
+      applyUserPreferences(value ?? readUserPreferences());
+    };
+
+    applyCurrent();
 
     const onChange = (event: Event) => {
       const detail = (event as CustomEvent<UserPreferences>).detail;
-      applyUserPreferences(detail ?? readUserPreferences());
+      applyCurrent(detail);
+    };
+
+    const onStorage = () => {
+      applyCurrent();
+    };
+
+    const media = window.matchMedia('(prefers-color-scheme: light)');
+    const onSystemThemeChange = () => {
+      const current = readUserPreferences();
+      if (current.theme === 'system') {
+        applyCurrent(current);
+      }
     };
 
     window.addEventListener(USER_PREFERENCES_EVENT, onChange);
-    return () => window.removeEventListener(USER_PREFERENCES_EVENT, onChange);
+    window.addEventListener('storage', onStorage);
+    media.addEventListener?.('change', onSystemThemeChange);
+
+    return () => {
+      window.removeEventListener(USER_PREFERENCES_EVENT, onChange);
+      window.removeEventListener('storage', onStorage);
+      media.removeEventListener?.('change', onSystemThemeChange);
+    };
   }, []);
 
   return null;

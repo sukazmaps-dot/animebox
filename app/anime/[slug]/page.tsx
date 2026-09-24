@@ -12,6 +12,7 @@ import AnimeFranchise, {
 import AnimeImageCascade from '@/components/AnimeImageCascade';
 import AnimeDetailControls from '@/components/AnimeDetailControls';
 import AnimeNotificationControl from '@/components/AnimeNotificationControl';
+import AnimeRatingControl from '@/components/AnimeRatingControl';
 import EpisodeDiscussionHub from '@/components/EpisodeDiscussionHub';
 import EpisodeList from '@/components/EpisodeList';
 import RelatedAnime, { RelatedAnimeLoading } from '@/components/RelatedAnime';
@@ -978,6 +979,8 @@ export default async function AnimePage({
             isFinished={String(resolved.status).toUpperCase() === 'FINISHED'}
             variant="compact"
           />
+
+          <AnimeRatingControl animeId={numericId} />
         </div>
       </section>
 

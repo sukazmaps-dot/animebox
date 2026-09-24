@@ -1,0 +1,813 @@
+/* =========================================================
+   AnimeBox Patch 16.4 — Readability + Theme Foundation
+   Loaded after the existing visual language on purpose.
+   ========================================================= */
+
+:root {
+  --ab-readable-body: 14px;
+  --ab-readable-small: 11px;
+  --ab-readable-micro: 10px;
+}
+
+html[data-animebox-theme='light'] {
+  --bg: #f6f3ee;
+  --bg-2: #eee9e2;
+  --panel: #ffffff;
+  --panel-2: #f7f3ed;
+  --line: rgba(54, 47, 66, .11);
+  --text: #1c1822;
+  --muted: #6d6575;
+  --accent: #7057dc;
+  --accent-2: #5f72d9;
+  --accent-3: #2389b8;
+
+  --ab-vl-canvas: #f6f3ee;
+  --ab-vl-surface: #ffffff;
+  --ab-vl-surface-raised: #f8f4ee;
+  --ab-vl-surface-soft: rgba(255, 255, 255, .78);
+  --ab-vl-line: rgba(54, 47, 66, .10);
+  --ab-vl-line-strong: rgba(112, 87, 220, .22);
+  --ab-vl-text: #201b28;
+  --ab-vl-text-soft: #4f4858;
+  --ab-vl-muted: #756d7e;
+  --ab-vl-muted-2: #8b8393;
+  --ab-vl-violet: #7057dc;
+  --ab-vl-violet-strong: #6245d1;
+  --ab-vl-cyan: #2389b8;
+  --ab-vl-glow: rgba(112, 87, 220, .12);
+  --ab-vl-glow-cyan: rgba(35, 137, 184, .08);
+
+  color-scheme: light;
+}
+
+html[data-animebox-theme='dark'] {
+  color-scheme: dark;
+}
+
+html[data-animebox-theme='light'],
+html[data-animebox-theme='light'] body {
+  background: #f6f3ee;
+}
+
+html[data-animebox-theme='light'] body {
+  color: var(--text);
+  background:
+    radial-gradient(circle at 75% -10%, rgba(112, 87, 220, .08), transparent 30%),
+    radial-gradient(circle at 10% 60%, rgba(35, 137, 184, .045), transparent 24%),
+    linear-gradient(180deg, #faf8f4 0%, #f2eee8 100%);
+}
+
+/* ---------- Readability pass ---------- */
+.brand small,
+.sidebar__label,
+.sidebar-membership__copy small,
+.sidebar__support small,
+.section-link,
+.anime-card__meta,
+.anime-card__tags span,
+.schedule__card span,
+.schedule__time,
+.rank-item__num,
+.rank-item span,
+.rank-item__score,
+.site-footer,
+.anime-detail-v3__facts-heading span,
+.anime-detail-v3__facts-list dt,
+.anime-franchise-v3__eyebrow,
+.anime-franchise-v3__year,
+.anime-franchise-v3__current,
+.anime-notification-control__eyebrow,
+.anime-notification-control__status,
+.anime-notification-control__message,
+.episode-discussion-hub__eyebrow {
+  font-size: var(--ab-readable-micro) !important;
+}
+
+.sidebar__item,
+.topbar__search input,
+.anime-card__body h3,
+.page-heading p,
+.detail__description,
+.detail__back,
+.detail__orig,
+.detail__genre,
+.fact strong,
+.status-control,
+.anime-franchise-v3__season-title,
+.anime-notification-control__copy p,
+.episode-discussion-hub p {
+  font-size: var(--ab-readable-small) !important;
+}
+
+.anime-card__body h3 {
+  line-height: 1.38 !important;
+}
+
+.anime-card__meta,
+.anime-card__tags,
+.page-heading p,
+.detail__description,
+.anime-notification-control__copy p,
+.episode-discussion-hub p {
+  line-height: 1.6 !important;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --ab-readable-body: 15px;
+    --ab-readable-small: 12px;
+    --ab-readable-micro: 10.5px;
+  }
+
+  .mobile-nav__item span {
+    font-size: 10.5px !important;
+  }
+
+  .anime-card__body h3 {
+    font-size: 13px !important;
+  }
+
+  .anime-detail-v3__facts-list dd {
+    font-size: 13px !important;
+  }
+}
+
+/* ---------- Light shell ---------- */
+html[data-animebox-theme='light'] .sidebar {
+  background:
+    radial-gradient(circle at 18% 5%, rgba(112,87,220,.08), transparent 24%),
+    linear-gradient(180deg, rgba(250,248,244,.985), rgba(244,240,234,.975)) !important;
+  border-right-color: rgba(60,52,70,.10) !important;
+  box-shadow: 18px 0 46px rgba(73,62,87,.055) !important;
+}
+
+html[data-animebox-theme='light'] .brand__copy strong {
+  color: #241e2c !important;
+}
+
+html[data-animebox-theme='light'] .brand__copy small,
+html[data-animebox-theme='light'] .sidebar__label {
+  color: #807687 !important;
+}
+
+html[data-animebox-theme='light'] .brand__mark {
+  border-color: rgba(112,87,220,.16) !important;
+  background: rgba(112,87,220,.065) !important;
+  box-shadow: 0 0 24px rgba(112,87,220,.08) !important;
+}
+
+html[data-animebox-theme='light'] .sidebar__item {
+  color: #665e70 !important;
+}
+
+html[data-animebox-theme='light'] .sidebar__item:hover {
+  color: #251f2e !important;
+  border-color: rgba(60,52,70,.08) !important;
+  background: rgba(55,47,66,.035) !important;
+}
+
+html[data-animebox-theme='light'] .sidebar__item.is-active {
+  color: #3d2b78 !important;
+  border-color: rgba(112,87,220,.14) !important;
+  background: linear-gradient(90deg, rgba(112,87,220,.12), rgba(112,87,220,.025)) !important;
+}
+
+html[data-animebox-theme='light'] .sidebar__divider {
+  background: linear-gradient(90deg, transparent, rgba(60,52,70,.11), transparent) !important;
+}
+
+html[data-animebox-theme='light'] .topbar {
+  background: rgba(250,248,244,.86) !important;
+  border-bottom-color: rgba(60,52,70,.10) !important;
+  box-shadow: 0 8px 30px rgba(73,62,87,.04);
+}
+
+html[data-animebox-theme='light'] .topbar__search {
+  border-color: rgba(60,52,70,.10) !important;
+  background: rgba(255,255,255,.82) !important;
+}
+
+html[data-animebox-theme='light'] .topbar__search input {
+  color: #211b29 !important;
+}
+
+html[data-animebox-theme='light'] .topbar__search input::placeholder {
+  color: #958b9d !important;
+}
+
+html[data-animebox-theme='light'] .topbar__icon,
+html[data-animebox-theme='light'] .topbar__login {
+  border-color: rgba(60,52,70,.10) !important;
+  background: rgba(255,255,255,.72) !important;
+  color: #655b70 !important;
+}
+
+html[data-animebox-theme='light'] .mobile-nav {
+  background: rgba(250,248,244,.94) !important;
+  border-top-color: rgba(60,52,70,.10) !important;
+  box-shadow: 0 -14px 40px rgba(73,62,87,.07) !important;
+}
+
+html[data-animebox-theme='light'] .mobile-nav__item {
+  color: #786f80 !important;
+}
+
+html[data-animebox-theme='light'] .mobile-nav__item.is-active {
+  color: #5f45c7 !important;
+}
+
+/* ---------- Light shared surfaces ---------- */
+html[data-animebox-theme='light'] :where(
+  .panel,
+  .anime-card,
+  .continue-card,
+  .schedule__card,
+  .search-box,
+  .genre-btn,
+  .detail__hero,
+  .detail__section,
+  .detail__side-panel,
+  .detail__side-card,
+  .fact,
+  .status-control,
+  .pagination button,
+  .tracker-guest,
+  .tracker-empty,
+  .community-library-control,
+  .anime-notification-control--luminous,
+  .episode-discussion-hub,
+  .anime-franchise-v3__season,
+  .anime-franchise-v3__related,
+  .weekly-calendar__column,
+  .weekly-calendar__event
+) {
+  border-color: rgba(60,52,70,.10) !important;
+  background-color: #fff !important;
+  background-image: none !important;
+  color: #211b29;
+  box-shadow: 0 16px 38px rgba(73,62,87,.055) !important;
+}
+
+html[data-animebox-theme='light'] .anime-card__image-wrap {
+  background: #ece7df !important;
+}
+
+html[data-animebox-theme='light'] :where(
+  .anime-card__body h3,
+  .section-title,
+  .page-heading h1,
+  .detail__main h1,
+  .detail__section h2,
+  .tracker-guest h2,
+  .tracker-empty h2,
+  .episode-discussion-hub h2,
+  .anime-notification-control__copy h2,
+  .anime-franchise-v3__title,
+  .anime-franchise-v3__season-label
+) {
+  color: #211b29 !important;
+}
+
+html[data-animebox-theme='light'] :where(
+  .anime-card__meta,
+  .anime-card__tags span,
+  .section-link,
+  .page-heading p,
+  .detail__back,
+  .detail__orig,
+  .detail__description,
+  .fact span,
+  .tracker-guest p,
+  .tracker-empty p,
+  .episode-discussion-hub p,
+  .anime-notification-control__copy p,
+  .anime-franchise-v3__subtitle,
+  .anime-franchise-v3__season-title,
+  .site-footer__brand span,
+  .site-footer__links
+) {
+  color: #716878 !important;
+}
+
+html[data-animebox-theme='light'] .anime-card__tags span,
+html[data-animebox-theme='light'] .detail__genre,
+html[data-animebox-theme='light'] .pill,
+html[data-animebox-theme='light'] .status-control {
+  border-color: rgba(60,52,70,.08) !important;
+  background: #f5f1eb !important;
+  color: #665d70 !important;
+}
+
+html[data-animebox-theme='light'] .anime-card__rating {
+  background: rgba(255,255,255,.90) !important;
+  color: #28212f !important;
+  box-shadow: 0 6px 20px rgba(45,37,55,.10);
+}
+
+html[data-animebox-theme='light'] .search-box input,
+html[data-animebox-theme='light'] input,
+html[data-animebox-theme='light'] textarea,
+html[data-animebox-theme='light'] select {
+  color: #211b29;
+}
+
+html[data-animebox-theme='light'] .genre-btn {
+  color: #6f6678 !important;
+}
+
+html[data-animebox-theme='light'] .genre-btn.is-active,
+html[data-animebox-theme='light'] .pill--accent {
+  color: #fff !important;
+  background: linear-gradient(135deg, #7258dd, #6877df) !important;
+}
+
+html[data-animebox-theme='light'] .site-footer {
+  border-top-color: rgba(60,52,70,.10) !important;
+  background: rgba(246,243,238,.82) !important;
+  color: #4e4658 !important;
+}
+
+html[data-animebox-theme='light'] .site-footer__brand strong,
+html[data-animebox-theme='light'] .site-footer__links a {
+  color: #403747 !important;
+}
+
+/* ---------- Anime page Tailwind utilities ---------- */
+html[data-animebox-theme='light'] .anime-detail-v3 {
+  background: transparent !important;
+  color: #211b29;
+}
+
+html[data-animebox-theme='light'] .anime-detail-v3__facts-shell {
+  border-color: rgba(60,52,70,.10) !important;
+}
+
+html[data-animebox-theme='light'] .anime-detail-v3__facts-heading h2,
+html[data-animebox-theme='light'] .anime-detail-v3__facts-list dd {
+  color: #27202f !important;
+}
+
+html[data-animebox-theme='light'] .anime-detail-v3__facts-list > div {
+  border-color: rgba(60,52,70,.10) !important;
+}
+
+html[data-animebox-theme='light'] .anime-detail-v3 [class*='text-white'] {
+  color: #31293a !important;
+}
+
+html[data-animebox-theme='light'] .anime-detail-v3 [class*='border-white'] {
+  border-color: rgba(60,52,70,.11) !important;
+}
+
+html[data-animebox-theme='light'] .anime-detail-v3 [class*='bg-white'] {
+  background-color: rgba(48,40,57,.045) !important;
+}
+
+html[data-animebox-theme='light'] .anime-detail-v3 .anime-detail-poster {
+  border-color: rgba(60,52,70,.12) !important;
+  background: #ece7df !important;
+  box-shadow: 0 20px 46px rgba(64,52,75,.16) !important;
+}
+
+/* Keep actual media surfaces dark even when the surrounding site is light. */
+html[data-animebox-theme='light'] :where(
+  .anime-player,
+  .anime-player-shell,
+  .watch-together-app-shell
+) {
+  color-scheme: dark;
+}
+
+/* ---------- Luminous components in light mode ---------- */
+html[data-animebox-theme='light'] .ab-icon-core__shell {
+  border-color: rgba(112,87,220,.18);
+  background:
+    linear-gradient(145deg, rgba(112,87,220,.08), rgba(35,137,184,.03)),
+    rgba(255,255,255,.90);
+  color: #6c51d3;
+  box-shadow: 0 12px 30px rgba(73,62,87,.08);
+}
+
+html[data-animebox-theme='light'] .ab-action--secondary {
+  border-color: rgba(60,52,70,.11);
+  background: rgba(255,255,255,.72);
+  color: #554c60;
+}
+
+html[data-animebox-theme='light'] .anime-notification-control__settings {
+  border-color: rgba(60,52,70,.10) !important;
+  background: #f6f2ec !important;
+  color: #6e6478 !important;
+}
+
+/* ---------- Focus ---------- */
+html[data-animebox-theme='light'] :focus-visible {
+  outline-color: rgba(99,72,205,.85);
+}
+
+
+/* ---------- Watch Together Telegram promo repair ---------- */
+.telegram-growth-card--community.telegram-growth-card--vector {
+  width: 100%;
+  min-width: 0;
+  display: grid !important;
+  grid-template-columns: 124px minmax(0, 1fr) !important;
+  align-items: center !important;
+  margin: 18px 0 0 !important;
+  min-height: 188px !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__vector-art {
+  min-width: 0;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  padding: 20px 10px 20px 22px !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__content {
+  min-width: 0;
+  padding: 22px 52px 22px 12px !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__copy {
+  max-width: 720px !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__copy h3 {
+  margin-top: 12px;
+  font-size: clamp(18px, 2vw, 24px) !important;
+  line-height: 1.12;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__copy p {
+  max-width: 620px;
+  font-size: 12px !important;
+  line-height: 1.6 !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__brand small {
+  font-size: 9px !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__brand b {
+  font-size: 8px !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__benefits span {
+  font-size: 10px !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__cta {
+  min-width: 178px;
+  min-height: 42px;
+  margin-top: 15px !important;
+}
+
+.telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__dismiss {
+  top: 12px;
+  right: 12px;
+}
+
+html[data-animebox-theme='light'] .telegram-growth-card--community.telegram-growth-card--vector {
+  border-color: rgba(60,52,70,.11) !important;
+  background:
+    radial-gradient(circle at 12% 28%, rgba(112,87,220,.10), transparent 30%),
+    radial-gradient(circle at 80% 8%, rgba(35,137,184,.05), transparent 24%),
+    linear-gradient(145deg, rgba(255,255,255,.98), rgba(246,242,236,.98)) !important;
+  box-shadow: 0 18px 42px rgba(73,62,87,.07) !important;
+}
+
+html[data-animebox-theme='light'] .telegram-growth-card--community .telegram-growth-card__copy h3 {
+  color: #251f2d !important;
+}
+
+html[data-animebox-theme='light'] .telegram-growth-card--community .telegram-growth-card__copy p {
+  color: #716879 !important;
+}
+
+html[data-animebox-theme='light'] .telegram-growth-card--community .telegram-growth-card__benefits span {
+  border-color: rgba(60,52,70,.09) !important;
+  background: rgba(50,42,59,.04) !important;
+  color: #655d70 !important;
+}
+
+html[data-animebox-theme='light'] .telegram-growth-card--community .telegram-growth-card__dismiss {
+  border-color: rgba(60,52,70,.10) !important;
+  background: rgba(255,255,255,.82) !important;
+  color: #766c7f !important;
+}
+
+@media (max-width: 760px) {
+  .telegram-growth-card--community.telegram-growth-card--vector {
+    grid-template-columns: 72px minmax(0, 1fr) !important;
+    min-height: 0 !important;
+    align-items: start !important;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__vector-art {
+    align-self: start;
+    justify-content: start;
+    padding: 18px 0 0 16px !important;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__icon-core {
+    transform: scale(.72);
+    transform-origin: top left;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__content {
+    padding: 18px 40px 18px 4px !important;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__copy h3 {
+    font-size: 17px !important;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__copy p {
+    font-size: 11px !important;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__benefits {
+    grid-column: 1 / -1;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__cta {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 460px) {
+  .telegram-growth-card--community.telegram-growth-card--vector {
+    grid-template-columns: 1fr !important;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__vector-art {
+    display: none;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__content {
+    padding: 18px 16px !important;
+  }
+
+  .telegram-growth-card--community.telegram-growth-card--vector .telegram-growth-card__copy h3 {
+    padding-right: 22px;
+  }
+}
+
+
+/* ---------- AnimeBox community rating ---------- */
+.anime-detail-v4__personal-grid > .anime-rating-control {
+  grid-column: 1 / -1;
+}
+
+.anime-rating-control {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(204, 211, 230, .075);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(139,112,255,.075), transparent 30%),
+    linear-gradient(145deg, rgba(15,20,31,.985), rgba(9,13,21,.985));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.025),
+    0 20px 52px rgba(0,0,0,.08);
+}
+
+.anime-rating-control__head {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 18px;
+  align-items: start;
+}
+
+.anime-rating-control__eyebrow {
+  display: block;
+  color: #9584e3;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .14em;
+}
+
+.anime-rating-control h2 {
+  margin: 5px 0 0;
+  color: #f4f4fa;
+  font-size: 19px;
+  font-weight: 760;
+  letter-spacing: -.025em;
+}
+
+.anime-rating-control__head p {
+  max-width: 620px;
+  margin: 6px 0 0;
+  color: #8d97a8;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.anime-rating-control__summary {
+  min-width: 122px;
+  display: grid;
+  justify-items: end;
+  align-content: start;
+  gap: 2px;
+  padding: 9px 10px;
+  border: 1px solid rgba(185,166,255,.12);
+  border-radius: 12px;
+  background: rgba(126,97,222,.055);
+}
+
+.anime-rating-control__summary span,
+.anime-rating-control__summary small {
+  color: #747e90;
+  font-size: 8px;
+}
+
+.anime-rating-control__summary strong {
+  color: #f1c96e;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: -.045em;
+}
+
+.anime-rating-control__scale {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 15px;
+}
+
+.anime-rating-control__scale button {
+  min-width: 0;
+  min-height: 40px;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 9px;
+  background: rgba(255,255,255,.025);
+  color: #8d96a7;
+  font-size: 11px;
+  font-weight: 800;
+  transition:
+    transform .16s ease,
+    border-color .16s ease,
+    background .16s ease,
+    color .16s ease;
+}
+
+.anime-rating-control__scale button:not(:disabled):hover {
+  transform: translateY(-1px);
+  border-color: rgba(159,135,242,.28);
+  background: rgba(126,99,220,.08);
+  color: #ddd4ff;
+}
+
+.anime-rating-control__scale button[data-active='true'] {
+  border-color: rgba(243,199,103,.32);
+  background:
+    linear-gradient(145deg, rgba(218,163,62,.18), rgba(122,90,37,.08));
+  color: #f7d982;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.anime-rating-control__scale button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+.anime-rating-control__footer {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 10px;
+  color: #747e90;
+  font-size: 10px;
+}
+
+.anime-rating-control__footer strong {
+  color: #e7ddff;
+}
+
+.anime-rating-control__footer a {
+  color: #ac9aff;
+  font-weight: 760;
+}
+
+.anime-rating-control__clear {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: #7c7488;
+  font-size: 9px;
+  text-decoration: underline;
+  text-decoration-color: rgba(124,116,136,.35);
+  text-underline-offset: 3px;
+}
+
+.anime-rating-control__clear:hover {
+  color: #d2c7e1;
+}
+
+.anime-rating-control__message {
+  margin-top: 8px;
+  color: #9b8edf;
+  font-size: 9px;
+}
+
+html[data-animebox-theme='light'] .anime-rating-control {
+  border-color: rgba(60,52,70,.10);
+  background:
+    radial-gradient(circle at 90% 0%, rgba(112,87,220,.075), transparent 32%),
+    linear-gradient(145deg, rgba(255,255,255,.985), rgba(248,244,238,.985));
+  box-shadow: 0 18px 42px rgba(73,62,87,.055);
+}
+
+html[data-animebox-theme='light'] .anime-rating-control h2 {
+  color: #28212f;
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__head p,
+html[data-animebox-theme='light'] .anime-rating-control__footer,
+html[data-animebox-theme='light'] .anime-rating-control__summary span,
+html[data-animebox-theme='light'] .anime-rating-control__summary small {
+  color: #746b7d;
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__summary {
+  border-color: rgba(112,87,220,.14);
+  background: rgba(112,87,220,.055);
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__summary strong {
+  color: #9a6b14;
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__scale button {
+  border-color: rgba(60,52,70,.09);
+  background: rgba(52,44,61,.03);
+  color: #665d70;
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__scale button:not(:disabled):hover {
+  border-color: rgba(112,87,220,.22);
+  background: rgba(112,87,220,.055);
+  color: #4c398e;
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__scale button[data-active='true'] {
+  border-color: rgba(178,126,30,.25);
+  background: rgba(215,163,61,.12);
+  color: #80570b;
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__footer strong {
+  color: #4b3b67;
+}
+
+html[data-animebox-theme='light'] .anime-rating-control__clear {
+  color: #766d7f;
+}
+
+@media (max-width: 680px) {
+  .anime-rating-control {
+    padding: 14px 12px;
+    border-radius: 12px;
+  }
+
+  .anime-rating-control__head {
+    grid-template-columns: 1fr;
+    gap: 11px;
+  }
+
+  .anime-rating-control__summary {
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: auto auto 1fr;
+    justify-items: start;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .anime-rating-control__summary strong {
+    font-size: 20px;
+  }
+
+  .anime-rating-control__scale {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .anime-rating-control__scale button {
+    min-height: 38px;
+  }
+
+  .anime-rating-control__footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+  }
+}
