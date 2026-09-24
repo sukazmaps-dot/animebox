@@ -2,7 +2,7 @@ import type { TasteMood } from '@/lib/personalization';
 import type { RankedRecommendation } from '@/lib/recommendations';
 
 export type RecommendationRail = {
-  id: 'top_match' | 'taste_lane' | 'quick_watch' | 'explore';
+  id: 'top_match' | 'taste_lane' | 'quick_watch' | 'explore' | 'endless';
   title: string;
   subtitle: string;
   source: string;
@@ -134,6 +134,19 @@ export function buildRecommendationRails(
       items: explore,
     });
   }
+
+  const endlessItems = recommendations.filter(
+    (item) => !used.has(item.anime.id),
+  );
+
+  rails.push({
+    id: 'endless',
+    title: 'Ещё для тебя',
+    subtitle:
+      'Продолжай листать — AnimeBox догружает новые кандидаты и пересобирает выдачу под твой вкус.',
+    source: 'smart_feed_endless',
+    items: endlessItems,
+  });
 
   return rails;
 }
