@@ -495,6 +495,7 @@ export default function SmartRecommendationFeed({
                       recommendation={recommendation}
                       position={index + 1}
                       mood={displayedMood}
+                      rowId={rail.id}
                       source={rail.source}
                       recommendationSessionId={sessionId}
                       onHidden={(animeId) => {
