@@ -4,7 +4,7 @@ import type { Icon as PhosphorIcon, IconProps } from '@phosphor-icons/react';
 import {
   BellIcon, CalendarBlankIcon, CaretRightIcon, ChatCircleIcon,
   ClockIcon, CrownIcon, EnvelopeIcon, HeartIcon, HouseIcon,
-  InfoIcon, ListIcon, MagnifyingGlassIcon, PaperPlaneTiltIcon,
+  GearSixIcon, InfoIcon, ListIcon, MagnifyingGlassIcon, PaperPlaneTiltIcon,
   PlayIcon, PlusIcon, SparkleIcon, StarIcon, TelevisionIcon,
   TrophyIcon, UserIcon, UsersIcon,
 } from '@phosphor-icons/react';
@@ -12,7 +12,7 @@ import {
 type IconName =
   | 'home' | 'anime' | 'calendar' | 'tracker' | 'heart' | 'bell'
   | 'telegram' | 'info' | 'search' | 'chevron' | 'play' | 'plus'
-  | 'star' | 'menu' | 'user' | 'clock' | 'spark' | 'trophy'
+  | 'star' | 'menu' | 'settings' | 'user' | 'clock' | 'spark' | 'trophy'
   | 'mail' | 'users' | 'chat' | 'crown';
 
 type Props = IconProps & { name: IconName };
@@ -32,6 +32,7 @@ const icons: Record<IconName, PhosphorIcon> = {
   plus: PlusIcon,
   star: StarIcon,
   menu: ListIcon,
+  settings: GearSixIcon,
   user: UserIcon,
   clock: ClockIcon,
   spark: SparkleIcon,

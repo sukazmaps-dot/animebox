@@ -274,7 +274,7 @@ export default function MobileAccountNav({ pathname }: Props) {
                 className="mobile-account__link"
                 onClick={() => setOpen(false)}
               >
-                <Icon name="menu" />
+                <Icon name="settings" />
                 <span>
                   <strong>Настройки</strong>
                   <small>Плеер, интерфейс и аккаунт</small>

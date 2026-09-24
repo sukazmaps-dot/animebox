@@ -404,7 +404,7 @@ function NavbarContent() {
                 }`}
                 title="Настройки"
               >
-                <span className="sidebar__icon" aria-hidden="true"><Icon name="menu" weight={isActive('/settings') ? 'fill' : 'regular'} /></span>
+                <span className="sidebar__icon" aria-hidden="true"><Icon name="settings" weight={isActive('/settings') ? 'fill' : 'regular'} /></span>
                 <span>Настройки</span>
               </Link>
             </nav>
