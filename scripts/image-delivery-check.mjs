@@ -44,7 +44,7 @@ if (
 }
 
 if (
-  !mediaDelivery.includes("DEFAULT_MEDIA_ORIGIN = 'https://media.youranimebox.com'") ||
+  !mediaDelivery.includes('NEXT_PUBLIC_MEDIA_ORIGIN') ||
   !mediaDelivery.includes('NEXT_PUBLIC_MEDIA_RU_ORIGIN') ||
   !mediaDelivery.includes('buildAnimeBoxMediaCandidates')
 ) {
