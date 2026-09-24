@@ -116,7 +116,7 @@ if (
 ) {
   failures.push('Taste Graph is missing decay/confidence/exploration modelling');
 }
-if (!feed.includes('buildRecommendationRails')) {
+if (!feed.includes('buildRecommendationRailLayout')) {
   failures.push('Netflix-style recommendation rails are not wired');
 }
 if (
