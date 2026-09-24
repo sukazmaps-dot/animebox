@@ -32,6 +32,12 @@ type ProductEventRow = {
   created_at: string;
 };
 
+type FeedbackRow = {
+  anime_id: number;
+  signal: 'like_more' | 'not_interested' | 'already_watched';
+  updated_at: string | null;
+};
+
 function clamp(value: number, min = 0, max = 1) {
   return Math.min(max, Math.max(min, value));
 }
@@ -86,7 +92,7 @@ export async function GET(request: Request) {
     if (limited) return limited;
 
     const admin = createSupabaseAdmin();
-    const [libraryResult, historyResult, eventsResult] = await Promise.all([
+    const [libraryResult, historyResult, eventsResult, feedbackResult] = await Promise.all([
       admin
         .from('anime_library')
         .select('anime_id,status,updated_at')
@@ -110,23 +116,34 @@ export async function GET(request: Request) {
           'recommendation_dismiss',
           'recommendation_started',
           'recommendation_completed',
+          'recommendation_watch_15m',
+          'recommendation_watch_30m',
         ])
         .order('created_at', { ascending: false })
+        .limit(1000),
+      admin
+        .from('recommendation_feedback')
+        .select('anime_id,signal,updated_at')
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false })
         .limit(1000),
     ]);
 
     if (libraryResult.error) console.warn('[Taste Graph] library', libraryResult.error);
     if (historyResult.error) console.warn('[Taste Graph] history', historyResult.error);
     if (eventsResult.error) console.warn('[Taste Graph] product events', eventsResult.error);
+    if (feedbackResult.error) console.warn('[Taste Graph] feedback', feedbackResult.error);
 
     const library = (libraryResult.data ?? []) as LibraryRow[];
     const history = (historyResult.data ?? []) as HistoryRow[];
     const events = (eventsResult.data ?? []) as ProductEventRow[];
+    const feedback = (feedbackResult.data ?? []) as FeedbackRow[];
 
     const ids = [...new Set([
       ...library.map((item) => Number(item.anime_id)),
       ...history.map((item) => Number(item.anime_id)),
       ...events.map((item) => Number(item.entity_id)).filter((id) => Number.isSafeInteger(id) && id > 0),
+      ...feedback.map((item) => Number(item.anime_id)).filter((id) => Number.isSafeInteger(id) && id > 0),
     ].filter((id) => Number.isSafeInteger(id) && id > 0))].slice(0, 1000);
 
     const catalogRows: CatalogRow[] = [];
@@ -210,10 +227,31 @@ export async function GET(request: Request) {
       if (!Number.isSafeInteger(animeId) || animeId <= 0) continue;
       const recency = recencyMultiplier(event.created_at);
       if (event.event_name === 'recommendation_completed') addGenres(animeId, 1.2 * recency);
+      else if (event.event_name === 'recommendation_watch_30m') addGenres(animeId, 1.05 * recency);
+      else if (event.event_name === 'recommendation_watch_15m') addGenres(animeId, 0.85 * recency);
       else if (event.event_name === 'recommendation_started') addGenres(animeId, 0.7 * recency);
       else if (event.event_name === 'recommendation_planned') addGenres(animeId, 0.6 * recency);
       else if (event.event_name === 'recommendation_click') addGenres(animeId, 0.25 * recency);
       else if (event.event_name === 'recommendation_dismiss') addGenres(animeId, 0.75 * recency, true);
+    }
+
+    const feedbackLikedIds: number[] = [];
+    const feedbackExcludedIds: number[] = [];
+
+    for (const item of feedback) {
+      const animeId = Number(item.anime_id);
+      if (!Number.isSafeInteger(animeId) || animeId <= 0) continue;
+      const recency = recencyMultiplier(item.updated_at);
+
+      if (item.signal === 'like_more') {
+        feedbackLikedIds.push(animeId);
+        addGenres(animeId, 2.8 * recency);
+      } else if (item.signal === 'not_interested') {
+        feedbackExcludedIds.push(animeId);
+        addGenres(animeId, 2.4 * recency, true);
+      } else if (item.signal === 'already_watched') {
+        feedbackExcludedIds.push(animeId);
+      }
     }
 
     const genreWeights = normalizeWeights(positive);
@@ -238,12 +276,19 @@ export async function GET(request: Request) {
     )]
       .filter((id) => Number.isSafeInteger(id) && id > 0)
       .slice(0, 2000);
+    const likedAnimeIds = [...new Set(feedbackLikedIds)].slice(0, 2000);
     const excludedAnimeIds = [...new Set([
       ...libraryIds,
       ...completedAnimeIds,
+      ...feedbackExcludedIds,
+      ...likedAnimeIds,
     ])].slice(0, 2000);
 
-    const sampleSize = library.length + completedByAnime.size + events.length;
+    const sampleSize =
+      library.length +
+      completedByAnime.size +
+      events.length +
+      feedback.length;
     const completedEpisodes = history.length;
 
     const completionStatuses = library.filter((item) => {
@@ -288,6 +333,8 @@ export async function GET(request: Request) {
       excludedAnimeIds,
       completedAnimeIds,
       droppedAnimeIds,
+      likedAnimeIds,
+      explicitFeedbackCount: feedback.length,
       topGenres,
     };
 
