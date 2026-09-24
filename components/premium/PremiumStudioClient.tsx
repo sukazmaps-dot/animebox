@@ -428,7 +428,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     return supabase.storage.from('profile-media').getPublicUrl(path).data.publicUrl;
   }
 
-  const avatarUrl = publicMediaUrl(settings.avatarPath || settings.avatarStaticPath) || '/premium/premium-user.webp';
+  const avatarUrl = publicMediaUrl(settings.avatarPath || settings.avatarStaticPath);
   const bannerUrl = publicMediaUrl(settings.bannerPath || settings.bannerStaticPath);
   const avatarTransform = {
     x: settings.avatarPositionX,
@@ -908,7 +908,24 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                   <div />
                 </div>
                 <div className="premium-studio-v12__preview-body premium-studio-v15__preview-body">
-                  <img className="premium-studio-v12__preview-avatar" src={avatarUrl} alt="" loading="lazy" decoding="async" style={premiumMediaStyle(avatarTransform) as CSSProperties} />
+                  {avatarUrl ? (
+                    <img
+                      className="premium-studio-v12__preview-avatar"
+                      src={avatarUrl}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      style={premiumMediaStyle(avatarTransform) as CSSProperties}
+                    />
+                  ) : (
+                    <span className="premium-studio-v20__avatar-placeholder" aria-hidden="true">
+                      <svg viewBox="0 0 64 64" focusable="false">
+                        <circle cx="32" cy="24" r="10" />
+                        <path d="M14 54c2-12 9-18 18-18s16 6 18 18" />
+                        <path d="m48 14 2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" />
+                      </svg>
+                    </span>
+                  )}
                   <div className="premium-studio-v15__preview-copy">
                     <div className="premium-studio-v15__preview-badges">
                       <span>ANIMEBOX PREMIUM</span>
@@ -1021,7 +1038,22 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
 
               <div className="premium-studio-v12__media-grid premium-studio-v15__media-grid premium-studio-v16__media-grid premium-studio-v19__media-grid">
                 <article className="premium-studio-v19__media-card">
-                  <div className="premium-studio-v12__media-preview is-avatar"><img src={avatarUrl} alt="Предпросмотр Premium-аватара" style={premiumMediaStyle(avatarTransform) as CSSProperties} /></div>
+                  <div className="premium-studio-v12__media-preview is-avatar">
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt="Предпросмотр Premium-аватара"
+                        style={premiumMediaStyle(avatarTransform) as CSSProperties}
+                      />
+                    ) : (
+                      <span className="premium-studio-v20__media-avatar-placeholder" aria-hidden="true">
+                        <svg viewBox="0 0 64 64" focusable="false">
+                          <circle cx="32" cy="24" r="10" />
+                          <path d="M14 54c2-12 9-18 18-18s16 6 18 18" />
+                        </svg>
+                      </span>
+                    )}
+                  </div>
                   <div className="premium-studio-v16__media-copy"><strong>Аватар</strong><small>до 2 МБ · WEBP / GIF / PNG / JPG</small></div>
                   <p className="premium-studio-v19__media-hint">После выбора файла откроется кадрирование 1:1. Перетащи лицо/главный объект в нужную точку и увеличь при необходимости.</p>
                   <div className="premium-studio-v19__media-actions">
