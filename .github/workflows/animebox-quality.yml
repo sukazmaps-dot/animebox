@@ -117,6 +117,15 @@ jobs:
           components/settings/SettingsClient.tsx
           components/AnimeRatingControl.tsx
           components/CommunityProfile.tsx
+          components/profile/ProfileWidgetsShowcase.tsx
+          components/profile/ProfileWidgetEditor.tsx
+          lib/profile-widgets-server.ts
+          types/profile-widgets.ts
+          app/api/community/profile-widgets/route.ts
+          app/api/community/profile/route.ts
+          lib/public-profile-server.ts
+          app/profile/[id]/page.tsx
+          app/profile/page.tsx
           app/api/community/rating/route.ts
           app/anime/[slug]/page.tsx
 
