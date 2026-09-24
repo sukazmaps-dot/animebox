@@ -61,6 +61,7 @@ export default function MobileAccountNav({ pathname }: Props) {
     pathname.startsWith('/favorites') ||
     pathname.startsWith('/schedule') ||
     pathname.startsWith('/about') ||
+    pathname.startsWith('/copyright') ||
     pathname.startsWith('/leaderboard') ||
     pathname.startsWith('/premium') ||
     pathname.startsWith('/settings') ||
@@ -319,6 +320,19 @@ export default function MobileAccountNav({ pathname }: Props) {
                 <span>
                   <strong>О проекте</strong>
                   <small>Что такое AnimeBox</small>
+                </span>
+                <Icon name="chevron" />
+              </Link>
+
+              <Link
+                href="/copyright"
+                className="mobile-account__link"
+                onClick={() => setOpen(false)}
+              >
+                <Icon name="mail" />
+                <span>
+                  <strong>Правообладателям</strong>
+                  <small>Обращения по материалам AnimeBox</small>
                 </span>
                 <Icon name="chevron" />
               </Link>
