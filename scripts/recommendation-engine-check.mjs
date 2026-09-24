@@ -4,6 +4,7 @@ const read = (path) =>
   fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
 const taste = read('app/api/recommendations/taste/route.ts');
+const tasteGraph = read('lib/taste-graph.ts');
 const feedback = read('app/api/recommendations/feedback/route.ts');
 const card = read('components/SmartRecommendationCard.tsx');
 const feed = read('components/SmartRecommendationFeed.tsx');
@@ -66,6 +67,43 @@ if (
 }
 if (!taste.includes('recommendation_feedback')) {
   failures.push('Taste Graph does not consume explicit feedback');
+}
+if (
+  !tasteGraph.includes("TASTE_GRAPH_VERSION = 'taste-v6'") ||
+  !tasteGraph.includes('averageRating') ||
+  !tasteGraph.includes('explorationRate') ||
+  !tasteGraph.includes('moodWeights') ||
+  !tasteGraph.includes('signalBreakdown')
+) {
+  failures.push('17.8.2 Taste Graph v6 contract is incomplete');
+}
+if (
+  !taste.includes(".from('anime_ratings')") ||
+  !taste.includes("score >= 9") ||
+  !taste.includes("score <= 4")
+) {
+  failures.push('Taste Graph does not weight explicit 1-10 ratings');
+}
+if (
+  !taste.includes("status === 'completed' || status === 'dropped'") ||
+  !taste.includes('completedTitles / resolvedStatuses.length')
+) {
+  failures.push('Taste Graph completion rate does not use resolved titles');
+}
+if (
+  !taste.includes("recommendation_mood_change") ||
+  !taste.includes('normalizeMoodWeights') ||
+  !taste.includes("item.signal === 'less_like_this'") ||
+  !taste.includes("item.signal === 'hidden'")
+) {
+  failures.push('Taste Graph is missing mood or negative-feedback signals');
+}
+if (
+  !taste.includes('Math.LN2') ||
+  !taste.includes('effectiveSample') ||
+  !taste.includes('0.2 - confidence * 0.1')
+) {
+  failures.push('Taste Graph is missing decay/confidence/exploration modelling');
 }
 if (!feed.includes('buildRecommendationRails')) {
   failures.push('Netflix-style recommendation rails are not wired');
