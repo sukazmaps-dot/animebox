@@ -12,7 +12,7 @@ export const PROFILE_WIDGET_TITLES: Record<ProfileWidgetKey, string> = {
   favorites: 'Любимые аниме',
   watching: 'Смотрю сейчас',
   ratings: 'Мои оценки',
-  genres: 'Anime DNA',
+  genres: 'Слепок вкуса',
   activity: 'Последняя активность',
 };
 
@@ -256,6 +256,34 @@ function WidgetBody({
   return <ActivityWidget data={data} />;
 }
 
+function ProfileWidgetCard({
+  item,
+  data,
+}: {
+  item: { key: ProfileWidgetKey };
+  data: ProfileWidgetsData;
+}) {
+  return (
+    <article
+      className="profile-widget"
+      data-widget={item.key}
+      key={item.key}
+    >
+      <div className="profile-widget__head">
+        <span>{PROFILE_WIDGET_TITLES[item.key]}</span>
+        <small>
+          {item.key === 'favorites' && 'выбор пользователя'}
+          {item.key === 'watching' && 'из трекера'}
+          {item.key === 'ratings' && 'AnimeBox score'}
+          {item.key === 'genres' && 'по активности'}
+          {item.key === 'activity' && 'последние события'}
+        </small>
+      </div>
+      <WidgetBody widget={item.key} data={data} />
+    </article>
+  );
+}
+
 export default function ProfileWidgetsShowcase({
   data,
   actions,
@@ -268,6 +296,14 @@ export default function ProfileWidgetsShowcase({
   const visible = [...data.layout]
     .filter((item) => item.visible)
     .sort((a, b) => a.position - b.position);
+
+  const favorites = visible.filter((item) => item.key === 'favorites');
+  const leftColumn = visible.filter(
+    (item) => item.key === 'watching' || item.key === 'activity',
+  );
+  const rightColumn = visible.filter(
+    (item) => item.key === 'ratings' || item.key === 'genres',
+  );
 
   if (!visible.length && !actions) return null;
 
@@ -283,26 +319,30 @@ export default function ProfileWidgetsShowcase({
       </div>
 
       {visible.length ? (
-        <div className="profile-widgets-grid">
-          {visible.map((item) => (
-            <article
-              className="profile-widget"
-              data-widget={item.key}
-              key={item.key}
-            >
-              <div className="profile-widget__head">
-                <span>{PROFILE_WIDGET_TITLES[item.key]}</span>
-                <small>
-                  {item.key === 'favorites' && 'выбор пользователя'}
-                  {item.key === 'watching' && 'из трекера'}
-                  {item.key === 'ratings' && 'AnimeBox score'}
-                  {item.key === 'genres' && 'по активности'}
-                  {item.key === 'activity' && 'последние события'}
-                </small>
+        <div className="profile-widgets-layout">
+          {favorites.length > 0 && (
+            <div className="profile-widgets-layout__featured">
+              {favorites.map((item) => (
+                <ProfileWidgetCard item={item} data={data} key={item.key} />
+              ))}
+            </div>
+          )}
+
+          {(leftColumn.length > 0 || rightColumn.length > 0) && (
+            <div className="profile-widgets-layout__columns">
+              <div className="profile-widgets-layout__column" data-column="activity">
+                {leftColumn.map((item) => (
+                  <ProfileWidgetCard item={item} data={data} key={item.key} />
+                ))}
               </div>
-              <WidgetBody widget={item.key} data={data} />
-            </article>
-          ))}
+
+              <div className="profile-widgets-layout__column" data-column="insights">
+                {rightColumn.map((item) => (
+                  <ProfileWidgetCard item={item} data={data} key={item.key} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="profile-widgets-shell__all-hidden">
