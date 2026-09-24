@@ -1322,7 +1322,12 @@ export default function AnimePlayer({
       : 0;
 
     queueMicrotask(() => {
-      if (active) applyResumeTarget(localPosition);
+      if (active) {
+        applyResumeTarget(
+          localPosition,
+          localPosition > 0 ? 'local' : 'none',
+        );
+      }
     });
 
     // Local storage is a crash journal only. Authenticated watch-time,
@@ -1353,9 +1358,47 @@ export default function AnimePlayer({
           : 0;
         const localUpdatedAt = localProgress?.updatedAt ?? 0;
 
-        // A newer device-local crash journal wins only as a resume position.
-        // It still grants zero server watch credit.
-        if (localPosition > 0 && localUpdatedAt > serverUpdatedAt) {
+        if (payload.state.completed) {
+          removeWatchProgress(animeId, episodeNumber, user.id);
+          removeWatchProgress(animeId, episodeNumber, null);
+          applyResumeTarget(0);
+          return;
+        }
+
+        const positionSeconds = Math.floor(payload.state.positionMs / 1000);
+        const durationSeconds =
+          payload.state.durationMs == null
+            ? 0
+            : Math.floor(payload.state.durationMs / 1000);
+        const serverUsable = isUsableResumePosition(
+          positionSeconds,
+          durationSeconds,
+        );
+        const localUsable = localPosition > 0;
+
+        // A 0/near-end server marker is not allowed to erase a useful crash
+        // journal from another device. Among two usable positions the freshest
+        // observation wins; neither source grants watch credit by itself.
+        const localWins =
+          localUsable &&
+          (!serverUsable || localUpdatedAt > serverUpdatedAt);
+
+        if (
+          localUsable &&
+          serverUsable &&
+          Math.abs(localPosition - positionSeconds) >= 15
+        ) {
+          trackPlayerEvent('player_resume_conflict', {
+            localSeconds: localPosition,
+            serverSeconds: positionSeconds,
+            deltaSeconds: Math.abs(localPosition - positionSeconds),
+            selected: localWins ? 'local' : 'server',
+            localAgeMs: Math.max(0, Date.now() - localUpdatedAt),
+            serverAgeMs: Math.max(0, Date.now() - serverUpdatedAt),
+          });
+        }
+
+        if (localWins) {
           if (
             localProgress &&
             localProgress.viewerKey === 'guest' &&
@@ -1370,23 +1413,15 @@ export default function AnimePlayer({
             );
             removeWatchProgress(animeId, episodeNumber, null);
           }
+
+          applyResumeTarget(
+            localPosition,
+            serverUsable ? 'local_newer' : 'local',
+          );
           return;
         }
 
-        if (payload.state.completed) {
-          removeWatchProgress(animeId, episodeNumber, user.id);
-          removeWatchProgress(animeId, episodeNumber, null);
-          applyResumeTarget(0);
-          return;
-        }
-
-        const positionSeconds = Math.floor(payload.state.positionMs / 1000);
-        const durationSeconds =
-          payload.state.durationMs == null
-            ? 0
-            : Math.floor(payload.state.durationMs / 1000);
-
-        if (!isUsableResumePosition(positionSeconds, durationSeconds)) {
+        if (!serverUsable) {
           removeWatchProgress(animeId, episodeNumber, user.id);
           removeWatchProgress(animeId, episodeNumber, null);
           applyResumeTarget(0);
@@ -1397,7 +1432,7 @@ export default function AnimePlayer({
         // crash journal will be written again as soon as playback advances.
         removeWatchProgress(animeId, episodeNumber, user.id);
         removeWatchProgress(animeId, episodeNumber, null);
-        applyResumeTarget(positionSeconds);
+        applyResumeTarget(positionSeconds, 'server');
       })
       .catch(() => undefined);
 
@@ -1411,6 +1446,7 @@ export default function AnimePlayer({
     episodeNumber,
     user?.id,
     watchTogetherMode,
+    trackPlayerEvent,
   ]);
 
   useEffect(() => {
