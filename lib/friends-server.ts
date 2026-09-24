@@ -20,6 +20,7 @@ export type FriendCard = {
   direction: 'incoming' | 'outgoing' | 'friend';
   createdAt: string;
   acceptedAt: string | null;
+  online: boolean;
 };
 
 type FriendshipRow = {
@@ -310,6 +311,39 @@ export async function listFriends(userId: string) {
 
   const appearances = await resolvePublicAppearances([...profiles.values()]);
 
+  const [privacyResult, presenceResult] = otherIds.length
+    ? await Promise.all([
+        admin
+          .from('social_privacy')
+          .select('user_id,show_online_to_friends')
+          .in('user_id', otherIds),
+        admin
+          .from('social_presence')
+          .select('user_id,last_seen_at')
+          .in('user_id', otherIds),
+      ])
+    : [
+        { data: [], error: null },
+        { data: [], error: null },
+      ];
+
+  if (privacyResult.error) throw privacyResult.error;
+  if (presenceResult.error) throw presenceResult.error;
+
+  const onlinePrivacyByUser = new Map(
+    (privacyResult.data ?? []).map((item) => [
+      item.user_id,
+      item.show_online_to_friends,
+    ]),
+  );
+  const presenceByUser = new Map(
+    (presenceResult.data ?? []).map((item) => [
+      item.user_id,
+      item.last_seen_at,
+    ]),
+  );
+  const onlineCutoff = Date.now() - 2 * 60_000;
+
   const cards = rows.flatMap((row): FriendCard[] => {
     const otherId = row.user_a === userId ? row.user_b : row.user_a;
     const profile = profiles.get(otherId);
@@ -328,6 +362,14 @@ export async function listFriends(userId: string) {
       direction: accepted ? 'friend' : incoming ? 'incoming' : 'outgoing',
       createdAt: row.created_at,
       acceptedAt: row.accepted_at,
+      online:
+        accepted &&
+        (onlinePrivacyByUser.get(otherId) ?? true) &&
+        (() => {
+          const lastSeenAt = presenceByUser.get(otherId);
+          const parsed = lastSeenAt ? Date.parse(lastSeenAt) : 0;
+          return Number.isFinite(parsed) && parsed >= onlineCutoff;
+        })(),
     }];
   });
 

@@ -94,6 +94,7 @@ import ProductAnalyticsTracker from '@/components/analytics/ProductAnalyticsTrac
 import DeferredYandexMetrika from '@/components/analytics/DeferredYandexMetrika';
 import ProgressionCelebration from '@/components/ProgressionCelebration';
 import TelegramWelcomePromo from '@/components/TelegramWelcomePromo';
+import SocialPresenceHeartbeat from '@/components/social/SocialPresenceHeartbeat';
 
 import { Analytics } from '@vercel/analytics/next';
 
@@ -406,6 +407,7 @@ export default function RootLayout({
 
             <TelegramMiniAppBridge />
             <ProductAnalyticsTracker />
+            <SocialPresenceHeartbeat />
             <ProgressionCelebration />
             <TelegramWelcomePromo />
 

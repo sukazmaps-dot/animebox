@@ -12,6 +12,7 @@ import { assertCanComment } from '@/lib/admin-server';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
 import { resolvePublicAppearances, type PublicResolvedAppearance } from '@/lib/public-avatar-server';
 import { enforceIpAndUserRateLimit, enforceIpRateLimit } from '@/lib/api-rate-limit';
+import { publishEpisodeCommentSocialEffects } from '@/lib/social-comment-effects-server';
 
 const MAX_COMMENT_LENGTH = 4000;
 
@@ -812,6 +813,31 @@ export async function POST(
           status: 500,
         },
       );
+    }
+
+    const createdCommentId =
+      data &&
+      typeof data === 'object' &&
+      'id' in data &&
+      typeof data.id === 'string'
+        ? data.id
+        : '';
+
+    if (createdCommentId) {
+      try {
+        await publishEpisodeCommentSocialEffects({
+          commentId: createdCommentId,
+          userId: user.id,
+          animeId,
+          episode,
+          parentId: typeof parentId === 'string' ? parentId : null,
+          body,
+        });
+      } catch (socialError) {
+        // Discussion posting is the product path. Social side-effects are
+        // intentionally fail-open and may recover on a later interaction.
+        console.error('[COMMENTS SOCIAL EFFECTS]', socialError);
+      }
     }
 
 

@@ -6,11 +6,24 @@ import styles from './CommunityAdminClient.module.css';
 
 type Dashboard = {
   role: 'owner' | 'admin' | 'moderator';
-  metrics: { messages24h: number; activeChatters24h: number; openReports: number; restrictedUsers: number };
+  metrics: {
+    messages24h: number;
+    comments24h: number;
+    activeChatters24h: number;
+    acceptedFriendships: number;
+    onlineNow: number;
+    openReports: number;
+    restrictedUsers: number;
+  };
   settings: { slowModeSeconds: number; pinnedMessageId: string | null; updatedAt: string | null };
   reports: Array<{
     id: string; message_id: string; reporter_id: string; reason: string; details: string | null; created_at: string;
     messageBody: string; authorId: string | null; authorUsername: string; reporterUsername: string;
+  }>;
+  commentReports: Array<{
+    id: string; comment_id: string; reporter_id: string; reason: string; details: string | null; created_at: string;
+    commentBody: string; authorId: string | null; authorUsername: string; reporterUsername: string;
+    animeId: number | null; episode: number | null;
   }>;
   controls: Array<{ user_id: string; username: string; status: string; note: string | null; expires_at: string | null; updated_at: string }>;
 };
@@ -68,7 +81,10 @@ export default function CommunityAdminClient() {
 
       <section className={styles.metrics}>
         <article><span>Сообщений · 24ч</span><strong>{data.metrics.messages24h}</strong></article>
-        <article><span>Писали · 24ч</span><strong>{data.metrics.activeChatters24h}</strong></article>
+        <article><span>Комментариев · 24ч</span><strong>{data.metrics.comments24h}</strong></article>
+        <article><span>Писали в чат · 24ч</span><strong>{data.metrics.activeChatters24h}</strong></article>
+        <article><span>В друзьях</span><strong>{data.metrics.acceptedFriendships}</strong></article>
+        <article><span>Онлайн сейчас</span><strong>{data.metrics.onlineNow}</strong></article>
         <article><span>Открытых жалоб</span><strong>{data.metrics.openReports}</strong></article>
         <article><span>Ограничено</span><strong>{data.metrics.restrictedUsers}</strong></article>
       </section>
@@ -115,6 +131,120 @@ export default function CommunityAdminClient() {
             </article>
           ))}
           {!data.reports.length && <p className={styles.empty}>Открытых жалоб нет.</p>}
+        </div>
+      </section>
+
+      <section className={styles.card}>
+        <div className={styles.sectionHead}>
+          <div>
+            <span className={styles.eyebrow}>EPISODE COMMENT REPORTS</span>
+            <h2>Жалобы на обсуждения</h2>
+          </div>
+          <strong>{data.commentReports.length}</strong>
+        </div>
+
+        <div className={styles.reports}>
+          {data.commentReports.map((report) => (
+            <article key={report.id} className={styles.report}>
+              <div className={styles.reportTop}>
+                <span>{report.reason}</span>
+                <time>{new Date(report.created_at).toLocaleString('ru-RU')}</time>
+              </div>
+
+              <p>{report.commentBody}</p>
+
+              <small>
+                Автор:{' '}
+                <Link href={report.authorId ? `/profile/${report.authorId}` : '#'}>
+                  {report.authorUsername}
+                </Link>
+                {' · '}пожаловался: {report.reporterUsername}
+                {report.episode ? ` · серия ${report.episode}` : ''}
+                {report.details ? ` · ${report.details}` : ''}
+              </small>
+
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  disabled={Boolean(busy)}
+                  onClick={() =>
+                    void action(`comment-dismiss:${report.id}`, {
+                      action: 'resolve_comment_report',
+                      reportId: report.id,
+                      status: 'dismissed',
+                    })
+                  }
+                >
+                  Отклонить
+                </button>
+
+                <button
+                  type="button"
+                  disabled={Boolean(busy)}
+                  onClick={() =>
+                    void action(`comment-delete:${report.id}`, {
+                      action: 'delete_comment',
+                      commentId: report.comment_id,
+                    })
+                  }
+                >
+                  Удалить комментарий
+                </button>
+
+                {report.authorId && (
+                  <button
+                    type="button"
+                    disabled={Boolean(busy)}
+                    onClick={() =>
+                      void action(`comment-mute:${report.id}`, {
+                        action: 'mute_user',
+                        userId: report.authorId,
+                        minutes: 60,
+                        reason: `Жалоба на комментарий: ${report.reason}`,
+                      })
+                    }
+                  >
+                    Mute 1ч
+                  </button>
+                )}
+
+                {report.authorId && data.role !== 'moderator' && (
+                  <button
+                    type="button"
+                    className={styles.danger}
+                    disabled={Boolean(busy)}
+                    onClick={() =>
+                      void action(`comment-ban:${report.id}`, {
+                        action: 'ban_user',
+                        userId: report.authorId,
+                        reason: `Жалоба на комментарий: ${report.reason}`,
+                      })
+                    }
+                  >
+                    Ban
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  disabled={Boolean(busy)}
+                  onClick={() =>
+                    void action(`comment-done:${report.id}`, {
+                      action: 'resolve_comment_report',
+                      reportId: report.id,
+                      status: 'actioned',
+                    })
+                  }
+                >
+                  Закрыть как обработанную
+                </button>
+              </div>
+            </article>
+          ))}
+
+          {!data.commentReports.length && (
+            <p className={styles.empty}>Жалоб на комментарии нет.</p>
+          )}
         </div>
       </section>
 
