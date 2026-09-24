@@ -3844,3 +3844,59 @@ label input:checked + span::before {
     padding: 14px 0;
   }
 }
+
+
+/* =========================================================
+   Patch 17.7 — Episode discussion moderation
+   ========================================================= */
+
+.episode-comment__report {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+  padding-left: 48px;
+}
+
+.episode-comment__report select,
+.episode-comment__report button {
+  min-height: 32px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 9px;
+  background: rgba(8,12,22,.9);
+  color: rgba(213,216,229,.65);
+  font-size: 9px;
+}
+
+.episode-comment__report select {
+  min-width: 150px;
+  padding: 0 9px;
+}
+
+.episode-comment__report button {
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.episode-comment__report button:hover:not(:disabled) {
+  border-color: rgba(215,102,128,.22);
+  color: #e6a4b3;
+}
+
+.episode-comment:target {
+  border-color: rgba(157,128,244,.32);
+  box-shadow: 0 0 0 2px rgba(126,91,221,.05);
+}
+
+@media (max-width: 700px) {
+  .episode-comment__report {
+    padding-left: 0;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .episode-comment__report select,
+  .episode-comment__report button {
+    width: 100%;
+  }
+}
