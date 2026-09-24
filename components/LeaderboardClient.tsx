@@ -53,8 +53,6 @@ function formatWatchTime(ms: number) {
   return `${hours} ч ${minutes} мин`;
 }
 
-const rankTitles: Record<number, string> = { 1: 'На вершине', 2: 'Серебряный призёр', 3: 'Бронзовый призёр' };
-
 function Avatar({ entry, className = '' }: { entry: Entry; className?: string }) {
   const [failed, setFailed] = useState(false);
   return entry.avatarUrl && !failed
@@ -201,7 +199,6 @@ export default function LeaderboardClient() {
                 aria-label={`${entry.rank} место: ${entry.username}, ${formatWatchTime(entry.activeMs)}`}
               >
                 <span className={styles.cardTexture} aria-hidden="true" />
-                <span className={styles.rankGhost} aria-hidden="true">{entry.rank}</span>
                 <span className={styles.placeLabel}>{entry.rank === 1 ? 'ЛИДЕР РЕЙТИНГА' : `${entry.rank} / ПРИЗОВОЕ МЕСТО`}</span>
                 <ProfilePreview
                   userId={entry.userId}
@@ -227,7 +224,6 @@ export default function LeaderboardClient() {
                     <span className={styles.rankSeal}>{entry.rank}</span>
                   </span>
                 </ProfilePreview>
-                <span className={styles.rankTitle}>{rankTitles[entry.rank]}</span>
                 <ProfilePreview
                   userId={entry.userId}
                   username={entry.username}
@@ -247,7 +243,7 @@ export default function LeaderboardClient() {
                 <span className={styles.timeLabel}>подтверждённого просмотра</span>
                 <div className={styles.cardFooter}>
                   <span>{entry.completedEpisodes} эп. завершено</span>
-                  <Link href={`/profile/${entry.userId}`}>Профиль ↗</Link>
+                  <Link className={styles.cardProfileAction} href={`/profile/${entry.userId}`}>Профиль <span aria-hidden="true">↗</span></Link>
                 </div>
               </article>
             ))}
