@@ -100,7 +100,14 @@ export default function SmartRecommendationCard({
             impressionSentRef.current = true;
             trackRecommendationEvent({
               type: 'impression',
-              ...eventContext,
+              animeId: anime.id,
+              impressionId: impressionIdRef.current,
+              position,
+              source,
+              mood,
+              recommendationSessionId,
+              matchScore: matchScore ?? undefined,
+              reason,
             });
             observer.disconnect();
           }, 1000);
