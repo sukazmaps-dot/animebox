@@ -478,8 +478,12 @@ export default function SmartRecommendationFeed({
                 className="smart-feed__rail"
                 ariaLabel={rail.title}
                 stepRatio={0.82}
-                hasMore={hasMore}
-                onEndReached={() => void fetchNextPage()}
+                hasMore={rail.id === 'endless' ? hasMore : false}
+                onEndReached={
+                  rail.id === 'endless'
+                    ? () => void fetchNextPage()
+                    : undefined
+                }
               >
                 {rail.items.map((recommendation, index) => (
                   <div
@@ -504,7 +508,7 @@ export default function SmartRecommendationFeed({
                 ))}
 
                 {isFetchingMore &&
-                  railIndex === rails.length - 1 &&
+                  rail.id === 'endless' &&
                   Array.from({ length: 4 }).map((_, index) => (
                     <div
                       className="smart-feed__slide smart-feed__slide--skeleton"
