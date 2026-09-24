@@ -170,6 +170,12 @@ const AUTO_NEXT_COUNTDOWN_SECONDS = 5;
 
 type SourceLoadState = 'idle' | 'loading' | 'ready' | 'error' | 'timeout';
 type PlayerFailureKind = Extract<SourceLoadState, 'error' | 'timeout'>;
+type ResumeOrigin =
+  | 'none'
+  | 'local'
+  | 'local_newer'
+  | 'server'
+  | 'source_switch';
 
 function normalizePreferenceValue(value?: string) {
   return value?.trim().toLocaleLowerCase('ru-RU') || '';
@@ -387,6 +393,7 @@ export default function AnimePlayer({
   const [telegramAndroidMiniApp, setTelegramAndroidMiniApp] = useState(false);
   const [telegramPseudoFullscreen, setTelegramPseudoFullscreen] = useState(false);
   const [resumeSeconds, setResumeSeconds] = useState(0);
+  const [resumeOrigin, setResumeOrigin] = useState<ResumeOrigin>('none');
   const [endScreenOpen, setEndScreenOpen] = useState(false);
   const [autoNextSeconds, setAutoNextSeconds] = useState<number | null>(null);
   const [skipOpeningVisible, setSkipOpeningVisible] = useState(false);
@@ -410,6 +417,8 @@ export default function AnimePlayer({
     'initial_auto' | 'manual' | 'manual_preference' | 'auto_score' | 'fallback' | 'retry' | 'translation'
   >(sourceMode === 'manual' ? 'manual_preference' : 'initial_auto');
   const resumeAppliedRef = useRef(false);
+  const resumeTelemetryTrackedRef = useRef(false);
+  const resumeOriginRef = useRef<ResumeOrigin>('none');
   const resumeGateRef = useRef<{
     targetSeconds: number;
     createdAt: number;
@@ -446,7 +455,10 @@ export default function AnimePlayer({
     source: 'native',
   });
 
-  const applyResumeTarget = useCallback((seconds: number) => {
+  const applyResumeTarget = useCallback((
+    seconds: number,
+    origin: ResumeOrigin = 'none',
+  ) => {
     const target = Number.isFinite(seconds)
       ? Math.max(0, Math.floor(seconds))
       : 0;
@@ -458,6 +470,9 @@ export default function AnimePlayer({
             createdAt: Date.now(),
           }
         : null;
+    resumeOriginRef.current = target > 0 ? origin : 'none';
+    resumeTelemetryTrackedRef.current = false;
+    setResumeOrigin(target > 0 ? origin : 'none');
     setResumeSeconds(target);
   }, []);
 
