@@ -670,6 +670,7 @@ export default function AnimePlayer({
   });
 
   const trackingMessage = watchSession.message;
+  const trackingRecovering = watchSession.recovering;
   const serverWatchSample = watchSession.onSample;
 
   const persistLocalProgress = useCallback(
@@ -2748,8 +2749,18 @@ export default function AnimePlayer({
       </div>
 
       {trackingMessage && (
-        <p role="status" className="border-t border-white/[0.04] px-4 py-2 text-center text-[10px] text-white/25">
-          {trackingMessage}
+        <p
+          role="status"
+          className="animebox-player-sync-status flex items-center justify-center gap-2 px-4 py-2 text-center text-[10px]"
+          data-recovery={trackingRecovering ? 'true' : 'false'}
+        >
+          {trackingRecovering && (
+            <span
+              className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-violet-300"
+              aria-hidden="true"
+            />
+          )}
+          <span>{trackingMessage}</span>
         </p>
       )}
     </section>
