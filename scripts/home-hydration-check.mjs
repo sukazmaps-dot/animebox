@@ -49,21 +49,20 @@ if (
   );
 }
 
-const recommendationsBlock =
+const recommendationEffect =
   feedRuntime.match(
-    /const smartRecommendations = useMemo\(\(\) => \{[\s\S]*?\}, \[[\s\S]*?\]\);/,
+    /useEffect\(\(\) => \{[\s\S]*?import\('@\/lib\/recommendations'\)[\s\S]*?\}, \[[\s\S]*?tasteRevision,[\s\S]*?\]\);/,
   )?.[0] ?? '';
 
 if (
-  !recommendationsBlock.includes(
-    'if (!hydrated) return [];',
-  ) ||
-  !recommendationsBlock.includes(
+  !recommendationEffect.includes('if (!hydrated) return;') ||
+  !recommendationEffect.includes(
     'getPersonalizedRecommendations',
-  )
+  ) ||
+  !recommendationEffect.includes('requestIdleCallback')
 ) {
   failures.push(
-    'Personalized recommendations lost their hydration guard.',
+    'Personalized recommendations must stay post-hydration and idle-loaded.',
   );
 }
 
