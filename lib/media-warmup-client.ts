@@ -9,7 +9,6 @@ type WarmupCallback = (activation: MediaWarmupActivation) => void;
 
 const callbacks = new WeakMap<Element, WarmupCallback>();
 let observer: IntersectionObserver | null = null;
-let observerMargin = '';
 
 function connectionInfo() {
   if (typeof navigator === 'undefined') return null;
@@ -50,14 +49,9 @@ function getObserver() {
     return null;
   }
 
+  if (observer) return observer;
+
   const margin = resolveMediaWarmupRootMargin();
-
-  if (observer && observerMargin === margin) {
-    return observer;
-  }
-
-  observer?.disconnect();
-  observerMargin = margin;
 
   observer = new IntersectionObserver(
     (entries) => {
