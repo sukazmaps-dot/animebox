@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { slugify } from './anime-url';
+import { slugify, stableAnimeSlug } from './anime-url';
 
 type Row = {
   id: number;
@@ -32,16 +32,6 @@ function usesStatelessRegistry(): boolean {
   // When no external/persistent path is configured, use deterministic slugs
   // and keep only request-instance metadata in memory instead of crashing.
   return Boolean(process.env.VERCEL && !process.env.ANIMEBOX_DB_PATH);
-}
-
-function stableSlug(id: number, title: string): string {
-  const normalized = slugify(title);
-  const base = /^\d+$/.test(normalized) || ['sources', 'soursces', 'stream'].includes(normalized)
-    ? `anime-${normalized}`
-    : normalized;
-
-  // The AniList id makes the slug deterministic and collision-free without DB state.
-  return `${base}-${id}`;
 }
 
 function db(): Database {
@@ -83,7 +73,7 @@ export function registerAnime<T extends RoutableAnime>(anime: T): T & { slug: st
       anime.title.native ||
       'anime';
 
-    const slug = stableSlug(anime.id, title);
+    const slug = stableAnimeSlug(anime.id, title);
     const previous = memoryById.get(anime.id);
     const row: Row = {
       id: anime.id,

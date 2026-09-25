@@ -139,7 +139,7 @@ export default function SystemHealthDashboard() {
     <section className={styles.dashboard} aria-label="AnimeBox System Health">
       <header className={styles.header}>
         <div>
-          <span className={styles.eyebrow}>LOAD & FAILURE SHIELD · 18.5.5.4</span>
+          <span className={styles.eyebrow}>SEO INDEX QUALITY · 18.5.5.5</span>
           <h1>System Health</h1>
           <p>
             Единый production-снимок: API, база и полный playback journey —
@@ -328,6 +328,30 @@ export default function SystemHealthDashboard() {
               <strong>{number(health.signals.upstreamQueued)}</strong>
               <small>this server instance</small>
             </article>
+            <article>
+              <span>SEO titles</span>
+              <strong>
+                {health.seo.available ? number(health.seo.animeIndexable) : '—'}
+              </strong>
+              <small>
+                {health.seo.available
+                  ? `${number(health.seo.animeNoindex)} quality-noindex`
+                  : 'registry unavailable'}
+              </small>
+            </article>
+            <article>
+              <span>SEO stale</span>
+              <strong>
+                {health.seo.available
+                  ? number(health.seo.animeStale + health.seo.episodeStale)
+                  : '—'}
+              </strong>
+              <small>
+                {health.seo.available
+                  ? `${number(health.seo.animeStale)} titles · ${number(health.seo.episodeStale)} episodes`
+                  : 'registry unavailable'}
+              </small>
+            </article>
           </div>
 
           <div className={styles.grid}>
@@ -453,6 +477,47 @@ export default function SystemHealthDashboard() {
                         ? 'connected'
                         : 'missing'}
                   </dd>
+                </div>
+              </dl>
+            </section>
+
+            <section className={styles.panel}>
+              <div className={styles.panelHead}>
+                <div>
+                  <span>SEO INDEX</span>
+                  <strong>Canonical crawl inventory</strong>
+                </div>
+                <small>
+                  {health.seo.available
+                    ? `verified ${time(health.seo.lastAnimeVerifiedAt)}`
+                    : 'registry unavailable'}
+                </small>
+              </div>
+
+              <dl className={styles.metrics}>
+                <div>
+                  <dt>Indexable titles</dt>
+                  <dd>{health.seo.available ? number(health.seo.animeIndexable) : '—'}</dd>
+                </div>
+                <div>
+                  <dt>Quality noindex</dt>
+                  <dd>{health.seo.available ? number(health.seo.animeNoindex) : '—'}</dd>
+                </div>
+                <div>
+                  <dt>Stale titles</dt>
+                  <dd>{health.seo.available ? number(health.seo.animeStale) : '—'}</dd>
+                </div>
+                <div>
+                  <dt>Indexable episodes</dt>
+                  <dd>{health.seo.available ? number(health.seo.episodeIndexable) : '—'}</dd>
+                </div>
+                <div>
+                  <dt>Stale episodes</dt>
+                  <dd>{health.seo.available ? number(health.seo.episodeStale) : '—'}</dd>
+                </div>
+                <div>
+                  <dt>Video sitemap entries</dt>
+                  <dd>{health.seo.available ? number(health.seo.videoEntries) : '—'}</dd>
                 </div>
               </dl>
             </section>

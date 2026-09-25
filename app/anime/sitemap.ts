@@ -1,13 +1,14 @@
 import type { MetadataRoute } from 'next';
 
-import { slugify } from '@/lib/anime-url';
-import { getSeoAnimeShard } from '@/lib/seo-anilist';
+import { getSeoAnimeIndexShard } from '@/lib/seo-anime-index-server';
 import { ANIME_SITEMAP_SHARDS, SITE_URL } from '@/lib/seo-config';
 
 /**
- * Do not pre-render AniList-backed sitemap shards during `next build`.
- * They are generated when a crawler requests them and their data is cached in
- * lib/seo-anilist.ts for six hours.
+ * Anime sitemaps are registry-backed.
+ *
+ * Crawlers never trigger AniList/Shikimori work here. The background SEO
+ * indexer verifies and quality-gates canonical title URLs first; sitemap
+ * requests then become a bounded local Supabase read.
  */
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -24,27 +25,19 @@ export default async function sitemap({
   const shard = Number(await id);
 
   try {
-    const items = await getSeoAnimeShard(shard);
+    const items = await getSeoAnimeIndexShard(shard);
 
-    return items.map((anime) => {
-      const title =
-        anime.title.romaji ||
-        anime.title.english ||
-        anime.title.native ||
-        `anime-${anime.id}`;
-
-      return {
-        url: `${SITE_URL}/anime/${slugify(title)}-${anime.id}`,
-        lastModified: anime.updatedAt
-          ? new Date(anime.updatedAt * 1000)
-          : undefined,
-        changeFrequency: anime.status === 'RELEASING' ? 'daily' : 'weekly',
-        images: anime.image ? [anime.image] : undefined,
-      } satisfies MetadataRoute.Sitemap[number];
-    });
+    return items.map((anime) => ({
+      url: `${SITE_URL}/anime/${encodeURIComponent(anime.slug)}`,
+      lastModified: new Date(anime.lastContentChangeAt),
+      changeFrequency:
+        anime.status === 'RELEASING' ? 'daily' : 'weekly',
+      images: anime.imageUrl ? [anime.imageUrl] : undefined,
+    }));
   } catch (error) {
-    // A temporary provider outage must never break the site or deployment.
-    console.warn(`Anime sitemap shard ${shard} failed:`, error);
+    // Registry/database failure must not trigger an external provider crawl
+    // storm. Return an empty shard and let the CDN/crawler retry later.
+    console.warn(`Anime sitemap registry shard ${shard} failed:`, error);
     return [];
   }
 }
