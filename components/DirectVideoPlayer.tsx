@@ -466,6 +466,18 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
         className={`pointer-events-none absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/90 via-black/45 to-transparent px-3 pb-3 pt-16 transition-opacity duration-200 sm:px-4 sm:pb-4 ${
           controlsVisible || !playing ? 'opacity-100' : 'opacity-0'
         }`}
+        style={
+          fullscreenActive
+            ? {
+                paddingBottom:
+                  'max(0.75rem, var(--animebox-tg-safe-bottom, 0px), env(safe-area-inset-bottom))',
+                paddingLeft:
+                  'max(0.75rem, var(--animebox-tg-safe-left, 0px), env(safe-area-inset-left))',
+                paddingRight:
+                  'max(0.75rem, var(--animebox-tg-safe-right, 0px), env(safe-area-inset-right))',
+              }
+            : undefined
+        }
       >
         <div className="pointer-events-auto">
           <div className="relative mb-2 h-5 w-full touch-none">
@@ -507,7 +519,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
             <button
               type="button"
               onClick={() => seek(currentTime - 10)}
-              className="hidden h-10 min-w-10 items-center justify-center rounded-xl px-2 text-[11px] font-extrabold text-white/65 transition hover:bg-white/10 hover:text-white sm:inline-flex"
+              className="inline-flex h-10 min-w-9 items-center justify-center rounded-xl px-1.5 text-[10px] font-extrabold text-white/65 transition hover:bg-white/10 hover:text-white sm:min-w-10 sm:px-2 sm:text-[11px]"
               aria-label="Назад на 10 секунд"
             >
               −10
