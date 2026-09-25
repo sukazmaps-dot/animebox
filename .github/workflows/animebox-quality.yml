@@ -51,6 +51,9 @@ jobs:
           components/watch-party/WatchTogetherHub.tsx
           components/watch-party/WatchPartyPanel.tsx
           components/AnimePlayer.tsx
+          components/DirectVideoPlayer.tsx
+          components/useWatchSession.ts
+          lib/resume-integrity.ts
           components/HomeHeroCarousel.tsx
           lib/seo-episodes.ts
           lib/seo-episode-index.ts

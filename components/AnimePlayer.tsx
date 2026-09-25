@@ -20,6 +20,7 @@ import {
   resumeEndGuardSeconds,
   saveWatchProgress,
 } from '@/lib/watch-progress';
+import { chooseResumeCandidate } from '@/lib/resume-integrity';
 import { setAnimeProgress } from '@/lib/anime-storage';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 import {
@@ -299,6 +300,23 @@ function PlayerDropdown({
         </svg>
       </button>
 
+      <select
+        aria-label={label}
+        value={value}
+        onChange={(event) => {
+          onChange(event.target.value);
+          setOpen(false);
+        }}
+        onFocus={() => setOpen(false)}
+        className="absolute inset-0 z-[60] h-11 w-full cursor-pointer opacity-0 sm:hidden"
+      >
+        {options.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+
       <div
         className={`absolute top-[calc(100%+10px)] z-50 w-full min-w-[240px] overflow-hidden rounded-2xl border border-violet-400/15 bg-[#090d19]/[0.98] shadow-[0_24px_70px_rgba(0,0,0,0.52),0_0_0_1px_rgba(255,255,255,0.025)] backdrop-blur-xl transition duration-200 ${
           align === 'right' ? 'right-0' : 'left-0'
@@ -471,6 +489,11 @@ export default function AnimePlayer({
     const target = Number.isFinite(seconds)
       ? Math.max(0, Math.floor(seconds))
       : 0;
+
+    // A source/translation remount must be allowed to apply the same numeric
+    // resume target again. Otherwise native video can restart from zero after
+    // fallback because the previous source already marked resume as applied.
+    resumeAppliedRef.current = target <= 0;
 
     resumeGateRef.current =
       target > 0
@@ -1518,13 +1541,6 @@ export default function AnimePlayer({
           : 0;
         const localUpdatedAt = localProgress?.updatedAt ?? 0;
 
-        if (payload.state.completed) {
-          removeWatchProgress(animeId, episodeNumber, user.id);
-          removeWatchProgress(animeId, episodeNumber, null);
-          applyResumeTarget(0);
-          return;
-        }
-
         const positionSeconds = Math.floor(payload.state.positionMs / 1000);
         const durationSeconds =
           payload.state.durationMs == null
@@ -1535,13 +1551,17 @@ export default function AnimePlayer({
           durationSeconds,
         );
         const localUsable = localPosition > 0;
-
-        // A 0/near-end server marker is not allowed to erase a useful crash
-        // journal from another device. Among two usable positions the freshest
-        // observation wins; neither source grants watch credit by itself.
-        const localWins =
-          localUsable &&
-          (!serverUsable || localUpdatedAt > serverUpdatedAt);
+        const nowMs = Date.now();
+        const resumeDecision = chooseResumeCandidate({
+          serverCompleted: payload.state.completed,
+          serverUsable,
+          serverPositionSeconds: positionSeconds,
+          serverUpdatedAt,
+          localUsable,
+          localPositionSeconds: localPosition,
+          localUpdatedAt,
+          nowMs,
+        });
 
         if (
           localUsable &&
@@ -1552,13 +1572,16 @@ export default function AnimePlayer({
             localSeconds: localPosition,
             serverSeconds: positionSeconds,
             deltaSeconds: Math.abs(localPosition - positionSeconds),
-            selected: localWins ? 'local' : 'server',
-            localAgeMs: Math.max(0, Date.now() - localUpdatedAt),
-            serverAgeMs: Math.max(0, Date.now() - serverUpdatedAt),
+            selected: resumeDecision.source,
+            localAgeMs: Math.max(0, nowMs - localUpdatedAt),
+            serverAgeMs: Math.max(0, nowMs - serverUpdatedAt),
           });
         }
 
-        if (localWins) {
+        if (
+          resumeDecision.source === 'local' ||
+          resumeDecision.source === 'local_newer'
+        ) {
           if (
             localProgress &&
             localProgress.viewerKey === 'guest' &&
@@ -1575,24 +1598,29 @@ export default function AnimePlayer({
           }
 
           applyResumeTarget(
-            localPosition,
-            serverUsable ? 'local_newer' : 'local',
+            resumeDecision.positionSeconds,
+            resumeDecision.source,
           );
           return;
         }
 
-        if (!serverUsable) {
-          removeWatchProgress(animeId, episodeNumber, user.id);
-          removeWatchProgress(animeId, episodeNumber, null);
+        // Completed and near-end server states are terminal for resume. A
+        // rejected local timestamp is also discarded so clock skew cannot keep
+        // resurrecting a stale crash journal.
+        removeWatchProgress(animeId, episodeNumber, user.id);
+        removeWatchProgress(animeId, episodeNumber, null);
+
+        if (resumeDecision.source !== 'server') {
           applyResumeTarget(0);
           return;
         }
 
-        // The server won the freshness merge. Clear older local copies; a new
-        // crash journal will be written again as soon as playback advances.
-        removeWatchProgress(animeId, episodeNumber, user.id);
-        removeWatchProgress(animeId, episodeNumber, null);
-        applyResumeTarget(positionSeconds, 'server');
+        // The server won the freshness merge. A new crash journal is written
+        // again as soon as playback advances on this device.
+        applyResumeTarget(
+          resumeDecision.positionSeconds,
+          'server',
+        );
       })
       .catch(() => undefined);
 
@@ -1733,10 +1761,27 @@ export default function AnimePlayer({
       root.style.setProperty('--animebox-player-viewport-height', `${Math.round(height)}px`);
     };
 
+    const syncAfterForeground = () => {
+      if (document.visibilityState !== 'visible') return;
+
+      try {
+        telegram?.expand();
+      } catch {
+        // CSS pseudo-fullscreen remains the fallback.
+      }
+
+      syncPlayerViewport();
+    };
+
     syncPlayerViewport();
     window.visualViewport?.addEventListener('resize', syncPlayerViewport);
     window.addEventListener('resize', syncPlayerViewport);
     window.addEventListener('orientationchange', syncPlayerViewport);
+    document.addEventListener('visibilitychange', syncAfterForeground);
+    telegram?.onEvent?.('viewportChanged', syncPlayerViewport);
+    telegram?.onEvent?.('safeAreaChanged', syncPlayerViewport);
+    telegram?.onEvent?.('contentSafeAreaChanged', syncPlayerViewport);
+    telegram?.onEvent?.('fullscreenChanged', syncPlayerViewport);
 
     telegramWasFullscreenRef.current = Boolean(telegram?.isFullscreen);
     telegramFullscreenOwnedRef.current = false;
@@ -1793,6 +1838,11 @@ export default function AnimePlayer({
       window.visualViewport?.removeEventListener('resize', syncPlayerViewport);
       window.removeEventListener('resize', syncPlayerViewport);
       window.removeEventListener('orientationchange', syncPlayerViewport);
+      document.removeEventListener('visibilitychange', syncAfterForeground);
+      telegram?.offEvent?.('viewportChanged', syncPlayerViewport);
+      telegram?.offEvent?.('safeAreaChanged', syncPlayerViewport);
+      telegram?.offEvent?.('contentSafeAreaChanged', syncPlayerViewport);
+      telegram?.offEvent?.('fullscreenChanged', syncPlayerViewport);
 
       try {
         // Undo only the gesture change AnimeBox made for pseudo-fullscreen.
@@ -2202,7 +2252,10 @@ export default function AnimePlayer({
     if (started) {
       playRequestAtRef.current = performance.now();
       if (latestPlaybackPositionSecondsRef.current > 0) {
-        applyResumeTarget(latestPlaybackPositionSecondsRef.current);
+        applyResumeTarget(
+          latestPlaybackPositionSecondsRef.current,
+          'source_switch',
+        );
       }
     }
     setActiveSourceIndex(index);
@@ -2270,7 +2323,10 @@ export default function AnimePlayer({
     if (started) {
       playRequestAtRef.current = performance.now();
       if (latestPlaybackPositionSecondsRef.current > 0) {
-        applyResumeTarget(latestPlaybackPositionSecondsRef.current);
+        applyResumeTarget(
+          latestPlaybackPositionSecondsRef.current,
+          'source_switch',
+        );
       }
     }
     setActiveTranslationIndex(nextIndex);
@@ -2894,7 +2950,11 @@ export default function AnimePlayer({
             <button
               type="button"
               onClick={() => void toggleFullscreen()}
-              className="absolute right-3 top-3 z-[70] inline-flex h-10 items-center gap-2 rounded-xl border border-white/15 bg-black/65 px-3 text-[11px] font-extrabold text-white shadow-[0_12px_36px_rgba(0,0,0,.45)] backdrop-blur-md transition active:scale-95"
+              className="absolute z-[70] inline-flex h-10 items-center gap-2 rounded-xl border border-white/15 bg-black/65 px-3 text-[11px] font-extrabold text-white shadow-[0_12px_36px_rgba(0,0,0,.45)] backdrop-blur-md transition active:scale-95"
+              style={{
+                top: 'max(0.75rem, var(--animebox-tg-safe-top, 0px), env(safe-area-inset-top))',
+                right: 'max(0.75rem, var(--animebox-tg-safe-right, 0px), env(safe-area-inset-right))',
+              }}
               aria-label={
                 telegramPseudoFullscreen
                   ? 'Выйти из полного экрана'

@@ -7,6 +7,7 @@ import {
   ensureAnimeArtwork,
 } from '@/lib/community-server';
 import { coveredSeconds, mergePlayedRanges } from '@/lib/played-coverage';
+import { canonicalResumePositionMs } from '@/lib/resume-integrity';
 import type { EpisodeWatchListItem, WatchTitleOverview } from '@/types/watch';
 
 const MAX_EPISODE_MS = 28_800_000;
@@ -487,7 +488,10 @@ export async function startWatchSession(input: WatchStartInput) {
         excluded_ranges: [],
         coverage_ms: 0,
         active_ms: 0,
-        resume_position_ms: initialPosition ?? 0,
+        resume_position_ms: canonicalResumePositionMs({
+          positionMs: initialPosition,
+          durationMs,
+        }),
         last_watched_at: new Date(now).toISOString(),
         updated_at: new Date(now).toISOString(),
       },
@@ -586,7 +590,10 @@ export async function startWatchSession(input: WatchStartInput) {
           eligibleDurationMs: startDurationMs,
           rankedMs: null,
           completedAt: null,
-          resumePositionMs: initialPosition ?? 0,
+          resumePositionMs: canonicalResumePositionMs({
+            positionMs: initialPosition,
+            durationMs: startDurationMs,
+          }),
           lastWatchedAt: new Date(now).toISOString(),
         },
   };
@@ -778,6 +785,11 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
       coverageMs >= Math.floor(eligibleDurationMs * 0.9),
   );
   const completedAt = progress?.completed_at || (completedNow ? receivedAt : null);
+  const resumePositionMs = canonicalResumePositionMs({
+    positionMs: input.positionMs,
+    durationMs,
+    completed: Boolean(completedAt),
+  });
 
   const { error: progressSaveError } = await watch.from('progress').upsert(
     {
@@ -788,7 +800,7 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
       coverage_ms: rawCoverageMs,
       active_ms: activeMs,
       completed_at: completedAt,
-      resume_position_ms: input.positionMs,
+      resume_position_ms: resumePositionMs,
       last_watched_at: receivedAt,
       updated_at: receivedAt,
     },
@@ -1509,10 +1521,35 @@ export async function endWatchSession(input: {
   // its final resume position. A session superseded by a newer device was
   // already ended by startWatchSession and must never overwrite newer progress.
   if (endedSession?.id && session?.episode_id && positionMs != null) {
+    const [episodeResult, progressResult] = await Promise.all([
+      watch
+        .from('episodes')
+        .select('duration_ms')
+        .eq('id', session.episode_id)
+        .maybeSingle(),
+      watch
+        .from('progress')
+        .select('completed_at')
+        .eq('user_id', input.userId)
+        .eq('episode_id', session.episode_id)
+        .maybeSingle(),
+    ]);
+    throwIfError(episodeResult.error);
+    throwIfError(progressResult.error);
+
+    const canonicalPositionMs = canonicalResumePositionMs({
+      positionMs,
+      durationMs:
+        episodeResult.data?.duration_ms == null
+          ? null
+          : Number(episodeResult.data.duration_ms),
+      completed: Boolean(progressResult.data?.completed_at),
+    });
+
     const { error: progressError } = await watch
       .from('progress')
       .update({
-        resume_position_ms: positionMs,
+        resume_position_ms: canonicalPositionMs,
         last_watched_at: now,
         updated_at: now,
       })
