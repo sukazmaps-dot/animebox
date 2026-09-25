@@ -141,6 +141,7 @@ jobs:
           app/page.tsx
           app/profile/layout.tsx
           app/anime/[slug]/layout.tsx
+          app/watch-together/layout.tsx
           app/watch-together/[slug]/episode/[episode]/layout.tsx
           lib/user-preferences.ts
           components/UserPreferencesBridge.tsx
