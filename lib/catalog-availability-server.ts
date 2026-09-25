@@ -12,6 +12,10 @@ import { getAnimesByIdsWithShikimori } from '@/lib/combined-anime';
 import { searchKodikByShikimoriId } from '@/lib/kodik-episode-availability';
 import { checkAnimeCatalogAvailability } from '@/lib/source-availability';
 import { resolveDirectPlayerStreams } from '@/lib/direct-player-server';
+import {
+  releaseRuntimeRefreshLease,
+  tryAcquireRuntimeRefreshLease,
+} from '@/lib/runtime-refresh-lease-server';
 
 const CONFIRMED_MISS_THRESHOLD = 3;
 const PROBE_CONCURRENCY = 4;
@@ -24,6 +28,8 @@ const DEGRADED_FINISHED_GRACE_MS = 24 * 60 * 60 * 1000;
 const REGISTRY_READ_TTL_MS = 60_000;
 const REGISTRY_MISSING_TTL_MS = 20_000;
 const REGISTRY_READ_CACHE_LIMIT = 4_000;
+const REMOTE_REFRESH_SETTLE_MS = 180;
+const AVAILABILITY_REFRESH_LEASE_SECONDS = 20;
 
 type RegistryReadCacheEntry = {
   row: CatalogAvailabilityRow | null;
@@ -582,6 +588,42 @@ async function refreshOne(
   });
 }
 
+async function refreshOneCoordinated(
+  anime: Anime,
+  previous?: CatalogAvailabilityRow,
+  signal?: AbortSignal,
+): Promise<CatalogAvailabilityRow | null> {
+  const cacheKey = String(anime.id);
+  const lease = await tryAcquireRuntimeRefreshLease(
+    'catalog_availability',
+    cacheKey,
+    AVAILABILITY_REFRESH_LEASE_SECONDS,
+  );
+
+  if (!lease.acquired) {
+    // Another serverless instance is already probing this title. Do not fan
+    // out to Kodik/AniLiberty/direct again. Give the owner a short head start,
+    // then bypass this process' read cache once and reuse either the freshly
+    // persisted row or our previous verified state.
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, REMOTE_REFRESH_SETTLE_MS);
+    });
+
+    const remote = await readRowsFromRegistry([anime.id]);
+    return remote.rows.get(anime.id) ?? previous ?? null;
+  }
+
+  try {
+    return await refreshOne(anime, previous, signal);
+  } finally {
+    await releaseRuntimeRefreshLease(
+      'catalog_availability',
+      cacheKey,
+      lease.ownerToken,
+    );
+  }
+}
+
 export async function refreshCatalogAvailability(
   anime: Anime,
   options: { force?: boolean; signal?: AbortSignal } = {},
@@ -596,7 +638,11 @@ export async function refreshCatalogAvailability(
   const pending = inFlight.get(anime.id);
   if (pending) return pending;
 
-  const request = refreshOne(anime, previous, options.signal).finally(() => {
+  const request = refreshOneCoordinated(
+    anime,
+    previous,
+    options.signal,
+  ).finally(() => {
     inFlight.delete(anime.id);
   });
 
@@ -626,7 +672,7 @@ export async function refreshCatalogAvailabilityBatch(
       const pending = inFlight.get(item.id);
       if (pending) return pending;
 
-      const request = refreshOne(item, previous).finally(() => {
+      const request = refreshOneCoordinated(item, previous).finally(() => {
         inFlight.delete(item.id);
       });
 
