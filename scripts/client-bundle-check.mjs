@@ -11,6 +11,9 @@ const hero = read('components/HomeHeroCarousel.tsx');
 const feedRuntime = read(
   'components/home/HomeFeedRuntimeProvider.tsx',
 );
+const recommendationRuntime = read(
+  'components/home/useHomeRecommendationRuntime.ts',
+);
 const navbar = read('components/Navbar.tsx');
 
 const staticRecommendationImport =
@@ -45,22 +48,22 @@ for (const [label, source, needle] of [
   ],
   [
     'Home recommendation chunk',
-    feedRuntime,
+    recommendationRuntime,
     "import('@/lib/recommendations')",
   ],
   [
     'Home taste-graph chunk',
-    feedRuntime,
+    recommendationRuntime,
     "import('@/lib/taste-graph')",
   ],
   [
     'Home personalization chunk',
-    feedRuntime,
+    recommendationRuntime,
     "import('@/lib/personalization')",
   ],
   [
     'Home recommendation idle scheduling',
-    feedRuntime,
+    recommendationRuntime,
     'requestIdleCallback',
   ],
   [
@@ -108,10 +111,10 @@ for (const forbidden of [
 
 if (
   /import\s*\{[\s\S]*?readTasteProfile[\s\S]*?\}\s*from\s*['"]@\/lib\/personalization['"]/.test(
-    feedRuntime,
+    recommendationRuntime,
   ) ||
   /import\s*\{[\s\S]*?setTasteMood[\s\S]*?\}\s*from\s*['"]@\/lib\/personalization['"]/.test(
-    feedRuntime,
+    recommendationRuntime,
   )
 ) {
   failures.push(
@@ -121,11 +124,11 @@ if (
 
 if (
   /import\s*\{[\s\S]*?fetchTasteGraph[\s\S]*?\}\s*from\s*['"]@\/lib\/taste-graph['"]/.test(
-    feedRuntime,
+    recommendationRuntime,
   )
 ) {
   failures.push(
-    'Home feed runtime eagerly imports Taste Graph implementation.',
+    'Home recommendation runtime eagerly imports Taste Graph implementation.',
   );
 }
 
