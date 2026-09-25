@@ -49,10 +49,6 @@ create index if not exists seo_anime_index_sitemap_idx
 create index if not exists seo_anime_index_freshness_idx
   on public.seo_anime_index(indexable, last_verified_at);
 
-create index if not exists seo_anime_index_changed_idx
-  on public.seo_anime_index(last_content_change_at desc)
-  where indexable = true;
-
 -- Seed the registry with already-known search documents so the new sitemap
 -- does not start empty before the background AniList scan completes.
 insert into public.seo_anime_index (
