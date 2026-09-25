@@ -3,7 +3,7 @@ import { trackProductClientEvent } from '@/lib/product-events-client';
 
 export const TASTE_PROFILE_STORAGE_KEY = 'animebox_taste_profile_v1';
 export const RECOMMENDATION_EVENTS_STORAGE_KEY = 'animebox_recommendation_events_v1';
-export const RECOMMENDATION_ALGORITHM_VERSION = '17.8-v1';
+export const RECOMMENDATION_ALGORITHM_VERSION = '18.3-v1';
 export const RECOMMENDATION_MODEL_VERSION = RECOMMENDATION_ALGORITHM_VERSION;
 export const RECOMMENDATION_ATTRIBUTION_PREFIX = 'animebox:recommendation-attribution:v1:';
 
@@ -14,6 +14,7 @@ export type TasteProfile = {
   hiddenAnimeIds: number[];
   likedAnimeIds: number[];
   alreadyWatchedAnimeIds: number[];
+  negativeGenreWeights: Record<string, number>;
   updatedAt: number;
 };
 
@@ -50,6 +51,7 @@ const DEFAULT_PROFILE: TasteProfile = {
   hiddenAnimeIds: [],
   likedAnimeIds: [],
   alreadyWatchedAnimeIds: [],
+  negativeGenreWeights: {},
   updatedAt: 0,
 };
 
@@ -71,6 +73,63 @@ function sanitizeIds(value: unknown, limit = 300) {
           .filter((id) => Number.isSafeInteger(id) && id > 0),
       )].slice(0, limit)
     : [];
+}
+
+function normalizeGenreToken(value: string) {
+  return value
+    .normalize('NFKC')
+    .toLocaleLowerCase('ru-RU')
+    .replace(/ё/g, 'е')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 48);
+}
+
+function sanitizeGenreWeights(value: unknown, limit = 24): Record<string, number> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .map(([rawKey, rawWeight]) => {
+        const key = normalizeGenreToken(rawKey);
+        const weight = Number(rawWeight);
+        return [
+          key,
+          Number.isFinite(weight)
+            ? Math.min(1, Math.max(0, weight))
+            : 0,
+        ] as const;
+      })
+      .filter(([key, weight]) => Boolean(key) && weight >= 0.04)
+      .sort((left, right) => right[1] - left[1])
+      .slice(0, limit),
+  );
+}
+
+function updateNegativeGenreWeights(
+  current: Record<string, number>,
+  genres: string[] | undefined,
+  direction: 'negative' | 'positive',
+) {
+  const next = Object.fromEntries(
+    Object.entries(current)
+      .map(([genre, weight]) => [genre, weight * 0.92] as const)
+      .filter(([, weight]) => weight >= 0.04),
+  );
+
+  for (const rawGenre of genres?.slice(0, 8) ?? []) {
+    const genre = normalizeGenreToken(rawGenre);
+    if (!genre) continue;
+
+    const previous = next[genre] ?? 0;
+    next[genre] =
+      direction === 'negative'
+        ? Math.min(1, previous + 0.34)
+        : Math.max(0, previous * 0.45);
+  }
+
+  return sanitizeGenreWeights(next);
 }
 
 function isMood(value: unknown): value is TasteMood {
@@ -113,6 +172,7 @@ export function readTasteProfile(): TasteProfile {
     hiddenAnimeIds: sanitizeIds(raw.hiddenAnimeIds),
     likedAnimeIds: sanitizeIds(raw.likedAnimeIds),
     alreadyWatchedAnimeIds: sanitizeIds(raw.alreadyWatchedAnimeIds),
+    negativeGenreWeights: sanitizeGenreWeights(raw.negativeGenreWeights),
     updatedAt: Number.isFinite(raw.updatedAt) ? Number(raw.updatedAt) : 0,
   };
 }
@@ -127,6 +187,7 @@ export function writeTasteProfile(profile: TasteProfile): void {
       hiddenAnimeIds: sanitizeIds(profile.hiddenAnimeIds),
       likedAnimeIds: sanitizeIds(profile.likedAnimeIds),
       alreadyWatchedAnimeIds: sanitizeIds(profile.alreadyWatchedAnimeIds),
+      negativeGenreWeights: sanitizeGenreWeights(profile.negativeGenreWeights),
       updatedAt: Date.now(),
     }),
   );
@@ -148,7 +209,7 @@ export function setTasteMood(mood: TasteMood): TasteProfile {
   return next;
 }
 
-export function likeRecommendation(anime: Pick<Anime, 'id'>): TasteProfile {
+export function likeRecommendation(anime: Pick<Anime, 'id' | 'genres'>): TasteProfile {
   const current = readTasteProfile();
   const next = {
     ...current,
@@ -157,6 +218,11 @@ export function likeRecommendation(anime: Pick<Anime, 'id'>): TasteProfile {
     alreadyWatchedAnimeIds: current.alreadyWatchedAnimeIds.filter(
       (id) => id !== anime.id,
     ),
+    negativeGenreWeights: updateNegativeGenreWeights(
+      current.negativeGenreWeights,
+      anime.genres,
+      'positive',
+    ),
     updatedAt: Date.now(),
   };
 
@@ -164,12 +230,17 @@ export function likeRecommendation(anime: Pick<Anime, 'id'>): TasteProfile {
   return next;
 }
 
-export function hideRecommendation(anime: Pick<Anime, 'id'>): TasteProfile {
+export function hideRecommendation(anime: Pick<Anime, 'id' | 'genres'>): TasteProfile {
   const current = readTasteProfile();
   const next = {
     ...current,
     hiddenAnimeIds: sanitizeIds([anime.id, ...current.hiddenAnimeIds]),
     likedAnimeIds: current.likedAnimeIds.filter((id) => id !== anime.id),
+    negativeGenreWeights: updateNegativeGenreWeights(
+      current.negativeGenreWeights,
+      anime.genres,
+      'negative',
+    ),
     updatedAt: Date.now(),
   };
 
