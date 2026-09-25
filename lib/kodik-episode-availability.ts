@@ -1,5 +1,10 @@
 import 'server-only';
 
+import {
+  isTransientUpstreamResponse,
+  runWithUpstreamBudget,
+} from '@/lib/upstream-resilience-server';
+
 export type KodikEpisodeAvailabilityStatus =
   | 'available'
   | 'unavailable'
@@ -213,17 +218,28 @@ export async function searchKodikByShikimoriId(
     limit: '50',
   });
 
-  const response = await fetch(
-    `https://kodik-api.com/search?${params.toString()}`,
-    options.noStore
-      ? {
-          cache: 'no-store',
-          signal: options.signal,
-        }
-      : {
-          next: { revalidate: 60 * 30 },
-          signal: options.signal,
-        },
+  const requestInit: RequestInit = options.noStore
+    ? {
+        cache: 'no-store',
+        signal: options.signal,
+      }
+    : {
+        next: { revalidate: 60 * 30 },
+        signal: options.signal,
+      };
+
+  const response = await runWithUpstreamBudget(
+    'kodik',
+    () =>
+      fetch(
+        `https://kodik-api.com/search?${params.toString()}`,
+        requestInit,
+      ),
+    {
+      signal: options.signal,
+      isFailure: isTransientUpstreamResponse,
+      abortIsFailure: false,
+    },
   );
 
   if (!response.ok) {

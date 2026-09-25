@@ -139,7 +139,7 @@ export default function SystemHealthDashboard() {
     <section className={styles.dashboard} aria-label="AnimeBox System Health">
       <header className={styles.header}>
         <div>
-          <span className={styles.eyebrow}>PLAYBACK RELIABILITY · 18.5.4.3</span>
+          <span className={styles.eyebrow}>LOAD & FAILURE SHIELD · 18.5.5.4</span>
           <h1>System Health</h1>
           <p>
             Единый production-снимок: API, база и полный playback journey —
@@ -318,6 +318,16 @@ export default function SystemHealthDashboard() {
                   : 'telemetry unavailable'}
               </small>
             </article>
+            <article>
+              <span>Upstream circuits</span>
+              <strong>{number(health.signals.upstreamCircuitOpen)}</strong>
+              <small>{number(health.upstreams.length)} upstream budgets</small>
+            </article>
+            <article>
+              <span>Upstream queue</span>
+              <strong>{number(health.signals.upstreamQueued)}</strong>
+              <small>this server instance</small>
+            </article>
           </div>
 
           <div className={styles.grid}>
@@ -445,6 +455,43 @@ export default function SystemHealthDashboard() {
                   </dd>
                 </div>
               </dl>
+            </section>
+
+            <section className={`${styles.panel} ${styles.widePanel}`}>
+              <div className={styles.panelHead}>
+                <div>
+                  <span>UPSTREAM SHIELD · THIS INSTANCE</span>
+                  <strong>Concurrency, queue & circuit breaker</strong>
+                </div>
+                <small>
+                  {number(health.signals.upstreamCircuitOpen)} circuit ·{' '}
+                  {number(health.signals.upstreamQueued)} queued
+                </small>
+              </div>
+
+              <div className={styles.routeList}>
+                {health.upstreams.map((upstream) => (
+                  <div className={styles.routeRow} key={upstream.key}>
+                    <div>
+                      <strong>{upstream.key}</strong>
+                      <small>
+                        {number(upstream.active)}/{number(upstream.concurrency)} active ·{' '}
+                        {number(upstream.queued)}/{number(upstream.maxQueue)} queued
+                      </small>
+                    </div>
+                    <div className={styles.routeMeta}>
+                      <small>circuit {upstream.circuit}</small>
+                      <small>{number(upstream.consecutiveFailures)} failures</small>
+                      <small>{number(upstream.rejected)} shed</small>
+                      <small>{number(upstream.accepted)} accepted</small>
+                      <small>{number(upstream.circuitOpened)} opens</small>
+                      <small>
+                        {upstream.openUntil ? `until ${time(upstream.openUntil)}` : 'ready'}
+                      </small>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </section>
 
             <section className={`${styles.panel} ${styles.widePanel}`}>

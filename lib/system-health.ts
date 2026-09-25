@@ -149,6 +149,20 @@ export type SystemDependenciesHealth = {
   mediaEdge: MediaEdgeHealth;
 };
 
+export type SystemUpstreamRuntimeHealth = {
+  key: string;
+  active: number;
+  queued: number;
+  concurrency: number;
+  maxQueue: number;
+  consecutiveFailures: number;
+  circuit: 'closed' | 'open' | 'half-open';
+  openUntil: string | null;
+  accepted: number;
+  rejected: number;
+  circuitOpened: number;
+};
+
 export type SystemHealthSnapshot = {
   generatedAt: string;
   status: SystemHealthTone;
@@ -161,6 +175,7 @@ export type SystemHealthSnapshot = {
   playback: PlaybackPlatformHealth;
   requests: RequestPlatformHealth;
   dependencies: SystemDependenciesHealth;
+  upstreams: SystemUpstreamRuntimeHealth[];
   signals: {
     openCriticalIncidents: number;
     openWarningIncidents: number;
@@ -172,5 +187,7 @@ export type SystemHealthSnapshot = {
     playbackRuntimeDegraded: boolean;
     playbackRuntimeCritical: boolean;
     dependencyWarnings: number;
+    upstreamCircuitOpen: number;
+    upstreamQueued: number;
   };
 };

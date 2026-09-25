@@ -1,5 +1,11 @@
 import 'server-only';
 
+import {
+  isTransientUpstreamResponse,
+  isUpstreamPressureError,
+  runWithUpstreamBudget,
+} from '@/lib/upstream-resilience-server';
+
 export type DirectPlayerStream = {
   title: string;
   url: string;
@@ -127,12 +133,20 @@ export async function resolveDirectPlayerStreams(input: {
   ]);
 
   try {
-    const response = await fetch(url, {
-      headers: { Accept: 'application/json' },
-      cache: 'no-store',
-      redirect: 'follow',
-      signal,
-    });
+    const response = await runWithUpstreamBudget(
+      'direct',
+      () =>
+        fetch(url, {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+          redirect: 'follow',
+          signal,
+        }),
+      {
+        signal: input.signal,
+        isFailure: isTransientUpstreamResponse,
+      },
+    );
 
     if (!response.ok) {
       return {
@@ -153,6 +167,15 @@ export async function resolveDirectPlayerStreams(input: {
       reason: streams.length ? undefined : 'direct_stream_not_found',
     };
   } catch (error) {
+    if (isUpstreamPressureError(error)) {
+      return {
+        enabled: true,
+        provider: 'Alloha Direct',
+        streams: [],
+        reason: 'server_busy',
+      };
+    }
+
     if (error instanceof Error && error.name === 'AbortError') throw error;
     return {
       enabled: true,

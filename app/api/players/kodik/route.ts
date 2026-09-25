@@ -9,11 +9,16 @@ import { resolveAnimeRoute } from '@/lib/anime-route';
 import { recordEpisodePlayerUrl } from '@/lib/episode-timeline-server';
 import { COPYRIGHT_RESTRICTED_MESSAGE } from '@/lib/copyright-server';
 import {
+  claimProviderHalfOpenProbe,
   getProviderDecision,
   recordProviderResult,
 } from '@/lib/player-source-control';
 
 import { observeApiRoute } from '@/lib/request-observability-server';
+import {
+  isUpstreamPressureError,
+  upstreamPressureReason,
+} from '@/lib/upstream-resilience-server';
 
 async function observedGET(request: NextRequest) {
   const limited = await enforceIpRateLimit(request, {
@@ -81,7 +86,47 @@ async function observedGET(request: NextRequest) {
     );
   }
 
+  const recoveryPermit = await claimProviderHalfOpenProbe(
+    'kodik',
+    providerDecision,
+  );
+
+  if (!recoveryPermit.allowed) {
+    return NextResponse.json(
+      {
+        name: 'Kodik',
+        status: 'unknown',
+        maxEpisode: null,
+        translations: [],
+        reason: 'provider_recovering',
+        message: 'Kodik восстанавливается. Повторите попытку через несколько секунд.',
+      },
+      {
+        status: 503,
+        headers: {
+          'Cache-Control': 'private, no-store',
+          'Retry-After': '2',
+        },
+      },
+    );
+  }
+
   const providerStartedAt = Date.now();
+
+  async function reportProviderAttempt(result: {
+    ok: boolean;
+    latencyMs?: number | null;
+    reason?: string | null;
+  }) {
+    if (providerDecision.halfOpenProbe) {
+      await recordProviderResult('kodik', result);
+      return;
+    }
+
+    after(async () => {
+      await recordProviderResult('kodik', result);
+    });
+  }
 
   try {
     const signal = AbortSignal.any([
@@ -93,11 +138,9 @@ async function observedGET(request: NextRequest) {
       signal,
     });
 
-    after(async () => {
-      await recordProviderResult('kodik', {
-        ok: true,
-        latencyMs: Date.now() - providerStartedAt,
-      });
+    await reportProviderAttempt({
+      ok: true,
+      latencyMs: Date.now() - providerStartedAt,
     });
     const filtered =
       episode == null
@@ -173,14 +216,33 @@ async function observedGET(request: NextRequest) {
       },
     );
   } catch (error) {
+    if (isUpstreamPressureError(error)) {
+      console.warn('[Kodik] upstream pressure shield engaged:', {
+        reason: upstreamPressureReason(error),
+      });
+
+      return NextResponse.json(
+        {
+          error: 'Kodik temporarily busy',
+          status: 'unknown',
+          reason: 'server_busy',
+        },
+        {
+          status: 503,
+          headers: {
+            'Cache-Control': 'private, no-store',
+            'Retry-After': '1',
+          },
+        },
+      );
+    }
+
     console.error('[Kodik] request failed:', error);
 
-    after(async () => {
-      await recordProviderResult('kodik', {
-        ok: false,
-        latencyMs: Date.now() - providerStartedAt,
-        reason: error instanceof Error ? error.message : 'kodik_request_failed',
-      });
+    await reportProviderAttempt({
+      ok: false,
+      latencyMs: Date.now() - providerStartedAt,
+      reason: error instanceof Error ? error.message : 'kodik_request_failed',
     });
 
     return NextResponse.json(

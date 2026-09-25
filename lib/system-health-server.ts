@@ -17,6 +17,7 @@ import type {
   SystemProviderHealth,
 } from '@/lib/system-health';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import { getUpstreamRuntimeSnapshot } from '@/lib/upstream-resilience-server';
 
 type ProviderSettingsRow = {
   provider_key: string;
@@ -683,6 +684,14 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
     dependencies.mediaEdge.configured &&
       dependencies.mediaEdge.state !== 'healthy',
   ].filter(Boolean).length;
+  const upstreams = getUpstreamRuntimeSnapshot();
+  const upstreamCircuitOpen = upstreams.filter(
+    (item) => item.circuit !== 'closed',
+  ).length;
+  const upstreamQueued = upstreams.reduce(
+    (sum, item) => sum + item.queued,
+    0,
+  );
 
   const status =
     openCriticalIncidents > 0 ||
@@ -696,7 +705,8 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
           production.cron.failed24h > 0 ||
           requestRuntimeDegraded ||
           playbackRuntimeDegraded ||
-          dependencyWarnings > 0
+          dependencyWarnings > 0 ||
+          upstreamCircuitOpen > 0
         ? 'degraded'
         : 'healthy';
 
@@ -739,6 +749,7 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
     },
     requests,
     dependencies,
+    upstreams,
     signals: {
       openCriticalIncidents,
       openWarningIncidents,
@@ -750,6 +761,8 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
       playbackRuntimeDegraded,
       playbackRuntimeCritical,
       dependencyWarnings,
+      upstreamCircuitOpen,
+      upstreamQueued,
     },
   };
 }
