@@ -372,6 +372,7 @@ export default function SmartRecommendationCard({
             sizes="(max-width: 560px) 41vw, (max-width: 900px) 27vw, (max-width: 1280px) 18vw, 205px"
             quality={62}
             sourcePreference="compact"
+            preset="card"
             onStateChange={setPosterState}
           />
 

@@ -14,8 +14,13 @@ import type {
 
 import {
   getImageCandidates,
+  getImageMediaSrcSet,
   type ImageCandidatePreference,
 } from '@/lib/image-service';
+import type {
+  MediaImageFormat,
+  MediaImagePreset,
+} from '@/lib/media-delivery';
 
 const FALLBACK = '/brand/brand-mark.webp';
 const PRIMARY_MEDIA_TIMEOUT_MS = 6_500;
@@ -35,6 +40,8 @@ type Props = {
   sizes?: string;
   quality?: number;
   sourcePreference?: ImageCandidatePreference;
+  preset?: MediaImagePreset;
+  format?: MediaImageFormat;
   onStateChange?: (state: AnimeImageLoadState) => void;
 };
 
@@ -59,21 +66,55 @@ export default function AnimeImage({
   className = '',
   loading = 'lazy',
   sizes = DEFAULT_SIZES,
+  quality,
   sourcePreference = 'quality',
+  preset,
+  format = 'webp',
   onStateChange,
 }: Props) {
   const imageRef = useRef<HTMLImageElement>(null);
   const transientRetryCountRef = useRef(0);
 
+  const effectivePreset: MediaImagePreset =
+    preset ?? (sourcePreference === 'compact' ? 'card' : 'large');
+
   const sources = useMemo(
     () =>
       Array.from(
         new Set([
-          ...getImageCandidates(image, sourcePreference),
+          ...getImageCandidates(image, sourcePreference, {
+            preset: effectivePreset,
+            quality,
+            format,
+          }),
           FALLBACK,
         ]),
       ),
-    [image, sourcePreference],
+    [
+      effectivePreset,
+      format,
+      image,
+      quality,
+      sourcePreference,
+    ],
+  );
+
+  const mediaSrcSet = useMemo(
+    () =>
+      getImageMediaSrcSet(
+        image,
+        sourcePreference,
+        effectivePreset,
+        quality,
+        format,
+      ),
+    [
+      effectivePreset,
+      format,
+      image,
+      quality,
+      sourcePreference,
+    ],
   );
 
   const sourcesKey = sources.join('|');
@@ -290,6 +331,8 @@ export default function AnimeImage({
       data-image-source-index={sourceIndex}
       data-image-loading={loading}
       data-image-preference={sourcePreference}
+      data-image-preset={effectivePreset}
+      data-image-format={format}
     >
       {!loaded && !isFallback && (
         <div
@@ -323,6 +366,7 @@ export default function AnimeImage({
             key={current}
             ref={imageRef}
             src={current}
+            srcSet={sourceIndex === 0 ? mediaSrcSet : undefined}
             alt={resolvedAlt}
             loading={loading}
             decoding="async"

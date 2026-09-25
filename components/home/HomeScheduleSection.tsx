@@ -116,6 +116,7 @@ export default function HomeScheduleSection() {
                     sizes="58px"
                     quality={60}
                     sourcePreference="compact"
+                    preset="tiny"
                   />
 
                   <div

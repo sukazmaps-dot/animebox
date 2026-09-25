@@ -96,6 +96,7 @@ jobs:
           lib/personalization.ts
           lib/home-feed-server.ts
           lib/image-service.ts
+          lib/media-delivery.ts
           next.config.ts
           app/api/image/route.ts
           components/AnimeEpisodePage.tsx

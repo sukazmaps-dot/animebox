@@ -277,6 +277,7 @@ export default function HomeRetentionHub({
                 sizes="64px"
                 quality={58}
                 sourcePreference="compact"
+                preset="tiny"
               />
             </span>
             <span className="home-retention__copy">
@@ -325,6 +326,7 @@ export default function HomeRetentionHub({
                 sizes="64px"
                 quality={58}
                 sourcePreference="compact"
+                preset="tiny"
               />
             </span>
             <span className="home-retention__copy">
@@ -369,6 +371,7 @@ export default function HomeRetentionHub({
                 sizes="64px"
                 quality={58}
                 sourcePreference="compact"
+                preset="tiny"
               />
             </span>
             <span className="home-retention__copy">
