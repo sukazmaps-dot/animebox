@@ -233,11 +233,7 @@ export async function syncSeoAnimeSourceEntries(
 }
 
 export async function syncSeoAnimeFromResolvedAnime(anime: Anime) {
-  const [result] = await Promise.all([
-    syncAnimeChunk([anime], null),
-  ]);
-
-  return result;
+  return syncAnimeChunk([anime], null);
 }
 
 export async function getSeoAnimeIndexShard(
@@ -295,7 +291,7 @@ export async function getSeoAnimeIndexShard(
   });
 }
 
-function countOf(result: { count: number | null; error: unknown }) {
+function countOf(result: { count?: number | null; error?: unknown }) {
   return result.error ? 0 : Math.max(0, Number(result.count ?? 0));
 }
 
