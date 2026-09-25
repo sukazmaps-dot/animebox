@@ -63,53 +63,6 @@ const watchTogetherStructuredData = {
   },
 };
 
-const faqStructuredData = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: [
-    {
-      '@type': 'Question',
-      name: 'Как смотреть аниме вместе с другом онлайн?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Откройте Watch Together, выберите аниме и серию, создайте приватную комнату и отправьте другу invite-ссылку.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Можно ли смотреть аниме вместе на расстоянии?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Да. Комната работает через интернет, поэтому участники могут смотреть одну серию вместе, находясь в разных местах.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Синхронизируются ли пауза и перемотка?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Watch Together синхронизирует управление просмотром между участниками комнаты: воспроизведение, паузу и перемотку.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Сколько человек может смотреть вместе?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Одна комната AnimeBox Watch Together рассчитана максимум на 8 участников.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Нужен ли отдельный сервис, чтобы смотреть видео вместе с другом?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Для аниме из каталога AnimeBox отдельный сервис не нужен: выберите тайтл в Watch Together и создайте комнату.',
-      },
-    },
-  ],
-};
-
 export default function WatchTogetherPage() {
   return (
     <>
@@ -117,12 +70,6 @@ export default function WatchTogetherPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(watchTogetherStructuredData).replace(/</g, '\\u003c'),
-        }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(faqStructuredData).replace(/</g, '\\u003c'),
         }}
       />
       <WatchTogetherHub />
