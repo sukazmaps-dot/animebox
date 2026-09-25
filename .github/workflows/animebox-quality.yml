@@ -62,7 +62,16 @@ jobs:
           components/DeferredMount.tsx
           components/DeferredAppEnhancements.tsx
           components/OfflineCacheBridge.tsx
-          components/HomePageClient.tsx
+          components/home/HomePageShell.tsx
+          components/home/HomeFeedRuntimeProvider.tsx
+          components/home/HomeScheduleRuntimeProvider.tsx
+          components/home/HomeHeroSection.tsx
+          components/home/HomeDiscoverySection.tsx
+          components/home/HomeCatalogSections.tsx
+          components/home/HomeScheduleSection.tsx
+          components/home/HomePersonalRetentionSections.tsx
+          components/home/HomeDeferredCommunity.tsx
+          components/home/HomeRightRail.tsx
           components/AnimeImage.tsx
           components/AnimeCard.tsx
           components/HomeContinueWatching.tsx
