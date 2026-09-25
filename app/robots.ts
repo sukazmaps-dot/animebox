@@ -1,10 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-import {
-  ANIME_SITEMAP_SHARDS,
-  EPISODE_SITEMAP_SHARDS,
-  SITE_URL,
-} from '@/lib/seo-config';
+import { SITE_URL } from '@/lib/seo-config';
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -18,18 +14,8 @@ export default function robots(): MetadataRoute.Robots {
       },
     ],
 
-    // Keep the already-submitted root sitemap and expose scalable anime shards.
-    sitemap: [
-      `${SITE_URL}/sitemap.xml`,
-      `${SITE_URL}/video-sitemap.xml`,
-      ...Array.from(
-        { length: ANIME_SITEMAP_SHARDS },
-        (_, id) => `${SITE_URL}/anime/sitemap/${id}.xml`,
-      ),
-      ...Array.from(
-        { length: EPISODE_SITEMAP_SHARDS },
-        (_, id) => `${SITE_URL}/episodes/sitemap/${id}.xml`,
-      ),
-    ],
+    // One sitemap index is the crawler entry point. It expands to the
+    // stable root, anime, episode and video sitemap sets.
+    sitemap: `${SITE_URL}/sitemap-index.xml`,
   };
 }
