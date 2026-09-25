@@ -6,7 +6,7 @@
 }
 
 /* =========================================================
-   AnimeBox Patch 16.6.5 — Profile Studio Showcase + TG Gate
+   AnimeBox Patch 16.6.5 — Profile Studio Showcase
    ========================================================= */
 
 .profile-editor-v13__showcase-tab {
@@ -89,40 +89,6 @@
 
 .profile-editor-v13[data-editor-tab='showcase'] .profile-editor-v13__header-actions > button {
   display: none;
-}
-
-.telegram-subscription-gate__logo > img,
-.telegram-subscription-gate__logo-fallback {
-  display: block;
-  width: 58px;
-  height: 58px;
-}
-
-.telegram-subscription-gate__logo > img {
-  object-fit: contain;
-}
-
-.telegram-subscription-gate__logo-fallback {
-  color: #b99bff;
-  filter: drop-shadow(0 0 18px rgba(145,102,255,.28));
-}
-
-.telegram-subscription-gate__logo-fallback path:first-child {
-  fill: rgba(128,82,255,.10);
-  stroke: currentColor;
-  stroke-width: 2;
-}
-
-.telegram-subscription-gate__logo-fallback path:nth-child(2) {
-  fill: currentColor;
-  opacity: .92;
-}
-
-.telegram-subscription-gate__logo-fallback path:last-child {
-  fill: none;
-  stroke: #efe8ff;
-  stroke-width: 2;
-  stroke-linecap: round;
 }
 
 @media (max-width: 768px) {

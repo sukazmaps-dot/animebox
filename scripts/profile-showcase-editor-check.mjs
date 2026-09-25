@@ -13,7 +13,7 @@ const profilePage = read('app/profile/page.tsx');
 const miniProfileCss = read('components/profile/ProfilePreview.module.css');
 const widgetsRoute = read('app/api/community/profile-widgets/route.ts');
 const gate = read('components/TelegramSubscriptionGate.tsx');
-const studioCss = read('app/patch16-6-5-profile-studio-gate.css');
+const studioCss = read('app/patch16-6-5-profile-studio.css');
 
 for (const [label, needle] of [
   ['React portal import', "import { createPortal } from 'react-dom';"],

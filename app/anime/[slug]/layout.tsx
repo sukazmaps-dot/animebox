@@ -1,3 +1,4 @@
+import '../../patch17-6-player-runtime.css';
 import '../../anime-page-v3.css';
 import '../../patch12-4-anime-page-foundation.css';
 import '../../patch12-5-3-anime-page-layout-hotfix.css';
