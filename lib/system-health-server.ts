@@ -1,6 +1,10 @@
 import 'server-only';
 
 import { getPrimaryMediaOrigin } from '@/lib/media-delivery';
+import {
+  aggregatePlaybackTelemetry,
+  type PlaybackTelemetryRow,
+} from '@/lib/playback-observability';
 import { getProductionHealthSnapshot } from '@/lib/production-health-server';
 import type {
   NotificationHealth,
@@ -453,6 +457,7 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
     playerResumesResult,
     playerCompletionsResult,
     wtDriftResult,
+    playbackTelemetryResult,
     requestMetricsResult,
   ] = await Promise.all([
     admin
@@ -526,6 +531,21 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
       .eq('event_name', 'watch_party_sync_drift')
       .gte('created_at', playbackSince),
     admin
+      .from('product_events')
+      .select('event_name,source,metadata')
+      .in('event_name', [
+        'player_discovery_plan',
+        'player_discovery_attempt',
+        'player_discovery_ready',
+        'player_discovery_exhausted',
+        'player_source_ready',
+        'player_source_failed',
+        'player_source_fallback',
+      ])
+      .gte('created_at', playbackSince)
+      .order('created_at', { ascending: false })
+      .limit(10_000),
+    admin
       .from('system_request_metrics')
       .select(
         'bucket_start,route_key,method,samples,estimated_requests,server_errors,rate_limited,slow_requests,duration_sum_ms,max_duration_ms,latency_0_250,latency_250_500,latency_500_1000,latency_1000_2500,latency_2500_plus',
@@ -580,6 +600,11 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
   const resumes24h = playbackCount(playerResumesResult);
   const completions24h = playbackCount(playerCompletionsResult);
   const wtDriftCorrections24h = playbackCount(wtDriftResult);
+  const playbackTelemetry = aggregatePlaybackTelemetry(
+    playbackTelemetryResult.error
+      ? []
+      : ((playbackTelemetryResult.data ?? []) as PlaybackTelemetryRow[]),
+  );
   const fallbackRatePct =
     starts24h > 0
       ? Math.round((fallbacks24h / starts24h) * 10_000) / 100
@@ -588,6 +613,20 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
     starts24h > 0
       ? Math.round((sourceExhausted24h / starts24h) * 10_000) / 100
       : null;
+  const discoverySuccessRatePct =
+    playbackTelemetry.plans24h > 0
+      ? Math.round(
+          (playbackTelemetry.discoveryReady24h /
+            playbackTelemetry.plans24h) *
+            10_000,
+        ) / 100
+      : null;
+  const discoveryExhaustionRatePct =
+    playbackTelemetry.plans24h > 0
+      ? (playbackTelemetry.discoveryExhausted24h /
+          playbackTelemetry.plans24h) *
+        100
+      : 0;
 
   const openCriticalIncidents = incidents.filter(
     (item) => item.severity === 'critical',
@@ -626,6 +665,19 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
       ) ||
       requests.rateLimited1h >= 10
     );
+  const enoughPlaybackTraffic =
+    playbackTelemetry.plans24h >= 20;
+  const playbackRuntimeCritical =
+    enoughPlaybackTraffic &&
+    discoveryExhaustionRatePct >= 10;
+  const playbackRuntimeDegraded =
+    enoughPlaybackTraffic &&
+    (
+      discoveryExhaustionRatePct >= 3 ||
+      (playbackTelemetry.endToEndReadyP95Ms ?? 0) >= 12_000 ||
+      (playbackTelemetry.firstSourceP95Ms ?? 0) >= 8_000
+    );
+
   const dependencyWarnings = [
     dependencies.supabase.state !== 'healthy',
     dependencies.mediaEdge.configured &&
@@ -633,7 +685,9 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
   ].filter(Boolean).length;
 
   const status =
-    openCriticalIncidents > 0 || requestRuntimeCritical
+    openCriticalIncidents > 0 ||
+    requestRuntimeCritical ||
+    playbackRuntimeCritical
       ? 'critical'
       : openWarningIncidents > 0 ||
           unhealthyProviders > 0 ||
@@ -641,6 +695,7 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
           degradedJobs24h > 0 ||
           production.cron.failed24h > 0 ||
           requestRuntimeDegraded ||
+          playbackRuntimeDegraded ||
           dependencyWarnings > 0
         ? 'degraded'
         : 'healthy';
@@ -669,6 +724,18 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
       wtDriftCorrections24h,
       fallbackRatePct,
       exhaustionRatePct,
+      discoveryPlans24h: playbackTelemetry.plans24h,
+      discoveryAttempts24h: playbackTelemetry.attempts24h,
+      discoveryReady24h: playbackTelemetry.discoveryReady24h,
+      discoveryExhausted24h: playbackTelemetry.discoveryExhausted24h,
+      discoverySuccessRatePct,
+      firstSourceP50Ms: playbackTelemetry.firstSourceP50Ms,
+      firstSourceP95Ms: playbackTelemetry.firstSourceP95Ms,
+      playerReadyP50Ms: playbackTelemetry.playerReadyP50Ms,
+      playerReadyP95Ms: playbackTelemetry.playerReadyP95Ms,
+      endToEndReadyP50Ms: playbackTelemetry.endToEndReadyP50Ms,
+      endToEndReadyP95Ms: playbackTelemetry.endToEndReadyP95Ms,
+      providers: playbackTelemetry.providers,
     },
     requests,
     dependencies,
@@ -680,6 +747,8 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
       degradedJobs24h,
       requestRuntimeDegraded,
       requestRuntimeCritical,
+      playbackRuntimeDegraded,
+      playbackRuntimeCritical,
       dependencyWarnings,
     },
   };
