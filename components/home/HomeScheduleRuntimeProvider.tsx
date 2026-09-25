@@ -19,32 +19,12 @@ import type {
 } from '@/components/HomeRetentionHub';
 import { useHomeFeedRuntime } from '@/components/home/HomeFeedRuntimeProvider';
 import { trackProductClientEvent } from '@/lib/product-events-client';
-import type { AnimeImage as AnimeImageType } from '@/types/anime';
+import {
+  useHomeScheduleData,
+  type HomeScheduleItem,
+} from '@/components/home/useHomeScheduleData';
 
-export type HomeScheduleItem = {
-  id: number;
-  airingAt: number;
-  episode: number;
-  media: {
-    id: number;
-    idMal: number | null;
-    format: string | null;
-    status: string | null;
-    slug?: string | null;
-    title: {
-      russian: string | null;
-      romaji: string | null;
-      english: string | null;
-      native: string | null;
-    };
-    coverImage: AnimeImageType | null;
-    bannerImage: string | null;
-  };
-};
-
-type HomeScheduleResponse = {
-  items?: HomeScheduleItem[];
-};
+export type { HomeScheduleItem } from '@/components/home/useHomeScheduleData';
 
 export type ScheduleDay = {
   key: string;
@@ -58,6 +38,7 @@ export type HomeScheduleRuntimeValue = {
   setSelectedScheduleDay: Dispatch<SetStateAction<string>>;
   scheduleLoading: boolean;
   scheduleError: string;
+  upcomingScheduleLoading: boolean;
   clockNow: number;
   visibleScheduleItems: HomeScheduleItem[];
   upcomingScheduleItems: HomeScheduleItem[];
@@ -185,16 +166,19 @@ export default function HomeScheduleRuntimeProvider({
     retentionCompletionCandidates,
   } = useHomeFeedRuntime();
 
-  const [scheduleItems, setScheduleItems] =
-    useState<HomeScheduleItem[]>([]);
   const scheduleSectionRef = useRef<HTMLElement | null>(null);
   const [scheduleDays] =
     useState<ScheduleDay[]>(createScheduleDays);
   const [selectedScheduleDay, setSelectedScheduleDay] =
     useState(() => scheduleDays[0]?.key ?? '');
-  const [scheduleLoading, setScheduleLoading] = useState(true);
-  const [scheduleError, setScheduleError] = useState('');
   const [clockNow, setClockNow] = useState(() => Date.now());
+  const {
+    scheduleItems,
+    scheduleWindowItems,
+    scheduleLoading,
+    scheduleError,
+    upcomingScheduleLoading,
+  } = useHomeScheduleData(scheduleSectionRef);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -202,115 +186,6 @@ export default function HomeScheduleRuntimeProvider({
     }, 60_000);
 
     return () => window.clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let observer: IntersectionObserver | null = null;
-    let fallbackTimer: number | null = null;
-    let desktopTimer: number | null = null;
-    let started = false;
-
-    async function loadSchedule() {
-      try {
-        setScheduleLoading(true);
-        setScheduleError('');
-
-        const response = await fetch('/api/schedule', {
-          signal: controller.signal,
-          cache: 'default',
-        });
-
-        if (!response.ok) {
-          throw new Error(
-            `Schedule HTTP ${response.status}`,
-          );
-        }
-
-        const data =
-          (await response.json()) as HomeScheduleResponse;
-
-        if (!Array.isArray(data.items)) {
-          throw new Error('Некорректный ответ расписания');
-        }
-
-        setScheduleItems(
-          [...data.items].sort(
-            (a, b) => a.airingAt - b.airingAt,
-          ),
-        );
-      } catch (error: unknown) {
-        if (
-          !(error instanceof Error && error.name === 'AbortError')
-        ) {
-          console.error('Home schedule error:', error);
-          setScheduleError(
-            'Не удалось загрузить расписание.',
-          );
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setScheduleLoading(false);
-        }
-      }
-    }
-
-    const start = () => {
-      if (started || controller.signal.aborted) return;
-
-      started = true;
-      observer?.disconnect();
-
-      if (fallbackTimer !== null) {
-        window.clearTimeout(fallbackTimer);
-      }
-
-      void loadSchedule();
-    };
-
-    const mobile =
-      window.matchMedia('(max-width: 720px)').matches;
-
-    if (!mobile) {
-      desktopTimer = window.setTimeout(start, 700);
-    } else if (
-      typeof IntersectionObserver !== 'undefined' &&
-      scheduleSectionRef.current
-    ) {
-      observer = new IntersectionObserver(
-        (entries) => {
-          if (
-            entries.some(
-              (entry) => entry.isIntersecting,
-            )
-          ) {
-            start();
-          }
-        },
-        {
-          rootMargin: '700px 0px',
-          threshold: 0.01,
-        },
-      );
-
-      observer.observe(scheduleSectionRef.current);
-      fallbackTimer = window.setTimeout(start, 8_000);
-    } else {
-      fallbackTimer = window.setTimeout(start, 4_500);
-    }
-
-    return () => {
-      controller.abort();
-      observer?.disconnect();
-
-      if (fallbackTimer !== null) {
-        window.clearTimeout(fallbackTimer);
-      }
-
-      if (desktopTimer !== null) {
-        window.clearTimeout(desktopTimer);
-      }
-    };
   }, []);
 
   const personalScheduleItems = useMemo(() => {
@@ -327,7 +202,7 @@ export default function HomeScheduleRuntimeProvider({
     const futureWindowEnd =
       nowSeconds + 72 * 60 * 60;
 
-    return scheduleItems
+    return scheduleWindowItems
       .filter(
         (item) =>
           personalAnimeIds.has(item.media.id) &&
@@ -340,14 +215,14 @@ export default function HomeScheduleRuntimeProvider({
     clockNow,
     personalAnimeIds,
     personalizedHome,
-    scheduleItems,
+    scheduleWindowItems,
   ]);
 
   const retentionEpisodeSignal =
     useMemo<HomeRetentionEpisodeSignal | null>(() => {
       if (
         personalAnimeIds.size === 0 ||
-        scheduleItems.length === 0
+        scheduleWindowItems.length === 0
       ) {
         return null;
       }
@@ -358,7 +233,7 @@ export default function HomeScheduleRuntimeProvider({
       const windowEnd =
         nowSeconds + 24 * 60 * 60;
 
-      const candidates = scheduleItems.filter(
+      const candidates = scheduleWindowItems.filter(
         (item) =>
           personalAnimeIds.has(item.media.id) &&
           item.airingAt >= windowStart &&
@@ -388,7 +263,7 @@ export default function HomeScheduleRuntimeProvider({
     }, [
       clockNow,
       personalAnimeIds,
-      scheduleItems,
+      scheduleWindowItems,
     ]);
 
   const retentionCompletionSignal =
@@ -472,12 +347,12 @@ export default function HomeScheduleRuntimeProvider({
   const upcomingScheduleItems = useMemo(() => {
     const nowSeconds = Math.floor(clockNow / 1000);
 
-    return scheduleItems
+    return scheduleWindowItems
       .filter((item) => item.airingAt >= nowSeconds)
       .slice(0, 5);
   }, [
-    scheduleItems,
     clockNow,
+    scheduleWindowItems,
   ]);
 
   const value =
@@ -489,6 +364,7 @@ export default function HomeScheduleRuntimeProvider({
         setSelectedScheduleDay,
         scheduleLoading,
         scheduleError,
+        upcomingScheduleLoading,
         clockNow,
         visibleScheduleItems,
         upcomingScheduleItems,
@@ -505,6 +381,7 @@ export default function HomeScheduleRuntimeProvider({
         scheduleError,
         scheduleLoading,
         selectedScheduleDay,
+        upcomingScheduleLoading,
         upcomingScheduleItems,
         visibleScheduleItems,
       ],

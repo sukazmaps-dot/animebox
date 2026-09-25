@@ -149,6 +149,25 @@ const SCHEDULE_QUERY = `
   }
 `;
 
+function parsePositiveInteger(
+  value: string | null,
+  maximum: number,
+): number | null {
+  if (!value) return null;
+
+  const parsed = Number.parseInt(value, 10);
+
+  if (
+    !Number.isInteger(parsed) ||
+    parsed <= 0 ||
+    parsed > maximum
+  ) {
+    return null;
+  }
+
+  return parsed;
+}
+
 function parseTimestamp(
   value: string | null,
 ): number | null {
@@ -298,6 +317,14 @@ export async function GET(
       ),
     );
 
+  const requestedLimit =
+    parsePositiveInteger(
+      request.nextUrl.searchParams.get(
+        'limit',
+      ),
+      200,
+    );
+
   const from =
     fromParam ??
     now - DAY_SECONDS;
@@ -346,7 +373,11 @@ export async function GET(
 
     while (
       hasNextPage &&
-      page <= 10
+      page <= 10 &&
+      (
+        requestedLimit == null ||
+        items.length < requestedLimit
+      )
     ) {
       const response =
         await fetchWithRetry(
@@ -455,11 +486,16 @@ export async function GET(
             ],
           ),
         ).values(),
-      ).sort(
-        (a, b) =>
-          a.airingAt -
-          b.airingAt,
-      );
+      )
+        .sort(
+          (a, b) =>
+            a.airingAt -
+            b.airingAt,
+        )
+        .slice(
+          0,
+          requestedLimit ?? undefined,
+        );
 
     const malIds =
       uniqueItems

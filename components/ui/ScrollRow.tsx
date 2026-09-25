@@ -28,6 +28,7 @@ type ScrollRowProps = {
   loading?: boolean;
   onEndReached?: () => void;
   endReachedRootMargin?: string;
+  endReachedRequiresInteraction?: boolean;
   virtualize?: boolean;
   virtualMaxItems?: number;
   virtualOverscan?: number;
@@ -82,6 +83,7 @@ export default function ScrollRow({
   loading = false,
   onEndReached,
   endReachedRootMargin = '0px 55% 0px 0px',
+  endReachedRequiresInteraction = false,
   virtualize = false,
   virtualMaxItems = DEFAULT_VIRTUAL_MAX_ITEMS,
   virtualOverscan = DEFAULT_VIRTUAL_OVERSCAN,
@@ -91,6 +93,9 @@ export default function ScrollRow({
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const scrollFrameRef = useRef<number | null>(null);
   const endRequestLatchRef = useRef(false);
+  const endInteractionUnlockedRef = useRef(
+    !endReachedRequiresInteraction,
+  );
   const virtualMetricsRef = useRef<ScrollRowVirtualMetrics | null>(null);
   const strideRef = useRef(0);
 
@@ -110,6 +115,13 @@ export default function ScrollRow({
     itemWidth: 0,
     gap: 0,
   });
+
+  const unlockEndReached = useCallback(() => {
+    if (!endReachedRequiresInteraction) return;
+
+    endInteractionUnlockedRef.current = true;
+    endRequestLatchRef.current = false;
+  }, [endReachedRequiresInteraction]);
 
   const reportVirtualMetrics = useCallback(
     (range: VirtualRange) => {
@@ -275,13 +287,19 @@ export default function ScrollRow({
       hasMore &&
       !loading &&
       onEndReached &&
+      endInteractionUnlockedRef.current &&
       remaining <= threshold &&
       !endRequestLatchRef.current
     ) {
       endRequestLatchRef.current = true;
       onEndReached();
     }
-  }, [hasMore, loading, onEndReached, updateVirtualWindow]);
+  }, [
+    hasMore,
+    loading,
+    onEndReached,
+    updateVirtualWindow,
+  ]);
 
   useEffect(() => {
     const track = trackRef.current;
@@ -346,6 +364,7 @@ export default function ScrollRow({
       ([entry]) => {
         if (
           entry?.isIntersecting &&
+          endInteractionUnlockedRef.current &&
           !endRequestLatchRef.current
         ) {
           endRequestLatchRef.current = true;
@@ -368,6 +387,9 @@ export default function ScrollRow({
     (direction: 'left' | 'right') => {
       const track = trackRef.current;
       if (!track) return;
+
+      endInteractionUnlockedRef.current = true;
+      endRequestLatchRef.current = false;
 
       if (
         direction === 'right' &&
@@ -422,6 +444,9 @@ export default function ScrollRow({
         role="region"
         aria-label={ariaLabel}
         tabIndex={0}
+        onPointerDown={unlockEndReached}
+        onWheel={unlockEndReached}
+        onKeyDown={unlockEndReached}
       >
         {leftSpacerWidth > 0 && (
           <div
