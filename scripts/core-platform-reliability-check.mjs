@@ -16,6 +16,7 @@ const incidentRoute = read(
 const sourceControl = read('lib/player-source-control.ts');
 
 const cronPaths = [
+  'app/api/cron/catalog-availability/route.ts',
   'app/api/cron/boosty-premium/route.ts',
   'app/api/cron/donatepay-sync/route.ts',
   'app/api/cron/episode-notifications/route.ts',
