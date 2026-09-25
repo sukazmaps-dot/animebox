@@ -188,7 +188,7 @@ function NavbarContent() {
         (active instanceof HTMLElement && active.isContentEditable);
 
       // Account/auth sheets lock body scrolling. Reading the inline style is
-      // cheap and avoids a document.querySelector() on every scroll frame.
+      // cheap and avoids a document-wide selector lookup on every scroll frame.
       const overlayLocked = document.body.style.overflow === 'hidden';
 
       return typing || overlayLocked || compactLandscapeQuery.matches;
