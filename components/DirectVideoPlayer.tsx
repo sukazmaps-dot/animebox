@@ -519,7 +519,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
             <button
               type="button"
               onClick={() => seek(currentTime - 10)}
-              className="inline-flex h-10 min-w-9 items-center justify-center rounded-xl px-1.5 text-[10px] font-extrabold text-white/65 transition hover:bg-white/10 hover:text-white sm:min-w-10 sm:px-2 sm:text-[11px]"
+              className="hidden h-10 min-w-10 items-center justify-center rounded-xl px-2 text-[11px] font-extrabold text-white/65 transition hover:bg-white/10 hover:text-white sm:inline-flex"
               aria-label="Назад на 10 секунд"
             >
               −10
