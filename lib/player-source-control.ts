@@ -6,6 +6,12 @@ import {
   reportSystemIncident,
   resolveSystemIncident,
 } from '@/lib/system-observability-server';
+import {
+  buildPlayerSourceOrchestratorPlan,
+  playerProviderHealthPenalty,
+  rankPlayerProviderPolicies,
+  recommendedProviderDiscoveryTimeoutMs,
+} from '@/lib/player-source-orchestrator';
 import type {
   PlayerProviderKey,
   PlayerProviderPolicy,
@@ -109,12 +115,6 @@ const DEFAULT_RUNTIME = new Map<PlayerProviderKey, ProviderRuntimeRow>(
 );
 
 const CACHE_TTL_MS = 15_000;
-const ORCHESTRATOR_DISCOVERY_BUDGET_MS = 18_500;
-const PROVIDER_DISCOVERY_TIMEOUT_MS: Record<PlayerProviderKey, number> = {
-  direct: 5_500,
-  kodik: 7_000,
-  aniliberty: 9_500,
-};
 let cachedControl:
   | {
       expiresAt: number;
@@ -231,42 +231,6 @@ function normalizeRuntimeState(
   return runtime.state;
 }
 
-function timestamp(value: string | null) {
-  if (!value) return 0;
-  const parsed = Date.parse(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function providerHealthPenalty(
-  state: PlayerProviderRuntimeState,
-  runtime: ProviderRuntimeRow,
-) {
-  let penalty =
-    state === 'healthy'
-      ? 0
-      : state === 'unknown'
-        ? 4
-        : state === 'degraded'
-          ? 16
-          : 28;
-
-  const latency = runtime.last_latency_ms;
-  if (latency != null && Number.isFinite(latency) && latency > 1_200) {
-    penalty += Math.min(10, Math.ceil((latency - 1_200) / 800));
-  }
-
-  const lastFailure = timestamp(runtime.last_failure_at);
-  const lastSuccess = timestamp(runtime.last_success_at);
-  if (
-    lastFailure > lastSuccess &&
-    Date.now() - lastFailure < 15 * 60_000
-  ) {
-    penalty += 8;
-  }
-
-  return penalty;
-}
-
 export async function getProviderDecision(
   provider: PlayerProviderKey,
   input: {
@@ -283,8 +247,14 @@ export async function getProviderDecision(
   const runtime = runtimeFor(provider, control.runtime);
   const environmentReady = providerEnvironmentReady(provider);
   const state = normalizeRuntimeState(runtime);
-  const healthPenalty = providerHealthPenalty(state, runtime);
-  const recommendedTimeoutMs = PROVIDER_DISCOVERY_TIMEOUT_MS[provider];
+  const healthPenalty = playerProviderHealthPenalty({
+    state,
+    lastLatencyMs: runtime.last_latency_ms,
+    lastSuccessAt: runtime.last_success_at,
+    lastFailureAt: runtime.last_failure_at,
+  });
+  const recommendedTimeoutMs =
+    recommendedProviderDiscoveryTimeoutMs(provider);
   const cooldownActive = Boolean(
     runtime.cooldown_until &&
       Date.parse(runtime.cooldown_until) > Date.now(),
@@ -365,15 +335,7 @@ export async function getPlayerSourcePolicy(input: {
     ),
   );
 
-  const ranked = resolved.sort(
-    (a, b) =>
-      a.effectivePriority - b.effectivePriority ||
-      a.priority - b.priority ||
-      a.name.localeCompare(b.name),
-  );
-  const orderedProviders = ranked
-    .filter((provider) => provider.enabled)
-    .map((provider) => provider.key);
+  const ranked = rankPlayerProviderPolicies(resolved);
 
   return {
     ok: true,
@@ -381,14 +343,10 @@ export async function getPlayerSourcePolicy(input: {
     season: input.season ?? null,
     episode: input.episode,
     providers: ranked,
-    orchestrator: {
-      version: 'source-orchestrator-v2',
-      orderedProviders,
-      maxProviderAttempts: Math.min(3, orderedProviders.length),
-      discoveryBudgetMs: ORCHESTRATOR_DISCOVERY_BUDGET_MS,
-      copyrightBlocked: Boolean(globalRestriction),
-      allUnavailable: !globalRestriction && orderedProviders.length === 0,
-    },
+    orchestrator: buildPlayerSourceOrchestratorPlan(
+      ranked,
+      Boolean(globalRestriction),
+    ),
   };
 }
 
