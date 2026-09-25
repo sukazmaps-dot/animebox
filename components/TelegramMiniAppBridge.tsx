@@ -244,8 +244,16 @@ export default function TelegramMiniAppBridge() {
           `${Math.max(0, safeArea.top || 0)}px`,
         );
         root.style.setProperty(
+          '--animebox-tg-safe-right',
+          `${Math.max(0, safeArea.right || 0)}px`,
+        );
+        root.style.setProperty(
           '--animebox-tg-safe-bottom',
           `${Math.max(0, safeArea.bottom || 0)}px`,
+        );
+        root.style.setProperty(
+          '--animebox-tg-safe-left',
+          `${Math.max(0, safeArea.left || 0)}px`,
         );
       }
 
@@ -255,8 +263,16 @@ export default function TelegramMiniAppBridge() {
           `${Math.max(0, contentSafeArea.top || 0)}px`,
         );
         root.style.setProperty(
+          '--animebox-tg-content-safe-right',
+          `${Math.max(0, contentSafeArea.right || 0)}px`,
+        );
+        root.style.setProperty(
           '--animebox-tg-content-safe-bottom',
           `${Math.max(0, contentSafeArea.bottom || 0)}px`,
+        );
+        root.style.setProperty(
+          '--animebox-tg-content-safe-left',
+          `${Math.max(0, contentSafeArea.left || 0)}px`,
         );
       }
 
