@@ -19,32 +19,12 @@ import type {
 } from '@/components/HomeRetentionHub';
 import { useHomeFeedRuntime } from '@/components/home/HomeFeedRuntimeProvider';
 import { trackProductClientEvent } from '@/lib/product-events-client';
-import type { AnimeImage as AnimeImageType } from '@/types/anime';
+import {
+  useHomeScheduleData,
+  type HomeScheduleItem,
+} from '@/components/home/useHomeScheduleData';
 
-export type HomeScheduleItem = {
-  id: number;
-  airingAt: number;
-  episode: number;
-  media: {
-    id: number;
-    idMal: number | null;
-    format: string | null;
-    status: string | null;
-    slug?: string | null;
-    title: {
-      russian: string | null;
-      romaji: string | null;
-      english: string | null;
-      native: string | null;
-    };
-    coverImage: AnimeImageType | null;
-    bannerImage: string | null;
-  };
-};
-
-type HomeScheduleResponse = {
-  items?: HomeScheduleItem[];
-};
+export type { HomeScheduleItem } from '@/components/home/useHomeScheduleData';
 
 export type ScheduleDay = {
   key: string;
@@ -186,20 +166,19 @@ export default function HomeScheduleRuntimeProvider({
     retentionCompletionCandidates,
   } = useHomeFeedRuntime();
 
-  const [scheduleItems, setScheduleItems] =
-    useState<HomeScheduleItem[]>([]);
-  const [scheduleWindowItems, setScheduleWindowItems] =
-    useState<HomeScheduleItem[]>([]);
   const scheduleSectionRef = useRef<HTMLElement | null>(null);
   const [scheduleDays] =
     useState<ScheduleDay[]>(createScheduleDays);
   const [selectedScheduleDay, setSelectedScheduleDay] =
     useState(() => scheduleDays[0]?.key ?? '');
-  const [scheduleLoading, setScheduleLoading] = useState(true);
-  const [scheduleError, setScheduleError] = useState('');
-  const [upcomingScheduleLoading, setUpcomingScheduleLoading] =
-    useState(true);
   const [clockNow, setClockNow] = useState(() => Date.now());
+  const {
+    scheduleItems,
+    scheduleWindowItems,
+    scheduleLoading,
+    scheduleError,
+    upcomingScheduleLoading,
+  } = useHomeScheduleData(scheduleSectionRef);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -207,190 +186,6 @@ export default function HomeScheduleRuntimeProvider({
     }, 60_000);
 
     return () => window.clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let timer: number | null = null;
-    let idleHandle: number | null = null;
-    const idleWindow = window as Window & {
-      requestIdleCallback?: (
-        callback: IdleRequestCallback,
-        options?: IdleRequestOptions,
-      ) => number;
-      cancelIdleCallback?: (handle: number) => void;
-    };
-
-    const loadUpcoming = async () => {
-      try {
-        const nowSeconds = Math.floor(Date.now() / 1000);
-        const params = new URLSearchParams({
-          from: String(nowSeconds - 6 * 60 * 60),
-          to: String(nowSeconds + 72 * 60 * 60),
-          limit: '60',
-        });
-
-        const response = await fetch(
-          `/api/schedule?${params.toString()}`,
-          {
-            signal: controller.signal,
-            cache: 'default',
-          },
-        );
-
-        if (!response.ok) {
-          throw new Error(
-            `Upcoming schedule HTTP ${response.status}`,
-          );
-        }
-
-        const data =
-          (await response.json()) as HomeScheduleResponse;
-
-        if (!Array.isArray(data.items)) {
-          throw new Error('Некорректный ответ ближайших серий');
-        }
-
-        setScheduleWindowItems(
-          [...data.items].sort(
-            (a, b) => a.airingAt - b.airingAt,
-          ),
-        );
-      } catch (error: unknown) {
-        if (
-          !(error instanceof Error && error.name === 'AbortError')
-        ) {
-          console.debug('[Home] upcoming schedule unavailable');
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setUpcomingScheduleLoading(false);
-        }
-      }
-    };
-
-    const start = () => {
-      if (controller.signal.aborted) return;
-      void loadUpcoming();
-    };
-
-    if (idleWindow.requestIdleCallback) {
-      idleHandle = idleWindow.requestIdleCallback(
-        start,
-        { timeout: 1_800 },
-      );
-    } else {
-      timer = window.setTimeout(start, 900);
-    }
-
-    return () => {
-      controller.abort();
-      if (timer !== null) window.clearTimeout(timer);
-      if (idleHandle !== null) {
-        idleWindow.cancelIdleCallback?.(idleHandle);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let observer: IntersectionObserver | null = null;
-    let fallbackTimer: number | null = null;
-    let started = false;
-
-    async function loadSchedule() {
-      try {
-        setScheduleLoading(true);
-        setScheduleError('');
-
-        const response = await fetch('/api/schedule', {
-          signal: controller.signal,
-          cache: 'default',
-        });
-
-        if (!response.ok) {
-          throw new Error(
-            `Schedule HTTP ${response.status}`,
-          );
-        }
-
-        const data =
-          (await response.json()) as HomeScheduleResponse;
-
-        if (!Array.isArray(data.items)) {
-          throw new Error('Некорректный ответ расписания');
-        }
-
-        setScheduleItems(
-          [...data.items].sort(
-            (a, b) => a.airingAt - b.airingAt,
-          ),
-        );
-      } catch (error: unknown) {
-        if (
-          !(error instanceof Error && error.name === 'AbortError')
-        ) {
-          console.error('Home schedule error:', error);
-          setScheduleError(
-            'Не удалось загрузить расписание.',
-          );
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setScheduleLoading(false);
-        }
-      }
-    }
-
-    const start = () => {
-      if (started || controller.signal.aborted) return;
-
-      started = true;
-      observer?.disconnect();
-
-      if (fallbackTimer !== null) {
-        window.clearTimeout(fallbackTimer);
-      }
-
-      void loadSchedule();
-    };
-
-    if (
-      typeof IntersectionObserver !== 'undefined' &&
-      scheduleSectionRef.current
-    ) {
-      observer = new IntersectionObserver(
-        (entries) => {
-          if (
-            entries.some(
-              (entry) => entry.isIntersecting,
-            )
-          ) {
-            start();
-          }
-        },
-        {
-          rootMargin: '700px 0px',
-          threshold: 0.01,
-        },
-      );
-
-      observer.observe(scheduleSectionRef.current);
-    } else {
-      // Only legacy/embedded browsers without IntersectionObserver fall back
-      // to a timer. Modern desktop must never fetch the full schedule merely
-      // because 700 ms elapsed after hydration.
-      fallbackTimer = window.setTimeout(start, 4_500);
-    }
-
-    return () => {
-      controller.abort();
-      observer?.disconnect();
-
-      if (fallbackTimer !== null) {
-        window.clearTimeout(fallbackTimer);
-      }
-    };
   }, []);
 
   const personalScheduleItems = useMemo(() => {
