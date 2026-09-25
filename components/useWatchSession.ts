@@ -155,8 +155,12 @@ export function useWatchSession({
   const pendingSkipSignalRef = useRef<PendingSkipSignal | null>(null);
   const pendingProviderSkipRef = useRef<PendingProviderSkip | null>(null);
   const recentLargeJumpRef = useRef<RecentLargeJump | null>(null);
-  const startingRef = useRef<Promise<void> | null>(null);
-  const sendingRef = useRef(false);
+  const lifecycleGenerationRef = useRef(0);
+  const startingRef = useRef<{
+    generation: number;
+    task: Promise<void>;
+  } | null>(null);
+  const sendingGenerationRef = useRef<number | null>(null);
   const disabledRef = useRef(false);
   const supersededRef = useRef(false);
 
@@ -217,13 +221,15 @@ export function useWatchSession({
   );
 
   const startSession = useCallback(async () => {
+    const generation = lifecycleGenerationRef.current;
+
     if (
       !enabled ||
       !animeId ||
       disabledRef.current ||
       supersededRef.current ||
       sessionRef.current ||
-      startingRef.current ||
+      startingRef.current?.generation === generation ||
       latestPositionRef.current == null ||
       (pendingProviderSkipRef.current == null &&
         (lastAdvanceAtRef.current == null ||
@@ -257,6 +263,8 @@ export function useWatchSession({
           durationMs: latestDurationRef.current,
         });
 
+        if (generation !== lifecycleGenerationRef.current) return;
+
         sessionRef.current = result.sessionId;
         sessionAnchorPositionRef.current = null;
         seqRef.current = 0;
@@ -279,6 +287,8 @@ export function useWatchSession({
           });
         }
       } catch (error) {
+        if (generation !== lifecycleGenerationRef.current) return;
+
         const status = (error as Error & { status?: number }).status;
 
         if (status === 401) {
@@ -294,10 +304,12 @@ export function useWatchSession({
         );
       }
     })().finally(() => {
-      startingRef.current = null;
+      if (startingRef.current?.generation === generation) {
+        startingRef.current = null;
+      }
     });
 
-    startingRef.current = task;
+    startingRef.current = { generation, task };
     await task;
   }, [
     animeId,
@@ -310,8 +322,10 @@ export function useWatchSession({
 
   const sendHeartbeat = useCallback(
     async (force = false, keepalive = false) => {
+      const generation = lifecycleGenerationRef.current;
+
       if (
-        sendingRef.current ||
+        sendingGenerationRef.current === generation ||
         disabledRef.current ||
         supersededRef.current ||
         !enabled ||
@@ -336,7 +350,12 @@ export function useWatchSession({
 
       if (!sessionRef.current) {
         await startSession();
-        if (!sessionRef.current) return;
+        if (
+          generation !== lifecycleGenerationRef.current ||
+          !sessionRef.current
+        ) {
+          return;
+        }
       }
 
       const position = latestPositionRef.current;
@@ -348,15 +367,16 @@ export function useWatchSession({
         return;
       }
 
-      sendingRef.current = true;
+      sendingGenerationRef.current = generation;
       const seq = seqRef.current + 1;
+      const requestSessionId = sessionRef.current;
 
       try {
         const providerSkip = pendingProviderSkipRef.current;
         const result = await watchRequest<HeartbeatResponse>(
           {
             action: 'heartbeat',
-            sessionId: sessionRef.current,
+            sessionId: requestSessionId,
             seq,
             positionMs: position,
             durationMs: latestDurationRef.current,
@@ -364,6 +384,13 @@ export function useWatchSession({
           },
           keepalive,
         );
+
+        if (
+          generation !== lifecycleGenerationRef.current ||
+          sessionRef.current !== requestSessionId
+        ) {
+          return;
+        }
 
         seqRef.current = seq;
         lastSentPositionRef.current = position;
@@ -402,6 +429,8 @@ export function useWatchSession({
           setMessage('');
         }
       } catch (error) {
+        if (generation !== lifecycleGenerationRef.current) return;
+
         const status = (error as Error & { status?: number }).status;
 
         if (status === 401) {
@@ -441,7 +470,9 @@ export function useWatchSession({
           );
         }
       } finally {
-        sendingRef.current = false;
+        if (sendingGenerationRef.current === generation) {
+          sendingGenerationRef.current = null;
+        }
       }
     },
     [animeId, enabled, publishProgress, startSession, userId],
@@ -457,7 +488,7 @@ export function useWatchSession({
       const previousPosition = latestPositionRef.current;
       if (
         !sessionRef.current &&
-        !startingRef.current &&
+        startingRef.current?.generation !== lifecycleGenerationRef.current &&
         sessionAnchorPositionRef.current == null
       ) {
         sessionAnchorPositionRef.current = nextPosition;
@@ -528,7 +559,7 @@ export function useWatchSession({
         lastAdvanceAtRef.current != null &&
         Date.now() - lastAdvanceAtRef.current <= ACTIVE_ADVANCE_WINDOW_MS &&
         !sessionRef.current &&
-        !startingRef.current
+        startingRef.current?.generation !== lifecycleGenerationRef.current
       ) {
         void startSession();
       }
@@ -587,6 +618,8 @@ export function useWatchSession({
   );
 
   useEffect(() => {
+    const generation = ++lifecycleGenerationRef.current;
+
     disabledRef.current = false;
     supersededRef.current = false;
     sessionRef.current = null;
@@ -602,6 +635,7 @@ export function useWatchSession({
     recentLargeJumpRef.current = null;
 
     queueMicrotask(() => {
+      if (generation !== lifecycleGenerationRef.current) return;
       setMessage('');
       setPercent(null);
       setCompleted(false);
@@ -617,6 +651,18 @@ export function useWatchSession({
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') {
         void sendHeartbeat(true, true);
+        return;
+      }
+
+      // Mobile browsers and Telegram WebViews can suspend timers for a long
+      // time. Synchronize immediately after foregrounding rather than waiting
+      // for the next 20-second heartbeat.
+      void sendHeartbeat(true);
+    };
+
+    const onPageShow = () => {
+      if (document.visibilityState === 'visible') {
+        void sendHeartbeat(true);
       }
     };
 
@@ -636,14 +682,20 @@ export function useWatchSession({
     };
 
     document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pageshow', onPageShow);
     window.addEventListener('offline', onOffline);
     window.addEventListener('online', onOnline);
 
     return () => {
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pageshow', onPageShow);
       window.removeEventListener('offline', onOffline);
       window.removeEventListener('online', onOnline);
+
+      if (lifecycleGenerationRef.current === generation) {
+        lifecycleGenerationRef.current += 1;
+      }
 
       const sessionId = sessionRef.current;
       if (sessionId) {
@@ -668,8 +720,12 @@ export function useWatchSession({
 
       sessionRef.current = null;
       sessionAnchorPositionRef.current = null;
-      startingRef.current = null;
-      sendingRef.current = false;
+      if (startingRef.current?.generation === generation) {
+        startingRef.current = null;
+      }
+      if (sendingGenerationRef.current === generation) {
+        sendingGenerationRef.current = null;
+      }
     };
   }, [animeId, enabled, episode, sendHeartbeat, sourceUrl, userId]);
 
