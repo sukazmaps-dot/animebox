@@ -1,6 +1,7 @@
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 8_000;
 const CACHE_TTL_SECONDS = 30 * 24 * 60 * 60;
+const BROWSER_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60;
 const inFlightOriginFetches = new Map();
 
 const EXACT_ALLOWED_HOSTS = new Set([
@@ -71,7 +72,7 @@ function publicHeaders(contentType, source, cacheState) {
   return new Headers({
     'Content-Type': contentType || 'image/jpeg',
     'Cache-Control':
-      `public, max-age=86400, s-maxage=${CACHE_TTL_SECONDS}, stale-while-revalidate=604800`,
+      `public, max-age=${BROWSER_CACHE_TTL_SECONDS}, s-maxage=${CACHE_TTL_SECONDS}, stale-while-revalidate=${CACHE_TTL_SECONDS}`,
     'CDN-Cache-Control':
       `public, max-age=${CACHE_TTL_SECONDS}, stale-while-revalidate=604800`,
     'Access-Control-Allow-Origin': '*',
@@ -239,7 +240,7 @@ export default {
           httpMetadata: {
             contentType,
             cacheControl:
-              `public, max-age=86400, s-maxage=${CACHE_TTL_SECONDS}`,
+              `public, max-age=${BROWSER_CACHE_TTL_SECONDS}, s-maxage=${CACHE_TTL_SECONDS}`,
           },
           customMetadata: {
             source: source.toString(),
