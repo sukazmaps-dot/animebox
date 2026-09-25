@@ -103,6 +103,9 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
   const [sources, setSources] = useState<PlayerSource[]>([]);
   const [loadingSources, setLoadingSources] = useState(false);
   const [sourceMessage, setSourceMessage] = useState('');
+  const [sourceLoadingMessage, setSourceLoadingMessage] = useState(
+    'Подключаем лучший источник…',
+  );
   const [sourceIdentity, setSourceIdentity] = useState('');
   const [seasonNavigation, setSeasonNavigation] = useState<EpisodeSeasonsResponse | null>(null);
   const [episodeAvailability, setEpisodeAvailability] =
@@ -339,6 +342,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       setSources([]);
       setSourceIdentity('');
       setSourceMessage('');
+      setSourceLoadingMessage('Подключаем лучший источник…');
     });
 
     function providerKeyForSource(name: string): PlayerProviderKey {
@@ -922,6 +926,11 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           if (!active || controller.signal.aborted) break;
 
           const provider = primaryPlan[index]!;
+          if (index > 0) {
+            setSourceLoadingMessage(
+              'Основной источник недоступен, пробуем резервный…',
+            );
+          }
           const result = await runProviderAttempt(provider);
           lastReason = result.reason || lastReason;
 
@@ -1281,7 +1290,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
                   <div className={theaterStyles.loadingPlayer}>
                     <div className={theaterStyles.loadingInner}>
                       <span className={theaterStyles.spinner} aria-hidden="true" />
-                      <span>Подбираем лучший источник…</span>
+                      <span>{sourceLoadingMessage}</span>
                     </div>
                   </div>
                 ) : (
@@ -1359,7 +1368,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
             <div className="flex flex-col items-center gap-3 text-center">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-violet-400" />
               <span className="text-xs font-semibold text-white/45">
-                Подбираем лучший источник…
+                {sourceLoadingMessage}
               </span>
             </div>
           </div>
