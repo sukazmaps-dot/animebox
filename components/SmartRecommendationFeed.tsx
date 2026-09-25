@@ -587,6 +587,7 @@ export default function SmartRecommendationFeed({
         const ranked = getPersonalizedRecommendations(data.items, {
           mood: displayedMood,
           limit: PAGE_SIZE,
+          tasteGraph,
         });
         const fresh = ranked.filter(
           ({ anime }) => !seenRecommendationIdsRef.current.has(anime.id),
@@ -640,7 +641,7 @@ export default function SmartRecommendationFeed({
 
     sharedBatchPromiseRef.current = request;
     return request;
-  }, [bucket, displayedMood, replaceHasMore, replacePointer]);
+  }, [bucket, displayedMood, replaceHasMore, replacePointer, tasteGraph]);
 
   const recordRailVirtualMetrics = useCallback(
     (railId: RecommendationRailId, metrics: ScrollRowVirtualMetrics) => {
