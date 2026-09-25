@@ -77,6 +77,7 @@ function buildShardQuery(shard: number): string {
         p${index}: Page(page: ${page}, perPage: ${ANIME_ITEMS_PER_PAGE}) {
           media(
             type: ANIME
+            countryOfOrigin: JP
             isAdult: false
             format_in: [TV, TV_SHORT, MOVIE, OVA, ONA, SPECIAL]
             sort: ID_DESC
