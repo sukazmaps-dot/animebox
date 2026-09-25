@@ -59,6 +59,20 @@ export type DeploymentHealth = {
   region: string | null;
 };
 
+export type PlaybackProviderObservability = {
+  providerKey: string;
+  attempts24h: number;
+  discoveryReady24h: number;
+  discoveryTimeouts24h: number;
+  discoveryUnavailable24h: number;
+  attemptP95Ms: number | null;
+  playerReady24h: number;
+  playerReadyP95Ms: number | null;
+  endToEndReadyP95Ms: number | null;
+  runtimeFailures24h: number;
+  fallbacksFrom24h: number;
+};
+
 export type PlaybackPlatformHealth = {
   starts24h: number;
   sourceFailures24h: number;
@@ -69,6 +83,18 @@ export type PlaybackPlatformHealth = {
   wtDriftCorrections24h: number;
   fallbackRatePct: number | null;
   exhaustionRatePct: number | null;
+  discoveryPlans24h: number;
+  discoveryAttempts24h: number;
+  discoveryReady24h: number;
+  discoveryExhausted24h: number;
+  discoverySuccessRatePct: number | null;
+  firstSourceP50Ms: number | null;
+  firstSourceP95Ms: number | null;
+  playerReadyP50Ms: number | null;
+  playerReadyP95Ms: number | null;
+  endToEndReadyP50Ms: number | null;
+  endToEndReadyP95Ms: number | null;
+  providers: PlaybackProviderObservability[];
 };
 
 export type RequestRouteHealth = {
@@ -143,6 +169,8 @@ export type SystemHealthSnapshot = {
     degradedJobs24h: number;
     requestRuntimeDegraded: boolean;
     requestRuntimeCritical: boolean;
+    playbackRuntimeDegraded: boolean;
+    playbackRuntimeCritical: boolean;
     dependencyWarnings: number;
   };
 };
