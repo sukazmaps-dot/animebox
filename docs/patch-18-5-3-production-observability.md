@@ -37,7 +37,7 @@ Each bucket records weighted latency bands:
 - 1000–2500 ms
 - >=2500 ms
 
-System Health derives an approximate p95 without retaining raw request timings.
+System Health derives approximate p95 and p99 values without retaining raw request timings.
 
 ### Incident shield
 
@@ -74,8 +74,10 @@ The admin System Health snapshot gains:
 - 5xx rate: 1h / 24h;
 - rate-limit hits: 1h / 24h;
 - slow requests: 1h / 24h;
-- approximate p95: 1h / 24h;
+- approximate p95 / p99: 1h / 24h;
 - max observed latency;
+- live Supabase probe latency;
+- live Cloudflare media-edge health, protocol and R2 binding state;
 - per-route request/error/429/slow/p95/max table;
 - request id metadata on runtime incidents.
 
@@ -90,5 +92,6 @@ The patch is not ready until:
 - all six critical routes are wrapped;
 - no raw URL or user identifier is stored;
 - System Health exposes 1h/24h API runtime metrics;
+- System Health probes Supabase and media-edge health fail-open;
 - the existing daily cron prunes request telemetry;
 - TypeScript, targeted lint, patch regression checks and production build pass.
