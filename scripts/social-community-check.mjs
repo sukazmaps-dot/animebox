@@ -50,8 +50,10 @@ if (
 }
 
 if (
-  !presence.includes("document.visibilityState !== 'visible'") ||
+  !presence.includes("document.visibilityState === 'visible'") ||
   !presence.includes('window.setInterval') ||
+  !presence.includes('stopTimer') ||
+  !presence.includes("window.addEventListener('offline', onOffline)") ||
   !presence.includes('/api/social/presence') ||
   !layout.includes('DeferredAppEnhancements') ||
   !deferredEnhancements.includes('SocialPresenceHeartbeat')

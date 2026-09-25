@@ -59,6 +59,11 @@ jobs:
           app/anime/[slug]/episode/[episode]/page.tsx
           app/api/anime/[slug]/episode-availability/route.ts
           components/Navbar.tsx
+          components/AuthUserButton.tsx
+          components/SidebarMembership.tsx
+          components/SocialNotificationBadge.tsx
+          components/social/SocialPresenceHeartbeat.tsx
+          components/analytics/ProductAnalyticsTracker.tsx
           components/DeferredMount.tsx
           components/DeferredAppEnhancements.tsx
           components/OfflineCacheBridge.tsx

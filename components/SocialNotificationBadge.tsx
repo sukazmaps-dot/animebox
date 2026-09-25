@@ -22,6 +22,13 @@ export default function SocialNotificationBadge() {
       return;
     }
 
+    if (
+      document.visibilityState !== 'visible' ||
+      !navigator.onLine
+    ) {
+      return;
+    }
+
     try {
       const response = await fetch('/api/social/notifications?limit=1', {
         cache: 'no-store',
@@ -35,28 +42,74 @@ export default function SocialNotificationBadge() {
   }, [user?.id]);
 
   useEffect(() => {
-    queueMicrotask(() => void refresh());
-    const timer = window.setInterval(() => void refresh(), 30_000);
+    if (!user?.id) return;
+
+    let timer: number | null = null;
+
+    const stopPolling = () => {
+      if (timer === null) return;
+      window.clearInterval(timer);
+      timer = null;
+    };
+
+    const startPolling = () => {
+      if (
+        document.visibilityState !== 'visible' ||
+        !navigator.onLine ||
+        timer !== null
+      ) {
+        return;
+      }
+
+      timer = window.setInterval(() => {
+        void refresh();
+      }, 30_000);
+    };
+
+    const resume = () => {
+      if (
+        document.visibilityState !== 'visible' ||
+        !navigator.onLine
+      ) {
+        return;
+      }
+
+      void refresh();
+      startPolling();
+    };
 
     const onVisible = () => {
-      if (document.visibilityState === 'visible') void refresh();
+      if (document.visibilityState === 'visible') {
+        resume();
+      } else {
+        stopPolling();
+      }
     };
+
+    const onOnline = () => resume();
+    const onOffline = () => stopPolling();
+
+    queueMicrotask(resume);
 
     window.addEventListener(SOCIAL_NOTIFICATIONS_CHANGED_EVENT, refresh);
     document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
 
     return () => {
-      window.clearInterval(timer);
+      stopPolling();
       window.removeEventListener(SOCIAL_NOTIFICATIONS_CHANGED_EVENT, refresh);
       document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
     };
-  }, [refresh]);
+  }, [refresh, user?.id]);
 
   if (unread <= 0) return null;
 
   return (
-    <span className="pointer-events-none absolute -right-1 -top-1 grid min-h-[16px] min-w-[16px] place-items-center rounded-full border border-[#080b13] bg-violet-500 px-1 text-[8px] font-black leading-none text-white">
-      {unread > 9 ? '9+' : unread}
+    <span className="pointer-events-none absolute -right-1 -top-1 grid min-h-[16px] min-w-[16px] place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-black leading-none text-white shadow-[0_0_14px_rgba(244,63,94,0.45)]">
+      {unread > 99 ? '99+' : unread}
     </span>
   );
 }

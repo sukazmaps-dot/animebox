@@ -8,6 +8,29 @@ import { trackProductClientEvent } from '@/lib/product-events-client';
 
 const REGISTRATION_SESSION_PREFIX = 'animebox:registration-session:v1:';
 
+type IdleWindow = Window & {
+  requestIdleCallback?: (
+    callback: IdleRequestCallback,
+    options?: IdleRequestOptions,
+  ) => number;
+  cancelIdleCallback?: (handle: number) => void;
+};
+
+function scheduleSecondaryAnalytics(callback: () => void) {
+  const idleWindow = window as IdleWindow;
+
+  if (idleWindow.requestIdleCallback) {
+    const handle = idleWindow.requestIdleCallback(callback, {
+      timeout: 1_500,
+    });
+
+    return () => idleWindow.cancelIdleCallback?.(handle);
+  }
+
+  const timer = window.setTimeout(callback, 180);
+  return () => window.clearTimeout(timer);
+}
+
 function safeSource(telegramMiniApp: boolean) {
   return telegramMiniApp ? 'telegram_mini_app' : 'web';
 }
@@ -30,21 +53,26 @@ export default function ProductAnalyticsTracker() {
     });
 
     const animeMatch = pathname.match(/^\/anime\/([^/]+)$/);
-    if (animeMatch?.[1]) {
-      trackProductClientEvent('anime_open', {
-        source,
-        path: pathname,
-        entityType: 'anime_slug',
-        entityId: animeMatch[1],
-      });
-    }
 
-    if (pathname === '/chat') {
-      trackProductClientEvent('chat_open', {
-        source,
-        path: pathname,
-      });
-    }
+    return scheduleSecondaryAnalytics(() => {
+      if (document.visibilityState !== 'visible') return;
+
+      if (animeMatch?.[1]) {
+        trackProductClientEvent('anime_open', {
+          source,
+          path: pathname,
+          entityType: 'anime_slug',
+          entityId: animeMatch[1],
+        });
+      }
+
+      if (pathname === '/chat') {
+        trackProductClientEvent('chat_open', {
+          source,
+          path: pathname,
+        });
+      }
+    });
   }, [pathname, telegramMiniApp]);
 
   useEffect(() => {
