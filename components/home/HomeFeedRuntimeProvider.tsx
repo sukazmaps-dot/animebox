@@ -2,8 +2,6 @@
 
 import {
   createContext,
-  startTransition,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -15,6 +13,7 @@ import {
 
 import { useAuthState } from '@/components/AuthStateProvider';
 import type { ContinueWatchingItem } from '@/components/HomeContinueWatching';
+import { useHomeRecommendationRuntime } from '@/components/home/useHomeRecommendationRuntime';
 import type { HomeRetentionCompletionSignal } from '@/components/HomeRetentionHub';
 import { getAnimes } from '@/lib/anime-client';
 import {
@@ -22,17 +21,9 @@ import {
   readWatchHistory,
   type AnimeHistoryEntry,
 } from '@/lib/anime-storage';
-import {
-  readTasteProfile,
-  setTasteMood,
-  type TasteMood,
-} from '@/lib/personalization';
+import type { TasteMood } from '@/lib/personalization';
 import { trackProductClientEvent } from '@/lib/product-events-client';
-import {
-  getPersonalizedRecommendations,
-  type RankedRecommendation,
-} from '@/lib/recommendations';
-import { fetchTasteGraph } from '@/lib/taste-graph';
+import type { RankedRecommendation } from '@/lib/recommendations';
 import {
   getLatestWatchProgress,
   hasResumePosition,
@@ -61,6 +52,7 @@ export type HomeFeedRuntimeValue = {
   mood: TasteMood;
   updateMood: (mood: TasteMood) => void;
   smartRecommendations: RankedRecommendation[];
+  recommendationsReady: boolean;
   personalEpisodeByAnime: Map<number, number>;
   continueWatchingItems: ContinueWatchingItem[];
   personalizedHome: boolean;
@@ -108,13 +100,25 @@ export default function HomeFeedRuntimeProvider({
   const [hasWatchHistory, setHasWatchHistory] = useState(false);
   const [watchHistory, setWatchHistory] = useState<AnimeHistoryEntry[]>([]);
   const [serverContinue, setServerContinue] = useState<WatchTitleOverview[]>([]);
-  const [mood, setMood] = useState<TasteMood>('any');
-  const [tasteRevision, setTasteRevision] = useState(0);
   const hydrated = useSyncExternalStore(
     subscribeHydration,
     () => true,
     () => false,
   );
+
+  const {
+    mood,
+    updateMood,
+    smartRecommendations,
+    recommendationsReady,
+  } = useHomeRecommendationRuntime({
+    authLoading,
+    userId: user?.id ?? null,
+    hydrated,
+    popular,
+    ongoing,
+    historyRevision,
+  });
 
   useEffect(() => {
     const popularController = hasInitialPopular
@@ -187,19 +191,6 @@ export default function HomeFeedRuntimeProvider({
     hasInitialOngoing,
     hasInitialPopular,
   ]);
-
-  useEffect(() => {
-    if (authLoading || !user?.id) return;
-
-    const controller = new AbortController();
-
-    void fetchTasteGraph(controller.signal).catch((error) => {
-      if (error instanceof Error && error.name === 'AbortError') return;
-      console.warn('Taste Graph refresh failed:', error);
-    });
-
-    return () => controller.abort();
-  }, [authLoading, user?.id]);
 
   useEffect(() => {
     const refreshHistory = () => {
@@ -309,50 +300,6 @@ export default function HomeFeedRuntimeProvider({
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [authLoading, user?.id]);
-
-  useEffect(() => {
-    const refreshTaste = () => {
-      setMood(readTasteProfile().mood);
-      setTasteRevision((revision) => revision + 1);
-    };
-
-    refreshTaste();
-    window.addEventListener('animebox-taste-changed', refreshTaste);
-    window.addEventListener('animebox-taste-graph-updated', refreshTaste);
-
-    return () => {
-      window.removeEventListener(
-        'animebox-taste-changed',
-        refreshTaste,
-      );
-      window.removeEventListener(
-        'animebox-taste-graph-updated',
-        refreshTaste,
-      );
-    };
-  }, []);
-
-  const smartRecommendations = useMemo(() => {
-    if (!hydrated) return [];
-
-    void historyRevision;
-    void tasteRevision;
-
-    return getPersonalizedRecommendations(
-      [...popular, ...ongoing],
-      {
-        mood,
-        limit: 24,
-      },
-    );
-  }, [
-    hydrated,
-    popular,
-    ongoing,
-    mood,
-    historyRevision,
-    tasteRevision,
-  ]);
 
   const progress = useMemo(() => {
     if (!hydrated) return {};
@@ -679,19 +626,6 @@ export default function HomeFeedRuntimeProvider({
     popular.length === 0 &&
     ongoing.length === 0;
 
-  const updateMood = useCallback(
-    (nextMood: TasteMood) => {
-      if (nextMood === mood) return;
-
-      setMood(nextMood);
-
-      startTransition(() => {
-        setTasteMood(nextMood);
-      });
-    },
-    [mood],
-  );
-
   const value = useMemo<HomeFeedRuntimeValue>(
     () => ({
       popular,
@@ -710,6 +644,7 @@ export default function HomeFeedRuntimeProvider({
       mood,
       updateMood,
       smartRecommendations,
+      recommendationsReady,
       personalEpisodeByAnime,
       continueWatchingItems,
       personalizedHome,
@@ -735,6 +670,7 @@ export default function HomeFeedRuntimeProvider({
       popularError,
       popularLoading,
       retentionCompletionCandidates,
+      recommendationsReady,
       serverContinue.length,
       smartRecommendations,
       updateMood,

@@ -35,6 +35,7 @@ export default function HomeDiscoverySection() {
     popularLoading,
     ongoingLoading,
     smartRecommendations,
+    recommendationsReady,
     hasWatchHistory,
   } = useHomeFeedRuntime();
 
@@ -92,6 +93,7 @@ export default function HomeDiscoverySection() {
           </div>
 
           {!hydrated ||
+          !recommendationsReady ||
           (popularLoading &&
             ongoingLoading &&
             smartRecommendations.length === 0) ? (

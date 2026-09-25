@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import {
   usePathname,
   useRouter,
@@ -12,12 +13,43 @@ import {
 import Icon from './Icon';
 import AuthUserButton from './AuthUserButton';
 import MobileAccountNav from './MobileAccountNav';
-import SocialNotificationBadge from './SocialNotificationBadge';
-import SidebarMembership from './SidebarMembership';
-import SearchSuggestions from './SearchSuggestions';
 import { useAuthState } from '@/components/AuthStateProvider';
 import { TELEGRAM_MINI_APP_URL } from '@/lib/telegram-links';
 import { BRAND_SLOGAN } from '@/lib/brand';
+
+const SearchSuggestions = dynamic(
+  () => import('./SearchSuggestions'),
+  { ssr: false },
+);
+
+const SidebarMembership = dynamic(
+  () => import('./SidebarMembership'),
+  { ssr: false },
+);
+
+const SocialNotificationBadge = dynamic(
+  () => import('./SocialNotificationBadge'),
+  { ssr: false },
+);
+
+function SidebarMembershipFallback() {
+  return (
+    <Link
+      href="/premium"
+      className="sidebar-membership"
+      aria-label="Открыть AnimeBox Premium"
+    >
+      <span className="sidebar-membership__icon" aria-hidden="true">
+        <Icon name="crown" size={20} />
+      </span>
+
+      <span className="sidebar-membership__copy">
+        <strong>AnimeBox Premium</strong>
+        <small>Профиль · бонусы</small>
+      </span>
+    </Link>
+  );
+}
 
 const mainNav = [
   {
@@ -357,7 +389,11 @@ function NavbarContent() {
         <div className="sidebar__label">Поддержка</div>
 
         <div className="sidebar__membership-block">
-          <SidebarMembership />
+          {!authLoading && user ? (
+            <SidebarMembership />
+          ) : (
+            <SidebarMembershipFallback />
+          )}
 
           <Link
             href="/support"
@@ -479,10 +515,12 @@ function NavbarContent() {
             autoComplete="off"
           />
 
-          <SearchSuggestions
-            query={searchValue}
-            onChoose={() => setSearchValue('')}
-          />
+          {searchValue.trim().length >= 2 && (
+            <SearchSuggestions
+              query={searchValue}
+              onChoose={() => setSearchValue('')}
+            />
+          )}
         </form>
 
         <div className="topbar__actions">

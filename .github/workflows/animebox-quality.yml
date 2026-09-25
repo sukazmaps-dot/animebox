@@ -64,6 +64,7 @@ jobs:
           components/OfflineCacheBridge.tsx
           components/home/HomePageShell.tsx
           components/home/HomeFeedRuntimeProvider.tsx
+          components/home/useHomeRecommendationRuntime.ts
           components/home/HomeScheduleRuntimeProvider.tsx
           components/home/HomeHeroSection.tsx
           components/home/HomeDiscoverySection.tsx

@@ -10,6 +10,9 @@ const shell = read('components/home/HomePageShell.tsx');
 const feedRuntime = read(
   'components/home/HomeFeedRuntimeProvider.tsx',
 );
+const recommendationRuntime = read(
+  'components/home/useHomeRecommendationRuntime.ts',
+);
 const discovery = read(
   'components/home/HomeDiscoverySection.tsx',
 );
@@ -49,21 +52,20 @@ if (
   );
 }
 
-const recommendationsBlock =
-  feedRuntime.match(
-    /const smartRecommendations = useMemo\(\(\) => \{[\s\S]*?\}, \[[\s\S]*?\]\);/,
+const recommendationEffect =
+  recommendationRuntime.match(
+    /useEffect\(\(\) => \{[\s\S]*?import\('@\/lib\/recommendations'\)[\s\S]*?\}, \[[\s\S]*?tasteRevision,[\s\S]*?\]\);/,
   )?.[0] ?? '';
 
 if (
-  !recommendationsBlock.includes(
-    'if (!hydrated) return [];',
-  ) ||
-  !recommendationsBlock.includes(
+  !recommendationEffect.includes('if (!hydrated) return;') ||
+  !recommendationEffect.includes(
     'getPersonalizedRecommendations',
-  )
+  ) ||
+  !recommendationEffect.includes('requestIdleCallback')
 ) {
   failures.push(
-    'Personalized recommendations lost their hydration guard.',
+    'Personalized recommendations must stay post-hydration and idle-loaded.',
   );
 }
 
