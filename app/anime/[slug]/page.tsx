@@ -563,6 +563,9 @@ export default async function AnimePage({
                   }
                   loading="eager"
                   fetchPriority="high"
+                  preset="large"
+                  quality={80}
+                  sizes="(max-width: 767px) 68vw, (max-width: 1024px) 230px, 260px"
                 />
 
               </div>
