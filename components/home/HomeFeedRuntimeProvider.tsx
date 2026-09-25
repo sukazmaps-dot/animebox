@@ -63,7 +63,7 @@ export type HomeFeedRuntimeValue = {
   personalizedHome: boolean;
   personalAnimeIds: Set<number>;
   personalAnimeIdList: number[];
-  retentionCompletionSignal: HomeRetentionCompletionSignal | null;
+  retentionCompletionCandidates: HomeRetentionCompletionSignal[];
 };
 
 const HomeFeedRuntimeContext =
@@ -609,8 +609,8 @@ export default function HomeFeedRuntimeProvider({
     [personalAnimeIds],
   );
 
-  const retentionCompletionSignal =
-    useMemo<HomeRetentionCompletionSignal | null>(() => {
+  const retentionCompletionCandidates =
+    useMemo<HomeRetentionCompletionSignal[]>(() => {
       const candidates = serverContinue.flatMap((state) => {
         const total = Number(state.totalEpisodes ?? 0);
         const completed = Number(state.completedEpisodes ?? 0);
@@ -664,7 +664,7 @@ export default function HomeFeedRuntimeProvider({
           b.lastWatchedAt - a.lastWatchedAt,
       );
 
-      return candidates[0] ?? null;
+      return candidates;
     }, [serverContinue]);
 
   const fallbackItems =
@@ -712,7 +712,7 @@ export default function HomeFeedRuntimeProvider({
       personalizedHome,
       personalAnimeIds,
       personalAnimeIdList,
-      retentionCompletionSignal,
+      retentionCompletionCandidates,
     }),
     [
       continueWatchingItems,
@@ -731,7 +731,7 @@ export default function HomeFeedRuntimeProvider({
       popular,
       popularError,
       popularLoading,
-      retentionCompletionSignal,
+      retentionCompletionCandidates,
       serverContinue.length,
       smartRecommendations,
       updateMood,
