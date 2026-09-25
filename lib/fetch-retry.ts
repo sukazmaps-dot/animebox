@@ -1,3 +1,10 @@
+import {
+  isTransientUpstreamResponse,
+  isUpstreamPressureError,
+  runWithUpstreamBudget,
+  upstreamKeyForUrl,
+} from '@/lib/upstream-resilience-server';
+
 /**
  * fetch с повторными попытками — для нестабильных внешних API (AniList, Shikimori).
  *
@@ -14,10 +21,23 @@ export async function fetchWithRetry(
   baseDelayMs = 400,
 ): Promise<Response> {
   let lastError: unknown;
+  const maxAttempts = Math.min(3, Math.max(1, Math.round(attempts)));
+  const retryBaseDelayMs = Math.min(1_500, Math.max(50, Math.round(baseDelayMs)));
+  const upstream = upstreamKeyForUrl(input);
 
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
-      const response = await fetch(input, init);
+      const response = upstream
+        ? await runWithUpstreamBudget(
+            upstream,
+            () => fetch(input, init),
+            {
+              signal: init?.signal,
+              isFailure: isTransientUpstreamResponse,
+              abortIsFailure: false,
+            },
+          )
+        : await fetch(input, init);
 
       if (response.ok) {
         return response;
@@ -26,25 +46,28 @@ export async function fetchWithRetry(
       // Повторяем только при rate limit / временных ошибках сервера.
       const shouldRetry = response.status === 429 || response.status >= 500;
 
-      if (!shouldRetry || attempt === attempts - 1) {
+      if (!shouldRetry || attempt === maxAttempts - 1) {
         return response;
       }
 
       lastError = new Error(`HTTP ${response.status}`);
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (
+        isUpstreamPressureError(error) ||
+        (error instanceof Error && error.name === 'AbortError')
+      ) {
         throw error;
       }
 
       lastError = error;
 
-      if (attempt === attempts - 1) {
+      if (attempt === maxAttempts - 1) {
         throw error;
       }
     }
 
     await new Promise((resolve) => {
-      setTimeout(resolve, baseDelayMs * 2 ** attempt);
+      setTimeout(resolve, retryBaseDelayMs * 2 ** attempt);
     });
   }
 
