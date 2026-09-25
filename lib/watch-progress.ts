@@ -1,5 +1,3 @@
-import { resumeEndGuardMs } from '@/lib/resume-integrity';
-
 export type WatchProgress = {
   animeId: number;
   episode: number;
@@ -119,7 +117,7 @@ export function resumeStartThresholdSeconds(durationSeconds: number) {
 
 export function resumeEndGuardSeconds(durationSeconds: number) {
   if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return 20;
-  return resumeEndGuardMs(durationSeconds * 1000) / 1000;
+  return Math.min(20, Math.max(6, durationSeconds * 0.04));
 }
 
 export function isUsableResumePosition(
