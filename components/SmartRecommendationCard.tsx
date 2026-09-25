@@ -124,12 +124,6 @@ export default function SmartRecommendationCard({
         position,
       }),
   );
-  const recommendationIdRef = useRef<string>(
-    runtimeIdentity.recommendationId,
-  );
-  const impressionIdRef = useRef<string>(
-    runtimeIdentity.impressionId,
-  );
   const impressionSentRef = useRef(
     runtimeIdentity.impressionSent,
   );
@@ -141,8 +135,8 @@ export default function SmartRecommendationCard({
 
   const eventContext = {
     animeId: anime.id,
-    recommendationId: recommendationIdRef.current,
-    impressionId: impressionIdRef.current,
+    recommendationId: runtimeIdentity.recommendationId,
+    impressionId: runtimeIdentity.impressionId,
     position,
     rowId,
     source,
@@ -171,8 +165,8 @@ export default function SmartRecommendationCard({
             trackRecommendationEvent({
               type: 'impression',
               animeId: anime.id,
-              recommendationId: recommendationIdRef.current,
-              impressionId: impressionIdRef.current,
+              recommendationId: runtimeIdentity.recommendationId,
+              impressionId: runtimeIdentity.impressionId,
               position,
               rowId,
               source,
@@ -272,7 +266,7 @@ export default function SmartRecommendationCard({
       source,
       reason,
       modelVersion: RECOMMENDATION_MODEL_VERSION,
-      recommendationId: recommendationIdRef.current,
+      recommendationId: runtimeIdentity.recommendationId,
       recommendationSessionId,
       algorithmVersion: RECOMMENDATION_MODEL_VERSION,
       rowId,
@@ -293,7 +287,7 @@ export default function SmartRecommendationCard({
       source,
       reason,
       modelVersion: RECOMMENDATION_MODEL_VERSION,
-      recommendationId: recommendationIdRef.current,
+      recommendationId: runtimeIdentity.recommendationId,
       recommendationSessionId,
       algorithmVersion: RECOMMENDATION_MODEL_VERSION,
       rowId,
@@ -315,7 +309,7 @@ export default function SmartRecommendationCard({
       source,
       reason,
       modelVersion: RECOMMENDATION_MODEL_VERSION,
-      recommendationId: recommendationIdRef.current,
+      recommendationId: runtimeIdentity.recommendationId,
       recommendationSessionId,
       algorithmVersion: RECOMMENDATION_MODEL_VERSION,
       rowId,
