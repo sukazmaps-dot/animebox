@@ -21,6 +21,8 @@ import {
   searchLocalAnimeIndex,
 } from '@/lib/search-index-server';
 
+import { observeApiRoute } from '@/lib/request-observability-server';
+
 export const runtime = 'nodejs';
 
 const loadCandidates = unstable_cache(
@@ -65,7 +67,7 @@ function compactSeed(seed: Anime | null) {
   };
 }
 
-export async function GET(request: NextRequest) {
+async function observedGET(request: NextRequest) {
   const rawQuery = request.nextUrl.searchParams.get('q')?.trim() ?? '';
   const requestedLimit = Number.parseInt(request.nextUrl.searchParams.get('limit') ?? '20', 10);
   const limit = Number.isFinite(requestedLimit) ? Math.min(40, Math.max(5, requestedLimit)) : 20;
@@ -242,3 +244,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export const GET = observeApiRoute('/api/discovery', observedGET);

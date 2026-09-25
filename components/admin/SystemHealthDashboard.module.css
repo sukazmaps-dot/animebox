@@ -325,6 +325,59 @@
   text-align: right;
 }
 
+.widePanel {
+  grid-column: 1 / -1;
+}
+
+.routeList {
+  display: grid;
+  border-top: 1px solid rgba(255,255,255,.045);
+}
+
+.routeRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 62px;
+  padding: 11px 17px;
+  border-bottom: 1px solid rgba(255,255,255,.045);
+}
+
+.routeRow:last-child {
+  border-bottom: 0;
+}
+
+.routeRow > div:first-child {
+  min-width: 0;
+}
+
+.routeRow strong {
+  display: block;
+  overflow: hidden;
+  color: rgba(255,255,255,.86);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.routeRow small {
+  color: rgba(255,255,255,.34);
+  font-size: 9px;
+}
+
+.routeMeta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.routeMeta small {
+  white-space: nowrap;
+}
+
 .empty,
 .error,
 .loading {
@@ -373,6 +426,15 @@
 }
 
 @media (max-width: 560px) {
+  .routeRow {
+    grid-template-columns: 1fr;
+  }
+
+  .routeMeta {
+    justify-content: flex-start;
+    gap: 7px 12px;
+  }
+
   .providerRow,
   .jobRow {
     grid-template-columns: minmax(0, 1fr) auto;

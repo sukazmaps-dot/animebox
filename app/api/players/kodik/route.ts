@@ -13,7 +13,9 @@ import {
   recordProviderResult,
 } from '@/lib/player-source-control';
 
-export async function GET(request: NextRequest) {
+import { observeApiRoute } from '@/lib/request-observability-server';
+
+async function observedGET(request: NextRequest) {
   const limited = await enforceIpRateLimit(request, {
     scope: 'kodik_lookup_ip', limit: 180, windowSeconds: 60,
   });
@@ -187,3 +189,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export const GET = observeApiRoute('/api/players/kodik', observedGET);

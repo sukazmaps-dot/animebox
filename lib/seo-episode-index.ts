@@ -2,6 +2,10 @@ import 'server-only';
 
 import { adminClient, ensureAnime } from '@/lib/community-server';
 import { canonicalEpisodePlayerUrl } from '@/lib/episode-timeline-server';
+import {
+  copyrightEpisodeKey,
+  getCopyrightRestrictedEpisodeKeys,
+} from '@/lib/copyright-seo-server';
 import type { Anime } from '@/types/anime';
 import type { EpisodeAvailabilityResponse } from '@/types/episode-availability';
 
@@ -55,7 +59,18 @@ export async function syncSeoEpisodeIndex(
 ): Promise<void> {
   if (availability.status !== 'available') return;
 
-  const episodes = uniqueEpisodes(availability.episodes);
+  const candidateEpisodes = uniqueEpisodes(availability.episodes);
+  if (!candidateEpisodes.length) return;
+
+  const restrictedKeys = await getCopyrightRestrictedEpisodeKeys(
+    candidateEpisodes.map((episode) => ({
+      animeId: anime.id,
+      episode,
+    })),
+  );
+  const episodes = candidateEpisodes.filter(
+    (episode) => !restrictedKeys.has(copyrightEpisodeKey(anime.id, episode)),
+  );
   if (!episodes.length) return;
 
   const slug = typeof anime.slug === 'string' ? anime.slug.trim() : '';

@@ -16,6 +16,8 @@ import {
   recordProviderResult,
 } from '@/lib/player-source-control';
 
+import { observeApiRoute } from '@/lib/request-observability-server';
+
 export const runtime = 'nodejs';
 
 const API_BASES = [
@@ -24,7 +26,7 @@ const API_BASES = [
   'https://api.anilibria.app/api/v1',
 ];
 
-export async function GET(request: NextRequest) {
+async function observedGET(request: NextRequest) {
   const limited = await enforceIpRateLimit(request, {
     scope: 'anilibria_lookup_ip', limit: 120, windowSeconds: 60,
   });
@@ -207,3 +209,5 @@ export async function GET(request: NextRequest) {
     },
   );
 }
+
+export const GET = observeApiRoute('/api/anilibria', observedGET);

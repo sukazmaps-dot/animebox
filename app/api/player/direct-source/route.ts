@@ -7,6 +7,8 @@ import {
 } from '@/lib/player-source-control';
 import { resolveDirectPlayerStreams } from '@/lib/direct-player-server';
 
+import { observeApiRoute } from '@/lib/request-observability-server';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +49,7 @@ function rateLimited(request: NextRequest) {
   return current.count > RATE_LIMIT;
 }
 
-export async function GET(request: NextRequest) {
+async function observedGET(request: NextRequest) {
   if (rateLimited(request)) {
     return NextResponse.json(
       {
@@ -157,3 +159,5 @@ export async function GET(request: NextRequest) {
     },
   });
 }
+
+export const GET = observeApiRoute('/api/player/direct-source', observedGET);

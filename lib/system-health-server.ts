@@ -1,8 +1,12 @@
 import 'server-only';
 
+import { getPrimaryMediaOrigin } from '@/lib/media-delivery';
 import { getProductionHealthSnapshot } from '@/lib/production-health-server';
 import type {
   NotificationHealth,
+  RequestPlatformHealth,
+  RequestRouteHealth,
+  SystemDependenciesHealth,
   SystemHealthSnapshot,
   SystemIncident,
   SystemJobHealth,
@@ -51,6 +55,7 @@ type IncidentRow = {
   first_seen_at: string;
   last_seen_at: string;
   resolved_at: string | null;
+  metadata: Record<string, unknown> | null;
 };
 
 type NotificationRow = {
@@ -61,6 +66,34 @@ type NotificationRow = {
   failed: number | null;
   duration_ms: number | null;
   last_error_code: string | null;
+};
+
+type RequestMetricRow = {
+  bucket_start: string;
+  route_key: string;
+  method: string;
+  samples: number | null;
+  estimated_requests: number | null;
+  server_errors: number | null;
+  rate_limited: number | null;
+  slow_requests: number | null;
+  duration_sum_ms: number | null;
+  max_duration_ms: number | null;
+  latency_0_250: number | null;
+  latency_250_500: number | null;
+  latency_500_1000: number | null;
+  latency_1000_2500: number | null;
+  latency_2500_plus: number | null;
+};
+
+type RequestAggregate = {
+  estimatedRequests: number;
+  serverErrors: number;
+  rateLimited: number;
+  slowRequests: number;
+  durationSumMs: number;
+  maxDurationMs: number;
+  latency: [number, number, number, number, number];
 };
 
 function finite(value: unknown) {
@@ -137,6 +170,7 @@ function incidentRows(rows: IncidentRow[]): SystemIncident[] {
     firstSeenAt: row.first_seen_at,
     lastSeenAt: row.last_seen_at,
     resolvedAt: row.resolved_at,
+    metadata: row.metadata ?? {},
   }));
 }
 
@@ -153,9 +187,254 @@ function notificationHealth(row: NotificationRow | null): NotificationHealth | n
   };
 }
 
+function emptyRequestAggregate(): RequestAggregate {
+  return {
+    estimatedRequests: 0,
+    serverErrors: 0,
+    rateLimited: 0,
+    slowRequests: 0,
+    durationSumMs: 0,
+    maxDurationMs: 0,
+    latency: [0, 0, 0, 0, 0],
+  };
+}
+
+function addRequestMetric(target: RequestAggregate, row: RequestMetricRow) {
+  target.estimatedRequests += finite(row.estimated_requests);
+  target.serverErrors += finite(row.server_errors);
+  target.rateLimited += finite(row.rate_limited);
+  target.slowRequests += finite(row.slow_requests);
+  target.durationSumMs += finite(row.duration_sum_ms);
+  target.maxDurationMs = Math.max(
+    target.maxDurationMs,
+    finite(row.max_duration_ms),
+  );
+  target.latency[0] += finite(row.latency_0_250);
+  target.latency[1] += finite(row.latency_250_500);
+  target.latency[2] += finite(row.latency_500_1000);
+  target.latency[3] += finite(row.latency_1000_2500);
+  target.latency[4] += finite(row.latency_2500_plus);
+}
+
+function percent(numerator: number, denominator: number) {
+  if (denominator <= 0) return null;
+  return Math.round((numerator / denominator) * 10_000) / 100;
+}
+
+function averageMs(aggregate: RequestAggregate) {
+  if (aggregate.estimatedRequests <= 0) return null;
+  return Math.round(
+    aggregate.durationSumMs / aggregate.estimatedRequests,
+  );
+}
+
+function percentileMs(
+  aggregate: RequestAggregate,
+  percentile: number,
+) {
+  const total = aggregate.latency.reduce((sum, value) => sum + value, 0);
+  if (total <= 0) return null;
+
+  const threshold = total * percentile;
+  const bounds = [250, 500, 1_000, 2_500];
+  let cumulative = 0;
+
+  for (let index = 0; index < aggregate.latency.length; index += 1) {
+    cumulative += aggregate.latency[index];
+    if (cumulative < threshold) continue;
+    if (index < bounds.length) return bounds[index];
+    return Math.max(2_500, aggregate.maxDurationMs);
+  }
+
+  return aggregate.maxDurationMs || null;
+}
+
+function p95Ms(aggregate: RequestAggregate) {
+  return percentileMs(aggregate, 0.95);
+}
+
+function p99Ms(aggregate: RequestAggregate) {
+  return percentileMs(aggregate, 0.99);
+}
+
+function requestRouteHealth(
+  routeKey: string,
+  method: string,
+  aggregate: RequestAggregate,
+): RequestRouteHealth {
+  return {
+    routeKey,
+    method,
+    estimatedRequests24h: aggregate.estimatedRequests,
+    serverErrors24h: aggregate.serverErrors,
+    errorRate24hPct: percent(
+      aggregate.serverErrors,
+      aggregate.estimatedRequests,
+    ),
+    rateLimited24h: aggregate.rateLimited,
+    slowRequests24h: aggregate.slowRequests,
+    averageMs24h: averageMs(aggregate),
+    p95Ms24h: p95Ms(aggregate),
+    p99Ms24h: p99Ms(aggregate),
+    maxDurationMs24h:
+      aggregate.estimatedRequests > 0 ? aggregate.maxDurationMs : null,
+  };
+}
+
+function requestHealthFromRows(
+  rows: RequestMetricRow[],
+  available: boolean,
+): RequestPlatformHealth {
+  const oneHourAgo = Date.now() - 60 * 60 * 1_000;
+  const aggregate1h = emptyRequestAggregate();
+  const aggregate24h = emptyRequestAggregate();
+  const byRoute = new Map<string, RequestAggregate>();
+
+  for (const row of rows) {
+    addRequestMetric(aggregate24h, row);
+
+    const bucketTime = new Date(row.bucket_start).getTime();
+    if (Number.isFinite(bucketTime) && bucketTime >= oneHourAgo) {
+      addRequestMetric(aggregate1h, row);
+    }
+
+    const routeMapKey = `${row.method} ${row.route_key}`;
+    const routeAggregate = byRoute.get(routeMapKey) ?? emptyRequestAggregate();
+    addRequestMetric(routeAggregate, row);
+    byRoute.set(routeMapKey, routeAggregate);
+  }
+
+  const routes = [...byRoute.entries()]
+    .map(([key, aggregate]) => {
+      const space = key.indexOf(' ');
+      const method = space >= 0 ? key.slice(0, space) : 'GET';
+      const routeKey = space >= 0 ? key.slice(space + 1) : key;
+      return requestRouteHealth(routeKey, method, aggregate);
+    })
+    .sort(
+      (a, b) =>
+        b.serverErrors24h - a.serverErrors24h ||
+        (b.p95Ms24h ?? 0) - (a.p95Ms24h ?? 0) ||
+        b.estimatedRequests24h - a.estimatedRequests24h,
+    )
+    .slice(0, 12);
+
+  return {
+    available,
+    estimatedRequests1h: aggregate1h.estimatedRequests,
+    estimatedRequests24h: aggregate24h.estimatedRequests,
+    serverErrors1h: aggregate1h.serverErrors,
+    serverErrors24h: aggregate24h.serverErrors,
+    errorRate1hPct: percent(
+      aggregate1h.serverErrors,
+      aggregate1h.estimatedRequests,
+    ),
+    errorRate24hPct: percent(
+      aggregate24h.serverErrors,
+      aggregate24h.estimatedRequests,
+    ),
+    rateLimited1h: aggregate1h.rateLimited,
+    rateLimited24h: aggregate24h.rateLimited,
+    slowRequests1h: aggregate1h.slowRequests,
+    slowRequests24h: aggregate24h.slowRequests,
+    averageMs1h: averageMs(aggregate1h),
+    averageMs24h: averageMs(aggregate24h),
+    p95Ms1h: p95Ms(aggregate1h),
+    p95Ms24h: p95Ms(aggregate24h),
+    p99Ms1h: p99Ms(aggregate1h),
+    p99Ms24h: p99Ms(aggregate24h),
+    maxDurationMs24h:
+      aggregate24h.estimatedRequests > 0
+        ? aggregate24h.maxDurationMs
+        : null,
+    routes,
+  };
+}
+
+async function probeSupabase(
+  admin: ReturnType<typeof createSupabaseAdmin>,
+): Promise<SystemDependenciesHealth['supabase']> {
+  const startedAt = performance.now();
+
+  try {
+    const { error } = await admin
+      .from('system_incidents')
+      .select('id')
+      .limit(1);
+
+    const latencyMs = Math.max(0, Math.round(performance.now() - startedAt));
+
+    return {
+      state: error ? 'degraded' : 'healthy',
+      latencyMs,
+    };
+  } catch {
+    return {
+      state: 'degraded',
+      latencyMs: Math.max(0, Math.round(performance.now() - startedAt)),
+    };
+  }
+}
+
+async function probeMediaEdge(): Promise<SystemDependenciesHealth['mediaEdge']> {
+  const origin = getPrimaryMediaOrigin();
+
+  if (!origin) {
+    return {
+      configured: false,
+      state: 'unknown',
+      latencyMs: null,
+      protocol: null,
+      r2: null,
+    };
+  }
+
+  const startedAt = performance.now();
+
+  try {
+    const response = await fetch(`${origin}/health`, {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(1_800),
+    });
+    const payload = response.ok
+      ? await response.json() as Record<string, unknown>
+      : {};
+    const latencyMs = Math.max(0, Math.round(performance.now() - startedAt));
+    const protocol =
+      typeof payload.protocol === 'string' ? payload.protocol : null;
+    const r2 = typeof payload.r2 === 'boolean' ? payload.r2 : null;
+    const healthy =
+      response.ok &&
+      payload.ok === true &&
+      protocol === 'variants-v3' &&
+      r2 === true;
+
+    return {
+      configured: true,
+      state: healthy ? 'healthy' : 'degraded',
+      latencyMs,
+      protocol,
+      r2,
+    };
+  } catch {
+    return {
+      configured: true,
+      state: 'degraded',
+      latencyMs: Math.max(0, Math.round(performance.now() - startedAt)),
+      protocol: null,
+      r2: null,
+    };
+  }
+}
+
 export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
   const admin = createSupabaseAdmin();
   const productionPromise = getProductionHealthSnapshot();
+  const dependenciesPromise = Promise.all([
+    probeSupabase(admin),
+    probeMediaEdge(),
+  ]);
 
   const playbackSince = new Date(
     Date.now() - 24 * 60 * 60 * 1_000,
@@ -174,6 +453,7 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
     playerResumesResult,
     playerCompletionsResult,
     wtDriftResult,
+    requestMetricsResult,
   ] = await Promise.all([
     admin
       .from('player_provider_settings')
@@ -198,7 +478,7 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
     admin
       .from('system_incidents')
       .select(
-        'id,fingerprint,service,severity,status,title,last_message,occurrence_count,first_seen_at,last_seen_at,resolved_at',
+        'id,fingerprint,service,severity,status,title,last_message,occurrence_count,first_seen_at,last_seen_at,resolved_at,metadata',
       )
       .eq('status', 'open')
       .order('last_seen_at', { ascending: false })
@@ -245,9 +525,22 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
       .select('id', { count: 'exact', head: true })
       .eq('event_name', 'watch_party_sync_drift')
       .gte('created_at', playbackSince),
+    admin
+      .from('system_request_metrics')
+      .select(
+        'bucket_start,route_key,method,samples,estimated_requests,server_errors,rate_limited,slow_requests,duration_sum_ms,max_duration_ms,latency_0_250,latency_250_500,latency_500_1000,latency_1000_2500,latency_2500_plus',
+      )
+      .gte('bucket_start', playbackSince)
+      .order('bucket_start', { ascending: false })
+      .limit(10_000),
   ]);
 
   const production = await productionPromise;
+  const [supabaseDependency, mediaEdgeDependency] = await dependenciesPromise;
+  const dependencies: SystemDependenciesHealth = {
+    supabase: supabaseDependency,
+    mediaEdge: mediaEdgeDependency,
+  };
 
   const providers = settingsResult.error || runtimeResult.error
     ? []
@@ -268,6 +561,13 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
   const notification = notificationResult.error
     ? null
     : notificationHealth(notificationResult.data as NotificationRow | null);
+
+  const requests = requestHealthFromRows(
+    requestMetricsResult.error
+      ? []
+      : ((requestMetricsResult.data ?? []) as RequestMetricRow[]),
+    !requestMetricsResult.error,
+  );
 
   const playbackCount = (
     result: { count: number | null; error: unknown },
@@ -309,14 +609,39 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
     (item) => item.status === 'degraded',
   ).length;
 
+  const enoughRequestTraffic = requests.estimatedRequests1h >= 20;
+  const requestRuntimeCritical =
+    requests.available &&
+    enoughRequestTraffic &&
+    (requests.errorRate1hPct ?? 0) >= 5;
+  const requestRuntimeDegraded =
+    requests.available &&
+    (
+      (
+        enoughRequestTraffic &&
+        (
+          (requests.errorRate1hPct ?? 0) >= 2 ||
+          (requests.p95Ms1h ?? 0) >= 2_500
+        )
+      ) ||
+      requests.rateLimited1h >= 10
+    );
+  const dependencyWarnings = [
+    dependencies.supabase.state !== 'healthy',
+    dependencies.mediaEdge.configured &&
+      dependencies.mediaEdge.state !== 'healthy',
+  ].filter(Boolean).length;
+
   const status =
-    openCriticalIncidents > 0
+    openCriticalIncidents > 0 || requestRuntimeCritical
       ? 'critical'
       : openWarningIncidents > 0 ||
           unhealthyProviders > 0 ||
           failedJobs24h > 0 ||
           degradedJobs24h > 0 ||
-          production.cron.failed24h > 0
+          production.cron.failed24h > 0 ||
+          requestRuntimeDegraded ||
+          dependencyWarnings > 0
         ? 'degraded'
         : 'healthy';
 
@@ -345,12 +670,17 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
       fallbackRatePct,
       exhaustionRatePct,
     },
+    requests,
+    dependencies,
     signals: {
       openCriticalIncidents,
       openWarningIncidents,
       unhealthyProviders,
       failedJobs24h,
       degradedJobs24h,
+      requestRuntimeDegraded,
+      requestRuntimeCritical,
+      dependencyWarnings,
     },
   };
 }

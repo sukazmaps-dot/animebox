@@ -2,6 +2,10 @@ import type { MetadataRoute } from 'next';
 
 import { getSeoEpisodeShard } from '@/lib/seo-episodes';
 import { EPISODE_SITEMAP_SHARDS, SITE_URL } from '@/lib/seo-config';
+import {
+  copyrightEpisodeKey,
+  getCopyrightRestrictedEpisodeKeys,
+} from '@/lib/copyright-seo-server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -19,8 +23,21 @@ export default async function sitemap({
 
   try {
     const episodes = await getSeoEpisodeShard(shard);
+    const restrictedKeys = await getCopyrightRestrictedEpisodeKeys(
+      episodes.map((episode) => ({
+        animeId: episode.animeId,
+        episode: episode.episode,
+      })),
+    );
 
-    return episodes.map((episode) => ({
+    return episodes
+      .filter(
+        (episode) =>
+          !restrictedKeys.has(
+            copyrightEpisodeKey(episode.animeId, episode.episode),
+          ),
+      )
+      .map((episode) => ({
       url: `${SITE_URL}/anime/${encodeURIComponent(episode.slug)}/episode/${episode.episode}`,
       lastModified: episode.updatedAt
         ? new Date(episode.updatedAt)

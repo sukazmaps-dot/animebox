@@ -16,6 +16,7 @@ const incidentRoute = read(
 const sourceControl = read('lib/player-source-control.ts');
 
 const cronPaths = [
+  'app/api/cron/catalog-availability/route.ts',
   'app/api/cron/boosty-premium/route.ts',
   'app/api/cron/donatepay-sync/route.ts',
   'app/api/cron/episode-notifications/route.ts',
@@ -80,7 +81,10 @@ if (
 if (
   !healthRoute.includes("requireAdmin(['owner', 'admin'])") ||
   !dashboard.includes('/api/admin/system-health') ||
-  !dashboard.includes('WATCH PLATFORM · 17.6')
+  !(
+    dashboard.includes('WATCH PLATFORM · 17.6') ||
+    dashboard.includes('PRODUCTION OBSERVABILITY · 18.5.3')
+  )
 ) {
   failures.push('admin System Health surface is not protected/wired');
 }

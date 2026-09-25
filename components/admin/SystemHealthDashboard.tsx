@@ -131,11 +131,11 @@ export default function SystemHealthDashboard() {
     <section className={styles.dashboard} aria-label="AnimeBox System Health">
       <header className={styles.header}>
         <div>
-          <span className={styles.eyebrow}>WATCH PLATFORM · 17.6</span>
+          <span className={styles.eyebrow}>PRODUCTION OBSERVABILITY · 18.5.3</span>
           <h1>System Health</h1>
           <p>
-            Единый production-снимок: база, просмотр, комнаты, внешние
-            провайдеры, фоновые задачи, уведомления и открытые инциденты.
+            Единый production-снимок: API latency/error rate, база, просмотр,
+            комнаты, внешние провайдеры, фоновые задачи и инциденты с request id.
           </p>
           {health && (
             <small>
@@ -181,6 +181,12 @@ export default function SystemHealthDashboard() {
               {health.signals.openCriticalIncidents} critical ·{' '}
               {health.signals.openWarningIncidents} warning ·{' '}
               {health.signals.unhealthyProviders} provider alerts
+              {' · '}
+              {health.requests.available
+                ? `${number(health.requests.errorRate1hPct ?? 0, 2)}% API 5xx / 1h`
+                : 'API telemetry pending'}
+              {' · '}
+              {health.signals.dependencyWarnings} dependency warnings
             </p>
           </section>
 
@@ -231,9 +237,174 @@ export default function SystemHealthDashboard() {
                 {number(health.playback.starts24h)} стартов
               </small>
             </article>
+            <article>
+              <span>API requests · 1h</span>
+              <strong>
+                {health.requests.available
+                  ? number(health.requests.estimatedRequests1h)
+                  : '—'}
+              </strong>
+              <small>
+                {health.requests.available
+                  ? `${number(health.requests.estimatedRequests24h)} / 24h · sampled`
+                  : 'ожидаем migration v2'}
+              </small>
+            </article>
+            <article>
+              <span>API 5xx · 1h</span>
+              <strong>
+                {health.requests.available
+                  ? `${number(health.requests.errorRate1hPct ?? 0, 2)}%`
+                  : '—'}
+              </strong>
+              <small>
+                {health.requests.available
+                  ? `${number(health.requests.serverErrors1h)} errors · ${number(health.requests.rateLimited1h)} rate limited`
+                  : 'telemetry unavailable'}
+              </small>
+            </article>
+            <article>
+              <span>API p95 · 1h</span>
+              <strong>
+                {health.requests.available
+                  ? duration(health.requests.p95Ms1h)
+                  : '—'}
+              </strong>
+              <small>
+                {health.requests.available
+                  ? `${number(health.requests.slowRequests1h)} slow · p99 ${duration(health.requests.p99Ms1h)}`
+                  : 'telemetry unavailable'}
+              </small>
+            </article>
           </div>
 
           <div className={styles.grid}>
+            <section className={`${styles.panel} ${styles.widePanel}`}>
+              <div className={styles.panelHead}>
+                <div>
+                  <span>API RUNTIME · 1H / 24H</span>
+                  <strong>Latency, errors & rate limiting</strong>
+                </div>
+                <small>
+                  {health.requests.available
+                    ? `p95 ${duration(health.requests.p95Ms24h)} · p99 ${duration(health.requests.p99Ms24h)}`
+                    : 'migration v2 pending'}
+                </small>
+              </div>
+
+              {!health.requests.available ? (
+                <div className={styles.empty}>
+                  Request telemetry ещё не доступна. Основной System Health
+                  продолжает работать fail-open.
+                </div>
+              ) : (
+                <>
+                  <dl className={styles.metrics}>
+                    <div>
+                      <dt>Estimated requests · 24h</dt>
+                      <dd>{number(health.requests.estimatedRequests24h)}</dd>
+                    </div>
+                    <div>
+                      <dt>Server errors · 24h</dt>
+                      <dd>
+                        {number(health.requests.serverErrors24h)}
+                        {' · '}
+                        {number(health.requests.errorRate24hPct ?? 0, 2)}%
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Rate limited · 24h</dt>
+                      <dd>{number(health.requests.rateLimited24h)}</dd>
+                    </div>
+                    <div>
+                      <dt>Slow requests · 24h</dt>
+                      <dd>{number(health.requests.slowRequests24h)}</dd>
+                    </div>
+                    <div>
+                      <dt>Max observed · 24h</dt>
+                      <dd>{duration(health.requests.maxDurationMs24h)}</dd>
+                    </div>
+                  </dl>
+
+                  <div className={styles.routeList}>
+                    {health.requests.routes.length ? health.requests.routes.map((route) => (
+                      <div
+                        className={styles.routeRow}
+                        key={`${route.method}:${route.routeKey}`}
+                      >
+                        <div>
+                          <strong>{route.method} {route.routeKey}</strong>
+                          <small>
+                            {number(route.estimatedRequests24h)} req · avg{' '}
+                            {duration(route.averageMs24h)}
+                          </small>
+                        </div>
+                        <div className={styles.routeMeta}>
+                          <small>
+                            5xx {number(route.serverErrors24h)}
+                            {' · '}
+                            {number(route.errorRate24hPct ?? 0, 2)}%
+                          </small>
+                          <small>p95 {duration(route.p95Ms24h)}</small>
+                          <small>p99 {duration(route.p99Ms24h)}</small>
+                          <small>slow {number(route.slowRequests24h)}</small>
+                          <small>429 {number(route.rateLimited24h)}</small>
+                          <small>max {duration(route.maxDurationMs24h)}</small>
+                        </div>
+                      </div>
+                    )) : (
+                      <div className={styles.empty}>
+                        Метрики появятся после первых запросов к наблюдаемым API.
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </section>
+
+            <section className={styles.panel}>
+              <div className={styles.panelHead}>
+                <div>
+                  <span>DEPENDENCIES</span>
+                  <strong>Supabase & media edge</strong>
+                </div>
+                <small>{health.signals.dependencyWarnings} warnings</small>
+              </div>
+
+              <dl className={styles.metrics}>
+                <div>
+                  <dt>Supabase</dt>
+                  <dd>
+                    {health.dependencies.supabase.state}
+                    {' · '}
+                    {duration(health.dependencies.supabase.latencyMs)}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Media edge</dt>
+                  <dd>
+                    {health.dependencies.mediaEdge.configured
+                      ? `${health.dependencies.mediaEdge.state} · ${duration(health.dependencies.mediaEdge.latencyMs)}`
+                      : 'not configured'}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Media protocol</dt>
+                  <dd>{health.dependencies.mediaEdge.protocol ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt>Media R2</dt>
+                  <dd>
+                    {health.dependencies.mediaEdge.r2 == null
+                      ? '—'
+                      : health.dependencies.mediaEdge.r2
+                        ? 'connected'
+                        : 'missing'}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+
             <section className={styles.panel}>
               <div className={styles.panelHead}>
                 <div>
@@ -364,6 +535,11 @@ export default function SystemHealthDashboard() {
                         {incident.service} · {incident.occurrenceCount}× ·{' '}
                         {time(incident.lastSeenAt)}
                       </small>
+                      {typeof incident.metadata.requestId === 'string' && (
+                        <small>
+                          request {incident.metadata.requestId}
+                        </small>
+                      )}
                     </div>
                     <div className={styles.incidentActions}>
                       <span>{incident.severity}</span>

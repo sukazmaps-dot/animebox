@@ -5,6 +5,7 @@ import { unstable_cache } from 'next/cache';
 import { getAnimeSeoIdentity } from '@/lib/anime-seo';
 import { resolveAnimeRoute } from '@/lib/anime-route';
 import { getEpisodeProviderAvailability } from '@/lib/episode-provider-availability';
+import { getPlaybackRestriction } from '@/lib/copyright-server';
 import { syncSeoEpisodeIndex } from '@/lib/seo-episode-index';
 import { truncateSeoText } from '@/lib/seo-text';
 import type { Anime } from '@/types/anime';
@@ -54,6 +55,12 @@ export async function isEpisodeIndexable(
   episode: number,
 ): Promise<boolean> {
   if (!Number.isSafeInteger(episode) || episode < 1) return false;
+
+  const copyrightRestriction = await getPlaybackRestriction({
+    animeId,
+    episode,
+  });
+  if (copyrightRestriction) return false;
 
   const availability = await getCachedEpisodeSeoAvailability(animeId);
   return (

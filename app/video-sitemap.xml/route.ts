@@ -1,5 +1,9 @@
 import { adminClient } from '@/lib/community-server';
 import { SITE_URL } from '@/lib/seo-config';
+import {
+  copyrightEpisodeKey,
+  getCopyrightRestrictedEpisodeKeys,
+} from '@/lib/copyright-seo-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -76,6 +80,18 @@ async function loadRows() {
 export async function GET() {
   try {
     const rows = await loadRows();
+    const restrictedKeys = await getCopyrightRestrictedEpisodeKeys(
+      rows.flatMap((row) => {
+        const animeId = Number(row.anime_id);
+        const episode = Number(row.episode_number);
+        return Number.isSafeInteger(animeId) &&
+          animeId > 0 &&
+          Number.isSafeInteger(episode) &&
+          episode > 0
+          ? [{ animeId, episode }]
+          : [];
+      }),
+    );
     const entries: string[] = [];
 
     for (const row of rows) {
@@ -87,6 +103,7 @@ export async function GET() {
       const playerLoc = httpsUrl(row.video_player_url);
 
       if (
+        restrictedKeys.has(copyrightEpisodeKey(animeId, episode)) ||
         !Number.isSafeInteger(animeId) ||
         animeId <= 0 ||
         !Number.isSafeInteger(episode) ||

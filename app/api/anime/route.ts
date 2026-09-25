@@ -43,10 +43,12 @@ import {
   refreshCatalogAvailabilityBatch,
 } from '@/lib/catalog-availability-server';
 
+import { observeApiRoute } from '@/lib/request-observability-server';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET(
+async function observedGET(
   request: NextRequest,
 ) {
   const params = request.nextUrl.searchParams;
@@ -333,3 +335,5 @@ export async function GET(
     );
   }
 }
+
+export const GET = observeApiRoute('/api/anime', observedGET);
