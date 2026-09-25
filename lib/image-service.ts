@@ -1,5 +1,11 @@
 import type { AnimeImage } from '@/types/anime';
-import { buildAnimeBoxMediaCandidates } from '@/lib/media-delivery';
+import {
+  buildAnimeBoxMediaCandidates,
+  buildAnimeBoxMediaDefaultVariant,
+  buildAnimeBoxMediaSrcSet,
+  type MediaImageFormat,
+  type MediaImagePreset,
+} from '@/lib/media-delivery';
 
 export function normalizeImageUrl(
   value?: string | null,
@@ -82,6 +88,11 @@ function prefersLegacyProxy(value: string): boolean {
  */
 export function buildImageCandidateChain(
   values: Array<string | null | undefined>,
+  delivery?: {
+    preset: MediaImagePreset;
+    quality?: number;
+    format?: MediaImageFormat;
+  },
 ): string[] {
   const originals = Array.from(
     new Set(
@@ -100,7 +111,18 @@ export function buildImageCandidateChain(
 
   const primary = remote[0];
   const secondary = remote.find((value) => value !== primary) ?? null;
-  const mediaCandidates = buildAnimeBoxMediaCandidates(primary);
+  const mediaVariant = delivery
+    ? buildAnimeBoxMediaDefaultVariant(
+        primary,
+        delivery.preset,
+        delivery.quality,
+        delivery.format ?? 'webp',
+      )
+    : undefined;
+  const mediaCandidates = buildAnimeBoxMediaCandidates(
+    primary,
+    mediaVariant,
+  );
   const legacyProxy = proxyImageUrl(primary);
   const result: string[] = [...mediaCandidates];
 
@@ -134,35 +156,80 @@ export function buildImageCandidateChain(
 
 export type ImageCandidatePreference = 'quality' | 'compact';
 
+function imageValues(
+  image: AnimeImage,
+  preference: ImageCandidatePreference,
+): Array<string | null | undefined> {
+  if (preference === 'compact') {
+    return [
+      image.medium,
+      image.large,
+      image.extraLarge,
+      image.preview,
+      image.original,
+    ];
+  }
+
+  return [
+    image.extraLarge,
+    image.large,
+    image.medium,
+    image.original,
+    image.preview,
+  ];
+}
+
+function primaryRemoteImage(
+  image: AnimeImage,
+  preference: ImageCandidatePreference,
+): string | null {
+  for (const value of imageValues(image, preference)) {
+    const normalized = normalizeImageUrl(value);
+    if (normalized && !normalized.startsWith('/')) return normalized;
+  }
+
+  return null;
+}
+
 export function getImageCandidates(
   image?: AnimeImage | null,
   preference: ImageCandidatePreference = 'quality',
+  delivery?: {
+    preset: MediaImagePreset;
+    quality?: number;
+    format?: MediaImageFormat;
+  },
 ): string[] {
   if (!image) return [];
 
   /*
    * Mass poster rails should not begin with AniList extraLarge artwork.
    * Lighthouse was downloading ~430x650 images for ~177x250 cards, often
-   * costing 400+ KiB each. The compact profile starts from the provider's
-   * medium rendition and still keeps large as the bounded secondary fallback.
-   *
-   * Large/detail surfaces retain the existing quality-first order.
+   * costing 400+ KiB each. Compact surfaces start from the provider medium
+   * source and ask the AnimeBox media edge for a bounded width variant.
    */
-  if (preference === 'compact') {
-    return buildImageCandidateChain([
-      image.medium,
-      image.large,
-      image.extraLarge,
-      image.preview,
-      image.original,
-    ]);
-  }
+  return buildImageCandidateChain(
+    imageValues(image, preference),
+    delivery,
+  );
+}
 
-  return buildImageCandidateChain([
-    image.extraLarge,
-    image.large,
-    image.medium,
-    image.original,
-    image.preview,
-  ]);
+export function getImageMediaSrcSet(
+  image: AnimeImage | null | undefined,
+  preference: ImageCandidatePreference,
+  preset: MediaImagePreset,
+  quality?: number,
+  format: MediaImageFormat = 'webp',
+): string | undefined {
+  if (!image) return undefined;
+
+  const primary = primaryRemoteImage(image, preference);
+  if (!primary) return undefined;
+
+  return buildAnimeBoxMediaSrcSet(
+    primary,
+    preset,
+    quality,
+    format,
+  );
 }
