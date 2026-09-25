@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 
+import './patch17-6-home-recommendation-actions.css';
+
 import HomePageClient from '@/components/HomePageClient';
 import { SITE_URL } from '@/lib/seo-config';
 import { BRAND_TITLE } from '@/lib/brand';
