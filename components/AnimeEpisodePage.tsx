@@ -308,7 +308,9 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     const controller = new AbortController();
     let active = true;
     let publishedAny = false;
+    const discoveryStartedAt = performance.now();
     const publishedProviders = new Set<PlayerProviderKey>();
+    const attemptedProviders = new Set<PlayerProviderKey>();
     let enabledProviders = new Set<PlayerProviderKey>([
       'direct',
       'kodik',
@@ -685,6 +687,8 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         };
       }
 
+      attemptedProviders.add(provider);
+
       const attemptController = new AbortController();
       let timedOut = false;
       const timeoutMs = Math.max(
@@ -898,10 +902,19 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           return;
         }
 
+        const discoveryElapsedMs = Math.max(
+          0,
+          performance.now() - discoveryStartedAt,
+        );
+        const remainingBudgetMs = Math.max(
+          1_000,
+          discoveryBudgetMs - discoveryElapsedMs,
+        );
+
         budgetTimer = window.setTimeout(() => {
           budgetExpired = true;
           controller.abort();
-        }, discoveryBudgetMs);
+        }, remainingBudgetMs);
 
         const primaryPlan = providerOrder.slice(0, maxProviderAttempts);
 
@@ -930,7 +943,8 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           const remaining = providerOrder.filter(
             (provider) =>
               provider !== readyProvider &&
-              !publishedProviders.has(provider),
+              !publishedProviders.has(provider) &&
+              !attemptedProviders.has(provider),
           );
 
           void warmFallbacks(remaining).finally(() => {
