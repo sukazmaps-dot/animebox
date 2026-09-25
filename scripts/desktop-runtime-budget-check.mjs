@@ -6,6 +6,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const failures = [];
 
 const scheduleRuntime = read('components/home/HomeScheduleRuntimeProvider.tsx');
+const scheduleData = read('components/home/useHomeScheduleData.ts');
 const scheduleRoute = read('app/api/schedule/route.ts');
 const scrollRow = read('components/ui/ScrollRow.tsx');
 const smartFeed = read('components/SmartRecommendationFeed.tsx');
@@ -17,7 +18,7 @@ for (const forbidden of [
   'window.setTimeout(start, 700)',
   'fallbackTimer = window.setTimeout(start, 8_000)',
 ]) {
-  if (scheduleRuntime.includes(forbidden)) {
+  if (scheduleRuntime.includes(forbidden) || scheduleData.includes(forbidden)) {
     failures.push(`full home schedule regained eager desktop wake-up: ${forbidden}`);
   }
 }
@@ -28,7 +29,7 @@ for (const required of [
   "setUpcomingScheduleLoading(false)",
   'scheduleWindowItems',
 ]) {
-  if (!scheduleRuntime.includes(required)) {
+  if (!scheduleData.includes(required)) {
     failures.push(`bounded home schedule window missing: ${required}`);
   }
 }
