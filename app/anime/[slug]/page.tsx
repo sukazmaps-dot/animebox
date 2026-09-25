@@ -17,6 +17,7 @@ import EpisodeDiscussionHub from '@/components/EpisodeDiscussionHub';
 import EpisodeList from '@/components/EpisodeList';
 import RelatedAnime, { RelatedAnimeLoading } from '@/components/RelatedAnime';
 import AdSlot from '@/components/monetization/AdSlot';
+import PlaybackRestrictionNotice from '@/components/PlaybackRestrictionNotice';
 
 import { resolveAnimeRoute } from '@/lib/anime-route';
 import { animeHref } from '@/lib/anime-url';
@@ -24,6 +25,7 @@ import { createImageCascade } from '@/lib/image-cascade';
 import { cleanShikimoriDescription } from '@/lib/shikimori-text';
 import { animeContentFacts, animeFormatLabel, animeStatusLabel } from '@/lib/anime-content-intelligence';
 import { SITE_URL } from '@/lib/seo-config';
+import { getPlaybackRestriction } from '@/lib/copyright-server';
 import {
   buildAnimeMetadata,
   buildAnimeStructuredData,
@@ -73,7 +75,52 @@ export async function generateMetadata({
   }
 
   const canonicalUrl = new URL(animeHref(anime), SITE_URL).toString();
-  return buildAnimeMetadata(anime, canonicalUrl);
+  const restriction = await getPlaybackRestriction({ animeId: anime.id });
+
+  if (!restriction) {
+    return buildAnimeMetadata(anime, canonicalUrl);
+  }
+
+  const identity = getAnimeSeoIdentity(anime);
+  const description =
+    `Информация об аниме «${identity.pageHeading}» на AnimeBox. Воспроизведение для этого тайтла недоступно.`;
+  const images = [
+    anime.bannerImage,
+    anime.coverImage?.extraLarge,
+    anime.coverImage?.large,
+  ].filter((value): value is string => Boolean(value));
+
+  return {
+    title: `${identity.pageHeading} — информация об аниме`,
+    description,
+    alternates: { canonical: canonicalUrl },
+    openGraph: {
+      type: 'website',
+      url: canonicalUrl,
+      siteName: 'AnimeBox',
+      locale: 'ru_RU',
+      title: `${identity.pageHeading} — информация об аниме`,
+      description,
+      images: images.length ? images.map((url) => ({ url })) : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${identity.pageHeading} — информация об аниме`,
+      description,
+      images: images.length ? images.slice(0, 1) : undefined,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+        'max-video-preview': 0,
+      },
+    },
+  };
 }
 
 
@@ -119,6 +166,11 @@ export default async function AnimePage({
 
   const numericId =
     resolved.id;
+
+  const copyrightRestriction = await getPlaybackRestriction({
+    animeId: numericId,
+  });
+  const playbackRestricted = Boolean(copyrightRestriction);
 
 
   /*
@@ -372,11 +424,13 @@ export default async function AnimePage({
       .slice(0, 4);
 
   const animeStructuredData =
-    buildAnimeStructuredData(
-      resolved,
-      canonicalUrl,
-      imageCascade.banner || imageCascade.posters[0] || null,
-    );
+    playbackRestricted
+      ? null
+      : buildAnimeStructuredData(
+          resolved,
+          canonicalUrl,
+          imageCascade.banner || imageCascade.posters[0] || null,
+        );
 
   const breadcrumbStructuredData = {
     '@context':
@@ -423,12 +477,14 @@ export default async function AnimePage({
       "
       style={{ '--anime-page-accent': accentColor } as CSSProperties}
     >
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(animeStructuredData).replace(/</g, '\\u003c'),
-        }}
-      />
+      {animeStructuredData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(animeStructuredData).replace(/</g, '\\u003c'),
+          }}
+        />
+      )}
 
       <script
         type="application/ld+json"
@@ -856,14 +912,14 @@ export default async function AnimePage({
 
               <div className="mt-6">
 
-                <AnimeDetailControls
-                  anime={
-                    normalizedAnimeForControls
-                  }
-                  showEpisodes={
-                    false
-                  }
-                />
+                {playbackRestricted ? (
+                  <PlaybackRestrictionNotice />
+                ) : (
+                  <AnimeDetailControls
+                    anime={normalizedAnimeForControls}
+                    showEpisodes={false}
+                  />
+                )}
 
               </div>
 
@@ -939,29 +995,31 @@ export default async function AnimePage({
           СЕЗОНЫ / ЭПИЗОДЫ
           ===================================================== */}
 
-      <section
-        className="anime-detail-v4__episodes mx-auto max-w-7xl px-4 pb-6 pt-2 md:px-6"
-        aria-labelledby="anime-episodes-title"
-      >
-        <div className="anime-detail-v4__section-head">
-          <div>
-            <span>Эпизоды</span>
-            <h2 id="anime-episodes-title">Сезоны и эпизоды</h2>
-            <p>Выбери часть и продолжай с нужной серии.</p>
+      {!playbackRestricted && (
+        <section
+          className="anime-detail-v4__episodes mx-auto max-w-7xl px-4 pb-6 pt-2 md:px-6"
+          aria-labelledby="anime-episodes-title"
+        >
+          <div className="anime-detail-v4__section-head">
+            <div>
+              <span>Эпизоды</span>
+              <h2 id="anime-episodes-title">Сезоны и эпизоды</h2>
+              <p>Выбери часть и продолжай с нужной серии.</p>
+            </div>
+            <Link href={`${animeHref(resolved)}/watch`}>Открыть просмотр →</Link>
           </div>
-          <Link href={`${animeHref(resolved)}/watch`}>Открыть просмотр →</Link>
-        </div>
 
-        <div className="detail__episodes anime-detail-v4__episode-list">
-          <EpisodeList
-            trackingAnimeId={numericId}
-            animeId={resolved.slug}
-            episodes={anime.episodes}
-            episodesAired={anime.episodes_aired}
-            totalEpisodesKnown={Boolean(anime.episodes && anime.episodes > 0)}
-          />
-        </div>
-      </section>
+          <div className="detail__episodes anime-detail-v4__episode-list">
+            <EpisodeList
+              trackingAnimeId={numericId}
+              animeId={resolved.slug}
+              episodes={anime.episodes}
+              episodesAired={anime.episodes_aired}
+              totalEpisodesKnown={Boolean(anime.episodes && anime.episodes > 0)}
+            />
+          </div>
+        </section>
+      )}
 
 
       {/* =====================================================
@@ -985,14 +1043,16 @@ export default async function AnimePage({
             variant="compact"
           />
 
-          <AnimeNotificationControl
-            animeId={numericId}
-            animeSlug={resolved.slug}
-            animeTitle={anime.russian || anime.name}
-            episodesAired={anime.episodes_aired || 0}
-            isFinished={String(resolved.status).toUpperCase() === 'FINISHED'}
-            variant="compact"
-          />
+          {!playbackRestricted && (
+            <AnimeNotificationControl
+              animeId={numericId}
+              animeSlug={resolved.slug}
+              animeTitle={anime.russian || anime.name}
+              episodesAired={anime.episodes_aired || 0}
+              isFinished={String(resolved.status).toUpperCase() === 'FINISHED'}
+              variant="compact"
+            />
+          )}
 
           <AnimeRatingControl animeId={numericId} />
         </div>
@@ -1004,7 +1064,8 @@ export default async function AnimePage({
           WATCH TOGETHER / LONG-TAIL SEO + ПЕРЕЛИНКОВКА
           ===================================================== */}
 
-      <section
+      {!playbackRestricted && (
+        <section
         className="anime-detail-v4__watch-together mx-auto max-w-7xl px-4 pb-7 md:px-6"
         aria-labelledby="watch-together-anime-title"
       >
@@ -1024,6 +1085,7 @@ export default async function AnimePage({
           </Link>
         </div>
       </section>
+      )}
 
       {/* =====================================================
           ФРАНШИЗА
