@@ -48,7 +48,18 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const anime = await getResolvedAnime(slug);
+
+  let anime = null;
+  try {
+    anime = await getResolvedAnime(slug);
+  } catch (error) {
+    console.error('[Anime metadata] title resolution failed:', error);
+    return {
+      title: 'AnimeBox — тайтл временно недоступен',
+      description: 'Не удалось временно загрузить данные тайтла.',
+      robots: { index: false, follow: true },
+    };
+  }
 
   if (!anime) {
     return {
