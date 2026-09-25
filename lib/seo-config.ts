@@ -1,14 +1,15 @@
 export const SITE_URL = 'https://youranimebox.com';
 
 /**
- * Long-tail anime sitemap settings.
+ * Long-tail anime SEO registry settings.
  *
- * 70 shards × 10 AniList pages × 50 entries = capacity for up to 35,000
- * non-adult anime URLs. The catalogue is ordered by AniList id instead of
- * popularity, so obscure/older titles are discoverable too.
+ * 70 stable sitemap buckets keep each XML comfortably bounded. Crawlers read
+ * only Supabase-backed seo_anime_index rows; they never trigger AniList work.
  *
- * Shards are generated on demand (not during `next build`) and cached by
- * lib/seo-anilist.ts, keeping the first-100-users stage inexpensive.
+ * The legacy-named page/item constants now describe one background AniList
+ * source shard: 10 aliased pages × 50 records = at most 500 verification
+ * candidates. A daily cron advances through those source shards separately
+ * from crawler traffic.
  */
 export const ANIME_SITEMAP_SHARDS = 70;
 export const ANIME_PAGES_PER_SITEMAP = 10;
