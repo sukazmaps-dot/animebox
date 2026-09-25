@@ -31,13 +31,44 @@ for (const needle of [
 for (const needle of [
   'CONFIRMED_MISS_THRESHOLD = 3',
   'PROBE_CONCURRENCY = 4',
+  'DEGRADED_ONGOING_GRACE_MS',
+  'DEGRADED_FINISHED_GRACE_MS',
+  "type ExposureState = 'playable' | 'degraded' | 'pending' | 'unavailable'",
   "statuses.includes('unknown')",
   "availabilityStatus = 'unknown'",
+  "previous?.availability_status === 'playable'",
+  "!wasEverPlayable || consecutiveMisses >= CONFIRMED_MISS_THRESHOLD",
+  'verifiedSnapshot',
+  'registryHealthy: registry.healthy',
   'refreshCatalogAvailabilityBatch',
   'refreshStaleCatalogAvailability',
   "policy: 'catalog' | 'recommendations'",
 ]) {
   if (!availability.includes(needle)) failures.push(`availability service missing: ${needle}`);
+}
+
+if (
+  !availability.includes("state === 'playable' || state === 'degraded'") ||
+  availability.includes('...playable, ...unknown') ||
+  availability.includes('strictTarget')
+) {
+  failures.push('public surfaces still fail open to never-verified UNKNOWN titles');
+}
+
+if (
+  !availability.includes("if (!row) return 'pending'") ||
+  !availability.includes("if (row.availability_status === 'unavailable') return 'unavailable'") ||
+  !availability.includes("if (lastSuccessWithinGrace(row, anime, now)) return 'degraded'")
+) {
+  failures.push('verified playback exposure state machine is incomplete');
+}
+
+if (
+  !availability.includes("registry read failed:") ||
+  !availability.includes('const snapshot = verifiedSnapshot.get(id)') ||
+  availability.includes('return { rows, healthy: false };') === false
+) {
+  failures.push('registry outage does not fail closed to verified snapshot data');
 }
 
 if (
