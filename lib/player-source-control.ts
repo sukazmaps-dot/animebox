@@ -7,6 +7,9 @@ import {
   resolveSystemIncident,
 } from '@/lib/system-observability-server';
 import {
+  tryAcquireRuntimeRefreshLease,
+} from '@/lib/runtime-refresh-lease-server';
+import {
   buildPlayerSourceOrchestratorPlan,
   playerProviderHealthPenalty,
   rankPlayerProviderPolicies,
@@ -259,6 +262,10 @@ export async function getProviderDecision(
     runtime.cooldown_until &&
       Date.parse(runtime.cooldown_until) > Date.now(),
   );
+  const halfOpenProbe =
+    runtime.state === 'unavailable' &&
+    Boolean(runtime.cooldown_until) &&
+    !cooldownActive;
 
   let reason: PlayerProviderPolicy['reason'] = '';
 
@@ -298,6 +305,7 @@ export async function getProviderDecision(
     effectivePriority: setting.priority + healthPenalty,
     healthPenalty,
     recommendedTimeoutMs,
+    halfOpenProbe: halfOpenProbe && reason === '',
     state,
     reason,
     failureThreshold: setting.failure_threshold,
@@ -306,6 +314,29 @@ export async function getProviderDecision(
     lastLatencyMs: runtime.last_latency_ms,
     lastSuccessAt: runtime.last_success_at,
     lastFailureAt: runtime.last_failure_at,
+  };
+}
+
+export async function claimProviderHalfOpenProbe(
+  provider: PlayerProviderKey,
+  policy: PlayerProviderPolicy,
+): Promise<{ allowed: boolean; degraded: boolean }> {
+  if (!policy.halfOpenProbe) {
+    return { allowed: true, degraded: false };
+  }
+
+  const lease = await tryAcquireRuntimeRefreshLease(
+    'player_provider_half_open',
+    provider,
+    12,
+  );
+
+  // The lease helper itself is fail-open if Supabase coordination is down.
+  // Under normal operation only one Vercel instance probes a recovering
+  // provider during the half-open window.
+  return {
+    allowed: lease.acquired,
+    degraded: lease.degraded,
   };
 }
 
