@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import EpisodeComments from '@/components/EpisodeComments';
@@ -22,6 +22,7 @@ import {
 } from '@/lib/episode-availability-client';
 import type { EpisodeAvailabilityResponse } from '@/types/episode-availability';
 import type { EpisodeTimelineMeta, EpisodeTimelineResponse } from '@/types/episode-timeline';
+import { timelineDurationMatchesObserved } from '@/lib/episode-timeline-safety';
 
 import EpisodeCompletion from '@/components/EpisodeCompletion';
 import AnimePlayer, { PlayerSource } from '@/components/AnimePlayer';
@@ -96,6 +97,9 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       () => peekEpisodeAvailability(anime.id),
     );
   const [timeline, setTimeline] = useState<EpisodeTimelineMeta | null>(null);
+  const timelineRequestSequenceRef = useRef(0);
+  const timelineAbortRef = useRef<AbortController | null>(null);
+  const observedTimelineDurationRef = useRef<number | null>(null);
 
   const metadataEpisodes = Math.max(anime.episodes || 0, anime.episodesAired || 0) || null;
   const providerMaxEpisode = providerEpisodes.length
@@ -120,40 +124,106 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     return requestedEpisode;
   }, [requestedEpisode]);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    let active = true;
+  const requestEpisodeTimeline = useCallback(
+    (durationSeconds?: number | null) => {
+      timelineAbortRef.current?.abort();
 
-    queueMicrotask(() => {
-      if (active) setTimeline(null);
-    });
+      const controller = new AbortController();
+      timelineAbortRef.current = controller;
+      const requestSequence = ++timelineRequestSequenceRef.current;
 
-    fetch(
-      `/api/episodes/timeline?animeId=${encodeURIComponent(String(anime.id))}&episode=${encodeURIComponent(String(episodeNumber))}`,
-      {
-        signal: controller.signal,
-        cache: 'no-store',
-      },
-    )
-      .then(async (response) => {
-        if (!response.ok) return null;
-        return (await response.json()) as EpisodeTimelineResponse;
-      })
-      .then((payload) => {
-        if (active && payload?.ok) {
-          setTimeline(payload.timeline);
-        }
-      })
-      .catch((error) => {
-        if (!active || controller.signal.aborted) return;
-        console.warn('[Episode Timeline] metadata unavailable:', error);
+      const params = new URLSearchParams({
+        animeId: String(anime.id),
+        episode: String(episodeNumber),
       });
 
+      if (
+        durationSeconds != null &&
+        Number.isFinite(durationSeconds) &&
+        durationSeconds > 0
+      ) {
+        params.set(
+          'durationSeconds',
+          String(Math.max(1, Math.round(durationSeconds))),
+        );
+      }
+
+      return fetch(`/api/episodes/timeline?${params.toString()}`, {
+        signal: controller.signal,
+        cache: 'no-store',
+      })
+        .then(async (response) => {
+          if (!response.ok) return null;
+          return (await response.json()) as EpisodeTimelineResponse;
+        })
+        .then((payload) => {
+          if (
+            controller.signal.aborted ||
+            requestSequence !== timelineRequestSequenceRef.current ||
+            !payload?.ok
+          ) {
+            return;
+          }
+
+          setTimeline(payload.timeline);
+        })
+        .catch((error) => {
+          if (controller.signal.aborted) return;
+          console.warn('[Episode Timeline] metadata unavailable:', error);
+        });
+    },
+    [anime.id, episodeNumber],
+  );
+
+  useEffect(() => {
+    observedTimelineDurationRef.current = null;
+    queueMicrotask(() => setTimeline(null));
+    void requestEpisodeTimeline();
+
     return () => {
-      active = false;
-      controller.abort();
+      timelineAbortRef.current?.abort();
     };
-  }, [anime.id, episodeNumber]);
+  }, [requestEpisodeTimeline]);
+
+  const handleTimelineDurationObserved = useCallback(
+    (durationSeconds: number) => {
+      if (
+        !Number.isFinite(durationSeconds) ||
+        durationSeconds <= 0
+      ) {
+        return;
+      }
+
+      const roundedDuration = Math.max(
+        1,
+        Math.round(durationSeconds),
+      );
+      const previousObserved =
+        observedTimelineDurationRef.current;
+
+      if (
+        previousObserved != null &&
+        Math.abs(previousObserved - roundedDuration) <= 2
+      ) {
+        return;
+      }
+
+      observedTimelineDurationRef.current = roundedDuration;
+
+      if (
+        timeline?.lookupStatus === 'found' &&
+        timelineDurationMatchesObserved(
+          timeline.durationMs,
+          roundedDuration,
+        )
+      ) {
+        return;
+      }
+
+      void requestEpisodeTimeline(roundedDuration);
+    },
+    [requestEpisodeTimeline, timeline],
+  );
 
   useEffect(() => {
     if (!theaterMode) return;
@@ -946,6 +1016,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
                     onNext={goToNext}
                     onEnded={hasNext ? goToNext : undefined}
                     onEpisodeChange={goToEpisode}
+                    onDurationObserved={handleTimelineDurationObserved}
                     watchTogetherMode
                   />
                 )}
@@ -1024,6 +1095,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           onPrev={goToPrevious}
           onNext={goToNext}
           onPlaybackQualified={handlePlaybackQualified}
+          onDurationObserved={handleTimelineDurationObserved}
           onEnded={hasNext ? goToNext : undefined}
           onEpisodeChange={goToEpisode}
         />
