@@ -357,6 +357,15 @@ export default function HomeHeroCarousel({
   }, []);
 
   useEffect(() => {
+    return () => {
+      if (parallaxFrameRef.current !== null) {
+        window.cancelAnimationFrame(parallaxFrameRef.current);
+        parallaxFrameRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     if (
       !autoplayUnlocked ||
