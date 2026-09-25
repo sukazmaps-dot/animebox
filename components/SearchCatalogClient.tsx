@@ -11,7 +11,6 @@ import CatalogFilterPanel from '@/components/catalog/CatalogFilterPanel';
 import CatalogMobileFilters from '@/components/catalog/CatalogMobileFilters';
 import ActiveCatalogFilters, { catalogActiveFilterLabels } from '@/components/catalog/ActiveCatalogFilters';
 import {
-  getAnimes,
   getAnimesWithMeta,
   isAbortError,
   type AnimeSearchMeta,
@@ -84,6 +83,15 @@ function favoriteMatchesStudio(anime: Anime, studioName: string) {
   );
 }
 
+function mergeAnimePages(current: Anime[], incoming: Anime[]) {
+  const byId = new Map<number, Anime>();
+
+  for (const anime of current) byId.set(anime.id, anime);
+  for (const anime of incoming) byId.set(anime.id, anime);
+
+  return [...byId.values()];
+}
+
 export default function SearchCatalogClient({
   initialResults,
   initialQuery = '',
@@ -137,6 +145,7 @@ export default function SearchCatalogClient({
   const [pageState, setPageState] = useState({ query, page: 1 });
   const page = pageState.query === query ? pageState.page : 1;
   const initialRenderRef = useRef(true);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const [hasNextPage, setHasNextPage] = useState(initialResults.length >= CATALOG_PAGE_SIZE);
 
   useEffect(() => { liveQueryRef.current = liveQuery; }, [liveQuery]);
@@ -260,18 +269,25 @@ export default function SearchCatalogClient({
             mood: selectedMood,
           };
 
-          const payload = query
-            ? await getAnimesWithMeta(requestOptions, { signal: controller.signal })
-            : {
-                anime: await getAnimes(requestOptions, { signal: controller.signal }),
-                searchMeta: undefined,
-              };
+          const payload = await getAnimesWithMeta(
+            requestOptions,
+            { signal: controller.signal },
+          );
 
           if (controller.signal.aborted || requestId !== requestSequenceRef.current) return;
-          setResults(payload.anime);
-          setSearchMeta(payload.searchMeta ?? null);
+          setResults((current) =>
+            page === 1
+              ? payload.anime
+              : mergeAnimePages(current, payload.anime),
+          );
+          if (page === 1) {
+            setSearchMeta(payload.searchMeta ?? null);
+          }
           setDiscoveryMeta(null);
-          setHasNextPage(payload.anime.length === CATALOG_PAGE_SIZE);
+          setHasNextPage(
+            payload.pagination?.hasNextPage ??
+            payload.anime.length === CATALOG_PAGE_SIZE,
+          );
         }
       } catch (loadError: unknown) {
         if (isAbortError(loadError) || controller.signal.aborted || requestId !== requestSequenceRef.current) return;
@@ -285,6 +301,47 @@ export default function SearchCatalogClient({
     void load();
     return () => controller.abort();
   }, [discoveryIntent, filters, initialResults, page, query, retryNonce, selectedMood, tasteGraph, view]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+
+    if (
+      !target ||
+      view !== 'catalog' ||
+      loading ||
+      !hasNextPage ||
+      discoveryIntent?.isDiscovery ||
+      typeof IntersectionObserver === 'undefined'
+    ) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+
+        setPageState((current) => {
+          const currentPage = current.query === query ? current.page : 1;
+          return {
+            query,
+            page: currentPage + 1,
+          };
+        });
+      },
+      {
+        rootMargin: '900px 0px',
+      },
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [
+    discoveryIntent?.isDiscovery,
+    hasNextPage,
+    loading,
+    query,
+    view,
+  ]);
 
   useEffect(() => {
     const mode = filterHistoryModeRef.current;
@@ -693,7 +750,7 @@ export default function SearchCatalogClient({
       <section className={`section ${styles.catalogResults}`} aria-busy={displayLoading}>
         <div className="section-head">
           <h2 className="section-title">{view === 'saved' ? 'Сохранённые' : liveQuery.trim() || hasFilters ? 'Результаты' : 'Популярное'}</h2>
-          <span className="section-link">{view === 'saved' ? `${displayResults.length} сохранено` : refreshing ? 'Ищем…' : `Страница ${page}`}</span>
+          <span className="section-link">{view === 'saved' ? `${displayResults.length} сохранено` : refreshing ? 'Ищем…' : `${displayResults.length} тайтлов`}</span>
         </div>
 
         {view === 'catalog' && error && results.length > 0 && (
@@ -772,8 +829,21 @@ export default function SearchCatalogClient({
           </div>
         )}
 
-        {view === 'catalog' && !loading && results.length > 0 && !discoveryIntent?.isDiscovery && (
-          <div className="pagination"><button type="button" disabled={page === 1} onClick={() => setPageState({ query, page: Math.max(1, page - 1) })}>← Назад</button><span>Страница {page}</span><button type="button" disabled={!hasNextPage} onClick={() => setPageState({ query, page: page + 1 })}>Вперёд →</button></div>
+        {view === 'catalog' && results.length > 0 && !discoveryIntent?.isDiscovery && hasNextPage && (
+          <div ref={loadMoreRef} className="pagination" aria-live="polite">
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() =>
+                setPageState((current) => ({
+                  query,
+                  page: (current.query === query ? current.page : 1) + 1,
+                }))
+              }
+            >
+              {loading ? 'Загружаем…' : 'Показать ещё'}
+            </button>
+          </div>
         )}
       </section>
     </div>

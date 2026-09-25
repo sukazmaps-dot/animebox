@@ -128,15 +128,22 @@ function useEpisodeAvailability(anime: Anime) {
   const count =
     availability?.status === 'available'
       ? availability.maxEpisode
-      : availability?.status === 'unavailable'
-        ? null
-        : metadataCount;
+      : null;
+
+  const playable = Boolean(
+    availability?.status === 'available' &&
+    count &&
+    count > 0,
+  );
 
   return {
     availability,
     count,
     pending: availability === null,
+    playable,
     unavailable: availability?.status === 'unavailable',
+    unknown: availability?.status === 'unknown',
+    metadataCount,
   };
 }
 
@@ -157,7 +164,9 @@ export default function AnimeDetailControls({
   const {
     count: availableEpisodes,
     pending: episodeAvailabilityPending,
+    playable: playbackReady,
     unavailable: episodesUnavailable,
+    unknown: playbackUnknown,
   } = useEpisodeAvailability(anime);
 
   const [favorite, setFavorite] =
@@ -311,6 +320,8 @@ export default function AnimeDetailControls({
   };
 
   const handleWatch = () => {
+    if (!playbackReady) return;
+
     addAnimeToList(item);
     setSaved(true);
 
@@ -327,19 +338,25 @@ export default function AnimeDetailControls({
           type="button"
           className="btn btn--primary anime-detail-actions__watch"
           onClick={handleWatch}
-          disabled={episodeAvailabilityPending || episodesUnavailable}
+          disabled={!playbackReady}
           title={
             episodesUnavailable
               ? 'Сейчас нет серий, которые можно открыть в плеере'
-              : undefined
+              : playbackUnknown
+                ? 'Не открываем серию, пока источник воспроизведения не подтверждён'
+                : episodeAvailabilityPending
+                  ? 'Проверяем доступность источника'
+                  : undefined
           }
         >
           ▶{' '}
           {episodeAvailabilityPending
             ? 'Проверяем плеер…'
-            : episodesUnavailable
-              ? 'Серии пока недоступны'
-              : watchState
+            : playbackUnknown
+              ? 'Источник временно недоступен'
+              : episodesUnavailable
+                ? 'Серии пока недоступны'
+                : watchState
                 ? watchState.completed && nextEpisode > watchState.episode
                   ? `Следующая · серия ${nextEpisode}`
                   : `Продолжить · серия ${nextEpisode}`
@@ -401,7 +418,7 @@ export default function AnimeDetailControls({
       </div>
 
       {showEpisodes &&
-        (availableEpisodes || episodeAvailabilityPending || episodesUnavailable) && (
+        (availableEpisodes || episodeAvailabilityPending || episodesUnavailable || playbackUnknown) && (
         <section className="detail__section mt-10">
           <div className="detail__section-header">
             <h2>Эпизоды</h2>
@@ -409,9 +426,11 @@ export default function AnimeDetailControls({
             <span>
               {episodeAvailabilityPending
                 ? 'Проверяем плееры…'
-                : episodesUnavailable
-                  ? 'Нет доступных серий'
-                  : `${availableEpisodes} эпизодов в плеере`}
+                : playbackUnknown
+                  ? 'Источник не подтверждён'
+                  : episodesUnavailable
+                    ? 'Нет доступных серий'
+                    : `${availableEpisodes} эпизодов в плеере`}
             </span>
           </div>
 
@@ -444,6 +463,7 @@ export function AnimeDetailEpisodes({
     count: availableEpisodes,
     pending: episodeAvailabilityPending,
     unavailable: episodesUnavailable,
+    unknown: playbackUnknown,
   } = useEpisodeAvailability(anime);
 
   const [progress, setProgress] =
@@ -479,7 +499,12 @@ export function AnimeDetailEpisodes({
     };
   }, [anime.id]);
 
-  if (!availableEpisodes && !episodeAvailabilityPending && !episodesUnavailable) {
+  if (
+    !availableEpisodes &&
+    !episodeAvailabilityPending &&
+    !episodesUnavailable &&
+    !playbackUnknown
+  ) {
     return null;
   }
 
@@ -490,9 +515,11 @@ export function AnimeDetailEpisodes({
         <span>
           {episodeAvailabilityPending
             ? 'Проверяем плееры…'
-            : episodesUnavailable
-              ? 'Нет доступных серий'
-              : `${availableEpisodes} эпизодов в плеере`}
+            : playbackUnknown
+              ? 'Источник временно не подтверждён'
+              : episodesUnavailable
+                ? 'Нет доступных серий'
+                : `${availableEpisodes} эпизодов в плеере`}
         </span>
       </div>
 

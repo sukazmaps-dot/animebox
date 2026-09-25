@@ -10,7 +10,12 @@ import {
 
 import {
   buildImageCandidateChain,
+  getRawImageMediaSrcSet,
 } from '@/lib/image-service';
+import type {
+  MediaImageFormat,
+  MediaImagePreset,
+} from '@/lib/media-delivery';
 
 const FALLBACK = '/anime-placeholder.svg';
 
@@ -20,6 +25,10 @@ type AnimeImageCascadeProps = {
   className?: string;
   loading?: 'lazy' | 'eager';
   fetchPriority?: 'high' | 'low' | 'auto';
+  sizes?: string;
+  quality?: number;
+  preset?: MediaImagePreset;
+  format?: MediaImageFormat;
 };
 
 export default function AnimeImageCascade({
@@ -28,16 +37,35 @@ export default function AnimeImageCascade({
   className = '',
   loading = 'eager',
   fetchPriority = 'auto',
+  sizes = '(max-width: 767px) 68vw, (max-width: 1024px) 230px, 260px',
+  quality,
+  preset = 'large',
+  format = 'webp',
 }: AnimeImageCascadeProps) {
   const candidates = useMemo<string[]>(
     () =>
       Array.from(
         new Set([
-          ...buildImageCandidateChain(sources),
+          ...buildImageCandidateChain(sources, {
+            preset,
+            quality,
+            format,
+          }),
           FALLBACK,
         ]),
       ),
-    [sources],
+    [format, preset, quality, sources],
+  );
+
+  const mediaSrcSet = useMemo(
+    () =>
+      getRawImageMediaSrcSet(
+        sources,
+        preset,
+        quality,
+        format,
+      ),
+    [format, preset, quality, sources],
   );
 
   const [index, setIndex] =
@@ -150,8 +178,13 @@ export default function AnimeImageCascade({
 
       <img
         key={current}
+        data-image-delivery="animebox-media"
+        data-image-preset={preset}
+        data-image-format={format}
         ref={imageRef}
         src={current}
+        srcSet={index === 0 ? mediaSrcSet : undefined}
+        sizes={index === 0 ? sizes : undefined}
         alt={alt}
         loading={loading}
         fetchPriority={fetchPriority}

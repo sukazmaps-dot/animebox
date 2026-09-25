@@ -129,7 +129,7 @@ if (
   failures.push('17.8.3 multi-source candidate retrieval is incomplete');
 }
 if (
-  !candidates.includes('animebox-recommendation-candidates-v6-cursor') ||
+  !candidates.includes('animebox-recommendation-candidates-v7-verified-playback') ||
   !candidates.includes('tasteGenre') ||
   !candidates.includes('bucket')
 ) {

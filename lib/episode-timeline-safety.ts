@@ -9,6 +9,16 @@ export const MAX_AUTO_OPENING_START_SECONDS = 15 * 60;
 export const MAX_AUTO_OPENING_START_RATIO = 0.35;
 export const MAX_AUTO_OPENING_END_RATIO = 0.45;
 
+// Automatic seeking is intentionally stricter than the manual "skip opening"
+// action. Long-form/special episodes and unusually large jumps fall back to a
+// user-controlled button instead of trusting metadata blindly.
+export const MAX_AUTOMATIC_OPENING_JUMP_SECONDS = 150;
+export const MIN_AUTOMATIC_OPENING_JUMP_SECONDS = 5;
+export const MAX_AUTOMATIC_OPENING_SEGMENT_RATIO = 0.18;
+export const MAX_AUTOMATIC_EPISODE_DURATION_SECONDS = 45 * 60;
+export const AUTO_OPENING_ENTRY_WINDOW_SECONDS = 30;
+export const MIN_AUTOMATIC_SKIP_CONFIDENCE = 0.65;
+
 export type OpeningSkipSafetyReason =
   | 'ok'
   | 'missing_timeline'
@@ -30,6 +40,26 @@ export type OpeningSkipSafetyDecision = {
   targetSeconds: number | null;
   segmentSeconds: number | null;
   durationSeconds: number | null;
+};
+
+export type OpeningAutoSkipSafetyReason =
+  | OpeningSkipSafetyReason
+  | 'long_form_requires_manual_skip'
+  | 'low_confidence'
+  | 'position_unknown'
+  | 'outside_opening'
+  | 'recent_explicit_seek'
+  | 'entered_opening_too_late'
+  | 'opening_too_large_for_episode'
+  | 'automatic_jump_too_small'
+  | 'automatic_jump_too_large';
+
+export type OpeningAutoSkipSafetyDecision = Omit<
+  OpeningSkipSafetyDecision,
+  'reason'
+> & {
+  reason: OpeningAutoSkipSafetyReason;
+  jumpSeconds: number | null;
 };
 
 function finitePositiveSeconds(value: number | null | undefined) {
@@ -208,5 +238,129 @@ export function openingSkipSafetyDecision(input: {
     reason: 'ok',
     ...opening,
     durationSeconds,
+  };
+}
+
+
+function autoUnsafe(
+  base: OpeningSkipSafetyDecision,
+  reason: OpeningAutoSkipSafetyReason,
+  jumpSeconds: number | null = null,
+): OpeningAutoSkipSafetyDecision {
+  return {
+    ...base,
+    safe: false,
+    reason,
+    jumpSeconds,
+  };
+}
+
+/**
+ * Defense-in-depth policy for automatic opening seeks.
+ *
+ * openingSkipSafetyDecision() answers whether metadata describes a plausible
+ * opening. This function answers the stricter question: is it safe to force a
+ * seek at this exact playback position?
+ *
+ * Manual skip remains available when automatic seeking is rejected for a
+ * long-form episode, late entry, explicit user seek or jump-budget reason.
+ */
+export function openingAutoSkipSafetyDecision(input: {
+  timeline: EpisodeTimelineMeta | null | undefined;
+  observedDurationSeconds?: number | null;
+  positionSeconds?: number | null;
+  recentExplicitSeek?: boolean;
+}): OpeningAutoSkipSafetyDecision {
+  const base = openingSkipSafetyDecision({
+    timeline: input.timeline,
+    observedDurationSeconds: input.observedDurationSeconds,
+    requireObservedDuration: true,
+  });
+
+  if (!base.safe) {
+    return {
+      ...base,
+      reason: base.reason,
+      jumpSeconds: null,
+    };
+  }
+
+  const durationSeconds = base.durationSeconds;
+  const startSeconds = base.startSeconds;
+  const targetSeconds = base.targetSeconds;
+  const segmentSeconds = base.segmentSeconds;
+
+  if (
+    durationSeconds == null ||
+    startSeconds == null ||
+    targetSeconds == null ||
+    segmentSeconds == null
+  ) {
+    return autoUnsafe(base, 'duration_unknown');
+  }
+
+  if (durationSeconds > MAX_AUTOMATIC_EPISODE_DURATION_SECONDS) {
+    return autoUnsafe(base, 'long_form_requires_manual_skip');
+  }
+
+  const confidence = input.timeline?.skipConfidence;
+  if (
+    confidence != null &&
+    Number.isFinite(confidence) &&
+    confidence < MIN_AUTOMATIC_SKIP_CONFIDENCE
+  ) {
+    return autoUnsafe(base, 'low_confidence');
+  }
+
+  const positionSeconds =
+    input.positionSeconds != null &&
+    Number.isFinite(input.positionSeconds) &&
+    input.positionSeconds >= 0
+      ? input.positionSeconds
+      : null;
+
+  if (positionSeconds == null) {
+    return autoUnsafe(base, 'position_unknown');
+  }
+
+  if (
+    positionSeconds < startSeconds ||
+    positionSeconds >= targetSeconds
+  ) {
+    return autoUnsafe(base, 'outside_opening');
+  }
+
+  if (input.recentExplicitSeek) {
+    return autoUnsafe(base, 'recent_explicit_seek');
+  }
+
+  if (
+    positionSeconds >
+    startSeconds + AUTO_OPENING_ENTRY_WINDOW_SECONDS
+  ) {
+    return autoUnsafe(base, 'entered_opening_too_late');
+  }
+
+  if (
+    segmentSeconds / durationSeconds >
+    MAX_AUTOMATIC_OPENING_SEGMENT_RATIO
+  ) {
+    return autoUnsafe(base, 'opening_too_large_for_episode');
+  }
+
+  const jumpSeconds = targetSeconds - positionSeconds;
+
+  if (jumpSeconds < MIN_AUTOMATIC_OPENING_JUMP_SECONDS) {
+    return autoUnsafe(base, 'automatic_jump_too_small', jumpSeconds);
+  }
+
+  if (jumpSeconds > MAX_AUTOMATIC_OPENING_JUMP_SECONDS) {
+    return autoUnsafe(base, 'automatic_jump_too_large', jumpSeconds);
+  }
+
+  return {
+    ...base,
+    reason: 'ok',
+    jumpSeconds,
   };
 }

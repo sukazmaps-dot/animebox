@@ -167,7 +167,15 @@ export async function GET(
   };
 
   try {
-    const primary = await getAnimesWithShikimori(options);
+    let providerHasNextPage = false;
+    const primary = await getAnimesWithShikimori(
+      options,
+      {
+        onPageInfo: (pageInfo) => {
+          providerHasNextPage = pageInfo.hasNextPage;
+        },
+      },
+    );
     let candidates: Anime[] = primary;
     let fallbackUsed: string | null = null;
     let localIndexUsed = false;
@@ -273,6 +281,11 @@ export async function GET(
     return NextResponse.json(
       {
         anime,
+        pagination: {
+          page,
+          limit,
+          hasNextPage: providerHasNextPage,
+        },
         ...(rawSearch
           ? {
               searchMeta: {
