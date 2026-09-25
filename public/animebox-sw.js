@@ -1,7 +1,7 @@
 /* AnimeBox public/offline cache.
  * Never caches HTML, auth, profile, watch progress or private API responses.
  */
-const VERSION = 'animebox-mobile-v1';
+const VERSION = 'animebox-mobile-v2';
 const STATIC_CACHE = `${VERSION}-static`;
 const IMAGE_CACHE = `${VERSION}-images`;
 const DATA_CACHE = `${VERSION}-public-data`;
@@ -21,8 +21,13 @@ const PUBLIC_DATA_PATHS = new Set([
 async function putBounded(cacheName, request, response, maxEntries) {
   if (!response || !response.ok) return;
 
+  // Clone synchronously before the first await. The original Response may be
+  // returned to the page immediately and its body can become locked/consumed
+  // before Cache Storage opens.
+  const cacheResponse = response.clone();
+
   const cache = await caches.open(cacheName);
-  await cache.put(request, response.clone());
+  await cache.put(request, cacheResponse);
 
   const keys = await cache.keys();
   const overflow = keys.length - maxEntries;
@@ -32,7 +37,21 @@ async function putBounded(cacheName, request, response, maxEntries) {
   }
 }
 
-async function cacheFirst(request, cacheName, maxEntries) {
+function keepCacheTaskAlive(event, task) {
+  const guarded = Promise.resolve(task).catch((error) => {
+    console.warn('[AnimeBox SW] background cache write failed:', error);
+  });
+
+  try {
+    event?.waitUntil?.(guarded);
+  } catch {
+    // Some engines reject late waitUntil() calls. The guarded promise still
+    // prevents an unhandled rejection and Cache Storage remains best-effort.
+    void guarded;
+  }
+}
+
+async function cacheFirst(request, cacheName, maxEntries, event) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
 
@@ -40,27 +59,36 @@ async function cacheFirst(request, cacheName, maxEntries) {
 
   const response = await fetch(request);
   if (response.ok) {
-    void putBounded(cacheName, request, response, maxEntries);
+    keepCacheTaskAlive(
+      event,
+      putBounded(cacheName, request, response, maxEntries),
+    );
   }
 
   return response;
 }
 
-async function staleWhileRevalidate(request, cacheName, maxEntries) {
+async function staleWhileRevalidate(request, cacheName, maxEntries, event) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
 
   const network = fetch(request)
     .then((response) => {
       if (response.ok) {
-        void putBounded(cacheName, request, response, maxEntries);
+        keepCacheTaskAlive(
+          event,
+          putBounded(cacheName, request, response, maxEntries),
+        );
       }
       return response;
     })
     .catch(() => null);
 
   if (cached) {
-    void network;
+    keepCacheTaskAlive(
+      event,
+      network.then(() => undefined),
+    );
     return cached;
   }
 
@@ -70,12 +98,15 @@ async function staleWhileRevalidate(request, cacheName, maxEntries) {
   return new Response('', { status: 504, statusText: 'Offline' });
 }
 
-async function networkFirst(request, cacheName, maxEntries) {
+async function networkFirst(request, cacheName, maxEntries, event) {
   try {
     const response = await fetch(request);
 
     if (response.ok) {
-      void putBounded(cacheName, request, response, maxEntries);
+      keepCacheTaskAlive(
+        event,
+        putBounded(cacheName, request, response, maxEntries),
+      );
     }
 
     return response;
@@ -150,7 +181,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (PUBLIC_DATA_PATHS.has(url.pathname)) {
-    event.respondWith(networkFirst(request, DATA_CACHE, 36));
+    event.respondWith(networkFirst(request, DATA_CACHE, 36, event));
     return;
   }
 
@@ -161,7 +192,7 @@ self.addEventListener('fetch', (event) => {
     url.pathname === '/anime-placeholder.svg' ||
     url.pathname === '/manifest.webmanifest'
   ) {
-    event.respondWith(cacheFirst(request, STATIC_CACHE, 120));
+    event.respondWith(cacheFirst(request, STATIC_CACHE, 120, event));
     return;
   }
 
@@ -169,6 +200,8 @@ self.addEventListener('fetch', (event) => {
     url.pathname.startsWith('/_next/image') ||
     url.pathname === '/api/image'
   ) {
-    event.respondWith(staleWhileRevalidate(request, IMAGE_CACHE, 140));
+    event.respondWith(
+      staleWhileRevalidate(request, IMAGE_CACHE, 140, event),
+    );
   }
 });
