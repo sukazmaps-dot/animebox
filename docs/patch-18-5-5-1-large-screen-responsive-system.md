@@ -39,7 +39,7 @@ Windows display scaling is naturally respected because CSS viewport pixels alrea
 
 ## 2. Large-screen design tokens
 
-Introduce a late-loading global stylesheet with a single token contract:
+Extend the existing root readability stylesheet (`patch16-6-2-readability-2k-density.css`) with a single large-screen token contract. This is intentional: the new rules replace/upgrade the older 2K/4K block instead of adding another root stylesheet, so the root CSS import/source budgets do not regress:
 
 ### Layout
 - `--ab-ls-sidebar-width`
@@ -67,7 +67,7 @@ Add:
 - `--ab-ls-card-gap`
 - `--ab-ls-panel-padding`
 
-This layer is imported after current root/global visual layers so it becomes the authoritative large-screen geometry contract.
+The existing readability layer remains in its current root cascade position, while the older large-screen block inside it is replaced by the 18.5.5.1 contract. This keeps cascade ownership stable and avoids a 77th root CSS import.
 
 ---
 
