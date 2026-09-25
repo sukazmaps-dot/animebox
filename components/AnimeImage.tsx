@@ -182,11 +182,6 @@ export default function AnimeImage({
   }, [loading, warmupActivation]);
 
   useEffect(() => {
-    if (loading === 'near') return;
-    setWarmupActivation('warm');
-  }, [loading]);
-
-  useEffect(() => {
     onStateChange?.(publicState);
   }, [onStateChange, publicState]);
 
@@ -404,8 +399,8 @@ export default function AnimeImage({
         </div>
       ) : (
         <>
-          {/* Mass poster grids intentionally bypass /_next/image. Native lazy */}
-          {/* loading keeps off-screen scheduling in the browser, not React. */}
+          {/* Mass poster grids intentionally bypass /_next/image. */}
+          {/* Near mode is released by one shared adaptive observer. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {shouldRequestSource && (
             <img
