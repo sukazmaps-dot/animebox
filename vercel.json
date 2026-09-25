@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/catalog-availability",
-      "schedule": "23 4 * * *"
+      "schedule": "23 * * * *"
     }
   ]
 }
