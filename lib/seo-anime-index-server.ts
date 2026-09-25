@@ -232,10 +232,6 @@ export async function syncSeoAnimeSourceEntries(
   };
 }
 
-export async function syncSeoAnimeFromResolvedAnime(anime: Anime) {
-  return syncAnimeChunk([anime], null);
-}
-
 export async function getSeoAnimeIndexShard(
   shard: number,
 ): Promise<SeoAnimeIndexEntry[]> {
