@@ -6,6 +6,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 const failures = [];
 
+const watchClient = read('components/useWatchSession.ts');
 const watchRoute = read('app/api/watch/route.ts');
 const watchServer = read('lib/watch-server.ts');
 const availability = read('lib/catalog-availability-server.ts');
@@ -76,6 +77,13 @@ if (
   failures.push(
     'watch heartbeat cadence: too-fast heartbeat must be rejected before episode/progress reads',
   );
+}
+
+for (const needle of [
+  "status === 429",
+  'Keep the same seq/provider skip',
+]) {
+  must('watch client cadence retry', watchClient, needle);
 }
 
 for (const needle of [
