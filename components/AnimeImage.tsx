@@ -14,10 +14,10 @@ import type {
 
 import {
   getImageCandidates,
+  type ImageCandidatePreference,
 } from '@/lib/image-service';
 
 const FALLBACK = '/brand/brand-mark.webp';
-const LOAD_WINDOW_ROOT_MARGIN = '720px 0px';
 const PRIMARY_MEDIA_TIMEOUT_MS = 6_500;
 const FALLBACK_SOURCE_TIMEOUT_MS = 7_500;
 const PROXY_SOURCE_TIMEOUT_MS = 9_500;
@@ -34,6 +34,7 @@ type Props = {
   preferOriginal?: boolean;
   sizes?: string;
   quality?: number;
+  sourcePreference?: ImageCandidatePreference;
   onStateChange?: (state: AnimeImageLoadState) => void;
 };
 
@@ -43,7 +44,6 @@ const DEFAULT_SIZES =
 function sourceTimeoutMs(source: string, sourceIndex: number) {
   if (source.startsWith('/api/image?')) {
     // /api/image can legitimately wait up to 8 seconds for its upstream.
-    // The browser watchdog must not abandon it before the server can answer.
     return PROXY_SOURCE_TIMEOUT_MS;
   }
 
@@ -59,9 +59,9 @@ export default function AnimeImage({
   className = '',
   loading = 'lazy',
   sizes = DEFAULT_SIZES,
+  sourcePreference = 'quality',
   onStateChange,
 }: Props) {
-  const hostRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const transientRetryCountRef = useRef(0);
 
@@ -69,11 +69,11 @@ export default function AnimeImage({
     () =>
       Array.from(
         new Set([
-          ...getImageCandidates(image),
+          ...getImageCandidates(image, sourcePreference),
           FALLBACK,
         ]),
       ),
-    [image],
+    [image, sourcePreference],
   );
 
   const sourcesKey = sources.join('|');
@@ -83,9 +83,6 @@ export default function AnimeImage({
     sourceIndex: 0,
     loaded: false,
   }));
-  const [nearViewport, setNearViewport] = useState(
-    () => loading === 'eager',
-  );
 
   const sourceIndex =
     imageState.key === sourcesKey
@@ -99,9 +96,6 @@ export default function AnimeImage({
 
   const current = sources[sourceIndex] ?? FALLBACK;
   const isFallback = current === FALLBACK;
-  const hasRealSource = sources.some((source) => source !== FALLBACK);
-  const shouldRequestSource =
-    loading === 'eager' || nearViewport;
 
   const resolvedAlt =
     alt?.trim() ||
@@ -114,42 +108,6 @@ export default function AnimeImage({
   useEffect(() => {
     onStateChange?.(publicState);
   }, [onStateChange, publicState]);
-
-  useEffect(() => {
-    if (
-      loading === 'eager' ||
-      nearViewport ||
-      !hasRealSource
-    ) {
-      return;
-    }
-
-    const host = hostRef.current;
-    if (!host) return;
-
-    if (typeof IntersectionObserver === 'undefined') {
-      const frame = window.requestAnimationFrame(() => {
-        setNearViewport(true);
-      });
-      return () => window.cancelAnimationFrame(frame);
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (!entries.some((entry) => entry.isIntersecting)) return;
-        observer.disconnect();
-        setNearViewport(true);
-      },
-      {
-        rootMargin: LOAD_WINDOW_ROOT_MARGIN,
-        threshold: 0.01,
-      },
-    );
-
-    observer.observe(host);
-
-    return () => observer.disconnect();
-  }, [hasRealSource, loading, nearViewport]);
 
   const goToNextSource = useCallback(() => {
     setImageState((previous) => {
@@ -168,14 +126,7 @@ export default function AnimeImage({
       const nextIndex = sourceIndex + 1;
 
       if (nextIndex >= sources.length) {
-        return {
-          key: sourcesKey,
-          sourceIndex: previousIndex,
-          loaded:
-            previous.key === sourcesKey
-              ? previous.loaded
-              : false,
-        };
+        return previous;
       }
 
       return {
@@ -223,15 +174,14 @@ export default function AnimeImage({
   }, [goToNextSource, isFallback, sourceIndex, sourcesKey]);
 
   /*
-   * The old implementation started this timer at React mount time while the
-   * browser was still allowed to defer loading="lazy" images. Off-screen rail
-   * cards could therefore exhaust every source before Chrome had even started
-   * their request. The watchdog now exists only after the card enters a broad
-   * prefetch window and its <img> is actually mounted.
+   * Native loading="lazy" owns off-screen scheduling. A mount-time watchdog
+   * must never race that scheduler: the browser may intentionally postpone a
+   * lazy request for many seconds. Genuine lazy failures are handled by
+   * onError. Only explicitly eager/critical images receive a bounded timeout.
    */
   useEffect(() => {
     if (
-      !shouldRequestSource ||
+      loading !== 'eager' ||
       loaded ||
       isFallback
     ) {
@@ -248,7 +198,7 @@ export default function AnimeImage({
     goToNextSource,
     isFallback,
     loaded,
-    shouldRequestSource,
+    loading,
     sourceIndex,
   ]);
 
@@ -259,7 +209,6 @@ export default function AnimeImage({
   useEffect(() => {
     if (
       !isFallback ||
-      !shouldRequestSource ||
       sources.length <= 1 ||
       transientRetryCountRef.current >= 1
     ) {
@@ -276,8 +225,6 @@ export default function AnimeImage({
       });
     };
 
-    // A visible fallback deserves one reasonably quick second chance. This is
-    // still bounded, so a permanently broken upstream cannot create a retry loop.
     const timer = window.setTimeout(retry, TRANSIENT_RETRY_DELAY_MS);
     const onOnline = () => retry();
     const onVisibilityChange = () => {
@@ -294,16 +241,15 @@ export default function AnimeImage({
     };
   }, [
     isFallback,
-    shouldRequestSource,
     sources.length,
     sourcesKey,
   ]);
 
+  // Covers images fulfilled synchronously from the browser cache.
   useEffect(() => {
-    if (!shouldRequestSource || isFallback) return;
+    if (isFallback) return;
 
     const element = imageRef.current;
-
     if (!element || !element.complete) return;
 
     const frame = window.requestAnimationFrame(() => {
@@ -332,18 +278,18 @@ export default function AnimeImage({
     current,
     goToNextSource,
     isFallback,
-    shouldRequestSource,
     sourceIndex,
     sourcesKey,
   ]);
 
   return (
     <div
-      ref={hostRef}
       className="relative h-full w-full min-h-0 overflow-hidden bg-slate-950"
       data-image-delivery="animebox-media"
       data-image-state={publicState}
       data-image-source-index={sourceIndex}
+      data-image-loading={loading}
+      data-image-preference={sourcePreference}
     >
       {!loaded && !isFallback && (
         <div
@@ -357,7 +303,7 @@ export default function AnimeImage({
           aria-hidden="true"
           className="absolute inset-0 z-10 flex items-center justify-center bg-[radial-gradient(circle_at_50%_35%,rgba(124,58,237,0.20),transparent_48%),linear-gradient(145deg,#11162a,#080b16)]"
         >
-          {/* Local fallback intentionally bypasses Next Image as well. */}
+          {/* Local fallback intentionally bypasses Next Image. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={FALLBACK}
@@ -368,18 +314,17 @@ export default function AnimeImage({
             className="h-10 w-10 object-contain opacity-55"
           />
         </div>
-      ) : shouldRequestSource ? (
+      ) : (
         <>
-          {/* Massive poster grids intentionally bypass /_next/image. */}
-          {/* Manual viewport gating replaces native lazy loading here so the */}
-          {/* failover watchdog starts only after a real request can begin. */}
+          {/* Mass poster grids intentionally bypass /_next/image. Native lazy */}
+          {/* loading keeps off-screen scheduling in the browser, not React. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             key={current}
             ref={imageRef}
             src={current}
             alt={resolvedAlt}
-            loading="eager"
+            loading={loading}
             decoding="async"
             sizes={sizes}
             onLoad={handleLoad}
@@ -391,7 +336,7 @@ export default function AnimeImage({
             ].join(' ')}
           />
         </>
-      ) : null}
+      )}
     </div>
   );
 }
