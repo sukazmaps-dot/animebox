@@ -1,5 +1,8 @@
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
-const FETCH_TIMEOUT_MS = 8_000;
+const TRANSFORM_FETCH_TIMEOUT_MS = 6_000;
+const RAW_FETCH_TIMEOUT_MS = 8_000;
+const RAW_RETRY_DELAY_MS = 180;
+const NEGATIVE_CACHE_TTL_SECONDS = 15;
 const CACHE_TTL_SECONDS = 30 * 24 * 60 * 60;
 const BROWSER_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60;
 const TRANSFORM_FALLBACK_TTL_SECONDS = 60 * 60;
@@ -303,63 +306,141 @@ async function fetchTransformedOrigin(source, variant, signal) {
   return readImageResponse(response);
 }
 
-async function fetchOrigin(source, variant) {
+async function runTimedOriginAttempt(fetcher, timeoutMs, failurePrefix) {
   const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    FETCH_TIMEOUT_MS,
-  );
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    if (variant) {
-      const transformed = await fetchTransformedOrigin(
-        source,
-        variant,
-        controller.signal,
-      );
-
-      if (transformed.response) {
-        return {
-          response: transformed.response,
-          error: null,
-          transformed: true,
-        };
-      }
-
-      const raw = await fetchRawOrigin(
-        source,
-        controller.signal,
-      );
-
-      return {
-        response: raw.response,
-        error: transformed.error || raw.error,
-        transformed: false,
-      };
-    }
-
-    const raw = await fetchRawOrigin(
-      source,
-      controller.signal,
-    );
-
-    return {
-      response: raw.response,
-      error: raw.error,
-      transformed: false,
-    };
+    return await fetcher(controller.signal);
   } catch (error) {
     return {
       response: null,
       error:
         error?.name === 'AbortError'
-          ? 'origin-timeout'
-          : 'origin-fetch-failed',
-      transformed: false,
+          ? `${failurePrefix}-timeout`
+          : `${failurePrefix}-fetch-failed`,
     };
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function isRetryableRawError(error) {
+  if (!error) return false;
+
+  if (
+    error === 'origin-timeout' ||
+    error === 'origin-fetch-failed'
+  ) {
+    return true;
+  }
+
+  const status = Number.parseInt(
+    String(error).replace(/^origin-/, ''),
+    10,
+  );
+
+  return (
+    status === 408 ||
+    status === 425 ||
+    status === 429 ||
+    (status >= 500 && status <= 599)
+  );
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchRawOriginWithRetry(source) {
+  const first = await runTimedOriginAttempt(
+    (signal) => fetchRawOrigin(source, signal),
+    RAW_FETCH_TIMEOUT_MS,
+    'origin',
+  );
+
+  if (first.response || !isRetryableRawError(first.error)) {
+    return {
+      ...first,
+      attempts: 1,
+    };
+  }
+
+  await delay(RAW_RETRY_DELAY_MS);
+
+  const second = await runTimedOriginAttempt(
+    (signal) => fetchRawOrigin(source, signal),
+    RAW_FETCH_TIMEOUT_MS,
+    'origin',
+  );
+
+  return {
+    ...second,
+    attempts: 2,
+  };
+}
+
+async function fetchOrigin(source, variant) {
+  let transformError = null;
+
+  if (variant) {
+    const transformed = await runTimedOriginAttempt(
+      (signal) => fetchTransformedOrigin(source, variant, signal),
+      TRANSFORM_FETCH_TIMEOUT_MS,
+      'transform',
+    );
+
+    if (transformed.response) {
+      return {
+        response: transformed.response,
+        error: null,
+        transformError: null,
+        rawError: null,
+        rawAttempts: 0,
+        transformed: true,
+      };
+    }
+
+    transformError = transformed.error || 'transform-unavailable';
+  }
+
+  const raw = await fetchRawOriginWithRetry(source);
+
+  return {
+    response: raw.response,
+    error:
+      raw.response
+        ? transformError
+        : raw.error || transformError || 'origin-failed',
+    transformError,
+    rawError: raw.response ? null : raw.error,
+    rawAttempts: raw.attempts,
+    transformed: false,
+  };
+}
+
+function mediaFailureHeaders(source, origin) {
+  const headers = new Headers({
+    'Cache-Control':
+      `public, max-age=${NEGATIVE_CACHE_TTL_SECONDS}, s-maxage=${NEGATIVE_CACHE_TTL_SECONDS}`,
+    'CDN-Cache-Control':
+      `public, max-age=${NEGATIVE_CACHE_TTL_SECONDS}`,
+    'Retry-After': String(NEGATIVE_CACHE_TTL_SECONDS),
+    'Access-Control-Allow-Origin': '*',
+    'Cross-Origin-Resource-Policy': 'cross-origin',
+    'X-AnimeBox-Media': 'origin-unavailable',
+    'X-AnimeBox-Origin': source.hostname,
+    'X-AnimeBox-Origin-Error':
+      origin.error || 'origin-failed',
+    'X-AnimeBox-Transform-Error':
+      origin.transformError || 'none',
+    'X-AnimeBox-Raw-Error':
+      origin.rawError || 'none',
+    'X-AnimeBox-Origin-Attempts':
+      String(origin.rawAttempts || 0),
+  });
+
+  return headers;
 }
 
 export default {
@@ -386,7 +467,12 @@ export default {
         ok: true,
         service: 'animebox-media',
         protocol: 'variants-v3',
+        reliability: 'media-shield-v1',
         r2: Boolean(env.MEDIA_BUCKET),
+        transformTimeoutMs: TRANSFORM_FETCH_TIMEOUT_MS,
+        rawTimeoutMs: RAW_FETCH_TIMEOUT_MS,
+        rawRetryLimit: 1,
+        negativeCacheTtlSeconds: NEGATIVE_CACHE_TTL_SECONDS,
         widths: [...ALLOWED_WIDTHS],
         qualities: [...ALLOWED_QUALITIES],
         formats: [...ALLOWED_FORMATS],
@@ -434,7 +520,10 @@ export default {
     const edgeHit = await cache.match(cacheKey);
     if (edgeHit) {
       const headers = new Headers(edgeHit.headers);
-      headers.set('X-AnimeBox-Media', 'edge-hit');
+      headers.set(
+        'X-AnimeBox-Media',
+        edgeHit.ok ? 'edge-hit' : 'negative-edge-hit',
+      );
       return new Response(
         request.method === 'HEAD' ? null : edgeHit.body,
         {
@@ -474,14 +563,21 @@ export default {
 
     const origin = await originPromise;
     if (!origin.response) {
-      return new Response('Image unavailable', {
+      const failureResponse = new Response('Image unavailable', {
         status: 502,
-        headers: {
-          'Cache-Control': 'public, max-age=30',
-          'X-AnimeBox-Media':
-            origin.error || 'origin-failed',
-        },
+        headers: mediaFailureHeaders(source, origin),
       });
+
+      ctx.waitUntil(
+        cache.put(cacheKey, failureResponse.clone()),
+      );
+
+      return request.method === 'HEAD'
+        ? new Response(null, {
+            status: 502,
+            headers: failureResponse.headers,
+          })
+        : failureResponse;
     }
 
     const { bytes, contentType, etag } = origin.response;
