@@ -6,6 +6,12 @@ import {
   reportSystemIncident,
   resolveSystemIncident,
 } from '@/lib/system-observability-server';
+import {
+  buildPlayerSourceOrchestratorPlan,
+  playerProviderHealthPenalty,
+  rankPlayerProviderPolicies,
+  recommendedProviderDiscoveryTimeoutMs,
+} from '@/lib/player-source-orchestrator';
 import type {
   PlayerProviderKey,
   PlayerProviderPolicy,
@@ -231,6 +237,7 @@ export async function getProviderDecision(
     animeId?: number | null;
     season?: number | null;
     episode?: number | null;
+    globalRestriction?: boolean;
   },
 ): Promise<PlayerProviderPolicy> {
   const control = await loadControlRows();
@@ -239,6 +246,15 @@ export async function getProviderDecision(
     DEFAULT_SETTINGS.find((item) => item.provider_key === provider)!;
   const runtime = runtimeFor(provider, control.runtime);
   const environmentReady = providerEnvironmentReady(provider);
+  const state = normalizeRuntimeState(runtime);
+  const healthPenalty = playerProviderHealthPenalty({
+    state,
+    lastLatencyMs: runtime.last_latency_ms,
+    lastSuccessAt: runtime.last_success_at,
+    lastFailureAt: runtime.last_failure_at,
+  });
+  const recommendedTimeoutMs =
+    recommendedProviderDiscoveryTimeoutMs(provider);
   const cooldownActive = Boolean(
     runtime.cooldown_until &&
       Date.parse(runtime.cooldown_until) > Date.now(),
@@ -252,6 +268,8 @@ export async function getProviderDecision(
     reason = 'environment_disabled';
   } else if (cooldownActive) {
     reason = 'cooldown';
+  } else if (input.globalRestriction) {
+    reason = 'copyright_restricted';
   } else if (
     input.animeId != null &&
     Number.isSafeInteger(input.animeId) &&
@@ -277,7 +295,10 @@ export async function getProviderDecision(
     configuredEnabled: setting.enabled,
     environmentReady,
     priority: setting.priority,
-    state: normalizeRuntimeState(runtime),
+    effectivePriority: setting.priority + healthPenalty,
+    healthPenalty,
+    recommendedTimeoutMs,
+    state,
     reason,
     failureThreshold: setting.failure_threshold,
     cooldownSeconds: setting.cooldown_seconds,
@@ -299,17 +320,32 @@ export async function getPlayerSourcePolicy(input: {
     'aniliberty',
   ];
 
+  const globalRestriction = await getPlaybackRestriction({
+    animeId: input.animeId,
+    season: input.season ?? null,
+    episode: input.episode,
+  });
+
   const resolved = await Promise.all(
-    providers.map((provider) => getProviderDecision(provider, input)),
+    providers.map((provider) =>
+      getProviderDecision(provider, {
+        ...input,
+        globalRestriction: Boolean(globalRestriction),
+      }),
+    ),
   );
+
+  const ranked = rankPlayerProviderPolicies(resolved);
 
   return {
     ok: true,
     animeId: input.animeId,
     season: input.season ?? null,
     episode: input.episode,
-    providers: resolved.sort(
-      (a, b) => a.priority - b.priority || a.name.localeCompare(b.name),
+    providers: ranked,
+    orchestrator: buildPlayerSourceOrchestratorPlan(
+      ranked,
+      Boolean(globalRestriction),
     ),
   };
 }
