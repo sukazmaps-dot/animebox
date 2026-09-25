@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/catalog-availability",
       "schedule": "23 4 * * *"
+    },
+    {
+      "path": "/api/cron/seo-anime-index",
+      "schedule": "53 4 * * *"
     }
   ]
 }
