@@ -71,6 +71,7 @@ jobs:
           components/home/HomeFeedRuntimeProvider.tsx
           components/home/useHomeRecommendationRuntime.ts
           components/home/HomeScheduleRuntimeProvider.tsx
+          components/home/useHomeScheduleData.ts
           components/home/HomeHeroSection.tsx
           components/home/HomeDiscoverySection.tsx
           components/home/HomeCatalogSections.tsx
