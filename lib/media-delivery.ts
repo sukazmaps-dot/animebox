@@ -29,9 +29,9 @@ const MEDIA_IMAGE_PRESETS: Record<MediaImagePreset, MediaPresetConfig> = {
     defaultQuality: 60,
   },
   card: {
-    widths: [240, 360],
-    defaultWidth: 240,
-    defaultQuality: 60,
+    widths: [240, 360, 540, 720],
+    defaultWidth: 360,
+    defaultQuality: 70,
   },
   large: {
     widths: [360, 540],
