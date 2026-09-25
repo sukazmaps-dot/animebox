@@ -29,7 +29,85 @@ const HomeActivationPanel = dynamic(
   { ssr: false },
 );
 
-export default function HomePersonalRetentionSections() {
+export function HomePersonalScheduleSection() {
+  const { personalScheduleItems } =
+    useHomeScheduleRuntime();
+
+  return personalScheduleItems.length > 0 ? (
+    <section className="section personal-schedule-section">
+      <div className="section-head">
+        <div>
+          <span className="smart-section-eyebrow">
+            Твои онгоинги
+          </span>
+          <h2 className="section-title">
+            Расписание твоих аниме
+          </h2>
+          <p>
+            Время эфира в Японии. Перевод и озвучка
+            могут появиться позже.
+          </p>
+        </div>
+
+        <Link
+          className="section-link"
+          href="/notifications"
+        >
+          Настроить уведомления →
+        </Link>
+      </div>
+
+      <div className="personal-schedule-grid">
+        {personalScheduleItems.map((item) => {
+          const title = getScheduleTitle(item);
+          const watchHref =
+            `${animeHref(item.media)}/watch?ep=${Math.max(
+              1,
+              item.episode,
+            )}`;
+
+          return (
+            <div
+              className="personal-schedule-card"
+              key={item.id}
+            >
+              <ScheduleItem
+                href={watchHref}
+                title={title}
+                image={item.media.coverImage}
+                episode={item.episode}
+                dateLabel={formatUpcomingDate(
+                  item.airingAt,
+                )}
+                airingAt={item.airingAt}
+                onOpen={() => {
+                  trackProductClientEvent(
+                    'personal_schedule_click',
+                    {
+                      source: 'personal_home',
+                      path: '/',
+                      entityType: 'episode',
+                      entityId:
+                        `${item.media.id}:${item.episode}`,
+                      metadata: {
+                        anime_id: item.media.id,
+                        episode: item.episode,
+                        airing_at: item.airingAt,
+                      },
+                      flush: true,
+                    },
+                  );
+                }}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  ) : null;
+}
+
+export function HomeRetentionSections() {
   const {
     userId,
     hasPersonalHistory,
@@ -39,86 +117,12 @@ export default function HomePersonalRetentionSections() {
   } = useHomeFeedRuntime();
 
   const {
-    personalScheduleItems,
     retentionEpisodeSignal,
     retentionCompletionSignal,
   } = useHomeScheduleRuntime();
 
   return (
     <>
-      {personalScheduleItems.length > 0 && (
-        <section className="section personal-schedule-section">
-          <div className="section-head">
-            <div>
-              <span className="smart-section-eyebrow">
-                Твои онгоинги
-              </span>
-              <h2 className="section-title">
-                Расписание твоих аниме
-              </h2>
-              <p>
-                Время эфира в Японии. Перевод и озвучка
-                могут появиться позже.
-              </p>
-            </div>
-
-            <Link
-              className="section-link"
-              href="/notifications"
-            >
-              Настроить уведомления →
-            </Link>
-          </div>
-
-          <div className="personal-schedule-grid">
-            {personalScheduleItems.map((item) => {
-              const title = getScheduleTitle(item);
-              const watchHref =
-                `${animeHref(item.media)}/watch?ep=${Math.max(
-                  1,
-                  item.episode,
-                )}`;
-
-              return (
-                <div
-                  className="personal-schedule-card"
-                  key={item.id}
-                >
-                  <ScheduleItem
-                    href={watchHref}
-                    title={title}
-                    image={item.media.coverImage}
-                    episode={item.episode}
-                    dateLabel={formatUpcomingDate(
-                      item.airingAt,
-                    )}
-                    airingAt={item.airingAt}
-                    onOpen={() => {
-                      trackProductClientEvent(
-                        'personal_schedule_click',
-                        {
-                          source: 'personal_home',
-                          path: '/',
-                          entityType: 'episode',
-                          entityId:
-                            `${item.media.id}:${item.episode}`,
-                          metadata: {
-                            anime_id: item.media.id,
-                            episode: item.episode,
-                            airing_at: item.airingAt,
-                          },
-                          flush: true,
-                        },
-                      );
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
       {hasPersonalHistory && (
         <DeferredMount
           className="home-deferred home-deferred--retention"
