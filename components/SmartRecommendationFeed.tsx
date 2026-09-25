@@ -284,6 +284,19 @@ function prefetchCandidatePage(
   });
 }
 
+function mapsEqual<K, V>(
+  left: ReadonlyMap<K, V>,
+  right: ReadonlyMap<K, V>,
+) {
+  if (left.size !== right.size) return false;
+
+  for (const [key, value] of left) {
+    if (right.get(key) !== value) return false;
+  }
+
+  return true;
+}
+
 function mergeUnique(
   previous: RankedRecommendation[],
   incoming: RankedRecommendation[],
@@ -322,6 +335,9 @@ export default function SmartRecommendationFeed({
   const sharedBatchPromiseRef = useRef<Promise<RankedRecommendation[]> | null>(null);
   const railLoadingRef = useRef<Set<RecommendationRailId>>(new Set());
   const railOwnershipRef = useRef<Map<number, RecommendationRailId>>(new Map());
+  const [railOwnership, setRailOwnership] = useState<
+    Map<number, RecommendationRailId>
+  >(() => new Map());
   const railVirtualMetricsRef = useRef<Map<RecommendationRailId, ScrollRowVirtualMetrics>>(new Map());
   const consumedPointerKeysRef = useRef<Set<string>>(new Set());
 
@@ -417,6 +433,7 @@ export default function SmartRecommendationFeed({
           nextItems.map(({ anime }) => anime.id),
         );
         railOwnershipRef.current = new Map();
+        setRailOwnership(new Map());
         railVirtualMetricsRef.current = new Map();
         consumedPointerKeysRef.current = new Set();
         railLoadingRef.current = new Set();
@@ -530,7 +547,7 @@ export default function SmartRecommendationFeed({
         hasWatchHistory,
         hasMore,
         limits: railLimits,
-        ownership: railOwnershipRef.current,
+        ownership: railOwnership,
         tasteGraph,
       }),
     [
@@ -539,12 +556,19 @@ export default function SmartRecommendationFeed({
       hasMore,
       hasWatchHistory,
       railLimits,
+      railOwnership,
       tasteGraph,
     ],
   );
 
   useEffect(() => {
     railOwnershipRef.current = railLayout.ownership;
+
+    setRailOwnership((current) =>
+      mapsEqual(current, railLayout.ownership)
+        ? current
+        : new Map(railLayout.ownership),
+    );
   }, [railLayout.ownership]);
 
   const rails = railLayout.rails;
@@ -572,8 +596,7 @@ export default function SmartRecommendationFeed({
       return [];
     }
 
-    let request: Promise<RankedRecommendation[]>;
-    request = loadCandidatePage(
+    const request: Promise<RankedRecommendation[]> = loadCandidatePage(
       currentPointer,
       bucket,
       candidateContext,
@@ -811,6 +834,8 @@ export default function SmartRecommendationFeed({
             return next;
           });
         }
+
+        setRailOwnership(new Map(railOwnershipRef.current));
 
         trackProductClientEvent('recommendation_rail_load_result', {
           source: rail.source,
