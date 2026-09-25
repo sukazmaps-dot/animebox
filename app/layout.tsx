@@ -72,15 +72,13 @@ import './patch16-5-profile-widgets.css';
 import './patch16-6-responsive-layout.css';
 import './patch16-6-1-mobile-performance.css';
 import './patch16-6-2-readability-2k-density.css';
-import './patch16-6-5-profile-studio-gate.css';
+import './patch16-6-5-telegram-gate-brand.css';
 import './patch16-6-6-home-desktop-stability.css';
 import './patch16-6-7-light-surfaces.css';
 import './patch16-6-8-star-rating-light-polish.css';
 import './patch17-3-personalization.css';
 import './patch17-4-service-experience.css';
 import './patch17-4-2-ui-precision.css';
-import './patch17-4-2-2-public-profile-grid.css';
-import './patch17-6-watch-platform.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
