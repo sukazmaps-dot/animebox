@@ -31,7 +31,7 @@ const loadCandidates = unstable_cache(
     genre: genre || undefined,
     tags: tag ? [tag] : undefined,
   }),
-  ['animebox-smart-discovery-v3-candidates'],
+  ['animebox-smart-discovery-v4-verified-playback'],
   { revalidate: 900 },
 );
 
@@ -183,7 +183,7 @@ export async function GET(request: NextRequest) {
       after(async () => {
         await refreshCatalogAvailabilityBatch(
           availability.refreshTargets,
-          { limit: 5 },
+          { limit: 8 },
         );
       });
     }

@@ -118,6 +118,9 @@ type AniListMedia = any;
 type AniListPageResponse = {
   data?: {
     Page?: {
+      pageInfo?: {
+        hasNextPage?: boolean | null;
+      };
       media?: AniListMedia[];
     };
   };
@@ -144,6 +147,9 @@ const LIST_QUERY = `
       page: $page
       perPage: $perPage
     ) {
+      pageInfo {
+        hasNextPage
+      }
       media(
         type: ANIME
         format_in: $formats
@@ -395,6 +401,7 @@ export async function getAnimes(
   options: GetAnimesOptions = {},
   fetchOptions?: {
     signal?: AbortSignal;
+    onPageInfo?: (pageInfo: { hasNextPage: boolean }) => void;
   },
 ): Promise<Anime[]> {
   const {
@@ -518,6 +525,12 @@ export async function getAnimes(
           'AniList GraphQL error',
       );
     }
+
+    fetchOptions?.onPageInfo?.({
+      hasNextPage: Boolean(
+        json.data?.Page?.pageInfo?.hasNextPage,
+      ),
+    });
 
     /*
      * Keep the broad eligibility filters inside AniList itself. Previously we

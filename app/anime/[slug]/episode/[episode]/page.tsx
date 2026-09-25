@@ -20,6 +20,55 @@ const parseEpisode = (value: string): number | null => {
   return Number.isSafeInteger(number) && number > 0 ? number : null;
 };
 
+function EpisodeRouteRecovery({
+  slug,
+  episode,
+}: {
+  slug: string;
+  episode: number;
+}) {
+  const retryHref = `/anime/${encodeURIComponent(slug)}/episode/${episode}`;
+  const animeHrefValue = `/anime/${encodeURIComponent(slug)}`;
+
+  return (
+    <main className="mx-auto flex min-h-[70vh] max-w-3xl items-center px-4 py-16 md:px-6">
+      <section className="w-full rounded-2xl border border-white/10 bg-slate-950/75 p-6 shadow-2xl md:p-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-300/70">
+          AnimeBox · Playback
+        </p>
+        <h1 className="mt-3 text-2xl font-black text-white md:text-3xl">
+          Страница серии временно недоступна
+        </h1>
+        <p className="mt-3 max-w-xl text-sm leading-6 text-white/55">
+          Не удалось получить обязательные данные тайтла. Это не означает, что
+          серия удалена: AnimeBox не показывает системную ошибку вместо плеера и
+          предлагает повторить запрос позже.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <a
+            href={retryHref}
+            className="rounded-xl bg-violet-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-violet-400"
+          >
+            Повторить
+          </a>
+          <a
+            href={animeHrefValue}
+            className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-white/75 transition hover:bg-white/[0.08]"
+          >
+            К тайтлу
+          </a>
+          <a
+            href="/search"
+            className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-2.5 text-sm font-semibold text-white/55 transition hover:text-white"
+          >
+            В каталог
+          </a>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -27,7 +76,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug, episode } = await params;
   const number = parseEpisode(episode);
-  const anime = number ? await resolveAnimeRoute(slug) : null;
+
+  let anime = null;
+  if (number) {
+    try {
+      anime = await resolveAnimeRoute(slug);
+    } catch (error) {
+      console.error('[Episode metadata] anime resolution failed:', error);
+    }
+  }
 
   if (!anime || !number) {
     return {
@@ -38,7 +95,10 @@ export async function generateMetadata({
 
   const identity = getAnimeSeoIdentity(anime);
   const canonical = `${SITE_URL}${animeHref(anime)}/episode/${number}`;
-  const index = await isEpisodeIndexable(anime.id, number);
+  const index = await isEpisodeIndexable(anime.id, number).catch((error) => {
+    console.warn('[Episode metadata] availability lookup failed:', error);
+    return false;
+  });
   const title = buildEpisodeSeoTitle(anime, number);
   const description = buildEpisodeSeoDescription(anime, number, index);
   const socialTitle = `${identity.pageHeading} — ${number} серия`;
@@ -94,7 +154,15 @@ export default async function EpisodePage({
 
   if (!number) notFound();
 
-  const anime = await resolveAnimeRoute(slug);
+  let anime = null;
+
+  try {
+    anime = await resolveAnimeRoute(slug);
+  } catch (error) {
+    console.error('[Episode route] anime resolution failed:', error);
+    return <EpisodeRouteRecovery slug={slug} episode={number} />;
+  }
+
   if (!anime) notFound();
 
   if (slug !== anime.slug) {
@@ -102,7 +170,10 @@ export default async function EpisodePage({
   }
 
   const canonical = `${SITE_URL}${animeHref(anime)}/episode/${number}`;
-  const indexable = await isEpisodeIndexable(anime.id, number);
+  const indexable = await isEpisodeIndexable(anime.id, number).catch((error) => {
+    console.warn('[Episode route] SEO availability lookup failed:', error);
+    return false;
+  });
   const [indexedEpisode, videoMeta] = indexable
     ? await Promise.all([
         getSeoEpisodeIndexEntry(anime.id, number).catch(() => null),

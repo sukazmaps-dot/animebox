@@ -16,12 +16,12 @@ export type EpisodeSeoAvailability = {
 
 const getCachedEpisodeSeoAvailability = unstable_cache(
   async (animeId: number): Promise<EpisodeSeoAvailability> => {
-    const anime = await resolveAnimeRoute(String(animeId));
-    if (!anime) {
-      return { status: 'unavailable', episodes: [] };
-    }
-
     try {
+      const anime = await resolveAnimeRoute(String(animeId));
+      if (!anime) {
+        return { status: 'unavailable', episodes: [] };
+      }
+
       const availability = await getEpisodeProviderAvailability(anime, {
         signal: AbortSignal.timeout(1_800),
       });
@@ -38,9 +38,10 @@ const getCachedEpisodeSeoAvailability = unstable_cache(
         status: availability.status,
         episodes: availability.episodes,
       };
-    } catch {
-      // SEO must fail closed: an external provider outage should never create
-      // an indexable episode page that may not actually be playable.
+    } catch (error) {
+      // SEO must fail closed and must never be allowed to crash the episode
+      // route. Resolution/provider outages only remove indexability.
+      console.warn('[episode-seo] availability resolution failed:', error);
       return { status: 'unknown', episodes: [] };
     }
   },

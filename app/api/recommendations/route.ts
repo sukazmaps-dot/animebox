@@ -16,6 +16,7 @@ const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 30;
 const MAX_PAGE = 10_000;
 const CACHE_SECONDS = 15 * 60;
+const FILTERED_RESPONSE_CACHE_SECONDS = 5 * 60;
 const STALE_SECONDS = 24 * 60 * 60;
 const CURSOR_VERSION = 1;
 
@@ -190,7 +191,7 @@ const getCachedCandidatePage = unstable_cache(
 
     return getAnimesWithShikimori(options);
   },
-  ['animebox-recommendation-candidates-v6-cursor'],
+  ['animebox-recommendation-candidates-v7-verified-playback'],
   {
     revalidate: CACHE_SECONDS,
     tags: ['animebox-recommendation-candidates'],
@@ -361,7 +362,7 @@ export async function GET(request: NextRequest) {
       after(async () => {
         await refreshCatalogAvailabilityBatch(
           availability.refreshTargets,
-          { limit: 5 },
+          { limit: 8 },
         );
       });
     }
@@ -389,8 +390,8 @@ export async function GET(request: NextRequest) {
       },
       {
         headers: {
-          'Cache-Control': `public, max-age=60, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=${STALE_SECONDS}`,
-          'Vercel-CDN-Cache-Control': `public, max-age=${CACHE_SECONDS}, stale-while-revalidate=${STALE_SECONDS}`,
+          'Cache-Control': `public, max-age=30, s-maxage=${FILTERED_RESPONSE_CACHE_SECONDS}, stale-while-revalidate=${CACHE_SECONDS}`,
+          'Vercel-CDN-Cache-Control': `public, max-age=${FILTERED_RESPONSE_CACHE_SECONDS}, stale-while-revalidate=${CACHE_SECONDS}`,
         },
       },
     );

@@ -382,6 +382,7 @@ async function loadAnimesWithShikimori(
   options: GetAnimesOptions = {},
   fetchOptions?: {
     signal?: AbortSignal;
+    onPageInfo?: (pageInfo: { hasNextPage: boolean }) => void;
   },
 ): Promise<Anime[]> {
   const normalizedSearch =
@@ -396,9 +397,13 @@ async function loadAnimesWithShikimori(
     normalizedSearch &&
     containsCyrillic(normalizedSearch)
   ) {
-    return searchRussianAnime(
+    const localized = await searchRussianAnime(
       normalizedSearch, options.limit ?? 20, fetchOptions?.signal, options,
     );
+    fetchOptions?.onPageInfo?.({
+      hasNextPage: localized.length >= (options.limit ?? 20),
+    });
+    return localized;
   }
 
   const anilistAnimes =
@@ -410,11 +415,16 @@ async function loadAnimesWithShikimori(
   if (anilistAnimes.length === 0) {
     if (normalizedSearch) {
       try {
-        return await searchRussianAnime(
+        const localized = await searchRussianAnime(
           normalizedSearch,
           options.limit ?? 20,
           fetchOptions?.signal,
+          options,
         );
+        fetchOptions?.onPageInfo?.({
+          hasNextPage: localized.length >= (options.limit ?? 20),
+        });
+        return localized;
       } catch (error) {
         if (
           error instanceof Error &&

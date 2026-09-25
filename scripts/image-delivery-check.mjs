@@ -79,6 +79,8 @@ if (
   !mediaDelivery.includes('buildAnimeBoxMediaCandidates') ||
   !mediaDelivery.includes('buildAnimeBoxMediaSrcSet') ||
   !mediaDelivery.includes("export type MediaImagePreset = 'tiny' | 'card' | 'large' | 'hero'") ||
+  !mediaDelivery.includes('widths: [240, 360, 540, 720]') ||
+  !mediaDelivery.includes('widths: [360, 540, 720, 1080]') ||
   !mediaDelivery.includes('MEDIA_IMAGE_WIDTHS') ||
   !mediaDelivery.includes('MEDIA_IMAGE_QUALITIES = [60, 70, 80]') ||
   !mediaDelivery.includes("format: MediaImageFormat = 'webp'") ||
@@ -102,12 +104,12 @@ for (const needle of [
   'ALLOWED_WIDTHS',
   'ALLOWED_QUALITIES',
   'ALLOWED_FORMATS',
-  "protocol: 'variants-v2'",
+  "protocol: 'variants-v3'",
   "cf: {",
   "image,",
   "response.headers.get('cf-resized')",
   "'transform-not-applied'",
-  'posters-v2/',
+  'posters-v3/',
   'variant.token',
   'TRANSFORM_FALLBACK_TTL_SECONDS',
 
@@ -157,10 +159,11 @@ if (
 }
 
 if (
-  !cascade.includes('buildImageCandidateChain(sources)') ||
+  !cascade.includes('buildImageCandidateChain(sources, {') ||
+  !cascade.includes('getRawImageMediaSrcSet(') ||
   cascade.includes('proxyImageUrl(normalized)')
 ) {
-  failures.push('AnimeImageCascade still fans out proxy attempts');
+  failures.push('AnimeImageCascade responsive media contract is incomplete');
 }
 
 if (

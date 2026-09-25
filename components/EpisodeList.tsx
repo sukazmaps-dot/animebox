@@ -184,23 +184,10 @@ export default function EpisodeList({
     };
   }, [selectedAnimeId]);
 
-  const metadataEpisodeNumbers = useMemo(() => {
-    if (selectedIsCurrent) {
-      return Array.from({ length: currentCount }, (_, index) => index + 1);
-    }
-
-    return activeSeason?.episodes ?? [];
-  }, [activeSeason?.episodes, currentCount, selectedIsCurrent]);
-
   const episodeNumbers = useMemo(() => {
-    if (!availability) return metadataEpisodeNumbers;
-    if (availability.status === 'available') return availability.episodes;
-    if (availability.status === 'unavailable') return [];
-
-    // Unknown is a temporary provider failure. Keep metadata as a fallback so
-    // a 429/timeout never makes valid episodes disappear.
-    return metadataEpisodeNumbers;
-  }, [availability, metadataEpisodeNumbers]);
+    if (availability?.status !== 'available') return [];
+    return availability.episodes;
+  }, [availability]);
 
   const selectedCount = episodeNumbers.length;
 
@@ -648,9 +635,28 @@ export default function EpisodeList({
       <div className="episode-list__content">
       {extrasActive ? (
         <ExtrasGrid items={seasonData.extras} />
-      ) : availabilityLoading && metadataEpisodeNumbers.length === 0 ? (
+      ) : availabilityLoading ? (
         <div className="empty-state" aria-busy="true">
-          <span>Уточняем доступные серии…</span>
+          <strong>Проверяем доступность серий</strong>
+          <span>Ссылки на просмотр появятся только после подтверждения рабочего источника.</span>
+        </div>
+      ) : availability?.status === 'unknown' ? (
+        <div className="empty-state">
+          <strong>Источник временно не подтверждён</strong>
+          <span>
+            {currentCount > 0
+              ? `В каталоге указано ${currentCount} эпизодов, но AnimeBox не создаёт ссылки без подтверждённого источника.`
+              : 'AnimeBox не создаёт ссылки на серии без подтверждённого источника воспроизведения.'}
+          </span>
+          {activeSeason && !selectedIsCurrent && (
+            <Link
+              href={`/anime/${activeSeason.slug}`}
+              prefetch={false}
+              className="mt-3 inline-flex rounded-lg border border-violet-400/30 bg-violet-500/10 px-3 py-2 text-xs font-semibold text-violet-200 transition hover:bg-violet-500/20"
+            >
+              Открыть сезон
+            </Link>
+          )}
         </div>
       ) : availability?.status === 'unavailable' ? (
         <div className="empty-state">
@@ -681,13 +687,6 @@ export default function EpisodeList({
         </div>
       ) : (
         <>
-          {availabilityLoading && metadataEpisodeNumbers.length > 0 && (
-            <div className="episode-list__verification" role="status" aria-live="polite">
-              <span aria-hidden="true" />
-              Уточняем доступность в фоне
-            </div>
-          )}
-
           <div className="episode-list__toolbar">
             <div className="episode-list__meta">
               {selectedIsCurrent && !totalEpisodesKnown
