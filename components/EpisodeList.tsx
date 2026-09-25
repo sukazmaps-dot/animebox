@@ -184,14 +184,6 @@ export default function EpisodeList({
     };
   }, [selectedAnimeId]);
 
-  const metadataEpisodeNumbers = useMemo(() => {
-    if (selectedIsCurrent) {
-      return Array.from({ length: currentCount }, (_, index) => index + 1);
-    }
-
-    return activeSeason?.episodes ?? [];
-  }, [activeSeason?.episodes, currentCount, selectedIsCurrent]);
-
   const episodeNumbers = useMemo(() => {
     if (availability?.status !== 'available') return [];
     return availability.episodes;
@@ -651,7 +643,11 @@ export default function EpisodeList({
       ) : availability?.status === 'unknown' ? (
         <div className="empty-state">
           <strong>Источник временно не подтверждён</strong>
-          <span>AnimeBox не открывает серии по одному только числу эпизодов из каталога. Попробуйте позже.</span>
+          <span>
+            {currentCount > 0
+              ? `В каталоге указано ${currentCount} эпизодов, но AnimeBox не создаёт ссылки без подтверждённого источника.`
+              : 'AnimeBox не создаёт ссылки на серии без подтверждённого источника воспроизведения.'}
+          </span>
           {activeSeason && !selectedIsCurrent && (
             <Link
               href={`/anime/${activeSeason.slug}`}
