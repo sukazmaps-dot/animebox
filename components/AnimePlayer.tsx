@@ -376,6 +376,7 @@ export default function AnimePlayer({
   onEnded,
   onEpisodeChange,
   onPlaybackQualified,
+  onDurationObserved,
   watchTogetherMode = false,
 }: AnimePlayerProps) {
   const { user, loading: authLoading } = useAuthState();
