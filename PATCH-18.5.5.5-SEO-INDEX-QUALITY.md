@@ -144,7 +144,7 @@ Each source shard fetches up to:
 - 50 titles per page;
 - 500 candidates.
 
-The query now includes the fields needed by the real AnimeBox quality gate:
+The query is restricted to `countryOfOrigin: JP`, matching the public AnimeBox catalogue boundary, and includes the fields needed by the real AnimeBox quality gate:
 
 - title;
 - description;
@@ -183,15 +183,13 @@ The route also accepts an authenticated `sourceShard` query parameter for surgic
 
 ---
 
-## 7. Hot-data freshness
+## 7. Background-only writes
 
-A background ten-day scan should not be the only freshness source.
+SEO registry writes deliberately stay off user-facing metadata/playback paths.
 
-Whenever AnimeBox already performs its trusted 24-hour `anime_catalog` metadata refresh, the resolved anime is also best-effort synced into `seo_anime_index`.
+This prevents two independent enrichment sources (raw AniList vs localized Shikimori data) from alternately overwriting the registry and creating fake `lastmod` churn.
 
-This means actively used titles receive fresh SEO state much sooner than the full source scan.
-
-SEO registry failure is fail-open for the user path: a registry write error is logged but never turns a normal community/catalog request into an application failure.
+The registry is therefore refreshed only by the bounded background source job. User requests read normal application data and do not mutate crawl state.
 
 ---
 
@@ -343,7 +341,7 @@ The second migration exists because the project's historical default privileges 
 - no browser role can access `seo_anime_index`;
 - `lastmod` is not refreshed merely because a crawler requested a sitemap;
 - a transient upstream outage does not mass-deindex titles;
-- registry failures never break normal user-facing title/community flows;
+- registry writes remain background-only and never enter normal user-facing title/community flows;
 - canonical slug + permanent redirect + sitemap URL stay on one contract.
 
 ---
@@ -355,7 +353,7 @@ Immediately after deployment:
 1. all 70 anime sitemap shards read from the local registry;
 2. the bootstrap rows are available without waiting for AniList;
 3. the scheduled source scanner starts expanding/refreshing the inventory;
-4. active titles also refresh through normal trusted metadata work;
+4. user-facing title/playback requests do not mutate crawl state;
 5. System Health shows index coverage/freshness.
 
 A full background pass through all 70 AniList source shards takes ten successful daily runs at the configured cadence.
