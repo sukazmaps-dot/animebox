@@ -501,6 +501,13 @@ export async function checkAnimeSourceAvailability(
             throw error;
           }
 
+          if (isUpstreamPressureError(error)) {
+            return emptyResult(
+              'unknown',
+              'Видеоисточник временно перегружен. Повторим проверку позже.',
+            );
+          }
+
           hadUncertainResult = true;
         }
       }
