@@ -149,6 +149,17 @@ export type SystemDependenciesHealth = {
   mediaEdge: MediaEdgeHealth;
 };
 
+export type SeoIndexPlatformHealth = {
+  available: boolean;
+  animeIndexable: number;
+  animeNoindex: number;
+  animeStale: number;
+  episodeIndexable: number;
+  episodeStale: number;
+  videoEntries: number;
+  lastAnimeVerifiedAt: string | null;
+};
+
 export type SystemUpstreamRuntimeHealth = {
   key: string;
   active: number;
@@ -175,6 +186,7 @@ export type SystemHealthSnapshot = {
   playback: PlaybackPlatformHealth;
   requests: RequestPlatformHealth;
   dependencies: SystemDependenciesHealth;
+  seo: SeoIndexPlatformHealth;
   upstreams: SystemUpstreamRuntimeHealth[];
   signals: {
     openCriticalIncidents: number;
