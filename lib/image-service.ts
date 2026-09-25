@@ -234,3 +234,24 @@ export function getImageMediaSrcSet(
     format,
   );
 }
+
+export function getRawImageMediaSrcSet(
+  values: Array<string | null | undefined>,
+  preset: MediaImagePreset,
+  quality?: number,
+  format: MediaImageFormat = 'webp',
+): string | undefined {
+  for (const value of values) {
+    const normalized = normalizeImageUrl(value);
+    if (!normalized || normalized.startsWith('/')) continue;
+
+    return buildAnimeBoxMediaSrcSet(
+      normalized,
+      preset,
+      quality,
+      format,
+    );
+  }
+
+  return undefined;
+}
