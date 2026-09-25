@@ -78,6 +78,7 @@ jobs:
           components/home/HomePersonalRetentionSections.tsx
           components/home/HomeDeferredCommunity.tsx
           components/home/HomeRightRail.tsx
+          app/api/schedule/route.ts
           components/AnimeImage.tsx
           components/AnimeCard.tsx
           components/HomeContinueWatching.tsx
