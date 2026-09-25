@@ -33,6 +33,10 @@ for (const needle of [
   'loading={loading}',
   'data-image-loading={loading}',
   'sourcePreference',
+  'preset',
+  'srcSet={sourceIndex === 0 ? mediaSrcSet : undefined}',
+  'getImageMediaSrcSet',
+  'data-image-preset={effectivePreset}',
   "loading !== 'eager'",
   'decoding="async"',
   'PRIMARY_MEDIA_TIMEOUT_MS = 6_500',
@@ -61,18 +65,28 @@ if (
   !imageService.includes('const secondary = remote.find') ||
   !imageService.includes('const legacyProxy = proxyImageUrl(primary)') ||
   !imageService.includes("preference: ImageCandidatePreference = 'quality'") ||
-  !imageService.includes("if (preference === 'compact')") ||
+  !imageService.includes('buildAnimeBoxMediaDefaultVariant') ||
+  !imageService.includes('getImageMediaSrcSet') ||
+  !imageService.includes("delivery.format ?? 'webp'") ||
   !imageService.includes('image.medium')
 ) {
-  failures.push('image candidate chain is not media-first, compact-aware and bounded');
+  failures.push('image candidate chain is not media-first, variant-aware and bounded');
 }
 
 if (
   !mediaDelivery.includes('NEXT_PUBLIC_MEDIA_ORIGIN') ||
   !mediaDelivery.includes('NEXT_PUBLIC_MEDIA_RU_ORIGIN') ||
-  !mediaDelivery.includes('buildAnimeBoxMediaCandidates')
+  !mediaDelivery.includes('buildAnimeBoxMediaCandidates') ||
+  !mediaDelivery.includes('buildAnimeBoxMediaSrcSet') ||
+  !mediaDelivery.includes("export type MediaImagePreset = 'tiny' | 'card' | 'large' | 'hero'") ||
+  !mediaDelivery.includes('MEDIA_IMAGE_WIDTHS') ||
+  !mediaDelivery.includes('MEDIA_IMAGE_QUALITIES = [60, 70, 80]') ||
+  !mediaDelivery.includes("format: MediaImageFormat = 'webp'") ||
+  !mediaDelivery.includes("params.set('w'") ||
+  !mediaDelivery.includes("params.set('q'") ||
+  !mediaDelivery.includes("params.set('f'")
 ) {
-  failures.push('AnimeBox media delivery URL builder is incomplete');
+  failures.push('AnimeBox media delivery variant/srcset builder is incomplete');
 }
 
 for (const needle of [
@@ -85,6 +99,17 @@ for (const needle of [
   "contentType.toLowerCase().startsWith('image/')",
   'BROWSER_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60',
   'max-age=${BROWSER_CACHE_TTL_SECONDS}',
+  'ALLOWED_WIDTHS',
+  'ALLOWED_QUALITIES',
+  'ALLOWED_FORMATS',
+  "protocol: 'variants-v2'",
+  "cf: {",
+  "image,",
+  "response.headers.get('cf-resized')",
+  "'transform-not-applied'",
+  'posters-v2/',
+  'variant.token',
+  'TRANSFORM_FALLBACK_TTL_SECONDS',
 
 ]) {
   if (!mediaWorker.includes(needle)) {
@@ -92,19 +117,26 @@ for (const needle of [
   }
 }
 
-for (const [label, source] of [
-  ['anime card', animeCard],
-  ['smart recommendation card', smartCard],
-  ['continue watching', continueWatching],
-  ['schedule item', scheduleItem],
-  ['retention hub', retentionHub],
+for (const [label, source, preset] of [
+  ['anime card', animeCard, 'card'],
+  ['smart recommendation card', smartCard, 'card'],
+  ['continue watching', continueWatching, 'tiny'],
+  ['schedule item', scheduleItem, 'tiny'],
+  ['retention hub', retentionHub, 'tiny'],
 ]) {
   if (!source.includes('sourcePreference="compact"')) {
     failures.push(`${label} must use compact poster sources`);
   }
+
+  if (!source.includes(`preset="${preset}"`)) {
+    failures.push(`${label} must use the ${preset} media preset`);
+  }
 }
 
-if (!topAnime.includes("sourcePreference={editorial ? 'quality' : 'compact'}")) {
+if (
+  !topAnime.includes("sourcePreference={editorial ? 'quality' : 'compact'}") ||
+  !topAnime.includes("preset={editorial ? 'large' : 'tiny'}")
+) {
   failures.push('Top Anime must keep editorial quality while compacting sidebar posters');
 }
 
@@ -164,6 +196,21 @@ if (
   !animeImage.includes("loading !== 'eager'")
 ) {
   failures.push('poster watchdog regressed to mount-time lazy-image failover');
+}
+
+if (
+  mediaWorker.includes('env.MEDIA_BUCKET.put(key, bytes') &&
+  !mediaWorker.includes('if (variant && !origin.transformed)')
+) {
+  failures.push('variant fallback can poison R2 with an untransformed source image');
+}
+
+if (
+  !animeImage.includes('quality,') ||
+  !animeImage.includes('quality,\n        format,') ||
+  !mediaDelivery.includes('normalizeMediaImageQuality')
+) {
+  failures.push('AnimeImage quality is not wired into the media transformation URL');
 }
 
 if (failures.length) {
