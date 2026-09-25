@@ -66,7 +66,7 @@ export default function ScheduleItem({ href, title, image, episode, dateLabel, a
       className="schedule-item flex min-w-0 items-center justify-between gap-2 border-b border-slate-800 py-3 last:border-b-0 hover:bg-white/[0.03] focus-visible:outline-2 focus-visible:outline-violet-400"
     >
       <div className="schedule-item__poster h-12 w-8 shrink-0 overflow-hidden rounded-md">
-        <AnimeImage image={image} alt={title} sizes={compact ? "(min-width: 1001px) 48px, 32px" : "32px"} quality={60} />
+        <AnimeImage image={image} alt={title} sizes={compact ? "(min-width: 1001px) 48px, 32px" : "32px"} quality={60} sourcePreference="compact" />
       </div>
       <div className="schedule-item__copy min-w-0 flex-1">
         <h3 title={title} className="schedule-item__title truncate text-sm font-semibold text-slate-100">{title}</h3>

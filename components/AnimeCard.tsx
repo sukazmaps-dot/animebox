@@ -92,6 +92,7 @@ export default function AnimeCard({
             loading="lazy"
             sizes="(orientation: landscape) and (max-height: 600px) 18vw, (max-width: 480px) 42vw, (max-width: 760px) 31vw, (max-width: 1024px) 22vw, (max-width: 1280px) 17vw, 205px"
             quality={60}
+            sourcePreference="compact"
           />
         </div>
 

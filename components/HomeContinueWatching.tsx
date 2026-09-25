@@ -160,6 +160,7 @@ export default function HomeContinueWatching({
                   loading="lazy"
                   sizes={index === 0 ? '(max-width: 600px) 76px, 96px' : '54px'}
                   quality={60}
+                  sourcePreference="compact"
                 />
                 <span className="continue-smart-card__play" aria-hidden="true">▶</span>
               </div>

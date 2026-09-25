@@ -132,10 +132,31 @@ export function buildImageCandidateChain(
   return Array.from(new Set(result));
 }
 
+export type ImageCandidatePreference = 'quality' | 'compact';
+
 export function getImageCandidates(
   image?: AnimeImage | null,
+  preference: ImageCandidatePreference = 'quality',
 ): string[] {
   if (!image) return [];
+
+  /*
+   * Mass poster rails should not begin with AniList extraLarge artwork.
+   * Lighthouse was downloading ~430x650 images for ~177x250 cards, often
+   * costing 400+ KiB each. The compact profile starts from the provider's
+   * medium rendition and still keeps large as the bounded secondary fallback.
+   *
+   * Large/detail surfaces retain the existing quality-first order.
+   */
+  if (preference === 'compact') {
+    return buildImageCandidateChain([
+      image.medium,
+      image.large,
+      image.extraLarge,
+      image.preview,
+      image.original,
+    ]);
+  }
 
   return buildImageCandidateChain([
     image.extraLarge,

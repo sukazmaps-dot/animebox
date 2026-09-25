@@ -3,6 +3,12 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 
+import { useAuthState } from '@/components/AuthStateProvider';
+import {
+  readTelegramWelcomePending,
+  subscribeTelegramWelcomePending,
+} from '@/lib/telegram-growth-client';
+
 const SocialPresenceHeartbeat = dynamic(
   () => import('@/components/social/SocialPresenceHeartbeat'),
   { ssr: false },
@@ -18,6 +24,9 @@ const TelegramWelcomePromo = dynamic(
   { ssr: false },
 );
 
+const PRESENCE_DELAY_MS = 4_500;
+const PROGRESSION_DELAY_MS = 8_000;
+
 type IdleWindow = Window & {
   requestIdleCallback?: (
     callback: IdleRequestCallback,
@@ -26,37 +35,90 @@ type IdleWindow = Window & {
   cancelIdleCallback?: (handle: number) => void;
 };
 
-/**
- * Features below are useful after the app becomes interactive, but none of
- * them contributes pixels to the first render. Keeping them out of the
- * critical hydration window reduces long main-thread tasks on desktop.
- */
-export default function DeferredAppEnhancements() {
-  const [ready, setReady] = useState(false);
+function scheduleDeferredFeature(
+  delayMs: number,
+  callback: () => void,
+) {
+  const idleWindow = window as IdleWindow;
+  let idleHandle: number | null = null;
+  let fallbackTimer: number | null = null;
 
-  useEffect(() => {
-    const idleWindow = window as IdleWindow;
-
+  const timer = window.setTimeout(() => {
     if (idleWindow.requestIdleCallback) {
-      const handle = idleWindow.requestIdleCallback(
-        () => setReady(true),
-        { timeout: 1_800 },
+      idleHandle = idleWindow.requestIdleCallback(
+        callback,
+        { timeout: 1_500 },
       );
-
-      return () => idleWindow.cancelIdleCallback?.(handle);
+      return;
     }
 
-    const timer = window.setTimeout(() => setReady(true), 900);
-    return () => window.clearTimeout(timer);
+    fallbackTimer = window.setTimeout(callback, 180);
+  }, delayMs);
+
+  return () => {
+    window.clearTimeout(timer);
+    if (fallbackTimer !== null) {
+      window.clearTimeout(fallbackTimer);
+    }
+    if (idleHandle !== null) {
+      idleWindow.cancelIdleCallback?.(idleHandle);
+    }
+  };
+}
+
+/**
+ * Non-critical global features are intentionally staggered.
+ *
+ * Patch 18.3.1 put all three dynamic chunks behind one idle boundary. On a
+ * fast first paint that boundary could open almost immediately and create a
+ * burst of parsing, hydration and network work inside Lighthouse's TBT window.
+ * Presence and progression now have separate post-paint budgets, while the
+ * registration welcome chunk loads only when sessionStorage says it is needed.
+ */
+export default function DeferredAppEnhancements() {
+  const { user, loading } = useAuthState();
+  const [presenceReady, setPresenceReady] = useState(false);
+  const [progressionReady, setProgressionReady] = useState(false);
+  const [welcomePending, setWelcomePending] = useState(false);
+
+  useEffect(() => {
+    const syncWelcome = () => {
+      setWelcomePending(Boolean(readTelegramWelcomePending()));
+    };
+
+    const frame = window.requestAnimationFrame(syncWelcome);
+    const unsubscribe = subscribeTelegramWelcomePending(syncWelcome);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      unsubscribe();
+    };
   }, []);
 
-  if (!ready) return null;
+  useEffect(() => {
+    if (loading || !user?.id) return;
+
+    const cancelPresence = scheduleDeferredFeature(
+      PRESENCE_DELAY_MS,
+      () => setPresenceReady(true),
+    );
+
+    const cancelProgression = scheduleDeferredFeature(
+      PROGRESSION_DELAY_MS,
+      () => setProgressionReady(true),
+    );
+
+    return () => {
+      cancelPresence();
+      cancelProgression();
+    };
+  }, [loading, user?.id]);
 
   return (
     <>
-      <SocialPresenceHeartbeat />
-      <ProgressionCelebration />
-      <TelegramWelcomePromo />
+      {welcomePending && <TelegramWelcomePromo />}
+      {!loading && user?.id && presenceReady && <SocialPresenceHeartbeat />}
+      {!loading && user?.id && progressionReady && <ProgressionCelebration />}
     </>
   );
 }

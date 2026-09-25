@@ -12,6 +12,12 @@ const proxy = read('app/api/image/route.ts');
 const hero = read('components/HomeHeroCarousel.tsx');
 const anilist = read('lib/anilist.ts');
 const smartHome = read('app/smart-home.css');
+const animeCard = read('components/AnimeCard.tsx');
+const smartCard = read('components/SmartRecommendationCard.tsx');
+const continueWatching = read('components/HomeContinueWatching.tsx');
+const scheduleItem = read('components/ScheduleItem.tsx');
+const retentionHub = read('components/HomeRetentionHub.tsx');
+const topAnime = read('components/TopAnimeItem.tsx');
 
 const failures = [];
 
@@ -24,10 +30,10 @@ if (
 
 for (const needle of [
   'data-image-delivery="animebox-media"',
-  'LOAD_WINDOW_ROOT_MARGIN',
-  'new IntersectionObserver',
-  'shouldRequestSource',
-  'loading="eager"',
+  'loading={loading}',
+  'data-image-loading={loading}',
+  'sourcePreference',
+  "loading !== 'eager'",
   'decoding="async"',
   'PRIMARY_MEDIA_TIMEOUT_MS = 6_500',
   'PROXY_SOURCE_TIMEOUT_MS = 9_500',
@@ -38,13 +44,27 @@ for (const needle of [
   }
 }
 
+for (const forbidden of [
+  'LOAD_WINDOW_ROOT_MARGIN',
+  'new IntersectionObserver',
+  'shouldRequestSource',
+  'loading="eager"',
+]) {
+  if (animeImage.includes(forbidden)) {
+    failures.push(`AnimeImage must not use per-card eager scheduling: ${forbidden}`);
+  }
+}
+
 if (
   !imageService.includes('buildImageCandidateChain') ||
   !imageService.includes('buildAnimeBoxMediaCandidates(primary)') ||
   !imageService.includes('const secondary = remote.find') ||
-  !imageService.includes('const legacyProxy = proxyImageUrl(primary)')
+  !imageService.includes('const legacyProxy = proxyImageUrl(primary)') ||
+  !imageService.includes("preference: ImageCandidatePreference = 'quality'") ||
+  !imageService.includes("if (preference === 'compact')") ||
+  !imageService.includes('image.medium')
 ) {
-  failures.push('image candidate chain is not media-first and bounded');
+  failures.push('image candidate chain is not media-first, compact-aware and bounded');
 }
 
 if (
@@ -63,10 +83,29 @@ for (const needle of [
   'caches.default',
   'MAX_IMAGE_BYTES',
   "contentType.toLowerCase().startsWith('image/')",
+  'BROWSER_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60',
+  'max-age=${BROWSER_CACHE_TTL_SECONDS}',
+
 ]) {
   if (!mediaWorker.includes(needle)) {
     failures.push(`Cloudflare media worker missing ${needle}`);
   }
+}
+
+for (const [label, source] of [
+  ['anime card', animeCard],
+  ['smart recommendation card', smartCard],
+  ['continue watching', continueWatching],
+  ['schedule item', scheduleItem],
+  ['retention hub', retentionHub],
+]) {
+  if (!source.includes('sourcePreference="compact"')) {
+    failures.push(`${label} must use compact poster sources`);
+  }
+}
+
+if (!topAnime.includes("sourcePreference={editorial ? 'quality' : 'compact'}")) {
+  failures.push('Top Anime must keep editorial quality while compacting sidebar posters');
 }
 
 if (
@@ -120,8 +159,11 @@ if (
   failures.push('mobile hero must not compete with the backdrop as a second high-priority LCP request');
 }
 
-if (animeImage.includes('PRIMARY_MEDIA_TIMEOUT_MS = 2_500')) {
-  failures.push('poster watchdog regressed to mount-time fast failover');
+if (
+  animeImage.includes('PRIMARY_MEDIA_TIMEOUT_MS = 2_500') ||
+  !animeImage.includes("loading !== 'eager'")
+) {
+  failures.push('poster watchdog regressed to mount-time lazy-image failover');
 }
 
 if (failures.length) {

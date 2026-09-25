@@ -27,6 +27,7 @@ export default function TopAnimeItem({
           alt={title}
           sizes={editorial ? '(max-width: 768px) 42vw, (max-width: 1200px) 24vw, 17vw' : '(max-width: 768px) 30vw, 44px'}
           quality={70}
+          sourcePreference={editorial ? 'quality' : 'compact'}
         />
       </div>
 

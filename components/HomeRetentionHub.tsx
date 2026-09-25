@@ -85,8 +85,10 @@ export default function HomeRetentionHub({
 
   useEffect(() => {
     if (!enableRooms || !personalSignature) {
-      setRoom(null);
-      return;
+      const frame = window.requestAnimationFrame(() => {
+        setRoom(null);
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
 
     const controller = new AbortController();
@@ -274,6 +276,7 @@ export default function HomeRetentionHub({
                 loading="lazy"
                 sizes="64px"
                 quality={58}
+                sourcePreference="compact"
               />
             </span>
             <span className="home-retention__copy">
@@ -321,6 +324,7 @@ export default function HomeRetentionHub({
                 loading="lazy"
                 sizes="64px"
                 quality={58}
+                sourcePreference="compact"
               />
             </span>
             <span className="home-retention__copy">
@@ -364,6 +368,7 @@ export default function HomeRetentionHub({
                 loading="lazy"
                 sizes="64px"
                 quality={58}
+                sourcePreference="compact"
               />
             </span>
             <span className="home-retention__copy">
