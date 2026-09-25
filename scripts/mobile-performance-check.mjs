@@ -10,6 +10,7 @@ const sw = read('public/animebox-sw.js');
 const bridge = read('components/OfflineCacheBridge.tsx');
 const deferred = read('components/DeferredMount.tsx');
 const appEnhancements = read('components/DeferredAppEnhancements.tsx');
+const metrika = read('components/analytics/DeferredYandexMetrika.tsx');
 const home = read('components/HomePageClient.tsx');
 const hero = read('components/HomeHeroCarousel.tsx');
 const feed = read('lib/home-feed-server.ts');
@@ -40,6 +41,11 @@ for (const [label, source, needle] of [
   ['performance stylesheet import', layout, "import './patch16-6-1-mobile-performance.css';"],
   ['idle app enhancements', layout, '<DeferredAppEnhancements />'],
   ['requestIdleCallback shell defer', appEnhancements, 'requestIdleCallback'],
+  ['staggered presence hydration', appEnhancements, 'PRESENCE_DELAY_MS = 4_500'],
+  ['staggered progression hydration', appEnhancements, 'PROGRESSION_DELAY_MS = 8_000'],
+  ['welcome chunk session gate', appEnhancements, 'readTelegramWelcomePending'],
+  ['Metrika delayed fallback', metrika, 'METRIKA_FALLBACK_DELAY_MS = 30_000'],
+  ['Metrika idle install', metrika, 'requestIdleCallback'],
   ['home public CDN cache', nextConfig, "source: '/', headers: homeHeaders"],
   ['home ISR cache lifetime', nextConfig, 's-maxage=900'],
   ['single hero high-priority preload', hero, 'priority={false}'],
@@ -80,6 +86,21 @@ if (htmlRoutesBlock.includes("'/'")) {
 if ((hero.match(/fetchPriority=.*high/g) ?? []).length > 1) {
   failures.push('Home hero must have only one high-priority image request');
 }
+
+if (
+  appEnhancements.includes('const [ready, setReady]') ||
+  appEnhancements.includes('if (!ready) return null')
+) {
+  failures.push('non-critical shell features must not share one early hydration gate');
+}
+
+if (
+  metrika.includes('window.setTimeout(load, 12_000)') ||
+  !metrika.includes('scheduleLoad')
+) {
+  failures.push('Yandex Metrika must stay outside the initial TBT and interaction handlers');
+}
+
 
 for (const eagerImport of [
   "import ProgressionCelebration from '@/components/ProgressionCelebration'",
