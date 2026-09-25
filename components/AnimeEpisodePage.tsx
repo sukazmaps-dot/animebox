@@ -53,8 +53,6 @@ type SourceApiResponse = {
 };
 
 
-const DIRECT_PLAYER_ENABLED = process.env.NEXT_PUBLIC_DIRECT_PLAYER_ENABLED === 'true';
-
 type DirectSourceApiResponse = {
   enabled?: boolean;
   provider?: string;
@@ -79,6 +77,13 @@ type KodikApiResponse = {
   error?: string;
   reason?: string;
   message?: string;
+};
+
+type SourceAttemptResult = {
+  ready: boolean;
+  restricted: boolean;
+  reason: string;
+  timedOut?: boolean;
 };
 
 export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode = false }: { anime: Anime; requestedEpisode: number; theaterMode?: boolean }) {
@@ -301,13 +306,26 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       'kodik',
       'aniliberty',
     ]);
+    let providerOrder: PlayerProviderKey[] = [
+      'direct',
+      'kodik',
+      'aniliberty',
+    ];
     let sourcePriority = new Map<PlayerProviderKey, number>([
       ['direct', 10],
       ['kodik', 20],
       ['aniliberty', 30],
     ]);
+    let providerTimeouts = new Map<PlayerProviderKey, number>([
+      ['direct', 5_500],
+      ['kodik', 7_000],
+      ['aniliberty', 9_500],
+    ]);
+    let maxProviderAttempts = 3;
+    let discoveryBudgetMs = 18_500;
+    let budgetExpired = false;
+    let budgetTimer: number | null = null;
     const identity = `${animeIdParam}:${episodeNumber}`;
-    const timeout = window.setTimeout(() => controller.abort(), 10_000);
 
     queueMicrotask(() => {
       if (!active) return;
@@ -324,7 +342,11 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     }
 
     function publishSource(source: PlayerSource) {
-      if (!active || controller.signal.aborted || source.translations.length === 0) {
+      if (
+        !active ||
+        controller.signal.aborted ||
+        source.translations.length === 0
+      ) {
         return;
       }
 
@@ -335,13 +357,17 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       publishedProviders.add(providerKey);
 
       setSources((current) => {
-        const withoutSameSource = current.filter((item) => item.name !== source.name);
+        const withoutSameSource = current.filter(
+          (item) => item.name !== source.name,
+        );
         const next = [...withoutSameSource, source];
 
         const priority = (name: string) =>
           sourcePriority.get(providerKeyForSource(name)) ?? 999;
 
-        return next.sort((a, b) => priority(a.name) - priority(b.name));
+        return next.sort(
+          (a, b) => priority(a.name) - priority(b.name),
+        );
       });
 
       setSourceIdentity(identity);
@@ -349,32 +375,52 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       setLoadingSources(false);
     }
 
-    async function loadDirect() {
-      if (!DIRECT_PLAYER_ENABLED) return false;
+    async function loadDirect(signal: AbortSignal): Promise<SourceAttemptResult> {
       const shikimoriId = anime.idMal || anime.mal_id;
-      if (!shikimoriId) return false;
+      if (!shikimoriId) {
+        return {
+          ready: false,
+          restricted: false,
+          reason: 'missing_shikimori_id',
+        };
+      }
 
       try {
         const response = await fetch(
           `/api/player/direct-source?shikimoriId=${encodeURIComponent(String(shikimoriId))}&animeId=${encodeURIComponent(String(anime.id))}&season=${encodeURIComponent(String(anime.providerSeason || 1))}&episode=${encodeURIComponent(String(episodeNumber))}`,
           {
-            signal: controller.signal,
+            signal,
             cache: 'no-store',
           },
         );
 
         const data = (await response.json()) as DirectSourceApiResponse;
+        const restricted =
+          response.status === 451 ||
+          data.reason === 'copyright_restricted';
 
-        if (data.reason === 'copyright_restricted') {
-          setSourceMessage(
-            data.message ||
-              'Доступ к источнику ограничен по обращению правообладателя.',
-          );
-          return false;
+        if (restricted) {
+          return {
+            ready: false,
+            restricted: true,
+            reason: 'copyright_restricted',
+          };
         }
 
-        if (!response.ok || !data.enabled || !Array.isArray(data.streams) || data.streams.length === 0) {
-          return false;
+        if (
+          !response.ok ||
+          !data.enabled ||
+          !Array.isArray(data.streams) ||
+          data.streams.length === 0
+        ) {
+          return {
+            ready: false,
+            restricted: false,
+            reason:
+              data.reason ||
+              data.message ||
+              `provider_http_${response.status}`,
+          };
         }
 
         const translations = data.streams
@@ -385,49 +431,76 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
             type: stream.type,
           }));
 
-        if (translations.length === 0) return false;
+        if (!translations.length) {
+          return {
+            ready: false,
+            restricted: false,
+            reason: 'direct_stream_not_found',
+          };
+        }
 
         publishSource({
           name: 'AnimeBox Direct',
           type: translations[0]?.type || 'hls',
           translations,
         });
-        return true;
+
+        return {
+          ready: true,
+          restricted: false,
+          reason: '',
+        };
       } catch (error) {
-        if (controller.signal.aborted) throw error;
+        if (signal.aborted) throw error;
         console.warn('[Direct Player] source unavailable:', error);
-        return false;
+        return {
+          ready: false,
+          restricted: false,
+          reason: 'provider_unavailable',
+        };
       }
     }
 
-    async function loadKodik() {
+    async function loadKodik(signal: AbortSignal): Promise<SourceAttemptResult> {
       const shikimoriId = anime.idMal || anime.mal_id;
-      if (!shikimoriId) return false;
+      if (!shikimoriId) {
+        return {
+          ready: false,
+          restricted: false,
+          reason: 'missing_shikimori_id',
+        };
+      }
 
       try {
         const response = await fetch(
           `/api/players/kodik?shikimoriId=${encodeURIComponent(String(shikimoriId))}&animeId=${encodeURIComponent(String(anime.id))}&season=${encodeURIComponent(String(anime.providerSeason || 1))}&episode=${encodeURIComponent(String(episodeNumber))}`,
           {
-            signal: controller.signal,
+            signal,
             cache: 'no-store',
           },
         );
 
         const data = (await response.json()) as KodikApiResponse;
+        const restricted =
+          response.status === 451 ||
+          data.reason === 'copyright_restricted';
 
-        if (data.reason === 'copyright_restricted') {
-          setSourceMessage(
-            data.message ||
-              'Доступ к источнику ограничен по обращению правообладателя.',
-          );
-          return false;
+        if (restricted) {
+          return {
+            ready: false,
+            restricted: true,
+            reason: 'copyright_restricted',
+          };
         }
 
         if (data.maxEpisode && data.maxEpisode > 0) {
           setProviderEpisodes((current) => [
             ...new Set([
               ...current,
-              ...Array.from({ length: data.maxEpisode! }, (_, index) => index + 1),
+              ...Array.from(
+                { length: data.maxEpisode! },
+                (_, index) => index + 1,
+              ),
             ]),
           ].sort((a, b) => a - b));
         }
@@ -451,52 +524,89 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
               type: 'kodik',
               translations,
             });
-            return true;
+
+            return {
+              ready: true,
+              restricted: false,
+              reason: '',
+            };
           }
         }
 
-        return false;
+        return {
+          ready: false,
+          restricted: false,
+          reason:
+            data.reason ||
+            data.error ||
+            data.message ||
+            (data.status === 'unavailable'
+              ? 'episode_unavailable'
+              : `provider_http_${response.status}`),
+        };
       } catch (error) {
-        if (controller.signal.aborted) throw error;
+        if (signal.aborted) throw error;
         console.warn('[Kodik] source unavailable:', error);
-        return false;
+        return {
+          ready: false,
+          restricted: false,
+          reason: 'provider_unavailable',
+        };
       }
     }
 
-    async function loadFallback() {
+    async function loadAniLiberty(
+      signal: AbortSignal,
+    ): Promise<SourceAttemptResult> {
       try {
         const response = await fetch(
           `/api/anilibria?slug=${encodeURIComponent(animeIdParam)}&title=${encodeURIComponent(
             anime.title.romaji || anime.title.english || '',
           )}&season=${anime.providerSeason || 1}&episode=${episodeNumber}`,
           {
-            signal: controller.signal,
+            signal,
             cache: 'no-store',
           },
         );
 
         const data = (await response.json()) as SourceApiResponse;
+        const restricted =
+          response.status === 451 ||
+          data.reason === 'copyright_restricted';
 
-        if (!response.ok) {
-          if (data.reason === 'copyright_restricted') {
-            setSourceMessage(
-              data.message ||
-                'Доступ к источнику ограничен по обращению правообладателя.',
-            );
-          }
-          return (
-            data.error ||
-            data.message ||
-            data.reason ||
-            `Источник HTTP ${response.status}`
-          );
+        if (restricted) {
+          return {
+            ready: false,
+            restricted: true,
+            reason: 'copyright_restricted',
+          };
         }
 
-        if (!active || controller.signal.aborted) return '';
+        if (!response.ok) {
+          return {
+            ready: false,
+            restricted: false,
+            reason:
+              data.reason ||
+              data.error ||
+              data.message ||
+              `provider_http_${response.status}`,
+          };
+        }
+
+        if (!active || signal.aborted) {
+          return {
+            ready: false,
+            restricted: false,
+            reason: 'aborted',
+          };
+        }
 
         if (data.episodes?.length) {
           setProviderEpisodes((current) =>
-            [...new Set([...current, ...data.episodes!])].sort((a, b) => a - b),
+            [...new Set([...current, ...data.episodes!])].sort(
+              (a, b) => a - b,
+            ),
           );
         }
 
@@ -532,23 +642,138 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           });
         }
 
-        return data.reason || '';
+        return {
+          ready: publishedProviders.has('aniliberty'),
+          restricted: false,
+          reason:
+            publishedProviders.has('aniliberty')
+              ? ''
+              : data.reason || 'episode_unavailable',
+        };
       } catch (error) {
-        if (controller.signal.aborted) throw error;
+        if (signal.aborted) throw error;
         console.warn('[AniLiberty] source unavailable:', error);
-        return error instanceof Error ? error.message : 'Не удалось загрузить резервный источник.';
+        return {
+          ready: false,
+          restricted: false,
+          reason: 'provider_unavailable',
+        };
+      }
+    }
+
+    async function loadProvider(
+      provider: PlayerProviderKey,
+      signal: AbortSignal,
+    ): Promise<SourceAttemptResult> {
+      if (provider === 'direct') return loadDirect(signal);
+      if (provider === 'kodik') return loadKodik(signal);
+      return loadAniLiberty(signal);
+    }
+
+    async function runProviderAttempt(
+      provider: PlayerProviderKey,
+    ): Promise<SourceAttemptResult> {
+      if (!active || controller.signal.aborted) {
+        return {
+          ready: false,
+          restricted: false,
+          reason: 'aborted',
+        };
+      }
+
+      const attemptController = new AbortController();
+      let timedOut = false;
+      const timeoutMs = Math.max(
+        1_500,
+        Math.min(12_000, providerTimeouts.get(provider) ?? 7_000),
+      );
+      const abortFromParent = () => attemptController.abort();
+      controller.signal.addEventListener('abort', abortFromParent, {
+        once: true,
+      });
+      const timer = window.setTimeout(() => {
+        timedOut = true;
+        attemptController.abort();
+      }, timeoutMs);
+
+      try {
+        return await loadProvider(provider, attemptController.signal);
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return {
+            ready: false,
+            restricted: false,
+            reason: budgetExpired ? 'discovery_budget_exhausted' : 'aborted',
+          };
+        }
+
+        if (timedOut) {
+          return {
+            ready: false,
+            restricted: false,
+            reason: 'provider_timeout',
+            timedOut: true,
+          };
+        }
+
+        console.warn(
+          `[Source Orchestrator] ${provider} attempt failed:`,
+          error,
+        );
+        return {
+          ready: false,
+          restricted: false,
+          reason: 'provider_unavailable',
+        };
+      } finally {
+        window.clearTimeout(timer);
+        controller.signal.removeEventListener('abort', abortFromParent);
+      }
+    }
+
+    function finalSourceMessage(reason: string) {
+      if (reason === 'copyright_restricted') {
+        return 'Доступ к этой серии ограничен по обращению правообладателя.';
+      }
+      if (
+        reason === 'episode_unavailable' ||
+        reason === 'not_found' ||
+        reason === 'direct_stream_not_found'
+      ) {
+        return 'Видео для этой серии пока недоступно.';
+      }
+      if (
+        reason === 'provider_timeout' ||
+        reason === 'discovery_budget_exhausted'
+      ) {
+        return 'Источники отвечают слишком долго. Попробуйте ещё раз через несколько секунд.';
+      }
+      return 'Источники просмотра временно недоступны. Попробуйте позже.';
+    }
+
+    async function warmFallbacks(
+      providers: PlayerProviderKey[],
+    ) {
+      for (const provider of providers) {
+        if (!active || controller.signal.aborted) return;
+        await runProviderAttempt(provider);
       }
     }
 
     async function loadSources() {
-      let fallbackReason = '';
+      let lastReason = '';
+      let firstReadyIndex = -1;
 
       try {
         try {
+          const policySignal = AbortSignal.any([
+            controller.signal,
+            AbortSignal.timeout(2_500),
+          ]);
           const policyResponse = await fetch(
             `/api/player/source-policy?animeId=${encodeURIComponent(String(anime.id))}&season=${encodeURIComponent(String(anime.providerSeason || 1))}&episode=${encodeURIComponent(String(episodeNumber))}`,
             {
-              signal: controller.signal,
+              signal: policySignal,
               cache: 'no-store',
             },
           );
@@ -566,135 +791,162 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
               sourcePriority = new Map(
                 policy.providers.map((provider) => [
                   provider.key,
-                  provider.priority,
+                  provider.effectivePriority ?? provider.priority,
+                ]),
+              );
+              providerTimeouts = new Map(
+                policy.providers.map((provider) => [
+                  provider.key,
+                  provider.recommendedTimeoutMs || 7_000,
                 ]),
               );
 
-              if (enabledProviders.size === 0) {
-                const copyrightOnly = policy.providers.some(
-                  (provider) =>
-                    provider.reason === 'copyright_restricted',
+              if (policy.orchestrator) {
+                providerOrder =
+                  policy.orchestrator.orderedProviders.filter((provider) =>
+                    enabledProviders.has(provider),
+                  );
+                maxProviderAttempts = Math.max(
+                  0,
+                  Math.min(
+                    providerOrder.length,
+                    policy.orchestrator.maxProviderAttempts,
+                  ),
+                );
+                discoveryBudgetMs = Math.max(
+                  6_000,
+                  Math.min(
+                    25_000,
+                    policy.orchestrator.discoveryBudgetMs,
+                  ),
                 );
 
-                setSourceIdentity(identity);
-                setLoadingSources(false);
-                setSourceMessage(
-                  copyrightOnly
-                    ? 'Доступ к этой серии ограничен по обращению правообладателя.'
-                    : 'Источники просмотра временно недоступны. Попробуйте позже.',
+                if (policy.orchestrator.copyrightBlocked) {
+                  setSourceIdentity(identity);
+                  setLoadingSources(false);
+                  setSourceMessage(
+                    'Доступ к этой серии ограничен по обращению правообладателя.',
+                  );
+                  return;
+                }
+
+                if (policy.orchestrator.allUnavailable) {
+                  setSourceIdentity(identity);
+                  setLoadingSources(false);
+                  setSourceMessage(
+                    'Источники просмотра временно недоступны. Попробуйте позже.',
+                  );
+                  return;
+                }
+              } else {
+                providerOrder = policy.providers
+                  .filter((provider) => provider.enabled)
+                  .sort(
+                    (a, b) =>
+                      (a.effectivePriority ?? a.priority) -
+                      (b.effectivePriority ?? b.priority),
+                  )
+                  .map((provider) => provider.key);
+                maxProviderAttempts = Math.min(
+                  3,
+                  providerOrder.length,
                 );
-                return;
               }
             }
           }
         } catch (policyError) {
-          if (controller.signal.aborted) throw policyError;
-          console.warn('[Player Source Policy] fallback to defaults:', policyError);
+          if (controller.signal.aborted) return;
+          console.warn(
+            '[Player Source Orchestrator] policy unavailable; provider endpoints remain authoritative:',
+            policyError,
+          );
         }
 
-        /*
-         * Direct Player is the preferred path only when the server-side feature
-         * flag is enabled and a real direct stream is available. The endpoint
-         * returns immediately while disabled, so current Kodik startup is not
-         * penalized before provider terms are confirmed.
-         */
-        const enabledByPriority = [...enabledProviders].sort(
-          (a, b) =>
-            (sourcePriority.get(a) ?? 999) -
-            (sourcePriority.get(b) ?? 999),
+        providerOrder = providerOrder.filter((provider) =>
+          enabledProviders.has(provider),
         );
-        const directIsPrimary =
-          enabledByPriority[0] === 'direct' &&
-          enabledProviders.has('direct');
-
-        if (directIsPrimary) {
-          const directReady = await loadDirect();
-
-          if (!active || controller.signal.aborted) return;
-
-          if (directReady) {
-            if (enabledProviders.has('kodik')) {
-              void loadKodik().catch(() => undefined);
-            }
-            if (enabledProviders.has('aniliberty')) {
-              void loadFallback().catch(() => undefined);
-            }
-            return;
-          }
-        }
-
-        const attempts: Array<{
-          key: PlayerProviderKey;
-          promise: Promise<boolean | string>;
-        }> = [];
-
-        if (enabledProviders.has('direct') && !directIsPrimary) {
-          attempts.push({ key: 'direct', promise: loadDirect() });
-        }
-        if (enabledProviders.has('kodik')) {
-          attempts.push({ key: 'kodik', promise: loadKodik() });
-        }
-        if (enabledProviders.has('aniliberty')) {
-          attempts.push({ key: 'aniliberty', promise: loadFallback() });
-        }
-
-        const settled = await Promise.allSettled(
-          attempts.map((attempt) => attempt.promise),
+        maxProviderAttempts = Math.min(
+          Math.max(1, maxProviderAttempts),
+          providerOrder.length,
         );
 
-        if (!active) return;
-
-        if (controller.signal.aborted) {
-          if (!publishedAny) {
-            setSourceIdentity(identity);
-            setLoadingSources(false);
-            setSourceMessage(
-              'Проверка источников заняла слишком много времени. Попробуйте ещё раз.',
-            );
-          }
+        if (!providerOrder.length) {
+          setSourceIdentity(identity);
+          setLoadingSources(false);
+          setSourceMessage(
+            'Источники просмотра временно недоступны. Попробуйте позже.',
+          );
           return;
         }
 
-        const aniIndex = attempts.findIndex(
-          (attempt) => attempt.key === 'aniliberty',
-        );
-        const aniResult = aniIndex >= 0 ? settled[aniIndex] : null;
+        budgetTimer = window.setTimeout(() => {
+          budgetExpired = true;
+          controller.abort();
+        }, discoveryBudgetMs);
 
-        fallbackReason =
-          aniResult?.status === 'fulfilled' &&
-          typeof aniResult.value === 'string'
-            ? aniResult.value
-            : '';
+        const primaryPlan = providerOrder.slice(0, maxProviderAttempts);
 
-        if (publishedAny || publishedProviders.size > 0) {
+        for (let index = 0; index < primaryPlan.length; index += 1) {
+          if (!active || controller.signal.aborted) break;
+
+          const provider = primaryPlan[index]!;
+          const result = await runProviderAttempt(provider);
+          lastReason = result.reason || lastReason;
+
+          if (result.restricted) {
+            continue;
+          }
+
+          if (result.ready) {
+            firstReadyIndex = index;
+            break;
+          }
+        }
+
+        if (!active) return;
+
+        if (firstReadyIndex >= 0 || publishedAny) {
+          const readyProvider =
+            primaryPlan[firstReadyIndex] ?? null;
+          const remaining = providerOrder.filter(
+            (provider) =>
+              provider !== readyProvider &&
+              !publishedProviders.has(provider),
+          );
+
+          void warmFallbacks(remaining).finally(() => {
+            if (budgetTimer != null) {
+              window.clearTimeout(budgetTimer);
+              budgetTimer = null;
+            }
+          });
           return;
         }
 
         setSourceIdentity(identity);
         setLoadingSources(false);
-        setSourceMessage((current) => {
-          if (current) return current;
-          if (fallbackReason === 'copyright_restricted') {
-            return 'Доступ к этой серии ограничен по обращению правообладателя.';
-          }
-          return ['not_found', 'episode_unavailable'].includes(fallbackReason)
-            ? 'Видео для этой серии пока недоступно.'
-            : fallbackReason || 'Видеоисточник для этой серии не найден.';
-        });
+        setSourceMessage(
+          finalSourceMessage(
+            budgetExpired ? 'discovery_budget_exhausted' : lastReason,
+          ),
+        );
       } catch (error) {
         if (!active) return;
 
         setSourceIdentity(identity);
         setLoadingSources(false);
         setSourceMessage(
-          controller.signal.aborted
-            ? 'Проверка источника заняла слишком много времени. Обновите страницу.'
+          budgetExpired
+            ? finalSourceMessage('discovery_budget_exhausted')
             : error instanceof Error
-              ? error.message
+              ? 'Не удалось подготовить источник просмотра.'
               : 'Не удалось загрузить видео.',
         );
       } finally {
-        window.clearTimeout(timeout);
+        if (!publishedAny && budgetTimer != null) {
+          window.clearTimeout(budgetTimer);
+          budgetTimer = null;
+        }
       }
     }
 
@@ -702,7 +954,9 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
     return () => {
       active = false;
-      window.clearTimeout(timeout);
+      if (budgetTimer != null) {
+        window.clearTimeout(budgetTimer);
+      }
       controller.abort();
     };
   }, [anime, animeIdParam, episodeNumber]);
