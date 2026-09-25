@@ -46,8 +46,8 @@ for (const required of [
 for (const required of [
   'endReachedRequiresInteraction?: boolean',
   'endInteractionUnlockedRef.current',
-  "track.addEventListener('pointerdown'",
-  "track.addEventListener('wheel'",
+  'onPointerDown={unlockEndReached}',
+  'onWheel={unlockEndReached}',
 ]) {
   if (!scrollRow.includes(required)) {
     failures.push(`ScrollRow interaction gate missing: ${required}`);
