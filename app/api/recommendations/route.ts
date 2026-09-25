@@ -10,6 +10,8 @@ import {
   refreshCatalogAvailabilityBatch,
 } from '@/lib/catalog-availability-server';
 
+import { observeApiRoute } from '@/lib/request-observability-server';
+
 export const runtime = 'nodejs';
 
 const DEFAULT_LIMIT = 20;
@@ -299,7 +301,7 @@ async function loadCandidatePage(input: {
  * catalogue page number. The legacy page query remains accepted so old clients
  * and the first bootstrap request keep working during rollout.
  */
-export async function GET(request: NextRequest) {
+async function observedGET(request: NextRequest) {
   const limited = await enforceIpRateLimit(request, {
     scope: 'recommendations_ip',
     limit: 120,
@@ -411,3 +413,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export const GET = observeApiRoute('/api/recommendations', observedGET);
