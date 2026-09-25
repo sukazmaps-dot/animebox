@@ -1016,8 +1016,7 @@
   width: clamp(188px, 16vw, 226px);
   height: auto;
 
-  /* The DOM may grow for a long infinite session. Let the browser skip
-     painting/layout work for cards far outside the horizontal viewport. */
+  /* Patch 18.3 keeps long rails virtualized; only the live window is mounted. */
   content-visibility: auto;
   contain-intrinsic-size: 218px 430px;
 }
@@ -1277,17 +1276,17 @@
 }
 
 .smart-feed__rail-retry {
-  align-self: stretch;
-  width: clamp(168px, 15vw, 210px);
-  min-height: 120px;
-  padding: 14px;
+  width: fit-content;
+  min-height: 34px;
+  margin-top: 7px;
+  padding: 7px 11px;
   border: 1px dashed rgba(155, 133, 255, .22);
-  border-radius: 12px;
+  border-radius: 9px;
   background: rgba(14, 19, 34, .72);
   color: #a99ce3;
   font: inherit;
   font-size: 9px;
-  line-height: 1.45;
+  line-height: 1.35;
   cursor: pointer;
 }
 
@@ -1306,7 +1305,7 @@
   }
 
   .smart-feed__rail-retry {
-    width: 154px;
+    max-width: 100%;
   }
 }
 
