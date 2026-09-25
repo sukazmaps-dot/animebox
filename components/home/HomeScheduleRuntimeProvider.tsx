@@ -58,6 +58,7 @@ export type HomeScheduleRuntimeValue = {
   setSelectedScheduleDay: Dispatch<SetStateAction<string>>;
   scheduleLoading: boolean;
   scheduleError: string;
+  upcomingScheduleLoading: boolean;
   clockNow: number;
   visibleScheduleItems: HomeScheduleItem[];
   upcomingScheduleItems: HomeScheduleItem[];
@@ -187,6 +188,8 @@ export default function HomeScheduleRuntimeProvider({
 
   const [scheduleItems, setScheduleItems] =
     useState<HomeScheduleItem[]>([]);
+  const [upcomingScheduleItems, setUpcomingScheduleItems] =
+    useState<HomeScheduleItem[]>([]);
   const scheduleSectionRef = useRef<HTMLElement | null>(null);
   const [scheduleDays] =
     useState<ScheduleDay[]>(createScheduleDays);
@@ -194,6 +197,8 @@ export default function HomeScheduleRuntimeProvider({
     useState(() => scheduleDays[0]?.key ?? '');
   const [scheduleLoading, setScheduleLoading] = useState(true);
   const [scheduleError, setScheduleError] = useState('');
+  const [upcomingScheduleLoading, setUpcomingScheduleLoading] =
+    useState(true);
   const [clockNow, setClockNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -206,9 +211,91 @@ export default function HomeScheduleRuntimeProvider({
 
   useEffect(() => {
     const controller = new AbortController();
+    let timer: number | null = null;
+    let idleHandle: number | null = null;
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (
+        callback: IdleRequestCallback,
+        options?: IdleRequestOptions,
+      ) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+
+    const loadUpcoming = async () => {
+      try {
+        const nowSeconds = Math.floor(Date.now() / 1000);
+        const params = new URLSearchParams({
+          from: String(nowSeconds),
+          to: String(nowSeconds + 7 * 24 * 60 * 60),
+          limit: '5',
+        });
+
+        const response = await fetch(
+          `/api/schedule?${params.toString()}`,
+          {
+            signal: controller.signal,
+            cache: 'default',
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Upcoming schedule HTTP ${response.status}`,
+          );
+        }
+
+        const data =
+          (await response.json()) as HomeScheduleResponse;
+
+        if (!Array.isArray(data.items)) {
+          throw new Error('Некорректный ответ ближайших серий');
+        }
+
+        setUpcomingScheduleItems(
+          [...data.items]
+            .sort((a, b) => a.airingAt - b.airingAt)
+            .slice(0, 5),
+        );
+      } catch (error: unknown) {
+        if (
+          !(error instanceof Error && error.name === 'AbortError')
+        ) {
+          console.debug('[Home] upcoming schedule unavailable');
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setUpcomingScheduleLoading(false);
+        }
+      }
+    };
+
+    const start = () => {
+      if (controller.signal.aborted) return;
+      void loadUpcoming();
+    };
+
+    if (idleWindow.requestIdleCallback) {
+      idleHandle = idleWindow.requestIdleCallback(
+        start,
+        { timeout: 1_800 },
+      );
+    } else {
+      timer = window.setTimeout(start, 900);
+    }
+
+    return () => {
+      controller.abort();
+      if (timer !== null) window.clearTimeout(timer);
+      if (idleHandle !== null) {
+        idleWindow.cancelIdleCallback?.(idleHandle);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
     let observer: IntersectionObserver | null = null;
     let fallbackTimer: number | null = null;
-    let desktopTimer: number | null = null;
     let started = false;
 
     async function loadSchedule() {
@@ -268,12 +355,7 @@ export default function HomeScheduleRuntimeProvider({
       void loadSchedule();
     };
 
-    const mobile =
-      window.matchMedia('(max-width: 720px)').matches;
-
-    if (!mobile) {
-      desktopTimer = window.setTimeout(start, 700);
-    } else if (
+    if (
       typeof IntersectionObserver !== 'undefined' &&
       scheduleSectionRef.current
     ) {
@@ -294,8 +376,10 @@ export default function HomeScheduleRuntimeProvider({
       );
 
       observer.observe(scheduleSectionRef.current);
-      fallbackTimer = window.setTimeout(start, 8_000);
     } else {
+      // Only legacy/embedded browsers without IntersectionObserver fall back
+      // to a timer. Modern desktop must never fetch the full schedule merely
+      // because 700 ms elapsed after hydration.
       fallbackTimer = window.setTimeout(start, 4_500);
     }
 
@@ -305,10 +389,6 @@ export default function HomeScheduleRuntimeProvider({
 
       if (fallbackTimer !== null) {
         window.clearTimeout(fallbackTimer);
-      }
-
-      if (desktopTimer !== null) {
-        window.clearTimeout(desktopTimer);
       }
     };
   }, []);
@@ -469,17 +549,6 @@ export default function HomeScheduleRuntimeProvider({
     selectedScheduleDay,
   ]);
 
-  const upcomingScheduleItems = useMemo(() => {
-    const nowSeconds = Math.floor(clockNow / 1000);
-
-    return scheduleItems
-      .filter((item) => item.airingAt >= nowSeconds)
-      .slice(0, 5);
-  }, [
-    scheduleItems,
-    clockNow,
-  ]);
-
   const value =
     useMemo<HomeScheduleRuntimeValue>(
       () => ({
@@ -489,6 +558,7 @@ export default function HomeScheduleRuntimeProvider({
         setSelectedScheduleDay,
         scheduleLoading,
         scheduleError,
+        upcomingScheduleLoading,
         clockNow,
         visibleScheduleItems,
         upcomingScheduleItems,
@@ -505,6 +575,7 @@ export default function HomeScheduleRuntimeProvider({
         scheduleError,
         scheduleLoading,
         selectedScheduleDay,
+        upcomingScheduleLoading,
         upcomingScheduleItems,
         visibleScheduleItems,
       ],
