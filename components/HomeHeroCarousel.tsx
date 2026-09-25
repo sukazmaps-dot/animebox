@@ -146,6 +146,9 @@ export default function HomeHeroCarousel({
   const router = useRouter();
   const heroRef = useRef<HTMLElement | null>(null);
   const suppressHeroClickUntil = useRef(0);
+  const parallaxFrameRef = useRef<number | null>(null);
+  const parallaxRectRef = useRef<DOMRect | null>(null);
+  const parallaxPointRef = useRef({ x: 0, y: 0 });
   const [heroInView, setHeroInView] = useState(true);
   const source = useMemo(
     () =>
@@ -434,18 +437,59 @@ export default function HomeHeroCarousel({
 
   const [ambientR, ambientG, ambientB] = getAmbientRgb(anime);
 
+  const handlePointerEnter = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType !== 'touch') {
+      parallaxRectRef.current = event.currentTarget.getBoundingClientRect();
+    }
+
+    setPaused(true);
+  };
+
   const handlePointerMove = (event: ReactPointerEvent<HTMLElement>) => {
     if (event.pointerType === 'touch') return;
 
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = (event.clientX - rect.left) / rect.width - 0.5;
-    const y = (event.clientY - rect.top) / rect.height - 0.5;
+    parallaxPointRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+    };
 
-    event.currentTarget.style.setProperty('--hero-parallax-x', `${x * -10}px`);
-    event.currentTarget.style.setProperty('--hero-parallax-y', `${y * -7}px`);
+    if (parallaxFrameRef.current !== null) return;
+
+    const element = event.currentTarget;
+
+    parallaxFrameRef.current = window.requestAnimationFrame(() => {
+      parallaxFrameRef.current = null;
+
+      const rect =
+        parallaxRectRef.current ??
+        element.getBoundingClientRect();
+
+      parallaxRectRef.current = rect;
+
+      if (rect.width <= 0 || rect.height <= 0) return;
+
+      const point = parallaxPointRef.current;
+      const x = (point.x - rect.left) / rect.width - 0.5;
+      const y = (point.y - rect.top) / rect.height - 0.5;
+
+      element.style.setProperty(
+        '--hero-parallax-x',
+        `${x * -10}px`,
+      );
+      element.style.setProperty(
+        '--hero-parallax-y',
+        `${y * -7}px`,
+      );
+    });
   };
 
   const resetParallax = (element: HTMLElement) => {
+    if (parallaxFrameRef.current !== null) {
+      window.cancelAnimationFrame(parallaxFrameRef.current);
+      parallaxFrameRef.current = null;
+    }
+
+    parallaxRectRef.current = null;
     element.style.setProperty('--hero-parallax-x', '0px');
     element.style.setProperty('--hero-parallax-y', '0px');
   };
@@ -581,9 +625,7 @@ export default function HomeHeroCarousel({
       ].filter(Boolean).join(' ')}
       aria-label="Рекомендации аниме"
       onClick={openHeroDetails}
-      onMouseEnter={() =>
-        setPaused(true)
-      }
+      onPointerEnter={handlePointerEnter}
       style={{
         ['--hero-ambient-rgb' as string]: `${ambientR}, ${ambientG}, ${ambientB}`,
       }}
