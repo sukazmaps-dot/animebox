@@ -1,3 +1,5 @@
+import '../patch16-5-profile-widgets.css';
+import '../patch18-4-6-profile-widgets-cascade.css';
 import '../premium.css';
 import type { Metadata } from 'next';
 import '../premium-studio-v12.css';

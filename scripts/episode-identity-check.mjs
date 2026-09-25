@@ -13,38 +13,44 @@ function read(path) {
   return readFileSync(full, 'utf8');
 }
 
-const layout = read('app/layout.tsx');
+const layout = read('app/anime/[slug]/layout.tsx');
 const episodeList = read('components/EpisodeList.tsx');
 const watchServer = read('lib/watch-server.ts');
 const episodesApi = read('app/api/community/episodes/route.ts');
 const css = read('app/patch14-5-episode-identity.css');
 
-const importNeedle = "import './patch14-5-episode-identity.css';";
+const importNeedle =
+  "import '../../patch14-5-episode-identity.css';";
+const replayNeedle =
+  "import '../../patch18-4-6-episode-cascade.css';";
+
 if (!layout.includes(importNeedle)) {
-  failures.push('layout.tsx: Episode Identity stylesheet is not imported.');
-}
-
-const identityImport = layout.indexOf(importNeedle);
-const patch15ImportNeedle = "import './patch15-title-accent.css';";
-const patch15Import = layout.indexOf(patch15ImportNeedle);
-
-if (identityImport < 0) {
-  failures.push('layout.tsx: Episode Identity stylesheet import is missing.');
-}
-
-if (patch15Import >= 0 && patch15Import <= identityImport) {
   failures.push(
-    'layout.tsx: Patch 15 title accent override must load after Episode Identity.',
+    'anime layout: Episode Identity stylesheet is not route-scoped.',
   );
 }
 
-if (patch15Import < 0) {
-  const lastCssImport = layout.lastIndexOf("import './");
-  if (identityImport !== lastCssImport) {
-    failures.push(
-      'layout.tsx: Episode Identity must remain the final episode-layout CSS layer.',
-    );
-  }
+if (!layout.includes(replayNeedle)) {
+  failures.push(
+    'anime layout: Episode Identity cascade replay is missing.',
+  );
+}
+
+const identityImport = layout.indexOf(importNeedle);
+const replayImport = layout.indexOf(replayNeedle);
+const playerRuntimeImport = layout.indexOf(
+  "import '../../patch17-6-player-runtime.css';",
+);
+
+if (
+  identityImport < 0 ||
+  replayImport <= identityImport ||
+  (playerRuntimeImport >= 0 &&
+    playerRuntimeImport <= replayImport)
+) {
+  failures.push(
+    'anime layout: Episode Identity must load before its replay and player runtime layers.',
+  );
 }
 
 for (const [label, needle] of [
