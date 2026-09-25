@@ -2,6 +2,20 @@ const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 8_000;
 const CACHE_TTL_SECONDS = 30 * 24 * 60 * 60;
 const BROWSER_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60;
+const TRANSFORM_FALLBACK_TTL_SECONDS = 60 * 60;
+
+const ALLOWED_WIDTHS = new Set([
+  96,
+  144,
+  240,
+  360,
+  540,
+  720,
+  1080,
+  1440,
+]);
+const ALLOWED_QUALITIES = new Set([60, 70, 80]);
+const ALLOWED_FORMATS = new Set(['auto', 'webp', 'avif']);
 const inFlightOriginFetches = new Map();
 
 const EXACT_ALLOWED_HOSTS = new Set([
@@ -40,6 +54,64 @@ function parseSource(requestUrl) {
   }
 }
 
+function resolveAutoFormat(request) {
+  const accept = request.headers.get('accept') || '';
+
+  if (/image\/avif/i.test(accept)) return 'avif';
+  if (/image\/webp/i.test(accept)) return 'webp';
+
+  return null;
+}
+
+function parseVariant(requestUrl, request) {
+  const rawWidth = requestUrl.searchParams.get('w');
+  const rawQuality = requestUrl.searchParams.get('q');
+  const rawFormat = requestUrl.searchParams.get('f');
+
+  if (!rawWidth && !rawQuality && !rawFormat) {
+    return { variant: null, error: null };
+  }
+
+  if (!rawWidth) {
+    return { variant: null, error: 'variant-width-required' };
+  }
+
+  const width = Number.parseInt(rawWidth, 10);
+  const quality = rawQuality
+    ? Number.parseInt(rawQuality, 10)
+    : 70;
+  const requestedFormat = rawFormat || 'webp';
+
+  if (!ALLOWED_WIDTHS.has(width)) {
+    return { variant: null, error: 'variant-width-invalid' };
+  }
+
+  if (!ALLOWED_QUALITIES.has(quality)) {
+    return { variant: null, error: 'variant-quality-invalid' };
+  }
+
+  if (!ALLOWED_FORMATS.has(requestedFormat)) {
+    return { variant: null, error: 'variant-format-invalid' };
+  }
+
+  const resolvedFormat =
+    requestedFormat === 'auto'
+      ? resolveAutoFormat(request)
+      : requestedFormat;
+
+  return {
+    variant: {
+      width,
+      quality,
+      requestedFormat,
+      resolvedFormat,
+      token:
+        `w${width}-q${quality}-f${resolvedFormat || 'source'}`,
+    },
+    error: null,
+  };
+}
+
 async function sha256(value) {
   const bytes = new TextEncoder().encode(value);
   const digest = await crypto.subtle.digest('SHA-256', bytes);
@@ -52,7 +124,7 @@ function upstreamHeaders(source) {
   const headers = new Headers({
     Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.6',
     'User-Agent':
-      'Mozilla/5.0 (compatible; AnimeBoxMedia/1.0; +https://youranimebox.com)',
+      'Mozilla/5.0 (compatible; AnimeBoxMedia/2.0; +https://youranimebox.com)',
   });
 
   const host = source.hostname.toLowerCase();
@@ -68,8 +140,8 @@ function upstreamHeaders(source) {
   return headers;
 }
 
-function publicHeaders(contentType, source, cacheState) {
-  return new Headers({
+function publicHeaders(contentType, source, cacheState, variant = null) {
+  const headers = new Headers({
     'Content-Type': contentType || 'image/jpeg',
     'Cache-Control':
       `public, max-age=${BROWSER_CACHE_TTL_SECONDS}, s-maxage=${CACHE_TTL_SECONDS}, stale-while-revalidate=${CACHE_TTL_SECONDS}`,
@@ -80,9 +152,47 @@ function publicHeaders(contentType, source, cacheState) {
     'X-AnimeBox-Media': cacheState,
     'X-AnimeBox-Origin': source.hostname,
   });
+
+  if (variant) {
+    headers.set('X-AnimeBox-Variant', variant.token);
+    headers.set('X-AnimeBox-Width', String(variant.width));
+    headers.set('X-AnimeBox-Quality', String(variant.quality));
+    headers.set(
+      'X-AnimeBox-Format',
+      variant.resolvedFormat || 'source',
+    );
+
+    if (variant.requestedFormat === 'auto') {
+      headers.set('Vary', 'Accept');
+    }
+  }
+
+  return headers;
 }
 
-async function readR2(env, key, source) {
+function transformFallbackHeaders(contentType, source, variant, reason) {
+  const headers = new Headers({
+    'Content-Type': contentType || 'image/jpeg',
+    'Cache-Control':
+      `public, max-age=300, s-maxage=${TRANSFORM_FALLBACK_TTL_SECONDS}, stale-while-revalidate=300`,
+    'CDN-Cache-Control':
+      `public, max-age=${TRANSFORM_FALLBACK_TTL_SECONDS}`,
+    'Access-Control-Allow-Origin': '*',
+    'Cross-Origin-Resource-Policy': 'cross-origin',
+    'X-AnimeBox-Media': 'transform-fallback',
+    'X-AnimeBox-Origin': source.hostname,
+    'X-AnimeBox-Variant': variant.token,
+    'X-AnimeBox-Transform-Error': reason || 'unavailable',
+  });
+
+  if (variant.requestedFormat === 'auto') {
+    headers.set('Vary', 'Accept');
+  }
+
+  return headers;
+}
+
+async function readR2(env, key, source, variant) {
   if (!env.MEDIA_BUCKET) return null;
 
   const object = await env.MEDIA_BUCKET.get(key);
@@ -92,54 +202,160 @@ async function readR2(env, key, source) {
     object.httpMetadata?.contentType || 'image/jpeg',
     source,
     'r2-hit',
+    variant,
   );
   if (object.httpEtag) headers.set('ETag', object.httpEtag);
 
   return new Response(object.body, { status: 200, headers });
 }
 
-async function fetchOrigin(source) {
+async function readImageResponse(response) {
+  if (!response.ok) {
+    return {
+      response: null,
+      error: `origin-${response.status}`,
+    };
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.toLowerCase().startsWith('image/')) {
+    return { response: null, error: 'origin-not-image' };
+  }
+
+  const declaredLength = Number(
+    response.headers.get('content-length') || '0',
+  );
+  if (declaredLength > MAX_IMAGE_BYTES) {
+    return { response: null, error: 'origin-too-large' };
+  }
+
+  const bytes = await response.arrayBuffer();
+  if (!bytes.byteLength || bytes.byteLength > MAX_IMAGE_BYTES) {
+    return { response: null, error: 'origin-invalid-size' };
+  }
+
+  return {
+    response: {
+      bytes,
+      contentType,
+      etag: response.headers.get('etag') || undefined,
+    },
+    error: null,
+  };
+}
+
+async function fetchRawOrigin(source, signal) {
+  const response = await fetch(source, {
+    headers: upstreamHeaders(source),
+    redirect: 'follow',
+    signal,
+  });
+
+  return readImageResponse(response);
+}
+
+async function fetchTransformedOrigin(source, variant, signal) {
+  const image = {
+    fit: 'scale-down',
+    width: variant.width,
+    quality: variant.quality,
+  };
+
+  if (variant.resolvedFormat) {
+    image.format = variant.resolvedFormat;
+  }
+
+  const response = await fetch(source, {
+    headers: upstreamHeaders(source),
+    redirect: 'follow',
+    signal,
+    cf: {
+      image,
+    },
+  });
+
+  const resized = response.headers.get('cf-resized') || '';
+
+  if (!response.ok) {
+    return {
+      response: null,
+      error: resized || `transform-${response.status}`,
+    };
+  }
+
+  // When Transformations are disabled, Cloudflare can return the source
+  // response without applying cf.image. Never cache that oversized body under
+  // a variant R2 key.
+  if (!resized) {
+    return {
+      response: null,
+      error: 'transform-not-applied',
+    };
+  }
+
+  if (/err=/i.test(resized)) {
+    return {
+      response: null,
+      error: resized,
+    };
+  }
+
+  return readImageResponse(response);
+}
+
+async function fetchOrigin(source, variant) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const timeout = setTimeout(
+    () => controller.abort(),
+    FETCH_TIMEOUT_MS,
+  );
 
   try {
-    const response = await fetch(source, {
-      headers: upstreamHeaders(source),
-      redirect: 'follow',
-      signal: controller.signal,
-    });
+    if (variant) {
+      const transformed = await fetchTransformedOrigin(
+        source,
+        variant,
+        controller.signal,
+      );
 
-    if (!response.ok) {
-      return { response: null, error: `origin-${response.status}` };
+      if (transformed.response) {
+        return {
+          response: transformed.response,
+          error: null,
+          transformed: true,
+        };
+      }
+
+      const raw = await fetchRawOrigin(
+        source,
+        controller.signal,
+      );
+
+      return {
+        response: raw.response,
+        error: transformed.error || raw.error,
+        transformed: false,
+      };
     }
 
-    const contentType = response.headers.get('content-type') || '';
-    if (!contentType.toLowerCase().startsWith('image/')) {
-      return { response: null, error: 'origin-not-image' };
-    }
-
-    const declaredLength = Number(response.headers.get('content-length') || '0');
-    if (declaredLength > MAX_IMAGE_BYTES) {
-      return { response: null, error: 'origin-too-large' };
-    }
-
-    const bytes = await response.arrayBuffer();
-    if (!bytes.byteLength || bytes.byteLength > MAX_IMAGE_BYTES) {
-      return { response: null, error: 'origin-invalid-size' };
-    }
+    const raw = await fetchRawOrigin(
+      source,
+      controller.signal,
+    );
 
     return {
-      response: {
-        bytes,
-        contentType,
-        etag: response.headers.get('etag') || undefined,
-      },
-      error: null,
+      response: raw.response,
+      error: raw.error,
+      transformed: false,
     };
   } catch (error) {
     return {
       response: null,
-      error: error?.name === 'AbortError' ? 'origin-timeout' : 'origin-fetch-failed',
+      error:
+        error?.name === 'AbortError'
+          ? 'origin-timeout'
+          : 'origin-fetch-failed',
+      transformed: false,
     };
   } finally {
     clearTimeout(timeout);
@@ -169,7 +385,11 @@ export default {
       return Response.json({
         ok: true,
         service: 'animebox-media',
+        protocol: 'variants-v2',
         r2: Boolean(env.MEDIA_BUCKET),
+        widths: [...ALLOWED_WIDTHS],
+        qualities: [...ALLOWED_QUALITIES],
+        formats: [...ALLOWED_FORMATS],
       });
     }
 
@@ -185,11 +405,29 @@ export default {
       });
     }
 
+    const parsedVariant = parseVariant(requestUrl, request);
+    if (parsedVariant.error) {
+      return new Response('Invalid image variant', {
+        status: 400,
+        headers: {
+          'Cache-Control': 'no-store',
+          'X-AnimeBox-Media': parsedVariant.error,
+        },
+      });
+    }
+
+    const variant = parsedVariant.variant;
     const hash = await sha256(source.toString());
-    const key = `posters/${hash.slice(0, 2)}/${hash}`;
+
+    const key = variant
+      ? `posters-v2/${hash.slice(0, 2)}/${hash}/${variant.token}`
+      : `posters/${hash.slice(0, 2)}/${hash}`;
+
     const cache = caches.default;
     const cacheKey = new Request(
-      `${requestUrl.origin}/cache/${hash}`,
+      variant
+        ? `${requestUrl.origin}/cache/v2/${hash}/${variant.token}`
+        : `${requestUrl.origin}/cache/${hash}`,
       { method: 'GET' },
     );
 
@@ -197,26 +435,41 @@ export default {
     if (edgeHit) {
       const headers = new Headers(edgeHit.headers);
       headers.set('X-AnimeBox-Media', 'edge-hit');
-      return new Response(request.method === 'HEAD' ? null : edgeHit.body, {
-        status: edgeHit.status,
-        headers,
-      });
+      return new Response(
+        request.method === 'HEAD' ? null : edgeHit.body,
+        {
+          status: edgeHit.status,
+          headers,
+        },
+      );
     }
 
-    const r2Hit = await readR2(env, key, source);
+    const r2Hit = await readR2(
+      env,
+      key,
+      source,
+      variant,
+    );
     if (r2Hit) {
       ctx.waitUntil(cache.put(cacheKey, r2Hit.clone()));
       return request.method === 'HEAD'
-        ? new Response(null, { status: 200, headers: r2Hit.headers })
+        ? new Response(null, {
+            status: 200,
+            headers: r2Hit.headers,
+          })
         : r2Hit;
     }
 
-    let originPromise = inFlightOriginFetches.get(hash);
+    const inFlightKey = variant
+      ? `${hash}:${variant.token}`
+      : hash;
+
+    let originPromise = inFlightOriginFetches.get(inFlightKey);
     if (!originPromise) {
-      originPromise = fetchOrigin(source).finally(() => {
-        inFlightOriginFetches.delete(hash);
+      originPromise = fetchOrigin(source, variant).finally(() => {
+        inFlightOriginFetches.delete(inFlightKey);
       });
-      inFlightOriginFetches.set(hash, originPromise);
+      inFlightOriginFetches.set(inFlightKey, originPromise);
     }
 
     const origin = await originPromise;
@@ -225,13 +478,43 @@ export default {
         status: 502,
         headers: {
           'Cache-Control': 'public, max-age=30',
-          'X-AnimeBox-Media': origin.error || 'origin-failed',
+          'X-AnimeBox-Media':
+            origin.error || 'origin-failed',
         },
       });
     }
 
     const { bytes, contentType, etag } = origin.response;
-    const headers = publicHeaders(contentType, source, 'origin-fill');
+
+    if (variant && !origin.transformed) {
+      const headers = transformFallbackHeaders(
+        contentType,
+        source,
+        variant,
+        origin.error,
+      );
+      if (etag) headers.set('ETag', etag);
+
+      const fallbackResponse = new Response(bytes, {
+        status: 200,
+        headers,
+      });
+
+      ctx.waitUntil(
+        cache.put(cacheKey, fallbackResponse.clone()),
+      );
+
+      return request.method === 'HEAD'
+        ? new Response(null, { status: 200, headers })
+        : fallbackResponse;
+    }
+
+    const headers = publicHeaders(
+      contentType,
+      source,
+      variant ? 'variant-fill' : 'origin-fill',
+      variant,
+    );
     if (etag) headers.set('ETag', etag);
 
     if (env.MEDIA_BUCKET) {
@@ -244,12 +527,16 @@ export default {
           },
           customMetadata: {
             source: source.toString(),
+            variant: variant?.token || 'original',
           },
         }),
       );
     }
 
-    const response = new Response(bytes, { status: 200, headers });
+    const response = new Response(bytes, {
+      status: 200,
+      headers,
+    });
     ctx.waitUntil(cache.put(cacheKey, response.clone()));
 
     return request.method === 'HEAD'
