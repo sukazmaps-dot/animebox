@@ -12,11 +12,17 @@ import { extractHlsVideos } from '@/lib/anilibria';
 import { enforceIpRateLimit } from '@/lib/api-rate-limit';
 import { COPYRIGHT_RESTRICTED_MESSAGE } from '@/lib/copyright-server';
 import {
+  claimProviderHalfOpenProbe,
   getProviderDecision,
   recordProviderResult,
 } from '@/lib/player-source-control';
 
 import { observeApiRoute } from '@/lib/request-observability-server';
+import {
+  isTransientUpstreamResponse,
+  isUpstreamPressureError,
+  runWithUpstreamBudget,
+} from '@/lib/upstream-resilience-server';
 
 export const runtime = 'nodejs';
 
@@ -91,19 +97,69 @@ async function observedGET(request: NextRequest) {
     return NextResponse.json({ reason: 'stale_season_selection' }, { status: 409 });
   }
 
+  const recoveryPermit = await claimProviderHalfOpenProbe(
+    'aniliberty',
+    providerDecision,
+  );
+
+  if (!recoveryPermit.allowed) {
+    return NextResponse.json(
+      {
+        hls: [],
+        episodes: [],
+        externalPlayer: null,
+        reason: 'provider_recovering',
+      },
+      {
+        status: 503,
+        headers: {
+          'Cache-Control': 'private, no-store',
+          'Retry-After': '2',
+        },
+      },
+    );
+  }
+
   const providerStartedAt = Date.now();
+
+  async function reportProviderAttempt(result: {
+    ok: boolean;
+    latencyMs?: number | null;
+    reason?: string | null;
+  }) {
+    if (providerDecision.halfOpenProbe) {
+      await recordProviderResult('aniliberty', result);
+      return;
+    }
+
+    after(async () => {
+      await recordProviderResult('aniliberty', result);
+    });
+  }
   const signal = AbortSignal.any([request.signal, AbortSignal.timeout(9_000)]);
   let uncertain = false;
   let reason = 'not_found';
 
   for (const base of API_BASES) {
     const fetchJson = async (url: string): Promise<unknown> => {
-      const response = await fetch(url, {
-        headers: { Accept: 'application/json' },
-        signal: AbortSignal.any([signal, AbortSignal.timeout(2_800)]),
-        next: { revalidate: 120 },
-        redirect: 'error',
-      });
+      const attemptSignal = AbortSignal.any([
+        signal,
+        AbortSignal.timeout(2_800),
+      ]);
+      const response = await runWithUpstreamBudget(
+        'aniliberty',
+        () =>
+          fetch(url, {
+            headers: { Accept: 'application/json' },
+            signal: attemptSignal,
+            next: { revalidate: 120 },
+            redirect: 'error',
+          }),
+        {
+          signal,
+          isFailure: isTransientUpstreamResponse,
+        },
+      );
 
       if (!response.ok) throw new Error(`Provider HTTP ${response.status}`);
       return response.json();
@@ -161,11 +217,9 @@ async function observedGET(request: NextRequest) {
       const selected = all.find((item) => episodeOrdinal(item) === episode);
       const hls = selected ? extractHlsVideos(selected, new URL(base).origin) : [];
 
-      after(async () => {
-        await recordProviderResult('aniliberty', {
-          ok: true,
-          latencyMs: Date.now() - providerStartedAt,
-        });
+      await reportProviderAttempt({
+        ok: true,
+        latencyMs: Date.now() - providerStartedAt,
       });
 
       return NextResponse.json(
@@ -181,20 +235,28 @@ async function observedGET(request: NextRequest) {
         },
         { headers: { 'Cache-Control': 'private, max-age=60' } },
       );
-    } catch {
+    } catch (error) {
       uncertain = true;
+
+      if (isUpstreamPressureError(error)) {
+        reason = 'server_busy';
+        break;
+      }
+
       reason = 'upstream_error';
       if (signal.aborted) break;
     }
   }
 
-  after(async () => {
-    await recordProviderResult('aniliberty', {
+  if (reason !== 'server_busy') {
+    await reportProviderAttempt({
       ok: reason !== 'upstream_error',
       latencyMs: Date.now() - providerStartedAt,
       reason: reason === 'upstream_error' ? reason : null,
     });
-  });
+  }
+
+  const serverBusy = reason === 'server_busy';
 
   return NextResponse.json(
     {
@@ -205,7 +267,10 @@ async function observedGET(request: NextRequest) {
     },
     {
       status: uncertain ? 503 : 200,
-      headers: { 'Cache-Control': 'no-store' },
+      headers: {
+        'Cache-Control': 'no-store',
+        ...(serverBusy ? { 'Retry-After': '1' } : {}),
+      },
     },
   );
 }
