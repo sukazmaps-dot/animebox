@@ -15,6 +15,7 @@ const notificationsUi = read('components/SocialNotificationsClient.tsx');
 const adminApi = read('app/api/admin/community/route.ts');
 const adminUi = read('components/admin/CommunityAdminClient.tsx');
 const layout = read('app/layout.tsx');
+const deferredEnhancements = read('components/DeferredAppEnhancements.tsx');
 
 const failures = [];
 
@@ -52,7 +53,8 @@ if (
   !presence.includes("document.visibilityState !== 'visible'") ||
   !presence.includes('window.setInterval') ||
   !presence.includes('/api/social/presence') ||
-  !layout.includes('SocialPresenceHeartbeat')
+  !layout.includes('DeferredAppEnhancements') ||
+  !deferredEnhancements.includes('SocialPresenceHeartbeat')
 ) {
   failures.push('coarse authenticated presence heartbeat is incomplete');
 }
