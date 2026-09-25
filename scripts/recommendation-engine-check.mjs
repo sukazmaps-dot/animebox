@@ -71,7 +71,7 @@ if (
 }
 if (
   !card.includes('createRecommendationId') ||
-  !card.includes('recommendationIdRef.current') ||
+  !card.includes('runtimeIdentity.recommendationId') ||
   !feed.includes('rowId={rail.id}')
 ) {
   failures.push('recommendation cards do not emit stable per-impression context');
