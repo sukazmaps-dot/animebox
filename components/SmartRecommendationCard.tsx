@@ -114,27 +114,24 @@ export default function SmartRecommendationCard({
   const { anime, reason, reasons, matchScore } = recommendation;
   const title = getAnimeTitle(anime);
   const rootRef = useRef<HTMLElement | null>(null);
-  const runtimeIdentityRef = useRef<RecommendationCardRuntimeIdentity | null>(
-    null,
+  const [runtimeIdentity] = useState<RecommendationCardRuntimeIdentity>(
+    () =>
+      getRecommendationCardRuntimeIdentity({
+        animeId: anime.id,
+        source,
+        rowId,
+        sessionId: recommendationSessionId,
+        position,
+      }),
   );
-  if (!runtimeIdentityRef.current) {
-    runtimeIdentityRef.current = getRecommendationCardRuntimeIdentity({
-      animeId: anime.id,
-      source,
-      rowId,
-      sessionId: recommendationSessionId,
-      position,
-    });
-  }
-
   const recommendationIdRef = useRef<string>(
-    runtimeIdentityRef.current.recommendationId,
+    runtimeIdentity.recommendationId,
   );
   const impressionIdRef = useRef<string>(
-    runtimeIdentityRef.current.impressionId,
+    runtimeIdentity.impressionId,
   );
   const impressionSentRef = useRef(
-    runtimeIdentityRef.current.impressionSent,
+    runtimeIdentity.impressionSent,
   );
   const hoverStartedAtRef = useRef<number | null>(null);
   const [planState, setPlanState] = useState<'idle' | 'saving' | 'saved' | 'auth' | 'error'>('idle');
@@ -170,9 +167,7 @@ export default function SmartRecommendationCard({
 
           timer = window.setTimeout(() => {
             impressionSentRef.current = true;
-            if (runtimeIdentityRef.current) {
-              runtimeIdentityRef.current.impressionSent = true;
-            }
+            runtimeIdentity.impressionSent = true;
             trackRecommendationEvent({
               type: 'impression',
               animeId: anime.id,
@@ -210,6 +205,7 @@ export default function SmartRecommendationCard({
     reason,
     recommendationSessionId,
     rowId,
+    runtimeIdentity,
     source,
   ]);
 
