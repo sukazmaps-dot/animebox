@@ -52,7 +52,7 @@ for (const [label, needle] of [
   ['downward hysteresis', 'state.travel >= 82'],
   ['upward hysteresis', 'state.travel >= 58'],
   ['toggle cooldown', 'now - state.lastToggleAt >= 520'],
-  ['modal nav lock', '[data-mobile-nav-lock="true"]'],
+  ['modal nav lock', "document.body.style.overflow === 'hidden'"],
   ['compact landscape media query', "'(orientation: landscape) and (max-height: 600px) and (max-width: 1100px)'"],
   ['orientation resize reset', "window.addEventListener('resize', onViewportChange"],
 ]) {
