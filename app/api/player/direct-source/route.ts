@@ -2,6 +2,7 @@ import { after, NextRequest, NextResponse } from 'next/server';
 
 import { COPYRIGHT_RESTRICTED_MESSAGE } from '@/lib/copyright-server';
 import {
+  claimProviderHalfOpenProbe,
   getProviderDecision,
   recordProviderResult,
 } from '@/lib/player-source-control';
@@ -127,6 +128,29 @@ async function observedGET(request: NextRequest) {
     );
   }
 
+  const recoveryPermit = await claimProviderHalfOpenProbe(
+    'direct',
+    providerDecision,
+  );
+
+  if (!recoveryPermit.allowed) {
+    return NextResponse.json(
+      {
+        enabled: true,
+        provider: 'AnimeBox Direct',
+        streams: [],
+        reason: 'provider_recovering',
+      },
+      {
+        status: 503,
+        headers: {
+          'Cache-Control': 'private, no-store, max-age=0',
+          'Retry-After': '2',
+        },
+      },
+    );
+  }
+
   const providerStartedAt = Date.now();
 
   const result = await resolveDirectPlayerStreams({
@@ -143,19 +167,30 @@ async function observedGET(request: NextRequest) {
         result.reason.startsWith('provider_http_')
       ),
   );
+  const serverBusy = result.reason === 'server_busy';
 
-  after(async () => {
-    await recordProviderResult('direct', {
+  if (!serverBusy) {
+    const providerResult = {
       ok: !providerFailure,
       latencyMs: Date.now() - providerStartedAt,
       reason: providerFailure ? result.reason : null,
-    });
-  });
+    };
+
+    if (providerDecision.halfOpenProbe) {
+      await recordProviderResult('direct', providerResult);
+    } else {
+      after(async () => {
+        await recordProviderResult('direct', providerResult);
+      });
+    }
+  }
 
   return NextResponse.json(result, {
+    status: serverBusy ? 503 : 200,
     headers: {
       'Cache-Control': 'private, no-store, max-age=0',
       'X-Content-Type-Options': 'nosniff',
+      ...(serverBusy ? { 'Retry-After': '1' } : {}),
     },
   });
 }
