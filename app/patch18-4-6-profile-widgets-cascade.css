@@ -101,3 +101,22 @@ font-size: 15px !important;
 font-size: 12px !important;
 }
 }
+
+
+/* 18.5.5.1 large-screen replay.
+   Profile route CSS loads after the root readability layer, so the profile
+   subset is replayed here to preserve the same 2K/4K readability contract. */
+@media (min-width: 1920px) and (min-height: 900px) {
+  .detail__description,
+  .anime-detail-v4__description,
+  .anime-detail-v3__facts-list dd,
+  .profile-v2__section-copy,
+  .profile-widget__meta {
+    font-size: max(13.5px, var(--ab-readable-small)) !important;
+  }
+
+  .profile-widget__title,
+  .profile-v2__stat strong {
+    font-size: 15px !important;
+  }
+}
