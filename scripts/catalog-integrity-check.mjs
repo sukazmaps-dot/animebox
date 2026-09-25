@@ -16,6 +16,9 @@ const smartHome = read('app/smart-home.css');
 const contentFirst = read('app/design-v2-content-first.css');
 const cron = read('app/api/cron/catalog-availability/route.ts');
 const admin = read('app/api/admin/catalog-health/route.ts');
+const vercel = read('vercel.json');
+const homeFeed = read('lib/home-feed-server.ts');
+const recommendationRoute = read('app/api/recommendations/route.ts');
 const detailControls = read('components/AnimeDetailControls.tsx');
 const episodeList = read('components/EpisodeList.tsx');
 
@@ -125,6 +128,28 @@ if (
   !cron.includes('isCronAuthorized')
 ) {
   failures.push('bounded catalog availability cron is incomplete');
+}
+
+if (
+  !vercel.includes('"path": "/api/cron/catalog-availability"') ||
+  !vercel.includes('"schedule": "23 * * * *"')
+) {
+  failures.push('catalog availability verification is not scheduled hourly');
+}
+
+if (
+  !homeFeed.includes('refreshCatalogAvailabilityBatch(') ||
+  !homeFeed.includes("animebox-home-initial-feed-v4-verified-playback")
+) {
+  failures.push('home feed does not warm hidden/stale playback candidates');
+}
+
+if (
+  !recommendationRoute.includes('FILTERED_RESPONSE_CACHE_SECONDS = 5 * 60') ||
+  !recommendationRoute.includes("animebox-recommendation-candidates-v7-verified-playback") ||
+  !recommendationRoute.includes('{ limit: 8 }')
+) {
+  failures.push('recommendation verification/cache rollout is incomplete');
 }
 
 if (
