@@ -1,16 +1,19 @@
 import type { RankedRecommendation } from '@/lib/recommendations';
 
-export const RECOMMENDATION_DIVERSITY_VERSION = '17.8-diversity-v1';
+export const RECOMMENDATION_DIVERSITY_VERSION = '18.3-diversity-v2';
 
 export const RECOMMENDATION_DIVERSITY_POLICY = {
   minExplorationRate: 0.08,
   maxExplorationRate: 0.2,
   defaultExplorationRate: 0.14,
-  candidateWindowMultiplier: 4,
-  minCandidateWindow: 48,
+  candidateWindowMultiplier: 5,
+  minCandidateWindow: 64,
   genreOverlapPenalty: 0.14,
-  genreConcentrationPenalty: 0.16,
+  genreConcentrationPenalty: 0.18,
+  maxRecentGenreShare: 0.42,
   familyPenalty: 0.42,
+  formatRepeatPenalty: 0.035,
+  yearBucketRepeatPenalty: 0.028,
   sourceRepeatPenalty: 0.025,
   explorationBoost: 0.18,
   forcedExplorationPenalty: 0.4,
@@ -66,6 +69,22 @@ function itemGenres(item: RankedRecommendation) {
       .map(normalizeGenre)
       .filter(Boolean),
   );
+}
+
+function formatKey(item: RankedRecommendation) {
+  return String(item.anime.format ?? item.anime.kind ?? 'unknown')
+    .trim()
+    .toUpperCase()
+    .slice(0, 24);
+}
+
+function yearBucket(item: RankedRecommendation) {
+  const year = Number(item.anime.startDate?.year ?? 0);
+  if (!Number.isSafeInteger(year) || year < 1940 || year > 2200) {
+    return 'unknown';
+  }
+
+  return String(Math.floor(year / 5) * 5);
 }
 
 function genreOverlap(
@@ -141,6 +160,8 @@ export function diversifyRecommendations(
   const familyCounts = new Map<string, number>();
   const genreCounts = new Map<string, number>();
   const sourceCounts = new Map<RankedRecommendation['source'], number>();
+  const formatCounts = new Map<string, number>();
+  const yearBucketCounts = new Map<string, number>();
   let explorationCount = 0;
 
   const chooseBest = (strictFamily: boolean) => {
@@ -181,7 +202,13 @@ export function diversifyRecommendations(
       if (selected.length >= 3 && genres.size) {
         for (const genre of genres) {
           const share = (genreCounts.get(genre) ?? 0) / selected.length;
-          concentration = Math.max(concentration, Math.max(0, share - 0.45));
+          concentration = Math.max(
+            concentration,
+            Math.max(
+              0,
+              share - RECOMMENDATION_DIVERSITY_POLICY.maxRecentGenreShare,
+            ),
+          );
         }
       }
 
@@ -191,6 +218,12 @@ export function diversifyRecommendations(
       const sourcePenalty =
         (sourceCounts.get(candidate.source) ?? 0) *
         RECOMMENDATION_DIVERSITY_POLICY.sourceRepeatPenalty;
+      const formatPenalty =
+        (formatCounts.get(formatKey(candidate)) ?? 0) *
+        RECOMMENDATION_DIVERSITY_POLICY.formatRepeatPenalty;
+      const yearPenalty =
+        (yearBucketCounts.get(yearBucket(candidate)) ?? 0) *
+        RECOMMENDATION_DIVERSITY_POLICY.yearBucketRepeatPenalty;
       const repeatedFamilyPenalty =
         familyCount * RECOMMENDATION_DIVERSITY_POLICY.familyPenalty;
 
@@ -206,6 +239,8 @@ export function diversifyRecommendations(
         overlapPenalty -
         concentrationPenalty -
         sourcePenalty -
+        formatPenalty -
+        yearPenalty -
         repeatedFamilyPenalty +
         explorationAdjustment;
 
@@ -243,6 +278,18 @@ export function diversifyRecommendations(
     sourceCounts.set(
       picked.source,
       (sourceCounts.get(picked.source) ?? 0) + 1,
+    );
+
+    const pickedFormat = formatKey(picked);
+    formatCounts.set(
+      pickedFormat,
+      (formatCounts.get(pickedFormat) ?? 0) + 1,
+    );
+
+    const pickedYearBucket = yearBucket(picked);
+    yearBucketCounts.set(
+      pickedYearBucket,
+      (yearBucketCounts.get(pickedYearBucket) ?? 0) + 1,
     );
 
     if (isExplorationCandidate(picked)) {

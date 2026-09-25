@@ -202,6 +202,10 @@ export async function getRecommendationAnalytics(
       loadAdded: number;
       loadEmpty: number;
       loadErrors: number;
+      maxRailItems: number;
+      maxRenderedItems: number;
+      virtualizedLoads: number;
+      pagesScanned: number;
     }
   >();
   const positions = new Map<
@@ -282,6 +286,10 @@ export async function getRecommendationAnalytics(
         loadAdded: 0,
         loadEmpty: 0,
         loadErrors: 0,
+        maxRailItems: 0,
+        maxRenderedItems: 0,
+        virtualizedLoads: 0,
+        pagesScanned: 0,
       };
     applyFunnelEvent(rail, row.event_name);
     if (row.event_name === 'recommendation_dismiss') rail.dismissed += 1;
@@ -295,6 +303,31 @@ export async function getRecommendationAnalytics(
         rail.loadAdded += Math.round(claimed);
       } else {
         rail.loadEmpty += 1;
+      }
+
+      const railItems = Number(
+        row.metadata?.rail_items ?? row.metadata?.target_limit ?? 0,
+      );
+      const renderedItems = Number(row.metadata?.rendered_items ?? 0);
+      const pagesScanned = Number(row.metadata?.pages_scanned ?? 0);
+
+      if (Number.isFinite(railItems) && railItems > 0) {
+        rail.maxRailItems = Math.max(
+          rail.maxRailItems,
+          Math.round(railItems),
+        );
+      }
+      if (Number.isFinite(renderedItems) && renderedItems > 0) {
+        rail.maxRenderedItems = Math.max(
+          rail.maxRenderedItems,
+          Math.round(renderedItems),
+        );
+      }
+      if (row.metadata?.virtualized === true) {
+        rail.virtualizedLoads += 1;
+      }
+      if (Number.isFinite(pagesScanned) && pagesScanned > 0) {
+        rail.pagesScanned += Math.round(pagesScanned);
       }
     }
     if (row.event_name === 'recommendation_rail_load_error') {

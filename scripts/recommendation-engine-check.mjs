@@ -50,7 +50,7 @@ if (
   failures.push('17.8 recommendation attribution columns are missing');
 }
 if (
-  !personalization.includes("RECOMMENDATION_ALGORITHM_VERSION = '17.8-v1'") ||
+  !personalization.includes("RECOMMENDATION_ALGORITHM_VERSION = '18.3-v1'") ||
   !personalization.includes('createRecommendationId') ||
   !personalization.includes('row_id')
 ) {
@@ -71,7 +71,7 @@ if (
 }
 if (
   !card.includes('createRecommendationId') ||
-  !card.includes('recommendationIdRef.current') ||
+  !card.includes('runtimeIdentity.recommendationId') ||
   !feed.includes('rowId={rail.id}')
 ) {
   failures.push('recommendation cards do not emit stable per-impression context');
@@ -162,7 +162,7 @@ if (
   failures.push('candidate source response contract is missing');
 }
 if (
-  !ranking.includes("RECOMMENDATION_RANKING_VERSION = '17.8-v1'") ||
+  !ranking.includes("RECOMMENDATION_RANKING_VERSION = '18.3-v1'") ||
   !ranking.includes('RECOMMENDATION_RANKING_WEIGHTS') ||
   !ranking.includes('RecommendationScoreComponents') ||
   !ranking.includes('scoreRecommendation') ||
@@ -186,7 +186,7 @@ if (
   failures.push('ranking magic weights leaked back into recommendations.ts');
 }
 if (
-  !diversity.includes("RECOMMENDATION_DIVERSITY_VERSION = '17.8-diversity-v1'") ||
+  !diversity.includes("RECOMMENDATION_DIVERSITY_VERSION = '18.3-diversity-v2'") ||
   !diversity.includes('normalizeRecommendationExplorationRate') ||
   !diversity.includes('targetExploration') ||
   !diversity.includes('maxFamilyPerFeed') ||
@@ -256,6 +256,45 @@ if (
 ) {
   failures.push('17.8.9 shared candidate loader/dedupe lifecycle is incomplete');
 }
+if (
+  !scrollRow.includes('virtualize = false') ||
+  !scrollRow.includes('DEFAULT_VIRTUAL_MAX_ITEMS = 36') ||
+  !scrollRow.includes('data-scroll-row-spacer') ||
+  !scrollRow.includes('renderedChildren') ||
+  scrollRow.includes('MutationObserver')
+) {
+  failures.push('18.3 bounded horizontal DOM virtualization is incomplete');
+}
+if (
+  !feed.includes('MAX_RAIL_DOM_ITEMS = 36') ||
+  !feed.includes('virtualMaxItems={MAX_RAIL_DOM_ITEMS}') ||
+  !feed.includes('consumedPointerKeysRef') ||
+  !feed.includes('handleHiddenRecommendation') ||
+  !feed.includes('rendered_items')
+) {
+  failures.push('18.3 Smart Feed runtime/backpressure contract is incomplete');
+}
+if (
+  !personalization.includes('negativeGenreWeights') ||
+  !ranking.includes('sessionNegativeAffinity') ||
+  !recommendations.includes('sessionNegativeGenreAffinity')
+) {
+  failures.push('18.3 immediate negative-feedback reranking is incomplete');
+}
+if (
+  !diversity.includes('formatRepeatPenalty') ||
+  !diversity.includes('yearBucketRepeatPenalty') ||
+  !diversity.includes('maxRecentGenreShare')
+) {
+  failures.push('18.3 long-session diversity policy is incomplete');
+}
+if (
+  !recommendationAnalytics.includes('maxRenderedItems') ||
+  !recommendationAnalyticsUi.includes('DOM / Rail')
+) {
+  failures.push('18.3 feed runtime diagnostics are missing');
+}
+
 if (
   !card.includes('smart-card__feedback-icon') ||
   !(animeImage.includes('IMAGE_LOAD_TIMEOUT_MS') || animeImage.includes('PRIMARY_MEDIA_TIMEOUT_MS')) ||

@@ -10,7 +10,9 @@ import {
 } from 'react';
 
 import SmartRecommendationCard from '@/components/SmartRecommendationCard';
-import ScrollRow from '@/components/ui/ScrollRow';
+import ScrollRow, {
+  type ScrollRowVirtualMetrics,
+} from '@/components/ui/ScrollRow';
 import type { TasteMood } from '@/lib/personalization';
 import {
   getPersonalizedRecommendations,
@@ -41,6 +43,8 @@ const CLIENT_PAGE_CACHE_PREFIX = 'animebox:recommendation-page:v6:';
 const MAX_SESSION_CACHE_ENTRIES = 14;
 const MOOD_SWAP_FADE_OUT_MS = 135;
 const RAIL_SKELETON_COUNT = 3;
+const MAX_RAIL_DOM_ITEMS = 36;
+const RAIL_VIRTUAL_OVERSCAN = 6;
 
 type CachedPage = {
   expiresAt: number;
@@ -318,6 +322,11 @@ export default function SmartRecommendationFeed({
   const sharedBatchPromiseRef = useRef<Promise<RankedRecommendation[]> | null>(null);
   const railLoadingRef = useRef<Set<RecommendationRailId>>(new Set());
   const railOwnershipRef = useRef<Map<number, RecommendationRailId>>(new Map());
+  const [railOwnership, setRailOwnership] = useState<
+    Map<number, RecommendationRailId>
+  >(() => new Map());
+  const railVirtualMetricsRef = useRef<Map<RecommendationRailId, ScrollRowVirtualMetrics>>(new Map());
+  const consumedPointerKeysRef = useRef<Set<string>>(new Set());
 
   const [sessionId, setSessionId] = useState(() => createSessionId());
   const [displayedMood, setDisplayedMood] = useState<TasteMood>(mood);
@@ -411,6 +420,9 @@ export default function SmartRecommendationFeed({
           nextItems.map(({ anime }) => anime.id),
         );
         railOwnershipRef.current = new Map();
+        setRailOwnership(new Map());
+        railVirtualMetricsRef.current = new Map();
+        consumedPointerKeysRef.current = new Set();
         railLoadingRef.current = new Set();
         setLocallyHidden(new Set());
         setRailLimits({});
@@ -522,7 +534,7 @@ export default function SmartRecommendationFeed({
         hasWatchHistory,
         hasMore,
         limits: railLimits,
-        ownership: railOwnershipRef.current,
+        ownership: railOwnership,
         tasteGraph,
       }),
     [
@@ -531,6 +543,7 @@ export default function SmartRecommendationFeed({
       hasMore,
       hasWatchHistory,
       railLimits,
+      railOwnership,
       tasteGraph,
     ],
   );
@@ -555,9 +568,16 @@ export default function SmartRecommendationFeed({
     const candidateContext = getCandidateContext(displayedMood);
     const currentPointer = pointerRef.current;
     const signal = requestControllerRef.current.signal;
+    const currentPointerKey = currentPointer.cursor
+      ? `cursor:${currentPointer.cursor}`
+      : `page:${currentPointer.page}`;
 
-    let request: Promise<RankedRecommendation[]>;
-    request = loadCandidatePage(
+    if (consumedPointerKeysRef.current.has(currentPointerKey)) {
+      replaceHasMore(false);
+      return [];
+    }
+
+    const request: Promise<RankedRecommendation[]> = loadCandidatePage(
       currentPointer,
       bucket,
       candidateContext,
@@ -571,6 +591,7 @@ export default function SmartRecommendationFeed({
         const ranked = getPersonalizedRecommendations(data.items, {
           mood: displayedMood,
           limit: PAGE_SIZE,
+          tasteGraph,
         });
         const fresh = ranked.filter(
           ({ anime }) => !seenRecommendationIdsRef.current.has(anime.id),
@@ -593,14 +614,24 @@ export default function SmartRecommendationFeed({
           );
         }
 
+        consumedPointerKeysRef.current.add(currentPointerKey);
+
         const nextPointer = {
           page: data.nextPage ?? currentPointer.page + 1,
           cursor: data.nextCursor ?? null,
         };
-        replacePointer(nextPointer);
-        replaceHasMore(data.hasMore);
+        const nextPointerKey = nextPointer.cursor
+          ? `cursor:${nextPointer.cursor}`
+          : `page:${nextPointer.page}`;
+        const pointerAdvanced =
+          nextPointerKey !== currentPointerKey &&
+          !consumedPointerKeysRef.current.has(nextPointerKey);
+        const nextHasMore = Boolean(data.hasMore && pointerAdvanced);
 
-        if (data.hasMore) {
+        replacePointer(nextPointer);
+        replaceHasMore(nextHasMore);
+
+        if (nextHasMore) {
           prefetchCandidatePage(nextPointer, bucket, candidateContext);
         }
 
@@ -614,7 +645,42 @@ export default function SmartRecommendationFeed({
 
     sharedBatchPromiseRef.current = request;
     return request;
-  }, [bucket, displayedMood, replaceHasMore, replacePointer]);
+  }, [bucket, displayedMood, replaceHasMore, replacePointer, tasteGraph]);
+
+  const recordRailVirtualMetrics = useCallback(
+    (railId: RecommendationRailId, metrics: ScrollRowVirtualMetrics) => {
+      railVirtualMetricsRef.current.set(railId, metrics);
+    },
+    [],
+  );
+
+  const handleHiddenRecommendation = useCallback(
+    (animeId: number) => {
+      setLocallyHidden((current) => {
+        const next = new Set(current);
+        next.add(animeId);
+        return next;
+      });
+
+      // hideRecommendation()/markRecommendationWatched() updates local taste
+      // synchronously before this callback. Re-rank the already loaded pool so
+      // "Не интересно" affects similar genres in the same session instead of
+      // waiting for the next server Taste Graph refresh.
+      startTransition(() => {
+        setRecommendations((current) =>
+          getPersonalizedRecommendations(
+            current.map(({ anime }) => anime),
+            {
+              mood: displayedMood,
+              limit: Math.max(PAGE_SIZE, current.length),
+              tasteGraph,
+            },
+          ),
+        );
+      });
+    },
+    [displayedMood, tasteGraph],
+  );
 
   const ensureRailDepth = useCallback(
     async (rail: RecommendationRail) => {
@@ -645,6 +711,8 @@ export default function SmartRecommendationFeed({
       const itemsBefore = rail.items.length;
       const startPointer = pointerRef.current;
 
+      const virtualMetrics = railVirtualMetricsRef.current.get(rail.id);
+
       trackProductClientEvent('recommendation_rail_end_reached', {
         source: rail.source,
         path: '/',
@@ -657,6 +725,10 @@ export default function SmartRecommendationFeed({
           has_cursor: Boolean(startPointer.cursor),
           taste_confidence: tasteGraph?.confidence ?? null,
           exploration_rate: tasteGraph?.explorationRate ?? null,
+          pool_size: filtered.length,
+          rail_items: rail.items.length,
+          rendered_items: virtualMetrics?.renderedItems ?? rail.items.length,
+          virtualized: rail.items.length > MAX_RAIL_DOM_ITEMS,
         },
       });
       const targetLimit =
@@ -744,6 +816,8 @@ export default function SmartRecommendationFeed({
           });
         }
 
+        setRailOwnership(new Map(railOwnershipRef.current));
+
         trackProductClientEvent('recommendation_rail_load_result', {
           source: rail.source,
           path: '/',
@@ -759,6 +833,13 @@ export default function SmartRecommendationFeed({
             exhausted:
               !hasMoreRef.current ||
               (claimedForRail === 0 && hasMoreRef.current),
+            pool_size: filtered.length,
+            rail_items: targetLimit,
+            rendered_items:
+              railVirtualMetricsRef.current.get(rail.id)?.renderedItems ??
+              Math.min(targetLimit, MAX_RAIL_DOM_ITEMS),
+            virtual_window_max: MAX_RAIL_DOM_ITEMS,
+            virtualized: targetLimit > MAX_RAIL_DOM_ITEMS,
           },
         });
       } catch (fetchError) {
@@ -857,6 +938,12 @@ export default function SmartRecommendationFeed({
                   hasMore={railHasMore}
                   loading={railLoading}
                   onEndReached={() => void ensureRailDepth(rail)}
+                  virtualize
+                  virtualMaxItems={MAX_RAIL_DOM_ITEMS}
+                  virtualOverscan={RAIL_VIRTUAL_OVERSCAN}
+                  onVirtualRangeChange={(metrics) =>
+                    recordRailVirtualMetrics(rail.id, metrics)
+                  }
                 >
                   {rail.items.map((recommendation, index) => (
                     <div
@@ -870,13 +957,7 @@ export default function SmartRecommendationFeed({
                         rowId={rail.id}
                         source={rail.source}
                         recommendationSessionId={sessionId}
-                        onHidden={(animeId) => {
-                          setLocallyHidden((current) => {
-                            const next = new Set(current);
-                            next.add(animeId);
-                            return next;
-                          });
-                        }}
+                        onHidden={handleHiddenRecommendation}
                       />
                     </div>
                   ))}
@@ -894,16 +975,17 @@ export default function SmartRecommendationFeed({
                       ),
                     )}
 
-                  {railFailed && !railLoading && (
-                    <button
-                      type="button"
-                      className="smart-feed__rail-retry"
-                      onClick={() => void ensureRailDepth(rail)}
-                    >
-                      Не удалось загрузить ещё · Повторить
-                    </button>
-                  )}
                 </ScrollRow>
+
+                {railFailed && !railLoading && (
+                  <button
+                    type="button"
+                    className="smart-feed__rail-retry"
+                    onClick={() => void ensureRailDepth(rail)}
+                  >
+                    Не удалось загрузить ещё · Повторить
+                  </button>
+                )}
               </section>
             );
           })}

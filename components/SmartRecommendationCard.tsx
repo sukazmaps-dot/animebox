@@ -50,6 +50,50 @@ function formatDuration(duration: number | null | undefined): string {
   return minutes > 0 ? `${hours} ч ${minutes} мин` : `${hours} ч`;
 }
 
+type RecommendationCardRuntimeIdentity = {
+  recommendationId: string;
+  impressionId: string;
+  impressionSent: boolean;
+};
+
+const MAX_CARD_RUNTIME_IDENTITIES = 1200;
+const recommendationCardIdentityCache =
+  new Map<string, RecommendationCardRuntimeIdentity>();
+
+function getRecommendationCardRuntimeIdentity(input: {
+  animeId: number;
+  source: string;
+  rowId?: string;
+  sessionId?: string;
+  position: number;
+}) {
+  const key = [
+    input.sessionId || 'sessionless',
+    input.rowId || input.source,
+    input.animeId,
+  ].join(':');
+
+  const existing = recommendationCardIdentityCache.get(key);
+  if (existing) return existing;
+
+  const identity: RecommendationCardRuntimeIdentity = {
+    recommendationId: createRecommendationId(input.animeId, input.source),
+    impressionId: createImpressionId(input.animeId, input.position),
+    impressionSent: false,
+  };
+
+  recommendationCardIdentityCache.set(key, identity);
+
+  if (recommendationCardIdentityCache.size > MAX_CARD_RUNTIME_IDENTITIES) {
+    const oldest = recommendationCardIdentityCache.keys().next().value as
+      | string
+      | undefined;
+    if (oldest) recommendationCardIdentityCache.delete(oldest);
+  }
+
+  return identity;
+}
+
 export default function SmartRecommendationCard({
   recommendation,
   position,
@@ -70,11 +114,19 @@ export default function SmartRecommendationCard({
   const { anime, reason, reasons, matchScore } = recommendation;
   const title = getAnimeTitle(anime);
   const rootRef = useRef<HTMLElement | null>(null);
-  const recommendationIdRef = useRef<string>(
-    createRecommendationId(anime.id, source),
+  const [runtimeIdentity] = useState<RecommendationCardRuntimeIdentity>(
+    () =>
+      getRecommendationCardRuntimeIdentity({
+        animeId: anime.id,
+        source,
+        rowId,
+        sessionId: recommendationSessionId,
+        position,
+      }),
   );
-  const impressionIdRef = useRef<string>(createImpressionId(anime.id, position));
-  const impressionSentRef = useRef(false);
+  const impressionSentRef = useRef(
+    runtimeIdentity.impressionSent,
+  );
   const hoverStartedAtRef = useRef<number | null>(null);
   const [planState, setPlanState] = useState<'idle' | 'saving' | 'saved' | 'auth' | 'error'>('idle');
   const [liked, setLiked] = useState(false);
@@ -83,8 +135,8 @@ export default function SmartRecommendationCard({
 
   const eventContext = {
     animeId: anime.id,
-    recommendationId: recommendationIdRef.current,
-    impressionId: impressionIdRef.current,
+    recommendationId: runtimeIdentity.recommendationId,
+    impressionId: runtimeIdentity.impressionId,
     position,
     rowId,
     source,
@@ -109,11 +161,12 @@ export default function SmartRecommendationCard({
 
           timer = window.setTimeout(() => {
             impressionSentRef.current = true;
+            runtimeIdentity.impressionSent = true;
             trackRecommendationEvent({
               type: 'impression',
               animeId: anime.id,
-              recommendationId: recommendationIdRef.current,
-              impressionId: impressionIdRef.current,
+              recommendationId: runtimeIdentity.recommendationId,
+              impressionId: runtimeIdentity.impressionId,
               position,
               rowId,
               source,
@@ -146,6 +199,7 @@ export default function SmartRecommendationCard({
     reason,
     recommendationSessionId,
     rowId,
+    runtimeIdentity,
     source,
   ]);
 
@@ -212,7 +266,7 @@ export default function SmartRecommendationCard({
       source,
       reason,
       modelVersion: RECOMMENDATION_MODEL_VERSION,
-      recommendationId: recommendationIdRef.current,
+      recommendationId: runtimeIdentity.recommendationId,
       recommendationSessionId,
       algorithmVersion: RECOMMENDATION_MODEL_VERSION,
       rowId,
@@ -233,7 +287,7 @@ export default function SmartRecommendationCard({
       source,
       reason,
       modelVersion: RECOMMENDATION_MODEL_VERSION,
-      recommendationId: recommendationIdRef.current,
+      recommendationId: runtimeIdentity.recommendationId,
       recommendationSessionId,
       algorithmVersion: RECOMMENDATION_MODEL_VERSION,
       rowId,
@@ -255,7 +309,7 @@ export default function SmartRecommendationCard({
       source,
       reason,
       modelVersion: RECOMMENDATION_MODEL_VERSION,
-      recommendationId: recommendationIdRef.current,
+      recommendationId: runtimeIdentity.recommendationId,
       recommendationSessionId,
       algorithmVersion: RECOMMENDATION_MODEL_VERSION,
       rowId,
