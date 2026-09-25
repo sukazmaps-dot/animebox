@@ -16,6 +16,8 @@ const smartHome = read('app/smart-home.css');
 const contentFirst = read('app/design-v2-content-first.css');
 const cron = read('app/api/cron/catalog-availability/route.ts');
 const admin = read('app/api/admin/catalog-health/route.ts');
+const detailControls = read('components/AnimeDetailControls.tsx');
+const episodeList = read('components/EpisodeList.tsx');
 
 const failures = [];
 
@@ -130,6 +132,23 @@ if (
   !admin.includes('refreshCatalogAvailability(anime')
 ) {
   failures.push('Catalog Health admin contract is incomplete');
+}
+
+if (
+  !detailControls.includes('playable: playbackReady') ||
+  !detailControls.includes('disabled={!playbackReady}') ||
+  !detailControls.includes("if (!playbackReady) return;") ||
+  detailControls.includes("availability?.status === 'unavailable'\n        ? null\n        : metadataCount")
+) {
+  failures.push('detail watch action can still open unverified metadata episodes');
+}
+
+if (
+  !episodeList.includes("if (availability?.status !== 'available') return []") ||
+  !episodeList.includes("availability?.status === 'unknown'") ||
+  episodeList.includes('return metadataEpisodeNumbers')
+) {
+  failures.push('episode list still creates playback links from unverified metadata');
 }
 
 if (failures.length) {
