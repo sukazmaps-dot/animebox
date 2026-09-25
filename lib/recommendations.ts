@@ -86,6 +86,27 @@ function normalizeGenre(value: string): string {
   return value.trim().toLowerCase();
 }
 
+function sessionNegativeGenreAffinity(
+  anime: Pick<Anime, 'genres'>,
+  weights: Record<string, number>,
+) {
+  const hits = (anime.genres ?? [])
+    .map((genre) => weights[
+      genre
+        .normalize('NFKC')
+        .toLocaleLowerCase('ru-RU')
+        .replace(/ё/g, 'е')
+        .replace(/[^\p{L}\p{N}]+/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+    ] ?? 0)
+    .filter((weight) => weight > 0)
+    .sort((left, right) => right - left);
+
+  if (!hits.length) return 0;
+  return Math.min(1, (hits[0] ?? 0) + (hits[1] ?? 0) * 0.35);
+}
+
 function studioNames(anime: Anime): string[] {
   const raw = anime.studios;
   const values: unknown[] = Array.isArray(raw)
@@ -365,6 +386,10 @@ export function getPersonalizedRecommendations(
         : 0;
 
       const graphAffinity = animeGenreAffinity(anime, tasteGraph);
+      const sessionNegativeAffinity = sessionNegativeGenreAffinity(
+        anime,
+        profile.negativeGenreWeights,
+      );
       const completedAffinity = completedGenreAffinity(anime, tasteGraph);
       const candidateStudios = studioNames(anime);
       const studioScore = candidateStudios.length
@@ -400,6 +425,7 @@ export function getPersonalizedRecommendations(
           completedAffinity: completedAffinity.positive,
           studioAffinity: studioScore,
           tasteGraphNegative: graphAffinity.negative,
+          sessionNegativeAffinity,
           episodeLength: lengthAffinity,
           mood: moodScore,
           communityQuality: ratingScore,
@@ -476,6 +502,7 @@ export function getPersonalizedRecommendations(
         completedAffinity: completedAffinity.positive,
         studioAffinity: studioScore,
         tasteGraphNegative: graphAffinity.negative,
+        sessionNegativeAffinity,
         episodeLength: lengthAffinity,
         mood: moodScore,
         communityQuality: ratingScore,
