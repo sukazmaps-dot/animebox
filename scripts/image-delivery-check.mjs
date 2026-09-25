@@ -61,7 +61,7 @@ for (const forbidden of [
 
 if (
   !imageService.includes('buildImageCandidateChain') ||
-  !imageService.includes('buildAnimeBoxMediaCandidates(primary)') ||
+  !imageService.includes('buildAnimeBoxMediaCandidates(') ||
   !imageService.includes('const secondary = remote.find') ||
   !imageService.includes('const legacyProxy = proxyImageUrl(primary)') ||
   !imageService.includes("preference: ImageCandidatePreference = 'quality'") ||
