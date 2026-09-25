@@ -90,7 +90,7 @@ export default function AnimeCard({
             englishName={anime.title?.english || anime.title?.romaji}
             className="anime-card__image"
             loading="near"
-            sizes="(orientation: landscape) and (max-height: 600px) 18vw, (max-width: 480px) 42vw, (max-width: 760px) 31vw, (max-width: 1024px) 22vw, (max-width: 1280px) 17vw, 205px"
+            sizes="(min-width: 3400px) 250px, (min-width: 3000px) 235px, (min-width: 2400px) 225px, (min-width: 1920px) 215px, (orientation: landscape) and (max-height: 600px) 18vw, (max-width: 480px) 42vw, (max-width: 760px) 31vw, (max-width: 1024px) 22vw, (max-width: 1280px) 17vw, 205px"
             quality={60}
             sourcePreference="compact"
             preset="card"
