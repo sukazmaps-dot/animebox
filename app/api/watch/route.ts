@@ -21,6 +21,7 @@ import { syncUserChallenges } from '@/lib/challenges-server';
 import { trackProductEvents } from '@/lib/product-events-server';
 
 import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
+import { observeApiRoute } from '@/lib/request-observability-server';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -84,7 +85,7 @@ function providerSkip(value: unknown) {
 }
 
 
-export async function GET(request: Request) {
+async function observedGET(request: Request) {
   try {
     const { user } = await userClient();
     const url = new URL(request.url);
@@ -106,7 +107,7 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+async function observedPOST(request: Request) {
   try {
     const { user } = await userClient();
     const body = await readBody(request);
@@ -354,3 +355,7 @@ export async function POST(request: Request) {
     return failure(error);
   }
 }
+
+
+export const GET = observeApiRoute('/api/watch', observedGET);
+export const POST = observeApiRoute('/api/watch', observedPOST);
