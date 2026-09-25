@@ -116,6 +116,13 @@ export default function ScrollRow({
     gap: 0,
   });
 
+  const unlockEndReached = useCallback(() => {
+    if (!endReachedRequiresInteraction) return;
+
+    endInteractionUnlockedRef.current = true;
+    endRequestLatchRef.current = false;
+  }, [endReachedRequiresInteraction]);
+
   const reportVirtualMetrics = useCallback(
     (range: VirtualRange) => {
       if (!onVirtualRangeChange) return;
@@ -316,27 +323,11 @@ export default function ScrollRow({
       });
     };
 
-    const unlockEndReached = () => {
-      if (!endReachedRequiresInteraction) return;
-      endInteractionUnlockedRef.current = true;
-      endRequestLatchRef.current = false;
-    };
-
-    track.addEventListener('pointerdown', unlockEndReached, {
-      passive: true,
-    });
-    track.addEventListener('wheel', unlockEndReached, {
-      passive: true,
-    });
-    track.addEventListener('keydown', unlockEndReached);
     track.addEventListener('scroll', scheduleScrollState, { passive: true });
 
     return () => {
       window.cancelAnimationFrame(frame);
       resizeObserver.disconnect();
-      track.removeEventListener('pointerdown', unlockEndReached);
-      track.removeEventListener('wheel', unlockEndReached);
-      track.removeEventListener('keydown', unlockEndReached);
       track.removeEventListener('scroll', scheduleScrollState);
 
       if (scrollFrameRef.current !== null) {
@@ -344,7 +335,7 @@ export default function ScrollRow({
         scrollFrameRef.current = null;
       }
     };
-  }, [endReachedRequiresInteraction, updateScrollState]);
+  }, [updateScrollState]);
 
   useEffect(() => {
     if (loading || !hasMore) {
@@ -453,6 +444,9 @@ export default function ScrollRow({
         role="region"
         aria-label={ariaLabel}
         tabIndex={0}
+        onPointerDown={unlockEndReached}
+        onWheel={unlockEndReached}
+        onKeyDown={unlockEndReached}
       >
         {leftSpacerWidth > 0 && (
           <div
