@@ -7,14 +7,17 @@ import styles from './CopyrightAdminClient.module.css';
 type CopyrightCase = {
   id: string;
   case_number: string;
-  claimant_name: string;
+  source_type: 'direct_notice' | 'external_platform';
+  external_reference: string | null;
+  source_url: string | null;
+  claimant_name: string | null;
   claimant_company: string | null;
-  claimant_email: string;
-  claimant_role: string;
+  claimant_email: string | null;
+  claimant_role: string | null;
   work_title: string;
-  rights_description: string;
-  authority_statement: string;
-  signature: string;
+  rights_description: string | null;
+  authority_statement: string | null;
+  signature: string | null;
   status: string;
   created_at: string;
   reviewed_at: string | null;
@@ -67,6 +70,14 @@ export default function CopyrightAdminClient() {
   const [episode, setEpisode] = useState('');
   const [provider, setProvider] = useState('');
   const [reason, setReason] = useState('');
+
+  const [externalWorkTitle, setExternalWorkTitle] = useState('');
+  const [externalAnimeId, setExternalAnimeId] = useState('');
+  const [externalSender, setExternalSender] = useState('');
+  const [externalReference, setExternalReference] = useState('');
+  const [externalSourceUrl, setExternalSourceUrl] = useState('');
+  const [externalUrls, setExternalUrls] = useState('');
+  const [externalReason, setExternalReason] = useState('');
 
   const load = useCallback(async () => {
     const response = await fetch('/api/admin/copyright', {
@@ -126,6 +137,10 @@ export default function CopyrightAdminClient() {
       const payload = (await response.json().catch(() => ({}))) as {
         ok?: boolean;
         error?: string;
+        caseId?: string;
+        caseNumber?: string;
+        restrictionId?: string;
+        existing?: boolean;
       };
 
       if (!response.ok || !payload.ok) {
@@ -133,6 +148,7 @@ export default function CopyrightAdminClient() {
       }
 
       await load();
+      return payload;
     } catch (mutationError) {
       setError(
         mutationError instanceof Error
@@ -141,6 +157,28 @@ export default function CopyrightAdminClient() {
       );
     } finally {
       setBusy(false);
+    }
+
+    return null;
+  }
+
+  async function importExternalTakedown(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const payload = await mutate({
+      action: 'import_external_takedown',
+      workTitle: externalWorkTitle.trim(),
+      animeId: Number(externalAnimeId),
+      senderLabel: externalSender.trim() || null,
+      externalReference: externalReference.trim(),
+      sourceUrl: externalSourceUrl.trim() || null,
+      urls: externalUrls,
+      reason: externalReason.trim() || null,
+    });
+
+    if (payload?.caseId) {
+      setSelectedCaseId(payload.caseId);
+      setExternalReason('');
     }
   }
 
@@ -221,6 +259,95 @@ export default function CopyrightAdminClient() {
         </article>
       </section>
 
+      <form
+        className={styles.externalForm}
+        onSubmit={importExternalTakedown}
+      >
+        <div className={styles.externalHead}>
+          <div>
+            <span>EXTERNAL TAKEDOWN</span>
+            <h2>Быстрое ограничение по внешнему уведомлению</h2>
+            <p>
+              Для уведомлений из Google, Lumen, хостинга или другого посредника.
+              Создаёт внутреннее дело, блокирует весь тайтл и сразу снимает его
+              эпизоды с video/episode SEO.
+            </p>
+          </div>
+          <strong>title-wide</strong>
+        </div>
+
+        <div className={styles.externalGrid}>
+          <label>
+            <span>Произведение</span>
+            <input
+              required
+              value={externalWorkTitle}
+              onChange={(event) => setExternalWorkTitle(event.target.value)}
+              placeholder="Jigokuraku"
+            />
+          </label>
+          <label>
+            <span>AniList animeId</span>
+            <input
+              required
+              inputMode="numeric"
+              value={externalAnimeId}
+              onChange={(event) => setExternalAnimeId(event.target.value.replace(/\D+/g, ''))}
+              placeholder="128893"
+            />
+          </label>
+          <label>
+            <span>Отправитель / агент</span>
+            <input
+              value={externalSender}
+              onChange={(event) => setExternalSender(event.target.value)}
+              placeholder="F6"
+            />
+          </label>
+          <label>
+            <span>External reference</span>
+            <input
+              required
+              value={externalReference}
+              onChange={(event) => setExternalReference(event.target.value)}
+              placeholder="Lumen 97594360"
+            />
+          </label>
+          <label className={styles.wideField}>
+            <span>URL внешнего уведомления</span>
+            <input
+              inputMode="url"
+              value={externalSourceUrl}
+              onChange={(event) => setExternalSourceUrl(event.target.value)}
+              placeholder="https://lumendatabase.org/notices/..."
+            />
+          </label>
+          <label className={styles.wideField}>
+            <span>Затронутые URL AnimeBox · по одному на строку</span>
+            <textarea
+              required
+              rows={4}
+              value={externalUrls}
+              onChange={(event) => setExternalUrls(event.target.value)}
+              placeholder="https://youranimebox.com/anime/.../episode/1"
+            />
+          </label>
+          <label className={styles.wideField}>
+            <span>Внутренняя причина / заметка</span>
+            <textarea
+              rows={3}
+              value={externalReason}
+              onChange={(event) => setExternalReason(event.target.value)}
+              placeholder="Google copyright removal notice"
+            />
+          </label>
+        </div>
+
+        <button type="submit" disabled={busy}>
+          {busy ? 'Применяем…' : 'Ограничить тайтл'}
+        </button>
+      </form>
+
       <div className={styles.layout}>
         <section className={styles.caseList}>
           {dashboard.cases.length === 0 ? (
@@ -245,7 +372,9 @@ export default function CopyrightAdminClient() {
                 </span>
                 <b>{item.work_title}</b>
                 <small>
-                  {item.claimant_company || item.claimant_name}
+                  {item.source_type === 'external_platform'
+                    ? item.external_reference || 'external notice'
+                    : item.claimant_company || item.claimant_name || 'без отправителя'}
                   {' · '}
                   {new Date(item.created_at).toLocaleDateString('ru-RU')}
                 </small>
@@ -262,26 +391,38 @@ export default function CopyrightAdminClient() {
                   <span>{selected.case_number}</span>
                   <h2>{selected.work_title}</h2>
                   <p>
-                    {selected.claimant_name}
+                    {selected.source_type === 'external_platform'
+                      ? selected.external_reference || 'External notice'
+                      : selected.claimant_name || 'Без имени'}
                     {selected.claimant_company
                       ? ' · ' + selected.claimant_company
                       : ''}
                   </p>
                 </div>
-                <a href={'mailto:' + selected.claimant_email}>
-                  {selected.claimant_email}
-                </a>
+                {selected.claimant_email ? (
+                  <a href={'mailto:' + selected.claimant_email}>
+                    {selected.claimant_email}
+                  </a>
+                ) : selected.source_url ? (
+                  <a href={selected.source_url} target="_blank" rel="noreferrer">
+                    Открыть уведомление
+                  </a>
+                ) : null}
               </div>
 
-              <div className={styles.copyBlock}>
-                <strong>Спорный материал</strong>
-                <p>{selected.rights_description}</p>
-              </div>
+              {selected.rights_description && (
+                <div className={styles.copyBlock}>
+                  <strong>Спорный материал / заметка</strong>
+                  <p>{selected.rights_description}</p>
+                </div>
+              )}
 
-              <div className={styles.copyBlock}>
-                <strong>Основание полномочий</strong>
-                <p>{selected.authority_statement}</p>
-              </div>
+              {selected.authority_statement && (
+                <div className={styles.copyBlock}>
+                  <strong>Основание полномочий</strong>
+                  <p>{selected.authority_statement}</p>
+                </div>
+              )}
 
               <div className={styles.urls}>
                 <strong>URL</strong>
