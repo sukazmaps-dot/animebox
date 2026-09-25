@@ -16,7 +16,7 @@ const smartHome = read('app/smart-home.css');
 const contentFirst = read('app/design-v2-content-first.css');
 const cron = read('app/api/cron/catalog-availability/route.ts');
 const admin = read('app/api/admin/catalog-health/route.ts');
-const vercel = read('vercel.json');
+const vercel = JSON.parse(read('vercel.json'));
 const homeFeed = read('lib/home-feed-server.ts');
 const recommendationRoute = read('app/api/recommendations/route.ts');
 const detailControls = read('components/AnimeDetailControls.tsx');
@@ -131,10 +131,13 @@ if (
 }
 
 if (
-  !vercel.includes('"path": "/api/cron/catalog-availability"') ||
-  !vercel.includes('"schedule": "23 4 * * *"')
+  !vercel.crons?.some(
+    (cron) =>
+      cron.path === '/api/cron/catalog-availability' &&
+      cron.schedule === '23 4 * * *',
+  )
 ) {
-  failures.push('catalog availability fallback cron is missing or no longer Vercel-Hobby-safe');
+  failures.push('catalog availability fallback cron is missing or no longer daily-safe');
 }
 
 if (
