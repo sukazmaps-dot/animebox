@@ -155,13 +155,22 @@ function NavbarContent() {
 
   useEffect(() => {
     const state = mobileNavScrollRef.current;
-    state.lastY = window.scrollY;
-    state.travel = 0;
-    state.direction = null;
-    state.directionSince = performance.now();
-    state.hidden = false;
-    state.lastToggleAt = 0;
-    queueMicrotask(() => setMobileNavHidden(false));
+    const mobileNavQuery = window.matchMedia('(max-width: 760px)');
+    const compactLandscapeQuery = window.matchMedia(
+      '(orientation: landscape) and (max-height: 600px) and (max-width: 1100px)',
+    );
+
+    let listenersAttached = false;
+
+    const resetState = () => {
+      state.lastY = Math.max(0, window.scrollY);
+      state.travel = 0;
+      state.direction = null;
+      state.directionSince = performance.now();
+      state.hidden = false;
+      state.lastToggleAt = 0;
+      queueMicrotask(() => setMobileNavHidden(false));
+    };
 
     const setHidden = (hidden: boolean) => {
       if (state.hidden === hidden) return;
@@ -170,10 +179,6 @@ function NavbarContent() {
       setMobileNavHidden(hidden);
     };
 
-    const compactLandscapeQuery = window.matchMedia(
-      '(orientation: landscape) and (max-height: 600px) and (max-width: 1100px)',
-    );
-
     const navigationShouldStayVisible = () => {
       const active = document.activeElement;
       const typing =
@@ -181,13 +186,12 @@ function NavbarContent() {
         active instanceof HTMLTextAreaElement ||
         active instanceof HTMLSelectElement ||
         (active instanceof HTMLElement && active.isContentEditable);
-      const modalOpen = Boolean(
-        document.querySelector(
-          '[role="dialog"][aria-modal="true"], [data-mobile-nav-lock="true"]',
-        ),
-      );
 
-      return typing || modalOpen || compactLandscapeQuery.matches;
+      // Account/auth sheets lock body scrolling. Reading the inline style is
+      // cheap and avoids a document.querySelector() on every scroll frame.
+      const overlayLocked = document.body.style.overflow === 'hidden';
+
+      return typing || overlayLocked || compactLandscapeQuery.matches;
     };
 
     const update = () => {
@@ -207,9 +211,6 @@ function NavbarContent() {
         return;
       }
 
-      // Mobile browser chrome and touch inertia often emit tiny reverse deltas.
-      // Ignore them so the nav does not flicker when the user slightly changes
-      // finger direction or the viewport settles after a swipe.
       if (Math.abs(delta) < 5) return;
 
       const direction: 'up' | 'down' = delta > 0 ? 'down' : 'up';
@@ -250,7 +251,7 @@ function NavbarContent() {
     };
 
     const onScroll = () => {
-      if (state.raf) return;
+      if (!mobileNavQuery.matches || state.raf) return;
       state.raf = window.requestAnimationFrame(update);
     };
 
@@ -265,23 +266,59 @@ function NavbarContent() {
       state.direction = null;
       state.directionSince = performance.now();
 
-      if (compactLandscapeQuery.matches) {
+      if (
+        !mobileNavQuery.matches ||
+        compactLandscapeQuery.matches
+      ) {
         setHidden(false);
       }
     };
 
-    window.addEventListener('scroll', onScroll, { passive: true });
+    const attachRuntimeListeners = () => {
+      if (listenersAttached || !mobileNavQuery.matches) return;
+
+      listenersAttached = true;
+      state.lastY = Math.max(0, window.scrollY);
+      window.addEventListener('scroll', onScroll, { passive: true });
+      document.addEventListener('focusin', onFocusIn);
+    };
+
+    const detachRuntimeListeners = () => {
+      if (!listenersAttached) return;
+
+      listenersAttached = false;
+      window.removeEventListener('scroll', onScroll);
+      document.removeEventListener('focusin', onFocusIn);
+
+      if (state.raf) {
+        window.cancelAnimationFrame(state.raf);
+        state.raf = 0;
+      }
+
+      setHidden(false);
+    };
+
+    const onMobileModeChange = () => {
+      if (mobileNavQuery.matches) {
+        attachRuntimeListeners();
+        onViewportChange();
+      } else {
+        detachRuntimeListeners();
+      }
+    };
+
+    resetState();
+    attachRuntimeListeners();
+
     window.addEventListener('resize', onViewportChange, { passive: true });
+    mobileNavQuery.addEventListener('change', onMobileModeChange);
     compactLandscapeQuery.addEventListener('change', onViewportChange);
-    document.addEventListener('focusin', onFocusIn);
 
     return () => {
-      window.removeEventListener('scroll', onScroll);
+      detachRuntimeListeners();
       window.removeEventListener('resize', onViewportChange);
+      mobileNavQuery.removeEventListener('change', onMobileModeChange);
       compactLandscapeQuery.removeEventListener('change', onViewportChange);
-      document.removeEventListener('focusin', onFocusIn);
-      if (state.raf) window.cancelAnimationFrame(state.raf);
-      state.raf = 0;
     };
   }, [pathname]);
 
