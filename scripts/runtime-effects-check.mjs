@@ -94,12 +94,18 @@ for (const [label, source] of [
   }
 }
 
+const pageViewIndex =
+  analytics.indexOf("trackProductClientEvent('page_view'");
+const secondaryRouteIndex =
+  analytics.indexOf('return scheduleSecondaryAnalytics(() =>');
+
 if (
-  analytics.indexOf("trackProductClientEvent('page_view'") >
-  analytics.indexOf('scheduleSecondaryAnalytics')
+  pageViewIndex < 0 ||
+  secondaryRouteIndex < 0 ||
+  pageViewIndex > secondaryRouteIndex
 ) {
   failures.push(
-    'page_view must remain immediate; only secondary analytics should be deferred.',
+    'page_view must remain immediate; only secondary route analytics should be deferred.',
   );
 }
 
