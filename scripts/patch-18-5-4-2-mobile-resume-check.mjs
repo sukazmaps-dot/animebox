@@ -22,6 +22,7 @@ for (const [label, source, needle] of [
   ['completed-aware end resume', watchServer, 'completed: Boolean(progressResult.data?.completed_at)'],
   ['session lifecycle generation', watchSession, 'lifecycleGenerationRef'],
   ['generation-owned send lock', watchSession, 'sendingGenerationRef.current === generation'],
+  ['monotonic client completion', watchSession, 'completedRef.current || Boolean(input.completed)'],
   ['stale start response shield', watchSession, 'generation !== lifecycleGenerationRef.current'],
   ['stale heartbeat session shield', watchSession, 'sessionRef.current !== requestSessionId'],
   ['foreground visibility sync', watchSession, "document.visibilityState === 'hidden'"],
