@@ -53,6 +53,7 @@ export type HomeFeedRuntimeValue = {
   mood: TasteMood;
   updateMood: (mood: TasteMood) => void;
   smartRecommendations: RankedRecommendation[];
+  recommendationsReady: boolean;
   personalEpisodeByAnime: Map<number, number>;
   continueWatchingItems: ContinueWatchingItem[];
   personalizedHome: boolean;
@@ -104,6 +105,8 @@ export default function HomeFeedRuntimeProvider({
   const [tasteRevision, setTasteRevision] = useState(0);
   const [smartRecommendations, setSmartRecommendations] =
     useState<RankedRecommendation[]>([]);
+  const [recommendationsReady, setRecommendationsReady] =
+    useState(false);
   const recommendationRequestRef = useRef(0);
   const hydrated = useSyncExternalStore(
     subscribeHydration,
@@ -397,6 +400,7 @@ export default function HomeFeedRuntimeProvider({
               requestId === recommendationRequestRef.current
             ) {
               setSmartRecommendations(next);
+              setRecommendationsReady(true);
             }
           });
         })
@@ -405,6 +409,13 @@ export default function HomeFeedRuntimeProvider({
             '[Home] recommendation chunk unavailable',
             error,
           );
+
+          if (
+            !cancelled &&
+            requestId === recommendationRequestRef.current
+          ) {
+            setRecommendationsReady(true);
+          }
         });
     };
 
@@ -802,6 +813,7 @@ export default function HomeFeedRuntimeProvider({
       mood,
       updateMood,
       smartRecommendations,
+      recommendationsReady,
       personalEpisodeByAnime,
       continueWatchingItems,
       personalizedHome,
@@ -827,6 +839,7 @@ export default function HomeFeedRuntimeProvider({
       popularError,
       popularLoading,
       retentionCompletionCandidates,
+      recommendationsReady,
       serverContinue.length,
       smartRecommendations,
       updateMood,
