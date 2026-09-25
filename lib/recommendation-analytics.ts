@@ -58,6 +58,10 @@ export type RecommendationAnalyticsDashboard = {
     loadEmpty: number;
     loadErrors: number;
     loadFillPct: number;
+    maxRailItems: number;
+    maxRenderedItems: number;
+    virtualizedLoads: number;
+    pagesScanned: number;
   }>;
   positions: Array<{
     bucket: '1–3' | '4–7' | '8+' | 'unknown';
