@@ -216,11 +216,11 @@ function seoImages(anime: Anime): string[] {
   ]);
 }
 
-export function shouldIndexAnime(anime: Anime): boolean {
-  if (anime.catalogEligible === false) return false;
+export function animeSeoQualityScore(anime: Anime): number {
+  if (anime.catalogEligible === false) return 0;
 
   const names = allAnimeNames(anime);
-  if (!names.length) return false;
+  if (!names.length) return 0;
 
   // Quality gate for long-tail pages. We want obscure titles indexed, not thin
   // provider stubs. A real description is strongest; otherwise two independent
@@ -233,7 +233,11 @@ export function shouldIndexAnime(anime: Anime): boolean {
   if (anime.genres?.length) score += 1;
   if (anime.coverImage?.large || anime.coverImage?.extraLarge || anime.bannerImage) score += 1;
 
-  return score >= 2;
+  return score;
+}
+
+export function shouldIndexAnime(anime: Anime): boolean {
+  return animeSeoQualityScore(anime) >= 2;
 }
 
 export function buildAnimeMetadata(anime: Anime, canonicalUrl: string): Metadata {
