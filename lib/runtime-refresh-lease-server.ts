@@ -4,7 +4,8 @@ import { createSupabaseAdmin } from '@/lib/supabase/admin';
 
 export type RuntimeRefreshLeaseScope =
   | 'catalog_availability'
-  | 'anime_catalog_metadata';
+  | 'anime_catalog_metadata'
+  | 'player_provider_half_open';
 
 export type RuntimeRefreshLease = {
   acquired: boolean;
