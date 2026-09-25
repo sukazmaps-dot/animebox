@@ -15,7 +15,7 @@ import { animeHref } from '@/lib/anime-url';
 export default function HomeRightRail() {
   const { popular } = useHomeFeedRuntime();
   const {
-    scheduleLoading,
+    upcomingScheduleLoading,
     upcomingScheduleItems,
   } = useHomeScheduleRuntime();
 
@@ -61,7 +61,7 @@ export default function HomeRightRail() {
         </div>
 
         <div className="panel__body rank-list home-upcoming-panel__list">
-          {scheduleLoading ? (
+          {upcomingScheduleLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <div
                 key={index}
