@@ -139,6 +139,7 @@ export function useWatchSession({
   const [completed, setCompleted] = useState(false);
   const [recovering, setRecovering] = useState(false);
 
+  const completedRef = useRef(false);
   const sessionRef = useRef<string | null>(null);
   const seqRef = useRef(0);
   const latestPositionRef = useRef<number | null>(null);
@@ -189,8 +190,10 @@ export function useWatchSession({
             : Math.max(1, durationMs - excludedMs)
           : Number(input.eligibleDurationMs);
       const nextPercent = progressPercent(coverageMs, eligibleDurationMs);
-      const isCompleted = Boolean(input.completed);
+      const isCompleted =
+        completedRef.current || Boolean(input.completed);
 
+      completedRef.current = isCompleted;
       setPercent(nextPercent);
       setCompleted(isCompleted);
 
@@ -622,6 +625,7 @@ export function useWatchSession({
 
     disabledRef.current = false;
     supersededRef.current = false;
+    completedRef.current = false;
     sessionRef.current = null;
     sessionAnchorPositionRef.current = null;
     seqRef.current = 0;
