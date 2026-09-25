@@ -427,7 +427,7 @@ export default function HomeScheduleRuntimeProvider({
     useMemo<HomeRetentionEpisodeSignal | null>(() => {
       if (
         personalAnimeIds.size === 0 ||
-scheduleWindowItems.length === 0
+        scheduleWindowItems.length === 0
       ) {
         return null;
       }
