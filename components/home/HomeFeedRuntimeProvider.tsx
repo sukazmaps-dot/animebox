@@ -28,7 +28,10 @@ import {
   type TasteMood,
 } from '@/lib/personalization';
 import { trackProductClientEvent } from '@/lib/product-events-client';
-import { getPersonalizedRecommendations } from '@/lib/recommendations';
+import {
+  getPersonalizedRecommendations,
+  type RankedRecommendation,
+} from '@/lib/recommendations';
 import { fetchTasteGraph } from '@/lib/taste-graph';
 import {
   getLatestWatchProgress,
@@ -57,7 +60,7 @@ export type HomeFeedRuntimeValue = {
   hasPersonalHistory: boolean;
   mood: TasteMood;
   updateMood: (mood: TasteMood) => void;
-  smartRecommendations: Anime[];
+  smartRecommendations: RankedRecommendation[];
   personalEpisodeByAnime: Map<number, number>;
   continueWatchingItems: ContinueWatchingItem[];
   personalizedHome: boolean;
