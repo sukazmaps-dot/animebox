@@ -97,6 +97,7 @@ interface AnimePlayerProps {
   poster?: string;
   sources?: PlayerSource[];
   src?: string;
+  sourceDiscoveryStartedAtMs?: number | null;
   timeline?: EpisodeTimelineMeta | null;
   hasPrev?: boolean;
   hasNext?: boolean;
@@ -388,6 +389,7 @@ export default function AnimePlayer({
   poster,
   sources = [],
   src,
+  sourceDiscoveryStartedAtMs = null,
   timeline = null,
   hasPrev = false,
   hasNext = false,
@@ -1926,9 +1928,25 @@ export default function AnimePlayer({
     const attempt = sourceAttemptRef.current;
     if (attempt?.id === currentAttemptId && !attempt.readyTracked) {
       attempt.readyTracked = true;
-      const startupMs = Math.max(0, Math.round(performance.now() - attempt.startedAt));
+      const readyAt = performance.now();
+      const startupMs = Math.max(
+        0,
+        Math.round(readyAt - attempt.startedAt),
+      );
+      const timeToPlayerReadyMs =
+        sourceDiscoveryStartedAtMs != null &&
+        Number.isFinite(sourceDiscoveryStartedAtMs)
+          ? Math.max(
+              0,
+              Math.round(readyAt - sourceDiscoveryStartedAtMs),
+            )
+          : null;
+
       recordSourceReady(currentSourceName, currentSourceType, startupMs);
-      trackPlayerEvent('player_source_ready', { startupMs });
+      trackPlayerEvent('player_source_ready', {
+        startupMs,
+        timeToPlayerReadyMs,
+      });
     }
 
     setPlayerReady(true);
@@ -1941,6 +1959,7 @@ export default function AnimePlayer({
     currentSourceName,
     currentSourceType,
     setSourceStatus,
+    sourceDiscoveryStartedAtMs,
     trackPlayerEvent,
   ]);
 
