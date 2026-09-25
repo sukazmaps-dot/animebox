@@ -330,7 +330,10 @@ async function runTimedOriginAttempt(fetcher, timeoutMs, failurePrefix) {
 function isRetryableRawError(error) {
   if (!error) return false;
 
-  if (error === 'origin-fetch-failed') {
+  if (
+    error === 'origin-timeout' ||
+    error === 'origin-fetch-failed'
+  ) {
     return true;
   }
 
