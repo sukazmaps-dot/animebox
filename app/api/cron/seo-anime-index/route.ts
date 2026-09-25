@@ -28,15 +28,18 @@ function scheduledSourceShards(now = Date.now()) {
   );
 }
 
-function requestedShard(request: Request) {
+function requestedShard(
+  request: Request,
+): number | null | 'invalid' {
   const value = new URL(request.url).searchParams.get('sourceShard');
   if (value == null || value === '') return null;
+
   const shard = Number(value);
   return Number.isInteger(shard) &&
     shard >= 0 &&
     shard < ANIME_SITEMAP_SHARDS
     ? shard
-    : null;
+    : 'invalid';
 }
 
 async function run(request: Request) {
@@ -51,6 +54,14 @@ async function run(request: Request) {
     service: 'cron',
   });
   const manualShard = requestedShard(request);
+
+  if (manualShard === 'invalid') {
+    return Response.json(
+      { ok: false, error: 'invalid_source_shard' },
+      { status: 400, headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
+
   const shards = manualShard == null
     ? scheduledSourceShards()
     : [manualShard];
