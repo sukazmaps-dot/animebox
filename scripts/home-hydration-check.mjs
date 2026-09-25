@@ -10,6 +10,9 @@ const shell = read('components/home/HomePageShell.tsx');
 const feedRuntime = read(
   'components/home/HomeFeedRuntimeProvider.tsx',
 );
+const recommendationRuntime = read(
+  'components/home/useHomeRecommendationRuntime.ts',
+);
 const discovery = read(
   'components/home/HomeDiscoverySection.tsx',
 );
@@ -50,7 +53,7 @@ if (
 }
 
 const recommendationEffect =
-  feedRuntime.match(
+  recommendationRuntime.match(
     /useEffect\(\(\) => \{[\s\S]*?import\('@\/lib\/recommendations'\)[\s\S]*?\}, \[[\s\S]*?tasteRevision,[\s\S]*?\]\);/,
   )?.[0] ?? '';
 
