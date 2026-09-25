@@ -28,6 +28,7 @@ for (const needle of [
   "scope: 'watch_session_ip'",
   "scope: 'watch_session_user'",
   "if (action === 'heartbeat')",
+  "observeApiRoute('/api/watch'",
 ]) {
   must('watch route', watchRoute, needle);
 }
