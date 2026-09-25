@@ -440,6 +440,13 @@ export function useWatchSession({
           disabledRef.current = true;
           setRecovering(false);
           setMessage('');
+        } else if (status === 429) {
+          // The server deliberately ignores an over-eager forced heartbeat
+          // before its persistence window. Keep the same seq/provider skip
+          // pending and retry on the next normal sync without showing a false
+          // offline/recovery state to the viewer.
+          setRecovering(false);
+          setMessage('');
         } else if (status === 409) {
           // A newer playback session on another tab/device owns server
           // progress now. Do not immediately start a replacement session:
