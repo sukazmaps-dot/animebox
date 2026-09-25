@@ -226,6 +226,163 @@ export async function POST(request: Request) {
     const action = cleanText(body.action, 60);
     const admin = adminClient();
 
+    if (action === 'import_external_takedown') {
+      const workTitle = cleanText(body.workTitle, 240);
+      const animeId = positiveInteger(body.animeId, 'animeId');
+      const senderLabel = cleanText(body.senderLabel, 180);
+      const externalReference = cleanText(body.externalReference, 220);
+      const sourceUrl = externalSourceUrl(body.sourceUrl);
+      const urls = animeBoxUrls(body.urls);
+      const reason = cleanText(body.reason, 1_000);
+
+      if (workTitle.length < 2) {
+        throw new ApiError(400, 'Укажи название произведения.');
+      }
+      if (externalReference.length < 2) {
+        throw new ApiError(400, 'Укажи внешний номер или reference уведомления.');
+      }
+
+      const existingCase = await admin
+        .from('copyright_cases')
+        .select('id,case_number')
+        .eq('source_type', 'external_platform')
+        .eq('external_reference', externalReference)
+        .eq('work_title', workTitle)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingCase.error) throw existingCase.error;
+
+      if (existingCase.data) {
+        const existingRestriction = await admin
+          .from('copyright_restrictions')
+          .select('id')
+          .eq('case_id', existingCase.data.id)
+          .eq('anime_id', animeId)
+          .eq('scope', 'title')
+          .eq('active', true)
+          .limit(1)
+          .maybeSingle();
+
+        if (existingRestriction.error) throw existingRestriction.error;
+
+        if (existingRestriction.data) {
+          await suppressEpisodeSeo({
+            animeId,
+            scope: 'title',
+          });
+
+          return response({
+            ok: true,
+            caseId: existingCase.data.id,
+            caseNumber: existingCase.data.case_number,
+            restrictionId: existingRestriction.data.id,
+            existing: true,
+          });
+        }
+      }
+
+      const now = new Date().toISOString();
+      const insertedCase = await admin
+        .from('copyright_cases')
+        .insert({
+          case_number: externalCaseNumber(),
+          source_type: 'external_platform',
+          external_reference: externalReference,
+          source_url: sourceUrl,
+          claimant_name: senderLabel || null,
+          claimant_company: senderLabel || null,
+          claimant_email: null,
+          claimant_role: null,
+          work_title: workTitle,
+          rights_description: reason || null,
+          authority_statement: null,
+          signature: null,
+          status: 'action_taken',
+          reviewed_by: user.id,
+          reviewed_at: now,
+          updated_at: now,
+        })
+        .select('id,case_number')
+        .single();
+
+      if (insertedCase.error) throw insertedCase.error;
+
+      const urlInsert = await admin.from('copyright_case_urls').insert(
+        urls.map((url) => ({
+          case_id: insertedCase.data.id,
+          url,
+        })),
+      );
+      if (urlInsert.error) throw urlInsert.error;
+
+      const restriction = await admin
+        .from('copyright_restrictions')
+        .insert({
+          case_id: insertedCase.data.id,
+          scope: 'title',
+          anime_id: animeId,
+          season: null,
+          episode: null,
+          provider: null,
+          reason: reason || `External notice: ${externalReference}`,
+          active: true,
+          created_by: user.id,
+        })
+        .select('id')
+        .single();
+
+      if (restriction.error) throw restriction.error;
+
+      await suppressEpisodeSeo({
+        animeId,
+        scope: 'title',
+      });
+
+      await insertCaseAction({
+        caseId: insertedCase.data.id,
+        action: 'external_takedown_imported',
+        actorId: user.id,
+        actorRole: role,
+        details: {
+          restrictionId: restriction.data.id,
+          animeId,
+          senderLabel: senderLabel || null,
+          externalReference,
+          sourceUrl,
+          urlCount: urls.length,
+        },
+      });
+
+      await writeAdminAudit({
+        actorId: user.id,
+        actorRole: role,
+        action: 'copyright_external_takedown',
+        targetType: 'copyright_restriction',
+        targetId: restriction.data.id,
+        reason: reason || null,
+        details: {
+          caseId: insertedCase.data.id,
+          caseNumber: insertedCase.data.case_number,
+          animeId,
+          senderLabel: senderLabel || null,
+          externalReference,
+          sourceUrl,
+          urls,
+        },
+        request,
+      });
+
+      return response({
+        ok: true,
+        caseId: insertedCase.data.id,
+        caseNumber: insertedCase.data.case_number,
+        restrictionId: restriction.data.id,
+        existing: false,
+      });
+    }
+
     if (action === 'set_status') {
       const caseId = cleanText(body.caseId, 60);
       const status = cleanText(body.status, 40);
@@ -322,6 +479,12 @@ export async function POST(request: Request) {
         .select('id')
         .single();
       if (inserted.error) throw inserted.error;
+
+      await suppressEpisodeSeo({
+        animeId,
+        scope,
+        episode,
+      });
 
       const caseUpdate = await admin
         .from('copyright_cases')
