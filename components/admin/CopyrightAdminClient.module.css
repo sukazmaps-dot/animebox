@@ -1,3 +1,112 @@
+.externalForm {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 18px;
+  border: 1px solid rgba(238, 183, 92, .14);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top right, rgba(238,183,92,.08), transparent 42%),
+    #10131e;
+}
+
+.externalHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.externalHead span {
+  color: #d5aa67;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .13em;
+}
+
+.externalHead h2 {
+  margin: 5px 0 4px;
+  font-size: 17px;
+}
+
+.externalHead p {
+  max-width: 760px;
+  margin: 0;
+  color: #7b8495;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.externalHead > strong {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border: 1px solid rgba(238,183,92,.17);
+  border-radius: 999px;
+  color: #e0ba7d;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.externalGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.externalGrid label {
+  display: grid;
+  gap: 5px;
+}
+
+.externalGrid label > span {
+  color: #788296;
+  font-size: 9px;
+}
+
+.externalGrid input,
+.externalGrid textarea {
+  min-width: 0;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 8px;
+  outline: 0;
+  background: #111621;
+  color: #eef0f6;
+  font: inherit;
+  font-size: 10px;
+}
+
+.externalGrid input {
+  min-height: 38px;
+  padding: 0 10px;
+}
+
+.externalGrid textarea {
+  padding: 10px;
+  resize: vertical;
+}
+
+.wideField {
+  grid-column: 1 / -1;
+}
+
+.externalForm > button {
+  width: fit-content;
+  padding: 9px 12px;
+  border: 1px solid rgba(238,183,92,.25);
+  border-radius: 9px;
+  background: rgba(238,183,92,.10);
+  color: #efd09c;
+  font-size: 10px;
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.externalForm > button:disabled {
+  opacity: .45;
+  cursor: wait;
+}
+
 .layout {
   display: grid;
   grid-template-columns: minmax(250px, .72fr) minmax(0, 1.55fr);
@@ -280,6 +389,10 @@
 }
 
 @media (max-width: 940px) {
+  .externalGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .layout {
     grid-template-columns: 1fr;
   }
@@ -290,6 +403,22 @@
 }
 
 @media (max-width: 560px) {
+  .externalHead {
+    flex-direction: column;
+  }
+
+  .externalGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .wideField {
+    grid-column: auto;
+  }
+
+  .externalForm > button {
+    width: 100%;
+  }
+
   .detailHead {
     flex-direction: column;
   }
