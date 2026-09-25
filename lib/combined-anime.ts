@@ -419,6 +419,7 @@ async function loadAnimesWithShikimori(
           normalizedSearch,
           options.limit ?? 20,
           fetchOptions?.signal,
+          options,
         );
         fetchOptions?.onPageInfo?.({
           hasNextPage: localized.length >= (options.limit ?? 20),
