@@ -28,6 +28,7 @@ type ScrollRowProps = {
   loading?: boolean;
   onEndReached?: () => void;
   endReachedRootMargin?: string;
+  endReachedRequiresInteraction?: boolean;
   virtualize?: boolean;
   virtualMaxItems?: number;
   virtualOverscan?: number;
@@ -82,6 +83,7 @@ export default function ScrollRow({
   loading = false,
   onEndReached,
   endReachedRootMargin = '0px 55% 0px 0px',
+  endReachedRequiresInteraction = false,
   virtualize = false,
   virtualMaxItems = DEFAULT_VIRTUAL_MAX_ITEMS,
   virtualOverscan = DEFAULT_VIRTUAL_OVERSCAN,
@@ -91,6 +93,9 @@ export default function ScrollRow({
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const scrollFrameRef = useRef<number | null>(null);
   const endRequestLatchRef = useRef(false);
+  const endInteractionUnlockedRef = useRef(
+    !endReachedRequiresInteraction,
+  );
   const virtualMetricsRef = useRef<ScrollRowVirtualMetrics | null>(null);
   const strideRef = useRef(0);
 
@@ -275,13 +280,19 @@ export default function ScrollRow({
       hasMore &&
       !loading &&
       onEndReached &&
+      endInteractionUnlockedRef.current &&
       remaining <= threshold &&
       !endRequestLatchRef.current
     ) {
       endRequestLatchRef.current = true;
       onEndReached();
     }
-  }, [hasMore, loading, onEndReached, updateVirtualWindow]);
+  }, [
+    hasMore,
+    loading,
+    onEndReached,
+    updateVirtualWindow,
+  ]);
 
   useEffect(() => {
     const track = trackRef.current;
@@ -305,11 +316,27 @@ export default function ScrollRow({
       });
     };
 
+    const unlockEndReached = () => {
+      if (!endReachedRequiresInteraction) return;
+      endInteractionUnlockedRef.current = true;
+      endRequestLatchRef.current = false;
+    };
+
+    track.addEventListener('pointerdown', unlockEndReached, {
+      passive: true,
+    });
+    track.addEventListener('wheel', unlockEndReached, {
+      passive: true,
+    });
+    track.addEventListener('keydown', unlockEndReached);
     track.addEventListener('scroll', scheduleScrollState, { passive: true });
 
     return () => {
       window.cancelAnimationFrame(frame);
       resizeObserver.disconnect();
+      track.removeEventListener('pointerdown', unlockEndReached);
+      track.removeEventListener('wheel', unlockEndReached);
+      track.removeEventListener('keydown', unlockEndReached);
       track.removeEventListener('scroll', scheduleScrollState);
 
       if (scrollFrameRef.current !== null) {
@@ -317,7 +344,7 @@ export default function ScrollRow({
         scrollFrameRef.current = null;
       }
     };
-  }, [updateScrollState]);
+  }, [endReachedRequiresInteraction, updateScrollState]);
 
   useEffect(() => {
     if (loading || !hasMore) {
@@ -346,6 +373,7 @@ export default function ScrollRow({
       ([entry]) => {
         if (
           entry?.isIntersecting &&
+          endInteractionUnlockedRef.current &&
           !endRequestLatchRef.current
         ) {
           endRequestLatchRef.current = true;
@@ -368,6 +396,9 @@ export default function ScrollRow({
     (direction: 'left' | 'right') => {
       const track = trackRef.current;
       if (!track) return;
+
+      endInteractionUnlockedRef.current = true;
+      endRequestLatchRef.current = false;
 
       if (
         direction === 'right' &&
