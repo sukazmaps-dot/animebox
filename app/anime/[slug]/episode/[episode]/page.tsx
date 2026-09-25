@@ -14,6 +14,10 @@ import {
 import { SITE_URL } from '@/lib/seo-config';
 import { getSeoEpisodeIndexEntry } from '@/lib/seo-episode-index';
 import { getEpisodeTimelineForSeo } from '@/lib/episode-timeline-server';
+import {
+  COPYRIGHT_RESTRICTED_MESSAGE,
+  getPlaybackRestriction,
+} from '@/lib/copyright-server';
 
 const parseEpisode = (value: string): number | null => {
   const number = Number(value);
@@ -69,6 +73,45 @@ function EpisodeRouteRecovery({
   );
 }
 
+function CopyrightRestrictedEpisode({
+  slug,
+  title,
+}: {
+  slug: string;
+  title: string;
+}) {
+  return (
+    <main className="mx-auto flex min-h-[70vh] max-w-3xl items-center px-4 py-16 md:px-6">
+      <section className="w-full rounded-2xl border border-amber-200/10 bg-slate-950/80 p-6 shadow-2xl md:p-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-200/65">
+          AnimeBox · Copyright
+        </p>
+        <h1 className="mt-3 text-2xl font-black text-white md:text-3xl">
+          Просмотр недоступен
+        </h1>
+        <p className="mt-3 max-w-xl text-sm leading-6 text-white/55">
+          {COPYRIGHT_RESTRICTED_MESSAGE} Информационная страница тайтла
+          «{title}» остаётся доступна.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <a
+            href={`/anime/${encodeURIComponent(slug)}`}
+            className="rounded-xl bg-violet-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-violet-400"
+          >
+            К тайтлу
+          </a>
+          <a
+            href="/copyright"
+            className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-white/70 transition hover:bg-white/[0.08]"
+          >
+            Информация для правообладателей
+          </a>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -95,6 +138,34 @@ export async function generateMetadata({
 
   const identity = getAnimeSeoIdentity(anime);
   const canonical = `${SITE_URL}${animeHref(anime)}/episode/${number}`;
+  const copyrightRestriction = await getPlaybackRestriction({
+    animeId: anime.id,
+    season: anime.providerSeason ?? null,
+    episode: number,
+  });
+
+  if (copyrightRestriction) {
+    const restrictedDescription =
+      `${identity.pageHeading} — ${number} серия. Просмотр на AnimeBox недоступен.`;
+
+    return {
+      title: `${identity.pageHeading} — ${number} серия недоступна`,
+      description: restrictedDescription,
+      alternates: { canonical },
+      robots: {
+        index: false,
+        follow: true,
+        noarchive: true,
+        googleBot: {
+          index: false,
+          follow: true,
+          noarchive: true,
+          'max-video-preview': 0,
+        },
+      },
+    };
+  }
+
   const index = await isEpisodeIndexable(anime.id, number).catch((error) => {
     console.warn('[Episode metadata] availability lookup failed:', error);
     return false;
@@ -167,6 +238,22 @@ export default async function EpisodePage({
 
   if (slug !== anime.slug) {
     permanentRedirect(`${animeHref(anime)}/episode/${number}`);
+  }
+
+  const copyrightRestriction = await getPlaybackRestriction({
+    animeId: anime.id,
+    season: anime.providerSeason ?? null,
+    episode: number,
+  });
+
+  if (copyrightRestriction) {
+    const identity = getAnimeSeoIdentity(anime);
+    return (
+      <CopyrightRestrictedEpisode
+        slug={anime.slug}
+        title={identity.pageHeading}
+      />
+    );
   }
 
   const canonical = `${SITE_URL}${animeHref(anime)}/episode/${number}`;
