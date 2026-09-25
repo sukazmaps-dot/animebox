@@ -510,18 +510,6 @@ export default function SmartRecommendationFeed({
     };
   }, []);
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      prefetchCandidatePage(
-        pointer,
-        bucket,
-        getCandidateContext(displayedMood),
-      );
-    }, 5_000);
-
-    return () => window.clearTimeout(timer);
-  }, [bucket, displayedMood, pointer]);
-
   const filtered = useMemo(
     () => recommendations.filter(({ anime }) => !locallyHidden.has(anime.id)),
     [locallyHidden, recommendations],
@@ -938,6 +926,7 @@ export default function SmartRecommendationFeed({
                   hasMore={railHasMore}
                   loading={railLoading}
                   onEndReached={() => void ensureRailDepth(rail)}
+                  endReachedRequiresInteraction
                   virtualize
                   virtualMaxItems={MAX_RAIL_DOM_ITEMS}
                   virtualOverscan={RAIL_VIRTUAL_OVERSCAN}
