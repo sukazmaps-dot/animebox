@@ -1,5 +1,7 @@
 import { unstable_cache } from 'next/cache';
 
+import { fetchWithRetry } from '@/lib/fetch-retry';
+import { stableAnimeSlug } from '@/lib/anime-url';
 import {
   ANIME_ITEMS_PER_PAGE,
   ANIME_PAGES_PER_SITEMAP,
@@ -8,14 +10,18 @@ import {
 
 const ANILIST_API_URL = 'https://graphql.anilist.co';
 const CACHE_SECONDS = 60 * 60 * 12;
-const MAX_ATTEMPTS = 4;
-const BASE_RETRY_DELAY_MS = 1_500;
-const MAX_RETRY_DELAY_MS = 15_000;
 
 type SeoAniListMedia = {
   id?: number;
   status?: string | null;
+  format?: string | null;
   updatedAt?: number | null;
+  description?: string | null;
+  episodes?: number | null;
+  genres?: string[] | null;
+  startDate?: {
+    year?: number | null;
+  } | null;
   title?: {
     romaji?: string | null;
     english?: string | null;
@@ -23,6 +29,7 @@ type SeoAniListMedia = {
   } | null;
   coverImage?: {
     large?: string | null;
+    extraLarge?: string | null;
   } | null;
   bannerImage?: string | null;
 };
@@ -37,21 +44,28 @@ type SeoAniListResponse = {
   errors?: Array<{ message?: string }>;
 };
 
-export type SeoAnimeEntry = {
+export type SeoAnimeSourceEntry = {
   id: number;
   status: string | null;
+  format: string | null;
   updatedAt: number | null;
+  description: string | null;
+  episodes: number | null;
+  genres: string[];
+  startDate: {
+    year: number | null;
+  };
   title: {
     romaji: string | null;
     english: string | null;
     native: string | null;
   };
   image: string | null;
+  slug: string;
 };
 
 function buildShardQuery(shard: number): string {
   const startPage = shard * ANIME_PAGES_PER_SITEMAP + 1;
-
   const pages = Array.from(
     { length: ANIME_PAGES_PER_SITEMAP },
     (_, index) => startPage + index,
@@ -69,9 +83,14 @@ function buildShardQuery(shard: number): string {
           ) {
             id
             status
+            format
             updatedAt
+            description(asHtml: false)
+            episodes
+            genres
+            startDate { year }
             title { romaji english native }
-            coverImage { large }
+            coverImage { large extraLarge }
             bannerImage
           }
         }
@@ -79,97 +98,40 @@ function buildShardQuery(shard: number): string {
     )
     .join('\n');
 
-  return `query AnimeBoxSeoSitemap { ${selections} }`;
+  return `query AnimeBoxSeoRegistry { ${selections} }`;
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function retryDelayMs(response: Response, attempt: number): number {
-  const retryAfter = response.headers.get('retry-after');
-
-  if (retryAfter) {
-    const seconds = Number(retryAfter);
-
-    if (Number.isFinite(seconds) && seconds >= 0) {
-      return Math.min(seconds * 1_000, MAX_RETRY_DELAY_MS);
-    }
-
-    const retryDate = Date.parse(retryAfter);
-
-    if (Number.isFinite(retryDate)) {
-      return Math.min(
-        Math.max(retryDate - Date.now(), 0),
-        MAX_RETRY_DELAY_MS,
-      );
-    }
-  }
-
-  return Math.min(
-    BASE_RETRY_DELAY_MS * 2 ** attempt,
-    MAX_RETRY_DELAY_MS,
-  );
-}
-
-async function fetchAniListForSitemap(query: string): Promise<Response> {
-  let lastResponse: Response | null = null;
-
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-    const response = await fetch(ANILIST_API_URL, {
+async function loadSeoAnimeSourceShard(
+  shard: number,
+): Promise<SeoAnimeSourceEntry[]> {
+  const response = await fetchWithRetry(
+    ANILIST_API_URL,
+    {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
-      body: JSON.stringify({ query }),
-      // Result caching is handled by unstable_cache below. Keeping this fetch
-      // uncached prevents multiple cache layers from fighting each other.
+      body: JSON.stringify({ query: buildShardQuery(shard) }),
       cache: 'no-store',
-    });
-
-    lastResponse = response;
-
-    if (response.ok) {
-      return response;
-    }
-
-    const temporaryFailure = response.status === 429 || response.status >= 500;
-
-    if (!temporaryFailure || attempt === MAX_ATTEMPTS - 1) {
-      return response;
-    }
-
-    const delay = retryDelayMs(response, attempt);
-    console.warn(
-      `AniList SEO sitemap HTTP ${response.status}; retrying in ${delay}ms ` +
-        `(attempt ${attempt + 2}/${MAX_ATTEMPTS})`,
-    );
-    await sleep(delay);
-  }
-
-  if (lastResponse) {
-    return lastResponse;
-  }
-
-  throw new Error('AniList SEO sitemap request did not produce a response');
-}
-
-async function loadSeoAnimeShard(shard: number): Promise<SeoAnimeEntry[]> {
-  const response = await fetchAniListForSitemap(buildShardQuery(shard));
+      signal: AbortSignal.timeout(8_000),
+    },
+    3,
+    900,
+  );
 
   if (!response.ok) {
-    throw new Error(`AniList SEO sitemap HTTP ${response.status}`);
+    throw new Error(`AniList SEO registry HTTP ${response.status}`);
   }
 
   const json = (await response.json()) as SeoAniListResponse;
 
   if (json.errors?.length) {
-    throw new Error(json.errors[0]?.message || 'AniList SEO sitemap error');
+    throw new Error(json.errors[0]?.message || 'AniList SEO registry error');
   }
 
   const seen = new Set<number>();
-  const result: SeoAnimeEntry[] = [];
+  const result: SeoAnimeSourceEntry[] = [];
 
   for (const page of Object.values(json.data ?? {})) {
     for (const media of page?.media ?? []) {
@@ -179,23 +141,47 @@ async function loadSeoAnimeShard(shard: number): Promise<SeoAnimeEntry[]> {
         continue;
       }
 
+      const title = {
+        romaji: media.title?.romaji?.trim() || null,
+        english: media.title?.english?.trim() || null,
+        native: media.title?.native?.trim() || null,
+      };
+      const canonicalTitle =
+        title.romaji || title.english || title.native || `anime-${id}`;
+
       seen.add(id);
       result.push({
         id,
         status: media.status ?? null,
+        format: media.format ?? null,
         updatedAt:
           typeof media.updatedAt === 'number' && media.updatedAt > 0
             ? media.updatedAt
             : null,
-        title: {
-          romaji: media.title?.romaji?.trim() || null,
-          english: media.title?.english?.trim() || null,
-          native: media.title?.native?.trim() || null,
+        description: media.description?.trim() || null,
+        episodes:
+          typeof media.episodes === 'number' && media.episodes > 0
+            ? media.episodes
+            : null,
+        genres: Array.isArray(media.genres)
+          ? media.genres.filter(
+              (value): value is string =>
+                typeof value === 'string' && value.trim().length > 0,
+            )
+          : [],
+        startDate: {
+          year:
+            typeof media.startDate?.year === 'number'
+              ? media.startDate.year
+              : null,
         },
+        title,
         image:
           media.bannerImage?.trim() ||
+          media.coverImage?.extraLarge?.trim() ||
           media.coverImage?.large?.trim() ||
           null,
+        slug: stableAnimeSlug(id, canonicalTitle),
       });
     }
   }
@@ -203,15 +189,17 @@ async function loadSeoAnimeShard(shard: number): Promise<SeoAnimeEntry[]> {
   return result;
 }
 
-const getCachedSeoAnimeShard = unstable_cache(
-  async (shard: number) => loadSeoAnimeShard(shard),
-  ['animebox-seo-anilist-shard-v3-longtail'],
+const getCachedSeoAnimeSourceShard = unstable_cache(
+  async (shard: number) => loadSeoAnimeSourceShard(shard),
+  ['animebox-seo-anilist-registry-v4'],
   {
     revalidate: CACHE_SECONDS,
   },
 );
 
-export async function getSeoAnimeShard(shard: number): Promise<SeoAnimeEntry[]> {
+export async function getSeoAnimeSourceShard(
+  shard: number,
+): Promise<SeoAnimeSourceEntry[]> {
   if (
     !Number.isInteger(shard) ||
     shard < 0 ||
@@ -220,5 +208,5 @@ export async function getSeoAnimeShard(shard: number): Promise<SeoAnimeEntry[]> 
     return [];
   }
 
-  return getCachedSeoAnimeShard(shard);
+  return getCachedSeoAnimeSourceShard(shard);
 }
