@@ -11,6 +11,9 @@ const community = read('lib/community-server.ts');
 const migration = read(
   'supabase/migrations/20260925211630_traffic_surge_refresh_leases_v1.sql',
 );
+const policyMigration = read(
+  'supabase/migrations/20260925211831_traffic_surge_refresh_leases_rls_policy.sql',
+);
 const packageJson = read('package.json');
 
 function must(label, source, needle) {
@@ -71,6 +74,16 @@ if (/security\s+definer/i.test(migration)) {
   failures.push(
     'refresh lease migration: SECURITY DEFINER is forbidden for this internal coordination RPC',
   );
+}
+
+for (const needle of [
+  'runtime_refresh_leases_service_role_only',
+  'on private.runtime_refresh_leases',
+  'to service_role',
+  'using (true)',
+  'with check (true)',
+]) {
+  must('refresh lease RLS policy', policyMigration.toLowerCase(), needle.toLowerCase());
 }
 
 if (
