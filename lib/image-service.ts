@@ -162,11 +162,11 @@ function imageValues(
 ): Array<string | null | undefined> {
   if (preference === 'compact') {
     return [
-      image.medium,
       image.large,
       image.extraLarge,
-      image.preview,
+      image.medium,
       image.original,
+      image.preview,
     ];
   }
 
@@ -203,10 +203,11 @@ export function getImageCandidates(
   if (!image) return [];
 
   /*
-   * Mass poster rails should not begin with AniList extraLarge artwork.
-   * Lighthouse was downloading ~430x650 images for ~177x250 cards, often
-   * costing 400+ KiB each. Compact surfaces start from the provider medium
-   * source and ask the AnimeBox media edge for a bounded width variant.
+   * Compact rails still use bounded AnimeBox media variants, but the upstream
+   * source must contain enough pixels for high-DPR phones. AniList medium can
+   * be narrower than the rendered CSS slot after DPR scaling, which makes a
+   * 240/360px edge variant permanently soft. Start from large, then let the
+   * Worker resize/cache the exact responsive variant; medium is only fallback.
    */
   return buildImageCandidateChain(
     imageValues(image, preference),
