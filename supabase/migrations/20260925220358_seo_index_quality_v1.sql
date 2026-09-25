@@ -26,7 +26,7 @@ create table if not exists public.seo_anime_index (
 alter table public.seo_anime_index enable row level security;
 
 revoke all on table public.seo_anime_index
-  from public, anon, authenticated;
+  from public, anon, authenticated, service_role;
 
 grant select, insert, update, delete
   on table public.seo_anime_index
