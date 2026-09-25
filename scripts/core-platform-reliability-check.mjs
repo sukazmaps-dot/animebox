@@ -81,10 +81,8 @@ if (
 if (
   !healthRoute.includes("requireAdmin(['owner', 'admin'])") ||
   !dashboard.includes('/api/admin/system-health') ||
-  !(
-    dashboard.includes('WATCH PLATFORM · 17.6') ||
-    dashboard.includes('PRODUCTION OBSERVABILITY · 18.5.3')
-  )
+  !dashboard.includes('<h1>System Health</h1>') ||
+  !dashboard.includes('AnimeBox System Health')
 ) {
   failures.push('admin System Health surface is not protected/wired');
 }
