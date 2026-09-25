@@ -28,7 +28,7 @@ It is split without changing rule contents into:
 
 - `patch17-6-player-runtime.css`
   - loaded by `/anime/[slug]`
-  - loaded by the Watch Together episode theater route
+  - loaded at the Watch Together route boundary before its child CSS layers
 - `patch17-6-home-recommendation-actions.css`
   - loaded only by the Home page
 
