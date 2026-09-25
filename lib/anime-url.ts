@@ -8,6 +8,20 @@ export function slugify(title: string): string {
     .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 120).replace(/-$/, '') || 'anime';
 }
+export function stableAnimeSlug(id: number | string, title: string): string {
+  const numericId = Number(id);
+  const normalized = slugify(title);
+  const base =
+    /^\d+$/.test(normalized) ||
+    ['sources', 'soursces', 'stream'].includes(normalized)
+      ? `anime-${normalized}`
+      : normalized;
+
+  return Number.isSafeInteger(numericId) && numericId > 0
+    ? `${base}-${numericId}`
+    : base;
+}
+
 export function animeHref(anime: { id: number | string; slug?: string | null }): string {
   // Old localStorage entries remain usable through the numeric redirect.
   return `/anime/${encodeURIComponent(anime.slug || String(anime.id))}`;
