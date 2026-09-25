@@ -2,69 +2,104 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
+const read = (file) =>
+  fs.readFileSync(path.join(root, file), 'utf8');
 
 const failures = [];
-const home = read('components/HomePageClient.tsx');
+const shell = read('components/home/HomePageShell.tsx');
+const feedRuntime = read(
+  'components/home/HomeFeedRuntimeProvider.tsx',
+);
+const discovery = read(
+  'components/home/HomeDiscoverySection.tsx',
+);
+const personal = read(
+  'components/home/HomePersonalRetentionSections.tsx',
+);
 
-const progressBlock = home.match(
-  /const progress = useMemo\(\(\) => \{[\s\S]*?\}, \[hydrated, historyRevision\]\);/,
-)?.[0] ?? '';
+const progressBlock =
+  feedRuntime.match(
+    /const progress = useMemo\(\(\) => \{[\s\S]*?\}, \[hydrated, historyRevision\]\);/,
+  )?.[0] ?? '';
 
 if (!progressBlock) {
-  failures.push('Home progress memo must depend on hydrated + historyRevision.');
+  failures.push(
+    'Home progress memo must depend on hydrated + historyRevision.',
+  );
 }
 
 if (!progressBlock.includes('if (!hydrated) return {};')) {
-  failures.push('Home progress must not read localStorage during SSR/first hydration pass.');
+  failures.push(
+    'Home progress must not read localStorage during SSR/first hydration pass.',
+  );
 }
 
-const guardIndex = progressBlock.indexOf('if (!hydrated) return {};');
-const progressReadIndex = progressBlock.indexOf('return readAnimeProgressMap();');
+const guardIndex =
+  progressBlock.indexOf('if (!hydrated) return {};');
+const progressReadIndex =
+  progressBlock.indexOf('return readAnimeProgressMap();');
 
 if (
   guardIndex < 0 ||
   progressReadIndex < 0 ||
   progressReadIndex < guardIndex
 ) {
-  failures.push('readAnimeProgressMap() runs before the hydration guard.');
+  failures.push(
+    'readAnimeProgressMap() runs before the hydration guard.',
+  );
 }
 
-const recommendationsBlock = home.match(
-  /const smartRecommendations = useMemo\(\(\) => \{[\s\S]*?\}, \[[\s\S]*?\]\);/,
-)?.[0] ?? '';
+const recommendationsBlock =
+  feedRuntime.match(
+    /const smartRecommendations = useMemo\(\(\) => \{[\s\S]*?\}, \[[\s\S]*?\]\);/,
+  )?.[0] ?? '';
 
 if (
-  !recommendationsBlock.includes('if (!hydrated) return [];') ||
-  !recommendationsBlock.includes('getPersonalizedRecommendations')
+  !recommendationsBlock.includes(
+    'if (!hydrated) return [];',
+  ) ||
+  !recommendationsBlock.includes(
+    'getPersonalizedRecommendations',
+  )
 ) {
-  failures.push('Personalized recommendations lost their hydration guard.');
+  failures.push(
+    'Personalized recommendations lost their hydration guard.',
+  );
 }
 
+if (
+  !discovery.includes('<HomeContinueWatching') ||
+  !discovery.includes('className="home-discovery-flow"') ||
+  !personal.includes(
+    'export function HomePersonalScheduleSection',
+  )
+) {
+  failures.push(
+    'Home hierarchy islands lost continue/discovery/personal schedule ownership.',
+  );
+}
 
-const continueIndex = home.indexOf('<HomeContinueWatching');
-const discoveryIndex = home.indexOf('className="home-discovery-flow"');
-const personalScheduleIndex = home.indexOf('{personalScheduleItems.length > 0 && (');
-const globalScheduleIndex = home.indexOf(
-  '<section ref={scheduleSectionRef} className="section schedule">',
-);
-const retentionIndex = home.indexOf(
-  '{(hasWatchHistory || serverContinue.length > 0) && (',
-);
-const mainUtilityIndex = home.indexOf(
-  '<div className="home-utility-grid">',
-);
-const asideIndex = home.indexOf('<aside className="right-rail">');
+const discoveryIndex =
+  shell.indexOf('<HomeDiscoverySection />');
+const personalScheduleIndex =
+  shell.indexOf('<HomePersonalScheduleSection />');
+const globalScheduleIndex =
+  shell.indexOf('<HomeScheduleSection />');
+const retentionIndex =
+  shell.indexOf('<HomeRetentionSections />');
+const utilityIndex =
+  shell.indexOf('<div className="home-utility-grid">');
+const railIndex =
+  shell.indexOf('<HomeRightRail />');
 
 if (
   !(
-    continueIndex >= 0 &&
-    discoveryIndex > continueIndex &&
+    discoveryIndex >= 0 &&
     personalScheduleIndex > discoveryIndex
   )
 ) {
   failures.push(
-    'Home hierarchy must stay Continue Watching → recommendations → personal schedule.',
+    'Home hierarchy must stay recommendations → personal schedule.',
   );
 }
 
@@ -72,26 +107,29 @@ if (
   !(
     globalScheduleIndex >= 0 &&
     retentionIndex > globalScheduleIndex &&
-    mainUtilityIndex > retentionIndex &&
-    mainUtilityIndex < asideIndex
+    utilityIndex > retentionIndex &&
+    railIndex > utilityIndex
   )
 ) {
   failures.push(
-    'Informational/utility surfaces must remain at the bottom of the main column.',
+    'Schedule/retention/utility/right-rail order regressed.',
   );
 }
 
-if (
-  asideIndex >= 0 &&
-  home.slice(asideIndex).includes('<div className="home-utility-grid">')
-) {
-  failures.push('Right rail must not duplicate the bottom utility cards.');
+if (shell.includes("'use client'")) {
+  failures.push(
+    'HomePageShell must remain a Server Component.',
+  );
 }
 
 if (failures.length) {
   console.error('[AnimeBox Home Hydration] Check failed:');
-  failures.forEach((failure) => console.error(`- ${failure}`));
+  failures.forEach((failure) =>
+    console.error(`- ${failure}`),
+  );
   process.exit(1);
 }
 
-console.log('[AnimeBox Home Hydration] SSR/client hydration invariants passed.');
+console.log(
+  '[AnimeBox Home Hydration] server shell / client island invariants passed.',
+);

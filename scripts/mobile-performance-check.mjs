@@ -11,7 +11,9 @@ const bridge = read('components/OfflineCacheBridge.tsx');
 const deferred = read('components/DeferredMount.tsx');
 const appEnhancements = read('components/DeferredAppEnhancements.tsx');
 const metrika = read('components/analytics/DeferredYandexMetrika.tsx');
-const home = read('components/HomePageClient.tsx');
+const discovery = read('components/home/HomeDiscoverySection.tsx');
+const retention = read('components/home/HomePersonalRetentionSections.tsx');
+const community = read('components/home/HomeDeferredCommunity.tsx');
 const hero = read('components/HomeHeroCarousel.tsx');
 const feed = read('lib/home-feed-server.ts');
 const card = read('components/AnimeCard.tsx');
@@ -30,12 +32,12 @@ for (const [label, source, needle] of [
   ['post-load SW registration', bridge, "window.addEventListener('load', register"],
   ['deferred IntersectionObserver', deferred, 'new IntersectionObserver'],
   ['save-data aware deferred margin', deferred, 'connection?.saveData'],
-  ['home deferred recommendations', home, 'home-deferred--recommendations'],
-  ['home deferred retention', home, 'home-deferred--retention'],
-  ['home deferred personal pulse', home, 'home-deferred--pulse'],
-  ['home deferred activation', home, 'home-deferred--activation'],
-  ['home deferred chat', home, 'home-deferred--chat'],
-  ['home deferred telegram', home, 'home-deferred--telegram'],
+  ['home deferred recommendations', discovery, 'home-deferred--recommendations'],
+  ['home deferred retention', retention, 'home-deferred--retention'],
+  ['home deferred personal pulse', retention, 'home-deferred--pulse'],
+  ['home deferred activation', retention, 'home-deferred--activation'],
+  ['home deferred chat', community, 'home-deferred--chat'],
+  ['home deferred telegram', community, 'home-deferred--telegram'],
   ['home server feed mobile budget', feed, 'limit: 12'],
   ['landscape-aware anime image sizes', card, '(orientation: landscape) and (max-height: 600px) 18vw'],
   ['performance stylesheet import', layout, "import './patch16-6-1-mobile-performance.css';"],

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const read = (path) =>
   fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
-const home = read('components/HomePageClient.tsx');
+const home = read('components/home/HomePageShell.tsx');
 const support = read('components/monetization/SupportAnimeBox.tsx');
 const css = read('app/patch17-4-2-ui-precision.css');
 
