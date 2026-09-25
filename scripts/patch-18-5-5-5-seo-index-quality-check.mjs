@@ -18,6 +18,7 @@ const seoRegistry = read('lib/seo-anime-index-server.ts');
 const animeSeo = read('lib/anime-seo.ts');
 const animeUrl = read('lib/anime-url.ts');
 const animeRegistry = read('lib/anime-registry.ts');
+const communityServer = read('lib/community-server.ts');
 const cron = read('app/api/cron/seo-anime-index/route.ts');
 const vercel = JSON.parse(read('vercel.json'));
 const healthTypes = read('lib/system-health.ts');
@@ -122,6 +123,11 @@ requireNeedles('canonical slug contract', animeUrl, [
 if (!animeRegistry.includes('stableAnimeSlug(anime.id, title)')) {
   failures.push('runtime anime registry does not reuse stableAnimeSlug');
 }
+requireNeedles('trusted metadata SEO sync', communityServer, [
+  'syncSeoAnimeFromResolvedAnime',
+  '[Anime catalog] SEO registry sync failed:',
+  '[Anime artwork] SEO registry sync failed:',
+]);
 
 requireNeedles('SEO cron', cron, [
   'SOURCE_SHARDS_PER_RUN = 7',
