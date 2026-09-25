@@ -6,25 +6,20 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 const failures = [];
 const layout = read('app/layout.tsx');
-const css = read('app/patch18-5-5-1-large-screen.css');
+const css = read('app/patch16-6-2-readability-2k-density.css');
 const legacyReadability = read('app/patch16-6-2-readability-2k-density.css');
 const homeStability = read('app/patch16-6-6-home-desktop-stability.css');
 const animeCard = read('components/AnimeCard.tsx');
 const smartCard = read('components/SmartRecommendationCard.tsx');
 const hero = read('components/HomeHeroCarousel.tsx');
 
-const importNeedle = "import './patch18-5-5-1-large-screen.css';";
+const importNeedle = "import './patch16-6-2-readability-2k-density.css';";
 if (!layout.includes(importNeedle)) {
-  failures.push('layout: large-screen stylesheet is not imported');
+  failures.push('layout: shared readability/large-screen stylesheet is not imported');
 }
 
-const previousRootLayer = "import './patch17-4-2-ui-precision.css';";
-if (
-  layout.indexOf(importNeedle) < 0 ||
-  layout.indexOf(previousRootLayer) < 0 ||
-  layout.indexOf(importNeedle) < layout.indexOf(previousRootLayer)
-) {
-  failures.push('layout: 18.5.5.1 must load after existing root visual layers');
+if (layout.includes("import './patch18-5-5-1-large-screen.css';")) {
+  failures.push('layout: 18.5.5.1 must stay folded into the existing root readability layer');
 }
 
 for (const [label, needle] of [
