@@ -9,6 +9,11 @@ import {
   animeSearchTitles,
   normalizeReleaseTitle,
 } from '@/lib/release-match';
+import {
+  isTransientUpstreamResponse,
+  isUpstreamPressureError,
+  runWithUpstreamBudget,
+} from '@/lib/upstream-resilience-server';
 
 export type SourceAvailabilityStatus =
   | 'available'
@@ -275,15 +280,23 @@ async function fetchJson(
   parentSignal?.addEventListener('abort', abortFromParent, { once: true });
 
   try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'User-Agent': 'AnimeBox/1.0',
+    const response = await runWithUpstreamBudget(
+      'aniliberty',
+      () =>
+        fetch(url, {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+            'User-Agent': 'AnimeBox/1.0',
+          },
+          cache: 'no-store',
+          signal: controller.signal,
+        }),
+      {
+        signal: parentSignal,
+        isFailure: isTransientUpstreamResponse,
       },
-      cache: 'no-store',
-      signal: controller.signal,
-    });
+    );
 
     if (response.status === 404) return null;
 
@@ -302,6 +315,7 @@ async function fetchJson(
     }
   } catch (error) {
     if (parentSignal?.aborted) throw makeAbortError();
+    if (isUpstreamPressureError(error)) throw error;
     if (error instanceof UnknownProviderError) throw error;
 
     if (error instanceof Error && error.name === 'AbortError') {
