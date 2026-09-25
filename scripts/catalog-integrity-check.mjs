@@ -132,9 +132,9 @@ if (
 
 if (
   !vercel.includes('"path": "/api/cron/catalog-availability"') ||
-  !vercel.includes('"schedule": "23 * * * *"')
+  !vercel.includes('"schedule": "23 4 * * *"')
 ) {
-  failures.push('catalog availability verification is not scheduled hourly');
+  failures.push('catalog availability fallback cron is missing or no longer Vercel-Hobby-safe');
 }
 
 if (
