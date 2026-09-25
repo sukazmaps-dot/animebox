@@ -11,6 +11,13 @@ const homePage = read('app/page.tsx');
 const profileLayout = read('app/profile/layout.tsx');
 const animeLayout = read('app/anime/[slug]/layout.tsx');
 const watchTogetherLayout = read('app/watch-together/layout.tsx');
+const homeShell = read('components/home/HomePageShell.tsx');
+const homeFeedRuntime = read(
+  'components/home/HomeFeedRuntimeProvider.tsx',
+);
+const homeScheduleRuntime = read(
+  'components/home/HomeScheduleRuntimeProvider.tsx',
+);
 
 const rootCssImports = [
   ...rootLayout.matchAll(/import '\.\/([^']+\.css)';/g),
@@ -89,6 +96,52 @@ for (const legacy of [
 ]) {
   if (exists(legacy)) {
     failures.push(`legacy mixed stylesheet still exists: ${legacy}`);
+  }
+}
+
+if (exists('components/HomePageClient.tsx')) {
+  failures.push(
+    'legacy HomePageClient monolith must not return; Home is server shell + client islands',
+  );
+}
+
+if (!homePage.includes("import HomePageShell from '@/components/home/HomePageShell';")) {
+  failures.push('app/page.tsx must render the server-owned HomePageShell');
+}
+
+if (homeShell.includes("'use client'")) {
+  failures.push('HomePageShell must remain a Server Component');
+}
+
+const shellLines = homeShell.split('\n').length;
+const feedRuntimeLines = homeFeedRuntime.split('\n').length;
+const scheduleRuntimeLines = homeScheduleRuntime.split('\n').length;
+
+if (shellLines > 180) {
+  failures.push(`HomePageShell server budget regressed: ${shellLines} > 180 lines`);
+}
+
+if (feedRuntimeLines > 800) {
+  failures.push(
+    `Home feed runtime island regressed into a monolith: ${feedRuntimeLines} > 800 lines`,
+  );
+}
+
+if (scheduleRuntimeLines > 560) {
+  failures.push(
+    `Home schedule runtime island regressed into a monolith: ${scheduleRuntimeLines} > 560 lines`,
+  );
+}
+
+for (const needle of [
+  '<HomeHeroSection />',
+  '<HomeDiscoverySection />',
+  '<HomeCatalogSections />',
+  '<HomeScheduleSection />',
+  '<HomeRightRail />',
+]) {
+  if (!homeShell.includes(needle)) {
+    failures.push(`HomePageShell missing client island boundary: ${needle}`);
   }
 }
 
