@@ -106,6 +106,8 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
   const [sourceLoadingMessage, setSourceLoadingMessage] = useState(
     'Подключаем лучший источник…',
   );
+  const [sourceDiscoveryStartedAtMs, setSourceDiscoveryStartedAtMs] =
+    useState<number | null>(null);
   const [sourceIdentity, setSourceIdentity] = useState('');
   const [seasonNavigation, setSeasonNavigation] = useState<EpisodeSeasonsResponse | null>(null);
   const [episodeAvailability, setEpisodeAvailability] =
@@ -334,7 +336,56 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     let discoveryBudgetMs = 18_500;
     let budgetExpired = false;
     let budgetTimer: number | null = null;
+    let policyMode: 'server' | 'client_fallback' = 'client_fallback';
+    let strategyVersion = 'source-orchestrator-v2';
+    let copyrightBlocked = false;
+    let policyAllUnavailable = false;
+    let exhaustedTracked = false;
     const identity = `${animeIdParam}:${episodeNumber}`;
+    const telemetryEntityId = `${anime.id}:${episodeNumber}`;
+
+    function trackDiscoveryEvent(
+      eventName:
+        | 'player_discovery_plan'
+        | 'player_discovery_attempt'
+        | 'player_discovery_ready'
+        | 'player_discovery_exhausted',
+      provider: PlayerProviderKey | 'orchestrator',
+      metadata: Record<string, unknown>,
+      flush = false,
+    ) {
+      trackProductClientEvent(eventName, {
+        source: provider,
+        path:
+          typeof window !== 'undefined'
+            ? window.location.pathname
+            : undefined,
+        entityType: 'episode',
+        entityId: telemetryEntityId,
+        metadata,
+        flush,
+      });
+    }
+
+    function trackExhausted(reason: string) {
+      if (exhaustedTracked || !active) return;
+      exhaustedTracked = true;
+      trackDiscoveryEvent(
+        'player_discovery_exhausted',
+        'orchestrator',
+        {
+          strategyVersion,
+          elapsedMs: Math.max(
+            0,
+            Math.round(performance.now() - discoveryStartedAt),
+          ),
+          attemptedProviders: attemptedProviders.size,
+          finalReason: reason.slice(0, 80),
+          budgetExpired,
+        },
+        true,
+      );
+    }
 
     queueMicrotask(() => {
       if (!active) return;
@@ -343,6 +394,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       setSourceIdentity('');
       setSourceMessage('');
       setSourceLoadingMessage('Подключаем лучший источник…');
+      setSourceDiscoveryStartedAtMs(discoveryStartedAt);
     });
 
     function providerKeyForSource(name: string): PlayerProviderKey {
@@ -363,8 +415,26 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       const providerKey = providerKeyForSource(source.name);
       if (!enabledProviders.has(providerKey)) return;
 
+      const isFirstPlayableSource = !publishedAny;
       publishedAny = true;
       publishedProviders.add(providerKey);
+
+      if (isFirstPlayableSource) {
+        trackDiscoveryEvent(
+          'player_discovery_ready',
+          providerKey,
+          {
+            provider: providerKey,
+            strategyVersion,
+            firstSourceMs: Math.max(
+              0,
+              Math.round(performance.now() - discoveryStartedAt),
+            ),
+            attemptCount: attemptedProviders.size,
+          },
+          true,
+        );
+      }
 
       setSources((current) => {
         const withoutSameSource = current.filter(
@@ -682,6 +752,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
     async function runProviderAttempt(
       provider: PlayerProviderKey,
+      phase: 'primary' | 'warm' = 'primary',
     ): Promise<SourceAttemptResult> {
       if (!active || controller.signal.aborted) {
         return {
@@ -692,6 +763,8 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       }
 
       attemptedProviders.add(provider);
+      const attemptIndex = attemptedProviders.size;
+      const attemptStartedAt = performance.now();
 
       const attemptController = new AbortController();
       let timedOut = false;
@@ -699,6 +772,42 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         1_500,
         Math.min(12_000, providerTimeouts.get(provider) ?? 7_000),
       );
+
+      const finishAttempt = (result: SourceAttemptResult) => {
+        if (!active) return result;
+
+        const outcome =
+          result.ready
+            ? 'ready'
+            : result.restricted
+              ? 'restricted'
+              : result.timedOut || result.reason === 'provider_timeout'
+                ? 'timeout'
+                : result.reason === 'aborted' ||
+                    result.reason === 'discovery_budget_exhausted'
+                  ? 'aborted'
+                  : 'unavailable';
+
+        trackDiscoveryEvent(
+          'player_discovery_attempt',
+          provider,
+          {
+            provider,
+            phase,
+            attemptIndex,
+            attemptMs: Math.max(
+              0,
+              Math.round(performance.now() - attemptStartedAt),
+            ),
+            timeoutMs,
+            outcome,
+            reason: result.reason.slice(0, 80),
+          },
+        );
+
+        return result;
+      };
+
       const abortFromParent = () => attemptController.abort();
       controller.signal.addEventListener('abort', abortFromParent, {
         once: true,
@@ -709,34 +818,36 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       }, timeoutMs);
 
       try {
-        return await loadProvider(provider, attemptController.signal);
+        return finishAttempt(
+          await loadProvider(provider, attemptController.signal),
+        );
       } catch (error) {
         if (controller.signal.aborted) {
-          return {
+          return finishAttempt({
             ready: false,
             restricted: false,
             reason: budgetExpired ? 'discovery_budget_exhausted' : 'aborted',
-          };
+          });
         }
 
         if (timedOut) {
-          return {
+          return finishAttempt({
             ready: false,
             restricted: false,
             reason: 'provider_timeout',
             timedOut: true,
-          };
+          });
         }
 
         console.warn(
           `[Source Orchestrator] ${provider} attempt failed:`,
           error,
         );
-        return {
+        return finishAttempt({
           ready: false,
           restricted: false,
           reason: 'provider_unavailable',
-        };
+        });
       } finally {
         window.clearTimeout(timer);
         controller.signal.removeEventListener('abort', abortFromParent);
@@ -768,7 +879,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     ) {
       for (const provider of providers) {
         if (!active || controller.signal.aborted) return;
-        await runProviderAttempt(provider);
+        await runProviderAttempt(provider, 'warm');
       }
     }
 
@@ -810,6 +921,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
               (await policyResponse.json()) as PlayerSourcePolicyResponse;
 
             if (policy.ok && Array.isArray(policy.providers)) {
+              policyMode = 'server';
               enabledProviders = new Set(
                 policy.providers
                   .filter((provider) => provider.enabled)
@@ -829,6 +941,9 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
               );
 
               if (policy.orchestrator) {
+                strategyVersion = policy.orchestrator.version;
+                copyrightBlocked = policy.orchestrator.copyrightBlocked;
+                policyAllUnavailable = policy.orchestrator.allUnavailable;
                 providerOrder =
                   policy.orchestrator.orderedProviders.filter((provider) =>
                     enabledProviders.has(provider),
@@ -848,23 +963,6 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
                   ),
                 );
 
-                if (policy.orchestrator.copyrightBlocked) {
-                  setSourceIdentity(identity);
-                  setLoadingSources(false);
-                  setSourceMessage(
-                    'Доступ к этой серии ограничен по обращению правообладателя.',
-                  );
-                  return;
-                }
-
-                if (policy.orchestrator.allUnavailable) {
-                  setSourceIdentity(identity);
-                  setLoadingSources(false);
-                  setSourceMessage(
-                    'Источники просмотра временно недоступны. Попробуйте позже.',
-                  );
-                  return;
-                }
               } else {
                 providerOrder = policy.providers
                   .filter((provider) => provider.enabled)
@@ -889,6 +987,39 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           );
         }
 
+        trackDiscoveryEvent(
+          'player_discovery_plan',
+          'orchestrator',
+          {
+            strategyVersion,
+            policyMode,
+            orderedProviders: providerOrder,
+            maxProviderAttempts,
+            discoveryBudgetMs,
+            copyrightBlocked,
+            allUnavailable: policyAllUnavailable,
+          },
+        );
+
+        if (copyrightBlocked) {
+          setSourceIdentity(identity);
+          setLoadingSources(false);
+          setSourceMessage(
+            'Доступ к этой серии ограничен по обращению правообладателя.',
+          );
+          return;
+        }
+
+        if (policyAllUnavailable) {
+          trackExhausted('all_providers_unavailable');
+          setSourceIdentity(identity);
+          setLoadingSources(false);
+          setSourceMessage(
+            'Источники просмотра временно недоступны. Попробуйте позже.',
+          );
+          return;
+        }
+
         providerOrder = providerOrder.filter((provider) =>
           enabledProviders.has(provider),
         );
@@ -898,6 +1029,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         );
 
         if (!providerOrder.length) {
+          trackExhausted('no_enabled_providers');
           setSourceIdentity(identity);
           setLoadingSources(false);
           setSourceMessage(
@@ -931,7 +1063,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
               'Основной источник недоступен, пробуем резервный…',
             );
           }
-          const result = await runProviderAttempt(provider);
+          const result = await runProviderAttempt(provider, 'primary');
           lastReason = result.reason || lastReason;
 
           if (result.restricted) {
@@ -965,16 +1097,22 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           return;
         }
 
+        const terminalReason =
+          budgetExpired ? 'discovery_budget_exhausted' : lastReason;
+        trackExhausted(terminalReason || 'no_playable_source');
         setSourceIdentity(identity);
         setLoadingSources(false);
         setSourceMessage(
-          finalSourceMessage(
-            budgetExpired ? 'discovery_budget_exhausted' : lastReason,
-          ),
+          finalSourceMessage(terminalReason),
         );
       } catch (error) {
         if (!active) return;
 
+        trackExhausted(
+          budgetExpired
+            ? 'discovery_budget_exhausted'
+            : 'orchestrator_error',
+        );
         setSourceIdentity(identity);
         setLoadingSources(false);
         setSourceMessage(
@@ -1303,6 +1441,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
                     totalEpisodesKnown={totalEpisodesKnown}
                     poster={poster}
                     sources={sources}
+                    sourceDiscoveryStartedAtMs={sourceDiscoveryStartedAtMs}
                     timeline={timeline}
                     hasPrev={hasPrev}
                     hasNext={hasNext}
@@ -1383,6 +1522,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           totalEpisodesKnown={totalEpisodesKnown}
           poster={poster}
           sources={sources}
+          sourceDiscoveryStartedAtMs={sourceDiscoveryStartedAtMs}
           timeline={timeline}
           hasPrev={hasPrev}
           hasNext={hasNext}

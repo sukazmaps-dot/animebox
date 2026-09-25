@@ -87,7 +87,15 @@ export default function SystemHealthDashboard() {
   }, []);
 
   useEffect(() => {
-    void load();
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (!cancelled) void load();
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
   const jobs = useMemo(
@@ -131,11 +139,12 @@ export default function SystemHealthDashboard() {
     <section className={styles.dashboard} aria-label="AnimeBox System Health">
       <header className={styles.header}>
         <div>
-          <span className={styles.eyebrow}>PRODUCTION OBSERVABILITY · 18.5.3</span>
+          <span className={styles.eyebrow}>PLAYBACK RELIABILITY · 18.5.4.3</span>
           <h1>System Health</h1>
           <p>
-            Единый production-снимок: API latency/error rate, база, просмотр,
-            комнаты, внешние провайдеры, фоновые задачи и инциденты с request id.
+            Единый production-снимок: API, база и полный playback journey —
+            source discovery, player ready, fallback, провайдеры, фоновые задачи
+            и инциденты с request id.
           </p>
           {health && (
             <small>
@@ -186,6 +195,12 @@ export default function SystemHealthDashboard() {
                 ? `${number(health.requests.errorRate1hPct ?? 0, 2)}% API 5xx / 1h`
                 : 'API telemetry pending'}
               {' · '}
+              {health.signals.playbackRuntimeCritical
+                ? 'playback critical'
+                : health.signals.playbackRuntimeDegraded
+                  ? 'playback degraded'
+                  : 'playback nominal'}
+              {' · '}
               {health.signals.dependencyWarnings} dependency warnings
             </p>
           </section>
@@ -235,6 +250,33 @@ export default function SystemHealthDashboard() {
               <small>
                 {number(health.playback.fallbacks24h)} переключений ·{' '}
                 {number(health.playback.starts24h)} стартов
+              </small>
+            </article>
+            <article>
+              <span>Discovery success · 24h</span>
+              <strong>
+                {health.playback.discoverySuccessRatePct == null
+                  ? '—'
+                  : `${number(health.playback.discoverySuccessRatePct, 2)}%`}
+              </strong>
+              <small>
+                {number(health.playback.discoveryReady24h)} ready ·{' '}
+                {number(health.playback.discoveryPlans24h)} plans
+              </small>
+            </article>
+            <article>
+              <span>First source p95</span>
+              <strong>{duration(health.playback.firstSourceP95Ms)}</strong>
+              <small>
+                p50 {duration(health.playback.firstSourceP50Ms)} ·{' '}
+                {number(health.playback.discoveryAttempts24h)} attempts
+              </small>
+            </article>
+            <article>
+              <span>Player ready p95</span>
+              <strong>{duration(health.playback.endToEndReadyP95Ms)}</strong>
+              <small>
+                source mount p95 {duration(health.playback.playerReadyP95Ms)}
               </small>
             </article>
             <article>
@@ -405,49 +447,141 @@ export default function SystemHealthDashboard() {
               </dl>
             </section>
 
-            <section className={styles.panel}>
+            <section className={`${styles.panel} ${styles.widePanel}`}>
               <div className={styles.panelHead}>
                 <div>
-                  <span>PLAYBACK · 24H</span>
-                  <strong>Watch Platform</strong>
+                  <span>PLAYBACK SLO · 24H</span>
+                  <strong>Discovery → source → player ready</strong>
                 </div>
                 <small>
-                  {health.playback.exhaustionRatePct == null
-                    ? 'без стартов'
-                    : `${number(health.playback.exhaustionRatePct, 2)}% exhausted`}
+                  {health.playback.discoverySuccessRatePct == null
+                    ? 'ожидаем новые telemetry events'
+                    : `${number(health.playback.discoverySuccessRatePct, 2)}% discovery success`}
                 </small>
               </div>
 
               <dl className={styles.metrics}>
                 <div>
-                  <dt>Подтверждённых стартов</dt>
-                  <dd>{number(health.playback.starts24h)}</dd>
+                  <dt>Discovery plans</dt>
+                  <dd>{number(health.playback.discoveryPlans24h)}</dd>
                 </div>
                 <div>
-                  <dt>Ошибок источника</dt>
-                  <dd>{number(health.playback.sourceFailures24h)}</dd>
+                  <dt>Provider attempts</dt>
+                  <dd>{number(health.playback.discoveryAttempts24h)}</dd>
                 </div>
                 <div>
-                  <dt>Авто-fallback</dt>
-                  <dd>{number(health.playback.fallbacks24h)}</dd>
+                  <dt>First source ready</dt>
+                  <dd>{number(health.playback.discoveryReady24h)}</dd>
                 </div>
                 <div>
-                  <dt>Источники исчерпаны</dt>
-                  <dd>{number(health.playback.sourceExhausted24h)}</dd>
+                  <dt>Discovery exhausted</dt>
+                  <dd>{number(health.playback.discoveryExhausted24h)}</dd>
                 </div>
                 <div>
-                  <dt>Resume применён</dt>
-                  <dd>{number(health.playback.resumes24h)}</dd>
+                  <dt>First source p50 / p95</dt>
+                  <dd>
+                    {duration(health.playback.firstSourceP50Ms)}
+                    {' / '}
+                    {duration(health.playback.firstSourceP95Ms)}
+                  </dd>
                 </div>
                 <div>
-                  <dt>Завершений</dt>
-                  <dd>{number(health.playback.completions24h)}</dd>
+                  <dt>Source mount p50 / p95</dt>
+                  <dd>
+                    {duration(health.playback.playerReadyP50Ms)}
+                    {' / '}
+                    {duration(health.playback.playerReadyP95Ms)}
+                  </dd>
                 </div>
                 <div>
-                  <dt>WT drift corrections</dt>
-                  <dd>{number(health.playback.wtDriftCorrections24h)}</dd>
+                  <dt>End-to-end ready p50 / p95</dt>
+                  <dd>
+                    {duration(health.playback.endToEndReadyP50Ms)}
+                    {' / '}
+                    {duration(health.playback.endToEndReadyP95Ms)}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Runtime failures / fallback</dt>
+                  <dd>
+                    {number(health.playback.sourceFailures24h)}
+                    {' / '}
+                    {number(health.playback.fallbacks24h)}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Runtime exhausted</dt>
+                  <dd>
+                    {number(health.playback.sourceExhausted24h)}
+                    {health.playback.exhaustionRatePct == null
+                      ? ''
+                      : ` · ${number(health.playback.exhaustionRatePct, 2)}%`}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Confirmed starts / completions</dt>
+                  <dd>
+                    {number(health.playback.starts24h)}
+                    {' / '}
+                    {number(health.playback.completions24h)}
+                  </dd>
                 </div>
               </dl>
+
+              <div className={styles.routeList}>
+                {health.playback.providers.length ? (
+                  health.playback.providers.map((provider) => (
+                    <div
+                      className={styles.routeRow}
+                      key={provider.providerKey}
+                    >
+                      <div>
+                        <strong>{provider.providerKey}</strong>
+                        <small>
+                          {number(provider.attempts24h)} discovery attempts ·{' '}
+                          {number(provider.playerReady24h)} player ready
+                        </small>
+                      </div>
+                      <div className={styles.routeMeta}>
+                        <small>
+                          discovery ready {number(provider.discoveryReady24h)}
+                        </small>
+                        <small>
+                          timeout {number(provider.discoveryTimeouts24h)}
+                        </small>
+                        <small>
+                          unavailable {number(provider.discoveryUnavailable24h)}
+                        </small>
+                        <small>
+                          attempt p95 {duration(provider.attemptP95Ms)}
+                        </small>
+                        <small>
+                          mount p95 {duration(provider.playerReadyP95Ms)}
+                        </small>
+                        <small>
+                          total p95 {duration(provider.endToEndReadyP95Ms)}
+                        </small>
+                        <small>
+                          runtime failures {number(provider.runtimeFailures24h)}
+                        </small>
+                        <small>
+                          fallback from {number(provider.fallbacksFrom24h)}
+                        </small>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className={styles.empty}>
+                    Новые playback telemetry появятся после запусков плеера на
+                    версии 18.5.4.3.
+                  </div>
+                )}
+              </div>
+
+              <small>
+                Resume {number(health.playback.resumes24h)} · WT drift{' '}
+                {number(health.playback.wtDriftCorrections24h)}
+              </small>
             </section>
 
             <section className={styles.panel}>
