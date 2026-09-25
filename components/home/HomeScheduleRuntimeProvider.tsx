@@ -188,7 +188,7 @@ export default function HomeScheduleRuntimeProvider({
 
   const [scheduleItems, setScheduleItems] =
     useState<HomeScheduleItem[]>([]);
-  const [upcomingScheduleItems, setUpcomingScheduleItems] =
+  const [scheduleWindowItems, setScheduleWindowItems] =
     useState<HomeScheduleItem[]>([]);
   const scheduleSectionRef = useRef<HTMLElement | null>(null);
   const [scheduleDays] =
@@ -225,9 +225,9 @@ export default function HomeScheduleRuntimeProvider({
       try {
         const nowSeconds = Math.floor(Date.now() / 1000);
         const params = new URLSearchParams({
-          from: String(nowSeconds),
-          to: String(nowSeconds + 7 * 24 * 60 * 60),
-          limit: '5',
+          from: String(nowSeconds - 6 * 60 * 60),
+          to: String(nowSeconds + 72 * 60 * 60),
+          limit: '60',
         });
 
         const response = await fetch(
@@ -251,10 +251,10 @@ export default function HomeScheduleRuntimeProvider({
           throw new Error('Некорректный ответ ближайших серий');
         }
 
-        setUpcomingScheduleItems(
-          [...data.items]
-            .sort((a, b) => a.airingAt - b.airingAt)
-            .slice(0, 5),
+        setScheduleWindowItems(
+          [...data.items].sort(
+            (a, b) => a.airingAt - b.airingAt,
+          ),
         );
       } catch (error: unknown) {
         if (
@@ -407,7 +407,7 @@ export default function HomeScheduleRuntimeProvider({
     const futureWindowEnd =
       nowSeconds + 72 * 60 * 60;
 
-    return scheduleItems
+    return scheduleWindowItems
       .filter(
         (item) =>
           personalAnimeIds.has(item.media.id) &&
@@ -420,14 +420,14 @@ export default function HomeScheduleRuntimeProvider({
     clockNow,
     personalAnimeIds,
     personalizedHome,
-    scheduleItems,
+    scheduleWindowItems,
   ]);
 
   const retentionEpisodeSignal =
     useMemo<HomeRetentionEpisodeSignal | null>(() => {
       if (
         personalAnimeIds.size === 0 ||
-        scheduleItems.length === 0
+scheduleWindowItems.length === 0
       ) {
         return null;
       }
@@ -438,7 +438,7 @@ export default function HomeScheduleRuntimeProvider({
       const windowEnd =
         nowSeconds + 24 * 60 * 60;
 
-      const candidates = scheduleItems.filter(
+      const candidates = scheduleWindowItems.filter(
         (item) =>
           personalAnimeIds.has(item.media.id) &&
           item.airingAt >= windowStart &&
@@ -468,7 +468,7 @@ export default function HomeScheduleRuntimeProvider({
     }, [
       clockNow,
       personalAnimeIds,
-      scheduleItems,
+      scheduleWindowItems,
     ]);
 
   const retentionCompletionSignal =
@@ -547,6 +547,17 @@ export default function HomeScheduleRuntimeProvider({
   }, [
     scheduleItems,
     selectedScheduleDay,
+  ]);
+
+  const upcomingScheduleItems = useMemo(() => {
+    const nowSeconds = Math.floor(clockNow / 1000);
+
+    return scheduleWindowItems
+      .filter((item) => item.airingAt >= nowSeconds)
+      .slice(0, 5);
+  }, [
+    clockNow,
+    scheduleWindowItems,
   ]);
 
   const value =
