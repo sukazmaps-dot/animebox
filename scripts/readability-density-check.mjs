@@ -9,6 +9,18 @@ const layout = read('app/layout.tsx');
 const css = read('app/patch16-6-2-readability-2k-density.css');
 const telegram = read('components/TelegramPromoCard.tsx');
 
+function normalizeCss(value) {
+  return value
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/\s*([{}:;,>+~])\s*/g, '$1')
+    .trim();
+}
+
+function cssHas(needle) {
+  return normalizeCss(css).includes(normalizeCss(needle));
+}
+
 const importNeedle = "import './patch16-6-2-readability-2k-density.css';";
 if (!layout.includes(importNeedle)) {
   failures.push('layout.tsx: 16.6.2 stylesheet is not imported.');
@@ -32,7 +44,7 @@ for (const [label, needle] of [
   ['Telegram community height reset', '.telegram-growth-card--community.telegram-growth-card--vector'],
   ['mobile Telegram contract', '@media (max-width: 760px)'],
 ]) {
-  if (!css.includes(needle)) {
+  if (!cssHas(needle)) {
     failures.push(`16.6.2 CSS: missing ${label}.`);
   }
 }
