@@ -92,9 +92,7 @@ import UserPreferencesBridge from '@/components/UserPreferencesBridge';
 import OfflineCacheBridge from '@/components/OfflineCacheBridge';
 import ProductAnalyticsTracker from '@/components/analytics/ProductAnalyticsTracker';
 import DeferredYandexMetrika from '@/components/analytics/DeferredYandexMetrika';
-import ProgressionCelebration from '@/components/ProgressionCelebration';
-import TelegramWelcomePromo from '@/components/TelegramWelcomePromo';
-import SocialPresenceHeartbeat from '@/components/social/SocialPresenceHeartbeat';
+import DeferredAppEnhancements from '@/components/DeferredAppEnhancements';
 
 import { Analytics } from '@vercel/analytics/next';
 
@@ -407,9 +405,7 @@ export default function RootLayout({
 
             <TelegramMiniAppBridge />
             <ProductAnalyticsTracker />
-            <SocialPresenceHeartbeat />
-            <ProgressionCelebration />
-            <TelegramWelcomePromo />
+            <DeferredAppEnhancements />
 
             <TelegramSubscriptionGate>
               <AppChrome>{children}</AppChrome>

@@ -24,10 +24,14 @@ if (
 
 for (const needle of [
   'data-image-delivery="animebox-media"',
-  'loading={loading}',
+  'LOAD_WINDOW_ROOT_MARGIN',
+  'new IntersectionObserver',
+  'shouldRequestSource',
+  'loading="eager"',
   'decoding="async"',
-  'PRIMARY_MEDIA_TIMEOUT_MS = 2_500',
-  'TRANSIENT_RETRY_DELAY_MS = 30_000',
+  'PRIMARY_MEDIA_TIMEOUT_MS = 6_500',
+  'PROXY_SOURCE_TIMEOUT_MS = 9_500',
+  'TRANSIENT_RETRY_DELAY_MS = 12_000',
 ]) {
   if (!animeImage.includes(needle)) {
     failures.push(`AnimeImage missing ${needle}`);
@@ -93,7 +97,8 @@ if (
   !proxy.includes("headers.Referer = 'https://shikimori.one/'") ||
   !proxy.includes("'Vercel-CDN-Cache-Control'") ||
   !proxy.includes("'Cloudflare-CDN-Cache-Control'") ||
-  !proxy.includes("'X-AnimeBox-Image-Delivery': 'proxy-v2'")
+  !proxy.includes("'X-AnimeBox-Image-Delivery': 'proxy-v2'") ||
+  !proxy.includes('max-age=604800')
 ) {
   failures.push('legacy image proxy host-aware/cache contract is incomplete');
 }
@@ -105,6 +110,18 @@ if (
   !hero.includes('priority={safeActiveIndex === 0')
 ) {
   failures.push('hero LCP optimization/fallback contract was removed');
+}
+
+if (
+  !hero.includes('priority={false}') ||
+  !hero.includes('loading="lazy"') ||
+  (hero.match(/fetchPriority=.*high/g) ?? []).length > 1
+) {
+  failures.push('mobile hero must not compete with the backdrop as a second high-priority LCP request');
+}
+
+if (animeImage.includes('PRIMARY_MEDIA_TIMEOUT_MS = 2_500')) {
+  failures.push('poster watchdog regressed to mount-time fast failover');
 }
 
 if (failures.length) {

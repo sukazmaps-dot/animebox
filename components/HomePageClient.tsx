@@ -25,11 +25,9 @@ import TopAnimeItem from '@/components/TopAnimeItem';
 import ScheduleItem from '@/components/ScheduleItem';
 import { readTasteProfile, setTasteMood, type TasteMood } from '@/lib/personalization';
 import { fetchTasteGraph } from '@/lib/taste-graph';
-import HomePersonalPulse from '@/components/HomePersonalPulse';
-import HomeActivationPanel from '@/components/HomeActivationPanel';
-import HomeRetentionHub, {
-  type HomeRetentionCompletionSignal,
-  type HomeRetentionEpisodeSignal,
+import type {
+  HomeRetentionCompletionSignal,
+  HomeRetentionEpisodeSignal,
 } from '@/components/HomeRetentionHub';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 
@@ -62,6 +60,21 @@ const SupportAnimeBoxCard = dynamic(
     import('@/components/monetization/SupportAnimeBox').then(
       (module) => module.SupportAnimeBoxCard,
     ),
+  { ssr: false },
+);
+
+const HomeRetentionHub = dynamic(
+  () => import('@/components/HomeRetentionHub'),
+  { ssr: false },
+);
+
+const HomePersonalPulse = dynamic(
+  () => import('@/components/HomePersonalPulse'),
+  { ssr: false },
+);
+
+const HomeActivationPanel = dynamic(
+  () => import('@/components/HomeActivationPanel'),
   { ssr: false },
 );
 
@@ -1295,20 +1308,41 @@ export default function HomePage({
           )}
         </section>
 {(hasWatchHistory || serverContinue.length > 0) && (
-          <HomeRetentionHub
-            episode={retentionEpisodeSignal}
-            completion={retentionCompletionSignal}
-            personalAnimeIds={personalAnimeIdList}
-            enableRooms={Boolean(user?.id)}
-          />
+          <DeferredMount
+            className="home-deferred home-deferred--retention"
+            minHeight={180}
+            rootMargin="520px 0px"
+            ariaLabel="Персональное продолжение AnimeBox"
+          >
+            <HomeRetentionHub
+              episode={retentionEpisodeSignal}
+              completion={retentionCompletionSignal}
+              personalAnimeIds={personalAnimeIdList}
+              enableRooms={Boolean(user?.id)}
+            />
+          </DeferredMount>
         )}
 
-        <HomePersonalPulse />
+        <DeferredMount
+          className="home-deferred home-deferred--pulse"
+          minHeight={96}
+          rootMargin="460px 0px"
+          ariaLabel="Твой прогресс AnimeBox"
+        >
+          <HomePersonalPulse />
+        </DeferredMount>
 
-        <HomeActivationPanel
-          hasHistory={hasWatchHistory}
-          hasContinue={continueWatchingItems.length > 0}
-        />
+        <DeferredMount
+          className="home-deferred home-deferred--activation"
+          minHeight={150}
+          rootMargin="420px 0px"
+          ariaLabel="Настройка персонального AnimeBox"
+        >
+          <HomeActivationPanel
+            hasHistory={hasWatchHistory}
+            hasContinue={continueWatchingItems.length > 0}
+          />
+        </DeferredMount>
 
         <div className="home-utility-grid">
           <section className="panel home-library-panel home-library-panel--footer home-service-card">

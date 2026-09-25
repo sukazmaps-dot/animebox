@@ -276,7 +276,7 @@ export async function GET(
       headers: {
         'Content-Type': contentType,
         'Cache-Control':
-          'public, max-age=86400, s-maxage=2592000, stale-while-revalidate=604800',
+          'public, max-age=604800, s-maxage=2592000, stale-while-revalidate=2592000',
         'Vercel-CDN-Cache-Control':
           'public, max-age=2592000, stale-while-revalidate=604800',
         'Cloudflare-CDN-Cache-Control':
