@@ -96,6 +96,9 @@ import { BRAND_SLOGAN, BRAND_TITLE } from '@/lib/brand';
 import { SUPPORT_EMAIL } from '@/lib/contact';
 import { TELEGRAM_BOT_URL, TELEGRAM_CHANNEL_URL } from '@/lib/telegram-links';
 import { USER_PREFERENCES_KEY } from '@/lib/user-preferences';
+import { getPrimaryMediaOrigin } from '@/lib/media-delivery';
+
+const mediaPreconnectOrigin = getPrimaryMediaOrigin();
 
 const themeBootstrapScript = `
 (() => {
@@ -338,6 +341,16 @@ export default function RootLayout({
     >
       <head>
         <link rel="dns-prefetch" href="//shikimori.one" />
+        {mediaPreconnectOrigin && (
+          <>
+            <link rel="dns-prefetch" href={mediaPreconnectOrigin} />
+            <link
+              rel="preconnect"
+              href={mediaPreconnectOrigin}
+              crossOrigin="anonymous"
+            />
+          </>
+        )}
         <Script
           id="animebox-theme-bootstrap"
           strategy="beforeInteractive"

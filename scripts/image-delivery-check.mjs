@@ -30,14 +30,17 @@ if (
 
 for (const needle of [
   'data-image-delivery="animebox-media"',
-  'loading={loading}',
+  'loading={nativeLoading}',
+  'fetchPriority={nativeFetchPriority}',
   'data-image-loading={loading}',
+  'data-image-warmup={warmupActivation}',
+  'observeNearViewportMedia',
   'sourcePreference',
   'preset',
   'srcSet={sourceIndex === 0 ? mediaSrcSet : undefined}',
   'getImageMediaSrcSet',
   'data-image-preset={effectivePreset}',
-  "loading !== 'eager'",
+  "nativeLoading !== 'eager'",
   'decoding="async"',
   'PRIMARY_MEDIA_TIMEOUT_MS = 6_500',
   'PROXY_SOURCE_TIMEOUT_MS = 9_500',
@@ -51,7 +54,6 @@ for (const needle of [
 for (const forbidden of [
   'LOAD_WINDOW_ROOT_MARGIN',
   'new IntersectionObserver',
-  'shouldRequestSource',
   'loading="eager"',
 ]) {
   if (animeImage.includes(forbidden)) {
@@ -196,7 +198,7 @@ if (
 
 if (
   animeImage.includes('PRIMARY_MEDIA_TIMEOUT_MS = 2_500') ||
-  !animeImage.includes("loading !== 'eager'")
+  !animeImage.includes("nativeLoading !== 'eager'")
 ) {
   failures.push('poster watchdog regressed to mount-time lazy-image failover');
 }

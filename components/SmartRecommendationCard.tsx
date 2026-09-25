@@ -368,7 +368,7 @@ export default function SmartRecommendationCard({
             alt={title}
             englishName={anime.title?.english || anime.title?.romaji}
             className="smart-card__image"
-            loading="lazy"
+            loading="near"
             sizes="(max-width: 560px) 41vw, (max-width: 900px) 27vw, (max-width: 1280px) 18vw, 205px"
             quality={62}
             sourcePreference="compact"
