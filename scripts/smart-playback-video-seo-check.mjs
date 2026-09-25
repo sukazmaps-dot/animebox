@@ -19,6 +19,10 @@ const timelineServer = read('lib/episode-timeline-server.ts');
 const timelineApi = read('app/api/episodes/timeline/route.ts');
 const videoSitemap = read('app/video-sitemap.xml/route.ts');
 const episodeSeo = read('lib/episode-seo.ts');
+const episodeRoute = read('app/anime/[slug]/episode/[episode]/page.tsx');
+const episodeErrorBoundary = read('app/anime/[slug]/episode/[episode]/error.tsx');
+const animeErrorBoundary = read('app/anime/[slug]/error.tsx');
+const animeDetailPage = read('app/anime/[slug]/page.tsx');
 const seoIndex = read('lib/seo-episode-index.ts');
 const robots = read('app/robots.ts');
 const timelineMigration = read(
@@ -80,6 +84,37 @@ for (const [label, needle] of [
 
 if (!episodeSeo.includes('contentUrl') || !episodeSeo.includes('embedUrl')) {
   failures.push('VideoObject: verified contentUrl/embedUrl integration is missing.');
+}
+
+if (
+  !episodeSeo.includes("console.warn('[episode-seo] availability resolution failed:'") ||
+  !episodeSeo.includes("return { status: 'unknown', episodes: [] }")
+) {
+  failures.push('Episode SEO availability can still crash the route.');
+}
+
+if (
+  !episodeRoute.includes("return <EpisodeRouteRecovery slug={slug} episode={number} />") ||
+  !episodeRoute.includes("isEpisodeIndexable(anime.id, number).catch") ||
+  !episodeRoute.includes("console.error('[Episode route] anime resolution failed:'")
+) {
+  failures.push('Episode server route is missing crash isolation.');
+}
+
+if (
+  !episodeErrorBoundary.includes("'use client'") ||
+  !episodeErrorBoundary.includes('onClick={reset}') ||
+  !animeErrorBoundary.includes("'use client'") ||
+  !animeErrorBoundary.includes('onClick={reset}')
+) {
+  failures.push('Anime route error boundaries are incomplete.');
+}
+
+if (
+  !animeDetailPage.includes("console.error('[Anime metadata] title resolution failed:'") ||
+  !animeDetailPage.includes("robots: { index: false, follow: true }")
+) {
+  failures.push('Anime detail metadata can still crash on upstream resolution failure.');
 }
 
 if (!seoIndex.includes("from('episode_timeline_meta')")) {
