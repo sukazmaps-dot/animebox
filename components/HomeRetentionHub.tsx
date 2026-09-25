@@ -85,8 +85,10 @@ export default function HomeRetentionHub({
 
   useEffect(() => {
     if (!enableRooms || !personalSignature) {
-      setRoom(null);
-      return;
+      const frame = window.requestAnimationFrame(() => {
+        setRoom(null);
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
 
     const controller = new AbortController();
