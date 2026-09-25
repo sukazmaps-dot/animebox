@@ -128,8 +128,10 @@ export default function AnimeImage({
     if (!host) return;
 
     if (typeof IntersectionObserver === 'undefined') {
-      setNearViewport(true);
-      return;
+      const frame = window.requestAnimationFrame(() => {
+        setNearViewport(true);
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
 
     const observer = new IntersectionObserver(
