@@ -79,6 +79,13 @@ export default function SidebarMembership() {
     const refresh = () => {
       applyCached();
 
+      if (
+        document.visibilityState !== 'visible' ||
+        !navigator.onLine
+      ) {
+        return;
+      }
+
       void Promise.allSettled([
         getPremiumMe(),
         getSponsorMe(user.id, 1),
@@ -102,15 +109,24 @@ export default function SidebarMembership() {
       });
     };
 
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+    const onOnline = () => refresh();
+
     refresh();
 
     window.addEventListener('animebox:entitlements-changed', refresh);
     window.addEventListener('animebox:sponsor-preferences-changed', refresh);
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('online', onOnline);
 
     return () => {
       active = false;
       window.removeEventListener('animebox:entitlements-changed', refresh);
       window.removeEventListener('animebox:sponsor-preferences-changed', refresh);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('online', onOnline);
     };
   }, [user?.id]);
 
