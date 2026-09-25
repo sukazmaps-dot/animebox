@@ -6,7 +6,7 @@ const read = (path) =>
 const card = read('components/SmartRecommendationCard.tsx');
 const css = read('app/patch17-4-service-experience.css');
 const platformCss = read('app/patch17-6-home-recommendation-actions.css');
-const home = read('components/HomePageClient.tsx');
+const home = read('components/home/HomeDeferredCommunity.tsx');
 const feed = read('components/SmartRecommendationFeed.tsx');
 const watch = read('components/useWatchSession.ts');
 const player = read('components/AnimePlayer.tsx');
