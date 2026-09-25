@@ -1,7 +1,9 @@
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
-const TRANSFORM_FETCH_TIMEOUT_MS = 6_000;
-const RAW_FETCH_TIMEOUT_MS = 8_000;
-const RAW_RETRY_DELAY_MS = 180;
+const ORIGIN_PIPELINE_BUDGET_MS = 5_800;
+const TRANSFORM_FETCH_TIMEOUT_MS = 2_200;
+const RAW_FETCH_TIMEOUT_MS = 3_200;
+const RAW_RETRY_TIMEOUT_MS = 1_200;
+const RAW_RETRY_DELAY_MS = 100;
 const NEGATIVE_CACHE_TTL_SECONDS = 15;
 const CACHE_TTL_SECONDS = 30 * 24 * 60 * 60;
 const BROWSER_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60;
@@ -328,10 +330,7 @@ async function runTimedOriginAttempt(fetcher, timeoutMs, failurePrefix) {
 function isRetryableRawError(error) {
   if (!error) return false;
 
-  if (
-    error === 'origin-timeout' ||
-    error === 'origin-fetch-failed'
-  ) {
+  if (error === 'origin-fetch-failed') {
     return true;
   }
 
@@ -352,10 +351,27 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchRawOriginWithRetry(source) {
+function remainingOriginBudget(deadlineMs) {
+  return Math.max(0, deadlineMs - Date.now());
+}
+
+async function fetchRawOriginWithRetry(source, deadlineMs) {
+  const firstTimeout = Math.min(
+    RAW_FETCH_TIMEOUT_MS,
+    remainingOriginBudget(deadlineMs),
+  );
+
+  if (firstTimeout <= 0) {
+    return {
+      response: null,
+      error: 'origin-pipeline-timeout',
+      attempts: 0,
+    };
+  }
+
   const first = await runTimedOriginAttempt(
     (signal) => fetchRawOrigin(source, signal),
-    RAW_FETCH_TIMEOUT_MS,
+    firstTimeout,
     'origin',
   );
 
@@ -366,11 +382,31 @@ async function fetchRawOriginWithRetry(source) {
     };
   }
 
+  const beforeRetry = remainingOriginBudget(deadlineMs);
+  if (beforeRetry <= RAW_RETRY_DELAY_MS + 250) {
+    return {
+      ...first,
+      attempts: 1,
+    };
+  }
+
   await delay(RAW_RETRY_DELAY_MS);
+
+  const retryTimeout = Math.min(
+    RAW_RETRY_TIMEOUT_MS,
+    remainingOriginBudget(deadlineMs),
+  );
+
+  if (retryTimeout <= 0) {
+    return {
+      ...first,
+      attempts: 1,
+    };
+  }
 
   const second = await runTimedOriginAttempt(
     (signal) => fetchRawOrigin(source, signal),
-    RAW_FETCH_TIMEOUT_MS,
+    retryTimeout,
     'origin',
   );
 
@@ -381,14 +417,26 @@ async function fetchRawOriginWithRetry(source) {
 }
 
 async function fetchOrigin(source, variant) {
+  const deadlineMs = Date.now() + ORIGIN_PIPELINE_BUDGET_MS;
   let transformError = null;
 
   if (variant) {
-    const transformed = await runTimedOriginAttempt(
-      (signal) => fetchTransformedOrigin(source, variant, signal),
+    const transformTimeout = Math.min(
       TRANSFORM_FETCH_TIMEOUT_MS,
-      'transform',
+      remainingOriginBudget(deadlineMs),
     );
+
+    const transformed =
+      transformTimeout > 0
+        ? await runTimedOriginAttempt(
+            (signal) => fetchTransformedOrigin(source, variant, signal),
+            transformTimeout,
+            'transform',
+          )
+        : {
+            response: null,
+            error: 'transform-pipeline-timeout',
+          };
 
     if (transformed.response) {
       return {
@@ -404,7 +452,7 @@ async function fetchOrigin(source, variant) {
     transformError = transformed.error || 'transform-unavailable';
   }
 
-  const raw = await fetchRawOriginWithRetry(source);
+  const raw = await fetchRawOriginWithRetry(source, deadlineMs);
 
   return {
     response: raw.response,
@@ -469,8 +517,10 @@ export default {
         protocol: 'variants-v3',
         reliability: 'media-shield-v1',
         r2: Boolean(env.MEDIA_BUCKET),
+        originPipelineBudgetMs: ORIGIN_PIPELINE_BUDGET_MS,
         transformTimeoutMs: TRANSFORM_FETCH_TIMEOUT_MS,
         rawTimeoutMs: RAW_FETCH_TIMEOUT_MS,
+        rawRetryTimeoutMs: RAW_RETRY_TIMEOUT_MS,
         rawRetryLimit: 1,
         negativeCacheTtlSeconds: NEGATIVE_CACHE_TTL_SECONDS,
         widths: [...ALLOWED_WIDTHS],
