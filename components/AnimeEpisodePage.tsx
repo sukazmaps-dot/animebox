@@ -774,6 +774,8 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       );
 
       const finishAttempt = (result: SourceAttemptResult) => {
+        if (!active) return result;
+
         const outcome =
           result.ready
             ? 'ready'
