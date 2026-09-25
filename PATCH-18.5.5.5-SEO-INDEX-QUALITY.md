@@ -327,8 +327,9 @@ Live migrations:
 
 - `20260925220358 seo_index_quality_v1`
 - `20260925220504 seo_index_quality_grants_hardening`
+- `20260925221156 seo_index_quality_drop_unused_changed_index`
 
-The second migration exists because the project's historical default privileges initially left service_role with broader table privileges than the registry requires. The hardening migration explicitly reduces it to CRUD.
+The second migration exists because the project's historical default privileges initially left service_role with broader table privileges than the registry requires. The hardening migration explicitly reduces it to CRUD. The third removes a speculative `last_content_change_at` index after review showed no production read path for it; only the sitemap and freshness indexes remain.
 
 ---
 
