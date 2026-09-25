@@ -159,10 +159,11 @@ if (
 }
 
 if (
-  !cascade.includes('buildImageCandidateChain(sources)') ||
+  !cascade.includes('buildImageCandidateChain(sources, {') ||
+  !cascade.includes('getRawImageMediaSrcSet(') ||
   cascade.includes('proxyImageUrl(normalized)')
 ) {
-  failures.push('AnimeImageCascade still fans out proxy attempts');
+  failures.push('AnimeImageCascade responsive media contract is incomplete');
 }
 
 if (
