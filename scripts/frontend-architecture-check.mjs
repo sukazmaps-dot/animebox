@@ -10,9 +10,7 @@ const rootLayout = read('app/layout.tsx');
 const homePage = read('app/page.tsx');
 const profileLayout = read('app/profile/layout.tsx');
 const animeLayout = read('app/anime/[slug]/layout.tsx');
-const watchTogetherEpisodeLayout = read(
-  'app/watch-together/[slug]/episode/[episode]/layout.tsx',
-);
+const watchTogetherLayout = read('app/watch-together/layout.tsx');
 
 const rootCssImports = [
   ...rootLayout.matchAll(/import '\.\/([^']+\.css)';/g),
@@ -70,9 +68,9 @@ for (const [label, source, needle] of [
     "import '../../patch17-6-player-runtime.css';",
   ],
   [
-    'watch-together episode player runtime styles',
-    watchTogetherEpisodeLayout,
-    "import '@/app/patch17-6-player-runtime.css';",
+    'watch-together player runtime styles',
+    watchTogetherLayout,
+    "import '../patch17-6-player-runtime.css';",
   ],
   [
     'global Telegram gate-only split',
