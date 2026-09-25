@@ -65,6 +65,11 @@ jobs:
           components/HomePageClient.tsx
           components/AnimeImage.tsx
           components/AnimeCard.tsx
+          components/HomeContinueWatching.tsx
+          components/HomeRetentionHub.tsx
+          components/ScheduleItem.tsx
+          components/TopAnimeItem.tsx
+          components/analytics/DeferredYandexMetrika.tsx
           components/SmartRecommendationFeed.tsx
           components/SmartRecommendationCard.tsx
           components/ui/ScrollRow.tsx
@@ -75,6 +80,7 @@ jobs:
           lib/recommendation-analytics-server.ts
           lib/personalization.ts
           lib/home-feed-server.ts
+          lib/image-service.ts
           next.config.ts
           app/api/image/route.ts
           components/AnimeEpisodePage.tsx
