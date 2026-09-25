@@ -16,6 +16,7 @@ export type PlayerProviderPolicy = {
   effectivePriority: number;
   healthPenalty: number;
   recommendedTimeoutMs: number;
+  halfOpenProbe: boolean;
   state: PlayerProviderRuntimeState;
   reason:
     | ''
