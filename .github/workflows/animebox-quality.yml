@@ -64,6 +64,15 @@ jobs:
           components/HomePageClient.tsx
           components/AnimeImage.tsx
           components/AnimeCard.tsx
+          components/SmartRecommendationFeed.tsx
+          components/SmartRecommendationCard.tsx
+          components/ui/ScrollRow.tsx
+          components/admin/RecommendationAnalyticsDashboard.tsx
+          lib/recommendations.ts
+          lib/recommendation-diversity.ts
+          lib/recommendation-ranking-config.ts
+          lib/recommendation-analytics-server.ts
+          lib/personalization.ts
           lib/home-feed-server.ts
           next.config.ts
           components/AnimeEpisodePage.tsx
