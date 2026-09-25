@@ -284,19 +284,6 @@ function prefetchCandidatePage(
   });
 }
 
-function mapsEqual<K, V>(
-  left: ReadonlyMap<K, V>,
-  right: ReadonlyMap<K, V>,
-) {
-  if (left.size !== right.size) return false;
-
-  for (const [key, value] of left) {
-    if (right.get(key) !== value) return false;
-  }
-
-  return true;
-}
-
 function mergeUnique(
   previous: RankedRecommendation[],
   incoming: RankedRecommendation[],
@@ -563,12 +550,6 @@ export default function SmartRecommendationFeed({
 
   useEffect(() => {
     railOwnershipRef.current = railLayout.ownership;
-
-    setRailOwnership((current) =>
-      mapsEqual(current, railLayout.ownership)
-        ? current
-        : new Map(railLayout.ownership),
-    );
   }, [railLayout.ownership]);
 
   const rails = railLayout.rails;
