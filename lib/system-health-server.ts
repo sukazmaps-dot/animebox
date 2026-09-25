@@ -1,10 +1,12 @@
 import 'server-only';
 
+import { getPrimaryMediaOrigin } from '@/lib/media-delivery';
 import { getProductionHealthSnapshot } from '@/lib/production-health-server';
 import type {
   NotificationHealth,
   RequestPlatformHealth,
   RequestRouteHealth,
+  SystemDependenciesHealth,
   SystemHealthSnapshot,
   SystemIncident,
   SystemJobHealth,
@@ -226,11 +228,14 @@ function averageMs(aggregate: RequestAggregate) {
   );
 }
 
-function p95Ms(aggregate: RequestAggregate) {
+function percentileMs(
+  aggregate: RequestAggregate,
+  percentile: number,
+) {
   const total = aggregate.latency.reduce((sum, value) => sum + value, 0);
   if (total <= 0) return null;
 
-  const threshold = total * 0.95;
+  const threshold = total * percentile;
   const bounds = [250, 500, 1_000, 2_500];
   let cumulative = 0;
 
@@ -242,6 +247,14 @@ function p95Ms(aggregate: RequestAggregate) {
   }
 
   return aggregate.maxDurationMs || null;
+}
+
+function p95Ms(aggregate: RequestAggregate) {
+  return percentileMs(aggregate, 0.95);
+}
+
+function p99Ms(aggregate: RequestAggregate) {
+  return percentileMs(aggregate, 0.99);
 }
 
 function requestRouteHealth(
@@ -262,6 +275,7 @@ function requestRouteHealth(
     slowRequests24h: aggregate.slowRequests,
     averageMs24h: averageMs(aggregate),
     p95Ms24h: p95Ms(aggregate),
+    p99Ms24h: p99Ms(aggregate),
     maxDurationMs24h:
       aggregate.estimatedRequests > 0 ? aggregate.maxDurationMs : null,
   };
@@ -327,6 +341,8 @@ function requestHealthFromRows(
     averageMs24h: averageMs(aggregate24h),
     p95Ms1h: p95Ms(aggregate1h),
     p95Ms24h: p95Ms(aggregate24h),
+    p99Ms1h: p99Ms(aggregate1h),
+    p99Ms24h: p99Ms(aggregate24h),
     maxDurationMs24h:
       aggregate24h.estimatedRequests > 0
         ? aggregate24h.maxDurationMs
@@ -335,9 +351,90 @@ function requestHealthFromRows(
   };
 }
 
+async function probeSupabase(
+  admin: ReturnType<typeof createSupabaseAdmin>,
+): Promise<SystemDependenciesHealth['supabase']> {
+  const startedAt = performance.now();
+
+  try {
+    const { error } = await admin
+      .from('system_incidents')
+      .select('id')
+      .limit(1);
+
+    const latencyMs = Math.max(0, Math.round(performance.now() - startedAt));
+
+    return {
+      state: error ? 'degraded' : 'healthy',
+      latencyMs,
+    };
+  } catch {
+    return {
+      state: 'degraded',
+      latencyMs: Math.max(0, Math.round(performance.now() - startedAt)),
+    };
+  }
+}
+
+async function probeMediaEdge(): Promise<SystemDependenciesHealth['mediaEdge']> {
+  const origin = getPrimaryMediaOrigin();
+
+  if (!origin) {
+    return {
+      configured: false,
+      state: 'unknown',
+      latencyMs: null,
+      protocol: null,
+      r2: null,
+    };
+  }
+
+  const startedAt = performance.now();
+
+  try {
+    const response = await fetch(`${origin}/health`, {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(1_800),
+    });
+    const payload = response.ok
+      ? await response.json() as Record<string, unknown>
+      : {};
+    const latencyMs = Math.max(0, Math.round(performance.now() - startedAt));
+    const protocol =
+      typeof payload.protocol === 'string' ? payload.protocol : null;
+    const r2 = typeof payload.r2 === 'boolean' ? payload.r2 : null;
+    const healthy =
+      response.ok &&
+      payload.ok === true &&
+      protocol === 'variants-v3' &&
+      r2 === true;
+
+    return {
+      configured: true,
+      state: healthy ? 'healthy' : 'degraded',
+      latencyMs,
+      protocol,
+      r2,
+    };
+  } catch {
+    return {
+      configured: true,
+      state: 'degraded',
+      latencyMs: Math.max(0, Math.round(performance.now() - startedAt)),
+      protocol: null,
+      r2: null,
+    };
+  }
+}
+
 export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
   const admin = createSupabaseAdmin();
   const productionPromise = getProductionHealthSnapshot();
+  const dependenciesPromise = Promise.all([
+    probeSupabase(admin),
+    probeMediaEdge(),
+  ]);
 
   const playbackSince = new Date(
     Date.now() - 24 * 60 * 60 * 1_000,
@@ -439,6 +536,11 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
   ]);
 
   const production = await productionPromise;
+  const [supabaseDependency, mediaEdgeDependency] = await dependenciesPromise;
+  const dependencies: SystemDependenciesHealth = {
+    supabase: supabaseDependency,
+    mediaEdge: mediaEdgeDependency,
+  };
 
   const providers = settingsResult.error || runtimeResult.error
     ? []
@@ -524,6 +626,11 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
       ) ||
       requests.rateLimited1h >= 10
     );
+  const dependencyWarnings = [
+    dependencies.supabase.state !== 'healthy',
+    dependencies.mediaEdge.configured &&
+      dependencies.mediaEdge.state !== 'healthy',
+  ].filter(Boolean).length;
 
   const status =
     openCriticalIncidents > 0 || requestRuntimeCritical
@@ -533,7 +640,8 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
           failedJobs24h > 0 ||
           degradedJobs24h > 0 ||
           production.cron.failed24h > 0 ||
-          requestRuntimeDegraded
+          requestRuntimeDegraded ||
+          dependencyWarnings > 0
         ? 'degraded'
         : 'healthy';
 
@@ -563,6 +671,7 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
       exhaustionRatePct,
     },
     requests,
+    dependencies,
     signals: {
       openCriticalIncidents,
       openWarningIncidents,
@@ -571,6 +680,7 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
       degradedJobs24h,
       requestRuntimeDegraded,
       requestRuntimeCritical,
+      dependencyWarnings,
     },
   };
 }
