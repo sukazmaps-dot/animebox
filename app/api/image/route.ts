@@ -83,9 +83,15 @@ function buildUpstreamHeaders(url: URL): HeadersInit {
   return headers;
 }
 
+type ImageFetchResult = {
+  response: Response | null;
+  error: string | null;
+  attempts: number;
+};
+
 async function fetchImage(
   initialUrl: URL,
-): Promise<Response | null> {
+): Promise<ImageFetchResult> {
   let current = initialUrl;
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
@@ -105,7 +111,11 @@ async function fetchImage(
 
       // Успешный ответ: это уже наша картинка.
       if (response.ok) {
-        return response;
+        return {
+          response,
+          error: null,
+          attempts: hop + 1,
+        };
       }
 
       // Обрабатываем только redirect.
@@ -119,7 +129,11 @@ async function fetchImage(
             current.toString(),
           );
 
-          return null;
+          return {
+            response: null,
+            error: 'redirect-limit',
+            attempts: hop + 1,
+          };
         }
 
         const location =
@@ -132,7 +146,11 @@ async function fetchImage(
             response.status,
           );
 
-          return null;
+          return {
+            response: null,
+            error: 'redirect-without-location',
+            attempts: hop + 1,
+          };
         }
 
         const nextUrl = new URL(
@@ -149,7 +167,11 @@ async function fetchImage(
             nextUrl.toString(),
           );
 
-          return null;
+          return {
+            response: null,
+            error: 'redirect-target-not-allowed',
+            attempts: hop + 1,
+          };
         }
 
         current = nextUrl;
@@ -163,20 +185,36 @@ async function fetchImage(
         response.statusText,
       );
 
-      return null;
+      return {
+        response: null,
+        error: `origin-${response.status}`,
+        attempts: hop + 1,
+      };
     } catch (error) {
+      const timedOut =
+        error instanceof Error &&
+        error.name === 'AbortError';
+
       console.error('Image fetch failed:', {
         url: current.toString(),
         error,
       });
 
-      return null;
+      return {
+        response: null,
+        error: timedOut ? 'origin-timeout' : 'origin-fetch-failed',
+        attempts: hop + 1,
+      };
     } finally {
       clearTimeout(timeout);
     }
   }
 
-  return null;
+  return {
+    response: null,
+    error: 'redirect-limit',
+    attempts: MAX_REDIRECTS + 1,
+  };
 }
 
 export async function GET(
@@ -218,13 +256,25 @@ export async function GET(
   }
 
   try {
-    const upstream =
+    const upstreamResult =
       await fetchImage(sourceUrl);
+    const upstream = upstreamResult.response;
 
     if (!upstream) {
       return new NextResponse(
         'Image unavailable',
-        { status: 502 },
+        {
+          status: 502,
+          headers: {
+            'Cache-Control': 'public, max-age=15',
+            'Retry-After': '15',
+            'X-AnimeBox-Image-Delivery': 'proxy-v2',
+            'X-AnimeBox-Image-Error':
+              upstreamResult.error ?? 'origin-failed',
+            'X-AnimeBox-Image-Attempts':
+              String(upstreamResult.attempts),
+          },
+        },
       );
     }
 
@@ -240,7 +290,13 @@ export async function GET(
     ) {
       return new NextResponse(
         `Upstream is not an image: ${contentType || 'unknown'}`,
-        { status: 415 },
+        {
+          status: 415,
+          headers: {
+            'X-AnimeBox-Image-Delivery': 'proxy-v2',
+            'X-AnimeBox-Image-Error': 'origin-not-image',
+          },
+        },
       );
     }
 
@@ -255,7 +311,13 @@ export async function GET(
     ) {
       return new NextResponse(
         'Image is too large',
-        { status: 413 },
+        {
+          status: 413,
+          headers: {
+            'X-AnimeBox-Image-Delivery': 'proxy-v2',
+            'X-AnimeBox-Image-Error': 'origin-too-large',
+          },
+        },
       );
     }
 
@@ -267,7 +329,13 @@ export async function GET(
     ) {
       return new NextResponse(
         'Image is too large',
-        { status: 413 },
+        {
+          status: 413,
+          headers: {
+            'X-AnimeBox-Image-Delivery': 'proxy-v2',
+            'X-AnimeBox-Image-Error': 'origin-too-large',
+          },
+        },
       );
     }
 
@@ -294,7 +362,15 @@ export async function GET(
 
     return new NextResponse(
       'Image proxy failed',
-      { status: 502 },
+      {
+        status: 502,
+        headers: {
+          'Cache-Control': 'public, max-age=15',
+          'Retry-After': '15',
+          'X-AnimeBox-Image-Delivery': 'proxy-v2',
+          'X-AnimeBox-Image-Error': 'proxy-exception',
+        },
+      },
     );
   }
 }
