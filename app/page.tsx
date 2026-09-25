@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 import './patch17-6-home-recommendation-actions.css';
 
-import HomePageClient from '@/components/HomePageClient';
+import HomePageShell from '@/components/home/HomePageShell';
 import { SITE_URL } from '@/lib/seo-config';
 import { BRAND_TITLE } from '@/lib/brand';
 import { getHomeInitialFeed } from '@/lib/home-feed-server';
@@ -46,7 +46,7 @@ export default async function HomePage() {
   const initialFeed = await getHomeInitialFeed();
 
   return (
-    <HomePageClient
+    <HomePageShell
       initialPopular={initialFeed.popular}
       initialOngoing={initialFeed.ongoing}
     />
