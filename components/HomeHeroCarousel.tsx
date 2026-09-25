@@ -23,10 +23,6 @@ import type { Anime } from '@/types/anime';
 import Icon from '@/components/Icon';
 
 import {
-  getRecommendedAnime,
-} from '@/lib/recommendations';
-
-import {
   normalizeImageUrl,
 } from '@/lib/image-service';
 
@@ -178,13 +174,62 @@ export default function HomeHeroCarousel({
     () => false,
   );
 
-  const personalizedCandidates = useMemo(
-    () =>
-      personalizationReady
-        ? getRecommendedAnime(source, 5).filter(isValidAnime)
-        : [],
-    [personalizationReady, source],
-  );
+  const [personalizedCandidates, setPersonalizedCandidates] =
+    useState<Anime[]>([]);
+
+  useEffect(() => {
+    if (!personalizationReady || source.length === 0) return;
+
+    let cancelled = false;
+    let timer: number | null = null;
+    let idleHandle: number | null = null;
+
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (
+        callback: IdleRequestCallback,
+        options?: IdleRequestOptions,
+      ) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+
+    const loadRecommendations = () => {
+      void import('@/lib/recommendations')
+        .then(({ getRecommendedAnime }) => {
+          if (cancelled) return;
+
+          const sourceIds = new Set(source.map((item) => item.id));
+          const next = getRecommendedAnime(source, 5)
+            .filter(isValidAnime)
+            .filter((item) => sourceIds.has(item.id));
+
+          setPersonalizedCandidates(next);
+        })
+        .catch((error) => {
+          console.debug('[HomeHero] personalization chunk unavailable', error);
+        });
+    };
+
+    if (idleWindow.requestIdleCallback) {
+      idleHandle = idleWindow.requestIdleCallback(
+        loadRecommendations,
+        { timeout: 1_200 },
+      );
+    } else {
+      timer = window.setTimeout(loadRecommendations, 220);
+    }
+
+    return () => {
+      cancelled = true;
+
+      if (timer !== null) {
+        window.clearTimeout(timer);
+      }
+
+      if (idleHandle !== null) {
+        idleWindow.cancelIdleCallback?.(idleHandle);
+      }
+    };
+  }, [personalizationReady, source]);
 
   const slides = useMemo(() => {
     if (source.length === 0) return [];
