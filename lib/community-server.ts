@@ -8,7 +8,6 @@ import {
   releaseRuntimeRefreshLease,
   tryAcquireRuntimeRefreshLease,
 } from '@/lib/runtime-refresh-lease-server';
-import { syncSeoAnimeFromResolvedAnime } from '@/lib/seo-anime-index-server';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -314,14 +313,6 @@ async function refreshAnimeCatalogMetadata(
       const row = saved as AnimeCatalogMetadata;
       rememberAnimeCatalogRow(row);
 
-      try {
-        await syncSeoAnimeFromResolvedAnime(anime);
-      } catch (seoError) {
-        // SEO registry freshness is important but must never turn a community
-        // metadata refresh into a user-facing failure.
-        console.warn('[Anime catalog] SEO registry sync failed:', seoError);
-      }
-
       return row;
     } finally {
       if (lease.acquired) {
@@ -449,12 +440,6 @@ export async function ensureAnimeArtwork(id: number) {
 
   if (saveError) throw saveError;
   rememberAnimeCatalogRow(saved as AnimeCatalogMetadata);
-
-  try {
-    await syncSeoAnimeFromResolvedAnime(anime);
-  } catch (seoError) {
-    console.warn('[Anime artwork] SEO registry sync failed:', seoError);
-  }
 
   return saved as AnimeCatalogMetadata;
 }
