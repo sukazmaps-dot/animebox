@@ -1,10 +1,14 @@
 import 'server-only';
 
 import { unstable_cache } from 'next/cache';
+import { after } from 'next/server';
 
 import { getAnimesWithShikimori } from '@/lib/combined-anime';
 import type { Anime } from '@/types/anime';
-import { filterAnimeByAvailability } from '@/lib/catalog-availability-server';
+import {
+  filterAnimeByAvailability,
+  refreshCatalogAvailabilityBatch,
+} from '@/lib/catalog-availability-server';
 
 type HomeInitialFeed = {
   popular: Anime[];
@@ -32,7 +36,7 @@ const loadHomeInitialFeed = unstable_cache(
       ongoing: ongoingResult.status === 'fulfilled' ? ongoingResult.value : [],
     };
   },
-  ['animebox-home-initial-feed-v3-mobile-budget'],
+  ['animebox-home-initial-feed-v4-verified-playback'],
   {
     revalidate: 300,
     tags: ['animebox-home-feed'],
@@ -48,6 +52,15 @@ export async function getHomeInitialFeed(): Promise<HomeInitialFeed> {
       'catalog',
     );
     const allowed = new Set(availability.items.map((anime) => anime.id));
+
+    if (availability.refreshTargets.length > 0) {
+      after(async () => {
+        await refreshCatalogAvailabilityBatch(
+          availability.refreshTargets,
+          { limit: 6 },
+        );
+      });
+    }
 
     return {
       popular: raw.popular.filter((anime) => allowed.has(anime.id)),
