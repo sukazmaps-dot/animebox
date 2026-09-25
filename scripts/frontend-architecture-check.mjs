@@ -28,15 +28,15 @@ const rootCssBytes = rootCssImports.reduce((sum, file) => {
   return sum + (fs.existsSync(full) ? fs.statSync(full).size : 0);
 }, 0);
 
-if (rootCssImports.length > 79) {
+if (rootCssImports.length > 76) {
   failures.push(
-    `root layout CSS import budget regressed: ${rootCssImports.length} > 79`,
+    `root layout CSS import budget regressed: ${rootCssImports.length} > 76`,
   );
 }
 
-if (rootCssBytes > 880_000) {
+if (rootCssBytes > 830_000) {
   failures.push(
-    `root layout CSS source budget regressed: ${rootCssBytes} > 880000 bytes`,
+    `root layout CSS source budget regressed: ${rootCssBytes} > 830000 bytes`,
   );
 }
 
@@ -47,6 +47,9 @@ for (const forbidden of [
   "import './patch16-6-5-profile-studio.css';",
   "import './patch17-6-player-runtime.css';",
   "import './patch17-6-home-recommendation-actions.css';",
+  "import './patch16-5-profile-widgets.css';",
+  "import './patch14-5-episode-identity.css';",
+  "import './patch16-6-8-star-rating-light-polish.css';",
 ]) {
   if (rootLayout.includes(forbidden)) {
     failures.push(`root layout still owns route-specific stylesheet: ${forbidden}`);
@@ -68,6 +71,37 @@ for (const [label, source, needle] of [
     'public profile grid styles',
     profileLayout,
     "import '../patch17-4-2-2-public-profile-grid.css';",
+  ],
+  [
+    'profile widget base styles',
+    profileLayout,
+    "import '../patch16-5-profile-widgets.css';",
+  ],
+  [
+    'profile widget cascade replay',
+    profileLayout,
+    "import '../patch18-4-6-profile-widgets-cascade.css';",
+  ],
+
+  [
+    'anime episode identity styles',
+    animeLayout,
+    "import '../../patch14-5-episode-identity.css';",
+  ],
+  [
+    'anime episode cascade replay',
+    animeLayout,
+    "import '../../patch18-4-6-episode-cascade.css';",
+  ],
+  [
+    'anime rating styles',
+    animeLayout,
+    "import '../../patch16-6-8-star-rating-light-polish.css';",
+  ],
+  [
+    'anime rating cascade replay',
+    animeLayout,
+    "import '../../patch18-4-6-rating-cascade.css';",
   ],
   [
     'anime player runtime styles',
