@@ -1,9 +1,13 @@
 import Link from 'next/link';
+import { after } from 'next/server';
 
 import HomeAnimeRail from '@/components/HomeAnimeRail';
 import { getAnimesWithShikimori } from '@/lib/combined-anime';
 import type { Anime } from '@/types/anime';
-import { filterAnimeByAvailability } from '@/lib/catalog-availability-server';
+import {
+  filterAnimeByAvailability,
+  refreshCatalogAvailabilityBatch,
+} from '@/lib/catalog-availability-server';
 
 const ANILIST_GENRE_BY_RUSSIAN: Record<string, string> = {
   'Экшен': 'Action',
@@ -67,6 +71,15 @@ async function loadRelatedAnime(
     );
     const visible = availability.items.slice(0, 12);
 
+    if (availability.refreshTargets.length > 0) {
+      after(async () => {
+        await refreshCatalogAvailabilityBatch(
+          availability.refreshTargets,
+          { limit: 4 },
+        );
+      });
+    }
+
     if (visible.length >= 6) {
       return visible;
     }
@@ -86,6 +99,16 @@ async function loadRelatedAnime(
       filtered,
       'catalog',
     );
+
+    if (availability.refreshTargets.length > 0) {
+      after(async () => {
+        await refreshCatalogAvailabilityBatch(
+          availability.refreshTargets,
+          { limit: 4 },
+        );
+      });
+    }
+
     return availability.items.slice(0, 12);
   } catch (error) {
     console.warn('Related anime fallback failed:', error);
