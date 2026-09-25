@@ -51,7 +51,7 @@ const checks = [
   ['discovery warms hidden candidates', discovery.includes('refreshCatalogAvailabilityBatch(') && discovery.includes('{ limit: 8 }')],
   ['home feed warms hidden candidates', homeFeed.includes('refreshCatalogAvailabilityBatch(') && homeFeed.includes('{ limit: 6 }')],
   ['related titles warm hidden candidates', related.includes('refreshCatalogAvailabilityBatch(') && related.includes('{ limit: 4 }')],
-  ['Vercel fallback cron remains daily-safe', vercel.includes('"schedule": "23 4 * * *"')],
+  ['Vercel fallback cron remains daily-safe', vercel.crons?.some((cron) => cron.path === '/api/cron/catalog-availability' && cron.schedule === '23 4 * * *')],
 
   ['watch CTA requires verified playback', detailControls.includes('playable: playbackReady') && detailControls.includes('disabled={!playbackReady}')],
   ['watch handler has hard playback guard', detailControls.includes('if (!playbackReady) return;')],
