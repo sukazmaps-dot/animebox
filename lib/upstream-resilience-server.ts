@@ -228,6 +228,20 @@ function recordSuccess(key: UpstreamKey) {
   state.halfOpenInFlight = false;
 }
 
+function rejectQueuedForOpen(key: UpstreamKey) {
+  const state = stateFor(key);
+  const queued = state.queue.splice(0);
+
+  for (const waiter of queued) {
+    if (waiter.timer) clearTimeout(waiter.timer);
+    if (waiter.signal && waiter.abortListener) {
+      waiter.signal.removeEventListener('abort', waiter.abortListener);
+    }
+    state.rejected += 1;
+    waiter.reject(new UpstreamPressureError(key, 'circuit_open'));
+  }
+}
+
 function recordFailure(key: UpstreamKey, halfOpen: boolean) {
   const config = CONFIG[key];
   const state = stateFor(key);
@@ -238,6 +252,7 @@ function recordFailure(key: UpstreamKey, halfOpen: boolean) {
   if (halfOpen || state.consecutiveFailures >= config.failureThreshold) {
     state.openUntil = Date.now() + config.openMs;
     state.circuitOpened += 1;
+    rejectQueuedForOpen(key);
   }
 }
 
