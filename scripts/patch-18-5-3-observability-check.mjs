@@ -72,7 +72,11 @@ if (
   !healthServer.includes("from('system_request_metrics')") ||
   !healthServer.includes('requestHealthFromRows') ||
   !healthServer.includes('errorRate1hPct') ||
-  !healthServer.includes('p95Ms1h')
+  !healthServer.includes('p95Ms1h') ||
+  !healthServer.includes('p99Ms1h') ||
+  !healthServer.includes('probeSupabase') ||
+  !healthServer.includes('probeMediaEdge') ||
+  !healthServer.includes("protocol === 'variants-v3'")
 ) {
   failures.push('System Health server does not aggregate API runtime telemetry');
 }
@@ -80,7 +84,9 @@ if (
 if (
   !healthTypes.includes('RequestPlatformHealth') ||
   !healthTypes.includes('RequestRouteHealth') ||
+  !healthTypes.includes('SystemDependenciesHealth') ||
   !dashboard.includes('API RUNTIME · 1H') ||
+  !dashboard.includes('DEPENDENCIES') ||
   !dashboard.includes('health.requests.routes')
 ) {
   failures.push('System Health UI/types do not expose request telemetry');
