@@ -2,6 +2,8 @@ import '../premium.css';
 import type { Metadata } from 'next';
 import '../premium-studio-v12.css';
 import '../profile-editor-v13.css';
+import '../patch16-6-5-profile-studio.css';
+import '../patch17-4-2-2-public-profile-grid.css';
 import '../premium-profile-v14.css';
 
 import '../community.css';
