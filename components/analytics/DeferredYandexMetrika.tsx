@@ -47,31 +47,82 @@ function installMetrika(): void {
   });
 }
 
+const METRIKA_FALLBACK_DELAY_MS = 30_000;
+
+type IdleWindow = Window & {
+  requestIdleCallback?: (
+    callback: IdleRequestCallback,
+    options?: IdleRequestOptions,
+  ) => number;
+  cancelIdleCallback?: (handle: number) => void;
+};
+
 export default function DeferredYandexMetrika() {
   useEffect(() => {
-    let loaded = false;
+    const idleWindow = window as IdleWindow;
+    let scheduled = false;
+    let installed = false;
+    let idleHandle: number | null = null;
+    let fallbackTimer: number | null = null;
+
+    const removeInteractionListeners = () => {
+      window.removeEventListener('pointerdown', scheduleLoad);
+      window.removeEventListener('keydown', scheduleLoad);
+      window.removeEventListener('touchstart', scheduleLoad);
+    };
 
     const load = () => {
-      if (loaded) return;
-      loaded = true;
-      cleanup();
+      if (installed) return;
+      installed = true;
       installMetrika();
     };
 
-    const timer = window.setTimeout(load, 12_000);
-
-    const cleanup = () => {
+    function scheduleLoad() {
+      if (scheduled || installed) return;
+      scheduled = true;
       window.clearTimeout(timer);
-      window.removeEventListener('pointerdown', load);
-      window.removeEventListener('keydown', load);
-      window.removeEventListener('touchstart', load);
+      removeInteractionListeners();
+
+      // Never parse the third-party analytics bundle inside the input handler.
+      // Schedule it into idle time so the first interaction keeps a clean INP.
+      if (idleWindow.requestIdleCallback) {
+        idleHandle = idleWindow.requestIdleCallback(
+          load,
+          { timeout: 2_500 },
+        );
+        return;
+      }
+
+      fallbackTimer = window.setTimeout(load, 250);
+    }
+
+    const timer = window.setTimeout(
+      scheduleLoad,
+      METRIKA_FALLBACK_DELAY_MS,
+    );
+
+    window.addEventListener('pointerdown', scheduleLoad, {
+      once: true,
+      passive: true,
+    });
+    window.addEventListener('keydown', scheduleLoad, { once: true });
+    window.addEventListener('touchstart', scheduleLoad, {
+      once: true,
+      passive: true,
+    });
+
+    return () => {
+      window.clearTimeout(timer);
+      removeInteractionListeners();
+
+      if (fallbackTimer !== null) {
+        window.clearTimeout(fallbackTimer);
+      }
+
+      if (idleHandle !== null) {
+        idleWindow.cancelIdleCallback?.(idleHandle);
+      }
     };
-
-    window.addEventListener('pointerdown', load, { once: true, passive: true });
-    window.addEventListener('keydown', load, { once: true });
-    window.addEventListener('touchstart', load, { once: true, passive: true });
-
-    return cleanup;
   }, []);
 
   return null;
