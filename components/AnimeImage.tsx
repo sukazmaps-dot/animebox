@@ -21,6 +21,10 @@ import type {
   MediaImageFormat,
   MediaImagePreset,
 } from '@/lib/media-delivery';
+import {
+  observeNearViewportMedia,
+  type MediaWarmupActivation,
+} from '@/lib/media-warmup-client';
 
 const FALLBACK = '/brand/brand-mark.webp';
 const PRIMARY_MEDIA_TIMEOUT_MS = 6_500;
@@ -35,7 +39,8 @@ type Props = {
   alt?: string | null;
   englishName?: string | null;
   className?: string;
-  loading?: 'lazy' | 'eager';
+  loading?: 'lazy' | 'eager' | 'near';
+  fetchPriority?: 'high' | 'low' | 'auto';
   preferOriginal?: boolean;
   sizes?: string;
   quality?: number;
@@ -65,6 +70,7 @@ export default function AnimeImage({
   englishName,
   className = '',
   loading = 'lazy',
+  fetchPriority = 'auto',
   sizes = DEFAULT_SIZES,
   quality,
   sourcePreference = 'quality',
@@ -72,8 +78,13 @@ export default function AnimeImage({
   format = 'webp',
   onStateChange,
 }: Props) {
+  const hostRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const transientRetryCountRef = useRef(0);
+  const [warmupActivation, setWarmupActivation] =
+    useState<MediaWarmupActivation | 'waiting'>(
+      loading === 'near' ? 'waiting' : 'warm',
+    );
 
   const effectivePreset: MediaImagePreset =
     preset ?? (sourcePreference === 'compact' ? 'card' : 'large');
@@ -146,6 +157,35 @@ export default function AnimeImage({
   const publicState: AnimeImageLoadState =
     isFallback ? 'fallback' : loaded ? 'loaded' : 'loading';
 
+  const shouldRequestSource =
+    loading !== 'near' || warmupActivation !== 'waiting';
+
+  const nativeLoading: 'lazy' | 'eager' =
+    loading === 'near'
+      ? warmupActivation === 'native-lazy'
+        ? 'lazy'
+        : 'eager'
+      : loading;
+
+  const nativeFetchPriority =
+    loading === 'near' ? 'low' : fetchPriority;
+
+  useEffect(() => {
+    if (loading !== 'near' || warmupActivation !== 'waiting') return;
+
+    const host = hostRef.current;
+    if (!host) return;
+
+    return observeNearViewportMedia(host, (activation) => {
+      setWarmupActivation(activation);
+    });
+  }, [loading, warmupActivation]);
+
+  useEffect(() => {
+    if (loading === 'near') return;
+    setWarmupActivation('warm');
+  }, [loading]);
+
   useEffect(() => {
     onStateChange?.(publicState);
   }, [onStateChange, publicState]);
@@ -215,14 +255,15 @@ export default function AnimeImage({
   }, [goToNextSource, isFallback, sourceIndex, sourcesKey]);
 
   /*
-   * Native loading="lazy" owns off-screen scheduling. A mount-time watchdog
-   * must never race that scheduler: the browser may intentionally postpone a
-   * lazy request for many seconds. Genuine lazy failures are handled by
-   * onError. Only explicitly eager/critical images receive a bounded timeout.
+   * Native lazy scheduling and the shared near-viewport scheduler own the
+   * off-screen request window. The watchdog starts only after an eager request
+   * has actually been released, so it never races an intentionally deferred
+   * poster.
    */
   useEffect(() => {
     if (
-      loading !== 'eager' ||
+      !shouldRequestSource ||
+      nativeLoading !== 'eager' ||
       loaded ||
       isFallback
     ) {
@@ -239,7 +280,8 @@ export default function AnimeImage({
     goToNextSource,
     isFallback,
     loaded,
-    loading,
+    nativeLoading,
+    shouldRequestSource,
     sourceIndex,
   ]);
 
@@ -288,7 +330,7 @@ export default function AnimeImage({
 
   // Covers images fulfilled synchronously from the browser cache.
   useEffect(() => {
-    if (isFallback) return;
+    if (isFallback || !shouldRequestSource) return;
 
     const element = imageRef.current;
     if (!element || !element.complete) return;
@@ -319,17 +361,20 @@ export default function AnimeImage({
     current,
     goToNextSource,
     isFallback,
+    shouldRequestSource,
     sourceIndex,
     sourcesKey,
   ]);
 
   return (
     <div
+      ref={hostRef}
       className="relative h-full w-full min-h-0 overflow-hidden bg-slate-950"
       data-image-delivery="animebox-media"
       data-image-state={publicState}
       data-image-source-index={sourceIndex}
       data-image-loading={loading}
+      data-image-warmup={warmupActivation}
       data-image-preference={sourcePreference}
       data-image-preset={effectivePreset}
       data-image-format={format}
@@ -362,23 +407,26 @@ export default function AnimeImage({
           {/* Mass poster grids intentionally bypass /_next/image. Native lazy */}
           {/* loading keeps off-screen scheduling in the browser, not React. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            key={current}
-            ref={imageRef}
-            src={current}
-            srcSet={sourceIndex === 0 ? mediaSrcSet : undefined}
-            alt={resolvedAlt}
-            loading={loading}
-            decoding="async"
-            sizes={sizes}
-            onLoad={handleLoad}
-            onError={handleError}
-            className={[
-              'relative z-10 block h-full w-full object-cover transition-opacity duration-300',
-              loaded ? 'opacity-100' : 'opacity-0',
-              className,
-            ].join(' ')}
-          />
+          {shouldRequestSource && (
+            <img
+              key={current}
+              ref={imageRef}
+              src={current}
+              srcSet={sourceIndex === 0 ? mediaSrcSet : undefined}
+              alt={resolvedAlt}
+              loading={nativeLoading}
+              fetchPriority={nativeFetchPriority}
+              decoding="async"
+              sizes={sizes}
+              onLoad={handleLoad}
+              onError={handleError}
+              className={[
+                'relative z-10 block h-full w-full object-cover transition-opacity duration-[180ms]',
+                loaded ? 'opacity-100' : 'opacity-0',
+                className,
+              ].join(' ')}
+            />
+          )}
         </>
       )}
     </div>
