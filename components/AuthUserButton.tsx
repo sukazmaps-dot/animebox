@@ -20,6 +20,8 @@ export default function AuthUserButton() {
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
+    if (!open) return;
+
     function handleOutside(event: MouseEvent) {
       if (
         menuRef.current &&
@@ -42,7 +44,7 @@ export default function AuthUserButton() {
       document.removeEventListener('mousedown', handleOutside);
       window.removeEventListener('keydown', handleEscape);
     };
-  }, []);
+  }, [open]);
 
   async function logout() {
     setOpen(false);
