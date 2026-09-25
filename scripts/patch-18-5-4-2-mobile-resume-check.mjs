@@ -15,7 +15,7 @@ const telegramBridge = read('components/TelegramMiniAppBridge.tsx');
 const failures = [];
 
 for (const [label, source, needle] of [
-  ['shared near-end guard', watchProgress, 'resumeEndGuardMs(durationSeconds * 1000)'],
+  ['client near-end guard', watchProgress, 'Math.min(20, Math.max(6, durationSeconds * 0.04))'],
   ['heartbeat canonical resume', watchServer, 'const resumePositionMs = canonicalResumePositionMs({'],
   ['heartbeat writes canonical resume', watchServer, 'resume_position_ms: resumePositionMs'],
   ['end canonical resume', watchServer, 'const canonicalPositionMs = canonicalResumePositionMs({'],
