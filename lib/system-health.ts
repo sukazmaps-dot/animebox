@@ -81,6 +81,7 @@ export type RequestRouteHealth = {
   slowRequests24h: number;
   averageMs24h: number | null;
   p95Ms24h: number | null;
+  p99Ms24h: number | null;
   maxDurationMs24h: number | null;
 };
 
@@ -100,8 +101,26 @@ export type RequestPlatformHealth = {
   averageMs24h: number | null;
   p95Ms1h: number | null;
   p95Ms24h: number | null;
+  p99Ms1h: number | null;
+  p99Ms24h: number | null;
   maxDurationMs24h: number | null;
   routes: RequestRouteHealth[];
+};
+
+export type DependencyProbeHealth = {
+  state: 'healthy' | 'degraded' | 'unknown';
+  latencyMs: number | null;
+};
+
+export type MediaEdgeHealth = DependencyProbeHealth & {
+  configured: boolean;
+  protocol: string | null;
+  r2: boolean | null;
+};
+
+export type SystemDependenciesHealth = {
+  supabase: DependencyProbeHealth;
+  mediaEdge: MediaEdgeHealth;
 };
 
 export type SystemHealthSnapshot = {
@@ -115,6 +134,7 @@ export type SystemHealthSnapshot = {
   notification: NotificationHealth | null;
   playback: PlaybackPlatformHealth;
   requests: RequestPlatformHealth;
+  dependencies: SystemDependenciesHealth;
   signals: {
     openCriticalIncidents: number;
     openWarningIncidents: number;
@@ -123,5 +143,6 @@ export type SystemHealthSnapshot = {
     degradedJobs24h: number;
     requestRuntimeDegraded: boolean;
     requestRuntimeCritical: boolean;
+    dependencyWarnings: number;
   };
 };
