@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { enforceIpRateLimit } from '@/lib/api-rate-limit';
 import { getPlayerSourcePolicy } from '@/lib/player-source-control';
+import { observeApiRoute } from '@/lib/request-observability-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
+async function observedGET(request: NextRequest) {
   const limited = await enforceIpRateLimit(request, {
     scope: 'player_source_policy_ip',
     limit: 240,
@@ -48,3 +49,5 @@ export async function GET(request: NextRequest) {
     },
   });
 }
+
+export const GET = observeApiRoute('/api/player/source-policy', observedGET);
