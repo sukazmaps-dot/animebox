@@ -54,6 +54,12 @@ jobs:
           components/AnimeEpisodePage.tsx
           components/DirectVideoPlayer.tsx
           components/useWatchSession.ts
+          app/api/watch/route.ts
+          lib/watch-server.ts
+          lib/community-server.ts
+          lib/catalog-availability-server.ts
+          lib/edge-cache-policy.ts
+          app/api/recommendations/route.ts
           components/admin/SystemHealthDashboard.tsx
           lib/resume-integrity.ts
           lib/playback-observability.ts
