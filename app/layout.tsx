@@ -76,6 +76,7 @@ import './patch16-6-7-light-surfaces.css';
 import './patch17-3-personalization.css';
 import './patch17-4-service-experience.css';
 import './patch17-4-2-ui-precision.css';
+import './patch18-5-5-1-large-screen.css';
 
 import TelegramMiniAppBridge from '@/components/TelegramMiniAppBridge';
 import TelegramSubscriptionGate from '@/components/TelegramSubscriptionGate';
