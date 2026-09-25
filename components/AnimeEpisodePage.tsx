@@ -86,6 +86,14 @@ type SourceAttemptResult = {
   timedOut?: boolean;
 };
 
+const CLIENT_DIRECT_PLAYER_HINT =
+  process.env.NEXT_PUBLIC_DIRECT_PLAYER_ENABLED === 'true';
+
+const DEFAULT_PROVIDER_ORDER: PlayerProviderKey[] =
+  CLIENT_DIRECT_PLAYER_HINT
+    ? ['direct', 'kodik', 'aniliberty']
+    : ['kodik', 'aniliberty'];
+
 export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode = false }: { anime: Anime; requestedEpisode: number; theaterMode?: boolean }) {
   const router = useRouter();
   const animeIdParam = anime.slug as string;
@@ -306,11 +314,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       'kodik',
       'aniliberty',
     ]);
-    let providerOrder: PlayerProviderKey[] = [
-      'direct',
-      'kodik',
-      'aniliberty',
-    ];
+    let providerOrder: PlayerProviderKey[] = [...DEFAULT_PROVIDER_ORDER];
     let sourcePriority = new Map<PlayerProviderKey, number>([
       ['direct', 10],
       ['kodik', 20],
@@ -766,17 +770,32 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
       try {
         try {
-          const policySignal = AbortSignal.any([
-            controller.signal,
-            AbortSignal.timeout(2_500),
-          ]);
-          const policyResponse = await fetch(
-            `/api/player/source-policy?animeId=${encodeURIComponent(String(anime.id))}&season=${encodeURIComponent(String(anime.providerSeason || 1))}&episode=${encodeURIComponent(String(episodeNumber))}`,
-            {
-              signal: policySignal,
-              cache: 'no-store',
-            },
+          const policyController = new AbortController();
+          const abortPolicyFromParent = () => policyController.abort();
+          controller.signal.addEventListener('abort', abortPolicyFromParent, {
+            once: true,
+          });
+          const policyTimer = window.setTimeout(
+            () => policyController.abort(),
+            2_500,
           );
+
+          let policyResponse: Response;
+          try {
+            policyResponse = await fetch(
+              `/api/player/source-policy?animeId=${encodeURIComponent(String(anime.id))}&season=${encodeURIComponent(String(anime.providerSeason || 1))}&episode=${encodeURIComponent(String(episodeNumber))}`,
+              {
+                signal: policyController.signal,
+                cache: 'no-store',
+              },
+            );
+          } finally {
+            window.clearTimeout(policyTimer);
+            controller.signal.removeEventListener(
+              'abort',
+              abortPolicyFromParent,
+            );
+          }
 
           if (policyResponse.ok) {
             const policy =
