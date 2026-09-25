@@ -1,4 +1,4 @@
-export const RECOMMENDATION_RANKING_VERSION = '17.8-v1';
+export const RECOMMENDATION_RANKING_VERSION = '18.3-v1';
 
 export const RECOMMENDATION_RANKING_WEIGHTS = {
   genre: {
@@ -9,6 +9,7 @@ export const RECOMMENDATION_RANKING_WEIGHTS = {
   completedAffinity: 0.13,
   studioAffinity: 0.08,
   tasteGraphNegative: 0.32,
+  sessionNegativeAffinity: 0.26,
   episodeLength: 0.07,
   mood: {
     personalized: 0.18,
@@ -44,6 +45,7 @@ export const RECOMMENDATION_MATCH_WEIGHTS = {
   communityQuality: 0.12,
   shortFinished: 0.7,
   tasteGraphNegative: 0.24,
+  sessionNegativeAffinity: 0.16,
 } as const;
 
 export type RecommendationScoreSignals = {
@@ -52,6 +54,7 @@ export type RecommendationScoreSignals = {
   completedAffinity: number;
   studioAffinity: number;
   tasteGraphNegative: number;
+  sessionNegativeAffinity: number;
   episodeLength: number;
   mood: number;
   communityQuality: number;
@@ -69,6 +72,7 @@ export type RecommendationScoreComponents = {
   completedAffinity: number;
   studioAffinity: number;
   tasteGraphNegative: number;
+  sessionNegativeAffinity: number;
   episodeLength: number;
   mood: number;
   communityQuality: number;
@@ -116,6 +120,8 @@ export function scoreRecommendation(
       finite(signals.studioAffinity) * weights.studioAffinity,
     tasteGraphNegative:
       -finite(signals.tasteGraphNegative) * weights.tasteGraphNegative,
+    sessionNegativeAffinity:
+      -finite(signals.sessionNegativeAffinity) * weights.sessionNegativeAffinity,
     episodeLength:
       finite(signals.episodeLength) *
       (context.hasTasteConfidence ? weights.episodeLength : 0),
@@ -160,6 +166,7 @@ export function recommendationMatchBasis(
     | 'completedAffinity'
     | 'studioAffinity'
     | 'tasteGraphNegative'
+    | 'sessionNegativeAffinity'
     | 'episodeLength'
     | 'mood'
     | 'communityQuality'
@@ -177,6 +184,8 @@ export function recommendationMatchBasis(
       finite(signals.episodeLength) * weights.episodeLength +
       finite(signals.communityQuality) * weights.communityQuality +
       finite(signals.shortFinished) * weights.shortFinished -
-      finite(signals.tasteGraphNegative) * weights.tasteGraphNegative,
+      finite(signals.tasteGraphNegative) * weights.tasteGraphNegative -
+      finite(signals.sessionNegativeAffinity) *
+        weights.sessionNegativeAffinity,
   );
 }
