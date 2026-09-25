@@ -103,3 +103,7 @@ A dedicated static gate must verify:
 - both episode and video sitemaps apply the restriction filter;
 - admin external takedown action is audited;
 - production build passes.
+
+## Release sequencing
+
+This patch is cumulative with 18.5.3 and must pass the standard AnimeBox Quality Gate against `main` before merge.
