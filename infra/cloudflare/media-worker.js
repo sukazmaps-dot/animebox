@@ -385,7 +385,7 @@ export default {
       return Response.json({
         ok: true,
         service: 'animebox-media',
-        protocol: 'variants-v2',
+        protocol: 'variants-v3',
         r2: Boolean(env.MEDIA_BUCKET),
         widths: [...ALLOWED_WIDTHS],
         qualities: [...ALLOWED_QUALITIES],
@@ -420,14 +420,14 @@ export default {
     const hash = await sha256(source.toString());
 
     const key = variant
-      ? `posters-v2/${hash.slice(0, 2)}/${hash}/${variant.token}`
-      : `posters/${hash.slice(0, 2)}/${hash}`;
+      ? `posters-v3/${hash.slice(0, 2)}/${hash}/${variant.token}`
+      : `posters-v3-raw/${hash.slice(0, 2)}/${hash}`;
 
     const cache = caches.default;
     const cacheKey = new Request(
       variant
-        ? `${requestUrl.origin}/cache/v2/${hash}/${variant.token}`
-        : `${requestUrl.origin}/cache/${hash}`,
+        ? `${requestUrl.origin}/cache/v3/${hash}/${variant.token}`
+        : `${requestUrl.origin}/cache/v3-raw/${hash}`,
       { method: 'GET' },
     );
 

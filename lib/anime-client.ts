@@ -27,9 +27,16 @@ export type AnimeSearchMeta = {
   topMatchScore: number | null;
 };
 
+export type AnimePaginationMeta = {
+  page: number;
+  limit: number;
+  hasNextPage: boolean;
+};
+
 export type AnimeListPayload = {
   anime: Anime[];
   searchMeta?: AnimeSearchMeta;
+  pagination?: AnimePaginationMeta;
 };
 
 const listCache = new Map<string, CacheEntry<Anime[]>>();
@@ -234,6 +241,7 @@ export async function getAnimesWithMeta(
   const data = (await response.json()) as {
     anime?: Anime[];
     searchMeta?: AnimeSearchMeta;
+    pagination?: AnimePaginationMeta;
     error?: string;
   };
 
@@ -247,6 +255,7 @@ export async function getAnimesWithMeta(
     {
       anime: data.anime,
       ...(data.searchMeta ? { searchMeta: data.searchMeta } : {}),
+      ...(data.pagination ? { pagination: data.pagination } : {}),
     },
     options.search?.trim() ? SEARCH_CACHE_TTL : LIST_CACHE_TTL,
     80,

@@ -43,8 +43,8 @@ for (const [label, source, needle] of [
   ['visibility-aware lobby polling', partyHub, "document.visibilityState !== 'visible'"],
   ['lobby abort controller', partyHub, 'roomRequestRef'],
   ['public room edge cache', roomsRoute, 'publicApiCacheHeaders'],
-  ['optimistic episode metadata', episodeList, 'if (!availability) return metadataEpisodeNumbers'],
-  ['background episode verification', episodeList, 'episode-list__verification'],
+  ['verified-only episode links', episodeList, "if (availability?.status !== 'available') return []"],
+  ['controlled unknown availability state', episodeList, "availability?.status === 'unknown'"],
   ['post-response SEO sync', availabilityRoute, 'after(async () =>'],
   ['bounded availability deadline', availabilityRoute, 'AbortSignal.timeout(8_000)'],
   ['parallel source fallback', episodePage, 'Promise.allSettled'],
@@ -100,13 +100,9 @@ if (
   );
 }
 
-if (
-  episodeList.includes(
-    'availabilityLoading ? (\n        <div className="empty-state"',
-  )
-) {
+if (episodeList.includes('return metadataEpisodeNumbers')) {
   failures.push(
-    'Patch 15: episode metadata is still fully blocked by provider verification.',
+    'Patch 15: unverified provider state must not recreate playback links from metadata.',
   );
 }
 

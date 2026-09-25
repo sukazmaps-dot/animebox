@@ -19,7 +19,11 @@ const UNKNOWN_TTL_MS = 30 * 60 * 1000;
 const UNAVAILABLE_TTL_MS = 24 * 60 * 60 * 1000;
 const PLAYABLE_ONGOING_TTL_MS = 12 * 60 * 60 * 1000;
 const PLAYABLE_FINISHED_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const DEGRADED_ONGOING_GRACE_MS = 6 * 60 * 60 * 1000;
+const DEGRADED_FINISHED_GRACE_MS = 24 * 60 * 60 * 1000;
 
+const verifiedSnapshot = new Map<number, CatalogAvailabilityRow>();
+const VERIFIED_SNAPSHOT_LIMIT = 2_000;
 const inFlight = new Map<number, Promise<CatalogAvailabilityRow | null>>();
 let activeProbes = 0;
 const probeWaiters: Array<() => void> = [];
@@ -77,6 +81,50 @@ function rowIsFresh(row: CatalogAvailabilityRow | undefined, now = Date.now()) {
   if (!row?.next_check_at) return false;
   const next = Date.parse(row.next_check_at);
   return Number.isFinite(next) && next > now;
+}
+
+function rememberVerifiedRow(row: CatalogAvailabilityRow) {
+  if (row.availability_status !== 'playable' && !row.last_success_at) return;
+
+  verifiedSnapshot.delete(row.anime_id);
+  verifiedSnapshot.set(row.anime_id, row);
+
+  while (verifiedSnapshot.size > VERIFIED_SNAPSHOT_LIMIT) {
+    const oldest = verifiedSnapshot.keys().next().value as number | undefined;
+    if (oldest == null) break;
+    verifiedSnapshot.delete(oldest);
+  }
+}
+
+function lastSuccessWithinGrace(
+  row: CatalogAvailabilityRow | undefined,
+  anime: Anime,
+  now = Date.now(),
+) {
+  if (!row?.last_success_at) return false;
+
+  const lastSuccess = Date.parse(row.last_success_at);
+  if (!Number.isFinite(lastSuccess)) return false;
+
+  const grace = isOngoing(anime)
+    ? DEGRADED_ONGOING_GRACE_MS
+    : DEGRADED_FINISHED_GRACE_MS;
+
+  return now - lastSuccess <= grace;
+}
+
+type ExposureState = 'playable' | 'degraded' | 'pending' | 'unavailable';
+
+function exposureState(
+  row: CatalogAvailabilityRow | undefined,
+  anime: Anime,
+  now = Date.now(),
+): ExposureState {
+  if (!row) return 'pending';
+  if (row.availability_status === 'playable') return 'playable';
+  if (row.availability_status === 'unavailable') return 'unavailable';
+  if (lastSuccessWithinGrace(row, anime, now)) return 'degraded';
+  return 'pending';
 }
 
 function providerReason(name: string, status: CatalogProviderAvailabilityStatus, reason?: string | null) {
@@ -206,10 +254,13 @@ async function probeDirect(
   }
 }
 
-async function readRows(ids: number[]) {
+async function readRows(ids: number[]): Promise<{
+  rows: Map<number, CatalogAvailabilityRow>;
+  healthy: boolean;
+}> {
   const unique = [...new Set(ids)].filter((id) => Number.isSafeInteger(id) && id > 0);
   const rows = new Map<number, CatalogAvailabilityRow>();
-  if (!unique.length) return rows;
+  if (!unique.length) return { rows, healthy: true };
 
   try {
     const { data, error } = await createSupabaseAdmin()
@@ -222,15 +273,24 @@ async function readRows(ids: number[]) {
     if (error) throw error;
     for (const row of (data ?? []) as CatalogAvailabilityRow[]) {
       rows.set(Number(row.anime_id), row);
+      rememberVerifiedRow(row);
     }
+
+    return { rows, healthy: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    if (!registryUnavailable(message)) {
-      console.warn('[Catalog Availability] registry read failed:', error);
-    }
-  }
+    console.warn('[Catalog Availability] registry read failed:', message);
 
-  return rows;
+    // Integrity-first fallback: reuse only rows that were previously proven
+    // playable in this server process. A registry outage must never turn
+    // missing data into permission to expose unverified titles.
+    for (const id of unique) {
+      const snapshot = verifiedSnapshot.get(id);
+      if (snapshot) rows.set(id, snapshot);
+    }
+
+    return { rows, healthy: false };
+  }
 }
 
 export async function filterAnimeByAvailability(
@@ -239,64 +299,55 @@ export async function filterAnimeByAvailability(
 ): Promise<{
   items: Anime[];
   refreshTargets: Anime[];
+  registryHealthy: boolean;
 }> {
-  if (!anime.length) return { items: [], refreshTargets: [] };
+  if (!anime.length) {
+    return { items: [], refreshTargets: [], registryHealthy: true };
+  }
 
-  const rows = await readRows(anime.map((item) => item.id));
+  const registry = await readRows(anime.map((item) => item.id));
   const now = Date.now();
-  const playable: Anime[] = [];
-  const unknown: Anime[] = [];
+  const allowed = new Set<number>();
   const refreshTargets: Anime[] = [];
 
   for (const item of anime) {
-    const row = rows.get(item.id);
-    const fresh = rowIsFresh(row, now);
+    const row = registry.rows.get(item.id);
 
-    if (!row || !fresh) {
+    if (!row || !rowIsFresh(row, now)) {
       refreshTargets.push(item);
     }
 
-    if (row?.availability_status === 'unavailable' && fresh) {
-      continue;
-    }
+    const state = exposureState(row, item, now);
 
-    if (row?.availability_status === 'playable') {
-      playable.push(item);
-    } else {
-      unknown.push(item);
+    // Both public catalogue and recommendations are verified-first.
+    // "pending" means the title has never had a successful playback probe.
+    // "degraded" is allowed only for a short grace window after a previous
+    // successful verification, protecting users from brief provider outages.
+    if (state === 'playable' || state === 'degraded') {
+      allowed.add(item.id);
     }
   }
 
-  if (policy === 'catalog') {
-    const allowed = new Set([...playable, ...unknown].map((item) => item.id));
-    return {
-      items: anime.filter((item) => allowed.has(item.id)),
-      refreshTargets,
-    };
-  }
-
-  // Cold-start safety: recommendations prefer verified playable titles, but
-  // an empty registry must never blank the feed. UNKNOWN remains a bounded
-  // fallback until enough candidates have been verified.
-  const strictTarget = Math.min(8, Math.max(4, Math.ceil(anime.length * 0.4)));
   return {
-    items: playable.length >= strictTarget
-      ? playable
-      : [...playable, ...unknown],
+    items: anime.filter((item) => allowed.has(item.id)),
     refreshTargets,
+    registryHealthy: registry.healthy,
   };
 }
 
 export async function filterAnimeIdsByAvailability(ids: number[]) {
-  const rows = await readRows(ids);
+  const registry = await readRows(ids);
   const now = Date.now();
 
   return ids.filter((id) => {
-    const row = rows.get(id);
-    return !(
-      row?.availability_status === 'unavailable' &&
-      rowIsFresh(row, now)
-    );
+    const row = registry.rows.get(id);
+    if (!row) return false;
+    if (row.availability_status === 'playable') return true;
+    if (row.availability_status === 'unavailable') return false;
+    if (!row.last_success_at) return false;
+
+    const success = Date.parse(row.last_success_at);
+    return Number.isFinite(success) && now - success <= DEGRADED_FINISHED_GRACE_MS;
   });
 }
 
@@ -338,16 +389,28 @@ async function refreshOne(
 
     let consecutiveMisses = previous?.consecutive_misses ?? 0;
     let availabilityStatus: CatalogAvailabilityStatus;
+    const wasEverPlayable = Boolean(
+      previous?.last_success_at ||
+      previous?.availability_status === 'playable',
+    );
 
     if (anyAvailable) {
       consecutiveMisses = 0;
       availabilityStatus = 'playable';
     } else if (anyUnknown) {
+      // A timeout/429/provider outage is not proof of absence. Never-verified
+      // titles stay pending and remain hidden; previously playable titles can
+      // use the bounded degraded grace window in exposureState().
       availabilityStatus = 'unknown';
     } else {
       consecutiveMisses += 1;
+
+      // A brand-new candidate with three confirmed provider misses does not
+      // need three user-facing probe cycles: there is no evidence it has ever
+      // been playable on AnimeBox. Previously playable titles retain the
+      // multi-miss shield to avoid disappearing on one provider-side change.
       availabilityStatus =
-        consecutiveMisses >= CONFIRMED_MISS_THRESHOLD
+        !wasEverPlayable || consecutiveMisses >= CONFIRMED_MISS_THRESHOLD
           ? 'unavailable'
           : 'unknown';
     }
@@ -392,7 +455,9 @@ async function refreshOne(
         .single();
 
       if (error) throw error;
-      return data as CatalogAvailabilityRow;
+      const saved = data as CatalogAvailabilityRow;
+      rememberVerifiedRow(saved);
+      return saved;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (!registryUnavailable(message)) {
@@ -408,7 +473,7 @@ export async function refreshCatalogAvailability(
   options: { force?: boolean; signal?: AbortSignal } = {},
 ) {
   const existing = await readRows([anime.id]);
-  const previous = existing.get(anime.id);
+  const previous = existing.rows.get(anime.id);
 
   if (!options.force && rowIsFresh(previous)) {
     return previous ?? null;
@@ -438,7 +503,7 @@ export async function refreshCatalogAvailabilityBatch(
 
   return Promise.allSettled(
     unique.map((item) => {
-      const previous = previousRows.get(item.id);
+      const previous = previousRows.rows.get(item.id);
 
       if (!options.force && rowIsFresh(previous)) {
         return Promise.resolve(previous ?? null);

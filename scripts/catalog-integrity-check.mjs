@@ -16,6 +16,8 @@ const smartHome = read('app/smart-home.css');
 const contentFirst = read('app/design-v2-content-first.css');
 const cron = read('app/api/cron/catalog-availability/route.ts');
 const admin = read('app/api/admin/catalog-health/route.ts');
+const detailControls = read('components/AnimeDetailControls.tsx');
+const episodeList = read('components/EpisodeList.tsx');
 
 const failures = [];
 
@@ -31,13 +33,44 @@ for (const needle of [
 for (const needle of [
   'CONFIRMED_MISS_THRESHOLD = 3',
   'PROBE_CONCURRENCY = 4',
+  'DEGRADED_ONGOING_GRACE_MS',
+  'DEGRADED_FINISHED_GRACE_MS',
+  "type ExposureState = 'playable' | 'degraded' | 'pending' | 'unavailable'",
   "statuses.includes('unknown')",
   "availabilityStatus = 'unknown'",
+  "previous?.availability_status === 'playable'",
+  "!wasEverPlayable || consecutiveMisses >= CONFIRMED_MISS_THRESHOLD",
+  'verifiedSnapshot',
+  'registryHealthy: registry.healthy',
   'refreshCatalogAvailabilityBatch',
   'refreshStaleCatalogAvailability',
   "policy: 'catalog' | 'recommendations'",
 ]) {
   if (!availability.includes(needle)) failures.push(`availability service missing: ${needle}`);
+}
+
+if (
+  !availability.includes("state === 'playable' || state === 'degraded'") ||
+  availability.includes('...playable, ...unknown') ||
+  availability.includes('strictTarget')
+) {
+  failures.push('public surfaces still fail open to never-verified UNKNOWN titles');
+}
+
+if (
+  !availability.includes("if (!row) return 'pending'") ||
+  !availability.includes("if (row.availability_status === 'unavailable') return 'unavailable'") ||
+  !availability.includes("if (lastSuccessWithinGrace(row, anime, now)) return 'degraded'")
+) {
+  failures.push('verified playback exposure state machine is incomplete');
+}
+
+if (
+  !availability.includes("registry read failed:") ||
+  !availability.includes('const snapshot = verifiedSnapshot.get(id)') ||
+  availability.includes('return { rows, healthy: false };') === false
+) {
+  failures.push('registry outage does not fail closed to verified snapshot data');
 }
 
 if (
@@ -99,6 +132,23 @@ if (
   !admin.includes('refreshCatalogAvailability(anime')
 ) {
   failures.push('Catalog Health admin contract is incomplete');
+}
+
+if (
+  !detailControls.includes('playable: playbackReady') ||
+  !detailControls.includes('disabled={!playbackReady}') ||
+  !detailControls.includes("if (!playbackReady) return;") ||
+  detailControls.includes("availability?.status === 'unavailable'\n        ? null\n        : metadataCount")
+) {
+  failures.push('detail watch action can still open unverified metadata episodes');
+}
+
+if (
+  !episodeList.includes("if (availability?.status !== 'available') return []") ||
+  !episodeList.includes("availability?.status === 'unknown'") ||
+  episodeList.includes('return metadataEpisodeNumbers')
+) {
+  failures.push('episode list still creates playback links from unverified metadata');
 }
 
 if (failures.length) {
