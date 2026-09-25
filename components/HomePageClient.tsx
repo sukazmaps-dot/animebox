@@ -1290,6 +1290,7 @@ export default function HomePage({
                       className="anime-schedule-image"
                       sizes="58px"
                       quality={60}
+                      sourcePreference="compact"
                     />
 
                     <div style={{ minWidth: 0, overflow: 'hidden' }}>
