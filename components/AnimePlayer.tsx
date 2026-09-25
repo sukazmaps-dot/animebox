@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from 'react';
 import type { EpisodeTimelineMeta } from '@/types/episode-timeline';
+import { openingSkipSafetyDecision } from '@/lib/episode-timeline-safety';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '@/components/Icon';
 import KodikPlayer, { type KodikPlayerHandle } from '@/components/KodikPlayer';
@@ -102,6 +103,7 @@ interface AnimePlayerProps {
   onEnded?: () => void;
   onEpisodeChange?: (episode: number) => void;
   onPlaybackQualified?: () => void;
+  onDurationObserved?: (durationSeconds: number) => void;
   watchTogetherMode?: boolean;
 }
 
@@ -374,6 +376,7 @@ export default function AnimePlayer({
   onEnded,
   onEpisodeChange,
   onPlaybackQualified,
+  onDurationObserved,
   watchTogetherMode = false,
 }: AnimePlayerProps) {
   const { user, loading: authLoading } = useAuthState();
@@ -433,6 +436,7 @@ export default function AnimePlayer({
   const endedFlowRef = useRef(false);
   const openingAutoSkipAttemptedRef = useRef(false);
   const openingSkipTargetRef = useRef<number | null>(null);
+  const lastReportedTimelineDurationRef = useRef<number | null>(null);
   const openingSkipFallbackTimerRef = useRef<number | null>(null);
   const playerViewportRef = useRef<HTMLDivElement | null>(null);
   const telegramFullscreenOwnedRef = useRef(false);
@@ -765,19 +769,38 @@ export default function AnimePlayer({
   }, []);
 
   const requestOpeningSkip = useCallback(
-    (mode: 'auto' | 'manual') => {
-      const opening = timeline?.opening;
-      if (!opening || !smartSeekSupported || watchTogetherMode) return false;
+    (
+      mode: 'auto' | 'manual',
+      observedDurationSeconds?: number | null,
+    ) => {
+      if (!smartSeekSupported || watchTogetherMode) return false;
 
       const fromSeconds = latestPlaybackPositionSecondsRef.current;
-      const targetSeconds = opening.endMs / 1000;
       const durationSeconds =
-        isKodik
-          ? kodikPlayerRef.current?.getState().durationSeconds ?? null
-          : videoRef.current && Number.isFinite(videoRef.current.duration)
-            ? videoRef.current.duration
-            : null;
+        observedDurationSeconds != null &&
+        Number.isFinite(observedDurationSeconds) &&
+        observedDurationSeconds > 0
+          ? observedDurationSeconds
+          : isKodik
+            ? kodikPlayerRef.current?.getState().durationSeconds ?? null
+            : videoRef.current && Number.isFinite(videoRef.current.duration)
+              ? videoRef.current.duration
+              : null;
 
+      const openingDecision = openingSkipSafetyDecision({
+        timeline,
+        observedDurationSeconds: durationSeconds,
+        requireObservedDuration: mode === 'auto',
+      });
+
+      if (
+        !openingDecision.safe ||
+        openingDecision.targetSeconds == null
+      ) {
+        return false;
+      }
+
+      const targetSeconds = openingDecision.targetSeconds;
       let requested = false;
 
       if (isKodik) {
@@ -858,6 +881,27 @@ export default function AnimePlayer({
 
       latestPlaybackPositionSecondsRef.current = positionSeconds;
 
+      const observedDurationSeconds =
+        sample.durationSeconds != null &&
+        Number.isFinite(sample.durationSeconds) &&
+        sample.durationSeconds > 0
+          ? sample.durationSeconds
+          : null;
+
+      if (observedDurationSeconds != null && onDurationObserved) {
+        const previousDuration =
+          lastReportedTimelineDurationRef.current;
+
+        if (
+          previousDuration == null ||
+          Math.abs(previousDuration - observedDurationSeconds) > 2
+        ) {
+          lastReportedTimelineDurationRef.current =
+            observedDurationSeconds;
+          onDurationObserved(observedDurationSeconds);
+        }
+      }
+
       const resumeGate = resumeGateRef.current;
       if (resumeGate) {
         const resumeLanded =
@@ -898,9 +942,17 @@ export default function AnimePlayer({
       persistLocalProgress(sample);
       serverWatchSample(sample);
 
-      const opening = timeline?.opening;
-      const openingStartSeconds = opening ? opening.startMs / 1000 : null;
-      const openingEndSeconds = opening ? opening.endMs / 1000 : null;
+      const openingDecision = openingSkipSafetyDecision({
+        timeline,
+        observedDurationSeconds,
+        requireObservedDuration: true,
+      });
+      const openingStartSeconds = openingDecision.safe
+        ? openingDecision.startSeconds
+        : null;
+      const openingEndSeconds = openingDecision.safe
+        ? openingDecision.targetSeconds
+        : null;
       const insideOpening =
         openingStartSeconds != null &&
         openingEndSeconds != null &&
@@ -926,7 +978,10 @@ export default function AnimePlayer({
         // One automatic attempt per episode. If the provider refuses/drops
         // the seek, requestOpeningSkip exposes the manual fallback button.
         openingAutoSkipAttemptedRef.current = true;
-        if (!requestOpeningSkip('auto') && !isKodik) {
+        if (
+          !requestOpeningSkip('auto', observedDurationSeconds) &&
+          !isKodik
+        ) {
           setSkipOpeningVisible(true);
         }
       } else if (!insideOpening) {
@@ -985,6 +1040,7 @@ export default function AnimePlayer({
       markConfirmedPlaybackStart,
       onEnded,
       onPlaybackQualified,
+      onDurationObserved,
       clearOpeningSkipFallback,
       persistLocalProgress,
       requestOpeningSkip,
@@ -1132,6 +1188,7 @@ export default function AnimePlayer({
     endedFlowRef.current = false;
     openingAutoSkipAttemptedRef.current = false;
     openingSkipTargetRef.current = null;
+    lastReportedTimelineDurationRef.current = null;
     clearOpeningSkipFallback();
 
     queueMicrotask(() => {

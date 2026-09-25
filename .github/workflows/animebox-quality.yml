@@ -145,6 +145,8 @@ jobs:
           components/CopyrightReportForm.tsx
           components/admin/CopyrightAdminClient.tsx
           lib/player-source-control.ts
+          lib/episode-timeline-safety.ts
+          lib/episode-timeline-server.ts
           types/player-source-policy.ts
           app/api/player/source-policy/route.ts
           app/api/admin/player-sources/route.ts

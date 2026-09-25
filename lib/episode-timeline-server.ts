@@ -7,6 +7,10 @@ import type {
   EpisodeTimelineMeta,
   EpisodeTimelineSegment,
 } from '@/types/episode-timeline';
+import {
+  openingSkipSafetyDecision,
+  timelineDurationMatchesObserved,
+} from '@/lib/episode-timeline-safety';
 
 const ANISKIP_BASE = 'https://api.aniskip.com/v2/skip-times';
 const MAX_MEDIA_SECONDS = 8 * 60 * 60;
@@ -92,13 +96,21 @@ function segmentFromRow(
 }
 
 function rowToTimeline(row: TimelineRow): EpisodeTimelineMeta {
+  const segmentsUsable = row.skip_lookup_status === 'found';
+
   return {
     animeId: Number(row.anime_id),
     episode: Number(row.episode_number),
     durationMs: row.duration_ms == null ? null : Number(row.duration_ms),
-    opening: segmentFromRow(row.opening_start_ms, row.opening_end_ms),
-    ending: segmentFromRow(row.ending_start_ms, row.ending_end_ms),
-    recap: segmentFromRow(row.recap_start_ms, row.recap_end_ms),
+    opening: segmentsUsable
+      ? segmentFromRow(row.opening_start_ms, row.opening_end_ms)
+      : null,
+    ending: segmentsUsable
+      ? segmentFromRow(row.ending_start_ms, row.ending_end_ms)
+      : null,
+    recap: segmentsUsable
+      ? segmentFromRow(row.recap_start_ms, row.recap_end_ms)
+      : null,
     skipSource: row.skip_source,
     skipConfidence:
       row.skip_confidence == null ? null : Number(row.skip_confidence),
@@ -115,11 +127,29 @@ function cacheTtl(status: EpisodeTimelineLookupStatus) {
   return 0;
 }
 
-function isFresh(row: TimelineRow | null) {
+function isFresh(
+  row: TimelineRow | null,
+  observedDurationMs: number | null,
+) {
   if (!row?.skip_checked_at) return false;
   const checkedAt = Date.parse(row.skip_checked_at);
   if (!Number.isFinite(checkedAt)) return false;
-  return Date.now() - checkedAt < cacheTtl(row.skip_lookup_status);
+
+  if (Date.now() - checkedAt >= cacheTtl(row.skip_lookup_status)) {
+    return false;
+  }
+
+  if (
+    observedDurationMs != null &&
+    !timelineDurationMatchesObserved(
+      row.duration_ms,
+      observedDurationMs / 1000,
+    )
+  ) {
+    return false;
+  }
+
+  return true;
 }
 
 async function loadTimelineRow(animeId: number, episode: number) {
@@ -334,7 +364,7 @@ export async function resolveEpisodeTimeline(input: {
   const observedDurationMs = normalizeDurationMs(input.observedDurationMs);
   const existing = await loadTimelineRow(animeId, episode);
 
-  if (existing && isFresh(existing)) {
+  if (existing && isFresh(existing, observedDurationMs)) {
     return rowToTimeline(existing);
   }
 
@@ -354,6 +384,12 @@ export async function resolveEpisodeTimeline(input: {
           anime_id: animeId,
           episode_number: episode,
           duration_ms: observedDurationMs ?? existing?.duration_ms ?? null,
+          opening_start_ms: null,
+          opening_end_ms: null,
+          ending_start_ms: null,
+          ending_end_ms: null,
+          recap_start_ms: null,
+          recap_end_ms: null,
           skip_lookup_status: 'missing_identity',
           skip_source: null,
           skip_checked_at: now,
@@ -395,7 +431,7 @@ export async function resolveEpisodeTimeline(input: {
       ) ??
       fallbackDurationMs;
 
-    const opening = segmentFromSeconds(
+    const rawOpening = segmentFromSeconds(
       firstByType(results, ['op', 'mixed-op']),
       durationMs,
     );
@@ -408,6 +444,25 @@ export async function resolveEpisodeTimeline(input: {
       durationMs,
     );
 
+    const openingDecision = openingSkipSafetyDecision({
+      timeline: {
+        animeId,
+        episode,
+        durationMs,
+        opening: rawOpening,
+        ending,
+        recap,
+        skipSource: 'aniskip',
+        skipConfidence: null,
+        lookupStatus: 'found',
+        checkedAt: now,
+      },
+      observedDurationSeconds:
+        durationMs == null ? null : durationMs / 1000,
+      requireObservedDuration: false,
+    });
+
+    const opening = openingDecision.safe ? rawOpening : null;
     const found = Boolean(opening || ending || recap);
     const payload = {
       anime_id: animeId,
@@ -446,6 +501,12 @@ export async function resolveEpisodeTimeline(input: {
           anime_id: animeId,
           episode_number: episode,
           duration_ms: fallbackDurationMs,
+          opening_start_ms: null,
+          opening_end_ms: null,
+          ending_start_ms: null,
+          ending_end_ms: null,
+          recap_start_ms: null,
+          recap_end_ms: null,
           skip_lookup_status: 'error',
           skip_source: 'aniskip',
           skip_checked_at: now,

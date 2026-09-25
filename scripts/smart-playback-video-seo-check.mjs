@@ -31,7 +31,7 @@ const videoViewMigration = read(
 for (const [label, needle] of [
   ['5 second local progress journal', 'LOCAL_PROGRESS_SAVE_INTERVAL_MS = 5_000'],
   ['automatic opening guard', 'openingAutoSkipAttemptedRef.current = true'],
-  ['automatic opening seek', "requestOpeningSkip('auto')"],
+  ['automatic opening seek', "requestOpeningSkip('auto', observedDurationSeconds)"],
   ['manual skip fallback UI', 'Пропустить опенинг'],
   ['Kodik duplicate skip suppression', 'skipOpeningVisible && !watchTogetherMode && !isKodik'],
   ['opening seek watch-integrity signal', 'watchSession.onProviderSkip'],
