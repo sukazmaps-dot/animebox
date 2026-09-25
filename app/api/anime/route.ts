@@ -1,4 +1,5 @@
 import {
+  after,
   NextRequest,
   NextResponse,
 } from 'next/server';
@@ -37,6 +38,10 @@ import {
   privateNoStoreHeaders,
   publicApiCacheHeaders,
 } from '@/lib/edge-cache-policy';
+import {
+  filterAnimeByAvailability,
+  refreshCatalogAvailabilityBatch,
+} from '@/lib/catalog-availability-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -205,6 +210,23 @@ export async function GET(
         }
 
         if (candidates.length >= Math.min(limit, 8)) break;
+      }
+    }
+
+    if (status !== 'upcoming') {
+      const availability = await filterAnimeByAvailability(
+        candidates,
+        'catalog',
+      );
+      candidates = availability.items;
+
+      if (availability.refreshTargets.length > 0) {
+        after(async () => {
+          await refreshCatalogAvailabilityBatch(
+            availability.refreshTargets,
+            { limit: 6 },
+          );
+        });
       }
     }
 

@@ -10,6 +10,7 @@ const links = [
   { href: '/admin/player', label: 'Плеер', icon: '▶' },
   { href: '/admin/player-sources', label: 'Источники', icon: '⇄' },
   { href: '/admin/health', label: 'Система', icon: '◉' },
+  { href: '/admin/catalog-health', label: 'Каталог', icon: '▦' },
   { href: '/admin/recommendations', label: 'Рекомендации', icon: '✦' },
   { href: '/admin/users', label: 'Пользователи', icon: '◎' },
   { href: '/admin/moderation', label: 'Модерация', icon: '◇' },

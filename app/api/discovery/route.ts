@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
 
 import { getAnimesWithShikimori } from '@/lib/combined-anime';
@@ -11,6 +11,10 @@ import { mergeAnimeCandidates } from '@/lib/smart-search';
 import { classifySearchQuery } from '@/lib/search-query';
 import { resolveSearchEntity } from '@/lib/search-entity-server';
 import type { Anime } from '@/types/anime';
+import {
+  filterAnimeByAvailability,
+  refreshCatalogAvailabilityBatch,
+} from '@/lib/catalog-availability-server';
 import {
   hydrateLocalAnimeHits,
   indexAnimeSearchDocuments,
@@ -167,6 +171,21 @@ export async function GET(request: NextRequest) {
         secondPools[0].status === 'fulfilled' ? secondPools[0].value : [],
         secondPools[1].status === 'fulfilled' ? secondPools[1].value : [],
       ).filter((anime) => anime.id !== seed?.id);
+    }
+
+    const availability = await filterAnimeByAvailability(
+      candidates,
+      'catalog',
+    );
+    candidates = availability.items;
+
+    if (availability.refreshTargets.length > 0) {
+      after(async () => {
+        await refreshCatalogAvailabilityBatch(
+          availability.refreshTargets,
+          { limit: 5 },
+        );
+      });
     }
 
     let ranked = rankSmartDiscoveryCandidates(candidates, intent, { seed, strict: true });

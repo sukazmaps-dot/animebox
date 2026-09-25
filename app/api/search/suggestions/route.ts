@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 
 import { enforceIpRateLimit } from '@/lib/api-rate-limit';
 import { animeHref } from '@/lib/anime-url';
@@ -12,6 +12,10 @@ import {
   classifySearchQuery,
   shouldBootstrapSearchProvider,
 } from '@/lib/search-query';
+import {
+  filterAnimeIdsByAvailability,
+  refreshCatalogAvailabilityBatch,
+} from '@/lib/catalog-availability-server';
 
 export const runtime = 'nodejs';
 
@@ -55,11 +59,21 @@ export async function GET(request: NextRequest) {
         });
         const ranked = rankAnimeForSmartSearch(provider, query).slice(0, 8);
         await indexAnimeSearchDocuments(ranked);
+        after(async () => {
+          await refreshCatalogAvailabilityBatch(ranked, { limit: 4 });
+        });
         local = await searchLocalAnimeSuggestions(query, limit);
       } catch (providerError) {
         console.warn('[Search suggestions provider fallback]', providerError);
       }
     }
+
+    const allowedIds = new Set(
+      await filterAnimeIdsByAvailability(
+        local.map((item) => item.animeId),
+      ),
+    );
+    local = local.filter((item) => allowedIds.has(item.animeId));
 
     return NextResponse.json(
       {

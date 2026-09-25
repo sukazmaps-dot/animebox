@@ -1,0 +1,165 @@
+.dashboard {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.header span {
+  color: #8f7cff;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.header h1 {
+  margin: 6px 0 0;
+  font-size: 28px;
+}
+
+.header p {
+  max-width: 720px;
+  margin: 8px 0 0;
+  color: #8b95aa;
+  line-height: 1.55;
+}
+
+.header button,
+.recheck button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(150, 128, 255, .28);
+  border-radius: 10px;
+  background: rgba(111, 83, 236, .16);
+  color: #ded8ff;
+  cursor: pointer;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.kpis article,
+.panel,
+.recheck {
+  border: 1px solid rgba(137, 150, 184, .12);
+  border-radius: 14px;
+  background: rgba(10, 15, 29, .88);
+}
+
+.kpis article {
+  display: grid;
+  gap: 6px;
+  padding: 15px;
+}
+
+.kpis span,
+.kpis small,
+.panelHead small,
+.recheck small,
+.rows small {
+  color: #78839b;
+  font-size: 11px;
+}
+
+.kpis strong {
+  font-size: 24px;
+}
+
+.recheck {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 260px) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+}
+
+.recheck > div {
+  display: grid;
+  gap: 4px;
+}
+
+.recheck input {
+  min-height: 38px;
+  padding: 0 11px;
+  border: 1px solid rgba(137, 150, 184, .16);
+  border-radius: 10px;
+  background: #090f1d;
+  color: #f1f3fb;
+}
+
+.panel {
+  overflow: hidden;
+}
+
+.panelHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(137, 150, 184, .10);
+}
+
+.rows {
+  display: grid;
+}
+
+.rows article {
+  display: grid;
+  grid-template-columns: minmax(150px, .35fr) minmax(0, 1fr);
+  gap: 18px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(137, 150, 184, .07);
+}
+
+.rows article:last-child {
+  border-bottom: 0;
+}
+
+.rows article > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rows span {
+  overflow: hidden;
+  color: #aab1c3;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty,
+.message {
+  padding: 14px 16px;
+  color: #949eb3;
+}
+
+.message {
+  border: 1px solid rgba(143, 124, 255, .16);
+  border-radius: 10px;
+  background: rgba(111, 83, 236, .08);
+}
+
+@media (max-width: 900px) {
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .recheck {
+    grid-template-columns: 1fr;
+  }
+
+  .rows article {
+    grid-template-columns: 1fr;
+  }
+}

@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
-import AnimeImage from '@/components/AnimeImage';
+import AnimeImage, { type AnimeImageLoadState } from '@/components/AnimeImage';
 import Icon from '@/components/Icon';
 import { animeHref } from '@/lib/anime-url';
 import { getAnimeTitle } from '@/lib/anime-display';
+import { formatAnimeScore } from '@/lib/anime-score';
 import { communityRequest } from '@/lib/community-client';
 import { persistRecommendationFeedback } from '@/lib/recommendation-feedback-client';
 import {
@@ -77,6 +78,8 @@ export default function SmartRecommendationCard({
   const hoverStartedAtRef = useRef<number | null>(null);
   const [planState, setPlanState] = useState<'idle' | 'saving' | 'saved' | 'auth' | 'error'>('idle');
   const [liked, setLiked] = useState(false);
+  const [posterState, setPosterState] = useState<AnimeImageLoadState>('loading');
+  const ratingLabel = formatAnimeScore(anime);
 
   const eventContext = {
     animeId: anime.id,
@@ -314,14 +317,17 @@ export default function SmartRecommendationCard({
             loading="lazy"
             sizes="(max-width: 560px) 41vw, (max-width: 900px) 27vw, (max-width: 1280px) 18vw, 205px"
             quality={62}
+            onStateChange={setPosterState}
           />
 
-          <div className="smart-card__rating">
-            <span aria-hidden="true">★</span>
-            {anime.score ?? anime.averageScore ?? '—'}
-          </div>
+          {posterState === 'loaded' && ratingLabel && (
+            <div className="smart-card__rating" aria-label={`Рейтинг ${ratingLabel} из 10`}>
+              <span aria-hidden="true">★</span>
+              {ratingLabel}
+            </div>
+          )}
 
-          {matchScore != null && (
+          {posterState === 'loaded' && matchScore != null && (
             <div
               className="smart-card__match"
               title={reasons.join(' · ')}

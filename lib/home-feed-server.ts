@@ -4,6 +4,7 @@ import { unstable_cache } from 'next/cache';
 
 import { getAnimesWithShikimori } from '@/lib/combined-anime';
 import type { Anime } from '@/types/anime';
+import { filterAnimeByAvailability } from '@/lib/catalog-availability-server';
 
 type HomeInitialFeed = {
   popular: Anime[];
@@ -40,7 +41,18 @@ const loadHomeInitialFeed = unstable_cache(
 
 export async function getHomeInitialFeed(): Promise<HomeInitialFeed> {
   try {
-    return await loadHomeInitialFeed();
+    const raw = await loadHomeInitialFeed();
+    const combined = [...raw.popular, ...raw.ongoing];
+    const availability = await filterAnimeByAvailability(
+      combined,
+      'catalog',
+    );
+    const allowed = new Set(availability.items.map((anime) => anime.id));
+
+    return {
+      popular: raw.popular.filter((anime) => allowed.has(anime.id)),
+      ongoing: raw.ongoing.filter((anime) => allowed.has(anime.id)),
+    };
   } catch (error) {
     console.warn('[Home] initial server feed unavailable:', error);
     return { popular: [], ongoing: [] };

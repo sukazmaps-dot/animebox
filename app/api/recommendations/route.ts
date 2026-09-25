@@ -1,10 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
 
 import { getAnimesWithShikimori } from '@/lib/combined-anime';
 import type { GetAnimesOptions } from '@/lib/anilist';
 import { findAnimeGenre } from '@/lib/anime-taxonomy';
 import { enforceIpRateLimit } from '@/lib/api-rate-limit';
+import {
+  filterAnimeByAvailability,
+  refreshCatalogAvailabilityBatch,
+} from '@/lib/catalog-availability-server';
 
 export const runtime = 'nodejs';
 
@@ -348,9 +352,23 @@ export async function GET(request: NextRequest) {
       mood,
       bucket,
     });
+    const availability = await filterAnimeByAvailability(
+      result.items,
+      'recommendations',
+    );
+
+    if (availability.refreshTargets.length > 0) {
+      after(async () => {
+        await refreshCatalogAvailabilityBatch(
+          availability.refreshTargets,
+          { limit: 5 },
+        );
+      });
+    }
+
     // Short filtered pages and empty narrow-source pages are not EOF. The
-    // loader above first falls back to a broad ranked/popularity source. Only
-    // an empty broad fallback is allowed to terminate the shared cursor.
+    // client already performs bounded empty-page hops, so a page containing
+    // only confirmed unavailable titles simply advances to the next cursor.
     const hasMore = result.items.length > 0 && page < MAX_PAGE;
     const nextPage = hasMore ? page + 1 : null;
     const nextCursor =
@@ -358,7 +376,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       {
-        items: result.items,
+        items: availability.items,
         page,
         nextPage,
         nextCursor,
