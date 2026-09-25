@@ -587,8 +587,9 @@ export default function HomeHeroCarousel({
             src={mobileKeyArt}
             alt=""
             fill
-            priority={safeActiveIndex === 0 && mobileAttemptIndex === 0}
-            fetchPriority={safeActiveIndex === 0 && mobileAttemptIndex === 0 ? 'high' : 'auto'}
+            priority={false}
+            fetchPriority="auto"
+            loading="lazy"
             decoding="async"
             quality={88}
             unoptimized={Boolean(mobileAttempt?.unoptimized)}
