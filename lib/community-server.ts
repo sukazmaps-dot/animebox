@@ -312,7 +312,6 @@ async function refreshAnimeCatalogMetadata(
 
       const row = saved as AnimeCatalogMetadata;
       rememberAnimeCatalogRow(row);
-
       return row;
     } finally {
       if (lease.acquired) {
@@ -440,6 +439,5 @@ export async function ensureAnimeArtwork(id: number) {
 
   if (saveError) throw saveError;
   rememberAnimeCatalogRow(saved as AnimeCatalogMetadata);
-
   return saved as AnimeCatalogMetadata;
 }
