@@ -9,7 +9,9 @@ const failures = [];
 const sw = read('public/animebox-sw.js');
 const bridge = read('components/OfflineCacheBridge.tsx');
 const deferred = read('components/DeferredMount.tsx');
+const appEnhancements = read('components/DeferredAppEnhancements.tsx');
 const home = read('components/HomePageClient.tsx');
+const hero = read('components/HomeHeroCarousel.tsx');
 const feed = read('lib/home-feed-server.ts');
 const card = read('components/AnimeCard.tsx');
 const layout = read('app/layout.tsx');
@@ -28,11 +30,19 @@ for (const [label, source, needle] of [
   ['deferred IntersectionObserver', deferred, 'new IntersectionObserver'],
   ['save-data aware deferred margin', deferred, 'connection?.saveData'],
   ['home deferred recommendations', home, 'home-deferred--recommendations'],
+  ['home deferred retention', home, 'home-deferred--retention'],
+  ['home deferred personal pulse', home, 'home-deferred--pulse'],
+  ['home deferred activation', home, 'home-deferred--activation'],
   ['home deferred chat', home, 'home-deferred--chat'],
   ['home deferred telegram', home, 'home-deferred--telegram'],
   ['home server feed mobile budget', feed, 'limit: 12'],
   ['landscape-aware anime image sizes', card, '(orientation: landscape) and (max-height: 600px) 18vw'],
   ['performance stylesheet import', layout, "import './patch16-6-1-mobile-performance.css';"],
+  ['idle app enhancements', layout, '<DeferredAppEnhancements />'],
+  ['requestIdleCallback shell defer', appEnhancements, 'requestIdleCallback'],
+  ['home public CDN cache', nextConfig, "source: '/', headers: homeHeaders"],
+  ['home ISR cache lifetime', nextConfig, 's-maxage=900'],
+  ['single hero high-priority preload', hero, 'priority={false}'],
   ['service worker no-store header', nextConfig, "source: '/animebox-sw.js'"],
   ['coarse pointer GPU reduction', css, '@media (hover: none) and (pointer: coarse)'],
   ['reduced data contract', css, '@media (prefers-reduced-data: reduce)'],
@@ -58,6 +68,27 @@ const responsiveImport = "import './patch16-6-responsive-layout.css';";
 
 if (layout.indexOf(performanceImport) < layout.indexOf(responsiveImport)) {
   failures.push('mobile performance layer must load after responsive foundation');
+}
+
+const htmlRoutesBlock =
+  nextConfig.match(/const htmlRoutes = \[[\s\S]*?\];/)?.[0] ?? '';
+
+if (htmlRoutesBlock.includes("'/'")) {
+  failures.push('public Home route must not be forced through the no-store HTML route list');
+}
+
+if ((hero.match(/fetchPriority=.*high/g) ?? []).length > 1) {
+  failures.push('Home hero must have only one high-priority image request');
+}
+
+for (const eagerImport of [
+  "import ProgressionCelebration from '@/components/ProgressionCelebration'",
+  "import TelegramWelcomePromo from '@/components/TelegramWelcomePromo'",
+  "import SocialPresenceHeartbeat from '@/components/social/SocialPresenceHeartbeat'",
+]) {
+  if (layout.includes(eagerImport)) {
+    failures.push(`root layout still eagerly hydrates non-critical feature: ${eagerImport}`);
+  }
 }
 
 if (
