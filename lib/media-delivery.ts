@@ -24,8 +24,8 @@ type MediaPresetConfig = {
 
 const MEDIA_IMAGE_PRESETS: Record<MediaImagePreset, MediaPresetConfig> = {
   tiny: {
-    widths: [96, 144],
-    defaultWidth: 96,
+    widths: [96, 144, 240],
+    defaultWidth: 144,
     defaultQuality: 60,
   },
   card: {
@@ -34,9 +34,9 @@ const MEDIA_IMAGE_PRESETS: Record<MediaImagePreset, MediaPresetConfig> = {
     defaultQuality: 70,
   },
   large: {
-    widths: [360, 540],
-    defaultWidth: 360,
-    defaultQuality: 70,
+    widths: [360, 540, 720, 1080],
+    defaultWidth: 540,
+    defaultQuality: 80,
   },
   hero: {
     widths: [720, 1080, 1440],
