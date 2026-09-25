@@ -4,6 +4,10 @@ import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdmin } from '@supabase/supabase-js';
 import { getAnimeByIdWithShikimori } from '@/lib/combined-anime';
 import { getAnimeTitle } from '@/lib/anime-display';
+import {
+  releaseRuntimeRefreshLease,
+  tryAcquireRuntimeRefreshLease,
+} from '@/lib/runtime-refresh-lease-server';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -127,6 +131,12 @@ const animeCatalogReadInFlight = new Map<
   string,
   Promise<AnimeCatalogMetadata[]>
 >();
+const animeCatalogRefreshInFlight = new Map<
+  number,
+  Promise<AnimeCatalogMetadata>
+>();
+const ANIME_CATALOG_REFRESH_LEASE_SECONDS = 20;
+const REMOTE_METADATA_SETTLE_DELAYS_MS = [120, 240] as const;
 
 function rememberAnimeCatalogRow(row: AnimeCatalogMetadata) {
   const animeId = Number(row.id);
@@ -237,6 +247,89 @@ function animeCatalogPayload(
   };
 }
 
+async function waitForRemoteAnimeCatalogRow(animeId: number) {
+  for (const delayMs of REMOTE_METADATA_SETTLE_DELAYS_MS) {
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, delayMs);
+    });
+
+    const rows = await readAnimeCatalogRows([animeId]);
+    const row = rows.find((item) => Number(item.id) === animeId);
+    if (row) return row;
+  }
+
+  return null;
+}
+
+async function refreshAnimeCatalogMetadata(
+  animeId: number,
+  previous?: AnimeCatalogMetadata,
+): Promise<AnimeCatalogMetadata> {
+  const pending = animeCatalogRefreshInFlight.get(animeId);
+  if (pending) return pending;
+
+  const request = (async () => {
+    const cacheKey = String(animeId);
+    const lease = await tryAcquireRuntimeRefreshLease(
+      'anime_catalog_metadata',
+      cacheKey,
+      ANIME_CATALOG_REFRESH_LEASE_SECONDS,
+    );
+
+    if (!lease.acquired) {
+      // Stale metadata is safe for this short window and avoids an upstream
+      // stampede across serverless instances.
+      if (previous) return previous;
+
+      // A first-ever row cannot safely become a fake 404 just because another
+      // instance owns the lease. Give that owner a bounded chance to persist
+      // the row, then fail open if the upstream is simply slower than our
+      // user-facing wait budget.
+      const remote = await waitForRemoteAnimeCatalogRow(animeId);
+      if (remote) return remote;
+    }
+
+    try {
+      const anime = await getAnimeByIdWithShikimori(animeId);
+      if (!anime || anime.id !== animeId) {
+        throw new ApiError(404, 'Аниме не найдено.');
+      }
+
+      const { data: saved, error: saveError } = await adminClient()
+        .from('anime_catalog')
+        .upsert(
+          animeCatalogPayload(
+            anime,
+            Array.isArray(previous?.genres) ? previous.genres : [],
+          ),
+        )
+        .select(
+          'id,title,total_episodes,finished,genres,poster_url,slug,updated_at',
+        )
+        .single();
+
+      if (saveError) throw saveError;
+
+      const row = saved as AnimeCatalogMetadata;
+      rememberAnimeCatalogRow(row);
+      return row;
+    } finally {
+      if (lease.acquired) {
+        await releaseRuntimeRefreshLease(
+          'anime_catalog_metadata',
+          cacheKey,
+          lease.ownerToken,
+        );
+      }
+    }
+  })().finally(() => {
+    animeCatalogRefreshInFlight.delete(animeId);
+  });
+
+  animeCatalogRefreshInFlight.set(animeId, request);
+  return request;
+}
+
 // Only server-fetched catalog metadata can affect achievement conditions.
 export async function ensureAnimes(ids: number[]) {
   const uniqueIds = [...new Set(ids)].filter(
@@ -245,7 +338,6 @@ export async function ensureAnimes(ids: number[]) {
 
   if (!uniqueIds.length) return [] as AnimeCatalogMetadata[];
 
-  const admin = adminClient();
   const now = Date.now();
   const existing = new Map<number, AnimeCatalogMetadata>();
   const misses: number[] = [];
@@ -273,34 +365,14 @@ export async function ensureAnimes(ids: number[]) {
   });
 
   if (refreshIds.length) {
-    const fetched = await Promise.all(
-      refreshIds.map(async (id) => {
-        const anime = await getAnimeByIdWithShikimori(id);
-        if (!anime || anime.id !== id) {
-          throw new ApiError(404, 'Аниме не найдено.');
-        }
-
-        return animeCatalogPayload(
-          anime,
-          Array.isArray(existing.get(id)?.genres)
-            ? existing.get(id)!.genres
-            : [],
-        );
-      }),
+    const refreshed = await Promise.all(
+      refreshIds.map((id) =>
+        refreshAnimeCatalogMetadata(id, existing.get(id)),
+      ),
     );
 
-    const { data: saved, error: saveError } = await admin
-      .from('anime_catalog')
-      .upsert(fetched)
-      .select(
-        'id,title,total_episodes,finished,genres,poster_url,slug,updated_at',
-      );
-
-    if (saveError) throw saveError;
-
-    for (const row of (saved ?? []) as AnimeCatalogMetadata[]) {
+    for (const row of refreshed) {
       existing.set(Number(row.id), row);
-      rememberAnimeCatalogRow(row);
     }
   }
 
