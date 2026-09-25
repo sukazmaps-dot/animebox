@@ -183,7 +183,7 @@ export function aggregatePlaybackTelemetry(
     if (row.event_name === 'player_discovery_ready') {
       discoveryReady24h += 1;
       const provider = providerFromRow(row);
-      const metrics = mutableProvider(providers, provider);
+      mutableProvider(providers, provider);
       const firstMs = boundedTiming(meta.firstSourceMs);
       if (firstMs != null) firstSourceMs.push(firstMs);
       continue;
