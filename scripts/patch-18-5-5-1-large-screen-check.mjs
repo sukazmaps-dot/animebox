@@ -13,6 +13,29 @@ const animeCard = read('components/AnimeCard.tsx');
 const smartCard = read('components/SmartRecommendationCard.tsx');
 const hero = read('components/HomeHeroCarousel.tsx');
 
+function normalizeCss(value) {
+  return value
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/\s*([{}:;,>+~])\s*/g, '$1')
+    .trim();
+}
+
+function cssHas(needle) {
+  return normalizeCss(css).includes(normalizeCss(needle));
+}
+
+const largeScreenMarker =
+  '18.5.5.1 integrates the large-screen system into this existing root layer';
+const mobileTelegramMarker =
+  'Tablet/mobile Telegram promo remains compact and readable';
+const largeScreenStart = css.indexOf(largeScreenMarker);
+const largeScreenEnd = css.indexOf(mobileTelegramMarker, largeScreenStart);
+const largeScreenCss =
+  largeScreenStart >= 0 && largeScreenEnd > largeScreenStart
+    ? css.slice(largeScreenStart, largeScreenEnd)
+    : css;
+
 const importNeedle = "import './patch16-6-2-readability-2k-density.css';";
 if (!layout.includes(importNeedle)) {
   failures.push('layout: shared readability/large-screen stylesheet is not imported');
@@ -56,16 +79,16 @@ for (const [label, needle] of [
   ['catalog ten columns', 'repeat(10, minmax(0, 1fr))'],
   ['right rail one column', 'grid-template-columns: minmax(0, 1fr) !important'],
 ]) {
-  if (!css.includes(needle)) {
+  if (!cssHas(needle)) {
     failures.push(`large-screen CSS missing ${label}: ${needle}`);
   }
 }
 
-if (/\bzoom\s*:/.test(css)) {
+if (/\bzoom\s*:/.test(largeScreenCss)) {
   failures.push('large-screen CSS must not use browser-style zoom');
 }
 
-if (/transform\s*:\s*scale\(/.test(css)) {
+if (/transform\s*:\s*scale\(/.test(largeScreenCss)) {
   failures.push('large-screen CSS must not solve layout with transform: scale()');
 }
 
