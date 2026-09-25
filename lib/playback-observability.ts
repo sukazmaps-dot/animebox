@@ -169,10 +169,7 @@ export function aggregatePlaybackTelemetry(
         typeof meta.outcome === 'string' ? meta.outcome : '';
       if (outcome === 'timeout') {
         metrics.discoveryTimeouts24h += 1;
-      } else if (
-        outcome === 'unavailable' ||
-        outcome === 'aborted'
-      ) {
+      } else if (outcome === 'unavailable') {
         metrics.discoveryUnavailable24h += 1;
       } else if (outcome === 'ready') {
         metrics.discoveryReady24h += 1;
