@@ -13,6 +13,7 @@ import type { EpisodeWatchListItem, WatchTitleOverview } from '@/types/watch';
 const MAX_EPISODE_MS = 28_800_000;
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
 const MAX_HEARTBEAT_GAP_MS = 30_000;
+const MIN_HEARTBEAT_PERSIST_INTERVAL_MS = 2_000;
 const MAX_ACCEPTED_MS = 20_000;
 const MIN_PROVIDER_SKIP_MS = 15_000;
 const MAX_PROVIDER_SKIP_MS = 240_000;
@@ -619,6 +620,11 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
     throw new ApiError(410, 'Сессия просмотра истекла.');
   }
 
+  const lastReceived = Date.parse(session.last_received_at);
+  const wallDelta = Number.isFinite(lastReceived)
+    ? Math.max(0, now - lastReceived)
+    : MAX_HEARTBEAT_GAP_MS;
+
   if (input.seq <= Number(session.last_seq ?? 0)) {
     const { data: duplicate } = await watch
       .from('heartbeats')
@@ -634,6 +640,13 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
       coverageMs: null,
       activeMs: null,
     };
+  }
+
+  if (wallDelta < MIN_HEARTBEAT_PERSIST_INTERVAL_MS) {
+    throw new ApiError(
+      429,
+      'Heartbeat отправлен слишком рано. Повтори синхронизацию чуть позже.',
+    );
   }
 
   const { data: episode, error: episodeError } = await watch
@@ -656,8 +669,6 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
   }
 
   const lastPosition = session.last_position_ms == null ? null : Number(session.last_position_ms);
-  const lastReceived = Date.parse(session.last_received_at);
-  const wallDelta = Number.isFinite(lastReceived) ? Math.max(0, now - lastReceived) : 0;
   const positionDelta = lastPosition == null ? 0 : input.positionMs - lastPosition;
 
   const durationMs = episode.duration_ms == null ? null : Number(episode.duration_ms);

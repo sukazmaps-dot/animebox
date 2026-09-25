@@ -165,8 +165,22 @@ for (const path of [
 }
 
 const watchRoute = read('app/api/watch/route.ts');
-if (!watchRoute.includes("scope: 'watch_write_user'")) {
-  failures.push('app/api/watch/route.ts: watch mutation user limiter is missing.');
+const watchServer = read('lib/watch-server.ts');
+if (
+  !watchRoute.includes("scope: 'watch_session_user'") ||
+  !watchRoute.includes("action === 'start' || action === 'end'")
+) {
+  failures.push(
+    'app/api/watch/route.ts: durable watch session lifecycle limiter is missing.',
+  );
+}
+if (
+  !watchServer.includes('MIN_HEARTBEAT_PERSIST_INTERVAL_MS = 2_000') ||
+  !watchServer.includes('wallDelta < MIN_HEARTBEAT_PERSIST_INTERVAL_MS')
+) {
+  failures.push(
+    'lib/watch-server.ts: server-owned heartbeat cadence guard is missing.',
+  );
 }
 
 const premiumInvoice = read('app/api/premium/stars/invoice/route.ts');

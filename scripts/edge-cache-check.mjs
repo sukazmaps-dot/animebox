@@ -16,6 +16,8 @@ function read(path) {
 const proxy = read('proxy.ts');
 const cachePolicy = read('lib/edge-cache-policy.ts');
 const animeApi = read('app/api/anime/route.ts');
+const recommendationsApi = read('app/api/recommendations/route.ts');
+const discoveryApi = read('app/api/discovery/route.ts');
 const scheduleApi = read('app/api/schedule/route.ts');
 const migration = read(
   'supabase/migrations/20260923173000_edge_cache_rate_limit_offload_v1.sql',
@@ -24,6 +26,7 @@ const migration = read(
 for (const [label, source, needle] of [
   ['public API allowlist', cachePolicy, "PUBLIC_CACHEABLE_API_PATHS"],
   ['anime catalog allowlist', cachePolicy, "'/api/anime'"],
+  ['recommendations allowlist', cachePolicy, "'/api/recommendations'"],
   ['schedule allowlist', cachePolicy, "'/api/schedule'"],
   ['Cloudflare cache header', cachePolicy, "'Cloudflare-CDN-Cache-Control'"],
   ['Vercel cache header', cachePolicy, "'Vercel-CDN-Cache-Control'"],
@@ -31,6 +34,8 @@ for (const [label, source, needle] of [
   ['proxy public cache exception', proxy, 'isPublicCacheableApiRequest'],
   ['anime edge cache policy', animeApi, 'publicApiCacheHeaders'],
   ['anime error no-store', animeApi, 'privateNoStoreHeaders'],
+  ['recommendations edge cache policy', recommendationsApi, 'publicApiCacheHeaders'],
+  ['recommendations cache marker', recommendationsApi, 'recommendations-public-v1'],
   ['schedule edge cache policy', scheduleApi, 'publicApiCacheHeaders'],
   ['schedule error no-store', scheduleApi, 'privateNoStoreHeaders'],
   ['rate bucket cleanup function', migration, 'cleanup_api_rate_buckets'],
@@ -44,6 +49,18 @@ for (const [label, source, needle] of [
 if (animeApi.includes("consumeIpRateLimit(")) {
   failures.push(
     'Edge cache offload: public anime catalog must not write a Postgres rate bucket per GET.',
+  );
+}
+
+if (cachePolicy.includes("'/api/discovery'")) {
+  failures.push(
+    'Edge cache offload: arbitrary natural-language discovery must stay outside the shared public CDN allowlist.',
+  );
+}
+
+if (!discoveryApi.includes('classifySearchQuery(rawQuery)')) {
+  failures.push(
+    'Edge cache offload: discovery query classification contract disappeared.',
   );
 }
 

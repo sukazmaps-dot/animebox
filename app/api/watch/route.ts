@@ -21,6 +21,7 @@ import { syncUserChallenges } from '@/lib/challenges-server';
 import { trackProductEvents } from '@/lib/product-events-server';
 
 import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
+import { observeApiRoute } from '@/lib/request-observability-server';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -84,7 +85,7 @@ function providerSkip(value: unknown) {
 }
 
 
-export async function GET(request: Request) {
+async function observedGET(request: Request) {
   try {
     const { user } = await userClient();
     const url = new URL(request.url);
@@ -106,16 +107,35 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+async function observedPOST(request: Request) {
   try {
     const { user } = await userClient();
-    const limited = await enforceIpAndUserRateLimit(request, user.id, {
-      ip: { scope: 'watch_write_ip', limit: 600, windowSeconds: 60 },
-      user: { scope: 'watch_write_user', limit: 300, windowSeconds: 60 },
-    });
-    if (limited) return limited;
     const body = await readBody(request);
     const action = String(body.action || '');
+
+    /*
+     * Heartbeats already carry server-owned session + sequence state and are
+     * cadence-gated inside recordWatchHeartbeat(). Paying two durable
+     * Postgres rate-bucket RPCs for every normal heartbeat amplified the
+     * hottest write path. Keep durable IP+user limits only on session
+     * lifecycle actions; heartbeat abuse is rejected before expensive writes
+     * by the session's last_received_at guard.
+     */
+    if (action === 'start' || action === 'end') {
+      const limited = await enforceIpAndUserRateLimit(request, user.id, {
+        ip: {
+          scope: 'watch_session_ip',
+          limit: 120,
+          windowSeconds: 60,
+        },
+        user: {
+          scope: 'watch_session_user',
+          limit: 60,
+          windowSeconds: 60,
+        },
+      });
+      if (limited) return limited;
+    }
 
     if (action === 'start') {
       const animeId = positiveInteger(body.animeId);
@@ -335,3 +355,7 @@ export async function POST(request: Request) {
     return failure(error);
   }
 }
+
+
+export const GET = observeApiRoute('/api/watch', observedGET);
+export const POST = observeApiRoute('/api/watch', observedPOST);

@@ -21,6 +21,23 @@ const PLAYABLE_ONGOING_TTL_MS = 12 * 60 * 60 * 1000;
 const PLAYABLE_FINISHED_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const DEGRADED_ONGOING_GRACE_MS = 6 * 60 * 60 * 1000;
 const DEGRADED_FINISHED_GRACE_MS = 24 * 60 * 60 * 1000;
+const REGISTRY_READ_TTL_MS = 60_000;
+const REGISTRY_MISSING_TTL_MS = 20_000;
+const REGISTRY_READ_CACHE_LIMIT = 4_000;
+
+type RegistryReadCacheEntry = {
+  row: CatalogAvailabilityRow | null;
+  expiresAt: number;
+};
+
+const registryReadCache = new Map<number, RegistryReadCacheEntry>();
+const registryReadInFlight = new Map<
+  string,
+  Promise<{
+    rows: Map<number, CatalogAvailabilityRow>;
+    healthy: boolean;
+  }>
+>();
 
 const verifiedSnapshot = new Map<number, CatalogAvailabilityRow>();
 const VERIFIED_SNAPSHOT_LIMIT = 2_000;
@@ -94,6 +111,42 @@ function rememberVerifiedRow(row: CatalogAvailabilityRow) {
     if (oldest == null) break;
     verifiedSnapshot.delete(oldest);
   }
+}
+
+function rememberRegistryRead(
+  animeId: number,
+  row: CatalogAvailabilityRow | null,
+  ttlMs = row ? REGISTRY_READ_TTL_MS : REGISTRY_MISSING_TTL_MS,
+) {
+  registryReadCache.delete(animeId);
+  registryReadCache.set(animeId, {
+    row,
+    expiresAt: Date.now() + ttlMs,
+  });
+
+  while (registryReadCache.size > REGISTRY_READ_CACHE_LIMIT) {
+    const oldest = registryReadCache.keys().next().value as number | undefined;
+    if (oldest == null) break;
+    registryReadCache.delete(oldest);
+  }
+}
+
+function cachedRegistryRead(
+  animeId: number,
+  now: number,
+): RegistryReadCacheEntry | null {
+  const cached = registryReadCache.get(animeId);
+  if (!cached) return null;
+
+  if (cached.expiresAt <= now) {
+    registryReadCache.delete(animeId);
+    return null;
+  }
+
+  // Refresh insertion order to keep frequently requested popular titles warm.
+  registryReadCache.delete(animeId);
+  registryReadCache.set(animeId, cached);
+  return cached;
 }
 
 function lastSuccessWithinGrace(
@@ -254,13 +307,13 @@ async function probeDirect(
   }
 }
 
-async function readRows(ids: number[]): Promise<{
+async function readRowsFromRegistry(
+  unique: number[],
+): Promise<{
   rows: Map<number, CatalogAvailabilityRow>;
   healthy: boolean;
 }> {
-  const unique = [...new Set(ids)].filter((id) => Number.isSafeInteger(id) && id > 0);
   const rows = new Map<number, CatalogAvailabilityRow>();
-  if (!unique.length) return { rows, healthy: true };
 
   try {
     const { data, error } = await createSupabaseAdmin()
@@ -271,9 +324,21 @@ async function readRows(ids: number[]): Promise<{
       .in('anime_id', unique);
 
     if (error) throw error;
+
     for (const row of (data ?? []) as CatalogAvailabilityRow[]) {
-      rows.set(Number(row.anime_id), row);
+      const animeId = Number(row.anime_id);
+      rows.set(animeId, row);
       rememberVerifiedRow(row);
+      rememberRegistryRead(animeId, row);
+    }
+
+    // A missing row is meaningful under verified-first policy. Cache the miss
+    // only briefly so a burst of identical requests does not repeat the same
+    // PostgREST lookup while a background verifier is about to fill it.
+    for (const animeId of unique) {
+      if (!rows.has(animeId)) {
+        rememberRegistryRead(animeId, null);
+      }
     }
 
     return { rows, healthy: true };
@@ -282,8 +347,8 @@ async function readRows(ids: number[]): Promise<{
     console.warn('[Catalog Availability] registry read failed:', message);
 
     // Integrity-first fallback: reuse only rows that were previously proven
-    // playable in this server process. A registry outage must never turn
-    // missing data into permission to expose unverified titles.
+    // playable in this server process. Never cache registry outage misses as
+    // real missing rows.
     for (const id of unique) {
       const snapshot = verifiedSnapshot.get(id);
       if (snapshot) rows.set(id, snapshot);
@@ -291,6 +356,54 @@ async function readRows(ids: number[]): Promise<{
 
     return { rows, healthy: false };
   }
+}
+
+async function readRows(ids: number[]): Promise<{
+  rows: Map<number, CatalogAvailabilityRow>;
+  healthy: boolean;
+}> {
+  const unique = [...new Set(ids)].filter(
+    (id) => Number.isSafeInteger(id) && id > 0,
+  );
+  const rows = new Map<number, CatalogAvailabilityRow>();
+  if (!unique.length) return { rows, healthy: true };
+
+  const now = Date.now();
+  const misses: number[] = [];
+
+  for (const animeId of unique) {
+    const cached = cachedRegistryRead(animeId, now);
+    if (!cached) {
+      misses.push(animeId);
+      continue;
+    }
+    if (cached.row) rows.set(animeId, cached.row);
+  }
+
+  if (!misses.length) {
+    return { rows, healthy: true };
+  }
+
+  misses.sort((a, b) => a - b);
+  const batchKey = misses.join(',');
+  let pending = registryReadInFlight.get(batchKey);
+
+  if (!pending) {
+    pending = readRowsFromRegistry(misses).finally(() => {
+      registryReadInFlight.delete(batchKey);
+    });
+    registryReadInFlight.set(batchKey, pending);
+  }
+
+  const fetched = await pending;
+  for (const [animeId, row] of fetched.rows) {
+    rows.set(animeId, row);
+  }
+
+  return {
+    rows,
+    healthy: fetched.healthy,
+  };
 }
 
 export async function filterAnimeByAvailability(
@@ -457,6 +570,7 @@ async function refreshOne(
       if (error) throw error;
       const saved = data as CatalogAvailabilityRow;
       rememberVerifiedRow(saved);
+      rememberRegistryRead(saved.anime_id, saved);
       return saved;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

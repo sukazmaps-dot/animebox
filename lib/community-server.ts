@@ -114,6 +114,85 @@ type AnimeCatalogMetadata = {
   updated_at: string;
 };
 
+const ANIME_CATALOG_READ_TTL_MS = 60_000;
+const ANIME_CATALOG_READ_CACHE_LIMIT = 2_000;
+
+type AnimeCatalogCacheEntry = {
+  row: AnimeCatalogMetadata;
+  expiresAt: number;
+};
+
+const animeCatalogReadCache = new Map<number, AnimeCatalogCacheEntry>();
+const animeCatalogReadInFlight = new Map<
+  string,
+  Promise<AnimeCatalogMetadata[]>
+>();
+
+function rememberAnimeCatalogRow(row: AnimeCatalogMetadata) {
+  const animeId = Number(row.id);
+  if (!Number.isSafeInteger(animeId) || animeId <= 0) return;
+
+  animeCatalogReadCache.delete(animeId);
+  animeCatalogReadCache.set(animeId, {
+    row,
+    expiresAt: Date.now() + ANIME_CATALOG_READ_TTL_MS,
+  });
+
+  while (animeCatalogReadCache.size > ANIME_CATALOG_READ_CACHE_LIMIT) {
+    const oldest = animeCatalogReadCache.keys().next().value as
+      | number
+      | undefined;
+    if (oldest == null) break;
+    animeCatalogReadCache.delete(oldest);
+  }
+}
+
+function cachedAnimeCatalogRow(
+  animeId: number,
+  now: number,
+): AnimeCatalogMetadata | null {
+  const cached = animeCatalogReadCache.get(animeId);
+  if (!cached) return null;
+
+  if (cached.expiresAt <= now) {
+    animeCatalogReadCache.delete(animeId);
+    return null;
+  }
+
+  animeCatalogReadCache.delete(animeId);
+  animeCatalogReadCache.set(animeId, cached);
+  return cached.row;
+}
+
+async function readAnimeCatalogRows(ids: number[]) {
+  if (!ids.length) return [] as AnimeCatalogMetadata[];
+
+  const sorted = [...ids].sort((a, b) => a - b);
+  const batchKey = sorted.join(',');
+  const existingRequest = animeCatalogReadInFlight.get(batchKey);
+  if (existingRequest) return existingRequest;
+
+  const request = (async () => {
+    const { data, error } = await adminClient()
+      .from('anime_catalog')
+      .select(
+        'id,title,total_episodes,finished,genres,poster_url,slug,updated_at',
+      )
+      .in('id', sorted);
+
+    if (error) throw error;
+
+    const rows = (data ?? []) as AnimeCatalogMetadata[];
+    rows.forEach(rememberAnimeCatalogRow);
+    return rows;
+  })().finally(() => {
+    animeCatalogReadInFlight.delete(batchKey);
+  });
+
+  animeCatalogReadInFlight.set(batchKey, request);
+  return request;
+}
+
 function animePosterUrl(anime: Awaited<ReturnType<typeof getAnimeByIdWithShikimori>>) {
   if (!anime) return null;
 
@@ -167,21 +246,27 @@ export async function ensureAnimes(ids: number[]) {
   if (!uniqueIds.length) return [] as AnimeCatalogMetadata[];
 
   const admin = adminClient();
-  const { data, error } = await admin
-    .from('anime_catalog')
-    .select(
-      'id,title,total_episodes,finished,genres,poster_url,slug,updated_at',
-    )
-    .in('id', uniqueIds);
-
-  if (error) throw error;
-
+  const now = Date.now();
   const existing = new Map<number, AnimeCatalogMetadata>();
-  for (const row of (data ?? []) as AnimeCatalogMetadata[]) {
-    existing.set(Number(row.id), row);
+  const misses: number[] = [];
+
+  for (const animeId of uniqueIds) {
+    const cached = cachedAnimeCatalogRow(animeId, now);
+    if (cached) {
+      existing.set(animeId, cached);
+    } else {
+      misses.push(animeId);
+    }
   }
 
-  const now = Date.now();
+  if (misses.length) {
+    const rows = await readAnimeCatalogRows(misses);
+    for (const row of rows) {
+      existing.set(Number(row.id), row);
+    }
+  }
+
+
   const refreshIds = uniqueIds.filter((id) => {
     const row = existing.get(id);
     return !row || now - Date.parse(row.updated_at) >= 86_400_000;
@@ -215,6 +300,7 @@ export async function ensureAnimes(ids: number[]) {
 
     for (const row of (saved ?? []) as AnimeCatalogMetadata[]) {
       existing.set(Number(row.id), row);
+      rememberAnimeCatalogRow(row);
     }
   }
 
@@ -236,15 +322,24 @@ export async function ensureAnime(id: number) {
 
 export async function ensureAnimeArtwork(id: number) {
   const admin = adminClient();
-  const { data, error } = await admin
-    .from('anime_catalog')
-    .select(
-      'id,title,total_episodes,finished,genres,poster_url,slug,updated_at',
-    )
-    .eq('id', id)
-    .maybeSingle();
+  const cached = cachedAnimeCatalogRow(id, Date.now());
+
+  if (cached?.slug) {
+    return cached;
+  }
+
+  const { data, error } = cached
+    ? { data: cached, error: null }
+    : await admin
+        .from('anime_catalog')
+        .select(
+          'id,title,total_episodes,finished,genres,poster_url,slug,updated_at',
+        )
+        .eq('id', id)
+        .maybeSingle();
 
   if (error) throw error;
+  if (data) rememberAnimeCatalogRow(data as AnimeCatalogMetadata);
 
   // slug doubles as an "artwork metadata was checked" marker. This avoids
   // hammering AniList/Shikimori for titles that genuinely have no poster.
@@ -271,5 +366,6 @@ export async function ensureAnimeArtwork(id: number) {
     .single();
 
   if (saveError) throw saveError;
+  rememberAnimeCatalogRow(saved as AnimeCatalogMetadata);
   return saved as AnimeCatalogMetadata;
 }

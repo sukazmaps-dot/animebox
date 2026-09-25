@@ -6,6 +6,7 @@ export type PublicApiCacheProfile = {
 
 const PUBLIC_CACHEABLE_API_PATHS = new Set([
   '/api/anime',
+  '/api/recommendations',
   '/api/schedule',
   '/api/watch-party/rooms',
 ]);

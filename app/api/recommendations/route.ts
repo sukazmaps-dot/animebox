@@ -11,6 +11,10 @@ import {
 } from '@/lib/catalog-availability-server';
 
 import { observeApiRoute } from '@/lib/request-observability-server';
+import {
+  privateNoStoreHeaders,
+  publicApiCacheHeaders,
+} from '@/lib/edge-cache-policy';
 
 export const runtime = 'nodejs';
 
@@ -318,7 +322,7 @@ async function observedGET(request: NextRequest) {
       { error: 'invalid_cursor' },
       {
         status: 400,
-        headers: { 'Cache-Control': 'private, no-store' },
+        headers: privateNoStoreHeaders(),
       },
     );
   }
@@ -392,8 +396,12 @@ async function observedGET(request: NextRequest) {
       },
       {
         headers: {
-          'Cache-Control': `public, max-age=30, s-maxage=${FILTERED_RESPONSE_CACHE_SECONDS}, stale-while-revalidate=${CACHE_SECONDS}`,
-          'Vercel-CDN-Cache-Control': `public, max-age=${FILTERED_RESPONSE_CACHE_SECONDS}, stale-while-revalidate=${CACHE_SECONDS}`,
+          ...publicApiCacheHeaders({
+            browserSeconds: 30,
+            edgeSeconds: FILTERED_RESPONSE_CACHE_SECONDS,
+            staleWhileRevalidateSeconds: STALE_SECONDS,
+          }),
+          'X-AnimeBox-Cache-Profile': 'recommendations-public-v1',
         },
       },
     );
@@ -406,9 +414,7 @@ async function observedGET(request: NextRequest) {
       },
       {
         status: 502,
-        headers: {
-          'Cache-Control': 'no-store',
-        },
+        headers: privateNoStoreHeaders(),
       },
     );
   }
