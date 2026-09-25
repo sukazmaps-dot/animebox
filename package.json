@@ -55,7 +55,8 @@
     "patch18-5-5-0:check": "node scripts/patch-18-5-5-0-media-warmup-check.mjs",
     "patch18-5-5-0-1:check": "node scripts/patch-18-5-5-0-1-media-reliability-check.mjs",
     "patch18-5-5-1:check": "node scripts/patch-18-5-5-1-large-screen-check.mjs",
-    "patch18-5-5-2:check": "node scripts/patch-18-5-5-2-scale-hot-path-check.mjs",\n    "patch18-5-5-3:check": "node scripts/patch-18-5-5-3-traffic-surge-check.mjs"
+    "patch18-5-5-2:check": "node scripts/patch-18-5-5-2-scale-hot-path-check.mjs",
+    "patch18-5-5-3:check": "node scripts/patch-18-5-5-3-traffic-surge-check.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
