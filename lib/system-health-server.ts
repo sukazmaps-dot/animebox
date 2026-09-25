@@ -17,6 +17,7 @@ import type {
   SystemProviderHealth,
 } from '@/lib/system-health';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import { getSeoIndexHealth } from '@/lib/seo-anime-index-server';
 import { getUpstreamRuntimeSnapshot } from '@/lib/upstream-resilience-server';
 
 type ProviderSettingsRow = {
@@ -436,6 +437,7 @@ async function probeMediaEdge(): Promise<SystemDependenciesHealth['mediaEdge']> 
 export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
   const admin = createSupabaseAdmin();
   const productionPromise = getProductionHealthSnapshot();
+  const seoPromise = getSeoIndexHealth();
   const dependenciesPromise = Promise.all([
     probeSupabase(admin),
     probeMediaEdge(),
@@ -557,6 +559,7 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
   ]);
 
   const production = await productionPromise;
+  const seo = await seoPromise;
   const [supabaseDependency, mediaEdgeDependency] = await dependenciesPromise;
   const dependencies: SystemDependenciesHealth = {
     supabase: supabaseDependency,
@@ -749,6 +752,7 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
     },
     requests,
     dependencies,
+    seo,
     upstreams,
     signals: {
       openCriticalIncidents,
