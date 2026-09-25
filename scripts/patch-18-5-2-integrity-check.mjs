@@ -14,7 +14,7 @@ const recommendations = read('app/api/recommendations/route.ts');
 const discovery = read('app/api/discovery/route.ts');
 const homeFeed = read('lib/home-feed-server.ts');
 const related = read('components/RelatedAnime.tsx');
-const vercel = read('vercel.json');
+const vercel = JSON.parse(read('vercel.json'));
 
 const detailControls = read('components/AnimeDetailControls.tsx');
 const episodeList = read('components/EpisodeList.tsx');
