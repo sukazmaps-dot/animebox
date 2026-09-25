@@ -130,6 +130,7 @@ requireNeedles('SEO cron', cron, [
   'syncSeoAnimeSourceEntries',
   "createSystemJobObserver('seo-anime-index'",
   'for (const shard of shards)',
+  "'invalid_source_shard'",
 ]);
 
 const seoCron = vercel.crons?.find(
