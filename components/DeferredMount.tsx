@@ -79,16 +79,8 @@ export default function DeferredMount({
 
     observer.observe(host);
 
-    // Unusual embedded browsers can occasionally miss an observer callback.
-    // Mount eventually, but never during the critical first paint.
-    fallbackTimer = window.setTimeout(() => {
-      observer.disconnect();
-      setReady(true);
-    }, 12_000);
-
     return () => {
       observer.disconnect();
-      window.clearTimeout(fallbackTimer);
     };
   }, [ready, rootMargin]);
 
