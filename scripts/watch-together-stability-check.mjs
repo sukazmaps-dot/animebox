@@ -99,6 +99,14 @@ if (
 }
 
 if (
+  !panel.includes("document.addEventListener('visibilitychange', onVisibilityChange)") ||
+  !panel.includes("window.addEventListener('pageshow', resumeAfterBackground)") ||
+  !panel.includes('Возвращаемся в комнату после паузы')
+) {
+  failures.push('mobile background/foreground recovery is missing');
+}
+
+if (
   !panel.includes("behavior: 'stay' | 'leave' = 'stay'") ||
   !panel.includes("transferHost(successor, 'leave')") ||
   !panel.includes('longest-connected guest')
