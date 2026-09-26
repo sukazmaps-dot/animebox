@@ -664,7 +664,7 @@
   border-radius: 30px !important;
   border-width: 1px;
   background:
-    radial-gradient(circle at 100% 0%, rgba(var(--ab-premium-accent-rgb), calc(var(--ab-premium-glow-alpha) * .5)), transparent 34%),
+    radial-gradient(circle at 100% 0%, rgba(var(--ab-premium-accent-rgb), var(--ab-premium-glow-half-alpha)), transparent 34%),
     linear-gradient(180deg,
       color-mix(in srgb, var(--ab-premium-primary) 72%, #0c1020 28%),
       color-mix(in srgb, var(--ab-premium-primary) 88%, #04070f 12%)) !important;
