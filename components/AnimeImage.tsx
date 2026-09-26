@@ -30,7 +30,8 @@ const FALLBACK = '/brand/brand-mark.webp';
 const PRIMARY_MEDIA_TIMEOUT_MS = 6_500;
 const FALLBACK_SOURCE_TIMEOUT_MS = 7_500;
 const PROXY_SOURCE_TIMEOUT_MS = 9_500;
-const TRANSIENT_RETRY_DELAY_MS = 12_000;
+const TRANSIENT_RETRY_MIN_DELAY_MS = 20_000;
+const TRANSIENT_RETRY_MAX_DELAY_MS = 45_000;
 
 export type AnimeImageLoadState = 'loading' | 'loaded' | 'fallback';
 
@@ -52,6 +53,24 @@ type Props = {
 
 const DEFAULT_SIZES =
   '(orientation: landscape) and (max-height: 600px) 18vw, (max-width: 480px) 42vw, (max-width: 760px) 31vw, (max-width: 1024px) 22vw, (max-width: 1280px) 18vw, 190px';
+
+function stableRetryDelayMs(key: string) {
+  let hash = 2166136261;
+
+  for (let index = 0; index < key.length; index += 1) {
+    hash ^= key.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  const span =
+    TRANSIENT_RETRY_MAX_DELAY_MS -
+    TRANSIENT_RETRY_MIN_DELAY_MS;
+
+  return (
+    TRANSIENT_RETRY_MIN_DELAY_MS +
+    (Math.abs(hash) % Math.max(1, span + 1))
+  );
+}
 
 function sourceTimeoutMs(source: string, sourceIndex: number) {
   if (source.startsWith('/api/image?')) {
@@ -293,8 +312,16 @@ export default function AnimeImage({
       return;
     }
 
+    let timer: number | null = null;
+    const baseDelay = stableRetryDelayMs(sourcesKey);
+
     const retry = () => {
       if (transientRetryCountRef.current >= 1) return;
+
+      // Do not consume the only retry while the browser still knows it is
+      // offline. The online event will schedule a jittered recovery instead.
+      if (navigator.onLine === false) return;
+
       transientRetryCountRef.current += 1;
       setImageState({
         key: sourcesKey,
@@ -303,19 +330,34 @@ export default function AnimeImage({
       });
     };
 
-    const timer = window.setTimeout(retry, TRANSIENT_RETRY_DELAY_MS);
-    const onOnline = () => retry();
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') retry();
+    const schedule = (delayMs: number) => {
+      if (timer !== null) {
+        window.clearTimeout(timer);
+      }
+
+      timer = window.setTimeout(() => {
+        timer = null;
+        retry();
+      }, delayMs);
+    };
+
+    schedule(baseDelay);
+
+    const onOnline = () => {
+      if (transientRetryCountRef.current >= 1) return;
+
+      // Avoid a reconnect thundering herd when dozens of posters failed while
+      // offline. Every source gets a deterministic 1–6 second reconnect jitter.
+      schedule(1_000 + (baseDelay % 5_001));
     };
 
     window.addEventListener('online', onOnline);
-    document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
-      window.clearTimeout(timer);
+      if (timer !== null) {
+        window.clearTimeout(timer);
+      }
       window.removeEventListener('online', onOnline);
-      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [
     isFallback,
