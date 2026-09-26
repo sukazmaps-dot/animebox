@@ -186,7 +186,7 @@ export async function getPublicProfile(
     getEffectiveUserEntitlements(userId).catch(() => null),
     admin
       .from('premium_profile_settings')
-      .select('theme,primary_color,accent_color,text_color,glow_strength,border_style,avatar_path,avatar_static_path,avatar_position_x,avatar_position_y,avatar_zoom,banner_path,banner_static_path,banner_position_x,banner_position_y,banner_zoom,sync_player_theme')
+      .select('theme,primary_color,accent_color,text_color,glow_strength,border_style,avatar_path,avatar_static_path,avatar_position_x,avatar_position_y,avatar_zoom,banner_path,banner_static_path,banner_position_x,banner_position_y,banner_zoom,sync_player_theme,atmosphere_effect,atmosphere_intensity,motion_mode,entrance_effect,nickname_effect,hero_style,surface_style')
       .eq('user_id', userId)
       .maybeSingle()
       .then((result) => (result.error ? null : result.data)),
