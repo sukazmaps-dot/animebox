@@ -13,6 +13,10 @@ import { publicIdentityRoleFor } from '@/lib/identity-server';
 import { resolvePublicAppearances, type PublicResolvedAppearance } from '@/lib/public-avatar-server';
 import { enforceIpAndUserRateLimit, enforceIpRateLimit } from '@/lib/api-rate-limit';
 import { publishEpisodeCommentSocialEffects } from '@/lib/social-comment-effects-server';
+import {
+  runtimeFeatureDecision,
+  runtimeFeatureUnavailableResponse,
+} from '@/lib/runtime-controls-server';
 
 const MAX_COMMENT_LENGTH = 4000;
 
@@ -458,6 +462,19 @@ export async function POST(
   request: NextRequest,
 ) {
   try {
+    const runtimeControl = await runtimeFeatureDecision(
+      'community_writes',
+      { disableInBrownout: true },
+    );
+
+    if (!runtimeControl.allowed) {
+      return runtimeFeatureUnavailableResponse({
+        feature: 'community_writes',
+        reason: runtimeControl.reason ?? 'brownout',
+        retryAfterSeconds: 30,
+      });
+    }
+
     const supabase =
       await createClient();
 
