@@ -57,12 +57,17 @@ Therefore a release candidate is created as:
 2. open the canonical release PR from `patch-X` to `main`;
 3. wait for the GitHub `AnimeBox Quality Gate` on that exact head SHA;
 4. create `preview-X` from the exact green patch head;
-5. Vercel automatically runs the full prebuild + Next production build for the preview branch — no marker/no-op commit is required;
-6. smoke-test the preview;
-7. merge the exact tested tree into `main`.
+5. add one empty trigger commit on `preview-X` and push it;
+6. the lightweight `AnimeBox Preview Identity` workflow verifies that the trigger commit has no file diff and therefore did not change the release tree;
+7. Vercel runs the full prebuild + Next production build because `preview-*` is explicitly allowed by the ignore gate;
+8. smoke-test the preview;
+9. merge the release branch tree into `main`.
 
-Release markers are retained only as a manual escape hatch. They are no longer
-part of the normal release path, removing a common source of skipped previews.
+The empty trigger commit exists only to create an unambiguous push event for Git
+integrations. It must not change the release tree. A special commit-message
+marker is no longer required on `preview-*`.
+
+Release markers are retained as a manual escape hatch for non-preview refs.
 
 ## Commit batching
 

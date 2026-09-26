@@ -68,21 +68,26 @@ Keep automatic Git deployments disabled for `patch-*`.
 
 Change the ignored-build gate so that:
 - `main` always builds;
-- every `preview-*` branch builds automatically;
+- every pushed commit on a `preview-*` branch is allowed to build;
 - explicit `[preview]`, `[deploy]`, `[vercel]` commit markers remain an
   escape hatch;
 - `ANIMEBOX_FORCE_VERCEL_BUILD=1` remains an emergency override;
 - missing Git metadata fails safe by building.
 
-A release must no longer require a dummy/no-op commit merely to make Vercel
-notice the preview.
+Git ref creation alone is not treated as a reliable deployment trigger. The
+normal release path therefore uses one deterministic empty trigger commit on the
+preview branch. No special marker text is required for that commit.
 
 ### 5. Preview identity
 
 The preview branch must be created only after the GitHub quality gate is green
-and must point to the exact green release head SHA.
+and initially point to the exact green release head SHA.
 
-No code edits are allowed directly on the preview branch.
+Then create exactly one empty trigger commit. The preview trigger commit may
+have a different commit SHA, but its Git tree must be identical to its parent
+and therefore identical to the green release tree.
+
+No file edits are allowed directly on the preview branch.
 
 ### 6. Production identity
 
@@ -140,7 +145,7 @@ Desktop + mobile:
 Patch 18.6.1 is complete only when:
 - one PR to `main` represents the entire 18.5.6 → 18.6 chain;
 - its GitHub quality gate is green;
-- a `preview-18-6-1-*` branch is built by Vercel without a marker commit;
+- a `preview-18-6-1-*` branch is built by Vercel from an empty trigger commit whose tree is identical to the green release tree;
 - browser smoke passes on the exact preview SHA;
 - the exact tested tree is ready to merge to `main`;
 - no SQL migration is introduced by this consolidation patch.
