@@ -189,9 +189,14 @@
 }
 
 .avatarShell[data-framed='true'] > img {
+  width: 68%;
+  height: 68%;
+  border-width: 3px;
+}
+
+.avatarShell[data-milestone='true'] > img {
   width: 56%;
   height: 56%;
-  border-width: 3px;
 }
 
 .avatarFrame {
@@ -693,6 +698,11 @@
 }
 
 .avatarControlPreview[data-framed='true'] > img {
+  width: 48px;
+  height: 48px;
+}
+
+.avatarControlPreview[data-milestone='true'] > img {
   width: 40px;
   height: 40px;
 }
@@ -802,10 +812,15 @@
 }
 
 .frameThumb > img {
-  width: 26px;
-  height: 26px;
+  width: 31px;
+  height: 31px;
   border-radius: 50%;
   object-fit: cover;
+}
+
+.frameThumb[data-kind='level'] > img {
+  width: 26px;
+  height: 26px;
 }
 
 .noFrame {
