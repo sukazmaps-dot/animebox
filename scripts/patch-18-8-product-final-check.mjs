@@ -247,6 +247,8 @@ need('mini-profile seasonal frame UI', profilePreview, [
 ]);
 need('mini-profile seasonal frame layout', profilePreviewCss, [
   '.avatarShellSeason',
+  'position: relative;',
+  'isolation: isolate;',
   '.seasonFrameOverlay',
 ]);
 

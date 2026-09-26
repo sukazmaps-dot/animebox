@@ -680,6 +680,8 @@
 
 /* Patch 18.8 — temporary AnimeBox League frame inside mini-profile. */
 .avatarShellSeason {
+  position: relative;
+  isolation: isolate;
   overflow: visible;
   display: grid;
   place-items: center;
