@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import Icon from '@/components/Icon';
 import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
@@ -104,6 +104,8 @@ export default function ProfileDirectEditSurface({
   const [frameLoading, setFrameLoading] = useState(true);
   const [frameBusy, setFrameBusy] = useState('');
   const [frameError, setFrameError] = useState('');
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const bannerInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -204,6 +206,26 @@ export default function ProfileDirectEditSurface({
 
   const activeFrameLabel = frameDisplayName(selectedFrame, leagueFrames);
 
+  function openMediaPicker(kind: 'avatar' | 'banner') {
+    if (kind === 'avatar') {
+      setTarget('avatar');
+      avatarInputRef.current?.click();
+      return;
+    }
+
+    setTarget('banner');
+    bannerInputRef.current?.click();
+  }
+
+  function handleMediaInput(kind: 'avatar' | 'banner', input: HTMLInputElement) {
+    const file = input.files?.[0];
+    const action = kind === 'avatar' ? onAvatarFile : onBannerFile;
+
+    void Promise.resolve(action(file)).finally(() => {
+      input.value = '';
+    });
+  }
+
   function openUsername() {
     setTarget('username');
     setEditingName(true);
@@ -216,12 +238,30 @@ export default function ProfileDirectEditSurface({
 
   return (
     <div className={styles.workspace}>
+      <input
+        ref={avatarInputRef}
+        className={styles.hiddenMediaInput}
+        type="file"
+        tabIndex={-1}
+        aria-hidden="true"
+        accept={MEDIA_ACCEPT}
+        onChange={(event) => handleMediaInput('avatar', event.currentTarget)}
+      />
+      <input
+        ref={bannerInputRef}
+        className={styles.hiddenMediaInput}
+        type="file"
+        tabIndex={-1}
+        aria-hidden="true"
+        accept={MEDIA_ACCEPT}
+        onChange={(event) => handleMediaInput('banner', event.currentTarget)}
+      />
       <section className={styles.canvas}>
         <div className={styles.canvasHead}>
           <div>
             <span>DIRECT EDIT</span>
             <h2>Редактируй профиль прямо на профиле</h2>
-            <p>Нажми на аватар, баннер, ник или описание — справа откроются настройки именно этого элемента.</p>
+            <p>Клик по аватару или баннеру сразу открывает замену файла. Ник и описание редактируются прямо на карточке.</p>
           </div>
           <div className={styles.liveBadge}><span /> LIVE</div>
         </div>
@@ -231,12 +271,12 @@ export default function ProfileDirectEditSurface({
             type="button"
             className={styles.banner}
             data-selected={target === 'banner' ? 'true' : 'false'}
-            onClick={() => setTarget('banner')}
-            aria-label="Редактировать баннер"
+            onClick={() => openMediaPicker('banner')}
+            aria-label="Изменить баннер"
           >
             {bannerUrl ? <img src={bannerUrl} alt="" aria-hidden="true" /> : <span className={styles.bannerEmpty}>ANIMEBOX PROFILE</span>}
             <span className={styles.bannerShade} />
-            <span className={styles.editChip}><Icon name="image" size={14} /> Баннер</span>
+            <span className={styles.editChip}><Icon name="image" size={14} /> Изменить баннер</span>
           </button>
 
           <div className={styles.profileBody}>
@@ -244,8 +284,8 @@ export default function ProfileDirectEditSurface({
               type="button"
               className={styles.avatarButton}
               data-selected={target === 'avatar' ? 'true' : 'false'}
-              onClick={() => setTarget('avatar')}
-              aria-label="Редактировать аватар и рамку"
+              onClick={() => openMediaPicker('avatar')}
+              aria-label="Изменить аватар"
             >
               <span className={styles.avatarShell}>
                 <img src={avatarUrl} alt="" />
@@ -256,6 +296,7 @@ export default function ProfileDirectEditSurface({
                 />
               </span>
               <span className={styles.avatarEdit}>✎</span>
+              <span className={styles.avatarChangeOverlay}>Изменить</span>
             </button>
 
             <div className={styles.identity}>
@@ -398,22 +439,16 @@ export default function ProfileDirectEditSurface({
               {baseBannerUrl ? <img src={baseBannerUrl} alt="" /> : <span>Без базового баннера</span>}
             </div>
             <div className={styles.actionRow}>
-              <label className={styles.primaryAction} aria-busy={bannerBusy}>
+              <button
+                type="button"
+                className={styles.primaryAction}
+                aria-busy={bannerBusy}
+                disabled={bannerBusy}
+                onClick={() => openMediaPicker('banner')}
+              >
                 <Icon name="image" size={15} />
                 {bannerBusy ? 'Открываем…' : 'Изменить баннер'}
-                <input
-                  hidden
-                  type="file"
-                  accept={MEDIA_ACCEPT}
-                  onChange={(event) => {
-                    const input = event.currentTarget;
-                    const file = input.files?.[0];
-                    void Promise.resolve(onBannerFile(file)).finally(() => {
-                      input.value = '';
-                    });
-                  }}
-                />
-              </label>
+              </button>
               {canRemoveBanner && (
                 <button type="button" className={styles.dangerAction} onClick={onRemoveBanner}>
                   Удалить
@@ -455,22 +490,16 @@ export default function ProfileDirectEditSurface({
               </div>
 
               <div className={styles.actionRow}>
-                <label className={styles.primaryAction} aria-busy={avatarBusy}>
+                <button
+                  type="button"
+                  className={styles.primaryAction}
+                  aria-busy={avatarBusy}
+                  disabled={avatarBusy}
+                  onClick={() => openMediaPicker('avatar')}
+                >
                   <Icon name="image" size={15} />
                   {avatarBusy ? 'Открываем…' : 'Изменить аватар'}
-                  <input
-                    hidden
-                    type="file"
-                    accept={MEDIA_ACCEPT}
-                    onChange={(event) => {
-                      const input = event.currentTarget;
-                      const file = input.files?.[0];
-                      void Promise.resolve(onAvatarFile(file)).finally(() => {
-                        input.value = '';
-                      });
-                    }}
-                  />
-                </label>
+                </button>
                 {canRemoveAvatar && (
                   <button type="button" className={styles.dangerAction} onClick={onRemoveAvatar}>
                     Сбросить
