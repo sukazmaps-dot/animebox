@@ -46,17 +46,23 @@ Vercel's Ignored Build Step convention is:
 The ignore script allows a build when:
 
 1. branch is `main`;
-2. commit message contains `[preview]`, `[deploy]` or `[vercel]`;
-3. `ANIMEBOX_FORCE_VERCEL_BUILD=1`;
-4. Git metadata is unexpectedly unavailable (fail-safe build).
+2. branch starts with `preview-`;
+3. commit message contains `[preview]`, `[deploy]` or `[vercel]`;
+4. `ANIMEBOX_FORCE_VERCEL_BUILD=1`;
+5. Git metadata is unexpectedly unavailable (fail-safe build).
 
 Therefore a release candidate is created as:
 
 1. finish work on `patch-X`;
-2. create `preview-X` from the exact patch head;
-3. create one no-op commit with message `[preview] Patch X — release candidate`;
-4. Vercel runs the full prebuild + Next production build exactly once;
-5. if it passes, merge the tested tree into `main`.
+2. open the canonical release PR from `patch-X` to `main`;
+3. wait for the GitHub `AnimeBox Quality Gate` on that exact head SHA;
+4. create `preview-X` from the exact green patch head;
+5. Vercel automatically runs the full prebuild + Next production build for the preview branch — no marker/no-op commit is required;
+6. smoke-test the preview;
+7. merge the exact tested tree into `main`.
+
+Release markers are retained only as a manual escape hatch. They are no longer
+part of the normal release path, removing a common source of skipped previews.
 
 ## Commit batching
 
@@ -72,7 +78,8 @@ This does **not** weaken the final release gate.
 
 Working patch commits skip Vercel entirely, but:
 
-- explicit `preview-*` release candidates run the full prebuild chain;
+- every `preview-*` release candidate runs the full prebuild chain automatically;
+- the release PR to `main` runs GitHub's Node 22 quality gate;
 - `main` always builds;
 - production deploy remains blocked by real build/compiler errors.
 
