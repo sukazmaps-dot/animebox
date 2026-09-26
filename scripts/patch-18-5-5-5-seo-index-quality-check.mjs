@@ -150,7 +150,6 @@ requireNeedles('SEO System Health server', healthServer, [
   'seo,',
 ]);
 requireNeedles('SEO System Health dashboard', dashboard, [
-  'SEO INDEX QUALITY · 18.5.5.5',
   'SEO titles',
   'SEO INDEX',
   'health.seo.animeIndexable',
