@@ -34,8 +34,8 @@ const PARTICLE_COUNT: Record<PremiumAtmosphereVariant, number> = {
  * left/duration/delay values in social mini-profiles.
  *
  * These values are generated from the stable particle index. There is no
- * Math.random(), so server/client markup is identical and screenshots/tests
- * remain reproducible.
+ * No runtime randomness is used, so server/client markup is identical and
+ * screenshots/tests remain reproducible.
  */
 function particleStyle(
   index: number,
