@@ -314,7 +314,10 @@ async function observedGET(request: NextRequest) {
   });
   if (limited) return limited;
 
-  const runtimeControl = await runtimeFeatureDecision('recommendations');
+  const runtimeControl = await runtimeFeatureDecision(
+    'recommendations',
+    { considerLocalPressure: true },
+  );
   if (!runtimeControl.allowed) {
     return NextResponse.json(
       {
@@ -333,7 +336,7 @@ async function observedGET(request: NextRequest) {
     );
   }
 
-  const brownout = runtimeControl.snapshot.mode === 'brownout';
+  const brownout = runtimeControl.brownout;
   const params = request.nextUrl.searchParams;
   const rawCursor = params.get('cursor');
   const cursorPage = decodeRecommendationCursor(rawCursor);
