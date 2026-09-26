@@ -38,6 +38,7 @@ export default function PremiumStudioLivePreview({
       <PremiumProfileAtmosphere
         effect={settings.atmosphereEffect}
         motion={settings.motionMode}
+        variant="preview"
       />
 
       <div className="premium-studio-v12__preview-banner premium-studio-v15__preview-banner">
