@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import type {
   PremiumAtmosphereEffect,
   PremiumMotionMode,
@@ -26,7 +27,7 @@ export default function PremiumProfileAtmosphere({
       <span className="premium-profile-v21__ambient premium-profile-v21__ambient--c" />
       <span className="premium-profile-v21__particles">
         {Array.from({ length: 14 }, (_, index) => (
-          <i key={index} style={{ '--particle-index': index } as React.CSSProperties} />
+          <i key={index} style={{ '--particle-index': index } as CSSProperties} />
         ))}
       </span>
     </div>
