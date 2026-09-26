@@ -5,6 +5,7 @@ const RAW_FETCH_TIMEOUT_MS = 3_200;
 const RAW_RETRY_TIMEOUT_MS = 1_200;
 const RAW_RETRY_DELAY_MS = 100;
 const NEGATIVE_CACHE_TTL_SECONDS = 15;
+const SOURCE_NEGATIVE_CACHE_TTL_SECONDS = 45;
 const CACHE_TTL_SECONDS = 30 * 24 * 60 * 60;
 const BROWSER_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60;
 const TRANSFORM_FALLBACK_TTL_SECONDS = 60 * 60;
@@ -22,6 +23,10 @@ const ALLOWED_WIDTHS = new Set([
 const ALLOWED_QUALITIES = new Set([60, 70, 80]);
 const ALLOWED_FORMATS = new Set(['auto', 'webp', 'avif']);
 const inFlightOriginFetches = new Map();
+const inFlightSourceProbes = new Map();
+
+const UPSTREAM_BROWSER_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36';
 
 const EXACT_ALLOWED_HOSTS = new Set([
   'shikimori.me',
@@ -128,8 +133,8 @@ async function sha256(value) {
 function upstreamHeaders(source) {
   const headers = new Headers({
     Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.6',
-    'User-Agent':
-      'Mozilla/5.0 (compatible; AnimeBoxMedia/2.0; +https://youranimebox.com)',
+    'Accept-Language': 'en-US,en;q=0.8',
+    'User-Agent': UPSTREAM_BROWSER_UA,
   });
 
   const host = source.hostname.toLowerCase();
@@ -140,6 +145,11 @@ function upstreamHeaders(source) {
     host.endsWith('.shikimori.one')
   ) {
     headers.set('Referer', 'https://shikimori.one/');
+  } else if (
+    host === 'anilist.co' ||
+    host.endsWith('.anilist.co')
+  ) {
+    headers.set('Referer', 'https://anilist.co/');
   }
 
   return headers;
@@ -494,6 +504,93 @@ function mediaFailureHeaders(source, origin) {
   return headers;
 }
 
+function sourceFailureHeaders(source, origin) {
+  const headers = mediaFailureHeaders(source, origin);
+
+  headers.set(
+    'Cache-Control',
+    `public, max-age=${SOURCE_NEGATIVE_CACHE_TTL_SECONDS}, s-maxage=${SOURCE_NEGATIVE_CACHE_TTL_SECONDS}`,
+  );
+  headers.set(
+    'CDN-Cache-Control',
+    `public, max-age=${SOURCE_NEGATIVE_CACHE_TTL_SECONDS}`,
+  );
+  headers.set('Retry-After', String(SOURCE_NEGATIVE_CACHE_TTL_SECONDS));
+  headers.set('X-AnimeBox-Media', 'source-unavailable');
+  headers.set('X-AnimeBox-Source-Backoff', '1');
+
+  return headers;
+}
+
+function sourceFailureCacheKey(requestUrl, hash) {
+  return new Request(
+    `${requestUrl.origin}/cache/source-negative/v1/${hash}`,
+    { method: 'GET' },
+  );
+}
+
+async function readSourceFailure(cache, cacheKey, requestMethod) {
+  const hit = await cache.match(cacheKey);
+  if (!hit) return null;
+
+  const headers = new Headers(hit.headers);
+  headers.set('X-AnimeBox-Media', 'source-negative-hit');
+  headers.set('X-AnimeBox-Source-Backoff', '1');
+
+  return new Response(
+    requestMethod === 'HEAD' ? null : hit.body,
+    {
+      status: 502,
+      headers,
+    },
+  );
+}
+
+async function fetchOriginCoalesced(source, variant, hash) {
+  const inFlightKey = variant
+    ? `${hash}:${variant.token}`
+    : hash;
+  const sameVariant = inFlightOriginFetches.get(inFlightKey);
+
+  if (sameVariant) {
+    return sameVariant;
+  }
+
+  const existingSourceProbe = inFlightSourceProbes.get(hash);
+  if (existingSourceProbe) {
+    const probe = await existingSourceProbe;
+    if (!probe.available) {
+      return probe.origin;
+    }
+  }
+
+  let originPromise;
+  originPromise = fetchOrigin(source, variant).finally(() => {
+    if (inFlightOriginFetches.get(inFlightKey) === originPromise) {
+      inFlightOriginFetches.delete(inFlightKey);
+    }
+  });
+  inFlightOriginFetches.set(inFlightKey, originPromise);
+
+  if (!existingSourceProbe) {
+    let sourceProbePromise;
+    sourceProbePromise = originPromise
+      .then((origin) => ({
+        available: Boolean(origin.response),
+        origin,
+      }))
+      .finally(() => {
+        if (inFlightSourceProbes.get(hash) === sourceProbePromise) {
+          inFlightSourceProbes.delete(hash);
+        }
+      });
+
+    inFlightSourceProbes.set(hash, sourceProbePromise);
+  }
+
+  return originPromise;
+}
+
 export default {
   async fetch(request, env, ctx) {
     if (request.method === 'OPTIONS') {
@@ -518,7 +615,7 @@ export default {
         ok: true,
         service: 'animebox-media',
         protocol: 'variants-v3',
-        reliability: 'media-shield-v1',
+        reliability: 'media-shield-v2',
         r2: Boolean(env.MEDIA_BUCKET),
         originPipelineBudgetMs: ORIGIN_PIPELINE_BUDGET_MS,
         transformTimeoutMs: TRANSFORM_FETCH_TIMEOUT_MS,
@@ -526,6 +623,8 @@ export default {
         rawRetryTimeoutMs: RAW_RETRY_TIMEOUT_MS,
         rawRetryLimit: 1,
         negativeCacheTtlSeconds: NEGATIVE_CACHE_TTL_SECONDS,
+        sourceNegativeCacheTtlSeconds: SOURCE_NEGATIVE_CACHE_TTL_SECONDS,
+        sourceProbeCoalescing: true,
         widths: [...ALLOWED_WIDTHS],
         qualities: [...ALLOWED_QUALITIES],
         formats: [...ALLOWED_FORMATS],
@@ -602,27 +701,45 @@ export default {
         : r2Hit;
     }
 
-    const inFlightKey = variant
-      ? `${hash}:${variant.token}`
-      : hash;
-
-    let originPromise = inFlightOriginFetches.get(inFlightKey);
-    if (!originPromise) {
-      originPromise = fetchOrigin(source, variant).finally(() => {
-        inFlightOriginFetches.delete(inFlightKey);
-      });
-      inFlightOriginFetches.set(inFlightKey, originPromise);
+    const sourceNegativeKey = sourceFailureCacheKey(
+      requestUrl,
+      hash,
+    );
+    const sourceFailure = await readSourceFailure(
+      cache,
+      sourceNegativeKey,
+      request.method,
+    );
+    if (sourceFailure) {
+      return sourceFailure;
     }
 
-    const origin = await originPromise;
+    const origin = await fetchOriginCoalesced(
+      source,
+      variant,
+      hash,
+    );
     if (!origin.response) {
       const failureResponse = new Response('Image unavailable', {
         status: 502,
         headers: mediaFailureHeaders(source, origin),
       });
+      const sourceFailureResponse = new Response(
+        'Image source temporarily unavailable',
+        {
+          status: 502,
+          headers: sourceFailureHeaders(source, origin),
+        },
+      );
 
       ctx.waitUntil(
-        cache.put(cacheKey, failureResponse.clone()),
+        Promise.all([
+          cache.put(cacheKey, failureResponse.clone()),
+          cache.put(
+            sourceNegativeKey,
+            sourceFailureResponse.clone(),
+          ),
+        ]),
       );
 
       return request.method === 'HEAD'
