@@ -29,20 +29,18 @@ export const ACHIEVEMENT_CATEGORY_LABELS: Record<AchievementCategory, string> = 
 };
 
 export const LEVEL_FRAME_KEYS = [
-  'level-viewer',
-  'level-explorer',
-  'level-marathoner',
-  'level-collector',
-  'level-veteran',
-  'level-legend',
-  'level-master',
+  'milestone-lv10-forbidden-relic',
+  'milestone-lv25-flame-arc',
+  'milestone-lv50-crimson-sigil',
+  'milestone-lv75-menacing-manga',
+  'milestone-lv100-absolute-prestige',
 ] as const;
 
 export type LevelFrameKey = (typeof LEVEL_FRAME_KEYS)[number];
 
 export type LevelMilestone = {
   level: number;
-  rank: string;
+  title: string;
   frameKey: LevelFrameKey | null;
   reward: string;
   premiumReward: string;
@@ -51,59 +49,45 @@ export type LevelMilestone = {
 export const LEVEL_MILESTONES: readonly LevelMilestone[] = [
   {
     level: 1,
-    rank: 'Новичок',
+    title: 'Старт',
     frameKey: null,
     reward: 'Старт прогрессии AnimeBox',
-    premiumReward: '+20% XP за новую активность',
-  },
-  {
-    level: 5,
-    rank: 'Зритель',
-    frameKey: 'level-viewer',
-    reward: 'Уровневая рамка «Зритель»',
-    premiumReward: 'Анимация и живое свечение рамки',
+    premiumReward: 'Premium-визуал развивается вместе с твоими наградами',
   },
   {
     level: 10,
-    rank: 'Исследователь',
-    frameKey: 'level-explorer',
-    reward: 'Уровневая рамка «Исследователь»',
-    premiumReward: 'Анимация и живое свечение рамки',
+    title: 'Запретный реликт',
+    frameKey: 'milestone-lv10-forbidden-relic',
+    reward: 'Milestone-рамка «Запретный реликт»',
+    premiumReward: 'Та же рамка оживает: aura, relic, feather и glow',
   },
   {
-    level: 15,
-    rank: 'Марафонец',
-    frameKey: 'level-marathoner',
-    reward: 'Уровневая рамка «Марафонец»',
-    premiumReward: 'Анимация и живое свечение рамки',
-  },
-  {
-    level: 20,
-    rank: 'Коллекционер',
-    frameKey: 'level-collector',
-    reward: 'Уровневая рамка «Коллекционер»',
-    premiumReward: 'Анимация и живое свечение рамки',
-  },
-  {
-    level: 30,
-    rank: 'Ветеран',
-    frameKey: 'level-veteran',
-    reward: 'Уровневая рамка «Ветеран»',
-    premiumReward: 'Анимация и живое свечение рамки',
-  },
-  {
-    level: 40,
-    rank: 'Легенда',
-    frameKey: 'level-legend',
-    reward: 'Уровневая рамка «Легенда»',
-    premiumReward: 'Анимация и живое свечение рамки',
+    level: 25,
+    title: 'Пламенная дуга',
+    frameKey: 'milestone-lv25-flame-arc',
+    reward: 'Milestone-рамка «Пламенная дуга»',
+    premiumReward: 'Анимированный огненный удар, искры и энергетический след',
   },
   {
     level: 50,
-    rank: 'AnimeBox Master',
-    frameKey: 'level-master',
-    reward: 'Финальная рамка AnimeBox Master',
-    premiumReward: 'Максимальная анимация Master-рамки',
+    title: 'Багровая печать',
+    frameKey: 'milestone-lv50-crimson-sigil',
+    reward: 'Milestone-рамка «Багровая печать»',
+    premiumReward: 'Живая печать, вращение sigil-элементов и спектральная аура',
+  },
+  {
+    level: 75,
+    title: 'Угроза',
+    frameKey: 'milestone-lv75-menacing-manga',
+    reward: 'Milestone-рамка «Угроза»',
+    premiumReward: 'Анимированный manga-pressure и фиолетово-розовое давление',
+  },
+  {
+    level: 100,
+    title: 'Абсолютный престиж',
+    frameKey: 'milestone-lv100-absolute-prestige',
+    reward: 'Финальная milestone-рамка «Абсолютный престиж»',
+    premiumReward: 'Максимальная анимация маски-реликта, fissures и crossed blades',
   },
 ] as const;
 
@@ -134,7 +118,7 @@ export type ProfileProgression = {
   premiumBoostActive: boolean;
 };
 
-export const MAX_LEVEL = 50;
+export const MAX_LEVEL = 100;
 
 function safeNumber(value: unknown) {
   const parsed = Number(value ?? 0);
@@ -146,7 +130,7 @@ export function xpForLevel(level: number) {
   const step = clamped - 1;
 
   // Smooth early progression with a gradually steeper late game.
-  // Level 10 ~= 2.5k XP, level 20 ~= 9.1k XP, level 50 ~= 52.9k XP.
+  // Level 10 ~= 2.5k XP, level 50 ~= 52.9k XP, level 100 ~= 205.9k XP.
   return 100 * step + 20 * step * step;
 }
 
@@ -173,7 +157,7 @@ export function levelFrameMilestone(key: LevelFrameKey) {
 }
 
 export function levelFrameLabel(key: LevelFrameKey) {
-  return levelFrameMilestone(key)?.rank ?? 'Уровневая рамка';
+  return levelFrameMilestone(key)?.title ?? 'Milestone-рамка';
 }
 
 export function unlockedLevelFrames(level: number) {
