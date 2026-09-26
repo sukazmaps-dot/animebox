@@ -18,6 +18,7 @@ import type {
 } from '@/lib/system-health';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { getSeoIndexHealth } from '@/lib/seo-anime-index-server';
+import { getRuntimeControlSnapshot } from '@/lib/runtime-controls-server';
 import { getUpstreamRuntimeSnapshot } from '@/lib/upstream-resilience-server';
 
 type ProviderSettingsRow = {
@@ -434,10 +435,105 @@ async function probeMediaEdge(): Promise<SystemDependenciesHealth['mediaEdge']> 
   }
 }
 
+const CAPACITY_THRESHOLDS = {
+  databaseDegradedPct: 70,
+  databaseCriticalPct: 85,
+  apiP95DegradedMs: 2_500,
+  apiErrorDegradedPct: 2,
+  apiErrorCriticalPct: 5,
+  upstreamQueueDegraded: 10,
+  upstreamQueueCritical: 25,
+} as const;
+
+function buildCapacityHealth(input: {
+  databaseConnectionPct: number | null;
+  requestRuntimeDegraded: boolean;
+  requestRuntimeCritical: boolean;
+  playbackRuntimeDegraded: boolean;
+  playbackRuntimeCritical: boolean;
+  upstreamQueued: number;
+  upstreamCircuitOpen: number;
+}) {
+  const bottlenecks: string[] = [];
+  let degradedSignals = 0;
+  let criticalSignals = 0;
+
+  if (
+    input.databaseConnectionPct != null &&
+    input.databaseConnectionPct >= CAPACITY_THRESHOLDS.databaseCriticalPct
+  ) {
+    criticalSignals += 1;
+    bottlenecks.push('database_connections_critical');
+  } else if (
+    input.databaseConnectionPct != null &&
+    input.databaseConnectionPct >= CAPACITY_THRESHOLDS.databaseDegradedPct
+  ) {
+    degradedSignals += 1;
+    bottlenecks.push('database_connections_degraded');
+  }
+
+  if (input.requestRuntimeCritical) {
+    criticalSignals += 1;
+    bottlenecks.push('api_runtime_critical');
+  } else if (input.requestRuntimeDegraded) {
+    degradedSignals += 1;
+    bottlenecks.push('api_runtime_degraded');
+  }
+
+  if (input.playbackRuntimeCritical) {
+    criticalSignals += 1;
+    bottlenecks.push('playback_runtime_critical');
+  } else if (input.playbackRuntimeDegraded) {
+    degradedSignals += 1;
+    bottlenecks.push('playback_runtime_degraded');
+  }
+
+  if (input.upstreamQueued >= CAPACITY_THRESHOLDS.upstreamQueueCritical) {
+    criticalSignals += 1;
+    bottlenecks.push('upstream_queue_critical');
+  } else if (
+    input.upstreamQueued >= CAPACITY_THRESHOLDS.upstreamQueueDegraded
+  ) {
+    degradedSignals += 1;
+    bottlenecks.push('upstream_queue_degraded');
+  }
+
+  if (input.upstreamCircuitOpen > 0) {
+    degradedSignals += 1;
+    bottlenecks.push('upstream_circuit_open');
+  }
+
+  const pressureSignals = criticalSignals + degradedSignals;
+  const state =
+    criticalSignals > 0
+      ? 'critical'
+      : degradedSignals > 0
+        ? 'degraded'
+        : 'healthy';
+
+  return {
+    state,
+    databaseHeadroomPct:
+      input.databaseConnectionPct == null
+        ? null
+        : Math.max(
+            0,
+            Math.round((100 - input.databaseConnectionPct) * 100) / 100,
+          ),
+    pressureSignals,
+    brownoutRecommended:
+      state === 'critical' ||
+      (state === 'degraded' && pressureSignals >= 2),
+    bottlenecks,
+    thresholds: { ...CAPACITY_THRESHOLDS },
+  } as const;
+}
+
 export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
   const admin = createSupabaseAdmin();
   const productionPromise = getProductionHealthSnapshot();
   const seoPromise = getSeoIndexHealth();
+  const controlsPromise = getRuntimeControlSnapshot();
   const dependenciesPromise = Promise.all([
     probeSupabase(admin),
     probeMediaEdge(),
@@ -560,6 +656,7 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
 
   const production = await productionPromise;
   const seo = await seoPromise;
+  const controls = await controlsPromise;
   const [supabaseDependency, mediaEdgeDependency] = await dependenciesPromise;
   const dependencies: SystemDependenciesHealth = {
     supabase: supabaseDependency,
@@ -695,21 +792,29 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
     (sum, item) => sum + item.queued,
     0,
   );
+  const capacity = buildCapacityHealth({
+    databaseConnectionPct: production.database.connectionPct,
+    requestRuntimeDegraded,
+    requestRuntimeCritical,
+    playbackRuntimeDegraded,
+    playbackRuntimeCritical,
+    upstreamQueued,
+    upstreamCircuitOpen,
+  });
+  const brownoutActive = controls.mode === 'brownout';
 
   const status =
     openCriticalIncidents > 0 ||
-    requestRuntimeCritical ||
-    playbackRuntimeCritical
+    capacity.state === 'critical'
       ? 'critical'
       : openWarningIncidents > 0 ||
           unhealthyProviders > 0 ||
           failedJobs24h > 0 ||
           degradedJobs24h > 0 ||
           production.cron.failed24h > 0 ||
-          requestRuntimeDegraded ||
-          playbackRuntimeDegraded ||
+          capacity.state === 'degraded' ||
           dependencyWarnings > 0 ||
-          upstreamCircuitOpen > 0
+          brownoutActive
         ? 'degraded'
         : 'healthy';
 
@@ -753,6 +858,8 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
     requests,
     dependencies,
     seo,
+    controls,
+    capacity,
     upstreams,
     signals: {
       openCriticalIncidents,
@@ -767,6 +874,8 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
       dependencyWarnings,
       upstreamCircuitOpen,
       upstreamQueued,
+      brownoutActive,
+      brownoutRecommended: capacity.brownoutRecommended,
     },
   };
 }
