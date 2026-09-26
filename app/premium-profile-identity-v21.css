@@ -316,19 +316,23 @@
 }
 
 /* ---------- Entrance ---------- */
-.profile-v2.premium-profile-custom.premium-profile-v21[data-premium-entrance='fade'] {
+.profile-v2.premium-profile-custom.premium-profile-v21[data-premium-entrance='fade'],
+.premium-studio-v21__preview[data-premium-entrance='fade'] {
   animation: premiumV21EnterFade .42s ease-out both;
 }
 
-.profile-v2.premium-profile-custom.premium-profile-v21[data-premium-entrance='bloom'] {
+.profile-v2.premium-profile-custom.premium-profile-v21[data-premium-entrance='bloom'],
+.premium-studio-v21__preview[data-premium-entrance='bloom'] {
   animation: premiumV21EnterBloom .62s cubic-bezier(.16,.78,.2,1) both;
 }
 
-.profile-v2.premium-profile-custom.premium-profile-v21[data-premium-entrance='manga'] {
+.profile-v2.premium-profile-custom.premium-profile-v21[data-premium-entrance='manga'],
+.premium-studio-v21__preview[data-premium-entrance='manga'] {
   animation: premiumV21EnterManga .56s cubic-bezier(.2,.7,.15,1) both;
 }
 
-.profile-v2.premium-profile-custom.premium-profile-v21[data-premium-entrance='glitch'] {
+.profile-v2.premium-profile-custom.premium-profile-v21[data-premium-entrance='glitch'],
+.premium-studio-v21__preview[data-premium-entrance='glitch'] {
   animation: premiumV21EnterGlitch .5s steps(2,end) both;
 }
 
@@ -686,5 +690,49 @@
 
   .premium-studio-v21__atmosphere-grid > button .premium-studio-v21__effect-orb {
     grid-row: 1 / span 2;
+  }
+}
+
+
+.premium-studio-v21__replay-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-top: 1px solid rgba(255,255,255,.05);
+}
+
+.premium-studio-v21__replay-row > span {
+  display: grid;
+  gap: 4px;
+}
+
+.premium-studio-v21__replay-row strong {
+  color: #f5efff;
+  font-size: 12px;
+}
+
+.premium-studio-v21__replay-row small {
+  color: rgba(232,226,245,.45);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.premium-studio-v21__replay-row button {
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid rgba(175,132,255,.22);
+  border-radius: 11px;
+  background: rgba(133,82,255,.09);
+  color: #f5efff;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+@media (max-width: 760px) {
+  .premium-studio-v21__replay-row {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
