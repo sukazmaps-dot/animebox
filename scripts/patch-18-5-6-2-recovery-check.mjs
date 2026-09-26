@@ -71,6 +71,7 @@ function railHarness() {
     railOwnershipRef: { current: new Map() },
     DEFAULT_RECOMMENDATION_RAIL_LIMIT: 8, MIN_INITIAL_RAIL_ITEMS: 4,
     RECOMMENDATION_RAIL_BATCH_SIZE: 8, SPARSE_RAIL_BOOTSTRAP_PAGE_HOPS: 1,
+    ZERO_RAIL_BOOTSTRAP_PAGE_HOPS: 3,
     MAX_EMPTY_PAGE_HOPS: 2, STRICT_EMPTY_PAGE_HOPS: 1, MAX_RAIL_DOM_ITEMS: 20,
     recommendationMatchesRail: () => true, recommendationMatchesRailRelaxed: () => true,
     fetchNextCandidateBatch: () => task.promise,
