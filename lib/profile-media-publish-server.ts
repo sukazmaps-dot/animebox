@@ -80,7 +80,7 @@ const RECOGNIZED_STORAGE_MIMES = new Set<SupportedProfileImageMime>([
 
 function maxAllowedBytes(scope: ProfileMediaScope, kind: ProfileMediaKind) {
   if (scope === 'premium') {
-    return kind === 'avatar' ? 2 * 1024 * 1024 : 6 * 1024 * 1024;
+    return kind === 'avatar' ? 8 * 1024 * 1024 : 6 * 1024 * 1024;
   }
   return 5 * 1024 * 1024;
 }
@@ -92,12 +92,14 @@ function mediaGeometryLimit(
 ) {
   if (scope === 'premium' && variant === 'static') {
     return kind === 'avatar'
-      ? { maxWidth: 512, maxHeight: 512, maxPixels: 512 * 512 }
-      : { maxWidth: 1500, maxHeight: 900, maxPixels: 1500 * 900 };
+      ? { minWidth: 256, minHeight: 256, maxWidth: 512, maxHeight: 512, maxPixels: 512 * 512 }
+      : { minWidth: 1, minHeight: 1, maxWidth: 1500, maxHeight: 900, maxPixels: 1500 * 900 };
   }
 
   if (kind === 'avatar') {
     return {
+      minWidth: scope === 'premium' ? 256 : 1,
+      minHeight: scope === 'premium' ? 256 : 1,
       maxWidth: 1024,
       maxHeight: 1024,
       maxPixels: 1024 * 1024,
@@ -105,6 +107,8 @@ function mediaGeometryLimit(
   }
 
   return {
+    minWidth: 1,
+    minHeight: 1,
     maxWidth: 2400,
     maxHeight: 1200,
     maxPixels: 2400 * 1200,
@@ -251,8 +255,8 @@ function validateTechnicalMedia(
   if (
     !Number.isSafeInteger(inspection.width) ||
     !Number.isSafeInteger(inspection.height) ||
-    inspection.width < 1 ||
-    inspection.height < 1 ||
+    inspection.width < geometry.minWidth ||
+    inspection.height < geometry.minHeight ||
     inspection.width > geometry.maxWidth ||
     inspection.height > geometry.maxHeight ||
     !Number.isSafeInteger(pixels) ||
@@ -260,7 +264,10 @@ function validateTechnicalMedia(
   ) {
     throw new ApiError(
       413,
-      `Слишком большое разрешение изображения. Максимум ${geometry.maxWidth}×${geometry.maxHeight}px.`,
+      group.scope === 'premium' && group.kind === 'avatar' &&
+      (inspection.width < geometry.minWidth || inspection.height < geometry.minHeight)
+        ? `Premium-аватар должен быть не меньше ${geometry.minWidth}×${geometry.minHeight}px.`
+        : `Слишком большое разрешение изображения. Максимум ${geometry.maxWidth}×${geometry.maxHeight}px.`,
     );
   }
 
