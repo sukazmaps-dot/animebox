@@ -664,3 +664,171 @@
   .episode-library-compact__remove { width:100%; }
 }
 @media (max-width:390px) { .episode-quick-nav__grid { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+
+
+/* Patch 18.7 — Library status geometry regression shield */
+.episode-engagement-grid > .episode-library-compact {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 58px !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+.episode-engagement-grid .episode-library-compact__picker {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+}
+
+.episode-engagement-grid .episode-library-compact__trigger {
+  display: grid !important;
+  grid-template-columns: 30px minmax(0, 1fr) 18px !important;
+  grid-template-rows: 1fr !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 44px !important;
+  box-sizing: border-box !important;
+  align-items: center !important;
+  justify-items: stretch !important;
+}
+
+.episode-engagement-grid .episode-library-compact__status-icon {
+  grid-column: 1 !important;
+  justify-self: start !important;
+  flex: none !important;
+}
+
+.episode-engagement-grid .episode-library-compact__trigger-copy {
+  grid-column: 2 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  position: static !important;
+  transform: none !important;
+}
+
+.episode-engagement-grid .episode-library-compact__trigger-copy > small,
+.episode-engagement-grid .episode-library-compact__trigger-copy > strong {
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+  max-width: 100% !important;
+}
+
+.episode-engagement-grid .episode-library-compact__chevron {
+  grid-column: 3 !important;
+  justify-self: end !important;
+  flex: none !important;
+}
+
+.episode-engagement-grid .episode-library-compact__menu {
+  left: 0 !important;
+  right: auto !important;
+  width: min(310px, 100%) !important;
+  min-width: min(250px, 100%) !important;
+  max-width: calc(100vw - 32px) !important;
+  box-sizing: border-box !important;
+}
+
+.episode-engagement-grid .episode-library-compact__message {
+  grid-column: 1 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+@media (max-width: 768px) {
+  .episode-engagement-grid .episode-library-compact__menu {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+}
+
+
+/* Patch 18.7 — Library guest auth state */
+.episode-engagement-grid .episode-library-compact--guest {
+  min-height: 58px !important;
+}
+
+.episode-engagement-grid .episode-library-compact__trigger--guest {
+  grid-template-columns: 30px minmax(0, 1fr) 18px !important;
+  border-color: rgba(151,136,231,.13) !important;
+  background: linear-gradient(180deg,rgba(17,22,37,.88),rgba(11,16,27,.9)) !important;
+}
+
+.episode-engagement-grid .episode-library-compact__trigger--guest:hover {
+  border-color: rgba(151,136,231,.3) !important;
+  background: linear-gradient(180deg,rgba(22,28,47,.95),rgba(13,18,31,.95)) !important;
+}
+
+.episode-library-compact__status-icon--guest svg {
+  width: 17px;
+  height: 17px;
+}
+
+.episode-library-compact__guest-arrow {
+  grid-column: 3 !important;
+  width: 18px;
+  height: 18px;
+  justify-self: end;
+  color: var(--ab-muted);
+  transition: transform 150ms ease, color 150ms ease;
+}
+
+.episode-library-compact__trigger--guest:hover .episode-library-compact__guest-arrow {
+  transform: translateX(2px);
+  color: #cfc6ff;
+}
+
+.community-library-guest {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 14px;
+}
+
+.community-library-guest p {
+  margin: 0;
+  color: var(--ab-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.community-library-guest__action {
+  min-height: 40px;
+  flex: 0 0 auto;
+  padding: 0 14px;
+  border: 1px solid rgba(151,136,231,.24);
+  border-radius: 10px;
+  background: rgba(151,136,231,.08);
+  color: #e5e0ff;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 740;
+  cursor: pointer;
+}
+
+.community-library-guest__action:hover {
+  border-color: rgba(151,136,231,.42);
+  background: rgba(151,136,231,.13);
+}
+
+@media (max-width: 768px) {
+  .community-library-guest {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .community-library-guest__action {
+    width: 100%;
+  }
+}

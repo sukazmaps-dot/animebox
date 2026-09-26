@@ -20,6 +20,7 @@ if (episode.includes('episode-page__poster-shell')) failures.push('duplicate pos
 need('comments', comments, ['Комментарии','episode-comments__sort-select','<select']);
 for (const oldCopy of ['ПОСЛЕ СЕРИИ','Обсуждение относится только','episode-comments__count']) if (comments.includes(oldCopy)) failures.push(`deprecated comments UI remains: ${oldCopy}`);
 need('compact library', library, ['episode-library-compact','Статус аниме в библиотеке','Добавить в библиотеку']);
+need('library guest auth', library, ['useAuthState','useAuthModal',"intent: 'tracker'",'Чтобы пользоваться библиотекой','Войти / зарегистрироваться']);
 need('compact notifications', notifications, ['episode-notification-compact','Уведомлять о новых сериях']);
 need('compact watch together', watchParty, ["status === 'idle' && mode === 'inline'",'Создать комнату']);
 if (smart.includes("return 'Длительность уточняется'")) failures.push('unknown duration filler remains');

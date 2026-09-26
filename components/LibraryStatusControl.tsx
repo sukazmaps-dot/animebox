@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { useAuthModal } from '@/components/AuthModalProvider';
+import { useAuthState } from '@/components/AuthStateProvider';
 import {
   communityRequest,
   statusLabels,
@@ -28,6 +30,9 @@ export default function LibraryStatusControl({
   onRemoved?: () => void;
 }) {
   const compact = variant === 'compact';
+  const { user, loading: authLoading } = useAuthState();
+  const { openAuth } = useAuthModal();
+  const guest = !authLoading && !user;
   const [status, setStatus] = useState<LibraryStatus | ''>(
     initialStatus ?? '',
   );
@@ -66,7 +71,7 @@ export default function LibraryStatusControl({
   }, [compact, statusMenuOpen]);
 
   useEffect(() => {
-    if (initialStatus) return;
+    if (initialStatus || authLoading || !user) return;
 
     let active = true;
 
@@ -83,10 +88,24 @@ export default function LibraryStatusControl({
     return () => {
       active = false;
     };
-  }, [animeId, initialStatus]);
+  }, [animeId, authLoading, initialStatus, user]);
+
+  useEffect(() => {
+    if (authLoading || user) return;
+    setStatus('');
+    setMessage('');
+    setConfirmRemove(false);
+    setStatusMenuOpen(false);
+  }, [authLoading, user]);
 
   async function save(value: LibraryStatus) {
-    if (busy || value === status) return;
+    if (busy) return;
+
+    if (value === status) {
+      setStatusMenuOpen(false);
+      setConfirmRemove(false);
+      return;
+    }
 
     setBusy(true);
     setMessage('');
@@ -128,6 +147,7 @@ export default function LibraryStatusControl({
 
       setStatus('');
       setConfirmRemove(false);
+      setStatusMenuOpen(false);
       onRemoved?.();
       window.dispatchEvent(
         new CustomEvent('library-updated', {
@@ -144,6 +164,53 @@ export default function LibraryStatusControl({
     } finally {
       setBusy(false);
     }
+  }
+
+  if (compact && guest) {
+    return (
+      <section
+        ref={compactRootRef}
+        className="episode-library-compact episode-library-compact--guest"
+        data-status="guest"
+      >
+        <button
+          type="button"
+          className="episode-library-compact__trigger episode-library-compact__trigger--guest"
+          aria-label="Войти или зарегистрироваться, чтобы пользоваться библиотекой"
+          onClick={() =>
+            openAuth({
+              mode: 'register',
+              intent: 'tracker',
+              title: 'Сохраняй аниме в своей библиотеке',
+            })
+          }
+        >
+          <span
+            className="episode-library-compact__status-icon episode-library-compact__status-icon--guest"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 20 20" fill="none">
+              <path d="M6.75 8V6.5a3.25 3.25 0 0 1 6.5 0V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <rect x="5" y="8" width="10" height="8" rx="2" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          </span>
+
+          <span className="episode-library-compact__trigger-copy">
+            <small>Чтобы пользоваться библиотекой</small>
+            <strong>Войти / зарегистрироваться</strong>
+          </span>
+
+          <svg
+            className="episode-library-compact__guest-arrow"
+            viewBox="0 0 20 20"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path d="M7 4.5 12.5 10 7 15.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </section>
+    );
   }
 
   if (compact) {
@@ -225,30 +292,75 @@ export default function LibraryStatusControl({
                   </button>
                 );
               })}
+
+              {status && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={
+                    confirmRemove
+                      ? 'episode-library-compact__remove is-confirm'
+                      : 'episode-library-compact__remove'
+                  }
+                  disabled={busy}
+                  onClick={() => {
+                    if (!confirmRemove) {
+                      setConfirmRemove(true);
+                      return;
+                    }
+                    void removeFromTracker();
+                  }}
+                >
+                  <span className="episode-library-compact__menu-icon" aria-hidden="true">×</span>
+                  <span>
+                    {confirmRemove
+                      ? 'Подтвердить удаление'
+                      : 'Убрать из библиотеки'}
+                  </span>
+                </button>
+              )}
             </div>
           )}
         </div>
 
-        {status && (
-          <button
-            type="button"
-            className={confirmRemove ? 'episode-library-compact__remove is-confirm' : 'episode-library-compact__remove'}
-            disabled={busy}
-            onClick={() => {
-              if (!confirmRemove) {
-                setConfirmRemove(true);
-                return;
-              }
-              void removeFromTracker();
-            }}
-          >
-            {confirmRemove ? 'Подтвердить' : 'Убрать'}
-          </button>
-        )}
-
         {message && (
           <span className="episode-library-compact__message" role="status">{message}</span>
         )}
+      </section>
+    );
+  }
+
+  if (guest) {
+    return (
+      <section className="community-library-control community-library-control--guest">
+        <div className="community-library-control__top">
+          <div className="community-library-control__info">
+            <div className="community-library-control__icon" aria-hidden="true">
+              <img src="/brand/brand-mark.png" alt="" />
+            </div>
+            <div>
+              <span className="community-library-control__eyebrow">Личная библиотека</span>
+              <h2>Сохраняй тайтлы в AnimeBox</h2>
+            </div>
+          </div>
+        </div>
+
+        <div className="community-library-guest">
+          <p>Чтобы пользоваться библиотекой, войдите или зарегистрируйтесь.</p>
+          <button
+            type="button"
+            className="community-library-guest__action"
+            onClick={() =>
+              openAuth({
+                mode: 'register',
+                intent: 'tracker',
+                title: 'Сохраняй аниме в своей библиотеке',
+              })
+            }
+          >
+            Войти / зарегистрироваться
+          </button>
+        </div>
       </section>
     );
   }
