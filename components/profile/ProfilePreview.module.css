@@ -694,8 +694,8 @@
 .avatarShellSeason .avatarMedia {
   position: relative;
   z-index: 1;
-  width: 64%;
-  height: 64%;
+  width: 58%;
+  height: 58%;
   overflow: hidden;
   border-radius: 50%;
   background: #111827;
