@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import './patch17-6-home-recommendation-actions.css';
+import './patch18-6-3-loading-ux.css';
 
 import HomePageShell from '@/components/home/HomePageShell';
 import { SITE_URL } from '@/lib/seo-config';
