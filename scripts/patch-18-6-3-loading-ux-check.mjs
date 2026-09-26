@@ -1,0 +1,24 @@
+import fs from 'node:fs';
+const read=(path)=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8');
+const smartFeed=read('components/SmartRecommendationFeed.tsx');
+const discovery=read('components/home/HomeDiscoverySection.tsx');
+const schedule=read('components/home/HomeScheduleSection.tsx');
+const personalSchedule=read('components/home/HomePersonalRetentionSections.tsx');
+const skeletons=read('components/home/HomeLoadingSkeletons.tsx');
+const css=read('app/patch18-6-3-loading-ux.css');
+const layout=read('app/layout.tsx');
+const pkg=JSON.parse(read('package.json'));
+const failures=[];
+const need=(label,source,needles)=>{for(const needle of needles){if(!source.includes(needle))failures.push(`${label} missing: ${needle}`)}};
+need('smart feed zero-rail bootstrap',smartFeed,['ZERO_RAIL_BOOTSTRAP_PAGE_HOPS','rail.items.length < MIN_INITIAL_RAIL_ITEMS','railAwaitingBootstrap',"hasMore={rail.items.length > 0 ? railHasMore : false}",'RecommendationCardSkeleton','aria-busy={showRailSkeleton}','data-recommendation-rail-loading']);
+if(smartFeed.includes('rail.items.length > 0 &&\n            rail.items.length < MIN_INITIAL_RAIL_ITEMS'))failures.push('zero-item recommendation rails are still excluded from auto bootstrap');
+need('home recommendation loading state',discovery,['RecommendationFeedSkeleton','recommendationsLoading','aria-busy={recommendationsLoading}','label="Загружаем персональные рекомендации"']);
+need('schedule loading state',schedule,['ScheduleGridSkeleton','aria-busy={scheduleLoading}']);
+need('personal schedule loading state',personalSchedule,['ScheduleCardSkeleton','upcomingScheduleLoading','personalAnimeIdList.length > 0','aria-busy={showLoading}']);
+need('structured skeleton components',skeletons,['RecommendationCardSkeleton','RecommendationFeedSkeleton','ScheduleCardSkeleton','ScheduleGridSkeleton','role="status"','aria-live="polite"']);
+need('loading visual contract',css,['.home-loading-card__poster','.home-loading-card__actions','.home-loading-schedule-card','@keyframes animebox-loading-sweep',"html[data-animebox-theme='light']",'@media(prefers-reduced-motion:reduce)']);
+if(!layout.includes("import './patch18-6-3-loading-ux.css';"))failures.push('Patch 18.6.3 stylesheet is not imported');
+if(pkg.scripts?.['patch18-6-3:check']!=='node scripts/patch-18-6-3-loading-ux-check.mjs')failures.push('package.json is missing patch18-6-3:check');
+if(!String(pkg.scripts?.prebuild??'').includes('npm run patch18-6-3:check'))failures.push('prebuild does not execute patch18-6-3:check');
+if(failures.length){console.error('\n[AnimeBox 18.6.3 Loading UX] Check failed:\n');failures.forEach(x=>console.error(` - ${x}`));process.exit(1)}
+console.log('[AnimeBox 18.6.3 Loading UX] structured skeletons, zero-rail bootstrap, schedule loading and reduced-motion invariants passed.');

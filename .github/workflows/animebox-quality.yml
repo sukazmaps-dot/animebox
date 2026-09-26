@@ -91,6 +91,7 @@ jobs:
           components/home/useHomeScheduleData.ts
           components/home/HomeHeroSection.tsx
           components/home/HomeDiscoverySection.tsx
+          components/home/HomeLoadingSkeletons.tsx
           components/home/HomeCatalogSections.tsx
           components/home/HomeScheduleSection.tsx
           components/home/HomePersonalRetentionSections.tsx

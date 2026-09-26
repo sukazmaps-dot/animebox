@@ -10,6 +10,7 @@ import {
 } from 'react';
 
 import SmartRecommendationCard from '@/components/SmartRecommendationCard';
+import { RecommendationCardSkeleton } from '@/components/home/HomeLoadingSkeletons';
 import ScrollRow, {
   type ScrollRowVirtualMetrics,
 } from '@/components/ui/ScrollRow';
@@ -47,6 +48,7 @@ const MAX_RAIL_DOM_ITEMS = 36;
 const RAIL_VIRTUAL_OVERSCAN = 6;
 const MIN_INITIAL_RAIL_ITEMS = 4;
 const SPARSE_RAIL_BOOTSTRAP_PAGE_HOPS = 1;
+const ZERO_RAIL_BOOTSTRAP_PAGE_HOPS = 3;
 const SPARSE_RAIL_ROOT_MARGIN = '240px 0px';
 
 type CachedPage = {
@@ -606,9 +608,13 @@ export default function SmartRecommendationFeed({
           // A rail can be temporarily sparse for one cursor window. When
           // another page yields fresh candidates, let paused rails try again
           // instead of treating a temporary miss as a permanent end.
-          setExhaustedRails((current) =>
-            current.size > 0 ? new Set() : current,
-          );
+          setExhaustedRails((current) => {
+            if (current.size === 0) return current;
+            current.forEach((railId) =>
+              sparseRailPrimedRef.current.delete(railId),
+            );
+            return new Set();
+          });
         }
 
         consumedPointerKeysRef.current.add(currentPointerKey);
@@ -801,12 +807,17 @@ export default function SmartRecommendationFeed({
       // brought in suitable titles.
       claimCandidates(filtered, false);
 
+      const bootstrapPageHops =
+        itemsBefore === 0
+          ? ZERO_RAIL_BOOTSTRAP_PAGE_HOPS
+          : SPARSE_RAIL_BOOTSTRAP_PAGE_HOPS;
+
       try {
         for (
           let attempt = 0;
           attempt < (
             bootstrap
-              ? SPARSE_RAIL_BOOTSTRAP_PAGE_HOPS
+              ? bootstrapPageHops
               : MAX_EMPTY_PAGE_HOPS
           ) &&
           hasMoreRef.current &&
@@ -821,7 +832,6 @@ export default function SmartRecommendationFeed({
         }
 
         if (
-          !bootstrap &&
           claimedForRail === 0 &&
           hasMoreRef.current
         ) {
@@ -894,13 +904,11 @@ export default function SmartRecommendationFeed({
             page: startPointer.page,
           },
         });
-        if (!bootstrap) {
-          setRailErrors((current) => {
-            const next = new Set(current);
-            next.add(rail.id);
-            return next;
-          });
-        }
+        setRailErrors((current) => {
+          const next = new Set(current);
+          next.add(rail.id);
+          return next;
+        });
       } finally {
         if (isCurrentGeneration()) {
           railLoadingRef.current.delete(rail.id);
@@ -935,7 +943,6 @@ export default function SmartRecommendationFeed({
       rails
         .filter(
           (rail) =>
-            rail.items.length > 0 &&
             rail.items.length < MIN_INITIAL_RAIL_ITEMS &&
             !loadingRails.has(rail.id) &&
             !exhaustedRails.has(rail.id) &&
@@ -1028,6 +1035,25 @@ export default function SmartRecommendationFeed({
             const railLoading = loadingRails.has(rail.id);
             const railHasMore = hasMore && !exhaustedRails.has(rail.id);
             const railFailed = railErrors.has(rail.id);
+            const railAwaitingBootstrap =
+              rail.items.length === 0 &&
+              railHasMore &&
+              !railFailed;
+            const showRailSkeleton =
+              railLoading || railAwaitingBootstrap;
+            const skeletonCount =
+              rail.items.length === 0
+                ? MIN_INITIAL_RAIL_ITEMS
+                : RAIL_SKELETON_COUNT;
+
+            if (
+              rail.items.length === 0 &&
+              exhaustedRails.has(rail.id) &&
+              !railLoading &&
+              !railFailed
+            ) {
+              return null;
+            }
 
             return (
               <section
@@ -1037,12 +1063,15 @@ export default function SmartRecommendationFeed({
                 data-recommendation-rail-id={rail.id}
                 data-recommendation-rail-items={rail.items.length}
                 data-recommendation-rail-sparse={
-                  rail.items.length > 0 &&
                   rail.items.length < MIN_INITIAL_RAIL_ITEMS
                     ? 'true'
                     : 'false'
                 }
                 aria-labelledby={`smart-feed-rail-${rail.id}`}
+                aria-busy={showRailSkeleton}
+                data-recommendation-rail-loading={
+                  showRailSkeleton ? 'true' : 'false'
+                }
               >
                 <header className="smart-feed__rail-heading">
                   <div>
@@ -1058,8 +1087,8 @@ export default function SmartRecommendationFeed({
                   className="smart-feed__rail"
                   ariaLabel={rail.title}
                   stepRatio={0.82}
-                  hasMore={railHasMore}
-                  loading={railLoading}
+                  hasMore={rail.items.length > 0 ? railHasMore : false}
+                  loading={showRailSkeleton}
                   onEndReached={() => void ensureRailDepth(rail)}
                   endReachedRequiresInteraction
                   virtualize
@@ -1086,15 +1115,15 @@ export default function SmartRecommendationFeed({
                     </div>
                   ))}
 
-                  {railLoading &&
-                    Array.from({ length: RAIL_SKELETON_COUNT }).map(
+                  {showRailSkeleton &&
+                    Array.from({ length: skeletonCount }).map(
                       (_, index) => (
                         <div
                           className="smart-feed__slide smart-feed__slide--skeleton"
                           key={`smart-feed-${rail.id}-skeleton-${index}`}
                           aria-hidden="true"
                         >
-                          <div className="smart-feed__skeleton-card" />
+                          <RecommendationCardSkeleton />
                         </div>
                       ),
                     )}

@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 import DeferredMount from '@/components/DeferredMount';
 import ScheduleItem from '@/components/ScheduleItem';
+import { ScheduleCardSkeleton } from '@/components/home/HomeLoadingSkeletons';
 import { useHomeFeedRuntime } from '@/components/home/HomeFeedRuntimeProvider';
 import {
   formatUpcomingDate,
@@ -30,11 +31,29 @@ const HomeActivationPanel = dynamic(
 );
 
 export function HomePersonalScheduleSection() {
-  const { personalScheduleItems } =
-    useHomeScheduleRuntime();
+  const {
+    personalizedHome,
+    personalAnimeIdList,
+  } = useHomeFeedRuntime();
+  const {
+    personalScheduleItems,
+    upcomingScheduleLoading,
+  } = useHomeScheduleRuntime();
 
-  return personalScheduleItems.length > 0 ? (
-    <section className="section personal-schedule-section">
+  const showLoading =
+    upcomingScheduleLoading &&
+    personalizedHome &&
+    personalAnimeIdList.length > 0;
+
+  if (!showLoading && personalScheduleItems.length === 0) {
+    return null;
+  }
+
+  return (
+    <section
+      className="section personal-schedule-section"
+      aria-busy={showLoading}
+    >
       <div className="section-head">
         <div>
           <span className="smart-section-eyebrow">
@@ -58,7 +77,16 @@ export function HomePersonalScheduleSection() {
       </div>
 
       <div className="personal-schedule-grid">
-        {personalScheduleItems.map((item) => {
+        {showLoading ? (
+          Array.from({ length: 3 }).map((_, index) => (
+            <div
+              className="personal-schedule-card"
+              key={`personal-schedule-loading-${index}`}
+            >
+              <ScheduleCardSkeleton />
+            </div>
+          ))
+        ) : personalScheduleItems.map((item) => {
           const title = getScheduleTitle(item);
           const watchHref =
             `${animeHref(item.media)}/watch?ep=${Math.max(
@@ -104,7 +132,7 @@ export function HomePersonalScheduleSection() {
         })}
       </div>
     </section>
-  ) : null;
+  );
 }
 
 export function HomeRetentionSections() {

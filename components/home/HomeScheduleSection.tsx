@@ -4,6 +4,7 @@ import Link from 'next/link';
 
 import AnimeImage from '@/components/AnimeImage';
 import Icon from '@/components/Icon';
+import { ScheduleGridSkeleton } from '@/components/home/HomeLoadingSkeletons';
 import {
   formatScheduleTime,
   getScheduleTitle,
@@ -27,6 +28,7 @@ export default function HomeScheduleSection() {
     <section
       ref={scheduleSectionRef}
       className="section schedule"
+      aria-busy={scheduleLoading}
     >
       <div className="section-head">
         <h2 className="section-title">
@@ -71,15 +73,7 @@ export default function HomeScheduleSection() {
       </div>
 
       {scheduleLoading ? (
-        <div className="schedule__cards">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div
-              key={index}
-              className="schedule__card skeleton"
-              style={{ minHeight: 64 }}
-            />
-          ))}
-        </div>
+        <ScheduleGridSkeleton />
       ) : scheduleError ? (
         <div className="empty-state">
           <strong>Расписание временно недоступно</strong>
