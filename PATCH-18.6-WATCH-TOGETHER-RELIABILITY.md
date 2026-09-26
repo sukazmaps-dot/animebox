@@ -9,6 +9,7 @@ Make Watch Together behave like a production room system instead of a fragile P2
 - A guest must either become active through WebRTC or Realtime within a bounded room-level deadline, or receive an actionable error.
 - Late async results from an obsolete transport generation must never revive an old connection.
 - Realtime stays subscribed as a hot standby while WebRTC is healthy.
+- Returning from a mobile background state (`visibilitychange` / `pageshow`) reuses a healthy transport or recreates the current host/guest transport without requiring F5.
 - Only one Realtime relay per room/topic is active per browser tab.
 - Playback drift compares host time against the guest's projected current playback position, not a stale observation.
 - Host heartbeats are conditional on the caller still being the room host and the room not already being ended.
