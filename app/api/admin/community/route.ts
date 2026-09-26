@@ -1,5 +1,6 @@
 import { assertCanModerateTarget, requireAdmin, requireAdminMutation, writeAdminAudit, type AdminRole } from '@/lib/admin-server';
 import { ApiError, adminClient, readBody, response } from '@/lib/community-server';
+import { xpForLevel } from '@/lib/progression';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function cleanText(value: unknown, max = 500) {
@@ -238,6 +239,121 @@ export async function POST(request: Request) {
     const body = await readBody(request);
     const action = body.action;
     const admin = adminClient();
+
+    if (action === 'set_user_level') {
+      requireSenior(role);
+
+      const target = cleanText(body.target, 120);
+      const level = Number(body.level);
+      if (!target || !Number.isSafeInteger(level) || level < 1 || level > 50) {
+        throw new ApiError(400, 'Укажи пользователя и LVL от 1 до 50.');
+      }
+
+      let targetUser: { id: string; username: string | null } | null = null;
+
+      if (UUID.test(target)) {
+        const lookup = await admin
+          .from('profiles')
+          .select('id,username')
+          .eq('id', target)
+          .maybeSingle();
+        if (lookup.error) throw lookup.error;
+        targetUser = lookup.data;
+      } else {
+        const lookup = await admin
+          .from('profiles')
+          .select('id,username')
+          .ilike('username', target)
+          .limit(2);
+        if (lookup.error) throw lookup.error;
+        if ((lookup.data ?? []).length > 1) {
+          throw new ApiError(409, 'Найдено несколько профилей. Используй UUID пользователя.');
+        }
+        targetUser = lookup.data?.[0] ?? null;
+      }
+
+      if (!targetUser) throw new ApiError(404, 'Пользователь не найден.');
+      assertCanModerateTarget(user.id, role, targetUser.id);
+
+      const progression = await admin
+        .from('user_progression')
+        .select('total_xp,activity_xp,premium_bonus_xp,achievement_xp,challenge_xp,admin_adjustment_xp')
+        .eq('user_id', targetUser.id)
+        .maybeSingle();
+      if (progression.error) throw progression.error;
+
+      if (!progression.data) {
+        const inserted = await admin
+          .from('user_progression')
+          .insert({ user_id: targetUser.id })
+          .select('total_xp,activity_xp,premium_bonus_xp,achievement_xp,challenge_xp,admin_adjustment_xp')
+          .single();
+        if (inserted.error) throw inserted.error;
+        progression.data = inserted.data;
+      }
+
+      const previousTotal = Number(progression.data.total_xp ?? 0);
+      const earnedXp =
+        Number(progression.data.activity_xp ?? 0) +
+        Number(progression.data.premium_bonus_xp ?? 0) +
+        Number(progression.data.achievement_xp ?? 0) +
+        Number(progression.data.challenge_xp ?? 0);
+      const targetXp = xpForLevel(level);
+      const adminAdjustmentXp = targetXp - earnedXp;
+      const delta = targetXp - previousTotal;
+      const now = new Date().toISOString();
+
+      const update = await admin
+        .from('user_progression')
+        .update({
+          total_xp: targetXp,
+          admin_adjustment_xp: adminAdjustmentXp,
+          updated_at: now,
+        })
+        .eq('user_id', targetUser.id);
+      if (update.error) throw update.error;
+
+      if (delta !== 0) {
+        const event = await admin.from('progression_events').insert({
+          user_id: targetUser.id,
+          event_key: `admin-level:${user.id}:${Date.now()}`,
+          reason: 'admin_level_set',
+          previous_total_xp: previousTotal,
+          base_xp: delta,
+          premium_bonus_xp: 0,
+          achievement_xp: 0,
+          challenge_xp: 0,
+          total_xp: delta,
+          unlocked_codes: [],
+          challenge_codes: [],
+        });
+        if (event.error) throw event.error;
+      }
+
+      await writeAdminAudit({
+        actorId: user.id,
+        actorRole: role,
+        action: 'progression_level_set',
+        targetType: 'user',
+        targetId: targetUser.id,
+        details: {
+          username: targetUser.username,
+          previousTotalXp: previousTotal,
+          targetTotalXp: targetXp,
+          level,
+          adminAdjustmentXp,
+        },
+        request,
+      });
+
+      return response({
+        ok: true,
+        userId: targetUser.id,
+        username: targetUser.username,
+        level,
+        totalXp: targetXp,
+      });
+    }
 
     if (action === 'set_slow_mode') {
       requireSenior(role);
