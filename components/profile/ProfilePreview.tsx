@@ -267,7 +267,9 @@ export default function ProfilePreview({
     ? Math.max(0, Math.min(100, data.atmosphereIntensity))
     : 0;
   const atmosphereBaseAlpha =
-    0.14 + (atmosphereIntensity / 100) * 0.26;
+    atmosphereIntensity <= 0
+      ? 0
+      : 0.14 + (atmosphereIntensity / 100) * 0.26;
   const atmosphereAlpha = data
     ? data.motionMode === 'live'
       ? Math.min(0.46, atmosphereBaseAlpha + 0.08)
