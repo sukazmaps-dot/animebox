@@ -17,7 +17,7 @@ export default async function ProfileEditPage({ searchParams }: PageProps) {
     params.tab === 'style' || params.tab === 'premium'
       ? 'style'
       : params.tab === 'appearance' || params.tab === 'media'
-        ? 'appearance'
+        ? 'profile'
         : params.tab === 'showcase' || params.tab === 'widgets'
           ? 'showcase'
           : params.tab === 'rewards' || params.tab === 'awards'
