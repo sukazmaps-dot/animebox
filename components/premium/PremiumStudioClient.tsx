@@ -67,8 +67,10 @@ type MediaEditorState = {
   transform: PremiumMediaTransform;
 };
 
-const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+const PREMIUM_AVATAR_RECOMMENDED_BYTES = 4 * 1024 * 1024;
+const MAX_AVATAR_BYTES = 8 * 1024 * 1024;
 const MAX_BANNER_BYTES = 6 * 1024 * 1024;
+const MIN_PREMIUM_AVATAR_DIMENSION = 256;
 const MAX_AVATAR_SOURCE_DIMENSION = 1024;
 const MAX_BANNER_SOURCE_WIDTH = 2400;
 const MAX_BANNER_SOURCE_HEIGHT = 1200;
@@ -338,6 +340,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   const [uploading, setUploading] = useState<UploadKind | ''>('');
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
+  const [mediaWarning, setMediaWarning] = useState('');
   const [studioSection, setStudioSection] = useState<'appearance' | 'effects' | 'media'>('appearance');
   const [mediaEditor, setMediaEditor] = useState<MediaEditorState | null>(null);
   const mediaEditorOpen = Boolean(mediaEditor);
@@ -549,6 +552,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
 
     setError('');
     setSaved('');
+    setMediaWarning('');
 
     if (!ALLOWED_MEDIA_TYPES.has(file.type)) {
       setError('Поддерживаются WEBP, animated WEBP, GIF, PNG и JPG.');
@@ -560,7 +564,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     if (file.size > maxBytes) {
       setError(
         kind === 'avatar'
-          ? 'Premium-аватар должен быть не больше 2 МБ — это сохраняет быстрые комментарии и профиль.'
+          ? 'Premium-аватар должен быть не больше 8 МБ.'
           : 'Premium-баннер должен быть не больше 6 МБ — большие анимации сильно нагружают мобильные устройства.',
       );
       resetMediaInput(kind);
@@ -570,12 +574,23 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     try {
       const dimensions = await readImageDimensions(file);
       if (kind === 'avatar' && (
+        dimensions.width < MIN_PREMIUM_AVATAR_DIMENSION ||
+        dimensions.height < MIN_PREMIUM_AVATAR_DIMENSION
+      )) {
+        throw new Error(
+          `Premium-аватар должен быть не меньше ${MIN_PREMIUM_AVATAR_DIMENSION}×${MIN_PREMIUM_AVATAR_DIMENSION}px.`,
+        );
+      }
+      if (kind === 'avatar' && (
         dimensions.width > MAX_AVATAR_SOURCE_DIMENSION ||
         dimensions.height > MAX_AVATAR_SOURCE_DIMENSION
       )) {
         throw new Error(
           `Premium-аватар должен быть максимум ${MAX_AVATAR_SOURCE_DIMENSION}×${MAX_AVATAR_SOURCE_DIMENSION}px.`,
         );
+      }
+      if (kind === 'avatar' && file.size > PREMIUM_AVATAR_RECOMMENDED_BYTES) {
+        setMediaWarning('Тяжёлая анимация: для более быстрой загрузки рекомендуем Premium-аватар до 4 МБ.');
       }
       if (kind === 'banner' && (
         dimensions.width > MAX_BANNER_SOURCE_WIDTH ||
@@ -628,6 +643,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
 
     setError('');
     setSaved('');
+    setMediaWarning('');
 
     if (!ALLOWED_MEDIA_TYPES.has(file.type)) {
       setError('Поддерживаются WEBP, animated WEBP, GIF, PNG и JPG.');
@@ -638,7 +654,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     if (file.size > maxBytes) {
       setError(
         kind === 'avatar'
-          ? 'Premium-аватар должен быть не больше 2 МБ — это сохраняет быстрые комментарии и профиль.'
+          ? 'Premium-аватар должен быть не больше 8 МБ.'
           : 'Premium-баннер должен быть не больше 6 МБ — большие анимации сильно нагружают мобильные устройства.',
       );
       return false;
@@ -651,6 +667,14 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       const fallback = await staticWebpFallback(file, kind);
       const staticBlob = fallback.blob;
 
+      if (kind === 'avatar' && (
+        fallback.sourceWidth < MIN_PREMIUM_AVATAR_DIMENSION ||
+        fallback.sourceHeight < MIN_PREMIUM_AVATAR_DIMENSION
+      )) {
+        throw new Error(
+          `Premium-аватар должен быть не меньше ${MIN_PREMIUM_AVATAR_DIMENSION}×${MIN_PREMIUM_AVATAR_DIMENSION}px.`,
+        );
+      }
       if (kind === 'avatar' && (
         fallback.sourceWidth > MAX_AVATAR_SOURCE_DIMENSION ||
         fallback.sourceHeight > MAX_AVATAR_SOURCE_DIMENSION
@@ -1054,8 +1078,9 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                       </span>
                     )}
                   </div>
-                  <div className="premium-studio-v16__media-copy"><strong>Аватар</strong><small>до 2 МБ · WEBP / GIF / PNG / JPG</small></div>
-                  <p className="premium-studio-v19__media-hint">После выбора файла откроется кадрирование 1:1. Перетащи лицо/главный объект в нужную точку и увеличь при необходимости.</p>
+                  <div className="premium-studio-v16__media-copy"><strong>Аватар</strong><small>Animated WebP / GIF / WebP / PNG / JPG · до 8 МБ · минимум 256×256</small></div>
+                  <p className="premium-studio-v19__media-hint">После выбора файла откроется кадрирование 1:1. Рекомендуем Animated WebP и файл до 4 МБ — так профиль загружается быстрее.</p>
+                  {mediaWarning && <p className="premium-studio-v19__media-warning">{mediaWarning}</p>}
                   <div className="premium-studio-v19__media-actions">
                     <button type="button" disabled={Boolean(uploading) || saving} onClick={() => avatarInputRef.current?.click()}>{uploading === 'avatar' ? 'Загрузка…' : settings.avatarPath || settings.avatarStaticPath ? 'Заменить аватар' : 'Загрузить аватар'}</button>
                     {(settings.avatarPath || settings.avatarStaticPath) && <button type="button" className="is-ghost" onClick={() => editExistingMedia('avatar')}>Изменить кадр</button>}
@@ -1152,9 +1177,12 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 </h2>
                 <p>
                   {mediaEditor.kind === 'avatar'
-                    ? 'Аватар будет круглым, но редактируем квадрат 1:1 — так позиция одинаково работает в профиле, комментариях и меню.'
+                    ? 'Аватар будет круглым, но редактируем квадрат 1:1 — оригинальная GIF/Animated WebP анимация сохраняется, а AnimeBox отдельно создаёт статический WebP fallback.'
                     : 'Это не отдельный кроп-файл: широкая рамка показывает реальную область баннера. Оригинал и анимация сохраняются.'}
                 </p>
+                {mediaEditor.kind === 'avatar' && mediaWarning && (
+                  <p className="premium-studio-v19__media-warning">{mediaWarning}</p>
+                )}
               </div>
               <button type="button" className="premium-media-editor-modal__close" onClick={closeMediaEditor} disabled={Boolean(uploading) || saving} aria-label="Закрыть редактор">×</button>
             </div>
