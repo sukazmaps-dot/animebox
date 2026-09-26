@@ -62,6 +62,9 @@ const adminCommunity = read('app/api/admin/community/route.ts');
 const profilePreviewServer = read('lib/profile-preview-server.ts');
 const profilePreview = read('components/profile/ProfilePreview.tsx');
 const profilePreviewCss = read('components/profile/ProfilePreview.module.css');
+const premiumStudioLivePreview = read('components/premium/PremiumStudioLivePreview.tsx');
+const globalChat = read('components/chat/GlobalChatV11Client.tsx');
+const watchPartyPanel = read('components/watch-party/WatchPartyPanel.tsx');
 const trackerRoute = read('app/api/community/tracker/route.ts');
 const trackerClient = read('lib/tracker-client.ts');
 const vercel = JSON.parse(read('vercel.json'));
@@ -319,10 +322,62 @@ need('mini-profile unified frame', profilePreviewServer, [
   'getSelectedProfileFrame',
   'profileFrameKey',
 ]);
+
+need('mini-profile Premium identity payload', profilePreviewServer, [
+  'atmosphereEffect',
+  'atmosphereIntensity',
+  'motionMode',
+  'entranceEffect',
+  'nicknameEffect',
+  'heroStyle',
+  'surfaceStyle',
+]);
 need('mini-profile unified frame UI', profilePreview, [
   'ProfileFrameOverlay',
   'data.profileFrameKey',
   'avatarShellSeason',
+]);
+
+need('mini-profile Premium identity payload UI', profilePreview, [
+  'PremiumProfileAtmosphere',
+  'atmosphereEffect',
+  'atmosphereIntensity',
+  'motionMode',
+  'entranceEffect',
+  'nicknameEffect',
+  'heroStyle',
+  'surfaceStyle',
+  'data-motion',
+  'data-entrance',
+  'data-hero',
+  'data-surface',
+  'styles.nickname',
+]);
+
+need('mini-profile Premium identity styles', profilePreviewCss, [
+  'Patch 18.9.2 — Premium Identity inside shared mini-profile',
+  '.atmosphere',
+  "[data-effect='embers']",
+  "[data-effect='sakura']",
+  "[data-effect='stardust']",
+  ".nickname[data-effect='shimmer']",
+  "[data-entrance='bloom']",
+  '.avatarShellSeason[data-premium=',
+  '@media (prefers-reduced-motion: reduce)',
+]);
+
+need('global chat mini profiles', globalChat, [
+  "import ProfilePreview from '@/components/profile/ProfilePreview'",
+  '<ProfilePreview',
+  'className={styles.avatarWrap}',
+  'className={styles.username}',
+  'className={styles.mention}',
+]);
+
+need('Watch Together shared mini profiles', watchPartyPanel, [
+  "import ProfilePreview from '@/components/profile/ProfilePreview'",
+  'className={styles.chatAvatar}',
+  'className={styles.chatAuthorLink}',
 ]);
 need('mini-profile seasonal frame layout', profilePreviewCss, [
   '.avatarShellSeason',
@@ -375,9 +430,9 @@ need('level milestone system', progression, [
   'MILESTONE_AVATAR_SCALE',
   "'milestone-lv10-forbidden-relic': 0.52",
   "'milestone-lv25-flame-arc': 0.54",
-  "'milestone-lv50-crimson-sigil': 0.46",
+  "'milestone-lv50-crimson-sigil': 0.56",
   "'milestone-lv75-menacing-manga': 0.52",
-  "'milestone-lv100-absolute-prestige': 0.46",
+  "'milestone-lv100-absolute-prestige': 0.56",
   'levelFrameAvatarScale',
 ]);
 
@@ -534,6 +589,34 @@ need('Persistent Premium Studio preview', premiumIdentityCss, [
   '.profile-editor-v13 .premium-studio-v15__sections',
 ]);
 
+need('Mobile Premium Studio preview workflow', premiumIdentityCss, [
+  'Patch 18.9.2 — Mobile Premium Studio UX',
+  '.premium-studio-v22__preview-fab',
+  '.premium-studio-v22__preview-sheet-layer',
+  '.premium-studio-v22__preview-sheet',
+  'bottom: calc(env(safe-area-inset-bottom) + 82px)',
+  '.premium-studio-v21__atmosphere-grid',
+  'scroll-snap-type: x mandatory',
+  '.premium-studio-v15__segmented',
+  '@media (max-width: 767px)',
+]);
+
+need('Reusable Premium Studio live preview', premiumStudioLivePreview, [
+  'PremiumStudioLivePreview',
+  'PremiumProfileAtmosphere',
+  'premium-studio-v21__preview',
+  'premiumMediaStyle',
+]);
+
+need('Mobile Premium preview BottomSheet', premiumStudioClient, [
+  'mobilePreviewOpen',
+  'premium-studio-v22__preview-fab',
+  'premium-studio-v22__preview-sheet-layer',
+  '<PremiumStudioLivePreview',
+  'createPortal',
+  'Продолжить настройку',
+]);
+
 need('Premium Studio atmosphere controls', premiumStudioClient, [
   "studioSection === 'atmosphere'",
   'Автоподбор палитры',
@@ -546,7 +629,7 @@ need('Premium Studio atmosphere controls', premiumStudioClient, [
   'PREMIUM_SURFACE_STYLES.map',
   'Проиграть intro',
   'deriveAdaptiveProfilePalette',
-  '<PremiumProfileAtmosphere',
+  '<PremiumStudioLivePreview',
 ]);
 
 need('Adaptive Premium palette', adaptivePalette, [
