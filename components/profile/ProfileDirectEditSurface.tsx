@@ -287,7 +287,10 @@ export default function ProfileDirectEditSurface({
               onClick={() => openMediaPicker('avatar')}
               aria-label="Изменить аватар"
             >
-              <span className={styles.avatarShell}>
+              <span
+                className={styles.avatarShell}
+                data-framed={selectedFrame ? 'true' : 'false'}
+              >
                 <img src={avatarUrl} alt="" />
                 <ProfileFrameOverlay
                   frameKey={selectedFrame}
@@ -476,7 +479,10 @@ export default function ProfileDirectEditSurface({
           <>
             <div className={styles.inspectorSection}>
               <div className={styles.avatarControl}>
-                <span className={styles.avatarControlPreview}>
+                <span
+                  className={styles.avatarControlPreview}
+                  data-framed={selectedFrame ? 'true' : 'false'}
+                >
                   <img src={baseAvatarUrl} alt="" />
                   <ProfileFrameOverlay
                     frameKey={selectedFrame}
