@@ -32,6 +32,34 @@ function read(path) {
 const routes = walkRoutes(apiRoot);
 let mutationRoutes = 0;
 
+const nextConfig = read('next.config.ts');
+for (const [label, needle] of [
+  ['CSP anti-framing header', "key: 'Content-Security-Policy'"],
+  ['strict frame ancestor policy', 'value: "frame-ancestors \'none\';"'],
+  ['legacy anti-framing header', "key: 'X-Frame-Options'"],
+  ['legacy deny policy', "value: 'DENY'"],
+  ['global security header scope', "{ source: '/:path*', headers: securityHeaders }"],
+]) {
+  if (!nextConfig.includes(needle)) {
+    failures.push(`next.config.ts: missing ${label}.`);
+  }
+}
+
+const edgeProxy = read('proxy.ts');
+for (const [label, needle] of [
+  ['unsafe browser mutation set', 'const UNSAFE_METHODS = new Set(['],
+  ['cross-site fetch guard', "request.headers.get('sec-fetch-site') === 'cross-site'"],
+  ['origin validation', 'allowedBrowserOrigin(request, origin)'],
+  ['TRACE method block', "'TRACE'"],
+  ['TRACK method block', "'TRACK'"],
+  ['CONNECT method block', "'CONNECT'"],
+]) {
+  if (!edgeProxy.includes(needle)) {
+    failures.push(`proxy.ts: missing ${label}.`);
+  }
+}
+
+
 const cronRoutes = routes.filter((file) =>
   relative(root, file).replaceAll('\\', '/').startsWith('app/api/cron/'),
 );
