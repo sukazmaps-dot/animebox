@@ -44,10 +44,16 @@ if (!home.includes('placement="home_footer"')) {
 }
 
 if (
-  !feed.includes('hasMore={railHasMore}') ||
+  !(
+    feed.includes('hasMore={railHasMore}') ||
+    feed.includes('hasMore={rail.items.length > 0 ? railHasMore : false}')
+  ) ||
   !feed.includes('ensureRailDepth(rail)') ||
   !feed.includes('sharedBatchPromiseRef') ||
-  !feed.includes('loading={railLoading}')
+  !(
+    feed.includes('loading={railLoading}') ||
+    feed.includes('loading={showRailSkeleton}')
+  )
 ) {
   failures.push('shared per-rail recommendation pagination was removed');
 }
