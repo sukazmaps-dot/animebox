@@ -7,6 +7,7 @@ const migration = read('supabase/migrations/20260926211000_product_final_leaderb
 const temporaryFramesMigration = read('supabase/migrations/20260926215500_temporary_leaderboard_frames_v2.sql');
 const progressionFramesMigration = read('supabase/migrations/20260927001500_progression_frame_selection_v1.sql');
 const premiumIdentityMigration = read('supabase/migrations/20260926221958_premium_profile_identity_v1.sql');
+const premiumThemePresetsMigration = read('supabase/migrations/20260926223142_premium_profile_identity_theme_presets_v2.sql');
 const rewards = read('lib/leaderboard-rewards.ts');
 const rewardServer = read('lib/leaderboard-rewards-server.ts');
 const seasons = read('lib/leaderboard-seasons-server.ts');
@@ -453,6 +454,13 @@ need('Premium identity migration', premiumIdentityMigration, [
   'surface_style',
   "check (atmosphere_effect in ('none','aurora','embers','sakura','stardust'))",
   "check (motion_mode in ('off','soft','live'))",
+]);
+
+need('Premium identity theme presets migration', premiumThemePresetsMigration, [
+  'premium_profile_settings_theme_check',
+  "'crimson'",
+  "'ocean'",
+  "'gold'",
 ]);
 
 need('Premium identity settings contract', premiumStudioCore, [
