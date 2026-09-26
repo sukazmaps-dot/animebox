@@ -521,6 +521,19 @@ need('Premium cinematic identity CSS', premiumIdentityCss, [
   '.profile-v2__avatar-wrap::before',
 ]);
 
+need('Persistent Premium Studio preview', premiumIdentityCss, [
+  'Patch 18.9.1 — persistent Premium Studio preview',
+  '.profile-editor-v13 .premium-studio-v15__hero',
+  'display: contents',
+  '.profile-editor-v13 .premium-studio-v15__preview-wrap',
+  'grid-row: 1 / span 3',
+  '.profile-editor-v13 .premium-studio-v15__sticky',
+  'position: sticky',
+  'max-height: calc(100dvh - 116px)',
+  '.profile-editor-v13 .premium-studio-v16__section-nav',
+  '.profile-editor-v13 .premium-studio-v15__sections',
+]);
+
 need('Premium Studio atmosphere controls', premiumStudioClient, [
   "studioSection === 'atmosphere'",
   'Автоподбор палитры',
