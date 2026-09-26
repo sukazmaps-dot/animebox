@@ -29,10 +29,32 @@ const avatarFrame = read('components/profile/UserAvatarWithFrame.tsx');
 const profilePreviewServer = read('lib/profile-preview-server.ts');
 const profilePreview = read('components/profile/ProfilePreview.tsx');
 const profilePreviewCss = read('components/profile/ProfilePreview.module.css');
+const trackerRoute = read('app/api/community/tracker/route.ts');
+const trackerClient = read('lib/tracker-client.ts');
 const vercel = JSON.parse(read('vercel.json'));
 const pkg = JSON.parse(read('package.json'));
+const trackerLayout = read('app/list/layout.tsx');
+const trackerCompactCss = read('app/tracker-library-compact.css');
 
 const failures = [];
+
+need('tracker compact route scope', trackerLayout, [
+  "import '../community.css'",
+  "import '../tracker-library-compact.css'",
+]);
+need('tracker compact visual containment', trackerCompactCss, [
+  '.tracker-card__controls .episode-library-compact',
+  '.tracker-card__controls .episode-library-compact__status-icon img',
+  '.tracker-card__controls .episode-library-compact__chevron',
+  '.tracker-card__controls .episode-library-compact__menu',
+  'position: absolute',
+  'width: 16px',
+  'overflow: visible !important',
+  '.tracker-card:focus-within',
+  'z-index: 40',
+  'z-index: 160',
+]);
+
 
 function need(label, source, needles) {
   for (const needle of needles) {
@@ -250,6 +272,25 @@ need('mini-profile seasonal frame layout', profilePreviewCss, [
   'position: relative;',
   'isolation: isolate;',
   '.seasonFrameOverlay',
+]);
+
+
+need('tracker canonical identity', trackerRoute, [
+  "anime_catalog!inner(title,slug)",
+  'seenAnimeIds',
+  'disambiguateDuplicateTitles',
+  'trackerQualifierFromSlug',
+  'Стадии ',
+  'Стадия ',
+  'Сезон ',
+  'Часть ',
+]);
+
+need('tracker cache ambiguity shield', trackerClient, [
+  "animebox:tracker:v4:",
+  'hasDuplicateVisibleTitles',
+  'invalidateTrackerSnapshot(userId)',
+  'let /api/community/tracker resolve their stage/season qualifiers instead',
 ]);
 
 need('avatar frame composition', avatarFrame, [

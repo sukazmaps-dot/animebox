@@ -1,0 +1,300 @@
+/* =========================================================
+   AnimeBox tracker — compact library control route scope
+
+   LibraryStatusControl uses the episode-library-compact class family, but the
+   tracker route intentionally does not load the large episode identity sheet.
+   Keep the tracker variant self-contained and scoped under tracker-card so
+   player / episode surfaces are unaffected.
+   ========================================================= */
+/* Dropdown containment hotfix — the tracker card used overflow:hidden from
+   community.css, clipping the absolutely positioned status menu. Keep the
+   card visually rounded via its own background/border, but allow the menu to
+   escape the card box and lift the active card above following siblings. */
+.tracker-list {
+  position: relative;
+  isolation: isolate;
+}
+
+.tracker-card {
+  overflow: visible !important;
+  z-index: 0;
+}
+
+.tracker-card:hover {
+  z-index: 20;
+}
+
+.tracker-card:focus-within {
+  z-index: 40;
+}
+
+.tracker-card__controls {
+  overflow: visible;
+}
+
+.tracker-card__controls .episode-library-compact__menu {
+  z-index: 160;
+}
+
+
+.tracker-card__controls {
+  position: relative;
+  z-index: 5;
+  min-width: 0;
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,.045);
+}
+
+.tracker-card__controls .episode-library-compact {
+  position: relative;
+  display: block;
+  width: min(100%, 360px);
+  min-width: 0;
+  min-height: 52px;
+  margin: 0;
+  padding: 5px;
+  overflow: visible;
+  border: 1px solid rgba(139,116,255,.12);
+  border-radius: 12px;
+  background: rgba(8,13,23,.58);
+  box-sizing: border-box;
+}
+
+.tracker-card__controls .episode-library-compact__picker {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.tracker-card__controls .episode-library-compact__trigger {
+  appearance: none;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  grid-template-columns: 28px minmax(0,1fr) 16px;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 5px 8px 5px 6px;
+  border: 1px solid rgba(151,136,231,.14);
+  border-radius: 9px;
+  outline: 0;
+  background: linear-gradient(180deg,rgba(18,24,40,.88),rgba(11,16,28,.9));
+  color: #dfe3ef;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.tracker-card__controls .episode-library-compact__trigger:hover {
+  border-color: rgba(151,136,231,.28);
+  background: linear-gradient(180deg,rgba(22,28,47,.94),rgba(13,18,31,.94));
+}
+
+.tracker-card__controls .episode-library-compact__trigger:focus-visible {
+  border-color: rgba(151,136,231,.48);
+  box-shadow: 0 0 0 3px rgba(124,93,255,.09);
+}
+
+.tracker-card__controls .episode-library-compact__trigger:disabled {
+  opacity: .58;
+  cursor: wait;
+}
+
+.tracker-card__controls .episode-library-compact__status-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(151,136,231,.13);
+  border-radius: 8px;
+  background: rgba(151,136,231,.07);
+  color: #c7bbff;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.tracker-card__controls .episode-library-compact__status-icon img,
+.tracker-card__controls .episode-library-compact__menu-icon img {
+  display: block;
+  width: 16px;
+  height: 16px;
+  max-width: 16px;
+  max-height: 16px;
+  object-fit: contain;
+}
+
+.tracker-card__controls .episode-library-compact__trigger-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.tracker-card__controls .episode-library-compact__trigger-copy small {
+  display: block;
+  margin: 0;
+  color: rgba(145,157,185,.48);
+  font-size: 7.5px;
+  font-weight: 650;
+  line-height: 1.15;
+}
+
+.tracker-card__controls .episode-library-compact__trigger-copy strong {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: #eef0f7;
+  font-size: 10px;
+  font-weight: 790;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tracker-card__controls .episode-library-compact__chevron,
+.tracker-card__controls .episode-library-compact__guest-arrow {
+  display: block;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  max-width: 16px;
+  min-height: 16px;
+  max-height: 16px;
+  justify-self: end;
+  color: rgba(173,181,200,.6);
+  transition: transform 150ms ease,color 150ms ease;
+}
+
+.tracker-card__controls .episode-library-compact__trigger[aria-expanded='true'] .episode-library-compact__chevron {
+  transform: rotate(180deg);
+  color: #cec5ff;
+}
+
+.tracker-card__controls .episode-library-compact__menu {
+  position: absolute;
+  z-index: 120;
+  top: calc(100% + 6px);
+  left: 0;
+  width: min(310px, calc(100vw - 40px));
+  min-width: min(240px, 100%);
+  max-width: calc(100vw - 40px);
+  padding: 5px;
+  overflow: hidden;
+  border: 1px solid rgba(151,136,231,.18);
+  border-radius: 11px;
+  background: rgba(8,12,21,.985);
+  box-shadow: 0 18px 48px rgba(0,0,0,.52), inset 0 1px 0 rgba(255,255,255,.025);
+  box-sizing: border-box;
+}
+
+.tracker-card__controls .episode-library-compact__menu button {
+  appearance: none;
+  display: grid;
+  width: 100%;
+  min-height: 38px;
+  grid-template-columns: 24px minmax(0,1fr) 16px;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(185,193,211,.66);
+  font: inherit;
+  font-size: 9.5px;
+  font-weight: 680;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.tracker-card__controls .episode-library-compact__menu button:hover {
+  background: rgba(151,136,231,.08);
+  color: #eff1f7;
+}
+
+.tracker-card__controls .episode-library-compact__menu button.is-active {
+  background: rgba(124,93,255,.12);
+  color: #d9d0ff;
+}
+
+.tracker-card__controls .episode-library-compact__menu button b {
+  justify-self: end;
+  color: #b9abff;
+  font-size: 10px;
+}
+
+.tracker-card__controls .episode-library-compact__menu-icon {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 7px;
+  background: rgba(255,255,255,.025);
+  line-height: 1;
+}
+
+.tracker-card__controls .episode-library-compact__remove {
+  margin-top: 3px !important;
+  border-top: 1px solid rgba(248,113,133,.08) !important;
+  color: #c98d95 !important;
+}
+
+.tracker-card__controls .episode-library-compact__remove:hover,
+.tracker-card__controls .episode-library-compact__remove.is-confirm {
+  background: rgba(244,63,94,.07) !important;
+  color: #f0aeb6 !important;
+}
+
+.tracker-card__controls .episode-library-compact__message {
+  display: block;
+  margin-top: 5px;
+  padding: 0 3px;
+  color: rgba(151,166,196,.52);
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+/* Guest variant is rare on /list because the route already shows its guest
+   state, but keeping it bounded prevents a transient auth render from exploding. */
+.tracker-card__controls .episode-library-compact__trigger--guest {
+  grid-template-columns: 28px minmax(0,1fr) 16px;
+}
+
+.tracker-card__controls .episode-library-compact__status-icon--guest svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 640px) {
+  .tracker-card__controls .episode-library-compact {
+    width: 100%;
+  }
+
+  .tracker-card__controls .episode-library-compact__menu {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tracker-card__controls .episode-library-compact__chevron,
+  .tracker-card__controls .episode-library-compact__guest-arrow {
+    transition: none;
+  }
+}

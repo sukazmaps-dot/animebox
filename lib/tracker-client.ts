@@ -8,6 +8,7 @@ export type TrackerSnapshot = {
   library: {
     anime_id: number;
     title: string;
+    slug?: string | null;
     status: LibraryStatus;
     progress?: WatchTitleOverview | null;
   }[];
@@ -15,9 +16,30 @@ export type TrackerSnapshot = {
 
 type CacheEntry = { data: TrackerSnapshot; expiresAt: number };
 const TTL_MS = 60_000;
-const PREFIX = 'animebox:tracker:v3:';
+
+// v4 invalidates snapshots seeded before duplicate-title disambiguation existed.
+const PREFIX = 'animebox:tracker:v4:';
 const memory = new Map<string, CacheEntry>();
 const inflight = new Map<string, Promise<TrackerSnapshot>>();
+
+function normalizedVisibleTitle(value: string) {
+  return value.trim().toLocaleLowerCase('ru-RU').replace(/\s+/g, ' ');
+}
+
+function hasDuplicateVisibleTitles(
+  library: TrackerSnapshot['library'],
+) {
+  const seen = new Set<string>();
+
+  for (const item of library) {
+    const key = normalizedVisibleTitle(item.title);
+    if (!key) continue;
+    if (seen.has(key)) return true;
+    seen.add(key);
+  }
+
+  return false;
+}
 
 function readSession(userId: string): CacheEntry | null {
   if (typeof window === 'undefined') return null;
@@ -60,6 +82,15 @@ export function peekTrackerSnapshot(userId: string | null | undefined) {
 }
 
 export function seedTrackerSnapshot(userId: string, data: TrackerSnapshot) {
+  // CommunityProfile's compact bundle intentionally contains less catalog
+  // metadata than the dedicated tracker endpoint. If two distinct catalog
+  // entries share the same translated title, don't seed an ambiguous cache:
+  // let /api/community/tracker resolve their stage/season qualifiers instead.
+  if (hasDuplicateVisibleTitles(data.library)) {
+    invalidateTrackerSnapshot(userId);
+    return;
+  }
+
   save(userId, data);
 }
 
