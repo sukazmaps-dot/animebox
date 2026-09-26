@@ -125,7 +125,8 @@ export default async function PublicProfilePage({ params }: Props) {
             role={profile.role}
             sponsor={profile.sponsor}
             mediaTransform={profile.avatarTransform}
-            seasonFrameKey={profile.seasonFrameKey}
+            profileFrameKey={profile.profileFrameKey}
+            premiumFrameMotion={profile.premium}
           />
 
           <div className="profile-v2__identity-main">
@@ -145,7 +146,7 @@ export default async function PublicProfilePage({ params }: Props) {
                     className="inline-flex min-h-6 items-center rounded-full border border-violet-400/20 bg-violet-400/10 px-2.5 text-[9px] font-black tracking-[0.04em] text-violet-200"
                     title={`${profile.progression.totalXp.toLocaleString('ru-RU')} XP`}
                   >
-                    LV.{profile.progression.level} · {profile.progression.rank}
+                    LVL {profile.progression.level} · {profile.progression.rank}
                   </span>
 
                   {profile.premium && (

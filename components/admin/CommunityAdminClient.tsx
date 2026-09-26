@@ -42,6 +42,9 @@ export default function CommunityAdminClient() {
   const [systemMessage, setSystemMessage] = useState('');
   const [pinSystem, setPinSystem] = useState(false);
   const [pinId, setPinId] = useState('');
+  const [levelTarget, setLevelTarget] = useState('');
+  const [levelValue, setLevelValue] = useState('1');
+  const [levelMessage, setLevelMessage] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -67,6 +70,39 @@ export default function CommunityAdminClient() {
     } finally { setBusy(''); }
   }
 
+  async function setUserLevel() {
+    if (busy || !levelTarget.trim()) return;
+    setBusy('level');
+    setError('');
+    setLevelMessage('');
+
+    try {
+      const result = await json<{
+        ok: boolean;
+        username?: string | null;
+        level: number;
+        totalXp: number;
+      }>(await fetch('/api/admin/community', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'set_user_level',
+          target: levelTarget.trim(),
+          level: Number(levelValue),
+        }),
+        cache: 'no-store',
+      }));
+
+      setLevelMessage(
+        `${result.username || levelTarget.trim()} → LVL ${result.level} · ${result.totalXp.toLocaleString('ru-RU')} XP`,
+      );
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Не удалось изменить LVL.');
+    } finally {
+      setBusy('');
+    }
+  }
+
   if (loading && !data) return <main className={styles.page}><p>Загрузка Community Admin…</p></main>;
   if (!data) return <main className={styles.page}><p className={styles.error}>{error || 'Нет доступа.'}</p></main>;
 
@@ -88,6 +124,41 @@ export default function CommunityAdminClient() {
         <article><span>Открытых жалоб</span><strong>{data.metrics.openReports}</strong></article>
         <article><span>Ограничено</span><strong>{data.metrics.restrictedUsers}</strong></article>
       </section>
+
+      {data.role !== 'moderator' && (
+        <section className={styles.card}>
+          <span className={styles.eyebrow}>PROGRESSION CONTROL</span>
+          <h2>Изменить LVL пользователя</h2>
+          <div className={styles.levelControl}>
+            <input
+              value={levelTarget}
+              onChange={(event) => setLevelTarget(event.target.value.slice(0, 120))}
+              placeholder="username или UUID"
+              autoComplete="off"
+            />
+            <select
+              value={levelValue}
+              onChange={(event) => setLevelValue(event.target.value)}
+            >
+              {Array.from({ length: 50 }, (_, index) => index + 1).map((level) => (
+                <option value={level} key={level}>LVL {level}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              disabled={Boolean(busy) || !levelTarget.trim()}
+              onClick={() => void setUserLevel()}
+            >
+              {busy === 'level' ? 'Сохраняем…' : 'Установить'}
+            </button>
+          </div>
+          <small>
+            Меняет точный LVL через отдельную admin-корректировку XP. Реальные XP за серии,
+            Premium, достижения и задания не переписываются.
+          </small>
+          {levelMessage && <p className={styles.levelResult}>{levelMessage}</p>}
+        </section>
+      )}
 
       <section className={styles.grid2}>
         <article className={styles.card}>

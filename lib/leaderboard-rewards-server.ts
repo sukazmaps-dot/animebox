@@ -10,6 +10,16 @@ import {
   type LeaderboardPeriodType,
   type SeasonFrameKey,
 } from '@/lib/leaderboard-rewards';
+import {
+  isLevelFrameKey,
+  progressionFromXp,
+  unlockedLevelFrames,
+  type LevelFrameKey,
+} from '@/lib/progression';
+import {
+  isProfileFrameKey,
+  type ProfileFrameKey,
+} from '@/lib/profile-frames';
 
 export type LeaderboardRewardRecord = {
   id: string;
@@ -265,38 +275,108 @@ function highestPriorityFrame(frames: ActiveSeasonFrameUnlock[]) {
   })[0]?.key ?? null;
 }
 
-export async function getSelectedSeasonFrame(userId: string): Promise<SeasonFrameKey | null> {
+export async function getUnlockedLevelFramesForUser(
+  userId: string,
+): Promise<LevelFrameKey[]> {
   const admin = createSupabaseAdmin();
-  const [{ data, error }, active] = await Promise.all([
+  const { data, error } = await admin
+    .from('user_progression')
+    .select('total_xp')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  const level = progressionFromXp(Number(data?.total_xp ?? 0)).level;
+  return unlockedLevelFrames(level);
+}
+
+export async function getSelectedProfileFrame(
+  userId: string,
+): Promise<ProfileFrameKey | null> {
+  const admin = createSupabaseAdmin();
+  const [{ data, error }, activeLeague, levelFrames] = await Promise.all([
     admin
       .from('profile_cosmetic_preferences')
-      .select('season_frame_key')
+      .select('active_frame_key,season_frame_key')
       .eq('user_id', userId)
       .maybeSingle(),
     listActiveSeasonFrameUnlocks(userId),
+    getUnlockedLevelFramesForUser(userId),
   ]);
 
   if (error) {
-    if (schemaMissing(error.message)) return highestPriorityFrame(active);
+    if (schemaMissing(error.message)) return highestPriorityFrame(activeLeague);
     throw error;
   }
 
-  const selected = isSeasonFrameKey(data?.season_frame_key)
-    ? data.season_frame_key
+  const activeKey = isProfileFrameKey(data?.active_frame_key)
+    ? data.active_frame_key
     : null;
-  if (selected && active.some((item) => item.key === selected)) return selected;
 
-  const fallback = highestPriorityFrame(active);
-  if (fallback !== selected) {
+  if (activeKey) {
+    if (
+      (isSeasonFrameKey(activeKey) &&
+        activeLeague.some((item) => item.key === activeKey)) ||
+      (isLevelFrameKey(activeKey) && levelFrames.includes(activeKey))
+    ) {
+      return activeKey;
+    }
+
     await admin
       .from('profile_cosmetic_preferences')
       .upsert({
         user_id: userId,
+        active_frame_key: null,
+        season_frame_key: null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+
+    return null;
+  }
+
+  const legacySeason = isSeasonFrameKey(data?.season_frame_key)
+    ? data.season_frame_key
+    : null;
+
+  if (
+    legacySeason &&
+    activeLeague.some((item) => item.key === legacySeason)
+  ) {
+    await admin
+      .from('profile_cosmetic_preferences')
+      .upsert({
+        user_id: userId,
+        active_frame_key: legacySeason,
+        season_frame_key: legacySeason,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+
+    return legacySeason;
+  }
+
+  if (data) return null;
+
+  const fallback = highestPriorityFrame(activeLeague);
+  if (fallback) {
+    await admin
+      .from('profile_cosmetic_preferences')
+      .upsert({
+        user_id: userId,
+        active_frame_key: fallback,
         season_frame_key: fallback,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' });
   }
+
   return fallback;
+}
+
+export async function getSelectedSeasonFrame(
+  userId: string,
+): Promise<SeasonFrameKey | null> {
+  const frame = await getSelectedProfileFrame(userId);
+  return isSeasonFrameKey(frame) ? frame : null;
 }
 
 export async function getSelectedSeasonFrames(userIds: string[]) {
@@ -352,13 +432,23 @@ export async function getSelectedSeasonFrames(userIds: string[]) {
   return result;
 }
 
-export async function selectSeasonFrame(userId: string, frame: SeasonFrameKey | null) {
+export async function selectProfileFrame(
+  userId: string,
+  frame: ProfileFrameKey | null,
+) {
   const admin = createSupabaseAdmin();
 
-  if (frame) {
+  if (frame && isSeasonFrameKey(frame)) {
     const unlocked = await getUnlockedSeasonFrames(userId);
     if (!unlocked.includes(frame)) {
       throw new Error('SEASON_FRAME_LOCKED');
+    }
+  }
+
+  if (frame && isLevelFrameKey(frame)) {
+    const unlocked = await getUnlockedLevelFramesForUser(userId);
+    if (!unlocked.includes(frame)) {
+      throw new Error('LEVEL_FRAME_LOCKED');
     }
   }
 
@@ -366,10 +456,19 @@ export async function selectSeasonFrame(userId: string, frame: SeasonFrameKey | 
     .from('profile_cosmetic_preferences')
     .upsert({
       user_id: userId,
-      season_frame_key: frame,
+      active_frame_key: frame,
+      // One visual slot: selecting a level frame always clears League.
+      season_frame_key: frame && isSeasonFrameKey(frame) ? frame : null,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' });
 
   if (error) throw error;
   return frame;
+}
+
+export async function selectSeasonFrame(
+  userId: string,
+  frame: SeasonFrameKey | null,
+) {
+  return selectProfileFrame(userId, frame);
 }

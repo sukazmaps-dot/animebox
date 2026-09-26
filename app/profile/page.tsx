@@ -50,7 +50,7 @@ export default function ProfilePage() {
   const [error, setError] = useState('');
   const [premiumStudio, setPremiumStudio] = useState<PremiumStudioSettings | null>(null);
   const [premiumActive, setPremiumActive] = useState(false);
-  const [seasonFrameKey, setSeasonFrameKey] = useState<string | null>(null);
+  const [profileFrameKey, setProfileFrameKey] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -207,25 +207,25 @@ export default function ProfilePage() {
     if (!user?.id) return;
 
     let active = true;
-    const loadSeasonFrame = () => {
+    const loadProfileFrame = () => {
       void fetch('/api/community/leaderboard-rewards', { cache: 'no-store' })
         .then(async (response) => {
           if (!response.ok || !active) return;
           const payload = await response.json() as { selectedFrame?: string | null };
-          setSeasonFrameKey(typeof payload.selectedFrame === 'string' ? payload.selectedFrame : null);
+          setProfileFrameKey(typeof payload.selectedFrame === 'string' ? payload.selectedFrame : null);
         })
         .catch(() => {
-          if (active) setSeasonFrameKey(null);
+          if (active) setProfileFrameKey(null);
         });
     };
 
-    loadSeasonFrame();
-    window.addEventListener('animebox:profile-cosmetic-changed', loadSeasonFrame);
-    window.addEventListener('animebox:leaderboard-reward-claimed', loadSeasonFrame);
+    loadProfileFrame();
+    window.addEventListener('animebox:profile-cosmetic-changed', loadProfileFrame);
+    window.addEventListener('animebox:leaderboard-reward-claimed', loadProfileFrame);
     return () => {
       active = false;
-      window.removeEventListener('animebox:profile-cosmetic-changed', loadSeasonFrame);
-      window.removeEventListener('animebox:leaderboard-reward-claimed', loadSeasonFrame);
+      window.removeEventListener('animebox:profile-cosmetic-changed', loadProfileFrame);
+      window.removeEventListener('animebox:leaderboard-reward-claimed', loadProfileFrame);
     };
   }, [user?.id]);
 
@@ -382,7 +382,8 @@ export default function ProfilePage() {
             alt={`Аватар ${username}`}
             loadCurrentIdentity
             mediaTransform={appearance.avatarTransform}
-            seasonFrameKey={seasonFrameKey}
+            profileFrameKey={profileFrameKey}
+            premiumFrameMotion={premiumActive}
           />
 
           <div className="profile-v2__identity-main">

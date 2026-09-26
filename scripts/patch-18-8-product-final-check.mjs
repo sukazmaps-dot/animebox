@@ -5,6 +5,7 @@ const read = (path) =>
 
 const migration = read('supabase/migrations/20260926211000_product_final_leaderboard_rewards_v1.sql');
 const temporaryFramesMigration = read('supabase/migrations/20260926215500_temporary_leaderboard_frames_v2.sql');
+const progressionFramesMigration = read('supabase/migrations/20260927001500_progression_frame_selection_v1.sql');
 const rewards = read('lib/leaderboard-rewards.ts');
 const rewardServer = read('lib/leaderboard-rewards-server.ts');
 const seasons = read('lib/leaderboard-seasons-server.ts');
@@ -26,6 +27,10 @@ const icon = read('components/Icon.tsx');
 const rewardsPanel = read('components/profile/ProfileRewardsPanel.tsx');
 const publicProfile = read('lib/public-profile-server.ts');
 const avatarFrame = read('components/profile/UserAvatarWithFrame.tsx');
+const profileFrameOverlay = read('components/profile/ProfileFrameOverlay.tsx');
+const progression = read('lib/progression.ts');
+const achievementsClient = read('components/AchievementsClient.tsx');
+const adminCommunity = read('app/api/admin/community/route.ts');
 const profilePreviewServer = read('lib/profile-preview-server.ts');
 const profilePreview = read('components/profile/ProfilePreview.tsx');
 const profilePreviewCss = read('components/profile/ProfilePreview.module.css');
@@ -253,18 +258,18 @@ need('profile rewards panel', rewardsPanel, [
 ]);
 
 need('public profile frame', publicProfile, [
-  'getSelectedSeasonFrame',
-  'seasonFrameKey',
+  'getSelectedProfileFrame',
+  'profileFrameKey',
 ]);
 
 
-need('mini-profile seasonal frame', profilePreviewServer, [
-  'getSelectedSeasonFrame',
-  'seasonFrameKey',
+need('mini-profile unified frame', profilePreviewServer, [
+  'getSelectedProfileFrame',
+  'profileFrameKey',
 ]);
-need('mini-profile seasonal frame UI', profilePreview, [
-  'SeasonFrameOverlay',
-  'data.seasonFrameKey',
+need('mini-profile unified frame UI', profilePreview, [
+  'ProfileFrameOverlay',
+  'data.profileFrameKey',
   'avatarShellSeason',
 ]);
 need('mini-profile seasonal frame layout', profilePreviewCss, [
@@ -294,11 +299,47 @@ need('tracker cache ambiguity shield', trackerClient, [
 ]);
 
 need('avatar frame composition', avatarFrame, [
-  'SeasonFrameOverlay',
-  'seasonFrameKey',
-  'hasSeasonFrame',
+  'ProfileFrameOverlay',
+  'profileFrameKey',
+  'hasProfileFrame',
   'visibleIdentityFrameSrc',
-  "hasSeasonFrame ? null : frameSrc",
+  "hasProfileFrame ? null : frameSrc",
+]);
+
+need('exclusive frame migration', progressionFramesMigration, [
+  'admin_adjustment_xp',
+  'active_frame_key',
+  'set active_frame_key = season_frame_key',
+]);
+
+need('level milestone system', progression, [
+  'LEVEL_MILESTONES',
+  'LEVEL_FRAME_KEYS',
+  'unlockedLevelFrames',
+  'xpForLevel',
+  'AnimeBox Master',
+]);
+
+need('level frame renderer', profileFrameOverlay, [
+  'ProfileFrameOverlay',
+  'isSeasonFrameKey',
+  'isLevelFrameKey',
+  "data-premium",
+]);
+
+need('level system UI', achievementsClient, [
+  'Как работает LVL',
+  'Обычный аккаунт',
+  'Та же рамка, но живая',
+  'Снять текущую рамку',
+  'На аватаре всегда только одна косметическая рамка',
+]);
+
+need('admin LVL control', adminCommunity, [
+  "action === 'set_user_level'",
+  'admin_adjustment_xp',
+  'progression_level_set',
+  'xpForLevel(level)',
 ]);
 
 if (
@@ -330,5 +371,5 @@ if (failures.length) {
 }
 
 console.log(
-  '[AnimeBox 18.8 Product Final] Profile Studio 2.0, weekly/monthly rewards, temporary SVG frames, idempotent claim and retention UI invariants passed.',
+  '[AnimeBox 18.8 Product Final] Profile Studio 2.0, LVL clarity, exclusive Level/League frames, weekly/monthly rewards and retention UI invariants passed.',
 );

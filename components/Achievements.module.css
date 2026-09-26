@@ -493,3 +493,309 @@
     border-top: 1px solid var(--ab-border);
   }
 }
+
+
+/* Patch 18.8.1 · progression clarity */
+.levelGuide {
+  margin-top: 26px;
+  padding: 22px;
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius-lg);
+  background: var(--ab-surface-1);
+}
+
+.levelGuideHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.levelGuideHead h2 {
+  margin: 5px 0 7px;
+  font-size: clamp(22px, 3vw, 30px);
+  letter-spacing: -.03em;
+}
+
+.levelGuideHead p {
+  max-width: 760px;
+  margin: 0;
+  color: rgba(190, 199, 219, .6);
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.removeFrame,
+.milestoneAction button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(137, 150, 180, .12);
+  border-radius: 9px;
+  background: rgba(255,255,255,.025);
+  color: rgba(225, 222, 240, .78);
+  font-size: 9px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.removeFrame:disabled,
+.milestoneAction button:disabled {
+  opacity: .45;
+  cursor: wait;
+}
+
+.xpRules {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.xpRules article {
+  display: grid;
+  gap: 4px;
+  padding: 13px 14px;
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  background: var(--ab-surface-2);
+}
+
+.xpRules strong {
+  color: #d9d2ff;
+  font-size: 16px;
+}
+
+.xpRules span {
+  color: rgba(181, 190, 211, .54);
+  font-size: 9px;
+}
+
+.premiumCompare {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.premiumCompare > div {
+  padding: 16px;
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  background: rgba(255,255,255,.018);
+}
+
+.premiumCompare > div[data-premium='true'] {
+  border-color: rgba(159, 121, 255, .24);
+  background: linear-gradient(135deg, rgba(124, 77, 255, .10), rgba(255,255,255,.015));
+}
+
+.premiumCompare span {
+  display: block;
+  margin-bottom: 5px;
+  color: rgba(158, 145, 225, .78);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.premiumCompare strong {
+  display: block;
+  font-size: 14px;
+}
+
+.premiumCompare p {
+  margin: 5px 0 0;
+  color: rgba(184, 193, 214, .54);
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.milestones {
+  display: grid;
+  gap: 7px;
+  margin-top: 16px;
+}
+
+.milestone {
+  display: grid;
+  grid-template-columns: 62px 62px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 84px;
+  padding: 11px 13px;
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  background: rgba(255,255,255,.012);
+  opacity: .52;
+}
+
+.milestone[data-reached='true'] {
+  opacity: 1;
+}
+
+.milestone[data-current='true'] {
+  border-color: rgba(135, 112, 240, .30);
+  background: rgba(120, 104, 238, .055);
+}
+
+.milestoneLevel {
+  display: grid;
+  justify-items: center;
+  padding-right: 12px;
+  border-right: 1px solid var(--ab-border);
+}
+
+.milestoneLevel span {
+  color: rgba(165, 155, 214, .58);
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .11em;
+}
+
+.milestoneLevel strong {
+  color: #efeaff;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.framePreview,
+.framePreviewEmpty {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+}
+
+.framePreview > img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.framePreviewEmpty {
+  border: 1px solid rgba(137, 150, 180, .10);
+  border-radius: 50%;
+  color: rgba(155, 143, 216, .48);
+  background: rgba(255,255,255,.018);
+}
+
+.milestoneCopy {
+  min-width: 0;
+}
+
+.milestoneCopy > span {
+  color: rgba(152, 162, 187, .48);
+  font-size: 8px;
+}
+
+.milestoneCopy h3 {
+  margin: 2px 0 3px;
+  font-size: 14px;
+}
+
+.milestoneCopy p,
+.milestoneCopy small {
+  display: block;
+  margin: 0;
+  color: rgba(181, 190, 211, .54);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.milestoneCopy small {
+  margin-top: 3px;
+  color: rgba(171, 147, 240, .72);
+}
+
+.milestoneAction {
+  min-width: 104px;
+  text-align: right;
+}
+
+.milestoneAction > span {
+  color: rgba(157, 166, 189, .54);
+  font-size: 8px;
+  font-weight: 750;
+}
+
+.milestoneAction button[data-selected='true'] {
+  border-color: rgba(120, 210, 165, .26);
+  background: rgba(70, 170, 126, .08);
+  color: #9ee4c2;
+}
+
+.frameRule {
+  margin: 14px 0 0;
+  color: rgba(160, 170, 192, .52);
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.frameError {
+  margin: 8px 0 0;
+  color: #e6a7b4;
+  font-size: 9px;
+}
+
+@media (max-width: 820px) {
+  .xpRules {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .levelGuideHead {
+    flex-direction: column;
+  }
+
+  .milestone {
+    grid-template-columns: 52px 52px minmax(0, 1fr);
+  }
+
+  .milestoneAction {
+    grid-column: 2 / -1;
+    width: 100%;
+    text-align: left;
+  }
+
+  .milestoneAction button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .levelGuide {
+    padding: 16px 12px;
+  }
+
+  .xpRules,
+  .premiumCompare {
+    grid-template-columns: 1fr;
+  }
+
+  .milestone {
+    grid-template-columns: 45px 48px minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .milestoneLevel {
+    padding-right: 8px;
+  }
+
+  .milestoneLevel strong {
+    font-size: 19px;
+  }
+
+  .framePreview,
+  .framePreviewEmpty {
+    width: 46px;
+    height: 46px;
+  }
+
+  .framePreview > img {
+    width: 36px;
+    height: 36px;
+  }
+}

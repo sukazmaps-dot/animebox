@@ -7,15 +7,14 @@ import {
 } from '@/lib/community-server';
 import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
 import {
-  getSelectedSeasonFrame,
+  getSelectedProfileFrame,
+  getUnlockedLevelFramesForUser,
   listActiveSeasonFrameUnlocks,
   listLeaderboardRewardsForUser,
-  selectSeasonFrame,
+  selectProfileFrame,
 } from '@/lib/leaderboard-rewards-server';
-import {
-  isSeasonFrameKey,
-  seasonFrameLabel,
-} from '@/lib/leaderboard-rewards';
+import { seasonFrameLabel } from '@/lib/leaderboard-rewards';
+import { isProfileFrameKey } from '@/lib/profile-frames';
 import { reconcilePremiumForUser } from '@/lib/premium-server';
 
 export const runtime = 'nodejs';
@@ -32,10 +31,11 @@ function rewardId(value: unknown) {
 export async function GET() {
   try {
     const { user } = await userClient();
-    const [rewards, unlockedFrames, selectedFrame] = await Promise.all([
+    const [rewards, unlockedFrames, unlockedLevelFrames, selectedFrame] = await Promise.all([
       listLeaderboardRewardsForUser(user.id),
       listActiveSeasonFrameUnlocks(user.id),
-      getSelectedSeasonFrame(user.id),
+      getUnlockedLevelFramesForUser(user.id),
+      getSelectedProfileFrame(user.id),
     ]);
 
     return response({
@@ -47,6 +47,7 @@ export async function GET() {
         label: seasonFrameLabel(frame.key),
         expiresAt: frame.expiresAt,
       })),
+      unlockedLevelFrames,
       selectedFrame,
     });
   } catch (error) {
@@ -85,10 +86,11 @@ export async function POST(request: Request) {
         return furthest;
       }, null);
 
-      const [rewards, unlockedFrames, selectedFrame] = await Promise.all([
+      const [rewards, unlockedFrames, unlockedLevelFrames, selectedFrame] = await Promise.all([
         listLeaderboardRewardsForUser(user.id),
         listActiveSeasonFrameUnlocks(user.id),
-        getSelectedSeasonFrame(user.id),
+        getUnlockedLevelFramesForUser(user.id),
+        getSelectedProfileFrame(user.id),
       ]);
 
       return response({
@@ -102,6 +104,7 @@ export async function POST(request: Request) {
           label: seasonFrameLabel(frame.key),
           expiresAt: frame.expiresAt,
         })),
+        unlockedLevelFrames,
         selectedFrame,
       });
     }
@@ -110,19 +113,22 @@ export async function POST(request: Request) {
       const raw = body.frameKey;
       const frame = raw == null || raw === ''
         ? null
-        : isSeasonFrameKey(raw)
+        : isProfileFrameKey(raw)
           ? raw
           : null;
 
       if (raw != null && raw !== '' && !frame) {
-        throw new ApiError(400, 'Неизвестная сезонная рамка.');
+        throw new ApiError(400, 'Неизвестная рамка профиля.');
       }
 
       try {
-        await selectSeasonFrame(user.id, frame);
+        await selectProfileFrame(user.id, frame);
       } catch (error) {
         if (error instanceof Error && error.message === 'SEASON_FRAME_LOCKED') {
-          throw new ApiError(403, 'Эта рамка ещё не разблокирована.');
+          throw new ApiError(403, 'Эта League-рамка ещё не разблокирована.');
+        }
+        if (error instanceof Error && error.message === 'LEVEL_FRAME_LOCKED') {
+          throw new ApiError(403, 'Этот LVL ещё не достигнут.');
         }
         throw error;
       }

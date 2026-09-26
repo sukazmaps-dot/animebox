@@ -308,7 +308,7 @@ export default function LeaderboardClient() {
                     nameClassName={styles.podiumName}
                   />
                 </ProfilePreview>
-                <span className={styles.levelBadge}>LV.{entry.progression.level} · {entry.progression.rank}</span>
+                <span className={styles.levelBadge}>LVL {entry.progression.level} · {entry.progression.rank}</span>
                 {entry.isCurrentUser && <span className={styles.youBadge}>Это ты</span>}
                 <span className={styles.time}>{formatWatchTime(entry.activeMs)}</span>
                 <span className={styles.timeLabel}>подтверждённого просмотра</span>
@@ -333,7 +333,7 @@ export default function LeaderboardClient() {
               <div className={styles.personalStats} aria-label="Твоя статистика">
                 <span><small>Время</small><strong>{formatWatchTime(me.activeMs)}</strong></span>
                 <span><small>Серии</small><strong>{me.completedEpisodes}</strong></span>
-                <span><small>Уровень</small><strong>LV.{me.progression.level}</strong></span>
+                <span><small>Уровень</small><strong>LVL {me.progression.level}</strong></span>
               </div>
             )}
             <Link className={styles.personalAction} href={me ? `/profile/${me.userId}` : '/search'}>{me ? 'Профиль' : 'Выбрать аниме'} <span aria-hidden="true">↗</span></Link>
@@ -373,7 +373,7 @@ export default function LeaderboardClient() {
                     </span>
                     <small>
                       {entry.isCurrentUser ? 'Это ты · ' : ''}
-                      LV.{entry.progression.level} · {entry.progression.rank}
+                      LVL {entry.progression.level} · {entry.progression.rank}
                     </small>
                   </span>
                 </ProfilePreview>
