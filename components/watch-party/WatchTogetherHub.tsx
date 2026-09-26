@@ -377,8 +377,11 @@ export default function WatchTogetherHub() {
         // Resume shortcut is optional.
       }
 
+      // Clipboard is opportunistic only. Some mobile browsers can keep
+      // writeText() pending behind a permission prompt, which used to leave the
+      // create button spinning even though the room was already registered.
       try {
-        await navigator.clipboard.writeText(roomUrl);
+        void navigator.clipboard?.writeText(roomUrl).catch(() => undefined);
       } catch {
         // The room itself has a dedicated copy button if clipboard permission is denied.
       }

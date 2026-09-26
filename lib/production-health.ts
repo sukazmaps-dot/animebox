@@ -31,6 +31,8 @@ export type ProductionHealthSnapshot = {
   };
   database: {
     connections: number;
+    maxConnections: number;
+    connectionPct: number | null;
     cacheHitPct: number | null;
   };
 };

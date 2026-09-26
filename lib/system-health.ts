@@ -160,6 +160,43 @@ export type SeoIndexPlatformHealth = {
   lastAnimeVerifiedAt: string | null;
 };
 
+export type SystemRuntimeControlHealth = {
+  mode: 'normal' | 'brownout';
+  features: {
+    recommendations: boolean;
+    smart_discovery: boolean;
+    watch_together: boolean;
+    community_writes: boolean;
+    background_jobs: boolean;
+  };
+  controls: Array<{
+    controlKey: string;
+    state: string;
+    reason: string | null;
+    updatedBy: string | null;
+    updatedAt: string;
+  }>;
+  degraded: boolean;
+  loadedAt: string;
+};
+
+export type SystemCapacityHealth = {
+  state: SystemHealthTone;
+  databaseHeadroomPct: number | null;
+  pressureSignals: number;
+  brownoutRecommended: boolean;
+  bottlenecks: string[];
+  thresholds: {
+    databaseDegradedPct: number;
+    databaseCriticalPct: number;
+    apiP95DegradedMs: number;
+    apiErrorDegradedPct: number;
+    apiErrorCriticalPct: number;
+    upstreamQueueDegraded: number;
+    upstreamQueueCritical: number;
+  };
+};
+
 export type SystemUpstreamRuntimeHealth = {
   key: string;
   active: number;
@@ -187,6 +224,8 @@ export type SystemHealthSnapshot = {
   requests: RequestPlatformHealth;
   dependencies: SystemDependenciesHealth;
   seo: SeoIndexPlatformHealth;
+  controls: SystemRuntimeControlHealth;
+  capacity: SystemCapacityHealth;
   upstreams: SystemUpstreamRuntimeHealth[];
   signals: {
     openCriticalIncidents: number;
@@ -201,5 +240,7 @@ export type SystemHealthSnapshot = {
     dependencyWarnings: number;
     upstreamCircuitOpen: number;
     upstreamQueued: number;
+    brownoutActive: boolean;
+    brownoutRecommended: boolean;
   };
 };

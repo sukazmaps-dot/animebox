@@ -28,9 +28,18 @@ for (const needle of [
   "rpc(\n      'try_acquire_runtime_refresh_lease'",
   "rpc(\n      'release_runtime_refresh_lease'",
   'acquired: true, ownerToken: null, degraded: true',
-  'MAX_LEASE_TTL_SECONDS = 60',
 ]) {
   must('runtime refresh lease client', leaseClient, needle);
+}
+
+const leaseTtlMatch = leaseClient.match(
+  /MAX_LEASE_TTL_SECONDS\s*=\s*(\d+)/,
+);
+const leaseTtl = Number(leaseTtlMatch?.[1] ?? 0);
+if (leaseTtl < 60 || leaseTtl > 120) {
+  failures.push(
+    `runtime refresh lease client: TTL clamp escaped safe 60–120s range (${leaseTtl})`,
+  );
 }
 
 for (const needle of [

@@ -32,7 +32,7 @@ export async function fetchWithRetry(
             upstream,
             () => fetch(input, init),
             {
-              signal: init?.signal,
+              signal: init?.signal ?? undefined,
               isFailure: isTransientUpstreamResponse,
               abortIsFailure: false,
             },

@@ -227,9 +227,6 @@ export async function cleanupWatchPartyRooms() {
     .neq('status', 'ended').lt('last_heartbeat_at', staleBefore);
   if (stale.error) throw stale.error;
 
-  const buckets = await admin.from('api_rate_buckets')
-    .delete().lt('window_start', new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString());
-  if (buckets.error) throw buckets.error;
 }
 
 export async function heartbeatWatchPartyRoom(
@@ -262,7 +259,7 @@ export async function heartbeatWatchPartyRoom(
   }
   if (room.status === 'ended') throw new ApiError(409, 'Комната уже завершена.');
 
-  const { error } = await admin
+  const { data: updated, error } = await admin
     .from('watch_party_rooms')
     .update({
       participant_count: participantCount,
@@ -272,9 +269,16 @@ export async function heartbeatWatchPartyRoom(
       updated_at: now,
       ...(status === 'ended' ? { ended_at: now } : {}),
     })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('host_user_id', user.id)
+    .neq('status', 'ended')
+    .select('id')
+    .maybeSingle();
 
   if (error) throw error;
+  if (!updated) {
+    throw new ApiError(409, 'Host комнаты изменился или комната уже завершена.');
+  }
 }
 
 export async function endWatchPartyRoom(roomId: string) {

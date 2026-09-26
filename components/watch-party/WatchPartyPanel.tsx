@@ -96,6 +96,7 @@ const HANDSHAKE_TIMEOUT_MS = 8_000;
 const MAX_RECONNECT_ATTEMPTS = 6;
 const HOST_STARTUP_TIMEOUT_MS = 15_000;
 const IDENTITY_BOOT_TIMEOUT_MS = 4_000;
+const GUEST_JOIN_TIMEOUT_MS = 24_000;
 const GUEST_HEALTH_CHECK_MS = 15_000;
 const HOST_STALE_MS = 75_000;
 const P2P_ACCELERATOR_GUEST_LIMIT = 6;
@@ -220,6 +221,7 @@ export default function WatchPartyPanel({
   const relayFallbackTimerRef = useRef<number | null>(null);
   const hostStartupTimerRef = useRef<number | null>(null);
   const healthTimerRef = useRef<number | null>(null);
+  const guestJoinTimerRef = useRef<number | null>(null);
   const guestWelcomedRef = useRef(false);
   const relayWelcomedRef = useRef(false);
   const guestTransportRef = useRef<'p2p' | 'server' | null>(null);
@@ -232,6 +234,14 @@ export default function WatchPartyPanel({
   const wasReconnectingRef = useRef(false);
   const lastPresenceCountRef = useRef(0);
   const lastDriftTelemetryAtRef = useRef(0);
+  const chatSendPendingRef = useRef(false);
+
+  const clearGuestJoinDeadline = useCallback(() => {
+    if (guestJoinTimerRef.current != null) {
+      window.clearTimeout(guestJoinTimerRef.current);
+      guestJoinTimerRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     statusRef.current = status;
@@ -611,7 +621,8 @@ export default function WatchPartyPanel({
       window.clearInterval(healthTimerRef.current);
       healthTimerRef.current = null;
     }
-  }, []);
+    clearGuestJoinDeadline();
+  }, [clearGuestJoinDeadline]);
 
   const destroyTransport = useCallback(() => {
     transportGenerationRef.current += 1;
@@ -683,6 +694,7 @@ export default function WatchPartyPanel({
     hostSeqRef.current = 0;
     lastAppliedSeqRef.current = 0;
     chatIdsRef.current.clear();
+    chatSendPendingRef.current = false;
     hostPeerChatAtRef.current.clear();
     voteByUserRef.current.clear();
     setVoteState(EMPTY_VOTE_STATE);
@@ -775,6 +787,21 @@ export default function WatchPartyPanel({
     if (relayWelcomedRef.current && relayRef.current?.isOpen()) {
       void relayRef.current.send(packet);
       return true;
+    }
+
+    return connection?.open ? send(connection, packet) : false;
+  }, [send]);
+
+  const sendGuestPacketConfirmed = useCallback(async (packet: WatchPartyPacket) => {
+    const connection = guestConnectionRef.current;
+
+    if (guestTransportRef.current === 'p2p' && connection?.open) {
+      return send(connection, packet);
+    }
+
+    const relay = relayRef.current;
+    if (relayWelcomedRef.current && relay?.isOpen()) {
+      return relay.send(packet);
     }
 
     return connection?.open ? send(connection, packet) : false;
@@ -903,6 +930,7 @@ export default function WatchPartyPanel({
           return;
         }
         welcomed = true;
+        clearGuestJoinDeadline();
         guestWelcomedRef.current = true;
         guestTransportRef.current = 'p2p';
         lastHostSeenAtRef.current = Date.now();
@@ -947,7 +975,7 @@ export default function WatchPartyPanel({
 
       if (packet.type === 'PLAYER_SYNC') {
         if (!welcomed || packet.seq < lastAppliedSeqRef.current) return;
-        const state = playerStateRef.current;
+        const state = currentPlayerSnapshot() ?? playerStateRef.current;
         const networkAdjusted = packet.playing
           ? packet.position + Math.min(2, Math.max(0, (Date.now() - packet.sentAt) / 1000))
           : packet.position;
@@ -1074,6 +1102,8 @@ export default function WatchPartyPanel({
   }, [
     acceptHostTransfer,
     appendChatMessage,
+    clearGuestJoinDeadline,
+    currentPlayerSnapshot,
     dispatchEpisodeChange,
     dispatchPlayerCommand,
     publishParticipants,
@@ -1093,8 +1123,27 @@ export default function WatchPartyPanel({
     setError('');
     setInviteUrl(buildWatchPartyUrl(invite));
 
+    clearGuestJoinDeadline();
+    guestJoinTimerRef.current = window.setTimeout(() => {
+      if (
+        intentionalCloseRef.current ||
+        hostEndedRef.current ||
+        transportGenerationRef.current !== generation ||
+        guestWelcomedRef.current ||
+        relayWelcomedRef.current
+      ) {
+        return;
+      }
+
+      guestJoinTimerRef.current = null;
+      destroyTransport();
+      setStatus('error');
+      setError('Не удалось подтвердить вход в комнату. Проверь сеть и попробуй войти ещё раз.');
+    }, GUEST_JOIN_TIMEOUT_MS);
+
     const identity = await resolveIdentity();
     if (!identity) {
+      clearGuestJoinDeadline();
       redirectToRegistration();
       return;
     }
@@ -1131,6 +1180,7 @@ export default function WatchPartyPanel({
             if (packet.roomId !== invite.roomId || packet.protocol !== WATCH_PARTY_PROTOCOL) return;
 
             relayWelcomedRef.current = true;
+            clearGuestJoinDeadline();
             reconnectAttemptRef.current = 0;
             publishParticipants(packet.participants);
 
@@ -1189,7 +1239,7 @@ export default function WatchPartyPanel({
 
           if (packet.type === 'PLAYER_SYNC') {
             if (packet.seq < lastAppliedSeqRef.current) return;
-            const state = playerStateRef.current;
+            const state = currentPlayerSnapshot() ?? playerStateRef.current;
             const networkAdjusted = packet.playing
               ? packet.position + Math.min(2, Math.max(0, (Date.now() - packet.sentAt) / 1000))
               : packet.position;
@@ -1566,6 +1616,8 @@ export default function WatchPartyPanel({
     acceptHostTransfer,
     appendChatMessage,
     attachGuestConnection,
+    clearGuestJoinDeadline,
+    currentPlayerSnapshot,
     dispatchEpisodeChange,
     dispatchPlayerCommand,
     publishParticipants,
@@ -2369,6 +2421,78 @@ export default function WatchPartyPanel({
   }, [destroyTransport]);
 
   useEffect(() => {
+    const resumeAfterBackground = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (!navigator.onLine || intentionalCloseRef.current || hostEndedRef.current) return;
+
+      const invite = inviteRef.current;
+      const currentRole = roleRef.current;
+      if (!invite || !currentRole) return;
+
+      const relayOpen = relayRef.current?.isOpen() ?? false;
+      const peer = peerRef.current;
+
+      if (currentRole === 'host') {
+        if (relayOpen || (peer && !peer.destroyed && !peer.disconnected)) {
+          ensureHostTimers();
+          if (relayOpen) setNetworkRoute('server');
+          setError('');
+          setStatus('active');
+          return;
+        }
+      } else {
+        if (
+          (guestTransportRef.current === 'p2p' && guestConnectionRef.current?.open) ||
+          (relayWelcomedRef.current && relayOpen)
+        ) {
+          if (guestTransportRef.current === 'server') setNetworkRoute('server');
+          setError('');
+          setStatus('active');
+          return;
+        }
+
+        if (peer && !peer.destroyed) {
+          if (peer.disconnected) {
+            try {
+              peer.reconnect();
+            } catch {
+              // scheduleGuestReconnect creates a fresh DataChannel when possible.
+            }
+          }
+
+          setStatus('reconnecting');
+          setError('Возвращаемся в комнату после паузы…');
+          scheduleGuestReconnectRef.current();
+          return;
+        }
+      }
+
+      setStatus('reconnecting');
+      setError('Возвращаемся в комнату после паузы…');
+      destroyTransport();
+      intentionalCloseRef.current = false;
+
+      queueMicrotask(() => {
+        if (intentionalCloseRef.current || hostEndedRef.current) return;
+        if (currentRole === 'host') startHostRef.current(invite);
+        else startGuestRef.current(invite);
+      });
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') resumeAfterBackground();
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('pageshow', resumeAfterBackground);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('pageshow', resumeAfterBackground);
+    };
+  }, [destroyTransport, ensureHostTimers]);
+
+  useEffect(() => {
     return () => {
       intentionalCloseRef.current = true;
       destroyTransport();
@@ -2610,19 +2734,20 @@ export default function WatchPartyPanel({
     }
   }, [destroyTransport, episodeNumber, participants.length, send]);
 
-  const submitChat = useCallback((event: FormEvent<HTMLFormElement>) => {
+  const submitChat = useCallback(async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (status !== 'active') return;
-    const text = sanitizeWatchPartyChatText(chatText);
-    if (!text) return;
+    if (status !== 'active' || chatSendPendingRef.current) return;
 
-    const now = Date.now();
-    if (now - lastChatSentAtRef.current < CHAT_SEND_COOLDOWN_MS) return;
-    lastChatSentAtRef.current = now;
-    setChatText('');
+    const draft = chatText;
+    const text = sanitizeWatchPartyChatText(draft);
+    if (!text) return;
 
     const identity = identityRef.current;
     if (!identity) return;
+
+    const now = Date.now();
+    if (now - lastChatSentAtRef.current < CHAT_SEND_COOLDOWN_MS) return;
+
     const id = createWatchPartyMessageId();
 
     if (roleRef.current === 'host') {
@@ -2636,13 +2761,33 @@ export default function WatchPartyPanel({
       };
       appendChatMessage(message);
       broadcast({ type: 'CHAT_MESSAGE', message });
+      lastChatSentAtRef.current = now;
+      setChatText((current) => current === draft ? '' : current);
       return;
     }
 
-    if (roleRef.current === 'guest') {
-      sendGuestPacket({ type: 'CHAT_SEND', id, text, sentAt: now });
+    if (roleRef.current !== 'guest') return;
+
+    chatSendPendingRef.current = true;
+    try {
+      const delivered = await sendGuestPacketConfirmed({
+        type: 'CHAT_SEND',
+        id,
+        text,
+        sentAt: now,
+      });
+
+      if (!delivered) {
+        setError('Сообщение не отправлено. Текст сохранён — попробуй ещё раз.');
+        return;
+      }
+
+      lastChatSentAtRef.current = now;
+      setChatText((current) => current === draft ? '' : current);
+    } finally {
+      chatSendPendingRef.current = false;
     }
-  }, [appendChatMessage, broadcast, chatText, sendGuestPacket, status]);
+  }, [appendChatMessage, broadcast, chatText, sendGuestPacketConfirmed, status]);
 
   const leaveParty = useCallback(async () => {
     const finish = (removeHostClaim: boolean) => {

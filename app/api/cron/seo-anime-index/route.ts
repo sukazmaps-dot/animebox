@@ -1,6 +1,7 @@
 import { getSeoAnimeSourceShard } from '@/lib/seo-anilist';
 import { syncSeoAnimeSourceEntries } from '@/lib/seo-anime-index-server';
 import { ANIME_SITEMAP_SHARDS } from '@/lib/seo-config';
+import { beginOperationalJob } from '@/lib/operational-job-server';
 import { isCronAuthorized } from '@/lib/server-request-auth';
 import { createSystemJobObserver } from '@/lib/system-observability-server';
 
@@ -62,17 +63,34 @@ async function run(request: Request) {
     );
   }
 
+  const permit = await beginOperationalJob('seo-anime-index', {
+    budgetMs: 50_000,
+    leaseTtlSeconds: 90,
+  });
+
+  if (!permit.allowed) {
+    await observer.skipped(permit.reason, { degraded: permit.degraded });
+    return Response.json(
+      { ok: true, skipped: true, reason: permit.reason },
+      { headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
+
   const shards = manualShard == null
     ? scheduledSourceShards()
     : [manualShard];
 
   try {
     const results = [];
+    let budgetExhausted = false;
 
-    // Deliberately sequential: one registry job must never become an AniList
-    // burst. Each source shard is one bounded GraphQL request containing ten
-    // aliased pages and is already protected by the upstream circuit breaker.
+    // Sequential by design: SEO can wait for the next run. Playback cannot.
     for (const shard of shards) {
+      if (permit.shouldStop(7_000)) {
+        budgetExhausted = true;
+        break;
+      }
+
       const entries = await getSeoAnimeSourceShard(shard);
       const synced = await syncSeoAnimeSourceEntries(entries, shard);
       results.push(synced);
@@ -86,17 +104,25 @@ async function run(request: Request) {
       }),
       { checked: 0, changed: 0, indexable: 0 },
     );
-
-    await observer.success({
+    const summary = {
       sourceShards: shards,
+      completedShards: results.map((item) => item.sourceShard),
+      budgetExhausted,
+      remainingMs: permit.remainingMs(),
       ...totals,
-    });
+    };
+
+    if (budgetExhausted) {
+      await observer.degraded('seo_index_budget_exhausted', summary);
+    } else {
+      await observer.success(summary);
+    }
 
     return Response.json(
       {
         ok: true,
-        sourceShards: shards,
-        ...totals,
+        degraded: budgetExhausted,
+        ...summary,
         results,
       },
       { headers: { 'Cache-Control': 'no-store' } },
@@ -113,6 +139,8 @@ async function run(request: Request) {
       },
       { status: 500, headers: { 'Cache-Control': 'no-store' } },
     );
+  } finally {
+    await permit.release();
   }
 }
 

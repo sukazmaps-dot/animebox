@@ -68,6 +68,11 @@ export async function getProductionHealthSnapshot(): Promise<ProductionHealthSna
     },
     database: {
       connections: finite(database.connections),
+      maxConnections: finite(database.max_connections),
+      connectionPct:
+        database.connection_pct == null
+          ? null
+          : finite(database.connection_pct),
       cacheHitPct:
         database.cache_hit_pct == null
           ? null

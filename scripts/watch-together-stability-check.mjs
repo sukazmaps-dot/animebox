@@ -5,6 +5,7 @@ const read = (path) =>
 
 const panel = read('components/watch-party/WatchPartyPanel.tsx');
 const hub = read('components/watch-party/WatchTogetherHub.tsx');
+const relayClient = read('lib/watch-party-relay-client.ts');
 const roomServer = read('lib/watch-party-rooms-server.ts');
 const roomsRoute = read('app/api/watch-party/rooms/route.ts');
 const transferRoute = read(
@@ -18,6 +19,58 @@ const failures = [];
 
 if (!panel.includes('const HOST_HEARTBEAT_MS = 20_000')) {
   failures.push('host room heartbeat is not using the 20s presence cadence');
+}
+
+if (
+  !panel.includes('const GUEST_JOIN_TIMEOUT_MS = 24_000') ||
+  !panel.includes('guestJoinTimerRef.current = window.setTimeout') ||
+  !panel.includes('Не удалось подтвердить вход в комнату')
+) {
+  failures.push('guest join can hang without a bounded room-level deadline');
+}
+
+const projectedGuestSyncs =
+  panel.match(/currentPlayerSnapshot\(\) \?\? playerStateRef\.current/g)?.length ?? 0;
+if (projectedGuestSyncs < 2) {
+  failures.push('guest drift compares stale player snapshots instead of projected playback time');
+}
+
+if (
+  !panel.includes('const sendGuestPacketConfirmed = useCallback(async') ||
+  !panel.includes('chatSendPendingRef.current = true') ||
+  !panel.includes("current === draft ? '' : current") ||
+  !panel.includes('Сообщение не отправлено. Текст сохранён')
+) {
+  failures.push('chat drafts can be lost when guest delivery fails');
+}
+
+if (
+  hub.includes('await navigator.clipboard.writeText(roomUrl)') ||
+  !hub.includes('void navigator.clipboard?.writeText(roomUrl).catch')
+) {
+  failures.push('room creation still waits for Clipboard API before navigation');
+}
+
+if (
+  !relayClient.includes('const activeRelayByTopic = new Map') ||
+  !relayClient.includes('await previous.close()')
+) {
+  failures.push('parallel Realtime room subscriptions are no longer serialized');
+}
+
+const heartbeatStart = roomServer.indexOf('export async function heartbeatWatchPartyRoom');
+const heartbeatEnd = roomServer.indexOf('export async function endWatchPartyRoom');
+const heartbeatSource =
+  heartbeatStart >= 0 && heartbeatEnd > heartbeatStart
+    ? roomServer.slice(heartbeatStart, heartbeatEnd)
+    : '';
+if (
+  !heartbeatSource.includes(".eq('host_user_id', user.id)") ||
+  !heartbeatSource.includes(".neq('status', 'ended')") ||
+  !heartbeatSource.includes(".select('id')") ||
+  !heartbeatSource.includes('if (!updated)')
+) {
+  failures.push('room heartbeat can race with host transfer or room shutdown');
 }
 
 if (
@@ -43,6 +96,14 @@ if (
   !panel.includes('startHostRef.current(invite)')
 ) {
   failures.push('network return cannot recreate a destroyed PeerJS transport');
+}
+
+if (
+  !panel.includes("document.addEventListener('visibilitychange', onVisibilityChange)") ||
+  !panel.includes("window.addEventListener('pageshow', resumeAfterBackground)") ||
+  !panel.includes('Возвращаемся в комнату после паузы')
+) {
+  failures.push('mobile background/foreground recovery is missing');
 }
 
 if (
@@ -105,5 +166,5 @@ if (failures.length) {
 }
 
 console.log(
-  '[AnimeBox WT Stability] reconnect, presence, host lifecycle and lobby invariants passed.',
+  '[AnimeBox WT Stability] reconnect, bounded join, drift, chat delivery, host lifecycle and lobby invariants passed.',
 );

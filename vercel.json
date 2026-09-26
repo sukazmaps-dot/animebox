@@ -1,4 +1,11 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "patch-*": false
+    }
+  },
+  "ignoreCommand": "node scripts/vercel-ignore-build.mjs",
   "crons": [
     {
       "path": "/api/cron/boosty-premium",
@@ -15,6 +22,10 @@
     {
       "path": "/api/cron/seo-anime-index",
       "schedule": "53 4 * * *"
+    },
+    {
+      "path": "/api/cron/production-maintenance",
+      "schedule": "17 5 * * *"
     }
   ]
 }

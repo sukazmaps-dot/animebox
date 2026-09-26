@@ -1,6 +1,6 @@
-import { isCronAuthorized } from '@/lib/server-request-auth';
 import { refreshStaleCatalogAvailability } from '@/lib/catalog-availability-server';
-import { pruneSystemRequestMetrics } from '@/lib/request-observability-server';
+import { beginOperationalJob } from '@/lib/operational-job-server';
+import { isCronAuthorized } from '@/lib/server-request-auth';
 import { createSystemJobObserver } from '@/lib/system-observability-server';
 
 export const runtime = 'nodejs';
@@ -18,18 +18,35 @@ async function run(request: Request) {
   const observer = createSystemJobObserver('catalog-availability', {
     service: 'cron',
   });
+  const permit = await beginOperationalJob('catalog-availability', {
+    budgetMs: 50_000,
+    leaseTtlSeconds: 90,
+  });
+
+  if (!permit.allowed) {
+    await observer.skipped(permit.reason, {
+      degraded: permit.degraded,
+    });
+    return Response.json(
+      { ok: true, skipped: true, reason: permit.reason },
+      { headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
 
   try {
     const result = await refreshStaleCatalogAvailability(24);
-    const prunedRequestMetrics = await pruneSystemRequestMetrics(30);
 
     await observer.success({
       ...result,
-      prunedRequestMetrics,
+      remainingMs: permit.remainingMs(),
     });
 
     return Response.json(
-      { ok: true, ...result, prunedRequestMetrics },
+      {
+        ok: true,
+        ...result,
+        remainingMs: permit.remainingMs(),
+      },
       { headers: { 'Cache-Control': 'no-store' } },
     );
   } catch (error) {
@@ -40,6 +57,8 @@ async function run(request: Request) {
       { ok: false, error: 'catalog_availability_refresh_failed' },
       { status: 500, headers: { 'Cache-Control': 'no-store' } },
     );
+  } finally {
+    await permit.release();
   }
 }
 

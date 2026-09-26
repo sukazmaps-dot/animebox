@@ -11,6 +11,9 @@ const healthServer = read('lib/system-health-server.ts');
 const healthTypes = read('lib/system-health.ts');
 const dashboard = read('components/admin/SystemHealthDashboard.tsx');
 const cron = read('app/api/cron/catalog-availability/route.ts');
+const maintenanceCron = read('app/api/cron/production-maintenance/route.ts');
+const productionReadiness = read('lib/production-readiness-server.ts');
+const vercelConfig = JSON.parse(read('vercel.json'));
 
 const routes = new Map([
   ['app/api/anime/route.ts', '/api/anime'],
@@ -92,11 +95,26 @@ if (
   failures.push('System Health UI/types do not expose request telemetry');
 }
 
-if (
-  !cron.includes('pruneSystemRequestMetrics(30)') ||
-  !cron.includes('prunedRequestMetrics')
-) {
-  failures.push('daily catalog cron does not prune request telemetry');
+const legacyTelemetryRetention =
+  cron.includes('pruneSystemRequestMetrics(30)') &&
+  cron.includes('prunedRequestMetrics');
+
+const productionMaintenanceRetention =
+  maintenanceCron.includes("createSystemJobObserver('production-maintenance'") &&
+  maintenanceCron.includes('beginOperationalJob(') &&
+  maintenanceCron.includes('pruneOperationalData()') &&
+  productionReadiness.includes("'prune_animebox_operational_data'") &&
+  productionReadiness.includes('p_request_retention_days: input.requestRetentionDays ?? 30') &&
+  vercelConfig.crons?.some(
+    (item) =>
+      item.path === '/api/cron/production-maintenance' &&
+      item.schedule === '17 5 * * *',
+  );
+
+if (!legacyTelemetryRetention && !productionMaintenanceRetention) {
+  failures.push(
+    'request telemetry retention is not wired to a protected daily maintenance job',
+  );
 }
 
 if (failures.length) {

@@ -378,6 +378,74 @@
   white-space: nowrap;
 }
 
+.controlList {
+  display: grid;
+}
+
+.controlRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px 132px;
+  align-items: center;
+  gap: 12px;
+  min-height: 62px;
+  padding: 10px 17px;
+  border-bottom: 1px solid rgba(255,255,255,.045);
+}
+
+.controlRow:last-child {
+  border-bottom: 0;
+}
+
+.controlRow strong {
+  display: block;
+  color: rgba(255,255,255,.86);
+  font-size: 11px;
+}
+
+.controlRow small {
+  color: rgba(255,255,255,.34);
+  font-size: 9px;
+}
+
+.controlRow > span {
+  justify-self: start;
+  padding: 4px 7px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 999px;
+  color: rgba(255,255,255,.52);
+  font-size: 9px;
+  font-weight: 760;
+}
+
+.controlRow > span[data-state='normal'],
+.controlRow > span[data-state='enabled'] {
+  border-color: rgba(81,189,132,.18);
+  color: #79cea0;
+}
+
+.controlRow > span[data-state='brownout'],
+.controlRow > span[data-state='disabled'] {
+  border-color: rgba(220,157,74,.18);
+  color: #ddb16f;
+}
+
+.controlRow button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(157,141,243,.2);
+  border-radius: 8px;
+  background: rgba(157,141,243,.06);
+  color: #e7e2ff;
+  font-size: 9px;
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.controlRow button:disabled {
+  opacity: .5;
+  cursor: wait;
+}
+
 .empty,
 .error,
 .loading {
@@ -436,8 +504,14 @@
   }
 
   .providerRow,
-  .jobRow {
+  .jobRow,
+  .controlRow {
     grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .controlRow button {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 
   .providerMeta,

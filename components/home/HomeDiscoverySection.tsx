@@ -8,20 +8,14 @@ import DeferredMount from '@/components/DeferredMount';
 import HomeContinueWatching from '@/components/HomeContinueWatching';
 import HomeMoodPicker from '@/components/HomeMoodPicker';
 import { useHomeFeedRuntime } from '@/components/home/HomeFeedRuntimeProvider';
+import { RecommendationFeedSkeleton } from '@/components/home/HomeLoadingSkeletons';
 
 const SmartRecommendationFeed = dynamic(
   () => import('@/components/SmartRecommendationFeed'),
   {
     ssr: false,
     loading: () => (
-      <div className="loading-grid" aria-hidden="true">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div
-            key={index}
-            className="skeleton skeleton--card"
-          />
-        ))}
-      </div>
+      <RecommendationFeedSkeleton railCount={2} cardCount={5} label="Подготавливаем персональные полки" />
     ),
   },
 );
@@ -39,6 +33,13 @@ export default function HomeDiscoverySection() {
     hasWatchHistory,
   } = useHomeFeedRuntime();
 
+  const recommendationsLoading =
+    !hydrated ||
+    !recommendationsReady ||
+    (popularLoading &&
+      ongoingLoading &&
+      smartRecommendations.length === 0);
+
   return (
     <>
       <HomeContinueWatching items={continueWatchingItems} />
@@ -52,6 +53,7 @@ export default function HomeDiscoverySection() {
         <section
           id="animebox-for-you"
           className="section smart-feed-section"
+          aria-busy={recommendationsLoading}
         >
           <div className="section-head">
             <div className="smart-feed-heading">
@@ -92,22 +94,12 @@ export default function HomeDiscoverySection() {
             </Link>
           </div>
 
-          {!hydrated ||
-          !recommendationsReady ||
-          (popularLoading &&
-            ongoingLoading &&
-            smartRecommendations.length === 0) ? (
-            <div
-              className="loading-grid"
-              aria-label="Загружаем персональные рекомендации"
-            >
-              {Array.from({ length: 5 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="skeleton skeleton--card"
-                />
-              ))}
-            </div>
+          {recommendationsLoading ? (
+            <RecommendationFeedSkeleton
+              railCount={2}
+              cardCount={5}
+              label="Загружаем персональные рекомендации"
+            />
           ) : (
             <DeferredMount
               className="home-deferred home-deferred--recommendations"

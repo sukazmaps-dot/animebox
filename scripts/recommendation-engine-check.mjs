@@ -224,8 +224,14 @@ if (
   !rails.includes('orderRecommendationRails') ||
   !rails.includes('explorationRate') ||
   !rails.includes('preferredEpisodeCount') ||
-  !feed.includes('hasMore={railHasMore}') ||
-  !feed.includes('loading={railLoading}') ||
+  !(
+    feed.includes('hasMore={railHasMore}') ||
+    feed.includes('hasMore={rail.items.length > 0 ? railHasMore : false}')
+  ) ||
+  !(
+    feed.includes('loading={railLoading}') ||
+    feed.includes('loading={showRailSkeleton}')
+  ) ||
   !feed.includes('ensureRailDepth(rail)') ||
   feed.includes("rail.id === 'endless' ? hasMore : false")
 ) {

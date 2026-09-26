@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Release consolidation invariants
+        run: npm run release-consolidation:check
+
       - name: TypeScript
         run: npx tsc --noEmit
 
@@ -88,6 +91,7 @@ jobs:
           components/home/useHomeScheduleData.ts
           components/home/HomeHeroSection.tsx
           components/home/HomeDiscoverySection.tsx
+          components/home/HomeLoadingSkeletons.tsx
           components/home/HomeCatalogSections.tsx
           components/home/HomeScheduleSection.tsx
           components/home/HomePersonalRetentionSections.tsx
