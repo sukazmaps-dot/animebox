@@ -22,6 +22,10 @@ import {
 } from '@/lib/search-index-server';
 
 import { observeApiRoute } from '@/lib/request-observability-server';
+import {
+  runtimeFeatureDecision,
+  runtimeFeatureUnavailableResponse,
+} from '@/lib/runtime-controls-server';
 
 export const runtime = 'nodejs';
 
@@ -68,6 +72,18 @@ function compactSeed(seed: Anime | null) {
 }
 
 async function observedGET(request: NextRequest) {
+  const runtimeControl = await runtimeFeatureDecision(
+    'smart_discovery',
+    { disableInBrownout: true },
+  );
+  if (!runtimeControl.allowed) {
+    return runtimeFeatureUnavailableResponse({
+      feature: 'smart_discovery',
+      reason: runtimeControl.reason ?? 'brownout',
+      retryAfterSeconds: 30,
+    });
+  }
+
   const rawQuery = request.nextUrl.searchParams.get('q')?.trim() ?? '';
   const requestedLimit = Number.parseInt(request.nextUrl.searchParams.get('limit') ?? '20', 10);
   const limit = Number.isFinite(requestedLimit) ? Math.min(40, Math.max(5, requestedLimit)) : 20;
