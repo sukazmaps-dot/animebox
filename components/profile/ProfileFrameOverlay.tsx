@@ -7,23 +7,19 @@ import { isLevelFrameKey, type LevelFrameKey } from '@/lib/progression';
 import styles from './ProfileFrameOverlay.module.css';
 
 const STATIC_LEVEL_FRAME_ASSETS: Record<LevelFrameKey, string> = {
-  'level-viewer': '/brand/frames/level/static/viewer.svg',
-  'level-explorer': '/brand/frames/level/static/explorer.svg',
-  'level-marathoner': '/brand/frames/level/static/marathoner.svg',
-  'level-collector': '/brand/frames/level/static/collector.svg',
-  'level-veteran': '/brand/frames/level/static/veteran.svg',
-  'level-legend': '/brand/frames/level/static/legend.svg',
-  'level-master': '/brand/frames/level/static/master.svg',
+  'milestone-lv10-forbidden-relic': '/brand/frames/milestone/free/lv10-forbidden-relic.svg',
+  'milestone-lv25-flame-arc': '/brand/frames/milestone/free/lv25-flame-arc.svg',
+  'milestone-lv50-crimson-sigil': '/brand/frames/milestone/free/lv50-crimson-sigil.svg',
+  'milestone-lv75-menacing-manga': '/brand/frames/milestone/free/lv75-menacing-manga.svg',
+  'milestone-lv100-absolute-prestige': '/brand/frames/milestone/free/lv100-absolute-prestige.svg',
 };
 
 const PREMIUM_LEVEL_FRAME_ASSETS: Record<LevelFrameKey, string> = {
-  'level-viewer': '/brand/frames/level/premium/viewer-animated.svg',
-  'level-explorer': '/brand/frames/level/premium/explorer-animated.svg',
-  'level-marathoner': '/brand/frames/level/premium/marathoner-animated.svg',
-  'level-collector': '/brand/frames/level/premium/collector-animated.svg',
-  'level-veteran': '/brand/frames/level/premium/veteran-animated.svg',
-  'level-legend': '/brand/frames/level/premium/legend-animated.svg',
-  'level-master': '/brand/frames/level/premium/master-animated.svg',
+  'milestone-lv10-forbidden-relic': '/brand/frames/milestone/premium/lv10-forbidden-relic-premium.svg',
+  'milestone-lv25-flame-arc': '/brand/frames/milestone/premium/lv25-flame-arc-premium.svg',
+  'milestone-lv50-crimson-sigil': '/brand/frames/milestone/premium/lv50-crimson-sigil-premium.svg',
+  'milestone-lv75-menacing-manga': '/brand/frames/milestone/premium/lv75-menacing-manga-premium.svg',
+  'milestone-lv100-absolute-prestige': '/brand/frames/milestone/premium/lv100-absolute-prestige-premium.svg',
 };
 
 export function levelFrameAsset(frameKey: LevelFrameKey, premium = false) {
@@ -58,7 +54,7 @@ export default function ProfileFrameOverlay({
       data-premium={premium ? 'true' : 'false'}
       aria-hidden="true"
     >
-      {/* Native SVG assets: static for free users, animated for Premium. */}
+      {/* Original AnimeBox milestone SVG v3.1: free static / Premium animated. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         className={styles.levelFrameAsset}
