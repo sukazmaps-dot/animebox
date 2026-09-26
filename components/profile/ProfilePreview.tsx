@@ -9,13 +9,20 @@ import Link from 'next/link';
 import FriendActionButton from '@/components/friends/FriendActionButton';
 import StreakDisplay from '@/components/profile/StreakDisplay';
 import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
+import PremiumProfileAtmosphere from '@/components/premium/PremiumProfileAtmosphere';
 import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
 import { isLevelFrameKey, levelFrameAvatarScale } from '@/lib/progression';
 import {
   premiumMediaStyle,
+  type PremiumAtmosphereEffect,
+  type PremiumEntranceEffect,
+  type PremiumHeroStyle,
   type PremiumMediaTransform,
+  type PremiumMotionMode,
+  type PremiumNicknameEffect,
+  type PremiumSurfaceStyle,
 } from '@/lib/premium-studio';
 
 import styles from './ProfilePreview.module.css';
@@ -36,6 +43,13 @@ type PreviewData = {
   primaryColor: string;
   accentColor: string;
   textColor: string;
+  atmosphereEffect: PremiumAtmosphereEffect;
+  atmosphereIntensity: number;
+  motionMode: PremiumMotionMode;
+  entranceEffect: PremiumEntranceEffect;
+  nicknameEffect: PremiumNicknameEffect;
+  heroStyle: PremiumHeroStyle;
+  surfaceStyle: PremiumSurfaceStyle;
   role: PublicIdentityRole;
   sponsor: SponsorStatus | null;
   profileFrameKey: string | null;
@@ -254,6 +268,9 @@ export default function ProfilePreview({
         '--profile-preview-primary': data.primaryColor,
         '--profile-preview-accent': data.accentColor,
         '--profile-preview-text': data.textColor,
+        '--profile-preview-atmosphere-alpha': String(
+          0.06 + (Math.max(0, Math.min(100, data.atmosphereIntensity)) / 100) * 0.24,
+        ),
       } as CSSProperties)
     : undefined;
 
@@ -289,6 +306,10 @@ export default function ProfilePreview({
                 className={styles.card}
                 data-placement={placement}
                 data-premium={data?.premium ? 'true' : 'false'}
+                data-motion={data?.premium ? data.motionMode : 'off'}
+                data-entrance={data?.premium ? data.entranceEffect : 'none'}
+                data-hero={data?.premium ? data.heroStyle : 'clean'}
+                data-surface={data?.premium ? data.surfaceStyle : 'ink'}
                 style={{
                   ...themeStyle,
                   top: position.top,
@@ -298,6 +319,14 @@ export default function ProfilePreview({
                 aria-modal="true"
                 aria-label={data ? `Мини-профиль ${data.username}` : 'Мини-профиль'}
               >
+                {data?.premium && data.atmosphereEffect !== 'none' && (
+                  <PremiumProfileAtmosphere
+                    effect={data.atmosphereEffect}
+                    motion={data.motionMode}
+                    className={styles.atmosphere}
+                  />
+                )}
+
                 <button
                   type="button"
                   className={styles.close}
@@ -328,7 +357,13 @@ export default function ProfilePreview({
                                 />
                               )}
                             <img
-                              src={data.bannerUrl}
+                              src={
+                                data.premium &&
+                                data.motionMode === 'off' &&
+                                data.bannerStaticUrl
+                                  ? data.bannerStaticUrl
+                                  : data.bannerUrl
+                              }
                               alt=""
                               loading="eager"
                               decoding="async"
@@ -349,6 +384,7 @@ export default function ProfilePreview({
                         <span
                           className={`${styles.avatarShell} ${data.profileFrameKey ? styles.avatarShellSeason : ''}`}
                           data-milestone-frame={isLevelFrameKey(data.profileFrameKey) ? 'true' : 'false'}
+                          data-premium={data.premium ? 'true' : 'false'}
                         >
                           <picture
                             className={styles.avatarMedia}
@@ -368,7 +404,13 @@ export default function ProfilePreview({
                               />
                             )}
                             <img
-                              src={data.avatarUrl}
+                              src={
+                                data.premium &&
+                                data.motionMode === 'off' &&
+                                data.avatarStaticUrl
+                                  ? data.avatarStaticUrl
+                                  : data.avatarUrl
+                              }
                               alt=""
                               width={72}
                               height={72}
@@ -380,7 +422,7 @@ export default function ProfilePreview({
                           {data.profileFrameKey && (
                             <ProfileFrameOverlay
                               frameKey={data.profileFrameKey}
-                              premium={data.premium}
+                              premium={data.premium && data.motionMode !== 'off'}
                               className={styles.seasonFrameOverlay}
                             />
                           )}
@@ -389,12 +431,17 @@ export default function ProfilePreview({
                         <div className={styles.identityCopy}>
                           <span className={styles.kicker}>AnimeBox profile</span>
                           <span className={styles.nameLine}>
-                            <UserIdentity
-                              username={data.username}
-                              role={data.role}
-                              sponsor={data.sponsor}
-                              compact
-                            />
+                            <span
+                              className={styles.nickname}
+                              data-effect={data.premium ? data.nicknameEffect : 'none'}
+                            >
+                              <UserIdentity
+                                username={data.username}
+                                role={data.role}
+                                sponsor={data.sponsor}
+                                compact
+                              />
+                            </span>
                             {data.premium && (
                               <span className={styles.premiumBadge}>Premium</span>
                             )}
