@@ -50,7 +50,7 @@ export default function ProfilePage() {
   const [error, setError] = useState('');
   const [premiumStudio, setPremiumStudio] = useState<PremiumStudioSettings | null>(null);
   const [premiumActive, setPremiumActive] = useState(false);
-  const [seasonFrameKey, setSeasonFrameKey] = useState<string | null>(null);
+  const [profileFrameKey, setProfileFrameKey] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -212,10 +212,10 @@ export default function ProfilePage() {
         .then(async (response) => {
           if (!response.ok || !active) return;
           const payload = await response.json() as { selectedFrame?: string | null };
-          setSeasonFrameKey(typeof payload.selectedFrame === 'string' ? payload.selectedFrame : null);
+          setProfileFrameKey(typeof payload.selectedFrame === 'string' ? payload.selectedFrame : null);
         })
         .catch(() => {
-          if (active) setSeasonFrameKey(null);
+          if (active) setProfileFrameKey(null);
         });
     };
 
@@ -382,7 +382,8 @@ export default function ProfilePage() {
             alt={`Аватар ${username}`}
             loadCurrentIdentity
             mediaTransform={appearance.avatarTransform}
-            seasonFrameKey={seasonFrameKey}
+            profileFrameKey={profileFrameKey}
+            premiumFrameMotion={premiumActive}
           />
 
           <div className="profile-v2__identity-main">
