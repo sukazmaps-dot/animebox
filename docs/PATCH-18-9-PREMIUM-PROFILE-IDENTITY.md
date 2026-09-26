@@ -146,3 +146,21 @@ Existing static media fallback behavior remains intact.
 - New settings persist and render on public profiles.
 - Animated crop preview stays animated.
 - LVL/League one-frame rule remains unchanged.
+
+
+## 18.9.1 — Persistent Studio Preview
+
+Desktop Premium Studio keeps the live preview visible while editing Palette,
+Atmosphere, Effects and Media.
+
+Implementation:
+- the old Palette-only hero wrapper becomes `display: contents` on desktop;
+- preview occupies the right grid column across Palette + section tabs + editor body;
+- the preview wrapper spans three grid rows;
+- the live preview uses one sticky instance instead of duplicate/fixed copies;
+- sticky preview gets a viewport-aware maximum height;
+- laptop preview height is reduced so the card stays usable without a nested long scroll;
+- below the desktop breakpoint the existing single-column flow remains available.
+
+This fixes the UX regression where users had to scroll back to the top after every
+Atmosphere/Effect change just to see the live result.
