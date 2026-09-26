@@ -41,9 +41,9 @@ export type LevelFrameKey = (typeof LEVEL_FRAME_KEYS)[number];
 export const MILESTONE_AVATAR_SCALE: Record<LevelFrameKey, number> = {
   'milestone-lv10-forbidden-relic': 0.52,
   'milestone-lv25-flame-arc': 0.54,
-  'milestone-lv50-crimson-sigil': 0.46,
+  'milestone-lv50-crimson-sigil': 0.56,
   'milestone-lv75-menacing-manga': 0.52,
-  'milestone-lv100-absolute-prestige': 0.46,
+  'milestone-lv100-absolute-prestige': 0.56,
 };
 
 export function levelFrameAvatarScale(value: unknown) {
