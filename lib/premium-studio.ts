@@ -370,7 +370,10 @@ export function premiumStudioCssVariables(settings: PremiumStudioSettings) {
   const glowAlpha = 0.08 + (settings.glowStrength / 100) * 0.34;
   const glowSoftAlpha = 0.03 + (settings.glowStrength / 100) * 0.13;
   const glowPageAlpha = 0.02 + (settings.glowStrength / 100) * 0.18;
-  const atmosphereAlpha = 0.04 + (settings.atmosphereIntensity / 100) * 0.32;
+  const atmosphereAlpha =
+    settings.atmosphereIntensity <= 0
+      ? 0
+      : 0.08 + (settings.atmosphereIntensity / 100) * 0.34;
   const motionDuration =
     settings.motionMode === 'live'
       ? 12
