@@ -1,0 +1,109 @@
+/* =========================================================
+   AnimeBox tracker — fluid responsive grid
+
+   /list is a workspace, not an anime detail page. It must use the whole
+   available AppChrome content width and progressively add columns as the
+   viewport grows.
+   ========================================================= */
+.tracker-page.tracker-page--fluid {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+  padding: 24px clamp(14px, 1.8vw, 28px) 70px;
+}
+
+.tracker-page--fluid .tracker-hero,
+.tracker-page--fluid .tracker-filters,
+.tracker-page--fluid .tracker-list,
+.tracker-page--fluid .tracker-empty,
+.tracker-page--fluid .tracker-error,
+.tracker-page--fluid .tracker-loading {
+  width: 100%;
+  min-width: 0;
+}
+
+.tracker-list.tracker-list--responsive {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 12px;
+}
+
+.tracker-list--responsive > .tracker-card {
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.tracker-list--responsive .tracker-card__top,
+.tracker-list--responsive .tracker-card__identity,
+.tracker-list--responsive .tracker-card__title,
+.tracker-list--responsive .tracker-card__progress {
+  min-width: 0;
+}
+
+.tracker-list--responsive .tracker-card__title > a {
+  max-width: 100%;
+}
+
+.tracker-list--responsive .tracker-card__right {
+  flex: 0 0 auto;
+}
+
+/* The compact library selector is the canonical status display inside cards.
+   Do not repeat the old tracker-status pill above it. */
+.tracker-list--responsive .tracker-card__controls {
+  margin-top: auto;
+}
+
+/* Tablets / compact desktop: two useful cards without crushing progress text. */
+@media (min-width: 768px) {
+  .tracker-list.tracker-list--responsive {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Wide desktop / 2K: three cards. Below this width a third column becomes too
+   narrow once the sidebar and page gutters are subtracted. */
+@media (min-width: 1536px) {
+  .tracker-list.tracker-list--responsive {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Very large screens stay readable rather than creating four tiny cards. */
+@media (min-width: 2200px) {
+  .tracker-page.tracker-page--fluid {
+    padding-inline: clamp(28px, 2.4vw, 56px);
+  }
+
+  .tracker-list.tracker-list--responsive {
+    gap: 16px;
+  }
+}
+
+@media (max-width: 800px) {
+  .tracker-page.tracker-page--fluid {
+    padding: 18px 14px 50px;
+  }
+}
+
+@media (max-width: 520px) {
+  .tracker-list.tracker-list--responsive {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .tracker-list--responsive .tracker-card {
+    padding: 12px;
+  }
+
+  .tracker-list--responsive .tracker-card__top {
+    gap: 10px;
+  }
+
+  .tracker-list--responsive .tracker-card__right {
+    display: none;
+  }
+}

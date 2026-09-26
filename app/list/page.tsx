@@ -163,7 +163,7 @@ export default function MyListPage() {
   }
 
   return (
-    <main className="detail tracker-page">
+    <main className="tracker-page tracker-page--fluid w-full min-w-0">
       <header className="tracker-hero">
         <div className="tracker-hero__brand">
           <div className="tracker-hero__mark" aria-hidden="true">
@@ -224,7 +224,7 @@ export default function MyListPage() {
 
       {data && (
         <>
-          <nav className="tracker-filters" aria-label="Фильтр библиотеки">
+          <nav className="tracker-filters w-full min-w-0" aria-label="Фильтр библиотеки">
             {(
               ['all', 'watching', 'planned', 'completed', 'dropped'] as Filter[]
             ).map((value) => {
@@ -253,10 +253,10 @@ export default function MyListPage() {
           </nav>
 
           {filteredLibrary.length > 0 ? (
-            <div className="tracker-list">
+            <div className="tracker-list tracker-list--responsive grid w-full min-w-0 grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
               {filteredLibrary.map((item) => (
                 <article
-                  className="tracker-card"
+                  className="tracker-card flex h-full min-w-0 flex-col"
                   data-status={item.status}
                   key={item.anime_id}
                 >
@@ -276,13 +276,7 @@ export default function MyListPage() {
                       </div>
                     </div>
 
-                    <div className="tracker-card__right">
-                      <span
-                        className={`tracker-status tracker-status--${item.status}`}
-                      >
-                        {statusLabels[item.status]}
-                      </span>
-
+                    <div className="tracker-card__right shrink-0">
                       <Link
                         href={`/anime/${item.anime_id}`}
                         className="tracker-card__open"
@@ -293,13 +287,13 @@ export default function MyListPage() {
                   </div>
 
                   {item.progress && item.progress.trackedEpisodes > 0 && (
-                    <div className="tracker-card__progress mt-3 rounded-xl border border-violet-400/10 bg-violet-500/[0.035] p-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="tracker-card__progress mt-3 min-w-0 rounded-xl border border-violet-400/10 bg-violet-500/[0.035] p-3">
+                      <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0">
                           <span className="block text-[9px] font-extrabold uppercase tracking-[0.16em] text-violet-300/45">
                             Подтверждённый просмотр
                           </span>
-                          <strong className="mt-1 block text-xs text-white/80">
+                          <strong className="mt-1 block truncate text-xs text-white/80">
                             {item.progress.fullyCompleted
                               ? 'Тайтл полностью просмотрен'
                               : item.progress.resumeEpisode
@@ -310,7 +304,7 @@ export default function MyListPage() {
                           </strong>
                         </div>
 
-                        <span className="text-[11px] font-bold text-violet-200/75">
+                        <span className="shrink-0 text-[10px] font-bold text-violet-200/70">
                           {item.progress.totalEpisodes
                             ? `${item.progress.completedEpisodes} / ${item.progress.totalEpisodes} серий`
                             : `${item.progress.completedEpisodes} серий подтверждено`}
@@ -351,7 +345,7 @@ export default function MyListPage() {
                     </div>
                   )}
 
-                  <div className="tracker-card__controls">
+                  <div className="tracker-card__controls mt-auto">
                     <LibraryStatusControl
                       animeId={item.anime_id}
                       initialStatus={item.status}
