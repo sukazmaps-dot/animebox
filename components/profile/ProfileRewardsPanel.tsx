@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import SeasonFramePreview from '@/components/leaderboard/SeasonFramePreview';
+import { isSeasonFrameKey } from '@/lib/leaderboard-rewards';
 import styles from './ProfileRewardsPanel.module.css';
 
 type Reward = {
@@ -181,9 +182,10 @@ export default function ProfileRewardsPanel() {
       ) : null}
 
       <section className={styles.frames}>
+        <p className={styles.empty}>На аватаре используется только одна рамка. Выбор League-рамки автоматически заменит активную уровневую рамку.</p>
         <div className={styles.sectionHeading}>
           <div><span>АКТИВНЫЕ НАГРАДЫ</span><h3>Рамки League</h3></div>
-          {data?.selectedFrame && <button type="button" disabled={Boolean(selecting)} onClick={() => void selectFrame(null)}>Снять рамку</button>}
+          {data?.selectedFrame && isSeasonFrameKey(data.selectedFrame) && <button type="button" disabled={Boolean(selecting)} onClick={() => void selectFrame(null)}>Снять League-рамку</button>}
         </div>
 
         {unlocked.length ? (
