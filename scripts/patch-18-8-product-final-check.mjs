@@ -47,13 +47,14 @@ const premiumStudioClient = read('components/premium/PremiumStudioClient.tsx');
 const premiumStudioCore = read('lib/premium-studio.ts');
 const premiumEditorApi = read('app/api/profile/editor/route.ts');
 const premiumAtmosphere = read('components/premium/PremiumProfileAtmosphere.tsx');
-const premiumIdentityCss = read('app/premium-profile-identity-v21.css');
+const premiumIdentityCss = read('app/premium-profile-v14.css');
 const premiumCropEditor = read('components/premium/PremiumMediaCropEditor.tsx');
 const adaptivePalette = read('lib/adaptive-profile-theme-client.ts');
 const publicProfilePage = read('app/profile/[id]/page.tsx');
 const ownProfilePage = read('app/profile/page.tsx');
 const legacyPremiumStudioApi = read('app/api/premium/studio/route.ts');
 const rootLayout = read('app/layout.tsx');
+const profileLayout = read('app/profile/layout.tsx');
 const premiumUploadRoute = read('app/api/profile/media/upload-url/route.ts');
 const premiumPublishServer = read('lib/profile-media-publish-server.ts');
 const achievementsClient = read('components/AchievementsClient.tsx');
@@ -585,9 +586,12 @@ need('Legacy Premium read API identity columns', legacyPremiumStudioApi, [
   'surface_style',
 ]);
 
-need('Premium identity stylesheet load', rootLayout, [
-  "import './premium-profile-identity-v21.css';",
+need('Premium identity stylesheet stays route-scoped', profileLayout, [
+  "import '../premium-profile-v14.css';",
 ]);
+if (rootLayout.includes("premium-profile-identity-v21.css")) {
+  failures.push('Premium identity CSS must not consume an extra root layout import');
+}
 
 need('Premium avatar signed-upload limit', premiumUploadRoute, [
   "return kind === 'avatar' ? 8 * 1024 * 1024 : 6 * 1024 * 1024",
