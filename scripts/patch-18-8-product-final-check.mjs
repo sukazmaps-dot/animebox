@@ -41,6 +41,9 @@ const lv50Premium = read('public/brand/frames/milestone/premium/lv50-crimson-sig
 const lv75Premium = read('public/brand/frames/milestone/premium/lv75-menacing-manga-premium.svg');
 const lv100Premium = read('public/brand/frames/milestone/premium/lv100-absolute-prestige-premium.svg');
 const progression = read('lib/progression.ts');
+const premiumStudioClient = read('components/premium/PremiumStudioClient.tsx');
+const premiumUploadRoute = read('app/api/profile/media/upload-url/route.ts');
+const premiumPublishServer = read('lib/profile-media-publish-server.ts');
 const achievementsClient = read('components/AchievementsClient.tsx');
 const adminCommunity = read('app/api/admin/community/route.ts');
 const profilePreviewServer = read('lib/profile-preview-server.ts');
@@ -356,6 +359,13 @@ need('level milestone system', progression, [
   'MAX_LEVEL = 100',
   'milestone-lv10-forbidden-relic',
   'milestone-lv100-absolute-prestige',
+  'MILESTONE_AVATAR_SCALE',
+  "'milestone-lv10-forbidden-relic': 0.54",
+  "'milestone-lv25-flame-arc': 0.56",
+  "'milestone-lv50-crimson-sigil': 0.50",
+  "'milestone-lv75-menacing-manga': 0.54",
+  "'milestone-lv100-absolute-prestige': 0.50",
+  'levelFrameAvatarScale',
 ]);
 
 need('level frame renderer', profileFrameOverlay, [
@@ -411,6 +421,28 @@ need('level system UI', achievementsClient, [
   'Та же рамка, но живая',
   'Снять текущую рамку',
   'На аватаре всегда только одна косметическая рамка',
+]);
+
+need('Premium avatar quality policy', premiumStudioClient, [
+  'PREMIUM_AVATAR_RECOMMENDED_BYTES = 4 * 1024 * 1024',
+  'MAX_AVATAR_BYTES = 8 * 1024 * 1024',
+  'MIN_PREMIUM_AVATAR_DIMENSION = 256',
+  'Premium-аватар должен быть не больше 8 МБ.',
+  'Premium-аватар должен быть не меньше',
+  'Animated WebP / GIF / WebP / PNG / JPG',
+  'Тяжёлая анимация',
+  'staticWebpFallback',
+]);
+
+need('Premium avatar signed-upload limit', premiumUploadRoute, [
+  "return kind === 'avatar' ? 8 * 1024 * 1024 : 6 * 1024 * 1024",
+]);
+
+need('Premium avatar publish validation', premiumPublishServer, [
+  "return kind === 'avatar' ? 8 * 1024 * 1024 : 6 * 1024 * 1024",
+  "minWidth: scope === 'premium' ? 256 : 1",
+  "minHeight: scope === 'premium' ? 256 : 1",
+  'Premium-аватар должен быть не меньше',
 ]);
 
 need('admin LVL control', adminCommunity, [
