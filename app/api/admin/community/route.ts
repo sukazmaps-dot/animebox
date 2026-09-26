@@ -282,22 +282,23 @@ export async function POST(request: Request) {
         .maybeSingle();
       if (progression.error) throw progression.error;
 
-      if (!progression.data) {
+      let progressionData = progression.data;
+      if (!progressionData) {
         const inserted = await admin
           .from('user_progression')
           .insert({ user_id: targetUser.id })
           .select('total_xp,activity_xp,premium_bonus_xp,achievement_xp,challenge_xp,admin_adjustment_xp')
           .single();
         if (inserted.error) throw inserted.error;
-        progression.data = inserted.data;
+        progressionData = inserted.data;
       }
 
-      const previousTotal = Number(progression.data.total_xp ?? 0);
+      const previousTotal = Number(progressionData.total_xp ?? 0);
       const earnedXp =
-        Number(progression.data.activity_xp ?? 0) +
-        Number(progression.data.premium_bonus_xp ?? 0) +
-        Number(progression.data.achievement_xp ?? 0) +
-        Number(progression.data.challenge_xp ?? 0);
+        Number(progressionData.activity_xp ?? 0) +
+        Number(progressionData.premium_bonus_xp ?? 0) +
+        Number(progressionData.achievement_xp ?? 0) +
+        Number(progressionData.challenge_xp ?? 0);
       const targetXp = xpForLevel(level);
       const adminAdjustmentXp = targetXp - earnedXp;
       const delta = targetXp - previousTotal;
