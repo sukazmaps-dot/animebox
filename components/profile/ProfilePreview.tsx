@@ -263,14 +263,27 @@ export default function ProfilePreview({
     };
   }, [open]);
 
+  const atmosphereIntensity = data
+    ? Math.max(0, Math.min(100, data.atmosphereIntensity))
+    : 0;
+  const atmosphereBaseAlpha =
+    0.14 + (atmosphereIntensity / 100) * 0.26;
+  const atmosphereAlpha = data
+    ? data.motionMode === 'live'
+      ? Math.min(0.46, atmosphereBaseAlpha + 0.08)
+      : data.motionMode === 'off'
+        ? Math.min(0.28, atmosphereBaseAlpha * 0.76)
+        : atmosphereBaseAlpha
+    : 0;
+  const atmosphereCleanAlpha = Math.max(0.08, atmosphereAlpha * 0.56);
+
   const themeStyle = data
     ? ({
         '--profile-preview-primary': data.primaryColor,
         '--profile-preview-accent': data.accentColor,
         '--profile-preview-text': data.textColor,
-        '--profile-preview-atmosphere-alpha': String(
-          0.06 + (Math.max(0, Math.min(100, data.atmosphereIntensity)) / 100) * 0.24,
-        ),
+        '--profile-preview-atmosphere-alpha': String(atmosphereAlpha),
+        '--profile-preview-atmosphere-clean-alpha': String(atmosphereCleanAlpha),
       } as CSSProperties)
     : undefined;
 
