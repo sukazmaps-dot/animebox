@@ -736,3 +736,32 @@
     flex-direction: column;
   }
 }
+
+
+/* ---------- Avatar aura: light, not a second frame ---------- */
+.profile-v2.premium-profile-custom.premium-profile-v21 .profile-v2__avatar-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 7%;
+  z-index: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle,
+      rgba(var(--ab-premium-accent-rgb), .24) 0 44%,
+      rgba(var(--ab-premium-accent-rgb), .08) 58%,
+      transparent 72%);
+  filter: blur(11px);
+  transform: scale(1.08);
+  opacity: .54;
+  pointer-events: none;
+  animation: premiumV21AvatarAura var(--ab-premium-motion-duration-slow, 29s) ease-in-out infinite;
+}
+
+.profile-v2.premium-profile-custom.premium-profile-v21[data-premium-motion='off'] .profile-v2__avatar-wrap::before {
+  animation: none;
+}
+
+@keyframes premiumV21AvatarAura {
+  0%,100% { transform: scale(1.04); opacity: .42; }
+  50% { transform: scale(1.16); opacity: .72; }
+}
