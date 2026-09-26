@@ -208,3 +208,40 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+      - name: Build Patch 18.8.1 overlay
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --depth=1
+          rm -rf patch-overlay animebox-patch-18-8-1.zip
+          mkdir -p patch-overlay
+          git diff --name-only --diff-filter=ACMRT origin/main...HEAD             | grep -v '^\.github/workflows/animebox-quality\.yml             | while IFS= read -r file; do
+                [ -f "$file" ] || continue
+                mkdir -p "patch-overlay/$(dirname "$file")"
+                cp "$file" "patch-overlay/$file"
+              done
+          cat > patch-overlay/PATCH_INFO.txt <<'EOF'
+          AnimeBox Patch 18.8.1 — LVL / Progression / Cosmetics
+
+          Накладывать содержимое этой папки поверх актуального main.
+          Миграция Supabase уже применена в production, но SQL-файл оставлен в архиве для истории.
+
+          После распаковки:
+          npm run patch18-8:check
+          npx tsc --noEmit
+          npm run build
+          EOF
+          cd patch-overlay
+          zip -r ../animebox-patch-18-8-1.zip .
+          cd ..
+
+      - name: Upload Patch 18.8.1 overlay
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: animebox-patch-18-8-1-overlay
+          path: animebox-patch-18-8-1.zip
+          if-no-files-found: error
+          retention-days: 3
