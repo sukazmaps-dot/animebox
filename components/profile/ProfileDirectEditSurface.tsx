@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import Icon from '@/components/Icon';
 import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
-import { isLevelFrameKey, levelFrameLabel, LEVEL_MILESTONES, type LevelFrameKey } from '@/lib/progression';
+import { isLevelFrameKey, levelFrameAvatarScale, levelFrameLabel, LEVEL_MILESTONES, type LevelFrameKey } from '@/lib/progression';
 
 import styles from './ProfileDirectEditSurface.module.css';
 
@@ -205,6 +205,7 @@ export default function ProfileDirectEditSurface({
   }, [levelFrames]);
 
   const activeFrameLabel = frameDisplayName(selectedFrame, leagueFrames);
+  const selectedMilestoneScale = levelFrameAvatarScale(selectedFrame);
 
   function openMediaPicker(kind: 'avatar' | 'banner') {
     if (kind === 'avatar') {
@@ -292,7 +293,18 @@ export default function ProfileDirectEditSurface({
                 data-framed={selectedFrame ? 'true' : 'false'}
                 data-milestone={isLevelFrameKey(selectedFrame) ? 'true' : 'false'}
               >
-                <img src={avatarUrl} alt="" />
+                <img
+                  src={avatarUrl}
+                  alt=""
+                  style={
+                    selectedMilestoneScale
+                      ? {
+                          width: `${selectedMilestoneScale * 100}%`,
+                          height: `${selectedMilestoneScale * 100}%`,
+                        }
+                      : undefined
+                  }
+                />
                 <ProfileFrameOverlay
                   frameKey={selectedFrame}
                   premium={premiumActive}
@@ -485,7 +497,18 @@ export default function ProfileDirectEditSurface({
                   data-framed={selectedFrame ? 'true' : 'false'}
                   data-milestone={isLevelFrameKey(selectedFrame) ? 'true' : 'false'}
                 >
-                  <img src={baseAvatarUrl} alt="" />
+                  <img
+                    src={baseAvatarUrl}
+                    alt=""
+                    style={
+                      selectedMilestoneScale
+                        ? {
+                            width: `${selectedMilestoneScale * 100}%`,
+                            height: `${selectedMilestoneScale * 100}%`,
+                          }
+                        : undefined
+                    }
+                  />
                   <ProfileFrameOverlay
                     frameKey={selectedFrame}
                     premium={premiumActive}
@@ -574,6 +597,7 @@ export default function ProfileDirectEditSurface({
                   {ownedFrames.map((frame) => {
                     const selected = selectedFrame === frame.key;
                     const expiry = formatExpiry(frame.expiresAt);
+                    const milestoneScale = levelFrameAvatarScale(frame.key);
                     return (
                       <button
                         type="button"
@@ -584,7 +608,18 @@ export default function ProfileDirectEditSurface({
                         onClick={() => void selectFrame(selected ? null : frame.key)}
                       >
                         <span className={styles.frameThumb} data-kind={frame.kind}>
-                          <img src={baseAvatarUrl} alt="" />
+                          <img
+                            src={baseAvatarUrl}
+                            alt=""
+                            style={
+                              milestoneScale
+                                ? {
+                                    width: `${milestoneScale * 100}%`,
+                                    height: `${milestoneScale * 100}%`,
+                                  }
+                                : undefined
+                            }
+                          />
                           <ProfileFrameOverlay
                             frameKey={frame.key}
                             premium={premiumActive}
