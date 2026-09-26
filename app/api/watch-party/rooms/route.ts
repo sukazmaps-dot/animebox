@@ -13,12 +13,41 @@ import {
   privateNoStoreHeaders,
   publicApiCacheHeaders,
 } from '@/lib/edge-cache-policy';
+import {
+  runtimeFeatureDecision,
+  runtimeFeatureUnavailableResponse,
+} from '@/lib/runtime-controls-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
+    const runtimeControl = await runtimeFeatureDecision(
+      'watch_together',
+      { disableInBrownout: true },
+    );
+
+    if (!runtimeControl.allowed) {
+      return Response.json(
+        {
+          rooms: [],
+          degraded: true,
+          reason: runtimeControl.reason,
+        },
+        {
+          headers: {
+            ...publicApiCacheHeaders({
+              browserSeconds: 0,
+              edgeSeconds: 5,
+              staleWhileRevalidateSeconds: 15,
+            }),
+            'X-AnimeBox-Degraded': runtimeControl.reason ?? 'brownout',
+          },
+        },
+      );
+    }
+
     const rawLimit = Number(new URL(request.url).searchParams.get('limit') || 12);
     const limit = Number.isSafeInteger(rawLimit) ? Math.min(30, Math.max(1, rawLimit)) : 12;
     const rooms = await listPublicWatchPartyRooms(limit);
@@ -50,6 +79,19 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const runtimeControl = await runtimeFeatureDecision(
+      'watch_together',
+      { disableInBrownout: true },
+    );
+
+    if (!runtimeControl.allowed) {
+      return runtimeFeatureUnavailableResponse({
+        feature: 'watch_together',
+        reason: runtimeControl.reason ?? 'brownout',
+        retryAfterSeconds: 30,
+      });
+    }
+
     if (!(await consumeIpRateLimit(request, { scope: 'room_create_ip', limit: 12, windowSeconds: 60 }))) {
       return rateLimitResponse();
     }
