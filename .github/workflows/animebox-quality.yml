@@ -217,11 +217,12 @@ jobs:
           git fetch origin main --depth=1
           rm -rf patch-overlay animebox-patch-18-8-1.zip
           mkdir -p patch-overlay
-          git diff --name-only --diff-filter=ACMRT origin/main...HEAD             | grep -v '^\.github/workflows/animebox-quality\.yml             | while IFS= read -r file; do
-                [ -f "$file" ] || continue
-                mkdir -p "patch-overlay/$(dirname "$file")"
-                cp "$file" "patch-overlay/$file"
-              done
+          while IFS= read -r file; do
+            [ "$file" = ".github/workflows/animebox-quality.yml" ] && continue
+            [ -f "$file" ] || continue
+            mkdir -p "patch-overlay/$(dirname "$file")"
+            cp "$file" "patch-overlay/$file"
+          done < <(git diff --name-only --diff-filter=ACMRT origin/main...HEAD)
           cat > patch-overlay/PATCH_INFO.txt <<'EOF'
           AnimeBox Patch 18.8.1 — LVL / Progression / Cosmetics
 
