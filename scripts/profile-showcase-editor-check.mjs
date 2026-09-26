@@ -29,8 +29,10 @@ for (const [label, needle] of [
 }
 
 for (const [label, source, needle] of [
-  ['unified editor tab label', editorShell, 'Профиль и оформление'],
-  ['legacy appearance URL folds into profile while showcase is supported', editPage, "params.tab === 'showcase' || params.tab === 'widgets' ? 'showcase' : 'profile'"],
+  ['Profile Studio profile tab', editorShell, "switchTab('profile')"],
+  ['Profile Studio appearance tab', editorShell, "switchTab('appearance')"],
+  ['Profile Studio rewards tab', editorShell, "switchTab('rewards')"],
+  ['appearance URL maps to appearance tab', editPage, "params.tab === 'appearance' || params.tab === 'media'"],
   ['single profile editor entry remains', profilePage, 'Редактировать профиль'],
   ['mobile mini-profile auto height', miniProfileCss, 'height: auto !important'],
   ['mobile mini-profile body shrink', miniProfileCss, 'flex: 0 1 auto'],
@@ -47,8 +49,8 @@ for (const [label, source, needle] of [
   }
 }
 
-if (editorShell.includes("switchTab('appearance')")) {
-  failures.push('Unified profile editor: separate appearance tab returned.');
+if (!editorShell.includes("type EditorTab = 'profile' | 'appearance' | 'showcase' | 'rewards' | 'style'")) {
+  failures.push('Profile Studio 2.0 tab contract regressed.');
 }
 
 if (profilePage.includes('profile-v2__bottom-card--premium')) {
@@ -77,4 +79,4 @@ if (gate.includes('src="/brand/favicon.png"')) {
   failures.push('Telegram subscription gate: fragile favicon source returned.');
 }
 
-console.log('PASS: unified Profile Studio showcase, mobile mini-profile, editor portal and Telegram gate logo resilience');
+console.log('PASS: Profile Studio 2.0 tabs, showcase, mobile mini-profile, editor portal and Telegram gate logo resilience');
