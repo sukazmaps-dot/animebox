@@ -463,3 +463,228 @@
     display: none;
   }
 }
+
+
+/* ---------- Premium Studio 2.0 / identity controls ---------- */
+.premium-studio-v21__adaptive {
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
+  padding: 15px 16px;
+  border: 1px solid rgba(153, 111, 255, .16);
+  border-radius: 17px;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(131, 80, 255, .08), transparent 36%),
+    rgba(8, 12, 24, .72);
+}
+
+.premium-studio-v21__adaptive > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.premium-studio-v21__adaptive strong {
+  color: #f5efff;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.premium-studio-v21__adaptive small {
+  color: rgba(233, 227, 246, .52);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.premium-studio-v21__adaptive > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.premium-studio-v21__adaptive button {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 11px;
+  background: rgba(255,255,255,.025);
+  color: rgba(247, 242, 255, .9);
+  font-size: 10px;
+  font-weight: 850;
+  transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+
+.premium-studio-v21__adaptive button.is-accent {
+  border-color: rgba(158, 113, 255, .22);
+  background: linear-gradient(180deg, rgba(132, 82, 255, .15), rgba(92, 52, 186, .08));
+}
+
+.premium-studio-v21__adaptive button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(185, 146, 255, .32);
+}
+
+.premium-studio-v21__adaptive button:disabled {
+  opacity: .55;
+}
+
+.premium-studio-v21__identity-panel {
+  overflow: hidden;
+}
+
+.premium-studio-v21__atmosphere-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.premium-studio-v21__atmosphere-grid > button {
+  min-width: 0;
+  min-height: 154px;
+  padding: 14px;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.026), rgba(255,255,255,.012));
+  text-align: left;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+
+.premium-studio-v21__atmosphere-grid > button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(178, 134, 255, .23);
+}
+
+.premium-studio-v21__atmosphere-grid > button.is-active {
+  border-color: rgba(192, 153, 255, .42);
+  background:
+    radial-gradient(circle at 20% 10%, rgba(146, 89, 255, .15), transparent 42%),
+    rgba(255,255,255,.018);
+  box-shadow:
+    0 16px 34px rgba(66, 35, 121, .16),
+    inset 0 0 0 1px rgba(255,255,255,.02);
+}
+
+.premium-studio-v21__atmosphere-grid strong {
+  color: #f6f1ff;
+  font-size: 12px;
+}
+
+.premium-studio-v21__atmosphere-grid small {
+  color: rgba(232, 226, 245, .45);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.premium-studio-v21__effect-orb {
+  position: relative;
+  display: block;
+  width: 58px;
+  height: 58px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255,255,255,.18), transparent 24%),
+    radial-gradient(circle at 60% 68%, rgba(139, 92, 246, .48), transparent 52%),
+    #0d1020;
+  box-shadow: inset 0 1px rgba(255,255,255,.035);
+}
+
+.premium-studio-v21__atmosphere-grid > button[data-effect='none'] .premium-studio-v21__effect-orb {
+  background: #0b0e18;
+}
+
+.premium-studio-v21__atmosphere-grid > button[data-effect='embers'] .premium-studio-v21__effect-orb {
+  background:
+    radial-gradient(circle at 28% 72%, #ff8749 0 4%, transparent 5%),
+    radial-gradient(circle at 67% 36%, #ff593d 0 5%, transparent 6%),
+    radial-gradient(circle at 62% 78%, #ffbd64 0 3%, transparent 4%),
+    radial-gradient(circle at 50% 60%, rgba(255, 96, 48, .38), transparent 58%),
+    #120c0d;
+}
+
+.premium-studio-v21__atmosphere-grid > button[data-effect='sakura'] .premium-studio-v21__effect-orb {
+  background:
+    radial-gradient(ellipse at 32% 34%, #ff9cc9 0 7%, transparent 8%),
+    radial-gradient(ellipse at 68% 58%, #ff74b3 0 6%, transparent 7%),
+    radial-gradient(circle at 52% 52%, rgba(255, 105, 174, .32), transparent 62%),
+    #140d18;
+}
+
+.premium-studio-v21__atmosphere-grid > button[data-effect='stardust'] .premium-studio-v21__effect-orb {
+  background:
+    radial-gradient(circle at 25% 28%, white 0 2%, transparent 3%),
+    radial-gradient(circle at 70% 38%, white 0 2%, transparent 3%),
+    radial-gradient(circle at 50% 76%, #bca8ff 0 3%, transparent 4%),
+    radial-gradient(circle at 52% 54%, rgba(110, 130, 255, .28), transparent 62%),
+    #09101b;
+}
+
+.premium-studio-v21__identity-controls {
+  margin-top: 16px;
+  border: 1px solid rgba(255,255,255,.055);
+  border-radius: 20px;
+  overflow: hidden;
+  background: rgba(7,10,21,.48);
+}
+
+.premium-studio-v21__identity-controls .premium-studio-v16__effect-row {
+  margin: 0;
+  padding: 17px 18px;
+  border: 0;
+  border-radius: 0;
+}
+
+.premium-studio-v21__identity-controls .premium-studio-v16__effect-row + .premium-studio-v16__effect-row {
+  border-top: 1px solid rgba(255,255,255,.05);
+}
+
+.premium-studio-v21__preview {
+  position: relative;
+}
+
+.premium-studio-v21__preview .premium-profile-v21__nickname {
+  font: inherit;
+  font-weight: inherit;
+}
+
+@media (max-width: 1180px) {
+  .premium-studio-v21__atmosphere-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .premium-studio-v21__atmosphere-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .premium-studio-v21__adaptive > div:last-child {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .premium-studio-v21__adaptive button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 460px) {
+  .premium-studio-v21__atmosphere-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .premium-studio-v21__atmosphere-grid > button {
+    min-height: 112px;
+    grid-template-columns: 60px 1fr;
+    grid-template-rows: auto auto;
+    align-items: center;
+  }
+
+  .premium-studio-v21__atmosphere-grid > button .premium-studio-v21__effect-orb {
+    grid-row: 1 / span 2;
+  }
+}
