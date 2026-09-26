@@ -2280,17 +2280,21 @@
 
 .premium-profile-v21__particles > i {
   position: absolute;
-  left: calc(5% + (var(--particle-index) * 6.7%));
-  top: 110%;
+  left: var(--particle-left, 50%);
+  top: 106%;
   width: 5px;
   height: 5px;
   border-radius: 50%;
   background: var(--ab-premium-accent);
   box-shadow: 0 0 14px rgba(var(--ab-premium-accent-rgb), .52);
-  opacity: .58;
-  animation:
-    premiumV21ParticleRise calc(11s + (var(--particle-index) * .43s)) linear infinite;
-  animation-delay: calc(var(--particle-index) * -.91s);
+  opacity: .64;
+  transform: translate3d(0, 0, 0) scale(var(--particle-scale, 1));
+  animation-name: premiumV21ParticleRise;
+  animation-duration: var(--particle-duration-soft, 11s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-delay: var(--particle-delay, 0s);
+  will-change: transform, opacity;
 }
 
 .premium-profile-v21__particles > i:nth-child(3n) {
@@ -2307,7 +2311,12 @@
 
 /* ---------- Effect personalities ---------- */
 .premium-profile-v21__atmosphere[data-effect='aurora'] .premium-profile-v21__particles {
-  opacity: .22;
+  opacity: .34;
+}
+
+.premium-profile-v21__atmosphere[data-effect='aurora'] .premium-profile-v21__particles > i {
+  top: var(--particle-static-top, 50%);
+  animation-name: premiumV21StarDrift;
 }
 
 .premium-profile-v21__atmosphere[data-effect='aurora'] {
@@ -2333,6 +2342,7 @@
 }
 
 .premium-profile-v21__atmosphere[data-effect='sakura'] .premium-profile-v21__particles > i {
+  top: -12%;
   width: 8px;
   height: 5px;
   border-radius: 80% 20% 70% 30%;
@@ -2346,6 +2356,7 @@
 }
 
 .premium-profile-v21__atmosphere[data-effect='stardust'] .premium-profile-v21__particles > i {
+  top: var(--particle-static-top, 50%);
   width: 3px;
   height: 3px;
   background: #fff;
@@ -2353,6 +2364,36 @@
     0 0 8px #fff,
     0 0 16px rgba(var(--ab-premium-accent-rgb), .78);
   animation-name: premiumV21StarDrift;
+}
+
+.premium-profile-v21__atmosphere[data-motion='live'] .premium-profile-v21__particles > i {
+  animation-duration: var(--particle-duration-live, 7s);
+}
+
+.premium-profile-v21__atmosphere[data-motion='live'] .premium-profile-v21__particles {
+  opacity: 1;
+}
+
+.premium-profile-v21__atmosphere[data-motion='off'] .premium-profile-v21__ambient,
+.premium-profile-v21__atmosphere[data-motion='off'] .premium-profile-v21__particles > i {
+  animation: none !important;
+}
+
+.premium-profile-v21__atmosphere[data-motion='off'] .premium-profile-v21__particles > i {
+  top: var(--particle-static-top, 50%);
+  opacity: .42;
+  transform:
+    translate3d(0, 0, 0)
+    scale(var(--particle-scale, 1))
+    rotate(var(--particle-rotation, 0deg));
+}
+
+.premium-profile-v21__atmosphere[data-motion='off'][data-effect='sakura'] .premium-profile-v21__particles > i {
+  top: var(--particle-static-top, 50%);
+}
+
+.premium-profile-v21__atmosphere[data-motion='off'][data-effect='stardust'] .premium-profile-v21__particles > i {
+  opacity: .72;
 }
 
 /* ---------- Cinematic Hero ---------- */
@@ -2557,21 +2598,60 @@
 }
 
 @keyframes premiumV21ParticleRise {
-  0% { transform: translate3d(0,0,0) scale(.65); opacity: 0; }
-  12% { opacity: .6; }
-  82% { opacity: .34; }
-  100% { transform: translate3d(24px,-120vh,0) scale(1.2); opacity: 0; }
+  0% {
+    transform: translate3d(0, 0, 0) scale(var(--particle-scale, .72));
+    opacity: 0;
+  }
+  14% { opacity: .72; }
+  78% { opacity: .5; }
+  100% {
+    transform:
+      translate3d(
+        var(--particle-drift-x, 0px),
+        var(--particle-rise-y, -700px),
+        0
+      )
+      scale(var(--particle-scale, 1));
+    opacity: 0;
+  }
 }
 
 @keyframes premiumV21PetalFall {
-  0% { transform: translate3d(-20px,-12vh,0) rotate(0deg); opacity: 0; }
-  15% { opacity: .62; }
-  100% { transform: translate3d(70px,116vh,0) rotate(460deg); opacity: 0; }
+  0% {
+    transform:
+      translate3d(0, 0, 0)
+      rotate(0deg)
+      scale(var(--particle-scale, 1));
+    opacity: 0;
+  }
+  12% { opacity: .7; }
+  82% { opacity: .52; }
+  100% {
+    transform:
+      translate3d(
+        var(--particle-drift-x, 0px),
+        var(--particle-fall-y, 700px),
+        0
+      )
+      rotate(var(--particle-rotation, 360deg))
+      scale(var(--particle-scale, 1));
+    opacity: 0;
+  }
 }
 
 @keyframes premiumV21StarDrift {
-  0%,100% { transform: translate3d(0,0,0) scale(.6); opacity: .16; }
-  45% { transform: translate3d(14px,-26px,0) scale(1.25); opacity: .92; }
+  0%,100% {
+    transform:
+      translate3d(0, 0, 0)
+      scale(var(--particle-scale, .74));
+    opacity: .28;
+  }
+  50% {
+    transform:
+      translate3d(var(--particle-drift-x, 8px), -14px, 0)
+      scale(var(--particle-scale, 1.12));
+    opacity: 1;
+  }
 }
 
 @keyframes premiumV21NicknameShimmer {
