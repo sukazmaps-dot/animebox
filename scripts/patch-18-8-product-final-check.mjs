@@ -22,6 +22,8 @@ const podiumFrame = read('public/brand/frames/league/league-podium.svg');
 const top10Frame = read('public/brand/frames/league/league-top10.svg');
 const deferred = read('components/DeferredAppEnhancements.tsx');
 const editor = read('components/profile/ProfileEditorClient.tsx');
+const directEditor = read('components/profile/ProfileDirectEditSurface.tsx');
+const directEditorCss = read('components/profile/ProfileDirectEditSurface.module.css');
 const editorCss = read('app/profile-editor-v13.css');
 const icon = read('components/Icon.tsx');
 const rewardsPanel = read('components/profile/ProfileRewardsPanel.tsx');
@@ -217,12 +219,32 @@ need('deferred result modal', deferred, [
   'LEADERBOARD_REWARD_DELAY_MS',
 ]);
 
-need('Profile Studio 2.0', editor, [
-  "type EditorTab = 'profile' | 'appearance' | 'showcase' | 'rewards' | 'style'",
+need('Profile Studio direct edit', editor, [
+  "type EditorTab = 'profile' | 'showcase' | 'rewards' | 'style'",
   'PROFILE STUDIO',
+  '<ProfileDirectEditSurface',
   '<ProfileRewardsPanel',
+  'profile-editor-v19__direct-tab',
   'profile-editor-v18__savebar',
   'Есть несохранённые изменения',
+]);
+
+need('Profile Studio direct-edit surface', directEditor, [
+  'DIRECT EDIT',
+  'FRAME INVENTORY',
+  'Твои рамки',
+  'Активна только одна рамка',
+  'Premium оживляет LVL-рамки',
+  "action: 'select_frame'",
+  '<ProfileFrameOverlay',
+]);
+
+need('Profile Studio mobile inspector', directEditorCss, [
+  '.workspace',
+  '.inspector',
+  '@media (max-width: 620px)',
+  'position: sticky',
+  '58dvh',
 ]);
 
 
@@ -234,28 +256,32 @@ need('Profile Studio icon contract', icon, [
   'const Glyph = icons[name] ?? InfoIcon',
 ]);
 
-for (const iconName of ['image', 'grid']) {
-  if (!editor.includes(`<Icon name="${iconName}"`)) {
-    failures.push(`Profile Studio missing expected ${iconName} navigation icon`);
-  }
+if (!editor.includes('<Icon name="grid"')) {
+  failures.push('Profile Studio missing expected grid navigation icon');
+}
+if (!directEditor.includes('<Icon name="image"')) {
+  failures.push('Profile Studio direct editor missing image controls');
 }
 
 need('Profile Studio responsive CSS', editorCss, [
   'Patch 18.8 — Profile Studio 2.0',
   '.profile-editor-v18__rail',
   '.profile-editor-v18__savebar',
+  '.profile-editor-v19__direct-tab',
   '@media (max-width: 560px)',
 ]);
 
 need('profile rewards panel', rewardsPanel, [
-  'Награды и сезонные рамки',
+  'Награды AnimeBox League',
   'Забрать приз',
-  'Рамки League',
-  'недельные действуют 7 дней, месячные — 30 дней',
-  'Действует до',
+  'Рамки League в инвентаре',
+  'Открыть Frame Inventory',
   'Прошлые сезоны',
-  "action: 'select_frame'",
 ]);
+
+if (rewardsPanel.includes("action: 'select_frame'")) {
+  failures.push('profile rewards panel must not duplicate frame selection UI');
+}
 
 need('public profile frame', publicProfile, [
   'getSelectedProfileFrame',
