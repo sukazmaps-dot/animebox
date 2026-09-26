@@ -40,7 +40,7 @@ function isVariant(value: unknown): value is Variant {
 
 function maxBytes(scope: Scope, kind: Kind) {
   if (scope === 'premium') {
-    return kind === 'avatar' ? 2 * 1024 * 1024 : 6 * 1024 * 1024;
+    return kind === 'avatar' ? 8 * 1024 * 1024 : 6 * 1024 * 1024;
   }
   return 5 * 1024 * 1024;
 }
