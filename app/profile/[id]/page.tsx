@@ -139,7 +139,7 @@ export default async function PublicProfilePage({ params }: Props) {
             sponsor={profile.sponsor}
             mediaTransform={profile.avatarTransform}
             profileFrameKey={profile.profileFrameKey}
-            premiumFrameMotion={profile.premium}
+            premiumFrameMotion={profile.premium && profile.premiumStudio?.motionMode !== 'off'}
           />
 
           <div className="profile-v2__identity-main">
