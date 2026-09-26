@@ -44,7 +44,9 @@ for (const needle of [
   'decoding="async"',
   'PRIMARY_MEDIA_TIMEOUT_MS = 6_500',
   'PROXY_SOURCE_TIMEOUT_MS = 9_500',
-  'TRANSIENT_RETRY_DELAY_MS = 12_000',
+  'TRANSIENT_RETRY_MIN_DELAY_MS = 20_000',
+  'TRANSIENT_RETRY_MAX_DELAY_MS = 45_000',
+  'stableRetryDelayMs(sourcesKey)',
 ]) {
   if (!animeImage.includes(needle)) {
     failures.push(`AnimeImage missing ${needle}`);

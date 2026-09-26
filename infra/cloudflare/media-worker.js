@@ -562,6 +562,10 @@ async function fetchOriginCoalesced(source, variant, hash) {
     if (!probe.available) {
       return probe.origin;
     }
+
+    // Another waiter may have started this variant while we awaited the probe.
+    const pendingVariant = inFlightOriginFetches.get(inFlightKey);
+    if (pendingVariant) return pendingVariant;
   }
 
   let originPromise;

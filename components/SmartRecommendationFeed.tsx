@@ -705,6 +705,10 @@ export default function SmartRecommendationFeed({
         return;
       }
 
+      const generation = requestGenerationRef.current;
+      const isCurrentGeneration = () =>
+        generation === requestGenerationRef.current;
+
       railLoadingRef.current.add(rail.id);
       setLoadingRails((current) => {
         const next = new Set(current);
@@ -810,6 +814,7 @@ export default function SmartRecommendationFeed({
           attempt += 1
         ) {
           const fresh = await fetchNextCandidateBatch();
+          if (!isCurrentGeneration()) return;
           pagesScanned += 1;
           const relaxed = attempt >= STRICT_EMPTY_PAGE_HOPS;
           claimCandidates(fresh, relaxed);
@@ -866,6 +871,7 @@ export default function SmartRecommendationFeed({
           },
         });
       } catch (fetchError) {
+        if (!isCurrentGeneration()) return;
         if (
           fetchError instanceof DOMException &&
           fetchError.name === 'AbortError'
@@ -896,13 +902,15 @@ export default function SmartRecommendationFeed({
           });
         }
       } finally {
-        railLoadingRef.current.delete(rail.id);
-        setLoadingRails((current) => {
-          if (!current.has(rail.id)) return current;
-          const next = new Set(current);
-          next.delete(rail.id);
-          return next;
-        });
+        if (isCurrentGeneration()) {
+          railLoadingRef.current.delete(rail.id);
+          setLoadingRails((current) => {
+            if (!current.has(rail.id)) return current;
+            const next = new Set(current);
+            next.delete(rail.id);
+            return next;
+          });
+        }
       }
     },
     [
@@ -954,9 +962,13 @@ export default function SmartRecommendationFeed({
           sparseRailPrimedRef.current.add(railId);
           observer.unobserve(entry.target);
 
+          const generation = requestGenerationRef.current;
           sparseRailQueueRef.current = sparseRailQueueRef.current
             .then(async () => {
-              if (moodTransitionRef.current) return;
+              if (
+                moodTransitionRef.current ||
+                generation !== requestGenerationRef.current
+              ) return;
               await ensureRailDepth(rail, { bootstrap: true });
             })
             .catch((error) => {
