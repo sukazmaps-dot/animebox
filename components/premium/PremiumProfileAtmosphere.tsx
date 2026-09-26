@@ -9,10 +9,12 @@ export type PremiumAtmosphereVariant = 'full' | 'preview' | 'compact';
 type ParticleStyle = CSSProperties & {
   '--particle-left': string;
   '--particle-static-top': string;
-  '--particle-duration': string;
+  '--particle-duration-soft': string;
+  '--particle-duration-live': string;
   '--particle-delay': string;
   '--particle-drift-x': string;
-  '--particle-drift-y': string;
+  '--particle-rise-y': string;
+  '--particle-fall-y': string;
   '--particle-scale': string;
   '--particle-rotation': string;
 };
@@ -35,23 +37,40 @@ const PARTICLE_COUNT: Record<PremiumAtmosphereVariant, number> = {
  * Math.random(), so server/client markup is identical and screenshots/tests
  * remain reproducible.
  */
-function particleStyle(index: number): ParticleStyle {
+function particleStyle(
+  index: number,
+  variant: PremiumAtmosphereVariant,
+): ParticleStyle {
   const left = 5 + ((index * 23 + 11) % 90);
   const staticTop = 7 + ((index * 31 + 17) % 82);
-  const duration = 8.6 + ((index * 7) % 6) * 0.82;
+  const durationSoft = 9.2 + ((index * 7) % 6) * 0.86;
+  const durationLive = Math.max(5.8, durationSoft * 0.68);
   const delay = -(0.62 + ((index * 13) % 17) * 0.47);
   const driftX = -24 + ((index * 19 + 7) % 49);
-  const driftY = -(360 + ((index * 41) % 250));
+  const riseDistance =
+    variant === 'full'
+      ? 780 + ((index * 41) % 320)
+      : variant === 'preview'
+        ? 520 + ((index * 41) % 220)
+        : 300 + ((index * 41) % 150);
+  const fallDistance =
+    variant === 'full'
+      ? 860 + ((index * 29) % 300)
+      : variant === 'preview'
+        ? 560 + ((index * 29) % 220)
+        : 330 + ((index * 29) % 150);
   const scale = 0.68 + ((index * 11) % 7) * 0.09;
   const rotation = -70 + ((index * 37) % 141);
 
   return {
     '--particle-left': `${left}%`,
     '--particle-static-top': `${staticTop}%`,
-    '--particle-duration': `${duration.toFixed(2)}s`,
+    '--particle-duration-soft': `${durationSoft.toFixed(2)}s`,
+    '--particle-duration-live': `${durationLive.toFixed(2)}s`,
     '--particle-delay': `${delay.toFixed(2)}s`,
     '--particle-drift-x': `${driftX}px`,
-    '--particle-drift-y': `${driftY}px`,
+    '--particle-rise-y': `-${riseDistance}px`,
+    '--particle-fall-y': `${fallDistance}px`,
     '--particle-scale': scale.toFixed(2),
     '--particle-rotation': `${rotation}deg`,
   };
@@ -89,7 +108,7 @@ export default function PremiumProfileAtmosphere({
           <i
             key={index}
             data-particle={index}
-            style={particleStyle(index)}
+            style={particleStyle(index, variant)}
           />
         ))}
       </span>
