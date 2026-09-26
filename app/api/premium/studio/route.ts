@@ -32,6 +32,13 @@ const STUDIO_COLUMNS = [
   'banner_position_y',
   'banner_zoom',
   'sync_player_theme',
+  'atmosphere_effect',
+  'atmosphere_intensity',
+  'motion_mode',
+  'entrance_effect',
+  'nickname_effect',
+  'hero_style',
+  'surface_style',
 ].join(',');
 
 export async function GET() {
