@@ -16,6 +16,7 @@ import UserAvatarWithFrame from '@/components/profile/UserAvatarWithFrame';
 import ProfileAnimeIdentityLoader from '@/components/profile/ProfileAnimeIdentityLoader';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import CurrentPremiumBadge from '@/components/premium/CurrentPremiumBadge';
+import PremiumProfileAtmosphere from '@/components/premium/PremiumProfileAtmosphere';
 import {
   DEFAULT_PREMIUM_STUDIO_SETTINGS,
   premiumMediaStyle,
@@ -335,6 +336,7 @@ export default function ProfilePage() {
   const premiumStyle = appearance.premiumStudio
     ? (premiumStudioCssVariables(appearance.premiumStudio) as CSSProperties)
     : undefined;
+  const premiumIdentityActive = Boolean(premiumActive && appearance.premiumStudio);
 
   const joinedDate = new Intl.DateTimeFormat('ru-RU', {
     month: 'long',
@@ -343,9 +345,20 @@ export default function ProfilePage() {
 
   return (
     <main
-      className={`profile-v2 premium-profile-theme--${appearance.premiumStudio?.theme ?? 'default'} ${appearance.premiumStudio ? 'premium-profile-custom' : ''}`}
+      className={`profile-v2 premium-profile-theme--${appearance.premiumStudio?.theme ?? 'default'} ${appearance.premiumStudio ? 'premium-profile-custom' : ''} ${premiumIdentityActive ? 'premium-profile-v21' : ''}`}
       style={premiumStyle}
+      data-premium-atmosphere={premiumIdentityActive ? appearance.premiumStudio?.atmosphereEffect : undefined}
+      data-premium-motion={premiumIdentityActive ? appearance.premiumStudio?.motionMode : undefined}
+      data-premium-entrance={premiumIdentityActive ? appearance.premiumStudio?.entranceEffect : undefined}
+      data-premium-hero={premiumIdentityActive ? appearance.premiumStudio?.heroStyle : undefined}
+      data-premium-surface={premiumIdentityActive ? appearance.premiumStudio?.surfaceStyle : undefined}
     >
+      {premiumIdentityActive && appearance.premiumStudio && (
+        <PremiumProfileAtmosphere
+          effect={appearance.premiumStudio.atmosphereEffect}
+          motion={appearance.premiumStudio.motionMode}
+        />
+      )}
       {/* PROFILE HERO */}
 
       <section className="profile-v2__hero">
@@ -383,14 +396,21 @@ export default function ProfilePage() {
             loadCurrentIdentity
             mediaTransform={appearance.avatarTransform}
             profileFrameKey={profileFrameKey}
-            premiumFrameMotion={premiumActive}
+            premiumFrameMotion={premiumActive && appearance.premiumStudio?.motionMode !== 'off'}
           />
 
           <div className="profile-v2__identity-main">
             <div className="profile-v2__title-row">
               <div>
                 <div className="profile-v2__name-row">
-                  <h1><MySponsorBadge username={username} /></h1>
+                  <h1>
+                    <span
+                      className={premiumIdentityActive ? 'premium-profile-v21__nickname' : undefined}
+                      data-effect={premiumIdentityActive ? appearance.premiumStudio?.nicknameEffect : undefined}
+                    >
+                      <MySponsorBadge username={username} />
+                    </span>
+                  </h1>
 
                   <CurrentPremiumBadge />
 
