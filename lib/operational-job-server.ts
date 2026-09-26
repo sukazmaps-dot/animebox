@@ -8,6 +8,7 @@ import { getRuntimeControlSnapshot } from '@/lib/runtime-controls-server';
 
 export type OperationalJobSkipReason =
   | 'background_jobs_disabled'
+  | 'control_plane_degraded'
   | 'brownout'
   | 'already_running';
 
@@ -87,6 +88,20 @@ export async function beginOperationalJob(
       allowed: false,
       reason: 'background_jobs_disabled',
       degraded: controls.degraded,
+      startedAt,
+      deadlineAt,
+      release: async () => undefined,
+    });
+  }
+
+  if (
+    controls.degraded &&
+    options.allowDuringBrownout !== true
+  ) {
+    return permitShell({
+      allowed: false,
+      reason: 'control_plane_degraded',
+      degraded: true,
       startedAt,
       deadlineAt,
       release: async () => undefined,
