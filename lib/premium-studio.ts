@@ -3,12 +3,50 @@ export const PREMIUM_PROFILE_THEMES = [
   'violet',
   'midnight',
   'sakura',
+  'crimson',
+  'ocean',
+  'gold',
 ] as const;
 
 export type PremiumProfileTheme = (typeof PREMIUM_PROFILE_THEMES)[number];
 
 export const PREMIUM_BORDER_STYLES = ['soft', 'neon', 'sharp'] as const;
 export type PremiumBorderStyle = (typeof PREMIUM_BORDER_STYLES)[number];
+
+export const PREMIUM_ATMOSPHERE_EFFECTS = [
+  'none',
+  'aurora',
+  'embers',
+  'sakura',
+  'stardust',
+] as const;
+export type PremiumAtmosphereEffect = (typeof PREMIUM_ATMOSPHERE_EFFECTS)[number];
+
+export const PREMIUM_MOTION_MODES = ['off', 'soft', 'live'] as const;
+export type PremiumMotionMode = (typeof PREMIUM_MOTION_MODES)[number];
+
+export const PREMIUM_ENTRANCE_EFFECTS = [
+  'none',
+  'fade',
+  'bloom',
+  'manga',
+  'glitch',
+] as const;
+export type PremiumEntranceEffect = (typeof PREMIUM_ENTRANCE_EFFECTS)[number];
+
+export const PREMIUM_NICKNAME_EFFECTS = [
+  'none',
+  'gradient',
+  'shimmer',
+  'glow',
+] as const;
+export type PremiumNicknameEffect = (typeof PREMIUM_NICKNAME_EFFECTS)[number];
+
+export const PREMIUM_HERO_STYLES = ['cinematic', 'spotlight', 'clean'] as const;
+export type PremiumHeroStyle = (typeof PREMIUM_HERO_STYLES)[number];
+
+export const PREMIUM_SURFACE_STYLES = ['glass', 'deep', 'ink'] as const;
+export type PremiumSurfaceStyle = (typeof PREMIUM_SURFACE_STYLES)[number];
 
 export type PremiumMediaTransform = {
   x: number;
@@ -34,6 +72,13 @@ export type PremiumStudioSettings = {
   bannerPositionY: number;
   bannerZoom: number;
   syncPlayerTheme: boolean;
+  atmosphereEffect: PremiumAtmosphereEffect;
+  atmosphereIntensity: number;
+  motionMode: PremiumMotionMode;
+  entranceEffect: PremiumEntranceEffect;
+  nicknameEffect: PremiumNicknameEffect;
+  heroStyle: PremiumHeroStyle;
+  surfaceStyle: PremiumSurfaceStyle;
 };
 
 export const DEFAULT_PREMIUM_STUDIO_SETTINGS: PremiumStudioSettings = {
@@ -54,6 +99,13 @@ export const DEFAULT_PREMIUM_STUDIO_SETTINGS: PremiumStudioSettings = {
   bannerPositionY: 50,
   bannerZoom: 1,
   syncPlayerTheme: true,
+  atmosphereEffect: 'aurora',
+  atmosphereIntensity: 48,
+  motionMode: 'soft',
+  entranceEffect: 'bloom',
+  nicknameEffect: 'gradient',
+  heroStyle: 'cinematic',
+  surfaceStyle: 'glass',
 };
 
 export const PREMIUM_PROFILE_THEME_META: Record<
@@ -94,6 +146,27 @@ export const PREMIUM_PROFILE_THEME_META: Record<
     accentColor: '#FF6FAF',
     textColor: '#FFF4F9',
   },
+  crimson: {
+    label: 'Crimson Oath',
+    description: 'Глубокий багровый профиль с контрастным красным свечением.',
+    primaryColor: '#1D0B12',
+    accentColor: '#FF4E6A',
+    textColor: '#FFF4F6',
+  },
+  ocean: {
+    label: 'Ocean Glass',
+    description: 'Холодное стекло, бирюзово-синий свет и чистая глубина.',
+    primaryColor: '#071821',
+    accentColor: '#52D9E8',
+    textColor: '#F0FDFF',
+  },
+  gold: {
+    label: 'Golden Hour',
+    description: 'Тёмное золото и тёплый premium-акцент без дешёвого блеска.',
+    primaryColor: '#1B150A',
+    accentColor: '#F2C461',
+    textColor: '#FFF9E9',
+  },
 };
 
 const HEX_COLOR_RE = /^#[0-9A-Fa-f]{6}$/;
@@ -104,6 +177,30 @@ export function isPremiumProfileTheme(value: string): value is PremiumProfileThe
 
 export function isPremiumBorderStyle(value: string): value is PremiumBorderStyle {
   return (PREMIUM_BORDER_STYLES as readonly string[]).includes(value);
+}
+
+export function isPremiumAtmosphereEffect(value: string): value is PremiumAtmosphereEffect {
+  return (PREMIUM_ATMOSPHERE_EFFECTS as readonly string[]).includes(value);
+}
+
+export function isPremiumMotionMode(value: string): value is PremiumMotionMode {
+  return (PREMIUM_MOTION_MODES as readonly string[]).includes(value);
+}
+
+export function isPremiumEntranceEffect(value: string): value is PremiumEntranceEffect {
+  return (PREMIUM_ENTRANCE_EFFECTS as readonly string[]).includes(value);
+}
+
+export function isPremiumNicknameEffect(value: string): value is PremiumNicknameEffect {
+  return (PREMIUM_NICKNAME_EFFECTS as readonly string[]).includes(value);
+}
+
+export function isPremiumHeroStyle(value: string): value is PremiumHeroStyle {
+  return (PREMIUM_HERO_STYLES as readonly string[]).includes(value);
+}
+
+export function isPremiumSurfaceStyle(value: string): value is PremiumSurfaceStyle {
+  return (PREMIUM_SURFACE_STYLES as readonly string[]).includes(value);
 }
 
 export function isHexColor(value: string): boolean {
@@ -126,6 +223,12 @@ function readGlow(value: unknown) {
   return Math.max(0, Math.min(100, Math.round(number)));
 }
 
+function readAtmosphereIntensity(value: unknown) {
+  const number = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(number)) return DEFAULT_PREMIUM_STUDIO_SETTINGS.atmosphereIntensity;
+  return Math.max(0, Math.min(100, Math.round(number)));
+}
+
 function readPosition(value: unknown, fallback = 50) {
   const number = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(number)) return fallback;
@@ -145,6 +248,12 @@ export function studioSettingsFromRow(
 
   const rawTheme = stringOrNull(row.theme) ?? 'default';
   const rawBorder = stringOrNull(row.border_style) ?? 'neon';
+  const rawAtmosphere = stringOrNull(row.atmosphere_effect) ?? 'none';
+  const rawMotion = stringOrNull(row.motion_mode) ?? 'soft';
+  const rawEntrance = stringOrNull(row.entrance_effect) ?? 'fade';
+  const rawNickname = stringOrNull(row.nickname_effect) ?? 'none';
+  const rawHero = stringOrNull(row.hero_style) ?? 'cinematic';
+  const rawSurface = stringOrNull(row.surface_style) ?? 'glass';
 
   return {
     theme: isPremiumProfileTheme(rawTheme) ? rawTheme : 'default',
@@ -176,6 +285,13 @@ export function studioSettingsFromRow(
       typeof row.sync_player_theme === 'boolean'
         ? row.sync_player_theme
         : DEFAULT_PREMIUM_STUDIO_SETTINGS.syncPlayerTheme,
+    atmosphereEffect: isPremiumAtmosphereEffect(rawAtmosphere) ? rawAtmosphere : 'none',
+    atmosphereIntensity: readAtmosphereIntensity(row.atmosphere_intensity),
+    motionMode: isPremiumMotionMode(rawMotion) ? rawMotion : 'soft',
+    entranceEffect: isPremiumEntranceEffect(rawEntrance) ? rawEntrance : 'fade',
+    nicknameEffect: isPremiumNicknameEffect(rawNickname) ? rawNickname : 'none',
+    heroStyle: isPremiumHeroStyle(rawHero) ? rawHero : 'cinematic',
+    surfaceStyle: isPremiumSurfaceStyle(rawSurface) ? rawSurface : 'glass',
   };
 }
 
@@ -254,6 +370,13 @@ export function premiumStudioCssVariables(settings: PremiumStudioSettings) {
   const glowAlpha = 0.08 + (settings.glowStrength / 100) * 0.34;
   const glowSoftAlpha = 0.03 + (settings.glowStrength / 100) * 0.13;
   const glowPageAlpha = 0.02 + (settings.glowStrength / 100) * 0.18;
+  const atmosphereAlpha = 0.04 + (settings.atmosphereIntensity / 100) * 0.32;
+  const motionDuration =
+    settings.motionMode === 'live'
+      ? 12
+      : settings.motionMode === 'soft'
+        ? 22
+        : 0;
 
   return {
     '--ab-premium-primary': settings.primaryColor,
@@ -269,6 +392,11 @@ export function premiumStudioCssVariables(settings: PremiumStudioSettings) {
     '--ab-premium-glow-soft-alpha': String(glowSoftAlpha),
     '--ab-premium-glow-page-alpha': String(glowPageAlpha),
     '--ab-premium-glow-strength': String(settings.glowStrength),
+    '--ab-premium-atmosphere-alpha': String(atmosphereAlpha),
+    '--ab-premium-atmosphere-intensity': String(settings.atmosphereIntensity),
+    '--ab-premium-motion-duration': `${motionDuration}s`,
+    '--ab-premium-motion-duration-fast': `${Math.max(0.001, motionDuration * 0.56)}s`,
+    '--ab-premium-motion-duration-slow': `${Math.max(0.001, motionDuration * 1.32)}s`,
   };
 }
 

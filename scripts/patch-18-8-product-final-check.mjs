@@ -6,6 +6,8 @@ const read = (path) =>
 const migration = read('supabase/migrations/20260926211000_product_final_leaderboard_rewards_v1.sql');
 const temporaryFramesMigration = read('supabase/migrations/20260926215500_temporary_leaderboard_frames_v2.sql');
 const progressionFramesMigration = read('supabase/migrations/20260927001500_progression_frame_selection_v1.sql');
+const premiumIdentityMigration = read('supabase/migrations/20260926221958_premium_profile_identity_v1.sql');
+const premiumThemePresetsMigration = read('supabase/migrations/20260926223142_premium_profile_identity_theme_presets_v2.sql');
 const rewards = read('lib/leaderboard-rewards.ts');
 const rewardServer = read('lib/leaderboard-rewards-server.ts');
 const seasons = read('lib/leaderboard-seasons-server.ts');
@@ -42,6 +44,17 @@ const lv75Premium = read('public/brand/frames/milestone/premium/lv75-menacing-ma
 const lv100Premium = read('public/brand/frames/milestone/premium/lv100-absolute-prestige-premium.svg');
 const progression = read('lib/progression.ts');
 const premiumStudioClient = read('components/premium/PremiumStudioClient.tsx');
+const premiumStudioCore = read('lib/premium-studio.ts');
+const premiumEditorApi = read('app/api/profile/editor/route.ts');
+const premiumAtmosphere = read('components/premium/PremiumProfileAtmosphere.tsx');
+const premiumIdentityCss = read('app/premium-profile-v14.css');
+const premiumCropEditor = read('components/premium/PremiumMediaCropEditor.tsx');
+const adaptivePalette = read('lib/adaptive-profile-theme-client.ts');
+const publicProfilePage = read('app/profile/[id]/page.tsx');
+const ownProfilePage = read('app/profile/page.tsx');
+const legacyPremiumStudioApi = read('app/api/premium/studio/route.ts');
+const rootLayout = read('app/layout.tsx');
+const profileLayout = read('app/profile/layout.tsx');
 const premiumUploadRoute = read('app/api/profile/media/upload-url/route.ts');
 const premiumPublishServer = read('lib/profile-media-publish-server.ts');
 const achievementsClient = read('components/AchievementsClient.tsx');
@@ -360,11 +373,11 @@ need('level milestone system', progression, [
   'milestone-lv10-forbidden-relic',
   'milestone-lv100-absolute-prestige',
   'MILESTONE_AVATAR_SCALE',
-  "'milestone-lv10-forbidden-relic': 0.54",
-  "'milestone-lv25-flame-arc': 0.56",
-  "'milestone-lv50-crimson-sigil': 0.50",
-  "'milestone-lv75-menacing-manga': 0.54",
-  "'milestone-lv100-absolute-prestige': 0.50",
+  "'milestone-lv10-forbidden-relic': 0.52",
+  "'milestone-lv25-flame-arc': 0.54",
+  "'milestone-lv50-crimson-sigil': 0.46",
+  "'milestone-lv75-menacing-manga': 0.52",
+  "'milestone-lv100-absolute-prestige': 0.46",
   'levelFrameAvatarScale',
 ]);
 
@@ -434,6 +447,165 @@ need('Premium avatar quality policy', premiumStudioClient, [
   'staticWebpFallback',
 ]);
 
+need('Premium identity migration', premiumIdentityMigration, [
+  'atmosphere_effect',
+  'atmosphere_intensity',
+  'motion_mode',
+  'entrance_effect',
+  'nickname_effect',
+  'hero_style',
+  'surface_style',
+  "check (atmosphere_effect in ('none','aurora','embers','sakura','stardust'))",
+  "check (motion_mode in ('off','soft','live'))",
+]);
+
+need('Premium identity theme presets migration', premiumThemePresetsMigration, [
+  'premium_profile_settings_theme_check',
+  "'crimson'",
+  "'ocean'",
+  "'gold'",
+]);
+
+need('Premium identity settings contract', premiumStudioCore, [
+  'PREMIUM_ATMOSPHERE_EFFECTS',
+  'PREMIUM_MOTION_MODES',
+  'PREMIUM_ENTRANCE_EFFECTS',
+  'PREMIUM_NICKNAME_EFFECTS',
+  'PREMIUM_HERO_STYLES',
+  'PREMIUM_SURFACE_STYLES',
+  'atmosphereEffect',
+  'atmosphereIntensity',
+  'motionMode',
+  'entranceEffect',
+  'nicknameEffect',
+  'heroStyle',
+  'surfaceStyle',
+  "'crimson'",
+  "'ocean'",
+  "'gold'",
+  '--ab-premium-atmosphere-alpha',
+  '--ab-premium-motion-duration-fast',
+]);
+
+need('Premium identity API persistence', premiumEditorApi, [
+  'atmosphere_effect',
+  'atmosphere_intensity',
+  'motion_mode',
+  'entrance_effect',
+  'nickname_effect',
+  'hero_style',
+  'surface_style',
+  'isPremiumAtmosphereEffect',
+  'isPremiumMotionMode',
+  'DEFAULT_PREMIUM_STUDIO_SETTINGS',
+]);
+
+need('Premium atmosphere renderer', premiumAtmosphere, [
+  'PremiumProfileAtmosphere',
+  "data-effect={effect}",
+  "data-motion={motion}",
+  'premium-profile-v21__particles',
+]);
+
+need('Premium cinematic identity CSS', premiumIdentityCss, [
+  '.premium-profile-v21__atmosphere',
+  "[data-effect='aurora']",
+  "[data-effect='embers']",
+  "[data-effect='sakura']",
+  "[data-effect='stardust']",
+  "[data-premium-hero='cinematic']",
+  "[data-premium-surface='glass']",
+  ".premium-profile-v21__nickname[data-effect='shimmer']",
+  "[data-premium-entrance='bloom']",
+  '@media (prefers-reduced-motion: reduce)',
+  '.profile-v2__avatar-wrap::before',
+]);
+
+need('Persistent Premium Studio preview', premiumIdentityCss, [
+  'Patch 18.9.1 — persistent Premium Studio preview',
+  '.profile-editor-v13 .premium-studio-v15__hero',
+  'display: contents',
+  '.profile-editor-v13 .premium-studio-v15__preview-wrap',
+  'grid-row: 1 / span 3',
+  '.profile-editor-v13 .premium-studio-v15__sticky',
+  'position: sticky',
+  'max-height: calc(100dvh - 116px)',
+  '.profile-editor-v13 .premium-studio-v16__section-nav',
+  '.profile-editor-v13 .premium-studio-v15__sections',
+]);
+
+need('Premium Studio atmosphere controls', premiumStudioClient, [
+  "studioSection === 'atmosphere'",
+  'Автоподбор палитры',
+  'Атмосфера профиля',
+  'PREMIUM_ATMOSPHERE_EFFECTS.map',
+  'PREMIUM_MOTION_MODES.map',
+  'PREMIUM_NICKNAME_EFFECTS.map',
+  'PREMIUM_ENTRANCE_EFFECTS.map',
+  'PREMIUM_HERO_STYLES.map',
+  'PREMIUM_SURFACE_STYLES.map',
+  'Проиграть intro',
+  'deriveAdaptiveProfilePalette',
+  '<PremiumProfileAtmosphere',
+]);
+
+need('Adaptive Premium palette', adaptivePalette, [
+  'deriveAdaptiveProfilePalette',
+  'createImageBitmap',
+  'maxSample = 48',
+  'resolveReadableTextColor',
+]);
+
+need('Live animated media crop', premiumCropEditor, [
+  'premium-media-crop__live-image',
+  'premiumMediaStyle(value)',
+  'GIF и Animated WebP продолжают двигаться',
+]);
+if (premiumCropEditor.includes('<canvas')) {
+  failures.push('Premium media crop preview regressed to canvas and can freeze GIF animation');
+}
+
+need('Public Premium identity rendering', publicProfilePage, [
+  'PremiumProfileAtmosphere',
+  'premiumIdentityActive',
+  'premium-profile-v21',
+  'data-premium-atmosphere',
+  'data-premium-motion',
+  'data-premium-entrance',
+  'data-premium-hero',
+  'data-premium-surface',
+  'premium-profile-v21__nickname',
+]);
+
+need('Own Premium identity rendering', ownProfilePage, [
+  'PremiumProfileAtmosphere',
+  'premiumIdentityActive',
+  'premium-profile-v21',
+  'data-premium-atmosphere',
+  'data-premium-motion',
+  'data-premium-entrance',
+  'data-premium-hero',
+  'data-premium-surface',
+  'premium-profile-v21__nickname',
+]);
+
+need('Legacy Premium read API identity columns', legacyPremiumStudioApi, [
+  'atmosphere_effect',
+  'atmosphere_intensity',
+  'motion_mode',
+  'entrance_effect',
+  'nickname_effect',
+  'hero_style',
+  'surface_style',
+]);
+
+need('Premium identity stylesheet stays route-scoped', profileLayout, [
+  "import '../premium-profile-v14.css';",
+]);
+if (rootLayout.includes("premium-profile-identity-v21.css")) {
+  failures.push('Premium identity CSS must not consume an extra root layout import');
+}
+
 need('Premium avatar signed-upload limit', premiumUploadRoute, [
   "return kind === 'avatar' ? 8 * 1024 * 1024 : 6 * 1024 * 1024",
 ]);
@@ -481,5 +653,5 @@ if (failures.length) {
 }
 
 console.log(
-  '[AnimeBox 18.8 Product Final] Profile Studio 2.0, LVL clarity, exclusive Level/League frames, weekly/monthly rewards and retention UI invariants passed.',
+  '[AnimeBox 18.9 Premium Identity] Atmosphere Engine, cinematic profile identity, live animated crop, LVL/frame and retention invariants passed.',
 );

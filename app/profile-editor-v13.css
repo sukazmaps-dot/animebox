@@ -1264,3 +1264,25 @@
     padding-bottom: 104px;
   }
 }
+
+
+/* =========================================================
+   Patch 18.9.1 — Premium sticky containment fix
+   overflow:hidden creates a sticky scroll ancestor. overflow:clip keeps
+   visual clipping without stealing the viewport sticky context.
+   ========================================================= */
+@media (min-width: 1041px) {
+  .profile-editor-v13[data-editor-tab='style'] {
+    overflow: clip;
+  }
+
+  /*
+   * Keep the editor title as normal document content. The global AnimeBox
+   * navigation owns the top sticky layer; Premium preview and side rail
+   * receive their own viewport offsets below it.
+   */
+  .profile-editor-v13[data-editor-tab='style'] .profile-editor-v13__header {
+    position: relative;
+    top: auto;
+  }
+}

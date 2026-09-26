@@ -1,14 +1,16 @@
 'use client';
 
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import {
-  calculateProfileMediaCropRect,
   PROFILE_MEDIA_ASPECT,
   type ProfileMediaKind,
 } from '@/lib/profile-media-crop-client';
-import type { PremiumMediaTransform } from '@/lib/premium-studio';
+import {
+  premiumMediaStyle,
+  type PremiumMediaTransform,
+} from '@/lib/premium-studio';
 
 type Props = {
   kind: ProfileMediaKind;
@@ -41,98 +43,10 @@ export default function PremiumMediaCropEditor({
   onChange,
 }: Props) {
   const surfaceRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imageRef = useRef<HTMLImageElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const [imageReady, setImageReady] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const avatar = kind === 'avatar';
-
-  useEffect(() => {
-    let cancelled = false;
-    const image = new Image();
-    image.decoding = 'async';
-
-    imageRef.current = null;
-    setImageReady(false);
-    setImageFailed(false);
-
-    image.onload = () => {
-      if (cancelled) return;
-      if (!image.naturalWidth || !image.naturalHeight) {
-        setImageFailed(true);
-        return;
-      }
-      imageRef.current = image;
-      setImageReady(true);
-    };
-
-    image.onerror = () => {
-      if (cancelled) return;
-      imageRef.current = null;
-      setImageFailed(true);
-    };
-
-    image.src = src;
-
-    return () => {
-      cancelled = true;
-      image.onload = null;
-      image.onerror = null;
-      if (imageRef.current === image) imageRef.current = null;
-    };
-  }, [src]);
-
-  useEffect(() => {
-    const surface = surfaceRef.current;
-    const canvas = canvasRef.current;
-    const image = imageRef.current;
-    if (!surface || !canvas || !image || !imageReady) return;
-
-    const draw = () => {
-      const rect = surface.getBoundingClientRect();
-      if (!rect.width || !rect.height) return;
-
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const pixelWidth = Math.max(1, Math.round(rect.width * dpr));
-      const pixelHeight = Math.max(1, Math.round(rect.height * dpr));
-
-      if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
-      if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
-
-      const context = canvas.getContext('2d', { alpha: true });
-      if (!context) return;
-
-      const crop = calculateProfileMediaCropRect(
-        image.naturalWidth,
-        image.naturalHeight,
-        kind,
-        value,
-      );
-
-      context.clearRect(0, 0, pixelWidth, pixelHeight);
-      context.imageSmoothingEnabled = true;
-      context.imageSmoothingQuality = 'high';
-      context.drawImage(
-        image,
-        crop.left,
-        crop.top,
-        crop.width,
-        crop.height,
-        0,
-        0,
-        pixelWidth,
-        pixelHeight,
-      );
-    };
-
-    draw();
-
-    if (typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(draw);
-    observer.observe(surface);
-    return () => observer.disconnect();
-  }, [imageReady, kind, value.x, value.y, value.zoom]);
 
   function beginDrag(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.button !== 0) return;
@@ -176,6 +90,7 @@ export default function PremiumMediaCropEditor({
   function endDrag(event: ReactPointerEvent<HTMLDivElement>) {
     if (dragRef.current?.pointerId !== event.pointerId) return;
     dragRef.current = null;
+
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -188,18 +103,19 @@ export default function PremiumMediaCropEditor({
     >
       <div className="premium-media-crop__head">
         <span>
-          <strong>{avatar ? 'Кадрирование аватара' : 'Кадрирование баннера'}</strong>
+          <strong>{avatar ? 'Живое кадрирование аватара' : 'Живая подгонка баннера'}</strong>
           <small>
             {avatar
-              ? 'То, что видно внутри рамки, пиксель-в-пиксель попадёт в итоговый аватар.'
-              : 'Рамка повторяет мобильный баннер AnimeBox. Никакого растягивания: изображение только кадрируется и масштабируется.'}
+              ? 'GIF и Animated WebP продолжают двигаться прямо в редакторе. Круг показывает реальный итоговый аватар.'
+              : 'Анимированный баннер продолжает двигаться. Позиция и масштаб совпадают с итоговым hero профиля.'}
           </small>
         </span>
+
         <button
           type="button"
           onClick={() => onChange({ x: 50, y: 50, zoom: 1 })}
         >
-          {avatar ? 'Сбросить кадр' : 'Сбросить кадрирование'}
+          {avatar ? 'Сбросить кадр' : 'Сбросить подгонку'}
         </button>
       </div>
 
@@ -207,6 +123,7 @@ export default function PremiumMediaCropEditor({
         ref={surfaceRef}
         className={[
           'premium-media-crop__surface',
+          'is-live-media',
           !imageReady && !imageFailed ? 'is-image-loading' : '',
           imageFailed ? 'is-image-error' : '',
         ].filter(Boolean).join(' ')}
@@ -215,25 +132,41 @@ export default function PremiumMediaCropEditor({
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
         role="application"
-        aria-label={avatar ? 'Кадрирование аватара' : 'Кадрирование баннера'}
+        aria-label={avatar ? 'Живое кадрирование аватара' : 'Живая подгонка баннера'}
       >
-        <canvas ref={canvasRef} aria-hidden="true" />
+        <img
+          className="premium-media-crop__live-image"
+          src={src}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          decoding="async"
+          style={premiumMediaStyle(value) as CSSProperties}
+          onLoad={() => {
+            setImageReady(true);
+            setImageFailed(false);
+          }}
+          onError={() => {
+            setImageReady(false);
+            setImageFailed(true);
+          }}
+        />
 
         {!imageReady && !imageFailed && (
           <span className="premium-media-crop__loading" role="status">
-            Готовим предпросмотр…
+            Готовим живой предпросмотр…
           </span>
         )}
 
         {imageFailed && (
           <span className="premium-media-crop__error" role="alert">
-            Не удалось открыть изображение. Попробуй другой JPG, PNG или WebP.
+            Не удалось открыть изображение. Попробуй другой JPG, PNG, WebP или GIF.
           </span>
         )}
 
         <div className="premium-media-crop__guide" aria-hidden="true" />
         <span className="premium-media-crop__hint" aria-hidden="true">
-          {avatar ? 'Перетащи для кадрирования' : 'Перетащи изображение'}
+          {avatar ? 'Перетащи · анимация остаётся живой' : 'Перетащи баннер'}
         </span>
       </div>
 
@@ -242,6 +175,7 @@ export default function PremiumMediaCropEditor({
           <strong>Масштаб</strong>
           <small>{Math.round(value.zoom * 100)}%</small>
         </span>
+
         <input
           type="range"
           min="1"
