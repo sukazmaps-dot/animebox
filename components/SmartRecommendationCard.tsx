@@ -358,6 +358,7 @@ export default function SmartRecommendationCard({
     >
       <Link
         href={animeHref(anime)}
+        prefetch={true}
         className="smart-card__poster-link"
         onClick={trackOpen}
         aria-label={`Открыть ${title}`}
@@ -403,6 +404,7 @@ export default function SmartRecommendationCard({
       <div className="smart-card__body">
         <Link
           href={animeHref(anime)}
+          prefetch={true}
           onClick={trackOpen}
           className="smart-card__title"
           title={title}

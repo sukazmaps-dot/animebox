@@ -75,6 +75,7 @@ export default function AnimeCard({
   return (
     <Link
       href={animeHref(anime)}
+      prefetch={true}
       className={`anime-card anime-card--signature flex h-full min-w-0 flex-col ${
         compact ? 'anime-card--compact' : ''
       }`}

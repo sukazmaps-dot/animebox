@@ -1543,14 +1543,15 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         </div>
       )}
 
-      <section className="episode-seo-context" aria-label="О серии">
+      <section
+        className="episode-seo-context episode-seo-context--compact"
+        aria-label="Навигация по серии"
+      >
         <div>
-          <span className="episode-seo-context__eyebrow">Сейчас смотрят</span>
-          <strong>{episodeNumber} серия · {title}</strong>
-          <p>
-            Прогресс сохраняется автоматически. Переход между соседними сериями
-            уже доступен прямо под плеером.
-          </p>
+          <span className="episode-seo-context__eyebrow">
+            Серия {episodeNumber}
+          </span>
+          <strong>{title}</strong>
         </div>
 
         <nav

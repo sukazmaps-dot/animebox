@@ -548,7 +548,7 @@ function NavbarContent() {
               if (pathname === '/search') emitLiveSearch(value);
             }}
             aria-label="Поиск аниме"
-            placeholder="Умный поиск: Наруто 2 сезон, One Piece..."
+            placeholder="Найди аниме по названию..."
             autoComplete="off"
           />
 
@@ -660,7 +660,7 @@ function NavbarFallback() {
             value=""
             readOnly
             tabIndex={-1}
-            placeholder="Умный поиск: Наруто 2 сезон, One Piece..."
+            placeholder="Найди аниме по названию..."
           />
         </div>
       </header>
