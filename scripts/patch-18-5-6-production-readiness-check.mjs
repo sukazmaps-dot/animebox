@@ -177,7 +177,7 @@ need('maintenance cron', maintenance, [
 
 for (const [path, schedule] of [
   ['/api/cron/production-maintenance', '17 5 * * *'],
-  ['/api/cron/catalog-availability', '13 * * * *'],
+  ['/api/cron/catalog-availability', '23 4 * * *'],
   ['/api/cron/seo-anime-index', '53 4 * * *'],
 ]) {
   if (
