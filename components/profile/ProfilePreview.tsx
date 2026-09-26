@@ -277,7 +277,14 @@ export default function ProfilePreview({
         ? Math.min(0.28, atmosphereBaseAlpha * 0.76)
         : atmosphereBaseAlpha
     : 0;
-  const atmosphereCleanAlpha = Math.max(0.08, atmosphereAlpha * 0.56);
+  const atmosphereLiveAlpha =
+    atmosphereIntensity <= 0
+      ? 0
+      : Math.min(0.62, atmosphereAlpha + 0.12);
+  const atmosphereCleanAlpha =
+    atmosphereIntensity <= 0
+      ? 0
+      : Math.max(0.08, atmosphereAlpha * 0.56);
 
   const themeStyle = data
     ? ({
@@ -285,6 +292,7 @@ export default function ProfilePreview({
         '--profile-preview-accent': data.accentColor,
         '--profile-preview-text': data.textColor,
         '--profile-preview-atmosphere-alpha': String(atmosphereAlpha),
+        '--profile-preview-atmosphere-live-alpha': String(atmosphereLiveAlpha),
         '--profile-preview-atmosphere-clean-alpha': String(atmosphereCleanAlpha),
       } as CSSProperties)
     : undefined;
