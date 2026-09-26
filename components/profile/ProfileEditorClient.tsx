@@ -10,6 +10,7 @@ import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor'
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import ProfileWidgetEditor from '@/components/profile/ProfileWidgetEditor';
 import ProfileRewardsPanel from '@/components/profile/ProfileRewardsPanel';
+import ProfileDirectEditSurface from '@/components/profile/ProfileDirectEditSurface';
 import Icon from '@/components/Icon';
 import { notifyAuthChanged } from '@/lib/auth-events';
 import { usernamePolicyError } from '@/lib/auth-identity-policy';
@@ -32,7 +33,7 @@ import type {
   PremiumStudioSettings,
 } from '@/lib/premium-studio';
 
-type EditorTab = 'profile' | 'appearance' | 'showcase' | 'rewards' | 'style';
+type EditorTab = 'profile' | 'showcase' | 'rewards' | 'style';
 
 type ProfileRow = {
   id: string;
@@ -56,7 +57,7 @@ type BaseMediaEditorState = {
 
 function normalizedTab(value: string | null | undefined): EditorTab {
   if (value === 'style' || value === 'premium') return 'style';
-  if (value === 'appearance' || value === 'media') return 'appearance';
+  if (value === 'appearance' || value === 'media') return 'profile';
   if (value === 'showcase' || value === 'widgets') return 'showcase';
   if (value === 'rewards' || value === 'awards') return 'rewards';
   return 'profile';
@@ -664,9 +665,6 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           <button className={activeTab === 'profile' ? 'is-active' : ''} onClick={() => switchTab('profile')} type="button">
             <Icon name="user" size={18} weight="regular" /> <span>Профиль</span>
           </button>
-          <button className={activeTab === 'appearance' ? 'is-active' : ''} onClick={() => switchTab('appearance')} type="button">
-            <Icon name="image" size={18} weight="regular" /> <span>Оформление</span>
-          </button>
           <button className={activeTab === 'showcase' ? 'is-active' : ''} onClick={() => switchTab('showcase')} type="button">
             <Icon name="grid" size={18} weight="regular" /> <span>Витрина</span>
           </button>
@@ -742,168 +740,48 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             )}
           </div>
         ) : (
-          <div className="profile-editor-v13__workspace">
-            <div className="profile-editor-v13__controls">
-              {activeTab === 'profile' && (
-                <section className="profile-editor-v13__panel profile-editor-v18__panel">
-  <div className="profile-editor-v13__section-title">
-    <div>
-      <h2>Основная информация</h2>
-      <p>То, что увидят другие пользователи AnimeBox.</p>
-    </div>
-  </div>
-
-  <label className="profile-editor-v13__field">
-    <span><strong>Имя пользователя</strong><small>{username.trim().length}/24</small></span>
-    <input value={username} maxLength={24} onChange={(event) => { setUsername(event.target.value); setSaved(''); }} />
-  </label>
-
-  <label className="profile-editor-v13__field">
-    <span><strong>О себе</strong><small>{bio.length}/300</small></span>
-    <textarea value={bio} maxLength={300} rows={7} onChange={(event) => { setBio(event.target.value); setSaved(''); }} />
-  </label>
-
-  <p className="profile-editor-v13__inline-hint">
-    <strong>Совет:</strong> короткое био и узнаваемый ник лучше читаются в комментариях, рейтинге и публичном профиле.
-  </p>
-</section>
-              )}
-
-              {activeTab === 'appearance' && (
-                <section className="profile-editor-v13__panel profile-editor-v18__panel">
-                  <div className="profile-editor-v13__section-title">
-                    <div>
-                      <h2>Базовое оформление</h2>
-                      <p>Обычный аватар и баннер доступны всем пользователям.</p>
-                    </div>
-                  </div>
-
-                  <div className="profile-editor-v13__media-block">
-                    <div className="profile-editor-v13__banner-editor">
-                      {displayedBanner ? <img src={displayedBanner} alt="Предпросмотр баннера" /> : <div>ANIMEBOX PROFILE</div>}
-                      <div className="profile-editor-v13__media-actions">
-                        <label aria-busy={baseMediaOpening === 'banner'} title="Изменить баннер">
-                          {baseMediaOpening === 'banner' ? 'Открываем…' : 'Изменить'}
-                          <input
-                            hidden
-                            type="file"
-                            accept="image/jpeg,image/jpg,image/png,image/webp,image/avif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.avif,.heic,.heif"
-                            onChange={(event) => {
-                              const input = event.currentTarget;
-                              const file = input.files?.[0];
-
-                              void stageMedia('banner', file).finally(() => {
-                                input.value = '';
-                              });
-                            }}
-                          />
-                        </label>
-                        {(profile.banner_path || bannerFile) && (
-                          <button type="button" onClick={() => { setBannerFile(null); if (bannerPreview) URL.revokeObjectURL(bannerPreview); setBannerPreview(null); setRemoveBanner(true); setSaved(''); }}>Удалить</button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="profile-editor-v13__avatar-editor">
-                      <img src={displayedAvatar} alt="Предпросмотр аватара" />
-                      <div>
-                        <strong>Аватар профиля</strong>
-                        <small className="profile-editor-v13__media-caption">Аватар профиля отображается в комментариях, рейтинге и меню.</small>
-                        <div className="profile-editor-v13__media-actions is-inline">
-                          <label aria-busy={baseMediaOpening === 'avatar'} title="Изменить аватар">
-                            {baseMediaOpening === 'avatar' ? 'Открываем…' : 'Изменить'}
-                            <input
-                              hidden
-                              type="file"
-                              accept="image/jpeg,image/jpg,image/png,image/webp,image/avif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.avif,.heic,.heif"
-                              onChange={(event) => {
-                                const input = event.currentTarget;
-                                const file = input.files?.[0];
-
-                                void stageMedia('avatar', file).finally(() => {
-                                  input.value = '';
-                                });
-                              }}
-                            />
-                          </label>
-                          {(profile.avatar_path || avatarFile) && (
-                            <button type="button" onClick={() => { setAvatarFile(null); if (avatarPreview) URL.revokeObjectURL(avatarPreview); setAvatarPreview(null); setRemoveAvatar(true); setSaved(''); }}>Сбросить</button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <p className="profile-editor-v13__media-meta">
-                      JPG, PNG, WebP, AVIF, HEIC/HEIF · до 16 МБ · AnimeBox очистит метаданные и подготовит лёгкий WebP.
-                    </p>
-                  </div>
-
-                  {baseMediaError && (
-                    <div className="profile-editor-v13__media-error" role="alert">
-                      {baseMediaError}
-                    </div>
-                  )}
-
-                  {(premiumAvatarOverride || premiumBannerOverride) && (
-                    <div className="profile-editor-v17__appearance-status">
-                      <strong>{premiumActive ? 'Premium-оформление сейчас перекрывает базовые медиа' : 'Premium закончился — используется статический fallback'}</strong>
-                      <p>
-                        {premiumActive
-                          ? 'Базовый аватар и баннер остаются запасными. Итоговый preview справа показывает то, что реально видят пользователи.'
-                          : 'Анимации и Premium-эффекты выключены, но сохранённые статические WEBP-версии аватара/баннера остаются активны.'}
-                      </p>
-                      <div className="profile-editor-v17__appearance-actions">
-                        <button type="button" className="is-secondary" onClick={() => void clearPremiumFallbackMedia()}>
-                          Использовать базовые медиа
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="profile-editor-v13__premium-callout">
-                    <Icon name="crown" size={44} weight="regular" />
-                    <div>
-                      <strong>Хочешь анимированный баннер, glow и собственную палитру?</strong>
-                      <p>Открой вкладку «Стиль» — Premium-возможности встроены в тот же редактор.</p>
-                    </div>
-                    <button type="button" onClick={() => switchTab('style')}>Открыть Стиль</button>
-                  </div>
-                </section>
-              )}
-
-              {(error || saved) && (
-                <div className={`profile-editor-v13__message ${error ? 'is-error' : ''}`}>{error || saved}</div>
-              )}
-            </div>
-
-            <aside className="profile-editor-v13__preview-column">
-              <div className="profile-editor-v13__preview-sticky">
-                <div className="profile-editor-v13__preview-label">
-                  <span>LIVE PREVIEW</span>
-                  <small>Предпросмотр базового профиля</small>
-                </div>
-
-                <article className="profile-editor-v13__profile-preview">
-                  <div className="profile-editor-v13__preview-banner">
-                    {resolvedBannerPreview ? <img src={resolvedBannerPreview} alt="" aria-hidden="true" /> : <div />}
-                    <span />
-                  </div>
-                  <div className="profile-editor-v13__preview-body">
-                    <img src={resolvedAvatarPreview} alt="" />
-                    <div>
-                      <span>ANIMEBOX USER</span>
-                      <h3>{username.trim() || 'Пользователь'}</h3>
-                      <p>{bio.trim() || 'Расскажи немного о себе и своих любимых аниме.'}</p>
-                    </div>
-                  </div>
-                </article>
-
-                <div className="profile-editor-v13__preview-note">
-                  Это итоговый профиль: базовые данные + активный Premium override или статический fallback после окончания подписки.
-                </div>
-              </div>
-            </aside>
-          </div>
+          <ProfileDirectEditSurface
+            username={username}
+            bio={bio}
+            avatarUrl={resolvedAvatarPreview}
+            bannerUrl={resolvedBannerPreview}
+            baseAvatarUrl={displayedAvatar}
+            baseBannerUrl={displayedBanner}
+            premiumActive={premiumActive}
+            premiumOverrideActive={premiumAvatarOverride || premiumBannerOverride}
+            avatarBusy={baseMediaOpening === 'avatar'}
+            bannerBusy={baseMediaOpening === 'banner'}
+            canRemoveAvatar={Boolean(profile.avatar_path || avatarFile)}
+            canRemoveBanner={Boolean(profile.banner_path || bannerFile)}
+            error={baseMediaError || error}
+            message={saved}
+            onUsernameChange={(value) => {
+              setUsername(value);
+              setSaved('');
+            }}
+            onBioChange={(value) => {
+              setBio(value);
+              setSaved('');
+            }}
+            onAvatarFile={(file) => stageMedia('avatar', file)}
+            onBannerFile={(file) => stageMedia('banner', file)}
+            onRemoveAvatar={() => {
+              setAvatarFile(null);
+              if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+              setAvatarPreview(null);
+              setRemoveAvatar(true);
+              setSaved('');
+            }}
+            onRemoveBanner={() => {
+              setBannerFile(null);
+              if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+              setBannerPreview(null);
+              setRemoveBanner(true);
+              setSaved('');
+            }}
+            onUseBaseMedia={clearPremiumFallbackMedia}
+            onOpenPremium={() => switchTab('style')}
+          />
         )}
 
         <div className={`profile-editor-v13__mobile-save profile-editor-v18__savebar ${dirty ? 'is-dirty' : ''}`}>
