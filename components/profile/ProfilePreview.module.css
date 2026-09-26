@@ -732,13 +732,30 @@
 
 .atmosphere {
   position: absolute;
-  z-index: 1;
   inset: 0;
   overflow: hidden;
   border-radius: inherit;
-  opacity: var(--profile-preview-atmosphere-alpha, .14);
   pointer-events: none;
-  contain: paint;
+}
+
+.atmosphere :global(.premium-profile-v21__ambient-layer),
+.atmosphere :global(.premium-profile-v21__particle-layer) {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.atmosphere :global(.premium-profile-v21__ambient-layer) {
+  z-index: 1;
+  opacity: var(--profile-preview-atmosphere-alpha, .14);
+}
+
+.atmosphere :global(.premium-profile-v21__particle-layer) {
+  z-index: 4;
+  opacity: var(--profile-preview-atmosphere-alpha, .14);
+  mix-blend-mode: screen;
 }
 
 .atmosphere :global(.premium-profile-v21__ambient) {
@@ -861,6 +878,10 @@
   animation-name: miniStarDrift;
 }
 
+.card[data-motion='live'] .atmosphere :global(.premium-profile-v21__particle-layer) {
+  opacity: var(--profile-preview-atmosphere-live-alpha, .48);
+}
+
 .card[data-motion='live'] .atmosphere :global(.premium-profile-v21__particles > i) {
   animation-duration: var(--particle-duration-live, 7s);
 }
@@ -889,7 +910,8 @@
     linear-gradient(180deg, transparent 24%, rgba(6,8,15,.18) 58%, rgba(7,10,18,.9) 100%);
 }
 
-.card[data-hero='clean'] .atmosphere {
+.card[data-hero='clean'] .atmosphere :global(.premium-profile-v21__ambient-layer),
+.card[data-hero='clean'] .atmosphere :global(.premium-profile-v21__particle-layer) {
   opacity: var(--profile-preview-atmosphere-clean-alpha, .12);
 }
 
