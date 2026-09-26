@@ -51,6 +51,8 @@ const premiumIdentityCss = read('app/premium-profile-identity-v21.css');
 const premiumCropEditor = read('components/premium/PremiumMediaCropEditor.tsx');
 const adaptivePalette = read('lib/adaptive-profile-theme-client.ts');
 const publicProfilePage = read('app/profile/[id]/page.tsx');
+const ownProfilePage = read('app/profile/page.tsx');
+const legacyPremiumStudioApi = read('app/api/premium/studio/route.ts');
 const rootLayout = read('app/layout.tsx');
 const premiumUploadRoute = read('app/api/profile/media/upload-url/route.ts');
 const premiumPublishServer = read('lib/profile-media-publish-server.ts');
@@ -559,6 +561,28 @@ need('Public Premium identity rendering', publicProfilePage, [
   'data-premium-hero',
   'data-premium-surface',
   'premium-profile-v21__nickname',
+]);
+
+need('Own Premium identity rendering', ownProfilePage, [
+  'PremiumProfileAtmosphere',
+  'premiumIdentityActive',
+  'premium-profile-v21',
+  'data-premium-atmosphere',
+  'data-premium-motion',
+  'data-premium-entrance',
+  'data-premium-hero',
+  'data-premium-surface',
+  'premium-profile-v21__nickname',
+]);
+
+need('Legacy Premium read API identity columns', legacyPremiumStudioApi, [
+  'atmosphere_effect',
+  'atmosphere_intensity',
+  'motion_mode',
+  'entrance_effect',
+  'nickname_effect',
+  'hero_style',
+  'surface_style',
 ]);
 
 need('Premium identity stylesheet load', rootLayout, [
