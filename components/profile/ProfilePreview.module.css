@@ -718,10 +718,16 @@
    ========================================================= */
 
 .card[data-premium='true'] .hero,
-.card[data-premium='true'] .body,
-.card[data-premium='true'] .close {
+.card[data-premium='true'] .body {
   position: relative;
   z-index: 3;
+}
+
+.card[data-premium='true'] .close {
+  position: absolute;
+  z-index: 20;
+  top: 11px;
+  right: 11px;
 }
 
 .atmosphere {
@@ -1056,5 +1062,18 @@
 
   .atmosphere :global(.premium-profile-v21__particles) {
     display: none;
+  }
+}
+
+
+/* Patch 18.9.3 — mini-profile close button containment */
+@media (max-width: 640px) {
+  .card .close,
+  .card[data-premium='true'] .close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    left: auto;
+    z-index: 30;
   }
 }
