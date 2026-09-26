@@ -12,6 +12,7 @@ import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
 import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
+import { isLevelFrameKey } from '@/lib/progression';
 import {
   premiumMediaStyle,
   type PremiumMediaTransform,
@@ -345,7 +346,10 @@ export default function ProfilePreview({
                       </div>
 
                       <div className={styles.heroIdentity}>
-                        <span className={`${styles.avatarShell} ${data.profileFrameKey ? styles.avatarShellSeason : ''}`}>
+                        <span
+                          className={`${styles.avatarShell} ${data.profileFrameKey ? styles.avatarShellSeason : ''}`}
+                          data-milestone-frame={isLevelFrameKey(data.profileFrameKey) ? 'true' : 'false'}
+                        >
                           <picture className={styles.avatarMedia}>
                             {data.avatarStaticUrl !== data.avatarUrl && (
                               <source
