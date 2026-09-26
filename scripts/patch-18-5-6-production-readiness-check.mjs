@@ -113,9 +113,9 @@ need('lease extension', lease, [
 
 need('retention service', readiness, [
   "'prune_animebox_operational_data'",
-  'jobRetentionDays: input.jobRetentionDays ?? 30',
-  'requestRetentionDays: input.requestRetentionDays ?? 30',
-  'eventRetentionDays: input.eventRetentionDays ?? 180',
+  'p_job_retention_days: input.jobRetentionDays ?? 30',
+  'p_request_retention_days: input.requestRetentionDays ?? 30',
+  'p_event_retention_days: input.eventRetentionDays ?? 180',
 ]);
 
 need('recommendation brownout', recommendations, [
