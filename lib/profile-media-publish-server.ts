@@ -92,7 +92,7 @@ function mediaGeometryLimit(
 ) {
   if (scope === 'premium' && variant === 'static') {
     return kind === 'avatar'
-      ? { minWidth: 256, minHeight: 256, maxWidth: 512, maxHeight: 512, maxPixels: 512 * 512 }
+      ? { minWidth: 1, minHeight: 1, maxWidth: 512, maxHeight: 512, maxPixels: 512 * 512 }
       : { minWidth: 1, minHeight: 1, maxWidth: 1500, maxHeight: 900, maxPixels: 1500 * 900 };
   }
 
