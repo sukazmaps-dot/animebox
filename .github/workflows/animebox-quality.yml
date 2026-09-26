@@ -208,3 +208,73 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+
+  package-original-milestone-overlay:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout PR merge commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Build Patch 18.8.2 original milestone overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf patch-overlay animebox-patch-18-8-2-original-milestone-frames.zip
+          mkdir -p patch-overlay
+          while IFS= read -r file; do
+            [ "$file" = ".github/workflows/animebox-quality.yml" ] && continue
+            [ -f "$file" ] || continue
+            mkdir -p "patch-overlay/$(dirname "$file")"
+            cp "$file" "patch-overlay/$file"
+          done < <(git diff --name-only --diff-filter=ACMRT HEAD^1 HEAD)
+
+          cat > patch-overlay/PATCH_INFO.txt <<'EOF'
+          AnimeBox Patch 18.8.2 — Profile Studio Direct Edit + Original Milestone Frames v3.1
+
+          Cumulative overlay поверх актуального main.
+          Включает:
+          - Patch 18.8.1 progression/cosmetics
+          - Profile Studio Direct Edit
+          - direct click avatar/banner
+          - one active frame slot
+          - LVL 1–100
+          - original milestone SVG v3.1:
+            LVL 10 Forbidden Relic
+            LVL 25 Flame Arc
+            LVL 50 Crimson Sigil
+            LVL 75 Menacing Manga
+            LVL 100 Absolute Prestige
+          - Free static + Premium animated
+          - milestone avatar safe-zone
+
+          После распаковки:
+          npm run patch18-8:check
+          npx tsc --noEmit
+          npm run build
+          EOF
+
+          milestone_count="$(find patch-overlay/public/brand/frames/milestone -type f -name '*.svg' | wc -l)"
+          test "$milestone_count" -eq 10
+
+          placeholder_count="$(find patch-overlay/public/brand/frames/level -type f -name '*.svg' 2>/dev/null | wc -l || true)"
+          test "$placeholder_count" -eq 0
+
+          test "$(find patch-overlay -type f | wc -l)" -gt 20
+
+          cd patch-overlay
+          zip -r ../animebox-patch-18-8-2-original-milestone-frames.zip .
+          cd ..
+
+      - name: Upload Patch 18.8.2 original milestone overlay
+        uses: actions/upload-artifact@v4
+        with:
+          name: animebox-patch-18-8-2-original-milestone-frames
+          path: animebox-patch-18-8-2-original-milestone-frames.zip
+          if-no-files-found: error
+          retention-days: 3
