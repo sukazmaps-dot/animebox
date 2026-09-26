@@ -593,16 +593,22 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     }
   }
 
-  async function clearPremiumFallbackMedia() {
+  async function clearPremiumFallbackMedia(media: 'avatar' | 'banner' | 'all' = 'all') {
     if (!user?.id) return;
     setError('');
     setSaved('');
     try {
-      const response = await fetch('/api/premium/studio?media=all', { method: 'DELETE' });
+      const response = await fetch(`/api/premium/studio?media=${media}`, { method: 'DELETE' });
       const payload = (await response.json()) as { settings?: PremiumStudioSettings; error?: string };
       if (!response.ok) throw new Error(payload.error || 'Не удалось вернуть базовые медиа.');
       setPremiumSettings(payload.settings ?? null);
-      setSaved('Снова используются базовые аватар и баннер ✓');
+      setSaved(
+        media === 'avatar'
+          ? 'Снова используется базовый аватар ✓'
+          : media === 'banner'
+            ? 'Снова используется базовый баннер ✓'
+            : 'Снова используются базовые аватар и баннер ✓',
+      );
       window.dispatchEvent(new Event('animebox:premium-studio-updated'));
       notifyProfileAppearanceChanged(user.id);
       void refreshAuth();
@@ -781,7 +787,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
               setRemoveBanner(true);
               setSaved('');
             }}
-            onUseBaseMedia={clearPremiumFallbackMedia}
+            onUseBaseAvatar={() => clearPremiumFallbackMedia('avatar')}
+            onUseBaseBanner={() => clearPremiumFallbackMedia('banner')}
             onOpenPremium={() => switchTab('style')}
           />
           </div>
