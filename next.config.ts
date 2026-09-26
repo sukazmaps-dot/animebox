@@ -45,6 +45,19 @@ const nextConfig: NextConfig = {
         value: 'max-age=31536000; includeSubDomains',
       },
       {
+        // AnimeBox is never intended to be embedded as a page. Keep this
+        // directive isolated from the future full CSP so player/auth provider
+        // inventories cannot accidentally delay clickjacking protection.
+        key: 'Content-Security-Policy',
+        value: "frame-ancestors 'none';",
+      },
+      {
+        // Legacy anti-framing fallback for clients that do not enforce
+        // CSP frame-ancestors.
+        key: 'X-Frame-Options',
+        value: 'DENY',
+      },
+      {
         key: 'X-Content-Type-Options',
         value: 'nosniff',
       },
