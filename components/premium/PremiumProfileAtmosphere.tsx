@@ -33,9 +33,9 @@ const PARTICLE_COUNT: Record<PremiumAtmosphereVariant, number> = {
  * browser engines and was the reason particles could silently lose their
  * left/duration/delay values in social mini-profiles.
  *
- * These values are generated from the stable particle index. There is no
- * No runtime randomness is used, so server/client markup is identical and
- * screenshots/tests remain reproducible.
+ * These values are generated from the stable particle index. No runtime
+ * randomness is used, so server/client markup is identical and screenshots
+ * and tests remain reproducible.
  */
 function particleStyle(
   index: number,
@@ -99,18 +99,22 @@ export default function PremiumProfileAtmosphere({
       data-variant={variant}
       aria-hidden="true"
     >
-      <span className="premium-profile-v21__ambient premium-profile-v21__ambient--a" />
-      <span className="premium-profile-v21__ambient premium-profile-v21__ambient--b" />
-      <span className="premium-profile-v21__ambient premium-profile-v21__ambient--c" />
+      <span className="premium-profile-v21__ambient-layer">
+        <span className="premium-profile-v21__ambient premium-profile-v21__ambient--a" />
+        <span className="premium-profile-v21__ambient premium-profile-v21__ambient--b" />
+        <span className="premium-profile-v21__ambient premium-profile-v21__ambient--c" />
+      </span>
 
-      <span className="premium-profile-v21__particles">
-        {Array.from({ length: particleCount }, (_, index) => (
-          <i
-            key={index}
-            data-particle={index}
-            style={particleStyle(index, variant)}
-          />
-        ))}
+      <span className="premium-profile-v21__particle-layer">
+        <span className="premium-profile-v21__particles">
+          {Array.from({ length: particleCount }, (_, index) => (
+            <i
+              key={index}
+              data-particle={index}
+              style={particleStyle(index, variant)}
+            />
+          ))}
+        </span>
       </span>
     </div>
   );
