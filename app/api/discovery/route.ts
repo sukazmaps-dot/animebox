@@ -200,7 +200,10 @@ async function observedGET(request: NextRequest) {
     );
     candidates = availability.items;
 
-    if (availability.refreshTargets.length > 0) {
+    if (
+      runtimeControl.snapshot.features.background_jobs &&
+      availability.refreshTargets.length > 0
+    ) {
       after(async () => {
         await refreshCatalogAvailabilityBatch(
           availability.refreshTargets,
