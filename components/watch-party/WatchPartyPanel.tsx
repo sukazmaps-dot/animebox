@@ -2420,6 +2420,78 @@ export default function WatchPartyPanel({
   }, [destroyTransport]);
 
   useEffect(() => {
+    const resumeAfterBackground = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (!navigator.onLine || intentionalCloseRef.current || hostEndedRef.current) return;
+
+      const invite = inviteRef.current;
+      const currentRole = roleRef.current;
+      if (!invite || !currentRole) return;
+
+      const relayOpen = relayRef.current?.isOpen() ?? false;
+      const peer = peerRef.current;
+
+      if (currentRole === 'host') {
+        if (relayOpen || (peer && !peer.destroyed && !peer.disconnected)) {
+          ensureHostTimers();
+          if (relayOpen) setNetworkRoute('server');
+          setError('');
+          setStatus('active');
+          return;
+        }
+      } else {
+        if (
+          (guestTransportRef.current === 'p2p' && guestConnectionRef.current?.open) ||
+          (relayWelcomedRef.current && relayOpen)
+        ) {
+          if (guestTransportRef.current === 'server') setNetworkRoute('server');
+          setError('');
+          setStatus('active');
+          return;
+        }
+
+        if (peer && !peer.destroyed) {
+          if (peer.disconnected) {
+            try {
+              peer.reconnect();
+            } catch {
+              // scheduleGuestReconnect creates a fresh DataChannel when possible.
+            }
+          }
+
+          setStatus('reconnecting');
+          setError('Возвращаемся в комнату после паузы…');
+          scheduleGuestReconnectRef.current();
+          return;
+        }
+      }
+
+      setStatus('reconnecting');
+      setError('Возвращаемся в комнату после паузы…');
+      destroyTransport();
+      intentionalCloseRef.current = false;
+
+      queueMicrotask(() => {
+        if (intentionalCloseRef.current || hostEndedRef.current) return;
+        if (currentRole === 'host') startHostRef.current(invite);
+        else startGuestRef.current(invite);
+      });
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') resumeAfterBackground();
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('pageshow', resumeAfterBackground);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('pageshow', resumeAfterBackground);
+    };
+  }, [destroyTransport, ensureHostTimers]);
+
+  useEffect(() => {
     return () => {
       intentionalCloseRef.current = true;
       destroyTransport();
