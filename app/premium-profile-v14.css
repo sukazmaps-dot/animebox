@@ -2951,3 +2951,208 @@
   0%,100% { transform: scale(1.04); opacity: .42; }
   50% { transform: scale(1.16); opacity: .72; }
 }
+
+
+/* =========================================================
+   AnimeBox Patch 18.9.1 — persistent Premium Studio preview
+   Keep one live preview visible while editing every lower section.
+   ========================================================= */
+
+@media (min-width: 1201px) {
+  .profile-editor-v13 .premium-studio-v15__layout {
+    grid-template-columns: minmax(0, 1fr) minmax(390px, .88fr);
+    grid-template-rows: auto auto auto auto auto;
+    column-gap: 22px;
+    row-gap: 18px;
+    align-items: start;
+  }
+
+  /*
+   * The old hero wrapper limited position:sticky to the Palette block.
+   * display:contents promotes Palette + Preview into the full studio grid,
+   * so the preview rail can span Palette, tabs and the active editor panel.
+   */
+  .profile-editor-v13 .premium-studio-v15__hero {
+    display: contents;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__hero-main {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__preview-wrap {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    align-self: stretch;
+    min-width: 0;
+    min-height: 100%;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__sticky {
+    position: sticky;
+    top: 96px;
+    z-index: 12;
+    max-height: calc(100dvh - 116px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(170, 128, 255, .26) transparent;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__sticky::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__sticky::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(170, 128, 255, .24);
+  }
+
+  .profile-editor-v13 .premium-studio-v15__preview-label {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    margin: 0 0 10px;
+    padding: 3px 4px 8px;
+    background: linear-gradient(
+      180deg,
+      rgba(8, 11, 24, .98) 0%,
+      rgba(8, 11, 24, .9) 72%,
+      rgba(8, 11, 24, 0) 100%
+    );
+    backdrop-filter: blur(10px);
+  }
+
+  .profile-editor-v13 .premium-studio-v16__section-nav {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__sections {
+    grid-column: 1;
+    grid-row: 3;
+    min-width: 0;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__dock {
+    grid-column: 1 / -1;
+    grid-row: 4;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__messages {
+    grid-column: 1 / -1;
+    grid-row: 5;
+  }
+
+  /*
+   * The live card should fit inside a typical laptop viewport while sticky.
+   * Content remains unchanged; only the excessive cinematic height is reduced.
+   */
+  .profile-editor-v13 .premium-studio-v15__preview {
+    min-height: 440px !important;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__preview-banner {
+    min-height: clamp(160px, 22vh, 205px) !important;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__preview-body {
+    gap: 10px;
+    padding-bottom: 18px;
+  }
+}
+
+/*
+ * Slightly narrower desktops still keep a useful sticky preview.
+ * Below 1040px the Studio returns to the existing single-column flow.
+ */
+@media (min-width: 1041px) and (max-width: 1200px) {
+  .profile-editor-v13 .premium-studio-v15__layout {
+    grid-template-columns: minmax(0, 1fr) minmax(330px, 390px);
+    grid-template-rows: auto auto auto auto auto;
+    column-gap: 16px;
+    row-gap: 16px;
+    align-items: start;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__hero {
+    display: contents;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__hero-main {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__preview-wrap {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    align-self: stretch;
+    min-height: 100%;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__sticky {
+    position: sticky;
+    top: 88px;
+    z-index: 12;
+    max-height: calc(100dvh - 104px);
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .profile-editor-v13 .premium-studio-v16__section-nav {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__sections {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__dock {
+    grid-column: 1 / -1;
+    grid-row: 4;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__messages {
+    grid-column: 1 / -1;
+    grid-row: 5;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__preview {
+    min-height: 410px !important;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__preview-banner {
+    min-height: 150px !important;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__preview-body {
+    gap: 9px;
+    padding-bottom: 16px;
+  }
+}
+
+@media (max-width: 1040px) {
+  .profile-editor-v13 .premium-studio-v15__preview-wrap {
+    order: -1;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__sticky {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__preview {
+    min-height: 390px !important;
+  }
+
+  .profile-editor-v13 .premium-studio-v15__preview-banner {
+    min-height: 150px !important;
+  }
+}
