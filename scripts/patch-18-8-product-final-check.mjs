@@ -30,20 +30,16 @@ const rewardsPanel = read('components/profile/ProfileRewardsPanel.tsx');
 const publicProfile = read('lib/public-profile-server.ts');
 const avatarFrame = read('components/profile/UserAvatarWithFrame.tsx');
 const profileFrameOverlay = read('components/profile/ProfileFrameOverlay.tsx');
-const levelViewerStatic = read('public/brand/frames/level/static/viewer.svg');
-const levelExplorerStatic = read('public/brand/frames/level/static/explorer.svg');
-const levelMarathonerStatic = read('public/brand/frames/level/static/marathoner.svg');
-const levelCollectorStatic = read('public/brand/frames/level/static/collector.svg');
-const levelVeteranStatic = read('public/brand/frames/level/static/veteran.svg');
-const levelLegendStatic = read('public/brand/frames/level/static/legend.svg');
-const levelMasterStatic = read('public/brand/frames/level/static/master.svg');
-const levelViewerPremium = read('public/brand/frames/level/premium/viewer-animated.svg');
-const levelExplorerPremium = read('public/brand/frames/level/premium/explorer-animated.svg');
-const levelMarathonerPremium = read('public/brand/frames/level/premium/marathoner-animated.svg');
-const levelCollectorPremium = read('public/brand/frames/level/premium/collector-animated.svg');
-const levelVeteranPremium = read('public/brand/frames/level/premium/veteran-animated.svg');
-const levelLegendPremium = read('public/brand/frames/level/premium/legend-animated.svg');
-const levelMasterPremium = read('public/brand/frames/level/premium/master-animated.svg');
+const lv10Static = read('public/brand/frames/milestone/free/lv10-forbidden-relic.svg');
+const lv25Static = read('public/brand/frames/milestone/free/lv25-flame-arc.svg');
+const lv50Static = read('public/brand/frames/milestone/free/lv50-crimson-sigil.svg');
+const lv75Static = read('public/brand/frames/milestone/free/lv75-menacing-manga.svg');
+const lv100Static = read('public/brand/frames/milestone/free/lv100-absolute-prestige.svg');
+const lv10Premium = read('public/brand/frames/milestone/premium/lv10-forbidden-relic-premium.svg');
+const lv25Premium = read('public/brand/frames/milestone/premium/lv25-flame-arc-premium.svg');
+const lv50Premium = read('public/brand/frames/milestone/premium/lv50-crimson-sigil-premium.svg');
+const lv75Premium = read('public/brand/frames/milestone/premium/lv75-menacing-manga-premium.svg');
+const lv100Premium = read('public/brand/frames/milestone/premium/lv100-absolute-prestige-premium.svg');
 const progression = read('lib/progression.ts');
 const achievementsClient = read('components/AchievementsClient.tsx');
 const adminCommunity = read('app/api/admin/community/route.ts');
@@ -357,7 +353,9 @@ need('level milestone system', progression, [
   'LEVEL_FRAME_KEYS',
   'unlockedLevelFrames',
   'xpForLevel',
-  'AnimeBox Master',
+  'MAX_LEVEL = 100',
+  'milestone-lv10-forbidden-relic',
+  'milestone-lv100-absolute-prestige',
 ]);
 
 need('level frame renderer', profileFrameOverlay, [
@@ -367,36 +365,40 @@ need('level frame renderer', profileFrameOverlay, [
   "data-premium",
 ]);
 
-need('native level frame assets', profileFrameOverlay, [
+need('original milestone frame assets', profileFrameOverlay, [
   'STATIC_LEVEL_FRAME_ASSETS',
   'PREMIUM_LEVEL_FRAME_ASSETS',
-  '/brand/frames/level/static/viewer.svg',
-  '/brand/frames/level/premium/master-animated.svg',
+  '/brand/frames/milestone/free/lv10-forbidden-relic.svg',
+  '/brand/frames/milestone/premium/lv100-absolute-prestige-premium.svg',
   'levelFrameAsset',
 ]);
 
 for (const [label, source] of [
-  ['viewer static', levelViewerStatic],
-  ['explorer static', levelExplorerStatic],
-  ['marathoner static', levelMarathonerStatic],
-  ['collector static', levelCollectorStatic],
-  ['veteran static', levelVeteranStatic],
-  ['legend static', levelLegendStatic],
-  ['master static', levelMasterStatic],
+  ['LVL 10 Forbidden Relic', lv10Static],
+  ['LVL 25 Flame Arc', lv25Static],
+  ['LVL 50 Crimson Sigil', lv50Static],
+  ['LVL 75 Menacing Manga', lv75Static],
+  ['LVL 100 Absolute Prestige', lv100Static],
 ]) {
-  need(`level frame asset ${label}`, source, ['<svg', 'viewBox="0 0 120 120"', 'class="ring outer"']);
+  need(`milestone frame asset ${label}`, source, ['<svg', 'viewBox="0 0 512 512"']);
+  if (source.includes('@keyframes')) {
+    failures.push(`free milestone frame ${label} must stay static`);
+  }
 }
 
 for (const [label, source] of [
-  ['viewer premium', levelViewerPremium],
-  ['explorer premium', levelExplorerPremium],
-  ['marathoner premium', levelMarathonerPremium],
-  ['collector premium', levelCollectorPremium],
-  ['veteran premium', levelVeteranPremium],
-  ['legend premium', levelLegendPremium],
-  ['master premium', levelMasterPremium],
+  ['LVL 10 Forbidden Relic Premium', lv10Premium],
+  ['LVL 25 Flame Arc Premium', lv25Premium],
+  ['LVL 50 Crimson Sigil Premium', lv50Premium],
+  ['LVL 75 Menacing Manga Premium', lv75Premium],
+  ['LVL 100 Absolute Prestige Premium', lv100Premium],
 ]) {
-  need(`premium level frame asset ${label}`, source, ['<svg', '@keyframes', 'prefers-reduced-motion']);
+  need(`premium milestone frame asset ${label}`, source, [
+    '<svg',
+    'viewBox="0 0 512 512"',
+    '@keyframes',
+    'prefers-reduced-motion',
+  ]);
 }
 
 if (profileFrameOverlay.includes('<circle className={styles.outer}')) {
