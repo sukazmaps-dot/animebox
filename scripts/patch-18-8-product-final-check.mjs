@@ -378,6 +378,17 @@ need('mini-profile production particle rendering', profilePreviewCss, [
   'position: absolute',
   'z-index: 20',
 ]);
+
+need('mini-profile foreground atmosphere layering', profilePreviewCss, [
+  '.premium-profile-v21__ambient-layer',
+  '.premium-profile-v21__particle-layer',
+  'z-index: 1',
+  'z-index: 4',
+  '--profile-preview-atmosphere-live-alpha',
+]);
+if (/\.atmosphere\s*\{[^}]*contain:\s*paint/s.test(profilePreviewCss)) {
+  failures.push('Mini-profile atmosphere wrapper must not trap foreground particles below opaque surfaces');
+}
 if (/var\(--particle-index\)/.test(profilePreviewCss)) {
   failures.push('Mini-profile CSS regressed to browser-dependent particle-index math');
 }
@@ -590,6 +601,13 @@ need('Premium atmosphere deterministic particle geometry', premiumAtmosphere, [
   'particleStyle(index, variant)',
   'data-variant={variant}',
 ]);
+
+need('Premium atmosphere split-layer renderer', premiumAtmosphere, [
+  'premium-profile-v21__ambient-layer',
+  'premium-profile-v21__particle-layer',
+  'premium-profile-v21__ambient--a',
+  'premium-profile-v21__particles',
+]);
 if (/Math\.random\s*\(/.test(premiumAtmosphere)) {
   failures.push('Premium atmosphere particles must stay deterministic; Math.random() calls are forbidden');
 }
@@ -620,6 +638,18 @@ need('Premium atmosphere production particle CSS', premiumIdentityCss, [
   'var(--particle-fall-y, 700px)',
   "[data-motion='off']",
 ]);
+
+need('Premium atmosphere foreground layering', premiumIdentityCss, [
+  '.premium-profile-v21__ambient-layer',
+  '.premium-profile-v21__particle-layer',
+  'z-index: 1',
+  'z-index: 4',
+  'mix-blend-mode: screen',
+  '--ab-premium-atmosphere-live-alpha',
+]);
+if (/\.premium-profile-v21__atmosphere\s*\{[^}]*contain:\s*paint/s.test(premiumIdentityCss)) {
+  failures.push('Premium atmosphere wrapper must not create a paint containment stacking context');
+}
 if (/var\(--particle-index\)/.test(premiumIdentityCss)) {
   failures.push('Premium identity CSS regressed to browser-dependent particle-index math');
 }
