@@ -3,6 +3,9 @@ export const PREMIUM_PROFILE_THEMES = [
   'violet',
   'midnight',
   'sakura',
+  'crimson',
+  'ocean',
+  'gold',
 ] as const;
 
 export type PremiumProfileTheme = (typeof PREMIUM_PROFILE_THEMES)[number];
@@ -142,6 +145,27 @@ export const PREMIUM_PROFILE_THEME_META: Record<
     primaryColor: '#24101E',
     accentColor: '#FF6FAF',
     textColor: '#FFF4F9',
+  },
+  crimson: {
+    label: 'Crimson Oath',
+    description: 'Глубокий багровый профиль с контрастным красным свечением.',
+    primaryColor: '#1D0B12',
+    accentColor: '#FF4E6A',
+    textColor: '#FFF4F6',
+  },
+  ocean: {
+    label: 'Ocean Glass',
+    description: 'Холодное стекло, бирюзово-синий свет и чистая глубина.',
+    primaryColor: '#071821',
+    accentColor: '#52D9E8',
+    textColor: '#F0FDFF',
+  },
+  gold: {
+    label: 'Golden Hour',
+    description: 'Тёмное золото и тёплый premium-акцент без дешёвого блеска.',
+    primaryColor: '#1B150A',
+    accentColor: '#F2C461',
+    textColor: '#FFF9E9',
   },
 };
 
