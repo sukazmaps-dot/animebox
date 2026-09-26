@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import { getUpstreamRuntimeSnapshot } from '@/lib/upstream-resilience-server';
 
 export type RuntimeControlKey =
   | 'platform_mode'
@@ -231,26 +232,49 @@ export async function setRuntimeControl(input: {
   } satisfies RuntimeControlRow;
 }
 
+function localUpstreamPressure() {
+  const upstreams = getUpstreamRuntimeSnapshot();
+  const queued = upstreams.reduce((sum, item) => sum + item.queued, 0);
+  const openCircuits = upstreams.filter(
+    (item) => item.circuit !== 'closed',
+  ).length;
+
+  return {
+    active: queued >= 20 || openCircuits >= 2,
+    queued,
+    openCircuits,
+  };
+}
+
 export async function runtimeFeatureDecision(
   feature: RuntimeFeatureKey,
   options: {
     disableInBrownout?: boolean;
+    considerLocalPressure?: boolean;
   } = {},
 ) {
   const snapshot = await getRuntimeControlSnapshot();
   const configuredEnabled = snapshot.features[feature] !== false;
+  const localPressure = options.considerLocalPressure
+    ? localUpstreamPressure()
+    : { active: false, queued: 0, openCircuits: 0 };
+  const brownout =
+    snapshot.mode === 'brownout' || localPressure.active;
   const brownoutBlocked =
-    options.disableInBrownout === true && snapshot.mode === 'brownout';
+    options.disableInBrownout === true && brownout;
 
   return {
     allowed: configuredEnabled && !brownoutBlocked,
     configuredEnabled,
-    brownout: snapshot.mode === 'brownout',
+    brownout,
+    localPressure,
     degraded: snapshot.degraded,
     reason: !configuredEnabled
       ? 'admin_disabled'
       : brownoutBlocked
-        ? 'brownout'
+        ? localPressure.active && snapshot.mode !== 'brownout'
+          ? 'local_pressure'
+          : 'brownout'
         : null,
     snapshot,
   };
