@@ -323,6 +323,7 @@ export default function ProfilePreview({
                   <PremiumProfileAtmosphere
                     effect={data.atmosphereEffect}
                     motion={data.motionMode}
+                    variant="compact"
                     className={styles.atmosphere}
                   />
                 )}
