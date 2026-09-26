@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuthState } from '@/components/AuthStateProvider';
 import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
-import { isLevelFrameKey } from '@/lib/progression';
+import { isLevelFrameKey, levelFrameAvatarScale } from '@/lib/progression';
 
 import { resolveIdentityKind, type PublicIdentityRole } from '@/lib/identity';
 import {
@@ -135,6 +135,7 @@ export default function UserAvatarWithFrame({
   const activeProfileFrameKey = profileFrameKey ?? seasonFrameKey;
   const hasProfileFrame = Boolean(activeProfileFrameKey);
   const hasMilestoneFrame = isLevelFrameKey(activeProfileFrameKey);
+  const milestoneAvatarScale = levelFrameAvatarScale(activeProfileFrameKey);
   const visibleIdentityFrameSrc = hasProfileFrame ? null : frameSrc;
 
   return (
@@ -143,15 +144,23 @@ export default function UserAvatarWithFrame({
       data-avatar-frame={activeProfileFrameKey ?? frameKind ?? 'none'}
     >
       <div
-        className={`absolute left-1/2 top-1/2 z-[1] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full ring-4 ring-[#091221] transition-[width,height] duration-200 ${
+        className={`absolute left-1/2 top-1/2 z-[1] aspect-square -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full ring-4 ring-[#091221] transition-[width,height] duration-200 ${
           hasMilestoneFrame
-            ? 'h-[58%] w-[58%]'
+            ? ''
             : hasProfileFrame
               ? 'h-[70%] w-[70%]'
               : visibleIdentityFrameSrc
               ? 'h-[85%] w-[85%]'
               : 'h-full w-full'
         }`}
+        style={
+          hasMilestoneFrame && milestoneAvatarScale
+            ? {
+                width: `${milestoneAvatarScale * 100}%`,
+                height: `${milestoneAvatarScale * 100}%`,
+              }
+            : undefined
+        }
       >
         <picture className="block h-full w-full">
           {mobileSrc && mobileSrc !== src && (
