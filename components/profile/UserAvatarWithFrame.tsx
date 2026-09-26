@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuthState } from '@/components/AuthStateProvider';
 import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
+import { isLevelFrameKey } from '@/lib/progression';
 
 import { resolveIdentityKind, type PublicIdentityRole } from '@/lib/identity';
 import {
@@ -133,6 +134,7 @@ export default function UserAvatarWithFrame({
   const frameSrc = frameKind ? FRAME_BY_KIND[frameKind] : null;
   const activeProfileFrameKey = profileFrameKey ?? seasonFrameKey;
   const hasProfileFrame = Boolean(activeProfileFrameKey);
+  const hasMilestoneFrame = isLevelFrameKey(activeProfileFrameKey);
   const visibleIdentityFrameSrc = hasProfileFrame ? null : frameSrc;
 
   return (
@@ -142,9 +144,11 @@ export default function UserAvatarWithFrame({
     >
       <div
         className={`absolute left-1/2 top-1/2 z-[1] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full ring-4 ring-[#091221] transition-[width,height] duration-200 ${
-          hasProfileFrame
-            ? 'h-[70%] w-[70%]'
-            : visibleIdentityFrameSrc
+          hasMilestoneFrame
+            ? 'h-[58%] w-[58%]'
+            : hasProfileFrame
+              ? 'h-[70%] w-[70%]'
+              : visibleIdentityFrameSrc
               ? 'h-[85%] w-[85%]'
               : 'h-full w-full'
         }`}
