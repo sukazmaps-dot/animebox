@@ -45,6 +45,9 @@ const MOOD_SWAP_FADE_OUT_MS = 135;
 const RAIL_SKELETON_COUNT = 3;
 const MAX_RAIL_DOM_ITEMS = 36;
 const RAIL_VIRTUAL_OVERSCAN = 6;
+const MIN_INITIAL_RAIL_ITEMS = 4;
+const SPARSE_RAIL_BOOTSTRAP_PAGE_HOPS = 1;
+const SPARSE_RAIL_ROOT_MARGIN = '240px 0px';
 
 type CachedPage = {
   expiresAt: number;
@@ -326,6 +329,9 @@ export default function SmartRecommendationFeed({
     Map<number, RecommendationRailId>
   >(() => new Map());
   const railVirtualMetricsRef = useRef<Map<RecommendationRailId, ScrollRowVirtualMetrics>>(new Map());
+  const sparseRailSectionRefs = useRef<Map<RecommendationRailId, HTMLElement>>(new Map());
+  const sparseRailPrimedRef = useRef<Set<RecommendationRailId>>(new Set());
+  const sparseRailQueueRef = useRef<Promise<void>>(Promise.resolve());
   const consumedPointerKeysRef = useRef<Set<string>>(new Set());
 
   const [sessionId, setSessionId] = useState(() => createSessionId());
@@ -422,6 +428,9 @@ export default function SmartRecommendationFeed({
         railOwnershipRef.current = new Map();
         setRailOwnership(new Map());
         railVirtualMetricsRef.current = new Map();
+        sparseRailSectionRefs.current = new Map();
+        sparseRailPrimedRef.current = new Set();
+        sparseRailQueueRef.current = Promise.resolve();
         consumedPointerKeysRef.current = new Set();
         railLoadingRef.current = new Set();
         setLocallyHidden(new Set());
@@ -642,6 +651,17 @@ export default function SmartRecommendationFeed({
     [],
   );
 
+  const registerSparseRailSection = useCallback(
+    (railId: RecommendationRailId, node: HTMLElement | null) => {
+      if (node) {
+        sparseRailSectionRefs.current.set(railId, node);
+      } else {
+        sparseRailSectionRefs.current.delete(railId);
+      }
+    },
+    [],
+  );
+
   const handleHiddenRecommendation = useCallback(
     (animeId: number) => {
       setLocallyHidden((current) => {
@@ -671,7 +691,11 @@ export default function SmartRecommendationFeed({
   );
 
   const ensureRailDepth = useCallback(
-    async (rail: RecommendationRail) => {
+    async (
+      rail: RecommendationRail,
+      options: { bootstrap?: boolean } = {},
+    ) => {
+      const bootstrap = options.bootstrap === true;
       if (
         moodTransitionRef.current ||
         !hasMoreRef.current ||
@@ -719,16 +743,21 @@ export default function SmartRecommendationFeed({
           virtualized: rail.items.length > MAX_RAIL_DOM_ITEMS,
         },
       });
-      const targetLimit =
-        Math.max(currentLimit, rail.items.length) +
-        RECOMMENDATION_RAIL_BATCH_SIZE;
+      const targetLimit = bootstrap
+        ? Math.max(currentLimit, MIN_INITIAL_RAIL_ITEMS)
+        : Math.max(currentLimit, rail.items.length) +
+          RECOMMENDATION_RAIL_BATCH_SIZE;
 
-      setRailLimits((current) => ({
-        ...current,
-        [rail.id]: targetLimit,
-      }));
+      if (targetLimit > currentLimit) {
+        setRailLimits((current) => ({
+          ...current,
+          [rail.id]: targetLimit,
+        }));
+      }
 
-      let remaining = Math.max(0, targetLimit - rail.items.length);
+      let remaining = bootstrap
+        ? Math.max(0, MIN_INITIAL_RAIL_ITEMS - rail.items.length)
+        : Math.max(0, targetLimit - rail.items.length);
       let claimedForRail = 0;
       let pagesScanned = 0;
 
@@ -771,7 +800,11 @@ export default function SmartRecommendationFeed({
       try {
         for (
           let attempt = 0;
-          attempt < MAX_EMPTY_PAGE_HOPS &&
+          attempt < (
+            bootstrap
+              ? SPARSE_RAIL_BOOTSTRAP_PAGE_HOPS
+              : MAX_EMPTY_PAGE_HOPS
+          ) &&
           hasMoreRef.current &&
           remaining > 0;
           attempt += 1
@@ -783,6 +816,7 @@ export default function SmartRecommendationFeed({
         }
 
         if (
+          !bootstrap &&
           claimedForRail === 0 &&
           hasMoreRef.current
         ) {
@@ -813,6 +847,7 @@ export default function SmartRecommendationFeed({
           entityId: rail.id,
           metadata: {
             row_id: rail.id,
+            trigger: bootstrap ? 'bootstrap' : 'interaction',
             items_before: itemsBefore,
             target_limit: targetLimit,
             claimed: claimedForRail,
@@ -846,17 +881,20 @@ export default function SmartRecommendationFeed({
           entityId: rail.id,
           metadata: {
             row_id: rail.id,
+            trigger: bootstrap ? 'bootstrap' : 'interaction',
             items_before: itemsBefore,
             target_limit: targetLimit,
             pages_scanned: pagesScanned,
             page: startPointer.page,
           },
         });
-        setRailErrors((current) => {
-          const next = new Set(current);
-          next.add(rail.id);
-          return next;
-        });
+        if (!bootstrap) {
+          setRailErrors((current) => {
+            const next = new Set(current);
+            next.add(rail.id);
+            return next;
+          });
+        }
       } finally {
         railLoadingRef.current.delete(rail.id);
         setLoadingRails((current) => {
@@ -875,6 +913,82 @@ export default function SmartRecommendationFeed({
       tasteGraph,
     ],
   );
+
+  useEffect(() => {
+    if (
+      isMoodSwapping ||
+      !hasMore ||
+      typeof IntersectionObserver === 'undefined'
+    ) {
+      return;
+    }
+
+    const sparseRails = new Map(
+      rails
+        .filter(
+          (rail) =>
+            rail.items.length > 0 &&
+            rail.items.length < MIN_INITIAL_RAIL_ITEMS &&
+            !loadingRails.has(rail.id) &&
+            !exhaustedRails.has(rail.id) &&
+            !sparseRailPrimedRef.current.has(rail.id),
+        )
+        .map((rail) => [rail.id, rail] as const),
+    );
+
+    if (!sparseRails.size) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+
+          const railId = entry.target.getAttribute(
+            'data-recommendation-rail-id',
+          ) as RecommendationRailId | null;
+          if (!railId) continue;
+
+          const rail = sparseRails.get(railId);
+          if (!rail || sparseRailPrimedRef.current.has(railId)) continue;
+
+          sparseRailPrimedRef.current.add(railId);
+          observer.unobserve(entry.target);
+
+          sparseRailQueueRef.current = sparseRailQueueRef.current
+            .then(async () => {
+              if (moodTransitionRef.current) return;
+              await ensureRailDepth(rail, { bootstrap: true });
+            })
+            .catch((error) => {
+              console.error(
+                'Recommendation sparse rail bootstrap:',
+                railId,
+                error,
+              );
+            });
+        }
+      },
+      {
+        root: null,
+        rootMargin: SPARSE_RAIL_ROOT_MARGIN,
+        threshold: 0.01,
+      },
+    );
+
+    for (const railId of sparseRails.keys()) {
+      const node = sparseRailSectionRefs.current.get(railId);
+      if (node) observer.observe(node);
+    }
+
+    return () => observer.disconnect();
+  }, [
+    ensureRailDepth,
+    exhaustedRails,
+    hasMore,
+    isMoodSwapping,
+    loadingRails,
+    rails,
+  ]);
 
   if (filtered.length === 0 && !hasMore && loadingRails.size === 0) {
     return (
@@ -905,8 +1019,17 @@ export default function SmartRecommendationFeed({
 
             return (
               <section
+                ref={(node) => registerSparseRailSection(rail.id, node)}
                 className="smart-feed__personal-rail"
                 key={`${rail.id}:${rowVersion}`}
+                data-recommendation-rail-id={rail.id}
+                data-recommendation-rail-items={rail.items.length}
+                data-recommendation-rail-sparse={
+                  rail.items.length > 0 &&
+                  rail.items.length < MIN_INITIAL_RAIL_ITEMS
+                    ? 'true'
+                    : 'false'
+                }
                 aria-labelledby={`smart-feed-rail-${rail.id}`}
               >
                 <header className="smart-feed__rail-heading">
