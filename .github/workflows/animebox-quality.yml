@@ -208,3 +208,77 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+
+  package-milestone-avatar-quality-overlay:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout PR merge commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Build Patch 18.8.2.1 cumulative overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf patch-overlay animebox-patch-18-8-2-1-milestone-avatar-quality.zip
+          mkdir -p patch-overlay
+
+          while IFS= read -r file; do
+            [ "$file" = ".github/workflows/animebox-quality.yml" ] && continue
+            [ -f "$file" ] || continue
+            mkdir -p "patch-overlay/$(dirname "$file")"
+            cp "$file" "patch-overlay/$file"
+          done < <(git diff --name-only --diff-filter=ACMRT HEAD^1 HEAD)
+
+          cat > patch-overlay/PATCH_INFO.txt <<'EOF'
+          AnimeBox Patch 18.8.2.1 — Milestone Frame Safe-Zone & Premium Avatar Quality
+
+          Cumulative overlay поверх актуального main.
+
+          Включает:
+          - 18.8.1 progression/cosmetics
+          - Profile Studio Direct Edit
+          - original milestone SVG v3.1
+          - LVL 1–100
+          - one active frame slot
+          - per-frame avatar safe zones:
+            LVL 10 = 54%
+            LVL 25 = 56%
+            LVL 50 = 50%
+            LVL 75 = 54%
+            LVL 100 = 50%
+          - Premium animated avatar hard limit = 8 MB
+          - warning after 4 MB
+          - minimum source size = 256x256
+          - maximum source size = 1024x1024
+          - original animation + static WebP fallback
+
+          Проверка:
+          npm run patch18-8:check
+          npx tsc --noEmit
+          npm run build
+          EOF
+
+          test "$(find patch-overlay/public/brand/frames/milestone -type f -name '*.svg' | wc -l)" -eq 10
+          test "$(find patch-overlay -type f | wc -l)" -gt 30
+          grep -q "'milestone-lv50-crimson-sigil': 0.50" patch-overlay/lib/progression.ts
+          grep -q "MAX_AVATAR_BYTES = 8 \* 1024 \* 1024" patch-overlay/components/premium/PremiumStudioClient.tsx
+          grep -q "MIN_PREMIUM_AVATAR_DIMENSION = 256" patch-overlay/components/premium/PremiumStudioClient.tsx
+          grep -q "8 \* 1024 \* 1024" patch-overlay/app/api/profile/media/upload-url/route.ts
+
+          cd patch-overlay
+          zip -r ../animebox-patch-18-8-2-1-milestone-avatar-quality.zip .
+          cd ..
+
+      - name: Upload Patch 18.8.2.1 overlay
+        uses: actions/upload-artifact@v4
+        with:
+          name: animebox-patch-18-8-2-1-milestone-avatar-quality
+          path: animebox-patch-18-8-2-1-milestone-avatar-quality.zip
+          if-no-files-found: error
+          retention-days: 3
