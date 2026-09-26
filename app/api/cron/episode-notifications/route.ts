@@ -8,6 +8,7 @@ import {
   NotificationError,
 } from '@/lib/notifications-server';
 
+import { beginOperationalJob } from '@/lib/operational-job-server';
 import { isCronAuthorized } from '@/lib/server-request-auth';
 import { createSystemJobObserver } from '@/lib/system-observability-server';
 
@@ -107,6 +108,7 @@ type WorkerStats = {
   playerAvailable?: number;
   waitingForPlayer?: number;
   availabilityUnknown?: number;
+  budgetExhausted?: boolean;
   durationMs?: number;
 };
 
@@ -116,7 +118,9 @@ async function successResponse(
 ) {
   await recordNotificationServiceHealth({
     status:
-      (stats.failed ?? 0) > 0 || (stats.availabilityUnknown ?? 0) > 0
+      (stats.failed ?? 0) > 0 ||
+      (stats.availabilityUnknown ?? 0) > 0 ||
+      stats.budgetExhausted === true
         ? 'degraded'
         : 'ok',
     checked: stats.checked,
@@ -130,8 +134,17 @@ async function successResponse(
     durationMs: stats.durationMs,
   });
 
-  if ((stats.failed ?? 0) > 0 || (stats.availabilityUnknown ?? 0) > 0) {
-    await observer.degraded('notification_delivery_degraded', stats);
+  if (
+    (stats.failed ?? 0) > 0 ||
+    (stats.availabilityUnknown ?? 0) > 0 ||
+    stats.budgetExhausted === true
+  ) {
+    await observer.degraded(
+      stats.budgetExhausted
+        ? 'notification_budget_exhausted'
+        : 'notification_delivery_degraded',
+      stats,
+    );
   } else {
     await observer.success(stats);
   }
@@ -219,6 +232,19 @@ export async function POST(request: Request) {
 
   const startedAt = Date.now();
   const observer = createSystemJobObserver('episode-notifications');
+  const permit = await beginOperationalJob('episode-notifications', {
+    budgetMs: 50_000,
+    leaseTtlSeconds: 90,
+  });
+
+  if (!permit.allowed) {
+    await observer.skipped(permit.reason, { degraded: permit.degraded });
+    return Response.json(
+      { ok: true, skipped: true, reason: permit.reason },
+      { headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
+
   const admin = createSupabaseAdmin();
   const nowSeconds = Math.floor(Date.now() / 1000);
 
@@ -311,8 +337,13 @@ export async function POST(request: Request) {
     let playerAvailable = 0;
     let waitingForPlayer = 0;
     let availabilityUnknown = 0;
+    let budgetExhausted = false;
 
     for (const schedule of relevantSchedules) {
+      if (permit.shouldStop(8_000)) {
+        budgetExhausted = true;
+        break;
+      }
       const animeId = schedule.media!.id;
       const key = `${animeId}:${schedule.episode}`;
 
@@ -362,6 +393,11 @@ export async function POST(request: Request) {
     let skipped = 0;
 
     for (const subscription of subscriptions) {
+      if (permit.shouldStop(8_000)) {
+        budgetExhausted = true;
+        break;
+      }
+
       if (!enabledUsers.has(subscription.user_id)) continue;
 
       const chatId = telegramByUser.get(subscription.user_id);
@@ -527,6 +563,7 @@ export async function POST(request: Request) {
       playerAvailable,
       waitingForPlayer,
       availabilityUnknown,
+      budgetExhausted,
       durationMs: Date.now() - startedAt,
     }, observer);
   } catch (error) {
@@ -555,6 +592,8 @@ export async function POST(request: Request) {
         headers: { 'Cache-Control': 'no-store' },
       },
     );
+  } finally {
+    await permit.release();
   }
 }
 
