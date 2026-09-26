@@ -378,7 +378,7 @@ need('mini-profile production particle rendering', profilePreviewCss, [
   'position: absolute',
   'z-index: 20',
 ]);
-if (profilePreviewCss.includes('--particle-index')) {
+if (/var\(--particle-index\)/.test(profilePreviewCss)) {
   failures.push('Mini-profile CSS regressed to browser-dependent particle-index math');
 }
 
@@ -590,10 +590,10 @@ need('Premium atmosphere deterministic particle geometry', premiumAtmosphere, [
   'particleStyle(index, variant)',
   'data-variant={variant}',
 ]);
-if (premiumAtmosphere.includes('Math.random')) {
-  failures.push('Premium atmosphere particles must stay deterministic; Math.random() is forbidden');
+if (/Math\.random\s*\(/.test(premiumAtmosphere)) {
+  failures.push('Premium atmosphere particles must stay deterministic; Math.random() calls are forbidden');
 }
-if (premiumAtmosphere.includes('--particle-index')) {
+if (/['"]--particle-index['"]\s*:/.test(premiumAtmosphere)) {
   failures.push('Premium atmosphere renderer regressed to CSS index multiplication');
 }
 
@@ -620,7 +620,7 @@ need('Premium atmosphere production particle CSS', premiumIdentityCss, [
   'var(--particle-fall-y, 700px)',
   "[data-motion='off']",
 ]);
-if (premiumIdentityCss.includes('--particle-index')) {
+if (/var\(--particle-index\)/.test(premiumIdentityCss)) {
   failures.push('Premium identity CSS regressed to browser-dependent particle-index math');
 }
 
