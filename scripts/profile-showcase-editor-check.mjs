@@ -14,6 +14,7 @@ const miniProfileCss = read('components/profile/ProfilePreview.module.css');
 const widgetsRoute = read('app/api/community/profile-widgets/route.ts');
 const gate = read('components/TelegramSubscriptionGate.tsx');
 const studioCss = read('app/patch16-6-5-profile-studio.css');
+const directEditor = read('components/profile/ProfileDirectEditSurface.tsx');
 
 for (const [label, needle] of [
   ['React portal import', "import { createPortal } from 'react-dom';"],
@@ -30,9 +31,12 @@ for (const [label, needle] of [
 
 for (const [label, source, needle] of [
   ['Profile Studio profile tab', editorShell, "switchTab('profile')"],
-  ['Profile Studio appearance tab', editorShell, "switchTab('appearance')"],
+  ['Profile Studio direct edit surface', editorShell, '<ProfileDirectEditSurface'],
   ['Profile Studio rewards tab', editorShell, "switchTab('rewards')"],
-  ['appearance URL maps to appearance tab', editPage, "params.tab === 'appearance' || params.tab === 'media'"],
+  ['legacy appearance URL alias remains supported', editPage, "params.tab === 'appearance' || params.tab === 'media'"],
+  ['direct edit frame inventory', directEditor, 'FRAME INVENTORY'],
+  ['direct edit avatar control', directEditor, 'Изменить аватар'],
+  ['direct edit banner control', directEditor, 'Изменить баннер'],
   ['single profile editor entry remains', profilePage, 'Редактировать профиль'],
   ['mobile mini-profile auto height', miniProfileCss, 'height: auto !important'],
   ['mobile mini-profile body shrink', miniProfileCss, 'flex: 0 1 auto'],
@@ -49,8 +53,19 @@ for (const [label, source, needle] of [
   }
 }
 
-if (!editorShell.includes("type EditorTab = 'profile' | 'appearance' | 'showcase' | 'rewards' | 'style'")) {
-  failures.push('Profile Studio 2.0 tab contract regressed.');
+if (!editorShell.includes("type EditorTab = 'profile' | 'showcase' | 'rewards' | 'style'")) {
+  failures.push('Profile Studio Direct Edit tab contract regressed.');
+}
+
+if (editorShell.includes("switchTab('appearance')")) {
+  failures.push('Standalone appearance tab returned; Profile + Appearance must remain unified.');
+}
+
+if (
+  !editPage.includes("params.tab === 'appearance' || params.tab === 'media'") ||
+  !editPage.includes("? 'profile'")
+) {
+  failures.push('Legacy appearance/media URLs must resolve into the unified profile editor.');
 }
 
 if (profilePage.includes('profile-v2__bottom-card--premium')) {
@@ -79,4 +94,4 @@ if (gate.includes('src="/brand/favicon.png"')) {
   failures.push('Telegram subscription gate: fragile favicon source returned.');
 }
 
-console.log('PASS: Profile Studio 2.0 tabs, showcase, mobile mini-profile, editor portal and Telegram gate logo resilience');
+console.log('PASS: Profile Studio Direct Edit, showcase, legacy appearance aliases, mobile mini-profile, editor portal and Telegram gate logo resilience');
