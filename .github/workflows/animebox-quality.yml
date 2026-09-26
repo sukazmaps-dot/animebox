@@ -208,3 +208,85 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+
+  package-premium-mobile-social-overlay:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Build Patch 18.9.2 cumulative overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          rm -rf patch-overlay animebox-patch-18-9-2-mobile-premium-social.zip
+          mkdir -p patch-overlay
+
+          while IFS= read -r file; do
+            [ "$file" = ".github/workflows/animebox-quality.yml" ] && continue
+            [ -f "$file" ] || continue
+            mkdir -p "patch-overlay/$(dirname "$file")"
+            cp "$file" "patch-overlay/$file"
+          done < <(git diff --name-only --diff-filter=ACMRT origin/main...HEAD)
+
+          cat > patch-overlay/PATCH_INFO.txt <<'EOF'
+          AnimeBox Patch 18.9.2 — Mobile Premium Studio & Social Mini Profile
+
+          Cumulative overlay поверх актуального main.
+
+          Включает весь 18.9 / 18.9.1 и дополнительно:
+          - mobile Premium preview FAB
+          - BottomSheet live preview
+          - reusable PremiumStudioLivePreview
+          - horizontal mobile atmosphere carousel
+          - horizontally scrollable segmented controls
+          - mobile Studio tabs
+          - LVL 50 Crimson Sigil avatar fit = 56%
+          - LVL 100 Absolute Prestige avatar fit = 56%
+          - Premium atmosphere/motion/nickname/hero/surface in mini-profile
+          - Premium mini-profile avatar aura
+          - Motion Off static media/frame fallback
+          - Global Chat mini-profile from avatar, username and @mentions
+          - Watch Together shared mini-profile support
+          - comments shared mini-profile support
+
+          Проверка:
+          npm run patch18-8:check
+          npx tsc --noEmit
+          npm run build
+          EOF
+
+          test "$(find patch-overlay -type f | wc -l)" -ge 55
+          test -f patch-overlay/components/premium/PremiumStudioLivePreview.tsx
+          test -f patch-overlay/components/profile/ProfilePreview.tsx
+          test -f patch-overlay/components/profile/ProfilePreview.module.css
+          test -f patch-overlay/components/chat/GlobalChatV11Client.tsx
+          grep -q "premium-studio-v22__preview-fab" patch-overlay/components/premium/PremiumStudioClient.tsx
+          grep -q "premium-studio-v22__preview-sheet-layer" patch-overlay/app/premium-profile-v14.css
+          grep -q "scroll-snap-type: x mandatory" patch-overlay/app/premium-profile-v14.css
+          grep -q "'milestone-lv50-crimson-sigil': 0.56" patch-overlay/lib/progression.ts
+          grep -q "'milestone-lv100-absolute-prestige': 0.56" patch-overlay/lib/progression.ts
+          grep -q "PremiumProfileAtmosphere" patch-overlay/components/profile/ProfilePreview.tsx
+          grep -q "Patch 18.9.2 — Premium Identity inside shared mini-profile" patch-overlay/components/profile/ProfilePreview.module.css
+          grep -q "className={styles.avatarWrap}" patch-overlay/components/chat/GlobalChatV11Client.tsx
+          grep -q "className={styles.username}" patch-overlay/components/chat/GlobalChatV11Client.tsx
+
+          cd patch-overlay
+          zip -r ../animebox-patch-18-9-2-mobile-premium-social.zip .
+          cd ..
+
+      - name: Upload Patch 18.9.2 overlay
+        uses: actions/upload-artifact@v4
+        with:
+          name: animebox-patch-18-9-2-mobile-premium-social
+          path: animebox-patch-18-9-2-mobile-premium-social.zip
+          if-no-files-found: error
+          retention-days: 3
