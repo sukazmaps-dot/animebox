@@ -208,3 +208,53 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+
+  package-direct-edit-fix-overlay:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout PR merge commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Build updated Patch 18.8.2 overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf patch-overlay animebox-patch-18-8-2-direct-edit-svg-fix.zip
+          mkdir -p patch-overlay
+          while IFS= read -r file; do
+            [ "$file" = ".github/workflows/animebox-quality.yml" ] && continue
+            [ -f "$file" ] || continue
+            mkdir -p "patch-overlay/$(dirname "$file")"
+            cp "$file" "patch-overlay/$file"
+          done < <(git diff --name-only --diff-filter=ACMRT HEAD^1 HEAD)
+          cat > patch-overlay/PATCH_INFO.txt <<'EOF'
+          AnimeBox Patch 18.8.2 — Direct Edit + Native Level SVG Frames
+
+          Cumulative overlay поверх main.
+          Включает 18.8.1 + 18.8.2 + direct media click fix + avatar safe-zone fix.
+          В архиве физически находятся 7 static и 7 Premium animated level SVG.
+
+          Проверка:
+          npm run patch18-8:check
+          npx tsc --noEmit
+          npm run build
+          EOF
+          test "$(find patch-overlay -type f | wc -l)" -gt 20
+          test "$(find patch-overlay/public/brand/frames/level -type f -name '*.svg' | wc -l)" -eq 14
+          cd patch-overlay
+          zip -r ../animebox-patch-18-8-2-direct-edit-svg-fix.zip .
+          cd ..
+
+      - name: Upload updated Patch 18.8.2 overlay
+        uses: actions/upload-artifact@v4
+        with:
+          name: animebox-patch-18-8-2-direct-edit-svg-fix
+          path: animebox-patch-18-8-2-direct-edit-svg-fix.zip
+          if-no-files-found: error
+          retention-days: 3
