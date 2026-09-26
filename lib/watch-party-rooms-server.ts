@@ -227,9 +227,6 @@ export async function cleanupWatchPartyRooms() {
     .neq('status', 'ended').lt('last_heartbeat_at', staleBefore);
   if (stale.error) throw stale.error;
 
-  const buckets = await admin.from('api_rate_buckets')
-    .delete().lt('window_start', new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString());
-  if (buckets.error) throw buckets.error;
 }
 
 export async function heartbeatWatchPartyRoom(
