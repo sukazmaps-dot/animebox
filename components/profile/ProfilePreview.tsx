@@ -8,7 +8,7 @@ import Link from 'next/link';
 
 import FriendActionButton from '@/components/friends/FriendActionButton';
 import StreakDisplay from '@/components/profile/StreakDisplay';
-import { SeasonFrameOverlay } from '@/components/leaderboard/SeasonFramePreview';
+import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
 import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
@@ -37,7 +37,7 @@ type PreviewData = {
   textColor: string;
   role: PublicIdentityRole;
   sponsor: SponsorStatus | null;
-  seasonFrameKey: string | null;
+  profileFrameKey: string | null;
   progression: {
     level: number;
     rank: string;
@@ -345,7 +345,7 @@ export default function ProfilePreview({
                       </div>
 
                       <div className={styles.heroIdentity}>
-                        <span className={`${styles.avatarShell} ${data.seasonFrameKey ? styles.avatarShellSeason : ''}`}>
+                        <span className={`${styles.avatarShell} ${data.profileFrameKey ? styles.avatarShellSeason : ''}`}>
                           <picture className={styles.avatarMedia}>
                             {data.avatarStaticUrl !== data.avatarUrl && (
                               <source
@@ -363,9 +363,10 @@ export default function ProfilePreview({
                               style={premiumMediaStyle(data.avatarTransform)}
                             />
                           </picture>
-                          {data.seasonFrameKey && (
-                            <SeasonFrameOverlay
-                              frameKey={data.seasonFrameKey}
+                          {data.profileFrameKey && (
+                            <ProfileFrameOverlay
+                              frameKey={data.profileFrameKey}
+                              premium={data.premium}
                               className={styles.seasonFrameOverlay}
                             />
                           )}
@@ -385,7 +386,7 @@ export default function ProfilePreview({
                             )}
                           </span>
                           <span className={styles.levelRow}>
-                            <span className={styles.levelBadge}>LV.{data.progression.level}</span>
+                            <span className={styles.levelBadge}>LVL {data.progression.level}</span>
                             <span className={styles.rankLabel}>{data.progression.rank}</span>
                           </span>
                         </div>
