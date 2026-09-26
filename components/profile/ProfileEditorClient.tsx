@@ -749,7 +749,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             baseAvatarUrl={displayedAvatar}
             baseBannerUrl={displayedBanner}
             premiumActive={premiumActive}
-            premiumOverrideActive={premiumAvatarOverride || premiumBannerOverride}
+            avatarPremiumOverride={premiumAvatarOverride}
+            bannerPremiumOverride={premiumBannerOverride}
             avatarBusy={baseMediaOpening === 'avatar'}
             bannerBusy={baseMediaOpening === 'banner'}
             canRemoveAvatar={Boolean(profile.avatar_path || avatarFile)}
