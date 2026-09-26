@@ -102,3 +102,13 @@ The remaining half-glow value is precomputed in TypeScript instead of using
 ## Quality gate trigger
 
 PR #121 must pass the cumulative main-based production workflow before packaging.
+
+
+## Foreground layering fix
+
+Premium atmosphere is split into two rendering planes:
+- ambient layer below profile surfaces;
+- particle layer above opaque surfaces but below close/actions.
+
+The atmosphere wrapper itself must not use paint containment because that would trap
+foreground particles in a lower stacking context and make them invisible behind hero/body backgrounds.
