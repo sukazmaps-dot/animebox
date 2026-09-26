@@ -9,6 +9,7 @@ import {
 import { getEffectiveUserEntitlements } from '@/lib/entitlements-server';
 import { usernamePolicyError } from '@/lib/auth-identity-policy';
 import {
+  DEFAULT_PREMIUM_STUDIO_SETTINGS,
   isHexColor,
   isPremiumAtmosphereEffect,
   isPremiumBorderStyle,
@@ -237,12 +238,30 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
   const accentColor = typeof data.accentColor === 'string' ? data.accentColor.trim().toUpperCase() : '';
   const textColor = typeof data.textColor === 'string' ? data.textColor.trim().toUpperCase() : '';
   const borderStyle = typeof data.borderStyle === 'string' ? data.borderStyle.trim() : '';
-  const atmosphereEffect = typeof data.atmosphereEffect === 'string' ? data.atmosphereEffect.trim() : '';
-  const motionMode = typeof data.motionMode === 'string' ? data.motionMode.trim() : '';
-  const entranceEffect = typeof data.entranceEffect === 'string' ? data.entranceEffect.trim() : '';
-  const nicknameEffect = typeof data.nicknameEffect === 'string' ? data.nicknameEffect.trim() : '';
-  const heroStyle = typeof data.heroStyle === 'string' ? data.heroStyle.trim() : '';
-  const surfaceStyle = typeof data.surfaceStyle === 'string' ? data.surfaceStyle.trim() : '';
+  const atmosphereEffect =
+    typeof data.atmosphereEffect === 'string'
+      ? data.atmosphereEffect.trim()
+      : DEFAULT_PREMIUM_STUDIO_SETTINGS.atmosphereEffect;
+  const motionMode =
+    typeof data.motionMode === 'string'
+      ? data.motionMode.trim()
+      : DEFAULT_PREMIUM_STUDIO_SETTINGS.motionMode;
+  const entranceEffect =
+    typeof data.entranceEffect === 'string'
+      ? data.entranceEffect.trim()
+      : DEFAULT_PREMIUM_STUDIO_SETTINGS.entranceEffect;
+  const nicknameEffect =
+    typeof data.nicknameEffect === 'string'
+      ? data.nicknameEffect.trim()
+      : DEFAULT_PREMIUM_STUDIO_SETTINGS.nicknameEffect;
+  const heroStyle =
+    typeof data.heroStyle === 'string'
+      ? data.heroStyle.trim()
+      : DEFAULT_PREMIUM_STUDIO_SETTINGS.heroStyle;
+  const surfaceStyle =
+    typeof data.surfaceStyle === 'string'
+      ? data.surfaceStyle.trim()
+      : DEFAULT_PREMIUM_STUDIO_SETTINGS.surfaceStyle;
   const glowStrength = Number(data.glowStrength);
 
   if (!isPremiumProfileTheme(theme)) throw new ApiError(400, 'Неизвестная тема профиля.');
@@ -282,7 +301,10 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
     bannerZoom: readZoom(data.bannerZoom, 'Масштаб баннера'),
     syncPlayerTheme: data.syncPlayerTheme,
     atmosphereEffect,
-    atmosphereIntensity: readPercent(data.atmosphereIntensity, 'Интенсивность атмосферы'),
+    atmosphereIntensity: readPercent(
+      data.atmosphereIntensity ?? DEFAULT_PREMIUM_STUDIO_SETTINGS.atmosphereIntensity,
+      'Интенсивность атмосферы',
+    ),
     motionMode,
     entranceEffect,
     nicknameEffect,
