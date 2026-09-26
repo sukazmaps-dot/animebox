@@ -373,7 +373,33 @@ No automatic global brownout is written solely from one request/process observat
 
 ---
 
-## 14. Regression gate
+## 14. Manual read-only load drill
+
+Command:
+
+`npm run load:readiness`
+
+The drill is intentionally **not** part of prebuild.
+
+Safety:
+
+- refuses to start without `ANIMEBOX_LOAD_TEST_ALLOW=1`;
+- requires an explicit base URL;
+- production hostname additionally requires `ANIMEBOX_LOAD_TEST_PRODUCTION=I_UNDERSTAND`;
+- GET/read-only routes only;
+- max concurrency is clamped to 40;
+- phases are 100 / 500 / 1000 / 2000 total requests;
+- phases stop if error rate reaches 5%;
+- reports throughput, status distribution, degraded responses and p50/p95/p99;
+- waits between phases instead of stacking bursts.
+
+The default target should be a Vercel Preview/Staging deployment.
+
+Authenticated watch-start/heartbeat write-load is intentionally not automated by this script because it would create real user/session state. That class of test should use a dedicated staging account and isolated dataset.
+
+---
+
+## 15. Regression gate
 
 New command:
 
@@ -400,7 +426,7 @@ It verifies:
 
 ---
 
-## 15. Live Supabase verification
+## 16. Live Supabase verification
 
 Migration:
 
@@ -424,7 +450,7 @@ At implementation time the live database snapshot reported 15/60 connections (25
 
 ---
 
-## 16. Release gates
+## 17. Release gates
 
 Before merge:
 
@@ -441,7 +467,7 @@ Before merge:
 
 ---
 
-## 17. Success criteria
+## 18. Success criteria
 
 18.5.6 succeeds when:
 
