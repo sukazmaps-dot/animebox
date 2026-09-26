@@ -70,7 +70,7 @@
     color-mix(in srgb, var(--ab-premium-accent) 54%, #64d9ff 46%) 0%,
     transparent 68%
   );
-  animation: premiumV21FloatB calc(var(--ab-premium-motion-duration, 22s) * 1.18) ease-in-out infinite;
+  animation: premiumV21FloatB var(--ab-premium-motion-duration-slow, 29s) ease-in-out infinite;
 }
 
 .premium-profile-v21__ambient--c {
@@ -83,7 +83,7 @@
     transparent 70%
   );
   opacity: .34;
-  animation: premiumV21FloatC calc(var(--ab-premium-motion-duration, 22s) * 1.35) ease-in-out infinite;
+  animation: premiumV21FloatC var(--ab-premium-motion-duration-slow, 29s) ease-in-out infinite;
 }
 
 /* ---------- Particle field ---------- */
@@ -179,7 +179,7 @@
     color-mix(in srgb, var(--ab-premium-primary) 88%, #050713 12%);
   box-shadow:
     0 34px 90px rgba(0,0,0,.34),
-    0 0 70px rgba(var(--ab-premium-accent-rgb), calc(var(--ab-premium-glow-page-alpha) * .72)),
+    0 0 70px rgba(var(--ab-premium-accent-rgb), var(--ab-premium-glow-page-alpha)),
     inset 0 1px rgba(255,255,255,.04);
 }
 
@@ -289,7 +289,7 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent !important;
-  animation: premiumV21NicknameShimmer calc(var(--ab-premium-motion-duration, 22s) * .42) linear infinite;
+  animation: premiumV21NicknameShimmer var(--ab-premium-motion-duration-fast, 12s) linear infinite;
 }
 
 .premium-profile-v21__nickname[data-effect='shimmer'] * {
@@ -421,7 +421,7 @@
 
 @media (max-width: 768px) {
   .premium-profile-v21__atmosphere {
-    opacity: calc(var(--ab-premium-atmosphere-alpha, .18) * .62);
+    opacity: var(--ab-premium-atmosphere-alpha, .18);
   }
 
   .premium-profile-v21__ambient {
