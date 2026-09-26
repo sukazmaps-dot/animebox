@@ -98,3 +98,7 @@ The remaining half-glow value is precomputed in TypeScript instead of using
 - Embers rise through the card.
 - close X stays in the top-right on Premium mini-profile.
 - Global Chat / comments / Watch Together keep using the same ProfilePreview.
+
+## Quality gate trigger
+
+PR #121 must pass the cumulative main-based production workflow before packaging.
