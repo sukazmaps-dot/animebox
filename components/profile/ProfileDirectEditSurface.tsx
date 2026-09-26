@@ -619,7 +619,7 @@ export default function ProfileDirectEditSurface({
                   {nextLockedLevelFrames.map((milestone) => (
                     <div key={milestone.level}>
                       <span className={styles.lockedThumb}>🔒</span>
-                      <p><strong>{milestone.rank}</strong><small>Откроется на LVL {milestone.level}</small></p>
+                      <p><strong>{milestone.title}</strong><small>Откроется на LVL {milestone.level}</small></p>
                     </div>
                   ))}
                 </div>
