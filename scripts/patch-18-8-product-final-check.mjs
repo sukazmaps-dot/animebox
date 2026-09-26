@@ -30,6 +30,20 @@ const rewardsPanel = read('components/profile/ProfileRewardsPanel.tsx');
 const publicProfile = read('lib/public-profile-server.ts');
 const avatarFrame = read('components/profile/UserAvatarWithFrame.tsx');
 const profileFrameOverlay = read('components/profile/ProfileFrameOverlay.tsx');
+const levelViewerStatic = read('public/brand/frames/level/static/viewer.svg');
+const levelExplorerStatic = read('public/brand/frames/level/static/explorer.svg');
+const levelMarathonerStatic = read('public/brand/frames/level/static/marathoner.svg');
+const levelCollectorStatic = read('public/brand/frames/level/static/collector.svg');
+const levelVeteranStatic = read('public/brand/frames/level/static/veteran.svg');
+const levelLegendStatic = read('public/brand/frames/level/static/legend.svg');
+const levelMasterStatic = read('public/brand/frames/level/static/master.svg');
+const levelViewerPremium = read('public/brand/frames/level/premium/viewer-animated.svg');
+const levelExplorerPremium = read('public/brand/frames/level/premium/explorer-animated.svg');
+const levelMarathonerPremium = read('public/brand/frames/level/premium/marathoner-animated.svg');
+const levelCollectorPremium = read('public/brand/frames/level/premium/collector-animated.svg');
+const levelVeteranPremium = read('public/brand/frames/level/premium/veteran-animated.svg');
+const levelLegendPremium = read('public/brand/frames/level/premium/legend-animated.svg');
+const levelMasterPremium = read('public/brand/frames/level/premium/master-animated.svg');
 const progression = read('lib/progression.ts');
 const achievementsClient = read('components/AchievementsClient.tsx');
 const adminCommunity = read('app/api/admin/community/route.ts');
@@ -352,6 +366,42 @@ need('level frame renderer', profileFrameOverlay, [
   'isLevelFrameKey',
   "data-premium",
 ]);
+
+need('native level frame assets', profileFrameOverlay, [
+  'STATIC_LEVEL_FRAME_ASSETS',
+  'PREMIUM_LEVEL_FRAME_ASSETS',
+  '/brand/frames/level/static/viewer.svg',
+  '/brand/frames/level/premium/master-animated.svg',
+  'levelFrameAsset',
+]);
+
+for (const [label, source] of [
+  ['viewer static', levelViewerStatic],
+  ['explorer static', levelExplorerStatic],
+  ['marathoner static', levelMarathonerStatic],
+  ['collector static', levelCollectorStatic],
+  ['veteran static', levelVeteranStatic],
+  ['legend static', levelLegendStatic],
+  ['master static', levelMasterStatic],
+]) {
+  need(`level frame asset ${label}`, source, ['<svg', 'viewBox="0 0 120 120"', 'class="ring outer"']);
+}
+
+for (const [label, source] of [
+  ['viewer premium', levelViewerPremium],
+  ['explorer premium', levelExplorerPremium],
+  ['marathoner premium', levelMarathonerPremium],
+  ['collector premium', levelCollectorPremium],
+  ['veteran premium', levelVeteranPremium],
+  ['legend premium', levelLegendPremium],
+  ['master premium', levelMasterPremium],
+]) {
+  need(`premium level frame asset ${label}`, source, ['<svg', '@keyframes', 'prefers-reduced-motion']);
+}
+
+if (profileFrameOverlay.includes('<circle className={styles.outer}')) {
+  failures.push('level frames regressed to the obsolete universal inline SVG');
+}
 
 need('level system UI', achievementsClient, [
   'Как работает LVL',
