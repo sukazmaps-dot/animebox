@@ -104,7 +104,7 @@ const productionMaintenanceRetention =
   maintenanceCron.includes('beginOperationalJob(') &&
   maintenanceCron.includes('pruneOperationalData()') &&
   productionReadiness.includes("'prune_animebox_operational_data'") &&
-  productionReadiness.includes('requestRetentionDays: input.requestRetentionDays ?? 30') &&
+  productionReadiness.includes('p_request_retention_days: input.requestRetentionDays ?? 30') &&
   vercelConfig.crons?.some(
     (item) =>
       item.path === '/api/cron/production-maintenance' &&
