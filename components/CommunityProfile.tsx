@@ -217,7 +217,7 @@ export default function CommunityProfile() {
                   <span>
                     {progression.levelProgressXp.toLocaleString('ru-RU')} / {progression.levelSpanXp.toLocaleString('ru-RU')} XP
                   </span>
-                  <span>До LV.{progression.level + 1}: {progression.xpToNext.toLocaleString('ru-RU')} XP</span>
+                  <span>До LVL {progression.level + 1}: {progression.xpToNext.toLocaleString('ru-RU')} XP</span>
                 </>
               )}
             </div>

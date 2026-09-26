@@ -8,10 +8,11 @@ import Link from 'next/link';
 
 import FriendActionButton from '@/components/friends/FriendActionButton';
 import StreakDisplay from '@/components/profile/StreakDisplay';
-import { SeasonFrameOverlay } from '@/components/leaderboard/SeasonFramePreview';
+import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
 import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
+import { isLevelFrameKey, levelFrameAvatarScale } from '@/lib/progression';
 import {
   premiumMediaStyle,
   type PremiumMediaTransform,
@@ -37,7 +38,7 @@ type PreviewData = {
   textColor: string;
   role: PublicIdentityRole;
   sponsor: SponsorStatus | null;
-  seasonFrameKey: string | null;
+  profileFrameKey: string | null;
   progression: {
     level: number;
     rank: string;
@@ -345,8 +346,21 @@ export default function ProfilePreview({
                       </div>
 
                       <div className={styles.heroIdentity}>
-                        <span className={`${styles.avatarShell} ${data.seasonFrameKey ? styles.avatarShellSeason : ''}`}>
-                          <picture className={styles.avatarMedia}>
+                        <span
+                          className={`${styles.avatarShell} ${data.profileFrameKey ? styles.avatarShellSeason : ''}`}
+                          data-milestone-frame={isLevelFrameKey(data.profileFrameKey) ? 'true' : 'false'}
+                        >
+                          <picture
+                            className={styles.avatarMedia}
+                            style={
+                              isLevelFrameKey(data.profileFrameKey)
+                                ? {
+                                    width: `${(levelFrameAvatarScale(data.profileFrameKey) ?? 0.58) * 100}%`,
+                                    height: `${(levelFrameAvatarScale(data.profileFrameKey) ?? 0.58) * 100}%`,
+                                  }
+                                : undefined
+                            }
+                          >
                             {data.avatarStaticUrl !== data.avatarUrl && (
                               <source
                                 media="(prefers-reduced-motion: reduce)"
@@ -363,9 +377,10 @@ export default function ProfilePreview({
                               style={premiumMediaStyle(data.avatarTransform)}
                             />
                           </picture>
-                          {data.seasonFrameKey && (
-                            <SeasonFrameOverlay
-                              frameKey={data.seasonFrameKey}
+                          {data.profileFrameKey && (
+                            <ProfileFrameOverlay
+                              frameKey={data.profileFrameKey}
+                              premium={data.premium}
                               className={styles.seasonFrameOverlay}
                             />
                           )}
@@ -385,7 +400,7 @@ export default function ProfilePreview({
                             )}
                           </span>
                           <span className={styles.levelRow}>
-                            <span className={styles.levelBadge}>LV.{data.progression.level}</span>
+                            <span className={styles.levelBadge}>LVL {data.progression.level}</span>
                             <span className={styles.rankLabel}>{data.progression.rank}</span>
                           </span>
                         </div>

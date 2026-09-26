@@ -5,6 +5,7 @@ const read = (path) =>
 
 const migration = read('supabase/migrations/20260926211000_product_final_leaderboard_rewards_v1.sql');
 const temporaryFramesMigration = read('supabase/migrations/20260926215500_temporary_leaderboard_frames_v2.sql');
+const progressionFramesMigration = read('supabase/migrations/20260927001500_progression_frame_selection_v1.sql');
 const rewards = read('lib/leaderboard-rewards.ts');
 const rewardServer = read('lib/leaderboard-rewards-server.ts');
 const seasons = read('lib/leaderboard-seasons-server.ts');
@@ -21,11 +22,30 @@ const podiumFrame = read('public/brand/frames/league/league-podium.svg');
 const top10Frame = read('public/brand/frames/league/league-top10.svg');
 const deferred = read('components/DeferredAppEnhancements.tsx');
 const editor = read('components/profile/ProfileEditorClient.tsx');
+const directEditor = read('components/profile/ProfileDirectEditSurface.tsx');
+const directEditorCss = read('components/profile/ProfileDirectEditSurface.module.css');
 const editorCss = read('app/profile-editor-v13.css');
 const icon = read('components/Icon.tsx');
 const rewardsPanel = read('components/profile/ProfileRewardsPanel.tsx');
 const publicProfile = read('lib/public-profile-server.ts');
 const avatarFrame = read('components/profile/UserAvatarWithFrame.tsx');
+const profileFrameOverlay = read('components/profile/ProfileFrameOverlay.tsx');
+const lv10Static = read('public/brand/frames/milestone/free/lv10-forbidden-relic.svg');
+const lv25Static = read('public/brand/frames/milestone/free/lv25-flame-arc.svg');
+const lv50Static = read('public/brand/frames/milestone/free/lv50-crimson-sigil.svg');
+const lv75Static = read('public/brand/frames/milestone/free/lv75-menacing-manga.svg');
+const lv100Static = read('public/brand/frames/milestone/free/lv100-absolute-prestige.svg');
+const lv10Premium = read('public/brand/frames/milestone/premium/lv10-forbidden-relic-premium.svg');
+const lv25Premium = read('public/brand/frames/milestone/premium/lv25-flame-arc-premium.svg');
+const lv50Premium = read('public/brand/frames/milestone/premium/lv50-crimson-sigil-premium.svg');
+const lv75Premium = read('public/brand/frames/milestone/premium/lv75-menacing-manga-premium.svg');
+const lv100Premium = read('public/brand/frames/milestone/premium/lv100-absolute-prestige-premium.svg');
+const progression = read('lib/progression.ts');
+const premiumStudioClient = read('components/premium/PremiumStudioClient.tsx');
+const premiumUploadRoute = read('app/api/profile/media/upload-url/route.ts');
+const premiumPublishServer = read('lib/profile-media-publish-server.ts');
+const achievementsClient = read('components/AchievementsClient.tsx');
+const adminCommunity = read('app/api/admin/community/route.ts');
 const profilePreviewServer = read('lib/profile-preview-server.ts');
 const profilePreview = read('components/profile/ProfilePreview.tsx');
 const profilePreviewCss = read('components/profile/ProfilePreview.module.css');
@@ -212,12 +232,32 @@ need('deferred result modal', deferred, [
   'LEADERBOARD_REWARD_DELAY_MS',
 ]);
 
-need('Profile Studio 2.0', editor, [
-  "type EditorTab = 'profile' | 'appearance' | 'showcase' | 'rewards' | 'style'",
+need('Profile Studio direct edit', editor, [
+  "type EditorTab = 'profile' | 'showcase' | 'rewards' | 'style'",
   'PROFILE STUDIO',
+  '<ProfileDirectEditSurface',
   '<ProfileRewardsPanel',
+  'profile-editor-v19__direct-tab',
   'profile-editor-v18__savebar',
   'Есть несохранённые изменения',
+]);
+
+need('Profile Studio direct-edit surface', directEditor, [
+  'DIRECT EDIT',
+  'FRAME INVENTORY',
+  'Твои рамки',
+  'Активна только одна рамка',
+  'Premium оживляет LVL-рамки',
+  "action: 'select_frame'",
+  '<ProfileFrameOverlay',
+]);
+
+need('Profile Studio mobile inspector', directEditorCss, [
+  '.workspace',
+  '.inspector',
+  '@media (max-width: 620px)',
+  'position: sticky',
+  '58dvh',
 ]);
 
 
@@ -229,42 +269,46 @@ need('Profile Studio icon contract', icon, [
   'const Glyph = icons[name] ?? InfoIcon',
 ]);
 
-for (const iconName of ['image', 'grid']) {
-  if (!editor.includes(`<Icon name="${iconName}"`)) {
-    failures.push(`Profile Studio missing expected ${iconName} navigation icon`);
-  }
+if (!editor.includes('<Icon name="grid"')) {
+  failures.push('Profile Studio missing expected grid navigation icon');
+}
+if (!directEditor.includes('<Icon name="image"')) {
+  failures.push('Profile Studio direct editor missing image controls');
 }
 
 need('Profile Studio responsive CSS', editorCss, [
   'Patch 18.8 — Profile Studio 2.0',
   '.profile-editor-v18__rail',
   '.profile-editor-v18__savebar',
+  '.profile-editor-v19__direct-tab',
   '@media (max-width: 560px)',
 ]);
 
 need('profile rewards panel', rewardsPanel, [
-  'Награды и сезонные рамки',
+  'Награды AnimeBox League',
   'Забрать приз',
-  'Рамки League',
-  'недельные действуют 7 дней, месячные — 30 дней',
-  'Действует до',
+  'Рамки League в инвентаре',
+  'Открыть Frame Inventory',
   'Прошлые сезоны',
-  "action: 'select_frame'",
 ]);
+
+if (rewardsPanel.includes("action: 'select_frame'")) {
+  failures.push('profile rewards panel must not duplicate frame selection UI');
+}
 
 need('public profile frame', publicProfile, [
-  'getSelectedSeasonFrame',
-  'seasonFrameKey',
+  'getSelectedProfileFrame',
+  'profileFrameKey',
 ]);
 
 
-need('mini-profile seasonal frame', profilePreviewServer, [
-  'getSelectedSeasonFrame',
-  'seasonFrameKey',
+need('mini-profile unified frame', profilePreviewServer, [
+  'getSelectedProfileFrame',
+  'profileFrameKey',
 ]);
-need('mini-profile seasonal frame UI', profilePreview, [
-  'SeasonFrameOverlay',
-  'data.seasonFrameKey',
+need('mini-profile unified frame UI', profilePreview, [
+  'ProfileFrameOverlay',
+  'data.profileFrameKey',
   'avatarShellSeason',
 ]);
 need('mini-profile seasonal frame layout', profilePreviewCss, [
@@ -294,11 +338,118 @@ need('tracker cache ambiguity shield', trackerClient, [
 ]);
 
 need('avatar frame composition', avatarFrame, [
-  'SeasonFrameOverlay',
-  'seasonFrameKey',
-  'hasSeasonFrame',
+  'ProfileFrameOverlay',
+  'profileFrameKey',
+  'hasProfileFrame',
   'visibleIdentityFrameSrc',
-  "hasSeasonFrame ? null : frameSrc",
+  "hasProfileFrame ? null : frameSrc",
+]);
+
+need('exclusive frame migration', progressionFramesMigration, [
+  'admin_adjustment_xp',
+  'active_frame_key',
+  'set active_frame_key = season_frame_key',
+]);
+
+need('level milestone system', progression, [
+  'LEVEL_MILESTONES',
+  'LEVEL_FRAME_KEYS',
+  'unlockedLevelFrames',
+  'xpForLevel',
+  'MAX_LEVEL = 100',
+  'milestone-lv10-forbidden-relic',
+  'milestone-lv100-absolute-prestige',
+  'MILESTONE_AVATAR_SCALE',
+  "'milestone-lv10-forbidden-relic': 0.54",
+  "'milestone-lv25-flame-arc': 0.56",
+  "'milestone-lv50-crimson-sigil': 0.50",
+  "'milestone-lv75-menacing-manga': 0.54",
+  "'milestone-lv100-absolute-prestige': 0.50",
+  'levelFrameAvatarScale',
+]);
+
+need('level frame renderer', profileFrameOverlay, [
+  'ProfileFrameOverlay',
+  'isSeasonFrameKey',
+  'isLevelFrameKey',
+  "data-premium",
+]);
+
+need('original milestone frame assets', profileFrameOverlay, [
+  'STATIC_LEVEL_FRAME_ASSETS',
+  'PREMIUM_LEVEL_FRAME_ASSETS',
+  '/brand/frames/milestone/free/lv10-forbidden-relic.svg',
+  '/brand/frames/milestone/premium/lv100-absolute-prestige-premium.svg',
+  'levelFrameAsset',
+]);
+
+for (const [label, source] of [
+  ['LVL 10 Forbidden Relic', lv10Static],
+  ['LVL 25 Flame Arc', lv25Static],
+  ['LVL 50 Crimson Sigil', lv50Static],
+  ['LVL 75 Menacing Manga', lv75Static],
+  ['LVL 100 Absolute Prestige', lv100Static],
+]) {
+  need(`milestone frame asset ${label}`, source, ['<svg', 'viewBox="0 0 512 512"']);
+  if (source.includes('@keyframes')) {
+    failures.push(`free milestone frame ${label} must stay static`);
+  }
+}
+
+for (const [label, source] of [
+  ['LVL 10 Forbidden Relic Premium', lv10Premium],
+  ['LVL 25 Flame Arc Premium', lv25Premium],
+  ['LVL 50 Crimson Sigil Premium', lv50Premium],
+  ['LVL 75 Menacing Manga Premium', lv75Premium],
+  ['LVL 100 Absolute Prestige Premium', lv100Premium],
+]) {
+  need(`premium milestone frame asset ${label}`, source, [
+    '<svg',
+    'viewBox="0 0 512 512"',
+    '@keyframes',
+    'prefers-reduced-motion',
+  ]);
+}
+
+if (profileFrameOverlay.includes('<circle className={styles.outer}')) {
+  failures.push('level frames regressed to the obsolete universal inline SVG');
+}
+
+need('level system UI', achievementsClient, [
+  'Как работает LVL',
+  'Обычный аккаунт',
+  'Та же рамка, но живая',
+  'Снять текущую рамку',
+  'На аватаре всегда только одна косметическая рамка',
+]);
+
+need('Premium avatar quality policy', premiumStudioClient, [
+  'PREMIUM_AVATAR_RECOMMENDED_BYTES = 4 * 1024 * 1024',
+  'MAX_AVATAR_BYTES = 8 * 1024 * 1024',
+  'MIN_PREMIUM_AVATAR_DIMENSION = 256',
+  'Premium-аватар должен быть не больше 8 МБ.',
+  'Premium-аватар должен быть не меньше',
+  'Animated WebP / GIF / WebP / PNG / JPG',
+  'Тяжёлая анимация',
+  'staticWebpFallback',
+]);
+
+need('Premium avatar signed-upload limit', premiumUploadRoute, [
+  "return kind === 'avatar' ? 8 * 1024 * 1024 : 6 * 1024 * 1024",
+]);
+
+need('Premium avatar publish validation', premiumPublishServer, [
+  "return kind === 'avatar' ? 8 * 1024 * 1024 : 6 * 1024 * 1024",
+  "minWidth: scope === 'premium' ? 256 : 1",
+  "minHeight: scope === 'premium' ? 256 : 1",
+  'Premium-аватар должен быть не меньше',
+]);
+
+need('admin LVL control', adminCommunity, [
+  "action === 'set_user_level'",
+  'admin_adjustment_xp',
+  'progression_level_set',
+  'xpForLevel(level)',
 ]);
 
 if (
@@ -330,5 +481,5 @@ if (failures.length) {
 }
 
 console.log(
-  '[AnimeBox 18.8 Product Final] Profile Studio 2.0, weekly/monthly rewards, temporary SVG frames, idempotent claim and retention UI invariants passed.',
+  '[AnimeBox 18.8 Product Final] Profile Studio 2.0, LVL clarity, exclusive Level/League frames, weekly/monthly rewards and retention UI invariants passed.',
 );

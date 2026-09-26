@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useAuthState } from '@/components/AuthStateProvider';
-import { SeasonFrameOverlay } from '@/components/leaderboard/SeasonFramePreview';
+import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
+import { isLevelFrameKey, levelFrameAvatarScale } from '@/lib/progression';
 
 import { resolveIdentityKind, type PublicIdentityRole } from '@/lib/identity';
 import {
@@ -26,6 +27,8 @@ type Props = {
   className?: string;
   mediaTransform?: PremiumMediaTransform | null;
   seasonFrameKey?: string | null;
+  profileFrameKey?: string | null;
+  premiumFrameMotion?: boolean;
 };
 
 type IdentityState = {
@@ -50,6 +53,8 @@ export default function UserAvatarWithFrame({
   className = '',
   mediaTransform = null,
   seasonFrameKey = null,
+  profileFrameKey = null,
+  premiumFrameMotion = false,
 }: Props) {
   const { user } = useAuthState();
   const cached = loadCurrentIdentity ? peekSponsorMe(user?.id, 1) : null;
@@ -127,22 +132,35 @@ export default function UserAvatarWithFrame({
   }, [currentIdentity.sponsor?.cosmetics?.selectedFrame, kind]);
 
   const frameSrc = frameKind ? FRAME_BY_KIND[frameKind] : null;
-  const hasSeasonFrame = Boolean(seasonFrameKey);
-  const visibleIdentityFrameSrc = hasSeasonFrame ? null : frameSrc;
+  const activeProfileFrameKey = profileFrameKey ?? seasonFrameKey;
+  const hasProfileFrame = Boolean(activeProfileFrameKey);
+  const hasMilestoneFrame = isLevelFrameKey(activeProfileFrameKey);
+  const milestoneAvatarScale = levelFrameAvatarScale(activeProfileFrameKey);
+  const visibleIdentityFrameSrc = hasProfileFrame ? null : frameSrc;
 
   return (
     <div
       className={`profile-v2__avatar-wrap relative h-[88px] w-[88px] shrink-0 overflow-visible sm:h-[116px] sm:w-[116px] ${className}`.trim()}
-      data-avatar-frame={seasonFrameKey ?? frameKind ?? 'none'}
+      data-avatar-frame={activeProfileFrameKey ?? frameKind ?? 'none'}
     >
       <div
-        className={`absolute left-1/2 top-1/2 z-[1] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full ring-4 ring-[#091221] transition-[width,height] duration-200 ${
-          hasSeasonFrame
-            ? 'h-[70%] w-[70%]'
-            : visibleIdentityFrameSrc
+        className={`absolute left-1/2 top-1/2 z-[1] aspect-square -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full ring-4 ring-[#091221] transition-[width,height] duration-200 ${
+          hasMilestoneFrame
+            ? ''
+            : hasProfileFrame
+              ? 'h-[70%] w-[70%]'
+              : visibleIdentityFrameSrc
               ? 'h-[85%] w-[85%]'
               : 'h-full w-full'
         }`}
+        style={
+          hasMilestoneFrame && milestoneAvatarScale
+            ? {
+                width: `${milestoneAvatarScale * 100}%`,
+                height: `${milestoneAvatarScale * 100}%`,
+              }
+            : undefined
+        }
       >
         <picture className="block h-full w-full">
           {mobileSrc && mobileSrc !== src && (
@@ -171,7 +189,10 @@ export default function UserAvatarWithFrame({
         />
       )}
 
-      <SeasonFrameOverlay frameKey={seasonFrameKey} />
+      <ProfileFrameOverlay
+        frameKey={activeProfileFrameKey}
+        premium={premiumFrameMotion}
+      />
     </div>
   );
 }

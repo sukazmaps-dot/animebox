@@ -5,12 +5,17 @@ import Link from 'next/link';
 
 import { useAuthState } from '@/components/AuthStateProvider';
 import AchievementShowcaseEditor from '@/components/AchievementShowcaseEditor';
+import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
 import { achievementIcon } from '@/lib/achievement-icons';
 import {
   ACHIEVEMENT_CATEGORY_LABELS,
   ACHIEVEMENT_RARITY_LABELS,
+  LEVEL_MILESTONES,
+  levelFrameAvatarScale,
+  xpForLevel,
   type AchievementCategory,
   type AchievementRarity,
+  type LevelFrameKey,
 } from '@/lib/progression';
 import type { CommunityProfile } from '@/lib/community-client';
 import {
@@ -23,6 +28,12 @@ import styles from './Achievements.module.css';
 
 type Filter = 'all' | AchievementCategory;
 type SortMode = 'smart' | 'earned' | 'near' | 'rarity';
+
+type FramePayload = {
+  selectedFrame?: string | null;
+  unlockedLevelFrames?: LevelFrameKey[];
+  error?: string;
+};
 
 const FILTERS: Filter[] = [
   'all',
@@ -57,6 +68,9 @@ export default function AchievementsClient() {
   const [filter, setFilter] = useState<Filter>('all');
   const [sort, setSort] = useState<SortMode>('smart');
   const [error, setError] = useState('');
+  const [frameState, setFrameState] = useState<FramePayload | null>(null);
+  const [frameBusy, setFrameBusy] = useState('');
+  const [frameError, setFrameError] = useState('');
 
   useEffect(() => {
     if (authLoading || !user?.id) return;
@@ -77,6 +91,56 @@ export default function AchievementsClient() {
       active = false;
     };
   }, [authLoading, user?.id]);
+
+  useEffect(() => {
+    if (authLoading || !user?.id) return;
+
+    let active = true;
+    void fetch('/api/community/leaderboard-rewards', { cache: 'no-store' })
+      .then(async (response) => {
+        const payload = await response.json() as FramePayload;
+        if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить рамки.');
+        if (active) setFrameState(payload);
+      })
+      .catch((loadError) => {
+        if (active) {
+          setFrameError(loadError instanceof Error ? loadError.message : 'Не удалось загрузить рамки.');
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [authLoading, user?.id]);
+
+  async function selectLevelFrame(frameKey: LevelFrameKey | null) {
+    if (frameBusy) return;
+    setFrameBusy(frameKey ?? 'none');
+    setFrameError('');
+
+    try {
+      const response = await fetch('/api/community/leaderboard-rewards', {
+        method: 'POST',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'select_frame', frameKey }),
+      });
+      const payload = await response.json() as FramePayload;
+      if (!response.ok) throw new Error(payload.error || 'Не удалось выбрать рамку.');
+
+      setFrameState((current) => ({
+        ...(current ?? {}),
+        selectedFrame: payload.selectedFrame ?? null,
+      }));
+      window.dispatchEvent(new Event('animebox:profile-cosmetic-changed'));
+    } catch (selectError) {
+      setFrameError(
+        selectError instanceof Error ? selectError.message : 'Не удалось выбрать рамку.',
+      );
+    } finally {
+      setFrameBusy('');
+    }
+  }
 
   const visible = useMemo(() => {
     if (!data) return [];
@@ -147,20 +211,22 @@ export default function AchievementsClient() {
 
   const unlocked = data.achievements.filter((item) => Boolean(item.earned_at)).length;
   const progression = data.progression;
+  const unlockedLevelFrames = new Set(frameState?.unlockedLevelFrames ?? []);
 
   return (
     <main className={styles.page}>
       <section className={styles.hero}>
         <div>
           <span className={styles.eyebrow}>AnimeBox · Прогресс</span>
-          <h1>Достижения</h1>
+          <h1>Уровни и достижения</h1>
           <p>
-            Просмотр, коллекция, время и активность превращаются в постоянный прогресс профиля.
+            LVL растёт вместе с реальной активностью: просмотром, завершёнными тайтлами,
+            временем, комментариями, заданиями и достижениями.
           </p>
         </div>
 
         <div className={styles.level}>
-          <span>LV.{progression.level}</span>
+          <span>LVL {progression.level}</span>
           <strong>{progression.rank}</strong>
           <small>{progression.totalXp.toLocaleString('ru-RU')} XP</small>
         </div>
@@ -168,11 +234,11 @@ export default function AchievementsClient() {
 
       <section className={styles.summary}>
         <div>
-          <span>Открыто</span>
+          <span>Открыто достижений</span>
           <strong>{unlocked} / {data.achievements.length}</strong>
         </div>
         <div>
-          <span>Следующий уровень</span>
+          <span>До следующего LVL</span>
           <strong>
             {progression.nextLevelXp == null
               ? 'MAX'
@@ -184,14 +250,140 @@ export default function AchievementsClient() {
           <strong>{progression.premiumBoostActive ? '+20% активен' : '+20% XP'}</strong>
         </div>
         <div>
-          <span>Витрина профиля</span>
-          <strong>{data.featuredAchievements.length} / 3</strong>
+          <span>Активная рамка</span>
+          <strong>{frameState?.selectedFrame ? 'Выбрана' : 'Нет'}</strong>
         </div>
       </section>
 
       <div className={styles.levelTrack} aria-hidden="true">
         <span style={{ width: `${progression.progressPct}%` }} />
       </div>
+
+      <section className={styles.levelGuide}>
+        <div className={styles.levelGuideHead}>
+          <div>
+            <span className={styles.eyebrow}>LEVEL SYSTEM</span>
+            <h2>Как работает LVL</h2>
+            <p>
+              Все уровни и статичные уровневые рамки доступны без Premium.
+              Premium не пропускает уровни — он ускоряет новый XP за активность на 20%
+              и оживляет уже открытую уровневую рамку анимацией.
+            </p>
+          </div>
+          {frameState?.selectedFrame && (
+            <button
+              type="button"
+              className={styles.removeFrame}
+              disabled={Boolean(frameBusy)}
+              onClick={() => void selectLevelFrame(null)}
+            >
+              Снять текущую рамку
+            </button>
+          )}
+        </div>
+
+        <div className={styles.xpRules}>
+          <article><strong>+10 XP</strong><span>подтверждённая серия</span></article>
+          <article><strong>+75 XP</strong><span>завершённый тайтл</span></article>
+          <article><strong>+15 XP</strong><span>каждые 30 минут активности</span></article>
+          <article><strong>+2 XP</strong><span>комментарий · до 50</span></article>
+        </div>
+
+        <div className={styles.premiumCompare}>
+          <div>
+            <span>Обычный аккаунт</span>
+            <strong>Статичная рамка уровня</strong>
+            <p>Все LVL, ранги и уровневые рамки открываются обычной активностью.</p>
+          </div>
+          <div data-premium="true">
+            <span>Premium</span>
+            <strong>Та же рамка, но живая</strong>
+            <p>+20% к новому XP за активность, motion/glow уровневой рамки и Premium-оформление профиля.</p>
+          </div>
+        </div>
+
+        <div className={styles.milestones}>
+          {LEVEL_MILESTONES.map((milestone, milestoneIndex) => {
+            const reached = progression.level >= milestone.level;
+            const nextMilestone = LEVEL_MILESTONES[milestoneIndex + 1];
+            const currentMilestone =
+              reached && (!nextMilestone || progression.level < nextMilestone.level);
+            const selected = Boolean(
+              milestone.frameKey && frameState?.selectedFrame === milestone.frameKey,
+            );
+            const frameUnlocked = Boolean(
+              milestone.frameKey && unlockedLevelFrames.has(milestone.frameKey),
+            );
+
+            return (
+              <article
+                className={styles.milestone}
+                data-reached={reached ? 'true' : 'false'}
+                data-current={currentMilestone ? 'true' : 'false'}
+                key={milestone.level}
+              >
+                <div className={styles.milestoneLevel}>
+                  <span>LVL</span>
+                  <strong>{milestone.level}</strong>
+                </div>
+
+                {milestone.frameKey ? (
+                  <div className={styles.framePreview} aria-hidden="true">
+                    <img
+                      src="/default-avatar.webp"
+                      alt=""
+                      style={
+                        milestone.frameKey
+                          ? {
+                              width: `${(levelFrameAvatarScale(milestone.frameKey) ?? 0.54) * 100}%`,
+                              height: `${(levelFrameAvatarScale(milestone.frameKey) ?? 0.54) * 100}%`,
+                            }
+                          : undefined
+                      }
+                    />
+                    <ProfileFrameOverlay
+                      frameKey={milestone.frameKey}
+                      premium={progression.premiumBoostActive}
+                    />
+                  </div>
+                ) : (
+                  <div className={styles.framePreviewEmpty} aria-hidden="true">✦</div>
+                )}
+
+                <div className={styles.milestoneCopy}>
+                  <span>{xpForLevel(milestone.level).toLocaleString('ru-RU')} XP</span>
+                  <h3>{milestone.title}</h3>
+                  <p>{milestone.reward}</p>
+                  <small>Premium · {milestone.premiumReward}</small>
+                </div>
+
+                <div className={styles.milestoneAction}>
+                  {!milestone.frameKey ? (
+                    <span>{reached ? 'Открыто' : 'Старт'}</span>
+                  ) : frameUnlocked ? (
+                    <button
+                      type="button"
+                      disabled={Boolean(frameBusy)}
+                      data-selected={selected ? 'true' : 'false'}
+                      onClick={() => void selectLevelFrame(selected ? null : milestone.frameKey)}
+                    >
+                      {selected ? 'Используется ✓' : 'Надеть'}
+                    </button>
+                  ) : (
+                    <span>Нужно LVL {milestone.level}</span>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        <p className={styles.frameRule}>
+          На аватаре всегда только одна косметическая рамка. Если надеть уровневую рамку,
+          активная League-рамка снимается; если выбрать League-рамку — снимается уровневая.
+        </p>
+        {frameError && <p className={styles.frameError} role="alert">{frameError}</p>}
+      </section>
 
       <div className={styles.controls}>
         <nav className={styles.filters} aria-label="Категории достижений">
@@ -291,7 +483,8 @@ export default function AchievementsClient() {
       </section>
 
       <p className={styles.note}>
-        XP за просмотр начисляется только по подтверждённым данным плеера. Premium даёт +20% к новому XP за активность, но награды за достижения одинаковы для всех.
+        XP за просмотр начисляется только по подтверждённым данным плеера.
+        Premium даёт +20% к новому XP за активность; достижения и требования LVL одинаковы для всех.
       </p>
     </main>
   );

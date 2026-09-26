@@ -63,7 +63,6 @@ export default function ProfileRewardsPanel() {
   const [data, setData] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [selecting, setSelecting] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -120,30 +119,6 @@ export default function ProfileRewardsPanel() {
     }
   }
 
-  async function selectFrame(frameKey: string | null) {
-    if (selecting) return;
-    setSelecting(frameKey ?? 'none');
-    setError('');
-    setMessage('');
-    try {
-      const response = await fetch('/api/community/leaderboard-rewards', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'select_frame', frameKey }),
-        cache: 'no-store',
-      });
-      const payload = await response.json() as Payload;
-      if (!response.ok) throw new Error(payload.error || 'Не удалось выбрать рамку.');
-      setData((current) => current ? { ...current, selectedFrame: payload.selectedFrame ?? null } : current);
-      setMessage(frameKey ? 'Рамка выбрана ✓' : 'Сезонная рамка отключена.');
-      window.dispatchEvent(new Event('animebox:profile-cosmetic-changed'));
-    } catch (selectError) {
-      setError(selectError instanceof Error ? selectError.message : 'Не удалось выбрать рамку.');
-    } finally {
-      setSelecting(null);
-    }
-  }
-
   if (loading) {
     return <div className={styles.state}><AnimeBoxLoader label="Загружаем награды…" size={46} /></div>;
   }
@@ -160,8 +135,8 @@ export default function ProfileRewardsPanel() {
       <section className={styles.intro}>
         <div>
           <span>ANIMEBOX LEAGUE</span>
-          <h2>Награды и сезонные рамки</h2>
-          <p>Рамки — временный статус League: недельные действуют 7 дней, месячные — 30 дней. Результаты навсегда остаются в истории аккаунта.</p>
+          <h2>Награды AnimeBox League</h2>
+          <p>Здесь хранятся сезонные результаты и призы. Надевать и менять рамки теперь можно прямо в «Профиль» → аватар → Frame Inventory.</p>
         </div>
         <div className={styles.summary}>
           <strong>{rewards.length}</strong>
@@ -182,8 +157,8 @@ export default function ProfileRewardsPanel() {
 
       <section className={styles.frames}>
         <div className={styles.sectionHeading}>
-          <div><span>АКТИВНЫЕ НАГРАДЫ</span><h3>Рамки League</h3></div>
-          {data?.selectedFrame && <button type="button" disabled={Boolean(selecting)} onClick={() => void selectFrame(null)}>Снять рамку</button>}
+          <div><span>АКТИВНЫЕ НАГРАДЫ</span><h3>Рамки League в инвентаре</h3></div>
+          <a href="/profile/edit">Открыть Frame Inventory</a>
         </div>
 
         {unlocked.length ? (
@@ -191,22 +166,26 @@ export default function ProfileRewardsPanel() {
             {unlocked.map((frame) => {
               const selected = data?.selectedFrame === frame.key;
               return (
-                <button
-                  type="button"
+                <article
                   key={frame.key}
                   className={selected ? styles.selectedFrame : ''}
-                  disabled={Boolean(selecting)}
-                  onClick={() => void selectFrame(frame.key)}
                 >
                   <SeasonFramePreview frameKey={frame.key} />
-                  <span><strong>{frame.label}</strong><small>{selected ? `Используется · до ${formatExpiry(frame.expiresAt)}` : `Действует до ${formatExpiry(frame.expiresAt)}`}</small></span>
-                </button>
+                  <span>
+                    <strong>{frame.label}</strong>
+                    <small>{selected ? `Сейчас надета · до ${formatExpiry(frame.expiresAt)}` : `В инвентаре · до ${formatExpiry(frame.expiresAt)}`}</small>
+                  </span>
+                </article>
               );
             })}
           </div>
         ) : (
-          <div className={styles.empty}>Попади в Топ-10 недели или месяца — временная рамка появится здесь после получения награды.</div>
+          <div className={styles.empty}>Попади в Топ-10 недели или месяца — временная рамка появится в Frame Inventory после получения награды.</div>
         )}
+
+        <p className={styles.empty}>
+          Управление рамками перенесено в профиль, чтобы LVL и League-награды использовали один понятный слот и никогда не накладывались друг на друга.
+        </p>
       </section>
 
       <section className={styles.history}>
