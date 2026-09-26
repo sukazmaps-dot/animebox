@@ -2114,3 +2114,30 @@
     font-size: 11.5px;
   }
 }
+
+/* Patch 18.6.6 — compact inline launcher */
+.inlineCompact {
+  margin-top: 10px;
+  border-radius: 14px;
+  background: rgba(10, 14, 26, .82);
+  box-shadow: none;
+}
+.inlineCompact::before { display: none; }
+.inlineCompactInner {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+}
+.inlineCompactCopy { min-width: 0; }
+.inlineCompactCopy strong,
+.inlineCompactCopy span { display: block; }
+.inlineCompactCopy strong { color: #f4f2ff; font-size: 12px; font-weight: 820; }
+.inlineCompactCopy span { margin-top: 2px; color: rgba(207,214,235,.46); font-size: 9px; }
+.inlineCompact .primary { min-height: 38px; flex: 0 0 auto; box-shadow: none; }
+@media (max-width: 620px) {
+  .inlineCompactInner { align-items: stretch; flex-direction: column; }
+  .inlineCompact .primary { width: 100%; }
+}

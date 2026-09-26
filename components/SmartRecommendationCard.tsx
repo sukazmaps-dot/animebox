@@ -41,8 +41,8 @@ function formatLabel(format: string | null | undefined): string {
   return format ? labels[format] ?? format : 'Аниме';
 }
 
-function formatDuration(duration: number | null | undefined): string {
-  if (!duration || duration <= 0) return 'Длительность уточняется';
+function formatDuration(duration: number | null | undefined): string | null {
+  if (!duration || duration <= 0) return null;
   if (duration < 60) return `${duration} мин`;
 
   const hours = Math.floor(duration / 60);
@@ -132,6 +132,7 @@ export default function SmartRecommendationCard({
   const [liked, setLiked] = useState(false);
   const [posterState, setPosterState] = useState<AnimeImageLoadState>('loading');
   const ratingLabel = formatAnimeScore(anime);
+  const durationLabel = formatDuration(anime.duration);
 
   const eventContext = {
     animeId: anime.id,
@@ -414,8 +415,12 @@ export default function SmartRecommendationCard({
 
         <div className="smart-card__meta" aria-label="Информация об аниме">
           <span>{formatLabel(anime.format)}</span>
-          <span aria-hidden="true">•</span>
-          <span>{formatDuration(anime.duration)}</span>
+          {durationLabel && (
+            <>
+              <span aria-hidden="true">•</span>
+              <span>{durationLabel}</span>
+            </>
+          )}
         </div>
 
         <p className="smart-card__reason" title={reasons.join(' · ')}>

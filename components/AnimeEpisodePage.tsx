@@ -14,7 +14,6 @@ import {
   recordAnimeView,
   setAnimeProgress,
 } from '@/lib/anime-storage';
-import { cleanShikimoriDescription } from '@/lib/shikimori-text';
 import { getAnimeTitle } from '@/lib/anime-display';
 import {
   getEpisodeAvailability,
@@ -34,8 +33,8 @@ import {
   type WatchPartyEpisodeChangeDetail,
 } from '@/lib/watch-party';
 import { trackProductClientEvent } from '@/lib/product-events-client';
-import AnimeImage from '@/components/AnimeImage';
 import EpisodeList from '@/components/EpisodeList';
+import EpisodeQuickSelector from '@/components/EpisodeQuickSelector';
 import type { EpisodeSeasonTab, EpisodeSeasonsResponse } from '@/types/episode-seasons';
 import type { PlayerProviderKey, PlayerSourcePolicyResponse } from '@/types/player-source-policy';
 
@@ -1386,8 +1385,6 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     anime.coverImage?.medium ||
     undefined;
 
-  const description = cleanShikimoriDescription(anime.description);
-
   if (theaterMode) {
     return (
       <div className={theaterStyles.viewport}>
@@ -1543,25 +1540,15 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         </div>
       )}
 
-      <section
-        className="episode-seo-context episode-seo-context--compact"
-        aria-label="Навигация по серии"
-      >
-        <div>
-          <span className="episode-seo-context__eyebrow">
-            Серия {episodeNumber}
-          </span>
-          <strong>{title}</strong>
-        </div>
-
-        <nav
-          className="episode-seo-context__links"
-          aria-label="Все эпизоды"
-          style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}
-        >
-          <Link href={`/anime/${animeIdParam}`}>Все серии</Link>
-        </nav>
-      </section>
+      <EpisodeQuickSelector
+        currentEpisode={episodeNumber}
+        totalEpisodes={currentSeasonEpisodes || availableEpisodes || episodeNumber}
+        hasPrev={hasPrev}
+        hasNext={hasNext}
+        onPrevious={goToPrevious}
+        onNext={goToNext}
+        onSelect={goToEpisode}
+      />
 
       <WatchPartyPanel
         animeTitle={title}
@@ -1583,40 +1570,20 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           variant="compact"
         />
 
-        <a href="#episode-comments" className="episode-engagement-comments">
-          <span className="episode-engagement-comments__eyebrow">Community</span>
-          <strong>Обсудить {episodeNumber}-ю серию</strong>
-          <span>Отдельная ветка только для этого эпизода — меньше случайных спойлеров.</span>
-          <b>Перейти к комментариям ↓</b>
-        </a>
       </section>
 
-      <section className="detail__section episode-page__body">
-        <div className="episode-page__info">
-          <div className="episode-page__poster-shell">
-            <AnimeImage
-              image={anime.coverImage}
-              alt={title}
-              englishName={anime.title?.english || anime.title?.romaji}
-              loading="lazy"
-            />
-          </div>
-
-          <div>
-            <h1 className="episode-page__title">{title} — {episodeNumber} серия</h1>
-
-            <p className="mt-2 text-sm font-medium text-violet-200/70">
-              Эпизод {episodeNumber} · прогресс просмотра сохраняется автоматически
-            </p>
-
-            {description && (
-              <p className="episode-page__description">{description}</p>
-            )}
-          </div>
+      <section className="episode-page__identity-compact">
+        <div>
+          <h1>{title} — {episodeNumber} серия</h1>
+          <span>Сезон {anime.providerSeason || 1}</span>
         </div>
+        <Link href={`/anime/${animeIdParam}`}>К тайтлу</Link>
       </section>
 
-      <section className="detail__section detail__episodes">
+      <section
+        className="detail__section detail__episodes"
+        id="episode-browser"
+      >
         <div className="detail__section-header">
           <h2>Эпизоды</h2>
 

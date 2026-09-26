@@ -225,14 +225,63 @@ export default function AnimeNotificationControl({
     }
   }
 
+  if (compact) {
+    const compactLabel = terminalFinished
+      ? 'Тайтл завершён'
+      : loading
+        ? 'Проверяем уведомления…'
+        : busy
+          ? 'Сохраняем…'
+          : !authenticated
+            ? 'Войти для уведомлений'
+            : !telegramLinked
+              ? 'Подключить Telegram'
+              : enabled
+                ? 'Уведомления включены'
+                : 'Уведомлять о новых сериях';
+
+    return (
+      <section className="episode-notification-compact">
+        <button
+          type="button"
+          className={enabled ? 'is-enabled' : ''}
+          disabled={loading || busy || terminalFinished}
+          aria-pressed={enabled}
+          onClick={() => void toggle()}
+        >
+          <BellRingingIcon size={19} weight={enabled ? 'fill' : 'regular'} aria-hidden="true" />
+          <span>{compactLabel}</span>
+        </button>
+
+        {authenticated && telegramLinked && !terminalFinished && (
+          <Link
+            href="/notifications"
+            className="episode-notification-compact__settings"
+            aria-label="Настроить уведомления"
+            title="Настроить уведомления"
+          >
+            <GearSixIcon size={17} weight="regular" aria-hidden="true" />
+          </Link>
+        )}
+
+        {message && (
+          <span
+            className={
+              telegramReady || enabled
+                ? 'episode-notification-compact__message is-ok'
+                : 'episode-notification-compact__message'
+            }
+            role="status"
+          >
+            {message}
+          </span>
+        )}
+      </section>
+    );
+  }
+
   return (
-    <section
-      className={
-        compact
-          ? 'anime-notification-control is-compact anime-notification-control--luminous'
-          : 'anime-notification-control anime-notification-control--luminous'
-      }
-    >
+    <section className="anime-notification-control anime-notification-control--luminous">
       <div className="anime-notification-control__art">
         <AnimeBoxIconCore
           size={compact ? 'compact' : 'default'}

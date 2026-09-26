@@ -598,54 +598,26 @@ export default function EpisodeComments({
 
   return (
     <section className="episode-comments" id="episode-comments">
-      <header className="episode-comments__header">
-        <div>
-          <span className="episode-comments__eyebrow">
-            ПОСЛЕ СЕРИИ
-          </span>
+      <header className="episode-comments__header episode-comments__header--compact">
+        <h2>
+          Комментарии
+          {comments.length > 0 && <span> · {comments.length}</span>}
+        </h2>
 
-          <h2>
-            Обсуждение серии {episode}
-          </h2>
-
-          <p>
-            Обсуждение относится только
-            к этой серии.
-          </p>
-        </div>
-
-        <div className="episode-comments__header-actions">
-          <div className="episode-comments__sort" role="group" aria-label="Сортировка комментариев">
-            <button
-              type="button"
-              className={sortMode === 'newest' ? 'is-active' : ''}
-              aria-pressed={sortMode === 'newest'}
-              onClick={() => setSortMode('newest')}
-            >
-              Новые
-            </button>
-            <button
-              type="button"
-              className={sortMode === 'oldest' ? 'is-active' : ''}
-              aria-pressed={sortMode === 'oldest'}
-              onClick={() => setSortMode('oldest')}
-            >
-              Сначала старые
-            </button>
-          </div>
-
-          {comments.length > 0 && (
-            <span className="episode-comments__count" title="Комментарии и ответы">
-              {comments.length}
-            </span>
-          )}
-        </div>
+        <label className="episode-comments__sort-select">
+          <span className="sr-only">Сортировка комментариев</span>
+          <select
+            value={sortMode}
+            onChange={(event) =>
+              setSortMode(event.target.value === 'oldest' ? 'oldest' : 'newest')
+            }
+            aria-label="Сортировка комментариев"
+          >
+            <option value="newest">Сначала новые</option>
+            <option value="oldest">Сначала старые</option>
+          </select>
+        </label>
       </header>
-
-      <div className="episode-comments__scope">
-        <span>Серия {episode}</span>
-        <p>Здесь обсуждают только этот эпизод. Комментарии со спойлерами скрываются до клика.</p>
-      </div>
 
       <form
         className="episode-comments__form"

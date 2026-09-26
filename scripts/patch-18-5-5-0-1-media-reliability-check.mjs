@@ -68,6 +68,9 @@ for (const needle of [
   "'Retry-After': String(NEGATIVE_CACHE_TTL_SECONDS)",
   "edgeHit.ok ? 'edge-hit' : 'negative-edge-hit'",
   'cache.put(cacheKey, failureResponse.clone())',
+  "status: hit.status",
+  "status: 307",
+  "'source-fallback-redirect'",
 ]) {
   if (!worker.includes(needle)) {
     failures.push(`media worker reliability missing: ${needle}`);
@@ -107,6 +110,8 @@ for (const needle of [
   "'Retry-After': '15'",
   "error: timedOut ? 'origin-timeout' : 'origin-fetch-failed'",
   "error: `origin-${response.status}`",
+  "'proxy-v2-source-fallback'",
+  'NextResponse.redirect(sourceUrl',
 ]) {
   if (!proxy.includes(needle)) {
     failures.push(`legacy image proxy diagnostics missing: ${needle}`);

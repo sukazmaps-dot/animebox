@@ -78,10 +78,9 @@ if (
   failures.push('player page still repeats the progress/navigation explanation below video');
 }
 need('player clutter reduction', episodePage, [
-  'episode-seo-context--compact',
-  'aria-label="Навигация по серии"',
-  'Серия {episodeNumber}',
-  '<strong>{title}</strong>',
+  '<EpisodeQuickSelector',
+  'episode-page__identity-compact',
+  'id="episode-browser"',
 ]);
 
 need('telegram mini app safety contract', telegramBridge, [

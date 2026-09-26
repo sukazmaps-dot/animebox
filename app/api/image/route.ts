@@ -261,21 +261,18 @@ export async function GET(
     const upstream = upstreamResult.response;
 
     if (!upstream) {
-      return new NextResponse(
-        'Image unavailable',
-        {
-          status: 502,
-          headers: {
-            'Cache-Control': 'public, max-age=15',
-            'Retry-After': '15',
-            'X-AnimeBox-Image-Delivery': 'proxy-v2',
-            'X-AnimeBox-Image-Error':
-              upstreamResult.error ?? 'origin-failed',
-            'X-AnimeBox-Image-Attempts':
-              String(upstreamResult.attempts),
-          },
+      return NextResponse.redirect(sourceUrl, {
+        status: 307,
+        headers: {
+          'Cache-Control': 'public, max-age=15',
+          'Retry-After': '15',
+          'X-AnimeBox-Image-Delivery': 'proxy-v2-source-fallback',
+          'X-AnimeBox-Image-Error':
+            upstreamResult.error ?? 'origin-failed',
+          'X-AnimeBox-Image-Attempts':
+            String(upstreamResult.attempts),
         },
-      );
+      });
     }
 
     const contentType =
@@ -360,17 +357,14 @@ export async function GET(
       error,
     );
 
-    return new NextResponse(
-      'Image proxy failed',
-      {
-        status: 502,
-        headers: {
-          'Cache-Control': 'public, max-age=15',
-          'Retry-After': '15',
-          'X-AnimeBox-Image-Delivery': 'proxy-v2',
-          'X-AnimeBox-Image-Error': 'proxy-exception',
-        },
+    return NextResponse.redirect(sourceUrl, {
+      status: 307,
+      headers: {
+        'Cache-Control': 'public, max-age=15',
+        'Retry-After': '15',
+        'X-AnimeBox-Image-Delivery': 'proxy-v2-source-fallback',
+        'X-AnimeBox-Image-Error': 'proxy-exception',
       },
-    );
+    });
   }
 }

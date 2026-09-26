@@ -2875,6 +2875,22 @@ export default function WatchPartyPanel({
     return () => window.removeEventListener(WATCH_PARTY_EXIT_EVENT, onExit);
   }, [leaveParty, mode]);
 
+  if (status === 'idle' && mode === 'inline') {
+    return (
+      <section className={`${styles.panel} ${styles.inlineCompact}`} aria-label="Watch Together">
+        <div className={styles.inlineCompactInner}>
+          <div className={styles.inlineCompactCopy}>
+            <strong>Смотреть вместе</strong>
+            <span>{episodeNumber} серия · приватная комната</span>
+          </div>
+          <button type="button" className={styles.primary} onClick={createRoom}>
+            Создать комнату
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   if (status === 'idle') {
     return (
       <section className={`${styles.panel} ${mode === 'theater' ? styles.theaterPanel : ''}`} aria-label="Watch Together">

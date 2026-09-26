@@ -540,10 +540,26 @@ async function readSourceFailure(cache, cacheKey, requestMethod) {
   return new Response(
     requestMethod === 'HEAD' ? null : hit.body,
     {
-      status: 502,
+      status: hit.status,
       headers,
     },
   );
+}
+
+function sourceFallbackResponse(source, error, sourceBackoff = false) {
+  const headers = new Headers({
+    Location: source.toString(),
+    'Cache-Control': `public, max-age=${NEGATIVE_CACHE_TTL_SECONDS}`,
+    'Retry-After': String(NEGATIVE_CACHE_TTL_SECONDS),
+    'X-AnimeBox-Media': 'source-fallback-redirect',
+    'X-AnimeBox-Origin-Error': error || 'origin-failed',
+  });
+
+  if (sourceBackoff) {
+    headers.set('X-AnimeBox-Source-Backoff', '1');
+  }
+
+  return new Response(null, { status: 307, headers });
 }
 
 async function fetchOriginCoalesced(source, variant, hash) {
@@ -724,16 +740,14 @@ export default {
       hash,
     );
     if (!origin.response) {
-      const failureResponse = new Response('Image unavailable', {
-        status: 502,
-        headers: mediaFailureHeaders(source, origin),
-      });
-      const sourceFailureResponse = new Response(
-        'Image source temporarily unavailable',
-        {
-          status: 502,
-          headers: sourceFailureHeaders(source, origin),
-        },
+      const failureResponse = sourceFallbackResponse(
+        source,
+        origin.error,
+      );
+      const sourceFailureResponse = sourceFallbackResponse(
+        source,
+        origin.error,
+        true,
       );
 
       ctx.waitUntil(
@@ -746,12 +760,7 @@ export default {
         ]),
       );
 
-      return request.method === 'HEAD'
-        ? new Response(null, {
-            status: 502,
-            headers: failureResponse.headers,
-          })
-        : failureResponse;
+      return failureResponse;
     }
 
     const { bytes, contentType, etag } = origin.response;

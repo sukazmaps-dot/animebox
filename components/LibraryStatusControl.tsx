@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   communityRequest,
@@ -34,10 +34,36 @@ export default function LibraryStatusControl({
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const compactRootRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     setConfirmRemove(false);
+    setStatusMenuOpen(false);
   }, [animeId]);
+
+  useEffect(() => {
+    if (!compact || !statusMenuOpen) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      const root = compactRootRef.current;
+      if (root && !root.contains(event.target as Node)) {
+        setStatusMenuOpen(false);
+      }
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setStatusMenuOpen(false);
+    };
+
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [compact, statusMenuOpen]);
 
   useEffect(() => {
     if (initialStatus) return;
@@ -73,6 +99,7 @@ export default function LibraryStatusControl({
       });
 
       setStatus(value);
+      setStatusMenuOpen(false);
       window.dispatchEvent(new Event('library-updated'));
       setMessage('Сохранено');
     } catch (error) {
@@ -119,8 +146,115 @@ export default function LibraryStatusControl({
     }
   }
 
+  if (compact) {
+    return (
+      <section
+        ref={compactRootRef}
+        className="episode-library-compact"
+        data-status={status || 'empty'}
+      >
+        <div className="episode-library-compact__picker">
+          <button
+            type="button"
+            className="episode-library-compact__trigger"
+            disabled={busy}
+            aria-haspopup="menu"
+            aria-expanded={statusMenuOpen}
+            aria-label="Статус аниме в библиотеке"
+            onClick={() => setStatusMenuOpen((current) => !current)}
+          >
+            <span
+              className="episode-library-compact__status-icon"
+              data-status={status || 'empty'}
+              aria-hidden="true"
+            >
+              {status ? (
+                <img src={statusIcons[status]} alt="" />
+              ) : (
+                <span>+</span>
+              )}
+            </span>
+
+            <span className="episode-library-compact__trigger-copy">
+              <small>Моя библиотека</small>
+              <strong>{status ? statusLabels[status] : 'Добавить в библиотеку'}</strong>
+            </span>
+
+            <svg
+              className="episode-library-compact__chevron"
+              viewBox="0 0 20 20"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="m6.5 8 3.5 3.5L13.5 8"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+
+          {statusMenuOpen && (
+            <div
+              className="episode-library-compact__menu"
+              role="menu"
+              aria-label="Выбрать статус"
+            >
+              {Object.entries(statusLabels).map(([value, label]) => {
+                const typedValue = value as LibraryStatus;
+                const active = status === typedValue;
+
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={active}
+                    data-status={typedValue}
+                    className={active ? 'is-active' : ''}
+                    disabled={busy}
+                    onClick={() => void save(typedValue)}
+                  >
+                    <span className="episode-library-compact__menu-icon" aria-hidden="true">
+                      <img src={statusIcons[typedValue]} alt="" />
+                    </span>
+                    <span>{label}</span>
+                    {active && <b aria-hidden="true">✓</b>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {status && (
+          <button
+            type="button"
+            className={confirmRemove ? 'episode-library-compact__remove is-confirm' : 'episode-library-compact__remove'}
+            disabled={busy}
+            onClick={() => {
+              if (!confirmRemove) {
+                setConfirmRemove(true);
+                return;
+              }
+              void removeFromTracker();
+            }}
+          >
+            {confirmRemove ? 'Подтвердить' : 'Убрать'}
+          </button>
+        )}
+
+        {message && (
+          <span className="episode-library-compact__message" role="status">{message}</span>
+        )}
+      </section>
+    );
+  }
+
   return (
-    <section className={compact ? 'community-library-control is-compact' : 'community-library-control'}>
+    <section className="community-library-control">
       <div className="community-library-control__top">
         <div className="community-library-control__info">
           <div className="community-library-control__icon" aria-hidden="true">
