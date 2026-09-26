@@ -1143,6 +1143,7 @@ export default function WatchPartyPanel({
 
     const identity = await resolveIdentity();
     if (!identity) {
+      clearGuestJoinDeadline();
       redirectToRegistration();
       return;
     }
