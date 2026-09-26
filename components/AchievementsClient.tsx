@@ -302,8 +302,11 @@ export default function AchievementsClient() {
         </div>
 
         <div className={styles.milestones}>
-          {LEVEL_MILESTONES.map((milestone) => {
+          {LEVEL_MILESTONES.map((milestone, milestoneIndex) => {
             const reached = progression.level >= milestone.level;
+            const nextMilestone = LEVEL_MILESTONES[milestoneIndex + 1];
+            const currentMilestone =
+              reached && (!nextMilestone || progression.level < nextMilestone.level);
             const selected = Boolean(
               milestone.frameKey && frameState?.selectedFrame === milestone.frameKey,
             );
@@ -315,7 +318,7 @@ export default function AchievementsClient() {
               <article
                 className={styles.milestone}
                 data-reached={reached ? 'true' : 'false'}
-                data-current={progression.rank === milestone.rank ? 'true' : 'false'}
+                data-current={currentMilestone ? 'true' : 'false'}
                 key={milestone.level}
               >
                 <div className={styles.milestoneLevel}>
@@ -337,7 +340,7 @@ export default function AchievementsClient() {
 
                 <div className={styles.milestoneCopy}>
                   <span>{xpForLevel(milestone.level).toLocaleString('ru-RU')} XP</span>
-                  <h3>{milestone.rank}</h3>
+                  <h3>{milestone.title}</h3>
                   <p>{milestone.reward}</p>
                   <small>Premium · {milestone.premiumReward}</small>
                 </div>
