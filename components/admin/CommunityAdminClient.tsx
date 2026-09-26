@@ -140,7 +140,7 @@ export default function CommunityAdminClient() {
               value={levelValue}
               onChange={(event) => setLevelValue(event.target.value)}
             >
-              {Array.from({ length: 50 }, (_, index) => index + 1).map((level) => (
+              {Array.from({ length: 100 }, (_, index) => index + 1).map((level) => (
                 <option value={level} key={level}>LVL {level}</option>
               ))}
             </select>
