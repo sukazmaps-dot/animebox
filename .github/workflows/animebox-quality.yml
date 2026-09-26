@@ -201,6 +201,7 @@ jobs:
           app/profile/page.tsx
           app/api/community/rating/route.ts
           app/anime/[slug]/page.tsx
+          app/anime/[slug]/loading.tsx
 
       - name: Retention regression checks
         run: node tests/retention.cjs

@@ -8,9 +8,12 @@
   display: grid !important;
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   grid-template-areas:
-    "like watched dismiss"
-    "plan plan plan" !important;
-  gap: 7px 6px !important;
+    "plan plan plan"
+    "like watched dismiss" !important;
+  gap: 6px !important;
+  margin-top: 8px !important;
+  padding-top: 8px !important;
+  border-top: 1px solid rgba(151, 160, 188, .10) !important;
   width: 100% !important;
   min-width: 0 !important;
 }
@@ -19,6 +22,41 @@
   grid-area: plan !important;
   width: 100% !important;
   min-width: 0 !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  justify-content: center !important;
+  padding: 0 11px !important;
+  border: 1px solid rgba(151, 160, 188, .20) !important;
+  border-radius: 10px !important;
+  background: rgba(17, 23, 41, .90) !important;
+  box-shadow: none !important;
+  color: rgba(239, 241, 249, .92) !important;
+}
+
+.home-page .smart-card__plan::before {
+  display: none !important;
+}
+
+.home-page .smart-card__plan-icon {
+  width: 16px !important;
+  height: 16px !important;
+  flex: 0 0 16px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  font-size: 15px !important;
+}
+
+.home-page .smart-card__plan.is-saved {
+  border-color: rgba(103, 211, 159, .28) !important;
+  background: rgba(42, 111, 79, .18) !important;
+  color: rgba(204, 249, 226, .95) !important;
+}
+
+.home-page .smart-card__plan.is-auth,
+.home-page .smart-card__plan.is-error {
+  border-color: rgba(224, 164, 97, .26) !important;
+  background: rgba(103, 66, 29, .16) !important;
 }
 
 .home-page .smart-card__feedback--like {
@@ -41,8 +79,8 @@
   justify-self: stretch !important;
   width: 100% !important;
   min-width: 0 !important;
-  height: 36px !important;
-  min-height: 36px !important;
+  height: 38px !important;
+  min-height: 38px !important;
   padding: 0 12px !important;
   border-radius: 999px !important;
   box-sizing: border-box !important;
@@ -69,7 +107,14 @@
 
 @media (max-width: 760px) {
   .home-page .smart-card__actions {
-    gap: 6px 5px !important;
+    gap: 5px !important;
+    margin-top: 7px !important;
+    padding-top: 7px !important;
+  }
+
+  .home-page .smart-card__plan {
+    height: 39px !important;
+    min-height: 39px !important;
   }
 
   .home-page .smart-card__feedback,
