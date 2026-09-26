@@ -102,3 +102,14 @@ identity effects automatically.
 - global chat profile clicks keep the user in chat;
 - Watch Together and comments share the upgraded mini-profile;
 - LVL 50 avatar visually fills the inner Crimson Sigil opening without crossing the ring.
+
+## Quality gate coverage
+
+The patch check explicitly guards:
+- mobile preview FAB and BottomSheet;
+- reusable desktop/mobile live preview component;
+- Premium identity fields in mini-profile API;
+- Premium atmosphere styles inside shared mini-profile;
+- Global Chat ProfilePreview integration;
+- Watch Together shared mini-profile integration;
+- LVL 50 / LVL 100 avatar fit values.
