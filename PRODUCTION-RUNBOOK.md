@@ -234,7 +234,23 @@ After a production deploy:
 
 ---
 
-## 11. Emergency recovery defaults
+## 11. Read-only load drill
+
+Prefer Preview/Staging:
+
+`ANIMEBOX_LOAD_TEST_ALLOW=1 ANIMEBOX_LOAD_TEST_BASE_URL=https://<preview> npm run load:readiness`
+
+The script runs 100 / 500 / 1000 / 2000 GET requests with bounded concurrency and stops on excessive errors.
+
+Production requires a second explicit acknowledgement:
+
+`ANIMEBOX_LOAD_TEST_PRODUCTION=I_UNDERSTAND`
+
+Do not use production load drill during an active incident.
+
+---
+
+## 12. Emergency recovery defaults
 
 Normal expected control state:
 
