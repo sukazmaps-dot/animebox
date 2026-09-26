@@ -11,6 +11,7 @@ import {
   ACHIEVEMENT_CATEGORY_LABELS,
   ACHIEVEMENT_RARITY_LABELS,
   LEVEL_MILESTONES,
+  levelFrameAvatarScale,
   xpForLevel,
   type AchievementCategory,
   type AchievementRarity,
@@ -328,7 +329,18 @@ export default function AchievementsClient() {
 
                 {milestone.frameKey ? (
                   <div className={styles.framePreview} aria-hidden="true">
-                    <img src="/default-avatar.webp" alt="" />
+                    <img
+                      src="/default-avatar.webp"
+                      alt=""
+                      style={
+                        milestone.frameKey
+                          ? {
+                              width: `${(levelFrameAvatarScale(milestone.frameKey) ?? 0.54) * 100}%`,
+                              height: `${(levelFrameAvatarScale(milestone.frameKey) ?? 0.54) * 100}%`,
+                            }
+                          : undefined
+                      }
+                    />
                     <ProfileFrameOverlay
                       frameKey={milestone.frameKey}
                       premium={progression.premiumBoostActive}
