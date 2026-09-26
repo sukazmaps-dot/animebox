@@ -7,6 +7,8 @@ const leaderboard = read('components/LeaderboardClient.tsx');
 const leaderboardCss = read('components/Leaderboard.module.css');
 const editor = read('components/profile/ProfileEditorClient.tsx');
 const editorCss = read('app/profile-editor-v13.css');
+const directEditor = read('components/profile/ProfileDirectEditSurface.tsx');
+const directEditorCss = read('components/profile/ProfileDirectEditSurface.module.css');
 
 const failures = [];
 
@@ -33,18 +35,26 @@ if (
   failures.push('podium profile action lost the shared secondary-button treatment');
 }
 
-const openStyleCount = editor.match(/Открыть Стиль/g)?.length ?? 0;
-if (openStyleCount !== 1) {
-  failures.push(
-    `profile editor must expose exactly one explicit "Открыть Стиль" CTA, got ${openStyleCount}`,
-  );
+if (
+  !editor.includes('<ProfileDirectEditSurface') ||
+  editor.includes("switchTab('appearance')")
+) {
+  failures.push('profile editor must use one direct Profile + Appearance surface');
 }
 
 if (
-  editor.includes('Сменить и подогнать') ||
-  editor.includes('Выбрать и кадрировать')
+  !directEditor.includes('onOpenPremium') ||
+  !directEditor.includes('Анимированный баннер и Premium-палитра') ||
+  !directEditor.includes('Premium оживляет LVL-рамки')
 ) {
-  failures.push('profile media actions are no longer using the unified "Изменить" copy');
+  failures.push('direct profile editor lost contextual Premium entry points');
+}
+
+if (
+  !directEditor.includes('Изменить аватар') ||
+  !directEditor.includes('Изменить баннер')
+) {
+  failures.push('profile media actions are no longer using concise direct-edit copy');
 }
 
 if (
@@ -55,18 +65,20 @@ if (
 }
 
 if (
-  !editor.includes('profile-editor-v13__inline-hint') ||
-  editor.includes('profile-editor-v13__hint-card')
+  !directEditor.includes('DIRECT EDIT') ||
+  !directEditor.includes('FRAME INVENTORY') ||
+  !directEditor.includes('Один профиль — один редактор.')
 ) {
-  failures.push('profile editor hint reverted to a heavy standalone card');
+  failures.push('direct-edit guidance or frame inventory disappeared');
 }
 
 if (
-  !editor.includes('profile-editor-v13__media-meta') ||
-  !editorCss.includes('.profile-editor-v13__field:focus-within > span small') ||
-  !editorCss.includes('.profile-editor-v13__preview-note')
+  !directEditorCss.includes('.field input:focus') ||
+  !directEditorCss.includes('.profileCard') ||
+  !directEditorCss.includes('.frameRule') ||
+  !editorCss.includes('.profile-editor-v19__direct-tab')
 ) {
-  failures.push('profile editor precision metadata/focus/preview styles are incomplete');
+  failures.push('direct profile editor precision/focus/layout styles are incomplete');
 }
 
 if (failures.length) {
