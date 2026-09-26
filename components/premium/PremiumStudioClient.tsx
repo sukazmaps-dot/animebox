@@ -37,7 +37,6 @@ import {
   premiumMediaStyle,
   premiumThemePreset,
   type PremiumAtmosphereEffect,
-  type PremiumBorderStyle,
   type PremiumEntranceEffect,
   type PremiumHeroStyle,
   type PremiumMediaTransform,
