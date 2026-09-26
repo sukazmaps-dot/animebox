@@ -12,7 +12,7 @@ import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
 import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
-import { isLevelFrameKey } from '@/lib/progression';
+import { isLevelFrameKey, levelFrameAvatarScale } from '@/lib/progression';
 import {
   premiumMediaStyle,
   type PremiumMediaTransform,
@@ -350,7 +350,17 @@ export default function ProfilePreview({
                           className={`${styles.avatarShell} ${data.profileFrameKey ? styles.avatarShellSeason : ''}`}
                           data-milestone-frame={isLevelFrameKey(data.profileFrameKey) ? 'true' : 'false'}
                         >
-                          <picture className={styles.avatarMedia}>
+                          <picture
+                            className={styles.avatarMedia}
+                            style={
+                              isLevelFrameKey(data.profileFrameKey)
+                                ? {
+                                    width: `${(levelFrameAvatarScale(data.profileFrameKey) ?? 0.58) * 100}%`,
+                                    height: `${(levelFrameAvatarScale(data.profileFrameKey) ?? 0.58) * 100}%`,
+                                  }
+                                : undefined
+                            }
+                          >
                             {data.avatarStaticUrl !== data.avatarUrl && (
                               <source
                                 media="(prefers-reduced-motion: reduce)"
