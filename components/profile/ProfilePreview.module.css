@@ -694,12 +694,17 @@
 .avatarShellSeason .avatarMedia {
   position: relative;
   z-index: 1;
-  width: 58%;
-  height: 58%;
+  width: 64%;
+  height: 64%;
   overflow: hidden;
   border-radius: 50%;
   background: #111827;
   box-shadow: 0 0 0 2px #080c14, 0 8px 22px rgba(0,0,0,.34);
+}
+
+.avatarShellSeason[data-milestone-frame='true'] .avatarMedia {
+  width: 58%;
+  height: 58%;
 }
 
 .seasonFrameOverlay {
