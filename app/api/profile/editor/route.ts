@@ -10,8 +10,14 @@ import { getEffectiveUserEntitlements } from '@/lib/entitlements-server';
 import { usernamePolicyError } from '@/lib/auth-identity-policy';
 import {
   isHexColor,
+  isPremiumAtmosphereEffect,
   isPremiumBorderStyle,
+  isPremiumEntranceEffect,
+  isPremiumHeroStyle,
+  isPremiumMotionMode,
+  isPremiumNicknameEffect,
   isPremiumProfileTheme,
+  isPremiumSurfaceStyle,
   studioSettingsFromRow,
   type PremiumStudioSettings,
 } from '@/lib/premium-studio';
@@ -46,6 +52,13 @@ const STUDIO_COLUMNS = [
   'banner_position_y',
   'banner_zoom',
   'sync_player_theme',
+  'atmosphere_effect',
+  'atmosphere_intensity',
+  'motion_mode',
+  'entrance_effect',
+  'nickname_effect',
+  'hero_style',
+  'surface_style',
 ].join(',');
 
 type ProfilePatch = {
@@ -209,6 +222,14 @@ function readZoom(value: unknown, label: string) {
   return Math.round(number * 100) / 100;
 }
 
+function readPercent(value: unknown, label: string) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0 || number > 100) {
+    throw new ApiError(400, `${label} должна быть от 0 до 100.`);
+  }
+  return Math.round(number);
+}
+
 function readStudioSettings(value: unknown, userId: string): PremiumStudioSettings {
   const data = objectValue(value, 'Оформление');
   const theme = typeof data.theme === 'string' ? data.theme.trim() : '';
@@ -216,6 +237,12 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
   const accentColor = typeof data.accentColor === 'string' ? data.accentColor.trim().toUpperCase() : '';
   const textColor = typeof data.textColor === 'string' ? data.textColor.trim().toUpperCase() : '';
   const borderStyle = typeof data.borderStyle === 'string' ? data.borderStyle.trim() : '';
+  const atmosphereEffect = typeof data.atmosphereEffect === 'string' ? data.atmosphereEffect.trim() : '';
+  const motionMode = typeof data.motionMode === 'string' ? data.motionMode.trim() : '';
+  const entranceEffect = typeof data.entranceEffect === 'string' ? data.entranceEffect.trim() : '';
+  const nicknameEffect = typeof data.nicknameEffect === 'string' ? data.nicknameEffect.trim() : '';
+  const heroStyle = typeof data.heroStyle === 'string' ? data.heroStyle.trim() : '';
+  const surfaceStyle = typeof data.surfaceStyle === 'string' ? data.surfaceStyle.trim() : '';
   const glowStrength = Number(data.glowStrength);
 
   if (!isPremiumProfileTheme(theme)) throw new ApiError(400, 'Неизвестная тема профиля.');
@@ -223,6 +250,12 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
     throw new ApiError(400, 'Цвета должны быть в формате #RRGGBB.');
   }
   if (!isPremiumBorderStyle(borderStyle)) throw new ApiError(400, 'Неизвестный стиль рамки.');
+  if (!isPremiumAtmosphereEffect(atmosphereEffect)) throw new ApiError(400, 'Неизвестный эффект атмосферы.');
+  if (!isPremiumMotionMode(motionMode)) throw new ApiError(400, 'Неизвестный режим движения.');
+  if (!isPremiumEntranceEffect(entranceEffect)) throw new ApiError(400, 'Неизвестный entrance-эффект.');
+  if (!isPremiumNicknameEffect(nicknameEffect)) throw new ApiError(400, 'Неизвестный эффект ника.');
+  if (!isPremiumHeroStyle(heroStyle)) throw new ApiError(400, 'Неизвестный стиль hero.');
+  if (!isPremiumSurfaceStyle(surfaceStyle)) throw new ApiError(400, 'Неизвестный стиль поверхностей.');
   if (!Number.isFinite(glowStrength) || glowStrength < 0 || glowStrength > 100) {
     throw new ApiError(400, 'Интенсивность свечения должна быть от 0 до 100.');
   }
@@ -248,6 +281,13 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
     bannerPositionY: readPosition(data.bannerPositionY, 'Позиция баннера по Y'),
     bannerZoom: readZoom(data.bannerZoom, 'Масштаб баннера'),
     syncPlayerTheme: data.syncPlayerTheme,
+    atmosphereEffect,
+    atmosphereIntensity: readPercent(data.atmosphereIntensity, 'Интенсивность атмосферы'),
+    motionMode,
+    entranceEffect,
+    nicknameEffect,
+    heroStyle,
+    surfaceStyle,
   };
 }
 
@@ -271,6 +311,13 @@ function studioRow(settings: PremiumStudioSettings, userId: string) {
     banner_position_y: settings.bannerPositionY,
     banner_zoom: settings.bannerZoom,
     sync_player_theme: settings.syncPlayerTheme,
+    atmosphere_effect: settings.atmosphereEffect,
+    atmosphere_intensity: settings.atmosphereIntensity,
+    motion_mode: settings.motionMode,
+    entrance_effect: settings.entranceEffect,
+    nickname_effect: settings.nicknameEffect,
+    hero_style: settings.heroStyle,
+    surface_style: settings.surfaceStyle,
     updated_at: new Date().toISOString(),
   };
 }
