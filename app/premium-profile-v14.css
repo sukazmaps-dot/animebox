@@ -2729,8 +2729,17 @@
     transition-duration: .001ms !important;
   }
 
-  .premium-profile-v21__particles {
-    display: none;
+  .premium-profile-v21__particles > i {
+    top: var(--particle-static-top, 50%);
+    opacity: .48;
+    transform:
+      translate3d(0,0,0)
+      scale(var(--particle-scale, 1))
+      rotate(var(--particle-rotation, 0deg));
+  }
+
+  .premium-profile-v21__atmosphere[data-effect='stardust'] .premium-profile-v21__particles > i {
+    opacity: .72;
   }
 }
 
