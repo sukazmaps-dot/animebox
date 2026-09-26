@@ -374,6 +374,10 @@ export function premiumStudioCssVariables(settings: PremiumStudioSettings) {
     settings.atmosphereIntensity <= 0
       ? 0
       : 0.08 + (settings.atmosphereIntensity / 100) * 0.34;
+  const atmosphereLiveAlpha =
+    settings.atmosphereIntensity <= 0
+      ? 0
+      : Math.min(0.68, atmosphereAlpha + 0.18);
   const motionDuration =
     settings.motionMode === 'live'
       ? 12
@@ -397,6 +401,7 @@ export function premiumStudioCssVariables(settings: PremiumStudioSettings) {
     '--ab-premium-glow-page-alpha': String(glowPageAlpha),
     '--ab-premium-glow-strength': String(settings.glowStrength),
     '--ab-premium-atmosphere-alpha': String(atmosphereAlpha),
+    '--ab-premium-atmosphere-live-alpha': String(atmosphereLiveAlpha),
     '--ab-premium-atmosphere-intensity': String(settings.atmosphereIntensity),
     '--ab-premium-motion-duration': `${motionDuration}s`,
     '--ab-premium-motion-duration-fast': `${Math.max(0.001, motionDuration * 0.56)}s`,
