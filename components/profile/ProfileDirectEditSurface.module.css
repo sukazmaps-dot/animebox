@@ -1,3 +1,12 @@
+.hiddenMediaInput {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: minmax(0, 1.12fr) minmax(320px, .72fr);
@@ -135,6 +144,7 @@
 }
 
 .banner:hover .editChip,
+.banner:focus-visible .editChip,
 .banner[data-selected='true'] .editChip {
   opacity: 1;
   transform: translateY(-1px);
@@ -211,6 +221,38 @@
   color: #fff;
   font-size: 12px;
   font-weight: 900;
+}
+
+.avatarChangeOverlay {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  z-index: 17;
+  min-height: 27px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 999px;
+  background: rgba(5, 7, 15, .76);
+  color: rgba(255,255,255,.92);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .02em;
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transform: translate(-50%, 5px);
+  transition: opacity .16s ease, transform .16s ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.avatarButton:hover .avatarChangeOverlay,
+.avatarButton:focus-visible .avatarChangeOverlay,
+.avatarButton[data-selected='true']:hover .avatarChangeOverlay {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
 .identity {
@@ -566,6 +608,11 @@
   font-size: 9px;
   font-weight: 800;
   cursor: pointer;
+}
+
+.primaryAction:disabled {
+  opacity: .55;
+  cursor: wait;
 }
 
 .dangerAction {
@@ -953,6 +1000,10 @@
     height: 25px;
     right: -1px;
     bottom: -1px;
+  }
+
+  .avatarChangeOverlay {
+    display: none;
   }
 
   .identity {
