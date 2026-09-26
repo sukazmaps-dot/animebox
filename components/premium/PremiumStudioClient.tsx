@@ -16,11 +16,19 @@ import {
   type PendingProfileMediaUpload,
 } from '@/lib/profile-media-upload-client';
 import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor';
+import PremiumProfileAtmosphere from '@/components/premium/PremiumProfileAtmosphere';
 import Icon from '@/components/Icon';
+import { deriveAdaptiveProfilePalette } from '@/lib/adaptive-profile-theme-client';
 import {
   DEFAULT_PREMIUM_STUDIO_SETTINGS,
+  PREMIUM_ATMOSPHERE_EFFECTS,
   PREMIUM_BORDER_STYLES,
+  PREMIUM_ENTRANCE_EFFECTS,
+  PREMIUM_HERO_STYLES,
+  PREMIUM_MOTION_MODES,
+  PREMIUM_NICKNAME_EFFECTS,
   PREMIUM_PROFILE_THEMES,
+  PREMIUM_SURFACE_STYLES,
   PREMIUM_PROFILE_THEME_META,
   contrastRatio,
   isHexColor,
@@ -28,10 +36,16 @@ import {
   premiumMediaStyle,
   premiumStudioCssVariables,
   premiumThemePreset,
+  type PremiumAtmosphereEffect,
   type PremiumBorderStyle,
+  type PremiumEntranceEffect,
+  type PremiumHeroStyle,
   type PremiumMediaTransform,
+  type PremiumMotionMode,
+  type PremiumNicknameEffect,
   type PremiumProfileTheme,
   type PremiumStudioSettings,
+  type PremiumSurfaceStyle,
 } from '@/lib/premium-studio';
 
 type StudioResponse = {
@@ -58,6 +72,47 @@ type PremiumStudioClientProps = {
 };
 
 type UploadKind = 'avatar' | 'banner';
+
+const ATMOSPHERE_META: Record<PremiumAtmosphereEffect, { label: string; hint: string }> = {
+  none: { label: 'Без эффекта', hint: 'Чистый Premium-профиль без частиц.' },
+  aurora: { label: 'Aurora', hint: 'Мягкие цветовые облака и глубина.' },
+  embers: { label: 'Embers', hint: 'Тёплые искры и энергетический след.' },
+  sakura: { label: 'Sakura', hint: 'Лёгкие лепестки в атмосфере профиля.' },
+  stardust: { label: 'Stardust', hint: 'Мелкие светящиеся звёздные частицы.' },
+};
+
+const ENTRANCE_META: Record<PremiumEntranceEffect, string> = {
+  none: 'Без intro',
+  fade: 'Fade',
+  bloom: 'Bloom',
+  manga: 'Manga Cut',
+  glitch: 'Glitch',
+};
+
+const NICKNAME_META: Record<PremiumNicknameEffect, string> = {
+  none: 'Обычный',
+  gradient: 'Gradient',
+  shimmer: 'Shimmer',
+  glow: 'Glow',
+};
+
+const HERO_META: Record<PremiumHeroStyle, string> = {
+  cinematic: 'Cinematic',
+  spotlight: 'Spotlight',
+  clean: 'Clean',
+};
+
+const SURFACE_META: Record<PremiumSurfaceStyle, string> = {
+  glass: 'Glass',
+  deep: 'Deep',
+  ink: 'Ink',
+};
+
+const MOTION_META: Record<PremiumMotionMode, string> = {
+  off: 'Off',
+  soft: 'Soft',
+  live: 'Live',
+};
 
 type MediaEditorState = {
   kind: UploadKind;
@@ -341,7 +396,8 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
   const [mediaWarning, setMediaWarning] = useState('');
-  const [studioSection, setStudioSection] = useState<'appearance' | 'effects' | 'media'>('appearance');
+  const [paletteLoading, setPaletteLoading] = useState<'avatar' | 'banner' | ''>('');
+  const [studioSection, setStudioSection] = useState<'appearance' | 'atmosphere' | 'effects' | 'media'>('appearance');
   const [mediaEditor, setMediaEditor] = useState<MediaEditorState | null>(null);
   const mediaEditorOpen = Boolean(mediaEditor);
 
@@ -527,6 +583,46 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       textColor: preset.textColor,
     }));
     setSaved('');
+  }
+
+  async function applyAdaptivePalette(source: 'avatar' | 'banner') {
+    const url = source === 'banner' ? bannerUrl : avatarUrl;
+
+    if (!url) {
+      setError(
+        source === 'banner'
+          ? 'Сначала загрузи Premium-баннер, чтобы подобрать палитру по нему.'
+          : 'Сначала загрузи Premium-аватар, чтобы подобрать палитру по нему.',
+      );
+      return;
+    }
+
+    setPaletteLoading(source);
+    setError('');
+    setSaved('');
+
+    try {
+      const palette = await deriveAdaptiveProfilePalette(url);
+      setSettings((current) => ({
+        ...current,
+        primaryColor: palette.primaryColor,
+        accentColor: palette.accentColor,
+        textColor: palette.textColor,
+      }));
+      setSaved(
+        source === 'banner'
+          ? 'Палитра подобрана по баннеру — сохрани изменения.'
+          : 'Палитра подобрана по аватару — сохрани изменения.',
+      );
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Не удалось подобрать палитру автоматически.',
+      );
+    } finally {
+      setPaletteLoading('');
+    }
   }
 
   function resetMediaInput(kind: UploadKind) {
@@ -902,6 +998,30 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 />
               </div>
 
+              <div className="premium-studio-v21__adaptive">
+                <div>
+                  <strong>Автоподбор палитры</strong>
+                  <small>AnimeBox берёт оттенки из медиа и строит тёмный фон, яркий accent и безопасный цвет текста.</small>
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    disabled={Boolean(paletteLoading) || Boolean(uploading) || saving}
+                    onClick={() => void applyAdaptivePalette('avatar')}
+                  >
+                    {paletteLoading === 'avatar' ? 'Подбираем…' : 'По аватару'}
+                  </button>
+                  <button
+                    type="button"
+                    className="is-accent"
+                    disabled={Boolean(paletteLoading) || Boolean(uploading) || saving}
+                    onClick={() => void applyAdaptivePalette('banner')}
+                  >
+                    {paletteLoading === 'banner' ? 'Подбираем…' : 'По баннеру'}
+                  </button>
+                </div>
+              </div>
+
               <div className={`premium-studio-v12__contrast premium-studio-v15__contrast ${contrastProtected ? 'is-warning is-protected' : 'is-good'}`}>
                 <div>
                   <strong>{contrastProtected ? 'Smart Contrast включён' : `Контраст ${contrast.toFixed(1)}:1`}</strong>
@@ -924,9 +1044,17 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
               </div>
 
               <section
-                className={`premium-studio-v12__preview premium-studio-v15__preview border-${settings.borderStyle}`}
+                className={`premium-studio-v12__preview premium-studio-v15__preview premium-studio-v21__preview border-${settings.borderStyle}`}
                 style={cssVars as CSSProperties}
+                data-premium-atmosphere={settings.atmosphereEffect}
+                data-premium-motion={settings.motionMode}
+                data-premium-hero={settings.heroStyle}
+                data-premium-surface={settings.surfaceStyle}
               >
+                <PremiumProfileAtmosphere
+                  effect={settings.atmosphereEffect}
+                  motion={settings.motionMode}
+                />
                 <div className="premium-studio-v12__preview-banner premium-studio-v15__preview-banner">
                   {bannerUrl && <img src={bannerUrl} alt="" aria-hidden="true" loading="lazy" decoding="async" style={premiumMediaStyle(bannerTransform) as CSSProperties} />}
                   <div />
@@ -955,7 +1083,14 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                       <span>ANIMEBOX PREMIUM</span>
                       <small>ЖИВАЯ ТЕМА</small>
                     </div>
-                    <h3>Твой профиль</h3>
+                    <h3>
+                      <span
+                        className="premium-profile-v21__nickname"
+                        data-effect={settings.nicknameEffect}
+                      >
+                        Твой профиль
+                      </span>
+                    </h3>
                     <p>Палитра применяется ко всей странице профиля, а Smart Contrast не даёт тексту исчезнуть на похожем фоне.</p>
                     <div className="premium-studio-v15__preview-chips">
                       <i>Тема профиля</i>
@@ -979,6 +1114,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
 
         <div className="premium-studio-v16__section-nav" role="tablist" aria-label="Разделы Premium Studio">
           <button type="button" role="tab" aria-selected={studioSection === 'appearance'} className={studioSection === 'appearance' ? 'is-active' : ''} onClick={() => setStudioSection('appearance')}>Оформление</button>
+          <button type="button" role="tab" aria-selected={studioSection === 'atmosphere'} className={studioSection === 'atmosphere' ? 'is-active' : ''} onClick={() => setStudioSection('atmosphere')}>Атмосфера</button>
           <button type="button" role="tab" aria-selected={studioSection === 'effects'} className={studioSection === 'effects' ? 'is-active' : ''} onClick={() => setStudioSection('effects')}>Эффекты</button>
           <button type="button" role="tab" aria-selected={studioSection === 'media'} className={studioSection === 'media' ? 'is-active' : ''} onClick={() => setStudioSection('media')}>Медиа</button>
         </div>
@@ -1007,6 +1143,108 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                     </button>
                   );
                 })}
+              </div>
+            </section>
+          )}
+
+          {studioSection === 'atmosphere' && (
+            <section className="premium-studio-v12__panel premium-studio-v15__panel premium-studio-v15__panel-wide premium-studio-v21__identity-panel">
+              <div className="premium-studio-v12__section-head premium-studio-v15__section-head">
+                <div>
+                  <h2>Атмосфера профиля</h2>
+                  <p>Один ambient-эффект, единый режим движения и характер появления профиля. Всё сразу видно в предпросмотре.</p>
+                </div>
+              </div>
+
+              <div className="premium-studio-v21__atmosphere-grid">
+                {PREMIUM_ATMOSPHERE_EFFECTS.map((effect) => {
+                  const meta = ATMOSPHERE_META[effect];
+                  return (
+                    <button
+                      key={effect}
+                      type="button"
+                      className={settings.atmosphereEffect === effect ? 'is-active' : ''}
+                      data-effect={effect}
+                      onClick={() => setSettings((current) => ({ ...current, atmosphereEffect: effect }))}
+                    >
+                      <span className="premium-studio-v21__effect-orb" />
+                      <strong>{meta.label}</strong>
+                      <small>{meta.hint}</small>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="premium-studio-v21__identity-controls">
+                <label className="premium-studio-v16__effect-row">
+                  <span><strong>Интенсивность атмосферы</strong><small>Контролирует заметность ambient glow и частиц.</small></span>
+                  <span className="premium-studio-v16__range-wrap">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={settings.atmosphereIntensity}
+                      onChange={(event) => setSettings((current) => ({ ...current, atmosphereIntensity: Number(event.target.value) }))}
+                    />
+                    <b>{settings.atmosphereIntensity}%</b>
+                  </span>
+                </label>
+
+                <div className="premium-studio-v16__effect-row">
+                  <span><strong>Движение</strong><small>Off экономит максимум ресурсов, Soft — дорогая спокойная анимация, Live — самый заметный режим.</small></span>
+                  <div className="premium-studio-v15__segmented">
+                    {PREMIUM_MOTION_MODES.map((mode) => (
+                      <button key={mode} type="button" className={settings.motionMode === mode ? 'is-active' : ''} onClick={() => setSettings((current) => ({ ...current, motionMode: mode }))}>
+                        {MOTION_META[mode]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="premium-studio-v16__effect-row">
+                  <span><strong>Эффект ника</strong><small>Выделяет username, не превращая весь интерфейс в неон.</small></span>
+                  <div className="premium-studio-v15__segmented">
+                    {PREMIUM_NICKNAME_EFFECTS.map((effect) => (
+                      <button key={effect} type="button" className={settings.nicknameEffect === effect ? 'is-active' : ''} onClick={() => setSettings((current) => ({ ...current, nicknameEffect: effect }))}>
+                        {NICKNAME_META[effect]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="premium-studio-v16__effect-row">
+                  <span><strong>Вход в профиль</strong><small>Короткая intro-анимация только при открытии страницы.</small></span>
+                  <div className="premium-studio-v15__segmented">
+                    {PREMIUM_ENTRANCE_EFFECTS.map((effect) => (
+                      <button key={effect} type="button" className={settings.entranceEffect === effect ? 'is-active' : ''} onClick={() => setSettings((current) => ({ ...current, entranceEffect: effect }))}>
+                        {ENTRANCE_META[effect]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="premium-studio-v16__effect-row">
+                  <span><strong>Hero</strong><small>Как баннер и identity-блок собираются в верхней части профиля.</small></span>
+                  <div className="premium-studio-v15__segmented">
+                    {PREMIUM_HERO_STYLES.map((style) => (
+                      <button key={style} type="button" className={settings.heroStyle === style ? 'is-active' : ''} onClick={() => setSettings((current) => ({ ...current, heroStyle: style }))}>
+                        {HERO_META[style]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="premium-studio-v16__effect-row">
+                  <span><strong>Поверхности</strong><small>Glass — глубина и blur, Deep — плотный игровой UI, Ink — строгий тёмный профиль.</small></span>
+                  <div className="premium-studio-v15__segmented">
+                    {PREMIUM_SURFACE_STYLES.map((style) => (
+                      <button key={style} type="button" className={settings.surfaceStyle === style ? 'is-active' : ''} onClick={() => setSettings((current) => ({ ...current, surfaceStyle: style }))}>
+                        {SURFACE_META[style]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </section>
           )}
@@ -1118,17 +1356,11 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
               onClick={() => {
                 const preset = premiumThemePreset('default');
                 setSettings((current) => ({
-                  ...preset,
-                  avatarPath: current.avatarPath,
-                  avatarStaticPath: current.avatarStaticPath,
-                  bannerPath: current.bannerPath,
-                  bannerStaticPath: current.bannerStaticPath,
-                  avatarPositionX: current.avatarPositionX,
-                  avatarPositionY: current.avatarPositionY,
-                  avatarZoom: current.avatarZoom,
-                  bannerPositionX: current.bannerPositionX,
-                  bannerPositionY: current.bannerPositionY,
-                  bannerZoom: current.bannerZoom,
+                  ...current,
+                  theme: preset.theme,
+                  primaryColor: preset.primaryColor,
+                  accentColor: preset.accentColor,
+                  textColor: preset.textColor,
                 }));
                 setSaved('');
               }}
