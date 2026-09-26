@@ -637,9 +637,9 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       <section className="profile-editor-v13__shell">
         <header className="profile-editor-v13__header">
           <div>
-            <span>ANIMEBOX PROFILE LAB</span>
-            <h1>Редактор профиля</h1>
-            <p>Собери профиль под себя — от базовой информации до Premium-оформления.</p>
+            <span>PROFILE STUDIO</span>
+            <h1>Редактирование профиля</h1>
+            <p>Нажимай прямо на элементы профиля: аватар, баннер, ник, описание и рамку.</p>
           </div>
 
           <div className="profile-editor-v13__header-actions">
@@ -740,7 +740,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             )}
           </div>
         ) : (
-          <ProfileDirectEditSurface
+          <div className="profile-editor-v19__direct-tab">
+            <ProfileDirectEditSurface
             username={username}
             bio={bio}
             avatarUrl={resolvedAvatarPreview}
@@ -782,6 +783,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             onUseBaseMedia={clearPremiumFallbackMedia}
             onOpenPremium={() => switchTab('style')}
           />
+          </div>
         )}
 
         <div className={`profile-editor-v13__mobile-save profile-editor-v18__savebar ${dirty ? 'is-dirty' : ''}`}>
