@@ -425,8 +425,8 @@ export default function ProfileDirectEditSurface({
               <div className={styles.overrideCard}>
                 <Icon name="crown" size={18} />
                 <div>
-                  <strong>Сейчас виден Premium-вариант</strong>
-                  <p>Изменения базового баннера сохранятся как запасной вариант.</p>
+                  <strong>{premiumActive ? 'Сейчас виден Premium-баннер' : 'Используется статический Premium fallback'}</strong>
+                  <p>{premiumActive ? 'Изменения базового баннера сохранятся как запасной вариант.' : 'Анимация уже выключена; можно одним нажатием вернуть базовый баннер.'}</p>
                 </div>
                 <button type="button" onClick={() => void onUseBaseBanner()}>Использовать базовый</button>
               </div>
@@ -482,8 +482,8 @@ export default function ProfileDirectEditSurface({
                 <div className={styles.overrideCard}>
                   <Icon name="crown" size={18} />
                   <div>
-                    <strong>Premium-медиа активно</strong>
-                    <p>Базовый аватар остаётся сохранённым и вернётся после переключения.</p>
+                    <strong>{premiumActive ? 'Premium-аватар активен' : 'Используется статический Premium fallback'}</strong>
+                    <p>{premiumActive ? 'Базовый аватар остаётся сохранённым и вернётся после переключения.' : 'Premium motion уже выключен; базовый аватар можно вернуть отдельно от баннера.'}</p>
                   </div>
                   <button type="button" onClick={() => void onUseBaseAvatar()}>Базовый вариант</button>
                 </div>
