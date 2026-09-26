@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type
 import Link from 'next/link';
 
 import { useAuthState } from '@/components/AuthStateProvider';
+import ProfilePreview from '@/components/profile/ProfilePreview';
 import { createClient } from '@/lib/supabase/client';
 import { resolveSponsorFrame } from '@/lib/sponsor';
 import {
@@ -479,7 +480,16 @@ export default function GlobalChatV11Client({ initialPage }: { initialPage: Chat
       const username = part.slice(1);
       const userId = usernameMap.get(username.toLocaleLowerCase('ru-RU'));
       return userId
-        ? <Link key={index} className={styles.mention} href={`/profile/${userId}`}>{part}</Link>
+        ? (
+            <ProfilePreview
+              key={index}
+              userId={userId}
+              username={username}
+              className={styles.mention}
+            >
+              <span>{part}</span>
+            </ProfilePreview>
+          )
         : <span key={index} className={styles.mention}>{part}</span>;
     });
   }
@@ -546,14 +556,35 @@ export default function GlobalChatV11Client({ initialPage }: { initialPage: Chat
                 <div key={message.id}>
                   {message.id === firstUnreadId && <div className={styles.unreadDivider}>Новые сообщения</div>}
                   <article className={`${styles.message} ${message.user_id === user?.id ? styles.mine : ''} ${isSystem ? styles.systemMessage : ''}`}>
-                    <Link href={`/profile/${message.user_id}`} className={styles.avatarWrap}>
-                      <img src={author?.avatarUrl || '/default-avatar.webp'} alt={author?.username || 'Пользователь'} className={styles.avatar} style={avatarStyle(author)} />
-                      {frame && <img src={`/brand/identity/frame-${frame}.webp`} alt="" className={styles.frame} aria-hidden="true" />}
-                    </Link>
+                    {isSystem ? (
+                      <span className={styles.avatarWrap}>
+                        <img src={author?.avatarUrl || '/default-avatar.webp'} alt="" className={styles.avatar} style={avatarStyle(author)} />
+                        {frame && <img src={`/brand/identity/frame-${frame}.webp`} alt="" className={styles.frame} aria-hidden="true" />}
+                      </span>
+                    ) : (
+                      <ProfilePreview
+                        userId={message.user_id}
+                        username={author?.username || 'Пользователь'}
+                        className={styles.avatarWrap}
+                      >
+                        <img src={author?.avatarUrl || '/default-avatar.webp'} alt={author?.username || 'Пользователь'} className={styles.avatar} style={avatarStyle(author)} />
+                        {frame && <img src={`/brand/identity/frame-${frame}.webp`} alt="" className={styles.frame} aria-hidden="true" />}
+                      </ProfilePreview>
+                    )}
 
                     <div className={styles.messageBody}>
                       <div className={styles.meta}>
-                        <Link href={`/profile/${message.user_id}`} className={styles.username}>{isSystem ? 'AnimeBox' : author?.username || 'Пользователь'}</Link>
+                        {isSystem ? (
+                          <span className={styles.username}>AnimeBox</span>
+                        ) : (
+                          <ProfilePreview
+                            userId={message.user_id}
+                            username={author?.username || 'Пользователь'}
+                            className={styles.username}
+                          >
+                            <span>{author?.username || 'Пользователь'}</span>
+                          </ProfilePreview>
+                        )}
                         {isSystem ? <span className={styles.systemBadge}>SYSTEM</span> : badge && <span className={styles.badge} data-kind={badge.kind}>{badge.text}</span>}
                         <time dateTime={message.created_at}>{formatTime(message.created_at)}</time>
                         {state === 'sending' && <span className={styles.delivery}>отправляется…</span>}
