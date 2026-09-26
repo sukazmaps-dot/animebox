@@ -392,6 +392,7 @@ export function premiumStudioCssVariables(settings: PremiumStudioSettings) {
     '--ab-premium-on-accent-rgb': `${onAccentRgb.r}, ${onAccentRgb.g}, ${onAccentRgb.b}`,
     '--ab-premium-accent-rgb': `${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}`,
     '--ab-premium-glow-alpha': String(glowAlpha),
+    '--ab-premium-glow-half-alpha': String(glowAlpha * 0.5),
     '--ab-premium-glow-soft-alpha': String(glowSoftAlpha),
     '--ab-premium-glow-page-alpha': String(glowPageAlpha),
     '--ab-premium-glow-strength': String(settings.glowStrength),
