@@ -5,7 +5,8 @@ import { createSupabaseAdmin } from '@/lib/supabase/admin';
 export type RuntimeRefreshLeaseScope =
   | 'catalog_availability'
   | 'anime_catalog_metadata'
-  | 'player_provider_half_open';
+  | 'player_provider_half_open'
+  | 'system_job';
 
 export type RuntimeRefreshLease = {
   acquired: boolean;
@@ -15,7 +16,7 @@ export type RuntimeRefreshLease = {
 
 const DEFAULT_LEASE_TTL_SECONDS = 15;
 const MIN_LEASE_TTL_SECONDS = 5;
-const MAX_LEASE_TTL_SECONDS = 60;
+const MAX_LEASE_TTL_SECONDS = 120;
 
 function normalizedLeaseTtl(ttlSeconds: number) {
   if (!Number.isFinite(ttlSeconds)) return DEFAULT_LEASE_TTL_SECONDS;
