@@ -322,6 +322,16 @@ need('mini-profile unified frame', profilePreviewServer, [
   'getSelectedProfileFrame',
   'profileFrameKey',
 ]);
+
+need('mini-profile Premium identity payload', profilePreviewServer, [
+  'atmosphereEffect',
+  'atmosphereIntensity',
+  'motionMode',
+  'entranceEffect',
+  'nicknameEffect',
+  'heroStyle',
+  'surfaceStyle',
+]);
 need('mini-profile unified frame UI', profilePreview, [
   'ProfileFrameOverlay',
   'data.profileFrameKey',
