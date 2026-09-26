@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from 'react';
 import Icon from '@/components/Icon';
 import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
 import { isLevelFrameKey, levelFrameLabel, LEVEL_MILESTONES, type LevelFrameKey } from '@/lib/progression';
-import { isSeasonFrameKey } from '@/lib/leaderboard-rewards';
 
 import styles from './ProfileDirectEditSurface.module.css';
 
@@ -33,7 +32,8 @@ type Props = {
   baseAvatarUrl: string;
   baseBannerUrl: string | null;
   premiumActive: boolean;
-  premiumOverrideActive: boolean;
+  avatarPremiumOverride: boolean;
+  bannerPremiumOverride: boolean;
   avatarBusy: boolean;
   bannerBusy: boolean;
   canRemoveAvatar: boolean;
@@ -77,7 +77,8 @@ export default function ProfileDirectEditSurface({
   baseAvatarUrl,
   baseBannerUrl,
   premiumActive,
-  premiumOverrideActive,
+  avatarPremiumOverride,
+  bannerPremiumOverride,
   avatarBusy,
   bannerBusy,
   canRemoveAvatar,
@@ -418,7 +419,7 @@ export default function ProfileDirectEditSurface({
               )}
             </div>
             <p className={styles.help}>JPG, PNG, WebP, AVIF, HEIC/HEIF · до 16 МБ. Перед сохранением откроется crop-editor.</p>
-            {premiumOverrideActive && (
+            {bannerPremiumOverride && (
               <div className={styles.overrideCard}>
                 <Icon name="crown" size={18} />
                 <div>
@@ -475,7 +476,7 @@ export default function ProfileDirectEditSurface({
                 )}
               </div>
 
-              {premiumOverrideActive && (
+              {avatarPremiumOverride && (
                 <div className={styles.overrideCard}>
                   <Icon name="crown" size={18} />
                   <div>
