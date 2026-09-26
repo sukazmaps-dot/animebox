@@ -213,10 +213,11 @@ export default function GoogleAuthButton({
       : 'continue_with';
 
     // Keep Google's native button (so the identity flow stays direct and
-    // branded as AnimeBox), but use the dark variant so it fits our UI.
+    // branded as AnimeBox). Patch 18.7 keeps the official light surface
+    // intact across the whole button instead of embedding it into a dark shell.
     google.accounts.id.renderButton(mount, {
       type: 'standard',
-      theme: 'filled_black',
+      theme: 'outline',
       size: 'large',
       text: buttonText,
       shape: 'rectangular',
@@ -245,12 +246,11 @@ export default function GoogleAuthButton({
           position: 'relative',
           width: '100%',
           borderRadius: 16,
-          padding: 1,
+          padding: 0,
           overflow: 'hidden',
-          background:
-            'linear-gradient(115deg, rgba(124, 92, 255, .65), rgba(255,255,255,.10), rgba(80, 132, 255, .35))',
+          background: '#fff',
           boxShadow:
-            '0 12px 34px rgba(80, 60, 180, .20), inset 0 0 0 1px rgba(255,255,255,.03)',
+            '0 10px 28px rgba(0, 0, 0, .18), inset 0 0 0 1px rgba(15, 23, 42, .08)',
           opacity: loading ? 0.68 : 1,
           pointerEvents: loading ? 'none' : 'auto',
           transition: 'opacity 160ms ease, transform 160ms ease',
@@ -265,7 +265,7 @@ export default function GoogleAuthButton({
             placeItems: 'center',
             borderRadius: 15,
             overflow: 'hidden',
-            background: '#0d1422',
+            background: '#fff',
           }}
         />
       </div>

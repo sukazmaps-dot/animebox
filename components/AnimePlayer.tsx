@@ -109,6 +109,7 @@ interface AnimePlayerProps {
   onEpisodeChange?: (episode: number) => void;
   onPlaybackQualified?: () => void;
   onDurationObserved?: (durationSeconds: number) => void;
+  showEpisodeNavigation?: boolean;
   watchTogetherMode?: boolean;
 }
 
@@ -401,6 +402,7 @@ export default function AnimePlayer({
   onEpisodeChange,
   onPlaybackQualified,
   onDurationObserved,
+  showEpisodeNavigation = true,
   watchTogetherMode = false,
 }: AnimePlayerProps) {
   const { user, loading: authLoading } = useAuthState();
@@ -3047,7 +3049,9 @@ export default function AnimePlayer({
         </div>
       </div>
 
-      {/* Bottom navigation */}
+      {/* Bottom navigation. Normal episode pages use EpisodeQuickSelector as the
+          single navigation surface; Watch Together keeps the embedded controls. */}
+      {showEpisodeNavigation && (
       <div className={`animebox-player-nav ${watchTogetherMode ? 'watch-together-player-nav' : ''} grid grid-cols-2 gap-2 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(170px,230px)_minmax(0,1fr)] sm:items-center sm:px-4 md:p-4 md:px-5`}>
         <button
           type="button"
@@ -3082,6 +3086,7 @@ export default function AnimePlayer({
           <Icon name="chevron" className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </button>
       </div>
+      )}
 
       {trackingMessage && (
         <p

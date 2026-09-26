@@ -30,7 +30,7 @@ if (
   process.exit(2);
 }
 
-const phases = [100, 500, 1000, 2000];
+const phases = [100, 250, 500, 750, 1000];
 const concurrency = Math.max(
   1,
   Math.min(40, Number(process.env.ANIMEBOX_LOAD_TEST_CONCURRENCY || 24)),
@@ -76,7 +76,7 @@ async function requestOne(index) {
         Accept: path.startsWith('/api/')
           ? 'application/json'
           : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'User-Agent': 'AnimeBox-Readiness-Drill/18.5.6',
+        'User-Agent': 'AnimeBox-Readiness-Drill/18.7',
       },
       redirect: 'follow',
       signal: AbortSignal.timeout(15_000),

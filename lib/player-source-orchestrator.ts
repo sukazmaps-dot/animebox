@@ -95,3 +95,47 @@ export function buildPlayerSourceOrchestratorPlan(
     allUnavailable: !copyrightBlocked && orderedProviders.length === 0,
   };
 }
+
+
+// Patch 18.7 — Core Final: every provider attempt must fit inside the
+// remaining discovery budget. This prevents a late provider timeout from
+// outliving the orchestrator deadline and leaving the page in a loading state.
+export const ORCHESTRATOR_MIN_ATTEMPT_BUDGET_MS = 900;
+export const ORCHESTRATOR_ATTEMPT_SAFETY_MARGIN_MS = 180;
+
+export function remainingPlayerDiscoveryBudgetMs(input: {
+  discoveryStartedAtMs: number;
+  discoveryBudgetMs: number;
+  nowMs: number;
+}) {
+  return Math.max(
+    0,
+    Math.round(
+      input.discoveryBudgetMs -
+        Math.max(0, input.nowMs - input.discoveryStartedAtMs),
+    ),
+  );
+}
+
+export function boundedProviderAttemptTimeoutMs(input: {
+  recommendedTimeoutMs: number;
+  remainingBudgetMs: number;
+}) {
+  if (input.remainingBudgetMs <= ORCHESTRATOR_MIN_ATTEMPT_BUDGET_MS) {
+    return 0;
+  }
+
+  const usableBudget = Math.max(
+    ORCHESTRATOR_MIN_ATTEMPT_BUDGET_MS,
+    input.remainingBudgetMs - ORCHESTRATOR_ATTEMPT_SAFETY_MARGIN_MS,
+  );
+
+  return Math.max(
+    ORCHESTRATOR_MIN_ATTEMPT_BUDGET_MS,
+    Math.min(
+      12_000,
+      Math.max(ORCHESTRATOR_MIN_ATTEMPT_BUDGET_MS, input.recommendedTimeoutMs),
+      usableBudget,
+    ),
+  );
+}

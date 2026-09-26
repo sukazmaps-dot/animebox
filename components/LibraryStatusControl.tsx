@@ -43,8 +43,12 @@ export default function LibraryStatusControl({
   const compactRootRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    setConfirmRemove(false);
-    setStatusMenuOpen(false);
+    const timer = window.setTimeout(() => {
+      setConfirmRemove(false);
+      setStatusMenuOpen(false);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [animeId]);
 
   useEffect(() => {
@@ -92,10 +96,15 @@ export default function LibraryStatusControl({
 
   useEffect(() => {
     if (authLoading || user) return;
-    setStatus('');
-    setMessage('');
-    setConfirmRemove(false);
-    setStatusMenuOpen(false);
+
+    const timer = window.setTimeout(() => {
+      setStatus('');
+      setMessage('');
+      setConfirmRemove(false);
+      setStatusMenuOpen(false);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [authLoading, user]);
 
   async function save(value: LibraryStatus) {

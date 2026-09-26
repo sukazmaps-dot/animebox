@@ -37,6 +37,10 @@ import EpisodeList from '@/components/EpisodeList';
 import EpisodeQuickSelector from '@/components/EpisodeQuickSelector';
 import type { EpisodeSeasonTab, EpisodeSeasonsResponse } from '@/types/episode-seasons';
 import type { PlayerProviderKey, PlayerSourcePolicyResponse } from '@/types/player-source-policy';
+import {
+  boundedProviderAttemptTimeoutMs,
+  remainingPlayerDiscoveryBudgetMs,
+} from '@/lib/player-source-orchestrator';
 
 type SourceApiResponse = {
   episodes?: number[];
@@ -761,16 +765,48 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         };
       }
 
+      if (attemptedProviders.has(provider)) {
+        trackDiscoveryEvent(
+          'player_discovery_attempt',
+          provider,
+          {
+            provider,
+            phase,
+            outcome: 'duplicate_blocked',
+            reason: 'provider_already_attempted',
+          },
+        );
+        return {
+          ready: false,
+          restricted: false,
+          reason: 'provider_already_attempted',
+        };
+      }
+
+      const attemptStartedAt = performance.now();
+      const remainingBudgetMs = remainingPlayerDiscoveryBudgetMs({
+        discoveryStartedAtMs: discoveryStartedAt,
+        discoveryBudgetMs,
+        nowMs: attemptStartedAt,
+      });
+      const timeoutMs = boundedProviderAttemptTimeoutMs({
+        recommendedTimeoutMs: providerTimeouts.get(provider) ?? 7_000,
+        remainingBudgetMs,
+      });
+
+      if (timeoutMs <= 0) {
+        budgetExpired = true;
+        return {
+          ready: false,
+          restricted: false,
+          reason: 'discovery_budget_exhausted',
+        };
+      }
+
       attemptedProviders.add(provider);
       const attemptIndex = attemptedProviders.size;
-      const attemptStartedAt = performance.now();
-
       const attemptController = new AbortController();
       let timedOut = false;
-      const timeoutMs = Math.max(
-        1_500,
-        Math.min(12_000, providerTimeouts.get(provider) ?? 7_000),
-      );
 
       const finishAttempt = (result: SourceAttemptResult) => {
         if (!active) return result;
@@ -799,6 +835,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
               Math.round(performance.now() - attemptStartedAt),
             ),
             timeoutMs,
+            remainingBudgetMs,
             outcome,
             reason: result.reason.slice(0, 80),
           },
@@ -1527,6 +1564,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           nextLabel={atLastKnownEpisode && seasonRoute.next ? 'След. сезон' : 'След. серия'}
           onPrev={goToPrevious}
           onNext={goToNext}
+          showEpisodeNavigation={false}
           onPlaybackQualified={handlePlaybackQualified}
           onDurationObserved={handleTimelineDurationObserved}
           onEnded={hasNext ? goToNext : undefined}
@@ -1545,6 +1583,8 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         totalEpisodes={currentSeasonEpisodes || availableEpisodes || episodeNumber}
         hasPrev={hasPrev}
         hasNext={hasNext}
+        prevLabel={atFirstEpisode && seasonRoute.previous ? 'Пред. сезон' : 'Пред.'}
+        nextLabel={atLastKnownEpisode && seasonRoute.next ? 'След. сезон' : 'Следующая серия'}
         onPrevious={goToPrevious}
         onNext={goToNext}
         onSelect={goToEpisode}

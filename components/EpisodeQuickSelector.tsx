@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 
 const MAX_QUICK_EPISODES = 120;
 
@@ -9,6 +9,8 @@ export default function EpisodeQuickSelector({
   totalEpisodes,
   hasPrev,
   hasNext,
+  prevLabel = 'Пред.',
+  nextLabel = 'Следующая серия',
   onPrevious,
   onNext,
   onSelect,
@@ -17,6 +19,8 @@ export default function EpisodeQuickSelector({
   totalEpisodes: number;
   hasPrev: boolean;
   hasNext: boolean;
+  prevLabel?: string;
+  nextLabel?: string;
   onPrevious: () => void;
   onNext: () => void;
   onSelect: (episode: number) => void;
@@ -70,45 +74,67 @@ export default function EpisodeQuickSelector({
     if (episode !== currentEpisode) onSelect(episode);
   };
 
+  const openFullEpisodeBrowser = (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    setOpen(false);
+
+    const target = document.getElementById('episode-browser');
+    if (!target) return;
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({
+      behavior: reducedMotion ? 'auto' : 'smooth',
+      block: 'start',
+    });
+
+    window.history.replaceState(null, '', '#episode-browser');
+  };
+
   return (
     <nav className="episode-quick-nav" aria-label="Быстрое переключение серий">
       <button
         type="button"
-        className="episode-quick-nav__step"
+        className="episode-quick-nav__step episode-quick-nav__previous"
         disabled={!hasPrev}
         onClick={onPrevious}
         aria-label="Предыдущая серия"
       >
         <span aria-hidden="true">←</span>
-        <span>Пред.</span>
+        <span>{prevLabel}</span>
       </button>
+
+      <div className="episode-quick-nav__center">
+        <button
+          type="button"
+          className="episode-quick-nav__current"
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          onClick={() => setOpen(true)}
+        >
+          <span>Серия {currentEpisode}</span>
+          <small>{safeTotal > 1 ? `из ${safeTotal}` : 'текущая'}</small>
+          <span aria-hidden="true">⌄</span>
+        </button>
+
+        <a
+          className="episode-quick-nav__all"
+          href="#episode-browser"
+          onClick={openFullEpisodeBrowser}
+        >
+          Все серии
+        </a>
+      </div>
 
       <button
         type="button"
-        className="episode-quick-nav__current"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => setOpen(true)}
-      >
-        <span>Серия {currentEpisode}</span>
-        <small>{safeTotal > 1 ? `из ${safeTotal}` : 'текущая'}</small>
-        <span aria-hidden="true">⌄</span>
-      </button>
-
-      <button
-        type="button"
-        className="episode-quick-nav__step"
+        className="episode-quick-nav__step episode-quick-nav__next"
         disabled={!hasNext}
         onClick={onNext}
         aria-label="Следующая серия"
       >
-        <span>След.</span>
+        <span>{nextLabel}</span>
         <span aria-hidden="true">→</span>
       </button>
-
-      <a className="episode-quick-nav__all" href="#episode-browser">
-        Все серии
-      </a>
 
       {open && (
         <>
@@ -160,7 +186,7 @@ export default function EpisodeQuickSelector({
             <a
               className="episode-quick-nav__full"
               href="#episode-browser"
-              onClick={() => setOpen(false)}
+              onClick={openFullEpisodeBrowser}
             >
               Открыть полный список серий
             </a>
