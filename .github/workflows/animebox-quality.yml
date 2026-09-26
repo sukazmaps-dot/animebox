@@ -208,3 +208,83 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+
+  package-premium-effects-production-overlay:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Build Patch 18.9.3 cumulative overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          rm -rf patch-overlay animebox-patch-18-9-3-premium-effects-production.zip
+          mkdir -p patch-overlay
+
+          while IFS= read -r file; do
+            [ "$file" = ".github/workflows/animebox-quality.yml" ] && continue
+            [ -f "$file" ] || continue
+            mkdir -p "patch-overlay/$(dirname "$file")"
+            cp "$file" "patch-overlay/$file"
+          done < <(git diff --name-only --diff-filter=ACMRT origin/main...HEAD)
+
+          cat > patch-overlay/PATCH_INFO.txt <<'EOF'
+          AnimeBox Patch 18.9.3 — Premium Effects Production Hardening
+
+          Cumulative overlay поверх актуального main.
+
+          Включает весь 18.9 / 18.9.1 / 18.9.2 и дополнительно:
+          - deterministic cross-browser Premium particles
+          - full / preview / compact renderer density
+          - Stardust visible inside profile bounds
+          - Sakura falls from the top
+          - Embers rise from the bottom
+          - Motion Off keeps a static Premium composition
+          - prefers-reduced-motion keeps static identity
+          - 0% atmosphere intensity is truly off
+          - compact mini-profile atmosphere visibility tuning
+          - mini-profile close X fixed to top-right overlay
+          - browser-dependent custom-property multiplication removed
+          - regression guards for particle renderer and close button
+
+          Проверка:
+          npm run patch18-8:check
+          npx tsc --noEmit
+          npm run build
+          EOF
+
+          test "$(find patch-overlay -type f | wc -l)" -ge 55
+          test -f patch-overlay/components/premium/PremiumProfileAtmosphere.tsx
+          test -f patch-overlay/components/profile/ProfilePreview.tsx
+          test -f patch-overlay/components/profile/ProfilePreview.module.css
+          test -f patch-overlay/docs/PATCH-18-9-3-PREMIUM-EFFECTS-PRODUCTION.md
+          grep -q "PARTICLE_COUNT" patch-overlay/components/premium/PremiumProfileAtmosphere.tsx
+          grep -q "'--particle-duration-soft'" patch-overlay/components/premium/PremiumProfileAtmosphere.tsx
+          grep -q "'--particle-duration-live'" patch-overlay/components/premium/PremiumProfileAtmosphere.tsx
+          grep -q "top: var(--particle-static-top, 50%)" patch-overlay/app/premium-profile-v14.css
+          grep -q "top: -12%" patch-overlay/app/premium-profile-v14.css
+          grep -q "mini-profile close button containment" patch-overlay/components/profile/ProfilePreview.module.css
+          grep -q "position: absolute" patch-overlay/components/profile/ProfilePreview.module.css
+          if grep -q "var(--particle-index)" patch-overlay/app/premium-profile-v14.css; then exit 1; fi
+          if grep -q "var(--particle-index)" patch-overlay/components/profile/ProfilePreview.module.css; then exit 1; fi
+
+          cd patch-overlay
+          zip -r ../animebox-patch-18-9-3-premium-effects-production.zip .
+          cd ..
+
+      - name: Upload Patch 18.9.3 overlay
+        uses: actions/upload-artifact@v4
+        with:
+          name: animebox-patch-18-9-3-premium-effects-production
+          path: animebox-patch-18-9-3-premium-effects-production.zip
+          if-no-files-found: error
+          retention-days: 3
