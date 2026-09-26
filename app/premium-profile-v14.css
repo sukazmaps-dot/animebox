@@ -2217,12 +2217,30 @@
 .premium-profile-v21__atmosphere {
   position: absolute;
   inset: 0;
-  z-index: 0;
   overflow: hidden;
   border-radius: inherit;
   pointer-events: none;
-  opacity: var(--ab-premium-atmosphere-alpha, .18);
   contain: paint;
+}
+
+.premium-profile-v21__ambient-layer,
+.premium-profile-v21__particle-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.premium-profile-v21__ambient-layer {
+  z-index: 1;
+  opacity: var(--ab-premium-atmosphere-alpha, .18);
+}
+
+.premium-profile-v21__particle-layer {
+  z-index: 4;
+  opacity: var(--ab-premium-atmosphere-alpha, .18);
+  mix-blend-mode: screen;
 }
 
 .profile-v2.premium-profile-custom.premium-profile-v21 > :not(.premium-profile-v21__atmosphere),
@@ -2319,7 +2337,7 @@
   animation-name: premiumV21StarDrift;
 }
 
-.premium-profile-v21__atmosphere[data-effect='aurora'] {
+.premium-profile-v21__atmosphere[data-effect='aurora'] .premium-profile-v21__particle-layer {
   mix-blend-mode: screen;
 }
 
@@ -2370,8 +2388,8 @@
   animation-duration: var(--particle-duration-live, 7s);
 }
 
-.premium-profile-v21__atmosphere[data-motion='live'] .premium-profile-v21__particles {
-  opacity: 1;
+.premium-profile-v21__atmosphere[data-motion='live'] .premium-profile-v21__particle-layer {
+  opacity: var(--ab-premium-atmosphere-live-alpha, .48);
 }
 
 .premium-profile-v21__atmosphere[data-motion='off'] .premium-profile-v21__ambient,
