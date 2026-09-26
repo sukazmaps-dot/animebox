@@ -2220,7 +2220,6 @@
   overflow: hidden;
   border-radius: inherit;
   pointer-events: none;
-  contain: paint;
 }
 
 .premium-profile-v21__ambient-layer,
@@ -2586,10 +2585,6 @@
   overflow: hidden;
 }
 
-.premium-studio-v21__preview .premium-profile-v21__atmosphere {
-  z-index: 1;
-}
-
 .premium-studio-v21__preview .premium-studio-v12__preview-banner,
 .premium-studio-v21__preview .premium-studio-v12__preview-body {
   z-index: 2;
@@ -2708,10 +2703,6 @@
 }
 
 @media (max-width: 768px) {
-  .premium-profile-v21__atmosphere {
-    opacity: var(--ab-premium-atmosphere-alpha, .18);
-  }
-
   .premium-profile-v21__ambient {
     filter: blur(42px);
   }
