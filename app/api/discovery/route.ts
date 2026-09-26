@@ -74,7 +74,10 @@ function compactSeed(seed: Anime | null) {
 async function observedGET(request: NextRequest) {
   const runtimeControl = await runtimeFeatureDecision(
     'smart_discovery',
-    { disableInBrownout: true },
+    {
+      disableInBrownout: true,
+      considerLocalPressure: true,
+    },
   );
   if (!runtimeControl.allowed) {
     return runtimeFeatureUnavailableResponse({
