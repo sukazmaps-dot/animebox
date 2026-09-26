@@ -46,7 +46,8 @@ type Props = {
   onBannerFile: (file?: File) => void | Promise<void>;
   onRemoveAvatar: () => void;
   onRemoveBanner: () => void;
-  onUseBaseMedia: () => void | Promise<void>;
+  onUseBaseAvatar: () => void | Promise<void>;
+  onUseBaseBanner: () => void | Promise<void>;
   onOpenPremium: () => void;
 };
 
@@ -91,7 +92,8 @@ export default function ProfileDirectEditSurface({
   onBannerFile,
   onRemoveAvatar,
   onRemoveBanner,
-  onUseBaseMedia,
+  onUseBaseAvatar,
+  onUseBaseBanner,
   onOpenPremium,
 }: Props) {
   const [target, setTarget] = useState<InspectorTarget>('avatar');
@@ -426,7 +428,7 @@ export default function ProfileDirectEditSurface({
                   <strong>Сейчас виден Premium-вариант</strong>
                   <p>Изменения базового баннера сохранятся как запасной вариант.</p>
                 </div>
-                <button type="button" onClick={() => void onUseBaseMedia()}>Использовать базовый</button>
+                <button type="button" onClick={() => void onUseBaseBanner()}>Использовать базовый</button>
               </div>
             )}
             <button type="button" className={styles.premiumLink} onClick={onOpenPremium}>
@@ -483,7 +485,7 @@ export default function ProfileDirectEditSurface({
                     <strong>Premium-медиа активно</strong>
                     <p>Базовый аватар остаётся сохранённым и вернётся после переключения.</p>
                   </div>
-                  <button type="button" onClick={() => void onUseBaseMedia()}>Базовый вариант</button>
+                  <button type="button" onClick={() => void onUseBaseAvatar()}>Базовый вариант</button>
                 </div>
               )}
             </div>
