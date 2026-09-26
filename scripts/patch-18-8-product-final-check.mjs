@@ -366,6 +366,22 @@ need('mini-profile Premium identity styles', profilePreviewCss, [
   '@media (prefers-reduced-motion: reduce)',
 ]);
 
+need('mini-profile production particle rendering', profilePreviewCss, [
+  'left: var(--particle-left, 50%)',
+  'var(--particle-duration-soft, 10s)',
+  'var(--particle-duration-live, 7s)',
+  'top: var(--particle-static-top, 50%)',
+  'var(--particle-rise-y, -360px)',
+  'var(--particle-fall-y, 360px)',
+  'mini-profile close button containment',
+  ".card[data-premium='true'] .close",
+  'position: absolute',
+  'z-index: 20',
+]);
+if (profilePreviewCss.includes('--particle-index')) {
+  failures.push('Mini-profile CSS regressed to browser-dependent particle-index math');
+}
+
 need('global chat mini profiles', globalChat, [
   "import ProfilePreview from '@/components/profile/ProfilePreview'",
   '<ProfilePreview',
@@ -562,6 +578,25 @@ need('Premium atmosphere renderer', premiumAtmosphere, [
   'premium-profile-v21__particles',
 ]);
 
+need('Premium atmosphere deterministic particle geometry', premiumAtmosphere, [
+  "export type PremiumAtmosphereVariant = 'full' | 'preview' | 'compact'",
+  'PARTICLE_COUNT',
+  "'--particle-left'",
+  "'--particle-static-top'",
+  "'--particle-duration-soft'",
+  "'--particle-duration-live'",
+  "'--particle-rise-y'",
+  "'--particle-fall-y'",
+  'particleStyle(index, variant)',
+  'data-variant={variant}',
+]);
+if (premiumAtmosphere.includes('Math.random')) {
+  failures.push('Premium atmosphere particles must stay deterministic; Math.random() is forbidden');
+}
+if (premiumAtmosphere.includes('--particle-index')) {
+  failures.push('Premium atmosphere renderer regressed to CSS index multiplication');
+}
+
 need('Premium cinematic identity CSS', premiumIdentityCss, [
   '.premium-profile-v21__atmosphere',
   "[data-effect='aurora']",
@@ -575,6 +610,19 @@ need('Premium cinematic identity CSS', premiumIdentityCss, [
   '@media (prefers-reduced-motion: reduce)',
   '.profile-v2__avatar-wrap::before',
 ]);
+
+need('Premium atmosphere production particle CSS', premiumIdentityCss, [
+  'left: var(--particle-left, 50%)',
+  'top: var(--particle-static-top, 50%)',
+  'var(--particle-duration-soft, 11s)',
+  'var(--particle-duration-live, 7s)',
+  'var(--particle-rise-y, -700px)',
+  'var(--particle-fall-y, 700px)',
+  "[data-motion='off']",
+]);
+if (premiumIdentityCss.includes('--particle-index')) {
+  failures.push('Premium identity CSS regressed to browser-dependent particle-index math');
+}
 
 need('Persistent Premium Studio preview', premiumIdentityCss, [
   'Patch 18.9.1 — persistent Premium Studio preview',
