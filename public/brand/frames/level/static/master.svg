@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="level-master">
+  <defs>
+    <linearGradient id="g" x1="16" y1="16" x2="104" y2="104" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD977"/>
+      <stop offset=".52" stop-color="#A985FF"/>
+      <stop offset="1" stop-color="#FFD977"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="1.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style>
+      .ring{fill:none;stroke:url(#g);stroke-linecap:round;stroke-linejoin:round}
+      .outer{stroke-width:3.8}
+      .inner{stroke-width:1.2;opacity:.42}
+      .dash{stroke-width:1.5;opacity:.55;stroke-dasharray:8 6}
+      .motif{fill:none;stroke:url(#g);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;opacity:.8}
+      .core{fill:url(#g);filter:url(#glow)}
+      .spark{fill:#A985FF;filter:url(#glow);opacity:.18}
+      
+    </style>
+  </defs>
+  <g class="orbit">
+    <circle class="ring outer" cx="60" cy="60" r="54"/>
+    <circle class="ring inner" cx="60" cy="60" r="47"/>
+    <circle class="ring dash" cx="60" cy="60" r="50"/>
+  </g>
+  <g filter="url(#glow)"><path class="motif" d="M60 18 69 36 89 39 75 53 78 73 60 63 42 73 45 53 31 39 51 36 60 18Z"/><path class="core" d="M34 82c8-7 17-11 26-11s18 4 26 11c-8 8-17 12-26 12S42 90 34 82Z"/></g>
+  <circle class="spark s1" cx="16" cy="54" r="2.3"/>
+  <circle class="spark s2" cx="101" cy="33" r="1.8"/>
+  <circle class="spark s3" cx="92" cy="91" r="2.1"/>
+</svg>
