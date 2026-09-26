@@ -54,6 +54,7 @@ export default function SystemHealthDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [resolvingIncidentId, setResolvingIncidentId] = useState<string | null>(null);
+  const [updatingControl, setUpdatingControl] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -135,11 +136,54 @@ export default function SystemHealthDashboard() {
     }
   }, [load, resolvingIncidentId]);
 
+  const updateControl = useCallback(async (
+    controlKey: string,
+    state: string,
+  ) => {
+    if (updatingControl) return;
+
+    setUpdatingControl(controlKey);
+    setError('');
+
+    try {
+      const response = await fetch('/api/admin/system-health/controls', {
+        method: 'PATCH',
+        cache: 'no-store',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          controlKey,
+          state,
+          reason:
+            state === 'brownout' || state === 'disabled'
+              ? 'Operator action from System Health'
+              : null,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Не удалось обновить runtime control.');
+      }
+
+      await load();
+    } catch (controlError) {
+      setError(
+        controlError instanceof Error
+          ? controlError.message
+          : 'Не удалось обновить runtime control.',
+      );
+    } finally {
+      setUpdatingControl(null);
+    }
+  }, [load, updatingControl]);
+
   return (
     <section className={styles.dashboard} aria-label="AnimeBox System Health">
       <header className={styles.header}>
         <div>
-          <span className={styles.eyebrow}>SEO INDEX QUALITY · 18.5.5.5</span>
+          <span className={styles.eyebrow}>PRODUCTION READINESS · 18.5.6</span>
           <h1>System Health</h1>
           <p>
             Единый production-снимок: API, база и полный playback journey —
@@ -202,6 +246,14 @@ export default function SystemHealthDashboard() {
                   : 'playback nominal'}
               {' · '}
               {health.signals.dependencyWarnings} dependency warnings
+              {' · '}
+              capacity {health.capacity.state}
+              {' · '}
+              {health.signals.brownoutActive
+                ? 'brownout active'
+                : health.signals.brownoutRecommended
+                  ? 'brownout recommended'
+                  : 'normal mode'}
             </p>
           </section>
 
@@ -352,9 +404,143 @@ export default function SystemHealthDashboard() {
                   : 'registry unavailable'}
               </small>
             </article>
+            <article>
+              <span>DB headroom</span>
+              <strong>
+                {health.capacity.databaseHeadroomPct == null
+                  ? '—'
+                  : `${number(health.capacity.databaseHeadroomPct, 1)}%`}
+              </strong>
+              <small>
+                {number(health.production.database.connections)}/
+                {number(health.production.database.maxConnections)} connections
+              </small>
+            </article>
+            <article>
+              <span>Capacity state</span>
+              <strong>{health.capacity.state}</strong>
+              <small>
+                {number(health.capacity.pressureSignals)} pressure signals
+              </small>
+            </article>
           </div>
 
           <div className={styles.grid}>
+            <section className={`${styles.panel} ${styles.widePanel}`}>
+              <div className={styles.panelHead}>
+                <div>
+                  <span>CAPACITY & BROWNOUT</span>
+                  <strong>Headroom, thresholds and load-shedding state</strong>
+                </div>
+                <small>
+                  {health.capacity.brownoutRecommended
+                    ? 'brownout recommended'
+                    : 'headroom acceptable'}
+                </small>
+              </div>
+
+              <dl className={styles.metrics}>
+                <div>
+                  <dt>Database connections</dt>
+                  <dd>
+                    {number(health.production.database.connections)}
+                    {' / '}
+                    {number(health.production.database.maxConnections)}
+                    {' · '}
+                    {health.production.database.connectionPct == null
+                      ? '—'
+                      : `${number(health.production.database.connectionPct, 1)}%`}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Database headroom</dt>
+                  <dd>
+                    {health.capacity.databaseHeadroomPct == null
+                      ? '—'
+                      : `${number(health.capacity.databaseHeadroomPct, 1)}%`}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Pressure signals</dt>
+                  <dd>{number(health.capacity.pressureSignals)}</dd>
+                </div>
+                <div>
+                  <dt>Brownout</dt>
+                  <dd>
+                    {health.signals.brownoutActive
+                      ? 'active'
+                      : health.signals.brownoutRecommended
+                        ? 'recommended'
+                        : 'not needed'}
+                  </dd>
+                </div>
+              </dl>
+
+              <div className={styles.routeList}>
+                {health.capacity.bottlenecks.length ? (
+                  health.capacity.bottlenecks.map((item) => (
+                    <div className={styles.routeRow} key={item}>
+                      <div>
+                        <strong>{item}</strong>
+                        <small>capacity pressure signal</small>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className={styles.empty}>
+                    Нет активных capacity bottleneck.
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section className={`${styles.panel} ${styles.widePanel}`}>
+              <div className={styles.panelHead}>
+                <div>
+                  <span>EMERGENCY CONTROL PLANE</span>
+                  <strong>Runtime kill switches</strong>
+                </div>
+                <small>
+                  {health.controls.degraded
+                    ? 'control registry degraded · fail-open'
+                    : `mode ${health.controls.mode}`}
+                </small>
+              </div>
+
+              <div className={styles.controlList}>
+                {health.controls.controls.map((control) => {
+                  const nextState =
+                    control.controlKey === 'platform_mode'
+                      ? control.state === 'brownout'
+                        ? 'normal'
+                        : 'brownout'
+                      : control.state === 'disabled'
+                        ? 'enabled'
+                        : 'disabled';
+
+                  return (
+                    <div className={styles.controlRow} key={control.controlKey}>
+                      <div>
+                        <strong>{control.controlKey}</strong>
+                        <small>
+                          {control.reason ?? `updated ${time(control.updatedAt)}`}
+                        </small>
+                      </div>
+                      <span data-state={control.state}>{control.state}</span>
+                      <button
+                        type="button"
+                        onClick={() => void updateControl(control.controlKey, nextState)}
+                        disabled={Boolean(updatingControl)}
+                      >
+                        {updatingControl === control.controlKey
+                          ? 'Updating…'
+                          : `Set ${nextState}`}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
             <section className={`${styles.panel} ${styles.widePanel}`}>
               <div className={styles.panelHead}>
                 <div>
