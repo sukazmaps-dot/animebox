@@ -629,7 +629,7 @@ need('Premium Studio atmosphere controls', premiumStudioClient, [
   'PREMIUM_SURFACE_STYLES.map',
   'Проиграть intro',
   'deriveAdaptiveProfilePalette',
-  '<PremiumProfileAtmosphere',
+  '<PremiumStudioLivePreview',
 ]);
 
 need('Adaptive Premium palette', adaptivePalette, [
