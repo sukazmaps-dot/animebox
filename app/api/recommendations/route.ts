@@ -15,6 +15,7 @@ import {
   privateNoStoreHeaders,
   publicApiCacheHeaders,
 } from '@/lib/edge-cache-policy';
+import { runtimeFeatureDecision } from '@/lib/runtime-controls-server';
 
 export const runtime = 'nodejs';
 
@@ -313,6 +314,26 @@ async function observedGET(request: NextRequest) {
   });
   if (limited) return limited;
 
+  const runtimeControl = await runtimeFeatureDecision('recommendations');
+  if (!runtimeControl.allowed) {
+    return NextResponse.json(
+      {
+        error: 'feature_temporarily_unavailable',
+        feature: 'recommendations',
+        reason: runtimeControl.reason,
+      },
+      {
+        status: 503,
+        headers: {
+          ...privateNoStoreHeaders(),
+          'Retry-After': '30',
+          'X-AnimeBox-Degraded': runtimeControl.reason ?? 'admin_disabled',
+        },
+      },
+    );
+  }
+
+  const brownout = runtimeControl.snapshot.mode === 'brownout';
   const params = request.nextUrl.searchParams;
   const rawCursor = params.get('cursor');
   const cursorPage = decodeRecommendationCursor(rawCursor);
@@ -331,9 +352,9 @@ async function observedGET(request: NextRequest) {
     cursorPage ?? clampInteger(params.get('page'), 1, 1, MAX_PAGE);
   const limit = clampInteger(
     params.get('limit'),
-    DEFAULT_LIMIT,
+    brownout ? 10 : DEFAULT_LIMIT,
     5,
-    MAX_LIMIT,
+    brownout ? 12 : MAX_LIMIT,
   );
   const bucket = clampInteger(params.get('bucket'), 0, 0, 3);
   const mood = normalizeMood(params.get('mood'));
@@ -343,12 +364,14 @@ async function observedGET(request: NextRequest) {
     ? findAnimeGenre(requestedGenre)?.value ?? null
     : null;
 
-  const requestedSource = selectCandidateSource({
-    page,
-    bucket,
-    hasTasteGenre: Boolean(tasteGenre),
-    mood,
-  });
+  const requestedSource: CandidateSource = brownout
+    ? (page % 2 === 0 ? 'popularity' : 'ranked')
+    : selectCandidateSource({
+        page,
+        bucket,
+        hasTasteGenre: Boolean(tasteGenre),
+        mood,
+      });
 
   try {
     const result = await loadCandidatePage({
@@ -364,7 +387,11 @@ async function observedGET(request: NextRequest) {
       'recommendations',
     );
 
-    if (availability.refreshTargets.length > 0) {
+    if (
+      !brownout &&
+      runtimeControl.snapshot.features.background_jobs &&
+      availability.refreshTargets.length > 0
+    ) {
       after(async () => {
         await refreshCatalogAvailabilityBatch(
           availability.refreshTargets,
@@ -402,6 +429,7 @@ async function observedGET(request: NextRequest) {
             staleWhileRevalidateSeconds: STALE_SECONDS,
           }),
           'X-AnimeBox-Cache-Profile': 'recommendations-public-v1',
+          ...(brownout ? { 'X-AnimeBox-Degraded': 'brownout' } : {}),
         },
       },
     );
