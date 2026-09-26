@@ -3156,3 +3156,357 @@
     min-height: 150px !important;
   }
 }
+
+
+/* =========================================================
+   AnimeBox Patch 18.9.2 — Mobile Premium Studio UX
+   FAB + BottomSheet live preview + compact horizontal controls.
+   ========================================================= */
+
+.premium-studio-v22__preview-fab {
+  display: none;
+}
+
+.premium-studio-v22__preview-sheet-layer {
+  position: fixed;
+  z-index: 12000;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 10px;
+  background: rgba(2, 4, 11, .72);
+  backdrop-filter: blur(8px);
+  animation: premiumV22BackdropIn .16s ease both;
+}
+
+.premium-studio-v22__preview-sheet {
+  position: relative;
+  width: min(100%, 640px);
+  max-height: min(88dvh, 820px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(169, 126, 255, .2);
+  border-radius: 26px 26px 18px 18px;
+  background:
+    radial-gradient(circle at 86% 0%, rgba(123, 80, 255, .1), transparent 34%),
+    #080c18;
+  box-shadow:
+    0 -28px 90px rgba(0,0,0,.56),
+    inset 0 1px rgba(255,255,255,.035);
+  animation: premiumV22SheetIn .24s cubic-bezier(.2,.76,.22,1) both;
+}
+
+.premium-studio-v22__preview-sheet-handle {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 4px;
+  margin: 8px auto 2px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.2);
+}
+
+.premium-studio-v22__preview-sheet-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+
+.premium-studio-v22__preview-sheet-head > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.premium-studio-v22__preview-sheet-head span {
+  color: #a98cff;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .15em;
+}
+
+.premium-studio-v22__preview-sheet-head strong {
+  color: #f5f1ff;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.premium-studio-v22__preview-sheet-head button {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 11px;
+  background: rgba(255,255,255,.025);
+  color: rgba(255,255,255,.78);
+  font-size: 20px;
+}
+
+.premium-studio-v22__preview-sheet-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px;
+  scrollbar-width: thin;
+}
+
+.premium-studio-v22__preview-sheet-body .premium-studio-v15__preview {
+  min-height: 0 !important;
+  width: 100%;
+}
+
+.premium-studio-v22__preview-sheet-body .premium-studio-v15__preview-banner {
+  min-height: 145px !important;
+  height: 145px;
+}
+
+.premium-studio-v22__preview-sheet-body .premium-studio-v15__preview-body {
+  gap: 9px;
+  padding-bottom: 16px;
+}
+
+.premium-studio-v22__preview-sheet-actions {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(255,255,255,.05);
+  background: rgba(6,9,17,.94);
+}
+
+.premium-studio-v22__preview-sheet-actions button {
+  min-height: 42px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.premium-studio-v22__preview-sheet-actions .is-secondary {
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.025);
+  color: rgba(245,241,255,.78);
+}
+
+.premium-studio-v22__preview-sheet-actions .is-primary {
+  border: 1px solid rgba(168,126,255,.25);
+  background: linear-gradient(135deg, #784cf2, #9b65ff);
+  color: #fff;
+}
+
+@keyframes premiumV22BackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes premiumV22SheetIn {
+  from { opacity: 0; transform: translateY(28px) scale(.985); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 767px) {
+  .profile-editor-v13 .premium-studio-v15__preview-wrap {
+    display: none !important;
+  }
+
+  .premium-studio-v22__preview-fab {
+    position: fixed;
+    z-index: 9500;
+    right: 16px;
+    bottom: calc(env(safe-area-inset-bottom) + 82px);
+    width: 58px;
+    height: 58px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid rgba(180, 141, 255, .3);
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 32% 28%, rgba(255,255,255,.1), transparent 28%),
+      linear-gradient(145deg, #171326, #0b0f1d);
+    box-shadow:
+      0 14px 38px rgba(0,0,0,.42),
+      0 0 28px rgba(127,82,255,.2);
+    color: #fff;
+    isolation: isolate;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+
+  .premium-studio-v22__preview-fab:active {
+    transform: scale(.94);
+  }
+
+  .premium-studio-v22__preview-fab-avatar {
+    position: absolute;
+    inset: 5px;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #101626;
+    color: #d9d0ff;
+    font-size: 14px;
+    font-weight: 950;
+  }
+
+  .premium-studio-v22__preview-fab-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .premium-studio-v22__preview-fab-eye {
+    position: absolute;
+    z-index: 2;
+    right: -3px;
+    bottom: -2px;
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border: 2px solid #090d18;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #8155f7, #a06cff);
+    box-shadow: 0 4px 12px rgba(78,43,173,.4);
+  }
+
+  .premium-studio-v22__preview-fab-eye svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+  }
+
+  .premium-studio-v22__preview-fab-dot {
+    position: absolute;
+    z-index: 3;
+    top: 2px;
+    right: 3px;
+    width: 8px;
+    height: 8px;
+    border: 2px solid #0b0f1c;
+    border-radius: 50%;
+    background: #c986ff;
+    box-shadow: 0 0 10px rgba(201,134,255,.75);
+  }
+
+  .premium-studio-v21__atmosphere-grid {
+    display: flex !important;
+    grid-template-columns: none !important;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 2px 8px;
+    scrollbar-width: none;
+  }
+
+  .premium-studio-v21__atmosphere-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .premium-studio-v21__atmosphere-grid > button {
+    flex: 0 0 148px;
+    min-height: 126px;
+    scroll-snap-align: start;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .premium-studio-v15__segmented {
+    max-width: 100%;
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+
+  .premium-studio-v15__segmented::-webkit-scrollbar {
+    display: none;
+  }
+
+  .premium-studio-v15__segmented > button {
+    flex: 0 0 auto;
+    min-width: 78px;
+    white-space: nowrap;
+  }
+
+  .premium-studio-v16__section-nav {
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none;
+    overscroll-behavior-inline: contain;
+  }
+
+  .premium-studio-v16__section-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .premium-studio-v16__section-nav > button {
+    flex: 0 0 auto;
+    min-width: 100px;
+  }
+
+  .premium-studio-v21__identity-controls .premium-studio-v16__effect-row {
+    padding: 13px 13px;
+    gap: 12px;
+  }
+
+  .premium-studio-v16__effect-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .premium-studio-v16__range-wrap {
+    width: 100%;
+  }
+
+  .premium-studio-v22__preview-sheet {
+    width: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  .premium-studio-v22__preview-sheet-layer {
+    padding: 6px;
+  }
+
+  .premium-studio-v22__preview-sheet {
+    max-height: 90dvh;
+    border-radius: 22px 22px 14px 14px;
+  }
+
+  .premium-studio-v22__preview-sheet-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .premium-studio-v21__atmosphere-grid > button {
+    flex-basis: 136px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .premium-studio-v22__preview-sheet-layer,
+  .premium-studio-v22__preview-sheet {
+    animation: none !important;
+  }
+
+  .premium-studio-v22__preview-fab {
+    transition: none;
+  }
+}
