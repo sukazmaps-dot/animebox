@@ -245,8 +245,8 @@ export async function POST(request: Request) {
 
       const target = cleanText(body.target, 120);
       const level = Number(body.level);
-      if (!target || !Number.isSafeInteger(level) || level < 1 || level > 50) {
-        throw new ApiError(400, 'Укажи пользователя и LVL от 1 до 50.');
+      if (!target || !Number.isSafeInteger(level) || level < 1 || level > 100) {
+        throw new ApiError(400, 'Укажи пользователя и LVL от 1 до 100.');
       }
 
       let targetUser: { id: string; username: string | null } | null = null;
