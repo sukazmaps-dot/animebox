@@ -397,6 +397,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   const [saved, setSaved] = useState('');
   const [mediaWarning, setMediaWarning] = useState('');
   const [paletteLoading, setPaletteLoading] = useState<'avatar' | 'banner' | ''>('');
+  const [previewEpoch, setPreviewEpoch] = useState(0);
   const [studioSection, setStudioSection] = useState<'appearance' | 'atmosphere' | 'effects' | 'media'>('appearance');
   const [mediaEditor, setMediaEditor] = useState<MediaEditorState | null>(null);
   const mediaEditorOpen = Boolean(mediaEditor);
@@ -1044,12 +1045,14 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
               </div>
 
               <section
+                key={previewEpoch}
                 className={`premium-studio-v12__preview premium-studio-v15__preview premium-studio-v21__preview border-${settings.borderStyle}`}
                 style={cssVars as CSSProperties}
                 data-premium-atmosphere={settings.atmosphereEffect}
                 data-premium-motion={settings.motionMode}
                 data-premium-hero={settings.heroStyle}
                 data-premium-surface={settings.surfaceStyle}
+                data-premium-entrance={settings.entranceEffect}
               >
                 <PremiumProfileAtmosphere
                   effect={settings.atmosphereEffect}
@@ -1222,6 +1225,13 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                       </button>
                     ))}
                   </div>
+                </div>
+
+                <div className="premium-studio-v21__replay-row">
+                  <span><strong>Предпросмотр входа</strong><small>Перезапусти intro без сохранения страницы.</small></span>
+                  <button type="button" onClick={() => setPreviewEpoch((value) => value + 1)}>
+                    Проиграть intro
+                  </button>
                 </div>
 
                 <div className="premium-studio-v16__effect-row">
