@@ -1,57 +1,79 @@
 # AnimeBox Deployment Pipeline
 
-## Why this exists
+## Problem this fixes
 
-Vercel Git Integration creates a Preview deployment for every pushed commit.
-AnimeBox patches are intentionally developed through multiple small commits and
-the project has a large prebuild regression suite. Building every intermediate
+Vercel Git Integration normally creates a Preview deployment for every pushed
+commit. AnimeBox patches are developed through many implementation commits and
+the project runs a large prebuild regression suite. Building every intermediate
 commit caused:
 
 - expected failures while a patch was only half-applied;
 - noisy red deployment history;
-- repeated execution of the entire regression suite;
-- Vercel build-rate-limit exhaustion before the release-ready commit.
+- repeated execution of the full regression suite;
+- build-rate-limit exhaustion before the release-ready commit.
 
-## Release-only Vercel gate
+## Branch policy
 
-`vercel.json` uses:
+`vercel.json` now disables Git deployments for every working patch branch:
+
+```json
+"git": {
+  "deploymentEnabled": {
+    "patch-*": false
+  }
+}
+```
+
+Vercel uses minimatch for these branch rules, so all branches such as
+`patch-18-5-6-1-recommendation-media-recovery` are excluded before a Preview
+build is created.
+
+`main` is not matched and therefore still deploys production normally.
+
+## Release candidate policy
+
+Final Preview builds happen on a separate `preview-*` branch.
+
+The project also uses:
 
 `node scripts/vercel-ignore-build.mjs`
 
 Vercel's Ignored Build Step convention is:
 
-- exit 0 → skip deployment;
+- exit 0 → skip deployment build;
 - exit 1 → continue build.
 
-AnimeBox builds when one of these is true:
+The ignore script allows a build when:
 
 1. branch is `main`;
 2. commit message contains `[preview]`, `[deploy]` or `[vercel]`;
 3. `ANIMEBOX_FORCE_VERCEL_BUILD=1`;
-4. Git branch metadata is unexpectedly unavailable (fail-safe build).
+4. Git metadata is unexpectedly unavailable (fail-safe build).
 
-Every other feature-branch commit is skipped.
+Therefore a release candidate is created as:
 
-## Working patch workflow
-
-1. Create one feature branch.
-2. Make implementation commits without release markers.
-3. Run static/source/database audits while developing.
-4. When the patch is internally complete, create one final no-op commit:
-   `[preview] Patch X — release candidate`
-5. Vercel runs the full prebuild + Next production build exactly once.
-6. Fix any real release-gate failure, then create another `[preview]` commit.
-7. Merge only after a successful Preview.
-8. The merge commit on `main` always deploys production automatically.
+1. finish work on `patch-X`;
+2. create `preview-X` from the exact patch head;
+3. create one no-op commit with message `[preview] Patch X — release candidate`;
+4. Vercel runs the full prebuild + Next production build exactly once;
+5. if it passes, merge the tested tree into `main`.
 
 ## Commit batching
 
-When several files belong to one logical change, prefer one Git tree/commit
-instead of one commit per file. This keeps history coherent and prevents CI
-churn on systems other than Vercel too.
+Several files belonging to one logical change should be written as one Git
+tree/commit. Do not create one remote commit per file unless sequencing is
+actually required.
 
-## What remains blocking
+This reduces Git noise and protects other CI providers from the same churn.
 
-Skipping intermediate Preview deployments does NOT weaken the final release
-gate. Production and explicit release-candidate previews still run the full
-AnimeBox prebuild regression chain and Next.js production build.
+## Safety
+
+This does **not** weaken the final release gate.
+
+Working patch commits skip Vercel entirely, but:
+
+- explicit `preview-*` release candidates run the full prebuild chain;
+- `main` always builds;
+- production deploy remains blocked by real build/compiler errors.
+
+The change only removes meaningless builds of knowingly incomplete commits.
