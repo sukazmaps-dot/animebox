@@ -207,7 +207,7 @@ export default function ProfilePage() {
     if (!user?.id) return;
 
     let active = true;
-    const loadSeasonFrame = () => {
+    const loadProfileFrame = () => {
       void fetch('/api/community/leaderboard-rewards', { cache: 'no-store' })
         .then(async (response) => {
           if (!response.ok || !active) return;
@@ -219,13 +219,13 @@ export default function ProfilePage() {
         });
     };
 
-    loadSeasonFrame();
-    window.addEventListener('animebox:profile-cosmetic-changed', loadSeasonFrame);
-    window.addEventListener('animebox:leaderboard-reward-claimed', loadSeasonFrame);
+    loadProfileFrame();
+    window.addEventListener('animebox:profile-cosmetic-changed', loadProfileFrame);
+    window.addEventListener('animebox:leaderboard-reward-claimed', loadProfileFrame);
     return () => {
       active = false;
-      window.removeEventListener('animebox:profile-cosmetic-changed', loadSeasonFrame);
-      window.removeEventListener('animebox:leaderboard-reward-claimed', loadSeasonFrame);
+      window.removeEventListener('animebox:profile-cosmetic-changed', loadProfileFrame);
+      window.removeEventListener('animebox:leaderboard-reward-claimed', loadProfileFrame);
     };
   }, [user?.id]);
 
