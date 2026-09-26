@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/components/AuthStateProvider';
@@ -16,7 +17,7 @@ import {
   type PendingProfileMediaUpload,
 } from '@/lib/profile-media-upload-client';
 import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor';
-import PremiumProfileAtmosphere from '@/components/premium/PremiumProfileAtmosphere';
+import PremiumStudioLivePreview from '@/components/premium/PremiumStudioLivePreview';
 import Icon from '@/components/Icon';
 import { deriveAdaptiveProfilePalette } from '@/lib/adaptive-profile-theme-client';
 import {
@@ -34,7 +35,6 @@ import {
   isHexColor,
   resolveReadableTextColor,
   premiumMediaStyle,
-  premiumStudioCssVariables,
   premiumThemePreset,
   type PremiumAtmosphereEffect,
   type PremiumBorderStyle,
@@ -398,6 +398,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   const [mediaWarning, setMediaWarning] = useState('');
   const [paletteLoading, setPaletteLoading] = useState<'avatar' | 'banner' | ''>('');
   const [previewEpoch, setPreviewEpoch] = useState(0);
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [studioSection, setStudioSection] = useState<'appearance' | 'atmosphere' | 'effects' | 'media'>('appearance');
   const [mediaEditor, setMediaEditor] = useState<MediaEditorState | null>(null);
   const mediaEditorOpen = Boolean(mediaEditor);
@@ -432,6 +433,23 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       active = false;
     };
   }, [initialAllowed, initialSettings]);
+
+  useEffect(() => {
+    if (!mobilePreviewOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobilePreviewOpen(false);
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobilePreviewOpen]);
 
   useEffect(() => {
     if (!mediaEditorOpen) return;
@@ -481,7 +499,6 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   const contrast = contrastRatio(settings.textColor, settings.primaryColor);
   const safeTextColor = resolveReadableTextColor(settings.textColor, settings.primaryColor);
   const contrastProtected = safeTextColor !== settings.textColor;
-  const cssVars = premiumStudioCssVariables(settings);
 
   function publicMediaUrl(path: string | null) {
     if (!path) return null;
@@ -1044,73 +1061,14 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 <small>Так будет выглядеть твоя Premium-тема</small>
               </div>
 
-              <section
+              <PremiumStudioLivePreview
                 key={previewEpoch}
-                className={`premium-studio-v12__preview premium-studio-v15__preview premium-studio-v21__preview border-${settings.borderStyle}`}
-                style={cssVars as CSSProperties}
-                data-premium-atmosphere={settings.atmosphereEffect}
-                data-premium-motion={settings.motionMode}
-                data-premium-hero={settings.heroStyle}
-                data-premium-surface={settings.surfaceStyle}
-                data-premium-entrance={settings.entranceEffect}
-              >
-                <PremiumProfileAtmosphere
-                  effect={settings.atmosphereEffect}
-                  motion={settings.motionMode}
-                />
-                <div className="premium-studio-v12__preview-banner premium-studio-v15__preview-banner">
-                  {bannerUrl && <img src={bannerUrl} alt="" aria-hidden="true" loading="lazy" decoding="async" style={premiumMediaStyle(bannerTransform) as CSSProperties} />}
-                  <div />
-                </div>
-                <div className="premium-studio-v12__preview-body premium-studio-v15__preview-body">
-                  {avatarUrl ? (
-                    <img
-                      className="premium-studio-v12__preview-avatar"
-                      src={avatarUrl}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      style={premiumMediaStyle(avatarTransform) as CSSProperties}
-                    />
-                  ) : (
-                    <span className="premium-studio-v20__avatar-placeholder" aria-hidden="true">
-                      <svg viewBox="0 0 64 64" focusable="false">
-                        <circle cx="32" cy="24" r="10" />
-                        <path d="M14 54c2-12 9-18 18-18s16 6 18 18" />
-                        <path d="m48 14 2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" />
-                      </svg>
-                    </span>
-                  )}
-                  <div className="premium-studio-v15__preview-copy">
-                    <div className="premium-studio-v15__preview-badges">
-                      <span>ANIMEBOX PREMIUM</span>
-                      <small>ЖИВАЯ ТЕМА</small>
-                    </div>
-                    <h3>
-                      <span
-                        className="premium-profile-v21__nickname"
-                        data-effect={settings.nicknameEffect}
-                      >
-                        Твой профиль
-                      </span>
-                    </h3>
-                    <p>Палитра применяется ко всей странице профиля, а Smart Contrast не даёт тексту исчезнуть на похожем фоне.</p>
-                    <div className="premium-studio-v15__preview-chips">
-                      <i>Тема профиля</i>
-                      <i>Плеер {settings.syncPlayerTheme ? 'синхронизирован' : 'отдельно'}</i>
-                      <i>Свечение {settings.glowStrength}%</i>
-                    </div>
-                    <div className="premium-studio-v16__preview-stats">
-                      <span><b>29ч</b><small>просмотр</small></span>
-                      <span><b>51</b><small>серия</small></span>
-                      <span><b>7</b><small>в списках</small></span>
-                    </div>
-                    <div className="premium-studio-v16__preview-library"><i /> <span><strong>Продолжить просмотр</strong><small>Последний тайтл · 18 серия</small></span><b>→</b></div>
-                  </div>
-                  <button type="button">Акцентная кнопка</button>
-                  <div className="premium-studio-v12__fake-progress"><span /></div>
-                </div>
-              </section>
+                settings={settings}
+                avatarUrl={avatarUrl}
+                bannerUrl={bannerUrl}
+                avatarTransform={avatarTransform}
+                bannerTransform={bannerTransform}
+              />
             </div>
           </aside>
         </div>
@@ -1396,6 +1354,103 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
           </div>
         )}
       </div>
+
+      <button
+        type="button"
+        className="premium-studio-v22__preview-fab"
+        onClick={() => setMobilePreviewOpen(true)}
+        aria-label="Открыть живой предпросмотр Premium-профиля"
+      >
+        <span className="premium-studio-v22__preview-fab-avatar">
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt=""
+              aria-hidden="true"
+              style={premiumMediaStyle(avatarTransform) as CSSProperties}
+            />
+          ) : (
+            <span aria-hidden="true">P</span>
+          )}
+        </span>
+        <span className="premium-studio-v22__preview-fab-eye" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z" />
+            <circle cx="12" cy="12" r="2.8" />
+          </svg>
+        </span>
+        {dirty && <i className="premium-studio-v22__preview-fab-dot" aria-hidden="true" />}
+      </button>
+
+      {mobilePreviewOpen && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              className="premium-studio-v22__preview-sheet-layer"
+              role="presentation"
+              onMouseDown={(event) => {
+                if (event.currentTarget === event.target) setMobilePreviewOpen(false);
+              }}
+            >
+              <section
+                className="premium-studio-v22__preview-sheet"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Предпросмотр Premium-профиля"
+              >
+                <div className="premium-studio-v22__preview-sheet-handle" aria-hidden="true" />
+                <header className="premium-studio-v22__preview-sheet-head">
+                  <div>
+                    <span>LIVE PREVIEW</span>
+                    <strong>Предпросмотр профиля</strong>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMobilePreviewOpen(false)}
+                    aria-label="Закрыть предпросмотр"
+                  >
+                    ×
+                  </button>
+                </header>
+
+                <div className="premium-studio-v22__preview-sheet-body">
+                  <PremiumStudioLivePreview
+                    key={`mobile-${previewEpoch}`}
+                    settings={settings}
+                    avatarUrl={avatarUrl}
+                    bannerUrl={bannerUrl}
+                    avatarTransform={avatarTransform}
+                    bannerTransform={bannerTransform}
+                  />
+                </div>
+
+                <footer className="premium-studio-v22__preview-sheet-actions">
+                  <button
+                    type="button"
+                    className="is-secondary"
+                    onClick={() => setMobilePreviewOpen(false)}
+                  >
+                    Продолжить настройку
+                  </button>
+                  {!hideDock && (
+                    <button
+                      type="button"
+                      className="is-primary"
+                      disabled={!dirty || saving || Boolean(uploading)}
+                      onClick={() =>
+                        void persistSettings(settings)
+                          .then(() => setMobilePreviewOpen(false))
+                          .catch(() => undefined)
+                      }
+                    >
+                      {saving ? 'Сохраняем…' : dirty ? 'Сохранить' : 'Сохранено'}
+                    </button>
+                  )}
+                </footer>
+              </section>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {mediaEditor && (
         <div
