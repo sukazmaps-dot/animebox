@@ -28,6 +28,85 @@ export const ACHIEVEMENT_CATEGORY_LABELS: Record<AchievementCategory, string> = 
   genres: 'Жанры',
 };
 
+export const LEVEL_FRAME_KEYS = [
+  'level-viewer',
+  'level-explorer',
+  'level-marathoner',
+  'level-collector',
+  'level-veteran',
+  'level-legend',
+  'level-master',
+] as const;
+
+export type LevelFrameKey = (typeof LEVEL_FRAME_KEYS)[number];
+
+export type LevelMilestone = {
+  level: number;
+  rank: string;
+  frameKey: LevelFrameKey | null;
+  reward: string;
+  premiumReward: string;
+};
+
+export const LEVEL_MILESTONES: readonly LevelMilestone[] = [
+  {
+    level: 1,
+    rank: 'Новичок',
+    frameKey: null,
+    reward: 'Старт прогрессии AnimeBox',
+    premiumReward: '+20% XP за новую активность',
+  },
+  {
+    level: 5,
+    rank: 'Зритель',
+    frameKey: 'level-viewer',
+    reward: 'Уровневая рамка «Зритель»',
+    premiumReward: 'Анимация и живое свечение рамки',
+  },
+  {
+    level: 10,
+    rank: 'Исследователь',
+    frameKey: 'level-explorer',
+    reward: 'Уровневая рамка «Исследователь»',
+    premiumReward: 'Анимация и живое свечение рамки',
+  },
+  {
+    level: 15,
+    rank: 'Марафонец',
+    frameKey: 'level-marathoner',
+    reward: 'Уровневая рамка «Марафонец»',
+    premiumReward: 'Анимация и живое свечение рамки',
+  },
+  {
+    level: 20,
+    rank: 'Коллекционер',
+    frameKey: 'level-collector',
+    reward: 'Уровневая рамка «Коллекционер»',
+    premiumReward: 'Анимация и живое свечение рамки',
+  },
+  {
+    level: 30,
+    rank: 'Ветеран',
+    frameKey: 'level-veteran',
+    reward: 'Уровневая рамка «Ветеран»',
+    premiumReward: 'Анимация и живое свечение рамки',
+  },
+  {
+    level: 40,
+    rank: 'Легенда',
+    frameKey: 'level-legend',
+    reward: 'Уровневая рамка «Легенда»',
+    premiumReward: 'Анимация и живое свечение рамки',
+  },
+  {
+    level: 50,
+    rank: 'AnimeBox Master',
+    frameKey: 'level-master',
+    reward: 'Финальная рамка AnimeBox Master',
+    premiumReward: 'Максимальная анимация Master-рамки',
+  },
+] as const;
+
 export type ProfileProgression = {
   totalXp: number;
   activityXp: number;
@@ -55,7 +134,7 @@ export type ProfileProgression = {
   premiumBoostActive: boolean;
 };
 
-const MAX_LEVEL = 50;
+export const MAX_LEVEL = 50;
 
 function safeNumber(value: unknown) {
   const parsed = Number(value ?? 0);
@@ -80,6 +159,28 @@ export function rankForLevel(level: number) {
   if (level >= 10) return { key: 'explorer' as const, label: 'Исследователь' };
   if (level >= 5) return { key: 'viewer' as const, label: 'Зритель' };
   return { key: 'newcomer' as const, label: 'Новичок' };
+}
+
+export function isLevelFrameKey(value: unknown): value is LevelFrameKey {
+  return (
+    typeof value === 'string' &&
+    (LEVEL_FRAME_KEYS as readonly string[]).includes(value)
+  );
+}
+
+export function levelFrameMilestone(key: LevelFrameKey) {
+  return LEVEL_MILESTONES.find((item) => item.frameKey === key) ?? null;
+}
+
+export function levelFrameLabel(key: LevelFrameKey) {
+  return levelFrameMilestone(key)?.rank ?? 'Уровневая рамка';
+}
+
+export function unlockedLevelFrames(level: number) {
+  const safeLevel = Math.max(1, Math.min(MAX_LEVEL, Math.floor(level)));
+  return LEVEL_MILESTONES.flatMap((item) =>
+    item.frameKey && safeLevel >= item.level ? [item.frameKey] : [],
+  );
 }
 
 export function progressionFromXp(totalXp: number) {
