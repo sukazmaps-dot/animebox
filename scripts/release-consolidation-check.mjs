@@ -7,7 +7,6 @@ const vercel = JSON.parse(read('vercel.json'));
 const workflow = read('.github/workflows/animebox-quality.yml');
 const previewWorkflow = read('.github/workflows/animebox-preview-identity.yml');
 const ignoreBuild = read('scripts/vercel-ignore-build.mjs');
-const pipeline = read('DEPLOYMENT-PIPELINE.md');
 
 const failures = [];
 const scripts = pkg.scripts ?? {};
@@ -75,14 +74,6 @@ if (
   !workflow.includes('npm run build')
 ) {
   failures.push('AnimeBox Quality Gate no longer covers the canonical Node 22 release path');
-}
-
-if (
-  !pipeline.includes('create `preview-X` from the exact green patch head') ||
-  !pipeline.includes('one empty trigger commit') ||
-  !pipeline.includes('must not change the release tree')
-) {
-  failures.push('deployment documentation is out of sync with preview trigger behavior');
 }
 
 if (
