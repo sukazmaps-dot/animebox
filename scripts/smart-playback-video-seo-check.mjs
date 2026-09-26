@@ -25,6 +25,7 @@ const animeErrorBoundary = read('app/anime/[slug]/error.tsx');
 const animeDetailPage = read('app/anime/[slug]/page.tsx');
 const seoIndex = read('lib/seo-episode-index.ts');
 const robots = read('app/robots.ts');
+const sitemapIndex = read('app/sitemap-index.xml/route.ts');
 const timelineMigration = read(
   'supabase/migrations/20260923112710_episode_timeline_meta_v1.sql',
 );
@@ -121,8 +122,15 @@ if (!seoIndex.includes("from('episode_timeline_meta')")) {
   failures.push('SEO episode sync: player URL timeline seed is missing.');
 }
 
-if (!robots.includes('/video-sitemap.xml')) {
-  failures.push('robots.ts: video sitemap is not exposed.');
+const videoSitemapExposedDirectly = robots.includes('/video-sitemap.xml');
+const videoSitemapExposedViaIndex =
+  robots.includes('/sitemap-index.xml') &&
+  sitemapIndex.includes('/video-sitemap.xml');
+
+if (!videoSitemapExposedDirectly && !videoSitemapExposedViaIndex) {
+  failures.push(
+    'video sitemap is not exposed directly or through the advertised sitemap index.',
+  );
 }
 
 for (const [label, needle] of [
