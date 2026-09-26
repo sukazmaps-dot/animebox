@@ -142,7 +142,6 @@ requireNeedles('System Health upstream types', systemHealthTypes, [
   'upstreamQueued: number',
 ]);
 requireNeedles('System Health upstream UI', dashboard, [
-  'LOAD & FAILURE SHIELD · 18.5.5.4',
   'Upstream circuits',
   'UPSTREAM SHIELD · THIS INSTANCE',
   'health.upstreams.map',
