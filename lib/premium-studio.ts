@@ -349,10 +349,10 @@ export function premiumStudioCssVariables(settings: PremiumStudioSettings) {
   const atmosphereAlpha = 0.04 + (settings.atmosphereIntensity / 100) * 0.32;
   const motionDuration =
     settings.motionMode === 'live'
-      ? '12s'
+      ? 12
       : settings.motionMode === 'soft'
-        ? '22s'
-        : '0s';
+        ? 22
+        : 0;
 
   return {
     '--ab-premium-primary': settings.primaryColor,
@@ -370,7 +370,9 @@ export function premiumStudioCssVariables(settings: PremiumStudioSettings) {
     '--ab-premium-glow-strength': String(settings.glowStrength),
     '--ab-premium-atmosphere-alpha': String(atmosphereAlpha),
     '--ab-premium-atmosphere-intensity': String(settings.atmosphereIntensity),
-    '--ab-premium-motion-duration': motionDuration,
+    '--ab-premium-motion-duration': `${motionDuration}s`,
+    '--ab-premium-motion-duration-fast': `${Math.max(0.001, motionDuration * 0.56)}s`,
+    '--ab-premium-motion-duration-slow': `${Math.max(0.001, motionDuration * 1.32)}s`,
   };
 }
 
