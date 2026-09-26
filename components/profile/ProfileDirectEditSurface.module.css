@@ -179,16 +179,23 @@
 }
 
 .avatarShell > img {
-  width: 86%;
-  height: 86%;
+  width: 78%;
+  height: 78%;
   object-fit: cover;
   border-radius: 50%;
-  border: 5px solid #0c1121;
+  border: 4px solid #0c1121;
   box-shadow: 0 0 0 1px rgba(160, 119, 255, .16);
+  transition: width .16s ease, height .16s ease;
+}
+
+.avatarShell[data-framed='true'] > img {
+  width: 68%;
+  height: 68%;
+  border-width: 3px;
 }
 
 .avatarFrame {
-  inset: -1% !important;
+  inset: 0 !important;
 }
 
 .avatarButton::after {
@@ -678,10 +685,16 @@
 }
 
 .avatarControlPreview > img {
-  width: 56px;
-  height: 56px;
+  width: 54px;
+  height: 54px;
   object-fit: cover;
   border-radius: 50%;
+  transition: width .16s ease, height .16s ease;
+}
+
+.avatarControlPreview[data-framed='true'] > img {
+  width: 48px;
+  height: 48px;
 }
 
 .avatarControl strong,
@@ -789,8 +802,8 @@
 }
 
 .frameThumb > img {
-  width: 34px;
-  height: 34px;
+  width: 31px;
+  height: 31px;
   border-radius: 50%;
   object-fit: cover;
 }
