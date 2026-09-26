@@ -125,6 +125,7 @@ export default async function PublicProfilePage({ params }: Props) {
             role={profile.role}
             sponsor={profile.sponsor}
             mediaTransform={profile.avatarTransform}
+            seasonFrameKey={profile.seasonFrameKey}
           />
 
           <div className="profile-v2__identity-main">

@@ -10,6 +10,13 @@ import {
   type PublicAppearancePreload,
 } from '@/lib/public-avatar-server';
 import { normalizeProgression } from '@/lib/progression';
+import { getSelectedSeasonFrames } from '@/lib/leaderboard-rewards-server';
+import {
+  currentLeaderboardMonthUtc,
+  currentLeaderboardWeekUtc,
+  MONTHLY_REWARD_TIERS,
+  WEEKLY_REWARD_TIERS,
+} from '@/lib/leaderboard-rewards';
 
 type LeaderboardPeriod = 'week' | 'month' | 'all';
 
@@ -75,10 +82,15 @@ export async function GET(request: Request) {
     if (error) throw error;
 
     const rows = bundleRows(data);
+    const season = period === 'week'
+      ? { ...currentLeaderboardWeekUtc(), rewards: WEEKLY_REWARD_TIERS }
+      : period === 'month'
+        ? { ...currentLeaderboardMonthUtc(), rewards: MONTHLY_REWARD_TIERS }
+        : null;
 
     if (rows.length === 0) {
       return Response.json(
-        { period, entries: [], me: null },
+        { period, entries: [], me: null, season },
         { headers: { 'Cache-Control': 'private, no-store' } },
       );
     }
@@ -104,6 +116,10 @@ export async function GET(request: Request) {
       preloadByUser,
     );
 
+    const seasonFrameByUser = await getSelectedSeasonFrames(
+      rows.map((row) => row.user_id),
+    ).catch(() => new Map());
+
     const normalized = rows.map((row) => {
       const appearance = appearanceByUser.get(row.user_id);
       const sponsorPreferences = asRecord(row.sponsor_preferences);
@@ -124,6 +140,7 @@ export async function GET(request: Request) {
           sponsorPreferences as PreferenceRow | null,
         ),
         role: publicIdentityRoleFor(row.user_id),
+        seasonFrameKey: seasonFrameByUser.get(row.user_id) ?? null,
         progression: normalizeProgression(row.progression),
       };
     });
@@ -133,6 +150,7 @@ export async function GET(request: Request) {
         period,
         entries: normalized.filter((entry) => entry.rank <= 100),
         me: normalized.find((entry) => entry.isCurrentUser) ?? null,
+        season,
       },
       {
         headers: {

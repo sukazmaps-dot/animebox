@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+
+<defs>
+  <radialGradient id="innerShade" cx="50%" cy="45%" r="60%">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.05"/>
+    <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+  </radialGradient>
+  <filter id="softGlow" x="-80%" y="-80%" width="260%" height="260%">
+    <feGaussianBlur stdDeviation="5" result="blur"/>
+    <feMerge>
+      <feMergeNode in="blur"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <filter id="tinyGlow" x="-60%" y="-60%" width="220%" height="220%">
+    <feGaussianBlur stdDeviation="2.4" result="blur"/>
+    <feMerge>
+      <feMergeNode in="blur"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+</defs>
+
+<defs>
+  <linearGradient id="elite" x1="70" y1="60" x2="440" y2="450">
+    <stop offset="0%" stop-color="#eef2ff"/>
+    <stop offset="25%" stop-color="#9aa8c7"/>
+    <stop offset="50%" stop-color="#8d55ff"/>
+    <stop offset="78%" stop-color="#df55ff"/>
+    <stop offset="100%" stop-color="#d9e2ff"/>
+  </linearGradient>
+</defs>
+<circle cx="256" cy="256" r="176" fill="none" stroke="url(#elite)" stroke-width="10" stroke-dasharray="90 16 58 20 74 13" stroke-linecap="round" filter="url(#tinyGlow)"/>
+<circle cx="256" cy="256" r="160" fill="none" stroke="#7a42ff" stroke-width="3" opacity=".85"/>
+<path d="M256 54 272 80 256 106 240 80Z" fill="#a45cff" stroke="#e8dcff" stroke-width="3"/>
+<path d="M256 458 272 432 256 406 240 432Z" fill="#7d4cff" stroke="#efe9ff" stroke-width="3"/>
+<path d="M90 166 116 149 137 170 118 193 92 190Z" fill="#cad2e8" stroke="#925aff" stroke-width="3"/>
+<path d="M422 322 397 303 376 327 396 350 423 346Z" fill="#cfd6ec" stroke="#925aff" stroke-width="3"/>
+<!-- original energy accent -->
+<path d="M389 82 430 61 416 95 451 83 425 111 441 116 404 137 411 109 382 120Z"
+      fill="#a64dff" stroke="#f3ddff" stroke-width="2" filter="url(#tinyGlow)"/>
+</svg>

@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+
+<defs>
+  <radialGradient id="innerShade" cx="50%" cy="45%" r="60%">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.05"/>
+    <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+  </radialGradient>
+  <filter id="softGlow" x="-80%" y="-80%" width="260%" height="260%">
+    <feGaussianBlur stdDeviation="5" result="blur"/>
+    <feMerge>
+      <feMergeNode in="blur"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <filter id="tinyGlow" x="-60%" y="-60%" width="220%" height="220%">
+    <feGaussianBlur stdDeviation="2.4" result="blur"/>
+    <feMerge>
+      <feMergeNode in="blur"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+</defs>
+
+<defs>
+  <linearGradient id="champRing" x1="80" y1="64" x2="430" y2="448">
+    <stop offset="0%" stop-color="#ffd86b"/>
+    <stop offset="24%" stop-color="#fff1ad"/>
+    <stop offset="47%" stop-color="#b270ff"/>
+    <stop offset="68%" stop-color="#ff2fb4"/>
+    <stop offset="100%" stop-color="#f3aa32"/>
+  </linearGradient>
+  <linearGradient id="champDark" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#3b1b66"/>
+    <stop offset="50%" stop-color="#180927"/>
+    <stop offset="100%" stop-color="#55143f"/>
+  </linearGradient>
+  <linearGradient id="champGold" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#fff4b0"/>
+    <stop offset="45%" stop-color="#e4a83c"/>
+    <stop offset="100%" stop-color="#7d3d0d"/>
+  </linearGradient>
+  <linearGradient id="glyphGrad" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#ff62df"/>
+    <stop offset="55%" stop-color="#9d55ff"/>
+    <stop offset="100%" stop-color="#ffd35e"/>
+  </linearGradient>
+  <linearGradient id="shine" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="0"/>
+    <stop offset="50%" stop-color="#ffffff" stop-opacity="0.95"/>
+    <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+  </linearGradient>
+  <clipPath id="ringClip">
+    <circle cx="256" cy="256" r="178"/>
+  </clipPath>
+</defs>
+<style>
+  .glyph {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .g1 { animation: glyphFloat1 4.8s ease-in-out infinite; }
+  .g2 { animation: glyphFloat2 5.6s ease-in-out infinite .35s; }
+  .g3 { animation: glyphFloat3 6.2s ease-in-out infinite .8s; }
+  .pulse { animation: pulseGlow 3.6s ease-in-out infinite; }
+  .shine { animation: ringShine 6.4s linear infinite; transform-origin:256px 256px; }
+  @keyframes glyphFloat1 {
+    0%,100% { transform: translate(0,0) rotate(-5deg) scale(.96); opacity:.60; }
+    50% { transform: translate(5px,-7px) rotate(5deg) scale(1.08); opacity:1; }
+  }
+  @keyframes glyphFloat2 {
+    0%,100% { transform: translate(0,0) rotate(4deg) scale(.94); opacity:.52; }
+    50% { transform: translate(-6px,5px) rotate(-4deg) scale(1.05); opacity:.94; }
+  }
+  @keyframes glyphFloat3 {
+    0%,100% { transform: translate(0,0) rotate(-3deg) scale(.98); opacity:.46; }
+    50% { transform: translate(4px,6px) rotate(3deg) scale(1.09); opacity:.86; }
+  }
+  @keyframes pulseGlow {
+    0%,100% { opacity:.62; }
+    50% { opacity:1; }
+  }
+  @keyframes ringShine {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .glyph,.pulse,.shine { animation:none !important; }
+  }
+</style>
+
+<!-- subtle aura -->
+<circle cx="256" cy="256" r="194" fill="none" stroke="#6b33ff" stroke-opacity=".18" stroke-width="10" filter="url(#softGlow)"/>
+
+<!-- outer gold segmented ring -->
+<circle cx="256" cy="256" r="178" fill="none" stroke="url(#champRing)" stroke-width="13" stroke-dasharray="72 13 44 18 86 12 52 16" stroke-linecap="round" filter="url(#tinyGlow)"/>
+<circle cx="256" cy="256" r="161" fill="none" stroke="#8b43ff" stroke-width="4" opacity=".86"/>
+<circle class="pulse" cx="256" cy="256" r="153" fill="none" stroke="#ff3ccf" stroke-width="2.5" opacity=".72"/>
+
+<!-- top crest -->
+<path d="M256 38 276 72 256 108 236 72Z" fill="url(#champGold)" stroke="#fff0ad" stroke-width="3"/>
+<path d="M256 50 266 72 256 94 246 72Z" fill="#9b45ff" stroke="#ff82e8" stroke-width="2"/>
+
+<!-- bottom crest -->
+<path d="M256 474 279 435 256 405 233 435Z" fill="url(#champDark)" stroke="#e7b552" stroke-width="4"/>
+<path d="M256 455 268 435 256 420 244 435Z" fill="#8c46ff" stroke="#ff6ed8" stroke-width="2"/>
+
+<!-- asymmetrical armor -->
+<path d="M116 112 151 126 136 163 102 151 77 128Z" fill="url(#champGold)" stroke="#ffedaa" stroke-width="3"/>
+<path d="M396 104 425 126 403 160 378 145Z" fill="url(#champGold)" stroke="#ffedaa" stroke-width="3"/>
+<path d="M91 354 126 344 144 378 111 396 79 381Z" fill="url(#champGold)" stroke="#ffedaa" stroke-width="3"/>
+<path d="M390 354 420 371 397 401 368 382Z" fill="url(#champGold)" stroke="#ffedaa" stroke-width="3"/>
+
+<!-- rotating highlight slice -->
+<g class="shine" clip-path="url(#ringClip)">
+  <rect x="246" y="48" width="20" height="416" fill="url(#shine)" opacity=".32" transform="rotate(16 256 256)"/>
+</g>
+
+<!-- Original manga-energy glyphs: abstract, not franchise symbols -->
+<g class="glyph g1" filter="url(#tinyGlow)">
+  <path d="M391 92 435 69 419 105 457 89 428 124 448 128 406 151 416 119 384 132Z"
+        fill="url(#glyphGrad)" stroke="#ffd2f7" stroke-width="2"/>
+</g>
+<g class="glyph g2" filter="url(#tinyGlow)">
+  <path d="M58 248 102 219 90 251 127 237 101 267 119 274 78 292 89 265 54 277Z"
+        fill="url(#glyphGrad)" stroke="#ffc8ef" stroke-width="2"/>
+</g>
+<g class="glyph g3" filter="url(#tinyGlow)">
+  <path d="M355 405 387 382 378 409 408 397 389 421 402 426 367 442 374 419 347 431Z"
+        fill="url(#glyphGrad)" stroke="#ffd1f5" stroke-width="2"/>
+</g>
+
+<!-- small shards -->
+<g fill="#c85cff" opacity=".75">
+  <polygon points="157,72 165,58 170,76"/>
+  <polygon points="446,245 462,238 453,257"/>
+  <polygon points="152,437 161,423 167,441"/>
+  <polygon points="61,326 74,318 70,334"/>
+</g>
+</svg>

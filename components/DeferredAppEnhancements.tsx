@@ -24,8 +24,14 @@ const TelegramWelcomePromo = dynamic(
   { ssr: false },
 );
 
+const SeasonRewardClaimModal = dynamic(
+  () => import('@/components/leaderboard/SeasonRewardClaimModal'),
+  { ssr: false },
+);
+
 const PRESENCE_DELAY_MS = 4_500;
 const PROGRESSION_DELAY_MS = 8_000;
+const LEADERBOARD_REWARD_DELAY_MS = 5_500;
 
 type IdleWindow = Window & {
   requestIdleCallback?: (
@@ -79,6 +85,7 @@ export default function DeferredAppEnhancements() {
   const { user, loading } = useAuthState();
   const [presenceReady, setPresenceReady] = useState(false);
   const [progressionReady, setProgressionReady] = useState(false);
+  const [leaderboardRewardReady, setLeaderboardRewardReady] = useState(false);
   const [welcomePending, setWelcomePending] = useState(false);
 
   useEffect(() => {
@@ -108,9 +115,15 @@ export default function DeferredAppEnhancements() {
       () => setProgressionReady(true),
     );
 
+    const cancelLeaderboardReward = scheduleDeferredFeature(
+      LEADERBOARD_REWARD_DELAY_MS,
+      () => setLeaderboardRewardReady(true),
+    );
+
     return () => {
       cancelPresence();
       cancelProgression();
+      cancelLeaderboardReward();
     };
   }, [loading, user?.id]);
 
@@ -118,6 +131,7 @@ export default function DeferredAppEnhancements() {
     <>
       {welcomePending && <TelegramWelcomePromo />}
       {!loading && user?.id && presenceReady && <SocialPresenceHeartbeat />}
+      {!loading && user?.id && leaderboardRewardReady && <SeasonRewardClaimModal />}
       {!loading && user?.id && progressionReady && <ProgressionCelebration />}
     </>
   );

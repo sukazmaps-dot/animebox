@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import { materializeLeaderboardSeasonRewards } from '@/lib/leaderboard-rewards-server';
 
 function currentWeekStartUtc(now: Date) {
   const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
@@ -49,6 +50,16 @@ export async function finalizeRecentLeaderboardSeasons(now = new Date()) {
     });
 
     if (error) throw error;
+
+    if ((period.periodType === 'week' || period.periodType === 'month') && data && typeof data === 'object' && !Array.isArray(data)) {
+      const seasonId = (data as Record<string, unknown>).season_id;
+      if (typeof seasonId === 'string' && seasonId) {
+        const rewards = await materializeLeaderboardSeasonRewards(seasonId);
+        results.push({ ...data as Record<string, unknown>, rewards });
+        continue;
+      }
+    }
+
     results.push(data);
   }
 

@@ -50,6 +50,7 @@ export default function ProfilePage() {
   const [error, setError] = useState('');
   const [premiumStudio, setPremiumStudio] = useState<PremiumStudioSettings | null>(null);
   const [premiumActive, setPremiumActive] = useState(false);
+  const [seasonFrameKey, setSeasonFrameKey] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -206,6 +207,32 @@ export default function ProfilePage() {
     if (!user?.id) return;
 
     let active = true;
+    const loadSeasonFrame = () => {
+      void fetch('/api/community/leaderboard-rewards', { cache: 'no-store' })
+        .then(async (response) => {
+          if (!response.ok || !active) return;
+          const payload = await response.json() as { selectedFrame?: string | null };
+          setSeasonFrameKey(typeof payload.selectedFrame === 'string' ? payload.selectedFrame : null);
+        })
+        .catch(() => {
+          if (active) setSeasonFrameKey(null);
+        });
+    };
+
+    loadSeasonFrame();
+    window.addEventListener('animebox:profile-cosmetic-changed', loadSeasonFrame);
+    window.addEventListener('animebox:leaderboard-reward-claimed', loadSeasonFrame);
+    return () => {
+      active = false;
+      window.removeEventListener('animebox:profile-cosmetic-changed', loadSeasonFrame);
+      window.removeEventListener('animebox:leaderboard-reward-claimed', loadSeasonFrame);
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    let active = true;
 
     const loadStudio = () => {
       void fetch('/api/premium/studio', { cache: 'no-store' })
@@ -355,6 +382,7 @@ export default function ProfilePage() {
             alt={`Аватар ${username}`}
             loadCurrentIdentity
             mediaTransform={appearance.avatarTransform}
+            seasonFrameKey={seasonFrameKey}
           />
 
           <div className="profile-v2__identity-main">

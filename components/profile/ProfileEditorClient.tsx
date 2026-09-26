@@ -9,6 +9,7 @@ import PremiumStudioClient, { type PremiumStudioHandle } from '@/components/prem
 import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import ProfileWidgetEditor from '@/components/profile/ProfileWidgetEditor';
+import ProfileRewardsPanel from '@/components/profile/ProfileRewardsPanel';
 import Icon from '@/components/Icon';
 import { notifyAuthChanged } from '@/lib/auth-events';
 import { usernamePolicyError } from '@/lib/auth-identity-policy';
@@ -31,7 +32,7 @@ import type {
   PremiumStudioSettings,
 } from '@/lib/premium-studio';
 
-type EditorTab = 'profile' | 'showcase' | 'style';
+type EditorTab = 'profile' | 'appearance' | 'showcase' | 'rewards' | 'style';
 
 type ProfileRow = {
   id: string;
@@ -55,7 +56,9 @@ type BaseMediaEditorState = {
 
 function normalizedTab(value: string | null | undefined): EditorTab {
   if (value === 'style' || value === 'premium') return 'style';
+  if (value === 'appearance' || value === 'media') return 'appearance';
   if (value === 'showcase' || value === 'widgets') return 'showcase';
+  if (value === 'rewards' || value === 'awards') return 'rewards';
   return 'profile';
 }
 
@@ -568,6 +571,27 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     }
   }
 
+  function resetDraft() {
+    if (!profile) return;
+    setUsername(profile.username ?? '');
+    setBio(profile.bio ?? '');
+    setAvatarFile(null);
+    setBannerFile(null);
+    setRemoveAvatar(false);
+    setRemoveBanner(false);
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+    setAvatarPreview(null);
+    setBannerPreview(null);
+    setBaseMediaError('');
+    setError('');
+    setSaved('Черновик сброшен.');
+    if (premiumDirty && premiumSettings) {
+      premiumStudioRef.current?.markSaved(premiumSettings);
+      setPremiumDirty(false);
+    }
+  }
+
   async function clearPremiumFallbackMedia() {
     if (!user?.id) return;
     setError('');
@@ -635,15 +659,22 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           </div>
         </header>
 
-        <nav className="profile-editor-v13__tabs" aria-label="Разделы редактора профиля">
+        <nav className="profile-editor-v13__tabs profile-editor-v18__rail" aria-label="Разделы редактора профиля">
+          <span className="profile-editor-v18__rail-title">PROFILE STUDIO</span>
           <button className={activeTab === 'profile' ? 'is-active' : ''} onClick={() => switchTab('profile')} type="button">
-            Профиль и оформление
+            <Icon name="user" size={18} weight="regular" /> <span>Профиль</span>
+          </button>
+          <button className={activeTab === 'appearance' ? 'is-active' : ''} onClick={() => switchTab('appearance')} type="button">
+            <Icon name="image" size={18} weight="regular" /> <span>Оформление</span>
           </button>
           <button className={activeTab === 'showcase' ? 'is-active' : ''} onClick={() => switchTab('showcase')} type="button">
-            Витрина
+            <Icon name="grid" size={18} weight="regular" /> <span>Витрина</span>
+          </button>
+          <button className={activeTab === 'rewards' ? 'is-active' : ''} onClick={() => switchTab('rewards')} type="button">
+            <Icon name="trophy" size={18} weight="regular" /> <span>Награды</span>
           </button>
           <button className={activeTab === 'style' ? 'is-active is-premium' : 'is-premium'} onClick={() => switchTab('style')} type="button">
-            <Icon name="crown" size={19} weight="fill" /> Стиль
+            <Icon name="crown" size={18} weight="fill" /> <span>Premium</span>
           </button>
         </nav>
 
@@ -662,6 +693,10 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                 setPremiumDirty(false);
               }}
             />
+          </div>
+        ) : activeTab === 'rewards' ? (
+          <div className="profile-editor-v13__showcase-tab profile-editor-v18__rewards-tab">
+            <ProfileRewardsPanel />
           </div>
         ) : activeTab === 'showcase' ? (
           <div className="profile-editor-v13__showcase-tab">
@@ -709,8 +744,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         ) : (
           <div className="profile-editor-v13__workspace">
             <div className="profile-editor-v13__controls">
-              <>
-                <section className="profile-editor-v13__panel">
+              {activeTab === 'profile' && (
+                <section className="profile-editor-v13__panel profile-editor-v18__panel">
   <div className="profile-editor-v13__section-title">
     <div>
       <h2>Основная информация</h2>
@@ -732,8 +767,10 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     <strong>Совет:</strong> короткое био и узнаваемый ник лучше читаются в комментариях, рейтинге и публичном профиле.
   </p>
 </section>
-                <div className="profile-editor-v13__section-divider" aria-hidden="true" />
-                <section className="profile-editor-v13__panel">
+              )}
+
+              {activeTab === 'appearance' && (
+                <section className="profile-editor-v13__panel profile-editor-v18__panel">
                   <div className="profile-editor-v13__section-title">
                     <div>
                       <h2>Базовое оформление</h2>
@@ -832,7 +869,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                     <button type="button" onClick={() => switchTab('style')}>Открыть Стиль</button>
                   </div>
                 </section>
-              </>
+              )}
 
               {(error || saved) && (
                 <div className={`profile-editor-v13__message ${error ? 'is-error' : ''}`}>{error || saved}</div>
@@ -869,8 +906,14 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           </div>
         )}
 
-        <div className="profile-editor-v13__mobile-save">
-          <Link href="/profile">Отмена</Link>
+        <div className={`profile-editor-v13__mobile-save profile-editor-v18__savebar ${dirty ? 'is-dirty' : ''}`}>
+          <span className="profile-editor-v18__savebar-copy">
+            <strong>{dirty ? 'Есть несохранённые изменения' : 'Всё сохранено'}</strong>
+            <small>{dirty ? 'Проверь preview и сохрани, когда всё выглядит правильно.' : 'Profile Studio синхронизирован.'}</small>
+          </span>
+          <button type="button" className="profile-editor-v18__reset" disabled={!dirty || saving || premiumBusy} onClick={resetDraft}>
+            Сбросить
+          </button>
           <button type="button" disabled={!dirty || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)} onClick={() => void saveProfile()}>
             {saving ? 'Сохраняем…' : 'Сохранить изменения'}
           </button>

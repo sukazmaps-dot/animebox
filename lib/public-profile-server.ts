@@ -23,6 +23,8 @@ import type { SeasonPeriod } from '@/lib/seasons';
 import { isUuid } from '@/lib/uuid';
 import { getProfileWidgetsData } from '@/lib/profile-widgets-server';
 import type { ProfileWidgetsData } from '@/types/profile-widgets';
+import { getSelectedSeasonFrame } from '@/lib/leaderboard-rewards-server';
+import type { SeasonFrameKey } from '@/lib/leaderboard-rewards';
 
 export type PublicAchievement = {
   code: string;
@@ -62,6 +64,7 @@ export type PublicProfileData = {
   progression: ProfileProgression;
   featuredAchievements: PublicAchievement[];
   seasonTitles: PublicSeasonTitle[];
+  seasonFrameKey: SeasonFrameKey | null;
   stats: {
     episodes: number;
     titles: number;
@@ -166,6 +169,7 @@ export async function getPublicProfile(
     featuredResult,
     seasonEntriesResult,
     widgets,
+    selectedSeasonFrame,
   ] = await Promise.all([
     admin.rpc('community_metrics', { p_user: userId }),
     admin.from('user_achievements').select('*').eq('user_id', userId),
@@ -202,6 +206,7 @@ export async function getPublicProfile(
       .eq('user_id', userId)
       .lte('place', 3),
     getProfileWidgetsData(userId),
+    getSelectedSeasonFrame(userId).catch(() => null),
   ]);
 
   if (metricsResult.error) {
@@ -365,6 +370,7 @@ export async function getPublicProfile(
     ),
     featuredAchievements,
     seasonTitles,
+    seasonFrameKey: selectedSeasonFrame,
     stats: {
       episodes,
       titles,

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useAuthState } from '@/components/AuthStateProvider';
+import { SeasonFrameOverlay } from '@/components/leaderboard/SeasonFramePreview';
 
 import { resolveIdentityKind, type PublicIdentityRole } from '@/lib/identity';
 import {
@@ -24,6 +25,7 @@ type Props = {
   loadCurrentIdentity?: boolean;
   className?: string;
   mediaTransform?: PremiumMediaTransform | null;
+  seasonFrameKey?: string | null;
 };
 
 type IdentityState = {
@@ -47,6 +49,7 @@ export default function UserAvatarWithFrame({
   loadCurrentIdentity = false,
   className = '',
   mediaTransform = null,
+  seasonFrameKey = null,
 }: Props) {
   const { user } = useAuthState();
   const cached = loadCurrentIdentity ? peekSponsorMe(user?.id, 1) : null;
@@ -124,15 +127,21 @@ export default function UserAvatarWithFrame({
   }, [currentIdentity.sponsor?.cosmetics?.selectedFrame, kind]);
 
   const frameSrc = frameKind ? FRAME_BY_KIND[frameKind] : null;
+  const hasSeasonFrame = Boolean(seasonFrameKey);
+  const visibleIdentityFrameSrc = hasSeasonFrame ? null : frameSrc;
 
   return (
     <div
       className={`profile-v2__avatar-wrap relative h-[88px] w-[88px] shrink-0 overflow-visible sm:h-[116px] sm:w-[116px] ${className}`.trim()}
-      data-avatar-frame={frameKind ?? 'none'}
+      data-avatar-frame={seasonFrameKey ?? frameKind ?? 'none'}
     >
       <div
         className={`absolute left-1/2 top-1/2 z-[1] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full ring-4 ring-[#091221] transition-[width,height] duration-200 ${
-          frameSrc ? 'h-[85%] w-[85%]' : 'h-full w-full'
+          hasSeasonFrame
+            ? 'h-[70%] w-[70%]'
+            : visibleIdentityFrameSrc
+              ? 'h-[85%] w-[85%]'
+              : 'h-full w-full'
         }`}
       >
         <picture className="block h-full w-full">
@@ -152,15 +161,17 @@ export default function UserAvatarWithFrame({
         </picture>
       </div>
 
-      {frameSrc && (
+      {visibleIdentityFrameSrc && (
         <img
-          src={frameSrc}
+          src={visibleIdentityFrameSrc}
           alt=""
           aria-hidden="true"
           className="user-avatar-frame__overlay pointer-events-none absolute inset-0 z-10 h-full w-full select-none object-contain"
           draggable={false}
         />
       )}
+
+      <SeasonFrameOverlay frameKey={seasonFrameKey} />
     </div>
   );
 }

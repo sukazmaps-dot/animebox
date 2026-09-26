@@ -26,6 +26,10 @@
     {
       "path": "/api/cron/production-maintenance",
       "schedule": "17 5 * * *"
+    },
+    {
+      "path": "/api/cron/leaderboard-seasons",
+      "schedule": "8 0 * * 1"
     }
   ]
 }

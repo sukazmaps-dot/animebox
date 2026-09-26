@@ -78,13 +78,13 @@ if (
 
 if (
   !animeRoute.includes("status !== 'upcoming'") ||
-  !animeRoute.includes("filterAnimeByAvailability(\n        candidates,\n        'catalog'")
+  !/filterAnimeByAvailability\(\s*candidates,\s*['"]catalog['"]\s*,?\s*\)/m.test(animeRoute)
 ) {
   failures.push('catalog/search availability policy is incomplete');
 }
 
 if (
-  !recommendations.includes("filterAnimeByAvailability(\n      result.items,\n      'recommendations'") ||
+  !/filterAnimeByAvailability\(\s*result\.items,\s*['"]recommendations['"]\s*,?\s*\)/m.test(recommendations) ||
   !recommendations.includes('availability.items')
 ) {
   failures.push('recommendation availability filtering is incomplete');
@@ -95,8 +95,8 @@ if (!suggestions.includes('filterAnimeIdsByAvailability')) {
 }
 
 if (
-  !discovery.includes("filterAnimeByAvailability(\n      candidates,\n      'catalog'") ||
-  !related.includes("filterAnimeByAvailability(\n      filtered,\n      'catalog'")
+  !/filterAnimeByAvailability\(\s*candidates,\s*['"]catalog['"]\s*,?\s*\)/m.test(discovery) ||
+  !/filterAnimeByAvailability\(\s*filtered,\s*['"]catalog['"]\s*,?\s*\)/m.test(related)
 ) {
   failures.push('contextual discovery / related titles bypass availability filtering');
 }

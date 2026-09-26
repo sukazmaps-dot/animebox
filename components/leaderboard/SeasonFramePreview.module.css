@@ -1,0 +1,98 @@
+.root,.overlayOnly {
+  --league-frame-avatar-size:70%;
+}
+
+.root {
+  position:relative;
+  display:inline-grid;
+  width:104px;
+  height:104px;
+  place-items:center;
+  flex:0 0 auto;
+  overflow:visible;
+}
+
+.avatarClip {
+  position:relative;
+  z-index:1;
+  width:var(--league-frame-avatar-size);
+  height:var(--league-frame-avatar-size);
+  overflow:hidden;
+  border-radius:50%;
+  background:#111725;
+  box-shadow:
+    0 0 0 3px #080c14,
+    0 8px 24px rgba(0,0,0,.34);
+}
+
+.avatarClip img {
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:cover;
+}
+
+.overlayOnly {
+  position:absolute;
+  z-index:20;
+  inset:-6%;
+  display:block;
+  pointer-events:none;
+  overflow:visible;
+  transform:translateZ(0);
+}
+
+.frameAsset {
+  position:absolute;
+  inset:0;
+  display:block;
+  width:100%;
+  height:100%;
+  max-width:none;
+  object-fit:contain;
+  overflow:visible;
+  user-select:none;
+  pointer-events:none;
+  transform:translateZ(0);
+}
+
+.root[data-season-frame='league-champion'],
+.overlayOnly[data-season-frame='league-champion'] {
+  --league-frame-avatar-size:68%;
+}
+
+.root[data-season-frame='league-elite'],
+.overlayOnly[data-season-frame='league-elite'] {
+  --league-frame-avatar-size:70%;
+}
+
+.root[data-season-frame='league-podium'],
+.overlayOnly[data-season-frame='league-podium'] {
+  --league-frame-avatar-size:70%;
+}
+
+.root[data-season-frame='league-top10'],
+.overlayOnly[data-season-frame='league-top10'] {
+  --league-frame-avatar-size:72%;
+}
+
+.compact {
+  width:54px;
+  height:54px;
+}
+
+.compact .avatarClip {
+  box-shadow:0 0 0 2px #080c14;
+}
+
+@media (max-width:560px) {
+  .overlayOnly {
+    inset:-5%;
+  }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .frameAsset {
+    transition:none !important;
+  }
+}

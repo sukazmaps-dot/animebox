@@ -8,6 +8,7 @@ import Link from 'next/link';
 
 import FriendActionButton from '@/components/friends/FriendActionButton';
 import StreakDisplay from '@/components/profile/StreakDisplay';
+import { SeasonFrameOverlay } from '@/components/leaderboard/SeasonFramePreview';
 import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
@@ -36,6 +37,7 @@ type PreviewData = {
   textColor: string;
   role: PublicIdentityRole;
   sponsor: SponsorStatus | null;
+  seasonFrameKey: string | null;
   progression: {
     level: number;
     rank: string;
@@ -343,7 +345,7 @@ export default function ProfilePreview({
                       </div>
 
                       <div className={styles.heroIdentity}>
-                        <span className={styles.avatarShell}>
+                        <span className={`${styles.avatarShell} ${data.seasonFrameKey ? styles.avatarShellSeason : ''}`}>
                           <picture className={styles.avatarMedia}>
                             {data.avatarStaticUrl !== data.avatarUrl && (
                               <source
@@ -361,6 +363,12 @@ export default function ProfilePreview({
                               style={premiumMediaStyle(data.avatarTransform)}
                             />
                           </picture>
+                          {data.seasonFrameKey && (
+                            <SeasonFrameOverlay
+                              frameKey={data.seasonFrameKey}
+                              className={styles.seasonFrameOverlay}
+                            />
+                          )}
                         </span>
 
                         <div className={styles.identityCopy}>

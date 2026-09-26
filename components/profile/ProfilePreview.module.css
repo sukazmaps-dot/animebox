@@ -676,3 +676,30 @@
     min-height: 56px;
   }
 }
+
+
+/* Patch 18.8 — temporary AnimeBox League frame inside mini-profile. */
+.avatarShellSeason {
+  overflow: visible;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+}
+
+.avatarShellSeason .avatarMedia {
+  position: relative;
+  z-index: 1;
+  width: 64%;
+  height: 64%;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #111827;
+  box-shadow: 0 0 0 2px #080c14, 0 8px 22px rgba(0,0,0,.34);
+}
+
+.seasonFrameOverlay {
+  z-index: 4;
+}

@@ -1583,3 +1583,48 @@
     text-align: right;
   }
 }
+
+/* =========================================================
+   AnimeBox 18.8 — Weekly League / Rewards
+   ========================================================= */
+.seasonPanel {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid rgba(139,114,255,.14);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(105,216,255,.055), transparent 30%),
+    linear-gradient(145deg, rgba(16,22,34,.96), rgba(9,13,21,.96));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.02);
+}
+.seasonPanelHead { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; }
+.seasonPanelHead h2 { margin:5px 0 4px; font-size:18px; letter-spacing:-.025em; }
+.seasonPanelHead p { margin:0; color:#7f899b; font-size:10px; line-height:1.55; }
+.seasonCountdown { flex:0 0 auto; min-width:128px; padding:10px 12px; border:1px solid rgba(255,255,255,.06); border-radius:11px; background:rgba(5,8,14,.45); text-align:right; }
+.seasonCountdown small { display:block; color:#596579; font-size:7.5px; font-weight:800; letter-spacing:.09em; }
+.seasonCountdown strong { display:block; margin-top:4px; color:#d9d2ff; font-size:15px; font-variant-numeric:tabular-nums; }
+.rewardTiers { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-top:14px; }
+.rewardTier { display:grid; grid-template-columns:40px minmax(0,1fr); align-items:center; gap:9px; min-width:0; min-height:64px; padding:9px 10px; border:1px solid rgba(255,255,255,.055); border-radius:11px; background:rgba(255,255,255,.022); }
+.rewardTier > span { display:grid; min-height:34px; place-items:center; border-radius:9px; background:rgba(139,114,255,.08); color:#ad9cf5; font-size:10px; font-weight:850; }
+.rewardTier strong,.rewardTier small { display:block; overflow:hidden; text-overflow:ellipsis; }
+.rewardTier strong { color:#dfe2ea; font-size:10px; white-space:nowrap; }
+.rewardTier small { margin-top:3px; color:#6f7888; font-size:8px; line-height:1.3; }
+.rewardTier[data-place='1'] { border-color:rgba(229,184,91,.18); background:rgba(177,123,34,.055); }
+.rewardTier[data-place='1'] > span { background:rgba(224,175,76,.10); color:#e9bd67; }
+.seasonMe { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:10px; padding:10px 12px; border-radius:10px; background:rgba(111,88,255,.055); color:#8993a5; font-size:9px; }
+.seasonMe strong { color:#e7e3ff; font-size:12px; }
+.seasonMe b { color:#b7a8f3; font-weight:700; text-align:right; }
+.seasonFrameOverlay { inset:-18% !important; z-index:3 !important; }
+
+@media (max-width: 900px) {
+  .rewardTiers { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 620px) {
+  .seasonPanel { padding:14px; border-radius:14px; }
+  .seasonPanelHead { align-items:stretch; flex-direction:column; gap:10px; }
+  .seasonCountdown { width:100%; min-width:0; text-align:left; }
+  .rewardTiers { grid-template-columns:1fr; }
+  .rewardTier { min-height:58px; }
+  .seasonMe { align-items:flex-start; flex-direction:column; }
+  .seasonMe b { text-align:left; }
+}

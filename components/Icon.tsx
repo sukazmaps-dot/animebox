@@ -4,8 +4,8 @@ import type { Icon as PhosphorIcon, IconProps } from '@phosphor-icons/react';
 import {
   BellIcon, CalendarBlankIcon, CaretRightIcon, ChatCircleIcon, CheckIcon,
   ClockIcon, CrownIcon, EnvelopeIcon, HeartIcon, HouseIcon,
-  GearSixIcon, InfoIcon, ListIcon, MagnifyingGlassIcon, PaperPlaneTiltIcon,
-  PlayIcon, PlusIcon, SparkleIcon, StarIcon, TelevisionIcon,
+  GearSixIcon, ImageIcon, InfoIcon, ListIcon, MagnifyingGlassIcon, PaperPlaneTiltIcon,
+  PlayIcon, PlusIcon, SparkleIcon, SquaresFourIcon, StarIcon, TelevisionIcon,
   TrophyIcon, UserIcon, UsersIcon,
 } from '@phosphor-icons/react';
 
@@ -13,7 +13,7 @@ type IconName =
   | 'home' | 'anime' | 'calendar' | 'tracker' | 'heart' | 'bell'
   | 'telegram' | 'info' | 'search' | 'chevron' | 'play' | 'plus'
   | 'star' | 'menu' | 'settings' | 'user' | 'clock' | 'spark' | 'trophy'
-  | 'mail' | 'users' | 'chat' | 'crown' | 'check';
+  | 'mail' | 'users' | 'chat' | 'crown' | 'check' | 'image' | 'grid';
 
 type Props = IconProps & { name: IconName };
 
@@ -42,9 +42,11 @@ const icons: Record<IconName, PhosphorIcon> = {
   chat: ChatCircleIcon,
   crown: CrownIcon,
   check: CheckIcon,
+  image: ImageIcon,
+  grid: SquaresFourIcon,
 };
 
 export default function Icon({ name, size = 20, weight = 'regular', ...props }: Props) {
-  const Glyph = icons[name];
+  const Glyph = icons[name] ?? InfoIcon;
   return <Glyph size={size} weight={weight} aria-hidden="true" {...props} />;
 }

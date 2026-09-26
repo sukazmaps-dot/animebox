@@ -12,6 +12,7 @@ import type { SponsorStatus } from '@/lib/sponsor';
 import { premiumMediaStyle, type PremiumMediaTransform } from '@/lib/premium-studio';
 import Icon from '@/components/Icon';
 import type { ProfileProgression } from '@/lib/progression';
+import { SeasonFrameOverlay } from '@/components/leaderboard/SeasonFramePreview';
 
 type Period = 'week' | 'month' | 'all';
 
@@ -28,12 +29,20 @@ type Entry = {
   sponsor: SponsorStatus | null;
   role: PublicIdentityRole;
   progression: ProfileProgression;
+  seasonFrameKey: string | null;
 };
 
 type Payload = {
   period: Period;
   entries: Entry[];
   me: Entry | null;
+  season: null | {
+    periodKey: string;
+    startsAt: string;
+    endsAt: string;
+    periodType: 'week' | 'month';
+    rewards: Array<{ minPlace: number; maxPlace: number; premiumDays: number; frameDays: number; cosmeticKey: string; title: string; shortLabel: string }>;
+  };
 };
 
 const periodLabels: Record<Period, string> = {
@@ -53,6 +62,16 @@ function formatWatchTime(ms: number) {
   return `${hours} ч ${minutes} мин`;
 }
 
+function formatCountdown(endsAt: string, nowMs: number) {
+  const remaining = Math.max(0, Date.parse(endsAt) - nowMs);
+  const days = Math.floor(remaining / 86_400_000);
+  const hours = Math.floor((remaining % 86_400_000) / 3_600_000);
+  const minutes = Math.floor((remaining % 3_600_000) / 60_000);
+  if (days > 0) return `${days}д ${hours}ч`;
+  if (hours > 0) return `${hours}ч ${minutes}м`;
+  return `${minutes}м`;
+}
+
 function Avatar({ entry, className = '' }: { entry: Entry; className?: string }) {
   const [failed, setFailed] = useState(false);
   return entry.avatarUrl && !failed
@@ -66,6 +85,12 @@ export default function LeaderboardClient() {
   const [data, setData] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -103,6 +128,13 @@ export default function LeaderboardClient() {
   const thirdPlace = topThree.find((entry) => entry.rank === 3);
   const me = data?.me;
   const gap = me && thirdPlace && me.rank > 3 ? Math.max(0, thirdPlace.activeMs - me.activeMs) : null;
+  const tenthPlace = data?.entries.find((entry) => entry.rank === 10) ?? null;
+  const gapToTop10 = me && tenthPlace && me.rank > 10
+    ? Math.max(0, tenthPlace.activeMs - me.activeMs)
+    : null;
+  const myReward = me && data?.season
+    ? data.season.rewards.find((tier) => me.rank >= tier.minPlace && me.rank <= tier.maxPlace) ?? null
+    : null;
 
   return (
     <main className={styles.page}>
@@ -172,6 +204,44 @@ export default function LeaderboardClient() {
         </div>
       </section>
 
+      {(period === 'week' || period === 'month') && data?.season && (
+        <section className={styles.seasonPanel} aria-label={`Награды ${period === 'month' ? 'месячного' : 'недельного'} рейтинга`}>
+          <div className={styles.seasonPanelHead}>
+            <div>
+              <span className={styles.eyebrow}>ANIMEBOX LEAGUE · {period === 'month' ? 'МЕСЯЦ' : 'НЕДЕЛЯ'}</span>
+              <h2>Награды {period === 'month' ? 'месяца' : 'недели'}</h2>
+              <p>Финальная позиция фиксируется по подтверждённому времени просмотра. Рамка действует {period === 'month' ? '30 дней' : '7 дней'} после получения.</p>
+            </div>
+            <div className={styles.seasonCountdown}>
+              <small>ДО КОНЦА СЕЗОНА</small>
+              <strong>{formatCountdown(data.season.endsAt, nowMs)}</strong>
+            </div>
+          </div>
+
+          <div className={styles.rewardTiers}>
+            {data.season.rewards.map((tier) => (
+              <article key={tier.title} className={styles.rewardTier} data-place={tier.minPlace}>
+                <span>{tier.minPlace === tier.maxPlace ? `#${tier.minPlace}` : `#${tier.minPlace}–${tier.maxPlace}`}</span>
+                <div><strong>{tier.title}</strong><small>{tier.shortLabel}</small></div>
+              </article>
+            ))}
+          </div>
+
+          {me && (
+            <div className={styles.seasonMe}>
+              <span>Сейчас ты <strong>#{me.rank}</strong></span>
+              {myReward ? (
+                <b>Текущая награда: {myReward.shortLabel}</b>
+              ) : gapToTop10 !== null ? (
+                <b>До Топ-10: {formatWatchTime(gapToTop10)}</b>
+              ) : (
+                <b>Продолжай смотреть — Топ-10 получает временную сезонную рамку</b>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
       {error ? (
         <section className={styles.state} role="alert">
           <strong>Рейтинг временно недоступен</strong>
@@ -221,6 +291,7 @@ export default function LeaderboardClient() {
                         <Avatar entry={entry} />
                       </span>
                     </span>
+                    <SeasonFrameOverlay frameKey={entry.seasonFrameKey} className={styles.seasonFrameOverlay} />
                     <span className={styles.rankSeal}>{entry.rank}</span>
                   </span>
                 </ProfilePreview>
