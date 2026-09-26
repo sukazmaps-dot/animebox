@@ -290,6 +290,7 @@ export default function ProfileDirectEditSurface({
               <span
                 className={styles.avatarShell}
                 data-framed={selectedFrame ? 'true' : 'false'}
+                data-milestone={isLevelFrameKey(selectedFrame) ? 'true' : 'false'}
               >
                 <img src={avatarUrl} alt="" />
                 <ProfileFrameOverlay
@@ -482,6 +483,7 @@ export default function ProfileDirectEditSurface({
                 <span
                   className={styles.avatarControlPreview}
                   data-framed={selectedFrame ? 'true' : 'false'}
+                  data-milestone={isLevelFrameKey(selectedFrame) ? 'true' : 'false'}
                 >
                   <img src={baseAvatarUrl} alt="" />
                   <ProfileFrameOverlay
@@ -581,7 +583,7 @@ export default function ProfileDirectEditSurface({
                         disabled={Boolean(frameBusy)}
                         onClick={() => void selectFrame(selected ? null : frame.key)}
                       >
-                        <span className={styles.frameThumb}>
+                        <span className={styles.frameThumb} data-kind={frame.kind}>
                           <img src={baseAvatarUrl} alt="" />
                           <ProfileFrameOverlay
                             frameKey={frame.key}
