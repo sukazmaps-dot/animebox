@@ -24,7 +24,6 @@ import type { EpisodeTimelineMeta, EpisodeTimelineResponse } from '@/types/episo
 import { timelineDurationMatchesObserved } from '@/lib/episode-timeline-safety';
 
 import EpisodeCompletion from '@/components/EpisodeCompletion';
-import EpisodeJourneyTracker from '@/components/EpisodeJourneyTracker';
 import AnimePlayer, { PlayerSource } from '@/components/AnimePlayer';
 import WatchPartyPanel from '@/components/watch-party/WatchPartyPanel';
 import theaterStyles from '@/components/watch-party/WatchTogetherTheater.module.css';
@@ -1456,8 +1455,6 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
             </div>
           </header>
 
-          <EpisodeJourneyTracker animeId={anime.id} episode={episodeNumber} />
-
           <div className={theaterStyles.content}>
             <main className={theaterStyles.playerColumn}>
               <div className={theaterStyles.playerWrap}>
@@ -1599,8 +1596,6 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         episodeNumber={episodeNumber}
         mode="inline"
       />
-
-      <EpisodeJourneyTracker animeId={anime.id} episode={episodeNumber} />
 
       <EpisodeCompletion key={`${anime.id}:${episodeNumber}`} animeId={anime.id} episode={episodeNumber} />
 
