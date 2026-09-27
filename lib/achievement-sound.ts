@@ -44,16 +44,33 @@ const RARITY_PRIORITY: Record<AchievementSoundRarity, number> = {
   legendary: 5,
 };
 
-const audioPool = new Map<string, HTMLAudioElement>();
+type PendingSound = {
+  src: string;
+  priority: number;
+};
+
 const playedEventIds = new Set<string>();
 
-let activeAudio: HTMLAudioElement | null = null;
+let soundChannel: HTMLAudioElement | null = null;
+let pendingSound: PendingSound | null = null;
 let lastPlayedAt = 0;
 let lastPriority = 0;
-let warmed = false;
+let soundUnlocked = false;
 
 function browserReady() {
   return typeof window !== 'undefined' && typeof Audio !== 'undefined';
+}
+
+function notifySoundState() {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent('animebox:achievement-sound-state', {
+      detail: {
+        unlocked: soundUnlocked,
+        enabled: achievementSoundsEnabled(),
+      },
+    }),
+  );
 }
 
 function rememberPlayedEvent(eventId: string) {
@@ -76,34 +93,42 @@ function soundEnabledFromStorage() {
   }
 }
 
-function audioFor(src: string) {
+function channel() {
   if (!browserReady()) return null;
 
-  const cached = audioPool.get(src);
-  if (cached) return cached;
-
-  const audio = new Audio(src);
-  audio.preload = 'auto';
-  audio.volume = ACHIEVEMENT_SOUND_VOLUME;
-  audioPool.set(src, audio);
-  return audio;
-}
-
-function stopActiveAudio() {
-  if (!activeAudio) return;
-
-  try {
-    activeAudio.pause();
-    activeAudio.currentTime = 0;
-  } catch {
-    // Audio feedback must never interfere with the player or Journey unlock.
+  if (!soundChannel) {
+    soundChannel = new Audio();
+    soundChannel.preload = 'auto';
+    soundChannel.volume = ACHIEVEMENT_SOUND_VOLUME;
   }
 
-  activeAudio = null;
+  return soundChannel;
+}
+
+function stopChannel() {
+  if (!soundChannel) return;
+
+  try {
+    soundChannel.pause();
+    soundChannel.currentTime = 0;
+  } catch {
+    // Achievement audio must never affect playback.
+  }
+}
+
+function isAutoplayError(error: unknown) {
+  return (
+    error instanceof DOMException &&
+    (error.name === 'NotAllowedError' || error.name === 'AbortError')
+  );
 }
 
 export function achievementSoundsEnabled() {
   return soundEnabledFromStorage();
+}
+
+export function achievementSoundUnlocked() {
+  return soundUnlocked;
 }
 
 export function setAchievementSoundsEnabled(enabled: boolean) {
@@ -118,13 +143,12 @@ export function setAchievementSoundsEnabled(enabled: boolean) {
     // Private mode/storage failures are non-fatal.
   }
 
-  if (!enabled) stopActiveAudio();
+  if (!enabled) {
+    pendingSound = null;
+    stopChannel();
+  }
 
-  window.dispatchEvent(
-    new CustomEvent('animebox:achievement-sound-setting-changed', {
-      detail: { enabled },
-    }),
-  );
+  notifySoundState();
 }
 
 export function effectiveAchievementSoundRarity(
@@ -139,40 +163,20 @@ export function effectiveAchievementSoundRarity(
 }
 
 export function prepareAchievementSounds() {
-  if (!browserReady() || warmed) return;
-  warmed = true;
+  if (!browserReady()) return;
 
-  for (const src of new Set([
-    ...Object.values(SOUND_BY_RARITY),
-    REVEAL_SOUND,
-  ])) {
-    audioFor(src)?.load();
-  }
+  const audio = channel();
+  if (!audio || audio.src) return;
+
+  audio.src = REVEAL_SOUND;
+  audio.load();
 }
 
-export function installAchievementSoundWarmup() {
-  if (typeof window === 'undefined') return () => undefined;
-
-  const warm = () => {
-    prepareAchievementSounds();
-    window.removeEventListener('pointerdown', warm);
-    window.removeEventListener('keydown', warm);
-    window.removeEventListener('touchstart', warm);
-  };
-
-  window.addEventListener('pointerdown', warm, { passive: true });
-  window.addEventListener('keydown', warm);
-  window.addEventListener('touchstart', warm, { passive: true });
-
-  return () => {
-    window.removeEventListener('pointerdown', warm);
-    window.removeEventListener('keydown', warm);
-    window.removeEventListener('touchstart', warm);
-  };
-}
-
-async function playSound(src: string, priority: number) {
+async function playOnChannel(src: string, priority: number) {
   if (!browserReady() || !achievementSoundsEnabled()) return false;
+
+  const audio = channel();
+  if (!audio) return false;
 
   const now = Date.now();
   const insideCooldown = now - lastPlayedAt < ACHIEVEMENT_SOUND_COOLDOWN_MS;
@@ -181,21 +185,59 @@ async function playSound(src: string, priority: number) {
     return false;
   }
 
-  const audio = audioFor(src);
-  if (!audio) return false;
-
-  stopActiveAudio();
-  activeAudio = audio;
-  lastPlayedAt = now;
-  lastPriority = priority;
+  stopChannel();
+  audio.src = src;
+  audio.currentTime = 0;
+  audio.volume = ACHIEVEMENT_SOUND_VOLUME;
 
   try {
-    audio.currentTime = 0;
-    audio.volume = ACHIEVEMENT_SOUND_VOLUME;
     await audio.play();
+    soundUnlocked = true;
+    pendingSound = null;
+    lastPlayedAt = Date.now();
+    lastPriority = priority;
+    notifySoundState();
+    return true;
+  } catch (error) {
+    if (isAutoplayError(error)) {
+      pendingSound = { src, priority };
+      soundUnlocked = false;
+      notifySoundState();
+      return false;
+    }
+
+    return false;
+  }
+}
+
+export async function unlockAchievementSoundsFromGesture() {
+  if (!browserReady()) return false;
+
+  setAchievementSoundsEnabled(true);
+
+  const queued = pendingSound;
+  const src = queued?.src ?? REVEAL_SOUND;
+  const priority = queued?.priority ?? 1;
+
+  const audio = channel();
+  if (!audio) return false;
+
+  stopChannel();
+  audio.src = src;
+  audio.currentTime = 0;
+  audio.volume = queued ? ACHIEVEMENT_SOUND_VOLUME : 0.16;
+
+  try {
+    await audio.play();
+    soundUnlocked = true;
+    pendingSound = null;
+    lastPlayedAt = Date.now();
+    lastPriority = priority;
+    notifySoundState();
     return true;
   } catch {
-    if (activeAudio === audio) activeAudio = null;
+    soundUnlocked = false;
+    notifySoundState();
     return false;
   }
 }
@@ -210,9 +252,9 @@ export async function playAchievementUnlockSound(input: {
   rememberPlayedEvent(input.eventId);
 
   const rarity = effectiveAchievementSoundRarity(input.rarity, input.kind);
-  return playSound(SOUND_BY_RARITY[rarity], RARITY_PRIORITY[rarity]);
+  return playOnChannel(SOUND_BY_RARITY[rarity], RARITY_PRIORITY[rarity]);
 }
 
 export async function playAchievementRevealSound() {
-  return playSound(REVEAL_SOUND, 1);
+  return playOnChannel(REVEAL_SOUND, 1);
 }
