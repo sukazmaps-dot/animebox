@@ -19,6 +19,7 @@ function xml(value: string) {
 export async function GET() {
   const sitemaps = [
     `${SITE_URL}/sitemap.xml`,
+    `${SITE_URL}/sitemap-recent.xml`,
     `${SITE_URL}/video-sitemap.xml`,
     ...Array.from(
       { length: ANIME_SITEMAP_SHARDS },
