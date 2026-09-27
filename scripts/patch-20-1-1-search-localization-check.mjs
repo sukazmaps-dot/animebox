@@ -29,8 +29,8 @@ if (
 
 if (
   !navbar.includes('searchFormRef') ||
-  !navbar.includes("document.addEventListener('pointerdown'") ||
-  !navbar.includes('form.contains(target)') ||
+  !navbar.includes('onBlurCapture={(event) =>') ||
+  !navbar.includes('form.contains(document.activeElement)') ||
   !navbar.includes('setSearchActive(false)') ||
   !navbar.includes("setSearchValue('')") ||
   !navbar.includes('queueMicrotask(() => {') ||
