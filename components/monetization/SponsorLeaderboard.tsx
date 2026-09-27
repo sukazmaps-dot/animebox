@@ -219,7 +219,11 @@ export default function SponsorLeaderboard() {
             <span className={styles.periodBadge}>{PERIOD_LABELS[period]}</span>
           </div>
 
-          <section className={styles.podium} aria-label="Топ-3 спонсоров">
+          <section
+            className={styles.podium}
+            data-count={topThree.length}
+            aria-label="Топ-3 спонсоров"
+          >
             {topThree.map((entry) => (
               <Link
                 href={`/profile/${entry.userId}`}
