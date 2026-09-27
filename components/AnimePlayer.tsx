@@ -1242,6 +1242,7 @@ export default function AnimePlayer({
       smartSeekSupported,
       timeline,
       watchTogetherMode,
+      isKodik,
     ],
   );
 
@@ -3049,45 +3050,57 @@ export default function AnimePlayer({
             </>
           )}
 
-          {skipOpeningVisible && !watchTogetherMode && (
-            <button
-              type="button"
-              onClick={skipOpening}
-              className="absolute bottom-4 right-4 z-[62] inline-flex min-h-11 items-center gap-2 rounded-2xl border border-violet-300/25 bg-[#0b0f1d]/90 px-4 text-xs font-extrabold text-white shadow-[0_16px_44px_rgba(0,0,0,.48),0_0_28px_rgba(139,92,246,.18)] backdrop-blur-xl transition hover:border-violet-300/45 hover:bg-violet-500/15 active:scale-[0.98]"
-            >
-              <span className="text-violet-300" aria-hidden="true">»</span>
-              Пропустить опенинг
-            </button>
-          )}
+          <div
+            className="pointer-events-none absolute inset-0 z-[61]"
+            data-player-overlay-layer
+          >
+            {skipOpeningVisible &&
+              !watchTogetherMode &&
+              !(isKodik && providerSkipKind === 'opening') && (
+                <button
+                  type="button"
+                  onClick={skipOpening}
+                  className="pointer-events-auto absolute right-3 top-[72px] inline-flex min-h-10 items-center gap-2 rounded-2xl border border-violet-300/25 bg-[#0b0f1d]/88 px-3.5 text-[11px] font-extrabold text-white shadow-[0_14px_38px_rgba(0,0,0,.45),0_0_24px_rgba(139,92,246,.16)] backdrop-blur-xl transition hover:border-violet-300/45 hover:bg-violet-500/15 active:scale-[0.98] sm:right-4 sm:top-[84px] sm:min-h-11 sm:px-4 sm:text-xs"
+                >
+                  <span className="text-violet-300" aria-hidden="true">»</span>
+                  Пропустить опенинг
+                </button>
+              )}
 
-          {endingPromptOpen &&
-            endingNextSeconds != null &&
-            !watchTogetherMode &&
-            hasNext &&
-            onEnded && (
-              <div className="absolute bottom-4 right-4 z-[63] w-[min(330px,calc(100%-2rem))] rounded-2xl border border-violet-300/20 bg-[#090d19]/95 p-4 text-left shadow-[0_22px_60px_rgba(0,0,0,.55),0_0_36px_rgba(139,92,246,.16)] backdrop-blur-xl">
-                <span className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-violet-300/70">
-                  Следующая серия
-                </span>
-                <div className="mt-1 flex items-end justify-between gap-4">
-                  <div>
-                    <strong className="block text-sm font-black text-white">
-                      Через {endingNextSeconds} сек.
-                    </strong>
-                    <span className="mt-1 block text-[11px] leading-4 text-white/45">
-                      Эндинг можно досмотреть — автопереход можно отменить.
-                    </span>
+            {endingPromptOpen &&
+              endingNextSeconds != null &&
+              !watchTogetherMode &&
+              hasNext &&
+              onEnded && (
+                <div
+                  className="pointer-events-auto absolute left-1/2 w-[min(390px,calc(100%-1.25rem))] -translate-x-1/2 rounded-2xl border border-violet-300/20 bg-[#090d19]/95 p-3.5 text-left shadow-[0_22px_60px_rgba(0,0,0,.55),0_0_36px_rgba(139,92,246,.16)] backdrop-blur-xl sm:w-[min(420px,calc(100%-2rem))] sm:p-4"
+                  style={{
+                    bottom: 'max(72px, calc(env(safe-area-inset-bottom) + 62px))',
+                  }}
+                >
+                  <span className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-violet-300/70">
+                    Следующая серия
+                  </span>
+                  <div className="mt-1.5 flex items-center justify-between gap-3 sm:gap-4">
+                    <div className="min-w-0">
+                      <strong className="block text-sm font-black text-white">
+                        Через {endingNextSeconds} сек.
+                      </strong>
+                      <span className="mt-1 block text-[10px] leading-4 text-white/45 sm:text-[11px]">
+                        Эндинг можно досмотреть — автопереход можно отменить.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={cancelEndingAutoNext}
+                      className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-bold text-white/70 transition hover:bg-white/[0.08] hover:text-white"
+                    >
+                      Отмена
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={cancelEndingAutoNext}
-                    className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-bold text-white/70 transition hover:bg-white/[0.08] hover:text-white"
-                  >
-                    Отмена
-                  </button>
                 </div>
-              </div>
-            )}
+              )}
+          </div>
 
           {endScreenOpen && !watchTogetherMode && (
             <div className="animebox-player-end-screen absolute inset-0 z-[65] flex items-center justify-center p-5 text-center">
