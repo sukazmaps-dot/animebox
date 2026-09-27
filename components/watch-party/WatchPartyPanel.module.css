@@ -2300,3 +2300,30 @@
     font-size: 10px;
   }
 }
+
+
+.roomCodeBadge {
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid rgba(125, 110, 255, .18);
+  border-radius: 999px;
+  background: rgba(124, 92, 255, .065);
+  color: rgba(218, 211, 255, .82);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .035em;
+  cursor: pointer;
+}
+
+.roomCodeBadge:hover {
+  border-color: rgba(145, 128, 255, .32);
+  background: rgba(124, 92, 255, .11);
+}
+
+@media (max-width: 700px) and (orientation: portrait) {
+  .theaterPanel .roomCodeBadge {
+    min-height: 28px;
+    padding-inline: 8px;
+    font-size: 8px;
+  }
+}
