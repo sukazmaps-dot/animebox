@@ -1,3 +1,4 @@
+const MEDIA_WORKER_VERSION = 'media-shield-v4-circuit-breaker';
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const ORIGIN_PIPELINE_BUDGET_MS = 5_800;
 const TRANSFORM_FETCH_TIMEOUT_MS = 2_200;
@@ -165,6 +166,7 @@ function publicHeaders(contentType, source, cacheState, variant = null) {
     'Access-Control-Allow-Origin': '*',
     'Cross-Origin-Resource-Policy': 'cross-origin',
     'X-AnimeBox-Media': cacheState,
+    'X-AnimeBox-Media-Version': MEDIA_WORKER_VERSION,
     'X-AnimeBox-Origin': source.hostname,
   });
 
@@ -195,9 +197,11 @@ function transformFallbackHeaders(contentType, source, variant, reason) {
     'Access-Control-Allow-Origin': '*',
     'Cross-Origin-Resource-Policy': 'cross-origin',
     'X-AnimeBox-Media': 'transform-fallback',
+    'X-AnimeBox-Media-Version': MEDIA_WORKER_VERSION,
     'X-AnimeBox-Origin': source.hostname,
     'X-AnimeBox-Variant': variant.token,
     'X-AnimeBox-Transform-Error': reason || 'unavailable',
+    'X-AnimeBox-Failure-Stage': 'transform-fallback',
   });
 
   if (variant.requestedFormat === 'auto') {
@@ -210,7 +214,15 @@ function transformFallbackHeaders(contentType, source, variant, reason) {
 async function readR2(env, key, source, variant) {
   if (!env.MEDIA_BUCKET) return null;
 
-  const object = await env.MEDIA_BUCKET.get(key);
+  let object;
+  try {
+    object = await env.MEDIA_BUCKET.get(key);
+  } catch {
+    // R2 is an optimization layer, not a hard dependency. If the binding is
+    // degraded, continue to the origin pipeline instead of failing /image.
+    return null;
+  }
+
   if (!object) return null;
 
   const headers = publicHeaders(
@@ -490,6 +502,7 @@ function mediaFailureHeaders(source, origin) {
     'Access-Control-Allow-Origin': '*',
     'Cross-Origin-Resource-Policy': 'cross-origin',
     'X-AnimeBox-Media': 'origin-unavailable',
+    'X-AnimeBox-Media-Version': MEDIA_WORKER_VERSION,
     'X-AnimeBox-Origin': source.hostname,
     'X-AnimeBox-Origin-Error':
       origin.error || 'origin-failed',
@@ -535,6 +548,7 @@ async function readSourceFailure(cache, cacheKey, requestMethod) {
 
   const headers = new Headers(hit.headers);
   headers.set('X-AnimeBox-Media', 'source-negative-hit');
+  headers.set('X-AnimeBox-Media-Version', MEDIA_WORKER_VERSION);
   headers.set('X-AnimeBox-Source-Backoff', '1');
 
   return new Response(
@@ -558,8 +572,10 @@ function sourceSoftFailureResponse(source, error, sourceBackoff = false) {
     'Access-Control-Allow-Origin': '*',
     'Cross-Origin-Resource-Policy': 'cross-origin',
     'X-AnimeBox-Media': 'source-soft-fail',
+    'X-AnimeBox-Media-Version': MEDIA_WORKER_VERSION,
     'X-AnimeBox-Origin': source.hostname,
     'X-AnimeBox-Origin-Error': error || 'origin-failed',
+    'X-AnimeBox-Failure-Stage': 'origin-pipeline',
   });
 
   if (sourceBackoff) {
@@ -618,8 +634,7 @@ async function fetchOriginCoalesced(source, variant, hash) {
   return originPromise;
 }
 
-export default {
-  async fetch(request, env, ctx) {
+async function handleRequest(request, env, ctx) {
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         status: 204,
@@ -642,7 +657,9 @@ export default {
         ok: true,
         service: 'animebox-media',
         protocol: 'variants-v3',
-        reliability: 'media-shield-v3-soft-fail',
+        reliability: MEDIA_WORKER_VERSION,
+        version: MEDIA_WORKER_VERSION,
+        softFail: true,
         r2: Boolean(env.MEDIA_BUCKET),
         originPipelineBudgetMs: ORIGIN_PIPELINE_BUDGET_MS,
         transformTimeoutMs: TRANSFORM_FETCH_TIMEOUT_MS,
@@ -696,7 +713,13 @@ export default {
       { method: 'GET' },
     );
 
-    const edgeHit = await cache.match(cacheKey);
+    let edgeHit = null;
+    try {
+      edgeHit = await cache.match(cacheKey);
+    } catch {
+      // Cache API failures must not take the image route down.
+      edgeHit = null;
+    }
     if (edgeHit) {
       const headers = new Headers(edgeHit.headers);
       headers.set(
@@ -707,6 +730,7 @@ export default {
             ? 'edge-hit'
             : 'negative-edge-hit',
       );
+      headers.set('X-AnimeBox-Media-Version', MEDIA_WORKER_VERSION);
       return new Response(
         request.method === 'HEAD' ? null : edgeHit.body,
         {
@@ -832,5 +856,64 @@ export default {
     return request.method === 'HEAD'
       ? new Response(null, { status: 200, headers })
       : response;
+}
+
+function unexpectedWorkerSoftFailure(request, error) {
+  let sourceHost = 'unknown';
+
+  try {
+    const requestUrl = new URL(request.url);
+    const rawSource = requestUrl.searchParams.get('url');
+    if (rawSource) {
+      sourceHost = new URL(rawSource).hostname;
+    }
+  } catch {
+    // Keep emergency response independent from URL parsing failures.
+  }
+
+  const errorName =
+    error && typeof error === 'object' && 'name' in error
+      ? String(error.name)
+      : 'WorkerError';
+
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Cache-Control': 'no-store',
+      'Retry-After': '5',
+      'Access-Control-Allow-Origin': '*',
+      'Cross-Origin-Resource-Policy': 'cross-origin',
+      'X-AnimeBox-Media': 'worker-soft-fail',
+      'X-AnimeBox-Media-Version': MEDIA_WORKER_VERSION,
+      'X-AnimeBox-Origin': sourceHost,
+      'X-AnimeBox-Origin-Error': 'worker-exception',
+      'X-AnimeBox-Failure-Stage': 'worker-exception',
+      'X-AnimeBox-Worker-Error': errorName.slice(0, 80),
+    },
+  });
+}
+
+export default {
+  async fetch(request, env, ctx) {
+    try {
+      return await handleRequest(request, env, ctx);
+    } catch (error) {
+      let pathname = '';
+
+      try {
+        pathname = new URL(request.url).pathname;
+      } catch {
+        pathname = '';
+      }
+
+      if (
+        (request.method === 'GET' || request.method === 'HEAD') &&
+        pathname === '/image'
+      ) {
+        return unexpectedWorkerSoftFailure(request, error);
+      }
+
+      throw error;
+    }
   },
 };
