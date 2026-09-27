@@ -39,7 +39,6 @@ const ROOM_REFRESH_MIN_GAP_MS = 4_000;
 
 type PublicWatchPartyRoom = {
   roomId: string;
-  joinSecret: string;
   roomCode: string;
   animeId: number | null;
   animeSlug: string;
@@ -64,6 +63,25 @@ type PublicWatchPartyRoom = {
 
 type PublicRoomsResponse = {
   rooms?: PublicWatchPartyRoom[];
+  error?: string;
+};
+
+type ResolvedWatchPartyRoom = {
+  roomId: string;
+  joinSecret: string;
+  roomCode: string;
+  animeSlug: string;
+  animeTitle: string;
+  episode: number;
+  visibility: 'public' | 'unlisted';
+  status: 'waiting' | 'watching' | 'paused' | 'voting';
+  participantCount: number;
+  maxParticipants: number;
+};
+
+type ResolveRoomResponse = {
+  ok?: boolean;
+  room?: ResolvedWatchPartyRoom;
   error?: string;
 };
 
@@ -148,6 +166,8 @@ export default function WatchTogetherHub() {
   const [roomSearch, setRoomSearch] = useState('');
   const [roomSort, setRoomSort] = useState<RoomSort>('popular');
   const [createError, setCreateError] = useState('');
+  const [joiningRoomId, setJoiningRoomId] = useState<string | null>(null);
+  const [joinPending, setJoinPending] = useState(false);
   const roomRequestRef = useRef<AbortController | null>(null);
   const lastRoomRefreshAtRef = useRef(0);
   const [creatingRoom, setCreatingRoom] = useState(false);
@@ -439,17 +459,131 @@ export default function WatchTogetherHub() {
     }
   }
 
-  function joinInvite(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setInviteError('');
+  async function resolveRoomTarget(input: {
+    roomId?: string;
+    code?: string;
+  }) {
+    const params = new URLSearchParams();
+    if (input.roomId) params.set('roomId', input.roomId);
+    if (input.code) params.set('code', input.code);
 
-    const target = validInviteUrl(inviteInput.trim());
-    if (!target) {
-      setInviteError('Вставь полную ссылку AnimeBox Watch Together из приглашения друга.');
+    const response = await fetch(
+      `/api/watch-party/rooms/resolve?${params.toString()}`,
+      {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      },
+    );
+    const payload = (await response.json()) as ResolveRoomResponse;
+
+    if (!response.ok || !payload.room) {
+      throw new Error(payload.error || 'Активная комната не найдена.');
+    }
+
+    const room = payload.room;
+    const target = buildWatchPartyUrl(
+      { roomId: room.roomId, secret: room.joinSecret },
+      watchPartyTheaterPath(room.animeSlug, room.episode),
+    );
+
+    try {
+      window.localStorage.setItem(LAST_ROOM_KEY, target);
+    } catch {
+      // Resume shortcut is optional.
+    }
+
+    return { target, room };
+  }
+
+  async function joinPublicRoom(room: PublicWatchPartyRoom) {
+    if (room.isFull || joiningRoomId || joinPending) return;
+
+    if (!user?.id) {
+      setRoomsNotice('Войди в AnimeBox, чтобы присоединиться к комнате.');
+      window.setTimeout(() => setRoomsNotice(''), 4_000);
       return;
     }
 
-    window.location.assign(target);
+    setJoiningRoomId(room.roomId);
+    setRoomsNotice('');
+
+    try {
+      const resolved = await resolveRoomTarget({ roomId: room.roomId });
+
+      trackProductClientEvent('watch_party_public_join_click', {
+        source: 'watch_together_hub',
+        path: '/watch-together',
+        entityType: 'watch_party_room',
+        entityId: room.roomId,
+        metadata: {
+          anime_id: room.animeId,
+          episode: room.episode,
+          participant_count: room.participantCount,
+          sort: roomSort,
+          room_code: room.roomCode,
+        },
+        flush: true,
+      });
+
+      window.location.assign(resolved.target);
+    } catch (joinError) {
+      setRoomsNotice(
+        joinError instanceof Error
+          ? joinError.message
+          : 'Не удалось войти в комнату.',
+      );
+      setJoiningRoomId(null);
+      window.setTimeout(() => setRoomsNotice(''), 4_000);
+    }
+  }
+
+  async function joinInvite(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (joinPending) return;
+
+    setInviteError('');
+    const raw = inviteInput.trim();
+    const directTarget = validInviteUrl(raw);
+
+    if (directTarget) {
+      window.location.assign(directTarget);
+      return;
+    }
+
+    const code = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    if (!/^[A-Z2-9]{6}$/.test(code)) {
+      setInviteError('Вставь invite-ссылку или шестизначный код комнаты.');
+      return;
+    }
+
+    if (!user?.id) {
+      setInviteError('Войди в AnimeBox, чтобы войти по коду комнаты.');
+      return;
+    }
+
+    setJoinPending(true);
+    try {
+      const resolved = await resolveRoomTarget({ code });
+      trackProductClientEvent('watch_party_code_joined', {
+        source: 'watch_together_hub',
+        path: '/watch-together',
+        entityType: 'watch_party_room',
+        entityId: resolved.room.roomId,
+        metadata: {
+          room_code: code,
+          episode: resolved.room.episode,
+        },
+        flush: true,
+      });
+      window.location.assign(resolved.target);
+    } catch (joinError) {
+      setInviteError(
+        joinError instanceof Error
+          ? joinError.message
+          : 'Не удалось войти по коду комнаты.',
+      );
+      setJoinPending(false);
+    }
   }
 
   return (
@@ -482,16 +616,18 @@ export default function WatchTogetherHub() {
 
         <form className={styles.joinCard} onSubmit={joinInvite}>
           <span className={styles.joinEyebrow}>Уже пригласили?</span>
-          <strong>Войти по ссылке друга</strong>
-          <p>Вставь invite-ссылку — AnimeBox сразу откроет нужную комнату.</p>
+          <strong>Войти по ссылке или коду</strong>
+          <p>Вставь invite-ссылку или короткий код комнаты — AnimeBox откроет нужный просмотр.</p>
           <div className={styles.joinInput}>
             <input
               value={inviteInput}
               onChange={(event) => setInviteInput(event.target.value)}
-              placeholder="https://youranimebox.com/watch-together/..."
+              placeholder="ABC234 или https://youranimebox.com/watch-together/..."
               autoComplete="off"
             />
-            <button type="submit">Войти</button>
+            <button type="submit" disabled={joinPending}>
+              {joinPending ? 'Ищем…' : 'Войти'}
+            </button>
           </div>
           {inviteError && <span className={styles.error}>{inviteError}</span>}
           {lastRoom && (
@@ -590,14 +726,6 @@ export default function WatchTogetherHub() {
         ) : (
           <div className={styles.publicRoomGrid}>
             {visibleRooms.map((room) => {
-              const invite = {
-                roomId: room.roomId,
-                secret: room.joinSecret,
-              };
-              const href = buildWatchPartyUrl(
-                invite,
-                watchPartyTheaterPath(room.animeSlug, room.episode),
-              );
               const occupancy = Math.min(
                 100,
                 Math.round((room.participantCount / Math.max(1, room.maxParticipants)) * 100),
@@ -666,27 +794,16 @@ export default function WatchTogetherHub() {
                       {room.isFull ? (
                         <span className={styles.fullRoomButton}>Заполнена</span>
                       ) : (
-                        <a
-                          href={href}
-                          onClick={() => {
-                            trackProductClientEvent('watch_party_public_join_click', {
-                              source: 'watch_together_hub',
-                              path: '/watch-together',
-                              entityType: 'watch_party_room',
-                              entityId: room.roomId,
-                              metadata: {
-                                anime_id: room.animeId,
-                                episode: room.episode,
-                                participant_count: room.participantCount,
-                                sort: roomSort,
-                              },
-                              flush: true,
-                            });
-                          }}
+                        <button
+                          type="button"
+                          onClick={() => void joinPublicRoom(room)}
+                          disabled={joiningRoomId !== null}
                         >
-                          Присоединиться
+                          {joiningRoomId === room.roomId
+                            ? 'Подключаем…'
+                            : 'Присоединиться'}
                           <Icon name="chevron" />
-                        </a>
+                        </button>
                       )}
                       <button
                         type="button"

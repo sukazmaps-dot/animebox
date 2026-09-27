@@ -1,11 +1,10 @@
 import {
   assertBrowserMutationRequest,
   failure,
-  readBody,
   response,
 } from '@/lib/community-server';
-import { transferWatchPartyRoomHost } from '@/lib/watch-party-rooms-server';
 import { enforceIpRateLimit } from '@/lib/api-rate-limit';
+import { claimStaleWatchPartyRoomHost } from '@/lib/watch-party-rooms-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,23 +15,24 @@ export async function POST(
 ) {
   try {
     assertBrowserMutationRequest(request);
+
     const limited = await enforceIpRateLimit(request, {
-      scope: 'watch_host_transfer_ip',
+      scope: 'watch_party_host_claim_ip',
       limit: 30,
       windowSeconds: 60,
     });
     if (limited) return limited;
 
     const { roomId } = await context.params;
-    const body = await readBody(request);
-    const targetUserId =
-      typeof body.targetUserId === 'string' ? body.targetUserId.trim() : '';
+    const claim = await claimStaleWatchPartyRoomHost(roomId);
 
-    const transfer = await transferWatchPartyRoomHost(roomId, targetUserId);
     return response({
       ok: true,
-      hostEpoch: Number(transfer.host_epoch ?? 0),
-      hostUserId: transfer.host_user_id ?? targetUserId,
+      claimed: claim.claimed === true,
+      reason: claim.reason ?? null,
+      hostUserId: claim.host_user_id ?? null,
+      hostEpoch: Number(claim.host_epoch ?? 0),
+      electedUserId: claim.elected_user_id ?? null,
     });
   } catch (error) {
     return failure(error);

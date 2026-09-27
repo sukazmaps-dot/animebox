@@ -1512,6 +1512,8 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
               <WatchPartyPanel
                 animeTitle={title}
                 animeSlug={animeIdParam}
+                animeId={anime.id}
+                coverUrl={poster}
                 episodeNumber={episodeNumber}
                 mode="theater"
               />
@@ -1593,6 +1595,8 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       <WatchPartyPanel
         animeTitle={title}
         animeSlug={animeIdParam}
+        animeId={anime.id}
+        coverUrl={poster}
         episodeNumber={episodeNumber}
         mode="inline"
       />

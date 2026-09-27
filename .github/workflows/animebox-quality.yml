@@ -49,6 +49,9 @@ jobs:
           app/api/watch-party/rooms/[roomId]/end/route.ts
           app/api/watch-party/rooms/[roomId]/report/route.ts
           app/api/watch-party/rooms/[roomId]/transfer/route.ts
+          app/api/watch-party/rooms/[roomId]/presence/route.ts
+          app/api/watch-party/rooms/[roomId]/claim-host/route.ts
+          app/api/watch-party/rooms/resolve/route.ts
           app/api/watch-party/identities/route.ts
           app/api/watch-party/health/route.ts
           components/watch-party/WatchTogetherHub.tsx

@@ -4,8 +4,8 @@ import {
   readBody,
   response,
 } from '@/lib/community-server';
-import { transferWatchPartyRoomHost } from '@/lib/watch-party-rooms-server';
 import { enforceIpRateLimit } from '@/lib/api-rate-limit';
+import { syncWatchPartyRoomMember } from '@/lib/watch-party-rooms-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,24 +16,19 @@ export async function POST(
 ) {
   try {
     assertBrowserMutationRequest(request);
+
     const limited = await enforceIpRateLimit(request, {
-      scope: 'watch_host_transfer_ip',
-      limit: 30,
+      scope: 'watch_party_presence_ip',
+      limit: 240,
       windowSeconds: 60,
     });
     if (limited) return limited;
 
     const { roomId } = await context.params;
     const body = await readBody(request);
-    const targetUserId =
-      typeof body.targetUserId === 'string' ? body.targetUserId.trim() : '';
+    const membership = await syncWatchPartyRoomMember(roomId, body);
 
-    const transfer = await transferWatchPartyRoomHost(roomId, targetUserId);
-    return response({
-      ok: true,
-      hostEpoch: Number(transfer.host_epoch ?? 0),
-      hostUserId: transfer.host_user_id ?? targetUserId,
-    });
+    return response({ ok: true, membership });
   } catch (error) {
     return failure(error);
   }

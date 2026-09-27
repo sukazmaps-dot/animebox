@@ -1,4 +1,4 @@
-export const WATCH_PARTY_PROTOCOL = 5;
+export const WATCH_PARTY_PROTOCOL = 6;
 export const WATCH_PARTY_MAX_PARTICIPANTS = 50;
 export const WATCH_PARTY_ROOM_PREFIX = 'abx-party';
 
@@ -184,6 +184,7 @@ export type WatchPartyPacket =
   | {
       type: 'HOST_TRANSFER';
       targetUserId: string;
+      hostEpoch: number;
       sentAt: number;
     };
 
@@ -632,9 +633,12 @@ export function parseWatchPartyPacket(value: unknown): WatchPartyPacket | null {
     case 'HOST_TRANSFER': {
       const targetUserId =
         typeof record.targetUserId === 'string' ? record.targetUserId : '';
+      const hostEpoch = parseSequence(record.hostEpoch);
       const sentAt = parseTimestamp(record.sentAt);
-      if (!USER_ID_RE.test(targetUserId) || !sentAt) return null;
-      return { type: 'HOST_TRANSFER', targetUserId, sentAt };
+      if (!USER_ID_RE.test(targetUserId) || hostEpoch == null || !sentAt) {
+        return null;
+      }
+      return { type: 'HOST_TRANSFER', targetUserId, hostEpoch, sentAt };
     }
 
     default:

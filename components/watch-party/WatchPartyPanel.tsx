@@ -87,9 +87,29 @@ type RoomIdentitiesResponse = {
   users?: RoomPublicIdentity[];
 };
 
+type RoomMembership = {
+  room_id?: string;
+  host_user_id?: string;
+  host_epoch?: number;
+  participant_count?: number;
+  max_participants?: number;
+  episode?: number;
+  status?: string;
+  room_code?: string;
+  visibility?: 'public' | 'unlisted' | 'private';
+  role?: 'host' | 'guest';
+};
+
+type RoomPresenceResponse = {
+  ok?: boolean;
+  membership?: RoomMembership;
+  error?: string;
+};
+
 const HOST_HEARTBEAT_MS = 20_000;
-const PLAYER_SYNC_MS = 20_000;
-const PLAYER_DRIFT_SEEK_SECONDS = 2;
+const SERVER_PRESENCE_MS = 25_000;
+const PLAYER_SYNC_MS = 8_000;
+const PLAYER_DRIFT_SEEK_SECONDS = 1.5;
 const CHAT_SEND_COOLDOWN_MS = 650;
 const NEGOTIATION_TIMEOUT_MS = 18_000;
 const HANDSHAKE_TIMEOUT_MS = 8_000;
@@ -161,11 +181,15 @@ export default function WatchPartyPanel({
   animeTitle,
   animeSlug,
   episodeNumber,
+  animeId = null,
+  coverUrl = null,
   mode = 'inline',
 }: {
   animeTitle: string;
   animeSlug: string;
   episodeNumber: number;
+  animeId?: number | null;
+  coverUrl?: string | null;
   mode?: 'inline' | 'theater';
 }) {
   const [role, setRole] = useState<PartyRole>(null);
@@ -185,6 +209,10 @@ export default function WatchPartyPanel({
   const [liveReactions, setLiveReactions] = useState<WatchPartyReactionEvent[]>([]);
   const [voteState, setVoteState] = useState<WatchPartyVoteState>(EMPTY_VOTE_STATE);
   const [myVote, setMyVote] = useState<WatchPartyVote | null>(null);
+  const [authoritativeParticipantCount, setAuthoritativeParticipantCount] = useState(0);
+  const [creatingRoom, setCreatingRoom] = useState(false);
+  const [roomCode, setRoomCode] = useState('');
+  const [roomVisibility, setRoomVisibility] = useState<'public' | 'unlisted' | 'private'>('unlisted');
 
   const theaterPath = watchPartyTheaterPath(animeSlug, episodeNumber);
   const episodePath = `/anime/${encodeURIComponent(animeSlug)}/episode/${episodeNumber}`;
@@ -204,6 +232,7 @@ export default function WatchPartyPanel({
   const hostReclaimAttemptRef = useRef(0);
   const reconnectTimerRef = useRef<number | null>(null);
   const heartbeatTimerRef = useRef<number | null>(null);
+  const membershipTimerRef = useRef<number | null>(null);
   const syncTimerRef = useRef<number | null>(null);
   const identityPromiseRef = useRef<Promise<PartyIdentity | null> | null>(null);
   const identityRef = useRef<PartyIdentity | null>(null);
@@ -235,6 +264,7 @@ export default function WatchPartyPanel({
   const lastPresenceCountRef = useRef(0);
   const lastDriftTelemetryAtRef = useRef(0);
   const chatSendPendingRef = useRef(false);
+  const hostEpochRef = useRef(0);
 
   const clearGuestJoinDeadline = useCallback(() => {
     if (guestJoinTimerRef.current != null) {
@@ -609,6 +639,10 @@ export default function WatchPartyPanel({
       window.clearInterval(syncTimerRef.current);
       syncTimerRef.current = null;
     }
+    if (membershipTimerRef.current != null) {
+      window.clearInterval(membershipTimerRef.current);
+      membershipTimerRef.current = null;
+    }
     if (relayFallbackTimerRef.current != null) {
       window.clearTimeout(relayFallbackTimerRef.current);
       relayFallbackTimerRef.current = null;
@@ -647,12 +681,116 @@ export default function WatchPartyPanel({
     hostBootKeyRef.current = null;
   }, [clearTimers]);
 
-  const acceptHostTransfer = useCallback((
+  const syncServerMembership = useCallback(async (
+    action: 'heartbeat' | 'leave' = 'heartbeat',
+    transportOverride?: 'p2p' | 'turn' | 'server' | 'unknown',
+  ) => {
+    const invite = inviteRef.current;
+    const identity = identityRef.current;
+    if (!invite || !identity) return null;
+
+    const transport =
+      transportOverride ??
+      (networkRoute === 'p2p'
+        ? 'p2p'
+        : networkRoute === 'relay'
+          ? 'turn'
+          : networkRoute === 'server'
+            ? 'server'
+            : 'unknown');
+
+    const response = await fetch(
+      `/api/watch-party/rooms/${encodeURIComponent(invite.roomId)}/presence`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          joinSecret: invite.secret,
+          displayName: identity.displayName,
+          transport,
+          action,
+        }),
+        cache: 'no-store',
+        keepalive: action === 'leave',
+      },
+    );
+
+    const payload = (await response.json()) as RoomPresenceResponse;
+    if (!response.ok || !payload.membership) {
+      throw new Error(payload.error || 'Не удалось подтвердить присутствие в комнате.');
+    }
+
+    const membership = payload.membership;
+    setAuthoritativeParticipantCount(
+      Math.max(0, Number(membership.participant_count ?? 0)),
+    );
+    if (typeof membership.room_code === 'string') {
+      setRoomCode(membership.room_code);
+    }
+    if (
+      membership.visibility === 'public' ||
+      membership.visibility === 'unlisted' ||
+      membership.visibility === 'private'
+    ) {
+      setRoomVisibility(membership.visibility);
+    }
+    hostEpochRef.current = Math.max(
+      hostEpochRef.current,
+      Math.max(0, Number(membership.host_epoch ?? 0)),
+    );
+
+    return membership;
+  }, [networkRoute]);
+
+  const ensureMembershipTimer = useCallback(() => {
+    if (membershipTimerRef.current != null) return;
+
+    membershipTimerRef.current = window.setInterval(() => {
+      if (
+        !inviteRef.current ||
+        !identityRef.current ||
+        !roleRef.current ||
+        intentionalCloseRef.current ||
+        hostEndedRef.current
+      ) {
+        return;
+      }
+
+      void syncServerMembership('heartbeat').catch(() => {
+        // Presence is retried on the next short TTL tick. Transport recovery
+        // must remain independent from temporary API failures.
+      });
+    }, SERVER_PRESENCE_MS);
+  }, [syncServerMembership]);
+
+  const acceptHostTransfer = useCallback(async (
     invite: WatchPartyInvite,
     targetUserId: string,
+    hostEpoch: number,
   ) => {
     const identity = identityRef.current;
     if (!identity || identity.userId !== targetUserId) return;
+
+    try {
+      const membership = await syncServerMembership('heartbeat');
+      if (
+        !membership ||
+        membership.host_user_id !== targetUserId ||
+        Number(membership.host_epoch ?? -1) !== hostEpoch ||
+        hostEpoch < hostEpochRef.current
+      ) {
+        setError('Передача host устарела. Сверяем актуальное состояние комнаты…');
+        return;
+      }
+      hostEpochRef.current = hostEpoch;
+    } catch (transferError) {
+      setError(
+        transferError instanceof Error
+          ? transferError.message
+          : 'Не удалось подтвердить передачу host.',
+      );
+      return;
+    }
 
     try {
       sessionStorage.setItem(watchPartyHostSessionKey(invite.roomId), invite.secret);
@@ -670,7 +808,7 @@ export default function WatchPartyPanel({
       intentionalCloseRef.current = false;
       startHostRef.current(invite);
     }, 650);
-  }, [destroyTransport]);
+  }, [destroyTransport, syncServerMembership]);
 
   const resetParty = useCallback((removeHostClaim = true) => {
     intentionalCloseRef.current = true;
@@ -700,6 +838,10 @@ export default function WatchPartyPanel({
     setVoteState(EMPTY_VOTE_STATE);
     setMyVote(null);
     setLiveReactions([]);
+    setAuthoritativeParticipantCount(0);
+    setRoomCode('');
+    setRoomVisibility('unlisted');
+    hostEpochRef.current = 0;
     clearWatchPartyFromLocation();
     setRole(null);
     setParticipants([]);
@@ -712,6 +854,67 @@ export default function WatchPartyPanel({
     setNetworkRoute('unknown');
     setSignalingMode('peerjs-cloud');
     setStatus('idle');
+  }, [destroyTransport]);
+
+  const tryClaimStaleHost = useCallback(async (invite: WatchPartyInvite) => {
+    const identity = identityRef.current;
+    if (!identity) return false;
+
+    const response = await fetch(
+      `/api/watch-party/rooms/${encodeURIComponent(invite.roomId)}/claim-host`,
+      {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      },
+    );
+
+    const payload = (await response.json()) as {
+      error?: string;
+      claimed?: boolean;
+      reason?: string | null;
+      hostUserId?: string | null;
+      hostEpoch?: number;
+    };
+
+    if (!response.ok) {
+      throw new Error(payload.error || 'Не удалось проверить host комнаты.');
+    }
+
+    const hostEpoch = Math.max(0, Number(payload.hostEpoch ?? 0));
+    hostEpochRef.current = Math.max(hostEpochRef.current, hostEpoch);
+
+    if (!payload.claimed || payload.hostUserId !== identity.userId) {
+      return false;
+    }
+
+    try {
+      sessionStorage.setItem(watchPartyHostSessionKey(invite.roomId), invite.secret);
+      claimWatchPartyHostTab(invite);
+    } catch {
+      claimWatchPartyHostTab(invite);
+    }
+
+    trackProductClientEvent('watch_party_host_recovered', {
+      source: 'stale_host_election',
+      path: window.location.pathname,
+      entityType: 'watch_party_room',
+      entityId: invite.roomId,
+      metadata: { host_epoch: hostEpoch },
+      flush: true,
+    });
+
+    intentionalCloseRef.current = true;
+    setStatus('reconnecting');
+    setError('Предыдущий host отключился. AnimeBox передаёт комнату тебе…');
+    destroyTransport();
+
+    window.setTimeout(() => {
+      intentionalCloseRef.current = false;
+      startHostRef.current(invite);
+    }, 500);
+
+    return true;
   }, [destroyTransport]);
 
   const scheduleGuestReconnectRef = useRef<() => void>(() => undefined);
@@ -739,12 +942,6 @@ export default function WatchPartyPanel({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            participantCount: Math.max(
-              1,
-              new Set(
-                [...participantsRef.current.values()].map((participant) => participant.userId),
-              ).size,
-            ),
             status: nextStatus,
             episode: state?.episode ?? episodeNumber,
           }),
@@ -767,6 +964,8 @@ export default function WatchPartyPanel({
       }, HOST_HEARTBEAT_MS);
 
       void syncRegisteredRoom();
+      void syncServerMembership('heartbeat').catch(() => undefined);
+      ensureMembershipTimer();
     }
 
     if (syncTimerRef.current == null) {
@@ -774,7 +973,13 @@ export default function WatchPartyPanel({
         sendHostSync();
       }, PLAYER_SYNC_MS);
     }
-  }, [broadcast, sendHostSync, syncRegisteredRoom]);
+  }, [
+    broadcast,
+    ensureMembershipTimer,
+    sendHostSync,
+    syncRegisteredRoom,
+    syncServerMembership,
+  ]);
 
 
   const sendGuestPacket = useCallback((packet: WatchPartyPacket) => {
@@ -1047,7 +1252,7 @@ export default function WatchPartyPanel({
       }
 
       if (packet.type === 'HOST_TRANSFER') {
-        if (welcomed) acceptHostTransfer(invite, packet.targetUserId);
+        if (welcomed) void acceptHostTransfer(invite, packet.targetUserId, packet.hostEpoch);
         return;
       }
 
@@ -1152,6 +1357,47 @@ export default function WatchPartyPanel({
       intentionalCloseRef.current ||
       transportGenerationRef.current !== generation
     ) return;
+
+    try {
+      const membership = await syncServerMembership('heartbeat', 'unknown');
+      ensureMembershipTimer();
+
+      if (
+        membership?.role === 'host' &&
+        membership.host_user_id === identity.userId
+      ) {
+        clearGuestJoinDeadline();
+        try {
+          sessionStorage.setItem(
+            watchPartyHostSessionKey(invite.roomId),
+            invite.secret,
+          );
+          claimWatchPartyHostTab(invite);
+        } catch {
+          claimWatchPartyHostTab(invite);
+        }
+        hostEpochRef.current = Math.max(
+          hostEpochRef.current,
+          Number(membership.host_epoch ?? 0),
+        );
+        roleRef.current = 'host';
+        setRole('host');
+        setStatus('reconnecting');
+        setError('Восстанавливаем управление комнатой…');
+        queueMicrotask(() => startHostRef.current(invite));
+        return;
+      }
+    } catch (presenceError) {
+      clearGuestJoinDeadline();
+      hostEndedRef.current = true;
+      setStatus('error');
+      setError(
+        presenceError instanceof Error
+          ? presenceError.message
+          : 'Не удалось войти в комнату.',
+      );
+      return;
+    }
 
     guestWelcomedRef.current = false;
     relayWelcomedRef.current = false;
@@ -1310,7 +1556,7 @@ export default function WatchPartyPanel({
           }
 
           if (packet.type === 'HOST_TRANSFER') {
-            acceptHostTransfer(invite, packet.targetUserId);
+            void acceptHostTransfer(invite, packet.targetUserId, packet.hostEpoch);
             return;
           }
 
@@ -1474,8 +1720,46 @@ export default function WatchPartyPanel({
       const attempt = reconnectAttemptRef.current + 1;
       reconnectAttemptRef.current = attempt;
       if (attempt > MAX_RECONNECT_ATTEMPTS) {
-        setStatus('ended');
-        setError('Хост недоступен. Комната, вероятно, завершена.');
+        const activeInvite = inviteRef.current;
+        const staleFor = Date.now() - lastHostSeenAtRef.current;
+
+        if (!activeInvite) {
+          setStatus('ended');
+          setError('Комната больше недоступна.');
+          return;
+        }
+
+        if (staleFor < HOST_STALE_MS) {
+          reconnectAttemptRef.current = MAX_RECONNECT_ATTEMPTS - 1;
+          reconnectTimerRef.current = window.setTimeout(() => {
+            reconnectTimerRef.current = null;
+            scheduleGuestReconnectRef.current();
+          }, 4_000);
+          return;
+        }
+
+        setStatus('reconnecting');
+        setError('Хост отключился. Проверяем, кто продолжит комнату…');
+
+        void tryClaimStaleHost(activeInvite)
+          .then((claimed) => {
+            if (claimed || intentionalCloseRef.current || hostEndedRef.current) {
+              return;
+            }
+
+            reconnectAttemptRef.current = MAX_RECONNECT_ATTEMPTS - 2;
+            reconnectTimerRef.current = window.setTimeout(() => {
+              reconnectTimerRef.current = null;
+              scheduleGuestReconnectRef.current();
+            }, 3_500);
+          })
+          .catch(() => {
+            reconnectAttemptRef.current = MAX_RECONNECT_ATTEMPTS - 2;
+            reconnectTimerRef.current = window.setTimeout(() => {
+              reconnectTimerRef.current = null;
+              scheduleGuestReconnectRef.current();
+            }, 4_500);
+          });
         return;
       }
 
@@ -1625,6 +1909,9 @@ export default function WatchPartyPanel({
     redirectToRegistration,
     resolveIdentity,
     destroyTransport,
+    ensureMembershipTimer,
+    syncServerMembership,
+    tryClaimStaleHost,
   ]);
 
   const startHost = useCallback(async (invite: WatchPartyInvite) => {
@@ -1688,6 +1975,52 @@ export default function WatchPartyPanel({
       intentionalCloseRef.current ||
       transportGenerationRef.current !== generation
     ) return;
+
+    try {
+      const membership = await syncServerMembership('heartbeat', 'unknown');
+      ensureMembershipTimer();
+
+      if (
+        membership?.role !== 'host' ||
+        membership.host_user_id !== identity.userId
+      ) {
+        if (hostStartupTimerRef.current != null) {
+          window.clearTimeout(hostStartupTimerRef.current);
+          hostStartupTimerRef.current = null;
+        }
+        hostBootKeyRef.current = null;
+        try {
+          sessionStorage.removeItem(watchPartyHostSessionKey(invite.roomId));
+        } catch {
+          // sessionStorage is optional.
+        }
+        clearWatchPartyHostTab(invite);
+        roleRef.current = 'guest';
+        setRole('guest');
+        setStatus('reconnecting');
+        setError('Управление уже у другого участника. Возвращаем тебя в комнату…');
+        queueMicrotask(() => startGuestRef.current(invite));
+        return;
+      }
+
+      hostEpochRef.current = Math.max(
+        hostEpochRef.current,
+        Number(membership.host_epoch ?? 0),
+      );
+    } catch (presenceError) {
+      if (hostStartupTimerRef.current != null) {
+        window.clearTimeout(hostStartupTimerRef.current);
+        hostStartupTimerRef.current = null;
+      }
+      hostBootKeyRef.current = null;
+      setStatus('error');
+      setError(
+        presenceError instanceof Error
+          ? presenceError.message
+          : 'Не удалось зарегистрировать host комнаты.',
+      );
+      return;
+    }
 
     const hostPeerId = watchPartyHostPeerId(invite.roomId);
     let peerBundle: Awaited<ReturnType<typeof createWatchPartyPeer>>;
@@ -2264,6 +2597,8 @@ export default function WatchPartyPanel({
     sendHostSync,
     sequencePlayerAction,
     syncRegisteredRoom,
+    ensureMembershipTimer,
+    syncServerMembership,
   ]);
 
   useEffect(() => {
@@ -2505,26 +2840,107 @@ export default function WatchPartyPanel({
     node.scrollTop = node.scrollHeight;
   }, [messages]);
 
-  const createRoom = useCallback(() => {
-    if (status !== 'idle') return;
+  const createRoom = useCallback(async () => {
+    if (status !== 'idle' || creatingRoom) return;
+
+    setCreatingRoom(true);
+    setError('');
+
     const invite = createWatchPartyInvite();
+    const nextUrl = buildWatchPartyUrl(
+      invite,
+      mode === 'inline' ? theaterPath : undefined,
+    );
+
     try {
-      sessionStorage.setItem(watchPartyHostSessionKey(invite.roomId), invite.secret);
-      claimWatchPartyHostTab(invite);
+      const response = await fetch('/api/watch-party/rooms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          roomId: invite.roomId,
+          joinSecret: invite.secret,
+          animeId,
+          animeSlug,
+          animeTitle,
+          coverUrl,
+          episode: episodeNumber,
+          visibility: 'unlisted',
+          language: 'ru',
+        }),
+        cache: 'no-store',
+      });
+
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || 'Не удалось зарегистрировать комнату.');
+      }
+
+      try {
+        sessionStorage.setItem(
+          watchPartyHostSessionKey(invite.roomId),
+          invite.secret,
+        );
+        claimWatchPartyHostTab(invite);
+      } catch {
+        claimWatchPartyHostTab(invite);
+      }
+
+      trackProductClientEvent('watch_party_room_created', {
+        source: mode === 'inline' ? 'episode_inline' : 'watch_together_room',
+        path: window.location.pathname,
+        entityType: 'watch_party_room',
+        entityId: invite.roomId,
+        metadata: {
+          anime_id: animeId,
+          episode: episodeNumber,
+          visibility: 'unlisted',
+        },
+        flush: true,
+      });
+
+      if (mode === 'inline') {
+        window.location.assign(nextUrl);
+        return;
+      }
+
+      window.history.replaceState(window.history.state, '', nextUrl);
+      await startHost(invite);
+    } catch (createError) {
+      setError(
+        createError instanceof Error
+          ? createError.message
+          : 'Не удалось создать комнату.',
+      );
+    } finally {
+      setCreatingRoom(false);
+    }
+  }, [
+    animeId,
+    animeSlug,
+    animeTitle,
+    coverUrl,
+    creatingRoom,
+    episodeNumber,
+    mode,
+    startHost,
+    status,
+    theaterPath,
+  ]);
+
+  const copyRoomCode = useCallback(async () => {
+    if (!roomCode || roomVisibility === 'private') return;
+    try {
+      await navigator.clipboard.writeText(roomCode);
+      setCopyLabel('Код скопирован');
+      window.setTimeout(() => setCopyLabel('Скопировать ссылку'), 1_600);
     } catch {
-      // Host recovery after refresh is optional when storage is unavailable.
-      claimWatchPartyHostTab(invite);
+      setCopyLabel('Не удалось скопировать код');
+      window.setTimeout(() => setCopyLabel('Скопировать ссылку'), 1_600);
     }
-    const nextUrl = buildWatchPartyUrl(invite, mode === 'inline' ? theaterPath : undefined);
-
-    if (mode === 'inline') {
-      window.location.assign(nextUrl);
-      return;
-    }
-
-    window.history.replaceState(window.history.state, '', nextUrl);
-    void startHost(invite);
-  }, [mode, startHost, status, theaterPath]);
+  }, [roomCode, roomVisibility]);
 
   const copyInvite = useCallback(async () => {
     if (!inviteUrl) return;
@@ -2644,14 +3060,29 @@ export default function WatchPartyPanel({
           cache: 'no-store',
         },
       );
-      const payload = (await response.json()) as { error?: string };
+      const payload = (await response.json()) as {
+        error?: string;
+        hostEpoch?: number;
+        hostUserId?: string;
+      };
       if (!response.ok) {
         throw new Error(payload.error || 'Не удалось передать host.');
       }
 
+      const hostEpoch = Number(payload.hostEpoch ?? 0);
+      if (
+        !Number.isSafeInteger(hostEpoch) ||
+        hostEpoch <= hostEpochRef.current ||
+        payload.hostUserId !== target.userId
+      ) {
+        throw new Error('Сервер не подтвердил новую версию host.');
+      }
+      hostEpochRef.current = hostEpoch;
+
       const packet: WatchPartyPacket = {
         type: 'HOST_TRANSFER',
         targetUserId: target.userId,
+        hostEpoch,
         sentAt: Date.now(),
       };
 
@@ -2707,6 +3138,15 @@ export default function WatchPartyPanel({
         await new Promise((resolve) => window.setTimeout(resolve, 140));
       }
 
+      if (behavior === 'leave') {
+        try {
+          await syncServerMembership('leave');
+        } catch {
+          // Host authority has already moved atomically. Membership TTL is a
+          // safe fallback if explicit leave cannot reach the server.
+        }
+      }
+
       destroyTransport();
 
       if (behavior === 'leave') {
@@ -2732,7 +3172,13 @@ export default function WatchPartyPanel({
       );
       return false;
     }
-  }, [destroyTransport, episodeNumber, participants.length, send]);
+  }, [
+    destroyTransport,
+    episodeNumber,
+    participants.length,
+    send,
+    syncServerMembership,
+  ]);
 
   const submitChat = useCallback(async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -2839,8 +3285,20 @@ export default function WatchPartyPanel({
       return;
     }
 
+    try {
+      await syncServerMembership('leave');
+    } catch {
+      // The short membership TTL cleans up abrupt browser exits.
+    }
     finish(false);
-  }, [broadcast, episodePath, mode, resetParty, transferHost]);
+  }, [
+    broadcast,
+    episodePath,
+    mode,
+    resetParty,
+    syncServerMembership,
+    transferHost,
+  ]);
 
   const joinedTrackedRef = useRef(false);
 
@@ -2883,8 +3341,13 @@ export default function WatchPartyPanel({
             <strong>Смотреть вместе</strong>
             <span>{episodeNumber} серия · приватная комната</span>
           </div>
-          <button type="button" className={styles.primary} onClick={createRoom}>
-            Создать комнату
+          <button
+            type="button"
+            className={styles.primary}
+            onClick={() => void createRoom()}
+            disabled={creatingRoom}
+          >
+            {creatingRoom ? 'Создаём…' : 'Создать комнату'}
           </button>
         </div>
       </section>
@@ -2904,8 +3367,13 @@ export default function WatchPartyPanel({
             </p>
           </div>
           <div className={styles.actions}>
-            <button type="button" className={styles.primary} onClick={createRoom}>
-              Смотреть вместе
+            <button
+              type="button"
+              className={styles.primary}
+              onClick={() => void createRoom()}
+              disabled={creatingRoom}
+            >
+              {creatingRoom ? 'Создаём…' : 'Смотреть вместе'}
             </button>
           </div>
         </div>
@@ -2913,7 +3381,11 @@ export default function WatchPartyPanel({
     );
   }
 
-  const label = statusLabel(status, role, participants.length);
+  const displayedParticipantCount = Math.max(
+    participants.length,
+    authoritativeParticipantCount,
+  );
+  const label = statusLabel(status, role, displayedParticipantCount);
 
   return (
     <section className={`${styles.panel} ${mode === 'theater' ? styles.theaterPanel : ''}`} aria-label="Watch Together room">
@@ -2941,7 +3413,7 @@ export default function WatchPartyPanel({
                         : 'Готово'}
             </span>
             <span className={styles.participantCountBadge}>
-              {participants.length}/{WATCH_PARTY_MAX_PARTICIPANTS}
+              {displayedParticipantCount}/{WATCH_PARTY_MAX_PARTICIPANTS}
             </span>
             <span
               className={styles.networkRoute}
@@ -2966,6 +3438,16 @@ export default function WatchPartyPanel({
                       ? 'ICE'
                       : 'Cloud'}
             </span>
+            {roomCode && roomVisibility !== 'private' && (
+              <button
+                type="button"
+                className={styles.roomCodeBadge}
+                onClick={() => void copyRoomCode()}
+                title="Скопировать код комнаты"
+              >
+                Код {roomCode}
+              </button>
+            )}
             <span className={styles.role}>{role === 'host' ? 'HOST' : 'GUEST'}</span>
           </div>
         </div>
@@ -2985,7 +3467,7 @@ export default function WatchPartyPanel({
               onClick={() => setMobileSection('participants')}
             >
               Участники
-              <span>{participants.length}</span>
+              <span>{displayedParticipantCount}</span>
             </button>
             <button
               type="button"
@@ -3001,7 +3483,7 @@ export default function WatchPartyPanel({
           <>
             <div className={styles.participantsHead}>
               <span>Участники</span>
-              <small>{participants.length} в комнате</small>
+              <small>{displayedParticipantCount} в комнате</small>
             </div>
             <div
               className={`${styles.participants} ${styles.participantsSection}`}

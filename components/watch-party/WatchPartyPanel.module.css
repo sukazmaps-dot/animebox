@@ -2221,3 +2221,109 @@
     min-height: 40px;
   }
 }
+
+
+/* Patch 20.1 — mobile room controls should feel native, not desktop-scaled. */
+@media (max-width: 700px) and (orientation: portrait) {
+  .mobileTabs {
+    gap: 6px;
+    padding: 4px;
+    border-radius: 12px;
+  }
+
+  .mobileTabs button {
+    min-height: 42px;
+    border-radius: 10px;
+    font-size: 11px;
+  }
+
+  .mobileTabs button span {
+    min-width: 19px;
+    height: 19px;
+    font-size: 9px;
+  }
+
+  .theaterPanel .controlsSection[data-mobile-active='true'] .syncControls button,
+  .theaterPanel .controlsSection[data-mobile-active='true'] .syncControls .syncPrimary {
+    min-height: 44px;
+    height: 44px;
+    font-size: 11px;
+  }
+
+  .theaterPanel .chatSection[data-mobile-active='true'] {
+    min-height: clamp(320px, 44dvh, 520px);
+  }
+
+  .theaterPanel .chatMessages {
+    padding: 10px;
+  }
+
+  .theaterPanel .chatBubble p {
+    font-size: 11.5px;
+    line-height: 1.5;
+  }
+
+  .theaterPanel .chatForm {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    gap: 7px;
+    padding: 8px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--ab-bg-raised) 94%, transparent);
+    backdrop-filter: blur(12px);
+  }
+
+  .theaterPanel .chatForm input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .theaterPanel .chatForm button {
+    min-height: 44px;
+    padding-inline: 13px;
+    font-size: 10px;
+  }
+
+  .theaterPanel .participant {
+    min-height: 42px;
+    padding: 6px 9px 6px 6px;
+  }
+
+  .theaterPanel .avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 9px;
+  }
+
+  .theaterPanel .participantIdentity {
+    font-size: 10px;
+  }
+}
+
+
+.roomCodeBadge {
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid rgba(125, 110, 255, .18);
+  border-radius: 999px;
+  background: rgba(124, 92, 255, .065);
+  color: rgba(218, 211, 255, .82);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .035em;
+  cursor: pointer;
+}
+
+.roomCodeBadge:hover {
+  border-color: rgba(145, 128, 255, .32);
+  background: rgba(124, 92, 255, .11);
+}
+
+@media (max-width: 700px) and (orientation: portrait) {
+  .theaterPanel .roomCodeBadge {
+    min-height: 28px;
+    padding-inline: 8px;
+    font-size: 8px;
+  }
+}

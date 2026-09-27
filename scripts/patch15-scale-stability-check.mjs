@@ -38,7 +38,6 @@ for (const [label, source, needle] of [
   ['single relay registry', relay, 'activeRelayByTopic'],
   ['failed realtime cleanup', relay, 'Failed subscriptions must not leak a Realtime channel'],
   ['presence debounce', relay, 'RELAY_PRESENCE_DEBOUNCE_MS'],
-  ['player sync relief', partyPanel, 'PLAYER_SYNC_MS = 20_000'],
   ['guest health relief', partyPanel, 'GUEST_HEALTH_CHECK_MS = 15_000'],
   ['visibility-aware lobby polling', partyHub, "document.visibilityState !== 'visible'"],
   ['lobby abort controller', partyHub, 'roomRequestRef'],
@@ -68,6 +67,23 @@ for (const [label, source, needle] of [
   if (!source.includes(needle)) {
     failures.push(`Patch 15: missing ${label}.`);
   }
+}
+
+const playerSyncMatch = partyPanel.match(
+  /PLAYER_SYNC_MS\s*=\s*([\d_]+)/,
+);
+const playerSyncMs = playerSyncMatch
+  ? Number(playerSyncMatch[1].replaceAll('_', ''))
+  : Number.NaN;
+
+if (
+  !Number.isFinite(playerSyncMs) ||
+  playerSyncMs < 8_000 ||
+  playerSyncMs > 30_000
+) {
+  failures.push(
+    'Patch 15: player sync must stay within the 8-30s scale/recovery window.',
+  );
 }
 
 const hostHeartbeatMatch = partyPanel.match(
