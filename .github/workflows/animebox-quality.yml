@@ -72,6 +72,8 @@ jobs:
           components/AchievementJourneyClient.tsx
           components/AchievementsClient.tsx
           lib/community-client.ts
+          app/api/community/comments/route.ts
+          app/api/comments/route.ts
           app/api/community/leaderboard/route.ts
           lib/leaderboard-rewards-server.ts
           lib/community-server.ts
