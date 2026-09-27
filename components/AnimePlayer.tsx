@@ -432,6 +432,7 @@ export default function AnimePlayer({
   const [endingNextSeconds, setEndingNextSeconds] = useState<number | null>(null);
   const [autoNextCancelled, setAutoNextCancelled] = useState(false);
   const [premiumStudio, setPremiumStudio] = useState<PremiumStudioSettings | null>(null);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const kodikPlayerRef = useRef<KodikPlayerHandle | null>(null);
@@ -614,6 +615,56 @@ export default function AnimePlayer({
       new CustomEvent<WatchPartyPlayerStateDetail>(WATCH_PARTY_PLAYER_STATE_EVENT, { detail }),
     );
   }, [episodeNumber, isKodik]);
+
+  const getPrecisePlaybackPosition = useCallback(async () => {
+    if (isKodik) {
+      const player = kodikPlayerRef.current;
+      if (!player) return latestPlaybackPositionSecondsRef.current;
+      const precise = await player.getTime();
+      return precise ?? player.getState().positionSeconds;
+    }
+
+    const video = videoRef.current;
+    if (video && Number.isFinite(video.currentTime)) {
+      return Math.max(0, video.currentTime);
+    }
+
+    return latestPlaybackPositionSecondsRef.current;
+  }, [isKodik]);
+
+  const applyPlaybackSpeed = useCallback((speed: number) => {
+    const normalized = Math.min(2, Math.max(0.25, speed));
+    setPlaybackSpeed(normalized);
+
+    if (isKodik) {
+      kodikPlayerRef.current?.setSpeed(normalized);
+      return;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.playbackRate = normalized;
+    }
+  }, [isKodik]);
+
+  const togglePictureInPicture = useCallback(async () => {
+    if (isKodik) {
+      kodikPlayerRef.current?.enterPip();
+      return;
+    }
+
+    const video = videoRef.current;
+    if (!video || typeof document === 'undefined') return;
+
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture?.();
+      } else {
+        await video.requestPictureInPicture?.();
+      }
+    } catch (error) {
+      console.warn('[AnimePlayer] picture-in-picture unavailable:', error);
+    }
+  }, [isKodik]);
 
   const publishPartyAction = useCallback((
     action: WatchPartyPlayerAction,
@@ -2633,6 +2684,44 @@ export default function AnimePlayer({
               }
             />
           )}
+
+          {isKodik || trackableNativeVideo ? (
+            <PlayerDropdown
+              label="Скорость"
+              value={String(playbackSpeed)}
+              options={[
+                { id: '0.5', label: '0.5×' },
+                { id: '0.75', label: '0.75×' },
+                { id: '1', label: '1×', meta: 'Обычная' },
+                { id: '1.25', label: '1.25×' },
+                { id: '1.5', label: '1.5×' },
+                { id: '2', label: '2×' },
+              ]}
+              onChange={(id) => applyPlaybackSpeed(Number(id))}
+              align="right"
+              icon={
+                <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+                  <path d="M12 6a6 6 0 1 0 6 6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                  <path d="M12 9v3l2 1.5M17 5v4h4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              }
+            />
+          ) : null}
+
+          {isKodik || trackableNativeVideo ? (
+            <button
+              type="button"
+              onClick={() => void togglePictureInPicture()}
+              className="premium-player-toolbar-button inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 text-[11px] font-bold text-white/55 transition hover:border-violet-400/20 hover:bg-violet-500/[0.07] hover:text-white"
+              title="Картинка в картинке"
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+                <rect x="3.5" y="5" width="17" height="14" rx="2" stroke="currentColor" strokeWidth="1.7" />
+                <rect x="11.5" y="11" width="7" height="5" rx="1" stroke="currentColor" strokeWidth="1.7" />
+              </svg>
+              <span className="hidden xl:inline">PiP</span>
+            </button>
+          ) : null}
 
           {!watchTogetherMode && (
             <button
