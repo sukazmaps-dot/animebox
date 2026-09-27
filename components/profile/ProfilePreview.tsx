@@ -10,6 +10,7 @@ import FriendActionButton from '@/components/friends/FriendActionButton';
 import StreakDisplay from '@/components/profile/StreakDisplay';
 import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
 import PremiumProfileAtmosphere from '@/components/premium/PremiumProfileAtmosphere';
+import PremiumParticleLayer from '@/components/profile/PremiumParticleLayer';
 import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
@@ -21,6 +22,7 @@ import {
   type PremiumHeroStyle,
   type PremiumMediaTransform,
   type PremiumMotionMode,
+  type PremiumParticleEffect,
   type PremiumNicknameEffect,
   type PremiumSurfaceStyle,
 } from '@/lib/premium-studio';
@@ -43,6 +45,7 @@ type PreviewData = {
   primaryColor: string;
   accentColor: string;
   textColor: string;
+  particleEffect: PremiumParticleEffect;
   atmosphereEffect: PremiumAtmosphereEffect;
   atmosphereIntensity: number;
   motionMode: PremiumMotionMode;
@@ -403,6 +406,11 @@ export default function ProfilePreview({
                           />
                         )}
                       </div>
+
+                      <PremiumParticleLayer
+                        effect={data.particleEffect}
+                        className={styles.particleLayer}
+                      />
 
                       <div className={styles.heroIdentity}>
                         <span
