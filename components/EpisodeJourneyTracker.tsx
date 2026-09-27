@@ -186,12 +186,12 @@ export default function EpisodeJourneyTracker({
     if (toastTimerRef.current != null) window.clearTimeout(toastTimerRef.current);
   }, []);
 
-  const unlockedCount = useMemo(
+  useMemo(
     () => events.filter((item) => item.unlocked).length,
     [events],
   );
 
-  if (!events.length && !toast) return null;
+  if (!toast) return null;
 
   return (
     <>
@@ -206,22 +206,16 @@ export default function EpisodeJourneyTracker({
         </aside>
       )}
 
-      {events.length > 0 && (
-        <div className={styles.counter} aria-label="Прогресс пути серии">
-          <span>Путь серии</span>
-          <strong>{unlockedCount}/{events.length}</strong>
-          {!soundReady && (
-            <button
-              type="button"
-              className={styles.soundButton}
-              onClick={() => void unlockAchievementSoundsFromGesture()}
-              aria-label="Включить звуки достижений"
-              title="Включить звуки достижений"
-            >
-              {soundEnabled ? '🔊' : '🔇'}
-            </button>
-          )}
-        </div>
+      {!soundReady && (
+        <button
+          type="button"
+          className={styles.soundButton}
+          onClick={() => void unlockAchievementSoundsFromGesture()}
+          aria-label="Включить звуки достижений"
+          title="Включить звуки достижений"
+        >
+          {soundEnabled ? 'Включить звук' : 'Звук выключен'}
+        </button>
       )}
     </>
   );
