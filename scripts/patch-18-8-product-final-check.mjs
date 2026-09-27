@@ -482,6 +482,11 @@ need('exclusive frame migration', progressionFramesMigration, [
 
 need('level milestone system', progression, [
   'LEVEL_MILESTONES',
+  "stageLabel: 'Identity'",
+  "stageLabel: 'Profile'",
+  "stageLabel: 'Veteran'",
+  "stageLabel: 'Elite'",
+  "stageLabel: 'Prestige'",
   'LEVEL_FRAME_KEYS',
   'unlockedLevelFrames',
   'xpForLevel',
