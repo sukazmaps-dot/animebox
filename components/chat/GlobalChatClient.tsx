@@ -654,6 +654,8 @@ export default function GlobalChatClient({ initialPage }: { initialPage: ChatMes
                           sponsor: null,
                           role: null,
                           premium: false,
+                          nicknameEffect: null,
+                          nicknameAccent: null,
                         }
                       : null,
                   )}
