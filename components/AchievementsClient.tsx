@@ -223,6 +223,9 @@ export default function AchievementsClient() {
             LVL растёт вместе с реальной активностью: просмотром, завершёнными тайтлами,
             временем, комментариями, заданиями и достижениями.
           </p>
+          <Link className={styles.journeyLink} href="/achievements/journey">
+            Открыть Путь по аниме →
+          </Link>
         </div>
 
         <div className={styles.level}>

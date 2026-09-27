@@ -1,0 +1,55 @@
+.page {
+  width: min(1120px, calc(100% - 36px));
+  margin: 0 auto;
+  padding: 42px 0 90px;
+  color: #f4f1ff;
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 30px;
+  border: 1px solid rgba(149,111,255,.16);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 78% 10%, rgba(138,91,255,.16), transparent 34%),
+    linear-gradient(145deg,#0c1323,#080d18);
+}
+
+.hero span,
+.groupHead span,
+.meta span {
+  color: #9f82ff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.hero h1 { margin: 8px 0; font-size: clamp(31px,5vw,52px); letter-spacing: -.045em; }
+.hero p { max-width: 650px; margin: 0; color: rgba(218,216,233,.6); line-height: 1.65; font-size: 12px; }
+.hero a { align-self: flex-start; color: #c4b4ff; font-size: 12px; text-decoration: none; }
+
+.groups { display: grid; gap: 22px; margin-top: 24px; }
+.group { padding: 20px; border: 1px solid rgba(255,255,255,.07); border-radius: 20px; background: rgba(8,12,21,.7); }
+.groupHead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.groupHead strong { font-size: 11px; color: rgba(238,233,255,.7); }
+
+.grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+.card { min-height: 170px; padding: 16px; border: 1px solid rgba(255,255,255,.07); border-radius: 16px; background: linear-gradient(160deg,rgba(19,24,39,.92),rgba(9,12,22,.92)); }
+.card[data-rarity='rare'] { border-color: rgba(83,166,255,.24); }
+.card[data-rarity='epic'] { border-color: rgba(185,91,255,.28); }
+.card[data-rarity='legendary'] { border-color: rgba(255,183,76,.34); }
+.meta { display: flex; justify-content: space-between; gap: 12px; }
+.meta small { color: rgba(222,220,235,.45); }
+.card h2 { margin: 18px 0 6px; font-size: 17px; }
+.card p { margin: 0; color: rgba(216,214,228,.58); font-size: 12px; line-height: 1.55; }
+.card time { display: block; margin-top: 18px; color: rgba(204,198,224,.4); font-size: 10px; }
+.state { margin-top: 22px; display: grid; gap: 7px; padding: 24px; border: 1px solid rgba(255,255,255,.08); border-radius: 18px; color: rgba(223,220,237,.66); }
+.state strong { color: #f4f1ff; }
+
+@media (max-width: 800px) {
+  .page { width: min(100% - 24px, 1120px); padding-top: 24px; }
+  .hero { padding: 22px; flex-direction: column; }
+  .grid { grid-template-columns: 1fr; }
+}

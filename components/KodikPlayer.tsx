@@ -19,6 +19,18 @@ export type KodikPlayerHandle = {
   play: () => void;
   pause: () => void;
   seek: (seconds: number) => void;
+  setVolume: (volume: number) => void;
+  mute: () => void;
+  unmute: () => void;
+  setSpeed: (speed: number) => void;
+  enterPip: () => void;
+  exitPip: () => void;
+  getTime: () => Promise<number | null>;
+  changeEpisode: (input: {
+    episode: number;
+    season?: number;
+    withoutReload?: boolean;
+  }) => void;
   getState: () => {
     positionSeconds: number;
     durationSeconds: number | null;
@@ -72,10 +84,18 @@ function buildPlayerUrl(url: string, episodeNumber?: number) {
      */
     nextUrl.searchParams.set('hide_selectors', 'true');
     nextUrl.searchParams.set('translations', 'false');
+    nextUrl.searchParams.set('hide_resume_button', 'true');
+
+    // AnimeBox owns resume and skip UX. Keep Kodik in serial-player mode
+    // so Player API episode switching remains available without reload.
+    nextUrl.searchParams.delete('only_episode');
+    nextUrl.searchParams.delete('start_from');
+    nextUrl.searchParams.delete('skip_button');
 
     /*
-     * Open the exact route episode immediately. This prevents a visible
-     * "episode 1 -> requested episode" correction after iframe load.
+     * Open the route episode immediately while preserving Kodik's serial
+     * player capabilities. hide_selectors removes provider navigation UI,
+     * but change_episode remains available through the official Player API.
      */
     if (
       typeof episodeNumber === 'number' &&
@@ -83,7 +103,6 @@ function buildPlayerUrl(url: string, episodeNumber?: number) {
       episodeNumber > 0
     ) {
       nextUrl.searchParams.set('episode', String(episodeNumber));
-      nextUrl.searchParams.set('only_episode', 'true');
     }
 
     return nextUrl.toString();
@@ -231,6 +250,11 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
   const lastSampleAtRef = useRef<number | null>(null);
   const lastAdvanceAtRef = useRef<number | null>(null);
   const pauseInferenceTimerRef = useRef<number | null>(null);
+  const pendingTimeRequestRef = useRef<{
+    promise: Promise<number | null>;
+    resolve: (position: number | null) => void;
+    timeoutId: number;
+  } | null>(null);
 
   const playerSrc = useMemo(
     () => buildPlayerUrl(src, episodeNumber),
@@ -275,10 +299,81 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
         postApiCommand('pause');
       },
       seek(seconds) {
-        if (!Number.isFinite(seconds) || seconds < 0) return;
+        if (!Number.isFinite(seconds)) return;
         const normalized = Math.min(28_800, Math.max(0, seconds));
         currentPositionRef.current = normalized;
         postApiCommand('seek', { seconds: normalized });
+      },
+      setVolume(volume) {
+        if (!Number.isFinite(volume)) return;
+        postApiCommand('volume', {
+          volume: Math.min(1, Math.max(0, volume)),
+        });
+      },
+      mute() {
+        postApiCommand('mute');
+      },
+      unmute() {
+        postApiCommand('unmute');
+      },
+      setSpeed(speed) {
+        if (!Number.isFinite(speed)) return;
+        postApiCommand('speed', {
+          speed: Math.min(2, Math.max(0.25, speed)),
+        });
+      },
+      enterPip() {
+        postApiCommand('enter_pip');
+      },
+      exitPip() {
+        postApiCommand('exit_pip');
+      },
+      getTime() {
+        const pending = pendingTimeRequestRef.current;
+        if (pending) return pending.promise;
+
+        let resolvePromise: (position: number | null) => void = () => undefined;
+        const promise = new Promise<number | null>((resolve) => {
+          resolvePromise = resolve;
+        });
+
+        const timeoutId = window.setTimeout(() => {
+          const current = pendingTimeRequestRef.current;
+          if (!current || current.promise !== promise) return;
+          pendingTimeRequestRef.current = null;
+          resolvePromise(currentPositionRef.current);
+        }, 1_200);
+
+        pendingTimeRequestRef.current = {
+          promise,
+          resolve: resolvePromise,
+          timeoutId,
+        };
+
+        postApiCommand('get_time');
+        return promise;
+      },
+      changeEpisode(input) {
+        if (!Number.isSafeInteger(input.episode) || input.episode < 1) return;
+
+        const value: Record<string, unknown> = {
+          episode: input.episode,
+          without_reload: input.withoutReload !== false,
+        };
+
+        if (
+          typeof input.season === 'number' &&
+          Number.isSafeInteger(input.season) &&
+          input.season > 0
+        ) {
+          value.season = input.season;
+        }
+
+        lastForcedEpisodeRef.current = input.episode;
+        endedFiredRef.current = false;
+        resumeAppliedRef.current = true;
+        currentPositionRef.current = 0;
+        postApiCommand('change_episode', value);
       },
       getState() {
         return {
@@ -312,6 +407,13 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
     if (pauseInferenceTimerRef.current != null) {
       window.clearTimeout(pauseInferenceTimerRef.current);
       pauseInferenceTimerRef.current = null;
+    }
+
+    const pendingTime = pendingTimeRequestRef.current;
+    if (pendingTime) {
+      window.clearTimeout(pendingTime.timeoutId);
+      pendingTime.resolve(null);
+      pendingTimeRequestRef.current = null;
     }
   }, [playerSrc, resumeSeconds]);
 
@@ -411,6 +513,15 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
       if (key === 'kodik_player_time_update' || key === 'kodik_player_time') {
         const time = readTimeValue(value);
         if (!time || time.position < 0) return;
+
+        if (key === 'kodik_player_time') {
+          const pendingTime = pendingTimeRequestRef.current;
+          if (pendingTime) {
+            window.clearTimeout(pendingTime.timeoutId);
+            pendingTimeRequestRef.current = null;
+            pendingTime.resolve(time.position);
+          }
+        }
 
         const previousPosition = currentPositionRef.current;
         const previousSampleAt = lastSampleAtRef.current;
@@ -575,6 +686,13 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
       if (pauseInferenceTimerRef.current != null) {
         window.clearTimeout(pauseInferenceTimerRef.current);
         pauseInferenceTimerRef.current = null;
+      }
+
+      const pendingTime = pendingTimeRequestRef.current;
+      if (pendingTime) {
+        window.clearTimeout(pendingTime.timeoutId);
+        pendingTime.resolve(null);
+        pendingTimeRequestRef.current = null;
       }
     };
   }, [

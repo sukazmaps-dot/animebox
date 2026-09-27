@@ -39,6 +39,19 @@
   line-height: 1.7;
 }
 
+.journeyLink {
+  display: inline-flex;
+  margin-top: 14px;
+  color: #b8a2ff;
+  font-size: 12px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.journeyLink:hover {
+  color: #d5c9ff;
+}
+
 .level {
   min-width: 190px;
   display: grid;

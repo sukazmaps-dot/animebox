@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '@/components/Icon';
 import KodikPlayer, { type KodikPlayerHandle } from '@/components/KodikPlayer';
 import DirectVideoPlayer from '@/components/DirectVideoPlayer';
+import EpisodeJourneyTracker from '@/components/EpisodeJourneyTracker';
 import { useWatchSession } from '@/components/useWatchSession';
 import { useAuthState } from '@/components/AuthStateProvider';
 import {
@@ -419,6 +420,7 @@ export default function AnimePlayer({
   const [playerReady, setPlayerReady] = useState(false);
   const [theaterMode, setTheaterMode] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [providerFullscreen, setProviderFullscreen] = useState(false);
   const [telegramAndroidMiniApp, setTelegramAndroidMiniApp] = useState(false);
   const [telegramPseudoFullscreen, setTelegramPseudoFullscreen] = useState(false);
   const [resumeSeconds, setResumeSeconds] = useState(0);
@@ -430,6 +432,8 @@ export default function AnimePlayer({
   const [endingNextSeconds, setEndingNextSeconds] = useState<number | null>(null);
   const [autoNextCancelled, setAutoNextCancelled] = useState(false);
   const [premiumStudio, setPremiumStudio] = useState<PremiumStudioSettings | null>(null);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [providerSkipKind, setProviderSkipKind] = useState<'opening' | 'ending' | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const kodikPlayerRef = useRef<KodikPlayerHandle | null>(null);
@@ -472,6 +476,8 @@ export default function AnimePlayer({
   const telegramVerticalSwipesWereEnabledRef = useRef<boolean | null>(null);
   const partySuppressUntilRef = useRef(0);
   const pendingPartyCommandRef = useRef<WatchPartyPlayerCommandDetail | null>(null);
+  const providerSkipKindRef = useRef<'opening' | 'ending' | null>(null);
+  const openingWindowEnteredAtRef = useRef<number | null>(null);
   const lastPartyActionRef = useRef<{
     action: WatchPartyPlayerAction;
     position: number;
@@ -612,6 +618,56 @@ export default function AnimePlayer({
       new CustomEvent<WatchPartyPlayerStateDetail>(WATCH_PARTY_PLAYER_STATE_EVENT, { detail }),
     );
   }, [episodeNumber, isKodik]);
+
+  const getPrecisePlaybackPosition = useCallback(async () => {
+    if (isKodik) {
+      const player = kodikPlayerRef.current;
+      if (!player) return latestPlaybackPositionSecondsRef.current;
+      const precise = await player.getTime();
+      return precise ?? player.getState().positionSeconds;
+    }
+
+    const video = videoRef.current;
+    if (video && Number.isFinite(video.currentTime)) {
+      return Math.max(0, video.currentTime);
+    }
+
+    return latestPlaybackPositionSecondsRef.current;
+  }, [isKodik]);
+
+  const applyPlaybackSpeed = useCallback((speed: number) => {
+    const normalized = Math.min(2, Math.max(0.25, speed));
+    setPlaybackSpeed(normalized);
+
+    if (isKodik) {
+      kodikPlayerRef.current?.setSpeed(normalized);
+      return;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.playbackRate = normalized;
+    }
+  }, [isKodik]);
+
+  const togglePictureInPicture = useCallback(async () => {
+    if (isKodik) {
+      kodikPlayerRef.current?.enterPip();
+      return;
+    }
+
+    const video = videoRef.current;
+    if (!video || typeof document === 'undefined') return;
+
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture?.();
+      } else {
+        await video.requestPictureInPicture?.();
+      }
+    } catch (error) {
+      console.warn('[AnimePlayer] picture-in-picture unavailable:', error);
+    }
+  }, [isKodik]);
 
   const publishPartyAction = useCallback((
     action: WatchPartyPlayerAction,
@@ -892,7 +948,10 @@ export default function AnimePlayer({
           latestPlaybackPositionSecondsRef.current <
           Math.max(0, targetSeconds - 1.5)
         ) {
-          setSkipOpeningVisible(true);
+          openingSkipTargetRef.current = null;
+          if (providerSkipKindRef.current !== 'opening') {
+            setSkipOpeningVisible(true);
+          }
         }
       }, 1_800);
 
@@ -969,6 +1028,16 @@ export default function AnimePlayer({
       );
 
       latestPlaybackPositionSecondsRef.current = positionSeconds;
+
+      if (animeId && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('animebox:player-time-sample', {
+          detail: {
+            animeId,
+            episode: episodeNumber,
+            positionSeconds,
+          },
+        }));
+      }
 
       const observedDurationSeconds =
         sample.durationSeconds != null &&
@@ -1066,27 +1135,51 @@ export default function AnimePlayer({
         setSkipOpeningVisible(false);
       }
 
-      if (
-        !watchTogetherMode &&
-        smartSeekSupported &&
-        autoOpeningDecision.safe &&
-        !openingAutoSkipAttemptedRef.current
-      ) {
-        // One automatic attempt per episode. If the provider refuses/drops
-        // the seek, requestOpeningSkip exposes the manual fallback button.
-        openingAutoSkipAttemptedRef.current = true;
-        if (!requestOpeningSkip('auto', observedDurationSeconds)) {
-          setSkipOpeningVisible(true);
+      if (insideOpening) {
+        if (openingWindowEnteredAtRef.current == null) {
+          openingWindowEnteredAtRef.current = Date.now();
         }
-      } else if (
-        insideOpening &&
-        !openingAutoSkipAttemptedRef.current
-      ) {
-        // Conservative automatic rejections still leave the decision with the
-        // viewer through an explicit button.
-        setSkipOpeningVisible(true);
-      } else if (!insideOpening) {
+
+        const providerOwnsOpeningSkip =
+          isKodik && providerSkipKindRef.current === 'opening';
+        const providerGraceElapsed =
+          !isKodik ||
+          Date.now() - openingWindowEnteredAtRef.current >= 4_000;
+
+        if (
+          !watchTogetherMode &&
+          smartSeekSupported &&
+          autoOpeningDecision.safe &&
+          !openingAutoSkipAttemptedRef.current
+        ) {
+          // One automatic attempt per episode. If Kodik exposes its own
+          // control we suppress AnimeBox UI; otherwise a failed/dropped seek
+          // falls back to our button after the short provider grace window.
+          openingAutoSkipAttemptedRef.current = true;
+          const requested = requestOpeningSkip('auto', observedDurationSeconds);
+
+          if (!requested) {
+            openingSkipTargetRef.current = null;
+          }
+        }
+
+        const waitingForAutoSeek = openingSkipTargetRef.current != null;
+        const canShowAnimeBoxFallback =
+          !providerOwnsOpeningSkip &&
+          providerGraceElapsed &&
+          !waitingForAutoSeek &&
+          !watchTogetherMode &&
+          smartSeekSupported;
+
+        setSkipOpeningVisible(canShowAnimeBoxFallback);
+      } else {
+        openingWindowEnteredAtRef.current = null;
         setSkipOpeningVisible(false);
+
+        if (providerSkipKindRef.current === 'opening') {
+          providerSkipKindRef.current = null;
+          setProviderSkipKind(null);
+        }
       }
 
       if (
@@ -1150,8 +1243,20 @@ export default function AnimePlayer({
       smartSeekSupported,
       timeline,
       watchTogetherMode,
+      isKodik,
     ],
   );
+
+  const handleProviderSkip = useCallback((signal: {
+    kind: 'opening' | 'ending';
+    atSeconds: number | null;
+    durationSeconds: number | null;
+    origin?: string | null;
+  }) => {
+    providerSkipKindRef.current = signal.kind;
+    setProviderSkipKind(signal.kind);
+    watchSession.onProviderSkip(signal);
+  }, [watchSession]);
 
   const skipOpening = useCallback(() => {
     requestOpeningSkip('manual');
@@ -1289,6 +1394,8 @@ export default function AnimePlayer({
     endedFlowRef.current = false;
     openingAutoSkipAttemptedRef.current = false;
     openingSkipTargetRef.current = null;
+    providerSkipKindRef.current = null;
+    openingWindowEnteredAtRef.current = null;
     lastExplicitSeekAtRef.current = 0;
     lastReportedTimelineDurationRef.current = null;
     clearOpeningSkipFallback();
@@ -1297,6 +1404,7 @@ export default function AnimePlayer({
       setEndScreenOpen(false);
       setAutoNextSeconds(null);
       setSkipOpeningVisible(false);
+      setProviderSkipKind(null);
       setEndingPromptOpen(false);
       setEndingNextSeconds(null);
       setAutoNextCancelled(false);
@@ -1882,7 +1990,21 @@ export default function AnimePlayer({
         (document as Document & { webkitFullscreenElement?: Element | null })
           .webkitFullscreenElement;
 
-      setFullscreen(Boolean(activeElement));
+      const viewport = playerViewportRef.current;
+      const animeBoxOwnsFullscreen = Boolean(
+        activeElement &&
+        viewport &&
+        activeElement === viewport,
+      );
+      const providerOwnsFullscreen = Boolean(
+        activeElement &&
+        viewport &&
+        activeElement !== viewport &&
+        viewport.contains(activeElement),
+      );
+
+      setFullscreen(animeBoxOwnsFullscreen);
+      setProviderFullscreen(providerOwnsFullscreen);
     }
 
     document.addEventListener('fullscreenchange', onFullscreenChange);
@@ -2416,12 +2538,16 @@ export default function AnimePlayer({
       const player = kodikPlayerRef.current;
       player?.play();
       const state = player?.getState();
-      publishPartyAction('play', state?.positionSeconds ?? 0, true);
-      publishPartyState({
-        position: state?.positionSeconds ?? 0,
-        duration: state?.durationSeconds ?? null,
-        playing: true,
+
+      void getPrecisePlaybackPosition().then((position) => {
+        publishPartyAction('play', position, true);
+        publishPartyState({
+          position,
+          duration: player?.getState().durationSeconds ?? state?.durationSeconds ?? null,
+          playing: true,
+        });
       });
+
       setStarted(true);
       return;
     }
@@ -2608,6 +2734,44 @@ export default function AnimePlayer({
             />
           )}
 
+          {isKodik || trackableNativeVideo ? (
+            <PlayerDropdown
+              label="Скорость"
+              value={String(playbackSpeed)}
+              options={[
+                { id: '0.5', label: '0.5×' },
+                { id: '0.75', label: '0.75×' },
+                { id: '1', label: '1×', meta: 'Обычная' },
+                { id: '1.25', label: '1.25×' },
+                { id: '1.5', label: '1.5×' },
+                { id: '2', label: '2×' },
+              ]}
+              onChange={(id) => applyPlaybackSpeed(Number(id))}
+              align="right"
+              icon={
+                <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+                  <path d="M12 6a6 6 0 1 0 6 6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                  <path d="M12 9v3l2 1.5M17 5v4h4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              }
+            />
+          ) : null}
+
+          {isKodik || trackableNativeVideo ? (
+            <button
+              type="button"
+              onClick={() => void togglePictureInPicture()}
+              className="premium-player-toolbar-button inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 text-[11px] font-bold text-white/55 transition hover:border-violet-400/20 hover:bg-violet-500/[0.07] hover:text-white"
+              title="Картинка в картинке"
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+                <rect x="3.5" y="5" width="17" height="14" rx="2" stroke="currentColor" strokeWidth="1.7" />
+                <rect x="11.5" y="11" width="7" height="5" rx="1" stroke="currentColor" strokeWidth="1.7" />
+              </svg>
+              <span className="hidden xl:inline">PiP</span>
+            </button>
+          ) : null}
+
           {!watchTogetherMode && (
             <button
               type="button"
@@ -2678,15 +2842,28 @@ export default function AnimePlayer({
               : undefined
           }
         >
+          {typeof animeId === 'number' && animeId > 0 && (
+            <EpisodeJourneyTracker
+              animeId={animeId}
+              episode={episodeNumber}
+              suspended={providerFullscreen}
+            />
+          )}
+
           {isKodik && videoLink && (
             <KodikPlayer
               ref={kodikPlayerRef}
-              key={`${videoLink}:${episodeNumber}:${playerAttempt}`}
+              key={`${videoLink}:${playerAttempt}`}
               src={videoLink}
               title={`${title} — серия ${episodeNumber}`}
               episodeNumber={episodeNumber}
               resumeSeconds={resumeSeconds}
-              onReady={markPlayerReady}
+              onReady={() => {
+                markPlayerReady();
+                if (playbackSpeed !== 1) {
+                  kodikPlayerRef.current?.setSpeed(playbackSpeed);
+                }
+              }}
               onError={() =>
                 failCurrentSource('error', 'Kodik не удалось загрузить. Попробуйте другой источник.')
               }
@@ -2709,7 +2886,7 @@ export default function AnimePlayer({
                   playing: event.playing,
                 });
               }}
-              onProviderSkip={watchSession.onProviderSkip}
+              onProviderSkip={handleProviderSkip}
               onEnded={handlePlaybackEnded}
             />
           )}
@@ -2874,45 +3051,57 @@ export default function AnimePlayer({
             </>
           )}
 
-          {skipOpeningVisible && !watchTogetherMode && (
-            <button
-              type="button"
-              onClick={skipOpening}
-              className="absolute bottom-4 right-4 z-[62] inline-flex min-h-11 items-center gap-2 rounded-2xl border border-violet-300/25 bg-[#0b0f1d]/90 px-4 text-xs font-extrabold text-white shadow-[0_16px_44px_rgba(0,0,0,.48),0_0_28px_rgba(139,92,246,.18)] backdrop-blur-xl transition hover:border-violet-300/45 hover:bg-violet-500/15 active:scale-[0.98]"
-            >
-              <span className="text-violet-300" aria-hidden="true">»</span>
-              Пропустить опенинг
-            </button>
-          )}
+          <div
+            className="pointer-events-none absolute inset-0 z-[61]"
+            data-player-overlay-layer
+          >
+            {skipOpeningVisible &&
+              !watchTogetherMode &&
+              !(isKodik && providerSkipKind === 'opening') && (
+                <button
+                  type="button"
+                  onClick={skipOpening}
+                  className="pointer-events-auto absolute right-3 top-[72px] inline-flex min-h-10 items-center gap-2 rounded-2xl border border-violet-300/25 bg-[#0b0f1d]/88 px-3.5 text-[11px] font-extrabold text-white shadow-[0_14px_38px_rgba(0,0,0,.45),0_0_24px_rgba(139,92,246,.16)] backdrop-blur-xl transition hover:border-violet-300/45 hover:bg-violet-500/15 active:scale-[0.98] sm:right-4 sm:top-[84px] sm:min-h-11 sm:px-4 sm:text-xs"
+                >
+                  <span className="text-violet-300" aria-hidden="true">»</span>
+                  Пропустить опенинг
+                </button>
+              )}
 
-          {endingPromptOpen &&
-            endingNextSeconds != null &&
-            !watchTogetherMode &&
-            hasNext &&
-            onEnded && (
-              <div className="absolute bottom-4 right-4 z-[63] w-[min(330px,calc(100%-2rem))] rounded-2xl border border-violet-300/20 bg-[#090d19]/95 p-4 text-left shadow-[0_22px_60px_rgba(0,0,0,.55),0_0_36px_rgba(139,92,246,.16)] backdrop-blur-xl">
-                <span className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-violet-300/70">
-                  Следующая серия
-                </span>
-                <div className="mt-1 flex items-end justify-between gap-4">
-                  <div>
-                    <strong className="block text-sm font-black text-white">
-                      Через {endingNextSeconds} сек.
-                    </strong>
-                    <span className="mt-1 block text-[11px] leading-4 text-white/45">
-                      Эндинг можно досмотреть — автопереход можно отменить.
-                    </span>
+            {endingPromptOpen &&
+              endingNextSeconds != null &&
+              !watchTogetherMode &&
+              hasNext &&
+              onEnded && (
+                <div
+                  className="pointer-events-auto absolute left-1/2 w-[min(390px,calc(100%-1.25rem))] -translate-x-1/2 rounded-2xl border border-violet-300/20 bg-[#090d19]/95 p-3.5 text-left shadow-[0_22px_60px_rgba(0,0,0,.55),0_0_36px_rgba(139,92,246,.16)] backdrop-blur-xl sm:w-[min(420px,calc(100%-2rem))] sm:p-4"
+                  style={{
+                    bottom: 'max(72px, calc(env(safe-area-inset-bottom) + 62px))',
+                  }}
+                >
+                  <span className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-violet-300/70">
+                    Следующая серия
+                  </span>
+                  <div className="mt-1.5 flex items-center justify-between gap-3 sm:gap-4">
+                    <div className="min-w-0">
+                      <strong className="block text-sm font-black text-white">
+                        Через {endingNextSeconds} сек.
+                      </strong>
+                      <span className="mt-1 block text-[10px] leading-4 text-white/45 sm:text-[11px]">
+                        Эндинг можно досмотреть — автопереход можно отменить.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={cancelEndingAutoNext}
+                      className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-bold text-white/70 transition hover:bg-white/[0.08] hover:text-white"
+                    >
+                      Отмена
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={cancelEndingAutoNext}
-                    className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-bold text-white/70 transition hover:bg-white/[0.08] hover:text-white"
-                  >
-                    Отмена
-                  </button>
                 </div>
-              </div>
-            )}
+              )}
+          </div>
 
           {endScreenOpen && !watchTogetherMode && (
             <div className="animebox-player-end-screen absolute inset-0 z-[65] flex items-center justify-center p-5 text-center">
