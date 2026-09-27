@@ -8,6 +8,10 @@ import { getEpisodeProviderAvailability } from '@/lib/episode-provider-availabil
 import { getPlaybackRestriction } from '@/lib/copyright-server';
 import { syncSeoEpisodeIndex } from '@/lib/seo-episode-index';
 import { truncateSeoText } from '@/lib/seo-text';
+import {
+  isVideoSeoQualityReady,
+  safeSeoHttpsUrl,
+} from '@/lib/seo-quality';
 import type { Anime } from '@/types/anime';
 
 export type EpisodeSeoAvailability = {
@@ -69,11 +73,88 @@ export async function isEpisodeIndexable(
   );
 }
 
-export function buildEpisodeSeoTitle(anime: Anime, episode: number): string {
+export type EpisodeSeoIdentity = {
+  primaryTitle: string;
+  compactTitle: string;
+  alternateTitle: string | null;
+  episodeNumber: number;
+  seasonNumber: number | null;
+};
+
+function containsCyrillic(value: string) {
+  return /[А-Яа-яЁё]/.test(value);
+}
+
+function episodeAlternateTitle(
+  primaryTitle: string,
+  aliases: string[],
+): string | null {
+  const primaryIsCyrillic = containsCyrillic(primaryTitle);
+
+  return (
+    aliases.find((alias) => {
+      const value = alias.trim();
+      if (value.length < 2 || value.length > 90) return false;
+      if (
+        value.toLocaleLowerCase('ru-RU') ===
+        primaryTitle.toLocaleLowerCase('ru-RU')
+      ) {
+        return false;
+      }
+
+      return primaryIsCyrillic
+        ? /[A-Za-z]/.test(value)
+        : containsCyrillic(value);
+    }) ?? null
+  );
+}
+
+export function getEpisodeSeoIdentity(
+  anime: Anime,
+  episode: number,
+): EpisodeSeoIdentity {
   const identity = getAnimeSeoIdentity(anime);
-  return truncateSeoText(
-    `${identity.pageHeading} — ${episode} серия смотреть онлайн`,
-    68,
+
+  return {
+    primaryTitle: identity.pageHeading,
+    compactTitle: identity.baseTitle || identity.title,
+    alternateTitle: episodeAlternateTitle(
+      identity.pageHeading,
+      identity.aliases,
+    ),
+    episodeNumber: episode,
+    seasonNumber: identity.seasonNumber,
+  };
+}
+
+export function buildEpisodeSeoTitleVariants(
+  anime: Anime,
+  episode: number,
+): string[] {
+  const identity = getEpisodeSeoIdentity(anime, episode);
+  const candidates = [
+    identity.primaryTitle,
+    identity.compactTitle,
+  ].filter(
+    (value, index, values) =>
+      Boolean(value) && values.indexOf(value) === index,
+  );
+
+  return candidates.map((title) =>
+    truncateSeoText(
+      \`\${title} — \${episode} серия смотреть онлайн\`,
+      68,
+    ),
+  );
+}
+
+export function buildEpisodeSeoTitle(anime: Anime, episode: number): string {
+  const variants = buildEpisodeSeoTitleVariants(anime, episode);
+
+  return (
+    variants.find((value) => value.length <= 64) ??
+    variants[variants.length - 1] ??
+    \`\${episode} серия аниме смотреть онлайн\`
   );
 }
 
@@ -82,23 +163,36 @@ export function buildEpisodeSeoDescription(
   episode: number,
   indexable: boolean,
 ): string {
-  const identity = getAnimeSeoIdentity(anime);
+  const identity = getEpisodeSeoIdentity(anime, episode);
 
   if (!indexable) {
     return truncateSeoText(
-      `${identity.pageHeading} — ${episode} серия на AnimeBox.`,
+      \`\${identity.primaryTitle} — \${episode} серия на AnimeBox.\`,
       158,
     );
   }
 
+  const alternate =
+    identity.alternateTitle &&
+    identity.alternateTitle.length <= 72
+      ? \` (\${identity.alternateTitle})\`
+      : '';
   const facts: string[] = [];
+
   if (anime.startDate?.year) facts.push(String(anime.startDate.year));
-  if (anime.genres?.length) facts.push(anime.genres.slice(0, 2).join(', '));
+  if (anime.genres?.length) {
+    facts.push(anime.genres.slice(0, 2).join(', '));
+  }
+
+  const statusTail =
+    anime.status === 'RELEASING'
+      ? ' Следите за выходом новых серий.'
+      : ' Сохраняйте прогресс и продолжайте просмотр с нужного момента.';
 
   return truncateSeoText(
-    `Смотреть ${episode} серию аниме «${identity.pageHeading}» онлайн на AnimeBox.${
-      facts.length ? ` ${facts.join(' · ')}.` : ''
-    } Сохраняйте прогресс просмотра и обсуждайте серию.`,
+    \`Смотреть \${episode} серию аниме «\${identity.primaryTitle}»\${alternate} онлайн на AnimeBox.\${
+      facts.length ? \` \${facts.join(' · ')}.\` : ''
+    }\${statusTail}\`,
     158,
   );
 }
@@ -131,17 +225,6 @@ function isoDurationMs(durationMs?: number | null): string | undefined {
   return `PT${Math.max(1, Math.round(durationMs / 1000))}S`;
 }
 
-function safeHttpsUrl(value?: string | null): string | undefined {
-  if (!value) return undefined;
-
-  try {
-    const url = new URL(value);
-    return url.protocol === 'https:' ? url.toString() : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 /**
  * Schema.org graph for a confirmed playable episode.
  *
@@ -165,18 +248,28 @@ export function buildEpisodeVideoStructuredData(
   const identity = getAnimeSeoIdentity(anime);
   const name = `${identity.pageHeading} — ${episode} серия`;
   const thumbnail =
-    safeHttpsUrl(options.thumbnailUrl) ??
+    safeSeoHttpsUrl(options.thumbnailUrl) ??
     episodeThumbnail(anime);
   const description = buildEpisodeSeoDescription(anime, episode, true);
 
-  if (!thumbnail || !options.uploadDate) {
+  if (
+    !thumbnail ||
+    !options.uploadDate ||
+    !isVideoSeoQualityReady({
+      thumbnailUrl: thumbnail,
+      uploadDate: options.uploadDate,
+      durationMs: options.durationMs,
+      contentUrl: options.contentUrl,
+      embedUrl: options.embedUrl,
+    })
+  ) {
     return null;
   }
   const duration =
     isoDurationMs(options.durationMs) ??
     isoDuration(anime.duration);
-  const contentUrl = safeHttpsUrl(options.contentUrl);
-  const embedUrl = safeHttpsUrl(options.embedUrl);
+  const contentUrl = safeSeoHttpsUrl(options.contentUrl);
+  const embedUrl = safeSeoHttpsUrl(options.embedUrl);
   const animeUrl = canonicalUrl.split('/episode/')[0];
 
   const seriesId = `${animeUrl}#series`;
