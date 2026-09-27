@@ -50,7 +50,7 @@ for (const needle of [
   "now - previous.at <= 320",
   "zone !== 'center'",
   "const delta = zone === 'left' ? -10 : 10",
-  "input: 'touch'",
+  "commitTimelineSeek(target, 'touch')",
 ]) {
   if (!direct.includes(needle)) {
     throw new Error(`Patch 19.3 mobile double-tap invariant missing: ${needle}`);
