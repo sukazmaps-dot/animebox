@@ -16,10 +16,12 @@ import {
   type PendingProfileMediaUpload,
 } from '@/lib/profile-media-upload-client';
 import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor';
+import PremiumParticleLayer from '@/components/profile/PremiumParticleLayer';
 import Icon from '@/components/Icon';
 import {
   DEFAULT_PREMIUM_STUDIO_SETTINGS,
   PREMIUM_BORDER_STYLES,
+  PREMIUM_PARTICLE_EFFECTS,
   PREMIUM_PROFILE_THEMES,
   PREMIUM_PROFILE_THEME_META,
   contrastRatio,
@@ -903,6 +905,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 className={`premium-studio-v12__preview premium-studio-v15__preview border-${settings.borderStyle}`}
                 style={cssVars as CSSProperties}
               >
+                <PremiumParticleLayer effect={settings.particleEffect} className="premium-studio-v18__particle-layer" />
                 <div className="premium-studio-v12__preview-banner premium-studio-v15__preview-banner">
                   {bannerUrl && <img src={bannerUrl} alt="" aria-hidden="true" loading="lazy" decoding="async" style={premiumMediaStyle(bannerTransform) as CSSProperties} />}
                   <div />
@@ -1016,6 +1019,22 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                   </div>
                 </div>
 
+                <div className="premium-studio-v16__effect-row">
+                  <span><strong>Частицы профиля</strong><small>Лёгкий живой слой виден и в mini-profile, без тяжёлого canvas.</small></span>
+                  <div className="premium-studio-v15__segmented premium-studio-v18__particle-options" role="radiogroup" aria-label="Эффект частиц">
+                    {PREMIUM_PARTICLE_EFFECTS.map((effect) => (
+                      <button
+                        key={effect}
+                        type="button"
+                        className={settings.particleEffect === effect ? 'is-active' : ''}
+                        onClick={() => setSettings((current) => ({ ...current, particleEffect: effect }))}
+                      >
+                        {effect === 'none' ? 'Нет' : effect === 'nebula' ? 'Nebula' : effect === 'sakura' ? 'Sakura' : 'Stars'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <label className="premium-studio-v16__effect-row is-toggle">
                   <span><strong>Синхронизировать с плеером</strong><small>Accent и Primary применяются к оболочке AnimeBox Player.</small></span>
                   <span className={`premium-studio-v15__switch ${settings.syncPlayerTheme ? 'is-on' : ''}`}>
@@ -1104,6 +1123,10 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                   bannerPositionX: current.bannerPositionX,
                   bannerPositionY: current.bannerPositionY,
                   bannerZoom: current.bannerZoom,
+                  glowStrength: current.glowStrength,
+                  borderStyle: current.borderStyle,
+                  particleEffect: current.particleEffect,
+                  syncPlayerTheme: current.syncPlayerTheme,
                 }));
                 setSaved('');
               }}
