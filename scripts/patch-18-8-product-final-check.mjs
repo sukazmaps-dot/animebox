@@ -31,6 +31,7 @@ const icon = read('components/Icon.tsx');
 const rewardsPanel = read('components/profile/ProfileRewardsPanel.tsx');
 const publicProfile = read('lib/public-profile-server.ts');
 const avatarFrame = read('components/profile/UserAvatarWithFrame.tsx');
+const avatarIdentity = read('lib/avatar-identity.ts');
 const profileFrameOverlay = read('components/profile/ProfileFrameOverlay.tsx');
 const lv10Static = read('public/brand/frames/milestone/free/lv10-forbidden-relic.svg');
 const lv25Static = read('public/brand/frames/milestone/free/lv25-flame-arc.svg');
@@ -445,9 +446,18 @@ need('tracker cache ambiguity shield', trackerClient, [
 need('avatar frame composition', avatarFrame, [
   'ProfileFrameOverlay',
   'profileFrameKey',
-  'hasProfileFrame',
-  'visibleIdentityFrameSrc',
-  "hasProfileFrame ? null : frameSrc",
+  'resolveAvatarIdentityVisuals',
+  'visuals.avatarInsetPct',
+  'visuals.identityFrameSrc',
+  'visuals.profileFrameKey',
+]);
+
+need('unified avatar identity resolver', avatarIdentity, [
+  'resolveAvatarIdentityVisuals',
+  'isProfileFrameKey',
+  "identityKind === 'owner'",
+  'resolveSponsorFrame',
+  'avatarInsetPct',
 ]);
 
 need('exclusive frame migration', progressionFramesMigration, [
