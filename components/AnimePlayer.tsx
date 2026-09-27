@@ -3351,6 +3351,8 @@ export default function AnimePlayer({
                       registerExplicitSeek(positionSeconds);
                       publishPartyAction('seek', positionSeconds, playing);
                     }}
+                    onControlAction={handleDirectControlAction}
+                    onEngineStateChange={handleEngineStateChange}
                   />
                 )
               )}
