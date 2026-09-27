@@ -30,7 +30,6 @@ import {
   premiumMediaStyle,
   premiumStudioCssVariables,
   premiumThemePreset,
-  type PremiumBorderStyle,
   type PremiumMediaTransform,
   type PremiumProfileTheme,
   type PremiumStudioSettings,
