@@ -9,7 +9,10 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '@/components/Icon';
 import KodikPlayer, { type KodikPlayerHandle } from '@/components/KodikPlayer';
-import DirectVideoPlayer from '@/components/DirectVideoPlayer';
+import DirectVideoPlayer, {
+  type DirectPlayerControlAction,
+  type DirectPlayerTimelineMarker,
+} from '@/components/DirectVideoPlayer';
 import EpisodeJourneyTracker from '@/components/EpisodeJourneyTracker';
 import { useWatchSession } from '@/components/useWatchSession';
 import { useAuthState } from '@/components/AuthStateProvider';
@@ -175,6 +178,22 @@ function getPlayerSurface() {
     ? 'mobile'
     : 'desktop';
 }
+
+const DIRECT_PLAYER_CONTROL_EVENT: Record<
+  DirectPlayerControlAction,
+  Parameters<typeof trackProductClientEvent>[0]
+> = {
+  play: 'player_control_play',
+  pause: 'player_control_pause',
+  seek: 'player_control_seek',
+  volume: 'player_control_volume',
+  mute: 'player_control_mute',
+  unmute: 'player_control_mute',
+  speed: 'player_control_speed',
+  pip: 'player_control_pip',
+  fullscreen: 'player_control_fullscreen',
+  quality: 'player_control_quality',
+};
 
 const TRANSLATION_PREFERENCE_PREFIX = 'animebox:translation:v1';
 const LOCAL_PROGRESS_SAVE_INTERVAL_MS = 5_000;
@@ -589,6 +608,44 @@ export default function AnimePlayer({
     playerAttempt,
     watchTogetherMode,
   ]);
+
+  const directTimelineMarkers = useMemo<DirectPlayerTimelineMarker[]>(() => {
+    const markers: DirectPlayerTimelineMarker[] = [];
+
+    if (
+      timeline?.opening &&
+      timeline.opening.endMs > timeline.opening.startMs
+    ) {
+      markers.push({
+        kind: 'opening',
+        startSeconds: Math.max(0, timeline.opening.startMs / 1000),
+        endSeconds: Math.max(0, timeline.opening.endMs / 1000),
+      });
+    }
+
+    if (
+      timeline?.ending &&
+      timeline.ending.endMs > timeline.ending.startMs
+    ) {
+      markers.push({
+        kind: 'ending',
+        startSeconds: Math.max(0, timeline.ending.startMs / 1000),
+        endSeconds: Math.max(0, timeline.ending.endMs / 1000),
+      });
+    }
+
+    return markers;
+  }, [timeline]);
+
+  const handleDirectControlAction = useCallback((
+    action: DirectPlayerControlAction,
+    metadata: Record<string, unknown> = {},
+  ) => {
+    trackPlayerEvent(DIRECT_PLAYER_CONTROL_EVENT[action], {
+      control: action,
+      ...metadata,
+    });
+  }, [trackPlayerEvent]);
 
   const markConfirmedPlaybackStart = useCallback((signal: 'timeupdate' | 'play') => {
     if (!started) return;
@@ -2970,7 +3027,7 @@ export default function AnimePlayer({
             />
           )}
 
-          {isKodik || trackableNativeVideo ? (
+          {isKodik ? (
             <PlayerDropdown
               label="Скорость"
               value={String(playbackSpeed)}
@@ -2993,7 +3050,7 @@ export default function AnimePlayer({
             />
           ) : null}
 
-          {isKodik || trackableNativeVideo ? (
+          {isKodik ? (
             <button
               type="button"
               onClick={() => void togglePictureInPicture()}
@@ -3022,16 +3079,18 @@ export default function AnimePlayer({
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={() => void toggleFullscreen()}
-            className="premium-player-toolbar-button inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 text-[11px] font-bold text-white/55 transition hover:border-violet-400/20 hover:bg-violet-500/[0.07] hover:text-white"
-          >
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
-              <path d="M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span className="hidden sm:inline">{fullscreenActive ? 'Выйти из полного экрана' : 'Полный экран'}</span>
-          </button>
+          {(isKodik || isIframe) && (
+            <button
+              type="button"
+              onClick={() => void toggleFullscreen()}
+              className="premium-player-toolbar-button inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 text-[11px] font-bold text-white/55 transition hover:border-violet-400/20 hover:bg-violet-500/[0.07] hover:text-white"
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+                <path d="M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="hidden sm:inline">{fullscreenActive ? 'Выйти из полного экрана' : 'Полный экран'}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -3260,6 +3319,7 @@ export default function AnimePlayer({
                     initialVolume={playbackVolume}
                     initialMuted={playbackMuted}
                     initialPlaybackRate={playbackSpeed}
+                    timelineMarkers={directTimelineMarkers}
                     fullscreenActive={fullscreenActive}
                     onToggleFullscreen={toggleFullscreen}
                     onReady={markPlayerReady}
