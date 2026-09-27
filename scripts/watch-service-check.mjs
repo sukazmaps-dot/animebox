@@ -59,6 +59,15 @@ if (
 }
 
 if (
+  !watchServer.includes("from '@/lib/watch-playback-integrity'") ||
+  !watchServer.includes('inspectPlaybackAdvance({') ||
+  !watchServer.includes('acceptedRealWatchMs(wallDelta)') ||
+  !watchServer.includes("'accepted_accelerated'")
+) {
+  failures.push('accelerated playback can bypass wall-clock watch-time integrity');
+}
+
+if (
   !watch.includes("window.addEventListener('online', onOnline)") ||
   !watch.includes("window.addEventListener('offline', onOffline)") ||
   !watch.includes("status === 409") ||
