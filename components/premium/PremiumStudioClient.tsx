@@ -94,6 +94,8 @@ const NICKNAME_META: Record<PremiumNicknameEffect, string> = {
   gradient: 'Gradient',
   shimmer: 'Shimmer',
   glow: 'Glow',
+  manga: 'Manga Cut',
+  glitch: 'Glitch',
 };
 
 const HERO_META: Record<PremiumHeroStyle, string> = {
