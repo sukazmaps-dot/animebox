@@ -539,3 +539,30 @@
 .premium-status + .premium-cta {
   margin-top: 10px;
 }
+
+
+/* Patch 18.9.4 — particle surface integration stays route-scoped. */
+.premium-studio-v18__particle-layer {
+  z-index: 2;
+}
+
+.premium-studio-v12__preview-banner {
+  z-index: 0;
+}
+
+.premium-studio-v12__preview-body {
+  z-index: 3;
+}
+
+.profile-v2__hero > .premium-particles-profile-hero {
+  z-index: 2;
+}
+
+.profile-v2__hero > .profile-v2__identity {
+  position: relative;
+  z-index: 3;
+}
+
+.premium-studio-v18__particle-options {
+  flex-wrap: wrap;
+}
