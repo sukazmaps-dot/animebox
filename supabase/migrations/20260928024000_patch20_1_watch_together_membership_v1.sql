@@ -329,3 +329,133 @@ comment on function public.watch_party_sync_member(text, uuid, text, text, text,
   'Atomically validates an invite, refreshes/ends membership and recalculates room occupancy.';
 comment on function public.watch_party_transfer_host_atomic(text, uuid, uuid) is
   'Atomically transfers Watch Together host authority only to a live room member.';
+
+
+create or replace function public.watch_party_claim_stale_host(
+  p_room_id text,
+  p_candidate_user uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  room_host uuid;
+  room_status text;
+  room_epoch bigint;
+  host_last_seen timestamptz;
+  elected_user uuid;
+begin
+  if p_candidate_user is null then
+    raise exception 'AUTH_REQUIRED';
+  end if;
+
+  if p_room_id is null or p_room_id !~ '^[a-f0-9]{24}$' then
+    raise exception 'ROOM_INVALID';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtextextended(p_room_id, 2012));
+
+  select r.host_user_id, r.status, r.host_epoch
+  into room_host, room_status, room_epoch
+  from public.watch_party_rooms r
+  where r.id = p_room_id
+  for update;
+
+  if not found then
+    raise exception 'ROOM_NOT_FOUND';
+  end if;
+  if room_status = 'ended' then
+    raise exception 'ROOM_ENDED';
+  end if;
+
+  select m.last_seen_at
+  into host_last_seen
+  from public.watch_party_room_members m
+  where m.room_id = p_room_id
+    and m.user_id = room_host
+    and m.left_at is null;
+
+  if host_last_seen is not null
+     and host_last_seen >= now() - interval '75 seconds' then
+    return jsonb_build_object(
+      'claimed', false,
+      'reason', 'host_alive',
+      'host_user_id', room_host,
+      'host_epoch', room_epoch
+    );
+  end if;
+
+  update public.watch_party_room_members m
+  set left_at = coalesce(m.left_at, now())
+  where m.room_id = p_room_id
+    and m.left_at is null
+    and m.last_seen_at < now() - interval '75 seconds';
+
+  select m.user_id
+  into elected_user
+  from public.watch_party_room_members m
+  where m.room_id = p_room_id
+    and m.left_at is null
+    and m.last_seen_at >= now() - interval '75 seconds'
+    and m.user_id <> room_host
+  order by m.joined_at asc, m.user_id asc
+  limit 1;
+
+  if elected_user is null then
+    return jsonb_build_object(
+      'claimed', false,
+      'reason', 'no_successor',
+      'host_user_id', room_host,
+      'host_epoch', room_epoch
+    );
+  end if;
+
+  if elected_user <> p_candidate_user then
+    return jsonb_build_object(
+      'claimed', false,
+      'reason', 'not_elected',
+      'host_user_id', room_host,
+      'host_epoch', room_epoch,
+      'elected_user_id', elected_user
+    );
+  end if;
+
+  room_epoch := room_epoch + 1;
+
+  update public.watch_party_rooms
+  set host_user_id = elected_user,
+      host_epoch = room_epoch,
+      last_heartbeat_at = now(),
+      updated_at = now()
+  where id = p_room_id;
+
+  update public.watch_party_room_members
+  set role = case
+        when user_id = elected_user then 'host'
+        else 'guest'
+      end,
+      last_seen_at = case
+        when user_id = elected_user then now()
+        else last_seen_at
+      end
+  where room_id = p_room_id
+    and left_at is null;
+
+  return jsonb_build_object(
+    'claimed', true,
+    'reason', 'host_stale',
+    'host_user_id', elected_user,
+    'host_epoch', room_epoch
+  );
+end;
+$$;
+
+revoke all on function public.watch_party_claim_stale_host(text, uuid)
+  from public, anon, authenticated;
+grant execute on function public.watch_party_claim_stale_host(text, uuid)
+  to service_role;
+
+comment on function public.watch_party_claim_stale_host(text, uuid) is
+  'Elects the oldest live guest as host after the previous host presence has expired. Advisory locking prevents split-brain host claims.';
