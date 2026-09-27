@@ -39,6 +39,7 @@ export default function TelegramWelcomePromo() {
   const pathname = usePathname();
   const { user, profile, loading, telegramMiniApp } = useAuthState();
   const [welcome, setWelcome] = useState<WelcomeState>(null);
+  const [brandImageFailed, setBrandImageFailed] = useState(false);
   const impressionSentRef = useRef(false);
 
   const resolveWelcome = useCallback(() => {
@@ -189,14 +190,25 @@ export default function TelegramWelcomePromo() {
 
         <div className="telegram-welcome__art telegram-welcome__art--animebox" aria-hidden="true">
           <div className="registration-welcome__logo-shell">
-            <Image
-              src="/logo.png"
-              alt=""
-              width={180}
-              height={180}
-              sizes="180px"
-              priority={false}
-            />
+            {brandImageFailed ? (
+              <span
+                className="registration-welcome__logo-fallback"
+                aria-hidden="true"
+              >
+                ✦
+              </span>
+            ) : (
+              <Image
+                src="/logo.png"
+                alt=""
+                width={180}
+                height={180}
+                sizes="180px"
+                priority={false}
+                unoptimized
+                onError={() => setBrandImageFailed(true)}
+              />
+            )}
           </div>
           <div className="registration-welcome__art-copy">
             <small>ANIMEBOX ACCOUNT</small>
