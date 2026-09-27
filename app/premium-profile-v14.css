@@ -2215,9 +2215,7 @@
 
 /* ---------- Atmosphere canvas ---------- */
 .premium-profile-v21__atmosphere {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
+  display: contents;
   border-radius: inherit;
   pointer-events: none;
 }
