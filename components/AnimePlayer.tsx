@@ -2712,24 +2712,6 @@ export default function AnimePlayer({
             />
           )}
 
-          {isIframe && started && videoLink && !telegramAndroidMiniApp && (
-            <button
-              type="button"
-              onClick={() => void toggleFullscreen()}
-              className="absolute bottom-3 right-3 z-[85] grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-black/45 text-white/70 opacity-75 shadow-[0_8px_28px_rgba(0,0,0,.3)] backdrop-blur-md transition hover:border-violet-300/35 hover:bg-black/70 hover:text-white hover:opacity-100 focus-visible:opacity-100"
-              aria-label={fullscreenActive ? 'Выйти из полного экрана' : 'Открыть плеер на весь экран'}
-              title={fullscreenActive ? 'Выйти из полного экрана' : 'Полный экран AnimeBox'}
-            >
-              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
-                {fullscreenActive ? (
-                  <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                ) : (
-                  <path d="M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                )}
-              </svg>
-            </button>
-          )}
-
           {isKodik && videoLink && (
             <KodikPlayer
               ref={kodikPlayerRef}
