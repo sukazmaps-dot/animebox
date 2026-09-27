@@ -857,11 +857,23 @@ export default function AnimePlayer({
       recoveryAttempt: state.recoveryAttempt,
     };
 
-    if (state.phase === 'ready') {
+    const recoveredOrResumed =
+      previousPhase === 'buffering' ||
+      previousPhase === 'recovering';
+
+    if (
+      recoveredOrResumed &&
+      (state.phase === 'ready' || state.phase === 'playing')
+    ) {
+      trackPlayerEvent('player_buffering_end', engineMeta);
+    }
+
+    if (
+      state.phase === 'ready' &&
+      previousPhase !== 'buffering' &&
+      previousPhase !== 'recovering'
+    ) {
       trackPlayerEvent('player_engine_ready', engineMeta);
-      if (previousPhase === 'buffering' || previousPhase === 'recovering') {
-        trackPlayerEvent('player_buffering_end', engineMeta);
-      }
       return;
     }
 
@@ -2274,6 +2286,13 @@ export default function AnimePlayer({
         startupMs,
         timeToPlayerReadyMs,
       });
+      trackPlayerEvent('player_startup_ms', {
+        engine:
+          playbackEngineState?.engine ??
+          (isKodik ? 'kodik' : isHls ? 'hls' : isIframe ? 'iframe' : 'native'),
+        startupMs,
+        timeToPlayerReadyMs,
+      });
     }
 
     setPlayerReady(true);
@@ -2285,6 +2304,10 @@ export default function AnimePlayer({
     currentSource?.name,
     currentSourceName,
     currentSourceType,
+    isHls,
+    isIframe,
+    isKodik,
+    playbackEngineState?.engine,
     setSourceStatus,
     sourceDiscoveryStartedAtMs,
     trackPlayerEvent,
@@ -2356,6 +2379,17 @@ export default function AnimePlayer({
         Math.floor(latestPlaybackPositionSecondsRef.current),
       ),
       failedCandidates: failedCandidatesRef.current.size,
+    }, true);
+    trackPlayerEvent('player_engine_fallback', {
+      fromProvider: from,
+      toProvider: to,
+      fromEngine:
+        playbackEngineState?.engine ??
+        (isKodik ? 'kodik' : isHls ? 'hls' : isIframe ? 'iframe' : 'native'),
+      resumeSeconds: Math.max(
+        0,
+        Math.floor(latestPlaybackPositionSecondsRef.current),
+      ),
     }, true);
 
     sourceSelectionReasonRef.current = 'fallback';
