@@ -9,49 +9,55 @@ export type ProgressionMilestoneDefinition = {
   subtitle: string;
   frameStage: EvolutionFrameStage;
   asset: string;
+  premiumAsset: string;
   premiumHint: string;
 };
 
 export const PROGRESSION_MILESTONES: readonly ProgressionMilestoneDefinition[] = [
   {
     level: 10,
-    title: 'Пробуждение',
-    subtitle: 'Первая эволюция профиля',
+    title: 'Identity',
+    subtitle: 'Первая большая ступень — профиль получает собственную визуальную идентичность',
     frameStage: 1,
-    asset: '/brand/progression-v3/frame-stage-1.svg',
-    premiumHint: 'Premium добавляет мягкую живую ауру, но не ускоряет XP.',
+    asset: '/brand/frames/milestone/free/lv10-forbidden-relic.svg',
+    premiumAsset: '/brand/frames/milestone/premium/lv10-forbidden-relic-premium.svg',
+    premiumHint: 'Free — строгая матовая рамка. Premium — живая aura-анимация без бонуса к XP.',
   },
   {
     level: 25,
-    title: 'Вторая форма',
-    subtitle: 'Профиль становится заметнее',
+    title: 'Profile',
+    subtitle: 'Оформление профиля переходит на следующую ступень',
     frameStage: 2,
-    asset: '/brand/progression-v3/frame-stage-2.svg',
-    premiumHint: 'Premium усиливает motion и glow без gameplay-бонусов.',
+    asset: '/brand/frames/milestone/free/lv25-flame-arc.svg',
+    premiumAsset: '/brand/frames/milestone/premium/lv25-flame-arc-premium.svg',
+    premiumHint: 'Free — статичная форма. Premium — animated flame arc, искры и glow.',
   },
   {
     level: 50,
-    title: 'Высшая форма',
-    subtitle: 'Середина пути к престижу',
+    title: 'Veteran',
+    subtitle: 'Профиль показывает долгий путь пользователя в AnimeBox',
     frameStage: 3,
-    asset: '/brand/progression-v3/frame-stage-3.svg',
-    premiumHint: 'Premium оживляет декоративный слой рамки.',
+    asset: '/brand/frames/milestone/free/lv50-crimson-sigil.svg',
+    premiumAsset: '/brand/frames/milestone/premium/lv50-crimson-sigil-premium.svg',
+    premiumHint: 'Free — матовая crimson-печать. Premium — живая sigil-анимация и спектральная аура.',
   },
   {
     level: 75,
-    title: 'Предельная форма',
-    subtitle: 'Последняя ступень перед Prestige',
+    title: 'Elite',
+    subtitle: 'Последняя долгосрочная ступень перед Prestige',
     frameStage: 4,
-    asset: '/brand/progression-v3/frame-stage-4.svg',
-    premiumHint: 'Premium добавляет более насыщенную атмосферу и свечение.',
+    asset: '/brand/frames/milestone/free/lv75-menacing-manga.svg',
+    premiumAsset: '/brand/frames/milestone/premium/lv75-menacing-manga-premium.svg',
+    premiumHint: 'Free — строгий manga-pressure. Premium — animated pressure, aura и более глубокий glow.',
   },
   {
     level: 100,
-    title: 'Prestige I',
-    subtitle: 'Максимальный уровень без сброса прогресса',
+    title: 'Prestige',
+    subtitle: 'Максимальный уровень без сброса прогресса — Prestige становится видимым',
     frameStage: 4,
-    asset: '/brand/progression-v3/frame-prestige.svg',
-    premiumHint: 'Prestige одинаков для всех; Premium меняет только визуальную подачу.',
+    asset: '/brand/frames/milestone/free/lv100-absolute-prestige.svg',
+    premiumAsset: '/brand/frames/milestone/premium/lv100-absolute-prestige-premium.svg',
+    premiumHint: 'Prestige доступен всем. Premium добавляет максимальную animated-версию рамки и aura, но не ускоряет прогресс.',
   },
 ] as const;
 
@@ -102,4 +108,14 @@ export function evolutionFrameAsset(
   if (prestigeTier >= 1) return '/brand/progression-v3/frame-prestige.svg';
   if (frameStage <= 0) return null;
   return `/brand/progression-v3/frame-stage-${frameStage}.svg`;
+}
+
+
+export function progressionMilestoneAsset(
+  level: ProgressionMilestoneDefinition['level'],
+  premium = false,
+) {
+  const milestone = PROGRESSION_MILESTONES.find((item) => item.level === level);
+  if (!milestone) return null;
+  return premium ? milestone.premiumAsset : milestone.asset;
 }
