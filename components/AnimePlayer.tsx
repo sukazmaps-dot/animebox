@@ -2288,8 +2288,7 @@ export default function AnimePlayer({
       });
       trackPlayerEvent('player_startup_ms', {
         engine:
-          playbackEngineState?.engine ??
-          (isKodik ? 'kodik' : isHls ? 'hls' : isIframe ? 'iframe' : 'native'),
+          isKodik ? 'kodik' : isHls ? 'hls' : isIframe ? 'iframe' : 'native',
         startupMs,
         timeToPlayerReadyMs,
       });
@@ -2307,7 +2306,6 @@ export default function AnimePlayer({
     isHls,
     isIframe,
     isKodik,
-    playbackEngineState?.engine,
     setSourceStatus,
     sourceDiscoveryStartedAtMs,
     trackPlayerEvent,
@@ -2384,8 +2382,7 @@ export default function AnimePlayer({
       fromProvider: from,
       toProvider: to,
       fromEngine:
-        playbackEngineState?.engine ??
-        (isKodik ? 'kodik' : isHls ? 'hls' : isIframe ? 'iframe' : 'native'),
+        isKodik ? 'kodik' : isHls ? 'hls' : isIframe ? 'iframe' : 'native',
       resumeSeconds: Math.max(
         0,
         Math.floor(latestPlaybackPositionSecondsRef.current),
@@ -2415,7 +2412,6 @@ export default function AnimePlayer({
     isHls,
     isIframe,
     isKodik,
-    playbackEngineState?.engine,
     setSourceStatus,
     started,
     trackPlayerEvent,
