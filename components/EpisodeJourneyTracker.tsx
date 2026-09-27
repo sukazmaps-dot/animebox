@@ -25,20 +25,30 @@ type JourneyEvent = {
   imageUrl: string | null;
 };
 
+type UnlockEvent = {
+  id: string;
+  kind: string;
+  title: string;
+  description: string;
+  rarity: JourneyEvent['rarity'];
+  imageUrl?: string | null;
+};
+
 type UnlockPayload = {
   unlocked?: boolean;
-  event?: {
-    id: string;
-    kind: string;
-    title: string;
-    description: string;
-    rarity: JourneyEvent['rarity'];
-    imageUrl?: string | null;
-  };
+  event?: UnlockEvent;
 };
 
 const RETRY_AFTER_MS = 4_000;
 const POPUP_MS = 5_500;
+
+const RARITY_PRIORITY: Record<JourneyEvent['rarity'], number> = {
+  common: 1,
+  uncommon: 2,
+  rare: 3,
+  epic: 4,
+  legendary: 5,
+};
 
 function kindLabel(kind: string) {
   const labels: Record<string, string> = {
@@ -55,17 +65,29 @@ function kindLabel(kind: string) {
   return labels[kind] ?? 'Момент';
 }
 
+function enqueueByPriority(queue: UnlockEvent[], event: UnlockEvent) {
+  if (queue.some((item) => item.id === event.id)) return queue;
+
+  return [...queue, event].sort(
+    (a, b) => RARITY_PRIORITY[b.rarity] - RARITY_PRIORITY[a.rarity],
+  );
+}
+
 export default function EpisodeJourneyTracker({
   animeId,
   episode,
+  suspended = false,
 }: {
   animeId: number;
   episode: number;
+  suspended?: boolean;
 }) {
   const [events, setEvents] = useState<JourneyEvent[]>([]);
-  const [toast, setToast] = useState<UnlockPayload['event'] | null>(null);
+  const [toast, setToast] = useState<UnlockEvent | null>(null);
+  const [pendingToasts, setPendingToasts] = useState<UnlockEvent[]>([]);
   const [soundReady, setSoundReady] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+
   const attemptedRef = useRef(new Map<string, number>());
   const toastTimerRef = useRef<number | null>(null);
 
@@ -170,9 +192,7 @@ export default function EpisodeJourneyTracker({
               kind: payload.event.kind,
             });
 
-            setToast(payload.event);
-            if (toastTimerRef.current != null) window.clearTimeout(toastTimerRef.current);
-            toastTimerRef.current = window.setTimeout(() => setToast(null), POPUP_MS);
+            setPendingToasts((current) => enqueueByPriority(current, payload.event!));
           })
           .catch(() => undefined);
       }
@@ -182,37 +202,61 @@ export default function EpisodeJourneyTracker({
     return () => window.removeEventListener('animebox:player-time-sample', onSample);
   }, [animeId, episode, events]);
 
+  useEffect(() => {
+    if (!suspended || !toast) return;
+
+    if (toastTimerRef.current != null) {
+      window.clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+
+    setPendingToasts((current) => enqueueByPriority(current, toast));
+    setToast(null);
+  }, [suspended, toast]);
+
+  useEffect(() => {
+    if (suspended || toast || pendingToasts.length === 0) return;
+
+    const [next, ...rest] = pendingToasts;
+    setPendingToasts(rest);
+    setToast(next);
+
+    toastTimerRef.current = window.setTimeout(() => {
+      setToast(null);
+      toastTimerRef.current = null;
+    }, POPUP_MS);
+  }, [pendingToasts, suspended, toast]);
+
   useEffect(() => () => {
-    if (toastTimerRef.current != null) window.clearTimeout(toastTimerRef.current);
+    if (toastTimerRef.current != null) {
+      window.clearTimeout(toastTimerRef.current);
+    }
   }, []);
 
-
-  if (!toast) return null;
+  if (!toast || suspended) return null;
 
   return (
     <>
-      {toast && (
-        <aside className={styles.toast} data-rarity={toast.rarity} aria-live="polite">
-          <div className={styles.spark}>✦</div>
-          <div>
-            <span>{kindLabel(toast.kind)} · Путь открыт</span>
-            <strong>{toast.title}</strong>
-            {toast.description && <p>{toast.description}</p>}
-          </div>
-        </aside>
-      )}
+      <aside className={styles.toast} data-rarity={toast.rarity} aria-live="polite">
+        <div className={styles.spark}>✦</div>
+        <div>
+          <span>{kindLabel(toast.kind)} · Путь открыт</span>
+          <strong>{toast.title}</strong>
+          {toast.description && <p>{toast.description}</p>}
+        </div>
 
-      {!soundReady && (
-        <button
-          type="button"
-          className={styles.soundButton}
-          onClick={() => void unlockAchievementSoundsFromGesture()}
-          aria-label="Включить звуки достижений"
-          title="Включить звуки достижений"
-        >
-          {soundEnabled ? 'Включить звук' : 'Звук выключен'}
-        </button>
-      )}
+        {!soundReady && (
+          <button
+            type="button"
+            className={styles.soundButton}
+            onClick={() => void unlockAchievementSoundsFromGesture()}
+            aria-label="Включить звуки достижений"
+            title="Включить звуки достижений"
+          >
+            {soundEnabled ? 'Включить звук' : 'Звук выключен'}
+          </button>
+        )}
+      </aside>
     </>
   );
 }
