@@ -97,8 +97,16 @@ if (
   failures.push('episode Watch Together launcher does not pass room metadata');
 }
 
+const publicRoomTypeStart = hub.indexOf('type PublicWatchPartyRoom = {');
+const publicRoomTypeEnd = hub.indexOf('type PublicRoomsResponse', publicRoomTypeStart);
+const publicRoomType =
+  publicRoomTypeStart >= 0 && publicRoomTypeEnd > publicRoomTypeStart
+    ? hub.slice(publicRoomTypeStart, publicRoomTypeEnd)
+    : '';
+
 if (
-  hub.includes('joinSecret: string;') ||
+  !publicRoomType ||
+  publicRoomType.includes('joinSecret') ||
   !hub.includes('/api/watch-party/rooms/resolve?') ||
   !hub.includes('watch_party_code_joined') ||
   !hub.includes('joinPublicRoom(room)') ||
