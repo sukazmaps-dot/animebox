@@ -881,6 +881,29 @@ export default function AnimePlayer({
     }
   }, [isKodik]);
 
+  const changePlaybackEpisode = useCallback((
+    nextEpisode: number,
+    season?: number,
+  ) => {
+    if (
+      !Number.isSafeInteger(nextEpisode) ||
+      nextEpisode < 1 ||
+      !isKodik
+    ) {
+      return false;
+    }
+
+    const player = kodikPlayerRef.current;
+    if (!player) return false;
+
+    player.changeEpisode({
+      episode: nextEpisode,
+      season,
+      withoutReload: true,
+    });
+    return true;
+  }, [isKodik]);
+
   const getPrecisePlaybackPosition = useCallback(async () => {
     if (isKodik) {
       const player = kodikPlayerRef.current;
@@ -910,6 +933,7 @@ export default function AnimePlayer({
     getSnapshot: getPlaybackSnapshot,
     getTime: getPrecisePlaybackPosition,
     getDuration: () => getPlaybackSnapshot().durationSeconds,
+    changeEpisode: changePlaybackEpisode,
     play: playPlayback,
     pause: pausePlayback,
     seek: seekPlayback,
@@ -920,6 +944,7 @@ export default function AnimePlayer({
     exitPip: exitPlaybackPip,
   }), [
     applyPlaybackSpeed,
+    changePlaybackEpisode,
     enterPlaybackPip,
     exitPlaybackPip,
     getPlaybackSnapshot,
@@ -995,10 +1020,13 @@ export default function AnimePlayer({
     );
     setActiveTranslationIndex(0);
 
+    playbackController.changeEpisode(episodeNumber);
+
   }, [
     animeId,
     applyResumeTarget,
     episodeNumber,
+    playbackController,
     sources.length,
   ]);
 
