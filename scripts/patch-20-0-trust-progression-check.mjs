@@ -9,6 +9,8 @@ const achievements = fs.readFileSync('components/AchievementsClient.tsx', 'utf8'
 const journeyPage = fs.readFileSync('app/achievements/journey/page.tsx', 'utf8');
 const journeyClient = fs.readFileSync('components/AchievementJourneyClient.tsx', 'utf8');
 const progressionAudit = fs.readFileSync('app/api/admin/progression-integrity/route.ts', 'utf8');
+const communityComments = fs.readFileSync('app/api/community/comments/route.ts', 'utf8');
+const episodeComments = fs.readFileSync('app/api/comments/route.ts', 'utf8');
 const migration = fs.readFileSync(
   'supabase/migrations/20260928010000_patch20_trusted_progression_v1.sql',
   'utf8',
@@ -85,6 +87,23 @@ if (
   !progressionAudit.includes('getProgressionIntegritySnapshot')
 ) {
   failures.push('progression integrity diagnostics are missing or unprotected');
+}
+
+if (
+  !pipeline.includes('applyCommunityCommentProgression') ||
+  !communityComments.includes('applyCommunityCommentProgression') ||
+  !episodeComments.includes('applyCommunityCommentProgression')
+) {
+  failures.push('comment progression is not routed through unified event pipeline');
+}
+
+if (
+  !migration.includes("'secret_episodes_404'") ||
+  !migration.includes("'secret_watch_7777'") ||
+  !migration.includes("'secret_streak_21'") ||
+  migration.includes('where not a.hidden')
+) {
+  failures.push('secret achievement evaluator is incomplete');
 }
 
 if (failures.length) {
