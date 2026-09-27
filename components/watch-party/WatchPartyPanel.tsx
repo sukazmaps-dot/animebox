@@ -87,9 +87,27 @@ type RoomIdentitiesResponse = {
   users?: RoomPublicIdentity[];
 };
 
+type RoomMembership = {
+  room_id?: string;
+  host_user_id?: string;
+  host_epoch?: number;
+  participant_count?: number;
+  max_participants?: number;
+  episode?: number;
+  status?: string;
+  role?: 'host' | 'guest';
+};
+
+type RoomPresenceResponse = {
+  ok?: boolean;
+  membership?: RoomMembership;
+  error?: string;
+};
+
 const HOST_HEARTBEAT_MS = 20_000;
-const PLAYER_SYNC_MS = 20_000;
-const PLAYER_DRIFT_SEEK_SECONDS = 2;
+const SERVER_PRESENCE_MS = 25_000;
+const PLAYER_SYNC_MS = 8_000;
+const PLAYER_DRIFT_SEEK_SECONDS = 1.5;
 const CHAT_SEND_COOLDOWN_MS = 650;
 const NEGOTIATION_TIMEOUT_MS = 18_000;
 const HANDSHAKE_TIMEOUT_MS = 8_000;
@@ -161,11 +179,15 @@ export default function WatchPartyPanel({
   animeTitle,
   animeSlug,
   episodeNumber,
+  animeId = null,
+  coverUrl = null,
   mode = 'inline',
 }: {
   animeTitle: string;
   animeSlug: string;
   episodeNumber: number;
+  animeId?: number | null;
+  coverUrl?: string | null;
   mode?: 'inline' | 'theater';
 }) {
   const [role, setRole] = useState<PartyRole>(null);
@@ -185,6 +207,8 @@ export default function WatchPartyPanel({
   const [liveReactions, setLiveReactions] = useState<WatchPartyReactionEvent[]>([]);
   const [voteState, setVoteState] = useState<WatchPartyVoteState>(EMPTY_VOTE_STATE);
   const [myVote, setMyVote] = useState<WatchPartyVote | null>(null);
+  const [authoritativeParticipantCount, setAuthoritativeParticipantCount] = useState(0);
+  const [creatingRoom, setCreatingRoom] = useState(false);
 
   const theaterPath = watchPartyTheaterPath(animeSlug, episodeNumber);
   const episodePath = `/anime/${encodeURIComponent(animeSlug)}/episode/${episodeNumber}`;
@@ -204,6 +228,7 @@ export default function WatchPartyPanel({
   const hostReclaimAttemptRef = useRef(0);
   const reconnectTimerRef = useRef<number | null>(null);
   const heartbeatTimerRef = useRef<number | null>(null);
+  const membershipTimerRef = useRef<number | null>(null);
   const syncTimerRef = useRef<number | null>(null);
   const identityPromiseRef = useRef<Promise<PartyIdentity | null> | null>(null);
   const identityRef = useRef<PartyIdentity | null>(null);
@@ -235,6 +260,7 @@ export default function WatchPartyPanel({
   const lastPresenceCountRef = useRef(0);
   const lastDriftTelemetryAtRef = useRef(0);
   const chatSendPendingRef = useRef(false);
+  const hostEpochRef = useRef(0);
 
   const clearGuestJoinDeadline = useCallback(() => {
     if (guestJoinTimerRef.current != null) {
@@ -608,6 +634,10 @@ export default function WatchPartyPanel({
     if (syncTimerRef.current != null) {
       window.clearInterval(syncTimerRef.current);
       syncTimerRef.current = null;
+    }
+    if (membershipTimerRef.current != null) {
+      window.clearInterval(membershipTimerRef.current);
+      membershipTimerRef.current = null;
     }
     if (relayFallbackTimerRef.current != null) {
       window.clearTimeout(relayFallbackTimerRef.current);
