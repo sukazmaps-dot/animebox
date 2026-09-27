@@ -160,6 +160,9 @@ need('reward materialization', rewardServer, [
   'getSelectedSeasonFrame',
   'selectSeasonFrame',
   'sendTelegramMessage',
+  'reconcilePremiumForUser',
+  "row.reward_key === 'weekly_champion'",
+  'autoPremiumUsers',
   'buttonText: \'Забрать приз\'',
 ]);
 
@@ -312,6 +315,9 @@ need('Profile Studio responsive CSS', editorCss, [
 need('profile rewards panel', rewardsPanel, [
   'Награды AnimeBox League',
   'Забрать приз',
+  'premiumGranted',
+  'активированы автоматически',
+  'Забрать рамку',
   'Рамки League в инвентаре',
   'Открыть Frame Inventory',
   'Прошлые сезоны',
