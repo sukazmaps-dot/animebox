@@ -418,3 +418,172 @@
     align-items: flex-start;
   }
 }
+
+
+/* PATCH 19.1 · AnimeBox vector notification empty states */
+.notifications-empty--visual{
+  position:relative;
+  overflow:hidden;
+  display:grid;
+  grid-template-columns:104px minmax(0,1fr) auto;
+  align-items:center;
+  gap:18px;
+  min-height:132px;
+  padding:18px 20px;
+  border:1px solid rgba(145,134,231,.14);
+  border-radius:18px;
+  background:
+    radial-gradient(circle at 7% 42%,rgba(112,88,232,.10),transparent 30%),
+    linear-gradient(145deg,rgba(15,20,35,.82),rgba(9,14,26,.62));
+}
+
+.notifications-empty--visual::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 87% 22%,rgba(185,175,247,.38) 0 1px,transparent 1.6px),
+    radial-gradient(circle at 78% 72%,rgba(110,204,255,.28) 0 1px,transparent 1.6px),
+    radial-gradient(circle at 58% 18%,rgba(145,134,231,.24) 0 1px,transparent 1.6px);
+  background-size:148px 126px,182px 154px,214px 168px;
+  opacity:.42;
+}
+
+.notifications-empty__visual{
+  position:relative;
+  z-index:1;
+  display:grid;
+  width:86px;
+  height:86px;
+  place-items:center;
+  justify-self:center;
+}
+
+.notifications-empty__visual::before,
+.notifications-empty__visual::after,
+.notifications-empty__orbit{
+  content:'';
+  position:absolute;
+  border-radius:50%;
+  pointer-events:none;
+}
+
+.notifications-empty__visual::before{
+  inset:9px;
+  border:1px solid rgba(145,134,231,.24);
+  background:
+    radial-gradient(circle at 40% 35%,rgba(159,126,255,.20),transparent 44%),
+    rgba(11,16,29,.76);
+  box-shadow:
+    0 0 34px rgba(112,88,232,.14),
+    inset 0 0 24px rgba(145,134,231,.08);
+}
+
+.notifications-empty__visual::after{
+  inset:0;
+  border:1px solid rgba(145,134,231,.11);
+}
+
+.notifications-empty__orbit{
+  inset:-6px;
+  border:1px dashed rgba(145,134,231,.18);
+  transform:rotate(-17deg);
+}
+
+.notifications-empty__icon{
+  position:relative;
+  z-index:2;
+  width:58px;
+  height:58px;
+  object-fit:contain;
+  filter:drop-shadow(0 0 13px rgba(137,104,255,.26));
+}
+
+.notifications-empty__spark{
+  position:absolute;
+  z-index:3;
+  width:5px;
+  height:5px;
+  border-radius:2px;
+  background:#b9aff7;
+  box-shadow:0 0 10px rgba(185,175,247,.68);
+  transform:rotate(45deg);
+}
+
+.notifications-empty__spark--one{
+  top:8px;
+  right:9px;
+}
+
+.notifications-empty__spark--two{
+  left:7px;
+  bottom:13px;
+  width:3px;
+  height:3px;
+  background:#78c9f6;
+}
+
+.notifications-empty--visual p{
+  position:relative;
+  z-index:1;
+  max-width:520px;
+  margin:0;
+  color:rgba(202,211,228,.70);
+  font-size:12px;
+  line-height:1.6;
+}
+
+.notifications-empty--visual a{
+  position:relative;
+  z-index:1;
+  display:inline-flex;
+  min-height:42px;
+  align-items:center;
+  justify-content:center;
+  padding:0 14px;
+  border:1px solid rgba(145,134,231,.22);
+  border-radius:12px;
+  background:rgba(145,134,231,.075);
+  color:#c9c0ff;
+  font-size:11px;
+  font-weight:760;
+  transition:border-color .16s ease,background-color .16s ease,transform .16s ease;
+}
+
+.notifications-empty--visual a:hover{
+  transform:translateY(-1px);
+  border-color:rgba(145,134,231,.38);
+  background:rgba(145,134,231,.12);
+  color:#eeeaff;
+}
+
+@media(max-width:700px){
+  .notifications-empty--visual{
+    grid-template-columns:76px minmax(0,1fr);
+    gap:14px;
+    min-height:116px;
+    padding:15px;
+  }
+
+  .notifications-empty__visual{
+    width:68px;
+    height:68px;
+  }
+
+  .notifications-empty__icon{
+    width:45px;
+    height:45px;
+  }
+
+  .notifications-empty--visual a{
+    grid-column:1/-1;
+    width:100%;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .notifications-empty--visual a{
+    transition:none;
+  }
+}

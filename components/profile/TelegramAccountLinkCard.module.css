@@ -1,0 +1,133 @@
+.card {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--ab-border, #283247) 78%, transparent);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(41, 169, 235, .14), transparent 42%),
+    color-mix(in srgb, var(--ab-surface, #111827) 90%, transparent);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(41, 169, 235, .14);
+  color: #35aee2;
+}
+
+.copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.copy strong {
+  font-size: 14px;
+}
+
+.copy span {
+  color: var(--ab-text-muted, #93a4bb);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.status {
+  margin-left: auto;
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border: 1px solid rgba(148, 163, 184, .16);
+  border-radius: 999px;
+  color: var(--ab-text-muted, #93a4bb);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.statusLinked {
+  border-color: rgba(52, 211, 153, .22);
+  background: rgba(52, 211, 153, .09);
+  color: #6ee7b7;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(53, 174, 226, .28);
+  border-radius: 13px;
+  background: linear-gradient(135deg, rgba(53, 174, 226, .22), rgba(37, 99, 235, .13));
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  border-color: rgba(53, 174, 226, .48);
+}
+
+.button:disabled {
+  cursor: wait;
+  opacity: .58;
+}
+
+.secondary {
+  border-color: rgba(148, 163, 184, .18);
+  background: rgba(148, 163, 184, .07);
+}
+
+.danger {
+  border-color: rgba(248, 113, 113, .22);
+  background: rgba(248, 113, 113, .07);
+  color: #fca5a5;
+}
+
+.note,
+.error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.note {
+  color: var(--ab-text-muted, #93a4bb);
+}
+
+.error {
+  color: #fca5a5;
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 14px;
+  }
+
+  .header {
+    align-items: flex-start;
+  }
+
+  .status {
+    margin-left: 0;
+  }
+
+  .button {
+    width: 100%;
+  }
+}

@@ -10,6 +10,7 @@ import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor'
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import ProfileWidgetEditor from '@/components/profile/ProfileWidgetEditor';
 import ProfileRewardsPanel from '@/components/profile/ProfileRewardsPanel';
+import TelegramAccountLinkCard from '@/components/profile/TelegramAccountLinkCard';
 import Icon from '@/components/Icon';
 import { notifyAuthChanged } from '@/lib/auth-events';
 import { usernamePolicyError } from '@/lib/auth-identity-policy';
@@ -766,6 +767,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   <p className="profile-editor-v13__inline-hint">
     <strong>Совет:</strong> короткое био и узнаваемый ник лучше читаются в комментариях, рейтинге и публичном профиле.
   </p>
+
+  <TelegramAccountLinkCard />
 </section>
               )}
 
