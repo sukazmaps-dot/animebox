@@ -386,6 +386,16 @@ need('mini-profile foreground atmosphere layering', profilePreviewCss, [
   'z-index: 4',
   '--profile-preview-atmosphere-live-alpha',
 ]);
+
+need('mini-profile flattened atmosphere and visible Stardust', profilePreviewCss, [
+  '.atmosphere',
+  'display: contents',
+  "[data-effect='stardust']",
+  'width: 4px',
+  'height: 4px',
+  'opacity: .92',
+  '0 0 18px',
+]);
 if (/\.atmosphere\s*\{[^}]*contain:\s*paint/s.test(profilePreviewCss)) {
   failures.push('Mini-profile atmosphere wrapper must not trap foreground particles below opaque surfaces');
 }
@@ -607,6 +617,15 @@ need('Premium atmosphere split-layer renderer', premiumAtmosphere, [
   'premium-profile-v21__particle-layer',
   'premium-profile-v21__ambient--a',
   'premium-profile-v21__particles',
+]);
+
+need('Premium atmosphere stacking flattening', premiumIdentityCss, [
+  '.premium-profile-v21__atmosphere',
+  'display: contents',
+  '.premium-profile-v21__ambient-layer',
+  'z-index: 1',
+  '.premium-profile-v21__particle-layer',
+  'z-index: 4',
 ]);
 if (/Math\.random\s*\(/.test(premiumAtmosphere)) {
   failures.push('Premium atmosphere particles must stay deterministic; Math.random() calls are forbidden');
