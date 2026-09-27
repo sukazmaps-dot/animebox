@@ -70,6 +70,7 @@ export const PRODUCT_CLIENT_EVENT_NAMES = [
   'catalog_empty_result',
   'watch_party_room_created',
   'watch_party_public_join_click',
+  'watch_party_code_joined',
   'watch_party_joined',
   'watch_party_reconnected',
   'watch_party_host_transferred',
