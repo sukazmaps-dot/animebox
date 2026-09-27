@@ -10,8 +10,7 @@ import {
 } from '@/lib/community-server';
 import { getPublicCommentsPage } from '@/lib/community-comments-server';
 import { assertCanComment } from '@/lib/admin-server';
-import { syncUserProgression } from '@/lib/progression-server';
-import { syncUserChallenges } from '@/lib/challenges-server';
+import { applyCommunityCommentProgression } from '@/lib/trusted-progression-pipeline-server';
 
 import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
 
@@ -87,27 +86,15 @@ export async function POST(request: Request) {
     let progressionUpdated = false;
 
     try {
-      const challenge = await syncUserChallenges({
+      const progression = await applyCommunityCommentProgression({
         userId: user.id,
         eventKey: `comment:${String(data)}`,
-        comments: 1,
       });
       progressionUpdated =
-        progressionUpdated || Number(challenge?.reward_xp ?? 0) > 0;
-    } catch (challengeError) {
-      console.error('[comments] challenge sync failed:', challengeError);
-    }
-
-    try {
-      const progression = await syncUserProgression({
-        userId: user.id,
-        eventKey: `comment:${String(data)}`,
-        reason: 'comment_created',
-      });
-      progressionUpdated =
-        progressionUpdated || Number(progression?.earned_now ?? 0) > 0;
+        progression.challengeRewardXp > 0 ||
+        progression.progressionEarnedXp > 0;
     } catch (progressionError) {
-      console.error('[comments] progression sync failed:', progressionError);
+      console.error('[comments] progression pipeline failed:', progressionError);
     }
 
     return response({ id: data, progressionUpdated }, 201);
