@@ -234,13 +234,11 @@ export default function CommunityProfile() {
         </Link>
 
         <aside className="profile-v3__progression-side">
-          <span className={`profile-v3__xp-boost ${progression.premiumBoostActive ? 'is-active' : ''}`}>
-            {progression.premiumBoostActive ? '+20% XP · Premium' : 'Premium · +20% XP'}
+          <span className="profile-v3__xp-boost">
+            Premium · visual evolution
           </span>
           <small>
-            {progression.premiumBoostActive
-              ? 'Бонус действует на новый XP за активность.'
-              : 'Открой достижения и посмотри, как быстрее повышать уровень.'}
+            XP одинаков для всех. Premium добавляет только motion, glow и живые рамки.
           </small>
           <Link href="/achievements">Все достижения →</Link>
         </aside>
