@@ -974,21 +974,31 @@
   margin-top: 11px;
 }
 
-.publicRoomActions a {
+.publicRoomActions a,
+.publicRoomActions button:first-child {
   display: inline-flex;
   min-height: 34px;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   padding: 0 12px;
+  border: 0;
   border-radius: 9px;
   background: rgba(111, 80, 255, .13);
   color: #c7beff;
   font-size: 9px;
   font-weight: 850;
   text-decoration: none;
+  cursor: pointer;
 }
 
-.publicRoomActions button {
+.publicRoomActions button:first-child:disabled,
+.joinInput button:disabled {
+  opacity: .58;
+  cursor: wait;
+}
+
+.publicRoomActions button:not(:first-child) {
   width: 34px;
   height: 34px;
   border: 1px solid rgba(255,255,255,.06);
@@ -1449,17 +1459,20 @@
 }
 
 .publicRoomActions a,
+.publicRoomActions button:first-child,
 .fullRoomButton {
   flex: 1;
   min-width: 0;
   min-height: 34px;
 }
 
-.publicRoomActions a {
+.publicRoomActions a,
+.publicRoomActions button:first-child {
   gap: 6px;
 }
 
-.publicRoomActions a svg {
+.publicRoomActions a svg,
+.publicRoomActions button:first-child svg {
   width: 11px;
   height: 11px;
 }
@@ -1899,4 +1912,24 @@
   font-weight: 700;
   letter-spacing: 0;
   text-transform: none;
+}
+
+
+/* Patch 20.1 — room code / lobby interaction polish */
+@media (max-width: 620px) {
+  .joinInput input {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .joinInput button {
+    min-height: 46px;
+    font-size: 12px;
+  }
+
+  .publicRoomActions button:first-child,
+  .fullRoomButton {
+    min-height: 42px;
+    font-size: 10px;
+  }
 }
