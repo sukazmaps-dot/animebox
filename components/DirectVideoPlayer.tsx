@@ -783,7 +783,6 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
             onErrorRef.current?.(message);
           }
         }}
-        onDoubleClick={() => void onToggleFullscreen?.()}
       />
 
       <button
@@ -801,9 +800,9 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
       />
 
       {(buffering || enginePhase === 'recovering') && (
-        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center" data-player-status-layer>
           <div className="flex min-h-12 items-center gap-3 rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-white backdrop-blur-md">
-            <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/15 border-t-violet-300" />
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/15 border-t-violet-300 motion-reduce:animate-none" />
             {enginePhase === 'recovering' && (
               <span className="text-[11px] font-bold text-white/65">
                 Восстанавливаем поток…
@@ -825,7 +824,8 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
       )}
 
       <div
-        className={`pointer-events-none absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/90 via-black/45 to-transparent px-3 pb-3 pt-16 transition-opacity duration-200 sm:px-4 sm:pb-4 ${
+        data-player-control-layer
+        className={`pointer-events-none absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/90 via-black/45 to-transparent px-3 pb-3 pt-16 transition-opacity duration-200 motion-reduce:transition-none sm:px-4 sm:pb-4 ${
           controlsVisible || !playing ? 'opacity-100' : 'opacity-0'
         }`}
         style={
@@ -848,6 +848,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
         >
           <div
             className="relative mb-2 h-6 w-full touch-none"
+            data-player-timeline
             onPointerMove={(event) => updateTimelineHover(event.clientX, event.currentTarget)}
             onPointerLeave={() => {
               if (!timelineInteractingRef.current) setHoverTime(null);
@@ -951,7 +952,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
 
             <button
               type="button"
-              onClick={() => seek(currentTime - 10)}
+              onClick={() => commitTimelineSeek(currentTime - 10, 'timeline')}
               className="hidden h-10 min-w-10 items-center justify-center rounded-xl px-2 text-[11px] font-extrabold text-white/65 transition hover:bg-white/10 hover:text-white sm:inline-flex"
               aria-label="Назад на 10 секунд"
             >
@@ -959,7 +960,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
             </button>
             <button
               type="button"
-              onClick={() => seek(currentTime + 10)}
+              onClick={() => commitTimelineSeek(currentTime + 10, 'timeline')}
               className="hidden h-10 min-w-10 items-center justify-center rounded-xl px-2 text-[11px] font-extrabold text-white/65 transition hover:bg-white/10 hover:text-white sm:inline-flex"
               aria-label="Вперёд на 10 секунд"
             >
