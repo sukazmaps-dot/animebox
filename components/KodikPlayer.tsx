@@ -84,10 +84,18 @@ function buildPlayerUrl(url: string, episodeNumber?: number) {
      */
     nextUrl.searchParams.set('hide_selectors', 'true');
     nextUrl.searchParams.set('translations', 'false');
+    nextUrl.searchParams.set('hide_resume_button', 'true');
+
+    // AnimeBox owns resume and skip UX. Keep Kodik in serial-player mode
+    // so Player API episode switching remains available without reload.
+    nextUrl.searchParams.delete('only_episode');
+    nextUrl.searchParams.delete('start_from');
+    nextUrl.searchParams.delete('skip_button');
 
     /*
-     * Open the exact route episode immediately. This prevents a visible
-     * "episode 1 -> requested episode" correction after iframe load.
+     * Open the route episode immediately while preserving Kodik's serial
+     * player capabilities. hide_selectors removes provider navigation UI,
+     * but change_episode remains available through the official Player API.
      */
     if (
       typeof episodeNumber === 'number' &&
@@ -95,7 +103,6 @@ function buildPlayerUrl(url: string, episodeNumber?: number) {
       episodeNumber > 0
     ) {
       nextUrl.searchParams.set('episode', String(episodeNumber));
-      nextUrl.searchParams.set('only_episode', 'true');
     }
 
     return nextUrl.toString();
