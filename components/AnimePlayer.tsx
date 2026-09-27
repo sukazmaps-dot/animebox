@@ -566,8 +566,19 @@ export default function AnimePlayer({
     setResumeSeconds(target);
   }, []);
 
-  const currentSource = sources[activeSourceIndex];
-  const currentTranslation = currentSource?.translations[activeTranslationIndex];
+  const resolvedActiveSourceIndex =
+    activeSourceIndex >= 0 && activeSourceIndex < sources.length
+      ? activeSourceIndex
+      : 0;
+  const currentSource = sources[resolvedActiveSourceIndex];
+  const resolvedTranslationIndex =
+    currentSource &&
+    activeTranslationIndex >= 0 &&
+    activeTranslationIndex < currentSource.translations.length
+      ? activeTranslationIndex
+      : 0;
+  const currentTranslation =
+    currentSource?.translations[resolvedTranslationIndex];
   const rawLink = currentTranslation?.url || src || '';
   const normalizedLink = normalizeMediaLink(rawLink);
   const mediaType =
