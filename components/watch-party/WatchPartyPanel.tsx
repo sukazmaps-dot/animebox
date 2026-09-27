@@ -95,6 +95,8 @@ type RoomMembership = {
   max_participants?: number;
   episode?: number;
   status?: string;
+  room_code?: string;
+  visibility?: 'public' | 'unlisted' | 'private';
   role?: 'host' | 'guest';
 };
 
@@ -209,6 +211,8 @@ export default function WatchPartyPanel({
   const [myVote, setMyVote] = useState<WatchPartyVote | null>(null);
   const [authoritativeParticipantCount, setAuthoritativeParticipantCount] = useState(0);
   const [creatingRoom, setCreatingRoom] = useState(false);
+  const [roomCode, setRoomCode] = useState('');
+  const [roomVisibility, setRoomVisibility] = useState<'public' | 'unlisted' | 'private'>('unlisted');
 
   const theaterPath = watchPartyTheaterPath(animeSlug, episodeNumber);
   const episodePath = `/anime/${encodeURIComponent(animeSlug)}/episode/${episodeNumber}`;
@@ -720,6 +724,16 @@ export default function WatchPartyPanel({
     setAuthoritativeParticipantCount(
       Math.max(0, Number(membership.participant_count ?? 0)),
     );
+    if (typeof membership.room_code === 'string') {
+      setRoomCode(membership.room_code);
+    }
+    if (
+      membership.visibility === 'public' ||
+      membership.visibility === 'unlisted' ||
+      membership.visibility === 'private'
+    ) {
+      setRoomVisibility(membership.visibility);
+    }
     hostEpochRef.current = Math.max(
       hostEpochRef.current,
       Math.max(0, Number(membership.host_epoch ?? 0)),
@@ -825,6 +839,8 @@ export default function WatchPartyPanel({
     setMyVote(null);
     setLiveReactions([]);
     setAuthoritativeParticipantCount(0);
+    setRoomCode('');
+    setRoomVisibility('unlisted');
     hostEpochRef.current = 0;
     clearWatchPartyFromLocation();
     setRole(null);
@@ -2914,6 +2930,18 @@ export default function WatchPartyPanel({
     theaterPath,
   ]);
 
+  const copyRoomCode = useCallback(async () => {
+    if (!roomCode || roomVisibility === 'private') return;
+    try {
+      await navigator.clipboard.writeText(roomCode);
+      setCopyLabel('Код скопирован');
+      window.setTimeout(() => setCopyLabel('Скопировать ссылку'), 1_600);
+    } catch {
+      setCopyLabel('Не удалось скопировать код');
+      window.setTimeout(() => setCopyLabel('Скопировать ссылку'), 1_600);
+    }
+  }, [roomCode, roomVisibility]);
+
   const copyInvite = useCallback(async () => {
     if (!inviteUrl) return;
     try {
@@ -3410,6 +3438,16 @@ export default function WatchPartyPanel({
                       ? 'ICE'
                       : 'Cloud'}
             </span>
+            {roomCode && roomVisibility !== 'private' && (
+              <button
+                type="button"
+                className={styles.roomCodeBadge}
+                onClick={() => void copyRoomCode()}
+                title="Скопировать код комнаты"
+              >
+                Код {roomCode}
+              </button>
+            )}
             <span className={styles.role}>{role === 'host' ? 'HOST' : 'GUEST'}</span>
           </div>
         </div>
@@ -3429,7 +3467,7 @@ export default function WatchPartyPanel({
               onClick={() => setMobileSection('participants')}
             >
               Участники
-              <span>{participants.length}</span>
+              <span>{displayedParticipantCount}</span>
             </button>
             <button
               type="button"
