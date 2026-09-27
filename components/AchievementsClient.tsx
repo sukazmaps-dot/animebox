@@ -246,8 +246,8 @@ export default function AchievementsClient() {
           </strong>
         </div>
         <div>
-          <span>Premium boost</span>
-          <strong>{progression.premiumBoostActive ? '+20% активен' : '+20% XP'}</strong>
+          <span>Premium</span>
+          <strong>Только визуал</strong>
         </div>
         <div>
           <span>Активная рамка</span>
@@ -266,8 +266,8 @@ export default function AchievementsClient() {
             <h2>Как работает LVL</h2>
             <p>
               Все уровни и статичные уровневые рамки доступны без Premium.
-              Premium не пропускает уровни — он ускоряет новый XP за активность на 20%
-              и оживляет уже открытую уровневую рамку анимацией.
+              Premium не пропускает и не ускоряет уровни — XP одинаков для всех.
+              Он только оживляет уже открытую уровневую рамку и оформление профиля.
             </p>
           </div>
           {frameState?.selectedFrame && (
@@ -298,7 +298,7 @@ export default function AchievementsClient() {
           <div data-premium="true">
             <span>Premium</span>
             <strong>Та же рамка, но живая</strong>
-            <p>+20% к новому XP за активность, motion/glow уровневой рамки и Premium-оформление профиля.</p>
+            <p>Motion/glow уровневой рамки и Premium-оформление профиля. XP остаётся одинаковым для всех.</p>
           </div>
         </div>
 
@@ -484,7 +484,7 @@ export default function AchievementsClient() {
 
       <p className={styles.note}>
         XP за просмотр начисляется только по подтверждённым данным плеера.
-        Premium даёт +20% к новому XP за активность; достижения и требования LVL одинаковы для всех.
+        Premium не меняет скорость прокачки: XP, достижения и требования LVL одинаковы для всех.
       </p>
     </main>
   );
