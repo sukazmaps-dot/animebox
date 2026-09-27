@@ -40,6 +40,16 @@ if (!direct.includes("await import('hls.js')")) {
   throw new Error('Patch 19.2 must keep hls.js dynamically imported.');
 }
 
+if (!direct.includes('onReadyRef') ||
+    !direct.includes('onErrorRef') ||
+    !direct.includes('onEngineStateChangeRef')) {
+  throw new Error('Patch 19.2 latest callback refs missing from direct engine.');
+}
+
+if (direct.includes('[autoPlay, isHls, onError, onReady, src')) {
+  throw new Error('Patch 19.2 callback identity can remount the HLS lifecycle.');
+}
+
 if (!direct.includes('canAttemptRecovery') ||
     !direct.includes('HLS_NETWORK_RECOVERY_LIMIT') ||
     !direct.includes('HLS_MEDIA_RECOVERY_LIMIT')) {
@@ -57,6 +67,12 @@ if (!direct.includes('onEngineStateChange') ||
 
 if (!player.includes('const playbackController = useMemo')) {
   throw new Error('Patch 19.2 AnimeBox playback controller missing.');
+}
+
+if (!player.includes('setPlaybackVolumeState') ||
+    !player.includes('setPlaybackMuted') ||
+    !player.includes('initialPlaybackRate={playbackSpeed}')) {
+  throw new Error('Patch 19.2 seamless runtime preference ownership missing.');
 }
 
 for (const method of [
