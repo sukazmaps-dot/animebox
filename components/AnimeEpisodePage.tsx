@@ -104,6 +104,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
   const [watchedUpTo, setWatchedUpTo] = useState(0);
   const [providerEpisodes, setProviderEpisodes] = useState<number[]>([]);
   const [sources, setSources] = useState<PlayerSource[]>([]);
+  const [playerEpisodeNumber, setPlayerEpisodeNumber] = useState(requestedEpisode);
   const [loadingSources, setLoadingSources] = useState(false);
   const [sourceMessage, setSourceMessage] = useState('');
   const [sourceLoadingMessage, setSourceLoadingMessage] = useState(
@@ -119,6 +120,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     );
   const [timeline, setTimeline] = useState<EpisodeTimelineMeta | null>(null);
   const timelineRequestSequenceRef = useRef(0);
+  const sourceDiscoverySequenceRef = useRef(0);
   const timelineAbortRef = useRef<AbortController | null>(null);
   const observedTimelineDurationRef = useRef<number | null>(null);
 
@@ -314,6 +316,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     if (!anime) return;
 
     const controller = new AbortController();
+    const discoverySequence = ++sourceDiscoverySequenceRef.current;
     let active = true;
     let publishedAny = false;
     const discoveryStartedAt = performance.now();
@@ -393,7 +396,6 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     queueMicrotask(() => {
       if (!active) return;
       setLoadingSources(true);
-      setSources([]);
       setSourceIdentity('');
       setSourceMessage('');
       setSourceLoadingMessage('Подключаем лучший источник…');
@@ -410,8 +412,26 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       if (
         !active ||
         controller.signal.aborted ||
+        discoverySequence !== sourceDiscoverySequenceRef.current ||
         source.translations.length === 0
       ) {
+        if (
+          discoverySequence !== sourceDiscoverySequenceRef.current &&
+          source.translations.length > 0
+        ) {
+          trackProductClientEvent('player_episode_switch_stale_ignored', {
+            source: 'source_orchestrator',
+            path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+            entityType: 'episode',
+            entityId: `${anime.id}:${episodeNumber}`,
+            metadata: {
+              episode: episodeNumber,
+              discoverySequence,
+              currentSequence: sourceDiscoverySequenceRef.current,
+              provider: source.name,
+            },
+          });
+        }
         return;
       }
 
@@ -440,7 +460,8 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       }
 
       setSources((current) => {
-        const withoutSameSource = current.filter(
+        const baseSources = isFirstPlayableSource ? [] : current;
+        const withoutSameSource = baseSources.filter(
           (item) => item.name !== source.name,
         );
         const next = [...withoutSameSource, source];
@@ -454,6 +475,9 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       });
 
       setSourceIdentity(identity);
+      if (isFirstPlayableSource) {
+        setPlayerEpisodeNumber(episodeNumber);
+      }
       setSourceMessage('');
       setLoadingSources(false);
     }
@@ -1232,6 +1256,8 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
   }, [anime.id, seasonNavigation?.seasons]);
 
   const waitingForSources = loadingSources || sourceIdentity !== expectedSourceIdentity;
+  const episodeTransitionPending =
+    playerEpisodeNumber !== episodeNumber || waitingForSources;
 
   useEffect(() => {
     const knownCurrentEpisodes =
@@ -1468,9 +1494,8 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
                 ) : (
                   <AnimePlayer
                     animeId={anime.id}
-                    key={`${expectedSourceIdentity}:theater`}
                     title={title}
-                    episodeNumber={episodeNumber}
+                    episodeNumber={playerEpisodeNumber}
                     totalEpisodes={availableEpisodes}
                     totalEpisodesKnown={totalEpisodesKnown}
                     poster={poster}
@@ -1486,6 +1511,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
                     onEnded={hasNext ? goToNext : undefined}
                     onEpisodeChange={goToEpisode}
                     onDurationObserved={handleTimelineDurationObserved}
+                    episodeTransitionPending={episodeTransitionPending}
                     watchTogetherMode
                   />
                 )}
@@ -1549,9 +1575,8 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       ) : (
         <AnimePlayer
           animeId={anime.id}
-          key={expectedSourceIdentity}
           title={title}
-          episodeNumber={episodeNumber}
+          episodeNumber={playerEpisodeNumber}
           totalEpisodes={availableEpisodes}
           totalEpisodesKnown={totalEpisodesKnown}
           poster={poster}
@@ -1569,6 +1594,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           onDurationObserved={handleTimelineDurationObserved}
           onEnded={hasNext ? goToNext : undefined}
           onEpisodeChange={goToEpisode}
+          episodeTransitionPending={episodeTransitionPending}
         />
       )}
 
