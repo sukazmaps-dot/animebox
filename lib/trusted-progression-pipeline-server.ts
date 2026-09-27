@@ -115,3 +115,28 @@ export async function applyTrustedWatchSessionEnd(input: {
     progressionEarnedXp: Number(progression?.earned_now ?? 0),
   };
 }
+
+
+export async function applyCommunityCommentProgression(input: {
+  userId: string;
+  eventKey: string;
+}): Promise<TrustedProgressionPipelineResult> {
+  const challenge = await syncUserChallenges({
+    userId: input.userId,
+    eventKey: input.eventKey,
+    comments: 1,
+  });
+
+  const progression = await syncUserProgression({
+    userId: input.userId,
+    eventKey: input.eventKey,
+    reason: 'community_comment_created',
+  });
+
+  return {
+    rewardEligible: true,
+    quarantined: false,
+    challengeRewardXp: Number(challenge?.reward_xp ?? 0),
+    progressionEarnedXp: Number(progression?.earned_now ?? 0),
+  };
+}
