@@ -30,7 +30,10 @@ for (const [label, source, needle] of [
   ['resume merge policy', player, 'chooseResumeCandidate({'],
   ['native resume re-arm', player, 'resumeAppliedRef.current = target <= 0'],
   ['source-switch resume origin', player, "'source_switch'"],
-  ['mobile native selector', player, 'className="absolute inset-0 z-[60] h-11 w-full cursor-pointer opacity-0 sm:hidden"'],
+  ['mobile custom selector overlay', player, 'data-mobile-player-selector-overlay'],
+  ['mobile custom selector sheet', player, 'data-mobile-player-selector-sheet'],
+  ['mobile selector safe area', player, 'bottom-[max(0.75rem,env(safe-area-inset-bottom))]'],
+  ['mobile selector option target', player, 'flex min-h-11 w-full items-center'],
   ['Telegram foreground viewport recovery', player, 'syncAfterForeground'],
   ['Telegram viewport event recovery', player, "telegram?.onEvent?.('viewportChanged', syncPlayerViewport)"],
   ['Telegram safe right metric', telegramBridge, "'--animebox-tg-safe-right'"],
@@ -40,6 +43,10 @@ for (const [label, source, needle] of [
   if (!source.includes(needle)) {
     failures.push(`${label}: missing ${needle}`);
   }
+}
+
+if (player.includes('<select')) {
+  failures.push('mobile player selector regressed to native <select>');
 }
 
 if (
