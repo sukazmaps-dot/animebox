@@ -11,6 +11,7 @@ import {
 } from '@/lib/public-avatar-server';
 import { normalizeProgression } from '@/lib/progression';
 import { getSelectedSeasonFrames } from '@/lib/leaderboard-rewards-server';
+import { getHighRiskUsersFromTrustEvents } from '@/lib/watch-trust-server';
 import {
   currentLeaderboardMonthUtc,
   currentLeaderboardWeekUtc,
@@ -88,7 +89,23 @@ export async function GET(request: Request) {
         ? { ...currentLeaderboardMonthUtc(), rewards: MONTHLY_REWARD_TIERS }
         : null;
 
-    if (rows.length === 0) {
+    const trustStartsAt =
+      season?.startsAt ??
+      new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const highRiskUsers = await getHighRiskUsersFromTrustEvents({
+      userIds: rows.map((row) => row.user_id),
+      startsAt: trustStartsAt,
+    }).catch((error) => {
+      // Leaderboard trust filtering is fail-open on telemetry outages. Watch
+      // progress and the leaderboard API must remain available.
+      console.warn('[leaderboard] trust filter unavailable:', error);
+      return new Set<string>();
+    });
+    const trustedRows = rows.filter(
+      (row) => !highRiskUsers.has(row.user_id),
+    );
+
+    if (trustedRows.length === 0) {
       return Response.json(
         { period, entries: [], me: null, season },
         { headers: { 'Cache-Control': 'private, no-store' } },
@@ -97,7 +114,7 @@ export async function GET(request: Request) {
 
     const preloadByUser = new Map<string, PublicAppearancePreload>();
 
-    for (const row of rows) {
+    for (const row of trustedRows) {
       preloadByUser.set(row.user_id, {
         premiumSettings: asRecord(row.premium_settings),
         entitlements: Array.isArray(row.entitlements)
@@ -109,7 +126,7 @@ export async function GET(request: Request) {
     }
 
     const appearanceByUser = resolvePublicAppearancesFromPreloaded(
-      rows.map((row) => ({
+      trustedRows.map((row) => ({
         id: row.user_id,
         avatar_path: row.avatar_path,
       })),
@@ -117,15 +134,15 @@ export async function GET(request: Request) {
     );
 
     const seasonFrameByUser = await getSelectedSeasonFrames(
-      rows.map((row) => row.user_id),
+      trustedRows.map((row) => row.user_id),
     ).catch(() => new Map());
 
-    const normalized = rows.map((row) => {
+    const normalized = trustedRows.map((row, index) => {
       const appearance = appearanceByUser.get(row.user_id);
       const sponsorPreferences = asRecord(row.sponsor_preferences);
 
       return {
-        rank: Number(row.rank_no),
+        rank: index + 1,
         userId: row.user_id,
         username: row.username || 'Пользователь',
         avatarUrl: appearance?.avatarUrl ?? '/default-avatar.webp',
