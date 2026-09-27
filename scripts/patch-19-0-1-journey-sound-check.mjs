@@ -36,6 +36,14 @@ if (!manager.includes('ACHIEVEMENT_SOUND_COOLDOWN_MS')) {
   throw new Error('Patch 19.0.1 anti-spam cooldown missing.');
 }
 
+if (!manager.includes('unlockAchievementSoundsFromGesture')) {
+  throw new Error('Patch 19.0.1 explicit parent-page audio unlock missing.');
+}
+
+if (!manager.includes('pendingSound')) {
+  throw new Error('Patch 19.0.1 blocked-autoplay queue missing.');
+}
+
 if (!manager.includes("kind === 'arc_complete'") || !manager.includes("kind === 'finale'")) {
   throw new Error('Patch 19.0.1 special-event legendary mapping missing.');
 }
@@ -46,6 +54,10 @@ if (!manager.includes('0.32')) {
 
 if (!tracker.includes('playAchievementUnlockSound')) {
   throw new Error('Patch 19.0.1 Journey tracker sound hook missing.');
+}
+
+if (!tracker.includes('unlockAchievementSoundsFromGesture')) {
+  throw new Error('Patch 19.0.1 Journey sound unlock control missing.');
 }
 
 if (!tracker.includes('if (!response.ok || !payload.unlocked || !payload.event) return;')) {
