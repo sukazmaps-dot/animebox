@@ -826,58 +826,51 @@ export default function AnimePlayer({
     if (detail.episode !== episodeNumber) return;
     if (remote) partySuppressUntilRef.current = Date.now() + 2_800;
 
-    const target = Math.max(0, Math.min(28_800, detail.position));
-
-    if (isKodik) {
-      setStarted(true);
-      const player = kodikPlayerRef.current;
-      if (!player) {
-        pendingPartyCommandRef.current = detail;
-        return;
-      }
-
-      const state = player.getState();
-      if (detail.action === 'seek' || Math.abs(state.positionSeconds - target) > 2.2) {
-        player.seek(target);
-      }
-      if (detail.action === 'play') player.play();
-      if (detail.action === 'pause') player.pause();
-
-      publishPartyState({
-        position: target,
-        duration: state.durationSeconds,
-        playing: detail.action === 'play' ? true : detail.action === 'pause' ? false : detail.playing,
-      });
-      return;
-    }
-
-    const video = videoRef.current;
-    if (!started || !video) {
+    if (!started) {
       pendingPartyCommandRef.current = detail;
       setStarted(true);
       return;
     }
 
-    if (detail.action === 'seek' || Math.abs(video.currentTime - target) > 2.2) {
-      try {
-        video.currentTime = target;
-      } catch {
-        // Metadata may still be loading; the pending state below will retry.
+    const snapshot = playbackController.getSnapshot();
+    const target = clampPlaybackPosition(
+      detail.position,
+      snapshot.durationSeconds,
+    );
+
+    if (
+      detail.action === 'seek' ||
+      Math.abs(snapshot.positionSeconds - target) > 2.2
+    ) {
+      if (!playbackController.seek(target)) {
+        pendingPartyCommandRef.current = detail;
+        return;
       }
     }
 
     if (detail.action === 'play') {
-      void video.play().catch(() => undefined);
+      if (!playbackController.play()) {
+        pendingPartyCommandRef.current = detail;
+        return;
+      }
     } else if (detail.action === 'pause') {
-      video.pause();
+      if (!playbackController.pause()) {
+        pendingPartyCommandRef.current = detail;
+        return;
+      }
     }
 
     publishPartyState({
       position: target,
-      duration: Number.isFinite(video.duration) && video.duration > 0 ? video.duration : null,
-      playing: detail.action === 'play' ? true : detail.action === 'pause' ? false : !video.paused,
+      duration: snapshot.durationSeconds,
+      playing:
+        detail.action === 'play'
+          ? true
+          : detail.action === 'pause'
+            ? false
+            : detail.playing,
     });
-  }, [episodeNumber, isKodik, publishPartyState, started]);
+  }, [episodeNumber, playbackController, publishPartyState, started]);
 
   const watchSession = useWatchSession({
     enabled:
@@ -980,16 +973,13 @@ export default function AnimePlayer({
       if (!smartSeekSupported || watchTogetherMode) return false;
 
       const fromSeconds = latestPlaybackPositionSecondsRef.current;
+      const playbackSnapshot = playbackController.getSnapshot();
       const durationSeconds =
         observedDurationSeconds != null &&
         Number.isFinite(observedDurationSeconds) &&
         observedDurationSeconds > 0
           ? observedDurationSeconds
-          : isKodik
-            ? kodikPlayerRef.current?.getState().durationSeconds ?? null
-            : videoRef.current && Number.isFinite(videoRef.current.duration)
-              ? videoRef.current.duration
-              : null;
+          : playbackSnapshot.durationSeconds;
 
       const recentExplicitSeek =
         Date.now() - lastExplicitSeekAtRef.current <=
@@ -1016,34 +1006,13 @@ export default function AnimePlayer({
       }
 
       const targetSeconds = openingDecision.targetSeconds;
-      let requested = false;
-
-      if (isKodik) {
-        const player = kodikPlayerRef.current;
-        if (player) {
-          watchSession.onProviderSkip({
-            kind: 'opening',
-            atSeconds: fromSeconds,
-            durationSeconds,
-            origin: typeof window !== 'undefined' ? window.location.origin : null,
-          });
-          player.seek(targetSeconds);
-          requested = true;
-        }
-      } else if (videoRef.current) {
-        try {
-          watchSession.onProviderSkip({
-            kind: 'opening',
-            atSeconds: fromSeconds,
-            durationSeconds,
-            origin: typeof window !== 'undefined' ? window.location.origin : null,
-          });
-          videoRef.current.currentTime = targetSeconds;
-          requested = true;
-        } catch {
-          requested = false;
-        }
-      }
+      watchSession.onProviderSkip({
+        kind: 'opening',
+        atSeconds: fromSeconds,
+        durationSeconds,
+        origin: typeof window !== 'undefined' ? window.location.origin : null,
+      });
+      const requested = playbackController.seek(targetSeconds);
 
       if (!requested) {
         if (mode === 'manual') setSkipOpeningVisible(true);
@@ -2650,26 +2619,23 @@ export default function AnimePlayer({
      * original click keeps the provider start inside the same user gesture,
      * so the viewer does not have to press Kodik's play button a second time.
      */
-    if (isKodik) {
-      const player = kodikPlayerRef.current;
-      player?.play();
-      const state = player?.getState();
+    setStarted(true);
 
-      void getPrecisePlaybackPosition().then((position) => {
+    if (isKodik) {
+      playbackController.play();
+      void playbackController.getTime().then((position) => {
+        const snapshot = playbackController.getSnapshot();
         publishPartyAction('play', position, true);
         publishPartyState({
           position,
-          duration: player?.getState().durationSeconds ?? state?.durationSeconds ?? null,
+          duration: snapshot.durationSeconds,
           playing: true,
         });
       });
-
-      setStarted(true);
       return;
     }
 
     setPlayerReady(false);
-    setStarted(true);
   }
 
   async function toggleFullscreen() {
