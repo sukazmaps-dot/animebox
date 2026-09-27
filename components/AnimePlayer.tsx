@@ -2426,10 +2426,10 @@ export default function AnimePlayer({
   }, []);
 
   const markPlayerReady = useCallback(() => {
+    const readyAt = performance.now();
     const attempt = sourceAttemptRef.current;
     if (attempt?.id === currentAttemptId && !attempt.readyTracked) {
       attempt.readyTracked = true;
-      const readyAt = performance.now();
       const startupMs = Math.max(
         0,
         Math.round(readyAt - attempt.startedAt),
@@ -2456,20 +2456,68 @@ export default function AnimePlayer({
       });
     }
 
+    const activeSwitch = episodeSwitchRef.current;
+    const currentIdentity = `${animeId ?? "unknown"}:${episodeNumber}`;
+
+    if (activeSwitch) {
+      if (activeSwitch.identity !== currentIdentity) {
+        trackPlayerEvent('player_episode_switch_stale_ignored', {
+          switchId: activeSwitch.id,
+          expectedIdentity: activeSwitch.identity,
+          currentIdentity,
+          stage: 'ready',
+        });
+      } else {
+        const switchMs = Math.max(
+          0,
+          Math.round(readyAt - activeSwitch.startedAt),
+        );
+
+        trackPlayerEvent('player_episode_switch_ready', {
+          switchId: activeSwitch.id,
+          fromEpisode: activeSwitch.fromEpisode,
+          toEpisode: activeSwitch.toEpisode,
+          switchMs,
+          resumePlayback: activeSwitch.resumePlayback,
+        }, true);
+        trackPlayerEvent('player_episode_switch_ms', {
+          switchId: activeSwitch.id,
+          switchMs,
+          engine:
+            isKodik ? 'kodik' : isHls ? 'hls' : isIframe ? 'iframe' : 'native',
+        });
+
+        episodeSwitchRef.current = null;
+        resumeAfterEpisodeSwitchRef.current = false;
+
+        if (activeSwitch.resumePlayback && started) {
+          queueMicrotask(() => {
+            if (episodeIdentityRef.current !== currentIdentity) return;
+            playIntentRef.current = true;
+            playbackController.play();
+          });
+        }
+      }
+    }
+
     setPlayerReady(true);
     setPlayerError(null);
     setPlayerFailureKind(null);
     setSourceStatus(currentSource?.name, 'ready');
   }, [
+    animeId,
     currentAttemptId,
     currentSource?.name,
     currentSourceName,
     currentSourceType,
+    episodeNumber,
     isHls,
     isIframe,
     isKodik,
+    playbackController,
     setSourceStatus,
     sourceDiscoveryStartedAtMs,
+    started,
     trackPlayerEvent,
   ]);
 
