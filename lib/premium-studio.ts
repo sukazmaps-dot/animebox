@@ -42,6 +42,8 @@ export const PREMIUM_NICKNAME_EFFECTS = [
   'gradient',
   'shimmer',
   'glow',
+  'manga',
+  'glitch',
 ] as const;
 export type PremiumNicknameEffect = (typeof PREMIUM_NICKNAME_EFFECTS)[number];
 
