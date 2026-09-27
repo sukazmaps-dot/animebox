@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { createHash } from 'node:crypto';
+
 import { adminClient, ensureAnime } from '@/lib/community-server';
 import { canonicalEpisodePlayerUrl } from '@/lib/episode-timeline-server';
 import {
@@ -15,6 +17,7 @@ export type SeoEpisodeIndexEntry = {
   slug: string;
   firstAvailableAt: string;
   lastConfirmedAt: string;
+  lastContentChangeAt: string;
   thumbnailUrl: string | null;
   provider: string;
 };
@@ -51,6 +54,19 @@ function uniqueEpisodes(values: number[]) {
   return [...new Set(values)]
     .filter((value) => Number.isSafeInteger(value) && value > 0 && value <= 10_000)
     .sort((a, b) => a - b);
+}
+
+function episodeContentFingerprint(input: {
+  animeId: number;
+  episode: number;
+  slug: string;
+  thumbnailUrl: string | null;
+  provider: string;
+  indexable: boolean;
+}) {
+  return createHash('sha256')
+    .update(JSON.stringify(input))
+    .digest('hex');
 }
 
 export async function syncSeoEpisodeIndex(
@@ -103,7 +119,7 @@ export async function syncSeoEpisodeIndex(
     const { data: existing, error: existingError } = await admin
       .from('seo_episode_index')
       .select(
-        'episode_number,first_available_at,last_confirmed_at,slug,thumbnail_url,provider,indexable',
+        'episode_number,first_available_at,last_confirmed_at,last_content_change_at,content_fingerprint,slug,thumbnail_url,provider,indexable',
       )
       .eq('anime_id', anime.id)
       .in('episode_number', chunk);
@@ -115,6 +131,8 @@ export async function syncSeoEpisodeIndex(
       {
         first_available_at?: string | null;
         last_confirmed_at?: string | null;
+        last_content_change_at?: string | null;
+        content_fingerprint?: string | null;
         slug?: string | null;
         thumbnail_url?: string | null;
         provider?: string | null;
@@ -130,8 +148,17 @@ export async function syncSeoEpisodeIndex(
 
     const rows = chunk.flatMap((episode) => {
       const current = existingByEpisode.get(episode);
+      const fingerprint = episodeContentFingerprint({
+        animeId: anime.id,
+        episode,
+        slug,
+        thumbnailUrl,
+        provider,
+        indexable: true,
+      });
       const metadataChanged =
         !current ||
+        current.content_fingerprint !== fingerprint ||
         current.slug !== slug ||
         (current.thumbnail_url ?? null) !== thumbnailUrl ||
         current.provider !== provider ||
@@ -151,6 +178,14 @@ export async function syncSeoEpisodeIndex(
             ? current.first_available_at
             : now,
         last_confirmed_at: now,
+        last_content_change_at:
+          metadataChanged
+            ? now
+            : typeof current?.last_content_change_at === 'string' &&
+                current.last_content_change_at
+              ? current.last_content_change_at
+              : now,
+        content_fingerprint: fingerprint,
         thumbnail_url: thumbnailUrl,
         provider,
         indexable: true,
@@ -234,7 +269,7 @@ export async function getSeoEpisodeIndexEntry(
   const { data, error } = await adminClient()
     .from('seo_episode_index')
     .select(
-      'anime_id,episode_number,slug,first_available_at,last_confirmed_at,thumbnail_url,provider',
+      'anime_id,episode_number,slug,first_available_at,last_confirmed_at,last_content_change_at,thumbnail_url,provider',
     )
     .eq('anime_id', animeId)
     .eq('episode_number', episode)
@@ -250,6 +285,10 @@ export async function getSeoEpisodeIndexEntry(
     slug: String(data.slug),
     firstAvailableAt: String(data.first_available_at),
     lastConfirmedAt: String(data.last_confirmed_at),
+    lastContentChangeAt:
+      typeof data.last_content_change_at === 'string'
+        ? data.last_content_change_at
+        : String(data.first_available_at),
     thumbnailUrl:
       typeof data.thumbnail_url === 'string' ? data.thumbnail_url : null,
     provider: typeof data.provider === 'string' ? data.provider : 'confirmed',
