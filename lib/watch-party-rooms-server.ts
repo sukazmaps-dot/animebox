@@ -12,10 +12,13 @@ import { consumeRateLimit } from '@/lib/api-rate-limit';
 
 export type WatchPartyRoomVisibility = 'public' | 'unlisted' | 'private';
 export type WatchPartyRoomStatus = 'waiting' | 'watching' | 'paused' | 'voting' | 'ended';
+export type WatchPartyMemberTransport = 'p2p' | 'turn' | 'server' | 'unknown';
 
 const ROOM_ID_RE = /^[a-f0-9]{24}$/;
 const ROOM_SECRET_RE = /^[a-f0-9]{32}$/;
+const ROOM_CODE_RE = /^[A-Z2-9]{6}$/;
 const ROOM_HEARTBEAT_TTL_MS = 90_000;
+const ROOM_MEMBER_TTL_MS = 75_000;
 const ROOM_REPORT_COOLDOWN_MS = 10 * 60 * 1000;
 
 function cleanText(value: unknown, max: number) {
@@ -55,6 +58,43 @@ function safeCoverUrl(value: unknown) {
   } catch {
     return null;
   }
+}
+
+function memberTransport(value: unknown): WatchPartyMemberTransport {
+  return value === 'p2p' || value === 'turn' || value === 'server'
+    ? value
+    : 'unknown';
+}
+
+function roomRpcError(error: { message?: string } | null | undefined): never {
+  const message = error?.message || 'WATCH_PARTY_RPC_FAILED';
+
+  if (message.includes('ROOM_NOT_FOUND')) {
+    throw new ApiError(404, 'Комната не найдена.');
+  }
+  if (message.includes('ROOM_SECRET_INVALID')) {
+    throw new ApiError(403, 'Ссылка на комнату больше не действительна.');
+  }
+  if (message.includes('ROOM_ENDED')) {
+    throw new ApiError(410, 'Комната уже завершена.');
+  }
+  if (message.includes('ROOM_FULL')) {
+    throw new ApiError(409, 'Комната уже заполнена.');
+  }
+  if (message.includes('HOST_MUST_TRANSFER_OR_END')) {
+    throw new ApiError(409, 'Сначала передай host или заверши комнату.');
+  }
+  if (message.includes('TARGET_NOT_PRESENT')) {
+    throw new ApiError(409, 'Новый host уже не находится в комнате.');
+  }
+  if (message.includes('HOST_CHANGED')) {
+    throw new ApiError(409, 'Host комнаты уже изменился.');
+  }
+  if (message.includes('HOST_TRANSFER_INVALID')) {
+    throw new ApiError(400, 'Некорректная передача host.');
+  }
+
+  throw error ?? new Error(message);
 }
 
 function randomRoomCode() {
@@ -140,12 +180,130 @@ export async function createWatchPartyRoom(input: Record<string, unknown>) {
       ended_at: null,
     })
     .select(
-      'id,join_secret,host_user_id,anime_id,anime_slug,anime_title,cover_url,episode,visibility,status,language,participant_count,max_participants,room_code,created_at,updated_at,last_heartbeat_at,expires_at',
+      'id,host_user_id,anime_id,anime_slug,anime_title,cover_url,episode,visibility,status,language,participant_count,max_participants,room_code,created_at,updated_at,last_heartbeat_at,expires_at',
     )
     .single();
 
   if (error) throw error;
+
+  const { data: hostProfile } = await admin
+    .from('profiles')
+    .select('username')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  const displayName =
+    hostProfile?.username?.trim() ||
+    user.email?.split('@')[0]?.trim() ||
+    'Host';
+
+  const { error: memberError } = await admin
+    .from('watch_party_room_members')
+    .upsert(
+      {
+        room_id: id,
+        user_id: user.id,
+        display_name: displayName.slice(0, 32),
+        role: 'host',
+        transport: 'unknown',
+        joined_at: now.toISOString(),
+        last_seen_at: now.toISOString(),
+        left_at: null,
+      },
+      { onConflict: 'room_id,user_id' },
+    );
+
+  if (memberError) throw memberError;
   return data;
+}
+
+export async function resolveWatchPartyRoomForJoin(input: {
+  roomId?: unknown;
+  roomCode?: unknown;
+}) {
+  await userClient();
+
+  const id = cleanText(input.roomId, 24).toLowerCase();
+  const code = cleanText(input.roomCode, 6).toUpperCase();
+
+  if (!ROOM_ID_RE.test(id) && !ROOM_CODE_RE.test(code)) {
+    throw new ApiError(400, 'Укажи корректный код комнаты.');
+  }
+
+  const admin = adminClient();
+  const now = Date.now();
+  const staleBefore = new Date(now - ROOM_HEARTBEAT_TTL_MS).toISOString();
+  const nowIso = new Date(now).toISOString();
+
+  let query = admin
+    .from('watch_party_rooms')
+    .select(
+      'id,join_secret,anime_slug,anime_title,episode,visibility,status,participant_count,max_participants,room_code,last_heartbeat_at,expires_at',
+    )
+    .neq('status', 'ended')
+    .gte('last_heartbeat_at', staleBefore)
+    .gt('expires_at', nowIso);
+
+  query = ROOM_ID_RE.test(id)
+    ? query.eq('id', id)
+    : query.eq('room_code', code);
+
+  const { data: room, error } = await query.maybeSingle();
+  if (error) throw error;
+  if (!room) throw new ApiError(404, 'Активная комната не найдена.');
+  if (room.visibility === 'private') {
+    throw new ApiError(403, 'В приватную комнату можно войти только по полной invite-ссылке.');
+  }
+  if (room.participant_count >= room.max_participants) {
+    throw new ApiError(409, 'Комната уже заполнена.');
+  }
+
+  return {
+    roomId: room.id,
+    joinSecret: room.join_secret,
+    roomCode: room.room_code,
+    animeSlug: room.anime_slug,
+    animeTitle: room.anime_title,
+    episode: room.episode,
+    visibility: room.visibility,
+    status: room.status,
+    participantCount: room.participant_count,
+    maxParticipants: room.max_participants,
+  };
+}
+
+export async function syncWatchPartyRoomMember(
+  roomId: string,
+  input: Record<string, unknown>,
+) {
+  const { user } = await userClient();
+  const id = roomId.trim().toLowerCase();
+  const joinSecret = cleanText(input.joinSecret, 32).toLowerCase();
+  const displayName = cleanText(input.displayName, 32) || 'Гость';
+  const action = input.action === 'leave' ? 'leave' : 'heartbeat';
+  const transport = memberTransport(input.transport);
+
+  if (!ROOM_ID_RE.test(id)) throw new ApiError(400, 'Некорректная комната.');
+  if (!ROOM_SECRET_RE.test(joinSecret)) {
+    throw new ApiError(400, 'Некорректное приглашение.');
+  }
+
+  const admin = adminClient();
+  const { data, error } = await admin.rpc('watch_party_sync_member', {
+    p_room_id: id,
+    p_user_id: user.id,
+    p_join_secret: joinSecret,
+    p_display_name: displayName,
+    p_transport: transport,
+    p_leave: action === 'leave',
+  });
+
+  if (error) roomRpcError(error);
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new ApiError(503, 'Не удалось подтвердить присутствие в комнате.');
+  }
+
+  return data as Record<string, unknown>;
 }
 
 export async function listPublicWatchPartyRooms(limit = 12) {
@@ -186,7 +344,6 @@ export async function listPublicWatchPartyRooms(limit = 12) {
 
   return rows.map((row) => ({
     roomId: row.id,
-    joinSecret: row.join_secret,
     roomCode: row.room_code,
     animeId: row.anime_id,
     animeSlug: row.anime_slug,
@@ -227,6 +384,13 @@ export async function cleanupWatchPartyRooms() {
     .neq('status', 'ended').lt('last_heartbeat_at', staleBefore);
   if (stale.error) throw stale.error;
 
+  const staleMembers = await admin
+    .from('watch_party_room_members')
+    .update({ left_at: endedAt })
+    .is('left_at', null)
+    .lt('last_seen_at', new Date(now.getTime() - ROOM_MEMBER_TTL_MS).toISOString());
+  if (staleMembers.error) throw staleMembers.error;
+
 }
 
 export async function heartbeatWatchPartyRoom(
@@ -238,13 +402,23 @@ export async function heartbeatWatchPartyRoom(
   if (!ROOM_ID_RE.test(id)) throw new ApiError(400, 'Некорректная комната.');
 
   const now = new Date().toISOString();
-  const participantCount = Math.min(
-    WATCH_PARTY_MAX_PARTICIPANTS,
-    Math.max(1, positiveInt(input.participantCount)),
-  );
   const status = roomStatus(input.status);
   const episode = positiveInt(input.episode);
   const admin = adminClient();
+  const liveMemberSince = new Date(Date.now() - ROOM_MEMBER_TTL_MS).toISOString();
+
+  const { count: liveMemberCount, error: memberCountError } = await admin
+    .from('watch_party_room_members')
+    .select('user_id', { count: 'exact', head: true })
+    .eq('room_id', id)
+    .is('left_at', null)
+    .gte('last_seen_at', liveMemberSince);
+
+  if (memberCountError) throw memberCountError;
+  const participantCount = Math.min(
+    WATCH_PARTY_MAX_PARTICIPANTS,
+    Math.max(1, Number(liveMemberCount ?? 0)),
+  );
 
   const { data: room, error: roomError } = await admin
     .from('watch_party_rooms')
@@ -312,6 +486,14 @@ export async function endWatchPartyRoom(roomId: string) {
     .eq('id', id);
 
   if (error) throw error;
+
+  const { error: memberError } = await admin
+    .from('watch_party_room_members')
+    .update({ left_at: now, last_seen_at: now })
+    .eq('room_id', id)
+    .is('left_at', null);
+
+  if (memberError) throw memberError;
 }
 
 export async function reportWatchPartyRoom(
@@ -378,34 +560,20 @@ export async function transferWatchPartyRoomHost(
   }
 
   const admin = adminClient();
-  const { data: room, error: roomError } = await admin
-    .from('watch_party_rooms')
-    .select('host_user_id,status')
-    .eq('id', id)
-    .maybeSingle();
+  const { data, error } = await admin.rpc('watch_party_transfer_host_atomic', {
+    p_room_id: id,
+    p_current_host: user.id,
+    p_target_user: targetUserId,
+  });
 
-  if (roomError) throw roomError;
-  if (!room) throw new ApiError(404, 'Комната не найдена.');
-  if (room.host_user_id !== user.id) {
-    throw new ApiError(403, 'Только текущий host может передать управление.');
+  if (error) roomRpcError(error);
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new ApiError(503, 'Не удалось подтвердить передачу host.');
   }
-  if (room.status === 'ended') throw new ApiError(409, 'Комната уже завершена.');
 
-  const now = new Date().toISOString();
-  const { data: transferred, error } = await admin
-    .from('watch_party_rooms')
-    .update({
-      host_user_id: targetUserId,
-      updated_at: now,
-      last_heartbeat_at: now,
-    })
-    .eq('id', id)
-    .eq('host_user_id', user.id)
-    .select('id')
-    .maybeSingle();
-
-  if (error) throw error;
-  if (!transferred) {
-    throw new ApiError(409, 'Host комнаты уже изменился. Обнови комнату и попробуй снова.');
-  }
+  return data as {
+    room_id?: string;
+    host_user_id?: string;
+    host_epoch?: number;
+  };
 }
