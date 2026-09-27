@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { sendTelegramMessage } from '@/lib/notifications-server';
+import { reconcilePremiumForUser } from '@/lib/premium-server';
 import {
   SEASON_FRAME_KEYS,
   isSeasonFrameKey,
@@ -33,6 +34,7 @@ export type LeaderboardRewardRecord = {
   premiumDays: number;
   cosmeticKey: SeasonFrameKey | null;
   status: 'pending' | 'claimed';
+  premiumGranted: boolean;
   createdAt: string;
   claimedAt: string | null;
 };
@@ -187,6 +189,19 @@ export async function materializeLeaderboardSeasonRewards(seasonId: string) {
 
   if (insertError) throw insertError;
 
+  const autoPremiumUsers = [
+    ...new Set(
+      rows
+        .filter((row) => row.reward_key === 'weekly_champion' && row.premium_days > 0)
+        .map((row) => row.user_id),
+    ),
+  ];
+  if (autoPremiumUsers.length) {
+    await Promise.allSettled(
+      autoPremiumUsers.map((userId) => reconcilePremiumForUser(userId)),
+    );
+  }
+
   void notifyLeaderboardRewardWinners(rows).catch((notifyError) => {
     console.warn('[Leaderboard rewards] Telegram notification failed:', notifyError);
   });
@@ -198,7 +213,7 @@ export async function listLeaderboardRewardsForUser(userId: string) {
   const admin = createSupabaseAdmin();
   const { data, error } = await admin
     .from('leaderboard_season_rewards')
-    .select('id,season_id,place,reward_key,premium_days,cosmetic_key,status,created_at,claimed_at,leaderboard_seasons!inner(period_key,starts_at,ends_at,period_type)')
+    .select('id,season_id,place,reward_key,premium_days,premium_subscription_id,cosmetic_key,status,created_at,claimed_at,leaderboard_seasons!inner(period_key,starts_at,ends_at,period_type)')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(24);
@@ -226,6 +241,7 @@ export async function listLeaderboardRewardsForUser(userId: string) {
       place: Number(row.place),
       rewardKey: String(row.reward_key),
       premiumDays: Number(row.premium_days) || 0,
+      premiumGranted: Boolean(row.premium_subscription_id),
       cosmeticKey,
       status: row.status === 'claimed' ? 'claimed' as const : 'pending' as const,
       createdAt: String(row.created_at),
