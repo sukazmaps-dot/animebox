@@ -546,12 +546,19 @@ async function readSourceFailure(cache, cacheKey, requestMethod) {
   );
 }
 
-function sourceFallbackResponse(source, error, sourceBackoff = false) {
+function sourceSoftFailureResponse(source, error, sourceBackoff = false) {
+  // Never redirect the browser back to an origin that this worker has just
+  // proved unavailable. A 204 is intentionally not a valid image payload:
+  // <img> advances its bounded fallback chain without surfacing another 5xx
+  // request to the same broken upstream.
   const headers = new Headers({
-    Location: source.toString(),
-    'Cache-Control': `public, max-age=${NEGATIVE_CACHE_TTL_SECONDS}`,
+    'Cache-Control': `public, max-age=${NEGATIVE_CACHE_TTL_SECONDS}, s-maxage=${NEGATIVE_CACHE_TTL_SECONDS}`,
+    'CDN-Cache-Control': `public, max-age=${NEGATIVE_CACHE_TTL_SECONDS}`,
     'Retry-After': String(NEGATIVE_CACHE_TTL_SECONDS),
-    'X-AnimeBox-Media': 'source-fallback-redirect',
+    'Access-Control-Allow-Origin': '*',
+    'Cross-Origin-Resource-Policy': 'cross-origin',
+    'X-AnimeBox-Media': 'source-soft-fail',
+    'X-AnimeBox-Origin': source.hostname,
     'X-AnimeBox-Origin-Error': error || 'origin-failed',
   });
 
@@ -559,7 +566,7 @@ function sourceFallbackResponse(source, error, sourceBackoff = false) {
     headers.set('X-AnimeBox-Source-Backoff', '1');
   }
 
-  return new Response(null, { status: 307, headers });
+  return new Response(null, { status: 204, headers });
 }
 
 async function fetchOriginCoalesced(source, variant, hash) {
@@ -694,7 +701,11 @@ export default {
       const headers = new Headers(edgeHit.headers);
       headers.set(
         'X-AnimeBox-Media',
-        edgeHit.ok ? 'edge-hit' : 'negative-edge-hit',
+        edgeHit.status === 204
+          ? 'negative-edge-hit'
+          : edgeHit.ok
+            ? 'edge-hit'
+            : 'negative-edge-hit',
       );
       return new Response(
         request.method === 'HEAD' ? null : edgeHit.body,
@@ -740,11 +751,11 @@ export default {
       hash,
     );
     if (!origin.response) {
-      const failureResponse = sourceFallbackResponse(
+      const failureResponse = sourceSoftFailureResponse(
         source,
         origin.error,
       );
-      const sourceFailureResponse = sourceFallbackResponse(
+      const sourceFailureResponse = sourceSoftFailureResponse(
         source,
         origin.error,
         true,
