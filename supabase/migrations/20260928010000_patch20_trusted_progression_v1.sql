@@ -54,6 +54,71 @@ cross join lateral (
 ) m
 on conflict (user_id) do nothing;
 
+insert into public.achievements (
+  code,
+  title,
+  description,
+  metric,
+  threshold,
+  icon,
+  category,
+  rarity,
+  xp_reward,
+  hidden,
+  sort_order
+)
+values
+  (
+    'secret_episodes_404',
+    'Серия не найдена',
+    'Заверши 404 подтверждённые серии.',
+    'episodes',
+    404,
+    'episodes-stack',
+    'watch',
+    'epic',
+    200,
+    true,
+    65
+  ),
+  (
+    'secret_watch_7777',
+    'Семь-семь-семь-семь',
+    'Накопи 7 777 минут подтверждённого просмотра.',
+    'watch_minutes',
+    7777,
+    'marathon',
+    'time',
+    'legendary',
+    350,
+    true,
+    255
+  ),
+  (
+    'secret_streak_21',
+    'Три недели в ритме',
+    'Сохраняй подтверждённую серию активности 21 день.',
+    'longest_streak',
+    21,
+    'first-episode',
+    'community',
+    'epic',
+    200,
+    true,
+    535
+  )
+on conflict (code) do update set
+  title = excluded.title,
+  description = excluded.description,
+  metric = excluded.metric,
+  threshold = excluded.threshold,
+  icon = excluded.icon,
+  category = excluded.category,
+  rarity = excluded.rarity,
+  xp_reward = excluded.xp_reward,
+  hidden = excluded.hidden,
+  sort_order = excluded.sort_order;
+
 create or replace function public.trusted_progression_metrics(p_user uuid)
 returns jsonb
 language sql
@@ -279,8 +344,7 @@ begin
   with eligible as (
     select a.code
     from public.achievements a
-    where not a.hidden
-      and coalesce((metrics->>a.metric)::bigint, 0) >= a.threshold
+    where coalesce((metrics->>a.metric)::bigint, 0) >= a.threshold
   ),
   inserted as (
     insert into public.user_achievements(user_id, achievement_code)
