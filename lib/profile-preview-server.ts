@@ -102,6 +102,7 @@ export async function getProfilePreview(userId: string) {
     primaryColor: appearance.premiumStudio?.primaryColor ?? '#101426',
     accentColor: appearance.premiumStudio?.accentColor ?? '#7C4DFF',
     textColor: appearance.premiumStudio?.textColor ?? '#F5F3FF',
+    particleEffect: appearance.premiumStudio?.particleEffect ?? 'none',
     atmosphereEffect: appearance.premiumStudio?.atmosphereEffect ?? 'none',
     atmosphereIntensity: appearance.premiumStudio?.atmosphereIntensity ?? 0,
     motionMode: appearance.premiumStudio?.motionMode ?? 'off',
