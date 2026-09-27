@@ -28,6 +28,8 @@ type CatalogLocalizationRow = {
   title: string;
   genres: string[] | null;
   total_episodes: number | null;
+  finished?: boolean | null;
+  poster_url?: string | null;
 };
 
 type ShikimoriDetail = {
@@ -87,7 +89,7 @@ async function readLocalLocalization(animeId: number) {
       .maybeSingle(),
     admin
       .from('anime_catalog')
-      .select('title,genres,total_episodes')
+      .select('title,genres,total_episodes,finished,poster_url')
       .eq('id', animeId)
       .maybeSingle(),
   ]);
@@ -193,6 +195,98 @@ function mergeAnime(input: {
         Number(input.shikimori?.episodes_aired ?? 0),
       ) || null,
   } satisfies Anime;
+}
+
+export async function getLocalAnimeDetailFallback(
+  animeId: number,
+): Promise<Anime | null> {
+  if (!Number.isSafeInteger(animeId) || animeId <= 0) return null;
+
+  let local: Awaited<ReturnType<typeof readLocalLocalization>>;
+  try {
+    local = await readLocalLocalization(animeId);
+  } catch (error) {
+    console.warn(
+      `[anime localization] local detail fallback failed for ${animeId}:`,
+      error,
+    );
+    return null;
+  }
+
+  if (!local.document && !local.catalog) return null;
+
+  const aliases = Array.isArray(local.document?.aliases)
+    ? local.document.aliases
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value))
+    : [];
+
+  const russianTitle =
+    firstRussianTitle(
+      local.document?.title,
+      local.catalog?.title,
+      ...aliases,
+    ) ||
+    cleanText(local.document?.title) ||
+    cleanText(local.catalog?.title) ||
+    'Аниме';
+
+  const latinAliases = aliases.filter(
+    (value) => /[A-Za-z]/.test(value) && !containsCyrillic(value),
+  );
+  const romaji =
+    latinAliases.find((value) => /\bna\b|\bno\b|\bto\b|\bwa\b/i.test(value)) ||
+    latinAliases[0] ||
+    null;
+  const english =
+    latinAliases.find((value) => value !== romaji) ||
+    latinAliases[0] ||
+    null;
+  const native =
+    aliases.find((value) => /[\u3040-\u30ff\u3400-\u9fff]/.test(value)) ||
+    null;
+
+  const description = cleanText(local.document?.description);
+  const totalEpisodes = Number(local.catalog?.total_episodes ?? 0);
+  const poster = cleanText((local.catalog as CatalogLocalizationRow & {
+    poster_url?: string | null;
+  } | null)?.poster_url);
+
+  return {
+    id: animeId,
+    catalogEligible: true,
+    title: {
+      russian: russianTitle,
+      romaji,
+      english,
+      native,
+    },
+    synonyms: aliases,
+    description,
+    score: null,
+    episodes:
+      Number.isSafeInteger(totalEpisodes) && totalEpisodes > 0
+        ? totalEpisodes
+        : null,
+    episodesAired:
+      local.catalog?.finished &&
+      Number.isSafeInteger(totalEpisodes) &&
+      totalEpisodes > 0
+        ? totalEpisodes
+        : null,
+    duration: null,
+    status: local.catalog?.finished ? 'Вышло' : null,
+    format: null,
+    genres: local.catalog?.genres ?? [],
+    studios: [],
+    coverImage: poster
+      ? {
+          extraLarge: poster,
+          large: poster,
+        }
+      : null,
+    bannerImage: null,
+  };
 }
 
 export async function localizeAnimeDetail(anime: Anime): Promise<Anime> {

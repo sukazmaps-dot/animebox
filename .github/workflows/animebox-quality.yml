@@ -99,6 +99,7 @@ jobs:
           components/SearchSuggestions.tsx
           lib/anime-localization-server.ts
           lib/anime-route.ts
+          scripts/hotfix-20-1-2-local-title-route-check.mjs
           components/AuthUserButton.tsx
           components/SidebarMembership.tsx
           components/SocialNotificationBadge.tsx

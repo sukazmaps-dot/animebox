@@ -1,7 +1,10 @@
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
 import { getAnimeById as getAniListAnimeById } from '@/lib/anilist';
-import { localizeAnimeDetail } from '@/lib/anime-localization-server';
+import {
+  getLocalAnimeDetailFallback,
+  localizeAnimeDetail,
+} from '@/lib/anime-localization-server';
 import {
   findAnimeRoute,
   findAnimeRouteById,
@@ -28,11 +31,26 @@ export const resolveAnimeRoute = cache(async (slug: string) => {
 
   if (!id || !Number.isSafeInteger(id) || id <= 0) return null;
 
-  const baseAnime = await getCachedAnimeBase(id);
+  let baseAnime = null;
+
+  try {
+    baseAnime = await getCachedAnimeBase(id);
+  } catch (error) {
+    console.warn(
+      `[anime route] AniList detail unavailable for ${id}; using local catalog fallback`,
+      error,
+    );
+  }
+
+  if (!baseAnime) {
+    baseAnime = await getLocalAnimeDetailFallback(id);
+  }
+
   if (!baseAnime) return null;
 
-  // Provider failures must never poison the 30-minute detail cache. We cache
-  // only stable AniList data and resolve/persist Russian localization after it.
+  // Existing AnimeBox catalogue entries remain routable even if AniList is
+  // temporarily unavailable or rejects the fresh detail object. External
+  // metadata enriches the page; it no longer decides whether the page exists.
   const anime = registerAnime(await localizeAnimeDetail(baseAnime));
 
   return {
