@@ -3,6 +3,7 @@
 import type { CSSProperties } from 'react';
 
 import PremiumProfileAtmosphere from '@/components/premium/PremiumProfileAtmosphere';
+import PremiumParticleLayer from '@/components/profile/PremiumParticleLayer';
 import {
   premiumMediaStyle,
   premiumStudioCssVariables,
@@ -39,6 +40,11 @@ export default function PremiumStudioLivePreview({
         effect={settings.atmosphereEffect}
         motion={settings.motionMode}
         variant="preview"
+      />
+
+      <PremiumParticleLayer
+        effect={settings.particleEffect}
+        className="premium-studio-v18__particle-layer"
       />
 
       <div className="premium-studio-v12__preview-banner premium-studio-v15__preview-banner">
