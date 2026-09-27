@@ -52,6 +52,7 @@ export function levelFrameAvatarScale(value: unknown) {
 
 export type LevelMilestone = {
   level: number;
+  stageLabel: 'Identity' | 'Profile' | 'Veteran' | 'Elite' | 'Prestige' | null;
   title: string;
   frameKey: LevelFrameKey | null;
   reward: string;
@@ -61,6 +62,7 @@ export type LevelMilestone = {
 export const LEVEL_MILESTONES: readonly LevelMilestone[] = [
   {
     level: 1,
+    stageLabel: null,
     title: 'Старт',
     frameKey: null,
     reward: 'Старт прогрессии AnimeBox',
@@ -68,6 +70,7 @@ export const LEVEL_MILESTONES: readonly LevelMilestone[] = [
   },
   {
     level: 10,
+    stageLabel: 'Identity',
     title: 'Запретный реликт',
     frameKey: 'milestone-lv10-forbidden-relic',
     reward: 'Milestone-рамка «Запретный реликт»',
@@ -75,6 +78,7 @@ export const LEVEL_MILESTONES: readonly LevelMilestone[] = [
   },
   {
     level: 25,
+    stageLabel: 'Profile',
     title: 'Пламенная дуга',
     frameKey: 'milestone-lv25-flame-arc',
     reward: 'Milestone-рамка «Пламенная дуга»',
@@ -82,6 +86,7 @@ export const LEVEL_MILESTONES: readonly LevelMilestone[] = [
   },
   {
     level: 50,
+    stageLabel: 'Veteran',
     title: 'Багровая печать',
     frameKey: 'milestone-lv50-crimson-sigil',
     reward: 'Milestone-рамка «Багровая печать»',
@@ -89,6 +94,7 @@ export const LEVEL_MILESTONES: readonly LevelMilestone[] = [
   },
   {
     level: 75,
+    stageLabel: 'Elite',
     title: 'Угроза',
     frameKey: 'milestone-lv75-menacing-manga',
     reward: 'Milestone-рамка «Угроза»',
@@ -96,6 +102,7 @@ export const LEVEL_MILESTONES: readonly LevelMilestone[] = [
   },
   {
     level: 100,
+    stageLabel: 'Prestige',
     title: 'Абсолютный престиж',
     frameKey: 'milestone-lv100-absolute-prestige',
     reward: 'Финальная milestone-рамка «Абсолютный престиж»',
