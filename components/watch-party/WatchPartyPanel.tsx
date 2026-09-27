@@ -865,12 +865,6 @@ export default function WatchPartyPanel({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            participantCount: Math.max(
-              1,
-              new Set(
-                [...participantsRef.current.values()].map((participant) => participant.userId),
-              ).size,
-            ),
             status: nextStatus,
             episode: state?.episode ?? episodeNumber,
           }),
@@ -893,6 +887,8 @@ export default function WatchPartyPanel({
       }, HOST_HEARTBEAT_MS);
 
       void syncRegisteredRoom();
+      void syncServerMembership('heartbeat').catch(() => undefined);
+      ensureMembershipTimer();
     }
 
     if (syncTimerRef.current == null) {
@@ -900,7 +896,13 @@ export default function WatchPartyPanel({
         sendHostSync();
       }, PLAYER_SYNC_MS);
     }
-  }, [broadcast, sendHostSync, syncRegisteredRoom]);
+  }, [
+    broadcast,
+    ensureMembershipTimer,
+    sendHostSync,
+    syncRegisteredRoom,
+    syncServerMembership,
+  ]);
 
 
   const sendGuestPacket = useCallback((packet: WatchPartyPacket) => {
@@ -1173,7 +1175,7 @@ export default function WatchPartyPanel({
       }
 
       if (packet.type === 'HOST_TRANSFER') {
-        if (welcomed) acceptHostTransfer(invite, packet.targetUserId);
+        if (welcomed) void acceptHostTransfer(invite, packet.targetUserId, packet.hostEpoch);
         return;
       }
 
@@ -1278,6 +1280,21 @@ export default function WatchPartyPanel({
       intentionalCloseRef.current ||
       transportGenerationRef.current !== generation
     ) return;
+
+    try {
+      await syncServerMembership('heartbeat', 'unknown');
+      ensureMembershipTimer();
+    } catch (presenceError) {
+      clearGuestJoinDeadline();
+      hostEndedRef.current = true;
+      setStatus('error');
+      setError(
+        presenceError instanceof Error
+          ? presenceError.message
+          : 'Не удалось войти в комнату.',
+      );
+      return;
+    }
 
     guestWelcomedRef.current = false;
     relayWelcomedRef.current = false;
@@ -1436,7 +1453,7 @@ export default function WatchPartyPanel({
           }
 
           if (packet.type === 'HOST_TRANSFER') {
-            acceptHostTransfer(invite, packet.targetUserId);
+            void acceptHostTransfer(invite, packet.targetUserId, packet.hostEpoch);
             return;
           }
 
@@ -1751,6 +1768,8 @@ export default function WatchPartyPanel({
     redirectToRegistration,
     resolveIdentity,
     destroyTransport,
+    ensureMembershipTimer,
+    syncServerMembership,
   ]);
 
   const startHost = useCallback(async (invite: WatchPartyInvite) => {
@@ -1814,6 +1833,24 @@ export default function WatchPartyPanel({
       intentionalCloseRef.current ||
       transportGenerationRef.current !== generation
     ) return;
+
+    try {
+      await syncServerMembership('heartbeat', 'unknown');
+      ensureMembershipTimer();
+    } catch (presenceError) {
+      if (hostStartupTimerRef.current != null) {
+        window.clearTimeout(hostStartupTimerRef.current);
+        hostStartupTimerRef.current = null;
+      }
+      hostBootKeyRef.current = null;
+      setStatus('error');
+      setError(
+        presenceError instanceof Error
+          ? presenceError.message
+          : 'Не удалось зарегистрировать host комнаты.',
+      );
+      return;
+    }
 
     const hostPeerId = watchPartyHostPeerId(invite.roomId);
     let peerBundle: Awaited<ReturnType<typeof createWatchPartyPeer>>;
@@ -2390,6 +2427,8 @@ export default function WatchPartyPanel({
     sendHostSync,
     sequencePlayerAction,
     syncRegisteredRoom,
+    ensureMembershipTimer,
+    syncServerMembership,
   ]);
 
   useEffect(() => {
