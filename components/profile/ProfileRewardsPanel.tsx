@@ -14,6 +14,7 @@ type Reward = {
   periodType: 'week' | 'month';
   place: number;
   premiumDays: number;
+  premiumGranted: boolean;
   cosmeticKey: string | null;
   status: 'pending' | 'claimed';
   claimedAt: string | null;
@@ -46,7 +47,10 @@ function rewardTitle(reward: Reward) {
 function rewardSubtitle(reward: Reward) {
   const frameDays = reward.periodType === 'month' ? 30 : 7;
   if (reward.premiumDays > 0) {
-    return `${reward.premiumDays} ${reward.premiumDays === 1 ? 'день' : reward.premiumDays < 5 ? 'дня' : 'дней'} Premium + рамка на ${frameDays} дней`;
+    const days = `${reward.premiumDays} ${reward.premiumDays === 1 ? 'день' : reward.premiumDays < 5 ? 'дня' : 'дней'} Premium`;
+    return reward.premiumGranted
+      ? `${days} уже активированы автоматически · рамка на ${frameDays} дней`
+      : `${days} + рамка на ${frameDays} дней`;
   }
   return `Сезонная рамка на ${frameDays} дней`;
 }
@@ -149,7 +153,11 @@ export default function ProfileRewardsPanel() {
           <div><span>ЕСТЬ НЕПОЛУЧЕННЫЙ ПРИЗ</span><strong>Итоги сезона уже зафиксированы</strong></div>
           {data.pending.map((reward) => (
             <button key={reward.id} type="button" disabled={Boolean(busyId)} onClick={() => void claim(reward)}>
-              {busyId === reward.id ? 'Выдаём…' : 'Забрать приз'}
+              {busyId === reward.id
+                ? 'Выдаём…'
+                : reward.premiumGranted
+                  ? 'Забрать рамку'
+                  : 'Забрать приз'}
             </button>
           ))}
         </section>
