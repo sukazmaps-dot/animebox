@@ -643,3 +643,90 @@
     display: block;
   }
 }
+
+
+/* =========================================================
+   Patch 19.3.1 · Mobile vertical-flow recovery
+   Portrait phones must be allowed to grow beyond one viewport.
+   Desktop / landscape keep the fixed theater experience above.
+   ========================================================= */
+@media (max-width: 700px) and (orientation: portrait) {
+  .viewport {
+    height: auto;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: visible;
+    padding-bottom: max(18px, calc(env(safe-area-inset-bottom) + 14px));
+  }
+
+  .shell {
+    height: auto;
+    min-height: calc(100dvh - 10px);
+    grid-template-rows: auto auto;
+    align-content: start;
+  }
+
+  .content {
+    grid-template-rows: minmax(245px, 44dvh) auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .playerColumn,
+  .playerWrap {
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .roomColumn {
+    min-height: 0;
+    overflow: visible;
+  }
+
+  :global(.animebox-premium-player.watch-together-player) {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+  }
+
+  :global(.watch-together-player .watch-together-player-stage-shell) {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  :global(.watch-together-player .watch-together-player-nav) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 6px;
+    padding: 6px;
+  }
+
+  :global(.watch-together-player .watch-together-player-nav > button) {
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    height: 40px;
+    margin: 0;
+    padding: 0 10px;
+    box-sizing: border-box;
+    justify-content: center;
+  }
+
+  :global(html.animebox-watch-together-theater),
+  :global(body.animebox-watch-together-theater) {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: auto;
+  }
+
+  :global(.watch-together-app-shell) {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
