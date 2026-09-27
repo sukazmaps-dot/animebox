@@ -10,8 +10,10 @@ import { coveredSeconds, mergePlayedRanges } from '@/lib/played-coverage';
 import { canonicalResumePositionMs } from '@/lib/resume-integrity';
 import {
   acceptedRealWatchMs,
+  episodeCompletionIntegrity,
   inspectPlaybackAdvance,
   maxPlausiblePlaybackAdvanceMs,
+  trustedEpisodeLimit,
 } from '@/lib/watch-playback-integrity';
 import type { EpisodeWatchListItem, WatchTitleOverview } from '@/types/watch';
 
@@ -343,30 +345,59 @@ export async function startWatchSession(input: WatchStartInput) {
   const admin = adminClient();
   const watch = watchClient();
 
-  const { data: catalog, error: catalogError } = await admin
-    .from('anime_catalog')
-    .select('total_episodes,finished')
-    .eq('id', input.animeId)
-    .maybeSingle();
+  const [
+    { data: catalog, error: catalogError },
+    { data: availability, error: availabilityError },
+    { data: existingTitle, error: titleReadError },
+  ] = await Promise.all([
+    admin
+      .from('anime_catalog')
+      .select('total_episodes,finished')
+      .eq('id', input.animeId)
+      .maybeSingle(),
+    admin
+      .from('anime_availability')
+      .select('availability_status,max_episode,last_success_at')
+      .eq('anime_id', input.animeId)
+      .maybeSingle(),
+    watch
+      .from('titles')
+      .select('required_episodes,finalized')
+      .eq('anime_id', input.animeId)
+      .maybeSingle(),
+  ]);
   throwIfError(catalogError);
-
-  const { data: existingTitle, error: titleReadError } = await watch
-    .from('titles')
-    .select('required_episodes,finalized')
-    .eq('anime_id', input.animeId)
-    .maybeSingle();
+  throwIfError(availabilityError);
   throwIfError(titleReadError);
 
   const catalogEpisodes = Number(catalog?.total_episodes ?? 0);
-  const hintedEpisodes = Number(input.requiredEpisodes ?? 0);
-  const existingRequired = Number(existingTitle?.required_episodes ?? 0);
-  const requiredEpisodes = Math.max(
-    1,
-    input.episode,
-    Number.isSafeInteger(catalogEpisodes) ? catalogEpisodes : 0,
-    Number.isSafeInteger(hintedEpisodes) ? hintedEpisodes : 0,
-    Number.isSafeInteger(existingRequired) ? existingRequired : 0,
-  );
+  const verifiedMaxEpisode =
+    availability?.availability_status === 'playable'
+      ? Number(availability.max_episode ?? 0)
+      : 0;
+  const trustedEpisodeCeiling = trustedEpisodeLimit({
+    catalogEpisodes,
+    verifiedMaxEpisode,
+  });
+
+  if (trustedEpisodeCeiling == null) {
+    throw new ApiError(
+      409,
+      'Список доступных серий ещё не подтверждён сервером.',
+    );
+  }
+
+  if (input.episode > trustedEpisodeCeiling) {
+    throw new ApiError(
+      400,
+      'Эта серия не подтверждена каталогом или источником воспроизведения.',
+    );
+  }
+
+  // Browser hints must never expand the global title episode count. Otherwise
+  // a forged /api/watch start request could create fake episode identities and
+  // farm completion/challenge events.
+  const requiredEpisodes = Math.max(1, input.episode, trustedEpisodeCeiling);
 
   const finalized = Boolean(
     existingTitle?.finalized || (catalog?.finished && catalogEpisodes > 0),
@@ -799,11 +830,13 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
   const excludedMs = watchProgress.excludedMs;
   const eligibleDurationMs = watchProgress.eligibleDurationMs;
   const activeMs = Number(progress?.active_ms ?? 0) + acceptedMs;
-  const completedNow = Boolean(
-    eligibleDurationMs &&
-      eligibleDurationMs > 0 &&
-      coverageMs >= Math.floor(eligibleDurationMs * 0.9),
-  );
+  const completionIntegrity = episodeCompletionIntegrity({
+    coverageMs,
+    activeMs,
+    eligibleDurationMs,
+    durationMs,
+  });
+  const completedNow = completionIntegrity.completed;
   const completedAt = progress?.completed_at || (completedNow ? receivedAt : null);
   const resumePositionMs = canonicalResumePositionMs({
     positionMs: input.positionMs,
@@ -850,6 +883,10 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
     durationMs,
     excludedMs,
     eligibleDurationMs,
+    completionTargetCoverageMs: completionIntegrity.targetCoverageMs,
+    completionRequiredActiveMs: completionIntegrity.requiredActiveMs,
+    completionCoverageMet: completionIntegrity.coverageMet,
+    completionActiveTimeMet: completionIntegrity.activeTimeMet,
     animeId: Number(episode.anime_id),
     episode: Number(episode.episode_number),
   };
