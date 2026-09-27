@@ -469,13 +469,14 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
           const value = event.currentTarget.duration;
           setDuration(Number.isFinite(value) ? value : 0);
         }}
-        onCanPlay={() => {
+        onCanPlay={(event) => {
+          const observedDuration = event.currentTarget.duration;
           setBuffering(false);
           transitionEngine({
             type: 'ready',
             durationSeconds:
-              Number.isFinite(videoRef.current?.duration) && (videoRef.current?.duration ?? 0) > 0
-                ? videoRef.current?.duration ?? null
+              Number.isFinite(observedDuration) && observedDuration > 0
+                ? observedDuration
                 : null,
           });
           onReady?.();
