@@ -11,6 +11,7 @@ import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import ProfileWidgetEditor from '@/components/profile/ProfileWidgetEditor';
 import ProfileRewardsPanel from '@/components/profile/ProfileRewardsPanel';
 import ProfileDirectEditSurface from '@/components/profile/ProfileDirectEditSurface';
+import TelegramAccountLinkCard from '@/components/profile/TelegramAccountLinkCard';
 import Icon from '@/components/Icon';
 import { notifyAuthChanged } from '@/lib/auth-events';
 import { usernamePolicyError } from '@/lib/auth-identity-policy';
@@ -791,6 +792,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             onUseBaseBanner={() => clearPremiumFallbackMedia('banner')}
             onOpenPremium={() => switchTab('style')}
           />
+
+          <TelegramAccountLinkCard />
           </div>
         )}
 
