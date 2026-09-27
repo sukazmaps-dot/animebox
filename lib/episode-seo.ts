@@ -142,7 +142,7 @@ export function buildEpisodeSeoTitleVariants(
 
   return candidates.map((title) =>
     truncateSeoText(
-      \`\${title} — \${episode} серия смотреть онлайн\`,
+      `${title} — ${episode} серия смотреть онлайн`,
       68,
     ),
   );
@@ -154,7 +154,7 @@ export function buildEpisodeSeoTitle(anime: Anime, episode: number): string {
   return (
     variants.find((value) => value.length <= 64) ??
     variants[variants.length - 1] ??
-    \`\${episode} серия аниме смотреть онлайн\`
+    `${episode} серия аниме смотреть онлайн`
   );
 }
 
@@ -167,7 +167,7 @@ export function buildEpisodeSeoDescription(
 
   if (!indexable) {
     return truncateSeoText(
-      \`\${identity.primaryTitle} — \${episode} серия на AnimeBox.\`,
+      `${identity.primaryTitle} — ${episode} серия на AnimeBox.`,
       158,
     );
   }
@@ -175,7 +175,7 @@ export function buildEpisodeSeoDescription(
   const alternate =
     identity.alternateTitle &&
     identity.alternateTitle.length <= 72
-      ? \` (\${identity.alternateTitle})\`
+      ? ` (${identity.alternateTitle})`
       : '';
   const facts: string[] = [];
 
@@ -190,9 +190,9 @@ export function buildEpisodeSeoDescription(
       : ' Сохраняйте прогресс и продолжайте просмотр с нужного момента.';
 
   return truncateSeoText(
-    \`Смотреть \${episode} серию аниме «\${identity.primaryTitle}»\${alternate} онлайн на AnimeBox.\${
-      facts.length ? \` \${facts.join(' · ')}.\` : ''
-    }\${statusTail}\`,
+    `Смотреть ${episode} серию аниме «${identity.primaryTitle}»${alternate} онлайн на AnimeBox.${
+      facts.length ? ` ${facts.join(' · ')}.` : ''
+    }${statusTail}`,
     158,
   );
 }
