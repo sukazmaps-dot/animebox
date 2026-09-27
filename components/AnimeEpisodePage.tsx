@@ -159,7 +159,9 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       return;
     }
 
-    setActiveEpisodeNumber(requestedEpisode);
+    queueMicrotask(() => {
+      setActiveEpisodeNumber(requestedEpisode);
+    });
   }, [activeEpisodeNumber, requestedEpisode]);
 
   useEffect(() => {
@@ -1386,10 +1388,8 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     availableEpisodes,
     episodeNumber,
     router,
-    seasonRoute.current?.episodes.length,
+    seasonRoute,
     theaterMode,
-    seasonRoute.next,
-    seasonRoute.previous,
   ]);
 
   const currentSeasonEpisodes =
