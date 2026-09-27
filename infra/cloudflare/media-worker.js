@@ -201,6 +201,7 @@ function transformFallbackHeaders(contentType, source, variant, reason) {
     'X-AnimeBox-Origin': source.hostname,
     'X-AnimeBox-Variant': variant.token,
     'X-AnimeBox-Transform-Error': reason || 'unavailable',
+    'X-AnimeBox-Failure-Stage': 'transform-fallback',
   });
 
   if (variant.requestedFormat === 'auto') {
@@ -574,6 +575,7 @@ function sourceSoftFailureResponse(source, error, sourceBackoff = false) {
     'X-AnimeBox-Media-Version': MEDIA_WORKER_VERSION,
     'X-AnimeBox-Origin': source.hostname,
     'X-AnimeBox-Origin-Error': error || 'origin-failed',
+    'X-AnimeBox-Failure-Stage': 'origin-pipeline',
   });
 
   if (sourceBackoff) {
