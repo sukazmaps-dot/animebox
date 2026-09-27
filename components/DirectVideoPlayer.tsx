@@ -697,6 +697,13 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
         event.preventDefault();
         void togglePip();
         break;
+      case 'escape':
+        if (settingsOpen) {
+          event.preventDefault();
+          setSettingsOpen(false);
+          revealControls('settings_closed');
+        }
+        break;
       case '>':
         event.preventDefault();
         setRate(playbackRate + 0.25);
@@ -708,13 +715,14 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
       default:
         break;
     }
-    revealControls();
+    revealControls('keyboard');
   }, [
     fullscreenActive,
     onControlAction,
     onToggleFullscreen,
     playbackRate,
     revealControls,
+    settingsOpen,
     seek,
     setRate,
     setVolumeValue,
@@ -734,7 +742,9 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
   const updateTimelineHover = useCallback((
     clientX: number,
     element: HTMLElement,
+    pointerType?: string,
   ) => {
+    if (pointerType === 'touch') return;
     if (duration <= 0) return;
     const rect = element.getBoundingClientRect();
     if (rect.width <= 0) return;
@@ -750,6 +760,8 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
     lastPointerTypeRef.current = event.pointerType;
     if (event.pointerType !== 'touch') return;
 
+    event.preventDefault();
+
     const rect = event.currentTarget.getBoundingClientRect();
     const ratio = rect.width > 0
       ? clamp((event.clientX - rect.left) / rect.width, 0, 1)
@@ -761,7 +773,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
     if (
       previous &&
       previous.zone === zone &&
-      now - previous.at <= 320 &&
+      now - previous.at <= TOUCH_DOUBLE_TAP_WINDOW_MS &&
       zone !== 'center'
     ) {
       if (touchTapTimerRef.current != null) {
@@ -776,23 +788,54 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
       const delta = zone === 'left' ? -10 : 10;
       const target = video.currentTime + delta;
       commitTimelineSeek(target, 'touch');
+      onControlAction?.('mobile_double_tap_seek', {
+        direction: zone,
+        deltaSeconds: delta,
+        fromSeconds: video.currentTime,
+        toSeconds: clamp(
+          target,
+          0,
+          Number.isFinite(video.duration) && video.duration > 0
+            ? Math.max(0, video.duration - 0.05)
+            : Math.max(0, target),
+        ),
+      });
       setTapFeedback(zone === 'left' ? 'back' : 'forward');
       window.setTimeout(() => setTapFeedback(null), 520);
-      revealControls();
+      revealControls('double_tap_seek');
       return;
     }
 
     lastTouchTapRef.current = { at: now, zone };
+
     if (touchTapTimerRef.current != null) {
       window.clearTimeout(touchTapTimerRef.current);
     }
 
     touchTapTimerRef.current = window.setTimeout(() => {
-      revealControls();
+      if (settingsOpen) {
+        setSettingsOpen(false);
+        revealControls('surface_closes_settings');
+      } else if (controlsVisible && playing) {
+        clearControlsTimer();
+        setControlsVisibility(false, 'single_tap');
+      } else {
+        revealControls('single_tap');
+      }
+
       lastTouchTapRef.current = null;
       touchTapTimerRef.current = null;
-    }, 280);
-  }, [commitTimelineSeek, revealControls]);
+    }, TOUCH_SINGLE_TAP_DELAY_MS);
+  }, [
+    clearControlsTimer,
+    commitTimelineSeek,
+    controlsVisible,
+    onControlAction,
+    playing,
+    revealControls,
+    setControlsVisibility,
+    settingsOpen,
+  ]);
 
   const canPip = useMemo(() => {
     return typeof document !== 'undefined' && Boolean(document.pictureInPictureEnabled);
@@ -809,9 +852,13 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
     <div
       ref={rootRef}
       tabIndex={0}
-      className="group/direct relative h-full w-full overflow-hidden bg-black outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-400/60"
-      onPointerMove={revealControls}
-      onPointerDown={revealControls}
+      className="group/direct relative h-full w-full touch-manipulation overflow-hidden bg-black outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-400/60"
+      onPointerMove={(event) => {
+        if (event.pointerType !== 'touch') revealControls('pointer_move');
+      }}
+      onPointerDown={(event) => {
+        if (event.pointerType !== 'touch') revealControls('pointer_down');
+      }}
       data-animebox-player-controls-root
       onMouseLeave={() => {
         if (playing && !settingsOpen) scheduleControlsHide();
@@ -927,7 +974,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
 
       <button
         type="button"
-        className="absolute inset-0 z-10 cursor-default bg-transparent"
+        className="absolute inset-0 z-10 touch-manipulation select-none cursor-default bg-transparent"
         aria-label={playing ? 'Пауза' : 'Воспроизвести'}
         onPointerDown={(event) => {
           lastPointerTypeRef.current = event.pointerType;
