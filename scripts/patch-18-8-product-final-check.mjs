@@ -72,6 +72,14 @@ const vercel = JSON.parse(read('vercel.json'));
 const pkg = JSON.parse(read('package.json'));
 const trackerLayout = read('app/list/layout.tsx');
 const trackerCompactCss = read('app/tracker-library-compact.css');
+const premiumNicknameChatMigration = read('supabase/migrations/20260927155000_premium_nickname_effects_chat.sql');
+const weeklyChampionAutograntMigration = read('supabase/migrations/20260927155500_weekly_champion_premium_autogrant.sql');
+const publicAvatarServer = read('lib/public-avatar-server.ts');
+const chatServer = read('lib/chat-server.ts');
+const chatTypes = read('types/chat.ts');
+const globalChatCss = read('components/chat/GlobalChatV11Client.module.css');
+const progressionMilestones = read('lib/progression-milestones.ts');
+const evolutionFrame = read('components/progression/EvolutionFrame.tsx');
 
 const failures = [];
 
@@ -812,6 +820,78 @@ need('admin LVL control', adminCommunity, [
   'admin_adjustment_xp',
   'progression_level_set',
   'xpForLevel(level)',
+]);
+
+
+need('Premium nickname chat contract', premiumStudioCore, [
+  "'manga'",
+  "'glitch'",
+  'PREMIUM_NICKNAME_EFFECTS',
+]);
+need('Premium nickname Studio controls', premiumStudioClient, [
+  "manga: 'Manga Cut'",
+  "glitch: 'Glitch'",
+]);
+need('Premium nickname DB constraint recovery', premiumNicknameChatMigration, [
+  "nickname_effect in ('none','gradient','shimmer','glow','manga','glitch')",
+]);
+need('public appearance loads complete Premium identity', publicAvatarServer, [
+  'atmosphere_effect',
+  'atmosphere_intensity',
+  'nickname_effect',
+  'hero_style',
+  'surface_style',
+]);
+need('chat author Premium nickname payload', chatTypes, [
+  'nicknameEffect',
+  'nicknameAccent',
+]);
+need('chat server Premium nickname mapping', chatServer, [
+  'appearance?.premiumStudio?.nicknameEffect',
+  'appearance?.premiumStudio?.accentColor',
+]);
+need('chat Premium nickname UI', globalChat, [
+  'styles.usernameText',
+  "data-effect={author?.nicknameEffect ?? 'none'}",
+  "'--chat-nick-accent'",
+]);
+need('chat Premium nickname styles', globalChatCss, [
+  ".usernameText[data-effect='shimmer']",
+  ".usernameText[data-effect='glow']",
+  ".usernameText[data-effect='manga']",
+  ".usernameText[data-effect='glitch']",
+  '@media(prefers-reduced-motion:reduce)',
+]);
+
+need('five long-term progression milestones', progressionMilestones, [
+  "level: 10",
+  "title: 'Identity'",
+  "level: 25",
+  "title: 'Profile'",
+  "level: 50",
+  "title: 'Veteran'",
+  "level: 75",
+  "title: 'Elite'",
+  "level: 100",
+  "title: 'Prestige'",
+  'premiumAsset',
+  '/brand/frames/milestone/free/lv10-forbidden-relic.svg',
+  '/brand/frames/milestone/premium/lv100-absolute-prestige-premium.svg',
+]);
+need('milestone Free/Premium renderer', evolutionFrame, [
+  'progressionMilestoneAsset',
+  'level === 10',
+  'level === 100',
+  'premium',
+]);
+
+need('weekly Top-1 Premium auto-grant', weeklyChampionAutograntMigration, [
+  'animebox_autogrant_weekly_champion_premium',
+  "new.reward_key = 'weekly_champion'",
+  'after insert',
+  "'auto_granted', true",
+  'subscription_id := reward_row.premium_subscription_id',
+  'elsif reward_row.premium_days > 0',
 ]);
 
 if (
