@@ -84,6 +84,44 @@ for (const needle of [
   }
 }
 
+
+for (const needle of [
+  "import { createPortal } from 'react-dom'",
+  'data-mobile-player-selector-overlay',
+  'data-mobile-player-selector-sheet',
+  'data-player-selector-options',
+  'data-player-desktop-selector-menu',
+  "bottom-[max(0.75rem,env(safe-area-inset-bottom))]",
+  'max-h-[min(72dvh,520px)]',
+  'min-h-12',
+  'min-h-11',
+  "document.addEventListener('pointerdown', handleOutside, true)",
+  "document.body.style.overflow = 'hidden'",
+  "aria-haspopup="listbox"",
+  'role="option"',
+  'aria-selected={active}',
+]) {
+  if (!player.includes(needle)) {
+    throw new Error('Patch 19.5 selector invariant missing: ' + needle);
+  }
+}
+
+if (player.includes('<select')) {
+  throw new Error(
+    'Patch 19.5 native <select> returned to AnimePlayer mobile controls.',
+  );
+}
+
+if (
+  player.includes(
+    'className="absolute inset-0 z-[60] h-11 w-full cursor-pointer opacity-0 sm:hidden"',
+  )
+) {
+  throw new Error(
+    'Patch 19.5 invisible native mobile select overlay returned.',
+  );
+}
+
 if (player.includes('key={expectedSourceIdentity}') ||
     player.includes('key={`${expectedSourceIdentity}:theater`}')) {
   throw new Error('Patch 19.5 must preserve the 19.4 persistent player shell.');
