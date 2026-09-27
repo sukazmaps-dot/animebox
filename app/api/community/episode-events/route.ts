@@ -140,7 +140,9 @@ export async function POST(request: Request) {
       throw new ApiError(409, 'Событие ещё не достигнуто.');
     }
 
-    const { data: episodeRow, error: episodeError } = await admin
+    const watch = admin.schema('animebox_watch');
+
+    const { data: episodeRow, error: episodeError } = await watch
       .from('episodes')
       .select('id')
       .eq('anime_id', Number(event.anime_id))
@@ -150,7 +152,7 @@ export async function POST(request: Request) {
     if (episodeError) throw episodeError;
     if (!episodeRow) throw new ApiError(409, 'Нет подтверждённой сессии просмотра.');
 
-    const { data: progress, error: progressError } = await admin
+    const { data: progress, error: progressError } = await watch
       .from('progress')
       .select('watched_ranges,last_watched_at')
       .eq('user_id', user.id)
