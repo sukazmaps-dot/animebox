@@ -255,6 +255,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
   const lastAdvanceAtRef = useRef<number | null>(null);
   const pauseInferenceTimerRef = useRef<number | null>(null);
   const engineStateRef = useRef(createPlaybackEngineState('kodik'));
+  const onEngineStateChangeRef = useRef(onEngineStateChange);
   const pendingTimeRequestRef = useRef<{
     promise: Promise<number | null>;
     resolve: (position: number | null) => void;
@@ -274,11 +275,15 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
     }
   }, [playerSrc]);
 
+  useEffect(() => {
+    onEngineStateChangeRef.current = onEngineStateChange;
+  }, [onEngineStateChange]);
+
   const transitionEngine = useCallback((event: PlaybackEngineEvent) => {
     const next = reducePlaybackEngineState(engineStateRef.current, event);
     engineStateRef.current = next;
-    onEngineStateChange?.(next);
-  }, [onEngineStateChange]);
+    onEngineStateChangeRef.current?.(next);
+  }, []);
 
   const postApiCommand = useCallback((method: string, value: Record<string, unknown> = {}) => {
     const frameWindow = iframeRef.current?.contentWindow;
