@@ -13,6 +13,7 @@ import {
   isHexColor,
   isPremiumAtmosphereEffect,
   isPremiumBorderStyle,
+  isPremiumParticleEffect,
   isPremiumEntranceEffect,
   isPremiumHeroStyle,
   isPremiumMotionMode,
@@ -42,6 +43,7 @@ const STUDIO_COLUMNS = [
   'text_color',
   'glow_strength',
   'border_style',
+  'particle_effect',
   'avatar_path',
   'avatar_static_path',
   'avatar_position_x',
@@ -238,6 +240,7 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
   const accentColor = typeof data.accentColor === 'string' ? data.accentColor.trim().toUpperCase() : '';
   const textColor = typeof data.textColor === 'string' ? data.textColor.trim().toUpperCase() : '';
   const borderStyle = typeof data.borderStyle === 'string' ? data.borderStyle.trim() : '';
+  const particleEffect = typeof data.particleEffect === 'string' ? data.particleEffect.trim() : '';
   const atmosphereEffect =
     typeof data.atmosphereEffect === 'string'
       ? data.atmosphereEffect.trim()
@@ -269,6 +272,7 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
     throw new ApiError(400, 'Цвета должны быть в формате #RRGGBB.');
   }
   if (!isPremiumBorderStyle(borderStyle)) throw new ApiError(400, 'Неизвестный стиль рамки.');
+  if (!isPremiumParticleEffect(particleEffect)) throw new ApiError(400, 'Неизвестный эффект частиц.');
   if (!isPremiumAtmosphereEffect(atmosphereEffect)) throw new ApiError(400, 'Неизвестный эффект атмосферы.');
   if (!isPremiumMotionMode(motionMode)) throw new ApiError(400, 'Неизвестный режим движения.');
   if (!isPremiumEntranceEffect(entranceEffect)) throw new ApiError(400, 'Неизвестный entrance-эффект.');
@@ -289,6 +293,7 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
     textColor,
     glowStrength: Math.round(glowStrength),
     borderStyle,
+    particleEffect,
     avatarPath: safePremiumMediaPath(data.avatarPath, userId),
     avatarStaticPath: safePremiumMediaPath(data.avatarStaticPath, userId),
     avatarPositionX: readPosition(data.avatarPositionX, 'Позиция аватара по X'),
@@ -322,6 +327,7 @@ function studioRow(settings: PremiumStudioSettings, userId: string) {
     text_color: settings.textColor,
     glow_strength: settings.glowStrength,
     border_style: settings.borderStyle,
+    particle_effect: settings.particleEffect,
     avatar_path: settings.avatarPath,
     avatar_static_path: settings.avatarStaticPath,
     avatar_position_x: settings.avatarPositionX,
