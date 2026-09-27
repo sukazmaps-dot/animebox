@@ -577,3 +577,30 @@ export async function transferWatchPartyRoomHost(
     host_epoch?: number;
   };
 }
+
+
+export async function claimStaleWatchPartyRoomHost(roomId: string) {
+  const { user } = await userClient();
+  const id = roomId.trim().toLowerCase();
+
+  if (!ROOM_ID_RE.test(id)) throw new ApiError(400, 'Некорректная комната.');
+
+  const admin = adminClient();
+  const { data, error } = await admin.rpc('watch_party_claim_stale_host', {
+    p_room_id: id,
+    p_candidate_user: user.id,
+  });
+
+  if (error) roomRpcError(error);
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new ApiError(503, 'Не удалось проверить нового host.');
+  }
+
+  return data as {
+    claimed?: boolean;
+    reason?: string;
+    host_user_id?: string;
+    host_epoch?: number;
+    elected_user_id?: string;
+  };
+}
