@@ -235,7 +235,11 @@ export default function SponsorLeaderboard() {
                 <span className={styles.placeLabel}>{entry.rank === 1 ? 'ГЛАВНЫЙ СПОНСОР' : `#${entry.rank} · ПРИЗОВОЕ МЕСТО`}</span>
 
                 <div className={styles.podiumIdentity}>
-                  <div className={styles.podiumAvatar}>
+                  <div
+                    className={styles.podiumAvatar}
+                    data-podium-avatar-stage
+                    data-podium-rank={entry.rank}
+                  >
                     <UserAvatarWithFrame
                       src={entry.avatarUrl}
                       alt={`Аватар ${entry.username}`}
@@ -244,7 +248,12 @@ export default function SponsorLeaderboard() {
                       className={styles.avatarFrame}
                       mediaTransform={entry.avatarTransform}
                     />
-                    <span className={styles.rankSeal}>{entry.rank}</span>
+                    <span
+                      className={styles.rankSeal}
+                      data-podium-rank-seal
+                    >
+                      {entry.rank}
+                    </span>
                   </div>
 
                   <span className={styles.rankTitle}>{RANK_TITLES[entry.rank]}</span>
