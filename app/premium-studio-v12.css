@@ -305,9 +305,9 @@
 }
 
 .premium-studio-v12__media-preview.is-avatar {
-  width: 76px;
-  height: 76px;
-  border-radius: 22px;
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
 }
 
 .premium-studio-v12__media-preview.is-banner {
@@ -380,12 +380,12 @@
 }
 
 .premium-studio-v12__preview-avatar {
-  width: 88px;
-  height: 88px;
-  margin-top: -44px;
+  width: 104px;
+  height: 104px;
+  margin-top: -52px;
   margin-bottom: 14px;
   border: 3px solid var(--ab-premium-accent);
-  border-radius: 28px;
+  border-radius: 50%;
   object-fit: cover;
   background: var(--ab-premium-primary);
   box-shadow: 0 0 30px rgba(var(--ab-premium-accent-rgb), var(--ab-premium-glow-alpha));
