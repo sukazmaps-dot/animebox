@@ -32,6 +32,9 @@ type DirectVideoPlayerProps = {
   poster?: string;
   title: string;
   autoPlay?: boolean;
+  initialVolume?: number;
+  initialMuted?: boolean;
+  initialPlaybackRate?: number;
   fullscreenActive?: boolean;
   onToggleFullscreen?: () => void | Promise<void>;
   onReady?: () => void;
@@ -44,6 +47,8 @@ type DirectVideoPlayerProps = {
   onEnded?: () => void;
   onWaiting?: () => void;
   onPlaying?: () => void;
+  onVolumeChange?: (volume: number, muted: boolean) => void;
+  onRateChange?: (rate: number) => void;
   onEngineStateChange?: (state: PlaybackEngineState) => void;
 };
 
@@ -83,6 +88,9 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
     poster,
     title,
     autoPlay = true,
+    initialVolume = 1,
+    initialMuted = false,
+    initialPlaybackRate = 1,
     fullscreenActive = false,
     onToggleFullscreen,
     onReady,
@@ -95,6 +103,8 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
     onEnded,
     onWaiting,
     onPlaying,
+    onVolumeChange,
+    onRateChange,
     onEngineStateChange,
   },
   forwardedRef,
@@ -460,9 +470,19 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
         aria-label={title}
         onLoadedMetadata={(event) => {
           const video = event.currentTarget;
+          const nextVolume = clamp(initialVolume, 0, 1);
+          const nextRate = clamp(initialPlaybackRate, 0.25, 2);
+
+          video.volume = nextVolume;
+          video.muted = initialMuted || nextVolume === 0;
+          video.playbackRate = nextRate;
+
           setDuration(Number.isFinite(video.duration) ? video.duration : 0);
           setVolume(video.volume);
           setMuted(video.muted);
+          setPlaybackRate(video.playbackRate);
+          onVolumeChange?.(video.volume, video.muted);
+          onRateChange?.(video.playbackRate);
           onLoadedMetadata?.(video.videoWidth, video.videoHeight);
         }}
         onDurationChange={(event) => {
@@ -523,10 +543,16 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
           onTimeUpdate?.({ positionSeconds: video.currentTime, durationSeconds: nextDuration });
         }}
         onVolumeChange={(event) => {
-          setVolume(event.currentTarget.volume);
-          setMuted(event.currentTarget.muted);
+          const video = event.currentTarget;
+          setVolume(video.volume);
+          setMuted(video.muted);
+          onVolumeChange?.(video.volume, video.muted);
         }}
-        onRateChange={(event) => setPlaybackRate(event.currentTarget.playbackRate)}
+        onRateChange={(event) => {
+          const rate = event.currentTarget.playbackRate;
+          setPlaybackRate(rate);
+          onRateChange?.(rate);
+        }}
         onEnded={() => {
           setPlaying(false);
           transitionEngine({ type: 'ended' });
