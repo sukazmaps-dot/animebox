@@ -110,7 +110,9 @@ for (const [label, source, needle] of [
   ['runtime player timeout', player, 'PLAYER_READY_TIMEOUT_MS = 14_000'],
   ['runtime automatic fallback', player, 'switchToFallback('],
   ['source-switch resume', player, "'source_switch'"],
-  ['mobile native selector', player, 'opacity-0 sm:hidden'],
+  ['mobile custom selector overlay', player, 'data-mobile-player-selector-overlay'],
+  ['mobile custom selector sheet', player, 'data-mobile-player-selector-sheet'],
+  ['mobile custom selector safe area', player, 'bottom-[max(0.75rem,env(safe-area-inset-bottom))]'],
   ['resume completion policy', resumePolicy, 'if (input.serverCompleted)'],
   ['near-end resume policy', resumePolicy, 'resumeEndGuardMs'],
   ['opening auto-skip safety', openingSafety, 'openingAutoSkipSafetyDecision'],
@@ -118,6 +120,10 @@ for (const [label, source, needle] of [
   if (!source.includes(needle)) {
     failures.push(`${label} regressed: ${needle}`);
   }
+}
+
+if (player.includes('opacity-0 sm:hidden') || player.includes('<select')) {
+  failures.push('mobile player selector regressed to native browser UI');
 }
 
 if (!failures.length) {
