@@ -53,7 +53,7 @@ export default function TelegramAccountLinkCard() {
 
     setStatus(payload);
 
-    if (payload.linked && pollingRef.current != null) {
+    if ((payload.linked || !payload.pending) && pollingRef.current != null) {
       window.clearInterval(pollingRef.current);
       pollingRef.current = null;
     }
