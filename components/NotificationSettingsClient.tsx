@@ -628,15 +628,19 @@ export default function NotificationSettingsClient() {
 
         {inboxGroups.length === 0 ? (
           <div className="notifications-empty">
-            <Image
-              className="notifications-empty__art"
-              src="/brand/illustrations/empty-notifications.webp"
-              alt=""
-              width={128}
-              height={128}
-              sizes="128px"
-              aria-hidden="true"
-            />
+            <div className="notifications-empty__visual" aria-hidden="true">
+              <span className="notifications-empty__orbit" />
+              <span className="notifications-empty__spark notifications-empty__spark--one" />
+              <span className="notifications-empty__spark notifications-empty__spark--two" />
+              <Image
+                className="notifications-empty__icon"
+                src="/brand/icons/notification.svg"
+                alt=""
+                width={78}
+                height={78}
+                sizes="78px"
+              />
+            </div>
             <p>
               Здесь появятся серии тайтлов, на которые ты подписан.
             </p>
@@ -765,15 +769,19 @@ export default function NotificationSettingsClient() {
 
         {subscriptions.length === 0 ? (
           <div className="notifications-empty">
-            <Image
-              className="notifications-empty__art"
-              src="/brand/illustrations/empty-notifications.webp"
-              alt=""
-              width={128}
-              height={128}
-              sizes="128px"
-              aria-hidden="true"
-            />
+            <div className="notifications-empty__visual" aria-hidden="true">
+              <span className="notifications-empty__orbit" />
+              <span className="notifications-empty__spark notifications-empty__spark--one" />
+              <span className="notifications-empty__spark notifications-empty__spark--two" />
+              <Image
+                className="notifications-empty__icon"
+                src="/brand/icons/notification.svg"
+                alt=""
+                width={78}
+                height={78}
+                sizes="78px"
+              />
+            </div>
             <p>
               Пока нет подписок. Открой аниме и нажми
               «Уведомлять о сериях».
