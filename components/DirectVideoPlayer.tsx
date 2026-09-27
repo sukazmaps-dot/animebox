@@ -114,6 +114,9 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
   const controlsTimerRef = useRef<number | null>(null);
+  const onReadyRef = useRef(onReady);
+  const onErrorRef = useRef(onError);
+  const onEngineStateChangeRef = useRef(onEngineStateChange);
   const engineStateRef = useRef(
     createPlaybackEngineState(isHls ? 'hls' : 'native'),
   );
@@ -135,11 +138,17 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
 
   useImperativeHandle(forwardedRef, () => videoRef.current as HTMLVideoElement, []);
 
+  useEffect(() => {
+    onReadyRef.current = onReady;
+    onErrorRef.current = onError;
+    onEngineStateChangeRef.current = onEngineStateChange;
+  }, [onEngineStateChange, onError, onReady]);
+
   const transitionEngine = useCallback((event: PlaybackEngineEvent) => {
     const next = reducePlaybackEngineState(engineStateRef.current, event);
     engineStateRef.current = next;
-    onEngineStateChange?.(next);
-  }, [onEngineStateChange]);
+    onEngineStateChangeRef.current?.(next);
+  }, []);
 
   const clearControlsTimer = useCallback(() => {
     if (controlsTimerRef.current != null) {
@@ -221,7 +230,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
         if (!HlsCtor.isSupported()) {
           const message = 'Этот браузер не поддерживает HLS-воспроизведение.';
           transitionEngine({ type: 'error', message });
-          onError?.(message);
+          onErrorRef.current?.(message);
           return;
         }
 
@@ -293,7 +302,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
 
             const message = data.details || 'HLS-сеть не восстановилась после повторных попыток.';
             transitionEngine({ type: 'error', message });
-            onError?.(message);
+            onErrorRef.current?.(message);
             return;
           }
 
@@ -325,18 +334,18 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
 
             const message = data.details || 'HLS-медиа не восстановилось после повторных попыток.';
             transitionEngine({ type: 'error', message });
-            onError?.(message);
+            onErrorRef.current?.(message);
             return;
           }
 
           const message = data.details || 'Не удалось воспроизвести HLS-поток.';
           transitionEngine({ type: 'error', message });
-          onError?.(message);
+          onErrorRef.current?.(message);
         });
       } catch {
         const message = 'Не удалось загрузить HLS-модуль AnimeBox Player.';
         transitionEngine({ type: 'error', message });
-        onError?.(message);
+        onErrorRef.current?.(message);
       }
     }
 
@@ -349,7 +358,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
       video.removeAttribute('src');
       video.load();
     };
-  }, [autoPlay, isHls, onError, onReady, src, transitionEngine]);
+  }, [autoPlay, isHls, src, transitionEngine]);
 
   useEffect(() => {
     const onPipChange = () => {
@@ -520,7 +529,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
                 ? observedDuration
                 : null,
           });
-          onReady?.();
+          onReadyRef.current?.();
         }}
         onPlaying={() => {
           setPlaying(true);
@@ -583,7 +592,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
           if (!isHls) {
             const message = 'Видео не удалось загрузить.';
             transitionEngine({ type: 'error', message });
-            onError?.(message);
+            onErrorRef.current?.(message);
           }
         }}
         onDoubleClick={() => void onToggleFullscreen?.()}
