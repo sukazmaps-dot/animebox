@@ -595,8 +595,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
         src={playerSrc}
         title={title}
         className="absolute inset-0 h-full w-full border-0 bg-black"
-        allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-        allowFullScreen
+        allow="autoplay; picture-in-picture; encrypted-media"
         onLoad={handleLoad}
         onError={onError}
       />
