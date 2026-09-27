@@ -677,12 +677,106 @@ export default function WatchPartyPanel({
     hostBootKeyRef.current = null;
   }, [clearTimers]);
 
-  const acceptHostTransfer = useCallback((
+  const syncServerMembership = useCallback(async (
+    action: 'heartbeat' | 'leave' = 'heartbeat',
+    transportOverride?: 'p2p' | 'turn' | 'server' | 'unknown',
+  ) => {
+    const invite = inviteRef.current;
+    const identity = identityRef.current;
+    if (!invite || !identity) return null;
+
+    const transport =
+      transportOverride ??
+      (networkRoute === 'p2p'
+        ? 'p2p'
+        : networkRoute === 'relay'
+          ? 'turn'
+          : networkRoute === 'server'
+            ? 'server'
+            : 'unknown');
+
+    const response = await fetch(
+      `/api/watch-party/rooms/${encodeURIComponent(invite.roomId)}/presence`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          joinSecret: invite.secret,
+          displayName: identity.displayName,
+          transport,
+          action,
+        }),
+        cache: 'no-store',
+        keepalive: action === 'leave',
+      },
+    );
+
+    const payload = (await response.json()) as RoomPresenceResponse;
+    if (!response.ok || !payload.membership) {
+      throw new Error(payload.error || 'Не удалось подтвердить присутствие в комнате.');
+    }
+
+    const membership = payload.membership;
+    setAuthoritativeParticipantCount(
+      Math.max(0, Number(membership.participant_count ?? 0)),
+    );
+    hostEpochRef.current = Math.max(
+      hostEpochRef.current,
+      Math.max(0, Number(membership.host_epoch ?? 0)),
+    );
+
+    return membership;
+  }, [networkRoute]);
+
+  const ensureMembershipTimer = useCallback(() => {
+    if (membershipTimerRef.current != null) return;
+
+    membershipTimerRef.current = window.setInterval(() => {
+      if (
+        !inviteRef.current ||
+        !identityRef.current ||
+        !roleRef.current ||
+        intentionalCloseRef.current ||
+        hostEndedRef.current
+      ) {
+        return;
+      }
+
+      void syncServerMembership('heartbeat').catch(() => {
+        // Presence is retried on the next short TTL tick. Transport recovery
+        // must remain independent from temporary API failures.
+      });
+    }, SERVER_PRESENCE_MS);
+  }, [syncServerMembership]);
+
+  const acceptHostTransfer = useCallback(async (
     invite: WatchPartyInvite,
     targetUserId: string,
+    hostEpoch: number,
   ) => {
     const identity = identityRef.current;
     if (!identity || identity.userId !== targetUserId) return;
+
+    try {
+      const membership = await syncServerMembership('heartbeat');
+      if (
+        !membership ||
+        membership.host_user_id !== targetUserId ||
+        Number(membership.host_epoch ?? -1) !== hostEpoch ||
+        hostEpoch < hostEpochRef.current
+      ) {
+        setError('Передача host устарела. Сверяем актуальное состояние комнаты…');
+        return;
+      }
+      hostEpochRef.current = hostEpoch;
+    } catch (transferError) {
+      setError(
+        transferError instanceof Error
+          ? transferError.message
+          : 'Не удалось подтвердить передачу host.',
+      );
+      return;
+    }
 
     try {
       sessionStorage.setItem(watchPartyHostSessionKey(invite.roomId), invite.secret);
@@ -700,7 +794,7 @@ export default function WatchPartyPanel({
       intentionalCloseRef.current = false;
       startHostRef.current(invite);
     }, 650);
-  }, [destroyTransport]);
+  }, [destroyTransport, syncServerMembership]);
 
   const resetParty = useCallback((removeHostClaim = true) => {
     intentionalCloseRef.current = true;
@@ -730,6 +824,8 @@ export default function WatchPartyPanel({
     setVoteState(EMPTY_VOTE_STATE);
     setMyVote(null);
     setLiveReactions([]);
+    setAuthoritativeParticipantCount(0);
+    hostEpochRef.current = 0;
     clearWatchPartyFromLocation();
     setRole(null);
     setParticipants([]);
