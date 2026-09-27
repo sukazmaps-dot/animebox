@@ -948,7 +948,10 @@ export default function AnimePlayer({
           latestPlaybackPositionSecondsRef.current <
           Math.max(0, targetSeconds - 1.5)
         ) {
-          setSkipOpeningVisible(true);
+          openingSkipTargetRef.current = null;
+          if (providerSkipKindRef.current !== 'opening') {
+            setSkipOpeningVisible(true);
+          }
         }
       }, 1_800);
 
@@ -1149,28 +1152,26 @@ export default function AnimePlayer({
           autoOpeningDecision.safe &&
           !openingAutoSkipAttemptedRef.current
         ) {
-          // One automatic attempt per episode. If it is rejected, keep a
-          // fallback available — but give Kodik time to announce its own
-          // native skip button first so the viewer never sees two buttons.
+          // One automatic attempt per episode. If Kodik exposes its own
+          // control we suppress AnimeBox UI; otherwise a failed/dropped seek
+          // falls back to our button after the short provider grace window.
           openingAutoSkipAttemptedRef.current = true;
-          if (
-            !requestOpeningSkip('auto', observedDurationSeconds) &&
-            !providerOwnsOpeningSkip &&
-            providerGraceElapsed
-          ) {
-            setSkipOpeningVisible(true);
-          } else {
-            setSkipOpeningVisible(false);
+          const requested = requestOpeningSkip('auto', observedDurationSeconds);
+
+          if (!requested) {
+            openingSkipTargetRef.current = null;
           }
-        } else if (
-          !openingAutoSkipAttemptedRef.current &&
-          !providerOwnsOpeningSkip &&
-          providerGraceElapsed
-        ) {
-          setSkipOpeningVisible(true);
-        } else {
-          setSkipOpeningVisible(false);
         }
+
+        const waitingForAutoSeek = openingSkipTargetRef.current != null;
+        const canShowAnimeBoxFallback =
+          !providerOwnsOpeningSkip &&
+          providerGraceElapsed &&
+          !waitingForAutoSeek &&
+          !watchTogetherMode &&
+          smartSeekSupported;
+
+        setSkipOpeningVisible(canShowAnimeBoxFallback);
       } else {
         openingWindowEnteredAtRef.current = null;
         setSkipOpeningVisible(false);
