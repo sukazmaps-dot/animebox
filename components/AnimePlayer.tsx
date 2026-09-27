@@ -181,6 +181,35 @@ function getPlayerSurface() {
     : 'desktop';
 }
 
+type LockableScreenOrientation = ScreenOrientation & {
+  lock?: (orientation: 'landscape') => Promise<void>;
+  unlock?: () => void;
+};
+
+async function lockMobilePlayerLandscape() {
+  if (typeof window === 'undefined' || getPlayerSurface() !== 'mobile') return;
+
+  const orientation = window.screen.orientation as LockableScreenOrientation | undefined;
+  if (!orientation?.lock) return;
+
+  try {
+    await orientation.lock('landscape');
+  } catch {
+    // iOS Safari and some Android/WebView shells intentionally reject locks.
+  }
+}
+
+function unlockMobilePlayerOrientation() {
+  if (typeof window === 'undefined') return;
+
+  const orientation = window.screen.orientation as LockableScreenOrientation | undefined;
+  try {
+    orientation?.unlock?.();
+  } catch {
+    // Orientation unlock is best-effort only.
+  }
+}
+
 const DIRECT_PLAYER_CONTROL_EVENT: Record<
   DirectPlayerControlAction,
   Parameters<typeof trackProductClientEvent>[0]
@@ -2431,6 +2460,10 @@ export default function AnimePlayer({
 
       setFullscreen(animeBoxOwnsFullscreen);
       setProviderFullscreen(providerOwnsFullscreen);
+
+      if (!animeBoxOwnsFullscreen && !providerOwnsFullscreen) {
+        unlockMobilePlayerOrientation();
+      }
     }
 
     document.addEventListener('fullscreenchange', onFullscreenChange);
@@ -3107,10 +3140,13 @@ export default function AnimePlayer({
         } else {
           await doc.webkitExitFullscreen?.();
         }
+        unlockMobilePlayerOrientation();
       } else if (node.requestFullscreen) {
         await node.requestFullscreen();
-      } else {
-        await node.webkitRequestFullscreen?.();
+        await lockMobilePlayerLandscape();
+      } else if (node.webkitRequestFullscreen) {
+        await node.webkitRequestFullscreen();
+        await lockMobilePlayerLandscape();
       }
     } catch (error) {
       console.warn('[AnimePlayer] fullscreen unavailable:', error);
@@ -3342,11 +3378,12 @@ export default function AnimePlayer({
           ref={playerViewportRef}
           data-playback-engine={playbackEngineState?.engine ?? (isKodik ? 'kodik' : isHls ? 'hls' : isIframe ? 'iframe' : 'native')}
           data-playback-phase={playbackEngineState?.phase ?? (started ? 'loading' : 'idle')}
+          data-mobile-fullscreen={fullscreenActive ? 'true' : 'false'}
           className={`${watchTogetherMode && !fullscreenActive ? 'watch-together-player-viewport' : ''} ${telegramPseudoFullscreen ? 'animebox-telegram-player-viewport' : ''} ${
             telegramPseudoFullscreen
               ? 'fixed inset-0 z-[2147483000] m-0 max-w-none overflow-hidden rounded-none border-0 bg-black shadow-none ring-0'
               : fullscreen
-                ? 'relative h-screen w-screen overflow-hidden rounded-none border-0 bg-black'
+                ? 'relative h-[100dvh] w-screen overflow-hidden rounded-none border-0 bg-black'
                 : 'animebox-player-viewport relative aspect-video w-full overflow-hidden bg-black'
           } transition-all duration-300`}
           style={
