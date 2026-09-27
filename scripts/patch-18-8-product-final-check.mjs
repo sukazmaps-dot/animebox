@@ -366,6 +366,43 @@ need('mini-profile Premium identity styles', profilePreviewCss, [
   '@media (prefers-reduced-motion: reduce)',
 ]);
 
+need('mini-profile production particle rendering', profilePreviewCss, [
+  'left: var(--particle-left, 50%)',
+  'var(--particle-duration-soft, 10s)',
+  'var(--particle-duration-live, 7s)',
+  'top: var(--particle-static-top, 50%)',
+  'var(--particle-rise-y, -360px)',
+  'var(--particle-fall-y, 360px)',
+  'mini-profile close button containment',
+  ".card[data-premium='true'] .close",
+  'position: absolute',
+  'z-index: 20',
+]);
+
+need('mini-profile foreground atmosphere layering', profilePreviewCss, [
+  '.premium-profile-v21__ambient-layer',
+  '.premium-profile-v21__particle-layer',
+  'z-index: 1',
+  'z-index: 4',
+  '--profile-preview-atmosphere-live-alpha',
+]);
+
+need('mini-profile flattened atmosphere and visible Stardust', profilePreviewCss, [
+  '.atmosphere',
+  'display: contents',
+  "[data-effect='stardust']",
+  'width: 4px',
+  'height: 4px',
+  'opacity: .92',
+  '0 0 18px',
+]);
+if (/\.atmosphere\s*\{[^}]*contain:\s*paint/s.test(profilePreviewCss)) {
+  failures.push('Mini-profile atmosphere wrapper must not trap foreground particles below opaque surfaces');
+}
+if (/var\(--particle-index\)/.test(profilePreviewCss)) {
+  failures.push('Mini-profile CSS regressed to browser-dependent particle-index math');
+}
+
 need('global chat mini profiles', globalChat, [
   "import ProfilePreview from '@/components/profile/ProfilePreview'",
   '<ProfilePreview',
@@ -562,6 +599,41 @@ need('Premium atmosphere renderer', premiumAtmosphere, [
   'premium-profile-v21__particles',
 ]);
 
+need('Premium atmosphere deterministic particle geometry', premiumAtmosphere, [
+  "export type PremiumAtmosphereVariant = 'full' | 'preview' | 'compact'",
+  'PARTICLE_COUNT',
+  "'--particle-left'",
+  "'--particle-static-top'",
+  "'--particle-duration-soft'",
+  "'--particle-duration-live'",
+  "'--particle-rise-y'",
+  "'--particle-fall-y'",
+  'particleStyle(index, variant)',
+  'data-variant={variant}',
+]);
+
+need('Premium atmosphere split-layer renderer', premiumAtmosphere, [
+  'premium-profile-v21__ambient-layer',
+  'premium-profile-v21__particle-layer',
+  'premium-profile-v21__ambient--a',
+  'premium-profile-v21__particles',
+]);
+
+need('Premium atmosphere stacking flattening', premiumIdentityCss, [
+  '.premium-profile-v21__atmosphere',
+  'display: contents',
+  '.premium-profile-v21__ambient-layer',
+  'z-index: 1',
+  '.premium-profile-v21__particle-layer',
+  'z-index: 4',
+]);
+if (/Math\.random\s*\(/.test(premiumAtmosphere)) {
+  failures.push('Premium atmosphere particles must stay deterministic; Math.random() calls are forbidden');
+}
+if (/['"]--particle-index['"]\s*:/.test(premiumAtmosphere)) {
+  failures.push('Premium atmosphere renderer regressed to CSS index multiplication');
+}
+
 need('Premium cinematic identity CSS', premiumIdentityCss, [
   '.premium-profile-v21__atmosphere',
   "[data-effect='aurora']",
@@ -575,6 +647,31 @@ need('Premium cinematic identity CSS', premiumIdentityCss, [
   '@media (prefers-reduced-motion: reduce)',
   '.profile-v2__avatar-wrap::before',
 ]);
+
+need('Premium atmosphere production particle CSS', premiumIdentityCss, [
+  'left: var(--particle-left, 50%)',
+  'top: var(--particle-static-top, 50%)',
+  'var(--particle-duration-soft, 11s)',
+  'var(--particle-duration-live, 7s)',
+  'var(--particle-rise-y, -700px)',
+  'var(--particle-fall-y, 700px)',
+  "[data-motion='off']",
+]);
+
+need('Premium atmosphere foreground layering', premiumIdentityCss, [
+  '.premium-profile-v21__ambient-layer',
+  '.premium-profile-v21__particle-layer',
+  'z-index: 1',
+  'z-index: 4',
+  'mix-blend-mode: screen',
+  '--ab-premium-atmosphere-live-alpha',
+]);
+if (/\.premium-profile-v21__atmosphere\s*\{[^}]*contain:\s*paint/s.test(premiumIdentityCss)) {
+  failures.push('Premium atmosphere wrapper must not create a paint containment stacking context');
+}
+if (/var\(--particle-index\)/.test(premiumIdentityCss)) {
+  failures.push('Premium identity CSS regressed to browser-dependent particle-index math');
+}
 
 need('Persistent Premium Studio preview', premiumIdentityCss, [
   'Patch 18.9.1 — persistent Premium Studio preview',
