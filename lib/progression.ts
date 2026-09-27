@@ -218,7 +218,7 @@ export function progressionFromXp(totalXp: number) {
 
 export function normalizeProgression(
   raw: unknown,
-  premiumBoostActive = false,
+  _premiumBoostActive = false,
 ): ProfileProgression {
   const record =
     raw && typeof raw === 'object' && !Array.isArray(raw)
@@ -241,6 +241,7 @@ export function normalizeProgression(
       record.challenge_xp ?? record.challengeXp,
     ),
     ...derived,
-    premiumBoostActive,
+    // Kept for backward-compatible payload shape. Premium no longer multiplies XP.
+    premiumBoostActive: false,
   };
 }
