@@ -1343,8 +1343,34 @@ export default function WatchPartyPanel({
     ) return;
 
     try {
-      await syncServerMembership('heartbeat', 'unknown');
+      const membership = await syncServerMembership('heartbeat', 'unknown');
       ensureMembershipTimer();
+
+      if (
+        membership?.role === 'host' &&
+        membership.host_user_id === identity.userId
+      ) {
+        clearGuestJoinDeadline();
+        try {
+          sessionStorage.setItem(
+            watchPartyHostSessionKey(invite.roomId),
+            invite.secret,
+          );
+          claimWatchPartyHostTab(invite);
+        } catch {
+          claimWatchPartyHostTab(invite);
+        }
+        hostEpochRef.current = Math.max(
+          hostEpochRef.current,
+          Number(membership.host_epoch ?? 0),
+        );
+        roleRef.current = 'host';
+        setRole('host');
+        setStatus('reconnecting');
+        setError('Восстанавливаем управление комнатой…');
+        queueMicrotask(() => startHostRef.current(invite));
+        return;
+      }
     } catch (presenceError) {
       clearGuestJoinDeadline();
       hostEndedRef.current = true;
@@ -1678,8 +1704,46 @@ export default function WatchPartyPanel({
       const attempt = reconnectAttemptRef.current + 1;
       reconnectAttemptRef.current = attempt;
       if (attempt > MAX_RECONNECT_ATTEMPTS) {
-        setStatus('ended');
-        setError('Хост недоступен. Комната, вероятно, завершена.');
+        const activeInvite = inviteRef.current;
+        const staleFor = Date.now() - lastHostSeenAtRef.current;
+
+        if (!activeInvite) {
+          setStatus('ended');
+          setError('Комната больше недоступна.');
+          return;
+        }
+
+        if (staleFor < HOST_STALE_MS) {
+          reconnectAttemptRef.current = MAX_RECONNECT_ATTEMPTS - 1;
+          reconnectTimerRef.current = window.setTimeout(() => {
+            reconnectTimerRef.current = null;
+            scheduleGuestReconnectRef.current();
+          }, 4_000);
+          return;
+        }
+
+        setStatus('reconnecting');
+        setError('Хост отключился. Проверяем, кто продолжит комнату…');
+
+        void tryClaimStaleHost(activeInvite)
+          .then((claimed) => {
+            if (claimed || intentionalCloseRef.current || hostEndedRef.current) {
+              return;
+            }
+
+            reconnectAttemptRef.current = MAX_RECONNECT_ATTEMPTS - 2;
+            reconnectTimerRef.current = window.setTimeout(() => {
+              reconnectTimerRef.current = null;
+              scheduleGuestReconnectRef.current();
+            }, 3_500);
+          })
+          .catch(() => {
+            reconnectAttemptRef.current = MAX_RECONNECT_ATTEMPTS - 2;
+            reconnectTimerRef.current = window.setTimeout(() => {
+              reconnectTimerRef.current = null;
+              scheduleGuestReconnectRef.current();
+            }, 4_500);
+          });
         return;
       }
 
@@ -1831,6 +1895,7 @@ export default function WatchPartyPanel({
     destroyTransport,
     ensureMembershipTimer,
     syncServerMembership,
+    tryClaimStaleHost,
   ]);
 
   const startHost = useCallback(async (invite: WatchPartyInvite) => {
@@ -1896,8 +1961,36 @@ export default function WatchPartyPanel({
     ) return;
 
     try {
-      await syncServerMembership('heartbeat', 'unknown');
+      const membership = await syncServerMembership('heartbeat', 'unknown');
       ensureMembershipTimer();
+
+      if (
+        membership?.role !== 'host' ||
+        membership.host_user_id !== identity.userId
+      ) {
+        if (hostStartupTimerRef.current != null) {
+          window.clearTimeout(hostStartupTimerRef.current);
+          hostStartupTimerRef.current = null;
+        }
+        hostBootKeyRef.current = null;
+        try {
+          sessionStorage.removeItem(watchPartyHostSessionKey(invite.roomId));
+        } catch {
+          // sessionStorage is optional.
+        }
+        clearWatchPartyHostTab(invite);
+        roleRef.current = 'guest';
+        setRole('guest');
+        setStatus('reconnecting');
+        setError('Управление уже у другого участника. Возвращаем тебя в комнату…');
+        queueMicrotask(() => startGuestRef.current(invite));
+        return;
+      }
+
+      hostEpochRef.current = Math.max(
+        hostEpochRef.current,
+        Number(membership.host_epoch ?? 0),
+      );
     } catch (presenceError) {
       if (hostStartupTimerRef.current != null) {
         window.clearTimeout(hostStartupTimerRef.current);
