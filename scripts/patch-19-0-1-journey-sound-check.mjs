@@ -20,6 +20,9 @@ for (const asset of assets) {
 
 const manager = fs.readFileSync('lib/achievement-sound.ts', 'utf8');
 const tracker = fs.readFileSync('components/EpisodeJourneyTracker.tsx', 'utf8');
+const player = fs.readFileSync('components/AnimePlayer.tsx', 'utf8');
+const episodePage = fs.readFileSync('components/AnimeEpisodePage.tsx', 'utf8');
+const kodikPlayer = fs.readFileSync('components/KodikPlayer.tsx', 'utf8');
 
 for (const asset of assets) {
   const publicPath = asset.replace(/^public/, '');
@@ -69,3 +72,24 @@ if (tracker.includes('new Audio(')) {
 }
 
 console.log('Patch 19.0.1 Journey sound feedback invariants OK');
+
+
+if (tracker.includes('Путь серии')) {
+  throw new Error('Patch 19.0.2 obsolete Journey progress HUD is still rendered.');
+}
+
+if (!player.includes('<EpisodeJourneyTracker animeId={animeId} episode={episodeNumber} />')) {
+  throw new Error('Patch 19.0.2 Journey overlay is not mounted inside player viewport.');
+}
+
+if (episodePage.includes('<EpisodeJourneyTracker')) {
+  throw new Error('Patch 19.0.2 Journey overlay is still mounted outside the player.');
+}
+
+if (kodikPlayer.includes('allowFullScreen') || kodikPlayer.includes('autoplay; fullscreen;')) {
+  throw new Error('Patch 19.0.2 Kodik can still take fullscreen ownership from AnimeBox.');
+}
+
+if (!player.includes('Полный экран AnimeBox')) {
+  throw new Error('Patch 19.0.2 iframe fullscreen control missing.');
+}
