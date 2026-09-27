@@ -52,7 +52,12 @@ if (!episodePage.includes('/api/episodes/timeline')) {
   failures.push('AnimeEpisodePage: timeline metadata request is missing.');
 }
 
-if (!episodePage.includes('timeline={timeline}')) {
+if (
+  !episodePage.includes('timeline={timeline}') &&
+  !episodePage.includes(
+    'timeline={playerEpisodeNumber === episodeNumber ? timeline : null}',
+  )
+) {
   failures.push('AnimeEpisodePage: timeline is not passed into AnimePlayer.');
 }
 
