@@ -48,6 +48,12 @@ import {
   type PremiumStudioSettings,
 } from '@/lib/premium-studio';
 import {
+  clampPlaybackPosition,
+  clampPlaybackRate,
+  clampPlaybackVolume,
+  type PlaybackEngineState,
+} from '@/lib/playback-core';
+import {
   WATCH_PARTY_PLAYER_ACTION_EVENT,
   WATCH_PARTY_PLAYER_COMMAND_EVENT,
   WATCH_PARTY_PLAYER_CONTROL_EVENT,
@@ -434,6 +440,7 @@ export default function AnimePlayer({
   const [premiumStudio, setPremiumStudio] = useState<PremiumStudioSettings | null>(null);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [providerSkipKind, setProviderSkipKind] = useState<'opening' | 'ending' | null>(null);
+  const [playbackEngineState, setPlaybackEngineState] = useState<PlaybackEngineState | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const kodikPlayerRef = useRef<KodikPlayerHandle | null>(null);
@@ -619,24 +626,115 @@ export default function AnimePlayer({
     );
   }, [episodeNumber, isKodik]);
 
+  const getPlaybackSnapshot = useCallback(() => {
+    if (isKodik) {
+      const state = kodikPlayerRef.current?.getState();
+      return {
+        positionSeconds:
+          state?.positionSeconds ?? latestPlaybackPositionSecondsRef.current,
+        durationSeconds: state?.durationSeconds ?? null,
+        playing: state?.playing ?? false,
+      };
+    }
+
+    const video = videoRef.current;
+    return {
+      positionSeconds:
+        video && Number.isFinite(video.currentTime)
+          ? Math.max(0, video.currentTime)
+          : latestPlaybackPositionSecondsRef.current,
+      durationSeconds:
+        video && Number.isFinite(video.duration) && video.duration > 0
+          ? video.duration
+          : null,
+      playing: Boolean(video && !video.paused && !video.ended),
+    };
+  }, [isKodik]);
+
+  const seekPlayback = useCallback((seconds: number) => {
+    const snapshot = getPlaybackSnapshot();
+    const target = clampPlaybackPosition(
+      seconds,
+      snapshot.durationSeconds,
+    );
+
+    if (isKodik) {
+      const player = kodikPlayerRef.current;
+      if (!player) return false;
+      player.seek(target);
+      return true;
+    }
+
+    const video = videoRef.current;
+    if (!video) return false;
+
+    try {
+      video.currentTime = target;
+      return true;
+    } catch {
+      return false;
+    }
+  }, [getPlaybackSnapshot, isKodik]);
+
+  const playPlayback = useCallback(() => {
+    if (isKodik) {
+      const player = kodikPlayerRef.current;
+      if (!player) return false;
+      player.play();
+      return true;
+    }
+
+    const video = videoRef.current;
+    if (!video) return false;
+    void video.play().catch(() => undefined);
+    return true;
+  }, [isKodik]);
+
+  const pausePlayback = useCallback(() => {
+    if (isKodik) {
+      const player = kodikPlayerRef.current;
+      if (!player) return false;
+      player.pause();
+      return true;
+    }
+
+    const video = videoRef.current;
+    if (!video) return false;
+    video.pause();
+    return true;
+  }, [isKodik]);
+
+  const setPlaybackVolume = useCallback((volume: number) => {
+    const normalized = clampPlaybackVolume(volume);
+
+    if (isKodik) {
+      const player = kodikPlayerRef.current;
+      if (!player) return false;
+      player.setVolume(normalized);
+      if (normalized > 0) player.unmute();
+      return true;
+    }
+
+    const video = videoRef.current;
+    if (!video) return false;
+    video.volume = normalized;
+    video.muted = normalized === 0;
+    return true;
+  }, [isKodik]);
+
   const getPrecisePlaybackPosition = useCallback(async () => {
     if (isKodik) {
       const player = kodikPlayerRef.current;
-      if (!player) return latestPlaybackPositionSecondsRef.current;
+      if (!player) return getPlaybackSnapshot().positionSeconds;
       const precise = await player.getTime();
       return precise ?? player.getState().positionSeconds;
     }
 
-    const video = videoRef.current;
-    if (video && Number.isFinite(video.currentTime)) {
-      return Math.max(0, video.currentTime);
-    }
-
-    return latestPlaybackPositionSecondsRef.current;
-  }, [isKodik]);
+    return getPlaybackSnapshot().positionSeconds;
+  }, [getPlaybackSnapshot, isKodik]);
 
   const applyPlaybackSpeed = useCallback((speed: number) => {
-    const normalized = Math.min(2, Math.max(0.25, speed));
+    const normalized = clampPlaybackRate(speed);
     setPlaybackSpeed(normalized);
 
     if (isKodik) {
@@ -648,6 +746,24 @@ export default function AnimePlayer({
       videoRef.current.playbackRate = normalized;
     }
   }, [isKodik]);
+
+  const playbackController = useMemo(() => ({
+    getSnapshot: getPlaybackSnapshot,
+    getTime: getPrecisePlaybackPosition,
+    play: playPlayback,
+    pause: pausePlayback,
+    seek: seekPlayback,
+    setVolume: setPlaybackVolume,
+    setSpeed: applyPlaybackSpeed,
+  }), [
+    applyPlaybackSpeed,
+    getPlaybackSnapshot,
+    getPrecisePlaybackPosition,
+    pausePlayback,
+    playPlayback,
+    seekPlayback,
+    setPlaybackVolume,
+  ]);
 
   const togglePictureInPicture = useCallback(async () => {
     if (isKodik) {
