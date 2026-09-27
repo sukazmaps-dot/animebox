@@ -294,15 +294,21 @@ export async function consumeTelegramAccountLink(input: {
     return { ok: false, error: 'telegram_already_linked' };
   }
 
-  const alreadyLinked =
+  let alreadyLinked =
     currentProfile.telegram_id != null &&
     String(currentProfile.telegram_id) === input.telegramId;
 
   if (!alreadyLinked) {
-    const { error: linkError } = await admin
+    const {
+      data: linkedProfile,
+      error: linkError,
+    } = await admin
       .from('profiles')
       .update({ telegram_id: input.telegramId })
-      .eq('id', userId);
+      .eq('id', userId)
+      .is('telegram_id', null)
+      .select('id,telegram_id')
+      .maybeSingle();
 
     if (linkError) {
       if (linkError.code === '23505') {
@@ -310,6 +316,24 @@ export async function consumeTelegramAccountLink(input: {
       }
 
       return { ok: false, error: 'link_failed' };
+    }
+
+    if (!linkedProfile) {
+      const { data: latestProfile, error: latestProfileError } = await admin
+        .from('profiles')
+        .select('telegram_id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (latestProfileError || !latestProfile) {
+        return { ok: false, error: 'link_failed' };
+      }
+
+      if (String(latestProfile.telegram_id ?? '') !== input.telegramId) {
+        return { ok: false, error: 'account_has_other_telegram' };
+      }
+
+      alreadyLinked = true;
     }
   }
 
