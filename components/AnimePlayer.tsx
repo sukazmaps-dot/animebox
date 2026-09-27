@@ -2854,8 +2854,7 @@ export default function AnimePlayer({
                     width="100%"
                     height="100%"
                     className="absolute inset-0 h-full w-full border-0"
-                    allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-                    allowFullScreen
+                    allow="autoplay; picture-in-picture; encrypted-media"
                     title="Anime player"
                     onLoad={markPlayerReady}
                     onError={() =>
