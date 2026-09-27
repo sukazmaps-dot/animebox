@@ -28,6 +28,88 @@ export const ACHIEVEMENT_CATEGORY_LABELS: Record<AchievementCategory, string> = 
   genres: 'Жанры',
 };
 
+export const LEVEL_FRAME_KEYS = [
+  'milestone-lv10-forbidden-relic',
+  'milestone-lv25-flame-arc',
+  'milestone-lv50-crimson-sigil',
+  'milestone-lv75-menacing-manga',
+  'milestone-lv100-absolute-prestige',
+] as const;
+
+export type LevelFrameKey = (typeof LEVEL_FRAME_KEYS)[number];
+
+export const MILESTONE_AVATAR_SCALE: Record<LevelFrameKey, number> = {
+  'milestone-lv10-forbidden-relic': 0.52,
+  'milestone-lv25-flame-arc': 0.54,
+  'milestone-lv50-crimson-sigil': 0.56,
+  'milestone-lv75-menacing-manga': 0.52,
+  'milestone-lv100-absolute-prestige': 0.56,
+};
+
+export function levelFrameAvatarScale(value: unknown) {
+  return isLevelFrameKey(value) ? MILESTONE_AVATAR_SCALE[value] : null;
+}
+
+export type LevelMilestone = {
+  level: number;
+  stageLabel: 'Identity' | 'Profile' | 'Veteran' | 'Elite' | 'Prestige' | null;
+  title: string;
+  frameKey: LevelFrameKey | null;
+  reward: string;
+  premiumReward: string;
+};
+
+export const LEVEL_MILESTONES: readonly LevelMilestone[] = [
+  {
+    level: 1,
+    stageLabel: null,
+    title: 'Старт',
+    frameKey: null,
+    reward: 'Старт прогрессии AnimeBox',
+    premiumReward: 'Premium-визуал развивается вместе с твоими наградами',
+  },
+  {
+    level: 10,
+    stageLabel: 'Identity',
+    title: 'Запретный реликт',
+    frameKey: 'milestone-lv10-forbidden-relic',
+    reward: 'Milestone-рамка «Запретный реликт»',
+    premiumReward: 'Та же рамка оживает: aura, relic, feather и glow',
+  },
+  {
+    level: 25,
+    stageLabel: 'Profile',
+    title: 'Пламенная дуга',
+    frameKey: 'milestone-lv25-flame-arc',
+    reward: 'Milestone-рамка «Пламенная дуга»',
+    premiumReward: 'Анимированный огненный удар, искры и энергетический след',
+  },
+  {
+    level: 50,
+    stageLabel: 'Veteran',
+    title: 'Багровая печать',
+    frameKey: 'milestone-lv50-crimson-sigil',
+    reward: 'Milestone-рамка «Багровая печать»',
+    premiumReward: 'Живая печать, вращение sigil-элементов и спектральная аура',
+  },
+  {
+    level: 75,
+    stageLabel: 'Elite',
+    title: 'Угроза',
+    frameKey: 'milestone-lv75-menacing-manga',
+    reward: 'Milestone-рамка «Угроза»',
+    premiumReward: 'Анимированный manga-pressure и фиолетово-розовое давление',
+  },
+  {
+    level: 100,
+    stageLabel: 'Prestige',
+    title: 'Абсолютный престиж',
+    frameKey: 'milestone-lv100-absolute-prestige',
+    reward: 'Финальная milestone-рамка «Абсолютный престиж»',
+    premiumReward: 'Максимальная анимация маски-реликта, fissures и crossed blades',
+  },
+] as const;
+
 export type ProfileProgression = {
   totalXp: number;
   activityXp: number;
@@ -55,7 +137,7 @@ export type ProfileProgression = {
   premiumBoostActive: boolean;
 };
 
-const MAX_LEVEL = 50;
+export const MAX_LEVEL = 100;
 
 function safeNumber(value: unknown) {
   const parsed = Number(value ?? 0);
@@ -67,7 +149,7 @@ export function xpForLevel(level: number) {
   const step = clamped - 1;
 
   // Smooth early progression with a gradually steeper late game.
-  // Level 10 ~= 2.5k XP, level 20 ~= 9.1k XP, level 50 ~= 52.9k XP.
+  // Level 10 ~= 2.5k XP, level 50 ~= 52.9k XP, level 100 ~= 205.9k XP.
   return 100 * step + 20 * step * step;
 }
 
@@ -80,6 +162,28 @@ export function rankForLevel(level: number) {
   if (level >= 10) return { key: 'explorer' as const, label: 'Исследователь' };
   if (level >= 5) return { key: 'viewer' as const, label: 'Зритель' };
   return { key: 'newcomer' as const, label: 'Новичок' };
+}
+
+export function isLevelFrameKey(value: unknown): value is LevelFrameKey {
+  return (
+    typeof value === 'string' &&
+    (LEVEL_FRAME_KEYS as readonly string[]).includes(value)
+  );
+}
+
+export function levelFrameMilestone(key: LevelFrameKey) {
+  return LEVEL_MILESTONES.find((item) => item.frameKey === key) ?? null;
+}
+
+export function levelFrameLabel(key: LevelFrameKey) {
+  return levelFrameMilestone(key)?.title ?? 'Milestone-рамка';
+}
+
+export function unlockedLevelFrames(level: number) {
+  const safeLevel = Math.max(1, Math.min(MAX_LEVEL, Math.floor(level)));
+  return LEVEL_MILESTONES.flatMap((item) =>
+    item.frameKey && safeLevel >= item.level ? [item.frameKey] : [],
+  );
 }
 
 export function progressionFromXp(totalXp: number) {
@@ -121,7 +225,7 @@ export function progressionFromXp(totalXp: number) {
 
 export function normalizeProgression(
   raw: unknown,
-  premiumBoostActive = false,
+  _premiumBoostActive = false,
 ): ProfileProgression {
   const record =
     raw && typeof raw === 'object' && !Array.isArray(raw)
@@ -144,6 +248,7 @@ export function normalizeProgression(
       record.challenge_xp ?? record.challengeXp,
     ),
     ...derived,
-    premiumBoostActive,
+    // Kept for backward-compatible payload shape. Premium no longer multiplies XP.
+    premiumBoostActive: false,
   };
 }

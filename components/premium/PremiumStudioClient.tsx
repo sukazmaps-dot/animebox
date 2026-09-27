@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/components/AuthStateProvider';
@@ -16,22 +17,35 @@ import {
   type PendingProfileMediaUpload,
 } from '@/lib/profile-media-upload-client';
 import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor';
+import PremiumStudioLivePreview from '@/components/premium/PremiumStudioLivePreview';
 import Icon from '@/components/Icon';
+import { deriveAdaptiveProfilePalette } from '@/lib/adaptive-profile-theme-client';
 import {
   DEFAULT_PREMIUM_STUDIO_SETTINGS,
+  PREMIUM_ATMOSPHERE_EFFECTS,
   PREMIUM_BORDER_STYLES,
+  PREMIUM_ENTRANCE_EFFECTS,
+  PREMIUM_HERO_STYLES,
+  PREMIUM_MOTION_MODES,
+  PREMIUM_PARTICLE_EFFECTS,
+  PREMIUM_NICKNAME_EFFECTS,
   PREMIUM_PROFILE_THEMES,
+  PREMIUM_SURFACE_STYLES,
   PREMIUM_PROFILE_THEME_META,
   contrastRatio,
   isHexColor,
   resolveReadableTextColor,
   premiumMediaStyle,
-  premiumStudioCssVariables,
   premiumThemePreset,
-  type PremiumBorderStyle,
+  type PremiumAtmosphereEffect,
+  type PremiumEntranceEffect,
+  type PremiumHeroStyle,
   type PremiumMediaTransform,
+  type PremiumMotionMode,
+  type PremiumNicknameEffect,
   type PremiumProfileTheme,
   type PremiumStudioSettings,
+  type PremiumSurfaceStyle,
 } from '@/lib/premium-studio';
 
 type StudioResponse = {
@@ -59,6 +73,49 @@ type PremiumStudioClientProps = {
 
 type UploadKind = 'avatar' | 'banner';
 
+const ATMOSPHERE_META: Record<PremiumAtmosphereEffect, { label: string; hint: string }> = {
+  none: { label: 'Без эффекта', hint: 'Чистый Premium-профиль без частиц.' },
+  aurora: { label: 'Aurora', hint: 'Мягкие цветовые облака и глубина.' },
+  embers: { label: 'Embers', hint: 'Тёплые искры и энергетический след.' },
+  sakura: { label: 'Sakura', hint: 'Лёгкие лепестки в атмосфере профиля.' },
+  stardust: { label: 'Stardust', hint: 'Мелкие светящиеся звёздные частицы.' },
+};
+
+const ENTRANCE_META: Record<PremiumEntranceEffect, string> = {
+  none: 'Без intro',
+  fade: 'Fade',
+  bloom: 'Bloom',
+  manga: 'Manga Cut',
+  glitch: 'Glitch',
+};
+
+const NICKNAME_META: Record<PremiumNicknameEffect, string> = {
+  none: 'Обычный',
+  gradient: 'Gradient',
+  shimmer: 'Shimmer',
+  glow: 'Glow',
+  manga: 'Manga Cut',
+  glitch: 'Glitch',
+};
+
+const HERO_META: Record<PremiumHeroStyle, string> = {
+  cinematic: 'Cinematic',
+  spotlight: 'Spotlight',
+  clean: 'Clean',
+};
+
+const SURFACE_META: Record<PremiumSurfaceStyle, string> = {
+  glass: 'Glass',
+  deep: 'Deep',
+  ink: 'Ink',
+};
+
+const MOTION_META: Record<PremiumMotionMode, string> = {
+  off: 'Off',
+  soft: 'Soft',
+  live: 'Live',
+};
+
 type MediaEditorState = {
   kind: UploadKind;
   mode: 'upload' | 'edit';
@@ -67,8 +124,10 @@ type MediaEditorState = {
   transform: PremiumMediaTransform;
 };
 
-const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+const PREMIUM_AVATAR_RECOMMENDED_BYTES = 4 * 1024 * 1024;
+const MAX_AVATAR_BYTES = 8 * 1024 * 1024;
 const MAX_BANNER_BYTES = 6 * 1024 * 1024;
+const MIN_PREMIUM_AVATAR_DIMENSION = 256;
 const MAX_AVATAR_SOURCE_DIMENSION = 1024;
 const MAX_BANNER_SOURCE_WIDTH = 2400;
 const MAX_BANNER_SOURCE_HEIGHT = 1200;
@@ -338,7 +397,11 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   const [uploading, setUploading] = useState<UploadKind | ''>('');
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
-  const [studioSection, setStudioSection] = useState<'appearance' | 'effects' | 'media'>('appearance');
+  const [mediaWarning, setMediaWarning] = useState('');
+  const [paletteLoading, setPaletteLoading] = useState<'avatar' | 'banner' | ''>('');
+  const [previewEpoch, setPreviewEpoch] = useState(0);
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
+  const [studioSection, setStudioSection] = useState<'appearance' | 'atmosphere' | 'effects' | 'media'>('appearance');
   const [mediaEditor, setMediaEditor] = useState<MediaEditorState | null>(null);
   const mediaEditorOpen = Boolean(mediaEditor);
 
@@ -372,6 +435,23 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       active = false;
     };
   }, [initialAllowed, initialSettings]);
+
+  useEffect(() => {
+    if (!mobilePreviewOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobilePreviewOpen(false);
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobilePreviewOpen]);
 
   useEffect(() => {
     if (!mediaEditorOpen) return;
@@ -421,7 +501,6 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   const contrast = contrastRatio(settings.textColor, settings.primaryColor);
   const safeTextColor = resolveReadableTextColor(settings.textColor, settings.primaryColor);
   const contrastProtected = safeTextColor !== settings.textColor;
-  const cssVars = premiumStudioCssVariables(settings);
 
   function publicMediaUrl(path: string | null) {
     if (!path) return null;
@@ -522,8 +601,49 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       primaryColor: preset.primaryColor,
       accentColor: preset.accentColor,
       textColor: preset.textColor,
+      particleEffect: preset.particleEffect,
     }));
     setSaved('');
+  }
+
+  async function applyAdaptivePalette(source: 'avatar' | 'banner') {
+    const url = source === 'banner' ? bannerUrl : avatarUrl;
+
+    if (!url) {
+      setError(
+        source === 'banner'
+          ? 'Сначала загрузи Premium-баннер, чтобы подобрать палитру по нему.'
+          : 'Сначала загрузи Premium-аватар, чтобы подобрать палитру по нему.',
+      );
+      return;
+    }
+
+    setPaletteLoading(source);
+    setError('');
+    setSaved('');
+
+    try {
+      const palette = await deriveAdaptiveProfilePalette(url);
+      setSettings((current) => ({
+        ...current,
+        primaryColor: palette.primaryColor,
+        accentColor: palette.accentColor,
+        textColor: palette.textColor,
+      }));
+      setSaved(
+        source === 'banner'
+          ? 'Палитра подобрана по баннеру — сохрани изменения.'
+          : 'Палитра подобрана по аватару — сохрани изменения.',
+      );
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Не удалось подобрать палитру автоматически.',
+      );
+    } finally {
+      setPaletteLoading('');
+    }
   }
 
   function resetMediaInput(kind: UploadKind) {
@@ -549,6 +669,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
 
     setError('');
     setSaved('');
+    setMediaWarning('');
 
     if (!ALLOWED_MEDIA_TYPES.has(file.type)) {
       setError('Поддерживаются WEBP, animated WEBP, GIF, PNG и JPG.');
@@ -560,7 +681,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     if (file.size > maxBytes) {
       setError(
         kind === 'avatar'
-          ? 'Premium-аватар должен быть не больше 2 МБ — это сохраняет быстрые комментарии и профиль.'
+          ? 'Premium-аватар должен быть не больше 8 МБ.'
           : 'Premium-баннер должен быть не больше 6 МБ — большие анимации сильно нагружают мобильные устройства.',
       );
       resetMediaInput(kind);
@@ -570,12 +691,23 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     try {
       const dimensions = await readImageDimensions(file);
       if (kind === 'avatar' && (
+        dimensions.width < MIN_PREMIUM_AVATAR_DIMENSION ||
+        dimensions.height < MIN_PREMIUM_AVATAR_DIMENSION
+      )) {
+        throw new Error(
+          `Premium-аватар должен быть не меньше ${MIN_PREMIUM_AVATAR_DIMENSION}×${MIN_PREMIUM_AVATAR_DIMENSION}px.`,
+        );
+      }
+      if (kind === 'avatar' && (
         dimensions.width > MAX_AVATAR_SOURCE_DIMENSION ||
         dimensions.height > MAX_AVATAR_SOURCE_DIMENSION
       )) {
         throw new Error(
           `Premium-аватар должен быть максимум ${MAX_AVATAR_SOURCE_DIMENSION}×${MAX_AVATAR_SOURCE_DIMENSION}px.`,
         );
+      }
+      if (kind === 'avatar' && file.size > PREMIUM_AVATAR_RECOMMENDED_BYTES) {
+        setMediaWarning('Тяжёлая анимация: для более быстрой загрузки рекомендуем Premium-аватар до 4 МБ.');
       }
       if (kind === 'banner' && (
         dimensions.width > MAX_BANNER_SOURCE_WIDTH ||
@@ -628,6 +760,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
 
     setError('');
     setSaved('');
+    setMediaWarning('');
 
     if (!ALLOWED_MEDIA_TYPES.has(file.type)) {
       setError('Поддерживаются WEBP, animated WEBP, GIF, PNG и JPG.');
@@ -638,7 +771,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     if (file.size > maxBytes) {
       setError(
         kind === 'avatar'
-          ? 'Premium-аватар должен быть не больше 2 МБ — это сохраняет быстрые комментарии и профиль.'
+          ? 'Premium-аватар должен быть не больше 8 МБ.'
           : 'Premium-баннер должен быть не больше 6 МБ — большие анимации сильно нагружают мобильные устройства.',
       );
       return false;
@@ -651,6 +784,14 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       const fallback = await staticWebpFallback(file, kind);
       const staticBlob = fallback.blob;
 
+      if (kind === 'avatar' && (
+        fallback.sourceWidth < MIN_PREMIUM_AVATAR_DIMENSION ||
+        fallback.sourceHeight < MIN_PREMIUM_AVATAR_DIMENSION
+      )) {
+        throw new Error(
+          `Premium-аватар должен быть не меньше ${MIN_PREMIUM_AVATAR_DIMENSION}×${MIN_PREMIUM_AVATAR_DIMENSION}px.`,
+        );
+      }
       if (kind === 'avatar' && (
         fallback.sourceWidth > MAX_AVATAR_SOURCE_DIMENSION ||
         fallback.sourceHeight > MAX_AVATAR_SOURCE_DIMENSION
@@ -878,6 +1019,30 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 />
               </div>
 
+              <div className="premium-studio-v21__adaptive">
+                <div>
+                  <strong>Автоподбор палитры</strong>
+                  <small>AnimeBox берёт оттенки из медиа и строит тёмный фон, яркий accent и безопасный цвет текста.</small>
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    disabled={Boolean(paletteLoading) || Boolean(uploading) || saving}
+                    onClick={() => void applyAdaptivePalette('avatar')}
+                  >
+                    {paletteLoading === 'avatar' ? 'Подбираем…' : 'По аватару'}
+                  </button>
+                  <button
+                    type="button"
+                    className="is-accent"
+                    disabled={Boolean(paletteLoading) || Boolean(uploading) || saving}
+                    onClick={() => void applyAdaptivePalette('banner')}
+                  >
+                    {paletteLoading === 'banner' ? 'Подбираем…' : 'По баннеру'}
+                  </button>
+                </div>
+              </div>
+
               <div className={`premium-studio-v12__contrast premium-studio-v15__contrast ${contrastProtected ? 'is-warning is-protected' : 'is-good'}`}>
                 <div>
                   <strong>{contrastProtected ? 'Smart Contrast включён' : `Контраст ${contrast.toFixed(1)}:1`}</strong>
@@ -899,62 +1064,21 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 <small>Так будет выглядеть твоя Premium-тема</small>
               </div>
 
-              <section
-                className={`premium-studio-v12__preview premium-studio-v15__preview border-${settings.borderStyle}`}
-                style={cssVars as CSSProperties}
-              >
-                <div className="premium-studio-v12__preview-banner premium-studio-v15__preview-banner">
-                  {bannerUrl && <img src={bannerUrl} alt="" aria-hidden="true" loading="lazy" decoding="async" style={premiumMediaStyle(bannerTransform) as CSSProperties} />}
-                  <div />
-                </div>
-                <div className="premium-studio-v12__preview-body premium-studio-v15__preview-body">
-                  {avatarUrl ? (
-                    <img
-                      className="premium-studio-v12__preview-avatar"
-                      src={avatarUrl}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      style={premiumMediaStyle(avatarTransform) as CSSProperties}
-                    />
-                  ) : (
-                    <span className="premium-studio-v20__avatar-placeholder" aria-hidden="true">
-                      <svg viewBox="0 0 64 64" focusable="false">
-                        <circle cx="32" cy="24" r="10" />
-                        <path d="M14 54c2-12 9-18 18-18s16 6 18 18" />
-                        <path d="m48 14 2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" />
-                      </svg>
-                    </span>
-                  )}
-                  <div className="premium-studio-v15__preview-copy">
-                    <div className="premium-studio-v15__preview-badges">
-                      <span>ANIMEBOX PREMIUM</span>
-                      <small>ЖИВАЯ ТЕМА</small>
-                    </div>
-                    <h3>Твой профиль</h3>
-                    <p>Палитра применяется ко всей странице профиля, а Smart Contrast не даёт тексту исчезнуть на похожем фоне.</p>
-                    <div className="premium-studio-v15__preview-chips">
-                      <i>Тема профиля</i>
-                      <i>Плеер {settings.syncPlayerTheme ? 'синхронизирован' : 'отдельно'}</i>
-                      <i>Свечение {settings.glowStrength}%</i>
-                    </div>
-                    <div className="premium-studio-v16__preview-stats">
-                      <span><b>29ч</b><small>просмотр</small></span>
-                      <span><b>51</b><small>серия</small></span>
-                      <span><b>7</b><small>в списках</small></span>
-                    </div>
-                    <div className="premium-studio-v16__preview-library"><i /> <span><strong>Продолжить просмотр</strong><small>Последний тайтл · 18 серия</small></span><b>→</b></div>
-                  </div>
-                  <button type="button">Акцентная кнопка</button>
-                  <div className="premium-studio-v12__fake-progress"><span /></div>
-                </div>
-              </section>
+              <PremiumStudioLivePreview
+                key={previewEpoch}
+                settings={settings}
+                avatarUrl={avatarUrl}
+                bannerUrl={bannerUrl}
+                avatarTransform={avatarTransform}
+                bannerTransform={bannerTransform}
+              />
             </div>
           </aside>
         </div>
 
         <div className="premium-studio-v16__section-nav" role="tablist" aria-label="Разделы Premium Studio">
           <button type="button" role="tab" aria-selected={studioSection === 'appearance'} className={studioSection === 'appearance' ? 'is-active' : ''} onClick={() => setStudioSection('appearance')}>Оформление</button>
+          <button type="button" role="tab" aria-selected={studioSection === 'atmosphere'} className={studioSection === 'atmosphere' ? 'is-active' : ''} onClick={() => setStudioSection('atmosphere')}>Атмосфера</button>
           <button type="button" role="tab" aria-selected={studioSection === 'effects'} className={studioSection === 'effects' ? 'is-active' : ''} onClick={() => setStudioSection('effects')}>Эффекты</button>
           <button type="button" role="tab" aria-selected={studioSection === 'media'} className={studioSection === 'media' ? 'is-active' : ''} onClick={() => setStudioSection('media')}>Медиа</button>
         </div>
@@ -987,6 +1111,115 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
             </section>
           )}
 
+          {studioSection === 'atmosphere' && (
+            <section className="premium-studio-v12__panel premium-studio-v15__panel premium-studio-v15__panel-wide premium-studio-v21__identity-panel">
+              <div className="premium-studio-v12__section-head premium-studio-v15__section-head">
+                <div>
+                  <h2>Атмосфера профиля</h2>
+                  <p>Один ambient-эффект, единый режим движения и характер появления профиля. Всё сразу видно в предпросмотре.</p>
+                </div>
+              </div>
+
+              <div className="premium-studio-v21__atmosphere-grid">
+                {PREMIUM_ATMOSPHERE_EFFECTS.map((effect) => {
+                  const meta = ATMOSPHERE_META[effect];
+                  return (
+                    <button
+                      key={effect}
+                      type="button"
+                      className={settings.atmosphereEffect === effect ? 'is-active' : ''}
+                      data-effect={effect}
+                      onClick={() => setSettings((current) => ({ ...current, atmosphereEffect: effect }))}
+                    >
+                      <span className="premium-studio-v21__effect-orb" />
+                      <strong>{meta.label}</strong>
+                      <small>{meta.hint}</small>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="premium-studio-v21__identity-controls">
+                <label className="premium-studio-v16__effect-row">
+                  <span><strong>Интенсивность атмосферы</strong><small>Контролирует заметность ambient glow и частиц.</small></span>
+                  <span className="premium-studio-v16__range-wrap">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={settings.atmosphereIntensity}
+                      onChange={(event) => setSettings((current) => ({ ...current, atmosphereIntensity: Number(event.target.value) }))}
+                    />
+                    <b>{settings.atmosphereIntensity}%</b>
+                  </span>
+                </label>
+
+                <div className="premium-studio-v16__effect-row">
+                  <span><strong>Движение</strong><small>Off экономит максимум ресурсов, Soft — дорогая спокойная анимация, Live — самый заметный режим.</small></span>
+                  <div className="premium-studio-v15__segmented">
+                    {PREMIUM_MOTION_MODES.map((mode) => (
+                      <button key={mode} type="button" className={settings.motionMode === mode ? 'is-active' : ''} onClick={() => setSettings((current) => ({ ...current, motionMode: mode }))}>
+                        {MOTION_META[mode]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="premium-studio-v16__effect-row">
+                  <span><strong>Эффект ника</strong><small>Выделяет username, не превращая весь интерфейс в неон.</small></span>
+                  <div className="premium-studio-v15__segmented">
+                    {PREMIUM_NICKNAME_EFFECTS.map((effect) => (
+                      <button key={effect} type="button" className={settings.nicknameEffect === effect ? 'is-active' : ''} onClick={() => setSettings((current) => ({ ...current, nicknameEffect: effect }))}>
+                        {NICKNAME_META[effect]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="premium-studio-v16__effect-row">
+                  <span><strong>Вход в профиль</strong><small>Короткая intro-анимация только при открытии страницы.</small></span>
+                  <div className="premium-studio-v15__segmented">
+                    {PREMIUM_ENTRANCE_EFFECTS.map((effect) => (
+                      <button key={effect} type="button" className={settings.entranceEffect === effect ? 'is-active' : ''} onClick={() => setSettings((current) => ({ ...current, entranceEffect: effect }))}>
+                        {ENTRANCE_META[effect]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="premium-studio-v21__replay-row">
+                  <span><strong>Предпросмотр входа</strong><small>Перезапусти intro без сохранения страницы.</small></span>
+                  <button type="button" onClick={() => setPreviewEpoch((value) => value + 1)}>
+                    Проиграть intro
+                  </button>
+                </div>
+
+                <div className="premium-studio-v16__effect-row">
+                  <span><strong>Hero</strong><small>Как баннер и identity-блок собираются в верхней части профиля.</small></span>
+                  <div className="premium-studio-v15__segmented">
+                    {PREMIUM_HERO_STYLES.map((style) => (
+                      <button key={style} type="button" className={settings.heroStyle === style ? 'is-active' : ''} onClick={() => setSettings((current) => ({ ...current, heroStyle: style }))}>
+                        {HERO_META[style]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="premium-studio-v16__effect-row">
+                  <span><strong>Поверхности</strong><small>Glass — глубина и blur, Deep — плотный игровой UI, Ink — строгий тёмный профиль.</small></span>
+                  <div className="premium-studio-v15__segmented">
+                    {PREMIUM_SURFACE_STYLES.map((style) => (
+                      <button key={style} type="button" className={settings.surfaceStyle === style ? 'is-active' : ''} onClick={() => setSettings((current) => ({ ...current, surfaceStyle: style }))}>
+                        {SURFACE_META[style]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
           {studioSection === 'effects' && (
             <section className="premium-studio-v12__panel premium-studio-v15__panel premium-studio-v15__panel-wide">
               <div className="premium-studio-v12__section-head premium-studio-v15__section-head">
@@ -1011,6 +1244,22 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                     {PREMIUM_BORDER_STYLES.map((style) => (
                       <button key={style} type="button" className={settings.borderStyle === style ? 'is-active' : ''} onClick={() => setSettings((current) => ({ ...current, borderStyle: style }))}>
                         {style === 'soft' ? 'Мягкая' : style === 'sharp' ? 'Резкая' : 'Неон'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="premium-studio-v16__effect-row">
+                  <span><strong>Частицы профиля</strong><small>Лёгкий дополнительный слой виден в профиле и mini-profile без canvas.</small></span>
+                  <div className="premium-studio-v15__segmented premium-studio-v18__particle-options" role="radiogroup" aria-label="Эффект частиц">
+                    {PREMIUM_PARTICLE_EFFECTS.map((effect) => (
+                      <button
+                        key={effect}
+                        type="button"
+                        className={settings.particleEffect === effect ? 'is-active' : ''}
+                        onClick={() => setSettings((current) => ({ ...current, particleEffect: effect }))}
+                      >
+                        {effect === 'none' ? 'Нет' : effect === 'nebula' ? 'Nebula' : effect === 'sakura' ? 'Sakura' : 'Stars'}
                       </button>
                     ))}
                   </div>
@@ -1054,8 +1303,9 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                       </span>
                     )}
                   </div>
-                  <div className="premium-studio-v16__media-copy"><strong>Аватар</strong><small>до 2 МБ · WEBP / GIF / PNG / JPG</small></div>
-                  <p className="premium-studio-v19__media-hint">После выбора файла откроется кадрирование 1:1. Перетащи лицо/главный объект в нужную точку и увеличь при необходимости.</p>
+                  <div className="premium-studio-v16__media-copy"><strong>Аватар</strong><small>Animated WebP / GIF / WebP / PNG / JPG · до 8 МБ · минимум 256×256</small></div>
+                  <p className="premium-studio-v19__media-hint">После выбора файла откроется кадрирование 1:1. Рекомендуем Animated WebP и файл до 4 МБ — так профиль загружается быстрее.</p>
+                  {mediaWarning && <p className="premium-studio-v19__media-warning">{mediaWarning}</p>}
                   <div className="premium-studio-v19__media-actions">
                     <button type="button" disabled={Boolean(uploading) || saving} onClick={() => avatarInputRef.current?.click()}>{uploading === 'avatar' ? 'Загрузка…' : settings.avatarPath || settings.avatarStaticPath ? 'Заменить аватар' : 'Загрузить аватар'}</button>
                     {(settings.avatarPath || settings.avatarStaticPath) && <button type="button" className="is-ghost" onClick={() => editExistingMedia('avatar')}>Изменить кадр</button>}
@@ -1093,17 +1343,11 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
               onClick={() => {
                 const preset = premiumThemePreset('default');
                 setSettings((current) => ({
-                  ...preset,
-                  avatarPath: current.avatarPath,
-                  avatarStaticPath: current.avatarStaticPath,
-                  bannerPath: current.bannerPath,
-                  bannerStaticPath: current.bannerStaticPath,
-                  avatarPositionX: current.avatarPositionX,
-                  avatarPositionY: current.avatarPositionY,
-                  avatarZoom: current.avatarZoom,
-                  bannerPositionX: current.bannerPositionX,
-                  bannerPositionY: current.bannerPositionY,
-                  bannerZoom: current.bannerZoom,
+                  ...current,
+                  theme: preset.theme,
+                  primaryColor: preset.primaryColor,
+                  accentColor: preset.accentColor,
+                  textColor: preset.textColor,
                 }));
                 setSaved('');
               }}
@@ -1130,6 +1374,103 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
         )}
       </div>
 
+      <button
+        type="button"
+        className="premium-studio-v22__preview-fab"
+        onClick={() => setMobilePreviewOpen(true)}
+        aria-label="Открыть живой предпросмотр Premium-профиля"
+      >
+        <span className="premium-studio-v22__preview-fab-avatar">
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt=""
+              aria-hidden="true"
+              style={premiumMediaStyle(avatarTransform) as CSSProperties}
+            />
+          ) : (
+            <span aria-hidden="true">P</span>
+          )}
+        </span>
+        <span className="premium-studio-v22__preview-fab-eye" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z" />
+            <circle cx="12" cy="12" r="2.8" />
+          </svg>
+        </span>
+        {dirty && <i className="premium-studio-v22__preview-fab-dot" aria-hidden="true" />}
+      </button>
+
+      {mobilePreviewOpen && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              className="premium-studio-v22__preview-sheet-layer"
+              role="presentation"
+              onMouseDown={(event) => {
+                if (event.currentTarget === event.target) setMobilePreviewOpen(false);
+              }}
+            >
+              <section
+                className="premium-studio-v22__preview-sheet"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Предпросмотр Premium-профиля"
+              >
+                <div className="premium-studio-v22__preview-sheet-handle" aria-hidden="true" />
+                <header className="premium-studio-v22__preview-sheet-head">
+                  <div>
+                    <span>LIVE PREVIEW</span>
+                    <strong>Предпросмотр профиля</strong>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMobilePreviewOpen(false)}
+                    aria-label="Закрыть предпросмотр"
+                  >
+                    ×
+                  </button>
+                </header>
+
+                <div className="premium-studio-v22__preview-sheet-body">
+                  <PremiumStudioLivePreview
+                    key={`mobile-${previewEpoch}`}
+                    settings={settings}
+                    avatarUrl={avatarUrl}
+                    bannerUrl={bannerUrl}
+                    avatarTransform={avatarTransform}
+                    bannerTransform={bannerTransform}
+                  />
+                </div>
+
+                <footer className="premium-studio-v22__preview-sheet-actions">
+                  <button
+                    type="button"
+                    className="is-secondary"
+                    onClick={() => setMobilePreviewOpen(false)}
+                  >
+                    Продолжить настройку
+                  </button>
+                  {!hideDock && (
+                    <button
+                      type="button"
+                      className="is-primary"
+                      disabled={!dirty || saving || Boolean(uploading)}
+                      onClick={() =>
+                        void persistSettings(settings)
+                          .then(() => setMobilePreviewOpen(false))
+                          .catch(() => undefined)
+                      }
+                    >
+                      {saving ? 'Сохраняем…' : dirty ? 'Сохранить' : 'Сохранено'}
+                    </button>
+                  )}
+                </footer>
+              </section>
+            </div>,
+            document.body,
+          )
+        : null}
+
       {mediaEditor && (
         <div
           className="premium-media-editor-modal"
@@ -1152,9 +1493,12 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 </h2>
                 <p>
                   {mediaEditor.kind === 'avatar'
-                    ? 'Аватар будет круглым, но редактируем квадрат 1:1 — так позиция одинаково работает в профиле, комментариях и меню.'
+                    ? 'Аватар будет круглым, но редактируем квадрат 1:1 — оригинальная GIF/Animated WebP анимация сохраняется, а AnimeBox отдельно создаёт статический WebP fallback.'
                     : 'Это не отдельный кроп-файл: широкая рамка показывает реальную область баннера. Оригинал и анимация сохраняются.'}
                 </p>
+                {mediaEditor.kind === 'avatar' && mediaWarning && (
+                  <p className="premium-studio-v19__media-warning">{mediaWarning}</p>
+                )}
               </div>
               <button type="button" className="premium-media-editor-modal__close" onClick={closeMediaEditor} disabled={Boolean(uploading) || saving} aria-label="Закрыть редактор">×</button>
             </div>

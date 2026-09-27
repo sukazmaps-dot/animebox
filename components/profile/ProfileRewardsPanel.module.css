@@ -10,13 +10,13 @@
 .summary span { display:block; margin-top:2px; color:#6f7890; font-size:8px; letter-spacing:0; }
 .pending { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 16px; border-color:rgba(109,174,255,.15); background:linear-gradient(100deg,rgba(47,112,192,.08),rgba(105,76,200,.07)); }
 .pending strong { display:block; margin-top:3px; color:#dbe6fa; font-size:11px; }
-.pending button,.sectionHeading button { min-height:38px; padding:0 13px; border:1px solid rgba(139,114,255,.18); border-radius:10px; background:rgba(124,92,255,.10); color:#c8bcff; font:inherit; font-size:9px; font-weight:800; cursor:pointer; }
+.pending button,.sectionHeading button,.sectionHeading a { min-height:38px; padding:0 13px; border:1px solid rgba(139,114,255,.18); border-radius:10px; background:rgba(124,92,255,.10); color:#c8bcff; font:inherit; font-size:9px; font-weight:800; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; }
 .frames,.history { padding:18px; }
 .sectionHeading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
 .sectionHeading h3 { font-size:15px; }
 .frameGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
-.frameGrid > button { display:grid; grid-template-columns:78px minmax(0,1fr); align-items:center; gap:10px; min-width:0; padding:10px; border:1px solid rgba(255,255,255,.055); border-radius:13px; background:rgba(255,255,255,.022); color:inherit; text-align:left; cursor:pointer; }
-.frameGrid > button > :first-child { transform:scale(.72); margin:-13px; }
+.frameGrid > article { display:grid; grid-template-columns:78px minmax(0,1fr); align-items:center; gap:10px; min-width:0; padding:10px; border:1px solid rgba(255,255,255,.055); border-radius:13px; background:rgba(255,255,255,.022); color:inherit; text-align:left; }
+.frameGrid > article > :first-child { transform:scale(.72); margin:-13px; }
 .frameGrid strong,.frameGrid small { display:block; }
 .frameGrid strong { color:#dce0e9; font-size:10px; }
 .frameGrid small { margin-top:3px; color:#697486; font-size:8px; }

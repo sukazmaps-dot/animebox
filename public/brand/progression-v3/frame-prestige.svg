@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 512 512"
+  width="512"
+  height="512"
+  fill="none"
+  aria-hidden="true"
+  focusable="false">
+
+<defs>
+  <linearGradient id="metalDark" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#D9DCE9"/>
+    <stop offset="12%" stop-color="#666B82"/>
+    <stop offset="32%" stop-color="#171823"/>
+    <stop offset="55%" stop-color="#07080D"/>
+    <stop offset="77%" stop-color="#262839"/>
+    <stop offset="100%" stop-color="#B8BCCB"/>
+  </linearGradient>
+
+  <linearGradient id="violetMetal" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#F0D8FF"/>
+    <stop offset="18%" stop-color="#A85AFF"/>
+    <stop offset="48%" stop-color="#5B2AD7"/>
+    <stop offset="74%" stop-color="#24113D"/>
+    <stop offset="100%" stop-color="#D768FF"/>
+  </linearGradient>
+
+  <linearGradient id="crimsonGem" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#FFD6E0"/>
+    <stop offset="14%" stop-color="#F04C72"/>
+    <stop offset="44%" stop-color="#A80F34"/>
+    <stop offset="75%" stop-color="#4E0717"/>
+    <stop offset="100%" stop-color="#E51F52"/>
+  </linearGradient>
+
+  <linearGradient id="fireGrad" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#7A101A"/>
+    <stop offset="25%" stop-color="#D52A1C"/>
+    <stop offset="51%" stop-color="#FF641F"/>
+    <stop offset="73%" stop-color="#FFB52D"/>
+    <stop offset="91%" stop-color="#FFE772"/>
+    <stop offset="100%" stop-color="#FFF2B8"/>
+  </linearGradient>
+
+  <linearGradient id="redBlack" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#FF5367"/>
+    <stop offset="28%" stop-color="#C91331"/>
+    <stop offset="58%" stop-color="#460811"/>
+    <stop offset="100%" stop-color="#08080C"/>
+  </linearGradient>
+
+  <linearGradient id="prestigeBone" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#FFF7E8"/>
+    <stop offset="28%" stop-color="#E5D7C2"/>
+    <stop offset="54%" stop-color="#A99275"/>
+    <stop offset="78%" stop-color="#5E5043"/>
+    <stop offset="100%" stop-color="#EEE3D2"/>
+  </linearGradient>
+
+  <linearGradient id="cyanViolet" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#65E8FF"/>
+    <stop offset="33%" stop-color="#3E8BFF"/>
+    <stop offset="63%" stop-color="#6A49FF"/>
+    <stop offset="100%" stop-color="#BD5CFF"/>
+  </linearGradient>
+
+  <radialGradient id="violetAura" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#8A52FF" stop-opacity=".34"/>
+    <stop offset="60%" stop-color="#6729C9" stop-opacity=".14"/>
+    <stop offset="100%" stop-color="#421A8A" stop-opacity="0"/>
+  </radialGradient>
+
+  <radialGradient id="redAura" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#FF385D" stop-opacity=".32"/>
+    <stop offset="62%" stop-color="#A40E2B" stop-opacity=".12"/>
+    <stop offset="100%" stop-color="#5C0617" stop-opacity="0"/>
+  </radialGradient>
+
+  <filter id="glow4" x="-60%" y="-60%" width="220%" height="220%">
+    <feGaussianBlur stdDeviation="4" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="glow8" x="-80%" y="-80%" width="260%" height="260%">
+    <feGaussianBlur stdDeviation="8" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+
+<style>
+.aura{opacity:.18}
+</style>
+<circle cx="256" cy="256" r="224" fill="url(#violetAura)" opacity=".46" class="aura"/>
+<circle cx="256" cy="256" r="184" fill="none" stroke="url(#prestigeBone)" stroke-width="22" opacity="1"/>
+<circle cx="256" cy="256" r="163" fill="none" stroke="url(#cyanViolet)" stroke-width="7" opacity="0.92" class="energyRing"/>
+<circle cx="256" cy="256" r="149" fill="none" stroke="#121423" stroke-width="3.5" opacity="0.85" stroke-dasharray="18 10 36 12"/>
+
+<g class="maskCrest">
+  <path d="M256 22 L209 58 196 108 224 147 256 129 288 147 316 108 303 58Z"
+        fill="url(#prestigeBone)" stroke="#7B6A5B" stroke-width="3"/>
+  <path d="M256 22 L256 129" stroke="#372F2B" stroke-width="3"/>
+  <path d="M221 86 244 94 232 109 211 100Z" fill="#181B2A" stroke="#6EE3FF" stroke-width="2"/>
+  <path d="M291 86 268 94 280 109 301 100Z" fill="#181B2A" stroke="#6EE3FF" stroke-width="2"/>
+  <path class="crack" d="M256 35 248 53 259 67 251 82 261 96 254 115"
+        stroke="#6FE5FF" stroke-width="2.5" stroke-linecap="round"/>
+</g>
+<path d="M198 62 C160 44 130 52 102 88 C137 76 162 84 179 112Z" fill="url(#prestigeBone)" stroke="#83715D" stroke-width="2.6" opacity="1" />
+<path d="M314 62 C352 44 382 52 410 88 C375 76 350 84 333 112Z" fill="url(#prestigeBone)" stroke="#83715D" stroke-width="2.6" opacity="1" />
+<path d="M92 125 C58 117 38 141 32 166 C58 156 78 149 92 125Z" fill="url(#prestigeBone)" stroke="#776552" stroke-width="2" opacity="1" class="rib" />
+<path d="M92 175 C58 167 38 191 32 216 C58 206 78 199 92 175Z" fill="url(#prestigeBone)" stroke="#776552" stroke-width="2" opacity="1" class="rib" />
+<path d="M92 235 C58 227 38 251 32 276 C58 266 78 259 92 235Z" fill="url(#prestigeBone)" stroke="#776552" stroke-width="2" opacity="1" class="rib" />
+<path d="M92 295 C58 287 38 311 32 336 C58 326 78 319 92 295Z" fill="url(#prestigeBone)" stroke="#776552" stroke-width="2" opacity="1" class="rib" />
+<path d="M92 345 C58 337 38 361 32 386 C58 376 78 369 92 345Z" fill="url(#prestigeBone)" stroke="#776552" stroke-width="2" opacity="1" class="rib" />
+<path d="M420 125 C454 117 474 141 480 166 C454 156 434 149 420 125Z" fill="url(#prestigeBone)" stroke="#776552" stroke-width="2" opacity="1" class="rib" />
+<path d="M420 175 C454 167 474 191 480 216 C454 206 434 199 420 175Z" fill="url(#prestigeBone)" stroke="#776552" stroke-width="2" opacity="1" class="rib" />
+<path d="M420 235 C454 227 474 251 480 276 C454 266 434 259 420 235Z" fill="url(#prestigeBone)" stroke="#776552" stroke-width="2" opacity="1" class="rib" />
+<path d="M420 295 C454 287 474 311 480 336 C454 326 434 319 420 295Z" fill="url(#prestigeBone)" stroke="#776552" stroke-width="2" opacity="1" class="rib" />
+<path d="M420 345 C454 337 474 361 480 386 C454 376 434 369 420 345Z" fill="url(#prestigeBone)" stroke="#776552" stroke-width="2" opacity="1" class="rib" />
+<path d="M89 180 C111 168 126 160 142 143" fill="none" stroke="#64DFFF" stroke-width="3" opacity="1" class="fissure" />
+<path d="M423 179 C402 168 386 160 370 143" fill="none" stroke="#64DFFF" stroke-width="3" opacity="1" class="fissure" />
+<path d="M107 344 C129 357 143 367 155 388" fill="none" stroke="#775CFF" stroke-width="3" opacity="1" class="fissure" />
+<path d="M405 344 C383 357 369 367 357 388" fill="none" stroke="#775CFF" stroke-width="3" opacity="1" class="fissure" />
+
+<g class="blades">
+  <path d="M164 438 278 351" stroke="url(#cyanViolet)" stroke-width="10" stroke-linecap="round"/>
+  <path d="M348 438 234 351" stroke="url(#cyanViolet)" stroke-width="10" stroke-linecap="round"/>
+  <path d="M168 434 274 354" stroke="#C7F8FF" stroke-width="2.4" stroke-linecap="round" class="bladeSpark"/>
+  <path d="M344 434 238 354" stroke="#E9CEFF" stroke-width="2.4" stroke-linecap="round" class="bladeSpark2"/>
+</g>
+<path d="M218 431 240 406 256 433 272 406 294 431 273 447 256 480 239 447Z" fill="url(#metalDark)" stroke="#9881AA" stroke-width="2.2" opacity="1" />
+<polygon points="256,420 267,444 256,468 245,444" fill="url(#cyanViolet)" stroke="#E7E5FF" stroke-width="1.6" class="bottomCrystal"/>
+<g transform="translate(78 117) rotate(-18)" class="shard"><polygon points="0,-18 6,0 0,18 -6,0" fill="url(#cyanViolet)" stroke="#D9F0FF" stroke-width="1.2"/></g>
+<g transform="translate(434 124) rotate(18)" class="shard"><polygon points="0,-18 6,0 0,18 -6,0" fill="url(#cyanViolet)" stroke="#D9F0FF" stroke-width="1.2"/></g>
+<g transform="translate(76 392) rotate(16)" class="shard"><polygon points="0,-18 6,0 0,18 -6,0" fill="url(#cyanViolet)" stroke="#D9F0FF" stroke-width="1.2"/></g>
+<g transform="translate(438 390) rotate(-16)" class="shard"><polygon points="0,-18 6,0 0,18 -6,0" fill="url(#cyanViolet)" stroke="#D9F0FF" stroke-width="1.2"/></g>
+</svg>

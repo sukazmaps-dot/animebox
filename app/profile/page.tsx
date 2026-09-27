@@ -16,6 +16,7 @@ import UserAvatarWithFrame from '@/components/profile/UserAvatarWithFrame';
 import ProfileAnimeIdentityLoader from '@/components/profile/ProfileAnimeIdentityLoader';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import CurrentPremiumBadge from '@/components/premium/CurrentPremiumBadge';
+import PremiumProfileAtmosphere from '@/components/premium/PremiumProfileAtmosphere';
 import {
   DEFAULT_PREMIUM_STUDIO_SETTINGS,
   premiumMediaStyle,
@@ -50,7 +51,7 @@ export default function ProfilePage() {
   const [error, setError] = useState('');
   const [premiumStudio, setPremiumStudio] = useState<PremiumStudioSettings | null>(null);
   const [premiumActive, setPremiumActive] = useState(false);
-  const [seasonFrameKey, setSeasonFrameKey] = useState<string | null>(null);
+  const [profileFrameKey, setProfileFrameKey] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -207,25 +208,25 @@ export default function ProfilePage() {
     if (!user?.id) return;
 
     let active = true;
-    const loadSeasonFrame = () => {
+    const loadProfileFrame = () => {
       void fetch('/api/community/leaderboard-rewards', { cache: 'no-store' })
         .then(async (response) => {
           if (!response.ok || !active) return;
           const payload = await response.json() as { selectedFrame?: string | null };
-          setSeasonFrameKey(typeof payload.selectedFrame === 'string' ? payload.selectedFrame : null);
+          setProfileFrameKey(typeof payload.selectedFrame === 'string' ? payload.selectedFrame : null);
         })
         .catch(() => {
-          if (active) setSeasonFrameKey(null);
+          if (active) setProfileFrameKey(null);
         });
     };
 
-    loadSeasonFrame();
-    window.addEventListener('animebox:profile-cosmetic-changed', loadSeasonFrame);
-    window.addEventListener('animebox:leaderboard-reward-claimed', loadSeasonFrame);
+    loadProfileFrame();
+    window.addEventListener('animebox:profile-cosmetic-changed', loadProfileFrame);
+    window.addEventListener('animebox:leaderboard-reward-claimed', loadProfileFrame);
     return () => {
       active = false;
-      window.removeEventListener('animebox:profile-cosmetic-changed', loadSeasonFrame);
-      window.removeEventListener('animebox:leaderboard-reward-claimed', loadSeasonFrame);
+      window.removeEventListener('animebox:profile-cosmetic-changed', loadProfileFrame);
+      window.removeEventListener('animebox:leaderboard-reward-claimed', loadProfileFrame);
     };
   }, [user?.id]);
 
@@ -335,6 +336,7 @@ export default function ProfilePage() {
   const premiumStyle = appearance.premiumStudio
     ? (premiumStudioCssVariables(appearance.premiumStudio) as CSSProperties)
     : undefined;
+  const premiumIdentityActive = Boolean(premiumActive && appearance.premiumStudio);
 
   const joinedDate = new Intl.DateTimeFormat('ru-RU', {
     month: 'long',
@@ -343,9 +345,20 @@ export default function ProfilePage() {
 
   return (
     <main
-      className={`profile-v2 premium-profile-theme--${appearance.premiumStudio?.theme ?? 'default'} ${appearance.premiumStudio ? 'premium-profile-custom' : ''}`}
+      className={`profile-v2 premium-profile-theme--${appearance.premiumStudio?.theme ?? 'default'} ${appearance.premiumStudio ? 'premium-profile-custom' : ''} ${premiumIdentityActive ? 'premium-profile-v21' : ''}`}
       style={premiumStyle}
+      data-premium-atmosphere={premiumIdentityActive ? appearance.premiumStudio?.atmosphereEffect : undefined}
+      data-premium-motion={premiumIdentityActive ? appearance.premiumStudio?.motionMode : undefined}
+      data-premium-entrance={premiumIdentityActive ? appearance.premiumStudio?.entranceEffect : undefined}
+      data-premium-hero={premiumIdentityActive ? appearance.premiumStudio?.heroStyle : undefined}
+      data-premium-surface={premiumIdentityActive ? appearance.premiumStudio?.surfaceStyle : undefined}
     >
+      {premiumIdentityActive && appearance.premiumStudio && (
+        <PremiumProfileAtmosphere
+          effect={appearance.premiumStudio.atmosphereEffect}
+          motion={appearance.premiumStudio.motionMode}
+        />
+      )}
       {/* PROFILE HERO */}
 
       <section className="profile-v2__hero">
@@ -382,14 +395,22 @@ export default function ProfilePage() {
             alt={`Аватар ${username}`}
             loadCurrentIdentity
             mediaTransform={appearance.avatarTransform}
-            seasonFrameKey={seasonFrameKey}
+            profileFrameKey={profileFrameKey}
+            premiumFrameMotion={premiumActive && appearance.premiumStudio?.motionMode !== 'off'}
           />
 
           <div className="profile-v2__identity-main">
             <div className="profile-v2__title-row">
               <div>
                 <div className="profile-v2__name-row">
-                  <h1><MySponsorBadge username={username} /></h1>
+                  <h1>
+                    <span
+                      className={premiumIdentityActive ? 'premium-profile-v21__nickname' : undefined}
+                      data-effect={premiumIdentityActive ? appearance.premiumStudio?.nicknameEffect : undefined}
+                    >
+                      <MySponsorBadge username={username} />
+                    </span>
+                  </h1>
 
                   <CurrentPremiumBadge />
 

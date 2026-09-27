@@ -23,8 +23,8 @@ import type { SeasonPeriod } from '@/lib/seasons';
 import { isUuid } from '@/lib/uuid';
 import { getProfileWidgetsData } from '@/lib/profile-widgets-server';
 import type { ProfileWidgetsData } from '@/types/profile-widgets';
-import { getSelectedSeasonFrame } from '@/lib/leaderboard-rewards-server';
-import type { SeasonFrameKey } from '@/lib/leaderboard-rewards';
+import { getSelectedProfileFrame } from '@/lib/leaderboard-rewards-server';
+import type { ProfileFrameKey } from '@/lib/profile-frames';
 
 export type PublicAchievement = {
   code: string;
@@ -64,7 +64,7 @@ export type PublicProfileData = {
   progression: ProfileProgression;
   featuredAchievements: PublicAchievement[];
   seasonTitles: PublicSeasonTitle[];
-  seasonFrameKey: SeasonFrameKey | null;
+  profileFrameKey: ProfileFrameKey | null;
   stats: {
     episodes: number;
     titles: number;
@@ -169,7 +169,7 @@ export async function getPublicProfile(
     featuredResult,
     seasonEntriesResult,
     widgets,
-    selectedSeasonFrame,
+    selectedProfileFrame,
   ] = await Promise.all([
     admin.rpc('community_metrics', { p_user: userId }),
     admin.from('user_achievements').select('*').eq('user_id', userId),
@@ -186,7 +186,7 @@ export async function getPublicProfile(
     getEffectiveUserEntitlements(userId).catch(() => null),
     admin
       .from('premium_profile_settings')
-      .select('theme,primary_color,accent_color,text_color,glow_strength,border_style,avatar_path,avatar_static_path,avatar_position_x,avatar_position_y,avatar_zoom,banner_path,banner_static_path,banner_position_x,banner_position_y,banner_zoom,sync_player_theme')
+      .select('theme,primary_color,accent_color,text_color,glow_strength,border_style,particle_effect,avatar_path,avatar_static_path,avatar_position_x,avatar_position_y,avatar_zoom,banner_path,banner_static_path,banner_position_x,banner_position_y,banner_zoom,sync_player_theme,atmosphere_effect,atmosphere_intensity,motion_mode,entrance_effect,nickname_effect,hero_style,surface_style')
       .eq('user_id', userId)
       .maybeSingle()
       .then((result) => (result.error ? null : result.data)),
@@ -206,7 +206,7 @@ export async function getPublicProfile(
       .eq('user_id', userId)
       .lte('place', 3),
     getProfileWidgetsData(userId),
-    getSelectedSeasonFrame(userId).catch(() => null),
+    getSelectedProfileFrame(userId).catch(() => null),
   ]);
 
   if (metricsResult.error) {
@@ -370,7 +370,7 @@ export async function getPublicProfile(
     ),
     featuredAchievements,
     seasonTitles,
-    seasonFrameKey: selectedSeasonFrame,
+    profileFrameKey: selectedProfileFrame,
     stats: {
       episodes,
       titles,
