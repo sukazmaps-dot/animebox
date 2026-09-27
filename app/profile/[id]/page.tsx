@@ -118,7 +118,7 @@ export default async function PublicProfilePage({ params }: Props) {
           <div className="profile-v2__banner-shade" />
         </div>
 
-        <PremiumParticleLayer effect={profile.premiumStudio?.particleEffect} />
+        <PremiumParticleLayer effect={profile.premiumStudio?.particleEffect} className="premium-particles-profile-hero" />
 
         <div className="profile-v2__identity">
           <UserAvatarWithFrame
