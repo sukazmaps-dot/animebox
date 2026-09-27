@@ -467,6 +467,7 @@ export default function AnimePlayer({
   const openingSkipFallbackTimerRef = useRef<number | null>(null);
   const playerViewportRef = useRef<HTMLDivElement | null>(null);
   const telegramFullscreenOwnedRef = useRef(false);
+  const telegramDomFullscreenOwnedRef = useRef(false);
   const telegramOrientationOwnedRef = useRef(false);
   const telegramWasFullscreenRef = useRef(false);
   const telegramVerticalSwipesWereEnabledRef = useRef<boolean | null>(null);
@@ -1803,13 +1804,11 @@ export default function AnimePlayer({
       // enabled so document scrolling continues to work on Android.
       telegram?.disableVerticalSwipes?.();
 
-      // Android Telegram WebView is intentionally kept in AnimeBox pseudo
-      // fullscreen. Calling Telegram.requestFullscreen() at the same time as
-      // our fixed viewport creates two competing viewport owners and produces
-      // the clipped/offset state seen on Android. expand() + fixed 100dvh is
-      // stable and keeps the media element mounted.
+      // The CSS layer can cover only AnimeBox DOM. Telegram's own header and
+      // close/menu chrome live outside the document, so request Mini App
+      // fullscreen as well. The fixed viewport stays mounted as a fallback if
+      // the Telegram client rejects or delays the native fullscreen request.
       if (
-        !telegramAndroidMiniApp &&
         !telegramWasFullscreenRef.current &&
         telegram?.requestFullscreen
       ) {
@@ -1882,17 +1881,65 @@ export default function AnimePlayer({
         (document as Document & { webkitFullscreenElement?: Element | null })
           .webkitFullscreenElement;
 
-      setFullscreen(Boolean(activeElement));
+      const domFullscreenActive = Boolean(activeElement);
+      setFullscreen(domFullscreenActive);
+
+      // Kodik and other cross-origin providers can enter the browser Fullscreen
+      // API from inside their iframe. On Telegram Android that does not hide the
+      // Mini App header by itself, so mirror the provider fullscreen state to
+      // Telegram.WebApp fullscreen. This keeps the Telegram chrome out of the
+      // video while preserving the provider iframe and playback position.
+      if (!telegramAndroidMiniApp) return;
+
+      const telegram = window.Telegram?.WebApp;
+      if (!telegram?.initData) return;
+
+      try {
+        if (domFullscreenActive) {
+          telegram.expand();
+
+          if (!telegram.isFullscreen && telegram.requestFullscreen) {
+            telegram.requestFullscreen();
+            telegramDomFullscreenOwnedRef.current = true;
+          }
+
+          return;
+        }
+
+        if (
+          telegramDomFullscreenOwnedRef.current &&
+          !telegramPseudoFullscreen
+        ) {
+          telegram.exitFullscreen?.();
+          telegramDomFullscreenOwnedRef.current = false;
+        }
+      } catch (error) {
+        console.warn('[AnimePlayer] Telegram DOM fullscreen sync failed:', error);
+      }
     }
 
+    onFullscreenChange();
     document.addEventListener('fullscreenchange', onFullscreenChange);
     document.addEventListener('webkitfullscreenchange', onFullscreenChange as EventListener);
 
     return () => {
       document.removeEventListener('fullscreenchange', onFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', onFullscreenChange as EventListener);
+
+      if (
+        telegramDomFullscreenOwnedRef.current &&
+        !telegramPseudoFullscreen
+      ) {
+        try {
+          window.Telegram?.WebApp?.exitFullscreen?.();
+        } catch {
+          // Ignore cleanup failures from Telegram clients.
+        } finally {
+          telegramDomFullscreenOwnedRef.current = false;
+        }
+      }
     };
-  }, []);
+  }, [telegramAndroidMiniApp, telegramPseudoFullscreen]);
 
   useEffect(() => {
     failedCandidatesRef.current.clear();
