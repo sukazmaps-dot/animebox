@@ -28,8 +28,12 @@ export async function POST(
     const targetUserId =
       typeof body.targetUserId === 'string' ? body.targetUserId.trim() : '';
 
-    await transferWatchPartyRoomHost(roomId, targetUserId);
-    return response({ ok: true });
+    const transfer = await transferWatchPartyRoomHost(roomId, targetUserId);
+    return response({
+      ok: true,
+      hostEpoch: Number(transfer.host_epoch ?? 0),
+      hostUserId: transfer.host_user_id ?? targetUserId,
+    });
   } catch (error) {
     return failure(error);
   }
