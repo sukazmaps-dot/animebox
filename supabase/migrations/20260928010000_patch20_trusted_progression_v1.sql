@@ -5,6 +5,11 @@
 create table if not exists public.progression_trust_baselines (
   user_id uuid primary key,
   captured_at timestamptz not null default now(),
+  base_credited_episodes bigint not null default 0 check (base_credited_episodes >= 0),
+  base_credited_titles bigint not null default 0 check (base_credited_titles >= 0),
+  base_credited_watch_buckets bigint not null default 0 check (base_credited_watch_buckets >= 0),
+  base_credited_comments bigint not null default 0 check (base_credited_comments >= 0),
+  base_active_ms bigint not null default 0 check (base_active_ms >= 0),
   shonen_titles bigint not null default 0 check (shonen_titles >= 0),
   romance_titles bigint not null default 0 check (romance_titles >= 0),
   action_titles bigint not null default 0 check (action_titles >= 0),
@@ -19,6 +24,11 @@ grant select, insert, update, delete on table public.progression_trust_baselines
 insert into public.progression_trust_baselines (
   user_id,
   captured_at,
+  base_credited_episodes,
+  base_credited_titles,
+  base_credited_watch_buckets,
+  base_credited_comments,
+  base_active_ms,
   shonen_titles,
   romance_titles,
   action_titles,
@@ -28,6 +38,11 @@ insert into public.progression_trust_baselines (
 select
   p.user_id,
   now(),
+  greatest(0, coalesce(p.credited_episodes, 0)),
+  greatest(0, coalesce(p.credited_titles, 0)),
+  greatest(0, coalesce(p.credited_watch_buckets, 0)),
+  greatest(0, coalesce(p.credited_comments, 0)),
+  greatest(0, coalesce((m.metrics->>'active_ms')::bigint, 0)),
   greatest(0, coalesce((m.metrics->>'shonen_titles')::bigint, 0)),
   greatest(0, coalesce((m.metrics->>'romance_titles')::bigint, 0)),
   greatest(0, coalesce((m.metrics->>'action_titles')::bigint, 0)),
@@ -49,6 +64,11 @@ as $$
   with baseline as materialized (
     select
       b.captured_at,
+      b.base_credited_episodes,
+      b.base_credited_titles,
+      b.base_credited_watch_buckets,
+      b.base_credited_comments,
+      b.base_active_ms,
       b.shonen_titles,
       b.romance_titles,
       b.action_titles,
@@ -65,6 +85,11 @@ as $$
       0::bigint,
       0::bigint,
       0::bigint,
+      0::bigint,
+      0::bigint,
+      0::bigint,
+      0::bigint,
+      0::bigint,
       0::bigint
     where not exists (
       select 1
@@ -73,22 +98,16 @@ as $$
     )
     limit 1
   ),
-  progression as (
-    select
-      coalesce(max(p.credited_episodes), 0)::bigint as credited_episodes,
-      coalesce(max(p.credited_titles), 0)::bigint as credited_titles,
-      coalesce(max(p.credited_watch_buckets), 0)::bigint as credited_watch_buckets,
-      coalesce(max(p.credited_comments), 0)::bigint as credited_comments
-    from public.user_progression p
-    where p.user_id = p_user
-  ),
   trusted_activity as (
     select
       coalesce(sum(e.active_ms), 0)::bigint as active_ms,
       coalesce(sum(e.completed_episodes), 0)::bigint as completed_episodes,
-      coalesce(sum(e.completed_titles), 0)::bigint as completed_titles
+      coalesce(sum(e.completed_titles), 0)::bigint as completed_titles,
+      coalesce(sum(e.comments), 0)::bigint as comments
     from public.challenge_activity_events e
+    cross join baseline b
     where e.user_id = p_user
+      and e.created_at >= b.captured_at
   ),
   trusted_title_ids as materialized (
     select distinct pe.entity_id::bigint as anime_id
@@ -120,12 +139,6 @@ as $$
     from trusted_title_ids t
     join public.anime_catalog a on a.id = t.anime_id
   ),
-  comments as (
-    select count(*)::bigint as comments
-    from public.comments c
-    where c.user_id = p_user
-      and c.deleted_at is null
-  ),
   streak as (
     select coalesce(max(s.longest_streak), 0)::bigint as longest_streak
     from public.user_streaks s
@@ -133,24 +146,19 @@ as $$
   ),
   resolved as (
     select
-      greatest(p.credited_episodes, a.completed_episodes)::bigint as episodes,
-      greatest(p.credited_titles, a.completed_titles)::bigint as titles,
-      greatest(
-        p.credited_watch_buckets * 1800000,
-        a.active_ms
-      )::bigint as active_ms,
-      greatest(p.credited_comments, c.comments)::bigint as comments,
+      (b.base_credited_episodes + a.completed_episodes)::bigint as episodes,
+      (b.base_credited_titles + a.completed_titles)::bigint as titles,
+      (b.base_active_ms + a.active_ms)::bigint as active_ms,
+      (b.base_credited_comments + a.comments)::bigint as comments,
       s.longest_streak,
       b.shonen_titles + coalesce(g.shonen_titles, 0) as shonen_titles,
       b.romance_titles + coalesce(g.romance_titles, 0) as romance_titles,
       b.action_titles + coalesce(g.action_titles, 0) as action_titles,
       b.fantasy_titles + coalesce(g.fantasy_titles, 0) as fantasy_titles,
       b.comedy_titles + coalesce(g.comedy_titles, 0) as comedy_titles
-    from progression p
-    cross join trusted_activity a
+    from trusted_activity a
     cross join baseline b
     cross join new_genres g
-    cross join comments c
     cross join streak s
   )
   select jsonb_build_object(
