@@ -47,7 +47,8 @@ if (!direct.includes("target.closest('input, textarea, select, [contenteditable=
 }
 
 for (const needle of [
-  "now - previous.at <= 320",
+  "TOUCH_DOUBLE_TAP_WINDOW_MS = 320",
+  "now - previous.at <= TOUCH_DOUBLE_TAP_WINDOW_MS",
   "zone !== 'center'",
   "const delta = zone === 'left' ? -10 : 10",
   "commitTimelineSeek(target, 'touch')",

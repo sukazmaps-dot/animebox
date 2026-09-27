@@ -1,12 +1,13 @@
 'use client';
 
 import type { CSSProperties, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import type { EpisodeTimelineMeta } from '@/types/episode-timeline';
 import {
   openingAutoSkipSafetyDecision,
   openingSkipSafetyDecision,
 } from '@/lib/episode-timeline-safety';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import Icon from '@/components/Icon';
 import KodikPlayer, { type KodikPlayerHandle } from '@/components/KodikPlayer';
 import DirectVideoPlayer, {
@@ -181,6 +182,35 @@ function getPlayerSurface() {
     : 'desktop';
 }
 
+type LockableScreenOrientation = ScreenOrientation & {
+  lock?: (orientation: 'landscape') => Promise<void>;
+  unlock?: () => void;
+};
+
+async function lockMobilePlayerLandscape() {
+  if (typeof window === 'undefined' || getPlayerSurface() !== 'mobile') return;
+
+  const orientation = window.screen.orientation as LockableScreenOrientation | undefined;
+  if (!orientation?.lock) return;
+
+  try {
+    await orientation.lock('landscape');
+  } catch {
+    // iOS Safari and some Android/WebView shells intentionally reject locks.
+  }
+}
+
+function unlockMobilePlayerOrientation() {
+  if (typeof window === 'undefined') return;
+
+  const orientation = window.screen.orientation as LockableScreenOrientation | undefined;
+  try {
+    orientation?.unlock?.();
+  } catch {
+    // Orientation unlock is best-effort only.
+  }
+}
+
 const DIRECT_PLAYER_CONTROL_EVENT: Record<
   DirectPlayerControlAction,
   Parameters<typeof trackProductClientEvent>[0]
@@ -195,6 +225,14 @@ const DIRECT_PLAYER_CONTROL_EVENT: Record<
   pip: 'player_control_pip',
   fullscreen: 'player_control_fullscreen',
   quality: 'player_control_quality',
+  mobile_controls_shown: 'player_mobile_controls_shown',
+  mobile_controls_hidden: 'player_mobile_controls_hidden',
+  mobile_double_tap_seek: 'player_mobile_double_tap_seek',
+  mobile_fullscreen_enter: 'player_mobile_fullscreen_enter',
+  mobile_fullscreen_exit: 'player_mobile_fullscreen_exit',
+  mobile_orientation_change: 'player_mobile_orientation_change',
+  mobile_settings_open: 'player_mobile_settings_open',
+  mobile_recovery_visible: 'player_mobile_recovery_visible',
 };
 
 const TRANSLATION_PREFERENCE_PREFIX = 'animebox:translation:v1';
@@ -259,43 +297,183 @@ function PlayerDropdown({
 }: DropdownProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const mobilePanelRef = useRef<HTMLDivElement | null>(null);
+  const dropdownId = useId();
   const selected = options.find((option) => option.id === value);
 
+  const closeDropdown = useCallback((restoreFocus = false) => {
+    setOpen(false);
+
+    if (restoreFocus) {
+      window.requestAnimationFrame(() => triggerRef.current?.focus());
+    }
+  }, []);
+
+  const chooseOption = useCallback((id: string) => {
+    onChange(id);
+    closeDropdown(true);
+  }, [closeDropdown, onChange]);
+
   useEffect(() => {
-    function handleOutside(event: MouseEvent) {
-      if (
-        rootRef.current &&
-        event.target instanceof Node &&
-        !rootRef.current.contains(event.target)
-      ) {
-        setOpen(false);
-      }
+    function handleOutside(event: PointerEvent) {
+      if (!(event.target instanceof Node)) return;
+      if (rootRef.current?.contains(event.target)) return;
+      if (mobilePanelRef.current?.contains(event.target)) return;
+      setOpen(false);
     }
 
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key !== 'Escape') return;
+      closeDropdown(true);
     }
 
-    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('pointerdown', handleOutside, true);
     document.addEventListener('keydown', handleEscape);
 
     return () => {
-      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('pointerdown', handleOutside, true);
       document.removeEventListener('keydown', handleEscape);
     };
-  }, []);
+  }, [closeDropdown]);
+
+  useEffect(() => {
+    if (!open || !window.matchMedia('(max-width: 639px)').matches) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
+  const optionList = (
+    <div
+      className="max-h-[min(58dvh,360px)] overflow-y-auto overscroll-contain p-2 [scrollbar-color:rgba(139,92,246,.34)_transparent] [scrollbar-width:thin]"
+      role="listbox"
+      aria-label={label}
+      data-player-selector-options
+    >
+      {options.map((option) => {
+        const active = option.id === value;
+
+        return (
+          <button
+            key={option.id}
+            type="button"
+            role="option"
+            aria-selected={active}
+            onClick={() => chooseOption(option.id)}
+            className={
+              'premium-player-dropdown-option ' +
+              (active ? 'is-active ' : '') +
+              'flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ' +
+              (active
+                ? 'bg-gradient-to-r from-violet-500/[0.18] to-indigo-500/[0.09] text-white ring-1 ring-inset ring-violet-400/20'
+                : 'text-white/60 hover:bg-white/[0.045] hover:text-white active:bg-white/[0.07]')
+            }
+          >
+            <span
+              className={
+                'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ' +
+                (active
+                  ? 'border-violet-400/45 bg-violet-500/20 text-violet-200'
+                  : 'border-white/[0.08] bg-white/[0.025] text-transparent')
+              }
+              aria-hidden="true"
+            >
+              ✓
+            </span>
+
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-xs font-bold">
+                {option.label}
+              </span>
+              {option.meta && (
+                <span className="mt-0.5 block truncate text-[10px] text-white/30">
+                  {option.meta}
+                </span>
+              )}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const mobileSheet =
+    open && typeof document !== 'undefined'
+      ? createPortal(
+          <div
+            className="fixed inset-0 z-[180] sm:hidden"
+            data-mobile-player-selector-overlay
+          >
+            <button
+              type="button"
+              aria-label={'Закрыть ' + label}
+              className="absolute inset-0 bg-black/65 backdrop-blur-[2px]"
+              onClick={() => closeDropdown(true)}
+            />
+
+            <div
+              ref={mobilePanelRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={dropdownId + '-mobile-title'}
+              className="absolute inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] max-h-[min(72dvh,520px)] overflow-hidden rounded-[22px] border border-violet-400/20 bg-[#090d19]/[0.985] shadow-[0_28px_90px_rgba(0,0,0,.72),0_0_0_1px_rgba(255,255,255,.03)]"
+              data-mobile-player-selector-sheet
+            >
+              <div className="flex items-center justify-between gap-3 border-b border-white/[0.06] px-4 py-3.5">
+                <div className="min-w-0">
+                  <p
+                    id={dropdownId + '-mobile-title'}
+                    className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-violet-300/65"
+                  >
+                    {label}
+                  </p>
+                  <p className="mt-1 truncate text-sm font-black text-white/90">
+                    {selected?.label || 'Выбрать'}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => closeDropdown(true)}
+                  aria-label={'Закрыть ' + label}
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-lg text-white/55 transition active:bg-white/[0.09]"
+                >
+                  ×
+                </button>
+              </div>
+
+              {optionList}
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
 
   return (
-    <div ref={rootRef} className="premium-player-dropdown relative min-w-0">
+    <div
+      ref={rootRef}
+      className="premium-player-dropdown relative w-full min-w-0 sm:w-auto"
+      data-player-selector={label.toLocaleLowerCase('ru-RU')}
+    >
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
-        className={`premium-player-dropdown-trigger ${open ? 'is-open' : ''} group flex min-h-11 w-full items-center gap-3 rounded-2xl border px-3.5 text-left transition duration-200 sm:min-w-[210px] ${
-          open
+        aria-haspopup="listbox"
+        className={
+          'premium-player-dropdown-trigger ' +
+          (open ? 'is-open ' : '') +
+          'group flex min-h-12 w-full items-center gap-3 rounded-2xl border px-3.5 text-left transition duration-200 sm:min-h-11 sm:min-w-[210px] ' +
+          (open
             ? 'border-violet-400/35 bg-violet-500/[0.08] shadow-[0_0_0_4px_rgba(139,92,246,0.07)]'
-            : 'border-white/[0.07] bg-white/[0.025] hover:border-white/[0.12] hover:bg-white/[0.045]'
-        }`}
+            : 'border-white/[0.07] bg-white/[0.025] hover:border-white/[0.12] hover:bg-white/[0.045]')
+        }
       >
         {icon && (
           <span className="premium-player-control-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-black/20 text-violet-300">
@@ -315,9 +493,10 @@ function PlayerDropdown({
         <svg
           viewBox="0 0 20 20"
           fill="none"
-          className={`h-4 w-4 shrink-0 text-white/35 transition-transform duration-200 ${
-            open ? 'rotate-180' : ''
-          }`}
+          className={
+            'h-4 w-4 shrink-0 text-white/35 transition-transform duration-200 ' +
+            (open ? 'rotate-180' : '')
+          }
           aria-hidden="true"
         >
           <path
@@ -330,31 +509,15 @@ function PlayerDropdown({
         </svg>
       </button>
 
-      <select
-        aria-label={label}
-        value={value}
-        onChange={(event) => {
-          onChange(event.target.value);
-          setOpen(false);
-        }}
-        onFocus={() => setOpen(false)}
-        className="absolute inset-0 z-[60] h-11 w-full cursor-pointer opacity-0 sm:hidden"
-      >
-        {options.map((option) => (
-          <option key={option.id} value={option.id}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-
       <div
-        className={`absolute top-[calc(100%+10px)] z-50 w-full min-w-[240px] overflow-hidden rounded-2xl border border-violet-400/15 bg-[#090d19]/[0.98] shadow-[0_24px_70px_rgba(0,0,0,0.52),0_0_0_1px_rgba(255,255,255,0.025)] backdrop-blur-xl transition duration-200 ${
-          align === 'right' ? 'right-0' : 'left-0'
-        } ${
-          open
+        className={
+          'absolute top-[calc(100%+10px)] z-[90] hidden w-full min-w-[240px] overflow-hidden rounded-2xl border border-violet-400/15 bg-[#090d19]/[0.98] shadow-[0_24px_70px_rgba(0,0,0,0.52),0_0_0_1px_rgba(255,255,255,0.025)] backdrop-blur-xl transition duration-200 sm:block ' +
+          (align === 'right' ? 'right-0 ' : 'left-0 ') +
+          (open
             ? 'visible translate-y-0 scale-100 opacity-100'
-            : 'invisible -translate-y-2 scale-[0.985] opacity-0'
-        }`}
+            : 'invisible -translate-y-2 scale-[0.985] opacity-0')
+        }
+        data-player-desktop-selector-menu
       >
         <div className="border-b border-white/[0.05] px-3.5 py-3">
           <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/30">
@@ -362,49 +525,10 @@ function PlayerDropdown({
           </p>
         </div>
 
-        <div className="max-h-[310px] overflow-y-auto p-2 [scrollbar-color:rgba(139,92,246,.34)_transparent] [scrollbar-width:thin]">
-          {options.map((option) => {
-            const active = option.id === value;
-
-            return (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => {
-                  onChange(option.id);
-                  setOpen(false);
-                }}
-                className={`premium-player-dropdown-option ${active ? 'is-active' : ''} flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${
-                  active
-                    ? 'bg-gradient-to-r from-violet-500/[0.16] to-indigo-500/[0.08] text-white ring-1 ring-inset ring-violet-400/15'
-                    : 'text-white/60 hover:bg-white/[0.045] hover:text-white'
-                }`}
-              >
-                <span
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${
-                    active
-                      ? 'border-violet-400/45 bg-violet-500/20 text-violet-200'
-                      : 'border-white/[0.08] bg-white/[0.025] text-transparent'
-                  }`}
-                >
-                  ✓
-                </span>
-
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-xs font-bold">
-                    {option.label}
-                  </span>
-                  {option.meta && (
-                    <span className="mt-0.5 block truncate text-[10px] text-white/28">
-                      {option.meta}
-                    </span>
-                  )}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        {optionList}
       </div>
+
+      {mobileSheet}
     </div>
   );
 }
@@ -2423,6 +2547,10 @@ export default function AnimePlayer({
 
       setFullscreen(animeBoxOwnsFullscreen);
       setProviderFullscreen(providerOwnsFullscreen);
+
+      if (!animeBoxOwnsFullscreen && !providerOwnsFullscreen) {
+        unlockMobilePlayerOrientation();
+      }
     }
 
     document.addEventListener('fullscreenchange', onFullscreenChange);
@@ -3099,10 +3227,13 @@ export default function AnimePlayer({
         } else {
           await doc.webkitExitFullscreen?.();
         }
+        unlockMobilePlayerOrientation();
       } else if (node.requestFullscreen) {
         await node.requestFullscreen();
-      } else {
-        await node.webkitRequestFullscreen?.();
+        await lockMobilePlayerLandscape();
+      } else if (node.webkitRequestFullscreen) {
+        await node.webkitRequestFullscreen();
+        await lockMobilePlayerLandscape();
       }
     } catch (error) {
       console.warn('[AnimePlayer] fullscreen unavailable:', error);
@@ -3334,11 +3465,12 @@ export default function AnimePlayer({
           ref={playerViewportRef}
           data-playback-engine={playbackEngineState?.engine ?? (isKodik ? 'kodik' : isHls ? 'hls' : isIframe ? 'iframe' : 'native')}
           data-playback-phase={playbackEngineState?.phase ?? (started ? 'loading' : 'idle')}
+          data-mobile-fullscreen={fullscreenActive ? 'true' : 'false'}
           className={`${watchTogetherMode && !fullscreenActive ? 'watch-together-player-viewport' : ''} ${telegramPseudoFullscreen ? 'animebox-telegram-player-viewport' : ''} ${
             telegramPseudoFullscreen
               ? 'fixed inset-0 z-[2147483000] m-0 max-w-none overflow-hidden rounded-none border-0 bg-black shadow-none ring-0'
               : fullscreen
-                ? 'relative h-screen w-screen overflow-hidden rounded-none border-0 bg-black'
+                ? 'relative h-[100dvh] w-screen overflow-hidden rounded-none border-0 bg-black'
                 : 'animebox-player-viewport relative aspect-video w-full overflow-hidden bg-black'
           } transition-all duration-300`}
           style={
