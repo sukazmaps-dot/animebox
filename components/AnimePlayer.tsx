@@ -2697,7 +2697,7 @@ export default function AnimePlayer({
             <button
               type="button"
               onClick={() => void toggleFullscreen()}
-              className="absolute right-3 top-3 z-[85] grid h-9 w-9 place-items-center rounded-xl border border-white/15 bg-black/55 text-white/75 shadow-[0_8px_28px_rgba(0,0,0,.35)] backdrop-blur-md transition hover:border-violet-300/35 hover:bg-black/70 hover:text-white"
+              className="absolute left-3 top-3 z-[85] grid h-9 w-9 place-items-center rounded-xl border border-white/15 bg-black/55 text-white/75 shadow-[0_8px_28px_rgba(0,0,0,.35)] backdrop-blur-md transition hover:border-violet-300/35 hover:bg-black/70 hover:text-white"
               aria-label={fullscreenActive ? 'Выйти из полного экрана' : 'Открыть плеер на весь экран'}
               title={fullscreenActive ? 'Выйти из полного экрана' : 'Полный экран AnimeBox'}
             >
