@@ -13,6 +13,9 @@ export type PremiumProfileTheme = (typeof PREMIUM_PROFILE_THEMES)[number];
 export const PREMIUM_BORDER_STYLES = ['soft', 'neon', 'sharp'] as const;
 export type PremiumBorderStyle = (typeof PREMIUM_BORDER_STYLES)[number];
 
+export const PREMIUM_PARTICLE_EFFECTS = ['none', 'nebula', 'sakura', 'stars'] as const;
+export type PremiumParticleEffect = (typeof PREMIUM_PARTICLE_EFFECTS)[number];
+
 export const PREMIUM_ATMOSPHERE_EFFECTS = [
   'none',
   'aurora',
@@ -61,6 +64,7 @@ export type PremiumStudioSettings = {
   textColor: string;
   glowStrength: number;
   borderStyle: PremiumBorderStyle;
+  particleEffect: PremiumParticleEffect;
   avatarPath: string | null;
   avatarStaticPath: string | null;
   avatarPositionX: number;
@@ -88,6 +92,7 @@ export const DEFAULT_PREMIUM_STUDIO_SETTINGS: PremiumStudioSettings = {
   textColor: '#F5F3FF',
   glowStrength: 36,
   borderStyle: 'neon',
+  particleEffect: 'none',
   avatarPath: null,
   avatarStaticPath: null,
   avatarPositionX: 50,
@@ -179,6 +184,10 @@ export function isPremiumBorderStyle(value: string): value is PremiumBorderStyle
   return (PREMIUM_BORDER_STYLES as readonly string[]).includes(value);
 }
 
+export function isPremiumParticleEffect(value: string): value is PremiumParticleEffect {
+  return (PREMIUM_PARTICLE_EFFECTS as readonly string[]).includes(value);
+}
+
 export function isPremiumAtmosphereEffect(value: string): value is PremiumAtmosphereEffect {
   return (PREMIUM_ATMOSPHERE_EFFECTS as readonly string[]).includes(value);
 }
@@ -248,6 +257,7 @@ export function studioSettingsFromRow(
 
   const rawTheme = stringOrNull(row.theme) ?? 'default';
   const rawBorder = stringOrNull(row.border_style) ?? 'neon';
+  const rawParticle = stringOrNull(row.particle_effect) ?? 'none';
   const rawAtmosphere = stringOrNull(row.atmosphere_effect) ?? 'none';
   const rawMotion = stringOrNull(row.motion_mode) ?? 'soft';
   const rawEntrance = stringOrNull(row.entrance_effect) ?? 'fade';
@@ -271,6 +281,7 @@ export function studioSettingsFromRow(
     ),
     glowStrength: readGlow(row.glow_strength),
     borderStyle: isPremiumBorderStyle(rawBorder) ? rawBorder : 'neon',
+    particleEffect: isPremiumParticleEffect(rawParticle) ? rawParticle : 'none',
     avatarPath: stringOrNull(row.avatar_path),
     avatarStaticPath: stringOrNull(row.avatar_static_path),
     avatarPositionX: readPosition(row.avatar_position_x),
@@ -297,6 +308,11 @@ export function studioSettingsFromRow(
 
 export function premiumThemePreset(theme: PremiumProfileTheme): PremiumStudioSettings {
   const meta = PREMIUM_PROFILE_THEME_META[theme];
+  const particleEffect: PremiumParticleEffect =
+    theme === 'violet' ? 'nebula' :
+    theme === 'midnight' ? 'stars' :
+    theme === 'sakura' ? 'sakura' :
+    'none';
 
   return {
     ...DEFAULT_PREMIUM_STUDIO_SETTINGS,
@@ -304,6 +320,7 @@ export function premiumThemePreset(theme: PremiumProfileTheme): PremiumStudioSet
     primaryColor: meta.primaryColor,
     accentColor: meta.accentColor,
     textColor: meta.textColor,
+    particleEffect,
   };
 }
 
