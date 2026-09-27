@@ -97,7 +97,7 @@ for (const needle of [
   'min-h-11',
   "document.addEventListener('pointerdown', handleOutside, true)",
   "document.body.style.overflow = 'hidden'",
-  "aria-haspopup="listbox"",
+  'aria-haspopup="listbox"',
   'role="option"',
   'aria-selected={active}',
 ]) {
