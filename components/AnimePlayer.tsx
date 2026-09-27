@@ -439,6 +439,8 @@ export default function AnimePlayer({
   const [autoNextCancelled, setAutoNextCancelled] = useState(false);
   const [premiumStudio, setPremiumStudio] = useState<PremiumStudioSettings | null>(null);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [playbackVolume, setPlaybackVolumeState] = useState(1);
+  const [playbackMuted, setPlaybackMuted] = useState(false);
   const [providerSkipKind, setProviderSkipKind] = useState<'opening' | 'ending' | null>(null);
   const [playbackEngineState, setPlaybackEngineState] = useState<PlaybackEngineState | null>(null);
 
@@ -485,6 +487,7 @@ export default function AnimePlayer({
   const pendingPartyCommandRef = useRef<WatchPartyPlayerCommandDetail | null>(null);
   const providerSkipKindRef = useRef<'opening' | 'ending' | null>(null);
   const openingWindowEnteredAtRef = useRef<number | null>(null);
+  const lastEnginePhaseRef = useRef<PlaybackEngineState['phase'] | null>(null);
   const lastPartyActionRef = useRef<{
     action: WatchPartyPlayerAction;
     position: number;
@@ -706,12 +709,15 @@ export default function AnimePlayer({
 
   const setPlaybackVolume = useCallback((volume: number) => {
     const normalized = clampPlaybackVolume(volume);
+    setPlaybackVolumeState(normalized);
+    setPlaybackMuted(normalized === 0);
 
     if (isKodik) {
       const player = kodikPlayerRef.current;
       if (!player) return false;
       player.setVolume(normalized);
       if (normalized > 0) player.unmute();
+      else player.mute();
       return true;
     }
 
@@ -764,6 +770,45 @@ export default function AnimePlayer({
     seekPlayback,
     setPlaybackVolume,
   ]);
+
+  const handleEngineStateChange = useCallback((state: PlaybackEngineState) => {
+    setPlaybackEngineState(state);
+
+    const previousPhase = lastEnginePhaseRef.current;
+    if (previousPhase === state.phase) return;
+    lastEnginePhaseRef.current = state.phase;
+
+    const engineMeta = {
+      engine: state.engine,
+      phase: state.phase,
+      recoveryAttempt: state.recoveryAttempt,
+    };
+
+    if (state.phase === 'ready') {
+      trackPlayerEvent('player_engine_ready', engineMeta);
+      if (previousPhase === 'buffering' || previousPhase === 'recovering') {
+        trackPlayerEvent('player_buffering_end', engineMeta);
+      }
+      return;
+    }
+
+    if (state.phase === 'buffering') {
+      trackPlayerEvent('player_buffering_start', engineMeta);
+      return;
+    }
+
+    if (state.phase === 'recovering') {
+      trackPlayerEvent('player_recovery_attempt', engineMeta);
+      return;
+    }
+
+    if (state.phase === 'error') {
+      trackPlayerEvent('player_recovery_failed', {
+        ...engineMeta,
+        error: state.error,
+      }, true);
+    }
+  }, [trackPlayerEvent]);
 
   const togglePictureInPicture = useCallback(async () => {
     if (isKodik) {
