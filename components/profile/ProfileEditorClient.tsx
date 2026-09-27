@@ -10,6 +10,7 @@ import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor'
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import ProfileWidgetEditor from '@/components/profile/ProfileWidgetEditor';
 import ProfileRewardsPanel from '@/components/profile/ProfileRewardsPanel';
+import ProgressionOverview from '@/components/progression/ProgressionOverview';
 import ProfileDirectEditSurface from '@/components/profile/ProfileDirectEditSurface';
 import TelegramAccountLinkCard from '@/components/profile/TelegramAccountLinkCard';
 import Icon from '@/components/Icon';
@@ -701,6 +702,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           </div>
         ) : activeTab === 'rewards' ? (
           <div className="profile-editor-v13__showcase-tab profile-editor-v18__rewards-tab">
+            <ProgressionOverview />
             <ProfileRewardsPanel />
           </div>
         ) : activeTab === 'showcase' ? (
