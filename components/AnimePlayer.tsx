@@ -446,6 +446,7 @@ export default function AnimePlayer({
   const [sourceMode, setSourceMode] = useState<PlayerSourceMode>(() => readPlayerSourceMode());
   const [verifiedQuality, setVerifiedQuality] = useState<PlayerQualityInfo | null>(null);
   const [started, setStarted] = useState(false);
+  const [playIntent, setPlayIntent] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
   const [theaterMode, setTheaterMode] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -3030,6 +3031,7 @@ export default function AnimePlayer({
 
   function startPlayback() {
     playIntentRef.current = true;
+    setPlayIntent(true);
     endedFlowRef.current = false;
     setEndScreenOpen(false);
     setAutoNextSeconds(null);
@@ -3411,11 +3413,13 @@ export default function AnimePlayer({
               onPlaybackAction={(event) => {
                 if (event.action === 'play') {
                   playIntentRef.current = true;
+                  setPlayIntent(true);
                 } else if (event.action === 'pause') {
                   if (preservePlayIntentPauseRef.current) {
                     preservePlayIntentPauseRef.current = false;
                   } else {
                     playIntentRef.current = false;
+                    setPlayIntent(false);
                   }
                 }
                 if (event.action === 'seek') {
@@ -3562,7 +3566,7 @@ export default function AnimePlayer({
                     key={`direct:${playerAttempt}`}
                     src={videoLink}
                     isHls={isHls}
-                    autoPlay={started && playIntentRef.current}
+                    autoPlay={started && playIntent}
                     title={`${title} — серия ${episodeNumber}`}
                     poster={poster || undefined}
                     initialVolume={playbackVolume}
@@ -3591,6 +3595,7 @@ export default function AnimePlayer({
                     }}
                     onPlay={(positionSeconds) => {
                       playIntentRef.current = true;
+                      setPlayIntent(true);
                       markConfirmedPlaybackStart('play');
                       publishPartyAction('play', positionSeconds, true);
                     }}
@@ -3599,6 +3604,7 @@ export default function AnimePlayer({
                         preservePlayIntentPauseRef.current = false;
                       } else {
                         playIntentRef.current = false;
+                        setPlayIntent(false);
                       }
                       publishPartyAction('pause', positionSeconds, false);
                     }}
