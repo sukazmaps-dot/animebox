@@ -840,6 +840,67 @@ export default function WatchPartyPanel({
     setStatus('idle');
   }, [destroyTransport]);
 
+  const tryClaimStaleHost = useCallback(async (invite: WatchPartyInvite) => {
+    const identity = identityRef.current;
+    if (!identity) return false;
+
+    const response = await fetch(
+      `/api/watch-party/rooms/${encodeURIComponent(invite.roomId)}/claim-host`,
+      {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      },
+    );
+
+    const payload = (await response.json()) as {
+      error?: string;
+      claimed?: boolean;
+      reason?: string | null;
+      hostUserId?: string | null;
+      hostEpoch?: number;
+    };
+
+    if (!response.ok) {
+      throw new Error(payload.error || 'Не удалось проверить host комнаты.');
+    }
+
+    const hostEpoch = Math.max(0, Number(payload.hostEpoch ?? 0));
+    hostEpochRef.current = Math.max(hostEpochRef.current, hostEpoch);
+
+    if (!payload.claimed || payload.hostUserId !== identity.userId) {
+      return false;
+    }
+
+    try {
+      sessionStorage.setItem(watchPartyHostSessionKey(invite.roomId), invite.secret);
+      claimWatchPartyHostTab(invite);
+    } catch {
+      claimWatchPartyHostTab(invite);
+    }
+
+    trackProductClientEvent('watch_party_host_recovered', {
+      source: 'stale_host_election',
+      path: window.location.pathname,
+      entityType: 'watch_party_room',
+      entityId: invite.roomId,
+      metadata: { host_epoch: hostEpoch },
+      flush: true,
+    });
+
+    intentionalCloseRef.current = true;
+    setStatus('reconnecting');
+    setError('Предыдущий host отключился. AnimeBox передаёт комнату тебе…');
+    destroyTransport();
+
+    window.setTimeout(() => {
+      intentionalCloseRef.current = false;
+      startHostRef.current(invite);
+    }, 500);
+
+    return true;
+  }, [destroyTransport]);
+
   const scheduleGuestReconnectRef = useRef<() => void>(() => undefined);
 
   const syncRegisteredRoom = useCallback(async () => {
