@@ -32,7 +32,8 @@ if (
   !navbar.includes("document.addEventListener('pointerdown'") ||
   !navbar.includes('form.contains(target)') ||
   !navbar.includes('setSearchActive(false)') ||
-  !navbar.includes("queueMicrotask(() => setSearchValue(''))") ||
+  !navbar.includes("setSearchValue('')") ||
+  !navbar.includes('queueMicrotask(() => {') ||
   !navbar.includes('onFocus={() =>') ||
   !navbar.includes('searchActive && searchValue.trim().length >= 2')
 ) {
