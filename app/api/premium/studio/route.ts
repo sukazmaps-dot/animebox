@@ -21,6 +21,7 @@ const STUDIO_COLUMNS = [
   'text_color',
   'glow_strength',
   'border_style',
+  'particle_effect',
   'avatar_path',
   'avatar_static_path',
   'avatar_position_x',
