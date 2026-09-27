@@ -21,7 +21,7 @@ export async function GET() {
       admin
         .from('user_progression')
         .select(
-          'total_xp,activity_xp,premium_bonus_xp,achievement_xp,challenge_xp,admin_adjustment_xp,prestige_tier,prestige_unlocked_at,updated_at',
+          'total_xp,activity_xp,premium_bonus_xp,achievement_xp,challenge_xp,admin_adjustment_xp,updated_at',
         )
         .eq('user_id', user.id)
         .maybeSingle(),
@@ -41,14 +41,7 @@ export async function GET() {
         ...progression,
         premiumBoostActive: false,
       },
-      evolution: {
-        ...evolution,
-        prestigeTier:
-          Number(data?.prestige_tier ?? 0) >= 1
-            ? 1
-            : evolution.prestigeTier,
-        prestigeUnlockedAt: data?.prestige_unlocked_at ?? null,
-      },
+      evolution,
       milestones: PROGRESSION_MILESTONES.map((item) => ({
         ...item,
         unlocked: progression.level >= item.level,
