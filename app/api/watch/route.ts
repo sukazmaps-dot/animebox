@@ -16,9 +16,11 @@ import {
   recordWatchHeartbeat,
   startWatchSession,
 } from '@/lib/watch-server';
-import { syncUserProgression } from '@/lib/progression-server';
-import { syncUserChallenges } from '@/lib/challenges-server';
 import { trackProductEvents } from '@/lib/product-events-server';
+import {
+  applyTrustedEpisodeCompletion,
+  applyTrustedWatchSessionEnd,
+} from '@/lib/trusted-progression-pipeline-server';
 import {
   assessWatchSessionTrust,
   unavailableWatchTrustAssessment,
@@ -266,33 +268,25 @@ async function observedPOST(request: Request) {
           console.error('[watch] title completion sync failed:', syncError);
         }
 
-        if (trust.rewardEligible) {
-          try {
-            await syncUserChallenges({
-              userId: user.id,
-              eventKey: `episode:${result.animeId}:${result.episode}`,
-              completedEpisodes: 1,
-              completedTitles: completedTitleNow ? 1 : 0,
-            });
-          } catch (challengeError) {
-            console.error('[watch] challenge sync failed:', challengeError);
-          }
-
-          try {
-            await syncUserProgression({
-              userId: user.id,
-              eventKey: `watch:episode:${result.animeId}:${result.episode}`,
-              reason: 'episode_completed',
-            });
-          } catch (progressionError) {
-            console.error('[watch] progression sync failed:', progressionError);
-          }
-        } else {
-          console.warn('[watch] competitive completion rewards quarantined', {
+        try {
+          const pipeline = await applyTrustedEpisodeCompletion({
+            userId: user.id,
             sessionId: heartbeatSessionId,
-            state: trust.state,
-            score: trust.score,
+            animeId: result.animeId,
+            episode: result.episode,
+            completedTitle: completedTitleNow,
+            trust,
           });
+
+          if (pipeline.quarantined) {
+            console.warn('[watch] competitive completion rewards quarantined', {
+              sessionId: heartbeatSessionId,
+              state: trust.state,
+              score: trust.score,
+            });
+          }
+        } catch (pipelineError) {
+          console.error('[watch] trusted completion pipeline failed:', pipelineError);
         }
 
         // Attribute a confirmed episode completion to a recent recommendation
@@ -352,42 +346,31 @@ async function observedPOST(request: Request) {
         phase: 'session_end',
       });
 
-      if (trust.rewardEligible) {
-        try {
-          const acceptedMs = await getWatchSessionAcceptedMs(
-            user.id,
-            endedSessionId,
-          );
-
-          const challengeResult = await syncUserChallenges({
-            userId: user.id,
-            eventKey: `watch:end:${endedSessionId}`,
-            activeMs: acceptedMs,
-          });
-
-          progressionUpdated =
-            Number(challengeResult?.reward_xp ?? 0) > 0;
-        } catch (challengeError) {
-          console.error('[watch] challenge end sync failed:', challengeError);
-        }
-
-        try {
-          const progression = await syncUserProgression({
-            userId: user.id,
-            eventKey: `watch:end:${endedSessionId}`,
-            reason: 'watch_session_end',
-          });
-          progressionUpdated =
-            progressionUpdated || Number(progression?.earned_now ?? 0) > 0;
-        } catch (progressionError) {
-          console.error('[watch] progression end sync failed:', progressionError);
-        }
-      } else {
-        console.warn('[watch] competitive session rewards quarantined', {
+      try {
+        const acceptedMs = await getWatchSessionAcceptedMs(
+          user.id,
+          endedSessionId,
+        );
+        const pipeline = await applyTrustedWatchSessionEnd({
+          userId: user.id,
           sessionId: endedSessionId,
-          state: trust.state,
-          score: trust.score,
+          acceptedMs,
+          trust,
         });
+
+        progressionUpdated =
+          pipeline.challengeRewardXp > 0 ||
+          pipeline.progressionEarnedXp > 0;
+
+        if (pipeline.quarantined) {
+          console.warn('[watch] competitive session rewards quarantined', {
+            sessionId: endedSessionId,
+            state: trust.state,
+            score: trust.score,
+          });
+        }
+      } catch (pipelineError) {
+        console.error('[watch] trusted session pipeline failed:', pipelineError);
       }
 
       return response({
