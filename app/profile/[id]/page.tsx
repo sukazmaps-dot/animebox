@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { getPublicProfile } from '@/lib/public-profile-server';
 import UserIdentity from '@/components/identity/UserIdentity';
 import UserAvatarWithFrame from '@/components/profile/UserAvatarWithFrame';
+import PremiumParticleLayer from '@/components/profile/PremiumParticleLayer';
 import ProfileAnimeIdentity from '@/components/profile/ProfileAnimeIdentity';
 import Icon from '@/components/Icon';
 import FriendActionButton from '@/components/friends/FriendActionButton';
@@ -129,6 +130,8 @@ export default async function PublicProfilePage({ params }: Props) {
 
           <div className="profile-v2__banner-shade" />
         </div>
+
+        <PremiumParticleLayer effect={profile.premiumStudio?.particleEffect} className="premium-particles-profile-hero" />
 
         <div className="profile-v2__identity">
           <UserAvatarWithFrame
