@@ -845,6 +845,14 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
     timelineInteracting && scrubTime != null
       ? scrubTime
       : currentTime;
+  const timelinePreviewTime =
+    timelineInteracting && scrubTime != null
+      ? scrubTime
+      : hoverTime;
+  const timelinePreviewPercent =
+    timelineInteracting && scrubTime != null && duration > 0
+      ? clamp((scrubTime / duration) * 100, 0, 100)
+      : hoverPercent;
   const progress = duration > 0 ? clamp((displayedTime / duration) * 100, 0, 100) : 0;
   const bufferedProgress = duration > 0 ? clamp((buffered / duration) * 100, 0, 100) : 0;
 
@@ -860,6 +868,8 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
         if (event.pointerType !== 'touch') revealControls('pointer_down');
       }}
       data-animebox-player-controls-root
+      data-mobile-player={mobileUi ? 'true' : 'false'}
+      data-compact-mobile-player={compactMobileUi ? 'true' : 'false'}
       onMouseLeave={() => {
         if (playing && !settingsOpen) scheduleControlsHide();
       }}
@@ -988,7 +998,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
 
       {(buffering || enginePhase === 'recovering') && (
         <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center" data-player-status-layer>
-          <div className="flex min-h-12 items-center gap-3 rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-white backdrop-blur-md">
+          <div className="flex min-h-12 items-center gap-3 rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-white backdrop-blur-sm md:backdrop-blur-md">
             <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/15 border-t-violet-300 motion-reduce:animate-none" />
             {enginePhase === 'recovering' && (
               <span className="text-[11px] font-bold text-white/65">
@@ -1016,7 +1026,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
           controlsVisible || !playing ? 'opacity-100' : 'opacity-0'
         }`}
         style={
-          fullscreenActive
+          fullscreenActive || mobileUi
             ? {
                 paddingBottom:
                   'max(0.75rem, var(--animebox-tg-safe-bottom, 0px), env(safe-area-inset-bottom))',
@@ -1034,14 +1044,21 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
           onPointerLeave={scheduleControlsHide}
         >
           <div
-            className="relative mb-2 h-6 w-full touch-none"
+            className="relative mb-1 h-10 w-full touch-none sm:mb-2 sm:h-7"
             data-player-timeline
-            onPointerMove={(event) => updateTimelineHover(event.clientX, event.currentTarget)}
+            data-player-timeline-touch-target
+            onPointerMove={(event) =>
+              updateTimelineHover(
+                event.clientX,
+                event.currentTarget,
+                event.pointerType,
+              )
+            }
             onPointerLeave={() => {
               if (!timelineInteractingRef.current) setHoverTime(null);
             }}
           >
-            <div className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-white/15">
+            <div className="absolute left-0 right-0 top-1/2 h-1.5 -translate-y-1/2 overflow-hidden rounded-full bg-white/15 sm:h-1">
               <span className="absolute inset-y-0 left-0 bg-white/15" style={{ width: `${bufferedProgress}%` }} />
               <span className="absolute inset-y-0 left-0 bg-violet-400" style={{ width: `${progress}%` }} />
               {duration > 0 &&
@@ -1065,12 +1082,13 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
                   );
                 })}
             </div>
-            {hoverTime != null && (
+            {timelinePreviewTime != null && (
               <div
-                className="pointer-events-none absolute bottom-full mb-1 -translate-x-1/2 rounded-lg border border-white/10 bg-black/85 px-2 py-1 text-[10px] font-bold tabular-nums text-white/85 shadow-xl backdrop-blur"
-                style={{ left: `${hoverPercent}%` }}
+                className="pointer-events-none absolute bottom-full mb-1 -translate-x-1/2 rounded-lg border border-white/10 bg-black/85 px-2 py-1 text-[10px] font-bold tabular-nums text-white/85 shadow-xl backdrop-blur-sm"
+                style={{ left: `${timelinePreviewPercent}%` }}
+                data-player-timeline-preview
               >
-                {formatTime(hoverTime)}
+                {formatTime(timelinePreviewTime)}
               </div>
             )}
             <input
@@ -1080,21 +1098,36 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
               step={0.1}
               value={duration > 0 ? displayedTime : 0}
               onPointerDown={(event) => {
+                clearControlsTimer();
                 timelineInteractingRef.current = true;
                 setTimelineInteracting(true);
+                setHoverTime(null);
                 setScrubTime(Number(event.currentTarget.value));
+                event.currentTarget.setPointerCapture?.(event.pointerId);
+                revealControls('timeline_drag_start');
               }}
               onPointerUp={(event) => {
                 const value = Number(event.currentTarget.value);
                 timelineInteractingRef.current = false;
                 setTimelineInteracting(false);
                 setScrubTime(null);
-                commitTimelineSeek(value, 'timeline');
+                if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+                  event.currentTarget.releasePointerCapture?.(event.pointerId);
+                }
+                commitTimelineSeek(
+                  value,
+                  event.pointerType === 'touch' ? 'touch' : 'timeline',
+                );
+                revealControls('timeline_seek');
               }}
-              onPointerCancel={() => {
+              onPointerCancel={(event) => {
                 timelineInteractingRef.current = false;
                 setTimelineInteracting(false);
                 setScrubTime(null);
+                if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+                  event.currentTarget.releasePointerCapture?.(event.pointerId);
+                }
+                scheduleControlsHide();
               }}
               onChange={(event) => {
                 const value = Number(event.target.value);
@@ -1118,7 +1151,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
             />
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-violet-500 shadow-[0_0_0_3px_rgba(139,92,246,.18)]"
+              className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-violet-500 shadow-[0_0_0_3px_rgba(139,92,246,.18)] sm:h-3 sm:w-3"
               style={{ left: `${progress}%` }}
             />
           </div>
@@ -1127,7 +1160,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
             <button
               type="button"
               onClick={togglePlayback}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white/90 transition hover:bg-white/10 hover:text-white"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white/90 transition hover:bg-white/10 hover:text-white"
               aria-label={playing ? 'Пауза' : 'Воспроизвести'}
             >
               {playing ? (
@@ -1140,7 +1173,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
             <button
               type="button"
               onClick={() => commitTimelineSeek(currentTime - 10, 'timeline')}
-              className="hidden h-10 min-w-10 items-center justify-center rounded-xl px-2 text-[11px] font-extrabold text-white/65 transition hover:bg-white/10 hover:text-white sm:inline-flex"
+              className="hidden h-11 min-w-11 items-center justify-center rounded-xl px-2 text-[11px] font-extrabold text-white/65 transition hover:bg-white/10 hover:text-white sm:inline-flex"
               aria-label="Назад на 10 секунд"
             >
               −10
@@ -1148,7 +1181,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
             <button
               type="button"
               onClick={() => commitTimelineSeek(currentTime + 10, 'timeline')}
-              className="hidden h-10 min-w-10 items-center justify-center rounded-xl px-2 text-[11px] font-extrabold text-white/65 transition hover:bg-white/10 hover:text-white sm:inline-flex"
+              className="hidden h-11 min-w-11 items-center justify-center rounded-xl px-2 text-[11px] font-extrabold text-white/65 transition hover:bg-white/10 hover:text-white sm:inline-flex"
               aria-label="Вперёд на 10 секунд"
             >
               +10
@@ -1158,7 +1191,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
               <button
                 type="button"
                 onClick={toggleMute}
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white/75 transition hover:bg-white/10 hover:text-white"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white/75 transition hover:bg-white/10 hover:text-white"
                 aria-label={muted ? 'Включить звук' : 'Выключить звук'}
               >
                 <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
@@ -1178,11 +1211,22 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
               />
             </div>
 
-            <span className="shrink-0 text-[11px] font-semibold tabular-nums text-white/55 sm:text-xs">
-              {formatTime(displayedTime)} <span className="text-white/25">/</span> {formatTime(duration)}
+            <span
+              className="shrink-0 text-[11px] font-semibold tabular-nums text-white/55 sm:text-xs"
+              data-player-mobile-time
+            >
+              {compactMobileUi ? (
+                formatTime(displayedTime)
+              ) : (
+                <>
+                  {formatTime(displayedTime)}{' '}
+                  <span className="text-white/25">/</span>{' '}
+                  {formatTime(duration)}
+                </>
+              )}
             </span>
 
-            <span className="min-w-0 flex-1 truncate px-1 text-center text-[10px] font-extrabold uppercase tracking-[0.12em] text-white/28 sm:text-[11px]">
+            <span className="hidden min-w-0 flex-1 truncate px-1 text-center text-[10px] font-extrabold uppercase tracking-[0.12em] text-white/28 md:block md:text-[11px]">
               AnimeBox Player
             </span>
 
@@ -1190,7 +1234,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
               <button
                 type="button"
                 onClick={() => void togglePip()}
-                className={`hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl transition sm:inline-flex ${pipActive ? 'bg-violet-500/15 text-violet-200' : 'text-white/65 hover:bg-white/10 hover:text-white'}`}
+                className={`hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl transition md:inline-flex ${pipActive ? 'bg-violet-500/15 text-violet-200' : 'text-white/65 hover:bg-white/10 hover:text-white'}`}
                 aria-label={pipActive ? 'Закрыть картинку в картинке' : 'Картинка в картинке'}
               >
                 <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2" stroke="currentColor" strokeWidth="1.6"/><rect x="11.5" y="11" width="7" height="5" rx="1" fill="currentColor"/></svg>
@@ -1200,7 +1244,18 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setSettingsOpen((value) => !value)}
+                onClick={() => {
+                  setSettingsOpen((value) => {
+                    const next = !value;
+                    if (next && mobileUi) {
+                      onControlAction?.('mobile_settings_open', {
+                        compact: compactMobileUi,
+                        fullscreenActive,
+                      });
+                    }
+                    return next;
+                  });
+                }}
                 className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition ${settingsOpen ? 'bg-violet-500/15 text-violet-200' : 'text-white/65 hover:bg-white/10 hover:text-white'}`}
                 aria-label="Настройки плеера"
                 aria-expanded={settingsOpen}
@@ -1209,11 +1264,18 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
               </button>
 
               {settingsOpen && (
-                <div className="absolute bottom-12 right-0 w-56 overflow-hidden rounded-2xl border border-white/10 bg-[#090d17]/95 p-2 shadow-[0_20px_60px_rgba(0,0,0,.55)] backdrop-blur-xl">
+                <div
+                  className={
+                    mobileUi
+                      ? 'absolute bottom-14 right-0 max-h-[min(62dvh,420px)] w-[min(19rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#090d17]/97 p-2 shadow-[0_20px_60px_rgba(0,0,0,.55)] backdrop-blur-md'
+                      : 'absolute bottom-12 right-0 w-56 overflow-hidden rounded-2xl border border-white/10 bg-[#090d17]/95 p-2 shadow-[0_20px_60px_rgba(0,0,0,.55)] backdrop-blur-xl'
+                  }
+                  data-player-mobile-settings={mobileUi ? 'true' : 'false'}
+                >
                   <div className="px-2 pb-2 pt-1 text-[9px] font-extrabold uppercase tracking-[0.16em] text-white/30">Качество</div>
-                  <button type="button" onClick={() => setQuality(-1)} disabled={!hlsRef.current} className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-bold transition ${qualityLevel === -1 ? 'bg-violet-500/12 text-violet-100' : 'text-white/55 hover:bg-white/5 hover:text-white'}`}><span>Авто</span>{qualityLevel === -1 && <span>✓</span>}</button>
+                  <button type="button" onClick={() => setQuality(-1)} disabled={!hlsRef.current} className={`flex w-full items-center justify-between rounded-xl min-h-11 px-3 py-2 text-left text-xs font-bold transition ${qualityLevel === -1 ? 'bg-violet-500/12 text-violet-100' : 'text-white/55 hover:bg-white/5 hover:text-white'}`}><span>Авто</span>{qualityLevel === -1 && <span>✓</span>}</button>
                   {qualities.map((quality) => (
-                    <button key={quality.id} type="button" onClick={() => setQuality(quality.id)} className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-bold transition ${qualityLevel === quality.id ? 'bg-violet-500/12 text-violet-100' : 'text-white/55 hover:bg-white/5 hover:text-white'}`}>
+                    <button key={quality.id} type="button" onClick={() => setQuality(quality.id)} className={`flex w-full items-center justify-between rounded-xl min-h-11 px-3 py-2 text-left text-xs font-bold transition ${qualityLevel === quality.id ? 'bg-violet-500/12 text-violet-100' : 'text-white/55 hover:bg-white/5 hover:text-white'}`}>
                       <span>{quality.label}</span>
                       <span className="text-[9px] font-semibold text-white/25">{quality.bitrate ? `${Math.round(quality.bitrate / 1_000_000 * 10) / 10} Mbps` : qualityLevel === quality.id ? '✓' : ''}</span>
                     </button>
@@ -1222,9 +1284,24 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
                   <div className="px-2 pb-1 pt-2 text-[9px] font-extrabold uppercase tracking-[0.16em] text-white/30">Скорость</div>
                   <div className="grid grid-cols-4 gap-1 px-1 pb-1">
                     {[0.75, 1, 1.25, 1.5, 2].map((rate) => (
-                      <button key={rate} type="button" onClick={() => setRate(rate)} className={`rounded-lg px-1.5 py-2 text-[10px] font-bold transition ${playbackRate === rate ? 'bg-violet-500/15 text-violet-100' : 'text-white/45 hover:bg-white/5 hover:text-white'}`}>{rate}×</button>
+                      <button key={rate} type="button" onClick={() => setRate(rate)} className={`rounded-lg min-h-11 px-1.5 py-2 text-[10px] font-bold transition ${playbackRate === rate ? 'bg-violet-500/15 text-violet-100' : 'text-white/45 hover:bg-white/5 hover:text-white'}`}>{rate}×</button>
                     ))}
                   </div>
+                  {mobileUi && canPip && (
+                    <>
+                      <div className="my-1 border-t border-white/[0.06]" />
+                      <button
+                        type="button"
+                        onClick={() => void togglePip()}
+                        className="flex min-h-11 w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-bold text-white/55 transition hover:bg-white/5 hover:text-white"
+                      >
+                        <span>Картинка в картинке</span>
+                        <span className="text-[10px] text-white/30">
+                          {pipActive ? 'Включена' : 'Открыть'}
+                        </span>
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -1235,7 +1312,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
                 onControlAction?.('fullscreen', { active: !fullscreenActive });
                 void onToggleFullscreen?.();
               }}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white/65 transition hover:bg-white/10 hover:text-white"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white/65 transition hover:bg-white/10 hover:text-white"
               aria-label={fullscreenActive ? 'Выйти из полного экрана' : 'Полный экран'}
             >
               <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true"><path d={fullscreenActive ? 'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5' : 'M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4'} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
