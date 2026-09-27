@@ -1,0 +1,80 @@
+name: AnimeBox Recovery Package
+
+on:
+  push:
+    branches:
+      - recovery-2026-09-27-latest
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout recovery
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build overlay package
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --depth=1
+          rm -rf recovery-overlay
+          mkdir -p recovery-overlay
+
+          git diff --name-only --diff-filter=AMR origin/main...HEAD > /tmp/recovery-files.txt
+
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            case "$file" in
+              .github/workflows/recovery-package.yml) continue ;;
+            esac
+            mkdir -p "recovery-overlay/$(dirname "$file")"
+            cp -a "$file" "recovery-overlay/$file"
+          done < /tmp/recovery-files.txt
+
+          cat > recovery-overlay/RECOVERY-README.txt <<'EOF'
+          AnimeBox Recovery Patch
+          =======================
+
+          This ZIP restores the cumulative AnimeBox work that was left outside main:
+          - Profile Studio live preview + atmosphere/motion/palette controls
+          - Aurora / Embers / Sakura / Stardust + intensity
+          - nickname effects including Manga Cut / Glitch / Shimmer / Glow
+          - desktop sticky preview + mobile FAB / BottomSheet
+          - LVL 10 / 25 / 50 / 75 / 100 milestones
+          - separate Free static and Premium animated milestone SVGs
+          - Prestige I
+          - weekly Top-1 Premium auto-grant
+          - Telegram account linking
+          - notification / supporter podium recovery
+          - image soft-fail reliability
+          - SVG/avatar frame sizing fix
+          - Windows LF regression protection
+
+          Apply:
+          1. Back up your current folder or commit local changes.
+          2. Extract this ZIP directly into the root of animebox-git and replace files.
+          3. Apply the new Supabase migrations before production deploy.
+          4. Run npm run prebuild
+          5. Run npm run build
+
+          Source branch:
+          recovery-2026-09-27-latest
+          EOF
+
+          git diff --name-only --diff-filter=D origin/main...HEAD > recovery-overlay/RECOVERY-DELETED-FILES.txt || true
+
+          echo "Overlay file count:"
+          find recovery-overlay -type f | wc -l
+
+      - name: Upload recovery ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: AnimeBox-Recovery-Patch
+          path: recovery-overlay/
+          include-hidden-files: true
+          retention-days: 7
