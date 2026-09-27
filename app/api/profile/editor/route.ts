@@ -11,6 +11,7 @@ import { usernamePolicyError } from '@/lib/auth-identity-policy';
 import {
   isHexColor,
   isPremiumBorderStyle,
+  isPremiumParticleEffect,
   isPremiumProfileTheme,
   studioSettingsFromRow,
   type PremiumStudioSettings,
@@ -35,6 +36,7 @@ const STUDIO_COLUMNS = [
   'text_color',
   'glow_strength',
   'border_style',
+  'particle_effect',
   'avatar_path',
   'avatar_static_path',
   'avatar_position_x',
@@ -216,6 +218,7 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
   const accentColor = typeof data.accentColor === 'string' ? data.accentColor.trim().toUpperCase() : '';
   const textColor = typeof data.textColor === 'string' ? data.textColor.trim().toUpperCase() : '';
   const borderStyle = typeof data.borderStyle === 'string' ? data.borderStyle.trim() : '';
+  const particleEffect = typeof data.particleEffect === 'string' ? data.particleEffect.trim() : '';
   const glowStrength = Number(data.glowStrength);
 
   if (!isPremiumProfileTheme(theme)) throw new ApiError(400, 'Неизвестная тема профиля.');
@@ -223,6 +226,7 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
     throw new ApiError(400, 'Цвета должны быть в формате #RRGGBB.');
   }
   if (!isPremiumBorderStyle(borderStyle)) throw new ApiError(400, 'Неизвестный стиль рамки.');
+  if (!isPremiumParticleEffect(particleEffect)) throw new ApiError(400, 'Неизвестный эффект частиц.');
   if (!Number.isFinite(glowStrength) || glowStrength < 0 || glowStrength > 100) {
     throw new ApiError(400, 'Интенсивность свечения должна быть от 0 до 100.');
   }
@@ -237,6 +241,7 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
     textColor,
     glowStrength: Math.round(glowStrength),
     borderStyle,
+    particleEffect,
     avatarPath: safePremiumMediaPath(data.avatarPath, userId),
     avatarStaticPath: safePremiumMediaPath(data.avatarStaticPath, userId),
     avatarPositionX: readPosition(data.avatarPositionX, 'Позиция аватара по X'),
@@ -260,6 +265,7 @@ function studioRow(settings: PremiumStudioSettings, userId: string) {
     text_color: settings.textColor,
     glow_strength: settings.glowStrength,
     border_style: settings.borderStyle,
+    particle_effect: settings.particleEffect,
     avatar_path: settings.avatarPath,
     avatar_static_path: settings.avatarStaticPath,
     avatar_position_x: settings.avatarPositionX,
