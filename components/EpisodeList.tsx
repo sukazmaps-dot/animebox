@@ -845,13 +845,11 @@ export default function EpisodeList({
                   className={className}
                   role="listitem"
                   onClick={(event) => {
-                    if (
-                      selectedIsCurrent &&
-                      onEpisodeNavigate &&
-                      number !== currentEpisode
-                    ) {
+                    if (selectedIsCurrent && onEpisodeNavigate) {
                       event.preventDefault();
-                      onEpisodeNavigate(number);
+                      if (number !== currentEpisode) {
+                        onEpisodeNavigate(number);
+                      }
                     }
                   }}
                   aria-current={isCurrent ? 'page' : undefined}
