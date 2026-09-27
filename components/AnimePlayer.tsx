@@ -2808,7 +2808,7 @@ export default function AnimePlayer({
           {isKodik && videoLink && (
             <KodikPlayer
               ref={kodikPlayerRef}
-              key={`${videoLink}:${episodeNumber}:${playerAttempt}`}
+              key={`${videoLink}:${playerAttempt}`}
               src={videoLink}
               title={`${title} — серия ${episodeNumber}`}
               episodeNumber={episodeNumber}
