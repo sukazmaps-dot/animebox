@@ -40,6 +40,7 @@ interface EpisodeListProps {
   totalEpisodesKnown?: boolean;
   currentEpisode?: number;
   watchedUpTo?: number;
+  onEpisodeNavigate?: (episode: number) => void;
 }
 
 function seasonKey(id: number) {
@@ -67,6 +68,7 @@ export default function EpisodeList({
   totalEpisodesKnown = true,
   currentEpisode,
   watchedUpTo = 0,
+  onEpisodeNavigate,
 }: EpisodeListProps) {
   const router = useRouter();
   const currentCount =
@@ -410,6 +412,11 @@ export default function EpisodeList({
       (group) => target >= group.from && target <= group.to,
     );
     if (targetGroup) setSelectedGroupId(targetGroup.id);
+
+    if (selectedIsCurrent && onEpisodeNavigate) {
+      onEpisodeNavigate(target);
+      return;
+    }
 
     router.push(`/anime/${selectedAnimeSlug}/episode/${target}`);
   };
@@ -837,6 +844,14 @@ export default function EpisodeList({
                   prefetch={false}
                   className={className}
                   role="listitem"
+                  onClick={(event) => {
+                    if (selectedIsCurrent && onEpisodeNavigate) {
+                      event.preventDefault();
+                      if (number !== currentEpisode) {
+                        onEpisodeNavigate(number);
+                      }
+                    }
+                  }}
                   aria-current={isCurrent ? 'page' : undefined}
                   aria-label={ariaLabel}
                   data-episode-current={isCurrent ? 'true' : undefined}

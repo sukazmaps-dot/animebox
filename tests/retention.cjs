@@ -49,7 +49,17 @@ const episodePageSource = fs.readFileSync(
 );
 assert.match(
  episodePageSource,
- /router\.push\(\`\/anime\/\$\{slug\}\/episode\/\$\{number\}\`, \{ scroll: false \}\)/,
- 'Player episode navigation must preserve the current viewport',
+ /window\.history\.pushState\(/,
+ 'Same-title episode navigation must retain the mounted player viewport',
+);
+assert.match(
+ episodePageSource,
+ /router\.push\([\s\S]*?scroll:\s*false/,
+ 'Cross-title/season episode navigation must preserve scroll position',
+);
+assert.doesNotMatch(
+ episodePageSource,
+ /window\.location\.(?:href|assign|replace)\s*=/,
+ 'Episode navigation must not force a document-level reload',
 );
 console.log('PASS: ordered funnels, independent auth, latest episode, end guard and corrupt storage');

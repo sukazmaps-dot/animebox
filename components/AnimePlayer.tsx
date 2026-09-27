@@ -121,6 +121,8 @@ interface AnimePlayerProps {
   onDurationObserved?: (durationSeconds: number) => void;
   showEpisodeNavigation?: boolean;
   watchTogetherMode?: boolean;
+  episodeTransitionPending?: boolean;
+  episodeTransitionMessage?: string;
 }
 
 type DropdownOption = {
@@ -430,6 +432,8 @@ export default function AnimePlayer({
   onDurationObserved,
   showEpisodeNavigation = true,
   watchTogetherMode = false,
+  episodeTransitionPending = false,
+  episodeTransitionMessage = 'Переключаем серию…',
 }: AnimePlayerProps) {
   const { user, loading: authLoading } = useAuthState();
   const [activeSourceIndex, setActiveSourceIndex] = useState(0);
@@ -442,6 +446,7 @@ export default function AnimePlayer({
   const [sourceMode, setSourceMode] = useState<PlayerSourceMode>(() => readPlayerSourceMode());
   const [verifiedQuality, setVerifiedQuality] = useState<PlayerQualityInfo | null>(null);
   const [started, setStarted] = useState(false);
+  const [playIntent, setPlayIntent] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
   const [theaterMode, setTheaterMode] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -507,6 +512,21 @@ export default function AnimePlayer({
   const providerSkipKindRef = useRef<'opening' | 'ending' | null>(null);
   const openingWindowEnteredAtRef = useRef<number | null>(null);
   const lastEnginePhaseRef = useRef<PlaybackEngineState['phase'] | null>(null);
+  const episodeIdentityRef = useRef(`${animeId ?? "unknown"}:${episodeNumber}`);
+  const lastEpisodeNumberRef = useRef(episodeNumber);
+  const episodeSwitchSequenceRef = useRef(0);
+  const episodeSwitchRef = useRef<{
+    id: number;
+    identity: string;
+    fromEpisode: number;
+    toEpisode: number;
+    startedAt: number;
+    resumePlayback: boolean;
+  } | null>(null);
+  const episodeTransitionWasPendingRef = useRef(false);
+  const resumeAfterEpisodeSwitchRef = useRef(false);
+  const preservePlayIntentPauseRef = useRef(false);
+  const playIntentRef = useRef(false);
   const lastPartyActionRef = useRef<{
     action: WatchPartyPlayerAction;
     position: number;
@@ -547,8 +567,19 @@ export default function AnimePlayer({
     setResumeSeconds(target);
   }, []);
 
-  const currentSource = sources[activeSourceIndex];
-  const currentTranslation = currentSource?.translations[activeTranslationIndex];
+  const resolvedActiveSourceIndex =
+    activeSourceIndex >= 0 && activeSourceIndex < sources.length
+      ? activeSourceIndex
+      : 0;
+  const currentSource = sources[resolvedActiveSourceIndex];
+  const resolvedTranslationIndex =
+    currentSource &&
+    activeTranslationIndex >= 0 &&
+    activeTranslationIndex < currentSource.translations.length
+      ? activeTranslationIndex
+      : 0;
+  const currentTranslation =
+    currentSource?.translations[resolvedTranslationIndex];
   const rawLink = currentTranslation?.url || src || '';
   const normalizedLink = normalizeMediaLink(rawLink);
   const mediaType =
@@ -851,6 +882,29 @@ export default function AnimePlayer({
     }
   }, [isKodik]);
 
+  const changePlaybackEpisode = useCallback((
+    nextEpisode: number,
+    season?: number,
+  ) => {
+    if (
+      !Number.isSafeInteger(nextEpisode) ||
+      nextEpisode < 1 ||
+      !isKodik
+    ) {
+      return false;
+    }
+
+    const player = kodikPlayerRef.current;
+    if (!player) return false;
+
+    player.changeEpisode({
+      episode: nextEpisode,
+      season,
+      withoutReload: true,
+    });
+    return true;
+  }, [isKodik]);
+
   const getPrecisePlaybackPosition = useCallback(async () => {
     if (isKodik) {
       const player = kodikPlayerRef.current;
@@ -880,6 +934,7 @@ export default function AnimePlayer({
     getSnapshot: getPlaybackSnapshot,
     getTime: getPrecisePlaybackPosition,
     getDuration: () => getPlaybackSnapshot().durationSeconds,
+    changeEpisode: changePlaybackEpisode,
     play: playPlayback,
     pause: pausePlayback,
     seek: seekPlayback,
@@ -890,6 +945,7 @@ export default function AnimePlayer({
     exitPip: exitPlaybackPip,
   }), [
     applyPlaybackSpeed,
+    changePlaybackEpisode,
     enterPlaybackPip,
     exitPlaybackPip,
     getPlaybackSnapshot,
@@ -899,6 +955,101 @@ export default function AnimePlayer({
     seekPlayback,
     setPlaybackMutedCommand,
     setPlaybackVolume,
+  ]);
+
+  useEffect(() => {
+    const currentIdentity = `${animeId ?? "unknown"}:${episodeNumber}`;
+
+    if (!episodeTransitionPending) {
+      const wasPending = episodeTransitionWasPendingRef.current;
+      episodeTransitionWasPendingRef.current = false;
+
+      if (
+        wasPending &&
+        episodeIdentityRef.current === currentIdentity &&
+        resumeAfterEpisodeSwitchRef.current &&
+        started
+      ) {
+        playIntentRef.current = true;
+        resumeAfterEpisodeSwitchRef.current = false;
+        playbackController.play();
+      }
+      return;
+    }
+
+    if (episodeTransitionWasPendingRef.current) return;
+    episodeTransitionWasPendingRef.current = true;
+
+    const snapshot = playbackController.getSnapshot();
+    resumeAfterEpisodeSwitchRef.current =
+      playIntentRef.current || snapshot.playing;
+
+    if (started) {
+      preservePlayIntentPauseRef.current = true;
+      const paused = playbackController.pause();
+      if (!paused) {
+        preservePlayIntentPauseRef.current = false;
+      }
+    }
+  }, [
+    animeId,
+    episodeNumber,
+    episodeTransitionPending,
+    playbackController,
+    started,
+  ]);
+
+  useEffect(() => {
+    const identity = `${animeId ?? "unknown"}:${episodeNumber}`;
+    if (episodeIdentityRef.current === identity) return;
+
+    const fromEpisode = lastEpisodeNumberRef.current;
+    const switchId = ++episodeSwitchSequenceRef.current;
+    const resumePlayback =
+      resumeAfterEpisodeSwitchRef.current || playIntentRef.current;
+
+    episodeIdentityRef.current = identity;
+    lastEpisodeNumberRef.current = episodeNumber;
+    playIntentRef.current = resumePlayback;
+    preservePlayIntentPauseRef.current = false;
+    episodeSwitchRef.current = {
+      id: switchId,
+      identity,
+      fromEpisode,
+      toEpisode: episodeNumber,
+      startedAt: performance.now(),
+      resumePlayback,
+    };
+
+    failedCandidatesRef.current.clear();
+    sourceAttemptRef.current = null;
+    playbackStartTrackedRef.current.clear();
+    latestPlaybackPositionSecondsRef.current = 0;
+    localProgressRef.current = null;
+    lastLocalProgressSavedAtRef.current = 0;
+    playbackQualifiedRef.current = false;
+    applyResumeTarget(0);
+
+    setPlayerReady(false);
+    setPlayerError(null);
+    setPlayerFailureKind(null);
+    setSourceNotice(null);
+    setSourceStatuses({});
+    setVerifiedQuality(null);
+    setPlaybackEngineState(null);
+    setActiveSourceIndex((current) =>
+      current >= 0 && current < sources.length ? current : 0,
+    );
+    setActiveTranslationIndex(0);
+
+    playbackController.changeEpisode(episodeNumber);
+
+  }, [
+    animeId,
+    applyResumeTarget,
+    episodeNumber,
+    playbackController,
+    sources.length,
   ]);
 
   const handleEngineStateChange = useCallback((state: PlaybackEngineState) => {
@@ -2323,10 +2474,10 @@ export default function AnimePlayer({
   }, []);
 
   const markPlayerReady = useCallback(() => {
+    const readyAt = performance.now();
     const attempt = sourceAttemptRef.current;
     if (attempt?.id === currentAttemptId && !attempt.readyTracked) {
       attempt.readyTracked = true;
-      const readyAt = performance.now();
       const startupMs = Math.max(
         0,
         Math.round(readyAt - attempt.startedAt),
@@ -2353,20 +2504,69 @@ export default function AnimePlayer({
       });
     }
 
+    const activeSwitch = episodeSwitchRef.current;
+    const currentIdentity = `${animeId ?? "unknown"}:${episodeNumber}`;
+
+    if (activeSwitch) {
+      if (activeSwitch.identity !== currentIdentity) {
+        trackPlayerEvent('player_episode_switch_stale_ignored', {
+          switchId: activeSwitch.id,
+          expectedIdentity: activeSwitch.identity,
+          currentIdentity,
+          stage: 'ready',
+        });
+        episodeSwitchRef.current = null;
+      } else {
+        const switchMs = Math.max(
+          0,
+          Math.round(readyAt - activeSwitch.startedAt),
+        );
+
+        trackPlayerEvent('player_episode_switch_ready', {
+          switchId: activeSwitch.id,
+          fromEpisode: activeSwitch.fromEpisode,
+          toEpisode: activeSwitch.toEpisode,
+          switchMs,
+          resumePlayback: activeSwitch.resumePlayback,
+        }, true);
+        trackPlayerEvent('player_episode_switch_ms', {
+          switchId: activeSwitch.id,
+          switchMs,
+          engine:
+            isKodik ? 'kodik' : isHls ? 'hls' : isIframe ? 'iframe' : 'native',
+        });
+
+        episodeSwitchRef.current = null;
+        resumeAfterEpisodeSwitchRef.current = false;
+
+        if (activeSwitch.resumePlayback && started) {
+          queueMicrotask(() => {
+            if (episodeIdentityRef.current !== currentIdentity) return;
+            playIntentRef.current = true;
+            playbackController.play();
+          });
+        }
+      }
+    }
+
     setPlayerReady(true);
     setPlayerError(null);
     setPlayerFailureKind(null);
     setSourceStatus(currentSource?.name, 'ready');
   }, [
+    animeId,
     currentAttemptId,
     currentSource?.name,
     currentSourceName,
     currentSourceType,
+    episodeNumber,
     isHls,
     isIframe,
     isKodik,
+    playbackController,
     setSourceStatus,
     sourceDiscoveryStartedAtMs,
+    started,
     trackPlayerEvent,
   ]);
 
@@ -2525,14 +2725,32 @@ export default function AnimePlayer({
       failedCandidates: failedCandidatesRef.current.size,
       availableSources: sources.length,
     }, true);
+
+    const activeSwitch = episodeSwitchRef.current;
+    const currentIdentity = `${animeId ?? "unknown"}:${episodeNumber}`;
+    if (activeSwitch?.identity === currentIdentity) {
+      trackPlayerEvent('player_episode_switch_failed', {
+        switchId: activeSwitch.id,
+        fromEpisode: activeSwitch.fromEpisode,
+        toEpisode: activeSwitch.toEpisode,
+        failureKind: kind,
+        failedCandidates: failedCandidatesRef.current.size,
+        stage: 'playback',
+      }, true);
+      episodeSwitchRef.current = null;
+      resumeAfterEpisodeSwitchRef.current = false;
+    }
+
     setPlayerFailureKind(kind);
     setPlayerError(message);
   }, [
+    animeId,
     currentAttemptId,
     currentCandidateKey,
     currentSource?.name,
     currentSourceName,
     currentSourceType,
+    episodeNumber,
     setSourceStatus,
     sources.length,
     switchToFallback,
@@ -2812,6 +3030,8 @@ export default function AnimePlayer({
   }
 
   function startPlayback() {
+    playIntentRef.current = true;
+    setPlayIntent(true);
     endedFlowRef.current = false;
     setEndScreenOpen(false);
     setAutoNextSeconds(null);
@@ -3139,6 +3359,27 @@ export default function AnimePlayer({
               : undefined
           }
         >
+          {episodeTransitionPending && (
+            <div
+              className="absolute inset-0 z-[90] flex items-center justify-center bg-black/52 px-5 backdrop-blur-[2px]"
+              data-player-episode-transition
+              role="status"
+              aria-live="polite"
+            >
+              <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#090b13]/88 px-4 py-3 text-white shadow-2xl">
+                <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/15 border-t-violet-300 motion-reduce:animate-none" />
+                <div className="min-w-0">
+                  <div className="text-[10px] font-black uppercase tracking-[0.14em] text-violet-300/70">
+                    AnimeBox Player
+                  </div>
+                  <div className="mt-0.5 truncate text-xs font-bold text-white/80">
+                    {episodeTransitionMessage}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {typeof animeId === 'number' && animeId > 0 && (
             <EpisodeJourneyTracker
               animeId={animeId}
@@ -3150,7 +3391,7 @@ export default function AnimePlayer({
           {isKodik && videoLink && (
             <KodikPlayer
               ref={kodikPlayerRef}
-              key={`${videoLink}:${playerAttempt}`}
+              key={`kodik:${currentSource?.name || "source"}:${playerAttempt}`}
               src={videoLink}
               title={`${title} — серия ${episodeNumber}`}
               episodeNumber={episodeNumber}
@@ -3170,6 +3411,17 @@ export default function AnimePlayer({
               }
               onTimeUpdate={handleTimeSample}
               onPlaybackAction={(event) => {
+                if (event.action === 'play') {
+                  playIntentRef.current = true;
+                  setPlayIntent(true);
+                } else if (event.action === 'pause') {
+                  if (preservePlayIntentPauseRef.current) {
+                    preservePlayIntentPauseRef.current = false;
+                  } else {
+                    playIntentRef.current = false;
+                    setPlayIntent(false);
+                  }
+                }
                 if (event.action === 'seek') {
                   registerExplicitSeek(event.positionSeconds);
                 }
@@ -3295,7 +3547,7 @@ export default function AnimePlayer({
               {!isKodik && (
                 isIframe ? (
                   <iframe
-                    key={`${videoLink}:${playerAttempt}`}
+                    key={`iframe:${playerAttempt}`}
                     src={videoLink}
                     width="100%"
                     height="100%"
@@ -3311,9 +3563,10 @@ export default function AnimePlayer({
                 ) : (
                   <DirectVideoPlayer
                     ref={videoRef}
-                    key={`${videoLink}:${playerAttempt}`}
+                    key={`direct:${playerAttempt}`}
                     src={videoLink}
                     isHls={isHls}
+                    autoPlay={started && playIntent}
                     title={`${title} — серия ${episodeNumber}`}
                     poster={poster || undefined}
                     initialVolume={playbackVolume}
@@ -3341,10 +3594,18 @@ export default function AnimePlayer({
                       });
                     }}
                     onPlay={(positionSeconds) => {
+                      playIntentRef.current = true;
+                      setPlayIntent(true);
                       markConfirmedPlaybackStart('play');
                       publishPartyAction('play', positionSeconds, true);
                     }}
                     onPause={(positionSeconds) => {
+                      if (preservePlayIntentPauseRef.current) {
+                        preservePlayIntentPauseRef.current = false;
+                      } else {
+                        playIntentRef.current = false;
+                        setPlayIntent(false);
+                      }
                       publishPartyAction('pause', positionSeconds, false);
                     }}
                     onSeeked={(positionSeconds, playing) => {

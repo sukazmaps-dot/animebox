@@ -104,6 +104,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
   const [watchedUpTo, setWatchedUpTo] = useState(0);
   const [providerEpisodes, setProviderEpisodes] = useState<number[]>([]);
   const [sources, setSources] = useState<PlayerSource[]>([]);
+  const [playerEpisodeNumber, setPlayerEpisodeNumber] = useState(requestedEpisode);
   const [loadingSources, setLoadingSources] = useState(false);
   const [sourceMessage, setSourceMessage] = useState('');
   const [sourceLoadingMessage, setSourceLoadingMessage] = useState(
@@ -119,6 +120,8 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     );
   const [timeline, setTimeline] = useState<EpisodeTimelineMeta | null>(null);
   const timelineRequestSequenceRef = useRef(0);
+  const sourceDiscoverySequenceRef = useRef(0);
+  const lastEpisodeSwitchFailureRef = useRef('');
   const timelineAbortRef = useRef<AbortController | null>(null);
   const observedTimelineDurationRef = useRef<number | null>(null);
 
@@ -137,13 +140,59 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     anime?.episodes && anime.episodes > 0,
   );
 
-  const episodeNumber = useMemo(() => {
+  const [activeEpisodeNumber, setActiveEpisodeNumber] = useState(() => {
     if (!Number.isSafeInteger(requestedEpisode) || requestedEpisode < 1) {
       return 1;
     }
 
     return requestedEpisode;
-  }, [requestedEpisode]);
+  });
+
+  const episodeNumber = activeEpisodeNumber;
+
+  useEffect(() => {
+    if (
+      !Number.isSafeInteger(requestedEpisode) ||
+      requestedEpisode < 1 ||
+      requestedEpisode === activeEpisodeNumber
+    ) {
+      return;
+    }
+
+    queueMicrotask(() => {
+      setActiveEpisodeNumber(requestedEpisode);
+    });
+  }, [activeEpisodeNumber, requestedEpisode]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      const segments = window.location.pathname
+        .split('/')
+        .filter(Boolean)
+        .map((segment) => decodeURIComponent(segment));
+
+      const prefix = theaterMode ? 'watch-together' : 'anime';
+      if (segments[0] !== prefix) return;
+
+      const slug = segments[1];
+      const episodeIndex = segments.indexOf('episode');
+      const episodeValue =
+        episodeIndex >= 0 ? Number(segments[episodeIndex + 1]) : NaN;
+
+      if (
+        slug !== animeIdParam ||
+        !Number.isSafeInteger(episodeValue) ||
+        episodeValue < 1
+      ) {
+        return;
+      }
+
+      setActiveEpisodeNumber(episodeValue);
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [animeIdParam, theaterMode]);
 
   const requestEpisodeTimeline = useCallback(
     (durationSeconds?: number | null) => {
@@ -314,6 +363,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     if (!anime) return;
 
     const controller = new AbortController();
+    const discoverySequence = ++sourceDiscoverySequenceRef.current;
     let active = true;
     let publishedAny = false;
     const discoveryStartedAt = performance.now();
@@ -393,7 +443,6 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     queueMicrotask(() => {
       if (!active) return;
       setLoadingSources(true);
-      setSources([]);
       setSourceIdentity('');
       setSourceMessage('');
       setSourceLoadingMessage('Подключаем лучший источник…');
@@ -410,8 +459,26 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       if (
         !active ||
         controller.signal.aborted ||
+        discoverySequence !== sourceDiscoverySequenceRef.current ||
         source.translations.length === 0
       ) {
+        if (
+          discoverySequence !== sourceDiscoverySequenceRef.current &&
+          source.translations.length > 0
+        ) {
+          trackProductClientEvent('player_episode_switch_stale_ignored', {
+            source: 'source_orchestrator',
+            path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+            entityType: 'episode',
+            entityId: `${anime.id}:${episodeNumber}`,
+            metadata: {
+              episode: episodeNumber,
+              discoverySequence,
+              currentSequence: sourceDiscoverySequenceRef.current,
+              provider: source.name,
+            },
+          });
+        }
         return;
       }
 
@@ -440,7 +507,8 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       }
 
       setSources((current) => {
-        const withoutSameSource = current.filter(
+        const baseSources = isFirstPlayableSource ? [] : current;
+        const withoutSameSource = baseSources.filter(
           (item) => item.name !== source.name,
         );
         const next = [...withoutSameSource, source];
@@ -454,6 +522,9 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       });
 
       setSourceIdentity(identity);
+      if (isFirstPlayableSource) {
+        setPlayerEpisodeNumber(episodeNumber);
+      }
       setSourceMessage('');
       setLoadingSources(false);
     }
@@ -1232,6 +1303,50 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
   }, [anime.id, seasonNavigation?.seasons]);
 
   const waitingForSources = loadingSources || sourceIdentity !== expectedSourceIdentity;
+  const episodeTransitionPending =
+    playerEpisodeNumber !== episodeNumber || waitingForSources;
+
+  useEffect(() => {
+    if (
+      loadingSources ||
+      sourceIdentity !== expectedSourceIdentity ||
+      playerEpisodeNumber === episodeNumber ||
+      !sourceMessage
+    ) {
+      if (playerEpisodeNumber === episodeNumber) {
+        lastEpisodeSwitchFailureRef.current = '';
+      }
+      return;
+    }
+
+    const failureKey = `${anime.id}:${episodeNumber}:${sourceMessage}`;
+    if (lastEpisodeSwitchFailureRef.current === failureKey) return;
+    lastEpisodeSwitchFailureRef.current = failureKey;
+
+    trackProductClientEvent('player_episode_switch_failed', {
+      source: theaterMode ? 'watch_together' : 'player',
+      path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+      entityType: 'episode',
+      entityId: `${anime.id}:${episodeNumber}`,
+      metadata: {
+        anime_id: anime.id,
+        episode: episodeNumber,
+        retained_episode: playerEpisodeNumber,
+        reason: sourceMessage.slice(0, 160),
+        stage: 'source_discovery',
+      },
+      flush: true,
+    });
+  }, [
+    anime.id,
+    episodeNumber,
+    expectedSourceIdentity,
+    loadingSources,
+    playerEpisodeNumber,
+    sourceIdentity,
+    sourceMessage,
+    theaterMode,
+  ]);
 
   useEffect(() => {
     const knownCurrentEpisodes =
@@ -1243,6 +1358,18 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       router.prefetch(
         `/anime/${animeIdParam}/episode/${episodeNumber + 1}`,
       );
+      trackProductClientEvent('player_episode_prefetch', {
+        source: theaterMode ? 'watch_together' : 'player',
+        path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        entityType: 'episode',
+        entityId: `${anime.id}:${episodeNumber + 1}`,
+        metadata: {
+          anime_id: anime.id,
+          from_episode: episodeNumber,
+          to_episode: episodeNumber + 1,
+          kind: 'route',
+        },
+      });
     }
 
     if (seasonRoute.next?.slug && seasonRoute.next.episodes.length > 0) {
@@ -1256,13 +1383,13 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       );
     }
   }, [
+    anime.id,
     animeIdParam,
     availableEpisodes,
     episodeNumber,
     router,
-    seasonRoute.current?.episodes.length,
-    seasonRoute.next,
-    seasonRoute.previous,
+    seasonRoute,
+    theaterMode,
   ]);
 
   const currentSeasonEpisodes =
@@ -1294,23 +1421,62 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     Boolean(seasonRoute.next && nextSeasonFirstEpisode);
 
   const navigateToEpisode = useCallback((slug: string, number: number) => {
-    if (!theaterMode) {
-      router.push(`/anime/${slug}/episode/${number}`, { scroll: false });
+    if (!Number.isSafeInteger(number) || number < 1) return;
+    if (slug === animeIdParam && number === episodeNumber) return;
+
+    const encodedSlug = encodeURIComponent(slug);
+    const current = new URL(window.location.href);
+    const next = new URL(
+      theaterMode
+        ? `/watch-together/${encodedSlug}/episode/${number}`
+        : `/anime/${encodedSlug}/episode/${number}`,
+      window.location.origin,
+    );
+
+    if (theaterMode) {
+      const roomId = current.searchParams.get('party');
+      if (roomId) next.searchParams.set('party', roomId);
+    } else {
+      next.search = current.search;
+    }
+
+    next.hash = current.hash;
+
+    if (slug === animeIdParam) {
+      trackProductClientEvent('player_episode_switch_started', {
+        source: theaterMode ? 'watch_together' : 'player',
+        path: current.pathname,
+        entityType: 'episode',
+        entityId: `${anime.id}:${episodeNumber}`,
+        metadata: {
+          anime_id: anime.id,
+          from_episode: episodeNumber,
+          to_episode: number,
+          watch_together: theaterMode,
+          route_mode: 'history',
+        },
+        flush: true,
+      });
+
+      window.history.pushState(
+        { animeboxEpisode: number },
+        '',
+        `${next.pathname}${next.search}${next.hash}`,
+      );
+      setActiveEpisodeNumber(number);
       return;
     }
 
-    const current = new URL(window.location.href);
-    const next = new URL(
-      `/watch-together/${encodeURIComponent(slug)}/episode/${number}`,
-      window.location.origin,
-    );
-    const roomId = current.searchParams.get('party');
-
-    if (roomId) next.searchParams.set('party', roomId);
-    next.hash = current.hash;
-
-    router.push(`${next.pathname}${next.search}${next.hash}`, { scroll: false });
-  }, [router, theaterMode]);
+    router.push(`${next.pathname}${next.search}${next.hash}`, {
+      scroll: false,
+    });
+  }, [
+    anime.id,
+    animeIdParam,
+    episodeNumber,
+    router,
+    theaterMode,
+  ]);
 
   useEffect(() => {
     if (!theaterMode) return;
@@ -1458,7 +1624,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           <div className={theaterStyles.content}>
             <main className={theaterStyles.playerColumn}>
               <div className={theaterStyles.playerWrap}>
-                {waitingForSources ? (
+                {sources.length === 0 ? (
                   <div className={theaterStyles.loadingPlayer}>
                     <div className={theaterStyles.loadingInner}>
                       <span className={theaterStyles.spinner} aria-hidden="true" />
@@ -1468,15 +1634,14 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
                 ) : (
                   <AnimePlayer
                     animeId={anime.id}
-                    key={`${expectedSourceIdentity}:theater`}
                     title={title}
-                    episodeNumber={episodeNumber}
+                    episodeNumber={playerEpisodeNumber}
                     totalEpisodes={availableEpisodes}
                     totalEpisodesKnown={totalEpisodesKnown}
                     poster={poster}
                     sources={sources}
                     sourceDiscoveryStartedAtMs={sourceDiscoveryStartedAtMs}
-                    timeline={timeline}
+                    timeline={playerEpisodeNumber === episodeNumber ? timeline : null}
                     hasPrev={hasPrev}
                     hasNext={hasNext}
                     prevLabel={atFirstEpisode && seasonRoute.previous ? 'Пред. сезон' : 'Пред. серия'}
@@ -1486,6 +1651,10 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
                     onEnded={hasNext ? goToNext : undefined}
                     onEpisodeChange={goToEpisode}
                     onDurationObserved={handleTimelineDurationObserved}
+                    episodeTransitionPending={episodeTransitionPending}
+                    episodeTransitionMessage={
+                      sourceMessage || sourceLoadingMessage || 'Переключаем серию…'
+                    }
                     watchTogetherMode
                   />
                 )}
@@ -1534,7 +1703,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         <span aria-current="page">{episodeNumber} серия</span>
       </nav>
 
-      {waitingForSources ? (
+      {sources.length === 0 ? (
         <div className="relative isolate overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(14,19,34,0.98),rgba(7,10,20,0.98))] p-3 shadow-[0_28px_90px_rgba(0,0,0,0.50)] md:p-4">
           <div className="pointer-events-none absolute inset-x-16 top-0 h-px bg-gradient-to-r from-transparent via-violet-400/60 to-transparent" />
           <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-[20px] border border-white/[0.08] bg-black">
@@ -1549,15 +1718,14 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       ) : (
         <AnimePlayer
           animeId={anime.id}
-          key={expectedSourceIdentity}
           title={title}
-          episodeNumber={episodeNumber}
+          episodeNumber={playerEpisodeNumber}
           totalEpisodes={availableEpisodes}
           totalEpisodesKnown={totalEpisodesKnown}
           poster={poster}
           sources={sources}
           sourceDiscoveryStartedAtMs={sourceDiscoveryStartedAtMs}
-          timeline={timeline}
+          timeline={playerEpisodeNumber === episodeNumber ? timeline : null}
           hasPrev={hasPrev}
           hasNext={hasNext}
           prevLabel={atFirstEpisode && seasonRoute.previous ? 'Пред. сезон' : 'Пред. серия'}
@@ -1569,6 +1737,10 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           onDurationObserved={handleTimelineDurationObserved}
           onEnded={hasNext ? goToNext : undefined}
           onEpisodeChange={goToEpisode}
+          episodeTransitionPending={episodeTransitionPending}
+          episodeTransitionMessage={
+            sourceMessage || sourceLoadingMessage || 'Переключаем серию…'
+          }
         />
       )}
 
@@ -1644,6 +1816,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           totalEpisodesKnown={totalEpisodesKnown}
           currentEpisode={episodeNumber}
           watchedUpTo={watchedUpTo}
+          onEpisodeNavigate={goToEpisode}
         />
       </section>
       <EpisodeComments

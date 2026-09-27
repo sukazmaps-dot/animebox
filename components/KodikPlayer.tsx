@@ -79,7 +79,7 @@ function normalizePlayerUrl(url: string) {
   return url.startsWith('//') ? `https:${url}` : url;
 }
 
-function buildPlayerUrl(url: string, episodeNumber?: number) {
+function buildPlayerUrl(url: string) {
   const normalized = normalizePlayerUrl(url);
 
   try {
@@ -100,17 +100,11 @@ function buildPlayerUrl(url: string, episodeNumber?: number) {
     nextUrl.searchParams.delete('skip_button');
 
     /*
-     * Open the route episode immediately while preserving Kodik's serial
-     * player capabilities. hide_selectors removes provider navigation UI,
-     * but change_episode remains available through the official Player API.
+     * Keep iframe.src stable across episode navigation. AnimeBox switches
+     * serial episodes through the official Player API with
+     * without_reload=true so fullscreen and iframe state can survive.
      */
-    if (
-      typeof episodeNumber === 'number' &&
-      Number.isSafeInteger(episodeNumber) &&
-      episodeNumber > 0
-    ) {
-      nextUrl.searchParams.set('episode', String(episodeNumber));
-    }
+    nextUrl.searchParams.delete('episode');
 
     return nextUrl.toString();
   } catch {
@@ -255,10 +249,13 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
   const endedFiredRef = useRef(false);
   const pendingPlayRef = useRef(false);
   const playingRef = useRef(false);
+  const iframeLoadedRef = useRef(false);
+  const episodeChangePendingRef = useRef(false);
   const lastSampleAtRef = useRef<number | null>(null);
   const lastAdvanceAtRef = useRef<number | null>(null);
   const pauseInferenceTimerRef = useRef<number | null>(null);
   const engineStateRef = useRef(createPlaybackEngineState('kodik'));
+  const onEngineStateChangeRef = useRef(onEngineStateChange);
   const pendingTimeRequestRef = useRef<{
     promise: Promise<number | null>;
     resolve: (position: number | null) => void;
@@ -266,8 +263,8 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
   } | null>(null);
 
   const playerSrc = useMemo(
-    () => buildPlayerUrl(src, episodeNumber),
-    [src, episodeNumber],
+    () => buildPlayerUrl(src),
+    [src],
   );
 
   const expectedOrigin = useMemo(() => {
@@ -278,11 +275,15 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
     }
   }, [playerSrc]);
 
+  useEffect(() => {
+    onEngineStateChangeRef.current = onEngineStateChange;
+  }, [onEngineStateChange]);
+
   const transitionEngine = useCallback((event: PlaybackEngineEvent) => {
     const next = reducePlaybackEngineState(engineStateRef.current, event);
     engineStateRef.current = next;
-    onEngineStateChange?.(next);
-  }, [onEngineStateChange]);
+    onEngineStateChangeRef.current?.(next);
+  }, []);
 
   const postApiCommand = useCallback((method: string, value: Record<string, unknown> = {}) => {
     const frameWindow = iframeRef.current?.contentWindow;
@@ -378,6 +379,14 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
       changeEpisode(input) {
         if (!Number.isSafeInteger(input.episode) || input.episode < 1) return;
 
+        if (
+          input.withoutReload !== false &&
+          lastForcedEpisodeRef.current === input.episode &&
+          episodeChangePendingRef.current
+        ) {
+          return;
+        }
+
         const value: Record<string, unknown> = {
           episode: input.episode,
           without_reload: input.withoutReload !== false,
@@ -392,9 +401,12 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
         }
 
         lastForcedEpisodeRef.current = input.episode;
+        episodeChangePendingRef.current = true;
         endedFiredRef.current = false;
         resumeAppliedRef.current = true;
         currentPositionRef.current = 0;
+        durationRef.current = null;
+        transitionEngine({ type: 'load' });
         postApiCommand('change_episode', value);
       },
       getState() {
@@ -409,13 +421,27 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
   );
 
   const handleLoad = useCallback(() => {
+    iframeLoadedRef.current = true;
+
+    if (
+      typeof episodeNumber === 'number' &&
+      Number.isSafeInteger(episodeNumber) &&
+      episodeNumber > 0
+    ) {
+      lastForcedEpisodeRef.current = episodeNumber;
+      postApiCommand('change_episode', {
+        episode: episodeNumber,
+        without_reload: true,
+      });
+    }
+
     transitionEngine({ type: 'ready' });
     onReady?.();
 
     if (pendingPlayRef.current) {
       postApiCommand('play');
     }
-  }, [onReady, postApiCommand, transitionEngine]);
+  }, [episodeNumber, onReady, postApiCommand, transitionEngine]);
 
   useEffect(() => {
     engineStateRef.current = createPlaybackEngineState('kodik');
@@ -423,6 +449,8 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
     durationRef.current = null;
     currentPositionRef.current = null;
     lastForcedEpisodeRef.current = null;
+    iframeLoadedRef.current = false;
+    episodeChangePendingRef.current = false;
     resumeAppliedRef.current = false;
     endedFiredRef.current = false;
     pendingPlayRef.current = false;
@@ -440,7 +468,51 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
       pendingTime.resolve(null);
       pendingTimeRequestRef.current = null;
     }
-  }, [playerSrc, resumeSeconds, transitionEngine]);
+  }, [playerSrc, transitionEngine]);
+
+  useEffect(() => {
+    resumeAppliedRef.current = resumeSeconds <= 0;
+  }, [resumeSeconds]);
+
+  useEffect(() => {
+    if (
+      !iframeLoadedRef.current ||
+      typeof episodeNumber !== 'number' ||
+      !Number.isSafeInteger(episodeNumber) ||
+      episodeNumber < 1 ||
+      lastForcedEpisodeRef.current === episodeNumber
+    ) {
+      return;
+    }
+
+    const shouldResumePlayback =
+      playingRef.current || pendingPlayRef.current;
+
+    lastForcedEpisodeRef.current = episodeNumber;
+    episodeChangePendingRef.current = true;
+    endedFiredRef.current = false;
+    resumeAppliedRef.current = resumeSeconds <= 0;
+    currentPositionRef.current = 0;
+    durationRef.current = null;
+    lastSampleAtRef.current = null;
+    lastAdvanceAtRef.current = null;
+
+    transitionEngine({ type: 'load' });
+    postApiCommand('change_episode', {
+      episode: episodeNumber,
+      without_reload: true,
+    });
+
+    if (shouldResumePlayback) {
+      pendingPlayRef.current = true;
+      postApiCommand('play');
+    }
+  }, [
+    episodeNumber,
+    postApiCommand,
+    resumeSeconds,
+    transitionEngine,
+  ]);
 
   useEffect(() => {
     function fireEndedOnce() {
@@ -488,7 +560,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
       }, 1_850);
     }
 
-    function forceRouteEpisode() {
+    function forceRouteEpisode(force = false) {
       if (
         !iframeRef.current?.contentWindow ||
         typeof episodeNumber !== 'number' ||
@@ -498,7 +570,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
         return;
       }
 
-      if (lastForcedEpisodeRef.current === episodeNumber) return;
+      if (!force && lastForcedEpisodeRef.current === episodeNumber) return;
       lastForcedEpisodeRef.current = episodeNumber;
 
       iframeRef.current.contentWindow.postMessage(
@@ -592,6 +664,15 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
         }
 
         const knownDuration = time.duration ?? durationRef.current;
+
+        if (episodeChangePendingRef.current) {
+          episodeChangePendingRef.current = false;
+          transitionEngine({
+            type: 'ready',
+            durationSeconds: knownDuration,
+          });
+          onReady?.();
+        }
 
         transitionEngine({
           type: 'time',
@@ -709,7 +790,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
           typeof episodeNumber === 'number' &&
           currentEpisode !== episodeNumber
         ) {
-          forceRouteEpisode();
+          forceRouteEpisode(true);
         }
       }
     }
