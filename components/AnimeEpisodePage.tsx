@@ -1484,7 +1484,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           <div className={theaterStyles.content}>
             <main className={theaterStyles.playerColumn}>
               <div className={theaterStyles.playerWrap}>
-                {waitingForSources ? (
+                {sources.length === 0 ? (
                   <div className={theaterStyles.loadingPlayer}>
                     <div className={theaterStyles.loadingInner}>
                       <span className={theaterStyles.spinner} aria-hidden="true" />
@@ -1512,6 +1512,9 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
                     onEpisodeChange={goToEpisode}
                     onDurationObserved={handleTimelineDurationObserved}
                     episodeTransitionPending={episodeTransitionPending}
+                    episodeTransitionMessage={
+                      sourceMessage || sourceLoadingMessage || 'Переключаем серию…'
+                    }
                     watchTogetherMode
                   />
                 )}
@@ -1560,7 +1563,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         <span aria-current="page">{episodeNumber} серия</span>
       </nav>
 
-      {waitingForSources ? (
+      {sources.length === 0 ? (
         <div className="relative isolate overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(14,19,34,0.98),rgba(7,10,20,0.98))] p-3 shadow-[0_28px_90px_rgba(0,0,0,0.50)] md:p-4">
           <div className="pointer-events-none absolute inset-x-16 top-0 h-px bg-gradient-to-r from-transparent via-violet-400/60 to-transparent" />
           <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-[20px] border border-white/[0.08] bg-black">
@@ -1595,6 +1598,9 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           onEnded={hasNext ? goToNext : undefined}
           onEpisodeChange={goToEpisode}
           episodeTransitionPending={episodeTransitionPending}
+          episodeTransitionMessage={
+            sourceMessage || sourceLoadingMessage || 'Переключаем серию…'
+          }
         />
       )}
 
