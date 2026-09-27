@@ -799,3 +799,17 @@
     height: 27px;
   }
 }
+
+
+.journeyLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  background: color-mix(in srgb, currentColor 7%, transparent);
+  font-weight: 800;
+  text-decoration: none;
+}

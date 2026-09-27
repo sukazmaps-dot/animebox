@@ -1,0 +1,245 @@
+.page {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 110px 0 80px;
+}
+
+.hero,
+.section,
+.integrity {
+  border: 1px solid color-mix(in srgb, var(--border, #ffffff) 12%, transparent);
+  background: color-mix(in srgb, var(--surface, #15151b) 92%, transparent);
+  border-radius: 28px;
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 32px;
+}
+
+.hero h1,
+.section h2 {
+  margin: 6px 0 8px;
+}
+
+.hero p,
+.targetCard p,
+.milestone p,
+.integrity p {
+  color: var(--muted, #a8a8b3);
+  line-height: 1.65;
+}
+
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: .14em;
+  font-weight: 800;
+  opacity: .72;
+}
+
+.heroStats {
+  min-width: 220px;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  text-align: right;
+}
+
+.heroStats strong {
+  font-size: clamp(28px, 4vw, 48px);
+}
+
+.heroStats span,
+.heroStats small {
+  color: var(--muted, #a8a8b3);
+}
+
+.nav {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+}
+
+.nav a,
+.trustedBadge {
+  padding: 9px 13px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border, #ffffff) 12%, transparent);
+  background: color-mix(in srgb, var(--surface, #15151b) 88%, transparent);
+}
+
+.section {
+  padding: 26px;
+  margin-top: 18px;
+}
+
+.sectionHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.nearestGrid,
+.categoryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.targetCard,
+.categoryCard {
+  border-radius: 20px;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--border, #ffffff) 10%, transparent);
+  background: color-mix(in srgb, var(--surface, #15151b) 80%, transparent);
+}
+
+.targetTop,
+.targetCard footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.targetTop span,
+.targetCard footer,
+.categoryCard span,
+.categoryCard small,
+.milestone span {
+  color: var(--muted, #a8a8b3);
+  font-size: 13px;
+}
+
+.targetCard h3 {
+  margin: 16px 0 6px;
+}
+
+.progress {
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  margin: 16px 0 10px;
+}
+
+.progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: currentColor;
+}
+
+.categoryCard strong {
+  display: block;
+  font-size: 26px;
+  margin-top: 8px;
+}
+
+.timeline {
+  display: grid;
+  gap: 10px;
+}
+
+.milestone {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--border, #ffffff) 10%, transparent);
+  opacity: .62;
+}
+
+.milestone[data-reached='true'],
+.milestone[data-current='true'] {
+  opacity: 1;
+}
+
+.milestone[data-current='true'] {
+  border-color: color-mix(in srgb, currentColor 30%, transparent);
+}
+
+.levelBubble {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  font-size: 20px;
+  font-weight: 900;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.milestone h3 {
+  margin: 3px 0;
+}
+
+.milestone p {
+  margin: 0;
+}
+
+.integrity {
+  margin-top: 18px;
+  padding: 22px 26px;
+}
+
+.integrity p {
+  margin: 6px 0 0;
+}
+
+.completeState,
+.state {
+  padding: 28px;
+  color: var(--muted, #a8a8b3);
+}
+
+.state {
+  margin-top: 100px;
+  display: grid;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .nearestGrid,
+  .categoryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    width: min(100% - 20px, 1180px);
+    padding-top: 86px;
+  }
+
+  .hero {
+    display: grid;
+    padding: 22px;
+  }
+
+  .heroStats {
+    min-width: 0;
+    text-align: left;
+  }
+
+  .nearestGrid,
+  .categoryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .section {
+    padding: 18px;
+  }
+
+  .sectionHead {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

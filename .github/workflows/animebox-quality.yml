@@ -59,6 +59,23 @@ jobs:
           components/useWatchSession.ts
           app/api/watch/route.ts
           lib/watch-server.ts
+          lib/watch-trust.ts
+          lib/watch-trust-server.ts
+          lib/watch-trust-admin-server.ts
+          app/api/admin/watch-trust/route.ts
+          lib/trusted-progression-pipeline-server.ts
+          lib/trusted-progression-metrics-server.ts
+          lib/progression-integrity-server.ts
+          app/api/admin/progression-integrity/route.ts
+          app/api/community/profile/route.ts
+          app/achievements/journey/page.tsx
+          components/AchievementJourneyClient.tsx
+          components/AchievementsClient.tsx
+          lib/community-client.ts
+          app/api/community/comments/route.ts
+          app/api/comments/route.ts
+          app/api/community/leaderboard/route.ts
+          lib/leaderboard-rewards-server.ts
           lib/community-server.ts
           lib/catalog-availability-server.ts
           lib/edge-cache-policy.ts

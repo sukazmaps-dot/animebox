@@ -2,14 +2,19 @@ import { failure, response, userClient } from '@/lib/community-server';
 import { normalizeProgression } from '@/lib/progression';
 import { getProfileWidgetsData } from '@/lib/profile-widgets-server';
 import { watchTitleOverviewsFromRpcRows } from '@/lib/watch-server';
+import { getTrustedProgressionMetrics } from '@/lib/trusted-progression-metrics-server';
 
 export async function GET() {
   try {
     const { client, user } = await userClient();
 
-    const [{ data, error }, widgets] = await Promise.all([
+    const [{ data, error }, widgets, rewardStats] = await Promise.all([
       client.rpc('my_community_profile_bundle'),
       getProfileWidgetsData(user.id),
+      getTrustedProgressionMetrics(user.id).catch((metricError) => {
+        console.warn('[community profile] trusted reward metrics unavailable:', metricError);
+        return null;
+      }),
     ]);
     if (error) throw error;
 
@@ -42,6 +47,7 @@ export async function GET() {
         Boolean(premiumBadge),
       ),
       challenges: profile.challenges ?? null,
+      rewardStats,
       widgets,
       featuredAchievements: Array.isArray(featuredAchievements)
         ? featuredAchievements.filter(

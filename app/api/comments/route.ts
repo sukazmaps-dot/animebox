@@ -13,6 +13,7 @@ import { publicIdentityRoleFor } from '@/lib/identity-server';
 import { resolvePublicAppearances, type PublicResolvedAppearance } from '@/lib/public-avatar-server';
 import { enforceIpAndUserRateLimit, enforceIpRateLimit } from '@/lib/api-rate-limit';
 import { publishEpisodeCommentSocialEffects } from '@/lib/social-comment-effects-server';
+import { applyCommunityCommentProgression } from '@/lib/trusted-progression-pipeline-server';
 import {
   runtimeFeatureDecision,
   runtimeFeatureUnavailableResponse,
@@ -906,9 +907,25 @@ export async function POST(
 
     const avatarUrl = appearance?.avatarUrl ?? null;
 
+    let progressionUpdated = false;
+    if (createdCommentId) {
+      try {
+        const progression = await applyCommunityCommentProgression({
+          userId: user.id,
+          eventKey: `episode-comment:${createdCommentId}`,
+        });
+        progressionUpdated =
+          progression.challengeRewardXp > 0 ||
+          progression.progressionEarnedXp > 0;
+      } catch (progressionError) {
+        console.error('[COMMENTS PROGRESSION]', progressionError);
+      }
+    }
+
 
     return NextResponse.json(
       {
+        progressionUpdated,
         comment: {
           ...data,
 

@@ -44,8 +44,8 @@ const FILTERS: Filter[] = [
   'genres',
 ];
 
-function metricValue(stats: CommunityProfile['stats'], metric: string) {
-  const value = Number((stats as Record<string, unknown>)[metric] ?? 0);
+function metricValue(stats: Record<string, unknown>, metric: string) {
+  const value = Number(stats[metric] ?? 0);
   return Number.isFinite(value) && value > 0 ? value : 0;
 }
 
@@ -153,6 +153,7 @@ export default function AchievementsClient() {
       legendary: 5,
     };
 
+    const rewardStats = data.rewardStats ?? data.stats;
     const rows = data.achievements.filter(
       (achievement) => filter === 'all' || achievement.category === filter,
     );
@@ -160,8 +161,8 @@ export default function AchievementsClient() {
     return [...rows].sort((a, b) => {
       const aEarned = Boolean(a.earned_at);
       const bEarned = Boolean(b.earned_at);
-      const aCurrent = Math.min(metricValue(data.stats, a.metric), a.threshold);
-      const bCurrent = Math.min(metricValue(data.stats, b.metric), b.threshold);
+      const aCurrent = Math.min(metricValue(rewardStats, a.metric), a.threshold);
+      const bCurrent = Math.min(metricValue(rewardStats, b.metric), b.threshold);
       const aProgress = aEarned ? 1 : aCurrent / Math.max(1, a.threshold);
       const bProgress = bEarned ? 1 : bCurrent / Math.max(1, b.threshold);
 
@@ -390,6 +391,9 @@ export default function AchievementsClient() {
       </section>
 
       <div className={styles.controls}>
+        <Link href="/achievements/journey" className={styles.journeyLink}>
+          Открыть Journey
+        </Link>
         <nav className={styles.filters} aria-label="Категории достижений">
           {FILTERS.map((item) => (
             <button
@@ -436,7 +440,7 @@ export default function AchievementsClient() {
       <section className={styles.grid}>
         {visible.map((achievement) => {
           const current = Math.min(
-            metricValue(data.stats, achievement.metric),
+            metricValue(data.rewardStats ?? data.stats, achievement.metric),
             achievement.threshold,
           );
           const earned = Boolean(achievement.earned_at);
@@ -487,8 +491,9 @@ export default function AchievementsClient() {
       </section>
 
       <p className={styles.note}>
-        XP за просмотр начисляется только по подтверждённым данным плеера.
-        Premium не меняет скорость прокачки: XP, достижения и требования LVL одинаковы для всех.
+        Наградный прогресс считается отдельно от обычной статистики профиля и растёт только
+        из подтверждённых сервером событий. Premium не меняет скорость прокачки: XP,
+        достижения и требования LVL одинаковы для всех.
       </p>
     </main>
   );

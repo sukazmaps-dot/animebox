@@ -56,6 +56,20 @@ export type CommunityProfile = {
     comments: number;
   } & Record<LibraryStatus, number>;
   progression: ProfileProgression;
+  rewardStats: {
+    episodes: number;
+    titles: number;
+    minutes: number;
+    watch_minutes: number;
+    active_ms: number;
+    shonen_titles: number;
+    romance_titles: number;
+    action_titles: number;
+    fantasy_titles: number;
+    comedy_titles: number;
+    comments: number;
+    longest_streak: number;
+  } | null;
   challenges: ChallengeSnapshot;
   featuredAchievements: string[];
   widgets: ProfileWidgetsData;
