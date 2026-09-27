@@ -119,6 +119,10 @@
   height: 100%;
 }
 
+.particleLayer {
+  z-index: 2;
+}
+
 .banner img {
   display: block;
   width: 100%;
@@ -165,6 +169,39 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* A decorative season frame needs canvas outside the photo. The old layout
+   kept the outer shell at 72px, so its ~70% frame aperture made the actual
+   avatar visibly smaller than everybody else's. Give the frame its own outer
+   canvas while keeping the visible photo ~72px. */
+.avatarShellSeason {
+  position: relative;
+  flex-basis: 92px;
+  width: 92px;
+  height: 92px;
+  margin: -10px -10px -10px 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.avatarShellSeason .avatarMedia {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 50%;
+  width: 78%;
+  height: 78%;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #111827;
+  box-shadow:
+    0 10px 26px rgba(0,0,0,.32),
+    0 0 0 2px color-mix(in srgb, var(--profile-preview-primary) 76%, #050812 24%);
+  transform: translate(-50%, -50%);
 }
 
 .identityCopy {
@@ -463,6 +500,14 @@
     width: 68px;
     height: 68px;
     border-radius: 17px;
+  }
+
+  .avatarShellSeason {
+    flex-basis: 87px;
+    width: 87px;
+    height: 87px;
+    margin: -9px -9px -10px 0;
+    border-radius: 0;
   }
 
   .metaGrid {
