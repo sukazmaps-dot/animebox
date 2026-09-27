@@ -90,8 +90,12 @@ if (!kodikPlayer.includes('allowFullScreen') || !kodikPlayer.includes('autoplay;
   throw new Error('Patch 19.0.3 native Kodik fullscreen fallback is missing.');
 }
 
-if (!player.includes('Полный экран AnimeBox')) {
-  throw new Error('Patch 19.0.3 iframe fullscreen proxy control missing.');
+if (!player.includes("{fullscreenActive ? 'Выйти из полного экрана' : 'Полный экран'}")) {
+  throw new Error('Patch 19.0.3 AnimeBox toolbar fullscreen control missing.');
+}
+
+if (player.includes('absolute bottom-3 right-3 z-[85]')) {
+  throw new Error('Patch 19.0.4 obsolete fullscreen overlay still covers provider controls.');
 }
 
 if (!player.includes('providerFullscreen') || !player.includes('viewport.contains(activeElement)')) {
