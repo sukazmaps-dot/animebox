@@ -1256,7 +1256,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
                     return next;
                   });
                 }}
-                className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition ${settingsOpen ? 'bg-violet-500/15 text-violet-200' : 'text-white/65 hover:bg-white/10 hover:text-white'}`}
+                className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition ${settingsOpen ? 'bg-violet-500/15 text-violet-200' : 'text-white/65 hover:bg-white/10 hover:text-white'}`}
                 aria-label="Настройки плеера"
                 aria-expanded={settingsOpen}
               >
@@ -1267,7 +1267,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
                 <div
                   className={
                     mobileUi
-                      ? 'absolute bottom-14 right-0 max-h-[min(62dvh,420px)] w-[min(19rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#090d17]/97 p-2 shadow-[0_20px_60px_rgba(0,0,0,.55)] backdrop-blur-md'
+                      ? 'absolute bottom-14 right-0 max-h-[min(62dvh,420px)] w-[min(19rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#090d17]/97 p-2 shadow-[0_20px_60px_rgba(0,0,0,.55)] backdrop-blur-sm'
                       : 'absolute bottom-12 right-0 w-56 overflow-hidden rounded-2xl border border-white/10 bg-[#090d17]/95 p-2 shadow-[0_20px_60px_rgba(0,0,0,.55)] backdrop-blur-xl'
                   }
                   data-player-mobile-settings={mobileUi ? 'true' : 'false'}
@@ -1282,7 +1282,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
                   ))}
                   <div className="my-1 border-t border-white/[0.06]" />
                   <div className="px-2 pb-1 pt-2 text-[9px] font-extrabold uppercase tracking-[0.16em] text-white/30">Скорость</div>
-                  <div className="grid grid-cols-4 gap-1 px-1 pb-1">
+                  <div className="grid grid-cols-5 gap-1 px-1 pb-1">
                     {[0.75, 1, 1.25, 1.5, 2].map((rate) => (
                       <button key={rate} type="button" onClick={() => setRate(rate)} className={`rounded-lg min-h-11 px-1.5 py-2 text-[10px] font-bold transition ${playbackRate === rate ? 'bg-violet-500/15 text-violet-100' : 'text-white/45 hover:bg-white/5 hover:text-white'}`}>{rate}×</button>
                     ))}
