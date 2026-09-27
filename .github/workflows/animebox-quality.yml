@@ -59,6 +59,12 @@ jobs:
           components/useWatchSession.ts
           app/api/watch/route.ts
           lib/watch-server.ts
+          lib/watch-trust.ts
+          lib/watch-trust-server.ts
+          lib/watch-trust-admin-server.ts
+          app/api/admin/watch-trust/route.ts
+          app/api/community/leaderboard/route.ts
+          lib/leaderboard-rewards-server.ts
           lib/community-server.ts
           lib/catalog-availability-server.ts
           lib/edge-cache-policy.ts

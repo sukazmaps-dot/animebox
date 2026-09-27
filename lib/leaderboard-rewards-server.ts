@@ -21,6 +21,7 @@ import {
   isProfileFrameKey,
   type ProfileFrameKey,
 } from '@/lib/profile-frames';
+import { getHighRiskUsersFromTrustEvents } from '@/lib/watch-trust-server';
 
 export type LeaderboardRewardRecord = {
   id: string;
@@ -136,11 +137,35 @@ export async function materializeLeaderboardSeasonRewards(seasonId: string) {
   const userIds = (entries ?? []).map((entry) => String(entry.user_id));
   if (!userIds.length) return { seasonId, inserted: 0, skipped: false };
 
+  const highRiskUsers = await getHighRiskUsersFromTrustEvents({
+    userIds,
+    startsAt: String(season.starts_at),
+    endsAt: String(season.ends_at),
+  }).catch((error) => {
+    // Prize assignment stays available if telemetry storage is degraded.
+    // The watch route still gates XP/challenges independently.
+    console.warn('[Leaderboard rewards] trust filter unavailable:', error);
+    return new Set<string>();
+  });
+  const eligibleEntries = (entries ?? []).filter(
+    (entry) => !highRiskUsers.has(String(entry.user_id)),
+  );
+  const eligibleUserIds = eligibleEntries.map((entry) => String(entry.user_id));
+
+  if (!eligibleUserIds.length) {
+    return {
+      seasonId,
+      inserted: 0,
+      skipped: false,
+      quarantined: highRiskUsers.size,
+    };
+  }
+
   const { data: existing, error: existingError } = await admin
     .from('leaderboard_season_rewards')
     .select('user_id')
     .eq('season_id', seasonId)
-    .in('user_id', userIds);
+    .in('user_id', eligibleUserIds);
 
   if (existingError) {
     if (schemaMissing(existingError.message)) {
@@ -150,7 +175,7 @@ export async function materializeLeaderboardSeasonRewards(seasonId: string) {
   }
 
   const existingUsers = new Set((existing ?? []).map((row) => String(row.user_id)));
-  const rows = (entries ?? []).flatMap((entry) => {
+  const rows = eligibleEntries.flatMap((entry) => {
     const place = Number(entry.place);
     const tier = rewardTierForPlace(place, periodType);
     const userId = String(entry.user_id);
@@ -206,7 +231,12 @@ export async function materializeLeaderboardSeasonRewards(seasonId: string) {
     console.warn('[Leaderboard rewards] Telegram notification failed:', notifyError);
   });
 
-  return { seasonId, inserted: rows.length, skipped: false };
+  return {
+    seasonId,
+    inserted: rows.length,
+    skipped: false,
+    quarantined: highRiskUsers.size,
+  };
 }
 
 export async function listLeaderboardRewardsForUser(userId: string) {
