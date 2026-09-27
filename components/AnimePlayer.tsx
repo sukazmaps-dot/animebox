@@ -433,6 +433,7 @@ export default function AnimePlayer({
   const [autoNextCancelled, setAutoNextCancelled] = useState(false);
   const [premiumStudio, setPremiumStudio] = useState<PremiumStudioSettings | null>(null);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [providerSkipKind, setProviderSkipKind] = useState<'opening' | 'ending' | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const kodikPlayerRef = useRef<KodikPlayerHandle | null>(null);
@@ -475,6 +476,8 @@ export default function AnimePlayer({
   const telegramVerticalSwipesWereEnabledRef = useRef<boolean | null>(null);
   const partySuppressUntilRef = useRef(0);
   const pendingPartyCommandRef = useRef<WatchPartyPlayerCommandDetail | null>(null);
+  const providerSkipKindRef = useRef<'opening' | 'ending' | null>(null);
+  const openingWindowEnteredAtRef = useRef<number | null>(null);
   const lastPartyActionRef = useRef<{
     action: WatchPartyPlayerAction;
     position: number;
@@ -1129,27 +1132,53 @@ export default function AnimePlayer({
         setSkipOpeningVisible(false);
       }
 
-      if (
-        !watchTogetherMode &&
-        smartSeekSupported &&
-        autoOpeningDecision.safe &&
-        !openingAutoSkipAttemptedRef.current
-      ) {
-        // One automatic attempt per episode. If the provider refuses/drops
-        // the seek, requestOpeningSkip exposes the manual fallback button.
-        openingAutoSkipAttemptedRef.current = true;
-        if (!requestOpeningSkip('auto', observedDurationSeconds)) {
-          setSkipOpeningVisible(true);
+      if (insideOpening) {
+        if (openingWindowEnteredAtRef.current == null) {
+          openingWindowEnteredAtRef.current = Date.now();
         }
-      } else if (
-        insideOpening &&
-        !openingAutoSkipAttemptedRef.current
-      ) {
-        // Conservative automatic rejections still leave the decision with the
-        // viewer through an explicit button.
-        setSkipOpeningVisible(true);
-      } else if (!insideOpening) {
+
+        const providerOwnsOpeningSkip =
+          isKodik && providerSkipKindRef.current === 'opening';
+        const providerGraceElapsed =
+          !isKodik ||
+          Date.now() - openingWindowEnteredAtRef.current >= 4_000;
+
+        if (
+          !watchTogetherMode &&
+          smartSeekSupported &&
+          autoOpeningDecision.safe &&
+          !openingAutoSkipAttemptedRef.current
+        ) {
+          // One automatic attempt per episode. If it is rejected, keep a
+          // fallback available — but give Kodik time to announce its own
+          // native skip button first so the viewer never sees two buttons.
+          openingAutoSkipAttemptedRef.current = true;
+          if (
+            !requestOpeningSkip('auto', observedDurationSeconds) &&
+            !providerOwnsOpeningSkip &&
+            providerGraceElapsed
+          ) {
+            setSkipOpeningVisible(true);
+          } else {
+            setSkipOpeningVisible(false);
+          }
+        } else if (
+          !openingAutoSkipAttemptedRef.current &&
+          !providerOwnsOpeningSkip &&
+          providerGraceElapsed
+        ) {
+          setSkipOpeningVisible(true);
+        } else {
+          setSkipOpeningVisible(false);
+        }
+      } else {
+        openingWindowEnteredAtRef.current = null;
         setSkipOpeningVisible(false);
+
+        if (providerSkipKindRef.current === 'opening') {
+          providerSkipKindRef.current = null;
+          setProviderSkipKind(null);
+        }
       }
 
       if (
@@ -1215,6 +1244,17 @@ export default function AnimePlayer({
       watchTogetherMode,
     ],
   );
+
+  const handleProviderSkip = useCallback((signal: {
+    kind: 'opening' | 'ending';
+    atSeconds: number | null;
+    durationSeconds: number | null;
+    origin?: string | null;
+  }) => {
+    providerSkipKindRef.current = signal.kind;
+    setProviderSkipKind(signal.kind);
+    watchSession.onProviderSkip(signal);
+  }, [watchSession]);
 
   const skipOpening = useCallback(() => {
     requestOpeningSkip('manual');
@@ -1352,6 +1392,8 @@ export default function AnimePlayer({
     endedFlowRef.current = false;
     openingAutoSkipAttemptedRef.current = false;
     openingSkipTargetRef.current = null;
+    providerSkipKindRef.current = null;
+    openingWindowEnteredAtRef.current = null;
     lastExplicitSeekAtRef.current = 0;
     lastReportedTimelineDurationRef.current = null;
     clearOpeningSkipFallback();
@@ -1360,6 +1402,7 @@ export default function AnimePlayer({
       setEndScreenOpen(false);
       setAutoNextSeconds(null);
       setSkipOpeningVisible(false);
+      setProviderSkipKind(null);
       setEndingPromptOpen(false);
       setEndingNextSeconds(null);
       setAutoNextCancelled(false);
@@ -2841,7 +2884,7 @@ export default function AnimePlayer({
                   playing: event.playing,
                 });
               }}
-              onProviderSkip={watchSession.onProviderSkip}
+              onProviderSkip={handleProviderSkip}
               onEnded={handlePlaybackEnded}
             />
           )}
