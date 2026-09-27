@@ -22,7 +22,7 @@ type ParticleStyle = CSSProperties & {
 const PARTICLE_COUNT: Record<PremiumAtmosphereVariant, number> = {
   full: 14,
   preview: 11,
-  compact: 8,
+  compact: 10,
 };
 
 /*
