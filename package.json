@@ -69,7 +69,8 @@
     "security:clickjacking:smoke": "node scripts/clickjacking-header-smoke.mjs",
     "patch18-6-6:check": "node scripts/patch-18-6-6-check.mjs",
     "patch18-7:check": "node scripts/patch-18-7-core-final-check.mjs",
-    "patch18-8:check": "node scripts/patch-18-8-product-final-check.mjs"
+    "patch18-8:check": "node scripts/patch-18-8-product-final-check.mjs",
+    "patch18-9-progression-prestige:check": "node scripts/patch-18-9-progression-prestige-check.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
