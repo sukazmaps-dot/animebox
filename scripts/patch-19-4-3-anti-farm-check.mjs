@@ -3,6 +3,10 @@ import fs from 'node:fs';
 const trust = fs.readFileSync('lib/watch-trust.ts', 'utf8');
 const trustServer = fs.readFileSync('lib/watch-trust-server.ts', 'utf8');
 const watchRoute = fs.readFileSync('app/api/watch/route.ts', 'utf8');
+const progressionPipeline = fs.readFileSync(
+  'lib/trusted-progression-pipeline-server.ts',
+  'utf8',
+);
 const leaderboard = fs.readFileSync('app/api/community/leaderboard/route.ts', 'utf8');
 const rewards = fs.readFileSync('lib/leaderboard-rewards-server.ts', 'utf8');
 const adminTrust = fs.readFileSync('lib/watch-trust-admin-server.ts', 'utf8');
@@ -30,9 +34,12 @@ if (
 if (
   !watchRoute.includes("phase: 'completion'") ||
   !watchRoute.includes("phase: 'session_end'") ||
-  !watchRoute.includes('if (trust.rewardEligible)') ||
+  !watchRoute.includes('applyTrustedEpisodeCompletion') ||
+  !watchRoute.includes('applyTrustedWatchSessionEnd') ||
   !watchRoute.includes('competitive completion rewards quarantined') ||
-  !watchRoute.includes('competitive session rewards quarantined')
+  !watchRoute.includes('competitive session rewards quarantined') ||
+  !progressionPipeline.includes('if (!input.trust.rewardEligible)') ||
+  !progressionPipeline.includes('quarantined: true')
 ) {
   failures.push('watch reward quarantine is not enforced');
 }
