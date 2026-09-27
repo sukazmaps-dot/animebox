@@ -247,13 +247,6 @@ export default function AnimeImage({
           ? previous.sourceIndex
           : 0;
 
-      if (
-        previous.key === sourcesKey &&
-        previousIndex !== sourceIndex
-      ) {
-        return previous;
-      }
-
       const previousResolvedIndex =
         firstUsableSourceIndex(sources, previousIndex);
 
@@ -350,7 +343,6 @@ export default function AnimeImage({
 
     return () => window.clearTimeout(timeout);
   }, [
-    current,
     current,
     goToNextSource,
     isFallback,
@@ -473,6 +465,7 @@ export default function AnimeImage({
     isFallback,
     shouldRequestSource,
     sourceIndex,
+    sources,
     sourcesKey,
   ]);
 
