@@ -1,3 +1,5 @@
+import PrestigeEmblem from '@/components/progression/PrestigeEmblem';
+import { prestigeTierForLevel } from '@/lib/progression-milestones';
 import styles from './ProfileAnimeIdentity.module.css';
 
 export type AnimeIdentityStats = {
@@ -126,6 +128,9 @@ export default function ProfileAnimeIdentity({
               <small>Ранг</small>
               <strong>{rank}</strong>
             </span>
+          )}
+          {typeof level === 'number' && prestigeTierForLevel(level) > 0 && (
+            <PrestigeEmblem tier={prestigeTierForLevel(level)} />
           )}
           {premium && <b>Premium identity</b>}
           {foundingNumber && <b>Founding #{String(foundingNumber).padStart(3, '0')}</b>}
