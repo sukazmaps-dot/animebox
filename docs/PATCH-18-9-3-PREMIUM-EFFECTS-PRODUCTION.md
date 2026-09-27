@@ -112,3 +112,8 @@ Premium atmosphere is split into two rendering planes:
 
 The atmosphere wrapper itself must not use paint containment because that would trap
 foreground particles in a lower stacking context and make them invisible behind hero/body backgrounds.
+
+
+## Mini-profile stacking flattening
+
+The atmosphere wrapper uses `display: contents` so ambient and particle layers participate directly in the card stacking context. The final compact order is ambient z=1, hero/body z=3, particles z=4 and close z=20. Compact Stardust uses 10 deterministic particles with stronger 4–5px star highlights.
