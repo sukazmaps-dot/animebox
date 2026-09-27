@@ -86,14 +86,20 @@ if (google.includes("theme: 'filled_black'")) {
   failures.push('Google Sign-In still requests the split dark button theme');
 }
 need('media graceful fallback', mediaWorker, [
-  'sourceFallbackResponse',
-  "status: 307",
-  "'source-fallback-redirect'",
+  'sourceSoftFailureResponse',
+  "status: 204",
+  "'source-soft-fail'",
 ]);
 need('same-origin image fallback', imageProxy, [
-  'NextResponse.redirect(sourceUrl',
-  "'proxy-v2-source-fallback'",
+  'new NextResponse(null',
+  "'proxy-v3-soft-fail'",
 ]);
+if (mediaWorker.includes('sourceFallbackResponse') || mediaWorker.includes("'source-fallback-redirect'")) {
+  failures.push('deprecated media redirect fallback returned');
+}
+if (imageProxy.includes('NextResponse.redirect(sourceUrl') || imageProxy.includes("'proxy-v2-source-fallback'")) {
+  failures.push('deprecated same-origin image redirect returned');
+}
 need('scale drill', loadDrill, [
   'const phases = [100, 250, 500, 750, 1000]',
   "AnimeBox-Readiness-Drill/18.7",
