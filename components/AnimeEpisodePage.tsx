@@ -121,6 +121,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
   const [timeline, setTimeline] = useState<EpisodeTimelineMeta | null>(null);
   const timelineRequestSequenceRef = useRef(0);
   const sourceDiscoverySequenceRef = useRef(0);
+  const lastEpisodeSwitchFailureRef = useRef('');
   const timelineAbortRef = useRef<AbortController | null>(null);
   const observedTimelineDurationRef = useRef<number | null>(null);
 
@@ -1302,6 +1303,48 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
   const waitingForSources = loadingSources || sourceIdentity !== expectedSourceIdentity;
   const episodeTransitionPending =
     playerEpisodeNumber !== episodeNumber || waitingForSources;
+
+  useEffect(() => {
+    if (
+      loadingSources ||
+      sourceIdentity !== expectedSourceIdentity ||
+      playerEpisodeNumber === episodeNumber ||
+      !sourceMessage
+    ) {
+      if (playerEpisodeNumber === episodeNumber) {
+        lastEpisodeSwitchFailureRef.current = '';
+      }
+      return;
+    }
+
+    const failureKey = `${anime.id}:${episodeNumber}:${sourceMessage}`;
+    if (lastEpisodeSwitchFailureRef.current === failureKey) return;
+    lastEpisodeSwitchFailureRef.current = failureKey;
+
+    trackProductClientEvent('player_episode_switch_failed', {
+      source: theaterMode ? 'watch_together' : 'player',
+      path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+      entityType: 'episode',
+      entityId: `${anime.id}:${episodeNumber}`,
+      metadata: {
+        anime_id: anime.id,
+        episode: episodeNumber,
+        retained_episode: playerEpisodeNumber,
+        reason: sourceMessage.slice(0, 160),
+        stage: 'source_discovery',
+      },
+      flush: true,
+    });
+  }, [
+    anime.id,
+    episodeNumber,
+    expectedSourceIdentity,
+    loadingSources,
+    playerEpisodeNumber,
+    sourceIdentity,
+    sourceMessage,
+    theaterMode,
+  ]);
 
   useEffect(() => {
     const knownCurrentEpisodes =
