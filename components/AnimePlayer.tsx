@@ -995,24 +995,11 @@ export default function AnimePlayer({
     );
     setActiveTranslationIndex(0);
 
-    trackPlayerEvent('player_episode_switch_started', {
-      switchId,
-      fromEpisode,
-      toEpisode: episodeNumber,
-      resumePlayback,
-      fullscreenActive:
-        fullscreen || telegramPseudoFullscreen,
-      providerFullscreen,
-    }, true);
   }, [
     animeId,
     applyResumeTarget,
     episodeNumber,
-    fullscreen,
-    providerFullscreen,
     sources.length,
-    telegramPseudoFullscreen,
-    trackPlayerEvent,
   ]);
 
   const handleEngineStateChange = useCallback((state: PlaybackEngineState) => {
@@ -2478,6 +2465,7 @@ export default function AnimePlayer({
           currentIdentity,
           stage: 'ready',
         });
+        episodeSwitchRef.current = null;
       } else {
         const switchMs = Math.max(
           0,
@@ -2687,14 +2675,32 @@ export default function AnimePlayer({
       failedCandidates: failedCandidatesRef.current.size,
       availableSources: sources.length,
     }, true);
+
+    const activeSwitch = episodeSwitchRef.current;
+    const currentIdentity = `${animeId ?? "unknown"}:${episodeNumber}`;
+    if (activeSwitch?.identity === currentIdentity) {
+      trackPlayerEvent('player_episode_switch_failed', {
+        switchId: activeSwitch.id,
+        fromEpisode: activeSwitch.fromEpisode,
+        toEpisode: activeSwitch.toEpisode,
+        failureKind: kind,
+        failedCandidates: failedCandidatesRef.current.size,
+        stage: 'playback',
+      }, true);
+      episodeSwitchRef.current = null;
+      resumeAfterEpisodeSwitchRef.current = false;
+    }
+
     setPlayerFailureKind(kind);
     setPlayerError(message);
   }, [
+    animeId,
     currentAttemptId,
     currentCandidateKey,
     currentSource?.name,
     currentSourceName,
     currentSourceType,
+    episodeNumber,
     setSourceStatus,
     sources.length,
     switchToFallback,
