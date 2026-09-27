@@ -261,12 +261,12 @@ export async function GET(
     const upstream = upstreamResult.response;
 
     if (!upstream) {
-      return NextResponse.redirect(sourceUrl, {
-        status: 307,
+      return new NextResponse(null, {
+        status: 204,
         headers: {
-          'Cache-Control': 'public, max-age=15',
+          'Cache-Control': 'public, max-age=15, s-maxage=15',
           'Retry-After': '15',
-          'X-AnimeBox-Image-Delivery': 'proxy-v2-source-fallback',
+          'X-AnimeBox-Image-Delivery': 'proxy-v3-soft-fail',
           'X-AnimeBox-Image-Error':
             upstreamResult.error ?? 'origin-failed',
           'X-AnimeBox-Image-Attempts':
@@ -357,12 +357,12 @@ export async function GET(
       error,
     );
 
-    return NextResponse.redirect(sourceUrl, {
-      status: 307,
+    return new NextResponse(null, {
+      status: 204,
       headers: {
-        'Cache-Control': 'public, max-age=15',
+        'Cache-Control': 'public, max-age=15, s-maxage=15',
         'Retry-After': '15',
-        'X-AnimeBox-Image-Delivery': 'proxy-v2-source-fallback',
+        'X-AnimeBox-Image-Delivery': 'proxy-v3-soft-fail',
         'X-AnimeBox-Image-Error': 'proxy-exception',
       },
     });
