@@ -195,6 +195,14 @@ const DIRECT_PLAYER_CONTROL_EVENT: Record<
   pip: 'player_control_pip',
   fullscreen: 'player_control_fullscreen',
   quality: 'player_control_quality',
+  mobile_controls_shown: 'player_mobile_controls_shown',
+  mobile_controls_hidden: 'player_mobile_controls_hidden',
+  mobile_double_tap_seek: 'player_mobile_double_tap_seek',
+  mobile_fullscreen_enter: 'player_mobile_fullscreen_enter',
+  mobile_fullscreen_exit: 'player_mobile_fullscreen_exit',
+  mobile_orientation_change: 'player_mobile_orientation_change',
+  mobile_settings_open: 'player_mobile_settings_open',
+  mobile_recovery_visible: 'player_mobile_recovery_visible',
 };
 
 const TRANSLATION_PREFERENCE_PREFIX = 'animebox:translation:v1';
