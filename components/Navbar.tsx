@@ -155,20 +155,6 @@ function NavbarContent() {
   }, []);
 
   useEffect(() => {
-    if (!searchActive) return;
-
-    const onPointerDown = (event: PointerEvent) => {
-      const form = searchFormRef.current;
-      const target = event.target;
-      if (!form || !(target instanceof Node) || form.contains(target)) return;
-      setSearchActive(false);
-    };
-
-    document.addEventListener('pointerdown', onPointerDown, true);
-    return () => document.removeEventListener('pointerdown', onPointerDown, true);
-  }, [searchActive]);
-
-  useEffect(() => {
     const onSearchInput = (event: Event) => {
       const detail = (event as CustomEvent<{ query?: unknown }>).detail;
       if (typeof detail?.query !== 'string') return;
@@ -557,6 +543,14 @@ function NavbarContent() {
           ref={searchFormRef}
           className="topbar__search"
           onSubmit={submitSearch}
+          onBlurCapture={(event) => {
+            const form = event.currentTarget;
+            window.requestAnimationFrame(() => {
+              if (!form.contains(document.activeElement)) {
+                setSearchActive(false);
+              }
+            });
+          }}
           role="search"
           style={{ position: 'relative' }}
         >
