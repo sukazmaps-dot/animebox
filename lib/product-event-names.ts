@@ -74,6 +74,7 @@ export const PRODUCT_CLIENT_EVENT_NAMES = [
   'watch_party_joined',
   'watch_party_reconnected',
   'watch_party_host_transferred',
+  'watch_party_host_recovered',
   'watch_party_presence_changed',
   'watch_party_sync_drift',
   'watch_party_reaction',
