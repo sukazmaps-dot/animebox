@@ -90,7 +90,12 @@ type QualityOption = {
   bitrate: number | null;
 };
 
-const CONTROL_HIDE_DELAY_MS = 2600;
+const DESKTOP_CONTROL_HIDE_DELAY_MS = 2600;
+const MOBILE_CONTROL_HIDE_DELAY_MS = 3000;
+const TOUCH_SINGLE_TAP_DELAY_MS = 280;
+const TOUCH_DOUBLE_TAP_WINDOW_MS = 320;
+const MOBILE_BREAKPOINT_PX = 768;
+const COMPACT_MOBILE_BREAKPOINT_PX = 390;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -151,6 +156,9 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
   const lastTouchTapRef = useRef<{ at: number; zone: 'left' | 'center' | 'right' } | null>(null);
   const lastPointerTypeRef = useRef<string>('mouse');
   const timelineInteractingRef = useRef(false);
+  const lastFullscreenActiveRef = useRef(fullscreenActive);
+  const lastOrientationRef = useRef<'portrait' | 'landscape' | null>(null);
+  const recoveryVisibleRef = useRef(false);
   const onReadyRef = useRef(onReady);
   const onErrorRef = useRef(onError);
   const onEngineStateChangeRef = useRef(onEngineStateChange);
@@ -178,6 +186,8 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
   const [timelineInteracting, setTimelineInteracting] = useState(false);
   const [scrubTime, setScrubTime] = useState<number | null>(null);
   const [tapFeedback, setTapFeedback] = useState<'back' | 'forward' | null>(null);
+  const [mobileUi, setMobileUi] = useState(false);
+  const [compactMobileUi, setCompactMobileUi] = useState(false);
 
   useImperativeHandle(forwardedRef, () => videoRef.current as HTMLVideoElement, []);
 
@@ -186,6 +196,46 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
     onErrorRef.current = onError;
     onEngineStateChangeRef.current = onEngineStateChange;
   }, [onEngineStateChange, onError, onReady]);
+
+  useEffect(() => {
+    const coarsePointer = window.matchMedia('(pointer: coarse)');
+
+    const syncMobileMode = () => {
+      const nextMobile =
+        coarsePointer.matches || window.innerWidth < MOBILE_BREAKPOINT_PX;
+      setMobileUi(nextMobile);
+      setCompactMobileUi(window.innerWidth < COMPACT_MOBILE_BREAKPOINT_PX);
+
+      if (!nextMobile) {
+        lastOrientationRef.current = null;
+        return;
+      }
+
+      const orientation =
+        window.innerWidth >= window.innerHeight ? 'landscape' : 'portrait';
+      if (
+        lastOrientationRef.current &&
+        lastOrientationRef.current !== orientation
+      ) {
+        onControlAction?.('mobile_orientation_change', {
+          orientation,
+          width: window.innerWidth,
+          height: window.innerHeight,
+          fullscreenActive,
+        });
+      }
+      lastOrientationRef.current = orientation;
+    };
+
+    syncMobileMode();
+    coarsePointer.addEventListener?.('change', syncMobileMode);
+    window.addEventListener('resize', syncMobileMode);
+
+    return () => {
+      coarsePointer.removeEventListener?.('change', syncMobileMode);
+      window.removeEventListener('resize', syncMobileMode);
+    };
+  }, [fullscreenActive, onControlAction]);
 
   const transitionEngine = useCallback((event: PlaybackEngineEvent) => {
     const next = reducePlaybackEngineState(engineStateRef.current, event);
@@ -201,18 +251,90 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
     }
   }, []);
 
+  const setControlsVisibility = useCallback((
+    visible: boolean,
+    reason: string,
+  ) => {
+    setControlsVisible((current) => {
+      if (current === visible) return current;
+
+      if (mobileUi) {
+        onControlAction?.(
+          visible ? 'mobile_controls_shown' : 'mobile_controls_hidden',
+          { reason },
+        );
+      }
+
+      return visible;
+    });
+  }, [mobileUi, onControlAction]);
+
   const scheduleControlsHide = useCallback(() => {
     clearControlsTimer();
-    if (!playing || settingsOpen) return;
-    controlsTimerRef.current = window.setTimeout(() => {
-      setControlsVisible(false);
-    }, CONTROL_HIDE_DELAY_MS);
-  }, [clearControlsTimer, playing, settingsOpen]);
+    if (
+      !playing ||
+      settingsOpen ||
+      timelineInteractingRef.current
+    ) {
+      return;
+    }
 
-  const revealControls = useCallback(() => {
-    setControlsVisible(true);
+    const delay = mobileUi
+      ? MOBILE_CONTROL_HIDE_DELAY_MS
+      : DESKTOP_CONTROL_HIDE_DELAY_MS;
+
+    controlsTimerRef.current = window.setTimeout(() => {
+      setControlsVisibility(false, 'auto_hide');
+    }, delay);
+  }, [
+    clearControlsTimer,
+    mobileUi,
+    playing,
+    setControlsVisibility,
+    settingsOpen,
+  ]);
+
+  const revealControls = useCallback((reason = 'interaction') => {
+    setControlsVisibility(true, reason);
     scheduleControlsHide();
-  }, [scheduleControlsHide]);
+  }, [scheduleControlsHide, setControlsVisibility]);
+
+  useEffect(() => {
+    if (!mobileUi) {
+      lastFullscreenActiveRef.current = fullscreenActive;
+      return;
+    }
+
+    if (lastFullscreenActiveRef.current !== fullscreenActive) {
+      onControlAction?.(
+        fullscreenActive
+          ? 'mobile_fullscreen_enter'
+          : 'mobile_fullscreen_exit',
+        {
+          width: window.innerWidth,
+          height: window.innerHeight,
+        },
+      );
+      lastFullscreenActiveRef.current = fullscreenActive;
+    }
+  }, [fullscreenActive, mobileUi, onControlAction]);
+
+  useEffect(() => {
+    const recoveryVisible = buffering || enginePhase === 'recovering';
+
+    if (
+      mobileUi &&
+      recoveryVisible &&
+      !recoveryVisibleRef.current
+    ) {
+      onControlAction?.('mobile_recovery_visible', {
+        phase: enginePhase,
+        buffering,
+      });
+    }
+
+    recoveryVisibleRef.current = recoveryVisible;
+  }, [buffering, enginePhase, mobileUi, onControlAction]);
 
   useEffect(() => () => {
     clearControlsTimer();
@@ -226,18 +348,28 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
     if (playing) scheduleControlsHide();
     else {
       clearControlsTimer();
-      setControlsVisible(true);
+      setControlsVisibility(true, 'paused');
     }
-  }, [clearControlsTimer, playing, scheduleControlsHide]);
+  }, [
+    clearControlsTimer,
+    playing,
+    scheduleControlsHide,
+    setControlsVisibility,
+  ]);
 
   useEffect(() => {
     if (settingsOpen) {
       clearControlsTimer();
-      setControlsVisible(true);
+      setControlsVisibility(true, 'settings_open');
     } else {
       scheduleControlsHide();
     }
-  }, [clearControlsTimer, scheduleControlsHide, settingsOpen]);
+  }, [
+    clearControlsTimer,
+    scheduleControlsHide,
+    setControlsVisibility,
+    settingsOpen,
+  ]);
 
   useEffect(() => {
     const video = videoRef.current;
