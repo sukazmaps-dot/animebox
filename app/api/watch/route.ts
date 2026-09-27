@@ -19,6 +19,10 @@ import {
 import { syncUserProgression } from '@/lib/progression-server';
 import { syncUserChallenges } from '@/lib/challenges-server';
 import { trackProductEvents } from '@/lib/product-events-server';
+import {
+  assessWatchSessionTrust,
+  unavailableWatchTrustAssessment,
+} from '@/lib/watch-trust-server';
 
 import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
 import { observeApiRoute } from '@/lib/request-observability-server';
@@ -54,6 +58,21 @@ function optionalText(value: unknown, max: number) {
     throw new ApiError(400, 'Некорректное текстовое значение.');
   }
   return value;
+}
+
+async function watchTrustOrFailOpen(input: {
+  userId: string;
+  sessionId: string;
+  phase: 'completion' | 'session_end';
+}) {
+  try {
+    return await assessWatchSessionTrust(input);
+  } catch (error) {
+    // Trust telemetry is deliberately fail-open. A database/analytics outage
+    // must not punish a legitimate viewer or stop normal progress persistence.
+    console.warn('[watch] trust assessment unavailable:', error);
+    return unavailableWatchTrustAssessment();
+  }
 }
 
 function providerSkip(value: unknown) {
@@ -201,9 +220,10 @@ async function observedPOST(request: Request) {
         throw new ApiError(400, 'Некорректная позиция плеера.');
       }
 
+      const heartbeatSessionId = sessionId(body.sessionId);
       const result = await recordWatchHeartbeat({
         userId: user.id,
-        sessionId: sessionId(body.sessionId),
+        sessionId: heartbeatSessionId,
         seq,
         positionMs: heartbeatPosition,
         durationMs: optionalPositiveInteger(body.durationMs, 28_800_000),
@@ -211,6 +231,11 @@ async function observedPOST(request: Request) {
       });
 
       if (result.newlyCompleted) {
+        const trust = await watchTrustOrFailOpen({
+          userId: user.id,
+          sessionId: heartbeatSessionId,
+          phase: 'completion',
+        });
         const admin = adminClient();
         let completedTitleNow = false;
 
@@ -241,25 +266,33 @@ async function observedPOST(request: Request) {
           console.error('[watch] title completion sync failed:', syncError);
         }
 
-        try {
-          await syncUserChallenges({
-            userId: user.id,
-            eventKey: `episode:${result.animeId}:${result.episode}`,
-            completedEpisodes: 1,
-            completedTitles: completedTitleNow ? 1 : 0,
-          });
-        } catch (challengeError) {
-          console.error('[watch] challenge sync failed:', challengeError);
-        }
+        if (trust.rewardEligible) {
+          try {
+            await syncUserChallenges({
+              userId: user.id,
+              eventKey: `episode:${result.animeId}:${result.episode}`,
+              completedEpisodes: 1,
+              completedTitles: completedTitleNow ? 1 : 0,
+            });
+          } catch (challengeError) {
+            console.error('[watch] challenge sync failed:', challengeError);
+          }
 
-        try {
-          await syncUserProgression({
-            userId: user.id,
-            eventKey: `watch:episode:${result.animeId}:${result.episode}`,
-            reason: 'episode_completed',
+          try {
+            await syncUserProgression({
+              userId: user.id,
+              eventKey: `watch:episode:${result.animeId}:${result.episode}`,
+              reason: 'episode_completed',
+            });
+          } catch (progressionError) {
+            console.error('[watch] progression sync failed:', progressionError);
+          }
+        } else {
+          console.warn('[watch] competitive completion rewards quarantined', {
+            sessionId: heartbeatSessionId,
+            state: trust.state,
+            score: trust.score,
           });
-        } catch (progressionError) {
-          console.error('[watch] progression sync failed:', progressionError);
         }
 
         // Attribute a confirmed episode completion to a recent recommendation
@@ -313,35 +346,48 @@ async function observedPOST(request: Request) {
       });
 
       let progressionUpdated = false;
+      const trust = await watchTrustOrFailOpen({
+        userId: user.id,
+        sessionId: endedSessionId,
+        phase: 'session_end',
+      });
 
-      try {
-        const acceptedMs = await getWatchSessionAcceptedMs(
-          user.id,
-          endedSessionId,
-        );
+      if (trust.rewardEligible) {
+        try {
+          const acceptedMs = await getWatchSessionAcceptedMs(
+            user.id,
+            endedSessionId,
+          );
 
-        const challengeResult = await syncUserChallenges({
-          userId: user.id,
-          eventKey: `watch:end:${endedSessionId}`,
-          activeMs: acceptedMs,
+          const challengeResult = await syncUserChallenges({
+            userId: user.id,
+            eventKey: `watch:end:${endedSessionId}`,
+            activeMs: acceptedMs,
+          });
+
+          progressionUpdated =
+            Number(challengeResult?.reward_xp ?? 0) > 0;
+        } catch (challengeError) {
+          console.error('[watch] challenge end sync failed:', challengeError);
+        }
+
+        try {
+          const progression = await syncUserProgression({
+            userId: user.id,
+            eventKey: `watch:end:${endedSessionId}`,
+            reason: 'watch_session_end',
+          });
+          progressionUpdated =
+            progressionUpdated || Number(progression?.earned_now ?? 0) > 0;
+        } catch (progressionError) {
+          console.error('[watch] progression end sync failed:', progressionError);
+        }
+      } else {
+        console.warn('[watch] competitive session rewards quarantined', {
+          sessionId: endedSessionId,
+          state: trust.state,
+          score: trust.score,
         });
-
-        progressionUpdated =
-          Number(challengeResult?.reward_xp ?? 0) > 0;
-      } catch (challengeError) {
-        console.error('[watch] challenge end sync failed:', challengeError);
-      }
-
-      try {
-        const progression = await syncUserProgression({
-          userId: user.id,
-          eventKey: `watch:end:${endedSessionId}`,
-          reason: 'watch_session_end',
-        });
-        progressionUpdated =
-          progressionUpdated || Number(progression?.earned_now ?? 0) > 0;
-      } catch (progressionError) {
-        console.error('[watch] progression end sync failed:', progressionError);
       }
 
       return response({
