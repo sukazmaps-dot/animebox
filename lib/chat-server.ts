@@ -71,6 +71,8 @@ export async function getChatAuthors(userIds: string[]): Promise<Map<string, Cha
       sponsor: sponsorByUser.get(profile.id) ?? null,
       role: publicIdentityRoleFor(profile.id),
       premium: appearance?.premiumBadge ?? false,
+      nicknameEffect: appearance?.premiumStudio?.nicknameEffect ?? null,
+      nicknameAccent: appearance?.premiumStudio?.accentColor ?? null,
     });
   }
 
@@ -84,6 +86,8 @@ export async function getChatAuthors(userIds: string[]): Promise<Map<string, Cha
       sponsor: sponsorByUser.get(id) ?? null,
       role: publicIdentityRoleFor(id),
       premium: false,
+      nicknameEffect: null,
+      nicknameAccent: null,
     });
   }
 

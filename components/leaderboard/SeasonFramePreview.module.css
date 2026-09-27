@@ -35,7 +35,7 @@
 .overlayOnly {
   position:absolute;
   z-index:20;
-  inset:-6%;
+  inset:0;
   display:block;
   pointer-events:none;
   overflow:visible;
@@ -87,7 +87,7 @@
 
 @media (max-width:560px) {
   .overlayOnly {
-    inset:-5%;
+    inset:0;
   }
 }
 

@@ -9,9 +9,17 @@ import {
 import { getEffectiveUserEntitlements } from '@/lib/entitlements-server';
 import { usernamePolicyError } from '@/lib/auth-identity-policy';
 import {
+  DEFAULT_PREMIUM_STUDIO_SETTINGS,
   isHexColor,
+  isPremiumAtmosphereEffect,
   isPremiumBorderStyle,
+  isPremiumParticleEffect,
+  isPremiumEntranceEffect,
+  isPremiumHeroStyle,
+  isPremiumMotionMode,
+  isPremiumNicknameEffect,
   isPremiumProfileTheme,
+  isPremiumSurfaceStyle,
   studioSettingsFromRow,
   type PremiumStudioSettings,
 } from '@/lib/premium-studio';
@@ -35,6 +43,7 @@ const STUDIO_COLUMNS = [
   'text_color',
   'glow_strength',
   'border_style',
+  'particle_effect',
   'avatar_path',
   'avatar_static_path',
   'avatar_position_x',
@@ -46,6 +55,13 @@ const STUDIO_COLUMNS = [
   'banner_position_y',
   'banner_zoom',
   'sync_player_theme',
+  'atmosphere_effect',
+  'atmosphere_intensity',
+  'motion_mode',
+  'entrance_effect',
+  'nickname_effect',
+  'hero_style',
+  'surface_style',
 ].join(',');
 
 type ProfilePatch = {
@@ -209,6 +225,14 @@ function readZoom(value: unknown, label: string) {
   return Math.round(number * 100) / 100;
 }
 
+function readPercent(value: unknown, label: string) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0 || number > 100) {
+    throw new ApiError(400, `${label} должна быть от 0 до 100.`);
+  }
+  return Math.round(number);
+}
+
 function readStudioSettings(value: unknown, userId: string): PremiumStudioSettings {
   const data = objectValue(value, 'Оформление');
   const theme = typeof data.theme === 'string' ? data.theme.trim() : '';
@@ -216,6 +240,31 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
   const accentColor = typeof data.accentColor === 'string' ? data.accentColor.trim().toUpperCase() : '';
   const textColor = typeof data.textColor === 'string' ? data.textColor.trim().toUpperCase() : '';
   const borderStyle = typeof data.borderStyle === 'string' ? data.borderStyle.trim() : '';
+  const particleEffect = typeof data.particleEffect === 'string' ? data.particleEffect.trim() : '';
+  const atmosphereEffect =
+    typeof data.atmosphereEffect === 'string'
+      ? data.atmosphereEffect.trim()
+      : DEFAULT_PREMIUM_STUDIO_SETTINGS.atmosphereEffect;
+  const motionMode =
+    typeof data.motionMode === 'string'
+      ? data.motionMode.trim()
+      : DEFAULT_PREMIUM_STUDIO_SETTINGS.motionMode;
+  const entranceEffect =
+    typeof data.entranceEffect === 'string'
+      ? data.entranceEffect.trim()
+      : DEFAULT_PREMIUM_STUDIO_SETTINGS.entranceEffect;
+  const nicknameEffect =
+    typeof data.nicknameEffect === 'string'
+      ? data.nicknameEffect.trim()
+      : DEFAULT_PREMIUM_STUDIO_SETTINGS.nicknameEffect;
+  const heroStyle =
+    typeof data.heroStyle === 'string'
+      ? data.heroStyle.trim()
+      : DEFAULT_PREMIUM_STUDIO_SETTINGS.heroStyle;
+  const surfaceStyle =
+    typeof data.surfaceStyle === 'string'
+      ? data.surfaceStyle.trim()
+      : DEFAULT_PREMIUM_STUDIO_SETTINGS.surfaceStyle;
   const glowStrength = Number(data.glowStrength);
 
   if (!isPremiumProfileTheme(theme)) throw new ApiError(400, 'Неизвестная тема профиля.');
@@ -223,6 +272,13 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
     throw new ApiError(400, 'Цвета должны быть в формате #RRGGBB.');
   }
   if (!isPremiumBorderStyle(borderStyle)) throw new ApiError(400, 'Неизвестный стиль рамки.');
+  if (!isPremiumParticleEffect(particleEffect)) throw new ApiError(400, 'Неизвестный эффект частиц.');
+  if (!isPremiumAtmosphereEffect(atmosphereEffect)) throw new ApiError(400, 'Неизвестный эффект атмосферы.');
+  if (!isPremiumMotionMode(motionMode)) throw new ApiError(400, 'Неизвестный режим движения.');
+  if (!isPremiumEntranceEffect(entranceEffect)) throw new ApiError(400, 'Неизвестный entrance-эффект.');
+  if (!isPremiumNicknameEffect(nicknameEffect)) throw new ApiError(400, 'Неизвестный эффект ника.');
+  if (!isPremiumHeroStyle(heroStyle)) throw new ApiError(400, 'Неизвестный стиль hero.');
+  if (!isPremiumSurfaceStyle(surfaceStyle)) throw new ApiError(400, 'Неизвестный стиль поверхностей.');
   if (!Number.isFinite(glowStrength) || glowStrength < 0 || glowStrength > 100) {
     throw new ApiError(400, 'Интенсивность свечения должна быть от 0 до 100.');
   }
@@ -237,6 +293,7 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
     textColor,
     glowStrength: Math.round(glowStrength),
     borderStyle,
+    particleEffect,
     avatarPath: safePremiumMediaPath(data.avatarPath, userId),
     avatarStaticPath: safePremiumMediaPath(data.avatarStaticPath, userId),
     avatarPositionX: readPosition(data.avatarPositionX, 'Позиция аватара по X'),
@@ -248,6 +305,16 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
     bannerPositionY: readPosition(data.bannerPositionY, 'Позиция баннера по Y'),
     bannerZoom: readZoom(data.bannerZoom, 'Масштаб баннера'),
     syncPlayerTheme: data.syncPlayerTheme,
+    atmosphereEffect,
+    atmosphereIntensity: readPercent(
+      data.atmosphereIntensity ?? DEFAULT_PREMIUM_STUDIO_SETTINGS.atmosphereIntensity,
+      'Интенсивность атмосферы',
+    ),
+    motionMode,
+    entranceEffect,
+    nicknameEffect,
+    heroStyle,
+    surfaceStyle,
   };
 }
 
@@ -260,6 +327,7 @@ function studioRow(settings: PremiumStudioSettings, userId: string) {
     text_color: settings.textColor,
     glow_strength: settings.glowStrength,
     border_style: settings.borderStyle,
+    particle_effect: settings.particleEffect,
     avatar_path: settings.avatarPath,
     avatar_static_path: settings.avatarStaticPath,
     avatar_position_x: settings.avatarPositionX,
@@ -271,6 +339,13 @@ function studioRow(settings: PremiumStudioSettings, userId: string) {
     banner_position_y: settings.bannerPositionY,
     banner_zoom: settings.bannerZoom,
     sync_player_theme: settings.syncPlayerTheme,
+    atmosphere_effect: settings.atmosphereEffect,
+    atmosphere_intensity: settings.atmosphereIntensity,
+    motion_mode: settings.motionMode,
+    entrance_effect: settings.entranceEffect,
+    nickname_effect: settings.nicknameEffect,
+    hero_style: settings.heroStyle,
+    surface_style: settings.surfaceStyle,
     updated_at: new Date().toISOString(),
   };
 }

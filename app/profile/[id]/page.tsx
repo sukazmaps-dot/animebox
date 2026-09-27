@@ -5,9 +5,11 @@ import { notFound } from 'next/navigation';
 import { getPublicProfile } from '@/lib/public-profile-server';
 import UserIdentity from '@/components/identity/UserIdentity';
 import UserAvatarWithFrame from '@/components/profile/UserAvatarWithFrame';
+import PremiumParticleLayer from '@/components/profile/PremiumParticleLayer';
 import ProfileAnimeIdentity from '@/components/profile/ProfileAnimeIdentity';
 import Icon from '@/components/Icon';
 import FriendActionButton from '@/components/friends/FriendActionButton';
+import PremiumProfileAtmosphere from '@/components/premium/PremiumProfileAtmosphere';
 import ProfileWidgetsShowcase from '@/components/profile/ProfileWidgetsShowcase';
 import { premiumMediaStyle, premiumStudioCssVariables } from '@/lib/premium-studio';
 import { formatSeasonRange, seasonPlacementLabel } from '@/lib/seasons';
@@ -84,12 +86,24 @@ export default async function PublicProfilePage({ params }: Props) {
   const premiumStyle = profile.premiumStudio
     ? (premiumStudioCssVariables(profile.premiumStudio) as CSSProperties)
     : undefined;
+  const premiumIdentityActive = Boolean(profile.premium && profile.premiumStudio);
 
   return (
     <main
-      className={`profile-v2 profile-v2--public premium-profile-theme--${profile.premiumTheme} ${profile.premiumStudio ? 'premium-profile-custom' : ''}`}
+      className={`profile-v2 profile-v2--public premium-profile-theme--${profile.premiumTheme} ${profile.premiumStudio ? 'premium-profile-custom' : ''} ${premiumIdentityActive ? 'premium-profile-v21' : ''}`}
       style={premiumStyle}
+      data-premium-atmosphere={premiumIdentityActive ? profile.premiumStudio?.atmosphereEffect : undefined}
+      data-premium-motion={premiumIdentityActive ? profile.premiumStudio?.motionMode : undefined}
+      data-premium-entrance={premiumIdentityActive ? profile.premiumStudio?.entranceEffect : undefined}
+      data-premium-hero={premiumIdentityActive ? profile.premiumStudio?.heroStyle : undefined}
+      data-premium-surface={premiumIdentityActive ? profile.premiumStudio?.surfaceStyle : undefined}
     >
+      {premiumIdentityActive && profile.premiumStudio && (
+        <PremiumProfileAtmosphere
+          effect={profile.premiumStudio.atmosphereEffect}
+          motion={profile.premiumStudio.motionMode}
+        />
+      )}
       <section className="profile-v2__hero">
         <div className="profile-v2__banner">
           {profile.bannerUrl ? (
@@ -117,6 +131,8 @@ export default async function PublicProfilePage({ params }: Props) {
           <div className="profile-v2__banner-shade" />
         </div>
 
+        <PremiumParticleLayer effect={profile.premiumStudio?.particleEffect} className="premium-particles-profile-hero" />
+
         <div className="profile-v2__identity">
           <UserAvatarWithFrame
             src={profile.avatarUrl}
@@ -125,7 +141,8 @@ export default async function PublicProfilePage({ params }: Props) {
             role={profile.role}
             sponsor={profile.sponsor}
             mediaTransform={profile.avatarTransform}
-            seasonFrameKey={profile.seasonFrameKey}
+            profileFrameKey={profile.profileFrameKey}
+            premiumFrameMotion={profile.premium && profile.premiumStudio?.motionMode !== 'off'}
           />
 
           <div className="profile-v2__identity-main">
@@ -133,19 +150,24 @@ export default async function PublicProfilePage({ params }: Props) {
               <div>
                 <div className="profile-v2__name-row">
                   <h1>
-                    <UserIdentity
-                      username={profile.username}
-                      role={profile.role}
-                      sponsor={profile.sponsor}
-                      showLabel
-                    />
+                    <span
+                      className={premiumIdentityActive ? 'premium-profile-v21__nickname' : undefined}
+                      data-effect={premiumIdentityActive ? profile.premiumStudio?.nicknameEffect : undefined}
+                    >
+                      <UserIdentity
+                        username={profile.username}
+                        role={profile.role}
+                        sponsor={profile.sponsor}
+                        showLabel
+                      />
+                    </span>
                   </h1>
 
                   <span
                     className="inline-flex min-h-6 items-center rounded-full border border-violet-400/20 bg-violet-400/10 px-2.5 text-[9px] font-black tracking-[0.04em] text-violet-200"
                     title={`${profile.progression.totalXp.toLocaleString('ru-RU')} XP`}
                   >
-                    LV.{profile.progression.level} · {profile.progression.rank}
+                    LVL {profile.progression.level} · {profile.progression.rank}
                   </span>
 
                   {profile.premium && (

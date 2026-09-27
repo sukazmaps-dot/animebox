@@ -119,6 +119,10 @@
   height: 100%;
 }
 
+.particleLayer {
+  z-index: 2;
+}
+
 .banner img {
   display: block;
   width: 100%;
@@ -165,6 +169,39 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* A decorative season frame needs canvas outside the photo. The old layout
+   kept the outer shell at 72px, so its ~70% frame aperture made the actual
+   avatar visibly smaller than everybody else's. Give the frame its own outer
+   canvas while keeping the visible photo ~72px. */
+.avatarShellSeason {
+  position: relative;
+  flex-basis: 92px;
+  width: 92px;
+  height: 92px;
+  margin: -10px -10px -10px 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.avatarShellSeason .avatarMedia {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 50%;
+  width: 78%;
+  height: 78%;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #111827;
+  box-shadow:
+    0 10px 26px rgba(0,0,0,.32),
+    0 0 0 2px color-mix(in srgb, var(--profile-preview-primary) 76%, #050812 24%);
+  transform: translate(-50%, -50%);
 }
 
 .identityCopy {
@@ -465,6 +502,14 @@
     border-radius: 17px;
   }
 
+  .avatarShellSeason {
+    flex-basis: 87px;
+    width: 87px;
+    height: 87px;
+    margin: -9px -9px -10px 0;
+    border-radius: 0;
+  }
+
   .metaGrid {
     grid-template-columns: 1fr;
   }
@@ -702,6 +747,482 @@
   box-shadow: 0 0 0 2px #080c14, 0 8px 22px rgba(0,0,0,.34);
 }
 
+.avatarShellSeason[data-milestone-frame='true'] .avatarMedia {
+  width: 58%;
+  height: 58%;
+}
+
 .seasonFrameOverlay {
   z-index: 4;
+}
+
+
+/* =========================================================
+   Patch 18.9.2 — Premium Identity inside shared mini-profile
+   Used by comments, global chat and Watch Together.
+   ========================================================= */
+
+.card[data-premium='true'] .hero,
+.card[data-premium='true'] .body {
+  position: relative;
+  z-index: 3;
+}
+
+.card[data-premium='true'] .close {
+  position: absolute;
+  z-index: 20;
+  top: 11px;
+  right: 11px;
+}
+
+.atmosphere {
+  display: contents;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.atmosphere :global(.premium-profile-v21__ambient-layer),
+.atmosphere :global(.premium-profile-v21__particle-layer) {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.atmosphere :global(.premium-profile-v21__ambient-layer) {
+  z-index: 1;
+  opacity: var(--profile-preview-atmosphere-alpha, .14);
+}
+
+.atmosphere :global(.premium-profile-v21__particle-layer) {
+  z-index: 4;
+  opacity: var(--profile-preview-atmosphere-alpha, .14);
+  mix-blend-mode: screen;
+}
+
+.atmosphere :global(.premium-profile-v21__ambient) {
+  position: absolute;
+  width: 72%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(28px);
+  opacity: .58;
+  will-change: transform, opacity;
+}
+
+.atmosphere :global(.premium-profile-v21__ambient--a) {
+  left: -24%;
+  top: -16%;
+  background:
+    radial-gradient(circle,
+      color-mix(in srgb, var(--profile-preview-accent) 76%, transparent),
+      transparent 68%);
+  animation: miniAuraA 14s ease-in-out infinite;
+}
+
+.atmosphere :global(.premium-profile-v21__ambient--b) {
+  right: -30%;
+  top: 18%;
+  background:
+    radial-gradient(circle,
+      color-mix(in srgb, var(--profile-preview-accent) 54%, #5edfff 46%),
+      transparent 70%);
+  animation: miniAuraB 17s ease-in-out infinite;
+}
+
+.atmosphere :global(.premium-profile-v21__ambient--c) {
+  left: 25%;
+  bottom: -34%;
+  width: 58%;
+  background:
+    radial-gradient(circle,
+      color-mix(in srgb, var(--profile-preview-accent) 58%, #ff79bc 42%),
+      transparent 70%);
+  animation: miniAuraC 19s ease-in-out infinite;
+}
+
+.atmosphere :global(.premium-profile-v21__particles) {
+  position: absolute;
+  inset: 0;
+}
+
+.atmosphere :global(.premium-profile-v21__particles > i) {
+  position: absolute;
+  left: var(--particle-left, 50%);
+  top: 106%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--profile-preview-accent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--profile-preview-accent) 58%, transparent);
+  opacity: .66;
+  transform: translate3d(0,0,0) scale(var(--particle-scale, 1));
+  animation-name: miniParticleRise;
+  animation-duration: var(--particle-duration-soft, 10s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-delay: var(--particle-delay, 0s);
+  will-change: transform, opacity;
+}
+
+.atmosphere :global(.premium-profile-v21__particles > i:nth-child(n+9)) {
+  display: none;
+}
+
+.atmosphere[data-effect='aurora'] :global(.premium-profile-v21__particles) {
+  opacity: .32;
+}
+
+.atmosphere[data-effect='aurora'] :global(.premium-profile-v21__particles > i) {
+  top: var(--particle-static-top, 50%);
+  animation-name: miniStarDrift;
+}
+
+.atmosphere[data-effect='embers'] :global(.premium-profile-v21__ambient--a),
+.atmosphere[data-effect='embers'] :global(.premium-profile-v21__ambient--b) {
+  background: radial-gradient(circle, rgba(255, 93, 49, .72), transparent 70%);
+}
+
+.atmosphere[data-effect='embers'] :global(.premium-profile-v21__particles > i) {
+  width: 3px;
+  height: 6px;
+  border-radius: 70% 70% 45% 45%;
+  background: #ff8450;
+  box-shadow: 0 0 9px rgba(255, 102, 55, .58);
+}
+
+.atmosphere[data-effect='sakura'] :global(.premium-profile-v21__ambient--a),
+.atmosphere[data-effect='sakura'] :global(.premium-profile-v21__ambient--c) {
+  background: radial-gradient(circle, rgba(255, 113, 180, .68), transparent 72%);
+}
+
+.atmosphere[data-effect='sakura'] :global(.premium-profile-v21__particles > i) {
+  top: -10%;
+  width: 7px;
+  height: 4px;
+  border-radius: 80% 20% 70% 30%;
+  background: #ff9dca;
+  animation-name: miniPetalFall;
+}
+
+.atmosphere[data-effect='stardust'] :global(.premium-profile-v21__ambient) {
+  opacity: .28;
+}
+
+.atmosphere[data-effect='stardust'] :global(.premium-profile-v21__particles > i) {
+  top: var(--particle-static-top, 50%);
+  width: 4px;
+  height: 4px;
+  background: #fff;
+  opacity: .92;
+  box-shadow:
+    0 0 8px rgba(255,255,255,.96),
+    0 0 18px color-mix(in srgb, var(--profile-preview-accent) 88%, transparent);
+  animation-name: miniStarDrift;
+}
+
+.atmosphere[data-effect='stardust'] :global(.premium-profile-v21__particles > i:nth-child(3n)) {
+  width: 2px;
+  height: 2px;
+  opacity: .7;
+}
+
+.atmosphere[data-effect='stardust'] :global(.premium-profile-v21__particles > i:nth-child(4n)) {
+  width: 5px;
+  height: 5px;
+  opacity: 1;
+}
+
+.card[data-motion='live'] .atmosphere :global(.premium-profile-v21__particle-layer) {
+  opacity: var(--profile-preview-atmosphere-live-alpha, .48);
+}
+
+.card[data-motion='live'] .atmosphere :global(.premium-profile-v21__particles > i) {
+  animation-duration: var(--particle-duration-live, 7s);
+}
+
+.card[data-motion='off'] .atmosphere,
+.card[data-motion='off'] .atmosphere * {
+  animation: none !important;
+}
+
+.card[data-motion='off'] .atmosphere :global(.premium-profile-v21__particles > i) {
+  top: var(--particle-static-top, 50%);
+  opacity: .54;
+  transform:
+    translate3d(0,0,0)
+    scale(var(--particle-scale, 1))
+    rotate(var(--particle-rotation, 0deg));
+}
+
+.card[data-motion='off'] .atmosphere[data-effect='stardust'] :global(.premium-profile-v21__particles > i) {
+  opacity: .82;
+}
+
+.card[data-hero='spotlight'] .banner::after {
+  background:
+    radial-gradient(circle at 28% 70%, transparent 0 16%, rgba(4,6,12,.54) 56%),
+    linear-gradient(180deg, transparent 24%, rgba(6,8,15,.18) 58%, rgba(7,10,18,.9) 100%);
+}
+
+.card[data-hero='clean'] .atmosphere :global(.premium-profile-v21__ambient-layer),
+.card[data-hero='clean'] .atmosphere :global(.premium-profile-v21__particle-layer) {
+  opacity: var(--profile-preview-atmosphere-clean-alpha, .12);
+}
+
+.card[data-surface='glass'] {
+  background:
+    radial-gradient(circle at 92% 0%,
+      color-mix(in srgb, var(--profile-preview-accent) 16%, transparent),
+      transparent 38%),
+    color-mix(in srgb, var(--profile-preview-primary) 78%, rgba(8,11,20,.22));
+  backdrop-filter: blur(18px);
+}
+
+.card[data-surface='deep'] {
+  background:
+    linear-gradient(155deg,
+      color-mix(in srgb, var(--profile-preview-primary) 88%, #151b30 12%),
+      color-mix(in srgb, var(--profile-preview-primary) 96%, #04060b 4%));
+}
+
+.card[data-surface='ink'] {
+  background:
+    linear-gradient(155deg,
+      color-mix(in srgb, var(--profile-preview-primary) 86%, #060609 14%),
+      #05070c);
+}
+
+.nickname {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.nickname[data-effect='gradient'] {
+  background: linear-gradient(
+    104deg,
+    var(--profile-preview-text) 5%,
+    color-mix(in srgb, var(--profile-preview-accent) 76%, white 24%) 48%,
+    var(--profile-preview-text) 94%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.nickname[data-effect='gradient'] * {
+  color: inherit !important;
+}
+
+.nickname[data-effect='shimmer'] {
+  background:
+    linear-gradient(
+      104deg,
+      var(--profile-preview-text) 0 36%,
+      white 47%,
+      color-mix(in srgb, var(--profile-preview-accent) 72%, white 28%) 52%,
+      var(--profile-preview-text) 63% 100%
+    );
+  background-size: 240% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: miniNicknameShimmer 5.8s linear infinite;
+}
+
+.nickname[data-effect='shimmer'] * {
+  color: inherit !important;
+}
+
+.nickname[data-effect='glow'] {
+  color: var(--profile-preview-text);
+  text-shadow:
+    0 0 10px color-mix(in srgb, var(--profile-preview-accent) 44%, transparent),
+    0 0 20px color-mix(in srgb, var(--profile-preview-accent) 18%, transparent);
+}
+
+.avatarShellSeason[data-premium='true']::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  inset: 12%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle,
+      color-mix(in srgb, var(--profile-preview-accent) 36%, transparent) 0 42%,
+      transparent 72%);
+  filter: blur(8px);
+  transform: scale(1.12);
+  opacity: .72;
+  animation: miniAvatarAura 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.card[data-motion='off'] .avatarShellSeason::before {
+  animation: none;
+}
+
+.card[data-premium='true'][data-entrance='fade'] {
+  animation: miniProfileFade .2s ease-out both;
+}
+
+.card[data-premium='true'][data-entrance='bloom'] {
+  animation: miniProfileBloom .34s cubic-bezier(.18,.76,.2,1) both;
+}
+
+.card[data-premium='true'][data-entrance='manga'] {
+  animation: miniProfileManga .3s cubic-bezier(.2,.72,.18,1) both;
+}
+
+.card[data-premium='true'][data-entrance='glitch'] {
+  animation: miniProfileGlitch .26s steps(2,end) both;
+}
+
+@keyframes miniAuraA {
+  0%,100% { transform: translate3d(0,0,0) scale(1); }
+  50% { transform: translate3d(12%,10%,0) scale(1.08); }
+}
+
+@keyframes miniAuraB {
+  0%,100% { transform: translate3d(0,0,0) scale(1); }
+  50% { transform: translate3d(-16%,12%,0) scale(1.1); }
+}
+
+@keyframes miniAuraC {
+  0%,100% { transform: translate3d(0,0,0) scale(.96); }
+  50% { transform: translate3d(8%,-12%,0) scale(1.08); }
+}
+
+@keyframes miniParticleRise {
+  0% {
+    transform: translate3d(0,0,0) scale(var(--particle-scale, .72));
+    opacity: 0;
+  }
+  16% { opacity: .78; }
+  78% { opacity: .56; }
+  100% {
+    transform:
+      translate3d(
+        var(--particle-drift-x, 0px),
+        var(--particle-rise-y, -360px),
+        0
+      )
+      scale(var(--particle-scale, 1));
+    opacity: 0;
+  }
+}
+
+@keyframes miniPetalFall {
+  0% {
+    transform:
+      translate3d(0,0,0)
+      rotate(0deg)
+      scale(var(--particle-scale, 1));
+    opacity: 0;
+  }
+  15% { opacity: .76; }
+  82% { opacity: .54; }
+  100% {
+    transform:
+      translate3d(
+        var(--particle-drift-x, 0px),
+        var(--particle-fall-y, 360px),
+        0
+      )
+      rotate(var(--particle-rotation, 320deg))
+      scale(var(--particle-scale, 1));
+    opacity: 0;
+  }
+}
+
+@keyframes miniStarDrift {
+  0%,100% {
+    transform: translate3d(0,0,0) scale(var(--particle-scale, .8));
+    opacity: .28;
+  }
+  50% {
+    transform:
+      translate3d(var(--particle-drift-x, 8px), -10px, 0)
+      scale(var(--particle-scale, 1.05));
+    opacity: 1;
+  }
+}
+
+@keyframes miniNicknameShimmer {
+  to { background-position: -240% 0; }
+}
+
+@keyframes miniAvatarAura {
+  0%,100% { transform: scale(1.06); opacity: .5; }
+  50% { transform: scale(1.18); opacity: .82; }
+}
+
+@keyframes miniProfileFade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes miniProfileBloom {
+  from { opacity: 0; transform: scale(.975); filter: saturate(.75) brightness(.8); }
+  58% { opacity: 1; filter: saturate(1.12) brightness(1.06); }
+  to { transform: none; filter: none; }
+}
+
+@keyframes miniProfileManga {
+  from { opacity: 0; clip-path: inset(0 100% 0 0); }
+  to { opacity: 1; clip-path: inset(0); }
+}
+
+@keyframes miniProfileGlitch {
+  0% { opacity: 0; transform: translateX(-5px); filter: hue-rotate(22deg); }
+  48% { opacity: .78; transform: translateX(4px); }
+  100% { opacity: 1; transform: none; filter: none; }
+}
+
+@media (max-width: 640px) {
+  .atmosphere :global(.premium-profile-v21__particles > i:nth-child(n+6)) {
+    display: none;
+  }
+
+  .atmosphere :global(.premium-profile-v21__ambient) {
+    filter: blur(22px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .card *,
+  .atmosphere,
+  .atmosphere * {
+    animation: none !important;
+    transition-duration: .001ms !important;
+  }
+
+  .atmosphere :global(.premium-profile-v21__particles > i) {
+    top: var(--particle-static-top, 50%);
+    opacity: .5;
+    transform:
+      translate3d(0,0,0)
+      scale(var(--particle-scale, 1))
+      rotate(var(--particle-rotation, 0deg));
+  }
+
+  .atmosphere[data-effect='stardust'] :global(.premium-profile-v21__particles > i) {
+    opacity: .72;
+  }
+}
+
+
+/* Patch 18.9.3 — mini-profile close button containment */
+@media (max-width: 640px) {
+  .card .close,
+  .card[data-premium='true'] .close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    left: auto;
+    z-index: 30;
+  }
 }

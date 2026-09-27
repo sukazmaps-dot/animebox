@@ -1,7 +1,6 @@
 import 'server-only';
 
 import { adminClient } from '@/lib/community-server';
-import { getUserEntitlements } from '@/lib/entitlements-server';
 
 export type ProgressionSyncResult = {
   total_xp?: number;
@@ -25,15 +24,11 @@ export async function syncUserProgression({
   eventKey: string;
   reason: string;
 }): Promise<ProgressionSyncResult | null> {
-  const entitlements = await getUserEntitlements(userId).catch((error) => {
-    console.error('[progression] entitlement lookup failed:', error);
-    return null;
-  });
-
   const admin = adminClient();
   const { data, error } = await admin.rpc('sync_user_progression', {
     p_user: userId,
-    p_premium_boost: Boolean(entitlements?.premiumBadge),
+    // Premium is cosmetic only: never multiply progression XP.
+    p_premium_boost: false,
     p_event_key: eventKey.slice(0, 180),
     p_reason: reason.slice(0, 120),
   });

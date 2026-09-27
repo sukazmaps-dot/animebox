@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 512 512"
+  width="512"
+  height="512"
+  fill="none"
+  aria-hidden="true"
+  focusable="false">
+
+<defs>
+  <linearGradient id="metalDark" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#D9DCE9"/>
+    <stop offset="12%" stop-color="#666B82"/>
+    <stop offset="32%" stop-color="#171823"/>
+    <stop offset="55%" stop-color="#07080D"/>
+    <stop offset="77%" stop-color="#262839"/>
+    <stop offset="100%" stop-color="#B8BCCB"/>
+  </linearGradient>
+
+  <linearGradient id="violetMetal" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#F0D8FF"/>
+    <stop offset="18%" stop-color="#A85AFF"/>
+    <stop offset="48%" stop-color="#5B2AD7"/>
+    <stop offset="74%" stop-color="#24113D"/>
+    <stop offset="100%" stop-color="#D768FF"/>
+  </linearGradient>
+
+  <linearGradient id="crimsonGem" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#FFD6E0"/>
+    <stop offset="14%" stop-color="#F04C72"/>
+    <stop offset="44%" stop-color="#A80F34"/>
+    <stop offset="75%" stop-color="#4E0717"/>
+    <stop offset="100%" stop-color="#E51F52"/>
+  </linearGradient>
+
+  <linearGradient id="fireGrad" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#7A101A"/>
+    <stop offset="25%" stop-color="#D52A1C"/>
+    <stop offset="51%" stop-color="#FF641F"/>
+    <stop offset="73%" stop-color="#FFB52D"/>
+    <stop offset="91%" stop-color="#FFE772"/>
+    <stop offset="100%" stop-color="#FFF2B8"/>
+  </linearGradient>
+
+  <linearGradient id="redBlack" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#FF5367"/>
+    <stop offset="28%" stop-color="#C91331"/>
+    <stop offset="58%" stop-color="#460811"/>
+    <stop offset="100%" stop-color="#08080C"/>
+  </linearGradient>
+
+  <linearGradient id="prestigeBone" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#FFF7E8"/>
+    <stop offset="28%" stop-color="#E5D7C2"/>
+    <stop offset="54%" stop-color="#A99275"/>
+    <stop offset="78%" stop-color="#5E5043"/>
+    <stop offset="100%" stop-color="#EEE3D2"/>
+  </linearGradient>
+
+  <linearGradient id="cyanViolet" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#65E8FF"/>
+    <stop offset="33%" stop-color="#3E8BFF"/>
+    <stop offset="63%" stop-color="#6A49FF"/>
+    <stop offset="100%" stop-color="#BD5CFF"/>
+  </linearGradient>
+
+  <radialGradient id="violetAura" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#8A52FF" stop-opacity=".34"/>
+    <stop offset="60%" stop-color="#6729C9" stop-opacity=".14"/>
+    <stop offset="100%" stop-color="#421A8A" stop-opacity="0"/>
+  </radialGradient>
+
+  <radialGradient id="redAura" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#FF385D" stop-opacity=".32"/>
+    <stop offset="62%" stop-color="#A40E2B" stop-opacity=".12"/>
+    <stop offset="100%" stop-color="#5C0617" stop-opacity="0"/>
+  </radialGradient>
+
+  <filter id="glow4" x="-60%" y="-60%" width="220%" height="220%">
+    <feGaussianBlur stdDeviation="4" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="glow8" x="-80%" y="-80%" width="260%" height="260%">
+    <feGaussianBlur stdDeviation="8" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+
+<style>
+.aura{opacity:.14}
+</style>
+<circle cx="256" cy="256" r="219" fill="url(#redAura)" opacity=".30" class="aura"/>
+<circle cx="256" cy="256" r="176" fill="none" stroke="#27090C" stroke-width="18" opacity="1"/>
+<circle cx="256" cy="256" r="162" fill="none" stroke="url(#fireGrad)" stroke-width="7" opacity="0.96" stroke-dasharray="88 22 62 20 110 26" class="energyArc"/>
+<path d="M82 181 C109 105 177 55 259 55 C207 78 178 111 166 153 C137 146 111 155 82 181Z" fill="url(#fireGrad)" stroke="#FF9C4B" stroke-width="2.0" opacity="1" class="slashA" />
+<path d="M430 333 C403 407 336 456 254 458 C305 433 334 399 345 357 C376 364 402 355 430 333Z" fill="url(#fireGrad)" stroke="#FF9C4B" stroke-width="2.0" opacity="1" class="slashB" />
+<path d="M362 94 C410 125 444 181 450 240 C429 199 401 178 370 174 C376 144 372 116 362 94Z" fill="url(#fireGrad)" stroke="#FFB85E" stroke-width="1.8" opacity="1" class="slashC" />
+
+<g transform="translate(401.8 358.1) rotate(125)" class="flameTongue">
+  <path d="M0 25.0
+           C -11.0 12.5, -11.0 -7.1, 0 -25.0
+           C 7.3 -10.0, 11.0 6.2, 0 25.0Z"
+        fill="url(#fireGrad)" stroke="#FFB45E" stroke-width="1.5"/>
+</g>
+
+<g transform="translate(311.0 425.3) rotate(162)" class="flameTongue">
+  <path d="M0 25.0
+           C -11.0 12.5, -11.0 -7.1, 0 -25.0
+           C 7.3 -10.0, 11.0 6.2, 0 25.0Z"
+        fill="url(#fireGrad)" stroke="#FFB45E" stroke-width="1.5"/>
+</g>
+
+<g transform="translate(172.4 413.2) rotate(208)" class="flameTongue">
+  <path d="M0 25.0
+           C -11.0 12.5, -11.0 -7.1, 0 -25.0
+           C 7.3 -10.0, 11.0 6.2, 0 25.0Z"
+        fill="url(#fireGrad)" stroke="#FFB45E" stroke-width="1.5"/>
+</g>
+
+<g transform="translate(84.1 302.1) rotate(255)" class="flameTongue">
+  <path d="M0 25.0
+           C -11.0 12.5, -11.0 -7.1, 0 -25.0
+           C 7.3 -10.0, 11.0 6.2, 0 25.0Z"
+        fill="url(#fireGrad)" stroke="#FFB45E" stroke-width="1.5"/>
+</g>
+
+<g transform="translate(101.8 167.0) rotate(300)" class="flameTongue">
+  <path d="M0 25.0
+           C -11.0 12.5, -11.0 -7.1, 0 -25.0
+           C 7.3 -10.0, 11.0 6.2, 0 25.0Z"
+        fill="url(#fireGrad)" stroke="#FFB45E" stroke-width="1.5"/>
+</g>
+
+<g transform="translate(201.0 86.7) rotate(342)" class="flameTongue">
+  <path d="M0 25.0
+           C -11.0 12.5, -11.0 -7.1, 0 -25.0
+           C 7.3 -10.0, 11.0 6.2, 0 25.0Z"
+        fill="url(#fireGrad)" stroke="#FFB45E" stroke-width="1.5"/>
+</g>
+
+<g transform="translate(345.0 101.8) rotate(390)" class="flameTongue">
+  <path d="M0 25.0
+           C -11.0 12.5, -11.0 -7.1, 0 -25.0
+           C 7.3 -10.0, 11.0 6.2, 0 25.0Z"
+        fill="url(#fireGrad)" stroke="#FFB45E" stroke-width="1.5"/>
+</g>
+
+<g transform="translate(421.0 189.3) rotate(428)" class="flameTongue">
+  <path d="M0 25.0
+           C -11.0 12.5, -11.0 -7.1, 0 -25.0
+           C 7.3 -10.0, 11.0 6.2, 0 25.0Z"
+        fill="url(#fireGrad)" stroke="#FFB45E" stroke-width="1.5"/>
+</g>
+<path d="M109 359 C172 392 247 404 325 385 C277 411 199 423 126 392Z" fill="#7B41FF" stroke="#C79CFF" stroke-width="2.2" opacity="0.9" class="violetSlash" />
+<polygon points="95,221.2 99,228 95,234.8 91,228" fill="#FFD45E" stroke="#FFF0A6" stroke-width="1" class="spark"/>
+<polygon points="142,88.9 145,94 142,99.1 139,94" fill="#FFD45E" stroke="#FFF0A6" stroke-width="1" class="spark"/>
+<polygon points="398,115.2 402,122 398,128.8 394,122" fill="#FFD45E" stroke="#FFF0A6" stroke-width="1" class="spark"/>
+<polygon points="423,274.9 426,280 423,285.1 420,280" fill="#FFD45E" stroke="#FFF0A6" stroke-width="1" class="spark"/>
+<polygon points="345,418.2 349,425 345,431.8 341,425" fill="#FFD45E" stroke="#FFF0A6" stroke-width="1" class="spark"/>
+<polygon points="169,410.9 172,416 169,421.1 166,416" fill="#FFD45E" stroke="#FFF0A6" stroke-width="1" class="spark"/>
+</svg>

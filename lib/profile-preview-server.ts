@@ -7,7 +7,7 @@ import { resolveProfileAppearance } from '@/lib/profile-appearance';
 import { normalizeProgression } from '@/lib/progression';
 import { resolvePublicAppearances } from '@/lib/public-avatar-server';
 import { getSponsorStatus } from '@/lib/sponsor-server';
-import { getSelectedSeasonFrame } from '@/lib/leaderboard-rewards-server';
+import { getSelectedProfileFrame } from '@/lib/leaderboard-rewards-server';
 import { isUuid } from '@/lib/uuid';
 
 function publicStorageUrl(
@@ -32,7 +32,7 @@ export async function getProfilePreview(userId: string) {
   if (error) throw error;
   if (!profile) return null;
 
-  const [appearanceMap, progressionResult, sponsor, challenges, seasonFrameKey] = await Promise.all([
+  const [appearanceMap, progressionResult, sponsor, challenges, profileFrameKey] = await Promise.all([
     resolvePublicAppearances([{
       id: profile.id,
       avatar_path: profile.avatar_path,
@@ -45,7 +45,7 @@ export async function getProfilePreview(userId: string) {
       .maybeSingle(),
     getSponsorStatus(userId).catch(() => null),
     getUserChallengesSnapshot(userId).catch(() => null),
-    getSelectedSeasonFrame(userId).catch(() => null),
+    getSelectedProfileFrame(userId).catch(() => null),
   ]);
 
   const resolved = appearanceMap.get(userId);
@@ -102,9 +102,17 @@ export async function getProfilePreview(userId: string) {
     primaryColor: appearance.premiumStudio?.primaryColor ?? '#101426',
     accentColor: appearance.premiumStudio?.accentColor ?? '#7C4DFF',
     textColor: appearance.premiumStudio?.textColor ?? '#F5F3FF',
+    particleEffect: appearance.premiumStudio?.particleEffect ?? 'none',
+    atmosphereEffect: appearance.premiumStudio?.atmosphereEffect ?? 'none',
+    atmosphereIntensity: appearance.premiumStudio?.atmosphereIntensity ?? 0,
+    motionMode: appearance.premiumStudio?.motionMode ?? 'off',
+    entranceEffect: appearance.premiumStudio?.entranceEffect ?? 'none',
+    nicknameEffect: appearance.premiumStudio?.nicknameEffect ?? 'none',
+    heroStyle: appearance.premiumStudio?.heroStyle ?? 'clean',
+    surfaceStyle: appearance.premiumStudio?.surfaceStyle ?? 'ink',
     role: publicIdentityRoleFor(userId),
     sponsor,
-    seasonFrameKey,
+    profileFrameKey,
     progression: {
       level: progression.level,
       rank: progression.rank,

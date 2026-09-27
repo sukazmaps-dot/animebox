@@ -1,6 +1,6 @@
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
-import type { PremiumMediaTransform } from '@/lib/premium-studio';
+import type { PremiumMediaTransform, PremiumNicknameEffect } from '@/lib/premium-studio';
 
 export const CHAT_REACTIONS = ['love', 'cry', 'fire', 'wow', 'dead', 'peak'] as const;
 export type ChatReaction = (typeof CHAT_REACTIONS)[number];
@@ -15,6 +15,8 @@ export type ChatAuthor = {
   sponsor: SponsorStatus | null;
   role: PublicIdentityRole;
   premium: boolean;
+  nicknameEffect: PremiumNicknameEffect | null;
+  nicknameAccent: string | null;
 };
 
 export type ChatMessage = {

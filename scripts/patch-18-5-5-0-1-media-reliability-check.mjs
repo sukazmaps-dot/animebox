@@ -57,7 +57,7 @@ for (const needle of [
   'status === 425',
   'status === 429',
   'status >= 500 && status <= 599',
-  "reliability: 'media-shield-v2'",
+  "reliability: 'media-shield-v3-soft-fail'",
   'originPipelineBudgetMs: ORIGIN_PIPELINE_BUDGET_MS',
   'sourceNegativeCacheTtlSeconds: SOURCE_NEGATIVE_CACHE_TTL_SECONDS',
   'sourceProbeCoalescing: true',
@@ -66,11 +66,11 @@ for (const needle of [
   "'X-AnimeBox-Raw-Error'",
   "'X-AnimeBox-Origin-Attempts'",
   "'Retry-After': String(NEGATIVE_CACHE_TTL_SECONDS)",
-  "edgeHit.ok ? 'edge-hit' : 'negative-edge-hit'",
+  "edgeHit.status === 204",
   'cache.put(cacheKey, failureResponse.clone())',
   "status: hit.status",
-  "status: 307",
-  "'source-fallback-redirect'",
+  "status: 204",
+  "'source-soft-fail'",
 ]) {
   if (!worker.includes(needle)) {
     failures.push(`media worker reliability missing: ${needle}`);
@@ -110,8 +110,8 @@ for (const needle of [
   "'Retry-After': '15'",
   "error: timedOut ? 'origin-timeout' : 'origin-fetch-failed'",
   "error: `origin-${response.status}`",
-  "'proxy-v2-source-fallback'",
-  'NextResponse.redirect(sourceUrl',
+  "'proxy-v3-soft-fail'",
+  'new NextResponse(null',
 ]) {
   if (!proxy.includes(needle)) {
     failures.push(`legacy image proxy diagnostics missing: ${needle}`);

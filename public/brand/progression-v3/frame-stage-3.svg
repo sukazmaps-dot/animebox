@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 512 512"
+  width="512"
+  height="512"
+  fill="none"
+  aria-hidden="true"
+  focusable="false">
+
+<defs>
+  <linearGradient id="metalDark" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#D9DCE9"/>
+    <stop offset="12%" stop-color="#666B82"/>
+    <stop offset="32%" stop-color="#171823"/>
+    <stop offset="55%" stop-color="#07080D"/>
+    <stop offset="77%" stop-color="#262839"/>
+    <stop offset="100%" stop-color="#B8BCCB"/>
+  </linearGradient>
+
+  <linearGradient id="violetMetal" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#F0D8FF"/>
+    <stop offset="18%" stop-color="#A85AFF"/>
+    <stop offset="48%" stop-color="#5B2AD7"/>
+    <stop offset="74%" stop-color="#24113D"/>
+    <stop offset="100%" stop-color="#D768FF"/>
+  </linearGradient>
+
+  <linearGradient id="crimsonGem" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#FFD6E0"/>
+    <stop offset="14%" stop-color="#F04C72"/>
+    <stop offset="44%" stop-color="#A80F34"/>
+    <stop offset="75%" stop-color="#4E0717"/>
+    <stop offset="100%" stop-color="#E51F52"/>
+  </linearGradient>
+
+  <linearGradient id="fireGrad" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#7A101A"/>
+    <stop offset="25%" stop-color="#D52A1C"/>
+    <stop offset="51%" stop-color="#FF641F"/>
+    <stop offset="73%" stop-color="#FFB52D"/>
+    <stop offset="91%" stop-color="#FFE772"/>
+    <stop offset="100%" stop-color="#FFF2B8"/>
+  </linearGradient>
+
+  <linearGradient id="redBlack" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#FF5367"/>
+    <stop offset="28%" stop-color="#C91331"/>
+    <stop offset="58%" stop-color="#460811"/>
+    <stop offset="100%" stop-color="#08080C"/>
+  </linearGradient>
+
+  <linearGradient id="prestigeBone" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#FFF7E8"/>
+    <stop offset="28%" stop-color="#E5D7C2"/>
+    <stop offset="54%" stop-color="#A99275"/>
+    <stop offset="78%" stop-color="#5E5043"/>
+    <stop offset="100%" stop-color="#EEE3D2"/>
+  </linearGradient>
+
+  <linearGradient id="cyanViolet" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#65E8FF"/>
+    <stop offset="33%" stop-color="#3E8BFF"/>
+    <stop offset="63%" stop-color="#6A49FF"/>
+    <stop offset="100%" stop-color="#BD5CFF"/>
+  </linearGradient>
+
+  <radialGradient id="violetAura" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#8A52FF" stop-opacity=".34"/>
+    <stop offset="60%" stop-color="#6729C9" stop-opacity=".14"/>
+    <stop offset="100%" stop-color="#421A8A" stop-opacity="0"/>
+  </radialGradient>
+
+  <radialGradient id="redAura" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#FF385D" stop-opacity=".32"/>
+    <stop offset="62%" stop-color="#A40E2B" stop-opacity=".12"/>
+    <stop offset="100%" stop-color="#5C0617" stop-opacity="0"/>
+  </radialGradient>
+
+  <filter id="glow4" x="-60%" y="-60%" width="220%" height="220%">
+    <feGaussianBlur stdDeviation="4" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="glow8" x="-80%" y="-80%" width="260%" height="260%">
+    <feGaussianBlur stdDeviation="8" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+
+<style>
+.aura{opacity:.15}
+</style>
+<circle cx="256" cy="256" r="220" fill="url(#violetAura)" opacity=".36" class="aura"/>
+<circle cx="256" cy="256" r="182" fill="none" stroke="#07080B" stroke-width="22" opacity="1"/>
+<circle cx="256" cy="256" r="164" fill="none" stroke="url(#redBlack)" stroke-width="9" opacity="0.98" class="redRing"/>
+<circle cx="256" cy="256" r="150" fill="none" stroke="#1F060B" stroke-width="3.5" opacity="0.9" stroke-dasharray="22 11"/>
+<path d="M256 66 C306 72 339 95 365 126 C329 116 300 122 281 145 C277 113 269 87 256 66Z" fill="url(#redBlack)" stroke="#FF5269" stroke-width="2.2" opacity="1" class="sigilBlade" />
+<path d="M416 348 C385 390 350 413 309 423 C328 391 328 360 311 334 C344 344 379 351 416 348Z" fill="url(#redBlack)" stroke="#FF5269" stroke-width="2.2" opacity="1" class="sigilBlade" />
+<path d="M96 348 C127 390 162 413 203 423 C184 391 184 360 201 334 C168 344 133 351 96 348Z" fill="url(#redBlack)" stroke="#FF5269" stroke-width="2.2" opacity="1" class="sigilBlade" />
+
+<g class="eyeCore">
+  <circle cx="256" cy="105" r="19" fill="#D81733" stroke="#FF5E73" stroke-width="2"/>
+  <circle cx="256" cy="105" r="8" fill="#08080B"/>
+  <path d="M239 106 Q256 91 273 106 Q256 118 239 106Z"
+        fill="none" stroke="#35050B" stroke-width="3"/>
+</g>
+
+<g class="eyeCore">
+  <circle cx="352" cy="357" r="19" fill="#D81733" stroke="#FF5E73" stroke-width="2"/>
+  <circle cx="352" cy="357" r="8" fill="#08080B"/>
+  <path d="M335 358 Q352 343 369 358 Q352 370 335 358Z"
+        fill="none" stroke="#35050B" stroke-width="3"/>
+</g>
+
+<g class="eyeCore">
+  <circle cx="160" cy="357" r="19" fill="#D81733" stroke="#FF5E73" stroke-width="2"/>
+  <circle cx="160" cy="357" r="8" fill="#08080B"/>
+  <path d="M143 358 Q160 343 177 358 Q160 370 143 358Z"
+        fill="none" stroke="#35050B" stroke-width="3"/>
+</g>
+<path d="M256 38 272 67 256 94 240 67Z" fill="#11121A" stroke="#6F3C7C" stroke-width="2" opacity="1" />
+<path d="M256 474 272 445 256 418 240 445Z" fill="#11121A" stroke="#6F3C7C" stroke-width="2" opacity="1" />
+<path d="M38 256 67 240 94 256 67 272Z" fill="#11121A" stroke="#6F3C7C" stroke-width="2" opacity="1" />
+<path d="M474 256 445 240 418 256 445 272Z" fill="#11121A" stroke="#6F3C7C" stroke-width="2" opacity="1" />
+<path d="M92 151 C75 115 91 82 128 64 C116 91 126 116 151 129 C125 128 105 136 92 151Z" fill="#5E2FC4" stroke="#A36CFF" stroke-width="1.8" opacity="0.75" class="spectral" />
+<path d="M420 361 C438 396 420 431 383 447 C397 420 387 396 362 382 C388 383 407 375 420 361Z" fill="#5E2FC4" stroke="#A36CFF" stroke-width="1.8" opacity="0.75" class="spectral" />
+<path d="M408 142 C430 112 426 84 396 59 C401 89 389 110 364 121 C385 124 400 132 408 142Z" fill="#5E2FC4" stroke="#A36CFF" stroke-width="1.8" opacity="0.68" class="spectral" />
+</svg>
