@@ -214,10 +214,11 @@
 }
 
 .profile-editor-v13 .premium-studio-v12__preview-avatar {
-  width: 86px;
-  height: 86px;
-  margin-top: -46px;
+  width: 104px;
+  height: 104px;
+  margin-top: -54px;
   border-width: 3px;
+  border-radius: 50%;
 }
 
 .profile-editor-v13 .premium-studio-v12__preview-body h3 {
