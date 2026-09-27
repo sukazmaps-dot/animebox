@@ -737,6 +737,21 @@
   object-fit: contain;
 }
 
+.registration-welcome__logo-fallback {
+  display: grid;
+  width: 104px;
+  height: 104px;
+  place-items: center;
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 35% 28%, rgba(181, 166, 255, .2), transparent 45%),
+    rgba(124, 92, 255, .08);
+  color: #b7abff;
+  font-size: 40px;
+  line-height: 1;
+  text-shadow: 0 0 22px rgba(124, 92, 255, .4);
+}
+
 .registration-welcome__art-copy {
   position: relative;
   z-index: 3;
@@ -858,8 +873,18 @@
 }
 
 @media (max-width: 760px) {
+  .telegram-welcome {
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+
   .telegram-welcome__dialog--hub {
     grid-template-columns: 1fr;
+    max-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .telegram-welcome__art--animebox {
@@ -875,9 +900,15 @@
     border-radius: 24px;
   }
 
-  .registration-welcome__logo-shell img {
+  .registration-welcome__logo-shell img,
+  .registration-welcome__logo-fallback {
     width: 58px;
     height: 58px;
+  }
+
+  .registration-welcome__logo-fallback {
+    border-radius: 18px;
+    font-size: 28px;
   }
 
   .registration-welcome__art-copy {
@@ -885,7 +916,18 @@
   }
 
   .registration-welcome__content {
-    padding: 22px 18px 20px;
+    padding: 22px 18px max(28px, calc(env(safe-area-inset-bottom) + 20px));
+  }
+
+  .registration-welcome__continue {
+    min-height: 58px;
+    margin-bottom: max(6px, env(safe-area-inset-bottom));
+  }
+
+  .registration-welcome__continue > b {
+    flex: 0 0 30px;
+    line-height: 1;
+    transform: translateY(-1px);
   }
 
   .registration-welcome__actions {
