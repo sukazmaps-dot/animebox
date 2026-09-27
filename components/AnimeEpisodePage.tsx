@@ -139,13 +139,57 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     anime?.episodes && anime.episodes > 0,
   );
 
-  const episodeNumber = useMemo(() => {
+  const [activeEpisodeNumber, setActiveEpisodeNumber] = useState(() => {
     if (!Number.isSafeInteger(requestedEpisode) || requestedEpisode < 1) {
       return 1;
     }
 
     return requestedEpisode;
-  }, [requestedEpisode]);
+  });
+
+  const episodeNumber = activeEpisodeNumber;
+
+  useEffect(() => {
+    if (
+      !Number.isSafeInteger(requestedEpisode) ||
+      requestedEpisode < 1 ||
+      requestedEpisode === activeEpisodeNumber
+    ) {
+      return;
+    }
+
+    setActiveEpisodeNumber(requestedEpisode);
+  }, [activeEpisodeNumber, requestedEpisode]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      const segments = window.location.pathname
+        .split('/')
+        .filter(Boolean)
+        .map((segment) => decodeURIComponent(segment));
+
+      const prefix = theaterMode ? 'watch-together' : 'anime';
+      if (segments[0] !== prefix) return;
+
+      const slug = segments[1];
+      const episodeIndex = segments.indexOf('episode');
+      const episodeValue =
+        episodeIndex >= 0 ? Number(segments[episodeIndex + 1]) : NaN;
+
+      if (
+        slug !== animeIdParam ||
+        !Number.isSafeInteger(episodeValue) ||
+        episodeValue < 1
+      ) {
+        return;
+      }
+
+      setActiveEpisodeNumber(episodeValue);
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [animeIdParam, theaterMode]);
 
   const requestEpisodeTimeline = useCallback(
     (durationSeconds?: number | null) => {
@@ -1269,6 +1313,18 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       router.prefetch(
         `/anime/${animeIdParam}/episode/${episodeNumber + 1}`,
       );
+      trackProductClientEvent('player_episode_prefetch', {
+        source: theaterMode ? 'watch_together' : 'player',
+        path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        entityType: 'episode',
+        entityId: `${anime.id}:${episodeNumber + 1}`,
+        metadata: {
+          anime_id: anime.id,
+          from_episode: episodeNumber,
+          to_episode: episodeNumber + 1,
+          kind: 'route',
+        },
+      });
     }
 
     if (seasonRoute.next?.slug && seasonRoute.next.episodes.length > 0) {
@@ -1282,11 +1338,13 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       );
     }
   }, [
+    anime.id,
     animeIdParam,
     availableEpisodes,
     episodeNumber,
     router,
     seasonRoute.current?.episodes.length,
+    theaterMode,
     seasonRoute.next,
     seasonRoute.previous,
   ]);
@@ -1320,23 +1378,59 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     Boolean(seasonRoute.next && nextSeasonFirstEpisode);
 
   const navigateToEpisode = useCallback((slug: string, number: number) => {
-    if (!theaterMode) {
-      router.push(`/anime/${slug}/episode/${number}`, { scroll: false });
+    if (!Number.isSafeInteger(number) || number < 1) return;
+
+    const encodedSlug = encodeURIComponent(slug);
+    const current = new URL(window.location.href);
+    const next = new URL(
+      theaterMode
+        ? `/watch-together/${encodedSlug}/episode/${number}`
+        : `/anime/${encodedSlug}/episode/${number}`,
+      window.location.origin,
+    );
+
+    if (theaterMode) {
+      const roomId = current.searchParams.get('party');
+      if (roomId) next.searchParams.set('party', roomId);
+    }
+
+    next.hash = current.hash;
+
+    if (slug === animeIdParam) {
+      trackProductClientEvent('player_episode_switch_started', {
+        source: theaterMode ? 'watch_together' : 'player',
+        path: current.pathname,
+        entityType: 'episode',
+        entityId: `${anime.id}:${episodeNumber}`,
+        metadata: {
+          anime_id: anime.id,
+          from_episode: episodeNumber,
+          to_episode: number,
+          watch_together: theaterMode,
+          route_mode: 'history',
+        },
+        flush: true,
+      });
+
+      window.history.pushState(
+        { animeboxEpisode: number },
+        '',
+        `${next.pathname}${next.search}${next.hash}`,
+      );
+      setActiveEpisodeNumber(number);
       return;
     }
 
-    const current = new URL(window.location.href);
-    const next = new URL(
-      `/watch-together/${encodeURIComponent(slug)}/episode/${number}`,
-      window.location.origin,
-    );
-    const roomId = current.searchParams.get('party');
-
-    if (roomId) next.searchParams.set('party', roomId);
-    next.hash = current.hash;
-
-    router.push(`${next.pathname}${next.search}${next.hash}`, { scroll: false });
-  }, [router, theaterMode]);
+    router.push(`${next.pathname}${next.search}${next.hash}`, {
+      scroll: false,
+    });
+  }, [
+    anime.id,
+    animeIdParam,
+    episodeNumber,
+    router,
+    theaterMode,
+  ]);
 
   useEffect(() => {
     if (!theaterMode) return;
