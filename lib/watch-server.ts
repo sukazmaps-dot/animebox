@@ -8,13 +8,19 @@ import {
 } from '@/lib/community-server';
 import { coveredSeconds, mergePlayedRanges } from '@/lib/played-coverage';
 import { canonicalResumePositionMs } from '@/lib/resume-integrity';
+import {
+  acceptedRealWatchMs,
+  episodeCompletionIntegrity,
+  inspectPlaybackAdvance,
+  maxPlausiblePlaybackAdvanceMs,
+  trustedEpisodeLimit,
+} from '@/lib/watch-playback-integrity';
 import type { EpisodeWatchListItem, WatchTitleOverview } from '@/types/watch';
 
 const MAX_EPISODE_MS = 28_800_000;
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
 const MAX_HEARTBEAT_GAP_MS = 30_000;
 const MIN_HEARTBEAT_PERSIST_INTERVAL_MS = 2_000;
-const MAX_ACCEPTED_MS = 20_000;
 const MIN_PROVIDER_SKIP_MS = 15_000;
 const MAX_PROVIDER_SKIP_MS = 240_000;
 const MAX_PROVIDER_EXCLUDED_MS = 360_000;
@@ -339,30 +345,59 @@ export async function startWatchSession(input: WatchStartInput) {
   const admin = adminClient();
   const watch = watchClient();
 
-  const { data: catalog, error: catalogError } = await admin
-    .from('anime_catalog')
-    .select('total_episodes,finished')
-    .eq('id', input.animeId)
-    .maybeSingle();
+  const [
+    { data: catalog, error: catalogError },
+    { data: availability, error: availabilityError },
+    { data: existingTitle, error: titleReadError },
+  ] = await Promise.all([
+    admin
+      .from('anime_catalog')
+      .select('total_episodes,finished')
+      .eq('id', input.animeId)
+      .maybeSingle(),
+    admin
+      .from('anime_availability')
+      .select('availability_status,max_episode,last_success_at')
+      .eq('anime_id', input.animeId)
+      .maybeSingle(),
+    watch
+      .from('titles')
+      .select('required_episodes,finalized')
+      .eq('anime_id', input.animeId)
+      .maybeSingle(),
+  ]);
   throwIfError(catalogError);
-
-  const { data: existingTitle, error: titleReadError } = await watch
-    .from('titles')
-    .select('required_episodes,finalized')
-    .eq('anime_id', input.animeId)
-    .maybeSingle();
+  throwIfError(availabilityError);
   throwIfError(titleReadError);
 
   const catalogEpisodes = Number(catalog?.total_episodes ?? 0);
-  const hintedEpisodes = Number(input.requiredEpisodes ?? 0);
-  const existingRequired = Number(existingTitle?.required_episodes ?? 0);
-  const requiredEpisodes = Math.max(
-    1,
-    input.episode,
-    Number.isSafeInteger(catalogEpisodes) ? catalogEpisodes : 0,
-    Number.isSafeInteger(hintedEpisodes) ? hintedEpisodes : 0,
-    Number.isSafeInteger(existingRequired) ? existingRequired : 0,
-  );
+  const verifiedMaxEpisode =
+    availability?.availability_status === 'playable'
+      ? Number(availability.max_episode ?? 0)
+      : 0;
+  const trustedEpisodeCeiling = trustedEpisodeLimit({
+    catalogEpisodes,
+    verifiedMaxEpisode,
+  });
+
+  if (trustedEpisodeCeiling == null) {
+    throw new ApiError(
+      409,
+      'Список доступных серий ещё не подтверждён сервером.',
+    );
+  }
+
+  if (input.episode > trustedEpisodeCeiling) {
+    throw new ApiError(
+      400,
+      'Эта серия не подтверждена каталогом или источником воспроизведения.',
+    );
+  }
+
+  // Browser hints must never expand the global title episode count. Otherwise
+  // a forged /api/watch start request could create fake episode identities and
+  // farm completion/challenge events.
+  const requiredEpisodes = Math.max(1, input.episode, trustedEpisodeCeiling);
 
   const finalized = Boolean(
     existingTitle?.finalized || (catalog?.finished && catalogEpisodes > 0),
@@ -398,37 +433,46 @@ export async function startWatchSession(input: WatchStartInput) {
     : null;
   const eventOrigin = normalizedOrigin(input.messageOrigin);
   const sourceOrigin = normalizedOrigin(sourceUrl);
-  const origins = Array.from(
-    new Set(
-      [
-        ...(Array.isArray(existingEpisode?.message_origins)
-          ? existingEpisode.message_origins.filter((item): item is string => typeof item === 'string')
-          : []),
-        eventOrigin,
-        sourceOrigin,
-      ].filter((item): item is string => Boolean(item)),
-    ),
-  ).slice(0, 12);
+  const existingOrigins = Array.isArray(existingEpisode?.message_origins)
+    ? existingEpisode.message_origins.filter(
+        (item): item is string => typeof item === 'string',
+      )
+    : [];
 
-  const durationMs = safeDuration(input.durationMs) ?? existingEpisode?.duration_ms ?? null;
+  // Once episode playback metadata exists, browser payloads may no longer
+  // rewrite it. This turns duration/source/origin into server-owned state after
+  // the first accepted seed instead of letting a forged start request shorten
+  // a known episode and reduce completion requirements.
+  const origins = existingOrigins.length
+    ? existingOrigins
+    : Array.from(
+        new Set(
+          [eventOrigin, sourceOrigin].filter(
+            (item): item is string => Boolean(item),
+          ),
+        ),
+      ).slice(0, 12);
+  const existingDurationMs =
+    existingEpisode?.duration_ms == null
+      ? null
+      : safeDuration(Number(existingEpisode.duration_ms));
+  const durationMs = existingDurationMs ?? safeDuration(input.durationMs);
+  const persistedSourceUrl =
+    typeof existingEpisode?.source_url === 'string' && existingEpisode.source_url
+      ? existingEpisode.source_url
+      : sourceUrl;
 
   const episodePayload = {
     anime_id: input.animeId,
     episode_number: input.episode,
     duration_ms: durationMs,
-    source_url: sourceUrl ?? existingEpisode?.source_url ?? null,
+    source_url: persistedSourceUrl,
     message_origins: origins,
     required: existingEpisode?.required ?? true,
     // Ranked mode is never enabled from browser-supplied metadata.
     // It may be enabled later only after trusted server-side verification.
     ranked_enabled: existingEpisode?.ranked_enabled ?? false,
   };
-
-  const existingOrigins = Array.isArray(existingEpisode?.message_origins)
-    ? existingEpisode.message_origins.filter(
-        (item): item is string => typeof item === 'string',
-      )
-    : [];
   const episodeNeedsWrite =
     !existingEpisode ||
     (existingEpisode.duration_ms ?? null) !== episodePayload.duration_ms ||
@@ -727,7 +771,7 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
         const playedAdvance = playedBefore + playedAfter;
         const maxPlausibleAdvance = Math.min(
           MAX_EPISODE_MS,
-          Math.round(wallDelta * 2.25 + 1_500),
+          maxPlausiblePlaybackAdvanceMs(wallDelta),
         );
 
         if (playedAdvance <= maxPlausibleAdvance) {
@@ -739,8 +783,8 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
             acceptedRanges.push([skipTo, input.positionMs]);
           }
           acceptedMs = Math.min(
-            MAX_ACCEPTED_MS,
-            Math.max(0, Math.round(Math.min(wallDelta, playedAdvance))),
+            acceptedRealWatchMs(wallDelta),
+            Math.max(0, Math.round(playedAdvance)),
           );
           reason = explicitProviderSkip
             ? `accepted_provider_skip_${providerSkip.kind}`
@@ -749,19 +793,24 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
           reason = 'seek_forward';
         }
       } else {
-        const maxPlausibleAdvance = Math.min(
-          MAX_EPISODE_MS,
-          Math.round(wallDelta * 2.25 + 1_500),
-        );
+        const playbackAdvance = inspectPlaybackAdvance({
+          wallDeltaMs: wallDelta,
+          mediaAdvanceMs: positionDelta,
+        });
 
-        if (positionDelta > maxPlausibleAdvance) {
+        if (!playbackAdvance.plausible) {
+          // Without trusting a browser-supplied playbackRate, an advance beyond
+          // the server-owned 2x+tolerance envelope is indistinguishable from a
+          // forward seek. Either way it must not mint coverage or active time.
           reason = 'seek_forward';
         } else {
-          acceptedMs = Math.min(
-            MAX_ACCEPTED_MS,
-            Math.max(0, Math.round(wallDelta)),
-          );
-          reason = 'accepted';
+          // Active watch-time is real wall-clock time. At 2x the accepted range
+          // may cover ~40s of media during a 20s heartbeat, but active_ms grows
+          // by only ~20s. This keeps time-based rewards neutral to playback rate.
+          acceptedMs = acceptedRealWatchMs(wallDelta);
+          reason = playbackAdvance.accelerated
+            ? 'accepted_accelerated'
+            : 'accepted';
           acceptedRanges.push([lastPosition, input.positionMs]);
         }
       }
@@ -790,11 +839,13 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
   const excludedMs = watchProgress.excludedMs;
   const eligibleDurationMs = watchProgress.eligibleDurationMs;
   const activeMs = Number(progress?.active_ms ?? 0) + acceptedMs;
-  const completedNow = Boolean(
-    eligibleDurationMs &&
-      eligibleDurationMs > 0 &&
-      coverageMs >= Math.floor(eligibleDurationMs * 0.9),
-  );
+  const completionIntegrity = episodeCompletionIntegrity({
+    coverageMs,
+    activeMs,
+    eligibleDurationMs,
+    durationMs,
+  });
+  const completedNow = completionIntegrity.completed;
   const completedAt = progress?.completed_at || (completedNow ? receivedAt : null);
   const resumePositionMs = canonicalResumePositionMs({
     positionMs: input.positionMs,
@@ -841,6 +892,10 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
     durationMs,
     excludedMs,
     eligibleDurationMs,
+    completionTargetCoverageMs: completionIntegrity.targetCoverageMs,
+    completionRequiredActiveMs: completionIntegrity.requiredActiveMs,
+    completionCoverageMet: completionIntegrity.coverageMet,
+    completionActiveTimeMet: completionIntegrity.activeTimeMet,
     animeId: Number(episode.anime_id),
     episode: Number(episode.episode_number),
   };

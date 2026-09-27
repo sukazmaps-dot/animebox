@@ -59,6 +59,22 @@ if (
 }
 
 if (
+  !watchServer.includes("from '@/lib/watch-playback-integrity'") ||
+  !watchServer.includes('inspectPlaybackAdvance({') ||
+  !watchServer.includes('acceptedRealWatchMs(wallDelta)') ||
+  !watchServer.includes("'accepted_accelerated'") ||
+  !watchServer.includes('trustedEpisodeLimit({') ||
+  !watchServer.includes('episodeCompletionIntegrity({') ||
+  !watchServer.includes("availability?.availability_status === 'playable'") ||
+  !watchServer.includes('input.episode > trustedEpisodeCeiling') ||
+  !watchServer.includes('existingDurationMs ?? safeDuration(input.durationMs)') ||
+  !watchServer.includes('const origins = existingOrigins.length') ||
+  !watchServer.includes('const persistedSourceUrl =')
+) {
+  failures.push('watch anti-cheat integrity contract is incomplete');
+}
+
+if (
   !watch.includes("window.addEventListener('online', onOnline)") ||
   !watch.includes("window.addEventListener('offline', onOffline)") ||
   !watch.includes("status === 409") ||
