@@ -51,6 +51,8 @@ declare
   room_max integer;
   room_episode integer;
   room_epoch bigint;
+  room_code_value text;
+  room_visibility text;
   live_count integer := 0;
   already_live boolean := false;
   safe_name text;
@@ -93,7 +95,9 @@ begin
     r.expires_at,
     r.max_participants,
     r.episode,
-    r.host_epoch
+    r.host_epoch,
+    r.room_code,
+    r.visibility
   into
     room_host,
     room_status,
@@ -101,7 +105,9 @@ begin
     room_expires,
     room_max,
     room_episode,
-    room_epoch
+    room_epoch,
+    room_code_value,
+    room_visibility
   from public.watch_party_rooms r
   where r.id = p_room_id
   for update;
@@ -216,6 +222,8 @@ begin
     'max_participants', room_max,
     'episode', room_episode,
     'status', room_status,
+    'room_code', room_code_value,
+    'visibility', room_visibility,
     'role', case when p_user_id = room_host then 'host' else 'guest' end
   );
 end;
