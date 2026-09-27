@@ -15,7 +15,10 @@ const failures = [];
 const checks = [
   ['AniList query requests PageInfo', anilist.includes('pageInfo {') && anilist.includes('hasNextPage')],
   ['AniList forwards PageInfo without second request', anilist.includes('fetchOptions?.onPageInfo?.({')],
-  ['localized provider preserves paging and page info', combined.includes('onPageInfo?: (pageInfo: { hasNextPage: boolean }) => void') && combined.includes("fetchOptions?.signal,\n          options,")],
+  ['localized provider preserves paging and page info',
+    combined.includes('onPageInfo?: (pageInfo: { hasNextPage: boolean }) => void') &&
+    /searchRussianAnime\(\s*normalizedSearch,\s*options\.limit \?\? 20,\s*fetchOptions\?\.signal,\s*options,\s*\)/.test(combined)
+  ],
   ['API exposes explicit pagination contract', animeApi.includes('pagination: {') && animeApi.includes('hasNextPage: providerHasNextPage')],
   ['client payload types pagination', animeClient.includes('export type AnimePaginationMeta')],
   ['catalog consumes API hasNextPage', catalog.includes('payload.pagination?.hasNextPage')],
