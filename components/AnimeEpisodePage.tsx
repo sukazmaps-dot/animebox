@@ -1640,7 +1640,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
                     poster={poster}
                     sources={sources}
                     sourceDiscoveryStartedAtMs={sourceDiscoveryStartedAtMs}
-                    timeline={timeline}
+                    timeline={playerEpisodeNumber === episodeNumber ? timeline : null}
                     hasPrev={hasPrev}
                     hasNext={hasNext}
                     prevLabel={atFirstEpisode && seasonRoute.previous ? 'Пред. сезон' : 'Пред. серия'}
