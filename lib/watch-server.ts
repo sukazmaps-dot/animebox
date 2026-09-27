@@ -433,37 +433,46 @@ export async function startWatchSession(input: WatchStartInput) {
     : null;
   const eventOrigin = normalizedOrigin(input.messageOrigin);
   const sourceOrigin = normalizedOrigin(sourceUrl);
-  const origins = Array.from(
-    new Set(
-      [
-        ...(Array.isArray(existingEpisode?.message_origins)
-          ? existingEpisode.message_origins.filter((item): item is string => typeof item === 'string')
-          : []),
-        eventOrigin,
-        sourceOrigin,
-      ].filter((item): item is string => Boolean(item)),
-    ),
-  ).slice(0, 12);
+  const existingOrigins = Array.isArray(existingEpisode?.message_origins)
+    ? existingEpisode.message_origins.filter(
+        (item): item is string => typeof item === 'string',
+      )
+    : [];
 
-  const durationMs = safeDuration(input.durationMs) ?? existingEpisode?.duration_ms ?? null;
+  // Once episode playback metadata exists, browser payloads may no longer
+  // rewrite it. This turns duration/source/origin into server-owned state after
+  // the first accepted seed instead of letting a forged start request shorten
+  // a known episode and reduce completion requirements.
+  const origins = existingOrigins.length
+    ? existingOrigins
+    : Array.from(
+        new Set(
+          [eventOrigin, sourceOrigin].filter(
+            (item): item is string => Boolean(item),
+          ),
+        ),
+      ).slice(0, 12);
+  const existingDurationMs =
+    existingEpisode?.duration_ms == null
+      ? null
+      : safeDuration(Number(existingEpisode.duration_ms));
+  const durationMs = existingDurationMs ?? safeDuration(input.durationMs);
+  const persistedSourceUrl =
+    typeof existingEpisode?.source_url === 'string' && existingEpisode.source_url
+      ? existingEpisode.source_url
+      : sourceUrl;
 
   const episodePayload = {
     anime_id: input.animeId,
     episode_number: input.episode,
     duration_ms: durationMs,
-    source_url: sourceUrl ?? existingEpisode?.source_url ?? null,
+    source_url: persistedSourceUrl,
     message_origins: origins,
     required: existingEpisode?.required ?? true,
     // Ranked mode is never enabled from browser-supplied metadata.
     // It may be enabled later only after trusted server-side verification.
     ranked_enabled: existingEpisode?.ranked_enabled ?? false,
   };
-
-  const existingOrigins = Array.isArray(existingEpisode?.message_origins)
-    ? existingEpisode.message_origins.filter(
-        (item): item is string => typeof item === 'string',
-      )
-    : [];
   const episodeNeedsWrite =
     !existingEpisode ||
     (existingEpisode.duration_ms ?? null) !== episodePayload.duration_ms ||
