@@ -78,8 +78,12 @@ if (tracker.includes('Путь серии')) {
   throw new Error('Patch 19.0.2 obsolete Journey progress HUD is still rendered.');
 }
 
-if (!player.includes('<EpisodeJourneyTracker animeId={animeId} episode={episodeNumber} />')) {
-  throw new Error('Patch 19.0.2 Journey overlay is not mounted inside player viewport.');
+if (
+  !player.includes("import EpisodeJourneyTracker from '@/components/EpisodeJourneyTracker'") ||
+  !player.includes('<EpisodeJourneyTracker') ||
+  !player.includes('suspended={providerFullscreen}')
+) {
+  throw new Error('Patch 19.0.2 Journey overlay is not mounted in the fullscreen-safe player surface.');
 }
 
 if (episodePage.includes('<EpisodeJourneyTracker')) {
