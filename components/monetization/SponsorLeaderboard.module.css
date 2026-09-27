@@ -115,26 +115,50 @@
   align-items:center;
 }
 .podiumAvatar{
+  --podium-avatar-size:96px;
   position:relative;
-  margin:0 0 12px;
+  isolation:isolate;
+  display:flex;
+  flex:0 0 var(--podium-avatar-size);
+  width:var(--podium-avatar-size);
+  height:var(--podium-avatar-size);
+  min-width:var(--podium-avatar-size);
+  min-height:var(--podium-avatar-size);
+  align-items:center;
+  justify-content:center;
+  margin:0 0 18px;
+  overflow:visible;
 }
+.podiumCard[data-rank='1'] .podiumAvatar{
+  --podium-avatar-size:118px;
+}
+.podium[data-count='1'] .podiumCard[data-rank='1'] .podiumAvatar{
+  --podium-avatar-size:124px;
+}
+
+/* UserAvatarWithFrame owns the internal avatar inset. The podium only owns
+   the outer square so avatar, identity frame and profile SVG share one center. */
 .avatarFrame{
-  width:96px!important;
-  height:96px!important;
-}
-.podiumCard[data-rank='1'] .avatarFrame{
-  width:118px!important;
-  height:118px!important;
-}
-.podium[data-count='1'] .podiumCard[data-rank='1'] .avatarFrame{
-  width:124px!important;
-  height:124px!important;
+  position:relative!important;
+  inset:auto!important;
+  flex:0 0 100%!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:100%!important;
+  min-height:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  transform:none!important;
+  transform-origin:50% 50%!important;
+  overflow:visible!important;
 }
 
 .rankSeal{
   position:absolute;
-  right:-2px;
-  bottom:2px;
+  z-index:30;
+  left:50%;
+  right:auto;
+  bottom:0;
   display:grid;
   width:29px;
   height:29px;
@@ -143,8 +167,13 @@
   border-radius:9px;
   color:#15131a;
   background:linear-gradient(135deg,var(--accent),#9a72d8);
+  box-shadow:0 6px 16px #05060b66;
   font-size:11px;
   font-weight:950;
+  line-height:1;
+  transform:translateX(-50%);
+  transform-origin:50% 50%;
+  pointer-events:none;
 }
 .rankTitle{
   margin-bottom:7px;
@@ -268,10 +297,9 @@
   .podiumCard[data-rank='1']{order:-1}
   .podiumCard{padding:20px 16px 18px}
   .placeLabel{margin-bottom:18px}
-  .podiumCard[data-rank='1'] .avatarFrame,
-  .podium[data-count='1'] .podiumCard[data-rank='1'] .avatarFrame{
-    width:112px!important;
-    height:112px!important;
+  .podiumCard[data-rank='1'] .podiumAvatar,
+  .podium[data-count='1'] .podiumCard[data-rank='1'] .podiumAvatar{
+    --podium-avatar-size:112px;
   }
   .podiumContribution{margin-top:16px}
   .boardHeader,.row{grid-template-columns:38px minmax(0,1fr) 105px;padding-inline:12px}
