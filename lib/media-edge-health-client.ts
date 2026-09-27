@@ -8,7 +8,6 @@ import {
 const FAILURE_WINDOW_MS = 8_000;
 const DISTINCT_SOURCE_THRESHOLD = 4;
 const MEDIA_EDGE_COOLDOWN_MS = 60_000;
-const STORAGE_PREFIX = 'animebox:media-edge-blocked:';
 
 type MediaEdgeCircuitState = {
   windowStartedAt: number;
@@ -54,39 +53,6 @@ function sourceKeyForRequest(value: string) {
   }
 }
 
-function storageKey(origin: string) {
-  return `${STORAGE_PREFIX}${origin}`;
-}
-
-function readPersistedBlockedUntil(origin: string) {
-  if (typeof window === 'undefined') return 0;
-
-  try {
-    const raw = window.sessionStorage.getItem(storageKey(origin));
-    const value = Number(raw || '0');
-    return Number.isFinite(value) && value > Date.now() ? value : 0;
-  } catch {
-    return 0;
-  }
-}
-
-function persistBlockedUntil(origin: string, blockedUntil: number) {
-  if (typeof window === 'undefined') return;
-
-  try {
-    if (blockedUntil > Date.now()) {
-      window.sessionStorage.setItem(
-        storageKey(origin),
-        String(blockedUntil),
-      );
-    } else {
-      window.sessionStorage.removeItem(storageKey(origin));
-    }
-  } catch {
-    // sessionStorage can be unavailable in restricted/private contexts.
-  }
-}
-
 function stateForOrigin(origin: string) {
   const existing = circuits.get(origin);
   if (existing) return existing;
@@ -94,7 +60,7 @@ function stateForOrigin(origin: string) {
   const state: MediaEdgeCircuitState = {
     windowStartedAt: 0,
     failedSources: new Set(),
-    blockedUntil: readPersistedBlockedUntil(origin),
+    blockedUntil: 0,
   };
 
   circuits.set(origin, state);
@@ -118,7 +84,6 @@ export function isMediaEdgeBlocked(value: string) {
       state.blockedUntil = 0;
       state.failedSources.clear();
       state.windowStartedAt = 0;
-      persistBlockedUntil(origin, 0);
     }
     return false;
   }
@@ -154,7 +119,6 @@ export function reportMediaEdgeFailure(value: string) {
   }
 
   state.blockedUntil = now + MEDIA_EDGE_COOLDOWN_MS;
-  persistBlockedUntil(origin, state.blockedUntil);
   emitChange();
 
   return true;
