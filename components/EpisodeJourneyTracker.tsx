@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import {
+  installAchievementSoundWarmup,
+  playAchievementUnlockSound,
+} from '@/lib/achievement-sound';
+
 import styles from './EpisodeJourneyTracker.module.css';
 
 type JourneyEvent = {
@@ -58,6 +63,8 @@ export default function EpisodeJourneyTracker({
   const [toast, setToast] = useState<UnlockPayload['event'] | null>(null);
   const attemptedRef = useRef(new Map<string, number>());
   const toastTimerRef = useRef<number | null>(null);
+
+  useEffect(() => installAchievementSoundWarmup(), []);
 
   useEffect(() => {
     let active = true;
@@ -138,6 +145,12 @@ export default function EpisodeJourneyTracker({
                   : candidate,
               ),
             );
+
+            void playAchievementUnlockSound({
+              eventId: payload.event.id,
+              rarity: payload.event.rarity,
+              kind: payload.event.kind,
+            });
 
             setToast(payload.event);
             if (toastTimerRef.current != null) window.clearTimeout(toastTimerRef.current);
