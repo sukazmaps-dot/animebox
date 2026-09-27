@@ -1,5 +1,6 @@
 import {
   evolutionFrameAsset,
+  progressionMilestoneAsset,
   type EvolutionFrameStage,
   type PrestigeTier,
 } from '@/lib/progression-milestones';
@@ -19,7 +20,11 @@ export default function EvolutionFrame({
   premium?: boolean;
   className?: string;
 }) {
-  const asset = evolutionFrameAsset(frameStage, prestigeTier);
+  const milestoneAsset =
+    level === 10 || level === 25 || level === 50 || level === 75 || level === 100
+      ? progressionMilestoneAsset(level, premium)
+      : null;
+  const asset = milestoneAsset ?? evolutionFrameAsset(frameStage, prestigeTier);
 
   return (
     <span
