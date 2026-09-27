@@ -62,9 +62,13 @@ if (
   !watchServer.includes("from '@/lib/watch-playback-integrity'") ||
   !watchServer.includes('inspectPlaybackAdvance({') ||
   !watchServer.includes('acceptedRealWatchMs(wallDelta)') ||
-  !watchServer.includes("'accepted_accelerated'")
+  !watchServer.includes("'accepted_accelerated'") ||
+  !watchServer.includes('trustedEpisodeLimit({') ||
+  !watchServer.includes('episodeCompletionIntegrity({') ||
+  !watchServer.includes("availability?.availability_status === 'playable'") ||
+  !watchServer.includes('input.episode > trustedEpisodeCeiling')
 ) {
-  failures.push('accelerated playback can bypass wall-clock watch-time integrity');
+  failures.push('watch anti-cheat integrity contract is incomplete');
 }
 
 if (
