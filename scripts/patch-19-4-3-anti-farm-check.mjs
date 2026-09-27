@@ -5,6 +5,8 @@ const trustServer = fs.readFileSync('lib/watch-trust-server.ts', 'utf8');
 const watchRoute = fs.readFileSync('app/api/watch/route.ts', 'utf8');
 const leaderboard = fs.readFileSync('app/api/community/leaderboard/route.ts', 'utf8');
 const rewards = fs.readFileSync('lib/leaderboard-rewards-server.ts', 'utf8');
+const adminTrust = fs.readFileSync('lib/watch-trust-admin-server.ts', 'utf8');
+const adminRoute = fs.readFileSync('app/api/admin/watch-trust/route.ts', 'utf8');
 
 const failures = [];
 
@@ -49,6 +51,15 @@ if (
   !rewards.includes('quarantined: highRiskUsers.size')
 ) {
   failures.push('season reward trust quarantine is missing');
+}
+
+
+if (
+  !adminTrust.includes("window: '7d'") ||
+  !adminTrust.includes('recentHighRisk') ||
+  !adminRoute.includes("requireAdmin(['owner', 'admin'])")
+) {
+  failures.push('admin trust observability is missing or unprotected');
 }
 
 if (failures.length) {
