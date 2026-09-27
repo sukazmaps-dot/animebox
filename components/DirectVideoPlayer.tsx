@@ -14,6 +14,7 @@ import Icon from '@/components/Icon';
 import {
   HLS_MEDIA_RECOVERY_LIMIT,
   HLS_NETWORK_RECOVERY_LIMIT,
+  PLAYBACK_RECOVERY_WINDOW_MS,
   canAttemptRecovery,
   createPlaybackEngineState,
   reducePlaybackEngineState,
@@ -266,15 +267,25 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
 
           if (data.type === HlsCtor.ErrorTypes.NETWORK_ERROR) {
             const recovery = networkRecoveryRef.current;
+            const now = Date.now();
+            if (
+              recovery.firstAttemptAt != null &&
+              now - recovery.firstAttemptAt > PLAYBACK_RECOVERY_WINDOW_MS
+            ) {
+              recovery.attempts = 0;
+              recovery.firstAttemptAt = null;
+            }
+
             if (
               canAttemptRecovery({
                 attempts: recovery.attempts,
                 limit: HLS_NETWORK_RECOVERY_LIMIT,
                 firstAttemptAt: recovery.firstAttemptAt,
+                now,
               })
             ) {
               recovery.attempts += 1;
-              recovery.firstAttemptAt ??= Date.now();
+              recovery.firstAttemptAt ??= now;
               transitionEngine({ type: 'recover', attempt: recovery.attempts });
               hls.startLoad();
               return;
@@ -288,15 +299,25 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
 
           if (data.type === HlsCtor.ErrorTypes.MEDIA_ERROR) {
             const recovery = mediaRecoveryRef.current;
+            const now = Date.now();
+            if (
+              recovery.firstAttemptAt != null &&
+              now - recovery.firstAttemptAt > PLAYBACK_RECOVERY_WINDOW_MS
+            ) {
+              recovery.attempts = 0;
+              recovery.firstAttemptAt = null;
+            }
+
             if (
               canAttemptRecovery({
                 attempts: recovery.attempts,
                 limit: HLS_MEDIA_RECOVERY_LIMIT,
                 firstAttemptAt: recovery.firstAttemptAt,
+                now,
               })
             ) {
               recovery.attempts += 1;
-              recovery.firstAttemptAt ??= Date.now();
+              recovery.firstAttemptAt ??= now;
               transitionEngine({ type: 'recover', attempt: recovery.attempts });
               hls.recoverMediaError();
               return;
