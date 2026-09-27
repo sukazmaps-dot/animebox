@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 
 import { useAuthState } from '@/components/AuthStateProvider';
@@ -582,7 +582,17 @@ export default function GlobalChatV11Client({ initialPage }: { initialPage: Chat
                             username={author?.username || 'Пользователь'}
                             className={styles.username}
                           >
-                            <span>{author?.username || 'Пользователь'}</span>
+                            <span
+                              className={styles.usernameText}
+                              data-effect={author?.nicknameEffect ?? 'none'}
+                              style={
+                                {
+                                  '--chat-nick-accent': author?.nicknameAccent ?? '#7C4DFF',
+                                } as CSSProperties
+                              }
+                            >
+                              {author?.username || 'Пользователь'}
+                            </span>
                           </ProfilePreview>
                         )}
                         {isSystem ? <span className={styles.systemBadge}>SYSTEM</span> : badge && <span className={styles.badge} data-kind={badge.kind}>{badge.text}</span>}
