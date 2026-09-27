@@ -22,7 +22,6 @@ import './hero-swipe-v7.css';
 import './ad-layout-v8.css';
 import './mobile-home-ending-v11.css';
 import './premium-shell.css';
-import './premium-particles-v18-9.css';
 import './design-v2-content-first.css';
 import './auth-modal-v2.css';
 import './activation-v2.css';
