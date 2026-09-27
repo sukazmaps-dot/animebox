@@ -1435,6 +1435,8 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     if (theaterMode) {
       const roomId = current.searchParams.get('party');
       if (roomId) next.searchParams.set('party', roomId);
+    } else {
+      next.search = current.search;
     }
 
     next.hash = current.hash;
