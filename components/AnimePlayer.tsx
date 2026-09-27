@@ -1435,9 +1435,11 @@ export default function AnimePlayer({
       }
     },
     [
+      animeId,
       autoNextCancelled,
       endScreenOpen,
       endingPromptOpen,
+      episodeNumber,
       hasNext,
       markConfirmedPlaybackStart,
       onEnded,
