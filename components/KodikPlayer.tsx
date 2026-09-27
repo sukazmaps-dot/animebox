@@ -1,6 +1,12 @@
 'use client';
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
+import {
+  createPlaybackEngineState,
+  reducePlaybackEngineState,
+  type PlaybackEngineEvent,
+  type PlaybackEngineState,
+} from '@/lib/playback-core';
 
 type KodikTimeSample = {
   positionSeconds: number;
@@ -61,6 +67,7 @@ type Props = {
   onPlaybackState?: (event: KodikPlaybackStateEvent) => void;
   onProviderSkip?: (signal: KodikProviderSkipSignal) => void;
   onEnded?: () => void;
+  onEngineStateChange?: (state: PlaybackEngineState) => void;
 };
 
 type KodikMessage = {
@@ -238,6 +245,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
   onPlaybackState,
   onProviderSkip,
   onEnded,
+  onEngineStateChange,
 }, ref) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const durationRef = useRef<number | null>(null);
@@ -250,6 +258,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
   const lastSampleAtRef = useRef<number | null>(null);
   const lastAdvanceAtRef = useRef<number | null>(null);
   const pauseInferenceTimerRef = useRef<number | null>(null);
+  const engineStateRef = useRef(createPlaybackEngineState('kodik'));
   const pendingTimeRequestRef = useRef<{
     promise: Promise<number | null>;
     resolve: (position: number | null) => void;
@@ -268,6 +277,12 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
       return null;
     }
   }, [playerSrc]);
+
+  const transitionEngine = useCallback((event: PlaybackEngineEvent) => {
+    const next = reducePlaybackEngineState(engineStateRef.current, event);
+    engineStateRef.current = next;
+    onEngineStateChange?.(next);
+  }, [onEngineStateChange]);
 
   const postApiCommand = useCallback((method: string, value: Record<string, unknown> = {}) => {
     const frameWindow = iframeRef.current?.contentWindow;
@@ -291,17 +306,24 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
       play() {
         pendingPlayRef.current = true;
         playingRef.current = true;
+        transitionEngine({ type: 'play' });
         postApiCommand('play');
       },
       pause() {
         pendingPlayRef.current = false;
         playingRef.current = false;
+        transitionEngine({ type: 'pause' });
         postApiCommand('pause');
       },
       seek(seconds) {
         if (!Number.isFinite(seconds)) return;
         const normalized = Math.min(28_800, Math.max(0, seconds));
         currentPositionRef.current = normalized;
+        transitionEngine({
+          type: 'time',
+          positionSeconds: normalized,
+          durationSeconds: durationRef.current,
+        });
         postApiCommand('seek', { seconds: normalized });
       },
       setVolume(volume) {
@@ -383,18 +405,21 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
         };
       },
     }),
-    [postApiCommand],
+    [postApiCommand, transitionEngine],
   );
 
   const handleLoad = useCallback(() => {
+    transitionEngine({ type: 'ready' });
     onReady?.();
 
     if (pendingPlayRef.current) {
       postApiCommand('play');
     }
-  }, [onReady, postApiCommand]);
+  }, [onReady, postApiCommand, transitionEngine]);
 
   useEffect(() => {
+    engineStateRef.current = createPlaybackEngineState('kodik');
+    transitionEngine({ type: 'load' });
     durationRef.current = null;
     currentPositionRef.current = null;
     lastForcedEpisodeRef.current = null;
@@ -415,7 +440,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
       pendingTime.resolve(null);
       pendingTimeRequestRef.current = null;
     }
-  }, [playerSrc, resumeSeconds]);
+  }, [playerSrc, resumeSeconds, transitionEngine]);
 
   useEffect(() => {
     function fireEndedOnce() {
@@ -457,6 +482,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
         if (Date.now() - (lastAdvanceAtRef.current ?? 0) < 1_700) return;
         if (!playingRef.current) return;
         playingRef.current = false;
+        transitionEngine({ type: 'pause' });
         emitPlaybackAction('pause');
         emitPlaybackState();
       }, 1_850);
@@ -567,6 +593,12 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
 
         const knownDuration = time.duration ?? durationRef.current;
 
+        transitionEngine({
+          type: 'time',
+          positionSeconds: time.position,
+          durationSeconds: knownDuration,
+        });
+
         onTimeUpdate?.({
           positionSeconds: time.position,
           durationSeconds: knownDuration,
@@ -589,6 +621,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
       if (key === 'kodik_player_play' || key === 'kodik_player_playing' || key === 'kodik_player_resume') {
         playingRef.current = true;
         lastAdvanceAtRef.current = Date.now();
+        transitionEngine({ type: 'play' });
         emitPlaybackAction('play');
         emitPlaybackState();
         return;
@@ -596,6 +629,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
 
       if (key === 'kodik_player_pause' || key === 'kodik_player_paused') {
         playingRef.current = false;
+        transitionEngine({ type: 'pause' });
         emitPlaybackAction('pause');
         emitPlaybackState();
         return;
@@ -617,6 +651,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
         key === 'kodik_player_video_ended'
       ) {
         playingRef.current = false;
+        transitionEngine({ type: 'ended' });
         emitPlaybackState();
         fireEndedOnce();
         return;
@@ -704,6 +739,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
     onProviderSkip,
     onTimeUpdate,
     resumeSeconds,
+    transitionEngine,
   ]);
 
   return (
@@ -716,7 +752,11 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
         allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
         allowFullScreen
         onLoad={handleLoad}
-        onError={onError}
+        onError={() => {
+          const message = 'Kodik iframe не удалось загрузить.';
+          transitionEngine({ type: 'error', message });
+          onError?.();
+        }}
       />
 
     </>

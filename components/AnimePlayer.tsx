@@ -48,6 +48,12 @@ import {
   type PremiumStudioSettings,
 } from '@/lib/premium-studio';
 import {
+  clampPlaybackPosition,
+  clampPlaybackRate,
+  clampPlaybackVolume,
+  type PlaybackEngineState,
+} from '@/lib/playback-core';
+import {
   WATCH_PARTY_PLAYER_ACTION_EVENT,
   WATCH_PARTY_PLAYER_COMMAND_EVENT,
   WATCH_PARTY_PLAYER_CONTROL_EVENT,
@@ -433,7 +439,10 @@ export default function AnimePlayer({
   const [autoNextCancelled, setAutoNextCancelled] = useState(false);
   const [premiumStudio, setPremiumStudio] = useState<PremiumStudioSettings | null>(null);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [playbackVolume, setPlaybackVolumeState] = useState(1);
+  const [playbackMuted, setPlaybackMuted] = useState(false);
   const [providerSkipKind, setProviderSkipKind] = useState<'opening' | 'ending' | null>(null);
+  const [playbackEngineState, setPlaybackEngineState] = useState<PlaybackEngineState | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const kodikPlayerRef = useRef<KodikPlayerHandle | null>(null);
@@ -478,6 +487,7 @@ export default function AnimePlayer({
   const pendingPartyCommandRef = useRef<WatchPartyPlayerCommandDetail | null>(null);
   const providerSkipKindRef = useRef<'opening' | 'ending' | null>(null);
   const openingWindowEnteredAtRef = useRef<number | null>(null);
+  const lastEnginePhaseRef = useRef<PlaybackEngineState['phase'] | null>(null);
   const lastPartyActionRef = useRef<{
     action: WatchPartyPlayerAction;
     position: number;
@@ -619,24 +629,184 @@ export default function AnimePlayer({
     );
   }, [episodeNumber, isKodik]);
 
+  const getPlaybackSnapshot = useCallback(() => {
+    if (isKodik) {
+      const state = kodikPlayerRef.current?.getState();
+      return {
+        positionSeconds:
+          state?.positionSeconds ?? latestPlaybackPositionSecondsRef.current,
+        durationSeconds: state?.durationSeconds ?? null,
+        playing: state?.playing ?? false,
+      };
+    }
+
+    const video = videoRef.current;
+    return {
+      positionSeconds:
+        video && Number.isFinite(video.currentTime)
+          ? Math.max(0, video.currentTime)
+          : latestPlaybackPositionSecondsRef.current,
+      durationSeconds:
+        video && Number.isFinite(video.duration) && video.duration > 0
+          ? video.duration
+          : null,
+      playing: Boolean(video && !video.paused && !video.ended),
+    };
+  }, [isKodik]);
+
+  const seekPlayback = useCallback((seconds: number) => {
+    const snapshot = getPlaybackSnapshot();
+    const target = clampPlaybackPosition(
+      seconds,
+      snapshot.durationSeconds,
+    );
+
+    if (isKodik) {
+      const player = kodikPlayerRef.current;
+      if (!player) return false;
+      player.seek(target);
+      return true;
+    }
+
+    const video = videoRef.current;
+    if (!video) return false;
+
+    try {
+      video.currentTime = target;
+      return true;
+    } catch {
+      return false;
+    }
+  }, [getPlaybackSnapshot, isKodik]);
+
+  const playPlayback = useCallback(() => {
+    if (isKodik) {
+      const player = kodikPlayerRef.current;
+      if (!player) return false;
+      player.play();
+      return true;
+    }
+
+    const video = videoRef.current;
+    if (!video) return false;
+    void video.play().catch(() => undefined);
+    return true;
+  }, [isKodik]);
+
+  const pausePlayback = useCallback(() => {
+    if (isKodik) {
+      const player = kodikPlayerRef.current;
+      if (!player) return false;
+      player.pause();
+      return true;
+    }
+
+    const video = videoRef.current;
+    if (!video) return false;
+    video.pause();
+    return true;
+  }, [isKodik]);
+
+  const setPlaybackVolume = useCallback((volume: number) => {
+    const normalized = clampPlaybackVolume(volume);
+    setPlaybackVolumeState(normalized);
+    setPlaybackMuted(normalized === 0);
+
+    if (isKodik) {
+      const player = kodikPlayerRef.current;
+      if (!player) return false;
+      player.setVolume(normalized);
+      if (normalized > 0) player.unmute();
+      else player.mute();
+      return true;
+    }
+
+    const video = videoRef.current;
+    if (!video) return false;
+    video.volume = normalized;
+    video.muted = normalized === 0;
+    return true;
+  }, [isKodik]);
+
+  const setPlaybackMutedCommand = useCallback((muted: boolean) => {
+    setPlaybackMuted(muted);
+
+    if (isKodik) {
+      const player = kodikPlayerRef.current;
+      if (!player) return false;
+      if (muted) player.mute();
+      else player.unmute();
+      return true;
+    }
+
+    const video = videoRef.current;
+    if (!video) return false;
+    video.muted = muted;
+    return true;
+  }, [isKodik]);
+
+  const enterPlaybackPip = useCallback(async () => {
+    if (isKodik) {
+      const player = kodikPlayerRef.current;
+      if (!player) return false;
+      player.enterPip();
+      return true;
+    }
+
+    const video = videoRef.current;
+    if (
+      !video ||
+      typeof document === 'undefined' ||
+      !document.pictureInPictureEnabled ||
+      video.disablePictureInPicture
+    ) {
+      return false;
+    }
+
+    try {
+      await video.requestPictureInPicture?.();
+      return true;
+    } catch {
+      return false;
+    }
+  }, [isKodik]);
+
+  const exitPlaybackPip = useCallback(async () => {
+    if (isKodik) {
+      const player = kodikPlayerRef.current;
+      if (!player) return false;
+      player.exitPip();
+      return true;
+    }
+
+    if (
+      typeof document === 'undefined' ||
+      !document.pictureInPictureElement
+    ) {
+      return false;
+    }
+
+    try {
+      await document.exitPictureInPicture?.();
+      return true;
+    } catch {
+      return false;
+    }
+  }, [isKodik]);
+
   const getPrecisePlaybackPosition = useCallback(async () => {
     if (isKodik) {
       const player = kodikPlayerRef.current;
-      if (!player) return latestPlaybackPositionSecondsRef.current;
+      if (!player) return getPlaybackSnapshot().positionSeconds;
       const precise = await player.getTime();
       return precise ?? player.getState().positionSeconds;
     }
 
-    const video = videoRef.current;
-    if (video && Number.isFinite(video.currentTime)) {
-      return Math.max(0, video.currentTime);
-    }
-
-    return latestPlaybackPositionSecondsRef.current;
-  }, [isKodik]);
+    return getPlaybackSnapshot().positionSeconds;
+  }, [getPlaybackSnapshot, isKodik]);
 
   const applyPlaybackSpeed = useCallback((speed: number) => {
-    const normalized = Math.min(2, Math.max(0.25, speed));
+    const normalized = clampPlaybackRate(speed);
     setPlaybackSpeed(normalized);
 
     if (isKodik) {
@@ -649,25 +819,94 @@ export default function AnimePlayer({
     }
   }, [isKodik]);
 
-  const togglePictureInPicture = useCallback(async () => {
-    if (isKodik) {
-      kodikPlayerRef.current?.enterPip();
+  const playbackController = useMemo(() => ({
+    getSnapshot: getPlaybackSnapshot,
+    getTime: getPrecisePlaybackPosition,
+    getDuration: () => getPlaybackSnapshot().durationSeconds,
+    play: playPlayback,
+    pause: pausePlayback,
+    seek: seekPlayback,
+    setVolume: setPlaybackVolume,
+    setMuted: setPlaybackMutedCommand,
+    setSpeed: applyPlaybackSpeed,
+    enterPip: enterPlaybackPip,
+    exitPip: exitPlaybackPip,
+  }), [
+    applyPlaybackSpeed,
+    enterPlaybackPip,
+    exitPlaybackPip,
+    getPlaybackSnapshot,
+    getPrecisePlaybackPosition,
+    pausePlayback,
+    playPlayback,
+    seekPlayback,
+    setPlaybackMutedCommand,
+    setPlaybackVolume,
+  ]);
+
+  const handleEngineStateChange = useCallback((state: PlaybackEngineState) => {
+    setPlaybackEngineState(state);
+
+    const previousPhase = lastEnginePhaseRef.current;
+    if (previousPhase === state.phase) return;
+    lastEnginePhaseRef.current = state.phase;
+
+    const engineMeta = {
+      engine: state.engine,
+      phase: state.phase,
+      recoveryAttempt: state.recoveryAttempt,
+    };
+
+    const recoveredOrResumed =
+      previousPhase === 'buffering' ||
+      previousPhase === 'recovering';
+
+    if (
+      recoveredOrResumed &&
+      (state.phase === 'ready' || state.phase === 'playing')
+    ) {
+      trackPlayerEvent('player_buffering_end', engineMeta);
+    }
+
+    if (
+      state.phase === 'ready' &&
+      previousPhase !== 'buffering' &&
+      previousPhase !== 'recovering'
+    ) {
+      trackPlayerEvent('player_engine_ready', engineMeta);
       return;
     }
 
-    const video = videoRef.current;
-    if (!video || typeof document === 'undefined') return;
-
-    try {
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture?.();
-      } else {
-        await video.requestPictureInPicture?.();
-      }
-    } catch (error) {
-      console.warn('[AnimePlayer] picture-in-picture unavailable:', error);
+    if (state.phase === 'buffering') {
+      trackPlayerEvent('player_buffering_start', engineMeta);
+      return;
     }
-  }, [isKodik]);
+
+    if (state.phase === 'recovering') {
+      trackPlayerEvent('player_recovery_attempt', engineMeta);
+      return;
+    }
+
+    if (state.phase === 'error') {
+      trackPlayerEvent('player_recovery_failed', {
+        ...engineMeta,
+        error: state.error,
+      }, true);
+    }
+  }, [trackPlayerEvent]);
+
+  const togglePictureInPicture = useCallback(async () => {
+    if (
+      !isKodik &&
+      typeof document !== 'undefined' &&
+      document.pictureInPictureElement
+    ) {
+      await playbackController.exitPip();
+      return;
+    }
+
+    await playbackController.enterPip();
+  }, [isKodik, playbackController]);
 
   const publishPartyAction = useCallback((
     action: WatchPartyPlayerAction,
@@ -710,58 +949,51 @@ export default function AnimePlayer({
     if (detail.episode !== episodeNumber) return;
     if (remote) partySuppressUntilRef.current = Date.now() + 2_800;
 
-    const target = Math.max(0, Math.min(28_800, detail.position));
-
-    if (isKodik) {
-      setStarted(true);
-      const player = kodikPlayerRef.current;
-      if (!player) {
-        pendingPartyCommandRef.current = detail;
-        return;
-      }
-
-      const state = player.getState();
-      if (detail.action === 'seek' || Math.abs(state.positionSeconds - target) > 2.2) {
-        player.seek(target);
-      }
-      if (detail.action === 'play') player.play();
-      if (detail.action === 'pause') player.pause();
-
-      publishPartyState({
-        position: target,
-        duration: state.durationSeconds,
-        playing: detail.action === 'play' ? true : detail.action === 'pause' ? false : detail.playing,
-      });
-      return;
-    }
-
-    const video = videoRef.current;
-    if (!started || !video) {
+    if (!started) {
       pendingPartyCommandRef.current = detail;
       setStarted(true);
       return;
     }
 
-    if (detail.action === 'seek' || Math.abs(video.currentTime - target) > 2.2) {
-      try {
-        video.currentTime = target;
-      } catch {
-        // Metadata may still be loading; the pending state below will retry.
+    const snapshot = playbackController.getSnapshot();
+    const target = clampPlaybackPosition(
+      detail.position,
+      snapshot.durationSeconds,
+    );
+
+    if (
+      detail.action === 'seek' ||
+      Math.abs(snapshot.positionSeconds - target) > 2.2
+    ) {
+      if (!playbackController.seek(target)) {
+        pendingPartyCommandRef.current = detail;
+        return;
       }
     }
 
     if (detail.action === 'play') {
-      void video.play().catch(() => undefined);
+      if (!playbackController.play()) {
+        pendingPartyCommandRef.current = detail;
+        return;
+      }
     } else if (detail.action === 'pause') {
-      video.pause();
+      if (!playbackController.pause()) {
+        pendingPartyCommandRef.current = detail;
+        return;
+      }
     }
 
     publishPartyState({
       position: target,
-      duration: Number.isFinite(video.duration) && video.duration > 0 ? video.duration : null,
-      playing: detail.action === 'play' ? true : detail.action === 'pause' ? false : !video.paused,
+      duration: snapshot.durationSeconds,
+      playing:
+        detail.action === 'play'
+          ? true
+          : detail.action === 'pause'
+            ? false
+            : detail.playing,
     });
-  }, [episodeNumber, isKodik, publishPartyState, started]);
+  }, [episodeNumber, playbackController, publishPartyState, started]);
 
   const watchSession = useWatchSession({
     enabled:
@@ -864,16 +1096,13 @@ export default function AnimePlayer({
       if (!smartSeekSupported || watchTogetherMode) return false;
 
       const fromSeconds = latestPlaybackPositionSecondsRef.current;
+      const playbackSnapshot = playbackController.getSnapshot();
       const durationSeconds =
         observedDurationSeconds != null &&
         Number.isFinite(observedDurationSeconds) &&
         observedDurationSeconds > 0
           ? observedDurationSeconds
-          : isKodik
-            ? kodikPlayerRef.current?.getState().durationSeconds ?? null
-            : videoRef.current && Number.isFinite(videoRef.current.duration)
-              ? videoRef.current.duration
-              : null;
+          : playbackSnapshot.durationSeconds;
 
       const recentExplicitSeek =
         Date.now() - lastExplicitSeekAtRef.current <=
@@ -900,34 +1129,13 @@ export default function AnimePlayer({
       }
 
       const targetSeconds = openingDecision.targetSeconds;
-      let requested = false;
-
-      if (isKodik) {
-        const player = kodikPlayerRef.current;
-        if (player) {
-          watchSession.onProviderSkip({
-            kind: 'opening',
-            atSeconds: fromSeconds,
-            durationSeconds,
-            origin: typeof window !== 'undefined' ? window.location.origin : null,
-          });
-          player.seek(targetSeconds);
-          requested = true;
-        }
-      } else if (videoRef.current) {
-        try {
-          watchSession.onProviderSkip({
-            kind: 'opening',
-            atSeconds: fromSeconds,
-            durationSeconds,
-            origin: typeof window !== 'undefined' ? window.location.origin : null,
-          });
-          videoRef.current.currentTime = targetSeconds;
-          requested = true;
-        } catch {
-          requested = false;
-        }
-      }
+      watchSession.onProviderSkip({
+        kind: 'opening',
+        atSeconds: fromSeconds,
+        durationSeconds,
+        origin: typeof window !== 'undefined' ? window.location.origin : null,
+      });
+      const requested = playbackController.seek(targetSeconds);
 
       if (!requested) {
         if (mode === 'manual') setSkipOpeningVisible(true);
@@ -959,7 +1167,7 @@ export default function AnimePlayer({
     },
     [
       clearOpeningSkipFallback,
-      isKodik,
+      playbackController,
       smartSeekSupported,
       timeline,
       watchSession,
@@ -1227,9 +1435,11 @@ export default function AnimePlayer({
       }
     },
     [
+      animeId,
       autoNextCancelled,
       endScreenOpen,
       endingPromptOpen,
+      episodeNumber,
       hasNext,
       markConfirmedPlaybackStart,
       onEnded,
@@ -2035,10 +2245,17 @@ export default function AnimePlayer({
       failureTracked: false,
     };
 
+    lastEnginePhaseRef.current = null;
+    setPlaybackEngineState(null);
+
     trackPlayerEvent('player_source_selected', {
       selectionReason: sourceSelectionReasonRef.current,
     });
-  }, [currentAttemptId, trackPlayerEvent, videoLink]);
+    trackPlayerEvent('player_engine_selected', {
+      engine: isKodik ? 'kodik' : isHls ? 'hls' : isIframe ? 'iframe' : 'native',
+      selectionReason: sourceSelectionReasonRef.current,
+    });
+  }, [currentAttemptId, isHls, isIframe, isKodik, trackPlayerEvent, videoLink]);
 
   const setSourceStatus = useCallback((sourceName: string | undefined, status: SourceLoadState) => {
     const key = sourceName?.trim() || 'Источник';
@@ -2071,6 +2288,12 @@ export default function AnimePlayer({
         startupMs,
         timeToPlayerReadyMs,
       });
+      trackPlayerEvent('player_startup_ms', {
+        engine:
+          isKodik ? 'kodik' : isHls ? 'hls' : isIframe ? 'iframe' : 'native',
+        startupMs,
+        timeToPlayerReadyMs,
+      });
     }
 
     setPlayerReady(true);
@@ -2082,6 +2305,9 @@ export default function AnimePlayer({
     currentSource?.name,
     currentSourceName,
     currentSourceType,
+    isHls,
+    isIframe,
+    isKodik,
     setSourceStatus,
     sourceDiscoveryStartedAtMs,
     trackPlayerEvent,
@@ -2154,6 +2380,16 @@ export default function AnimePlayer({
       ),
       failedCandidates: failedCandidatesRef.current.size,
     }, true);
+    trackPlayerEvent('player_engine_fallback', {
+      fromProvider: from,
+      toProvider: to,
+      fromEngine:
+        isKodik ? 'kodik' : isHls ? 'hls' : isIframe ? 'iframe' : 'native',
+      resumeSeconds: Math.max(
+        0,
+        Math.floor(latestPlaybackPositionSecondsRef.current),
+      ),
+    }, true);
 
     sourceSelectionReasonRef.current = 'fallback';
     setActiveSourceIndex(fallback.sourceIndex);
@@ -2175,6 +2411,9 @@ export default function AnimePlayer({
     applyResumeTarget,
     currentSourceName,
     findFallbackCandidate,
+    isHls,
+    isIframe,
+    isKodik,
     setSourceStatus,
     started,
     trackPlayerEvent,
@@ -2534,26 +2773,23 @@ export default function AnimePlayer({
      * original click keeps the provider start inside the same user gesture,
      * so the viewer does not have to press Kodik's play button a second time.
      */
-    if (isKodik) {
-      const player = kodikPlayerRef.current;
-      player?.play();
-      const state = player?.getState();
+    setStarted(true);
 
-      void getPrecisePlaybackPosition().then((position) => {
+    if (isKodik) {
+      playbackController.play();
+      void playbackController.getTime().then((position) => {
+        const snapshot = playbackController.getSnapshot();
         publishPartyAction('play', position, true);
         publishPartyState({
           position,
-          duration: player?.getState().durationSeconds ?? state?.durationSeconds ?? null,
+          duration: snapshot.durationSeconds,
           playing: true,
         });
       });
-
-      setStarted(true);
       return;
     }
 
     setPlayerReady(false);
-    setStarted(true);
   }
 
   async function toggleFullscreen() {
@@ -2817,6 +3053,8 @@ export default function AnimePlayer({
 
         <div
           ref={playerViewportRef}
+          data-playback-engine={playbackEngineState?.engine ?? (isKodik ? 'kodik' : isHls ? 'hls' : isIframe ? 'iframe' : 'native')}
+          data-playback-phase={playbackEngineState?.phase ?? (started ? 'loading' : 'idle')}
           className={`${watchTogetherMode && !fullscreenActive ? 'watch-together-player-viewport' : ''} ${telegramPseudoFullscreen ? 'animebox-telegram-player-viewport' : ''} ${
             telegramPseudoFullscreen
               ? 'fixed inset-0 z-[2147483000] m-0 max-w-none overflow-hidden rounded-none border-0 bg-black shadow-none ring-0'
@@ -2860,8 +3098,12 @@ export default function AnimePlayer({
               resumeSeconds={resumeSeconds}
               onReady={() => {
                 markPlayerReady();
-                if (playbackSpeed !== 1) {
-                  kodikPlayerRef.current?.setSpeed(playbackSpeed);
+                const player = kodikPlayerRef.current;
+                if (player) {
+                  player.setVolume(playbackVolume);
+                  if (playbackMuted || playbackVolume === 0) player.mute();
+                  else player.unmute();
+                  player.setSpeed(playbackSpeed);
                 }
               }}
               onError={() =>
@@ -2888,6 +3130,7 @@ export default function AnimePlayer({
               }}
               onProviderSkip={handleProviderSkip}
               onEnded={handlePlaybackEnded}
+              onEngineStateChange={handleEngineStateChange}
             />
           )}
 
@@ -3014,6 +3257,9 @@ export default function AnimePlayer({
                     isHls={isHls}
                     title={`${title} — серия ${episodeNumber}`}
                     poster={poster || undefined}
+                    initialVolume={playbackVolume}
+                    initialMuted={playbackMuted}
+                    initialPlaybackRate={playbackSpeed}
                     fullscreenActive={fullscreenActive}
                     onToggleFullscreen={toggleFullscreen}
                     onReady={markPlayerReady}

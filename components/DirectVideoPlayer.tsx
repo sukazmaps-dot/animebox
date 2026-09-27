@@ -11,6 +11,16 @@ import {
   useState,
 } from 'react';
 import Icon from '@/components/Icon';
+import {
+  HLS_MEDIA_RECOVERY_LIMIT,
+  HLS_NETWORK_RECOVERY_LIMIT,
+  PLAYBACK_RECOVERY_WINDOW_MS,
+  canAttemptRecovery,
+  createPlaybackEngineState,
+  reducePlaybackEngineState,
+  type PlaybackEngineEvent,
+  type PlaybackEngineState,
+} from '@/lib/playback-core';
 
 export type DirectVideoTimeSample = {
   positionSeconds: number;
@@ -23,6 +33,9 @@ type DirectVideoPlayerProps = {
   poster?: string;
   title: string;
   autoPlay?: boolean;
+  initialVolume?: number;
+  initialMuted?: boolean;
+  initialPlaybackRate?: number;
   fullscreenActive?: boolean;
   onToggleFullscreen?: () => void | Promise<void>;
   onReady?: () => void;
@@ -35,6 +48,9 @@ type DirectVideoPlayerProps = {
   onEnded?: () => void;
   onWaiting?: () => void;
   onPlaying?: () => void;
+  onVolumeChange?: (volume: number, muted: boolean) => void;
+  onRateChange?: (rate: number) => void;
+  onEngineStateChange?: (state: PlaybackEngineState) => void;
 };
 
 type QualityOption = {
@@ -73,6 +89,9 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
     poster,
     title,
     autoPlay = true,
+    initialVolume = 1,
+    initialMuted = false,
+    initialPlaybackRate = 1,
     fullscreenActive = false,
     onToggleFullscreen,
     onReady,
@@ -85,6 +104,9 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
     onEnded,
     onWaiting,
     onPlaying,
+    onVolumeChange,
+    onRateChange,
+    onEngineStateChange,
   },
   forwardedRef,
 ) {
@@ -92,6 +114,14 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
   const controlsTimerRef = useRef<number | null>(null);
+  const onReadyRef = useRef(onReady);
+  const onErrorRef = useRef(onError);
+  const onEngineStateChangeRef = useRef(onEngineStateChange);
+  const engineStateRef = useRef(
+    createPlaybackEngineState(isHls ? 'hls' : 'native'),
+  );
+  const networkRecoveryRef = useRef({ attempts: 0, firstAttemptAt: null as number | null });
+  const mediaRecoveryRef = useRef({ attempts: 0, firstAttemptAt: null as number | null });
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -107,6 +137,18 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
   const [buffering, setBuffering] = useState(false);
 
   useImperativeHandle(forwardedRef, () => videoRef.current as HTMLVideoElement, []);
+
+  useEffect(() => {
+    onReadyRef.current = onReady;
+    onErrorRef.current = onError;
+    onEngineStateChangeRef.current = onEngineStateChange;
+  }, [onEngineStateChange, onError, onReady]);
+
+  const transitionEngine = useCallback((event: PlaybackEngineEvent) => {
+    const next = reducePlaybackEngineState(engineStateRef.current, event);
+    engineStateRef.current = next;
+    onEngineStateChangeRef.current?.(next);
+  }, []);
 
   const clearControlsTimer = useCallback(() => {
     if (controlsTimerRef.current != null) {
@@ -154,6 +196,11 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
     let disposed = false;
     let hls: Hls | null = null;
 
+    engineStateRef.current = createPlaybackEngineState(isHls ? 'hls' : 'native');
+    networkRecoveryRef.current = { attempts: 0, firstAttemptAt: null };
+    mediaRecoveryRef.current = { attempts: 0, firstAttemptAt: null };
+    transitionEngine({ type: 'load' });
+
     setQualities([]);
     setQualityLevel(-1);
     setBuffering(true);
@@ -181,7 +228,9 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
         const HlsCtor = hlsModule.default;
 
         if (!HlsCtor.isSupported()) {
-          onError?.('Этот браузер не поддерживает HLS-воспроизведение.');
+          const message = 'Этот браузер не поддерживает HLS-воспроизведение.';
+          transitionEngine({ type: 'error', message });
+          onErrorRef.current?.(message);
           return;
         }
 
@@ -212,7 +261,8 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
             });
           setQualities(options);
           setQualityLevel(-1);
-          onReady?.();
+          // <video>.canplay is the canonical readiness signal. The HLS
+          // manifest alone does not guarantee decoded media is ready.
           if (autoPlay) void video.play().catch(() => undefined);
         });
 
@@ -223,18 +273,79 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
 
         hls.on(HlsCtor.Events.ERROR, (_event, data) => {
           if (!data.fatal || !hls) return;
+
           if (data.type === HlsCtor.ErrorTypes.NETWORK_ERROR) {
-            hls.startLoad();
+            const recovery = networkRecoveryRef.current;
+            const now = Date.now();
+            if (
+              recovery.firstAttemptAt != null &&
+              now - recovery.firstAttemptAt > PLAYBACK_RECOVERY_WINDOW_MS
+            ) {
+              recovery.attempts = 0;
+              recovery.firstAttemptAt = null;
+            }
+
+            if (
+              canAttemptRecovery({
+                attempts: recovery.attempts,
+                limit: HLS_NETWORK_RECOVERY_LIMIT,
+                firstAttemptAt: recovery.firstAttemptAt,
+                now,
+              })
+            ) {
+              recovery.attempts += 1;
+              recovery.firstAttemptAt ??= now;
+              transitionEngine({ type: 'recover', attempt: recovery.attempts });
+              hls.startLoad();
+              return;
+            }
+
+            const message = data.details || 'HLS-сеть не восстановилась после повторных попыток.';
+            transitionEngine({ type: 'error', message });
+            onErrorRef.current?.(message);
             return;
           }
+
           if (data.type === HlsCtor.ErrorTypes.MEDIA_ERROR) {
-            hls.recoverMediaError();
+            const recovery = mediaRecoveryRef.current;
+            const now = Date.now();
+            if (
+              recovery.firstAttemptAt != null &&
+              now - recovery.firstAttemptAt > PLAYBACK_RECOVERY_WINDOW_MS
+            ) {
+              recovery.attempts = 0;
+              recovery.firstAttemptAt = null;
+            }
+
+            if (
+              canAttemptRecovery({
+                attempts: recovery.attempts,
+                limit: HLS_MEDIA_RECOVERY_LIMIT,
+                firstAttemptAt: recovery.firstAttemptAt,
+                now,
+              })
+            ) {
+              recovery.attempts += 1;
+              recovery.firstAttemptAt ??= now;
+              transitionEngine({ type: 'recover', attempt: recovery.attempts });
+              hls.recoverMediaError();
+              return;
+            }
+
+            const message = data.details || 'HLS-медиа не восстановилось после повторных попыток.';
+            transitionEngine({ type: 'error', message });
+            onErrorRef.current?.(message);
             return;
           }
-          onError?.(data.details || 'Не удалось воспроизвести HLS-поток.');
+
+          const message = data.details || 'Не удалось воспроизвести HLS-поток.';
+          transitionEngine({ type: 'error', message });
+          onErrorRef.current?.(message);
         });
       } catch {
-        onError?.('Не удалось загрузить HLS-модуль AnimeBox Player.');
+        const message = 'Не удалось загрузить HLS-модуль AnimeBox Player.';
+        transitionEngine({ type: 'error', message });
+        onErrorRef.current?.(message);
       }
     }
 
@@ -247,7 +358,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
       video.removeAttribute('src');
       video.load();
     };
-  }, [autoPlay, isHls, onError, onReady, src]);
+  }, [autoPlay, isHls, src, transitionEngine]);
 
   useEffect(() => {
     const onPipChange = () => {
@@ -389,35 +500,59 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
         aria-label={title}
         onLoadedMetadata={(event) => {
           const video = event.currentTarget;
+          const nextVolume = clamp(initialVolume, 0, 1);
+          const nextRate = clamp(initialPlaybackRate, 0.25, 2);
+
+          video.volume = nextVolume;
+          video.muted = initialMuted || nextVolume === 0;
+          video.playbackRate = nextRate;
+
           setDuration(Number.isFinite(video.duration) ? video.duration : 0);
           setVolume(video.volume);
           setMuted(video.muted);
+          setPlaybackRate(video.playbackRate);
+          onVolumeChange?.(video.volume, video.muted);
+          onRateChange?.(video.playbackRate);
           onLoadedMetadata?.(video.videoWidth, video.videoHeight);
         }}
         onDurationChange={(event) => {
           const value = event.currentTarget.duration;
           setDuration(Number.isFinite(value) ? value : 0);
         }}
-        onCanPlay={() => {
+        onCanPlay={(event) => {
+          const observedDuration = event.currentTarget.duration;
           setBuffering(false);
-          onReady?.();
+          transitionEngine({
+            type: 'ready',
+            durationSeconds:
+              Number.isFinite(observedDuration) && observedDuration > 0
+                ? observedDuration
+                : null,
+          });
+          onReadyRef.current?.();
         }}
         onPlaying={() => {
           setPlaying(true);
           setBuffering(false);
+          transitionEngine({ type: 'play' });
           onPlaying?.();
         }}
         onWaiting={() => {
           setBuffering(true);
+          transitionEngine({ type: 'buffering' });
           onWaiting?.();
         }}
         onPlay={(event) => {
           setPlaying(true);
+          transitionEngine({ type: 'play' });
           onPlay?.(event.currentTarget.currentTime);
         }}
         onPause={(event) => {
           setPlaying(false);
-          if (!event.currentTarget.ended) onPause?.(event.currentTarget.currentTime);
+          if (!event.currentTarget.ended) {
+            transitionEngine({ type: 'pause' });
+            onPause?.(event.currentTarget.currentTime);
+          }
         }}
         onSeeked={(event) => {
           const video = event.currentTarget;
@@ -430,19 +565,35 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
           if (video.buffered.length > 0) {
             setBuffered(video.buffered.end(video.buffered.length - 1));
           }
+          transitionEngine({
+            type: 'time',
+            positionSeconds: video.currentTime,
+            durationSeconds: nextDuration,
+          });
           onTimeUpdate?.({ positionSeconds: video.currentTime, durationSeconds: nextDuration });
         }}
         onVolumeChange={(event) => {
-          setVolume(event.currentTarget.volume);
-          setMuted(event.currentTarget.muted);
+          const video = event.currentTarget;
+          setVolume(video.volume);
+          setMuted(video.muted);
+          onVolumeChange?.(video.volume, video.muted);
         }}
-        onRateChange={(event) => setPlaybackRate(event.currentTarget.playbackRate)}
+        onRateChange={(event) => {
+          const rate = event.currentTarget.playbackRate;
+          setPlaybackRate(rate);
+          onRateChange?.(rate);
+        }}
         onEnded={() => {
           setPlaying(false);
+          transitionEngine({ type: 'ended' });
           onEnded?.();
         }}
         onError={() => {
-          if (!isHls) onError?.('Видео не удалось загрузить.');
+          if (!isHls) {
+            const message = 'Видео не удалось загрузить.';
+            transitionEngine({ type: 'error', message });
+            onErrorRef.current?.(message);
+          }
         }}
         onDoubleClick={() => void onToggleFullscreen?.()}
       />
