@@ -252,8 +252,8 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
             });
           setQualities(options);
           setQualityLevel(-1);
-          transitionEngine({ type: 'ready' });
-          onReady?.();
+          // <video>.canplay is the canonical readiness signal. The HLS
+          // manifest alone does not guarantee decoded media is ready.
           if (autoPlay) void video.play().catch(() => undefined);
         });
 
