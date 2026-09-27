@@ -127,19 +127,21 @@ function NavbarContent() {
   }
 
   useEffect(() => {
-    setSearchActive(false);
+    queueMicrotask(() => {
+      setSearchActive(false);
 
-    if (pathname === '/search') {
-      // Read from the browser URL only when entering the page. We intentionally
-      // do not mirror every useSearchParams update back into the input: doing so
-      // could overwrite fresh keystrokes with an older navigation result.
-      queueMicrotask(() => syncSearchFromLocation());
-      return;
-    }
+      if (pathname === '/search') {
+        // Read from the browser URL only when entering the page. We intentionally
+        // do not mirror every useSearchParams update back into the input: doing so
+        // could overwrite fresh keystrokes with an older navigation result.
+        syncSearchFromLocation();
+        return;
+      }
 
-    // Navbar persists across App Router navigations. Never let an old global
-    // query keep a suggestion panel alive on the destination anime page.
-    queueMicrotask(() => setSearchValue(''));
+      // Navbar persists across App Router navigations. Never let an old global
+      // query keep a suggestion panel alive on the destination anime page.
+      setSearchValue('');
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
