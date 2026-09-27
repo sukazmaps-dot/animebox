@@ -14,14 +14,16 @@ for (const file of required) {
 }
 
 const player = fs.readFileSync('components/AnimePlayer.tsx', 'utf8');
-const episodePage = fs.readFileSync('components/AnimeEpisodePage.tsx', 'utf8');
 const api = fs.readFileSync('app/api/community/episode-events/route.ts', 'utf8');
 
 if (!player.includes('animebox:player-time-sample')) {
   throw new Error('Patch 19.0: player time sample bridge missing.');
 }
-if (!episodePage.includes('EpisodeJourneyTracker')) {
-  throw new Error('Patch 19.0: episode Journey tracker is not mounted.');
+if (
+  !player.includes("import EpisodeJourneyTracker from '@/components/EpisodeJourneyTracker'") ||
+  !player.includes('<EpisodeJourneyTracker')
+) {
+  throw new Error('Patch 19.0: Journey tracker is not mounted inside AnimePlayer.');
 }
 if (!api.includes('watched_ranges') || !api.includes('MIN_TRUSTED_OVERLAP_MS')) {
   throw new Error('Patch 19.0: anti-seek server verification missing.');
