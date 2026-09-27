@@ -93,3 +93,13 @@ export function progressionEvolutionState(
     nextMilestone,
   };
 }
+
+
+export function evolutionFrameAsset(
+  frameStage: EvolutionFrameStage,
+  prestigeTier: PrestigeTier = 0,
+) {
+  if (prestigeTier >= 1) return '/brand/progression-v3/frame-prestige.svg';
+  if (frameStage <= 0) return null;
+  return `/brand/progression-v3/frame-stage-${frameStage}.svg`;
+}
