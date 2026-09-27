@@ -27,6 +27,7 @@ import {
   PREMIUM_ENTRANCE_EFFECTS,
   PREMIUM_HERO_STYLES,
   PREMIUM_MOTION_MODES,
+  PREMIUM_PARTICLE_EFFECTS,
   PREMIUM_NICKNAME_EFFECTS,
   PREMIUM_PROFILE_THEMES,
   PREMIUM_SURFACE_STYLES,
@@ -598,6 +599,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       primaryColor: preset.primaryColor,
       accentColor: preset.accentColor,
       textColor: preset.textColor,
+      particleEffect: preset.particleEffect,
     }));
     setSaved('');
   }
@@ -1240,6 +1242,22 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                     {PREMIUM_BORDER_STYLES.map((style) => (
                       <button key={style} type="button" className={settings.borderStyle === style ? 'is-active' : ''} onClick={() => setSettings((current) => ({ ...current, borderStyle: style }))}>
                         {style === 'soft' ? 'Мягкая' : style === 'sharp' ? 'Резкая' : 'Неон'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="premium-studio-v16__effect-row">
+                  <span><strong>Частицы профиля</strong><small>Лёгкий дополнительный слой виден в профиле и mini-profile без canvas.</small></span>
+                  <div className="premium-studio-v15__segmented premium-studio-v18__particle-options" role="radiogroup" aria-label="Эффект частиц">
+                    {PREMIUM_PARTICLE_EFFECTS.map((effect) => (
+                      <button
+                        key={effect}
+                        type="button"
+                        className={settings.particleEffect === effect ? 'is-active' : ''}
+                        onClick={() => setSettings((current) => ({ ...current, particleEffect: effect }))}
+                      >
+                        {effect === 'none' ? 'Нет' : effect === 'nebula' ? 'Nebula' : effect === 'sakura' ? 'Sakura' : 'Stars'}
                       </button>
                     ))}
                   </div>
