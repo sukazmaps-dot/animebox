@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { optionalServerSecret } from '@/lib/env/server';
 import { readJsonBody } from '@/lib/community-server';
 import { secureServerSecretEqual } from '@/lib/server-request-auth';
+import { consumeTelegramAccountLink } from '@/lib/telegram-account-link';
 
 import { escapeTelegramHtml } from '@/lib/notifications-server';
 import { getUserSubscriptions } from '@/lib/telegram/bot-subscriptions';
@@ -507,6 +508,84 @@ export async function POST(request: NextRequest) {
      * =====================================================
      */
     if (command === '/start') {
+      const startParam = text
+        .replace(/^\/start(?:@\\w+)?(?:\\s+)?/i, '')
+        .trim();
+
+      if (startParam.startsWith('link_')) {
+        const telegramId = Number(message?.from?.id ?? 0);
+        const chatType =
+          typeof message?.chat?.type === 'string'
+            ? message.chat.type
+            : '';
+
+        if (!Number.isSafeInteger(telegramId) || telegramId <= 0 || chatType !== 'private') {
+          await sendMessage(
+            chatId,
+            [
+              '🔐 <b>Привязка Telegram</b>',
+              '',
+              'Эту ссылку нужно открыть в личном чате с @YourAnimeBoxBot.',
+            ].join('\n'),
+            BOTTOM_MENU,
+          );
+
+          return NextResponse.json({ ok: true });
+        }
+
+        const linkResult = await consumeTelegramAccountLink({
+          startParam,
+          telegramId: String(telegramId),
+          telegramUsername:
+            typeof message?.from?.username === 'string'
+              ? message.from.username
+              : null,
+          telegramFirstName:
+            typeof message?.from?.first_name === 'string'
+              ? message.from.first_name
+              : null,
+        });
+
+        if (linkResult.ok) {
+          await sendMessage(
+            chatId,
+            [
+              '✅ <b>Telegram привязан к AnimeBox</b>',
+              '',
+              linkResult.alreadyLinked
+                ? 'Этот Telegram уже был связан с твоим аккаунтом.'
+                : 'Теперь Mini App, уведомления и вход через Telegram будут использовать твой существующий AnimeBox-аккаунт.',
+              '',
+              'Можешь вернуться на сайт — статус обновится автоматически.',
+            ].join('\n'),
+            BOTTOM_MENU,
+          );
+
+          return NextResponse.json({ ok: true });
+        }
+
+        const errorMessage =
+          linkResult.error === 'expired_link'
+            ? 'Ссылка истекла. Вернись в настройки AnimeBox и создай новую.'
+            : linkResult.error === 'telegram_already_linked'
+              ? 'Этот Telegram уже привязан к другому AnimeBox-аккаунту.'
+              : linkResult.error === 'account_has_other_telegram'
+                ? 'К этому AnimeBox-аккаунту уже привязан другой Telegram.'
+                : 'Ссылка недействительна или уже была использована. Создай новую в настройках AnimeBox.';
+
+        await sendMessage(
+          chatId,
+          [
+            '⚠️ <b>Не удалось привязать Telegram</b>',
+            '',
+            errorMessage,
+          ].join('\n'),
+          BOTTOM_MENU,
+        );
+
+        return NextResponse.json({ ok: true });
+      }
+
       await sendMessage(
         chatId,
         [
