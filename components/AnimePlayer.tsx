@@ -957,8 +957,22 @@ export default function AnimePlayer({
   ]);
 
   useEffect(() => {
+    const currentIdentity = `${animeId ?? "unknown"}:${episodeNumber}`;
+
     if (!episodeTransitionPending) {
+      const wasPending = episodeTransitionWasPendingRef.current;
       episodeTransitionWasPendingRef.current = false;
+
+      if (
+        wasPending &&
+        episodeIdentityRef.current === currentIdentity &&
+        resumeAfterEpisodeSwitchRef.current &&
+        started
+      ) {
+        playIntentRef.current = true;
+        resumeAfterEpisodeSwitchRef.current = false;
+        playbackController.play();
+      }
       return;
     }
 
@@ -976,7 +990,13 @@ export default function AnimePlayer({
         preservePlayIntentPauseRef.current = false;
       }
     }
-  }, [episodeTransitionPending, playbackController, started]);
+  }, [
+    animeId,
+    episodeNumber,
+    episodeTransitionPending,
+    playbackController,
+    started,
+  ]);
 
   useEffect(() => {
     const identity = `${animeId ?? "unknown"}:${episodeNumber}`;
@@ -990,6 +1010,7 @@ export default function AnimePlayer({
     episodeIdentityRef.current = identity;
     lastEpisodeNumberRef.current = episodeNumber;
     playIntentRef.current = resumePlayback;
+    preservePlayIntentPauseRef.current = false;
     episodeSwitchRef.current = {
       id: switchId,
       identity,
