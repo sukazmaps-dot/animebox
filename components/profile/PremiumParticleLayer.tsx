@@ -2,6 +2,8 @@ import type { CSSProperties } from 'react';
 
 import type { PremiumParticleEffect } from '@/lib/premium-studio';
 
+import styles from './PremiumParticleLayer.module.css';
+
 const PARTICLES = [
   [9, 18, 0.0, 8.4, 0.72],
   [18, 68, 1.1, 9.2, 0.52],
@@ -30,14 +32,14 @@ export default function PremiumParticleLayer({
 
   return (
     <span
-      className={`premium-particles premium-particles--${effect} ${className}`.trim()}
+      className={`${styles.root} ${styles[effect]} ${className}`.trim()}
       data-premium-particles={effect}
       aria-hidden="true"
     >
       {PARTICLES.map(([x, y, delay, duration, scale], index) => (
         <i
           key={index}
-          className="premium-particles__item"
+          className={styles.item}
           style={{
             '--pp-x': `${x}%`,
             '--pp-y': `${y}%`,
