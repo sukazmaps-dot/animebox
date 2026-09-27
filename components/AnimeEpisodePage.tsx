@@ -1422,6 +1422,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
   const navigateToEpisode = useCallback((slug: string, number: number) => {
     if (!Number.isSafeInteger(number) || number < 1) return;
+    if (slug === animeIdParam && number === episodeNumber) return;
 
     const encodedSlug = encodeURIComponent(slug);
     const current = new URL(window.location.href);
