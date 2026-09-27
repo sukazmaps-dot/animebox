@@ -3,8 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
-  installAchievementSoundWarmup,
+  achievementSoundUnlocked,
+  achievementSoundsEnabled,
   playAchievementUnlockSound,
+  prepareAchievementSounds,
+  unlockAchievementSoundsFromGesture,
 } from '@/lib/achievement-sound';
 
 import styles from './EpisodeJourneyTracker.module.css';
@@ -61,10 +64,25 @@ export default function EpisodeJourneyTracker({
 }) {
   const [events, setEvents] = useState<JourneyEvent[]>([]);
   const [toast, setToast] = useState<UnlockPayload['event'] | null>(null);
+  const [soundReady, setSoundReady] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const attemptedRef = useRef(new Map<string, number>());
   const toastTimerRef = useRef<number | null>(null);
 
-  useEffect(() => installAchievementSoundWarmup(), []);
+  useEffect(() => {
+    prepareAchievementSounds();
+    setSoundReady(achievementSoundUnlocked());
+    setSoundEnabled(achievementSoundsEnabled());
+
+    const onSoundState = (event: Event) => {
+      const detail = (event as CustomEvent<{ unlocked?: boolean; enabled?: boolean }>).detail;
+      setSoundReady(Boolean(detail?.unlocked));
+      setSoundEnabled(detail?.enabled !== false);
+    };
+
+    window.addEventListener('animebox:achievement-sound-state', onSoundState);
+    return () => window.removeEventListener('animebox:achievement-sound-state', onSoundState);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -192,6 +210,17 @@ export default function EpisodeJourneyTracker({
         <div className={styles.counter} aria-label="Прогресс пути серии">
           <span>Путь серии</span>
           <strong>{unlockedCount}/{events.length}</strong>
+          {!soundReady && (
+            <button
+              type="button"
+              className={styles.soundButton}
+              onClick={() => void unlockAchievementSoundsFromGesture()}
+              aria-label="Включить звуки достижений"
+              title="Включить звуки достижений"
+            >
+              {soundEnabled ? '🔊' : '🔇'}
+            </button>
+          )}
         </div>
       )}
     </>
