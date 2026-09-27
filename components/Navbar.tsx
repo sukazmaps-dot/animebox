@@ -101,6 +101,8 @@ function NavbarContent() {
     pathname === '/search' ? searchParams.get('search') ?? '' : ''
   ));
   const [mobileNavHidden, setMobileNavHidden] = useState(false);
+  const [searchActive, setSearchActive] = useState(false);
+  const searchFormRef = useRef<HTMLFormElement | null>(null);
   const mobileNavScrollRef = useRef({
     lastY: 0,
     travel: 0,
@@ -125,12 +127,19 @@ function NavbarContent() {
   }
 
   useEffect(() => {
-    if (pathname !== '/search') return;
-    // Read from the browser URL only when entering the page. We intentionally
-    // do not mirror every useSearchParams update back into the input: doing so
-    // could overwrite fresh keystrokes with an older navigation result.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    syncSearchFromLocation();
+    setSearchActive(false);
+
+    if (pathname === '/search') {
+      // Read from the browser URL only when entering the page. We intentionally
+      // do not mirror every useSearchParams update back into the input: doing so
+      // could overwrite fresh keystrokes with an older navigation result.
+      queueMicrotask(() => syncSearchFromLocation());
+      return;
+    }
+
+    // Navbar persists across App Router navigations. Never let an old global
+    // query keep a suggestion panel alive on the destination anime page.
+    queueMicrotask(() => setSearchValue(''));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
@@ -142,6 +151,20 @@ function NavbarContent() {
     return () => window.removeEventListener('popstate', onPopState);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!searchActive) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      const form = searchFormRef.current;
+      const target = event.target;
+      if (!form || !(target instanceof Node) || form.contains(target)) return;
+      setSearchActive(false);
+    };
+
+    document.addEventListener('pointerdown', onPointerDown, true);
+    return () => document.removeEventListener('pointerdown', onPointerDown, true);
+  }, [searchActive]);
 
   useEffect(() => {
     const onSearchInput = (event: Event) => {
@@ -352,6 +375,7 @@ function NavbarContent() {
     event.preventDefault();
 
     const value = searchValue.trim();
+    setSearchActive(false);
 
     if (pathname === '/search') {
       const url = new URL(window.location.href);
@@ -528,6 +552,7 @@ function NavbarContent() {
       {/* Topbar keeps only global actions: search, notifications, account. */}
       <header className="topbar">
         <form
+          ref={searchFormRef}
           className="topbar__search"
           onSubmit={submitSearch}
           role="search"
@@ -542,9 +567,13 @@ function NavbarContent() {
 
           <input
             value={searchValue}
+            onFocus={() => {
+              if (searchValue.trim().length >= 2) setSearchActive(true);
+            }}
             onChange={(event) => {
               const value = event.target.value;
               setSearchValue(value);
+              setSearchActive(value.trim().length >= 2);
               if (pathname === '/search') emitLiveSearch(value);
             }}
             aria-label="Поиск аниме"
@@ -552,10 +581,13 @@ function NavbarContent() {
             autoComplete="off"
           />
 
-          {searchValue.trim().length >= 2 && (
+          {searchActive && searchValue.trim().length >= 2 && (
             <SearchSuggestions
               query={searchValue}
-              onChoose={() => setSearchValue('')}
+              onChoose={() => {
+                setSearchActive(false);
+                setSearchValue('');
+              }}
             />
           )}
         </form>
