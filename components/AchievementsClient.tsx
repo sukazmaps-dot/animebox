@@ -352,7 +352,11 @@ export default function AchievementsClient() {
 
                 <div className={styles.milestoneCopy}>
                   <span>{xpForLevel(milestone.level).toLocaleString('ru-RU')} XP</span>
-                  <h3>{milestone.title}</h3>
+                  <h3>
+                    {milestone.stageLabel
+                      ? `${milestone.stageLabel} · ${milestone.title}`
+                      : milestone.title}
+                  </h3>
                   <p>{milestone.reward}</p>
                   <small>Premium · {milestone.premiumReward}</small>
                 </div>
