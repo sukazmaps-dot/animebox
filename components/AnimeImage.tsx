@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 
 import type {
@@ -25,6 +26,14 @@ import {
   observeNearViewportMedia,
   type MediaWarmupActivation,
 } from '@/lib/media-warmup-client';
+import {
+  getMediaEdgeHealthRevision,
+  getMediaEdgeHealthServerRevision,
+  isMediaEdgeBlocked,
+  reportMediaEdgeFailure,
+  reportMediaEdgeSuccess,
+  subscribeMediaEdgeHealth,
+} from '@/lib/media-edge-health-client';
 
 const FALLBACK = '/brand/brand-mark.webp';
 const PRIMARY_MEDIA_TIMEOUT_MS = 6_500;
@@ -70,6 +79,20 @@ function stableRetryDelayMs(key: string) {
     TRANSIENT_RETRY_MIN_DELAY_MS +
     (Math.abs(hash) % Math.max(1, span + 1))
   );
+}
+
+function firstUsableSourceIndex(
+  sources: string[],
+  startIndex: number,
+) {
+  for (let index = Math.max(0, startIndex); index < sources.length; index += 1) {
+    const source = sources[index];
+    if (!source || !isMediaEdgeBlocked(source)) {
+      return index;
+    }
+  }
+
+  return Math.max(0, sources.length - 1);
 }
 
 function sourceTimeoutMs(source: string, sourceIndex: number) {
@@ -149,21 +172,34 @@ export default function AnimeImage({
 
   const sourcesKey = sources.join('|');
 
+  const mediaEdgeRevision = useSyncExternalStore(
+    subscribeMediaEdgeHealth,
+    getMediaEdgeHealthRevision,
+    getMediaEdgeHealthServerRevision,
+  );
+
   const [imageState, setImageState] = useState(() => ({
     key: sourcesKey,
     sourceIndex: 0,
     loaded: false,
   }));
 
-  const sourceIndex =
+  const storedSourceIndex =
     imageState.key === sourcesKey
       ? imageState.sourceIndex
       : 0;
 
-  const loaded =
+  const storedLoaded =
     imageState.key === sourcesKey
       ? imageState.loaded
       : false;
+
+  const sourceIndex = storedLoaded
+    ? storedSourceIndex
+    : firstUsableSourceIndex(sources, storedSourceIndex);
+
+  const loaded =
+    storedLoaded && sourceIndex === storedSourceIndex;
 
   const current = sources[sourceIndex] ?? FALLBACK;
   const isFallback = current === FALLBACK;
@@ -218,9 +254,22 @@ export default function AnimeImage({
         return previous;
       }
 
-      const nextIndex = sourceIndex + 1;
+      const previousResolvedIndex =
+        firstUsableSourceIndex(sources, previousIndex);
 
-      if (nextIndex >= sources.length) {
+      if (
+        previous.key === sourcesKey &&
+        previousResolvedIndex !== sourceIndex
+      ) {
+        return previous;
+      }
+
+      const nextIndex = firstUsableSourceIndex(
+        sources,
+        sourceIndex + 1,
+      );
+
+      if (nextIndex >= sources.length || nextIndex === sourceIndex) {
         return previous;
       }
 
@@ -230,7 +279,7 @@ export default function AnimeImage({
         loaded: false,
       };
     });
-  }, [sourceIndex, sources.length, sourcesKey]);
+  }, [sourceIndex, sources, sourcesKey]);
 
   const handleLoad = useCallback(
     (event: React.SyntheticEvent<HTMLImageElement>) => {
@@ -240,23 +289,33 @@ export default function AnimeImage({
         element.naturalWidth > 0 &&
         element.naturalHeight > 0
       ) {
-        setImageState((previous) =>
-          previous.key === sourcesKey &&
-          previous.sourceIndex !== sourceIndex
+        reportMediaEdgeSuccess(current);
+        setImageState((previous) => {
+          const previousIndex =
+            previous.key === sourcesKey
+              ? firstUsableSourceIndex(
+                  sources,
+                  previous.sourceIndex,
+                )
+              : sourceIndex;
+
+          return previous.key === sourcesKey &&
+            previousIndex !== sourceIndex
             ? previous
             : {
                 key: sourcesKey,
                 sourceIndex,
                 loaded: true,
-              },
-        );
+              };
+        });
       }
     },
-    [sourceIndex, sourcesKey],
+    [current, sourceIndex, sources, sourcesKey],
   );
 
   const handleError = useCallback(() => {
     if (!isFallback) {
+      reportMediaEdgeFailure(current);
       goToNextSource();
       return;
     }
@@ -266,7 +325,7 @@ export default function AnimeImage({
       sourceIndex,
       loaded: true,
     });
-  }, [goToNextSource, isFallback, sourceIndex, sourcesKey]);
+  }, [current, goToNextSource, isFallback, sourceIndex, sourcesKey]);
 
   /*
    * Native lazy scheduling and the shared near-viewport scheduler own the
@@ -285,11 +344,13 @@ export default function AnimeImage({
     }
 
     const timeout = window.setTimeout(() => {
+      reportMediaEdgeFailure(current);
       goToNextSource();
     }, sourceTimeoutMs(current, sourceIndex));
 
     return () => window.clearTimeout(timeout);
   }, [
+    current,
     current,
     goToNextSource,
     isFallback,
@@ -325,7 +386,7 @@ export default function AnimeImage({
       transientRetryCountRef.current += 1;
       setImageState({
         key: sourcesKey,
-        sourceIndex: 0,
+        sourceIndex: firstUsableSourceIndex(sources, 0),
         loaded: false,
       });
     };
@@ -361,6 +422,8 @@ export default function AnimeImage({
     };
   }, [
     isFallback,
+    mediaEdgeRevision,
+    sources,
     sources.length,
     sourcesKey,
   ]);
@@ -377,19 +440,29 @@ export default function AnimeImage({
         element.naturalWidth > 0 &&
         element.naturalHeight > 0
       ) {
-        setImageState((previous) =>
-          previous.key === sourcesKey &&
-          previous.sourceIndex !== sourceIndex
+        reportMediaEdgeSuccess(current);
+        setImageState((previous) => {
+          const previousIndex =
+            previous.key === sourcesKey
+              ? firstUsableSourceIndex(
+                  sources,
+                  previous.sourceIndex,
+                )
+              : sourceIndex;
+
+          return previous.key === sourcesKey &&
+            previousIndex !== sourceIndex
             ? previous
             : {
                 key: sourcesKey,
                 sourceIndex,
                 loaded: true,
-              },
-        );
+              };
+        });
         return;
       }
 
+      reportMediaEdgeFailure(current);
       goToNextSource();
     });
 
@@ -449,7 +522,11 @@ export default function AnimeImage({
               key={current}
               ref={imageRef}
               src={current}
-              srcSet={sourceIndex === 0 ? mediaSrcSet : undefined}
+              srcSet={
+                sourceIndex === 0 && !isMediaEdgeBlocked(current)
+                  ? mediaSrcSet
+                  : undefined
+              }
               alt={resolvedAlt}
               loading={nativeLoading}
               fetchPriority={nativeFetchPriority}
