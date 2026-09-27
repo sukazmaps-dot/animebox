@@ -86,10 +86,26 @@ if (episodePage.includes('<EpisodeJourneyTracker')) {
   throw new Error('Patch 19.0.2 Journey overlay is still mounted outside the player.');
 }
 
-if (kodikPlayer.includes('allowFullScreen') || kodikPlayer.includes('autoplay; fullscreen;')) {
-  throw new Error('Patch 19.0.2 Kodik can still take fullscreen ownership from AnimeBox.');
+if (!kodikPlayer.includes('allowFullScreen') || !kodikPlayer.includes('autoplay; fullscreen;')) {
+  throw new Error('Patch 19.0.3 native Kodik fullscreen fallback is missing.');
 }
 
 if (!player.includes('Полный экран AnimeBox')) {
-  throw new Error('Patch 19.0.2 iframe fullscreen control missing.');
+  throw new Error('Patch 19.0.3 iframe fullscreen proxy control missing.');
+}
+
+if (!player.includes('providerFullscreen') || !player.includes('viewport.contains(activeElement)')) {
+  throw new Error('Patch 19.0.3 fullscreen ownership detection missing.');
+}
+
+if (!player.includes('suspended={providerFullscreen}')) {
+  throw new Error('Patch 19.0.3 Journey is not suspended during provider fullscreen.');
+}
+
+if (!tracker.includes('pendingToasts') || !tracker.includes('enqueueByPriority')) {
+  throw new Error('Patch 19.0.3 Journey fullscreen queue missing.');
+}
+
+if (!tracker.includes('if (!toast || suspended) return null;')) {
+  throw new Error('Patch 19.0.3 provider fullscreen popup suppression missing.');
 }
