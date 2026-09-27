@@ -2546,6 +2546,32 @@
     0 0 34px rgba(var(--ab-premium-accent-rgb), .18);
 }
 
+.premium-profile-v21__nickname[data-effect='manga'] {
+  padding: 0 .18em;
+  color: var(--ab-premium-text);
+  text-shadow: 2px 1px 0 rgba(0,0,0,.68);
+}
+.premium-profile-v21__nickname[data-effect='manga']::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -.08em -.24em;
+  transform: skewX(-8deg);
+  border-left: 2px solid var(--ab-premium-accent);
+  background:
+    repeating-linear-gradient(-18deg,rgba(var(--ab-premium-text-rgb),.10) 0 1px,transparent 1px 6px),
+    rgba(var(--ab-premium-accent-rgb),.13);
+  clip-path: polygon(4% 5%,100% 0,96% 100%,0 88%);
+}
+
+.premium-profile-v21__nickname[data-effect='glitch'] {
+  color: var(--ab-premium-text);
+  text-shadow:
+    -1px 0 color-mix(in srgb,var(--ab-premium-accent) 74%,#52e6ff),
+    1px 0 #ff5eaa;
+  animation: premiumV21NicknameGlitch 3.8s steps(1,end) infinite;
+}
+
 /* ---------- Premium badge ---------- */
 .profile-v2.premium-profile-custom.premium-profile-v21 .animebox-premium-badge {
   border-color: color-mix(in srgb, var(--ab-premium-accent) 34%, rgba(255,255,255,.1));
@@ -2668,6 +2694,13 @@
 
 @keyframes premiumV21NicknameShimmer {
   to { background-position: -240% 0; }
+}
+
+@keyframes premiumV21NicknameGlitch {
+  0%,92%,100% { transform: none; filter: none; }
+  93% { transform: translateX(-1px); filter: hue-rotate(16deg); }
+  95% { transform: translateX(1px); }
+  97% { transform: none; }
 }
 
 @keyframes premiumV21EnterFade {
