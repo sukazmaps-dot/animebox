@@ -27,6 +27,24 @@ export type DirectVideoTimeSample = {
   durationSeconds: number | null;
 };
 
+export type DirectPlayerTimelineMarker = {
+  startSeconds: number;
+  endSeconds: number;
+  kind: 'opening' | 'ending';
+};
+
+export type DirectPlayerControlAction =
+  | 'play'
+  | 'pause'
+  | 'seek'
+  | 'volume'
+  | 'mute'
+  | 'unmute'
+  | 'speed'
+  | 'pip'
+  | 'fullscreen'
+  | 'quality';
+
 type DirectVideoPlayerProps = {
   src: string;
   isHls: boolean;
@@ -36,6 +54,7 @@ type DirectVideoPlayerProps = {
   initialVolume?: number;
   initialMuted?: boolean;
   initialPlaybackRate?: number;
+  timelineMarkers?: DirectPlayerTimelineMarker[];
   fullscreenActive?: boolean;
   onToggleFullscreen?: () => void | Promise<void>;
   onReady?: () => void;
@@ -50,6 +69,10 @@ type DirectVideoPlayerProps = {
   onPlaying?: () => void;
   onVolumeChange?: (volume: number, muted: boolean) => void;
   onRateChange?: (rate: number) => void;
+  onControlAction?: (
+    action: DirectPlayerControlAction,
+    metadata?: Record<string, unknown>,
+  ) => void;
   onEngineStateChange?: (state: PlaybackEngineState) => void;
 };
 
@@ -92,6 +115,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
     initialVolume = 1,
     initialMuted = false,
     initialPlaybackRate = 1,
+    timelineMarkers = [],
     fullscreenActive = false,
     onToggleFullscreen,
     onReady,
@@ -106,6 +130,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
     onPlaying,
     onVolumeChange,
     onRateChange,
+    onControlAction,
     onEngineStateChange,
   },
   forwardedRef,
@@ -114,6 +139,10 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
   const controlsTimerRef = useRef<number | null>(null);
+  const touchTapTimerRef = useRef<number | null>(null);
+  const lastTouchTapRef = useRef<{ at: number; zone: 'left' | 'center' | 'right' } | null>(null);
+  const lastPointerTypeRef = useRef<string>('mouse');
+  const timelineInteractingRef = useRef(false);
   const onReadyRef = useRef(onReady);
   const onErrorRef = useRef(onError);
   const onEngineStateChangeRef = useRef(onEngineStateChange);
@@ -135,6 +164,12 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
   const [qualityLevel, setQualityLevel] = useState(-1);
   const [pipActive, setPipActive] = useState(false);
   const [buffering, setBuffering] = useState(false);
+  const [enginePhase, setEnginePhase] = useState<PlaybackEngineState['phase']>('idle');
+  const [hoverTime, setHoverTime] = useState<number | null>(null);
+  const [hoverPercent, setHoverPercent] = useState(0);
+  const [timelineInteracting, setTimelineInteracting] = useState(false);
+  const [scrubTime, setScrubTime] = useState<number | null>(null);
+  const [tapFeedback, setTapFeedback] = useState<'back' | 'forward' | null>(null);
 
   useImperativeHandle(forwardedRef, () => videoRef.current as HTMLVideoElement, []);
 
@@ -147,6 +182,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
   const transitionEngine = useCallback((event: PlaybackEngineEvent) => {
     const next = reducePlaybackEngineState(engineStateRef.current, event);
     engineStateRef.current = next;
+    setEnginePhase(next.phase);
     onEngineStateChangeRef.current?.(next);
   }, []);
 
@@ -170,7 +206,13 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
     scheduleControlsHide();
   }, [scheduleControlsHide]);
 
-  useEffect(() => () => clearControlsTimer(), [clearControlsTimer]);
+  useEffect(() => () => {
+    clearControlsTimer();
+    if (touchTapTimerRef.current != null) {
+      window.clearTimeout(touchTapTimerRef.current);
+      touchTapTimerRef.current = null;
+    }
+  }, [clearControlsTimer]);
 
   useEffect(() => {
     if (playing) scheduleControlsHide();
@@ -382,16 +424,25 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
   const togglePlayback = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    if (video.paused) void video.play().catch(() => undefined);
-    else video.pause();
-  }, []);
+
+    if (video.paused) {
+      onControlAction?.('play', { positionSeconds: video.currentTime });
+      void video.play().catch(() => undefined);
+    } else {
+      onControlAction?.('pause', { positionSeconds: video.currentTime });
+      video.pause();
+    }
+  }, [onControlAction]);
 
   const toggleMute = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
     video.muted = !video.muted;
     setMuted(video.muted);
-  }, []);
+    onControlAction?.(video.muted ? 'mute' : 'unmute', {
+      volume: video.volume,
+    });
+  }, [onControlAction]);
 
   const setRate = useCallback((rate: number) => {
     const video = videoRef.current;
@@ -399,7 +450,8 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
     const next = clamp(rate, 0.5, 2);
     video.playbackRate = next;
     setPlaybackRate(next);
-  }, []);
+    onControlAction?.('speed', { rate: next });
+  }, [onControlAction]);
 
   const setVolumeValue = useCallback((nextValue: number) => {
     const video = videoRef.current;
@@ -409,7 +461,11 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
     video.muted = next === 0;
     setVolume(next);
     setMuted(video.muted);
-  }, []);
+    onControlAction?.('volume', {
+      volume: next,
+      muted: video.muted,
+    });
+  }, [onControlAction]);
 
   const setQuality = useCallback((level: number) => {
     const hls = hlsRef.current;
@@ -417,23 +473,46 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
     hls.currentLevel = level;
     hls.nextLevel = level;
     setQualityLevel(level);
-  }, []);
+    onControlAction?.('quality', {
+      level,
+      mode: level === -1 ? 'auto' : 'manual',
+    });
+  }, [onControlAction]);
 
   const togglePip = useCallback(async () => {
     const video = videoRef.current;
     if (!video || !document.pictureInPictureEnabled || video.disablePictureInPicture) return;
     try {
-      if (document.pictureInPictureElement === video) await document.exitPictureInPicture();
-      else await video.requestPictureInPicture();
+      if (document.pictureInPictureElement === video) {
+        await document.exitPictureInPicture();
+        onControlAction?.('pip', { active: false });
+      } else {
+        await video.requestPictureInPicture();
+        onControlAction?.('pip', { active: true });
+      }
     } catch {
       // Browser/PWA shells can refuse PiP without a user-visible error condition.
     }
-  }, []);
+  }, [onControlAction]);
 
   const onKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
     if (isEditableTarget(event.target)) return;
     const video = videoRef.current;
     if (!video) return;
+
+    const commitKeyboardSeek = (seconds: number) => {
+      seek(seconds);
+      onControlAction?.('seek', {
+        positionSeconds: clamp(
+          seconds,
+          0,
+          Number.isFinite(video.duration) && video.duration > 0
+            ? Math.max(0, video.duration - 0.05)
+            : Math.max(0, seconds),
+        ),
+        input: 'keyboard',
+      });
+    };
 
     switch (event.key.toLowerCase()) {
       case ' ':
@@ -443,11 +522,19 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
         break;
       case 'arrowleft':
         event.preventDefault();
-        seek(video.currentTime - 10);
+        commitKeyboardSeek(video.currentTime - 5);
         break;
       case 'arrowright':
         event.preventDefault();
-        seek(video.currentTime + 10);
+        commitKeyboardSeek(video.currentTime + 5);
+        break;
+      case 'j':
+        event.preventDefault();
+        commitKeyboardSeek(video.currentTime - 10);
+        break;
+      case 'l':
+        event.preventDefault();
+        commitKeyboardSeek(video.currentTime + 10);
         break;
       case 'arrowup':
         event.preventDefault();
@@ -463,19 +550,119 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
         break;
       case 'f':
         event.preventDefault();
+        onControlAction?.('fullscreen', { active: !fullscreenActive });
         void onToggleFullscreen?.();
+        break;
+      case 'p':
+        event.preventDefault();
+        void togglePip();
+        break;
+      case '>':
+        event.preventDefault();
+        setRate(playbackRate + 0.25);
+        break;
+      case '<':
+        event.preventDefault();
+        setRate(playbackRate - 0.25);
         break;
       default:
         break;
     }
     revealControls();
-  }, [onToggleFullscreen, revealControls, seek, setVolumeValue, toggleMute, togglePlayback]);
+  }, [
+    fullscreenActive,
+    onControlAction,
+    onToggleFullscreen,
+    playbackRate,
+    revealControls,
+    seek,
+    setRate,
+    setVolumeValue,
+    toggleMute,
+    togglePip,
+    togglePlayback,
+  ]);
+
+  const commitTimelineSeek = useCallback((value: number, input: 'timeline' | 'touch') => {
+    seek(value);
+    onControlAction?.('seek', {
+      positionSeconds: value,
+      input,
+    });
+  }, [onControlAction, seek]);
+
+  const updateTimelineHover = useCallback((
+    clientX: number,
+    element: HTMLElement,
+  ) => {
+    if (duration <= 0) return;
+    const rect = element.getBoundingClientRect();
+    if (rect.width <= 0) return;
+
+    const ratio = clamp((clientX - rect.left) / rect.width, 0, 1);
+    setHoverPercent(ratio * 100);
+    setHoverTime(ratio * duration);
+  }, [duration]);
+
+  const handleTouchSurface = useCallback((
+    event: React.PointerEvent<HTMLButtonElement>,
+  ) => {
+    lastPointerTypeRef.current = event.pointerType;
+    if (event.pointerType !== 'touch') return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const ratio = rect.width > 0
+      ? clamp((event.clientX - rect.left) / rect.width, 0, 1)
+      : 0.5;
+    const zone = ratio < 0.34 ? 'left' : ratio > 0.66 ? 'right' : 'center';
+    const now = Date.now();
+    const previous = lastTouchTapRef.current;
+
+    if (
+      previous &&
+      previous.zone === zone &&
+      now - previous.at <= 320 &&
+      zone !== 'center'
+    ) {
+      if (touchTapTimerRef.current != null) {
+        window.clearTimeout(touchTapTimerRef.current);
+        touchTapTimerRef.current = null;
+      }
+
+      lastTouchTapRef.current = null;
+      const video = videoRef.current;
+      if (!video) return;
+
+      const delta = zone === 'left' ? -10 : 10;
+      const target = video.currentTime + delta;
+      commitTimelineSeek(target, 'touch');
+      setTapFeedback(zone === 'left' ? 'back' : 'forward');
+      window.setTimeout(() => setTapFeedback(null), 520);
+      revealControls();
+      return;
+    }
+
+    lastTouchTapRef.current = { at: now, zone };
+    if (touchTapTimerRef.current != null) {
+      window.clearTimeout(touchTapTimerRef.current);
+    }
+
+    touchTapTimerRef.current = window.setTimeout(() => {
+      revealControls();
+      lastTouchTapRef.current = null;
+      touchTapTimerRef.current = null;
+    }, 280);
+  }, [commitTimelineSeek, revealControls]);
 
   const canPip = useMemo(() => {
     return typeof document !== 'undefined' && Boolean(document.pictureInPictureEnabled);
   }, []);
 
-  const progress = duration > 0 ? clamp((currentTime / duration) * 100, 0, 100) : 0;
+  const displayedTime =
+    timelineInteracting && scrubTime != null
+      ? scrubTime
+      : currentTime;
+  const progress = duration > 0 ? clamp((displayedTime / duration) * 100, 0, 100) : 0;
   const bufferedProgress = duration > 0 ? clamp((buffered / duration) * 100, 0, 100) : 0;
 
   return (
@@ -485,6 +672,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
       className="group/direct relative h-full w-full overflow-hidden bg-black outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-400/60"
       onPointerMove={revealControls}
       onPointerDown={revealControls}
+      data-animebox-player-controls-root
       onMouseLeave={() => {
         if (playing && !settingsOpen) scheduleControlsHide();
       }}
@@ -602,14 +790,37 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
         type="button"
         className="absolute inset-0 z-10 cursor-default bg-transparent"
         aria-label={playing ? 'Пауза' : 'Воспроизвести'}
-        onClick={togglePlayback}
+        onPointerDown={(event) => {
+          lastPointerTypeRef.current = event.pointerType;
+        }}
+        onPointerUp={handleTouchSurface}
+        onClick={(event) => {
+          if (lastPointerTypeRef.current === 'touch' && event.detail > 0) return;
+          togglePlayback();
+        }}
       />
 
-      {buffering && playing && (
+      {(buffering || enginePhase === 'recovering') && (
         <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-black/55 backdrop-blur-md">
+          <div className="flex min-h-12 items-center gap-3 rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-white backdrop-blur-md">
             <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/15 border-t-violet-300" />
+            {enginePhase === 'recovering' && (
+              <span className="text-[11px] font-bold text-white/65">
+                Восстанавливаем поток…
+              </span>
+            )}
           </div>
+        </div>
+      )}
+
+      {tapFeedback && (
+        <div
+          className={`pointer-events-none absolute top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/10 bg-black/55 px-4 py-3 text-sm font-black text-white/85 backdrop-blur-md ${
+            tapFeedback === 'back' ? 'left-[18%] -translate-x-1/2' : 'right-[18%] translate-x-1/2'
+          }`}
+          aria-hidden="true"
+        >
+          {tapFeedback === 'back' ? '−10 сек.' : '+10 сек.'}
         </div>
       )}
 
@@ -630,21 +841,92 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
             : undefined
         }
       >
-        <div className="pointer-events-auto">
-          <div className="relative mb-2 h-5 w-full touch-none">
+        <div
+          className="pointer-events-auto"
+          onPointerEnter={clearControlsTimer}
+          onPointerLeave={scheduleControlsHide}
+        >
+          <div
+            className="relative mb-2 h-6 w-full touch-none"
+            onPointerMove={(event) => updateTimelineHover(event.clientX, event.currentTarget)}
+            onPointerLeave={() => {
+              if (!timelineInteractingRef.current) setHoverTime(null);
+            }}
+          >
             <div className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-white/15">
               <span className="absolute inset-y-0 left-0 bg-white/15" style={{ width: `${bufferedProgress}%` }} />
               <span className="absolute inset-y-0 left-0 bg-violet-400" style={{ width: `${progress}%` }} />
+              {duration > 0 &&
+                timelineMarkers.map((marker) => {
+                  const start = clamp((marker.startSeconds / duration) * 100, 0, 100);
+                  const end = clamp((marker.endSeconds / duration) * 100, start, 100);
+                  return (
+                    <span
+                      key={`${marker.kind}:${marker.startSeconds}:${marker.endSeconds}`}
+                      className={`absolute inset-y-0 ${
+                        marker.kind === 'opening'
+                          ? 'bg-fuchsia-300/55'
+                          : 'bg-amber-300/50'
+                      }`}
+                      style={{
+                        left: `${start}%`,
+                        width: `${Math.max(0.4, end - start)}%`,
+                      }}
+                      aria-hidden="true"
+                    />
+                  );
+                })}
             </div>
+            {hoverTime != null && (
+              <div
+                className="pointer-events-none absolute bottom-full mb-1 -translate-x-1/2 rounded-lg border border-white/10 bg-black/85 px-2 py-1 text-[10px] font-bold tabular-nums text-white/85 shadow-xl backdrop-blur"
+                style={{ left: `${hoverPercent}%` }}
+              >
+                {formatTime(hoverTime)}
+              </div>
+            )}
             <input
               type="range"
               min={0}
               max={duration > 0 ? duration : 0}
               step={0.1}
-              value={duration > 0 ? currentTime : 0}
-              onChange={(event) => seek(Number(event.target.value))}
+              value={duration > 0 ? displayedTime : 0}
+              onPointerDown={(event) => {
+                timelineInteractingRef.current = true;
+                setTimelineInteracting(true);
+                setScrubTime(Number(event.currentTarget.value));
+              }}
+              onPointerUp={(event) => {
+                const value = Number(event.currentTarget.value);
+                timelineInteractingRef.current = false;
+                setTimelineInteracting(false);
+                setScrubTime(null);
+                commitTimelineSeek(value, 'timeline');
+              }}
+              onPointerCancel={() => {
+                timelineInteractingRef.current = false;
+                setTimelineInteracting(false);
+                setScrubTime(null);
+              }}
+              onChange={(event) => {
+                const value = Number(event.target.value);
+                if (timelineInteractingRef.current) {
+                  setScrubTime(value);
+                  return;
+                }
+                commitTimelineSeek(value, 'timeline');
+              }}
+              onKeyUp={(event) => {
+                if (event.key.startsWith('Arrow')) {
+                  onControlAction?.('seek', {
+                    positionSeconds: Number(event.currentTarget.value),
+                    input: 'timeline-keyboard',
+                  });
+                }
+              }}
               className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
               aria-label="Позиция видео"
+              aria-valuetext={formatTime(displayedTime)}
             />
             <span
               aria-hidden="true"
@@ -709,7 +991,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
             </div>
 
             <span className="shrink-0 text-[11px] font-semibold tabular-nums text-white/55 sm:text-xs">
-              {formatTime(currentTime)} <span className="text-white/25">/</span> {formatTime(duration)}
+              {formatTime(displayedTime)} <span className="text-white/25">/</span> {formatTime(duration)}
             </span>
 
             <span className="min-w-0 flex-1 truncate px-1 text-center text-[10px] font-extrabold uppercase tracking-[0.12em] text-white/28 sm:text-[11px]">
@@ -761,7 +1043,10 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
 
             <button
               type="button"
-              onClick={() => void onToggleFullscreen?.()}
+              onClick={() => {
+                onControlAction?.('fullscreen', { active: !fullscreenActive });
+                void onToggleFullscreen?.();
+              }}
               className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white/65 transition hover:bg-white/10 hover:text-white"
               aria-label={fullscreenActive ? 'Выйти из полного экрана' : 'Полный экран'}
             >
