@@ -24,7 +24,7 @@ async function loadSeoEpisodeShard(shard: number): Promise<SeoEpisodeEntry[]> {
   const { data, error } = await adminClient()
     .from('seo_episode_index')
     .select(
-      'anime_id,episode_number,slug,first_available_at,last_confirmed_at,thumbnail_url',
+      'anime_id,episode_number,slug,first_available_at,last_confirmed_at,last_content_change_at,thumbnail_url',
     )
     .eq('indexable', true)
     .order('last_confirmed_at', { ascending: false })
@@ -52,9 +52,11 @@ async function loadSeoEpisodeShard(shard: number): Promise<SeoEpisodeEntry[]> {
       slug,
       episode,
       updatedAt:
-        typeof row.last_confirmed_at === 'string'
-          ? row.last_confirmed_at
-          : null,
+        typeof row.last_content_change_at === 'string'
+          ? row.last_content_change_at
+          : typeof row.first_available_at === 'string'
+            ? row.first_available_at
+            : null,
       publishedAt:
         typeof row.first_available_at === 'string'
           ? row.first_available_at
