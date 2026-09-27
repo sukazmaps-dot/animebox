@@ -138,7 +138,7 @@ export default function UserAvatarWithFrame({
       <div
         className={`absolute left-1/2 top-1/2 z-[1] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full ring-4 ring-[#091221] transition-[width,height] duration-200 ${
           hasSeasonFrame
-            ? 'h-[70%] w-[70%]'
+            ? 'h-[82%] w-[82%]'
             : visibleIdentityFrameSrc
               ? 'h-[85%] w-[85%]'
               : 'h-full w-full'

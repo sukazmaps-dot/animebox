@@ -8,6 +8,7 @@ import Link from 'next/link';
 
 import FriendActionButton from '@/components/friends/FriendActionButton';
 import StreakDisplay from '@/components/profile/StreakDisplay';
+import PremiumParticleLayer from '@/components/profile/PremiumParticleLayer';
 import { SeasonFrameOverlay } from '@/components/leaderboard/SeasonFramePreview';
 import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
@@ -15,6 +16,7 @@ import type { SponsorStatus } from '@/lib/sponsor';
 import {
   premiumMediaStyle,
   type PremiumMediaTransform,
+  type PremiumParticleEffect,
 } from '@/lib/premium-studio';
 
 import styles from './ProfilePreview.module.css';
@@ -35,6 +37,7 @@ type PreviewData = {
   primaryColor: string;
   accentColor: string;
   textColor: string;
+  particleEffect: PremiumParticleEffect;
   role: PublicIdentityRole;
   sponsor: SponsorStatus | null;
   seasonFrameKey: string | null;
@@ -343,6 +346,8 @@ export default function ProfilePreview({
                           />
                         )}
                       </div>
+
+                      <PremiumParticleLayer effect={data.particleEffect} className={styles.particleLayer} />
 
                       <div className={styles.heroIdentity}>
                         <span className={`${styles.avatarShell} ${data.seasonFrameKey ? styles.avatarShellSeason : ''}`}>

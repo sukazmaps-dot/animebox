@@ -133,12 +133,14 @@ export function buildImageCandidateChain(
     legacyProxy !== primary
   ) {
     result.push(legacyProxy, primary);
+  } else if (mediaCandidates.length > 0) {
+    // If the AnimeBox edge has already failed for the primary object, try a
+    // genuinely different source/size before re-hitting that same origin.
+    if (secondary) result.push(secondary);
+    result.push(primary);
   } else {
     result.push(primary);
-  }
-
-  if (secondary) {
-    result.push(secondary);
+    if (secondary) result.push(secondary);
   }
 
   if (
