@@ -27,7 +27,7 @@
     "auth-security:check": "node scripts/auth-security-check.mjs",
     "recommendation-engine:check": "node scripts/recommendation-engine-check.mjs",
     "home-hydration:check": "node scripts/home-hydration-check.mjs",
-    "watch-service:check": "node scripts/watch-service-check.mjs",
+    "watch-service:check": "node tests/watch-playback-integrity.cjs && node scripts/watch-service-check.mjs",
     "watch-together-stability:check": "node scripts/watch-together-stability-check.mjs",
     "rating-scale:check": "node scripts/rating-scale-check.mjs",
     "ui-precision:check": "node scripts/ui-precision-check.mjs",
