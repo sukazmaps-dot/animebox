@@ -28,3 +28,132 @@
     filter: none;
   }
 }
+
+/* =========================================================
+   AnimeBox — Mini Profile Milestone Frame Geometry Fix
+   Framed users keep the same visible avatar size as users
+   without a frame. The SVG is a decorative absolute layer
+   around the photo and never consumes avatar space.
+   ========================================================= */
+
+/* The mini-profile marks milestone-frame shells explicitly.
+   Override the legacy 92/87px canvas + negative margins. */
+:global([data-milestone-frame='true']) {
+  position: relative !important;
+  isolation: isolate !important;
+
+  flex: 0 0 64px !important;
+  width: 64px !important;
+  height: 64px !important;
+  min-width: 64px !important;
+  min-height: 64px !important;
+
+  margin: 0 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* ProfilePreview currently applies levelFrameAvatarScale() inline and
+   an older rule shrinks milestone avatars to 58%. `!important` here
+   intentionally cancels both so the actual photo remains full size. */
+:global([data-milestone-frame='true']) > picture {
+  position: relative !important;
+  inset: auto !important;
+  z-index: 10 !important;
+
+  flex: 0 0 64px !important;
+  width: 64px !important;
+  height: 64px !important;
+  min-width: 64px !important;
+  min-height: 64px !important;
+  max-width: 64px !important;
+  max-height: 64px !important;
+
+  display: block !important;
+  overflow: hidden !important;
+  border-radius: 50% !important;
+  background: #111827 !important;
+
+  transform: none !important;
+
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, .32),
+    0 0 0 2px #080c14 !important;
+}
+
+:global([data-milestone-frame='true']) > picture > img {
+  position: relative;
+  z-index: 10;
+
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  object-fit: cover !important;
+}
+
+/* SVG gets a larger canvas OUTSIDE the avatar.
+   Both layers share the same 50/50 center, so the frame cannot drift
+   down/left even when its artwork extends beyond the photo circle. */
+:global([data-milestone-frame='true']) > .levelFrame {
+  position: absolute !important;
+  z-index: 20 !important;
+
+  inset: -15px !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+
+  margin: 0 !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+
+  transform: none !important;
+  transform-origin: 50% 50% !important;
+}
+
+:global([data-milestone-frame='true']) > .levelFrame > .levelFrameAsset {
+  position: absolute !important;
+  inset: 0 !important;
+
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+
+  object-fit: contain !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+}
+
+/* Match the existing unframed mobile mini-profile avatar contract. */
+@media (max-width: 640px) {
+  :global([data-milestone-frame='true']) {
+    flex-basis: 62px !important;
+    width: 62px !important;
+    height: 62px !important;
+    min-width: 62px !important;
+    min-height: 62px !important;
+  }
+
+  :global([data-milestone-frame='true']) > picture {
+    flex-basis: 62px !important;
+    width: 62px !important;
+    height: 62px !important;
+    min-width: 62px !important;
+    min-height: 62px !important;
+    max-width: 62px !important;
+    max-height: 62px !important;
+  }
+
+  :global([data-milestone-frame='true']) > .levelFrame {
+    inset: -14px !important;
+  }
+}
