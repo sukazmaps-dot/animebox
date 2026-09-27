@@ -547,6 +547,7 @@ async function readSourceFailure(cache, cacheKey, requestMethod) {
 
   const headers = new Headers(hit.headers);
   headers.set('X-AnimeBox-Media', 'source-negative-hit');
+  headers.set('X-AnimeBox-Media-Version', MEDIA_WORKER_VERSION);
   headers.set('X-AnimeBox-Source-Backoff', '1');
 
   return new Response(
@@ -727,6 +728,7 @@ async function handleRequest(request, env, ctx) {
             ? 'edge-hit'
             : 'negative-edge-hit',
       );
+      headers.set('X-AnimeBox-Media-Version', MEDIA_WORKER_VERSION);
       return new Response(
         request.method === 'HEAD' ? null : edgeHit.body,
         {
