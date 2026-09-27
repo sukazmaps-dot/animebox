@@ -2165,10 +2165,17 @@ export default function AnimePlayer({
       failureTracked: false,
     };
 
+    lastEnginePhaseRef.current = null;
+    setPlaybackEngineState(null);
+
     trackPlayerEvent('player_source_selected', {
       selectionReason: sourceSelectionReasonRef.current,
     });
-  }, [currentAttemptId, trackPlayerEvent, videoLink]);
+    trackPlayerEvent('player_engine_selected', {
+      engine: isKodik ? 'kodik' : isHls ? 'hls' : isIframe ? 'iframe' : 'native',
+      selectionReason: sourceSelectionReasonRef.current,
+    });
+  }, [currentAttemptId, isHls, isIframe, isKodik, trackPlayerEvent, videoLink]);
 
   const setSourceStatus = useCallback((sourceName: string | undefined, status: SourceLoadState) => {
     const key = sourceName?.trim() || 'Источник';
@@ -2944,6 +2951,8 @@ export default function AnimePlayer({
 
         <div
           ref={playerViewportRef}
+          data-playback-engine={playbackEngineState?.engine ?? (isKodik ? 'kodik' : isHls ? 'hls' : isIframe ? 'iframe' : 'native')}
+          data-playback-phase={playbackEngineState?.phase ?? (started ? 'loading' : 'idle')}
           className={`${watchTogetherMode && !fullscreenActive ? 'watch-together-player-viewport' : ''} ${telegramPseudoFullscreen ? 'animebox-telegram-player-viewport' : ''} ${
             telegramPseudoFullscreen
               ? 'fixed inset-0 z-[2147483000] m-0 max-w-none overflow-hidden rounded-none border-0 bg-black shadow-none ring-0'
@@ -2987,8 +2996,12 @@ export default function AnimePlayer({
               resumeSeconds={resumeSeconds}
               onReady={() => {
                 markPlayerReady();
-                if (playbackSpeed !== 1) {
-                  kodikPlayerRef.current?.setSpeed(playbackSpeed);
+                const player = kodikPlayerRef.current;
+                if (player) {
+                  player.setVolume(playbackVolume);
+                  if (playbackMuted || playbackVolume === 0) player.mute();
+                  else player.unmute();
+                  player.setSpeed(playbackSpeed);
                 }
               }}
               onError={() =>
@@ -3015,6 +3028,7 @@ export default function AnimePlayer({
               }}
               onProviderSkip={handleProviderSkip}
               onEnded={handlePlaybackEnded}
+              onEngineStateChange={handleEngineStateChange}
             />
           )}
 
@@ -3141,6 +3155,9 @@ export default function AnimePlayer({
                     isHls={isHls}
                     title={`${title} — серия ${episodeNumber}`}
                     poster={poster || undefined}
+                    initialVolume={playbackVolume}
+                    initialMuted={playbackMuted}
+                    initialPlaybackRate={playbackSpeed}
                     fullscreenActive={fullscreenActive}
                     onToggleFullscreen={toggleFullscreen}
                     onReady={markPlayerReady}
