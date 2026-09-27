@@ -2,7 +2,10 @@ import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 
 import AnimeEpisodePage from '@/components/AnimeEpisodePage';
-import { getAnimeSeoIdentity } from '@/lib/anime-seo';
+import {
+  getAnimeSeoIdentity,
+  shouldIndexAnime,
+} from '@/lib/anime-seo';
 import { resolveAnimeRoute } from '@/lib/anime-route';
 import { animeHref } from '@/lib/anime-url';
 import {
@@ -166,10 +169,12 @@ export async function generateMetadata({
     };
   }
 
-  const index = await isEpisodeIndexable(anime.id, number).catch((error) => {
-    console.warn('[Episode metadata] availability lookup failed:', error);
-    return false;
-  });
+  const index =
+    shouldIndexAnime(anime) &&
+    await isEpisodeIndexable(anime.id, number).catch((error) => {
+      console.warn('[Episode metadata] availability lookup failed:', error);
+      return false;
+    });
   const title = buildEpisodeSeoTitle(anime, number);
   const description = buildEpisodeSeoDescription(anime, number, index);
   const socialTitle = `${identity.pageHeading} — ${number} серия`;
@@ -257,10 +262,12 @@ export default async function EpisodePage({
   }
 
   const canonical = `${SITE_URL}${animeHref(anime)}/episode/${number}`;
-  const indexable = await isEpisodeIndexable(anime.id, number).catch((error) => {
-    console.warn('[Episode route] SEO availability lookup failed:', error);
-    return false;
-  });
+  const indexable =
+    shouldIndexAnime(anime) &&
+    await isEpisodeIndexable(anime.id, number).catch((error) => {
+      console.warn('[Episode route] SEO availability lookup failed:', error);
+      return false;
+    });
   const [indexedEpisode, videoMeta] = indexable
     ? await Promise.all([
         getSeoEpisodeIndexEntry(anime.id, number).catch(() => null),

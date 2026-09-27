@@ -37,15 +37,23 @@ export default async function sitemap({
             copyrightEpisodeKey(episode.animeId, episode.episode),
           ),
       )
-      .map((episode) => ({
-      url: `${SITE_URL}/anime/${encodeURIComponent(episode.slug)}/episode/${episode.episode}`,
-      lastModified: episode.updatedAt
-        ? new Date(episode.updatedAt)
-        : undefined,
-      changeFrequency: 'weekly',
-      priority: 0.72,
-      images: episode.image ? [episode.image] : undefined,
-    }));
+      .map((episode) => {
+        const changedAt = episode.updatedAt
+          ? new Date(episode.updatedAt)
+          : null;
+        const recent =
+          changedAt &&
+          Number.isFinite(changedAt.getTime()) &&
+          Date.now() - changedAt.getTime() <= 7 * 24 * 60 * 60 * 1000;
+
+        return {
+          url: `${SITE_URL}/anime/${encodeURIComponent(episode.slug)}/episode/${episode.episode}`,
+          lastModified: changedAt ?? undefined,
+          changeFrequency: recent ? 'daily' : 'weekly',
+          priority: recent ? 0.78 : 0.72,
+          images: episode.image ? [episode.image] : undefined,
+        };
+      });
   } catch (error) {
     console.warn(`Episode sitemap shard ${shard} failed:`, error);
     return [];
