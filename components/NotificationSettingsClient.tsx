@@ -627,7 +627,7 @@ export default function NotificationSettingsClient() {
         </div>
 
         {inboxGroups.length === 0 ? (
-          <div className="notifications-empty">
+          <div className="notifications-empty notifications-empty--visual">
             <div className="notifications-empty__visual" aria-hidden="true">
               <span className="notifications-empty__orbit" />
               <span className="notifications-empty__spark notifications-empty__spark--one" />
@@ -768,7 +768,7 @@ export default function NotificationSettingsClient() {
         </div>
 
         {subscriptions.length === 0 ? (
-          <div className="notifications-empty">
+          <div className="notifications-empty notifications-empty--visual">
             <div className="notifications-empty__visual" aria-hidden="true">
               <span className="notifications-empty__orbit" />
               <span className="notifications-empty__spark notifications-empty__spark--one" />
