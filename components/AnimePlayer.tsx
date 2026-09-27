@@ -2493,12 +2493,16 @@ export default function AnimePlayer({
       const player = kodikPlayerRef.current;
       player?.play();
       const state = player?.getState();
-      publishPartyAction('play', state?.positionSeconds ?? 0, true);
-      publishPartyState({
-        position: state?.positionSeconds ?? 0,
-        duration: state?.durationSeconds ?? null,
-        playing: true,
+
+      void getPrecisePlaybackPosition().then((position) => {
+        publishPartyAction('play', position, true);
+        publishPartyState({
+          position,
+          duration: player?.getState().durationSeconds ?? state?.durationSeconds ?? null,
+          playing: true,
+        });
       });
+
       setStarted(true);
       return;
     }
@@ -2809,7 +2813,12 @@ export default function AnimePlayer({
               title={`${title} — серия ${episodeNumber}`}
               episodeNumber={episodeNumber}
               resumeSeconds={resumeSeconds}
-              onReady={markPlayerReady}
+              onReady={() => {
+                markPlayerReady();
+                if (playbackSpeed !== 1) {
+                  kodikPlayerRef.current?.setSpeed(playbackSpeed);
+                }
+              }}
               onError={() =>
                 failCurrentSource('error', 'Kodik не удалось загрузить. Попробуйте другой источник.')
               }
