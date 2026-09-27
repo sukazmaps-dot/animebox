@@ -100,6 +100,9 @@ jobs:
           lib/anime-localization-server.ts
           lib/anime-route.ts
           scripts/hotfix-20-1-2-local-title-route-check.mjs
+          components/AnimeRouteScrollReset.tsx
+          app/anime/[slug]/layout.tsx
+          scripts/hotfix-20-1-3-anime-route-scroll-check.mjs
           components/AuthUserButton.tsx
           components/SidebarMembership.tsx
           components/SocialNotificationBadge.tsx
