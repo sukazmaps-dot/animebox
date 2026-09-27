@@ -17,6 +17,8 @@ const {
   maxPlausiblePlaybackAdvanceMs,
   inspectPlaybackAdvance,
   acceptedRealWatchMs,
+  trustedEpisodeLimit,
+  episodeCompletionIntegrity,
 } = target.exports;
 
 assert.equal(MAX_SUPPORTED_PLAYBACK_RATE, 2);
@@ -73,3 +75,77 @@ assert.equal(
 );
 
 console.log('PASS: playback-rate integrity, 2x neutrality and impossible-delta rejection');
+
+
+assert.equal(
+  trustedEpisodeLimit({ catalogEpisodes: 12, verifiedMaxEpisode: 10 }),
+  12,
+  'catalog episode count is a trusted ceiling',
+);
+assert.equal(
+  trustedEpisodeLimit({ catalogEpisodes: null, verifiedMaxEpisode: 1179 }),
+  1179,
+  'verified provider max covers open-ended long-running titles',
+);
+assert.equal(
+  trustedEpisodeLimit({ catalogEpisodes: null, verifiedMaxEpisode: null }),
+  null,
+  'unknown episode identity must not be invented from browser hints',
+);
+
+const syntheticCoverageOnly = episodeCompletionIntegrity({
+  coverageMs: 1_296_000,
+  activeMs: 60_000,
+  eligibleDurationMs: 1_440_000,
+  durationMs: 1_440_000,
+});
+assert.equal(
+  syntheticCoverageOnly.completed,
+  false,
+  'coverage alone must never complete a normal episode',
+);
+assert.equal(syntheticCoverageOnly.coverageMet, true);
+assert.equal(syntheticCoverageOnly.activeTimeMet, false);
+assert.equal(
+  syntheticCoverageOnly.requiredActiveMs,
+  648_000,
+  '24m episode at 90% coverage requires at least 10.8m real time at 2x',
+);
+
+const legitimateDoubleSpeedCompletion = episodeCompletionIntegrity({
+  coverageMs: 1_296_000,
+  activeMs: 648_000,
+  eligibleDurationMs: 1_440_000,
+  durationMs: 1_440_000,
+});
+assert.equal(
+  legitimateDoubleSpeedCompletion.completed,
+  true,
+  'legitimate 2x playback remains completable',
+);
+
+const oversizedSkipAbuse = episodeCompletionIntegrity({
+  coverageMs: 907_200,
+  activeMs: 460_000,
+  eligibleDurationMs: 1_008_000,
+  durationMs: 1_440_000,
+});
+assert.equal(oversizedSkipAbuse.coverageMet, true);
+assert.equal(
+  oversizedSkipAbuse.completed,
+  false,
+  'large exclusions cannot shrink real-time completion below the full-duration floor',
+);
+assert.equal(oversizedSkipAbuse.requiredActiveMs, 504_000);
+
+const shortestObservedEpisode = episodeCompletionIntegrity({
+  coverageMs: 81_270,
+  activeMs: 45_000,
+  eligibleDurationMs: 90_300,
+  durationMs: 90_300,
+});
+assert.equal(
+  shortestObservedEpisode.completed,
+  true,
+  '90s short-form episodes still complete at legitimate 2x playback',
+);
