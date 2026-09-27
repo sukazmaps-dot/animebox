@@ -629,6 +629,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
 
       if (key === 'kodik_player_pause' || key === 'kodik_player_paused') {
         playingRef.current = false;
+        transitionEngine({ type: 'pause' });
         emitPlaybackAction('pause');
         emitPlaybackState();
         return;
