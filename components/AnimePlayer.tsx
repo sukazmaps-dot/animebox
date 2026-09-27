@@ -420,6 +420,7 @@ export default function AnimePlayer({
   const [playerReady, setPlayerReady] = useState(false);
   const [theaterMode, setTheaterMode] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [providerFullscreen, setProviderFullscreen] = useState(false);
   const [telegramAndroidMiniApp, setTelegramAndroidMiniApp] = useState(false);
   const [telegramPseudoFullscreen, setTelegramPseudoFullscreen] = useState(false);
   const [resumeSeconds, setResumeSeconds] = useState(0);
@@ -1893,7 +1894,21 @@ export default function AnimePlayer({
         (document as Document & { webkitFullscreenElement?: Element | null })
           .webkitFullscreenElement;
 
-      setFullscreen(Boolean(activeElement));
+      const viewport = playerViewportRef.current;
+      const animeBoxOwnsFullscreen = Boolean(
+        activeElement &&
+        viewport &&
+        activeElement === viewport,
+      );
+      const providerOwnsFullscreen = Boolean(
+        activeElement &&
+        viewport &&
+        activeElement !== viewport &&
+        viewport.contains(activeElement),
+      );
+
+      setFullscreen(animeBoxOwnsFullscreen);
+      setProviderFullscreen(providerOwnsFullscreen);
     }
 
     document.addEventListener('fullscreenchange', onFullscreenChange);
@@ -2690,14 +2705,18 @@ export default function AnimePlayer({
           }
         >
           {typeof animeId === 'number' && animeId > 0 && (
-            <EpisodeJourneyTracker animeId={animeId} episode={episodeNumber} />
+            <EpisodeJourneyTracker
+              animeId={animeId}
+              episode={episodeNumber}
+              suspended={providerFullscreen}
+            />
           )}
 
           {isIframe && started && videoLink && !telegramAndroidMiniApp && (
             <button
               type="button"
               onClick={() => void toggleFullscreen()}
-              className="absolute left-3 top-3 z-[85] grid h-9 w-9 place-items-center rounded-xl border border-white/15 bg-black/55 text-white/75 shadow-[0_8px_28px_rgba(0,0,0,.35)] backdrop-blur-md transition hover:border-violet-300/35 hover:bg-black/70 hover:text-white"
+              className="absolute bottom-3 right-3 z-[85] grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-black/45 text-white/70 opacity-75 shadow-[0_8px_28px_rgba(0,0,0,.3)] backdrop-blur-md transition hover:border-violet-300/35 hover:bg-black/70 hover:text-white hover:opacity-100 focus-visible:opacity-100"
               aria-label={fullscreenActive ? 'Выйти из полного экрана' : 'Открыть плеер на весь экран'}
               title={fullscreenActive ? 'Выйти из полного экрана' : 'Полный экран AnimeBox'}
             >
@@ -2854,7 +2873,8 @@ export default function AnimePlayer({
                     width="100%"
                     height="100%"
                     className="absolute inset-0 h-full w-full border-0"
-                    allow="autoplay; picture-in-picture; encrypted-media"
+                    allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+                    allowFullScreen
                     title="Anime player"
                     onLoad={markPlayerReady}
                     onError={() =>
