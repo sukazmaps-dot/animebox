@@ -4,6 +4,10 @@ import {
   copyrightEpisodeKey,
   getCopyrightRestrictedEpisodeKeys,
 } from '@/lib/copyright-seo-server';
+import {
+  isVideoSeoQualityReady,
+  safeSeoHttpsUrl,
+} from '@/lib/seo-quality';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,17 +23,6 @@ function xml(value: string) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&apos;');
-}
-
-function httpsUrl(value: unknown) {
-  if (typeof value !== 'string' || !value.trim()) return null;
-
-  try {
-    const url = new URL(value);
-    return url.protocol === 'https:' ? url.toString() : null;
-  } catch {
-    return null;
-  }
 }
 
 function durationSeconds(value: unknown) {
@@ -98,9 +91,9 @@ export async function GET() {
       const animeId = Number(row.anime_id);
       const episode = Number(row.episode_number);
       const slug = typeof row.slug === 'string' ? row.slug.trim() : '';
-      const thumbnail = httpsUrl(row.thumbnail_url);
-      const contentLoc = httpsUrl(row.video_content_url);
-      const playerLoc = httpsUrl(row.video_player_url);
+      const thumbnail = safeSeoHttpsUrl(row.thumbnail_url);
+      const contentLoc = safeSeoHttpsUrl(row.video_content_url);
+      const playerLoc = safeSeoHttpsUrl(row.video_player_url);
 
       if (
         restrictedKeys.has(copyrightEpisodeKey(animeId, episode)) ||
@@ -110,7 +103,13 @@ export async function GET() {
         episode <= 0 ||
         !slug ||
         !thumbnail ||
-        (!contentLoc && !playerLoc)
+        !isVideoSeoQualityReady({
+          thumbnailUrl: thumbnail,
+          uploadDate: row.first_available_at,
+          durationMs: row.duration_ms,
+          contentUrl: contentLoc,
+          embedUrl: playerLoc,
+        })
       ) {
         continue;
       }
