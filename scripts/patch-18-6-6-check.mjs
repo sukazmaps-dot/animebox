@@ -26,8 +26,10 @@ need('compact watch together', watchParty, ["status === 'idle' && mode === 'inli
 if (smart.includes("return 'Длительность уточняется'")) failures.push('unknown duration filler remains');
 need('duration cleanup', smart, ['const durationLabel = formatDuration(anime.duration)','{durationLabel && (']);
 need('card geometry', cardCss, ['Patch 18.6.6 — Recommendation Card Geometry','margin-top: auto !important','min-height: 2.8em']);
-need('media worker', mediaWorker, ['sourceFallbackResponse',"status: 307","'source-fallback-redirect'",'status: hit.status']);
-need('legacy proxy', proxy, ['NextResponse.redirect(sourceUrl',"'proxy-v2-source-fallback'"]);
+need('media worker', mediaWorker, ['sourceSoftFailureResponse',"status: 204","'source-soft-fail'",'status: hit.status']);
+need('legacy proxy', proxy, ['new NextResponse(null',"'proxy-v3-soft-fail'"]);
+if (mediaWorker.includes('sourceFallbackResponse') || mediaWorker.includes("'source-fallback-redirect'")) failures.push('deprecated media redirect fallback returned');
+if (proxy.includes('NextResponse.redirect(sourceUrl') || proxy.includes("'proxy-v2-source-fallback'")) failures.push('deprecated legacy proxy redirect fallback returned');
 need('episode css', episodeCss, ['Patch 18.6.6 — Episode Experience','.episode-quick-nav__sheet','.episode-library-compact','.episode-notification-compact']);
 if (failures.length) { console.error('\n[AnimeBox 18.6.6] Check failed:\n'); failures.forEach((f)=>console.error(` - ${f}`)); process.exit(1); }
 console.log('[AnimeBox 18.6.6] episode UX, media fallback, comments cleanup, compact controls and card geometry passed.');
