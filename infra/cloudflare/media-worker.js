@@ -642,7 +642,7 @@ export default {
         ok: true,
         service: 'animebox-media',
         protocol: 'variants-v3',
-        reliability: 'media-shield-v2',
+        reliability: 'media-shield-v3-soft-fail',
         r2: Boolean(env.MEDIA_BUCKET),
         originPipelineBudgetMs: ORIGIN_PIPELINE_BUDGET_MS,
         transformTimeoutMs: TRANSFORM_FETCH_TIMEOUT_MS,
