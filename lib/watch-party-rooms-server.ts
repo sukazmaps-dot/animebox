@@ -315,7 +315,7 @@ export async function listPublicWatchPartyRooms(limit = 12) {
   const { data, error } = await admin
     .from('watch_party_rooms')
     .select(
-      'id,join_secret,host_user_id,anime_id,anime_slug,anime_title,cover_url,episode,visibility,status,language,participant_count,max_participants,room_code,created_at,updated_at,last_heartbeat_at,expires_at',
+      'id,host_user_id,anime_id,anime_slug,anime_title,cover_url,episode,visibility,status,language,participant_count,max_participants,room_code,created_at,updated_at,last_heartbeat_at,expires_at',
     )
     .eq('visibility', 'public')
     .neq('status', 'ended')
