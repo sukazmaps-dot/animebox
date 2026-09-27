@@ -440,7 +440,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
       pendingTime.resolve(null);
       pendingTimeRequestRef.current = null;
     }
-  }, [playerSrc, resumeSeconds]);
+  }, [playerSrc, resumeSeconds, transitionEngine]);
 
   useEffect(() => {
     function fireEndedOnce() {
