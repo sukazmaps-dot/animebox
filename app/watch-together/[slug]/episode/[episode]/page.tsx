@@ -37,7 +37,7 @@ export default async function WatchTogetherEpisodePage({
 
   return (
     <AnimeEpisodePage
-      key={`${anime.slug}:${episodeNumber}:watch-together`}
+      key={anime.slug}
       anime={anime}
       requestedEpisode={episodeNumber}
       theaterMode
