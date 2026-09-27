@@ -379,6 +379,14 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
       changeEpisode(input) {
         if (!Number.isSafeInteger(input.episode) || input.episode < 1) return;
 
+        if (
+          input.withoutReload !== false &&
+          lastForcedEpisodeRef.current === input.episode &&
+          episodeChangePendingRef.current
+        ) {
+          return;
+        }
+
         const value: Record<string, unknown> = {
           episode: input.episode,
           without_reload: input.withoutReload !== false,
