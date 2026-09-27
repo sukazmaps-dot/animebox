@@ -391,6 +391,9 @@ export default function AchievementsClient() {
       </section>
 
       <div className={styles.controls}>
+        <Link href="/achievements/journey" className={styles.journeyLink}>
+          Открыть Journey
+        </Link>
         <nav className={styles.filters} aria-label="Категории достижений">
           {FILTERS.map((item) => (
             <button
