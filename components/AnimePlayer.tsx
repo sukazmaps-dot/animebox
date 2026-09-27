@@ -970,6 +970,16 @@ export default function AnimePlayer({
 
       latestPlaybackPositionSecondsRef.current = positionSeconds;
 
+      if (animeId && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('animebox:player-time-sample', {
+          detail: {
+            animeId,
+            episode: episodeNumber,
+            positionSeconds,
+          },
+        }));
+      }
+
       const observedDurationSeconds =
         sample.durationSeconds != null &&
         Number.isFinite(sample.durationSeconds) &&
