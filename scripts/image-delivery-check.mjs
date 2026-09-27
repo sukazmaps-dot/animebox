@@ -37,7 +37,7 @@ for (const needle of [
   'observeNearViewportMedia',
   'sourcePreference',
   'preset',
-  'srcSet={sourceIndex === 0 ? mediaSrcSet : undefined}',
+  'isMediaEdgeBlocked(current)',
   'getImageMediaSrcSet',
   'data-image-preset={effectivePreset}',
   "nativeLoading !== 'eager'",
