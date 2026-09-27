@@ -233,24 +233,42 @@ export default function SponsorLeaderboard() {
               >
                 <span className={styles.podiumTexture} aria-hidden="true" />
                 <span className={styles.placeLabel}>{entry.rank === 1 ? 'ГЛАВНЫЙ СПОНСОР' : `#${entry.rank} · ПРИЗОВОЕ МЕСТО`}</span>
-                <div className={styles.podiumAvatar}>
-                  <UserAvatarWithFrame
-                    src={entry.avatarUrl}
-                    alt={`Аватар ${entry.username}`}
+
+                <div className={styles.podiumIdentity}>
+                  <div className={styles.podiumAvatar}>
+                    <UserAvatarWithFrame
+                      src={entry.avatarUrl}
+                      alt={`Аватар ${entry.username}`}
+                      role={entry.role}
+                      sponsor={entry.sponsor}
+                      className={styles.avatarFrame}
+                      mediaTransform={entry.avatarTransform}
+                    />
+                    <span className={styles.rankSeal}>{entry.rank}</span>
+                  </div>
+
+                  <span className={styles.rankTitle}>{RANK_TITLES[entry.rank]}</span>
+                  <UserIdentity
+                    username={entry.username}
                     role={entry.role}
                     sponsor={entry.sponsor}
-                    className={styles.avatarFrame}
-                    mediaTransform={entry.avatarTransform}
+                    compact
+                    className={styles.identity}
+                    nameClassName={styles.podiumName}
                   />
-                  <span className={styles.rankSeal}>{entry.rank}</span>
+                  {entry.sponsor?.tier && <SponsorBadge tier={entry.sponsor.tier} compact />}
+                  {entry.isCurrentUser && <span className={styles.youBadge}>Это ты</span>}
                 </div>
-                <span className={styles.rankTitle}>{RANK_TITLES[entry.rank]}</span>
-                <UserIdentity username={entry.username} role={entry.role} sponsor={entry.sponsor} compact className={styles.identity} nameClassName={styles.podiumName} />
-                {entry.sponsor?.tier && <SponsorBadge tier={entry.sponsor.tier} compact />}
-                {entry.isCurrentUser && <span className={styles.youBadge}>Это ты</span>}
-                <StarsValue value={entry.periodStars} hidden={!entry.showStarAmount} large />
-                <span className={styles.periodCaption}>за {PERIOD_LABELS[period].toLowerCase()}</span>
-                {period !== 'all' && entry.showStarAmount && <small className={styles.allTime}>Всего: {entry.totalStars.toLocaleString('ru-RU')} ★</small>}
+
+                <div className={styles.podiumContribution}>
+                  <StarsValue value={entry.periodStars} hidden={!entry.showStarAmount} large />
+                  <span className={styles.periodCaption}>за {PERIOD_LABELS[period].toLowerCase()}</span>
+                  {period !== 'all' && entry.showStarAmount && (
+                    <small className={styles.allTime}>
+                      Всего: {entry.totalStars.toLocaleString('ru-RU')} ★
+                    </small>
+                  )}
+                </div>
               </Link>
             ))}
           </section>
