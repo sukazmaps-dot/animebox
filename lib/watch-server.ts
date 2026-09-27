@@ -8,13 +8,17 @@ import {
 } from '@/lib/community-server';
 import { coveredSeconds, mergePlayedRanges } from '@/lib/played-coverage';
 import { canonicalResumePositionMs } from '@/lib/resume-integrity';
+import {
+  acceptedRealWatchMs,
+  inspectPlaybackAdvance,
+  maxPlausiblePlaybackAdvanceMs,
+} from '@/lib/watch-playback-integrity';
 import type { EpisodeWatchListItem, WatchTitleOverview } from '@/types/watch';
 
 const MAX_EPISODE_MS = 28_800_000;
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
 const MAX_HEARTBEAT_GAP_MS = 30_000;
 const MIN_HEARTBEAT_PERSIST_INTERVAL_MS = 2_000;
-const MAX_ACCEPTED_MS = 20_000;
 const MIN_PROVIDER_SKIP_MS = 15_000;
 const MAX_PROVIDER_SKIP_MS = 240_000;
 const MAX_PROVIDER_EXCLUDED_MS = 360_000;
@@ -727,7 +731,7 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
         const playedAdvance = playedBefore + playedAfter;
         const maxPlausibleAdvance = Math.min(
           MAX_EPISODE_MS,
-          Math.round(wallDelta * 2.25 + 1_500),
+          maxPlausiblePlaybackAdvanceMs(wallDelta),
         );
 
         if (playedAdvance <= maxPlausibleAdvance) {
@@ -739,8 +743,8 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
             acceptedRanges.push([skipTo, input.positionMs]);
           }
           acceptedMs = Math.min(
-            MAX_ACCEPTED_MS,
-            Math.max(0, Math.round(Math.min(wallDelta, playedAdvance))),
+            acceptedRealWatchMs(wallDelta),
+            Math.max(0, Math.round(playedAdvance)),
           );
           reason = explicitProviderSkip
             ? `accepted_provider_skip_${providerSkip.kind}`
@@ -749,19 +753,24 @@ export async function recordWatchHeartbeat(input: WatchHeartbeatInput) {
           reason = 'seek_forward';
         }
       } else {
-        const maxPlausibleAdvance = Math.min(
-          MAX_EPISODE_MS,
-          Math.round(wallDelta * 2.25 + 1_500),
-        );
+        const playbackAdvance = inspectPlaybackAdvance({
+          wallDeltaMs: wallDelta,
+          mediaAdvanceMs: positionDelta,
+        });
 
-        if (positionDelta > maxPlausibleAdvance) {
+        if (!playbackAdvance.plausible) {
+          // Without trusting a browser-supplied playbackRate, an advance beyond
+          // the server-owned 2x+tolerance envelope is indistinguishable from a
+          // forward seek. Either way it must not mint coverage or active time.
           reason = 'seek_forward';
         } else {
-          acceptedMs = Math.min(
-            MAX_ACCEPTED_MS,
-            Math.max(0, Math.round(wallDelta)),
-          );
-          reason = 'accepted';
+          // Active watch-time is real wall-clock time. At 2x the accepted range
+          // may cover ~40s of media during a 20s heartbeat, but active_ms grows
+          // by only ~20s. This keeps time-based rewards neutral to playback rate.
+          acceptedMs = acceptedRealWatchMs(wallDelta);
+          reason = playbackAdvance.accelerated
+            ? 'accepted_accelerated'
+            : 'accepted';
           acceptedRanges.push([lastPosition, input.positionMs]);
         }
       }
