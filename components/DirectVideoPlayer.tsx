@@ -43,7 +43,15 @@ export type DirectPlayerControlAction =
   | 'speed'
   | 'pip'
   | 'fullscreen'
-  | 'quality';
+  | 'quality'
+  | 'mobile_controls_shown'
+  | 'mobile_controls_hidden'
+  | 'mobile_double_tap_seek'
+  | 'mobile_fullscreen_enter'
+  | 'mobile_fullscreen_exit'
+  | 'mobile_orientation_change'
+  | 'mobile_settings_open'
+  | 'mobile_recovery_visible';
 
 type DirectVideoPlayerProps = {
   src: string;
