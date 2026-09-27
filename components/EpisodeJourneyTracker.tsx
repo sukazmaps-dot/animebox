@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   achievementSoundUnlocked,
@@ -186,10 +186,6 @@ export default function EpisodeJourneyTracker({
     if (toastTimerRef.current != null) window.clearTimeout(toastTimerRef.current);
   }, []);
 
-  useMemo(
-    () => events.filter((item) => item.unlocked).length,
-    [events],
-  );
 
   if (!toast) return null;
 
