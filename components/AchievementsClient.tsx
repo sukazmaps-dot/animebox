@@ -44,8 +44,8 @@ const FILTERS: Filter[] = [
   'genres',
 ];
 
-function metricValue(stats: CommunityProfile['stats'], metric: string) {
-  const value = Number((stats as Record<string, unknown>)[metric] ?? 0);
+function metricValue(stats: Record<string, unknown>, metric: string) {
+  const value = Number(stats[metric] ?? 0);
   return Number.isFinite(value) && value > 0 ? value : 0;
 }
 
