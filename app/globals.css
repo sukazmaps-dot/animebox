@@ -4667,3 +4667,56 @@ body {
     transition: none !important;
   }
 }
+
+
+/* =========================================================
+   Patch 19.5 · Mobile Player 2.0
+   Coarse-pointer landscape tuning without changing desktop HUD.
+   ========================================================= */
+@media (pointer: coarse) {
+  [data-animebox-player-controls-root][data-mobile-player='true'] {
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: contain;
+  }
+
+  [data-animebox-player-controls-root][data-mobile-player='true']
+    [data-player-timeline-touch-target] {
+    min-height: 44px;
+  }
+
+  [data-animebox-player-controls-root][data-mobile-player='true']
+    [data-player-mobile-settings='true'] {
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
+  [data-animebox-player-controls-root][data-mobile-player='true']
+    [data-player-control-layer] {
+    padding-top: 2.25rem;
+  }
+
+  [data-animebox-player-controls-root][data-mobile-player='true']
+    [data-player-timeline-touch-target] {
+    margin-bottom: 0;
+    min-height: 40px;
+  }
+
+  [data-animebox-player-controls-root][data-mobile-player='true']
+    [data-player-mobile-settings='true'] {
+    max-height: min(70dvh, 300px);
+    backdrop-filter: blur(6px);
+  }
+
+  [data-mobile-fullscreen='true'] {
+    min-height: 100dvh;
+    max-height: 100dvh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-animebox-player-controls-root] [data-player-control-layer] {
+    transition-duration: 0ms !important;
+  }
+}
