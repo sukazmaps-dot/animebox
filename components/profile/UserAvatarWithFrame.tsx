@@ -137,32 +137,26 @@ export default function UserAvatarWithFrame({
   const hasMilestoneFrame = isLevelFrameKey(activeProfileFrameKey);
   const milestoneAvatarScale = levelFrameAvatarScale(activeProfileFrameKey);
   const visibleIdentityFrameSrc = hasProfileFrame ? null : frameSrc;
+  const avatarScale =
+    hasMilestoneFrame && milestoneAvatarScale
+      ? milestoneAvatarScale
+      : hasProfileFrame
+        ? 0.82
+        : visibleIdentityFrameSrc
+          ? 0.85
+          : 1;
+  const avatarInset = Math.max(0, (1 - avatarScale) * 50);
 
   return (
     <div
-      className={`profile-v2__avatar-wrap relative h-[88px] w-[88px] shrink-0 overflow-visible sm:h-[116px] sm:w-[116px] ${className}`.trim()}
+      className={`profile-v2__avatar-wrap relative isolate h-[88px] w-[88px] shrink-0 overflow-visible sm:h-[116px] sm:w-[116px] ${className}`.trim()}
       data-avatar-frame={activeProfileFrameKey ?? frameKind ?? 'none'}
     >
       <div
-        className={`absolute left-1/2 top-1/2 z-[1] aspect-square -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full ring-4 ring-[#091221] transition-[width,height] duration-200 ${
-          hasMilestoneFrame
-            ? ''
-            : hasProfileFrame
-              ? 'h-[70%] w-[70%]'
-              : visibleIdentityFrameSrc
-              ? 'h-[85%] w-[85%]'
-              : 'h-full w-full'
-        }`}
-        style={
-          hasMilestoneFrame && milestoneAvatarScale
-            ? {
-                width: `${milestoneAvatarScale * 100}%`,
-                height: `${milestoneAvatarScale * 100}%`,
-              }
-            : undefined
-        }
+        className="absolute z-10 overflow-hidden rounded-full ring-4 ring-[#091221] transition-[inset] duration-200"
+        style={{ inset: `${avatarInset}%` }}
       >
-        <picture className="block h-full w-full">
+        <picture className="absolute inset-0 block h-full w-full">
           {mobileSrc && mobileSrc !== src && (
             <source
               media="(prefers-reduced-motion: reduce)"
@@ -172,7 +166,7 @@ export default function UserAvatarWithFrame({
           <img
             src={src}
             alt={alt}
-            className="h-full w-full select-none object-cover"
+            className="block h-full w-full max-w-none select-none object-cover"
             style={premiumMediaStyle(mediaTransform)}
             draggable={false}
           />
@@ -184,7 +178,7 @@ export default function UserAvatarWithFrame({
           src={visibleIdentityFrameSrc}
           alt=""
           aria-hidden="true"
-          className="user-avatar-frame__overlay pointer-events-none absolute inset-0 z-10 h-full w-full select-none object-contain"
+          className="user-avatar-frame__overlay pointer-events-none absolute inset-0 z-20 block h-full w-full max-w-none select-none object-contain"
           draggable={false}
         />
       )}
