@@ -1520,10 +1520,13 @@ export default function AnimePlayer({
       source: isKodik ? 'kodik' : 'native',
     };
     pendingPartyCommandRef.current = null;
-    lastAppliedPartyCommandSeqRef.current = -1;
     partySuppressUntilRef.current = 0;
     lastPartyActionRef.current = null;
   }, [episodeNumber, isKodik, videoLink]);
+
+  useEffect(() => {
+    lastAppliedPartyCommandSeqRef.current = -1;
+  }, [episodeNumber]);
 
   const episodeMeta = totalEpisodes
     ? totalEpisodesKnown
