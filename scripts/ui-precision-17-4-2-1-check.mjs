@@ -45,7 +45,7 @@ if (
 if (
   !directEditor.includes('onOpenPremium') ||
   !directEditor.includes('Анимированный баннер и Premium-палитра') ||
-  !directEditor.includes('Premium оживляет LVL-рамки')
+  !directEditor.includes('Premium добавляет анимацию к уровневым рамкам')
 ) {
   failures.push('direct profile editor lost contextual Premium entry points');
 }
@@ -65,8 +65,8 @@ if (
 }
 
 if (
-  !directEditor.includes('DIRECT EDIT') ||
-  !directEditor.includes('FRAME INVENTORY') ||
+  !directEditor.includes('ПРОФИЛЬ') ||
+  !directEditor.includes('КОЛЛЕКЦИЯ РАМОК') ||
   !directEditor.includes('Один профиль — один редактор.')
 ) {
   failures.push('direct-edit guidance or frame inventory disappeared');
