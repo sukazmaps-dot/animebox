@@ -25,8 +25,8 @@ mustNotInclude(preview, '<span className={styles.premiumBadge}>Premium</span>', 
 const previewCss = read('components/profile/ProfilePreview.module.css');
 mustInclude(previewCss, 'flex: 0 0 88px', 'desktop mini-profile avatar');
 mustInclude(previewCss, 'flex-basis: 132px', 'framed mini-profile canvas');
-mustInclude(previewCss, "avatarShellSeason[data-milestone-frame='true']", 'milestone frame geometry');
 mustInclude(previewCss, 'flex-basis: 118px', 'mobile framed mini-profile canvas');
+mustNotInclude(previewCss, "avatarShellSeason[data-milestone-frame='true'] .avatarMedia", 'legacy milestone aperture shrink');
 mustInclude(previewCss, "html[data-animebox-theme='light'] .card", 'mini-profile light theme');
 
 const frameOverlayCss = read('components/profile/ProfileFrameOverlay.module.css');
