@@ -862,6 +862,7 @@ export default function WatchPartyPanel({
     hostEndedRef.current = false;
     participantsRef.current.clear();
     playerStateRef.current = null;
+    playerUiStateRef.current = null;
     hostSeqRef.current = 0;
     lastAppliedSeqRef.current = 0;
     chatIdsRef.current.clear();
