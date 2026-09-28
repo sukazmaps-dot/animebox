@@ -177,6 +177,10 @@ const PLAYER_READY_TIMEOUT_MS = 14_000;
 const SOURCE_SWITCH_NOTICE_MS = 5_500;
 const AUTO_NEXT_COUNTDOWN_SECONDS = 5;
 const EXPLICIT_SEEK_AUTO_SKIP_GUARD_MS = 6_000;
+const AUTO_OPENING_TRIGGER_WINDOW_SECONDS = 1.5;
+const AUTO_OPENING_SPARSE_SAMPLE_CATCHUP_SECONDS = 3.5;
+const AUTO_OPENING_CONFIRM_GRACE_SECONDS = 5;
+const AUTO_OPENING_CONFIRM_MS = 900;
 
 type SourceLoadState = 'idle' | 'loading' | 'ready' | 'error' | 'timeout';
 type PlayerFailureKind = Extract<SourceLoadState, 'error' | 'timeout'>;
@@ -433,7 +437,6 @@ export default function AnimePlayer({
   const [autoNextSeconds, setAutoNextSeconds] = useState<number | null>(null);
   const [skipOpeningVisible, setSkipOpeningVisible] = useState(false);
   const [endingPromptOpen, setEndingPromptOpen] = useState(false);
-  const [endingNextSeconds, setEndingNextSeconds] = useState<number | null>(null);
   const [autoNextCancelled, setAutoNextCancelled] = useState(false);
   const [premiumStudio, setPremiumStudio] = useState<PremiumStudioSettings | null>(null);
   const [watchTogetherMobileControlsTarget, setWatchTogetherMobileControlsTarget] = useState<HTMLElement | null>(null);
@@ -499,6 +502,16 @@ export default function AnimePlayer({
   const endedFlowRef = useRef(false);
   const openingAutoSkipAttemptedRef = useRef(false);
   const openingSkipTargetRef = useRef<number | null>(null);
+  const openingAutoSkipCandidateRef = useRef<{
+    startSeconds: number;
+    targetSeconds: number;
+    firstSeenAt: number;
+    firstSeenPositionSeconds: number;
+  } | null>(null);
+  const previousPlaybackSampleRef = useRef<{
+    positionSeconds: number;
+    sampledAt: number;
+  } | null>(null);
   const lastExplicitSeekAtRef = useRef(0);
   const lastReportedTimelineDurationRef = useRef<number | null>(null);
   const openingSkipFallbackTimerRef = useRef<number | null>(null);
@@ -959,6 +972,7 @@ export default function AnimePlayer({
       }
 
       lastExplicitSeekAtRef.current = Date.now();
+      openingAutoSkipCandidateRef.current = null;
 
       const observedDurationSeconds = isKodik
         ? kodikPlayerRef.current?.getState().durationSeconds ?? null
@@ -1066,6 +1080,13 @@ export default function AnimePlayer({
         }
       }
 
+      const sampledAt = Date.now();
+      const previousPlaybackSample = previousPlaybackSampleRef.current;
+      previousPlaybackSampleRef.current = {
+        positionSeconds,
+        sampledAt,
+      };
+
       persistLocalProgress(sample);
       serverWatchSample(sample);
 
@@ -1104,24 +1125,91 @@ export default function AnimePlayer({
         setSkipOpeningVisible(false);
       }
 
+      let openingAutoSkipConfirmed = false;
+      const triggerStartSeconds =
+        autoOpeningDecision.safe ? autoOpeningDecision.startSeconds : null;
+      const triggerTargetSeconds =
+        autoOpeningDecision.safe ? autoOpeningDecision.targetSeconds : null;
+
+      if (
+        triggerStartSeconds != null &&
+        triggerTargetSeconds != null &&
+        positionSeconds >= triggerStartSeconds &&
+        positionSeconds < triggerTargetSeconds
+      ) {
+        const primaryWindowEnd =
+          triggerStartSeconds + AUTO_OPENING_TRIGGER_WINDOW_SECONDS;
+        const crossedBoundary =
+          previousPlaybackSample != null &&
+          previousPlaybackSample.positionSeconds < triggerStartSeconds &&
+          positionSeconds >= triggerStartSeconds;
+        const enteredPrimaryWindow =
+          positionSeconds <= primaryWindowEnd;
+        const sparseSampleCatchup =
+          crossedBoundary &&
+          positionSeconds <=
+            triggerStartSeconds +
+              AUTO_OPENING_SPARSE_SAMPLE_CATCHUP_SECONDS;
+        const candidate = openingAutoSkipCandidateRef.current;
+
+        if (
+          candidate == null ||
+          Math.abs(candidate.startSeconds - triggerStartSeconds) > 0.05 ||
+          Math.abs(candidate.targetSeconds - triggerTargetSeconds) > 0.05
+        ) {
+          openingAutoSkipCandidateRef.current =
+            enteredPrimaryWindow || sparseSampleCatchup
+              ? {
+                  startSeconds: triggerStartSeconds,
+                  targetSeconds: triggerTargetSeconds,
+                  firstSeenAt: sampledAt,
+                  firstSeenPositionSeconds: positionSeconds,
+                }
+              : null;
+        } else {
+          const confirmationWindowEnd =
+            triggerStartSeconds + AUTO_OPENING_CONFIRM_GRACE_SECONDS;
+          const providerDidNotRegress =
+            positionSeconds >= candidate.firstSeenPositionSeconds - 0.35;
+          const confirmationDelayPassed =
+            sampledAt - candidate.firstSeenAt >= AUTO_OPENING_CONFIRM_MS;
+
+          if (
+            positionSeconds <= confirmationWindowEnd &&
+            providerDidNotRegress &&
+            confirmationDelayPassed
+          ) {
+            openingAutoSkipConfirmed = true;
+            openingAutoSkipCandidateRef.current = null;
+          } else if (positionSeconds > confirmationWindowEnd) {
+            openingAutoSkipCandidateRef.current = null;
+          }
+        }
+      } else {
+        openingAutoSkipCandidateRef.current = null;
+      }
+
       if (
         !watchTogetherMode &&
         smartSeekSupported &&
         autoOpeningDecision.safe &&
+        openingAutoSkipConfirmed &&
         !openingAutoSkipAttemptedRef.current
       ) {
-        // One automatic attempt per episode. If the provider refuses/drops
-        // the seek, requestOpeningSkip exposes the manual fallback button.
+        // The first boundary sample only arms auto-skip. A later sample must
+        // confirm that playback is really inside the opening, which prevents
+        // rounded/jittery Kodik timestamps from seeking a few seconds early.
         openingAutoSkipAttemptedRef.current = true;
         if (!requestOpeningSkip('auto', observedDurationSeconds)) {
           setSkipOpeningVisible(true);
         }
       } else if (
         insideOpening &&
-        !openingAutoSkipAttemptedRef.current
+        !openingAutoSkipAttemptedRef.current &&
+        openingAutoSkipCandidateRef.current == null
       ) {
-        // Conservative automatic rejections still leave the decision with the
-        // viewer through an explicit button.
+        // If we missed the small automatic trigger window, fall back to the
+        // explicit button instead of forcing a late seek.
         setSkipOpeningVisible(true);
       } else if (!insideOpening) {
         setSkipOpeningVisible(false);
@@ -1156,8 +1244,10 @@ export default function AnimePlayer({
           positionSeconds >= endingTriggerSeconds &&
           (durationSeconds == null || positionSeconds < durationSeconds - 0.5)
         ) {
+          // This is informational only. Starting the ending must never be
+          // treated as playback completion; navigation is armed exclusively
+          // by the provider/native ended boundary.
           setEndingPromptOpen(true);
-          setEndingNextSeconds(AUTO_NEXT_COUNTDOWN_SECONDS);
         }
       }
 
@@ -1198,7 +1288,6 @@ export default function AnimePlayer({
   const cancelEndingAutoNext = useCallback(() => {
     setAutoNextCancelled(true);
     setEndingPromptOpen(false);
-    setEndingNextSeconds(null);
   }, []);
 
   const continueFromEndScreen = useCallback(() => {
@@ -1240,7 +1329,6 @@ export default function AnimePlayer({
     }
 
     setEndingPromptOpen(false);
-    setEndingNextSeconds(null);
     setEndScreenOpen(true);
     setAutoNextSeconds(
       hasNext && onEnded && !autoNextCancelled
@@ -1289,44 +1377,11 @@ export default function AnimePlayer({
   ]);
 
   useEffect(() => {
-    if (
-      !endingPromptOpen ||
-      endingNextSeconds == null ||
-      watchTogetherMode ||
-      !hasNext ||
-      !onEnded
-    ) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      if (endingNextSeconds <= 0) {
-        setEndingPromptOpen(false);
-        setEndingNextSeconds(null);
-        void watchSession.flushProgress().catch(() => undefined);
-        onEnded();
-        return;
-      }
-
-      setEndingNextSeconds((seconds) =>
-        seconds == null ? null : Math.max(0, seconds - 1),
-      );
-    }, endingNextSeconds <= 0 ? 0 : 1_000);
-
-    return () => window.clearTimeout(timer);
-  }, [
-    endingNextSeconds,
-    endingPromptOpen,
-    hasNext,
-    onEnded,
-    watchSession,
-    watchTogetherMode,
-  ]);
-
-  useEffect(() => {
     endedFlowRef.current = false;
     openingAutoSkipAttemptedRef.current = false;
     openingSkipTargetRef.current = null;
+    openingAutoSkipCandidateRef.current = null;
+    previousPlaybackSampleRef.current = null;
     lastExplicitSeekAtRef.current = 0;
     lastReportedTimelineDurationRef.current = null;
     clearOpeningSkipFallback();
@@ -1336,7 +1391,6 @@ export default function AnimePlayer({
       setAutoNextSeconds(null);
       setSkipOpeningVisible(false);
       setEndingPromptOpen(false);
-      setEndingNextSeconds(null);
       setAutoNextCancelled(false);
     });
 
@@ -2222,6 +2276,8 @@ export default function AnimePlayer({
       );
     }
     failedCandidatesRef.current.delete(currentCandidateKey);
+    openingAutoSkipCandidateRef.current = null;
+    previousPlaybackSampleRef.current = null;
     sourceSelectionReasonRef.current = 'retry';
     setPlayerError(null);
     setPlayerFailureKind(null);
@@ -2354,6 +2410,8 @@ export default function AnimePlayer({
     }, true);
 
     sourceSelectionReasonRef.current = reason;
+    openingAutoSkipCandidateRef.current = null;
+    previousPlaybackSampleRef.current = null;
     if (started) {
       playRequestAtRef.current = performance.now();
       if (latestPlaybackPositionSecondsRef.current > 0) {
@@ -2425,6 +2483,8 @@ export default function AnimePlayer({
     }
 
     sourceSelectionReasonRef.current = 'translation';
+    openingAutoSkipCandidateRef.current = null;
+    previousPlaybackSampleRef.current = null;
     if (started) {
       playRequestAtRef.current = performance.now();
       if (latestPlaybackPositionSecondsRef.current > 0) {
@@ -2479,11 +2539,12 @@ export default function AnimePlayer({
 
   function startPlayback() {
     endedFlowRef.current = false;
+    openingAutoSkipCandidateRef.current = null;
+    previousPlaybackSampleRef.current = null;
     setEndScreenOpen(false);
     setAutoNextSeconds(null);
     setSkipOpeningVisible(false);
     setEndingPromptOpen(false);
-    setEndingNextSeconds(null);
     setAutoNextCancelled(false);
     playRequestAtRef.current = performance.now();
     setPlayerError(null);
@@ -3060,7 +3121,6 @@ export default function AnimePlayer({
           )}
 
           {endingPromptOpen &&
-            endingNextSeconds != null &&
             !watchTogetherMode &&
             hasNext &&
             onEnded && (
@@ -3071,10 +3131,10 @@ export default function AnimePlayer({
                 <div className="mt-1 flex items-end justify-between gap-4">
                   <div>
                     <strong className="block text-sm font-black text-white">
-                      Через {endingNextSeconds} сек.
+                      Эндинг идёт
                     </strong>
                     <span className="mt-1 block text-[11px] leading-4 text-white/45">
-                      Эндинг можно досмотреть — автопереход можно отменить.
+                      Автопереход начнётся только после фактического завершения видео.
                     </span>
                   </div>
                   <button
@@ -3082,7 +3142,7 @@ export default function AnimePlayer({
                     onClick={cancelEndingAutoNext}
                     className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-bold text-white/70 transition hover:bg-white/[0.08] hover:text-white"
                   >
-                    Отмена
+                    Не переходить
                   </button>
                 </div>
               </div>

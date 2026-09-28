@@ -56,6 +56,9 @@ type KodikMessage = {
   value?: unknown;
 };
 
+const SYNTHETIC_END_REMAINING_SECONDS = 0.2;
+const SYNTHETIC_END_CONFIRM_MS = 1_500;
+
 function normalizePlayerUrl(url: string) {
   return url.startsWith('//') ? `https:${url}` : url;
 }
@@ -231,6 +234,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
   const lastSampleAtRef = useRef<number | null>(null);
   const lastAdvanceAtRef = useRef<number | null>(null);
   const pauseInferenceTimerRef = useRef<number | null>(null);
+  const syntheticEndTimerRef = useRef<number | null>(null);
 
   const playerSrc = useMemo(
     () => buildPlayerUrl(src, episodeNumber),
@@ -309,6 +313,10 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
     playingRef.current = false;
     lastSampleAtRef.current = null;
     lastAdvanceAtRef.current = null;
+    if (syntheticEndTimerRef.current != null) {
+      window.clearTimeout(syntheticEndTimerRef.current);
+      syntheticEndTimerRef.current = null;
+    }
     if (pauseInferenceTimerRef.current != null) {
       window.clearTimeout(pauseInferenceTimerRef.current);
       pauseInferenceTimerRef.current = null;
@@ -316,8 +324,15 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
   }, [playerSrc, resumeSeconds]);
 
   useEffect(() => {
+    function clearSyntheticEndTimer() {
+      if (syntheticEndTimerRef.current == null) return;
+      window.clearTimeout(syntheticEndTimerRef.current);
+      syntheticEndTimerRef.current = null;
+    }
+
     function fireEndedOnce() {
       if (endedFiredRef.current) return;
+      clearSyntheticEndTimer();
       endedFiredRef.current = true;
       onEnded?.();
     }
@@ -464,12 +479,42 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
 
         emitPlaybackState();
 
-        if (
-          knownDuration != null &&
-          knownDuration > 0 &&
-          time.position >= Math.max(0, knownDuration - 0.6)
-        ) {
-          fireEndedOnce();
+        if (knownDuration != null && knownDuration > 0) {
+          const remainingSeconds = knownDuration - time.position;
+          const nearConfirmedEnd =
+            remainingSeconds >= -0.5 &&
+            remainingSeconds <= SYNTHETIC_END_REMAINING_SECONDS;
+
+          if (nearConfirmedEnd && playingRef.current) {
+            if (syntheticEndTimerRef.current == null) {
+              syntheticEndTimerRef.current = window.setTimeout(() => {
+                syntheticEndTimerRef.current = null;
+
+                const duration = durationRef.current;
+                const position = currentPositionRef.current;
+                if (
+                  endedFiredRef.current ||
+                  !playingRef.current ||
+                  duration == null ||
+                  position == null
+                ) {
+                  return;
+                }
+
+                const remaining = duration - position;
+                if (
+                  remaining >= -0.5 &&
+                  remaining <= SYNTHETIC_END_REMAINING_SECONDS
+                ) {
+                  fireEndedOnce();
+                }
+              }, SYNTHETIC_END_CONFIRM_MS);
+            }
+          } else {
+            clearSyntheticEndTimer();
+          }
+        } else {
+          clearSyntheticEndTimer();
         }
 
         return;
@@ -484,6 +529,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
       }
 
       if (key === 'kodik_player_pause' || key === 'kodik_player_paused') {
+        clearSyntheticEndTimer();
         playingRef.current = false;
         emitPlaybackAction('pause');
         emitPlaybackState();
@@ -491,6 +537,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
       }
 
       if (key === 'kodik_player_seek' || key === 'kodik_player_seeked') {
+        clearSyntheticEndTimer();
         const seek = readTimeValue(value);
         if (seek && seek.position >= 0) {
           currentPositionRef.current = seek.position;
@@ -572,6 +619,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
 
     return () => {
       window.removeEventListener('message', onMessage);
+      clearSyntheticEndTimer();
       if (pauseInferenceTimerRef.current != null) {
         window.clearTimeout(pauseInferenceTimerRef.current);
         pauseInferenceTimerRef.current = null;
