@@ -828,9 +828,6 @@ export default function WatchTogetherHub() {
                       <span className={styles.roomHostAvatar}>
                         {room.host.username.trim().slice(0, 1).toUpperCase() || '?'}
                         {room.host.avatarUrl && (
-                          // Profile avatars may be animated Premium media and are
-                          // served from profile-media rather than the poster CDN.
-                          // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={room.host.avatarUrl}
                             alt=""
