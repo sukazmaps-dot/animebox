@@ -57,7 +57,7 @@ type KodikMessage = {
 };
 
 const SYNTHETIC_END_REMAINING_SECONDS = 0.2;
-const SYNTHETIC_END_CONFIRM_MS = 900;
+const SYNTHETIC_END_CONFIRM_MS = 1_500;
 
 function normalizePlayerUrl(url: string) {
   return url.startsWith('//') ? `https:${url}` : url;
