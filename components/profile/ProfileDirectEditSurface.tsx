@@ -260,11 +260,11 @@ export default function ProfileDirectEditSurface({
       <section className={styles.canvas}>
         <div className={styles.canvasHead}>
           <div>
-            <span>DIRECT EDIT</span>
+            <span>ПРОФИЛЬ</span>
             <h2>Редактируй профиль прямо на профиле</h2>
             <p>Клик по аватару или баннеру сразу открывает замену файла. Ник и описание редактируются прямо на карточке.</p>
           </div>
-          <div className={styles.liveBadge}><span /> LIVE</div>
+          <div className={styles.liveBadge}><span /> СРАЗУ</div>
         </div>
 
         <article className={styles.profileCard}>
@@ -275,7 +275,7 @@ export default function ProfileDirectEditSurface({
             onClick={() => openMediaPicker('banner')}
             aria-label="Изменить баннер"
           >
-            {bannerUrl ? <img src={bannerUrl} alt="" aria-hidden="true" /> : <span className={styles.bannerEmpty}>ANIMEBOX PROFILE</span>}
+            {bannerUrl ? <img src={bannerUrl} alt="" aria-hidden="true" /> : <span className={styles.bannerEmpty}>ПРОФИЛЬ ANIMEBOX</span>}
             <span className={styles.bannerShade} />
             <span className={styles.editChip}><Icon name="image" size={14} /> Изменить баннер</span>
           </button>
@@ -316,7 +316,7 @@ export default function ProfileDirectEditSurface({
             </button>
 
             <div className={styles.identity}>
-              <span className={styles.identityEyebrow}>ANIMEBOX USER</span>
+              <span className={styles.identityEyebrow}>ПРОФИЛЬ ANIMEBOX</span>
 
               {editingName ? (
                 <input
@@ -351,7 +351,7 @@ export default function ProfileDirectEditSurface({
               >
                 <span className={styles.frameDot} />
                 {activeFrameLabel}
-                {isLevelFrameKey(selectedFrame) && premiumActive && <b>PREMIUM MOTION</b>}
+                {isLevelFrameKey(selectedFrame) && premiumActive && <b>PREMIUM-АНИМАЦИЯ</b>}
               </button>
 
               {editingBio ? (
@@ -383,7 +383,7 @@ export default function ProfileDirectEditSurface({
 
           <div className={styles.cardFooter}>
             <span><Icon name="spark" size={13} /> Профиль обновляется в реальном времени</span>
-            {premiumActive ? <b>PREMIUM ACTIVE</b> : <button type="button" onClick={onOpenPremium}>Premium ✦</button>}
+            {premiumActive ? <b>PREMIUM АКТИВЕН</b> : <button type="button" onClick={onOpenPremium}>Premium ✦</button>}
           </div>
         </article>
 
@@ -429,7 +429,7 @@ export default function ProfileDirectEditSurface({
                 onChange={(event) => onUsernameChange(event.target.value)}
               />
             </label>
-            <p className={styles.help}>Ник сразу отражается в live-preview. После сохранения он обновится в профиле, комментариях и меню.</p>
+            <p className={styles.help}>Новое имя сразу видно в предпросмотре. После сохранения оно обновится в профиле, комментариях и меню.</p>
           </div>
         )}
 
@@ -471,12 +471,12 @@ export default function ProfileDirectEditSurface({
                 </button>
               )}
             </div>
-            <p className={styles.help}>JPG, PNG, WebP, AVIF, HEIC/HEIF · до 16 МБ. Перед сохранением откроется crop-editor.</p>
+            <p className={styles.help}>JPG, PNG, WebP, AVIF, HEIC/HEIF · до 16 МБ. Перед сохранением откроется редактор кадра.</p>
             {bannerPremiumOverride && (
               <div className={styles.overrideCard}>
                 <Icon name="crown" size={18} />
                 <div>
-                  <strong>{premiumActive ? 'Сейчас виден Premium-баннер' : 'Используется статический Premium fallback'}</strong>
+                  <strong>{premiumActive ? 'Сейчас виден Premium-баннер' : 'Используется сохранённая статичная версия'}</strong>
                   <p>{premiumActive ? 'Изменения базового баннера сохранятся как запасной вариант.' : 'Анимация уже выключена; можно одним нажатием вернуть базовый баннер.'}</p>
                 </div>
                 <button type="button" onClick={() => void onUseBaseBanner()}>Использовать базовый</button>
@@ -543,7 +543,7 @@ export default function ProfileDirectEditSurface({
                   <Icon name="crown" size={18} />
                   <div>
                     <strong>{premiumActive ? 'Premium-аватар активен' : 'Используется статический Premium fallback'}</strong>
-                    <p>{premiumActive ? 'Базовый аватар остаётся сохранённым и вернётся после переключения.' : 'Premium motion уже выключен; базовый аватар можно вернуть отдельно от баннера.'}</p>
+                    <p>{premiumActive ? 'Базовый аватар остаётся сохранённым и вернётся после переключения.' : 'Premium-анимация уже выключен; базовый аватар можно вернуть отдельно от баннера.'}</p>
                   </div>
                   <button type="button" onClick={() => void onUseBaseAvatar()}>Базовый вариант</button>
                 </div>
@@ -553,7 +553,7 @@ export default function ProfileDirectEditSurface({
             <div className={styles.inventorySection}>
               <div className={styles.inventoryHead}>
                 <div>
-                  <span>FRAME INVENTORY</span>
+                  <span>КОЛЛЕКЦИЯ РАМОК</span>
                   <h4>Твои рамки</h4>
                 </div>
                 <strong>{ownedFrames.length}</strong>
@@ -562,8 +562,8 @@ export default function ProfileDirectEditSurface({
               <div className={styles.filters}>
                 {([
                   ['all', 'Все'],
-                  ['level', 'LVL'],
-                  ['league', 'League'],
+                  ['level', 'Уровень'],
+                  ['league', 'Лига'],
                 ] as const).map(([value, label]) => (
                   <button
                     type="button"
@@ -630,11 +630,11 @@ export default function ProfileDirectEditSurface({
                           <small>
                             {frame.kind === 'level'
                               ? premiumActive
-                                ? 'LVL · Premium motion включён'
-                                : 'LVL · статичная версия'
+                                ? 'Уровневая · Premium-анимация включена'
+                                : 'Уровневая · статичная версия'
                               : expiry
-                                ? `League · до ${expiry}`
-                                : 'League-награда'}
+                                ? `Лига · до ${expiry}`
+                                : 'Награда лиги'}
                           </small>
                         </span>
                         <b>{selected ? '✓' : ''}</b>
@@ -656,7 +656,7 @@ export default function ProfileDirectEditSurface({
                   {nextLockedLevelFrames.map((milestone) => (
                     <div key={milestone.level}>
                       <span className={styles.lockedThumb}>🔒</span>
-                      <p><strong>{milestone.title}</strong><small>Откроется на LVL {milestone.level}</small></p>
+                      <p><strong>{milestone.title}</strong><small>Откроется на {milestone.level} уровне</small></p>
                     </div>
                   ))}
                 </div>
@@ -666,18 +666,18 @@ export default function ProfileDirectEditSurface({
                 <Icon name="info" size={15} />
                 <p>
                   <strong>Активна только одна рамка.</strong>
-                  Уровневая и League-рамка используют один слот и автоматически заменяют друг друга.
+                  Уровневая и лиговая рамка используют один слот и заменяют друг друга.
                 </p>
               </div>
 
               <div className={styles.premiumFrameCard} data-active={premiumActive ? 'true' : 'false'}>
                 <Icon name="crown" size={20} />
                 <div>
-                  <strong>{premiumActive ? 'Premium motion активен' : 'Premium оживляет LVL-рамки'}</strong>
+                  <strong>{premiumActive ? 'Premium-анимация активен' : 'Premium оживляет уровневые рамки'}</strong>
                   <p>
                     {premiumActive
-                      ? 'Открытая уровнем рамка получает motion, glow и дополнительные эффекты.'
-                      : 'Все рамки открываются обычной прогрессией. Premium только добавляет анимацию к уже заработанной LVL-рамке.'}
+                      ? 'Открытая уровнем рамка получает анимацию, свечение и дополнительные эффекты.'
+                      : 'Все рамки открываются обычной прогрессией. Premium только добавляет анимацию к уже заработанной уровневой рамке.'}
                   </p>
                 </div>
                 {!premiumActive && <button type="button" onClick={onOpenPremium}>Подробнее</button>}
