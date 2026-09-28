@@ -1,4 +1,4 @@
-export const RECOMMENDATION_RANKING_VERSION = '18.3-v1';
+export const RECOMMENDATION_RANKING_VERSION = '22.0-v1';
 
 export const RECOMMENDATION_RANKING_WEIGHTS = {
   genre: {
@@ -20,6 +20,7 @@ export const RECOMMENDATION_RANKING_WEIGHTS = {
     coldStart: 0.28,
   },
   negativeEngagement: 0.9,
+  exposureFatigue: 0.38,
 } as const;
 
 export const RECOMMENDATION_ENGAGEMENT_SIGNALS = {
@@ -61,6 +62,7 @@ export type RecommendationScoreSignals = {
   shortFinished: number;
   engagementPositive: number;
   engagementNegative: number;
+  exposureFatigue: number;
   discovery: number;
   ongoing: number;
   duplicateTitle: number;
@@ -79,6 +81,7 @@ export type RecommendationScoreComponents = {
   shortFinished: number;
   engagementPositive: number;
   engagementNegative: number;
+  exposureFatigue: number;
   discovery: number;
   ongoing: number;
   duplicateTitle: number;
@@ -141,6 +144,8 @@ export function scoreRecommendation(
     engagementPositive: finite(signals.engagementPositive),
     engagementNegative:
       -finite(signals.engagementNegative) * weights.negativeEngagement,
+    exposureFatigue:
+      -finite(signals.exposureFatigue) * weights.exposureFatigue,
     discovery: finite(signals.discovery),
     ongoing: finite(signals.ongoing),
     duplicateTitle: finite(signals.duplicateTitle),
