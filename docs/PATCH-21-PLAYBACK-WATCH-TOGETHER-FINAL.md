@@ -220,3 +220,66 @@ Patch 21 считается завершённым только если:
 - mobile theater не имеет layout collapse/overflow;
 - обычный просмотр не платит runtime cost за Watch Together;
 - production build и все retention/security gates зелёные.
+
+
+---
+
+## 9. Текущий статус реализации
+
+### Phase A — Playback command integrity
+Статус: **implemented**
+
+Готово:
+- exactly-once episode transition latch;
+- idempotent PLAY/PAUSE для Kodik и native video;
+- explicit SEEK dead-zone;
+- stale/replayed Watch Together action rejection;
+- command sequence guard сохраняется между source remount;
+- Watch Together command listeners не подключаются при обычном просмотре.
+
+### Phase B — Resume / Source continuity
+Статус: **implemented / under CI**
+
+Готово:
+- late async server/local resume больше не может перемотать назад уже начавшийся playback;
+- source-switch continuity имеет приоритет над запоздавшим /api/watch response;
+- native player и общий resume merge используют единый 5s active-playback guard;
+- изменение resumeSeconds больше не сбрасывает Kodik runtime state;
+- Kodik iframe state reset привязан к реальной смене playerSrc, а не к позднему resume reconciliation;
+- отдельная runtime regression matrix проверяет idle/active/source-switch сценарии.
+
+### Phase C — OP / ED Timeline Automation Final
+Статус: **implemented / under CI**
+
+Готово:
+- успешный manual Skip Opening теперь ставит тот же exactly-once latch, что и auto skip;
+- armed auto candidate очищается после любого успешного OP seek;
+- пока первый OP seek ожидает provider acknowledgement, повторный manual/auto request подавляется;
+- timeupdate path не может запускать auto-next;
+- ending start остаётся только UI-сигналом;
+- synthetic Kodik end остаётся консервативным fallback с threshold 0.2s + 1500ms confirmation.
+
+### Phase D — Watch Together sync core
+Статус: **partially implemented / under CI**
+
+Готово:
+- authoritative PLAYER_APPLY и periodic PLAYER_SYNC различаются через commandKind;
+- replay PLAYER_APPLY с тем же seq блокируется;
+- legitimate PLAYER_SYNC с тем же seq разрешён для drift correction;
+- stale sync с seq ниже актуального блокируется;
+- player sequence watermark двигается только вперёд;
+- hot provider state всегда обновляет ref для network sync;
+- React room UI обновляется только при semantic change или ~0.9s visible position step вместо каждого provider timeupdate.
+
+Остаётся:
+- финальная drift policy;
+- reconnect authoritative resync;
+- host epoch integration в player sync;
+- control spam budget;
+- background/foreground stress cases.
+
+### Phase E — Mobile theater / fullscreen
+Статус: **planned**
+
+### Phase F — Release hardening / canary
+Статус: **planned**
