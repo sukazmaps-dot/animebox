@@ -100,6 +100,10 @@ mustInclude(studioClient, 'username={effectiveUsername}', 'Studio live identity 
 const studioPreview = read('components/premium/PremiumStudioLivePreview.tsx');
 mustInclude(studioPreview, "username = 'Твой профиль'", 'preview username fallback');
 mustInclude(studioPreview, 'username?: string', 'preview username prop');
+mustInclude(studioPreview, 'bio?: string', 'preview bio prop');
+mustInclude(studioPreview, 'premium-studio-v23__preview-meta', 'real-profile preview metadata');
+mustNotInclude(studioPreview, 'Продолжить просмотр', 'fake continue-watching preview block');
+mustNotInclude(studioPreview, '29ч', 'fake profile stats in Studio hero');
 mustInclude(studioPreview, 'ProfileFrameOverlay', 'Studio selected frame renderer');
 mustInclude(studioPreview, 'profileFrameKey?: string | null', 'Studio frame preview contract');
 
@@ -112,6 +116,7 @@ mustInclude(experienceCss, 'inset: -18px !important', 'Studio frame outer canvas
 
 const editorClient = read('components/profile/ProfileEditorClient.tsx');
 mustInclude(editorClient, 'previewUsername={username}', 'editor live username preview');
+mustInclude(editorClient, 'previewBio={bio}', 'editor live bio preview');
 mustInclude(editorClient, 'fallbackAvatarUrl={resolvedAvatarPreview}', 'editor avatar preview fallback');
 mustInclude(editorClient, 'fallbackBannerUrl={resolvedBannerPreview}', 'editor banner preview fallback');
 
