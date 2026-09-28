@@ -334,3 +334,38 @@
 
 @media(max-width:800px){.heroControls{align-items:stretch;flex-direction:column}.heroControls .tabs{align-self:flex-start}.heroControls .utilityBar{justify-content:flex-start}.emptyState{min-height:310px;padding:38px 20px}}
 @media(max-width:520px){.heroControls .tabs{align-self:stretch}.heroControls .utilityBar{display:grid;grid-template-columns:1fr;width:100%}.heroControls .utilityBar a{width:100%}.emptyActions{display:grid;grid-template-columns:1fr;width:100%;max-width:360px}.emptyActions a{width:100%}}
+
+
+/* Patch 20.3.14 — sponsor frame geometry.
+   Decorative identity frames are allowed to breathe outside the photo slot. */
+.podiumAvatar:has(.avatarFrame[data-identity-frame]:not([data-identity-frame='none'])) {
+  margin-bottom: 24px;
+}
+
+.podiumAvatar:has(.avatarFrame[data-identity-frame]:not([data-identity-frame='none']))
+  .rankSeal {
+  bottom: -10px;
+}
+
+.rowAvatar[data-identity-frame]:not([data-identity-frame='none']) {
+  width: 50px !important;
+  height: 50px !important;
+  margin-inline: -3px 1px;
+}
+
+.userCell {
+  overflow: visible;
+}
+
+@media(max-width:520px) {
+  .rowAvatar[data-identity-frame]:not([data-identity-frame='none']) {
+    width: 44px !important;
+    height: 44px !important;
+    margin-inline: -3px 0;
+  }
+
+  .podiumAvatar:has(.avatarFrame[data-identity-frame]:not([data-identity-frame='none']))
+    .rankSeal {
+    bottom: -9px;
+  }
+}
