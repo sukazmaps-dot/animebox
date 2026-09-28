@@ -116,6 +116,7 @@ type AnimeCatalogMetadata = {
   studios: string[];
   format: string | null;
   start_year: number | null;
+  recommendation_metadata_version: number;
   poster_url: string | null;
   slug: string | null;
   updated_at: string;
@@ -189,7 +190,7 @@ async function readAnimeCatalogRows(ids: number[]) {
     const { data, error } = await adminClient()
       .from('anime_catalog')
       .select(
-        'id,title,total_episodes,finished,genres,studios,format,start_year,poster_url,slug,updated_at',
+        'id,title,total_episodes,finished,genres,studios,format,start_year,recommendation_metadata_version,poster_url,slug,updated_at',
       )
       .in('id', sorted);
 
@@ -286,6 +287,7 @@ function animeCatalogPayload(
       Number.isSafeInteger(startYear) && startYear >= 1940 && startYear <= 2200
         ? startYear
         : previous?.start_year ?? null,
+    recommendation_metadata_version: 1,
     poster_url: animePosterUrl(anime),
     slug:
       typeof anime.slug === 'string' && anime.slug.trim()
@@ -349,7 +351,7 @@ async function refreshAnimeCatalogMetadata(
           animeCatalogPayload(anime, previous),
         )
         .select(
-          'id,title,total_episodes,finished,genres,studios,format,start_year,poster_url,slug,updated_at',
+          'id,title,total_episodes,finished,genres,studios,format,start_year,recommendation_metadata_version,poster_url,slug,updated_at',
         )
         .single();
 
@@ -406,7 +408,11 @@ export async function ensureAnimes(ids: number[]) {
 
   const refreshIds = uniqueIds.filter((id) => {
     const row = existing.get(id);
-    return !row || now - Date.parse(row.updated_at) >= 86_400_000;
+    return (
+      !row ||
+      Number(row.recommendation_metadata_version ?? 0) < 1 ||
+      now - Date.parse(row.updated_at) >= 86_400_000
+    );
   });
 
   if (refreshIds.length) {
@@ -450,7 +456,7 @@ export async function ensureAnimeArtwork(id: number) {
     : await admin
         .from('anime_catalog')
         .select(
-          'id,title,total_episodes,finished,genres,studios,format,start_year,poster_url,slug,updated_at',
+          'id,title,total_episodes,finished,genres,studios,format,start_year,recommendation_metadata_version,poster_url,slug,updated_at',
         )
         .eq('id', id)
         .maybeSingle();
@@ -475,7 +481,7 @@ export async function ensureAnimeArtwork(id: number) {
       animeCatalogPayload(anime, (data ?? undefined) as AnimeCatalogMetadata | undefined),
     )
     .select(
-      'id,title,total_episodes,finished,genres,studios,format,start_year,poster_url,slug,updated_at',
+      'id,title,total_episodes,finished,genres,studios,format,start_year,recommendation_metadata_version,poster_url,slug,updated_at',
     )
     .single();
 
