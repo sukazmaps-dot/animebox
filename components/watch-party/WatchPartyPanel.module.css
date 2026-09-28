@@ -2427,3 +2427,34 @@
     animation: none !important;
   }
 }
+
+
+/* Patch 20.2 · Premium reaction pack */
+.reactions button[data-premium='true'] {
+  position: relative;
+  border: 1px solid rgba(184, 150, 255, .09);
+  background: rgba(132, 92, 236, .035);
+}
+
+.reactions button[data-premium='true'] > small {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  color: rgba(205, 183, 255, .66);
+  font-size: 6px;
+  line-height: 1;
+}
+
+.reactions button[data-premium='true']:hover:not(:disabled) {
+  border-color: rgba(184, 150, 255, .22);
+  background: rgba(132, 92, 236, .11);
+  box-shadow: 0 0 18px rgba(116, 79, 225, .09);
+}
+
+.reactions button[data-locked='true'] {
+  filter: saturate(.45);
+}
+
+.reactions button[data-locked='true'] > small {
+  opacity: .72;
+}
