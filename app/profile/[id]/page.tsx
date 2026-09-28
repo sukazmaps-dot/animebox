@@ -116,7 +116,13 @@ export default async function PublicProfilePage({ params }: Props) {
                 />
               )}
               <img
-                src={profile.bannerUrl}
+                src={
+                  premiumIdentityActive &&
+                  profile.premiumStudio?.motionMode === 'off' &&
+                  profile.bannerMobileUrl
+                    ? profile.bannerMobileUrl
+                    : profile.bannerUrl
+                }
                 alt={`Баннер ${profile.username}`}
                 className="profile-v2__banner-image"
                 style={premiumMediaStyle(profile.bannerTransform) as CSSProperties}
@@ -144,6 +150,7 @@ export default async function PublicProfilePage({ params }: Props) {
             mediaTransform={profile.avatarTransform}
             profileFrameKey={profile.profileFrameKey}
             premiumFrameMotion={profile.premium && profile.premiumStudio?.motionMode !== 'off'}
+            preferStatic={premiumIdentityActive && profile.premiumStudio?.motionMode === 'off'}
           />
 
           <div className="profile-v2__identity-main">
