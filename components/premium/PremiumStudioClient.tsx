@@ -1274,7 +1274,6 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 context={previewContext}
                 username={effectiveUsername}
                 profileFrameKey={previewFrameKey}
-            profileFrameKey={previewFrameKey}
               />
             </div>
           </aside>
@@ -1695,8 +1694,6 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                     context={previewContext}
                     username={effectiveUsername}
                     profileFrameKey={previewFrameKey}
-                profileFrameKey={previewFrameKey}
-            profileFrameKey={previewFrameKey}
                   />
                 </div>
 
