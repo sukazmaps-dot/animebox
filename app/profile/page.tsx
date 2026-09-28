@@ -373,7 +373,13 @@ export default function ProfilePage() {
                 />
               )}
               <img
-                src={bannerUrl}
+                src={
+                  premiumIdentityActive &&
+                  appearance.premiumStudio?.motionMode === 'off' &&
+                  mobileBannerUrl
+                    ? mobileBannerUrl
+                    : bannerUrl
+                }
                 alt="Баннер профиля"
                 className="profile-v2__banner-image"
                 style={premiumMediaStyle(appearance.bannerTransform) as CSSProperties}
@@ -398,6 +404,7 @@ export default function ProfilePage() {
             mediaTransform={appearance.avatarTransform}
             profileFrameKey={profileFrameKey}
             premiumFrameMotion={premiumActive && appearance.premiumStudio?.motionMode !== 'off'}
+            preferStatic={premiumIdentityActive && appearance.premiumStudio?.motionMode === 'off'}
           />
 
           <div className="profile-v2__identity-main">
