@@ -337,6 +337,129 @@ export async function getUnlockedLevelFramesForUser(
   return unlockedLevelFrames(level);
 }
 
+export async function getSelectedProfileFrames(
+  userIds: readonly string[],
+): Promise<Map<string, ProfileFrameKey>> {
+  const ids = [...new Set(userIds.filter(Boolean))];
+  const result = new Map<string, ProfileFrameKey>();
+  if (!ids.length) return result;
+
+  const admin = createSupabaseAdmin();
+  const now = new Date().toISOString();
+
+  const [preferencesResult, unlocksResult, progressionResult] = await Promise.all([
+    admin
+      .from('profile_cosmetic_preferences')
+      .select('user_id,active_frame_key,season_frame_key')
+      .in('user_id', ids),
+    admin
+      .from('profile_cosmetic_unlocks')
+      .select('user_id,cosmetic_key,expires_at')
+      .in('user_id', ids)
+      .in('cosmetic_key', [...SEASON_FRAME_KEYS])
+      .gt('expires_at', now),
+    admin
+      .from('user_progression')
+      .select('user_id,total_xp')
+      .in('user_id', ids),
+  ]);
+
+  if (preferencesResult.error && !schemaMissing(preferencesResult.error.message)) {
+    console.warn('[Profile frames] batch preferences lookup failed:', preferencesResult.error);
+  }
+  if (unlocksResult.error && !schemaMissing(unlocksResult.error.message)) {
+    console.warn('[Profile frames] batch unlock lookup failed:', unlocksResult.error);
+  }
+  if (progressionResult.error) {
+    console.warn('[Profile frames] batch progression lookup failed:', progressionResult.error);
+  }
+
+  const activeLeagueByUser = new Map<string, ActiveSeasonFrameUnlock[]>();
+  if (!unlocksResult.error) {
+    for (const row of unlocksResult.data ?? []) {
+      if (
+        !isSeasonFrameKey(row.cosmetic_key) ||
+        typeof row.expires_at !== 'string'
+      ) {
+        continue;
+      }
+
+      const userId = String(row.user_id);
+      const list = activeLeagueByUser.get(userId) ?? [];
+      list.push({
+        key: row.cosmetic_key,
+        expiresAt: row.expires_at,
+      });
+      activeLeagueByUser.set(userId, list);
+    }
+  }
+
+  const levelFramesByUser = new Map<string, Set<LevelFrameKey>>();
+  if (!progressionResult.error) {
+    for (const row of progressionResult.data ?? []) {
+      const userId = String(row.user_id);
+      const level = progressionFromXp(Number(row.total_xp ?? 0)).level;
+      levelFramesByUser.set(
+        userId,
+        new Set(unlockedLevelFrames(level)),
+      );
+    }
+  }
+
+  const preferenceByUser = new Map(
+    (preferencesResult.error ? [] : preferencesResult.data ?? []).map((row) => [
+      String(row.user_id),
+      row,
+    ] as const),
+  );
+
+  for (const id of ids) {
+    const activeLeague = activeLeagueByUser.get(id) ?? [];
+    const unlockedLevel = levelFramesByUser.get(id) ?? new Set<LevelFrameKey>();
+    const preference = preferenceByUser.get(id);
+
+    if (preference) {
+      const activeKey = isProfileFrameKey(preference.active_frame_key)
+        ? preference.active_frame_key
+        : null;
+
+      if (
+        activeKey &&
+        (
+          (isSeasonFrameKey(activeKey) &&
+            activeLeague.some((item) => item.key === activeKey)) ||
+          (isLevelFrameKey(activeKey) && unlockedLevel.has(activeKey))
+        )
+      ) {
+        result.set(id, activeKey);
+        continue;
+      }
+
+      const legacySeason = isSeasonFrameKey(preference.season_frame_key)
+        ? preference.season_frame_key
+        : null;
+
+      if (
+        legacySeason &&
+        activeLeague.some((item) => item.key === legacySeason)
+      ) {
+        result.set(id, legacySeason);
+      }
+
+      continue;
+    }
+
+    // Preserve the legacy automatic League-frame fallback without mutating
+    // preferences from a read-heavy comment endpoint.
+    const fallback = highestPriorityFrame(activeLeague);
+    if (fallback) {
+      result.set(id, fallback);
+    }
+  }
+
+  return result;
+}
+
 export async function getSelectedProfileFrame(
   userId: string,
 ): Promise<ProfileFrameKey | null> {
