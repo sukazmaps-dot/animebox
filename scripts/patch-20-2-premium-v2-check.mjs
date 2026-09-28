@@ -173,4 +173,17 @@ mustInclude(productAnalyticsServer, 'loadPremiumSurfaceRows', 'Premium adoption 
 const productAnalyticsDashboard = read('components/admin/ProductAnalyticsDashboard.tsx');
 mustInclude(productAnalyticsDashboard, 'PREMIUM 2.0 · FEATURE ADOPTION', 'Premium adoption admin surface');
 
+const avatarWithFrame = read('components/profile/UserAvatarWithFrame.tsx');
+mustInclude(avatarWithFrame, 'h-[108px] w-[108px]', 'mobile framed avatar canvas');
+mustInclude(avatarWithFrame, 'sm:h-[152px] sm:w-[152px]', 'desktop framed avatar canvas');
+
+const directProfileCss = read('components/profile/ProfileDirectEditSurface.module.css');
+mustInclude(directProfileCss, 'grid-template-columns: 152px minmax(0, 1fr)', 'desktop editor avatar column');
+mustInclude(directProfileCss, 'width: 152px', 'desktop editor avatar size');
+mustInclude(directProfileCss, 'grid-template-columns: 104px minmax(0, 1fr)', 'mobile editor avatar column');
+
+const globalsCss = read('app/globals.css');
+mustInclude(globalsCss, '.profile-v2__avatar-wrap,\n.profile-avatar-editor__button', 'legacy avatar selector comma fix');
+mustInclude(globalsCss, 'margin-top: -76px', 'desktop profile avatar overlap');
+
 console.log('Patch 20.2 Premium 2.0 contract checks passed.');
