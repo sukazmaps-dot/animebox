@@ -127,6 +127,8 @@ export default function UserAvatarWithFrame({
     <div
       className={`profile-v2__avatar-wrap relative isolate h-[108px] w-[108px] shrink-0 overflow-visible sm:h-[152px] sm:w-[152px] ${className}`.trim()}
       data-avatar-frame={visuals.dataFrameKey}
+      data-identity-frame={visuals.identityFrameKind ?? 'none'}
+      data-profile-frame={visuals.profileFrameKey ?? 'none'}
     >
       <div
         className="absolute z-10 overflow-hidden rounded-full ring-4 ring-[#091221] transition-[inset] duration-200"
@@ -154,7 +156,13 @@ export default function UserAvatarWithFrame({
           src={visuals.identityFrameSrc}
           alt=""
           aria-hidden="true"
-          className="user-avatar-frame__overlay pointer-events-none absolute inset-0 z-20 block h-full w-full max-w-none select-none object-contain"
+          className="user-avatar-frame__overlay pointer-events-none absolute left-1/2 top-1/2 z-20 block h-full w-full max-w-none select-none object-contain"
+          style={{
+            transform:
+              `translate(-50%, calc(-50% + ${visuals.identityFrameTranslateY}%)) ` +
+              `scale(${visuals.identityFrameScale})`,
+            transformOrigin: '50% 50%',
+          }}
           draggable={false}
         />
       )}
