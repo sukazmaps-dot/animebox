@@ -121,6 +121,7 @@ export default function SmartRecommendationCard({
     exposureCount30d,
     sessionIntentScore,
     sessionIntentConfidence,
+    completionScore,
   } = recommendation;
   const title = getAnimeTitle(anime);
   const rootRef = useRef<HTMLElement | null>(null);
@@ -160,6 +161,7 @@ export default function SmartRecommendationCard({
     exposureCount30d,
     sessionIntentScore,
     sessionIntentConfidence,
+    completionScore,
   };
 
   useEffect(() => {
