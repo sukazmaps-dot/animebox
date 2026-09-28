@@ -614,7 +614,30 @@ Implemented:
 - runtime regression matrix.
 
 ### Phase D — Taste Graph 7
-Status: **next**
+Status: **implemented / under CI**
+
+Implemented:
+- Taste Graph cache/version bump to `taste-v7`;
+- persistent catalog recommendation metadata: studios, format, release year;
+- one-time `recommendation_metadata_version` enrichment marker;
+- legacy catalog rows lazily enrich on the next normal `ensureAnime()` refresh;
+- no mass provider backfill and no recommendation-time N+1 provider requests;
+- long-term positive/negative studio vectors;
+- long-term positive/negative format vectors;
+- long-term positive/negative era/decade vectors;
+- finished-vs-ongoing preference;
+- metadata coverage counters so missing provider metadata is distinguishable from preference;
+- studio / format / era / finished affinities in the client ranker;
+- bounded negative metadata affinity;
+- evidence-based studio / format / era recommendation reasons;
+- Taste Graph 7 runtime regression matrix added to `patch22:check`.
+
+Notes:
+- existing catalog rows start at metadata version 0 and are enriched lazily;
+- legitimate empty studio metadata is not refreshed forever because the version
+  marker records that enrichment was attempted;
+- Taste Graph construction reads metadata in the existing batched
+  `anime_catalog` query only.
 
 ### Phase E — Franchise Intelligence
 Status: **planned**
