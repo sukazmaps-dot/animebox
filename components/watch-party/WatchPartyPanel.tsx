@@ -2967,7 +2967,11 @@ export default function WatchPartyPanel({
       window.removeEventListener('offline', onOffline);
       window.removeEventListener('online', onOnline);
     };
-  }, [destroyTransport]);
+  }, [
+    destroyTransport,
+    requestAuthoritativeSync,
+    sendHostSync,
+  ]);
 
   useEffect(() => {
     const resumeAfterBackground = () => {
