@@ -3,9 +3,11 @@
 import ProfilePreview from '@/components/profile/ProfilePreview';
 import PlaceholderIcon from '@/components/ui/PlaceholderIcon';
 import UserIdentity from '@/components/identity/UserIdentity';
+import { CommentAvatarFrameShell } from '@/components/identity/CommentAvatarFrame';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
 import { premiumMediaStyle, type PremiumMediaTransform } from '@/lib/premium-studio';
+import type { ProfileFrameKey } from '@/lib/profile-frames';
 import { PROFILE_APPEARANCE_CHANGED_EVENT } from '@/lib/profile-live-sync';
 import { useAuthState } from '@/components/AuthStateProvider';
 
@@ -37,6 +39,7 @@ type CommentItem = {
     sponsor: SponsorStatus | null;
     premium: boolean;
     role: PublicIdentityRole;
+    profileFrameKey: ProfileFrameKey | null;
   } | null;
 };
 
@@ -108,19 +111,21 @@ function CommentNode({
             username={username}
             className="episode-comment__profile-link"
           >
-            <span className="episode-comment__avatar-shell">
-              <img
-                src={avatar}
-                alt=""
-                width={36}
-                height={36}
-                loading="lazy"
-                decoding="async"
-                fetchPriority="low"
-                className="episode-comment__avatar"
-                style={premiumMediaStyle(comment.author?.avatarTransform)}
-              />
-            </span>
+            <CommentAvatarFrameShell frameKey={comment.author?.profileFrameKey}>
+              <span className="episode-comment__avatar-shell">
+                <img
+                  src={avatar}
+                  alt=""
+                  width={36}
+                  height={36}
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                  className="episode-comment__avatar"
+                  style={premiumMediaStyle(comment.author?.avatarTransform)}
+                />
+              </span>
+            </CommentAvatarFrameShell>
 
             <div className="episode-comment__author">
               <span className="animebox-comment-author-line">
@@ -148,19 +153,21 @@ function CommentNode({
           </ProfilePreview>
         ) : (
           <>
-            <span className="episode-comment__avatar-shell">
-              <img
-                src={avatar}
-                alt=""
-                width={36}
-                height={36}
-                loading="lazy"
-                decoding="async"
-                fetchPriority="low"
-                className="episode-comment__avatar"
-                style={premiumMediaStyle(comment.author?.avatarTransform)}
-              />
-            </span>
+            <CommentAvatarFrameShell frameKey={comment.author?.profileFrameKey}>
+              <span className="episode-comment__avatar-shell">
+                <img
+                  src={avatar}
+                  alt=""
+                  width={36}
+                  height={36}
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                  className="episode-comment__avatar"
+                  style={premiumMediaStyle(comment.author?.avatarTransform)}
+                />
+              </span>
+            </CommentAvatarFrameShell>
 
             <div className="episode-comment__author">
               <span className="animebox-comment-author-line">
