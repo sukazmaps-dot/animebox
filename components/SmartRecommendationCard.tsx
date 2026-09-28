@@ -111,7 +111,15 @@ export default function SmartRecommendationCard({
   source?: string;
   onHidden: (animeId: number) => void;
 }) {
-  const { anime, reason, reasons, matchScore } = recommendation;
+  const {
+    anime,
+    reason,
+    reasons,
+    matchScore,
+    fatigueScore,
+    exposureCount7d,
+    exposureCount30d,
+  } = recommendation;
   const title = getAnimeTitle(anime);
   const rootRef = useRef<HTMLElement | null>(null);
   const [runtimeIdentity] = useState<RecommendationCardRuntimeIdentity>(
@@ -145,6 +153,9 @@ export default function SmartRecommendationCard({
     recommendationSessionId,
     matchScore: matchScore ?? undefined,
     reason,
+    fatigueScore,
+    exposureCount7d,
+    exposureCount30d,
   };
 
   useEffect(() => {
