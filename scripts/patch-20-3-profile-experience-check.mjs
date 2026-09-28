@@ -28,6 +28,15 @@ mustInclude(previewCss, 'flex-basis: 132px', 'framed mini-profile canvas');
 mustInclude(previewCss, "avatarShellSeason[data-milestone-frame='true']", 'milestone frame geometry');
 mustInclude(previewCss, 'flex-basis: 118px', 'mobile framed mini-profile canvas');
 mustInclude(previewCss, "html[data-animebox-theme='light'] .card", 'mini-profile light theme');
+
+const frameOverlayCss = read('components/profile/ProfileFrameOverlay.module.css');
+mustInclude(frameOverlayCss, 'width: 88px !important', 'desktop milestone avatar parity');
+mustInclude(frameOverlayCss, 'width: 80px !important', 'mobile milestone avatar parity');
+mustInclude(frameOverlayCss, 'inset: -22px !important', 'desktop milestone frame overflow');
+mustInclude(frameOverlayCss, 'inset: -19px !important', 'mobile milestone frame overflow');
+mustNotInclude(frameOverlayCss, 'width: 64px !important', 'legacy desktop milestone shrink');
+mustNotInclude(frameOverlayCss, 'width: 62px !important', 'legacy mobile milestone shrink');
+
 mustInclude(previewCss, ".card[data-layout='cinema']", 'mini-profile cinema layout parity');
 mustInclude(previewCss, ".card[data-layout='collector']", 'mini-profile collector layout parity');
 mustInclude(previewCss, ".card[data-layout='minimal']", 'mini-profile minimal layout parity');
