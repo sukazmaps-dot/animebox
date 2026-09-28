@@ -312,17 +312,24 @@ export default function PremiumClient() {
 
           <div className="premium-hero__actions">
             {user && data?.premium ? (
-              <Link className="premium-cta premium-cta--primary" href="/profile/edit?tab=premium">
-                Открыть Premium Studio
-              </Link>
+              <>
+                <Link className="premium-cta premium-cta--primary" href="/profile/edit?tab=premium">
+                  Открыть Premium Studio
+                </Link>
+                <Link className="premium-cta premium-cta--secondary h-11" href="/premium/stats">
+                  Моя статистика
+                </Link>
+              </>
             ) : (
-              <a className="premium-cta premium-cta--primary h-11" href="#premium-plans">
-                Выбрать Premium
-              </a>
+              <>
+                <a className="premium-cta premium-cta--primary h-11" href="#premium-plans">
+                  Выбрать Premium
+                </a>
+                <a className="premium-cta premium-cta--secondary h-11" href="#premium-benefits">
+                  Смотреть возможности
+                </a>
+              </>
             )}
-            <a className="premium-cta premium-cta--secondary h-11" href="#premium-benefits">
-              Смотреть возможности
-            </a>
           </div>
 
           {user && loading && <div className="premium-status premium-status--loading" role="status"><span className="animebox-loader" aria-hidden="true" />Проверяем Premium…</div>}
