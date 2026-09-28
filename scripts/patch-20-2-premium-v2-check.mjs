@@ -68,5 +68,26 @@ mustInclude(migration, 'profile_layout', 'Premium Scene schema');
 mustInclude(migration, 'premium_cosmetics', 'cosmetic catalog schema');
 mustInclude(migration, 'premium_profile_showcase_slots', 'showcase schema');
 mustInclude(migration, 'enable row level security', 'Premium 2.0 RLS');
+mustInclude(migration, 'advancedStats', 'existing Premium capability backfill');
+
+const previewServer = read('lib/profile-preview-server.ts');
+mustInclude(previewServer, "premiumSceneContextSettings(appearance.premiumStudio, 'mini')", 'mini-profile Scene scaling');
+mustInclude(previewServer, 'profileLayout', 'mini-profile Scene layout');
+
+const publicAvatar = read('lib/public-avatar-server.ts');
+mustInclude(publicAvatar, 'profileScene', 'public Scene entitlement');
+mustInclude(publicAvatar, 'animatedBanner', 'animated banner entitlement');
+mustInclude(publicAvatar, 'profile_layout', 'public Scene layout projection');
+
+const publicProfile = read('app/profile/[id]/page.tsx');
+mustInclude(publicProfile, 'data-premium-layout', 'public Premium layout rendering');
+
+const statsApi = read('app/api/premium/stats/route.ts');
+mustInclude(statsApi, 'entitlements.advancedStats', 'server-side Advanced Stats entitlement');
+mustInclude(statsApi, "getTrustedProgressionMetrics(user.id)", 'trusted Premium statistics');
+
+const statsClient = read('components/premium/PremiumStatsClient.tsx');
+mustInclude(statsClient, 'ADVANCED STATS', 'Advanced Stats product surface');
+mustInclude(statsClient, 'ИСТОРИЯ+', 'Premium History+ surface');
 
 console.log('Patch 20.2 Premium 2.0 contract checks passed.');
