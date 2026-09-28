@@ -29,9 +29,13 @@ import {
   PREMIUM_MOTION_MODES,
   PREMIUM_PARTICLE_EFFECTS,
   PREMIUM_NICKNAME_EFFECTS,
+  PREMIUM_PROFILE_LAYOUTS,
   PREMIUM_PROFILE_THEMES,
+  PREMIUM_SCENE_PRESETS,
+  PREMIUM_SCENE_PRESET_META,
   PREMIUM_SURFACE_STYLES,
   PREMIUM_PROFILE_THEME_META,
+  applyPremiumScenePreset,
   contrastRatio,
   isHexColor,
   resolveReadableTextColor,
@@ -43,7 +47,9 @@ import {
   type PremiumMediaTransform,
   type PremiumMotionMode,
   type PremiumNicknameEffect,
+  type PremiumProfileLayout,
   type PremiumProfileTheme,
+  type PremiumScenePreset,
   type PremiumStudioSettings,
   type PremiumSurfaceStyle,
 } from '@/lib/premium-studio';
@@ -109,6 +115,15 @@ const SURFACE_META: Record<PremiumSurfaceStyle, string> = {
   deep: 'Deep',
   ink: 'Ink',
 };
+
+const PROFILE_LAYOUT_META: Record<PremiumProfileLayout, { label: string; hint: string }> = {
+  classic: { label: 'Classic', hint: 'Знакомая композиция AnimeBox.' },
+  cinema: { label: 'Cinema', hint: 'Больше внимания баннеру и hero.' },
+  collector: { label: 'Collector', hint: 'Плотнее витрина и коллекционные блоки.' },
+  minimal: { label: 'Minimal', hint: 'Чистая сцена без визуального шума.' },
+};
+
+type PremiumPreviewContext = 'profile' | 'mini' | 'comment' | 'watch-party';
 
 const MOTION_META: Record<PremiumMotionMode, string> = {
   off: 'Off',
@@ -400,6 +415,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   const [mediaWarning, setMediaWarning] = useState('');
   const [paletteLoading, setPaletteLoading] = useState<'avatar' | 'banner' | ''>('');
   const [previewEpoch, setPreviewEpoch] = useState(0);
+  const [previewContext, setPreviewContext] = useState<PremiumPreviewContext>('profile');
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [studioSection, setStudioSection] = useState<'appearance' | 'atmosphere' | 'effects' | 'media'>('appearance');
   const [mediaEditor, setMediaEditor] = useState<MediaEditorState | null>(null);
@@ -604,6 +620,12 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       particleEffect: preset.particleEffect,
     }));
     setSaved('');
+  }
+
+  function applyScenePreset(scene: PremiumScenePreset) {
+    setSettings((current) => applyPremiumScenePreset(scene, current));
+    setSaved('');
+    setPreviewEpoch((value) => value + 1);
   }
 
   async function applyAdaptivePalette(source: 'avatar' | 'banner') {
@@ -1059,18 +1081,40 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
 
           <aside className="premium-studio-v12__preview-wrap premium-studio-v15__preview-wrap">
             <div className="premium-studio-v12__sticky premium-studio-v15__sticky">
-              <div className="premium-studio-v12__preview-label premium-studio-v15__preview-label">
-                <span>ПРЕДПРОСМОТР</span>
-                <small>Так будет выглядеть твоя Premium-тема</small>
+              <div className="premium-studio-v12__preview-label premium-studio-v15__preview-label premium-studio-v23__preview-head">
+                <div>
+                  <span>LIVE PREVIEW</span>
+                  <small>Одна Scene — разная интенсивность в разных местах AnimeBox</small>
+                </div>
+                <div className="premium-studio-v23__preview-tabs" role="tablist" aria-label="Контекст предпросмотра">
+                  {([
+                    ['profile', 'Профиль'],
+                    ['mini', 'Мини'],
+                    ['comment', 'Комментарий'],
+                    ['watch-party', 'Комната'],
+                  ] as const).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="tab"
+                      aria-selected={previewContext === id}
+                      className={previewContext === id ? 'is-active' : ''}
+                      onClick={() => setPreviewContext(id)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <PremiumStudioLivePreview
-                key={previewEpoch}
+                key={`${previewEpoch}:${previewContext}`}
                 settings={settings}
                 avatarUrl={avatarUrl}
                 bannerUrl={bannerUrl}
                 avatarTransform={avatarTransform}
                 bannerTransform={bannerTransform}
+                context={previewContext}
               />
             </div>
           </aside>
@@ -1088,26 +1132,75 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
             <section className="premium-studio-v12__panel premium-studio-v15__panel premium-studio-v15__panel-wide">
               <div className="premium-studio-v12__section-head premium-studio-v15__section-head">
                 <div>
-                  <h2>Готовые пресеты</h2>
-                  <p>Быстрый старт для стиля — потом цвета можно спокойно докрутить вручную.</p>
+                  <h2>Profile Scenes</h2>
+                  <p>Scene сразу собирает палитру, атмосферу, поверхности и движение. После выбора всё можно докрутить вручную.</p>
                 </div>
               </div>
 
-              <div className="premium-studio-v12__presets premium-studio-v15__presets premium-studio-v16__presets">
-                {PREMIUM_PROFILE_THEMES.map((id) => {
-                  const meta = PREMIUM_PROFILE_THEME_META[id];
+              <div className="premium-studio-v23__scene-grid">
+                {PREMIUM_SCENE_PRESETS.map((id) => {
+                  const meta = PREMIUM_SCENE_PRESET_META[id];
                   return (
-                    <button key={id} type="button" className={settings.theme === id ? 'is-active' : ''} onClick={() => applyPreset(id)}>
-                      <span className="premium-studio-v16__preset-preview" style={{ background: `linear-gradient(120deg, ${meta.primaryColor} 0 48%, ${meta.accentColor} 48% 78%, ${meta.textColor} 78%)` }} />
+                    <button
+                      key={id}
+                      type="button"
+                      data-scene={id}
+                      onClick={() => applyScenePreset(id)}
+                    >
+                      <span
+                        className="premium-studio-v23__scene-swatch"
+                        style={{ background: `linear-gradient(135deg, ${meta.primaryColor}, ${meta.accentColor})` }}
+                      />
                       <span>
                         <strong>{meta.label}</strong>
                         <small>{meta.description}</small>
                       </span>
-                      {settings.theme === id && <em>Активно</em>}
+                      <em>Scene</em>
                     </button>
                   );
                 })}
               </div>
+
+              <div className="premium-studio-v23__layout-block">
+                <div>
+                  <strong>Композиция профиля</strong>
+                  <small>Выбери структуру страницы без drag-and-drop и произвольного CSS.</small>
+                </div>
+                <div className="premium-studio-v23__layout-grid">
+                  {PREMIUM_PROFILE_LAYOUTS.map((layout) => {
+                    const meta = PROFILE_LAYOUT_META[layout];
+                    return (
+                      <button
+                        key={layout}
+                        type="button"
+                        className={settings.profileLayout === layout ? 'is-active' : ''}
+                        onClick={() => setSettings((current) => ({ ...current, profileLayout: layout }))}
+                      >
+                        <strong>{meta.label}</strong>
+                        <small>{meta.hint}</small>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <details className="premium-studio-v23__legacy-palettes">
+                <summary>Дополнительные палитры</summary>
+                <div className="premium-studio-v12__presets premium-studio-v15__presets premium-studio-v16__presets">
+                  {PREMIUM_PROFILE_THEMES.map((id) => {
+                    const meta = PREMIUM_PROFILE_THEME_META[id];
+                    return (
+                      <button key={id} type="button" className={settings.theme === id ? 'is-active' : ''} onClick={() => applyPreset(id)}>
+                        <span className="premium-studio-v16__preset-preview" style={{ background: `linear-gradient(120deg, ${meta.primaryColor} 0 48%, ${meta.accentColor} 48% 78%, ${meta.textColor} 78%)` }} />
+                        <span>
+                          <strong>{meta.label}</strong>
+                          <small>{meta.description}</small>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </details>
             </section>
           )}
 
@@ -1439,6 +1532,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                     bannerUrl={bannerUrl}
                     avatarTransform={avatarTransform}
                     bannerTransform={bannerTransform}
+                    context={previewContext}
                   />
                 </div>
 
