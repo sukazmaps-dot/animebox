@@ -1,7 +1,6 @@
 'use client';
 
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 import Icon from '@/components/Icon';
 import type { DataConnection, Peer as PeerInstance } from 'peerjs';
 import {
@@ -3570,20 +3569,19 @@ export default function WatchPartyPanel({
                   <span className={styles.avatar}>
                     {watchPartyInitials(displayName)}
                     {publicIdentity?.avatarUrl && (
-                      <Image
-                        className={styles.avatarImage}
-                        src={publicIdentity.avatarUrl}
-                        alt=""
-                        aria-hidden="true"
-                        fill
-                        unoptimized
-                        sizes="32px"
-                        draggable={false}
-                        style={premiumMediaStyle(publicIdentity.avatarTransform)}
-                        onError={(event) => {
-                          event.currentTarget.style.display = 'none';
-                        }}
-                      />
+                      <img
+                          className={styles.avatarImage}
+                          src={publicIdentity.avatarUrl}
+                          alt=""
+                          aria-hidden="true"
+                          draggable={false}
+                          loading="eager"
+                          decoding="async"
+                          style={premiumMediaStyle(publicIdentity.avatarTransform)}
+                          onError={(event) => {
+                            event.currentTarget.style.display = 'none';
+                          }}
+                        />
                     )}
                   </span>
                   <span className={styles.participantIdentity}>
@@ -3794,15 +3792,14 @@ export default function WatchPartyPanel({
                     >
                       {watchPartyInitials(displayName)}
                       {publicIdentity?.avatarUrl && (
-                        <Image
+                        <img
                           className={styles.avatarImage}
                           src={publicIdentity.avatarUrl}
                           alt=""
                           aria-hidden="true"
-                          fill
-                          unoptimized
-                          sizes="32px"
                           draggable={false}
+                          loading="eager"
+                          decoding="async"
                           style={premiumMediaStyle(publicIdentity.avatarTransform)}
                           onError={(event) => {
                             event.currentTarget.style.display = 'none';
