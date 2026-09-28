@@ -74,6 +74,7 @@ type PremiumStudioClientProps = {
   initialSettings?: PremiumStudioSettings | null;
   initialAllowed?: boolean | null;
   previewUsername?: string;
+  previewBio?: string;
   fallbackAvatarUrl?: string | null;
   fallbackBannerUrl?: string | null;
   onDirtyChange?: (dirty: boolean) => void;
@@ -389,6 +390,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   initialSettings = null,
   initialAllowed = null,
   previewUsername,
+  previewBio,
   fallbackAvatarUrl = null,
   fallbackBannerUrl = null,
   onDirtyChange,
@@ -1126,6 +1128,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
             bannerTransform={bannerTransform}
             context={previewContext}
             username={effectiveUsername}
+            bio={previewBio}
             profileFrameKey={previewFrameKey}
           />
         </div>
@@ -1273,6 +1276,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 bannerTransform={bannerTransform}
                 context={previewContext}
                 username={effectiveUsername}
+                bio={previewBio}
                 profileFrameKey={previewFrameKey}
               />
             </div>
@@ -1693,6 +1697,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                     bannerTransform={bannerTransform}
                     context={previewContext}
                     username={effectiveUsername}
+                    bio={previewBio}
                     profileFrameKey={previewFrameKey}
                   />
                 </div>
