@@ -18,6 +18,18 @@ comment on column public.premium_profile_settings.profile_layout is
 comment on column public.premium_profile_settings.scene_version is
   'Renderer contract version for backwards-compatible Premium Scene migrations.';
 
+
+alter table public.watch_party_rooms
+  add column if not exists room_theme text not null default 'default';
+
+alter table public.watch_party_rooms
+  drop constraint if exists watch_party_rooms_room_theme_check,
+  add constraint watch_party_rooms_room_theme_check
+    check (room_theme in ('default','midnight','aurora','sakura','embers','cinema'));
+
+comment on column public.watch_party_rooms.room_theme is
+  'AnimeBox Watch Together presentation theme. Non-default themes require watchPartyThemes entitlement at creation time.';
+
 create table if not exists public.premium_cosmetics (
   id uuid primary key default gen_random_uuid(),
   cosmetic_key text not null unique,
