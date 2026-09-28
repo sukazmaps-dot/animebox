@@ -59,6 +59,10 @@ mustInclude(premiumLayout, "import '../patch20-3-profile-experience.css';", 'Pre
 mustInclude(experienceCss, "html[data-animebox-theme='light'] .premium-stats-v2", 'Premium stats light theme');
 mustInclude(experienceCss, "html[data-animebox-theme='light'] .premium-year-v2", 'Year review light theme');
 
+const widgetEditor = read('components/profile/ProfileWidgetEditor.tsx');
+mustInclude(widgetEditor, "data-density={selected.length > 6 ? 'extended' : 'normal'}", '12-slot Showcase density switch');
+mustInclude(experienceCss, ".profile-widgets-editor__selected[data-density='extended']", '12-slot Showcase compact grid');
+
 const showcase = read('components/profile/ProfileWidgetsShowcase.tsx');
 mustInclude(showcase, 'АНИМЕ-ПРОФИЛЬ', 'localized showcase eyebrow');
 mustInclude(showcase, 'Профиль вкуса ещё формируется', 'humanized taste empty state');
