@@ -464,7 +464,7 @@ export default function ProfilePreview({
                         </span>
 
                         <div className={styles.identityCopy}>
-                          <span className={styles.kicker}>AnimeBox profile</span>
+                          <span className={styles.kicker}>Профиль AnimeBox</span>
                           <span className={styles.nameLine}>
                             <span
                               className={styles.nickname}
@@ -478,12 +478,9 @@ export default function ProfilePreview({
                                 compact
                               />
                             </span>
-                            {data.premium && (
-                              <span className={styles.premiumBadge}>Premium</span>
-                            )}
                           </span>
                           <span className={styles.levelRow}>
-                            <span className={styles.levelBadge}>LVL {data.progression.level}</span>
+                            <span className={styles.levelBadge}>{data.progression.level} уровень</span>
                             <span className={styles.rankLabel}>{data.progression.rank}</span>
                           </span>
                         </div>
