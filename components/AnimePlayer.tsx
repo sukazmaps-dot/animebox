@@ -914,6 +914,18 @@ export default function AnimePlayer({
       if (!smartSeekSupported || watchTogetherMode) return false;
 
       const fromSeconds = latestPlaybackPositionSecondsRef.current;
+      const pendingTarget = openingSkipTargetRef.current;
+
+      if (
+        pendingTarget != null &&
+        fromSeconds < Math.max(0, pendingTarget - 1.5)
+      ) {
+        // A previous OP seek is still waiting for provider acknowledgement.
+        // Re-clicks, stale time samples or an already armed auto-candidate
+        // must not enqueue another seek to the same boundary.
+        return true;
+      }
+
       const durationSeconds =
         observedDurationSeconds != null &&
         Number.isFinite(observedDurationSeconds) &&
@@ -984,6 +996,8 @@ export default function AnimePlayer({
         return false;
       }
 
+      openingAutoSkipAttemptedRef.current = true;
+      openingAutoSkipCandidateRef.current = null;
       openingSkipTargetRef.current = targetSeconds;
       setSkipOpeningVisible(false);
       clearOpeningSkipFallback();
