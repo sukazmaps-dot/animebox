@@ -688,6 +688,7 @@ export default function WatchPartyPanel({
     const packet: WatchPartyPacket = {
       type: 'PLAYER_SYNC',
       seq: hostSeqRef.current,
+      hostEpoch: hostEpochRef.current,
       episode: state.episode,
       position: state.position,
       playing: state.playing,
@@ -704,12 +705,15 @@ export default function WatchPartyPanel({
     applyLocally: boolean,
   ) => {
     if (roleRef.current !== 'host') return;
+    if (!allowSequencedPlayerAction(action, actor.userId)) return;
+
     const seq = hostSeqRef.current + 1;
     hostSeqRef.current = seq;
 
     const packet: WatchPartyPacket = {
       type: 'PLAYER_APPLY',
       seq,
+      hostEpoch: hostEpochRef.current,
       actionId: action.actionId,
       actorUserId: actor.userId,
       actorName: actor.displayName,
@@ -745,7 +749,7 @@ export default function WatchPartyPanel({
     }
 
     broadcast(packet);
-  }, [broadcast, dispatchPlayerCommand]);
+  }, [allowSequencedPlayerAction, broadcast, dispatchPlayerCommand]);
 
   const broadcastParticipants = useCallback(() => {
     const next = [...participantsRef.current.values()];
