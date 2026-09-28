@@ -24,6 +24,7 @@ import { deriveAdaptiveProfilePalette } from '@/lib/adaptive-profile-theme-clien
 import {
   DEFAULT_PREMIUM_STUDIO_SETTINGS,
   PREMIUM_ATMOSPHERE_EFFECTS,
+  PREMIUM_BANNER_HEIGHT_MODES,
   PREMIUM_BORDER_STYLES,
   PREMIUM_ENTRANCE_EFFECTS,
   PREMIUM_HERO_STYLES,
@@ -38,11 +39,13 @@ import {
   PREMIUM_PROFILE_THEME_META,
   applyPremiumScenePreset,
   contrastRatio,
+  premiumBannerStyle,
   isHexColor,
   resolveReadableTextColor,
   premiumMediaStyle,
   premiumThemePreset,
   type PremiumAtmosphereEffect,
+  type PremiumBannerHeightMode,
   type PremiumEntranceEffect,
   type PremiumHeroStyle,
   type PremiumMediaTransform,
@@ -134,6 +137,16 @@ const MOTION_META: Record<PremiumMotionMode, string> = {
   off: 'Выкл.',
   soft: 'Плавно',
   live: 'Активно',
+};
+
+const BANNER_HEIGHT_META: Record<
+  PremiumBannerHeightMode,
+  { label: string; hint: string }
+> = {
+  compact: { label: 'Компактный', hint: 'Меньше баннера, больше профиля.' },
+  standard: { label: 'Обычный', hint: 'Сбалансированный размер.' },
+  cinema: { label: 'Кино', hint: 'Больше пространства для арта.' },
+  immersive: { label: 'Максимальный', hint: 'Баннер становится главным hero-элементом.' },
 };
 
 type MediaEditorState = {
@@ -606,6 +619,40 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     y: settings.bannerPositionY,
     zoom: settings.bannerZoom,
   };
+
+  function applyBannerLook(preset: 'natural' | 'juicy' | 'cinema') {
+    setSettings((current) => {
+      if (preset === 'juicy') {
+        return {
+          ...current,
+          bannerSaturation: 124,
+          bannerContrast: 108,
+          bannerBrightness: 102,
+          bannerShade: 56,
+        };
+      }
+
+      if (preset === 'cinema') {
+        return {
+          ...current,
+          bannerSaturation: 110,
+          bannerContrast: 112,
+          bannerBrightness: 94,
+          bannerShade: 74,
+          bannerHeightMode: 'cinema',
+        };
+      }
+
+      return {
+        ...current,
+        bannerSaturation: 100,
+        bannerContrast: 100,
+        bannerBrightness: 100,
+        bannerShade: 62,
+      };
+    });
+    setSaved('');
+  }
 
   async function persistSettings(
     next: PremiumStudioSettings,
@@ -1571,7 +1618,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 </article>
 
                 <article className="premium-studio-v19__media-card">
-                  <div className="premium-studio-v12__media-preview is-banner">{bannerUrl ? <img src={bannerUrl} alt="Предпросмотр Premium-баннера" style={premiumMediaStyle(bannerTransform) as CSSProperties} /> : <span>Баннер Premium</span>}</div>
+                  <div className="premium-studio-v12__media-preview is-banner" data-banner-height={settings.bannerHeightMode}>{bannerUrl ? <img src={bannerUrl} alt="Предпросмотр Premium-баннера" style={premiumBannerStyle(settings, bannerTransform) as CSSProperties} /> : <span>Баннер Premium</span>}</div>
                   <div className="premium-studio-v16__media-copy"><strong>Баннер</strong><small>до 6 МБ · исходник до 2400×1200</small></div>
                   <p className="premium-studio-v19__media-hint">Для баннера не нужен «кроп» как у аватара: после загрузки ты подгоняешь изображение под реальную широкую рамку профиля.</p>
                   <div className="premium-studio-v19__media-actions">
