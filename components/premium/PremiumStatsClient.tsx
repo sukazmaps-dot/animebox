@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
 import type { PremiumStatsPayload } from '@/lib/premium-stats';
+import { trackProductClientEvent } from '@/lib/product-events-client';
 
 function formatWatchTime(minutes: number) {
   const safe = Math.max(0, Math.round(minutes));
@@ -65,7 +66,15 @@ export default function PremiumStatsClient() {
           throw new Error(payload.error || 'Не удалось загрузить статистику.');
         }
 
-        if (active) setData(payload as PremiumStatsPayload);
+        if (active) {
+          setData(payload as PremiumStatsPayload);
+          trackProductClientEvent('premium_stats_view', {
+            source: 'premium_stats',
+            path: '/premium/stats',
+            entityType: 'premium_feature',
+            entityId: 'advanced_stats',
+          });
+        }
       })
       .catch((requestError) => {
         if (!active || controller.signal.aborted) return;
