@@ -464,6 +464,19 @@ export default function ProfilePage() {
       />
       <CommunityProfile />
 
+      {premiumActive && (
+        <section className="profile-v2__bottom-card premium-profile-v23__stats-cta">
+          <div>
+            <span className="profile-v2__eyebrow">Premium · Advanced Stats</span>
+            <h2>Твой AnimeBox в цифрах</h2>
+            <p>
+              Ритм просмотра, любимые жанры, активные дни и история завершённых серий.
+            </p>
+          </div>
+          <Link href="/premium/stats">Открыть статистику →</Link>
+        </section>
+      )}
+
       {/* FAVORITES */}
 
       <section className="profile-v2__bottom-card">
