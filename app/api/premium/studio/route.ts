@@ -40,6 +40,7 @@ const STUDIO_COLUMNS = [
   'nickname_effect',
   'hero_style',
   'surface_style',
+  'profile_layout',
 ].join(',');
 
 export async function GET() {
