@@ -310,10 +310,14 @@ function PlayerDropdown({
           setOpen(false);
         }}
         onFocus={() => setOpen(false)}
-        className="absolute inset-0 z-[60] h-11 w-full cursor-pointer opacity-0 sm:hidden"
+        className="absolute inset-0 z-[60] h-11 w-full cursor-pointer bg-[#090d19] text-white opacity-0 [color-scheme:dark] sm:hidden"
       >
         {options.map((option) => (
-          <option key={option.id} value={option.id}>
+          <option
+            key={option.id}
+            value={option.id}
+            className="bg-[#090d19] text-white"
+          >
             {option.label}
           </option>
         ))}
