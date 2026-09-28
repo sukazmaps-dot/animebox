@@ -46,6 +46,8 @@ export type RecommendationEvent = {
   fatigueScore?: number;
   exposureCount7d?: number;
   exposureCount30d?: number;
+  sessionIntentScore?: number;
+  sessionIntentConfidence?: number;
   createdAt: number;
 };
 
@@ -377,6 +379,8 @@ export function trackRecommendationEvent(
         fatigue_score: event.fatigueScore ?? null,
         exposure_count_7d: event.exposureCount7d ?? null,
         exposure_count_30d: event.exposureCount30d ?? null,
+        session_intent_score: event.sessionIntentScore ?? null,
+        session_intent_confidence: event.sessionIntentConfidence ?? null,
         model_version: algorithmVersion,
         algorithm_version: algorithmVersion,
       },
