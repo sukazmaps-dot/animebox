@@ -6,7 +6,7 @@ import { buildStaticPageMetadata } from '@/lib/static-page-seo';
 export const metadata: Metadata = buildStaticPageMetadata({
   title: 'AnimeBox Premium',
   description:
-    'AnimeBox Premium — +20% XP, расширенная персонализация профиля, Premium Studio и дополнительные возможности.',
+    'AnimeBox Premium — Profile Scene, расширенная персонализация, статистика, Watch Together и ранний доступ к функциям AnimeBox.',
   path: '/premium',
 });
 
