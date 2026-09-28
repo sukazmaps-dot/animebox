@@ -8,7 +8,7 @@ export const metadata: Metadata = buildStaticPageMetadata({
   description:
     'Расширенная личная статистика просмотра AnimeBox Premium.',
   path: '/premium/stats',
-  noIndex: true,
+  index: false,
 });
 
 export default function PremiumStatsPage() {
