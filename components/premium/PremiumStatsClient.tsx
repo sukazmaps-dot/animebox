@@ -124,7 +124,7 @@ export default function PremiumStatsClient() {
     return (
       <main className="premium-stats-v2">
         <div className="premium-stats-v2__state">
-          <strong>{forbidden ? 'Advanced Stats — часть Premium' : 'Статистика временно недоступна'}</strong>
+          <strong>{forbidden ? 'Расширенная статистика — часть Premium' : 'Статистика временно недоступна'}</strong>
           <small>{error}</small>
           <Link href={forbidden ? '/premium' : '/profile'}>
             {forbidden ? 'Открыть Premium' : 'Вернуться в профиль'}
@@ -140,7 +140,7 @@ export default function PremiumStatsClient() {
     <main className="premium-stats-v2">
       <header className="premium-stats-v2__hero">
         <div>
-          <span>ANIMEBOX PREMIUM · ADVANCED STATS</span>
+          <span>ANIMEBOX PREMIUM · СТАТИСТИКА</span>
           <h1>Твой AnimeBox в цифрах.</h1>
           <p>
             Не рейтинг и не соревнование. Просто твоя история просмотра,
@@ -177,7 +177,7 @@ export default function PremiumStatsClient() {
           <small>серии в неделю</small>
         </article>
         <article>
-          <span>Longest streak</span>
+          <span>Лучшая серия дней</span>
           <strong>{data.overview.longestStreak}</strong>
           <small>дней</small>
         </article>
@@ -338,7 +338,7 @@ export default function PremiumStatsClient() {
           }).format(new Date(data.generatedAt))}
         </span>
         <span className="premium-stats-v2__footer-links">
-          <Link href="/premium/year">Year in Review →</Link>
+          <Link href="/premium/year">Итоги года →</Link>
           <Link href="/profile">Вернуться в профиль →</Link>
         </span>
       </footer>
