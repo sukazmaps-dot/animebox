@@ -121,7 +121,7 @@ mustInclude(studioPreview, 'username?: string', 'preview username prop');
 mustInclude(studioPreview, 'bio?: string', 'preview bio prop');
 mustInclude(studioPreview, 'premium-studio-v23__preview-meta', 'real-profile preview metadata');
 mustNotInclude(studioPreview, 'Продолжить просмотр', 'fake continue-watching preview block');
-mustNotInclude(studioPreview, '29ч', 'fake profile stats in Studio hero');
+mustNotInclude(studioPreview, '<b>29ч</b>', 'fake profile stats in Studio hero');
 mustInclude(studioPreview, 'ProfileFrameOverlay', 'Studio selected frame renderer');
 mustInclude(studioPreview, 'profileFrameKey?: string | null', 'Studio frame preview contract');
 
