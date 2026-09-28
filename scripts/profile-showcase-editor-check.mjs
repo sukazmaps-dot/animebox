@@ -34,7 +34,7 @@ for (const [label, source, needle] of [
   ['Profile Studio direct edit surface', editorShell, '<ProfileDirectEditSurface'],
   ['Profile Studio rewards tab', editorShell, "switchTab('rewards')"],
   ['legacy appearance URL alias remains supported', editPage, "params.tab === 'appearance' || params.tab === 'media'"],
-  ['direct edit frame inventory', directEditor, 'FRAME INVENTORY'],
+  ['direct edit frame inventory', directEditor, 'КОЛЛЕКЦИЯ РАМОК'],
   ['direct edit avatar control', directEditor, 'Изменить аватар'],
   ['direct edit banner control', directEditor, 'Изменить баннер'],
   ['single profile editor entry remains', profilePage, 'Редактировать профиль'],
