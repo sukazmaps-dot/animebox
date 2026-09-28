@@ -206,6 +206,9 @@ export default function ProfileDirectEditSurface({
 
   const activeFrameLabel = frameDisplayName(selectedFrame, leagueFrames);
   const selectedMilestoneScale = levelFrameAvatarScale(selectedFrame);
+  const editorMilestoneScale = selectedMilestoneScale
+    ? Math.min(0.72, selectedMilestoneScale + 0.14)
+    : null;
 
   function openMediaPicker(kind: 'avatar' | 'banner') {
     if (kind === 'avatar') {
@@ -297,10 +300,10 @@ export default function ProfileDirectEditSurface({
                   src={avatarUrl}
                   alt=""
                   style={
-                    selectedMilestoneScale
+                    editorMilestoneScale
                       ? {
-                          width: `${selectedMilestoneScale * 100}%`,
-                          height: `${selectedMilestoneScale * 100}%`,
+                          width: `${editorMilestoneScale * 100}%`,
+                          height: `${editorMilestoneScale * 100}%`,
                         }
                       : undefined
                   }
