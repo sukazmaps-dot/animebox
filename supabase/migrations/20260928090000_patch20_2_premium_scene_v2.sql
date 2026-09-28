@@ -196,3 +196,120 @@ do update set
   expires_at = excluded.expires_at,
   metadata = excluded.metadata,
   updated_at = excluded.updated_at;
+
+
+
+create or replace function public.save_my_profile_identity(
+  p_layout jsonb,
+  p_anime_ids bigint[]
+)
+returns void
+language plpgsql
+set search_path to ''
+as $function$
+declare
+  v_user_id uuid := auth.uid();
+  v_layout_count int;
+  v_layout_distinct int;
+  v_anime_count int;
+  v_anime_distinct int;
+  v_max_favorites int := 6;
+  v_extra_showcases boolean := false;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '42501';
+  end if;
+
+  select exists(
+    select 1
+    from public.user_entitlements e
+    where e.user_id = v_user_id
+      and e.entitlement = 'extraShowcases'
+      and e.active = true
+      and e.starts_at <= now()
+      and (e.expires_at is null or e.expires_at > now())
+  )
+  into v_extra_showcases;
+
+  if v_extra_showcases then
+    v_max_favorites := 12;
+  end if;
+
+  if p_layout is null
+     or jsonb_typeof(p_layout) <> 'array'
+     or jsonb_array_length(p_layout) <> 5 then
+    raise exception 'Invalid profile widget layout' using errcode = '22023';
+  end if;
+
+  select
+    count(*)::int,
+    count(distinct item.widget_key)::int
+  into v_layout_count, v_layout_distinct
+  from jsonb_to_recordset(p_layout)
+    as item(widget_key text, position int, visible boolean)
+  where item.widget_key in ('favorites', 'watching', 'ratings', 'genres', 'activity')
+    and item.position between 0 and 4;
+
+  if v_layout_count <> 5 or v_layout_distinct <> 5 then
+    raise exception 'Invalid profile widget layout' using errcode = '22023';
+  end if;
+
+  p_anime_ids := coalesce(p_anime_ids, array[]::bigint[]);
+  v_anime_count := cardinality(p_anime_ids);
+
+  if v_anime_count > v_max_favorites then
+    raise exception 'Too many favorite anime' using errcode = '22023';
+  end if;
+
+  select count(distinct anime_id)::int
+  into v_anime_distinct
+  from unnest(p_anime_ids) as anime_id
+  where anime_id is not null and anime_id > 0;
+
+  if v_anime_distinct <> v_anime_count then
+    raise exception 'Invalid favorite anime list' using errcode = '22023';
+  end if;
+
+  insert into public.profile_widgets (
+    user_id,
+    widget_key,
+    position,
+    visible,
+    updated_at
+  )
+  select
+    v_user_id,
+    item.widget_key,
+    item.position::smallint,
+    coalesce(item.visible, true),
+    now()
+  from jsonb_to_recordset(p_layout)
+    as item(widget_key text, position int, visible boolean)
+  on conflict (user_id, widget_key) do update
+  set
+    position = excluded.position,
+    visible = excluded.visible,
+    updated_at = excluded.updated_at;
+
+  delete from public.profile_favorite_anime
+  where user_id = v_user_id
+    and not (anime_id = any(p_anime_ids));
+
+  insert into public.profile_favorite_anime (
+    user_id,
+    anime_id,
+    position,
+    updated_at
+  )
+  select
+    v_user_id,
+    favorite.anime_id,
+    (favorite.ordinality - 1)::smallint,
+    now()
+  from unnest(p_anime_ids) with ordinality as favorite(anime_id, ordinality)
+  on conflict (user_id, anime_id) do update
+  set
+    position = excluded.position,
+    updated_at = excluded.updated_at;
+end;
+$function$;
