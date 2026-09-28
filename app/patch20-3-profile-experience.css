@@ -1,0 +1,279 @@
+/* =========================================================
+   AnimeBox Patch 20.3 — Profile Experience Final Pass
+   Geometry · Preview parity · Mini-profile · Light theme
+   ========================================================= */
+
+/* ---------- Profile identity geometry ---------- */
+
+.profile-v2 .profile-v2__title-row > div:first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.profile-v2 .profile-v2__name-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.profile-v2 .profile-v2__name-row h1 {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.05;
+}
+
+.profile-v2 .profile-v2__name-row h1 > span {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.profile-v2 .profile-v2__title-row {
+  min-width: 0;
+}
+
+.profile-v2 .profile-v2__identity-main {
+  min-width: 0;
+}
+
+.profile-v2 .profile-v2__edit {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* Keep the avatar visually important on large displays instead of letting the
+   banner become the only focal point. */
+@media (min-width: 1800px) {
+  .profile-v2 .profile-v2__avatar-wrap {
+    width: 168px !important;
+    height: 168px !important;
+    margin-top: -84px;
+  }
+
+  .profile-v2 .profile-v2__identity {
+    gap: 34px;
+  }
+
+  .profile-v2 .profile-v2__title-row h1 {
+    font-size: 32px;
+  }
+}
+
+@media (min-width: 2400px) {
+  .profile-v2 {
+    max-width: min(1680px, calc(100% - 120px));
+  }
+
+  .profile-v2 .profile-v2__avatar-wrap {
+    width: 176px !important;
+    height: 176px !important;
+    margin-top: -88px;
+  }
+
+  .profile-v2 .profile-v2__identity {
+    gap: 38px;
+    padding-inline: 38px;
+  }
+
+  .profile-v2 .profile-v2__title-row h1 {
+    font-size: 34px;
+  }
+}
+
+@media (max-width: 760px) {
+  .profile-v2 .profile-v2__name-row {
+    gap: 6px;
+  }
+
+  .profile-v2 .profile-v2__name-row h1 {
+    width: 100%;
+    font-size: clamp(24px, 8vw, 30px);
+  }
+
+  .profile-v2 .profile-v2__email,
+  .profile-v2 .profile-v2__bio {
+    overflow-wrap: anywhere;
+  }
+
+  .profile-v2 .profile-v2__meta {
+    flex-wrap: wrap;
+    row-gap: 7px;
+  }
+}
+
+/* ---------- Premium layout parity ---------- */
+
+.profile-v2[data-premium-layout='cinema'] .profile-v2__title-row,
+.profile-v2[data-premium-layout='collector'] .profile-v2__title-row,
+.profile-v2[data-premium-layout='minimal'] .profile-v2__title-row {
+  position: relative;
+  z-index: 2;
+}
+
+.profile-v2[data-premium-layout='cinema'] .profile-v2__identity-main {
+  padding-top: 24px;
+}
+
+.profile-v2[data-premium-layout='collector'] .profile-widgets-shell {
+  border-radius: 16px;
+}
+
+.profile-v2[data-premium-layout='collector'] .profile-widget {
+  min-height: 100%;
+}
+
+.profile-v2[data-premium-layout='minimal'] :where(
+  .profile-v2__stat,
+  .profile-v2__bottom-card,
+  .profile-widget
+) {
+  box-shadow: none !important;
+}
+
+.profile-v2[data-premium-layout='minimal'] .profile-v2__identity {
+  gap: 24px;
+}
+
+/* Studio preview must visibly respond to the same layout setting as the real
+   profile, not just expose the data attribute. */
+.premium-studio-v23__preview[data-premium-layout='cinema']
+  .premium-studio-v12__preview-banner {
+  min-height: 250px;
+}
+
+.premium-studio-v23__preview[data-premium-layout='cinema']
+  .premium-studio-v12__preview-body {
+  margin-top: -24px;
+}
+
+.premium-studio-v23__preview[data-premium-layout='collector']
+  .premium-studio-v16__preview-stats {
+  gap: 5px;
+}
+
+.premium-studio-v23__preview[data-premium-layout='collector']
+  .premium-studio-v16__preview-stats > span {
+  border-radius: 9px;
+}
+
+.premium-studio-v23__preview[data-premium-layout='minimal']
+  .premium-studio-v18__particle-layer {
+  display: none;
+}
+
+.premium-studio-v23__preview[data-premium-layout='minimal'] {
+  box-shadow: none !important;
+}
+
+.premium-studio-v23__preview[data-premium-layout='minimal']
+  .premium-studio-v12__preview-banner {
+  min-height: 180px;
+  max-height: 210px;
+}
+
+.premium-studio-v23__preview[data-premium-layout='minimal']
+  .premium-studio-v15__preview-chips {
+  opacity: .72;
+}
+
+/* ---------- Showcase polish ---------- */
+
+.profile-widgets-shell__head .profile-v2__eyebrow {
+  letter-spacing: .11em;
+}
+
+.profile-widget__empty {
+  min-height: 150px;
+}
+
+.profile-widget__empty strong {
+  max-width: 260px;
+}
+
+.profile-widget__empty p {
+  max-width: 330px;
+}
+
+.profile-widgets-editor__selected {
+  align-items: stretch;
+}
+
+.profile-widgets-editor__selected > button {
+  min-width: 0;
+}
+
+.profile-widgets-editor__selected strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Light theme ---------- */
+
+html[data-animebox-theme='light'] .profile-v2__hero {
+  border-color: rgba(74, 57, 96, .10);
+  background: #fff;
+  box-shadow: 0 22px 70px rgba(78, 61, 102, .08);
+}
+
+html[data-animebox-theme='light'] .profile-v2__banner-shade {
+  background:
+    linear-gradient(180deg, transparent 26%, rgba(244, 240, 249, .08) 55%, rgba(248, 246, 251, .96) 100%);
+}
+
+html[data-animebox-theme='light'] .profile-v2__title-row h1,
+html[data-animebox-theme='light'] .profile-v2__bio,
+html[data-animebox-theme='light'] .profile-v2__meta {
+  color: #3f3947;
+}
+
+html[data-animebox-theme='light'] .profile-v2__email {
+  color: #7c7285;
+}
+
+html[data-animebox-theme='light'] .profile-v2__edit {
+  border-color: rgba(105, 74, 169, .16);
+  background: rgba(113, 77, 190, .06);
+  color: #65449f;
+}
+
+html[data-animebox-theme='light'] .profile-widgets-shell,
+html[data-animebox-theme='light'] .profile-widget {
+  border-color: rgba(77, 60, 99, .09);
+  background: linear-gradient(155deg, #fff, #f8f5fb);
+  box-shadow: 0 18px 48px rgba(67, 51, 88, .06);
+}
+
+html[data-animebox-theme='light'] .profile-widgets-shell__head h2,
+html[data-animebox-theme='light'] .profile-widget__head > span {
+  color: #443d4c;
+}
+
+html[data-animebox-theme='light'] .profile-widgets-shell__head p,
+html[data-animebox-theme='light'] .profile-widget__head small,
+html[data-animebox-theme='light'] .profile-widget__empty p {
+  color: #817787;
+}
+
+html[data-animebox-theme='light'] .premium-studio-v23__preview {
+  border-color: rgba(91, 67, 127, .12);
+  box-shadow: 0 22px 60px rgba(66, 49, 89, .08);
+}
+
+/* ---------- Reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-v2[data-premium-motion] *,
+  .premium-studio-v23__preview *,
+  .profile-widget * {
+    scroll-behavior: auto !important;
+  }
+
+  .premium-studio-v23__preview .premium-studio-v18__particle-layer,
+  .profile-v2 .premium-particles-profile-hero {
+    animation: none !important;
+  }
+}
