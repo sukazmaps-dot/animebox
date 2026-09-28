@@ -218,8 +218,11 @@ export default function WatchTogetherHub() {
       };
     }
 
-    setPremiumStateLoading(true);
-    void getPremiumMe()
+    queueMicrotask(() => {
+      if (active) setPremiumStateLoading(true);
+    });
+
+    void getPremiumMe({ force: true })
       .then((premium) => {
         if (!active) return;
         const allowed = Boolean(
