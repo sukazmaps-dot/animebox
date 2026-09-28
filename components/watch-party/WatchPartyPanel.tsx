@@ -988,7 +988,7 @@ export default function WatchPartyPanel({
     setNetworkRoute('unknown');
     setSignalingMode('peerjs-cloud');
     setStatus('idle');
-  }, [destroyTransport, requestAuthoritativeSync, sendHostSync]);
+  }, [destroyTransport]);
 
   const tryClaimStaleHost = useCallback(async (invite: WatchPartyInvite) => {
     const identity = identityRef.current;
