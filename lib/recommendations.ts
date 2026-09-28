@@ -31,6 +31,7 @@ import {
   buildRecommendationSessionIntent,
   recommendationSessionIntentAffinity,
 } from '@/lib/recommendation-session-intent';
+import { scoreRecommendationCompletion } from '@/lib/recommendation-completion';
 
 export type RankedRecommendation = {
   anime: Anime;
@@ -43,6 +44,7 @@ export type RankedRecommendation = {
   exposureCount30d: number;
   sessionIntentScore: number;
   sessionIntentConfidence: number;
+  completionScore: number;
   source: 'watch_history' | 'taste_mood' | 'engagement' | 'taste_graph' | 'discovery';
   ranking: RecommendationScoreResult;
 };
@@ -442,6 +444,17 @@ export function getPersonalizedRecommendations(
         anime,
         sessionIntent,
       );
+      const completionScore = scoreRecommendationCompletion({
+        tastePositive: graphAffinity.positive,
+        tasteNegative: graphAffinity.negative,
+        completedAffinity: completedAffinity.positive,
+        episodeLengthAffinity: lengthAffinity,
+        communityQuality: ratingScore,
+        completionRate,
+        bingeScore,
+        finished: isFinished(anime),
+        episodeCount: anime.episodes ?? null,
+      }).score;
       const ongoingBonus = ['RELEASING', 'Онгоинг', 'ongoing'].includes(anime.status ?? '') ? 0.035 : 0;
       const discoveryBonus = index < 14 ? 0.04 : Math.max(0, 0.025 - index * 0.0005);
       const title = getAnimeTitle(anime);
@@ -456,6 +469,7 @@ export function getPersonalizedRecommendations(
           tasteGraphNegative: graphAffinity.negative,
           sessionNegativeAffinity,
           sessionIntent: sessionIntentScore,
+          completionLikelihood: completionScore,
           episodeLength: lengthAffinity,
           mood: moodScore,
           communityQuality: ratingScore,
@@ -565,6 +579,7 @@ export function getPersonalizedRecommendations(
         exposureCount30d: exposure.impressions30d,
         sessionIntentScore,
         sessionIntentConfidence: sessionIntent.confidence,
+        completionScore,
         source,
         ranking,
       } satisfies RankedRecommendation;
