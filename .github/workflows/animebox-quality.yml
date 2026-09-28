@@ -151,6 +151,9 @@ jobs:
           lib/profile-media-publish-server.ts
           app/api/profile/editor/route.ts
           components/profile/ProfileEditorClient.tsx
+          components/profile/ProfileDirectEditSurface.tsx
+          components/profile/UserAvatarWithFrame.tsx
+          components/profile/ProfileFrameOverlay.tsx
           lib/payments/entitlements.ts
           lib/premium-server.ts
           lib/premium-studio.ts
