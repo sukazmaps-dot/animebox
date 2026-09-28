@@ -431,7 +431,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     void fetch('/api/profile/editor', { cache: 'no-store' })
       .then(async (response) => {
         const payload = (await response.json()) as StudioResponse;
-        if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить Profile Studio');
+        if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить оформление Premium');
         if (!active) return;
 
         const next = payload.settings ?? DEFAULT_PREMIUM_STUDIO_SETTINGS;
@@ -445,7 +445,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
         setError(
           requestError instanceof Error
             ? requestError.message
-            : 'Не удалось загрузить Profile Studio',
+            : 'Не удалось загрузить оформление Premium',
         );
       });
 
@@ -566,7 +566,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       const payload = (await response.json()) as StudioResponse;
 
       if (!response.ok) {
-        throw new Error(payload.error || 'Не удалось сохранить Profile Studio');
+        throw new Error(payload.error || 'Не удалось сохранить оформление Premium');
       }
 
       const committed = payload.settings ?? next;
@@ -626,7 +626,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       setError(
         requestError instanceof Error
           ? requestError.message
-          : 'Не удалось сохранить Profile Studio',
+          : 'Не удалось сохранить оформление Premium',
       );
       throw requestError;
     } finally {
@@ -1128,13 +1128,13 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 <StudioColorField
                   label="Акцент"
                   value={settings.accentColor}
-                  hint="Кнопки, прогресс, активные элементы и glow"
+                  hint="Кнопки, прогресс, активные элементы и свечение"
                   onChange={(accentColor) => setSettings((current) => ({ ...current, accentColor }))}
                 />
                 <StudioColorField
                   label="Текст и иконки"
                   value={settings.textColor}
-                  hint="Текст и иконки поверх фона. Smart Contrast страхует читаемость."
+                  hint="Текст и иконки поверх фона. AnimeBox автоматически сохранит читаемость."
                   onChange={(textColor) => setSettings((current) => ({ ...current, textColor }))}
                 />
               </div>
@@ -1165,7 +1165,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
 
               <div className={`premium-studio-v12__contrast premium-studio-v15__contrast ${contrastProtected ? 'is-warning is-protected' : 'is-good'}`}>
                 <div>
-                  <strong>{contrastProtected ? 'Smart Contrast включён' : `Контраст ${contrast.toFixed(1)}:1`}</strong>
+                  <strong>{contrastProtected ? 'Защита контраста включена' : `Контраст ${contrast.toFixed(1)}:1`}</strong>
                   <small>{contrastProtected ? 'AnimeBox защитил читаемость интерфейса.' : 'Текст хорошо читается на выбранном фоне.'}</small>
                 </div>
                 <span>
@@ -1416,7 +1416,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
               <div className="premium-studio-v12__section-head premium-studio-v15__section-head">
                 <div>
                   <h2>Эффекты и оболочка</h2>
-                  <p>Свечение, характер рамки и синхронизация темы с AnimeBox Player.</p>
+                  <p>Настрой свечение, рамку и оформление плеера AnimeBox.</p>
                 </div>
               </div>
 
