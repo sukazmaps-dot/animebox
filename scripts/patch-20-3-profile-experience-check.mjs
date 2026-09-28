@@ -66,7 +66,18 @@ mustInclude(directEditorCss, '@media (min-width: 1800px)', 'large-screen editor 
 mustInclude(directEditorCss, ":global(html[data-animebox-theme='light']) .profileCard", 'editor light theme');
 mustInclude(directEditorCss, '.nameButton:focus-visible', 'editor keyboard focus');
 
+const avatarWithFrame = read('components/profile/UserAvatarWithFrame.tsx');
+mustInclude(avatarWithFrame, 'preferStatic?: boolean', 'static avatar render contract');
+mustInclude(avatarWithFrame, 'const displayedSrc = preferStatic && mobileSrc ? mobileSrc : src;', 'static avatar selection');
+
 const ownProfile = read('app/profile/page.tsx');
 mustInclude(ownProfile, 'Premium · Расширенная статистика', 'localized Premium stats CTA');
+mustInclude(ownProfile, "preferStatic={premiumIdentityActive && appearance.premiumStudio?.motionMode === 'off'}", 'own profile motion-off avatar parity');
+
+const publicProfile = read('app/profile/[id]/page.tsx');
+mustInclude(publicProfile, "preferStatic={premiumIdentityActive && profile.premiumStudio?.motionMode === 'off'}", 'public profile motion-off avatar parity');
+
+const studioClient = read('components/premium/PremiumStudioClient.tsx');
+mustInclude(studioClient, "settings.motionMode === 'off'", 'Studio static media preview parity');
 
 console.log('Patch 20.3 Profile Experience checks passed.');
