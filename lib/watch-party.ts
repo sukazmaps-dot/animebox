@@ -30,7 +30,16 @@ export type WatchPartyParticipant = {
 };
 
 export type WatchPartyPlayerAction = 'play' | 'pause' | 'seek';
-export type WatchPartyReaction = 'love' | 'cry' | 'fire' | 'wow' | 'dead' | 'peak';
+export type WatchPartyReaction =
+  | 'love'
+  | 'cry'
+  | 'fire'
+  | 'wow'
+  | 'dead'
+  | 'peak'
+  | 'sparkle'
+  | 'clap'
+  | 'cinema';
 export type WatchPartyVote = 'next' | 'wait' | 'stop';
 
 export type WatchPartyReactionEvent = {
@@ -403,7 +412,10 @@ function parseReaction(value: unknown): WatchPartyReaction | null {
     value === 'fire' ||
     value === 'wow' ||
     value === 'dead' ||
-    value === 'peak'
+    value === 'peak' ||
+    value === 'sparkle' ||
+    value === 'clap' ||
+    value === 'cinema'
     ? value
     : null;
 }
