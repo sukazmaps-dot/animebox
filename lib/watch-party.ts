@@ -82,6 +82,7 @@ export type WatchPartyPlayerCommandDetail = {
   position: number;
   playing: boolean;
   seq: number;
+  commandKind?: 'action' | 'sync';
 };
 
 export type WatchPartyPlayerControlDetail = {
