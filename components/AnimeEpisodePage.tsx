@@ -249,12 +249,62 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
   useEffect(() => {
     if (!theaterMode) return;
 
-    document.documentElement.classList.add('animebox-watch-together-theater');
-    document.body.classList.add('animebox-watch-together-theater');
+    const root = document.documentElement;
+    const body = document.body;
+    let viewportFrame: number | null = null;
+
+    root.classList.add('animebox-watch-together-theater');
+    body.classList.add('animebox-watch-together-theater');
+
+    const syncVisualViewport = () => {
+      if (viewportFrame != null) {
+        window.cancelAnimationFrame(viewportFrame);
+      }
+
+      viewportFrame = window.requestAnimationFrame(() => {
+        viewportFrame = null;
+
+        const visualViewport = window.visualViewport;
+        const height =
+          visualViewport?.height && Number.isFinite(visualViewport.height)
+            ? visualViewport.height
+            : window.innerHeight;
+        const offsetTop =
+          visualViewport?.offsetTop && Number.isFinite(visualViewport.offsetTop)
+            ? visualViewport.offsetTop
+            : 0;
+
+        root.style.setProperty(
+          '--animebox-wt-viewport-height',
+          `${Math.max(1, Math.round(height))}px`,
+        );
+        root.style.setProperty(
+          '--animebox-wt-viewport-offset-top',
+          `${Math.max(0, Math.round(offsetTop))}px`,
+        );
+      });
+    };
+
+    syncVisualViewport();
+    window.visualViewport?.addEventListener('resize', syncVisualViewport);
+    window.visualViewport?.addEventListener('scroll', syncVisualViewport);
+    window.addEventListener('resize', syncVisualViewport);
+    window.addEventListener('orientationchange', syncVisualViewport);
 
     return () => {
-      document.documentElement.classList.remove('animebox-watch-together-theater');
-      document.body.classList.remove('animebox-watch-together-theater');
+      if (viewportFrame != null) {
+        window.cancelAnimationFrame(viewportFrame);
+      }
+
+      window.visualViewport?.removeEventListener('resize', syncVisualViewport);
+      window.visualViewport?.removeEventListener('scroll', syncVisualViewport);
+      window.removeEventListener('resize', syncVisualViewport);
+      window.removeEventListener('orientationchange', syncVisualViewport);
+
+      root.style.removeProperty('--animebox-wt-viewport-height');
+      root.style.removeProperty('--animebox-wt-viewport-offset-top');
+      root.classList.remove('animebox-watch-together-theater');
+      body.classList.remove('animebox-watch-together-theater');
     };
   }, [theaterMode]);
 
