@@ -32,32 +32,32 @@ function premiumSourceChip(source: PremiumMe['lifecycle']['sources'][number]) {
 const BENEFITS = [
   {
     icon: 'spark' as const,
-    title: 'Profile Scene',
+    title: 'Стиль профиля',
     description: 'Aurora, Sakura, Embers, Stardust и Midnight объединяют палитру, атмосферу, движение и стиль профиля.',
   },
   {
     icon: 'user' as const,
-    title: 'Premium Studio 2.0',
-    description: 'Настраивай Scene вживую и сразу проверяй профиль, mini-profile, комментарий и Watch Together.',
+    title: 'Оформление Premium',
+    description: 'Настраивай оформление и сразу проверяй, как оно выглядит в профиле, мини-профиле, комментариях и совместном просмотре.',
   },
   {
     icon: 'star' as const,
     title: 'Расширенная статистика',
-    description: 'Больше истории, личная аналитика просмотра и Year in Review без преимуществ в рейтингах и прогрессии.',
+    description: 'Больше истории, личная статистика просмотра и итоги года — без преимуществ в рейтингах и прогрессии.',
   },
   {
     icon: 'play' as const,
-    title: 'Watch Together Themes',
+    title: 'Темы совместного просмотра',
     description: 'Оформляй свою комнату и социальное присутствие, не вмешиваясь в сам видеоплеер.',
   },
   {
     icon: 'crown' as const,
-    title: 'Premium Identity',
+    title: 'Premium-оформление',
     description: 'Аккуратная Premium-метка, оформление ника и единая визуальная идентичность по всему AnimeBox.',
   },
   {
     icon: 'heart' as const,
-    title: 'AnimeBox Lab',
+    title: 'Лаборатория AnimeBox',
     description: 'Ранний доступ к экспериментальным функциям и новым вариантам персонализации.',
   },
 ] as const;
@@ -297,24 +297,24 @@ export default function PremiumClient() {
     <main className="premium-page">
       <section className="premium-hero">
         <div className="premium-hero__copy">
-          <span className="premium-eyebrow">ANIMEBOX PREMIUM · IDENTITY MODE</span>
+          <span className="premium-eyebrow">ANIMEBOX PREMIUM · ТВОЙ СТИЛЬ</span>
           <h1>Твой AnimeBox.<br />Твой стиль.</h1>
           <p className="premium-hero__lead">
-            Premium превращает аккаунт в личное пространство: Profile Scene,
-            расширенная Studio, больше статистики и своё присутствие в Watch Together.
+            Premium превращает аккаунт в личное пространство: своё оформление,
+            расширенная статистика и дополнительные возможности совместного просмотра.
           </p>
 
           <div className="premium-hero__chips" aria-label="Главные возможности Premium">
-            <span>Profile Scene</span>
-            <span>Advanced Stats</span>
-            <span>Watch Together Themes</span>
+            <span>Стиль профиля</span>
+            <span>Расширенная статистика</span>
+            <span>Темы комнат</span>
           </div>
 
           <div className="premium-hero__actions">
             {user && data?.premium ? (
               <>
                 <Link className="premium-cta premium-cta--primary" href="/profile/edit?tab=premium">
-                  Открыть Premium Studio
+                  Настроить Premium
                 </Link>
                 <Link className="premium-cta premium-cta--secondary h-11" href="/premium/stats">
                   Моя статистика
@@ -410,8 +410,8 @@ export default function PremiumClient() {
           {error && <p className="premium-error">{error}</p>}
         </div>
 
-        <div className="premium-v2__hero-scene" aria-label="Пример AnimeBox Premium Scene">
-          <span className="premium-v2__hero-scene-kicker">PROFILE SCENE · AURORA</span>
+        <div className="premium-v2__hero-scene" aria-label="Пример оформления AnimeBox Premium">
+          <span className="premium-v2__hero-scene-kicker">ГОТОВЫЙ СТИЛЬ · СЕВЕРНОЕ СИЯНИЕ</span>
           <div className="premium-v2__hero-scene-orbit" aria-hidden="true">
             <i />
             <i />
@@ -422,32 +422,32 @@ export default function PremiumClient() {
             <div>
               <small>ANIMEBOX PREMIUM</small>
               <strong>Твой профиль</strong>
-              <span>Identity · Status · Convenience</span>
+              <span>Оформление · Статус · Удобство</span>
             </div>
           </div>
           <div className="premium-v2__hero-scene-strip">
             <span>Aurora</span>
-            <span>Mini Profile</span>
-            <span>Room Theme</span>
+            <span>Мини-профиль</span>
+            <span>Тема комнаты</span>
           </div>
         </div>
       </section>
 
       <section className="premium-v2__pillars" aria-label="Основа AnimeBox Premium">
         <article className="premium-v2__pillar">
-          <span>01 · IDENTITY</span>
+          <span>01 · ОФОРМЛЕНИЕ</span>
           <h3>Сделай аккаунт своим</h3>
-          <p>Scene, палитра, layout, анимации, рамки и единый стиль во всех социальных поверхностях.</p>
+          <p>Цвета, анимации, рамки и единый стиль во всех разделах AnimeBox.</p>
         </article>
         <article className="premium-v2__pillar">
-          <span>02 · STATUS</span>
+          <span>02 · СТАТУС</span>
           <h3>Premium видно, но он не кричит</h3>
-          <p>Аккуратная метка, mini-profile и оформление в комментариях и комнатах без дешёвого VIP-эффекта.</p>
+          <p>Аккуратная метка, мини-профиль и оформление в комментариях и комнатах без дешёвого VIP-эффекта.</p>
         </article>
         <article className="premium-v2__pillar">
-          <span>03 · CONVENIENCE</span>
+          <span>03 · УДОБСТВО</span>
           <h3>Ценность не заканчивается на косметике</h3>
-          <p>Расширенная история, статистика, экспериментальные функции и дополнительные настройки Watch Together.</p>
+          <p>Расширенная история, статистика, экспериментальные функции и дополнительные настройки совместного просмотра.</p>
         </article>
       </section>
 
@@ -487,7 +487,7 @@ export default function PremiumClient() {
         <div className="premium-support-story__mark">
           <span>WITH LOVE · ANIMEBOX</span>
           <strong>Бесплатный AnimeBox остаётся полноценным.</strong>
-          <small>Просмотр, трекер и базовый Watch Together не становятся хуже. Premium усиливает твой аккаунт, а не ограничивает остальных.</small>
+          <small>Просмотр, трекер и базовый совместный просмотр остаются полноценными. Premium расширяет твой аккаунт, а не ограничивает остальных.</small>
           <div className="premium-v2__free-core">
             <span aria-hidden="true">✦</span>
             <div>
@@ -525,7 +525,7 @@ export default function PremiumClient() {
               key={plan.id}
               className={plan.active ? 'is-active' : 'is-disabled'}
             >
-              <span>{plan.id === 'monthly' ? 'MONTHLY' : 'YEARLY'}</span>
+              <span>{plan.id === 'monthly' ? 'МЕСЯЦ' : 'ГОД'}</span>
               <strong>{plan.label}</strong>
               <small className="premium-plan__billing">
                 {plan.billingMode === 'recurring'
@@ -618,7 +618,7 @@ export default function PremiumClient() {
 
       <section className="premium-final-cta">
         <div className="premium-final-cta__copy">
-          <span>IDENTITY MODE</span>
+          <span>ТВОЙ СТИЛЬ</span>
           <h2>{data?.premium ? 'Premium уже с тобой.' : 'Сделай AnimeBox ещё больше своим.'}</h2>
           <p>
             {data?.premium
