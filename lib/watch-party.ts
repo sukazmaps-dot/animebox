@@ -262,7 +262,7 @@ export function watchPartyReturnPath() {
 export function buildWatchPartyUrl(
   invite: WatchPartyInvite,
   targetPath?: string,
-  roomTheme: WatchPartyTheme = 'default',
+  roomTheme?: WatchPartyTheme,
 ) {
   const url = targetPath
     ? new URL(targetPath, window.location.origin)
@@ -271,7 +271,7 @@ export function buildWatchPartyUrl(
   url.searchParams.set('party', invite.roomId);
   if (roomTheme === 'default') {
     url.searchParams.delete('partyTheme');
-  } else {
+  } else if (roomTheme) {
     url.searchParams.set('partyTheme', roomTheme);
   }
 
