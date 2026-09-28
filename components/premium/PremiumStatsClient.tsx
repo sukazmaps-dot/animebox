@@ -328,7 +328,10 @@ export default function PremiumStatsClient() {
             minute: '2-digit',
           }).format(new Date(data.generatedAt))}
         </span>
-        <Link href="/profile">Вернуться в профиль →</Link>
+        <span className="premium-stats-v2__footer-links">
+          <Link href="/premium/year">Year in Review →</Link>
+          <Link href="/profile">Вернуться в профиль →</Link>
+        </span>
       </footer>
     </main>
   );
