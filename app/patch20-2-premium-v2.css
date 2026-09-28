@@ -1874,3 +1874,17 @@
     animation: none !important;
   }
 }
+
+
+.premium-stats-v2__footer-links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .premium-stats-v2__footer-links {
+    justify-content: flex-start;
+  }
+}
