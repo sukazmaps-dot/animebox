@@ -26,7 +26,7 @@ export default function PremiumYearReviewClient() {
 
         if (!response.ok) {
           throw Object.assign(
-            new Error(payload.error || 'Не удалось собрать Year in Review.'),
+            new Error(payload.error || 'Не удалось собрать итоги года.'),
             { premiumRequired: response.status === 403 },
           );
         }
@@ -92,10 +92,10 @@ export default function PremiumYearReviewClient() {
     return (
       <main className="premium-year-v2">
         <div className="premium-year-v2__state">
-          <span>YEAR IN REVIEW</span>
+          <span>ИТОГИ ГОДА</span>
           <strong>
             {state.premiumRequired
-              ? 'Year in Review — часть AnimeBox Premium'
+              ? 'Итоги года — часть AnimeBox Premium'
               : 'Не удалось собрать итог года'}
           </strong>
           <small>{state.message}</small>
@@ -207,7 +207,7 @@ export default function PremiumYearReviewClient() {
             <span>12 МЕСЯЦЕВ</span>
             <h2>Как менялся твой ритм</h2>
           </div>
-          <Link href="/premium/stats">Открыть Advanced Stats →</Link>
+          <Link href="/premium/stats">Открыть подробную статистику →</Link>
         </header>
 
         <div className="premium-year-v2__months">
