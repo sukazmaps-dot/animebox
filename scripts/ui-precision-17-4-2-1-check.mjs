@@ -67,7 +67,7 @@ if (
 if (
   !directEditor.includes('ПРОФИЛЬ') ||
   !directEditor.includes('КОЛЛЕКЦИЯ РАМОК') ||
-  !directEditor.includes('Один профиль — один редактор.')
+  !directEditor.includes('Всё для профиля — в одном месте.')
 ) {
   failures.push('direct-edit guidance or frame inventory disappeared');
 }
