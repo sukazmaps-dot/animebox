@@ -219,19 +219,14 @@ export default function WatchPartyPanel({
   const [creatingRoom, setCreatingRoom] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [roomVisibility, setRoomVisibility] = useState<'public' | 'unlisted' | 'private'>('unlisted');
-  const [roomTheme, setRoomTheme] = useState<WatchPartyTheme>('default');
+  const [roomTheme] = useState<WatchPartyTheme>(() =>
+    mode === 'theater' && typeof window !== 'undefined'
+      ? readWatchPartyThemeFromLocation()
+      : 'default',
+  );
 
   const theaterPath = watchPartyTheaterPath(animeSlug, episodeNumber);
   const episodePath = `/anime/${encodeURIComponent(animeSlug)}/episode/${episodeNumber}`;
-
-  useEffect(() => {
-    if (mode !== 'theater') {
-      setRoomTheme('default');
-      return;
-    }
-
-    setRoomTheme(readWatchPartyThemeFromLocation());
-  }, [mode]);
 
   const peerRef = useRef<PeerInstance | null>(null);
   const guestConnectionRef = useRef<DataConnection | null>(null);
