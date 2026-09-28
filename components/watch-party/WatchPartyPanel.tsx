@@ -1146,6 +1146,143 @@ export default function WatchPartyPanel({
     return connection?.open ? send(connection, packet) : false;
   }, [send]);
 
+  const requestAuthoritativeSync = useCallback(() => {
+    if (roleRef.current !== 'guest') return false;
+
+    return sendGuestPacket({
+      type: 'PLAYER_SYNC_REQUEST',
+      sentAt: Date.now(),
+      hostEpoch: hostEpochRef.current || undefined,
+    });
+  }, [sendGuestPacket]);
+
+  const handleGuestPlayerApply = useCallback((
+    packet: Extract<WatchPartyPacket, { type: 'PLAYER_APPLY' }>,
+  ) => {
+    if (!acceptPlaybackHostEpoch(packet.hostEpoch)) return;
+    if (packet.seq <= lastAppliedSeqRef.current) return;
+
+    lastAppliedSeqRef.current = packet.seq;
+    const playing =
+      packet.action === 'play'
+        ? true
+        : packet.action === 'pause'
+          ? false
+          : playerStateRef.current?.playing ?? false;
+
+    setLastController(
+      `${packet.actorName}: ${
+        packet.action === 'play'
+          ? '▶ воспроизведение'
+          : packet.action === 'pause'
+            ? '❚❚ пауза'
+            : '↔ перемотка'
+      }`,
+    );
+
+    dispatchPlayerCommand({
+      action: packet.action,
+      episode: packet.episode,
+      position: packet.position,
+      playing,
+      seq: packet.seq,
+      commandKind: 'action',
+    });
+  }, [acceptPlaybackHostEpoch, dispatchPlayerCommand]);
+
+  const handleGuestPlayerSync = useCallback((
+    packet: Extract<WatchPartyPacket, { type: 'PLAYER_SYNC' }>,
+  ) => {
+    if (!acceptPlaybackHostEpoch(packet.hostEpoch)) return;
+    if (packet.seq < lastAppliedSeqRef.current) return;
+
+    if (packet.seq > lastAppliedSeqRef.current) {
+      lastAppliedSeqRef.current = packet.seq;
+    }
+
+    const state = currentPlayerSnapshot() ?? playerStateRef.current;
+    const networkAdjusted = packet.playing
+      ? packet.position +
+        Math.min(2, Math.max(0, (Date.now() - packet.sentAt) / 1000))
+      : packet.position;
+
+    if (!state) {
+      dispatchPlayerCommand({
+        action: packet.playing ? 'play' : 'pause',
+        episode: packet.episode,
+        position: networkAdjusted,
+        playing: packet.playing,
+        seq: packet.seq,
+        commandKind: 'sync',
+      });
+      return;
+    }
+
+    if (state.episode !== packet.episode) return;
+
+    const now = Date.now();
+    const decision = decideWatchPartySync({
+      localPositionSeconds: state.position,
+      remotePositionSeconds: networkAdjusted,
+      localPlaying: state.playing,
+      remotePlaying: packet.playing,
+      lastCorrectionAt: lastDriftCorrectionAtRef.current,
+      nowMs: now,
+    });
+
+    if (decision.kind === 'state') {
+      dispatchPlayerCommand({
+        action: packet.playing ? 'play' : 'pause',
+        episode: packet.episode,
+        position: networkAdjusted,
+        playing: packet.playing,
+        seq: packet.seq,
+        commandKind: 'sync',
+      });
+      return;
+    }
+
+    if (decision.kind !== 'seek') return;
+
+    lastDriftCorrectionAtRef.current = now;
+
+    if (now - lastDriftTelemetryAtRef.current >= 15_000) {
+      lastDriftTelemetryAtRef.current = now;
+      trackProductClientEvent('watch_party_sync_drift', {
+        source:
+          guestTransportRef.current === 'server'
+            ? 'realtime'
+            : 'p2p',
+        path: window.location.pathname,
+        entityType: 'watch_party_room',
+        entityId: inviteRef.current?.roomId,
+        metadata: {
+          drift_seconds: Number(decision.driftSeconds.toFixed(2)),
+          critical:
+            decision.driftSeconds >=
+            WATCH_PARTY_DRIFT_CRITICAL_SECONDS,
+          episode: packet.episode,
+          playing: packet.playing,
+          route: guestTransportRef.current ?? networkRoute,
+        },
+      });
+    }
+
+    dispatchPlayerCommand({
+      action: 'seek',
+      episode: packet.episode,
+      position: networkAdjusted,
+      playing: packet.playing,
+      seq: packet.seq,
+      commandKind: 'sync',
+    });
+  }, [
+    acceptPlaybackHostEpoch,
+    currentPlayerSnapshot,
+    dispatchPlayerCommand,
+    networkRoute,
+  ]);
+
   const attachGuestConnection = useCallback((peer: PeerInstance, invite: WatchPartyInvite, identity: PartyIdentity) => {
     if (
       intentionalCloseRef.current ||
