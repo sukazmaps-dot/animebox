@@ -156,7 +156,7 @@ export const PREMIUM_SCENE_PRESET_META: Record<
   }
 > = {
   aurora: {
-    label: 'Aurora',
+    label: 'Северное сияние',
     description: 'Холодное мягкое свечение и спокойная северная атмосфера.',
     theme: 'violet',
     atmosphereEffect: 'aurora',
@@ -171,7 +171,7 @@ export const PREMIUM_SCENE_PRESET_META: Record<
     textColor: '#F7F5FF',
   },
   sakura: {
-    label: 'Sakura',
+    label: 'Сакура',
     description: 'Тёмная сакура, редкие лепестки и мягкий розовый акцент.',
     theme: 'sakura',
     atmosphereEffect: 'sakura',
@@ -186,7 +186,7 @@ export const PREMIUM_SCENE_PRESET_META: Record<
     textColor: '#FFF4F9',
   },
   embers: {
-    label: 'Embers',
+    label: 'Искры',
     description: 'Глубокий тёмный профиль с редкими искрами и тёплым светом.',
     theme: 'crimson',
     atmosphereEffect: 'embers',
@@ -201,7 +201,7 @@ export const PREMIUM_SCENE_PRESET_META: Record<
     textColor: '#FFF5F2',
   },
   stardust: {
-    label: 'Stardust',
+    label: 'Звёздная пыль',
     description: 'Звёздная глубина, лёгкое мерцание и холодный ночной свет.',
     theme: 'midnight',
     atmosphereEffect: 'stardust',
@@ -216,7 +216,7 @@ export const PREMIUM_SCENE_PRESET_META: Record<
     textColor: '#F4F7FF',
   },
   midnight: {
-    label: 'Midnight',
+    label: 'Полночь',
     description: 'Почти без частиц: строгий тёмный Premium для минималистов.',
     theme: 'midnight',
     atmosphereEffect: 'none',
@@ -250,7 +250,7 @@ export const PREMIUM_PROFILE_THEME_META: Record<
     textColor: '#F5F3FF',
   },
   violet: {
-    label: 'Violet Nebula',
+    label: 'Фиолетовая туманность',
     description: 'Глубокий фиолетовый профиль с космическим свечением.',
     primaryColor: '#171026',
     accentColor: '#B35CFF',
@@ -264,28 +264,28 @@ export const PREMIUM_PROFILE_THEME_META: Record<
     textColor: '#F3F8FF',
   },
   sakura: {
-    label: 'Sakura Night',
+    label: 'Ночная сакура',
     description: 'Тёмная сакура с мягкими розово-фиолетовыми акцентами.',
     primaryColor: '#24101E',
     accentColor: '#FF6FAF',
     textColor: '#FFF4F9',
   },
   crimson: {
-    label: 'Crimson Oath',
+    label: 'Багровый',
     description: 'Глубокий багровый профиль с контрастным красным свечением.',
     primaryColor: '#1D0B12',
     accentColor: '#FF4E6A',
     textColor: '#FFF4F6',
   },
   ocean: {
-    label: 'Ocean Glass',
+    label: 'Морское стекло',
     description: 'Холодное стекло, бирюзово-синий свет и чистая глубина.',
     primaryColor: '#071821',
     accentColor: '#52D9E8',
     textColor: '#F0FDFF',
   },
   gold: {
-    label: 'Golden Hour',
+    label: 'Золотой час',
     description: 'Тёмное золото и тёплый premium-акцент без дешёвого блеска.',
     primaryColor: '#1B150A',
     accentColor: '#F2C461',
