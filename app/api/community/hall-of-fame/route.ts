@@ -1,4 +1,5 @@
 import { adminClient, failure } from '@/lib/community-server';
+import { publicUsernameOrFallback } from '@/lib/auth-identity-policy';
 import { normalizeProgression } from '@/lib/progression';
 import {
   resolvePublicAppearances,
@@ -102,7 +103,10 @@ export async function GET(request: Request) {
               place: Number(entry.place),
               activeMs: Number(entry.active_ms) || 0,
               completedEpisodes: Number(entry.episodes) || 0,
-              username: entry.username_snapshot || 'Пользователь',
+              username: publicUsernameOrFallback(
+                entry.username_snapshot,
+                entry.user_id,
+              ),
               avatarUrl: appearance?.avatarUrl ?? '/default-avatar.webp',
               avatarTransform: appearance?.avatarTransform ?? { x: 50, y: 50, zoom: 1 },
               progression: progressionByUser.get(entry.user_id) ?? normalizeProgression(null),
