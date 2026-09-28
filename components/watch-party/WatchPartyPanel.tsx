@@ -601,6 +601,85 @@ export default function WatchPartyPanel({
     };
   }, [episodeNumber]);
 
+  const acceptPlaybackHostEpoch = useCallback((packetEpoch?: number) => {
+    if (packetEpoch == null) {
+      return hostEpochRef.current === 0;
+    }
+
+    const currentEpoch = hostEpochRef.current;
+    if (currentEpoch > 0 && packetEpoch < currentEpoch) {
+      return false;
+    }
+
+    if (packetEpoch > currentEpoch) {
+      hostEpochRef.current = packetEpoch;
+    }
+
+    return true;
+  }, []);
+
+  const allowSequencedPlayerAction = useCallback((
+    action: WatchPartyPlayerActionDetail,
+    actorUserId: string,
+  ) => {
+    const now = Date.now();
+    const seenAt = seenPlayerActionIdsRef.current.get(action.actionId);
+    if (seenAt != null && now - seenAt < 60_000) {
+      return false;
+    }
+
+    const previous = playerActionBudgetRef.current.get(actorUserId);
+    const sameAction =
+      previous?.action === action.action &&
+      Math.abs(previous.position - action.position) < 0.75;
+
+    if (
+      previous &&
+      now - previous.at < PLAYER_ACTION_MIN_INTERVAL_MS
+    ) {
+      return false;
+    }
+
+    if (
+      previous &&
+      sameAction &&
+      now - previous.at < PLAYER_ACTION_DUPLICATE_WINDOW_MS
+    ) {
+      return false;
+    }
+
+    const withinWindow =
+      previous &&
+      now - previous.windowStartedAt < PLAYER_ACTION_WINDOW_MS;
+    const count = withinWindow ? previous.count + 1 : 1;
+    const windowStartedAt = withinWindow
+      ? previous.windowStartedAt
+      : now;
+
+    if (count > PLAYER_ACTION_MAX_PER_WINDOW) {
+      return false;
+    }
+
+    seenPlayerActionIdsRef.current.set(action.actionId, now);
+    playerActionBudgetRef.current.set(actorUserId, {
+      action: action.action,
+      position: action.position,
+      at: now,
+      windowStartedAt,
+      count,
+    });
+
+    if (seenPlayerActionIdsRef.current.size > 256) {
+      for (const [id, timestamp] of seenPlayerActionIdsRef.current) {
+        if (now - timestamp > 60_000 || seenPlayerActionIdsRef.current.size > 192) {
+          seenPlayerActionIdsRef.current.delete(id);
+        }
+      }
+    }
+
+    return true;
+  }, []);
+
   const sendHostSync = useCallback((connection?: DataConnection) => {
     if (roleRef.current !== 'host') return;
     const state = currentPlayerSnapshot();
