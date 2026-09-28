@@ -402,6 +402,8 @@ export async function GET(
                         ) ?? null
                       : null,
 
+                  premium: appearance?.premiumBadge ?? false,
+
                   role:
                     comment.user_id
                       ? publicIdentityRoleFor(comment.user_id)
@@ -937,6 +939,7 @@ export async function POST(
                 avatarUrl,
                 avatarTransform: appearance?.avatarTransform ?? null,
                 sponsor: null,
+                premium: appearance?.premiumBadge ?? false,
                 role: publicIdentityRoleFor(user.id),
                 ogNumber: null,
               }
