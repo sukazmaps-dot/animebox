@@ -439,10 +439,7 @@ export default function AnimePlayer({
   const [watchTogetherMobileControlsTarget, setWatchTogetherMobileControlsTarget] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
-    if (!watchTogetherMode) {
-      setWatchTogetherMobileControlsTarget(null);
-      return;
-    }
+    if (!watchTogetherMode) return;
 
     let cancelled = false;
     let observer: MutationObserver | null = null;
@@ -460,15 +457,13 @@ export default function AnimePlayer({
       }
     };
 
-    syncTarget();
-
-    if (!document.getElementById('watch-together-mobile-player-controls')) {
-      observer = new MutationObserver(syncTarget);
-      observer.observe(document.body, { childList: true, subtree: true });
-    }
+    const frame = window.requestAnimationFrame(syncTarget);
+    observer = new MutationObserver(syncTarget);
+    observer.observe(document.body, { childList: true, subtree: true });
 
     return () => {
       cancelled = true;
+      window.cancelAnimationFrame(frame);
       observer?.disconnect();
     };
   }, [watchTogetherMode]);
