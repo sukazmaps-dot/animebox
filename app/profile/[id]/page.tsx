@@ -97,6 +97,7 @@ export default async function PublicProfilePage({ params }: Props) {
       data-premium-entrance={premiumIdentityActive ? profile.premiumStudio?.entranceEffect : undefined}
       data-premium-hero={premiumIdentityActive ? profile.premiumStudio?.heroStyle : undefined}
       data-premium-surface={premiumIdentityActive ? profile.premiumStudio?.surfaceStyle : undefined}
+      data-premium-layout={premiumIdentityActive ? profile.premiumStudio?.profileLayout : undefined}
     >
       {premiumIdentityActive && profile.premiumStudio && (
         <PremiumProfileAtmosphere
