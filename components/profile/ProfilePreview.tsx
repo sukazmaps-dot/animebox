@@ -305,6 +305,9 @@ export default function ProfilePreview({
         '--profile-preview-atmosphere-alpha': String(atmosphereAlpha),
         '--profile-preview-atmosphere-live-alpha': String(atmosphereLiveAlpha),
         '--profile-preview-atmosphere-clean-alpha': String(atmosphereCleanAlpha),
+        '--profile-preview-banner-shade': String(
+          Math.max(0.2, Math.min(0.9, data.bannerShade / 100)),
+        ),
       } as CSSProperties)
     : undefined;
 
