@@ -1294,3 +1294,49 @@ html[data-animebox-theme='light'] .close {
     display: none !important;
   }
 }
+
+
+/* Patch 20.3 — the compact surface still reflects the selected profile layout. */
+.card[data-layout='cinema'] .banner {
+  height: 132px;
+}
+
+.card[data-layout='cinema'] .heroIdentity {
+  margin-top: -42px;
+}
+
+.card[data-layout='collector'] .metaGrid {
+  gap: 6px;
+}
+
+.card[data-layout='collector'] .metaCard {
+  min-height: 58px;
+  border-radius: 10px;
+}
+
+.card[data-layout='minimal'] .particleLayer,
+.card[data-layout='minimal'] .atmosphere {
+  display: none;
+}
+
+.card[data-layout='minimal'] .banner {
+  height: 98px;
+}
+
+.card[data-layout='minimal'] .heroIdentity {
+  margin-top: -31px;
+}
+
+.card[data-layout='minimal'] {
+  box-shadow: 0 24px 72px rgba(0,0,0,.48);
+}
+
+@media (max-width: 640px) {
+  .card[data-layout='cinema'] .banner {
+    height: 128px;
+  }
+
+  .card[data-layout='minimal'] .banner {
+    height: 96px;
+  }
+}
