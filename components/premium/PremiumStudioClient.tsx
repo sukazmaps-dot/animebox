@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/components/AuthStateProvider';
 import { notifyAuthChanged } from '@/lib/auth-events';
 import { notifyProfileAppearanceChanged } from '@/lib/profile-live-sync';
+import { trackProductClientEvent } from '@/lib/product-events-client';
 import {
   discardPrivateProfileMedia,
   profileMediaFetchWithTimeout,
@@ -398,6 +399,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const mediaObjectUrlRef = useRef<string | null>(null);
+  const demoTrackedRef = useRef(false);
 
   const [settings, setSettings] = useState<PremiumStudioSettings>(
     () => initialSettings ?? DEFAULT_PREMIUM_STUDIO_SETTINGS,
@@ -451,6 +453,16 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       active = false;
     };
   }, [initialAllowed, initialSettings]);
+
+  useEffect(() => {
+    if (allowed !== false || demoTrackedRef.current) return;
+    demoTrackedRef.current = true;
+    trackProductClientEvent('premium_scene_demo_view', {
+      source: 'premium_studio',
+      path: '/profile/edit',
+      entityType: 'premium_scene',
+    });
+  }, [allowed]);
 
   useEffect(() => {
     if (!mobilePreviewOpen) return;
@@ -594,6 +606,19 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
         void refreshAuth();
       }
 
+      trackProductClientEvent('premium_scene_saved', {
+        source: 'premium_studio',
+        path: '/profile/edit',
+        entityType: 'premium_scene',
+        entityId: committed.theme,
+        metadata: {
+          layout: committed.profileLayout,
+          atmosphere: committed.atmosphereEffect,
+          particle: committed.particleEffect,
+          motion: committed.motionMode,
+        },
+      });
+
       window.dispatchEvent(new Event('animebox:premium-studio-updated'));
       router.refresh();
       return committed;
@@ -626,6 +651,13 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     setSettings((current) => applyPremiumScenePreset(scene, current));
     setSaved('');
     setPreviewEpoch((value) => value + 1);
+    trackProductClientEvent('premium_scene_preset_selected', {
+      source: allowed ? 'premium_studio' : 'premium_scene_demo',
+      path: '/profile/edit',
+      entityType: 'premium_scene',
+      entityId: scene,
+      metadata: { premium_active: Boolean(allowed) },
+    });
   }
 
   async function applyAdaptivePalette(source: 'avatar' | 'banner') {
