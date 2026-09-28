@@ -2346,6 +2346,7 @@ export default function WatchPartyPanel({
           void relayRef.current?.send({
             type: 'PLAYER_SYNC',
             seq: hostSeqRef.current,
+            hostEpoch: hostEpochRef.current,
             episode: state.episode,
             position: state.position,
             playing: state.playing,
@@ -2357,6 +2358,22 @@ export default function WatchPartyPanel({
 
       const participant = participantsRef.current.get(senderId);
       if (!participant || participant.host || !relayHostGuestIdsRef.current.has(senderId)) return;
+
+      if (packet.type === 'PLAYER_SYNC_REQUEST') {
+        const state = currentPlayerSnapshot();
+        if (!state) return;
+
+        void relayRef.current?.send({
+          type: 'PLAYER_SYNC',
+          seq: hostSeqRef.current,
+          hostEpoch: hostEpochRef.current,
+          episode: state.episode,
+          position: state.position,
+          playing: state.playing,
+          sentAt: Date.now(),
+        }, senderId);
+        return;
+      }
 
       if (packet.type === 'PLAYER_ACTION') {
         if (packet.episode !== episodeNumber) return;
@@ -2605,6 +2622,11 @@ export default function WatchPartyPanel({
 
         const participant = participantsRef.current.get(connection.peer);
         if (!participant || participant.host) return;
+
+        if (packet.type === 'PLAYER_SYNC_REQUEST') {
+          sendHostSync(connection);
+          return;
+        }
 
         if (packet.type === 'PLAYER_ACTION') {
           if (packet.episode !== episodeNumber) return;
