@@ -3047,7 +3047,17 @@ export default function WatchPartyPanel({
       entityId: inviteRef.current?.roomId,
       metadata: { reaction },
     });
-  }, [handleHostReaction, sendGuestPacket, status]);
+
+    if (isPremiumWatchPartyReaction(reaction)) {
+      trackProductClientEvent('premium_reaction_used', {
+        source: 'watch_party_room',
+        path: window.location.pathname,
+        entityType: 'watch_party_room',
+        entityId: inviteRef.current?.roomId,
+        metadata: { reaction, episode: episodeNumber },
+      });
+    }
+  }, [episodeNumber, handleHostReaction, sendGuestPacket, status]);
 
   const castVote = useCallback((vote: WatchPartyVote) => {
     if (status !== 'active') return;
