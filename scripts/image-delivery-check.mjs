@@ -10,6 +10,7 @@ const mediaDelivery = read('lib/media-delivery.ts');
 const mediaWorker = read('infra/cloudflare/media-worker.js');
 const proxy = read('app/api/image/route.ts');
 const hero = read('components/HomeHeroCarousel.tsx');
+const nextConfig = read('next.config.ts');
 const anilist = read('lib/anilist.ts');
 const smartHome = read('app/smart-home.css');
 const animeCard = read('components/AnimeCard.tsx');
@@ -181,13 +182,21 @@ if (
   failures.push('legacy image proxy host-aware/cache contract is incomplete');
 }
 
-// Hero keeps the deliberate optimized-first remote image path for LCP.
+// Vercel Image Optimization is globally bypassed. AnimeBox already owns a
+// responsive Cloudflare/R2 media path for mass imagery, and the remaining
+// next/image instances retain layout semantics without consuming /_next/image.
+if (!nextConfig.includes('unoptimized: true')) {
+  failures.push('next.config must keep the global Vercel image optimizer bypass enabled');
+}
+
 if (
   !hero.includes("from 'next/image'") ||
   !hero.includes('unoptimized={Boolean(backdropAttempt?.unoptimized)}') ||
+  !hero.includes('unoptimized: true') ||
+  hero.includes('unoptimized: false') ||
   !hero.includes('priority={safeActiveIndex === 0')
 ) {
-  failures.push('hero LCP optimization/fallback contract was removed');
+  failures.push('hero must remain direct-source-first while preserving LCP priority');
 }
 
 if (
