@@ -706,6 +706,9 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
               hideDock
               initialSettings={premiumSettings}
               initialAllowed={premiumActive}
+              previewUsername={username}
+              fallbackAvatarUrl={resolvedAvatarPreview}
+              fallbackBannerUrl={resolvedBannerPreview}
               onDirtyChange={setPremiumDirty}
               onBusyChange={setPremiumBusy}
               onSettingsCommitted={(settings) => {
