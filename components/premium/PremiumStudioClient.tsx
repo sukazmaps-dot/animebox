@@ -1122,7 +1122,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 <StudioColorField
                   label="Основной цвет"
                   value={settings.primaryColor}
-                  hint="Фон карточек, hero-блока и секций профиля"
+                  hint="Фон карточек и основных блоков профиля"
                   onChange={(primaryColor) => setSettings((current) => ({ ...current, primaryColor }))}
                 />
                 <StudioColorField
@@ -1142,7 +1142,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
               <div className="premium-studio-v21__adaptive">
                 <div>
                   <strong>Автоподбор палитры</strong>
-                  <small>AnimeBox берёт оттенки из медиа и строит тёмный фон, яркий accent и безопасный цвет текста.</small>
+                  <small>AnimeBox берёт оттенки из изображения и подбирает подходящие фон, акцент и цвет текста.</small>
                 </div>
                 <div>
                   <button
@@ -1610,7 +1610,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 <div className="premium-studio-v22__preview-sheet-handle" aria-hidden="true" />
                 <header className="premium-studio-v22__preview-sheet-head">
                   <div>
-                    <span>LIVE PREVIEW</span>
+                    <span>ПРЕДПРОСМОТР</span>
                     <strong>Предпросмотр профиля</strong>
                   </div>
                   <button
@@ -1685,7 +1685,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 </h2>
                 <p>
                   {mediaEditor.kind === 'avatar'
-                    ? 'Аватар будет круглым, но редактируем квадрат 1:1 — оригинальная GIF/Animated WebP анимация сохраняется, а AnimeBox отдельно создаёт статический WebP fallback.'
+                    ? 'Аватар будет круглым, но кадр настраивается в квадрате 1:1. Анимация GIF или Animated WebP сохранится, а AnimeBox отдельно подготовит статичную WebP-версию.'
                     : 'Это не отдельный кроп-файл: широкая рамка показывает реальную область баннера. Оригинал и анимация сохраняются.'}
                 </p>
                 {mediaEditor.kind === 'avatar' && mediaWarning && (
