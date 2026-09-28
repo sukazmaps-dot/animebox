@@ -21,6 +21,12 @@ const nextConfig: NextConfig = {
   },
 
   images: {
+    // Hobby Image Optimization has a hard monthly transformation allowance.
+    // AnimeBox already owns a responsive R2/Cloudflare media pipeline for
+    // posters, so routing remaining next/image instances through Vercel adds
+    // quota risk without being required for delivery. Keep next/image layout
+    // semantics while serving the original asset URLs directly.
+    unoptimized: true,
     imageSizes: [32, 48, 64, 96, 128, 160, 192, 224, 256, 288, 320, 384],
     qualities: [50, 55, 60, 62, 68, 70, 75, 82, 88],
     minimumCacheTTL: 2_592_000,
