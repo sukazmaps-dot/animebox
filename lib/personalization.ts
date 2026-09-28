@@ -3,7 +3,7 @@ import { trackProductClientEvent } from '@/lib/product-events-client';
 
 export const TASTE_PROFILE_STORAGE_KEY = 'animebox_taste_profile_v1';
 export const RECOMMENDATION_EVENTS_STORAGE_KEY = 'animebox_recommendation_events_v1';
-export const RECOMMENDATION_ALGORITHM_VERSION = '18.3-v1';
+export const RECOMMENDATION_ALGORITHM_VERSION = '22.0-v1';
 export const RECOMMENDATION_MODEL_VERSION = RECOMMENDATION_ALGORITHM_VERSION;
 export const RECOMMENDATION_ATTRIBUTION_PREFIX = 'animebox:recommendation-attribution:v1:';
 
@@ -43,6 +43,9 @@ export type RecommendationEvent = {
   dwellMs?: number;
   matchScore?: number;
   reason?: string;
+  fatigueScore?: number;
+  exposureCount7d?: number;
+  exposureCount30d?: number;
   createdAt: number;
 };
 
@@ -371,6 +374,9 @@ export function trackRecommendationEvent(
         dwell_ms: event.dwellMs ?? null,
         match_score: event.matchScore ?? null,
         reason: event.reason?.slice(0, 180) ?? null,
+        fatigue_score: event.fatigueScore ?? null,
+        exposure_count_7d: event.exposureCount7d ?? null,
+        exposure_count_30d: event.exposureCount30d ?? null,
         model_version: algorithmVersion,
         algorithm_version: algorithmVersion,
       },
