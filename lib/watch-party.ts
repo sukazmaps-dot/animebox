@@ -1,4 +1,9 @@
 export const WATCH_PARTY_PROTOCOL = 6;
+import {
+  readWatchPartyTheme,
+  type WatchPartyTheme,
+} from '@/lib/watch-party-premium';
+
 export const WATCH_PARTY_MAX_PARTICIPANTS = 50;
 export const WATCH_PARTY_ROOM_PREFIX = 'abx-party';
 
@@ -257,12 +262,18 @@ export function watchPartyReturnPath() {
 export function buildWatchPartyUrl(
   invite: WatchPartyInvite,
   targetPath?: string,
+  roomTheme: WatchPartyTheme = 'default',
 ) {
   const url = targetPath
     ? new URL(targetPath, window.location.origin)
     : new URL(window.location.href);
 
   url.searchParams.set('party', invite.roomId);
+  if (roomTheme === 'default') {
+    url.searchParams.delete('partyTheme');
+  } else {
+    url.searchParams.set('partyTheme', roomTheme);
+  }
 
   const hash = new URLSearchParams();
   hash.set('partyKey', invite.secret);
@@ -288,9 +299,16 @@ export function readWatchPartyInviteFromLocation(): WatchPartyInvite | null {
   return { roomId, secret };
 }
 
+export function readWatchPartyThemeFromLocation(): WatchPartyTheme {
+  if (typeof window === 'undefined') return 'default';
+  const url = new URL(window.location.href);
+  return readWatchPartyTheme(url.searchParams.get('partyTheme'));
+}
+
 export function clearWatchPartyFromLocation() {
   const url = new URL(window.location.href);
   url.searchParams.delete('party');
+  url.searchParams.delete('partyTheme');
   const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
   hash.delete('partyKey');
   url.hash = hash.toString();
