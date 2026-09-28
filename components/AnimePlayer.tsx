@@ -2537,7 +2537,6 @@ export default function AnimePlayer({
     setAutoNextSeconds(null);
     setSkipOpeningVisible(false);
     setEndingPromptOpen(false);
-    setEndingNextSeconds(null);
     setAutoNextCancelled(false);
     playRequestAtRef.current = performance.now();
     setPlayerError(null);
