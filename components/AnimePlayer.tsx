@@ -180,7 +180,7 @@ const EXPLICIT_SEEK_AUTO_SKIP_GUARD_MS = 6_000;
 const AUTO_OPENING_TRIGGER_WINDOW_SECONDS = 1.5;
 const AUTO_OPENING_SPARSE_SAMPLE_CATCHUP_SECONDS = 3.5;
 const AUTO_OPENING_CONFIRM_GRACE_SECONDS = 5;
-const AUTO_OPENING_CONFIRM_MS = 120;
+const AUTO_OPENING_CONFIRM_MS = 650;
 
 type SourceLoadState = 'idle' | 'loading' | 'ready' | 'error' | 'timeout';
 type PlayerFailureKind = Extract<SourceLoadState, 'error' | 'timeout'>;
