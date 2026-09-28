@@ -27,8 +27,20 @@ export type PremiumStatsHistoryItem = {
   completedAt: string;
 };
 
+export type PremiumYearReview = {
+  year: number;
+  episodes: number;
+  titles: number;
+  activeDays: number;
+  topGenre: PremiumStatsTopGenre | null;
+  topTitle: PremiumStatsTopTitle | null;
+  busiestMonth: PremiumStatsMonth | null;
+  months: PremiumStatsMonth[];
+};
+
 export type PremiumStatsPayload = {
   generatedAt: string;
+  yearReview: PremiumYearReview;
   overview: {
     episodes: number;
     titles: number;
