@@ -1629,6 +1629,152 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                   <input ref={bannerInputRef} hidden type="file" accept="image/webp,image/gif,image/png,image/jpeg" onChange={(event) => void prepareMediaUpload('banner', event.target.files?.[0])} />
                 </article>
               </div>
+
+              <div className="premium-studio-v24__banner-director">
+                <div className="premium-studio-v24__banner-director-head">
+                  <div>
+                    <span>PREMIUM · БАННЕР</span>
+                    <h3>Сделай баннер главным акцентом</h3>
+                    <p>
+                      Размер, насыщенность и затемнение меняют только подачу арта.
+                      Исходное изображение остаётся без изменений.
+                    </p>
+                  </div>
+                  <div className="premium-studio-v24__banner-presets">
+                    <button type="button" onClick={() => applyBannerLook('natural')}>
+                      Естественный
+                    </button>
+                    <button type="button" className="is-accent" onClick={() => applyBannerLook('juicy')}>
+                      Сочный
+                    </button>
+                    <button type="button" onClick={() => applyBannerLook('cinema')}>
+                      Кино
+                    </button>
+                  </div>
+                </div>
+
+                <div className="premium-studio-v24__banner-height">
+                  <span>
+                    <strong>Размер баннера</strong>
+                    <small>Можно сделать профиль компактнее или дать арту больше воздуха.</small>
+                  </span>
+                  <div className="premium-studio-v24__banner-height-grid">
+                    {PREMIUM_BANNER_HEIGHT_MODES.map((mode) => {
+                      const meta = BANNER_HEIGHT_META[mode];
+                      return (
+                        <button
+                          key={mode}
+                          type="button"
+                          className={settings.bannerHeightMode === mode ? 'is-active' : ''}
+                          onClick={() =>
+                            setSettings((current) => ({
+                              ...current,
+                              bannerHeightMode: mode,
+                            }))
+                          }
+                        >
+                          <strong>{meta.label}</strong>
+                          <small>{meta.hint}</small>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="premium-studio-v24__banner-ranges">
+                  <label>
+                    <span>
+                      <strong>Насыщенность</strong>
+                      <small>Делает цвета спокойнее или сочнее.</small>
+                    </span>
+                    <span>
+                      <input
+                        type="range"
+                        min="70"
+                        max="140"
+                        step="1"
+                        value={settings.bannerSaturation}
+                        onChange={(event) =>
+                          setSettings((current) => ({
+                            ...current,
+                            bannerSaturation: Number(event.target.value),
+                          }))
+                        }
+                      />
+                      <b>{settings.bannerSaturation}%</b>
+                    </span>
+                  </label>
+
+                  <label>
+                    <span>
+                      <strong>Контраст</strong>
+                      <small>Добавляет глубину светлым и тёмным участкам.</small>
+                    </span>
+                    <span>
+                      <input
+                        type="range"
+                        min="85"
+                        max="125"
+                        step="1"
+                        value={settings.bannerContrast}
+                        onChange={(event) =>
+                          setSettings((current) => ({
+                            ...current,
+                            bannerContrast: Number(event.target.value),
+                          }))
+                        }
+                      />
+                      <b>{settings.bannerContrast}%</b>
+                    </span>
+                  </label>
+
+                  <label>
+                    <span>
+                      <strong>Яркость</strong>
+                      <small>Подстраивает общий свет баннера.</small>
+                    </span>
+                    <span>
+                      <input
+                        type="range"
+                        min="80"
+                        max="120"
+                        step="1"
+                        value={settings.bannerBrightness}
+                        onChange={(event) =>
+                          setSettings((current) => ({
+                            ...current,
+                            bannerBrightness: Number(event.target.value),
+                          }))
+                        }
+                      />
+                      <b>{settings.bannerBrightness}%</b>
+                    </span>
+                  </label>
+
+                  <label>
+                    <span>
+                      <strong>Затемнение снизу</strong>
+                      <small>Помогает имени и бейджам читаться поверх яркого арта.</small>
+                    </span>
+                    <span>
+                      <input
+                        type="range"
+                        min="20"
+                        max="90"
+                        step="1"
+                        value={settings.bannerShade}
+                        onChange={(event) =>
+                          setSettings((current) => ({
+                            ...current,
+                            bannerShade: Number(event.target.value),
+                          }))
+                        }
+                      />
+                      <b>{settings.bannerShade}%</b>
+                    </span>
+                  </label>
+                </div>
+              </div>
             </section>
           )}
         </div>
