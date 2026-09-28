@@ -15,6 +15,7 @@ const migration = read(
   'supabase/migrations/20260928024000_patch20_1_watch_together_membership_v1.sql',
 );
 const productEvents = read('lib/product-event-names.ts');
+const syncPolicy = read('lib/watch-party-sync-policy.ts');
 
 const failures = [];
 
@@ -74,12 +75,14 @@ if (
 if (
   !panel.includes('const SERVER_PRESENCE_MS = 25_000') ||
   !panel.includes('const PLAYER_SYNC_MS = 8_000') ||
-  !panel.includes('const PLAYER_DRIFT_SEEK_SECONDS = 1.5') ||
+  !panel.includes('decideWatchPartySync') ||
+  !syncPolicy.includes('WATCH_PARTY_DRIFT_SEEK_SECONDS = 1.75') ||
+  !syncPolicy.includes('WATCH_PARTY_DRIFT_SEEK_COOLDOWN_MS = 6_000') ||
   !panel.includes("syncServerMembership('heartbeat'") ||
   !panel.includes("syncServerMembership('leave')") ||
   !panel.includes('authoritativeParticipantCount')
 ) {
-  failures.push('client presence or tighter sync cadence is missing');
+  failures.push('client presence or bounded sync policy is missing');
 }
 
 if (
