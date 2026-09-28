@@ -22,6 +22,7 @@ import {
   saveWatchProgress,
 } from '@/lib/watch-progress';
 import { chooseResumeCandidate } from '@/lib/resume-integrity';
+import { shouldAcceptAsyncResumeDecision } from '@/lib/playback-continuity';
 import { setAnimeProgress } from '@/lib/anime-storage';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 import {
@@ -1718,6 +1719,25 @@ export default function AnimePlayer({
           localUpdatedAt,
           nowMs,
         });
+
+        const acceptAsyncResume = shouldAcceptAsyncResumeDecision({
+          observedPositionSeconds:
+            latestPlaybackPositionSecondsRef.current,
+          activeOrigin: resumeOriginRef.current,
+        });
+
+        if (!acceptAsyncResume) {
+          trackPlayerEvent('player_resume_conflict', {
+            localSeconds: localPosition,
+            serverSeconds: positionSeconds,
+            deltaSeconds: Math.abs(localPosition - positionSeconds),
+            selected: 'active_playback',
+            activeOrigin: resumeOriginRef.current,
+            observedPositionSeconds:
+              latestPlaybackPositionSecondsRef.current,
+          });
+          return;
+        }
 
         if (
           localUsable &&
