@@ -140,10 +140,10 @@
 
 .exitButton,
 .chatToggle {
-  min-height: 30px;
-  padding: 0 10px;
+  min-height: 34px;
+  padding: 0 11px;
   border: 1px solid rgba(255, 255, 255, 0.075);
-  border-radius: 9px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.03);
   color: rgba(238, 241, 252, 0.72);
   font-size: 8px;
@@ -151,11 +151,79 @@
   cursor: pointer;
 }
 
+.exitButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-left: 7px;
+  padding-right: 12px;
+  border-color: rgba(167, 139, 250, 0.16);
+  background:
+    linear-gradient(180deg, rgba(139, 92, 246, 0.075), rgba(255, 255, 255, 0.018)),
+    rgba(7, 10, 20, 0.72);
+  color: rgba(235, 232, 255, 0.84);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.035),
+    0 8px 22px rgba(0,0,0,.16);
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.exitButtonIcon {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(167, 139, 250, 0.15);
+  border-radius: 7px;
+  background: rgba(139, 92, 246, 0.08);
+  color: #c9bdff;
+}
+
+.exitButtonIcon svg {
+  width: 13px;
+  height: 13px;
+}
+
+.exitButtonLabel {
+  white-space: nowrap;
+}
+
+.exitButtonLabelCompact {
+  display: none;
+  white-space: nowrap;
+}
+
 .exitButton:hover,
 .chatToggle:hover {
-  border-color: rgba(167, 139, 250, 0.2);
-  background: rgba(139, 92, 246, 0.07);
+  border-color: rgba(167, 139, 250, 0.28);
+  background:
+    linear-gradient(180deg, rgba(139, 92, 246, 0.12), rgba(255, 255, 255, 0.025)),
+    rgba(7, 10, 20, 0.82);
   color: #fff;
+}
+
+.exitButton:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 10px 28px rgba(0,0,0,.22);
+}
+
+.exitButton:active {
+  transform: translateY(0);
+}
+
+.exitButton:focus-visible,
+.chatToggle:focus-visible {
+  outline: 2px solid rgba(167, 139, 250, 0.72);
+  outline-offset: 2px;
 }
 
 .chatToggle {
@@ -444,9 +512,25 @@
   }
 
   .exitButton {
-    min-height: 28px;
-    padding-inline: 8px;
+    min-height: 30px;
+    gap: 5px;
+    padding: 0 7px 0 5px;
     font-size: 7px;
+  }
+
+  .exitButtonIcon {
+    width: 20px;
+    height: 20px;
+    flex-basis: 20px;
+    border-radius: 6px;
+  }
+
+  .exitButtonLabel {
+    display: none;
+  }
+
+  .exitButtonLabelCompact {
+    display: inline;
   }
 
   .content {
