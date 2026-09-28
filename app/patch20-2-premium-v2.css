@@ -1082,3 +1082,72 @@
     margin-top: -6px;
   }
 }
+
+
+/* Premium profile composition presets.
+   Layouts only rearrange AnimeBox-owned surfaces; they never accept arbitrary CSS. */
+.profile-v2[data-premium-layout='cinema'] .profile-v2__hero {
+  overflow: hidden;
+  border-radius: 28px;
+}
+
+.profile-v2[data-premium-layout='cinema'] .profile-v2__banner {
+  min-height: clamp(280px, 35vw, 460px);
+}
+
+.profile-v2[data-premium-layout='cinema'] .profile-v2__identity {
+  position: relative;
+  margin-top: clamp(-94px, -7vw, -56px);
+  padding-inline: clamp(16px, 3vw, 34px);
+}
+
+.profile-v2[data-premium-layout='collector'] .profile-v2__hero {
+  border-radius: 18px;
+}
+
+.profile-v2[data-premium-layout='collector'] .profile-v2__identity {
+  padding-bottom: 22px;
+}
+
+.profile-v2[data-premium-layout='collector'] .profile-v4__featured-grid,
+.profile-v2[data-premium-layout='collector'] .profile-widgets-showcase__grid {
+  gap: 10px;
+}
+
+.profile-v2[data-premium-layout='minimal'] .premium-particles-profile-hero {
+  display: none;
+}
+
+.profile-v2[data-premium-layout='minimal'] .profile-v2__hero {
+  border-color: rgba(255,255,255,.045);
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+.profile-v2[data-premium-layout='minimal'] .profile-v2__banner {
+  min-height: 180px;
+  max-height: 260px;
+}
+
+.profile-v2[data-premium-layout='minimal'] .profile-v2__banner-shade {
+  opacity: .72;
+}
+
+.profile-v2[data-premium-layout='minimal'] .animebox-premium-badge {
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  .profile-v2[data-premium-layout='cinema'] .profile-v2__banner {
+    min-height: 235px;
+  }
+
+  .profile-v2[data-premium-layout='cinema'] .profile-v2__identity {
+    margin-top: -56px;
+    padding-inline: 12px;
+  }
+
+  .profile-v2[data-premium-layout='minimal'] .profile-v2__banner {
+    min-height: 150px;
+  }
+}
