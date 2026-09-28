@@ -46,6 +46,7 @@ for (const [label, needle] of [
   ['opening trigger debounce', 'AUTO_OPENING_CONFIRM_MS = 900'],
   ['ending completion guard copy', 'Автопереход начнётся только после фактического завершения видео.'],
   ['ending cancel action', 'cancelEndingAutoNext'],
+  ['normal playback does not publish Watch Together state', 'if (!watchTogetherMode) return;'],
 ]) {
   if (!player.includes(needle)) {
     failures.push(`AnimePlayer: missing ${label}.`);
@@ -56,10 +57,20 @@ for (const [label, needle] of [
   ['synthetic end strict threshold', 'SYNTHETIC_END_REMAINING_SECONDS = 0.2'],
   ['synthetic end debounce', 'SYNTHETIC_END_CONFIRM_MS = 1_500'],
   ['explicit ended event', "key === 'kodik_player_ended'"],
+  ['pause inference uses conservative idle threshold', 'PAUSE_INFERENCE_IDLE_MS = 4_000'],
+  ['pause inference never broadcasts pause action', 'Never publish an inferred pause'],
+  ['sparse sample recovery marker', 'resumedFromInference'],
 ]) {
   if (!kodikPlayer.includes(needle)) {
     failures.push(`KodikPlayer: missing ${label}.`);
   }
+}
+
+if (
+  kodikPlayer.includes("function markPlaying()") &&
+  /function markPlaying\(\)[\s\S]*?emitPlaybackState\(\);[\s\S]*?pauseInferenceTimerRef/.test(kodikPlayer)
+) {
+  failures.push('KodikPlayer: markPlaying still emits duplicate playback state before the shared time-sample emission.');
 }
 
 if (!episodePage.includes('/api/episodes/timeline')) {
