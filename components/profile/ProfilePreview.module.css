@@ -723,7 +723,7 @@
 }
 
 
-/* Patch 18.8 — temporary AnimeBox League frame inside mini-profile. */
+/* Shared League frame geometry inside mini-profile. */
 .avatarShellSeason {
   position: relative;
   isolation: isolate;
@@ -747,10 +747,6 @@
   box-shadow: 0 0 0 2px #080c14, 0 8px 22px rgba(0,0,0,.34);
 }
 
-.avatarShellSeason[data-milestone-frame='true'] .avatarMedia {
-  width: 58%;
-  height: 58%;
-}
 
 .seasonFrameOverlay {
   z-index: 4;
@@ -1240,19 +1236,7 @@
   min-width: 0;
 }
 
-.avatarShellSeason[data-milestone-frame='true'] {
-  flex-basis: 136px;
-  width: 136px;
-  height: 136px;
-}
-
 @media (max-width: 640px) {
-  .avatarShellSeason[data-milestone-frame='true'] {
-    flex-basis: 122px;
-    width: 122px;
-    height: 122px;
-  }
-
   .identityCopy {
     gap: 4px;
   }
