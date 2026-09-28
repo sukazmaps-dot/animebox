@@ -64,6 +64,17 @@ function sixMonthSkeleton(now: Date): PremiumStatsMonth[] {
   return result;
 }
 
+function yearMonthSkeleton(year: number): PremiumStatsMonth[] {
+  return Array.from({ length: 12 }, (_, month) => {
+    const point = new Date(Date.UTC(year, month, 1));
+    return {
+      key: monthKey(point),
+      label: monthLabel(point),
+      episodes: 0,
+    };
+  });
+}
+
 export async function GET() {
   try {
     const { user } = await userClient();
@@ -81,7 +92,12 @@ export async function GET() {
     }
 
     const admin = adminClient();
-    const [metrics, historyResult] = await Promise.all([
+    const now = new Date();
+    const year = now.getUTCFullYear();
+    const yearStart = new Date(Date.UTC(year, 0, 1)).toISOString();
+    const nextYearStart = new Date(Date.UTC(year + 1, 0, 1)).toISOString();
+
+    const [metrics, historyResult, yearHistoryResult] = await Promise.all([
       getTrustedProgressionMetrics(user.id),
       admin
         .from('episodes_history')
@@ -91,14 +107,26 @@ export async function GET() {
         .not('completed_at', 'is', null)
         .order('completed_at', { ascending: false })
         .limit(2000),
+      admin
+        .from('episodes_history')
+        .select('anime_id,episode_number,completed_at')
+        .eq('user_id', user.id)
+        .eq('completed', true)
+        .not('completed_at', 'is', null)
+        .gte('completed_at', yearStart)
+        .lt('completed_at', nextYearStart)
+        .order('completed_at', { ascending: false })
+        .limit(5000),
     ]);
 
     if (historyResult.error) throw historyResult.error;
+    if (yearHistoryResult.error) throw yearHistoryResult.error;
 
     const history = (historyResult.data ?? []) as HistoryRow[];
+    const yearHistory = (yearHistoryResult.data ?? []) as HistoryRow[];
     const animeIds = [
       ...new Set(
-        history
+        [...history, ...yearHistory]
           .map((item) => safeInt(item.anime_id))
           .filter((id) => id > 0),
       ),
@@ -119,7 +147,6 @@ export async function GET() {
       catalog.map((item) => [Number(item.id), item] as const),
     );
 
-    const now = new Date();
     const thirtyDaysAgo = now.getTime() - 30 * 86_400_000;
     const activeDayKeys = new Set<string>();
     let episodes30 = 0;
@@ -197,6 +224,85 @@ export async function GET() {
       )
       .slice(0, 8);
 
+    const yearMonths = yearMonthSkeleton(year);
+    const yearMonthByKey = new Map(
+      yearMonths.map((item) => [item.key, item] as const),
+    );
+    const yearActiveDays = new Set<string>();
+    const yearTitleCounts = new Map<
+      number,
+      { episodes: number; lastCompletedAt: string | null }
+    >();
+    const yearGenreCounts = new Map<string, number>();
+
+    for (const item of yearHistory) {
+      const completedAt = item.completed_at;
+      if (!completedAt) continue;
+      const completedDate = new Date(completedAt);
+      const completedMs = completedDate.getTime();
+      if (!Number.isFinite(completedMs)) continue;
+
+      yearActiveDays.add(completedAt.slice(0, 10));
+      const month = yearMonthByKey.get(monthKey(completedDate));
+      if (month) month.episodes += 1;
+
+      const animeId = safeInt(item.anime_id);
+      if (!animeId) continue;
+
+      const titleStat = yearTitleCounts.get(animeId) ?? {
+        episodes: 0,
+        lastCompletedAt: null,
+      };
+      titleStat.episodes += 1;
+      if (
+        !titleStat.lastCompletedAt ||
+        completedMs > Date.parse(titleStat.lastCompletedAt)
+      ) {
+        titleStat.lastCompletedAt = completedAt;
+      }
+      yearTitleCounts.set(animeId, titleStat);
+
+      for (const genre of catalogById.get(animeId)?.genres ?? []) {
+        const clean = typeof genre === 'string' ? genre.trim() : '';
+        if (!clean) continue;
+        yearGenreCounts.set(clean, (yearGenreCounts.get(clean) ?? 0) + 1);
+      }
+    }
+
+    const yearTopGenre: PremiumStatsTopGenre | null =
+      [...yearGenreCounts.entries()]
+        .map(([genre, episodes]) => ({ genre, episodes }))
+        .sort(
+          (left, right) =>
+            right.episodes - left.episodes ||
+            left.genre.localeCompare(right.genre, 'ru'),
+        )[0] ?? null;
+
+    const yearTopTitle: PremiumStatsTopTitle | null =
+      [...yearTitleCounts.entries()]
+        .map(([animeId, stat]) => {
+          const anime = catalogById.get(animeId);
+          return {
+            animeId,
+            slug: anime?.slug ?? null,
+            title: anime?.title?.trim() || `Тайтл #${animeId}`,
+            posterUrl: anime?.poster_url ?? null,
+            episodes: stat.episodes,
+            lastCompletedAt: stat.lastCompletedAt,
+          };
+        })
+        .sort(
+          (left, right) =>
+            right.episodes - left.episodes ||
+            Date.parse(right.lastCompletedAt || '1970-01-01') -
+              Date.parse(left.lastCompletedAt || '1970-01-01'),
+        )[0] ?? null;
+
+    const busiestMonth =
+      [...yearMonths].sort(
+        (left, right) => right.episodes - left.episodes,
+      )[0] ?? null;
+
     const recentHistory: PremiumStatsHistoryItem[] = history
       .slice(0, 120)
       .flatMap((item) => {
@@ -218,6 +324,16 @@ export async function GET() {
     const activeMs = safeInt(metrics?.active_ms);
     const payload: PremiumStatsPayload = {
       generatedAt: now.toISOString(),
+      yearReview: {
+        year,
+        episodes: yearHistory.length,
+        titles: yearTitleCounts.size,
+        activeDays: yearActiveDays.size,
+        topGenre: yearTopGenre,
+        topTitle: yearTopTitle,
+        busiestMonth,
+        months: yearMonths,
+      },
       overview: {
         episodes: safeInt(metrics?.episodes),
         titles: safeInt(metrics?.titles),
