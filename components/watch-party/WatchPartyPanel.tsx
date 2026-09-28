@@ -42,6 +42,7 @@ import {
   sanitizeWatchPartyChatText,
   isWatchPartyHostTab,
   readWatchPartyInviteFromLocation,
+  readWatchPartyThemeFromLocation,
   watchPartyHostPeerId,
   watchPartyTheaterPath,
   watchPartyHostSessionKey,
@@ -61,6 +62,11 @@ import {
   type WatchPartyVote,
   type WatchPartyVoteState,
 } from '@/lib/watch-party';
+
+import {
+  WATCH_PARTY_THEME_META,
+  type WatchPartyTheme,
+} from '@/lib/watch-party-premium';
 
 import styles from './WatchPartyPanel.module.css';
 
@@ -213,9 +219,19 @@ export default function WatchPartyPanel({
   const [creatingRoom, setCreatingRoom] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [roomVisibility, setRoomVisibility] = useState<'public' | 'unlisted' | 'private'>('unlisted');
+  const [roomTheme, setRoomTheme] = useState<WatchPartyTheme>('default');
 
   const theaterPath = watchPartyTheaterPath(animeSlug, episodeNumber);
   const episodePath = `/anime/${encodeURIComponent(animeSlug)}/episode/${episodeNumber}`;
+
+  useEffect(() => {
+    if (mode !== 'theater') {
+      setRoomTheme('default');
+      return;
+    }
+
+    setRoomTheme(readWatchPartyThemeFromLocation());
+  }, [mode]);
 
   const peerRef = useRef<PeerInstance | null>(null);
   const guestConnectionRef = useRef<DataConnection | null>(null);
@@ -3388,7 +3404,11 @@ export default function WatchPartyPanel({
   const label = statusLabel(status, role, displayedParticipantCount);
 
   return (
-    <section className={`${styles.panel} ${mode === 'theater' ? styles.theaterPanel : ''}`} aria-label="Watch Together room">
+    <section
+      className={`${styles.panel} ${mode === 'theater' ? styles.theaterPanel : ''}`}
+      data-room-theme={roomTheme}
+      aria-label="Watch Together room"
+    >
       <div className={styles.activeInner}>
         <div className={styles.activeHead}>
           <div className={styles.statusLine}>
@@ -3447,6 +3467,11 @@ export default function WatchPartyPanel({
               >
                 Код {roomCode}
               </button>
+            )}
+            {roomTheme !== 'default' && (
+              <span className={styles.themeBadge} title="Premium Room Theme">
+                ✦ {WATCH_PARTY_THEME_META[roomTheme].label}
+              </span>
             )}
             <span className={styles.role}>{role === 'host' ? 'HOST' : 'GUEST'}</span>
           </div>
