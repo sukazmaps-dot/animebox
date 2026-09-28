@@ -69,3 +69,19 @@ export function readWatchPartyTheme(
 ): WatchPartyTheme {
   return isWatchPartyTheme(value) ? value : fallback;
 }
+
+
+export const PREMIUM_WATCH_PARTY_REACTIONS = [
+  'sparkle',
+  'clap',
+  'cinema',
+] as const;
+
+export type PremiumWatchPartyReaction =
+  (typeof PREMIUM_WATCH_PARTY_REACTIONS)[number];
+
+export function isPremiumWatchPartyReaction(
+  value: string,
+): value is PremiumWatchPartyReaction {
+  return (PREMIUM_WATCH_PARTY_REACTIONS as readonly string[]).includes(value);
+}
