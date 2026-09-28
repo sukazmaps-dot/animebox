@@ -175,6 +175,9 @@ jobs:
           lib/product-event-names.ts
           lib/product-events-client.ts
           lib/product-events-server.ts
+          lib/product-analytics.ts
+          lib/product-analytics-server.ts
+          components/admin/ProductAnalyticsDashboard.tsx
           app/api/telegram/subscription-check/route.ts
           components/TelegramWelcomePromo.tsx
           components/MobileAccountNav.tsx
