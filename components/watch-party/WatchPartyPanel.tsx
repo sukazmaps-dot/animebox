@@ -1415,6 +1415,11 @@ export default function WatchPartyPanel({
         publishParticipants(packet.participants);
         setError('');
         setStatus('active');
+        send(connection, {
+          type: 'PLAYER_SYNC_REQUEST',
+          sentAt: Date.now(),
+          hostEpoch: hostEpochRef.current || undefined,
+        });
         return;
       }
 
@@ -1434,80 +1439,14 @@ export default function WatchPartyPanel({
       }
 
       if (packet.type === 'PLAYER_APPLY') {
-        if (!welcomed || packet.seq <= lastAppliedSeqRef.current) return;
-        lastAppliedSeqRef.current = packet.seq;
-        const playing =
-          packet.action === 'play' ? true : packet.action === 'pause' ? false : playerStateRef.current?.playing ?? false;
-        setLastController(`${packet.actorName}: ${packet.action === 'play' ? '▶ воспроизведение' : packet.action === 'pause' ? '❚❚ пауза' : '↔ перемотка'}`);
-        dispatchPlayerCommand({
-          action: packet.action,
-          episode: packet.episode,
-          position: packet.position,
-          playing,
-          seq: packet.seq,
-          commandKind: 'action',
-        });
+        if (!welcomed) return;
+        handleGuestPlayerApply(packet);
         return;
       }
 
       if (packet.type === 'PLAYER_SYNC') {
-        if (!welcomed || packet.seq < lastAppliedSeqRef.current) return;
-        const state = currentPlayerSnapshot() ?? playerStateRef.current;
-        const networkAdjusted = packet.playing
-          ? packet.position + Math.min(2, Math.max(0, (Date.now() - packet.sentAt) / 1000))
-          : packet.position;
-
-        if (!state) {
-          dispatchPlayerCommand({
-            action: packet.playing ? 'play' : 'pause',
-            episode: packet.episode,
-            position: networkAdjusted,
-            playing: packet.playing,
-            seq: packet.seq,
-            commandKind: 'sync',
-          });
-          return;
-        }
-        if (state.episode !== packet.episode) return;
-
-        const drift = Math.abs(state.position - networkAdjusted);
-
-        if (state.playing !== packet.playing) {
-          dispatchPlayerCommand({
-            action: packet.playing ? 'play' : 'pause',
-            episode: packet.episode,
-            position: networkAdjusted,
-            playing: packet.playing,
-            seq: packet.seq,
-            commandKind: 'sync',
-          });
-        } else if (drift >= PLAYER_DRIFT_SEEK_SECONDS) {
-          const now = Date.now();
-          if (now - lastDriftTelemetryAtRef.current >= 15_000) {
-            lastDriftTelemetryAtRef.current = now;
-            trackProductClientEvent('watch_party_sync_drift', {
-              source: guestTransportRef.current === 'server' ? 'realtime' : 'p2p',
-              path: window.location.pathname,
-              entityType: 'watch_party_room',
-              entityId: inviteRef.current?.roomId,
-              metadata: {
-                drift_seconds: Number(drift.toFixed(2)),
-                episode: packet.episode,
-                playing: packet.playing,
-                route: guestTransportRef.current ?? networkRoute,
-              },
-            });
-          }
-
-          dispatchPlayerCommand({
-            action: 'seek',
-            episode: packet.episode,
-            position: networkAdjusted,
-            playing: packet.playing,
-            seq: packet.seq,
-            commandKind: 'sync',
-          });
-        }
+        if (!welcomed) return;
+        handleGuestPlayerSync(packet);
         return;
       }
 
@@ -1583,9 +1522,9 @@ export default function WatchPartyPanel({
     acceptHostTransfer,
     appendChatMessage,
     clearGuestJoinDeadline,
-    currentPlayerSnapshot,
     dispatchEpisodeChange,
-    dispatchPlayerCommand,
+    handleGuestPlayerApply,
+    handleGuestPlayerSync,
     publishParticipants,
     publishReaction,
     send,
