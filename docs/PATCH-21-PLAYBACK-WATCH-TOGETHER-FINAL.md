@@ -219,7 +219,8 @@ Patch 21 считается завершённым только если:
 - reconnect не ломает room authority;
 - mobile theater не имеет layout collapse/overflow;
 - обычный просмотр не платит runtime cost за Watch Together;
-- production build и все retention/security gates зелёные.
+- production build и все retention/security gates зелёные;
+- публичные username нельзя сохранить в обход moderation policy на уровне PostgreSQL.
 
 
 ---
@@ -238,7 +239,7 @@ Patch 21 считается завершённым только если:
 - Watch Together command listeners не подключаются при обычном просмотре.
 
 ### Phase B — Resume / Source continuity
-Статус: **implemented / under CI**
+Статус: **implemented**
 
 Готово:
 - late async server/local resume больше не может перемотать назад уже начавшийся playback;
@@ -249,7 +250,7 @@ Patch 21 считается завершённым только если:
 - отдельная runtime regression matrix проверяет idle/active/source-switch сценарии.
 
 ### Phase C — OP / ED Timeline Automation Final
-Статус: **implemented / under CI**
+Статус: **implemented**
 
 Готово:
 - успешный manual Skip Opening теперь ставит тот же exactly-once latch, что и auto skip;
@@ -260,7 +261,7 @@ Patch 21 считается завершённым только если:
 - synthetic Kodik end остаётся консервативным fallback с threshold 0.2s + 1500ms confirmation.
 
 ### Phase D — Watch Together sync core
-Статус: **partially implemented / under CI**
+Статус: **implemented**
 
 Готово:
 - authoritative PLAYER_APPLY и periodic PLAYER_SYNC различаются через commandKind;
@@ -268,18 +269,44 @@ Patch 21 считается завершённым только если:
 - legitimate PLAYER_SYNC с тем же seq разрешён для drift correction;
 - stale sync с seq ниже актуального блокируется;
 - player sequence watermark двигается только вперёд;
+- drift correction использует hysteresis + cooldown вместо постоянного fixed-threshold seek;
+- hostEpoch сопровождает authoritative apply/sync и stale host packets отбрасываются;
+- guest запрашивает свежий authoritative sync после WELCOME, reconnect, online и foreground restore;
+- control spam budget ограничивает duplicate/burst PLAYER_ACTION до sequencing;
 - hot provider state всегда обновляет ref для network sync;
 - React room UI обновляется только при semantic change или ~0.9s visible position step вместо каждого provider timeupdate.
 
-Остаётся:
-- финальная drift policy;
-- reconnect authoritative resync;
-- host epoch integration в player sync;
-- control spam budget;
-- background/foreground stress cases.
-
 ### Phase E — Mobile theater / fullscreen
-Статус: **planned**
+Статус: **implemented**
+
+Готово:
+- mobile theater использует реальный VisualViewport, а не только 100dvh;
+- soft keyboard / browser chrome / Telegram viewport resize обновляют доступную высоту;
+- player row остаётся положительной 16:9 геометрией и не схлопывается;
+- Chat / Episodes / Room продолжают делить оставшееся пространство без document scroll;
+- fullscreen и Telegram pseudo-fullscreen сохраняют текущий player runtime без второго control layer.
+
+### Urgent hardening — Public username safety
+Статус: **implemented / migration pending production deploy**
+
+Готово:
+- единая TypeScript username policy для onboarding, регистрации и редакторов профиля;
+- high-confidence profanity/abuse detection с NFKC, separator stripping и basic confusable normalization;
+- PostgreSQL trigger отклоняет прямые unsafe writes через USERNAME_PROHIBITED;
+- Telegram-generated unsafe names получают нейтральный AnimeFan_* fallback вместо падения регистрации;
+- текущий leaderboard и Hall of Fame дополнительно имеют output shield;
+- миграция автоматически нейтрализует уже существующие unsafe profiles и username snapshots.
 
 ### Phase F — Release hardening / canary
-Статус: **planned**
+Статус: **in validation**
+
+Готово:
+- Phase A–E regression gates подключены к patch21:check;
+- username safety regression matrix подключена к CI;
+- TypeScript/lint/retention/build уже проходили на текущем наборе Patch 21 изменений.
+
+Перед merge:
+- синхронизировать ветку с последним main;
+- выполнить финальный полный Quality Gate;
+- production canary на обычном playback + 2–3 клиента Watch Together;
+- применить username migration вместе с production deploy.
