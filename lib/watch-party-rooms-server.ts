@@ -8,6 +8,12 @@ import {
   userClient,
 } from '@/lib/community-server';
 import { WATCH_PARTY_MAX_PARTICIPANTS } from '@/lib/watch-party';
+import {
+  readWatchPartyTheme,
+  type WatchPartyTheme,
+} from '@/lib/watch-party-premium';
+import { getEffectiveUserEntitlements } from '@/lib/entitlements-server';
+import { getEffectivePremiumState } from '@/lib/premium-server';
 import { consumeRateLimit } from '@/lib/api-rate-limit';
 
 export type WatchPartyRoomVisibility = 'public' | 'unlisted' | 'private';
@@ -143,6 +149,20 @@ export async function createWatchPartyRoom(input: Record<string, unknown>) {
     Number.isSafeInteger(animeIdRaw) && animeIdRaw > 0 ? animeIdRaw : null;
   const episode = positiveInt(input.episode);
   const visibility = roomVisibility(input.visibility);
+  const roomTheme: WatchPartyTheme = readWatchPartyTheme(input.roomTheme);
+
+  if (roomTheme !== 'default') {
+    const lifecycle = await getEffectivePremiumState(user.id);
+    const entitlements = await getEffectiveUserEntitlements(user.id);
+
+    if (!lifecycle.active || !entitlements.watchPartyThemes) {
+      throw new ApiError(
+        403,
+        'Темы Watch Together доступны с AnimeBox Premium.',
+      );
+    }
+  }
+
   const roomCode = await uniqueRoomCode();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 8 * 60 * 60 * 1000).toISOString();
@@ -173,6 +193,7 @@ export async function createWatchPartyRoom(input: Record<string, unknown>) {
       participant_count: 1,
       max_participants: WATCH_PARTY_MAX_PARTICIPANTS,
       room_code: roomCode,
+      room_theme: roomTheme,
       created_at: now.toISOString(),
       updated_at: now.toISOString(),
       last_heartbeat_at: now.toISOString(),
@@ -180,7 +201,7 @@ export async function createWatchPartyRoom(input: Record<string, unknown>) {
       ended_at: null,
     })
     .select(
-      'id,host_user_id,anime_id,anime_slug,anime_title,cover_url,episode,visibility,status,language,participant_count,max_participants,room_code,created_at,updated_at,last_heartbeat_at,expires_at',
+      'id,host_user_id,anime_id,anime_slug,anime_title,cover_url,episode,visibility,status,language,participant_count,max_participants,room_code,room_theme,created_at,updated_at,last_heartbeat_at,expires_at',
     )
     .single();
 
@@ -238,7 +259,7 @@ export async function resolveWatchPartyRoomForJoin(input: {
   let query = admin
     .from('watch_party_rooms')
     .select(
-      'id,join_secret,anime_slug,anime_title,episode,visibility,status,participant_count,max_participants,room_code,last_heartbeat_at,expires_at',
+      'id,join_secret,anime_slug,anime_title,episode,visibility,status,participant_count,max_participants,room_code,room_theme,last_heartbeat_at,expires_at',
     )
     .neq('status', 'ended')
     .gte('last_heartbeat_at', staleBefore)
@@ -262,6 +283,7 @@ export async function resolveWatchPartyRoomForJoin(input: {
     roomId: room.id,
     joinSecret: room.join_secret,
     roomCode: room.room_code,
+    roomTheme: readWatchPartyTheme(room.room_theme),
     animeSlug: room.anime_slug,
     animeTitle: room.anime_title,
     episode: room.episode,
@@ -315,7 +337,7 @@ export async function listPublicWatchPartyRooms(limit = 12) {
   const { data, error } = await admin
     .from('watch_party_rooms')
     .select(
-      'id,host_user_id,anime_id,anime_slug,anime_title,cover_url,episode,visibility,status,language,participant_count,max_participants,room_code,created_at,updated_at,last_heartbeat_at,expires_at',
+      'id,host_user_id,anime_id,anime_slug,anime_title,cover_url,episode,visibility,status,language,participant_count,max_participants,room_code,room_theme,created_at,updated_at,last_heartbeat_at,expires_at',
     )
     .eq('visibility', 'public')
     .neq('status', 'ended')
@@ -345,6 +367,7 @@ export async function listPublicWatchPartyRooms(limit = 12) {
   return rows.map((row) => ({
     roomId: row.id,
     roomCode: row.room_code,
+    roomTheme: readWatchPartyTheme(row.room_theme),
     animeId: row.anime_id,
     animeSlug: row.anime_slug,
     animeTitle: row.anime_title,
