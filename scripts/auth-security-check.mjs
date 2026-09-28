@@ -8,6 +8,9 @@ const modal = read('components/AuthModalProvider.tsx');
 const route = read('app/api/auth/email/route.ts');
 const profileRoute = read('app/api/profile/editor/route.ts');
 const migration = read('supabase/migrations/20260924155743_auth_security_username_reservations_v1.sql');
+const moderationMigration = read('supabase/migrations/20260929003100_patch21_username_moderation_v1.sql');
+const identityPolicy = read('lib/auth-identity-policy.ts');
+const leaderboardRoute = read('app/api/community/leaderboard/route.ts');
 
 const failures = [];
 
@@ -35,6 +38,23 @@ if (!profileRoute.includes('usernamePolicyError')) {
 }
 if (!migration.includes('profiles_username_policy') || !migration.includes('USERNAME_RESERVED')) {
   failures.push('database reserved username trigger is missing');
+}
+if (
+  !identityPolicy.includes('isProhibitedUsername') ||
+  !identityPolicy.includes('publicUsernameOrFallback') ||
+  !identityPolicy.includes('Ник содержит недопустимое слово')
+) {
+  failures.push('application username profanity policy is missing');
+}
+if (
+  !moderationMigration.includes('animebox_username_is_prohibited') ||
+  !moderationMigration.includes('USERNAME_PROHIBITED') ||
+  !moderationMigration.includes('update public.profiles')
+) {
+  failures.push('database username profanity trigger / legacy cleanup is missing');
+}
+if (!leaderboardRoute.includes('publicUsernameOrFallback(row.username, row.user_id)')) {
+  failures.push('leaderboard does not sanitize legacy public usernames');
 }
 
 if (failures.length) {
