@@ -1450,9 +1450,23 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
               <button
                 type="button"
                 className={theaterStyles.exitButton}
+                aria-label="Выйти из комнаты и вернуться к серии"
+                title="Выйти из Watch Together"
                 onClick={() => window.dispatchEvent(new Event(WATCH_PARTY_EXIT_EVENT))}
               >
-                ← К серии
+                <span className={theaterStyles.exitButtonIcon} aria-hidden="true">
+                  <svg viewBox="0 0 20 20" fill="none">
+                    <path
+                      d="M8.25 4.75 3 10l5.25 5.25M3.5 10H17"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+                <span className={theaterStyles.exitButtonLabel}>Выйти из комнаты</span>
+                <span className={theaterStyles.exitButtonLabelCompact}>К серии</span>
               </button>
             </div>
           </header>
