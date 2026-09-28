@@ -123,12 +123,26 @@ export async function POST(request: Request) {
         return json({ error: 'Эта почта уже используется.' }, 409);
       }
 
-      if (/USERNAME_RESERVED|Database error saving new user/i.test(error.message)) {
+      if (/USERNAME_RESERVED/i.test(error.message)) {
         return json(
           { error: 'Этот ник зарезервирован AnimeBox. Выбери другое имя.' },
           400,
         );
       }
+      if (/USERNAME_PROHIBITED/i.test(error.message)) {
+        return json(
+          { error: 'Ник содержит недопустимое слово. Выбери нейтральное имя.' },
+          400,
+        );
+      }
+
+      if (/Database error saving new user/i.test(error.message)) {
+        return json(
+          { error: 'Не удалось создать профиль. Попробуй другое имя.' },
+          400,
+        );
+      }
+
 
       console.error('[Auth security] signup failed', {
         code: error.code,
