@@ -145,6 +145,7 @@ export type WatchPartyPacket =
   | {
       type: 'PLAYER_APPLY';
       seq: number;
+      hostEpoch?: number;
       actionId: string;
       actorUserId: string;
       actorName: string;
@@ -156,10 +157,16 @@ export type WatchPartyPacket =
   | {
       type: 'PLAYER_SYNC';
       seq: number;
+      hostEpoch?: number;
       episode: number;
       position: number;
       playing: boolean;
       sentAt: number;
+    }
+  | {
+      type: 'PLAYER_SYNC_REQUEST';
+      sentAt: number;
+      hostEpoch?: number;
     }
   | {
       type: 'EPISODE_CHANGE';
@@ -403,6 +410,11 @@ function parseSequence(value: unknown) {
   return Number.isSafeInteger(seq) && seq >= 0 && seq <= Number.MAX_SAFE_INTEGER ? seq : null;
 }
 
+function parseOptionalSequence(value: unknown) {
+  if (value == null) return undefined;
+  return parseSequence(value) ?? null;
+}
+
 function parseMessageId(value: unknown) {
   return typeof value === 'string' && MESSAGE_ID_RE.test(value) ? value : null;
 }
@@ -592,9 +604,12 @@ export function parseWatchPartyPacket(value: unknown): WatchPartyPacket | null {
       ) {
         return null;
       }
+      const hostEpoch = parseOptionalSequence(record.hostEpoch);
+      if (hostEpoch === null) return null;
       return {
         type: 'PLAYER_APPLY',
         seq,
+        hostEpoch,
         actionId,
         actorUserId,
         actorName,
@@ -613,7 +628,24 @@ export function parseWatchPartyPacket(value: unknown): WatchPartyPacket | null {
       if (seq == null || !episode || position == null || !sentAt || typeof record.playing !== 'boolean') {
         return null;
       }
-      return { type: 'PLAYER_SYNC', seq, episode, position, playing: record.playing, sentAt };
+      const hostEpoch = parseOptionalSequence(record.hostEpoch);
+      if (hostEpoch === null) return null;
+      return {
+        type: 'PLAYER_SYNC',
+        seq,
+        hostEpoch,
+        episode,
+        position,
+        playing: record.playing,
+        sentAt,
+      };
+    }
+
+    case 'PLAYER_SYNC_REQUEST': {
+      const sentAt = parseTimestamp(record.sentAt);
+      const hostEpoch = parseOptionalSequence(record.hostEpoch);
+      if (!sentAt || hostEpoch === null) return null;
+      return { type: 'PLAYER_SYNC_REQUEST', sentAt, hostEpoch };
     }
 
     case 'EPISODE_CHANGE': {
