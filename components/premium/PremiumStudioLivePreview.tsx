@@ -86,6 +86,7 @@ export default function PremiumStudioLivePreview({
   avatarTransform,
   bannerTransform,
   username = 'Твой профиль',
+  bio = 'Расскажи немного о себе и своих любимых аниме.',
   profileFrameKey = null,
   context = 'profile',
 }: {
@@ -95,6 +96,7 @@ export default function PremiumStudioLivePreview({
   avatarTransform: PremiumMediaTransform;
   bannerTransform: PremiumMediaTransform;
   username?: string;
+  bio?: string;
   profileFrameKey?: string | null;
   context?: PreviewContext;
 }) {
@@ -232,10 +234,7 @@ export default function PremiumStudioLivePreview({
             </span>
           </h3>
 
-          <p>
-            Твоё оформление объединяет цвета, атмосферу и эффекты в один стиль,
-            который сохраняется во всём AnimeBox.
-          </p>
+          <p>{bio.trim() || 'Расскажи немного о себе и своих любимых аниме.'}</p>
 
           <div className="premium-studio-v15__preview-chips">
             <i>Оформление профиля</i>
@@ -243,23 +242,13 @@ export default function PremiumStudioLivePreview({
             <i>Свечение {settings.glowStrength}%</i>
           </div>
 
-          <div className="premium-studio-v16__preview-stats">
-            <span><b>29ч</b><small>просмотр</small></span>
-            <span><b>51</b><small>серия</small></span>
-            <span><b>7</b><small>в списках</small></span>
-          </div>
-
-          <div className="premium-studio-v16__preview-library">
-            <i />
-            <span>
-              <strong>Продолжить просмотр</strong>
-              <small>Последний тайтл · 18 серия</small>
-            </span>
-            <b>→</b>
+          <div className="premium-studio-v23__preview-meta">
+            <span>В AnimeBox с недавнего времени</span>
+            <span>Аккаунт активен</span>
           </div>
         </div>
 
-        <button type="button">Акцентная кнопка</button>
+        <button type="button">Редактировать профиль</button>
         <div className="premium-studio-v12__fake-progress"><span /></div>
       </div>
     </section>
