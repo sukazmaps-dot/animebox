@@ -643,6 +643,7 @@ export default function WatchPartyPanel({
         position: action.position,
         playing: nextPlaying,
         seq,
+        commandKind: 'action',
       });
     }
 
@@ -1205,6 +1206,7 @@ export default function WatchPartyPanel({
           position: packet.position,
           playing,
           seq: packet.seq,
+          commandKind: 'action',
         });
         return;
       }
@@ -1223,6 +1225,7 @@ export default function WatchPartyPanel({
             position: networkAdjusted,
             playing: packet.playing,
             seq: packet.seq,
+            commandKind: 'sync',
           });
           return;
         }
@@ -1237,6 +1240,7 @@ export default function WatchPartyPanel({
             position: networkAdjusted,
             playing: packet.playing,
             seq: packet.seq,
+            commandKind: 'sync',
           });
         } else if (drift >= PLAYER_DRIFT_SEEK_SECONDS) {
           const now = Date.now();
@@ -1262,6 +1266,7 @@ export default function WatchPartyPanel({
             position: networkAdjusted,
             playing: packet.playing,
             seq: packet.seq,
+            commandKind: 'sync',
           });
         }
         return;
@@ -1503,6 +1508,7 @@ export default function WatchPartyPanel({
               position: packet.position,
               playing,
               seq: packet.seq,
+              commandKind: 'action',
             });
             return;
           }
@@ -1529,6 +1535,7 @@ export default function WatchPartyPanel({
                 position: networkAdjusted,
                 playing: packet.playing,
                 seq: packet.seq,
+                commandKind: 'sync',
               });
               return;
             }
@@ -1542,6 +1549,7 @@ export default function WatchPartyPanel({
                 position: networkAdjusted,
                 playing: packet.playing,
                 seq: packet.seq,
+                commandKind: 'sync',
               });
             } else if (drift >= PLAYER_DRIFT_SEEK_SECONDS) {
               const now = Date.now();
@@ -1567,6 +1575,7 @@ export default function WatchPartyPanel({
                 position: networkAdjusted,
                 playing: packet.playing,
                 seq: packet.seq,
+                commandKind: 'sync',
               });
             }
             return;
