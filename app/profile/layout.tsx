@@ -7,6 +7,7 @@ import '../profile-editor-v13.css';
 import '../patch16-6-5-profile-studio.css';
 import '../patch17-4-2-2-public-profile-grid.css';
 import '../premium-profile-v14.css';
+import '../patch20-2-premium-v2.css';
 
 import '../community.css';
 import '../sponsor-v2.css';
