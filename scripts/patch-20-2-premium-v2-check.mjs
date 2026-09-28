@@ -113,4 +113,21 @@ const studioDemo = read('components/premium/PremiumStudioClient.tsx');
 mustInclude(studioDemo, 'PREMIUM STUDIO · DEMO', 'free Premium Scene demo');
 mustInclude(studioDemo, 'Сохранить с Premium', 'contextual Premium demo conversion');
 
+const showcaseApi = read('app/api/community/profile-widgets/route.ts');
+mustInclude(showcaseApi, 'extraShowcases', 'Premium Showcase entitlement');
+mustInclude(showcaseApi, 'maxFavorites: extraShowcases ? 12 : 6', 'Premium Showcase capacity');
+
+const widgetEditor = read('components/profile/ProfileWidgetEditor.tsx');
+mustInclude(widgetEditor, 'maxFavorites', 'Premium Showcase editor capacity');
+
+mustInclude(migration, 'v_max_favorites int := 6', 'database Showcase capacity guard');
+mustInclude(migration, "e.entitlement = 'extraShowcases'", 'database Showcase entitlement guard');
+
+const identityApi = read('app/api/watch-party/identities/route.ts');
+mustInclude(identityApi, "entitlement', 'watchPartyReactions'", 'reaction entitlement lookup');
+mustInclude(identityApi, 'watchPartyReactions: reactionUsers.has(profile.id)', 'reaction entitlement projection');
+
+mustInclude(watchPanel, 'premiumReactionsAllowed', 'Premium reaction UI gate');
+mustInclude(watchPanel, 'isPremiumWatchPartyReaction(reaction)', 'host reaction entitlement gate');
+
 console.log('Patch 20.2 Premium 2.0 contract checks passed.');
