@@ -1091,7 +1091,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
             avatarTransform={avatarTransform}
             bannerTransform={bannerTransform}
             context={previewContext}
-                username={effectiveUsername}
+            username={effectiveUsername}
           />
         </div>
 
@@ -1656,7 +1656,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                     avatarTransform={avatarTransform}
                     bannerTransform={bannerTransform}
                     context={previewContext}
-                username={effectiveUsername}
+                    username={effectiveUsername}
                   />
                 </div>
 
