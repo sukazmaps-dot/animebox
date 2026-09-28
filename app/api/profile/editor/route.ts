@@ -587,6 +587,9 @@ export async function POST(request: Request) {
       if (error && /USERNAME_RESERVED/i.test(error.message)) {
         throw new ApiError(400, 'Этот ник зарезервирован AnimeBox. Выбери другое имя.');
       }
+      if (error && /USERNAME_PROHIBITED/i.test(error.message)) {
+        throw new ApiError(400, 'Ник содержит недопустимое слово. Выбери нейтральное имя.');
+      }
       if (error) {
         console.error('[ProfileEditor] profile update failed:', error);
         throw new ApiError(503, 'Не удалось записать профиль в базу данных. Попробуйте ещё раз.');
