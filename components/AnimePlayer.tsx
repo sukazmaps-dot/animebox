@@ -2276,6 +2276,8 @@ export default function AnimePlayer({
       );
     }
     failedCandidatesRef.current.delete(currentCandidateKey);
+    openingAutoSkipCandidateRef.current = null;
+    previousPlaybackSampleRef.current = null;
     sourceSelectionReasonRef.current = 'retry';
     setPlayerError(null);
     setPlayerFailureKind(null);
@@ -2408,6 +2410,8 @@ export default function AnimePlayer({
     }, true);
 
     sourceSelectionReasonRef.current = reason;
+    openingAutoSkipCandidateRef.current = null;
+    previousPlaybackSampleRef.current = null;
     if (started) {
       playRequestAtRef.current = performance.now();
       if (latestPlaybackPositionSecondsRef.current > 0) {
@@ -2479,6 +2483,8 @@ export default function AnimePlayer({
     }
 
     sourceSelectionReasonRef.current = 'translation';
+    openingAutoSkipCandidateRef.current = null;
+    previousPlaybackSampleRef.current = null;
     if (started) {
       playRequestAtRef.current = performance.now();
       if (latestPlaybackPositionSecondsRef.current > 0) {
@@ -2533,6 +2539,8 @@ export default function AnimePlayer({
 
   function startPlayback() {
     endedFlowRef.current = false;
+    openingAutoSkipCandidateRef.current = null;
+    previousPlaybackSampleRef.current = null;
     setEndScreenOpen(false);
     setAutoNextSeconds(null);
     setSkipOpeningVisible(false);
