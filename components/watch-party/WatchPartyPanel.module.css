@@ -2945,7 +2945,7 @@
     height: min(
       100%,
       calc(
-        100dvh
+        var(--animebox-wt-viewport-height, 100dvh)
         - var(--wt-mobile-player-height, 210px)
         - 58px
         - max(8px, env(safe-area-inset-bottom))
@@ -2967,7 +2967,7 @@
     height: clamp(
       120px,
       calc(
-        100dvh
+        var(--animebox-wt-viewport-height, 100dvh)
         - var(--wt-mobile-player-height, 210px)
         - 178px
         - env(safe-area-inset-bottom)
@@ -3055,7 +3055,7 @@
     height: clamp(
       110px,
       calc(
-        100dvh
+        var(--animebox-wt-viewport-height, 100dvh)
         - var(--wt-mobile-player-height, 200px)
         - 174px
         - env(safe-area-inset-bottom)

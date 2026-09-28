@@ -145,6 +145,11 @@ export default function OnboardingPage() {
           return;
         }
 
+        if (/USERNAME_PROHIBITED/i.test(profileError.message)) {
+          setError('Ник содержит недопустимое слово. Выбери нейтральное имя.');
+          return;
+        }
+
         if (profileError.code === '23505') {
           setError(
             'Этот ник уже занят. Попробуй другой.',

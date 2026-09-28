@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 
+import { usernamePolicyError } from '@/lib/auth-identity-policy';
 import { createClient } from '@/lib/supabase/client';
 
 type SavedProfile = {
@@ -250,14 +251,9 @@ export default function ProfileEditModal({
 
     setError('');
 
-    if (
-      cleanUsername.length < 3 ||
-      cleanUsername.length > 24
-    ) {
-      setError(
-        'Ник должен содержать от 3 до 24 символов.',
-      );
-
+    const usernameError = usernamePolicyError(cleanUsername);
+    if (usernameError) {
+      setError(usernameError);
       return;
     }
 
@@ -411,6 +407,16 @@ export default function ProfileEditModal({
             'Этот ник уже занят.',
           );
 
+          return;
+        }
+
+        if (/USERNAME_PROHIBITED/i.test(updateError.message)) {
+          setError('Ник содержит недопустимое слово. Выбери нейтральное имя.');
+          return;
+        }
+
+        if (/USERNAME_RESERVED/i.test(updateError.message)) {
+          setError('Этот ник зарезервирован AnimeBox. Выбери другое имя.');
           return;
         }
 

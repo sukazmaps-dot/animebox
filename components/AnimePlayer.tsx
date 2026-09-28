@@ -22,6 +22,10 @@ import {
   saveWatchProgress,
 } from '@/lib/watch-progress';
 import { chooseResumeCandidate } from '@/lib/resume-integrity';
+import {
+  ASYNC_RESUME_PLAYBACK_GUARD_SECONDS,
+  shouldAcceptAsyncResumeDecision,
+} from '@/lib/playback-continuity';
 import { setAnimeProgress } from '@/lib/anime-storage';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 import {
@@ -500,6 +504,7 @@ export default function AnimePlayer({
   const lastLocalProgressSavedAtRef = useRef(0);
   const playbackQualifiedRef = useRef(false);
   const endedFlowRef = useRef(false);
+  const episodeTransitionCommittedRef = useRef(false);
   const openingAutoSkipAttemptedRef = useRef(false);
   const openingSkipTargetRef = useRef<number | null>(null);
   const openingAutoSkipCandidateRef = useRef<{
@@ -523,6 +528,7 @@ export default function AnimePlayer({
   const telegramVerticalSwipesWereEnabledRef = useRef<boolean | null>(null);
   const partySuppressUntilRef = useRef(0);
   const pendingPartyCommandRef = useRef<WatchPartyPlayerCommandDetail | null>(null);
+  const lastAppliedPartyCommandSeqRef = useRef(-1);
   const lastPartyActionRef = useRef<{
     action: WatchPartyPlayerAction;
     position: number;
@@ -709,6 +715,17 @@ export default function AnimePlayer({
     remote: boolean,
   ) => {
     if (detail.episode !== episodeNumber) return;
+
+    const syncCorrection = detail.commandKind === 'sync';
+
+    if (remote && detail.seq > 0) {
+      const staleSequence = syncCorrection
+        ? detail.seq < lastAppliedPartyCommandSeqRef.current
+        : detail.seq <= lastAppliedPartyCommandSeqRef.current;
+
+      if (staleSequence) return;
+    }
+
     if (remote) partySuppressUntilRef.current = Date.now() + 2_800;
 
     const target = Math.max(0, Math.min(28_800, detail.position));
@@ -722,16 +739,38 @@ export default function AnimePlayer({
       }
 
       const state = player.getState();
-      if (detail.action === 'seek' || Math.abs(state.positionSeconds - target) > 2.2) {
+      const drift = Math.abs(state.positionSeconds - target);
+      const shouldSeek =
+        detail.action === 'seek'
+          ? drift > 0.35
+          : drift > 2.2;
+
+      if (shouldSeek) {
         player.seek(target);
       }
-      if (detail.action === 'play') player.play();
-      if (detail.action === 'pause') player.pause();
+      if (detail.action === 'play' && !state.playing) {
+        player.play();
+      }
+      if (detail.action === 'pause' && state.playing) {
+        player.pause();
+      }
+
+      if (
+        remote &&
+        detail.seq > lastAppliedPartyCommandSeqRef.current
+      ) {
+        lastAppliedPartyCommandSeqRef.current = detail.seq;
+      }
 
       publishPartyState({
-        position: target,
+        position: shouldSeek ? target : state.positionSeconds,
         duration: state.durationSeconds,
-        playing: detail.action === 'play' ? true : detail.action === 'pause' ? false : detail.playing,
+        playing:
+          detail.action === 'play'
+            ? true
+            : detail.action === 'pause'
+              ? false
+              : state.playing,
       });
       return;
     }
@@ -743,7 +782,13 @@ export default function AnimePlayer({
       return;
     }
 
-    if (detail.action === 'seek' || Math.abs(video.currentTime - target) > 2.2) {
+    const drift = Math.abs(video.currentTime - target);
+    const shouldSeek =
+      detail.action === 'seek'
+        ? drift > 0.35
+        : drift > 2.2;
+
+    if (shouldSeek) {
       try {
         video.currentTime = target;
       } catch {
@@ -751,16 +796,25 @@ export default function AnimePlayer({
       }
     }
 
-    if (detail.action === 'play') {
+    if (detail.action === 'play' && video.paused) {
       void video.play().catch(() => undefined);
-    } else if (detail.action === 'pause') {
+    } else if (detail.action === 'pause' && !video.paused) {
       video.pause();
     }
 
+    if (remote && detail.seq > 0) {
+      lastAppliedPartyCommandSeqRef.current = detail.seq;
+    }
+
     publishPartyState({
-      position: target,
+      position: shouldSeek ? target : video.currentTime,
       duration: Number.isFinite(video.duration) && video.duration > 0 ? video.duration : null,
-      playing: detail.action === 'play' ? true : detail.action === 'pause' ? false : !video.paused,
+      playing:
+        detail.action === 'play'
+          ? true
+          : detail.action === 'pause'
+            ? false
+            : !video.paused,
     });
   }, [episodeNumber, isKodik, publishPartyState, started]);
 
@@ -865,6 +919,18 @@ export default function AnimePlayer({
       if (!smartSeekSupported || watchTogetherMode) return false;
 
       const fromSeconds = latestPlaybackPositionSecondsRef.current;
+      const pendingTarget = openingSkipTargetRef.current;
+
+      if (
+        pendingTarget != null &&
+        fromSeconds < Math.max(0, pendingTarget - 1.5)
+      ) {
+        // A previous OP seek is still waiting for provider acknowledgement.
+        // Re-clicks, stale time samples or an already armed auto-candidate
+        // must not enqueue another seek to the same boundary.
+        return true;
+      }
+
       const durationSeconds =
         observedDurationSeconds != null &&
         Number.isFinite(observedDurationSeconds) &&
@@ -935,6 +1001,8 @@ export default function AnimePlayer({
         return false;
       }
 
+      openingAutoSkipAttemptedRef.current = true;
+      openingAutoSkipCandidateRef.current = null;
       openingSkipTargetRef.current = targetSeconds;
       setSkipOpeningVisible(false);
       clearOpeningSkipFallback();
@@ -1298,7 +1366,9 @@ export default function AnimePlayer({
 
   const continueFromEndScreen = useCallback(() => {
     if (!hasNext || !onEnded) return;
+    if (episodeTransitionCommittedRef.current) return;
 
+    episodeTransitionCommittedRef.current = true;
     setEndScreenOpen(false);
     setAutoNextSeconds(null);
     onEnded();
@@ -1384,6 +1454,7 @@ export default function AnimePlayer({
 
   useEffect(() => {
     endedFlowRef.current = false;
+    episodeTransitionCommittedRef.current = false;
     openingAutoSkipAttemptedRef.current = false;
     openingSkipTargetRef.current = null;
     openingAutoSkipCandidateRef.current = null;
@@ -1407,6 +1478,8 @@ export default function AnimePlayer({
 
 
   useEffect(() => {
+    if (!watchTogetherMode) return;
+
     function onPartyCommand(event: Event) {
       const detail = (event as CustomEvent<WatchPartyPlayerCommandDetail>).detail;
       if (!detail) return;
@@ -1448,7 +1521,7 @@ export default function AnimePlayer({
       window.removeEventListener(WATCH_PARTY_PLAYER_COMMAND_EVENT, onPartyCommand);
       window.removeEventListener(WATCH_PARTY_PLAYER_CONTROL_EVENT, onPartyControl);
     };
-  }, [applyPartyCommand, episodeNumber, publishPartyAction]);
+  }, [applyPartyCommand, episodeNumber, publishPartyAction, watchTogetherMode]);
 
   useEffect(() => {
     const pending = pendingPartyCommandRef.current;
@@ -1473,6 +1546,10 @@ export default function AnimePlayer({
     partySuppressUntilRef.current = 0;
     lastPartyActionRef.current = null;
   }, [episodeNumber, isKodik, videoLink]);
+
+  useEffect(() => {
+    lastAppliedPartyCommandSeqRef.current = -1;
+  }, [episodeNumber]);
 
   const episodeMeta = totalEpisodes
     ? totalEpisodesKnown
@@ -1665,6 +1742,25 @@ export default function AnimePlayer({
           nowMs,
         });
 
+        const acceptAsyncResume = shouldAcceptAsyncResumeDecision({
+          observedPositionSeconds:
+            latestPlaybackPositionSecondsRef.current,
+          activeOrigin: resumeOriginRef.current,
+        });
+
+        if (!acceptAsyncResume) {
+          trackPlayerEvent('player_resume_conflict', {
+            localSeconds: localPosition,
+            serverSeconds: positionSeconds,
+            deltaSeconds: Math.abs(localPosition - positionSeconds),
+            selected: 'active_playback',
+            activeOrigin: resumeOriginRef.current,
+            observedPositionSeconds:
+              latestPlaybackPositionSecondsRef.current,
+          });
+          return;
+        }
+
         if (
           localUsable &&
           serverUsable &&
@@ -1792,7 +1888,7 @@ export default function AnimePlayer({
       }
 
       // Do not pull the viewer backwards if playback already advanced.
-      if (video.currentTime > 5) {
+      if (video.currentTime > ASYNC_RESUME_PLAYBACK_GUARD_SECONDS) {
         resumeAppliedRef.current = true;
         return;
       }

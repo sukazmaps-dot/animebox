@@ -327,7 +327,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
       window.clearTimeout(pauseInferenceTimerRef.current);
       pauseInferenceTimerRef.current = null;
     }
-  }, [playerSrc, resumeSeconds]);
+  }, [playerSrc]);
 
   useEffect(() => {
     function clearSyntheticEndTimer() {

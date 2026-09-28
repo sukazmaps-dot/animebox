@@ -15,6 +15,7 @@ import {
 } from '@/lib/supabase/admin';
 import { enforceIpRateLimit } from '@/lib/api-rate-limit';
 import { readJsonBody } from '@/lib/community-server';
+import { generatedUsernameOrFallback } from '@/lib/auth-identity-policy';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -69,9 +70,9 @@ function makeUsername(
       `user${String(user.id).slice(-8)}`;
   }
 
-  return value.slice(
-    0,
-    24,
+  return generatedUsernameOrFallback(
+    value.slice(0, 24),
+    String(user.id),
   );
 }
 
