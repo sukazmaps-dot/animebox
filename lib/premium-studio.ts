@@ -53,6 +53,25 @@ export type PremiumHeroStyle = (typeof PREMIUM_HERO_STYLES)[number];
 export const PREMIUM_SURFACE_STYLES = ['glass', 'deep', 'ink'] as const;
 export type PremiumSurfaceStyle = (typeof PREMIUM_SURFACE_STYLES)[number];
 
+export const PREMIUM_PROFILE_LAYOUTS = ['classic', 'cinema', 'collector', 'minimal'] as const;
+export type PremiumProfileLayout = (typeof PREMIUM_PROFILE_LAYOUTS)[number];
+
+export const PREMIUM_SCENE_PRESETS = [
+  'aurora',
+  'sakura',
+  'embers',
+  'stardust',
+  'midnight',
+] as const;
+export type PremiumScenePreset = (typeof PREMIUM_SCENE_PRESETS)[number];
+
+export type PremiumSceneContext =
+  | 'profile'
+  | 'mini'
+  | 'comment'
+  | 'watch-party'
+  | 'leaderboard';
+
 export type PremiumMediaTransform = {
   x: number;
   y: number;
@@ -85,6 +104,7 @@ export type PremiumStudioSettings = {
   nicknameEffect: PremiumNicknameEffect;
   heroStyle: PremiumHeroStyle;
   surfaceStyle: PremiumSurfaceStyle;
+  profileLayout: PremiumProfileLayout;
 };
 
 export const DEFAULT_PREMIUM_STUDIO_SETTINGS: PremiumStudioSettings = {
@@ -113,6 +133,103 @@ export const DEFAULT_PREMIUM_STUDIO_SETTINGS: PremiumStudioSettings = {
   nicknameEffect: 'gradient',
   heroStyle: 'cinematic',
   surfaceStyle: 'glass',
+  profileLayout: 'classic',
+};
+
+
+export const PREMIUM_SCENE_PRESET_META: Record<
+  PremiumScenePreset,
+  {
+    label: string;
+    description: string;
+    theme: PremiumProfileTheme;
+    atmosphereEffect: PremiumAtmosphereEffect;
+    particleEffect: PremiumParticleEffect;
+    motionMode: PremiumMotionMode;
+    entranceEffect: PremiumEntranceEffect;
+    nicknameEffect: PremiumNicknameEffect;
+    heroStyle: PremiumHeroStyle;
+    surfaceStyle: PremiumSurfaceStyle;
+    primaryColor: string;
+    accentColor: string;
+    textColor: string;
+  }
+> = {
+  aurora: {
+    label: 'Aurora',
+    description: 'Холодное мягкое свечение и спокойная северная атмосфера.',
+    theme: 'violet',
+    atmosphereEffect: 'aurora',
+    particleEffect: 'nebula',
+    motionMode: 'soft',
+    entranceEffect: 'bloom',
+    nicknameEffect: 'gradient',
+    heroStyle: 'cinematic',
+    surfaceStyle: 'glass',
+    primaryColor: '#0C1324',
+    accentColor: '#8B7CFF',
+    textColor: '#F7F5FF',
+  },
+  sakura: {
+    label: 'Sakura',
+    description: 'Тёмная сакура, редкие лепестки и мягкий розовый акцент.',
+    theme: 'sakura',
+    atmosphereEffect: 'sakura',
+    particleEffect: 'sakura',
+    motionMode: 'soft',
+    entranceEffect: 'fade',
+    nicknameEffect: 'gradient',
+    heroStyle: 'spotlight',
+    surfaceStyle: 'glass',
+    primaryColor: '#24101E',
+    accentColor: '#FF6FAF',
+    textColor: '#FFF4F9',
+  },
+  embers: {
+    label: 'Embers',
+    description: 'Глубокий тёмный профиль с редкими искрами и тёплым светом.',
+    theme: 'crimson',
+    atmosphereEffect: 'embers',
+    particleEffect: 'none',
+    motionMode: 'soft',
+    entranceEffect: 'bloom',
+    nicknameEffect: 'glow',
+    heroStyle: 'cinematic',
+    surfaceStyle: 'deep',
+    primaryColor: '#1B0D12',
+    accentColor: '#FF654F',
+    textColor: '#FFF5F2',
+  },
+  stardust: {
+    label: 'Stardust',
+    description: 'Звёздная глубина, лёгкое мерцание и холодный ночной свет.',
+    theme: 'midnight',
+    atmosphereEffect: 'stardust',
+    particleEffect: 'stars',
+    motionMode: 'soft',
+    entranceEffect: 'fade',
+    nicknameEffect: 'shimmer',
+    heroStyle: 'spotlight',
+    surfaceStyle: 'glass',
+    primaryColor: '#081426',
+    accentColor: '#6F8DFF',
+    textColor: '#F4F7FF',
+  },
+  midnight: {
+    label: 'Midnight',
+    description: 'Почти без частиц: строгий тёмный Premium для минималистов.',
+    theme: 'midnight',
+    atmosphereEffect: 'none',
+    particleEffect: 'none',
+    motionMode: 'off',
+    entranceEffect: 'fade',
+    nicknameEffect: 'none',
+    heroStyle: 'clean',
+    surfaceStyle: 'ink',
+    primaryColor: '#080C14',
+    accentColor: '#7890B8',
+    textColor: '#F3F6FB',
+  },
 };
 
 export const PREMIUM_PROFILE_THEME_META: Record<
@@ -214,6 +331,10 @@ export function isPremiumSurfaceStyle(value: string): value is PremiumSurfaceSty
   return (PREMIUM_SURFACE_STYLES as readonly string[]).includes(value);
 }
 
+export function isPremiumProfileLayout(value: string): value is PremiumProfileLayout {
+  return (PREMIUM_PROFILE_LAYOUTS as readonly string[]).includes(value);
+}
+
 export function isHexColor(value: string): boolean {
   return HEX_COLOR_RE.test(value);
 }
@@ -266,6 +387,7 @@ export function studioSettingsFromRow(
   const rawNickname = stringOrNull(row.nickname_effect) ?? 'none';
   const rawHero = stringOrNull(row.hero_style) ?? 'cinematic';
   const rawSurface = stringOrNull(row.surface_style) ?? 'glass';
+  const rawLayout = stringOrNull(row.profile_layout) ?? 'classic';
 
   return {
     theme: isPremiumProfileTheme(rawTheme) ? rawTheme : 'default',
@@ -305,6 +427,59 @@ export function studioSettingsFromRow(
     nicknameEffect: isPremiumNicknameEffect(rawNickname) ? rawNickname : 'none',
     heroStyle: isPremiumHeroStyle(rawHero) ? rawHero : 'cinematic',
     surfaceStyle: isPremiumSurfaceStyle(rawSurface) ? rawSurface : 'glass',
+    profileLayout: isPremiumProfileLayout(rawLayout) ? rawLayout : 'classic',
+  };
+}
+
+export function applyPremiumScenePreset(
+  scene: PremiumScenePreset,
+  current: PremiumStudioSettings = DEFAULT_PREMIUM_STUDIO_SETTINGS,
+): PremiumStudioSettings {
+  const preset = PREMIUM_SCENE_PRESET_META[scene];
+
+  return {
+    ...current,
+    theme: preset.theme,
+    primaryColor: preset.primaryColor,
+    accentColor: preset.accentColor,
+    textColor: preset.textColor,
+    atmosphereEffect: preset.atmosphereEffect,
+    particleEffect: preset.particleEffect,
+    motionMode: preset.motionMode,
+    entranceEffect: preset.entranceEffect,
+    nicknameEffect: preset.nicknameEffect,
+    heroStyle: preset.heroStyle,
+    surfaceStyle: preset.surfaceStyle,
+  };
+}
+
+export function premiumSceneRenderLevel(context: PremiumSceneContext) {
+  if (context === 'profile') return 1;
+  if (context === 'mini') return 0.62;
+  if (context === 'watch-party') return 0.34;
+  if (context === 'comment') return 0.24;
+  return 0.18;
+}
+
+export function premiumSceneContextSettings(
+  settings: PremiumStudioSettings,
+  context: PremiumSceneContext,
+): PremiumStudioSettings {
+  const level = premiumSceneRenderLevel(context);
+
+  if (level >= 1) return settings;
+
+  return {
+    ...settings,
+    glowStrength: Math.round(settings.glowStrength * level),
+    atmosphereIntensity: Math.round(settings.atmosphereIntensity * level),
+    motionMode:
+      context === 'comment' || context === 'leaderboard'
+        ? 'off'
+        : settings.motionMode === 'live'
+          ? 'soft'
+          : settings.motionMode,
+    entranceEffect: context === 'profile' || context === 'mini' ? settings.entranceEffect : 'none',
   };
 }
 
