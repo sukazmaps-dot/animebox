@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { adminClient, failure } from '@/lib/community-server';
+import { publicUsernameOrFallback } from '@/lib/auth-identity-policy';
 import {
   sponsorStatusFromSnapshot,
 } from '@/lib/sponsor-server';
@@ -144,7 +145,7 @@ export async function GET(request: Request) {
       return {
         rank: index + 1,
         userId: row.user_id,
-        username: row.username || 'Пользователь',
+        username: publicUsernameOrFallback(row.username, row.user_id),
         avatarUrl: appearance?.avatarUrl ?? '/default-avatar.webp',
         avatarTransform:
           appearance?.avatarTransform ?? { x: 50, y: 50, zoom: 1 },
