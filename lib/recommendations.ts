@@ -27,6 +27,10 @@ import {
   buildRecommendationExposureMap,
   recommendationExposureSignals,
 } from '@/lib/recommendation-exposure';
+import {
+  buildRecommendationSessionIntent,
+  recommendationSessionIntentAffinity,
+} from '@/lib/recommendation-session-intent';
 
 export type RankedRecommendation = {
   anime: Anime;
@@ -37,6 +41,8 @@ export type RankedRecommendation = {
   fatigueScore: number;
   exposureCount7d: number;
   exposureCount30d: number;
+  sessionIntentScore: number;
+  sessionIntentConfidence: number;
   source: 'watch_history' | 'taste_mood' | 'engagement' | 'taste_graph' | 'discovery';
   ranking: RecommendationScoreResult;
 };
@@ -283,6 +289,7 @@ export function getPersonalizedRecommendations(
   const exposureByAnime = buildRecommendationExposureMap(
     recommendationEvents,
   );
+  const sessionIntent = buildRecommendationSessionIntent(history);
   const tasteGraph = options?.tasteGraph ?? readCachedTasteGraph();
 
   const hiddenIds = new Set(profile.hiddenAnimeIds);
@@ -431,6 +438,10 @@ export function getPersonalizedRecommendations(
         exposureByAnime,
         anime.id,
       );
+      const sessionIntentScore = recommendationSessionIntentAffinity(
+        anime,
+        sessionIntent,
+      );
       const ongoingBonus = ['RELEASING', 'Онгоинг', 'ongoing'].includes(anime.status ?? '') ? 0.035 : 0;
       const discoveryBonus = index < 14 ? 0.04 : Math.max(0, 0.025 - index * 0.0005);
       const title = getAnimeTitle(anime);
@@ -444,6 +455,7 @@ export function getPersonalizedRecommendations(
           studioAffinity: studioScore,
           tasteGraphNegative: graphAffinity.negative,
           sessionNegativeAffinity,
+          sessionIntent: sessionIntentScore,
           episodeLength: lengthAffinity,
           mood: moodScore,
           communityQuality: ratingScore,
@@ -508,6 +520,13 @@ export function getPersonalizedRecommendations(
         reasons.push('Подходит под твой темп просмотра');
       }
       if (engagementScore >= 0.055) reasons.push('Ты уже обращал внимание на этот тайтл');
+      if (
+        sessionIntentScore >= 0.55 &&
+        sessionIntent.confidence >= 0.28 &&
+        reasons.length < 2
+      ) {
+        reasons.push('Похоже на то, что ты смотришь сейчас');
+      }
       if (ratingScore >= 0.82 && reasons.length < 2) reasons.push('Высокая оценка сообщества');
       if (!reasons.length) reasons.push(primary.reason);
 
@@ -544,6 +563,8 @@ export function getPersonalizedRecommendations(
         fatigueScore: exposure.fatigue,
         exposureCount7d: exposure.impressions7d,
         exposureCount30d: exposure.impressions30d,
+        sessionIntentScore,
+        sessionIntentConfidence: sessionIntent.confidence,
         source,
         ranking,
       } satisfies RankedRecommendation;
