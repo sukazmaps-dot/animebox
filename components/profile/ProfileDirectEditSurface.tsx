@@ -57,7 +57,7 @@ const MEDIA_ACCEPT =
 function frameDisplayName(frame: string | null | undefined, league: LeagueFrame[]) {
   if (!frame) return 'Без рамки';
   if (isLevelFrameKey(frame)) return levelFrameLabel(frame);
-  return league.find((item) => item.key === frame)?.label ?? 'League-рамка';
+  return league.find((item) => item.key === frame)?.label ?? 'Лиговая рамка';
 }
 
 function formatExpiry(value?: string | null) {
@@ -261,8 +261,8 @@ export default function ProfileDirectEditSurface({
         <div className={styles.canvasHead}>
           <div>
             <span>ПРОФИЛЬ</span>
-            <h2>Редактируй профиль прямо на профиле</h2>
-            <p>Клик по аватару или баннеру сразу открывает замену файла. Ник и описание редактируются прямо на карточке.</p>
+            <h2>Настраивай профиль прямо здесь</h2>
+            <p>Нажми на аватар или баннер, чтобы заменить изображение. Имя и описание можно менять прямо на карточке.</p>
           </div>
           <div className={styles.liveBadge}><span /> СРАЗУ</div>
         </div>
@@ -382,7 +382,7 @@ export default function ProfileDirectEditSurface({
           </div>
 
           <div className={styles.cardFooter}>
-            <span><Icon name="spark" size={13} /> Профиль обновляется в реальном времени</span>
+            <span><Icon name="spark" size={13} /> Изменения сразу видны здесь</span>
             {premiumActive ? <b>PREMIUM АКТИВЕН</b> : <button type="button" onClick={onOpenPremium}>Premium ✦</button>}
           </div>
         </article>
@@ -394,8 +394,8 @@ export default function ProfileDirectEditSurface({
         )}
 
         <div className={styles.canvasHint}>
-          <strong>Один профиль — один редактор.</strong>
-          <span>Больше не нужно прыгать между «Профиль» и «Оформление»: базовые данные, медиа и рамка находятся здесь.</span>
+          <strong>Всё для профиля — в одном месте.</strong>
+          <span>Имя, описание, аватар, баннер и рамка теперь настраиваются в одном редакторе.</span>
         </div>
       </section>
 
@@ -542,8 +542,8 @@ export default function ProfileDirectEditSurface({
                 <div className={styles.overrideCard}>
                   <Icon name="crown" size={18} />
                   <div>
-                    <strong>{premiumActive ? 'Premium-аватар активен' : 'Используется статический Premium fallback'}</strong>
-                    <p>{premiumActive ? 'Базовый аватар остаётся сохранённым и вернётся после переключения.' : 'Premium-анимация уже выключен; базовый аватар можно вернуть отдельно от баннера.'}</p>
+                    <strong>{premiumActive ? 'Premium-аватар активен' : 'Используется сохранённая статичная версия'}</strong>
+                    <p>{premiumActive ? 'Базовый аватар остаётся сохранённым и вернётся после переключения.' : 'Premium-анимация уже выключена; базовый аватар можно вернуть отдельно от баннера.'}</p>
                   </div>
                   <button type="button" onClick={() => void onUseBaseAvatar()}>Базовый вариант</button>
                 </div>
