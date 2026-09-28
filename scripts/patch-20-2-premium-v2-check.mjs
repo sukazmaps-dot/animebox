@@ -130,4 +130,15 @@ mustInclude(identityApi, 'watchPartyReactions: reactionUsers.has(profile.id)', '
 mustInclude(watchPanel, 'premiumReactionsAllowed', 'Premium reaction UI gate');
 mustInclude(watchPanel, 'isPremiumWatchPartyReaction(reaction)', 'host reaction entitlement gate');
 
+const statsContract = read('lib/premium-stats.ts');
+mustInclude(statsContract, 'PremiumYearReview', 'Year in Review data contract');
+
+const statsRoute = read('app/api/premium/stats/route.ts');
+mustInclude(statsRoute, 'yearHistoryResult', 'Year in Review server history');
+mustInclude(statsRoute, 'yearReview: {', 'Year in Review response');
+
+const yearReview = read('components/premium/PremiumYearReviewClient.tsx');
+mustInclude(yearReview, 'YEAR IN REVIEW', 'Year in Review Premium surface');
+mustInclude(yearReview, 'подтверждённая', 'Year in Review trusted-history copy');
+
 console.log('Patch 20.2 Premium 2.0 contract checks passed.');
