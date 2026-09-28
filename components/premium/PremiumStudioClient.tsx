@@ -973,20 +973,86 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
 
   if (!allowed) {
     const locked = (
-      <section className="premium-studio__locked">
-        <Icon name="crown" className="premium-studio-v12__lock-icon" size={60} weight="regular" />
-        <span>PREMIUM STUDIO</span>
-        <h1>Собственный профиль и тема плеера</h1>
-        <p>
-          AnimeBox Premium открывает палитру цветов, анимированный аватар и баннер,
-          а также синхронизацию акцента с оболочкой AnimeBox Player. После окончания
-          подписки анимации и Premium-эффекты отключаются, а статические WEBP-версии
-          аватара и баннера остаются в профиле.
-        </p>
-        <Link className="premium-cta premium-cta--primary" href="/premium">
-          Открыть AnimeBox Premium
-        </Link>
-        {error && <small>{error}</small>}
+      <section className="premium-studio-v23__demo">
+        <div className="premium-studio-v23__demo-copy">
+          <span>PREMIUM STUDIO · DEMO</span>
+          <h1>Собери Profile Scene до покупки</h1>
+          <p>
+            Выбери атмосферу и посмотри, как Premium будет выглядеть в профиле,
+            mini-profile, комментариях и Watch Together. Предпросмотр бесплатный —
+            Premium нужен только для сохранения и публичного применения Scene.
+          </p>
+        </div>
+
+        <div className="premium-studio-v23__demo-scenes">
+          {PREMIUM_SCENE_PRESETS.map((scene) => {
+            const meta = PREMIUM_SCENE_PRESET_META[scene];
+            return (
+              <button
+                key={scene}
+                type="button"
+                onClick={() => applyScenePreset(scene)}
+              >
+                <i
+                  style={{
+                    background: `linear-gradient(135deg, ${meta.primaryColor}, ${meta.accentColor})`,
+                  }}
+                />
+                <span>
+                  <strong>{meta.label}</strong>
+                  <small>{meta.description}</small>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="premium-studio-v23__demo-preview">
+          <div className="premium-studio-v23__preview-tabs" role="tablist" aria-label="Контекст Premium demo">
+            {([
+              ['profile', 'Профиль'],
+              ['mini', 'Мини'],
+              ['comment', 'Комментарий'],
+              ['watch-party', 'Комната'],
+            ] as const).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={previewContext === id}
+                className={previewContext === id ? 'is-active' : ''}
+                onClick={() => setPreviewContext(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <PremiumStudioLivePreview
+            key={`demo:${previewEpoch}:${previewContext}`}
+            settings={settings}
+            avatarUrl={avatarUrl}
+            bannerUrl={bannerUrl}
+            avatarTransform={avatarTransform}
+            bannerTransform={bannerTransform}
+            context={previewContext}
+          />
+        </div>
+
+        <div className="premium-studio-v23__demo-actions">
+          <div>
+            <Icon name="crown" size={22} weight="regular" />
+            <span>
+              <strong>Хочешь сохранить эту Scene?</strong>
+              <small>Настройки останутся только в предпросмотре, пока Premium не активен.</small>
+            </span>
+          </div>
+          <Link className="premium-cta premium-cta--primary" href="/premium#premium-plans">
+            Сохранить с Premium
+          </Link>
+        </div>
+
+        {error && <small className="premium-studio-v23__demo-error">{error}</small>}
       </section>
     );
     return embedded ? <div className="premium-studio premium-studio-v12 is-embedded">{locked}</div> : <main className="premium-studio premium-studio-v12">{locked}</main>;
@@ -1001,8 +1067,8 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
             <span>ANIMEBOX PREMIUM</span>
             <h1>Premium Studio</h1>
             <p>
-              Настрой профиль под себя: цвета, свечение, анимированный аватар,
-              баннер и тему оболочки плеера.
+              Собери Profile Scene: атмосфера, палитра, layout, эффекты, медиа
+              и единый стиль для социальных поверхностей AnimeBox.
             </p>
           </div>
         </div>
