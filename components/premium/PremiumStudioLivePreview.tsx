@@ -4,7 +4,9 @@ import type { CSSProperties } from 'react';
 
 import PremiumProfileAtmosphere from '@/components/premium/PremiumProfileAtmosphere';
 import PremiumParticleLayer from '@/components/profile/PremiumParticleLayer';
+import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
 import {
+  premiumBannerStyle,
   premiumMediaStyle,
   premiumSceneContextSettings,
   premiumStudioCssVariables,
@@ -21,26 +23,30 @@ type PreviewContext = Extract<
 function PreviewAvatar({
   avatarUrl,
   avatarTransform,
+  profileFrameKey = null,
+  premiumFrameMotion = false,
   compact = false,
 }: {
   avatarUrl: string | null;
   avatarTransform: PremiumMediaTransform;
+  profileFrameKey?: string | null;
+  premiumFrameMotion?: boolean;
   compact?: boolean;
 }) {
-  if (avatarUrl) {
-    return (
-      <img
-        className={compact ? 'premium-studio-v23__context-avatar' : 'premium-studio-v12__preview-avatar'}
-        src={avatarUrl}
-        alt=""
-        loading="eager"
-        decoding="async"
-        style={premiumMediaStyle(avatarTransform) as CSSProperties}
-      />
-    );
-  }
+  const imageClass = compact
+    ? 'premium-studio-v23__context-avatar'
+    : 'premium-studio-v12__preview-avatar';
 
-  return (
+  const avatar = avatarUrl ? (
+    <img
+      className={imageClass}
+      src={avatarUrl}
+      alt=""
+      loading="eager"
+      decoding="async"
+      style={premiumMediaStyle(avatarTransform) as CSSProperties}
+    />
+  ) : (
     <span
       className={
         compact
@@ -56,6 +62,22 @@ function PreviewAvatar({
       </svg>
     </span>
   );
+
+  if (!profileFrameKey) return avatar;
+
+  return (
+    <span
+      className="premium-studio-v23__preview-avatar-frame-shell"
+      data-compact={compact ? 'true' : 'false'}
+    >
+      {avatar}
+      <ProfileFrameOverlay
+        frameKey={profileFrameKey}
+        premium={premiumFrameMotion}
+        className="premium-studio-v23__preview-avatar-frame"
+      />
+    </span>
+  );
 }
 
 export default function PremiumStudioLivePreview({
@@ -64,6 +86,9 @@ export default function PremiumStudioLivePreview({
   bannerUrl,
   avatarTransform,
   bannerTransform,
+  username = 'Твой профиль',
+  bio = 'Расскажи немного о себе и своих любимых аниме.',
+  profileFrameKey = null,
   context = 'profile',
 }: {
   settings: PremiumStudioSettings;
@@ -71,6 +96,9 @@ export default function PremiumStudioLivePreview({
   bannerUrl: string | null;
   avatarTransform: PremiumMediaTransform;
   bannerTransform: PremiumMediaTransform;
+  username?: string;
+  bio?: string;
+  profileFrameKey?: string | null;
   context?: PreviewContext;
 }) {
   const renderedSettings = premiumSceneContextSettings(settings, context);
@@ -85,6 +113,7 @@ export default function PremiumStudioLivePreview({
     'data-premium-surface': settings.surfaceStyle,
     'data-premium-entrance': renderedSettings.entranceEffect,
     'data-premium-layout': settings.profileLayout,
+    'data-premium-banner-height': settings.bannerHeightMode,
     'data-preview-context': context,
   };
 
@@ -105,6 +134,8 @@ export default function PremiumStudioLivePreview({
           <PreviewAvatar
             avatarUrl={avatarUrl}
             avatarTransform={avatarTransform}
+            profileFrameKey={profileFrameKey}
+            premiumFrameMotion={renderedSettings.motionMode !== 'off'}
             compact
           />
 
@@ -114,7 +145,7 @@ export default function PremiumStudioLivePreview({
                 className="premium-profile-v21__nickname"
                 data-effect={renderedSettings.nicknameEffect}
               >
-                Твой профиль
+                {username}
               </strong>
               <span aria-label="AnimeBox Premium">✦</span>
             </div>
@@ -171,7 +202,9 @@ export default function PremiumStudioLivePreview({
             aria-hidden="true"
             loading="eager"
             decoding="async"
-            style={premiumMediaStyle(bannerTransform) as CSSProperties}
+            style={
+              premiumBannerStyle(settings, bannerTransform) as CSSProperties
+            }
           />
         )}
         <div />
@@ -181,6 +214,8 @@ export default function PremiumStudioLivePreview({
         <PreviewAvatar
           avatarUrl={avatarUrl}
           avatarTransform={avatarTransform}
+          profileFrameKey={profileFrameKey}
+          premiumFrameMotion={renderedSettings.motionMode !== 'off'}
         />
 
         <div className="premium-studio-v15__preview-copy">
@@ -199,14 +234,11 @@ export default function PremiumStudioLivePreview({
               className="premium-profile-v21__nickname"
               data-effect={settings.nicknameEffect}
             >
-              Твой профиль
+              {username}
             </span>
           </h3>
 
-          <p>
-            Твоё оформление объединяет цвета, атмосферу и эффекты в один стиль,
-            который сохраняется во всём AnimeBox.
-          </p>
+          <p>{bio.trim() || 'Расскажи немного о себе и своих любимых аниме.'}</p>
 
           <div className="premium-studio-v15__preview-chips">
             <i>Оформление профиля</i>
@@ -214,23 +246,13 @@ export default function PremiumStudioLivePreview({
             <i>Свечение {settings.glowStrength}%</i>
           </div>
 
-          <div className="premium-studio-v16__preview-stats">
-            <span><b>29ч</b><small>просмотр</small></span>
-            <span><b>51</b><small>серия</small></span>
-            <span><b>7</b><small>в списках</small></span>
-          </div>
-
-          <div className="premium-studio-v16__preview-library">
-            <i />
-            <span>
-              <strong>Продолжить просмотр</strong>
-              <small>Последний тайтл · 18 серия</small>
-            </span>
-            <b>→</b>
+          <div className="premium-studio-v23__preview-meta">
+            <span>В AnimeBox с недавнего времени</span>
+            <span>Аккаунт активен</span>
           </div>
         </div>
 
-        <button type="button">Акцентная кнопка</button>
+        <button type="button">Редактировать профиль</button>
         <div className="premium-studio-v12__fake-progress"><span /></div>
       </div>
     </section>

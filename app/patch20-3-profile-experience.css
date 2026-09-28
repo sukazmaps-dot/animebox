@@ -1,0 +1,795 @@
+/* =========================================================
+   AnimeBox Patch 20.3 — Profile Experience Final Pass
+   Geometry · Preview parity · Mini-profile · Light theme
+   ========================================================= */
+
+/* ---------- Profile identity geometry ---------- */
+
+.profile-v2 .profile-v2__title-row > div:first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.profile-v2 .profile-v2__name-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.profile-v2 .profile-v2__name-row h1 {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.05;
+}
+
+.profile-v2 .profile-v2__name-row h1 > span {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.profile-v2 .profile-v2__title-row {
+  min-width: 0;
+}
+
+.profile-v2 .profile-v2__identity-main {
+  min-width: 0;
+}
+
+.profile-v2 .profile-v2__edit {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* Keep the avatar visually important on large displays instead of letting the
+   banner become the only focal point. */
+@media (min-width: 1800px) {
+  .profile-v2 .profile-v2__avatar-wrap {
+    width: 168px !important;
+    height: 168px !important;
+    margin-top: -84px;
+  }
+
+  .profile-v2 .profile-v2__identity {
+    gap: 34px;
+  }
+
+  .profile-v2 .profile-v2__title-row h1 {
+    font-size: 32px;
+  }
+}
+
+@media (min-width: 2400px) {
+  .profile-v2 {
+    max-width: min(1680px, calc(100% - 120px));
+  }
+
+  .profile-v2 .profile-v2__avatar-wrap {
+    width: 176px !important;
+    height: 176px !important;
+    margin-top: -88px;
+  }
+
+  .profile-v2 .profile-v2__identity {
+    gap: 38px;
+    padding-inline: 38px;
+  }
+
+  .profile-v2 .profile-v2__title-row h1 {
+    font-size: 34px;
+  }
+}
+
+@media (max-width: 760px) {
+  .profile-v2 .profile-v2__name-row {
+    gap: 6px;
+  }
+
+  .profile-v2 .profile-v2__name-row h1 {
+    width: 100%;
+    font-size: clamp(24px, 8vw, 30px);
+  }
+
+  .profile-v2 .profile-v2__email,
+  .profile-v2 .profile-v2__bio {
+    overflow-wrap: anywhere;
+  }
+
+  .profile-v2 .profile-v2__meta {
+    flex-wrap: wrap;
+    row-gap: 7px;
+  }
+}
+
+/* ---------- Premium layout parity ---------- */
+
+.profile-v2[data-premium-layout='cinema'] .profile-v2__title-row,
+.profile-v2[data-premium-layout='collector'] .profile-v2__title-row,
+.profile-v2[data-premium-layout='minimal'] .profile-v2__title-row {
+  position: relative;
+  z-index: 2;
+}
+
+.profile-v2[data-premium-layout='cinema'] .profile-v2__identity-main {
+  padding-top: 24px;
+}
+
+.profile-v2[data-premium-layout='collector'] .profile-widgets-shell {
+  border-radius: 16px;
+}
+
+.profile-v2[data-premium-layout='collector'] .profile-widget {
+  min-height: 100%;
+}
+
+.profile-v2[data-premium-layout='minimal'] :where(
+  .profile-v2__stat,
+  .profile-v2__bottom-card,
+  .profile-widget
+) {
+  box-shadow: none !important;
+}
+
+.profile-v2[data-premium-layout='minimal'] .profile-v2__identity {
+  gap: 24px;
+}
+
+/* Studio preview must visibly respond to the same layout setting as the real
+   profile, not just expose the data attribute. */
+.premium-studio-v23__preview[data-premium-layout='cinema']
+  .premium-studio-v12__preview-banner {
+  min-height: 250px;
+}
+
+.premium-studio-v23__preview[data-premium-layout='cinema']
+  .premium-studio-v12__preview-body {
+  margin-top: -24px;
+}
+
+.premium-studio-v23__preview[data-premium-layout='collector']
+  .premium-studio-v16__preview-stats {
+  gap: 5px;
+}
+
+.premium-studio-v23__preview[data-premium-layout='collector']
+  .premium-studio-v16__preview-stats > span {
+  border-radius: 9px;
+}
+
+.premium-studio-v23__preview[data-premium-layout='minimal']
+  .premium-studio-v18__particle-layer {
+  display: none;
+}
+
+.premium-studio-v23__preview[data-premium-layout='minimal'] {
+  box-shadow: none !important;
+}
+
+.premium-studio-v23__preview[data-premium-layout='minimal']
+  .premium-studio-v12__preview-banner {
+  min-height: 180px;
+  max-height: 210px;
+}
+
+.premium-studio-v23__preview[data-premium-layout='minimal']
+  .premium-studio-v15__preview-chips {
+  opacity: .72;
+}
+
+/* ---------- Showcase polish ---------- */
+
+.profile-widgets-shell__head .profile-v2__eyebrow {
+  letter-spacing: .11em;
+}
+
+.profile-widget__empty {
+  min-height: 150px;
+}
+
+.profile-widget__empty strong {
+  max-width: 260px;
+}
+
+.profile-widget__empty p {
+  max-width: 330px;
+}
+
+.profile-widgets-editor__selected {
+  align-items: stretch;
+}
+
+.profile-widgets-editor__selected > button {
+  min-width: 0;
+}
+
+.profile-widgets-editor__selected strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Light theme ---------- */
+
+html[data-animebox-theme='light'] .profile-v2__hero {
+  border-color: rgba(74, 57, 96, .10);
+  background: #fff;
+  box-shadow: 0 22px 70px rgba(78, 61, 102, .08);
+}
+
+html[data-animebox-theme='light'] .profile-v2__banner-shade {
+  background:
+    linear-gradient(180deg, transparent 26%, rgba(244, 240, 249, .08) 55%, rgba(248, 246, 251, .96) 100%);
+}
+
+html[data-animebox-theme='light'] .profile-v2__title-row h1,
+html[data-animebox-theme='light'] .profile-v2__bio,
+html[data-animebox-theme='light'] .profile-v2__meta {
+  color: #3f3947;
+}
+
+html[data-animebox-theme='light'] .profile-v2__email {
+  color: #7c7285;
+}
+
+html[data-animebox-theme='light'] .profile-v2__edit {
+  border-color: rgba(105, 74, 169, .16);
+  background: rgba(113, 77, 190, .06);
+  color: #65449f;
+}
+
+html[data-animebox-theme='light'] .profile-widgets-shell,
+html[data-animebox-theme='light'] .profile-widget {
+  border-color: rgba(77, 60, 99, .09);
+  background: linear-gradient(155deg, #fff, #f8f5fb);
+  box-shadow: 0 18px 48px rgba(67, 51, 88, .06);
+}
+
+html[data-animebox-theme='light'] .profile-widgets-shell__head h2,
+html[data-animebox-theme='light'] .profile-widget__head > span {
+  color: #443d4c;
+}
+
+html[data-animebox-theme='light'] .profile-widgets-shell__head p,
+html[data-animebox-theme='light'] .profile-widget__head small,
+html[data-animebox-theme='light'] .profile-widget__empty p {
+  color: #817787;
+}
+
+html[data-animebox-theme='light'] .premium-studio-v23__preview {
+  border-color: rgba(91, 67, 127, .12);
+  box-shadow: 0 22px 60px rgba(66, 49, 89, .08);
+}
+
+/* ---------- Reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-v2[data-premium-motion] *,
+  .premium-studio-v23__preview *,
+  .profile-widget * {
+    scroll-behavior: auto !important;
+  }
+
+  .premium-studio-v23__preview .premium-studio-v18__particle-layer,
+  .profile-v2 .premium-particles-profile-hero {
+    animation: none !important;
+  }
+}
+
+
+/* ---------- Premium Stats / Year Review light theme ---------- */
+
+html[data-animebox-theme='light'] .premium-stats-v2,
+html[data-animebox-theme='light'] .premium-year-v2 {
+  color: #3f3848;
+}
+
+html[data-animebox-theme='light'] .premium-stats-v2__hero,
+html[data-animebox-theme='light'] .premium-year-v2__numbers,
+html[data-animebox-theme='light'] .premium-year-v2__footer {
+  border-color: rgba(78, 60, 100, .09);
+}
+
+html[data-animebox-theme='light'] .premium-stats-v2__hero h1,
+html[data-animebox-theme='light'] .premium-stats-v2__panel header h2,
+html[data-animebox-theme='light'] .premium-stats-v2__history h2,
+html[data-animebox-theme='light'] .premium-year-v2__hero-copy h1,
+html[data-animebox-theme='light'] .premium-year-v2__timeline h2,
+html[data-animebox-theme='light'] .premium-year-v2__feature h2 {
+  color: #342e3b;
+}
+
+html[data-animebox-theme='light'] .premium-stats-v2__hero p,
+html[data-animebox-theme='light'] .premium-stats-v2__history header p,
+html[data-animebox-theme='light'] .premium-year-v2__hero-copy p,
+html[data-animebox-theme='light'] .premium-year-v2__feature p {
+  color: #7d7385;
+}
+
+html[data-animebox-theme='light'] .premium-stats-v2__panel,
+html[data-animebox-theme='light'] .premium-stats-v2__history,
+html[data-animebox-theme='light'] .premium-year-v2__feature,
+html[data-animebox-theme='light'] .premium-year-v2__timeline {
+  border-color: rgba(82, 62, 106, .09);
+  background: linear-gradient(180deg, rgba(118, 84, 177, .035), rgba(255,255,255,.9));
+  box-shadow: 0 16px 46px rgba(70, 52, 91, .05);
+}
+
+html[data-animebox-theme='light'] .premium-stats-v2__overview strong,
+html[data-animebox-theme='light'] .premium-stats-v2__rank-list strong,
+html[data-animebox-theme='light'] .premium-stats-v2__history-list strong,
+html[data-animebox-theme='light'] .premium-year-v2__numbers strong,
+html[data-animebox-theme='light'] .premium-year-v2__feature--genre strong {
+  color: #403747;
+}
+
+html[data-animebox-theme='light'] .premium-stats-v2__history input {
+  border-color: rgba(82, 62, 106, .11);
+  background: #fff;
+  color: #3d3545;
+}
+
+html[data-animebox-theme='light'] .premium-year-v2__hero {
+  border-color: rgba(92, 70, 121, .10);
+  background:
+    radial-gradient(circle at 82% 12%, rgba(112, 124, 255, .10), transparent 30%),
+    radial-gradient(circle at 12% 86%, rgba(142, 78, 229, .08), transparent 33%),
+    linear-gradient(145deg, #fff, #f6f2fb 72%);
+  box-shadow: 0 28px 80px rgba(70, 51, 93, .09);
+}
+
+html[data-animebox-theme='light'] .premium-year-v2__hero-orbit {
+  border-color: rgba(105, 82, 146, .12);
+  background:
+    radial-gradient(circle at 50% 45%, rgba(144, 111, 255, .08), transparent 34%),
+    rgba(255,255,255,.58);
+  box-shadow: inset 0 0 80px rgba(119, 86, 220, .025);
+}
+
+html[data-animebox-theme='light'] .premium-year-v2__hero-orbit strong {
+  color: #44384f;
+}
+
+
+/* ---------- Premium Studio frame parity ---------- */
+
+.premium-studio-v23__preview-avatar-frame-shell {
+  position: relative;
+  z-index: 6;
+  width: 104px;
+  height: 104px;
+  display: grid;
+  place-items: center;
+  margin-top: -52px;
+  margin-bottom: 14px;
+  overflow: visible;
+  isolation: isolate;
+}
+
+.premium-studio-v23__preview-avatar-frame-shell
+  > .premium-studio-v12__preview-avatar,
+.premium-studio-v23__preview-avatar-frame-shell
+  > .premium-studio-v20__avatar-placeholder {
+  width: 82%;
+  height: 82%;
+  margin: 0;
+  flex: none;
+}
+
+.premium-studio-v23__preview-avatar-frame {
+  inset: -18px !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+}
+
+.premium-studio-v23__preview-avatar-frame-shell[data-compact='true'] {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  margin: 0;
+}
+
+.premium-studio-v23__preview-avatar-frame-shell[data-compact='true']
+  > .premium-studio-v23__context-avatar {
+  width: 100%;
+  height: 100%;
+  flex: none;
+}
+
+.premium-studio-v23__preview-avatar-frame-shell[data-compact='true']
+  .premium-studio-v23__preview-avatar-frame {
+  inset: -13px !important;
+}
+
+@media (max-width: 620px) {
+  .premium-studio-v23__preview-avatar-frame {
+    inset: -16px !important;
+  }
+
+  .premium-studio-v23__preview-avatar-frame-shell[data-compact='true']
+    .premium-studio-v23__preview-avatar-frame {
+    inset: -12px !important;
+  }
+}
+
+
+/* ---------- Premium Showcase 12-slot density ---------- */
+
+.profile-widgets-editor__selected[data-density='extended'] {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-height: 232px;
+  padding-right: 3px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.profile-widgets-editor__selected[data-density='extended'] > button {
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+}
+
+.profile-widgets-editor__selected[data-density='extended']
+  .profile-widgets-editor__selected-poster {
+  width: 38px;
+  height: 46px;
+}
+
+@media (max-width: 1100px) {
+  .profile-widgets-editor__selected[data-density='extended'] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .profile-widgets-editor__selected[data-density='extended'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-height: 280px;
+  }
+}
+
+@media (max-width: 420px) {
+  .profile-widgets-editor__selected[data-density='extended'] {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.premium-studio-v23__preview-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 13px;
+  margin-top: 14px;
+  color: rgba(var(--ab-premium-text-rgb), .48);
+  font-size: 9px;
+}
+
+.premium-studio-v23__preview-meta span + span::before {
+  content: '•';
+  margin-right: 8px;
+  color: rgba(var(--ab-premium-accent-rgb), .7);
+}
+
+@media (max-width: 520px) {
+  .premium-studio-v23__preview-meta {
+    display: grid;
+    gap: 4px;
+  }
+
+  .premium-studio-v23__preview-meta span + span::before {
+    display: none;
+  }
+}
+
+
+/* =========================================================
+   Patch 20.3.14 — Premium Banner Director
+   ========================================================= */
+
+.profile-v2[data-premium-banner-height='compact'] .profile-v2__banner {
+  height: clamp(160px, 12vw, 190px);
+}
+
+.profile-v2[data-premium-banner-height='standard'] .profile-v2__banner {
+  height: clamp(200px, 15vw, 250px);
+}
+
+.profile-v2[data-premium-banner-height='cinema'] .profile-v2__banner {
+  height: clamp(250px, 18vw, 320px);
+}
+
+.profile-v2[data-premium-banner-height='immersive'] .profile-v2__banner {
+  height: clamp(300px, 22vw, 380px);
+}
+
+.profile-v2[data-premium-banner-height] .profile-v2__banner-shade {
+  background:
+    linear-gradient(
+      180deg,
+      transparent 30%,
+      rgba(var(--ab-premium-primary-rgb), calc(var(--ab-premium-banner-shade, .62) * .20)) 58%,
+      rgba(var(--ab-premium-primary-rgb), var(--ab-premium-banner-shade, .62)) 100%
+    );
+}
+
+html[data-animebox-theme='light']
+  .profile-v2[data-premium-banner-height]
+  .profile-v2__banner-shade {
+  background:
+    linear-gradient(
+      180deg,
+      transparent 30%,
+      rgb(248 246 251 / calc(var(--ab-premium-banner-shade, .62) * .12)) 56%,
+      rgb(248 246 251 / min(.96, calc(var(--ab-premium-banner-shade, .62) + .18))) 100%
+    );
+}
+
+.premium-studio-v23__preview[data-premium-banner-height='compact']
+  .premium-studio-v12__preview-banner {
+  height: 170px;
+  min-height: 170px;
+  max-height: none;
+}
+
+.premium-studio-v23__preview[data-premium-banner-height='standard']
+  .premium-studio-v12__preview-banner {
+  height: 210px;
+  min-height: 210px;
+  max-height: none;
+}
+
+.premium-studio-v23__preview[data-premium-banner-height='cinema']
+  .premium-studio-v12__preview-banner {
+  height: 250px;
+  min-height: 250px;
+  max-height: none;
+}
+
+.premium-studio-v23__preview[data-premium-banner-height='immersive']
+  .premium-studio-v12__preview-banner {
+  height: 290px;
+  min-height: 290px;
+  max-height: none;
+}
+
+.premium-studio-v23__preview[data-premium-banner-height]
+  .premium-studio-v12__preview-banner > div {
+  background:
+    linear-gradient(
+      180deg,
+      transparent 28%,
+      rgba(var(--ab-premium-primary-rgb), calc(var(--ab-premium-banner-shade, .62) * .22)) 60%,
+      rgba(var(--ab-premium-primary-rgb), var(--ab-premium-banner-shade, .62)) 100%
+    );
+}
+
+.premium-studio-v24__banner-director {
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid rgba(var(--ab-premium-accent-rgb), .13);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(var(--ab-premium-accent-rgb), .08), transparent 32%),
+    rgba(255,255,255,.018);
+}
+
+.premium-studio-v24__banner-director-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.premium-studio-v24__banner-director-head > div:first-child {
+  min-width: 0;
+}
+
+.premium-studio-v24__banner-director-head > div:first-child > span {
+  color: var(--ab-premium-accent);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .15em;
+}
+
+.premium-studio-v24__banner-director-head h3 {
+  margin: 5px 0 5px;
+  color: var(--ab-premium-text);
+  font-size: 17px;
+  letter-spacing: -.025em;
+}
+
+.premium-studio-v24__banner-director-head p {
+  max-width: 620px;
+  margin: 0;
+  color: rgba(var(--ab-premium-text-rgb), .48);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.premium-studio-v24__banner-presets {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.premium-studio-v24__banner-presets button {
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid rgba(var(--ab-premium-text-rgb), .09);
+  border-radius: 10px;
+  background: rgba(var(--ab-premium-text-rgb), .025);
+  color: rgba(var(--ab-premium-text-rgb), .66);
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.premium-studio-v24__banner-presets button.is-accent {
+  border-color: rgba(var(--ab-premium-accent-rgb), .25);
+  background: rgba(var(--ab-premium-accent-rgb), .10);
+  color: var(--ab-premium-text);
+}
+
+.premium-studio-v24__banner-height {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(var(--ab-premium-text-rgb), .055);
+}
+
+.premium-studio-v24__banner-height > span,
+.premium-studio-v24__banner-ranges label > span:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.premium-studio-v24__banner-height strong,
+.premium-studio-v24__banner-ranges strong {
+  color: rgba(var(--ab-premium-text-rgb), .82);
+  font-size: 10px;
+}
+
+.premium-studio-v24__banner-height small,
+.premium-studio-v24__banner-ranges small {
+  color: rgba(var(--ab-premium-text-rgb), .40);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.premium-studio-v24__banner-height-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.premium-studio-v24__banner-height-grid button {
+  min-width: 0;
+  min-height: 64px;
+  padding: 10px;
+  border: 1px solid rgba(var(--ab-premium-text-rgb), .07);
+  border-radius: 12px;
+  background: rgba(var(--ab-premium-text-rgb), .018);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.premium-studio-v24__banner-height-grid button strong,
+.premium-studio-v24__banner-height-grid button small {
+  display: block;
+}
+
+.premium-studio-v24__banner-height-grid button small {
+  margin-top: 4px;
+}
+
+.premium-studio-v24__banner-height-grid button.is-active {
+  border-color: rgba(var(--ab-premium-accent-rgb), .30);
+  background: rgba(var(--ab-premium-accent-rgb), .08);
+  box-shadow: inset 0 0 0 1px rgba(var(--ab-premium-accent-rgb), .05);
+}
+
+.premium-studio-v24__banner-ranges {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.premium-studio-v24__banner-ranges label {
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid rgba(var(--ab-premium-text-rgb), .055);
+  border-radius: 12px;
+  background: rgba(var(--ab-premium-text-rgb), .014);
+}
+
+.premium-studio-v24__banner-ranges label > span:last-child {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 42px;
+  align-items: center;
+  gap: 9px;
+}
+
+.premium-studio-v24__banner-ranges input[type='range'] {
+  width: 100%;
+  accent-color: var(--ab-premium-accent);
+}
+
+.premium-studio-v24__banner-ranges b {
+  color: rgba(var(--ab-premium-text-rgb), .72);
+  font-size: 9px;
+  text-align: right;
+}
+
+.premium-studio-v12__media-preview.is-banner[data-banner-height='compact'] {
+  min-height: 96px;
+}
+
+.premium-studio-v12__media-preview.is-banner[data-banner-height='standard'] {
+  min-height: 118px;
+}
+
+.premium-studio-v12__media-preview.is-banner[data-banner-height='cinema'] {
+  min-height: 142px;
+}
+
+.premium-studio-v12__media-preview.is-banner[data-banner-height='immersive'] {
+  min-height: 166px;
+}
+
+@media (max-width: 760px) {
+  .profile-v2[data-premium-banner-height='compact'] .profile-v2__banner {
+    height: 140px;
+  }
+
+  .profile-v2[data-premium-banner-height='standard'] .profile-v2__banner {
+    height: 180px;
+  }
+
+  .profile-v2[data-premium-banner-height='cinema'] .profile-v2__banner {
+    height: 220px;
+  }
+
+  .profile-v2[data-premium-banner-height='immersive'] .profile-v2__banner {
+    height: 250px;
+  }
+
+  .premium-studio-v24__banner-director-head {
+    display: grid;
+  }
+
+  .premium-studio-v24__banner-presets {
+    justify-content: flex-start;
+  }
+
+  .premium-studio-v24__banner-height-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .premium-studio-v24__banner-ranges {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .premium-studio-v24__banner-height-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .premium-studio-v24__banner-presets {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0,1fr));
+  }
+
+  .premium-studio-v24__banner-presets button {
+    padding-inline: 7px;
+  }
+}

@@ -30,23 +30,22 @@
 }
 
 /* =========================================================
-   AnimeBox — Mini Profile Milestone Frame Geometry Fix
-   Framed users keep the same visible avatar size as users
-   without a frame. The SVG is a decorative absolute layer
-   around the photo and never consumes avatar space.
+   AnimeBox Patch 20.3 — Mini Profile Milestone Geometry
+   The photo keeps the same visible size as an unframed avatar.
+   SVG art expands outside the photo instead of shrinking it.
    ========================================================= */
 
-/* The mini-profile marks milestone-frame shells explicitly.
-   Override the legacy 92/87px canvas + negative margins. */
+/* Match the current ProfilePreview avatar contract: 88px desktop,
+   80px mobile. The frame itself is allowed to overflow outward. */
 :global([data-milestone-frame='true']) {
   position: relative !important;
   isolation: isolate !important;
 
-  flex: 0 0 64px !important;
-  width: 64px !important;
-  height: 64px !important;
-  min-width: 64px !important;
-  min-height: 64px !important;
+  flex: 0 0 88px !important;
+  width: 88px !important;
+  height: 88px !important;
+  min-width: 88px !important;
+  min-height: 88px !important;
 
   margin: 0 !important;
 
@@ -61,21 +60,21 @@
   box-shadow: none !important;
 }
 
-/* ProfilePreview currently applies levelFrameAvatarScale() inline and
-   an older rule shrinks milestone avatars to 58%. `!important` here
-   intentionally cancels both so the actual photo remains full size. */
+/* ProfilePreview still supplies levelFrameAvatarScale() inline for the
+   full profile renderer. In the compact surface we intentionally cancel
+   that inline aperture so framed and unframed photos have equal weight. */
 :global([data-milestone-frame='true']) > picture {
   position: relative !important;
   inset: auto !important;
   z-index: 10 !important;
 
-  flex: 0 0 64px !important;
-  width: 64px !important;
-  height: 64px !important;
-  min-width: 64px !important;
-  min-height: 64px !important;
-  max-width: 64px !important;
-  max-height: 64px !important;
+  flex: 0 0 88px !important;
+  width: 88px !important;
+  height: 88px !important;
+  min-width: 88px !important;
+  min-height: 88px !important;
+  max-width: 88px !important;
+  max-height: 88px !important;
 
   display: block !important;
   overflow: hidden !important;
@@ -107,7 +106,7 @@
   position: absolute !important;
   z-index: 20 !important;
 
-  inset: -15px !important;
+  inset: -22px !important;
   width: auto !important;
   height: auto !important;
   max-width: none !important;
@@ -133,27 +132,27 @@
   pointer-events: none !important;
 }
 
-/* Match the existing unframed mobile mini-profile avatar contract. */
+/* Match the unframed mobile mini-profile avatar contract. */
 @media (max-width: 640px) {
   :global([data-milestone-frame='true']) {
-    flex-basis: 62px !important;
-    width: 62px !important;
-    height: 62px !important;
-    min-width: 62px !important;
-    min-height: 62px !important;
+    flex-basis: 80px !important;
+    width: 80px !important;
+    height: 80px !important;
+    min-width: 80px !important;
+    min-height: 80px !important;
   }
 
   :global([data-milestone-frame='true']) > picture {
-    flex-basis: 62px !important;
-    width: 62px !important;
-    height: 62px !important;
-    min-width: 62px !important;
-    min-height: 62px !important;
-    max-width: 62px !important;
-    max-height: 62px !important;
+    flex-basis: 80px !important;
+    width: 80px !important;
+    height: 80px !important;
+    min-width: 80px !important;
+    min-height: 80px !important;
+    max-width: 80px !important;
+    max-height: 80px !important;
   }
 
   :global([data-milestone-frame='true']) > .levelFrame {
-    inset: -14px !important;
+    inset: -19px !important;
   }
 }

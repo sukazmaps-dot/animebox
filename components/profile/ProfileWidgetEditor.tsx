@@ -341,7 +341,10 @@ export default function ProfileWidgetEditor({
               </div>
 
               {selected.length > 0 && (
-                <div className="profile-widgets-editor__selected">
+                <div
+                  className="profile-widgets-editor__selected"
+                  data-density={selected.length > 6 ? 'extended' : 'normal'}
+                >
                   {selected.map((item, index) => (
                     <button
                       type="button"

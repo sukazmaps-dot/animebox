@@ -19,6 +19,7 @@ import CurrentPremiumBadge from '@/components/premium/CurrentPremiumBadge';
 import PremiumProfileAtmosphere from '@/components/premium/PremiumProfileAtmosphere';
 import {
   DEFAULT_PREMIUM_STUDIO_SETTINGS,
+  premiumBannerStyle,
   premiumMediaStyle,
   premiumStudioCssVariables,
   type PremiumStudioSettings,
@@ -353,6 +354,7 @@ export default function ProfilePage() {
       data-premium-hero={premiumIdentityActive ? appearance.premiumStudio?.heroStyle : undefined}
       data-premium-surface={premiumIdentityActive ? appearance.premiumStudio?.surfaceStyle : undefined}
       data-premium-layout={premiumIdentityActive ? appearance.premiumStudio?.profileLayout : undefined}
+      data-premium-banner-height={premiumIdentityActive ? appearance.premiumStudio?.bannerHeightMode : undefined}
     >
       {premiumIdentityActive && appearance.premiumStudio && (
         <PremiumProfileAtmosphere
@@ -373,10 +375,21 @@ export default function ProfilePage() {
                 />
               )}
               <img
-                src={bannerUrl}
+                src={
+                  premiumIdentityActive &&
+                  appearance.premiumStudio?.motionMode === 'off' &&
+                  mobileBannerUrl
+                    ? mobileBannerUrl
+                    : bannerUrl
+                }
                 alt="Баннер профиля"
                 className="profile-v2__banner-image"
-                style={premiumMediaStyle(appearance.bannerTransform) as CSSProperties}
+                style={
+                  premiumBannerStyle(
+                    premiumIdentityActive ? appearance.premiumStudio : null,
+                    appearance.bannerTransform,
+                  ) as CSSProperties
+                }
               />
             </picture>
           ) : (
@@ -398,6 +411,7 @@ export default function ProfilePage() {
             mediaTransform={appearance.avatarTransform}
             profileFrameKey={profileFrameKey}
             premiumFrameMotion={premiumActive && appearance.premiumStudio?.motionMode !== 'off'}
+            preferStatic={premiumIdentityActive && appearance.premiumStudio?.motionMode === 'off'}
           />
 
           <div className="profile-v2__identity-main">
@@ -467,7 +481,7 @@ export default function ProfilePage() {
       {premiumActive && (
         <section className="profile-v2__bottom-card premium-profile-v23__stats-cta">
           <div>
-            <span className="profile-v2__eyebrow">Premium · Advanced Stats</span>
+            <span className="profile-v2__eyebrow">Premium · Расширенная статистика</span>
             <h2>Твой AnimeBox в цифрах</h2>
             <p>
               Ритм просмотра, любимые жанры, активные дни и история завершённых серий.

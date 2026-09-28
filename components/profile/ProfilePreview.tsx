@@ -15,9 +15,13 @@ import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
 import { isLevelFrameKey, levelFrameAvatarScale } from '@/lib/progression';
+import { resolveAvatarIdentityVisuals } from '@/lib/avatar-identity';
 import {
+  DEFAULT_PREMIUM_STUDIO_SETTINGS,
+  premiumBannerStyle,
   premiumMediaStyle,
   type PremiumAtmosphereEffect,
+  type PremiumBannerHeightMode,
   type PremiumEntranceEffect,
   type PremiumHeroStyle,
   type PremiumMediaTransform,
@@ -55,6 +59,11 @@ type PreviewData = {
   heroStyle: PremiumHeroStyle;
   surfaceStyle: PremiumSurfaceStyle;
   profileLayout: PremiumProfileLayout;
+  bannerHeightMode: PremiumBannerHeightMode;
+  bannerSaturation: number;
+  bannerContrast: number;
+  bannerBrightness: number;
+  bannerShade: number;
   role: PublicIdentityRole;
   sponsor: SponsorStatus | null;
   profileFrameKey: string | null;
@@ -291,6 +300,14 @@ export default function ProfilePreview({
       ? 0
       : Math.max(0.08, atmosphereAlpha * 0.56);
 
+  const avatarVisuals = data
+    ? resolveAvatarIdentityVisuals({
+        role: data.role,
+        sponsor: data.sponsor,
+        profileFrameKey: data.profileFrameKey,
+      })
+    : null;
+
   const themeStyle = data
     ? ({
         '--profile-preview-primary': data.primaryColor,
@@ -299,6 +316,9 @@ export default function ProfilePreview({
         '--profile-preview-atmosphere-alpha': String(atmosphereAlpha),
         '--profile-preview-atmosphere-live-alpha': String(atmosphereLiveAlpha),
         '--profile-preview-atmosphere-clean-alpha': String(atmosphereCleanAlpha),
+        '--profile-preview-banner-shade': String(
+          Math.max(0.2, Math.min(0.9, data.bannerShade / 100)),
+        ),
       } as CSSProperties)
     : undefined;
 
@@ -339,6 +359,7 @@ export default function ProfilePreview({
                 data-hero={data?.premium ? data.heroStyle : 'clean'}
                 data-surface={data?.premium ? data.surfaceStyle : 'ink'}
                 data-layout={data?.premium ? data.profileLayout : 'classic'}
+                data-banner-height={data?.premium ? data.bannerHeightMode : 'standard'}
                 style={{
                   ...themeStyle,
                   top: position.top,
@@ -397,7 +418,17 @@ export default function ProfilePreview({
                               alt=""
                               loading="eager"
                               decoding="async"
-                              style={premiumMediaStyle(data.bannerTransform)}
+                              style={premiumBannerStyle(
+                                {
+                                  ...DEFAULT_PREMIUM_STUDIO_SETTINGS,
+                                  bannerSaturation: data.bannerSaturation,
+                                  bannerContrast: data.bannerContrast,
+                                  bannerBrightness: data.bannerBrightness,
+                                  bannerShade: data.bannerShade,
+                                  bannerHeightMode: data.bannerHeightMode,
+                                },
+                                data.bannerTransform,
+                              )}
                             />
                           </picture>
                         ) : (
@@ -417,8 +448,9 @@ export default function ProfilePreview({
 
                       <div className={styles.heroIdentity}>
                         <span
-                          className={`${styles.avatarShell} ${data.profileFrameKey ? styles.avatarShellSeason : ''}`}
+                          className={`${styles.avatarShell} ${data.profileFrameKey ? styles.avatarShellSeason : ''} ${avatarVisuals?.identityFrameSrc ? styles.avatarShellIdentity : ''}`}
                           data-milestone-frame={isLevelFrameKey(data.profileFrameKey) ? 'true' : 'false'}
+                          data-identity-frame={avatarVisuals?.identityFrameKind ?? 'none'}
                           data-premium={data.premium ? 'true' : 'false'}
                         >
                           <picture
@@ -429,7 +461,12 @@ export default function ProfilePreview({
                                     width: `${(levelFrameAvatarScale(data.profileFrameKey) ?? 0.58) * 100}%`,
                                     height: `${(levelFrameAvatarScale(data.profileFrameKey) ?? 0.58) * 100}%`,
                                   }
-                                : undefined
+                                : avatarVisuals?.identityFrameSrc
+                                  ? {
+                                      width: `${avatarVisuals.avatarScale * 100}%`,
+                                      height: `${avatarVisuals.avatarScale * 100}%`,
+                                    }
+                                  : undefined
                             }
                           >
                             {data.avatarStaticUrl !== data.avatarUrl && (
@@ -447,13 +484,29 @@ export default function ProfilePreview({
                                   : data.avatarUrl
                               }
                               alt=""
-                              width={72}
-                              height={72}
+                              width={88}
+                              height={88}
                               loading="eager"
                               decoding="async"
                               style={premiumMediaStyle(data.avatarTransform)}
                             />
                           </picture>
+                          {avatarVisuals?.identityFrameSrc && (
+                            <img
+                              src={avatarVisuals.identityFrameSrc}
+                              alt=""
+                              aria-hidden="true"
+                              className={styles.identityFrameOverlay}
+                              style={{
+                                transform:
+                                  `translate(-50%, calc(-50% + ${avatarVisuals.identityFrameTranslateY}%)) ` +
+                                  `scale(${avatarVisuals.identityFrameScale})`,
+                                transformOrigin: '50% 50%',
+                              }}
+                              draggable={false}
+                            />
+                          )}
+
                           {data.profileFrameKey && (
                             <ProfileFrameOverlay
                               frameKey={data.profileFrameKey}
@@ -464,7 +517,7 @@ export default function ProfilePreview({
                         </span>
 
                         <div className={styles.identityCopy}>
-                          <span className={styles.kicker}>AnimeBox profile</span>
+                          <span className={styles.kicker}>Профиль AnimeBox</span>
                           <span className={styles.nameLine}>
                             <span
                               className={styles.nickname}
@@ -478,12 +531,9 @@ export default function ProfilePreview({
                                 compact
                               />
                             </span>
-                            {data.premium && (
-                              <span className={styles.premiumBadge}>Premium</span>
-                            )}
                           </span>
                           <span className={styles.levelRow}>
-                            <span className={styles.levelBadge}>LVL {data.progression.level}</span>
+                            <span className={styles.levelBadge}>{data.progression.level} уровень</span>
                             <span className={styles.rankLabel}>{data.progression.rank}</span>
                           </span>
                         </div>

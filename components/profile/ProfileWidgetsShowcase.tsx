@@ -80,7 +80,7 @@ function FavoritesWidget({ data }: { data: ProfileWidgetsData }) {
     return (
       <EmptyWidget
         title="Здесь появятся любимые"
-        copy="Закрепи до шести тайтлов, которые лучше всего описывают твой вкус."
+        copy="Закрепи тайтлы, которые лучше всего описывают твой вкус."
       />
     );
   }
@@ -181,7 +181,7 @@ function GenresWidget({ data }: { data: ProfileWidgetsData }) {
   if (!data.genres.length) {
     return (
       <EmptyWidget
-        title="Anime DNA ещё формируется"
+        title="Профиль вкуса ещё формируется"
         copy="Смотри, оценивай и добавляй любимые — AnimeBox соберёт профиль твоего вкуса."
       />
     );
@@ -274,7 +274,7 @@ function ProfileWidgetCard({
         <small>
           {item.key === 'favorites' && 'выбор пользователя'}
           {item.key === 'watching' && 'из трекера'}
-          {item.key === 'ratings' && 'AnimeBox score'}
+          {item.key === 'ratings' && 'по твоим оценкам'}
           {item.key === 'genres' && 'по активности'}
           {item.key === 'activity' && 'последние события'}
         </small>
@@ -311,7 +311,7 @@ export default function ProfileWidgetsShowcase({
     <section className="profile-widgets-shell" data-public={publicView ? 'true' : 'false'}>
       <div className="profile-widgets-shell__head">
         <div>
-          <span className="profile-v2__eyebrow">PROFILE IDENTITY</span>
+          <span className="profile-v2__eyebrow">АНИМЕ-ПРОФИЛЬ</span>
           <h2>{publicView ? 'Аниме-профиль' : 'Мой аниме-профиль'}</h2>
           <p>{publicView ? 'Любимые тайтлы, оценки и профиль вкуса пользователя.' : 'Любимые тайтлы, оценки и вкус — в одной персональной витрине.'}</p>
         </div>
@@ -346,7 +346,7 @@ export default function ProfileWidgetsShowcase({
         </div>
       ) : (
         <div className="profile-widgets-shell__all-hidden">
-          Все профильные виджеты скрыты. Их можно вернуть через настройку профиля.
+          Все блоки витрины скрыты. Верни нужные разделы в редакторе профиля.
         </div>
       )}
     </section>

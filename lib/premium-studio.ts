@@ -56,6 +56,15 @@ export type PremiumSurfaceStyle = (typeof PREMIUM_SURFACE_STYLES)[number];
 export const PREMIUM_PROFILE_LAYOUTS = ['classic', 'cinema', 'collector', 'minimal'] as const;
 export type PremiumProfileLayout = (typeof PREMIUM_PROFILE_LAYOUTS)[number];
 
+export const PREMIUM_BANNER_HEIGHT_MODES = [
+  'compact',
+  'standard',
+  'cinema',
+  'immersive',
+] as const;
+export type PremiumBannerHeightMode =
+  (typeof PREMIUM_BANNER_HEIGHT_MODES)[number];
+
 export const PREMIUM_SCENE_PRESETS = [
   'aurora',
   'sakura',
@@ -96,6 +105,11 @@ export type PremiumStudioSettings = {
   bannerPositionX: number;
   bannerPositionY: number;
   bannerZoom: number;
+  bannerHeightMode: PremiumBannerHeightMode;
+  bannerSaturation: number;
+  bannerContrast: number;
+  bannerBrightness: number;
+  bannerShade: number;
   syncPlayerTheme: boolean;
   atmosphereEffect: PremiumAtmosphereEffect;
   atmosphereIntensity: number;
@@ -125,6 +139,11 @@ export const DEFAULT_PREMIUM_STUDIO_SETTINGS: PremiumStudioSettings = {
   bannerPositionX: 50,
   bannerPositionY: 50,
   bannerZoom: 1,
+  bannerHeightMode: 'standard',
+  bannerSaturation: 100,
+  bannerContrast: 100,
+  bannerBrightness: 100,
+  bannerShade: 62,
   syncPlayerTheme: true,
   atmosphereEffect: 'aurora',
   atmosphereIntensity: 48,
@@ -335,6 +354,12 @@ export function isPremiumProfileLayout(value: string): value is PremiumProfileLa
   return (PREMIUM_PROFILE_LAYOUTS as readonly string[]).includes(value);
 }
 
+export function isPremiumBannerHeightMode(
+  value: string,
+): value is PremiumBannerHeightMode {
+  return (PREMIUM_BANNER_HEIGHT_MODES as readonly string[]).includes(value);
+}
+
 export function isHexColor(value: string): boolean {
   return HEX_COLOR_RE.test(value);
 }
@@ -373,6 +398,17 @@ function readZoom(value: unknown, fallback = 1) {
   return Math.max(1, Math.min(3, Math.round(number * 100) / 100));
 }
 
+function readRange(
+  value: unknown,
+  fallback: number,
+  min: number,
+  max: number,
+) {
+  const number = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(number)));
+}
+
 export function studioSettingsFromRow(
   row?: Record<string, unknown> | null,
 ): PremiumStudioSettings {
@@ -388,6 +424,9 @@ export function studioSettingsFromRow(
   const rawHero = stringOrNull(row.hero_style) ?? 'cinematic';
   const rawSurface = stringOrNull(row.surface_style) ?? 'glass';
   const rawLayout = stringOrNull(row.profile_layout) ?? 'classic';
+  const rawBannerHeight =
+    stringOrNull(row.banner_height_mode) ??
+    DEFAULT_PREMIUM_STUDIO_SETTINGS.bannerHeightMode;
 
   return {
     theme: isPremiumProfileTheme(rawTheme) ? rawTheme : 'default',
@@ -416,6 +455,33 @@ export function studioSettingsFromRow(
     bannerPositionX: readPosition(row.banner_position_x),
     bannerPositionY: readPosition(row.banner_position_y),
     bannerZoom: readZoom(row.banner_zoom),
+    bannerHeightMode: isPremiumBannerHeightMode(rawBannerHeight)
+      ? rawBannerHeight
+      : DEFAULT_PREMIUM_STUDIO_SETTINGS.bannerHeightMode,
+    bannerSaturation: readRange(
+      row.banner_saturation,
+      DEFAULT_PREMIUM_STUDIO_SETTINGS.bannerSaturation,
+      70,
+      140,
+    ),
+    bannerContrast: readRange(
+      row.banner_contrast,
+      DEFAULT_PREMIUM_STUDIO_SETTINGS.bannerContrast,
+      85,
+      125,
+    ),
+    bannerBrightness: readRange(
+      row.banner_brightness,
+      DEFAULT_PREMIUM_STUDIO_SETTINGS.bannerBrightness,
+      80,
+      120,
+    ),
+    bannerShade: readRange(
+      row.banner_shade,
+      DEFAULT_PREMIUM_STUDIO_SETTINGS.bannerShade,
+      20,
+      90,
+    ),
     syncPlayerTheme:
       typeof row.sync_player_theme === 'boolean'
         ? row.sync_player_theme
@@ -555,6 +621,7 @@ export function resolveReadableTextColor(
 }
 
 export function premiumStudioCssVariables(settings: PremiumStudioSettings) {
+  const primaryRgb = hexToRgb(settings.primaryColor);
   const accentRgb = hexToRgb(settings.accentColor);
   const requestedTextRgb = hexToRgb(settings.textColor);
   const safeText = resolveReadableTextColor(settings.textColor, settings.primaryColor);
@@ -581,6 +648,7 @@ export function premiumStudioCssVariables(settings: PremiumStudioSettings) {
 
   return {
     '--ab-premium-primary': settings.primaryColor,
+    '--ab-premium-primary-rgb': `${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}`,
     '--ab-premium-accent': settings.accentColor,
     '--ab-premium-text-selected': settings.textColor,
     '--ab-premium-text-selected-rgb': `${requestedTextRgb.r}, ${requestedTextRgb.g}, ${requestedTextRgb.b}`,
@@ -600,6 +668,7 @@ export function premiumStudioCssVariables(settings: PremiumStudioSettings) {
     '--ab-premium-motion-duration': `${motionDuration}s`,
     '--ab-premium-motion-duration-fast': `${Math.max(0.001, motionDuration * 0.56)}s`,
     '--ab-premium-motion-duration-slow': `${Math.max(0.001, motionDuration * 1.32)}s`,
+    '--ab-premium-banner-shade': String(settings.bannerShade / 100),
   };
 }
 
@@ -635,3 +704,20 @@ export function premiumMediaStyle(transform?: PremiumMediaTransform | null) {
   };
 }
 
+
+
+export function premiumBannerStyle(
+  settings: PremiumStudioSettings | null | undefined,
+  transform?: PremiumMediaTransform | null,
+) {
+  const current = settings ?? DEFAULT_PREMIUM_STUDIO_SETTINGS;
+  return {
+    ...premiumMediaStyle(
+      transform ?? premiumMediaTransform(current, 'banner'),
+    ),
+    filter:
+      `saturate(${current.bannerSaturation}%) ` +
+      `contrast(${current.bannerContrast}%) ` +
+      `brightness(${current.bannerBrightness}%)`,
+  };
+}

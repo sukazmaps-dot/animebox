@@ -24,6 +24,7 @@ import { deriveAdaptiveProfilePalette } from '@/lib/adaptive-profile-theme-clien
 import {
   DEFAULT_PREMIUM_STUDIO_SETTINGS,
   PREMIUM_ATMOSPHERE_EFFECTS,
+  PREMIUM_BANNER_HEIGHT_MODES,
   PREMIUM_BORDER_STYLES,
   PREMIUM_ENTRANCE_EFFECTS,
   PREMIUM_HERO_STYLES,
@@ -38,11 +39,13 @@ import {
   PREMIUM_PROFILE_THEME_META,
   applyPremiumScenePreset,
   contrastRatio,
+  premiumBannerStyle,
   isHexColor,
   resolveReadableTextColor,
   premiumMediaStyle,
   premiumThemePreset,
   type PremiumAtmosphereEffect,
+  type PremiumBannerHeightMode,
   type PremiumEntranceEffect,
   type PremiumHeroStyle,
   type PremiumMediaTransform,
@@ -73,6 +76,10 @@ type PremiumStudioClientProps = {
   hideDock?: boolean;
   initialSettings?: PremiumStudioSettings | null;
   initialAllowed?: boolean | null;
+  previewUsername?: string;
+  previewBio?: string;
+  fallbackAvatarUrl?: string | null;
+  fallbackBannerUrl?: string | null;
   onDirtyChange?: (dirty: boolean) => void;
   onBusyChange?: (busy: boolean) => void;
   onSettingsCommitted?: (settings: PremiumStudioSettings) => void;
@@ -130,6 +137,16 @@ const MOTION_META: Record<PremiumMotionMode, string> = {
   off: 'Выкл.',
   soft: 'Плавно',
   live: 'Активно',
+};
+
+const BANNER_HEIGHT_META: Record<
+  PremiumBannerHeightMode,
+  { label: string; hint: string }
+> = {
+  compact: { label: 'Компактный', hint: 'Меньше баннера, больше профиля.' },
+  standard: { label: 'Обычный', hint: 'Сбалансированный размер.' },
+  cinema: { label: 'Кино', hint: 'Больше пространства для арта.' },
+  immersive: { label: 'Максимальный', hint: 'Баннер становится главным hero-элементом.' },
 };
 
 type MediaEditorState = {
@@ -385,6 +402,10 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   hideDock = false,
   initialSettings = null,
   initialAllowed = null,
+  previewUsername,
+  previewBio,
+  fallbackAvatarUrl = null,
+  fallbackBannerUrl = null,
   onDirtyChange,
   onBusyChange,
   onSettingsCommitted,
@@ -418,6 +439,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   const [paletteLoading, setPaletteLoading] = useState<'avatar' | 'banner' | ''>('');
   const [previewEpoch, setPreviewEpoch] = useState(0);
   const [previewContext, setPreviewContext] = useState<PremiumPreviewContext>('profile');
+  const [previewFrameKey, setPreviewFrameKey] = useState<string | null>(null);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [studioSection, setStudioSection] = useState<'appearance' | 'atmosphere' | 'effects' | 'media'>('appearance');
   const [mediaEditor, setMediaEditor] = useState<MediaEditorState | null>(null);
@@ -453,6 +475,39 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       active = false;
     };
   }, [initialAllowed, initialSettings]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadFrame = () => {
+      if (!user?.id) {
+        if (active) setPreviewFrameKey(null);
+        return;
+      }
+
+      void fetch('/api/community/leaderboard-rewards', { cache: 'no-store' })
+        .then(async (response) => {
+          const payload = await response.json() as {
+            selectedFrame?: string | null;
+          };
+          if (!response.ok) return;
+          if (active) setPreviewFrameKey(payload.selectedFrame ?? null);
+        })
+        .catch(() => {
+          if (active) setPreviewFrameKey(null);
+        });
+    };
+
+    loadFrame();
+    window.addEventListener('animebox:profile-cosmetic-changed', loadFrame);
+    window.addEventListener('animebox:leaderboard-reward-claimed', loadFrame);
+
+    return () => {
+      active = false;
+      window.removeEventListener('animebox:profile-cosmetic-changed', loadFrame);
+      window.removeEventListener('animebox:leaderboard-reward-claimed', loadFrame);
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     if (allowed !== false || demoTrackedRef.current) return;
@@ -535,8 +590,25 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     return supabase.storage.from('profile-media').getPublicUrl(path).data.publicUrl;
   }
 
-  const avatarUrl = publicMediaUrl(settings.avatarPath || settings.avatarStaticPath);
-  const bannerUrl = publicMediaUrl(settings.bannerPath || settings.bannerStaticPath);
+  const avatarUrl = publicMediaUrl(
+    settings.motionMode === 'off'
+      ? settings.avatarStaticPath || settings.avatarPath
+      : settings.avatarPath || settings.avatarStaticPath,
+  );
+  const bannerUrl = publicMediaUrl(
+    settings.motionMode === 'off'
+      ? settings.bannerStaticPath || settings.bannerPath
+      : settings.bannerPath || settings.bannerStaticPath,
+  );
+  const effectiveAvatarUrl =
+    avatarUrl ||
+    fallbackAvatarUrl ||
+    publicMediaUrl(authProfile?.avatar_path ?? null);
+  const effectiveBannerUrl = bannerUrl || fallbackBannerUrl;
+  const effectiveUsername =
+    previewUsername?.trim() ||
+    authProfile?.username?.trim() ||
+    'Твой профиль';
   const avatarTransform = {
     x: settings.avatarPositionX,
     y: settings.avatarPositionY,
@@ -547,6 +619,40 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     y: settings.bannerPositionY,
     zoom: settings.bannerZoom,
   };
+
+  function applyBannerLook(preset: 'natural' | 'juicy' | 'cinema') {
+    setSettings((current) => {
+      if (preset === 'juicy') {
+        return {
+          ...current,
+          bannerSaturation: 124,
+          bannerContrast: 108,
+          bannerBrightness: 102,
+          bannerShade: 56,
+        };
+      }
+
+      if (preset === 'cinema') {
+        return {
+          ...current,
+          bannerSaturation: 110,
+          bannerContrast: 112,
+          bannerBrightness: 94,
+          bannerShade: 74,
+          bannerHeightMode: 'cinema',
+        };
+      }
+
+      return {
+        ...current,
+        bannerSaturation: 100,
+        bannerContrast: 100,
+        bannerBrightness: 100,
+        bannerShade: 62,
+      };
+    });
+    setSaved('');
+  }
 
   async function persistSettings(
     next: PremiumStudioSettings,
@@ -1063,11 +1169,14 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
           <PremiumStudioLivePreview
             key={`demo:${previewEpoch}:${previewContext}`}
             settings={settings}
-            avatarUrl={avatarUrl}
-            bannerUrl={bannerUrl}
+            avatarUrl={effectiveAvatarUrl}
+            bannerUrl={effectiveBannerUrl}
             avatarTransform={avatarTransform}
             bannerTransform={bannerTransform}
             context={previewContext}
+            username={effectiveUsername}
+            bio={previewBio}
+            profileFrameKey={previewFrameKey}
           />
         </div>
 
@@ -1208,11 +1317,14 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
               <PremiumStudioLivePreview
                 key={`${previewEpoch}:${previewContext}`}
                 settings={settings}
-                avatarUrl={avatarUrl}
-                bannerUrl={bannerUrl}
+                avatarUrl={effectiveAvatarUrl}
+                bannerUrl={effectiveBannerUrl}
                 avatarTransform={avatarTransform}
                 bannerTransform={bannerTransform}
                 context={previewContext}
+                username={effectiveUsername}
+                bio={previewBio}
+                profileFrameKey={previewFrameKey}
               />
             </div>
           </aside>
@@ -1506,7 +1618,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 </article>
 
                 <article className="premium-studio-v19__media-card">
-                  <div className="premium-studio-v12__media-preview is-banner">{bannerUrl ? <img src={bannerUrl} alt="Предпросмотр Premium-баннера" style={premiumMediaStyle(bannerTransform) as CSSProperties} /> : <span>Баннер Premium</span>}</div>
+                  <div className="premium-studio-v12__media-preview is-banner" data-banner-height={settings.bannerHeightMode}>{bannerUrl ? <img src={bannerUrl} alt="Предпросмотр Premium-баннера" style={premiumBannerStyle(settings, bannerTransform) as CSSProperties} /> : <span>Баннер Premium</span>}</div>
                   <div className="premium-studio-v16__media-copy"><strong>Баннер</strong><small>до 6 МБ · исходник до 2400×1200</small></div>
                   <p className="premium-studio-v19__media-hint">Для баннера не нужен «кроп» как у аватара: после загрузки ты подгоняешь изображение под реальную широкую рамку профиля.</p>
                   <div className="premium-studio-v19__media-actions">
@@ -1516,6 +1628,152 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                   </div>
                   <input ref={bannerInputRef} hidden type="file" accept="image/webp,image/gif,image/png,image/jpeg" onChange={(event) => void prepareMediaUpload('banner', event.target.files?.[0])} />
                 </article>
+              </div>
+
+              <div className="premium-studio-v24__banner-director">
+                <div className="premium-studio-v24__banner-director-head">
+                  <div>
+                    <span>PREMIUM · БАННЕР</span>
+                    <h3>Сделай баннер главным акцентом</h3>
+                    <p>
+                      Размер, насыщенность и затемнение меняют только подачу арта.
+                      Исходное изображение остаётся без изменений.
+                    </p>
+                  </div>
+                  <div className="premium-studio-v24__banner-presets">
+                    <button type="button" onClick={() => applyBannerLook('natural')}>
+                      Естественный
+                    </button>
+                    <button type="button" className="is-accent" onClick={() => applyBannerLook('juicy')}>
+                      Сочный
+                    </button>
+                    <button type="button" onClick={() => applyBannerLook('cinema')}>
+                      Кино
+                    </button>
+                  </div>
+                </div>
+
+                <div className="premium-studio-v24__banner-height">
+                  <span>
+                    <strong>Размер баннера</strong>
+                    <small>Можно сделать профиль компактнее или дать арту больше воздуха.</small>
+                  </span>
+                  <div className="premium-studio-v24__banner-height-grid">
+                    {PREMIUM_BANNER_HEIGHT_MODES.map((mode) => {
+                      const meta = BANNER_HEIGHT_META[mode];
+                      return (
+                        <button
+                          key={mode}
+                          type="button"
+                          className={settings.bannerHeightMode === mode ? 'is-active' : ''}
+                          onClick={() =>
+                            setSettings((current) => ({
+                              ...current,
+                              bannerHeightMode: mode,
+                            }))
+                          }
+                        >
+                          <strong>{meta.label}</strong>
+                          <small>{meta.hint}</small>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="premium-studio-v24__banner-ranges">
+                  <label>
+                    <span>
+                      <strong>Насыщенность</strong>
+                      <small>Делает цвета спокойнее или сочнее.</small>
+                    </span>
+                    <span>
+                      <input
+                        type="range"
+                        min="70"
+                        max="140"
+                        step="1"
+                        value={settings.bannerSaturation}
+                        onChange={(event) =>
+                          setSettings((current) => ({
+                            ...current,
+                            bannerSaturation: Number(event.target.value),
+                          }))
+                        }
+                      />
+                      <b>{settings.bannerSaturation}%</b>
+                    </span>
+                  </label>
+
+                  <label>
+                    <span>
+                      <strong>Контраст</strong>
+                      <small>Добавляет глубину светлым и тёмным участкам.</small>
+                    </span>
+                    <span>
+                      <input
+                        type="range"
+                        min="85"
+                        max="125"
+                        step="1"
+                        value={settings.bannerContrast}
+                        onChange={(event) =>
+                          setSettings((current) => ({
+                            ...current,
+                            bannerContrast: Number(event.target.value),
+                          }))
+                        }
+                      />
+                      <b>{settings.bannerContrast}%</b>
+                    </span>
+                  </label>
+
+                  <label>
+                    <span>
+                      <strong>Яркость</strong>
+                      <small>Подстраивает общий свет баннера.</small>
+                    </span>
+                    <span>
+                      <input
+                        type="range"
+                        min="80"
+                        max="120"
+                        step="1"
+                        value={settings.bannerBrightness}
+                        onChange={(event) =>
+                          setSettings((current) => ({
+                            ...current,
+                            bannerBrightness: Number(event.target.value),
+                          }))
+                        }
+                      />
+                      <b>{settings.bannerBrightness}%</b>
+                    </span>
+                  </label>
+
+                  <label>
+                    <span>
+                      <strong>Затемнение снизу</strong>
+                      <small>Помогает имени и бейджам читаться поверх яркого арта.</small>
+                    </span>
+                    <span>
+                      <input
+                        type="range"
+                        min="20"
+                        max="90"
+                        step="1"
+                        value={settings.bannerShade}
+                        onChange={(event) =>
+                          setSettings((current) => ({
+                            ...current,
+                            bannerShade: Number(event.target.value),
+                          }))
+                        }
+                      />
+                      <b>{settings.bannerShade}%</b>
+                    </span>
+                  </label>
+                </div>
               </div>
             </section>
           )}
@@ -1626,11 +1884,14 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                   <PremiumStudioLivePreview
                     key={`mobile-${previewEpoch}`}
                     settings={settings}
-                    avatarUrl={avatarUrl}
-                    bannerUrl={bannerUrl}
+                    avatarUrl={effectiveAvatarUrl}
+                    bannerUrl={effectiveBannerUrl}
                     avatarTransform={avatarTransform}
                     bannerTransform={bannerTransform}
                     context={previewContext}
+                    username={effectiveUsername}
+                    bio={previewBio}
+                    profileFrameKey={previewFrameKey}
                   />
                 </div>
 

@@ -12,6 +12,7 @@ import {
   DEFAULT_PREMIUM_STUDIO_SETTINGS,
   isHexColor,
   isPremiumAtmosphereEffect,
+  isPremiumBannerHeightMode,
   isPremiumBorderStyle,
   isPremiumParticleEffect,
   isPremiumEntranceEffect,
@@ -55,6 +56,11 @@ const STUDIO_COLUMNS = [
   'banner_position_x',
   'banner_position_y',
   'banner_zoom',
+  'banner_height_mode',
+  'banner_saturation',
+  'banner_contrast',
+  'banner_brightness',
+  'banner_shade',
   'sync_player_theme',
   'atmosphere_effect',
   'atmosphere_intensity',
@@ -235,6 +241,19 @@ function readPercent(value: unknown, label: string) {
   return Math.round(number);
 }
 
+function readNumberRange(
+  value: unknown,
+  label: string,
+  min: number,
+  max: number,
+) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < min || number > max) {
+    throw new ApiError(400, `${label}: допустимо от ${min} до ${max}.`);
+  }
+  return Math.round(number);
+}
+
 function readStudioSettings(value: unknown, userId: string): PremiumStudioSettings {
   const data = objectValue(value, 'Оформление');
   const theme = typeof data.theme === 'string' ? data.theme.trim() : '';
@@ -271,6 +290,10 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
     typeof data.profileLayout === 'string'
       ? data.profileLayout.trim()
       : DEFAULT_PREMIUM_STUDIO_SETTINGS.profileLayout;
+  const bannerHeightMode =
+    typeof data.bannerHeightMode === 'string'
+      ? data.bannerHeightMode.trim()
+      : DEFAULT_PREMIUM_STUDIO_SETTINGS.bannerHeightMode;
   const glowStrength = Number(data.glowStrength);
 
   if (!isPremiumProfileTheme(theme)) throw new ApiError(400, 'Неизвестная тема профиля.');
@@ -285,7 +308,10 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
   if (!isPremiumNicknameEffect(nicknameEffect)) throw new ApiError(400, 'Неизвестный эффект ника.');
   if (!isPremiumHeroStyle(heroStyle)) throw new ApiError(400, 'Неизвестный стиль hero.');
   if (!isPremiumSurfaceStyle(surfaceStyle)) throw new ApiError(400, 'Неизвестный стиль поверхностей.');
-  if (!isPremiumProfileLayout(profileLayout)) throw new ApiError(400, 'Неизвестный layout профиля.');
+  if (!isPremiumProfileLayout(profileLayout)) throw new ApiError(400, 'Неизвестная композиция профиля.');
+  if (!isPremiumBannerHeightMode(bannerHeightMode)) {
+    throw new ApiError(400, 'Неизвестный размер баннера.');
+  }
   if (!Number.isFinite(glowStrength) || glowStrength < 0 || glowStrength > 100) {
     throw new ApiError(400, 'Интенсивность свечения должна быть от 0 до 100.');
   }
@@ -311,6 +337,31 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
     bannerPositionX: readPosition(data.bannerPositionX, 'Позиция баннера по X'),
     bannerPositionY: readPosition(data.bannerPositionY, 'Позиция баннера по Y'),
     bannerZoom: readZoom(data.bannerZoom, 'Масштаб баннера'),
+    bannerHeightMode,
+    bannerSaturation: readNumberRange(
+      data.bannerSaturation ?? DEFAULT_PREMIUM_STUDIO_SETTINGS.bannerSaturation,
+      'Насыщенность баннера',
+      70,
+      140,
+    ),
+    bannerContrast: readNumberRange(
+      data.bannerContrast ?? DEFAULT_PREMIUM_STUDIO_SETTINGS.bannerContrast,
+      'Контраст баннера',
+      85,
+      125,
+    ),
+    bannerBrightness: readNumberRange(
+      data.bannerBrightness ?? DEFAULT_PREMIUM_STUDIO_SETTINGS.bannerBrightness,
+      'Яркость баннера',
+      80,
+      120,
+    ),
+    bannerShade: readNumberRange(
+      data.bannerShade ?? DEFAULT_PREMIUM_STUDIO_SETTINGS.bannerShade,
+      'Затемнение баннера',
+      20,
+      90,
+    ),
     syncPlayerTheme: data.syncPlayerTheme,
     atmosphereEffect,
     atmosphereIntensity: readPercent(
@@ -346,6 +397,11 @@ function studioRow(settings: PremiumStudioSettings, userId: string) {
     banner_position_x: settings.bannerPositionX,
     banner_position_y: settings.bannerPositionY,
     banner_zoom: settings.bannerZoom,
+    banner_height_mode: settings.bannerHeightMode,
+    banner_saturation: settings.bannerSaturation,
+    banner_contrast: settings.bannerContrast,
+    banner_brightness: settings.bannerBrightness,
+    banner_shade: settings.bannerShade,
     sync_player_theme: settings.syncPlayerTheme,
     atmosphere_effect: settings.atmosphereEffect,
     atmosphere_intensity: settings.atmosphereIntensity,

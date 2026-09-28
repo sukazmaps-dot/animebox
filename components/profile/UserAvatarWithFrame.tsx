@@ -24,6 +24,7 @@ type Props = {
   seasonFrameKey?: string | null;
   profileFrameKey?: string | null;
   premiumFrameMotion?: boolean;
+  preferStatic?: boolean;
 };
 
 type IdentityState = {
@@ -43,6 +44,7 @@ export default function UserAvatarWithFrame({
   seasonFrameKey = null,
   profileFrameKey = null,
   premiumFrameMotion = false,
+  preferStatic = false,
 }: Props) {
   const { user } = useAuthState();
   const cached = loadCurrentIdentity ? peekSponsorMe(user?.id, 1) : null;
@@ -106,6 +108,7 @@ export default function UserAvatarWithFrame({
     : { role, sponsor };
 
   const activeProfileFrameKey = profileFrameKey ?? seasonFrameKey;
+  const displayedSrc = preferStatic && mobileSrc ? mobileSrc : src;
   const visuals = useMemo(
     () =>
       resolveAvatarIdentityVisuals({
@@ -124,20 +127,22 @@ export default function UserAvatarWithFrame({
     <div
       className={`profile-v2__avatar-wrap relative isolate h-[108px] w-[108px] shrink-0 overflow-visible sm:h-[152px] sm:w-[152px] ${className}`.trim()}
       data-avatar-frame={visuals.dataFrameKey}
+      data-identity-frame={visuals.identityFrameKind ?? 'none'}
+      data-profile-frame={visuals.profileFrameKey ?? 'none'}
     >
       <div
         className="absolute z-10 overflow-hidden rounded-full ring-4 ring-[#091221] transition-[inset] duration-200"
         style={{ inset: `${visuals.avatarInsetPct}%` }}
       >
         <picture className="absolute inset-0 block h-full w-full">
-          {mobileSrc && mobileSrc !== src && (
+          {mobileSrc && mobileSrc !== displayedSrc && (
             <source
               media="(prefers-reduced-motion: reduce)"
               srcSet={mobileSrc}
             />
           )}
           <img
-            src={src}
+            src={displayedSrc}
             alt={alt}
             className="block h-full w-full max-w-none select-none object-cover"
             style={premiumMediaStyle(mediaTransform)}
@@ -151,7 +156,13 @@ export default function UserAvatarWithFrame({
           src={visuals.identityFrameSrc}
           alt=""
           aria-hidden="true"
-          className="user-avatar-frame__overlay pointer-events-none absolute inset-0 z-20 block h-full w-full max-w-none select-none object-contain"
+          className="user-avatar-frame__overlay pointer-events-none absolute left-1/2 top-1/2 z-20 block h-full w-full max-w-none select-none object-contain"
+          style={{
+            transform:
+              `translate(-50%, calc(-50% + ${visuals.identityFrameTranslateY}%)) ` +
+              `scale(${visuals.identityFrameScale})`,
+            transformOrigin: '50% 50%',
+          }}
           draggable={false}
         />
       )}

@@ -26,7 +26,7 @@
   position: fixed;
   display: flex;
   flex-direction: column;
-  width: min(380px, calc(100vw - 24px));
+  width: min(410px, calc(100vw - 24px));
   max-height: min(620px, calc(100dvh - 24px));
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--profile-preview-accent) 30%, rgba(255,255,255,.08));
@@ -98,7 +98,7 @@
 
 .banner {
   position: relative;
-  height: 106px;
+  height: 118px;
   overflow: hidden;
   background: #090c16;
 }
@@ -136,10 +136,10 @@
   z-index: 3;
   display: flex;
   align-items: flex-end;
-  gap: 12px;
-  min-height: 60px;
-  margin-top: -28px;
-  padding: 0 17px;
+  gap: 14px;
+  min-height: 78px;
+  margin-top: -38px;
+  padding: 0 18px;
 }
 
 .body {
@@ -152,9 +152,9 @@
 }
 
 .avatarShell {
-  flex: 0 0 72px;
-  width: 72px;
-  height: 72px;
+  flex: 0 0 88px;
+  width: 88px;
+  height: 88px;
   overflow: hidden;
   border: 3px solid color-mix(in srgb, var(--profile-preview-primary) 78%, #050812 22%);
   border-radius: 18px;
@@ -177,10 +177,10 @@
    canvas while keeping the visible photo ~72px. */
 .avatarShellSeason {
   position: relative;
-  flex-basis: 92px;
-  width: 92px;
-  height: 92px;
-  margin: -10px -10px -10px 0;
+  flex-basis: 132px;
+  width: 132px;
+  height: 132px;
+  margin: -22px -16px -22px -6px;
   overflow: visible;
   border: 0;
   border-radius: 0;
@@ -193,8 +193,8 @@
   z-index: 1;
   left: 50%;
   top: 50%;
-  width: 78%;
-  height: 78%;
+  width: 70%;
+  height: 70%;
   overflow: hidden;
   border-radius: 50%;
   background: #111827;
@@ -225,9 +225,9 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 6px;
-  overflow: hidden;
+  overflow: visible;
   color: var(--profile-preview-text);
   font-size: 15px;
   font-weight: 850;
@@ -476,7 +476,7 @@
   }
 
   .banner {
-    height: 112px;
+    height: 122px;
   }
 
   .hero {
@@ -485,8 +485,8 @@
 
   .heroIdentity {
     gap: 10px;
-    min-height: 58px;
-    margin-top: -27px;
+    min-height: 72px;
+    margin-top: -34px;
     padding-inline: 14px;
   }
 
@@ -496,17 +496,17 @@
   }
 
   .avatarShell {
-    flex-basis: 68px;
-    width: 68px;
-    height: 68px;
+    flex-basis: 80px;
+    width: 80px;
+    height: 80px;
     border-radius: 17px;
   }
 
   .avatarShellSeason {
-    flex-basis: 87px;
-    width: 87px;
-    height: 87px;
-    margin: -9px -9px -10px 0;
+    flex-basis: 118px;
+    width: 118px;
+    height: 118px;
+    margin: -19px -12px -19px -5px;
     border-radius: 0;
   }
 
@@ -723,7 +723,7 @@
 }
 
 
-/* Patch 18.8 — temporary AnimeBox League frame inside mini-profile. */
+/* Shared League frame geometry inside mini-profile. */
 .avatarShellSeason {
   position: relative;
   isolation: isolate;
@@ -747,10 +747,6 @@
   box-shadow: 0 0 0 2px #080c14, 0 8px 22px rgba(0,0,0,.34);
 }
 
-.avatarShellSeason[data-milestone-frame='true'] .avatarMedia {
-  width: 58%;
-  height: 58%;
-}
 
 .seasonFrameOverlay {
   z-index: 4;
@@ -1224,5 +1220,216 @@
     right: 12px;
     left: auto;
     z-index: 30;
+  }
+}
+
+
+/* Patch 20.3 — mini-profile parity */
+.nickname {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nameLine > :first-child {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .identityCopy {
+    gap: 4px;
+  }
+
+  .nameLine {
+    gap: 5px;
+  }
+}
+
+html[data-animebox-theme='light'] .card {
+  border-color: color-mix(in srgb, var(--profile-preview-accent) 24%, rgba(55,44,75,.12));
+  background:
+    radial-gradient(circle at 92% 0%, color-mix(in srgb, var(--profile-preview-accent) 10%, transparent), transparent 38%),
+    linear-gradient(155deg, #ffffff, #f6f3fb);
+  color: #2c2735;
+  box-shadow: 0 24px 70px rgba(62,48,81,.14);
+}
+
+html[data-animebox-theme='light'] .card .bio,
+html[data-animebox-theme='light'] .card .rankLabel,
+html[data-animebox-theme='light'] .card .metaCard em,
+html[data-animebox-theme='light'] .card .metaCard small {
+  color: #766d80;
+}
+
+html[data-animebox-theme='light'] .card .metaCard {
+  border-color: rgba(76,61,98,.09);
+  background: rgba(91,69,124,.025);
+}
+
+html[data-animebox-theme='light'] .close {
+  border-color: rgba(76,61,98,.12);
+  background: rgba(255,255,255,.82);
+  color: #4c4356;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .particleLayer {
+    display: none !important;
+  }
+}
+
+
+/* Patch 20.3 — the compact surface still reflects the selected profile layout. */
+.card[data-layout='cinema'] .banner {
+  height: 132px;
+}
+
+.card[data-layout='cinema'] .heroIdentity {
+  margin-top: -42px;
+}
+
+.card[data-layout='collector'] .metaGrid {
+  gap: 6px;
+}
+
+.card[data-layout='collector'] .metaCard {
+  min-height: 58px;
+  border-radius: 10px;
+}
+
+.card[data-layout='minimal'] .particleLayer,
+.card[data-layout='minimal'] .atmosphere {
+  display: none;
+}
+
+.card[data-layout='minimal'] .banner {
+  height: 98px;
+}
+
+.card[data-layout='minimal'] .heroIdentity {
+  margin-top: -31px;
+}
+
+.card[data-layout='minimal'] {
+  box-shadow: 0 24px 72px rgba(0,0,0,.48);
+}
+
+@media (max-width: 640px) {
+  .card[data-layout='cinema'] .banner {
+    height: 128px;
+  }
+
+  .card[data-layout='minimal'] .banner {
+    height: 96px;
+  }
+}
+
+
+.trigger:focus-visible,
+.close:focus-visible,
+.openProfile:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--profile-preview-accent, #7c4dff) 72%, white 28%);
+  outline-offset: 3px;
+}
+
+
+/* Patch 20.3.14 — Premium Banner Director in mini-profile */
+.card[data-banner-height='compact'] .banner {
+  height: 88px;
+}
+
+.card[data-banner-height='standard'] .banner {
+  height: 108px;
+}
+
+.card[data-banner-height='cinema'] .banner {
+  height: 132px;
+}
+
+.card[data-banner-height='immersive'] .banner {
+  height: 148px;
+}
+
+.card[data-premium='true'] .banner::after {
+  background:
+    linear-gradient(
+      180deg,
+      transparent 26%,
+      rgb(4 6 12 / calc(var(--profile-preview-banner-shade, .62) * .22)) 60%,
+      rgb(7 10 18 / var(--profile-preview-banner-shade, .62)) 100%
+    );
+}
+
+@media (max-width: 640px) {
+  .card[data-banner-height='compact'] .banner {
+    height: 88px;
+  }
+
+  .card[data-banner-height='standard'] .banner {
+    height: 100px;
+  }
+
+  .card[data-banner-height='cinema'] .banner {
+    height: 118px;
+  }
+
+  .card[data-banner-height='immersive'] .banner {
+    height: 128px;
+  }
+}
+
+
+/* Patch 20.3.14 — sponsor/owner identity frame parity */
+.avatarShellIdentity {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  display: grid;
+  place-items: center;
+  flex: 0 0 88px;
+  width: 88px;
+  height: 88px;
+  min-width: 88px;
+  min-height: 88px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+}
+
+.avatarShellIdentity .avatarMedia {
+  position: relative;
+  z-index: 10;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #111827;
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, .30),
+    0 0 0 2px color-mix(in srgb, var(--profile-preview-primary) 82%, #050812 18%);
+}
+
+.identityFrameOverlay {
+  position: absolute;
+  z-index: 20;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: contain;
+  overflow: visible;
+  pointer-events: none;
+  user-select: none;
+}
+
+
+@media (max-width: 640px) {
+  .avatarShellIdentity {
+    flex-basis: 80px;
+    width: 80px;
+    height: 80px;
+    min-width: 80px;
+    min-height: 80px;
   }
 }
