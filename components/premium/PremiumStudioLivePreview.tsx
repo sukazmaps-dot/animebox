@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react';
 
 import PremiumProfileAtmosphere from '@/components/premium/PremiumProfileAtmosphere';
 import PremiumParticleLayer from '@/components/profile/PremiumParticleLayer';
+import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
 import {
   premiumMediaStyle,
   premiumSceneContextSettings,
@@ -21,26 +22,30 @@ type PreviewContext = Extract<
 function PreviewAvatar({
   avatarUrl,
   avatarTransform,
+  profileFrameKey = null,
+  premiumFrameMotion = false,
   compact = false,
 }: {
   avatarUrl: string | null;
   avatarTransform: PremiumMediaTransform;
+  profileFrameKey?: string | null;
+  premiumFrameMotion?: boolean;
   compact?: boolean;
 }) {
-  if (avatarUrl) {
-    return (
-      <img
-        className={compact ? 'premium-studio-v23__context-avatar' : 'premium-studio-v12__preview-avatar'}
-        src={avatarUrl}
-        alt=""
-        loading="eager"
-        decoding="async"
-        style={premiumMediaStyle(avatarTransform) as CSSProperties}
-      />
-    );
-  }
+  const imageClass = compact
+    ? 'premium-studio-v23__context-avatar'
+    : 'premium-studio-v12__preview-avatar';
 
-  return (
+  const avatar = avatarUrl ? (
+    <img
+      className={imageClass}
+      src={avatarUrl}
+      alt=""
+      loading="eager"
+      decoding="async"
+      style={premiumMediaStyle(avatarTransform) as CSSProperties}
+    />
+  ) : (
     <span
       className={
         compact
@@ -56,6 +61,22 @@ function PreviewAvatar({
       </svg>
     </span>
   );
+
+  if (!profileFrameKey) return avatar;
+
+  return (
+    <span
+      className="premium-studio-v23__preview-avatar-frame-shell"
+      data-compact={compact ? 'true' : 'false'}
+    >
+      {avatar}
+      <ProfileFrameOverlay
+        frameKey={profileFrameKey}
+        premium={premiumFrameMotion}
+        className="premium-studio-v23__preview-avatar-frame"
+      />
+    </span>
+  );
 }
 
 export default function PremiumStudioLivePreview({
@@ -65,6 +86,7 @@ export default function PremiumStudioLivePreview({
   avatarTransform,
   bannerTransform,
   username = 'Твой профиль',
+  profileFrameKey = null,
   context = 'profile',
 }: {
   settings: PremiumStudioSettings;
@@ -73,6 +95,7 @@ export default function PremiumStudioLivePreview({
   avatarTransform: PremiumMediaTransform;
   bannerTransform: PremiumMediaTransform;
   username?: string;
+  profileFrameKey?: string | null;
   context?: PreviewContext;
 }) {
   const renderedSettings = premiumSceneContextSettings(settings, context);
@@ -107,6 +130,8 @@ export default function PremiumStudioLivePreview({
           <PreviewAvatar
             avatarUrl={avatarUrl}
             avatarTransform={avatarTransform}
+            profileFrameKey={profileFrameKey}
+            premiumFrameMotion={renderedSettings.motionMode !== 'off'}
             compact
           />
 
@@ -183,6 +208,8 @@ export default function PremiumStudioLivePreview({
         <PreviewAvatar
           avatarUrl={avatarUrl}
           avatarTransform={avatarTransform}
+          profileFrameKey={profileFrameKey}
+          premiumFrameMotion={renderedSettings.motionMode !== 'off'}
         />
 
         <div className="premium-studio-v15__preview-copy">
