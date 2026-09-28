@@ -474,6 +474,7 @@ export default function ProfilePreview({
                                 username={data.username}
                                 role={data.role}
                                 sponsor={data.sponsor}
+                                premium={data.premium}
                                 compact
                               />
                             </span>
