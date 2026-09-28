@@ -18,6 +18,7 @@ import { isLevelFrameKey, levelFrameAvatarScale } from '@/lib/progression';
 import {
   premiumMediaStyle,
   type PremiumAtmosphereEffect,
+  type PremiumBannerHeightMode,
   type PremiumEntranceEffect,
   type PremiumHeroStyle,
   type PremiumMediaTransform,
@@ -55,6 +56,11 @@ type PreviewData = {
   heroStyle: PremiumHeroStyle;
   surfaceStyle: PremiumSurfaceStyle;
   profileLayout: PremiumProfileLayout;
+  bannerHeightMode: PremiumBannerHeightMode;
+  bannerSaturation: number;
+  bannerContrast: number;
+  bannerBrightness: number;
+  bannerShade: number;
   role: PublicIdentityRole;
   sponsor: SponsorStatus | null;
   profileFrameKey: string | null;
@@ -339,6 +345,7 @@ export default function ProfilePreview({
                 data-hero={data?.premium ? data.heroStyle : 'clean'}
                 data-surface={data?.premium ? data.surfaceStyle : 'ink'}
                 data-layout={data?.premium ? data.profileLayout : 'classic'}
+                data-banner-height={data?.premium ? data.bannerHeightMode : 'standard'}
                 style={{
                   ...themeStyle,
                   top: position.top,
@@ -397,7 +404,13 @@ export default function ProfilePreview({
                               alt=""
                               loading="eager"
                               decoding="async"
-                              style={premiumMediaStyle(data.bannerTransform)}
+                              style={{
+                                ...premiumMediaStyle(data.bannerTransform),
+                                filter:
+                                  `saturate(${data.bannerSaturation}%) ` +
+                                  `contrast(${data.bannerContrast}%) ` +
+                                  `brightness(${data.bannerBrightness}%)`,
+                              }}
                             />
                           </picture>
                         ) : (
