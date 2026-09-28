@@ -22,7 +22,10 @@ import {
   saveWatchProgress,
 } from '@/lib/watch-progress';
 import { chooseResumeCandidate } from '@/lib/resume-integrity';
-import { shouldAcceptAsyncResumeDecision } from '@/lib/playback-continuity';
+import {
+  ASYNC_RESUME_PLAYBACK_GUARD_SECONDS,
+  shouldAcceptAsyncResumeDecision,
+} from '@/lib/playback-continuity';
 import { setAnimeProgress } from '@/lib/anime-storage';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 import {
@@ -1866,7 +1869,7 @@ export default function AnimePlayer({
       }
 
       // Do not pull the viewer backwards if playback already advanced.
-      if (video.currentTime > 5) {
+      if (video.currentTime > ASYNC_RESUME_PLAYBACK_GUARD_SECONDS) {
         resumeAppliedRef.current = true;
         return;
       }
