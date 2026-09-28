@@ -4,7 +4,7 @@ import PremiumYearReviewClient from '@/components/premium/PremiumYearReviewClien
 import { buildStaticPageMetadata } from '@/lib/static-page-seo';
 
 export const metadata: Metadata = buildStaticPageMetadata({
-  title: 'Year in Review — AnimeBox Premium',
+  title: 'Итоги года — AnimeBox Premium',
   description:
     'Личные итоги года AnimeBox Premium: серии, тайтлы, активные дни, жанры и ритм просмотра.',
   path: '/premium/year',
