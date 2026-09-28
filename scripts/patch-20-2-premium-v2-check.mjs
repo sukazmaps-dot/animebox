@@ -141,4 +141,17 @@ const yearReview = read('components/premium/PremiumYearReviewClient.tsx');
 mustInclude(yearReview, 'YEAR IN REVIEW', 'Year in Review Premium surface');
 mustInclude(yearReview, 'подтверждённая', 'Year in Review trusted-history copy');
 
+const userIdentity = read('components/identity/UserIdentity.tsx');
+mustInclude(userIdentity, 'premiumSubscriptionVisible', 'unified Premium identity mark');
+mustInclude(userIdentity, 'AnimeBox Premium', 'Premium identity accessibility label');
+
+const communityCommentTypes = read('types/community-comments.ts');
+mustInclude(communityCommentTypes, 'premium: boolean', 'Premium comment identity contract');
+
+const friendsServer = read('lib/friends-server.ts');
+mustInclude(friendsServer, 'premium: appearance?.premiumBadge ?? false', 'Premium friends identity');
+
+const leaderboardApi = read('app/api/community/leaderboard/route.ts');
+mustInclude(leaderboardApi, 'premium: appearance?.premiumBadge ?? false', 'Premium leaderboard identity');
+
 console.log('Patch 20.2 Premium 2.0 contract checks passed.');
