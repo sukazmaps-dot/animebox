@@ -17,6 +17,8 @@ import type { SponsorStatus } from '@/lib/sponsor';
 import { isLevelFrameKey, levelFrameAvatarScale } from '@/lib/progression';
 import { resolveAvatarIdentityVisuals } from '@/lib/avatar-identity';
 import {
+  DEFAULT_PREMIUM_STUDIO_SETTINGS,
+  premiumBannerStyle,
   premiumMediaStyle,
   type PremiumAtmosphereEffect,
   type PremiumBannerHeightMode,
@@ -416,13 +418,17 @@ export default function ProfilePreview({
                               alt=""
                               loading="eager"
                               decoding="async"
-                              style={{
-                                ...premiumMediaStyle(data.bannerTransform),
-                                filter:
-                                  `saturate(${data.bannerSaturation}%) ` +
-                                  `contrast(${data.bannerContrast}%) ` +
-                                  `brightness(${data.bannerBrightness}%)`,
-                              }}
+                              style={premiumBannerStyle(
+                                {
+                                  ...DEFAULT_PREMIUM_STUDIO_SETTINGS,
+                                  bannerSaturation: data.bannerSaturation,
+                                  bannerContrast: data.bannerContrast,
+                                  bannerBrightness: data.bannerBrightness,
+                                  bannerShade: data.bannerShade,
+                                  bannerHeightMode: data.bannerHeightMode,
+                                },
+                                data.bannerTransform,
+                              )}
                             />
                           </picture>
                         ) : (
