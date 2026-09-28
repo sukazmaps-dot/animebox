@@ -1022,7 +1022,20 @@ export default function WatchTogetherHub() {
                   data-active={roomTheme === theme}
                   data-locked={locked || undefined}
                   disabled={premiumStateLoading || locked}
-                  onClick={() => setRoomTheme(theme)}
+                  onClick={() => {
+                    setRoomTheme(theme);
+                    if (theme !== 'default') {
+                      trackProductClientEvent(
+                        'premium_watch_party_theme_selected',
+                        {
+                          source: 'watch_together_hub',
+                          path: '/watch-together',
+                          entityType: 'watch_party_theme',
+                          entityId: theme,
+                        },
+                      );
+                    }
+                  }}
                 >
                   <i style={{ '--room-theme-accent': meta.accent } as CSSProperties} />
                   <span>
