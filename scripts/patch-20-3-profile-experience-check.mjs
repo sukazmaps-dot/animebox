@@ -79,5 +79,18 @@ mustInclude(publicProfile, "preferStatic={premiumIdentityActive && profile.premi
 
 const studioClient = read('components/premium/PremiumStudioClient.tsx');
 mustInclude(studioClient, "settings.motionMode === 'off'", 'Studio static media preview parity');
+mustInclude(studioClient, 'previewUsername?: string', 'Studio live username contract');
+mustInclude(studioClient, 'fallbackAvatarUrl?: string | null', 'Studio avatar fallback contract');
+mustInclude(studioClient, 'fallbackBannerUrl?: string | null', 'Studio banner fallback contract');
+mustInclude(studioClient, 'username={effectiveUsername}', 'Studio live identity preview');
+
+const studioPreview = read('components/premium/PremiumStudioLivePreview.tsx');
+mustInclude(studioPreview, "username = 'Твой профиль'", 'preview username fallback');
+mustInclude(studioPreview, 'username?: string', 'preview username prop');
+
+const editorClient = read('components/profile/ProfileEditorClient.tsx');
+mustInclude(editorClient, 'previewUsername={username}', 'editor live username preview');
+mustInclude(editorClient, 'fallbackAvatarUrl={resolvedAvatarPreview}', 'editor avatar preview fallback');
+mustInclude(editorClient, 'fallbackBannerUrl={resolvedBannerPreview}', 'editor banner preview fallback');
 
 console.log('Patch 20.3 Profile Experience checks passed.');
