@@ -67,8 +67,9 @@ for (const [label, needle] of [
 }
 
 if (
-  kodikPlayer.includes("function markPlaying()") &&
-  /function markPlaying\(\)[\s\S]*?emitPlaybackState\(\);[\s\S]*?pauseInferenceTimerRef/.test(kodikPlayer)
+  kodikPlayer.includes(
+    "      emitPlaybackState();\n\n      if (pauseInferenceTimerRef.current != null) {",
+  )
 ) {
   failures.push('KodikPlayer: markPlaying still emits duplicate playback state before the shared time-sample emission.');
 }
