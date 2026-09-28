@@ -16,6 +16,7 @@ import Icon from '@/components/Icon';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import TelegramPromoCard from '@/components/TelegramPromoCard';
 import { useAuthState } from '@/components/AuthStateProvider';
+import { getPremiumMe } from '@/lib/entitlements-client';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 import { getAnimes, isAbortError } from '@/lib/anime-client';
 import { getAnimeOriginalTitle, getAnimeTitle } from '@/lib/anime-display';
@@ -29,6 +30,11 @@ import {
   watchPartyHostSessionKey,
   watchPartyTheaterPath,
 } from '@/lib/watch-party';
+import {
+  WATCH_PARTY_THEMES,
+  WATCH_PARTY_THEME_META,
+  type WatchPartyTheme,
+} from '@/lib/watch-party-premium';
 import type { Anime } from '@/types/anime';
 
 import styles from './WatchTogetherHub.module.css';
@@ -40,6 +46,7 @@ const ROOM_REFRESH_MIN_GAP_MS = 4_000;
 type PublicWatchPartyRoom = {
   roomId: string;
   roomCode: string;
+  roomTheme: WatchPartyTheme;
   animeId: number | null;
   animeSlug: string;
   animeTitle: string;
@@ -70,6 +77,7 @@ type ResolvedWatchPartyRoom = {
   roomId: string;
   joinSecret: string;
   roomCode: string;
+  roomTheme: WatchPartyTheme;
   animeSlug: string;
   animeTitle: string;
   episode: number;
@@ -159,6 +167,9 @@ export default function WatchTogetherHub() {
   const [inviteInput, setInviteInput] = useState('');
   const [inviteError, setInviteError] = useState('');
   const [visibility, setVisibility] = useState<RoomVisibility>('unlisted');
+  const [roomTheme, setRoomTheme] = useState<WatchPartyTheme>('default');
+  const [premiumRoomThemes, setPremiumRoomThemes] = useState(false);
+  const [premiumStateLoading, setPremiumStateLoading] = useState(Boolean(user?.id));
   const [rooms, setRooms] = useState<PublicWatchPartyRoom[]>([]);
   const [roomsLoading, setRoomsLoading] = useState(true);
   const [roomsError, setRoomsError] = useState('');
@@ -190,6 +201,45 @@ export default function WatchTogetherHub() {
     },
     () => null,
   );
+
+  useEffect(() => {
+    let active = true;
+
+    if (!user?.id) {
+      queueMicrotask(() => {
+        if (!active) return;
+        setPremiumRoomThemes(false);
+        setPremiumStateLoading(false);
+        setRoomTheme('default');
+      });
+      return () => {
+        active = false;
+      };
+    }
+
+    setPremiumStateLoading(true);
+    void getPremiumMe()
+      .then((premium) => {
+        if (!active) return;
+        const allowed = Boolean(
+          premium.premium && premium.entitlements.watchPartyThemes,
+        );
+        setPremiumRoomThemes(allowed);
+        if (!allowed) setRoomTheme('default');
+      })
+      .catch(() => {
+        if (!active) return;
+        setPremiumRoomThemes(false);
+        setRoomTheme('default');
+      })
+      .finally(() => {
+        if (active) setPremiumStateLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [user?.id]);
 
   const intent = useMemo(
     () => (query.trim() ? parseAnimeSearchIntent(query.trim()) : null),
@@ -356,7 +406,7 @@ export default function WatchTogetherHub() {
     const invite = createWatchPartyInvite();
     const slug = selected.slug || String(selected.id);
     const target = watchPartyTheaterPath(slug, selectedEpisode);
-    const roomUrl = buildWatchPartyUrl(invite, target);
+    const roomUrl = buildWatchPartyUrl(invite, target, roomTheme);
 
     try {
       const response = await fetch('/api/watch-party/rooms', {
@@ -374,6 +424,7 @@ export default function WatchTogetherHub() {
           coverUrl: animeCoverUrl(selected),
           episode: selectedEpisode,
           visibility,
+          roomTheme,
           language: 'ru',
         }),
         cache: 'no-store',
@@ -415,6 +466,7 @@ export default function WatchTogetherHub() {
           anime_id: selected.id,
           episode: selectedEpisode,
           visibility,
+          room_theme: roomTheme,
         },
         flush: true,
       });
@@ -484,6 +536,7 @@ export default function WatchTogetherHub() {
     const target = buildWatchPartyUrl(
       { roomId: room.roomId, secret: room.joinSecret },
       watchPartyTheaterPath(room.animeSlug, room.episode),
+      room.roomTheme,
     );
 
     try {
@@ -788,6 +841,9 @@ export default function WatchTogetherHub() {
                     <div className={styles.roomDetails}>
                       <span>{room.language.toUpperCase()}</span>
                       <span>Код {room.roomCode}</span>
+                      {room.roomTheme !== 'default' && (
+                        <span>✦ {WATCH_PARTY_THEME_META[room.roomTheme].label}</span>
+                      )}
                     </div>
 
                     <div className={styles.publicRoomActions}>
@@ -929,6 +985,50 @@ export default function WatchTogetherHub() {
                 <small>{hint}</small>
               </button>
             ))}
+          </div>
+        </div>
+
+        <div className={styles.premiumThemePicker}>
+          <div className={styles.premiumThemeHead}>
+            <span>Оформление комнаты</span>
+            <div>
+              <small>
+                {premiumStateLoading
+                  ? 'Проверяем Premium…'
+                  : premiumRoomThemes
+                    ? 'Premium Themes доступны'
+                    : 'Дополнительные темы — AnimeBox Premium'}
+              </small>
+              {!premiumStateLoading && !premiumRoomThemes && (
+                <Link href="/premium">Открыть Premium →</Link>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.premiumThemeGrid}>
+            {WATCH_PARTY_THEMES.map((theme) => {
+              const meta = WATCH_PARTY_THEME_META[theme];
+              const locked = meta.premium && !premiumRoomThemes;
+
+              return (
+                <button
+                  key={theme}
+                  type="button"
+                  data-theme={theme}
+                  data-active={roomTheme === theme}
+                  data-locked={locked || undefined}
+                  disabled={premiumStateLoading || locked}
+                  onClick={() => setRoomTheme(theme)}
+                >
+                  <i style={{ '--room-theme-accent': meta.accent } as React.CSSProperties} />
+                  <span>
+                    <strong>{meta.label}</strong>
+                    <small>{meta.description}</small>
+                  </span>
+                  {meta.premium && <em>✦ Premium</em>}
+                </button>
+              );
+            })}
           </div>
         </div>
 
