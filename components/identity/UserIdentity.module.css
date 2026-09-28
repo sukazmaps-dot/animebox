@@ -170,3 +170,42 @@
     0 0 12px rgba(246, 190, 74, .24),
     0 0 24px rgba(166, 105, 255, .10);
 }
+
+
+/* Patch 20.2 · subscription identity.
+   Kept separate from staff/sponsor roles so Premium never overrides authority. */
+.premiumSubscriptionMark {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border: 1px solid rgba(181, 149, 255, .22);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255,255,255,.12), transparent 34%),
+    rgba(121, 82, 220, .08);
+  color: #cbb8ff;
+  box-shadow: 0 0 13px rgba(126, 88, 224, .12);
+  font-size: 8px;
+  line-height: 1;
+}
+
+.compact .premiumSubscriptionMark {
+  width: 16px;
+  height: 16px;
+  flex-basis: 16px;
+  font-size: 7px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .premiumSubscriptionMark {
+    transition: border-color .16s ease, box-shadow .16s ease;
+  }
+
+  .identity:hover .premiumSubscriptionMark {
+    border-color: rgba(191, 160, 255, .34);
+    box-shadow: 0 0 17px rgba(126, 88, 224, .18);
+  }
+}

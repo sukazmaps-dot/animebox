@@ -22,6 +22,7 @@ type Entry = {
   username: string;
   avatarUrl: string;
   avatarTransform: PremiumMediaTransform;
+  premium: boolean;
   activeMs: number;
   completedEpisodes: number;
   lastWatchedAt: string | null;
@@ -304,6 +305,7 @@ export default function LeaderboardClient() {
                     username={entry.username}
                     role={entry.role}
                     sponsor={entry.sponsor}
+                    premium={entry.premium}
                     compact
                     nameClassName={styles.podiumName}
                   />
@@ -368,6 +370,7 @@ export default function LeaderboardClient() {
                         username={entry.username}
                         role={entry.role}
                         sponsor={entry.sponsor}
+                        premium={entry.premium}
                         compact
                       />
                     </span>

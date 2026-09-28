@@ -17,6 +17,7 @@ export type CommunityComment = {
     avatarTransform: PremiumMediaTransform | null;
     ogNumber: number | null;
     sponsor: SponsorStatus | null;
+    premium: boolean;
     role: PublicIdentityRole;
   } | null;
 };

@@ -1924,18 +1924,18 @@ button { cursor: pointer; }
 .profile-v2__identity {
   position: relative;
   display: flex;
-  gap: 24px;
-  padding: 0 32px 30px;
+  align-items: flex-start;
+  gap: 30px;
+  padding: 0 32px 32px;
 }
 
 .profile-v2__avatar-wrap {
   position: relative;
   z-index: 5;
   flex: 0 0 auto;
-  margin-top: -58px;
+  margin-top: -76px;
 }
 
-.profile-v2__avatar-wrap
 .profile-avatar-editor__button {
   width: 116px;
   height: 116px;
@@ -2354,16 +2354,15 @@ button { cursor: pointer; }
 
   .profile-v2__identity {
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
 
     padding: 0 18px 22px;
   }
 
   .profile-v2__avatar-wrap {
-    margin-top: -46px;
+    margin-top: -54px;
   }
 
-  .profile-v2__avatar-wrap
   .profile-avatar-editor__button {
     width: 88px;
     height: 88px;

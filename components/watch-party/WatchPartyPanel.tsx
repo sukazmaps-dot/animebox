@@ -42,6 +42,7 @@ import {
   sanitizeWatchPartyChatText,
   isWatchPartyHostTab,
   readWatchPartyInviteFromLocation,
+  readWatchPartyThemeFromLocation,
   watchPartyHostPeerId,
   watchPartyTheaterPath,
   watchPartyHostSessionKey,
@@ -62,6 +63,12 @@ import {
   type WatchPartyVoteState,
 } from '@/lib/watch-party';
 
+import {
+  WATCH_PARTY_THEME_META,
+  isPremiumWatchPartyReaction,
+  type WatchPartyTheme,
+} from '@/lib/watch-party-premium';
+
 import styles from './WatchPartyPanel.module.css';
 
 type PartyRole = 'host' | 'guest' | null;
@@ -79,6 +86,7 @@ type RoomPublicIdentity = {
   avatarUrl: string;
   avatarTransform: PremiumMediaTransform;
   premium: boolean;
+  watchPartyReactions: boolean;
   role: PublicIdentityRole;
   sponsor: SponsorStatus | null;
 };
@@ -122,13 +130,20 @@ const HOST_STALE_MS = 75_000;
 const P2P_ACCELERATOR_GUEST_LIMIT = 6;
 const REACTION_COOLDOWN_MS = 850;
 
-const REACTION_OPTIONS: Array<{ value: WatchPartyReaction; label: string }> = [
+const REACTION_OPTIONS: Array<{
+  value: WatchPartyReaction;
+  label: string;
+  premium?: boolean;
+}> = [
   { value: 'love', label: '❤️' },
   { value: 'cry', label: '😭' },
   { value: 'fire', label: '🔥' },
   { value: 'wow', label: '😳' },
   { value: 'dead', label: '💀' },
   { value: 'peak', label: 'PEAK' },
+  { value: 'sparkle', label: '✨', premium: true },
+  { value: 'clap', label: '👏', premium: true },
+  { value: 'cinema', label: '🎬', premium: true },
 ];
 
 const EMPTY_VOTE_STATE: WatchPartyVoteState = {
@@ -204,6 +219,7 @@ export default function WatchPartyPanel({
   const [lastController, setLastController] = useState('');
   const [mobileSection, setMobileSection] = useState<MobileSection>('chat');
   const [roomIdentities, setRoomIdentities] = useState<Record<string, RoomPublicIdentity>>({});
+  const [selfUserId, setSelfUserId] = useState<string | null>(null);
   const [networkRoute, setNetworkRoute] = useState<WatchPartyNetworkRoute>('unknown');
   const [signalingMode, setSignalingMode] = useState<'peerjs-cloud' | 'self-hosted'>('peerjs-cloud');
   const [liveReactions, setLiveReactions] = useState<WatchPartyReactionEvent[]>([]);
@@ -213,6 +229,11 @@ export default function WatchPartyPanel({
   const [creatingRoom, setCreatingRoom] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [roomVisibility, setRoomVisibility] = useState<'public' | 'unlisted' | 'private'>('unlisted');
+  const [roomTheme] = useState<WatchPartyTheme>(() =>
+    mode === 'theater' && typeof window !== 'undefined'
+      ? readWatchPartyThemeFromLocation()
+      : 'default',
+  );
 
   const theaterPath = watchPartyTheaterPath(animeSlug, episodeNumber);
   const episodePath = `/anime/${encodeURIComponent(animeSlug)}/episode/${episodeNumber}`;
@@ -222,6 +243,7 @@ export default function WatchPartyPanel({
   const hostConnectionsRef = useRef(new Map<string, DataConnection>());
   const pendingHostConnectionsRef = useRef(new Set<string>());
   const participantsRef = useRef(new Map<string, WatchPartyParticipant>());
+  const roomIdentitiesRef = useRef<Record<string, RoomPublicIdentity>>({});
   const inviteRef = useRef<WatchPartyInvite | null>(null);
   const roleRef = useRef<PartyRole>(null);
   const statusRef = useRef<PartyStatus>('idle');
@@ -431,6 +453,7 @@ export default function WatchPartyPanel({
             if (!identity?.userId) continue;
             next[identity.userId] = identity;
           }
+          roomIdentitiesRef.current = next;
           return next;
         });
       })
@@ -491,6 +514,13 @@ export default function WatchPartyPanel({
     id: string,
     reaction: WatchPartyReaction,
   ) => {
+    if (
+      isPremiumWatchPartyReaction(reaction) &&
+      !roomIdentitiesRef.current[participant.userId]?.watchPartyReactions
+    ) {
+      return;
+    }
+
     const event: WatchPartyReactionEvent = {
       id,
       userId: participant.userId,
@@ -841,6 +871,7 @@ export default function WatchPartyPanel({
     setAuthoritativeParticipantCount(0);
     setRoomCode('');
     setRoomVisibility('unlisted');
+    setSelfUserId(null);
     hostEpochRef.current = 0;
     clearWatchPartyFromLocation();
     setRole(null);
@@ -1353,6 +1384,7 @@ export default function WatchPartyPanel({
       return;
     }
     identityRef.current = identity;
+    setSelfUserId(identity.userId);
     if (
       intentionalCloseRef.current ||
       transportGenerationRef.current !== generation
@@ -1971,6 +2003,7 @@ export default function WatchPartyPanel({
       return;
     }
     identityRef.current = identity;
+    setSelfUserId(identity.userId);
     if (
       intentionalCloseRef.current ||
       transportGenerationRef.current !== generation
@@ -3014,7 +3047,17 @@ export default function WatchPartyPanel({
       entityId: inviteRef.current?.roomId,
       metadata: { reaction },
     });
-  }, [handleHostReaction, sendGuestPacket, status]);
+
+    if (isPremiumWatchPartyReaction(reaction)) {
+      trackProductClientEvent('premium_reaction_used', {
+        source: 'watch_party_room',
+        path: window.location.pathname,
+        entityType: 'watch_party_room',
+        entityId: inviteRef.current?.roomId,
+        metadata: { reaction, episode: episodeNumber },
+      });
+    }
+  }, [episodeNumber, handleHostReaction, sendGuestPacket, status]);
 
   const castVote = useCallback((vote: WatchPartyVote) => {
     if (status !== 'active') return;
@@ -3385,10 +3428,18 @@ export default function WatchPartyPanel({
     participants.length,
     authoritativeParticipantCount,
   );
+  const selfIdentity = selfUserId
+    ? roomIdentities[selfUserId]
+    : null;
+  const premiumReactionsAllowed = Boolean(selfIdentity?.watchPartyReactions);
   const label = statusLabel(status, role, displayedParticipantCount);
 
   return (
-    <section className={`${styles.panel} ${mode === 'theater' ? styles.theaterPanel : ''}`} aria-label="Watch Together room">
+    <section
+      className={`${styles.panel} ${mode === 'theater' ? styles.theaterPanel : ''}`}
+      data-room-theme={roomTheme}
+      aria-label="Watch Together room"
+    >
       <div className={styles.activeInner}>
         <div className={styles.activeHead}>
           <div className={styles.statusLine}>
@@ -3447,6 +3498,11 @@ export default function WatchPartyPanel({
               >
                 Код {roomCode}
               </button>
+            )}
+            {roomTheme !== 'default' && (
+              <span className={styles.themeBadge} title="Premium Room Theme">
+                ✦ {WATCH_PARTY_THEME_META[roomTheme].label}
+              </span>
             )}
             <span className={styles.role}>{role === 'host' ? 'HOST' : 'GUEST'}</span>
           </div>
@@ -3525,14 +3581,9 @@ export default function WatchPartyPanel({
                       username={displayName}
                       role={publicIdentity?.role ?? null}
                       sponsor={publicIdentity?.sponsor ?? null}
+                      premium={publicIdentity?.premium ?? false}
                       compact
                     />
-                    {publicIdentity?.premium && (
-                      <span className={styles.premiumBadge} title="AnimeBox Premium">
-                        <Icon name="crown" size={14} weight="fill" />
-                        <span>Premium</span>
-                      </span>
-                    )}
                   </span>
                   {participant.host && (
                     <span className={styles.hostBadge} title="Хост комнаты">
@@ -3613,17 +3664,29 @@ export default function WatchPartyPanel({
 
         <div className={styles.socialBar}>
           <div className={styles.reactions} aria-label="Быстрые реакции">
-            {REACTION_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => sendReaction(option.value)}
-                disabled={status !== 'active'}
-                aria-label={`Реакция ${option.value}`}
-              >
-                {option.label}
-              </button>
-            ))}
+            {REACTION_OPTIONS.map((option) => {
+              const locked = Boolean(option.premium && !premiumReactionsAllowed);
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  data-premium={option.premium ? 'true' : undefined}
+                  data-locked={locked ? 'true' : undefined}
+                  onClick={() => sendReaction(option.value)}
+                  disabled={status !== 'active' || locked}
+                  aria-label={
+                    locked
+                      ? `Premium-реакция ${option.value}`
+                      : `Реакция ${option.value}`
+                  }
+                  title={locked ? 'AnimeBox Premium reaction pack' : undefined}
+                >
+                  {option.label}
+                  {option.premium && <small aria-hidden="true">✦</small>}
+                </button>
+              );
+            })}
           </div>
 
           <div className={styles.voteBox}>
@@ -3734,15 +3797,10 @@ export default function WatchPartyPanel({
                               username={displayName}
                               role={publicIdentity?.role ?? null}
                               sponsor={publicIdentity?.sponsor ?? null}
+                              premium={publicIdentity?.premium ?? false}
                               compact
                             />
                           </ProfilePreview>
-                          {publicIdentity?.premium && (
-                            <span className={styles.chatPremiumBadge} title="AnimeBox Premium">
-                              <Icon name="crown" size={14} weight="fill" />
-                              Premium
-                            </span>
-                          )}
                           {message.host && (
                             <span className={`${styles.hostBadge} ${styles.chatHostBadge}`} title="Хост комнаты">
                               <svg viewBox="0 0 20 20" aria-hidden="true">

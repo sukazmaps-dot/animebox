@@ -16,6 +16,7 @@ type Props = {
   username: string;
   role?: PublicIdentityRole;
   sponsor?: SponsorStatus | null;
+  premium?: boolean;
   compact?: boolean;
   showLabel?: boolean;
   className?: string;
@@ -59,6 +60,7 @@ export default function UserIdentity({
   username,
   role = null,
   sponsor = null,
+  premium = false,
   compact = false,
   showLabel = false,
   className = '',
@@ -75,6 +77,7 @@ export default function UserIdentity({
     : '';
   const sponsorBadgeVisible = role ? true : sponsor?.cosmetics?.badgeVisible !== false;
   const sponsorTheme = role ? undefined : sponsor?.cosmetics?.profileTheme;
+  const premiumSubscriptionVisible = premium && kind !== 'premium';
 
   return (
     <span
@@ -84,6 +87,17 @@ export default function UserIdentity({
       data-sponsor-theme={sponsorTheme && sponsorTheme !== 'default' ? sponsorTheme : undefined}
     >
       <strong className={`${styles.name} ${nameClassName}`.trim()}>{username}</strong>
+
+      {premiumSubscriptionVisible && (
+        <span
+          className={styles.premiumSubscriptionMark}
+          title="AnimeBox Premium"
+          aria-label="AnimeBox Premium"
+          role="img"
+        >
+          <span aria-hidden="true">✦</span>
+        </span>
+      )}
 
       {kind !== 'none' && sponsorBadgeVisible && (
         <span

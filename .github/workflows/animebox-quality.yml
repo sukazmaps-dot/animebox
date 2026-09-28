@@ -151,7 +151,25 @@ jobs:
           lib/profile-media-publish-server.ts
           app/api/profile/editor/route.ts
           components/profile/ProfileEditorClient.tsx
+          components/profile/ProfileDirectEditSurface.tsx
+          components/profile/UserAvatarWithFrame.tsx
+          components/profile/ProfileFrameOverlay.tsx
+          lib/payments/entitlements.ts
+          lib/premium-server.ts
+          lib/premium-studio.ts
+          lib/premium-stats.ts
+          lib/watch-party-premium.ts
+          components/identity/UserIdentity.tsx
+          components/premium/PremiumClient.tsx
           components/premium/PremiumStudioClient.tsx
+          components/premium/PremiumStudioLivePreview.tsx
+          components/premium/PremiumStatsClient.tsx
+          components/premium/PremiumYearReviewClient.tsx
+          app/api/premium/stats/route.ts
+          app/premium/stats/page.tsx
+          app/premium/year/page.tsx
+          lib/community-comments-server.ts
+          types/community-comments.ts
           app/api/admin/community/media/route.ts
           app/admin/moderation/page.tsx
           components/TelegramPromoCard.tsx
@@ -160,6 +178,9 @@ jobs:
           lib/product-event-names.ts
           lib/product-events-client.ts
           lib/product-events-server.ts
+          lib/product-analytics.ts
+          lib/product-analytics-server.ts
+          components/admin/ProductAnalyticsDashboard.tsx
           app/api/telegram/subscription-check/route.ts
           components/TelegramWelcomePromo.tsx
           components/MobileAccountNav.tsx

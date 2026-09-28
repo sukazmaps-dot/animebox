@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
+import UserIdentity from '@/components/identity/UserIdentity';
 import ProfilePreview from '@/components/profile/ProfilePreview';
 import { useAuthState } from '@/components/AuthStateProvider';
 import { notifySocialNotificationsChanged } from '@/components/SocialNotificationBadge';
@@ -18,6 +19,7 @@ type FriendCard = {
   userId: string;
   username: string;
   avatarUrl: string;
+  premium: boolean;
   status: 'accepted' | 'pending';
   direction: 'incoming' | 'outgoing' | 'friend';
   createdAt: string;
@@ -69,7 +71,11 @@ function PersonCard({
           username={item.username}
           className="block max-w-full truncate text-sm font-black text-slate-100 hover:text-violet-200"
         >
-          {item.username}
+          <UserIdentity
+            username={item.username}
+            premium={item.premium}
+            compact
+          />
         </ProfilePreview>
         <span className="text-[11px] font-semibold text-slate-500">
           {item.direction === 'friend'

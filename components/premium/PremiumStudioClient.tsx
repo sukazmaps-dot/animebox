@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/components/AuthStateProvider';
 import { notifyAuthChanged } from '@/lib/auth-events';
 import { notifyProfileAppearanceChanged } from '@/lib/profile-live-sync';
+import { trackProductClientEvent } from '@/lib/product-events-client';
 import {
   discardPrivateProfileMedia,
   profileMediaFetchWithTimeout,
@@ -29,9 +30,13 @@ import {
   PREMIUM_MOTION_MODES,
   PREMIUM_PARTICLE_EFFECTS,
   PREMIUM_NICKNAME_EFFECTS,
+  PREMIUM_PROFILE_LAYOUTS,
   PREMIUM_PROFILE_THEMES,
+  PREMIUM_SCENE_PRESETS,
+  PREMIUM_SCENE_PRESET_META,
   PREMIUM_SURFACE_STYLES,
   PREMIUM_PROFILE_THEME_META,
+  applyPremiumScenePreset,
   contrastRatio,
   isHexColor,
   resolveReadableTextColor,
@@ -43,7 +48,9 @@ import {
   type PremiumMediaTransform,
   type PremiumMotionMode,
   type PremiumNicknameEffect,
+  type PremiumProfileLayout,
   type PremiumProfileTheme,
+  type PremiumScenePreset,
   type PremiumStudioSettings,
   type PremiumSurfaceStyle,
 } from '@/lib/premium-studio';
@@ -74,46 +81,55 @@ type PremiumStudioClientProps = {
 type UploadKind = 'avatar' | 'banner';
 
 const ATMOSPHERE_META: Record<PremiumAtmosphereEffect, { label: string; hint: string }> = {
-  none: { label: 'Без эффекта', hint: 'Чистый Premium-профиль без частиц.' },
-  aurora: { label: 'Aurora', hint: 'Мягкие цветовые облака и глубина.' },
-  embers: { label: 'Embers', hint: 'Тёплые искры и энергетический след.' },
-  sakura: { label: 'Sakura', hint: 'Лёгкие лепестки в атмосфере профиля.' },
-  stardust: { label: 'Stardust', hint: 'Мелкие светящиеся звёздные частицы.' },
+  none: { label: 'Без эффекта', hint: 'Спокойный профиль без фоновых эффектов.' },
+  aurora: { label: 'Северное сияние', hint: 'Мягкие цветовые переливы и глубина.' },
+  embers: { label: 'Искры', hint: 'Тёплые редкие искры на тёмном фоне.' },
+  sakura: { label: 'Сакура', hint: 'Лёгкие лепестки вокруг профиля.' },
+  stardust: { label: 'Звёздная пыль', hint: 'Небольшие мерцающие частицы.' },
 };
 
 const ENTRANCE_META: Record<PremiumEntranceEffect, string> = {
-  none: 'Без intro',
-  fade: 'Fade',
-  bloom: 'Bloom',
-  manga: 'Manga Cut',
-  glitch: 'Glitch',
+  none: 'Без анимации',
+  fade: 'Плавно',
+  bloom: 'Свечение',
+  manga: 'Манга',
+  glitch: 'Помехи',
 };
 
 const NICKNAME_META: Record<PremiumNicknameEffect, string> = {
   none: 'Обычный',
-  gradient: 'Gradient',
-  shimmer: 'Shimmer',
-  glow: 'Glow',
-  manga: 'Manga Cut',
-  glitch: 'Glitch',
+  gradient: 'Градиент',
+  shimmer: 'Блик',
+  glow: 'Свечение',
+  manga: 'Манга',
+  glitch: 'Помехи',
 };
 
 const HERO_META: Record<PremiumHeroStyle, string> = {
-  cinematic: 'Cinematic',
-  spotlight: 'Spotlight',
-  clean: 'Clean',
+  cinematic: 'Кинематографично',
+  spotlight: 'В центре внимания',
+  clean: 'Чисто',
 };
 
 const SURFACE_META: Record<PremiumSurfaceStyle, string> = {
-  glass: 'Glass',
-  deep: 'Deep',
-  ink: 'Ink',
+  glass: 'Стекло',
+  deep: 'Глубокий',
+  ink: 'Строгий',
 };
 
+const PROFILE_LAYOUT_META: Record<PremiumProfileLayout, { label: string; hint: string }> = {
+  classic: { label: 'Классика', hint: 'Привычное расположение блоков AnimeBox.' },
+  cinema: { label: 'Кино', hint: 'Больше места баннеру и верхней части профиля.' },
+  collector: { label: 'Коллекционер', hint: 'Плотнее витрина и коллекционные блоки.' },
+  minimal: { label: 'Минимализм', hint: 'Чистый профиль без лишних деталей.' },
+};
+
+type PremiumPreviewContext = 'profile' | 'mini' | 'comment' | 'watch-party';
+
 const MOTION_META: Record<PremiumMotionMode, string> = {
-  off: 'Off',
-  soft: 'Soft',
-  live: 'Live',
+  off: 'Выкл.',
+  soft: 'Плавно',
+  live: 'Активно',
 };
 
 type MediaEditorState = {
@@ -383,6 +399,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const mediaObjectUrlRef = useRef<string | null>(null);
+  const demoTrackedRef = useRef(false);
 
   const [settings, setSettings] = useState<PremiumStudioSettings>(
     () => initialSettings ?? DEFAULT_PREMIUM_STUDIO_SETTINGS,
@@ -400,6 +417,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   const [mediaWarning, setMediaWarning] = useState('');
   const [paletteLoading, setPaletteLoading] = useState<'avatar' | 'banner' | ''>('');
   const [previewEpoch, setPreviewEpoch] = useState(0);
+  const [previewContext, setPreviewContext] = useState<PremiumPreviewContext>('profile');
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [studioSection, setStudioSection] = useState<'appearance' | 'atmosphere' | 'effects' | 'media'>('appearance');
   const [mediaEditor, setMediaEditor] = useState<MediaEditorState | null>(null);
@@ -413,7 +431,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     void fetch('/api/profile/editor', { cache: 'no-store' })
       .then(async (response) => {
         const payload = (await response.json()) as StudioResponse;
-        if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить Profile Studio');
+        if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить оформление Premium');
         if (!active) return;
 
         const next = payload.settings ?? DEFAULT_PREMIUM_STUDIO_SETTINGS;
@@ -427,7 +445,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
         setError(
           requestError instanceof Error
             ? requestError.message
-            : 'Не удалось загрузить Profile Studio',
+            : 'Не удалось загрузить оформление Premium',
         );
       });
 
@@ -435,6 +453,16 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       active = false;
     };
   }, [initialAllowed, initialSettings]);
+
+  useEffect(() => {
+    if (allowed !== false || demoTrackedRef.current) return;
+    demoTrackedRef.current = true;
+    trackProductClientEvent('premium_scene_demo_view', {
+      source: 'premium_studio',
+      path: '/profile/edit',
+      entityType: 'premium_scene',
+    });
+  }, [allowed]);
 
   useEffect(() => {
     if (!mobilePreviewOpen) return;
@@ -538,7 +566,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       const payload = (await response.json()) as StudioResponse;
 
       if (!response.ok) {
-        throw new Error(payload.error || 'Не удалось сохранить Profile Studio');
+        throw new Error(payload.error || 'Не удалось сохранить оформление Premium');
       }
 
       const committed = payload.settings ?? next;
@@ -578,6 +606,19 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
         void refreshAuth();
       }
 
+      trackProductClientEvent('premium_scene_saved', {
+        source: 'premium_studio',
+        path: '/profile/edit',
+        entityType: 'premium_scene',
+        entityId: committed.theme,
+        metadata: {
+          layout: committed.profileLayout,
+          atmosphere: committed.atmosphereEffect,
+          particle: committed.particleEffect,
+          motion: committed.motionMode,
+        },
+      });
+
       window.dispatchEvent(new Event('animebox:premium-studio-updated'));
       router.refresh();
       return committed;
@@ -585,7 +626,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       setError(
         requestError instanceof Error
           ? requestError.message
-          : 'Не удалось сохранить Profile Studio',
+          : 'Не удалось сохранить оформление Premium',
       );
       throw requestError;
     } finally {
@@ -604,6 +645,19 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       particleEffect: preset.particleEffect,
     }));
     setSaved('');
+  }
+
+  function applyScenePreset(scene: PremiumScenePreset) {
+    setSettings((current) => applyPremiumScenePreset(scene, current));
+    setSaved('');
+    setPreviewEpoch((value) => value + 1);
+    trackProductClientEvent('premium_scene_preset_selected', {
+      source: allowed ? 'premium_studio' : 'premium_scene_demo',
+      path: '/profile/edit',
+      entityType: 'premium_scene',
+      entityId: scene,
+      metadata: { premium_active: Boolean(allowed) },
+    });
   }
 
   async function applyAdaptivePalette(source: 'avatar' | 'banner') {
@@ -951,20 +1005,86 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
 
   if (!allowed) {
     const locked = (
-      <section className="premium-studio__locked">
-        <Icon name="crown" className="premium-studio-v12__lock-icon" size={60} weight="regular" />
-        <span>PREMIUM STUDIO</span>
-        <h1>Собственный профиль и тема плеера</h1>
-        <p>
-          AnimeBox Premium открывает палитру цветов, анимированный аватар и баннер,
-          а также синхронизацию акцента с оболочкой AnimeBox Player. После окончания
-          подписки анимации и Premium-эффекты отключаются, а статические WEBP-версии
-          аватара и баннера остаются в профиле.
-        </p>
-        <Link className="premium-cta premium-cta--primary" href="/premium">
-          Открыть AnimeBox Premium
-        </Link>
-        {error && <small>{error}</small>}
+      <section className="premium-studio-v23__demo">
+        <div className="premium-studio-v23__demo-copy">
+          <span>ПРЕДПРОСМОТР PREMIUM</span>
+          <h1>Собери своё оформление до покупки</h1>
+          <p>
+            Выбери стиль и посмотри, как Premium будет выглядеть в профиле,
+            мини-профиле, комментариях и совместном просмотре. Предпросмотр бесплатный —
+            Premium нужен только для сохранения оформления.
+          </p>
+        </div>
+
+        <div className="premium-studio-v23__demo-scenes">
+          {PREMIUM_SCENE_PRESETS.map((scene) => {
+            const meta = PREMIUM_SCENE_PRESET_META[scene];
+            return (
+              <button
+                key={scene}
+                type="button"
+                onClick={() => applyScenePreset(scene)}
+              >
+                <i
+                  style={{
+                    background: `linear-gradient(135deg, ${meta.primaryColor}, ${meta.accentColor})`,
+                  }}
+                />
+                <span>
+                  <strong>{meta.label}</strong>
+                  <small>{meta.description}</small>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="premium-studio-v23__demo-preview">
+          <div className="premium-studio-v23__preview-tabs" role="tablist" aria-label="Контекст Premium demo">
+            {([
+              ['profile', 'Профиль'],
+              ['mini', 'Мини'],
+              ['comment', 'Комментарий'],
+              ['watch-party', 'Комната'],
+            ] as const).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={previewContext === id}
+                className={previewContext === id ? 'is-active' : ''}
+                onClick={() => setPreviewContext(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <PremiumStudioLivePreview
+            key={`demo:${previewEpoch}:${previewContext}`}
+            settings={settings}
+            avatarUrl={avatarUrl}
+            bannerUrl={bannerUrl}
+            avatarTransform={avatarTransform}
+            bannerTransform={bannerTransform}
+            context={previewContext}
+          />
+        </div>
+
+        <div className="premium-studio-v23__demo-actions">
+          <div>
+            <Icon name="crown" size={22} weight="regular" />
+            <span>
+              <strong>Хочешь сохранить это оформление?</strong>
+              <small>Пока Premium не активен, изменения останутся только в предпросмотре.</small>
+            </span>
+          </div>
+          <Link className="premium-cta premium-cta--primary" href="/premium#premium-plans">
+            Сохранить с Premium
+          </Link>
+        </div>
+
+        {error && <small className="premium-studio-v23__demo-error">{error}</small>}
       </section>
     );
     return embedded ? <div className="premium-studio premium-studio-v12 is-embedded">{locked}</div> : <main className="premium-studio premium-studio-v12">{locked}</main>;
@@ -977,10 +1097,10 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
           <Icon name="crown" size={54} weight="regular" />
           <div>
             <span>ANIMEBOX PREMIUM</span>
-            <h1>Premium Studio</h1>
+            <h1>Оформление Premium</h1>
             <p>
-              Настрой профиль под себя: цвета, свечение, анимированный аватар,
-              баннер и тему оболочки плеера.
+              Настрой профиль целиком: цвета, атмосферу, анимации, аватар, баннер
+              и то, как оформление выглядит в других разделах AnimeBox.
             </p>
           </div>
         </div>
@@ -1002,19 +1122,19 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 <StudioColorField
                   label="Основной цвет"
                   value={settings.primaryColor}
-                  hint="Фон карточек, hero-блока и секций профиля"
+                  hint="Фон карточек и основных блоков профиля"
                   onChange={(primaryColor) => setSettings((current) => ({ ...current, primaryColor }))}
                 />
                 <StudioColorField
                   label="Акцент"
                   value={settings.accentColor}
-                  hint="Кнопки, прогресс, активные элементы и glow"
+                  hint="Кнопки, прогресс, активные элементы и свечение"
                   onChange={(accentColor) => setSettings((current) => ({ ...current, accentColor }))}
                 />
                 <StudioColorField
                   label="Текст и иконки"
                   value={settings.textColor}
-                  hint="Текст и иконки поверх фона. Smart Contrast страхует читаемость."
+                  hint="Текст и иконки поверх фона. AnimeBox автоматически сохранит читаемость."
                   onChange={(textColor) => setSettings((current) => ({ ...current, textColor }))}
                 />
               </div>
@@ -1022,7 +1142,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
               <div className="premium-studio-v21__adaptive">
                 <div>
                   <strong>Автоподбор палитры</strong>
-                  <small>AnimeBox берёт оттенки из медиа и строит тёмный фон, яркий accent и безопасный цвет текста.</small>
+                  <small>AnimeBox берёт оттенки из изображения и подбирает подходящие фон, акцент и цвет текста.</small>
                 </div>
                 <div>
                   <button
@@ -1045,7 +1165,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
 
               <div className={`premium-studio-v12__contrast premium-studio-v15__contrast ${contrastProtected ? 'is-warning is-protected' : 'is-good'}`}>
                 <div>
-                  <strong>{contrastProtected ? 'Smart Contrast включён' : `Контраст ${contrast.toFixed(1)}:1`}</strong>
+                  <strong>{contrastProtected ? 'Защита контраста включена' : `Контраст ${contrast.toFixed(1)}:1`}</strong>
                   <small>{contrastProtected ? 'AnimeBox защитил читаемость интерфейса.' : 'Текст хорошо читается на выбранном фоне.'}</small>
                 </div>
                 <span>
@@ -1059,18 +1179,40 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
 
           <aside className="premium-studio-v12__preview-wrap premium-studio-v15__preview-wrap">
             <div className="premium-studio-v12__sticky premium-studio-v15__sticky">
-              <div className="premium-studio-v12__preview-label premium-studio-v15__preview-label">
-                <span>ПРЕДПРОСМОТР</span>
-                <small>Так будет выглядеть твоя Premium-тема</small>
+              <div className="premium-studio-v12__preview-label premium-studio-v15__preview-label premium-studio-v23__preview-head">
+                <div>
+                  <span>ПРЕДПРОСМОТР</span>
+                  <small>Сразу видно, как оформление выглядит в разных местах AnimeBox</small>
+                </div>
+                <div className="premium-studio-v23__preview-tabs" role="tablist" aria-label="Контекст предпросмотра">
+                  {([
+                    ['profile', 'Профиль'],
+                    ['mini', 'Мини'],
+                    ['comment', 'Комментарий'],
+                    ['watch-party', 'Комната'],
+                  ] as const).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="tab"
+                      aria-selected={previewContext === id}
+                      className={previewContext === id ? 'is-active' : ''}
+                      onClick={() => setPreviewContext(id)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <PremiumStudioLivePreview
-                key={previewEpoch}
+                key={`${previewEpoch}:${previewContext}`}
                 settings={settings}
                 avatarUrl={avatarUrl}
                 bannerUrl={bannerUrl}
                 avatarTransform={avatarTransform}
                 bannerTransform={bannerTransform}
+                context={previewContext}
               />
             </div>
           </aside>
@@ -1088,26 +1230,75 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
             <section className="premium-studio-v12__panel premium-studio-v15__panel premium-studio-v15__panel-wide">
               <div className="premium-studio-v12__section-head premium-studio-v15__section-head">
                 <div>
-                  <h2>Готовые пресеты</h2>
-                  <p>Быстрый старт для стиля — потом цвета можно спокойно докрутить вручную.</p>
+                  <h2>Готовые стили</h2>
+                  <p>Выбери готовую основу оформления, а потом подстрой цвета, эффекты и движение под себя.</p>
                 </div>
               </div>
 
-              <div className="premium-studio-v12__presets premium-studio-v15__presets premium-studio-v16__presets">
-                {PREMIUM_PROFILE_THEMES.map((id) => {
-                  const meta = PREMIUM_PROFILE_THEME_META[id];
+              <div className="premium-studio-v23__scene-grid">
+                {PREMIUM_SCENE_PRESETS.map((id) => {
+                  const meta = PREMIUM_SCENE_PRESET_META[id];
                   return (
-                    <button key={id} type="button" className={settings.theme === id ? 'is-active' : ''} onClick={() => applyPreset(id)}>
-                      <span className="premium-studio-v16__preset-preview" style={{ background: `linear-gradient(120deg, ${meta.primaryColor} 0 48%, ${meta.accentColor} 48% 78%, ${meta.textColor} 78%)` }} />
+                    <button
+                      key={id}
+                      type="button"
+                      data-scene={id}
+                      onClick={() => applyScenePreset(id)}
+                    >
+                      <span
+                        className="premium-studio-v23__scene-swatch"
+                        style={{ background: `linear-gradient(135deg, ${meta.primaryColor}, ${meta.accentColor})` }}
+                      />
                       <span>
                         <strong>{meta.label}</strong>
                         <small>{meta.description}</small>
                       </span>
-                      {settings.theme === id && <em>Активно</em>}
+                      <em>Стиль</em>
                     </button>
                   );
                 })}
               </div>
+
+              <div className="premium-studio-v23__layout-block">
+                <div>
+                  <strong>Композиция профиля</strong>
+                  <small>Выбери, как будут расположены основные блоки профиля.</small>
+                </div>
+                <div className="premium-studio-v23__layout-grid">
+                  {PREMIUM_PROFILE_LAYOUTS.map((layout) => {
+                    const meta = PROFILE_LAYOUT_META[layout];
+                    return (
+                      <button
+                        key={layout}
+                        type="button"
+                        className={settings.profileLayout === layout ? 'is-active' : ''}
+                        onClick={() => setSettings((current) => ({ ...current, profileLayout: layout }))}
+                      >
+                        <strong>{meta.label}</strong>
+                        <small>{meta.hint}</small>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <details className="premium-studio-v23__legacy-palettes">
+                <summary>Дополнительные палитры</summary>
+                <div className="premium-studio-v12__presets premium-studio-v15__presets premium-studio-v16__presets">
+                  {PREMIUM_PROFILE_THEMES.map((id) => {
+                    const meta = PREMIUM_PROFILE_THEME_META[id];
+                    return (
+                      <button key={id} type="button" className={settings.theme === id ? 'is-active' : ''} onClick={() => applyPreset(id)}>
+                        <span className="premium-studio-v16__preset-preview" style={{ background: `linear-gradient(120deg, ${meta.primaryColor} 0 48%, ${meta.accentColor} 48% 78%, ${meta.textColor} 78%)` }} />
+                        <span>
+                          <strong>{meta.label}</strong>
+                          <small>{meta.description}</small>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </details>
             </section>
           )}
 
@@ -1116,7 +1307,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
               <div className="premium-studio-v12__section-head premium-studio-v15__section-head">
                 <div>
                   <h2>Атмосфера профиля</h2>
-                  <p>Один ambient-эффект, единый режим движения и характер появления профиля. Всё сразу видно в предпросмотре.</p>
+                  <p>Выбери фоновый эффект, движение и анимацию при открытии профиля. Результат сразу виден справа.</p>
                 </div>
               </div>
 
@@ -1141,7 +1332,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
 
               <div className="premium-studio-v21__identity-controls">
                 <label className="premium-studio-v16__effect-row">
-                  <span><strong>Интенсивность атмосферы</strong><small>Контролирует заметность ambient glow и частиц.</small></span>
+                  <span><strong>Интенсивность атмосферы</strong><small>Насколько заметны фоновые эффекты и частицы.</small></span>
                   <span className="premium-studio-v16__range-wrap">
                     <input
                       type="range"
@@ -1156,7 +1347,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 </label>
 
                 <div className="premium-studio-v16__effect-row">
-                  <span><strong>Движение</strong><small>Off экономит максимум ресурсов, Soft — дорогая спокойная анимация, Live — самый заметный режим.</small></span>
+                  <span><strong>Движение</strong><small>Выключи анимации, оставь их спокойными или сделай более заметными.</small></span>
                   <div className="premium-studio-v15__segmented">
                     {PREMIUM_MOTION_MODES.map((mode) => (
                       <button key={mode} type="button" className={settings.motionMode === mode ? 'is-active' : ''} onClick={() => setSettings((current) => ({ ...current, motionMode: mode }))}>
@@ -1167,7 +1358,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 </div>
 
                 <div className="premium-studio-v16__effect-row">
-                  <span><strong>Эффект ника</strong><small>Выделяет username, не превращая весь интерфейс в неон.</small></span>
+                  <span><strong>Эффект имени</strong><small>Добавляет лёгкий акцент к имени пользователя.</small></span>
                   <div className="premium-studio-v15__segmented">
                     {PREMIUM_NICKNAME_EFFECTS.map((effect) => (
                       <button key={effect} type="button" className={settings.nicknameEffect === effect ? 'is-active' : ''} onClick={() => setSettings((current) => ({ ...current, nicknameEffect: effect }))}>
@@ -1178,7 +1369,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 </div>
 
                 <div className="premium-studio-v16__effect-row">
-                  <span><strong>Вход в профиль</strong><small>Короткая intro-анимация только при открытии страницы.</small></span>
+                  <span><strong>Анимация при открытии</strong><small>Короткий эффект при первом открытии профиля.</small></span>
                   <div className="premium-studio-v15__segmented">
                     {PREMIUM_ENTRANCE_EFFECTS.map((effect) => (
                       <button key={effect} type="button" className={settings.entranceEffect === effect ? 'is-active' : ''} onClick={() => setSettings((current) => ({ ...current, entranceEffect: effect }))}>
@@ -1189,14 +1380,14 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 </div>
 
                 <div className="premium-studio-v21__replay-row">
-                  <span><strong>Предпросмотр входа</strong><small>Перезапусти intro без сохранения страницы.</small></span>
+                  <span><strong>Проверить анимацию</strong><small>Повтори эффект без сохранения страницы.</small></span>
                   <button type="button" onClick={() => setPreviewEpoch((value) => value + 1)}>
-                    Проиграть intro
+                    Повторить анимацию
                   </button>
                 </div>
 
                 <div className="premium-studio-v16__effect-row">
-                  <span><strong>Hero</strong><small>Как баннер и identity-блок собираются в верхней части профиля.</small></span>
+                  <span><strong>Верх профиля</strong><small>Как выглядят баннер, аватар и информация о пользователе.</small></span>
                   <div className="premium-studio-v15__segmented">
                     {PREMIUM_HERO_STYLES.map((style) => (
                       <button key={style} type="button" className={settings.heroStyle === style ? 'is-active' : ''} onClick={() => setSettings((current) => ({ ...current, heroStyle: style }))}>
@@ -1207,7 +1398,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 </div>
 
                 <div className="premium-studio-v16__effect-row">
-                  <span><strong>Поверхности</strong><small>Glass — глубина и blur, Deep — плотный игровой UI, Ink — строгий тёмный профиль.</small></span>
+                  <span><strong>Стиль карточек</strong><small>Стекло — лёгкая прозрачность, Глубокий — плотнее и объёмнее, Строгий — минимум эффектов.</small></span>
                   <div className="premium-studio-v15__segmented">
                     {PREMIUM_SURFACE_STYLES.map((style) => (
                       <button key={style} type="button" className={settings.surfaceStyle === style ? 'is-active' : ''} onClick={() => setSettings((current) => ({ ...current, surfaceStyle: style }))}>
@@ -1225,13 +1416,13 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
               <div className="premium-studio-v12__section-head premium-studio-v15__section-head">
                 <div>
                   <h2>Эффекты и оболочка</h2>
-                  <p>Свечение, характер рамки и синхронизация темы с AnimeBox Player.</p>
+                  <p>Настрой свечение, рамку и оформление плеера AnimeBox.</p>
                 </div>
               </div>
 
               <div className="premium-studio-v16__effect-surface">
                 <label className="premium-studio-v16__effect-row">
-                  <span><strong>Свечение</strong><small>Интенсивность glow вокруг Premium-элементов</small></span>
+                  <span><strong>Свечение</strong><small>Насколько сильно светятся Premium-элементы.</small></span>
                   <span className="premium-studio-v16__range-wrap">
                     <input type="range" min="0" max="100" step="1" value={settings.glowStrength} style={{ '--range-value': `${settings.glowStrength}%` } as CSSProperties} onChange={(event) => setSettings((current) => ({ ...current, glowStrength: Number(event.target.value) }))} />
                     <b>{settings.glowStrength}%</b>
@@ -1250,7 +1441,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 </div>
 
                 <div className="premium-studio-v16__effect-row">
-                  <span><strong>Частицы профиля</strong><small>Лёгкий дополнительный слой виден в профиле и mini-profile без canvas.</small></span>
+                  <span><strong>Частицы профиля</strong><small>Небольшие декоративные частицы в профиле и мини-профиле.</small></span>
                   <div className="premium-studio-v15__segmented premium-studio-v18__particle-options" role="radiogroup" aria-label="Эффект частиц">
                     {PREMIUM_PARTICLE_EFFECTS.map((effect) => (
                       <button
@@ -1259,14 +1450,14 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                         className={settings.particleEffect === effect ? 'is-active' : ''}
                         onClick={() => setSettings((current) => ({ ...current, particleEffect: effect }))}
                       >
-                        {effect === 'none' ? 'Нет' : effect === 'nebula' ? 'Nebula' : effect === 'sakura' ? 'Sakura' : 'Stars'}
+                        {effect === 'none' ? 'Нет' : effect === 'nebula' ? 'Туманность' : effect === 'sakura' ? 'Сакура' : 'Звёзды'}
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <label className="premium-studio-v16__effect-row is-toggle">
-                  <span><strong>Синхронизировать с плеером</strong><small>Accent и Primary применяются к оболочке AnimeBox Player.</small></span>
+                  <span><strong>Оформить плеер в том же стиле</strong><small>Основной и акцентный цвета профиля применяются к интерфейсу плеера.</small></span>
                   <span className={`premium-studio-v15__switch ${settings.syncPlayerTheme ? 'is-on' : ''}`}>
                     <input type="checkbox" checked={settings.syncPlayerTheme} onChange={(event) => setSettings((current) => ({ ...current, syncPlayerTheme: event.target.checked }))} />
                     <i />
@@ -1280,8 +1471,8 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
             <section className="premium-studio-v12__panel premium-studio-v15__panel premium-studio-v15__panel-wide">
               <div className="premium-studio-v12__section-head premium-studio-v15__section-head">
                 <div>
-                  <h2>Premium-медиа</h2>
-                  <p>Сначала выбери файл. AnimeBox сразу откроет удобный редактор: для аватара — квадратный кадр, для баннера — подгонку под широкую область профиля.</p>
+                  <h2>Аватар и баннер</h2>
+                  <p>Загрузи изображение и сразу подгони его под профиль. Для аватара откроется квадратный кадр, для баннера — широкая область.</p>
                 </div>
               </div>
 
@@ -1315,7 +1506,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 </article>
 
                 <article className="premium-studio-v19__media-card">
-                  <div className="premium-studio-v12__media-preview is-banner">{bannerUrl ? <img src={bannerUrl} alt="Предпросмотр Premium-баннера" style={premiumMediaStyle(bannerTransform) as CSSProperties} /> : <span>Premium Banner</span>}</div>
+                  <div className="premium-studio-v12__media-preview is-banner">{bannerUrl ? <img src={bannerUrl} alt="Предпросмотр Premium-баннера" style={premiumMediaStyle(bannerTransform) as CSSProperties} /> : <span>Баннер Premium</span>}</div>
                   <div className="premium-studio-v16__media-copy"><strong>Баннер</strong><small>до 6 МБ · исходник до 2400×1200</small></div>
                   <p className="premium-studio-v19__media-hint">Для баннера не нужен «кроп» как у аватара: после загрузки ты подгоняешь изображение под реальную широкую рамку профиля.</p>
                   <div className="premium-studio-v19__media-actions">
@@ -1419,7 +1610,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 <div className="premium-studio-v22__preview-sheet-handle" aria-hidden="true" />
                 <header className="premium-studio-v22__preview-sheet-head">
                   <div>
-                    <span>LIVE PREVIEW</span>
+                    <span>ПРЕДПРОСМОТР</span>
                     <strong>Предпросмотр профиля</strong>
                   </div>
                   <button
@@ -1439,6 +1630,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                     bannerUrl={bannerUrl}
                     avatarTransform={avatarTransform}
                     bannerTransform={bannerTransform}
+                    context={previewContext}
                   />
                 </div>
 
@@ -1487,13 +1679,13 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
           >
             <div className="premium-media-editor-modal__top">
               <div>
-                <span>{mediaEditor.kind === 'avatar' ? 'PREMIUM AVATAR' : 'PREMIUM BANNER'}</span>
+                <span>{mediaEditor.kind === 'avatar' ? 'PREMIUM-АВАТАР' : 'PREMIUM-БАННЕР'}</span>
                 <h2 id="premium-media-editor-title">
                   {mediaEditor.kind === 'avatar' ? 'Настрой кадр аватара' : 'Подгони баннер под профиль'}
                 </h2>
                 <p>
                   {mediaEditor.kind === 'avatar'
-                    ? 'Аватар будет круглым, но редактируем квадрат 1:1 — оригинальная GIF/Animated WebP анимация сохраняется, а AnimeBox отдельно создаёт статический WebP fallback.'
+                    ? 'Аватар будет круглым, но кадр настраивается в квадрате 1:1. Анимация GIF или Animated WebP сохранится, а AnimeBox отдельно подготовит статичную WebP-версию.'
                     : 'Это не отдельный кроп-файл: широкая рамка показывает реальную область баннера. Оригинал и анимация сохраняются.'}
                 </p>
                 {mediaEditor.kind === 'avatar' && mediaWarning && (

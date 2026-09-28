@@ -101,6 +101,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   const [premiumDirty, setPremiumDirty] = useState(false);
   const [premiumBusy, setPremiumBusy] = useState(false);
   const [showcase, setShowcase] = useState<ProfileWidgetsData | null>(null);
+  const [showcaseMaxFavorites, setShowcaseMaxFavorites] = useState(6);
   const [showcaseLoading, setShowcaseLoading] = useState(false);
   const [showcaseError, setShowcaseError] = useState('');
   const [showcaseReloadKey, setShowcaseReloadKey] = useState(0);
@@ -163,9 +164,22 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       setShowcaseError('');
     });
 
-    void communityRequest<{ ok: boolean; widgets: ProfileWidgetsData }>('profile-widgets')
+    void communityRequest<{
+      ok: boolean;
+      widgets: ProfileWidgetsData;
+      capabilities?: {
+        extraShowcases?: boolean;
+        maxFavorites?: number;
+      };
+    }>('profile-widgets')
       .then((payload) => {
-        if (active) setShowcase(payload.widgets);
+        if (!active) return;
+        setShowcase(payload.widgets);
+        setShowcaseMaxFavorites(
+          Number.isSafeInteger(payload.capabilities?.maxFavorites)
+            ? Math.max(6, Number(payload.capabilities?.maxFavorites))
+            : 6,
+        );
       })
       .catch((loadError) => {
         if (active) {
@@ -645,7 +659,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       <section className="profile-editor-v13__shell">
         <header className="profile-editor-v13__header">
           <div>
-            <span>PROFILE STUDIO</span>
+            <span>РЕДАКТОР ПРОФИЛЯ</span>
             <h1>Редактирование профиля</h1>
             <p>Нажимай прямо на элементы профиля: аватар, баннер, ник, описание и рамку.</p>
           </div>
@@ -669,7 +683,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         </header>
 
         <nav className="profile-editor-v13__tabs profile-editor-v18__rail" aria-label="Разделы редактора профиля">
-          <span className="profile-editor-v18__rail-title">PROFILE STUDIO</span>
+          <span className="profile-editor-v18__rail-title">РЕДАКТОР ПРОФИЛЯ</span>
           <button className={activeTab === 'profile' ? 'is-active' : ''} onClick={() => switchTab('profile')} type="button">
             <Icon name="user" size={18} weight="regular" /> <span>Профиль</span>
           </button>
@@ -709,9 +723,9 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           <div className="profile-editor-v13__showcase-tab">
             <div className="profile-editor-v13__section-title profile-editor-v13__showcase-title">
               <div>
-                <span>PROFILE SHOWCASE</span>
+                <span>ВИТРИНА ПРОФИЛЯ</span>
                 <h2>Витрина профиля</h2>
-                <p>Собери порядок виджетов и закрепи любимые аниме — всё внутри общего редактора.</p>
+                <p>Настрой порядок блоков и закрепи любимые аниме — всё в одном месте.</p>
               </div>
             </div>
 
@@ -741,6 +755,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
               <ProfileWidgetEditor
                 embedded
                 data={showcase}
+                maxFavorites={showcaseMaxFavorites}
                 onSaved={(widgets) => {
                   setShowcase(widgets);
                   setSaved('Витрина сохранена ✓');
@@ -802,7 +817,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         <div className={`profile-editor-v13__mobile-save profile-editor-v18__savebar ${dirty ? 'is-dirty' : ''}`}>
           <span className="profile-editor-v18__savebar-copy">
             <strong>{dirty ? 'Есть несохранённые изменения' : 'Всё сохранено'}</strong>
-            <small>{dirty ? 'Проверь preview и сохрани, когда всё выглядит правильно.' : 'Profile Studio синхронизирован.'}</small>
+            <small>{dirty ? 'Проверь предпросмотр и сохрани, когда всё выглядит как нужно.' : 'Редактор профиля синхронизирован.'}</small>
           </span>
           <button type="button" className="profile-editor-v18__reset" disabled={!dirty || saving || premiumBusy} onClick={resetDraft}>
             Сбросить

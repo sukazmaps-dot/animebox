@@ -352,6 +352,7 @@ export default function ProfilePage() {
       data-premium-entrance={premiumIdentityActive ? appearance.premiumStudio?.entranceEffect : undefined}
       data-premium-hero={premiumIdentityActive ? appearance.premiumStudio?.heroStyle : undefined}
       data-premium-surface={premiumIdentityActive ? appearance.premiumStudio?.surfaceStyle : undefined}
+      data-premium-layout={premiumIdentityActive ? appearance.premiumStudio?.profileLayout : undefined}
     >
       {premiumIdentityActive && appearance.premiumStudio && (
         <PremiumProfileAtmosphere
@@ -462,6 +463,19 @@ export default function ProfilePage() {
         foundingNumber={profile.og_number}
       />
       <CommunityProfile />
+
+      {premiumActive && (
+        <section className="profile-v2__bottom-card premium-profile-v23__stats-cta">
+          <div>
+            <span className="profile-v2__eyebrow">Premium · Advanced Stats</span>
+            <h2>Твой AnimeBox в цифрах</h2>
+            <p>
+              Ритм просмотра, любимые жанры, активные дни и история завершённых серий.
+            </p>
+          </div>
+          <Link href="/premium/stats">Открыть статистику →</Link>
+        </section>
+      )}
 
       {/* FAVORITES */}
 

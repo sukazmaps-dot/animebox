@@ -35,6 +35,7 @@ type CommentItem = {
     avatarTransform: PremiumMediaTransform | null;
     ogNumber: number | null;
     sponsor: SponsorStatus | null;
+    premium: boolean;
     role: PublicIdentityRole;
   } | null;
 };
@@ -127,6 +128,7 @@ function CommentNode({
                   username={username}
                   role={comment.author?.role ?? null}
                   sponsor={comment.author?.sponsor ?? null}
+                  premium={comment.author?.premium ?? false}
                   compact
                 />
                 {comment.author?.ogNumber && (
@@ -166,6 +168,7 @@ function CommentNode({
                   username={username}
                   role={comment.author?.role ?? null}
                   sponsor={comment.author?.sponsor ?? null}
+                  premium={comment.author?.premium ?? false}
                   compact
                 />
                 {comment.author?.ogNumber && (

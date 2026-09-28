@@ -45,16 +45,39 @@ export async function POST(request: Request) {
 
     const admin = adminClient();
     const rolesByUser = getPublicIdentityRoles(userIds);
+    const nowIso = new Date().toISOString();
 
-    const [profilesResult, sponsorStatuses] = await Promise.all([
+    const [profilesResult, sponsorStatuses, reactionEntitlementsResult] = await Promise.all([
       admin
         .from('profiles')
         .select('id,username,avatar_path')
         .in('id', userIds),
       getSponsorStatuses(userIds),
+      admin
+        .from('user_entitlements')
+        .select('user_id,starts_at,expires_at')
+        .eq('entitlement', 'watchPartyReactions')
+        .eq('active', true)
+        .in('user_id', userIds),
     ]);
 
     if (profilesResult.error) throw profilesResult.error;
+    if (reactionEntitlementsResult.error) throw reactionEntitlementsResult.error;
+
+    const reactionUsers = new Set(
+      (reactionEntitlementsResult.data ?? [])
+        .filter((row) => {
+          const startsAt = Date.parse(String(row.starts_at ?? ''));
+          const expiresAt = row.expires_at == null
+            ? Number.POSITIVE_INFINITY
+            : Date.parse(String(row.expires_at));
+          const now = Date.parse(nowIso);
+          return Number.isFinite(startsAt) &&
+            startsAt <= now &&
+            expiresAt > now;
+        })
+        .map((row) => String(row.user_id)),
+    );
 
     const profiles = (profilesResult.data ?? []) as ProfileIdentityRow[];
     const appearanceByUser = await resolvePublicAppearances(
@@ -73,6 +96,7 @@ export async function POST(request: Request) {
         avatarUrl: appearance?.avatarUrl ?? '/default-avatar.webp',
         avatarTransform: appearance?.avatarTransform ?? { x: 50, y: 50, zoom: 1 },
         premium: appearance?.premiumBadge ?? false,
+        watchPartyReactions: reactionUsers.has(profile.id),
         role: rolesByUser.get(profile.id) ?? null,
         sponsor: sponsorStatuses.get(profile.id) ?? null,
       };

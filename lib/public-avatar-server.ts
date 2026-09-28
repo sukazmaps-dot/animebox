@@ -65,9 +65,12 @@ export function resolvePublicAppearancesFromPreloaded(
     );
     const premiumStudioActive =
       entitlements.has('profileStudio') &&
-      entitlements.has('premiumThemes');
+      entitlements.has('premiumThemes') &&
+      (entitlements.has('profileScene') || entitlements.has('premiumBadge'));
     const premiumMediaActive =
-      entitlements.has('animatedAvatar') || premiumStudioActive;
+      entitlements.has('animatedAvatar') ||
+      entitlements.has('animatedBanner') ||
+      premiumStudioActive;
     const studioSettings = preload?.premiumSettings
       ? studioSettingsFromRow(preload.premiumSettings)
       : null;
@@ -122,14 +125,14 @@ export async function resolvePublicAppearances(
     admin
       .from('premium_profile_settings')
       .select(
-        'user_id,theme,primary_color,accent_color,text_color,glow_strength,border_style,particle_effect,avatar_path,avatar_static_path,avatar_position_x,avatar_position_y,avatar_zoom,banner_path,banner_static_path,banner_position_x,banner_position_y,banner_zoom,sync_player_theme,atmosphere_effect,atmosphere_intensity,motion_mode,entrance_effect,nickname_effect,hero_style,surface_style',
+        'user_id,theme,primary_color,accent_color,text_color,glow_strength,border_style,particle_effect,avatar_path,avatar_static_path,avatar_position_x,avatar_position_y,avatar_zoom,banner_path,banner_static_path,banner_position_x,banner_position_y,banner_zoom,sync_player_theme,atmosphere_effect,atmosphere_intensity,motion_mode,entrance_effect,nickname_effect,hero_style,surface_style,profile_layout',
       )
       .in('user_id', ids),
     admin
       .from('user_entitlements')
       .select('user_id,entitlement')
       .in('user_id', ids)
-      .in('entitlement', ['premiumBadge', 'profileStudio', 'premiumThemes', 'animatedAvatar'])
+      .in('entitlement', ['premiumBadge', 'profileStudio', 'premiumThemes', 'profileScene', 'animatedAvatar', 'animatedBanner'])
       .eq('active', true)
       .lte('starts_at', now)
       .or(`expires_at.is.null,expires_at.gt.${now}`),

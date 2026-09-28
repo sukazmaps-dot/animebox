@@ -1,3 +1,8 @@
+import {
+  readWatchPartyTheme,
+  type WatchPartyTheme,
+} from '@/lib/watch-party-premium';
+
 export const WATCH_PARTY_PROTOCOL = 6;
 export const WATCH_PARTY_MAX_PARTICIPANTS = 50;
 export const WATCH_PARTY_ROOM_PREFIX = 'abx-party';
@@ -25,7 +30,16 @@ export type WatchPartyParticipant = {
 };
 
 export type WatchPartyPlayerAction = 'play' | 'pause' | 'seek';
-export type WatchPartyReaction = 'love' | 'cry' | 'fire' | 'wow' | 'dead' | 'peak';
+export type WatchPartyReaction =
+  | 'love'
+  | 'cry'
+  | 'fire'
+  | 'wow'
+  | 'dead'
+  | 'peak'
+  | 'sparkle'
+  | 'clap'
+  | 'cinema';
 export type WatchPartyVote = 'next' | 'wait' | 'stop';
 
 export type WatchPartyReactionEvent = {
@@ -257,12 +271,18 @@ export function watchPartyReturnPath() {
 export function buildWatchPartyUrl(
   invite: WatchPartyInvite,
   targetPath?: string,
+  roomTheme?: WatchPartyTheme,
 ) {
   const url = targetPath
     ? new URL(targetPath, window.location.origin)
     : new URL(window.location.href);
 
   url.searchParams.set('party', invite.roomId);
+  if (roomTheme === 'default') {
+    url.searchParams.delete('partyTheme');
+  } else if (roomTheme) {
+    url.searchParams.set('partyTheme', roomTheme);
+  }
 
   const hash = new URLSearchParams();
   hash.set('partyKey', invite.secret);
@@ -288,9 +308,16 @@ export function readWatchPartyInviteFromLocation(): WatchPartyInvite | null {
   return { roomId, secret };
 }
 
+export function readWatchPartyThemeFromLocation(): WatchPartyTheme {
+  if (typeof window === 'undefined') return 'default';
+  const url = new URL(window.location.href);
+  return readWatchPartyTheme(url.searchParams.get('partyTheme'));
+}
+
 export function clearWatchPartyFromLocation() {
   const url = new URL(window.location.href);
   url.searchParams.delete('party');
+  url.searchParams.delete('partyTheme');
   const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
   hash.delete('partyKey');
   url.hash = hash.toString();
@@ -385,7 +412,10 @@ function parseReaction(value: unknown): WatchPartyReaction | null {
     value === 'fire' ||
     value === 'wow' ||
     value === 'dead' ||
-    value === 'peak'
+    value === 'peak' ||
+    value === 'sparkle' ||
+    value === 'clap' ||
+    value === 'cinema'
     ? value
     : null;
 }

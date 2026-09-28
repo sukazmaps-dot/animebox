@@ -1,15 +1,10 @@
 import 'server-only';
 
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
-import type { EntitlementKey } from '@/lib/payments/entitlements';
+import { PREMIUM_FEATURE_ENTITLEMENTS } from '@/lib/payments/entitlements';
 import { trackMonetizationEvents } from '@/lib/monetization-events-server';
 
-export const PREMIUM_ENTITLEMENTS: EntitlementKey[] = [
-  'adFree',
-  'premiumBadge',
-  'profileStudio',
-  'premiumThemes',
-];
+export const PREMIUM_ENTITLEMENTS = [...PREMIUM_FEATURE_ENTITLEMENTS];
 
 export type PremiumSubscriptionStatus =
   | 'active'

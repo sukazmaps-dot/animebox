@@ -1305,8 +1305,10 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       window.location.origin,
     );
     const roomId = current.searchParams.get('party');
+    const roomTheme = current.searchParams.get('partyTheme');
 
     if (roomId) next.searchParams.set('party', roomId);
+    if (roomTheme) next.searchParams.set('partyTheme', roomTheme);
     next.hash = current.hash;
 
     router.push(`${next.pathname}${next.search}${next.hash}`, { scroll: false });

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { communityRequest } from '@/lib/community-client';
+import { trackProductClientEvent } from '@/lib/product-events-client';
 import { getAnimes, isAbortError } from '@/lib/anime-client';
 import { getAnimeTitle } from '@/lib/anime-display';
 import type { Anime } from '@/types/anime';
@@ -52,10 +53,12 @@ export default function ProfileWidgetEditor({
   data,
   onSaved,
   embedded = false,
+  maxFavorites = 6,
 }: {
   data: ProfileWidgetsData;
   onSaved: (widgets: ProfileWidgetsData) => void;
   embedded?: boolean;
+  maxFavorites?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [layout, setLayout] = useState(() => normalizeLayout(data.layout));
@@ -184,8 +187,8 @@ export default function ProfileWidgetEditor({
       return;
     }
 
-    if (favoriteIds.length >= 6) {
-      setMessage('Можно закрепить максимум 6 любимых аниме.');
+    if (favoriteIds.length >= maxFavorites) {
+      setMessage(`Можно закрепить максимум ${maxFavorites} любимых аниме.`);
       return;
     }
 
@@ -214,6 +217,17 @@ export default function ProfileWidgetEditor({
       });
 
       onSaved(result.widgets);
+      trackProductClientEvent('premium_showcase_saved', {
+        source: maxFavorites > 6 ? 'premium_showcase' : 'profile_showcase',
+        path: '/profile/edit',
+        entityType: 'profile_showcase',
+        metadata: {
+          favorite_count: favoriteIds.length,
+          max_favorites: maxFavorites,
+          premium_capacity: maxFavorites > 6,
+          visible_widgets: layout.filter((item) => item.visible).length,
+        },
+      });
       setMessage('Профиль обновлён.');
       window.dispatchEvent(new Event('animebox:profile-widgets-updated'));
 
@@ -249,10 +263,10 @@ export default function ProfileWidgetEditor({
           >
             <div className="profile-widgets-editor__top">
               <div>
-                <span>PROFILE IDENTITY</span>
-                <h2 id="profile-widgets-editor-title">Настрой профиль под себя</h2>
+                <span>ВИТРИНА ПРОФИЛЯ</span>
+                <h2 id="profile-widgets-editor-title">Собери свою витрину</h2>
                 <p>
-                  Выбери, что показывать другим пользователям, расставь блоки и закрепи любимые аниме.
+                  Выбери, какие блоки показывать в профиле, расставь их по порядку и закрепи любимые аниме.
                 </p>
               </div>
               {!embedded && (
@@ -322,7 +336,7 @@ export default function ProfileWidgetEditor({
               <div className="profile-widgets-editor__section-head">
                 <div>
                   <strong>Любимые аниме</strong>
-                  <small>{favoriteIds.length}/6 закреплено · порядок сохраняется слева направо</small>
+                  <small>{favoriteIds.length}/{maxFavorites} закреплено · порядок сохраняется слева направо</small>
                 </div>
               </div>
 
