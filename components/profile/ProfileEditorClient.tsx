@@ -101,6 +101,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   const [premiumDirty, setPremiumDirty] = useState(false);
   const [premiumBusy, setPremiumBusy] = useState(false);
   const [showcase, setShowcase] = useState<ProfileWidgetsData | null>(null);
+  const [showcaseMaxFavorites, setShowcaseMaxFavorites] = useState(6);
   const [showcaseLoading, setShowcaseLoading] = useState(false);
   const [showcaseError, setShowcaseError] = useState('');
   const [showcaseReloadKey, setShowcaseReloadKey] = useState(0);
@@ -163,9 +164,22 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       setShowcaseError('');
     });
 
-    void communityRequest<{ ok: boolean; widgets: ProfileWidgetsData }>('profile-widgets')
+    void communityRequest<{
+      ok: boolean;
+      widgets: ProfileWidgetsData;
+      capabilities?: {
+        extraShowcases?: boolean;
+        maxFavorites?: number;
+      };
+    }>('profile-widgets')
       .then((payload) => {
-        if (active) setShowcase(payload.widgets);
+        if (!active) return;
+        setShowcase(payload.widgets);
+        setShowcaseMaxFavorites(
+          Number.isSafeInteger(payload.capabilities?.maxFavorites)
+            ? Math.max(6, Number(payload.capabilities?.maxFavorites))
+            : 6,
+        );
       })
       .catch((loadError) => {
         if (active) {
@@ -741,6 +755,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
               <ProfileWidgetEditor
                 embedded
                 data={showcase}
+                maxFavorites={showcaseMaxFavorites}
                 onSaved={(widgets) => {
                   setShowcase(widgets);
                   setSaved('Витрина сохранена ✓');
