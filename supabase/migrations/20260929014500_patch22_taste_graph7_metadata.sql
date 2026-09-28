@@ -5,13 +5,20 @@
 alter table public.anime_catalog
   add column if not exists studios text[] not null default array[]::text[],
   add column if not exists format text,
-  add column if not exists start_year smallint;
+  add column if not exists start_year smallint,
+  add column if not exists recommendation_metadata_version smallint not null default 0;
 
 alter table public.anime_catalog
   drop constraint if exists anime_catalog_format_length_check;
 alter table public.anime_catalog
   add constraint anime_catalog_format_length_check
   check (format is null or char_length(format) between 1 and 32);
+
+alter table public.anime_catalog
+  drop constraint if exists anime_catalog_recommendation_metadata_version_check;
+alter table public.anime_catalog
+  add constraint anime_catalog_recommendation_metadata_version_check
+  check (recommendation_metadata_version between 0 and 1);
 
 alter table public.anime_catalog
   drop constraint if exists anime_catalog_start_year_check;
@@ -25,3 +32,6 @@ comment on column public.anime_catalog.format is
   'Canonical anime format (TV, MOVIE, OVA, ONA, SPECIAL, etc.) used by Taste Graph 7.';
 comment on column public.anime_catalog.start_year is
   'Release year used only as a coarse recommendation-era preference signal.';
+
+comment on column public.anime_catalog.recommendation_metadata_version is
+  'One-time enrichment marker. Version 1 means Patch 22 recommendation metadata was provider-refreshed even if some fields are legitimately empty.';
