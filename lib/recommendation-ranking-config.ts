@@ -8,7 +8,11 @@ export const RECOMMENDATION_RANKING_WEIGHTS = {
   tasteGraphPositive: 0.25,
   completedAffinity: 0.13,
   studioAffinity: 0.08,
+  formatAffinity: 0.055,
+  eraAffinity: 0.045,
+  statusAffinity: 0.05,
   tasteGraphNegative: 0.32,
+  metadataNegativeAffinity: 0.16,
   sessionNegativeAffinity: 0.26,
   sessionIntent: 0.16,
   completionLikelihood: 0.18,
@@ -43,6 +47,9 @@ export const RECOMMENDATION_MATCH_WEIGHTS = {
   tasteGraphPositive: 0.26,
   completedAffinity: 0.14,
   studioAffinity: 0.08,
+  formatAffinity: 0.05,
+  eraAffinity: 0.04,
+  statusAffinity: 0.04,
   mood: 0.16,
   episodeLength: 0.08,
   communityQuality: 0.12,
@@ -56,7 +63,11 @@ export type RecommendationScoreSignals = {
   tasteGraphPositive: number;
   completedAffinity: number;
   studioAffinity: number;
+  formatAffinity: number;
+  eraAffinity: number;
+  statusAffinity: number;
   tasteGraphNegative: number;
+  metadataNegativeAffinity: number;
   sessionNegativeAffinity: number;
   sessionIntent: number;
   completionLikelihood: number;
@@ -77,7 +88,11 @@ export type RecommendationScoreComponents = {
   tasteGraphPositive: number;
   completedAffinity: number;
   studioAffinity: number;
+  formatAffinity: number;
+  eraAffinity: number;
+  statusAffinity: number;
   tasteGraphNegative: number;
+  metadataNegativeAffinity: number;
   sessionNegativeAffinity: number;
   sessionIntent: number;
   completionLikelihood: number;
@@ -127,8 +142,16 @@ export function scoreRecommendation(
       finite(signals.completedAffinity) * weights.completedAffinity,
     studioAffinity:
       finite(signals.studioAffinity) * weights.studioAffinity,
+    formatAffinity:
+      finite(signals.formatAffinity) * weights.formatAffinity,
+    eraAffinity:
+      finite(signals.eraAffinity) * weights.eraAffinity,
+    statusAffinity:
+      finite(signals.statusAffinity) * weights.statusAffinity,
     tasteGraphNegative:
       -finite(signals.tasteGraphNegative) * weights.tasteGraphNegative,
+    metadataNegativeAffinity:
+      -finite(signals.metadataNegativeAffinity) * weights.metadataNegativeAffinity,
     sessionNegativeAffinity:
       -finite(signals.sessionNegativeAffinity) * weights.sessionNegativeAffinity,
     sessionIntent:
@@ -180,7 +203,11 @@ export function recommendationMatchBasis(
     | 'tasteGraphPositive'
     | 'completedAffinity'
     | 'studioAffinity'
+    | 'formatAffinity'
+    | 'eraAffinity'
+    | 'statusAffinity'
     | 'tasteGraphNegative'
+    | 'metadataNegativeAffinity'
     | 'sessionNegativeAffinity'
     | 'episodeLength'
     | 'mood'
@@ -195,11 +222,15 @@ export function recommendationMatchBasis(
       finite(signals.tasteGraphPositive) * weights.tasteGraphPositive +
       finite(signals.completedAffinity) * weights.completedAffinity +
       finite(signals.studioAffinity) * weights.studioAffinity +
+      finite(signals.formatAffinity) * weights.formatAffinity +
+      finite(signals.eraAffinity) * weights.eraAffinity +
+      finite(signals.statusAffinity) * weights.statusAffinity +
       finite(signals.mood) * weights.mood +
       finite(signals.episodeLength) * weights.episodeLength +
       finite(signals.communityQuality) * weights.communityQuality +
       finite(signals.shortFinished) * weights.shortFinished -
       finite(signals.tasteGraphNegative) * weights.tasteGraphNegative -
+      finite(signals.metadataNegativeAffinity) * 0.12 -
       finite(signals.sessionNegativeAffinity) *
         weights.sessionNegativeAffinity,
   );
