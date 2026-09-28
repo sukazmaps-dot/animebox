@@ -55,6 +55,7 @@ export const RECOMMENDATION_MATCH_WEIGHTS = {
   communityQuality: 0.12,
   shortFinished: 0.7,
   tasteGraphNegative: 0.24,
+  metadataNegativeAffinity: 0.12,
   sessionNegativeAffinity: 0.16,
 } as const;
 
@@ -230,7 +231,8 @@ export function recommendationMatchBasis(
       finite(signals.communityQuality) * weights.communityQuality +
       finite(signals.shortFinished) * weights.shortFinished -
       finite(signals.tasteGraphNegative) * weights.tasteGraphNegative -
-      finite(signals.metadataNegativeAffinity) * 0.12 -
+      finite(signals.metadataNegativeAffinity) *
+        weights.metadataNegativeAffinity -
       finite(signals.sessionNegativeAffinity) *
         weights.sessionNegativeAffinity,
   );
