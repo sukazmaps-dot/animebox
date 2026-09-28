@@ -121,8 +121,8 @@ export default function PremiumStudioLivePreview({
 
             {context === 'mini' && (
               <>
-                <small>LEVEL 50 · PREMIUM SCENE</small>
-                <p>Мини-профиль сохраняет характер сцены, но снижает интенсивность эффектов.</p>
+                <small>50 УРОВЕНЬ · PREMIUM</small>
+                <p>Мини-профиль показывает тот же стиль, только спокойнее и компактнее.</p>
                 <div className="premium-studio-v23__context-tags">
                   <i>7 достижений</i>
                   <i>29ч просмотра</i>
@@ -139,8 +139,8 @@ export default function PremiumStudioLivePreview({
 
             {context === 'watch-party' && (
               <>
-                <small>WATCH TOGETHER · В КОМНАТЕ</small>
-                <p>Тонкий accent, рамка и Premium-метка без эффектов поверх самого видео.</p>
+                <small>СОВМЕСТНЫЙ ПРОСМОТР</small>
+                <p>В комнате остаются только лёгкий акцент, рамка и Premium-метка — видео ничего не перекрывает.</p>
                 <div className="premium-studio-v23__room-status"><i /> В сети</div>
               </>
             )}
@@ -186,7 +186,12 @@ export default function PremiumStudioLivePreview({
         <div className="premium-studio-v15__preview-copy">
           <div className="premium-studio-v15__preview-badges">
             <span>ANIMEBOX PREMIUM</span>
-            <small>{settings.profileLayout.toUpperCase()}</small>
+            <small>{{
+              classic: 'КЛАССИКА',
+              cinema: 'КИНО',
+              collector: 'КОЛЛЕКЦИОНЕР',
+              minimal: 'МИНИМАЛИЗМ',
+            }[settings.profileLayout]}</small>
           </div>
 
           <h3>
@@ -199,13 +204,13 @@ export default function PremiumStudioLivePreview({
           </h3>
 
           <p>
-            Profile Scene объединяет палитру, атмосферу, layout и эффекты в один
-            стиль, который аккуратно переносится в социальные поверхности AnimeBox.
+            Твоё оформление объединяет цвета, атмосферу и эффекты в один стиль,
+            который сохраняется во всём AnimeBox.
           </p>
 
           <div className="premium-studio-v15__preview-chips">
-            <i>Profile Scene</i>
-            <i>Плеер {settings.syncPlayerTheme ? 'синхронизирован' : 'отдельно'}</i>
+            <i>Оформление профиля</i>
+            <i>Плеер {settings.syncPlayerTheme ? 'в том же стиле' : 'оформлен отдельно'}</i>
             <i>Свечение {settings.glowStrength}%</i>
           </div>
 
