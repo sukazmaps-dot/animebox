@@ -90,4 +90,27 @@ const statsClient = read('components/premium/PremiumStatsClient.tsx');
 mustInclude(statsClient, 'ADVANCED STATS', 'Advanced Stats product surface');
 mustInclude(statsClient, 'ИСТОРИЯ+', 'Premium History+ surface');
 
+const roomThemeContract = read('lib/watch-party-premium.ts');
+for (const theme of ['midnight', 'aurora', 'sakura', 'embers', 'cinema']) {
+  mustInclude(roomThemeContract, `'${theme}'`, 'Premium Watch Together themes');
+}
+
+const roomServer = read('lib/watch-party-rooms-server.ts');
+mustInclude(roomServer, 'entitlements.watchPartyThemes', 'server-side room theme entitlement');
+mustInclude(roomServer, 'room_theme: roomTheme', 'room theme persistence');
+
+const watchHub = read('components/watch-party/WatchTogetherHub.tsx');
+mustInclude(watchHub, 'premiumThemePicker', 'Watch Together Premium theme picker');
+mustInclude(watchHub, 'roomTheme', 'Watch Together room theme state');
+
+const watchPanel = read('components/watch-party/WatchPartyPanel.tsx');
+mustInclude(watchPanel, 'readWatchPartyThemeFromLocation', 'room theme invite propagation');
+mustInclude(watchPanel, 'data-room-theme={roomTheme}', 'room theme social chrome');
+
+mustInclude(migration, 'room_theme', 'Watch Together theme schema');
+
+const studioDemo = read('components/premium/PremiumStudioClient.tsx');
+mustInclude(studioDemo, 'PREMIUM STUDIO · DEMO', 'free Premium Scene demo');
+mustInclude(studioDemo, 'Сохранить с Premium', 'contextual Premium demo conversion');
+
 console.log('Patch 20.2 Premium 2.0 contract checks passed.');
