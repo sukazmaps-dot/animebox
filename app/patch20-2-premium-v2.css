@@ -1,0 +1,438 @@
+/* =========================================================
+   AnimeBox Patch 20.2 — Premium 2.0
+   Identity · Status · Convenience
+   ========================================================= */
+
+.premium-studio-v23__preview-head {
+  display: grid;
+  gap: 10px;
+}
+
+.premium-studio-v23__preview-head > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.premium-studio-v23__preview-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  padding: 4px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 12px;
+  background: rgba(4,7,13,.48);
+}
+
+.premium-studio-v23__preview-tabs button {
+  min-width: 0;
+  min-height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(236,232,244,.48);
+  font: inherit;
+  font-size: 9px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.premium-studio-v23__preview-tabs button.is-active {
+  background: rgba(var(--ab-premium-accent-rgb, 124,77,255), .14);
+  color: var(--ab-premium-text, #f6f3ff);
+  box-shadow: inset 0 0 0 1px rgba(var(--ab-premium-accent-rgb, 124,77,255), .22);
+}
+
+.premium-studio-v23__scene-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.premium-studio-v23__scene-grid > button {
+  position: relative;
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+  padding: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 15px;
+  background: rgba(255,255,255,.018);
+  color: #f4effb;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+
+.premium-studio-v23__scene-grid > button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(172,137,255,.27);
+  background: rgba(133,91,238,.045);
+}
+
+.premium-studio-v23__scene-swatch {
+  display: block;
+  min-height: 72px;
+  border-radius: 11px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.09);
+}
+
+.premium-studio-v23__scene-grid strong,
+.premium-studio-v23__scene-grid small {
+  display: block;
+}
+
+.premium-studio-v23__scene-grid strong {
+  font-size: 12px;
+}
+
+.premium-studio-v23__scene-grid small {
+  min-height: 42px;
+  margin-top: 3px;
+  color: rgba(235,229,246,.44);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.premium-studio-v23__scene-grid em {
+  position: absolute;
+  top: 17px;
+  right: 17px;
+  padding: 3px 6px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 999px;
+  background: rgba(4,6,11,.42);
+  color: rgba(255,255,255,.66);
+  font-size: 7px;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: .12em;
+  backdrop-filter: blur(8px);
+}
+
+.premium-studio-v23__layout-block {
+  display: grid;
+  gap: 11px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,.055);
+}
+
+.premium-studio-v23__layout-block > div:first-child strong,
+.premium-studio-v23__layout-block > div:first-child small {
+  display: block;
+}
+
+.premium-studio-v23__layout-block > div:first-child strong {
+  color: #f2edf8;
+  font-size: 12px;
+}
+
+.premium-studio-v23__layout-block > div:first-child small {
+  margin-top: 3px;
+  color: rgba(235,229,246,.42);
+  font-size: 10px;
+}
+
+.premium-studio-v23__layout-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.premium-studio-v23__layout-grid button {
+  min-height: 72px;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 12px;
+  background: rgba(255,255,255,.018);
+  color: #e9e3f2;
+  text-align: left;
+  cursor: pointer;
+}
+
+.premium-studio-v23__layout-grid button.is-active {
+  border-color: rgba(175,136,255,.32);
+  background: rgba(126,82,224,.08);
+  box-shadow: 0 10px 28px rgba(86,54,145,.08);
+}
+
+.premium-studio-v23__layout-grid strong,
+.premium-studio-v23__layout-grid small {
+  display: block;
+}
+
+.premium-studio-v23__layout-grid strong {
+  font-size: 11px;
+}
+
+.premium-studio-v23__layout-grid small {
+  margin-top: 4px;
+  color: rgba(235,229,246,.4);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.premium-studio-v23__legacy-palettes {
+  margin-top: 14px;
+  border-top: 1px solid rgba(255,255,255,.05);
+  padding-top: 12px;
+}
+
+.premium-studio-v23__legacy-palettes summary {
+  width: fit-content;
+  color: rgba(226,217,239,.56);
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.premium-studio-v23__legacy-palettes[open] summary {
+  margin-bottom: 10px;
+}
+
+.premium-studio-v23__preview[data-preview-context='mini'],
+.premium-studio-v23__preview[data-preview-context='comment'],
+.premium-studio-v23__preview[data-preview-context='watch-party'] {
+  min-height: 330px;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background:
+    radial-gradient(circle at 85% 10%, rgba(var(--ab-premium-accent-rgb), var(--ab-premium-atmosphere-alpha)), transparent 34%),
+    linear-gradient(155deg, var(--ab-premium-primary), #060810 74%);
+}
+
+.premium-studio-v23__context-card {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  gap: 13px;
+  width: min(100%, 390px);
+  padding: 15px;
+  border: 1px solid rgba(var(--ab-premium-accent-rgb), .18);
+  border-radius: 17px;
+  background: rgba(7,9,16,.78);
+  box-shadow:
+    0 22px 60px rgba(0,0,0,.32),
+    0 0 34px rgba(var(--ab-premium-accent-rgb), var(--ab-premium-glow-soft-alpha));
+  backdrop-filter: blur(15px);
+}
+
+.premium-studio-v23__preview--comment .premium-studio-v23__context-card {
+  width: min(100%, 430px);
+}
+
+.premium-studio-v23__preview--watch-party .premium-studio-v23__context-card {
+  width: min(100%, 360px);
+}
+
+.premium-studio-v23__context-avatar {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  overflow: hidden;
+  border: 2px solid rgba(var(--ab-premium-accent-rgb), .44);
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(var(--ab-premium-accent-rgb), .08);
+  box-shadow: 0 0 22px rgba(var(--ab-premium-accent-rgb), var(--ab-premium-glow-half-alpha));
+}
+
+.premium-studio-v23__context-avatar--placeholder {
+  display: grid;
+  place-items: center;
+}
+
+.premium-studio-v23__context-avatar--placeholder svg {
+  width: 38px;
+  height: 38px;
+  fill: none;
+  stroke: rgba(var(--ab-premium-text-rgb), .56);
+  stroke-width: 2;
+}
+
+.premium-studio-v23__context-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.premium-studio-v23__context-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.premium-studio-v23__context-name strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ab-premium-text);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.premium-studio-v23__context-name > span {
+  color: var(--ab-premium-accent);
+  font-size: 12px;
+  filter: drop-shadow(0 0 7px rgba(var(--ab-premium-accent-rgb), .35));
+}
+
+.premium-studio-v23__context-copy > small {
+  display: block;
+  margin-top: 3px;
+  color: rgba(var(--ab-premium-text-rgb), .42);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+
+.premium-studio-v23__context-copy p {
+  margin: 7px 0 0;
+  color: rgba(var(--ab-premium-text-rgb), .62);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.premium-studio-v23__context-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 9px;
+}
+
+.premium-studio-v23__context-tags i {
+  padding: 4px 6px;
+  border: 1px solid rgba(var(--ab-premium-accent-rgb), .12);
+  border-radius: 999px;
+  background: rgba(var(--ab-premium-accent-rgb), .05);
+  color: rgba(var(--ab-premium-text-rgb), .6);
+  font-size: 8px;
+  font-style: normal;
+}
+
+.premium-studio-v23__room-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  margin-top: 9px;
+  color: rgba(var(--ab-premium-text-rgb), .58);
+  font-size: 9px;
+}
+
+.premium-studio-v23__room-status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #72d49b;
+  box-shadow: 0 0 8px rgba(114,212,155,.42);
+}
+
+/* Premium landing: product identity instead of generic SaaS cards. */
+.premium-v2__pillars {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 12px;
+  margin: 20px 0 34px;
+}
+
+.premium-v2__pillar {
+  padding: 18px;
+  border-top: 1px solid rgba(181,145,255,.2);
+  border-bottom: 1px solid rgba(255,255,255,.055);
+  background: linear-gradient(180deg, rgba(123,84,214,.055), rgba(255,255,255,.012));
+}
+
+.premium-v2__pillar > span {
+  color: #b69aff;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .16em;
+}
+
+.premium-v2__pillar h3 {
+  margin: 7px 0 5px;
+  color: #f4effa;
+  font-size: 17px;
+}
+
+.premium-v2__pillar p {
+  margin: 0;
+  color: rgba(231,225,241,.5);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.premium-v2__free-core {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 13px 15px;
+  border-left: 2px solid rgba(163,131,255,.42);
+  background: rgba(121,83,211,.045);
+}
+
+.premium-v2__free-core strong,
+.premium-v2__free-core small {
+  display: block;
+}
+
+.premium-v2__free-core strong {
+  color: #eee8f7;
+  font-size: 11px;
+}
+
+.premium-v2__free-core small {
+  margin-top: 3px;
+  color: rgba(231,225,241,.46);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+@media (max-width: 1100px) {
+  .premium-studio-v23__scene-grid {
+    grid-template-columns: repeat(3, minmax(0,1fr));
+  }
+
+  .premium-studio-v23__layout-grid {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .premium-studio-v23__preview-tabs {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+
+  .premium-studio-v23__scene-grid {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+
+  .premium-v2__pillars {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 460px) {
+  .premium-studio-v23__scene-grid,
+  .premium-studio-v23__layout-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .premium-studio-v23__preview[data-preview-context='mini'],
+  .premium-studio-v23__preview[data-preview-context='comment'],
+  .premium-studio-v23__preview[data-preview-context='watch-party'] {
+    min-height: 280px;
+    padding: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .premium-studio-v23__scene-grid > button,
+  .premium-studio-v23__preview * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
