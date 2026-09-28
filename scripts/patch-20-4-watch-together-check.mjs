@@ -76,6 +76,61 @@ mustInclude(
   'WT mount class contract',
 );
 
+const panel = read('components/watch-party/WatchPartyPanel.tsx');
+const panelCss = read('components/watch-party/WatchPartyPanel.module.css');
+const episode = read('components/AnimeEpisodePage.tsx');
+
+mustInclude(
+  panel,
+  "mode === 'theater' ? '' : ` · ${label}`",
+  'theater room header without duplicated participant label',
+);
+mustInclude(
+  panelCss,
+  '.theaterPanel .activeHead {',
+  'theater room header grid',
+);
+mustInclude(
+  panelCss,
+  'grid-template-columns: minmax(0, 1fr);',
+  'single-column theater header composition',
+);
+mustInclude(
+  panelCss,
+  '.theaterPanel .statusDot {\n  display: none;',
+  'duplicate theater status dot removed',
+);
+mustInclude(
+  episode,
+  'Выйти из комнаты',
+  'polished Watch Together exit label',
+);
+mustInclude(
+  episode,
+  'exitButtonIcon',
+  'Watch Together exit icon',
+);
+mustInclude(
+  theaterCss,
+  '.exitButtonIcon {',
+  'styled Watch Together exit affordance',
+);
+mustInclude(
+  theaterCss,
+  '.exitButton:focus-visible',
+  'keyboard-visible exit focus',
+);
+mustInclude(
+  player,
+  '[color-scheme:dark]',
+  'dark native mobile selector',
+);
+mustInclude(
+  player,
+  'bg-[#090d19] text-white',
+  'dark mobile selector option surface',
+);
+
 console.log(
-  'Patch 20.4 Watch Together mobile player geometry checks passed.',
+  'Patch 20.4 Watch Together mobile player, room header and exit control checks passed.',
 );
