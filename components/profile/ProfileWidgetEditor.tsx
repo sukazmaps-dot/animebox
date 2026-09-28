@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { communityRequest } from '@/lib/community-client';
+import { trackProductClientEvent } from '@/lib/product-events-client';
 import { getAnimes, isAbortError } from '@/lib/anime-client';
 import { getAnimeTitle } from '@/lib/anime-display';
 import type { Anime } from '@/types/anime';
@@ -216,6 +217,17 @@ export default function ProfileWidgetEditor({
       });
 
       onSaved(result.widgets);
+      trackProductClientEvent('premium_showcase_saved', {
+        source: maxFavorites > 6 ? 'premium_showcase' : 'profile_showcase',
+        path: '/profile/edit',
+        entityType: 'profile_showcase',
+        metadata: {
+          favorite_count: favoriteIds.length,
+          max_favorites: maxFavorites,
+          premium_capacity: maxFavorites > 6,
+          visible_widgets: layout.filter((item) => item.visible).length,
+        },
+      });
       setMessage('Профиль обновлён.');
       window.dispatchEvent(new Event('animebox:profile-widgets-updated'));
 
