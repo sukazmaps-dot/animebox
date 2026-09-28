@@ -50,6 +50,19 @@ export type ProductAnalyticsDashboard = {
     d7: RetentionMetric;
     d30: RetentionMetric;
   };
+  premiumSurfaces: {
+    sampledEvents: number;
+    truncated: boolean;
+    uniqueUsers: number;
+    sceneDemoViews: number;
+    scenePresetSelections: number;
+    sceneSaves: number;
+    statsViews: number;
+    yearReviewViews: number;
+    showcaseSaves: number;
+    roomThemeSelections: number;
+    premiumReactions: number;
+  };
   retentionSurfaces: {
     sampledEvents: number;
     truncated: boolean;
