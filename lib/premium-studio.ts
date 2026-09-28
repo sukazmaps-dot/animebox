@@ -621,6 +621,7 @@ export function resolveReadableTextColor(
 }
 
 export function premiumStudioCssVariables(settings: PremiumStudioSettings) {
+  const primaryRgb = hexToRgb(settings.primaryColor);
   const accentRgb = hexToRgb(settings.accentColor);
   const requestedTextRgb = hexToRgb(settings.textColor);
   const safeText = resolveReadableTextColor(settings.textColor, settings.primaryColor);
@@ -647,6 +648,7 @@ export function premiumStudioCssVariables(settings: PremiumStudioSettings) {
 
   return {
     '--ab-premium-primary': settings.primaryColor,
+    '--ab-premium-primary-rgb': `${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}`,
     '--ab-premium-accent': settings.accentColor,
     '--ab-premium-text-selected': settings.textColor,
     '--ab-premium-text-selected-rgb': `${requestedTextRgb.r}, ${requestedTextRgb.g}, ${requestedTextRgb.b}`,
