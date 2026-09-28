@@ -11,6 +11,7 @@ import { getSponsorStatuses } from '@/lib/sponsor-server';
 import { assertCanComment } from '@/lib/admin-server';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
 import { resolvePublicAppearances, type PublicResolvedAppearance } from '@/lib/public-avatar-server';
+import { getSelectedProfileFrames } from '@/lib/leaderboard-rewards-server';
 import { enforceIpAndUserRateLimit, enforceIpRateLimit } from '@/lib/api-rate-limit';
 import { publishEpisodeCommentSocialEffects } from '@/lib/social-comment-effects-server';
 import { applyCommunityCommentProgression } from '@/lib/trusted-progression-pipeline-server';
@@ -245,6 +246,9 @@ export async function GET(
     let appearanceByUser =
       new Map<string, PublicResolvedAppearance>();
 
+    let frameByUser =
+      new Map<string, import('@/lib/profile-frames').ProfileFrameKey>();
+
 
     if (userIds.length > 0) {
       try {
@@ -259,6 +263,7 @@ export async function GET(
           profileResult,
           ogResult,
           sponsorResult,
+          frameResult,
         ] = await Promise.all([
           profileClient
             .from('profiles')
@@ -279,9 +284,11 @@ export async function GET(
               userIds,
             ),
           getSponsorStatuses(userIds),
+          getSelectedProfileFrames(userIds),
         ]);
 
         sponsorByUser = sponsorResult;
+        frameByUser = frameResult;
 
 
         if (profileResult.error) {
@@ -407,6 +414,11 @@ export async function GET(
                   role:
                     comment.user_id
                       ? publicIdentityRoleFor(comment.user_id)
+                      : null,
+
+                  profileFrameKey:
+                    comment.user_id
+                      ? frameByUser.get(comment.user_id) ?? null
                       : null,
                 }
               : null,
@@ -894,20 +906,29 @@ export async function POST(
     }
 
 
-    const appearanceByUser = profile
-      ? await resolvePublicAppearances([
-          {
-            id: profile.id,
-            avatar_path: profile.avatar_path,
-          },
+    const [appearanceByUser, frameByUserForPost] = profile
+      ? await Promise.all([
+          resolvePublicAppearances([
+            {
+              id: profile.id,
+              avatar_path: profile.avatar_path,
+            },
+          ]),
+          getSelectedProfileFrames([profile.id]),
         ])
-      : new Map();
+      : [
+          new Map<string, PublicResolvedAppearance>(),
+          new Map<string, import('@/lib/profile-frames').ProfileFrameKey>(),
+        ];
 
     const appearance = profile
       ? appearanceByUser.get(profile.id) ?? null
       : null;
 
     const avatarUrl = appearance?.avatarUrl ?? null;
+    const profileFrameKey = profile
+      ? frameByUserForPost.get(profile.id) ?? null
+      : null;
 
     let progressionUpdated = false;
     if (createdCommentId) {
@@ -942,6 +963,7 @@ export async function POST(
                 premium: appearance?.premiumBadge ?? false,
                 role: publicIdentityRoleFor(user.id),
                 ogNumber: null,
+                profileFrameKey,
               }
             : null,
         },

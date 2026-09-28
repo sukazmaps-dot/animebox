@@ -6,6 +6,7 @@ import { adminClient, ApiError } from '@/lib/community-server';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
 import { getSponsorStatuses } from '@/lib/sponsor-server';
 import { resolvePublicAppearances } from '@/lib/public-avatar-server';
+import { getSelectedProfileFrames } from '@/lib/leaderboard-rewards-server';
 import type {
   CommunityComment,
   CommunityCommentsPage,
@@ -68,7 +69,7 @@ async function enrichAuthors(
 
   try {
     const admin = adminClient();
-    const [profilesResult, ogResult, sponsorByUser] = await Promise.all([
+    const [profilesResult, ogResult, sponsorByUser, frameByUser] = await Promise.all([
       admin
         .from('profiles')
         .select('id,username,avatar_path')
@@ -78,6 +79,7 @@ async function enrichAuthors(
         .select('user_id,og_number')
         .in('user_id', ids),
       getSponsorStatuses(ids),
+      getSelectedProfileFrames(ids),
     ]);
 
     if (profilesResult.error) throw profilesResult.error;
@@ -120,6 +122,7 @@ async function enrichAuthors(
             sponsor: sponsorByUser.get(profile.id) ?? null,
             premium: appearance?.premiumBadge ?? false,
             role: publicIdentityRoleFor(profile.id),
+            profileFrameKey: frameByUser.get(profile.id) ?? null,
           },
         ] as const;
       }),

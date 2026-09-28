@@ -1,6 +1,7 @@
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
 import type { PremiumMediaTransform } from '@/lib/premium-studio';
+import type { ProfileFrameKey } from '@/lib/profile-frames';
 
 export type CommunityComment = {
   id: string;
@@ -19,6 +20,7 @@ export type CommunityComment = {
     sponsor: SponsorStatus | null;
     premium: boolean;
     role: PublicIdentityRole;
+    profileFrameKey: ProfileFrameKey | null;
   } | null;
 };
 
