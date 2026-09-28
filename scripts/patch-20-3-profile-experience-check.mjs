@@ -96,6 +96,15 @@ mustInclude(studioClient, 'username={effectiveUsername}', 'Studio live identity 
 const studioPreview = read('components/premium/PremiumStudioLivePreview.tsx');
 mustInclude(studioPreview, "username = 'Твой профиль'", 'preview username fallback');
 mustInclude(studioPreview, 'username?: string', 'preview username prop');
+mustInclude(studioPreview, 'ProfileFrameOverlay', 'Studio selected frame renderer');
+mustInclude(studioPreview, 'profileFrameKey?: string | null', 'Studio frame preview contract');
+
+mustInclude(studioClient, 'previewFrameKey', 'Studio selected frame state');
+mustInclude(studioClient, "animebox:profile-cosmetic-changed", 'Studio frame live sync');
+mustInclude(studioClient, 'profileFrameKey={previewFrameKey}', 'Studio selected frame preview');
+
+mustInclude(experienceCss, '.premium-studio-v23__preview-avatar-frame-shell', 'Studio frame preview geometry');
+mustInclude(experienceCss, 'inset: -18px !important', 'Studio frame outer canvas');
 
 const editorClient = read('components/profile/ProfileEditorClient.tsx');
 mustInclude(editorClient, 'previewUsername={username}', 'editor live username preview');
