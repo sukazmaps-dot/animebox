@@ -11,7 +11,11 @@ import Icon from '@/components/Icon';
 import FriendActionButton from '@/components/friends/FriendActionButton';
 import PremiumProfileAtmosphere from '@/components/premium/PremiumProfileAtmosphere';
 import ProfileWidgetsShowcase from '@/components/profile/ProfileWidgetsShowcase';
-import { premiumMediaStyle, premiumStudioCssVariables } from '@/lib/premium-studio';
+import {
+  premiumBannerStyle,
+  premiumMediaStyle,
+  premiumStudioCssVariables,
+} from '@/lib/premium-studio';
 import { formatSeasonRange, seasonPlacementLabel } from '@/lib/seasons';
 import { ACHIEVEMENT_RARITY_LABELS } from '@/lib/progression';
 
@@ -98,6 +102,7 @@ export default async function PublicProfilePage({ params }: Props) {
       data-premium-hero={premiumIdentityActive ? profile.premiumStudio?.heroStyle : undefined}
       data-premium-surface={premiumIdentityActive ? profile.premiumStudio?.surfaceStyle : undefined}
       data-premium-layout={premiumIdentityActive ? profile.premiumStudio?.profileLayout : undefined}
+      data-premium-banner-height={premiumIdentityActive ? profile.premiumStudio?.bannerHeightMode : undefined}
     >
       {premiumIdentityActive && profile.premiumStudio && (
         <PremiumProfileAtmosphere
@@ -125,7 +130,12 @@ export default async function PublicProfilePage({ params }: Props) {
                 }
                 alt={`Баннер ${profile.username}`}
                 className="profile-v2__banner-image"
-                style={premiumMediaStyle(profile.bannerTransform) as CSSProperties}
+                style={
+                  premiumBannerStyle(
+                    premiumIdentityActive ? profile.premiumStudio : null,
+                    profile.bannerTransform,
+                  ) as CSSProperties
+                }
               />
             </picture>
           ) : (
