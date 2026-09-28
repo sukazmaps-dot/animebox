@@ -2560,3 +2560,507 @@
     margin-top: 1px;
   }
 }
+
+
+/* =========================================================
+   Patch 20.5 · Mobile one-screen room shell
+   The document no longer grows with room UI on phones. Only the
+   active tab owns vertical space; chat messages scroll independently.
+   ========================================================= */
+.mobilePlayerControls {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .theaterPanel {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    border-radius: 12px;
+  }
+
+  .theaterPanel .activeInner {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 6px;
+    box-sizing: border-box;
+  }
+
+  .theaterPanel[data-mobile-section='episodes'] .activeInner,
+  .theaterPanel[data-mobile-section='room'] .activeInner {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+
+  .theaterPanel[data-mobile-section='episodes'] .activeInner::-webkit-scrollbar,
+  .theaterPanel[data-mobile-section='room'] .activeInner::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobileTabs {
+    position: sticky;
+    top: 0;
+    z-index: 25;
+    display: grid;
+    width: 100%;
+    grid-template-columns: .72fr 1.45fr .9fr;
+    flex: 0 0 auto;
+    gap: 4px;
+    margin: 0 0 6px;
+    padding: 3px;
+    border: 1px solid rgba(255,255,255,.055);
+    border-radius: 11px;
+    background: rgba(8, 11, 22, .94);
+    backdrop-filter: blur(14px);
+    box-sizing: border-box;
+  }
+
+  .mobileTabs button {
+    min-width: 0;
+    min-height: 40px;
+    padding: 5px 6px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: rgba(211, 218, 237, .46);
+    font-size: 9.5px;
+    font-weight: 850;
+    line-height: 1.12;
+    white-space: normal;
+    cursor: pointer;
+  }
+
+  .mobileTabs button[data-active='true'] {
+    background: rgba(124, 92, 255, .14);
+    color: #f1edff;
+    box-shadow: inset 0 0 0 1px rgba(167, 139, 250, .14);
+  }
+
+  .mobileTabs button span {
+    display: inline-flex;
+    min-width: 17px;
+    height: 17px;
+    margin-left: 4px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: rgba(255,255,255,.06);
+    color: rgba(238, 240, 250, .72);
+    font-size: 8px;
+    line-height: 1;
+  }
+
+  .theaterPanel .roomHeaderSection[data-mobile-active='false'],
+  .theaterPanel .roomSection[data-mobile-active='false'],
+  .theaterPanel .participantsSection[data-mobile-active='false'],
+  .theaterPanel .controlsSection[data-mobile-active='false'],
+  .theaterPanel .chatSection[data-mobile-active='false'],
+  .theaterPanel .reactionSection[data-mobile-active='false'],
+  .theaterPanel .voteSection[data-mobile-active='false'] {
+    display: none !important;
+  }
+
+  .theaterPanel .roomHeaderSection[data-mobile-active='true'] {
+    display: grid !important;
+    flex: 0 0 auto;
+    gap: 6px;
+    margin: 0 0 6px;
+    padding: 8px;
+    border: 1px solid rgba(255,255,255,.05);
+    border-radius: 11px;
+    background: rgba(255,255,255,.018);
+  }
+
+  .theaterPanel .roomHeaderSection .statusText strong {
+    max-width: 100%;
+    font-size: 11px;
+  }
+
+  .theaterPanel .roomHeaderSection .statusText span {
+    font-size: 8.5px;
+  }
+
+  .theaterPanel .connectionBadges {
+    gap: 5px;
+  }
+
+  .theaterPanel .participantsHead.roomSection[data-mobile-active='true'] {
+    display: flex !important;
+    flex: 0 0 auto;
+    margin: 3px 2px 5px;
+  }
+
+  .theaterPanel .participantsSection[data-mobile-active='true'] {
+    display: flex;
+    max-height: min(34dvh, 280px);
+    flex: 0 0 auto;
+    align-content: flex-start;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 7px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid rgba(255,255,255,.05);
+    border-radius: 11px;
+    background: rgba(2,5,12,.28);
+  }
+
+  .theaterPanel .participant {
+    min-height: 40px;
+  }
+
+  .theaterPanel .hostTools.roomSection[data-mobile-active='true'] {
+    display: grid;
+    flex: 0 0 auto;
+    margin-top: 6px;
+  }
+
+  .theaterPanel .controlsSection[data-mobile-active='true'] {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 8px;
+    margin: 0;
+    padding: 8px;
+  }
+
+  .theaterPanel .controlsSection[data-mobile-active='true'] .syncMeta {
+    display: none;
+  }
+
+  .theaterPanel .controlsSection[data-mobile-active='true'] .syncControls {
+    display: grid;
+    width: 100%;
+    grid-template-columns: .72fr 1.55fr .72fr;
+    gap: 6px;
+    margin: 0;
+  }
+
+  .theaterPanel .controlsSection[data-mobile-active='true'] .syncControls button,
+  .theaterPanel .controlsSection[data-mobile-active='true'] .syncControls .syncPrimary {
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    height: 42px;
+    font-size: 10px;
+  }
+
+  .mobilePlayerControls {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .mobilePlayerControls :global(.watch-together-mobile-player-controls) {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .mobilePlayerControls :global(.watch-together-mobile-player-sources) {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    gap: 5px;
+    overflow-x: auto;
+    padding-bottom: 1px;
+    scrollbar-width: none;
+  }
+
+  .mobilePlayerControls :global(.watch-together-mobile-player-sources::-webkit-scrollbar) {
+    display: none;
+  }
+
+  .mobilePlayerControls :global(.watch-together-mobile-player-sources > button) {
+    min-height: 36px;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px;
+    border: 1px solid rgba(255,255,255,.065);
+    border-radius: 9px;
+    background: rgba(255,255,255,.025);
+    color: rgba(226,230,243,.54);
+    font-size: 9.5px;
+    font-weight: 800;
+  }
+
+  .mobilePlayerControls :global(.watch-together-mobile-player-sources > button[data-active='true']) {
+    border-color: rgba(139,92,246,.28);
+    background: rgba(124,92,255,.13);
+    color: #eeeaff;
+  }
+
+  .mobilePlayerControls :global(.watch-together-mobile-player-sources > button[data-current='true']:not([data-active='true'])) {
+    color: rgba(235,232,255,.82);
+  }
+
+  .mobilePlayerControls :global(.watch-together-mobile-player-sources > button > span) {
+    width: 6px;
+    height: 6px;
+    flex: 0 0 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.22);
+  }
+
+  .mobilePlayerControls :global(.watch-together-mobile-player-sources > button > span[data-state='ready']) {
+    background: #34d399;
+  }
+
+  .mobilePlayerControls :global(.watch-together-mobile-player-sources > button > span[data-state='loading']),
+  .mobilePlayerControls :global(.watch-together-mobile-player-sources > button > span[data-state='auto']) {
+    background: #a78bfa;
+  }
+
+  .mobilePlayerControls :global(.watch-together-mobile-player-sources > button > span[data-state='timeout']) {
+    background: #fbbf24;
+  }
+
+  .mobilePlayerControls :global(.watch-together-mobile-player-sources > button > span[data-state='error']) {
+    background: #f87171;
+  }
+
+  .mobilePlayerControls :global(.watch-together-mobile-player-selectors) {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .mobilePlayerControls :global(.premium-player-dropdown) {
+    min-width: 0;
+  }
+
+  .mobilePlayerControls :global(.premium-player-dropdown-trigger) {
+    width: 100%;
+    min-width: 0 !important;
+    min-height: 46px;
+    padding: 6px 9px;
+    border-radius: 10px;
+    background: rgba(4,8,17,.74);
+  }
+
+  .mobilePlayerControls :global(.premium-player-control-icon) {
+    display: none;
+  }
+
+  .mobilePlayerControls :global(.premium-player-dropdown-trigger > span) {
+    min-width: 0;
+  }
+
+  .mobilePlayerControls :global(.watch-together-mobile-player-navigation) {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .mobilePlayerControls :global(.watch-together-mobile-player-navigation > button) {
+    min-width: 0;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 0 9px;
+    border: 1px solid rgba(255,255,255,.065);
+    border-radius: 9px;
+    background: rgba(255,255,255,.025);
+    color: rgba(235,238,249,.7);
+    font-size: 9.5px;
+    font-weight: 800;
+  }
+
+  .mobilePlayerControls :global(.watch-together-mobile-player-navigation > button:disabled) {
+    opacity: .28;
+  }
+
+  .theaterPanel .socialBar {
+    display: contents;
+  }
+
+  .theaterPanel .reactionSection[data-mobile-active='true'] {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    flex: 0 0 auto;
+    gap: 4px;
+    margin: 0 0 6px;
+    padding: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .theaterPanel .reactionSection[data-mobile-active='true']::-webkit-scrollbar {
+    display: none;
+  }
+
+  .theaterPanel .reactionSection[data-mobile-active='true'] button {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+  }
+
+  .theaterPanel .voteSection[data-mobile-active='true'] {
+    display: grid;
+    width: 100%;
+    flex: 0 0 auto;
+    gap: 7px;
+    margin: 7px 0 0;
+    padding: 8px;
+  }
+
+  .theaterPanel .voteSection[data-mobile-active='true'] > div:last-child {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    overflow: visible;
+  }
+
+  .theaterPanel .voteSection[data-mobile-active='true'] button {
+    min-width: 0;
+    min-height: 42px;
+    height: auto;
+    padding: 8px;
+    white-space: normal;
+  }
+
+  .theaterPanel .chatSection[data-mobile-active='true'] {
+    display: flex;
+    width: 100%;
+    height: min(
+      100%,
+      calc(
+        100dvh
+        - var(--wt-mobile-player-height, 210px)
+        - 58px
+        - max(8px, env(safe-area-inset-bottom))
+      )
+    );
+    min-height: 0 !important;
+    max-height: none;
+    flex: 1 1 auto;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .theaterPanel .chatHead {
+    display: none;
+  }
+
+  .theaterPanel .chatSection[data-mobile-active='true'] .chatMessages {
+    width: 100%;
+    height: clamp(
+      120px,
+      calc(
+        100dvh
+        - var(--wt-mobile-player-height, 210px)
+        - 178px
+        - env(safe-area-inset-bottom)
+      ),
+      560px
+    );
+    min-height: 0 !important;
+    max-height: none !important;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 9px;
+  }
+
+  .theaterPanel .chatEmpty {
+    min-height: 100%;
+  }
+
+  .theaterPanel .chatForm {
+    position: static;
+    z-index: auto;
+    flex: 0 0 auto;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px;
+    padding: 6px;
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+    background: rgba(4,8,17,.92);
+    backdrop-filter: none;
+  }
+
+  .theaterPanel .chatForm input,
+  .theaterPanel .chatForm button {
+    min-height: 44px;
+    height: 44px;
+  }
+
+  .theaterPanel .chatForm input {
+    font-size: 16px;
+  }
+
+  .theaterPanel .roomSection.footer[data-mobile-active='true'] {
+    display: flex;
+    flex: 0 0 auto;
+    margin-top: 7px;
+    padding-top: 7px;
+    padding-bottom: max(7px, env(safe-area-inset-bottom));
+  }
+
+  .theaterPanel .roomSection.footer[data-mobile-active='true'] .note {
+    display: none;
+  }
+
+  .theaterPanel .roomSection.footer[data-mobile-active='true'] .actions {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .theaterPanel .roomSection.footer[data-mobile-active='true'] .actions button {
+    min-height: 42px;
+    font-size: 9px;
+  }
+
+  .theaterPanel .roomSection.footer[data-mobile-active='true'] .danger {
+    grid-column: 1 / -1;
+  }
+
+  .theaterPanel .error {
+    flex: 0 0 auto;
+    margin: 5px 2px 0;
+  }
+}
+
+@media (max-width: 390px) {
+  .mobileTabs button {
+    padding-inline: 4px;
+    font-size: 8.5px;
+  }
+
+  .mobilePlayerControls :global(.watch-together-mobile-player-selectors) {
+    grid-template-columns: 1fr;
+  }
+
+  .theaterPanel .chatSection[data-mobile-active='true'] .chatMessages {
+    height: clamp(
+      110px,
+      calc(
+        100dvh
+        - var(--wt-mobile-player-height, 200px)
+        - 174px
+        - env(safe-area-inset-bottom)
+      ),
+      520px
+    );
+  }
+}

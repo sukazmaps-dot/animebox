@@ -939,3 +939,211 @@
     min-height: max(190px, calc((100vw - 22px) * 9 / 16));
   }
 }
+
+
+/* =========================================================
+   Patch 20.5 · Mobile sticky video shell
+   Phones are a one-screen application: video owns a stable 16:9 row,
+   room tabs own the remaining height, and the document never scrolls.
+   ========================================================= */
+@media (max-width: 768px) {
+  .viewport {
+    --wt-mobile-player-height: clamp(
+      190px,
+      calc((100vw - 8px) * 9 / 16),
+      432px
+    );
+    width: 100%;
+    height: 100dvh !important;
+    min-height: 100dvh;
+    overflow: hidden !important;
+    padding: 4px;
+    padding-top: max(4px, env(safe-area-inset-top));
+    padding-right: max(4px, env(safe-area-inset-right));
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
+    padding-left: max(4px, env(safe-area-inset-left));
+    box-sizing: border-box;
+  }
+
+  .shell {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  /* Room/exit actions live in the "Комната" tab on mobile. Keeping the
+     desktop page header would permanently waste vertical space. */
+  .header {
+    display: none;
+  }
+
+  .content {
+    position: relative;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+    gap: 4px;
+    overflow: hidden;
+  }
+
+  .playerColumn {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: block;
+    width: 100%;
+    height: var(--wt-mobile-player-height);
+    min-width: 0;
+    min-height: var(--wt-mobile-player-height);
+    flex: 0 0 var(--wt-mobile-player-height);
+    align-self: stretch;
+    overflow: visible;
+    border-radius: 12px;
+  }
+
+  .playerWrap {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    max-width: none;
+    max-height: none;
+    padding: 0;
+    overflow: visible;
+    box-sizing: border-box;
+  }
+
+  .loadingPlayer {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    aspect-ratio: auto;
+    border-radius: 11px;
+  }
+
+  .sourceError {
+    display: none;
+  }
+
+  .roomColumn {
+    position: relative !important;
+    inset: auto !important;
+    z-index: 1;
+    width: 100% !important;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: hidden !important;
+    opacity: 1 !important;
+    transform: none !important;
+    pointer-events: auto !important;
+  }
+
+  .drawerBackdrop,
+  .drawerBackdrop[data-open='true'] {
+    display: none !important;
+  }
+
+  :global(.watch-together-player-root),
+  :global(.watch-together-player-mount) {
+    display: block;
+    width: 100%;
+    height: 100% !important;
+    min-width: 0;
+    min-height: 0;
+    max-height: none;
+  }
+
+  :global(.animebox-premium-player.watch-together-player) {
+    display: block;
+    width: 100%;
+    height: 100% !important;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    border-radius: 11px;
+  }
+
+  /* Episode/source selectors are rendered into the mobile "Серии и
+     голосование" tab through a portal. Only the media rectangle remains here. */
+  :global(.watch-together-player .watch-together-player-header),
+  :global(.watch-together-player .watch-together-player-nav),
+  :global(.watch-together-player .animebox-player-sync-status),
+  :global(.watch-together-player .animebox-player-notice) {
+    display: none !important;
+  }
+
+  :global(.watch-together-player .watch-together-player-stage-shell) {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100% !important;
+    min-width: 0;
+    min-height: 0;
+    max-height: none;
+    padding: 0 !important;
+    overflow: visible;
+    container-type: inline-size;
+  }
+
+  :global(.watch-together-player .watch-together-player-viewport) {
+    position: relative;
+    z-index: 40;
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0;
+    min-height: 0 !important;
+    max-width: 100%;
+    max-height: 100%;
+    aspect-ratio: 16 / 9 !important;
+    overflow: hidden;
+    border-radius: 11px;
+    background: #000;
+    flex: none;
+  }
+
+  :global(.watch-together-player .watch-together-player-viewport > iframe),
+  :global(.watch-together-player .watch-together-player-viewport > video),
+  :global(.watch-together-player .watch-together-player-viewport > div) {
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  :global(html.animebox-watch-together-theater),
+  :global(body.animebox-watch-together-theater) {
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
+
+  :global(body.animebox-watch-together-theater) {
+    padding: 0 !important;
+  }
+
+  :global(.watch-together-app-shell) {
+    width: 100%;
+    height: 100dvh !important;
+    min-height: 0;
+    overflow: hidden !important;
+    padding: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  .viewport {
+    --wt-mobile-player-height: max(
+      190px,
+      calc((100vw - 8px) * 9 / 16)
+    );
+  }
+}

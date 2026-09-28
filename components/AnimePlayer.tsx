@@ -7,6 +7,7 @@ import {
   openingSkipSafetyDecision,
 } from '@/lib/episode-timeline-safety';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Icon from '@/components/Icon';
 import KodikPlayer, { type KodikPlayerHandle } from '@/components/KodikPlayer';
 import DirectVideoPlayer from '@/components/DirectVideoPlayer';
@@ -435,6 +436,37 @@ export default function AnimePlayer({
   const [endingNextSeconds, setEndingNextSeconds] = useState<number | null>(null);
   const [autoNextCancelled, setAutoNextCancelled] = useState(false);
   const [premiumStudio, setPremiumStudio] = useState<PremiumStudioSettings | null>(null);
+  const [watchTogetherMobileControlsTarget, setWatchTogetherMobileControlsTarget] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!watchTogetherMode) return;
+
+    let cancelled = false;
+    let observer: MutationObserver | null = null;
+
+    const syncTarget = () => {
+      if (cancelled) return;
+      const target = document.getElementById('watch-together-mobile-player-controls');
+      setWatchTogetherMobileControlsTarget((current) =>
+        current === target ? current : target,
+      );
+
+      if (target && observer) {
+        observer.disconnect();
+        observer = null;
+      }
+    };
+
+    const frame = window.requestAnimationFrame(syncTarget);
+    observer = new MutationObserver(syncTarget);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
+  }, [watchTogetherMode]);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const kodikPlayerRef = useRef<KodikPlayerHandle | null>(null);
@@ -2524,6 +2556,90 @@ export default function AnimePlayer({
 
   const fullscreenActive = fullscreen || telegramPseudoFullscreen;
 
+  const watchTogetherMobileControls = (
+    <div className="watch-together-mobile-player-controls">
+      {sources.length > 1 && (
+        <div
+          className="watch-together-mobile-player-sources"
+          aria-label="Источник видео"
+        >
+          <button
+            type="button"
+            data-active={sourceMode === 'auto'}
+            onClick={enableAutoSource}
+          >
+            <span aria-hidden="true" data-state="auto" />
+            Авто
+          </button>
+
+          {sources.map((source, index) => {
+            const status = sourceStatuses[source.name] || 'idle';
+            const active = activeSourceIndex === index;
+
+            return (
+              <button
+                key={`mobile-${source.name}-${index}`}
+                type="button"
+                data-active={active && sourceMode === 'manual'}
+                data-current={active}
+                onClick={() => selectSource(index)}
+              >
+                <span aria-hidden="true" data-state={status} />
+                {sourceLabel(source.name)}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="watch-together-mobile-player-selectors">
+        <PlayerDropdown
+          label="Серия"
+          value={String(episodeNumber)}
+          options={episodeOptions}
+          onChange={selectEpisode}
+          icon={<Icon name="play" className="h-3.5 w-3.5" />}
+        />
+
+        {translationOptions.length > 0 && (
+          <PlayerDropdown
+            label={currentSource?.name === 'Kodik' ? 'Озвучка' : 'Качество'}
+            value={String(activeTranslationIndex)}
+            options={translationOptions}
+            onChange={selectTranslation}
+            align="right"
+            icon={
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-4 w-4"
+                aria-hidden="true"
+              >
+                <path
+                  d="M5 9v6M9 6v12M13 8v8M17 5v14M21 10v4"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                />
+              </svg>
+            }
+          />
+        )}
+      </div>
+
+      <div className="watch-together-mobile-player-navigation">
+        <button type="button" onClick={onPrev} disabled={!hasPrev}>
+          <Icon name="chevron" className="h-4 w-4 rotate-180" />
+          <span>{prevLabel}</span>
+        </button>
+        <button type="button" onClick={onNext} disabled={!hasNext}>
+          <span>{nextLabel}</span>
+          <Icon name="chevron" className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+
   const playerBody = (
     <section
       style={brandStyles}
@@ -2531,6 +2647,12 @@ export default function AnimePlayer({
         theaterMode ? 'mx-auto w-full max-w-[1480px]' : ''
       }`}
     >
+      {watchTogetherMode && watchTogetherMobileControlsTarget
+        ? createPortal(
+            watchTogetherMobileControls,
+            watchTogetherMobileControlsTarget,
+          )
+        : null}
       <div className="premium-player-accent-line pointer-events-none absolute inset-x-20 top-0 h-px bg-gradient-to-r from-transparent via-violet-400/70 to-transparent" />
       {/* Premium header */}
       <div
