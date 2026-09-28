@@ -86,7 +86,7 @@
     "patch20-3:check": "node scripts/patch-20-3-profile-experience-check.mjs",
     "patch20-4:check": "node scripts/patch-20-4-watch-together-check.mjs",
     "patch20-6:check": "node scripts/patch-20-6-comment-identity-check.mjs",
-    "patch21:check": "node scripts/patch-21-playback-command-integrity-check.mjs && node scripts/patch-21-resume-continuity-check.mjs && node scripts/patch-21-timeline-automation-check.mjs && node scripts/patch-21-watch-together-sync-check.mjs && node scripts/patch-21-mobile-theater-check.mjs"
+    "patch21:check": "node scripts/patch-21-playback-command-integrity-check.mjs && node scripts/patch-21-resume-continuity-check.mjs && node scripts/patch-21-timeline-automation-check.mjs && node scripts/patch-21-watch-together-sync-check.mjs && node scripts/patch-21-mobile-theater-check.mjs && node scripts/patch-21-username-safety-check.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
