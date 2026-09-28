@@ -219,6 +219,7 @@ export default function WatchPartyPanel({
   const [lastController, setLastController] = useState('');
   const [mobileSection, setMobileSection] = useState<MobileSection>('chat');
   const [roomIdentities, setRoomIdentities] = useState<Record<string, RoomPublicIdentity>>({});
+  const [selfUserId, setSelfUserId] = useState<string | null>(null);
   const [networkRoute, setNetworkRoute] = useState<WatchPartyNetworkRoute>('unknown');
   const [signalingMode, setSignalingMode] = useState<'peerjs-cloud' | 'self-hosted'>('peerjs-cloud');
   const [liveReactions, setLiveReactions] = useState<WatchPartyReactionEvent[]>([]);
@@ -870,6 +871,7 @@ export default function WatchPartyPanel({
     setAuthoritativeParticipantCount(0);
     setRoomCode('');
     setRoomVisibility('unlisted');
+    setSelfUserId(null);
     hostEpochRef.current = 0;
     clearWatchPartyFromLocation();
     setRole(null);
@@ -1382,6 +1384,7 @@ export default function WatchPartyPanel({
       return;
     }
     identityRef.current = identity;
+    setSelfUserId(identity.userId);
     if (
       intentionalCloseRef.current ||
       transportGenerationRef.current !== generation
@@ -2000,6 +2003,7 @@ export default function WatchPartyPanel({
       return;
     }
     identityRef.current = identity;
+    setSelfUserId(identity.userId);
     if (
       intentionalCloseRef.current ||
       transportGenerationRef.current !== generation
@@ -3414,8 +3418,8 @@ export default function WatchPartyPanel({
     participants.length,
     authoritativeParticipantCount,
   );
-  const selfIdentity = identityRef.current
-    ? roomIdentities[identityRef.current.userId]
+  const selfIdentity = selfUserId
+    ? roomIdentities[selfUserId]
     : null;
   const premiumReactionsAllowed = Boolean(selfIdentity?.watchPartyReactions);
   const label = statusLabel(status, role, displayedParticipantCount);
