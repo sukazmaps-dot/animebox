@@ -30,6 +30,8 @@ mustInclude(previewCss, 'flex-basis: 132px', 'framed mini-profile canvas');
 mustInclude(previewCss, 'flex-basis: 118px', 'mobile framed mini-profile canvas');
 mustNotInclude(previewCss, "avatarShellSeason[data-milestone-frame='true'] .avatarMedia", 'legacy milestone aperture shrink');
 mustInclude(previewCss, "html[data-animebox-theme='light'] .card", 'mini-profile light theme');
+mustInclude(previewCss, '.avatarShellIdentity {', 'sponsor mini-profile shell');
+mustInclude(previewCss, 'flex: 0 0 88px', 'sponsor mini-profile desktop aperture');
 
 const frameOverlayCss = read('components/profile/ProfileFrameOverlay.module.css');
 mustInclude(frameOverlayCss, 'width: 88px !important', 'desktop milestone avatar parity');
