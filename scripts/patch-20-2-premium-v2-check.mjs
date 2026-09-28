@@ -87,7 +87,7 @@ mustInclude(statsApi, 'entitlements.advancedStats', 'server-side Advanced Stats 
 mustInclude(statsApi, "getTrustedProgressionMetrics(user.id)", 'trusted Premium statistics');
 
 const statsClient = read('components/premium/PremiumStatsClient.tsx');
-mustInclude(statsClient, 'ADVANCED STATS', 'Advanced Stats product surface');
+mustInclude(statsClient, 'ANIMEBOX PREMIUM · СТАТИСТИКА', 'Advanced Stats product surface');
 mustInclude(statsClient, 'ИСТОРИЯ+', 'Premium History+ surface');
 
 const roomThemeContract = read('lib/watch-party-premium.ts');
@@ -138,7 +138,7 @@ mustInclude(statsRoute, 'yearHistoryResult', 'Year in Review server history');
 mustInclude(statsRoute, 'yearReview: {', 'Year in Review response');
 
 const yearReview = read('components/premium/PremiumYearReviewClient.tsx');
-mustInclude(yearReview, 'YEAR IN REVIEW', 'Year in Review Premium surface');
+mustInclude(yearReview, 'ИТОГИ ГОДА', 'Year in Review Premium surface');
 mustInclude(yearReview, 'подтверждённая', 'Year in Review trusted-history copy');
 
 const userIdentity = read('components/identity/UserIdentity.tsx');
