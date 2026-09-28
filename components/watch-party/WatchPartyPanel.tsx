@@ -2636,6 +2636,8 @@ export default function WatchPartyPanel({
 
   useEffect(() => {
     function onPlayerState(event: Event) {
+      if (statusRef.current !== 'active') return;
+
       const detail = (event as CustomEvent<WatchPartyPlayerStateDetail>).detail;
       if (!detail || detail.episode !== episodeNumber) return;
       playerStateRef.current = detail;
