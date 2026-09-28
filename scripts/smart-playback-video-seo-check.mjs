@@ -14,6 +14,7 @@ function read(path) {
 }
 
 const player = read('components/AnimePlayer.tsx');
+const kodikPlayer = read('components/KodikPlayer.tsx');
 const episodePage = read('components/AnimeEpisodePage.tsx');
 const timelineServer = read('lib/episode-timeline-server.ts');
 const timelineApi = read('app/api/episodes/timeline/route.ts');
@@ -40,11 +41,23 @@ for (const [label, needle] of [
   ['manual skip fallback UI', 'Пропустить опенинг'],
   ['provider duplicate skip suppression', 'pendingOpeningTarget != null &&'],
   ['opening seek watch-integrity signal', 'watchSession.onProviderSkip'],
-  ['ending countdown UI', 'endingNextSeconds'],
+  ['opening boundary debounce', 'openingAutoSkipCandidateRef.current'],
+  ['opening trigger window', 'AUTO_OPENING_TRIGGER_WINDOW_SECONDS = 1.5'],
+  ['ending completion guard copy', 'Автопереход начнётся только после фактического завершения видео.'],
   ['ending cancel action', 'cancelEndingAutoNext'],
 ]) {
   if (!player.includes(needle)) {
     failures.push(`AnimePlayer: missing ${label}.`);
+  }
+}
+
+for (const [label, needle] of [
+  ['synthetic end strict threshold', 'SYNTHETIC_END_REMAINING_SECONDS = 0.2'],
+  ['synthetic end debounce', 'SYNTHETIC_END_CONFIRM_MS = 900'],
+  ['explicit ended event', "key === 'kodik_player_ended'"],
+]) {
+  if (!kodikPlayer.includes(needle)) {
+    failures.push(`KodikPlayer: missing ${label}.`);
   }
 }
 
