@@ -129,6 +129,7 @@ const GUEST_HEALTH_CHECK_MS = 15_000;
 const HOST_STALE_MS = 75_000;
 const P2P_ACCELERATOR_GUEST_LIMIT = 6;
 const REACTION_COOLDOWN_MS = 850;
+const PLAYER_UI_POSITION_STEP_SECONDS = 0.9;
 
 const REACTION_OPTIONS: Array<{
   value: WatchPartyReaction;
@@ -259,6 +260,7 @@ export default function WatchPartyPanel({
   const identityPromiseRef = useRef<Promise<PartyIdentity | null> | null>(null);
   const identityRef = useRef<PartyIdentity | null>(null);
   const playerStateRef = useRef<WatchPartyPlayerStateDetail | null>(null);
+  const playerUiStateRef = useRef<WatchPartyPlayerStateDetail | null>(null);
   const hostSeqRef = useRef(0);
   const lastAppliedSeqRef = useRef(0);
   const chatIdsRef = useRef(new Set<string>());
@@ -2649,7 +2651,26 @@ export default function WatchPartyPanel({
 
       const detail = (event as CustomEvent<WatchPartyPlayerStateDetail>).detail;
       if (!detail || detail.episode !== episodeNumber) return;
+
+      // Keep the transport/sync snapshot hot on every provider sample, but
+      // do not force the whole room UI through React on every timeupdate.
       playerStateRef.current = detail;
+
+      const previousUi = playerUiStateRef.current;
+      const semanticChange =
+        previousUi == null ||
+        previousUi.episode !== detail.episode ||
+        previousUi.playing !== detail.playing ||
+        previousUi.source !== detail.source ||
+        previousUi.duration !== detail.duration;
+      const visiblePositionStep =
+        previousUi == null ||
+        Math.abs(previousUi.position - detail.position) >=
+          PLAYER_UI_POSITION_STEP_SECONDS;
+
+      if (!semanticChange && !visiblePositionStep) return;
+
+      playerUiStateRef.current = detail;
       setPlayerState(detail);
     }
 
