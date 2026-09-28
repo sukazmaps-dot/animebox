@@ -24,6 +24,7 @@ import {
   type PremiumMotionMode,
   type PremiumParticleEffect,
   type PremiumNicknameEffect,
+  type PremiumProfileLayout,
   type PremiumSurfaceStyle,
 } from '@/lib/premium-studio';
 
@@ -53,6 +54,7 @@ type PreviewData = {
   nicknameEffect: PremiumNicknameEffect;
   heroStyle: PremiumHeroStyle;
   surfaceStyle: PremiumSurfaceStyle;
+  profileLayout: PremiumProfileLayout;
   role: PublicIdentityRole;
   sponsor: SponsorStatus | null;
   profileFrameKey: string | null;
@@ -336,6 +338,7 @@ export default function ProfilePreview({
                 data-entrance={data?.premium ? data.entranceEffect : 'none'}
                 data-hero={data?.premium ? data.heroStyle : 'clean'}
                 data-surface={data?.premium ? data.surfaceStyle : 'ink'}
+                data-layout={data?.premium ? data.profileLayout : 'classic'}
                 style={{
                   ...themeStyle,
                   top: position.top,
