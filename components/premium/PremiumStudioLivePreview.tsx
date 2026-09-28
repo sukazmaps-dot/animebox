@@ -6,6 +6,7 @@ import PremiumProfileAtmosphere from '@/components/premium/PremiumProfileAtmosph
 import PremiumParticleLayer from '@/components/profile/PremiumParticleLayer';
 import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
 import {
+  premiumBannerStyle,
   premiumMediaStyle,
   premiumSceneContextSettings,
   premiumStudioCssVariables,
@@ -112,6 +113,7 @@ export default function PremiumStudioLivePreview({
     'data-premium-surface': settings.surfaceStyle,
     'data-premium-entrance': renderedSettings.entranceEffect,
     'data-premium-layout': settings.profileLayout,
+    'data-premium-banner-height': settings.bannerHeightMode,
     'data-preview-context': context,
   };
 
@@ -200,7 +202,9 @@ export default function PremiumStudioLivePreview({
             aria-hidden="true"
             loading="eager"
             decoding="async"
-            style={premiumMediaStyle(bannerTransform) as CSSProperties}
+            style={
+              premiumBannerStyle(settings, bannerTransform) as CSSProperties
+            }
           />
         )}
         <div />
