@@ -58,8 +58,8 @@ mustInclude(studioClient, "['comment', 'Комментарий']", 'comment prev
 mustInclude(studioClient, "['watch-party', 'Комната']", 'Watch Together preview mode');
 
 const premiumPage = read('components/premium/PremiumClient.tsx');
-mustInclude(premiumPage, 'Profile Scene', 'Premium 2.0 landing positioning');
-mustInclude(premiumPage, 'IDENTITY MODE', 'Premium 2.0 identity positioning');
+mustInclude(premiumPage, 'Стиль профиля', 'Premium 2.0 landing positioning');
+mustInclude(premiumPage, 'ТВОЙ СТИЛЬ', 'Premium 2.0 identity positioning');
 mustNotInclude(premiumPage, '+20% XP', 'Premium landing');
 mustNotInclude(premiumPage, 'Выделенные Full-HD', 'Premium landing');
 
@@ -110,7 +110,7 @@ mustInclude(watchPanel, 'data-room-theme={roomTheme}', 'room theme social chrome
 mustInclude(migration, 'room_theme', 'Watch Together theme schema');
 
 const studioDemo = read('components/premium/PremiumStudioClient.tsx');
-mustInclude(studioDemo, 'PREMIUM STUDIO · DEMO', 'free Premium Scene demo');
+mustInclude(studioDemo, 'ПРЕДПРОСМОТР PREMIUM', 'free Premium Scene demo');
 mustInclude(studioDemo, 'Сохранить с Premium', 'contextual Premium demo conversion');
 
 const showcaseApi = read('app/api/community/profile-widgets/route.ts');
