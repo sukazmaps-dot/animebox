@@ -52,10 +52,12 @@ export default function ProfileWidgetEditor({
   data,
   onSaved,
   embedded = false,
+  maxFavorites = 6,
 }: {
   data: ProfileWidgetsData;
   onSaved: (widgets: ProfileWidgetsData) => void;
   embedded?: boolean;
+  maxFavorites?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [layout, setLayout] = useState(() => normalizeLayout(data.layout));
@@ -184,8 +186,8 @@ export default function ProfileWidgetEditor({
       return;
     }
 
-    if (favoriteIds.length >= 6) {
-      setMessage('Можно закрепить максимум 6 любимых аниме.');
+    if (favoriteIds.length >= maxFavorites) {
+      setMessage(`Можно закрепить максимум ${maxFavorites} любимых аниме.`);
       return;
     }
 
@@ -322,7 +324,7 @@ export default function ProfileWidgetEditor({
               <div className="profile-widgets-editor__section-head">
                 <div>
                   <strong>Любимые аниме</strong>
-                  <small>{favoriteIds.length}/6 закреплено · порядок сохраняется слева направо</small>
+                  <small>{favoriteIds.length}/{maxFavorites} закреплено · порядок сохраняется слева направо</small>
                 </div>
               </div>
 
