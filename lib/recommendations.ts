@@ -11,6 +11,10 @@ import {
 } from '@/lib/personalization';
 import {
   animeGenreAffinity,
+  animeStudioAffinity,
+  animeFormatAffinity,
+  animeEraAffinity,
+  animeFinishedAffinity,
   completedGenreAffinity,
   episodeLengthAffinity,
   readCachedTasteGraph,
@@ -424,6 +428,21 @@ export function getPersonalizedRecommendations(
             ) / 1.5,
           )
         : 0;
+      const graphStudioAffinity = animeStudioAffinity(anime, tasteGraph);
+      const formatAffinity = animeFormatAffinity(anime, tasteGraph);
+      const eraAffinity = animeEraAffinity(anime, tasteGraph);
+      const finished = isFinished(anime);
+      const statusAffinity = animeFinishedAffinity(finished, tasteGraph);
+      const combinedStudioAffinity = Math.min(
+        1,
+        studioScore * 0.55 + graphStudioAffinity.positive * 0.75,
+      );
+      const metadataNegativeAffinity = Math.min(
+        1,
+        graphStudioAffinity.negative * 0.5 +
+          formatAffinity.negative * 0.3 +
+          eraAffinity.negative * 0.2,
+      );
       const lengthAffinity = episodeLengthAffinity(anime, tasteGraph);
       const moodScore = moodAffinity(anime, mood);
       const ratingScore = normalizeRating(anime);
@@ -465,8 +484,12 @@ export function getPersonalizedRecommendations(
           genre: genreScore,
           tasteGraphPositive: graphAffinity.positive,
           completedAffinity: completedAffinity.positive,
-          studioAffinity: studioScore,
+          studioAffinity: combinedStudioAffinity,
+          formatAffinity: formatAffinity.positive,
+          eraAffinity: eraAffinity.positive,
+          statusAffinity,
           tasteGraphNegative: graphAffinity.negative,
+          metadataNegativeAffinity,
           sessionNegativeAffinity,
           sessionIntent: sessionIntentScore,
           completionLikelihood: completionScore,
@@ -510,8 +533,26 @@ export function getPersonalizedRecommendations(
       const tasteMatches = [...new Set([...graphMatches, ...localMatches])].slice(0, 2);
       if (tasteMatches.length) reasons.push(`Совпадает со вкусом: ${tasteMatches.join(' · ')}`);
       if (mood !== 'any' && moodScore > 0) reasons.push(`Под настроение «${MOOD_CONFIG[mood].label}»`);
-      if (studioScore >= 0.45 && candidateStudios.length && reasons.length < 2) {
+      if (
+        combinedStudioAffinity >= 0.45 &&
+        candidateStudios.length &&
+        reasons.length < 2
+      ) {
         reasons.push(`Студия в твоём вкусе: ${candidateStudios[0]}`);
+      }
+      if (
+        formatAffinity.positive >= 0.62 &&
+        anime.format &&
+        reasons.length < 2
+      ) {
+        reasons.push(`Ты часто выбираешь формат ${anime.format}`);
+      }
+      if (
+        eraAffinity.positive >= 0.62 &&
+        eraAffinity.bucket &&
+        reasons.length < 2
+      ) {
+        reasons.push(`Тебе часто заходят аниме ${eraAffinity.bucket}`);
       }
       if (lengthAffinity >= 0.72 && tasteGraph?.preferredEpisodeCount) {
         reasons.push(`Похожая длина: около ${tasteGraph.preferredEpisodeCount} серий`);
@@ -552,8 +593,12 @@ export function getPersonalizedRecommendations(
         genre: genreScore,
         tasteGraphPositive: graphAffinity.positive,
         completedAffinity: completedAffinity.positive,
-        studioAffinity: studioScore,
+        studioAffinity: combinedStudioAffinity,
+        formatAffinity: formatAffinity.positive,
+        eraAffinity: eraAffinity.positive,
+        statusAffinity,
         tasteGraphNegative: graphAffinity.negative,
+        metadataNegativeAffinity,
         sessionNegativeAffinity,
         episodeLength: lengthAffinity,
         mood: moodScore,
