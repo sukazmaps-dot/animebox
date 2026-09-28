@@ -1387,6 +1387,11 @@ html[data-animebox-theme='light'] .close {
   overflow: visible;
   display: grid;
   place-items: center;
+  flex: 0 0 88px;
+  width: 88px;
+  height: 88px;
+  min-width: 88px;
+  min-height: 88px;
   border: 0;
   border-radius: 50%;
   background: transparent;
@@ -1416,4 +1421,15 @@ html[data-animebox-theme='light'] .close {
   overflow: visible;
   pointer-events: none;
   user-select: none;
+}
+
+
+@media (max-width: 640px) {
+  .avatarShellIdentity {
+    flex-basis: 80px;
+    width: 80px;
+    height: 80px;
+    min-width: 80px;
+    min-height: 80px;
+  }
 }
