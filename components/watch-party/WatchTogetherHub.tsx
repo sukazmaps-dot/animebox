@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  type CSSProperties,
   type FormEvent,
   useCallback,
   useEffect,
@@ -1020,7 +1021,7 @@ export default function WatchTogetherHub() {
                   disabled={premiumStateLoading || locked}
                   onClick={() => setRoomTheme(theme)}
                 >
-                  <i style={{ '--room-theme-accent': meta.accent } as React.CSSProperties} />
+                  <i style={{ '--room-theme-accent': meta.accent } as CSSProperties} />
                   <span>
                     <strong>{meta.label}</strong>
                     <small>{meta.description}</small>
