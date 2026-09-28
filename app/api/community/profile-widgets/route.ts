@@ -9,6 +9,8 @@ import {
 } from '@/lib/community-server';
 import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
 import { getProfileWidgetsData } from '@/lib/profile-widgets-server';
+import { getEffectiveUserEntitlements } from '@/lib/entitlements-server';
+import { getEffectivePremiumState } from '@/lib/premium-server';
 import {
   PROFILE_WIDGET_KEYS,
   type ProfileWidgetKey,
@@ -46,7 +48,7 @@ function parseLayout(value: unknown) {
   });
 }
 
-function parseFavoriteIds(value: unknown) {
+function parseFavoriteIds(value: unknown, maxFavorites: number) {
   if (!Array.isArray(value)) {
     throw new ApiError(400, 'Некорректный список любимых аниме.');
   }
@@ -58,19 +60,41 @@ function parseFavoriteIds(value: unknown) {
     throw new ApiError(400, 'Любимые аниме не должны повторяться.');
   }
 
-  if (unique.length > 6) {
-    throw new ApiError(400, 'Можно закрепить максимум 6 любимых аниме.');
+  if (unique.length > maxFavorites) {
+    throw new ApiError(
+      400,
+      `Можно закрепить максимум ${maxFavorites} любимых аниме.`,
+    );
   }
 
   return unique;
 }
 
+async function getShowcaseCapabilities(userId: string) {
+  const lifecycle = await getEffectivePremiumState(userId);
+  const entitlements = await getEffectiveUserEntitlements(userId);
+  const extraShowcases = Boolean(
+    lifecycle.active && entitlements.extraShowcases,
+  );
+
+  return {
+    extraShowcases,
+    maxFavorites: extraShowcases ? 12 : 6,
+  };
+}
+
 export async function GET() {
   try {
     const { user } = await userClient();
+    const [widgets, capabilities] = await Promise.all([
+      getProfileWidgetsData(user.id),
+      getShowcaseCapabilities(user.id),
+    ]);
+
     return response({
       ok: true,
-      widgets: await getProfileWidgetsData(user.id),
+      widgets,
+      capabilities,
     });
   } catch (error) {
     return failure(error);
@@ -94,7 +118,11 @@ export async function POST(request: Request) {
     }
 
     const layout = parseLayout(body.layout);
-    const animeIds = parseFavoriteIds(body.animeIds);
+    const capabilities = await getShowcaseCapabilities(user.id);
+    const animeIds = parseFavoriteIds(
+      body.animeIds,
+      capabilities.maxFavorites,
+    );
 
     await ensureAnimes(animeIds);
 
@@ -108,6 +136,7 @@ export async function POST(request: Request) {
     return response({
       ok: true,
       widgets: await getProfileWidgetsData(user.id),
+      capabilities,
     });
   } catch (error) {
     return failure(error);
