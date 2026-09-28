@@ -28,6 +28,9 @@ mustInclude(previewCss, 'flex-basis: 132px', 'framed mini-profile canvas');
 mustInclude(previewCss, "avatarShellSeason[data-milestone-frame='true']", 'milestone frame geometry');
 mustInclude(previewCss, 'flex-basis: 118px', 'mobile framed mini-profile canvas');
 mustInclude(previewCss, "html[data-animebox-theme='light'] .card", 'mini-profile light theme');
+mustInclude(previewCss, ".card[data-layout='cinema']", 'mini-profile cinema layout parity');
+mustInclude(previewCss, ".card[data-layout='collector']", 'mini-profile collector layout parity');
+mustInclude(previewCss, ".card[data-layout='minimal']", 'mini-profile minimal layout parity');
 mustInclude(previewCss, '@media (prefers-reduced-motion: reduce)', 'mini-profile reduced motion');
 
 const experienceCss = read('app/patch20-3-profile-experience.css');
@@ -41,6 +44,11 @@ mustInclude(experienceCss, '@media (prefers-reduced-motion: reduce)', 'profile r
 
 const profileLayout = read('app/profile/layout.tsx');
 mustInclude(profileLayout, "import '../patch20-3-profile-experience.css';", 'route-scoped Patch 20.3 CSS');
+
+const premiumLayout = read('app/premium/layout.tsx');
+mustInclude(premiumLayout, "import '../patch20-3-profile-experience.css';", 'Premium route Patch 20.3 CSS');
+mustInclude(experienceCss, "html[data-animebox-theme='light'] .premium-stats-v2", 'Premium stats light theme');
+mustInclude(experienceCss, "html[data-animebox-theme='light'] .premium-year-v2", 'Year review light theme');
 
 const showcase = read('components/profile/ProfileWidgetsShowcase.tsx');
 mustInclude(showcase, 'АНИМЕ-ПРОФИЛЬ', 'localized showcase eyebrow');
