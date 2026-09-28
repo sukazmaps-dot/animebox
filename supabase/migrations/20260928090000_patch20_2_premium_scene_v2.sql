@@ -126,3 +126,61 @@ set
   sort_order = excluded.sort_order,
   metadata = excluded.metadata,
   updated_at = now();
+
+
+-- Existing live Premium subscriptions must receive the new capabilities on
+-- migration day; otherwise a user would need to open /premium first to trigger
+-- lifecycle reconciliation before Profile Scene / Stats become available.
+insert into public.user_entitlements (
+  user_id,
+  entitlement,
+  source,
+  source_id,
+  active,
+  starts_at,
+  expires_at,
+  metadata,
+  updated_at
+)
+select
+  subscription.user_id,
+  capability.entitlement,
+  'premium',
+  subscription.id::text,
+  true,
+  subscription.starts_at,
+  subscription.ends_at,
+  jsonb_build_object(
+    'plan', subscription.plan,
+    'subscription_source', subscription.source,
+    'patch', '20.2'
+  ),
+  now()
+from public.premium_subscriptions as subscription
+cross join lateral unnest(array[
+  'adFree',
+  'premiumBadge',
+  'profileStudio',
+  'animatedAvatar',
+  'animatedBanner',
+  'extraShowcases',
+  'premiumThemes',
+  'profileScene',
+  'nicknameEffects',
+  'premiumFrames',
+  'profileLayouts',
+  'advancedStats',
+  'extendedHistory',
+  'watchPartyThemes',
+  'watchPartyReactions',
+  'earlyAccess'
+]::text[]) as capability(entitlement)
+where subscription.status in ('active', 'grace_period')
+  and subscription.ends_at > now()
+on conflict (user_id, entitlement, source, source_id)
+do update set
+  active = excluded.active,
+  starts_at = excluded.starts_at,
+  expires_at = excluded.expires_at,
+  metadata = excluded.metadata,
+  updated_at = excluded.updated_at;
