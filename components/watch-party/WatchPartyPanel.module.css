@@ -2327,3 +2327,103 @@
     font-size: 8px;
   }
 }
+
+
+/* Patch 20.2 · Premium Room Themes.
+   Themes style only the room/social chrome. The video surface is untouched. */
+.themeBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid rgba(var(--wt-theme-accent-rgb, 139, 92, 246), .2);
+  border-radius: 999px;
+  background: rgba(var(--wt-theme-accent-rgb, 139, 92, 246), .07);
+  color: rgb(var(--wt-theme-accent-rgb, 184, 167, 255));
+  font-size: 8px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.panel[data-room-theme='midnight'] {
+  --wt-theme-accent-rgb: 120, 144, 184;
+  border-color: rgba(120, 144, 184, .16);
+  background:
+    radial-gradient(circle at 88% 0%, rgba(120, 144, 184, .09), transparent 34%),
+    linear-gradient(145deg, rgba(7, 10, 16, .99), rgba(4, 6, 10, .995));
+  box-shadow: 0 22px 60px rgba(0,0,0,.26);
+}
+
+.panel[data-room-theme='aurora'] {
+  --wt-theme-accent-rgb: 139, 124, 255;
+  border-color: rgba(139, 124, 255, .2);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(96, 199, 255, .11), transparent 35%),
+    radial-gradient(circle at 88% 16%, rgba(139, 124, 255, .16), transparent 38%),
+    linear-gradient(145deg, rgba(8, 15, 29, .99), rgba(6, 8, 17, .995));
+  box-shadow: 0 24px 68px rgba(56, 48, 154, .13);
+}
+
+.panel[data-room-theme='sakura'] {
+  --wt-theme-accent-rgb: 255, 111, 175;
+  border-color: rgba(255, 111, 175, .18);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255, 111, 175, .13), transparent 36%),
+    radial-gradient(circle at 92% 82%, rgba(167, 91, 153, .08), transparent 35%),
+    linear-gradient(145deg, rgba(22, 9, 19, .99), rgba(8, 7, 13, .995));
+  box-shadow: 0 24px 68px rgba(106, 39, 82, .12);
+}
+
+.panel[data-room-theme='embers'] {
+  --wt-theme-accent-rgb: 255, 101, 79;
+  border-color: rgba(255, 101, 79, .18);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255, 101, 79, .13), transparent 34%),
+    linear-gradient(145deg, rgba(24, 10, 12, .99), rgba(8, 7, 10, .995));
+  box-shadow: 0 24px 68px rgba(118, 42, 27, .11);
+}
+
+.panel[data-room-theme='cinema'] {
+  --wt-theme-accent-rgb: 210, 180, 140;
+  border-color: rgba(210, 180, 140, .15);
+  border-radius: 13px;
+  background:
+    linear-gradient(180deg, rgba(20, 18, 16, .99), rgba(6, 6, 7, .995));
+  box-shadow: 0 28px 80px rgba(0,0,0,.3);
+}
+
+.panel[data-room-theme]:not([data-room-theme='default'])::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(var(--wt-theme-accent-rgb), .48),
+    transparent
+  );
+}
+
+.panel[data-room-theme]:not([data-room-theme='default']) .role,
+.panel[data-room-theme]:not([data-room-theme='default']) .networkRoute,
+.panel[data-room-theme]:not([data-room-theme='default']) .roomCodeBadge {
+  border-color: rgba(var(--wt-theme-accent-rgb), .17);
+  background: rgba(var(--wt-theme-accent-rgb), .055);
+  color: rgba(var(--wt-theme-accent-rgb), .9);
+}
+
+.panel[data-room-theme]:not([data-room-theme='default']) .participant:hover,
+.panel[data-room-theme]:not([data-room-theme='default']) .chatMessage[data-own='true'] {
+  border-color: rgba(var(--wt-theme-accent-rgb), .18);
+  background: rgba(var(--wt-theme-accent-rgb), .055);
+}
+
+.panel[data-room-theme]:not([data-room-theme='default']) .syncPrimary {
+  border-color: rgba(var(--wt-theme-accent-rgb), .28);
+  background: rgba(var(--wt-theme-accent-rgb), .12);
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel[data-room-theme]:not([data-room-theme='default']) *,
+  .panel[data-room-theme]:not([data-room-theme='default'])::before {
+    animation: none !important;
+  }
+}
