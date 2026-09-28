@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import { compactProfileFrameAsset } from '@/lib/profile-frames';
 
 import styles from './CommentAvatarFrame.module.css';
@@ -28,6 +30,25 @@ export default function CommentAvatarFrame({
         fetchPriority="low"
         draggable={false}
       />
+    </span>
+  );
+}
+
+
+export function CommentAvatarFrameShell({
+  frameKey,
+  children,
+}: {
+  frameKey?: string | null;
+  children: ReactNode;
+}) {
+  return (
+    <span
+      className={styles.avatarRoot}
+      data-has-comment-frame={compactProfileFrameAsset(frameKey) ? 'true' : 'false'}
+    >
+      {children}
+      <CommentAvatarFrame frameKey={frameKey} />
     </span>
   );
 }
