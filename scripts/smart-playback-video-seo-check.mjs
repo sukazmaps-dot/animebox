@@ -53,7 +53,7 @@ for (const [label, needle] of [
 
 for (const [label, needle] of [
   ['synthetic end strict threshold', 'SYNTHETIC_END_REMAINING_SECONDS = 0.2'],
-  ['synthetic end debounce', 'SYNTHETIC_END_CONFIRM_MS = 900'],
+  ['synthetic end debounce', 'SYNTHETIC_END_CONFIRM_MS = 1_500'],
   ['explicit ended event', "key === 'kodik_player_ended'"],
 ]) {
   if (!kodikPlayer.includes(needle)) {
