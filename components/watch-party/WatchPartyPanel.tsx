@@ -3571,14 +3571,9 @@ export default function WatchPartyPanel({
                       username={displayName}
                       role={publicIdentity?.role ?? null}
                       sponsor={publicIdentity?.sponsor ?? null}
+                      premium={publicIdentity?.premium ?? false}
                       compact
                     />
-                    {publicIdentity?.premium && (
-                      <span className={styles.premiumBadge} title="AnimeBox Premium">
-                        <Icon name="crown" size={14} weight="fill" />
-                        <span>Premium</span>
-                      </span>
-                    )}
                   </span>
                   {participant.host && (
                     <span className={styles.hostBadge} title="Хост комнаты">
@@ -3792,15 +3787,10 @@ export default function WatchPartyPanel({
                               username={displayName}
                               role={publicIdentity?.role ?? null}
                               sponsor={publicIdentity?.sponsor ?? null}
+                              premium={publicIdentity?.premium ?? false}
                               compact
                             />
                           </ProfilePreview>
-                          {publicIdentity?.premium && (
-                            <span className={styles.chatPremiumBadge} title="AnimeBox Premium">
-                              <Icon name="crown" size={14} weight="fill" />
-                              Premium
-                            </span>
-                          )}
                           {message.host && (
                             <span className={`${styles.hostBadge} ${styles.chatHostBadge}`} title="Хост комнаты">
                               <svg viewBox="0 0 20 20" aria-hidden="true">
