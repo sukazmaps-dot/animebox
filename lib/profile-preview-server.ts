@@ -5,6 +5,7 @@ import { getUserChallengesSnapshot } from '@/lib/challenges-server';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
 import { resolveProfileAppearance } from '@/lib/profile-appearance';
 import { normalizeProgression } from '@/lib/progression';
+import { premiumSceneContextSettings } from '@/lib/premium-studio';
 import { resolvePublicAppearances } from '@/lib/public-avatar-server';
 import { getSponsorStatus } from '@/lib/sponsor-server';
 import { getSelectedProfileFrame } from '@/lib/leaderboard-rewards-server';
@@ -83,6 +84,9 @@ export async function getProfilePreview(userId: string) {
     progressionResult.error ? null : progressionResult.data,
     resolved.premiumBadge,
   );
+  const miniStudio = appearance.premiumStudio
+    ? premiumSceneContextSettings(appearance.premiumStudio, 'mini')
+    : null;
 
   return {
     id: profile.id,
@@ -98,18 +102,19 @@ export async function getProfilePreview(userId: string) {
     avatarTransform: appearance.avatarTransform,
     bannerTransform: appearance.bannerTransform,
     premium: resolved.premiumBadge,
-    premiumTheme: appearance.premiumStudio?.theme ?? 'default',
-    primaryColor: appearance.premiumStudio?.primaryColor ?? '#101426',
-    accentColor: appearance.premiumStudio?.accentColor ?? '#7C4DFF',
-    textColor: appearance.premiumStudio?.textColor ?? '#F5F3FF',
-    particleEffect: appearance.premiumStudio?.particleEffect ?? 'none',
-    atmosphereEffect: appearance.premiumStudio?.atmosphereEffect ?? 'none',
-    atmosphereIntensity: appearance.premiumStudio?.atmosphereIntensity ?? 0,
-    motionMode: appearance.premiumStudio?.motionMode ?? 'off',
-    entranceEffect: appearance.premiumStudio?.entranceEffect ?? 'none',
-    nicknameEffect: appearance.premiumStudio?.nicknameEffect ?? 'none',
-    heroStyle: appearance.premiumStudio?.heroStyle ?? 'clean',
-    surfaceStyle: appearance.premiumStudio?.surfaceStyle ?? 'ink',
+    premiumTheme: miniStudio?.theme ?? 'default',
+    primaryColor: miniStudio?.primaryColor ?? '#101426',
+    accentColor: miniStudio?.accentColor ?? '#7C4DFF',
+    textColor: miniStudio?.textColor ?? '#F5F3FF',
+    particleEffect: miniStudio?.particleEffect ?? 'none',
+    atmosphereEffect: miniStudio?.atmosphereEffect ?? 'none',
+    atmosphereIntensity: miniStudio?.atmosphereIntensity ?? 0,
+    motionMode: miniStudio?.motionMode ?? 'off',
+    entranceEffect: miniStudio?.entranceEffect ?? 'none',
+    nicknameEffect: miniStudio?.nicknameEffect ?? 'none',
+    heroStyle: miniStudio?.heroStyle ?? 'clean',
+    surfaceStyle: miniStudio?.surfaceStyle ?? 'ink',
+    profileLayout: miniStudio?.profileLayout ?? 'classic',
     role: publicIdentityRoleFor(userId),
     sponsor,
     profileFrameKey,
