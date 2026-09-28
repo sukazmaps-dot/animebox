@@ -1863,6 +1863,7 @@ export default function WatchPartyPanel({
         setNetworkRoute('server');
         setError('');
         setStatus('active');
+        requestAuthoritativeSync();
         return;
       }
       if (reconnectTimerRef.current != null) return;
@@ -1950,6 +1951,7 @@ export default function WatchPartyPanel({
         setNetworkRoute('server');
         setError('');
         setStatus('active');
+        requestAuthoritativeSync();
         return;
       }
 
@@ -1969,6 +1971,7 @@ export default function WatchPartyPanel({
         setNetworkRoute('server');
         setError('');
         setStatus('active');
+        requestAuthoritativeSync();
         return;
       }
 
@@ -2004,6 +2007,7 @@ export default function WatchPartyPanel({
         setNetworkRoute('server');
         setError('');
         setStatus('active');
+        requestAuthoritativeSync();
         return;
       }
       const type = 'type' in peerError ? String(peerError.type) : '';
