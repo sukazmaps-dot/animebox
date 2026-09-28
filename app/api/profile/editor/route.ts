@@ -19,6 +19,7 @@ import {
   isPremiumMotionMode,
   isPremiumNicknameEffect,
   isPremiumProfileTheme,
+  isPremiumProfileLayout,
   isPremiumSurfaceStyle,
   studioSettingsFromRow,
   type PremiumStudioSettings,
@@ -62,6 +63,7 @@ const STUDIO_COLUMNS = [
   'nickname_effect',
   'hero_style',
   'surface_style',
+  'profile_layout',
 ].join(',');
 
 type ProfilePatch = {
@@ -265,6 +267,10 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
     typeof data.surfaceStyle === 'string'
       ? data.surfaceStyle.trim()
       : DEFAULT_PREMIUM_STUDIO_SETTINGS.surfaceStyle;
+  const profileLayout =
+    typeof data.profileLayout === 'string'
+      ? data.profileLayout.trim()
+      : DEFAULT_PREMIUM_STUDIO_SETTINGS.profileLayout;
   const glowStrength = Number(data.glowStrength);
 
   if (!isPremiumProfileTheme(theme)) throw new ApiError(400, 'Неизвестная тема профиля.');
@@ -279,6 +285,7 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
   if (!isPremiumNicknameEffect(nicknameEffect)) throw new ApiError(400, 'Неизвестный эффект ника.');
   if (!isPremiumHeroStyle(heroStyle)) throw new ApiError(400, 'Неизвестный стиль hero.');
   if (!isPremiumSurfaceStyle(surfaceStyle)) throw new ApiError(400, 'Неизвестный стиль поверхностей.');
+  if (!isPremiumProfileLayout(profileLayout)) throw new ApiError(400, 'Неизвестный layout профиля.');
   if (!Number.isFinite(glowStrength) || glowStrength < 0 || glowStrength > 100) {
     throw new ApiError(400, 'Интенсивность свечения должна быть от 0 до 100.');
   }
@@ -315,6 +322,7 @@ function readStudioSettings(value: unknown, userId: string): PremiumStudioSettin
     nicknameEffect,
     heroStyle,
     surfaceStyle,
+    profileLayout,
   };
 }
 
@@ -346,6 +354,7 @@ function studioRow(settings: PremiumStudioSettings, userId: string) {
     nickname_effect: settings.nicknameEffect,
     hero_style: settings.heroStyle,
     surface_style: settings.surfaceStyle,
+    profile_layout: settings.profileLayout,
     updated_at: new Date().toISOString(),
   };
 }
@@ -444,7 +453,15 @@ export async function GET() {
         premium: allowed,
         profileStudio: Boolean(entitlements.profileStudio),
         premiumThemes: Boolean(entitlements.premiumThemes),
-        animatedMedia: Boolean(entitlements.animatedAvatar),
+        profileScene: Boolean(entitlements.profileScene),
+        animatedMedia: Boolean(entitlements.animatedAvatar || entitlements.animatedBanner),
+        profileLayouts: Boolean(entitlements.profileLayouts),
+        nicknameEffects: Boolean(entitlements.nicknameEffects),
+        advancedStats: Boolean(entitlements.advancedStats),
+        extendedHistory: Boolean(entitlements.extendedHistory),
+        watchPartyThemes: Boolean(entitlements.watchPartyThemes),
+        watchPartyReactions: Boolean(entitlements.watchPartyReactions),
+        earlyAccess: Boolean(entitlements.earlyAccess),
       },
     });
   } catch (error) {
@@ -558,7 +575,15 @@ export async function POST(request: Request) {
         premium: allowed,
         profileStudio: Boolean(entitlements.profileStudio),
         premiumThemes: Boolean(entitlements.premiumThemes),
-        animatedMedia: Boolean(entitlements.animatedAvatar),
+        profileScene: Boolean(entitlements.profileScene),
+        animatedMedia: Boolean(entitlements.animatedAvatar || entitlements.animatedBanner),
+        profileLayouts: Boolean(entitlements.profileLayouts),
+        nicknameEffects: Boolean(entitlements.nicknameEffects),
+        advancedStats: Boolean(entitlements.advancedStats),
+        extendedHistory: Boolean(entitlements.extendedHistory),
+        watchPartyThemes: Boolean(entitlements.watchPartyThemes),
+        watchPartyReactions: Boolean(entitlements.watchPartyReactions),
+        earlyAccess: Boolean(entitlements.earlyAccess),
       },
     });
   } catch (error) {
