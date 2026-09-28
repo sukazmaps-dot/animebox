@@ -154,4 +154,23 @@ mustInclude(friendsServer, 'premium: appearance?.premiumBadge ?? false', 'Premiu
 const leaderboardApi = read('app/api/community/leaderboard/route.ts');
 mustInclude(leaderboardApi, 'premium: appearance?.premiumBadge ?? false', 'Premium leaderboard identity');
 
+const productEventNames = read('lib/product-event-names.ts');
+for (const eventName of [
+  'premium_scene_saved',
+  'premium_stats_view',
+  'premium_year_review_view',
+  'premium_showcase_saved',
+  'premium_watch_party_theme_selected',
+  'premium_reaction_used',
+]) {
+  mustInclude(productEventNames, `'${eventName}'`, 'Premium adoption telemetry');
+}
+
+const productAnalyticsServer = read('lib/product-analytics-server.ts');
+mustInclude(productAnalyticsServer, 'summarizePremiumSurfaces', 'Premium adoption aggregation');
+mustInclude(productAnalyticsServer, 'loadPremiumSurfaceRows', 'Premium adoption event loading');
+
+const productAnalyticsDashboard = read('components/admin/ProductAnalyticsDashboard.tsx');
+mustInclude(productAnalyticsDashboard, 'PREMIUM 2.0 · FEATURE ADOPTION', 'Premium adoption admin surface');
+
 console.log('Patch 20.2 Premium 2.0 contract checks passed.');
