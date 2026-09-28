@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
 import type { PremiumStatsPayload } from '@/lib/premium-stats';
+import { trackProductClientEvent } from '@/lib/product-events-client';
 
 type LoadState =
   | { status: 'loading' }
@@ -30,9 +31,21 @@ export default function PremiumYearReviewClient() {
           );
         }
 
+        const data = payload as PremiumStatsPayload;
         setState({
           status: 'ready',
-          data: payload as PremiumStatsPayload,
+          data,
+        });
+        trackProductClientEvent('premium_year_review_view', {
+          source: 'premium_year_review',
+          path: '/premium/year',
+          entityType: 'premium_feature',
+          entityId: String(data.yearReview.year),
+          metadata: {
+            episodes: data.yearReview.episodes,
+            titles: data.yearReview.titles,
+            active_days: data.yearReview.activeDays,
+          },
         });
       })
       .catch((error) => {
