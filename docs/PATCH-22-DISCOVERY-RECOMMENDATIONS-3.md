@@ -561,3 +561,84 @@ Patch 22 is complete when:
 - all recommendation regression gates pass;
 - production build passes;
 - admin analytics can compare recommendation quality by algorithm version.
+
+
+---
+
+## 21. Current implementation status
+
+### Phase A — Exposure / Fatigue Foundation
+Status: **implemented / under CI**
+
+Implemented:
+- `22.0-v1` recommendation model/version attribution;
+- bounded 30-day exposure model;
+- 7-day and 30-day impression counters;
+- six-day half-life recency decay;
+- first impression is free from fatigue;
+- repeated unanswered impressions create a bounded ranking penalty;
+- recent opens reduce fatigue;
+- positive actions clear fatigue;
+- exposure map is built once per ranking invocation;
+- fatigue diagnostics are propagated into recommendation events;
+- runtime regression matrix added to `patch22:check`.
+
+### Phase B — Session Intent
+Status: **implemented foundation / under CI**
+
+Implemented:
+- 72-hour recent-watch session window;
+- 18-hour half-life;
+- maximum eight recent titles;
+- bounded recent genre vector;
+- recent preferred episode-count estimate;
+- ongoing-vs-finished preference;
+- session confidence;
+- per-candidate session-intent affinity;
+- separate versioned ranking component;
+- evidence-based "Похоже на то, что ты смотришь сейчас" explanation;
+- telemetry for session-intent score/confidence;
+- runtime regression matrix.
+
+### Phase C — Completion-oriented ranking
+Status: **implemented foundation / under CI**
+
+Implemented:
+- bounded continuation/completion heuristic score;
+- completed-affinity, taste-fit, length-fit, community quality,
+  user completion, binge-fit and finished-title inputs;
+- long-title and negative-taste penalties;
+- separate `completionLikelihood` ranking component;
+- completion score attribution in recommendation telemetry;
+- calibration intentionally deferred until production outcome data is available;
+- runtime regression matrix.
+
+### Phase D — Taste Graph 7
+Status: **next**
+
+### Phase E — Franchise Intelligence
+Status: **planned**
+
+### Phase F — Exploration + Hidden Gems
+Status: **planned**
+
+### Phase G — Seasonal Freshness
+Status: **planned**
+
+### Phase H — Structured Feedback 2.0
+Status: **planned**
+
+### Phase I — Explainability 2.0
+Status: **planned**
+
+### Phase J — Diversity Reranker 3.0
+Status: **planned**
+
+### Phase K — Analytics 3.0
+Status: **planned**
+
+### Phase L — Personalized Home Composition
+Status: **planned**
+
+### Phase M — Production hardening
+Status: **planned**
