@@ -122,7 +122,7 @@ mustInclude(
 );
 mustInclude(
   player,
-  '[color-scheme:dark]',
+  "style={{ colorScheme: 'dark' }}",
   'dark native mobile selector',
 );
 mustInclude(
