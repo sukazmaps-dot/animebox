@@ -424,6 +424,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   const [paletteLoading, setPaletteLoading] = useState<'avatar' | 'banner' | ''>('');
   const [previewEpoch, setPreviewEpoch] = useState(0);
   const [previewContext, setPreviewContext] = useState<PremiumPreviewContext>('profile');
+  const [previewFrameKey, setPreviewFrameKey] = useState<string | null>(null);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [studioSection, setStudioSection] = useState<'appearance' | 'atmosphere' | 'effects' | 'media'>('appearance');
   const [mediaEditor, setMediaEditor] = useState<MediaEditorState | null>(null);
@@ -459,6 +460,39 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       active = false;
     };
   }, [initialAllowed, initialSettings]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadFrame = () => {
+      if (!user?.id) {
+        if (active) setPreviewFrameKey(null);
+        return;
+      }
+
+      void fetch('/api/community/leaderboard-rewards', { cache: 'no-store' })
+        .then(async (response) => {
+          const payload = await response.json() as {
+            selectedFrame?: string | null;
+          };
+          if (!response.ok) return;
+          if (active) setPreviewFrameKey(payload.selectedFrame ?? null);
+        })
+        .catch(() => {
+          if (active) setPreviewFrameKey(null);
+        });
+    };
+
+    loadFrame();
+    window.addEventListener('animebox:profile-cosmetic-changed', loadFrame);
+    window.addEventListener('animebox:leaderboard-reward-claimed', loadFrame);
+
+    return () => {
+      active = false;
+      window.removeEventListener('animebox:profile-cosmetic-changed', loadFrame);
+      window.removeEventListener('animebox:leaderboard-reward-claimed', loadFrame);
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     if (allowed !== false || demoTrackedRef.current) return;
@@ -1092,6 +1126,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
             bannerTransform={bannerTransform}
             context={previewContext}
             username={effectiveUsername}
+            profileFrameKey={previewFrameKey}
           />
         </div>
 
@@ -1238,6 +1273,8 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 bannerTransform={bannerTransform}
                 context={previewContext}
                 username={effectiveUsername}
+                profileFrameKey={previewFrameKey}
+            profileFrameKey={previewFrameKey}
               />
             </div>
           </aside>
@@ -1657,6 +1694,9 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                     bannerTransform={bannerTransform}
                     context={previewContext}
                     username={effectiveUsername}
+                    profileFrameKey={previewFrameKey}
+                profileFrameKey={previewFrameKey}
+            profileFrameKey={previewFrameKey}
                   />
                 </div>
 
