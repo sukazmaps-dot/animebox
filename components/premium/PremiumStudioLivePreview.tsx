@@ -64,6 +64,7 @@ export default function PremiumStudioLivePreview({
   bannerUrl,
   avatarTransform,
   bannerTransform,
+  username = 'Твой профиль',
   context = 'profile',
 }: {
   settings: PremiumStudioSettings;
@@ -71,6 +72,7 @@ export default function PremiumStudioLivePreview({
   bannerUrl: string | null;
   avatarTransform: PremiumMediaTransform;
   bannerTransform: PremiumMediaTransform;
+  username?: string;
   context?: PreviewContext;
 }) {
   const renderedSettings = premiumSceneContextSettings(settings, context);
@@ -114,7 +116,7 @@ export default function PremiumStudioLivePreview({
                 className="premium-profile-v21__nickname"
                 data-effect={renderedSettings.nicknameEffect}
               >
-                Твой профиль
+                {username}
               </strong>
               <span aria-label="AnimeBox Premium">✦</span>
             </div>
@@ -199,7 +201,7 @@ export default function PremiumStudioLivePreview({
               className="premium-profile-v21__nickname"
               data-effect={settings.nicknameEffect}
             >
-              Твой профиль
+              {username}
             </span>
           </h3>
 
