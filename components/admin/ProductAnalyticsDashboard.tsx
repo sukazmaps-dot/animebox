@@ -163,6 +163,7 @@ export default function ProductAnalyticsDashboard() {
   const kpis = dashboard?.kpis;
   const premium = dashboard?.funnels.premium;
   const surfaces = dashboard?.retentionSurfaces;
+  const premiumSurfaces = dashboard?.premiumSurfaces;
 
   return (
     <section className={styles.dashboard} aria-label="AnimeBox Product Analytics">
@@ -296,6 +297,65 @@ export default function ProductAnalyticsDashboard() {
                       )}
                     </b>
                     <span>toggles</span>
+                  </div>
+                </article>
+              </div>
+            </section>
+          )}
+
+          {premiumSurfaces && (
+            <section className={styles.retentionSection}>
+              <div className={styles.sectionHead}>
+                <div>
+                  <span>PREMIUM 2.0 · FEATURE ADOPTION</span>
+                  <h2>Что Premium-пользователи реально используют</h2>
+                </div>
+                <small>
+                  {range} дней · {number(premiumSurfaces.sampledEvents)} событий · {number(premiumSurfaces.uniqueUsers)} users
+                  {premiumSurfaces.truncated ? ' · выборка ограничена' : ''}
+                </small>
+              </div>
+
+              <div className={styles.surfaceGrid}>
+                <article className={styles.surfaceCard}>
+                  <span>PROFILE SCENE</span>
+                  <strong>{number(premiumSurfaces.sceneSaves)}</strong>
+                  <small>сохранений Scene</small>
+                  <div className={styles.surfaceMeta}>
+                    <b>{number(premiumSurfaces.sceneDemoViews)}</b>
+                    <span>demo views</span>
+                    <b>{number(premiumSurfaces.scenePresetSelections)}</b>
+                    <span>preset selects</span>
+                  </div>
+                </article>
+
+                <article className={styles.surfaceCard}>
+                  <span>ADVANCED STATS</span>
+                  <strong>{number(premiumSurfaces.statsViews)}</strong>
+                  <small>открытий статистики</small>
+                  <div className={styles.surfaceMeta}>
+                    <b>{number(premiumSurfaces.yearReviewViews)}</b>
+                    <span>Year in Review</span>
+                  </div>
+                </article>
+
+                <article className={styles.surfaceCard}>
+                  <span>PROFILE SHOWCASE</span>
+                  <strong>{number(premiumSurfaces.showcaseSaves)}</strong>
+                  <small>сохранений витрины</small>
+                  <div className={styles.surfaceMeta}>
+                    <b>{number(premiumSurfaces.uniqueUsers)}</b>
+                    <span>Premium feature users</span>
+                  </div>
+                </article>
+
+                <article className={styles.surfaceCard}>
+                  <span>WATCH TOGETHER+</span>
+                  <strong>{number(premiumSurfaces.roomThemeSelections)}</strong>
+                  <small>выборов Premium-тем комнат</small>
+                  <div className={styles.surfaceMeta}>
+                    <b>{number(premiumSurfaces.premiumReactions)}</b>
+                    <span>Premium reactions</span>
                   </div>
                 </article>
               </div>
