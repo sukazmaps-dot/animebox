@@ -43,6 +43,7 @@ for (const [label, needle] of [
   ['opening seek watch-integrity signal', 'watchSession.onProviderSkip'],
   ['opening boundary debounce', 'openingAutoSkipCandidateRef.current'],
   ['opening trigger window', 'AUTO_OPENING_TRIGGER_WINDOW_SECONDS = 1.5'],
+  ['opening trigger debounce', 'AUTO_OPENING_CONFIRM_MS = 900'],
   ['ending completion guard copy', 'Автопереход начнётся только после фактического завершения видео.'],
   ['ending cancel action', 'cancelEndingAutoNext'],
 ]) {
