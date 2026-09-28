@@ -263,10 +263,10 @@ export default function ProfileWidgetEditor({
           >
             <div className="profile-widgets-editor__top">
               <div>
-                <span>PROFILE IDENTITY</span>
-                <h2 id="profile-widgets-editor-title">Настрой профиль под себя</h2>
+                <span>ВИТРИНА ПРОФИЛЯ</span>
+                <h2 id="profile-widgets-editor-title">Собери свою витрину</h2>
                 <p>
-                  Выбери, что показывать другим пользователям, расставь блоки и закрепи любимые аниме.
+                  Выбери, какие блоки показывать в профиле, расставь их по порядку и закрепи любимые аниме.
                 </p>
               </div>
               {!embedded && (
