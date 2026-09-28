@@ -339,7 +339,7 @@ export default function PremiumClient() {
               className={`premium-status premium-status--active ${lifecycle.state === 'grace_period' ? 'premium-status--grace' : ''}`}
             >
               <div>
-                <span>{lifecycle.state === 'grace_period' ? 'PREMIUM GRACE' : 'PREMIUM ACTIVE'}</span>
+                <span>{lifecycle.state === 'grace_period' ? 'PREMIUM · ОЖИДАЕМ ПРОДЛЕНИЕ' : 'PREMIUM АКТИВЕН'}</span>
                 <strong>
                   {lifecycle.state === 'grace_period'
                     ? 'Premium временно сохранён'
