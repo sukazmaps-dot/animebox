@@ -339,7 +339,8 @@ export default function ProfileDirectEditSurface({
                   data-selected={target === 'username' ? 'true' : 'false'}
                   onClick={openUsername}
                 >
-                  {username.trim() || 'Пользователь'} <span>✎</span>
+                  <strong className={styles.nameValue}>{username.trim() || 'Пользователь'}</strong>
+                  <span className={styles.editGlyph}>✎</span>
                 </button>
               )}
 
