@@ -195,8 +195,8 @@
 }
 
 .avatarShell[data-milestone='true'] > img {
-  width: 56%;
-  height: 56%;
+  width: 68%;
+  height: 68%;
 }
 
 .avatarFrame {
@@ -220,11 +220,11 @@
 
 .avatarEdit {
   position: absolute;
-  right: 7px;
-  bottom: 7px;
-  z-index: 18;
-  width: 29px;
-  height: 29px;
+  right: -2px;
+  bottom: 1px;
+  z-index: 28;
+  width: 27px;
+  height: 27px;
   display: grid;
   place-items: center;
   border: 3px solid #0c1121;
@@ -1188,5 +1188,42 @@
   .nameButton span,
   .bioButton span {
     transition: none !important;
+  }
+}
+
+
+/* Patch 20.3.14 — framed avatar aperture */
+.avatarShell[data-milestone='true'] {
+  inset: 7px;
+}
+
+.avatarShell[data-milestone='true'] .avatarFrame {
+  inset: -3px !important;
+}
+
+.avatarButton[data-selected='true'] .avatarEdit,
+.avatarButton:hover .avatarEdit {
+  transform: translate(2px, 1px) scale(1.04);
+}
+
+@media (max-width: 620px) {
+  .avatarShell[data-milestone='true'] {
+    inset: 4px;
+  }
+
+  .avatarShell[data-milestone='true'] > img {
+    width: 70%;
+    height: 70%;
+  }
+
+  .avatarShell[data-milestone='true'] .avatarFrame {
+    inset: -2px !important;
+  }
+
+  .avatarEdit {
+    right: -2px;
+    bottom: 0;
+    width: 24px;
+    height: 24px;
   }
 }
