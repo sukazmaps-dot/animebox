@@ -730,3 +730,128 @@
     padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
 }
+
+
+/* =========================================================
+   Patch 20.4.1 — Mobile player geometry hardening
+   Portrait Watch Together must never derive video height from an
+   indefinite flex/grid ancestor. The media viewport owns its 16:9
+   geometry and therefore always contributes a positive block size.
+   ========================================================= */
+@media (max-width: 768px) and (orientation: portrait) {
+  .content {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: start;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .playerColumn {
+    width: 100%;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    align-self: start;
+    overflow: visible;
+  }
+
+  .playerWrap {
+    width: 100%;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    box-sizing: border-box;
+  }
+
+  :global(.watch-together-player-root),
+  :global(.watch-together-player-mount) {
+    width: 100%;
+    height: auto !important;
+    min-width: 0;
+    min-height: 0;
+    max-height: none;
+  }
+
+  :global(.animebox-premium-player.watch-together-player) {
+    width: 100%;
+    height: auto !important;
+    min-height: 0;
+    max-height: none;
+    grid-template-rows: auto auto auto auto;
+    align-content: start;
+    overflow: visible;
+  }
+
+  :global(.watch-together-player .watch-together-player-stage-shell) {
+    display: block;
+    width: 100%;
+    height: auto !important;
+    min-width: 0;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    /*
+     * size containment suppresses intrinsic block-size contribution.
+     * Inline-size containment keeps container queries available without
+     * allowing the 16:9 child to collapse the grid row to zero.
+     */
+    container-type: inline-size;
+  }
+
+  :global(.watch-together-player .watch-together-player-viewport) {
+    position: relative;
+    display: block;
+    width: 100% !important;
+    height: auto !important;
+    min-width: 0;
+    min-height: clamp(190px, calc((100vw - 26px) * 9 / 16), 280px);
+    max-width: 100%;
+    max-height: none;
+    aspect-ratio: 16 / 9 !important;
+    overflow: hidden;
+    flex: none;
+    background: #000;
+  }
+
+  /* Cross-origin iframe and native/direct video fill the now definite
+     viewport instead of trying to establish their own height. */
+  :global(.watch-together-player .watch-together-player-viewport > iframe),
+  :global(.watch-together-player .watch-together-player-viewport > video),
+  :global(.watch-together-player .watch-together-player-viewport > div) {
+    max-width: 100%;
+  }
+
+  :global(.watch-together-player .watch-together-player-nav) {
+    position: relative;
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 6px;
+    margin: 0;
+    padding: 6px;
+    box-sizing: border-box;
+  }
+
+  :global(.watch-together-player .watch-together-player-nav > div) {
+    display: none;
+  }
+
+  :global(.watch-together-player .watch-together-player-nav > button) {
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    height: 40px;
+    margin: 0;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 420px) and (orientation: portrait) {
+  :global(.watch-together-player .watch-together-player-viewport) {
+    min-height: max(190px, calc((100vw - 22px) * 9 / 16));
+  }
+}
