@@ -19,6 +19,7 @@ import CurrentPremiumBadge from '@/components/premium/CurrentPremiumBadge';
 import PremiumProfileAtmosphere from '@/components/premium/PremiumProfileAtmosphere';
 import {
   DEFAULT_PREMIUM_STUDIO_SETTINGS,
+  premiumBannerStyle,
   premiumMediaStyle,
   premiumStudioCssVariables,
   type PremiumStudioSettings,
@@ -353,6 +354,7 @@ export default function ProfilePage() {
       data-premium-hero={premiumIdentityActive ? appearance.premiumStudio?.heroStyle : undefined}
       data-premium-surface={premiumIdentityActive ? appearance.premiumStudio?.surfaceStyle : undefined}
       data-premium-layout={premiumIdentityActive ? appearance.premiumStudio?.profileLayout : undefined}
+      data-premium-banner-height={premiumIdentityActive ? appearance.premiumStudio?.bannerHeightMode : undefined}
     >
       {premiumIdentityActive && appearance.premiumStudio && (
         <PremiumProfileAtmosphere
@@ -382,7 +384,12 @@ export default function ProfilePage() {
                 }
                 alt="Баннер профиля"
                 className="profile-v2__banner-image"
-                style={premiumMediaStyle(appearance.bannerTransform) as CSSProperties}
+                style={
+                  premiumBannerStyle(
+                    premiumIdentityActive ? appearance.premiumStudio : null,
+                    appearance.bannerTransform,
+                  ) as CSSProperties
+                }
               />
             </picture>
           ) : (
