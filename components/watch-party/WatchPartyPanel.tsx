@@ -65,6 +65,7 @@ import {
 
 import {
   WATCH_PARTY_THEME_META,
+  isPremiumWatchPartyReaction,
   type WatchPartyTheme,
 } from '@/lib/watch-party-premium';
 
@@ -85,6 +86,7 @@ type RoomPublicIdentity = {
   avatarUrl: string;
   avatarTransform: PremiumMediaTransform;
   premium: boolean;
+  watchPartyReactions: boolean;
   role: PublicIdentityRole;
   sponsor: SponsorStatus | null;
 };
@@ -128,13 +130,20 @@ const HOST_STALE_MS = 75_000;
 const P2P_ACCELERATOR_GUEST_LIMIT = 6;
 const REACTION_COOLDOWN_MS = 850;
 
-const REACTION_OPTIONS: Array<{ value: WatchPartyReaction; label: string }> = [
+const REACTION_OPTIONS: Array<{
+  value: WatchPartyReaction;
+  label: string;
+  premium?: boolean;
+}> = [
   { value: 'love', label: '❤️' },
   { value: 'cry', label: '😭' },
   { value: 'fire', label: '🔥' },
   { value: 'wow', label: '😳' },
   { value: 'dead', label: '💀' },
   { value: 'peak', label: 'PEAK' },
+  { value: 'sparkle', label: '✨', premium: true },
+  { value: 'clap', label: '👏', premium: true },
+  { value: 'cinema', label: '🎬', premium: true },
 ];
 
 const EMPTY_VOTE_STATE: WatchPartyVoteState = {
@@ -233,6 +242,7 @@ export default function WatchPartyPanel({
   const hostConnectionsRef = useRef(new Map<string, DataConnection>());
   const pendingHostConnectionsRef = useRef(new Set<string>());
   const participantsRef = useRef(new Map<string, WatchPartyParticipant>());
+  const roomIdentitiesRef = useRef<Record<string, RoomPublicIdentity>>({});
   const inviteRef = useRef<WatchPartyInvite | null>(null);
   const roleRef = useRef<PartyRole>(null);
   const statusRef = useRef<PartyStatus>('idle');
@@ -442,6 +452,7 @@ export default function WatchPartyPanel({
             if (!identity?.userId) continue;
             next[identity.userId] = identity;
           }
+          roomIdentitiesRef.current = next;
           return next;
         });
       })
@@ -502,6 +513,13 @@ export default function WatchPartyPanel({
     id: string,
     reaction: WatchPartyReaction,
   ) => {
+    if (
+      isPremiumWatchPartyReaction(reaction) &&
+      !roomIdentitiesRef.current[participant.userId]?.watchPartyReactions
+    ) {
+      return;
+    }
+
     const event: WatchPartyReactionEvent = {
       id,
       userId: participant.userId,
@@ -3396,6 +3414,10 @@ export default function WatchPartyPanel({
     participants.length,
     authoritativeParticipantCount,
   );
+  const selfIdentity = identityRef.current
+    ? roomIdentities[identityRef.current.userId]
+    : null;
+  const premiumReactionsAllowed = Boolean(selfIdentity?.watchPartyReactions);
   const label = statusLabel(status, role, displayedParticipantCount);
 
   return (
@@ -3633,17 +3655,29 @@ export default function WatchPartyPanel({
 
         <div className={styles.socialBar}>
           <div className={styles.reactions} aria-label="Быстрые реакции">
-            {REACTION_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => sendReaction(option.value)}
-                disabled={status !== 'active'}
-                aria-label={`Реакция ${option.value}`}
-              >
-                {option.label}
-              </button>
-            ))}
+            {REACTION_OPTIONS.map((option) => {
+              const locked = Boolean(option.premium && !premiumReactionsAllowed);
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  data-premium={option.premium ? 'true' : undefined}
+                  data-locked={locked ? 'true' : undefined}
+                  onClick={() => sendReaction(option.value)}
+                  disabled={status !== 'active' || locked}
+                  aria-label={
+                    locked
+                      ? `Premium-реакция ${option.value}`
+                      : `Реакция ${option.value}`
+                  }
+                  title={locked ? 'AnimeBox Premium reaction pack' : undefined}
+                >
+                  {option.label}
+                  {option.premium && <small aria-hidden="true">✦</small>}
+                </button>
+              );
+            })}
           </div>
 
           <div className={styles.voteBox}>
