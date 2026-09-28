@@ -351,7 +351,7 @@ export default function ProfileDirectEditSurface({
               >
                 <span className={styles.frameDot} />
                 {activeFrameLabel}
-                {isLevelFrameKey(selectedFrame) && premiumActive && <b>PREMIUM-АНИМАЦИЯ</b>}
+                {isLevelFrameKey(selectedFrame) && premiumActive && <b>АНИМАЦИЯ PREMIUM</b>}
               </button>
 
               {editingBio ? (
@@ -630,7 +630,7 @@ export default function ProfileDirectEditSurface({
                           <small>
                             {frame.kind === 'level'
                               ? premiumActive
-                                ? 'Уровневая · Premium-анимация включена'
+                                ? 'Уровневая · анимация Premium включена'
                                 : 'Уровневая · статичная версия'
                               : expiry
                                 ? `Лига · до ${expiry}`
@@ -673,7 +673,7 @@ export default function ProfileDirectEditSurface({
               <div className={styles.premiumFrameCard} data-active={premiumActive ? 'true' : 'false'}>
                 <Icon name="crown" size={20} />
                 <div>
-                  <strong>{premiumActive ? 'Premium-анимация активен' : 'Premium оживляет уровневые рамки'}</strong>
+                  <strong>{premiumActive ? 'Анимация Premium активна' : 'Premium добавляет анимацию к уровневым рамкам'}</strong>
                   <p>
                     {premiumActive
                       ? 'Открытая уровнем рамка получает анимацию, свечение и дополнительные эффекты.'
