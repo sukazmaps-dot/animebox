@@ -159,6 +159,7 @@ export default async function PublicProfilePage({ params }: Props) {
                         username={profile.username}
                         role={profile.role}
                         sponsor={profile.sponsor}
+                        premium={profile.premium}
                         showLabel
                       />
                     </span>
