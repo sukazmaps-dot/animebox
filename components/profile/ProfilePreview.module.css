@@ -1332,3 +1332,49 @@ html[data-animebox-theme='light'] .close {
   outline: 2px solid color-mix(in srgb, var(--profile-preview-accent, #7c4dff) 72%, white 28%);
   outline-offset: 3px;
 }
+
+
+/* Patch 20.3.14 — Premium Banner Director in mini-profile */
+.card[data-banner-height='compact'] .banner {
+  height: 88px;
+}
+
+.card[data-banner-height='standard'] .banner {
+  height: 108px;
+}
+
+.card[data-banner-height='cinema'] .banner {
+  height: 132px;
+}
+
+.card[data-banner-height='immersive'] .banner {
+  height: 148px;
+}
+
+.card[data-premium='true'] .banner::after {
+  background:
+    linear-gradient(
+      180deg,
+      transparent 26%,
+      rgb(4 6 12 / calc(var(--profile-preview-banner-shade, .62) * .22)) 60%,
+      rgb(7 10 18 / var(--profile-preview-banner-shade, .62)) 100%
+    );
+}
+
+@media (max-width: 640px) {
+  .card[data-banner-height='compact'] .banner {
+    height: 88px;
+  }
+
+  .card[data-banner-height='standard'] .banner {
+    height: 100px;
+  }
+
+  .card[data-banner-height='cinema'] .banner {
+    height: 118px;
+  }
+
+  .card[data-banner-height='immersive'] .banner {
+    height: 128px;
+  }
+}
