@@ -118,6 +118,7 @@ async function enrichAuthors(
             avatarTransform: appearance?.avatarTransform ?? null,
             ogNumber: ogByUser.get(profile.id) ?? null,
             sponsor: sponsorByUser.get(profile.id) ?? null,
+            premium: appearance?.premiumBadge ?? false,
             role: publicIdentityRoleFor(profile.id),
           },
         ] as const;
