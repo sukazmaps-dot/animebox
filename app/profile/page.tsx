@@ -352,6 +352,7 @@ export default function ProfilePage() {
       data-premium-entrance={premiumIdentityActive ? appearance.premiumStudio?.entranceEffect : undefined}
       data-premium-hero={premiumIdentityActive ? appearance.premiumStudio?.heroStyle : undefined}
       data-premium-surface={premiumIdentityActive ? appearance.premiumStudio?.surfaceStyle : undefined}
+      data-premium-layout={premiumIdentityActive ? appearance.premiumStudio?.profileLayout : undefined}
     >
       {premiumIdentityActive && appearance.premiumStudio && (
         <PremiumProfileAtmosphere
