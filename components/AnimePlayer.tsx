@@ -716,12 +716,14 @@ export default function AnimePlayer({
   ) => {
     if (detail.episode !== episodeNumber) return;
 
-    if (
-      remote &&
-      detail.seq > 0 &&
-      detail.seq <= lastAppliedPartyCommandSeqRef.current
-    ) {
-      return;
+    const syncCorrection = detail.commandKind === 'sync';
+
+    if (remote && detail.seq > 0) {
+      const staleSequence = syncCorrection
+        ? detail.seq < lastAppliedPartyCommandSeqRef.current
+        : detail.seq <= lastAppliedPartyCommandSeqRef.current;
+
+      if (staleSequence) return;
     }
 
     if (remote) partySuppressUntilRef.current = Date.now() + 2_800;
@@ -753,7 +755,10 @@ export default function AnimePlayer({
         player.pause();
       }
 
-      if (remote && detail.seq > 0) {
+      if (
+        remote &&
+        detail.seq > lastAppliedPartyCommandSeqRef.current
+      ) {
         lastAppliedPartyCommandSeqRef.current = detail.seq;
       }
 
