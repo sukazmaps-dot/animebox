@@ -257,7 +257,7 @@ export const PREMIUM_PROFILE_THEME_META: Record<
     textColor: '#FFF7FF',
   },
   midnight: {
-    label: 'Midnight',
+    label: 'Полночь',
     description: 'Холодный ночной профиль с синим неоновым акцентом.',
     primaryColor: '#081426',
     accentColor: '#4F8CFF',
