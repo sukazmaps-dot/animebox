@@ -183,7 +183,8 @@ mustInclude(directProfileCss, 'width: 152px', 'desktop editor avatar size');
 mustInclude(directProfileCss, 'grid-template-columns: 104px minmax(0, 1fr)', 'mobile editor avatar column');
 
 const globalsCss = read('app/globals.css');
-mustInclude(globalsCss, '.profile-v2__avatar-wrap,\n.profile-avatar-editor__button', 'legacy avatar selector comma fix');
+mustNotInclude(globalsCss, '.profile-v2__avatar-wrap\n.profile-avatar-editor__button', 'legacy descendant avatar selector');
+mustInclude(globalsCss, '.profile-avatar-editor__button {', 'legacy avatar editor isolation');
 mustInclude(globalsCss, 'margin-top: -76px', 'desktop profile avatar overlap');
 
 console.log('Patch 20.2 Premium 2.0 contract checks passed.');
