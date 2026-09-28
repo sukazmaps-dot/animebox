@@ -10,6 +10,7 @@ export const RECOMMENDATION_RANKING_WEIGHTS = {
   studioAffinity: 0.08,
   tasteGraphNegative: 0.32,
   sessionNegativeAffinity: 0.26,
+  sessionIntent: 0.16,
   episodeLength: 0.07,
   mood: {
     personalized: 0.18,
@@ -56,6 +57,7 @@ export type RecommendationScoreSignals = {
   studioAffinity: number;
   tasteGraphNegative: number;
   sessionNegativeAffinity: number;
+  sessionIntent: number;
   episodeLength: number;
   mood: number;
   communityQuality: number;
@@ -75,6 +77,7 @@ export type RecommendationScoreComponents = {
   studioAffinity: number;
   tasteGraphNegative: number;
   sessionNegativeAffinity: number;
+  sessionIntent: number;
   episodeLength: number;
   mood: number;
   communityQuality: number;
@@ -125,6 +128,8 @@ export function scoreRecommendation(
       -finite(signals.tasteGraphNegative) * weights.tasteGraphNegative,
     sessionNegativeAffinity:
       -finite(signals.sessionNegativeAffinity) * weights.sessionNegativeAffinity,
+    sessionIntent:
+      finite(signals.sessionIntent) * weights.sessionIntent,
     episodeLength:
       finite(signals.episodeLength) *
       (context.hasTasteConfidence ? weights.episodeLength : 0),
