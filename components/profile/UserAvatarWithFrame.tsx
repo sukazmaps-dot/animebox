@@ -122,7 +122,7 @@ export default function UserAvatarWithFrame({
 
   return (
     <div
-      className={`profile-v2__avatar-wrap relative isolate h-[88px] w-[88px] shrink-0 overflow-visible sm:h-[116px] sm:w-[116px] ${className}`.trim()}
+      className={`profile-v2__avatar-wrap relative isolate h-[108px] w-[108px] shrink-0 overflow-visible sm:h-[152px] sm:w-[152px] ${className}`.trim()}
       data-avatar-frame={visuals.dataFrameKey}
     >
       <div
