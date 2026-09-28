@@ -247,6 +247,22 @@ function animeStudioNames(
   )].slice(0, 12);
 }
 
+function animeCatalogFinishedStatus(status: string | null | undefined) {
+  const normalized = String(status ?? '')
+    .normalize('NFKC')
+    .toLocaleLowerCase('ru-RU')
+    .replace(/ё/g, 'е')
+    .trim();
+
+  return [
+    'finished',
+    'finished_airing',
+    'released',
+    'вышло',
+    'завершено',
+  ].includes(normalized);
+}
+
 function animeCatalogPayload(
   anime: NonNullable<Awaited<ReturnType<typeof getAnimeByIdWithShikimori>>>,
   previous?: Partial<AnimeCatalogMetadata>,
@@ -267,9 +283,7 @@ function animeCatalogPayload(
       anime.episodes && anime.episodes > 0
         ? anime.episodes
         : null,
-    finished: ['FINISHED', 'released', 'Вышло'].includes(
-      anime.status ?? '',
-    ),
+    finished: animeCatalogFinishedStatus(anime.status),
     genres: [
       ...new Set([
         ...(Array.isArray(previous?.genres) ? previous.genres : []),
