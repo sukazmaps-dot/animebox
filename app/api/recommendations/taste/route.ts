@@ -5,6 +5,7 @@ import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import {
   TASTE_GRAPH_VERSION,
   normalizeTasteToken,
+  tasteEraBucket,
   type TasteGraph,
   type TasteMoodWeightKey,
 } from '@/lib/taste-graph';
@@ -16,7 +17,11 @@ export const dynamic = 'force-dynamic';
 type CatalogRow = {
   id: number;
   genres: string[] | null;
+  studios: string[] | null;
+  format: string | null;
+  start_year: number | null;
   total_episodes: number | null;
+  finished: boolean;
 };
 
 type LibraryRow = {
@@ -242,7 +247,7 @@ export async function GET(request: Request) {
       const batch = ids.slice(offset, offset + 250);
       const { data, error } = await admin
         .from('anime_catalog')
-        .select('id,genres,total_episodes')
+        .select('id,genres,studios,format,start_year,total_episodes,finished')
         .in('id', batch);
 
       if (error) {
@@ -259,9 +264,19 @@ export async function GET(request: Request) {
     const positive = new Map<string, number>();
     const negative = new Map<string, number>();
     const completedPositive = new Map<string, number>();
+    const studioPositive = new Map<string, number>();
+    const studioNegative = new Map<string, number>();
+    const formatPositive = new Map<string, number>();
+    const formatNegative = new Map<string, number>();
+    const eraPositive = new Map<string, number>();
+    const eraNegative = new Map<string, number>();
     const moodPreference = new Map<TasteMoodWeightKey, number>();
     const positiveEpisodeCounts: number[] = [];
     const completedByAnime = new Map<number, number>();
+    let positiveFinishedWeight = 0;
+    let positiveOngoingWeight = 0;
+    let negativeFinishedWeight = 0;
+    let negativeOngoingWeight = 0;
 
     for (const item of history) {
       const animeId = Number(item.anime_id);
@@ -284,6 +299,33 @@ export async function GET(request: Request) {
         const genre = normalizeTasteToken(rawGenre);
         if (!genre) continue;
         target.set(genre, (target.get(genre) ?? 0) + weight);
+      }
+
+      const studioTarget = negativeSignal ? studioNegative : studioPositive;
+      for (const rawStudio of row.studios ?? []) {
+        const studio = normalizeTasteToken(rawStudio);
+        if (!studio) continue;
+        studioTarget.set(studio, (studioTarget.get(studio) ?? 0) + weight);
+      }
+
+      const format = normalizeTasteToken(row.format ?? '');
+      if (format) {
+        const formatTarget = negativeSignal ? formatNegative : formatPositive;
+        formatTarget.set(format, (formatTarget.get(format) ?? 0) + weight);
+      }
+
+      const era = tasteEraBucket(row.start_year);
+      if (era) {
+        const eraTarget = negativeSignal ? eraNegative : eraPositive;
+        eraTarget.set(era, (eraTarget.get(era) ?? 0) + weight);
+      }
+
+      if (negativeSignal) {
+        if (row.finished) negativeFinishedWeight += weight;
+        else negativeOngoingWeight += weight;
+      } else {
+        if (row.finished) positiveFinishedWeight += weight;
+        else positiveOngoingWeight += weight;
       }
 
       if (
@@ -435,7 +477,34 @@ export async function GET(request: Request) {
     const genreWeights = normalizeWeights(positive);
     const negativeGenreWeights = normalizeWeights(negative);
     const completedGenreWeights = normalizeWeights(completedPositive);
+    const studioWeights = normalizeWeights(studioPositive);
+    const negativeStudioWeights = normalizeWeights(studioNegative);
+    const formatWeights = normalizeWeights(formatPositive);
+    const negativeFormatWeights = normalizeWeights(formatNegative);
+    const eraWeights = normalizeWeights(eraPositive);
+    const negativeEraWeights = normalizeWeights(eraNegative);
     const moodWeights = normalizeMoodWeights(moodPreference);
+
+    const adjustedFinishedWeight = Math.max(
+      0,
+      positiveFinishedWeight - negativeFinishedWeight * 0.55,
+    );
+    const adjustedOngoingWeight = Math.max(
+      0,
+      positiveOngoingWeight - negativeOngoingWeight * 0.55,
+    );
+    const statusWeightTotal = adjustedFinishedWeight + adjustedOngoingWeight;
+    const finishedPreference =
+      statusWeightTotal >= 0.4
+        ? clamp(adjustedFinishedWeight / statusWeightTotal)
+        : null;
+
+    const metadataCoverage = {
+      studios: catalogRows.filter((row) => (row.studios?.length ?? 0) > 0).length,
+      formats: catalogRows.filter((row) => Boolean(row.format?.trim())).length,
+      years: catalogRows.filter((row) => tasteEraBucket(row.start_year) != null).length,
+      statuses: catalogRows.length,
+    };
 
     const libraryIds = library
       .map((item) => Number(item.anime_id))
@@ -569,6 +638,14 @@ export async function GET(request: Request) {
       genreWeights,
       negativeGenreWeights,
       completedGenreWeights,
+      studioWeights,
+      negativeStudioWeights,
+      formatWeights,
+      negativeFormatWeights,
+      eraWeights,
+      negativeEraWeights,
+      finishedPreference,
+      metadataCoverage,
       excludedAnimeIds,
       completedAnimeIds,
       droppedAnimeIds,
