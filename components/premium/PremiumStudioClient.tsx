@@ -73,6 +73,9 @@ type PremiumStudioClientProps = {
   hideDock?: boolean;
   initialSettings?: PremiumStudioSettings | null;
   initialAllowed?: boolean | null;
+  previewUsername?: string;
+  fallbackAvatarUrl?: string | null;
+  fallbackBannerUrl?: string | null;
   onDirtyChange?: (dirty: boolean) => void;
   onBusyChange?: (busy: boolean) => void;
   onSettingsCommitted?: (settings: PremiumStudioSettings) => void;
@@ -385,6 +388,9 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   hideDock = false,
   initialSettings = null,
   initialAllowed = null,
+  previewUsername,
+  fallbackAvatarUrl = null,
+  fallbackBannerUrl = null,
   onDirtyChange,
   onBusyChange,
   onSettingsCommitted,
@@ -545,6 +551,15 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       ? settings.bannerStaticPath || settings.bannerPath
       : settings.bannerPath || settings.bannerStaticPath,
   );
+  const effectiveAvatarUrl =
+    avatarUrl ||
+    fallbackAvatarUrl ||
+    publicMediaUrl(authProfile?.avatar_path ?? null);
+  const effectiveBannerUrl = bannerUrl || fallbackBannerUrl;
+  const effectiveUsername =
+    previewUsername?.trim() ||
+    authProfile?.username?.trim() ||
+    'Твой профиль';
   const avatarTransform = {
     x: settings.avatarPositionX,
     y: settings.avatarPositionY,
@@ -1071,11 +1086,12 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
           <PremiumStudioLivePreview
             key={`demo:${previewEpoch}:${previewContext}`}
             settings={settings}
-            avatarUrl={avatarUrl}
-            bannerUrl={bannerUrl}
+            avatarUrl={effectiveAvatarUrl}
+            bannerUrl={effectiveBannerUrl}
             avatarTransform={avatarTransform}
             bannerTransform={bannerTransform}
             context={previewContext}
+                username={effectiveUsername}
           />
         </div>
 
@@ -1216,11 +1232,12 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
               <PremiumStudioLivePreview
                 key={`${previewEpoch}:${previewContext}`}
                 settings={settings}
-                avatarUrl={avatarUrl}
-                bannerUrl={bannerUrl}
+                avatarUrl={effectiveAvatarUrl}
+                bannerUrl={effectiveBannerUrl}
                 avatarTransform={avatarTransform}
                 bannerTransform={bannerTransform}
                 context={previewContext}
+                username={effectiveUsername}
               />
             </div>
           </aside>
@@ -1634,11 +1651,12 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                   <PremiumStudioLivePreview
                     key={`mobile-${previewEpoch}`}
                     settings={settings}
-                    avatarUrl={avatarUrl}
-                    bannerUrl={bannerUrl}
+                    avatarUrl={effectiveAvatarUrl}
+                    bannerUrl={effectiveBannerUrl}
                     avatarTransform={avatarTransform}
                     bannerTransform={bannerTransform}
                     context={previewContext}
+                username={effectiveUsername}
                   />
                 </div>
 
