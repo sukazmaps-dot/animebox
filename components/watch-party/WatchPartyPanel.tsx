@@ -988,7 +988,7 @@ export default function WatchPartyPanel({
     setNetworkRoute('unknown');
     setSignalingMode('peerjs-cloud');
     setStatus('idle');
-  }, [destroyTransport]);
+  }, [destroyTransport, requestAuthoritativeSync, sendHostSync]);
 
   const tryClaimStaleHost = useCallback(async (invite: WatchPartyInvite) => {
     const identity = identityRef.current;
@@ -2664,6 +2664,12 @@ export default function WatchPartyPanel({
         setNetworkRoute('server');
         setError('');
         setStatus('active');
+
+        if (roleRef.current === 'guest') {
+          requestAuthoritativeSync();
+        } else if (roleRef.current === 'host') {
+          sendHostSync();
+        }
         return;
       }
 
@@ -2936,8 +2942,17 @@ export default function WatchPartyPanel({
       }
 
       setError('');
-      if (roleRef.current === 'guest' && guestTransportRef.current !== 'server') {
-        scheduleGuestReconnectRef.current();
+      if (roleRef.current === 'guest') {
+        if (
+          guestTransportRef.current === 'p2p' &&
+          guestConnectionRef.current?.open
+        ) {
+          requestAuthoritativeSync();
+        } else if (guestTransportRef.current !== 'server') {
+          scheduleGuestReconnectRef.current();
+        }
+      } else if (roleRef.current === 'host') {
+        sendHostSync();
       }
     };
 
@@ -2967,6 +2982,7 @@ export default function WatchPartyPanel({
           if (relayOpen) setNetworkRoute('server');
           setError('');
           setStatus('active');
+          sendHostSync();
           return;
         }
       } else {
@@ -2977,6 +2993,7 @@ export default function WatchPartyPanel({
           if (guestTransportRef.current === 'server') setNetworkRoute('server');
           setError('');
           setStatus('active');
+          requestAuthoritativeSync();
           return;
         }
 
@@ -3019,7 +3036,12 @@ export default function WatchPartyPanel({
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('pageshow', resumeAfterBackground);
     };
-  }, [destroyTransport, ensureHostTimers]);
+  }, [
+    destroyTransport,
+    ensureHostTimers,
+    requestAuthoritativeSync,
+    sendHostSync,
+  ]);
 
   useEffect(() => {
     return () => {
