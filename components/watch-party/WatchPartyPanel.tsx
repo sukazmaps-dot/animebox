@@ -3446,7 +3446,10 @@ export default function WatchPartyPanel({
             <span className={styles.statusDot} data-state={status} aria-hidden="true" />
             <div className={styles.statusText}>
               <strong>{animeTitle}</strong>
-              <span>{episodeNumber} серия · {label}</span>
+              <span>
+                {episodeNumber} серия
+                {mode === 'theater' ? '' : ` · ${label}`}
+              </span>
             </div>
           </div>
           <div className={styles.connectionBadges}>

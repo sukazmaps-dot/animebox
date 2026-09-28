@@ -311,9 +311,14 @@ function PlayerDropdown({
         }}
         onFocus={() => setOpen(false)}
         className="absolute inset-0 z-[60] h-11 w-full cursor-pointer opacity-0 sm:hidden"
+        style={{ colorScheme: 'dark' }}
       >
         {options.map((option) => (
-          <option key={option.id} value={option.id}>
+          <option
+            key={option.id}
+            value={option.id}
+            className="bg-[#090d19] text-white"
+          >
             {option.label}
           </option>
         ))}
@@ -3155,7 +3160,7 @@ export default function AnimePlayer({
 
   return (
     <div
-      className={`relative isolate w-full ${watchTogetherMode ? 'watch-together-player-root h-full min-h-0' : ''} ${theaterMode ? 'z-[10001]' : ''}`}
+      className={`relative isolate w-full ${watchTogetherMode ? 'watch-together-player-root min-h-0' : ''} ${theaterMode ? 'z-[10001]' : ''}`}
     >
       {theaterMode && (
         <button
@@ -3171,7 +3176,7 @@ export default function AnimePlayer({
           theaterMode
             ? 'fixed inset-x-3 top-1/2 z-[10002] max-h-[96vh] -translate-y-1/2 overflow-y-auto md:inset-x-8'
             : watchTogetherMode
-              ? 'watch-together-player-mount h-full min-h-0'
+              ? 'watch-together-player-mount min-h-0'
               : ''
         }
       >

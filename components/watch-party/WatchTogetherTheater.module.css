@@ -140,10 +140,10 @@
 
 .exitButton,
 .chatToggle {
-  min-height: 30px;
-  padding: 0 10px;
+  min-height: 34px;
+  padding: 0 11px;
   border: 1px solid rgba(255, 255, 255, 0.075);
-  border-radius: 9px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.03);
   color: rgba(238, 241, 252, 0.72);
   font-size: 8px;
@@ -151,11 +151,79 @@
   cursor: pointer;
 }
 
+.exitButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-left: 7px;
+  padding-right: 12px;
+  border-color: rgba(167, 139, 250, 0.16);
+  background:
+    linear-gradient(180deg, rgba(139, 92, 246, 0.075), rgba(255, 255, 255, 0.018)),
+    rgba(7, 10, 20, 0.72);
+  color: rgba(235, 232, 255, 0.84);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.035),
+    0 8px 22px rgba(0,0,0,.16);
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.exitButtonIcon {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(167, 139, 250, 0.15);
+  border-radius: 7px;
+  background: rgba(139, 92, 246, 0.08);
+  color: #c9bdff;
+}
+
+.exitButtonIcon svg {
+  width: 13px;
+  height: 13px;
+}
+
+.exitButtonLabel {
+  white-space: nowrap;
+}
+
+.exitButtonLabelCompact {
+  display: none;
+  white-space: nowrap;
+}
+
 .exitButton:hover,
 .chatToggle:hover {
-  border-color: rgba(167, 139, 250, 0.2);
-  background: rgba(139, 92, 246, 0.07);
+  border-color: rgba(167, 139, 250, 0.28);
+  background:
+    linear-gradient(180deg, rgba(139, 92, 246, 0.12), rgba(255, 255, 255, 0.025)),
+    rgba(7, 10, 20, 0.82);
   color: #fff;
+}
+
+.exitButton:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 10px 28px rgba(0,0,0,.22);
+}
+
+.exitButton:active {
+  transform: translateY(0);
+}
+
+.exitButton:focus-visible,
+.chatToggle:focus-visible {
+  outline: 2px solid rgba(167, 139, 250, 0.72);
+  outline-offset: 2px;
 }
 
 .chatToggle {
@@ -444,9 +512,25 @@
   }
 
   .exitButton {
-    min-height: 28px;
-    padding-inline: 8px;
+    min-height: 30px;
+    gap: 5px;
+    padding: 0 7px 0 5px;
     font-size: 7px;
+  }
+
+  .exitButtonIcon {
+    width: 20px;
+    height: 20px;
+    flex-basis: 20px;
+    border-radius: 6px;
+  }
+
+  .exitButtonLabel {
+    display: none;
+  }
+
+  .exitButtonLabelCompact {
+    display: inline;
   }
 
   .content {
@@ -728,5 +812,130 @@
     min-height: 100dvh;
     overflow: visible;
     padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+
+
+/* =========================================================
+   Patch 20.4.1 — Mobile player geometry hardening
+   Portrait Watch Together must never derive video height from an
+   indefinite flex/grid ancestor. The media viewport owns its 16:9
+   geometry and therefore always contributes a positive block size.
+   ========================================================= */
+@media (max-width: 768px) and (orientation: portrait) {
+  .content {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: start;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .playerColumn {
+    width: 100%;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    align-self: start;
+    overflow: visible;
+  }
+
+  .playerWrap {
+    width: 100%;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    box-sizing: border-box;
+  }
+
+  :global(.watch-together-player-root),
+  :global(.watch-together-player-mount) {
+    width: 100%;
+    height: auto !important;
+    min-width: 0;
+    min-height: 0;
+    max-height: none;
+  }
+
+  :global(.animebox-premium-player.watch-together-player) {
+    width: 100%;
+    height: auto !important;
+    min-height: 0;
+    max-height: none;
+    grid-template-rows: auto auto auto auto;
+    align-content: start;
+    overflow: visible;
+  }
+
+  :global(.watch-together-player .watch-together-player-stage-shell) {
+    display: block;
+    width: 100%;
+    height: auto !important;
+    min-width: 0;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    /*
+     * size containment suppresses intrinsic block-size contribution.
+     * Inline-size containment keeps container queries available without
+     * allowing the 16:9 child to collapse the grid row to zero.
+     */
+    container-type: inline-size;
+  }
+
+  :global(.watch-together-player .watch-together-player-viewport) {
+    position: relative;
+    display: block;
+    width: 100% !important;
+    height: auto !important;
+    min-width: 0;
+    min-height: clamp(190px, calc((100vw - 26px) * 9 / 16), 280px);
+    max-width: 100%;
+    max-height: none;
+    aspect-ratio: 16 / 9 !important;
+    overflow: hidden;
+    flex: none;
+    background: #000;
+  }
+
+  /* Cross-origin iframe and native/direct video fill the now definite
+     viewport instead of trying to establish their own height. */
+  :global(.watch-together-player .watch-together-player-viewport > iframe),
+  :global(.watch-together-player .watch-together-player-viewport > video),
+  :global(.watch-together-player .watch-together-player-viewport > div) {
+    max-width: 100%;
+  }
+
+  :global(.watch-together-player .watch-together-player-nav) {
+    position: relative;
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 6px;
+    margin: 0;
+    padding: 6px;
+    box-sizing: border-box;
+  }
+
+  :global(.watch-together-player .watch-together-player-nav > div) {
+    display: none;
+  }
+
+  :global(.watch-together-player .watch-together-player-nav > button) {
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    height: 40px;
+    margin: 0;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 420px) and (orientation: portrait) {
+  :global(.watch-together-player .watch-together-player-viewport) {
+    min-height: max(190px, calc((100vw - 22px) * 9 / 16));
   }
 }

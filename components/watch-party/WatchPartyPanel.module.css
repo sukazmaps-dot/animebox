@@ -2458,3 +2458,105 @@
 .reactions button[data-locked='true'] > small {
   opacity: .72;
 }
+
+
+/* =========================================================
+   Patch 20.4.1 — Theater room header density fix
+   The side column is intentionally narrow on desktop. Do not force title
+   and six room badges into one flex row.
+   ========================================================= */
+.theaterPanel .activeHead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 7px;
+}
+
+.theaterPanel .statusLine {
+  width: 100%;
+  min-width: 0;
+  gap: 0;
+}
+
+.theaterPanel .statusDot {
+  display: none;
+}
+
+.theaterPanel .statusText {
+  min-width: 0;
+  width: 100%;
+}
+
+.theaterPanel .statusText strong {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.theaterPanel .statusText span {
+  display: block;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
+.theaterPanel .connectionBadges {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.theaterPanel .connectionBadges > * {
+  flex: 0 0 auto;
+}
+
+.theaterPanel .roomHealth {
+  order: -10;
+}
+
+.theaterPanel .participantCountBadge {
+  order: -9;
+}
+
+@media (min-width: 1180px) {
+  .theaterPanel .activeInner {
+    padding-top: 12px;
+  }
+
+  .theaterPanel .statusText strong {
+    font-size: 11px;
+  }
+
+  .theaterPanel .statusText span {
+    font-size: 8px;
+  }
+
+  .theaterPanel .roomHealth,
+  .theaterPanel .participantCountBadge,
+  .theaterPanel .networkRoute,
+  .theaterPanel .roomCodeBadge,
+  .theaterPanel .themeBadge,
+  .theaterPanel .role {
+    min-height: 24px;
+    padding-inline: 8px;
+  }
+}
+
+@media (max-width: 700px) and (orientation: portrait) {
+  .theaterPanel .activeHead {
+    gap: 6px;
+  }
+
+  .theaterPanel .connectionBadges {
+    gap: 4px;
+  }
+
+  .theaterPanel .statusText span {
+    margin-top: 1px;
+  }
+}
