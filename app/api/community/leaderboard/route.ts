@@ -148,6 +148,7 @@ export async function GET(request: Request) {
         avatarUrl: appearance?.avatarUrl ?? '/default-avatar.webp',
         avatarTransform:
           appearance?.avatarTransform ?? { x: 50, y: 50, zoom: 1 },
+        premium: appearance?.premiumBadge ?? false,
         activeMs: Number(row.active_ms) || 0,
         completedEpisodes: Number(row.episodes) || 0,
         lastWatchedAt: row.last_watched_at,
