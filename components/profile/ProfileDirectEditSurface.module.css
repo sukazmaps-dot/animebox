@@ -154,16 +154,16 @@
 .profileBody {
   position: relative;
   display: grid;
-  grid-template-columns: 116px minmax(0, 1fr);
-  gap: 17px;
-  padding: 0 24px 25px;
+  grid-template-columns: 152px minmax(0, 1fr);
+  gap: 22px;
+  padding: 0 24px 28px;
 }
 
 .avatarButton {
   position: relative;
-  width: 116px;
-  height: 116px;
-  margin-top: -48px;
+  width: 152px;
+  height: 152px;
+  margin-top: -62px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -220,8 +220,8 @@
 
 .avatarEdit {
   position: absolute;
-  right: 4px;
-  bottom: 4px;
+  right: 7px;
+  bottom: 7px;
   z-index: 18;
   width: 29px;
   height: 29px;
@@ -949,12 +949,14 @@
   }
 
   .profileBody {
-    grid-template-columns: 100px minmax(0, 1fr);
+    grid-template-columns: 132px minmax(0, 1fr);
+    gap: 18px;
   }
 
   .avatarButton {
-    width: 100px;
-    height: 100px;
+    width: 132px;
+    height: 132px;
+    margin-top: -54px;
   }
 }
 
@@ -1008,15 +1010,15 @@
   }
 
   .profileBody {
-    grid-template-columns: 78px minmax(0, 1fr);
-    gap: 10px;
-    padding: 0 13px 17px;
+    grid-template-columns: 104px minmax(0, 1fr);
+    gap: 12px;
+    padding: 0 13px 20px;
   }
 
   .avatarButton {
-    width: 78px;
-    height: 78px;
-    margin-top: -32px;
+    width: 104px;
+    height: 104px;
+    margin-top: -43px;
   }
 
   .avatarShell {
@@ -1026,8 +1028,9 @@
   .avatarEdit {
     width: 25px;
     height: 25px;
-    right: -1px;
-    bottom: -1px;
+    right: 1px;
+    bottom: 1px;
+    border-width: 2px;
   }
 
   .avatarChangeOverlay {
