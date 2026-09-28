@@ -16,6 +16,7 @@ export type FriendCard = {
   userId: string;
   username: string;
   avatarUrl: string;
+  premium: boolean;
   status: 'accepted' | 'pending';
   direction: 'incoming' | 'outgoing' | 'friend';
   createdAt: string;
@@ -358,6 +359,7 @@ export async function listFriends(userId: string) {
       userId: otherId,
       username: profile.username,
       avatarUrl: appearance?.avatarUrl ?? '/default-avatar.webp',
+      premium: appearance?.premiumBadge ?? false,
       status: row.status,
       direction: accepted ? 'friend' : incoming ? 'incoming' : 'outgoing',
       createdAt: row.created_at,
