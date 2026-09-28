@@ -707,6 +707,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
               initialSettings={premiumSettings}
               initialAllowed={premiumActive}
               previewUsername={username}
+              previewBio={bio}
               fallbackAvatarUrl={resolvedAvatarPreview}
               fallbackBannerUrl={resolvedBannerPreview}
               onDirtyChange={setPremiumDirty}
