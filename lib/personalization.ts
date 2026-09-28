@@ -48,6 +48,7 @@ export type RecommendationEvent = {
   exposureCount30d?: number;
   sessionIntentScore?: number;
   sessionIntentConfidence?: number;
+  completionScore?: number;
   createdAt: number;
 };
 
@@ -381,6 +382,7 @@ export function trackRecommendationEvent(
         exposure_count_30d: event.exposureCount30d ?? null,
         session_intent_score: event.sessionIntentScore ?? null,
         session_intent_confidence: event.sessionIntentConfidence ?? null,
+        completion_score: event.completionScore ?? null,
         model_version: algorithmVersion,
         algorithm_version: algorithmVersion,
       },
