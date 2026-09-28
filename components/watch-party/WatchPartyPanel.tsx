@@ -73,7 +73,7 @@ import styles from './WatchPartyPanel.module.css';
 
 type PartyRole = 'host' | 'guest' | null;
 type PartyStatus = 'idle' | 'connecting' | 'active' | 'reconnecting' | 'ended' | 'error';
-type MobileSection = 'chat' | 'participants' | 'controls';
+type MobileSection = 'chat' | 'episodes' | 'room';
 
 type PartyIdentity = {
   userId: string;
@@ -3438,10 +3438,14 @@ export default function WatchPartyPanel({
     <section
       className={`${styles.panel} ${mode === 'theater' ? styles.theaterPanel : ''}`}
       data-room-theme={roomTheme}
+      data-mobile-section={mode === 'theater' ? mobileSection : undefined}
       aria-label="Watch Together room"
     >
       <div className={styles.activeInner}>
-        <div className={styles.activeHead}>
+        <div
+          className={`${styles.activeHead} ${styles.roomHeaderSection}`}
+          data-mobile-active={mobileSection === 'room'}
+        >
           <div className={styles.statusLine}>
             <span className={styles.statusDot} data-state={status} aria-hidden="true" />
             <div className={styles.statusText}>
@@ -3522,31 +3526,34 @@ export default function WatchPartyPanel({
             </button>
             <button
               type="button"
-              data-active={mobileSection === 'participants'}
-              onClick={() => setMobileSection('participants')}
+              data-active={mobileSection === 'episodes'}
+              onClick={() => setMobileSection('episodes')}
             >
-              Участники
-              <span>{displayedParticipantCount}</span>
+              Серии и голосование
             </button>
             <button
               type="button"
-              data-active={mobileSection === 'controls'}
-              onClick={() => setMobileSection('controls')}
+              data-active={mobileSection === 'room'}
+              onClick={() => setMobileSection('room')}
             >
-              Управление
+              Комната
+              <span>{displayedParticipantCount}</span>
             </button>
           </div>
         )}
 
         {participants.length > 0 && (
           <>
-            <div className={styles.participantsHead}>
+            <div
+              className={`${styles.participantsHead} ${styles.roomSection}`}
+              data-mobile-active={mobileSection === 'room'}
+            >
               <span>Участники</span>
               <small>{displayedParticipantCount} в комнате</small>
             </div>
             <div
               className={`${styles.participants} ${styles.participantsSection}`}
-            data-mobile-active={mobileSection === 'participants'}
+            data-mobile-active={mobileSection === 'room'}
             aria-label="Участники комнаты"
           >
             {participants.map((participant) => {
@@ -3605,7 +3612,10 @@ export default function WatchPartyPanel({
         )}
 
         {role === 'host' && participants.some((participant) => !participant.host) && (
-          <div className={styles.hostTools}>
+          <div
+            className={`${styles.hostTools} ${styles.roomSection}`}
+            data-mobile-active={mobileSection === 'room'}
+          >
             <span>Передать host</span>
             <div>
               {participants
@@ -3625,8 +3635,13 @@ export default function WatchPartyPanel({
 
         <div
           className={`${styles.syncCard} ${styles.controlsSection}`}
-          data-mobile-active={mobileSection === 'controls'}
+          data-mobile-active={mobileSection === 'episodes'}
         >
+          <div
+            id="watch-together-mobile-player-controls"
+            className={styles.mobilePlayerControls}
+            aria-label="Серии и озвучка"
+          />
           <div className={styles.syncMeta}>
             <span className={styles.syncEyebrow}>PLAYER SYNC · EVERYONE CAN CONTROL</span>
             <strong>{playerState?.playing ? 'Смотрим синхронно' : 'Пауза у комнаты'}</strong>
@@ -3666,7 +3681,11 @@ export default function WatchPartyPanel({
         </div>
 
         <div className={styles.socialBar}>
-          <div className={styles.reactions} aria-label="Быстрые реакции">
+          <div
+            className={`${styles.reactions} ${styles.reactionSection}`}
+            data-mobile-active={mobileSection === 'chat'}
+            aria-label="Быстрые реакции"
+          >
             {REACTION_OPTIONS.map((option) => {
               const locked = Boolean(option.premium && !premiumReactionsAllowed);
 
@@ -3692,7 +3711,10 @@ export default function WatchPartyPanel({
             })}
           </div>
 
-          <div className={styles.voteBox}>
+          <div
+            className={`${styles.voteBox} ${styles.voteSection}`}
+            data-mobile-active={mobileSection === 'episodes'}
+          >
             <div className={styles.voteHeading}>
               <span>Следующая серия?</span>
               <small>{voteState.total ? `${voteState.total} голосов` : 'голосование открыто'}</small>
@@ -3841,7 +3863,10 @@ export default function WatchPartyPanel({
 
         {error && <p className={styles.error} role="status">{error}</p>}
 
-        <div className={styles.footer}>
+        <div
+          className={`${styles.footer} ${styles.roomSection}`}
+          data-mobile-active={mobileSection === 'room'}
+        >
           <span className={styles.note}>
             AnimeBox синхронизирует только управление, чат и реакции. Видео каждый участник получает напрямую от выбранного плеера.
           </span>
