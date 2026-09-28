@@ -80,13 +80,17 @@ if (!taste.includes('recommendation_feedback')) {
   failures.push('Taste Graph does not consume explicit feedback');
 }
 if (
-  !tasteGraph.includes("TASTE_GRAPH_VERSION = 'taste-v6'") ||
+  !tasteGraph.includes("TASTE_GRAPH_VERSION = 'taste-v7'") ||
   !tasteGraph.includes('averageRating') ||
   !tasteGraph.includes('explorationRate') ||
   !tasteGraph.includes('moodWeights') ||
-  !tasteGraph.includes('signalBreakdown')
+  !tasteGraph.includes('signalBreakdown') ||
+  !tasteGraph.includes('studioWeights') ||
+  !tasteGraph.includes('formatWeights') ||
+  !tasteGraph.includes('eraWeights') ||
+  !tasteGraph.includes('finishedPreference')
 ) {
-  failures.push('17.8.2 Taste Graph v6 contract is incomplete');
+  failures.push('Patch 22 Taste Graph v7 contract is incomplete');
 }
 if (
   !taste.includes(".from('anime_ratings')") ||
@@ -115,6 +119,26 @@ if (
   !taste.includes('0.2 - confidence * 0.1')
 ) {
   failures.push('Taste Graph is missing decay/confidence/exploration modelling');
+}
+if (
+  !taste.includes("select('id,genres,studios,format,start_year,total_episodes,finished')") ||
+  !taste.includes('studioWeights') ||
+  !taste.includes('negativeStudioWeights') ||
+  !taste.includes('formatWeights') ||
+  !taste.includes('eraWeights') ||
+  !taste.includes('finishedPreference') ||
+  !taste.includes('metadataCoverage')
+) {
+  failures.push('Patch 22 Taste Graph 7 server metadata modelling is incomplete');
+}
+if (
+  !recommendations.includes('animeStudioAffinity') ||
+  !recommendations.includes('animeFormatAffinity') ||
+  !recommendations.includes('animeEraAffinity') ||
+  !recommendations.includes('animeFinishedAffinity') ||
+  !ranking.includes('metadataNegativeAffinity')
+) {
+  failures.push('Patch 22 Taste Graph 7 affinities are not wired into ranking');
 }
 if (!feed.includes('buildRecommendationRailLayout')) {
   failures.push('Netflix-style recommendation rails are not wired');
