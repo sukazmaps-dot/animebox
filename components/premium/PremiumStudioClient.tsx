@@ -535,8 +535,16 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     return supabase.storage.from('profile-media').getPublicUrl(path).data.publicUrl;
   }
 
-  const avatarUrl = publicMediaUrl(settings.avatarPath || settings.avatarStaticPath);
-  const bannerUrl = publicMediaUrl(settings.bannerPath || settings.bannerStaticPath);
+  const avatarUrl = publicMediaUrl(
+    settings.motionMode === 'off'
+      ? settings.avatarStaticPath || settings.avatarPath
+      : settings.avatarPath || settings.avatarStaticPath,
+  );
+  const bannerUrl = publicMediaUrl(
+    settings.motionMode === 'off'
+      ? settings.bannerStaticPath || settings.bannerPath
+      : settings.bannerPath || settings.bannerStaticPath,
+  );
   const avatarTransform = {
     x: settings.avatarPositionX,
     y: settings.avatarPositionY,
