@@ -69,19 +69,11 @@ function uniqueImageSources(values: Array<string | null | undefined>) {
 }
 
 function buildHeroImageAttempts(sources: string[]): HeroImageAttempt[] {
-  if (!sources.length) return [];
-
-  const [primary, ...fallbacks] = sources;
-
-  return [
-    { src: primary, unoptimized: false, fallback: false },
-    { src: primary, unoptimized: true, fallback: true },
-    ...fallbacks.map((src) => ({
-      src,
-      unoptimized: true,
-      fallback: true,
-    })),
-  ];
+  return sources.map((src, index) => ({
+    src,
+    unoptimized: true,
+    fallback: index > 0,
+  }));
 }
 
 function getHeroBackdropAttempts(anime: Anime): HeroImageAttempt[] {
