@@ -1,9 +1,9 @@
-export const WATCH_PARTY_PROTOCOL = 6;
 import {
   readWatchPartyTheme,
   type WatchPartyTheme,
 } from '@/lib/watch-party-premium';
 
+export const WATCH_PARTY_PROTOCOL = 6;
 export const WATCH_PARTY_MAX_PARTICIPANTS = 50;
 export const WATCH_PARTY_ROOM_PREFIX = 'abx-party';
 
