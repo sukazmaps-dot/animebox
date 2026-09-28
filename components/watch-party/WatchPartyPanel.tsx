@@ -18,6 +18,10 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { premiumMediaStyle, type PremiumMediaTransform } from '@/lib/premium-studio';
 import { trackProductClientEvent } from '@/lib/product-events-client';
+import {
+  decideWatchPartySync,
+  WATCH_PARTY_DRIFT_CRITICAL_SECONDS,
+} from '@/lib/watch-party-sync-policy';
 import UserIdentity from '@/components/identity/UserIdentity';
 import ProfilePreview from '@/components/profile/ProfilePreview';
 import WatchPartyFriendInvite from '@/components/friends/WatchPartyFriendInvite';
@@ -117,8 +121,11 @@ type RoomPresenceResponse = {
 const HOST_HEARTBEAT_MS = 20_000;
 const SERVER_PRESENCE_MS = 25_000;
 const PLAYER_SYNC_MS = 8_000;
-const PLAYER_DRIFT_SEEK_SECONDS = 1.5;
 const CHAT_SEND_COOLDOWN_MS = 650;
+const PLAYER_ACTION_MIN_INTERVAL_MS = 220;
+const PLAYER_ACTION_DUPLICATE_WINDOW_MS = 900;
+const PLAYER_ACTION_WINDOW_MS = 3_000;
+const PLAYER_ACTION_MAX_PER_WINDOW = 8;
 const NEGOTIATION_TIMEOUT_MS = 18_000;
 const HANDSHAKE_TIMEOUT_MS = 8_000;
 const MAX_RECONNECT_ATTEMPTS = 6;
@@ -287,6 +294,15 @@ export default function WatchPartyPanel({
   const wasReconnectingRef = useRef(false);
   const lastPresenceCountRef = useRef(0);
   const lastDriftTelemetryAtRef = useRef(0);
+  const lastDriftCorrectionAtRef = useRef(0);
+  const seenPlayerActionIdsRef = useRef(new Map<string, number>());
+  const playerActionBudgetRef = useRef(new Map<string, {
+    action: WatchPartyPlayerActionDetail['action'];
+    position: number;
+    at: number;
+    windowStartedAt: number;
+    count: number;
+  }>());
   const chatSendPendingRef = useRef(false);
   const hostEpochRef = useRef(0);
 
