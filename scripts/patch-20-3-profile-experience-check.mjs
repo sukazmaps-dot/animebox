@@ -48,6 +48,16 @@ mustInclude(showcase, 'Профиль вкуса ещё формируется',
 mustNotInclude(showcase, 'PROFILE IDENTITY', 'legacy English showcase label');
 mustNotInclude(showcase, 'Anime DNA', 'legacy English taste label');
 
+const directEditor = read('components/profile/ProfileDirectEditSurface.tsx');
+mustInclude(directEditor, 'styles.nameValue', 'long username wrapper');
+mustInclude(directEditor, 'styles.editGlyph', 'separate username edit affordance');
+
+const directEditorCss = read('components/profile/ProfileDirectEditSurface.module.css');
+mustInclude(directEditorCss, '.nameValue {', 'username overflow protection');
+mustInclude(directEditorCss, '@media (min-width: 1800px)', 'large-screen editor scaling');
+mustInclude(directEditorCss, ":global(html[data-animebox-theme='light']) .profileCard", 'editor light theme');
+mustInclude(directEditorCss, '.nameButton:focus-visible', 'editor keyboard focus');
+
 const ownProfile = read('app/profile/page.tsx');
 mustInclude(ownProfile, 'Premium · Расширенная статистика', 'localized Premium stats CTA');
 
