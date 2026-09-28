@@ -50,7 +50,7 @@ if (
   failures.push('17.8 recommendation attribution columns are missing');
 }
 if (
-  !personalization.includes("RECOMMENDATION_ALGORITHM_VERSION = '18.3-v1'") ||
+  !personalization.includes("RECOMMENDATION_ALGORITHM_VERSION = '22.0-v1'") ||
   !personalization.includes('createRecommendationId') ||
   !personalization.includes('row_id')
 ) {
@@ -162,7 +162,7 @@ if (
   failures.push('candidate source response contract is missing');
 }
 if (
-  !ranking.includes("RECOMMENDATION_RANKING_VERSION = '18.3-v1'") ||
+  !ranking.includes("RECOMMENDATION_RANKING_VERSION = '22.0-v1'") ||
   !ranking.includes('RECOMMENDATION_RANKING_WEIGHTS') ||
   !ranking.includes('RecommendationScoreComponents') ||
   !ranking.includes('scoreRecommendation') ||
