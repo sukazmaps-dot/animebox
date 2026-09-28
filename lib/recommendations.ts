@@ -23,6 +23,10 @@ import {
   type RecommendationScoreResult,
 } from '@/lib/recommendation-ranking-config';
 import { diversifyRecommendations } from '@/lib/recommendation-diversity';
+import {
+  buildRecommendationExposureMap,
+  recommendationExposureSignals,
+} from '@/lib/recommendation-exposure';
 
 export type RankedRecommendation = {
   anime: Anime;
@@ -30,6 +34,9 @@ export type RankedRecommendation = {
   reason: string;
   reasons: string[];
   matchScore: number | null;
+  fatigueScore: number;
+  exposureCount7d: number;
+  exposureCount30d: number;
   source: 'watch_history' | 'taste_mood' | 'engagement' | 'taste_graph' | 'discovery';
   ranking: RecommendationScoreResult;
 };
@@ -203,10 +210,11 @@ function chooseReason(input: {
   };
 }
 
-function buildDirectEngagementScores(): Map<number, number> {
+function buildDirectEngagementScores(
+  events = readRecommendationEvents().slice(-250),
+): Map<number, number> {
   const result = new Map<number, number>();
   const now = Date.now();
-  const events = readRecommendationEvents().slice(-250);
 
   for (const event of events) {
     if (!event.animeId) continue;
@@ -268,7 +276,13 @@ export function getPersonalizedRecommendations(
   const history = readWatchHistory();
   const saved = readAnimeList();
   const favorites = readAnimeFavorites();
-  const engagementScores = buildDirectEngagementScores();
+  const recommendationEvents = readRecommendationEvents().slice(-350);
+  const engagementScores = buildDirectEngagementScores(
+    recommendationEvents.slice(-250),
+  );
+  const exposureByAnime = buildRecommendationExposureMap(
+    recommendationEvents,
+  );
   const tasteGraph = options?.tasteGraph ?? readCachedTasteGraph();
 
   const hiddenIds = new Set(profile.hiddenAnimeIds);
@@ -413,6 +427,10 @@ export function getPersonalizedRecommendations(
       const engagementRaw = engagementScores.get(anime.id) ?? 0;
       const engagementScore = Math.max(0, engagementRaw);
       const negativeEngagement = Math.max(0, -engagementRaw);
+      const exposure = recommendationExposureSignals(
+        exposureByAnime,
+        anime.id,
+      );
       const ongoingBonus = ['RELEASING', 'Онгоинг', 'ongoing'].includes(anime.status ?? '') ? 0.035 : 0;
       const discoveryBonus = index < 14 ? 0.04 : Math.max(0, 0.025 - index * 0.0005);
       const title = getAnimeTitle(anime);
@@ -432,6 +450,7 @@ export function getPersonalizedRecommendations(
           shortFinished: shortFinishedAffinity,
           engagementPositive: engagementScore,
           engagementNegative: negativeEngagement,
+          exposureFatigue: exposure.fatigue,
           discovery: discoveryBonus,
           ongoing: ongoingBonus,
           duplicateTitle: duplicateTitlePenalty,
@@ -522,6 +541,9 @@ export function getPersonalizedRecommendations(
         reason: reasons[0] ?? primary.reason,
         reasons: reasons.slice(0, 3),
         matchScore,
+        fatigueScore: exposure.fatigue,
+        exposureCount7d: exposure.impressions7d,
+        exposureCount30d: exposure.impressions30d,
         source,
         ranking,
       } satisfies RankedRecommendation;
