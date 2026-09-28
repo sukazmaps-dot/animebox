@@ -262,7 +262,7 @@ need('deferred result modal', deferred, [
 
 need('Profile Studio direct edit', editor, [
   "type EditorTab = 'profile' | 'showcase' | 'rewards' | 'style'",
-  'PROFILE STUDIO',
+  'РЕДАКТОР ПРОФИЛЯ',
   '<ProfileDirectEditSurface',
   '<ProfileRewardsPanel',
   'profile-editor-v19__direct-tab',
@@ -271,11 +271,11 @@ need('Profile Studio direct edit', editor, [
 ]);
 
 need('Profile Studio direct-edit surface', directEditor, [
-  'DIRECT EDIT',
-  'FRAME INVENTORY',
+  'ПРОФИЛЬ',
+  'КОЛЛЕКЦИЯ РАМОК',
   'Твои рамки',
   'Активна только одна рамка',
-  'Premium оживляет LVL-рамки',
+  'Premium добавляет анимацию к уровневым рамкам',
   "action: 'select_frame'",
   '<ProfileFrameOverlay',
 ]);
@@ -753,7 +753,7 @@ need('Premium Studio atmosphere controls', premiumStudioClient, [
   'PREMIUM_ENTRANCE_EFFECTS.map',
   'PREMIUM_HERO_STYLES.map',
   'PREMIUM_SURFACE_STYLES.map',
-  'Проиграть intro',
+  'Повторить анимацию',
   'deriveAdaptiveProfilePalette',
   '<PremiumStudioLivePreview',
 ]);
@@ -840,8 +840,8 @@ need('Premium nickname chat contract', premiumStudioCore, [
   'PREMIUM_NICKNAME_EFFECTS',
 ]);
 need('Premium nickname Studio controls', premiumStudioClient, [
-  "manga: 'Manga Cut'",
-  "glitch: 'Glitch'",
+  "manga: 'Манга'",
+  "glitch: 'Помехи'",
 ]);
 need('Premium nickname DB constraint recovery', premiumNicknameChatMigration, [
   "nickname_effect in ('none','gradient','shimmer','glow','manga','glitch')",
