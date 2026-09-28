@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { communityRequest } from '@/lib/community-client';
 import { createClient } from '@/lib/supabase/client';
 import UserIdentity from '@/components/identity/UserIdentity';
+import { CommentAvatarFrameShell } from '@/components/identity/CommentAvatarFrame';
 import type { CommunityComment, CommunityCommentsPage } from '@/types/community-comments';
 import { premiumMediaStyle } from '@/lib/premium-studio';
 import { PROFILE_APPEARANCE_CHANGED_EVENT } from '@/lib/profile-live-sync';
@@ -169,7 +170,21 @@ function CommentNode({
             className="community-comment__identity community-comment__profile-link"
             aria-label={`Открыть профиль ${username}`}
           >
-            <span className="community-comment__avatar-shell"><img src={avatar} width="38" height="38" loading="lazy" decoding="async" fetchPriority="low" alt="" className="community-comment__avatar" style={premiumMediaStyle(comment.author?.avatarTransform)} /></span>
+            <CommentAvatarFrameShell frameKey={comment.author?.profileFrameKey}>
+              <span className="community-comment__avatar-shell">
+                <img
+                  src={avatar}
+                  width="38"
+                  height="38"
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                  alt=""
+                  className="community-comment__avatar"
+                  style={premiumMediaStyle(comment.author?.avatarTransform)}
+                />
+              </span>
+            </CommentAvatarFrameShell>
             <div>
               <span className="animebox-comment-author-line">
                 <UserIdentity
@@ -200,7 +215,21 @@ function CommentNode({
           </Link>
         ) : (
           <div className="community-comment__identity">
-            <span className="community-comment__avatar-shell"><img src={avatar} width="38" height="38" loading="lazy" decoding="async" fetchPriority="low" alt="" className="community-comment__avatar" style={premiumMediaStyle(comment.author?.avatarTransform)} /></span>
+            <CommentAvatarFrameShell frameKey={comment.author?.profileFrameKey}>
+              <span className="community-comment__avatar-shell">
+                <img
+                  src={avatar}
+                  width="38"
+                  height="38"
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                  alt=""
+                  className="community-comment__avatar"
+                  style={premiumMediaStyle(comment.author?.avatarTransform)}
+                />
+              </span>
+            </CommentAvatarFrameShell>
             <div>
               <span className="animebox-comment-author-line">
                 <UserIdentity
