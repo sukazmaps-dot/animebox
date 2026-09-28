@@ -20,6 +20,8 @@ const preview = read('components/profile/ProfilePreview.tsx');
 mustInclude(preview, 'Профиль AnimeBox', 'localized mini-profile kicker');
 mustInclude(preview, '{data.progression.level} уровень', 'localized progression label');
 mustInclude(preview, 'width={88}', 'mini-profile intrinsic avatar size');
+mustInclude(preview, 'resolveAvatarIdentityVisuals', 'mini-profile sponsor frame resolver');
+mustInclude(preview, 'styles.identityFrameOverlay', 'mini-profile sponsor frame overlay');
 mustNotInclude(preview, '<span className={styles.premiumBadge}>Premium</span>', 'duplicate Premium badge');
 
 const previewCss = read('components/profile/ProfilePreview.module.css');
@@ -50,6 +52,9 @@ mustInclude(experienceCss, "data-premium-layout='collector'", 'collector layout 
 mustInclude(experienceCss, "data-premium-layout='minimal'", 'minimal layout parity');
 mustInclude(experienceCss, "html[data-animebox-theme='light'] .profile-v2__hero", 'profile light theme');
 mustInclude(experienceCss, '@media (prefers-reduced-motion: reduce)', 'profile reduced motion');
+mustInclude(experienceCss, "data-premium-banner-height='compact'", 'compact Banner Director height');
+mustInclude(experienceCss, "data-premium-banner-height='immersive'", 'immersive Banner Director height');
+mustInclude(experienceCss, '.premium-studio-v24__banner-director', 'Banner Director controls styling');
 
 const profileLayout = read('app/profile/layout.tsx');
 mustInclude(profileLayout, "import '../patch20-3-profile-experience.css';", 'route-scoped Patch 20.3 CSS');
@@ -74,12 +79,25 @@ mustInclude(directEditor, 'styles.nameValue', 'long username wrapper');
 mustInclude(directEditor, 'styles.editGlyph', 'separate username edit affordance');
 
 const directEditorCss = read('components/profile/ProfileDirectEditSurface.module.css');
+mustInclude(directEditorCss, ".avatarShell[data-milestone='true'] > img", 'editor milestone aperture');
+mustInclude(directEditorCss, 'width: 68%', 'larger milestone aperture');
+mustNotInclude(directEditorCss, "width: 56%", 'legacy editor milestone shrink');
+mustInclude(directEditor, 'editorMilestoneScale', 'milestone aperture calibration');
+mustInclude(directEditorCss, 'right: -2px', 'avatar edit control outside frame');
 mustInclude(directEditorCss, '.nameValue {', 'username overflow protection');
 mustInclude(directEditorCss, '@media (min-width: 1800px)', 'large-screen editor scaling');
 mustInclude(directEditorCss, ":global(html[data-animebox-theme='light']) .profileCard", 'editor light theme');
 mustInclude(directEditorCss, '.nameButton:focus-visible', 'editor keyboard focus');
 
+const avatarIdentity = read('lib/avatar-identity.ts');
+mustInclude(avatarIdentity, 'IDENTITY_FRAME_GEOMETRY', 'sponsor frame geometry contract');
+mustInclude(avatarIdentity, 'avatarScale: 0.92', 'sponsor avatar aperture calibration');
+mustInclude(avatarIdentity, 'frameScale: 1.1', 'sponsor artwork outer scale');
+mustNotInclude(avatarIdentity, 'identityFrameSrc\n        ? 0.85', 'legacy sponsor frame shrink');
+
 const avatarWithFrame = read('components/profile/UserAvatarWithFrame.tsx');
+mustInclude(avatarWithFrame, "data-identity-frame={visuals.identityFrameKind ?? 'none'}", 'identity frame data contract');
+mustInclude(avatarWithFrame, 'visuals.identityFrameScale', 'identity frame artwork scaling');
 mustInclude(avatarWithFrame, 'preferStatic?: boolean', 'static avatar render contract');
 mustInclude(avatarWithFrame, 'const displayedSrc = preferStatic && mobileSrc ? mobileSrc : src;', 'static avatar selection');
 
@@ -110,9 +128,33 @@ mustInclude(studioPreview, 'profileFrameKey?: string | null', 'Studio frame prev
 mustInclude(studioClient, 'previewFrameKey', 'Studio selected frame state');
 mustInclude(studioClient, "animebox:profile-cosmetic-changed", 'Studio frame live sync');
 mustInclude(studioClient, 'profileFrameKey={previewFrameKey}', 'Studio selected frame preview');
+mustInclude(studioClient, 'PREMIUM_BANNER_HEIGHT_MODES', 'Banner Director height controls');
+mustInclude(studioClient, "applyBannerLook('juicy')", 'Banner Director juicy preset');
+mustInclude(studioClient, 'bannerSaturation', 'Banner Director saturation control');
+mustInclude(studioClient, 'bannerContrast', 'Banner Director contrast control');
+mustInclude(studioClient, 'bannerBrightness', 'Banner Director brightness control');
+mustInclude(studioClient, 'bannerShade', 'Banner Director shade control');
 
 mustInclude(experienceCss, '.premium-studio-v23__preview-avatar-frame-shell', 'Studio frame preview geometry');
 mustInclude(experienceCss, 'inset: -18px !important', 'Studio frame outer canvas');
+
+const premiumStudioLib = read('lib/premium-studio.ts');
+mustInclude(premiumStudioLib, 'PREMIUM_BANNER_HEIGHT_MODES', 'Banner Director type contract');
+mustInclude(premiumStudioLib, 'premiumBannerStyle', 'shared Banner Director renderer');
+mustInclude(premiumStudioLib, "'--ab-premium-banner-shade'", 'shared banner shade variable');
+
+const editorRoute = read('app/api/profile/editor/route.ts');
+mustInclude(editorRoute, 'isPremiumBannerHeightMode', 'Banner Director API validation');
+mustInclude(editorRoute, 'banner_saturation: settings.bannerSaturation', 'Banner Director persistence');
+
+const bannerMigration = read('supabase/migrations/20260928174500_patch20_3_14_banner_director.sql');
+mustInclude(bannerMigration, 'banner_height_mode', 'Banner Director database height mode');
+mustInclude(bannerMigration, 'banner_saturation between 70 and 140', 'Banner Director saturation constraint');
+mustInclude(bannerMigration, 'banner_shade between 20 and 90', 'Banner Director shade constraint');
+
+const sponsorLeaderboardCss = read('components/monetization/SponsorLeaderboard.module.css');
+mustInclude(sponsorLeaderboardCss, "data-identity-frame]:not([data-identity-frame='none'])", 'sponsor leaderboard frame geometry');
+mustInclude(sponsorLeaderboardCss, 'bottom: -10px', 'sponsor podium seal separation');
 
 const editorClient = read('components/profile/ProfileEditorClient.tsx');
 mustInclude(editorClient, 'previewUsername={username}', 'editor live username preview');
