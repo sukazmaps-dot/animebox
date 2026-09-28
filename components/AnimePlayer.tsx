@@ -646,6 +646,10 @@ export default function AnimePlayer({
     duration?: number | null;
     playing: boolean;
   }) => {
+    // Normal episode pages mount an idle inline WatchPartyPanel. Publishing
+    // high-frequency player state there only causes unnecessary React work.
+    if (!watchTogetherMode) return;
+
     const detail: WatchPartyPlayerStateDetail = {
       episode: episodeNumber,
       position: Math.max(0, Number.isFinite(input.position) ? input.position : 0),
@@ -662,13 +666,15 @@ export default function AnimePlayer({
     window.dispatchEvent(
       new CustomEvent<WatchPartyPlayerStateDetail>(WATCH_PARTY_PLAYER_STATE_EVENT, { detail }),
     );
-  }, [episodeNumber, isKodik]);
+  }, [episodeNumber, isKodik, watchTogetherMode]);
 
   const publishPartyAction = useCallback((
     action: WatchPartyPlayerAction,
     position: number,
     playing: boolean,
   ) => {
+    if (!watchTogetherMode) return;
+
     const now = Date.now();
     if (now < partySuppressUntilRef.current) return;
 
@@ -696,7 +702,7 @@ export default function AnimePlayer({
     window.dispatchEvent(
       new CustomEvent<WatchPartyPlayerActionDetail>(WATCH_PARTY_PLAYER_ACTION_EVENT, { detail }),
     );
-  }, [episodeNumber]);
+  }, [episodeNumber, watchTogetherMode]);
 
   const applyPartyCommand = useCallback((
     detail: WatchPartyPlayerCommandDetail,

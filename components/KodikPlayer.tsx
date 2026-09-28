@@ -58,6 +58,8 @@ type KodikMessage = {
 
 const SYNTHETIC_END_REMAINING_SECONDS = 0.2;
 const SYNTHETIC_END_CONFIRM_MS = 1_500;
+const PAUSE_INFERENCE_IDLE_MS = 4_000;
+const PAUSE_INFERENCE_TIMER_MS = 4_250;
 
 function normalizePlayerUrl(url: string) {
   return url.startsWith('//') ? `https:${url}` : url;
@@ -234,6 +236,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
   const lastSampleAtRef = useRef<number | null>(null);
   const lastAdvanceAtRef = useRef<number | null>(null);
   const pauseInferenceTimerRef = useRef<number | null>(null);
+  const pauseInferredRef = useRef(false);
   const syntheticEndTimerRef = useRef<number | null>(null);
 
   const playerSrc = useMemo(
@@ -270,11 +273,13 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
     () => ({
       play() {
         pendingPlayRef.current = true;
+        pauseInferredRef.current = false;
         playingRef.current = true;
         postApiCommand('play');
       },
       pause() {
         pendingPlayRef.current = false;
+        pauseInferredRef.current = false;
         playingRef.current = false;
         postApiCommand('pause');
       },
@@ -311,6 +316,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
     endedFiredRef.current = false;
     pendingPlayRef.current = false;
     playingRef.current = false;
+    pauseInferredRef.current = false;
     lastSampleAtRef.current = null;
     lastAdvanceAtRef.current = null;
     if (syntheticEndTimerRef.current != null) {
@@ -356,23 +362,36 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
 
     function markPlaying() {
       lastAdvanceAtRef.current = Date.now();
+
       if (!playingRef.current) {
+        const resumedFromInference = pauseInferredRef.current;
         playingRef.current = true;
-        emitPlaybackAction('play');
+        pauseInferredRef.current = false;
+
+        // A sparse Kodik time stream can make our local pause inference fire
+        // even though playback never actually stopped. Do not convert that
+        // recovery into a user PLAY command for Watch Together.
+        if (!resumedFromInference) {
+          emitPlaybackAction('play');
+        }
       }
-      emitPlaybackState();
 
       if (pauseInferenceTimerRef.current != null) {
         window.clearTimeout(pauseInferenceTimerRef.current);
       }
 
       pauseInferenceTimerRef.current = window.setTimeout(() => {
-        if (Date.now() - (lastAdvanceAtRef.current ?? 0) < 1_700) return;
+        const idleMs = Date.now() - (lastAdvanceAtRef.current ?? 0);
+        if (idleMs < PAUSE_INFERENCE_IDLE_MS) return;
         if (!playingRef.current) return;
+
+        // This is only a local state fallback. Never publish an inferred pause
+        // as a playback action because it can create play/pause feedback loops
+        // when Kodik delivers time samples slowly.
+        pauseInferredRef.current = true;
         playingRef.current = false;
-        emitPlaybackAction('pause');
         emitPlaybackState();
-      }, 1_850);
+      }, PAUSE_INFERENCE_TIMER_MS);
     }
 
     function forceRouteEpisode() {
@@ -521,6 +540,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
       }
 
       if (key === 'kodik_player_play' || key === 'kodik_player_playing' || key === 'kodik_player_resume') {
+        pauseInferredRef.current = false;
         playingRef.current = true;
         lastAdvanceAtRef.current = Date.now();
         emitPlaybackAction('play');
@@ -530,6 +550,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
 
       if (key === 'kodik_player_pause' || key === 'kodik_player_paused') {
         clearSyntheticEndTimer();
+        pauseInferredRef.current = false;
         playingRef.current = false;
         emitPlaybackAction('pause');
         emitPlaybackState();
@@ -538,6 +559,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
 
       if (key === 'kodik_player_seek' || key === 'kodik_player_seeked') {
         clearSyntheticEndTimer();
+        pauseInferredRef.current = false;
         const seek = readTimeValue(value);
         if (seek && seek.position >= 0) {
           currentPositionRef.current = seek.position;
@@ -552,6 +574,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
         key === 'kodik_player_end' ||
         key === 'kodik_player_video_ended'
       ) {
+        pauseInferredRef.current = false;
         playingRef.current = false;
         emitPlaybackState();
         fireEndedOnce();
