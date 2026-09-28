@@ -24,6 +24,7 @@ type Props = {
   seasonFrameKey?: string | null;
   profileFrameKey?: string | null;
   premiumFrameMotion?: boolean;
+  preferStatic?: boolean;
 };
 
 type IdentityState = {
@@ -43,6 +44,7 @@ export default function UserAvatarWithFrame({
   seasonFrameKey = null,
   profileFrameKey = null,
   premiumFrameMotion = false,
+  preferStatic = false,
 }: Props) {
   const { user } = useAuthState();
   const cached = loadCurrentIdentity ? peekSponsorMe(user?.id, 1) : null;
@@ -106,6 +108,7 @@ export default function UserAvatarWithFrame({
     : { role, sponsor };
 
   const activeProfileFrameKey = profileFrameKey ?? seasonFrameKey;
+  const displayedSrc = preferStatic && mobileSrc ? mobileSrc : src;
   const visuals = useMemo(
     () =>
       resolveAvatarIdentityVisuals({
@@ -130,14 +133,14 @@ export default function UserAvatarWithFrame({
         style={{ inset: `${visuals.avatarInsetPct}%` }}
       >
         <picture className="absolute inset-0 block h-full w-full">
-          {mobileSrc && mobileSrc !== src && (
+          {mobileSrc && mobileSrc !== displayedSrc && (
             <source
               media="(prefers-reduced-motion: reduce)"
               srcSet={mobileSrc}
             />
           )}
           <img
-            src={src}
+            src={displayedSrc}
             alt={alt}
             className="block h-full w-full max-w-none select-none object-cover"
             style={premiumMediaStyle(mediaTransform)}
