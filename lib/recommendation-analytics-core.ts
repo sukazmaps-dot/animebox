@@ -631,6 +631,11 @@ export function aggregateRecommendationAnalyticsRows(
   );
   const exposures = new Map<string, Exposure>();
   const railHealth = new Map<string, RailHealth>();
+  const nowMs = Date.now();
+
+  let invalidTimestampEvents = 0;
+  let futureTimestampEvents = 0;
+  const validTimestamps: number[] = [];
 
   let recommendationEvents = 0;
   let recommendationIdEvents = 0;
@@ -647,6 +652,16 @@ export function aggregateRecommendationAnalyticsRows(
   let fullyAttributedEvents = 0;
 
   for (const row of rows) {
+    const timestamp = eventTimestamp(row.created_at);
+    if (timestamp == null) {
+      invalidTimestampEvents += 1;
+    } else {
+      validTimestamps.push(timestamp);
+      if (timestamp > nowMs + 5 * 60_000) {
+        futureTimestampEvents += 1;
+      }
+    }
+
     const isRailHealthEvent = row.event_name.startsWith(
       'recommendation_rail_',
     );
@@ -748,6 +763,23 @@ export function aggregateRecommendationAnalyticsRows(
   const cohort = [...exposures.values()].filter(
     (exposure) => exposure.impression,
   );
+  const orphanRecommendationExposures =
+    [...exposures.values()].filter((exposure) => !exposure.impression).length;
+  const startedWithoutClick = cohort.filter(
+    (exposure) => exposure.started && !exposure.click,
+  ).length;
+  const watch15WithoutStarted = cohort.filter(
+    (exposure) => exposure.watch15m && !exposure.started,
+  ).length;
+  const watch30Without15m = cohort.filter(
+    (exposure) => exposure.watch30m && !exposure.watch15m,
+  ).length;
+  const multiEpisodeWithoutStarted = cohort.filter(
+    (exposure) => exposure.multiEpisode && !exposure.started,
+  ).length;
+  const completedWithoutStarted = cohort.filter(
+    (exposure) => exposure.completed && !exposure.started,
+  ).length;
 
   const versions = new Map<string, FunnelAccumulator>();
   const rowFunnels = new Map<string, FunnelAccumulator>();
@@ -1007,9 +1039,52 @@ export function aggregateRecommendationAnalyticsRows(
     attributedExposures: cohort.length,
     truncated,
     funnelMode: 'unique_recommendation_id',
+    maturity: {
+      ctrMinutes: RECOMMENDATION_ANALYTICS_MATURITY_MINUTES.ctr,
+      clickToPlayMinutes:
+        RECOMMENDATION_ANALYTICS_MATURITY_MINUTES.clickToPlay,
+      clickTo15mMinutes:
+        RECOMMENDATION_ANALYTICS_MATURITY_MINUTES.clickTo15m,
+      startedTo15mMinutes:
+        RECOMMENDATION_ANALYTICS_MATURITY_MINUTES.startedTo15m,
+      startedTo30mMinutes:
+        RECOMMENDATION_ANALYTICS_MATURITY_MINUTES.startedTo30m,
+      startedToMultiEpisodeMinutes:
+        RECOMMENDATION_ANALYTICS_MATURITY_MINUTES.startedToMultiEpisode,
+      startedToCompletedMinutes:
+        RECOMMENDATION_ANALYTICS_MATURITY_MINUTES.startedToCompleted,
+    },
+    sampleWindow: {
+      oldestEventAt: validTimestamps.length
+        ? new Date(Math.min(...validTimestamps)).toISOString()
+        : null,
+      newestEventAt: validTimestamps.length
+        ? new Date(Math.max(...validTimestamps)).toISOString()
+        : null,
+      effectiveHours:
+        validTimestamps.length > 1
+          ? rounded(
+              (Math.max(...validTimestamps) -
+                Math.min(...validTimestamps)) /
+                3_600_000,
+              1,
+            )
+          : 0,
+    },
+    dataQuality: {
+      orphanRecommendationExposures,
+      startedWithoutClick,
+      watch15WithoutStarted,
+      watch30Without15m,
+      multiEpisodeWithoutStarted,
+      completedWithoutStarted,
+      invalidTimestampEvents,
+      futureTimestampEvents,
+    },
     kpis: {
       impressions: total.impressions,
       clicks: total.clicks,
+      ctrEligible: totalSlice.ctrEligible,
       ctrPct: totalSlice.ctrPct,
       planned,
       liked,
@@ -1017,16 +1092,24 @@ export function aggregateRecommendationAnalyticsRows(
       alreadyWatched,
       dismissRatePct: pct(dismissed, total.impressions),
       started: total.started,
+      clickToPlayEligible: totalSlice.clickToPlayEligible,
       clickToPlayPct: totalSlice.clickToPlayPct,
       watch15m: total.watch15m,
       watch30m: total.watch30m,
+      clickTo15mEligible: totalSlice.clickTo15mEligible,
       clickTo15mPct: totalSlice.clickTo15mPct,
+      startedTo15mEligible: totalSlice.startedTo15mEligible,
       startedTo15mPct: totalSlice.startedTo15mPct,
+      startedTo30mEligible: totalSlice.startedTo30mEligible,
       startedTo30mPct: totalSlice.startedTo30mPct,
       watch15To30Pct: pct(total.watch30m, total.watch15m),
       completed: total.completed,
+      startedToCompletedEligible:
+        totalSlice.startedToCompletedEligible,
       startedToCompletedPct: totalSlice.startedToCompletedPct,
       multiEpisode: total.multiEpisode,
+      startedToMultiEpisodeEligible:
+        totalSlice.startedToMultiEpisodeEligible,
       startedToMultiEpisodePct:
         totalSlice.startedToMultiEpisodePct,
       repeatedImpressions,
