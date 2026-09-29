@@ -63,8 +63,8 @@ if (
 }
 
 for (const needle of [
-  "RECOMMENDATION_DIVERSITY_VERSION = '18.3-diversity-v2'",
-  'maxRecentGenreShare',
+  "RECOMMENDATION_DIVERSITY_VERSION = '22.6-diversity-v3'",
+  'recommendationDiversityShareTargets',
   'formatRepeatPenalty',
   'yearBucketRepeatPenalty',
 ]) {
