@@ -728,7 +728,7 @@ Reason text must remain evidence-backed even if future UI copy changes.
 
 # 13. Phase J — Diversity Reranker 3.0
 
-Status: **implemented / CI validation**
+Status: **implemented / CI green**
 
 Goal:
 rerank the already relevance-scored candidate head so the feed does not collapse
