@@ -37,9 +37,11 @@ const LEGACY_SELECT =
 
 async function loadRows(rangeDays: RecommendationAnalyticsRange) {
   const admin = createSupabaseAdmin();
+  const now = Date.now();
   const since = new Date(
-    Date.now() - rangeDays * 86_400_000,
+    now - rangeDays * 86_400_000,
   ).toISOString();
+  const until = new Date(now).toISOString();
   const rows: RecommendationAnalyticsEventRow[] = [];
   let legacyColumns = false;
 
@@ -50,6 +52,7 @@ async function loadRows(rangeDays: RecommendationAnalyticsRange) {
         .select(select)
         .in('event_name', [...EVENTS])
         .gte('created_at', since)
+        .lte('created_at', until)
         .order('created_at', { ascending: false })
         .range(offset, offset + PAGE_SIZE - 1);
 
