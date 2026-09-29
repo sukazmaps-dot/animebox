@@ -3,7 +3,7 @@ import { trackProductClientEvent } from '@/lib/product-events-client';
 
 export const TASTE_PROFILE_STORAGE_KEY = 'animebox_taste_profile_v1';
 export const RECOMMENDATION_EVENTS_STORAGE_KEY = 'animebox_recommendation_events_v1';
-export const RECOMMENDATION_ALGORITHM_VERSION = '22.2-v1';
+export const RECOMMENDATION_ALGORITHM_VERSION = '22.3-v1';
 export const RECOMMENDATION_MODEL_VERSION = RECOMMENDATION_ALGORITHM_VERSION;
 export const RECOMMENDATION_ATTRIBUTION_PREFIX = 'animebox:recommendation-attribution:v1:';
 
@@ -55,6 +55,11 @@ export type RecommendationEvent = {
   noveltyScore?: number;
   hiddenGemScore?: number;
   popularityBand?: 'unknown' | 'niche' | 'mid' | 'mainstream' | 'blockbuster';
+  seasonalScore?: number;
+  freshnessScore?: number;
+  seasonRelation?: 'current' | 'previous' | 'recent' | 'older' | 'unknown';
+  season?: 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL';
+  seasonYear?: number;
   createdAt: number;
 };
 
@@ -342,6 +347,11 @@ export function trackRecommendationEvent(
           noveltyScore: event.noveltyScore ?? null,
           hiddenGemScore: event.hiddenGemScore ?? null,
           popularityBand: event.popularityBand ?? null,
+          seasonalScore: event.seasonalScore ?? null,
+          freshnessScore: event.freshnessScore ?? null,
+          seasonRelation: event.seasonRelation ?? null,
+          season: event.season ?? null,
+          seasonYear: event.seasonYear ?? null,
           openedAt: Date.now(),
           startedSent: false,
           watch15mSent: false,
@@ -401,6 +411,11 @@ export function trackRecommendationEvent(
         novelty_score: event.noveltyScore ?? null,
         hidden_gem_score: event.hiddenGemScore ?? null,
         popularity_band: event.popularityBand ?? null,
+        seasonal_score: event.seasonalScore ?? null,
+        freshness_score: event.freshnessScore ?? null,
+        season_relation: event.seasonRelation ?? null,
+        season: event.season ?? null,
+        season_year: event.seasonYear ?? null,
         model_version: algorithmVersion,
         algorithm_version: algorithmVersion,
       },
