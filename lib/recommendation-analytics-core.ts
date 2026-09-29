@@ -70,7 +70,6 @@ type Exposure = {
 };
 
 type RailHealth = {
-  dismissed: number;
   endReached: number;
   loadRequests: number;
   loadAdded: number;
@@ -83,7 +82,6 @@ type RailHealth = {
 };
 
 const EMPTY_RAIL_HEALTH: RailHealth = {
-  dismissed: 0,
   endReached: 0,
   loadRequests: 0,
   loadAdded: 0,
