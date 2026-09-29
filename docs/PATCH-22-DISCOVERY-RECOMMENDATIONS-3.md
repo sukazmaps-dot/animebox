@@ -648,9 +648,11 @@ Implemented:
 - exact-next-season continuation detection from bounded local watch history;
 - split-cour / Part 2 continuation handling;
 - one-family dedupe before the global diversity pass;
+- diversity reranker consumes the same canonical franchise key and never counts a continuation as an exploration slot;
 - continuation candidates win family dedupe over generic franchise entries;
 - bounded `franchiseContinuation` ranking component;
 - evidence-based continuation reason;
+- franchise continuation/season attribution in recommendation product telemetry;
 - dedicated `История продолжается` rail that claims continuation candidates before generic rails;
 - recommendation algorithm/ranking version bumped to `22.1-v1`;
 - dedicated Phase E runtime regression matrix added to `patch22:check`.
