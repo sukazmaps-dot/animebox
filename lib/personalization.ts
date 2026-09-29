@@ -497,6 +497,31 @@ export function trackRecommendationEvent(
   }
 }
 
+export function removeLatestRecommendationFeedbackEvent(
+  animeId: number,
+  signal: RecommendationFeedbackSignal,
+): void {
+  if (typeof window === 'undefined') return;
+
+  const events = safeJsonParse<RecommendationEvent[]>(
+    localStorage.getItem(RECOMMENDATION_EVENTS_STORAGE_KEY),
+    [],
+  );
+  const index = events.findLastIndex(
+    (event) =>
+      event.animeId === animeId &&
+      event.feedbackSignal === signal,
+  );
+
+  if (index < 0) return;
+
+  events.splice(index, 1);
+  localStorage.setItem(
+    RECOMMENDATION_EVENTS_STORAGE_KEY,
+    JSON.stringify(events.slice(-350)),
+  );
+}
+
 export function readRecommendationEvents(): RecommendationEvent[] {
   if (typeof window === 'undefined') return [];
 
