@@ -904,7 +904,7 @@ Never sacrifice a strong user match solely for diversity.
 
 # 14. Phase K — Recommendation Analytics 3.0
 
-Status: **implemented / CI validation**
+Status: **implemented / CI green**
 
 Goal:
 turn recommendation telemetry into a trustworthy exposure-level decision system,
@@ -983,6 +983,12 @@ Controlled exploration:
 
 Explainability:
 - primary `explanation_key` from Phase I becomes an analytics dimension;
+- `source` continues to mean UI/event source (for example a concrete rail);
+- `evidence_source` separately records the model's primary evidence family:
+  `taste_graph`, `watch_history`, `franchise`, `taste_mood`,
+  `engagement` or `discovery`;
+- dashboard source conversion uses `evidence_source` for new Phase K events
+  and retains legacy event-source fallback for old rows;
 - each reason family can be compared by CTR, playback, 15m, 30m,
   multi-episode continuation and completion;
 - no copy-string parsing is required;
