@@ -5,7 +5,8 @@ export type RecommendationCandidateSource =
   | 'popularity'
   | 'ongoing'
   | 'preferred_genre'
-  | 'mood';
+  | 'mood'
+  | 'hidden_gem';
 
 /**
  * Public candidate page for the Smart Feed.
