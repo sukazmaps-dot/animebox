@@ -145,6 +145,8 @@ export default function SmartRecommendationCard({
     anime,
     reason,
     reasons,
+    explanations,
+    explanationVersion,
     matchScore,
     fatigueScore,
     exposureCount7d,
@@ -186,6 +188,7 @@ export default function SmartRecommendationCard({
   const [posterState, setPosterState] = useState<AnimeImageLoadState>('loading');
   const ratingLabel = formatAnimeScore(anime);
   const durationLabel = formatDuration(anime.duration);
+  const primaryExplanation = explanations[0];
 
   const eventContext = {
     animeId: anime.id,
@@ -198,6 +201,12 @@ export default function SmartRecommendationCard({
     recommendationSessionId,
     matchScore: matchScore ?? undefined,
     reason,
+    explanationVersion,
+    explanationKey: primaryExplanation?.key,
+    explanationComponents: primaryExplanation?.components,
+    explanationContribution: primaryExplanation?.contribution,
+    explanationContributionShare:
+      primaryExplanation?.contributionShare,
     fatigueScore,
     exposureCount7d,
     exposureCount30d,
@@ -245,6 +254,12 @@ export default function SmartRecommendationCard({
               recommendationSessionId,
               matchScore: matchScore ?? undefined,
               reason,
+              explanationVersion,
+              explanationKey: primaryExplanation?.key,
+              explanationComponents: primaryExplanation?.components,
+              explanationContribution: primaryExplanation?.contribution,
+              explanationContributionShare:
+                primaryExplanation?.contributionShare,
               franchiseContinuation,
               franchiseSeasonNumber: franchiseSeasonNumber ?? undefined,
               explorationClass,
@@ -290,6 +305,11 @@ export default function SmartRecommendationCard({
     mood,
     position,
     reason,
+    explanationVersion,
+    primaryExplanation?.key,
+    primaryExplanation?.components,
+    primaryExplanation?.contribution,
+    primaryExplanation?.contributionShare,
     recommendationSessionId,
     rowId,
     runtimeIdentity,
@@ -459,6 +479,8 @@ export default function SmartRecommendationCard({
     <article
       ref={rootRef}
       className="smart-card"
+      data-explanation-key={primaryExplanation?.key}
+      data-explanation-version={explanationVersion}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
     >
@@ -528,7 +550,13 @@ export default function SmartRecommendationCard({
           )}
         </div>
 
-        <p className="smart-card__reason" title={reasons.join(' · ')}>
+        <p
+          className="smart-card__reason"
+          title={reasons.join(' · ')}
+          data-explanation-component={
+            primaryExplanation?.components.join(',') || undefined
+          }
+        >
           <span aria-hidden="true">✦</span>
           {reason}
         </p>
