@@ -154,6 +154,7 @@ export default function SmartRecommendationCard({
     sessionIntentScore,
     sessionIntentConfidence,
     completionScore,
+    tasteConfidence,
     franchiseContinuation,
     franchiseSeasonNumber,
     explorationClass,
@@ -220,6 +221,7 @@ export default function SmartRecommendationCard({
     sessionIntentScore,
     sessionIntentConfidence,
     completionScore,
+    tasteConfidence: tasteConfidence ?? undefined,
     franchiseContinuation,
     franchiseSeasonNumber: franchiseSeasonNumber ?? undefined,
     explorationClass,
@@ -273,6 +275,7 @@ export default function SmartRecommendationCard({
               diversityPenalty: diversity?.totalPenalty,
               diversityBoost: diversity?.totalBoost,
               diversityRelaxed: diversity?.relaxedConstraints,
+              tasteConfidence: tasteConfidence ?? undefined,
               franchiseContinuation,
               franchiseSeasonNumber: franchiseSeasonNumber ?? undefined,
               explorationClass,
@@ -303,6 +306,7 @@ export default function SmartRecommendationCard({
     };
   }, [
     anime.id,
+    tasteConfidence,
     franchiseContinuation,
     franchiseSeasonNumber,
     explorationClass,
