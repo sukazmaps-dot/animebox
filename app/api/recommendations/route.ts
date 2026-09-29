@@ -39,7 +39,8 @@ type CandidateSource =
   | 'popularity'
   | 'ongoing'
   | 'preferred_genre'
-  | 'mood';
+  | 'mood'
+  | 'hidden_gem';
 
 type RecommendationCursorPayload = {
   v: typeof CURSOR_VERSION;
@@ -114,13 +115,14 @@ function selectCandidateSource(input: {
   hasTasteGenre: boolean;
   mood: CandidateMood;
 }): CandidateSource {
-  const slot = (input.page - 1 + input.bucket) % 5;
+  const slot = (input.page - 1 + input.bucket) % 6;
 
   if (slot === 0 && input.hasTasteGenre) return 'preferred_genre';
   if (slot === 1) return 'ranked';
   if (slot === 2 && input.mood !== 'any') return 'mood';
   if (slot === 3) return 'popularity';
-  if (slot === 4) return 'ongoing';
+  if (slot === 4) return 'hidden_gem';
+  if (slot === 5) return 'ongoing';
 
   return slot % 2 === 0 ? 'popularity' : 'ranked';
 }
@@ -143,6 +145,18 @@ function sourceOptions(input: {
     page,
     order: source === 'ranked' ? 'ranked' : 'popularity',
   };
+
+  if (source === 'hidden_gem') {
+    // High-score pages beyond the obvious first page provide a public,
+    // cacheable long-tail pool. Final hidden-gem qualification still happens
+    // in the client ranker using taste, quality, popularity and fatigue.
+    const hiddenGemPage = 2 + ((page * 3 + bucket) % 18);
+    return {
+      ...base,
+      page: hiddenGemPage,
+      order: 'ranked',
+    };
+  }
 
   if (source === 'ongoing') {
     return {
@@ -198,7 +212,7 @@ const getCachedCandidatePage = unstable_cache(
 
     return getAnimesWithShikimori(options);
   },
-  ['animebox-recommendation-candidates-v7-verified-playback'],
+  ['animebox-recommendation-candidates-v8-controlled-exploration'],
   {
     revalidate: CACHE_SECONDS,
     tags: ['animebox-recommendation-candidates'],
