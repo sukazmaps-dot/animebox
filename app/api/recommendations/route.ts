@@ -313,6 +313,8 @@ async function loadCandidatePage(input: {
         tasteGenre,
         mood,
         bucket,
+        season,
+        seasonYear,
       );
 
       console.warn(
