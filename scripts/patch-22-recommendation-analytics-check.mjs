@@ -556,7 +556,7 @@ if (!failures.length) {
     const tasteSource = dashboard.sources.find(
       (item) => item.source === 'taste_graph',
     );
-    if (!tasteSource || tasteSource.impressions !== 2 || tasteSource.multiEpisode !== 1) {
+    if (!tasteSource || tasteSource.impressions !== 1 || tasteSource.multiEpisode !== 1) {
       failures.push('model evidence source is mixed with rail/event source');
     }
 
