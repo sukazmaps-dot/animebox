@@ -50,6 +50,9 @@ for (const [label, source, needle] of [
   ['watch completion-score attribution', productClient, 'completion_score: parsed.completionScore ?? null'],
   ['watch exploration attribution', productClient, 'exploration_class: parsed.explorationClass ?? null'],
   ['watch fatigue attribution', productClient, 'fatigue_score: parsed.fatigueScore ?? null'],
+  ['model evidence source telemetry', personalization, 'evidence_source: event.evidenceSource ?? null'],
+  ['watch evidence source attribution', productClient, 'evidence_source: parsed.evidenceSource ?? null'],
+  ['analytics evidence source preference', core, "metadataText(row, 'evidence_source')"],
   ['taste confidence attribution', personalization, 'taste_confidence: event.tasteConfidence ?? null'],
   ['impression fatigue context', card, 'fatigueScore,'],
   ['impression exposure context', card, 'exposureCount7d,'],
@@ -88,6 +91,13 @@ if (!failures.length) {
     const at = (minutes) =>
       new Date(Date.UTC(2026, 8, 29, 10, minutes, 0)).toISOString();
 
+    const sourceEvidence = (explanation) => {
+      if (explanation === 'liked_reference') return 'taste_graph';
+      if (explanation === 'completed_taste') return 'watch_history';
+      if (explanation === 'exploration_bridge') return 'discovery';
+      return 'discovery';
+    };
+
     const metadata = ({
       row = 'top_match',
       position = 1,
@@ -119,6 +129,7 @@ if (!failures.length) {
       diversity_reranked_rank: rerankedRank,
       diversity_relaxed: relaxed,
       feedback_signal: feedback,
+      evidence_source: sourceEvidence(explanation),
       recommendation_session_id: 'rec-session-1234',
       algorithm_version: '22.6-v1',
     });
@@ -444,6 +455,13 @@ if (!failures.length) {
       dashboard.diversity.relaxed !== 1
     ) {
       failures.push('diversity movement analytics are incorrect');
+    }
+
+    const tasteSource = dashboard.sources.find(
+      (item) => item.source === 'taste_graph',
+    );
+    if (!tasteSource || tasteSource.impressions !== 1 || tasteSource.multiEpisode !== 1) {
+      failures.push('model evidence source is mixed with rail/event source');
     }
 
     const likedReason = dashboard.explanations.find(
