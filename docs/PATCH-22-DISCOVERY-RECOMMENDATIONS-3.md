@@ -470,25 +470,116 @@ Never use unconditional `new = high score`.
 
 ---
 
-# 11. Phase H — Feedback 2.0
+# 11. Phase H — Structured Feedback 2.0
 
-Replace one ambiguous negative action with structured reasons:
+Status: **implemented / CI validation**
 
-- not_interested;
-- less_like_this;
-- already_watched;
-- too_long;
-- dislike_genre;
-- dislike_setting;
-- not_now.
+Goal:
+replace the single ambiguous negative action with explicit reasons that have
+different scope, strength, decay and ranking effects.
 
-"not_now":
-- hides in current/short-term sessions;
-- decays quickly;
-- does not create a strong negative genre weight.
+Feedback policy:
+- `like_more`: positive explicit preference;
+- `not_interested`: permanent title exclusion plus a moderate broad negative
+  signal;
+- `less_like_this`: weaker broad negative signal;
+- `already_watched`: permanent title exclusion with **zero negative taste
+  penalty**;
+- `too_long`: title exclusion plus an episode-count aversion signal, without
+  punishing genres or studios;
+- `dislike_genre`: strong long-term genre-only negative signal;
+- `dislike_setting`: studio/format/era/status proxy for visual/context style,
+  without a strong genre penalty;
+- `not_now`: 14-day temporary snooze with a very small short-term engagement
+  penalty and no long-term taste damage;
+- `hidden`: backwards-compatible legacy strong-hide signal.
 
-"dislike_genre":
-- stronger long-term negative signal.
+Policy/version contract:
+- recommendation model/algorithm version: `22.4-v1`;
+- feedback policy version: `22.4-feedback-v2`;
+- one shared policy module is consumed by client ranking and server Taste Graph;
+- the previous one-row-per-user/title feedback storage contract is preserved.
+
+Persistent data:
+- `recommendation_feedback.signal` accepts the new structured reasons;
+- a user/signal/updated index supports future Phase K breakdowns;
+- feedback policy version is written into bounded metadata;
+- latest feedback for a title remains the source of truth.
+
+Temporary snooze:
+- `not_now` is stored locally with an expiry timestamp;
+- local ranking filters active snoozes immediately;
+- server Taste Graph excludes `not_now` only while its 14-day window is active;
+- once expired, it no longer blocks that title;
+- `not_now` does not alter long-term genre weights.
+
+Taste Graph:
+- feedback processing is axis-aware instead of applying one weight to every
+  metadata dimension;
+- genre, studio, format, era and finished/ongoing status can now receive
+  independent positive/negative weights;
+- `dislike_genre` affects genre vectors only;
+- `dislike_setting` affects studio/format/era/status axes;
+- `already_watched` only excludes the exact title;
+- every signal has its own half-life and minimum decay floor;
+- successful feedback writes immediately refresh the private Taste Graph so
+  structured signals affect the same session.
+
+Length feedback:
+- `too_long` builds a bounded `tooLongEpisodeCountThreshold`;
+- the threshold uses the lower part of the user's explicit too-long examples so
+  one extremely long outlier does not make the signal useless;
+- a dedicated `episodeLengthNegativeAffinity` penalizes titles at or above the
+  learned threshold;
+- explicit length rejection is separate from positive preferred-length affinity;
+- `too_long` never damages genre/studio preference.
+
+Ranking:
+- structured negative events no longer all equal `-1`;
+- `already_watched` has zero engagement penalty;
+- `not_now` is deliberately weak;
+- `dislike_genre` is materially stronger than generic `not_interested`;
+- explicit length aversion has a bounded negative rank component;
+- local temporary snoozes are filtered before scoring.
+
+UI:
+- the old one-click X no longer immediately produces an ambiguous dislike;
+- X opens a native top-layer structured feedback dialog;
+- dedicated `Уже смотрел` remains a fast one-click action;
+- dialog reasons explain what each choice changes;
+- mobile uses a one-column reason list;
+- light and dark themes are supported.
+
+Undo:
+- every negative/neutral hide action produces a 6.5-second undo snackbar;
+- the previous local taste snapshot is restored on undo;
+- the title is reintroduced into the loaded candidate pool and reranked;
+- persistent feedback is deleted server-side;
+- undo waits for the in-flight feedback POST before issuing DELETE, preventing a
+  POST-after-DELETE race.
+
+Telemetry:
+- structured signals continue to use the existing recommendation event pipeline;
+- dismiss-like signals map to `recommendation_dismiss` with
+  `feedback_signal` metadata;
+- `already_watched` keeps its dedicated event;
+- `feedback_policy_version` is attached for model attribution;
+- no second analytics event system is introduced.
+
+Regression coverage:
+- all new DB signals;
+- temporary snooze expiry;
+- genre-only and setting-axis policies;
+- neutral already-watched semantics;
+- too-long isolation from genre/studio taste;
+- Taste Graph refresh after feedback;
+- local snooze ranking filter;
+- feedback dialog contract;
+- mobile/light-theme UI;
+- race-safe undo;
+- model/policy versioning.
+
+Do not infer a long-term dislike from a temporary `not_now` action.
 
 ---
 
