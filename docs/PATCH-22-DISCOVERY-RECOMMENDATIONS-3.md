@@ -472,7 +472,7 @@ Never use unconditional `new = high score`.
 
 # 11. Phase H — Structured Feedback 2.0
 
-Status: **implemented / CI validation**
+Status: **implemented / CI green**
 
 Goal:
 replace the single ambiguous negative action with explicit reasons that have
