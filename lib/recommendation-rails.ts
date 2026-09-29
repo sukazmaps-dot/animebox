@@ -8,6 +8,7 @@ export type RecommendationRailId =
   | 'story_continues'
   | 'taste_lane'
   | 'quick_watch'
+  | 'hidden_gems'
   | 'explore'
   | 'endless';
 
@@ -63,6 +64,11 @@ export function orderRecommendationRails(
     }
     if (rail.id === 'top_match') return 10;
     if (rail.id === 'story_continues') return options.hasWatchHistory ? 14 : 90;
+    if (rail.id === 'hidden_gems') {
+      return options.hasWatchHistory
+        ? explorationRate >= 0.12 ? 25 : 32
+        : 24;
+    }
     if (rail.id === 'endless') return 100;
 
     if (!options.hasWatchHistory) {
@@ -144,10 +150,12 @@ export function recommendationMatchesRail(
 ): boolean {
   if (rail.id === 'top_match' || rail.id === 'endless') return true;
   if (rail.id === 'story_continues') return item.franchiseContinuation;
+  if (rail.id === 'hidden_gems') return item.hiddenGemScore >= 0.58;
   if (rail.id === 'mood_lane') return item.ranking.components.mood > 0;
   if (rail.id === 'quick_watch') return isShortWatch(item);
   if (rail.id === 'explore') {
     return (
+      item.explorationClass === 'explore' ||
       item.source === 'discovery' ||
       item.matchScore == null ||
       item.matchScore < 76
@@ -170,8 +178,16 @@ export function recommendationMatchesRailRelaxed(
 ): boolean {
   if (recommendationMatchesRail(item, rail)) return true;
 
+  if (rail.id === 'hidden_gems') {
+    return item.hiddenGemScore >= 0.48;
+  }
+
   if (rail.id === 'explore') {
-    return item.matchScore == null || item.matchScore < 88;
+    return (
+      item.explorationClass !== 'safe' ||
+      item.matchScore == null ||
+      item.matchScore < 88
+    );
   }
 
   if (rail.id === 'quick_watch') {
@@ -297,6 +313,33 @@ export function buildRecommendationRailLayout(
     }
   }
 
+  const hiddenGemCandidates = pool.filter(
+    (item) =>
+      !item.franchiseContinuation &&
+      item.hiddenGemScore >= 0.58,
+  );
+
+  if (hiddenGemCandidates.length >= 3 || (hiddenGemCandidates.length > 0 && options.hasMore)) {
+    const hiddenGems = take(
+      'hidden_gems',
+      (item) =>
+        !item.franchiseContinuation &&
+        item.hiddenGemScore >= 0.58,
+    );
+
+    if (hiddenGems.length > 0) {
+      rails.push({
+        id: 'hidden_gems',
+        title: 'Скрытые находки',
+        subtitle:
+          'Менее очевидные тайтлы с сильным совпадением по вкусу и достаточным качеством.',
+        source: 'smart_feed_hidden_gems',
+        badge: 'НАХОДКИ',
+        items: hiddenGems,
+      });
+    }
+  }
+
   const top = take('top_match', () => true);
   if (top.length) {
     rails.push({
@@ -354,6 +397,7 @@ export function buildRecommendationRailLayout(
   const explore = take(
     'explore',
     (item) =>
+      item.explorationClass === 'explore' ||
       item.source === 'discovery' ||
       item.matchScore == null ||
       item.matchScore < 76,
