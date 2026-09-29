@@ -281,7 +281,11 @@ function hydrateExposure(
     exposure.rowId = (rowId(row) || 'unknown').slice(0, 80);
   }
   if (exposure.source === 'unknown') {
-    exposure.source = eventSource(row) || 'unknown';
+    exposure.source = (
+      metadataText(row, 'evidence_source') ||
+      eventSource(row) ||
+      'unknown'
+    ).slice(0, 64);
   }
   exposure.position ??= metadataPosition(row);
   if (exposure.explanationKey === 'unknown') {
@@ -357,8 +361,6 @@ function createExposure(
     dismissedDate: null,
   };
 
-  hydrateExposure(exposure, row);
-  applyEvent(exposure, row);
   return exposure;
 }
 
