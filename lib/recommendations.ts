@@ -77,6 +77,7 @@ export type RankedRecommendation = {
   sessionIntentScore: number;
   sessionIntentConfidence: number;
   completionScore: number;
+  tasteConfidence: number | null;
   franchiseFamilyKey: string | null;
   franchiseSeasonNumber: number | null;
   franchisePartNumber: number | null;
@@ -757,6 +758,10 @@ export function getPersonalizedRecommendations(
         sessionIntentScore,
         sessionIntentConfidence: sessionIntent.confidence,
         completionScore,
+        tasteConfidence:
+          tasteGraph && Number.isFinite(Number(tasteGraph.confidence))
+            ? Math.max(0, Math.min(1, Number(tasteGraph.confidence)))
+            : null,
         franchiseFamilyKey: franchise.familyKey,
         franchiseSeasonNumber: franchise.seasonNumber,
         franchisePartNumber: franchise.partNumber,
