@@ -8,6 +8,7 @@ import {
 import type {
   RecommendationExplanationComponent,
   RecommendationExplanationKey,
+  RecommendationExplanationSource,
 } from '@/lib/recommendation-explainability';
 
 export const TASTE_PROFILE_STORAGE_KEY = 'animebox_taste_profile_v1';
