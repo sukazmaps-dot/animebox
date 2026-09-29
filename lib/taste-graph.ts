@@ -35,6 +35,7 @@ export type TasteGraph = {
   completionRate: number;
   bingeScore: number;
   preferredEpisodeCount: number | null;
+  tooLongEpisodeCountThreshold: number | null;
   averageRating: number | null;
   ratingsCount: number;
   explorationRate: number;
@@ -112,6 +113,13 @@ export function sanitizeTasteGraph(value: unknown): TasteGraph | null {
     ? null
     : Math.max(1, Math.min(2000, Math.round(finite(raw.preferredEpisodeCount))));
 
+  const tooLongEpisodeCountThreshold = raw.tooLongEpisodeCountThreshold == null
+    ? null
+    : Math.max(
+        1,
+        Math.min(2000, Math.round(finite(raw.tooLongEpisodeCountThreshold))),
+      );
+
   const averageRating = raw.averageRating == null
     ? null
     : clamp(finite(raw.averageRating), 1, 10);
@@ -186,6 +194,7 @@ export function sanitizeTasteGraph(value: unknown): TasteGraph | null {
     completionRate: clamp(finite(raw.completionRate)),
     bingeScore: clamp(finite(raw.bingeScore)),
     preferredEpisodeCount,
+    tooLongEpisodeCountThreshold,
     averageRating,
     ratingsCount: Math.max(0, Math.round(finite(raw.ratingsCount))),
     explorationRate: clamp(finite(raw.explorationRate, 0.14), 0.05, 0.2),
@@ -318,6 +327,21 @@ export function episodeLengthAffinity(anime: Pick<Anime, 'episodes'>, graph: Tas
   if (ratio <= 1.75) return 0.72;
   if (ratio <= 2.5) return 0.42;
   return 0.12;
+}
+
+export function episodeLengthNegativeAffinity(
+  anime: Pick<Anime, 'episodes'>,
+  graph: TasteGraph | null | undefined,
+) {
+  const threshold = graph?.tooLongEpisodeCountThreshold;
+  const episodes = anime.episodes ?? null;
+  if (!threshold || !episodes || episodes <= 0 || episodes < threshold) return 0;
+
+  const ratio = episodes / Math.max(1, threshold);
+  if (ratio <= 1.1) return 0.35;
+  if (ratio <= 1.5) return 0.55;
+  if (ratio <= 2) return 0.75;
+  return 1;
 }
 
 
