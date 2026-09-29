@@ -728,18 +728,177 @@ Reason text must remain evidence-backed even if future UI copy changes.
 
 # 13. Phase J — Diversity Reranker 3.0
 
-Constraints:
-- franchise concentration;
-- genre concentration;
-- studio repetition;
-- format repetition;
-- era repetition;
-- source repetition;
-- popularity concentration.
+Status: **implemented / CI validation**
 
-Reranking is performed after relevance scoring.
+Goal:
+rerank the already relevance-scored candidate head so the feed does not collapse
+into one franchise, genre, studio, format, era, reason source or popularity band,
+while preserving the strongest personal matches.
 
-Never sacrifice all relevance merely to satisfy diversity.
+Versions:
+- recommendation model / final pipeline: `22.6-v1`;
+- ranking contract: `22.6-v1`;
+- diversity contract: `22.6-diversity-v3`;
+- explainability contract remains `22.5-explain-v1`.
+
+Pipeline:
+`candidate retrieval`
+→ `scoreRecommendation()`
+→ relevance-sorted pool
+→ franchise safety
+→ `diversifyRecommendations()`
+→ multi-rail composition.
+
+Core rule:
+diversity is a **post-ranking reranker**, not an alternative relevance model.
+It may reorder candidates that are close enough in relevance, but it cannot
+promote a materially weaker title merely to make the feed look varied.
+
+Relevance guard:
+- slot 1 is locked to the raw relevance winner;
+- every later selection is compared with the strongest remaining raw score;
+- a dynamic relevance floor combines an absolute and relative drop budget;
+- strong personalization therefore keeps priority over cosmetic diversity;
+- a last-resort no-floor pass exists only to avoid empty output under extremely
+  sparse candidate pools;
+- diagnostics expose whether constraint relaxation was required.
+
+Candidate window:
+- diversity works on a bounded head of the relevance-sorted pool;
+- minimum window: 72 candidates;
+- normal window: up to 6× requested output size;
+- no unbounded whole-catalogue reranking is introduced.
+
+Franchise concentration:
+- canonical franchise family remains the primary dedupe identity;
+- one family is preferred per diversified feed head;
+- repeated family receives the strongest repetition penalty;
+- if every available candidate belongs to the same family, the hard cap can
+  relax rather than returning empty slots;
+- continuation eligibility still comes from Phase E prerequisite logic.
+
+Genre concentration:
+- overlapping genre sets receive a recent-window similarity penalty;
+- the system also tracks cumulative predicted genre share;
+- cold-start feeds receive a stricter genre concentration target;
+- high-confidence Taste Graph users may retain slightly more genre focus;
+- a hard concentration guard activates only after enough cards have already
+  been selected, avoiding unstable behaviour in the first few slots.
+
+Studio concentration:
+- studio identity is normalized independently from display copy;
+- repeated studio appearances receive both repetition and share penalties;
+- missing studio metadata is ignored instead of being grouped into one fake
+  "unknown" studio bucket.
+
+Format concentration:
+- repeated TV / movie / OVA / ONA / special patterns receive a small penalty;
+- format remains a soft constraint because a user's actual format preference
+  must still be allowed to dominate when relevance is strong.
+
+Era concentration:
+- release years are grouped by decade;
+- repeated decade concentration is penalized;
+- adjacent individual years are not treated as unrelated eras;
+- missing/invalid release years do not create an "unknown era" penalty.
+
+Source concentration:
+- the primary explainability source is tracked across selected cards;
+- repeated `taste_graph`, `watch_history`, `discovery`, `franchise`,
+  `taste_mood` or `engagement` sources receive a bounded penalty;
+- this prevents the visible feed from being explained by exactly one signal
+  family even when multiple strong evidence paths exist.
+
+Popularity concentration:
+- Phase F popularity bands are reused:
+  niche / mid / mainstream / blockbuster;
+- unknown popularity is not penalized;
+- repeated popularity bands receive repetition and share penalties;
+- this stops the head from becoming only blockbusters or only niche titles.
+
+Confidence-aware share targets:
+- cold-start users get broader genre/studio/source/popularity sampling;
+- high-confidence users may keep more concentration because repetition is more
+  likely to represent an actual preference;
+- these targets do not change raw relevance scores.
+
+Exploration mix:
+- existing safe / adjacent / explore quotas remain;
+- the class currently below its desired position receives a bounded boost;
+- classes already at target receive a small over-target penalty;
+- franchise continuations remain `safe`;
+- diversity cannot use exploration mix to bypass the relevance floor.
+
+Constraint passes:
+1. relevance floor + franchise cap + concentration hard guards;
+2. relevance floor + franchise cap + soft concentration only;
+3. relevance floor + relaxed franchise cap;
+4. final scarcity fill with all hard constraints relaxed.
+
+This staged relaxation guarantees that diversity never silently converts a
+limited candidate pool into missing cards.
+
+Diagnostics:
+every returned recommendation receives a bounded `diversity` object:
+- `version`;
+- raw/original rank;
+- final reranked rank;
+- raw relevance score;
+- diversified comparison score;
+- relevance floor;
+- total diversity penalty;
+- total diversity boost;
+- exact per-dimension penalty/boost map;
+- exploration class;
+- whether hard constraints were relaxed.
+
+The raw recommendation `score` itself is never overwritten. Diversity metadata
+therefore explains ordering without corrupting the underlying relevance score.
+
+Long-session behaviour:
+- a newly fetched recommendation page is no longer diversified only inside that
+  page and then appended unchanged;
+- the newly loaded candidates are merged with the already loaded anime pool;
+- the entire loaded pool is reranked in-memory again;
+- this prevents page 2 / page 3 from gradually rebuilding the same genre/studio
+  concentration that page 1 had already diversified;
+- rail ownership remains sticky, so visible cards do not teleport between rows.
+
+Telemetry:
+impression, click, dwell, feedback and downstream playback attribution now carry:
+- `diversity_version`;
+- `diversity_original_rank`;
+- `diversity_reranked_rank`;
+- `diversity_penalty`;
+- `diversity_boost`;
+- `diversity_relaxed`.
+
+The context survives recommendation click → player start → 15m → 30m →
+completion, allowing Phase K to measure whether diversity moves improve actual
+watch depth rather than only card variety.
+
+Performance:
+- no API call;
+- no Supabase call;
+- no provider call;
+- no model inference;
+- bounded in-memory candidate head only;
+- no change to ScrollRow virtualization;
+- no change to public candidate cache semantics.
+
+Regression coverage:
+- top relevance winner cannot be displaced;
+- weak diverse candidates cannot jump through the relevance floor;
+- franchise cap works when alternatives exist;
+- scarcity relaxation still fills all requested slots;
+- cold-start share targets are broader than high-confidence targets;
+- studio concentration is actually reduced;
+- controlled exploration remains present;
+- diagnostics are attached to every reranked result;
+- loaded-page merges trigger global loaded-pool reranking;
+- diversity telemetry persists into playback attribution.
+
+Never sacrifice a strong user match solely for diversity.
 
 ---
 
