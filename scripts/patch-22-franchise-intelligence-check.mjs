@@ -7,6 +7,7 @@ const read = (path) =>
 const failures = [];
 const franchise = read('lib/recommendation-franchise.ts');
 const recommendations = read('lib/recommendations.ts');
+const explainability = read('lib/recommendation-explainability.ts');
 const ranking = read('lib/recommendation-ranking-config.ts');
 const rails = read('lib/recommendation-rails.ts');
 const personalization = read('lib/personalization.ts');
@@ -22,7 +23,7 @@ for (const [label, source, needle] of [
   ['ranking continuation signal', ranking, 'franchiseContinuation: 0.24'],
   ['recommendation continuation score', recommendations, 'franchiseContinuation: franchise.continuationScore'],
   ['recommendation prerequisite filter', recommendations, 'if (franchise.blockedByPrerequisite) return null'],
-  ['continuation reason', recommendations, 'Продолжение тайтла, который ты уже смотрел'],
+  ['continuation reason', explainability, 'Продолжение истории, которую ты уже смотрел'],
   ['story rail id', rails, "'story_continues'"],
   ['story rail title', rails, "title: 'История продолжается'"],
   ['diversity canonical family', diversity, 'item.franchiseFamilyKey?.trim()'],
