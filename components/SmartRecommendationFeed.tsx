@@ -470,12 +470,23 @@ export default function SmartRecommendationFeed({
       unseen.forEach(({ anime }) =>
         seenRecommendationIdsRef.current.add(anime.id),
       );
-      setRecommendations((current) => mergeUnique(current, unseen));
+      setRecommendations((current) => {
+        const merged = mergeUnique(current, unseen);
+        return getPersonalizedRecommendations(
+          merged.map(({ anime }) => anime),
+          {
+            mood,
+            limit: merged.length,
+            tasteGraph,
+          },
+        );
+      });
     }
   }, [
     initialSignature,
     items,
     mood,
+    tasteGraph,
     replaceHasMore,
     replacePointer,
     resetRequestController,
@@ -606,7 +617,17 @@ export default function SmartRecommendationFeed({
 
         if (fresh.length) {
           startTransition(() => {
-            setRecommendations((current) => mergeUnique(current, fresh));
+            setRecommendations((current) => {
+              const merged = mergeUnique(current, fresh);
+              return getPersonalizedRecommendations(
+                merged.map(({ anime }) => anime),
+                {
+                  mood: displayedMood,
+                  limit: merged.length,
+                  tasteGraph,
+                },
+              );
+            });
           });
 
           // A rail can be temporarily sparse for one cursor window. When
