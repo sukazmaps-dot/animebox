@@ -161,6 +161,48 @@ export default function RecommendationAnalyticsDashboard() {
             </div>
           )}
 
+          <section className={styles.analyticsHealth}>
+            <article>
+              <span>Outcome maturity</span>
+              <strong>
+                {dashboard.maturity.startedTo15mMinutes}m /{' '}
+                {dashboard.maturity.startedTo30mMinutes}m
+              </strong>
+              <small>
+                15m / 30m rates считают только достаточно зрелые exposure
+              </small>
+            </article>
+            <article>
+              <span>Sample window</span>
+              <strong>{dashboard.sampleWindow.effectiveHours}h</strong>
+              <small>
+                {dashboard.sampleWindow.oldestEventAt
+                  ? dashboard.sampleWindow.oldestEventAt.slice(0, 16).replace('T', ' ')
+                  : 'нет данных'}
+              </small>
+            </article>
+            <article>
+              <span>Orphan exposures</span>
+              <strong>
+                {num(dashboard.dataQuality.orphanRecommendationExposures)}
+              </strong>
+              <small>downstream event без impression в окне</small>
+            </article>
+            <article>
+              <span>Stage anomalies</span>
+              <strong>
+                {num(
+                  dashboard.dataQuality.startedWithoutClick +
+                    dashboard.dataQuality.watch15WithoutStarted +
+                    dashboard.dataQuality.watch30Without15m +
+                    dashboard.dataQuality.multiEpisodeWithoutStarted +
+                    dashboard.dataQuality.completedWithoutStarted,
+                )}
+              </strong>
+              <small>для контроля качества telemetry</small>
+            </article>
+          </section>
+
           <div className={styles.kpis}>
             <article>
               <span>Unique impressions</span>
@@ -172,22 +214,22 @@ export default function RecommendationAnalyticsDashboard() {
             <article>
               <span>Impression → Click</span>
               <strong>{pct(k.ctrPct)}</strong>
-              <small>{num(k.clicks)} кликов</small>
+              <small>{num(k.clicks)} кликов · {num(k.ctrEligible)} mature</small>
             </article>
             <article>
               <span>Click → Play</span>
               <strong>{pct(k.clickToPlayPct)}</strong>
-              <small>{num(k.started)} запусков</small>
+              <small>{num(k.started)} запусков · {num(k.clickToPlayEligible)} eligible</small>
             </article>
             <article>
               <span>Play → 15m</span>
               <strong>{pct(k.startedTo15mPct)}</strong>
-              <small>{num(k.watch15m)} просмотров</small>
+              <small>{num(k.watch15m)} просмотров · {num(k.startedTo15mEligible)} eligible</small>
             </article>
             <article>
               <span>Play → 30m</span>
               <strong>{pct(k.startedTo30mPct)}</strong>
-              <small>{num(k.watch30m)} дошли до 30 минут</small>
+              <small>{num(k.watch30m)} дошли · {num(k.startedTo30mEligible)} eligible</small>
             </article>
             <article>
               <span>Multi-episode</span>
