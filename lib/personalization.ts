@@ -12,7 +12,7 @@ import type {
 
 export const TASTE_PROFILE_STORAGE_KEY = 'animebox_taste_profile_v1';
 export const RECOMMENDATION_EVENTS_STORAGE_KEY = 'animebox_recommendation_events_v1';
-export const RECOMMENDATION_ALGORITHM_VERSION = '22.5-v1';
+export const RECOMMENDATION_ALGORITHM_VERSION = '22.6-v1';
 export const RECOMMENDATION_MODEL_VERSION = RECOMMENDATION_ALGORITHM_VERSION;
 export const RECOMMENDATION_ATTRIBUTION_PREFIX = 'animebox:recommendation-attribution:v1:';
 
