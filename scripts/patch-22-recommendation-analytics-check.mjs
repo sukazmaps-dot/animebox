@@ -41,6 +41,7 @@ for (const [label, source, needle] of [
   ['feedback signal source', core, "metadataText(row, 'feedback_signal')"],
   ['server multi episode event', server, "'recommendation_multi_episode'"],
   ['server core aggregation', server, 'aggregateRecommendationAnalyticsRows'],
+  ['newest-event bounded scan', server, ".order('created_at', { ascending: false })"],
   ['multi episode event name', productNames, "'recommendation_multi_episode'"],
   ['forward episode gate', productClient, 'input.episode > firstEpisode'],
   ['meaningful continuation gate', productClient, 'currentActiveMs >= 90_000'],
