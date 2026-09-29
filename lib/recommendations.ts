@@ -17,6 +17,7 @@ import {
   animeFinishedAffinity,
   completedGenreAffinity,
   episodeLengthAffinity,
+  episodeLengthNegativeAffinity,
   readCachedTasteGraph,
   type TasteGraph,
 } from '@/lib/taste-graph';
@@ -500,6 +501,10 @@ export function getPersonalizedRecommendations(
           eraAffinity.negative * 0.2,
       );
       const lengthAffinity = episodeLengthAffinity(anime, tasteGraph);
+      const lengthNegativeAffinity = episodeLengthNegativeAffinity(
+        anime,
+        tasteGraph,
+      );
       const moodScore = moodAffinity(anime, mood);
       const ratingScore = normalizeRating(anime);
       const completionRate = tasteGraph?.completionRate ?? 0;
@@ -591,6 +596,7 @@ export function getPersonalizedRecommendations(
           popularityBias: exploration.popularityBias,
           seasonalFreshness: seasonality.seasonalScore,
           episodeLength: lengthAffinity,
+          episodeLengthNegative: lengthNegativeAffinity,
           mood: moodScore,
           communityQuality: ratingScore,
           shortFinished: shortFinishedAffinity,
@@ -718,6 +724,7 @@ export function getPersonalizedRecommendations(
         metadataNegativeAffinity,
         sessionNegativeAffinity,
         episodeLength: lengthAffinity,
+        episodeLengthNegative: lengthNegativeAffinity,
         mood: moodScore,
         communityQuality: ratingScore,
         shortFinished: shortFinishedAffinity,
