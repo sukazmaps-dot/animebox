@@ -7,6 +7,7 @@ const candidates = read('app/api/recommendations/route.ts');
 const ranking = read('lib/recommendation-ranking-config.ts');
 const diversity = read('lib/recommendation-diversity.ts');
 const recommendations = read('lib/recommendations.ts');
+const franchise = read('lib/recommendation-franchise.ts');
 const recommendationTypes = read('types/recommendations.ts');
 const taste = read('app/api/recommendations/taste/route.ts');
 const tasteGraph = read('lib/taste-graph.ts');
@@ -50,7 +51,7 @@ if (
   failures.push('17.8 recommendation attribution columns are missing');
 }
 if (
-  !personalization.includes("RECOMMENDATION_ALGORITHM_VERSION = '22.0-v1'") ||
+  !personalization.includes("RECOMMENDATION_ALGORITHM_VERSION = '22.1-v1'") ||
   !personalization.includes('createRecommendationId') ||
   !personalization.includes('row_id')
 ) {
@@ -140,6 +141,14 @@ if (
 ) {
   failures.push('Patch 22 Taste Graph 7 affinities are not wired into ranking');
 }
+if (
+  !franchise.includes('buildRecommendationFranchiseHistoryIndex') ||
+  !franchise.includes('blockedByPrerequisite') ||
+  !recommendations.includes('franchiseContinuation: franchise.continuationScore') ||
+  !rails.includes("'story_continues'")
+) {
+  failures.push('Patch 22 Phase E franchise intelligence is incomplete');
+}
 if (!feed.includes('buildRecommendationRailLayout')) {
   failures.push('Netflix-style recommendation rails are not wired');
 }
@@ -186,7 +195,7 @@ if (
   failures.push('candidate source response contract is missing');
 }
 if (
-  !ranking.includes("RECOMMENDATION_RANKING_VERSION = '22.0-v1'") ||
+  !ranking.includes("RECOMMENDATION_RANKING_VERSION = '22.1-v1'") ||
   !ranking.includes('RECOMMENDATION_RANKING_WEIGHTS') ||
   !ranking.includes('RecommendationScoreComponents') ||
   !ranking.includes('scoreRecommendation') ||
