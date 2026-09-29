@@ -16,8 +16,8 @@ const personalization = read('lib/personalization.ts');
 const card = read('components/SmartRecommendationCard.tsx');
 
 for (const [label, source, needle] of [
-  ['ranking version', ranking, "RECOMMENDATION_RANKING_VERSION = '22.5-v1'"],
-  ['algorithm version', personalization, "RECOMMENDATION_ALGORITHM_VERSION = '22.5-v1'"],
+  ['ranking version', ranking, "RECOMMENDATION_RANKING_VERSION = '22.6-v1'"],
+  ['algorithm version', personalization, "RECOMMENDATION_ALGORITHM_VERSION = '22.6-v1'"],
   ['seasonality scorer', seasonality, 'scoreRecommendationSeasonality'],
   ['taste gate', seasonality, 'MIN_TASTE_COMPATIBILITY = 0.18'],
   ['freshness multiplied by normalized taste', seasonality, 'freshnessScore *'],
