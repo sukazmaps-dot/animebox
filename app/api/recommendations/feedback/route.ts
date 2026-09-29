@@ -6,17 +6,13 @@ import {
   userClient,
 } from '@/lib/community-server';
 import { enforceIpAndUserRateLimit } from '@/lib/api-rate-limit';
+import {
+  isRecommendationFeedbackSignal,
+  RECOMMENDATION_FEEDBACK_POLICY_VERSION,
+} from '@/lib/recommendation-feedback-policy';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-const SIGNALS = new Set([
-  'like_more',
-  'not_interested',
-  'already_watched',
-  'less_like_this',
-  'hidden',
-]);
 
 const SAFE_CONTEXT_ID = /^[A-Za-z0-9._:-]{8,120}$/;
 const SAFE_VERSION = /^[A-Za-z0-9._:-]{2,80}$/;
@@ -86,7 +82,7 @@ export async function POST(request: Request) {
     if (!Number.isSafeInteger(animeId) || animeId <= 0) {
       throw new ApiError(400, 'Некорректный тайтл.');
     }
-    if (!SIGNALS.has(signal)) {
+    if (!isRecommendationFeedbackSignal(signal)) {
       throw new ApiError(400, 'Некорректный сигнал рекомендаций.');
     }
 
@@ -116,6 +112,7 @@ export async function POST(request: Request) {
                 ? Math.min(500, position)
                 : null,
             mood,
+            feedback_policy_version: RECOMMENDATION_FEEDBACK_POLICY_VERSION,
           },
         },
         { onConflict: 'user_id,anime_id' },
@@ -134,7 +131,11 @@ export async function POST(request: Request) {
 
     if (write.error) throw write.error;
 
-    return response({ ok: true });
+    return response({
+      ok: true,
+      signal,
+      policyVersion: RECOMMENDATION_FEEDBACK_POLICY_VERSION,
+    });
   } catch (error) {
     if (
       error instanceof Error &&
@@ -150,5 +151,48 @@ export async function POST(request: Request) {
 
     console.error('[Recommendations] feedback API', error);
     return response({ error: 'Не удалось сохранить предпочтение.' }, 503);
+  }
+}
+
+
+export async function DELETE(request: Request) {
+  try {
+    const { user } = await userClient();
+    const limited = await enforceIpAndUserRateLimit(request, user.id, {
+      ip: {
+        scope: 'recommendation_feedback_undo_ip',
+        limit: 80,
+        windowSeconds: 60,
+      },
+      user: {
+        scope: 'recommendation_feedback_undo_user',
+        limit: 40,
+        windowSeconds: 60,
+      },
+    });
+    if (limited) return limited;
+
+    const animeId = Number(new URL(request.url).searchParams.get('animeId'));
+    if (!Number.isSafeInteger(animeId) || animeId <= 0) {
+      throw new ApiError(400, 'Некорректный тайтл.');
+    }
+
+    const admin = adminClient();
+    const { error } = await admin
+      .from('recommendation_feedback')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('anime_id', animeId);
+
+    if (error) throw error;
+
+    return response({ ok: true, animeId });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return response({ error: error.message }, error.status);
+    }
+
+    console.error('[Recommendations] feedback undo API', error);
+    return response({ error: 'Не удалось отменить предпочтение.' }, 503);
   }
 }
