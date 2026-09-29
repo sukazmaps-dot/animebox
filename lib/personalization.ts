@@ -81,6 +81,12 @@ export type RecommendationEvent = {
   explanationComponents?: RecommendationExplanationComponent[];
   explanationContribution?: number;
   explanationContributionShare?: number;
+  diversityVersion?: string;
+  diversityOriginalRank?: number;
+  diversityRerankedRank?: number;
+  diversityPenalty?: number;
+  diversityBoost?: number;
+  diversityRelaxed?: boolean;
   createdAt: number;
 };
 
@@ -421,6 +427,12 @@ export function trackRecommendationEvent(
           explanationContribution: event.explanationContribution ?? null,
           explanationContributionShare:
             event.explanationContributionShare ?? null,
+          diversityVersion: event.diversityVersion ?? null,
+          diversityOriginalRank: event.diversityOriginalRank ?? null,
+          diversityRerankedRank: event.diversityRerankedRank ?? null,
+          diversityPenalty: event.diversityPenalty ?? null,
+          diversityBoost: event.diversityBoost ?? null,
+          diversityRelaxed: event.diversityRelaxed ?? null,
           franchiseContinuation: event.franchiseContinuation ?? null,
           franchiseSeasonNumber: event.franchiseSeasonNumber ?? null,
           explorationClass: event.explorationClass ?? null,
@@ -492,6 +504,12 @@ export function trackRecommendationEvent(
           event.explanationContribution ?? null,
         explanation_contribution_share:
           event.explanationContributionShare ?? null,
+        diversity_version: event.diversityVersion ?? null,
+        diversity_original_rank: event.diversityOriginalRank ?? null,
+        diversity_reranked_rank: event.diversityRerankedRank ?? null,
+        diversity_penalty: event.diversityPenalty ?? null,
+        diversity_boost: event.diversityBoost ?? null,
+        diversity_relaxed: event.diversityRelaxed ?? null,
         fatigue_score: event.fatigueScore ?? null,
         exposure_count_7d: event.exposureCount7d ?? null,
         exposure_count_30d: event.exposureCount30d ?? null,
