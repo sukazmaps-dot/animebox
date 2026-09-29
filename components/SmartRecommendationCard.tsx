@@ -9,15 +9,24 @@ import { animeHref } from '@/lib/anime-url';
 import { getAnimeTitle } from '@/lib/anime-display';
 import { formatAnimeScore } from '@/lib/anime-score';
 import { communityRequest } from '@/lib/community-client';
-import { persistRecommendationFeedback } from '@/lib/recommendation-feedback-client';
 import {
+  clearRecommendationFeedback,
+  persistRecommendationFeedback,
+} from '@/lib/recommendation-feedback-client';
+import {
+  recommendationFeedbackMenuItems,
+  recommendationFeedbackPolicy,
+  type RecommendationFeedbackSignal,
+} from '@/lib/recommendation-feedback-policy';
+import {
+  applyRecommendationFeedbackLocally,
   createImpressionId,
   createRecommendationId,
-  hideRecommendation,
-  likeRecommendation,
-  markRecommendationWatched,
+  readTasteProfile,
   RECOMMENDATION_MODEL_VERSION,
   trackRecommendationEvent,
+  writeTasteProfile,
+  type RecommendationEventType,
   type TasteMood,
 } from '@/lib/personalization';
 import type { RankedRecommendation } from '@/lib/recommendations';
@@ -55,6 +64,24 @@ type RecommendationCardRuntimeIdentity = {
   impressionId: string;
   impressionSent: boolean;
 };
+
+export type RecommendationFeedbackUndoPayload = {
+  anime: RankedRecommendation['anime'];
+  signal: RecommendationFeedbackSignal;
+  label: string;
+  undo: () => void;
+};
+
+const STRUCTURED_FEEDBACK_MENU = recommendationFeedbackMenuItems();
+
+function feedbackEventType(
+  signal: RecommendationFeedbackSignal,
+): RecommendationEventType {
+  if (signal === 'like_more') return 'liked';
+  if (signal === 'already_watched') return 'already_watched';
+  if (signal === 'hidden') return 'not_interested';
+  return signal;
+}
 
 const MAX_CARD_RUNTIME_IDENTITIES = 1200;
 const recommendationCardIdentityCache =
@@ -102,6 +129,7 @@ export default function SmartRecommendationCard({
   rowId,
   source = 'smart_feed',
   onHidden,
+  onFeedbackApplied,
 }: {
   recommendation: RankedRecommendation;
   position: number;
@@ -110,6 +138,7 @@ export default function SmartRecommendationCard({
   rowId?: string;
   source?: string;
   onHidden: (animeId: number) => void;
+  onFeedbackApplied?: (payload: RecommendationFeedbackUndoPayload) => void;
 }) {
   const {
     anime,
@@ -136,6 +165,7 @@ export default function SmartRecommendationCard({
   } = recommendation;
   const title = getAnimeTitle(anime);
   const rootRef = useRef<HTMLElement | null>(null);
+  const feedbackDialogRef = useRef<HTMLDialogElement | null>(null);
   const [runtimeIdentity] = useState<RecommendationCardRuntimeIdentity>(
     () =>
       getRecommendationCardRuntimeIdentity({
@@ -317,9 +347,10 @@ export default function SmartRecommendationCard({
   function likeMore() {
     if (liked) return;
     setLiked(true);
-    likeRecommendation(anime);
+    applyRecommendationFeedbackLocally(anime, 'like_more');
     trackRecommendationEvent({
       type: 'liked',
+      feedbackSignal: 'like_more',
       ...eventContext,
     });
     void persistRecommendationFeedback({
@@ -337,15 +368,20 @@ export default function SmartRecommendationCard({
     });
   }
 
-  function markWatched() {
-    markRecommendationWatched(anime);
+  function applyStructuredFeedback(signal: RecommendationFeedbackSignal) {
+    const policy = recommendationFeedbackPolicy(signal);
+    const previousProfile = readTasteProfile();
+
+    applyRecommendationFeedbackLocally(anime, signal);
     trackRecommendationEvent({
-      type: 'already_watched',
+      type: feedbackEventType(signal),
+      feedbackSignal: signal,
       ...eventContext,
     });
+
     void persistRecommendationFeedback({
       animeId: anime.id,
-      signal: 'already_watched',
+      signal,
       source,
       reason,
       modelVersion: RECOMMENDATION_MODEL_VERSION,
@@ -356,29 +392,33 @@ export default function SmartRecommendationCard({
       position,
       mood,
     });
+
+    feedbackDialogRef.current?.close();
     onHidden(anime.id);
+
+    onFeedbackApplied?.({
+      anime,
+      signal,
+      label: policy.label,
+      undo: () => {
+        writeTasteProfile(previousProfile);
+        void clearRecommendationFeedback(anime.id);
+      },
+    });
   }
 
-  function dismiss() {
-    hideRecommendation(anime);
-    trackRecommendationEvent({
-      type: 'not_interested',
-      ...eventContext,
-    });
-    void persistRecommendationFeedback({
-      animeId: anime.id,
-      signal: 'not_interested',
-      source,
-      reason,
-      modelVersion: RECOMMENDATION_MODEL_VERSION,
-      recommendationId: runtimeIdentity.recommendationId,
-      recommendationSessionId,
-      algorithmVersion: RECOMMENDATION_MODEL_VERSION,
-      rowId,
-      position,
-      mood,
-    });
-    onHidden(anime.id);
+  function markWatched() {
+    applyStructuredFeedback('already_watched');
+  }
+
+  function openFeedbackMenu() {
+    const dialog = feedbackDialogRef.current;
+    if (!dialog) return;
+    if (typeof dialog.showModal === 'function') {
+      if (!dialog.open) dialog.showModal();
+      return;
+    }
+    dialog.setAttribute('open', '');
   }
 
   const planLabel =
@@ -545,9 +585,9 @@ export default function SmartRecommendationCard({
           <button
             type="button"
             className="smart-card__dismiss smart-card__feedback--dismiss"
-            onClick={dismiss}
-            aria-label={`Не рекомендовать ${title}`}
-            title="Не интересно"
+            onClick={openFeedbackMenu}
+            aria-label={`Настроить рекомендации для ${title}`}
+            title="Почему не подходит?"
           >
             <svg
               className="smart-card__feedback-icon"
@@ -565,6 +605,63 @@ export default function SmartRecommendationCard({
           </button>
         </div>
       </div>
+
+      <dialog
+        ref={feedbackDialogRef}
+        className="smart-card__feedback-dialog"
+        aria-labelledby={`feedback-title-${anime.id}`}
+        onClick={(event) => {
+          if (event.currentTarget === event.target) {
+            event.currentTarget.close();
+          }
+        }}
+      >
+        <div className="smart-card__feedback-dialog-panel">
+          <div className="smart-card__feedback-dialog-head">
+            <div>
+              <span>НАСТРОИТЬ ЛЕНТУ</span>
+              <strong id={`feedback-title-${anime.id}`}>
+                Почему не подходит?
+              </strong>
+            </div>
+            <button
+              type="button"
+              className="smart-card__feedback-dialog-close"
+              onClick={() => feedbackDialogRef.current?.close()}
+              aria-label="Закрыть"
+            >
+              ×
+            </button>
+          </div>
+
+          <p className="smart-card__feedback-dialog-copy">
+            Причина влияет на рекомендации по-разному. «Не сейчас» не портит
+            долгосрочный профиль вкуса.
+          </p>
+
+          <div className="smart-card__feedback-dialog-options">
+            {STRUCTURED_FEEDBACK_MENU.map((item) => (
+              <button
+                key={item.signal}
+                type="button"
+                className="smart-card__feedback-dialog-option"
+                onClick={() => applyStructuredFeedback(item.signal)}
+              >
+                <strong>{item.label}</strong>
+                <span>{item.description}</span>
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            className="smart-card__feedback-dialog-cancel"
+            onClick={() => feedbackDialogRef.current?.close()}
+          >
+            Отмена
+          </button>
+        </div>
+      </dialog>
     </article>
   );
 }
