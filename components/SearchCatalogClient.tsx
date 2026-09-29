@@ -774,13 +774,58 @@ export default function SearchCatalogClient({
         ) : displayResults.length ? (
           <div className={refreshing ? styles.resultsRefreshing : styles.resultsStable}>
             {view === 'saved' ? (
-              <div className="anime-grid">{savedResults.map((anime) => <AnimeCard key={anime.id} anime={anime} />)}</div>
+              <div className="anime-grid">
+                {savedResults.map((anime, index) => (
+                  <AnimeCard
+                    key={anime.id}
+                    anime={anime}
+                    imageLoading={index < 2 ? 'eager' : 'near'}
+                    imageFetchPriority={index < 2 ? 'high' : 'low'}
+                  />
+                ))}
+              </div>
             ) : (
               <>
                 {refreshing && <div className={styles.refreshLine} aria-hidden="true" />}
-                <div className="anime-grid">{catalogLead.map((anime) => <AnimeCard key={anime.id} anime={anime} discoveryMatch={searchClassification?.mode === 'context' && discoveryIntent ? smartDiscoveryMatch(anime, discoveryIntent, { seed: discoverySeedForMatch, tasteGraph }) : null} />)}</div>
+                <div className="anime-grid">
+                  {catalogLead.map((anime, index) => (
+                    <AnimeCard
+                      key={anime.id}
+                      anime={anime}
+                      imageLoading={index < 2 ? 'eager' : 'near'}
+                      imageFetchPriority={index < 2 ? 'high' : 'low'}
+                      discoveryMatch={
+                        searchClassification?.mode === 'context' && discoveryIntent
+                          ? smartDiscoveryMatch(anime, discoveryIntent, {
+                              seed: discoverySeedForMatch,
+                              tasteGraph,
+                            })
+                          : null
+                      }
+                    />
+                  ))}
+                </div>
                 {showCatalogAd && <div className="catalog-ad-break" aria-label="Рекламная пауза"><AdSlot placement="catalog-after-results" format="horizontal" className="monetization-ad--catalog" /></div>}
-                {catalogTail.length > 0 && <div className="anime-grid anime-grid--after-ad">{catalogTail.map((anime) => <AnimeCard key={anime.id} anime={anime} discoveryMatch={discoveryIntent?.isDiscovery ? smartDiscoveryMatch(anime, discoveryIntent, { seed: discoverySeedForMatch, tasteGraph }) : null} />)}</div>}
+                {catalogTail.length > 0 && (
+                  <div className="anime-grid anime-grid--after-ad">
+                    {catalogTail.map((anime) => (
+                      <AnimeCard
+                        key={anime.id}
+                        anime={anime}
+                        imageLoading="near"
+                        imageFetchPriority="low"
+                        discoveryMatch={
+                          discoveryIntent?.isDiscovery
+                            ? smartDiscoveryMatch(anime, discoveryIntent, {
+                                seed: discoverySeedForMatch,
+                                tasteGraph,
+                              })
+                            : null
+                        }
+                      />
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </div>
