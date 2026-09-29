@@ -40,10 +40,19 @@ export type RecommendationExplanation = {
   contributionShare: number;
 };
 
+export type RecommendationExplanationSource =
+  | 'watch_history'
+  | 'taste_mood'
+  | 'engagement'
+  | 'taste_graph'
+  | 'franchise'
+  | 'discovery';
+
 export type RecommendationExplainabilityResult = {
   version: typeof RECOMMENDATION_EXPLAINABILITY_VERSION;
   primary: RecommendationExplanation;
   items: RecommendationExplanation[];
+  source: RecommendationExplanationSource;
 };
 
 type ExplainabilityInput = {
@@ -123,6 +132,33 @@ function safeTitle(value: string | null | undefined) {
 
 function rounded(value: number) {
   return Math.round(value * 1000) / 1000;
+}
+
+function sourceForExplanation(
+  key: RecommendationExplanationKey,
+): RecommendationExplanationSource {
+  if (key === 'franchise_continuation') return 'franchise';
+  if (key === 'mood_match') return 'taste_mood';
+  if (key === 'engagement') return 'engagement';
+  if (
+    key === 'completed_taste' ||
+    key === 'session_intent' ||
+    key === 'completion_pattern' ||
+    key === 'binge_pace'
+  ) {
+    return 'watch_history';
+  }
+  if (
+    key === 'liked_reference' ||
+    key === 'taste_genres' ||
+    key === 'studio_affinity' ||
+    key === 'format_affinity' ||
+    key === 'era_affinity' ||
+    key === 'episode_length'
+  ) {
+    return 'taste_graph';
+  }
+  return 'discovery';
 }
 
 export function buildRecommendationExplanations(
@@ -449,5 +485,6 @@ export function buildRecommendationExplanations(
     version: RECOMMENDATION_EXPLAINABILITY_VERSION,
     primary: items[0],
     items,
+    source: sourceForExplanation(items[0].key),
   };
 }
