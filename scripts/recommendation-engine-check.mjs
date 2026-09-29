@@ -24,6 +24,7 @@ const personalization = read('lib/personalization.ts');
 const productClient = read('lib/product-events-client.ts');
 const productServer = read('lib/product-events-server.ts');
 const recommendationAnalytics = read('lib/recommendation-analytics-server.ts');
+const recommendationAnalyticsCore = read('lib/recommendation-analytics-core.ts');
 const recommendationAnalyticsTypes = read('lib/recommendation-analytics.ts');
 const recommendationAnalyticsUi = read('components/admin/RecommendationAnalyticsDashboard.tsx');
 const productRoute = read('app/api/analytics/product/route.ts');
@@ -337,7 +338,7 @@ if (
   failures.push('22.6 diversity reranker policy is incomplete');
 }
 if (
-  !recommendationAnalytics.includes('maxRenderedItems') ||
+  !recommendationAnalyticsCore.includes('maxRenderedItems') ||
   !recommendationAnalyticsUi.includes('DOM / Rail')
 ) {
   failures.push('18.3 feed runtime diagnostics are missing');
@@ -357,6 +358,7 @@ if (!card.includes('already_watched') || !card.includes('like_more')) {
 if (
   !productEvents.includes('recommendation_watch_15m') ||
   !productEvents.includes('recommendation_watch_30m') ||
+  !productEvents.includes('recommendation_multi_episode') ||
   !productEvents.includes('recommendation_rail_end_reached') ||
   !productEvents.includes('recommendation_rail_load_result') ||
   !productEvents.includes('recommendation_rail_load_error')
@@ -367,21 +369,23 @@ if (!watch.includes('trackRecommendationWatchProgress')) {
   failures.push('player progress is not linked to recommendation attribution');
 }
 if (
-  !recommendationAnalytics.includes('recommendation_id,recommendation_session_id,algorithm_version') ||
-  !recommendationAnalytics.includes('fullyAttributedPct') ||
-  !recommendationAnalytics.includes('rowBreakdown') ||
-  !recommendationAnalytics.includes('positionBucket') ||
+  !recommendationAnalytics.includes('aggregateRecommendationAnalyticsRows') ||
+  !recommendationAnalytics.includes('recommendation_multi_episode') ||
+  !recommendationAnalyticsCore.includes("funnelMode: 'unique_recommendation_id'") ||
+  !recommendationAnalyticsCore.includes('matchScoreCalibration') ||
+  !recommendationAnalyticsCore.includes('completionScoreCalibration') ||
+  !recommendationAnalyticsCore.includes('feedbackReasons') ||
+  !recommendationAnalyticsCore.includes('repeatedImpressionRatePct') ||
+  !recommendationAnalyticsCore.includes('diversityOriginalRank') ||
   !recommendationAnalyticsTypes.includes('RecommendationFunnelSlice') ||
   !recommendationAnalyticsTypes.includes('loadFillPct') ||
-  !recommendationAnalytics.includes('recommendationAttributionEvents') ||
-  !recommendationAnalytics.includes('recommendation_rail_load_result') ||
   !feed.includes("trackProductClientEvent('recommendation_rail_end_reached'") ||
   !feed.includes("trackProductClientEvent('recommendation_rail_load_result'") ||
   !feed.includes("trackProductClientEvent('recommendation_rail_load_error'") ||
-  !recommendationAnalyticsUi.includes('INTELLIGENCE CORE · 18.0') ||
-  !recommendationAnalyticsUi.includes('Algorithm version')
+  !recommendationAnalyticsUi.includes('Recommendation Analytics 3.0') ||
+  !recommendationAnalyticsUi.includes('Completion Score calibration')
 ) {
-  failures.push('17.8.7 recommendation attribution analytics is incomplete');
+  failures.push('22.7 recommendation analytics 3.0 contract is incomplete');
 }
 
 if (failures.length) {
