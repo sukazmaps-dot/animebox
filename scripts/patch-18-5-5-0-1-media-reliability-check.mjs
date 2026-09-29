@@ -132,10 +132,11 @@ for (const needle of [
 }
 
 if (
-  !animeCard.includes('loading="near"') ||
+  !animeCard.includes("imageLoading = 'near'") ||
+  !animeCard.includes('loading={imageLoading}') ||
   !smartCard.includes('loading="near"')
 ) {
-  failures.push('18.5.5.0 near-viewport warmup regressed');
+  failures.push('18.5.5.0 near-viewport warmup default regressed');
 }
 
 if (failures.length) {

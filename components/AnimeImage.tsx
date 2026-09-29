@@ -170,6 +170,46 @@ export default function AnimeImage({
     ],
   );
 
+  const avifMediaSrcSet = useMemo(
+    () =>
+      format === 'auto'
+        ? getImageMediaSrcSet(
+            image,
+            sourcePreference,
+            effectivePreset,
+            quality,
+            'avif',
+          )
+        : undefined,
+    [
+      effectivePreset,
+      format,
+      image,
+      quality,
+      sourcePreference,
+    ],
+  );
+
+  const webpMediaSrcSet = useMemo(
+    () =>
+      format === 'auto'
+        ? getImageMediaSrcSet(
+            image,
+            sourcePreference,
+            effectivePreset,
+            quality,
+            'webp',
+          )
+        : undefined,
+    [
+      effectivePreset,
+      format,
+      image,
+      quality,
+      sourcePreference,
+    ],
+  );
+
   const sourcesKey = sources.join('|');
 
   const mediaEdgeRevision = useSyncExternalStore(
@@ -511,28 +551,48 @@ export default function AnimeImage({
           {/* Near mode is released by one shared adaptive observer. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {shouldRequestSource && (
-            <img
-              key={current}
-              ref={imageRef}
-              src={current}
-              srcSet={
-                sourceIndex === 0 && !isMediaEdgeBlocked(current)
-                  ? mediaSrcSet
-                  : undefined
-              }
-              alt={resolvedAlt}
-              loading={nativeLoading}
-              fetchPriority={nativeFetchPriority}
-              decoding="async"
-              sizes={sizes}
-              onLoad={handleLoad}
-              onError={handleError}
-              className={[
-                'relative z-10 block h-full w-full object-cover transition-opacity duration-[180ms]',
-                loaded ? 'opacity-100' : 'opacity-0',
-                className,
-              ].join(' ')}
-            />
+            <picture className="contents">
+              {sourceIndex === 0 &&
+                !isMediaEdgeBlocked(current) &&
+                avifMediaSrcSet && (
+                  <source
+                    type="image/avif"
+                    srcSet={avifMediaSrcSet}
+                    sizes={sizes}
+                  />
+                )}
+              {sourceIndex === 0 &&
+                !isMediaEdgeBlocked(current) &&
+                webpMediaSrcSet && (
+                  <source
+                    type="image/webp"
+                    srcSet={webpMediaSrcSet}
+                    sizes={sizes}
+                  />
+                )}
+              <img
+                key={current}
+                ref={imageRef}
+                src={current}
+                srcSet={
+                  sourceIndex === 0 && !isMediaEdgeBlocked(current)
+                    ? mediaSrcSet
+                    : undefined
+                }
+                alt={resolvedAlt}
+                loading={nativeLoading}
+                fetchPriority={nativeFetchPriority}
+                decoding="async"
+                sizes={sizes}
+                onLoad={handleLoad}
+                onError={handleError}
+                className={[
+                  'relative z-10 block h-full w-full object-cover transition-opacity duration-[180ms]',
+                  loaded ? 'opacity-100' : 'opacity-0',
+                  className,
+                ].join(' ')}
+              />
+            </picture>
           )}
         </>
       )}
