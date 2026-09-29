@@ -220,7 +220,7 @@ if (
   failures.push('ranking magic weights leaked back into recommendations.ts');
 }
 if (
-  !diversity.includes("RECOMMENDATION_DIVERSITY_VERSION = '18.3-diversity-v2'") ||
+  !diversity.includes("RECOMMENDATION_DIVERSITY_VERSION = '22.6-diversity-v3'") ||
   !diversity.includes('normalizeRecommendationExplorationRate') ||
   !diversity.includes('classTargets') ||
   !diversity.includes('maxFamilyPerFeed') ||
@@ -327,7 +327,7 @@ if (
 if (
   !diversity.includes('formatRepeatPenalty') ||
   !diversity.includes('yearBucketRepeatPenalty') ||
-  !diversity.includes('maxRecentGenreShare')
+  !diversity.includes('recommendationDiversityShareTargets')
 ) {
   failures.push('18.3 long-session diversity policy is incomplete');
 }
