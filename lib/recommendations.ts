@@ -27,7 +27,10 @@ import {
   scoreRecommendation,
   type RecommendationScoreResult,
 } from '@/lib/recommendation-ranking-config';
-import { diversifyRecommendations } from '@/lib/recommendation-diversity';
+import {
+  diversifyRecommendations,
+  type RecommendationDiversityDiagnostics,
+} from '@/lib/recommendation-diversity';
 import {
   buildRecommendationExposureMap,
   recommendationExposureSignals,
@@ -90,6 +93,7 @@ export type RankedRecommendation = {
   seasonYear: number | null;
   source: RecommendationExplanationSource;
   ranking: RecommendationScoreResult;
+  diversity: RecommendationDiversityDiagnostics | null;
 };
 
 type MoodConfig = {
@@ -769,6 +773,7 @@ export function getPersonalizedRecommendations(
         seasonYear: seasonality.seasonYear,
         source,
         ranking,
+        diversity: null,
       } satisfies RankedRecommendation;
     })
     .filter((item): item is RankedRecommendation => item !== null)
