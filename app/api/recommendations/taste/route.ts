@@ -10,6 +10,11 @@ import {
   type TasteMoodWeightKey,
 } from '@/lib/taste-graph';
 import { enforceIpAndUserRateLimit, enforceIpRateLimit } from '@/lib/api-rate-limit';
+import {
+  recommendationFeedbackExclusionActive,
+  recommendationFeedbackPolicy,
+  type RecommendationFeedbackSignal,
+} from '@/lib/recommendation-feedback-policy';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -45,12 +50,7 @@ type ProductEventRow = {
 
 type FeedbackRow = {
   anime_id: number;
-  signal:
-    | 'like_more'
-    | 'not_interested'
-    | 'already_watched'
-    | 'less_like_this'
-    | 'hidden';
+  signal: RecommendationFeedbackSignal;
   updated_at: string | null;
 };
 
@@ -71,6 +71,19 @@ function median(values: number[]) {
   return sorted.length % 2 === 0
     ? Math.round((sorted[middle - 1] + sorted[middle]) / 2)
     : sorted[middle];
+}
+
+function lowerQuantile(values: number[], quantile = 0.35) {
+  if (!values.length) return null;
+  const sorted = [...values]
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .sort((a, b) => a - b);
+  if (!sorted.length) return null;
+  const index = Math.min(
+    sorted.length - 1,
+    Math.max(0, Math.floor((sorted.length - 1) * quantile)),
+  );
+  return Math.round(sorted[index]);
 }
 
 /**
@@ -272,6 +285,7 @@ export async function GET(request: Request) {
     const eraNegative = new Map<string, number>();
     const moodPreference = new Map<TasteMoodWeightKey, number>();
     const positiveEpisodeCounts: number[] = [];
+    const tooLongEpisodeCounts: number[] = [];
     const completedByAnime = new Map<number, number>();
     let positiveFinishedWeight = 0;
     let positiveOngoingWeight = 0;
@@ -286,56 +300,100 @@ export async function GET(request: Request) {
       );
     }
 
-    const addGenres = (
+    const addTasteAxes = (
       animeId: number,
-      weight: number,
+      weights: {
+        genre?: number;
+        studio?: number;
+        format?: number;
+        era?: number;
+        status?: number;
+        episodePositive?: number;
+      },
       negativeSignal = false,
     ) => {
       const row = catalog.get(animeId);
       if (!row) return;
 
-      const target = negativeSignal ? negative : positive;
-      for (const rawGenre of row.genres ?? []) {
-        const genre = normalizeTasteToken(rawGenre);
-        if (!genre) continue;
-        target.set(genre, (target.get(genre) ?? 0) + weight);
+      const genreWeight = Math.max(0, weights.genre ?? 0);
+      if (genreWeight > 0) {
+        const target = negativeSignal ? negative : positive;
+        for (const rawGenre of row.genres ?? []) {
+          const genre = normalizeTasteToken(rawGenre);
+          if (!genre) continue;
+          target.set(genre, (target.get(genre) ?? 0) + genreWeight);
+        }
       }
 
-      const studioTarget = negativeSignal ? studioNegative : studioPositive;
-      for (const rawStudio of row.studios ?? []) {
-        const studio = normalizeTasteToken(rawStudio);
-        if (!studio) continue;
-        studioTarget.set(studio, (studioTarget.get(studio) ?? 0) + weight);
+      const studioWeight = Math.max(0, weights.studio ?? 0);
+      if (studioWeight > 0) {
+        const studioTarget = negativeSignal ? studioNegative : studioPositive;
+        for (const rawStudio of row.studios ?? []) {
+          const studio = normalizeTasteToken(rawStudio);
+          if (!studio) continue;
+          studioTarget.set(
+            studio,
+            (studioTarget.get(studio) ?? 0) + studioWeight,
+          );
+        }
       }
 
+      const formatWeight = Math.max(0, weights.format ?? 0);
       const format = normalizeTasteToken(row.format ?? '');
-      if (format) {
+      if (format && formatWeight > 0) {
         const formatTarget = negativeSignal ? formatNegative : formatPositive;
-        formatTarget.set(format, (formatTarget.get(format) ?? 0) + weight);
+        formatTarget.set(
+          format,
+          (formatTarget.get(format) ?? 0) + formatWeight,
+        );
       }
 
+      const eraWeight = Math.max(0, weights.era ?? 0);
       const era = tasteEraBucket(row.start_year);
-      if (era) {
+      if (era && eraWeight > 0) {
         const eraTarget = negativeSignal ? eraNegative : eraPositive;
-        eraTarget.set(era, (eraTarget.get(era) ?? 0) + weight);
+        eraTarget.set(era, (eraTarget.get(era) ?? 0) + eraWeight);
       }
 
-      if (negativeSignal) {
-        if (row.finished) negativeFinishedWeight += weight;
-        else negativeOngoingWeight += weight;
-      } else {
-        if (row.finished) positiveFinishedWeight += weight;
-        else positiveOngoingWeight += weight;
+      const statusWeight = Math.max(0, weights.status ?? 0);
+      if (statusWeight > 0) {
+        if (negativeSignal) {
+          if (row.finished) negativeFinishedWeight += statusWeight;
+          else negativeOngoingWeight += statusWeight;
+        } else {
+          if (row.finished) positiveFinishedWeight += statusWeight;
+          else positiveOngoingWeight += statusWeight;
+        }
       }
 
+      const episodePositive = Math.max(0, weights.episodePositive ?? 0);
       if (
         !negativeSignal &&
-        weight >= 0.35 &&
+        episodePositive >= 0.35 &&
         row.total_episodes &&
         row.total_episodes > 0
       ) {
         positiveEpisodeCounts.push(row.total_episodes);
       }
+    };
+
+    const addGenres = (
+      animeId: number,
+      weight: number,
+      negativeSignal = false,
+    ) => {
+      addTasteAxes(
+        animeId,
+        {
+          genre: weight,
+          studio: weight,
+          format: weight,
+          era: weight,
+          status: weight,
+          episodePositive: weight,
+        },
+        negativeSignal,
+      );
     };
 
     const addCompletedGenres = (animeId: number, weight: number) => {
@@ -455,22 +513,54 @@ export async function GET(request: Request) {
       const animeId = Number(item.anime_id);
       if (!Number.isSafeInteger(animeId) || animeId <= 0) continue;
 
-      const recency = recencyMultiplier(item.updated_at, 180, 0.3);
+      const policy = recommendationFeedbackPolicy(item.signal);
+      const recency = recencyMultiplier(
+        item.updated_at,
+        policy.halfLifeDays,
+        policy.floor,
+      );
 
       if (item.signal === 'like_more') {
         feedbackLikedIds.push(animeId);
-        addGenres(animeId, 2.8 * recency);
-      } else if (item.signal === 'not_interested') {
+      }
+
+      if (
+        recommendationFeedbackExclusionActive(
+          item.signal,
+          item.updated_at,
+        )
+      ) {
         feedbackExcludedIds.push(animeId);
-        addGenres(animeId, 2.4 * recency, true);
-      } else if (item.signal === 'less_like_this') {
-        feedbackExcludedIds.push(animeId);
-        addGenres(animeId, 1.25 * recency, true);
-      } else if (item.signal === 'hidden') {
-        feedbackExcludedIds.push(animeId);
-        addGenres(animeId, 3.1 * recency, true);
-      } else if (item.signal === 'already_watched') {
-        feedbackExcludedIds.push(animeId);
+      }
+
+      if (policy.polarity !== 'neutral') {
+        const negativeSignal = policy.polarity === 'negative';
+        addTasteAxes(
+          animeId,
+          {
+            genre: policy.genreWeight * recency,
+            studio: policy.studioWeight * recency,
+            format: policy.formatWeight * recency,
+            era: policy.eraWeight * recency,
+            status: policy.statusWeight * recency,
+            episodePositive:
+              policy.polarity === 'positive'
+                ? Math.max(policy.genreWeight, policy.studioWeight) * recency
+                : 0,
+          },
+          negativeSignal,
+        );
+      }
+
+      if (policy.lengthWeight > 0) {
+        const episodeCount = catalog.get(animeId)?.total_episodes ?? null;
+        if (
+          episodeCount &&
+          episodeCount > 0 &&
+          recency >= 0.12
+        ) {
+          tooLongEpisodeCounts.push(episodeCount);
+        }
       }
     }
 
@@ -630,6 +720,9 @@ export async function GET(request: Request) {
       completionRate,
       bingeScore,
       preferredEpisodeCount: median(positiveEpisodeCounts.slice(0, 160)),
+      tooLongEpisodeCountThreshold: lowerQuantile(
+        tooLongEpisodeCounts.slice(0, 160),
+      ),
       averageRating,
       ratingsCount: validRatingScores.length,
       explorationRate,
