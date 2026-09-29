@@ -453,7 +453,7 @@ export function trackRecommendationWatchProgress(input: {
     }
 
     if (
-      input.episode !== firstEpisode &&
+      input.episode > firstEpisode &&
       currentActiveMs >= 90_000 &&
       !parsed.multiEpisodeSent
     ) {
