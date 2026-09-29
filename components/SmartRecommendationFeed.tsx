@@ -212,13 +212,28 @@ function abortableDelay(ms: number, signal?: AbortSignal): Promise<void> {
   }
 
   return new Promise((resolve, reject) => {
-    const timer = window.setTimeout(resolve, ms);
+    let settled = false;
+
+    const cleanup = () => {
+      signal?.removeEventListener('abort', onAbort);
+    };
+
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve();
+    };
 
     const onAbort = () => {
+      if (settled) return;
+      settled = true;
       window.clearTimeout(timer);
+      cleanup();
       reject(new DOMException('Aborted', 'AbortError'));
     };
 
+    const timer = window.setTimeout(finish, ms);
     signal?.addEventListener('abort', onAbort, { once: true });
   });
 }
