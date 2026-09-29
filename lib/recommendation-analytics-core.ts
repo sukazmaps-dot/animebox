@@ -1,7 +1,8 @@
-import type {
-  RecommendationAnalyticsDashboard,
-  RecommendationAnalyticsRange,
-  RecommendationFunnelSlice,
+import {
+  RECOMMENDATION_ANALYTICS_VERSION,
+  type RecommendationAnalyticsDashboard,
+  type RecommendationAnalyticsRange,
+  type RecommendationFunnelSlice,
 } from '@/lib/recommendation-analytics';
 
 export type RecommendationAnalyticsEventRow = {
@@ -843,6 +844,7 @@ export function aggregateRecommendationAnalyticsRows(
   ];
 
   return {
+    analyticsVersion: RECOMMENDATION_ANALYTICS_VERSION,
     rangeDays,
     generatedAt: new Date().toISOString(),
     sampledEvents: rows.length,
