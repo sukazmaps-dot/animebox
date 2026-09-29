@@ -398,13 +398,75 @@ Popularity must not dominate recommendation quality.
 
 # 10. Phase G — Fresh / Seasonal discovery
 
-New titles lack behavioral history, so they receive a controlled freshness
-boost multiplied by taste compatibility.
+Status: **implemented / CI validation**
 
-Never use unconditional "new = high score".
+Goal:
+surface strong current-season titles without turning freshness into a global
+ranking shortcut.
 
-Target rail:
-"Из этого сезона для тебя".
+Seasonality model:
+- current anime season is derived from the shared catalog season helper;
+- candidate season is derived from AniList `startDate`;
+- relations are `current`, `previous`, `recent`, `older`, `unknown`;
+- current-season freshness decays inside the season instead of acting as a
+  constant bonus;
+- previous-season titles keep only a small decayed tail;
+- older catalogue titles receive no seasonal freshness bonus.
+
+Taste gate:
+- freshness never scores by itself;
+- a title must pass a minimum taste-compatibility threshold;
+- final seasonal score is freshness × normalized taste compatibility;
+- explicit negative affinity reduces the score;
+- repeated-exposure fatigue reduces the score;
+- popularity is not part of seasonal eligibility.
+
+Candidate generation:
+- public/cacheable `seasonal` source added;
+- current `season + year` are explicit inputs to the shared candidate cache;
+- no user/session identifier enters the public candidate cache key;
+- source rotates with ranked / popularity / mood / hidden-gem / ongoing pools;
+- availability filtering remains mandatory after retrieval.
+
+Ranking:
+- model/algorithm version: `22.3-v1`;
+- bounded `seasonalFreshness` component;
+- seasonal freshness is intentionally excluded from the displayed taste-match
+  percentage so "new" cannot fake a stronger personal match;
+- generic relevance, completion, negative signals, exposure fatigue and
+  franchise logic remain intact.
+
+Presentation:
+- dedicated `Из этого сезона для тебя` rail;
+- rail requires current-season relation plus a minimum personalized seasonal
+  score;
+- seasonal cards are reserved before generic Top Match ownership;
+- sticky rail ownership and bounded DOM virtualization are preserved.
+
+Explainability:
+- evidence-based reason:
+  `Из текущего сезона — совпадает с твоим вкусом`;
+- reason is emitted only when the same seasonal score that affected ranking
+  crosses the configured threshold.
+
+Telemetry:
+- seasonal score;
+- raw freshness score;
+- season relation;
+- season;
+- season year;
+- fields flow through impression/open/dwell/feedback attribution.
+
+Regression coverage:
+- strong current-season taste match receives a bounded boost;
+- zero taste compatibility receives exactly zero seasonal boost;
+- previous season decays below current season;
+- older catalogue titles receive no seasonal boost;
+- negative affinity and fatigue damp freshness;
+- seasonal candidate source/cache contract;
+- rail threshold and telemetry contract.
+
+Never use unconditional `new = high score`.
 
 ---
 
