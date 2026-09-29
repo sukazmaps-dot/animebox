@@ -1,4 +1,4 @@
-export const RECOMMENDATION_RANKING_VERSION = '22.4-v1';
+export const RECOMMENDATION_RANKING_VERSION = '22.5-v1';
 
 export const RECOMMENDATION_RANKING_WEIGHTS = {
   genre: {
