@@ -42,7 +42,7 @@ for (const [label, source, needle] of [
   ['server multi episode event', server, "'recommendation_multi_episode'"],
   ['server core aggregation', server, 'aggregateRecommendationAnalyticsRows'],
   ['multi episode event name', productNames, "'recommendation_multi_episode'"],
-  ['second episode gate', productClient, 'input.episode !== firstEpisode'],
+  ['forward episode gate', productClient, 'input.episode > firstEpisode'],
   ['meaningful continuation gate', productClient, 'currentActiveMs >= 90_000'],
   ['multi episode emission', productClient, "trackProductClientEvent('recommendation_multi_episode'"],
   ['taste confidence attribution', personalization, 'taste_confidence: event.tasteConfidence ?? null'],
