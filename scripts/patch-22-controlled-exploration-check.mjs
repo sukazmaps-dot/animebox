@@ -17,8 +17,8 @@ const card = read('components/SmartRecommendationCard.tsx');
 const taste = read('app/api/recommendations/taste/route.ts');
 
 for (const [label, source, needle] of [
-  ['algorithm version', personalization, "RECOMMENDATION_ALGORITHM_VERSION = '22.2-v1'"],
-  ['ranking version', ranking, "RECOMMENDATION_RANKING_VERSION = '22.2-v1'"],
+  ['algorithm version', personalization, "RECOMMENDATION_ALGORITHM_VERSION = '22.3-v1'"],
+  ['ranking version', ranking, "RECOMMENDATION_RANKING_VERSION = '22.3-v1'"],
   ['exploration policy', exploration, 'buildRecommendationExplorationPolicy'],
   ['hidden gem scorer', exploration, 'hiddenGemScore'],
   ['popularity correction', exploration, 'recommendationPopularityBias'],
@@ -33,7 +33,7 @@ for (const [label, source, needle] of [
   ['explicit explore class rail', rails, "item.explorationClass === 'explore'"],
   ['hidden gem candidate source', route, "return 'hidden_gem'"],
   ['bounded hidden gem page', route, 'const hiddenGemPage = 2 + ((page * 3 + bucket) % 18)'],
-  ['candidate cache v8', route, 'animebox-recommendation-candidates-v8-controlled-exploration'],
+  ['candidate cache v8', route, 'animebox-recommendation-candidates-v9-seasonal-freshness'],
   ['AniList popularity metadata', anilist, 'popularity'],
   ['AniList favourites metadata', anilist, 'favourites'],
   ['recommendation novelty output', recommendations, 'noveltyScore: exploration.noveltyScore'],
