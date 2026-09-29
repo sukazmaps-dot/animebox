@@ -5,6 +5,7 @@ import type { TasteGraph } from '@/lib/taste-graph';
 export type RecommendationRailId =
   | 'mood_lane'
   | 'top_match'
+  | 'story_continues'
   | 'taste_lane'
   | 'quick_watch'
   | 'explore'
@@ -61,6 +62,7 @@ export function orderRecommendationRails(
       return options.mood === 'any' ? 45 : 0;
     }
     if (rail.id === 'top_match') return 10;
+    if (rail.id === 'story_continues') return options.hasWatchHistory ? 14 : 90;
     if (rail.id === 'endless') return 100;
 
     if (!options.hasWatchHistory) {
@@ -141,6 +143,7 @@ export function recommendationMatchesRail(
   rail: Pick<RecommendationRail, 'id' | 'genre'>,
 ): boolean {
   if (rail.id === 'top_match' || rail.id === 'endless') return true;
+  if (rail.id === 'story_continues') return item.franchiseContinuation;
   if (rail.id === 'mood_lane') return item.ranking.components.mood > 0;
   if (rail.id === 'quick_watch') return isShortWatch(item);
   if (rail.id === 'explore') {
@@ -255,6 +258,23 @@ export function buildRecommendationRailLayout(
   };
 
   const rails: RecommendationRail[] = [];
+
+  const storyContinues = take(
+    'story_continues',
+    (item) => item.franchiseContinuation,
+  );
+
+  if (storyContinues.length > 0) {
+    rails.push({
+      id: 'story_continues',
+      title: 'История продолжается',
+      subtitle:
+        'Следующие сезоны и части тайтлов, к которым ты уже дошёл — без случайных спойлерных сиквелов.',
+      source: 'smart_feed_story_continues',
+      badge: 'ПРОДОЛЖЕНИЕ',
+      items: storyContinues,
+    });
+  }
 
   if (options.mood !== 'any') {
     const moodLabel = MOOD_RAIL_LABELS[options.mood];
