@@ -10,7 +10,7 @@ const card = read('components/SmartRecommendationCard.tsx');
 const personalization = read('lib/personalization.ts');
 const ranking = read('lib/recommendation-ranking-config.ts');
 const diversity = read('lib/recommendation-diversity.ts');
-const analytics = read('lib/recommendation-analytics-server.ts');
+const analytics = read('lib/recommendation-analytics-core.ts');
 const analyticsUi = read('components/admin/RecommendationAnalyticsDashboard.tsx');
 
 const failures = [];
