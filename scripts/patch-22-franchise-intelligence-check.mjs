@@ -26,7 +26,7 @@ for (const [label, source, needle] of [
   ['story rail id', rails, "'story_continues'"],
   ['story rail title', rails, "title: 'История продолжается'"],
   ['diversity canonical family', diversity, 'item.franchiseFamilyKey?.trim()'],
-  ['continuation not exploration', diversity, 'if (item.franchiseContinuation) return false'],
+  ['continuation not exploration', diversity, "if (item.franchiseContinuation) return 'safe'"],
   ['event continuation field', personalization, 'franchiseContinuation?: boolean'],
   ['event season field', personalization, 'franchiseSeasonNumber?: number'],
   ['product continuation metadata', personalization, 'franchise_continuation: event.franchiseContinuation ?? null'],
