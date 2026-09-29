@@ -55,7 +55,7 @@ if (
 }
 
 if (
-  !personalization.includes("RECOMMENDATION_ALGORITHM_VERSION = '22.0-v1'") ||
+  !personalization.includes("RECOMMENDATION_ALGORITHM_VERSION = '22.1-v1'") ||
   !personalization.includes('negativeGenreWeights') ||
   !ranking.includes('sessionNegativeAffinity')
 ) {
