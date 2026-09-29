@@ -1,3 +1,5 @@
+export const RECOMMENDATION_ANALYTICS_VERSION = '22.7-analytics-v3';
+
 export type RecommendationAnalyticsRange = 7 | 30;
 
 export type RecommendationFunnelSlice = {
@@ -22,6 +24,7 @@ export type RecommendationCalibrationSlice = RecommendationFunnelSlice & {
 };
 
 export type RecommendationAnalyticsDashboard = {
+  analyticsVersion: typeof RECOMMENDATION_ANALYTICS_VERSION;
   rangeDays: RecommendationAnalyticsRange;
   generatedAt: string;
   sampledEvents: number;
