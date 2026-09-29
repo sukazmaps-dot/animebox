@@ -346,3 +346,15 @@ html[data-animebox-theme='light'] .home-page .home-service-card__action:hover {
     grid-column: auto !important;
   }
 }
+
+/* Patch 21.2 — fluid reflow/readability */
+:root{--ab-card-min:9rem;--ab-fluid-body:clamp(1rem,.96rem + .16vw,1.125rem)}
+body{font-size:var(--ab-fluid-body)}
+.page-heading p,.detail__description,.anime-detail-v4__description,.profile-v2__bio,.tracker-hero p{max-width:68ch;line-height:1.62!important}
+.search-page .anime-grid,.tracker-page .anime-grid,.search-page .loading-grid,.tracker-page .loading-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--ab-card-min)),1fr))!important;gap:clamp(.75rem,.65rem + .35vw,1.125rem)!important}
+.anime-card__body h3{min-height:2.7em;font-size:clamp(1rem,.96rem + .12vw,1.125rem)!important;line-height:1.35!important;white-space:normal!important;overflow-wrap:anywhere;-webkit-line-clamp:2!important}
+.telegram-growth-card,.catalog-ad-break,.monetization-ad{min-width:0!important;max-width:100%!important}
+@media(min-width:48rem){:root{--ab-card-min:10rem}}
+@media(min-width:90rem){:root{--ab-card-min:11.5rem}}
+@media(min-width:120rem){:root{--ab-card-min:13.5rem}}
+@media(max-width:47.999rem){:root{--ab-card-min:8.75rem}:where(.search-page,.tracker-page,.telegram-growth-card) :where(p,span,small,button,a,label,input,select){font-size:max(1rem,1em)!important}}
