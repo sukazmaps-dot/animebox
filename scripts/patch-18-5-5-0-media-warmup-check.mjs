@@ -60,10 +60,13 @@ for (const needle of [
 }
 
 if (
-  !animeCard.includes('loading="near"') ||
+  !animeCard.includes("imageLoading = 'near'") ||
+  !animeCard.includes('loading={imageLoading}') ||
   !smartCard.includes('loading="near"')
 ) {
-  failures.push('mass AnimeCard and SmartRecommendationCard posters must use near mode');
+  failures.push(
+    'mass AnimeCard and SmartRecommendationCard posters must default to near mode',
+  );
 }
 
 if (
@@ -96,7 +99,11 @@ for (const needle of [
   }
 }
 
-if (animeCard.includes('loading="eager"') || smartCard.includes('loading="eager"')) {
+if (
+  animeCard.includes("imageLoading = 'eager'") ||
+  animeCard.includes('loading="eager"') ||
+  smartCard.includes('loading="eager"')
+) {
   failures.push('mass card grids must not be globally eager');
 }
 
