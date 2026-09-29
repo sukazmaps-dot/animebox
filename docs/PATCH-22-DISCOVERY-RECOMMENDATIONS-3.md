@@ -904,7 +904,7 @@ Never sacrifice a strong user match solely for diversity.
 
 # 14. Phase K — Recommendation Analytics 3.0
 
-Status: **implemented / CI green**
+Status: **implemented / CI validation**
 
 Goal:
 turn recommendation telemetry into a trustworthy exposure-level decision system,
@@ -926,6 +926,37 @@ Funnel semantics:
 - every funnel stage is a boolean per recommendation ID;
 - duplicate impression / click / watch milestone events therefore count once;
 - raw `product_events` remains the first-party source of truth.
+
+Outcome maturity:
+- conversion denominators are now observation-window aware;
+- a brand-new impression is not immediately counted as a CTR failure;
+- a playback started two minutes ago is not counted as a failed 15m/30m watch;
+- CTR becomes eligible after 2 minutes;
+- click → play after 10 minutes;
+- click → 15m after 25 minutes;
+- play → 15m after 20 minutes;
+- play → 30m after 40 minutes;
+- play → episode completion after 90 minutes;
+- play → meaningful multi-episode continuation after 180 minutes;
+- raw event counts remain visible, while conversion rates use only mature
+  denominators;
+- this prevents the newest traffic from systematically depressing deep-watch
+  conversion.
+
+Telemetry quality diagnostics:
+- orphan recommendation exposures: downstream events whose impression is not in
+  the selected cohort window;
+- started-without-click;
+- 15m-without-start;
+- 30m-without-15m;
+- multi-episode-without-start;
+- completion-without-start;
+- invalid timestamps;
+- events more than five minutes in the future;
+- oldest/newest sampled event and effective sampled-hour window are surfaced in
+  the admin dashboard;
+- truncation and attribution coverage remain explicit instead of silently
+  presenting partial data as complete.
 
 Primary outcomes:
 - impression → click;
