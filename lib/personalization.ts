@@ -52,6 +52,7 @@ export type RecommendationEvent = {
   position?: number;
   rowId?: string;
   source: string;
+  evidenceSource?: RecommendationExplanationSource;
   modelVersion: string;
   mood?: TasteMood;
   recommendationSessionId?: string;
@@ -420,6 +421,7 @@ export function trackRecommendationEvent(
           position: event.position ?? null,
           mood: event.mood ?? null,
           source: event.source,
+          evidenceSource: event.evidenceSource ?? null,
           matchScore: event.matchScore ?? null,
           tasteConfidence: event.tasteConfidence ?? null,
           reason: event.reason ?? null,
@@ -495,6 +497,7 @@ export function trackRecommendationEvent(
         impression_id: event.impressionId ?? null,
         position: event.position ?? null,
         row_id: event.rowId ?? null,
+        evidence_source: event.evidenceSource ?? null,
         mood: event.mood ?? null,
         recommendation_session_id: event.recommendationSessionId ?? null,
         dwell_ms: event.dwellMs ?? null,
