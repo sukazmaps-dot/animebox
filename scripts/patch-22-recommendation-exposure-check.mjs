@@ -14,8 +14,8 @@ const contract = read('docs/PATCH-22-DISCOVERY-RECOMMENDATIONS-3.md');
 
 for (const [label, source, needle] of [
   ['Patch 22 contract', contract, 'Phase A — Exposure / Fatigue Foundation'],
-  ['algorithm version', personalization, "RECOMMENDATION_ALGORITHM_VERSION = '22.3-v1'"],
-  ['ranking version', ranking, "RECOMMENDATION_RANKING_VERSION = '22.3-v1'"],
+  ['algorithm version', personalization, "RECOMMENDATION_ALGORITHM_VERSION = '22.4-v1'"],
+  ['ranking version', ranking, "RECOMMENDATION_RANKING_VERSION = '22.4-v1'"],
   ['fatigue ranking weight', ranking, 'exposureFatigue: 0.38'],
   ['fatigue score component', ranking, 'exposureFatigue:'],
   ['exposure model', exposure, 'buildRecommendationExposureMap'],
