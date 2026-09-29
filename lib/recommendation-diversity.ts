@@ -42,6 +42,9 @@ function normalizeGenre(value: string) {
 }
 
 function titleFamilyKey(item: RankedRecommendation) {
+  const explicitFamily = item.franchiseFamilyKey?.trim();
+  if (explicitFamily) return explicitFamily.slice(0, 72);
+
   const anime = item.anime;
   const title =
     anime.title?.russian?.trim() ||
@@ -112,6 +115,8 @@ function genreOverlap(
 }
 
 function isExplorationCandidate(item: RankedRecommendation) {
+  if (item.franchiseContinuation) return false;
+
   return (
     item.source === 'discovery' ||
     item.matchScore == null ||
