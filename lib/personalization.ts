@@ -3,7 +3,7 @@ import { trackProductClientEvent } from '@/lib/product-events-client';
 
 export const TASTE_PROFILE_STORAGE_KEY = 'animebox_taste_profile_v1';
 export const RECOMMENDATION_EVENTS_STORAGE_KEY = 'animebox_recommendation_events_v1';
-export const RECOMMENDATION_ALGORITHM_VERSION = '22.1-v1';
+export const RECOMMENDATION_ALGORITHM_VERSION = '22.2-v1';
 export const RECOMMENDATION_MODEL_VERSION = RECOMMENDATION_ALGORITHM_VERSION;
 export const RECOMMENDATION_ATTRIBUTION_PREFIX = 'animebox:recommendation-attribution:v1:';
 
@@ -51,6 +51,10 @@ export type RecommendationEvent = {
   completionScore?: number;
   franchiseContinuation?: boolean;
   franchiseSeasonNumber?: number;
+  explorationClass?: 'safe' | 'adjacent' | 'explore';
+  noveltyScore?: number;
+  hiddenGemScore?: number;
+  popularityBand?: 'unknown' | 'niche' | 'mid' | 'mainstream' | 'blockbuster';
   createdAt: number;
 };
 
@@ -334,6 +338,10 @@ export function trackRecommendationEvent(
           reason: event.reason ?? null,
           franchiseContinuation: event.franchiseContinuation ?? null,
           franchiseSeasonNumber: event.franchiseSeasonNumber ?? null,
+          explorationClass: event.explorationClass ?? null,
+          noveltyScore: event.noveltyScore ?? null,
+          hiddenGemScore: event.hiddenGemScore ?? null,
+          popularityBand: event.popularityBand ?? null,
           openedAt: Date.now(),
           startedSent: false,
           watch15mSent: false,
@@ -389,6 +397,10 @@ export function trackRecommendationEvent(
         completion_score: event.completionScore ?? null,
         franchise_continuation: event.franchiseContinuation ?? null,
         franchise_season_number: event.franchiseSeasonNumber ?? null,
+        exploration_class: event.explorationClass ?? null,
+        novelty_score: event.noveltyScore ?? null,
+        hidden_gem_score: event.hiddenGemScore ?? null,
+        popularity_band: event.popularityBand ?? null,
         model_version: algorithmVersion,
         algorithm_version: algorithmVersion,
       },
