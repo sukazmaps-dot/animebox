@@ -184,7 +184,7 @@ export default function RecommendationAnalyticsDashboard() {
             </article>
             <article>
               <span>Play → 30m</span>
-              <strong>{pct(k.watch15To30Pct)}</strong>
+              <strong>{pct(k.startedTo30mPct)}</strong>
               <small>{num(k.watch30m)} дошли до 30 минут</small>
             </article>
             <article>
