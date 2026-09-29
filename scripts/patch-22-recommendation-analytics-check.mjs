@@ -45,6 +45,7 @@ for (const [label, source, needle] of [
   ['feedback signal source', core, "metadataText(row, 'feedback_signal')"],
   ['maturity thresholds', core, 'RECOMMENDATION_ANALYTICS_MATURITY_MINUTES'],
   ['mature conversion denominator', core, 'target.startedTo30mEligible += 1'],
+  ['null numeric metadata guard', core, "if (raw == null || raw === '') return null"],
   ['telemetry orphan diagnostics', core, 'orphanRecommendationExposures'],
   ['server multi episode event', server, "'recommendation_multi_episode'"],
   ['server core aggregation', server, 'aggregateRecommendationAnalyticsRows'],
@@ -328,6 +329,61 @@ if (!failures.length) {
       // Downstream event without an in-window impression is not a funnel cohort.
       row('recommendation_click', 'rec-legacy-1234', 9),
 
+      // A brand-new impression must be visible in raw counts but must not
+      // immediately depress maturity-adjusted CTR/deep-watch rates.
+      {
+        ...row(
+          'recommendation_impression',
+          'rec-fresh-12345678',
+          0,
+          metadata({
+            row: 'top_match',
+            position: 2,
+            explanation: 'taste_genres',
+            confidence: 0.55,
+            match: 88,
+            completion: 0.7,
+            originalRank: 2,
+            rerankedRank: 2,
+          }),
+          'taste_graph',
+          '404',
+        ),
+        created_at: new Date(Date.now() - 30_000).toISOString(),
+      },
+
+      // Explicit null numeric metadata must stay unknown instead of Number(null)
+      // silently turning it into zero/cold/low-score buckets.
+      {
+        ...row(
+          'recommendation_impression',
+          'rec-null-meta-12345678',
+          0,
+          {
+            row_id: 'top_match',
+            position: 4,
+            explanation_key: 'discovery',
+            fatigue_score: null,
+            taste_confidence: null,
+            match_score: null,
+            completion_score: null,
+            exploration_class: 'safe',
+            hidden_gem_score: null,
+            exposure_count_7d: null,
+            diversity_version: null,
+            diversity_original_rank: null,
+            diversity_reranked_rank: null,
+            diversity_relaxed: null,
+            evidence_source: 'discovery',
+            recommendation_session_id: 'rec-session-1234',
+            algorithm_version: '22.6-v1',
+          },
+          'discovery',
+          '505',
+        ),
+        created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+      },
+
       {
         event_name: 'recommendation_rail_load_result',
         user_id: null,
@@ -361,8 +417,8 @@ if (!failures.length) {
     }
 
     if (
-      dashboard.attributedExposures !== 3 ||
-      dashboard.kpis.impressions !== 3 ||
+      dashboard.attributedExposures !== 5 ||
+      dashboard.kpis.impressions !== 5 ||
       dashboard.kpis.clicks !== 2 ||
       dashboard.kpis.started !== 2 ||
       dashboard.kpis.watch15m !== 2 ||
@@ -382,7 +438,7 @@ if (!failures.length) {
     }
 
     if (
-      dashboard.kpis.ctrEligible !== 3 ||
+      dashboard.kpis.ctrEligible !== 4 ||
       dashboard.kpis.clickToPlayEligible !== 2 ||
       dashboard.kpis.startedTo15mEligible !== 2 ||
       dashboard.kpis.startedTo30mEligible !== 2 ||
@@ -413,7 +469,7 @@ if (!failures.length) {
 
     if (
       dashboard.kpis.repeatedImpressions !== 1 ||
-      dashboard.kpis.repeatedImpressionRatePct !== 33.33
+      dashboard.kpis.repeatedImpressionRatePct !== 20
     ) {
       failures.push('repeat-exposure KPI is not based on prior exposure count');
     }
@@ -487,11 +543,11 @@ if (!failures.length) {
     }
 
     if (
-      dashboard.diversity.eligible !== 3 ||
+      dashboard.diversity.eligible !== 4 ||
       dashboard.diversity.moved !== 2 ||
       dashboard.diversity.promoted !== 1 ||
       dashboard.diversity.demoted !== 1 ||
-      dashboard.diversity.unchanged !== 1 ||
+      dashboard.diversity.unchanged !== 2 ||
       dashboard.diversity.relaxed !== 1
     ) {
       failures.push('diversity movement analytics are incorrect');
@@ -532,6 +588,31 @@ if (!failures.length) {
       dashboard.attribution.tasteConfidencePct <= 0
     ) {
       failures.push('new attribution coverage metrics are not populated');
+    }
+
+    const unknownMatch = dashboard.matchScoreCalibration.find(
+      (item) => item.bucket === 'unknown',
+    );
+    const unknownCompletion = dashboard.completionScoreCalibration.find(
+      (item) => item.bucket === 'unknown',
+    );
+    const unknownConfidence = dashboard.tasteConfidence.find(
+      (item) => item.bucket === 'unknown',
+    );
+
+    if (
+      !unknownMatch ||
+      unknownMatch.impressions !== 1 ||
+      !unknownCompletion ||
+      unknownCompletion.impressions !== 1 ||
+      !unknownConfidence ||
+      unknownConfidence.impressions !== 1
+    ) {
+      failures.push('explicit null numeric metadata leaked into zero-valued analytics buckets');
+    }
+
+    if (dashboard.kpis.ctrPct !== 50) {
+      failures.push('fresh immature impressions are still depressing maturity-adjusted CTR');
     }
   } catch (error) {
     failures.push(
