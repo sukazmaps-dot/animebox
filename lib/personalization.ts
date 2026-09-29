@@ -49,6 +49,8 @@ export type RecommendationEvent = {
   sessionIntentScore?: number;
   sessionIntentConfidence?: number;
   completionScore?: number;
+  franchiseContinuation?: boolean;
+  franchiseSeasonNumber?: number;
   createdAt: number;
 };
 
@@ -330,6 +332,8 @@ export function trackRecommendationEvent(
           source: event.source,
           matchScore: event.matchScore ?? null,
           reason: event.reason ?? null,
+          franchiseContinuation: event.franchiseContinuation ?? null,
+          franchiseSeasonNumber: event.franchiseSeasonNumber ?? null,
           openedAt: Date.now(),
           startedSent: false,
           watch15mSent: false,
@@ -383,6 +387,8 @@ export function trackRecommendationEvent(
         session_intent_score: event.sessionIntentScore ?? null,
         session_intent_confidence: event.sessionIntentConfidence ?? null,
         completion_score: event.completionScore ?? null,
+        franchise_continuation: event.franchiseContinuation ?? null,
+        franchise_season_number: event.franchiseSeasonNumber ?? null,
         model_version: algorithmVersion,
         algorithm_version: algorithmVersion,
       },
