@@ -49,6 +49,7 @@ for (const [label, source, needle] of [
   ['embedded showcase actions sticky', studioCss, 'position: sticky !important'],
   ['embedded showcase safe-area footer', studioCss, 'bottom: max(12px, env(safe-area-inset-bottom)) !important'],
   ['showcase desktop footer spacing', studioCss, 'padding-bottom: 24px'],
+  ['embedded showcase light theme footer', studioCss, "html[data-animebox-theme='light'] .profile-widgets-editor--embedded .profile-widgets-editor__actions"],
   ['gate direct brand asset', gate, 'src="/brand/brand-mark.webp"'],
   ['gate inline SVG fallback', gate, 'telegram-subscription-gate__logo-fallback'],
 ]) {
