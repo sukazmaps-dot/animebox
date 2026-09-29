@@ -15,8 +15,8 @@ const docs = read('docs/PATCH-22-DISCOVERY-RECOMMENDATIONS-3.md');
 
 for (const [label, source, needle] of [
   ['explainability version', explainability, "RECOMMENDATION_EXPLAINABILITY_VERSION = '22.5-explain-v1'"],
-  ['algorithm version', personalization, "RECOMMENDATION_ALGORITHM_VERSION = '22.5-v1'"],
-  ['ranking version', ranking, "RECOMMENDATION_RANKING_VERSION = '22.5-v1'"],
+  ['algorithm version', personalization, "RECOMMENDATION_ALGORITHM_VERSION = '22.6-v1'"],
+  ['ranking version', ranking, "RECOMMENDATION_RANKING_VERSION = '22.6-v1'"],
   ['scored explanation builder', explainability, 'buildRecommendationExplanations'],
   ['weighted component reader', explainability, 'ranking.components[component]'],
   ['positive-only component evidence', explainability, 'Math.max(0, finite(ranking.components[component]))'],
@@ -106,7 +106,7 @@ if (!failures.length) {
     ];
 
     const makeRanking = (overrides = {}) => ({
-      version: '22.5-v1',
+      version: '22.6-v1',
       total: 1,
       components: Object.fromEntries(
         componentNames.map((name) => [name, overrides[name] ?? 0]),
