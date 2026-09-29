@@ -45,6 +45,10 @@ import {
   scoreRecommendationExploration,
   type RecommendationExplorationClass,
 } from '@/lib/recommendation-exploration';
+import {
+  scoreRecommendationSeasonality,
+  type RecommendationSeasonRelation,
+} from '@/lib/recommendation-seasonality';
 
 export type RankedRecommendation = {
   anime: Anime;
@@ -67,6 +71,11 @@ export type RankedRecommendation = {
   noveltyScore: number;
   hiddenGemScore: number;
   popularityBand: 'unknown' | 'niche' | 'mid' | 'mainstream' | 'blockbuster';
+  seasonalScore: number;
+  freshnessScore: number;
+  seasonRelation: RecommendationSeasonRelation;
+  season: 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL' | null;
+  seasonYear: number | null;
   source: 'watch_history' | 'taste_mood' | 'engagement' | 'taste_graph' | 'franchise' | 'discovery';
   ranking: RecommendationScoreResult;
 };
@@ -499,6 +508,27 @@ export function getPersonalizedRecommendations(
       const discoveryBonus = index < 14 ? 0.04 : Math.max(0, 0.025 - index * 0.0005);
       const title = getAnimeTitle(anime);
       const duplicateTitlePenalty = recentTitles.has(title.toLowerCase()) ? -0.45 : 0;
+      const seasonalTasteCompatibility = Math.max(
+        genreScore,
+        graphAffinity.positive,
+        completedAffinity.positive * 0.92,
+        combinedStudioAffinity * 0.82,
+        formatAffinity.positive * 0.58,
+        eraAffinity.positive * 0.42,
+        sessionIntentScore * Math.max(0.4, sessionIntent.confidence),
+        moodScore * 0.72,
+      );
+      const seasonality = scoreRecommendationSeasonality({
+        anime,
+        tasteCompatibility: seasonalTasteCompatibility,
+        negativeAffinity: Math.max(
+          graphAffinity.negative,
+          metadataNegativeAffinity,
+          sessionNegativeAffinity,
+        ),
+        fatigueScore: exposure.fatigue,
+      });
+
       const exploration = scoreRecommendationExploration({
         anime,
         tasteAffinity: Math.max(genreScore, graphAffinity.positive),
@@ -533,6 +563,7 @@ export function getPersonalizedRecommendations(
           novelty: exploration.noveltyScore,
           hiddenGem: exploration.hiddenGemScore,
           popularityBias: exploration.popularityBias,
+          seasonalFreshness: seasonality.seasonalScore,
           episodeLength: lengthAffinity,
           mood: moodScore,
           communityQuality: ratingScore,
@@ -563,6 +594,13 @@ export function getPersonalizedRecommendations(
       const reasons: string[] = [];
       if (franchise.continuation) {
         reasons.push('Продолжение тайтла, который ты уже смотрел');
+      }
+      if (
+        seasonality.relation === 'current' &&
+        seasonality.seasonalScore >= 0.24 &&
+        reasons.length < 2
+      ) {
+        reasons.push('Из текущего сезона — совпадает с твоим вкусом');
       }
       if (exploration.hiddenGemScore >= 0.62 && reasons.length < 2) {
         reasons.push('Скрытая находка: высокий матч, но менее популярный тайтл');
@@ -689,6 +727,11 @@ export function getPersonalizedRecommendations(
         noveltyScore: exploration.noveltyScore,
         hiddenGemScore: exploration.hiddenGemScore,
         popularityBand: exploration.popularityBand,
+        seasonalScore: seasonality.seasonalScore,
+        freshnessScore: seasonality.freshnessScore,
+        seasonRelation: seasonality.relation,
+        season: seasonality.season,
+        seasonYear: seasonality.seasonYear,
         source,
         ranking,
       } satisfies RankedRecommendation;
