@@ -902,32 +902,181 @@ Never sacrifice a strong user match solely for diversity.
 
 ---
 
-# 14. Phase K — Recommendation analytics 3.0
+# 14. Phase K — Recommendation Analytics 3.0
 
-Metrics:
-- impression -> click;
-- click -> playback;
-- click -> 15m;
-- playback -> 15m;
-- playback -> completion;
-- recommendation -> multi-episode continuation;
+Status: **implemented / CI validation**
+
+Goal:
+turn recommendation telemetry into a trustworthy exposure-level decision system,
+not a raw counter dashboard. The primary unit is one stable
+`recommendation_id` exposure, so duplicate client events cannot inflate funnel
+conversion.
+
+Versions:
+- recommendation ranking remains `22.6-v1`;
+- analytics contract: `22.7-analytics-v3`;
+- diversity contract remains `22.6-diversity-v3`;
+- explainability contract remains `22.5-explain-v1`.
+
+Funnel semantics:
+- only recommendation IDs with an in-range `recommendation_impression` enter
+  the conversion cohort;
+- downstream click/play/depth events without an in-range impression are kept in
+  attribution coverage but excluded from funnel conversion;
+- every funnel stage is a boolean per recommendation ID;
+- duplicate impression / click / watch milestone events therefore count once;
+- raw `product_events` remains the first-party source of truth.
+
+Primary outcomes:
+- impression → click;
+- click → playback;
+- click → 15m;
+- playback → 15m;
+- playback → 30m;
+- playback → episode completion;
+- playback → meaningful multi-episode continuation;
 - dismiss rate;
-- fatigue bucket performance;
-- match-score calibration;
-- completion-score calibration;
-- exploration conversion;
-- hidden-gem conversion;
-- diversity metrics;
 - repeated-impression rate.
 
-Breakdowns:
+Multi-episode outcome:
+- new event: `recommendation_multi_episode`;
+- attribution survives across episodes for the same anime;
+- the event is emitted only after entering a different episode from the first
+  attributed episode;
+- at least 90 seconds of active viewing in the continuation episode are
+  required;
+- autoplay / accidental next-episode transitions therefore do not count as a
+  meaningful continuation;
+- the event is emitted once per recommendation attribution.
+
+Calibration:
+- displayed Match Score is grouped into 58–69 / 70–79 / 80–89 / 90+ / unknown;
+- Completion Score is grouped into <0.40 / 0.40–0.59 / 0.60–0.74 / 0.75+ /
+  unknown;
+- each bucket reports the same downstream funnel;
+- scores remain ranking features, **not literal probabilities**;
+- Phase K measures whether higher buckets actually correlate with deeper watch
+  outcomes before any probability language is allowed.
+
+Taste confidence:
+- each ranked recommendation now carries the private Taste Graph confidence that
+  existed when it was scored;
+- confidence is attached to impression/click attribution and survives into
+  playback outcomes;
+- dashboard buckets: cold / learning / confident / high / unknown;
+- this allows cold-start performance to be separated from mature personalization
+  instead of averaging them together.
+
+Fatigue:
+- fresh / light / medium / high exposure-fatigue buckets;
+- each bucket reports CTR, play, 15m and dismiss behaviour;
+- repeated-impression KPI uses the recommendation's pre-impression
+  `exposure_count_7d`;
+- repeated exposure can therefore be evaluated against actual conversion decay.
+
+Controlled exploration:
+- safe / adjacent / explore classes receive separate funnel slices;
+- dashboard exposes exploration → playback and watch-depth outcomes;
+- hidden-gem qualified impressions receive their own conversion KPI;
+- the goal is to learn whether exploration creates meaningful watches, not only
+  clicks.
+
+Explainability:
+- primary `explanation_key` from Phase I becomes an analytics dimension;
+- each reason family can be compared by CTR, playback, 15m, 30m,
+  multi-episode continuation and completion;
+- no copy-string parsing is required;
+- future copy changes do not break historical reason-family attribution.
+
+Diversity:
+- Phase J original rank and reranked rank are compared per exposure;
+- metrics include eligible / moved / promoted / demoted / unchanged;
+- average absolute rank movement is reported;
+- relaxed-constraint exposures are tracked separately;
+- movement slices use the same downstream funnel, so diversity can be judged by
+  actual watch quality rather than visual variety.
+
+Structured feedback:
+- dismiss events are broken down by `feedback_signal`;
+- `too_long`, `not_now`, `dislike_genre`, `dislike_setting`,
+  `not_interested`, etc. are measured independently;
+- reason counts are exposure-deduplicated.
+
+Rail health:
+- existing per-rail end/load/error diagnostics are preserved;
+- load fill rate, total additions, pages scanned, virtualized loads,
+  max logical rail depth and max rendered DOM depth remain visible;
+- conversion and runtime health now share the same row table.
+
+Attribution coverage:
+dashboard explicitly reports coverage for:
+- recommendation ID;
+- recommendation session;
 - algorithm version;
-- rail;
-- source;
+- row;
 - position;
-- taste confidence bucket;
-- fatigue bucket;
-- exploration/safe class.
+- explanation key;
+- diversity version;
+- taste confidence;
+- match score;
+- completion score;
+- exploration class.
+
+Admin UI:
+- Recommendation Analytics 3.0 header;
+- exposure-level KPI strip;
+- attribution-quality panel;
+- algorithm-version funnel;
+- Match Score calibration;
+- Completion Score calibration;
+- fatigue breakdown;
+- Taste Graph confidence breakdown;
+- safe / adjacent / explore breakdown;
+- explanation-family funnel;
+- diversity movement panel;
+- per-rail conversion + runtime health;
+- source funnel;
+- structured feedback reason list;
+- daily exposure trend.
+
+Performance / scale:
+- pure aggregation lives in `lib/recommendation-analytics-core.ts`;
+- Supabase loader and analytics calculation are separated;
+- 7d / 30d API remains admin-only and `private, no-store`;
+- event scan remains bounded and explicitly exposes `truncated`;
+- a dedicated `(event_name, created_at desc)` covering index supports the
+  recommendation analytics scan;
+- no parallel analytics table is introduced;
+- no client-side analytics query;
+- no new provider request;
+- recommendation UX never depends on analytics availability.
+
+Privacy:
+- analytics reuses first-party AnimeBox product events;
+- no exact location;
+- no external browsing history;
+- no advertising profile;
+- no sensitive-category inference;
+- dashboard groups behavioural recommendation signals only.
+
+Regression coverage:
+- duplicate event dedupe by recommendation ID;
+- downstream-without-impression cohort exclusion;
+- multi-episode 90s continuation threshold;
+- match-score calibration buckets;
+- completion-score calibration buckets;
+- repeat-exposure KPI;
+- hidden-gem conversion;
+- safe / adjacent / explore conversion;
+- fatigue dismiss behaviour;
+- Taste Graph confidence buckets;
+- diversity movement and relaxed constraints;
+- explanation → deep-watch attribution;
+- structured feedback breakdown;
+- rail runtime diagnostics preservation;
+- extended attribution coverage.
+
+Analytics must measure **meaningful watch quality**, not optimize only for CTR.
 
 ---
 
