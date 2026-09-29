@@ -21,7 +21,12 @@ export type RecommendationExposureEvent = {
     | 'planned'
     | 'liked'
     | 'not_interested'
+    | 'less_like_this'
     | 'already_watched'
+    | 'too_long'
+    | 'dislike_genre'
+    | 'dislike_setting'
+    | 'not_now'
     | 'mood_change';
   animeId?: number;
   dwellMs?: number;
