@@ -188,7 +188,7 @@ export function sanitizeTasteGraph(value: unknown): TasteGraph | null {
     preferredEpisodeCount,
     averageRating,
     ratingsCount: Math.max(0, Math.round(finite(raw.ratingsCount))),
-    explorationRate: clamp(finite(raw.explorationRate, 0.14), 0.08, 0.2),
+    explorationRate: clamp(finite(raw.explorationRate, 0.14), 0.05, 0.2),
     moodWeights,
     signalBreakdown,
     genreWeights: toWeights(raw.genreWeights),
