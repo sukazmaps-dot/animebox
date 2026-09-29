@@ -43,6 +43,7 @@ for (const [label, source, needle] of [
   ['server multi episode event', server, "'recommendation_multi_episode'"],
   ['server core aggregation', server, 'aggregateRecommendationAnalyticsRows'],
   ['newest-event bounded scan', server, ".order('created_at', { ascending: false })"],
+  ['stable paged scan upper bound', server, ".lte('created_at', until)"],
   ['multi episode event name', productNames, "'recommendation_multi_episode'"],
   ['forward episode gate', productClient, 'input.episode > firstEpisode'],
   ['meaningful continuation gate', productClient, 'currentActiveMs >= 90_000'],
