@@ -162,7 +162,7 @@ if (
   failures.push('17.8.3 multi-source candidate retrieval is incomplete');
 }
 if (
-  !candidates.includes('animebox-recommendation-candidates-v7-verified-playback') ||
+  !candidates.includes('animebox-recommendation-candidates-v8-controlled-exploration') ||
   !candidates.includes('tasteGenre') ||
   !candidates.includes('bucket')
 ) {
@@ -221,7 +221,7 @@ if (
 if (
   !diversity.includes("RECOMMENDATION_DIVERSITY_VERSION = '18.3-diversity-v2'") ||
   !diversity.includes('normalizeRecommendationExplorationRate') ||
-  !diversity.includes('targetExploration') ||
+  !diversity.includes('classTargets') ||
   !diversity.includes('maxFamilyPerFeed') ||
   !diversity.includes('genreConcentrationPenalty')
 ) {
