@@ -9,7 +9,9 @@ import {
   useState,
 } from 'react';
 
-import SmartRecommendationCard from '@/components/SmartRecommendationCard';
+import SmartRecommendationCard, {
+  type RecommendationFeedbackUndoPayload,
+} from '@/components/SmartRecommendationCard';
 import { RecommendationCardSkeleton } from '@/components/home/HomeLoadingSkeletons';
 import ScrollRow, {
   type ScrollRowVirtualMetrics,
@@ -347,6 +349,8 @@ export default function SmartRecommendationFeed({
   );
   const [locallyHidden, setLocallyHidden] =
     useState<Set<number>>(() => new Set());
+  const [feedbackUndo, setFeedbackUndo] =
+    useState<RecommendationFeedbackUndoPayload | null>(null);
   const [pointer, setPointer] = useState<CandidatePointer>({
     page: 2,
     cursor: null,
@@ -695,6 +699,53 @@ export default function SmartRecommendationFeed({
     },
     [displayedMood, tasteGraph],
   );
+
+  const handleFeedbackApplied = useCallback(
+    (payload: RecommendationFeedbackUndoPayload) => {
+      setFeedbackUndo(payload);
+    },
+    [],
+  );
+
+  const handleUndoFeedback = useCallback(() => {
+    const payload = feedbackUndo;
+    if (!payload) return;
+
+    payload.undo();
+    setLocallyHidden((current) => {
+      const next = new Set(current);
+      next.delete(payload.anime.id);
+      return next;
+    });
+
+    startTransition(() => {
+      setRecommendations((current) =>
+        getPersonalizedRecommendations(
+          [
+            ...current.map(({ anime }) => anime),
+            payload.anime,
+          ],
+          {
+            mood: displayedMood,
+            limit: Math.max(PAGE_SIZE, current.length + 1),
+            tasteGraph,
+          },
+        ),
+      );
+    });
+
+    setFeedbackUndo(null);
+  }, [displayedMood, feedbackUndo, tasteGraph]);
+
+  useEffect(() => {
+    if (!feedbackUndo) return;
+
+    const timer = window.setTimeout(() => {
+      setFeedbackUndo(null);
+    }, 6_500);
+
+    return () => window.clearTimeout(timer);
+  }, [feedbackUndo]);
 
   const ensureRailDepth = useCallback(
     async (
@@ -1111,6 +1162,7 @@ export default function SmartRecommendationFeed({
                         source={rail.source}
                         recommendationSessionId={sessionId}
                         onHidden={handleHiddenRecommendation}
+                        onFeedbackApplied={handleFeedbackApplied}
                       />
                     </div>
                   ))}
@@ -1144,6 +1196,15 @@ export default function SmartRecommendationFeed({
           })}
         </div>
       </div>
+
+      {feedbackUndo && (
+        <div className="smart-feed__feedback-undo" role="status">
+          <span>{feedbackUndo.label}</span>
+          <button type="button" onClick={handleUndoFeedback}>
+            Отменить
+          </button>
+        </div>
+      )}
     </div>
   );
 }
