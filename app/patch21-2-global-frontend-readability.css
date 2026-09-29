@@ -1,0 +1,410 @@
+/* =========================================================
+   AnimeBox Patch 21.2 — Global Frontend Reflow & Readability
+   Final root override for readable typography, zoom-safe reflow,
+   fluid catalogue geometry and compact promotional surfaces.
+   ========================================================= */
+
+:root {
+  --ab-fluid-body: clamp(1rem, 0.96rem + 0.16vw, 1.125rem);
+  --ab-fluid-small: clamp(0.9375rem, 0.91rem + 0.1vw, 1.0625rem);
+  --ab-fluid-title: clamp(1.75rem, 1.3rem + 1.8vw, 3.25rem);
+  --ab-fluid-section-title: clamp(1.125rem, 1.02rem + 0.42vw, 1.5rem);
+  --ab-page-inline-fluid: clamp(0.75rem, 2.2vw, 3rem);
+  --ab-readable-measure: 68ch;
+  --ab-readable-measure-wide: 75ch;
+  --ab-catalog-card-min: 9rem;
+  --ab-touch-target: 2.75rem;
+}
+
+html {
+  max-inline-size: 100%;
+  overflow-x: clip;
+  font-size: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  overflow-x: clip;
+  font-size: var(--ab-fluid-body);
+  line-height: 1.55;
+}
+
+.app-shell,
+.page-content,
+main,
+section,
+article,
+aside,
+header,
+footer,
+.home-page,
+.search-page,
+.tracker-page,
+.profile-v2,
+.anime-detail-v3,
+.anime-detail-v4,
+.episode-page,
+.home-grid,
+.main-column,
+.right-rail,
+.panel {
+  min-inline-size: 0;
+}
+
+img,
+video,
+canvas,
+svg,
+iframe {
+  max-inline-size: 100%;
+}
+
+img,
+video,
+canvas {
+  block-size: auto;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+li,
+label,
+button,
+a,
+span,
+strong,
+small {
+  overflow-wrap: anywhere;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p,
+li {
+  text-wrap: pretty;
+}
+
+button,
+input,
+select,
+textarea,
+a {
+  min-inline-size: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+pre {
+  max-inline-size: 100%;
+  overflow-x: auto;
+}
+
+.page-content {
+  inline-size: min(100%, 170rem) !important;
+  max-inline-size: 170rem !important;
+  padding-inline: var(--ab-page-inline-fluid) !important;
+}
+
+.page-heading h1,
+.anime-detail-v4__title,
+.anime-detail-v3__title {
+  font-size: var(--ab-fluid-title) !important;
+  line-height: 1.08 !important;
+}
+
+.section-title,
+.panel__head,
+.home-page .section-title {
+  font-size: var(--ab-fluid-section-title) !important;
+  line-height: 1.25 !important;
+}
+
+.page-heading p,
+.detail__description,
+.anime-detail-v4__description,
+.profile-v2__bio,
+.profile-v2__section-head p,
+.tracker-hero p,
+.smart-feed-heading p,
+.telegram-growth-card__copy p {
+  max-inline-size: var(--ab-readable-measure-wide);
+  line-height: 1.62 !important;
+}
+
+.detail__description,
+.anime-detail-v4__description,
+.profile-v2__bio {
+  max-inline-size: var(--ab-readable-measure);
+}
+
+/* Catalogue and tracker: one fluid grid instead of breakpoint-specific
+   fixed column counts. This naturally reflows under 200–400% browser zoom. */
+.search-page .anime-grid,
+.tracker-page .anime-grid,
+.search-page .loading-grid,
+.tracker-page .loading-grid {
+  display: grid !important;
+  grid-template-columns:
+    repeat(
+      auto-fill,
+      minmax(min(100%, var(--ab-catalog-card-min)), 1fr)
+    ) !important;
+  gap: clamp(0.75rem, 0.65rem + 0.35vw, 1.125rem) !important;
+  align-items: start;
+  min-inline-size: 0;
+}
+
+.search-page .anime-grid > *,
+.tracker-page .anime-grid > *,
+.search-page .loading-grid > *,
+.tracker-page .loading-grid > * {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.anime-card {
+  inline-size: 100%;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.anime-card__image-wrap,
+.anime-card--compact .anime-card__image-wrap {
+  inline-size: 100%;
+  block-size: auto !important;
+  aspect-ratio: 2 / 3;
+}
+
+.anime-card__body {
+  min-inline-size: 0;
+}
+
+.anime-card__body h3,
+.home-grid .anime-card__body h3 {
+  min-block-size: 2.7em;
+  font-size: clamp(1rem, 0.96rem + 0.12vw, 1.125rem) !important;
+  line-height: 1.35 !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  -webkit-line-clamp: 2 !important;
+}
+
+.anime-card__meta,
+.anime-card__match,
+.anime-card__personal {
+  min-inline-size: 0;
+  flex-wrap: wrap;
+}
+
+.anime-card__meta span,
+.anime-card__match span,
+.anime-card__personal small {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Promotional / advertising surfaces must size to content and never force
+   the page wider than the viewport. */
+.telegram-growth-card,
+.telegram-growth-card--vector,
+.telegram-growth-card__content,
+.catalog-ad-break,
+.monetization-ad,
+.monetization-ad--catalog {
+  min-inline-size: 0 !important;
+  max-inline-size: 100% !important;
+}
+
+.telegram-growth-card,
+.telegram-growth-card--vector {
+  inline-size: 100% !important;
+  block-size: fit-content !important;
+  align-self: start !important;
+  overflow: clip;
+}
+
+.telegram-growth-card__content {
+  overflow: hidden;
+}
+
+.telegram-growth-card__copy h3 {
+  font-size: clamp(1.125rem, 1.02rem + 0.45vw, 1.5rem) !important;
+  line-height: 1.18 !important;
+}
+
+.telegram-growth-card__copy p {
+  font-size: var(--ab-fluid-small) !important;
+}
+
+.telegram-growth-card__cta {
+  min-block-size: var(--ab-touch-target) !important;
+  max-inline-size: 100%;
+  white-space: normal !important;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.catalog-ad-break,
+.monetization-ad,
+.monetization-ad--catalog {
+  inline-size: 100%;
+  overflow: clip;
+}
+
+.catalog-ad-break iframe,
+.monetization-ad iframe,
+.monetization-ad--catalog iframe {
+  max-inline-size: 100% !important;
+}
+
+/* Tablet and desktop card widths stay visually balanced while still using
+   auto-fill so zoom and window resizing do not create horizontal scrolling. */
+@media (min-width: 48rem) {
+  :root {
+    --ab-catalog-card-min: 10rem;
+  }
+}
+
+@media (min-width: 90rem) {
+  :root {
+    --ab-catalog-card-min: 11.5rem;
+  }
+}
+
+@media (min-width: 120rem) {
+  :root {
+    --ab-catalog-card-min: 13.5rem;
+  }
+}
+
+@media (min-width: 187.5rem) {
+  :root {
+    --ab-catalog-card-min: 14.75rem;
+  }
+}
+
+/* Mobile + browser-zoom reflow contract.
+   At narrow CSS viewports every important textual control is at least 1rem. */
+@media (max-width: 47.999rem) {
+  :root {
+    --ab-catalog-card-min: 8.75rem;
+    --ab-page-inline-fluid: max(
+      0.75rem,
+      env(safe-area-inset-left, 0rem),
+      env(safe-area-inset-right, 0rem)
+    );
+  }
+
+  body {
+    font-size: 1rem !important;
+    line-height: 1.55;
+  }
+
+  .page-content {
+    inline-size: 100% !important;
+    max-inline-size: 100% !important;
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0rem)) !important;
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0rem)) !important;
+  }
+
+  .page-heading p,
+  .section-link,
+  .topbar__search input,
+  .anime-card__body h3,
+  .anime-card__meta,
+  .anime-card__rating,
+  .anime-card__state,
+  .anime-card__match,
+  .anime-card__personal,
+  .genre-btn,
+  .pagination button,
+  .pagination span,
+  .telegram-growth-card__copy p,
+  .telegram-growth-card__benefits span,
+  .telegram-growth-card__cta,
+  .tracker-filter,
+  .profile-v2__bio,
+  .detail__description,
+  .anime-detail-v4__description {
+    font-size: 1rem !important;
+  }
+
+  .search-page .anime-grid,
+  .tracker-page .anime-grid,
+  .search-page .loading-grid,
+  .tracker-page .loading-grid {
+    gap: 0.75rem !important;
+  }
+
+  .home-page .home-grid--main,
+  .detail__hero,
+  .detail__body,
+  .anime-detail-grid,
+  .profile-v2__content {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .telegram-growth-card--compact.telegram-growth-card--vector,
+  .telegram-growth-card--community.telegram-growth-card--vector {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .telegram-growth-card--vector .telegram-growth-card__vector-art {
+    display: none !important;
+  }
+
+  .telegram-growth-card--vector .telegram-growth-card__content {
+    padding: 1rem !important;
+  }
+
+  .telegram-growth-card__benefits {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 0.5rem !important;
+  }
+
+  .telegram-growth-card__cta {
+    inline-size: 100% !important;
+  }
+}
+
+@media (max-width: 20rem) {
+  :root {
+    --ab-catalog-card-min: 8.25rem;
+  }
+
+  .search-page .anime-grid,
+  .tracker-page .anime-grid,
+  .search-page .loading-grid,
+  .tracker-page .loading-grid {
+    gap: 0.5rem !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anime-card,
+  .anime-card__image,
+  .telegram-growth-card,
+  .telegram-growth-card * {
+    scroll-behavior: auto !important;
+    transition-duration: 0.001s !important;
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+  }
+}
