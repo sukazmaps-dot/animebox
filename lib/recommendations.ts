@@ -154,22 +154,38 @@ function findLikedReferenceTitle(
   );
   if (!candidateGenres.size) return null;
 
-  let best: { title: string; overlap: number } | null = null;
+  let best: { title: string; score: number } | null = null;
 
   for (const reference of references) {
     if (reference.id === anime.id) continue;
 
-    const overlap = (reference.genres ?? [])
-      .map(normalizeGenre)
-      .filter((genre) => candidateGenres.has(genre)).length;
+    const referenceGenres = new Set(
+      (reference.genres ?? []).map(normalizeGenre).filter(Boolean),
+    );
+    if (!referenceGenres.size) continue;
 
+    const overlap = [...referenceGenres].filter((genre) =>
+      candidateGenres.has(genre),
+    ).length;
     if (overlap <= 0) continue;
+
+    const overlapBase = Math.max(
+      1,
+      Math.min(candidateGenres.size, referenceGenres.size),
+    );
+    const affinity = overlap / overlapBase;
+
+    // One broad shared genre is not enough to tell the user that two titles
+    // are specifically similar. Keep named-title explanations for strong
+    // overlap; weaker evidence still falls back to genre/Taste Graph copy.
+    if (overlap < 2 && affinity < 0.6) continue;
 
     const title = getAnimeTitle(reference);
     if (!title || title === 'Без названия') continue;
 
-    if (!best || overlap > best.overlap) {
-      best = { title, overlap };
+    const score = overlap + affinity;
+    if (!best || score > best.score) {
+      best = { title, score };
     }
   }
 
@@ -195,6 +211,53 @@ function sessionNegativeGenreAffinity(
 
   if (!hits.length) return 0;
   return Math.min(1, (hits[0] ?? 0) + (hits[1] ?? 0) * 0.35);
+}
+
+function studioDisplayName(anime: Anime): string | null {
+  const raw = anime.studios;
+  const values: unknown[] = Array.isArray(raw)
+    ? raw
+    : raw && typeof raw === 'object' && Array.isArray((raw as { nodes?: unknown[] }).nodes)
+      ? (raw as { nodes: unknown[] }).nodes
+      : [];
+
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (value && typeof value === 'object') {
+      const row = value as { name?: unknown; node?: { name?: unknown } };
+      if (typeof row.name === 'string' && row.name.trim()) {
+        return row.name.trim();
+      }
+      if (typeof row.node?.name === 'string' && row.node.name.trim()) {
+        return row.node.name.trim();
+      }
+    }
+  }
+
+  return null;
+}
+
+function explanationFormatLabel(
+  value: string | null | undefined,
+): string | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+
+  const labels: Record<string, string> = {
+    TV: 'TV',
+    'ТВ': 'TV',
+    TV_SHORT: 'TV Short',
+    MOVIE: 'фильм',
+    'Фильм': 'фильм',
+    OVA: 'OVA',
+    ONA: 'ONA',
+    SPECIAL: 'спецвыпуск',
+    'Спешл': 'спецвыпуск',
+    MUSIC: 'музыкальный клип',
+    'Клип': 'музыкальный клип',
+  };
+
+  return labels[raw] ?? raw.replaceAll('_', ' ');
 }
 
 function studioNames(anime: Anime): string[] {
@@ -628,8 +691,8 @@ export function getPersonalizedRecommendations(
           mood !== 'any' && moodScore > 0
             ? MOOD_CONFIG[mood].label
             : null,
-        studio: candidateStudios[0] ?? null,
-        format: anime.format ?? anime.kind ?? null,
+        studio: studioDisplayName(anime),
+        format: explanationFormatLabel(anime.format ?? anime.kind),
         eraBucket: eraAffinity.bucket,
         preferredEpisodeCount:
           tasteGraph?.preferredEpisodeCount ?? null,
