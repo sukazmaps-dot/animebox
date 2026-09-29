@@ -1,4 +1,4 @@
-export const RECOMMENDATION_RANKING_VERSION = '22.1-v1';
+export const RECOMMENDATION_RANKING_VERSION = '22.2-v1';
 
 export const RECOMMENDATION_RANKING_WEIGHTS = {
   genre: {
@@ -17,6 +17,9 @@ export const RECOMMENDATION_RANKING_WEIGHTS = {
   sessionIntent: 0.16,
   completionLikelihood: 0.18,
   franchiseContinuation: 0.24,
+  novelty: 0.08,
+  hiddenGem: 0.11,
+  popularityBias: 0.07,
   episodeLength: 0.07,
   mood: {
     personalized: 0.18,
@@ -74,6 +77,9 @@ export type RecommendationScoreSignals = {
   sessionIntent: number;
   completionLikelihood: number;
   franchiseContinuation: number;
+  novelty: number;
+  hiddenGem: number;
+  popularityBias: number;
   episodeLength: number;
   mood: number;
   communityQuality: number;
@@ -100,6 +106,9 @@ export type RecommendationScoreComponents = {
   sessionIntent: number;
   completionLikelihood: number;
   franchiseContinuation: number;
+  novelty: number;
+  hiddenGem: number;
+  popularityBias: number;
   episodeLength: number;
   mood: number;
   communityQuality: number;
@@ -164,6 +173,9 @@ export function scoreRecommendation(
       finite(signals.completionLikelihood) * weights.completionLikelihood,
     franchiseContinuation:
       finite(signals.franchiseContinuation) * weights.franchiseContinuation,
+    novelty: finite(signals.novelty) * weights.novelty,
+    hiddenGem: finite(signals.hiddenGem) * weights.hiddenGem,
+    popularityBias: -finite(signals.popularityBias) * weights.popularityBias,
     episodeLength:
       finite(signals.episodeLength) *
       (context.hasTasteConfidence ? weights.episodeLength : 0),
