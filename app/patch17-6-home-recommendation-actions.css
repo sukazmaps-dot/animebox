@@ -381,7 +381,7 @@ html[data-animebox-theme='light'] .home-page .smart-card__feedback-dialog-close 
 
 @media (max-width: 560px) {
   .home-page .smart-card__feedback-dialog {
-    width: min(100% - 16px, 430px);
+    width: min(calc(100% - 16px), 430px);
     max-height: 82dvh;
     border-radius: 16px;
   }
