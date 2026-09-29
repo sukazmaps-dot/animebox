@@ -585,7 +585,7 @@ Do not infer a long-term dislike from a temporary `not_now` action.
 
 # 12. Phase I — Explainability 2.0
 
-Status: **implemented / CI validation**
+Status: **implemented / CI green**
 
 Goal:
 make every visible recommendation reason a deterministic explanation of the
