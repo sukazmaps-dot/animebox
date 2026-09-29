@@ -65,11 +65,15 @@ if (
 for (const needle of [
   "RECOMMENDATION_DIVERSITY_VERSION = '22.6-diversity-v3'",
   'recommendationDiversityShareTargets',
+  'studioRepeatPenalty',
   'formatRepeatPenalty',
-  'yearBucketRepeatPenalty',
+  'eraRepeatPenalty',
+  'sourceRepeatPenalty',
+  'popularityRepeatPenalty',
+  'relevanceFloor(',
 ]) {
   if (!diversity.includes(needle)) {
-    failures.push(`Diversity v2 missing: ${needle}`);
+    failures.push(`Diversity v3 missing: ${needle}`);
   }
 }
 
