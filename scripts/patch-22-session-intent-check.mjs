@@ -8,6 +8,7 @@ const failures = [];
 const intent = read('lib/recommendation-session-intent.ts');
 const ranking = read('lib/recommendation-ranking-config.ts');
 const recommendations = read('lib/recommendations.ts');
+const explainability = read('lib/recommendation-explainability.ts');
 const personalization = read('lib/personalization.ts');
 const card = read('components/SmartRecommendationCard.tsx');
 
@@ -21,7 +22,7 @@ for (const [label, source, needle] of [
   ['ranking signal', ranking, 'finite(signals.sessionIntent) * weights.sessionIntent'],
   ['single session model build', recommendations, 'const sessionIntent = buildRecommendationSessionIntent(history)'],
   ['candidate session lookup', recommendations, 'recommendationSessionIntentAffinity('],
-  ['explainable session reason', recommendations, 'Похоже на то, что ты смотришь сейчас'],
+  ['explainable session reason', explainability, 'Похоже на то, что ты смотришь сейчас'],
   ['session telemetry score', personalization, 'session_intent_score: event.sessionIntentScore ?? null'],
   ['session telemetry confidence', personalization, 'session_intent_confidence: event.sessionIntentConfidence ?? null'],
   ['card session attribution', card, 'sessionIntentConfidence,'],
