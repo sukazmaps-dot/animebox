@@ -252,6 +252,12 @@ function recommendationStartedEvent(options: TrackOptions): ClientEvent | null {
       explanationComponents?: string[] | null;
       explanationContribution?: number | null;
       explanationContributionShare?: number | null;
+      diversityVersion?: string | null;
+      diversityOriginalRank?: number | null;
+      diversityRerankedRank?: number | null;
+      diversityPenalty?: number | null;
+      diversityBoost?: number | null;
+      diversityRelaxed?: boolean | null;
     };
     const openedAt = Number(parsed.openedAt ?? 0);
     if (!openedAt || Date.now() - openedAt > RECOMMENDATION_ATTRIBUTION_TTL_MS) {
@@ -291,6 +297,12 @@ function recommendationStartedEvent(options: TrackOptions): ClientEvent | null {
           parsed.explanationContribution ?? null,
         explanation_contribution_share:
           parsed.explanationContributionShare ?? null,
+        diversity_version: parsed.diversityVersion ?? null,
+        diversity_original_rank: parsed.diversityOriginalRank ?? null,
+        diversity_reranked_rank: parsed.diversityRerankedRank ?? null,
+        diversity_penalty: parsed.diversityPenalty ?? null,
+        diversity_boost: parsed.diversityBoost ?? null,
+        diversity_relaxed: parsed.diversityRelaxed ?? null,
         player_source: options.source ?? null,
       },
     };
@@ -325,6 +337,12 @@ type RecommendationAttributionState = {
   explanationComponents?: string[] | null;
   explanationContribution?: number | null;
   explanationContributionShare?: number | null;
+  diversityVersion?: string | null;
+  diversityOriginalRank?: number | null;
+  diversityRerankedRank?: number | null;
+  diversityPenalty?: number | null;
+  diversityBoost?: number | null;
+  diversityRelaxed?: boolean | null;
 };
 
 export function trackRecommendationWatchProgress(input: {
@@ -402,6 +420,12 @@ export function trackRecommendationWatchProgress(input: {
           parsed.explanationContribution ?? null,
         explanation_contribution_share:
           parsed.explanationContributionShare ?? null,
+        diversity_version: parsed.diversityVersion ?? null,
+        diversity_original_rank: parsed.diversityOriginalRank ?? null,
+        diversity_reranked_rank: parsed.diversityRerankedRank ?? null,
+        diversity_penalty: parsed.diversityPenalty ?? null,
+        diversity_boost: parsed.diversityBoost ?? null,
+        diversity_relaxed: parsed.diversityRelaxed ?? null,
       },
     } as const;
 
