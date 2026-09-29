@@ -53,7 +53,7 @@ export type RecommendationAnalyticsDashboard = {
     effectiveHours: number;
   };
   dataQuality: {
-    orphanRecommendationEvents: number;
+    orphanRecommendationExposures: number;
     startedWithoutClick: number;
     watch15WithoutStarted: number;
     watch30Without15m: number;
