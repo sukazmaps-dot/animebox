@@ -228,7 +228,10 @@ if (
   failures.push('17.8.5 diversity/exploration policy is incomplete');
 }
 if (
-  !recommendations.includes('diversifyRecommendations(scored') ||
+  !(
+    recommendations.includes('diversifyRecommendations(scored') ||
+    recommendations.includes('diversifyRecommendations(franchiseSafe')
+  ) ||
   !recommendations.includes('explorationRate: tasteGraph?.explorationRate')
 ) {
   failures.push('ranked recommendations bypass the 17.8.5 diversity policy');
