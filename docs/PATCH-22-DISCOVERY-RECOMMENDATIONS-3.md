@@ -585,17 +585,144 @@ Do not infer a long-term dislike from a temporary `not_now` action.
 
 # 12. Phase I — Explainability 2.0
 
-Reason generation uses scored evidence.
+Status: **implemented / CI validation**
 
-Examples:
-- "Потому что тебе понравился …"
-- "Ты часто досматриваешь психологические триллеры"
-- "Похожая длина — около 12 серий"
-- "Продолжение тайтла, который ты завершил"
-- "За пределами привычного: другой жанр с твоим любимым темпом"
-- "Скрытая находка: высокий матч, но менее популярный тайтл"
+Goal:
+make every visible recommendation reason a deterministic explanation of the
+actual weighted ranking evidence. Copy must never claim a preference that did
+not contribute positively to this candidate.
 
-Reason must correspond to the actual ranking component.
+Versions:
+- recommendation model / algorithm: `22.5-v1`;
+- ranking contract: `22.5-v1`;
+- explainability contract: `22.5-explain-v1`.
+
+Architecture:
+`scoreRecommendation()`
+→ weighted `RecommendationScoreComponents`
+→ semantic candidate context
+→ `buildRecommendationExplanations()`
+→ bounded top-3 explanations
+→ primary reason + source attribution
+→ impression/click/watch telemetry.
+
+Truthfulness contract:
+- a user-facing reason can only be emitted when its supporting weighted
+  component is positive and above a reason-specific minimum;
+- negative components are never converted into positive copy;
+- freshness alone cannot produce a seasonal reason;
+- a preferred episode count cannot produce a length reason when the
+  `episodeLength` rank component contributed zero;
+- franchise copy requires a positive `franchiseContinuation` component;
+- hidden-gem copy requires both hidden-gem qualification and a positive
+  `hiddenGem` component;
+- direct-engagement copy requires a positive `engagementPositive` component;
+- generic discovery is the final fallback instead of inventing a personal
+  explanation.
+
+Evidence objects:
+- `key`: stable semantic reason id;
+- `text`: bounded user-facing copy;
+- `components`: exact weighted rank components supporting the copy;
+- `contribution`: summed positive weighted contribution;
+- `contributionShare`: share of all positive weighted evidence;
+- no raw private viewing history is sent to analytics.
+
+Primary selection:
+- candidate explanations are sorted by actual positive weighted contribution;
+- tie priority only resolves equal/near-equal semantic evidence;
+- at most three reasons are retained;
+- the first reason becomes the visible card reason;
+- source attribution derives from the selected primary explanation.
+
+Supported explanation families:
+- explicit liked-title reference;
+- franchise continuation;
+- genres the user tends to complete;
+- general taste genres;
+- selected mood;
+- current-session intent;
+- preferred studio;
+- preferred format;
+- preferred era;
+- episode-count fit;
+- completion pattern;
+- binge/short-title pace;
+- taste-gated current-season freshness;
+- hidden gem;
+- exploration bridge;
+- previous direct engagement;
+- community quality;
+- short finished discovery;
+- ongoing discovery;
+- generic exploration fallback.
+
+Specific-title evidence:
+- `Похоже на «X», который тебе понравился` is allowed only when AnimeBox has
+  a local explicit-like/favorite reference title sharing candidate genres;
+- ordinary watch history alone is not described as "liked";
+- if no explicit title reference exists, the engine falls back to genre,
+  completion or other measurable evidence.
+
+Completion language:
+- AnimeBox does not expose `completionScore` as a literal probability;
+- copy describes observed completion behaviour instead;
+- phrases such as "you will finish this" are prohibited until outcome
+  calibration exists.
+
+Exploration language:
+- an `explore` candidate can explain the familiar bridge that kept it
+  relevant;
+- if episode-length fit actually contributed, copy can mention familiar length;
+- otherwise taste evidence may be mentioned only when the taste component was
+  positive;
+- fully unsupported novelty falls back to an explicit "experiment" reason.
+
+UI contract:
+- `reason` remains the compact visible single-line reason;
+- `reasons` remains a backwards-compatible string list;
+- `explanations` adds structured scored evidence;
+- cards expose stable explanation key/version data attributes for debugging;
+- match-score tooltip continues to surface the bounded reason list;
+- no extra per-card network request is introduced.
+
+Telemetry:
+- impression, dwell, click, feedback and watch attribution carry:
+  `explanation_version`,
+  `explanation_key`,
+  `explanation_components`,
+  `explanation_contribution`,
+  `explanation_contribution_share`;
+- the explanation context is preserved from card open through player start,
+  15m, 30m and completion events;
+- Phase K can therefore measure conversion by actual reason family without
+  reconstructing copy strings.
+
+Performance:
+- explainability is a pure in-memory pass over already computed rank signals;
+- no provider request;
+- no Supabase request;
+- no per-card async work;
+- maximum three explanation objects per ranked candidate;
+- existing rail virtualization and candidate caching remain unchanged.
+
+Regression coverage:
+- no legacy `chooseReason()` path;
+- no ad-hoc `reasons.push()` path;
+- no reason from zero/negative component contribution;
+- franchise anti-hallucination;
+- liked-title anti-hallucination;
+- seasonal anti-hallucination;
+- length anti-hallucination;
+- hidden-gem grounding;
+- exploration bridge grounding;
+- bounded top-3 output;
+- positive contribution ordering;
+- contribution-share bounds;
+- source attribution;
+- card → player telemetry continuity.
+
+Reason text must remain evidence-backed even if future UI copy changes.
 
 ---
 
