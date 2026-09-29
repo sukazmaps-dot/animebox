@@ -75,11 +75,19 @@
 }
 
 .profile-widgets-editor--embedded .profile-widgets-editor__actions {
-  position: static !important;
-  bottom: auto !important;
-  margin: 18px 0 0 !important;
-  padding: 14px 0 0 !important;
-  background: transparent !important;
+  position: sticky !important;
+  z-index: 12;
+  bottom: max(12px, env(safe-area-inset-bottom)) !important;
+  margin: 18px 0 4px !important;
+  padding: 10px !important;
+  border: 1px solid rgba(151, 128, 235, .14);
+  border-radius: 14px;
+  background: rgba(8, 11, 22, .94) !important;
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, .26),
+    0 0 0 1px rgba(255, 255, 255, .015) inset;
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
 }
 
 .profile-widgets-editor--embedded .profile-widgets-editor__actions .is-primary {
@@ -89,6 +97,27 @@
 
 .profile-editor-v13[data-editor-tab='showcase'] .profile-editor-v13__header-actions > button {
   display: none;
+}
+
+/*
+ * Patch 21.2.1 — Showcase save controls containment.
+ * The showcase owns its own save action, so the global profile savebar must
+ * never overlap or visually compete with "Сохранить витрину".
+ */
+.profile-editor-v13[data-editor-tab='showcase'] .profile-editor-v18__savebar {
+  display: none !important;
+}
+
+.profile-editor-v13[data-editor-tab='showcase'] .profile-editor-v13__showcase-tab {
+  padding-bottom: 24px;
+}
+
+html[data-animebox-theme='light'] .profile-widgets-editor--embedded .profile-widgets-editor__actions {
+  border-color: rgba(60, 52, 70, .09);
+  background: rgba(250, 248, 244, .95) !important;
+  box-shadow:
+    0 16px 34px rgba(47, 39, 55, .10),
+    0 0 0 1px rgba(255, 255, 255, .55) inset;
 }
 
 @media (max-width: 768px) {
@@ -112,6 +141,12 @@
   .profile-widgets-editor--embedded .profile-widgets-editor__actions .is-primary {
     width: 100%;
     min-width: 0;
+  }
+
+  .profile-widgets-editor--embedded .profile-widgets-editor__actions {
+    bottom: max(8px, env(safe-area-inset-bottom)) !important;
+    margin-bottom: 2px !important;
+    padding: 8px !important;
   }
 
   .profile-editor-v13[data-editor-tab='showcase'] .profile-editor-v13__mobile-save {

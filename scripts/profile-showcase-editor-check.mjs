@@ -45,6 +45,11 @@ for (const [label, source, needle] of [
   ['showcase GET endpoint', widgetsRoute, 'export async function GET()'],
   ['embedded editor contract', editor, 'embedded?: boolean'],
   ['embedded editor CSS', studioCss, '.profile-widgets-editor--embedded'],
+  ['showcase global savebar hidden', studioCss, ".profile-editor-v13[data-editor-tab='showcase'] .profile-editor-v18__savebar"],
+  ['embedded showcase actions sticky', studioCss, 'position: sticky !important'],
+  ['embedded showcase safe-area footer', studioCss, 'bottom: max(12px, env(safe-area-inset-bottom)) !important'],
+  ['showcase desktop footer spacing', studioCss, 'padding-bottom: 24px'],
+  ['embedded showcase light theme footer', studioCss, "html[data-animebox-theme='light'] .profile-widgets-editor--embedded .profile-widgets-editor__actions"],
   ['gate direct brand asset', gate, 'src="/brand/brand-mark.webp"'],
   ['gate inline SVG fallback', gate, 'telegram-subscription-gate__logo-fallback'],
 ]) {
@@ -78,6 +83,14 @@ if (!perf.includes('.profile-widgets-shell')) {
 
 if (editor.includes('{open && (\n        <div')) {
   failures.push('ProfileWidgetEditor: editor overlay is rendered inline instead of through the document-body portal.');
+}
+
+if (studioCss.includes('.profile-widgets-editor--embedded .profile-widgets-editor__actions {\n  position: static !important;')) {
+  failures.push('Embedded showcase save action regressed to static positioning and can fall behind the global savebar.');
+}
+
+if (!studioCss.includes(".profile-editor-v13[data-editor-tab='showcase'] .profile-editor-v18__savebar {\n  display: none !important;")) {
+  failures.push('Showcase tab must own exactly one visible save surface.');
 }
 
 if (failures.length) {
