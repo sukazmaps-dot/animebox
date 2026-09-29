@@ -331,7 +331,7 @@ penalties because it is a different user intent than discovery.
 
 # 9. Phase F — Controlled Exploration / Hidden Gems
 
-Status: **implemented / CI validation**
+Status: **implemented / CI green**
 
 Dynamic slot mix based on taste confidence.
 
