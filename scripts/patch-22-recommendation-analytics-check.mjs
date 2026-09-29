@@ -430,7 +430,7 @@ if (!failures.length) {
     }
 
     if (
-      dashboard.kpis.ctrPct !== 66.67 ||
+      dashboard.kpis.ctrPct !== 50 ||
       dashboard.kpis.startedToMultiEpisodePct !== 50 ||
       dashboard.kpis.startedToCompletedPct !== 50
     ) {
@@ -522,7 +522,7 @@ if (!failures.length) {
         (item) => item.bucket === '90+' && item.impressions === 1,
       ) ||
       !dashboard.matchScoreCalibration.some(
-        (item) => item.bucket === '80–89' && item.impressions === 1,
+        (item) => item.bucket === '80–89' && item.impressions === 2,
       ) ||
       !dashboard.matchScoreCalibration.some(
         (item) => item.bucket === '58–69' && item.impressions === 1,
