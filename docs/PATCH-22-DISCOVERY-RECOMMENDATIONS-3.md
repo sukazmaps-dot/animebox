@@ -398,7 +398,7 @@ Popularity must not dominate recommendation quality.
 
 # 10. Phase G — Fresh / Seasonal discovery
 
-Status: **implemented / CI validation**
+Status: **implemented / CI green**
 
 Goal:
 surface strong current-season titles without turning freshness into a global
