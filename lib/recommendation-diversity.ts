@@ -7,7 +7,7 @@ import {
 export const RECOMMENDATION_DIVERSITY_VERSION = '18.3-diversity-v2';
 
 export const RECOMMENDATION_DIVERSITY_POLICY = {
-  minExplorationRate: 0.08,
+  minExplorationRate: 0.05,
   maxExplorationRate: 0.2,
   defaultExplorationRate: 0.14,
   candidateWindowMultiplier: 5,
