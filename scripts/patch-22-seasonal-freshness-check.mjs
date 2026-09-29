@@ -8,6 +8,7 @@ const failures = [];
 const seasonality = read('lib/recommendation-seasonality.ts');
 const ranking = read('lib/recommendation-ranking-config.ts');
 const recommendations = read('lib/recommendations.ts');
+const explainability = read('lib/recommendation-explainability.ts');
 const rails = read('lib/recommendation-rails.ts');
 const route = read('app/api/recommendations/route.ts');
 const types = read('types/recommendations.ts');
@@ -24,7 +25,7 @@ for (const [label, source, needle] of [
   ['fatigue seasonal dampening', seasonality, 'fatigueMultiplier'],
   ['seasonal ranking weight', ranking, 'seasonalFreshness: 0.12'],
   ['seasonal rank signal', recommendations, 'seasonalFreshness: seasonality.seasonalScore'],
-  ['seasonal reason evidence', recommendations, "Из текущего сезона — совпадает с твоим вкусом"],
+  ['seasonal reason evidence', explainability, "Из текущего сезона — и совпадает с твоим вкусом"],
   ['seasonal rail id', rails, "'seasonal'"],
   ['seasonal rail title', rails, "title: 'Из этого сезона для тебя'"],
   ['seasonal rail threshold', rails, "item.seasonalScore >= 0.24"],
