@@ -55,7 +55,7 @@ for (const [label, source, needle] of [
   ['match calibration UI', ui, 'Match Score vs реальные outcomes'],
   ['completion calibration UI', ui, 'Completion Score calibration'],
   ['diversity analytics UI', ui, 'Цена и польза reranking'],
-  ['phase K docs', docs, '# 14. Phase K — Recommendation analytics 3.0'],
+  ['phase K docs', docs, '# 14. Phase K — Recommendation Analytics 3.0'],
 ]) {
   if (!source.includes(needle)) {
     failures.push(`${label}: missing ${needle}`);
