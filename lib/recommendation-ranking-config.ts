@@ -1,4 +1,4 @@
-export const RECOMMENDATION_RANKING_VERSION = '22.3-v1';
+export const RECOMMENDATION_RANKING_VERSION = '22.4-v1';
 
 export const RECOMMENDATION_RANKING_WEIGHTS = {
   genre: {
@@ -22,6 +22,7 @@ export const RECOMMENDATION_RANKING_WEIGHTS = {
   popularityBias: 0.07,
   seasonalFreshness: 0.12,
   episodeLength: 0.07,
+  episodeLengthNegative: 0.18,
   mood: {
     personalized: 0.18,
     coldStart: 0.38,
@@ -57,6 +58,7 @@ export const RECOMMENDATION_MATCH_WEIGHTS = {
   statusAffinity: 0.04,
   mood: 0.16,
   episodeLength: 0.08,
+  episodeLengthNegative: 0.12,
   communityQuality: 0.12,
   shortFinished: 0.7,
   tasteGraphNegative: 0.24,
@@ -83,6 +85,7 @@ export type RecommendationScoreSignals = {
   popularityBias: number;
   seasonalFreshness: number;
   episodeLength: number;
+  episodeLengthNegative: number;
   mood: number;
   communityQuality: number;
   shortFinished: number;
@@ -113,6 +116,7 @@ export type RecommendationScoreComponents = {
   popularityBias: number;
   seasonalFreshness: number;
   episodeLength: number;
+  episodeLengthNegative: number;
   mood: number;
   communityQuality: number;
   shortFinished: number;
@@ -184,6 +188,9 @@ export function scoreRecommendation(
     episodeLength:
       finite(signals.episodeLength) *
       (context.hasTasteConfidence ? weights.episodeLength : 0),
+    episodeLengthNegative:
+      -finite(signals.episodeLengthNegative) *
+      (context.hasTasteConfidence ? weights.episodeLengthNegative : 0),
     mood:
       finite(signals.mood) *
       (context.moodActive
@@ -233,6 +240,7 @@ export function recommendationMatchBasis(
     | 'metadataNegativeAffinity'
     | 'sessionNegativeAffinity'
     | 'episodeLength'
+    | 'episodeLengthNegative'
     | 'mood'
     | 'communityQuality'
     | 'shortFinished'
@@ -249,7 +257,8 @@ export function recommendationMatchBasis(
       finite(signals.eraAffinity) * weights.eraAffinity +
       finite(signals.statusAffinity) * weights.statusAffinity +
       finite(signals.mood) * weights.mood +
-      finite(signals.episodeLength) * weights.episodeLength +
+      finite(signals.episodeLength) * weights.episodeLength -
+      finite(signals.episodeLengthNegative) * weights.episodeLengthNegative +
       finite(signals.communityQuality) * weights.communityQuality +
       finite(signals.shortFinished) * weights.shortFinished -
       finite(signals.tasteGraphNegative) * weights.tasteGraphNegative -
