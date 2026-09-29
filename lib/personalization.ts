@@ -5,6 +5,10 @@ import {
   RECOMMENDATION_FEEDBACK_POLICY_VERSION,
   type RecommendationFeedbackSignal,
 } from '@/lib/recommendation-feedback-policy';
+import type {
+  RecommendationExplanationComponent,
+  RecommendationExplanationKey,
+} from '@/lib/recommendation-explainability';
 
 export const TASTE_PROFILE_STORAGE_KEY = 'animebox_taste_profile_v1';
 export const RECOMMENDATION_EVENTS_STORAGE_KEY = 'animebox_recommendation_events_v1';
@@ -72,6 +76,11 @@ export type RecommendationEvent = {
   season?: 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL';
   seasonYear?: number;
   feedbackSignal?: RecommendationFeedbackSignal;
+  explanationVersion?: string;
+  explanationKey?: RecommendationExplanationKey;
+  explanationComponents?: RecommendationExplanationComponent[];
+  explanationContribution?: number;
+  explanationContributionShare?: number;
   createdAt: number;
 };
 
@@ -406,6 +415,12 @@ export function trackRecommendationEvent(
           source: event.source,
           matchScore: event.matchScore ?? null,
           reason: event.reason ?? null,
+          explanationVersion: event.explanationVersion ?? null,
+          explanationKey: event.explanationKey ?? null,
+          explanationComponents: event.explanationComponents ?? null,
+          explanationContribution: event.explanationContribution ?? null,
+          explanationContributionShare:
+            event.explanationContributionShare ?? null,
           franchiseContinuation: event.franchiseContinuation ?? null,
           franchiseSeasonNumber: event.franchiseSeasonNumber ?? null,
           explorationClass: event.explorationClass ?? null,
@@ -469,6 +484,14 @@ export function trackRecommendationEvent(
         dwell_ms: event.dwellMs ?? null,
         match_score: event.matchScore ?? null,
         reason: event.reason?.slice(0, 180) ?? null,
+        explanation_version: event.explanationVersion ?? null,
+        explanation_key: event.explanationKey ?? null,
+        explanation_components:
+          event.explanationComponents?.slice(0, 4) ?? null,
+        explanation_contribution:
+          event.explanationContribution ?? null,
+        explanation_contribution_share:
+          event.explanationContributionShare ?? null,
         fatigue_score: event.fatigueScore ?? null,
         exposure_count_7d: event.exposureCount7d ?? null,
         exposure_count_30d: event.exposureCount30d ?? null,
