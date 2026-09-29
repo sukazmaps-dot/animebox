@@ -54,12 +54,19 @@ import {
   recommendationFeedbackPolicy,
   type RecommendationFeedbackSignal,
 } from '@/lib/recommendation-feedback-policy';
+import {
+  buildRecommendationExplanations,
+  type RecommendationExplanation,
+  type RecommendationExplanationSource,
+} from '@/lib/recommendation-explainability';
 
 export type RankedRecommendation = {
   anime: Anime;
   score: number;
   reason: string;
   reasons: string[];
+  explanations: RecommendationExplanation[];
+  explanationVersion: string;
   matchScore: number | null;
   fatigueScore: number;
   exposureCount7d: number;
@@ -81,7 +88,7 @@ export type RankedRecommendation = {
   seasonRelation: RecommendationSeasonRelation;
   season: 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL' | null;
   seasonYear: number | null;
-  source: 'watch_history' | 'taste_mood' | 'engagement' | 'taste_graph' | 'franchise' | 'discovery';
+  source: RecommendationExplanationSource;
   ranking: RecommendationScoreResult;
 };
 
@@ -135,6 +142,38 @@ function getAnimeTitle(anime: Anime): string {
 
 function normalizeGenre(value: string): string {
   return value.trim().toLowerCase();
+}
+
+
+function findLikedReferenceTitle(
+  anime: Anime,
+  references: Anime[],
+): string | null {
+  const candidateGenres = new Set(
+    (anime.genres ?? []).map(normalizeGenre).filter(Boolean),
+  );
+  if (!candidateGenres.size) return null;
+
+  let best: { title: string; overlap: number } | null = null;
+
+  for (const reference of references) {
+    if (reference.id === anime.id) continue;
+
+    const overlap = (reference.genres ?? [])
+      .map(normalizeGenre)
+      .filter((genre) => candidateGenres.has(genre)).length;
+
+    if (overlap <= 0) continue;
+
+    const title = getAnimeTitle(reference);
+    if (!title || title === 'Без названия') continue;
+
+    if (!best || overlap > best.overlap) {
+      best = { title, overlap };
+    }
+  }
+
+  return best?.title ?? null;
 }
 
 function sessionNegativeGenreAffinity(
@@ -201,57 +240,6 @@ function moodAffinity(anime: Anime, mood: TasteMood): number {
 
   if (matches <= 0) return 0;
   return Math.min(1, 0.56 + matches * 0.22);
-}
-
-function chooseReason(input: {
-  anime: Anime;
-  mood: TasteMood;
-  moodScore: number;
-  matchingGenres: string[];
-  engagementScore: number;
-}): Pick<RankedRecommendation, 'reason' | 'source'> {
-  const { anime, mood, moodScore, matchingGenres, engagementScore } = input;
-
-  if (mood !== 'any' && moodScore > 0) {
-    return {
-      reason: `Подходит под настроение «${MOOD_CONFIG[mood].label}»`,
-      source: 'taste_mood',
-    };
-  }
-
-  if (matchingGenres.length > 0) {
-    return {
-      reason: `В твоём вкусе: ${matchingGenres.slice(0, 2).join(' · ')}`,
-      source: 'watch_history',
-    };
-  }
-
-  if (engagementScore >= 0.055) {
-    return {
-      reason: 'Ты уже присматривался к этому тайтлу',
-      source: 'engagement',
-    };
-  }
-
-  if (isFinished(anime) && anime.episodes && anime.episodes <= 13) {
-    return {
-      reason: 'Короткий завершённый тайтл',
-      source: 'discovery',
-    };
-  }
-
-  const status = anime.status?.trim().toLowerCase();
-  if (['releasing', 'ongoing', 'онгоинг'].includes(status ?? '')) {
-    return {
-      reason: 'Можно смотреть по мере выхода',
-      source: 'discovery',
-    };
-  }
-
-  return {
-    reason: 'Популярный вариант для исследования вкуса',
-    source: 'discovery',
-  };
 }
 
 function buildDirectEngagementScores(
@@ -358,6 +346,11 @@ export function getPersonalizedRecommendations(
   const watchedIds = new Set(history.map((item) => item.id));
   const savedIds = new Set(saved.map((item) => item.id));
   const favoriteIds = new Set(favorites.map((item) => item.id));
+  const likedReferencePool = uniqueById([
+    ...favorites,
+    ...history.filter((item) => likedIds.has(item.id)),
+    ...saved.filter((item) => likedIds.has(item.id)),
+  ]);
   const serverExcludedIds = new Set(tasteGraph?.excludedAnimeIds ?? []);
   const hasHistory =
     history.length > 0 ||
@@ -615,98 +608,46 @@ export function getPersonalizedRecommendations(
       );
       const score = ranking.total;
 
-      const primary = chooseReason({
-        anime,
-        mood,
-        moodScore,
-        matchingGenres: matchingGenres.map(({ raw }) => raw),
-        engagementScore,
-      });
-
-      const reasons: string[] = [];
-      if (franchise.continuation) {
-        reasons.push('Продолжение тайтла, который ты уже смотрел');
-      }
-      if (
-        seasonality.relation === 'current' &&
-        seasonality.seasonalScore >= 0.24 &&
-        reasons.length < 2
-      ) {
-        reasons.push('Из текущего сезона — совпадает с твоим вкусом');
-      }
-      if (exploration.hiddenGemScore >= 0.62 && reasons.length < 2) {
-        reasons.push('Скрытая находка: высокий матч, но менее популярный тайтл');
-      }
-      if (
-        exploration.className === 'explore' &&
-        exploration.hiddenGemScore < 0.62 &&
-        reasons.length < 2
-      ) {
-        reasons.push('За пределами привычного: новый вектор с приемлемым совпадением');
-      }
-      if (completedAffinity.matches.length > 0 && reasons.length < 2) {
-        reasons.push(
-          `Похоже на то, что ты досматриваешь: ${completedAffinity.matches
-            .slice(0, 2)
-            .join(' · ')}`,
-        );
-      }
       const graphMatches = graphAffinity.matches;
       const localMatches = matchingGenres.map(({ raw }) => raw);
-      const tasteMatches = [...new Set([...graphMatches, ...localMatches])].slice(0, 2);
-      if (tasteMatches.length) reasons.push(`Совпадает со вкусом: ${tasteMatches.join(' · ')}`);
-      if (mood !== 'any' && moodScore > 0) reasons.push(`Под настроение «${MOOD_CONFIG[mood].label}»`);
-      if (
-        combinedStudioAffinity >= 0.45 &&
-        candidateStudios.length &&
-        reasons.length < 2
-      ) {
-        reasons.push(`Студия в твоём вкусе: ${candidateStudios[0]}`);
-      }
-      if (
-        formatAffinity.positive >= 0.62 &&
-        anime.format &&
-        reasons.length < 2
-      ) {
-        reasons.push(`Ты часто выбираешь формат ${anime.format}`);
-      }
-      if (
-        eraAffinity.positive >= 0.62 &&
-        eraAffinity.bucket &&
-        reasons.length < 2
-      ) {
-        reasons.push(`Тебе часто заходят аниме ${eraAffinity.bucket}`);
-      }
-      if (lengthAffinity >= 0.72 && tasteGraph?.preferredEpisodeCount) {
-        reasons.push(`Похожая длина: около ${tasteGraph.preferredEpisodeCount} серий`);
-      }
-      if (
-        isFinished(anime) &&
-        anime.episodes &&
-        anime.episodes <= 24 &&
-        completionRate >= 0.65 &&
-        reasons.length < 2
-      ) {
-        reasons.push('Ты часто досматриваешь завершённые тайтлы');
-      }
-      if (
-        anime.episodes &&
-        anime.episodes <= 13 &&
-        bingeScore >= 0.45 &&
-        reasons.length < 2
-      ) {
-        reasons.push('Подходит под твой темп просмотра');
-      }
-      if (engagementScore >= 0.055) reasons.push('Ты уже обращал внимание на этот тайтл');
-      if (
-        sessionIntentScore >= 0.55 &&
-        sessionIntent.confidence >= 0.28 &&
-        reasons.length < 2
-      ) {
-        reasons.push('Похоже на то, что ты смотришь сейчас');
-      }
-      if (ratingScore >= 0.82 && reasons.length < 2) reasons.push('Высокая оценка сообщества');
-      if (!reasons.length) reasons.push(primary.reason);
+      const tasteMatches = [...new Set([
+        ...graphMatches,
+        ...localMatches,
+      ])].slice(0, 2);
+      const likedReferenceTitle = findLikedReferenceTitle(
+        anime,
+        likedReferencePool,
+      );
+
+      const explainability = buildRecommendationExplanations({
+        ranking,
+        tasteMatches,
+        completedMatches: completedAffinity.matches,
+        likedReferenceTitle,
+        moodLabel:
+          mood !== 'any' && moodScore > 0
+            ? MOOD_CONFIG[mood].label
+            : null,
+        studio: candidateStudios[0] ?? null,
+        format: anime.format ?? anime.kind ?? null,
+        eraBucket: eraAffinity.bucket,
+        preferredEpisodeCount:
+          tasteGraph?.preferredEpisodeCount ?? null,
+        completionRate,
+        bingeScore,
+        finished: isFinished(anime),
+        episodeCount: anime.episodes ?? null,
+        sessionIntentScore,
+        sessionIntentConfidence: sessionIntent.confidence,
+        franchiseContinuation: franchise.continuation,
+        explorationClass: exploration.className,
+        hiddenGemScore: exploration.hiddenGemScore,
+        popularityBand: exploration.popularityBand,
+        seasonRelation: seasonality.relation,
+        seasonalScore: seasonality.seasonalScore,
+        engagementScore,
+        communityQuality: ratingScore,
+      });
 
       const evidence = Math.max(
         history.length >= 2 ? 0.35 : 0,
@@ -733,17 +674,15 @@ export function getPersonalizedRecommendations(
         ? Math.max(58, Math.min(97, Math.round(58 + matchBasis * 39)))
         : null;
 
-      const source = franchise.continuation
-        ? 'franchise'
-        : graphAffinity.positive >= Math.max(0.3, genreScore)
-          ? 'taste_graph'
-          : primary.source;
+      const source = explainability.source;
 
       return {
         anime,
         score,
-        reason: reasons[0] ?? primary.reason,
-        reasons: reasons.slice(0, 3),
+        reason: explainability.primary.text,
+        reasons: explainability.items.map((item) => item.text),
+        explanations: explainability.items,
+        explanationVersion: explainability.version,
         matchScore,
         fatigueScore: exposure.fatigue,
         exposureCount7d: exposure.impressions7d,
