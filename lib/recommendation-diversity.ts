@@ -1,4 +1,8 @@
 import type { RankedRecommendation } from '@/lib/recommendations';
+import {
+  buildRecommendationExplorationPolicy,
+  type RecommendationExplorationClass,
+} from '@/lib/recommendation-exploration';
 
 export const RECOMMENDATION_DIVERSITY_VERSION = '18.3-diversity-v2';
 
@@ -25,6 +29,7 @@ export const RECOMMENDATION_DIVERSITY_POLICY = {
 export type RecommendationDiversityOptions = {
   limit: number;
   explorationRate?: number | null;
+  tasteConfidence?: number | null;
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -114,14 +119,23 @@ function genreOverlap(
   return strongest;
 }
 
-function isExplorationCandidate(item: RankedRecommendation) {
-  if (item.franchiseContinuation) return false;
+function recommendationExplorationClass(
+  item: RankedRecommendation,
+): RecommendationExplorationClass {
+  if (item.franchiseContinuation) return 'safe';
+  if (item.explorationClass) return item.explorationClass;
 
   return (
     item.source === 'discovery' ||
     item.matchScore == null ||
     item.matchScore < RECOMMENDATION_DIVERSITY_POLICY.explorationMatchThreshold
-  );
+  )
+    ? 'explore'
+    : 'safe';
+}
+
+function isExplorationCandidate(item: RankedRecommendation) {
+  return recommendationExplorationClass(item) === 'explore';
 }
 
 export function normalizeRecommendationExplorationRate(value?: number | null) {
@@ -147,11 +161,24 @@ export function diversifyRecommendations(
   const explorationRate = normalizeRecommendationExplorationRate(
     options.explorationRate,
   );
-  const targetExploration = Math.min(
+  const mix = buildRecommendationExplorationPolicy({
+    confidence: options.tasteConfidence,
+    explorationRate,
+  });
+  const targetExplore = Math.min(
     Math.max(0, limit - 1),
-    limit >= 5 ? Math.max(1, Math.round(limit * explorationRate)) : Math.round(limit * explorationRate),
+    limit >= 5 ? Math.max(1, Math.round(limit * mix.exploreShare)) : Math.round(limit * mix.exploreShare),
   );
-  const cadence = Math.max(4, Math.round(1 / explorationRate));
+  const targetAdjacent = Math.min(
+    Math.max(0, limit - targetExplore - 1),
+    Math.round(limit * mix.adjacentShare),
+  );
+  const targetSafe = Math.max(0, limit - targetExplore - targetAdjacent);
+  const classTargets: Record<RecommendationExplorationClass, number> = {
+    safe: targetSafe,
+    adjacent: targetAdjacent,
+    explore: targetExplore,
+  };
   const candidateWindow = items.slice(
     0,
     Math.max(
@@ -167,20 +194,44 @@ export function diversifyRecommendations(
   const sourceCounts = new Map<RankedRecommendation['source'], number>();
   const formatCounts = new Map<string, number>();
   const yearBucketCounts = new Map<string, number>();
-  let explorationCount = 0;
+  const classCounts: Record<RecommendationExplorationClass, number> = {
+    safe: 0,
+    adjacent: 0,
+    explore: 0,
+  };
+
+  const preferredClass = (): RecommendationExplorationClass => {
+    if (selected.length === 0 && classTargets.safe > 0) return 'safe';
+
+    const slot = selected.length + 1;
+    const desired: Record<RecommendationExplorationClass, number> = {
+      safe: Math.round(slot * mix.safeShare),
+      adjacent: Math.round(slot * mix.adjacentShare),
+      explore: Math.round(slot * mix.exploreShare),
+    };
+
+    const classes: RecommendationExplorationClass[] = [
+      'safe',
+      'adjacent',
+      'explore',
+    ];
+
+    return classes
+      .map((className) => ({
+        className,
+        deficit: Math.min(
+          classTargets[className],
+          desired[className],
+        ) - classCounts[className],
+      }))
+      .sort((left, right) =>
+        right.deficit - left.deficit ||
+        classes.indexOf(left.className) - classes.indexOf(right.className),
+      )[0]?.className ?? 'safe';
+  };
 
   const chooseBest = (strictFamily: boolean) => {
-    const slotsLeft = limit - selected.length;
-    const explorationNeeded = Math.max(0, targetExploration - explorationCount);
-    const forceExploration =
-      explorationNeeded > 0 && slotsLeft <= explorationNeeded;
-    const preferExploration =
-      forceExploration ||
-      (
-        explorationNeeded > 0 &&
-        selected.length > 0 &&
-        (selected.length + 1) % cadence === 0
-      );
+    const preferred = preferredClass();
 
     let bestIndex = -1;
     let bestScore = Number.NEGATIVE_INFINITY;
@@ -232,12 +283,15 @@ export function diversifyRecommendations(
       const repeatedFamilyPenalty =
         familyCount * RECOMMENDATION_DIVERSITY_POLICY.familyPenalty;
 
-      const explorationCandidate = isExplorationCandidate(candidate);
-      const explorationAdjustment = preferExploration
-        ? explorationCandidate
+      const candidateClass = recommendationExplorationClass(candidate);
+      const classAtTarget =
+        classCounts[candidateClass] >= classTargets[candidateClass];
+      const explorationAdjustment =
+        candidateClass === preferred
           ? RECOMMENDATION_DIVERSITY_POLICY.explorationBoost
-          : -RECOMMENDATION_DIVERSITY_POLICY.forcedExplorationPenalty
-        : 0;
+          : classAtTarget
+            ? -RECOMMENDATION_DIVERSITY_POLICY.forcedExplorationPenalty * 0.45
+            : 0;
 
       const diversifiedScore =
         candidate.score -
@@ -297,9 +351,8 @@ export function diversifyRecommendations(
       (yearBucketCounts.get(pickedYearBucket) ?? 0) + 1,
     );
 
-    if (isExplorationCandidate(picked)) {
-      explorationCount += 1;
-    }
+    const pickedClass = recommendationExplorationClass(picked);
+    classCounts[pickedClass] += 1;
   }
 
   return selected;
