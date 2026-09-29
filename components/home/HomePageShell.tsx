@@ -9,7 +9,6 @@ import HomeDiscoverySection from '@/components/home/HomeDiscoverySection';
 import HomeCatalogSections from '@/components/home/HomeCatalogSections';
 import HomeScheduleSection from '@/components/home/HomeScheduleSection';
 import {
-  HomePersonalScheduleSection,
   HomeRetentionSections,
 } from '@/components/home/HomePersonalRetentionSections';
 import {
@@ -127,7 +126,6 @@ export default function HomePageShell({
             <div className="main-column">
               <HomeHeroSection />
               <HomeDiscoverySection />
-              <HomePersonalScheduleSection />
 
               <HomeShortcuts />
 

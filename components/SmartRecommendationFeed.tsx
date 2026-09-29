@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  Fragment,
   startTransition,
   useCallback,
   useEffect,
@@ -16,6 +17,8 @@ import { RecommendationCardSkeleton } from '@/components/home/HomeLoadingSkeleto
 import ScrollRow, {
   type ScrollRowVirtualMetrics,
 } from '@/components/ui/ScrollRow';
+import type { ReactNode } from 'react';
+
 import type { TasteMood } from '@/lib/personalization';
 import {
   getPersonalizedRecommendations,
@@ -28,6 +31,7 @@ import {
   recommendationMatchesRail,
   recommendationMatchesRailRelaxed,
   RECOMMENDATION_RAIL_BATCH_SIZE,
+  getHomeScheduleInsertionIndex,
   type RecommendationRail,
   type RecommendationRailId,
   type RecommendationRailLimits,
@@ -312,10 +316,12 @@ export default function SmartRecommendationFeed({
   items,
   mood,
   hasWatchHistory,
+  midFeedSlot = null,
 }: {
   items: RankedRecommendation[];
   mood: TasteMood;
   hasWatchHistory: boolean;
+  midFeedSlot?: ReactNode;
 }) {
   const previousMoodRef = useRef(mood);
   const pendingItemsRef = useRef(items);
@@ -567,6 +573,10 @@ export default function SmartRecommendationFeed({
   }, [railLayout.ownership]);
 
   const rails = railLayout.rails;
+  const midFeedInsertAfterIndex = useMemo(
+    () => (midFeedSlot ? getHomeScheduleInsertionIndex(rails) : -1),
+    [midFeedSlot, rails],
+  );
 
   const fetchNextCandidateBatch = useCallback(async () => {
     if (!hasMoreRef.current || moodTransitionRef.current) return [];
@@ -1083,12 +1093,15 @@ export default function SmartRecommendationFeed({
 
   if (filtered.length === 0 && !hasMore && loadingRails.size === 0) {
     return (
-      <div className="smart-feed__empty">
-        <strong>Подходящих тайтлов в этой подборке пока не осталось</strong>
-        <span>
-          Смени настроение или открой каталог — скрытые рекомендации больше не будут мешать выдаче.
-        </span>
-      </div>
+      <>
+        <div className="smart-feed__empty">
+          <strong>Подходящих тайтлов в этой подборке пока не осталось</strong>
+          <span>
+            Смени настроение или открой каталог — скрытые рекомендации больше не будут мешать выдаче.
+          </span>
+        </div>
+        {midFeedSlot}
+      </>
     );
   }
 
@@ -1103,7 +1116,7 @@ export default function SmartRecommendationFeed({
         aria-busy={isMoodSwapping}
       >
         <div className="smart-feed__rails">
-          {rails.map((rail) => {
+          {rails.map((rail, railIndex) => {
             const railLoading = loadingRails.has(rail.id);
             const railHasMore = hasMore && !exhaustedRails.has(rail.id);
             const railFailed = railErrors.has(rail.id);
@@ -1128,10 +1141,10 @@ export default function SmartRecommendationFeed({
             }
 
             return (
+              <Fragment key={`${rail.id}:${rowVersion}`}>
               <section
                 ref={(node) => registerSparseRailSection(rail.id, node)}
                 className="smart-feed__personal-rail"
-                key={`${rail.id}:${rowVersion}`}
                 data-recommendation-rail-id={rail.id}
                 data-recommendation-rail-items={rail.items.length}
                 data-recommendation-rail-sparse={
@@ -1213,6 +1226,15 @@ export default function SmartRecommendationFeed({
                   </button>
                 )}
               </section>
+              {railIndex === midFeedInsertAfterIndex && midFeedSlot ? (
+                <div
+                  className="smart-feed__interleave"
+                  data-home-composition-slot="personal-schedule"
+                >
+                  {midFeedSlot}
+                </div>
+              ) : null}
+              </Fragment>
             );
           })}
         </div>

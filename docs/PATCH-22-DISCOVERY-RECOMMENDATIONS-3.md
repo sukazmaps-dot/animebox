@@ -1119,20 +1119,44 @@ Analytics must measure **meaningful watch quality**, not optimize only for CTR.
 
 # 15. Phase L — Home composition
 
+Status: **implemented / under CI**
+
+Home composition contract: `22.8-home-v1`.
+
 Target personalized Home order:
 
 Hero
 -> Continue Watching
 -> Top Match / Для тебя
 -> Current-session intent rail
--> Schedule
+-> Explicit mood rail (when selected)
+-> Personal schedule
 -> Story continues
 -> Hidden gems
 -> Outside your usual taste
 -> Seasonal for you
--> Community
+-> Supporting taste / quick-watch rails
+-> Catalog / community / retention surfaces
 
-The exact order may adapt by user state.
+Implemented:
+- Top Match is the first recommendation rail for a personalized viewer;
+- a dedicated `session_intent` rail is backed by the actual bounded
+  `sessionIntentScore` + `sessionIntentConfidence`, not by ad-hoc genre copy;
+- the session rail is omitted when current-session evidence is too weak;
+- explicit mood remains a separate short-lived intent surface;
+- personal schedule is interleaved after the primary recommendation rails;
+- the schedule is rendered inside the existing SmartRecommendationFeed flow
+  without mounting a second recommendation runtime;
+- candidate pagination, recommendation session ID, ownership map, fatigue,
+  diversity reranking and virtualization remain single-source-of-truth;
+- story continuation, hidden gems, exploration and seasonal discovery remain
+  below the primary intent block;
+- sparse/cold-start states retain a deterministic fallback composition;
+- if no personal airing schedule exists, the interleave slot collapses to
+  `null` without leaving an empty spacer.
+
+The exact order still adapts by user state, but high-value resume/recommendation
+surfaces are always ahead of generic catalog/community content.
 
 ---
 

@@ -4,6 +4,7 @@ import type { TasteGraph } from '@/lib/taste-graph';
 
 export type RecommendationRailId =
   | 'mood_lane'
+  | 'session_intent'
   | 'top_match'
   | 'story_continues'
   | 'taste_lane'
@@ -34,6 +35,7 @@ export type RecommendationRailLayout = {
 
 export const DEFAULT_RECOMMENDATION_RAIL_LIMIT = 7;
 export const RECOMMENDATION_RAIL_BATCH_SIZE = 6;
+export const HOME_COMPOSITION_VERSION = '22.8-home-v1';
 
 type RailOrderTaste = Pick<
   TasteGraph,
@@ -60,36 +62,39 @@ export function orderRecommendationRails(
     Number(graph?.preferredEpisodeCount ?? 0) <= 16;
 
   const weight = (rail: RecommendationRail) => {
-    if (rail.id === 'mood_lane') {
-      return options.mood === 'any' ? 45 : 0;
+    if (rail.id === 'top_match') return 0;
+    if (rail.id === 'session_intent') {
+      return options.hasWatchHistory ? 8 : 70;
     }
-    if (rail.id === 'top_match') return 10;
-    if (rail.id === 'story_continues') return options.hasWatchHistory ? 14 : 90;
+    if (rail.id === 'mood_lane') {
+      return options.mood === 'any' ? 60 : 12;
+    }
+    if (rail.id === 'story_continues') return options.hasWatchHistory ? 20 : 90;
     if (rail.id === 'hidden_gems') {
       return options.hasWatchHistory
-        ? explorationRate >= 0.12 ? 25 : 32
-        : 24;
+        ? explorationRate >= 0.12 ? 30 : 36
+        : 30;
     }
-    if (rail.id === 'seasonal') return options.hasWatchHistory ? 18 : 26;
+    if (rail.id === 'seasonal') return options.hasWatchHistory ? 44 : 34;
     if (rail.id === 'endless') return 100;
 
     if (!options.hasWatchHistory) {
-      if (rail.id === 'explore') return 20;
-      if (rail.id === 'quick_watch') return 30;
-      if (rail.id === 'taste_lane') return 40;
+      if (rail.id === 'explore') return 24;
+      if (rail.id === 'quick_watch') return 40;
+      if (rail.id === 'taste_lane') return 46;
       return 50;
     }
 
     if (rail.id === 'taste_lane') {
-      return confidentTaste ? 20 : 36;
+      return confidentTaste ? 48 : 56;
     }
 
     if (rail.id === 'quick_watch') {
-      return shortPreference ? 24 : explorationRate >= 0.15 ? 34 : 28;
+      return shortPreference ? 50 : explorationRate >= 0.15 ? 54 : 52;
     }
 
     if (rail.id === 'explore') {
-      return explorationRate >= 0.15 ? 26 : 38;
+      return explorationRate >= 0.15 ? 34 : 40;
     }
 
     return 50;
@@ -151,6 +156,12 @@ export function recommendationMatchesRail(
   rail: Pick<RecommendationRail, 'id' | 'genre'>,
 ): boolean {
   if (rail.id === 'top_match' || rail.id === 'endless') return true;
+  if (rail.id === 'session_intent') {
+    return (
+      item.sessionIntentConfidence >= 0.16 &&
+      item.sessionIntentScore >= 0.14
+    );
+  }
   if (rail.id === 'story_continues') return item.franchiseContinuation;
   if (rail.id === 'hidden_gems') return item.hiddenGemScore >= 0.58;
   if (rail.id === 'seasonal') {
@@ -182,6 +193,13 @@ export function recommendationMatchesRailRelaxed(
   rail: Pick<RecommendationRail, 'id' | 'genre'>,
 ): boolean {
   if (recommendationMatchesRail(item, rail)) return true;
+
+  if (rail.id === 'session_intent') {
+    return (
+      item.sessionIntentConfidence >= 0.12 &&
+      item.sessionIntentScore >= 0.08
+    );
+  }
 
   if (rail.id === 'hidden_gems') {
     return item.hiddenGemScore >= 0.48;
@@ -318,6 +336,36 @@ export function buildRecommendationRailLayout(
         source: 'smart_feed_mood_lane',
         badge: 'НАСТРОЕНИЕ',
         items: moodLane,
+      });
+    }
+  }
+
+  const sessionIntentCandidates = pool.filter(
+    (item) =>
+      item.sessionIntentConfidence >= 0.16 &&
+      item.sessionIntentScore >= 0.14,
+  );
+
+  if (
+    sessionIntentCandidates.length >= 3 ||
+    (sessionIntentCandidates.length > 0 && options.hasMore)
+  ) {
+    const sessionIntent = take(
+      'session_intent',
+      (item) =>
+        item.sessionIntentConfidence >= 0.16 &&
+        item.sessionIntentScore >= 0.14,
+    );
+
+    if (sessionIntent.length > 0) {
+      rails.push({
+        id: 'session_intent',
+        title: 'Под твой текущий ритм',
+        subtitle:
+          'Недавние просмотры влияют только на эту сессию и не переписывают твой долгосрочный Taste Graph.',
+        source: 'smart_feed_session_intent',
+        badge: 'СЕЙЧАС',
+        items: sessionIntent,
       });
     }
   }
@@ -471,6 +519,28 @@ export function buildRecommendationRailLayout(
     }),
     ownership,
   };
+}
+
+export function getHomeScheduleInsertionIndex(
+  rails: ReadonlyArray<Pick<RecommendationRail, 'id'>>,
+): number {
+  if (!rails.length) return -1;
+
+  const topMatchIndex = rails.findIndex((rail) => rail.id === 'top_match');
+  if (topMatchIndex < 0) return 0;
+
+  let insertionIndex = topMatchIndex;
+
+  for (let index = topMatchIndex + 1; index < rails.length; index += 1) {
+    const id = rails[index]?.id;
+    if (id === 'session_intent' || id === 'mood_lane') {
+      insertionIndex = index;
+      continue;
+    }
+    break;
+  }
+
+  return insertionIndex;
 }
 
 export function buildRecommendationRails(

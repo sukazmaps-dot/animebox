@@ -87,7 +87,7 @@
     "patch20-4:check": "node scripts/patch-20-4-watch-together-check.mjs",
     "patch20-6:check": "node scripts/patch-20-6-comment-identity-check.mjs",
     "patch21:check": "node scripts/patch-21-playback-command-integrity-check.mjs && node scripts/patch-21-resume-continuity-check.mjs && node scripts/patch-21-timeline-automation-check.mjs && node scripts/patch-21-watch-together-sync-check.mjs && node scripts/patch-21-mobile-theater-check.mjs && node scripts/patch-21-username-safety-check.mjs && node scripts/patch-21-release-readiness-check.mjs",
-    "patch22:check": "node scripts/patch-22-recommendation-exposure-check.mjs && node scripts/patch-22-session-intent-check.mjs && node scripts/patch-22-completion-score-check.mjs && node scripts/patch-22-taste-graph7-check.mjs && node scripts/patch-22-franchise-intelligence-check.mjs && node scripts/patch-22-controlled-exploration-check.mjs && node scripts/patch-22-seasonal-freshness-check.mjs && node scripts/patch-22-structured-feedback-check.mjs && node scripts/patch-22-explainability-check.mjs && node scripts/patch-22-diversity-reranker-check.mjs && node scripts/patch-22-recommendation-analytics-check.mjs",
+    "patch22:check": "node scripts/patch-22-recommendation-exposure-check.mjs && node scripts/patch-22-session-intent-check.mjs && node scripts/patch-22-completion-score-check.mjs && node scripts/patch-22-taste-graph7-check.mjs && node scripts/patch-22-franchise-intelligence-check.mjs && node scripts/patch-22-controlled-exploration-check.mjs && node scripts/patch-22-seasonal-freshness-check.mjs && node scripts/patch-22-structured-feedback-check.mjs && node scripts/patch-22-explainability-check.mjs && node scripts/patch-22-diversity-reranker-check.mjs && node scripts/patch-22-recommendation-analytics-check.mjs && node scripts/patch-22-home-composition-check.mjs",
     "patch22:franchise-check": "node scripts/patch-22-franchise-intelligence-check.mjs",
     "patch21-2:check": "node scripts/patch-21-2-global-frontend-check.mjs",
     "patch22:exploration-check": "node scripts/patch-22-controlled-exploration-check.mjs",
@@ -95,7 +95,8 @@
     "patch22:feedback-check": "node scripts/patch-22-structured-feedback-check.mjs",
     "patch22:explainability-check": "node scripts/patch-22-explainability-check.mjs",
     "patch22:diversity-check": "node scripts/patch-22-diversity-reranker-check.mjs",
-    "patch22:analytics-check": "node scripts/patch-22-recommendation-analytics-check.mjs"
+    "patch22:analytics-check": "node scripts/patch-22-recommendation-analytics-check.mjs",
+    "patch22:home-check": "node scripts/patch-22-home-composition-check.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

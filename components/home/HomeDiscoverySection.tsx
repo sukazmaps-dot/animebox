@@ -9,6 +9,7 @@ import HomeContinueWatching from '@/components/HomeContinueWatching';
 import HomeMoodPicker from '@/components/HomeMoodPicker';
 import { useHomeFeedRuntime } from '@/components/home/HomeFeedRuntimeProvider';
 import { RecommendationFeedSkeleton } from '@/components/home/HomeLoadingSkeletons';
+import { HomePersonalScheduleSection } from '@/components/home/HomePersonalRetentionSections';
 
 const SmartRecommendationFeed = dynamic(
   () => import('@/components/SmartRecommendationFeed'),
@@ -111,6 +112,7 @@ export default function HomeDiscoverySection() {
                 items={smartRecommendations}
                 mood={mood}
                 hasWatchHistory={hasWatchHistory}
+                midFeedSlot={<HomePersonalScheduleSection />}
               />
             </DeferredMount>
           )}
