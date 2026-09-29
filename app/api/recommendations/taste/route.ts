@@ -611,8 +611,8 @@ export async function GET(request: Request) {
       (feedback.length + validRatingScores.length) / 250,
     );
     const explorationRate = clamp(
-      0.2 - confidence * 0.1 - explicitDepth,
-      0.08,
+      0.2 - confidence * 0.13 - explicitDepth,
+      0.05,
       0.2,
     );
 
