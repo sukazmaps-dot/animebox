@@ -214,7 +214,10 @@ function metadataNumber(
   row: RecommendationAnalyticsEventRow,
   key: string,
 ) {
-  const value = Number(row.metadata?.[key]);
+  const raw = row.metadata?.[key];
+  if (raw == null || raw === '') return null;
+
+  const value = Number(raw);
   return Number.isFinite(value) ? value : null;
 }
 
