@@ -27,6 +27,20 @@ type FunnelAccumulator = {
   watch30m: number;
   multiEpisode: number;
   completed: number;
+  ctrEligible: number;
+  ctrConverted: number;
+  clickToPlayEligible: number;
+  clickToPlayConverted: number;
+  clickTo15mEligible: number;
+  clickTo15mConverted: number;
+  startedTo15mEligible: number;
+  startedTo15mConverted: number;
+  startedTo30mEligible: number;
+  startedTo30mConverted: number;
+  startedToMultiEpisodeEligible: number;
+  startedToMultiEpisodeConverted: number;
+  startedToCompletedEligible: number;
+  startedToCompletedConverted: number;
 };
 
 type Exposure = {
@@ -68,7 +82,30 @@ type Exposure = {
   multiEpisodeDate: string | null;
   completedDate: string | null;
   dismissedDate: string | null;
+  impressionAt: number | null;
+  clickAt: number | null;
+  startedAt: number | null;
+  watch15mAt: number | null;
+  watch30mAt: number | null;
+  multiEpisodeAt: number | null;
+  completedAt: number | null;
 };
+
+export const RECOMMENDATION_ANALYTICS_MATURITY_MINUTES = {
+  ctr: 2,
+  clickToPlay: 10,
+  clickTo15m: 25,
+  startedTo15m: 20,
+  startedTo30m: 40,
+  startedToMultiEpisode: 180,
+  startedToCompleted: 90,
+} as const;
+
+const MATURITY_MS = Object.fromEntries(
+  Object.entries(RECOMMENDATION_ANALYTICS_MATURITY_MINUTES).map(
+    ([key, minutes]) => [key, minutes * 60_000],
+  ),
+) as Record<keyof typeof RECOMMENDATION_ANALYTICS_MATURITY_MINUTES, number>;
 
 type RailHealth = {
   endReached: number;
@@ -103,6 +140,20 @@ function emptyFunnel(): FunnelAccumulator {
     watch30m: 0,
     multiEpisode: 0,
     completed: 0,
+    ctrEligible: 0,
+    ctrConverted: 0,
+    clickToPlayEligible: 0,
+    clickToPlayConverted: 0,
+    clickTo15mEligible: 0,
+    clickTo15mConverted: 0,
+    startedTo15mEligible: 0,
+    startedTo15mConverted: 0,
+    startedTo30mEligible: 0,
+    startedTo30mConverted: 0,
+    startedToMultiEpisodeEligible: 0,
+    startedToMultiEpisodeConverted: 0,
+    startedToCompletedEligible: 0,
+    startedToCompletedConverted: 0,
   };
 }
 
@@ -115,6 +166,19 @@ function pct(numerator: number, denominator: number) {
 function rounded(value: number, digits = 2) {
   const scale = 10 ** digits;
   return Math.round(value * scale) / scale;
+}
+
+function eventTimestamp(value: string) {
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function matured(
+  at: number | null,
+  thresholdMs: number,
+  nowMs = Date.now(),
+) {
+  return at != null && nowMs - at >= thresholdMs;
 }
 
 function median(values: number[]) {
@@ -222,28 +286,36 @@ function explorationClass(
 
 function applyEvent(exposure: Exposure, row: RecommendationAnalyticsEventRow) {
   const date = dateOnly(row.created_at);
+  const at = eventTimestamp(row.created_at);
 
   if (row.event_name === 'recommendation_impression') {
     exposure.impression = true;
     exposure.impressionDate ??= date;
+    exposure.impressionAt ??= at;
   } else if (row.event_name === 'recommendation_click') {
     exposure.click = true;
     exposure.clickDate ??= date;
+    exposure.clickAt ??= at;
   } else if (row.event_name === 'recommendation_started') {
     exposure.started = true;
     exposure.startedDate ??= date;
+    exposure.startedAt ??= at;
   } else if (row.event_name === 'recommendation_watch_15m') {
     exposure.watch15m = true;
     exposure.watch15mDate ??= date;
+    exposure.watch15mAt ??= at;
   } else if (row.event_name === 'recommendation_watch_30m') {
     exposure.watch30m = true;
     exposure.watch30mDate ??= date;
+    exposure.watch30mAt ??= at;
   } else if (row.event_name === 'recommendation_multi_episode') {
     exposure.multiEpisode = true;
     exposure.multiEpisodeDate ??= date;
+    exposure.multiEpisodeAt ??= at;
   } else if (row.event_name === 'recommendation_completed') {
     exposure.completed = true;
     exposure.completedDate ??= date;
+    exposure.completedAt ??= at;
   } else if (row.event_name === 'recommendation_planned') {
     exposure.planned = true;
   } else if (row.event_name === 'recommendation_like') {
@@ -359,6 +431,13 @@ function createExposure(
     multiEpisodeDate: null,
     completedDate: null,
     dismissedDate: null,
+    impressionAt: null,
+    clickAt: null,
+    startedAt: null,
+    watch15mAt: null,
+    watch30mAt: null,
+    multiEpisodeAt: null,
+    completedAt: null,
   };
 
   return exposure;
@@ -375,23 +454,91 @@ function addExposure(
   target.watch30m += exposure.watch30m ? 1 : 0;
   target.multiEpisode += exposure.multiEpisode ? 1 : 0;
   target.completed += exposure.completed ? 1 : 0;
+
+  if (matured(exposure.impressionAt, MATURITY_MS.ctr)) {
+    target.ctrEligible += 1;
+    target.ctrConverted += exposure.click ? 1 : 0;
+  }
+  if (matured(exposure.clickAt, MATURITY_MS.clickToPlay)) {
+    target.clickToPlayEligible += 1;
+    target.clickToPlayConverted += exposure.started ? 1 : 0;
+  }
+  if (matured(exposure.clickAt, MATURITY_MS.clickTo15m)) {
+    target.clickTo15mEligible += 1;
+    target.clickTo15mConverted += exposure.watch15m ? 1 : 0;
+  }
+  if (matured(exposure.startedAt, MATURITY_MS.startedTo15m)) {
+    target.startedTo15mEligible += 1;
+    target.startedTo15mConverted += exposure.watch15m ? 1 : 0;
+  }
+  if (matured(exposure.startedAt, MATURITY_MS.startedTo30m)) {
+    target.startedTo30mEligible += 1;
+    target.startedTo30mConverted += exposure.watch30m ? 1 : 0;
+  }
+  if (
+    matured(
+      exposure.startedAt,
+      MATURITY_MS.startedToMultiEpisode,
+    )
+  ) {
+    target.startedToMultiEpisodeEligible += 1;
+    target.startedToMultiEpisodeConverted += exposure.multiEpisode ? 1 : 0;
+  }
+  if (
+    matured(
+      exposure.startedAt,
+      MATURITY_MS.startedToCompleted,
+    )
+  ) {
+    target.startedToCompletedEligible += 1;
+    target.startedToCompletedConverted += exposure.completed ? 1 : 0;
+  }
 }
 
 function funnelSlice(
   target: FunnelAccumulator,
 ): RecommendationFunnelSlice {
   return {
-    ...target,
-    ctrPct: pct(target.clicks, target.impressions),
-    clickToPlayPct: pct(target.started, target.clicks),
-    clickTo15mPct: pct(target.watch15m, target.clicks),
-    startedTo15mPct: pct(target.watch15m, target.started),
-    startedTo30mPct: pct(target.watch30m, target.started),
-    startedToMultiEpisodePct: pct(
-      target.multiEpisode,
-      target.started,
+    impressions: target.impressions,
+    clicks: target.clicks,
+    ctrEligible: target.ctrEligible,
+    ctrPct: pct(target.ctrConverted, target.ctrEligible),
+    started: target.started,
+    clickToPlayEligible: target.clickToPlayEligible,
+    clickToPlayPct: pct(
+      target.clickToPlayConverted,
+      target.clickToPlayEligible,
     ),
-    startedToCompletedPct: pct(target.completed, target.started),
+    watch15m: target.watch15m,
+    clickTo15mEligible: target.clickTo15mEligible,
+    clickTo15mPct: pct(
+      target.clickTo15mConverted,
+      target.clickTo15mEligible,
+    ),
+    startedTo15mEligible: target.startedTo15mEligible,
+    startedTo15mPct: pct(
+      target.startedTo15mConverted,
+      target.startedTo15mEligible,
+    ),
+    watch30m: target.watch30m,
+    startedTo30mEligible: target.startedTo30mEligible,
+    startedTo30mPct: pct(
+      target.startedTo30mConverted,
+      target.startedTo30mEligible,
+    ),
+    multiEpisode: target.multiEpisode,
+    startedToMultiEpisodeEligible:
+      target.startedToMultiEpisodeEligible,
+    startedToMultiEpisodePct: pct(
+      target.startedToMultiEpisodeConverted,
+      target.startedToMultiEpisodeEligible,
+    ),
+    completed: target.completed,
+    startedToCompletedEligible: target.startedToCompletedEligible,
+    startedToCompletedPct: pct(
+      target.startedToCompletedConverted,
+      target.startedToCompletedEligible,
+    ),
   };
 }
 
