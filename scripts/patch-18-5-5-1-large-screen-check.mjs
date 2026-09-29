@@ -103,7 +103,8 @@ for (const [label, source, needle] of [
   ['Hero 2400 source', hero, '(min-width: 2400px) 1750px'],
   ['Hero 3000 source', hero, '(min-width: 3000px) 1950px'],
   ['Hero 3400 source', hero, '(min-width: 3400px) 2100px'],
-  ['AnimeCard near loading', animeCard, 'loading="near"'],
+  ['AnimeCard near default', animeCard, "imageLoading = 'near'"],
+  ['AnimeCard near prop', animeCard, 'loading={imageLoading}'],
   ['Smart card near loading', smartCard, 'loading="near"'],
 ]) {
   if (!source.includes(needle)) {
