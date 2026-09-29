@@ -46,6 +46,7 @@ export type RecommendationAnalyticsDashboard = {
     watch30m: number;
     clickTo15mPct: number;
     startedTo15mPct: number;
+    startedTo30mPct: number;
     watch15To30Pct: number;
     completed: number;
     startedToCompletedPct: number;
