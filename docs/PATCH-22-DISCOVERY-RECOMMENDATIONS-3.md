@@ -331,24 +331,66 @@ penalties because it is a different user intent than discovery.
 
 # 9. Phase F — Controlled Exploration / Hidden Gems
 
+Status: **implemented / CI validation**
+
 Dynamic slot mix based on taste confidence.
 
-Cold start example:
-- safe 50%;
-- adjacent 30%;
-- exploration 20%.
+Implemented mix policy:
+- cold start: safe 50%, adjacent 30%, exploration 20%;
+- high-confidence profile: safe 75%, adjacent 20%, exploration 5%;
+- intermediate confidence interpolates between those bounds;
+- Taste Graph exploration appetite is blended with confidence instead of acting
+  as an unbounded direct quota.
 
-High-confidence profile example:
-- safe 75%;
-- adjacent 20%;
-- exploration 5%.
+Candidate classification:
+- `safe`: strong known taste match or franchise continuation;
+- `adjacent`: at least one familiar taste axis with meaningful novelty;
+- `explore`: lower direct taste overlap but acceptable quality and low
+  negative affinity.
 
-Hidden-gem candidate:
-- sufficient taste affinity;
-- not already exposed excessively;
-- lower popularity;
-- acceptable community quality;
-- availability verified.
+Hidden-gem qualification:
+- sufficient positive taste affinity;
+- community quality floor;
+- low negative affinity;
+- low exposure fatigue;
+- lower/mid popularity band;
+- blockbuster titles are explicitly excluded from hidden-gem status;
+- popularity is log-scaled so audience size cannot dominate relevance.
+
+Candidate generation:
+- public/cacheable `hidden_gem` candidate source added;
+- source uses bounded deeper high-score AniList pages;
+- no user/session identifier enters the public recommendation endpoint;
+- final hidden-gem qualification remains client-side.
+
+Ranking:
+- model/algorithm version: `22.2-v1`;
+- bounded novelty component;
+- bounded hidden-gem component;
+- bounded popularity-bias penalty;
+- franchise continuation is excluded from exploration accounting.
+
+Presentation:
+- dedicated `Скрытые находки` rail;
+- `За пределами привычного` uses explicit exploration classification;
+- hidden-gem candidates are reserved before generic Top Match ownership;
+- existing sticky rail ownership / virtualization remains unchanged.
+
+Telemetry:
+- exploration class;
+- novelty score;
+- hidden-gem score;
+- popularity band;
+- all fields flow through impression/open/dwell/feedback attribution.
+
+Regression coverage:
+- exact 50/30/20 cold-start policy;
+- exact 75/20/5 high-confidence policy;
+- hidden-gem quality floor;
+- blockbuster exclusion / popularity correction;
+- franchise continuation exclusion;
+- candidate source/cache contract;
+- rail and telemetry contracts.
 
 Popularity must not dominate recommendation quality.
 
