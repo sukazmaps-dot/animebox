@@ -46,11 +46,15 @@ export default function AnimeCard({
   compact = false,
   watchedEpisode = null,
   discoveryMatch = null,
+  imageLoading = 'near',
+  imageFetchPriority = 'auto',
 }: {
   anime: Anime;
   compact?: boolean;
   watchedEpisode?: number | null;
   discoveryMatch?: { percent: number; reasons?: string[] } | null;
+  imageLoading?: 'lazy' | 'eager' | 'near';
+  imageFetchPriority?: 'high' | 'low' | 'auto';
 }) {
   const title = getAnimeTitle(anime);
   const year = yearLabel(anime);
@@ -90,11 +94,13 @@ export default function AnimeCard({
             alt={title}
             englishName={anime.title?.english || anime.title?.romaji}
             className="anime-card__image"
-            loading="near"
+            loading={imageLoading}
+            fetchPriority={imageFetchPriority}
             sizes="(min-width: 3400px) 250px, (min-width: 3000px) 235px, (min-width: 2400px) 225px, (min-width: 1920px) 215px, (orientation: landscape) and (max-height: 600px) 18vw, (max-width: 480px) 42vw, (max-width: 760px) 31vw, (max-width: 1024px) 22vw, (max-width: 1280px) 17vw, 205px"
             quality={60}
             sourcePreference="compact"
             preset="card"
+            format="auto"
           />
         </div>
 
