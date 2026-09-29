@@ -448,12 +448,10 @@ export function diversifyRecommendations(
       strictConcentration: boolean;
       relaxedConstraints: boolean;
     },
+    floor: number,
   ): CandidateEvaluation | null => {
     const candidate = remaining[index];
     if (!candidate) return null;
-
-    const anchorScore = Math.max(...remaining.map((item) => item.score));
-    const floor = relevanceFloor(anchorScore);
 
     if (options.enforceRelevance && candidate.score < floor) {
       return null;
@@ -642,9 +640,14 @@ export function diversifyRecommendations(
     pass: Parameters<typeof evaluateCandidate>[1],
   ) => {
     let best: CandidateEvaluation | null = null;
+    const anchorScore = remaining.reduce(
+      (strongest, item) => Math.max(strongest, item.score),
+      Number.NEGATIVE_INFINITY,
+    );
+    const floor = relevanceFloor(anchorScore);
 
     for (let index = 0; index < remaining.length; index += 1) {
-      const evaluation = evaluateCandidate(index, pass);
+      const evaluation = evaluateCandidate(index, pass, floor);
       if (!evaluation) continue;
 
       if (
