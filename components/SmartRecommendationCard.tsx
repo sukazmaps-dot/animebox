@@ -23,6 +23,7 @@ import {
   createImpressionId,
   createRecommendationId,
   readTasteProfile,
+  removeLatestRecommendationFeedbackEvent,
   RECOMMENDATION_MODEL_VERSION,
   trackRecommendationEvent,
   writeTasteProfile,
@@ -401,6 +402,7 @@ export default function SmartRecommendationCard({
       signal,
       label: policy.label,
       undo: () => {
+        removeLatestRecommendationFeedbackEvent(anime.id, signal);
         writeTasteProfile(previousProfile);
         void persistence.finally(() => {
           void clearRecommendationFeedback(anime.id);
