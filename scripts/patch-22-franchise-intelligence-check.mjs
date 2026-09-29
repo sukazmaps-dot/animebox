@@ -10,6 +10,8 @@ const recommendations = read('lib/recommendations.ts');
 const ranking = read('lib/recommendation-ranking-config.ts');
 const rails = read('lib/recommendation-rails.ts');
 const personalization = read('lib/personalization.ts');
+const diversity = read('lib/recommendation-diversity.ts');
+const card = read('components/SmartRecommendationCard.tsx');
 
 for (const [label, source, needle] of [
   ['algorithm version', personalization, "RECOMMENDATION_ALGORITHM_VERSION = '22.1-v1'"],
@@ -23,6 +25,13 @@ for (const [label, source, needle] of [
   ['continuation reason', recommendations, 'Продолжение тайтла, который ты уже смотрел'],
   ['story rail id', rails, "'story_continues'"],
   ['story rail title', rails, "title: 'История продолжается'"],
+  ['diversity canonical family', diversity, 'item.franchiseFamilyKey?.trim()'],
+  ['continuation not exploration', diversity, 'if (item.franchiseContinuation) return false'],
+  ['event continuation field', personalization, 'franchiseContinuation?: boolean'],
+  ['event season field', personalization, 'franchiseSeasonNumber?: number'],
+  ['product continuation metadata', personalization, 'franchise_continuation: event.franchiseContinuation ?? null'],
+  ['card continuation attribution', card, 'franchiseContinuation,'],
+  ['card season attribution', card, 'franchiseSeasonNumber: franchiseSeasonNumber ?? undefined'],
 ]) {
   if (!source.includes(needle)) {
     failures.push(`${label}: missing ${needle}`);
