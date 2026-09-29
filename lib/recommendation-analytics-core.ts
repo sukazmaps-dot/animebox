@@ -866,6 +866,7 @@ export function aggregateRecommendationAnalyticsRows(
       watch30m: total.watch30m,
       clickTo15mPct: totalSlice.clickTo15mPct,
       startedTo15mPct: totalSlice.startedTo15mPct,
+      startedTo30mPct: totalSlice.startedTo30mPct,
       watch15To30Pct: pct(total.watch30m, total.watch15m),
       completed: total.completed,
       startedToCompletedPct: totalSlice.startedToCompletedPct,
