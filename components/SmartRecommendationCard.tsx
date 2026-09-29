@@ -122,6 +122,8 @@ export default function SmartRecommendationCard({
     sessionIntentScore,
     sessionIntentConfidence,
     completionScore,
+    franchiseContinuation,
+    franchiseSeasonNumber,
   } = recommendation;
   const title = getAnimeTitle(anime);
   const rootRef = useRef<HTMLElement | null>(null);
@@ -162,6 +164,8 @@ export default function SmartRecommendationCard({
     sessionIntentScore,
     sessionIntentConfidence,
     completionScore,
+    franchiseContinuation,
+    franchiseSeasonNumber: franchiseSeasonNumber ?? undefined,
   };
 
   useEffect(() => {
@@ -192,6 +196,8 @@ export default function SmartRecommendationCard({
               recommendationSessionId,
               matchScore: matchScore ?? undefined,
               reason,
+              franchiseContinuation,
+              franchiseSeasonNumber: franchiseSeasonNumber ?? undefined,
             });
             observer.disconnect();
           }, 1000);
@@ -211,6 +217,8 @@ export default function SmartRecommendationCard({
     };
   }, [
     anime.id,
+    franchiseContinuation,
+    franchiseSeasonNumber,
     matchScore,
     mood,
     position,
