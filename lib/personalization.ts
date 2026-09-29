@@ -64,6 +64,7 @@ export type RecommendationEvent = {
   sessionIntentScore?: number;
   sessionIntentConfidence?: number;
   completionScore?: number;
+  tasteConfidence?: number;
   franchiseContinuation?: boolean;
   franchiseSeasonNumber?: number;
   explorationClass?: 'safe' | 'adjacent' | 'explore';
@@ -420,6 +421,7 @@ export function trackRecommendationEvent(
           mood: event.mood ?? null,
           source: event.source,
           matchScore: event.matchScore ?? null,
+          tasteConfidence: event.tasteConfidence ?? null,
           reason: event.reason ?? null,
           explanationVersion: event.explanationVersion ?? null,
           explanationKey: event.explanationKey ?? null,
@@ -518,6 +520,7 @@ export function trackRecommendationEvent(
         session_intent_score: event.sessionIntentScore ?? null,
         session_intent_confidence: event.sessionIntentConfidence ?? null,
         completion_score: event.completionScore ?? null,
+        taste_confidence: event.tasteConfidence ?? null,
         franchise_continuation: event.franchiseContinuation ?? null,
         franchise_season_number: event.franchiseSeasonNumber ?? null,
         exploration_class: event.explorationClass ?? null,
