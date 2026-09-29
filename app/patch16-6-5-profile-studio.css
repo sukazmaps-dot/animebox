@@ -112,6 +112,14 @@
   padding-bottom: 24px;
 }
 
+html[data-animebox-theme='light'] .profile-widgets-editor--embedded .profile-widgets-editor__actions {
+  border-color: rgba(60, 52, 70, .09);
+  background: rgba(250, 248, 244, .95) !important;
+  box-shadow:
+    0 16px 34px rgba(47, 39, 55, .10),
+    0 0 0 1px rgba(255, 255, 255, .55) inset;
+}
+
 @media (max-width: 768px) {
   .profile-editor-v13__showcase-tab {
     padding: 12px;
