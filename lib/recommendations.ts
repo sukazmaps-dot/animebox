@@ -36,6 +36,11 @@ import {
   recommendationSessionIntentAffinity,
 } from '@/lib/recommendation-session-intent';
 import { scoreRecommendationCompletion } from '@/lib/recommendation-completion';
+import {
+  buildRecommendationFranchiseHistoryIndex,
+  dedupeFranchiseRecommendationFamilies,
+  recommendationFranchiseSignal,
+} from '@/lib/recommendation-franchise';
 
 export type RankedRecommendation = {
   anime: Anime;
@@ -49,7 +54,12 @@ export type RankedRecommendation = {
   sessionIntentScore: number;
   sessionIntentConfidence: number;
   completionScore: number;
-  source: 'watch_history' | 'taste_mood' | 'engagement' | 'taste_graph' | 'discovery';
+  franchiseFamilyKey: string | null;
+  franchiseSeasonNumber: number | null;
+  franchisePartNumber: number | null;
+  franchiseContinuation: boolean;
+  franchiseRequiresPrevious: boolean;
+  source: 'watch_history' | 'taste_mood' | 'engagement' | 'taste_graph' | 'franchise' | 'discovery';
   ranking: RecommendationScoreResult;
 };
 
@@ -296,6 +306,7 @@ export function getPersonalizedRecommendations(
     recommendationEvents,
   );
   const sessionIntent = buildRecommendationSessionIntent(history);
+  const franchiseHistory = buildRecommendationFranchiseHistoryIndex(history);
   const tasteGraph = options?.tasteGraph ?? readCachedTasteGraph();
 
   const hiddenIds = new Set(profile.hiddenAnimeIds);
@@ -390,7 +401,9 @@ export function getPersonalizedRecommendations(
     .filter((anime) => !serverExcludedIds.has(anime.id))
     .filter((anime) => !savedIds.has(anime.id))
     .filter((anime) => !favoriteIds.has(anime.id))
-    .map((anime, index) => {
+    .map((anime, index): RankedRecommendation | null => {
+      const franchise = recommendationFranchiseSignal(anime, franchiseHistory);
+      if (franchise.blockedByPrerequisite) return null;
       const matchingGenres = (anime.genres ?? [])
         .map((genre) => ({ raw: genre, normalized: normalizeGenre(genre) }))
         .filter(({ normalized }) => (normalizedGenreWeight.get(normalized) ?? 0) > 0)
@@ -493,6 +506,7 @@ export function getPersonalizedRecommendations(
           sessionNegativeAffinity,
           sessionIntent: sessionIntentScore,
           completionLikelihood: completionScore,
+          franchiseContinuation: franchise.continuationScore,
           episodeLength: lengthAffinity,
           mood: moodScore,
           communityQuality: ratingScore,
@@ -521,7 +535,10 @@ export function getPersonalizedRecommendations(
       });
 
       const reasons: string[] = [];
-      if (completedAffinity.matches.length > 0) {
+      if (franchise.continuation) {
+        reasons.push('Продолжение тайтла, который ты уже смотрел');
+      }
+      if (completedAffinity.matches.length > 0 && reasons.length < 2) {
         reasons.push(
           `Похоже на то, что ты досматриваешь: ${completedAffinity.matches
             .slice(0, 2)
@@ -609,9 +626,11 @@ export function getPersonalizedRecommendations(
         ? Math.max(58, Math.min(97, Math.round(58 + matchBasis * 39)))
         : null;
 
-      const source = graphAffinity.positive >= Math.max(0.3, genreScore)
-        ? 'taste_graph'
-        : primary.source;
+      const source = franchise.continuation
+        ? 'franchise'
+        : graphAffinity.positive >= Math.max(0.3, genreScore)
+          ? 'taste_graph'
+          : primary.source;
 
       return {
         anime,
@@ -625,13 +644,21 @@ export function getPersonalizedRecommendations(
         sessionIntentScore,
         sessionIntentConfidence: sessionIntent.confidence,
         completionScore,
+        franchiseFamilyKey: franchise.familyKey,
+        franchiseSeasonNumber: franchise.seasonNumber,
+        franchisePartNumber: franchise.partNumber,
+        franchiseContinuation: franchise.continuation,
+        franchiseRequiresPrevious: franchise.requiresPrevious,
         source,
         ranking,
       } satisfies RankedRecommendation;
     })
+    .filter((item): item is RankedRecommendation => item !== null)
     .sort((a, b) => b.score - a.score);
 
-  return diversifyRecommendations(scored, {
+  const franchiseSafe = dedupeFranchiseRecommendationFamilies(scored);
+
+  return diversifyRecommendations(franchiseSafe, {
     limit,
     explorationRate: tasteGraph?.explorationRate,
   });
