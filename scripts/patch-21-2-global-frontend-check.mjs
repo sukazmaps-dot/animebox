@@ -24,13 +24,13 @@ if (!patchCss.startsWith('/* Patch 21.2 — fluid reflow/readability */')) {
 }
 
 for (const [label, needle] of [
-  ['fluid body typography', '--ab-fluid-body: clamp('],
-  ['readable text measure', '--ab-readable-measure: 68ch'],
+  ['fluid body typography', '--ab-fluid-body:clamp('],
+  ['readable text measure', 'max-width:68ch'],
   ['fluid catalogue geometry', 'repeat(auto-fill,'],
   ['zoom-safe minimum', 'minmax(min(100%,var(--ab-card-min)),1fr)'],
   ['mobile one-rem contract', 'font-size:max(1rem,1em)!important'],
-  ['long-title two-line contract', '-webkit-line-clamp: 2 !important'],
-  ['overflow wrapping', 'overflow-wrap: anywhere'],
+  ['long-title two-line contract', '-webkit-line-clamp:2!important'],
+  ['overflow wrapping', 'overflow-wrap:anywhere'],
   ['promotional overflow guard', '.telegram-growth-card,.catalog-ad-break,.monetization-ad'],
 ]) {
   if (!css.includes(needle)) {
