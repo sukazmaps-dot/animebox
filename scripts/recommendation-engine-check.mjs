@@ -109,15 +109,16 @@ if (
 if (
   !taste.includes("recommendation_mood_change") ||
   !taste.includes('normalizeMoodWeights') ||
-  !taste.includes("item.signal === 'less_like_this'") ||
-  !taste.includes("item.signal === 'hidden'")
+  !taste.includes('recommendationFeedbackPolicy(item.signal)') ||
+  !taste.includes('recommendationFeedbackExclusionActive(') ||
+  !taste.includes('const addTasteAxes = (')
 ) {
-  failures.push('Taste Graph is missing mood or negative-feedback signals');
+  failures.push('Taste Graph is missing mood or structured-feedback signals');
 }
 if (
   !taste.includes('Math.LN2') ||
   !taste.includes('effectiveSample') ||
-  !taste.includes('0.2 - confidence * 0.1')
+  !taste.includes('0.2 - confidence * 0.13 - explicitDepth')
 ) {
   failures.push('Taste Graph is missing decay/confidence/exploration modelling');
 }
