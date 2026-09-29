@@ -904,7 +904,7 @@ Never sacrifice a strong user match solely for diversity.
 
 # 14. Phase K — Recommendation Analytics 3.0
 
-Status: **implemented / CI validation**
+Status: **implemented / CI green**
 
 Goal:
 turn recommendation telemetry into a trustworthy exposure-level decision system,
