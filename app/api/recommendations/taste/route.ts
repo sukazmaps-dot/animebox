@@ -11,6 +11,7 @@ import {
 } from '@/lib/taste-graph';
 import { enforceIpAndUserRateLimit, enforceIpRateLimit } from '@/lib/api-rate-limit';
 import {
+  isRecommendationFeedbackSignal,
   recommendationFeedbackExclusionActive,
   recommendationFeedbackPolicy,
   type RecommendationFeedbackSignal,
@@ -464,7 +465,14 @@ export async function GET(request: Request) {
       } else if (event.event_name === 'recommendation_click') {
         addGenres(animeId, 0.25 * recency);
       } else if (event.event_name === 'recommendation_dismiss') {
-        addGenres(animeId, 0.75 * recency, true);
+        const structuredSignal = event.metadata?.feedback_signal;
+        // Phase H recommendation_feedback is the source of truth for explicit
+        // structured reasons. The product event remains attribution/telemetry
+        // only, otherwise not_now/too_long/dislike_setting would accidentally
+        // create the old broad genre penalty and undo could never fully revert.
+        if (!isRecommendationFeedbackSignal(structuredSignal)) {
+          addGenres(animeId, 0.75 * recency, true);
+        }
       }
     }
 
