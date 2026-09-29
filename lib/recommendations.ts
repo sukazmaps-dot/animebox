@@ -41,6 +41,10 @@ import {
   dedupeFranchiseRecommendationFamilies,
   recommendationFranchiseSignal,
 } from '@/lib/recommendation-franchise';
+import {
+  scoreRecommendationExploration,
+  type RecommendationExplorationClass,
+} from '@/lib/recommendation-exploration';
 
 export type RankedRecommendation = {
   anime: Anime;
@@ -59,6 +63,10 @@ export type RankedRecommendation = {
   franchisePartNumber: number | null;
   franchiseContinuation: boolean;
   franchiseRequiresPrevious: boolean;
+  explorationClass: RecommendationExplorationClass;
+  noveltyScore: number;
+  hiddenGemScore: number;
+  popularityBand: 'unknown' | 'niche' | 'mid' | 'mainstream' | 'blockbuster';
   source: 'watch_history' | 'taste_mood' | 'engagement' | 'taste_graph' | 'franchise' | 'discovery';
   ranking: RecommendationScoreResult;
 };
@@ -491,6 +499,21 @@ export function getPersonalizedRecommendations(
       const discoveryBonus = index < 14 ? 0.04 : Math.max(0, 0.025 - index * 0.0005);
       const title = getAnimeTitle(anime);
       const duplicateTitlePenalty = recentTitles.has(title.toLowerCase()) ? -0.45 : 0;
+      const exploration = scoreRecommendationExploration({
+        anime,
+        tasteAffinity: Math.max(genreScore, graphAffinity.positive),
+        completedAffinity: completedAffinity.positive,
+        studioAffinity: combinedStudioAffinity,
+        formatAffinity: formatAffinity.positive,
+        eraAffinity: eraAffinity.positive,
+        negativeAffinity: Math.max(
+          graphAffinity.negative,
+          metadataNegativeAffinity,
+          sessionNegativeAffinity,
+        ),
+        fatigueScore: exposure.fatigue,
+        franchiseContinuation: franchise.continuation,
+      });
 
       const ranking = scoreRecommendation(
         {
@@ -507,6 +530,9 @@ export function getPersonalizedRecommendations(
           sessionIntent: sessionIntentScore,
           completionLikelihood: completionScore,
           franchiseContinuation: franchise.continuationScore,
+          novelty: exploration.noveltyScore,
+          hiddenGem: exploration.hiddenGemScore,
+          popularityBias: exploration.popularityBias,
           episodeLength: lengthAffinity,
           mood: moodScore,
           communityQuality: ratingScore,
@@ -537,6 +563,16 @@ export function getPersonalizedRecommendations(
       const reasons: string[] = [];
       if (franchise.continuation) {
         reasons.push('Продолжение тайтла, который ты уже смотрел');
+      }
+      if (exploration.hiddenGemScore >= 0.62 && reasons.length < 2) {
+        reasons.push('Скрытая находка: высокий матч, но менее популярный тайтл');
+      }
+      if (
+        exploration.className === 'explore' &&
+        exploration.hiddenGemScore < 0.62 &&
+        reasons.length < 2
+      ) {
+        reasons.push('За пределами привычного: новый вектор с приемлемым совпадением');
       }
       if (completedAffinity.matches.length > 0 && reasons.length < 2) {
         reasons.push(
@@ -649,6 +685,10 @@ export function getPersonalizedRecommendations(
         franchisePartNumber: franchise.partNumber,
         franchiseContinuation: franchise.continuation,
         franchiseRequiresPrevious: franchise.requiresPrevious,
+        explorationClass: exploration.className,
+        noveltyScore: exploration.noveltyScore,
+        hiddenGemScore: exploration.hiddenGemScore,
+        popularityBand: exploration.popularityBand,
         source,
         ranking,
       } satisfies RankedRecommendation;
@@ -661,6 +701,7 @@ export function getPersonalizedRecommendations(
   return diversifyRecommendations(franchiseSafe, {
     limit,
     explorationRate: tasteGraph?.explorationRate,
+    tasteConfidence: tasteGraph?.confidence,
   });
 }
 
