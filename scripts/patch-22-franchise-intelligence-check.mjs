@@ -15,8 +15,8 @@ const diversity = read('lib/recommendation-diversity.ts');
 const card = read('components/SmartRecommendationCard.tsx');
 
 for (const [label, source, needle] of [
-  ['algorithm version', personalization, "RECOMMENDATION_ALGORITHM_VERSION = '22.5-v1'"],
-  ['ranking version', ranking, "RECOMMENDATION_RANKING_VERSION = '22.5-v1'"],
+  ['algorithm version', personalization, "RECOMMENDATION_ALGORITHM_VERSION = '22.6-v1'"],
+  ['ranking version', ranking, "RECOMMENDATION_RANKING_VERSION = '22.6-v1'"],
   ['franchise history index', franchise, 'buildRecommendationFranchiseHistoryIndex'],
   ['franchise prerequisite gate', franchise, 'blockedByPrerequisite'],
   ['franchise family dedupe', franchise, 'dedupeFranchiseRecommendationFamilies'],
