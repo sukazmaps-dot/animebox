@@ -631,6 +631,7 @@ export function aggregateRecommendationAnalyticsRows(
     FunnelAccumulator
   >();
   const feedbackReasons = new Map<string, number>();
+  const rowDismissed = new Map<string, number>();
   const daily = new Map<
     string,
     RecommendationAnalyticsDashboard['daily'][number]
@@ -664,6 +665,12 @@ export function aggregateRecommendationAnalyticsRows(
     liked += exposure.liked ? 1 : 0;
     dismissed += exposure.dismissed ? 1 : 0;
     alreadyWatched += exposure.alreadyWatched ? 1 : 0;
+    if (exposure.dismissed) {
+      rowDismissed.set(
+        exposure.rowId,
+        (rowDismissed.get(exposure.rowId) ?? 0) + 1,
+      );
+    }
 
     if ((exposure.exposureCount7d ?? 0) >= 1) {
       repeatedImpressions += 1;
@@ -950,15 +957,9 @@ export function aggregateRecommendationAnalyticsRows(
         return {
           rowId: key,
           ...funnelSlice(funnel),
-          dismissed: [...cohort].filter(
-            (exposure) =>
-              exposure.rowId === key && exposure.dismissed,
-          ).length,
+          dismissed: rowDismissed.get(key) ?? 0,
           dismissRatePct: pct(
-            [...cohort].filter(
-              (exposure) =>
-                exposure.rowId === key && exposure.dismissed,
-            ).length,
+            rowDismissed.get(key) ?? 0,
             funnel.impressions,
           ),
           ...health,
