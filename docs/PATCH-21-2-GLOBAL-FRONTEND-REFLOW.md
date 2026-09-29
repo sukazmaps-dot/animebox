@@ -16,4 +16,4 @@ Finish the global frontend refactor started from production Patch 21 without mer
 - Existing 2K/4K and Watch Together behavior stays isolated from this patch.
 
 ## Validation
-`npm run patch21-2:check` is part of prebuild and guards the root import order, relative typography, fluid catalogue geometry, eager poster contract and picture format sources.
+`npm run patch21-2:check` is part of prebuild and guards the folded final CSS layer, relative typography, fluid catalogue geometry, eager poster contract and picture format sources. The patch is intentionally folded into `patch17-4-2-ui-precision.css` so the root CSS import/source budgets do not grow.
