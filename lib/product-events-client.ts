@@ -246,6 +246,7 @@ function recommendationStartedEvent(options: TrackOptions): ClientEvent | null {
       mood?: string | null;
       source?: string | null;
       matchScore?: number | null;
+      tasteConfidence?: number | null;
       reason?: string | null;
       explanationVersion?: string | null;
       explanationKey?: string | null;
@@ -288,6 +289,7 @@ function recommendationStartedEvent(options: TrackOptions): ClientEvent | null {
         position: parsed.position ?? null,
         mood: parsed.mood ?? null,
         match_score: parsed.matchScore ?? null,
+        taste_confidence: parsed.tasteConfidence ?? null,
         reason: parsed.reason?.slice(0, 180) ?? null,
         explanation_version: parsed.explanationVersion ?? null,
         explanation_key: parsed.explanationKey ?? null,
@@ -333,6 +335,7 @@ type RecommendationAttributionState = {
   mood?: string | null;
   source?: string | null;
   matchScore?: number | null;
+  tasteConfidence?: number | null;
   reason?: string | null;
   explanationVersion?: string | null;
   explanationKey?: string | null;
@@ -420,6 +423,7 @@ export function trackRecommendationWatchProgress(input: {
         position: parsed.position ?? null,
         mood: parsed.mood ?? null,
         match_score: parsed.matchScore ?? null,
+        taste_confidence: parsed.tasteConfidence ?? null,
         reason: parsed.reason?.slice(0, 180) ?? null,
         explanation_version: parsed.explanationVersion ?? null,
         explanation_key: parsed.explanationKey ?? null,
