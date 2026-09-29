@@ -325,11 +325,16 @@ if (
   failures.push('18.3 immediate negative-feedback reranking is incomplete');
 }
 if (
+  !diversity.includes('studioRepeatPenalty') ||
   !diversity.includes('formatRepeatPenalty') ||
-  !diversity.includes('yearBucketRepeatPenalty') ||
-  !diversity.includes('recommendationDiversityShareTargets')
+  !diversity.includes('eraRepeatPenalty') ||
+  !diversity.includes('sourceRepeatPenalty') ||
+  !diversity.includes('popularityRepeatPenalty') ||
+  !diversity.includes('recommendationDiversityShareTargets') ||
+  !diversity.includes('relevanceFloor(') ||
+  !diversity.includes('lockTopResult: true')
 ) {
-  failures.push('18.3 long-session diversity policy is incomplete');
+  failures.push('22.6 diversity reranker policy is incomplete');
 }
 if (
   !recommendationAnalytics.includes('maxRenderedItems') ||
