@@ -259,6 +259,23 @@ function recommendationStartedEvent(options: TrackOptions): ClientEvent | null {
       diversityPenalty?: number | null;
       diversityBoost?: number | null;
       diversityRelaxed?: boolean | null;
+      fatigueScore?: number | null;
+      exposureCount7d?: number | null;
+      exposureCount30d?: number | null;
+      sessionIntentScore?: number | null;
+      sessionIntentConfidence?: number | null;
+      completionScore?: number | null;
+      franchiseContinuation?: boolean | null;
+      franchiseSeasonNumber?: number | null;
+      explorationClass?: 'safe' | 'adjacent' | 'explore' | null;
+      noveltyScore?: number | null;
+      hiddenGemScore?: number | null;
+      popularityBand?: string | null;
+      seasonalScore?: number | null;
+      freshnessScore?: number | null;
+      seasonRelation?: string | null;
+      season?: string | null;
+      seasonYear?: number | null;
     };
     const openedAt = Number(parsed.openedAt ?? 0);
     if (!openedAt || Date.now() - openedAt > RECOMMENDATION_ATTRIBUTION_TTL_MS) {
@@ -305,6 +322,26 @@ function recommendationStartedEvent(options: TrackOptions): ClientEvent | null {
         diversity_penalty: parsed.diversityPenalty ?? null,
         diversity_boost: parsed.diversityBoost ?? null,
         diversity_relaxed: parsed.diversityRelaxed ?? null,
+        fatigue_score: parsed.fatigueScore ?? null,
+        exposure_count_7d: parsed.exposureCount7d ?? null,
+        exposure_count_30d: parsed.exposureCount30d ?? null,
+        session_intent_score: parsed.sessionIntentScore ?? null,
+        session_intent_confidence:
+          parsed.sessionIntentConfidence ?? null,
+        completion_score: parsed.completionScore ?? null,
+        franchise_continuation:
+          parsed.franchiseContinuation ?? null,
+        franchise_season_number:
+          parsed.franchiseSeasonNumber ?? null,
+        exploration_class: parsed.explorationClass ?? null,
+        novelty_score: parsed.noveltyScore ?? null,
+        hidden_gem_score: parsed.hiddenGemScore ?? null,
+        popularity_band: parsed.popularityBand ?? null,
+        seasonal_score: parsed.seasonalScore ?? null,
+        freshness_score: parsed.freshnessScore ?? null,
+        season_relation: parsed.seasonRelation ?? null,
+        season: parsed.season ?? null,
+        season_year: parsed.seasonYear ?? null,
         player_source: options.source ?? null,
       },
     };
@@ -348,6 +385,23 @@ type RecommendationAttributionState = {
   diversityPenalty?: number | null;
   diversityBoost?: number | null;
   diversityRelaxed?: boolean | null;
+  fatigueScore?: number | null;
+  exposureCount7d?: number | null;
+  exposureCount30d?: number | null;
+  sessionIntentScore?: number | null;
+  sessionIntentConfidence?: number | null;
+  completionScore?: number | null;
+  franchiseContinuation?: boolean | null;
+  franchiseSeasonNumber?: number | null;
+  explorationClass?: 'safe' | 'adjacent' | 'explore' | null;
+  noveltyScore?: number | null;
+  hiddenGemScore?: number | null;
+  popularityBand?: string | null;
+  seasonalScore?: number | null;
+  freshnessScore?: number | null;
+  seasonRelation?: string | null;
+  season?: string | null;
+  seasonYear?: number | null;
 };
 
 export function trackRecommendationWatchProgress(input: {
@@ -439,6 +493,26 @@ export function trackRecommendationWatchProgress(input: {
         diversity_penalty: parsed.diversityPenalty ?? null,
         diversity_boost: parsed.diversityBoost ?? null,
         diversity_relaxed: parsed.diversityRelaxed ?? null,
+        fatigue_score: parsed.fatigueScore ?? null,
+        exposure_count_7d: parsed.exposureCount7d ?? null,
+        exposure_count_30d: parsed.exposureCount30d ?? null,
+        session_intent_score: parsed.sessionIntentScore ?? null,
+        session_intent_confidence:
+          parsed.sessionIntentConfidence ?? null,
+        completion_score: parsed.completionScore ?? null,
+        franchise_continuation:
+          parsed.franchiseContinuation ?? null,
+        franchise_season_number:
+          parsed.franchiseSeasonNumber ?? null,
+        exploration_class: parsed.explorationClass ?? null,
+        novelty_score: parsed.noveltyScore ?? null,
+        hidden_gem_score: parsed.hiddenGemScore ?? null,
+        popularity_band: parsed.popularityBand ?? null,
+        seasonal_score: parsed.seasonalScore ?? null,
+        freshness_score: parsed.freshnessScore ?? null,
+        season_relation: parsed.seasonRelation ?? null,
+        season: parsed.season ?? null,
+        season_year: parsed.seasonYear ?? null,
       },
     } as const;
 
