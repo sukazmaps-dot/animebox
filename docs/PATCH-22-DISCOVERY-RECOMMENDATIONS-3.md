@@ -640,7 +640,26 @@ Notes:
   `anime_catalog` query only.
 
 ### Phase E — Franchise Intelligence
-Status: **planned**
+Status: **implemented foundation / under CI**
+
+Implemented:
+- client-safe franchise family normalization for Russian/English/Romaji titles;
+- explicit season/part prerequisite gate for generic discovery;
+- exact-next-season continuation detection from bounded local watch history;
+- split-cour / Part 2 continuation handling;
+- one-family dedupe before the global diversity pass;
+- continuation candidates win family dedupe over generic franchise entries;
+- bounded `franchiseContinuation` ranking component;
+- evidence-based continuation reason;
+- dedicated `История продолжается` rail that claims continuation candidates before generic rails;
+- recommendation algorithm/ranking version bumped to `22.1-v1`;
+- dedicated Phase E runtime regression matrix added to `patch22:check`.
+
+Notes:
+- Phase E intentionally adds no per-card provider requests;
+- public candidate caching stays unchanged;
+- the existing AniList franchise resolver remains available for detail-page franchise navigation;
+- candidate-side gating uses metadata already present in the recommendation payload.
 
 ### Phase F — Exploration + Hidden Gems
 Status: **planned**
