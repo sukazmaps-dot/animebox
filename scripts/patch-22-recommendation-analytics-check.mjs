@@ -31,6 +31,9 @@ for (const [label, source, needle] of [
   ['completion calibration', types, 'completionScoreCalibration'],
   ['diversity diagnostics', types, 'avgAbsoluteMove'],
   ['feedback reason analytics', types, 'feedbackReasons'],
+  ['maturity contract', types, 'startedTo30mEligible'],
+  ['data quality contract', types, 'orphanRecommendationExposures'],
+  ['sample window contract', types, 'effectiveHours'],
   ['pure exposure aggregator', core, 'aggregateRecommendationAnalyticsRows'],
   ['impression cohort guard', core, 'exposure.impression'],
   ['repeat exposure source', core, 'exposure.exposureCount7d'],
@@ -40,6 +43,9 @@ for (const [label, source, needle] of [
   ['taste confidence bucketing', core, 'function tasteConfidenceBucket'],
   ['diversity movement', core, 'diversityAbsoluteMoveTotal'],
   ['feedback signal source', core, "metadataText(row, 'feedback_signal')"],
+  ['maturity thresholds', core, 'RECOMMENDATION_ANALYTICS_MATURITY_MINUTES'],
+  ['mature conversion denominator', core, 'target.startedTo30mEligible += 1'],
+  ['telemetry orphan diagnostics', core, 'orphanRecommendationExposures'],
   ['server multi episode event', server, "'recommendation_multi_episode'"],
   ['server core aggregation', server, 'aggregateRecommendationAnalyticsRows'],
   ['newest-event bounded scan', server, ".order('created_at', { ascending: false })"],
@@ -64,6 +70,8 @@ for (const [label, source, needle] of [
   ['match calibration UI', ui, 'Match Score vs реальные outcomes'],
   ['completion calibration UI', ui, 'Completion Score calibration'],
   ['diversity analytics UI', ui, 'Цена и польза reranking'],
+  ['maturity admin UI', ui, 'Outcome maturity'],
+  ['telemetry health admin UI', ui, 'Stage anomalies'],
   ['phase K docs', docs, '# 14. Phase K — Recommendation Analytics 3.0'],
 ]) {
   if (!source.includes(needle)) {
@@ -89,8 +97,9 @@ if (!failures.length) {
       `data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`
     );
 
+    const baseAt = Date.now() - 8 * 60 * 60 * 1000;
     const at = (minutes) =>
-      new Date(Date.UTC(2026, 8, 29, 10, minutes, 0)).toISOString();
+      new Date(baseAt + minutes * 60_000).toISOString();
 
     const sourceEvidence = (explanation) => {
       if (explanation === 'liked_reference') return 'taste_graph';
@@ -370,6 +379,36 @@ if (!failures.length) {
       dashboard.kpis.startedToCompletedPct !== 50
     ) {
       failures.push('core funnel conversion rates are incorrect');
+    }
+
+    if (
+      dashboard.kpis.ctrEligible !== 3 ||
+      dashboard.kpis.clickToPlayEligible !== 2 ||
+      dashboard.kpis.startedTo15mEligible !== 2 ||
+      dashboard.kpis.startedTo30mEligible !== 2 ||
+      dashboard.kpis.startedToMultiEpisodeEligible !== 2 ||
+      dashboard.kpis.startedToCompletedEligible !== 2
+    ) {
+      failures.push('maturity-aware funnel denominators are incorrect');
+    }
+
+    if (
+      dashboard.dataQuality.orphanRecommendationExposures !== 1 ||
+      dashboard.dataQuality.startedWithoutClick !== 0 ||
+      dashboard.dataQuality.watch15WithoutStarted !== 0 ||
+      dashboard.dataQuality.watch30Without15m !== 0 ||
+      dashboard.dataQuality.multiEpisodeWithoutStarted !== 0 ||
+      dashboard.dataQuality.completedWithoutStarted !== 0
+    ) {
+      failures.push('telemetry data-quality diagnostics are incorrect');
+    }
+
+    if (
+      dashboard.sampleWindow.effectiveHours <= 0 ||
+      !dashboard.sampleWindow.oldestEventAt ||
+      !dashboard.sampleWindow.newestEventAt
+    ) {
+      failures.push('analytics sample-window diagnostics are missing');
     }
 
     if (
