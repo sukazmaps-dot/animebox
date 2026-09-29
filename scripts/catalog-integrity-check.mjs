@@ -149,7 +149,7 @@ if (
 
 if (
   !recommendationRoute.includes('FILTERED_RESPONSE_CACHE_SECONDS = 5 * 60') ||
-  !recommendationRoute.includes("animebox-recommendation-candidates-v7-verified-playback") ||
+  !recommendationRoute.includes("animebox-recommendation-candidates-v8-controlled-exploration") ||
   !recommendationRoute.includes('{ limit: 8 }')
 ) {
   failures.push('recommendation verification/cache rollout is incomplete');
