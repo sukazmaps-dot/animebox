@@ -16,6 +16,10 @@ import {
   publicApiCacheHeaders,
 } from '@/lib/edge-cache-policy';
 import { runtimeFeatureDecision } from '@/lib/runtime-controls-server';
+import {
+  getCurrentAnimeSeason,
+  type CatalogSeason,
+} from '@/lib/catalog-season';
 
 export const runtime = 'nodejs';
 
@@ -40,7 +44,8 @@ type CandidateSource =
   | 'ongoing'
   | 'preferred_genre'
   | 'mood'
-  | 'hidden_gem';
+  | 'hidden_gem'
+  | 'seasonal';
 
 type RecommendationCursorPayload = {
   v: typeof CURSOR_VERSION;
@@ -115,14 +120,15 @@ function selectCandidateSource(input: {
   hasTasteGenre: boolean;
   mood: CandidateMood;
 }): CandidateSource {
-  const slot = (input.page - 1 + input.bucket) % 6;
+  const slot = (input.page - 1 + input.bucket) % 7;
 
   if (slot === 0 && input.hasTasteGenre) return 'preferred_genre';
   if (slot === 1) return 'ranked';
   if (slot === 2 && input.mood !== 'any') return 'mood';
   if (slot === 3) return 'popularity';
-  if (slot === 4) return 'hidden_gem';
-  if (slot === 5) return 'ongoing';
+  if (slot === 4) return 'seasonal';
+  if (slot === 5) return 'hidden_gem';
+  if (slot === 6) return 'ongoing';
 
   return slot % 2 === 0 ? 'popularity' : 'ranked';
 }
@@ -139,12 +145,23 @@ function sourceOptions(input: {
   bucket: number;
   tasteGenre: string | null;
   mood: CandidateMood;
+  season: CatalogSeason;
+  seasonYear: number;
 }): GetAnimesOptions {
-  const { source, page, bucket, tasteGenre, mood } = input;
+  const { source, page, bucket, tasteGenre, mood, season, seasonYear } = input;
   const base: GetAnimesOptions = {
     page,
     order: source === 'ranked' ? 'ranked' : 'popularity',
   };
+
+  if (source === 'seasonal') {
+    return {
+      ...base,
+      order: page % 2 === 0 ? 'popularity' : 'ranked',
+      season,
+      year: seasonYear,
+    };
+  }
 
   if (source === 'hidden_gem') {
     // High-score pages beyond the obvious first page provide a public,
@@ -200,6 +217,8 @@ const getCachedCandidatePage = unstable_cache(
     tasteGenre: string | null,
     mood: CandidateMood,
     bucket: number,
+    season: CatalogSeason,
+    seasonYear: number,
   ) => {
     const options = sourceOptions({
       source,
@@ -207,12 +226,14 @@ const getCachedCandidatePage = unstable_cache(
       bucket,
       tasteGenre,
       mood,
+      season,
+      seasonYear,
     });
     options.limit = limit;
 
     return getAnimesWithShikimori(options);
   },
-  ['animebox-recommendation-candidates-v8-controlled-exploration'],
+  ['animebox-recommendation-candidates-v9-seasonal-freshness'],
   {
     revalidate: CACHE_SECONDS,
     tags: ['animebox-recommendation-candidates'],
@@ -226,8 +247,10 @@ async function loadCandidatePage(input: {
   tasteGenre: string | null;
   mood: CandidateMood;
   bucket: number;
+  season: CatalogSeason;
+  seasonYear: number;
 }) {
-  const { page, limit, source, tasteGenre, mood, bucket } = input;
+  const { page, limit, source, tasteGenre, mood, bucket, season, seasonYear } = input;
   const fallback = fallbackSource(source, page);
 
   try {
@@ -238,6 +261,8 @@ async function loadCandidatePage(input: {
       tasteGenre,
       mood,
       bucket,
+      season,
+      seasonYear,
     );
 
     // A narrow source can legitimately run out before the broad catalogue.
@@ -257,6 +282,8 @@ async function loadCandidatePage(input: {
       tasteGenre,
       mood,
       bucket,
+      season,
+      seasonYear,
     );
 
     if (fallbackItems.length > 0) {
@@ -376,6 +403,8 @@ async function observedGET(request: NextRequest) {
   const bucket = clampInteger(params.get('bucket'), 0, 0, 3);
   const mood = normalizeMood(params.get('mood'));
 
+  const currentSeason = getCurrentAnimeSeason();
+
   const requestedGenre = params.get('genre')?.trim() ?? '';
   const tasteGenre = requestedGenre
     ? findAnimeGenre(requestedGenre)?.value ?? null
@@ -398,6 +427,8 @@ async function observedGET(request: NextRequest) {
       tasteGenre,
       mood,
       bucket,
+      season: currentSeason.season,
+      seasonYear: currentSeason.year,
     });
     const availability = await filterAnimeByAvailability(
       result.items,
@@ -437,6 +468,8 @@ async function observedGET(request: NextRequest) {
         fallbackFrom: result.fallbackFrom,
         tasteGenre,
         mood,
+        season: currentSeason.season,
+        seasonYear: currentSeason.year,
       },
       {
         headers: {
