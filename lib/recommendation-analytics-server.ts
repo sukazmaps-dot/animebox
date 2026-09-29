@@ -50,7 +50,7 @@ async function loadRows(rangeDays: RecommendationAnalyticsRange) {
         .select(select)
         .in('event_name', [...EVENTS])
         .gte('created_at', since)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })
         .range(offset, offset + PAGE_SIZE - 1);
 
     let result = await fetchPage(
