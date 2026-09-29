@@ -29,6 +29,7 @@ function FunnelCells({ row }: { row: RecommendationFunnelSlice }) {
       <td>{pct(row.ctrPct)}</td>
       <td>{num(row.started)}</td>
       <td>{pct(row.clickToPlayPct)}</td>
+      <td>{pct(row.clickTo15mPct)}</td>
       <td>{pct(row.startedTo15mPct)}</td>
       <td>{pct(row.startedTo30mPct)}</td>
       <td>{pct(row.startedToMultiEpisodePct)}</td>
@@ -44,6 +45,7 @@ function FunnelHead() {
       <th>CTR</th>
       <th>Play</th>
       <th>Click→Play</th>
+      <th>Click→15m</th>
       <th>Play→15m</th>
       <th>Play→30m</th>
       <th>Multi-ep</th>
