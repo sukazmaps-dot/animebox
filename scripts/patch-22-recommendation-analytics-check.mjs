@@ -12,6 +12,7 @@ const ui = read('components/admin/RecommendationAnalyticsDashboard.tsx');
 const productNames = read('lib/product-event-names.ts');
 const productClient = read('lib/product-events-client.ts');
 const personalization = read('lib/personalization.ts');
+const card = read('components/SmartRecommendationCard.tsx');
 const migration = read(
   'supabase/migrations/20260929221500_recommendation_analytics_v3.sql',
 );
@@ -50,6 +51,10 @@ for (const [label, source, needle] of [
   ['watch exploration attribution', productClient, 'exploration_class: parsed.explorationClass ?? null'],
   ['watch fatigue attribution', productClient, 'fatigue_score: parsed.fatigueScore ?? null'],
   ['taste confidence attribution', personalization, 'taste_confidence: event.tasteConfidence ?? null'],
+  ['impression fatigue context', card, 'fatigueScore,'],
+  ['impression exposure context', card, 'exposureCount7d,'],
+  ['impression completion context', card, 'completionScore,'],
+  ['impression taste-confidence context', card, 'tasteConfidence: tasteConfidence ?? undefined'],
   ['analytics DB index', migration, 'product_events_recommendation_analytics_v3_idx'],
   ['admin analytics 3.0 UI', ui, 'Recommendation Analytics 3.0'],
   ['match calibration UI', ui, 'Match Score vs реальные outcomes'],
