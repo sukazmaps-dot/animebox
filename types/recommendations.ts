@@ -27,4 +27,5 @@ export type RecommendationPage = {
   mood?: 'any' | 'comfort' | 'tension' | 'emotion' | 'adventure';
   season?: 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL';
   seasonYear?: number;
+  contractVersion?: string;
 };

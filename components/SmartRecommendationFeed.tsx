@@ -46,6 +46,10 @@ const PAGE_SIZE = 20;
 const MAX_EMPTY_PAGE_HOPS = 6;
 const STRICT_EMPTY_PAGE_HOPS = 3;
 const CLIENT_PAGE_CACHE_TTL_MS = 15 * 60 * 1000;
+const CANDIDATE_REQUEST_TIMEOUT_MS = 7_000;
+const CANDIDATE_TRANSIENT_RETRY_DELAY_MS = 240;
+const CANDIDATE_MAX_ATTEMPTS = 2;
+const TRANSIENT_CANDIDATE_HTTP_STATUSES = new Set([429, 502, 503, 504]);
 const CLIENT_PAGE_CACHE_PREFIX = 'animebox:recommendation-page:v6:';
 const MAX_SESSION_CACHE_ENTRIES = 14;
 const MOOD_SWAP_FADE_OUT_MS = 135;
@@ -135,7 +139,7 @@ function readSessionPage(key: string): RecommendationPage | null {
       typeof parsed.expiresAt !== 'number' ||
       parsed.expiresAt <= Date.now() ||
       !parsed.data ||
-      !Array.isArray(parsed.data.items)
+      !isValidRecommendationPage(parsed.data)
     ) {
       window.sessionStorage.removeItem(key);
       return null;
@@ -176,6 +180,127 @@ function trimSessionPageCache(): void {
   } catch {
     // Safari/private mode can reject storage access. Network cache still works.
   }
+}
+
+function isValidRecommendationPage(value: unknown): value is RecommendationPage {
+  if (!value || typeof value !== 'object') return false;
+
+  const page = value as Partial<RecommendationPage>;
+  const nextPageValid =
+    page.nextPage === null ||
+    (Number.isSafeInteger(page.nextPage) && Number(page.nextPage) > 0);
+  const nextCursorValid =
+    page.nextCursor === null ||
+    (typeof page.nextCursor === 'string' && page.nextCursor.length <= 96);
+
+  return (
+    Array.isArray(page.items) &&
+    Number.isSafeInteger(page.page) &&
+    Number(page.page) > 0 &&
+    typeof page.hasMore === 'boolean' &&
+    Number.isSafeInteger(page.bucket) &&
+    Number(page.bucket) >= 0 &&
+    Number(page.bucket) <= 3 &&
+    nextPageValid &&
+    nextCursorValid
+  );
+}
+
+function abortableDelay(ms: number, signal?: AbortSignal): Promise<void> {
+  if (signal?.aborted) {
+    return Promise.reject(new DOMException('Aborted', 'AbortError'));
+  }
+
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(resolve, ms);
+
+    const onAbort = () => {
+      window.clearTimeout(timer);
+      reject(new DOMException('Aborted', 'AbortError'));
+    };
+
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+async function fetchCandidatePayload(
+  url: string,
+  signal?: AbortSignal,
+): Promise<RecommendationPage> {
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt < CANDIDATE_MAX_ATTEMPTS; attempt += 1) {
+    if (signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+
+    const controller = new AbortController();
+    let timedOut = false;
+    const onAbort = () => controller.abort();
+
+    signal?.addEventListener('abort', onAbort, { once: true });
+    const timeout = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, CANDIDATE_REQUEST_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        cache: 'default',
+        headers: {
+          Accept: 'application/json',
+        },
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const error = new Error(`Recommendation HTTP ${response.status}`) as Error & {
+          status?: number;
+        };
+        error.status = response.status;
+        throw error;
+      }
+
+      const payload = (await response.json()) as unknown;
+      if (!isValidRecommendationPage(payload)) {
+        throw new Error('Recommendation payload contract mismatch');
+      }
+
+      return payload;
+    } catch (error) {
+      if (signal?.aborted) {
+        throw new DOMException('Aborted', 'AbortError');
+      }
+
+      lastError = timedOut
+        ? new Error('Recommendation request timeout')
+        : error;
+
+      const status =
+        error instanceof Error &&
+        'status' in error &&
+        typeof (error as { status?: unknown }).status === 'number'
+          ? Number((error as { status: number }).status)
+          : null;
+      const transient =
+        timedOut ||
+        (status != null && TRANSIENT_CANDIDATE_HTTP_STATUSES.has(status));
+
+      if (!transient || attempt + 1 >= CANDIDATE_MAX_ATTEMPTS) {
+        throw lastError;
+      }
+
+      await abortableDelay(CANDIDATE_TRANSIENT_RETRY_DELAY_MS, signal);
+    } finally {
+      window.clearTimeout(timeout);
+      signal?.removeEventListener('abort', onAbort);
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('Recommendation candidate request failed');
 }
 
 function writeCachedPage(key: string, data: RecommendationPage): void {
@@ -257,20 +382,11 @@ async function loadCandidatePage(
     params.set('genre', context.genre);
   }
 
-  const request = fetch(`/api/recommendations?${params.toString()}`, {
-    method: 'GET',
-    cache: 'default',
-    headers: {
-      Accept: 'application/json',
-    },
+  const request = fetchCandidatePayload(
+    `/api/recommendations?${params.toString()}`,
     signal,
-  })
-    .then(async (response) => {
-      if (!response.ok) {
-        throw new Error(`Recommendation HTTP ${response.status}`);
-      }
-
-      const data = (await response.json()) as RecommendationPage;
+  )
+    .then((data) => {
       writeCachedPage(key, data);
       return data;
     })

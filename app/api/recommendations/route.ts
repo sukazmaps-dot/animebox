@@ -30,6 +30,7 @@ const CACHE_SECONDS = 15 * 60;
 const FILTERED_RESPONSE_CACHE_SECONDS = 5 * 60;
 const STALE_SECONDS = 24 * 60 * 60;
 const CURSOR_VERSION = 1;
+const RECOMMENDATION_CANDIDATE_CONTRACT_VERSION = '22.9-candidate-v1';
 
 type CandidateMood =
   | 'any'
@@ -472,6 +473,7 @@ async function observedGET(request: NextRequest) {
         mood,
         season: currentSeason.season,
         seasonYear: currentSeason.year,
+        contractVersion: RECOMMENDATION_CANDIDATE_CONTRACT_VERSION,
       },
       {
         headers: {

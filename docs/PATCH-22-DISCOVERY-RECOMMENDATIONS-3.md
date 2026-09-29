@@ -1173,6 +1173,46 @@ surfaces are always ahead of generic catalog/community content.
 
 ---
 
+# 16.1 Phase M — Full production hardening
+
+Status: **implemented / under CI**
+
+Release contract: `22.9-release-v1`.
+Candidate transport contract: `22.9-candidate-v1`.
+
+Production hardening requirements:
+- recommendation candidate retrieval remains public/cacheable and never accepts
+  user IDs, anonymous IDs or recommendation session IDs as cache inputs;
+- the client uses one shared in-flight request per public page cache key;
+- each candidate request has a 7-second timeout;
+- only transient 429 / 502 / 503 / 504 failures or a timeout receive one
+  bounded retry; there is no recursive or infinite retry loop;
+- malformed candidate payloads never enter memory/sessionStorage caches;
+- cached payloads are revalidated before reuse;
+- unmount and mood-swap abort the active recommendation request;
+- already rendered recommendations remain usable if later pagination fails;
+- rail failures stay local and expose the existing bounded retry UI;
+- per-rail rendered DOM remains capped at 36 items with virtualization;
+- sparse-rail bootstrap and empty-page hopping remain bounded;
+- server brownout keeps smaller pages, public cache semantics and disables
+  non-essential availability refresh work;
+- cursor input stays opaque, length-limited and page-bounded;
+- availability filtering remains mandatory before candidate responses;
+- recommendation telemetry continues to use the single first-party product
+  event pipeline and preserves algorithm/explanation/diversity/fatigue
+  attribution;
+- Home mounts exactly one SmartRecommendationFeed runtime;
+- Phase L schedule interleave does not duplicate recommendation sessions,
+  candidate pagination, impressions or rail ownership.
+
+Release gate:
+- `patch22:release-check` validates transport, cache, runtime and composition
+  invariants;
+- the legacy Home hydration gate now understands the Phase L interleave
+  architecture instead of requiring a second standalone schedule island;
+- full `patch22:check`, TypeScript, targeted lint and production build must
+  pass before merge/deploy.
+
 # 17. Privacy / data policy
 
 Recommendation telemetry uses first-party AnimeBox product events.
