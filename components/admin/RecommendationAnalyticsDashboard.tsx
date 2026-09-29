@@ -246,7 +246,7 @@ export default function RecommendationAnalyticsDashboard() {
                 <h2>Качество recommendation data</h2>
               </div>
               <small className={styles.panelMeta}>
-                {num(dashboard.sampledEvents)} событий ·{' '}
+                {dashboard.analyticsVersion} · {num(dashboard.sampledEvents)} событий ·{' '}
                 {dashboard.funnelMode}
               </small>
             </div>
