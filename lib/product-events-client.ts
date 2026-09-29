@@ -319,7 +319,9 @@ type RecommendationAttributionState = {
   watch15mSent?: boolean;
   watch30mSent?: boolean;
   completedSent?: boolean;
+  multiEpisodeSent?: boolean;
   watchedMs?: number;
+  firstEpisode?: number | null;
   lastEpisode?: number | null;
   lastEpisodeActiveMs?: number;
   recommendationId?: string | null;
@@ -385,10 +387,17 @@ export function trackRecommendationWatchProgress(input: {
       Math.max(0, Math.round(Number(parsed.watchedMs) || 0)) + delta,
     );
 
+    const firstEpisode =
+      Number.isSafeInteger(Number(parsed.firstEpisode)) &&
+      Number(parsed.firstEpisode) > 0
+        ? Number(parsed.firstEpisode)
+        : input.episode;
+
     const next: RecommendationAttributionState = {
       ...parsed,
       animeId: input.animeId,
       watchedMs,
+      firstEpisode,
       lastEpisode: input.episode,
       lastEpisodeActiveMs: currentActiveMs,
     };
@@ -437,6 +446,23 @@ export function trackRecommendationWatchProgress(input: {
     if (watchedMs >= 30 * 60 * 1000 && !parsed.watch30mSent) {
       next.watch30mSent = true;
       trackProductClientEvent('recommendation_watch_30m', common);
+    }
+
+    if (
+      input.episode !== firstEpisode &&
+      currentActiveMs >= 90_000 &&
+      !parsed.multiEpisodeSent
+    ) {
+      next.multiEpisodeSent = true;
+      trackProductClientEvent('recommendation_multi_episode', {
+        ...common,
+        metadata: {
+          ...common.metadata,
+          first_episode: firstEpisode,
+          continuation_episode: input.episode,
+          continuation_active_ms: currentActiveMs,
+        },
+      });
     }
 
     if (input.completed && watchedMs > 0 && !parsed.completedSent) {
