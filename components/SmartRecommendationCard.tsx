@@ -379,7 +379,7 @@ export default function SmartRecommendationCard({
       ...eventContext,
     });
 
-    void persistRecommendationFeedback({
+    const persistence = persistRecommendationFeedback({
       animeId: anime.id,
       signal,
       source,
@@ -402,7 +402,9 @@ export default function SmartRecommendationCard({
       label: policy.label,
       undo: () => {
         writeTasteProfile(previousProfile);
-        void clearRecommendationFeedback(anime.id);
+        void persistence.finally(() => {
+          void clearRecommendationFeedback(anime.id);
+        });
       },
     });
   }
