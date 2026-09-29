@@ -165,6 +165,7 @@ export default function SmartRecommendationCard({
     seasonRelation,
     season,
     seasonYear,
+    diversity,
   } = recommendation;
   const title = getAnimeTitle(anime);
   const rootRef = useRef<HTMLElement | null>(null);
@@ -207,6 +208,12 @@ export default function SmartRecommendationCard({
     explanationContribution: primaryExplanation?.contribution,
     explanationContributionShare:
       primaryExplanation?.contributionShare,
+    diversityVersion: diversity?.version,
+    diversityOriginalRank: diversity?.originalRank,
+    diversityRerankedRank: diversity?.rerankedRank,
+    diversityPenalty: diversity?.totalPenalty,
+    diversityBoost: diversity?.totalBoost,
+    diversityRelaxed: diversity?.relaxedConstraints,
     fatigueScore,
     exposureCount7d,
     exposureCount30d,
@@ -260,6 +267,12 @@ export default function SmartRecommendationCard({
               explanationContribution: primaryExplanation?.contribution,
               explanationContributionShare:
                 primaryExplanation?.contributionShare,
+              diversityVersion: diversity?.version,
+              diversityOriginalRank: diversity?.originalRank,
+              diversityRerankedRank: diversity?.rerankedRank,
+              diversityPenalty: diversity?.totalPenalty,
+              diversityBoost: diversity?.totalBoost,
+              diversityRelaxed: diversity?.relaxedConstraints,
               franchiseContinuation,
               franchiseSeasonNumber: franchiseSeasonNumber ?? undefined,
               explorationClass,
@@ -310,6 +323,12 @@ export default function SmartRecommendationCard({
     primaryExplanation?.components,
     primaryExplanation?.contribution,
     primaryExplanation?.contributionShare,
+    diversity?.version,
+    diversity?.originalRank,
+    diversity?.rerankedRank,
+    diversity?.totalPenalty,
+    diversity?.totalBoost,
+    diversity?.relaxedConstraints,
     recommendationSessionId,
     rowId,
     runtimeIdentity,
@@ -481,6 +500,9 @@ export default function SmartRecommendationCard({
       className="smart-card"
       data-explanation-key={primaryExplanation?.key}
       data-explanation-version={explanationVersion}
+      data-diversity-version={diversity?.version}
+      data-diversity-original-rank={diversity?.originalRank}
+      data-diversity-reranked-rank={diversity?.rerankedRank}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
     >
