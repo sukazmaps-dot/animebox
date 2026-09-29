@@ -134,10 +134,6 @@ function recommendationExplorationClass(
     : 'safe';
 }
 
-function isExplorationCandidate(item: RankedRecommendation) {
-  return recommendationExplorationClass(item) === 'explore';
-}
-
 export function normalizeRecommendationExplorationRate(value?: number | null) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
