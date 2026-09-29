@@ -49,6 +49,10 @@ import {
   scoreRecommendationSeasonality,
   type RecommendationSeasonRelation,
 } from '@/lib/recommendation-seasonality';
+import {
+  recommendationFeedbackPolicy,
+  type RecommendationFeedbackSignal,
+} from '@/lib/recommendation-feedback-policy';
 
 export type RankedRecommendation = {
   anime: Anime;
@@ -275,8 +279,23 @@ function buildDirectEngagementScores(
     }
     if (event.type === 'planned') signal = signalConfig.planned;
     if (event.type === 'liked') signal = signalConfig.liked;
-    if (event.type === 'not_interested' || event.type === 'already_watched') {
-      signal = signalConfig.explicitNegative;
+
+    const feedbackSignal = (
+      [
+        'not_interested',
+        'less_like_this',
+        'already_watched',
+        'too_long',
+        'dislike_genre',
+        'dislike_setting',
+        'not_now',
+      ] as RecommendationFeedbackSignal[]
+    ).includes(event.type as RecommendationFeedbackSignal)
+      ? (event.type as RecommendationFeedbackSignal)
+      : null;
+
+    if (feedbackSignal) {
+      signal = recommendationFeedbackPolicy(feedbackSignal).engagementScore;
     }
 
     if (signal === 0) continue;
@@ -327,6 +346,12 @@ export function getPersonalizedRecommendations(
   const tasteGraph = options?.tasteGraph ?? readCachedTasteGraph();
 
   const hiddenIds = new Set(profile.hiddenAnimeIds);
+  const snoozedIds = new Set(
+    Object.entries(profile.snoozedAnimeUntil)
+      .filter(([, until]) => until > Date.now())
+      .map(([id]) => Number(id))
+      .filter((id) => Number.isSafeInteger(id) && id > 0),
+  );
   const explicitlyWatchedIds = new Set(profile.alreadyWatchedAnimeIds);
   const likedIds = new Set(profile.likedAnimeIds);
   const watchedIds = new Set(history.map((item) => item.id));
@@ -412,6 +437,7 @@ export function getPersonalizedRecommendations(
 
   const scored = uniqueById(candidates)
     .filter((anime) => !hiddenIds.has(anime.id))
+    .filter((anime) => !snoozedIds.has(anime.id))
     .filter((anime) => !explicitlyWatchedIds.has(anime.id))
     .filter((anime) => !likedIds.has(anime.id))
     .filter((anime) => !watchedIds.has(anime.id))
