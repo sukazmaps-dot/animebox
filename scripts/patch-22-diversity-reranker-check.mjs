@@ -21,6 +21,7 @@ for (const [label, source, needle] of [
   ['bounded candidate window', diversity, 'candidateWindowMultiplier: 6'],
   ['top relevance lock', diversity, 'lockTopResult: true'],
   ['relevance floor', diversity, 'function relevanceFloor('],
+  ['relevance anchor hoisted per pass', diversity, 'const anchorScore = remaining.reduce('],
   ['family cap', diversity, 'maxFamilyPerFeed: 1'],
   ['genre concentration', diversity, 'genreConcentrationPenalty'],
   ['studio repetition', diversity, 'studioRepeatPenalty'],
@@ -47,6 +48,10 @@ for (const [label, source, needle] of [
   if (!source.includes(needle)) {
     failures.push(`${label}: missing ${needle}`);
   }
+}
+
+if (diversity.includes('Math.max(...remaining.map')) {
+  failures.push('relevance anchor regressed to O(n²) work inside each candidate evaluation');
 }
 
 if (!failures.length) {
