@@ -2,6 +2,7 @@ import type { Anime } from '@/types/anime';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 import {
   recommendationFeedbackPolicy,
+  RECOMMENDATION_FEEDBACK_POLICY_VERSION,
   type RecommendationFeedbackSignal,
 } from '@/lib/recommendation-feedback-policy';
 
@@ -486,6 +487,9 @@ export function trackRecommendationEvent(
         season: event.season ?? null,
         season_year: event.seasonYear ?? null,
         feedback_signal: event.feedbackSignal ?? null,
+        feedback_policy_version: event.feedbackSignal
+          ? RECOMMENDATION_FEEDBACK_POLICY_VERSION
+          : null,
         model_version: algorithmVersion,
         algorithm_version: algorithmVersion,
       },
