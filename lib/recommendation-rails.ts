@@ -9,6 +9,7 @@ export type RecommendationRailId =
   | 'taste_lane'
   | 'quick_watch'
   | 'hidden_gems'
+  | 'seasonal'
   | 'explore'
   | 'endless';
 
@@ -69,6 +70,7 @@ export function orderRecommendationRails(
         ? explorationRate >= 0.12 ? 25 : 32
         : 24;
     }
+    if (rail.id === 'seasonal') return options.hasWatchHistory ? 18 : 26;
     if (rail.id === 'endless') return 100;
 
     if (!options.hasWatchHistory) {
@@ -151,6 +153,9 @@ export function recommendationMatchesRail(
   if (rail.id === 'top_match' || rail.id === 'endless') return true;
   if (rail.id === 'story_continues') return item.franchiseContinuation;
   if (rail.id === 'hidden_gems') return item.hiddenGemScore >= 0.58;
+  if (rail.id === 'seasonal') {
+    return item.seasonRelation === 'current' && item.seasonalScore >= 0.24;
+  }
   if (rail.id === 'mood_lane') return item.ranking.components.mood > 0;
   if (rail.id === 'quick_watch') return isShortWatch(item);
   if (rail.id === 'explore') {
@@ -180,6 +185,10 @@ export function recommendationMatchesRailRelaxed(
 
   if (rail.id === 'hidden_gems') {
     return item.hiddenGemScore >= 0.48;
+  }
+
+  if (rail.id === 'seasonal') {
+    return item.seasonRelation === 'current' && item.seasonalScore >= 0.18;
   }
 
   if (rail.id === 'explore') {
@@ -309,6 +318,33 @@ export function buildRecommendationRailLayout(
         source: 'smart_feed_mood_lane',
         badge: 'НАСТРОЕНИЕ',
         items: moodLane,
+      });
+    }
+  }
+
+  const seasonalCandidates = pool.filter(
+    (item) =>
+      item.seasonRelation === 'current' &&
+      item.seasonalScore >= 0.24,
+  );
+
+  if (seasonalCandidates.length >= 3 || (seasonalCandidates.length > 0 && options.hasMore)) {
+    const seasonal = take(
+      'seasonal',
+      (item) =>
+        item.seasonRelation === 'current' &&
+        item.seasonalScore >= 0.24,
+    );
+
+    if (seasonal.length > 0) {
+      rails.push({
+        id: 'seasonal',
+        title: 'Из этого сезона для тебя',
+        subtitle:
+          'Свежие тайтлы текущего сезона, которые проходят порог совпадения с твоим вкусом.',
+        source: 'smart_feed_seasonal',
+        badge: 'СЕЗОН',
+        items: seasonal,
       });
     }
   }
