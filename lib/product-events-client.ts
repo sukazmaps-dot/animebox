@@ -247,6 +247,11 @@ function recommendationStartedEvent(options: TrackOptions): ClientEvent | null {
       source?: string | null;
       matchScore?: number | null;
       reason?: string | null;
+      explanationVersion?: string | null;
+      explanationKey?: string | null;
+      explanationComponents?: string[] | null;
+      explanationContribution?: number | null;
+      explanationContributionShare?: number | null;
     };
     const openedAt = Number(parsed.openedAt ?? 0);
     if (!openedAt || Date.now() - openedAt > RECOMMENDATION_ATTRIBUTION_TTL_MS) {
@@ -278,6 +283,14 @@ function recommendationStartedEvent(options: TrackOptions): ClientEvent | null {
         mood: parsed.mood ?? null,
         match_score: parsed.matchScore ?? null,
         reason: parsed.reason?.slice(0, 180) ?? null,
+        explanation_version: parsed.explanationVersion ?? null,
+        explanation_key: parsed.explanationKey ?? null,
+        explanation_components:
+          parsed.explanationComponents?.slice(0, 4) ?? null,
+        explanation_contribution:
+          parsed.explanationContribution ?? null,
+        explanation_contribution_share:
+          parsed.explanationContributionShare ?? null,
         player_source: options.source ?? null,
       },
     };
@@ -307,6 +320,11 @@ type RecommendationAttributionState = {
   source?: string | null;
   matchScore?: number | null;
   reason?: string | null;
+  explanationVersion?: string | null;
+  explanationKey?: string | null;
+  explanationComponents?: string[] | null;
+  explanationContribution?: number | null;
+  explanationContributionShare?: number | null;
 };
 
 export function trackRecommendationWatchProgress(input: {
@@ -376,6 +394,14 @@ export function trackRecommendationWatchProgress(input: {
         mood: parsed.mood ?? null,
         match_score: parsed.matchScore ?? null,
         reason: parsed.reason?.slice(0, 180) ?? null,
+        explanation_version: parsed.explanationVersion ?? null,
+        explanation_key: parsed.explanationKey ?? null,
+        explanation_components:
+          parsed.explanationComponents?.slice(0, 4) ?? null,
+        explanation_contribution:
+          parsed.explanationContribution ?? null,
+        explanation_contribution_share:
+          parsed.explanationContributionShare ?? null,
       },
     } as const;
 
