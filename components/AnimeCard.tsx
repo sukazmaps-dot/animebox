@@ -97,7 +97,7 @@ export default function AnimeCard({
             className="anime-card__image"
             loading={imageLoading}
             fetchPriority={imageFetchPriority}
-            sizes={MEDIA_CARD_SIZES}
+            sizes={MEDIA_ANIME_CARD_SIZES}
             quality={60}
             sourcePreference="compact"
             preset="card"
