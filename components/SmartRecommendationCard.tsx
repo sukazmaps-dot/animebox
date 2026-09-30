@@ -10,7 +10,7 @@ import { getAnimeTitle } from '@/lib/anime-display';
 import { formatAnimeScore } from '@/lib/anime-score';
 import {
   MEDIA_CARD_PRIORITY_COUNT,
-  MEDIA_CARD_SIZES,
+  MEDIA_SMART_CARD_SIZES,
 } from '@/lib/media-delivery';
 import { communityRequest } from '@/lib/community-client';
 import {
