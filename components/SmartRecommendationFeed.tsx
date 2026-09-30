@@ -507,7 +507,7 @@ export default function SmartRecommendationFeed({
     () => readCachedTasteGraph(),
   );
   const latestTasteGraphRef = useRef<TasteGraph | null>(tasteGraph);
-  const railOrderRef = useRef<RecommendationRailId[]>([]);
+  const [railOrder, setRailOrder] = useState<RecommendationRailId[]>([]);
 
   const bucket = useMemo(() => getSessionBucket(sessionId), [sessionId]);
 
@@ -572,7 +572,7 @@ export default function SmartRecommendationFeed({
         );
         railOwnershipRef.current = new Map();
         setRailOwnership(new Map());
-        railOrderRef.current = [];
+        setRailOrder([]);
         railVirtualMetricsRef.current = new Map();
         sparseRailSectionRefs.current = new Map();
         sparseRailPrimedRef.current = new Set();
@@ -698,21 +698,31 @@ export default function SmartRecommendationFeed({
     railOwnershipRef.current = railLayout.ownership;
   }, [railLayout.ownership]);
 
+  useEffect(() => {
+    setRailOrder((current) => {
+      const next = [...current];
+
+      for (const rail of railLayout.rails) {
+        if (!next.includes(rail.id)) next.push(rail.id);
+      }
+
+      return next.length === current.length ? current : next;
+    });
+  }, [railLayout.rails]);
+
   const rails = useMemo(() => {
     const byId = new Map(
       railLayout.rails.map((rail) => [rail.id, rail] as const),
     );
+    const order =
+      railOrder.length > 0
+        ? railOrder
+        : railLayout.rails.map((rail) => rail.id);
 
-    for (const rail of railLayout.rails) {
-      if (!railOrderRef.current.includes(rail.id)) {
-        railOrderRef.current.push(rail.id);
-      }
-    }
-
-    return railOrderRef.current
+    return order
       .map((id) => byId.get(id))
       .filter((rail): rail is RecommendationRail => Boolean(rail));
-  }, [railLayout.rails]);
+  }, [railLayout.rails, railOrder]);
 
   const midFeedInsertAfterIndex = useMemo(
     () => (midFeedSlot ? getHomeScheduleInsertionIndex(rails) : -1),
