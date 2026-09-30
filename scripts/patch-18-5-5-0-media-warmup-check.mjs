@@ -21,8 +21,8 @@ for (const needle of [
   "effectiveType === 'slow-2g'",
   "effectiveType === '2g'",
   "effectiveType === '3g'",
-  "'700px 900px 1600px 900px'",
-  "'100px 80px 160px 80px'",
+  "'700px 720px 1600px 720px'",
+  "'100px 48px 160px 48px'",
   "callback?.('warm')",
   "callback('native-lazy')",
 ]) {
