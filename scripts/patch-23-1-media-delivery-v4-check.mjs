@@ -33,7 +33,7 @@ for (const [label, source, needle] of [
   ['generic card shared sizes', animeCard, 'sizes={MEDIA_CARD_SIZES}'],
   ['smart card shared sizes', smartCard, 'sizes={MEDIA_CARD_SIZES}'],
   ['top match priority scope', smartCard, "rowId === 'top_match'"],
-  ['top match priority count', smartCard, 'position < MEDIA_CARD_PRIORITY_COUNT'],
+  ['top match priority count', smartCard, 'position <= MEDIA_CARD_PRIORITY_COUNT'],
   ['worker variant coalescing', worker, 'inFlightOriginFetches'],
   ['worker source coalescing', worker, 'inFlightSourceProbes'],
   ['worker stale cache', worker, 'stale-while-revalidate'],
