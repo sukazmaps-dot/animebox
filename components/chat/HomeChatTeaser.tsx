@@ -32,12 +32,35 @@ export default function HomeChatTeaser() {
 
   useEffect(() => {
     if (window.matchMedia('(max-width: 768px)').matches) return;
+
     const controller = new AbortController();
+    let timer: number | null = null;
+    let idleHandle: number | null = null;
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (
+        callback: IdleRequestCallback,
+        options?: IdleRequestOptions,
+      ) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+
     const run = () => {
-      void fetch('/api/chat/teaser', { signal: controller.signal, cache: 'default' })
-        .then((response) => (response.ok ? response.json() : Promise.reject(new Error('chat teaser'))))
+      void fetch('/api/chat/teaser', {
+        signal: controller.signal,
+        cache: 'default',
+      })
+        .then((response) =>
+          response.ok
+            ? response.json()
+            : Promise.reject(new Error('chat teaser')),
+        )
         .then((data: { messages?: HomeChatTeaserMessage[] }) => {
-          if (!controller.signal.aborted && Array.isArray(data.messages)) setMessages(data.messages);
+          if (
+            !controller.signal.aborted &&
+            Array.isArray(data.messages)
+          ) {
+            setMessages(data.messages);
+          }
         })
         .catch((error) => {
           if (!(error instanceof Error && error.name === 'AbortError')) {
@@ -46,24 +69,16 @@ export default function HomeChatTeaser() {
         });
     };
 
-    let started = false;
-    const start = () => {
-      if (started) return;
-      started = true;
-      run();
-    };
-
-    const timer = window.setTimeout(start, 6_000);
-    window.addEventListener('pointerdown', start, { once: true, passive: true });
-    window.addEventListener('wheel', start, { once: true, passive: true });
-    window.addEventListener('keydown', start, { once: true });
+    if (idleWindow.requestIdleCallback) {
+      idleHandle = idleWindow.requestIdleCallback(run, { timeout: 900 });
+    } else {
+      timer = window.setTimeout(run, 320);
+    }
 
     return () => {
       controller.abort();
-      window.clearTimeout(timer);
-      window.removeEventListener('pointerdown', start);
-      window.removeEventListener('wheel', start);
-      window.removeEventListener('keydown', start);
+      if (timer !== null) window.clearTimeout(timer);
+      if (idleHandle !== null) idleWindow.cancelIdleCallback?.(idleHandle);
     };
   }, []);
   return (
