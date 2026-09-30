@@ -504,7 +504,7 @@ export function buildRecommendationRailLayout(
       id: 'endless',
       title: 'Ещё для тебя',
       subtitle:
-        'Продолжай листать — AnimeBox догружает новые кандидаты и пересобирает выдачу под твой вкус.',
+        'Продолжай листать — AnimeBox заранее готовит новые варианты и добавляет их справа, не переставляя уже показанные карточки.',
       source: 'smart_feed_endless',
       badge: 'ДЛЯ ТЕБЯ',
       items: endlessItems,
