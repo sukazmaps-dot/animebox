@@ -16,6 +16,7 @@ for (const [label, source, needle] of [
   ['media v4 version', media, "MEDIA_DELIVERY_VERSION = '23.1-media-v4'"],
   ['priority budget', media, 'MEDIA_CARD_PRIORITY_COUNT = 4'],
   ['shared card sizes', media, 'MEDIA_CARD_SIZES'],
+  ['mobile 162px cap', media, "'(max-width: 768px) 162px"],
   ['card 240 variant', media, 'widths: [240, 360, 540, 720]'],
   ['warmup v4 version', warmup, "MEDIA_WARMUP_POLICY_VERSION = '23.1-warmup-v4'"],
   ['save-data horizontal budget', warmup, "'100px 48px 160px 48px'"],
