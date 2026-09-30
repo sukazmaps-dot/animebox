@@ -51,6 +51,7 @@ export function useHomeRecommendationRuntime({
   const [recommendationsReady, setRecommendationsReady] =
     useState(false);
   const recommendationRequestRef = useRef(0);
+  const lastRankedMoodRef = useRef<TasteMood | null>(null);
 
   useEffect(() => {
     if (authLoading || !userId) return;
@@ -120,6 +121,13 @@ export function useHomeRecommendationRuntime({
   useEffect(() => {
     if (!hydrated) return;
 
+    if (
+      recommendationsReady &&
+      lastRankedMoodRef.current === mood
+    ) {
+      return;
+    }
+
     const requestId = ++recommendationRequestRef.current;
     let cancelled = false;
     let timer: number | null = null;
@@ -153,6 +161,7 @@ export function useHomeRecommendationRuntime({
             }
 
             setSmartRecommendations(next);
+            lastRankedMoodRef.current = mood;
             setRecommendationsReady(true);
           });
         })
@@ -174,10 +183,10 @@ export function useHomeRecommendationRuntime({
     if (idleWindow.requestIdleCallback) {
       idleHandle = idleWindow.requestIdleCallback(
         rank,
-        { timeout: 1_200 },
+        { timeout: 650 },
       );
     } else {
-      timer = window.setTimeout(rank, 220);
+      timer = window.setTimeout(rank, 80);
     }
 
     return () => {
@@ -198,6 +207,7 @@ export function useHomeRecommendationRuntime({
     mood,
     historyRevision,
     tasteRevision,
+    recommendationsReady,
   ]);
 
   const updateMood = useCallback(
