@@ -8,6 +8,10 @@ import Icon from '@/components/Icon';
 import { animeHref } from '@/lib/anime-url';
 import { getAnimeTitle } from '@/lib/anime-display';
 import { formatAnimeScore } from '@/lib/anime-score';
+import {
+  MEDIA_CARD_PRIORITY_COUNT,
+  MEDIA_CARD_SIZES,
+} from '@/lib/media-delivery';
 import { communityRequest } from '@/lib/community-client';
 import {
   clearRecommendationFeedback,
@@ -539,7 +543,13 @@ export default function SmartRecommendationCard({
             englishName={anime.title?.english || anime.title?.romaji}
             className="smart-card__image"
             loading="near"
-            sizes="(min-width: 3400px) 250px, (min-width: 3000px) 235px, (min-width: 2400px) 225px, (min-width: 1920px) 215px, (max-width: 560px) 41vw, (max-width: 900px) 27vw, (max-width: 1280px) 18vw, 205px"
+            fetchPriority={
+              rowId === 'top_match' &&
+              position < MEDIA_CARD_PRIORITY_COUNT
+                ? 'high'
+                : 'low'
+            }
+            sizes={MEDIA_CARD_SIZES}
             quality={62}
             sourcePreference="compact"
             preset="card"
