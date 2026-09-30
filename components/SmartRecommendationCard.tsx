@@ -545,7 +545,7 @@ export default function SmartRecommendationCard({
             loading="near"
             fetchPriority={
               rowId === 'top_match' &&
-              position < MEDIA_CARD_PRIORITY_COUNT
+              position <= MEDIA_CARD_PRIORITY_COUNT
                 ? 'high'
                 : 'low'
             }
