@@ -42,22 +42,26 @@ Near-mode remains the default for mass posters.
 - generic `AnimeCard` keeps its explicit caller-controlled priority API;
 - no card grid switches to global eager loading.
 
-## C. Shared card sizes contract
+## C. Surface-specific card sizes contract
 
-`MEDIA_CARD_SIZES` becomes the single responsive sizing contract for
-`AnimeCard` and `SmartRecommendationCard`.
+Media V4 deliberately separates two sizing contracts instead of pretending all
+poster surfaces have the same geometry:
 
-The card preset remains:
+- `MEDIA_SMART_CARD_SIZES` follows the Home recommendation rail. Up to 768px
+  its declared slot is capped at 162px, matching the real mobile rail CSS;
+- `MEDIA_ANIME_CARD_SIZES` remains conservative for catalogue/search grids,
+  where a two-column phone layout can produce cards wider than 162px.
+
+Both surfaces use the same bounded card variant ladder:
 
 - 240;
 - 360;
 - 540;
 - 720.
 
-Browser `srcset` selection now reflects the real card geometry. Up to 768px,
-the declared slot is capped at 162px, matching the mobile rail CSS instead of
-advertising a ~200–216px slot. This lets common DPR 2/3 phones stay on 360/540
-variants while 720 remains available for genuinely high-DPR/large slots.
+This keeps ordinary Home recommendations on 360/540 when appropriate without
+making wider Search/Catalogue cards soft on DPR 2/3 devices. 720 remains
+available when the real rendered slot and DPR justify it.
 
 ## D. Horizontal warmup V4
 
@@ -105,7 +109,8 @@ No worker behaviour is changed in 23.1-A, reducing deployment risk.
 - revisiting a virtualized card does not visibly flash a poster skeleton;
 - Top Match first viewport starts sooner;
 - neighbouring horizontal posters begin warmup before entering viewport;
-- ordinary mobile cards use the smallest suitable responsive variant;
+- Home recommendation cards use the smallest suitable responsive variant;
+- wider catalogue/search cards retain enough source resolution;
 - no media request storm is introduced;
 - circuit breaker/fallback behaviour remains intact;
 - TypeScript, lint, Patch 23.1 regression gate and production build pass.
