@@ -176,6 +176,8 @@ const LIST_QUERY = `
         }
         synonyms
         averageScore
+        popularity
+        favourites
         episodes
         nextAiringEpisode { episode }
         status
@@ -208,6 +210,8 @@ function mapMediaToAnime(
   media: AniListMedia & {
     description?: string | null;
     averageScore?: number | null;
+    popularity?: number | null;
+    favourites?: number | null;
     episodes?: number | null;
     nextAiringEpisode?: { episode?: number | null } | null;
     duration?: number | null;
@@ -279,6 +283,19 @@ function mapMediaToAnime(
     score:
       media.averageScore != null
         ? media.averageScore / 10
+        : null,
+
+    averageScore:
+      media.averageScore ?? null,
+
+    popularity:
+      typeof media.popularity === 'number' && media.popularity > 0
+        ? media.popularity
+        : null,
+
+    favourites:
+      typeof media.favourites === 'number' && media.favourites >= 0
+        ? media.favourites
         : null,
 
     episodes:
@@ -1701,6 +1718,8 @@ const RECOMMENDATIONS_QUERY = `
             }
             synonyms
             averageScore
+            popularity
+            favourites
             episodes
             nextAiringEpisode { episode }
             status

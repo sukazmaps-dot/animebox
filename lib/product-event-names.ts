@@ -50,6 +50,7 @@ export const PRODUCT_CLIENT_EVENT_NAMES = [
   'recommendation_started',
   'recommendation_watch_15m',
   'recommendation_watch_30m',
+  'recommendation_multi_episode',
   'recommendation_completed',
   'recommendation_rail_end_reached',
   'recommendation_rail_load_result',

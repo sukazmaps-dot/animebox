@@ -40,6 +40,8 @@ export type Anime = {
   description?: string | null;
   score?: number | null;
   averageScore?: number | null;
+  popularity?: number | null;
+  favourites?: number | null;
   episodes?: number | null;
   episodesAired?: number | null;
   duration?: number | null;

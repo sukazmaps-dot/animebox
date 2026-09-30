@@ -1,11 +1,16 @@
 'use client';
 
-export type RecommendationFeedbackSignal =
-  | 'like_more'
-  | 'not_interested'
-  | 'already_watched'
-  | 'less_like_this'
-  | 'hidden';
+import type { RecommendationFeedbackSignal } from '@/lib/recommendation-feedback-policy';
+
+export type { RecommendationFeedbackSignal } from '@/lib/recommendation-feedback-policy';
+
+function refreshTasteGraphAfterFeedback() {
+  void import('@/lib/taste-graph')
+    .then(({ fetchTasteGraph }) => fetchTasteGraph())
+    .catch((error) => {
+      console.debug('[Recommendations] taste refresh skipped', error);
+    });
+}
 
 export async function persistRecommendationFeedback(input: {
   animeId: number;
@@ -38,9 +43,41 @@ export async function persistRecommendationFeedback(input: {
       throw new Error(payload.error || 'Не удалось сохранить предпочтение.');
     }
 
+    refreshTasteGraphAfterFeedback();
     return true;
   } catch (error) {
     console.debug('[Recommendations] feedback sync skipped', error);
+    return false;
+  }
+}
+
+
+export async function clearRecommendationFeedback(
+  animeId: number,
+): Promise<boolean> {
+  try {
+    const response = await fetch(
+      `/api/recommendations/feedback?animeId=${encodeURIComponent(String(animeId))}`,
+      {
+        method: 'DELETE',
+        cache: 'no-store',
+        keepalive: true,
+        headers: { Accept: 'application/json' },
+      },
+    );
+
+    if (response.status === 401) return false;
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      throw new Error(payload.error || 'Не удалось отменить предпочтение.');
+    }
+
+    refreshTasteGraphAfterFeedback();
+    return true;
+  } catch (error) {
+    console.debug('[Recommendations] feedback undo skipped', error);
     return false;
   }
 }

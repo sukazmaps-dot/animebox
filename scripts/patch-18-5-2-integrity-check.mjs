@@ -66,7 +66,7 @@ const checks = [
   ['episode route has branded error boundary', episodeErrorBoundary.includes("'use client'") && episodeErrorBoundary.includes('onClick={reset}')],
 
   ['home cache version reflects verified playback rollout', homeFeed.includes('animebox-home-initial-feed-v4-verified-playback')],
-  ['recommendation cache version reflects verified playback rollout', recommendations.includes('animebox-recommendation-candidates-v7-verified-playback')],
+  ['recommendation cache version preserves verified playback and controlled exploration rollout', recommendations.includes('animebox-recommendation-candidates-v9-seasonal-freshness')],
   ['discovery cache version reflects verified playback rollout', discovery.includes('animebox-smart-discovery-v4-verified-playback')],
 ];
 

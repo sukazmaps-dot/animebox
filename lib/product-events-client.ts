@@ -245,8 +245,38 @@ function recommendationStartedEvent(options: TrackOptions): ClientEvent | null {
       position?: number | null;
       mood?: string | null;
       source?: string | null;
+      evidenceSource?: string | null;
       matchScore?: number | null;
+      tasteConfidence?: number | null;
       reason?: string | null;
+      explanationVersion?: string | null;
+      explanationKey?: string | null;
+      explanationComponents?: string[] | null;
+      explanationContribution?: number | null;
+      explanationContributionShare?: number | null;
+      diversityVersion?: string | null;
+      diversityOriginalRank?: number | null;
+      diversityRerankedRank?: number | null;
+      diversityPenalty?: number | null;
+      diversityBoost?: number | null;
+      diversityRelaxed?: boolean | null;
+      fatigueScore?: number | null;
+      exposureCount7d?: number | null;
+      exposureCount30d?: number | null;
+      sessionIntentScore?: number | null;
+      sessionIntentConfidence?: number | null;
+      completionScore?: number | null;
+      franchiseContinuation?: boolean | null;
+      franchiseSeasonNumber?: number | null;
+      explorationClass?: 'safe' | 'adjacent' | 'explore' | null;
+      noveltyScore?: number | null;
+      hiddenGemScore?: number | null;
+      popularityBand?: string | null;
+      seasonalScore?: number | null;
+      freshnessScore?: number | null;
+      seasonRelation?: string | null;
+      season?: string | null;
+      seasonYear?: number | null;
     };
     const openedAt = Number(parsed.openedAt ?? 0);
     if (!openedAt || Date.now() - openedAt > RECOMMENDATION_ATTRIBUTION_TTL_MS) {
@@ -274,10 +304,46 @@ function recommendationStartedEvent(options: TrackOptions): ClientEvent | null {
         recommendation_session_id: parsed.recommendationSessionId ?? null,
         algorithm_version: parsed.algorithmVersion ?? null,
         row_id: parsed.rowId ?? null,
+        evidence_source: parsed.evidenceSource ?? null,
         position: parsed.position ?? null,
         mood: parsed.mood ?? null,
         match_score: parsed.matchScore ?? null,
+        taste_confidence: parsed.tasteConfidence ?? null,
         reason: parsed.reason?.slice(0, 180) ?? null,
+        explanation_version: parsed.explanationVersion ?? null,
+        explanation_key: parsed.explanationKey ?? null,
+        explanation_components:
+          parsed.explanationComponents?.slice(0, 4) ?? null,
+        explanation_contribution:
+          parsed.explanationContribution ?? null,
+        explanation_contribution_share:
+          parsed.explanationContributionShare ?? null,
+        diversity_version: parsed.diversityVersion ?? null,
+        diversity_original_rank: parsed.diversityOriginalRank ?? null,
+        diversity_reranked_rank: parsed.diversityRerankedRank ?? null,
+        diversity_penalty: parsed.diversityPenalty ?? null,
+        diversity_boost: parsed.diversityBoost ?? null,
+        diversity_relaxed: parsed.diversityRelaxed ?? null,
+        fatigue_score: parsed.fatigueScore ?? null,
+        exposure_count_7d: parsed.exposureCount7d ?? null,
+        exposure_count_30d: parsed.exposureCount30d ?? null,
+        session_intent_score: parsed.sessionIntentScore ?? null,
+        session_intent_confidence:
+          parsed.sessionIntentConfidence ?? null,
+        completion_score: parsed.completionScore ?? null,
+        franchise_continuation:
+          parsed.franchiseContinuation ?? null,
+        franchise_season_number:
+          parsed.franchiseSeasonNumber ?? null,
+        exploration_class: parsed.explorationClass ?? null,
+        novelty_score: parsed.noveltyScore ?? null,
+        hidden_gem_score: parsed.hiddenGemScore ?? null,
+        popularity_band: parsed.popularityBand ?? null,
+        seasonal_score: parsed.seasonalScore ?? null,
+        freshness_score: parsed.freshnessScore ?? null,
+        season_relation: parsed.seasonRelation ?? null,
+        season: parsed.season ?? null,
+        season_year: parsed.seasonYear ?? null,
         player_source: options.source ?? null,
       },
     };
@@ -294,7 +360,9 @@ type RecommendationAttributionState = {
   watch15mSent?: boolean;
   watch30mSent?: boolean;
   completedSent?: boolean;
+  multiEpisodeSent?: boolean;
   watchedMs?: number;
+  firstEpisode?: number | null;
   lastEpisode?: number | null;
   lastEpisodeActiveMs?: number;
   recommendationId?: string | null;
@@ -305,8 +373,38 @@ type RecommendationAttributionState = {
   position?: number | null;
   mood?: string | null;
   source?: string | null;
+  evidenceSource?: string | null;
   matchScore?: number | null;
+  tasteConfidence?: number | null;
   reason?: string | null;
+  explanationVersion?: string | null;
+  explanationKey?: string | null;
+  explanationComponents?: string[] | null;
+  explanationContribution?: number | null;
+  explanationContributionShare?: number | null;
+  diversityVersion?: string | null;
+  diversityOriginalRank?: number | null;
+  diversityRerankedRank?: number | null;
+  diversityPenalty?: number | null;
+  diversityBoost?: number | null;
+  diversityRelaxed?: boolean | null;
+  fatigueScore?: number | null;
+  exposureCount7d?: number | null;
+  exposureCount30d?: number | null;
+  sessionIntentScore?: number | null;
+  sessionIntentConfidence?: number | null;
+  completionScore?: number | null;
+  franchiseContinuation?: boolean | null;
+  franchiseSeasonNumber?: number | null;
+  explorationClass?: 'safe' | 'adjacent' | 'explore' | null;
+  noveltyScore?: number | null;
+  hiddenGemScore?: number | null;
+  popularityBand?: string | null;
+  seasonalScore?: number | null;
+  freshnessScore?: number | null;
+  seasonRelation?: string | null;
+  season?: string | null;
+  seasonYear?: number | null;
 };
 
 export function trackRecommendationWatchProgress(input: {
@@ -349,10 +447,17 @@ export function trackRecommendationWatchProgress(input: {
       Math.max(0, Math.round(Number(parsed.watchedMs) || 0)) + delta,
     );
 
+    const firstEpisode =
+      Number.isSafeInteger(Number(parsed.firstEpisode)) &&
+      Number(parsed.firstEpisode) > 0
+        ? Number(parsed.firstEpisode)
+        : input.episode;
+
     const next: RecommendationAttributionState = {
       ...parsed,
       animeId: input.animeId,
       watchedMs,
+      firstEpisode,
       lastEpisode: input.episode,
       lastEpisodeActiveMs: currentActiveMs,
     };
@@ -372,10 +477,46 @@ export function trackRecommendationWatchProgress(input: {
         recommendation_session_id: parsed.recommendationSessionId ?? null,
         algorithm_version: parsed.algorithmVersion ?? null,
         row_id: parsed.rowId ?? null,
+        evidence_source: parsed.evidenceSource ?? null,
         position: parsed.position ?? null,
         mood: parsed.mood ?? null,
         match_score: parsed.matchScore ?? null,
+        taste_confidence: parsed.tasteConfidence ?? null,
         reason: parsed.reason?.slice(0, 180) ?? null,
+        explanation_version: parsed.explanationVersion ?? null,
+        explanation_key: parsed.explanationKey ?? null,
+        explanation_components:
+          parsed.explanationComponents?.slice(0, 4) ?? null,
+        explanation_contribution:
+          parsed.explanationContribution ?? null,
+        explanation_contribution_share:
+          parsed.explanationContributionShare ?? null,
+        diversity_version: parsed.diversityVersion ?? null,
+        diversity_original_rank: parsed.diversityOriginalRank ?? null,
+        diversity_reranked_rank: parsed.diversityRerankedRank ?? null,
+        diversity_penalty: parsed.diversityPenalty ?? null,
+        diversity_boost: parsed.diversityBoost ?? null,
+        diversity_relaxed: parsed.diversityRelaxed ?? null,
+        fatigue_score: parsed.fatigueScore ?? null,
+        exposure_count_7d: parsed.exposureCount7d ?? null,
+        exposure_count_30d: parsed.exposureCount30d ?? null,
+        session_intent_score: parsed.sessionIntentScore ?? null,
+        session_intent_confidence:
+          parsed.sessionIntentConfidence ?? null,
+        completion_score: parsed.completionScore ?? null,
+        franchise_continuation:
+          parsed.franchiseContinuation ?? null,
+        franchise_season_number:
+          parsed.franchiseSeasonNumber ?? null,
+        exploration_class: parsed.explorationClass ?? null,
+        novelty_score: parsed.noveltyScore ?? null,
+        hidden_gem_score: parsed.hiddenGemScore ?? null,
+        popularity_band: parsed.popularityBand ?? null,
+        seasonal_score: parsed.seasonalScore ?? null,
+        freshness_score: parsed.freshnessScore ?? null,
+        season_relation: parsed.seasonRelation ?? null,
+        season: parsed.season ?? null,
+        season_year: parsed.seasonYear ?? null,
       },
     } as const;
 
@@ -387,6 +528,23 @@ export function trackRecommendationWatchProgress(input: {
     if (watchedMs >= 30 * 60 * 1000 && !parsed.watch30mSent) {
       next.watch30mSent = true;
       trackProductClientEvent('recommendation_watch_30m', common);
+    }
+
+    if (
+      input.episode > firstEpisode &&
+      currentActiveMs >= 90_000 &&
+      !parsed.multiEpisodeSent
+    ) {
+      next.multiEpisodeSent = true;
+      trackProductClientEvent('recommendation_multi_episode', {
+        ...common,
+        metadata: {
+          ...common.metadata,
+          first_episode: firstEpisode,
+          continuation_episode: input.episode,
+          continuation_active_ms: currentActiveMs,
+        },
+      });
     }
 
     if (input.completed && watchedMs > 0 && !parsed.completedSent) {

@@ -193,3 +193,215 @@
   .home-page .smart-card__title { min-height: 2.7em; }
   .home-page .smart-card__reason { min-height: 2.8em; }
 }
+
+
+/* Patch 22 Phase H — Structured feedback 2.0 */
+.home-page .smart-card__feedback-dialog {
+  width: min(430px, calc(100vw - 24px));
+  max-height: min(76dvh, 620px);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  border: 1px solid rgba(151, 160, 188, .18);
+  border-radius: 18px;
+  background: rgba(9, 13, 24, .98);
+  color: rgba(241, 243, 249, .96);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .46);
+}
+
+.home-page .smart-card__feedback-dialog::backdrop {
+  background: rgba(3, 5, 10, .66);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.home-page .smart-card__feedback-dialog-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.home-page .smart-card__feedback-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.home-page .smart-card__feedback-dialog-head > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.home-page .smart-card__feedback-dialog-head span {
+  color: rgba(165, 147, 232, .78);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .12em;
+}
+
+.home-page .smart-card__feedback-dialog-head strong {
+  color: inherit;
+  font-size: clamp(18px, 2.2vw, 22px);
+  line-height: 1.2;
+}
+
+.home-page .smart-card__feedback-dialog-close {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border: 1px solid rgba(151, 160, 188, .16);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .025);
+  color: rgba(224, 227, 237, .74);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.home-page .smart-card__feedback-dialog-copy {
+  margin: 0;
+  color: rgba(193, 199, 217, .72);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.home-page .smart-card__feedback-dialog-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.home-page .smart-card__feedback-dialog-option {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid rgba(151, 160, 188, .14);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .022);
+  color: rgba(238, 240, 247, .94);
+  text-align: left;
+}
+
+.home-page .smart-card__feedback-dialog-option strong {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.home-page .smart-card__feedback-dialog-option span {
+  color: rgba(181, 187, 207, .68);
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.home-page .smart-card__feedback-dialog-cancel {
+  min-height: 40px;
+  border: 1px solid rgba(151, 160, 188, .14);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .02);
+  color: rgba(215, 219, 232, .76);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.home-page .smart-feed__feedback-undo {
+  position: fixed;
+  z-index: 260;
+  left: 50%;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  min-height: 46px;
+  padding: 8px 9px 8px 14px;
+  border: 1px solid rgba(151, 160, 188, .18);
+  border-radius: 13px;
+  background: rgba(9, 13, 24, .96);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, .34);
+  color: rgba(236, 239, 247, .92);
+  transform: translateX(-50%);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+.home-page .smart-feed__feedback-undo span {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-page .smart-feed__feedback-undo button {
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid rgba(157, 132, 244, .28);
+  border-radius: 9px;
+  background: rgba(111, 79, 218, .13);
+  color: rgba(226, 219, 255, .96);
+  font-size: 10.5px;
+  font-weight: 850;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-page .smart-card__feedback-dialog-option:hover,
+  .home-page .smart-card__feedback-dialog-cancel:hover,
+  .home-page .smart-card__feedback-dialog-close:hover {
+    border-color: rgba(157, 132, 244, .34);
+    background: rgba(111, 79, 218, .10);
+  }
+}
+
+html[data-animebox-theme='light'] .home-page .smart-card__feedback-dialog,
+html[data-animebox-theme='light'] .home-page .smart-feed__feedback-undo {
+  border-color: rgba(67, 55, 79, .12);
+  background: rgba(250, 248, 244, .98);
+  color: #30283a;
+  box-shadow: 0 22px 60px rgba(55, 45, 65, .16);
+}
+
+html[data-animebox-theme='light'] .home-page .smart-card__feedback-dialog-copy,
+html[data-animebox-theme='light'] .home-page .smart-card__feedback-dialog-option span {
+  color: rgba(64, 55, 74, .68);
+}
+
+html[data-animebox-theme='light'] .home-page .smart-card__feedback-dialog-option,
+html[data-animebox-theme='light'] .home-page .smart-card__feedback-dialog-cancel,
+html[data-animebox-theme='light'] .home-page .smart-card__feedback-dialog-close {
+  border-color: rgba(67, 55, 79, .11);
+  background: rgba(74, 60, 85, .025);
+  color: #30283a;
+}
+
+@media (max-width: 560px) {
+  .home-page .smart-card__feedback-dialog {
+    width: min(calc(100% - 16px), 430px);
+    max-height: 82dvh;
+    border-radius: 16px;
+  }
+
+  .home-page .smart-card__feedback-dialog-panel {
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .home-page .smart-card__feedback-dialog-options {
+    grid-template-columns: 1fr;
+  }
+
+  .home-page .smart-card__feedback-dialog-option {
+    padding: 11px 12px;
+  }
+
+  .home-page .smart-feed__feedback-undo {
+    bottom: max(10px, env(safe-area-inset-bottom));
+    width: calc(100vw - 20px);
+    justify-content: space-between;
+  }
+}

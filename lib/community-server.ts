@@ -113,6 +113,10 @@ type AnimeCatalogMetadata = {
   total_episodes: number | null;
   finished: boolean;
   genres: string[];
+  studios: string[];
+  format: string | null;
+  start_year: number | null;
+  recommendation_metadata_version: number;
   poster_url: string | null;
   slug: string | null;
   updated_at: string;
@@ -186,7 +190,7 @@ async function readAnimeCatalogRows(ids: number[]) {
     const { data, error } = await adminClient()
       .from('anime_catalog')
       .select(
-        'id,title,total_episodes,finished,genres,poster_url,slug,updated_at',
+        'id,title,total_episodes,finished,genres,studios,format,start_year,recommendation_metadata_version,poster_url,slug,updated_at',
       )
       .in('id', sorted);
 
@@ -218,10 +222,60 @@ function animePosterUrl(anime: Awaited<ReturnType<typeof getAnimeByIdWithShikimo
   );
 }
 
+function animeStudioNames(
+  anime: NonNullable<Awaited<ReturnType<typeof getAnimeByIdWithShikimori>>>,
+) {
+  const raw = anime.studios;
+  const values: unknown[] = Array.isArray(raw)
+    ? raw
+    : raw && typeof raw === 'object' && Array.isArray((raw as { nodes?: unknown[] }).nodes)
+      ? (raw as { nodes: unknown[] }).nodes
+      : [];
+
+  return [...new Set(
+    values
+      .map((value) => {
+        if (typeof value === 'string') return value.trim();
+        if (value && typeof value === 'object') {
+          const row = value as { name?: unknown; node?: { name?: unknown } };
+          if (typeof row.name === 'string') return row.name.trim();
+          if (typeof row.node?.name === 'string') return row.node.name.trim();
+        }
+        return '';
+      })
+      .filter(Boolean),
+  )].slice(0, 12);
+}
+
+function animeCatalogFinishedStatus(status: string | null | undefined) {
+  const normalized = String(status ?? '')
+    .normalize('NFKC')
+    .toLocaleLowerCase('ru-RU')
+    .replace(/ё/g, 'е')
+    .trim();
+
+  return [
+    'finished',
+    'finished_airing',
+    'released',
+    'вышло',
+    'завершено',
+  ].includes(normalized);
+}
+
 function animeCatalogPayload(
   anime: NonNullable<Awaited<ReturnType<typeof getAnimeByIdWithShikimori>>>,
-  previousGenres: string[] = [],
+  previous?: Partial<AnimeCatalogMetadata>,
 ) {
+  const startYear = Number(anime.startDate?.year ?? 0);
+  const format =
+    (typeof anime.format === 'string' && anime.format.trim()
+      ? anime.format.trim()
+      : typeof anime.kind === 'string' && anime.kind.trim()
+        ? anime.kind.trim()
+        : previous?.format) ?? null;
+  const incomingStudios = animeStudioNames(anime);
+
   return {
     id: anime.id,
     title: getAnimeTitle(anime),
@@ -229,15 +283,25 @@ function animeCatalogPayload(
       anime.episodes && anime.episodes > 0
         ? anime.episodes
         : null,
-    finished: ['FINISHED', 'released', 'Вышло'].includes(
-      anime.status ?? '',
-    ),
+    finished: animeCatalogFinishedStatus(anime.status),
     genres: [
       ...new Set([
-        ...previousGenres,
+        ...(Array.isArray(previous?.genres) ? previous.genres : []),
         ...(anime.genres ?? []),
       ]),
     ],
+    studios: [
+      ...new Set([
+        ...(Array.isArray(previous?.studios) ? previous.studios : []),
+        ...incomingStudios,
+      ]),
+    ].slice(0, 12),
+    format: format ? format.slice(0, 32) : null,
+    start_year:
+      Number.isSafeInteger(startYear) && startYear >= 1940 && startYear <= 2200
+        ? startYear
+        : previous?.start_year ?? null,
+    recommendation_metadata_version: 1,
     poster_url: animePosterUrl(anime),
     slug:
       typeof anime.slug === 'string' && anime.slug.trim()
@@ -298,13 +362,10 @@ async function refreshAnimeCatalogMetadata(
       const { data: saved, error: saveError } = await adminClient()
         .from('anime_catalog')
         .upsert(
-          animeCatalogPayload(
-            anime,
-            Array.isArray(previous?.genres) ? previous.genres : [],
-          ),
+          animeCatalogPayload(anime, previous),
         )
         .select(
-          'id,title,total_episodes,finished,genres,poster_url,slug,updated_at',
+          'id,title,total_episodes,finished,genres,studios,format,start_year,recommendation_metadata_version,poster_url,slug,updated_at',
         )
         .single();
 
@@ -361,7 +422,11 @@ export async function ensureAnimes(ids: number[]) {
 
   const refreshIds = uniqueIds.filter((id) => {
     const row = existing.get(id);
-    return !row || now - Date.parse(row.updated_at) >= 86_400_000;
+    return (
+      !row ||
+      Number(row.recommendation_metadata_version ?? 0) < 1 ||
+      now - Date.parse(row.updated_at) >= 86_400_000
+    );
   });
 
   if (refreshIds.length) {
@@ -405,7 +470,7 @@ export async function ensureAnimeArtwork(id: number) {
     : await admin
         .from('anime_catalog')
         .select(
-          'id,title,total_episodes,finished,genres,poster_url,slug,updated_at',
+          'id,title,total_episodes,finished,genres,studios,format,start_year,recommendation_metadata_version,poster_url,slug,updated_at',
         )
         .eq('id', id)
         .maybeSingle();
@@ -427,13 +492,10 @@ export async function ensureAnimeArtwork(id: number) {
   const { data: saved, error: saveError } = await admin
     .from('anime_catalog')
     .upsert(
-      animeCatalogPayload(
-        anime,
-        Array.isArray(data?.genres) ? data.genres : [],
-      ),
+      animeCatalogPayload(anime, (data ?? undefined) as AnimeCatalogMetadata | undefined),
     )
     .select(
-      'id,title,total_episodes,finished,genres,poster_url,slug,updated_at',
+      'id,title,total_episodes,finished,genres,studios,format,start_year,recommendation_metadata_version,poster_url,slug,updated_at',
     )
     .single();
 

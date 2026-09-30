@@ -10,3 +10,29 @@
 .positionStrip strong{font-size:18px}
 @media(max-width:900px){.attributionGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.positionStrip{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:540px){.attributionGrid{grid-template-columns:1fr}.positionStrip{grid-template-columns:1fr 1fr}}
+
+
+.warning{padding:13px 15px;border:1px solid rgba(245,158,11,.24);border-radius:14px;background:rgba(120,53,15,.18);color:#fde68a;font-size:12px;line-height:1.55}
+.panelMeta{color:#94a3b8;font-size:11px;text-align:right}
+.twoColumn{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.segmentGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.segmentGrid article{display:grid;gap:4px;padding:14px;border:1px solid rgba(148,163,184,.1);border-radius:14px;background:rgba(15,23,42,.28)}
+.segmentGrid span,.segmentGrid small{color:#94a3b8;font-size:11px}
+.segmentGrid strong{font-size:22px}
+.feedbackList{display:grid;gap:8px}
+.feedbackList>div{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid rgba(148,163,184,.1);border-radius:12px;background:rgba(15,23,42,.26)}
+.feedbackList span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e2e8f0;font-size:12px}
+.feedbackList strong{font-size:14px}
+.feedbackList small{min-width:54px;text-align:right;color:#94a3b8;font-size:11px}
+.empty{margin:0;color:#94a3b8;font-size:12px}
+.table{min-width:920px}
+@media(max-width:1100px){.segmentGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.twoColumn{grid-template-columns:1fr}}
+@media(max-width:540px){.segmentGrid{grid-template-columns:1fr}.panelMeta{text-align:left}.feedbackList>div{grid-template-columns:minmax(0,1fr) auto}.feedbackList small{grid-column:1/-1;text-align:left}}
+
+
+.analyticsHealth{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.analyticsHealth article{display:grid;gap:4px;padding:14px;border:1px solid rgba(148,163,184,.1);border-radius:14px;background:rgba(15,23,42,.28)}
+.analyticsHealth span,.analyticsHealth small{color:#94a3b8;font-size:11px}
+.analyticsHealth strong{font-size:21px}
+@media(max-width:900px){.analyticsHealth{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.analyticsHealth{grid-template-columns:1fr}}

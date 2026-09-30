@@ -10,7 +10,7 @@ const card = read('components/SmartRecommendationCard.tsx');
 const personalization = read('lib/personalization.ts');
 const ranking = read('lib/recommendation-ranking-config.ts');
 const diversity = read('lib/recommendation-diversity.ts');
-const analytics = read('lib/recommendation-analytics-server.ts');
+const analytics = read('lib/recommendation-analytics-core.ts');
 const analyticsUi = read('components/admin/RecommendationAnalyticsDashboard.tsx');
 
 const failures = [];
@@ -55,7 +55,7 @@ if (
 }
 
 if (
-  !personalization.includes("RECOMMENDATION_ALGORITHM_VERSION = '18.3-v1'") ||
+  !personalization.includes("RECOMMENDATION_ALGORITHM_VERSION = '22.6-v1'") ||
   !personalization.includes('negativeGenreWeights') ||
   !ranking.includes('sessionNegativeAffinity')
 ) {
@@ -63,13 +63,17 @@ if (
 }
 
 for (const needle of [
-  "RECOMMENDATION_DIVERSITY_VERSION = '18.3-diversity-v2'",
-  'maxRecentGenreShare',
+  "RECOMMENDATION_DIVERSITY_VERSION = '22.6-diversity-v3'",
+  'recommendationDiversityShareTargets',
+  'studioRepeatPenalty',
   'formatRepeatPenalty',
-  'yearBucketRepeatPenalty',
+  'eraRepeatPenalty',
+  'sourceRepeatPenalty',
+  'popularityRepeatPenalty',
+  'relevanceFloor(',
 ]) {
   if (!diversity.includes(needle)) {
-    failures.push(`Diversity v2 missing: ${needle}`);
+    failures.push(`Diversity v3 missing: ${needle}`);
   }
 }
 

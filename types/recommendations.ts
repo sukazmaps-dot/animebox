@@ -5,7 +5,9 @@ export type RecommendationCandidateSource =
   | 'popularity'
   | 'ongoing'
   | 'preferred_genre'
-  | 'mood';
+  | 'mood'
+  | 'hidden_gem'
+  | 'seasonal';
 
 /**
  * Public candidate page for the Smart Feed.
@@ -23,4 +25,7 @@ export type RecommendationPage = {
   fallbackFrom?: RecommendationCandidateSource | null;
   tasteGenre?: string | null;
   mood?: 'any' | 'comfort' | 'tension' | 'emotion' | 'adventure';
+  season?: 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL';
+  seasonYear?: number;
+  contractVersion?: string;
 };

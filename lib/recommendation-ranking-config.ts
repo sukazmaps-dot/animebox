@@ -1,4 +1,4 @@
-export const RECOMMENDATION_RANKING_VERSION = '18.3-v1';
+export const RECOMMENDATION_RANKING_VERSION = '22.6-v1';
 
 export const RECOMMENDATION_RANKING_WEIGHTS = {
   genre: {
@@ -8,9 +8,21 @@ export const RECOMMENDATION_RANKING_WEIGHTS = {
   tasteGraphPositive: 0.25,
   completedAffinity: 0.13,
   studioAffinity: 0.08,
+  formatAffinity: 0.055,
+  eraAffinity: 0.045,
+  statusAffinity: 0.05,
   tasteGraphNegative: 0.32,
+  metadataNegativeAffinity: 0.16,
   sessionNegativeAffinity: 0.26,
+  sessionIntent: 0.16,
+  completionLikelihood: 0.18,
+  franchiseContinuation: 0.24,
+  novelty: 0.08,
+  hiddenGem: 0.11,
+  popularityBias: 0.07,
+  seasonalFreshness: 0.12,
   episodeLength: 0.07,
+  episodeLengthNegative: 0.18,
   mood: {
     personalized: 0.18,
     coldStart: 0.38,
@@ -20,6 +32,7 @@ export const RECOMMENDATION_RANKING_WEIGHTS = {
     coldStart: 0.28,
   },
   negativeEngagement: 0.9,
+  exposureFatigue: 0.38,
 } as const;
 
 export const RECOMMENDATION_ENGAGEMENT_SIGNALS = {
@@ -40,11 +53,16 @@ export const RECOMMENDATION_MATCH_WEIGHTS = {
   tasteGraphPositive: 0.26,
   completedAffinity: 0.14,
   studioAffinity: 0.08,
+  formatAffinity: 0.05,
+  eraAffinity: 0.04,
+  statusAffinity: 0.04,
   mood: 0.16,
   episodeLength: 0.08,
+  episodeLengthNegative: 0.12,
   communityQuality: 0.12,
   shortFinished: 0.7,
   tasteGraphNegative: 0.24,
+  metadataNegativeAffinity: 0.12,
   sessionNegativeAffinity: 0.16,
 } as const;
 
@@ -53,14 +71,27 @@ export type RecommendationScoreSignals = {
   tasteGraphPositive: number;
   completedAffinity: number;
   studioAffinity: number;
+  formatAffinity: number;
+  eraAffinity: number;
+  statusAffinity: number;
   tasteGraphNegative: number;
+  metadataNegativeAffinity: number;
   sessionNegativeAffinity: number;
+  sessionIntent: number;
+  completionLikelihood: number;
+  franchiseContinuation: number;
+  novelty: number;
+  hiddenGem: number;
+  popularityBias: number;
+  seasonalFreshness: number;
   episodeLength: number;
+  episodeLengthNegative: number;
   mood: number;
   communityQuality: number;
   shortFinished: number;
   engagementPositive: number;
   engagementNegative: number;
+  exposureFatigue: number;
   discovery: number;
   ongoing: number;
   duplicateTitle: number;
@@ -71,14 +102,27 @@ export type RecommendationScoreComponents = {
   tasteGraphPositive: number;
   completedAffinity: number;
   studioAffinity: number;
+  formatAffinity: number;
+  eraAffinity: number;
+  statusAffinity: number;
   tasteGraphNegative: number;
+  metadataNegativeAffinity: number;
   sessionNegativeAffinity: number;
+  sessionIntent: number;
+  completionLikelihood: number;
+  franchiseContinuation: number;
+  novelty: number;
+  hiddenGem: number;
+  popularityBias: number;
+  seasonalFreshness: number;
   episodeLength: number;
+  episodeLengthNegative: number;
   mood: number;
   communityQuality: number;
   shortFinished: number;
   engagementPositive: number;
   engagementNegative: number;
+  exposureFatigue: number;
   discovery: number;
   ongoing: number;
   duplicateTitle: number;
@@ -118,13 +162,35 @@ export function scoreRecommendation(
       finite(signals.completedAffinity) * weights.completedAffinity,
     studioAffinity:
       finite(signals.studioAffinity) * weights.studioAffinity,
+    formatAffinity:
+      finite(signals.formatAffinity) * weights.formatAffinity,
+    eraAffinity:
+      finite(signals.eraAffinity) * weights.eraAffinity,
+    statusAffinity:
+      finite(signals.statusAffinity) * weights.statusAffinity,
     tasteGraphNegative:
       -finite(signals.tasteGraphNegative) * weights.tasteGraphNegative,
+    metadataNegativeAffinity:
+      -finite(signals.metadataNegativeAffinity) * weights.metadataNegativeAffinity,
     sessionNegativeAffinity:
       -finite(signals.sessionNegativeAffinity) * weights.sessionNegativeAffinity,
+    sessionIntent:
+      finite(signals.sessionIntent) * weights.sessionIntent,
+    completionLikelihood:
+      finite(signals.completionLikelihood) * weights.completionLikelihood,
+    franchiseContinuation:
+      finite(signals.franchiseContinuation) * weights.franchiseContinuation,
+    novelty: finite(signals.novelty) * weights.novelty,
+    hiddenGem: finite(signals.hiddenGem) * weights.hiddenGem,
+    popularityBias: -finite(signals.popularityBias) * weights.popularityBias,
+    seasonalFreshness:
+      finite(signals.seasonalFreshness) * weights.seasonalFreshness,
     episodeLength:
       finite(signals.episodeLength) *
       (context.hasTasteConfidence ? weights.episodeLength : 0),
+    episodeLengthNegative:
+      -finite(signals.episodeLengthNegative) *
+      (context.hasTasteConfidence ? weights.episodeLengthNegative : 0),
     mood:
       finite(signals.mood) *
       (context.moodActive
@@ -141,6 +207,8 @@ export function scoreRecommendation(
     engagementPositive: finite(signals.engagementPositive),
     engagementNegative:
       -finite(signals.engagementNegative) * weights.negativeEngagement,
+    exposureFatigue:
+      -finite(signals.exposureFatigue) * weights.exposureFatigue,
     discovery: finite(signals.discovery),
     ongoing: finite(signals.ongoing),
     duplicateTitle: finite(signals.duplicateTitle),
@@ -165,9 +233,14 @@ export function recommendationMatchBasis(
     | 'tasteGraphPositive'
     | 'completedAffinity'
     | 'studioAffinity'
+    | 'formatAffinity'
+    | 'eraAffinity'
+    | 'statusAffinity'
     | 'tasteGraphNegative'
+    | 'metadataNegativeAffinity'
     | 'sessionNegativeAffinity'
     | 'episodeLength'
+    | 'episodeLengthNegative'
     | 'mood'
     | 'communityQuality'
     | 'shortFinished'
@@ -180,11 +253,17 @@ export function recommendationMatchBasis(
       finite(signals.tasteGraphPositive) * weights.tasteGraphPositive +
       finite(signals.completedAffinity) * weights.completedAffinity +
       finite(signals.studioAffinity) * weights.studioAffinity +
+      finite(signals.formatAffinity) * weights.formatAffinity +
+      finite(signals.eraAffinity) * weights.eraAffinity +
+      finite(signals.statusAffinity) * weights.statusAffinity +
       finite(signals.mood) * weights.mood +
-      finite(signals.episodeLength) * weights.episodeLength +
+      finite(signals.episodeLength) * weights.episodeLength -
+      finite(signals.episodeLengthNegative) * weights.episodeLengthNegative +
       finite(signals.communityQuality) * weights.communityQuality +
       finite(signals.shortFinished) * weights.shortFinished -
       finite(signals.tasteGraphNegative) * weights.tasteGraphNegative -
+      finite(signals.metadataNegativeAffinity) *
+        weights.metadataNegativeAffinity -
       finite(signals.sessionNegativeAffinity) *
         weights.sessionNegativeAffinity,
   );

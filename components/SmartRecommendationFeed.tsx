@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  Fragment,
   startTransition,
   useCallback,
   useEffect,
@@ -9,11 +10,15 @@ import {
   useState,
 } from 'react';
 
-import SmartRecommendationCard from '@/components/SmartRecommendationCard';
+import SmartRecommendationCard, {
+  type RecommendationFeedbackUndoPayload,
+} from '@/components/SmartRecommendationCard';
 import { RecommendationCardSkeleton } from '@/components/home/HomeLoadingSkeletons';
 import ScrollRow, {
   type ScrollRowVirtualMetrics,
 } from '@/components/ui/ScrollRow';
+import type { ReactNode } from 'react';
+
 import type { TasteMood } from '@/lib/personalization';
 import {
   getPersonalizedRecommendations,
@@ -26,6 +31,7 @@ import {
   recommendationMatchesRail,
   recommendationMatchesRailRelaxed,
   RECOMMENDATION_RAIL_BATCH_SIZE,
+  getHomeScheduleInsertionIndex,
   type RecommendationRail,
   type RecommendationRailId,
   type RecommendationRailLimits,
@@ -40,6 +46,10 @@ const PAGE_SIZE = 20;
 const MAX_EMPTY_PAGE_HOPS = 6;
 const STRICT_EMPTY_PAGE_HOPS = 3;
 const CLIENT_PAGE_CACHE_TTL_MS = 15 * 60 * 1000;
+const CANDIDATE_REQUEST_TIMEOUT_MS = 7_000;
+const CANDIDATE_TRANSIENT_RETRY_DELAY_MS = 240;
+const CANDIDATE_MAX_ATTEMPTS = 2;
+const TRANSIENT_CANDIDATE_HTTP_STATUSES = new Set([429, 502, 503, 504]);
 const CLIENT_PAGE_CACHE_PREFIX = 'animebox:recommendation-page:v6:';
 const MAX_SESSION_CACHE_ENTRIES = 14;
 const MOOD_SWAP_FADE_OUT_MS = 135;
@@ -129,7 +139,7 @@ function readSessionPage(key: string): RecommendationPage | null {
       typeof parsed.expiresAt !== 'number' ||
       parsed.expiresAt <= Date.now() ||
       !parsed.data ||
-      !Array.isArray(parsed.data.items)
+      !isValidRecommendationPage(parsed.data)
     ) {
       window.sessionStorage.removeItem(key);
       return null;
@@ -170,6 +180,142 @@ function trimSessionPageCache(): void {
   } catch {
     // Safari/private mode can reject storage access. Network cache still works.
   }
+}
+
+function isValidRecommendationPage(value: unknown): value is RecommendationPage {
+  if (!value || typeof value !== 'object') return false;
+
+  const page = value as Partial<RecommendationPage>;
+  const nextPageValid =
+    page.nextPage === null ||
+    (Number.isSafeInteger(page.nextPage) && Number(page.nextPage) > 0);
+  const nextCursorValid =
+    page.nextCursor === null ||
+    (typeof page.nextCursor === 'string' && page.nextCursor.length <= 96);
+
+  return (
+    Array.isArray(page.items) &&
+    Number.isSafeInteger(page.page) &&
+    Number(page.page) > 0 &&
+    typeof page.hasMore === 'boolean' &&
+    Number.isSafeInteger(page.bucket) &&
+    Number(page.bucket) >= 0 &&
+    Number(page.bucket) <= 3 &&
+    nextPageValid &&
+    nextCursorValid
+  );
+}
+
+function abortableDelay(ms: number, signal?: AbortSignal): Promise<void> {
+  if (signal?.aborted) {
+    return Promise.reject(new DOMException('Aborted', 'AbortError'));
+  }
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+
+    const cleanup = () => {
+      signal?.removeEventListener('abort', onAbort);
+    };
+
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve();
+    };
+
+    const onAbort = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      cleanup();
+      reject(new DOMException('Aborted', 'AbortError'));
+    };
+
+    const timer = window.setTimeout(finish, ms);
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+async function fetchCandidatePayload(
+  url: string,
+  signal?: AbortSignal,
+): Promise<RecommendationPage> {
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt < CANDIDATE_MAX_ATTEMPTS; attempt += 1) {
+    if (signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+
+    const controller = new AbortController();
+    let timedOut = false;
+    const onAbort = () => controller.abort();
+
+    signal?.addEventListener('abort', onAbort, { once: true });
+    const timeout = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, CANDIDATE_REQUEST_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        cache: 'default',
+        headers: {
+          Accept: 'application/json',
+        },
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const error = new Error(`Recommendation HTTP ${response.status}`) as Error & {
+          status?: number;
+        };
+        error.status = response.status;
+        throw error;
+      }
+
+      const payload = (await response.json()) as unknown;
+      if (!isValidRecommendationPage(payload)) {
+        throw new Error('Recommendation payload contract mismatch');
+      }
+
+      return payload;
+    } catch (error) {
+      if (signal?.aborted) {
+        throw new DOMException('Aborted', 'AbortError');
+      }
+
+      lastError = timedOut
+        ? new Error('Recommendation request timeout')
+        : error;
+
+      const status =
+        error instanceof Error &&
+        'status' in error &&
+        typeof (error as { status?: unknown }).status === 'number'
+          ? Number((error as { status: number }).status)
+          : null;
+      const transient =
+        timedOut ||
+        (status != null && TRANSIENT_CANDIDATE_HTTP_STATUSES.has(status));
+
+      if (!transient || attempt + 1 >= CANDIDATE_MAX_ATTEMPTS) {
+        throw lastError;
+      }
+
+      await abortableDelay(CANDIDATE_TRANSIENT_RETRY_DELAY_MS, signal);
+    } finally {
+      window.clearTimeout(timeout);
+      signal?.removeEventListener('abort', onAbort);
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('Recommendation candidate request failed');
 }
 
 function writeCachedPage(key: string, data: RecommendationPage): void {
@@ -251,20 +397,11 @@ async function loadCandidatePage(
     params.set('genre', context.genre);
   }
 
-  const request = fetch(`/api/recommendations?${params.toString()}`, {
-    method: 'GET',
-    cache: 'default',
-    headers: {
-      Accept: 'application/json',
-    },
+  const request = fetchCandidatePayload(
+    `/api/recommendations?${params.toString()}`,
     signal,
-  })
-    .then(async (response) => {
-      if (!response.ok) {
-        throw new Error(`Recommendation HTTP ${response.status}`);
-      }
-
-      const data = (await response.json()) as RecommendationPage;
+  )
+    .then((data) => {
       writeCachedPage(key, data);
       return data;
     })
@@ -310,10 +447,12 @@ export default function SmartRecommendationFeed({
   items,
   mood,
   hasWatchHistory,
+  midFeedSlot = null,
 }: {
   items: RankedRecommendation[];
   mood: TasteMood;
   hasWatchHistory: boolean;
+  midFeedSlot?: ReactNode;
 }) {
   const previousMoodRef = useRef(mood);
   const pendingItemsRef = useRef(items);
@@ -347,6 +486,8 @@ export default function SmartRecommendationFeed({
   );
   const [locallyHidden, setLocallyHidden] =
     useState<Set<number>>(() => new Set());
+  const [feedbackUndo, setFeedbackUndo] =
+    useState<RecommendationFeedbackUndoPayload | null>(null);
   const [pointer, setPointer] = useState<CandidatePointer>({
     page: 2,
     cursor: null,
@@ -466,12 +607,23 @@ export default function SmartRecommendationFeed({
       unseen.forEach(({ anime }) =>
         seenRecommendationIdsRef.current.add(anime.id),
       );
-      setRecommendations((current) => mergeUnique(current, unseen));
+      setRecommendations((current) => {
+        const merged = mergeUnique(current, unseen);
+        return getPersonalizedRecommendations(
+          merged.map(({ anime }) => anime),
+          {
+            mood,
+            limit: merged.length,
+            tasteGraph,
+          },
+        );
+      });
     }
   }, [
     initialSignature,
     items,
     mood,
+    tasteGraph,
     replaceHasMore,
     replacePointer,
     resetRequestController,
@@ -552,6 +704,10 @@ export default function SmartRecommendationFeed({
   }, [railLayout.ownership]);
 
   const rails = railLayout.rails;
+  const midFeedInsertAfterIndex = useMemo(
+    () => (midFeedSlot ? getHomeScheduleInsertionIndex(rails) : -1),
+    [midFeedSlot, rails],
+  );
 
   const fetchNextCandidateBatch = useCallback(async () => {
     if (!hasMoreRef.current || moodTransitionRef.current) return [];
@@ -602,7 +758,17 @@ export default function SmartRecommendationFeed({
 
         if (fresh.length) {
           startTransition(() => {
-            setRecommendations((current) => mergeUnique(current, fresh));
+            setRecommendations((current) => {
+              const merged = mergeUnique(current, fresh);
+              return getPersonalizedRecommendations(
+                merged.map(({ anime }) => anime),
+                {
+                  mood: displayedMood,
+                  limit: merged.length,
+                  tasteGraph,
+                },
+              );
+            });
           });
 
           // A rail can be temporarily sparse for one cursor window. When
@@ -695,6 +861,53 @@ export default function SmartRecommendationFeed({
     },
     [displayedMood, tasteGraph],
   );
+
+  const handleFeedbackApplied = useCallback(
+    (payload: RecommendationFeedbackUndoPayload) => {
+      setFeedbackUndo(payload);
+    },
+    [],
+  );
+
+  const handleUndoFeedback = useCallback(() => {
+    const payload = feedbackUndo;
+    if (!payload) return;
+
+    payload.undo();
+    setLocallyHidden((current) => {
+      const next = new Set(current);
+      next.delete(payload.anime.id);
+      return next;
+    });
+
+    startTransition(() => {
+      setRecommendations((current) =>
+        getPersonalizedRecommendations(
+          [
+            ...current.map(({ anime }) => anime),
+            payload.anime,
+          ],
+          {
+            mood: displayedMood,
+            limit: Math.max(PAGE_SIZE, current.length + 1),
+            tasteGraph,
+          },
+        ),
+      );
+    });
+
+    setFeedbackUndo(null);
+  }, [displayedMood, feedbackUndo, tasteGraph]);
+
+  useEffect(() => {
+    if (!feedbackUndo) return;
+
+    const timer = window.setTimeout(() => {
+      setFeedbackUndo(null);
+    }, 6_500);
+
+    return () => window.clearTimeout(timer);
+  }, [feedbackUndo]);
 
   const ensureRailDepth = useCallback(
     async (
@@ -1011,12 +1224,15 @@ export default function SmartRecommendationFeed({
 
   if (filtered.length === 0 && !hasMore && loadingRails.size === 0) {
     return (
-      <div className="smart-feed__empty">
-        <strong>Подходящих тайтлов в этой подборке пока не осталось</strong>
-        <span>
-          Смени настроение или открой каталог — скрытые рекомендации больше не будут мешать выдаче.
-        </span>
-      </div>
+      <>
+        <div className="smart-feed__empty">
+          <strong>Подходящих тайтлов в этой подборке пока не осталось</strong>
+          <span>
+            Смени настроение или открой каталог — скрытые рекомендации больше не будут мешать выдаче.
+          </span>
+        </div>
+        {midFeedSlot}
+      </>
     );
   }
 
@@ -1031,7 +1247,7 @@ export default function SmartRecommendationFeed({
         aria-busy={isMoodSwapping}
       >
         <div className="smart-feed__rails">
-          {rails.map((rail) => {
+          {rails.map((rail, railIndex) => {
             const railLoading = loadingRails.has(rail.id);
             const railHasMore = hasMore && !exhaustedRails.has(rail.id);
             const railFailed = railErrors.has(rail.id);
@@ -1056,10 +1272,10 @@ export default function SmartRecommendationFeed({
             }
 
             return (
+              <Fragment key={`${rail.id}:${rowVersion}`}>
               <section
                 ref={(node) => registerSparseRailSection(rail.id, node)}
                 className="smart-feed__personal-rail"
-                key={`${rail.id}:${rowVersion}`}
                 data-recommendation-rail-id={rail.id}
                 data-recommendation-rail-items={rail.items.length}
                 data-recommendation-rail-sparse={
@@ -1111,6 +1327,7 @@ export default function SmartRecommendationFeed({
                         source={rail.source}
                         recommendationSessionId={sessionId}
                         onHidden={handleHiddenRecommendation}
+                        onFeedbackApplied={handleFeedbackApplied}
                       />
                     </div>
                   ))}
@@ -1140,10 +1357,28 @@ export default function SmartRecommendationFeed({
                   </button>
                 )}
               </section>
+              {railIndex === midFeedInsertAfterIndex && midFeedSlot ? (
+                <div
+                  className="smart-feed__interleave"
+                  data-home-composition-slot="personal-schedule"
+                >
+                  {midFeedSlot}
+                </div>
+              ) : null}
+              </Fragment>
             );
           })}
         </div>
       </div>
+
+      {feedbackUndo && (
+        <div className="smart-feed__feedback-undo" role="status">
+          <span>{feedbackUndo.label}</span>
+          <button type="button" onClick={handleUndoFeedback}>
+            Отменить
+          </button>
+        </div>
+      )}
     </div>
   );
 }

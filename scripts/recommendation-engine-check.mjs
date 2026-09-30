@@ -7,6 +7,7 @@ const candidates = read('app/api/recommendations/route.ts');
 const ranking = read('lib/recommendation-ranking-config.ts');
 const diversity = read('lib/recommendation-diversity.ts');
 const recommendations = read('lib/recommendations.ts');
+const franchise = read('lib/recommendation-franchise.ts');
 const recommendationTypes = read('types/recommendations.ts');
 const taste = read('app/api/recommendations/taste/route.ts');
 const tasteGraph = read('lib/taste-graph.ts');
@@ -23,6 +24,7 @@ const personalization = read('lib/personalization.ts');
 const productClient = read('lib/product-events-client.ts');
 const productServer = read('lib/product-events-server.ts');
 const recommendationAnalytics = read('lib/recommendation-analytics-server.ts');
+const recommendationAnalyticsCore = read('lib/recommendation-analytics-core.ts');
 const recommendationAnalyticsTypes = read('lib/recommendation-analytics.ts');
 const recommendationAnalyticsUi = read('components/admin/RecommendationAnalyticsDashboard.tsx');
 const productRoute = read('app/api/analytics/product/route.ts');
@@ -50,7 +52,7 @@ if (
   failures.push('17.8 recommendation attribution columns are missing');
 }
 if (
-  !personalization.includes("RECOMMENDATION_ALGORITHM_VERSION = '18.3-v1'") ||
+  !personalization.includes("RECOMMENDATION_ALGORITHM_VERSION = '22.6-v1'") ||
   !personalization.includes('createRecommendationId') ||
   !personalization.includes('row_id')
 ) {
@@ -80,13 +82,17 @@ if (!taste.includes('recommendation_feedback')) {
   failures.push('Taste Graph does not consume explicit feedback');
 }
 if (
-  !tasteGraph.includes("TASTE_GRAPH_VERSION = 'taste-v6'") ||
+  !tasteGraph.includes("TASTE_GRAPH_VERSION = 'taste-v7'") ||
   !tasteGraph.includes('averageRating') ||
   !tasteGraph.includes('explorationRate') ||
   !tasteGraph.includes('moodWeights') ||
-  !tasteGraph.includes('signalBreakdown')
+  !tasteGraph.includes('signalBreakdown') ||
+  !tasteGraph.includes('studioWeights') ||
+  !tasteGraph.includes('formatWeights') ||
+  !tasteGraph.includes('eraWeights') ||
+  !tasteGraph.includes('finishedPreference')
 ) {
-  failures.push('17.8.2 Taste Graph v6 contract is incomplete');
+  failures.push('Patch 22 Taste Graph v7 contract is incomplete');
 }
 if (
   !taste.includes(".from('anime_ratings')") ||
@@ -104,17 +110,46 @@ if (
 if (
   !taste.includes("recommendation_mood_change") ||
   !taste.includes('normalizeMoodWeights') ||
-  !taste.includes("item.signal === 'less_like_this'") ||
-  !taste.includes("item.signal === 'hidden'")
+  !taste.includes('recommendationFeedbackPolicy(item.signal)') ||
+  !taste.includes('recommendationFeedbackExclusionActive(') ||
+  !taste.includes('const addTasteAxes = (')
 ) {
-  failures.push('Taste Graph is missing mood or negative-feedback signals');
+  failures.push('Taste Graph is missing mood or structured-feedback signals');
 }
 if (
   !taste.includes('Math.LN2') ||
   !taste.includes('effectiveSample') ||
-  !taste.includes('0.2 - confidence * 0.1')
+  !taste.includes('0.2 - confidence * 0.13 - explicitDepth')
 ) {
   failures.push('Taste Graph is missing decay/confidence/exploration modelling');
+}
+if (
+  !taste.includes("select('id,genres,studios,format,start_year,total_episodes,finished')") ||
+  !taste.includes('studioWeights') ||
+  !taste.includes('negativeStudioWeights') ||
+  !taste.includes('formatWeights') ||
+  !taste.includes('eraWeights') ||
+  !taste.includes('finishedPreference') ||
+  !taste.includes('metadataCoverage')
+) {
+  failures.push('Patch 22 Taste Graph 7 server metadata modelling is incomplete');
+}
+if (
+  !recommendations.includes('animeStudioAffinity') ||
+  !recommendations.includes('animeFormatAffinity') ||
+  !recommendations.includes('animeEraAffinity') ||
+  !recommendations.includes('animeFinishedAffinity') ||
+  !ranking.includes('metadataNegativeAffinity')
+) {
+  failures.push('Patch 22 Taste Graph 7 affinities are not wired into ranking');
+}
+if (
+  !franchise.includes('buildRecommendationFranchiseHistoryIndex') ||
+  !franchise.includes('blockedByPrerequisite') ||
+  !recommendations.includes('franchiseContinuation: franchise.continuationScore') ||
+  !rails.includes("'story_continues'")
+) {
+  failures.push('Patch 22 Phase E franchise intelligence is incomplete');
 }
 if (!feed.includes('buildRecommendationRailLayout')) {
   failures.push('Netflix-style recommendation rails are not wired');
@@ -129,7 +164,7 @@ if (
   failures.push('17.8.3 multi-source candidate retrieval is incomplete');
 }
 if (
-  !candidates.includes('animebox-recommendation-candidates-v7-verified-playback') ||
+  !candidates.includes('animebox-recommendation-candidates-v9-seasonal-freshness') ||
   !candidates.includes('tasteGenre') ||
   !candidates.includes('bucket')
 ) {
@@ -162,7 +197,7 @@ if (
   failures.push('candidate source response contract is missing');
 }
 if (
-  !ranking.includes("RECOMMENDATION_RANKING_VERSION = '18.3-v1'") ||
+  !ranking.includes("RECOMMENDATION_RANKING_VERSION = '22.6-v1'") ||
   !ranking.includes('RECOMMENDATION_RANKING_WEIGHTS') ||
   !ranking.includes('RecommendationScoreComponents') ||
   !ranking.includes('scoreRecommendation') ||
@@ -186,16 +221,19 @@ if (
   failures.push('ranking magic weights leaked back into recommendations.ts');
 }
 if (
-  !diversity.includes("RECOMMENDATION_DIVERSITY_VERSION = '18.3-diversity-v2'") ||
+  !diversity.includes("RECOMMENDATION_DIVERSITY_VERSION = '22.6-diversity-v3'") ||
   !diversity.includes('normalizeRecommendationExplorationRate') ||
-  !diversity.includes('targetExploration') ||
+  !diversity.includes('classTargets') ||
   !diversity.includes('maxFamilyPerFeed') ||
   !diversity.includes('genreConcentrationPenalty')
 ) {
   failures.push('17.8.5 diversity/exploration policy is incomplete');
 }
 if (
-  !recommendations.includes('diversifyRecommendations(scored') ||
+  !(
+    recommendations.includes('diversifyRecommendations(scored') ||
+    recommendations.includes('diversifyRecommendations(franchiseSafe')
+  ) ||
   !recommendations.includes('explorationRate: tasteGraph?.explorationRate')
 ) {
   failures.push('ranked recommendations bypass the 17.8.5 diversity policy');
@@ -288,14 +326,19 @@ if (
   failures.push('18.3 immediate negative-feedback reranking is incomplete');
 }
 if (
+  !diversity.includes('studioRepeatPenalty') ||
   !diversity.includes('formatRepeatPenalty') ||
-  !diversity.includes('yearBucketRepeatPenalty') ||
-  !diversity.includes('maxRecentGenreShare')
+  !diversity.includes('eraRepeatPenalty') ||
+  !diversity.includes('sourceRepeatPenalty') ||
+  !diversity.includes('popularityRepeatPenalty') ||
+  !diversity.includes('recommendationDiversityShareTargets') ||
+  !diversity.includes('relevanceFloor(') ||
+  !diversity.includes('lockTopResult: true')
 ) {
-  failures.push('18.3 long-session diversity policy is incomplete');
+  failures.push('22.6 diversity reranker policy is incomplete');
 }
 if (
-  !recommendationAnalytics.includes('maxRenderedItems') ||
+  !recommendationAnalyticsCore.includes('maxRenderedItems') ||
   !recommendationAnalyticsUi.includes('DOM / Rail')
 ) {
   failures.push('18.3 feed runtime diagnostics are missing');
@@ -315,6 +358,7 @@ if (!card.includes('already_watched') || !card.includes('like_more')) {
 if (
   !productEvents.includes('recommendation_watch_15m') ||
   !productEvents.includes('recommendation_watch_30m') ||
+  !productEvents.includes('recommendation_multi_episode') ||
   !productEvents.includes('recommendation_rail_end_reached') ||
   !productEvents.includes('recommendation_rail_load_result') ||
   !productEvents.includes('recommendation_rail_load_error')
@@ -325,21 +369,23 @@ if (!watch.includes('trackRecommendationWatchProgress')) {
   failures.push('player progress is not linked to recommendation attribution');
 }
 if (
-  !recommendationAnalytics.includes('recommendation_id,recommendation_session_id,algorithm_version') ||
-  !recommendationAnalytics.includes('fullyAttributedPct') ||
-  !recommendationAnalytics.includes('rowBreakdown') ||
-  !recommendationAnalytics.includes('positionBucket') ||
+  !recommendationAnalytics.includes('aggregateRecommendationAnalyticsRows') ||
+  !recommendationAnalytics.includes('recommendation_multi_episode') ||
+  !recommendationAnalyticsCore.includes("funnelMode: 'unique_recommendation_id'") ||
+  !recommendationAnalyticsCore.includes('matchScoreCalibration') ||
+  !recommendationAnalyticsCore.includes('completionScoreCalibration') ||
+  !recommendationAnalyticsCore.includes('feedbackReasons') ||
+  !recommendationAnalyticsCore.includes('repeatedImpressionRatePct') ||
+  !recommendationAnalyticsCore.includes('diversityOriginalRank') ||
   !recommendationAnalyticsTypes.includes('RecommendationFunnelSlice') ||
   !recommendationAnalyticsTypes.includes('loadFillPct') ||
-  !recommendationAnalytics.includes('recommendationAttributionEvents') ||
-  !recommendationAnalytics.includes('recommendation_rail_load_result') ||
   !feed.includes("trackProductClientEvent('recommendation_rail_end_reached'") ||
   !feed.includes("trackProductClientEvent('recommendation_rail_load_result'") ||
   !feed.includes("trackProductClientEvent('recommendation_rail_load_error'") ||
-  !recommendationAnalyticsUi.includes('INTELLIGENCE CORE · 18.0') ||
-  !recommendationAnalyticsUi.includes('Algorithm version')
+  !recommendationAnalyticsUi.includes('Recommendation Analytics 3.0') ||
+  !recommendationAnalyticsUi.includes('Completion Score calibration')
 ) {
-  failures.push('17.8.7 recommendation attribution analytics is incomplete');
+  failures.push('22.7 recommendation analytics 3.0 contract is incomplete');
 }
 
 if (failures.length) {
