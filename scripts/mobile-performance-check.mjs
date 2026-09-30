@@ -17,6 +17,7 @@ const community = read('components/home/HomeDeferredCommunity.tsx');
 const hero = read('components/HomeHeroCarousel.tsx');
 const feed = read('lib/home-feed-server.ts');
 const card = read('components/AnimeCard.tsx');
+const mediaDelivery = read('lib/media-delivery.ts');
 const layout = read('app/layout.tsx');
 const nextConfig = read('next.config.ts');
 const css = read('app/patch16-6-1-mobile-performance.css');
@@ -39,7 +40,8 @@ for (const [label, source, needle] of [
   ['home deferred chat', community, 'home-deferred--chat'],
   ['home deferred telegram', community, 'home-deferred--telegram'],
   ['home server feed mobile budget', feed, 'limit: 12'],
-  ['landscape-aware anime image sizes', card, '(orientation: landscape) and (max-height: 600px) 18vw'],
+  ['shared responsive anime image sizes', card, 'sizes={MEDIA_CARD_SIZES}'],
+  ['mobile anime image size cap', mediaDelivery, '(max-width: 768px) 162px'],
   ['performance stylesheet import', layout, "import './patch16-6-1-mobile-performance.css';"],
   ['idle app enhancements', layout, '<DeferredAppEnhancements />'],
   ['requestIdleCallback shell defer', appEnhancements, 'requestIdleCallback'],
