@@ -4,7 +4,7 @@ import type { Anime } from '@/types/anime';
 
 import AnimeImage from '@/components/AnimeImage';
 import { getAnimeTitle, isAnimeOngoing } from '@/lib/anime-display';
-import { MEDIA_CARD_SIZES } from '@/lib/media-delivery';
+import { MEDIA_ANIME_CARD_SIZES } from '@/lib/media-delivery';
 
 function formatLabel(
   format: string | null | undefined,
