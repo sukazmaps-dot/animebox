@@ -20,7 +20,7 @@ for (const [label, source, needle] of [
   ['stable parent append', feed, 'setRecommendations((current) => mergeUnique(current, unseen))'],
   ['stable pagination append', feed, 'setRecommendations((current) => mergeUnique(current, fresh))'],
   ['latest graph future scoring', feed, 'latestTasteGraphRef.current'],
-  ['stable rail order', feed, 'const [railOrder, setRailOrder]'],
+  ['stable rail order import', feed, 'SESSION_STABLE_RAIL_ORDER'],
   ['candidate warmup', feed, 'prefetchCandidatePage(pointerRef.current, bucket, context)'],
   ['minimum rail density', feed, 'MIN_INITIAL_RAIL_ITEMS = 5'],
   ['sparse preload margin', feed, "SPARSE_RAIL_ROOT_MARGIN = '520px 0px'"],
