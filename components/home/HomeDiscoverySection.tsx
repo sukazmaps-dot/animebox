@@ -4,7 +4,6 @@ import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
 
-import DeferredMount from '@/components/DeferredMount';
 import HomeContinueWatching from '@/components/HomeContinueWatching';
 import HomeMoodPicker from '@/components/HomeMoodPicker';
 import { useHomeFeedRuntime } from '@/components/home/HomeFeedRuntimeProvider';
@@ -102,11 +101,9 @@ export default function HomeDiscoverySection() {
               label="Загружаем персональные рекомендации"
             />
           ) : (
-            <DeferredMount
+            <div
               className="home-deferred home-deferred--recommendations"
-              minHeight={300}
-              rootMargin="520px 0px"
-              ariaLabel="Персональные рекомендации"
+              data-loading-policy="instant-after-ranking"
             >
               <SmartRecommendationFeed
                 items={smartRecommendations}
@@ -114,7 +111,7 @@ export default function HomeDiscoverySection() {
                 hasWatchHistory={hasWatchHistory}
                 midFeedSlot={<HomePersonalScheduleSection />}
               />
-            </DeferredMount>
+            </div>
           )}
         </section>
       </div>
