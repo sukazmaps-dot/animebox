@@ -54,9 +54,10 @@ The card preset remains:
 - 540;
 - 720.
 
-Browser `srcset` selection chooses the smallest suitable variant using CSS
-slot width and DPR. 720 remains available for genuinely high-DPR/large slots
-instead of being forced for ordinary phones.
+Browser `srcset` selection now reflects the real card geometry. Up to 768px,
+the declared slot is capped at 162px, matching the mobile rail CSS instead of
+advertising a ~200–216px slot. This lets common DPR 2/3 phones stay on 360/540
+variants while 720 remains available for genuinely high-DPR/large slots.
 
 ## D. Horizontal warmup V4
 
