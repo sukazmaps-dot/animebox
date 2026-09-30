@@ -549,7 +549,7 @@ export default function SmartRecommendationCard({
                 ? 'high'
                 : 'low'
             }
-            sizes={MEDIA_CARD_SIZES}
+            sizes={MEDIA_SMART_CARD_SIZES}
             quality={62}
             sourcePreference="compact"
             preset="card"
