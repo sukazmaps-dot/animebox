@@ -3,6 +3,8 @@ type NetworkInformationLike = {
   effectiveType?: string;
 };
 
+export const MEDIA_WARMUP_POLICY_VERSION = '23.1-warmup-v4';
+
 export type MediaWarmupActivation = 'warm' | 'native-lazy';
 
 type WarmupCallback = (activation: MediaWarmupActivation) => void;
@@ -22,23 +24,23 @@ export function resolveMediaWarmupRootMargin() {
   const connection = connectionInfo();
 
   if (connection?.saveData) {
-    return '100px 80px 160px 80px';
+    return '100px 48px 160px 48px';
   }
 
   if (
     connection?.effectiveType === 'slow-2g' ||
     connection?.effectiveType === '2g'
   ) {
-    return '180px 120px 260px 120px';
+    return '180px 80px 260px 80px';
   }
 
   if (connection?.effectiveType === '3g') {
-    return '420px 420px 760px 420px';
+    return '420px 360px 760px 360px';
   }
 
   // Default/4G: warm roughly 1–2 screens ahead vertically, while allowing
   // horizontal rails to prepare only several neighbouring cards.
-  return '700px 900px 1600px 900px';
+  return '700px 720px 1600px 720px';
 }
 
 function getObserver() {

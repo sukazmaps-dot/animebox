@@ -41,6 +41,48 @@ const FALLBACK_SOURCE_TIMEOUT_MS = 7_500;
 const PROXY_SOURCE_TIMEOUT_MS = 9_500;
 const TRANSIENT_RETRY_MIN_DELAY_MS = 20_000;
 const TRANSIENT_RETRY_MAX_DELAY_MS = 45_000;
+const MAX_SUCCESSFUL_MEDIA_STATES = 640;
+
+type SuccessfulMediaState = {
+  sourceIndex: number;
+};
+
+const successfulMediaStateCache =
+  new Map<string, SuccessfulMediaState>();
+
+function readSuccessfulMediaState(
+  key: string,
+): SuccessfulMediaState | null {
+  return successfulMediaStateCache.get(key) ?? null;
+}
+
+function rememberSuccessfulMediaState(
+  key: string,
+  sourceIndex: number,
+) {
+  successfulMediaStateCache.delete(key);
+  successfulMediaStateCache.set(key, { sourceIndex });
+
+  while (
+    successfulMediaStateCache.size >
+    MAX_SUCCESSFUL_MEDIA_STATES
+  ) {
+    const oldest = successfulMediaStateCache.keys().next()
+      .value as string | undefined;
+    if (!oldest) break;
+    successfulMediaStateCache.delete(oldest);
+  }
+}
+
+function forgetSuccessfulMediaState(
+  key: string,
+  sourceIndex: number,
+) {
+  const cached = successfulMediaStateCache.get(key);
+  if (cached?.sourceIndex === sourceIndex) {
+    successfulMediaStateCache.delete(key);
+  }
+}
 
 export type AnimeImageLoadState = 'loading' | 'loaded' | 'fallback';
 
@@ -218,11 +260,15 @@ export default function AnimeImage({
     getMediaEdgeHealthServerRevision,
   );
 
-  const [imageState, setImageState] = useState(() => ({
-    key: sourcesKey,
-    sourceIndex: 0,
-    loaded: false,
-  }));
+  const [imageState, setImageState] = useState(() => {
+    const cached = readSuccessfulMediaState(sourcesKey);
+
+    return {
+      key: sourcesKey,
+      sourceIndex: cached?.sourceIndex ?? 0,
+      loaded: Boolean(cached),
+    };
+  });
 
   const storedSourceIndex =
     imageState.key === sourcesKey
@@ -253,7 +299,9 @@ export default function AnimeImage({
     isFallback ? 'fallback' : loaded ? 'loaded' : 'loading';
 
   const shouldRequestSource =
-    loading !== 'near' || warmupActivation !== 'waiting';
+    loaded ||
+    loading !== 'near' ||
+    warmupActivation !== 'waiting';
 
   const nativeLoading: 'lazy' | 'eager' =
     loading === 'near'
@@ -263,7 +311,12 @@ export default function AnimeImage({
       : loading;
 
   const nativeFetchPriority =
-    loading === 'near' ? 'low' : fetchPriority;
+    loading === 'near'
+      ? fetchPriority === 'high' &&
+        warmupActivation === 'warm'
+        ? 'high'
+        : 'low'
+      : fetchPriority;
 
   useEffect(() => {
     if (loading !== 'near' || warmupActivation !== 'waiting') return;
@@ -323,6 +376,10 @@ export default function AnimeImage({
         element.naturalHeight > 0
       ) {
         reportMediaEdgeSuccess(current);
+        rememberSuccessfulMediaState(
+          sourcesKey,
+          sourceIndex,
+        );
         setImageState((previous) => {
           const previousIndex =
             previous.key === sourcesKey
@@ -348,6 +405,10 @@ export default function AnimeImage({
 
   const handleError = useCallback(() => {
     if (!isFallback) {
+      forgetSuccessfulMediaState(
+        sourcesKey,
+        sourceIndex,
+      );
       reportMediaEdgeFailure(current);
       goToNextSource();
       return;
@@ -473,6 +534,10 @@ export default function AnimeImage({
         element.naturalHeight > 0
       ) {
         reportMediaEdgeSuccess(current);
+        rememberSuccessfulMediaState(
+          sourcesKey,
+          sourceIndex,
+        );
         setImageState((previous) => {
           const previousIndex =
             previous.key === sourcesKey
@@ -521,6 +586,7 @@ export default function AnimeImage({
       data-image-preference={sourcePreference}
       data-image-preset={effectivePreset}
       data-image-format={format}
+      data-image-memory-state={loaded ? 'warm' : 'cold'}
     >
       {!loaded && !isFallback && (
         <div
