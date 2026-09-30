@@ -37,6 +37,19 @@ export const DEFAULT_RECOMMENDATION_RAIL_LIMIT = 7;
 export const RECOMMENDATION_RAIL_BATCH_SIZE = 6;
 export const HOME_COMPOSITION_VERSION = '22.8-home-v1';
 
+export const SESSION_STABLE_RAIL_ORDER: readonly RecommendationRailId[] = [
+  'top_match',
+  'session_intent',
+  'mood_lane',
+  'story_continues',
+  'hidden_gems',
+  'explore',
+  'seasonal',
+  'taste_lane',
+  'quick_watch',
+  'endless',
+];
+
 type RailOrderTaste = Pick<
   TasteGraph,
   'confidence' | 'explorationRate' | 'preferredEpisodeCount'
