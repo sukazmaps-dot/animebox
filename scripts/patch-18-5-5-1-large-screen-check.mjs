@@ -94,12 +94,14 @@ if (/transform\s*:\s*scale\(/.test(largeScreenCss)) {
 }
 
 for (const [label, source, needle] of [
-  ['shared card 1920 size', mediaDelivery, '(min-width: 1920px) 190px'],
-  ['shared card 2400 size', mediaDelivery, '(min-width: 2400px) 198px'],
-  ['shared card 3000 size', mediaDelivery, '(min-width: 3000px) 235px'],
-  ['shared card 3400 size', mediaDelivery, '(min-width: 3400px) 250px'],
-  ['AnimeCard shared sizes', animeCard, 'sizes={MEDIA_CARD_SIZES}'],
-  ['Smart card shared sizes', smartCard, 'sizes={MEDIA_CARD_SIZES}'],
+  ['catalog card 1920 size', mediaDelivery, '(min-width: 1920px) 215px'],
+  ['catalog card 2400 size', mediaDelivery, '(min-width: 2400px) 225px'],
+  ['smart card 1920 size', mediaDelivery, '(min-width: 1920px) 190px'],
+  ['smart card 2400 size', mediaDelivery, '(min-width: 2400px) 198px'],
+  ['shared 3000 ceiling', mediaDelivery, '(min-width: 3000px) 235px'],
+  ['shared 3400 ceiling', mediaDelivery, '(min-width: 3400px) 250px'],
+  ['AnimeCard catalog sizes', animeCard, 'sizes={MEDIA_ANIME_CARD_SIZES}'],
+  ['Smart card home sizes', smartCard, 'sizes={MEDIA_SMART_CARD_SIZES}'],
   ['Hero 1920 source', hero, '(min-width: 1920px) 1500px'],
   ['Hero 2400 source', hero, '(min-width: 2400px) 1750px'],
   ['Hero 3000 source', hero, '(min-width: 3000px) 1950px'],
