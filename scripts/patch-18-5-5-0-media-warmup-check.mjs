@@ -91,7 +91,7 @@ if (
 
 for (const needle of [
   'MAX_RAIL_DOM_ITEMS = 36',
-  'RAIL_VIRTUAL_OVERSCAN = 6',
+  'RAIL_VIRTUAL_OVERSCAN = 8',
   'virtualMaxItems={MAX_RAIL_DOM_ITEMS}',
 ]) {
   if (!feed.includes(needle)) {

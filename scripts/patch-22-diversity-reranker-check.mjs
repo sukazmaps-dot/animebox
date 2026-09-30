@@ -37,8 +37,10 @@ for (const [label, source, needle] of [
   ['diagnostic reranked rank', diversity, 'rerankedRank'],
   ['diagnostic total penalty', diversity, 'totalPenalty'],
   ['recommendation diversity output', recommendations, 'diversity: null'],
-  ['loaded-pool rerank', feed, 'merged.map(({ anime }) => anime)'],
-  ['loaded-pool full limit', feed, 'limit: merged.length'],
+  ['candidate-page diversity rank', feed, 'getPersonalizedRecommendations(data.items'],
+  ['stable pagination append', feed, 'setRecommendations((current) => mergeUnique(current, fresh))'],
+  ['feedback loaded-pool rerank', feed, 'current.map(({ anime }) => anime)'],
+  ['feedback loaded-pool full limit', feed, 'limit: Math.max(PAGE_SIZE, current.length)'],
   ['card diversity version', card, 'data-diversity-version={diversity?.version}'],
   ['event diversity telemetry', personalization, 'diversity_version: event.diversityVersion ?? null'],
   ['event original rank telemetry', personalization, 'diversity_original_rank: event.diversityOriginalRank ?? null'],
@@ -342,5 +344,5 @@ if (failures.length) {
 }
 
 console.log(
-  '[AnimeBox Patch 22 Phase J] relevance guard, multi-axis concentration, scarcity relaxation, diagnostics and global-pool reranking passed.',
+  '[AnimeBox Patch 22 Phase J] relevance guard, multi-axis concentration, scarcity relaxation, diagnostics, page ranking and explicit-feedback reranking passed.',
 );

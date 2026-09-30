@@ -31,6 +31,7 @@ import {
   recommendationMatchesRail,
   recommendationMatchesRailRelaxed,
   RECOMMENDATION_RAIL_BATCH_SIZE,
+  SESSION_STABLE_RAIL_ORDER,
   getHomeScheduleInsertionIndex,
   type RecommendationRail,
   type RecommendationRailId,
@@ -55,11 +56,11 @@ const MAX_SESSION_CACHE_ENTRIES = 14;
 const MOOD_SWAP_FADE_OUT_MS = 135;
 const RAIL_SKELETON_COUNT = 3;
 const MAX_RAIL_DOM_ITEMS = 36;
-const RAIL_VIRTUAL_OVERSCAN = 6;
-const MIN_INITIAL_RAIL_ITEMS = 4;
+const RAIL_VIRTUAL_OVERSCAN = 8;
+const MIN_INITIAL_RAIL_ITEMS = 5;
 const SPARSE_RAIL_BOOTSTRAP_PAGE_HOPS = 1;
 const ZERO_RAIL_BOOTSTRAP_PAGE_HOPS = 3;
-const SPARSE_RAIL_ROOT_MARGIN = '240px 0px';
+const SPARSE_RAIL_ROOT_MARGIN = '520px 0px';
 
 type CachedPage = {
   expiresAt: number;
@@ -503,9 +504,10 @@ export default function SmartRecommendationFeed({
     useState<Set<RecommendationRailId>>(() => new Set());
   const [railErrors, setRailErrors] =
     useState<Set<RecommendationRailId>>(() => new Set());
-  const [tasteGraph, setTasteGraph] = useState<TasteGraph | null>(
+  const [tasteGraph] = useState<TasteGraph | null>(
     () => readCachedTasteGraph(),
   );
+  const latestTasteGraphRef = useRef<TasteGraph | null>(tasteGraph);
 
   const bucket = useMemo(() => getSessionBucket(sessionId), [sessionId]);
 
@@ -607,17 +609,9 @@ export default function SmartRecommendationFeed({
       unseen.forEach(({ anime }) =>
         seenRecommendationIdsRef.current.add(anime.id),
       );
-      setRecommendations((current) => {
-        const merged = mergeUnique(current, unseen);
-        return getPersonalizedRecommendations(
-          merged.map(({ anime }) => anime),
-          {
-            mood,
-            limit: merged.length,
-            tasteGraph,
-          },
-        );
-      });
+      // Background catalogue/history refreshes append candidates without
+      // reshuffling cards already visible in this recommendation session.
+      setRecommendations((current) => mergeUnique(current, unseen));
     }
   }, [
     initialSignature,
@@ -635,7 +629,7 @@ export default function SmartRecommendationFeed({
         (event as CustomEvent<TasteGraph>).detail ??
         readCachedTasteGraph();
 
-      if (next) setTasteGraph(next);
+      if (next) latestTasteGraphRef.current = next;
     };
 
     window.addEventListener(
@@ -703,7 +697,17 @@ export default function SmartRecommendationFeed({
     railOwnershipRef.current = railLayout.ownership;
   }, [railLayout.ownership]);
 
-  const rails = railLayout.rails;
+  const rails = useMemo(() => {
+    const order = new Map(
+      SESSION_STABLE_RAIL_ORDER.map((id, index) => [id, index] as const),
+    );
+
+    return [...railLayout.rails].sort(
+      (left, right) =>
+        (order.get(left.id) ?? 999) - (order.get(right.id) ?? 999),
+    );
+  }, [railLayout.rails]);
+
   const midFeedInsertAfterIndex = useMemo(
     () => (midFeedSlot ? getHomeScheduleInsertionIndex(rails) : -1),
     [midFeedSlot, rails],
@@ -746,7 +750,7 @@ export default function SmartRecommendationFeed({
         const ranked = getPersonalizedRecommendations(data.items, {
           mood: displayedMood,
           limit: PAGE_SIZE,
-          tasteGraph,
+          tasteGraph: latestTasteGraphRef.current,
         });
         const fresh = ranked.filter(
           ({ anime }) => !seenRecommendationIdsRef.current.has(anime.id),
@@ -758,17 +762,9 @@ export default function SmartRecommendationFeed({
 
         if (fresh.length) {
           startTransition(() => {
-            setRecommendations((current) => {
-              const merged = mergeUnique(current, fresh);
-              return getPersonalizedRecommendations(
-                merged.map(({ anime }) => anime),
-                {
-                  mood: displayedMood,
-                  limit: merged.length,
-                  tasteGraph,
-                },
-              );
-            });
+            // Pagination is append-only: rank the new page, then keep every
+            // already-visible card in place.
+            setRecommendations((current) => mergeUnique(current, fresh));
           });
 
           // A rail can be temporarily sparse for one cursor window. When
@@ -814,7 +810,14 @@ export default function SmartRecommendationFeed({
 
     sharedBatchPromiseRef.current = request;
     return request;
-  }, [bucket, displayedMood, replaceHasMore, replacePointer, tasteGraph]);
+  }, [bucket, displayedMood, replaceHasMore, replacePointer]);
+
+  useEffect(() => {
+    if (moodTransitionRef.current || !hasMoreRef.current) return;
+
+    const context = getCandidateContext(displayedMood);
+    prefetchCandidatePage(pointerRef.current, bucket, context);
+  }, [bucket, displayedMood]);
 
   const recordRailVirtualMetrics = useCallback(
     (railId: RecommendationRailId, metrics: ScrollRowVirtualMetrics) => {
@@ -853,7 +856,7 @@ export default function SmartRecommendationFeed({
             {
               mood: displayedMood,
               limit: Math.max(PAGE_SIZE, current.length),
-              tasteGraph,
+              tasteGraph: latestTasteGraphRef.current,
             },
           ),
         );
@@ -890,7 +893,7 @@ export default function SmartRecommendationFeed({
           {
             mood: displayedMood,
             limit: Math.max(PAGE_SIZE, current.length + 1),
-            tasteGraph,
+            tasteGraph: latestTasteGraphRef.current,
           },
         ),
       );
@@ -1040,7 +1043,9 @@ export default function SmartRecommendationFeed({
           const fresh = await fetchNextCandidateBatch();
           if (!isCurrentGeneration()) return;
           pagesScanned += 1;
-          const relaxed = attempt >= STRICT_EMPTY_PAGE_HOPS;
+          const relaxed = bootstrap
+            ? attempt >= Math.max(0, bootstrapPageHops - 1)
+            : attempt >= STRICT_EMPTY_PAGE_HOPS;
           claimCandidates(fresh, relaxed);
         }
 
@@ -1256,15 +1261,18 @@ export default function SmartRecommendationFeed({
               railHasMore &&
               !railFailed;
             const showRailSkeleton =
-              railLoading || railAwaitingBootstrap;
+              rail.items.length === 0 &&
+              (railLoading || railAwaitingBootstrap);
             const skeletonCount =
               rail.items.length === 0
                 ? MIN_INITIAL_RAIL_ITEMS
                 : RAIL_SKELETON_COUNT;
 
             if (
-              rail.items.length === 0 &&
+              rail.items.length < MIN_INITIAL_RAIL_ITEMS &&
               exhaustedRails.has(rail.id) &&
+              rail.id !== 'top_match' &&
+              rail.id !== 'endless' &&
               !railLoading &&
               !railFailed
             ) {
@@ -1304,7 +1312,7 @@ export default function SmartRecommendationFeed({
                   ariaLabel={rail.title}
                   stepRatio={0.82}
                   hasMore={rail.items.length > 0 ? railHasMore : false}
-                  loading={showRailSkeleton}
+                  loading={railLoading}
                   onEndReached={() => void ensureRailDepth(rail)}
                   endReachedRequiresInteraction
                   virtualize

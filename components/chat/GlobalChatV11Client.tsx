@@ -162,6 +162,7 @@ export default function GlobalChatV11Client({ initialPage }: { initialPage: Chat
   const [me, setMe] = useState<ChatMeState | null>(null);
   const [nextSendAt, setNextSendAt] = useState(0);
   const [now, setNow] = useState(() => Date.now());
+  const [realtimeReady, setRealtimeReady] = useState(false);
 
   const authorCache = useRef(new Map<string, ChatAuthor>());
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -251,6 +252,35 @@ export default function GlobalChatV11Client({ initialPage }: { initialPage: Chat
   }, [scrollToBottom]);
 
   useEffect(() => {
+    let timer: number | null = null;
+    let idleHandle: number | null = null;
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (
+        callback: IdleRequestCallback,
+        options?: IdleRequestOptions,
+      ) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+
+    const startRealtime = () => setRealtimeReady(true);
+
+    if (idleWindow.requestIdleCallback) {
+      idleHandle = idleWindow.requestIdleCallback(startRealtime, {
+        timeout: 550,
+      });
+    } else {
+      timer = window.setTimeout(startRealtime, 120);
+    }
+
+    return () => {
+      if (timer !== null) window.clearTimeout(timer);
+      if (idleHandle !== null) idleWindow.cancelIdleCallback?.(idleHandle);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!realtimeReady) return;
+
     const presenceKey = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
       ? crypto.randomUUID()
       : `guest-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -314,7 +344,14 @@ export default function GlobalChatV11Client({ initialPage }: { initialPage: Chat
     }
 
     return () => { void supabase.removeChannel(channel); };
-  }, [ensureAuthors, markSeenSoon, scrollToBottom, supabase, user?.id]);
+  }, [
+    ensureAuthors,
+    markSeenSoon,
+    realtimeReady,
+    scrollToBottom,
+    supabase,
+    user?.id,
+  ]);
 
   async function loadOlder() {
     if (!nextCursor || olderLoading) return;
