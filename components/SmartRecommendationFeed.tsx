@@ -31,6 +31,7 @@ import {
   recommendationMatchesRail,
   recommendationMatchesRailRelaxed,
   RECOMMENDATION_RAIL_BATCH_SIZE,
+  SESSION_STABLE_RAIL_ORDER,
   getHomeScheduleInsertionIndex,
   type RecommendationRail,
   type RecommendationRailId,
@@ -507,7 +508,6 @@ export default function SmartRecommendationFeed({
     () => readCachedTasteGraph(),
   );
   const latestTasteGraphRef = useRef<TasteGraph | null>(tasteGraph);
-  const [railOrder, setRailOrder] = useState<RecommendationRailId[]>([]);
 
   const bucket = useMemo(() => getSessionBucket(sessionId), [sessionId]);
 
@@ -572,7 +572,6 @@ export default function SmartRecommendationFeed({
         );
         railOwnershipRef.current = new Map();
         setRailOwnership(new Map());
-        setRailOrder([]);
         railVirtualMetricsRef.current = new Map();
         sparseRailSectionRefs.current = new Map();
         sparseRailPrimedRef.current = new Set();
@@ -698,31 +697,16 @@ export default function SmartRecommendationFeed({
     railOwnershipRef.current = railLayout.ownership;
   }, [railLayout.ownership]);
 
-  useEffect(() => {
-    setRailOrder((current) => {
-      const next = [...current];
-
-      for (const rail of railLayout.rails) {
-        if (!next.includes(rail.id)) next.push(rail.id);
-      }
-
-      return next.length === current.length ? current : next;
-    });
-  }, [railLayout.rails]);
-
   const rails = useMemo(() => {
-    const byId = new Map(
-      railLayout.rails.map((rail) => [rail.id, rail] as const),
+    const order = new Map(
+      SESSION_STABLE_RAIL_ORDER.map((id, index) => [id, index] as const),
     );
-    const order =
-      railOrder.length > 0
-        ? railOrder
-        : railLayout.rails.map((rail) => rail.id);
 
-    return order
-      .map((id) => byId.get(id))
-      .filter((rail): rail is RecommendationRail => Boolean(rail));
-  }, [railLayout.rails, railOrder]);
+    return [...railLayout.rails].sort(
+      (left, right) =>
+        (order.get(left.id) ?? 999) - (order.get(right.id) ?? 999),
+    );
+  }, [railLayout.rails]);
 
   const midFeedInsertAfterIndex = useMemo(
     () => (midFeedSlot ? getHomeScheduleInsertionIndex(rails) : -1),
