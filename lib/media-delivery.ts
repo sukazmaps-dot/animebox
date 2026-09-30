@@ -2,7 +2,10 @@ export const MEDIA_DELIVERY_VERSION = '23.1-media-v4';
 
 export const MEDIA_CARD_PRIORITY_COUNT = 4;
 
-export const MEDIA_CARD_SIZES =
+export const MEDIA_ANIME_CARD_SIZES =
+  '(min-width: 3400px) 250px, (min-width: 3000px) 235px, (min-width: 2400px) 225px, (min-width: 1920px) 215px, (orientation: landscape) and (max-height: 600px) 18vw, (max-width: 480px) 42vw, (max-width: 760px) 31vw, (max-width: 1024px) 22vw, (max-width: 1280px) 17vw, 205px';
+
+export const MEDIA_SMART_CARD_SIZES =
   '(max-width: 768px) 162px, (max-width: 1000px) 214px, (min-width: 3400px) 250px, (min-width: 3000px) 235px, (min-width: 2400px) 198px, (min-width: 1920px) 190px, (max-width: 1280px) 188px, 205px';
 
 export const MEDIA_IMAGE_WIDTHS = [
