@@ -19,7 +19,7 @@ export default async function ChatPage() {
   let initialPage: ChatMessagesPage = { messages: [], nextCursor: null };
 
   try {
-    initialPage = await getChatMessagesPage();
+    initialPage = await getChatMessagesPage({ limit: 24 });
   } catch (error) {
     console.error('[Chat page] initial history unavailable', error);
   }
