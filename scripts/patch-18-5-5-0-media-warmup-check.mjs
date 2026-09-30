@@ -43,7 +43,7 @@ for (const needle of [
   "loading?: 'lazy' | 'eager' | 'near'",
   "loading !== 'near' || warmupActivation !== 'waiting'",
   "warmupActivation === 'native-lazy'",
-  "loading === 'near' ? 'low' : fetchPriority",
+  "fetchPriority === 'high' &&",
   'observeNearViewportMedia(host',
   'shouldRequestSource && (',
   'loading={nativeLoading}',
