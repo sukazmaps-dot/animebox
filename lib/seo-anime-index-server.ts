@@ -38,6 +38,8 @@ export type SeoIndexHealth = {
 
 type ExistingSeoRow = {
   anime_id: number | string;
+  slug: string | null;
+  indexable: boolean | null;
   content_fingerprint: string;
   last_content_change_at: string;
   source_shard: number | null;
@@ -120,14 +122,14 @@ async function syncAnimeChunk(
     .filter((value): value is number => value != null);
 
   if (!ids.length) {
-    return { checked: 0, changed: 0, indexable: 0 };
+    return { checked: 0, changed: 0, indexable: 0, changedSlugs: [] as string[] };
   }
 
   const admin = createSupabaseAdmin();
   const { data: existingData, error: existingError } = await admin
     .from('seo_anime_index')
     .select(
-      'anime_id,content_fingerprint,last_content_change_at,source_shard',
+      'anime_id,slug,indexable,content_fingerprint,last_content_change_at,source_shard',
     )
     .in('anime_id', ids);
 
@@ -142,6 +144,7 @@ async function syncAnimeChunk(
   const now = new Date().toISOString();
   let changed = 0;
   let indexable = 0;
+  const changedSlugs = new Set<string>();
 
   const rows = anime.flatMap((item) => {
     const animeId = positiveInteger(item.id);
@@ -157,7 +160,13 @@ async function syncAnimeChunk(
     const qualityScore = animeSeoQualityScore(item);
     const canIndex = qualityScore >= 2;
 
-    if (didChange) changed += 1;
+    if (didChange) {
+      changed += 1;
+      if (typeof current?.slug === 'string' && current.slug.trim()) {
+        changedSlugs.add(current.slug.trim());
+      }
+      changedSlugs.add(slug);
+    }
     if (canIndex) indexable += 1;
 
     return [{
@@ -195,6 +204,7 @@ async function syncAnimeChunk(
     checked: rows.length,
     changed,
     indexable,
+    changedSlugs: [...changedSlugs],
   };
 }
 
@@ -213,6 +223,7 @@ export async function syncSeoAnimeSourceEntries(
   let checked = 0;
   let changed = 0;
   let indexable = 0;
+  const changedSlugs = new Set<string>();
 
   for (let offset = 0; offset < entries.length; offset += WRITE_CHUNK) {
     const batch = entries
@@ -222,6 +233,7 @@ export async function syncSeoAnimeSourceEntries(
     checked += result.checked;
     changed += result.changed;
     indexable += result.indexable;
+    result.changedSlugs.forEach((slug) => changedSlugs.add(slug));
   }
 
   return {
@@ -229,6 +241,7 @@ export async function syncSeoAnimeSourceEntries(
     checked,
     changed,
     indexable,
+    changedSlugs: [...changedSlugs],
   };
 }
 
