@@ -11,6 +11,7 @@ import {
 import type { TasteMood } from '@/lib/personalization';
 import type { RankedRecommendation } from '@/lib/recommendations';
 import type { Anime } from '@/types/anime';
+import type { RecommendationPage } from '@/types/recommendations';
 
 type Args = {
   authLoading: boolean;
@@ -23,6 +24,8 @@ type Args = {
 
 type Result = {
   mood: TasteMood;
+  recommendationMood: TasteMood;
+  moodSwitching: boolean;
   updateMood: (mood: TasteMood) => void;
   smartRecommendations: RankedRecommendation[];
   recommendationsReady: boolean;
@@ -36,6 +39,59 @@ type IdleWindow = Window & {
   cancelIdleCallback?: (handle: number) => void;
 };
 
+function mergeAnimeCandidates(...groups: Anime[][]): Anime[] {
+  const byId = new Map<number, Anime>();
+
+  for (const group of groups) {
+    for (const anime of group) {
+      if (!anime || !Number.isSafeInteger(anime.id) || anime.id <= 0) {
+        continue;
+      }
+
+      if (!byId.has(anime.id)) {
+        byId.set(anime.id, anime);
+      }
+    }
+  }
+
+  return [...byId.values()];
+}
+
+async function loadMoodBootstrapCandidates(
+  mood: TasteMood,
+  signal: AbortSignal,
+): Promise<Anime[]> {
+  if (mood === 'any') return [];
+
+  const params = new URLSearchParams({
+    limit: '30',
+    bucket: '0',
+    mood,
+    intent: 'mood',
+    page: '1',
+  });
+
+  const response = await fetch(
+    `/api/recommendations?${params.toString()}`,
+    {
+      method: 'GET',
+      cache: 'default',
+      headers: {
+        Accept: 'application/json',
+      },
+      signal,
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Mood bootstrap HTTP ${response.status}`);
+  }
+
+  const payload = (await response.json()) as RecommendationPage;
+
+  return Array.isArray(payload.items) ? payload.items : [];
+}
+
 export function useHomeRecommendationRuntime({
   authLoading,
   userId,
@@ -45,13 +101,20 @@ export function useHomeRecommendationRuntime({
   historyRevision,
 }: Args): Result {
   const [mood, setMood] = useState<TasteMood>('any');
+  const [recommendationMood, setRecommendationMood] =
+    useState<TasteMood>('any');
+  const [moodSwitching, setMoodSwitching] = useState(false);
   const [tasteRevision, setTasteRevision] = useState(0);
   const [smartRecommendations, setSmartRecommendations] =
     useState<RankedRecommendation[]>([]);
   const [recommendationsReady, setRecommendationsReady] =
     useState(false);
+
   const recommendationRequestRef = useRef(0);
+  const recommendationControllerRef =
+    useRef<AbortController | null>(null);
   const lastRankedMoodRef = useRef<TasteMood | null>(null);
+  const lastRankSignatureRef = useRef('');
 
   useEffect(() => {
     if (authLoading || !userId) return;
@@ -121,76 +184,131 @@ export function useHomeRecommendationRuntime({
   useEffect(() => {
     if (!hydrated) return;
 
+    const candidateSignature = [
+      mood,
+      historyRevision,
+      tasteRevision,
+      popular.map((anime) => anime.id).join(','),
+      ongoing.map((anime) => anime.id).join(','),
+    ].join('|');
+
     if (
       recommendationsReady &&
-      lastRankedMoodRef.current === mood
+      lastRankSignatureRef.current === candidateSignature
     ) {
       return;
     }
 
     const requestId = ++recommendationRequestRef.current;
+    recommendationControllerRef.current?.abort();
+
+    const controller = new AbortController();
+    recommendationControllerRef.current = controller;
+
     let cancelled = false;
     let timer: number | null = null;
     let idleHandle: number | null = null;
     const idleWindow = window as IdleWindow;
 
-    const rank = () => {
-      void import('@/lib/recommendations')
-        .then(({ getPersonalizedRecommendations }) => {
-          if (
-            cancelled ||
-            requestId !== recommendationRequestRef.current
-          ) {
-            return;
-          }
+    const isCurrent = () =>
+      !cancelled &&
+      !controller.signal.aborted &&
+      requestId === recommendationRequestRef.current;
 
-          const next = getPersonalizedRecommendations(
-            [...popular, ...ongoing],
-            {
-              mood,
-              limit: 24,
-            },
-          );
+    const rank = async () => {
+      try {
+        const [{ getPersonalizedRecommendations }, moodCandidates] =
+          await Promise.all([
+            import('@/lib/recommendations'),
+            mood === 'any'
+              ? Promise.resolve<Anime[]>([])
+              : loadMoodBootstrapCandidates(
+                  mood,
+                  controller.signal,
+                ).catch((error) => {
+                  if (
+                    error instanceof Error &&
+                    error.name === 'AbortError'
+                  ) {
+                    throw error;
+                  }
 
-          startTransition(() => {
-            if (
-              cancelled ||
-              requestId !== recommendationRequestRef.current
-            ) {
-              return;
-            }
+                  console.debug(
+                    '[Home] mood candidate bootstrap unavailable',
+                    error,
+                  );
+                  return [];
+                }),
+          ]);
 
-            setSmartRecommendations(next);
-            lastRankedMoodRef.current = mood;
-            setRecommendationsReady(true);
-          });
-        })
-        .catch((error) => {
-          console.debug(
-            '[Home] recommendation chunk unavailable',
-            error,
-          );
+        if (!isCurrent()) return;
 
-          if (
-            !cancelled &&
-            requestId === recommendationRequestRef.current
-          ) {
-            setRecommendationsReady(true);
-          }
+        const candidates = mergeAnimeCandidates(
+          moodCandidates,
+          popular,
+          ongoing,
+        );
+
+        const next = getPersonalizedRecommendations(
+          candidates,
+          {
+            mood,
+            limit: mood === 'any' ? 24 : 30,
+          },
+        );
+
+        startTransition(() => {
+          if (!isCurrent()) return;
+
+          setSmartRecommendations(next);
+          setRecommendationMood(mood);
+          lastRankedMoodRef.current = mood;
+          lastRankSignatureRef.current = candidateSignature;
+          setRecommendationsReady(true);
+          setMoodSwitching(false);
         });
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.name === 'AbortError'
+        ) {
+          return;
+        }
+
+        console.debug(
+          '[Home] recommendation chunk unavailable',
+          error,
+        );
+
+        if (isCurrent()) {
+          setRecommendationsReady(true);
+          setMoodSwitching(false);
+        }
+      }
     };
 
-    if (idleWindow.requestIdleCallback) {
+    const isExplicitMoodTransition =
+      lastRankedMoodRef.current !== null &&
+      lastRankedMoodRef.current !== mood;
+
+    if (isExplicitMoodTransition || moodSwitching) {
+      void rank();
+    } else if (idleWindow.requestIdleCallback) {
       idleHandle = idleWindow.requestIdleCallback(
-        rank,
+        () => {
+          void rank();
+        },
         { timeout: 650 },
       );
     } else {
-      timer = window.setTimeout(rank, 80);
+      timer = window.setTimeout(() => {
+        void rank();
+      }, 80);
     }
 
     return () => {
       cancelled = true;
+      controller.abort();
 
       if (timer !== null) {
         window.clearTimeout(timer);
@@ -208,19 +326,29 @@ export function useHomeRecommendationRuntime({
     historyRevision,
     tasteRevision,
     recommendationsReady,
+    moodSwitching,
   ]);
+
+  useEffect(
+    () => () => {
+      recommendationRequestRef.current += 1;
+      recommendationControllerRef.current?.abort();
+    },
+    [],
+  );
 
   const updateMood = useCallback(
     (nextMood: TasteMood) => {
       if (nextMood === mood) return;
 
+      recommendationRequestRef.current += 1;
+      recommendationControllerRef.current?.abort();
+      setMoodSwitching(true);
       setMood(nextMood);
 
       void import('@/lib/personalization')
         .then(({ setTasteMood }) => {
-          startTransition(() => {
-            setTasteMood(nextMood);
-          });
+          setTasteMood(nextMood);
         })
         .catch((error) => {
           console.debug(
@@ -234,6 +362,8 @@ export function useHomeRecommendationRuntime({
 
   return {
     mood,
+    recommendationMood,
+    moodSwitching,
     updateMood,
     smartRecommendations,
     recommendationsReady,
