@@ -51,7 +51,7 @@ const CANDIDATE_REQUEST_TIMEOUT_MS = 7_000;
 const CANDIDATE_TRANSIENT_RETRY_DELAY_MS = 240;
 const CANDIDATE_MAX_ATTEMPTS = 2;
 const TRANSIENT_CANDIDATE_HTTP_STATUSES = new Set([429, 502, 503, 504]);
-const CLIENT_PAGE_CACHE_PREFIX = 'animebox:recommendation-page:v6:';
+const CLIENT_PAGE_CACHE_PREFIX = 'animebox:recommendation-page:v7-mood-intent:';
 const MAX_SESSION_CACHE_ENTRIES = 14;
 const MOOD_SWAP_FADE_OUT_MS = 135;
 const RAIL_SKELETON_COUNT = 3;
@@ -70,6 +70,7 @@ type CachedPage = {
 type CandidateContext = {
   genre: string | null;
   mood: TasteMood;
+  intent: 'default' | 'mood';
 };
 
 type CandidatePointer = {
@@ -107,11 +108,15 @@ function getCandidateContext(mood: TasteMood): CandidateContext {
   const graph = readCachedTasteGraph();
   const genre = graph?.topGenres[0]?.trim().slice(0, 64) || null;
 
-  return { genre, mood };
+  return {
+    genre,
+    mood,
+    intent: mood === 'any' ? 'default' : 'mood',
+  };
 }
 
 function candidateContextKey(context: CandidateContext): string {
-  return `${context.mood}:${stableHash(context.genre ?? 'none')}`;
+  return `${context.intent}:${context.mood}:${stableHash(context.genre ?? 'none')}`;
 }
 
 function pageCacheKey(
@@ -387,6 +392,7 @@ async function loadCandidatePage(
     bucket: String(bucket),
     mood: context.mood,
   });
+  params.set('intent', context.intent);
 
   if (pointer.cursor) {
     params.set('cursor', pointer.cursor);
