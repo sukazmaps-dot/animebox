@@ -2,10 +2,6 @@ import type { TasteMood } from '@/lib/personalization';
 import type { RankedRecommendation } from '@/lib/recommendations';
 import type { TasteGraph } from '@/lib/taste-graph';
 import { getRecommendationMoodLabel } from '@/lib/recommendation-moods';
-import {
-  isRelaxedMoodMatch,
-  isStrictMoodMatch,
-} from '@/lib/recommendation-mood-score';
 
 export type RecommendationRailId =
   | 'mood_lane'
@@ -134,6 +130,14 @@ function normalizeGenre(value: string) {
   return value.trim().toLocaleLowerCase('ru-RU');
 }
 
+function isStrictMoodRecommendation(item: RankedRecommendation) {
+  return item.moodTier === 'strong' || item.moodTier === 'good';
+}
+
+function isRelaxedMoodRecommendation(item: RankedRecommendation) {
+  return item.moodTier !== 'none';
+}
+
 function isShortWatch(item: RankedRecommendation) {
   const episodes = Number(item.anime.episodes ?? 0);
   const duration = Number(item.anime.duration ?? 0);
@@ -180,7 +184,7 @@ export function recommendationMatchesRail(
   if (rail.id === 'seasonal') {
     return item.seasonRelation === 'current' && item.seasonalScore >= 0.24;
   }
-  if (rail.id === 'mood_lane') return isStrictMoodMatch(item);
+  if (rail.id === 'mood_lane') return isStrictMoodRecommendation(item);
   if (rail.id === 'quick_watch') return isShortWatch(item);
   if (rail.id === 'explore') {
     return (
@@ -208,7 +212,7 @@ export function recommendationMatchesRailRelaxed(
   if (recommendationMatchesRail(item, rail)) return true;
 
   if (rail.id === 'mood_lane') {
-    return isRelaxedMoodMatch(item);
+    return isRelaxedMoodRecommendation(item);
   }
 
   if (rail.id === 'session_intent') {
@@ -324,7 +328,7 @@ export function buildRecommendationRailLayout(
     'story_continues',
     (item) =>
       item.franchiseContinuation &&
-      (options.mood === 'any' || !isStrictMoodMatch(item)),
+      (options.mood === 'any' || !isStrictMoodRecommendation(item)),
   );
 
   if (storyContinues.length > 0) {
@@ -349,7 +353,7 @@ export function buildRecommendationRailLayout(
     });
     const moodLane = take(
       'mood_lane',
-      (item) => isStrictMoodMatch(item),
+      (item) => isStrictMoodRecommendation(item),
       moodPool,
     );
 
