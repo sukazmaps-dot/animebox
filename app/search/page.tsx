@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { Suspense } from 'react';
 
 import SearchCatalogClient from '@/components/SearchCatalogClient';
@@ -10,6 +11,13 @@ import {
   parseCatalogFilters,
   type CatalogFiltersState,
 } from '@/lib/catalog-filter-state';
+import { getCurrentAnimeSeason } from '@/lib/catalog-season';
+import {
+  SEO_GENRE_LANDINGS,
+  SEO_STUDIO_LANDINGS,
+  seoCatalogYears,
+  seoSeasonSlug,
+} from '@/lib/search-seo';
 
 export const revalidate = 900;
 
@@ -30,11 +38,22 @@ export async function generateMetadata({
   // Only the clean catalogue URL is indexable. Arbitrary search text and
   // filter combinations remain useful to users/crawlers through follow links,
   // but cannot turn into an unbounded set of thin/duplicate index pages.
+  const description =
+    'Каталог аниме AnimeBox: поиск по названиям, жанрам, сезонам, годам и студиям. Открывай страницы тайтлов и находи, что посмотреть дальше.';
+
   return {
+    title: 'Каталог аниме — жанры, сезоны и студии',
+    description,
     robots: hasDynamicCatalogState
       ? { index: false, follow: true }
       : { index: true, follow: true },
     alternates: { canonical: '/search' },
+    openGraph: {
+      type: 'website',
+      url: '/search',
+      title: 'Каталог аниме — AnimeBox',
+      description,
+    },
   };
 }
 
@@ -57,6 +76,68 @@ async function loadInitialCatalog(filters: CatalogFiltersState): Promise<Anime[]
     console.warn('SSR catalog load failed:', error);
     return [];
   }
+}
+
+function CatalogDiscoveryLinks() {
+  const currentSeason = getCurrentAnimeSeason();
+  const currentSeasonSlug = seoSeasonSlug(currentSeason.season);
+  const years = seoCatalogYears().filter(
+    (year) => year <= new Date().getFullYear(),
+  ).slice(0, 3);
+
+  return (
+    <div className="search-page">
+      <section className="section" aria-labelledby="catalog-discovery-links-title">
+        <div className="section-head">
+          <h2 id="catalog-discovery-links-title" className="section-title">
+            Популярные разделы каталога
+          </h2>
+        </div>
+
+        <nav
+          aria-label="Разделы каталога аниме"
+          className="flex flex-wrap gap-x-4 gap-y-2 text-sm"
+        >
+          <Link href="/anime/ongoing" className="opacity-70 transition hover:opacity-100">
+            Онгоинги
+          </Link>
+          <Link
+            href={`/anime/season/${currentSeasonSlug}/${currentSeason.year}`}
+            className="opacity-70 transition hover:opacity-100"
+          >
+            Текущий сезон
+          </Link>
+          {SEO_GENRE_LANDINGS.slice(0, 6).map((genre) => (
+            <Link
+              key={genre.slug}
+              href={`/anime/genre/${genre.slug}`}
+              className="opacity-70 transition hover:opacity-100"
+            >
+              {genre.label}
+            </Link>
+          ))}
+          {SEO_STUDIO_LANDINGS.slice(0, 5).map((studio) => (
+            <Link
+              key={studio.slug}
+              href={`/anime/studio/${studio.slug}`}
+              className="opacity-70 transition hover:opacity-100"
+            >
+              {studio.label}
+            </Link>
+          ))}
+          {years.map((year) => (
+            <Link
+              key={year}
+              href={`/anime/year/${year}`}
+              className="opacity-70 transition hover:opacity-100"
+            >
+              Аниме {year}
+            </Link>
+          ))}
+        </nav>
+      </section>
+    </div>
+  );
 }
 
 function CatalogFallback() {
@@ -88,13 +169,16 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const initialResults = query || initialView === 'saved' ? [] : await loadInitialCatalog(initialFilters);
 
   return (
-    <Suspense fallback={<CatalogFallback />}>
-      <SearchCatalogClient
-        initialResults={initialResults}
-        initialQuery={query}
-        initialView={initialView}
-        initialFilters={initialFilters}
-      />
-    </Suspense>
+    <>
+      <Suspense fallback={<CatalogFallback />}>
+        <SearchCatalogClient
+          initialResults={initialResults}
+          initialQuery={query}
+          initialView={initialView}
+          initialFilters={initialFilters}
+        />
+      </Suspense>
+      <CatalogDiscoveryLinks />
+    </>
   );
 }
