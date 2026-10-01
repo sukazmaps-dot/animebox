@@ -2,65 +2,47 @@
 
 import Image from 'next/image';
 
+import {
+  HOME_MOOD_OPTIONS,
+  getRecommendationMoodLabel,
+} from '@/lib/recommendation-moods';
 import type { TasteMood } from '@/lib/personalization';
-
-const MOODS: Array<{
-  value: TasteMood;
-  label: string;
-  hint: string;
-  icon: string;
-}> = [
-  {
-    value: 'any',
-    label: 'Мой вкус',
-    hint: 'По истории',
-    icon: '/brand/emojis/moods/mood-any-cat.webp',
-  },
-  {
-    value: 'comfort',
-    label: 'Уют',
-    hint: 'Спокойно и тепло',
-    icon: '/brand/emojis/moods/mood-cozy-cup.webp',
-  },
-  {
-    value: 'tension',
-    label: 'Триллер',
-    hint: 'Тайны и риск',
-    icon: '/brand/emojis/moods/mood-dark-kitsune.webp',
-  },
-  {
-    value: 'emotion',
-    label: 'Драма',
-    hint: 'Сильные эмоции',
-    icon: '/brand/emojis/moods/mood-cry.webp',
-  },
-  {
-    value: 'adventure',
-    label: 'Другие миры',
-    hint: 'Миры и приключения',
-    icon: '/brand/emojis/moods/mood-hype-fire.webp',
-  },
-];
 
 export default function HomeMoodPicker({
   value,
   onChange,
+  busy = false,
 }: {
   value: TasteMood;
   onChange: (value: TasteMood) => void;
+  busy?: boolean;
 }) {
+  const selectedLabel = getRecommendationMoodLabel(value);
+
   return (
-    <section className="mood-picker" aria-labelledby="mood-picker-title">
+    <section
+      className="mood-picker"
+      aria-labelledby="mood-picker-title"
+      aria-busy={busy}
+    >
       <div className="mood-picker__intro">
         <span className="mood-picker__eyebrow">Настроение</span>
         <div>
           <h2 id="mood-picker-title">Какое настроение на вечер?</h2>
-          <p>Выбери настроение — подстроим подборку.</p>
+          <p aria-live="polite">
+            {busy
+              ? `Подбираем под настроение «${selectedLabel}»…`
+              : 'Выбери настроение — подстроим подборку.'}
+          </p>
         </div>
       </div>
 
-      <div className="mood-picker__options" role="radiogroup" aria-label="Настроение для рекомендаций">
-        {MOODS.map((mood) => {
+      <div
+        className="mood-picker__options"
+        role="radiogroup"
+        aria-label="Настроение для рекомендаций"
+      >
+        {HOME_MOOD_OPTIONS.map((mood) => {
           const active = value === mood.value;
 
           return (
