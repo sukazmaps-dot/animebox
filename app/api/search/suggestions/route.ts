@@ -44,28 +44,35 @@ export async function GET(request: NextRequest) {
     const classification = classifySearchQuery(query);
     let local = await searchLocalAnimeSuggestions(query, limit);
 
-    // Prefixes normally stay completely local. Provider lookup only bootstraps
-    // the corpus when a reasonably specific query has almost no indexed hits.
+    // Suggestions are a keystroke hot path. Never make the visible response
+    // wait for AniList/Shikimori. If the local corpus is sparse, warm it after
+    // the response so the next query/session benefits without adding provider
+    // latency to the current keypress.
     if (
       local.length < 2 &&
       shouldBootstrapSearchProvider(classification)
     ) {
-      try {
-        const provider = await getAnimesWithShikimori({
-          page: 1,
-          limit: 8,
-          order: 'ranked',
-          search: query,
-        });
-        const ranked = rankAnimeForSmartSearch(provider, query).slice(0, 8);
-        await indexAnimeSearchDocuments(ranked);
-        after(async () => {
+      after(async () => {
+        try {
+          const provider = await getAnimesWithShikimori({
+            page: 1,
+            limit: 8,
+            order: 'ranked',
+            search: query,
+          });
+          const ranked = rankAnimeForSmartSearch(provider, query).slice(0, 8);
+
+          if (!ranked.length) return;
+
+          await indexAnimeSearchDocuments(ranked);
           await refreshCatalogAvailabilityBatch(ranked, { limit: 4 });
-        });
-        local = await searchLocalAnimeSuggestions(query, limit);
-      } catch (providerError) {
-        console.warn('[Search suggestions provider fallback]', providerError);
-      }
+        } catch (providerError) {
+          console.warn(
+            '[Search suggestions background bootstrap]',
+            providerError,
+          );
+        }
+      });
     }
 
     const allowedIds = new Set(
