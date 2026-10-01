@@ -26,11 +26,19 @@ export type SearchPerformanceSnapshot = {
     network: number;
     memorySharePct: number | null;
   };
+  instantRichCards: {
+    samples: number;
+    averageSharePct: number | null;
+  };
   index: {
+    migrationReady: boolean;
     searchDocuments: number | null;
+    richDocuments: number | null;
     catalogDocuments: number | null;
     coveragePct: number | null;
+    richCoveragePct: number | null;
     latestIndexedAt: string | null;
+    latestCatalogSyncAt: string | null;
   };
   latestSampleAt: string | null;
 };
