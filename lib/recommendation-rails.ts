@@ -1,6 +1,11 @@
 import type { TasteMood } from '@/lib/personalization';
 import type { RankedRecommendation } from '@/lib/recommendations';
 import type { TasteGraph } from '@/lib/taste-graph';
+import { getRecommendationMoodLabel } from '@/lib/recommendation-moods';
+import {
+  isRelaxedMoodMatch,
+  isStrictMoodMatch,
+} from '@/lib/recommendation-mood-score';
 
 export type RecommendationRailId =
   | 'mood_lane'
@@ -38,9 +43,9 @@ export const RECOMMENDATION_RAIL_BATCH_SIZE = 6;
 export const HOME_COMPOSITION_VERSION = '22.8-home-v1';
 
 export const SESSION_STABLE_RAIL_ORDER: readonly RecommendationRailId[] = [
+  'mood_lane',
   'top_match',
   'session_intent',
-  'mood_lane',
   'story_continues',
   'hidden_gems',
   'explore',
@@ -75,12 +80,14 @@ export function orderRecommendationRails(
     Number(graph?.preferredEpisodeCount ?? 0) <= 16;
 
   const weight = (rail: RecommendationRail) => {
-    if (rail.id === 'top_match') return 0;
-    if (rail.id === 'session_intent') {
-      return options.hasWatchHistory ? 8 : 70;
-    }
     if (rail.id === 'mood_lane') {
-      return options.mood === 'any' ? 60 : 12;
+      return options.mood === 'any' ? 60 : 0;
+    }
+    if (rail.id === 'top_match') {
+      return options.mood === 'any' ? 0 : 10;
+    }
+    if (rail.id === 'session_intent') {
+      return options.hasWatchHistory ? 18 : 70;
     }
     if (rail.id === 'story_continues') return options.hasWatchHistory ? 20 : 90;
     if (rail.id === 'hidden_gems') {
@@ -137,13 +144,6 @@ function isShortWatch(item: RankedRecommendation) {
   return episodes > 0 && episodes <= 24 && duration > 0 && duration <= 30;
 }
 
-const MOOD_RAIL_LABELS: Record<Exclude<TasteMood, 'any'>, string> = {
-  comfort: 'Уют',
-  tension: 'Напряжение',
-  emotion: 'Сильные эмоции',
-  adventure: 'Приключение',
-};
-
 function dominantGenre(items: RankedRecommendation[]) {
   const weights = new Map<string, { label: string; weight: number }>();
 
@@ -180,7 +180,7 @@ export function recommendationMatchesRail(
   if (rail.id === 'seasonal') {
     return item.seasonRelation === 'current' && item.seasonalScore >= 0.24;
   }
-  if (rail.id === 'mood_lane') return item.ranking.components.mood > 0;
+  if (rail.id === 'mood_lane') return isStrictMoodMatch(item);
   if (rail.id === 'quick_watch') return isShortWatch(item);
   if (rail.id === 'explore') {
     return (
@@ -206,6 +206,10 @@ export function recommendationMatchesRailRelaxed(
   rail: Pick<RecommendationRail, 'id' | 'genre'>,
 ): boolean {
   if (recommendationMatchesRail(item, rail)) return true;
+
+  if (rail.id === 'mood_lane') {
+    return isRelaxedMoodMatch(item);
+  }
 
   if (rail.id === 'session_intent') {
     return (
@@ -284,13 +288,14 @@ export function buildRecommendationRailLayout(
   const take = (
     id: RecommendationRailId,
     predicate: (item: RankedRecommendation) => boolean,
+    candidates: RankedRecommendation[] = pool,
   ) => {
     const limit = railLimit(options.limits, id);
     const selected: RankedRecommendation[] = [];
 
     // Keep previously rendered cards sticky in their original rail. This is
     // what prevents a newly fetched page from teleporting visible cards.
-    for (const item of pool) {
+    for (const item of candidates) {
       if (selected.length >= limit) break;
       if (used.has(item.anime.id) || ownership.get(item.anime.id) !== id) {
         continue;
@@ -300,7 +305,7 @@ export function buildRecommendationRailLayout(
     }
 
     // Only unowned candidates may fill new slots.
-    for (const item of pool) {
+    for (const item of candidates) {
       if (selected.length >= limit) break;
       if (used.has(item.anime.id) || ownership.has(item.anime.id)) continue;
       if (!predicate(item)) continue;
@@ -317,7 +322,9 @@ export function buildRecommendationRailLayout(
 
   const storyContinues = take(
     'story_continues',
-    (item) => item.franchiseContinuation,
+    (item) =>
+      item.franchiseContinuation &&
+      (options.mood === 'any' || !isStrictMoodMatch(item)),
   );
 
   if (storyContinues.length > 0) {
@@ -333,10 +340,17 @@ export function buildRecommendationRailLayout(
   }
 
   if (options.mood !== 'any') {
-    const moodLabel = MOOD_RAIL_LABELS[options.mood];
+    const moodLabel = getRecommendationMoodLabel(options.mood);
+    const moodPool = [...pool].sort((left, right) => {
+      const leftMoodScore = left.moodScore * 0.6 + left.score * 0.4;
+      const rightMoodScore = right.moodScore * 0.6 + right.score * 0.4;
+
+      return rightMoodScore - leftMoodScore;
+    });
     const moodLane = take(
       'mood_lane',
-      (item) => item.ranking.components.mood > 0,
+      (item) => isStrictMoodMatch(item),
+      moodPool,
     );
 
     if (moodLane.length > 0 && (moodLane.length >= 3 || options.hasMore)) {
