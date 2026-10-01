@@ -25,6 +25,7 @@ export type RecommendationPage = {
   fallbackFrom?: RecommendationCandidateSource | null;
   tasteGenre?: string | null;
   mood?: 'any' | 'comfort' | 'tension' | 'emotion' | 'adventure';
+  intent?: 'default' | 'mood';
   season?: 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL';
   seasonYear?: number;
   contractVersion?: string;
