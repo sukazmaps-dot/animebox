@@ -88,7 +88,7 @@ export default function SearchSuggestions({
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') return;
       }
-    }, 170);
+    }, 80);
 
     return () => {
       window.clearTimeout(timer);
