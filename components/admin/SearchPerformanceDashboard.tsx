@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-import type { SearchPerformanceSnapshot } from '@/lib/search-performance-server';
+import type { SearchPerformanceSnapshot } from '@/lib/search-performance';
 
 import styles from './SearchPerformanceDashboard.module.css';
 
