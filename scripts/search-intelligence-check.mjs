@@ -76,6 +76,8 @@ if (
 
 if (
   !animeApi.includes('searchLocalAnimeIndex(rawSearch') ||
+  !animeApi.includes('const localHitsPromise:') ||
+  !animeApi.includes('const missingLocalHits = localHits.filter(') ||
   !animeApi.includes('mergeAnimeCandidates(localAnime, candidates)') ||
   !animeApi.includes('localIndexUsed') ||
   !animeApi.includes('correction') ||
@@ -123,7 +125,8 @@ if (
   !suggestionUi.includes('highlightTitle') ||
   !suggestionUi.includes('search_suggestion_click') ||
   !navbar.includes('<SearchSuggestions') ||
-  !catalog.includes('SEARCH_DEBOUNCE_MS = 200')
+  !catalog.includes('SEARCH_DEBOUNCE_MS = 90') ||
+  !catalog.includes('getInstantAnimeSearch(')
 ) {
   failures.push('live search suggestions/debounce contract is incomplete');
 }
