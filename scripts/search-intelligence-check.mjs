@@ -13,6 +13,9 @@ const rankerV2Migration = read(
 const rankerV21Migration = read(
   'supabase/migrations/20260925043500_intelligence_search_ranker_v2_1.sql',
 );
+const rankerV3Migration = read(
+  'supabase/migrations/20261001133000_patch24_4_local_search_authority.sql',
+);
 const animeApi = read('app/api/anime/route.ts');
 const discovery = read('lib/smart-discovery.ts');
 const discoveryApi = read('app/api/discovery/route.ts');
@@ -58,6 +61,7 @@ for (const needle of [
   'hydrateLocalAnimeHits',
   'indexAnimeSearchDocuments',
   'search_anime_hybrid_lexical_v2',
+  'search_anime_hybrid_lexical_v3',
   'matchedText',
   'matchKind',
 ]) {
@@ -195,6 +199,18 @@ for (const needle of [
 ]) {
   if (!rankerV21Migration.includes(needle)) {
     failures.push(`18.0 lexical ranker v2.1 missing ${needle}`);
+  }
+}
+
+for (const needle of [
+  'search_anime_hybrid_lexical_v3',
+  'catalog_metadata_version',
+  'catalog_updated_at',
+  'repair_anime_search_documents_v1',
+  'grant execute on function public.search_anime_hybrid_lexical_v3',
+]) {
+  if (!rankerV3Migration.includes(needle)) {
+    failures.push(`24.4 lexical ranker v3 missing ${needle}`);
   }
 }
 
