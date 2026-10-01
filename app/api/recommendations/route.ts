@@ -245,7 +245,7 @@ const getCachedCandidatePage = unstable_cache(
 
     return getAnimesWithShikimori(options);
   },
-  ['animebox-recommendation-candidates-v9-seasonal-freshness'],
+  ['animebox-recommendation-candidates-v10-mood-intent'],
   {
     revalidate: CACHE_SECONDS,
     tags: ['animebox-recommendation-candidates'],
