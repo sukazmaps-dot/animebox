@@ -58,7 +58,10 @@ Promise<SearchIndexCoverageSnapshot> {
     admin
       .from('anime_search_documents')
       .select('*', { count: 'exact', head: true })
-      .gte('catalog_metadata_version', 1),
+      .gte('catalog_metadata_version', 1)
+      .or(
+        'format.not.is.null,start_year.not.is.null,total_episodes.not.is.null',
+      ),
     admin
       .from('anime_search_documents')
       .select('updated_at')
