@@ -59,8 +59,7 @@ export function localAnimeSearchHitHasRichCardMetadata(
   hit: LocalAnimeSearchHit,
 ) {
   return Boolean(
-    hit.catalogMetadataVersion >= 1 ||
-      hit.format ||
+    hit.format ||
       hit.startYear ||
       hit.totalEpisodes ||
       hit.studios.length > 0,
