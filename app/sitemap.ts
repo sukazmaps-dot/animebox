@@ -1,7 +1,12 @@
 import type { MetadataRoute } from 'next';
 
 import { SITE_URL } from '@/lib/seo-config';
-import { SEO_GENRE_LANDINGS, seoCatalogYears } from '@/lib/search-seo';
+import {
+  SEO_GENRE_LANDINGS,
+  SEO_STUDIO_LANDINGS,
+  seoCatalogYears,
+  seoSeasonLandings,
+} from '@/lib/search-seo';
 
 /**
  * Root sitemap intentionally contains only stable, local pages.
@@ -25,6 +30,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly' as const,
       priority: year >= new Date().getFullYear() - 1 ? 0.76 : 0.62,
     })),
+    ...SEO_STUDIO_LANDINGS.map((studio) => ({
+      url: `${SITE_URL}/anime/studio/${studio.slug}`,
+      changeFrequency: 'weekly' as const,
+      priority: 0.68,
+    })),
+    ...seoSeasonLandings().map((season) => ({
+      url: `${SITE_URL}${season.path}`,
+      changeFrequency: 'weekly' as const,
+      priority: season.year >= new Date().getFullYear() - 1 ? 0.8 : 0.66,
+    })),
   ];
 
   return [
@@ -36,6 +51,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/premium`, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${SITE_URL}/support`, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${SITE_URL}/terms`, changeFrequency: 'monthly', priority: 0.2 },
+    { url: `${SITE_URL}/copyright`, changeFrequency: 'monthly', priority: 0.35 },
     ...discoveryLandings,
   ];
 }

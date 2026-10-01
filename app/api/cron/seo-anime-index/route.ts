@@ -1,6 +1,7 @@
 import { getSeoAnimeSourceShard } from '@/lib/seo-anilist';
 import { syncSeoAnimeSourceEntries } from '@/lib/seo-anime-index-server';
-import { ANIME_SITEMAP_SHARDS } from '@/lib/seo-config';
+import { ANIME_SITEMAP_SHARDS, SITE_URL } from '@/lib/seo-config';
+import { submitIndexNowUrls } from '@/lib/indexnow';
 import { beginOperationalJob } from '@/lib/operational-job-server';
 import { isCronAuthorized } from '@/lib/server-request-auth';
 import { createSystemJobObserver } from '@/lib/system-observability-server';
@@ -104,11 +105,34 @@ async function run(request: Request) {
       }),
       { checked: 0, changed: 0, indexable: 0 },
     );
+
+    const changedUrls = [
+      ...new Set(
+        results.flatMap((item) =>
+          item.changedSlugs.map(
+            (slug) => `${SITE_URL}/anime/${encodeURIComponent(slug)}`,
+          ),
+        ),
+      ),
+    ];
+
+    const indexNow =
+      changedUrls.length > 0 && !permit.shouldStop(5_500)
+        ? await submitIndexNowUrls(changedUrls)
+        : {
+            attempted: 0,
+            accepted: changedUrls.length === 0,
+            status: null,
+            truncated: false,
+          };
+
     const summary = {
       sourceShards: shards,
       completedShards: results.map((item) => item.sourceShard),
       budgetExhausted,
       remainingMs: permit.remainingMs(),
+      changedUrls: changedUrls.length,
+      indexNow,
       ...totals,
     };
 
