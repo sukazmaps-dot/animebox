@@ -1,0 +1,23 @@
+name: Patch 24.2 Instant Search Validation
+
+on:
+  push:
+    branches:
+      - patch-24-2-instant-search
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run patch24-2:check
+      - run: npm run patch24-1:check
+      - run: npm run search-intelligence:check
+      - run: npx tsc --noEmit
+      - run: npm run build
