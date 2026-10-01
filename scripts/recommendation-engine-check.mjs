@@ -164,7 +164,7 @@ if (
   failures.push('17.8.3 multi-source candidate retrieval is incomplete');
 }
 if (
-  !candidates.includes('animebox-recommendation-candidates-v9-seasonal-freshness') ||
+  !candidates.includes('animebox-recommendation-candidates-v10-mood-intent') ||
   !candidates.includes('tasteGenre') ||
   !candidates.includes('bucket')
 ) {
