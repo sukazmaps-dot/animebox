@@ -50,6 +50,8 @@ export type HomeFeedRuntimeValue = {
   hasWatchHistory: boolean;
   hasPersonalHistory: boolean;
   mood: TasteMood;
+  recommendationMood: TasteMood;
+  moodSwitching: boolean;
   updateMood: (mood: TasteMood) => void;
   smartRecommendations: RankedRecommendation[];
   recommendationsReady: boolean;
@@ -108,6 +110,8 @@ export default function HomeFeedRuntimeProvider({
 
   const {
     mood,
+    recommendationMood,
+    moodSwitching,
     updateMood,
     smartRecommendations,
     recommendationsReady,
@@ -642,6 +646,8 @@ export default function HomeFeedRuntimeProvider({
       hasPersonalHistory:
         hasWatchHistory || serverContinue.length > 0,
       mood,
+      recommendationMood,
+      moodSwitching,
       updateMood,
       smartRecommendations,
       recommendationsReady,
@@ -659,6 +665,8 @@ export default function HomeFeedRuntimeProvider({
       heroLoading,
       hydrated,
       mood,
+      moodSwitching,
+      recommendationMood,
       ongoing,
       ongoingError,
       ongoingLoading,
