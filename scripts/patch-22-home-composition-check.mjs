@@ -16,7 +16,8 @@ for (const [label, source, needle] of [
   ['session confidence gate', rails, 'item.sessionIntentConfidence >= 0.16'],
   ['session score gate', rails, 'item.sessionIntentScore >= 0.14'],
   ['session rail source', rails, "source: 'smart_feed_session_intent'"],
-  ['top match priority', rails, "if (rail.id === 'top_match') return 0"],
+  ['mood-aware top match priority', rails, "if (rail.id === 'top_match') {"],
+  ['active mood priority', rails, "return options.mood === 'any' ? 60 : 0"],
   ['schedule insertion helper', rails, 'getHomeScheduleInsertionIndex'],
   ['single-runtime interleave slot', feed, 'midFeedSlot?: ReactNode'],
   ['schedule slot marker', feed, 'data-home-composition-slot="personal-schedule"'],
@@ -30,11 +31,21 @@ for (const [label, source, needle] of [
   }
 }
 
-const topWeight = rails.indexOf("if (rail.id === 'top_match') return 0");
+const moodWeight = rails.indexOf("if (rail.id === 'mood_lane')");
+const topWeight = rails.indexOf("if (rail.id === 'top_match')");
 const sessionWeight = rails.indexOf("if (rail.id === 'session_intent')");
 const storyWeight = rails.indexOf("if (rail.id === 'story_continues')");
-if (!(topWeight >= 0 && sessionWeight > topWeight && storyWeight > sessionWeight)) {
-  failures.push('adaptive rail priority contract is not Top Match -> Session -> Story');
+if (
+  !(
+    moodWeight >= 0 &&
+    topWeight > moodWeight &&
+    sessionWeight > topWeight &&
+    storyWeight > sessionWeight
+  )
+) {
+  failures.push(
+    'adaptive rail priority contract is not Mood(active) -> Top Match -> Session -> Story',
+  );
 }
 
 if (shell.includes('<HomePersonalScheduleSection />')) {
