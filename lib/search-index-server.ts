@@ -23,6 +23,35 @@ export type LocalAnimeSuggestion = LocalAnimeSearchHit & {
   title: string;
 };
 
+export function localAnimeSearchHitToAnime(
+  hit: LocalAnimeSearchHit,
+): Anime {
+  const title = hit.title?.trim() || `Anime ${hit.animeId}`;
+  const poster = hit.posterUrl?.trim() || null;
+
+  return {
+    id: hit.animeId,
+    slug: hit.slug?.trim() || undefined,
+    name: title,
+    russian: title,
+    title: {
+      russian: title,
+      romaji: title,
+      english: null,
+      native: null,
+    },
+    genres: hit.genres,
+    coverImage: poster
+      ? {
+          extraLarge: poster,
+          large: poster,
+          medium: poster,
+        }
+      : null,
+    catalogEligible: true,
+  };
+}
+
 function uniqueStrings(values: Array<string | null | undefined>) {
   const result: string[] = [];
   const seen = new Set<string>();
@@ -201,18 +230,39 @@ export async function searchLocalAnimeIndex(
   const normalized = normalizeSearchText(query);
   if (normalized.length < 2) return [];
 
+  const variants = buildSearchQueryVariants(query).slice(0, 3);
+  if (!variants.length) return [];
+
+  const matchCount = Math.min(40, Math.max(8, limit * 2));
   const merged = new Map<number, LocalAnimeSearchHit>();
 
-  for (const variant of buildSearchQueryVariants(query).slice(0, 3)) {
-    const rows = await runLexicalSearch(
-      variant,
-      Math.min(40, Math.max(8, limit * 2)),
-    );
-
+  const mergeRows = (rows: LocalAnimeSearchHit[]) => {
     for (const row of rows) {
       const previous = merged.get(row.animeId);
       if (previous && previous.score >= row.score) continue;
       merged.set(row.animeId, row);
+    }
+  };
+
+  // Healthy exact/prefix searches should pay for one Supabase RPC only.
+  // Keyboard-layout/transliteration variants are fallback work and are run
+  // concurrently only when the primary query is too sparse or uncertain.
+  const primary = await runLexicalSearch(variants[0]!, matchCount);
+  mergeRows(primary);
+
+  const strongPrimary =
+    primary.length >= Math.min(limit, 6) &&
+    Number(primary[0]?.score ?? 0) >= 0.56;
+
+  if (!strongPrimary && variants.length > 1) {
+    const fallbackBatches = await Promise.all(
+      variants
+        .slice(1)
+        .map((variant) => runLexicalSearch(variant, matchCount)),
+    );
+
+    for (const rows of fallbackBatches) {
+      mergeRows(rows);
     }
   }
 
