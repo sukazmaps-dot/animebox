@@ -20,6 +20,10 @@
       "schedule": "23 4 * * *"
     },
     {
+      "path": "/api/cron/search-index-maintenance",
+      "schedule": "37 4 * * *"
+    },
+    {
       "path": "/api/cron/seo-anime-index",
       "schedule": "53 4 * * *"
     },
