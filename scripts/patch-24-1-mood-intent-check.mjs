@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import ts from 'typescript';
 
 const failures = [];
 const read = (path) => fs.readFileSync(path, 'utf8');
@@ -50,6 +51,96 @@ mustInclude(api, "type CandidateIntent = 'default' | 'mood'", 'candidate intent 
 mustInclude(api, 'getMoodRetrievalTarget', 'API does not use mood retrieval targets');
 mustInclude(api, "intent === 'mood'", 'API does not prioritize mood candidate sources');
 mustInclude(types, "intent?: 'default' | 'mood'", 'recommendation page intent type missing');
+
+if (!failures.length) {
+  try {
+    const moodRuntimeSource = moods
+      .replace(
+        /import type \{ TasteMood \} from '@\/lib\/personalization';\n/,
+        '',
+      );
+
+    const scorerRuntimeSource = scorer
+      .replace(
+        /import type \{ TasteMood \} from '@\/lib\/personalization';\n/,
+        '',
+      )
+      .replace(
+        /import \{[\s\S]*?\} from '@\/lib\/recommendation-moods';\n/,
+        '',
+      )
+      .replace(
+        /import type \{ Anime \} from '@\/types\/anime';\n/,
+        '',
+      );
+
+    const compiled = ts.transpileModule(
+      `${moodRuntimeSource}\n${scorerRuntimeSource}`,
+      {
+        compilerOptions: {
+          module: ts.ModuleKind.ESNext,
+          target: ts.ScriptTarget.ES2022,
+        },
+      },
+    ).outputText;
+
+    const runtime = await import(
+      `data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`
+    );
+
+    const anime = (genres, tags = []) => ({
+      id: Math.max(1, genres.length + tags.length),
+      title: { english: 'Fixture' },
+      genres,
+      tags,
+    });
+
+    const broadOnly = [
+      ['tension', anime(['Action'])],
+      ['emotion', anime(['Romance'])],
+      ['comfort', anime(['Comedy'])],
+    ];
+
+    for (const [mood, fixture] of broadOnly) {
+      const result = runtime.scoreRecommendationMood(fixture, mood);
+      if (result.tier === 'strong' || result.tier === 'good') {
+        failures.push(
+          `broad-only ${fixture.genres[0]} incorrectly qualifies as ${mood}: ${result.score}`,
+        );
+      }
+    }
+
+    const strongFixtures = [
+      ['comfort', anime(['Slice of Life'], ['Iyashikei'])],
+      ['tension', anime(['Mystery'], ['Detective'])],
+      ['emotion', anime(['Drama'], ['Coming of Age'])],
+      ['adventure', anime(['Adventure'], ['Isekai'])],
+    ];
+
+    for (const [mood, fixture] of strongFixtures) {
+      const result = runtime.scoreRecommendationMood(fixture, mood);
+      if (result.tier !== 'strong') {
+        failures.push(
+          `anchored mood fixture is not strong for ${mood}: ${result.score} / ${result.tier}`,
+        );
+      }
+    }
+
+    const comfortConflict = runtime.scoreRecommendationMood(
+      anime(['Slice of Life', 'Horror'], ['Iyashikei', 'Gore']),
+      'comfort',
+    );
+    if (comfortConflict.score >= 0.72) {
+      failures.push('negative mood evidence no longer suppresses conflicting comfort candidates');
+    }
+  } catch (error) {
+    failures.push(
+      `mood scorer runtime matrix failed: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+}
 
 if (failures.length) {
   console.error('Patch 24.1 Mood Intent check failed:');
