@@ -63,13 +63,17 @@ async function observedGET(request: NextRequest) {
     const filtered = hits
       .filter((hit) => allowedIds.has(hit.animeId))
       .slice(0, limit);
+    const tookMs = Math.max(
+      0,
+      Math.round(performance.now() - startedAt),
+    );
 
     return NextResponse.json(
       {
         items: filtered.map(localAnimeSearchHitToAnime),
         query,
         source: 'local-index-v2',
-        tookMs: Math.max(0, Math.round(performance.now() - startedAt)),
+        tookMs,
         matches: filtered.map((hit) => ({
           animeId: hit.animeId,
           score: Math.round(hit.score * 1000) / 1000,
@@ -85,6 +89,7 @@ async function observedGET(request: NextRequest) {
             staleWhileRevalidateSeconds: 600,
           }),
           'X-AnimeBox-Search-Path': 'instant-local-v1',
+          'Server-Timing': `animebox_search_local;dur=${tookMs}`,
         },
       },
     );
