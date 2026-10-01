@@ -82,11 +82,13 @@ begin
     search_text = public.animebox_normalize_search_text(
       concat_ws(
         ' ',
-        anime_search_documents.search_text,
         excluded.title,
         excluded.slug,
+        array_to_string(anime_search_documents.aliases, ' '),
         array_to_string(excluded.genres, ' '),
-        array_to_string(excluded.studios, ' ')
+        array_to_string(anime_search_documents.tags, ' '),
+        array_to_string(excluded.studios, ' '),
+        anime_search_documents.description
       )
     ),
     updated_at = greatest(
@@ -500,11 +502,13 @@ begin
     search_text = public.animebox_normalize_search_text(
       concat_ws(
         ' ',
-        anime_search_documents.search_text,
         excluded.title,
         excluded.slug,
+        array_to_string(anime_search_documents.aliases, ' '),
         array_to_string(excluded.genres, ' '),
-        array_to_string(excluded.studios, ' ')
+        array_to_string(anime_search_documents.tags, ' '),
+        array_to_string(excluded.studios, ' '),
+        anime_search_documents.description
       )
     ),
     updated_at = greatest(
