@@ -79,7 +79,7 @@ export async function resolveSearchEntity(
   const localIds = new Set(local.map((anime) => anime.id));
   const resolvedBy = top
     ? localIds.has(top.anime.id)
-      ? 'local-index-v2'
+      ? 'local-index-v3'
       : fallbackResolvedBy ?? firstQuery
     : null;
 

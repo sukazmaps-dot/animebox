@@ -154,7 +154,9 @@
 }
 
 .error,
-.loading {
+.loading,
+.notice,
+.warning {
   padding: 16px;
   border: 1px solid var(--ab-border);
   border-radius: 14px;
@@ -163,6 +165,16 @@
 
 .error {
   color: #ffaaaa;
+}
+
+.notice {
+  margin-bottom: 12px;
+  color: #a9e8bb;
+}
+
+.warning {
+  margin-bottom: 12px;
+  color: #f3cf8b;
 }
 
 @media (max-width: 900px) {

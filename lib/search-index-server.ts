@@ -15,6 +15,12 @@ export type LocalAnimeSearchHit = {
   slug: string | null;
   posterUrl: string | null;
   genres: string[];
+  studios: string[];
+  format: string | null;
+  startYear: number | null;
+  totalEpisodes: number | null;
+  finished: boolean | null;
+  catalogMetadataVersion: number;
   matchedText: string | null;
   matchKind: string | null;
 };
@@ -22,6 +28,43 @@ export type LocalAnimeSearchHit = {
 export type LocalAnimeSuggestion = LocalAnimeSearchHit & {
   title: string;
 };
+
+function finitePositiveInteger(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function optionalYear(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 1940 && parsed <= 2200
+    ? parsed
+    : null;
+}
+
+function optionalBoolean(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null;
+}
+
+function rowStrings(value: unknown, limit = 12): string[] {
+  return Array.isArray(value)
+    ? value
+        .filter((item): item is string => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .slice(0, limit)
+    : [];
+}
+
+export function localAnimeSearchHitHasRichCardMetadata(
+  hit: LocalAnimeSearchHit,
+) {
+  return Boolean(
+    hit.format ||
+      hit.startYear ||
+      hit.totalEpisodes ||
+      hit.studios.length > 0,
+  );
+}
 
 export function localAnimeSearchHitToAnime(
   hit: LocalAnimeSearchHit,
@@ -41,6 +84,18 @@ export function localAnimeSearchHitToAnime(
       native: null,
     },
     genres: hit.genres,
+    studios: hit.studios,
+    format: hit.format,
+    kind: hit.format,
+    episodes: hit.totalEpisodes,
+    status: hit.finished === true ? 'FINISHED' : null,
+    startDate: hit.startYear
+      ? {
+          year: hit.startYear,
+          month: null,
+          day: null,
+        }
+      : null,
     coverImage: poster
       ? {
           extraLarge: poster,
@@ -49,6 +104,7 @@ export function localAnimeSearchHitToAnime(
         }
       : null,
     catalogEligible: true,
+    localSearchMetadataVersion: hit.catalogMetadataVersion,
   };
 }
 
@@ -68,7 +124,73 @@ function uniqueStrings(values: Array<string | null | undefined>) {
   return result;
 }
 
-function mapSearchRow(row: Record<string, unknown>): LocalAnimeSearchHit | null {
+function animeStudioNames(anime: Anime) {
+  const values: unknown[] = Array.isArray(anime.studios)
+    ? anime.studios
+    : anime.studios &&
+        typeof anime.studios === 'object' &&
+        Array.isArray((anime.studios as { nodes?: unknown[] }).nodes)
+      ? (anime.studios as { nodes: unknown[] }).nodes
+      : [];
+
+  return uniqueStrings(
+    values.map((value) => {
+      if (typeof value === 'string') return value;
+
+      if (value && typeof value === 'object') {
+        const row = value as {
+          name?: unknown;
+          node?: { name?: unknown };
+        };
+
+        if (typeof row.name === 'string') return row.name;
+        if (typeof row.node?.name === 'string') return row.node.name;
+      }
+
+      return null;
+    }),
+  ).slice(0, 12);
+}
+
+function animeFinished(anime: Anime): boolean | null {
+  const normalized = String(anime.status ?? '')
+    .normalize('NFKC')
+    .toLocaleLowerCase('ru-RU')
+    .replace(/ё/g, 'е')
+    .trim();
+
+  if (
+    [
+      'finished',
+      'finished_airing',
+      'released',
+      'вышло',
+      'завершено',
+    ].includes(normalized)
+  ) {
+    return true;
+  }
+
+  if (
+    [
+      'releasing',
+      'ongoing',
+      'airing',
+      'not_yet_released',
+      'upcoming',
+      'онгоинг',
+      'анонс',
+    ].includes(normalized)
+  ) {
+    return false;
+  }
+
+  return null;
+}
+
+function mapSearchRow(
+  row: Record<string, unknown>,
+): LocalAnimeSearchHit | null {
   const animeId = Number(row.anime_id);
   if (!Number.isSafeInteger(animeId) || animeId <= 0) return null;
 
@@ -87,11 +209,19 @@ function mapSearchRow(row: Record<string, unknown>): LocalAnimeSearchHit | null 
       typeof row.poster_url === 'string' && row.poster_url.trim()
         ? row.poster_url.trim()
         : null,
-    genres: Array.isArray(row.genres)
-      ? row.genres
-          .filter((value): value is string => typeof value === 'string')
-          .slice(0, 6)
-      : [],
+    genres: rowStrings(row.genres, 8),
+    studios: rowStrings(row.studios, 12),
+    format:
+      typeof row.format === 'string' && row.format.trim()
+        ? row.format.trim()
+        : null,
+    startYear: optionalYear(row.start_year),
+    totalEpisodes: finitePositiveInteger(row.total_episodes),
+    finished: optionalBoolean(row.finished),
+    catalogMetadataVersion: Math.max(
+      0,
+      Math.trunc(Number(row.catalog_metadata_version ?? 0)) || 0,
+    ),
     matchedText:
       typeof row.matched_text === 'string' && row.matched_text.trim()
         ? row.matched_text.trim()
@@ -103,44 +233,86 @@ function mapSearchRow(row: Record<string, unknown>): LocalAnimeSearchHit | null 
   };
 }
 
+function missingRpc(errorMessage: string) {
+  return /schema cache|does not exist|could not find the function/i.test(
+    errorMessage,
+  );
+}
+
+async function rowsFromRpc(
+  rpcName:
+    | 'search_anime_hybrid_lexical_v3'
+    | 'search_anime_hybrid_lexical_v2'
+    | 'search_anime_lexical',
+  query: string,
+  matchCount: number,
+) {
+  const result = await createSupabaseAdmin().rpc(rpcName, {
+    query_text: query,
+    match_count: matchCount,
+  });
+
+  return {
+    error: result.error,
+    rows: ((result.data ?? []) as Array<Record<string, unknown>>)
+      .map((row) => mapSearchRow(row))
+      .filter((row): row is LocalAnimeSearchHit => Boolean(row)),
+  };
+}
+
 async function runLexicalSearch(
   query: string,
   matchCount: number,
 ): Promise<LocalAnimeSearchHit[]> {
-  const admin = createSupabaseAdmin();
+  const v3 = await rowsFromRpc(
+    'search_anime_hybrid_lexical_v3',
+    query,
+    matchCount,
+  );
 
-  const v2 = await admin.rpc('search_anime_hybrid_lexical_v2', {
-    query_text: query,
-    match_count: matchCount,
-  });
+  if (!v3.error) return v3.rows;
 
-  if (!v2.error) {
-    const rows = (v2.data ?? []) as Array<Record<string, unknown>>;
-    return rows
-      .map((row) => mapSearchRow(row))
-      .filter((row): row is LocalAnimeSearchHit => Boolean(row));
-  }
-
-  if (!/schema cache|does not exist|could not find the function/i.test(v2.error.message)) {
-    console.warn('[Search index] lexical v2 RPC failed:', v2.error.message);
+  if (!missingRpc(v3.error.message)) {
+    console.warn(
+      '[Search index] lexical v3 RPC failed:',
+      v3.error.message,
+    );
     return [];
   }
 
-  // Safe rollout fallback while the application and DB migration propagate.
-  const legacy = await admin.rpc('search_anime_lexical', {
-    query_text: query,
-    match_count: matchCount,
-  });
+  // Staged rollout: application code may reach production a few minutes before
+  // the SQL migration. Keep v2.1 fully functional during that window.
+  const v2 = await rowsFromRpc(
+    'search_anime_hybrid_lexical_v2',
+    query,
+    matchCount,
+  );
+
+  if (!v2.error) return v2.rows;
+
+  if (!missingRpc(v2.error.message)) {
+    console.warn(
+      '[Search index] lexical v2 RPC failed:',
+      v2.error.message,
+    );
+    return [];
+  }
+
+  const legacy = await rowsFromRpc(
+    'search_anime_lexical',
+    query,
+    matchCount,
+  );
 
   if (legacy.error) {
-    console.warn('[Search index] legacy lexical RPC failed:', legacy.error.message);
+    console.warn(
+      '[Search index] legacy lexical RPC failed:',
+      legacy.error.message,
+    );
     return [];
   }
 
-  const rows = (legacy.data ?? []) as Array<Record<string, unknown>>;
-  return rows
-    .map((row) => mapSearchRow(row))
-    .filter((row): row is LocalAnimeSearchHit => Boolean(row));
+  return legacy.rows;
 }
 
 export async function indexAnimeSearchDocuments(items: Anime[]) {
@@ -160,9 +332,12 @@ export async function indexAnimeSearchDocuments(items: Anime[]) {
     const genres = uniqueStrings(anime.genres ?? []);
     const tags = uniqueStrings(
       Array.isArray(anime.tags)
-        ? anime.tags.filter((tag): tag is string => typeof tag === 'string')
+        ? anime.tags.filter(
+            (tag): tag is string => typeof tag === 'string',
+          )
         : [],
     );
+    const studios = animeStudioNames(anime);
     const title =
       anime.title?.russian?.trim() ||
       anime.russian?.trim() ||
@@ -174,6 +349,8 @@ export async function indexAnimeSearchDocuments(items: Anime[]) {
       typeof anime.description === 'string'
         ? anime.description.replace(/\s+/g, ' ').trim().slice(0, 4000)
         : null;
+    const startYear = optionalYear(anime.startDate?.year);
+    const totalEpisodes = finitePositiveInteger(anime.episodes);
 
     return {
       anime_id: anime.id,
@@ -183,6 +360,16 @@ export async function indexAnimeSearchDocuments(items: Anime[]) {
       description,
       genres,
       tags,
+      studios,
+      format:
+        typeof anime.format === 'string' && anime.format.trim()
+          ? anime.format.trim().slice(0, 32)
+          : typeof anime.kind === 'string' && anime.kind.trim()
+            ? anime.kind.trim().slice(0, 32)
+            : null,
+      start_year: startYear,
+      total_episodes: totalEpisodes,
+      finished: animeFinished(anime),
       poster_url:
         anime.coverImage?.extraLarge ||
         anime.coverImage?.large ||
@@ -191,18 +378,49 @@ export async function indexAnimeSearchDocuments(items: Anime[]) {
         anime.image?.medium ||
         null,
       search_text: normalizeSearchText(
-        [title, ...aliases, ...genres, ...tags, description ?? ''].join(' '),
+        [
+          title,
+          ...aliases,
+          ...genres,
+          ...tags,
+          ...studios,
+          description ?? '',
+        ].join(' '),
       ).slice(0, 12_000),
       updated_at: new Date().toISOString(),
     };
   });
 
-  const { error } = await admin
+  let write = await admin
     .from('anime_search_documents')
     .upsert(payload, { onConflict: 'anime_id' });
 
-  if (error) {
-    console.warn('[Search index] upsert failed:', error.message);
+  if (
+    write.error &&
+    /studios|format|start_year|total_episodes|finished|schema cache/i.test(
+      write.error.message,
+    )
+  ) {
+    // Safe pre-migration fallback. Search enrichment is best-effort and must
+    // not stop just because the rich-card columns are still propagating.
+    const legacyPayload = payload.map(
+      ({
+        studios: _studios,
+        format: _format,
+        start_year: _startYear,
+        total_episodes: _totalEpisodes,
+        finished: _finished,
+        ...legacy
+      }) => legacy,
+    );
+
+    write = await admin
+      .from('anime_search_documents')
+      .upsert(legacyPayload, { onConflict: 'anime_id' });
+  }
+
+  if (write.error) {
+    console.warn('[Search index] upsert failed:', write.error.message);
   }
 }
 
@@ -216,8 +434,9 @@ export async function searchLocalAnimeSuggestions(
   );
 
   return hits
-    .filter((hit): hit is LocalAnimeSearchHit & { title: string } =>
-      Boolean(hit.title),
+    .filter(
+      (hit): hit is LocalAnimeSearchHit & { title: string } =>
+        Boolean(hit.title),
     )
     .slice(0, limit)
     .map((hit) => ({ ...hit, title: hit.title }));
@@ -267,7 +486,9 @@ export async function searchLocalAnimeIndex(
   }
 
   return [...merged.values()]
-    .sort((a, b) => b.score - a.score || a.animeId - b.animeId)
+    .sort(
+      (a, b) => b.score - a.score || a.animeId - b.animeId,
+    )
     .slice(0, limit);
 }
 
@@ -281,7 +502,9 @@ export async function hydrateLocalAnimeHits(
     hits.map((hit) => hit.animeId),
     { signal },
   );
-  const scoreById = new Map(hits.map((hit) => [hit.animeId, hit.score]));
+  const scoreById = new Map(
+    hits.map((hit) => [hit.animeId, hit.score]),
+  );
 
   return anime
     .map((item, index) => ({

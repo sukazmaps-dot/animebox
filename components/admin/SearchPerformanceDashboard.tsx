@@ -41,7 +41,9 @@ export default function SearchPerformanceDashboard() {
     useState<SearchPerformanceSnapshot | null>(null);
   const [hours, setHours] = useState(24);
   const [loading, setLoading] = useState(true);
+  const [repairing, setRepairing] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -77,11 +79,64 @@ export default function SearchPerformanceDashboard() {
     void load();
   }, [load]);
 
+  const repairIndex = useCallback(async () => {
+    if (repairing) return;
+
+    setRepairing(true);
+    setError('');
+    setNotice('');
+
+    try {
+      const response = await fetch(
+        '/api/admin/search-performance/repair',
+        {
+          method: 'POST',
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+        },
+      );
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        result?: {
+          processed?: number;
+          after?: {
+            coveragePct?: number | null;
+            richCoveragePct?: number | null;
+          };
+        };
+      };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(
+          payload.error === 'search_index_migration_required'
+            ? 'Сначала примени SQL-миграцию Patch 24.4.'
+            : 'Не удалось восстановить search index.',
+        );
+      }
+
+      setNotice(
+        `Обработано документов: ${Number(
+          payload.result?.processed ?? 0,
+        ).toLocaleString('ru-RU')}. Индекс обновлён.`,
+      );
+      await load();
+    } catch (repairError) {
+      setError(
+        repairError instanceof Error
+          ? repairError.message
+          : 'Не удалось восстановить search index.',
+      );
+    } finally {
+      setRepairing(false);
+    }
+  }, [load, repairing]);
+
   return (
     <main className={styles.page}>
       <header className={styles.header}>
         <div>
-          <span className={styles.eyebrow}>SEARCH · PATCH 24.3</span>
+          <span className={styles.eyebrow}>SEARCH · PATCH 24.4</span>
           <h1>Search Performance</h1>
           <p>
             Реальная скорость поиска глазами пользователя: первый полезный
@@ -101,6 +156,13 @@ export default function SearchPerformanceDashboard() {
             <option value={72}>3 дня</option>
             <option value={168}>7 дней</option>
           </select>
+          <button
+            type="button"
+            onClick={() => void repairIndex()}
+            disabled={repairing || loading}
+          >
+            {repairing ? 'Восстанавливаем…' : 'Починить индекс'}
+          </button>
           <button type="button" onClick={() => void load()} disabled={loading}>
             {loading ? 'Обновляем…' : 'Обновить'}
           </button>
@@ -108,6 +170,13 @@ export default function SearchPerformanceDashboard() {
       </header>
 
       {error && <div className={styles.error}>{error}</div>}
+      {notice && <div className={styles.notice}>{notice}</div>}
+      {snapshot && !snapshot.index.migrationReady && (
+        <div className={styles.warning}>
+          Rich Search v3 ещё не активирован в Supabase. Примени миграцию
+          Patch 24.4 — до этого приложение безопасно использует v2 fallback.
+        </div>
+      )}
       {loading && !snapshot && (
         <div className={styles.loading}>Собираем latency-метрики…</div>
       )}
@@ -164,6 +233,16 @@ export default function SearchPerformanceDashboard() {
               <span>Full enrichment p95</span>
               <strong>{ms(snapshot.enrichment.p95Ms)}</strong>
               <small>полный provider result</small>
+            </article>
+            <article>
+              <span>Rich instant cards</span>
+              <strong>{percent(snapshot.instantRichCards.averageSharePct)}</strong>
+              <small>{snapshot.instantRichCards.samples} измерений</small>
+            </article>
+            <article>
+              <span>Rich index coverage</span>
+              <strong>{percent(snapshot.index.richCoveragePct)}</strong>
+              <small>полные локальные карточки</small>
             </article>
           </section>
 
@@ -229,6 +308,10 @@ export default function SearchPerformanceDashboard() {
                   <dd>{number(snapshot.index.searchDocuments)}</dd>
                 </div>
                 <div>
+                  <dt>Rich documents</dt>
+                  <dd>{number(snapshot.index.richDocuments)}</dd>
+                </div>
+                <div>
                   <dt>Catalog documents</dt>
                   <dd>{number(snapshot.index.catalogDocuments)}</dd>
                 </div>
@@ -237,8 +320,16 @@ export default function SearchPerformanceDashboard() {
                   <dd>{percent(snapshot.index.coveragePct)}</dd>
                 </div>
                 <div>
+                  <dt>Rich coverage</dt>
+                  <dd>{percent(snapshot.index.richCoveragePct)}</dd>
+                </div>
+                <div>
                   <dt>Последнее обновление</dt>
                   <dd>{time(snapshot.index.latestIndexedAt)}</dd>
+                </div>
+                <div>
+                  <dt>Catalog sync</dt>
+                  <dd>{time(snapshot.index.latestCatalogSyncAt)}</dd>
                 </div>
               </dl>
             </article>

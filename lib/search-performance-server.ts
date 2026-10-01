@@ -1,5 +1,8 @@
 import 'server-only';
 
+import {
+  getSearchIndexCoverageSnapshot,
+} from '@/lib/search-index-maintenance-server';
 import type {
   SearchLatencySummary,
   SearchPerformanceSnapshot,
@@ -54,20 +57,37 @@ function percentage(part: number, total: number) {
   return Math.round((part / total) * 10_000) / 100;
 }
 
+function average(values: number[]) {
+  if (!values.length) return null;
+
+  return (
+    Math.round(
+      (values.reduce((sum, value) => sum + value, 0) /
+        values.length) *
+        100,
+    ) / 100
+  );
+}
+
 function snapshotStatus(input: {
   firstResultP95: number | null;
   coveragePct: number | null;
+  richCoveragePct: number | null;
+  migrationReady: boolean;
 }) {
   if (
     (input.firstResultP95 != null && input.firstResultP95 > 1_500) ||
-    (input.coveragePct != null && input.coveragePct < 70)
+    (input.coveragePct != null && input.coveragePct < 70) ||
+    (input.richCoveragePct != null && input.richCoveragePct < 70)
   ) {
     return 'critical' as const;
   }
 
   if (
+    !input.migrationReady ||
     (input.firstResultP95 != null && input.firstResultP95 > 700) ||
-    (input.coveragePct != null && input.coveragePct < 90)
+    (input.coveragePct != null && input.coveragePct < 90) ||
+    (input.richCoveragePct != null && input.richCoveragePct < 90)
   ) {
     return 'warning' as const;
   }
@@ -87,12 +107,7 @@ export async function getSearchPerformanceSnapshot(
     Date.now() - safePeriodHours * 60 * 60 * 1000,
   ).toISOString();
 
-  const [
-    eventsResult,
-    searchCountResult,
-    catalogCountResult,
-    latestIndexResult,
-  ] = await Promise.all([
+  const [eventsResult, index] = await Promise.all([
     admin
       .from('product_events')
       .select('event_name,metadata,created_at')
@@ -104,18 +119,7 @@ export async function getSearchPerformanceSnapshot(
       .gte('created_at', since)
       .order('created_at', { ascending: false })
       .limit(5_000),
-    admin
-      .from('anime_search_documents')
-      .select('*', { count: 'exact', head: true }),
-    admin
-      .from('anime_catalog')
-      .select('*', { count: 'exact', head: true }),
-    admin
-      .from('anime_search_documents')
-      .select('updated_at')
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+    getSearchIndexCoverageSnapshot(),
   ]);
 
   if (eventsResult.error) throw eventsResult.error;
@@ -126,6 +130,7 @@ export async function getSearchPerformanceSnapshot(
   const suggestionLatencies: number[] = [];
   const instantServerLatencies: number[] = [];
   const instantDeliveryLatencies: number[] = [];
+  const instantRichShares: number[] = [];
   let instant = 0;
   let authoritative = 0;
   let discovery = 0;
@@ -143,10 +148,26 @@ export async function getSearchPerformanceSnapshot(
 
       if (metadata.result_source === 'instant') {
         instant += 1;
+
         const serverMs = finiteNumber(metadata.server_ms);
         const deliveryMs = finiteNumber(metadata.delivery_ms);
-        if (serverMs != null) instantServerLatencies.push(serverMs);
-        if (deliveryMs != null) instantDeliveryLatencies.push(deliveryMs);
+        const richShare = finiteNumber(metadata.rich_card_share_pct);
+
+        if (serverMs != null) {
+          instantServerLatencies.push(serverMs);
+        }
+
+        if (deliveryMs != null) {
+          instantDeliveryLatencies.push(deliveryMs);
+        }
+
+        if (
+          richShare != null &&
+          richShare >= 0 &&
+          richShare <= 100
+        ) {
+          instantRichShares.push(richShare);
+        }
       } else if (metadata.result_source === 'authoritative') {
         authoritative += 1;
       } else if (metadata.result_source === 'discovery') {
@@ -163,40 +184,26 @@ export async function getSearchPerformanceSnapshot(
       continue;
     }
 
-    if (eventName === 'search_suggestion_ready' && latency != null) {
+    if (
+      eventName === 'search_suggestion_ready' &&
+      latency != null
+    ) {
       suggestionLatencies.push(latency);
     }
   }
 
-  const searchDocuments = searchCountResult.error
-    ? null
-    : searchCountResult.count ?? 0;
-  const catalogDocuments = catalogCountResult.error
-    ? null
-    : catalogCountResult.count ?? 0;
-  const coveragePct =
-    searchDocuments != null &&
-    catalogDocuments != null &&
-    catalogDocuments > 0
-      ? Math.round((searchDocuments / catalogDocuments) * 10_000) / 100
-      : null;
   const firstResult = summarize(firstLatencies);
   const firstSourceTotal = instant + authoritative + discovery;
   const cacheTotal = memory + network;
-
-  const latestIndexRow =
-    !latestIndexResult.error &&
-    latestIndexResult.data &&
-    typeof latestIndexResult.data === 'object'
-      ? (latestIndexResult.data as { updated_at?: unknown })
-      : null;
 
   return {
     generatedAt: new Date().toISOString(),
     periodHours: safePeriodHours,
     status: snapshotStatus({
       firstResultP95: firstResult.p95Ms,
-      coveragePct,
+      coveragePct: index.coveragePct,
+      richCoveragePct: index.richCoveragePct,
+      migrationReady: index.migrationReady,
     }),
     firstResult,
     enrichment: summarize(enrichmentLatencies),
@@ -214,14 +221,19 @@ export async function getSearchPerformanceSnapshot(
       network,
       memorySharePct: percentage(memory, cacheTotal),
     },
+    instantRichCards: {
+      samples: instantRichShares.length,
+      averageSharePct: average(instantRichShares),
+    },
     index: {
-      searchDocuments,
-      catalogDocuments,
-      coveragePct,
-      latestIndexedAt:
-        typeof latestIndexRow?.updated_at === 'string'
-          ? latestIndexRow.updated_at
-          : null,
+      migrationReady: index.migrationReady,
+      searchDocuments: index.searchDocuments,
+      richDocuments: index.richDocuments,
+      catalogDocuments: index.catalogDocuments,
+      coveragePct: index.coveragePct,
+      richCoveragePct: index.richCoveragePct,
+      latestIndexedAt: index.latestIndexedAt,
+      latestCatalogSyncAt: index.latestCatalogSyncAt,
     },
     latestSampleAt:
       typeof rows[0]?.created_at === 'string'

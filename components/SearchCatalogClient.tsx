@@ -118,6 +118,7 @@ function trackSearchFirstResult(
     serverMs?: number | null;
     deliveryMs?: number | null;
     cacheStatus?: string | null;
+    richSharePct?: number | null;
   },
 ) {
   const query = timingQuery(value);
@@ -148,6 +149,7 @@ function trackSearchFirstResult(
       server_ms: input.serverMs ?? null,
       delivery_ms: input.deliveryMs ?? null,
       cache_status: input.cacheStatus ?? null,
+      rich_card_share_pct: input.richSharePct ?? null,
     },
   });
 }
@@ -457,6 +459,7 @@ export default function SearchCatalogClient({
                   serverMs: payload.tookMs ?? null,
                   deliveryMs: payload.clientElapsedMs ?? null,
                   cacheStatus: payload.clientCacheStatus ?? null,
+                  richSharePct: payload.richSharePct ?? null,
                 });
                 setResults(payload.items);
                 setInstantPreviewQuery(query);
@@ -559,6 +562,7 @@ export default function SearchCatalogClient({
               serverMs: fallbackPreview.tookMs ?? null,
               deliveryMs: fallbackPreview.clientElapsedMs ?? null,
               cacheStatus: fallbackPreview.clientCacheStatus ?? null,
+              richSharePct: fallbackPreview.richSharePct ?? null,
             });
             setResults(fallbackPreview.items);
             setInstantPreviewQuery(query);

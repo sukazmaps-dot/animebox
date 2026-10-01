@@ -37,7 +37,7 @@ must(instantApi, 'searchLocalAnimeIndex(query, limit)', 'instant local lookup');
 must(instantApi, 'filterAnimeIdsByAvailability', 'instant availability filter');
 must(
   instantApi,
-  "X-AnimeBox-Search-Path': 'instant-local-v1'",
+  "X-AnimeBox-Search-Path': 'instant-local-v3'",
   'instant response marker',
 );
 if (instantApi.includes('getAnimesWithShikimori')) {

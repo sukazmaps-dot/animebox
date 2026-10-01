@@ -3,7 +3,9 @@ import type { Anime } from '@/types/anime';
 export type InstantSearchPayload = {
   items: Anime[];
   query: string;
-  source: 'local-index-v2';
+  source: 'local-index-v2' | 'local-index-v3';
+  richItems?: number;
+  richSharePct?: number;
   tookMs?: number;
   clientElapsedMs?: number;
   clientCacheStatus?: 'memory' | 'network';

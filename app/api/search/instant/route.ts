@@ -5,6 +5,7 @@ import { filterAnimeIdsByAvailability } from '@/lib/catalog-availability-server'
 import { publicApiCacheHeaders } from '@/lib/edge-cache-policy';
 import { observeApiRoute } from '@/lib/request-observability-server';
 import {
+  localAnimeSearchHitHasRichCardMetadata,
   localAnimeSearchHitToAnime,
   searchLocalAnimeIndex,
 } from '@/lib/search-index-server';
@@ -30,7 +31,9 @@ async function observedGET(request: NextRequest) {
       {
         items: [],
         query,
-        source: 'local-index-v2',
+        source: 'local-index-v3',
+        richItems: 0,
+        richSharePct: 0,
       },
       {
         headers: publicApiCacheHeaders({
@@ -63,6 +66,12 @@ async function observedGET(request: NextRequest) {
     const filtered = hits
       .filter((hit) => allowedIds.has(hit.animeId))
       .slice(0, limit);
+    const richItems = filtered.filter(
+      localAnimeSearchHitHasRichCardMetadata,
+    ).length;
+    const richSharePct = filtered.length
+      ? Math.round((richItems / filtered.length) * 10_000) / 100
+      : 0;
     const tookMs = Math.max(
       0,
       Math.round(performance.now() - startedAt),
@@ -72,7 +81,9 @@ async function observedGET(request: NextRequest) {
       {
         items: filtered.map(localAnimeSearchHitToAnime),
         query,
-        source: 'local-index-v2',
+        source: 'local-index-v3',
+        richItems,
+        richSharePct,
         tookMs,
         matches: filtered.map((hit) => ({
           animeId: hit.animeId,
@@ -88,7 +99,7 @@ async function observedGET(request: NextRequest) {
             edgeSeconds: 180,
             staleWhileRevalidateSeconds: 600,
           }),
-          'X-AnimeBox-Search-Path': 'instant-local-v1',
+          'X-AnimeBox-Search-Path': 'instant-local-v3',
           'Server-Timing': `animebox_search_local;dur=${tookMs}`,
         },
       },
@@ -102,7 +113,9 @@ async function observedGET(request: NextRequest) {
       {
         items: [],
         query,
-        source: 'local-index-v2',
+        source: 'local-index-v3',
+        richItems: 0,
+        richSharePct: 0,
       },
       {
         headers: {
