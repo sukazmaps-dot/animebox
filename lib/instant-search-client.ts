@@ -5,6 +5,8 @@ export type InstantSearchPayload = {
   query: string;
   source: 'local-index-v2';
   tookMs?: number;
+  clientElapsedMs?: number;
+  clientCacheStatus?: 'memory' | 'network';
   matches?: Array<{
     animeId: number;
     score: number;
@@ -65,12 +67,21 @@ export async function getInstantAnimeSearch(
   const key = normalizeKey(clean, safeLimit);
   const cached = readCache(key);
 
-  if (cached) return cached;
+  if (cached) {
+    return {
+      ...cached,
+      clientElapsedMs: 0,
+      clientCacheStatus: 'memory',
+    };
+  }
 
   const params = new URLSearchParams({
     q: clean,
     limit: String(safeLimit),
   });
+
+  const startedAt =
+    typeof performance !== 'undefined' ? performance.now() : Date.now();
 
   const response = await fetch(
     `/api/search/instant?${params.toString()}`,
@@ -88,9 +99,15 @@ export async function getInstantAnimeSearch(
   }
 
   const payload = (await response.json()) as InstantSearchPayload;
-
-  return writeCache(key, {
+  const finishedAt =
+    typeof performance !== 'undefined' ? performance.now() : Date.now();
+  const enriched = {
     ...payload,
     items: Array.isArray(payload.items) ? payload.items : [],
-  });
+    clientElapsedMs: Math.max(0, Math.round(finishedAt - startedAt)),
+    clientCacheStatus: 'network' as const,
+  };
+
+  writeCache(key, enriched);
+  return enriched;
 }

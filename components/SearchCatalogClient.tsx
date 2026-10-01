@@ -64,6 +64,149 @@ const SEARCH_DEBOUNCE_MS = 90;
 type DiscoveryMeta = Pick<SmartDiscoveryResponse, 'seed' | 'meta'>;
 type CatalogView = 'catalog' | 'saved';
 
+type SearchTimingState = {
+  query: string;
+  startedAt: number;
+  firstResultAt: number | null;
+  firstResultSource: 'instant' | 'authoritative' | 'discovery' | null;
+  enrichmentSent: boolean;
+};
+
+type SearchTimingRef = {
+  current: SearchTimingState | null;
+};
+
+function searchNow() {
+  return typeof performance !== 'undefined'
+    ? performance.now()
+    : Date.now();
+}
+
+function timingQuery(value: string) {
+  return value.replace(/\s+/g, ' ').trim();
+}
+
+function startSearchTiming(
+  ref: SearchTimingRef,
+  value: string,
+) {
+  const query = timingQuery(value);
+
+  if (query.length < 2) {
+    ref.current = null;
+    return;
+  }
+
+  if (ref.current?.query === query) return;
+
+  ref.current = {
+    query,
+    startedAt: searchNow(),
+    firstResultAt: null,
+    firstResultSource: null,
+    enrichmentSent: false,
+  };
+}
+
+function trackSearchFirstResult(
+  ref: SearchTimingRef,
+  value: string,
+  input: {
+    source: 'instant' | 'authoritative' | 'discovery';
+    resultCount: number;
+    mode: string;
+    serverMs?: number | null;
+    deliveryMs?: number | null;
+    cacheStatus?: string | null;
+  },
+) {
+  const query = timingQuery(value);
+  if (query.length < 2 || input.resultCount <= 0) return;
+
+  if (ref.current?.query !== query) {
+    startSearchTiming(ref, query);
+  }
+
+  const timing = ref.current;
+  if (!timing || timing.firstResultAt !== null) return;
+
+  const now = searchNow();
+  timing.firstResultAt = now;
+  timing.firstResultSource = input.source;
+
+  trackProductClientEvent('search_first_result', {
+    source: 'catalog_search',
+    path: '/search',
+    entityType: 'search_performance',
+    entityId: 'search:first-result',
+    metadata: {
+      latency_ms: Math.max(0, Math.round(now - timing.startedAt)),
+      result_source: input.source,
+      result_count: input.resultCount,
+      query_length: query.length,
+      search_mode: input.mode,
+      server_ms: input.serverMs ?? null,
+      delivery_ms: input.deliveryMs ?? null,
+      cache_status: input.cacheStatus ?? null,
+    },
+  });
+}
+
+function trackSearchEnrichment(
+  ref: SearchTimingRef,
+  value: string,
+  input: {
+    resultCount: number;
+    localIndexUsed?: boolean | null;
+    fallbackUsed?: string | null;
+  },
+) {
+  const query = timingQuery(value);
+  const timing = ref.current;
+
+  if (
+    query.length < 2 ||
+    !timing ||
+    timing.query !== query ||
+    timing.enrichmentSent
+  ) {
+    return;
+  }
+
+  if (timing.firstResultAt === null && input.resultCount > 0) {
+    trackSearchFirstResult(ref, query, {
+      source: 'authoritative',
+      resultCount: input.resultCount,
+      mode: 'title',
+    });
+  }
+
+  const current = ref.current;
+  if (!current || current.enrichmentSent) return;
+
+  const now = searchNow();
+  current.enrichmentSent = true;
+
+  trackProductClientEvent('search_enrichment_ready', {
+    source: 'catalog_search',
+    path: '/search',
+    entityType: 'search_performance',
+    entityId: 'search:enrichment-ready',
+    metadata: {
+      latency_ms: Math.max(0, Math.round(now - current.startedAt)),
+      delta_from_first_ms:
+        current.firstResultAt === null
+          ? null
+          : Math.max(0, Math.round(now - current.firstResultAt)),
+      first_result_source: current.firstResultSource,
+      result_count: input.resultCount,
+      query_length: query.length,
+      local_index_used: input.localIndexUsed ?? null,
+      provider_fallback_used: Boolean(input.fallbackUsed),
+    },
+  });
+}
+
 function seedTitle(seed: SmartDiscoveryResponse['seed']) {
   if (!seed) return '';
   return seed.russian || seed.title?.russian || seed.title?.english || seed.title?.romaji || 'Аниме';
@@ -116,6 +259,7 @@ export default function SearchCatalogClient({
   const filterHistoryModeRef = useRef<'replace' | 'push' | 'restore' | 'none'>('replace');
   const emptyResultSignatureRef = useRef('');
   const searchAnalyticsSignatureRef = useRef('');
+  const searchTimingRef = useRef<SearchTimingState | null>(null);
   const searchClassification = useMemo(
     () => (query ? classifySearchQuery(query) : null),
     [query],
@@ -177,6 +321,7 @@ export default function SearchCatalogClient({
     const onLiveSearch = (event: Event) => {
       const detail = (event as CustomEvent<{ query?: unknown }>).detail;
       const next = typeof detail?.query === 'string' ? detail.query : '';
+      startSearchTiming(searchTimingRef, next);
       liveQueryRef.current = next;
       setLiveQuery(next);
     };
@@ -223,6 +368,10 @@ export default function SearchCatalogClient({
       }
     }
 
+    if (query.length >= 2) {
+      startSearchTiming(searchTimingRef, query);
+    }
+
     const controller = new AbortController();
     const requestId = ++requestSequenceRef.current;
     async function load() {
@@ -246,7 +395,16 @@ export default function SearchCatalogClient({
           const personalized = rankSmartDiscoveryCandidates(payload.items, discoveryIntent, { tasteGraph, strict: false });
           authoritativeSettled = true;
           if (controller.signal.aborted || requestId !== requestSequenceRef.current) return;
-          setResults(personalized.slice(0, Math.max(CATALOG_PAGE_SIZE, 30)));
+          const discoveryResults = personalized.slice(
+            0,
+            Math.max(CATALOG_PAGE_SIZE, 30),
+          );
+          trackSearchFirstResult(searchTimingRef, query, {
+            source: 'discovery',
+            resultCount: discoveryResults.length,
+            mode: 'context',
+          });
+          setResults(discoveryResults);
           setDiscoveryMeta({ seed: payload.seed, meta: payload.meta });
           setSearchMeta(null);
           setHasNextPage(false);
@@ -292,6 +450,14 @@ export default function SearchCatalogClient({
                 }
 
                 instantShown = true;
+                trackSearchFirstResult(searchTimingRef, query, {
+                  source: 'instant',
+                  resultCount: payload.items.length,
+                  mode: 'title',
+                  serverMs: payload.tookMs ?? null,
+                  deliveryMs: payload.clientElapsedMs ?? null,
+                  cacheStatus: payload.clientCacheStatus ?? null,
+                });
                 setResults(payload.items);
                 setInstantPreviewQuery(query);
                 setDiscoveryMeta(null);
@@ -340,6 +506,18 @@ export default function SearchCatalogClient({
           authoritativeSettled = true;
           if (controller.signal.aborted || requestId !== requestSequenceRef.current) return;
           setInstantPreviewQuery(null);
+          if (page === 1 && query.length >= 2) {
+            trackSearchFirstResult(searchTimingRef, query, {
+              source: 'authoritative',
+              resultCount: payload.anime.length,
+              mode: searchClassification?.mode ?? 'title',
+            });
+            trackSearchEnrichment(searchTimingRef, query, {
+              resultCount: payload.anime.length,
+              localIndexUsed: payload.searchMeta?.localIndexUsed ?? null,
+              fallbackUsed: payload.searchMeta?.fallbackUsed ?? null,
+            });
+          }
           setResults((current) =>
             page === 1
               ? payload.anime
@@ -374,6 +552,14 @@ export default function SearchCatalogClient({
             requestId === requestSequenceRef.current
           ) {
             instantShown = true;
+            trackSearchFirstResult(searchTimingRef, query, {
+              source: 'instant',
+              resultCount: fallbackPreview.items.length,
+              mode: 'title',
+              serverMs: fallbackPreview.tookMs ?? null,
+              deliveryMs: fallbackPreview.clientElapsedMs ?? null,
+              cacheStatus: fallbackPreview.clientCacheStatus ?? null,
+            });
             setResults(fallbackPreview.items);
             setInstantPreviewQuery(query);
             setHasNextPage(false);
@@ -478,6 +664,7 @@ export default function SearchCatalogClient({
 
   function applySearchQuery(nextValue: string) {
     const next = nextValue.replace(/\s+/g, ' ').trim();
+    startSearchTiming(searchTimingRef, next);
     liveQueryRef.current = next;
     setLiveQuery(next);
     window.dispatchEvent(new CustomEvent('animebox-search-input', { detail: { query: next } }));

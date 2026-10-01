@@ -63,6 +63,8 @@ export default function SearchSuggestions({
 
     const controller = new AbortController();
     const requestId = ++requestRef.current;
+    const startedAt =
+      typeof performance !== 'undefined' ? performance.now() : Date.now();
 
     const timer = window.setTimeout(async () => {
       try {
@@ -82,6 +84,21 @@ export default function SearchSuggestions({
         if (controller.signal.aborted || requestId !== requestRef.current) return;
 
         const next = Array.isArray(payload.items) ? payload.items : [];
+        const finishedAt =
+          typeof performance !== 'undefined' ? performance.now() : Date.now();
+
+        trackProductClientEvent('search_suggestion_ready', {
+          source: 'global_search',
+          path: '/search',
+          entityType: 'search_performance',
+          entityId: 'search:suggestion-ready',
+          metadata: {
+            latency_ms: Math.max(0, Math.round(finishedAt - startedAt)),
+            result_count: next.length,
+            query_length: trimmedQuery.length,
+          },
+        });
+
         setItems(next);
         setOpen(next.length > 0);
         setActiveIndex(-1);

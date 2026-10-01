@@ -41,7 +41,7 @@ export default function AdminOverview() {
           <div className="admin-v1-events">{data.recentAudit.length?data.recentAudit.map(event=><div key={event.id}><i/><div><strong>{actionLabels[event.action]||event.action}</strong><small>{new Date(event.created_at).toLocaleString('ru-RU')}</small></div></div>):<p>Административных действий пока нет.</p>}</div>
         </article>
       </section>
-      <section className="admin-v1-quick"><Link href="/admin/moderation"><span>◇</span><div><strong>Очередь модерации</strong><small>{data.metrics.removedComments} скрытых комментариев</small></div><b>→</b></Link><Link href="/admin/monetization"><span>✦</span><div><strong>Монетизация</strong><small>Stars, спонсоры и платежи</small></div><b>→</b></Link></section>
+      <section className="admin-v1-quick"><Link href="/admin/moderation"><span>◇</span><div><strong>Очередь модерации</strong><small>{data.metrics.removedComments} скрытых комментариев</small></div><b>→</b></Link><Link href="/admin/monetization"><span>✦</span><div><strong>Монетизация</strong><small>Stars, спонсоры и платежи</small></div><b>→</b></Link><Link href="/admin/search-performance"><span>⌕</span><div><strong>Search Performance</strong><small>First result, p95 и покрытие индекса</small></div><b>→</b></Link></section>
     </>}
   </main>;
 }
