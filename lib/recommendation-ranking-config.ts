@@ -24,8 +24,8 @@ export const RECOMMENDATION_RANKING_WEIGHTS = {
   episodeLength: 0.07,
   episodeLengthNegative: 0.18,
   mood: {
-    personalized: 0.18,
-    coldStart: 0.38,
+    personalized: 0.28,
+    coldStart: 0.46,
   },
   communityQuality: {
     personalized: 0.11,
