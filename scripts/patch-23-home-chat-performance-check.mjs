@@ -15,7 +15,8 @@ const chat = read('components/chat/GlobalChatV11Client.tsx');
 for (const [label, source, needle] of [
   ['instant recommendation mount', discovery, 'data-loading-policy="instant-after-ranking"'],
   ['background rerank freeze', runtime, 'recommendationsReady &&'],
-  ['ranked mood lock', runtime, 'lastRankedMoodRef.current === mood'],
+  ['ranked mood lock', runtime, 'lastRankSignatureRef.current === candidateSignature'],
+  ['selected/rendered mood split', runtime, 'recommendationMood'],
   ['faster initial rank', runtime, '{ timeout: 650 }'],
   ['stable parent append', feed, 'setRecommendations((current) => mergeUnique(current, unseen))'],
   ['stable pagination append', feed, 'setRecommendations((current) => mergeUnique(current, fresh))'],

@@ -24,6 +24,8 @@ export default function HomeDiscoverySection() {
   const {
     continueWatchingItems,
     mood,
+    recommendationMood,
+    moodSwitching,
     updateMood,
     hydrated,
     popularLoading,
@@ -48,6 +50,7 @@ export default function HomeDiscoverySection() {
         <HomeMoodPicker
           value={mood}
           onChange={updateMood}
+          busy={moodSwitching}
         />
 
         <section
@@ -107,7 +110,7 @@ export default function HomeDiscoverySection() {
             >
               <SmartRecommendationFeed
                 items={smartRecommendations}
-                mood={mood}
+                mood={recommendationMood}
                 hasWatchHistory={hasWatchHistory}
                 midFeedSlot={<HomePersonalScheduleSection />}
               />

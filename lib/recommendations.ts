@@ -10,6 +10,13 @@ import {
   type TasteMood,
 } from '@/lib/personalization';
 import {
+  getRecommendationMoodLabel,
+} from '@/lib/recommendation-moods';
+import {
+  scoreRecommendationMood,
+  type MoodMatchTier,
+} from '@/lib/recommendation-mood-score';
+import {
   animeGenreAffinity,
   animeStudioAffinity,
   animeFormatAffinity,
@@ -92,33 +99,16 @@ export type RankedRecommendation = {
   seasonRelation: RecommendationSeasonRelation;
   season: 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL' | null;
   seasonYear: number | null;
+  moodScore: number;
+  moodConfidence: number;
+  moodTier: MoodMatchTier;
+  moodEvidence: {
+    genres: string[];
+    tags: string[];
+  };
   source: RecommendationExplanationSource;
   ranking: RecommendationScoreResult;
   diversity: RecommendationDiversityDiagnostics | null;
-};
-
-type MoodConfig = {
-  label: string;
-  genres: string[];
-};
-
-export const MOOD_CONFIG: Record<Exclude<TasteMood, 'any'>, MoodConfig> = {
-  comfort: {
-    label: 'Уют',
-    genres: ['slice of life', 'повседневность', 'comedy', 'комедия', 'romance', 'романтика'],
-  },
-  tension: {
-    label: 'Напряжение',
-    genres: ['thriller', 'триллер', 'horror', 'ужасы', 'mystery', 'детектив', 'action', 'экшен', 'psychological', 'психологическое'],
-  },
-  emotion: {
-    label: 'Сильные эмоции',
-    genres: ['drama', 'драма', 'romance', 'романтика', 'psychological', 'психологическое', 'supernatural', 'сверхъестественное'],
-  },
-  adventure: {
-    label: 'Приключение',
-    genres: ['adventure', 'приключения', 'fantasy', 'фэнтези', 'action', 'экшен', 'sci-fi', 'фантастика'],
-  },
 };
 
 function uniqueById(items: Anime[]): Anime[] {
@@ -297,17 +287,6 @@ function normalizeRating(anime: Anime): number {
 function isFinished(anime: Anime): boolean {
   const status = anime.status?.trim().toLowerCase();
   return ['finished', 'released', 'вышло', 'завершено', 'finished_airing'].includes(status ?? '');
-}
-
-function moodAffinity(anime: Anime, mood: TasteMood): number {
-  if (mood === 'any') return 0;
-
-  const expected = new Set(MOOD_CONFIG[mood].genres.map(normalizeGenre));
-  const genres = (anime.genres ?? []).map(normalizeGenre);
-  const matches = genres.filter((genre) => expected.has(genre)).length;
-
-  if (matches <= 0) return 0;
-  return Math.min(1, 0.56 + matches * 0.22);
 }
 
 function buildDirectEngagementScores(
@@ -566,7 +545,8 @@ export function getPersonalizedRecommendations(
         anime,
         tasteGraph,
       );
-      const moodScore = moodAffinity(anime, mood);
+      const moodMatch = scoreRecommendationMood(anime, mood);
+      const moodScore = moodMatch.score;
       const ratingScore = normalizeRating(anime);
       const completionRate = tasteGraph?.completionRate ?? 0;
       const bingeScore = tasteGraph?.bingeScore ?? 0;
@@ -693,8 +673,8 @@ export function getPersonalizedRecommendations(
         completedMatches: completedAffinity.matches,
         likedReferenceTitle,
         moodLabel:
-          mood !== 'any' && moodScore > 0
-            ? MOOD_CONFIG[mood].label
+          mood !== 'any' && moodMatch.tier !== 'none'
+            ? getRecommendationMoodLabel(mood)
             : null,
         studio: studioDisplayName(anime),
         format: explanationFormatLabel(anime.format ?? anime.kind),
@@ -776,6 +756,13 @@ export function getPersonalizedRecommendations(
         seasonRelation: seasonality.relation,
         season: seasonality.season,
         seasonYear: seasonality.seasonYear,
+        moodScore: moodMatch.score,
+        moodConfidence: moodMatch.confidence,
+        moodTier: moodMatch.tier,
+        moodEvidence: {
+          genres: moodMatch.matchedGenres.slice(0, 4),
+          tags: moodMatch.matchedTags.slice(0, 4),
+        },
         source,
         ranking,
         diversity: null,

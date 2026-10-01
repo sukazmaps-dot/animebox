@@ -170,29 +170,54 @@ async function observedGET(
 
   try {
     let providerHasNextPage = false;
-    const primary = await getAnimesWithShikimori(
-      options,
-      {
-        onPageInfo: (pageInfo) => {
-          providerHasNextPage = pageInfo.hasNextPage;
+
+    // Local lexical lookup is independent from the provider request. Starting
+    // both at once removes a full Supabase round-trip from the critical path.
+    // We hydrate only local IDs the provider did not already return.
+    const localHitsPromise:
+      Promise<Awaited<ReturnType<typeof searchLocalAnimeIndex>>> =
+      rawSearch && page === 1
+        ? searchLocalAnimeIndex(rawSearch, 16).catch((localSearchError) => {
+            console.warn('[Anime search local index]', localSearchError);
+            return [];
+          })
+        : Promise.resolve([]);
+
+    const [primary, localHits] = await Promise.all([
+      getAnimesWithShikimori(
+        options,
+        {
+          onPageInfo: (pageInfo) => {
+            providerHasNextPage = pageInfo.hasNextPage;
+          },
         },
-      },
-    );
+      ),
+      localHitsPromise,
+    ]);
+
     let candidates: Anime[] = primary;
     let fallbackUsed: string | null = null;
     let localIndexUsed = false;
-    let localHits: Awaited<ReturnType<typeof searchLocalAnimeIndex>> = [];
 
-    if (rawSearch && page === 1) {
-      try {
-        localHits = await searchLocalAnimeIndex(rawSearch, 16);
-        if (localHits.length) {
-          const localAnime = await hydrateLocalAnimeHits(localHits);
+    if (localHits.length) {
+      const providerIds = new Set(primary.map((anime) => anime.id));
+      const missingLocalHits = localHits.filter(
+        (hit) => !providerIds.has(hit.animeId),
+      );
+
+      if (missingLocalHits.length) {
+        try {
+          const localAnime = await hydrateLocalAnimeHits(missingLocalHits);
           candidates = mergeAnimeCandidates(localAnime, candidates);
           localIndexUsed = localAnime.length > 0;
+        } catch (localHydrationError) {
+          console.warn(
+            '[Anime search local hydration]',
+            localHydrationError,
+          );
         }
-      } catch (localSearchError) {
-        console.warn('[Anime search local index]', localSearchError);
+      } else {
+        localIndexUsed = true;
       }
     }
 

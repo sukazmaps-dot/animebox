@@ -53,9 +53,13 @@ import {
 } from '@/lib/catalog-filter-state';
 import { formatCatalogSeason, monthToCatalogSeason } from '@/lib/catalog-season';
 import { classifySearchQuery } from '@/lib/search-query';
+import {
+  getInstantAnimeSearch,
+  type InstantSearchPayload,
+} from '@/lib/instant-search-client';
 import styles from './SearchCatalogClient.module.css';
 
-const SEARCH_DEBOUNCE_MS = 200;
+const SEARCH_DEBOUNCE_MS = 90;
 
 type DiscoveryMeta = Pick<SmartDiscoveryResponse, 'seed' | 'meta'>;
 type CatalogView = 'catalog' | 'saved';
@@ -142,6 +146,8 @@ export default function SearchCatalogClient({
   const [retryNonce, setRetryNonce] = useState(0);
   const [discoveryMeta, setDiscoveryMeta] = useState<DiscoveryMeta | null>(null);
   const [searchMeta, setSearchMeta] = useState<AnimeSearchMeta | null>(null);
+  const [instantPreviewQuery, setInstantPreviewQuery] =
+    useState<string | null>(null);
   const [pageState, setPageState] = useState({ query, page: 1 });
   const page = pageState.query === query ? pageState.page : 1;
   const initialRenderRef = useRef(true);
@@ -220,8 +226,13 @@ export default function SearchCatalogClient({
     const controller = new AbortController();
     const requestId = ++requestSequenceRef.current;
     async function load() {
+      let authoritativeSettled = false;
+      let instantShown = false;
+      let instantPromise: Promise<InstantSearchPayload> | null = null;
+
       setLoading(true);
       setError('');
+
       try {
         if (
           query &&
@@ -230,8 +241,10 @@ export default function SearchCatalogClient({
           page === 1 &&
           catalogFiltersAreDefault(filters)
         ) {
+          setInstantPreviewQuery(null);
           const payload = await getSmartDiscovery(query, Math.max(CATALOG_PAGE_SIZE, 30), controller.signal);
           const personalized = rankSmartDiscoveryCandidates(payload.items, discoveryIntent, { tasteGraph, strict: false });
+          authoritativeSettled = true;
           if (controller.signal.aborted || requestId !== requestSequenceRef.current) return;
           setResults(personalized.slice(0, Math.max(CATALOG_PAGE_SIZE, 30)));
           setDiscoveryMeta({ seed: payload.seed, meta: payload.meta });
@@ -253,6 +266,56 @@ export default function SearchCatalogClient({
             },
           });
         } else {
+          const canUseInstantPreview =
+            query.length >= 2 &&
+            page === 1 &&
+            searchClassification?.mode !== 'context' &&
+            catalogFiltersAreDefault(filters) &&
+            selectedMood === 'any';
+
+          if (canUseInstantPreview) {
+            instantPromise = getInstantAnimeSearch(
+              query,
+              Math.max(CATALOG_PAGE_SIZE, 18),
+              controller.signal,
+            );
+
+            void instantPromise
+              .then((payload) => {
+                if (
+                  authoritativeSettled ||
+                  controller.signal.aborted ||
+                  requestId !== requestSequenceRef.current ||
+                  payload.items.length === 0
+                ) {
+                  return;
+                }
+
+                instantShown = true;
+                setResults(payload.items);
+                setInstantPreviewQuery(query);
+                setDiscoveryMeta(null);
+                setSearchMeta(null);
+                // The authoritative provider request is already in flight and
+                // owns the final pagination state. Keep the first local page
+                // interactive instead of blanking the grid behind a loader.
+                setHasNextPage(true);
+              })
+              .catch((instantError) => {
+                if (
+                  !(instantError instanceof Error) ||
+                  instantError.name !== 'AbortError'
+                ) {
+                  console.debug(
+                    '[Search] instant local lane unavailable',
+                    instantError,
+                  );
+                }
+              });
+          } else {
+            setInstantPreviewQuery(null);
+          }
+
           const providerFilters = catalogFiltersToProviderOptions(filters);
           const requestOptions = {
             search: query || undefined,
@@ -274,7 +337,9 @@ export default function SearchCatalogClient({
             { signal: controller.signal },
           );
 
+          authoritativeSettled = true;
           if (controller.signal.aborted || requestId !== requestSequenceRef.current) return;
+          setInstantPreviewQuery(null);
           setResults((current) =>
             page === 1
               ? payload.anime
@@ -290,12 +355,46 @@ export default function SearchCatalogClient({
           );
         }
       } catch (loadError: unknown) {
-        if (isAbortError(loadError) || controller.signal.aborted || requestId !== requestSequenceRef.current) return;
+        if (
+          isAbortError(loadError) ||
+          controller.signal.aborted ||
+          requestId !== requestSequenceRef.current
+        ) {
+          return;
+        }
+
+        authoritativeSettled = true;
+
+        if (!instantShown && instantPromise) {
+          const fallbackPreview = await instantPromise.catch(() => null);
+
+          if (
+            fallbackPreview?.items.length &&
+            !controller.signal.aborted &&
+            requestId === requestSequenceRef.current
+          ) {
+            instantShown = true;
+            setResults(fallbackPreview.items);
+            setInstantPreviewQuery(query);
+            setHasNextPage(false);
+          }
+        }
+
         setDiscoveryMeta(null);
         setSearchMeta(null);
-        setError('Не удалось обновить каталог. Показываем последние доступные результаты.');
+        setError(
+          instantShown
+            ? 'Полный поиск временно недоступен. Показываем быстрые локальные результаты.'
+            : 'Не удалось обновить каталог. Показываем последние доступные результаты.',
+        );
       } finally {
-        if (!controller.signal.aborted && requestId === requestSequenceRef.current) setLoading(false);
+        authoritativeSettled = true;
+        if (
+          !controller.signal.aborted &&
+          requestId === requestSequenceRef.current
+        ) {
+          setLoading(false);
+        }
       }
     }
     void load();
@@ -503,7 +602,17 @@ export default function SearchCatalogClient({
   const catalogAdBreakIndex = results.length > CATALOG_AD_BREAK_INDEX ? CATALOG_AD_BREAK_INDEX : results.length;
   const catalogLead = showCatalogAd ? results.slice(0, catalogAdBreakIndex) : results;
   const catalogTail = showCatalogAd ? results.slice(catalogAdBreakIndex) : [];
-  const refreshing = view === 'catalog' && loading && results.length > 0;
+  const instantPreviewActive =
+    view === 'catalog' &&
+    loading &&
+    results.length > 0 &&
+    instantPreviewQuery === query;
+  const refreshing =
+    view === 'catalog' &&
+    loading &&
+    results.length > 0 &&
+    !instantPreviewActive;
+  const enrichingSearch = instantPreviewActive;
   const recognizedSeed = view === 'catalog' ? discoveryMeta?.seed ?? null : null;
   const discoverySeedForMatch = recognizedSeed ? { genres: recognizedSeed.genres ?? [], episodes: recognizedSeed.episodes ?? null } : null;
   const closestQuery = discoveryIntent?.similarTo ? `похожее на ${discoveryIntent.similarTo}` : discoveryIntent?.includeGenres[0] ?? '';
@@ -750,7 +859,15 @@ export default function SearchCatalogClient({
       <section className={`section ${styles.catalogResults}`} aria-busy={displayLoading}>
         <div className="section-head">
           <h2 className="section-title">{view === 'saved' ? 'Сохранённые' : liveQuery.trim() || hasFilters ? 'Результаты' : 'Популярное'}</h2>
-          <span className="section-link">{view === 'saved' ? `${displayResults.length} сохранено` : refreshing ? 'Ищем…' : `${displayResults.length} тайтлов`}</span>
+          <span className="section-link">
+            {view === 'saved'
+              ? `${displayResults.length} сохранено`
+              : enrichingSearch
+                ? `${displayResults.length} найдено · уточняем…`
+                : refreshing
+                  ? 'Ищем…'
+                  : `${displayResults.length} тайтлов`}
+          </span>
         </div>
 
         {view === 'catalog' && error && results.length > 0 && (
@@ -786,7 +903,9 @@ export default function SearchCatalogClient({
               </div>
             ) : (
               <>
-                {refreshing && <div className={styles.refreshLine} aria-hidden="true" />}
+                {(refreshing || enrichingSearch) && (
+                  <div className={styles.refreshLine} aria-hidden="true" />
+                )}
                 <div className="anime-grid">
                   {catalogLead.map((anime, index) => (
                     <AnimeCard

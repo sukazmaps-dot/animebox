@@ -13,7 +13,7 @@ const shell = read('components/home/HomePageShell.tsx');
 const docs = read('docs/PATCH-22-DISCOVERY-RECOMMENDATIONS-3.md');
 
 for (const [label, source, needle] of [
-  ['candidate contract version', api, "RECOMMENDATION_CANDIDATE_CONTRACT_VERSION = '22.9-candidate-v1'"],
+  ['candidate contract version', api, "RECOMMENDATION_CANDIDATE_CONTRACT_VERSION = '24.1-mood-candidate-v1'"],
   ['candidate contract response', api, 'contractVersion: RECOMMENDATION_CANDIDATE_CONTRACT_VERSION'],
   ['candidate contract type', types, 'contractVersion?: string'],
   ['request timeout', feed, 'CANDIDATE_REQUEST_TIMEOUT_MS = 7_000'],

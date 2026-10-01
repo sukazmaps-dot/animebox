@@ -20,6 +20,7 @@ import {
   getCurrentAnimeSeason,
   type CatalogSeason,
 } from '@/lib/catalog-season';
+import { getMoodRetrievalTarget } from '@/lib/recommendation-moods';
 
 export const runtime = 'nodejs';
 
@@ -30,7 +31,7 @@ const CACHE_SECONDS = 15 * 60;
 const FILTERED_RESPONSE_CACHE_SECONDS = 5 * 60;
 const STALE_SECONDS = 24 * 60 * 60;
 const CURSOR_VERSION = 1;
-const RECOMMENDATION_CANDIDATE_CONTRACT_VERSION = '22.9-candidate-v1';
+const RECOMMENDATION_CANDIDATE_CONTRACT_VERSION = '24.1-mood-candidate-v1';
 
 type CandidateMood =
   | 'any'
@@ -38,6 +39,8 @@ type CandidateMood =
   | 'tension'
   | 'emotion'
   | 'adventure';
+
+type CandidateIntent = 'default' | 'mood';
 
 type CandidateSource =
   | 'ranked'
@@ -51,13 +54,6 @@ type CandidateSource =
 type RecommendationCursorPayload = {
   v: typeof CURSOR_VERSION;
   p: number;
-};
-
-const MOOD_GENRES: Record<Exclude<CandidateMood, 'any'>, readonly string[]> = {
-  comfort: ['Slice of Life', 'Comedy', 'Romance'],
-  tension: ['Thriller', 'Mystery', 'Action'],
-  emotion: ['Drama', 'Romance', 'Psychological'],
-  adventure: ['Adventure', 'Fantasy', 'Action'],
 };
 
 function clampInteger(
@@ -115,13 +111,28 @@ function normalizeMood(value: string | null): CandidateMood {
   return 'any';
 }
 
+function normalizeIntent(value: string | null): CandidateIntent {
+  return value === 'mood' ? 'mood' : 'default';
+}
+
 function selectCandidateSource(input: {
   page: number;
   bucket: number;
   hasTasteGenre: boolean;
   mood: CandidateMood;
+  intent: CandidateIntent;
 }): CandidateSource {
   const slot = (input.page - 1 + input.bucket) % 7;
+
+  if (input.intent === 'mood' && input.mood !== 'any') {
+    if (slot === 0 || slot === 1 || slot === 3 || slot === 5) {
+      return 'mood';
+    }
+    if (slot === 2 && input.hasTasteGenre) return 'preferred_genre';
+    if (slot === 4) return 'seasonal';
+    if (slot === 6) return 'hidden_gem';
+    return 'mood';
+  }
 
   if (slot === 0 && input.hasTasteGenre) return 'preferred_genre';
   if (slot === 1) return 'ranked';
@@ -193,12 +204,12 @@ function sourceOptions(input: {
   }
 
   if (source === 'mood' && mood !== 'any') {
-    const genres = MOOD_GENRES[mood];
-    const genre = genres[(page + bucket) % genres.length];
+    const target = getMoodRetrievalTarget(mood, page, bucket);
+
     return {
       ...base,
       order: page % 2 === 0 ? 'ranked' : 'popularity',
-      genres: [genre],
+      ...target,
     };
   }
 
@@ -234,7 +245,7 @@ const getCachedCandidatePage = unstable_cache(
 
     return getAnimesWithShikimori(options);
   },
-  ['animebox-recommendation-candidates-v9-seasonal-freshness'],
+  ['animebox-recommendation-candidates-v10-mood-intent'],
   {
     revalidate: CACHE_SECONDS,
     tags: ['animebox-recommendation-candidates'],
@@ -405,6 +416,7 @@ async function observedGET(request: NextRequest) {
   );
   const bucket = clampInteger(params.get('bucket'), 0, 0, 3);
   const mood = normalizeMood(params.get('mood'));
+  const intent = normalizeIntent(params.get('intent'));
 
   const currentSeason = getCurrentAnimeSeason();
 
@@ -420,6 +432,7 @@ async function observedGET(request: NextRequest) {
         bucket,
         hasTasteGenre: Boolean(tasteGenre),
         mood,
+        intent,
       });
 
   try {
@@ -471,6 +484,7 @@ async function observedGET(request: NextRequest) {
         fallbackFrom: result.fallbackFrom,
         tasteGenre,
         mood,
+        intent,
         season: currentSeason.season,
         seasonYear: currentSeason.year,
         contractVersion: RECOMMENDATION_CANDIDATE_CONTRACT_VERSION,
