@@ -1,0 +1,19 @@
+name: Patch 24.1 Production Build
+
+on:
+  push:
+    branches:
+      - patch-24-1-mood-intent-engine
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
