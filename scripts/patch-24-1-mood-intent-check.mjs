@@ -31,7 +31,7 @@ mustInclude(scorer, "tier === 'strong' || result.tier === 'good'", 'strict mood 
 
 mustInclude(picker, 'HOME_MOOD_OPTIONS', 'picker does not use central mood definitions');
 mustInclude(runtime, 'recommendationMood', 'runtime does not separate selected and rendered mood');
-mustInclude(runtime, 'intent=mood', 'runtime does not bootstrap mood-focused candidates');
+mustInclude(runtime, "intent: 'mood'", 'runtime does not bootstrap mood-focused candidates');
 mustInclude(runtime, 'setMoodSwitching(true)', 'runtime mood transition state missing');
 mustInclude(discovery, 'mood={recommendationMood}', 'feed still receives selected mood before ranked items');
 
@@ -43,7 +43,7 @@ mustInclude(rails, "'mood_lane'", 'mood rail missing');
 mustInclude(rails, "item.moodTier === 'strong'", 'mood rail is not strict');
 mustInclude(rails, 'moodPool', 'mood rail is not mood-first ranked');
 
-mustInclude(feed, "intent: context.mood === 'any' ? 'default' : 'mood'", 'feed cache context does not isolate mood intent');
+mustInclude(feed, "intent: mood === 'any' ? 'default' : 'mood'", 'feed cache context does not isolate mood intent');
 mustInclude(feed, "params.set('intent', context.intent)", 'feed does not request mood intent');
 
 mustInclude(api, "type CandidateIntent = 'default' | 'mood'", 'candidate intent contract missing');
