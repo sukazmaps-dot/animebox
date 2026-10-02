@@ -60,7 +60,7 @@ need(
 );
 need(
   resume,
-  'serverSnapshot?.ownerId === user?.id',
+  'serverSnapshot.ownerId === user?.id',
   'server resume snapshot is not scoped to the authenticated owner',
 );
 need(
