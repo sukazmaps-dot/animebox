@@ -172,6 +172,8 @@ Candidate discovery is bounded to the first two title genres plus a ranked fallb
 
 All candidates still pass catalogue availability filtering before they can render.
 
+If verified availability leaves fewer than six visible titles, the row performs one bounded recovery pass from the ranked fallback pool. The recovery is append-only and cannot loop or replace the already selected prefix.
+
 ## Phase F — Analytics
 
 The existing continue-watching attribution API is extended with an optional `source`.
