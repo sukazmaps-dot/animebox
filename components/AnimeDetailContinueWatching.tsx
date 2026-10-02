@@ -12,7 +12,7 @@ import {
   getLatestWatchProgress,
   hasResumePosition,
 } from '@/lib/watch-progress';
-import type { RecentWatchResponse, WatchTitleOverview } from '@/types/watch';
+import type { WatchTitleOverview } from '@/types/watch';
 
 type AnimeDetailResume = {
   episode: number;
@@ -101,22 +101,21 @@ export default function AnimeDetailContinueWatching({
     const controller = new AbortController();
 
     const load = () => {
-      void fetch('/api/watch/recent?limit=12', {
+      void fetch(`/api/watch/title/${animeId}`, {
         signal: controller.signal,
         cache: 'no-store',
       })
         .then(async (response) => {
           if (!response.ok) {
-            throw new Error(`Recent watch HTTP ${response.status}`);
+            throw new Error(`Watch title HTTP ${response.status}`);
           }
-          return (await response.json()) as RecentWatchResponse;
+          return (await response.json()) as {
+            item?: WatchTitleOverview | null;
+          };
         })
         .then((payload) => {
           if (controller.signal.aborted) return;
-          const state = Array.isArray(payload.items)
-            ? payload.items.find((item) => item.animeId === animeId) ?? null
-            : null;
-          setServerState(state);
+          setServerState(payload.item ?? null);
         })
         .catch((error: unknown) => {
           if (!(error instanceof Error && error.name === 'AbortError')) {
