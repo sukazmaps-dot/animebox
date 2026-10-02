@@ -78,14 +78,22 @@ function getAvailableEpisodes(
   return null;
 }
 
-export function useEpisodeAvailability(anime: Anime) {
+export function useEpisodeAvailability(
+  anime: Anime,
+  enabled = true,
+) {
   const metadataCount = getAvailableEpisodes(anime);
   const [availability, setAvailability] =
     useState<EpisodeAvailabilityResponse | null>(
-      () => peekEpisodeAvailability(anime.id),
+      () => (enabled ? peekEpisodeAvailability(anime.id) : null),
     );
 
   useEffect(() => {
+    if (!enabled) {
+      queueMicrotask(() => setAvailability(null));
+      return;
+    }
+
     let active = true;
     const controller = new AbortController();
     const cached = peekEpisodeAvailability(anime.id);
@@ -123,7 +131,7 @@ export function useEpisodeAvailability(anime: Anime) {
       active = false;
       controller.abort();
     };
-  }, [anime.id, showWatchAction]);
+  }, [anime.id, enabled]);
 
   const count =
     availability?.status === 'available'
@@ -169,7 +177,10 @@ export default function AnimeDetailControls({
     playable: playbackReady,
     unavailable: episodesUnavailable,
     unknown: playbackUnknown,
-  } = useEpisodeAvailability(anime);
+  } = useEpisodeAvailability(
+    anime,
+    showWatchAction || showEpisodes,
+  );
 
   const [favorite, setFavorite] =
     useState(false);
@@ -277,7 +288,7 @@ export default function AnimeDetailControls({
     return () => {
       active = false;
     };
-  }, [anime.id]);
+  }, [anime.id, showWatchAction]);
 
   const fallbackEpisode = Math.max(progress, 1);
 
