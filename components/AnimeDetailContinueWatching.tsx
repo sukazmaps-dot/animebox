@@ -62,7 +62,10 @@ export default function AnimeDetailContinueWatching({
   animeSlug: string;
 }) {
   const { user, loading: authLoading } = useAuthState();
-  const [serverState, setServerState] = useState<WatchTitleOverview | null>(null);
+  const [serverSnapshot, setServerSnapshot] = useState<{
+    ownerId: string;
+    item: WatchTitleOverview | null;
+  } | null>(null);
   const [revision, setRevision] = useState(0);
   const impressionRef = useRef('');
 
@@ -94,7 +97,7 @@ export default function AnimeDetailContinueWatching({
     if (authLoading) return;
 
     if (!user?.id) {
-      queueMicrotask(() => setServerState(null));
+      queueMicrotask(() => setServerSnapshot(null));
       return;
     }
 
@@ -115,7 +118,10 @@ export default function AnimeDetailContinueWatching({
         })
         .then((payload) => {
           if (controller.signal.aborted) return;
-          setServerState(payload.item ?? null);
+          setServerSnapshot({
+            ownerId: user.id,
+            item: payload.item ?? null,
+          });
         })
         .catch((error: unknown) => {
           if (!(error instanceof Error && error.name === 'AbortError')) {
@@ -166,6 +172,10 @@ export default function AnimeDetailContinueWatching({
         }
       : null;
 
+    const serverState =
+      serverSnapshot?.ownerId === user?.id
+        ? serverSnapshot.item
+        : null;
     const remoteResume = serverResume(serverState);
     const remoteUpdatedAt = serverTimestamp(serverState);
 
@@ -187,7 +197,7 @@ export default function AnimeDetailContinueWatching({
     return localResume.updatedAt > remoteResume.updatedAt
       ? localResume
       : remoteResume;
-  }, [animeId, revision, serverState, user?.id]);
+  }, [animeId, revision, serverSnapshot, user?.id]);
 
   useEffect(() => {
     if (!resume) return;
@@ -210,7 +220,7 @@ export default function AnimeDetailContinueWatching({
     });
   }, [animeId, animeSlug, resume]);
 
-  if (!resume) return null;
+  if (authLoading || !resume) return null;
 
   const href = `/anime/${animeSlug}/watch?ep=${Math.max(1, resume.episode)}`;
   const isResume = resume.mode === 'resume' && resume.resumeSeconds >= 10;
