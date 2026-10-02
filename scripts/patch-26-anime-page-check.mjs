@@ -10,6 +10,7 @@ const page = read('app/anime/[slug]/page.tsx');
 const resume = read('components/AnimeDetailContinueWatching.tsx');
 const franchise = read('components/AnimeFranchise.tsx');
 const analytics = read('lib/product-events-client.ts');
+const watchTitleRoute = read('app/api/watch/title/[animeId]/route.ts');
 
 need(
   page,
@@ -44,8 +45,8 @@ need(
 );
 need(
   resume,
-  "fetch('/api/watch/recent?limit=12'",
-  'anime detail does not reconcile server watch state',
+  'fetch(\`/api/watch/title/\${animeId}\`',
+  'anime detail does not reconcile exact server watch state',
 );
 need(
   resume,
@@ -66,6 +67,17 @@ need(
   resume,
   'rememberContinueWatchingAttribution({',
   'anime detail continue attribution is missing',
+);
+
+need(
+  watchTitleRoute,
+  'getTitleWatchOverviews(user.id, [animeId])',
+  'exact watch title route does not use authoritative title overview',
+);
+need(
+  watchTitleRoute,
+  'return response({ item });',
+  'exact watch title route response contract is missing',
 );
 
 need(
