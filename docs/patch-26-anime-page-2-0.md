@@ -57,6 +57,8 @@ No page reload is required.
 
 Refresh ownership is monotonic: each server snapshot request receives a local sequence number, and only the newest in-flight refresh may publish. A slow focus/pageshow request cannot overwrite a newer watch-state refresh.
 
+Server snapshots are also scoped by both authenticated owner and anime ID. On authenticated route changes, the primary CTA stays in a non-navigable progress-sync state until the first exact-title reconciliation completes, preventing progress from the previous title or a stale local resume from flashing. If the exact server lookup fails, the sync state is released into the local crash-resume fallback rather than hanging indefinitely.
+
 ### UX
 
 Anime detail owns exactly one primary watch action. The legacy controls block keeps favorites/tracker/status, but its primary watch button is disabled on this page.
