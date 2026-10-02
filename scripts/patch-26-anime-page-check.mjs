@@ -8,6 +8,7 @@ const need = (source, needle, label) => {
 
 const page = read('app/anime/[slug]/page.tsx');
 const resume = read('components/AnimeDetailContinueWatching.tsx');
+const controls = read('components/AnimeDetailControls.tsx');
 const franchise = read('components/AnimeFranchise.tsx');
 const analytics = read('lib/product-events-client.ts');
 const watchTitleRoute = read('app/api/watch/title/[animeId]/route.ts');
@@ -21,6 +22,11 @@ need(
   page,
   '<AnimeDetailContinueWatching',
   'anime detail resume surface is not rendered',
+);
+need(
+  page,
+  'showWatchAction={false}',
+  'legacy AnimeDetailControls watch CTA is not disabled on the new detail surface',
 );
 need(
   page,
@@ -80,8 +86,33 @@ need(
 );
 need(
   resume,
-  'if (authLoading || !resume) return null;',
-  'resume surface may flash guest/previous-owner state during auth resolution',
+  "authLoading ? 'auth-loading'",
+  'primary watch CTA does not reserve an auth-loading state',
+);
+need(
+  resume,
+  'if (!episodeConfirmed || authLoading)',
+  'unconfirmed playback can still become a navigable detail CTA',
+);
+need(
+  resume,
+  'requestedEpisode <= availableEpisodes',
+  'detail CTA does not verify the requested episode against confirmed availability',
+);
+need(
+  resume,
+  'const requestedEpisode = Math.max(1, resume?.episode ?? 1);',
+  'fresh anime detail does not fall back to episode 1',
+);
+need(
+  resume,
+  'useEpisodeAvailability(anime)',
+  'detail primary CTA is not bound to episode availability',
+);
+need(
+  resume,
+  'data-playback-state={',
+  'detail primary CTA does not expose stable blocked/checking states',
 );
 need(
   resume,
@@ -97,6 +128,22 @@ need(
   resume,
   'rememberContinueWatchingAttribution({',
   'anime detail continue attribution is missing',
+);
+
+need(
+  controls,
+  'showWatchAction = true',
+  'legacy controls lost backward-compatible watch action default',
+);
+need(
+  controls,
+  'showWatchAction || showEpisodes',
+  'detail secondary controls still own a redundant availability request',
+);
+need(
+  controls,
+  '{showWatchAction && (',
+  'legacy primary watch action is not explicitly suppressible',
 );
 
 need(
