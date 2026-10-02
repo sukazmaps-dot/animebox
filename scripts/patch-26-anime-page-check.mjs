@@ -244,6 +244,21 @@ need(
 );
 need(
   related,
+  'const RELATED_MIN_VISIBLE = 6;',
+  'contextual related row has no minimum useful density target',
+);
+need(
+  related,
+  'if (visible.length < RELATED_MIN_VISIBLE)',
+  'contextual related row has no bounded sparse recovery',
+);
+need(
+  related,
+  'visible = mergeUniqueAnime(visible, recovered);',
+  'contextual related recovery does not preserve the visible prefix',
+);
+need(
+  related,
   'Похожие по атмосфере',
   'contextual related anime UI copy regressed',
 );
