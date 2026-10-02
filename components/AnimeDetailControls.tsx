@@ -78,14 +78,22 @@ function getAvailableEpisodes(
   return null;
 }
 
-function useEpisodeAvailability(anime: Anime) {
+export function useEpisodeAvailability(
+  anime: Anime,
+  enabled = true,
+) {
   const metadataCount = getAvailableEpisodes(anime);
   const [availability, setAvailability] =
     useState<EpisodeAvailabilityResponse | null>(
-      () => peekEpisodeAvailability(anime.id),
+      () => (enabled ? peekEpisodeAvailability(anime.id) : null),
     );
 
   useEffect(() => {
+    if (!enabled) {
+      queueMicrotask(() => setAvailability(null));
+      return;
+    }
+
     let active = true;
     const controller = new AbortController();
     const cached = peekEpisodeAvailability(anime.id);
@@ -123,7 +131,7 @@ function useEpisodeAvailability(anime: Anime) {
       active = false;
       controller.abort();
     };
-  }, [anime.id]);
+  }, [anime.id, enabled]);
 
   const count =
     availability?.status === 'available'
@@ -150,9 +158,11 @@ function useEpisodeAvailability(anime: Anime) {
 export default function AnimeDetailControls({
   anime,
   showEpisodes = true,
+  showWatchAction = true,
 }: {
   anime: Anime;
   showEpisodes?: boolean;
+  showWatchAction?: boolean;
 }) {
   const router = useRouter();
 
@@ -167,7 +177,10 @@ export default function AnimeDetailControls({
     playable: playbackReady,
     unavailable: episodesUnavailable,
     unknown: playbackUnknown,
-  } = useEpisodeAvailability(anime);
+  } = useEpisodeAvailability(
+    anime,
+    showWatchAction || showEpisodes,
+  );
 
   const [favorite, setFavorite] =
     useState(false);
@@ -248,6 +261,11 @@ export default function AnimeDetailControls({
   }, [anime.id, item]);
 
   useEffect(() => {
+    if (!showWatchAction) {
+      queueMicrotask(() => setWatchState(null));
+      return;
+    }
+
     let active = true;
 
     fetch(`/api/watch?animeId=${encodeURIComponent(String(anime.id))}`, {
@@ -270,7 +288,7 @@ export default function AnimeDetailControls({
     return () => {
       active = false;
     };
-  }, [anime.id]);
+  }, [anime.id, showWatchAction]);
 
   const fallbackEpisode = Math.max(progress, 1);
 
@@ -334,36 +352,38 @@ export default function AnimeDetailControls({
     <>
       {trackerMessage && <p className="anime-detail-actions__message" role="status">{trackerMessage}</p>}
       <div className="anime-detail-actions mt-7 flex flex-wrap gap-3">
-        <button
-          type="button"
-          className="btn btn--primary anime-detail-actions__watch"
-          onClick={handleWatch}
-          disabled={!playbackReady}
-          title={
-            episodesUnavailable
-              ? 'Сейчас нет серий, которые можно открыть в плеере'
+        {showWatchAction && (
+          <button
+            type="button"
+            className="btn btn--primary anime-detail-actions__watch"
+            onClick={handleWatch}
+            disabled={!playbackReady}
+            title={
+              episodesUnavailable
+                ? 'Сейчас нет серий, которые можно открыть в плеере'
+                : playbackUnknown
+                  ? 'Не открываем серию, пока источник воспроизведения не подтверждён'
+                  : episodeAvailabilityPending
+                    ? 'Проверяем доступность источника'
+                    : undefined
+            }
+          >
+            ▶{' '}
+            {episodeAvailabilityPending
+              ? 'Проверяем плеер…'
               : playbackUnknown
-                ? 'Не открываем серию, пока источник воспроизведения не подтверждён'
-                : episodeAvailabilityPending
-                  ? 'Проверяем доступность источника'
-                  : undefined
-          }
-        >
-          ▶{' '}
-          {episodeAvailabilityPending
-            ? 'Проверяем плеер…'
-            : playbackUnknown
-              ? 'Источник временно недоступен'
-              : episodesUnavailable
-                ? 'Серии пока недоступны'
-                : watchState
-                ? watchState.completed && nextEpisode > watchState.episode
-                  ? `Следующая · серия ${nextEpisode}`
-                  : `Продолжить · серия ${nextEpisode}`
-                : progress > 0
-                  ? `Продолжить · серия ${nextEpisode}`
-                  : 'Смотреть с 1 серии'}
-        </button>
+                ? 'Источник временно недоступен'
+                : episodesUnavailable
+                  ? 'Серии пока недоступны'
+                  : watchState
+                  ? watchState.completed && nextEpisode > watchState.episode
+                    ? `Следующая · серия ${nextEpisode}`
+                    : `Продолжить · серия ${nextEpisode}`
+                  : progress > 0
+                    ? `Продолжить · серия ${nextEpisode}`
+                    : 'Смотреть с 1 серии'}
+          </button>
+        )}
 
         <button
           type="button"

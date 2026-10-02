@@ -11,6 +11,7 @@ import AnimeFranchise, {
 
 import AnimeImageCascade from '@/components/AnimeImageCascade';
 import AnimeDetailControls from '@/components/AnimeDetailControls';
+import AnimeDetailContinueWatching from '@/components/AnimeDetailContinueWatching';
 import AnimeNotificationControl from '@/components/AnimeNotificationControl';
 import AnimeRatingControl from '@/components/AnimeRatingControl';
 import EpisodeDiscussionHub from '@/components/EpisodeDiscussionHub';
@@ -319,6 +320,18 @@ export default async function AnimePage({
 
 
   /* =========================================================
+     Нормализованное отображаемое имя
+     ========================================================= */
+
+  const displayTitle =
+    resolved.title.russian?.trim() ||
+    resolved.title.english?.trim() ||
+    resolved.title.romaji?.trim() ||
+    resolved.title.native?.trim() ||
+    'Без названия';
+
+
+  /* =========================================================
      Объект для контролов
      ========================================================= */
 
@@ -355,8 +368,7 @@ export default async function AnimePage({
           anime.name,
 
         russian:
-          anime.russian ||
-          anime.name,
+          displayTitle,
       },
 
       description:
@@ -408,11 +420,30 @@ export default async function AnimePage({
     };
 
 
+  const displayTitleKey = displayTitle.toLocaleLowerCase('ru-RU');
+  const originalTitle =
+    [
+      resolved.title.romaji,
+      resolved.title.english,
+      resolved.title.native,
+    ]
+      .map((value) => value?.trim())
+      .find(
+        (value): value is string =>
+          Boolean(value) &&
+          value!.toLocaleLowerCase('ru-RU') !== displayTitleKey,
+      ) ?? null;
+  const displayDescription = cleanShikimoriDescription(anime.description);
   const canonicalUrl =
     `${SITE_URL}${animeHref(resolved)}`;
 
   const seoIdentity =
     getAnimeSeoIdentity(resolved);
+  const pageHeading =
+    seoIdentity.seasonLabel &&
+    seoIdentity.pageHeading !== seoIdentity.title
+      ? `${displayTitle} — ${seoIdentity.seasonLabel}`
+      : displayTitle;
 
   const visibleAlternateNames =
     seoIdentity.aliases
@@ -456,7 +487,7 @@ export default async function AnimePage({
         position:
           2,
         name:
-          seoIdentity.pageHeading,
+          pageHeading,
         item:
           canonicalUrl,
       },
@@ -624,9 +655,7 @@ export default async function AnimePage({
                     posterSources
                   }
                   alt={
-                    anime.russian ||
-                    anime.name ||
-                    'Аниме'
+                    displayTitle
                   }
                   loading="eager"
                   fetchPriority="high"
@@ -653,7 +682,7 @@ export default async function AnimePage({
               <nav className="anime-detail-v4__breadcrumbs" aria-label="Навигация по каталогу">
                 <Link href="/search">Каталог</Link>
                 <span aria-hidden="true">/</span>
-                <span aria-current="page">{anime.russian || anime.name}</span>
+                <span aria-current="page">{displayTitle}</span>
               </nav>
 
 
@@ -745,30 +774,25 @@ export default async function AnimePage({
                   md:text-5xl
                 "
               >
-                {seoIdentity.pageHeading}
+                {pageHeading}
               </h1>
 
 
               {/* Оригинальное название */}
 
-              {anime.name &&
-                anime.russian &&
-                anime.name !==
-                  anime.russian && (
+              {originalTitle && originalTitle !== pageHeading && (
+                <p
+                  className="
+                    anime-detail-v4__original-title
+                    mt-2
 
-                  <p
-                    className="
-                      anime-detail-v4__original-title
-                      mt-2
-
-                      text-lg
-                      text-white/50
-                    "
-                  >
-                    {anime.name}
-                  </p>
-
-                )}
+                    text-lg
+                    text-white/50
+                  "
+                >
+                  {originalTitle}
+                </p>
+              )}
 
               {visibleAlternateNames.length > 0 && (
                 <p className="anime-detail-v4__aliases mt-3 max-w-3xl text-xs leading-5 text-white/35 md:text-sm">
@@ -780,28 +804,26 @@ export default async function AnimePage({
 
               {/* Описание */}
 
-              {anime.description && (
-                <p
-                  className="
-                    anime-detail-v4__description
-                    mt-6
+              <p
+                className="
+                  anime-detail-v4__description
+                  mt-6
 
-                    max-w-3xl
+                  max-w-3xl
 
-                    whitespace-pre-line
+                  whitespace-pre-line
 
-                    text-sm
-                    leading-7
-                    text-white/70
+                  text-sm
+                  leading-7
+                  text-white/70
 
-                    md:text-base
-                  "
-                >
-                  {cleanShikimoriDescription(
-                    anime.description,
-                  )}
-                </p>
-              )}
+                  md:text-base
+                "
+                data-description-fallback={displayDescription ? undefined : 'true'}
+              >
+                {displayDescription ||
+                  'Описание этого тайтла пока не добавлено. Основные данные, сезоны и доступные серии уже можно посмотреть ниже.'}
+              </p>
 
 
               {/* Рейтинг / эпизоды */}
@@ -915,10 +937,16 @@ export default async function AnimePage({
                 {playbackRestricted ? (
                   <PlaybackRestrictionNotice />
                 ) : (
-                  <AnimeDetailControls
-                    anime={normalizedAnimeForControls}
-                    showEpisodes={false}
-                  />
+                  <>
+                    <AnimeDetailContinueWatching
+                      anime={normalizedAnimeForControls}
+                    />
+                    <AnimeDetailControls
+                      anime={normalizedAnimeForControls}
+                      showEpisodes={false}
+                      showWatchAction={false}
+                    />
+                  </>
                 )}
 
               </div>
@@ -1006,7 +1034,9 @@ export default async function AnimePage({
               <h2 id="anime-episodes-title">Сезоны и эпизоды</h2>
               <p>Выбери часть и продолжай с нужной серии.</p>
             </div>
-            <Link href={`${animeHref(resolved)}/watch`}>Открыть просмотр →</Link>
+            <span className="text-xs font-medium text-white/35">
+              Ссылки только на подтверждённые серии
+            </span>
           </div>
 
           <div className="detail__episodes anime-detail-v4__episode-list">
@@ -1047,7 +1077,7 @@ export default async function AnimePage({
             <AnimeNotificationControl
               animeId={numericId}
               animeSlug={resolved.slug}
-              animeTitle={anime.russian || anime.name}
+              animeTitle={displayTitle}
               episodesAired={anime.episodes_aired || 0}
               isFinished={String(resolved.status).toUpperCase() === 'FINISHED'}
               variant="compact"
@@ -1073,7 +1103,7 @@ export default async function AnimePage({
           <div className="min-w-0">
             <span>ВМЕСТЕ</span>
             <h2 id="watch-together-anime-title">
-              Смотреть «{seoIdentity.pageHeading}» с друзьями
+              Смотреть «{pageHeading}» с друзьями
             </h2>
             <p>
               Открой комнату, отправь ссылку — AnimeBox синхронизирует просмотр.
@@ -1119,8 +1149,7 @@ export default async function AnimePage({
                 aniList.id
               }
               currentTitle={
-                anime.russian ||
-                anime.name
+                displayTitle
               }
             />
 
@@ -1138,7 +1167,7 @@ export default async function AnimePage({
       <section className="anime-detail-after-hero mx-auto max-w-7xl px-4 pb-8 md:px-6">
         <EpisodeDiscussionHub
           animeSlug={resolved.slug}
-          animeTitle={anime.russian || anime.name}
+          animeTitle={displayTitle}
           latestEpisode={Math.max(1, anime.episodes_aired || 1)}
         />
       </section>
@@ -1153,10 +1182,7 @@ export default async function AnimePage({
           ===================================================== */}
 
       <Suspense fallback={<RelatedAnimeLoading />}>
-        <RelatedAnime
-          animeId={numericId}
-          genres={resolved.genres}
-        />
+        <RelatedAnime anime={resolved} />
       </Suspense>
 
 

@@ -141,6 +141,7 @@ export function rememberContinueWatchingAttribution(input: {
   animeId: number;
   episode: number;
   mode: 'resume' | 'next';
+  source?: string;
 }) {
   if (typeof window === 'undefined') return;
   if (!Number.isSafeInteger(input.animeId) || input.animeId <= 0) return;
@@ -153,6 +154,7 @@ export function rememberContinueWatchingAttribution(input: {
         openedAt: Date.now(),
         episode: input.episode,
         mode: input.mode,
+        source: input.source?.trim() || 'home_continue',
         startedSent: false,
       }),
     );
@@ -178,6 +180,7 @@ function continueWatchingStartedEvent(options: TrackOptions): ClientEvent | null
       openedAt?: number;
       episode?: number;
       mode?: 'resume' | 'next';
+      source?: string;
       startedSent?: boolean;
     };
 
@@ -209,7 +212,7 @@ function continueWatchingStartedEvent(options: TrackOptions): ClientEvent | null
       eventId: randomId(),
       sessionId: getProductAnalyticsSessionId(),
       anonymousId: getProductAnalyticsAnonymousId(),
-      source: 'home_continue',
+      source: parsed.source?.trim() || 'home_continue',
       path: options.path,
       entityType: 'episode',
       entityId: rawEntity || String(animeId),

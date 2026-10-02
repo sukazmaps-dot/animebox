@@ -17,6 +17,20 @@ const CATEGORIES: FranchiseCategory[] = [
 ];
 const SECTION_CLASS = 'anime-franchise-v3 mx-auto max-w-7xl px-4 pb-8 pt-2 md:px-6';
 
+function franchiseTitle(
+  item: FranchiseData['items'][number],
+  currentTitle?: string | null,
+) {
+  return (
+    item.title.russian ||
+    (item.isCurrent && currentTitle) ||
+    item.title.english ||
+    item.title.romaji ||
+    item.title.native ||
+    'Без названия'
+  );
+}
+
 export function AnimeFranchiseLoading() {
   return (
     <section className={SECTION_CLASS} aria-busy="true" aria-label="Франшиза">
@@ -56,6 +70,13 @@ export default async function AnimeFranchise({
   for (const category of CATEGORIES) franchise.groups[category] = franchise.groups[category].map(registerAnime);
   const seasons = getPrimarySeasonItems(franchise);
   const hasSeasonSwitcher = seasons.length > 1;
+  const currentSeasonIndex = seasons.findIndex((item) => item.isCurrent);
+  const previousSeason =
+    currentSeasonIndex > 0 ? seasons[currentSeasonIndex - 1] : null;
+  const nextSeason =
+    currentSeasonIndex >= 0 && currentSeasonIndex < seasons.length - 1
+      ? seasons[currentSeasonIndex + 1]
+      : null;
 
   return (
     <section className={SECTION_CLASS} aria-labelledby="franchise-heading">
@@ -79,18 +100,57 @@ export default async function AnimeFranchise({
               <span className="text-xs text-white/35">{seasons.length}</span>
             </div>
 
+            {(previousSeason || nextSeason) && (
+              <nav
+                className="mb-4 grid gap-2 sm:grid-cols-2"
+                aria-label="Навигация по основной линии франшизы"
+              >
+                {previousSeason ? (
+                  <Link
+                    href={animeHref(previousSeason)}
+                    prefetch={false}
+                    className="group min-w-0 rounded-xl border border-white/10 bg-white/[0.025] px-3.5 py-3 transition hover:border-violet-400/35 hover:bg-violet-500/[0.07]"
+                  >
+                    <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/35">
+                      ← Предыдущая часть
+                    </span>
+                    <strong
+                      className="mt-1 block truncate text-sm text-white/75 group-hover:text-white"
+                      title={franchiseTitle(previousSeason, currentTitle)}
+                    >
+                      {franchiseTitle(previousSeason, currentTitle)}
+                    </strong>
+                  </Link>
+                ) : (
+                  <span aria-hidden="true" />
+                )}
+
+                {nextSeason && (
+                  <Link
+                    href={animeHref(nextSeason)}
+                    prefetch={false}
+                    className="group min-w-0 rounded-xl border border-violet-400/20 bg-violet-500/[0.04] px-3.5 py-3 text-right transition hover:border-violet-400/40 hover:bg-violet-500/[0.09]"
+                  >
+                    <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-violet-300/65">
+                      Следующая часть →
+                    </span>
+                    <strong
+                      className="mt-1 block truncate text-sm text-white/80 group-hover:text-white"
+                      title={franchiseTitle(nextSeason, currentTitle)}
+                    >
+                      {franchiseTitle(nextSeason, currentTitle)}
+                    </strong>
+                  </Link>
+                )}
+              </nav>
+            )}
+
             <HorizontalNavRail
               ariaLabel="Сезоны и части франшизы"
               stepRatio={0.74}
             >
               {seasons.map((item, index) => {
-                const title =
-                  item.title.russian ||
-                  (item.isCurrent && currentTitle) ||
-                  item.title.romaji ||
-                  item.title.english ||
-                  item.title.native ||
-                  'Без названия';
+                const title = franchiseTitle(item, currentTitle);
 
                 const content = (
                   <>
@@ -142,7 +202,7 @@ export default async function AnimeFranchise({
                 </h3>
                 <ul className="anime-franchise-v3__group-list">
                   {items.map((item) => {
-                    const title = item.title.russian || (item.isCurrent && currentTitle) || item.title.romaji || item.title.english || item.title.native || 'Без названия';
+                    const title = franchiseTitle(item, currentTitle);
                     const sources = [item.coverImage.extraLarge, item.coverImage.large, item.coverImage.medium]
                       .filter((source): source is string => Boolean(source));
                     const details = [translateFormat(item.format), item.startDate?.year].filter(Boolean).join(' · ');
