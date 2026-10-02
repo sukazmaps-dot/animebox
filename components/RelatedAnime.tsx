@@ -270,10 +270,10 @@ async function loadRankedFallback() {
 }
 
 async function availabilityFiltered(
-  candidates: Anime[],
+  filtered: Anime[],
 ) {
   const availability = await filterAnimeByAvailability(
-    candidates,
+    filtered,
     'catalog',
   );
 
