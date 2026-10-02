@@ -24,8 +24,23 @@ need(
 );
 need(
   page,
-  'const displayTitle = getAnimeTitle(normalizedAnimeForControls);',
-  'anime page display title fallback is missing',
+  "resolved.title.russian?.trim() ||",
+  'anime page Russian title fallback is missing',
+);
+need(
+  page,
+  "resolved.title.english?.trim() ||",
+  'anime page English title fallback is missing',
+);
+need(
+  page,
+  "resolved.title.romaji?.trim() ||",
+  'anime page Romaji title fallback is missing',
+);
+need(
+  page,
+  "resolved.title.native?.trim() ||",
+  'anime page native title fallback is missing',
 );
 need(
   page,
@@ -34,8 +49,8 @@ need(
 );
 need(
   page,
-  'const pageHeading = seoIdentity.pageHeading?.trim() || displayTitle;',
-  'anime page heading fallback is missing',
+  'seoIdentity.pageHeading !== seoIdentity.title',
+  'anime page heading does not preserve season context over display fallback',
 );
 
 need(
