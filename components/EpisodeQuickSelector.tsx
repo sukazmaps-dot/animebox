@@ -27,6 +27,7 @@ export default function EpisodeQuickSelector({
 }) {
   const [open, setOpen] = useState(false);
   const currentRef = useRef<HTMLButtonElement | null>(null);
+  const gridRef = useRef<HTMLDivElement | null>(null);
   const safeTotal = Math.max(currentEpisode, totalEpisodes || 0, 1);
 
   const visibleEpisodes = useMemo(() => {
@@ -56,11 +57,36 @@ export default function EpisodeQuickSelector({
 
     document.addEventListener('keydown', onKeyDown);
     const frame = window.requestAnimationFrame(() => {
-      currentRef.current?.scrollIntoView({
-        block: 'center',
-        inline: 'nearest',
-      });
-      currentRef.current?.focus({ preventScroll: true });
+      const grid = gridRef.current;
+      const current = currentRef.current;
+
+      if (grid && current) {
+        const currentTop = current.offsetTop;
+        const currentBottom =
+          currentTop + current.offsetHeight;
+        const viewportTop = grid.scrollTop;
+        const viewportBottom =
+          viewportTop + grid.clientHeight;
+
+        if (
+          currentTop < viewportTop ||
+          currentBottom > viewportBottom
+        ) {
+          const centeredTop =
+            currentTop -
+            Math.max(
+              0,
+              (grid.clientHeight - current.offsetHeight) / 2,
+            );
+
+          grid.scrollTo({
+            top: Math.max(0, centeredTop),
+            behavior: 'auto',
+          });
+        }
+      }
+
+      current?.focus({ preventScroll: true });
     });
 
     return () => {
@@ -165,7 +191,10 @@ export default function EpisodeQuickSelector({
               </button>
             </header>
 
-            <div className="episode-quick-nav__grid">
+            <div
+              ref={gridRef}
+              className="episode-quick-nav__grid"
+            >
               {visibleEpisodes.map((episode) => {
                 const active = episode === currentEpisode;
                 return (
