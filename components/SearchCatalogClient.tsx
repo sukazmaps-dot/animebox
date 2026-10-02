@@ -256,6 +256,8 @@ export default function SearchCatalogClient({
   const [query, setQuery] = useState(normalizedInitialQuery);
   const liveQueryRef = useRef(liveQuery);
   const requestSequenceRef = useRef(0);
+  const activeCatalogControllerRef =
+    useRef<AbortController | null>(null);
   const filterHistoryModeRef = useRef<'replace' | 'push' | 'restore' | 'none'>('replace');
   const emptyResultSignatureRef = useRef('');
   const searchAnalyticsSignatureRef = useRef('');
@@ -321,6 +323,14 @@ export default function SearchCatalogClient({
     const onLiveSearch = (event: Event) => {
       const detail = (event as CustomEvent<{ query?: unknown }>).detail;
       const next = typeof detail?.query === 'string' ? detail.query : '';
+
+      if (next !== liveQueryRef.current) {
+        // Make the previous authoritative request stale immediately instead
+        // of waiting for the 90 ms debounced query state to catch up.
+        requestSequenceRef.current += 1;
+        activeCatalogControllerRef.current?.abort();
+      }
+
       startSearchTiming(searchTimingRef, next);
       liveQueryRef.current = next;
       setLiveQuery(next);
@@ -373,7 +383,16 @@ export default function SearchCatalogClient({
     }
 
     const controller = new AbortController();
+    activeCatalogControllerRef.current?.abort();
+    activeCatalogControllerRef.current = controller;
+
     const requestId = ++requestSequenceRef.current;
+    const requestQuery = query;
+    const requestIsCurrent = () =>
+      !controller.signal.aborted &&
+      requestId === requestSequenceRef.current &&
+      requestQuery === liveQueryRef.current.trim();
+
     async function load() {
       let authoritativeSettled = false;
       let instantShown = false;
@@ -394,7 +413,7 @@ export default function SearchCatalogClient({
           const payload = await getSmartDiscovery(query, Math.max(CATALOG_PAGE_SIZE, 30), controller.signal);
           const personalized = rankSmartDiscoveryCandidates(payload.items, discoveryIntent, { tasteGraph, strict: false });
           authoritativeSettled = true;
-          if (controller.signal.aborted || requestId !== requestSequenceRef.current) return;
+          if (!requestIsCurrent()) return;
           const discoveryResults = personalized.slice(
             0,
             Math.max(CATALOG_PAGE_SIZE, 30),
@@ -442,8 +461,7 @@ export default function SearchCatalogClient({
               .then((payload) => {
                 if (
                   authoritativeSettled ||
-                  controller.signal.aborted ||
-                  requestId !== requestSequenceRef.current ||
+                  !requestIsCurrent() ||
                   payload.items.length === 0
                 ) {
                   return;
@@ -504,7 +522,7 @@ export default function SearchCatalogClient({
           );
 
           authoritativeSettled = true;
-          if (controller.signal.aborted || requestId !== requestSequenceRef.current) return;
+          if (!requestIsCurrent()) return;
           setInstantPreviewQuery(null);
           if (page === 1 && query.length >= 2) {
             trackSearchFirstResult(searchTimingRef, query, {
@@ -535,8 +553,7 @@ export default function SearchCatalogClient({
       } catch (loadError: unknown) {
         if (
           isAbortError(loadError) ||
-          controller.signal.aborted ||
-          requestId !== requestSequenceRef.current
+          !requestIsCurrent()
         ) {
           return;
         }
@@ -548,8 +565,7 @@ export default function SearchCatalogClient({
 
           if (
             fallbackPreview?.items.length &&
-            !controller.signal.aborted &&
-            requestId === requestSequenceRef.current
+            requestIsCurrent()
           ) {
             instantShown = true;
             trackSearchFirstResult(searchTimingRef, query, {
@@ -576,15 +592,19 @@ export default function SearchCatalogClient({
       } finally {
         authoritativeSettled = true;
         if (
-          !controller.signal.aborted &&
-          requestId === requestSequenceRef.current
+          requestIsCurrent()
         ) {
           setLoading(false);
         }
       }
     }
     void load();
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      if (activeCatalogControllerRef.current === controller) {
+        activeCatalogControllerRef.current = null;
+      }
+    };
   }, [discoveryIntent, filters, initialResults, page, query, retryNonce, selectedMood, tasteGraph, view]);
 
   useEffect(() => {
