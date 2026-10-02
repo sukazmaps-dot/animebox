@@ -144,6 +144,8 @@ Existing EpisodeList states remain authoritative:
 - no episode information;
 - available.
 
+The episode-section header must not expose a generic `/watch` link. Playback navigation is created only by the trusted primary CTA or by an episode that EpisodeList received from confirmed availability.
+
 Patch 26 must not create links to unconfirmed episodes.
 
 `AnimeDetailContinueWatching` is the sole availability owner for the primary anime-detail watch action. The secondary `AnimeDetailControls` instance skips its own availability request when both its watch action and episode list are disabled, avoiding duplicate ownership and AbortSignal races.
@@ -152,7 +154,25 @@ No optimistic episode URLs may bypass `anime_availability` / trusted watch-servi
 
 ---
 
-## Phase E — Analytics
+## Phase E — Contextual related anime
+
+The old related row used the first genre plus popularity. Patch 26 replaces that with a deterministic contextual affinity layer.
+
+Candidate relevance uses:
+
+- multi-genre overlap as the strongest signal;
+- AniList/provider tags as atmosphere/theme evidence when present;
+- studio overlap;
+- format similarity;
+- release-year proximity;
+- episode-count and duration proximity as a pacing/commitment proxy;
+- a very small quality tie-breaker.
+
+Candidate discovery is bounded to the first two title genres plus a ranked fallback. The current title and titles from the same detected franchise family are excluded because franchise navigation has its own dedicated surface.
+
+All candidates still pass catalogue availability filtering before they can render.
+
+## Phase F — Analytics
 
 The existing continue-watching attribution API is extended with an optional `source`.
 
@@ -168,7 +188,7 @@ The later player-start event restores the stored source so attribution does not 
 
 ---
 
-## Phase F — Regression protection
+## Phase G — Regression protection
 
 Patch 26 owns:
 
