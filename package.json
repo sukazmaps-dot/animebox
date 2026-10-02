@@ -102,7 +102,8 @@
     "patch24:check": "node scripts/patch-24-seo-organic-growth-check.mjs",
     "patch24-1:check": "node scripts/patch-24-1-mood-intent-check.mjs",
     "patch24-2:check": "node scripts/patch-24-2-instant-search-check.mjs",
-    "patch24-3:check": "node scripts/patch-24-3-search-observability-check.mjs"
+    "patch24-3:check": "node scripts/patch-24-3-search-observability-check.mjs",
+    "patch25:check": "node scripts/patch-25-stability-ux-check.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
