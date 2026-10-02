@@ -1,0 +1,120 @@
+import fs from 'node:fs';
+
+const failures = [];
+const read = (path) => fs.readFileSync(path, 'utf8');
+const need = (source, needle, label) => {
+  if (!source.includes(needle)) failures.push(label);
+};
+
+const page = read('app/anime/[slug]/page.tsx');
+const resume = read('components/AnimeDetailContinueWatching.tsx');
+const franchise = read('components/AnimeFranchise.tsx');
+const analytics = read('lib/product-events-client.ts');
+
+need(
+  page,
+  "import AnimeDetailContinueWatching from '@/components/AnimeDetailContinueWatching';",
+  'anime detail resume surface is not imported',
+);
+need(
+  page,
+  '<AnimeDetailContinueWatching',
+  'anime detail resume surface is not rendered',
+);
+need(
+  page,
+  'const displayTitle = getAnimeTitle(normalizedAnimeForControls);',
+  'anime page display title fallback is missing',
+);
+need(
+  page,
+  "data-description-fallback={displayDescription ? undefined : 'true'}",
+  'anime description empty-state fallback is missing',
+);
+need(
+  page,
+  'const pageHeading = seoIdentity.pageHeading?.trim() || displayTitle;',
+  'anime page heading fallback is missing',
+);
+
+need(
+  resume,
+  "getLatestWatchProgress(animeId, user?.id ?? null)",
+  'anime detail does not read local crash-resume state',
+);
+need(
+  resume,
+  "fetch('/api/watch/recent?limit=12'",
+  'anime detail does not reconcile server watch state',
+);
+need(
+  resume,
+  'localResume.updatedAt > remoteResume.updatedAt',
+  'local/server resume freshness ownership is missing',
+);
+need(
+  resume,
+  "window.addEventListener('watch-progress'",
+  'anime detail resume does not refresh from live watch progress',
+);
+need(
+  resume,
+  "source: 'anime_detail_continue'",
+  'anime detail continue analytics source is missing',
+);
+need(
+  resume,
+  'rememberContinueWatchingAttribution({',
+  'anime detail continue attribution is missing',
+);
+
+need(
+  analytics,
+  'source?: string;',
+  'continue attribution does not preserve source',
+);
+need(
+  analytics,
+  "source: input.source?.trim() || 'home_continue'",
+  'continue attribution source is not persisted',
+);
+need(
+  analytics,
+  "source: parsed.source?.trim() || 'home_continue'",
+  'continue started event does not restore attribution source',
+);
+
+need(
+  franchise,
+  'const previousSeason =',
+  'previous franchise season resolution is missing',
+);
+need(
+  franchise,
+  'const nextSeason =',
+  'next franchise season resolution is missing',
+);
+need(
+  franchise,
+  'Предыдущая часть',
+  'previous franchise navigation is missing',
+);
+need(
+  franchise,
+  'Следующая часть →',
+  'next franchise navigation is missing',
+);
+need(
+  franchise,
+  'function franchiseTitle(',
+  'franchise display fallback helper is missing',
+);
+
+if (failures.length) {
+  console.error('\n[AnimeBox Patch 26 Anime Page 2.0] Check failed:\n');
+  for (const failure of failures) console.error(` - ${failure}`);
+  console.error('');
+  process.exit(1);
+}
+
+console.log('[AnimeBox Patch 26 Anime Page 2.0] Resume, franchise navigation and display fallbacks passed.');
