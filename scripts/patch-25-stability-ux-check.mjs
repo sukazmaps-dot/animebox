@@ -14,6 +14,7 @@ const quick = read('components/EpisodeQuickSelector.tsx');
 const runtime = read('components/home/useHomeRecommendationRuntime.ts');
 const discovery = read('components/home/HomeDiscoverySection.tsx');
 const search = read('components/SearchCatalogClient.tsx');
+const feed = read('components/SmartRecommendationFeed.tsx');
 
 mustExclude(
   rail,
@@ -92,6 +93,37 @@ mustInclude(
   search,
   'requestSequenceRef',
   'search request ownership guard is missing',
+);
+
+mustInclude(
+  search,
+  'activeCatalogControllerRef',
+  'active search controller ownership is missing',
+);
+mustInclude(
+  search,
+  'requestQuery === liveQueryRef.current.trim()',
+  'search responses are not guarded against newer live input',
+);
+mustInclude(
+  search,
+  'function commitMood(nextMood: CatalogMood)',
+  'catalog mood changes do not explicitly revoke stale search ownership',
+);
+mustInclude(
+  feed,
+  'function waitForCandidatePage(',
+  'shared recommendation request consumer isolation is missing',
+);
+mustInclude(
+  feed,
+  'return waitForCandidatePage(existingRequest, signal);',
+  'deduped recommendation consumers are still coupled to the first AbortSignal',
+);
+mustInclude(
+  feed,
+  'if (!map.has(item.anime.id))',
+  'recommendation append helper may overwrite an already rendered card',
 );
 
 if (failures.length) {
