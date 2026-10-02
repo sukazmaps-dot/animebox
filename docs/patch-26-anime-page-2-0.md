@@ -26,7 +26,7 @@ AnimeBox already had strong continuation logic on Home and in the tracker, but t
 The anime detail page receives a dedicated client surface that combines:
 
 - local crash-resume state from `lib/watch-progress.ts`;
-- authenticated server state from `/api/watch/recent`;
+- authenticated server state from the exact `/api/watch/title/[animeId]` endpoint;
 - freshness ownership using timestamps;
 - existing continue-watching attribution and product analytics.
 
@@ -37,6 +37,7 @@ If both local and server continuation exist:
 - the newer state wins;
 - server state wins ties;
 - a completed server title does not hide a newer valid local crash-resume;
+- server lookup is scoped to the current anime ID and never depends on the title being inside a recent-N list;
 - unusable local positions near the beginning/end are ignored by the existing resume-integrity policy.
 
 ### Live refresh
