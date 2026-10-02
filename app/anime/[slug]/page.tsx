@@ -320,6 +320,18 @@ export default async function AnimePage({
 
 
   /* =========================================================
+     Нормализованное отображаемое имя
+     ========================================================= */
+
+  const displayTitle =
+    resolved.title.russian?.trim() ||
+    resolved.title.english?.trim() ||
+    resolved.title.romaji?.trim() ||
+    resolved.title.native?.trim() ||
+    'Без названия';
+
+
+  /* =========================================================
      Объект для контролов
      ========================================================= */
 
@@ -356,8 +368,7 @@ export default async function AnimePage({
           anime.name,
 
         russian:
-          anime.russian ||
-          anime.name,
+          displayTitle,
       },
 
       description:
@@ -409,12 +420,6 @@ export default async function AnimePage({
     };
 
 
-  const displayTitle =
-    resolved.title.russian?.trim() ||
-    resolved.title.english?.trim() ||
-    resolved.title.romaji?.trim() ||
-    resolved.title.native?.trim() ||
-    'Без названия';
   const displayTitleKey = displayTitle.toLocaleLowerCase('ru-RU');
   const originalTitle =
     [
