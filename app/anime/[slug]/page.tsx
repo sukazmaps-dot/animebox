@@ -1029,7 +1029,9 @@ export default async function AnimePage({
               <h2 id="anime-episodes-title">Сезоны и эпизоды</h2>
               <p>Выбери часть и продолжай с нужной серии.</p>
             </div>
-            <Link href={`${animeHref(resolved)}/watch`}>Открыть просмотр →</Link>
+            <span className="text-xs font-medium text-white/35">
+              Ссылки только на подтверждённые серии
+            </span>
           </div>
 
           <div className="detail__episodes anime-detail-v4__episode-list">
@@ -1160,7 +1162,7 @@ export default async function AnimePage({
       <section className="anime-detail-after-hero mx-auto max-w-7xl px-4 pb-8 md:px-6">
         <EpisodeDiscussionHub
           animeSlug={resolved.slug}
-          animeTitle={anime.russian || anime.name}
+          animeTitle={displayTitle}
           latestEpisode={Math.max(1, anime.episodes_aired || 1)}
         />
       </section>
@@ -1175,10 +1177,7 @@ export default async function AnimePage({
           ===================================================== */}
 
       <Suspense fallback={<RelatedAnimeLoading />}>
-        <RelatedAnime
-          animeId={numericId}
-          genres={resolved.genres}
-        />
+        <RelatedAnime anime={resolved} />
       </Suspense>
 
 
