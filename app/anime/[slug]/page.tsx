@@ -11,6 +11,7 @@ import AnimeFranchise, {
 
 import AnimeImageCascade from '@/components/AnimeImageCascade';
 import AnimeDetailControls from '@/components/AnimeDetailControls';
+import AnimeDetailContinueWatching from '@/components/AnimeDetailContinueWatching';
 import AnimeNotificationControl from '@/components/AnimeNotificationControl';
 import AnimeRatingControl from '@/components/AnimeRatingControl';
 import EpisodeDiscussionHub from '@/components/EpisodeDiscussionHub';
@@ -915,10 +916,16 @@ export default async function AnimePage({
                 {playbackRestricted ? (
                   <PlaybackRestrictionNotice />
                 ) : (
-                  <AnimeDetailControls
-                    anime={normalizedAnimeForControls}
-                    showEpisodes={false}
-                  />
+                  <>
+                    <AnimeDetailControls
+                      anime={normalizedAnimeForControls}
+                      showEpisodes={false}
+                    />
+                    <AnimeDetailContinueWatching
+                      animeId={numericId}
+                      animeSlug={resolved.slug}
+                    />
+                  </>
                 )}
 
               </div>
