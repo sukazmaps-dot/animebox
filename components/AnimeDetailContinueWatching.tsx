@@ -83,6 +83,7 @@ export default function AnimeDetailContinueWatching({
 
   const [serverSnapshot, setServerSnapshot] = useState<{
     ownerId: string;
+    animeId: number;
     item: WatchTitleOverview | null;
   } | null>(null);
   const [revision, setRevision] = useState(0);
@@ -156,17 +157,33 @@ export default function AnimeDetailContinueWatching({
 
           setServerSnapshot({
             ownerId,
+            animeId,
             item: payload.item ?? null,
           });
         })
         .catch((error: unknown) => {
           if (
-            !(error instanceof Error && error.name === 'AbortError')
+            error instanceof Error &&
+            error.name === 'AbortError'
           ) {
-            console.debug(
-              '[Anime detail] watch title state unavailable',
-            );
+            return;
           }
+
+          if (requestId !== requestSequence) return;
+
+          console.debug(
+            '[Anime detail] watch title state unavailable',
+          );
+
+          // Release the initial synchronization state while keeping the local
+          // crash-resume fallback usable when the exact server snapshot cannot
+          // be reached. item:null with no timestamp is not an authoritative
+          // completion tombstone.
+          setServerSnapshot({
+            ownerId,
+            animeId,
+            item: null,
+          });
         });
     };
 
@@ -190,10 +207,19 @@ export default function AnimeDetailContinueWatching({
     };
   }, [animeId, authLoading, user?.id]);
 
+  const serverInitialSyncPending = Boolean(
+    !authLoading &&
+      user?.id &&
+      (
+        serverSnapshot?.ownerId !== user.id ||
+        serverSnapshot?.animeId !== animeId
+      ),
+  );
+
   const resume = useMemo<AnimeDetailResume | null>(() => {
     void revision;
 
-    if (authLoading) return null;
+    if (authLoading || serverInitialSyncPending) return null;
 
     const local = getLatestWatchProgress(
       animeId,
@@ -222,7 +248,8 @@ export default function AnimeDetailContinueWatching({
 
     const serverState =
       serverSnapshot &&
-      serverSnapshot.ownerId === user?.id
+      serverSnapshot.ownerId === user?.id &&
+      serverSnapshot.animeId === animeId
         ? serverSnapshot.item
         : null;
     const remoteResume = serverResume(serverState);
@@ -253,6 +280,7 @@ export default function AnimeDetailContinueWatching({
     animeId,
     authLoading,
     revision,
+    serverInitialSyncPending,
     serverSnapshot,
     user?.id,
   ]);
@@ -298,7 +326,7 @@ export default function AnimeDetailContinueWatching({
   let title = 'Смотреть с 1 серии';
   let helper = 'Открыть подтверждённый источник воспроизведения';
 
-  if (authLoading) {
+  if (authLoading || serverInitialSyncPending) {
     eyebrow = 'Прогресс';
     title = 'Проверяем место просмотра…';
     helper = 'Синхронизируем прогресс этого аккаунта';
@@ -382,7 +410,7 @@ export default function AnimeDetailContinueWatching({
   const className =
     'anime-detail-v4__continue mt-4 flex max-w-3xl items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400';
 
-  if (!episodeConfirmed || authLoading) {
+  if (!episodeConfirmed || authLoading || serverInitialSyncPending) {
     return (
       <div
         className={`${className} cursor-not-allowed border-white/10 bg-white/[0.035] opacity-80`}
@@ -390,7 +418,9 @@ export default function AnimeDetailContinueWatching({
         data-playback-state={
           authLoading
             ? 'auth-loading'
-            : episodeAvailabilityPending
+            : serverInitialSyncPending
+              ? 'progress-sync'
+              : episodeAvailabilityPending
               ? 'checking'
               : playbackUnknown
                 ? 'unknown'
