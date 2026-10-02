@@ -55,6 +55,8 @@ The surface refreshes on:
 
 No page reload is required.
 
+Refresh ownership is monotonic: each server snapshot request receives a local sequence number, and only the newest in-flight refresh may publish. A slow focus/pageshow request cannot overwrite a newer watch-state refresh.
+
 ### UX
 
 Anime detail owns exactly one primary watch action. The legacy controls block keeps favorites/tracker/status, but its primary watch button is disabled on this page.
