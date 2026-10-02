@@ -43,6 +43,8 @@ If both local and server continuation exist:
 
 ### Live refresh
 
+Server resume snapshots are scoped to the authenticated `ownerId`. During auth resolution the CTA stays hidden, so guest or previous-account progress cannot flash across an identity transition.
+
 The surface refreshes on:
 
 - `watch-progress`;
