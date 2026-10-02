@@ -100,6 +100,16 @@ need(
 );
 need(
   resume,
+  'let requestSequence = 0;',
+  'anime detail server resume refresh has no request ownership sequence',
+);
+need(
+  resume,
+  'requestId !== requestSequence',
+  'stale anime detail server resume responses can still publish',
+);
+need(
+  resume,
   'localResume.updatedAt > remoteResume.updatedAt',
   'local/server resume freshness ownership is missing',
 );
