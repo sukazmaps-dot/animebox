@@ -386,12 +386,22 @@ Diagnostic data must not include raw private viewing data beyond the existing an
 
 # Current implementation progress
 
-Completed in the first Patch 25 pass:
+Completed so far:
 
 - created branch `patch-25-stability-ux-core`;
 - replaced HorizontalNavRail document-level active centering with container-only horizontal scrolling;
 - replaced EpisodeQuickSelector automatic current-episode positioning with grid-only vertical scrolling;
 - added mood persistence ownership and stale-refresh protection;
-- added Patch 25 static regression gate.
+- invalidated stale catalog requests immediately on live input instead of waiting for the debounced authoritative query;
+- revoked stale search ownership immediately on filter, mood, view and popstate context changes;
+- added an explicit `requestQuery === liveQueryRef.current.trim()` publication guard;
+- decoupled shared recommendation page fetches from the AbortSignal of the first consumer;
+- made recommendation append merging preserve the already-rendered object for an existing anime ID;
+- expanded the Patch 25 static regression gate and wired it into prebuild.
 
-Next implementation slices are Search interaction hardening, recommendation-session/rail audit, and layout-shift audit.
+Next implementation slices:
+
+1. run Patch 23/24/25 gates in CI/preview;
+2. inspect any legacy static-check conflicts caused by the stricter ownership model;
+3. complete layout-shift/manual viewport QA on cold-cache anime pages;
+4. fix any preview-only hydration or responsive regressions before merge.
