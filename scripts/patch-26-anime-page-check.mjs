@@ -125,6 +125,21 @@ need(
 );
 need(
   resume,
+  'serverSnapshot.animeId === animeId',
+  'server resume snapshot is not scoped to the current anime title',
+);
+need(
+  resume,
+  'const serverInitialSyncPending = Boolean(',
+  'authenticated anime detail can publish local resume before initial server reconciliation',
+);
+need(
+  resume,
+  "? 'progress-sync'",
+  'initial server reconciliation has no stable non-navigable playback state',
+);
+need(
+  resume,
   "'auth-loading'",
   'primary watch CTA does not reserve an auth-loading state',
 );
