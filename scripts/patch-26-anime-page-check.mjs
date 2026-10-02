@@ -60,6 +60,16 @@ need(
 );
 need(
   resume,
+  'serverSnapshot?.ownerId === user?.id',
+  'server resume snapshot is not scoped to the authenticated owner',
+);
+need(
+  resume,
+  'if (authLoading || !resume) return null;',
+  'resume surface may flash guest/previous-owner state during auth resolution',
+);
+need(
+  resume,
   "window.addEventListener('watch-progress'",
   'anime detail resume does not refresh from live watch progress',
 );
