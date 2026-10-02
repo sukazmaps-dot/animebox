@@ -36,7 +36,8 @@ If both local and server continuation exist:
 
 - the newer state wins;
 - server state wins ties;
-- a completed server title does not hide a newer valid local crash-resume;
+- a newer completed/no-resume server state suppresses stale local crash-resume;
+- a genuinely newer valid local crash-resume may supersede an older server tombstone;
 - server lookup is scoped to the current anime ID and never depends on the title being inside a recent-N list;
 - unusable local positions near the beginning/end are ignored by the existing resume-integrity policy.
 
