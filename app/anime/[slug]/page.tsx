@@ -933,13 +933,13 @@ export default async function AnimePage({
                   <PlaybackRestrictionNotice />
                 ) : (
                   <>
+                    <AnimeDetailContinueWatching
+                      anime={normalizedAnimeForControls}
+                    />
                     <AnimeDetailControls
                       anime={normalizedAnimeForControls}
                       showEpisodes={false}
-                    />
-                    <AnimeDetailContinueWatching
-                      animeId={numericId}
-                      animeSlug={resolved.slug}
+                      showWatchAction={false}
                     />
                   </>
                 )}
