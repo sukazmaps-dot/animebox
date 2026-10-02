@@ -15,7 +15,7 @@ export async function GET(
     const animeId = Number(rawAnimeId);
 
     if (!Number.isSafeInteger(animeId) || animeId <= 0) {
-      return response({ item: null }, { status: 400 });
+      return response({ item: null }, 400);
     }
 
     const [item = null] = await getTitleWatchOverviews(user.id, [animeId]);
