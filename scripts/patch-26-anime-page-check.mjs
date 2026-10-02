@@ -55,6 +55,11 @@ need(
 );
 need(
   resume,
+  'remoteUpdatedAt >= localResume.updatedAt',
+  'newer server completion tombstone can resurrect stale local resume',
+);
+need(
+  resume,
   "window.addEventListener('watch-progress'",
   'anime detail resume does not refresh from live watch progress',
 );
