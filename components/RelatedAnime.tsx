@@ -35,6 +35,7 @@ const ANILIST_GENRE_BY_RUSSIAN: Record<string, string> = {
 const RELATED_POOL_PER_GENRE = 18;
 const RELATED_POOL_LIMIT = 30;
 const RELATED_OUTPUT_LIMIT = 12;
+const RELATED_MIN_VISIBLE = 6;
 
 function normalizeGenre(genre?: string | null): string | undefined {
   const value = genre?.trim();
@@ -199,6 +200,27 @@ function contextualScore(candidate: Anime, reference: Anime) {
   );
 }
 
+function mergeUniqueAnime(...groups: Anime[][]) {
+  const seen = new Set<number>();
+  const result: Anime[] = [];
+
+  for (const anime of groups.flat()) {
+    if (
+      !anime ||
+      !Number.isSafeInteger(anime.id) ||
+      anime.id <= 0 ||
+      seen.has(anime.id)
+    ) {
+      continue;
+    }
+
+    seen.add(anime.id);
+    result.push(anime);
+  }
+
+  return result;
+}
+
 function uniqueContextCandidates(
   items: Anime[],
   reference: Anime,
@@ -293,6 +315,28 @@ async function loadRelatedAnime(
   reference: Anime,
 ): Promise<Anime[]> {
   try {
+    let fallbackPool: Anime[] | null = null;
+    const getFallbackPool = async () => {
+      if (!fallbackPool) {
+        fallbackPool = await loadRankedFallback();
+      }
+      return fallbackPool;
+    };
+
+    const rankCandidates = (items: Anime[]) =>
+      uniqueContextCandidates(items, reference)
+        .map((anime) => ({
+          anime,
+          score: contextualScore(anime, reference),
+        }))
+        .sort(
+          (left, right) =>
+            right.score - left.score ||
+            qualityScore(right.anime) - qualityScore(left.anime) ||
+            left.anime.id - right.anime.id,
+        )
+        .map(({ anime }) => anime);
+
     const genrePool = await loadGenrePool(reference);
     let candidates = uniqueContextCandidates(
       genrePool,
@@ -300,28 +344,36 @@ async function loadRelatedAnime(
     );
 
     if (candidates.length < RELATED_OUTPUT_LIMIT) {
-      const fallback = await loadRankedFallback();
       candidates = uniqueContextCandidates(
-        [...candidates, ...fallback],
+        [...candidates, ...(await getFallbackPool())],
         reference,
       );
     }
 
-    const ranked = candidates
-      .map((anime) => ({
-        anime,
-        score: contextualScore(anime, reference),
-      }))
-      .sort(
-        (left, right) =>
-          right.score - left.score ||
-          qualityScore(right.anime) - qualityScore(left.anime) ||
-          left.anime.id - right.anime.id,
-      )
-      .slice(0, RELATED_POOL_LIMIT)
-      .map(({ anime }) => anime);
+    const ranked = rankCandidates(candidates)
+      .slice(0, RELATED_POOL_LIMIT);
 
-    const visible = await availabilityFiltered(ranked);
+    let visible = await availabilityFiltered(ranked);
+
+    // One bounded recovery pass keeps the row useful when availability removes
+    // most genre candidates. Never loop or replace the already selected prefix.
+    if (visible.length < RELATED_MIN_VISIBLE) {
+      const visibleIds = new Set(visible.map((anime) => anime.id));
+      const rankedIds = new Set(ranked.map((anime) => anime.id));
+      const recovery = rankCandidates(await getFallbackPool())
+        .filter(
+          (anime) =>
+            !visibleIds.has(anime.id) &&
+            !rankedIds.has(anime.id),
+        )
+        .slice(0, RELATED_POOL_LIMIT);
+
+      if (recovery.length > 0) {
+        const recovered = await availabilityFiltered(recovery);
+        visible = mergeUniqueAnime(visible, recovered);
+      }
+    }
+
     return visible.slice(0, RELATED_OUTPUT_LIMIT);
   } catch (error) {
     console.warn('Contextual related anime failed:', error);
