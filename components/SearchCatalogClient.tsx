@@ -673,6 +673,9 @@ export default function SearchCatalogClient({
 
   useEffect(() => {
     const onPopState = () => {
+      requestSequenceRef.current += 1;
+      activeCatalogControllerRef.current?.abort();
+      activeCatalogControllerRef.current = null;
       filterHistoryModeRef.current = 'restore';
       setFilters(parseCatalogFiltersFromSearchParams(new URL(window.location.href).searchParams));
       setPageState({ query: liveQueryRef.current.trim(), page: 1 });
@@ -684,6 +687,13 @@ export default function SearchCatalogClient({
 
   function applySearchQuery(nextValue: string) {
     const next = nextValue.replace(/\s+/g, ' ').trim();
+
+    if (next !== liveQueryRef.current) {
+      requestSequenceRef.current += 1;
+      activeCatalogControllerRef.current?.abort();
+      activeCatalogControllerRef.current = null;
+    }
+
     startSearchTiming(searchTimingRef, next);
     liveQueryRef.current = next;
     setLiveQuery(next);
@@ -693,6 +703,11 @@ export default function SearchCatalogClient({
     window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
   }
   function applyView(nextView: CatalogView) {
+    if (nextView === view) return;
+
+    requestSequenceRef.current += 1;
+    activeCatalogControllerRef.current?.abort();
+    activeCatalogControllerRef.current = null;
     setView(nextView);
     const url = new URL(window.location.href);
     if (nextView === 'saved') url.searchParams.set('view', 'saved'); else url.searchParams.delete('view');
@@ -700,8 +715,22 @@ export default function SearchCatalogClient({
   }
   function commitFilters(next: CatalogFiltersState) {
     if (catalogFiltersEqual(filters, next)) return;
+
+    requestSequenceRef.current += 1;
+    activeCatalogControllerRef.current?.abort();
+    activeCatalogControllerRef.current = null;
     filterHistoryModeRef.current = 'push';
     setFilters(next);
+    setPageState({ query, page: 1 });
+  }
+
+  function commitMood(nextMood: CatalogMood) {
+    if (nextMood === selectedMood) return;
+
+    requestSequenceRef.current += 1;
+    activeCatalogControllerRef.current?.abort();
+    activeCatalogControllerRef.current = null;
+    setSelectedMood(nextMood);
     setPageState({ query, page: 1 });
   }
 
@@ -1024,7 +1053,7 @@ export default function SearchCatalogClient({
       </div>
 
       <div className={styles.filterBar}>
-        {view === 'catalog' && <MoodFilter value={selectedMood} onChange={(mood) => { setSelectedMood(mood); setPageState({ query, page: 1 }); }} />}
+        {view === 'catalog' && <MoodFilter value={selectedMood} onChange={commitMood} />}
         <button type="button" className={`${styles.filterToggle} ${filtersOpen || filterCount > 0 ? styles.filterToggleActive : ''}`} aria-expanded={filtersOpen} onClick={toggleFiltersPanel}>
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2" fill="currentColor" stroke="none"/><circle cx="16" cy="17" r="2" fill="currentColor" stroke="none"/></svg>Фильтры{filterCount > 0 ? <b>{filterCount}</b> : null}
         </button>
@@ -1195,7 +1224,7 @@ export default function SearchCatalogClient({
                 </button>
               )}
               {view === 'catalog' && discoveryIntent?.isDiscovery && closestQuery && closestQuery !== query && <button type="button" onClick={() => applySearchQuery(closestQuery)}>Показать ближайшие</button>}
-              {(query || hasFilters) && <button type="button" className={styles.secondaryAction} onClick={() => { clearStructuredFilters(); setSelectedMood('any'); applySearchQuery(''); }}>Сбросить всё</button>}
+              {(query || hasFilters) && <button type="button" className={styles.secondaryAction} onClick={() => { clearStructuredFilters(); commitMood('any'); applySearchQuery(''); }}>Сбросить всё</button>}
             </div>
           </div>
         )}
