@@ -388,10 +388,16 @@ export default function SearchCatalogClient({
 
     const requestId = ++requestSequenceRef.current;
     const requestQuery = query;
-    const requestIsCurrent = () =>
-      !controller.signal.aborted &&
-      requestId === requestSequenceRef.current &&
-      requestQuery === liveQueryRef.current.trim();
+    const requestIsCurrent = () => {
+      if (
+        controller.signal.aborted ||
+        requestId !== requestSequenceRef.current
+      ) {
+        return false;
+      }
+
+      return requestQuery === liveQueryRef.current.trim();
+    };
 
     async function load() {
       let authoritativeSettled = false;
