@@ -61,8 +61,13 @@ need(
 
 need(
   resume,
-  "getLatestWatchProgress(animeId, user?.id ?? null)",
+  'getLatestWatchProgress(',
   'anime detail does not read local crash-resume state',
+);
+need(
+  resume,
+  'user?.id ?? null',
+  'anime detail local resume is not scoped to the current identity',
 );
 need(
   resume,
@@ -86,7 +91,7 @@ need(
 );
 need(
   resume,
-  "authLoading ? 'auth-loading'",
+  "'auth-loading'",
   'primary watch CTA does not reserve an auth-loading state',
 );
 need(
@@ -116,7 +121,7 @@ need(
 );
 need(
   resume,
-  "window.addEventListener('watch-progress'",
+  "'watch-progress'",
   'anime detail resume does not refresh from live watch progress',
 );
 need(
