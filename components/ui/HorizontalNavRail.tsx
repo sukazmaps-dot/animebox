@@ -81,10 +81,24 @@ export default function HorizontalNavRail({
         activeRect.right <= trackRect.right - 8;
 
       if (!fullyVisible) {
-        active.scrollIntoView({
+        // Keep auto-centering scoped to the horizontal rail. scrollIntoView()
+        // may also move the document viewport when this rail mounts inside a
+        // streamed section (for example AnimeFranchise).
+        const maxScrollLeft = Math.max(
+          0,
+          track.scrollWidth - track.clientWidth,
+        );
+        const centeredLeft =
+          track.scrollLeft +
+          (activeRect.left - trackRect.left) -
+          (trackRect.width - activeRect.width) / 2;
+
+        track.scrollTo({
+          left: Math.min(
+            maxScrollLeft,
+            Math.max(0, centeredLeft),
+          ),
           behavior: 'smooth',
-          block: 'nearest',
-          inline: 'center',
         });
       }
 

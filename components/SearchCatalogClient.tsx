@@ -256,6 +256,8 @@ export default function SearchCatalogClient({
   const [query, setQuery] = useState(normalizedInitialQuery);
   const liveQueryRef = useRef(liveQuery);
   const requestSequenceRef = useRef(0);
+  const activeCatalogControllerRef =
+    useRef<AbortController | null>(null);
   const filterHistoryModeRef = useRef<'replace' | 'push' | 'restore' | 'none'>('replace');
   const emptyResultSignatureRef = useRef('');
   const searchAnalyticsSignatureRef = useRef('');
@@ -321,6 +323,14 @@ export default function SearchCatalogClient({
     const onLiveSearch = (event: Event) => {
       const detail = (event as CustomEvent<{ query?: unknown }>).detail;
       const next = typeof detail?.query === 'string' ? detail.query : '';
+
+      if (next !== liveQueryRef.current) {
+        // Make the previous authoritative request stale immediately instead
+        // of waiting for the 90 ms debounced query state to catch up.
+        requestSequenceRef.current += 1;
+        activeCatalogControllerRef.current?.abort();
+      }
+
       startSearchTiming(searchTimingRef, next);
       liveQueryRef.current = next;
       setLiveQuery(next);
@@ -373,7 +383,22 @@ export default function SearchCatalogClient({
     }
 
     const controller = new AbortController();
+    activeCatalogControllerRef.current?.abort();
+    activeCatalogControllerRef.current = controller;
+
     const requestId = ++requestSequenceRef.current;
+    const requestQuery = query;
+    const requestIsCurrent = () => {
+      if (
+        controller.signal.aborted ||
+        requestId !== requestSequenceRef.current
+      ) {
+        return false;
+      }
+
+      return requestQuery === liveQueryRef.current.trim();
+    };
+
     async function load() {
       let authoritativeSettled = false;
       let instantShown = false;
@@ -394,7 +419,7 @@ export default function SearchCatalogClient({
           const payload = await getSmartDiscovery(query, Math.max(CATALOG_PAGE_SIZE, 30), controller.signal);
           const personalized = rankSmartDiscoveryCandidates(payload.items, discoveryIntent, { tasteGraph, strict: false });
           authoritativeSettled = true;
-          if (controller.signal.aborted || requestId !== requestSequenceRef.current) return;
+          if (!requestIsCurrent()) return;
           const discoveryResults = personalized.slice(
             0,
             Math.max(CATALOG_PAGE_SIZE, 30),
@@ -442,8 +467,7 @@ export default function SearchCatalogClient({
               .then((payload) => {
                 if (
                   authoritativeSettled ||
-                  controller.signal.aborted ||
-                  requestId !== requestSequenceRef.current ||
+                  !requestIsCurrent() ||
                   payload.items.length === 0
                 ) {
                   return;
@@ -504,7 +528,7 @@ export default function SearchCatalogClient({
           );
 
           authoritativeSettled = true;
-          if (controller.signal.aborted || requestId !== requestSequenceRef.current) return;
+          if (!requestIsCurrent()) return;
           setInstantPreviewQuery(null);
           if (page === 1 && query.length >= 2) {
             trackSearchFirstResult(searchTimingRef, query, {
@@ -535,8 +559,7 @@ export default function SearchCatalogClient({
       } catch (loadError: unknown) {
         if (
           isAbortError(loadError) ||
-          controller.signal.aborted ||
-          requestId !== requestSequenceRef.current
+          !requestIsCurrent()
         ) {
           return;
         }
@@ -548,8 +571,7 @@ export default function SearchCatalogClient({
 
           if (
             fallbackPreview?.items.length &&
-            !controller.signal.aborted &&
-            requestId === requestSequenceRef.current
+            requestIsCurrent()
           ) {
             instantShown = true;
             trackSearchFirstResult(searchTimingRef, query, {
@@ -576,15 +598,19 @@ export default function SearchCatalogClient({
       } finally {
         authoritativeSettled = true;
         if (
-          !controller.signal.aborted &&
-          requestId === requestSequenceRef.current
+          requestIsCurrent()
         ) {
           setLoading(false);
         }
       }
     }
     void load();
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      if (activeCatalogControllerRef.current === controller) {
+        activeCatalogControllerRef.current = null;
+      }
+    };
   }, [discoveryIntent, filters, initialResults, page, query, retryNonce, selectedMood, tasteGraph, view]);
 
   useEffect(() => {
@@ -653,6 +679,9 @@ export default function SearchCatalogClient({
 
   useEffect(() => {
     const onPopState = () => {
+      requestSequenceRef.current += 1;
+      activeCatalogControllerRef.current?.abort();
+      activeCatalogControllerRef.current = null;
       filterHistoryModeRef.current = 'restore';
       setFilters(parseCatalogFiltersFromSearchParams(new URL(window.location.href).searchParams));
       setPageState({ query: liveQueryRef.current.trim(), page: 1 });
@@ -664,6 +693,13 @@ export default function SearchCatalogClient({
 
   function applySearchQuery(nextValue: string) {
     const next = nextValue.replace(/\s+/g, ' ').trim();
+
+    if (next !== liveQueryRef.current) {
+      requestSequenceRef.current += 1;
+      activeCatalogControllerRef.current?.abort();
+      activeCatalogControllerRef.current = null;
+    }
+
     startSearchTiming(searchTimingRef, next);
     liveQueryRef.current = next;
     setLiveQuery(next);
@@ -673,6 +709,11 @@ export default function SearchCatalogClient({
     window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
   }
   function applyView(nextView: CatalogView) {
+    if (nextView === view) return;
+
+    requestSequenceRef.current += 1;
+    activeCatalogControllerRef.current?.abort();
+    activeCatalogControllerRef.current = null;
     setView(nextView);
     const url = new URL(window.location.href);
     if (nextView === 'saved') url.searchParams.set('view', 'saved'); else url.searchParams.delete('view');
@@ -680,8 +721,22 @@ export default function SearchCatalogClient({
   }
   function commitFilters(next: CatalogFiltersState) {
     if (catalogFiltersEqual(filters, next)) return;
+
+    requestSequenceRef.current += 1;
+    activeCatalogControllerRef.current?.abort();
+    activeCatalogControllerRef.current = null;
     filterHistoryModeRef.current = 'push';
     setFilters(next);
+    setPageState({ query, page: 1 });
+  }
+
+  function commitMood(nextMood: CatalogMood) {
+    if (nextMood === selectedMood) return;
+
+    requestSequenceRef.current += 1;
+    activeCatalogControllerRef.current?.abort();
+    activeCatalogControllerRef.current = null;
+    setSelectedMood(nextMood);
     setPageState({ query, page: 1 });
   }
 
@@ -1004,7 +1059,7 @@ export default function SearchCatalogClient({
       </div>
 
       <div className={styles.filterBar}>
-        {view === 'catalog' && <MoodFilter value={selectedMood} onChange={(mood) => { setSelectedMood(mood); setPageState({ query, page: 1 }); }} />}
+        {view === 'catalog' && <MoodFilter value={selectedMood} onChange={commitMood} />}
         <button type="button" className={`${styles.filterToggle} ${filtersOpen || filterCount > 0 ? styles.filterToggleActive : ''}`} aria-expanded={filtersOpen} onClick={toggleFiltersPanel}>
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2" fill="currentColor" stroke="none"/><circle cx="16" cy="17" r="2" fill="currentColor" stroke="none"/></svg>Фильтры{filterCount > 0 ? <b>{filterCount}</b> : null}
         </button>
@@ -1175,7 +1230,7 @@ export default function SearchCatalogClient({
                 </button>
               )}
               {view === 'catalog' && discoveryIntent?.isDiscovery && closestQuery && closestQuery !== query && <button type="button" onClick={() => applySearchQuery(closestQuery)}>Показать ближайшие</button>}
-              {(query || hasFilters) && <button type="button" className={styles.secondaryAction} onClick={() => { clearStructuredFilters(); setSelectedMood('any'); applySearchQuery(''); }}>Сбросить всё</button>}
+              {(query || hasFilters) && <button type="button" className={styles.secondaryAction} onClick={() => { clearStructuredFilters(); commitMood('any'); applySearchQuery(''); }}>Сбросить всё</button>}
             </div>
           </div>
         )}

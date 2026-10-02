@@ -369,6 +369,49 @@ function readCachedPage(key: string): RecommendationPage | null {
   return session;
 }
 
+function waitForCandidatePage(
+  request: Promise<RecommendationPage>,
+  signal?: AbortSignal,
+): Promise<RecommendationPage> {
+  if (!signal) return request;
+
+  if (signal.aborted) {
+    return Promise.reject(new DOMException('Aborted', 'AbortError'));
+  }
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+
+    const cleanup = () => {
+      signal.removeEventListener('abort', onAbort);
+    };
+
+    const onAbort = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new DOMException('Aborted', 'AbortError'));
+    };
+
+    signal.addEventListener('abort', onAbort, { once: true });
+
+    request.then(
+      (data) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(data);
+      },
+      (error) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(error);
+      },
+    );
+  });
+}
+
 async function loadCandidatePage(
   pointer: CandidatePointer,
   bucket: number,
@@ -384,7 +427,9 @@ async function loadCandidatePage(
 
   const existingRequest = inFlightPageRequests.get(key);
   if (existingRequest) {
-    return existingRequest;
+    // Dedupe is shared across feed consumers. A caller may stop waiting for
+    // the shared page without aborting the network request for everybody else.
+    return waitForCandidatePage(existingRequest, signal);
   }
 
   const params = new URLSearchParams({
@@ -404,9 +449,11 @@ async function loadCandidatePage(
     params.set('genre', context.genre);
   }
 
+  // The underlying request belongs to the page cache, not to the first feed
+  // consumer that happened to request it. Consumer cancellation is handled by
+  // waitForCandidatePage() below.
   const request = fetchCandidatePayload(
     `/api/recommendations?${params.toString()}`,
-    signal,
   )
     .then((data) => {
       writeCachedPage(key, data);
@@ -417,7 +464,7 @@ async function loadCandidatePage(
     });
 
   inFlightPageRequests.set(key, request);
-  return request;
+  return waitForCandidatePage(request, signal);
 }
 
 function prefetchCandidatePage(
@@ -444,7 +491,9 @@ function mergeUnique(
   }
 
   for (const item of incoming) {
-    map.set(item.anime.id, item);
+    if (!map.has(item.anime.id)) {
+      map.set(item.anime.id, item);
+    }
   }
 
   return [...map.values()];
