@@ -115,6 +115,12 @@ export function useHomeRecommendationRuntime({
     useRef<AbortController | null>(null);
   const lastRankedMoodRef = useRef<TasteMood | null>(null);
   const lastRankSignatureRef = useRef('');
+  const moodRef = useRef<TasteMood>('any');
+  const moodPersistenceSequenceRef = useRef(0);
+  const pendingMoodRef = useRef<{
+    mood: TasteMood;
+    sequence: number;
+  } | null>(null);
 
   useEffect(() => {
     if (authLoading || !userId) return;
@@ -147,7 +153,29 @@ export function useHomeRecommendationRuntime({
         .then(({ readTasteProfile }) => {
           if (!active) return;
 
-          setMood(readTasteProfile().mood);
+          const persistedMood = readTasteProfile().mood;
+          const pendingMood = pendingMoodRef.current;
+
+          // A taste-graph/event refresh can land while the personalization
+          // chunk is still persisting a just-clicked mood. Do not let the
+          // older localStorage value visually revert the user's selection.
+          if (
+            pendingMood &&
+            persistedMood !== pendingMood.mood
+          ) {
+            setTasteRevision((revision) => revision + 1);
+            return;
+          }
+
+          if (
+            pendingMood &&
+            persistedMood === pendingMood.mood
+          ) {
+            pendingMoodRef.current = null;
+          }
+
+          moodRef.current = persistedMood;
+          setMood(persistedMood);
           setTasteRevision((revision) => revision + 1);
         })
         .catch((error) => {
@@ -332,6 +360,8 @@ export function useHomeRecommendationRuntime({
   useEffect(
     () => () => {
       recommendationRequestRef.current += 1;
+      moodPersistenceSequenceRef.current += 1;
+      pendingMoodRef.current = null;
       recommendationControllerRef.current?.abort();
     },
     [],
@@ -339,7 +369,16 @@ export function useHomeRecommendationRuntime({
 
   const updateMood = useCallback(
     (nextMood: TasteMood) => {
-      if (nextMood === mood) return;
+      if (nextMood === moodRef.current) return;
+
+      const persistenceSequence =
+        ++moodPersistenceSequenceRef.current;
+
+      pendingMoodRef.current = {
+        mood: nextMood,
+        sequence: persistenceSequence,
+      };
+      moodRef.current = nextMood;
 
       recommendationRequestRef.current += 1;
       recommendationControllerRef.current?.abort();
@@ -348,16 +387,32 @@ export function useHomeRecommendationRuntime({
 
       void import('@/lib/personalization')
         .then(({ setTasteMood }) => {
+          const pendingMood = pendingMoodRef.current;
+          if (
+            !pendingMood ||
+            pendingMood.sequence !== persistenceSequence ||
+            pendingMood.mood !== nextMood
+          ) {
+            return;
+          }
+
           setTasteMood(nextMood);
         })
         .catch((error) => {
+          const pendingMood = pendingMoodRef.current;
+          if (
+            pendingMood?.sequence === persistenceSequence
+          ) {
+            pendingMoodRef.current = null;
+          }
+
           console.debug(
             '[Home] taste persistence chunk unavailable',
             error,
           );
         });
     },
-    [mood],
+    [],
   );
 
   return {
