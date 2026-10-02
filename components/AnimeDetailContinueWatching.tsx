@@ -128,8 +128,11 @@ export default function AnimeDetailContinueWatching({
 
     const ownerId = user.id;
     const controller = new AbortController();
+    let requestSequence = 0;
 
     const load = () => {
+      const requestId = ++requestSequence;
+
       void fetch(`/api/watch/title/${animeId}`, {
         signal: controller.signal,
         cache: 'no-store',
@@ -144,7 +147,12 @@ export default function AnimeDetailContinueWatching({
           };
         })
         .then((payload) => {
-          if (controller.signal.aborted) return;
+          if (
+            controller.signal.aborted ||
+            requestId !== requestSequence
+          ) {
+            return;
+          }
 
           setServerSnapshot({
             ownerId,
@@ -173,6 +181,7 @@ export default function AnimeDetailContinueWatching({
     document.addEventListener('visibilitychange', onVisible);
 
     return () => {
+      requestSequence += 1;
       controller.abort();
       window.removeEventListener('focus', load);
       window.removeEventListener('pageshow', load);
