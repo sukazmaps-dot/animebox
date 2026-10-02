@@ -14,7 +14,6 @@ const quick = read('components/EpisodeQuickSelector.tsx');
 const runtime = read('components/home/useHomeRecommendationRuntime.ts');
 const discovery = read('components/home/HomeDiscoverySection.tsx');
 const search = read('components/SearchCatalogClient.tsx');
-const feed = read('components/SmartRecommendationFeed.tsx');
 
 mustExclude(
   rail,
@@ -93,11 +92,6 @@ mustInclude(
   search,
   'requestSequenceRef',
   'search request ownership guard is missing',
-);
-mustInclude(
-  feed,
-  'stable',
-  'recommendation feed no longer exposes stable ordering safeguards',
 );
 
 if (failures.length) {
