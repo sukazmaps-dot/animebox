@@ -491,7 +491,9 @@ function mergeUnique(
   }
 
   for (const item of incoming) {
-    map.set(item.anime.id, item);
+    if (!map.has(item.anime.id)) {
+      map.set(item.anime.id, item);
+    }
   }
 
   return [...map.values()];
