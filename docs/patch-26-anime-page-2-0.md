@@ -57,13 +57,18 @@ No page reload is required.
 
 ### UX
 
-The compact card displays:
+Anime detail owns exactly one primary watch action. The legacy controls block keeps favorites/tracker/status, but its primary watch button is disabled on this page.
 
-- “Продолжить просмотр” or “Следующая серия”;
-- episode number;
-- resume time when meaningful;
+The primary surface displays:
+
+- “Смотреть с 1 серии” when there is no progress;
+- “Продолжить просмотр” for a valid resume position;
+- “Следующая серия” after a completed episode;
+- episode number and resume time when meaningful;
 - current-episode progress bar;
-- one direct “Смотреть →” action.
+- checking/unknown/unavailable/episode-not-yet-available states.
+
+A navigable `Смотреть →` link is created only after the episode availability service confirms that the requested episode is playable. Pending or unconfirmed states render a non-link surface, so Patch 26 cannot bypass the watch-service trust boundary.
 
 The link opens the canonical AnimeBox watch route with `?ep=`.
 
@@ -140,6 +145,8 @@ Existing EpisodeList states remain authoritative:
 - available.
 
 Patch 26 must not create links to unconfirmed episodes.
+
+`AnimeDetailContinueWatching` is the sole availability owner for the primary anime-detail watch action. The secondary `AnimeDetailControls` instance skips its own availability request when both its watch action and episode list are disabled, avoiding duplicate ownership and AbortSignal races.
 
 No optimistic episode URLs may bypass `anime_availability` / trusted watch-service rules.
 
