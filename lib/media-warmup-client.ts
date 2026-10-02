@@ -20,25 +20,39 @@ function connectionInfo() {
 
 export function resolveMediaWarmupRootMargin() {
   const connection = connectionInfo();
+  const viewportWidth =
+    typeof window === 'undefined' ? 1440 : window.innerWidth;
 
   if (connection?.saveData) {
-    return '100px 80px 160px 80px';
+    return '60px 40px 100px 40px';
   }
 
   if (
     connection?.effectiveType === 'slow-2g' ||
     connection?.effectiveType === '2g'
   ) {
-    return '180px 120px 260px 120px';
+    return '90px 60px 140px 60px';
   }
 
   if (connection?.effectiveType === '3g') {
-    return '420px 420px 760px 420px';
+    return viewportWidth <= 768
+      ? '140px 90px 240px 90px'
+      : '220px 180px 380px 180px';
   }
 
-  // Default/4G: warm roughly 1–2 screens ahead vertically, while allowing
-  // horizontal rails to prepare only several neighbouring cards.
-  return '700px 900px 1600px 900px';
+  // Mobile LCP must own the initial network. The old 1600px bottom overscan
+  // promoted several off-screen poster rows to eager requests during startup.
+  // Warm roughly half a mobile screen ahead, then expand the window on wider
+  // layouts where bandwidth and visible-card density are usually higher.
+  if (viewportWidth <= 768) {
+    return '220px 120px 460px 120px';
+  }
+
+  if (viewportWidth <= 1280) {
+    return '360px 320px 720px 320px';
+  }
+
+  return '520px 600px 1000px 600px';
 }
 
 function getObserver() {

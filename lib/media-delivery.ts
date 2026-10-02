@@ -78,8 +78,15 @@ function normalizeRemoteUrl(value?: string | null): string | null {
   }
 }
 
+const PRODUCTION_MEDIA_ORIGIN = 'https://media.youranimebox.com';
+
 export function getPrimaryMediaOrigin(): string | null {
-  return normalizeBaseUrl(process.env.NEXT_PUBLIC_MEDIA_ORIGIN);
+  return (
+    normalizeBaseUrl(process.env.NEXT_PUBLIC_MEDIA_ORIGIN) ??
+    (process.env.NODE_ENV === 'production'
+      ? PRODUCTION_MEDIA_ORIGIN
+      : null)
+  );
 }
 
 export function getRuMediaOrigin(): string | null {

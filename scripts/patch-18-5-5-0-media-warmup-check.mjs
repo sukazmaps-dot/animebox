@@ -21,14 +21,19 @@ for (const needle of [
   "effectiveType === 'slow-2g'",
   "effectiveType === '2g'",
   "effectiveType === '3g'",
-  "'700px 900px 1600px 900px'",
-  "'100px 80px 160px 80px'",
+  "viewportWidth <= 768",
+  "'220px 120px 460px 120px'",
+  "'60px 40px 100px 40px'",
   "callback?.('warm')",
   "callback('native-lazy')",
 ]) {
   if (!warmup.includes(needle)) {
     failures.push(`shared media warmup missing: ${needle}`);
   }
+}
+
+if (warmup.includes("'700px 900px 1600px 900px'")) {
+  failures.push('media warmup must not restore the legacy 1600px mobile LCP overscan');
 }
 
 if ((warmup.match(/new IntersectionObserver\(/g) ?? []).length !== 1) {
