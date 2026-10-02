@@ -22,7 +22,6 @@ import PlaybackRestrictionNotice from '@/components/PlaybackRestrictionNotice';
 
 import { resolveAnimeRoute } from '@/lib/anime-route';
 import { animeHref } from '@/lib/anime-url';
-import { getAnimeOriginalTitle, getAnimeTitle } from '@/lib/anime-display';
 import { createImageCascade } from '@/lib/image-cascade';
 import { cleanShikimoriDescription } from '@/lib/shikimori-text';
 import { animeContentFacts, animeFormatLabel, animeStatusLabel } from '@/lib/anime-content-intelligence';
@@ -410,15 +409,36 @@ export default async function AnimePage({
     };
 
 
-  const displayTitle = getAnimeTitle(normalizedAnimeForControls);
-  const originalTitle = getAnimeOriginalTitle(normalizedAnimeForControls);
+  const displayTitle =
+    resolved.title.russian?.trim() ||
+    resolved.title.english?.trim() ||
+    resolved.title.romaji?.trim() ||
+    resolved.title.native?.trim() ||
+    'Без названия';
+  const displayTitleKey = displayTitle.toLocaleLowerCase('ru-RU');
+  const originalTitle =
+    [
+      resolved.title.romaji,
+      resolved.title.english,
+      resolved.title.native,
+    ]
+      .map((value) => value?.trim())
+      .find(
+        (value): value is string =>
+          Boolean(value) &&
+          value!.toLocaleLowerCase('ru-RU') !== displayTitleKey,
+      ) ?? null;
   const displayDescription = cleanShikimoriDescription(anime.description);
   const canonicalUrl =
     `${SITE_URL}${animeHref(resolved)}`;
 
   const seoIdentity =
     getAnimeSeoIdentity(resolved);
-  const pageHeading = seoIdentity.pageHeading?.trim() || displayTitle;
+  const pageHeading =
+    seoIdentity.seasonLabel &&
+    seoIdentity.pageHeading !== seoIdentity.title
+      ? `${displayTitle} — ${seoIdentity.seasonLabel}`
+      : displayTitle;
 
   const visibleAlternateNames =
     seoIdentity.aliases
