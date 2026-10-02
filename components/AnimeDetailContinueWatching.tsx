@@ -173,7 +173,8 @@ export default function AnimeDetailContinueWatching({
       : null;
 
     const serverState =
-      serverSnapshot?.ownerId === user?.id
+      serverSnapshot &&
+      serverSnapshot.ownerId === user?.id
         ? serverSnapshot.item
         : null;
     const remoteResume = serverResume(serverState);
