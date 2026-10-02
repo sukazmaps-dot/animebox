@@ -167,8 +167,21 @@ export default function AnimeDetailContinueWatching({
       : null;
 
     const remoteResume = serverResume(serverState);
+    const remoteUpdatedAt = serverTimestamp(serverState);
 
-    if (!remoteResume) return localResume;
+    if (!remoteResume) {
+      if (!localResume) return null;
+
+      // A newer authoritative server state with no continuation acts as a
+      // tombstone (for example, the title was completed on another device).
+      // Only a genuinely newer local crash-resume may supersede it.
+      if (serverState && remoteUpdatedAt >= localResume.updatedAt) {
+        return null;
+      }
+
+      return localResume;
+    }
+
     if (!localResume) return remoteResume;
 
     return localResume.updatedAt > remoteResume.updatedAt
