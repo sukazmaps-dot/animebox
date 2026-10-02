@@ -54,6 +54,11 @@ need(
 );
 need(
   page,
+  'russian:\n          displayTitle,',
+  'anime detail controls/library identity does not reuse the normalized display title',
+);
+need(
+  page,
   "data-description-fallback={displayDescription ? undefined : 'true'}",
   'anime description empty-state fallback is missing',
 );
