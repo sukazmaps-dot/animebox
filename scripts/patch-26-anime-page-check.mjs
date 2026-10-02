@@ -5,11 +5,15 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 const need = (source, needle, label) => {
   if (!source.includes(needle)) failures.push(label);
 };
+const forbid = (source, needle, label) => {
+  if (source.includes(needle)) failures.push(label);
+};
 
 const page = read('app/anime/[slug]/page.tsx');
 const resume = read('components/AnimeDetailContinueWatching.tsx');
 const controls = read('components/AnimeDetailControls.tsx');
 const franchise = read('components/AnimeFranchise.tsx');
+const related = read('components/RelatedAnime.tsx');
 const analytics = read('lib/product-events-client.ts');
 const watchTitleRoute = read('app/api/watch/title/[animeId]/route.ts');
 
@@ -57,6 +61,26 @@ need(
   page,
   'seoIdentity.pageHeading !== seoIdentity.title',
   'anime page heading does not preserve season context over display fallback',
+);
+need(
+  page,
+  'Ссылки только на подтверждённые серии',
+  'episode section does not explain the trusted-link policy',
+);
+forbid(
+  page,
+  'href={`${animeHref(resolved)}/watch`}',
+  'anime detail restored an unconditional watch-route bypass',
+);
+need(
+  page,
+  '<RelatedAnime anime={resolved} />',
+  'related anime is not receiving full title context',
+);
+need(
+  page,
+  'animeTitle={displayTitle}',
+  'discussion title does not use normalized display fallback',
 );
 
 need(
@@ -176,6 +200,52 @@ need(
   analytics,
   "source: parsed.source?.trim() || 'home_continue'",
   'continue started event does not restore attribution source',
+);
+
+need(
+  related,
+  'function contextualScore(candidate: Anime, reference: Anime)',
+  'related anime contextual affinity scorer is missing',
+);
+need(
+  related,
+  'recommendationFranchiseKeys(reference)',
+  'related anime does not exclude the current franchise family',
+);
+need(
+  related,
+  'genreAffinity * 52',
+  'related anime no longer gives genre overlap a primary relevance weight',
+);
+need(
+  related,
+  'tagAffinity * 17',
+  'related anime atmosphere/tag affinity is missing',
+);
+need(
+  related,
+  'studioAffinity * 10',
+  'related anime studio affinity is missing',
+);
+need(
+  related,
+  'formatAffinity * 7',
+  'related anime format affinity is missing',
+);
+need(
+  related,
+  "filterAnimeByAvailability(",
+  'contextual related anime bypasses catalogue availability filtering',
+);
+need(
+  related,
+  'data-related-strategy="context-v2"',
+  'contextual related anime strategy marker is missing',
+);
+need(
+  related,
+  'Похожие по атмосфере',
+  'contextual related anime UI copy regressed',
 );
 
 need(
