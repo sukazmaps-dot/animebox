@@ -150,8 +150,8 @@ need(
 );
 need(
   resume,
-  'if (!episodeConfirmed || authLoading)',
-  'unconfirmed playback can still become a navigable detail CTA',
+  'if (!episodeConfirmed || authLoading || serverInitialSyncPending)',
+  'unconfirmed or unreconciled playback can still become a navigable detail CTA',
 );
 need(
   resume,
