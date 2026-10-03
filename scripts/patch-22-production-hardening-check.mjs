@@ -25,7 +25,7 @@ for (const [label, source, needle] of [
   ['abort controller', feed, 'AbortController'],
   ['bounded empty page hops', feed, 'MAX_EMPTY_PAGE_HOPS = 6'],
   ['bounded rail DOM', feed, 'MAX_RAIL_DOM_ITEMS = 36'],
-  ['single-runtime schedule slot', discovery, 'midFeedSlot={<HomePersonalScheduleSection />}'],
+  ['single personal schedule surface', discovery, '<HomePersonalScheduleSection />'],
   ['composition version', rails, "HOME_COMPOSITION_VERSION = '22.8-home-v1'"],
   ['release docs', docs, 'Release contract: `22.9-release-v1`'],
 ]) {
