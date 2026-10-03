@@ -268,3 +268,11 @@
     padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
 }
+
+/* Patch 28: readable controls and keyboard focus in both dialog layouts. */
+.trigger, .invite, .close { min-height: 2.75rem; font-size: .875rem; }
+.header strong { font-size: 1rem; }
+.header span, .name, .empty p, .empty a, .error, .loading { font-size: .875rem; line-height: 1.5; }
+.trigger:focus-visible, .invite:focus-visible, .close:focus-visible, .sheet a:focus-visible {
+  outline: 2px solid #c4b5fd; outline-offset: 3px;
+}
