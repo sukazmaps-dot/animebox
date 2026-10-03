@@ -26,8 +26,6 @@ import {
   buildWatchPartyUrl,
   claimWatchPartyHostTab,
   createWatchPartyInvite,
-  isWatchPartyRoomId,
-  isWatchPartySecret,
   watchPartyHostSessionKey,
   watchPartyTheaterPath,
 } from '@/lib/watch-party';
@@ -39,6 +37,8 @@ import {
 import type { Anime } from '@/types/anime';
 
 import styles from './WatchTogetherHub.module.css';
+import { canonicalWatchPartyInvite, normalizeWatchPartyCode, isWatchPartyJoinSnapshot } from '@/lib/watch-party-entry';
+import { requestWatchPartyJson } from '@/lib/watch-party-request';
 
 const LAST_ROOM_KEY = 'animebox:watch-together:last-room:v1';
 const ROOM_REFRESH_VISIBLE_MS = 20_000;
@@ -140,21 +140,7 @@ function safeEpisode(value: number, anime: Anime | null) {
 }
 
 function validInviteUrl(value: string) {
-  try {
-    const url = new URL(value, window.location.origin);
-    const ownHost = url.origin === window.location.origin;
-    const productionHost = url.protocol === 'https:' && ['youranimebox.com', 'www.youranimebox.com'].includes(url.hostname);
-    const pathMatch = /^\/watch-together\/[^/]+\/episode\/\d+$/u.test(url.pathname);
-    const roomId = url.searchParams.get('party');
-    const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
-    const secret = hash.get('partyKey');
-
-    return (ownHost || productionHost) && pathMatch && isWatchPartyRoomId(roomId) && isWatchPartySecret(secret)
-      ? url.toString()
-      : null;
-  } catch {
-    return null;
-  }
+  return canonicalWatchPartyInvite(value, window.location.origin);
 }
 
 export default function WatchTogetherHub() {
@@ -180,6 +166,9 @@ export default function WatchTogetherHub() {
   const [createError, setCreateError] = useState('');
   const [joiningRoomId, setJoiningRoomId] = useState<string | null>(null);
   const [joinPending, setJoinPending] = useState(false);
+  const entryRequestRef = useRef<AbortController | null>(null);
+  const entryBusyRef = useRef(false);
+  useEffect(() => () => { entryRequestRef.current?.abort(); }, []);
   const roomRequestRef = useRef<AbortController | null>(null);
   const lastRoomRefreshAtRef = useRef(0);
   const [creatingRoom, setCreatingRoom] = useState(false);
@@ -396,24 +385,28 @@ export default function WatchTogetherHub() {
   }
 
   async function createRoom() {
-    if (!selected || creatingRoom) return;
+    if (!selected || creatingRoom || entryBusyRef.current) return;
 
     if (!user?.id) {
       setCreateError('Войди в AnimeBox, чтобы создать комнату.');
       return;
     }
 
+    entryBusyRef.current = true;
+    const controller = new AbortController();
+    entryRequestRef.current = controller;
     setCreatingRoom(true);
     setCreateError('');
 
-    const selectedEpisode = safeEpisode(episode, selected);
-    const invite = createWatchPartyInvite();
-    const slug = selected.slug || String(selected.id);
-    const target = watchPartyTheaterPath(slug, selectedEpisode);
-    const roomUrl = buildWatchPartyUrl(invite, target, roomTheme);
-
     try {
-      const response = await fetch('/api/watch-party/rooms', {
+      const selectedEpisode = safeEpisode(episode, selected);
+      const invite = createWatchPartyInvite();
+      const slug = selected.slug || String(selected.id);
+      const target = watchPartyTheaterPath(slug, selectedEpisode);
+      const roomUrl = buildWatchPartyUrl(invite, target, roomTheme);
+
+      const { response, payload } = await requestWatchPartyJson<{ error?: string }>('/api/watch-party/rooms', {
+        signal: controller.signal,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -434,7 +427,7 @@ export default function WatchTogetherHub() {
         cache: 'no-store',
       });
 
-      const payload = (await response.json()) as { error?: string };
+      if (controller.signal.aborted) return;
       if (!response.ok) {
         throw new Error(payload.error || 'Не удалось зарегистрировать комнату.');
       }
@@ -477,10 +470,14 @@ export default function WatchTogetherHub() {
 
       window.location.assign(roomUrl);
     } catch (error) {
+      if (controller.signal.aborted) return;
       setCreateError(
         error instanceof Error ? error.message : 'Не удалось создать комнату.',
       );
-      setCreatingRoom(false);
+    } finally {
+      entryBusyRef.current = false;
+      if (entryRequestRef.current === controller) entryRequestRef.current = null;
+      if (!controller.signal.aborted) setCreatingRoom(false);
     }
   }
 
@@ -518,42 +515,47 @@ export default function WatchTogetherHub() {
   async function resolveRoomTarget(input: {
     roomId?: string;
     code?: string;
-  }) {
+  }, signal?: AbortSignal) {
     const params = new URLSearchParams();
     if (input.roomId) params.set('roomId', input.roomId);
     if (input.code) params.set('code', input.code);
 
-    const response = await fetch(
+    const { response, payload } = await requestWatchPartyJson<ResolveRoomResponse>(
       `/api/watch-party/rooms/resolve?${params.toString()}`,
       {
         headers: { Accept: 'application/json' },
+        signal,
         cache: 'no-store',
       },
     );
-    const payload = (await response.json()) as ResolveRoomResponse;
 
     if (!response.ok || !payload.room) {
       throw new Error(payload.error || 'Активная комната не найдена.');
     }
 
     const room = payload.room;
+    if (!isWatchPartyJoinSnapshot(room)) throw new Error('Сервер вернул некорректные данные комнаты.');
     const target = buildWatchPartyUrl(
       { roomId: room.roomId, secret: room.joinSecret },
       watchPartyTheaterPath(room.animeSlug, room.episode),
       room.roomTheme,
     );
 
+    const safeTarget = validInviteUrl(target);
+    if (!safeTarget) throw new Error('Сервер вернул некорректную ссылку комнаты.');
+    if (room.participantCount >= room.maxParticipants) throw new Error('Комната заполнена. Выбери другую.');
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
     try {
-      window.localStorage.setItem(LAST_ROOM_KEY, target);
+      window.localStorage.setItem(LAST_ROOM_KEY, safeTarget);
     } catch {
       // Resume shortcut is optional.
     }
 
-    return { target, room };
+    return { target: safeTarget, room };
   }
 
   async function joinPublicRoom(room: PublicWatchPartyRoom) {
-    if (room.isFull || joiningRoomId || joinPending) return;
+    if (room.isFull || joiningRoomId || joinPending || entryBusyRef.current) return;
 
     if (!user?.id) {
       setRoomsNotice('Войди в AnimeBox, чтобы присоединиться к комнате.');
@@ -561,11 +563,14 @@ export default function WatchTogetherHub() {
       return;
     }
 
+    entryBusyRef.current = true;
+    const controller = new AbortController();
+    entryRequestRef.current = controller;
     setJoiningRoomId(room.roomId);
     setRoomsNotice('');
 
     try {
-      const resolved = await resolveRoomTarget({ roomId: room.roomId });
+      const resolved = await resolveRoomTarget({ roomId: room.roomId }, controller.signal);
 
       trackProductClientEvent('watch_party_public_join_click', {
         source: 'watch_together_hub',
@@ -584,6 +589,7 @@ export default function WatchTogetherHub() {
 
       window.location.assign(resolved.target);
     } catch (joinError) {
+      if (controller.signal.aborted) return;
       setRoomsNotice(
         joinError instanceof Error
           ? joinError.message
@@ -591,12 +597,16 @@ export default function WatchTogetherHub() {
       );
       setJoiningRoomId(null);
       window.setTimeout(() => setRoomsNotice(''), 4_000);
+    } finally {
+      entryBusyRef.current = false;
+      if (entryRequestRef.current === controller) entryRequestRef.current = null;
+      if (!controller.signal.aborted) setJoiningRoomId(null);
     }
   }
 
   async function joinInvite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (joinPending) return;
+    if (joinPending || entryBusyRef.current) return;
 
     setInviteError('');
     const raw = inviteInput.trim();
@@ -607,8 +617,8 @@ export default function WatchTogetherHub() {
       return;
     }
 
-    const code = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-    if (!/^[A-Z2-9]{6}$/.test(code)) {
+    const code = normalizeWatchPartyCode(raw);
+    if (!code) {
       setInviteError('Вставь invite-ссылку или шестизначный код комнаты.');
       return;
     }
@@ -618,9 +628,12 @@ export default function WatchTogetherHub() {
       return;
     }
 
+    entryBusyRef.current = true;
+    const controller = new AbortController();
+    entryRequestRef.current = controller;
     setJoinPending(true);
     try {
-      const resolved = await resolveRoomTarget({ code });
+      const resolved = await resolveRoomTarget({ code }, controller.signal);
       trackProductClientEvent('watch_party_code_joined', {
         source: 'watch_together_hub',
         path: '/watch-together',
@@ -634,12 +647,16 @@ export default function WatchTogetherHub() {
       });
       window.location.assign(resolved.target);
     } catch (joinError) {
+      if (controller.signal.aborted) return;
       setInviteError(
         joinError instanceof Error
           ? joinError.message
           : 'Не удалось войти по коду комнаты.',
       );
-      setJoinPending(false);
+    } finally {
+      entryBusyRef.current = false;
+      if (entryRequestRef.current === controller) entryRequestRef.current = null;
+      if (!controller.signal.aborted) setJoinPending(false);
     }
   }
 
@@ -677,6 +694,10 @@ export default function WatchTogetherHub() {
           <p>Вставь invite-ссылку или короткий код комнаты — AnimeBox откроет нужный просмотр.</p>
           <div className={styles.joinInput}>
             <input
+              aria-label="Ссылка или код комнаты"
+              aria-describedby={inviteError ? "room-invite-error" : undefined}
+              aria-invalid={Boolean(inviteError)}
+              maxLength={2048}
               value={inviteInput}
               onChange={(event) => setInviteInput(event.target.value)}
               placeholder="ABC234 или https://youranimebox.com/watch-together/..."
@@ -686,7 +707,7 @@ export default function WatchTogetherHub() {
               {joinPending ? 'Ищем…' : 'Войти'}
             </button>
           </div>
-          {inviteError && <span className={styles.error}>{inviteError}</span>}
+          {inviteError && <span id="room-invite-error" role="alert" className={styles.error}>{inviteError}</span>}
           {lastRoom && (
             <a className={styles.resume} href={lastRoom}>
               Вернуться в последнюю комнату <Icon name="chevron" />

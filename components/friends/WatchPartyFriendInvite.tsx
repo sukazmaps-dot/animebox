@@ -11,6 +11,7 @@ import {
 } from 'react';
 
 import { trackProductClientEvent } from '@/lib/product-events-client';
+import { requestWatchPartyJson } from '@/lib/watch-party-request';
 
 import styles from './WatchPartyFriendInvite.module.css';
 
@@ -36,7 +37,7 @@ type AnchorState = {
 const DESKTOP_POPOVER_WIDTH = 320;
 const VIEWPORT_GUTTER = 12;
 
-export default function WatchPartyFriendInvite({
+function FriendInviteDialog({
   inviteUrl,
   animeTitle,
   episode,
@@ -45,6 +46,10 @@ export default function WatchPartyFriendInvite({
   animeTitle: string;
   episode: number;
 }) {
+  const dialogRef = useRef<HTMLElement | null>(null);
+  const inviteRequestRef = useRef<AbortController | null>(null);
+  const inviteBusyRef = useRef(false);
+  const [reload, setReload] = useState(0);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const [open, setOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(
@@ -60,6 +65,8 @@ export default function WatchPartyFriendInvite({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [sent, setSent] = useState<Set<string>>(() => new Set());
   const [error, setError] = useState('');
+
+  useEffect(() => () => { inviteRequestRef.current?.abort(); }, []);
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 700px)');
@@ -103,7 +110,10 @@ export default function WatchPartyFriendInvite({
     if (!open) return;
 
     updateAnchor();
-
+    const trigger = triggerRef.current;
+    const frame = window.requestAnimationFrame(() => {
+      dialogRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
+    });
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') close();
     };
@@ -113,6 +123,8 @@ export default function WatchPartyFriendInvite({
     window.addEventListener('keydown', handleEscape);
 
     return () => {
+      window.cancelAnimationFrame(frame);
+      trigger?.focus();
       window.removeEventListener('resize', updateAnchor);
       window.removeEventListener('scroll', updateAnchor, true);
       window.removeEventListener('keydown', handleEscape);
@@ -123,12 +135,12 @@ export default function WatchPartyFriendInvite({
     if (!open || friends.length) return;
 
     let active = true;
+    const controller = new AbortController();
     queueMicrotask(() => {
       if (!active) return;
       setLoading(true);
-      void fetch('/api/friends', { cache: 'no-store' })
-        .then(async (response) => {
-          const payload = (await response.json()) as FriendsResponse;
+      void requestWatchPartyJson<FriendsResponse>('/api/friends', { cache: 'no-store', signal: controller.signal })
+        .then(({ response, payload }) => {
           if (!response.ok) {
             throw new Error(payload.error || 'Не удалось загрузить друзей.');
           }
@@ -151,16 +163,21 @@ export default function WatchPartyFriendInvite({
 
     return () => {
       active = false;
+      controller.abort();
     };
-  }, [friends.length, open]);
+  }, [friends.length, open, reload]);
 
   async function invite(friend: FriendCard) {
-    if (busyId || sent.has(friend.userId)) return;
+    if (inviteBusyRef.current || busyId || sent.has(friend.userId)) return;
+    inviteBusyRef.current = true;
+    const controller = new AbortController();
+    inviteRequestRef.current = controller;
     setBusyId(friend.userId);
     setError('');
 
     try {
-      const response = await fetch('/api/friends/invite', {
+      const { response, payload } = await requestWatchPartyJson<{ error?: string }>('/api/friends/invite', {
+        signal: controller.signal,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -170,7 +187,7 @@ export default function WatchPartyFriendInvite({
           episode,
         }),
       });
-      const payload = (await response.json()) as { error?: string };
+      if (controller.signal.aborted) return;
       if (!response.ok) {
         throw new Error(payload.error || 'Не удалось отправить приглашение.');
       }
@@ -187,13 +204,16 @@ export default function WatchPartyFriendInvite({
         },
       });
     } catch (requestError) {
+      if (controller.signal.aborted) return;
       setError(
         requestError instanceof Error
           ? requestError.message
           : 'Не удалось отправить приглашение.',
       );
     } finally {
-      setBusyId(null);
+      inviteBusyRef.current = false;
+      if (inviteRequestRef.current === controller) inviteRequestRef.current = null;
+      if (!controller.signal.aborted) setBusyId(null);
     }
   }
 
@@ -212,6 +232,21 @@ export default function WatchPartyFriendInvite({
             }}
           >
             <section
+              ref={dialogRef}
+              onKeyDown={(event) => {
+                if (event.key !== 'Tab') return;
+                const nodes = dialogRef.current?.querySelectorAll<HTMLElement>(
+                  'button:not(:disabled), a[href], input:not(:disabled), [tabindex="0"]',
+                );
+                if (!nodes?.length) return;
+                const first = nodes[0];
+                const last = nodes[nodes.length - 1];
+                if (event.shiftKey && document.activeElement === first) {
+                  event.preventDefault(); last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                  event.preventDefault(); first.focus();
+                }
+              }}
               className={[
                 styles.sheet,
                 isMobile ? styles.mobile : styles.desktop,
@@ -244,6 +279,13 @@ export default function WatchPartyFriendInvite({
               <div className={styles.body}>
                 {loading ? (
                   <div className={styles.loading}>Загружаем друзей…</div>
+                ) : error && !friends.length ? (
+                  <div className={styles.empty}>
+                    <p>Список друзей не загрузился.</p>
+                    <button type="button" className={styles.invite} onClick={() => {
+                      setError(''); setReload((current) => current + 1);
+                    }}>Повторить загрузку</button>
+                  </div>
                 ) : friends.length ? (
                   <div className={styles.list}>
                     {friends.map((friend) => {
@@ -259,7 +301,7 @@ export default function WatchPartyFriendInvite({
                           <span className={styles.name}>{friend.username}</span>
                           <button
                             type="button"
-                            disabled={wasSent || busyId === friend.userId}
+                            disabled={wasSent || busyId !== null}
                             onClick={() => void invite(friend)}
                             className={styles.invite}
                           >
@@ -312,4 +354,11 @@ export default function WatchPartyFriendInvite({
       {dialog}
     </div>
   );
+}
+
+export default function WatchPartyFriendInvite(props: {
+  inviteUrl: string; animeTitle: string; episode: number;
+}) {
+  // Sent acknowledgements belong to this room/episode, never the next invite.
+  return <FriendInviteDialog key={props.inviteUrl} {...props} />;
 }
