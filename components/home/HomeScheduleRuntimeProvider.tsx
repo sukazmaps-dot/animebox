@@ -18,7 +18,7 @@ import type {
   HomeRetentionEpisodeSignal,
 } from '@/components/HomeRetentionHub';
 import { useHomeFeedRuntime } from '@/components/home/HomeFeedRuntimeProvider';
-import { trackProductClientEvent } from '@/lib/product-events-client';
+import { selectPersonalHomeSchedule } from '@/lib/home-retention-policy';
 import {
   useHomeScheduleData,
   type HomeScheduleItem,
@@ -196,21 +196,9 @@ export default function HomeScheduleRuntimeProvider({
       return [];
     }
 
-    const nowSeconds = Math.floor(clockNow / 1000);
-    const recentWindowStart =
-      nowSeconds - 6 * 60 * 60;
-    const futureWindowEnd =
-      nowSeconds + 72 * 60 * 60;
-
-    return scheduleWindowItems
-      .filter(
-        (item) =>
-          personalAnimeIds.has(item.media.id) &&
-          item.airingAt >= recentWindowStart &&
-          item.airingAt <= futureWindowEnd,
-      )
-      .sort((a, b) => a.airingAt - b.airingAt)
-      .slice(0, 4);
+    return selectPersonalHomeSchedule(
+      scheduleWindowItems, personalAnimeIds, Math.floor(clockNow / 1000),
+    );
   }, [
     clockNow,
     personalAnimeIds,
@@ -284,50 +272,6 @@ export default function HomeScheduleRuntimeProvider({
       retentionCompletionCandidates,
       retentionEpisodeSignal?.animeId,
     ]);
-
-  const personalScheduleSignature =
-    personalScheduleItems
-      .map(
-        (item) =>
-          `${item.media.id}:${item.episode}:${item.airingAt}`,
-      )
-      .join('|');
-
-  const personalScheduleTrackedRef = useRef('');
-
-  useEffect(() => {
-    if (
-      !personalScheduleSignature ||
-      personalScheduleTrackedRef.current ===
-        personalScheduleSignature
-    ) {
-      return;
-    }
-
-    personalScheduleTrackedRef.current =
-      personalScheduleSignature;
-
-    trackProductClientEvent(
-      'personal_schedule_impression',
-      {
-        source: 'personal_home',
-        path: '/',
-        entityType: 'surface',
-        entityId: 'personal_schedule',
-        metadata: {
-          count: personalScheduleItems.length,
-          items: personalScheduleItems.map((item) => ({
-            anime_id: item.media.id,
-            episode: item.episode,
-            airing_at: item.airingAt,
-          })),
-        },
-      },
-    );
-  }, [
-    personalScheduleItems,
-    personalScheduleSignature,
-  ]);
 
   const visibleScheduleItems = useMemo(() => {
     if (!selectedScheduleDay) return [];

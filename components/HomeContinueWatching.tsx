@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import styles from './HomeContinueWatching.module.css';
-import { useEffect, useRef } from 'react';
+import { useVisibleHomeImpression } from '@/components/home/useVisibleHomeImpression';
 
 import AnimeImage from '@/components/AnimeImage';
 import { getAnimeTitle } from '@/lib/anime-display';
@@ -55,12 +55,7 @@ export default function HomeContinueWatching({
     .slice(0, 4)
     .map((item) => `${item.anime.id}:${item.episode}:${item.resumeMode ?? 'resume'}`)
     .join('|');
-  const lastImpressionRef = useRef('');
-
-  useEffect(() => {
-    if (!impressionSignature || lastImpressionRef.current === impressionSignature) return;
-
-    lastImpressionRef.current = impressionSignature;
+  const impressionRef = useVisibleHomeImpression(impressionSignature, () => {
     trackProductClientEvent('continue_watching_impression', {
       source: 'home_continue',
       path: '/',
@@ -75,12 +70,12 @@ export default function HomeContinueWatching({
         })),
       },
     });
-  }, [impressionSignature, items]);
+  });
 
   if (items.length === 0) return null;
 
   return (
-    <section className={`section continue-watching-section ${styles.section}`}>
+    <section ref={impressionRef} className={`section continue-watching-section ${styles.section}`}>
       <div className="section-head">
         <div>
           <span className="smart-section-eyebrow">Вернуться сегодня</span>

@@ -29,6 +29,7 @@ import {
   hasResumePosition,
 } from '@/lib/watch-progress';
 import type { Anime } from '@/types/anime';
+import { isFreshHomeResume, preferLocalHomeResume } from '@/lib/home-retention-policy';
 import type {
   RecentWatchResponse,
   WatchTitleOverview,
@@ -343,7 +344,9 @@ export default function HomeFeedRuntimeProvider({
     return map;
   }, [progress, serverContinue]);
 
+  const [resumeNowMs] = useState(() => Date.now());
   const continueWatchingItems = useMemo<ContinueWatchingItem[]>(() => {
+    const nowMs = resumeNowMs;
     const localById = new Map(
       watchHistory.map((anime) => [anime.id, anime] as const),
     );
@@ -359,7 +362,7 @@ export default function HomeFeedRuntimeProvider({
         user?.id ?? null,
       );
 
-      if (!hasResumePosition(exact)) return [];
+      if (!hasResumePosition(exact) || !isFreshHomeResume(exact.updatedAt, nowMs)) return [];
 
       return [{
         anime,
@@ -391,8 +394,11 @@ export default function HomeFeedRuntimeProvider({
           : 0;
 
         return local &&
-          local.sortAt >
-            (Number.isFinite(serverAt) ? serverAt : 0)
+          preferLocalHomeResume({
+            localUpdatedAt: local.sortAt, localEpisode: local.episode,
+            serverUpdatedAt: Number.isFinite(serverAt) ? serverAt : 0,
+            serverEpisode: null, serverMode: state.resumeMode ?? null, nowMs,
+          })
           ? [{
               ...local,
               completedEpisodes: state.completedEpisodes,
@@ -459,7 +465,11 @@ export default function HomeFeedRuntimeProvider({
       );
       const localIsNewer = Boolean(
         hasResumePosition(exact) &&
-          exact.updatedAt > serverAt,
+          preferLocalHomeResume({
+            localUpdatedAt: exact.updatedAt, localEpisode: exact.episode,
+            serverUpdatedAt: serverAt, serverEpisode: state.resumeEpisode,
+            serverMode: state.resumeMode ?? null, nowMs,
+          }),
       );
 
       return [{
@@ -495,6 +505,7 @@ export default function HomeFeedRuntimeProvider({
       .sort((a, b) => b.sortAt - a.sortAt)
       .slice(0, 4);
   }, [
+    resumeNowMs,
     ongoing,
     popular,
     serverContinue,

@@ -45,6 +45,7 @@ export default function HomeDiscoverySection() {
   return (
     <>
       <HomeContinueWatching items={continueWatchingItems} />
+      <HomePersonalScheduleSection />
 
       <div className="home-discovery-flow">
         <HomeMoodPicker
@@ -112,7 +113,6 @@ export default function HomeDiscoverySection() {
                 items={smartRecommendations}
                 mood={recommendationMood}
                 hasWatchHistory={hasWatchHistory}
-                midFeedSlot={<HomePersonalScheduleSection />}
               />
             </div>
           )}
