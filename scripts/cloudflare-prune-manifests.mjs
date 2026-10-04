@@ -2,7 +2,8 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 export function pruneManifests(options, name = 'default') {
   const assigned = options.config.functions ?? {};
-  const owner = route => Object.entries(assigned).find(([, fn]) => fn.routes.includes(route))?.[0] ?? 'default';
+  const normalize = route => route.replaceAll('\\', '/').replace(/\.js$/, '');
+  const owner = route => Object.entries(assigned).find(([, fn]) => fn.routes.some(candidate => normalize(candidate) === normalize(route)))?.[0] ?? 'default';
   const base = resolve(options.outputDir, 'server-functions/' + name + '/.next/server');
   const file = resolve(base, 'app-paths-manifest.json');
   if (!existsSync(file)) return;

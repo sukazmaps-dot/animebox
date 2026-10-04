@@ -1,4 +1,5 @@
 import { applySplitTraceFix } from './cloudflare-adapter-compat.mjs';
+import { rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 const env = { ...process.env, ANIMEBOX_RUNTIME: 'cloudflare', NEXT_PRIVATE_STANDALONE: 'true', NEXT_PRIVATE_OUTPUT_TRACE_ROOT: process.cwd() };
 function run(file, args = []) {
@@ -8,6 +9,8 @@ function run(file, args = []) {
 const restore = applySplitTraceFix();
 try {
 if (!process.argv.includes('--skip-next')) {
+  // Generated bundles must not be treated as source by existing secret scans.
+  for (const directory of ['.open-next', '.cloudflare-bundles']) rmSync(directory, { recursive: true, force: true });
   const prebuild = spawnSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'build'], { env, stdio: 'inherit', shell: process.platform === 'win32' });
   if (prebuild.status !== 0) throw new Error('Next build failed');
 }

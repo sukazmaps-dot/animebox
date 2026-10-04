@@ -27,6 +27,19 @@ export function applySplitTraceFix() {
   writeFileSync(bundler, bundleOriginal.replace(hook,
     `    const { pruneManifests } = await import(${JSON.stringify(helper)});\n    pruneManifests(buildOpts, buildOpts.splitFunctionName ?? "default");\n` + hook));
   const backups = new Map([[file, original], [bundler, bundleOriginal]]);
+  // traverseFiles uses platform separators. Normalize before subtracting
+  // explicitly assigned routes, otherwise Windows traces every route into default.
+  const splitter = resolve(dist, 'cli/build/open-next/createServerBundle.js');
+  const splitterOriginal = readFileSync(splitter, 'utf8');
+  const routeExpression = 'relativePath.replace(/\\.js$/, "")';
+  if (!splitterOriginal.includes(routeExpression)) {
+    writeFileSync(file, original); writeFileSync(bundler, bundleOriginal);
+    throw new Error('Adapter route splitter implementation changed');
+  }
+  backups.set(splitter, splitterOriginal);
+  writeFileSync(splitter, splitterOriginal.replaceAll(routeExpression,
+    'relativePath.split(path.sep).join("/").replace(/\\.js$/, "")'));
+
   function walk(dir) { return readdirSync(dir, {withFileTypes:true}).flatMap(e => e.isDirectory() ? walk(resolve(dir,e.name)) : [resolve(dir,e.name)]); }
   for (const target of walk(resolve(dist, 'cli/build'))) {
     if (!target.endsWith('.js')) continue;
