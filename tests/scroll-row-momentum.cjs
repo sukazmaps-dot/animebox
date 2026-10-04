@@ -28,10 +28,12 @@ new Function('require', 'exports', 'module', code)(name => {
 }, mod.exports, mod);
 let offset = 0, width = 200, positionWrites = 0;
 const moves = [];
+const listeners = new Map();
 const card = { hasAttribute: () => false, getBoundingClientRect: () => ({ width }) };
 const track = {
   children: [card], clientWidth: 800, scrollWidth: 21000,
-  addEventListener() {}, removeEventListener() {},
+  addEventListener(name, fn) { listeners.set(name, fn); },
+  removeEventListener(name, fn) { if (listeners.get(name) === fn) listeners.delete(name); },
   scrollTo(options) { moves.push(options.left); },
 };
 Object.defineProperty(track, 'scrollLeft', { get: () => offset, set: value => { positionWrites++; offset = value; } });
@@ -75,3 +77,40 @@ assert.deepEqual(moves, [640, 1280], 'rapid arrow clicks advance the pending tar
 const css = fs.readFileSync('components/ui/ScrollRow.module.css', 'utf8');
 assert.match(css, /\.stableTrack\s*\{[^}]*scroll-snap-type:\s*none;[^}]*overflow-anchor:\s*none;/s);
 console.log('Scroll row momentum: no offset writes, pre-virtual snap policy, append geometry and rapid arrow targets passed.');
+
+// Mobile: touchend does not end inertia; keep the window until scroll settles.
+offset = 0;
+let mobileTree = measure(100);
+const beforeTouchCount = mobileTree.props['data-scroll-row-rendered'];
+effects[1]();
+const realTimeout = global.setTimeout, realClear = global.clearTimeout;
+const timers = new Map(); let timerId = 0;
+global.setTimeout = fn => { timers.set(++timerId, fn); return timerId; };
+global.clearTimeout = id => timers.delete(id);
+const cleanupTouch = effects[2]();
+listeners.get('touchstart')();
+offset = 400;
+mobileTree = measure(100);
+assert.equal(mobileTree.props['data-scroll-row-rendered'], beforeTouchCount,
+  'mobile swipe retains the current window while it covers visible cards');
+listeners.get('touchend')();
+assert.equal(timers.size, 1);
+offset = 800;
+listeners.get('scroll')();
+mobileTree = measure(100);
+assert.equal(mobileTree.props['data-scroll-row-rendered'], beforeTouchCount,
+  'inertia after lifting the finger must not churn DOM');
+assert.equal(timers.size, 1, 'inertial scroll rearms one settling timer');
+const settle = [...timers.values()][0]; timers.clear(); settle();
+mobileTree = measure(100);
+assert(mobileTree.props['data-scroll-row-rendered'] > beforeTouchCount,
+  'window catches up after momentum settles');
+listeners.get('touchstart')();
+offset = 15000;
+mobileTree = measure(100);
+assert(mobileTree.props.children[0].props.children[0], 'fast fling still advances the window before visible cards run out');
+assert.equal(positionWrites, 0, 'touch lifecycle must never write the scroll offset');
+listeners.get('touchend')(); cleanupTouch();
+assert.equal(timers.size, 0, 'unmount clears the settling timer');
+global.setTimeout = realTimeout; global.clearTimeout = realClear;
+console.log('Mobile momentum: gesture window, touchend inertia, fast-fling coverage and cleanup passed.');
