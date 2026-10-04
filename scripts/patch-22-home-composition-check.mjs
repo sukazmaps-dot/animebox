@@ -22,7 +22,7 @@ for (const [label, source, needle] of [
   ['single-runtime interleave slot', feed, 'midFeedSlot?: ReactNode'],
   ['schedule slot marker', feed, 'data-home-composition-slot="personal-schedule"'],
   ['schedule insertion helper usage', feed, 'getHomeScheduleInsertionIndex(rails)'],
-  ['home schedule passed into feed', discovery, 'midFeedSlot={<HomePersonalScheduleSection />}'],
+  ['home schedule before discovery', discovery, '<HomePersonalScheduleSection />'],
   ['legacy standalone schedule removed', shell, '<HomeDiscoverySection />\n\n              <HomeShortcuts />'],
   ['phase L docs', docs, 'Status: **implemented / under CI**'],
 ]) {

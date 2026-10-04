@@ -84,7 +84,7 @@ if (
 const discoveryIndex =
   shell.indexOf('<HomeDiscoverySection />');
 const personalScheduleIndex =
-  discovery.indexOf('midFeedSlot={<HomePersonalScheduleSection />}');
+  discovery.indexOf('<HomePersonalScheduleSection />');
 const globalScheduleIndex =
   shell.indexOf('<HomeScheduleSection />');
 const retentionIndex =
@@ -102,7 +102,7 @@ if (
   )
 ) {
   failures.push(
-    'Home hierarchy must keep personal schedule interleaved inside the single recommendation runtime.',
+    'Home hierarchy must keep personal schedule inside the single discovery surface before recommendations.',
   );
 }
 

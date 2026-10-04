@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 
 import DeferredMount from '@/components/DeferredMount';
+import { useVisibleHomeImpression } from '@/components/home/useVisibleHomeImpression';
 import ScheduleItem from '@/components/ScheduleItem';
 import { ScheduleCardSkeleton } from '@/components/home/HomeLoadingSkeletons';
 import { useHomeFeedRuntime } from '@/components/home/HomeFeedRuntimeProvider';
@@ -38,7 +39,22 @@ export function HomePersonalScheduleSection() {
   const {
     personalScheduleItems,
     upcomingScheduleLoading,
+    clockNow,
   } = useHomeScheduleRuntime();
+
+  const signature = personalScheduleItems
+    .map((item) => `${item.media.id}:${item.episode}:${item.airingAt}`).join('|');
+  const impressionRef = useVisibleHomeImpression(signature, () => {
+    trackProductClientEvent('personal_schedule_impression', {
+      source: 'personal_home', path: '/', entityType: 'surface',
+      entityId: 'personal_schedule', metadata: {
+        count: personalScheduleItems.length,
+        items: personalScheduleItems.map((item) => ({
+          anime_id: item.media.id, episode: item.episode, airing_at: item.airingAt,
+        })),
+      },
+    });
+  });
 
   const showLoading =
     upcomingScheduleLoading &&
@@ -51,6 +67,7 @@ export function HomePersonalScheduleSection() {
 
   return (
     <section
+      ref={impressionRef}
       className="section personal-schedule-section"
       aria-busy={showLoading}
     >
@@ -88,6 +105,7 @@ export function HomePersonalScheduleSection() {
           ))
         ) : personalScheduleItems.map((item) => {
           const title = getScheduleTitle(item);
+          const released = item.airingAt * 1000 <= clockNow;
           const watchHref =
             `${animeHref(item.media)}/watch?ep=${Math.max(
               1,
@@ -100,7 +118,7 @@ export function HomePersonalScheduleSection() {
               key={item.id}
             >
               <ScheduleItem
-                href={watchHref}
+                href={released ? watchHref : animeHref(item.media)}
                 title={title}
                 image={item.media.coverImage}
                 episode={item.episode}
@@ -108,6 +126,8 @@ export function HomePersonalScheduleSection() {
                   item.airingAt,
                 )}
                 airingAt={item.airingAt}
+                releasedLabel="Эфир прошёл"
+                compact
                 onOpen={() => {
                   trackProductClientEvent(
                     'personal_schedule_click',
@@ -121,6 +141,7 @@ export function HomePersonalScheduleSection() {
                         anime_id: item.media.id,
                         episode: item.episode,
                         airing_at: item.airingAt,
+                        released,
                       },
                       flush: true,
                     },

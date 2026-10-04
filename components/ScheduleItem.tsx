@@ -5,7 +5,7 @@ import Link from 'next/link';
 import AnimeImage from '@/components/AnimeImage';
 import type { AnimeImage as ImageData } from '@/types/anime';
 
-function EpisodeCountdown({ airingAt, compact }: { airingAt: number; compact: boolean }) {
+function EpisodeCountdown({ airingAt, compact, releasedLabel }: { airingAt: number; compact: boolean; releasedLabel: string }) {
   const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
@@ -22,7 +22,7 @@ function EpisodeCountdown({ airingAt, compact }: { airingAt: number; compact: bo
   const remaining = Math.max(0, airingAt * 1000 - now);
 
   if (remaining <= 0) {
-    return <span className="schedule-item__released text-xs font-semibold text-emerald-300">Уже вышла</span>;
+    return <span className="schedule-item__released text-xs font-semibold text-emerald-300">{releasedLabel}</span>;
   }
 
   const totalSeconds = Math.floor(remaining / 1000);
@@ -49,7 +49,7 @@ function EpisodeCountdown({ airingAt, compact }: { airingAt: number; compact: bo
   );
 }
 
-export default function ScheduleItem({ href, title, image, episode, dateLabel, airingAt, onOpen, compact = false }: {
+export default function ScheduleItem({ href, title, image, episode, dateLabel, airingAt, onOpen, compact = false, releasedLabel = 'Уже вышла' }: {
   href: string;
   title: string;
   image: ImageData | null;
@@ -58,6 +58,7 @@ export default function ScheduleItem({ href, title, image, episode, dateLabel, a
   airingAt: number;
   onOpen?: () => void;
   compact?: boolean;
+  releasedLabel?: string;
 }) {
   return (
     <Link
@@ -73,7 +74,7 @@ export default function ScheduleItem({ href, title, image, episode, dateLabel, a
         <p title={`Эпизод ${episode} · ${dateLabel}`} className="schedule-item__meta mt-1 truncate text-xs text-slate-400">Эпизод {episode} · {dateLabel}</p>
       </div>
       <div className="schedule-item__countdown flex h-8 w-[76px] shrink-0 items-center justify-center rounded-lg border border-violet-400/20 bg-violet-500/15">
-        <EpisodeCountdown airingAt={airingAt} compact={compact} />
+        <EpisodeCountdown airingAt={airingAt} compact={compact} releasedLabel={releasedLabel} />
       </div>
       <span aria-hidden="true" className="schedule-item__chevron w-3 shrink-0 text-slate-500">›</span>
     </Link>
