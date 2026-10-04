@@ -97,6 +97,9 @@ export default function ScrollRow({
     !endReachedRequiresInteraction,
   );
   const virtualMetricsRef = useRef<ScrollRowVirtualMetrics | null>(null);
+  const touchMomentumRef = useRef(false);
+  const virtualRangeRef = useRef<VirtualRange>({ start: 0, end: 0 });
+  const refreshAfterTouchRef = useRef<() => void>(() => undefined);
   const arrowTargetRef = useRef<{ direction: 'left' | 'right'; left: number } | null>(null);
 
   const childArray = useMemo(() => Children.toArray(children), [children]);
@@ -173,6 +176,7 @@ export default function ScrollRow({
           start: 0,
           end: Math.min(childCount, maxVirtualItems),
         };
+        virtualRangeRef.current = initial;
         setVirtualRange(initial);
         reportVirtualMetrics(initial);
         return;
@@ -191,6 +195,7 @@ export default function ScrollRow({
 
       if (!virtualActive) {
         const full = { start: 0, end: childCount };
+        virtualRangeRef.current = full;
         setVirtualRange((current) =>
           current.start === full.start && current.end === full.end
             ? current
@@ -215,6 +220,15 @@ export default function ScrollRow({
         ),
       );
 
+      const currentRange = virtualRangeRef.current;
+      // Touch inertia can continue after touchend. Keep existing DOM targets
+      // while they cover the viewport; only shift before visible cards run out.
+      if (touchMomentumRef.current &&
+          currentRange.start <= visibleStart && currentRange.end >= visibleEnd) {
+        reportVirtualMetrics(currentRange);
+        return;
+      }
+
       let start = Math.max(0, visibleStart - overscan);
       let end = Math.min(childCount, visibleEnd + overscan);
 
@@ -236,6 +250,7 @@ export default function ScrollRow({
         maxVirtualItems,
       );
 
+      virtualRangeRef.current = nextRange;
       setVirtualRange((current) =>
         current.start === nextRange.start && current.end === nextRange.end
           ? current
@@ -269,7 +284,7 @@ export default function ScrollRow({
     );
     const threshold = Math.max(
       END_PREFETCH_MIN_PX,
-      clientWidth * END_PREFETCH_RATIO,
+      clientWidth * (touchMomentumRef.current ? 2.5 : END_PREFETCH_RATIO),
     );
 
     setCanScrollLeft(scrollLeft > EDGE_EPSILON);
@@ -330,6 +345,49 @@ export default function ScrollRow({
       }
     };
   }, [updateScrollState]);
+
+  useEffect(() => {
+    refreshAfterTouchRef.current = updateScrollState;
+  }, [updateScrollState]);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
+    let fingerDown = false;
+    const clearIdle = () => {
+      if (idleTimer !== null) clearTimeout(idleTimer);
+      idleTimer = null;
+    };
+    const settle = () => {
+      clearIdle();
+      if (fingerDown || !touchMomentumRef.current) return;
+      idleTimer = setTimeout(() => {
+        idleTimer = null;
+        touchMomentumRef.current = false;
+        refreshAfterTouchRef.current();
+      }, 180);
+    };
+    const begin = () => {
+      fingerDown = true;
+      touchMomentumRef.current = true;
+      arrowTargetRef.current = null;
+      clearIdle();
+    };
+    const end = () => { fingerDown = false; settle(); };
+    track.addEventListener('touchstart', begin, { passive: true });
+    track.addEventListener('touchend', end, { passive: true });
+    track.addEventListener('touchcancel', end, { passive: true });
+    track.addEventListener('scroll', settle, { passive: true });
+    return () => {
+      clearIdle();
+      touchMomentumRef.current = false;
+      track.removeEventListener('touchstart', begin);
+      track.removeEventListener('touchend', end);
+      track.removeEventListener('touchcancel', end);
+      track.removeEventListener('scroll', settle);
+    };
+  }, []);
 
   useEffect(() => {
     if (loading || !hasMore) {
