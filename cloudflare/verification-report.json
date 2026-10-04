@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-04",
+  "checks": {
+    "nextProductionBuild": "passed",
+    "openNextSplitBuild": "passed",
+    "typescript": "passed",
+    "routeAndCronTests": "passed",
+    "allWorkerSizeChecks": "passed",
+    "localWorkerdSmoke": "passed"
+  },
+  "smoke": {
+    "/login": 200,
+    "/api/watch-party/health": 200,
+    "/api/admin/users": 401,
+    "/api/profile/editor": 401,
+    "GET /api/auth/email": 405,
+    "foreignOriginMutation": 403
+  },
+  "deploymentPerformed": false,
+  "productionCpuMeasured": false,
+  "authenticatedFlowsTested": false
+}

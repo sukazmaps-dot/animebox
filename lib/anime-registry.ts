@@ -1,4 +1,3 @@
-import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { slugify, stableAnimeSlug } from './anime-url';
@@ -31,7 +30,8 @@ function usesStatelessRegistry(): boolean {
   // Vercel functions do not provide a shared persistent filesystem.
   // When no external/persistent path is configured, use deterministic slugs
   // and keep only request-instance metadata in memory instead of crashing.
-  return Boolean(process.env.VERCEL && !process.env.ANIMEBOX_DB_PATH);
+  return process.env.ANIMEBOX_RUNTIME === 'cloudflare' ||
+    Boolean(process.env.VERCEL && !process.env.ANIMEBOX_DB_PATH);
 }
 
 function db(): Database {
@@ -42,7 +42,11 @@ function db(): Database {
   );
 
   mkdirSync(dirname(path), { recursive: true });
-  connection = new DatabaseSync(path);
+  // Resolve SQLite only on a persistent Node server, never in Workers.
+  const sqlite = process.getBuiltinModule('node:sqlite') as
+    { DatabaseSync: new (path: string) => Database } | undefined;
+  if (!sqlite) throw new Error('SQLite requires Node 22.13+; use ANIMEBOX_RUNTIME=cloudflare on Workers.');
+  connection = new sqlite.DatabaseSync(path);
   connection.exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
     CREATE TABLE IF NOT EXISTS anime_routes (
       id INTEGER PRIMARY KEY, slug TEXT NOT NULL UNIQUE, titles TEXT NOT NULL,

@@ -1,0 +1,82 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "compatibility_date": "2026-08-27",
+  "compatibility_flags": [
+    "nodejs_compat",
+    "global_fetch_strictly_public"
+  ],
+  "minify": true,
+  "vars": {
+    "ANIMEBOX_RUNTIME": "cloudflare",
+    "ANIMEBOX_CRON_ENABLED": "false"
+  },
+  "r2_buckets": [
+    {
+      "binding": "NEXT_INC_CACHE_R2_BUCKET",
+      "bucket_name": "animebox-next-cache"
+    }
+  ],
+  "name": "animebox",
+  "main": "cloudflare/gateway.mjs",
+  "workers_dev": true,
+  "triggers": {
+    "crons": [
+      "17 3 * * *",
+      "47 3 * * *",
+      "23 4 * * *",
+      "53 4 * * *",
+      "17 5 * * *",
+      "8 0 * * 1"
+    ]
+  },
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "animebox"
+    },
+    {
+      "binding": "SERVER_DEFAULT",
+      "service": "animebox-default"
+    },
+    {
+      "binding": "SERVER_SOCIAL_IMAGES",
+      "service": "animebox-social-images"
+    },
+    {
+      "binding": "SERVER_API_ADMIN",
+      "service": "animebox-api-admin"
+    },
+    {
+      "binding": "SERVER_API_CATALOG",
+      "service": "animebox-api-catalog"
+    },
+    {
+      "binding": "SERVER_API_WATCH",
+      "service": "animebox-api-watch"
+    },
+    {
+      "binding": "SERVER_API_SOCIAL",
+      "service": "animebox-api-social"
+    },
+    {
+      "binding": "SERVER_API_OTHER",
+      "service": "animebox-api-other"
+    },
+    {
+      "binding": "SERVER_PAGES_ADMIN",
+      "service": "animebox-pages-admin"
+    },
+    {
+      "binding": "SERVER_PAGES_ACCOUNT",
+      "service": "animebox-pages-account"
+    },
+    {
+      "binding": "SERVER_PAGES_WATCH",
+      "service": "animebox-pages-watch"
+    }
+  ]
+}

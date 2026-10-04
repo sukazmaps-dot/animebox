@@ -1,0 +1,28 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "compatibility_date": "2026-08-27",
+  "compatibility_flags": [
+    "nodejs_compat",
+    "global_fetch_strictly_public"
+  ],
+  "minify": true,
+  "vars": {
+    "ANIMEBOX_RUNTIME": "cloudflare",
+    "ANIMEBOX_CRON_ENABLED": "false"
+  },
+  "r2_buckets": [
+    {
+      "binding": "NEXT_INC_CACHE_R2_BUCKET",
+      "bucket_name": "animebox-next-cache"
+    }
+  ],
+  "name": "animebox-api-other",
+  "main": "api_other.mjs",
+  "workers_dev": false,
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "animebox"
+    }
+  ]
+}

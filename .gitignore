@@ -53,3 +53,11 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# Cloudflare build outputs and local secrets
+.open-next/
+.wrangler/
+.dev.vars*
+cloudflare-env.d.ts
+
+.cloudflare-bundles/

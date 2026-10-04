@@ -1,0 +1,68 @@
+[
+  {
+    "name": "default",
+    "gzipKiB": 4073.62,
+    "freeLimitKiB": 3072,
+    "passed": false
+  },
+  {
+    "name": "social_images",
+    "gzipKiB": 1150.24,
+    "freeLimitKiB": 3072,
+    "passed": true
+  },
+  {
+    "name": "api_admin",
+    "gzipKiB": 1377.04,
+    "freeLimitKiB": 3072,
+    "passed": true
+  },
+  {
+    "name": "api_catalog",
+    "gzipKiB": 1246.61,
+    "freeLimitKiB": 3072,
+    "passed": true
+  },
+  {
+    "name": "api_watch",
+    "gzipKiB": 1206.69,
+    "freeLimitKiB": 3072,
+    "passed": true
+  },
+  {
+    "name": "api_social",
+    "gzipKiB": 1291.04,
+    "freeLimitKiB": 3072,
+    "passed": true
+  },
+  {
+    "name": "api_other",
+    "gzipKiB": 1358.14,
+    "freeLimitKiB": 3072,
+    "passed": true
+  },
+  {
+    "name": "pages_admin",
+    "gzipKiB": 1068.47,
+    "freeLimitKiB": 3072,
+    "passed": true
+  },
+  {
+    "name": "pages_account",
+    "gzipKiB": 1711.12,
+    "freeLimitKiB": 3072,
+    "passed": true
+  },
+  {
+    "name": "pages_watch",
+    "gzipKiB": 1717.4,
+    "freeLimitKiB": 3072,
+    "passed": true
+  },
+  {
+    "name": "gateway",
+    "gzipKiB": 1093.95,
+    "freeLimitKiB": 3072,
+    "passed": true
+  }
+]
