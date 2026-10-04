@@ -97,7 +97,7 @@ export default function ScrollRow({
     !endReachedRequiresInteraction,
   );
   const virtualMetricsRef = useRef<ScrollRowVirtualMetrics | null>(null);
-  const strideRef = useRef(0);
+  const arrowTargetRef = useRef<{ direction: 'left' | 'right'; left: number } | null>(null);
 
   const childArray = useMemo(() => Children.toArray(children), [children]);
   const childCount = childArray.length;
@@ -117,6 +117,7 @@ export default function ScrollRow({
   });
 
   const unlockEndReached = useCallback(() => {
+    arrowTargetRef.current = null;
     if (!endReachedRequiresInteraction) return;
 
     endInteractionUnlockedRef.current = true;
@@ -152,17 +153,6 @@ export default function ScrollRow({
 
   const updateVirtualWindow = useCallback(
     (track: HTMLDivElement) => {
-      if (!virtualActive) {
-        const full = { start: 0, end: childCount };
-        setVirtualRange((current) =>
-          current.start === full.start && current.end === full.end
-            ? current
-            : full,
-        );
-        reportVirtualMetrics(full);
-        return;
-      }
-
       const firstRealChild = Array.from(track.children).find(
         (element) =>
           element !== sentinelRef.current &&
@@ -189,18 +179,8 @@ export default function ScrollRow({
       }
 
       const nextStride = itemWidth + gap;
-      const previousStride = strideRef.current;
-
-      if (
-        previousStride > 0 &&
-        Math.abs(previousStride - nextStride) > 1 &&
-        track.scrollLeft > EDGE_EPSILON
-      ) {
-        const anchorIndex = track.scrollLeft / previousStride;
-        track.scrollLeft = anchorIndex * nextStride;
-      }
-
-      strideRef.current = nextStride;
+      // Measuring an in-flight swipe must never write scrollLeft. Native
+      // momentum owns the position; changing it here can reverse the gesture.
 
       setVirtualGeometry((current) =>
         Math.abs(current.itemWidth - itemWidth) < 0.5 &&
@@ -208,6 +188,17 @@ export default function ScrollRow({
           ? current
           : { itemWidth, gap },
       );
+
+      if (!virtualActive) {
+        const full = { start: 0, end: childCount };
+        setVirtualRange((current) =>
+          current.start === full.start && current.end === full.end
+            ? current
+            : full,
+        );
+        reportVirtualMetrics(full);
+        return;
+      }
 
       const visibleStart = Math.max(
         0,
@@ -267,6 +258,9 @@ export default function ScrollRow({
     if (!track) return;
 
     updateVirtualWindow(track);
+    if (arrowTargetRef.current && Math.abs(track.scrollLeft - arrowTargetRef.current.left) <= EDGE_EPSILON) {
+      arrowTargetRef.current = null;
+    }
 
     const { scrollLeft, scrollWidth, clientWidth } = track;
     const remaining = Math.max(
@@ -403,8 +397,19 @@ export default function ScrollRow({
       }
 
       const amount = Math.max(220, track.clientWidth * stepRatio);
-      track.scrollBy({
-        left: direction === 'left' ? -amount : amount,
+      const previous = arrowTargetRef.current;
+      const base = previous?.direction === direction
+        ? direction === 'right'
+          ? Math.max(track.scrollLeft, previous.left)
+          : Math.min(track.scrollLeft, previous.left)
+        : track.scrollLeft;
+      const target = Math.max(0, Math.min(
+        track.scrollWidth - track.clientWidth,
+        base + (direction === 'left' ? -amount : amount),
+      ));
+      arrowTargetRef.current = { direction, left: target };
+      track.scrollTo({
+        left: target,
         behavior: 'smooth',
       });
     },
@@ -440,7 +445,7 @@ export default function ScrollRow({
     >
       <div
         ref={trackRef}
-        className={styles.track}
+        className={[styles.track, virtualize ? styles.stableTrack : ''].filter(Boolean).join(' ')}
         role="region"
         aria-label={ariaLabel}
         tabIndex={0}

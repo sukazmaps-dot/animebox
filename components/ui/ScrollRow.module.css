@@ -167,3 +167,15 @@
   scroll-snap-align: none !important;
   contain: strict;
 }
+
+/* Virtual windows replace snap targets during momentum. Let the gesture own
+   the offset throughout the row lifetime, including the first paginated append. */
+.stableTrack {
+  scroll-snap-type: none;
+  overflow-anchor: none;
+  scroll-behavior: auto;
+}
+
+.stableTrack > * {
+  scroll-snap-align: none;
+}
