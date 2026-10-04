@@ -13,7 +13,7 @@ export function applySplitTraceFix() {
   const anchor = '        // Look for the Node version of the traced @vercel/og files';
   if (!original.includes(anchor)) throw new Error('Adapter OG implementation changed');
   const guard = `        const splitName = buildOpts.splitFunctionName ?? "default";
-        const scopedRouteName = path.relative(path.join(appBuildOutputPath, ".next/server"), traceInfoPath).replace(/\\.js\\.nft\\.json$/, "");
+        const scopedRouteName = path.relative(path.join(appBuildOutputPath, ".next/server"), traceInfoPath).split(path.sep).join("/").replace(/\\.js\\.nft\\.json$/, "");
         const splitFunctions = buildOpts.config.functions ?? {};
         const assignedTo = Object.entries(splitFunctions).find(([, fn]) => fn.routes.includes(scopedRouteName))?.[0] ?? "default";
         if (assignedTo !== splitName) continue;
