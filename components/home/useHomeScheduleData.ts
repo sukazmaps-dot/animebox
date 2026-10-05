@@ -9,11 +9,12 @@ import {
 import type { AnimeImage as AnimeImageType } from '@/types/anime';
 
 export type HomeScheduleItem = {
-  id: number;
+  id: number | string;
   airingAt: number;
-  episode: number;
+  episode: number | null;
+  timingKind?: 'weekly' | 'planned';
   media: {
-    id: number;
+    id: number | null;
     idMal: number | null;
     format: string | null;
     status: string | null;
@@ -67,7 +68,8 @@ export function useHomeScheduleData(
 
     const loadUpcoming = async () => {
       try {
-        const nowSeconds = Math.floor(Date.now() / 1000);
+        // Share the same CDN/upstream key across visitors for five minutes.
+        const nowSeconds = Math.floor(Date.now() / 300_000) * 300;
         const params = new URLSearchParams({
           from: String(nowSeconds - 6 * 60 * 60),
           to: String(nowSeconds + 72 * 60 * 60),

@@ -1,18 +1,19 @@
 'use client';
+import {scheduleAnimeHref} from '@/lib/schedule-url';
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 
 import AnimeImage from '@/components/AnimeImage';
-import { animeHref } from '@/lib/anime-url';
 import type { AnimeImage as AnimeImageType } from '@/types/anime';
 
 type ScheduleItem = {
-  id: number;
+  id: number | string;
   airingAt: number;
-  episode: number;
+  episode: number | null;
+  timingKind?: 'weekly' | 'planned';
   media: {
-    id: number;
+    id: number | null;
     idMal: number | null;
     format: string | null;
     status: string | null;
@@ -33,6 +34,7 @@ type ScheduleResponse = {
   range: { from: number; to: number };
   count: number;
   items: ScheduleItem[];
+  notice?: string;
 };
 
 type DayColumn = {
@@ -117,6 +119,7 @@ export default function SchedulePage() {
   const [items, setItems] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -131,6 +134,7 @@ export default function SchedulePage() {
       try {
         setLoading(true);
         setError(null);
+        setNotice(null);
 
         const response = await fetch('/api/schedule', {
           cache: 'default',
@@ -146,6 +150,7 @@ export default function SchedulePage() {
           throw new Error('Некорректный ответ расписания');
         }
 
+        setNotice(data.notice || null);
         setItems([...data.items].sort((a, b) => a.airingAt - b.airingAt));
       } catch (loadError) {
         if (loadError instanceof Error && loadError.name === 'AbortError') return;
@@ -191,10 +196,12 @@ export default function SchedulePage() {
         {!loading && !error && (
           <div className="schedule-page-v2__counter">
             <strong>{weekCount}</strong>
-            <span>эпизодов на неделе</span>
+            <span>{notice ? 'плановых выходов' : 'эпизодов на неделе'}</span>
           </div>
         )}
       </header>
+
+      {notice && !error && <p role="status">{notice}</p>}
 
       {loading ? (
         <div className="weekly-calendar weekly-calendar--loading" aria-busy="true">
@@ -233,19 +240,20 @@ export default function SchedulePage() {
                     {dayItems.length === 0 ? (
                       <div className="weekly-calendar__empty-day">
                         <span>—</span>
-                        <small>Нет релизов</small>
+                        <small>{notice ? 'Нет данных' : 'Нет релизов'}</small>
                       </div>
                     ) : (
                       dayItems.map((item) => {
                         const title = getAnimeTitle(item);
-                        const status = getAiringStatus(item.airingAt, now);
+                        const status = item.timingKind ? null : getAiringStatus(item.airingAt, now);
+                        const episodeLabel = item.episode == null ? 'Плановый выход' : `Эпизод ${item.episode}${item.timingKind ? ' · план' : ''}`;
 
                         return (
                           <Link
                             key={item.id}
-                            href={animeHref(item.media)}
+                            href={scheduleAnimeHref(item.media)}
                             className="weekly-calendar__event"
-                            title={`${title} — эпизод ${item.episode}`}
+                            title={`${title} — ${episodeLabel}`}
                           >
                             <div className="weekly-calendar__event-time">
                               <strong>{formatTime(item.airingAt)}</strong>
@@ -264,7 +272,7 @@ export default function SchedulePage() {
 
                               <div>
                                 <strong>{title}</strong>
-                                <span>Эпизод {item.episode}</span>
+                                <span>{episodeLabel}</span>
                               </div>
                             </div>
                           </Link>

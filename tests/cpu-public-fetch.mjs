@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import { transform } from 'esbuild';
+import { readFileSync } from 'node:fs';
+const {code}=await transform(readFileSync('lib/shared-public-fetch.ts','utf8'),{loader:'ts',format:'esm'});
+const {createSharedPublicFetch}=await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'));
+const shared=createSharedPublicFetch(1);
+let release,calls=0;
+const gate=new Promise(r=>release=r);
+const load=async()=>{calls++;await gate;return new Response('{"ok":true}');};
+const a=shared('public',load),b=shared('public',load);
+await Promise.resolve();assert.equal(calls,1);
+assert.equal(await (await shared('other',async()=>new Response('overflow'))).text(),'overflow');
+release();const responses=await Promise.all([a,b]);
+assert.deepEqual(await Promise.all(responses.map(r=>r.json())),[{ok:true},{ok:true}]);
+await shared('public',async()=>{calls++;return new Response('fresh');});assert.equal(calls,2);
+await assert.rejects(shared('failure',async()=>{throw new Error('offline');}),/offline/);
+assert.equal(await (await shared('failure',async()=>new Response('recovered'))).text(),'recovered');
+console.log('PASS: coalesced requests, independent response bodies, bounded pending map, failure cleanup and no completed response retention');

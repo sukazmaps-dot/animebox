@@ -16,7 +16,7 @@ for (const [label, source, needle] of [
   ['candidate contract version', api, "RECOMMENDATION_CANDIDATE_CONTRACT_VERSION = '24.1-mood-candidate-v1'"],
   ['candidate contract response', api, 'contractVersion: RECOMMENDATION_CANDIDATE_CONTRACT_VERSION'],
   ['candidate contract type', types, 'contractVersion?: string'],
-  ['request timeout', feed, 'CANDIDATE_REQUEST_TIMEOUT_MS = 7_000'],
+  ['request timeout', feed, 'CANDIDATE_REQUEST_TIMEOUT_MS = 20_000'],
   ['bounded attempts', feed, 'CANDIDATE_MAX_ATTEMPTS = 2'],
   ['transient status set', feed, '429, 502, 503, 504'],
   ['payload validator', feed, 'isValidRecommendationPage'],

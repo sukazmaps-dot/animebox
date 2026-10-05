@@ -1,3 +1,4 @@
+import {getSavedCatalogPage} from '@/lib/saved-catalog-server';
 import { after, NextRequest, NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
 
@@ -243,9 +244,13 @@ const getCachedCandidatePage = unstable_cache(
     });
     options.limit = limit;
 
-    return getAnimesWithShikimori(options);
+    try { return await getAnimesWithShikimori(options); }
+    catch(error) {
+      console.warn('Recommendations using saved catalog',error);
+      return (await getSavedCatalogPage(options)).anime;
+    }
   },
-  ['animebox-recommendation-candidates-v10-mood-intent'],
+  ['animebox-recommendation-candidates-v11-saved-metadata'],
   {
     revalidate: CACHE_SECONDS,
     tags: ['animebox-recommendation-candidates'],
@@ -446,7 +451,9 @@ async function observedGET(request: NextRequest) {
       season: currentSeason.season,
       seasonYear: currentSeason.year,
     });
-    const availability = await filterAnimeByAvailability(
+    const availability = result.items.every(item=>item.metadataSource==='saved')
+      ? {items:result.items,refreshTargets:[]}
+      : await filterAnimeByAvailability(
       result.items,
       'recommendations',
     );

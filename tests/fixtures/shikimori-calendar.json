@@ -1,0 +1,46 @@
+[
+  {
+    "next_episode": 1,
+    "next_episode_at": "2026-10-05T09:00:00.000+03:00",
+    "anime": {
+      "id": 63098,
+      "name": "Psyren",
+      "russian": "Псайрен",
+      "kind": "tv",
+      "status": "anons"
+    }
+  },
+  {
+    "next_episode": 3,
+    "next_episode_at": "2026-10-09T17:30:00.000+03:00",
+    "anime": {
+      "id": 64340,
+      "name": "Tempal: Item no Chikara",
+      "russian": "Во всеоружии: Сила артефактов",
+      "kind": "tv",
+      "status": "ongoing"
+    }
+  },
+  {
+    "next_episode": 9,
+    "next_episode_at": "2026-10-10T17:00:00.000+03:00",
+    "anime": {
+      "id": 60636,
+      "name": "Bleach: Sennen Kessen-hen - Kashin-tan",
+      "russian": "Блич: Тысячелетняя кровавая война — Бедствие",
+      "kind": "tv",
+      "status": "ongoing"
+    }
+  },
+  {
+    "next_episode": 1181,
+    "next_episode_at": "2026-10-11T17:15:00.000+03:00",
+    "anime": {
+      "id": 21,
+      "name": "One Piece",
+      "russian": "Ван-Пис",
+      "kind": "tv",
+      "status": "ongoing"
+    }
+  }
+]

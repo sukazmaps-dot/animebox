@@ -47,7 +47,7 @@ const PAGE_SIZE = 20;
 const MAX_EMPTY_PAGE_HOPS = 6;
 const STRICT_EMPTY_PAGE_HOPS = 3;
 const CLIENT_PAGE_CACHE_TTL_MS = 15 * 60 * 1000;
-const CANDIDATE_REQUEST_TIMEOUT_MS = 7_000;
+const CANDIDATE_REQUEST_TIMEOUT_MS = 20_000;
 const CANDIDATE_TRANSIENT_RETRY_DELAY_MS = 240;
 const CANDIDATE_MAX_ATTEMPTS = 2;
 const TRANSIENT_CANDIDATE_HTTP_STATUSES = new Set([429, 502, 503, 504]);
@@ -304,8 +304,10 @@ async function fetchCandidatePayload(
         typeof (error as { status?: unknown }).status === 'number'
           ? Number((error as { status: number }).status)
           : null;
+      // A client timeout does not cancel server work. Avoid starting a duplicate
+      // expensive request while the original may still be filling its cache.
       const transient =
-        timedOut ||
+        !timedOut &&
         (status != null && TRANSIENT_CANDIDATE_HTTP_STATUSES.has(status));
 
       if (!transient || attempt + 1 >= CANDIDATE_MAX_ATTEMPTS) {

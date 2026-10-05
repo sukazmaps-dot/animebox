@@ -1,3 +1,4 @@
+import {readShikimoriMetadata,mergeShikimoriMetadata} from '@/lib/shikimori-metadata-server';
 import 'server-only';
 
 import { adminClient } from '@/lib/community-server';
@@ -5,7 +6,7 @@ import { fetchWithRetry } from '@/lib/fetch-retry';
 import { cleanShikimoriDescription } from '@/lib/shikimori-text';
 import type { Anime } from '@/types/anime';
 
-const SHIKIMORI_API = 'https://shikimori.one/api';
+const SHIKIMORI_API = 'https://shikimori.io/api';
 const SHIKIMORI_HEADERS = {
   'User-Agent': 'AnimeBoxApp',
   Accept: 'application/json',
@@ -81,7 +82,7 @@ function providerRetryBlocked(id: number) {
 async function readLocalLocalization(animeId: number) {
   const admin = adminClient();
 
-  const [documentResult, catalogResult] = await Promise.all([
+  const [documentResult, catalogResult, mappingResult] = await Promise.all([
     admin
       .from('anime_search_documents')
       .select('title,aliases,description,updated_at')
@@ -91,6 +92,11 @@ async function readLocalLocalization(animeId: number) {
       .from('anime_catalog')
       .select('title,genres,total_episodes,finished,poster_url')
       .eq('id', animeId)
+      .maybeSingle(),
+    admin
+      .from('anime_availability')
+      .select('mal_id')
+      .eq('anime_id', animeId)
       .maybeSingle(),
   ]);
 
@@ -108,9 +114,16 @@ async function readLocalLocalization(animeId: number) {
     );
   }
 
+  if (mappingResult.error) {
+    console.warn('[anime localization] provider mapping lookup failed:', mappingResult.error.message);
+  }
+
+  const malId = Number(mappingResult.data?.mal_id);
+
   return {
     document: (documentResult.data ?? null) as SearchLocalizationRow | null,
     catalog: (catalogResult.data ?? null) as CatalogLocalizationRow | null,
+    malId: Number.isSafeInteger(malId) && malId > 0 ? malId : null,
   };
 }
 
@@ -252,8 +265,9 @@ export async function getLocalAnimeDetailFallback(
     poster_url?: string | null;
   } | null)?.poster_url);
 
-  return {
+  const anime:Anime = {
     id: animeId,
+    idMal: local.malId,
     catalogEligible: true,
     title: {
       russian: russianTitle,
@@ -287,12 +301,15 @@ export async function getLocalAnimeDetailFallback(
       : null,
     bannerImage: null,
   };
+  const metadata=await readShikimoriMetadata(local.malId?[local.malId]:[]);
+  return mergeShikimoriMetadata(anime,local.malId?metadata.get(local.malId):undefined);
 }
 
 export async function localizeAnimeDetail(anime: Anime): Promise<Anime> {
   let local: Awaited<ReturnType<typeof readLocalLocalization>> = {
     document: null,
     catalog: null,
+    malId: null,
   };
 
   try {
@@ -321,7 +338,7 @@ export async function localizeAnimeDetail(anime: Anime): Promise<Anime> {
       : null;
 
   const localFallback = mergeAnime({
-    anime,
+    anime: { ...anime, idMal: anime.idMal ?? anime.mal_id ?? local.malId },
     russianTitle: localRussianTitle,
     russianDescription: localRussianDescription,
     catalog: local.catalog,
@@ -329,11 +346,11 @@ export async function localizeAnimeDetail(anime: Anime): Promise<Anime> {
 
   // Once a Russian description has been persisted, the detail page is no
   // longer dependent on Shikimori availability.
-  if (localRussianDescription) {
+  if (localRussianDescription || (localFallback.description && containsCyrillic(localFallback.description))) {
     return localFallback;
   }
 
-  const malId = Number(anime.idMal ?? anime.mal_id ?? 0);
+  const malId = Number(localFallback.idMal ?? 0);
   if (!Number.isSafeInteger(malId) || malId <= 0 || providerRetryBlocked(anime.id)) {
     return localFallback;
   }
@@ -378,7 +395,7 @@ export async function localizeAnimeDetail(anime: Anime): Promise<Anime> {
     }
 
     return mergeAnime({
-      anime,
+      anime: localFallback,
       russianTitle,
       russianDescription,
       catalog: local.catalog,

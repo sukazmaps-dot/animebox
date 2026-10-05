@@ -44,6 +44,7 @@ import {
 } from '@/lib/catalog-availability-server';
 
 import { observeApiRoute } from '@/lib/request-observability-server';
+import { getSavedCatalogPage } from '@/lib/saved-catalog-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -170,6 +171,7 @@ async function observedGET(
 
   try {
     let providerHasNextPage = false;
+    const fallbackState: {saved: Awaited<ReturnType<typeof getSavedCatalogPage>> | null} = {saved: null};
 
     // Local lexical lookup is independent from the provider request. Starting
     // both at once removes a full Supabase round-trip from the critical path.
@@ -191,15 +193,21 @@ async function observedGET(
             providerHasNextPage = pageInfo.hasNextPage;
           },
         },
-      ),
+      ).catch(async (providerError) => {
+        console.warn('[Anime catalog] provider unavailable; reading saved documents:', providerError);
+        fallbackState.saved = await getSavedCatalogPage({...options, limit});
+        providerHasNextPage = fallbackState.saved.hasNextPage;
+        return fallbackState.saved.anime;
+      }),
       localHitsPromise,
     ]);
 
+    const savedCatalog = fallbackState.saved;
     let candidates: Anime[] = primary;
     let fallbackUsed: string | null = null;
     let localIndexUsed = false;
 
-    if (localHits.length) {
+    if (!savedCatalog && localHits.length) {
       const providerIds = new Set(primary.map((anime) => anime.id));
       const missingLocalHits = localHits.filter(
         (hit) => !providerIds.has(hit.animeId),
@@ -227,7 +235,7 @@ async function observedGET(
      * attempt (two only when the first result set was completely empty).
      * This keeps AniList/Shikimori rate pressure predictable.
      */
-    if (rawSearch && search && page === 1 && primary.length < 4) {
+    if (!savedCatalog && rawSearch && search && page === 1 && primary.length < 4) {
       const fallbacks = buildSmartSearchFallbacks(rawSearch, search);
       const attempts = primary.length === 0 ? fallbacks.slice(0, 2) : fallbacks.slice(0, 1);
 
@@ -248,7 +256,7 @@ async function observedGET(
       }
     }
 
-    if (status !== 'upcoming') {
+    if (!savedCatalog && status !== 'upcoming') {
       const availability = await filterAnimeByAvailability(
         candidates,
         'catalog',
@@ -303,11 +311,19 @@ async function observedGET(
 
     // Search index writes are best-effort and bounded. Never fail a catalogue
     // request because the auxiliary retrieval corpus is temporarily unavailable.
-    void indexAnimeSearchDocuments(candidates.slice(0, 30)).catch(() => undefined);
+    if (!savedCatalog) void indexAnimeSearchDocuments(candidates.slice(0, 30)).catch(() => undefined);
 
     return NextResponse.json(
       {
         anime,
+        ...(savedCatalog ? {
+          catalogMeta: {
+            source: 'saved',
+            message: savedCatalog.unsupportedFilters.length
+              ? 'Сезон и точный статус выхода сейчас недоступны. Сними эти фильтры, чтобы посмотреть сохранённые тайтлы.'
+              : 'Показаны сохранённые тайтлы с подтверждёнными сериями. Дополнительные данные и оценки берутся из сохранённой копии Shikimori; данные могут обновляться с задержкой.',
+          },
+        } : {}),
         pagination: {
           page,
           limit,
@@ -320,7 +336,7 @@ async function observedGET(
                 understoodAs: searchIntent?.titleQuery || rawSearch,
                 mode: classification?.mode ?? 'title',
                 fallbackUsed,
-                localIndexUsed,
+                localIndexUsed: Boolean(savedCatalog) || localIndexUsed,
                 correction,
                 topMatchKind: topRank?.matchKind ?? topLocal?.matchKind ?? null,
                 topMatchScore: topRank
@@ -333,7 +349,9 @@ async function observedGET(
           : {}),
       },
       {
-        headers: rawSearch?.trim()
+        headers: savedCatalog
+          ? publicApiCacheHeaders({browserSeconds: 15, edgeSeconds: 30, staleWhileRevalidateSeconds: 60})
+          : rawSearch?.trim()
           ? publicApiCacheHeaders({
               browserSeconds: 15,
               edgeSeconds: 120,

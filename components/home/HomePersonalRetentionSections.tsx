@@ -1,4 +1,5 @@
 'use client';
+import {scheduleAnimeHref} from '@/lib/schedule-url';
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -13,7 +14,6 @@ import {
   getScheduleTitle,
   useHomeScheduleRuntime,
 } from '@/components/home/HomeScheduleRuntimeProvider';
-import { animeHref } from '@/lib/anime-url';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 
 const HomeRetentionHub = dynamic(
@@ -105,11 +105,11 @@ export function HomePersonalScheduleSection() {
           ))
         ) : personalScheduleItems.map((item) => {
           const title = getScheduleTitle(item);
-          const released = item.airingAt * 1000 <= clockNow;
+          const released = !item.timingKind && item.episode != null && item.airingAt * 1000 <= clockNow;
           const watchHref =
-            `${animeHref(item.media)}/watch?ep=${Math.max(
+            `${scheduleAnimeHref(item.media)}/watch?ep=${Math.max(
               1,
-              item.episode,
+              item.episode ?? 1,
             )}`;
 
           return (
@@ -118,10 +118,11 @@ export function HomePersonalScheduleSection() {
               key={item.id}
             >
               <ScheduleItem
-                href={released ? watchHref : animeHref(item.media)}
+                href={released ? watchHref : scheduleAnimeHref(item.media)}
                 title={title}
                 image={item.media.coverImage}
                 episode={item.episode}
+                planned={Boolean(item.timingKind)}
                 dateLabel={formatUpcomingDate(
                   item.airingAt,
                 )}

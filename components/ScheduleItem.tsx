@@ -49,15 +49,16 @@ function EpisodeCountdown({ airingAt, compact, releasedLabel }: { airingAt: numb
   );
 }
 
-export default function ScheduleItem({ href, title, image, episode, dateLabel, airingAt, onOpen, compact = false, releasedLabel = 'Уже вышла' }: {
+export default function ScheduleItem({ href, title, image, episode, dateLabel, airingAt, onOpen, compact = false, planned = false, releasedLabel = 'Уже вышла' }: {
   href: string;
   title: string;
   image: ImageData | null;
-  episode: number;
+  episode: number | null;
   dateLabel: string;
   airingAt: number;
   onOpen?: () => void;
   compact?: boolean;
+  planned?: boolean;
   releasedLabel?: string;
 }) {
   return (
@@ -71,10 +72,10 @@ export default function ScheduleItem({ href, title, image, episode, dateLabel, a
       </div>
       <div className="schedule-item__copy min-w-0 flex-1">
         <h3 title={title} className="schedule-item__title truncate text-sm font-semibold text-slate-100">{title}</h3>
-        <p title={`Эпизод ${episode} · ${dateLabel}`} className="schedule-item__meta mt-1 truncate text-xs text-slate-400">Эпизод {episode} · {dateLabel}</p>
+        <p title={`${episode == null ? 'Плановый выход' : `Эпизод ${episode}${planned ? ' · план' : ''}`} · ${dateLabel}`} className="schedule-item__meta mt-1 truncate text-xs text-slate-400">{episode == null ? 'Плановый выход' : `Эпизод ${episode}${planned ? ' · план' : ''}`} · {dateLabel}</p>
       </div>
       <div className="schedule-item__countdown flex h-8 w-[76px] shrink-0 items-center justify-center rounded-lg border border-violet-400/20 bg-violet-500/15">
-        <EpisodeCountdown airingAt={airingAt} compact={compact} releasedLabel={releasedLabel} />
+        {episode == null || planned ? <span className="text-xs">План</span> : <EpisodeCountdown airingAt={airingAt} compact={compact} releasedLabel={releasedLabel} />}
       </div>
       <span aria-hidden="true" className="schedule-item__chevron w-3 shrink-0 text-slate-500">›</span>
     </Link>

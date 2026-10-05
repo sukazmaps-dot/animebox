@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAuthState } from '@/components/AuthStateProvider';
 
@@ -15,6 +15,7 @@ export function notifySocialNotificationsChanged() {
 export default function SocialNotificationBadge() {
   const { user } = useAuthState();
   const [unread, setUnread] = useState(0);
+  const requestRef = useRef<AbortController | null>(null);
 
   const refresh = useCallback(async () => {
     if (!user?.id) {
@@ -29,15 +30,21 @@ export default function SocialNotificationBadge() {
       return;
     }
 
+    if (requestRef.current) return;
+    const controller = new AbortController();
+    requestRef.current = controller;
     try {
       const response = await fetch('/api/social/notifications?limit=1', {
         cache: 'no-store',
+        signal: controller.signal,
       });
       const payload = (await response.json()) as { unread?: number };
-      if (!response.ok) return;
+      if (!response.ok || controller.signal.aborted) return;
       setUnread(Math.max(0, Number(payload.unread ?? 0)));
     } catch {
       // Badge is best-effort; the notifications page remains authoritative.
+    } finally {
+      if (requestRef.current === controller) requestRef.current = null;
     }
   }, [user?.id]);
 
@@ -98,6 +105,8 @@ export default function SocialNotificationBadge() {
 
     return () => {
       stopPolling();
+      requestRef.current?.abort();
+      requestRef.current = null;
       window.removeEventListener(SOCIAL_NOTIFICATIONS_CHANGED_EVENT, refresh);
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('online', onOnline);

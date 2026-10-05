@@ -24,13 +24,13 @@ export function preferLocalHomeResume(input: {
 }
 
 export function selectPersonalHomeSchedule<T extends {
-  id: number; airingAt: number; episode: number; media: { id: number };
+  id: number | string; airingAt: number; episode: number | null; timingKind?: 'weekly' | 'planned'; media: { id: number | null };
 }>(items: T[], personalIds: Set<number>, nowSeconds: number) {
   const seen = new Set<string>();
   const valid = items.filter((item) => {
     const key = `${item.media.id}:${item.episode}`;
-    if (!personalIds.has(item.media.id) || !Number.isFinite(item.airingAt) ||
-        !Number.isInteger(item.episode) || item.episode < 1 ||
+    if (item.media.id==null || item.timingKind || !personalIds.has(item.media.id) || !Number.isFinite(item.airingAt) ||
+        item.episode == null || !Number.isInteger(item.episode) || item.episode < 1 ||
         item.airingAt < nowSeconds - 6 * 3600 ||
         item.airingAt > nowSeconds + 72 * 3600 || seen.has(key)) return false;
     seen.add(key);
@@ -40,6 +40,6 @@ export function selectPersonalHomeSchedule<T extends {
     const aReleased = a.airingAt <= nowSeconds;
     const bReleased = b.airingAt <= nowSeconds;
     if (aReleased !== bReleased) return aReleased ? -1 : 1;
-    return (aReleased ? b.airingAt - a.airingAt : a.airingAt - b.airingAt) || a.id - b.id;
+    return (aReleased ? b.airingAt - a.airingAt : a.airingAt - b.airingAt) || (a.media.id??0) - (b.media.id??0);
   }).slice(0, 4);
 }

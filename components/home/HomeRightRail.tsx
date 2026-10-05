@@ -1,4 +1,5 @@
 'use client';
+import {scheduleAnimeHref} from '@/lib/schedule-url';
 
 import Image from 'next/image';
 
@@ -10,7 +11,6 @@ import {
   getScheduleTitle,
   useHomeScheduleRuntime,
 } from '@/components/home/HomeScheduleRuntimeProvider';
-import { animeHref } from '@/lib/anime-url';
 
 export default function HomeRightRail() {
   const { popular } = useHomeFeedRuntime();
@@ -76,10 +76,11 @@ export default function HomeRightRail() {
                 <ScheduleItem
                   compact
                   key={item.id}
-                  href={animeHref(item.media)}
+                  href={scheduleAnimeHref(item.media)}
                   title={title}
                   image={item.media.coverImage}
                   episode={item.episode}
+                  planned={Boolean(item.timingKind)}
                   dateLabel={formatUpcomingDate(
                     item.airingAt,
                   )}

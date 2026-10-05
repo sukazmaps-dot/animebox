@@ -25,4 +25,6 @@ const before = JSON.stringify(items);
 assert.deepEqual(selectPersonalHomeSchedule(items, new Set([1,2,3,4,5,6,9]), now).map(x => x.id), [2,3,4,1]);
 assert.equal(JSON.stringify(items), before, 'selection cannot mutate shared schedule');
 assert.deepEqual(selectPersonalHomeSchedule(items, new Set(), now), []);
+assert.deepEqual(selectPersonalHomeSchedule([item('weekly-1', now, null, 1)], new Set([1]), now), [], 'planned slots cannot create episode retention signals');
+assert.deepEqual(selectPersonalHomeSchedule([{...item('planned-1', now, 9, 1),timingKind:'planned'}],new Set([1]),now),[],'planned dates must not create released episode signals');
 console.log('Home retention policy: freshness, completion, schedule identity/order passed.');

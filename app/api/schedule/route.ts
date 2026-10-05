@@ -1,4 +1,7 @@
+import { createSharedPublicFetch } from '@/lib/shared-public-fetch';
 import { registerAnime } from '@/lib/anime-registry';
+import { getShikimoriSchedule } from '@/lib/shikimori-schedule-server';
+import { getJikanSchedule } from '@/lib/jikan-schedule-server';
 import {
   NextRequest,
   NextResponse,
@@ -15,12 +18,14 @@ const ANILIST_API_URL =
   'https://graphql.anilist.co';
 
 const SHIKIMORI_API =
-  'https://shikimori.one/api';
+  'https://shikimori.io/api';
 
 const SHIKIMORI_HEADERS = {
   'User-Agent': 'AnimeBox/1.0',
   Accept: 'application/json',
 };
+
+const sharedScheduleFetch = createSharedPublicFetch();
 
 const DAY_SECONDS =
   60 * 60 * 24;
@@ -327,11 +332,11 @@ export async function GET(
 
   const from =
     fromParam ??
-    now - DAY_SECONDS;
+    Math.floor(now / 300) * 300 - DAY_SECONDS;
 
   const to =
     toParam ??
-    now +
+    Math.floor(now / 300) * 300 +
       DAY_SECONDS * 8;
 
   if (to <= from) {
@@ -380,7 +385,9 @@ export async function GET(
       )
     ) {
       const response =
-        await fetchWithRetry(
+        await sharedScheduleFetch(
+          `${from}:${to}:${page}`,
+          () => fetchWithRetry(
           ANILIST_API_URL,
           {
             method: 'POST',
@@ -410,6 +417,7 @@ export async function GET(
               revalidate: 300,
             },
           },
+          ),
         );
 
       if (!response.ok) {
@@ -638,6 +646,25 @@ export async function GET(
       'Schedule API error:',
       error,
     );
+
+    try {
+      const fallback = await getShikimoriSchedule(from, to, requestedLimit);
+      return NextResponse.json({generatedAt:now,range:{from,to},count:fallback.items.length,...fallback}, {
+        headers:publicApiCacheHeaders({browserSeconds:30,edgeSeconds:300,staleWhileRevalidateSeconds:900}),
+      });
+    } catch (fallbackError) {
+      console.error('Schedule Shikimori fallback unavailable:', fallbackError);
+    }
+
+    try {
+      const fallback = await getJikanSchedule(from, to, requestedLimit);
+      return NextResponse.json({ generatedAt: now, range: {from, to},
+        count: fallback.items.length, ...fallback }, {
+        headers: publicApiCacheHeaders({browserSeconds: 30, edgeSeconds: 300, staleWhileRevalidateSeconds: 900}),
+      });
+    } catch (fallbackError) {
+      console.error('Schedule fallback unavailable:', fallbackError);
+    }
 
     return NextResponse.json(
       {

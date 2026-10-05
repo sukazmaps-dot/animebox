@@ -1,4 +1,5 @@
 'use client';
+import {scheduleAnimeHref} from '@/lib/schedule-url';
 
 import Link from 'next/link';
 
@@ -10,7 +11,6 @@ import {
   getScheduleTitle,
   useHomeScheduleRuntime,
 } from '@/components/home/HomeScheduleRuntimeProvider';
-import { animeHref } from '@/lib/anime-url';
 
 export default function HomeScheduleSection() {
   const {
@@ -96,7 +96,7 @@ export default function HomeScheduleSection() {
               return (
                 <Link
                   key={item.id}
-                  href={animeHref(item.media)}
+                  href={scheduleAnimeHref(item.media)}
                   className="schedule__card"
                 >
                   <AnimeImage
@@ -122,12 +122,12 @@ export default function HomeScheduleSection() {
                     <strong title={title}>
                       {title}
                     </strong>
-                    <span>Эпизод {item.episode}</span>
+                    <span>{item.episode == null ? 'Плановый выход' : `Эпизод ${item.episode}${item.timingKind ? ' · план' : ''}`}</span>
                   </div>
 
                   <span className="schedule__time">
                     {formatScheduleTime(item.airingAt)}
-                    {released ? ' · Вышел' : ''}
+                    {released && !item.timingKind ? ' · Вышел' : ''}
                   </span>
                 </Link>
               );

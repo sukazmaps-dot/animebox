@@ -223,7 +223,8 @@ export default function HomeScheduleRuntimeProvider({
 
       const candidates = scheduleWindowItems.filter(
         (item) =>
-          personalAnimeIds.has(item.media.id) &&
+          item.episode != null && !item.timingKind &&
+          item.media.id!=null && personalAnimeIds.has(item.media.id) &&
           item.airingAt >= windowStart &&
           item.airingAt <= windowEnd,
       );
@@ -240,10 +241,10 @@ export default function HomeScheduleRuntimeProvider({
       if (!item) return null;
 
       return {
-        animeId: item.media.id,
+        animeId: item.media.id!,
         slug: item.media.slug ?? null,
         title: getScheduleTitle(item),
-        episode: Math.max(1, item.episode),
+        episode: Math.max(1, item.episode!),
         airingAt: item.airingAt,
         coverImage: item.media.coverImage,
         released: Boolean(released),
