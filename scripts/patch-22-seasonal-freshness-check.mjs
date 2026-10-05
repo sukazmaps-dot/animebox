@@ -33,7 +33,7 @@ for (const [label, source, needle] of [
   ['current season context', route, 'getCurrentAnimeSeason()'],
   ['season query', route, 'season,'],
   ['season year query', route, 'year: seasonYear'],
-  ['seasonal cache generation', route, 'animebox-recommendation-candidates-v11-saved-metadata'],
+  ['seasonal cache generation', route, 'animebox-recommendation-candidates-v12-dense-source-pages'],
   ['seasonal response contract', types, "| 'seasonal'"],
   ['season response metadata', types, 'seasonYear?: number'],
   ['seasonal telemetry score', personalization, 'seasonal_score: event.seasonalScore ?? null'],

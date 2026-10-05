@@ -33,7 +33,7 @@ for (const [label, source, needle] of [
   ['explicit explore class rail', rails, "item.explorationClass === 'explore'"],
   ['hidden gem candidate source', route, "return 'hidden_gem'"],
   ['bounded hidden gem page', route, 'const hiddenGemPage = 2 + ((page * 3 + bucket) % 18)'],
-  ['candidate cache v8', route, 'animebox-recommendation-candidates-v11-saved-metadata'],
+  ['candidate cache v8', route, 'animebox-recommendation-candidates-v12-dense-source-pages'],
   ['AniList popularity metadata', anilist, 'popularity'],
   ['AniList favourites metadata', anilist, 'favourites'],
   ['recommendation novelty output', recommendations, 'noveltyScore: exploration.noveltyScore'],

@@ -46,7 +46,7 @@ try{
  assert.ok(catalog.anime.every(item=>item.startDate?.year && item.score>0));
  const seasonal=await call('catalog','season=FALL&year=2026&limit=30');assert.ok(seasonal.anime.length>1);
  const first=await call('recommendations','limit=20&page=1&bucket=1');
- const next=await call('recommendations','limit=20&page=2&bucket=0');
+ const next=await call('recommendations','limit=20&page=8&bucket=1');
  assert.equal(first.candidateSource,'ranked');assert.equal(next.candidateSource,'ranked');
  assert.equal(first.items.length,20);assert.equal(next.items.length,20);
  assert.ok(next.items.every(item=>!first.items.some(before=>before.id===item.id)));

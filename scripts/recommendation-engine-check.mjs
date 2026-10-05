@@ -164,7 +164,7 @@ if (
   failures.push('17.8.3 multi-source candidate retrieval is incomplete');
 }
 if (
-  !candidates.includes('animebox-recommendation-candidates-v11-saved-metadata') ||
+  !candidates.includes('animebox-recommendation-candidates-v12-dense-source-pages') ||
   !candidates.includes('tasteGenre') ||
   !candidates.includes('bucket')
 ) {

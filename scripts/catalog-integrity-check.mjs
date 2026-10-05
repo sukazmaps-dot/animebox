@@ -142,14 +142,14 @@ if (
 
 if (
   !homeFeed.includes('refreshCatalogAvailabilityBatch(') ||
-  !homeFeed.includes("animebox-home-initial-feed-v5-saved-metadata")
+  !homeFeed.includes("animebox-home-initial-feed-v6-verified-cache")
 ) {
   failures.push('home feed does not warm hidden/stale playback candidates');
 }
 
 if (
   !recommendationRoute.includes('FILTERED_RESPONSE_CACHE_SECONDS = 5 * 60') ||
-  !recommendationRoute.includes("animebox-recommendation-candidates-v11-saved-metadata") ||
+  !recommendationRoute.includes("animebox-recommendation-candidates-v12-dense-source-pages") ||
   !recommendationRoute.includes('{ limit: 8 }')
 ) {
   failures.push('recommendation verification/cache rollout is incomplete');

@@ -36,9 +36,24 @@ const loadHomeInitialFeed = unstable_cache(
       popularResult.status === 'fulfilled' ? Promise.resolve(popularResult.value) : getSavedCatalogPage({limit:30,order:'ranked'}).then(page=>page.anime),
       ongoingResult.status === 'fulfilled' ? Promise.resolve(ongoingResult.value) : getSavedCatalogPage({limit:30,status:'ongoing'}).then(page=>page.anime),
     ]);
-    return {popular,ongoing};
+    const combined = [...popular, ...ongoing];
+    const availability = combined.every(item => item.metadataSource === 'saved')
+      ? {items: combined, refreshTargets: [], registryHealthy: true}
+      : await filterAnimeByAvailability(combined, 'catalog');
+    // Do not turn a temporary registry outage into a cached empty home page.
+    if (!availability.registryHealthy) throw new Error('Home availability registry unavailable');
+    const allowed = new Set(availability.items.map(anime => anime.id));
+    if (availability.refreshTargets.length > 0) {
+      after(async () => {
+        await refreshCatalogAvailabilityBatch(availability.refreshTargets, { limit: 6 });
+      });
+    }
+    return {
+      popular: popular.filter(anime => allowed.has(anime.id)),
+      ongoing: ongoing.filter(anime => allowed.has(anime.id)),
+    };
   },
-  ['animebox-home-initial-feed-v5-saved-metadata'],
+  ['animebox-home-initial-feed-v6-verified-cache'],
   {
     revalidate: 300,
     tags: ['animebox-home-feed'],
@@ -47,26 +62,7 @@ const loadHomeInitialFeed = unstable_cache(
 
 export async function getHomeInitialFeed(): Promise<HomeInitialFeed> {
   try {
-    const raw = await loadHomeInitialFeed();
-    const combined = [...raw.popular, ...raw.ongoing];
-    const availability = combined.every(item=>item.metadataSource==='saved')
-      ? {items:combined,refreshTargets:[]}
-      : await filterAnimeByAvailability(combined,'catalog');
-    const allowed = new Set(availability.items.map((anime) => anime.id));
-
-    if (availability.refreshTargets.length > 0) {
-      after(async () => {
-        await refreshCatalogAvailabilityBatch(
-          availability.refreshTargets,
-          { limit: 6 },
-        );
-      });
-    }
-
-    return {
-      popular: raw.popular.filter((anime) => allowed.has(anime.id)),
-      ongoing: raw.ongoing.filter((anime) => allowed.has(anime.id)),
-    };
+    return await loadHomeInitialFeed();
   } catch (error) {
     console.warn('[Home] initial server feed unavailable:', error);
     return { popular: [], ongoing: [] };

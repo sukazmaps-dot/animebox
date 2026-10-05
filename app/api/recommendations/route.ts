@@ -146,6 +146,24 @@ function selectCandidateSource(input: {
   return slot % 2 === 0 ? 'popularity' : 'ranked';
 }
 
+// Each source has its own dense page sequence. The public cursor still advances
+// once per request, but a seasonal source first encountered at cursor 5 starts
+// at seasonal page 1 rather than discarding four pages of fresh candidates.
+function candidateSourcePage(input: {
+  page: number; bucket: number; source: CandidateSource;
+  hasTasteGenre: boolean; mood: CandidateMood; intent: CandidateIntent;
+}) {
+  const slots = Array.from({length: 7}, (_, index) => selectCandidateSource({
+    ...input, page: index + 1,
+  }));
+  const completedCycles = Math.floor((input.page - 1) / 7);
+  const remainder = (input.page - 1) % 7;
+  const perCycle = slots.filter(source => source === input.source).length;
+  if (perCycle === 0) return input.page;
+  return completedCycles * perCycle +
+    slots.slice(0, remainder + 1).filter(source => source === input.source).length || 1;
+}
+
 function fallbackSource(source: CandidateSource, page: number): CandidateSource {
   if (source === 'ranked') return 'popularity';
   if (source === 'popularity') return 'ranked';
@@ -222,40 +240,29 @@ function sourceOptions(input: {
  * (canonical genre + one of five moods), never a user/session UUID, so pages
  * stay shareable across users and retain CDN/server cache efficiency.
  */
-const getCachedCandidatePage = unstable_cache(
-  async (
-    page: number,
-    limit: number,
-    source: CandidateSource,
-    tasteGenre: string | null,
-    mood: CandidateMood,
-    bucket: number,
-    season: CatalogSeason,
-    seasonYear: number,
-  ) => {
-    const options = sourceOptions({
-      source,
-      page,
-      bucket,
-      tasteGenre,
-      mood,
-      season,
-      seasonYear,
-    });
-    options.limit = limit;
-
+const loadCachedCandidateOptions = unstable_cache(
+  async (options: GetAnimesOptions) => {
     try { return await getAnimesWithShikimori(options); }
     catch(error) {
       console.warn('Recommendations using saved catalog',error);
       return (await getSavedCatalogPage(options)).anime;
     }
   },
-  ['animebox-recommendation-candidates-v11-saved-metadata'],
-  {
-    revalidate: CACHE_SECONDS,
-    tags: ['animebox-recommendation-candidates'],
-  },
+  ['animebox-recommendation-candidates-v12-dense-source-pages'],
+  {revalidate: CACHE_SECONDS, tags: ['animebox-recommendation-candidates']},
 );
+
+function getCachedCandidatePage(
+  page: number, limit: number, source: CandidateSource,
+  tasteGenre: string | null, mood: CandidateMood, bucket: number,
+  season: CatalogSeason, seasonYear: number,
+) {
+  // Cache only effective retrieval options: irrelevant taste/mood/bucket must
+  // not create separate cached copies of the same ranked/public page.
+  const options = sourceOptions({source, page, bucket, tasteGenre, mood, season, seasonYear});
+  options.limit = limit;
+  return loadCachedCandidateOptions(options);
+}
 
 async function loadCandidatePage(input: {
   page: number;
@@ -266,13 +273,15 @@ async function loadCandidatePage(input: {
   bucket: number;
   season: CatalogSeason;
   seasonYear: number;
+  intent: CandidateIntent;
 }) {
   const { page, limit, source, tasteGenre, mood, bucket, season, seasonYear } = input;
+  const sourcePage = candidateSourcePage({page, bucket, source, hasTasteGenre: Boolean(tasteGenre), mood, intent: input.intent});
   const fallback = fallbackSource(source, page);
 
   try {
     const items = await getCachedCandidatePage(
-      page,
+      sourcePage,
       limit,
       source,
       tasteGenre,
@@ -445,6 +454,7 @@ async function observedGET(request: NextRequest) {
       page,
       limit,
       source: requestedSource,
+      intent,
       tasteGenre,
       mood,
       bucket,
