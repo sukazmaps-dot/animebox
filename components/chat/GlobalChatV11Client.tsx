@@ -13,6 +13,7 @@ import {
   getChatMe,
   getChatSettings,
   getOlderChatMessages,
+  getLatestChatMessages,
   markChatSeen,
   moderateCommunity,
   reportChatMessage,
@@ -165,6 +166,7 @@ export default function GlobalChatV11Client({ initialPage }: { initialPage: Chat
   const [realtimeReady, setRealtimeReady] = useState(false);
 
   const authorCache = useRef(new Map<string, ChatAuthor>());
+  const pendingAuthors = useRef(new Set<string>());
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const lastSeenWriteRef = useRef(0);
@@ -174,8 +176,9 @@ export default function GlobalChatV11Client({ initialPage }: { initialPage: Chat
   }, [initialPage.messages]);
 
   const ensureAuthors = useCallback(async (ids: string[]) => {
-    const missing = [...new Set(ids)].filter((id) => id && !authorCache.current.has(id));
+    const missing = [...new Set(ids)].filter((id) => id && !authorCache.current.has(id) && !pendingAuthors.current.has(id));
     if (!missing.length) return;
+    missing.forEach(id => pendingAuthors.current.add(id));
     try {
       const authors = await fetchChatAuthors(missing);
       for (const author of authors) authorCache.current.set(author.id, author);
@@ -185,8 +188,26 @@ export default function GlobalChatV11Client({ initialPage }: { initialPage: Chat
       })));
     } catch (loadError) {
       console.error('[Chat] author lookup', loadError);
+    } finally {
+      missing.forEach(id => pendingAuthors.current.delete(id));
     }
   }, []);
+
+  useEffect(() => {
+    // Recover a failed server bootstrap; a healthy initial history needs no
+    // duplicate browser fetch. Keep broadcasts received during recovery.
+    if (initialPage.messages.length > 0) return;
+    const controller = new AbortController();
+    void getLatestChatMessages(controller.signal).then(page => {
+      if (controller.signal.aborted) return;
+      for (const message of page.messages) if (message.author) authorCache.current.set(message.author.id, message.author);
+      setMessages(current => mergeUniqueMessages(page.messages, current));
+      setNextCursor(page.nextCursor);
+    }).catch(error => {
+      if (!controller.signal.aborted) setError(error instanceof Error ? error.message : 'Не удалось загрузить чат.');
+    });
+    return () => controller.abort();
+  }, [initialPage.messages.length]);
 
   useEffect(() => {
     void getChatSettings().then(setSettings).catch(() => undefined);
@@ -296,13 +317,13 @@ export default function GlobalChatV11Client({ initialPage }: { initialPage: Chat
       .on('broadcast', { event: 'INSERT' }, async ({ payload }) => {
         const row = getBroadcastRecord(payload);
         if (!row || typeof row.user_id !== 'string') return;
-        await ensureAuthors([row.user_id]);
         const message = rowToMessage(row, authorCache.current.get(row.user_id) ?? null);
         if (!message) return;
 
         const viewport = viewportRef.current;
         const nearBottom = viewport ? viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 180 : true;
         setMessages((current) => mergeUniqueMessages(current, [message]));
+        void ensureAuthors([row.user_id]);
         if (nearBottom) {
           requestAnimationFrame(() => scrollToBottom('smooth'));
           markSeenSoon();

@@ -142,7 +142,7 @@ if (
 
 if (
   !homeFeed.includes('refreshCatalogAvailabilityBatch(') ||
-  !homeFeed.includes("animebox-home-initial-feed-v6-verified-cache")
+  !homeFeed.includes("animebox-home-initial-feed-v7-saved-first-screen")
 ) {
   failures.push('home feed does not warm hidden/stale playback candidates');
 }

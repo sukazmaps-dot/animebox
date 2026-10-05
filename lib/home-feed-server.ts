@@ -18,23 +18,20 @@ type HomeInitialFeed = {
 
 const loadHomeInitialFeed = unstable_cache(
   async (): Promise<HomeInitialFeed> => {
-    const [popularResult, ongoingResult] = await Promise.allSettled([
-      getAnimesWithShikimori({
-        limit: 12,
-        page: 1,
-        order: 'ranked',
-      }),
-      getAnimesWithShikimori({
-        limit: 12,
-        page: 1,
-        order: 'popularity',
-        status: 'ongoing',
-      }),
-    ]);
-
-    const [popular,ongoing]=await Promise.all([
-      popularResult.status === 'fulfilled' ? Promise.resolve(popularResult.value) : getSavedCatalogPage({limit:30,order:'ranked'}).then(page=>page.anime),
-      ongoingResult.status === 'fulfilled' ? Promise.resolve(ongoingResult.value) : getSavedCatalogPage({limit:30,status:'ongoing'}).then(page=>page.anime),
+    // First-screen cards come from the persisted verified catalogue. Avoid
+    // blocking a cold navigation on multiple external metadata providers.
+    const loadGroup = async (order: 'ranked' | 'popularity', ongoing: boolean) => {
+      const options = {limit: 12, page: 1, order, ...(ongoing ? {status: 'ongoing' as const} : {})};
+      try {
+        const saved = await getSavedCatalogPage(options);
+        if (saved.anime.length > 0) return saved.anime;
+      } catch (error) {
+        console.warn('[Home] saved first screen unavailable:', error);
+      }
+      return getAnimesWithShikimori(options);
+    };
+    const [popular, ongoing] = await Promise.all([
+      loadGroup('ranked', false), loadGroup('popularity', true),
     ]);
     const combined = [...popular, ...ongoing];
     const availability = combined.every(item => item.metadataSource === 'saved')
@@ -53,7 +50,7 @@ const loadHomeInitialFeed = unstable_cache(
       ongoing: ongoing.filter(anime => allowed.has(anime.id)),
     };
   },
-  ['animebox-home-initial-feed-v6-verified-cache'],
+  ['animebox-home-initial-feed-v7-saved-first-screen'],
   {
     revalidate: 300,
     tags: ['animebox-home-feed'],

@@ -12,8 +12,8 @@ try {
    a.path==='server-only'?'':
    a.path==='next/cache'?`export const unstable_cache=fn=>{let cached;return async()=>{if(cached)return cached;cached=await fn();return cached}};`:
    a.path==='next/server'?`export const after=fn=>fn();`:
-   a.path==='@/lib/combined-anime'?`export async function getAnimesWithShikimori(){return [{id:1,metadataSource:globalThis.homeCacheTest.saved?'saved':undefined}]}`:
-   a.path==='@/lib/saved-catalog-server'?`export async function getSavedCatalogPage(){return {anime:[]}}`:
+   a.path==='@/lib/combined-anime'?`export async function getAnimesWithShikimori(){globalThis.homeCacheTest.upstream=(globalThis.homeCacheTest.upstream??0)+1;return [{id:1,metadataSource:globalThis.homeCacheTest.saved?'saved':undefined}]}`:
+   a.path==='@/lib/saved-catalog-server'?`export async function getSavedCatalogPage(){return {anime:globalThis.homeCacheTest.savedFirst?[{id:2,metadataSource:'saved'}]:[]}}`:
    a.path==='@/lib/catalog-availability-server'?`export async function filterAnimeByAvailability(items){globalThis.homeCacheTest.reads++;return {items,refreshTargets:items,registryHealthy:globalThis.homeCacheTest.healthy}};export async function refreshCatalogAvailabilityBatch(){globalThis.homeCacheTest.refreshes++}`:
    (()=>{throw new Error(a.path)})()}));
  }}]});
@@ -25,5 +25,10 @@ try {
  assert.equal((await getHomeInitialFeed()).popular.length,1);
  assert.equal(globalThis.homeCacheTest.reads,2,'failed registry result is not cached; healthy hit does not re-read');
  assert.equal(globalThis.homeCacheTest.refreshes,1,'background probe only scheduled when filling cache');
+ globalThis.homeCacheTest={reads:0,refreshes:0,upstream:0,healthy:true,savedFirst:true};
+ const savedFirst=await import(join(dir,'home.mjs')+'?saved-first');
+ assert.equal((await savedFirst.getHomeInitialFeed()).popular[0].id,2);
+ assert.equal(globalThis.homeCacheTest.upstream,0,'persisted first-screen cards do not wait for upstream');
+ assert.equal(globalThis.homeCacheTest.reads,0,'saved playable view needs no second availability query');
  console.log('PASS: home cache includes verified cards; warm hits avoid registry queries/probes; registry outage does not poison cache');
 }finally{rmSync(dir,{recursive:true,force:true});delete globalThis.homeCacheTest;}

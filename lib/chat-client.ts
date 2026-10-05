@@ -15,6 +15,11 @@ async function readJson<T>(response: Response): Promise<T> {
   return data;
 }
 
+export async function getLatestChatMessages(signal?: AbortSignal) {
+  const response = await fetch('/api/chat/messages', {cache: 'no-store', signal});
+  return readJson<ChatMessagesPage>(response);
+}
+
 export async function getOlderChatMessages(cursor: string) {
   const response = await fetch(`/api/chat/messages?cursor=${encodeURIComponent(cursor)}`, {
     cache: 'no-store',

@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+import ChatLoadingShell from '@/components/chat/ChatLoadingShell';
 import type { Metadata } from 'next';
 
 import GlobalChatV11Client from '@/components/chat/GlobalChatV11Client';
@@ -15,7 +17,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function ChatPage() {
+async function ChatHistory() {
   let initialPage: ChatMessagesPage = { messages: [], nextCursor: null };
 
   try {
@@ -25,4 +27,8 @@ export default async function ChatPage() {
   }
 
   return <GlobalChatV11Client initialPage={initialPage} />;
+}
+
+export default function ChatPage() {
+  return <Suspense fallback={<ChatLoadingShell />}><ChatHistory /></Suspense>;
 }
