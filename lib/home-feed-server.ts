@@ -62,6 +62,16 @@ export async function getHomeInitialFeed(): Promise<HomeInitialFeed> {
     return await loadHomeInitialFeed();
   } catch (error) {
     console.warn('[Home] initial server feed unavailable:', error);
-    return { popular: [], ongoing: [] };
+    // A failed group must not erase cards already persisted for the other one.
+    // Keep this recovery outside unstable_cache so an outage is not cached.
+    const recover = async (order: 'ranked' | 'popularity', ongoing: boolean) => {
+      try {
+        return (await getSavedCatalogPage({limit: 12, page: 1, order, ...(ongoing ? {status: 'ongoing' as const} : {})})).anime;
+      } catch {
+        return [];
+      }
+    };
+    const [popular, ongoing] = await Promise.all([recover('ranked', false), recover('popularity', true)]);
+    return {popular, ongoing};
   }
 }
