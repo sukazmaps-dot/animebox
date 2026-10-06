@@ -60,7 +60,7 @@ try {
     b.onResolve({filter: /^(server-only|@\/)/}, a => ({path: a.path, namespace: 'fixture'}));
     b.onLoad({filter: /.*/, namespace: 'fixture'}, a => ({loader: 'js', contents:
       a.path === 'server-only' ? '' :
-      a.path === '@/lib/supabase/admin' ? `export function createSupabaseAdmin(){return {rpc:async(name,args)=>{globalThis.lookupFixture.rpcCalls++;return {data:Array.from({length:args.match_count},(_,i)=>({anime_id:i+1,similarity_score:1,title:'Naruto',slug:'naruto-'+i})),error:null}}}}` :
+      a.path === '@/lib/supabase/admin' ? `export function createSupabaseAdmin(){return {rpc:async(name,args)=>{globalThis.lookupFixture.rpcCalls++;globalThis.lookupFixture.rpcNames??=[];globalThis.lookupFixture.rpcNames.push(name);if(globalThis.lookupFixture.missingV4&&name==='search_anime_hybrid_lexical_v4')return {data:null,error:{message:'Could not find the function in the schema cache'}};return {data:Array.from({length:args.match_count},(_,i)=>({anime_id:i+1,similarity_score:1,title:'Naruto',slug:'naruto-'+i})),error:null}}}}` :
       a.path === '@/lib/combined-anime' ? 'export const getAnimesByIdsWithShikimori=async()=>[];' :
       a.path === '@/lib/smart-search' ? 'export const normalizeSearchText=q=>q.trim().toLowerCase();export const buildSearchQueryVariants=q=>[q];' : (() => {throw new Error(a.path);})()}));
   }}]});
@@ -70,6 +70,12 @@ try {
   assert.equal(preview.length, 18); assert.equal(main.length, 16);
   await searchLocalAnimeIndex('naruto', 18);
   assert.equal(globalThis.lookupFixture.rpcCalls, 1);
+  assert.deepEqual(globalThis.lookupFixture.rpcNames, ['search_anime_hybrid_lexical_v4']);
+  globalThis.lookupFixture.missingV4 = true;
+  const fallback = await searchLocalAnimeIndex('fallback-query', 16);
+  assert.equal(fallback.length, 16);
+  assert.deepEqual(globalThis.lookupFixture.rpcNames.slice(-2), ['search_anime_hybrid_lexical_v4', 'search_anime_hybrid_lexical_v2'], 'missing migration preserves v2 rollout fallback');
+  globalThis.lookupFixture.missingV4 = false;
 
   globalThis.lookupFixture.controlReads = 0;
   await build({entryPoints: [resolve('lib/player-source-control.ts')], outfile: join(dir, 'control.mjs'), bundle: true, platform: 'node', format: 'esm', plugins: [{name: 'control-fixture', setup(b) {

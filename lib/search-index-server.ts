@@ -120,10 +120,14 @@ async function loadLexicalSearch(
 ): Promise<LocalAnimeSearchHit[]> {
   const admin = createSupabaseAdmin();
 
-  const v2 = await admin.rpc('search_anime_hybrid_lexical_v2', {
+  const args = {
     query_text: query,
     match_count: matchCount,
-  });
+  };
+  let v2 = await admin.rpc('search_anime_hybrid_lexical_v4', args);
+  if (v2.error && /schema cache|does not exist|could not find the function/i.test(v2.error.message)) {
+    v2 = await admin.rpc('search_anime_hybrid_lexical_v2', args);
+  }
 
   if (!v2.error) {
     const rows = (v2.data ?? []) as Array<Record<string, unknown>>;
@@ -133,7 +137,7 @@ async function loadLexicalSearch(
   }
 
   if (!/schema cache|does not exist|could not find the function/i.test(v2.error.message)) {
-    console.warn('[Search index] lexical v2 RPC failed:', v2.error.message);
+    console.warn('[Search index] lexical RPC failed:', v2.error.message);
     return [];
   }
 
