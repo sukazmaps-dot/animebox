@@ -1,6 +1,7 @@
 import { after, NextResponse } from 'next/server';
 
-import { getAnimeByIdWithShikimori } from '@/lib/combined-anime';
+import { resolveAnimeRoute } from '@/lib/anime-route';
+import {getLocalAnimeDetailFallback} from '@/lib/anime-localization-server';
 import { getEpisodeProviderAvailability } from '@/lib/episode-provider-availability';
 import { syncSeoEpisodeIndex } from '@/lib/seo-episode-index';
 
@@ -18,7 +19,10 @@ export async function GET(
   }
 
   try {
-    const anime = await getAnimeByIdWithShikimori(animeId);
+    const local = await getLocalAnimeDetailFallback(animeId);
+    const anime = local && (local.idMal || local.mal_id)
+      ? local
+      : await resolveAnimeRoute(String(animeId));
     if (!anime) {
       return NextResponse.json({ error: 'Anime not found' }, { status: 404 });
     }
@@ -53,6 +57,9 @@ export async function GET(
       {
         animeId,
         status: 'unknown',
+        reason: error instanceof Error && /Timeout|Abort/.test(error.name)
+          ? 'provider_timeout'
+          : 'availability_check_failed',
         episodes: [],
         maxEpisode: null,
         providers: [],

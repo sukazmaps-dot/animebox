@@ -7,6 +7,7 @@ import {
   normalizeSearchText,
 } from '@/lib/smart-search';
 import type { Anime } from '@/types/anime';
+import {createPublicResultCache} from '@/lib/public-result-cache';
 
 export type LocalAnimeSearchHit = {
   animeId: number;
@@ -103,7 +104,17 @@ function mapSearchRow(row: Record<string, unknown>): LocalAnimeSearchHit | null 
   };
 }
 
-async function runLexicalSearch(
+const cachedLexicalSearch = createPublicResultCache<LocalAnimeSearchHit[]>({
+  ttlMs: 30_000, maxEntries: 128, cacheWhen: rows => rows.length > 0,
+});
+
+async function runLexicalSearch(query: string, matchCount: number) {
+  // Nearby preview/main limits share a pool, then each caller slices its page.
+  const poolSize = Math.min(40, Math.ceil(matchCount / 10) * 10);
+  return cachedLexicalSearch(JSON.stringify([query, poolSize]), () => loadLexicalSearch(query, poolSize));
+}
+
+async function loadLexicalSearch(
   query: string,
   matchCount: number,
 ): Promise<LocalAnimeSearchHit[]> {

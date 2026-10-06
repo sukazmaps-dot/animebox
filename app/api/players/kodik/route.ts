@@ -21,10 +21,12 @@ import {
 } from '@/lib/upstream-resilience-server';
 
 async function observedGET(request: NextRequest) {
+  const requestStartedAt = performance.now();
   const limited = await enforceIpRateLimit(request, {
     scope: 'kodik_lookup_ip', limit: 180, windowSeconds: 60,
   });
   if (limited) return limited;
+  const rateLimitMs = Math.max(0, Math.round(performance.now() - requestStartedAt));
 
   const shikimoriIdParam = request.nextUrl.searchParams.get('shikimoriId');
   const episodeParam = request.nextUrl.searchParams.get('episode');
@@ -137,6 +139,7 @@ async function observedGET(request: NextRequest) {
       noStore: episode != null,
       signal,
     });
+    const lookupMs = Date.now() - providerStartedAt;
 
     await reportProviderAttempt({
       ok: true,
@@ -212,6 +215,7 @@ async function observedGET(request: NextRequest) {
       {
         headers: {
           'Cache-Control': 'private, no-store',
+          'Server-Timing': `animebox_rate_limit;dur=${rateLimitMs}, animebox_kodik_lookup;dur=${lookupMs}, animebox_handler;dur=${Math.round(performance.now() - requestStartedAt)}`,
         },
       },
     );

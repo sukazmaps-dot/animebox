@@ -14,4 +14,5 @@ export type EpisodeAvailabilityResponse = {
   episodes: number[];
   maxEpisode: number | null;
   providers: EpisodeAvailabilityProvider[];
+  reason?: string;
 };

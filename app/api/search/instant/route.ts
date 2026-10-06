@@ -15,6 +15,7 @@ const DEFAULT_LIMIT = 18;
 const MAX_LIMIT = 30;
 
 async function observedGET(request: NextRequest) {
+  const requestStartedAt = performance.now();
   const limited = await enforceIpRateLimit(request, {
     scope: 'search_instant_ip',
     limit: 180,
@@ -22,6 +23,7 @@ async function observedGET(request: NextRequest) {
   });
 
   if (limited) return limited;
+  const rateLimitMs = Math.max(0, Math.round(performance.now() - requestStartedAt));
 
   const query = request.nextUrl.searchParams.get('q')?.trim() ?? '';
 
@@ -54,11 +56,14 @@ async function observedGET(request: NextRequest) {
 
   try {
     const hits = await searchLocalAnimeIndex(query, limit);
+    const lexicalMs = Math.max(0, Math.round(performance.now() - startedAt));
+    const availabilityStartedAt = performance.now();
     const allowedIds = new Set(
       await filterAnimeIdsByAvailability(
         hits.map((hit) => hit.animeId),
       ),
     );
+    const availabilityMs = Math.max(0, Math.round(performance.now() - availabilityStartedAt));
 
     const filtered = hits
       .filter((hit) => allowedIds.has(hit.animeId))
@@ -74,6 +79,7 @@ async function observedGET(request: NextRequest) {
         query,
         source: 'local-index-v2',
         tookMs,
+        timings: {rateLimitMs, lexicalMs, availabilityMs},
         matches: filtered.map((hit) => ({
           animeId: hit.animeId,
           score: Math.round(hit.score * 1000) / 1000,
@@ -89,7 +95,7 @@ async function observedGET(request: NextRequest) {
             staleWhileRevalidateSeconds: 600,
           }),
           'X-AnimeBox-Search-Path': 'instant-local-v1',
-          'Server-Timing': `animebox_search_local;dur=${tookMs}`,
+          'Server-Timing': `animebox_search_local;dur=${tookMs}, animebox_rate_limit;dur=${rateLimitMs}, animebox_lexical;dur=${lexicalMs}, animebox_availability;dur=${availabilityMs}`,
         },
       },
     );

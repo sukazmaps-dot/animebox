@@ -108,6 +108,8 @@ export async function getInstantAnimeSearch(
     clientCacheStatus: 'network' as const,
   };
 
-  writeCache(key, enriched);
+  // Empty payloads also represent server-side failures in the instant lane.
+  // Do not hide a recovered index behind a three-minute negative cache.
+  if (enriched.items.length > 0) writeCache(key, enriched);
   return enriched;
 }

@@ -1,5 +1,7 @@
 'use client';
 
+import {sourceFailureReason} from '@/lib/source-failure-reason';
+
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -971,6 +973,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
     async function loadSources() {
       let lastReason = '';
+      const failureReasons: string[] = [];
       let firstReadyIndex = -1;
 
       try {
@@ -1151,6 +1154,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           }
           const result = await runProviderAttempt(provider, 'primary');
           lastReason = result.reason || lastReason;
+          if (!result.ready) failureReasons.push(result.reason || 'provider_unavailable');
 
           if (result.restricted) {
             continue;
@@ -1183,8 +1187,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           return;
         }
 
-        const terminalReason =
-          budgetExpired ? 'discovery_budget_exhausted' : lastReason;
+        const terminalReason = sourceFailureReason(failureReasons.length ? failureReasons : [lastReason], budgetExpired);
         trackExhausted(terminalReason || 'no_playable_source');
         setSourceIdentity(identity);
         setLoadingSources(false);
@@ -1732,4 +1735,3 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
   );
 }
-

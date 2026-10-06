@@ -161,7 +161,21 @@ export function invalidateProviderControlCache() {
   cachedControl = null;
 }
 
+let controlReadInFlight: ReturnType<typeof loadControlRowsUncached> | null = null;
+
 async function loadControlRows() {
+  if (cachedControl && cachedControl.expiresAt > Date.now()) return cachedControl;
+  if (controlReadInFlight) return controlReadInFlight;
+  const request = loadControlRowsUncached();
+  controlReadInFlight = request;
+  try {
+    return await request;
+  } finally {
+    if (controlReadInFlight === request) controlReadInFlight = null;
+  }
+}
+
+async function loadControlRowsUncached() {
   if (cachedControl && cachedControl.expiresAt > Date.now()) {
     return cachedControl;
   }
