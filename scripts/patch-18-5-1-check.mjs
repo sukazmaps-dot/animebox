@@ -4,6 +4,7 @@ const read = (path) =>
   fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
 const catalog = read('components/SearchCatalogClient.tsx');
+const metadataMerge = read('lib/anime-metadata-merge.ts');
 const animeClient = read('lib/anime-client.ts');
 const animeApi = read('app/api/anime/route.ts');
 const anilist = read('lib/anilist.ts');
@@ -24,7 +25,7 @@ const checks = [
   ['catalog consumes API hasNextPage', catalog.includes('payload.pagination?.hasNextPage')],
   ['catalog no longer relies only on page length', !catalog.includes('setHasNextPage(payload.anime.length === CATALOG_PAGE_SIZE)')],
   ['catalog appends later pages', catalog.includes('mergeAnimePages(current, payload.anime)')],
-  ['catalog dedupes accumulated pages', catalog.includes('const byId = new Map<number, Anime>()')],
+  ['catalog dedupes accumulated pages', metadataMerge.includes('const byId = new Map(current.map(anime => [anime.id, anime]))') && metadataMerge.includes('byId.set(anime.id, mergeAnimeMetadata')],
   ['catalog uses near-viewport loading', catalog.includes("rootMargin: '900px 0px'")],
   ['catalog keeps manual load-more fallback', catalog.includes("loading ? 'Загружаем…' : 'Показать ещё'")],
   ['compact posters start from quality source', /preference === 'compact'[\s\S]*image\.large,[\s\S]*image\.extraLarge,[\s\S]*image\.medium/.test(imageService)],

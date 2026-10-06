@@ -19,12 +19,12 @@ import {
   buildSmartSearchFallbacks,
   mergeAnimeCandidates,
   normalizeSearchText,
-  rankAnimeForSmartSearch,
   rankAnimeForSmartSearchDetailed,
 } from '@/lib/smart-search';
 import { classifySearchQuery } from '@/lib/search-query';
 import {
   hydrateLocalAnimeHits,
+  localAnimeSearchHitToAnime,
   indexAnimeSearchDocuments,
   searchLocalAnimeIndex,
 } from '@/lib/search-index-server';
@@ -44,7 +44,7 @@ import {
 } from '@/lib/catalog-availability-server';
 
 import { observeApiRoute } from '@/lib/request-observability-server';
-import { getSavedCatalogPage } from '@/lib/saved-catalog-server';
+import { enrichAnimesWithSavedMetadata, getSavedCatalogPage } from '@/lib/saved-catalog-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -219,6 +219,8 @@ async function observedGET(
           candidates = mergeAnimeCandidates(localAnime, candidates);
           localIndexUsed = localAnime.length > 0;
         } catch (localHydrationError) {
+          candidates = mergeAnimeCandidates(missingLocalHits.map(localAnimeSearchHitToAnime), candidates);
+          localIndexUsed = true;
           console.warn(
             '[Anime search local hydration]',
             localHydrationError,
@@ -272,6 +274,9 @@ async function observedGET(
         });
       }
     }
+
+    // Batch only saved metadata; external providers are never called per card.
+    if (!savedCatalog) candidates = await enrichAnimesWithSavedMetadata(candidates);
 
     const smartRankedDetailed = rawSearch
       ? rankAnimeForSmartSearchDetailed(

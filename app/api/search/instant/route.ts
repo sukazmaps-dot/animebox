@@ -9,6 +9,9 @@ import {
   searchLocalAnimeIndex,
 } from '@/lib/search-index-server';
 
+import { getSavedAnimeMetadata } from '@/lib/saved-catalog-server';
+import { mergeAnimeMetadata } from '@/lib/anime-metadata-merge';
+
 export const runtime = 'nodejs';
 
 const DEFAULT_LIMIT = 18;
@@ -57,13 +60,22 @@ async function observedGET(request: NextRequest) {
   try {
     const hits = await searchLocalAnimeIndex(query, limit);
     const lexicalMs = Math.max(0, Math.round(performance.now() - startedAt));
-    const availabilityStartedAt = performance.now();
-    const allowedIds = new Set(
-      await filterAnimeIdsByAvailability(
-        hits.map((hit) => hit.animeId),
-      ),
-    );
-    const availabilityMs = Math.max(0, Math.round(performance.now() - availabilityStartedAt));
+    const enrichmentStartedAt = performance.now();
+    let metadataMs = 0;
+    let availabilityMs = 0;
+    const ids = hits.map(hit => hit.animeId);
+    const [allowed, saved] = await Promise.all([
+      filterAnimeIdsByAvailability(ids).then(rows => {
+        availabilityMs = Math.max(0, Math.round(performance.now() - enrichmentStartedAt));
+        return rows;
+      }),
+      getSavedAnimeMetadata(ids).then(rows => {
+        metadataMs = Math.max(0, Math.round(performance.now() - enrichmentStartedAt));
+        return rows;
+      }),
+    ]);
+    const allowedIds = new Set(allowed);
+    const savedById = new Map(saved.map(item => [item.id, item]));
 
     const filtered = hits
       .filter((hit) => allowedIds.has(hit.animeId))
@@ -75,11 +87,15 @@ async function observedGET(request: NextRequest) {
 
     return NextResponse.json(
       {
-        items: filtered.map(localAnimeSearchHitToAnime),
+        items: filtered.map(hit => {
+          const shell = localAnimeSearchHitToAnime(hit);
+          const saved = savedById.get(hit.animeId);
+          return saved ? mergeAnimeMetadata(saved, shell) : shell;
+        }),
         query,
         source: 'local-index-v2',
         tookMs,
-        timings: {rateLimitMs, lexicalMs, availabilityMs},
+        timings: {rateLimitMs, lexicalMs, availabilityMs, metadataMs},
         matches: filtered.map((hit) => ({
           animeId: hit.animeId,
           score: Math.round(hit.score * 1000) / 1000,
@@ -95,7 +111,7 @@ async function observedGET(request: NextRequest) {
             staleWhileRevalidateSeconds: 600,
           }),
           'X-AnimeBox-Search-Path': 'instant-local-v1',
-          'Server-Timing': `animebox_search_local;dur=${tookMs}, animebox_rate_limit;dur=${rateLimitMs}, animebox_lexical;dur=${lexicalMs}, animebox_availability;dur=${availabilityMs}`,
+          'Server-Timing': `animebox_search_local;dur=${tookMs}, animebox_rate_limit;dur=${rateLimitMs}, animebox_lexical;dur=${lexicalMs}, animebox_availability;dur=${availabilityMs}, animebox_metadata;dur=${metadataMs}`,
         },
       },
     );

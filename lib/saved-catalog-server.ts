@@ -5,6 +5,8 @@ import { normalizeSearchText } from '@/lib/smart-search';
 import { stableAnimeSlug } from '@/lib/anime-url';
 import type { GetAnimesOptions } from '@/lib/anilist';
 import type { Anime } from '@/types/anime';
+import { createPublicResultCache } from '@/lib/public-result-cache';
+import { mergeAnimeMetadata } from '@/lib/anime-metadata-merge';
 
 type SavedDocument = {
   anime_id: number; slug: string | null; title: string; aliases: string[];
@@ -90,4 +92,32 @@ export async function getSavedCatalogPage(options: GetAnimesOptions) {
     hasNextPage: rows.length > limit,
     unsupportedFilters,
   };
+}
+
+// One bounded query for the whole grid; only public title data enters this cache.
+const savedMetadataCache = createPublicResultCache<Anime[]>({
+  ttlMs: 30_000, maxEntries: 128, cacheWhen: items => items.length > 0,
+});
+
+export async function getSavedAnimeMetadata(ids: number[]): Promise<Anime[]> {
+  const unique = [...new Set(ids.filter(id => Number.isSafeInteger(id) && id > 0))].slice(0, 50).sort((a,b) => a-b);
+  if (!unique.length) return [];
+  try {
+    return await savedMetadataCache(unique.join(','), async () => {
+      const {data, error} = await createSupabaseAdmin()
+        .from('anime_saved_playable_catalog').select(fields).in('anime_id', unique)
+        .abortSignal(AbortSignal.timeout(1200));
+      if (error) throw new Error(error.message);
+      return ((data ?? []) as SavedDocument[]).map(savedDocumentToAnime);
+    });
+  } catch (error) {
+    console.warn('[saved anime metadata] optional batch unavailable:', error);
+    return [];
+  }
+}
+
+export async function enrichAnimesWithSavedMetadata(anime: Anime[]): Promise<Anime[]> {
+  const saved = await getSavedAnimeMetadata(anime.map(item => item.id));
+  const byId = new Map(saved.map(item => [item.id, item]));
+  return anime.map(item => mergeAnimeMetadata(item, byId.get(item.id)));
 }

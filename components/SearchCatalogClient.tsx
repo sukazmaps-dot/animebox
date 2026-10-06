@@ -58,6 +58,7 @@ import {
   type InstantSearchPayload,
 } from '@/lib/instant-search-client';
 import { createCatalogPageGate, waitForCurrentPreview } from '@/lib/catalog-request-state';
+import { enrichAnimeCards, mergeAnimePages } from '@/lib/anime-metadata-merge';
 import styles from './SearchCatalogClient.module.css';
 
 const SEARCH_DEBOUNCE_MS = 90;
@@ -229,15 +230,6 @@ function favoriteMatchesStudio(anime: Anime, studioName: string) {
   return studios.some((studio: { name?: unknown }) =>
     typeof studio?.name === 'string' && normalizedText(studio.name) === expected,
   );
-}
-
-function mergeAnimePages(current: Anime[], incoming: Anime[]) {
-  const byId = new Map<number, Anime>();
-
-  for (const anime of current) byId.set(anime.id, anime);
-  for (const anime of incoming) byId.set(anime.id, anime);
-
-  return [...byId.values()];
 }
 
 export default function SearchCatalogClient({
@@ -551,7 +543,7 @@ export default function SearchCatalogClient({
           }
           setResults((current) =>
             page === 1
-              ? payload.anime
+              ? enrichAnimeCards(payload.anime, current)
               : mergeAnimePages(current, payload.anime),
           );
           if (page === 1) {
