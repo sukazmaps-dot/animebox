@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AnimeCard from '@/components/AnimeCard';
 import AnimeImage from '@/components/AnimeImage';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
@@ -57,6 +57,7 @@ import {
   getInstantAnimeSearch,
   type InstantSearchPayload,
 } from '@/lib/instant-search-client';
+import { createCatalogPageGate, waitForCurrentPreview } from '@/lib/catalog-request-state';
 import styles from './SearchCatalogClient.module.css';
 
 const SEARCH_DEBOUNCE_MS = 90;
@@ -289,6 +290,7 @@ export default function SearchCatalogClient({
   const [results, setResults] = useState<Anime[]>(initialResults);
   const [loading, setLoading] = useState(initialView === 'catalog' && (Boolean(normalizedInitialQuery) || initialResults.length === 0));
   const [error, setError] = useState('');
+  const [catalogNotice, setCatalogNotice] = useState('');
   const [retryNonce, setRetryNonce] = useState(0);
   const [discoveryMeta, setDiscoveryMeta] = useState<DiscoveryMeta | null>(null);
   const [searchMeta, setSearchMeta] = useState<AnimeSearchMeta | null>(null);
@@ -296,6 +298,7 @@ export default function SearchCatalogClient({
     useState<string | null>(null);
   const [pageState, setPageState] = useState({ query, page: 1 });
   const page = pageState.query === query ? pageState.page : 1;
+  const [pageGate] = useState(createCatalogPageGate);
   const initialRenderRef = useRef(true);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const [hasNextPage, setHasNextPage] = useState(initialResults.length >= CATALOG_PAGE_SIZE);
@@ -382,6 +385,7 @@ export default function SearchCatalogClient({
       startSearchTiming(searchTimingRef, query);
     }
 
+    pageGate.block();
     const controller = new AbortController();
     activeCatalogControllerRef.current?.abort();
     activeCatalogControllerRef.current = controller;
@@ -401,6 +405,7 @@ export default function SearchCatalogClient({
 
     async function load() {
       let authoritativeSettled = false;
+      let errorOccurred = false;
       let instantShown = false;
       let instantPromise: Promise<InstantSearchPayload> | null = null;
 
@@ -420,6 +425,7 @@ export default function SearchCatalogClient({
           const personalized = rankSmartDiscoveryCandidates(payload.items, discoveryIntent, { tasteGraph, strict: false });
           authoritativeSettled = true;
           if (!requestIsCurrent()) return;
+          setCatalogNotice('');
           const discoveryResults = personalized.slice(
             0,
             Math.max(CATALOG_PAGE_SIZE, 30),
@@ -489,7 +495,7 @@ export default function SearchCatalogClient({
                 // The authoritative provider request is already in flight and
                 // owns the final pagination state. Keep the first local page
                 // interactive instead of blanking the grid behind a loader.
-                setHasNextPage(true);
+                setHasNextPage(false);
               })
               .catch((instantError) => {
                 if (
@@ -530,6 +536,7 @@ export default function SearchCatalogClient({
           authoritativeSettled = true;
           if (!requestIsCurrent()) return;
           setInstantPreviewQuery(null);
+          setCatalogNotice(payload.catalogMeta?.message ?? '');
           if (page === 1 && query.length >= 2) {
             trackSearchFirstResult(searchTimingRef, query, {
               source: 'authoritative',
@@ -567,7 +574,9 @@ export default function SearchCatalogClient({
         authoritativeSettled = true;
 
         if (!instantShown && instantPromise) {
-          const fallbackPreview = await instantPromise.catch(() => null);
+          const fallback = await waitForCurrentPreview(instantPromise, requestIsCurrent);
+          if (!fallback.current) return;
+          const fallbackPreview = fallback.preview;
 
           if (
             fallbackPreview?.items.length &&
@@ -588,18 +597,28 @@ export default function SearchCatalogClient({
           }
         }
 
-        setDiscoveryMeta(null);
-        setSearchMeta(null);
+        errorOccurred = true;
+        // A newer query may have started while the fallback lane was awaited.
+        if (!requestIsCurrent()) return;
+        pageGate.block();
+        setHasNextPage(false);
+        if (page === 1) {
+          setDiscoveryMeta(null);
+          setSearchMeta(null);
+        }
         setError(
           instantShown
             ? 'Полный поиск временно недоступен. Показываем быстрые локальные результаты.'
-            : 'Не удалось обновить каталог. Показываем последние доступные результаты.',
+            : page > 1
+              ? 'Не удалось загрузить следующую страницу. Уже загруженные карточки сохранены. Нажмите «Повторить».'
+              : 'Не удалось обновить каталог. Показываем последние доступные результаты.',
         );
       } finally {
         authoritativeSettled = true;
         if (
           requestIsCurrent()
         ) {
+          if (!errorOccurred) pageGate.release();
           setLoading(false);
         }
       }
@@ -611,48 +630,35 @@ export default function SearchCatalogClient({
         activeCatalogControllerRef.current = null;
       }
     };
-  }, [discoveryIntent, filters, initialResults, page, query, retryNonce, selectedMood, tasteGraph, view]);
+  }, [discoveryIntent, filters, initialResults, page, query, retryNonce, selectedMood, tasteGraph, view, pageGate, searchClassification?.mode]);
+
+  const requestNextPage = useCallback(() => {
+    if (!pageGate.claim({
+      loading,
+      hasNextPage,
+      failed: Boolean(error),
+      query,
+      liveQuery: liveQueryRef.current.trim(),
+    })) return;
+
+    // Lock synchronously before React commits loading or the next page.
+    setPageState((current) => ({
+      query,
+      page: (current.query === query ? current.page : 1) + 1,
+    }));
+  }, [error, hasNextPage, loading, query, pageGate]);
 
   useEffect(() => {
     const target = loadMoreRef.current;
+    if (!target || view !== 'catalog' || loading || error || !hasNextPage ||
+        discoveryIntent?.isDiscovery || typeof IntersectionObserver === 'undefined') return;
 
-    if (
-      !target ||
-      view !== 'catalog' ||
-      loading ||
-      !hasNextPage ||
-      discoveryIntent?.isDiscovery ||
-      typeof IntersectionObserver === 'undefined'
-    ) {
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (!entries.some((entry) => entry.isIntersecting)) return;
-
-        setPageState((current) => {
-          const currentPage = current.query === query ? current.page : 1;
-          return {
-            query,
-            page: currentPage + 1,
-          };
-        });
-      },
-      {
-        rootMargin: '900px 0px',
-      },
-    );
-
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) requestNextPage();
+    }, { rootMargin: '900px 0px' });
     observer.observe(target);
     return () => observer.disconnect();
-  }, [
-    discoveryIntent?.isDiscovery,
-    hasNextPage,
-    loading,
-    query,
-    view,
-  ]);
+  }, [discoveryIntent?.isDiscovery, error, hasNextPage, loading, requestNextPage, view]);
 
   useEffect(() => {
     const mode = filterHistoryModeRef.current;
@@ -1112,6 +1118,9 @@ export default function SearchCatalogClient({
           </span>
         </div>
 
+        {view === 'catalog' && catalogNotice && (
+          <div className={styles.staleNotice} role="status"><span>{catalogNotice}</span></div>
+        )}
         {view === 'catalog' && error && results.length > 0 && (
           <div className={styles.staleNotice} role="status">
             <span>{error}</span>
@@ -1218,6 +1227,8 @@ export default function SearchCatalogClient({
                       entityId: 'empty_state_relax',
                       metadata: { label: action.label },
                     });
+                    // This runs only in onClick; action.next is filter state, not a ref.
+                    // eslint-disable-next-line react-hooks/refs
                     commitFilters(action.next);
                   }}
                 >
@@ -1240,12 +1251,7 @@ export default function SearchCatalogClient({
             <button
               type="button"
               disabled={loading}
-              onClick={() =>
-                setPageState((current) => ({
-                  query,
-                  page: (current.query === query ? current.page : 1) + 1,
-                }))
-              }
+              onClick={requestNextPage}
             >
               {loading ? 'Загружаем…' : 'Показать ещё'}
             </button>

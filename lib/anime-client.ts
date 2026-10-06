@@ -35,6 +35,7 @@ export type AnimePaginationMeta = {
 
 export type AnimeListPayload = {
   anime: Anime[];
+  catalogMeta?: { source: 'saved'; message: string };
   searchMeta?: AnimeSearchMeta;
   pagination?: AnimePaginationMeta;
 };
@@ -242,6 +243,7 @@ export async function getAnimesWithMeta(
     anime?: Anime[];
     searchMeta?: AnimeSearchMeta;
     pagination?: AnimePaginationMeta;
+    catalogMeta?: AnimeListPayload['catalogMeta'];
     error?: string;
   };
 
@@ -256,8 +258,9 @@ export async function getAnimesWithMeta(
       anime: data.anime,
       ...(data.searchMeta ? { searchMeta: data.searchMeta } : {}),
       ...(data.pagination ? { pagination: data.pagination } : {}),
+      ...(data.catalogMeta ? { catalogMeta: data.catalogMeta } : {}),
     },
-    options.search?.trim() ? SEARCH_CACHE_TTL : LIST_CACHE_TTL,
+    data.catalogMeta ? 15_000 : options.search?.trim() ? SEARCH_CACHE_TTL : LIST_CACHE_TTL,
     80,
   );
 }
