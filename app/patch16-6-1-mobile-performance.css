@@ -160,6 +160,19 @@
 }
 
 /* Emerging browser hint. Safe no-op where unsupported. */
+/* Keep full feed geometry before its last row enters the viewport. */
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
+  .home-page .smart-feed-section,
+  .home-page .home-deferred--recommendations {
+    content-visibility: visible !important;
+    contain-intrinsic-size: none !important;
+  }
+
+  .home-page .smart-feed__personal-rail {
+    min-height: 420px;
+  }
+}
+
 @media (prefers-reduced-data: reduce) {
   .anime-card__shine,
   .home-hero-carousel__teaser,

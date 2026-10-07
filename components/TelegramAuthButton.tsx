@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { safeInternalPath } from '@/lib/browser-navigation';
+import { loadPublicAuthConfig } from '@/lib/public-auth-config';
 import { createClient } from '@/lib/supabase/client';
 import { notifyAuthChanged } from '@/lib/auth-events';
 import { markTelegramWelcomePending } from '@/lib/telegram-growth-client';
@@ -420,8 +421,7 @@ export default function TelegramAuthButton({
        * -----------------------------------------------------
        */
       const clientIdRaw =
-        process.env
-          .NEXT_PUBLIC_TELEGRAM_CLIENT_ID;
+        (await loadPublicAuthConfig()).telegramClientId;
 
       const clientId =
         Number(
