@@ -25,10 +25,6 @@ export type KodikSearchResult = {
   episodes_count?: number | string | null;
 };
 
-type KodikSearchResponse = {
-  results?: KodikSearchResult[];
-};
-
 export type KodikEpisodeAvailability = {
   status: KodikEpisodeAvailabilityStatus;
   maxEpisode: number | null;
@@ -246,15 +242,39 @@ export async function searchKodikByShikimoriId(
     throw new KodikProviderError(`Kodik API HTTP ${response.status}`);
   }
 
-  let data: KodikSearchResponse;
+  let data: unknown;
 
   try {
-    data = (await response.json()) as KodikSearchResponse;
+    data = await response.json();
   } catch {
     throw new KodikProviderError('Kodik returned invalid JSON');
   }
 
-  return playableResults(data.results ?? []);
+  // HTTP 200 alone is not evidence of an empty catalogue. Error envelopes and
+  // schema changes must remain unknown in every caller, including the cron.
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new KodikProviderError('Kodik returned an invalid search response');
+  }
+  const payload = data as Record<string, unknown>;
+  if (payload.error || !Array.isArray(payload.results)) {
+    throw new KodikProviderError('Kodik returned an invalid search response');
+  }
+  for (const item of payload.results) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      throw new KodikProviderError('Kodik returned an invalid search result');
+    }
+    if (item.link != null && (
+      typeof item.link !== 'string' ||
+      (item.link.trim() && !isHttpUrl(normalizePlayerUrl(item.link.trim())))
+    )) {
+      throw new KodikProviderError('Kodik returned an invalid player URL');
+    }
+  }
+  const playable = playableResults(payload.results as KodikSearchResult[]);
+  if (payload.results.length && !playable.length) {
+    throw new KodikProviderError('Kodik search results have no valid player URL');
+  }
+  return playable;
 }
 
 export function filterKodikResultsForEpisode(
