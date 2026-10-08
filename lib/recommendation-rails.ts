@@ -280,6 +280,7 @@ export function buildRecommendationRailLayout(
   // Data may keep growing during a long session, but the DOM stays bounded by
   // per-rail limits. No duplicated title is rendered in multiple rails.
   const pool = recommendations;
+  const itemsById = new Map(pool.map((item) => [item.anime.id, item]));
   const availableIds = new Set(pool.map((item) => item.anime.id));
   const ownership = new Map<number, RecommendationRailId>();
 
@@ -299,9 +300,10 @@ export function buildRecommendationRailLayout(
 
     // Keep previously rendered cards sticky in their original rail. This is
     // what prevents a newly fetched page from teleporting visible cards.
-    for (const item of candidates) {
+    for (const [animeId, owner] of ownership) {
       if (selected.length >= limit) break;
-      if (used.has(item.anime.id) || ownership.get(item.anime.id) !== id) {
+      const item = itemsById.get(animeId);
+      if (!item || used.has(animeId) || owner !== id) {
         continue;
       }
       used.add(item.anime.id);

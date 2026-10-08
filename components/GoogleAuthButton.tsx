@@ -4,6 +4,7 @@ import Script from 'next/script';
 import { useCallback, useRef, useState } from 'react';
 
 import { safeInternalPath } from '@/lib/browser-navigation';
+import { loadPublicAuthConfig } from '@/lib/public-auth-config';
 import { createClient } from '@/lib/supabase/client';
 import { markTelegramWelcomePending } from '@/lib/telegram-growth-client';
 
@@ -87,9 +88,11 @@ export default function GoogleAuthButton({
 }: GoogleAuthButtonProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const initializedRef = useRef(false);
+  const initializingRef = useRef(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [ready, setReady] = useState(false);
 
   const safeNext = safeInternalPath(next, '/profile');
 
@@ -162,69 +165,77 @@ export default function GoogleAuthButton({
   );
 
   const initializeGoogle = useCallback(async () => {
-    if (initializedRef.current) return;
+    if (initializedRef.current || initializingRef.current) return;
+    initializingRef.current = true;
+    try {
 
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
-    const google = window.google;
-    const mount = mountRef.current;
+      const { googleClientId: clientId } = await loadPublicAuthConfig();
+      const google = window.google;
+      const mount = mountRef.current;
 
-    if (!clientId) {
-      setError('Google-вход ещё не настроен.');
-      return;
+      if (!clientId) {
+        setError('Google-вход ещё не настроен.');
+        return;
+      }
+
+      if (!google || !mount) {
+        setError('Не удалось загрузить Google Sign-In. Обнови страницу.');
+        return;
+      }
+
+      setError('');
+
+      const nonce = createNonce();
+      const hashedNonce = await sha256Hex(nonce);
+
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: (response) => {
+          if (!response.credential) {
+            setError('Google не вернул данные для входа. Попробуй ещё раз.');
+            return;
+          }
+
+          void finishGoogleLogin(response.credential, nonce);
+        },
+        nonce: hashedNonce,
+        ux_mode: 'popup',
+        use_fedcm_for_button: true,
+      });
+
+      mount.replaceChildren();
+
+      const width = Math.max(
+        220,
+        Math.min(520, Math.floor(mount.getBoundingClientRect().width || 520)),
+      );
+
+      const buttonText: GoogleButtonText = label
+        .toLocaleLowerCase('ru-RU')
+        .includes('войти')
+        ? 'signin_with'
+        : 'continue_with';
+
+      // Keep Google's native button (so the identity flow stays direct and
+      // branded as AnimeBox). Patch 18.7 keeps the official light surface
+      // intact across the whole button instead of embedding it into a dark shell.
+      google.accounts.id.renderButton(mount, {
+        type: 'standard',
+        theme: 'outline',
+        size: 'large',
+        text: buttonText,
+        shape: 'rectangular',
+        logo_alignment: 'left',
+        width,
+        locale: 'ru',
+      });
+      initializedRef.current = true;
+      setReady(true);
+    } catch {
+      setError('Не удалось загрузить настройки Google-входа. Попробуй ещё раз.');
+    } finally {
+      initializingRef.current = false;
     }
-
-    if (!google || !mount) {
-      setError('Не удалось загрузить Google Sign-In. Обнови страницу.');
-      return;
-    }
-
-    initializedRef.current = true;
-    setError('');
-
-    const nonce = createNonce();
-    const hashedNonce = await sha256Hex(nonce);
-
-    google.accounts.id.initialize({
-      client_id: clientId,
-      callback: (response) => {
-        if (!response.credential) {
-          setError('Google не вернул данные для входа. Попробуй ещё раз.');
-          return;
-        }
-
-        void finishGoogleLogin(response.credential, nonce);
-      },
-      nonce: hashedNonce,
-      ux_mode: 'popup',
-      use_fedcm_for_button: true,
-    });
-
-    mount.replaceChildren();
-
-    const width = Math.max(
-      220,
-      Math.min(520, Math.floor(mount.getBoundingClientRect().width || 520)),
-    );
-
-    const buttonText: GoogleButtonText = label
-      .toLocaleLowerCase('ru-RU')
-      .includes('войти')
-      ? 'signin_with'
-      : 'continue_with';
-
-    // Keep Google's native button (so the identity flow stays direct and
-    // branded as AnimeBox). Patch 18.7 keeps the official light surface
-    // intact across the whole button instead of embedding it into a dark shell.
-    google.accounts.id.renderButton(mount, {
-      type: 'standard',
-      theme: 'outline',
-      size: 'large',
-      text: buttonText,
-      shape: 'rectangular',
-      logo_alignment: 'left',
-      width,
-      locale: 'ru',
-    });
   }, [finishGoogleLogin, label]);
 
   return (
@@ -260,7 +271,7 @@ export default function GoogleAuthButton({
           ref={mountRef}
           style={{
             width: '100%',
-            minHeight: 44,
+            minHeight: ready ? 44 : 0,
             display: 'grid',
             placeItems: 'center',
             borderRadius: 15,
@@ -268,6 +279,12 @@ export default function GoogleAuthButton({
             background: '#fff',
           }}
         />
+        {!ready && (
+          <button type="button" onClick={() => void initializeGoogle()}
+            style={{ width: '100%', minHeight: 44, color: '#182033', background: '#fff', border: 0 }}>
+            {error ? 'Повторить загрузку Google-входа' : 'Загрузка Google-входа…'}
+          </button>
+        )}
       </div>
 
       {loading && (

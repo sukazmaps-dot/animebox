@@ -37,6 +37,7 @@ import {
   type RecommendationRailId,
   type RecommendationRailLimits,
 } from '@/lib/recommendation-rails';
+import { reconcileHomeRails } from '@/lib/home-rail-session';
 import {
   readCachedTasteGraph,
   type TasteGraph,
@@ -750,11 +751,17 @@ export default function SmartRecommendationFeed({
     ],
   );
 
+  // Save allocations before another candidate update can assign them elsewhere.
+  if (railOwnership.size !== railLayout.ownership.size ||
+      [...railOwnership].some(([id, owner]) => railLayout.ownership.get(id) !== owner)) {
+    setRailOwnership(new Map(railLayout.ownership));
+  }
+
   useEffect(() => {
     railOwnershipRef.current = railLayout.ownership;
   }, [railLayout.ownership]);
 
-  const rails = useMemo(() => {
+  const orderedRails = useMemo(() => {
     const order = new Map(
       SESSION_STABLE_RAIL_ORDER.map((id, index) => [id, index] as const),
     );
@@ -764,6 +771,25 @@ export default function SmartRecommendationFeed({
         (order.get(left.id) ?? 999) - (order.get(right.id) ?? 999),
     );
   }, [railLayout.rails]);
+
+  const [railSession, setRailSession] = useState({
+    mood: displayedMood,
+    layout: orderedRails,
+    rails: orderedRails,
+    available: filtered,
+  });
+  // Guarded render adjustment avoids an intermediate frame with reordered rows.
+  // A deliberate mood change starts a new session; pagination never does.
+  let rails = railSession.rails;
+  if (railSession.layout !== orderedRails || railSession.mood !== displayedMood ||
+      railSession.available !== filtered) {
+    rails = reconcileHomeRails(
+      railSession.mood === displayedMood ? railSession.rails : [],
+      orderedRails,
+      new Set(filtered.map(({ anime }) => anime.id)),
+    );
+    setRailSession({ mood: displayedMood, layout: orderedRails, rails, available: filtered });
+  }
 
   const midFeedInsertAfterIndex = useMemo(
     () => (midFeedSlot ? getHomeScheduleInsertionIndex(rails) : -1),
@@ -1324,17 +1350,6 @@ export default function SmartRecommendationFeed({
               rail.items.length === 0
                 ? MIN_INITIAL_RAIL_ITEMS
                 : RAIL_SKELETON_COUNT;
-
-            if (
-              rail.items.length < MIN_INITIAL_RAIL_ITEMS &&
-              exhaustedRails.has(rail.id) &&
-              rail.id !== 'top_match' &&
-              rail.id !== 'endless' &&
-              !railLoading &&
-              !railFailed
-            ) {
-              return null;
-            }
 
             return (
               <Fragment key={`${rail.id}:${rowVersion}`}>

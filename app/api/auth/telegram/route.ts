@@ -21,6 +21,7 @@ import {
 import { enforceIpRateLimit } from '@/lib/api-rate-limit';
 import { readJsonBody } from '@/lib/community-server';
 import { generatedUsernameOrFallback } from '@/lib/auth-identity-policy';
+import { resolvePublicAuthConfig } from '@/lib/public-auth-config';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -128,9 +129,7 @@ export async function POST(
     }
 
     const clientId =
-      process.env
-        .NEXT_PUBLIC_TELEGRAM_CLIENT_ID
-        ?.trim();
+      resolvePublicAuthConfig(process.env).telegramClientId;
 
     if (!clientId) {
       console.error(
