@@ -257,5 +257,17 @@ jobs:
       - name: Browser origin guard regression checks
         run: node tests/browser-request-origin.cjs
 
+      - name: Reliability and Telegram recovery regressions
+        run: npm run reliability:check
+
+      - name: Reliability lint
+        run: >-
+          npx eslint lib/deployment-readiness.ts lib/reliability-network.ts
+          lib/reliability-server.ts lib/telegram-webhook-server.ts instrumentation.ts
+          app/api/health/route.ts app/api/health/ready/route.ts
+          app/api/admin/reliability/route.ts app/api/admin/telegram-webhook/route.ts
+          app/admin/telegram/page.tsx components/admin/ReliabilityDashboard.tsx
+          scripts/release-smoke.mjs
+
       - name: Production build
         run: npm run build

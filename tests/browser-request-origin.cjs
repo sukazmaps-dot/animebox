@@ -14,6 +14,7 @@ function compile(path, imports = {}) {
 const policy = compile('lib/browser-request-origin.ts');
 const community = compile('lib/community-server.ts', { '@/lib/browser-request-origin': policy });
 const { proxy } = compile('proxy.ts', {
+  '@/lib/deployment-readiness': compile('lib/deployment-readiness.ts'),
   '@/lib/browser-request-origin': policy,
   '@/lib/edge-cache-policy': { isPublicCacheableApiRequest: () => false },
   'next/server': { NextResponse: {
