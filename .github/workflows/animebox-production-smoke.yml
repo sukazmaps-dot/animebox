@@ -1,0 +1,38 @@
+name: AnimeBox Production Smoke
+
+on:
+  workflow_run:
+    workflows: ['AnimeBox Quality Gate']
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '*/30 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: animebox-production-smoke-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify the released revision
+        if: github.event_name == 'workflow_run'
+        env:
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: node scripts/release-smoke.mjs --expected-sha "$RELEASE_SHA" --wait-seconds 600
+      - name: Verify current production
+        if: github.event_name != 'workflow_run'
+        run: node scripts/release-smoke.mjs

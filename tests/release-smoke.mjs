@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import { runSmoke } from '../scripts/release-smoke.mjs';
+const sha = 'a'.repeat(40);
+let releaseSha = sha, emptySearch = false, malformed = false;
+const fetchImpl = async url => {
+  const path = new URL(url).pathname;
+  if (path === '/api/health/ready') return Response.json({ ok: true, status: 'ready', release: { version: 'reliability-foundation-v1', sha: releaseSha } });
+  if (path === '/') return new Response('<html>AnimeBox</html>', { headers: { 'Content-Type': 'text/html' } });
+  if (path === '/api/auth/config') return malformed ? new Response('invalid') : Response.json({ googleClientId: 'test.apps.googleusercontent.com', telegramClientId: '12345' });
+  return Response.json({ items: emptySearch ? [] : [{ id: 1 }] });
+};
+assert.equal((await runSmoke({ expectedSha: sha, fetchImpl })).ok, true);
+releaseSha = 'b'.repeat(40);
+assert.equal((await runSmoke({ expectedSha: sha, fetchImpl })).ok, false, 'old deployment must not pass');
+releaseSha = sha;
+emptySearch = true;
+assert.equal((await runSmoke({ fetchImpl })).ok, false, 'empty successful search must not pass');
+emptySearch = false;
+malformed = true;
+assert.equal((await runSmoke({ fetchImpl })).ok, false, 'malformed public auth configuration must not pass');
+await assert.rejects(runSmoke({ base: 'https://user:secret@example.test', fetchImpl }));
+console.log('PASS: release SHA, populated search, valid auth config and safe smoke failures');

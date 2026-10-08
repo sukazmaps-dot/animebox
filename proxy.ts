@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { isPublicCacheableApiRequest } from '@/lib/edge-cache-policy';
 import { isAllowedBrowserOrigin, isProductionDeployment } from '@/lib/browser-request-origin';
+import { isDeploymentHealthRequest } from '@/lib/deployment-readiness';
 
 const CANONICAL_HOSTS = new Set([
   'youranimebox.com',
@@ -106,6 +107,7 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const method = request.method.toUpperCase();
   const isApi = apiRequest(pathname);
+  const deploymentHealth = isDeploymentHealthRequest(pathname, method);
 
   if (FORBIDDEN_METHODS.has(method)) {
     return jsonError(requestId, 405, 'Метод запроса запрещён.', {
@@ -123,7 +125,8 @@ export function proxy(request: NextRequest) {
   if (
     productionRequest() &&
     !canonicalHost(request.headers.get('host')) &&
-    !cronRequest(pathname)
+    !cronRequest(pathname) &&
+    !deploymentHealth
   ) {
     if (!isApi && (method === 'GET' || method === 'HEAD')) {
       const target = request.nextUrl.clone();
@@ -158,6 +161,7 @@ export function proxy(request: NextRequest) {
     productionRequest() &&
     edgeSecret &&
     !cronRequest(pathname) &&
+    !deploymentHealth &&
     request.headers.get(EDGE_SECRET_HEADER) !== edgeSecret
   ) {
     return jsonError(
