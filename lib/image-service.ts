@@ -63,6 +63,8 @@ function prefersLegacyProxy(value: string): boolean {
   try {
     const host = new URL(value).hostname.toLowerCase();
     return (
+      host === 'shikimori.io' ||
+      host.endsWith('.shikimori.io') ||
       host === 'shikimori.one' ||
       host.endsWith('.shikimori.one') ||
       host === 'shikimori.me' ||
@@ -125,6 +127,13 @@ export function buildImageCandidateChain(
   );
   const legacyProxy = proxyImageUrl(primary);
   const result: string[] = [...mediaCandidates];
+
+  // Shikimori must stay server-side: direct browser requests reset/403.
+  if (prefersLegacyProxy(primary) && legacyProxy) {
+    if (secondary && !prefersLegacyProxy(secondary)) result.push(secondary);
+    result.push(legacyProxy, ...local);
+    return Array.from(new Set(result));
+  }
 
   if (
     mediaCandidates.length === 0 &&

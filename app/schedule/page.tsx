@@ -35,6 +35,8 @@ type ScheduleResponse = {
   count: number;
   items: ScheduleItem[];
   notice?: string;
+  stale?: boolean;
+  snapshotUpdatedAt?: string;
 };
 
 type DayColumn = {
@@ -120,6 +122,7 @@ export default function SchedulePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [staleNotice, setStaleNotice] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -135,6 +138,7 @@ export default function SchedulePage() {
         setLoading(true);
         setError(null);
         setNotice(null);
+        setStaleNotice(null);
 
         const response = await fetch('/api/schedule', {
           cache: 'default',
@@ -151,6 +155,7 @@ export default function SchedulePage() {
         }
 
         setNotice(data.notice || null);
+        setStaleNotice(data.stale ? `Расписание обновляется с задержкой${data.snapshotUpdatedAt ? ` · обновлено ${new Date(data.snapshotUpdatedAt).toLocaleString('ru-RU')}` : ''}.` : null);
         setItems([...data.items].sort((a, b) => a.airingAt - b.airingAt));
       } catch (loadError) {
         if (loadError instanceof Error && loadError.name === 'AbortError') return;
@@ -201,7 +206,11 @@ export default function SchedulePage() {
         )}
       </header>
 
-      {notice && !error && <p role="status">{notice}</p>}
+      {staleNotice && !error && <p role="status">{staleNotice}</p>}
+      {notice && !error && <details className="mb-4 text-sm text-slate-400">
+        <summary className="cursor-pointer">О времени выхода</summary>
+        <p className="mt-2">Время выхода плановое; озвучка может появиться позже.</p>
+      </details>}
 
       {loading ? (
         <div className="weekly-calendar weekly-calendar--loading" aria-busy="true">

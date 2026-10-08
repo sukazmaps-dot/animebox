@@ -27,7 +27,7 @@ if (smart.includes("return 'Длительность уточняется'")) fa
 need('duration cleanup', smart, ['const durationLabel = formatDuration(anime.duration)','{durationLabel && (']);
 need('card geometry', cardCss, ['Patch 18.6.6 — Recommendation Card Geometry','margin-top: auto !important','min-height: 2.8em']);
 need('media worker', mediaWorker, ['sourceSoftFailureResponse',"status: 204","'source-soft-fail'",'status: hit.status']);
-need('legacy proxy', proxy, ['new NextResponse(null',"'proxy-v3-soft-fail'"]);
+need('legacy proxy', proxy, ["'proxy-v4-placeholder'", "'image/svg+xml'"]);
 if (mediaWorker.includes('sourceFallbackResponse') || mediaWorker.includes("'source-fallback-redirect'")) failures.push('deprecated media redirect fallback returned');
 if (proxy.includes('NextResponse.redirect(sourceUrl') || proxy.includes("'proxy-v2-source-fallback'")) failures.push('deprecated legacy proxy redirect fallback returned');
 need('episode css', episodeCss, ['Patch 18.6.6 — Episode Experience','.episode-quick-nav__sheet','.episode-library-compact','.episode-notification-compact']);

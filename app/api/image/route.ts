@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { enforceIpRateLimit } from '@/lib/api-rate-limit';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 export const runtime = 'nodejs';
 
@@ -8,6 +10,8 @@ const FETCH_TIMEOUT_MS = 8000;
 const MAX_REDIRECTS = 5;
 
 const EXACT_ALLOWED_HOSTS = new Set([
+  'shikimori.io',
+  'www.shikimori.io',
   'shikimori.me',
   'www.shikimori.me',
   'shikimori.one',
@@ -24,6 +28,7 @@ function isAllowedHost(hostname: string): boolean {
 
   return (
     EXACT_ALLOWED_HOSTS.has(host) ||
+    host.endsWith('.shikimori.io') ||
     host.endsWith('.shikimori.me') ||
     host.endsWith('.shikimori.one') ||
     host.endsWith('.anilist.co') ||
@@ -33,19 +38,23 @@ function isAllowedHost(hostname: string): boolean {
 }
 
 function normalizeUrl(value: string): URL | null {
-  const raw = value.trim();
+  let raw = value.trim();
+  // searchParams already decoded once. Never decode a valid URL's query again.
+  for (let step = 0; step < 2 && /^(?:https?%(?:25){0,2}3a|%(?:25){0,2}2f)/i.test(raw); step++) {
+    try { raw = decodeURIComponent(raw); } catch { return null; }
+  }
   if (!raw) return null;
 
   const normalized = raw.startsWith('//')
     ? `https:${raw}`
     : raw.startsWith('/')
-      ? `https://shikimori.me${raw}`
+      ? `https://shikimori.io${raw}`
       : raw;
 
   try {
     const url = new URL(normalized);
 
-    if (url.protocol !== 'https:') {
+    if (url.protocol !== 'https:' || url.username || url.password || url.port) {
       return null;
     }
 
@@ -72,12 +81,15 @@ function buildUpstreamHeaders(url: URL): HeadersInit {
   // referrer to AniList/MAL is unnecessary and can make otherwise valid CDN
   // requests look suspicious, so keep it host-scoped.
   if (
+    host === 'shikimori.io' ||
+    host.endsWith('.shikimori.io') ||
     host === 'shikimori.me' ||
     host.endsWith('.shikimori.me') ||
     host === 'shikimori.one' ||
     host.endsWith('.shikimori.one')
   ) {
-    headers.Referer = 'https://shikimori.one/';
+    headers.Referer = host === 'shikimori.io' || host.endsWith('.shikimori.io')
+      ? 'https://shikimori.io/' : 'https://shikimori.one/';
   }
 
   return headers;
@@ -93,20 +105,15 @@ async function fetchImage(
   initialUrl: URL,
 ): Promise<ImageFetchResult> {
   let current = initialUrl;
+  const signal = AbortSignal.timeout(FETCH_TIMEOUT_MS);
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
-    const controller = new AbortController();
-
-    const timeout = setTimeout(() => {
-      controller.abort();
-    }, FETCH_TIMEOUT_MS);
-
     try {
       const response = await fetch(current, {
         headers: buildUpstreamHeaders(current),
         redirect: 'manual',
         cache: 'force-cache',
-        signal: controller.signal,
+        signal,
       });
 
       // Успешный ответ: это уже наша картинка.
@@ -160,6 +167,7 @@ async function fetchImage(
 
         if (
           nextUrl.protocol !== 'https:' ||
+          nextUrl.username || nextUrl.password || nextUrl.port ||
           !isAllowedHost(nextUrl.hostname)
         ) {
           console.error(
@@ -193,7 +201,7 @@ async function fetchImage(
     } catch (error) {
       const timedOut =
         error instanceof Error &&
-        error.name === 'AbortError';
+        (error.name === 'AbortError' || error.name === 'TimeoutError');
 
       console.error('Image fetch failed:', {
         url: current.toString(),
@@ -205,8 +213,6 @@ async function fetchImage(
         error: timedOut ? 'origin-timeout' : 'origin-fetch-failed',
         attempts: hop + 1,
       };
-    } finally {
-      clearTimeout(timeout);
     }
   }
 
@@ -215,6 +221,45 @@ async function fetchImage(
     error: 'redirect-limit',
     attempts: MAX_REDIRECTS + 1,
   };
+}
+
+let placeholderBody: Promise<Buffer> | null = null;
+async function placeholder(error: string, attempts = 0) {
+  placeholderBody ??= readFile(join(process.cwd(), 'public', 'anime-placeholder.svg'));
+  return new NextResponse(new Uint8Array(await placeholderBody), {
+    status: 200,
+    headers: {
+      'Content-Type': 'image/svg+xml',
+      'Cache-Control': 'public, max-age=15, s-maxage=15',
+      'Vercel-CDN-Cache-Control': 'public, max-age=15',
+      'Cloudflare-CDN-Cache-Control': 'public, max-age=15',
+      'Retry-After': '15',
+      'X-AnimeBox-Image-Delivery': 'proxy-v4-placeholder',
+      'X-AnimeBox-Image-Error': error,
+      'X-AnimeBox-Image-Attempts': String(attempts),
+    },
+  });
+}
+
+async function readImageBody(response: Response) {
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('empty-image');
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      size += chunk.value.byteLength;
+      if (size > MAX_IMAGE_SIZE) throw new Error('origin-too-large');
+      chunks.push(chunk.value);
+    }
+  } finally { await reader.cancel().catch(() => undefined); reader.releaseLock(); }
+  if (!size) throw new Error('empty-image');
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return bytes;
 }
 
 export async function GET(
@@ -261,18 +306,7 @@ export async function GET(
     const upstream = upstreamResult.response;
 
     if (!upstream) {
-      return new NextResponse(null, {
-        status: 204,
-        headers: {
-          'Cache-Control': 'public, max-age=15, s-maxage=15',
-          'Retry-After': '15',
-          'X-AnimeBox-Image-Delivery': 'proxy-v3-soft-fail',
-          'X-AnimeBox-Image-Error':
-            upstreamResult.error ?? 'origin-failed',
-          'X-AnimeBox-Image-Attempts':
-            String(upstreamResult.attempts),
-        },
-      });
+      return placeholder(upstreamResult.error ?? 'origin-failed', upstreamResult.attempts);
     }
 
     const contentType =
@@ -285,16 +319,7 @@ export async function GET(
         .toLowerCase()
         .startsWith('image/')
     ) {
-      return new NextResponse(
-        `Upstream is not an image: ${contentType || 'unknown'}`,
-        {
-          status: 415,
-          headers: {
-            'X-AnimeBox-Image-Delivery': 'proxy-v2',
-            'X-AnimeBox-Image-Error': 'origin-not-image',
-          },
-        },
-      );
+      return placeholder('origin-not-image', upstreamResult.attempts);
     }
 
     const contentLength = Number(
@@ -306,35 +331,11 @@ export async function GET(
     if (
       contentLength > MAX_IMAGE_SIZE
     ) {
-      return new NextResponse(
-        'Image is too large',
-        {
-          status: 413,
-          headers: {
-            'X-AnimeBox-Image-Delivery': 'proxy-v2',
-            'X-AnimeBox-Image-Error': 'origin-too-large',
-          },
-        },
-      );
+      await upstream.body?.cancel();
+      return placeholder('origin-too-large', upstreamResult.attempts);
     }
 
-    const buffer =
-      await upstream.arrayBuffer();
-
-    if (
-      buffer.byteLength > MAX_IMAGE_SIZE
-    ) {
-      return new NextResponse(
-        'Image is too large',
-        {
-          status: 413,
-          headers: {
-            'X-AnimeBox-Image-Delivery': 'proxy-v2',
-            'X-AnimeBox-Image-Error': 'origin-too-large',
-          },
-        },
-      );
-    }
+    const buffer = await readImageBody(upstream);
 
     return new NextResponse(buffer, {
       status: 200,
@@ -357,14 +358,6 @@ export async function GET(
       error,
     );
 
-    return new NextResponse(null, {
-      status: 204,
-      headers: {
-        'Cache-Control': 'public, max-age=15, s-maxage=15',
-        'Retry-After': '15',
-        'X-AnimeBox-Image-Delivery': 'proxy-v3-soft-fail',
-        'X-AnimeBox-Image-Error': 'proxy-exception',
-      },
-    });
+    return placeholder('proxy-exception');
   }
 }

@@ -45,6 +45,7 @@ import {
 
 import { observeApiRoute } from '@/lib/request-observability-server';
 import { enrichAnimesWithSavedMetadata, getSavedCatalogPage } from '@/lib/saved-catalog-server';
+import { withCatalogProviderBudget } from '@/lib/catalog-provider-budget';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -179,21 +180,22 @@ async function observedGET(
     const localHitsPromise:
       Promise<Awaited<ReturnType<typeof searchLocalAnimeIndex>>> =
       rawSearch && page === 1
-        ? searchLocalAnimeIndex(rawSearch, 16).catch((localSearchError) => {
+        ? withCatalogProviderBudget(() => searchLocalAnimeIndex(rawSearch, 16), 1500).catch((localSearchError) => {
             console.warn('[Anime search local index]', localSearchError);
             return [];
           })
         : Promise.resolve([]);
 
     const [primary, localHits] = await Promise.all([
-      getAnimesWithShikimori(
+      withCatalogProviderBudget(signal => getAnimesWithShikimori(
         options,
         {
+          signal,
           onPageInfo: (pageInfo) => {
-            providerHasNextPage = pageInfo.hasNextPage;
+            if (!signal.aborted) providerHasNextPage = pageInfo.hasNextPage;
           },
         },
-      ).catch(async (providerError) => {
+      ), rawSearch ? 4500 : 8000).catch(async (providerError) => {
         console.warn('[Anime catalog] provider unavailable; reading saved documents:', providerError);
         fallbackState.saved = await getSavedCatalogPage({...options, limit});
         providerHasNextPage = fallbackState.saved.hasNextPage;
@@ -215,7 +217,7 @@ async function observedGET(
 
       if (missingLocalHits.length) {
         try {
-          const localAnime = await hydrateLocalAnimeHits(missingLocalHits);
+          const localAnime = await withCatalogProviderBudget(signal => hydrateLocalAnimeHits(missingLocalHits, signal), 2000);
           candidates = mergeAnimeCandidates(localAnime, candidates);
           localIndexUsed = localAnime.length > 0;
         } catch (localHydrationError) {
@@ -242,12 +244,14 @@ async function observedGET(
       const attempts = primary.length === 0 ? fallbacks.slice(0, 2) : fallbacks.slice(0, 1);
 
       for (const fallback of attempts) {
-        const extra = await getAnimesWithShikimori({
+        let extra: Anime[] = [];
+        try { extra = await withCatalogProviderBudget(signal => getAnimesWithShikimori({
           ...options,
           page: 1,
           search: fallback,
           limit: Math.min(50, Math.max(upstreamLimit, 20)),
-        });
+        }, { signal }), 2000); }
+        catch { console.warn('[Anime search] optional_fallback_unavailable'); }
 
         if (extra.length > 0) {
           candidates = mergeAnimeCandidates(candidates, extra);
@@ -326,7 +330,9 @@ async function observedGET(
             source: 'saved',
             message: savedCatalog.unsupportedFilters.length
               ? 'Сезон и точный статус выхода сейчас недоступны. Сними эти фильтры, чтобы посмотреть сохранённые тайтлы.'
-              : 'Показаны сохранённые тайтлы с подтверждёнными сериями. Дополнительные данные и оценки берутся из сохранённой копии Shikimori; данные могут обновляться с задержкой.',
+              : savedCatalog.scanLimited
+                ? 'Показана доступная часть сохранённого каталога. Уточни название для более полного поиска.'
+                : 'Показаны сохранённые тайтлы; данные могут обновляться с задержкой.',
           },
         } : {}),
         pagination: {

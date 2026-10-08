@@ -40,7 +40,7 @@ if (animeImage.includes('sourceIndex: 0,\n        loaded: false,\n      });\n   
 }
 
 for (const needle of [
-  "const MEDIA_WORKER_VERSION = 'media-shield-v4-circuit-breaker'",
+  "const MEDIA_WORKER_VERSION = 'media-shield-v5-shikimori-io'",
   'reliability: MEDIA_WORKER_VERSION',
   'softFail: true',
   "'X-AnimeBox-Media-Version': MEDIA_WORKER_VERSION",

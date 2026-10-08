@@ -29,6 +29,7 @@ const fixtures = new Map([
     const predicates=[];const orders=[];
     return {
       select(){return this;},
+      abortSignal(){return this;},
       ilike(column,value){globalThis.catalogTest.predicates.push([column,value]);predicates.push(r=>r[column].includes(value.slice(1,-1)));return this;},
       overlaps(column,values){predicates.push(r=>values.some(v=>r[column].includes(v)));return this;},
       contains(column,values){predicates.push(r=>values.every(v=>r[column].includes(v)));return this;},

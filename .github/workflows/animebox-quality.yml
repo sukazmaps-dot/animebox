@@ -34,6 +34,9 @@ jobs:
       - name: Release consolidation invariants
         run: npm run release-consolidation:check
 
+      - name: Schedule media and search regression checks
+        run: npm run schedule-media:check
+
       - name: TypeScript
         run: npx tsc --noEmit
 
@@ -140,6 +143,12 @@ jobs:
           lib/recommendation-analytics-server.ts
           lib/personalization.ts
           lib/home-feed-server.ts
+          app/api/anime/route.ts
+          app/manifest.ts
+          app/schedule/page.tsx
+          lib/saved-catalog-server.ts
+          lib/saved-catalog-compat-server.ts
+          lib/catalog-provider-budget.ts
           lib/image-service.ts
           lib/media-delivery.ts
           next.config.ts

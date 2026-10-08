@@ -1,4 +1,4 @@
-const MEDIA_WORKER_VERSION = 'media-shield-v4-circuit-breaker';
+const MEDIA_WORKER_VERSION = 'media-shield-v5-shikimori-io';
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const ORIGIN_PIPELINE_BUDGET_MS = 5_800;
 const TRANSFORM_FETCH_TIMEOUT_MS = 2_200;
@@ -30,6 +30,8 @@ const UPSTREAM_BROWSER_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36';
 
 const EXACT_ALLOWED_HOSTS = new Set([
+  'shikimori.io',
+  'www.shikimori.io',
   'shikimori.me',
   'www.shikimori.me',
   'shikimori.one',
@@ -45,6 +47,7 @@ function isAllowedHost(hostname) {
   const host = hostname.toLowerCase();
   return (
     EXACT_ALLOWED_HOSTS.has(host) ||
+    host.endsWith('.shikimori.io') ||
     host.endsWith('.shikimori.me') ||
     host.endsWith('.shikimori.one') ||
     host.endsWith('.anilist.co') ||
@@ -53,16 +56,52 @@ function isAllowedHost(hostname) {
 }
 
 function parseSource(requestUrl) {
-  const raw = requestUrl.searchParams.get('url')?.trim();
+  let raw = requestUrl.searchParams.get('url')?.trim();
+  for (let step = 0; raw && step < 2 && /^(?:https?%(?:25){0,2}3a|%(?:25){0,2}2f)/i.test(raw); step++) {
+    try { raw = decodeURIComponent(raw); } catch { return null; }
+  }
   if (!raw) return null;
 
   try {
     const url = new URL(raw.startsWith('//') ? `https:${raw}` : raw);
-    if (url.protocol !== 'https:' || !isAllowedHost(url.hostname)) return null;
+    if (url.protocol !== 'https:' || url.username || url.password || url.port || !isAllowedHost(url.hostname)) return null;
     return url;
   } catch {
     return null;
   }
+}
+
+async function fetchAllowedOrigin(source, options) {
+  let current = source;
+  for (let hop = 0; hop <= 5; hop++) {
+    const response = await fetch(current, { ...options, headers: upstreamHeaders(current), redirect: 'manual' });
+    if (response.status < 300 || response.status >= 400) return response;
+    const location = response.headers.get('location');
+    await response.body?.cancel();
+    if (!location || hop === 5) throw new Error('origin-redirect-invalid');
+    const next = parseSource(new URL('https://media.youranimebox.com/image?' + new URLSearchParams({url:new URL(location,current).href})));
+    if (!next) throw new Error('origin-redirect-forbidden');
+    current = next;
+  }
+  throw new Error('origin-redirect-limit');
+}
+
+async function readLimitedImage(response) {
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('origin-empty');
+  const chunks = []; let size = 0;
+  try {
+    while (true) {
+      const part = await reader.read();
+      if (part.done) break;
+      size += part.value.byteLength;
+      if (size > MAX_IMAGE_BYTES) throw new Error('origin-too-large');
+      chunks.push(part.value);
+    }
+  } finally { await reader.cancel().catch(() => undefined); reader.releaseLock(); }
+  const bytes = new Uint8Array(size); let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return bytes.buffer;
 }
 
 function resolveAutoFormat(request) {
@@ -140,12 +179,15 @@ function upstreamHeaders(source) {
 
   const host = source.hostname.toLowerCase();
   if (
+    host === 'shikimori.io' ||
+    host.endsWith('.shikimori.io') ||
     host === 'shikimori.me' ||
     host.endsWith('.shikimori.me') ||
     host === 'shikimori.one' ||
     host.endsWith('.shikimori.one')
   ) {
-    headers.set('Referer', 'https://shikimori.one/');
+    headers.set('Referer', host === 'shikimori.io' || host.endsWith('.shikimori.io')
+      ? 'https://shikimori.io/' : 'https://shikimori.one/');
   } else if (
     host === 'anilist.co' ||
     host.endsWith('.anilist.co')
@@ -256,7 +298,7 @@ async function readImageResponse(response) {
     return { response: null, error: 'origin-too-large' };
   }
 
-  const bytes = await response.arrayBuffer();
+  const bytes = await readLimitedImage(response);
   if (!bytes.byteLength || bytes.byteLength > MAX_IMAGE_BYTES) {
     return { response: null, error: 'origin-invalid-size' };
   }
@@ -272,9 +314,8 @@ async function readImageResponse(response) {
 }
 
 async function fetchRawOrigin(source, signal) {
-  const response = await fetch(source, {
+  const response = await fetchAllowedOrigin(source, {
     headers: upstreamHeaders(source),
-    redirect: 'follow',
     signal,
   });
 
@@ -292,9 +333,8 @@ async function fetchTransformedOrigin(source, variant, signal) {
     image.format = variant.resolvedFormat;
   }
 
-  const response = await fetch(source, {
+  const response = await fetchAllowedOrigin(source, {
     headers: upstreamHeaders(source),
-    redirect: 'follow',
     signal,
     cf: {
       image,

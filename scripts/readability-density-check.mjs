@@ -49,7 +49,7 @@ for (const [label, needle] of [
   }
 }
 
-if (!telegram.includes('telegram-growth-card--compact') || !telegram.includes('telegram-growth-card--community')) {
+if (!telegram.includes('styles.card') || !telegram.includes('styles.community')) {
   failures.push('TelegramPromoCard: expected compact/community placement classes are missing.');
 }
 

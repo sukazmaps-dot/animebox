@@ -72,7 +72,7 @@ for (const [label, needle] of [
 }
 
 for (const [label, needle] of [
-  ['vector promo shell', 'telegram-growth-card--vector'],
+  ['isolated promo shell', 'styles.card'],
   ['shared AnimeBox icon core', 'AnimeBoxIconCore'],
   ['Telegram vector icon', 'PaperPlaneTiltIcon'],
   ['reduced motion support', 'useReducedMotion'],
