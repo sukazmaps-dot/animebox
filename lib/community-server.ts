@@ -1,4 +1,5 @@
 import 'server-only';
+import { isAllowedBrowserOrigin } from '@/lib/browser-request-origin';
 import { optionalServerSecret } from '@/lib/env/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdmin } from '@supabase/supabase-js';
@@ -36,10 +37,9 @@ const UNSAFE_BROWSER_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 export function assertBrowserMutationRequest(request: Request) {
   if (!UNSAFE_BROWSER_METHODS.has(request.method.toUpperCase())) return;
 
-  const requestOrigin = new URL(request.url).origin;
   const origin = request.headers.get('origin');
 
-  if (origin && origin !== requestOrigin) {
+  if (origin && !isAllowedBrowserOrigin(request, origin)) {
     throw new ApiError(403, 'Недопустимый источник запроса.');
   }
 

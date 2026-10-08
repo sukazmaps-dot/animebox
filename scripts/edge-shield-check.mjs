@@ -17,7 +17,7 @@ const proxy = read('proxy.ts');
 const nextConfig = read('next.config.ts');
 
 const proxyChecks = [
-  ['production origin lock', "process.env.VERCEL_ENV === 'production'"],
+  ['production origin lock', 'isProductionDeployment()'],
   ['canonical AnimeBox host', "'youranimebox.com'"],
   ['direct-origin rejection', 'не принимает прямые запросы'],
   ['optional edge origin secret', 'ANIMEBOX_EDGE_ORIGIN_SECRET'],
