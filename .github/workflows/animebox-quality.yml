@@ -254,5 +254,8 @@ jobs:
       - name: Mobile home and runtime auth regression checks
         run: node tests/home-rail-session.cjs && node tests/public-auth-config.cjs
 
+      - name: Browser origin guard regression checks
+        run: node tests/browser-request-origin.cjs
+
       - name: Production build
         run: npm run build

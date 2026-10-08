@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { isPublicCacheableApiRequest } from '@/lib/edge-cache-policy';
+import { isAllowedBrowserOrigin, isProductionDeployment } from '@/lib/browser-request-origin';
 
 const CANONICAL_HOSTS = new Set([
   'youranimebox.com',
@@ -36,7 +37,7 @@ function canonicalHost(value: string | null) {
 }
 
 function productionRequest() {
-  return process.env.VERCEL_ENV === 'production';
+  return isProductionDeployment();
 }
 
 function cronRequest(pathname: string) {
@@ -48,17 +49,7 @@ function apiRequest(pathname: string) {
 }
 
 function allowedBrowserOrigin(request: NextRequest, origin: string) {
-  try {
-    const parsed = new URL(origin);
-
-    if (productionRequest()) {
-      return parsed.protocol === 'https:' && CANONICAL_HOSTS.has(parsed.hostname.toLowerCase());
-    }
-
-    return parsed.origin === request.nextUrl.origin;
-  } catch {
-    return false;
-  }
+  return isAllowedBrowserOrigin(request, origin);
 }
 
 function withShieldHeaders(
