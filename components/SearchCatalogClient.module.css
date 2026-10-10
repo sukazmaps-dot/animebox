@@ -1062,3 +1062,13 @@
     align-items: flex-start;
   }
 }
+
+/* Catalog navigation and filters form one wrapping control strip. */
+.filterBar { flex-wrap: wrap; justify-content: flex-start; gap: .75rem; padding: .5rem 0; margin-bottom: 1rem; }
+.filterBar .catalogTabs { margin: 0; flex: 0 0 auto; }
+.filterToggle { margin-left: auto; min-height: 2.75rem; }
+@media (max-width: 760px) {
+  .filterBar .catalogTabs { flex: 1 0 100%; width: 100%; }
+  .filterBar .catalogTabs button { min-height: 2.75rem; flex: 1; justify-content: center; }
+  .filterBar > :first-child:not(.filterToggle) { flex: 1 0 100%; }
+}

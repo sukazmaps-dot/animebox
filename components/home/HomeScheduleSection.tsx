@@ -50,6 +50,11 @@ export default function HomeScheduleSection() {
       </div>
 
       <div className="schedule__tabs">
+        {scheduleDays.length === 0 && Array.from({ length: 7 }, (_, index) => (
+          <span key={index} className="schedule__tab" aria-hidden="true">
+            {index === 0 ? 'Сегодня' : index === 1 ? 'Завтра' : '…'}
+          </span>
+        ))}
         {scheduleDays.map((day) => (
           <button
             key={day.key}

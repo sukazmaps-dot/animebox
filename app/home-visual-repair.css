@@ -40,46 +40,11 @@
   }
 }
 
-/* Sparse continuation shelves contain real matches only. Give 1–2 matches a
-   horizontal composition instead of reserving a full tall poster shelf. */
-@media (min-width: 769px) {
-  .home-page .smart-feed__personal-rail:is(
-    [data-recommendation-rail-items='1'],
-    [data-recommendation-rail-items='2']
-  ) .smart-feed__slide {
-    width: clamp(20rem, 32vw, 27rem) !important;
-    max-width: 100%;
-  }
-
-  .home-page .smart-feed__personal-rail:is(
-    [data-recommendation-rail-items='1'],
-    [data-recommendation-rail-items='2']
-  ) .smart-card {
-    display: grid;
-    grid-template-columns: 7rem minmax(0, 1fr);
-    gap: .875rem;
-    align-items: start;
-    height: auto;
-  }
-
-  .home-page .smart-feed__personal-rail:is(
-    [data-recommendation-rail-items='1'],
-    [data-recommendation-rail-items='2']
-  ) .smart-card__body {
-    min-height: 0;
-    padding: 0;
-  }
-
-  .home-page .smart-feed__personal-rail:is(
-    [data-recommendation-rail-items='1'],
-    [data-recommendation-rail-items='2']
-  ) .smart-card__title {
-    min-height: 0;
-  }
-}
+/* Recommendation card geometry is independent of item count. Sparse shelves
+   keep the same poster cards while pagination appends real matches. */
 
 /* Footer cards now share a simple vertical flow matching their actual DOM. */
-.home-page .main-column .home-utility-grid .home-library-panel--footer {
+.home-page .main-column .home-utility-grid .home-service-card {
   display: flex !important;
   flex-direction: column;
   align-items: stretch !important;
@@ -88,7 +53,7 @@
   padding: 1.25rem !important;
 }
 
-.home-page .main-column .home-utility-grid .home-library-panel--footer .home-service-card__action {
+.home-page .main-column .home-utility-grid .home-service-card .home-service-card__action {
   align-self: flex-start;
   margin-top: auto;
   max-width: 100%;
@@ -102,4 +67,35 @@
 
 .home-page .main-column .home-utility-grid .home-deferred--telegram > section {
   height: 100%;
+}
+
+/* Shared footer typography overrides the older tracker/support grids. */
+.home-page .home-utility-grid .home-service-card__head {
+  min-height: 2.5rem;
+  margin: 0;
+}
+.home-page .home-utility-grid .home-service-card__copy :is(h2, h3) {
+  margin: 0 !important;
+  font-size: clamp(1.125rem, 1rem + .25vw, 1.3125rem) !important;
+  font-weight: 800;
+  line-height: 1.2 !important;
+  letter-spacing: -.02em;
+}
+.home-page .home-utility-grid .home-service-card__copy p {
+  margin: .625rem 0 0 !important;
+  font-size: .8125rem !important;
+  line-height: 1.5 !important;
+}
+.home-page .home-utility-grid .home-service-card__action {
+  min-height: 2.75rem;
+  height: auto;
+  padding: .625rem .875rem !important;
+  font-size: .8125rem !important;
+  line-height: 1.35 !important;
+}
+.home-page .home-utility-grid .home-service-card__icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  min-width: 2.5rem;
+  flex-shrink: 0;
 }

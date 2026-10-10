@@ -136,11 +136,12 @@ export default function TelegramPromoCard({
   if (!ready || hidden) return null;
 
   const community = placement === 'watch_together';
+  const footer = placement === 'home_footer';
 
   return (
     <section
       ref={rootRef}
-      className={`${styles.card} ${community ? styles.community : ''}`}
+      className={`${styles.card} ${community ? styles.community : ''} ${footer ? `home-service-card ${styles.footer}` : ''}`}
       aria-label="Telegram-канал AnimeBox"
     >
       <button
@@ -169,9 +170,9 @@ export default function TelegramPromoCard({
         </AnimeBoxIconCore>
       </div>
 
-      <div className={styles.content}>
-        <div className={styles.brand}>
-          <span className={styles.brandMark}>
+      <div className={`${styles.content} ${footer ? styles.footerContent : ''}`}>
+        <div className={`${styles.brand} ${footer ? 'home-service-card__head' : ''}`}>
+          <span className={`${styles.brandMark} ${footer ? 'home-service-card__icon' : ''}`}>
             <PaperPlaneTiltIcon size={16} weight="regular" />
           </span>
           <span>
@@ -180,7 +181,7 @@ export default function TelegramPromoCard({
           </span>
         </div>
 
-        <div className={styles.copy}>
+        <div className={`${styles.copy} ${footer ? 'home-service-card__copy' : ''}`}>
           <h3>
             {community
               ? 'Watch Together начинается с комьюнити'
@@ -202,7 +203,7 @@ export default function TelegramPromoCard({
           href={TELEGRAM_CHANNEL_URL}
           target="_blank"
           rel="noreferrer"
-          className={styles.cta}
+          className={`${styles.cta} ${footer ? 'home-service-card__action' : ''}`}
           onClick={handleChannelClick}
         >
           <span>
