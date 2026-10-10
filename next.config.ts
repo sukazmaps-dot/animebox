@@ -146,6 +146,17 @@ const nextConfig: NextConfig = {
     return [
       { source: '/:path*', headers: securityHeaders },
       ...htmlRoutes.map((source) => ({ source, headers: htmlNoStoreHeaders })),
+      {
+        // Config headers are applied after route redirects by Next.js.
+        // The broad /auth rule must not replace this account-access no-store.
+        source: '/auth/callback',
+        headers: [
+          { key: 'Cache-Control', value: 'private, no-store' },
+          { key: 'CDN-Cache-Control', value: 'no-store' },
+          { key: 'Cloudflare-CDN-Cache-Control', value: 'no-store' },
+          { key: 'Vercel-CDN-Cache-Control', value: 'no-store' },
+        ],
+      },
       { source: '/', headers: homeHeaders },
       { source: '/anime/:slug/:path*', headers: htmlNoStoreHeaders },
       { source: '/anime/:slug', headers: animeDetailHeaders },
