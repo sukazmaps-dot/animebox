@@ -7,6 +7,7 @@ import type { GetAnimesOptions } from '@/lib/anilist';
 import type { Anime } from '@/types/anime';
 import { createPublicResultCache } from '@/lib/public-result-cache';
 import { mergeAnimeMetadata } from '@/lib/anime-metadata-merge';
+import { getCompatibleSavedDocuments } from '@/lib/saved-catalog-compat-server';
 
 type SavedDocument = {
   anime_id: number; slug: string | null; title: string; aliases: string[];
@@ -84,13 +85,23 @@ export async function getSavedCatalogPage(options: GetAnimesOptions) {
     .order('anime_id', {ascending: true});
   const offset = (page - 1) * limit;
   if (!Number.isSafeInteger(offset)) throw new Error('Invalid catalog page');
-  const {data, error} = await query.range(offset, offset + limit);
-  if (error) throw new Error(`Saved catalog unavailable: ${error.message}`);
+  const {data, error} = await query.abortSignal(AbortSignal.timeout(5000)).range(offset, offset + limit);
+  if (error) {
+    // Only schema rollout errors qualify. An outage/invalid server key must
+    // remain an actual failure instead of causing extra database traffic.
+    if (!/PGRST20[045]|42P01|42703/.test(error.code ?? '') && !/schema cache|does not exist|could not find/i.test(error.message)) throw new Error('Saved catalog unavailable');
+    const compatible = await getCompatibleSavedDocuments(options);
+    return { anime: compatible.rows.map(row => savedDocumentToAnime(row as SavedDocument)),
+      hasNextPage: compatible.hasNextPage, unsupportedFilters: compatible.unsupportedFilters,
+      scanLimited: compatible.scanLimited, compatibility: true };
+  }
   const rows = (data ?? []) as SavedDocument[];
   return {
     anime: rows.slice(0, limit).map(savedDocumentToAnime),
     hasNextPage: rows.length > limit,
     unsupportedFilters,
+    scanLimited: false,
+    compatibility: false,
   };
 }
 

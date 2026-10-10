@@ -13,8 +13,13 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: 'ru',
     icons: [
       {
-        src: '/brand/favicon.png',
+        src: '/brand/brand-mark.webp',
         sizes: '192x192',
+        type: 'image/webp',
+      },
+      {
+        src: '/brand/favicon.png?v=20261008',
+        sizes: '512x512',
         type: 'image/png',
       },
     ],

@@ -173,7 +173,7 @@ if (
 
 if (
   !proxy.includes('function buildUpstreamHeaders') ||
-  !proxy.includes("headers.Referer = 'https://shikimori.one/'") ||
+  !proxy.includes("'https://shikimori.io/' : 'https://shikimori.one/'") ||
   !proxy.includes("'Vercel-CDN-Cache-Control'") ||
   !proxy.includes("'Cloudflare-CDN-Cache-Control'") ||
   !proxy.includes("'X-AnimeBox-Image-Delivery': 'proxy-v2'") ||

@@ -10,6 +10,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { type MouseEvent, useEffect, useRef, useState } from 'react';
 
 import AnimeBoxIconCore from '@/components/ui/AnimeBoxIconCore';
+import styles from './TelegramPromoCard.module.css';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 import {
   TELEGRAM_CHANNEL_HANDLE,
@@ -139,12 +140,12 @@ export default function TelegramPromoCard({
   return (
     <section
       ref={rootRef}
-      className={`panel telegram-growth-card telegram-growth-card--vector ${community ? 'telegram-growth-card--community' : 'telegram-growth-card--compact'}`}
+      className={`${styles.card} ${community ? styles.community : ''}`}
       aria-label="Telegram-канал AnimeBox"
     >
       <button
         type="button"
-        className="telegram-growth-card__dismiss"
+        className={styles.dismiss}
         onClick={dismissPromo}
         aria-label="Скрыть рекламу Telegram-канала на 7 дней"
         title="Скрыть на 7 дней"
@@ -152,12 +153,10 @@ export default function TelegramPromoCard({
         ×
       </button>
 
-      <div className="telegram-growth-card__aurora" aria-hidden="true" />
-
-      <div className="telegram-growth-card__vector-art" aria-hidden="true">
-        <AnimeBoxIconCore size="large" className="telegram-growth-card__icon-core">
+      <div className={styles.art} aria-hidden="true">
+        <AnimeBoxIconCore size="compact">
           <motion.span
-            className="telegram-growth-card__plane"
+            className={styles.plane}
             animate={
               reducedMotion
                 ? undefined
@@ -170,9 +169,9 @@ export default function TelegramPromoCard({
         </AnimeBoxIconCore>
       </div>
 
-      <div className="telegram-growth-card__content">
-        <div className="telegram-growth-card__brand">
-          <span className="telegram-growth-card__brand-mark">
+      <div className={styles.content}>
+        <div className={styles.brand}>
+          <span className={styles.brandMark}>
             <PaperPlaneTiltIcon size={16} weight="regular" />
           </span>
           <span>
@@ -181,7 +180,7 @@ export default function TelegramPromoCard({
           </span>
         </div>
 
-        <div className="telegram-growth-card__copy">
+        <div className={styles.copy}>
           <h3>
             {community
               ? 'Watch Together начинается с комьюнити'
@@ -194,7 +193,7 @@ export default function TelegramPromoCard({
           </p>
         </div>
 
-        <div className="telegram-growth-card__benefits" aria-label="Преимущества Telegram-канала">
+        <div className={styles.benefits} aria-label="Преимущества Telegram-канала">
           <span><ChatCircleDotsIcon size={13} /> Патчи</span>
           <span><UsersThreeIcon size={13} /> {community ? 'Watch Together' : 'Комьюнити'}</span>
         </div>
@@ -203,7 +202,7 @@ export default function TelegramPromoCard({
           href={TELEGRAM_CHANNEL_URL}
           target="_blank"
           rel="noreferrer"
-          className="ab-action ab-action--secondary telegram-growth-card__cta"
+          className={styles.cta}
           onClick={handleChannelClick}
         >
           <span>

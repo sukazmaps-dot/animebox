@@ -9,6 +9,8 @@ const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 8_000;
 
 const EXACT_ALLOWED_HOSTS = new Set([
+  'shikimori.io',
+  'www.shikimori.io',
   'shikimori.me',
   'www.shikimori.me',
   'shikimori.one',
@@ -24,6 +26,7 @@ function isAllowedHost(hostname) {
   const host = hostname.toLowerCase();
   return (
     EXACT_ALLOWED_HOSTS.has(host) ||
+    host.endsWith('.shikimori.io') ||
     host.endsWith('.shikimori.me') ||
     host.endsWith('.shikimori.one') ||
     host.endsWith('.anilist.co') ||
@@ -32,11 +35,14 @@ function isAllowedHost(hostname) {
 }
 
 function parseSource(requestUrl) {
-  const raw = requestUrl.searchParams.get('url')?.trim();
+  let raw = requestUrl.searchParams.get('url')?.trim();
+  for (let step = 0; raw && step < 2 && /^(?:https?%(?:25){0,2}3a|%(?:25){0,2}2f)/i.test(raw); step++) {
+    try { raw = decodeURIComponent(raw); } catch { return null; }
+  }
   if (!raw) return null;
   try {
     const url = new URL(raw.startsWith('//') ? `https:${raw}` : raw);
-    if (url.protocol !== 'https:' || !isAllowedHost(url.hostname)) return null;
+    if (url.protocol !== 'https:' || url.username || url.password || url.port || !isAllowedHost(url.hostname)) return null;
     return url;
   } catch {
     return null;
@@ -99,12 +105,15 @@ function upstreamHeaders(source) {
   const host = source.hostname.toLowerCase();
 
   if (
+    host === 'shikimori.io' ||
+    host.endsWith('.shikimori.io') ||
     host === 'shikimori.me' ||
     host.endsWith('.shikimori.me') ||
     host === 'shikimori.one' ||
     host.endsWith('.shikimori.one')
   ) {
-    headers.Referer = 'https://shikimori.one/';
+    headers.Referer = host === 'shikimori.io' || host.endsWith('.shikimori.io')
+      ? 'https://shikimori.io/' : 'https://shikimori.one/';
   }
 
   return headers;
@@ -115,11 +124,17 @@ async function fetchOrigin(source) {
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
   try {
-    const response = await fetch(source, {
-      headers: upstreamHeaders(source),
-      redirect: 'follow',
-      signal: controller.signal,
-    });
+    let current = source, response;
+    for (let hop = 0; hop <= 5; hop++) {
+      response = await fetch(current, { headers: upstreamHeaders(current), redirect: 'manual', signal: controller.signal });
+      if (response.status < 300 || response.status >= 400) break;
+      const location = response.headers.get('location');
+      await response.body?.cancel();
+      if (!location || hop === 5) return null;
+      const next = parseSource(new URL('https://media.youranimebox.com/image?' + new URLSearchParams({ url: new URL(location,current).href })));
+      if (!next) return null;
+      current = next;
+    }
 
     if (!response.ok) return null;
 
@@ -129,13 +144,25 @@ async function fetchOrigin(source) {
     const declaredLength = Number(response.headers.get('content-length') || '0');
     if (declaredLength > MAX_IMAGE_BYTES) return null;
 
-    const arrayBuffer = await response.arrayBuffer();
+    const reader = response.body?.getReader();
+    if (!reader) return null;
+    const chunks = []; let size = 0;
+    try {
+      while (true) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        size += chunk.value.byteLength;
+        if (size > MAX_IMAGE_BYTES) return null;
+        chunks.push(chunk.value);
+      }
+    } finally { await reader.cancel().catch(() => undefined); reader.releaseLock(); }
+    const arrayBuffer = Buffer.concat(chunks, size);
     if (!arrayBuffer.byteLength || arrayBuffer.byteLength > MAX_IMAGE_BYTES) {
       return null;
     }
 
     return {
-      body: Buffer.from(arrayBuffer),
+      body: arrayBuffer,
       contentType,
     };
   } finally {

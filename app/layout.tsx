@@ -293,9 +293,9 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: '/brand/favicon.png',
+        url: '/brand/favicon.png?v=20261008',
         type: 'image/png',
-        sizes: '192x192',
+        sizes: '512x512',
       },
 
       {
@@ -304,9 +304,9 @@ export const metadata: Metadata = {
       },
     ],
 
-    shortcut: '/brand/favicon.png',
+    shortcut: '/brand/favicon.png?v=20261008',
 
-    apple: '/brand/favicon.png',
+    apple: '/brand/favicon.png?v=20261008',
   },
 
   manifest: '/manifest.webmanifest',
@@ -417,7 +417,7 @@ export default function RootLayout({
 
             <TelegramSubscriptionGate>
               <AppChrome>{children}</AppChrome>
-              <Analytics />
+              {process.env.VERCEL === '1' && <Analytics />}
             </TelegramSubscriptionGate>
           </AuthModalProvider>
         </AuthStateProvider>

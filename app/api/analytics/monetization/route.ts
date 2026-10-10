@@ -1,5 +1,6 @@
 import { readJsonBody } from '@/lib/community-server';
 import { createClient } from '@/lib/supabase/server';
+import { isAllowedBrowserOrigin } from '@/lib/browser-request-origin';
 import {
   trackMonetizationEvents,
   type MonetizationEventInput,
@@ -38,7 +39,10 @@ function metadata(value: unknown) {
 export async function POST(request: Request) {
   try {
     const origin = request.headers.get('origin');
-    if (origin && origin !== new URL(request.url).origin) {
+    if (
+      request.headers.get('sec-fetch-site') === 'cross-site' ||
+      (origin && !isAllowedBrowserOrigin(request, origin))
+    ) {
       return Response.json({ ok: false }, { status: 403 });
     }
 

@@ -91,8 +91,8 @@ need('media graceful fallback', mediaWorker, [
   "'source-soft-fail'",
 ]);
 need('same-origin image fallback', imageProxy, [
-  'new NextResponse(null',
-  "'proxy-v3-soft-fail'",
+  "'image/svg+xml'",
+  "'proxy-v4-placeholder'",
 ]);
 if (mediaWorker.includes('sourceFallbackResponse') || mediaWorker.includes("'source-fallback-redirect'")) {
   failures.push('deprecated media redirect fallback returned');

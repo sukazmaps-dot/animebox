@@ -573,6 +573,8 @@ export default function AnimeImage({
               <img
                 key={current}
                 ref={imageRef}
+                width={400}
+                height={600}
                 src={current}
                 srcSet={
                   sourceIndex === 0 && !isMediaEdgeBlocked(current)

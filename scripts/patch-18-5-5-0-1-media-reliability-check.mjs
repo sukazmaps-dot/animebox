@@ -57,7 +57,7 @@ for (const needle of [
   'status === 425',
   'status === 429',
   'status >= 500 && status <= 599',
-  "const MEDIA_WORKER_VERSION = 'media-shield-v4-circuit-breaker'",
+  "const MEDIA_WORKER_VERSION = 'media-shield-v5-shikimori-io'",
   'reliability: MEDIA_WORKER_VERSION',
   'originPipelineBudgetMs: ORIGIN_PIPELINE_BUDGET_MS',
   'sourceNegativeCacheTtlSeconds: SOURCE_NEGATIVE_CACHE_TTL_SECONDS',
@@ -111,8 +111,8 @@ for (const needle of [
   "'Retry-After': '15'",
   "error: timedOut ? 'origin-timeout' : 'origin-fetch-failed'",
   "error: `origin-${response.status}`",
-  "'proxy-v3-soft-fail'",
-  'new NextResponse(null',
+  "'proxy-v4-placeholder'",
+  "'Content-Type': 'image/svg+xml'",
 ]) {
   if (!proxy.includes(needle)) {
     failures.push(`legacy image proxy diagnostics missing: ${needle}`);
