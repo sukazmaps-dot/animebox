@@ -272,5 +272,8 @@ jobs:
       - name: Auth callback and access operations regression checks
         run: npm run auth-access:check
 
+      - name: Media relay, owner Telegram diagnostics and sitemap regression checks
+        run: npm run media-origin-recovery:check && python3 tests/seo-sitemap-smoke-test.py
+
       - name: Production build
         run: npm run build

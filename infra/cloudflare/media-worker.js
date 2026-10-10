@@ -1,4 +1,7 @@
-const MEDIA_WORKER_VERSION = 'media-shield-v5-shikimori-io';
+const MEDIA_WORKER_VERSION = 'media-shield-v6-origin-relay';
+const ORIGIN_RELAY_TIMEOUT_MS = 2_000;
+const ORIGIN_RELAY_CACHE_TTL_SECONDS = 600;
+const CANONICAL_IMAGE_RELAY = 'https://youranimebox.com/api/image';
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const ORIGIN_PIPELINE_BUDGET_MS = 5_800;
 const TRANSFORM_FETCH_TIMEOUT_MS = 2_200;
@@ -313,6 +316,63 @@ async function readImageResponse(response) {
   };
 }
 
+function rasterMatchesMime(bytes, contentType) {
+  const b = new Uint8Array(bytes);
+  const mime = contentType.split(';')[0].trim().toLowerCase();
+  const ascii = (start, value) => value.split('').every((c, i) => b[start + i] === c.charCodeAt(0));
+  if (mime === 'image/jpeg') return b.length >= 3 && b[0] === 255 && b[1] === 216 && b[2] === 255;
+  if (mime === 'image/png') return b.length >= 8 && [137,80,78,71,13,10,26,10].every((v,i) => b[i] === v);
+  if (mime === 'image/webp') return b.length >= 12 && ascii(0, 'RIFF') && ascii(8, 'WEBP');
+  if (mime === 'image/gif') return b.length >= 6 && (ascii(0, 'GIF87a') || ascii(0, 'GIF89a'));
+  if (mime === 'image/avif') return b.length >= 16 && ascii(4, 'ftyp') && (ascii(8, 'avif') || ascii(8, 'avis'));
+  return false;
+}
+
+function originRelayEnabled(env) {
+  return env?.MEDIA_ORIGIN_RELAY_ENABLED === 'true';
+}
+
+async function fetchCanonicalRelay(source, signal) {
+  const allowed = parseSource(new URL('https://media.youranimebox.com/image?' + new URLSearchParams({ url: source.href })));
+  if (!allowed) return { response: null, error: 'relay-source-forbidden' };
+  const target = new URL(CANONICAL_IMAGE_RELAY);
+  target.searchParams.set('url', allowed.href);
+  const response = await fetch(target, {
+    method: 'GET', redirect: 'manual', signal,
+    headers: { Accept: 'image/webp,image/avif,image/jpeg,image/png,image/gif' },
+  });
+  // Reject redirects, 204 and successful SVG placeholders from the app.
+  if (response.status !== 200) {
+    await response.body?.cancel();
+    return { response: null, error: `relay-http-${response.status}` };
+  }
+  const mime = response.headers.get('content-type') || '';
+  if (!/^image\/(?:jpeg|png|webp|avif|gif)(?:;|$)/i.test(mime)) {
+    await response.body?.cancel();
+    return { response: null, error: 'relay-not-raster' };
+  }
+  const result = await readImageResponse(response);
+  if (!result.response || !rasterMatchesMime(result.response.bytes, mime)) {
+    return { response: null, error: 'relay-invalid-image' };
+  }
+  return result;
+}
+
+function relayCacheKey(requestUrl, hash) {
+  return new Request(`${requestUrl.origin}/cache/origin-relay/v1/${hash}`, { method: 'GET' });
+}
+
+function relayHeaders(contentType, source, variant, state) {
+  const headers = variant
+    ? transformFallbackHeaders(contentType, source, variant, 'origin-403-relay')
+    : publicHeaders(contentType, source, state);
+  headers.set('X-AnimeBox-Media', state);
+  headers.set('X-AnimeBox-Relay', 'canonical-image-proxy');
+  headers.set('Cache-Control', `public, max-age=60, s-maxage=${ORIGIN_RELAY_CACHE_TTL_SECONDS}`);
+  headers.set('CDN-Cache-Control', `public, max-age=${ORIGIN_RELAY_CACHE_TTL_SECONDS}`);
+  return headers;
+}
+
 async function fetchRawOrigin(source, signal) {
   const response = await fetchAllowedOrigin(source, {
     headers: upstreamHeaders(source),
@@ -481,7 +541,7 @@ async function fetchRawOriginWithRetry(source, deadlineMs) {
   };
 }
 
-async function fetchOrigin(source, variant) {
+async function fetchOrigin(source, variant, env = {}) {
   const deadlineMs = Date.now() + ORIGIN_PIPELINE_BUDGET_MS;
   let transformError = null;
 
@@ -519,6 +579,18 @@ async function fetchOrigin(source, variant) {
 
   const raw = await fetchRawOriginWithRetry(source, deadlineMs);
 
+  if (!raw.response && raw.error === 'origin-403' && originRelayEnabled(env)) {
+    const timeout = Math.min(ORIGIN_RELAY_TIMEOUT_MS, remainingOriginBudget(deadlineMs));
+    const relay = timeout > 0
+      ? await runTimedOriginAttempt(signal => fetchCanonicalRelay(source, signal), timeout, 'relay')
+      : { response: null, error: 'relay-budget-exhausted' };
+    if (relay.response) {
+      return { response: relay.response, error: 'origin-403', transformError,
+        rawError: raw.error, rawAttempts: raw.attempts, transformed: false, relayUsed: true };
+    }
+    raw.relayError = relay.error;
+  }
+
   return {
     response: raw.response,
     error:
@@ -529,6 +601,7 @@ async function fetchOrigin(source, variant) {
     rawError: raw.response ? null : raw.error,
     rawAttempts: raw.attempts,
     transformed: false,
+    relayError: raw.relayError || null,
   };
 }
 
@@ -625,7 +698,7 @@ function sourceSoftFailureResponse(source, error, sourceBackoff = false) {
   return new Response(null, { status: 204, headers });
 }
 
-async function fetchOriginCoalesced(source, variant, hash) {
+async function fetchOriginCoalesced(source, variant, hash, env = {}) {
   const inFlightKey = variant
     ? `${hash}:${variant.token}`
     : hash;
@@ -641,6 +714,8 @@ async function fetchOriginCoalesced(source, variant, hash) {
     if (!probe.available) {
       return probe.origin;
     }
+    // Raw relay bytes are source-wide; simultaneous widths share one rescue.
+    if (probe.origin.relayUsed) return probe.origin;
 
     // Another waiter may have started this variant while we awaited the probe.
     const pendingVariant = inFlightOriginFetches.get(inFlightKey);
@@ -648,7 +723,7 @@ async function fetchOriginCoalesced(source, variant, hash) {
   }
 
   let originPromise;
-  originPromise = fetchOrigin(source, variant).finally(() => {
+  originPromise = fetchOrigin(source, variant, env).finally(() => {
     if (inFlightOriginFetches.get(inFlightKey) === originPromise) {
       inFlightOriginFetches.delete(inFlightKey);
     }
@@ -709,6 +784,9 @@ async function handleRequest(request, env, ctx) {
         negativeCacheTtlSeconds: NEGATIVE_CACHE_TTL_SECONDS,
         sourceNegativeCacheTtlSeconds: SOURCE_NEGATIVE_CACHE_TTL_SECONDS,
         sourceProbeCoalescing: true,
+        originRelayEnabled: originRelayEnabled(env),
+        originRelayTimeoutMs: ORIGIN_RELAY_TIMEOUT_MS,
+        originRelayCacheTtlSeconds: ORIGIN_RELAY_CACHE_TTL_SECONDS,
         widths: [...ALLOWED_WIDTHS],
         qualities: [...ALLOWED_QUALITIES],
         formats: [...ALLOWED_FORMATS],
@@ -796,6 +874,21 @@ async function handleRequest(request, env, ctx) {
         : r2Hit;
     }
 
+    const relayKey = relayCacheKey(requestUrl, hash);
+    if (originRelayEnabled(env)) {
+      try {
+        const cached = await cache.match(relayKey);
+        if (cached) {
+          const restored = await readImageResponse(cached);
+          if (restored.response && rasterMatchesMime(restored.response.bytes, restored.response.contentType)) {
+            return new Response(request.method === 'HEAD' ? null : restored.response.bytes, {
+              status: 200, headers: relayHeaders(restored.response.contentType, source, variant, 'origin-relay-hit'),
+            });
+          }
+        }
+      } catch { /* Cache degradation must not stop origin recovery. */ }
+    }
+
     const sourceNegativeKey = sourceFailureCacheKey(
       requestUrl,
       hash,
@@ -813,6 +906,7 @@ async function handleRequest(request, env, ctx) {
       source,
       variant,
       hash,
+      env,
     );
     if (!origin.response) {
       const failureResponse = sourceSoftFailureResponse(
@@ -824,6 +918,10 @@ async function handleRequest(request, env, ctx) {
         origin.error,
         true,
       );
+      if (origin.relayError) {
+        failureResponse.headers.set('X-AnimeBox-Relay-Error', origin.relayError);
+        sourceFailureResponse.headers.set('X-AnimeBox-Relay-Error', origin.relayError);
+      }
 
       ctx.waitUntil(
         Promise.all([
@@ -839,6 +937,16 @@ async function handleRequest(request, env, ctx) {
     }
 
     const { bytes, contentType, etag } = origin.response;
+
+    if (origin.relayUsed) {
+      const rawResponse = new Response(bytes, { status: 200,
+        headers: relayHeaders(contentType, source, null, 'origin-relay-fill') });
+      // Separate short-lived source cache; never masquerade raw bytes as an R2 variant.
+      ctx.waitUntil(cache.put(relayKey, rawResponse.clone()).catch(() => undefined));
+      return new Response(request.method === 'HEAD' ? null : bytes, {
+        status: 200, headers: relayHeaders(contentType, source, variant, 'origin-relay-fill'),
+      });
+    }
 
     if (variant && !origin.transformed) {
       const headers = transformFallbackHeaders(
