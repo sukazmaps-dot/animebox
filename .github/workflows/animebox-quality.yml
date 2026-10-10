@@ -40,6 +40,9 @@ jobs:
       - name: TypeScript
         run: npx tsc --noEmit
 
+      - name: Catalog source integrity and Telegram webhook recovery
+        run: npm run source-integrity:check
+
       - name: Targeted lint
         run: >-
           npx eslint

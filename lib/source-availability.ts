@@ -5,10 +5,8 @@ import {
   getExternalPlayer,
   type AniLibriaVideo,
 } from '@/lib/anilibria';
-import {
-  animeSearchTitles,
-  normalizeReleaseTitle,
-} from '@/lib/release-match';
+import { animeSearchTitles } from '@/lib/release-match';
+import { exactReleaseTitle } from '@/lib/provider-episodes';
 import {
   isTransientUpstreamResponse,
   isUpstreamPressureError,
@@ -59,15 +57,15 @@ function makeAbortError(): Error {
 }
 
 function cleanQuery(value: string): string {
-  return value
-    .replace(/[()[\]{}"'`]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  // Apostrophes/subtitles can distinguish franchise entries (e.g. Gintama').
+  return value.replace(/\s+/g, ' ').trim();
 }
 
 function getCandidates(value: unknown): unknown[] {
   if (Array.isArray(value)) return value;
-  if (!isRecord(value)) return [];
+  if (value === null) return []; // Explicit HTTP 404.
+  if (!isRecord(value)) throw new UnknownProviderError('Invalid release search response');
+  if (value.error) throw new UnknownProviderError('Provider returned a release search error');
 
   for (const key of ['data', 'list', 'releases', 'items']) {
     if (Array.isArray(value[key])) {
@@ -79,7 +77,7 @@ function getCandidates(value: unknown): unknown[] {
     return getCandidates(value.data);
   }
 
-  return [];
+  throw new UnknownProviderError('Invalid release search response');
 }
 
 function getAlias(value: unknown): string | null {
@@ -93,65 +91,8 @@ function getAlias(value: unknown): string | null {
     : null;
 }
 
-function getTitleValues(value: unknown): string[] {
-  if (!isRecord(value)) return [];
-
-  const values: string[] = [];
-  const add = (candidate: unknown) => {
-    if (typeof candidate === 'string' && candidate.trim()) {
-      values.push(candidate.trim());
-    }
-  };
-
-  for (const key of [
-    'title',
-    'russian',
-    'english',
-    'romaji',
-    'native',
-    'main',
-  ]) {
-    add(value[key]);
-  }
-
-  for (const key of ['name', 'names']) {
-    const nested = value[key];
-    if (typeof nested === 'string') {
-      add(nested);
-      continue;
-    }
-
-    if (!isRecord(nested)) continue;
-
-    for (const nestedKey of [
-      'main',
-      'russian',
-      'english',
-      'romaji',
-      'native',
-      'ru',
-      'en',
-      'jp',
-    ]) {
-      add(nested[nestedKey]);
-    }
-  }
-
-  return values;
-}
-
 function titleLooksRelated(value: unknown, query: string): boolean {
-  const normalizedQuery = normalizeReleaseTitle(query);
-  if (!normalizedQuery) return false;
-
-  return getTitleValues(value).some((title) => {
-    const normalizedTitle = normalizeReleaseTitle(title);
-    return (
-      normalizedTitle === normalizedQuery ||
-      normalizedTitle.includes(normalizedQuery) ||
-      normalizedQuery.includes(normalizedTitle)
-    );
-  });
+  return exactReleaseTitle(value, [query]);
 }
 
 function getLegacyPlayerHost(value: unknown): unknown {
@@ -251,7 +192,7 @@ function buildCurrentSource(
   if (!episode) {
     return {
       hls: [],
-      externalPlayer: getCurrentExternalPlayer(release),
+      externalPlayer: null,
     };
   }
 
@@ -309,7 +250,9 @@ async function fetchJson(
     }
 
     try {
-      return await response.json();
+      const payload: unknown = await response.json();
+      if (payload === null) throw new UnknownProviderError('Provider returned an empty JSON payload');
+      return payload;
     } catch {
       throw new UnknownProviderError('Provider returned invalid JSON');
     }
@@ -339,15 +282,19 @@ async function resolveLegacySource(
   url.searchParams.set('limit', '5');
 
   const data = await fetchJson(url.toString(), signal);
-  const candidates = getCandidates(data).slice(0, 5);
+  const candidates = getCandidates(data);
 
   if (candidates.length === 0) {
     return { result: null, uncertain: false };
   }
 
+  if (candidates.filter((item) => titleLooksRelated(item, query)).length > 1) {
+    return { result: null, uncertain: true };
+  }
+
   let uncertain = false;
 
-  for (const candidate of candidates) {
+  for (const candidate of candidates.slice(0, 5)) {
     if (!titleLooksRelated(candidate, query)) {
       uncertain = true;
       continue;
@@ -374,15 +321,19 @@ async function resolveCurrentSource(
   searchUrl.searchParams.set('query', query);
 
   const searchData = await fetchJson(searchUrl.toString(), signal);
-  const candidates = getCandidates(searchData).slice(0, 3);
+  const candidates = getCandidates(searchData);
 
   if (candidates.length === 0) {
     return { result: null, uncertain: false };
   }
 
+  if (candidates.filter((item) => titleLooksRelated(item, query)).length > 1) {
+    return { result: null, uncertain: true };
+  }
+
   let uncertain = false;
 
-  for (const candidate of candidates) {
+  for (const candidate of candidates.slice(0, 3)) {
     const alias = getAlias(candidate);
 
     if (!alias || !titleLooksRelated(candidate, query)) {
@@ -560,7 +511,7 @@ function getCatalogAvailabilityKey(anime: Anime): string {
       : `anilist:${anime.id}`;
 
   const titles = animeSearchTitles(anime)
-    .map(normalizeReleaseTitle)
+    .map((title) => title.normalize('NFKC').toLowerCase().trim())
     .filter(Boolean)
     .slice(0, 3)
     .join('|');
