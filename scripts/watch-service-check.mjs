@@ -4,7 +4,7 @@ const read = (path) =>
   fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
 const card = read('components/SmartRecommendationCard.tsx');
-const css = read('app/patch17-4-service-experience.css');
+const homeCss = read('app/home-visual-repair.css');
 const platformCss = read('app/patch17-6-home-recommendation-actions.css');
 const home = read('components/home/HomeDeferredCommunity.tsx');
 const feed = read('components/SmartRecommendationFeed.tsx');
@@ -33,8 +33,9 @@ if (
 }
 
 if (
-  !css.includes('grid-template-columns: repeat(3, minmax(0, 1fr)) !important') ||
-  !css.includes('.home-library-panel--footer')
+  !homeCss.includes('grid-template-columns: repeat(3, minmax(0, 1fr)) !important') ||
+  !homeCss.includes('.home-library-panel--footer') ||
+  !homeCss.includes('@container home-main (min-width: 34rem)')
 ) {
   failures.push('compact desktop service footer contract is missing');
 }

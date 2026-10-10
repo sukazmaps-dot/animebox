@@ -75,3 +75,11 @@
 .footer .brand small { font-size: .625rem; letter-spacing: .06em; font-weight: 760; }
 .footer .brand b { font-size: .625rem; }
 .footer .benefits { margin-bottom: .25rem; }
+.footer .brand { padding-right: 3.5rem; }
+.footer .dismiss {
+  width: 44px;
+  height: 44px;
+  color: var(--ab-ui-text);
+  background: var(--ab-ui-raised);
+  border-color: var(--ab-ui-border);
+}

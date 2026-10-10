@@ -358,3 +358,103 @@ body{font-size:var(--ab-fluid-body)}
 @media(min-width:90rem){:root{--ab-card-min:11.5rem}}
 @media(min-width:120rem){:root{--ab-card-min:13.5rem}}
 @media(max-width:47.999rem){:root{--ab-card-min:8.75rem}:where(.search-page,.tracker-page,.telegram-growth-card) :where(p,span,small,button,a,label,input,select){font-size:max(1rem,1em)!important}}
+/* Foundation v2. Shared chrome only; profile surfaces own their customization.
+   This existing final shared sheet avoids another root CSS import. */
+:root,
+html[data-animebox-theme='dark'] {
+  --ab-ui-canvas: #0b0d14;
+  --ab-ui-surface: #141824;
+  --ab-ui-raised: #1c2232;
+  --ab-ui-border: #30384a;
+  --ab-ui-text: #f1f3fa;
+  --ab-ui-muted: #a8b1c3;
+  --ab-ui-accent: #a78bfa;
+  --ab-ui-primary: #7551c8;
+  --ab-ui-primary-text: #ffffff;
+  --ab-ui-selected: #26203c;
+  --ab-ui-radius: .875rem;
+  --ab-ui-gap: 1rem;
+}
+html[data-animebox-theme='light'] {
+  --ab-ui-canvas: #f5f6fa;
+  --ab-ui-surface: #ffffff;
+  --ab-ui-raised: #eceff6;
+  --ab-ui-border: #cbd2e0;
+  --ab-ui-text: #202536;
+  --ab-ui-muted: #566176;
+  --ab-ui-accent: #6941b5;
+  --ab-ui-primary: #7551c8;
+  --ab-ui-primary-text: #ffffff;
+  --ab-ui-selected: #ede7f8;
+}
+html[data-animebox-theme], :root {
+  --bg: var(--ab-ui-canvas);
+  --bg-2: var(--ab-ui-canvas);
+  --panel: var(--ab-ui-surface);
+  --panel-2: var(--ab-ui-raised);
+  --line: var(--ab-ui-border);
+  --text: var(--ab-ui-text);
+  --muted: var(--ab-ui-muted);
+  --accent: var(--ab-ui-accent);
+  --ab-vl-canvas: var(--ab-ui-canvas);
+  --ab-vl-surface: var(--ab-ui-surface);
+  --ab-vl-surface-raised: var(--ab-ui-raised);
+  --ab-vl-line: var(--ab-ui-border);
+  --ab-vl-text: var(--ab-ui-text);
+  --ab-vl-muted: var(--ab-ui-muted);
+  --ab-vl-violet: var(--ab-ui-accent);
+}
+
+/* Specificity includes html to win over historical theme overrides. */
+html body {
+  background: var(--ab-ui-canvas) !important;
+  color: var(--ab-ui-text);
+}
+html .sidebar, html .topbar, html .mobile-nav {
+  background: var(--ab-ui-surface) !important;
+  border-color: var(--ab-ui-border) !important;
+}
+html .topbar__search {
+  background: var(--ab-ui-raised) !important;
+  border-color: var(--ab-ui-border) !important;
+  min-width: 0;
+}
+html .topbar__search input {
+  color: var(--ab-ui-text) !important;
+  font-size: 1rem !important;
+  min-width: 0;
+}
+html .topbar__search input::placeholder { color: var(--ab-ui-muted) !important; }
+html .sidebar__item, html .mobile-nav__item,
+html .brand small, html .sidebar__label { color: var(--ab-ui-muted) !important; }
+html .sidebar__item.is-active, html .mobile-nav__item.is-active {
+  background: var(--ab-ui-selected) !important;
+  color: var(--ab-ui-text) !important;
+  box-shadow: inset 2px 0 var(--ab-ui-accent) !important;
+}
+html .topbar__icon, html .topbar__login {
+  background: var(--ab-ui-raised) !important;
+  color: var(--ab-ui-text) !important;
+  border-color: var(--ab-ui-border) !important;
+}
+html .btn--primary, html .topbar__register {
+  background: var(--ab-ui-primary) !important;
+  color: var(--ab-ui-primary-text) !important;
+  box-shadow: none !important;
+}
+html .btn--ghost {
+  background: var(--ab-ui-raised) !important;
+  color: var(--ab-ui-text) !important;
+  border-color: var(--ab-ui-border) !important;
+}
+html .page-content { padding-inline: clamp(1rem, 2vw, 2rem); }
+html .site-footer {
+  color: var(--ab-ui-muted) !important;
+  border-color: var(--ab-ui-border) !important;
+}
+html .site-footer__links { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; }
+html :is(.sidebar, .topbar, .mobile-nav, .site-footer) :is(a, button, input):focus-visible {
+  outline: 2px solid var(--ab-ui-accent) !important;
+  outline-offset: 3px;
+}
+html .topbar__search:focus-within { outline: 2px solid var(--ab-ui-accent); outline-offset: 2px; }
