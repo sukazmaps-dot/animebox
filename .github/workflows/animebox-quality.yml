@@ -269,5 +269,8 @@ jobs:
       - name: Railway analytics origin regression checks
         run: npm run home-visual-analytics:check
 
+      - name: Auth callback and access operations regression checks
+        run: npm run auth-access:check
+
       - name: Production build
         run: npm run build

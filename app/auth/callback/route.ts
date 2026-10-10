@@ -1,7 +1,17 @@
 import { NextResponse } from 'next/server';
 
 import { safeInternalPath } from '@/lib/browser-navigation';
+import { authCallbackOrigin } from '@/lib/auth-callback-origin';
 import { createClient } from '@/lib/supabase/server';
+
+export const dynamic = 'force-dynamic';
+
+function redirect(target: URL) {
+  const response = NextResponse.redirect(target);
+  response.headers.set('Cache-Control', 'private, no-store');
+  response.headers.set('CDN-Cache-Control', 'no-store');
+  return response;
+}
 
 function recoveryFailureUrl(origin: string) {
   const url = new URL('/auth/update-password', origin);
@@ -11,6 +21,7 @@ function recoveryFailureUrl(origin: string) {
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
+  const origin = authCallbackOrigin(request);
   const code = requestUrl.searchParams.get('code');
   const tokenHash = requestUrl.searchParams.get('token_hash');
   const type = requestUrl.searchParams.get('type');
@@ -36,10 +47,10 @@ export async function GET(request: Request) {
         error,
       );
 
-      return NextResponse.redirect(
+      return redirect(
         recovery
-          ? recoveryFailureUrl(requestUrl.origin)
-          : new URL('/login?error=google-auth', requestUrl.origin),
+          ? recoveryFailureUrl(origin)
+          : new URL('/login?error=google-auth', origin),
       );
     }
   } else if (recovery && tokenHash) {
@@ -50,15 +61,15 @@ export async function GET(request: Request) {
 
     if (error || !data.session) {
       console.error('Password recovery OTP error:', error);
-      return NextResponse.redirect(
-        recoveryFailureUrl(requestUrl.origin),
+      return redirect(
+        recoveryFailureUrl(origin),
       );
     }
   } else {
-    return NextResponse.redirect(
+    return redirect(
       recovery
-        ? recoveryFailureUrl(requestUrl.origin)
-        : new URL('/login?error=google-auth', requestUrl.origin),
+        ? recoveryFailureUrl(origin)
+        : new URL('/login?error=google-auth', origin),
     );
   }
 
@@ -66,8 +77,8 @@ export async function GET(request: Request) {
   // Once Supabase has written the authenticated recovery session cookie,
   // go straight to the password form.
   if (recovery) {
-    return NextResponse.redirect(
-      new URL(safeNext, requestUrl.origin),
+    return redirect(
+      new URL(safeNext, origin),
     );
   }
 
@@ -76,8 +87,8 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.redirect(
-      new URL('/login?error=google-auth', requestUrl.origin),
+    return redirect(
+      new URL('/login?error=google-auth', origin),
     );
   }
 
@@ -89,12 +100,12 @@ export async function GET(request: Request) {
 
   // Новый Google-пользователь должен сначала выбрать AnimeBox username.
   if (!profile?.username?.trim()) {
-    const onboardingUrl = new URL('/onboarding', requestUrl.origin);
+    const onboardingUrl = new URL('/onboarding', origin);
     onboardingUrl.searchParams.set('next', safeNext);
-    return NextResponse.redirect(onboardingUrl);
+    return redirect(onboardingUrl);
   }
 
-  return NextResponse.redirect(
-    new URL(safeNext, requestUrl.origin),
+  return redirect(
+    new URL(safeNext, origin),
   );
 }
