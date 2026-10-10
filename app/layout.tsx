@@ -417,7 +417,7 @@ export default function RootLayout({
 
             <TelegramSubscriptionGate>
               <AppChrome>{children}</AppChrome>
-              <Analytics />
+              {process.env.VERCEL === '1' && <Analytics />}
             </TelegramSubscriptionGate>
           </AuthModalProvider>
         </AuthStateProvider>

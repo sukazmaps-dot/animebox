@@ -266,5 +266,8 @@ jobs:
       - name: Browser origin guard regression checks
         run: node tests/browser-request-origin.cjs
 
+      - name: Railway analytics origin regression checks
+        run: npm run home-visual-analytics:check
+
       - name: Production build
         run: npm run build

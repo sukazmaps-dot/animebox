@@ -1,0 +1,105 @@
+/* Home-only repair of legacy geometry. Keep carousel identity and ordering. */
+@media (max-width: 768px) {
+  .home-page .home-grid .page-hero.home-hero-carousel {
+    height: auto !important;
+    min-height: 25rem !important;
+    max-height: none !important;
+  }
+
+  .home-page .home-grid .page-hero__content.home-hero-carousel__content {
+    height: auto !important;
+    min-height: 25rem !important;
+    max-height: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 7rem 1rem 4.5rem !important;
+    justify-content: flex-end !important;
+  }
+
+  .home-page .home-grid .home-hero-carousel .home-hero-carousel__content h1 {
+    display: block !important;
+    overflow: visible !important;
+    width: 100%;
+    max-width: 100% !important;
+    max-height: none !important;
+    margin: 0;
+    font-size: clamp(1.5rem, 6.5vw, 2rem) !important;
+    line-height: 1.15 !important;
+    -webkit-line-clamp: unset !important;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+  }
+
+  .home-page .home-grid .home-hero-carousel .home-hero-carousel__content h1.is-long-title {
+    font-size: clamp(1.25rem, 5.5vw, 1.65rem) !important;
+  }
+
+  .home-page .home-grid .home-hero-carousel .hero-actions .btn {
+    min-height: 2.75rem !important;
+    font-size: .875rem !important;
+  }
+}
+
+/* Sparse continuation shelves contain real matches only. Give 1–2 matches a
+   horizontal composition instead of reserving a full tall poster shelf. */
+@media (min-width: 769px) {
+  .home-page .smart-feed__personal-rail:is(
+    [data-recommendation-rail-items='1'],
+    [data-recommendation-rail-items='2']
+  ) .smart-feed__slide {
+    width: clamp(20rem, 32vw, 27rem) !important;
+    max-width: 100%;
+  }
+
+  .home-page .smart-feed__personal-rail:is(
+    [data-recommendation-rail-items='1'],
+    [data-recommendation-rail-items='2']
+  ) .smart-card {
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr);
+    gap: .875rem;
+    align-items: start;
+    height: auto;
+  }
+
+  .home-page .smart-feed__personal-rail:is(
+    [data-recommendation-rail-items='1'],
+    [data-recommendation-rail-items='2']
+  ) .smart-card__body {
+    min-height: 0;
+    padding: 0;
+  }
+
+  .home-page .smart-feed__personal-rail:is(
+    [data-recommendation-rail-items='1'],
+    [data-recommendation-rail-items='2']
+  ) .smart-card__title {
+    min-height: 0;
+  }
+}
+
+/* Footer cards now share a simple vertical flow matching their actual DOM. */
+.home-page .main-column .home-utility-grid .home-library-panel--footer {
+  display: flex !important;
+  flex-direction: column;
+  align-items: stretch !important;
+  justify-content: flex-start;
+  gap: .875rem;
+  padding: 1.25rem !important;
+}
+
+.home-page .main-column .home-utility-grid .home-library-panel--footer .home-service-card__action {
+  align-self: flex-start;
+  margin-top: auto;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.home-page .main-column .home-utility-grid .home-service-card__copy {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.home-page .main-column .home-utility-grid .home-deferred--telegram > section {
+  height: 100%;
+}

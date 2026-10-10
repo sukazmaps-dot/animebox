@@ -562,6 +562,7 @@ function NavbarContent() {
           />
 
           <input
+            name="q"
             value={searchValue}
             onFocus={() => {
               if (searchValue.trim().length >= 2) setSearchActive(true);
@@ -685,6 +686,8 @@ function NavbarFallback() {
           />
 
           <input
+            name="q"
+            aria-label="Поиск аниме"
             value=""
             readOnly
             tabIndex={-1}
