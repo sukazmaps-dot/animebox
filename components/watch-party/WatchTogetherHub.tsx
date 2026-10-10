@@ -22,6 +22,7 @@ import { trackProductClientEvent } from '@/lib/product-events-client';
 import { getAnimes, isAbortError } from '@/lib/anime-client';
 import { getAnimeOriginalTitle, getAnimeTitle } from '@/lib/anime-display';
 import { parseAnimeSearchIntent } from '@/lib/search-intent';
+import { premiumMediaStyle, type PremiumMediaTransform } from '@/lib/premium-studio';
 import {
   buildWatchPartyUrl,
   claimWatchPartyHostTab,
@@ -61,6 +62,8 @@ type PublicWatchPartyRoom = {
   host: {
     id: string;
     username: string;
+    avatarUrl: string;
+    avatarTransform: PremiumMediaTransform;
   };
   createdAt: string;
   updatedAt: string;
@@ -845,6 +848,20 @@ export default function WatchTogetherHub() {
                     <div className={styles.roomHostLine}>
                       <span className={styles.roomHostAvatar}>
                         {room.host.username.trim().slice(0, 1).toUpperCase() || '?'}
+                        {room.host.avatarUrl && (
+                          <img
+                            src={room.host.avatarUrl}
+                            alt=""
+                            aria-hidden="true"
+                            loading="lazy"
+                            decoding="async"
+                            draggable={false}
+                            style={premiumMediaStyle(room.host.avatarTransform)}
+                            onError={(event) => {
+                              event.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        )}
                       </span>
                       <span>
                         <small>HOST</small>
