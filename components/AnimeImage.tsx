@@ -525,7 +525,7 @@ export default function AnimeImage({
       {!loaded && !isFallback && (
         <div
           aria-hidden="true"
-          className="absolute inset-0 z-0 animate-pulse bg-slate-900"
+          className="absolute inset-0 z-0 bg-slate-900"
         />
       )}
 
@@ -549,7 +549,6 @@ export default function AnimeImage({
         <>
           {/* Mass poster grids intentionally bypass /_next/image. */}
           {/* Near mode is released by one shared adaptive observer. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           {shouldRequestSource && (
             <picture className="contents">
               {sourceIndex === 0 &&

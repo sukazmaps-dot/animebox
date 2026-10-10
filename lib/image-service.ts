@@ -216,8 +216,13 @@ export function getImageCandidates(
    * 240/360px edge variant permanently soft. Start from large, then let the
    * Worker resize/cache the exact responsive variant; medium is only fallback.
    */
+  const preferred = imageValues(image, preference);
+  // Preserve the srcSet's upstream identity; only reorder tiny-slot fallback.
+  const values = delivery?.preset === 'tiny'
+    ? [preferred[0], image.medium, ...preferred.slice(1)]
+    : preferred;
   return buildImageCandidateChain(
-    imageValues(image, preference),
+    values,
     delivery,
   );
 }

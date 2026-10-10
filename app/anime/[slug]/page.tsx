@@ -56,11 +56,8 @@ export async function generateMetadata({
     anime = await getResolvedAnime(slug);
   } catch (error) {
     console.error('[Anime metadata] title resolution failed:', error);
-    return {
-      title: 'AnimeBox — тайтл временно недоступен',
-      description: 'Не удалось временно загрузить данные тайтла.',
-      robots: { index: false, follow: true },
-    };
+    // A transient server failure must not emit a persistent noindex policy.
+    throw error;
   }
 
   if (!anime) {

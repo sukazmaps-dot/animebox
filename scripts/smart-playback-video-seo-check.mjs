@@ -139,9 +139,9 @@ if (
 
 if (
   !animeDetailPage.includes("console.error('[Anime metadata] title resolution failed:'") ||
-  !animeDetailPage.includes("robots: { index: false, follow: true }")
+  !animeDetailPage.includes('throw error;')
 ) {
-  failures.push('Anime detail metadata can still crash on upstream resolution failure.');
+  failures.push('Anime metadata must propagate transient failures instead of emitting noindex.');
 }
 
 if (!seoIndex.includes("from('episode_timeline_meta')")) {
