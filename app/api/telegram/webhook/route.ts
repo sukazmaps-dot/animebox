@@ -105,6 +105,7 @@ async function sendMessage(
     `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
     {
       method: 'POST',
+      signal: AbortSignal.timeout(10_000),
 
       headers: {
         'Content-Type': 'application/json',
@@ -295,7 +296,7 @@ export async function POST(request: NextRequest) {
     ) {
       await sendMessage(
         chatId,
-        `AnimeBox chat ID: <code>${chatId}</code>\nДобавь его в Vercel как <code>BOOSTY_PREMIUM_CHAT_ID</code>.`,
+        `AnimeBox chat ID: <code>${chatId}</code>\nДобавь его в переменные сервера AnimeBox как <code>BOOSTY_PREMIUM_CHAT_ID</code>.`,
       );
       return NextResponse.json({ ok: true });
     }

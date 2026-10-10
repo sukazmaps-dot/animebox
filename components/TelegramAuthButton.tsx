@@ -302,13 +302,16 @@ function humanizeError(
     if (
       status === '500'
     ) {
-      return 'Ошибка Telegram API AnimeBox. Проверь Vercel Logs.';
+      return 'Ошибка Telegram API AnimeBox. Попробуй ещё раз чуть позже.';
     }
 
     return `Telegram API временно недоступен (${status}).`;
   }
 
   switch (error) {
+    case 'telegram_request_timeout':
+      return 'Telegram-вход не ответил вовремя. Попробуй ещё раз.';
+
     case 'telegram_not_configured':
       return 'Вход через Telegram пока не настроен.';
 
@@ -454,6 +457,8 @@ export default function TelegramAuthButton({
             cache:
               'no-store',
 
+            signal: AbortSignal.timeout(15_000),
+
             headers: {
               Accept:
                 'application/json',
@@ -592,6 +597,8 @@ export default function TelegramAuthButton({
 
             cache:
               'no-store',
+
+            signal: AbortSignal.timeout(15_000),
           },
         );
 
@@ -740,7 +747,9 @@ export default function TelegramAuthButton({
 
       const raw =
         error instanceof Error
-          ? error.message
+          ? error.name === 'TimeoutError' || error.name === 'AbortError'
+            ? 'telegram_request_timeout'
+            : error.message
           : 'telegram_auth_failed';
 
       onError?.(

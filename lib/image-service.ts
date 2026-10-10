@@ -80,8 +80,8 @@ function prefersLegacyProxy(value: string): boolean {
  *
  * 1. AnimeBox media edge (Cloudflare Worker -> edge cache -> R2 when bound)
  * 2. optional RU media edge
- * 3. best original source
- * 4. one secondary original source
+ * 3. best browser-safe source (Shikimori through same-origin proxy)
+ * 4. one secondary browser-safe source
  * 5. one legacy same-origin proxy fallback
  *
  * This keeps the normal path to one request per poster while preserving a
@@ -113,6 +113,9 @@ export function buildImageCandidateChain(
 
   const primary = remote[0];
   const secondary = remote.find((value) => value !== primary) ?? null;
+  const secondaryFallback = secondary
+    ? prefersLegacyProxy(secondary) ? proxyImageUrl(secondary) : secondary
+    : null;
   const mediaVariant = delivery
     ? buildAnimeBoxMediaDefaultVariant(
         primary,
@@ -130,26 +133,19 @@ export function buildImageCandidateChain(
 
   // Shikimori must stay server-side: direct browser requests reset/403.
   if (prefersLegacyProxy(primary) && legacyProxy) {
-    if (secondary && !prefersLegacyProxy(secondary)) result.push(secondary);
+    if (secondaryFallback) result.push(secondaryFallback);
     result.push(legacyProxy, ...local);
     return Array.from(new Set(result));
   }
 
-  if (
-    mediaCandidates.length === 0 &&
-    prefersLegacyProxy(primary) &&
-    legacyProxy &&
-    legacyProxy !== primary
-  ) {
-    result.push(legacyProxy, primary);
-  } else if (mediaCandidates.length > 0) {
+  if (mediaCandidates.length > 0) {
     // If the AnimeBox edge has already failed for the primary object, try a
     // genuinely different source/size before re-hitting that same origin.
-    if (secondary) result.push(secondary);
+    if (secondaryFallback) result.push(secondaryFallback);
     result.push(primary);
   } else {
     result.push(primary);
-    if (secondary) result.push(secondary);
+    if (secondaryFallback) result.push(secondaryFallback);
   }
 
   if (

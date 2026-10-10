@@ -122,7 +122,8 @@ for (const needle of [
 for (const needle of [
   'const secondary = remote.find',
   'result.push(primary)',
-  'result.push(secondary)',
+  'result.push(secondaryFallback)',
+  'prefersLegacyProxy(secondary) ? proxyImageUrl(secondary) : secondary',
   'const legacyProxy = proxyImageUrl(primary)',
   'result.push(legacyProxy)',
 ]) {
