@@ -278,7 +278,7 @@ export default function SearchCatalogClient({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedMood, setSelectedMood] = useState<CatalogMood>('any');
   const [favorites, setFavorites] = useState<Anime[]>([]);
-  const [tasteGraph, setTasteGraph] = useState<TasteGraph | null>(() => readCachedTasteGraph());
+  const [tasteGraph, setTasteGraph] = useState<TasteGraph | null>(null);
   const [results, setResults] = useState<Anime[]>(initialResults);
   const [loading, setLoading] = useState(initialView === 'catalog' && (Boolean(normalizedInitialQuery) || initialResults.length === 0));
   const [error, setError] = useState('');
@@ -345,6 +345,10 @@ export default function SearchCatalogClient({
 
   useEffect(() => {
     const controller = new AbortController();
+    const frame = window.requestAnimationFrame(() => {
+      const cachedGraph = readCachedTasteGraph();
+      if (cachedGraph) setTasteGraph((current) => current ?? cachedGraph);
+    });
     void fetchTasteGraph(controller.signal).then((graph) => { if (graph) setTasteGraph(graph); }).catch((tasteError) => {
       if (tasteError instanceof Error && tasteError.name === 'AbortError') return;
     });
@@ -354,6 +358,7 @@ export default function SearchCatalogClient({
     };
     window.addEventListener('animebox-taste-graph-updated', onTasteGraph);
     return () => {
+      window.cancelAnimationFrame(frame);
       controller.abort();
       window.removeEventListener('animebox-taste-graph-updated', onTasteGraph);
     };
@@ -1002,12 +1007,7 @@ export default function SearchCatalogClient({
       <div className="page-heading">
         <h1>Каталог</h1>
         <p>Найди историю под своё настроение.</p>
-        <div className={styles.catalogTabs} aria-label="Раздел каталога">
-          <button type="button" className={view === 'catalog' ? styles.catalogTabActive : styles.catalogTab} onClick={() => applyView('catalog')}>Каталог</button>
-          <button type="button" className={view === 'saved' ? styles.catalogTabActive : styles.catalogTab} onClick={() => applyView('saved')}>
-            Сохранённые{favorites.length > 0 ? <span>{favorites.length}</span> : null}
-          </button>
-        </div>
+
 
         {view === 'catalog' && searchClassification?.mode === 'context' && discoveryDescription.length > 0 && (
           <div className={styles.smartDiscoveryHint}><span className={styles.smartDiscoveryBadge}>Smart Search</span><span>{discoveryDescription.join(' · ')}</span></div>
@@ -1057,6 +1057,12 @@ export default function SearchCatalogClient({
       </div>
 
       <div className={styles.filterBar}>
+        <div className={styles.catalogTabs} aria-label="Раздел каталога">
+          <button type="button" className={view === 'catalog' ? styles.catalogTabActive : styles.catalogTab} onClick={() => applyView('catalog')}>Каталог</button>
+          <button type="button" className={view === 'saved' ? styles.catalogTabActive : styles.catalogTab} onClick={() => applyView('saved')}>
+            Сохранённые{favorites.length > 0 ? <span>{favorites.length}</span> : null}
+          </button>
+        </div>
         {view === 'catalog' && <MoodFilter value={selectedMood} onChange={commitMood} />}
         <button type="button" className={`${styles.filterToggle} ${filtersOpen || filterCount > 0 ? styles.filterToggleActive : ''}`} aria-expanded={filtersOpen} onClick={toggleFiltersPanel}>
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2" fill="currentColor" stroke="none"/><circle cx="16" cy="17" r="2" fill="currentColor" stroke="none"/></svg>Фильтры{filterCount > 0 ? <b>{filterCount}</b> : null}

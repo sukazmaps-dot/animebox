@@ -167,11 +167,11 @@ export default function HomeScheduleRuntimeProvider({
   } = useHomeFeedRuntime();
 
   const scheduleSectionRef = useRef<HTMLElement | null>(null);
-  const [scheduleDays] =
-    useState<ScheduleDay[]>(createScheduleDays);
+  const [scheduleDays, setScheduleDays] =
+    useState<ScheduleDay[]>([]);
   const [selectedScheduleDay, setSelectedScheduleDay] =
-    useState(() => scheduleDays[0]?.key ?? '');
-  const [clockNow, setClockNow] = useState(() => Date.now());
+    useState('');
+  const [clockNow, setClockNow] = useState(0);
   const {
     scheduleItems,
     scheduleWindowItems,
@@ -181,11 +181,22 @@ export default function HomeScheduleRuntimeProvider({
   } = useHomeScheduleData(scheduleSectionRef);
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
+    // Server and initial browser render use an empty snapshot. Populate local
+    // dates after hydration, including rollover while the page stays open.
+    const refreshClock = () => {
+      const days = createScheduleDays();
       setClockNow(Date.now());
-    }, 60_000);
-
-    return () => window.clearInterval(timer);
+      setScheduleDays((previous) => previous[0]?.key === days[0]?.key ? previous : days);
+      setSelectedScheduleDay((previous) =>
+        days.some((day) => day.key === previous) ? previous : days[0]?.key ?? '',
+      );
+    };
+    const frame = window.requestAnimationFrame(refreshClock);
+    const timer = window.setInterval(refreshClock, 60_000);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearInterval(timer);
+    };
   }, []);
 
   const personalScheduleItems = useMemo(() => {

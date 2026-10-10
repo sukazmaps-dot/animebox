@@ -69,3 +69,9 @@
   .card { padding: 1rem; }
   .dismiss { width: 40px; height: 40px; }
 }
+
+/* Only the home footer joins the common service-card layout. */
+.footer .footerContent { display: contents; }
+.footer .brand small { font-size: .625rem; letter-spacing: .06em; font-weight: 760; }
+.footer .brand b { font-size: .625rem; }
+.footer .benefits { margin-bottom: .25rem; }
