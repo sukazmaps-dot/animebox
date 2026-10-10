@@ -57,7 +57,7 @@ for (const needle of [
   'status === 425',
   'status === 429',
   'status >= 500 && status <= 599',
-  "const MEDIA_WORKER_VERSION = 'media-shield-v5-shikimori-io'",
+  "const MEDIA_WORKER_VERSION = 'media-shield-v6-origin-relay'",
   'reliability: MEDIA_WORKER_VERSION',
   'originPipelineBudgetMs: ORIGIN_PIPELINE_BUDGET_MS',
   'sourceNegativeCacheTtlSeconds: SOURCE_NEGATIVE_CACHE_TTL_SECONDS',
