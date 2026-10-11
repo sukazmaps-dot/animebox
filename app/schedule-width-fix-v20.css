@@ -117,3 +117,17 @@ html .schedule-page-v2 .weekly-calendar__event:focus-visible { outline:2px solid
   html .schedule-page-v2 .weekly-calendar__event { min-height:64px!important; border-radius:0!important; }
   html .schedule-page-v2 .weekly-calendar__event-main { grid-template-columns:28px minmax(0,1fr)!important; }
 }
+/* Align time, artwork and copy as one compact row on every breakpoint. */
+html .schedule-page-v2 .weekly-calendar__event { display:grid!important; grid-template-columns:38px minmax(0,1fr)!important; gap:7px; align-items:center!important; border-radius:var(--ab-ui-radius)!important; min-height:64px; }
+html .schedule-page-v2 .weekly-calendar__event-time { display:grid; align-content:center; margin:0!important; min-width:0; gap:3px; }
+html .schedule-page-v2 .weekly-calendar__event-time span { color:var(--ab-ui-muted)!important; white-space:normal; line-height:1.3; }
+html .schedule-page-v2 .weekly-calendar__event-main { align-items:center!important; min-width:0; }
+html .schedule-page-v2 .weekly-calendar__event-main>div { min-width:0; }
+html .home-page .schedule__card { align-items:center!important; border-radius:var(--ab-ui-radius)!important; }
+html .home-page .schedule__time { color:var(--ab-ui-accent)!important; align-self:center; }
+@media(hover:hover) { html .schedule-page-v2 .weekly-calendar__event:hover,html .home-page .schedule__card:hover { border-color:var(--ab-ui-accent)!important; background:var(--ab-ui-selected)!important; transform:none!important; } }
+html .schedule-page-v2 .weekly-calendar__event-time { grid-column:1!important; grid-row:1!important; justify-items:start!important; text-align:left!important; }
+html .schedule-page-v2 .weekly-calendar__event-main { grid-column:2!important; grid-row:1!important; }
+html .schedule-page-v2 .weekly-calendar__event { border:1px solid var(--ab-ui-border)!important; min-height:64px!important; }
+html .schedule-page-v2 .weekly-calendar__event:last-child { border-bottom:1px solid var(--ab-ui-border)!important; }
+html .schedule-page-v2 .weekly-calendar__event-main span { font-size:10px!important; line-height:1.35; }

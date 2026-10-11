@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import styles from './FriendsPageClient.module.css';
 import { useCallback, useEffect, useState } from 'react';
 
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
@@ -44,7 +45,7 @@ function PersonCard({
   secondaryAction?: { label: string; onClick: () => void };
 }) {
   return (
-    <article className="flex min-w-0 items-center gap-3 rounded-2xl border border-[var(--ab-ui-border)] bg-[var(--ab-ui-surface)] p-3">
+    <article className="flex min-w-0 items-center gap-3 rounded-xl border border-[var(--ab-ui-border)] bg-[var(--ab-ui-surface)] p-3 transition-colors hover:bg-[var(--ab-ui-raised)]">
       <ProfilePreview
         userId={item.userId}
         username={item.username}
@@ -206,7 +207,7 @@ export default function FriendsPageClient() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6">
+    <div className={styles.page}>
       <header className="rounded-3xl border border-[var(--ab-ui-border)] bg-[var(--ab-ui-surface)] p-6 sm:p-8">
         <span className="text-[10px] font-black tracking-[.16em] text-[var(--ab-ui-accent)]">SOCIAL GRAPH · 17.7</span>
         <h1 className="mt-2 text-3xl font-black tracking-tight text-[var(--ab-ui-text)] sm:text-4xl">Друзья AnimeBox</h1>
@@ -222,15 +223,15 @@ export default function FriendsPageClient() {
 
       {error && <div className="rounded-2xl border border-rose-400/15 bg-rose-500/[0.06] p-4 text-sm font-bold text-rose-200">{error}</div>}
 
-      <SocialGraphPanels />
+      <div className={styles.discovery}><SocialGraphPanels /></div>
 
       {data.incoming.length > 0 && (
-        <section className="rounded-3xl border border-[var(--ab-ui-border)] bg-[var(--ab-ui-surface)] p-5 sm:p-6">
+        <section className={styles.panel}>
           <div className="mb-4">
             <span className="text-[9px] font-black tracking-[.14em] text-[var(--ab-ui-accent)]">ВХОДЯЩИЕ</span>
             <h2 className="mt-1 text-xl font-black text-[var(--ab-ui-text)]">Заявки в друзья</h2>
           </div>
-          <div className="grid gap-2 lg:grid-cols-2">
+          <div className={styles.people}>
             {data.incoming.map((item) => (
               <PersonCard
                 key={item.friendshipId}
@@ -243,13 +244,13 @@ export default function FriendsPageClient() {
         </section>
       )}
 
-      <section className="rounded-3xl border border-[var(--ab-ui-border)] bg-[var(--ab-ui-surface)] p-5 sm:p-6">
+      <section className={styles.panel}>
         <div className="mb-4">
           <span className="text-[9px] font-black tracking-[.14em] text-[var(--ab-ui-accent)]">ТВОЙ КРУГ</span>
           <h2 className="mt-1 text-xl font-black text-[var(--ab-ui-text)]">Друзья</h2>
         </div>
         {data.friends.length ? (
-          <div className="grid gap-2 lg:grid-cols-2">
+          <div className={styles.people}>
             {data.friends.map((item) => (
               <PersonCard
                 key={item.friendshipId}
@@ -267,12 +268,12 @@ export default function FriendsPageClient() {
       </section>
 
       {data.outgoing.length > 0 && (
-        <section className="rounded-3xl border border-[var(--ab-ui-border)] bg-[var(--ab-ui-surface)] p-5 sm:p-6">
+        <section className={styles.panel}>
           <div className="mb-4">
             <span className="text-[9px] font-black tracking-[.14em] text-[var(--ab-ui-accent)]">ОЖИДАНИЕ</span>
             <h2 className="mt-1 text-xl font-black text-[var(--ab-ui-text)]">Отправленные заявки</h2>
           </div>
-          <div className="grid gap-2 lg:grid-cols-2">
+          <div className={styles.people}>
             {data.outgoing.map((item) => (
               <PersonCard
                 key={item.friendshipId}

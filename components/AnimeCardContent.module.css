@@ -22,3 +22,7 @@
 .content.content :global(.anime-card__rating), .content.content :global(.smart-card__rating) { font-size:.75rem!important; border-radius:.375rem!important; }
 .content:focus-within { outline:2px solid var(--ab-ui-accent); outline-offset:3px; border-radius:var(--ab-ui-radius); }
 @media(prefers-reduced-motion:reduce) { .content * { transition:none!important; transform:none!important; } }
+:global(.anime-card):has(.content), :global(.smart-card):has(.content) { border-radius:var(--ab-ui-radius)!important; }
+@media(hover:hover) {
+  :global(.anime-card):has(.content):hover, :global(.smart-card):has(.content):hover { transform:none!important; border-color:var(--ab-ui-accent)!important; }
+}

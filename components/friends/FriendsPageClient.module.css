@@ -1,0 +1,7 @@
+.page { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; width:min(1180px,100%); margin-inline:auto; }
+.page>header,.discovery { grid-column:1/-1; min-width:0; }
+.panel { min-width:0; padding:20px; border:1px solid var(--ab-ui-border); border-radius:var(--ab-ui-radius); background:var(--ab-ui-surface); }
+.people { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr)); align-items:start; gap:12px; }
+.people>article { max-width:560px; width:100%; min-width:0; }
+@media(min-width:1200px) { .page { grid-template-columns:repeat(2,minmax(0,1fr)); } .page>.panel:only-of-type { grid-column:1/-1; } }
+@media(max-width:600px) { .panel { padding:16px; } }

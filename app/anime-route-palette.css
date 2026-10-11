@@ -27,3 +27,35 @@ html .premium-page :is(.premium-benefits>p,.boosty-premium-v18 p,.boosty-premium
 html .premium-page :is(.premium-hero__chips span,.premium-cta--secondary,.premium-note>a,.boosty-premium-v18__steps a,.boosty-premium-v18__head span) { color:var(--ab-ui-accent)!important; }
 html .premium-page :is(.boosty-premium-v18__steps article,.boosty-premium-v18__verify,.boosty-premium-v18__notice,.boosty-premium-v18__state) { background:var(--ab-ui-raised)!important; border-color:var(--ab-ui-border)!important; color:var(--ab-ui-muted)!important; }
 html .premium-page .boosty-premium-v18__verify button { background:var(--ab-ui-primary)!important; color:var(--ab-ui-primary-text)!important; box-shadow:none; }
+/* Interaction panels stay bounded and share the card geometry. */
+html :is(.anime-rating-control,.episode-discussion-hub,.episode-list-shell,.episode-page .detail__episodes) { background:var(--ab-ui-surface)!important; border:1px solid var(--ab-ui-border)!important; border-radius:var(--ab-ui-radius)!important; }
+html .anime-rating-control { min-width:0; max-width:680px; padding:20px!important; margin:0!important; }
+html :is(.anime-rating-control h2,.episode-discussion-hub h2,.episode-discussion-hub__meta b,.episode-list__label) { color:var(--ab-ui-text)!important; }
+html :is(.anime-rating-control p,.anime-rating-control__footer,.anime-rating-control__clear,.anime-rating-control__summary span,.anime-rating-control__summary small,.episode-discussion-hub p,.episode-discussion-hub__meta small,.episode-list__meta,.episode-list__copy small,.episode-list__micro-heading,.anime-detail-v3__genres,.anime-detail-v3__genres span,.anime-detail-v4__section-head p,.anime-detail-v4__watch-together-inner p) { color:var(--ab-ui-muted)!important; }
+html :is(.anime-rating-control__eyebrow,.episode-discussion-hub__eyebrow,.anime-detail-v4__section-head span,.anime-detail-v4__watch-together-inner>div>span) { color:var(--ab-ui-accent)!important; }
+html :is(.anime-rating-control__summary,.episode-discussion-hub__meta>span,.episode-list__item,.episode-list__season-tabs button,.episode-list__extra) { border-radius:var(--ab-ui-radius)!important; border-color:var(--ab-ui-border)!important; background:var(--ab-ui-raised)!important; }
+html .episode-list__item { min-height:60px!important; padding:10px 12px!important; }
+html .episode-list__item:is(.is-current,.is-watched,.is-partial) { border-color:var(--ab-ui-accent)!important; }
+html .episode-list__item:focus-visible { outline:2px solid var(--ab-ui-accent); outline-offset:2px; }
+html .episode-discussion-hub { width:100%; max-width:1040px; padding:20px!important; margin-inline:auto; gap:20px!important; grid-template-columns:56px minmax(0,1fr)!important; }
+html .episode-discussion-hub__meta { grid-column:2; display:flex!important; flex-wrap:wrap; gap:10px; }
+html .episode-discussion-hub__meta>span { flex:1 1 180px; min-width:0; }
+html .episode-discussion-hub__primary { background:var(--ab-ui-primary)!important; color:var(--ab-ui-primary-text)!important; box-shadow:none; }
+html .episode-discussion-hub__secondary { background:var(--ab-ui-raised)!important; color:var(--ab-ui-text)!important; }
+html .episode-engagement-grid { max-width:1040px; margin-inline:auto; align-items:stretch; gap:16px; }
+@media(min-width:1000px) {
+  html .anime-detail-v4__personal-grid { display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:16px!important; max-width:1180px; margin-inline:auto; align-items:start; }
+  html .anime-detail-v4__personal-grid>.anime-rating-control { grid-column:2; grid-row:1/span 2; width:100%; }
+  html .anime-detail-v4__personal-grid>:not(.anime-rating-control) { grid-column:1; min-width:0; }
+}
+@media(max-width:999px) { html .anime-rating-control { max-width:none; width:100%; } }
+@media(max-width:600px) {
+  html .episode-discussion-hub { grid-template-columns:minmax(0,1fr)!important; padding:16px!important; }
+  html .episode-discussion-hub__visual { display:none; }
+  html .episode-discussion-hub__meta { grid-column:1; }
+  html .anime-rating-control { padding:16px!important; }
+}
+@media(hover:hover) { html .episode-list__item:hover { background:var(--ab-ui-selected)!important; border-color:var(--ab-ui-accent)!important; transform:none!important; } }
+html .anime-detail-v4__personal-grid>:is(.episode-library-compact,.anime-notification-control) { background:var(--ab-ui-surface)!important; color:var(--ab-ui-text)!important; border-color:var(--ab-ui-border)!important; border-radius:var(--ab-ui-radius); }
+html .episode-discussion-hub__meta small { grid-column:2; width:auto!important; max-width:none!important; white-space:normal; }
+html .episode-discussion-hub__meta>span { display:grid; grid-template-columns:16px minmax(0,1fr); align-items:center; column-gap:8px; }
