@@ -243,3 +243,10 @@
     flex-direction: column;
   }
 }
+
+/* Application chrome uses the common theme tokens. */
+.page.page { color:var(--ab-ui-text); }
+.page.page :is(.hero,.section,.integrity,.targetCard,.categoryCard,.milestone) { background:var(--ab-ui-surface)!important; border-color:var(--ab-ui-border)!important; }
+.page.page :is(.hero h1,.section h2,.targetCard h3,.categoryCard h3) { color:var(--ab-ui-text)!important; }
+.page.page :is(.hero p,.targetCard p,.milestone p,.integrity p,.heroStats span,.heroStats small,.categoryCard span) { color:var(--ab-ui-muted)!important; }
+.page.page :is(.eyebrow) { color:var(--ab-ui-accent)!important; }

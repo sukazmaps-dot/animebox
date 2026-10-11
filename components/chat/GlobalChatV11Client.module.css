@@ -76,3 +76,11 @@
     animation:none;
   }
 }
+
+/* Theme only the chat chrome, never personalized nickname effects. */
+.shell.shell :is(.chatPanel,.sideCard,.composer,.authGate,.pinned) { background:var(--ab-ui-surface)!important; border-color:var(--ab-ui-border)!important; }
+.shell.shell :is(.header h1,.sideCard>strong,.text,.composer textarea,.authGate strong,.pinned strong) { color:var(--ab-ui-text)!important; }
+.shell.shell :is(.header p,.sideCard p,.sideCard li,.authGate span,.counter,.slowHint,.replying small,.notifications span) { color:var(--ab-ui-muted)!important; }
+.shell.shell :is(.eyebrow,.sideEyebrow,.sideCard a,.authGate a) { color:var(--ab-ui-accent)!important; }
+.shell.shell .composer textarea::placeholder { color:var(--ab-ui-muted); }
+.shell.shell .send { background:var(--ab-ui-primary); color:var(--ab-ui-primary-text); }

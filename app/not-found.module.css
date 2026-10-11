@@ -1,0 +1,4 @@
+.page.page :global(.animebox-not-found__card) { background:var(--ab-ui-surface)!important; border-color:var(--ab-ui-border)!important; }
+.page.page :global(h1) { color:var(--ab-ui-text)!important; }
+.page.page :global(p) { color:var(--ab-ui-muted)!important; }
+.page.page :global(.animebox-not-found__eyebrow) { color:var(--ab-ui-accent)!important; }

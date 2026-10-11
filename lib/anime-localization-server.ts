@@ -337,12 +337,22 @@ export async function localizeAnimeDetail(anime: Anime): Promise<Anime> {
       ? storedDescription
       : null;
 
-  const localFallback = mergeAnime({
+  let localFallback: Anime = mergeAnime({
     anime: { ...anime, idMal: anime.idMal ?? anime.mal_id ?? local.malId },
     russianTitle: localRussianTitle,
-    russianDescription: localRussianDescription,
+    russianDescription: localRussianDescription ?? (cleanText(anime.description) ? null : storedDescription),
     catalog: local.catalog,
   });
+
+  const cachedMalId = Number(localFallback.idMal ?? 0);
+  if (Number.isSafeInteger(cachedMalId) && cachedMalId > 0) {
+    const cachedMetadata = (await readShikimoriMetadata([cachedMalId])).get(cachedMalId);
+    localFallback = mergeShikimoriMetadata(localFallback, cachedMetadata);
+    const cachedDescription = cleanText(cachedMetadata?.description);
+    if (!localRussianDescription && !containsCyrillic(localFallback.description ?? '') && cachedDescription && containsCyrillic(cachedDescription)) {
+      localFallback = { ...localFallback, description: cleanShikimoriDescription(cachedDescription) };
+    }
+  }
 
   // Once a Russian description has been persisted, the detail page is no
   // longer dependent on Shikimori availability.

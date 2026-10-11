@@ -1,0 +1,29 @@
+/* Route-owned chrome. Poster art and the provider iframe retain their colors. */
+html .anime-detail-v4,
+html .episode-page,
+html .premium-page { color:var(--ab-ui-text); --detail-accent:var(--ab-ui-accent); }
+html :is(.anime-detail-v4__hero-shell,.anime-detail-v3__facts-shell,.anime-detail-v4__watch-together-inner,.episode-page__info,.premium-hero,.premium-plan,.premium-note,.premium-benefits__grid article,.premium-plan__card) { background:var(--ab-ui-surface)!important; border-color:var(--ab-ui-border)!important; }
+html :is(.anime-detail-v4__title,.anime-detail-v3__facts-heading h2,.anime-detail-v3__facts-list dd,.anime-detail-v4__section-head h2,.premium-hero h1,.premium-section-head h2,.premium-plan h2,.premium-benefits__grid h3) { color:var(--ab-ui-text)!important; }
+html :is(.anime-detail-v4__description,.anime-detail-v4__original-title,.anime-detail-v4__aliases,.anime-detail-v3__facts-list dt,.anime-detail-v4__breadcrumbs,.episode-page__identity-compact span,.premium-hero p,.premium-plan p,.premium-note p,.premium-benefits__grid p) { color:var(--ab-ui-muted)!important; }
+html :is(.anime-detail-v4__chip,.anime-detail-v3__genres a,.premium-eyebrow,.premium-section-head>span) { color:var(--ab-ui-accent)!important; }
+html .episode-page__identity-compact { border-color:var(--ab-ui-border); }
+html .episode-page__identity-compact h1 { color:var(--ab-ui-text); }
+html .episode-page__identity-compact a { color:var(--ab-ui-accent); }
+html .episode-page :is(.community-panel,.episode-quick-nav,.episode-quick-nav__sheet,.episode-library-compact,.watch-party-panel,.library-status-control,.anime-notification-control) { background:var(--ab-ui-surface)!important; border-color:var(--ab-ui-border)!important; color:var(--ab-ui-text); }
+html .episode-page :is(.community-panel p,.community-panel small,.episode-quick-nav__current span,.episode-library-compact__trigger-copy span) { color:var(--ab-ui-muted)!important; }
+html .episode-page :is(.episode-quick-nav__step,.episode-quick-nav__all,.episode-quick-nav__current,.episode-quick-nav__grid button) { background:var(--ab-ui-raised)!important; color:var(--ab-ui-text)!important; border-color:var(--ab-ui-border)!important; }
+html .episode-page .episode-quick-nav__grid button.is-current { background:var(--ab-ui-selected)!important; border-color:var(--ab-ui-accent)!important; }
+html .premium-page :is(.premium-v2__pillar,.premium-support-story,.premium-final-cta,.premium-v2__free-core,.premium-plan__cards article,.premium-history__row) { background:var(--ab-ui-surface)!important; border-color:var(--ab-ui-border)!important; }
+html .premium-page :is(.premium-v2__pillar h3,.premium-support-story h2,.premium-final-cta h2,.premium-plan__price,.premium-plan__cards h3) { color:var(--ab-ui-text)!important; }
+html .premium-page :is(.premium-v2__pillar p,.premium-support-story p,.premium-final-cta p,.premium-plan__billing,.premium-plan__disclaimer,.premium-history__row span) { color:var(--ab-ui-muted)!important; }
+html .premium-page .premium-cta--primary { background:var(--ab-ui-primary)!important; color:var(--ab-ui-primary-text)!important; box-shadow:none!important; }
+html :is(.anime-detail-v4,.episode-page) { background:var(--ab-ui-canvas)!important; --anime-page-accent:var(--ab-ui-accent)!important; --ab-accent:var(--ab-ui-accent)!important; --ab-iris:var(--ab-ui-accent)!important; --ab-ember:var(--ab-ui-accent)!important; }
+html .anime-detail-v4__banner-shade { background:color-mix(in srgb,var(--ab-ui-surface) 75%,transparent); }
+html .anime-detail-v4__banner-gradient { background:linear-gradient(to bottom,transparent,color-mix(in srgb,var(--ab-ui-surface) 85%,transparent),var(--ab-ui-surface)); }
+html .premium-plan__cards strong { color:var(--ab-ui-text)!important; }
+html .premium-page :is(.premium-benefits,.boosty-premium-v18,.premium-support-story__mark,.premium-v2__free-core) { background:var(--ab-ui-surface)!important; border-color:var(--ab-ui-border)!important; }
+html .premium-page :is(.premium-benefits h2,.boosty-premium-v18 h2,.boosty-premium-v18 strong,.premium-support-story__mark strong,.premium-note strong) { color:var(--ab-ui-text)!important; }
+html .premium-page :is(.premium-benefits>p,.boosty-premium-v18 p,.boosty-premium-v18 small,.boosty-premium-v18 .is-muted,.premium-support-story__mark p,.premium-v2__free-core,.premium-plan__disclaimer) { color:var(--ab-ui-muted)!important; }
+html .premium-page :is(.premium-hero__chips span,.premium-cta--secondary,.premium-note>a,.boosty-premium-v18__steps a,.boosty-premium-v18__head span) { color:var(--ab-ui-accent)!important; }
+html .premium-page :is(.boosty-premium-v18__steps article,.boosty-premium-v18__verify,.boosty-premium-v18__notice,.boosty-premium-v18__state) { background:var(--ab-ui-raised)!important; border-color:var(--ab-ui-border)!important; color:var(--ab-ui-muted)!important; }
+html .premium-page .boosty-premium-v18__verify button { background:var(--ab-ui-primary)!important; color:var(--ab-ui-primary-text)!important; box-shadow:none; }

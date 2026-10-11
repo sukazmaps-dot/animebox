@@ -425,3 +425,15 @@
     min-height: 56px;
   }
 }
+
+/* Shared application palette; profile customization has its own scope. */
+:global(html[data-animebox-theme]) .page.page { color:var(--ab-ui-text); }
+:global(html[data-animebox-theme]) .page.page :is(.hero,.card,.accountChip,.themeChoice,.linkGrid a,.secondaryAction,.dangerRows button,.toast) { background:var(--ab-ui-surface)!important; border-color:var(--ab-ui-border)!important; }
+:global(html[data-animebox-theme]) .page.page :is(.hero h1,.cardHead h2,.settingRow strong,.themeChoice strong,.accountChip strong,.linkGrid strong,.dangerRows strong) { color:var(--ab-ui-text)!important; }
+:global(html[data-animebox-theme]) .page.page :is(.hero p,.cardCopy,.settingRow p,.themeRow p,.themeChoice small,.accountChip small,.linkGrid small,.dangerRows small,.secondaryAction) { color:var(--ab-ui-muted)!important; }
+:global(html[data-animebox-theme]) .page.page :is(.eyebrow,.cardHead small,.inlineLink) { color:var(--ab-ui-accent)!important; }
+:global(html[data-animebox-theme]) .page.page .themeChoice[data-active='true'] { background:var(--ab-ui-selected)!important; border-color:var(--ab-ui-accent)!important; }
+:global(html[data-animebox-theme]) .page.page .primaryAction,:global(html[data-animebox-theme]) .page.page .toggle[data-on='true'] { background:var(--ab-ui-primary); color:var(--ab-ui-primary-text); box-shadow:none; }
+:global(html[data-animebox-theme]) .page.page .heroGlow { background:var(--ab-ui-selected); }
+
+:global(html[data-animebox-theme]) .page.page :is(.loading,.themeRow strong) { color:var(--ab-ui-text)!important; }

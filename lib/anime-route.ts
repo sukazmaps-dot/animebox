@@ -11,6 +11,7 @@ import {
   getAnimeIdFromStableSlug,
   registerAnime,
 } from './anime-registry';
+import { findPersistentAnimeRoute } from '@/lib/persistent-anime-route';
 import { getSeoAnimeDetailFallback } from '@/lib/seo-anime-index-server';
 
 const getCachedAnimeBase = unstable_cache(
@@ -26,10 +27,12 @@ const getCachedAnimeBase = unstable_cache(
 );
 
 export const resolveAnimeRoute = cache(async (slug: string) => {
-  const id = /^\d+$/.test(slug)
+  const localId = /^\d+$/.test(slug)
     ? Number(slug)
     : findAnimeRoute(slug)?.id ?? getAnimeIdFromStableSlug(slug);
 
+  const persistedRoute = localId ? null : await findPersistentAnimeRoute(slug);
+  const id = localId ?? persistedRoute?.id;
   if (!id || !Number.isSafeInteger(id) || id <= 0) return null;
 
   let baseAnime = null;
@@ -66,7 +69,7 @@ export const resolveAnimeRoute = cache(async (slug: string) => {
   return {
     ...anime,
     // A partial Russian title must not redirect a sitemap URL to a new slug.
-    slug: seoFallbackSlug || anime.slug,
+    slug: persistedRoute?.slug || seoFallbackSlug || anime.slug,
     providerSeason: findAnimeRouteById(id)?.provider_season || 1,
   };
 });
