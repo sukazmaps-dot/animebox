@@ -90,8 +90,22 @@ try {
         assert(card.right <= width + 1 && card.x >= -1, `${theme}/${width}: card outside viewport`);
       }
       for (const action of geometry.actions) assert(action.h >= 43 && action.right <= width + 1, `${theme}/${width}: CTA size/overflow ${JSON.stringify(action)}`);
+      const promo = await page.locator('.home-deferred--telegram > section').evaluate(root => {
+        const head = root.querySelector('.home-service-card__head').getBoundingClientRect();
+        const copy = root.querySelector('.home-service-card__copy').getBoundingClientRect();
+        const close = root.querySelector('button').getBoundingClientRect();
+        return { gap: copy.top - head.bottom, headRight: head.right, closeLeft: close.left,
+          label: root.querySelector('.home-service-card__eyebrow')?.textContent,
+          bottom: root.querySelector('.home-service-card__action').getBoundingClientRect().bottom };
+      });
+      assert(promo.gap >= 12, `${theme}/${width}: Telegram header/copy gap collapsed: ${promo.gap}`);
+      assert.equal(promo.label, 'TELEGRAM-КАНАЛ');
+      if (geometry.utility.split(' ').length === 3) {
+        const bottoms = geometry.actions.map(action => action.y + action.h);
+        assert(Math.max(...bottoms) - Math.min(...bottoms) <= 1, `${theme}/${width}: service CTA baseline differs`);
+      }
       for (const title of geometry.schedule) assert(title.w >= 125, `${theme}/${width}: schedule copy too narrow: ${title.w}`);
-      const expectedBackground = theme === 'dark' ? 'rgb(11, 13, 20)' : 'rgb(245, 246, 250)';
+      const expectedBackground = theme === 'dark' ? 'rgb(19, 18, 23)' : 'rgb(247, 245, 248)';
       assert.equal(geometry.background, expectedBackground, `${theme}/${width}: theme canvas`);
       results.push({ theme, width, ...geometry });
       if ([390, 1270, 1920].includes(width)) {

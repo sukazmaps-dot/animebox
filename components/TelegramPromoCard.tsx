@@ -154,7 +154,7 @@ export default function TelegramPromoCard({
         ×
       </button>
 
-      <div className={styles.art} aria-hidden="true">
+      {!footer && <div className={styles.art} aria-hidden="true">
         <AnimeBoxIconCore size="compact">
           <motion.span
             className={styles.plane}
@@ -168,7 +168,7 @@ export default function TelegramPromoCard({
             <PaperPlaneTiltIcon size={42} weight="light" />
           </motion.span>
         </AnimeBoxIconCore>
-      </div>
+      </div>}
 
       <div className={`${styles.content} ${footer ? styles.footerContent : ''}`}>
         <div className={`${styles.brand} ${footer ? 'home-service-card__head' : ''}`}>
@@ -176,8 +176,10 @@ export default function TelegramPromoCard({
             <PaperPlaneTiltIcon size={16} weight="regular" />
           </span>
           <span>
-            <small>ANIMEBOX · TELEGRAM</small>
-            <b>{community ? 'SOCIAL HUB' : 'OFFICIAL CHANNEL'}</b>
+            <small className={footer ? 'home-service-card__eyebrow' : undefined}>
+              {footer ? 'TELEGRAM-КАНАЛ' : 'ANIMEBOX · TELEGRAM'}
+            </small>
+            {!footer && <b>{community ? 'SOCIAL HUB' : 'OFFICIAL CHANNEL'}</b>}
           </span>
         </div>
 
@@ -194,10 +196,10 @@ export default function TelegramPromoCard({
           </p>
         </div>
 
-        <div className={styles.benefits} aria-label="Преимущества Telegram-канала">
+        {!footer && <div className={styles.benefits} aria-label="Преимущества Telegram-канала">
           <span><ChatCircleDotsIcon size={13} /> Патчи</span>
           <span><UsersThreeIcon size={13} /> {community ? 'Watch Together' : 'Комьюнити'}</span>
-        </div>
+        </div>}
 
         <a
           href={TELEGRAM_CHANNEL_URL}
@@ -207,7 +209,7 @@ export default function TelegramPromoCard({
           onClick={handleChannelClick}
         >
           <span>
-            {community ? 'Открыть Telegram' : `Перейти в ${TELEGRAM_CHANNEL_HANDLE}`}
+            {footer ? 'Открыть канал' : community ? 'Открыть Telegram' : `Перейти в ${TELEGRAM_CHANNEL_HANDLE}`}
           </span>
           <ArrowUpRightIcon size={16} weight="bold" aria-hidden="true" />
         </a>

@@ -43,7 +43,15 @@ async function main() {
     assert.match(response.headers.get('cache-control'), /max-age=15/);
     assert.match(await response.text(), /<svg/);
   };
-  for (const status of [403, 404, 500]) { global.fetch = async () => new Response('blocked', { status }); await placeholder(); }
+  for (const status of [403, 404, 500]) {
+    global.fetch = async () => new Response('blocked', { status });
+    await placeholder();
+    const strictRequest = request(source);
+    strictRequest.nextUrl.searchParams.set('fallback', 'error');
+    const failed = await GET(strictRequest);
+    assert.equal(failed.status, 502, 'candidate failure must fire img.onerror');
+    assert.equal(failed.headers.get('cache-control'), 'no-store');
+  }
   global.fetch = async () => { throw new Error('ECONNRESET'); }; await placeholder();
   global.fetch = async () => new Response('<html>not a poster</html>', { headers: { 'Content-Type': 'text/html' } }); await placeholder();
   global.fetch = async () => new Response('body', { headers: { 'Content-Type': 'image/jpeg', 'Content-Length': '10485761' } }); await placeholder();

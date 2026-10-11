@@ -224,7 +224,21 @@ async function fetchImage(
 }
 
 let placeholderBody: Promise<Buffer> | null = null;
-async function placeholder(error: string, attempts = 0) {
+async function placeholder(error: string, attempts = 0, strict = false) {
+  if (strict) {
+    // HTTP 200 + SVG fires img.onload and prematurely stops the poster cascade.
+    return new NextResponse(null, {
+      status: 502,
+      headers: {
+        'Cache-Control': 'no-store',
+        'Vercel-CDN-Cache-Control': 'no-store',
+        'Cloudflare-CDN-Cache-Control': 'no-store',
+        'X-AnimeBox-Image-Delivery': 'proxy-v5-candidate-failed',
+        'X-AnimeBox-Image-Error': error,
+        'X-AnimeBox-Image-Attempts': String(attempts),
+      },
+    });
+  }
   placeholderBody ??= readFile(join(process.cwd(), 'public', 'anime-placeholder.svg'));
   return new NextResponse(new Uint8Array(await placeholderBody), {
     status: 200,
@@ -292,6 +306,7 @@ export async function GET(
   }
 
   const sourceUrl = normalizeUrl(rawUrl);
+  const strict = request.nextUrl.searchParams.get('fallback') === 'error';
 
   if (!sourceUrl) {
     return new NextResponse(
@@ -306,7 +321,7 @@ export async function GET(
     const upstream = upstreamResult.response;
 
     if (!upstream) {
-      return placeholder(upstreamResult.error ?? 'origin-failed', upstreamResult.attempts);
+      return placeholder(upstreamResult.error ?? 'origin-failed', upstreamResult.attempts, strict);
     }
 
     const contentType =
@@ -319,7 +334,7 @@ export async function GET(
         .toLowerCase()
         .startsWith('image/')
     ) {
-      return placeholder('origin-not-image', upstreamResult.attempts);
+      return placeholder('origin-not-image', upstreamResult.attempts, strict);
     }
 
     const contentLength = Number(
@@ -332,7 +347,7 @@ export async function GET(
       contentLength > MAX_IMAGE_SIZE
     ) {
       await upstream.body?.cancel();
-      return placeholder('origin-too-large', upstreamResult.attempts);
+      return placeholder('origin-too-large', upstreamResult.attempts, strict);
     }
 
     const buffer = await readImageBody(upstream);
@@ -358,6 +373,6 @@ export async function GET(
       error,
     );
 
-    return placeholder('proxy-exception');
+    return placeholder('proxy-exception', 0, strict);
   }
 }

@@ -106,7 +106,8 @@ try {
   const tiny = runtime.getImageCandidates(poster, 'compact', {preset:'tiny'});
   assert.ok(tiny[0].startsWith('https://media.youranimebox.com/image?'));
   assert.equal(new URL(tiny[0]).searchParams.get('w'), '144');
-  assert.equal(tiny[1], poster.medium, 'Tiny edge failure uses smaller upstream fallback');
+  assert.equal(tiny[1], poster.extraLarge, 'Tiny edge failure retains original poster');
+  assert.ok(tiny.some(url => url.startsWith('/api/image?') && new URL(url, 'https://youranimebox.com').searchParams.get('url') === poster.extraLarge), 'Original has a server relay fallback');
   const qualityTiny = runtime.getImageCandidates(poster, 'quality', {preset:'tiny'});
   assert.equal(new URL(qualityTiny[0]).searchParams.get('url'), poster.extraLarge);
   const card = runtime.getImageCandidates(poster, 'compact', {preset:'card'});
