@@ -96,7 +96,9 @@ if (robots.includes('ANIME_SITEMAP_SHARDS') || robots.includes('EPISODE_SITEMAP_
 
 requireNeedles('shared SEO eligibility', animeSeo, [
   'export function animeSeoQualityScore',
-  'return animeSeoQualityScore(anime) >= 2',
+  'export function shouldIndexAnime',
+  'anime.catalogEligible !== false',
+  'allAnimeNames(anime).length > 0',
 ]);
 requireNeedles('SEO registry service', seoRegistry, [
   'animeSeoQualityScore',

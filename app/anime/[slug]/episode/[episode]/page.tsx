@@ -129,6 +129,7 @@ export async function generateMetadata({
       anime = await resolveAnimeRoute(slug);
     } catch (error) {
       console.error('[Episode metadata] anime resolution failed:', error);
+      throw error;
     }
   }
 
