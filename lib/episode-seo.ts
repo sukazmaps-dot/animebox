@@ -1,12 +1,13 @@
 import 'server-only';
 
 import { unstable_cache } from 'next/cache';
+import { cache } from 'react';
 
 import { getAnimeSeoIdentity } from '@/lib/anime-seo';
 import { resolveAnimeRoute } from '@/lib/anime-route';
 import { getEpisodeProviderAvailability } from '@/lib/episode-provider-availability';
 import { getPlaybackRestriction } from '@/lib/copyright-server';
-import { syncSeoEpisodeIndex } from '@/lib/seo-episode-index';
+import { getSeoEpisodeIndexEntry, syncSeoEpisodeIndex } from '@/lib/seo-episode-index';
 import { truncateSeoText } from '@/lib/seo-text';
 import {
   isVideoSeoQualityReady,
@@ -54,7 +55,7 @@ const getCachedEpisodeSeoAvailability = unstable_cache(
   { revalidate: 300 },
 );
 
-export async function isEpisodeIndexable(
+export const isEpisodeIndexable = cache(async function isEpisodeIndexable(
   animeId: number,
   episode: number,
 ): Promise<boolean> {
@@ -66,12 +67,19 @@ export async function isEpisodeIndexable(
   });
   if (copyrightRestriction) return false;
 
+  // The durable registry records confirmed episodes, including URLs already
+  // advertised in the sitemap. Do not make these URLs depend on a fresh
+  // provider request during every crawl. Only active indexable records qualify;
+  // current copyright restrictions still win. React cache deduplicates metadata/body.
+  const confirmed = await getSeoEpisodeIndexEntry(animeId, episode).catch(() => null);
+  if (confirmed) return true;
+
   const availability = await getCachedEpisodeSeoAvailability(animeId);
   return (
     availability.status === 'available' &&
     availability.episodes.includes(episode)
   );
-}
+});
 
 export type EpisodeSeoIdentity = {
   primaryTitle: string;

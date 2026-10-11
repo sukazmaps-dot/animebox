@@ -11,6 +11,7 @@ import {
   getAnimeIdFromStableSlug,
   registerAnime,
 } from './anime-registry';
+import { getSeoAnimeDetailFallback } from '@/lib/seo-anime-index-server';
 
 const getCachedAnimeBase = unstable_cache(
   async (id: number) =>
@@ -32,6 +33,7 @@ export const resolveAnimeRoute = cache(async (slug: string) => {
   if (!id || !Number.isSafeInteger(id) || id <= 0) return null;
 
   let baseAnime = null;
+  let seoFallbackSlug: string | null = null;
 
   try {
     baseAnime = await getCachedAnimeBase(id);
@@ -46,6 +48,14 @@ export const resolveAnimeRoute = cache(async (slug: string) => {
     baseAnime = await getLocalAnimeDetailFallback(id);
   }
 
+  if (!baseAnime) {
+    baseAnime = await getSeoAnimeDetailFallback(id).catch((error) => {
+      console.warn(`[anime route] SEO registry fallback failed for ${id}:`, error);
+      return null;
+    });
+    seoFallbackSlug = baseAnime?.slug ?? null;
+  }
+
   if (!baseAnime) return null;
 
   // Existing AnimeBox catalogue entries remain routable even if AniList is
@@ -55,6 +65,8 @@ export const resolveAnimeRoute = cache(async (slug: string) => {
 
   return {
     ...anime,
+    // A partial Russian title must not redirect a sitemap URL to a new slug.
+    slug: seoFallbackSlug || anime.slug,
     providerSeason: findAnimeRouteById(id)?.provider_season || 1,
   };
 });

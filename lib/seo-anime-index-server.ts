@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import {
   animeSeoQualityScore,
   getAnimeSeoIdentity,
+  shouldIndexAnime,
 } from '@/lib/anime-seo';
 import { stableAnimeSlug } from '@/lib/anime-url';
 import { ANIME_SITEMAP_SHARDS } from '@/lib/seo-config';
@@ -15,6 +16,28 @@ import type { Anime } from '@/types/anime';
 const WRITE_CHUNK = 160;
 const STALE_TITLE_MS = 14 * 24 * 60 * 60 * 1_000;
 const STALE_EPISODE_MS = 7 * 24 * 60 * 60 * 1_000;
+
+/** Preserve a known sitemap title when external detail providers are down. */
+export async function getSeoAnimeDetailFallback(animeId: number): Promise<Anime | null> {
+  if (!Number.isSafeInteger(animeId) || animeId <= 0) return null;
+  const { data, error } = await createSupabaseAdmin()
+    .from('seo_anime_index')
+    .select('anime_id,slug,title,image_url,status')
+    .eq('anime_id', animeId)
+    .eq('indexable', true)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data || typeof data.title !== 'string' || !data.title.trim()) return null;
+  return {
+    id: animeId,
+    slug: typeof data.slug === 'string' ? data.slug : undefined,
+    title: { russian: data.title.trim() },
+    catalogEligible: true,
+    genres: [],
+    coverImage: typeof data.image_url === 'string' ? { large: data.image_url } : null,
+    status: typeof data.status === 'string' ? data.status : null,
+  };
+}
 
 export type SeoAnimeIndexEntry = {
   animeId: number;
@@ -158,7 +181,7 @@ async function syncAnimeChunk(
     const didChange =
       !current || current.content_fingerprint !== fingerprint;
     const qualityScore = animeSeoQualityScore(item);
-    const canIndex = qualityScore >= 2;
+    const canIndex = shouldIndexAnime(item);
 
     if (didChange) {
       changed += 1;

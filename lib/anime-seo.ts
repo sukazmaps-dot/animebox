@@ -237,7 +237,11 @@ export function animeSeoQualityScore(anime: Anime): number {
 }
 
 export function shouldIndexAnime(anime: Anime): boolean {
-  return animeSeoQualityScore(anime) >= 2;
+  // Metadata completeness is diagnostic, not a robots directive. Provider
+  // outages must not deindex an existing, named public catalogue entry.
+  return anime.catalogEligible !== false &&
+    Number.isSafeInteger(anime.id) && anime.id > 0 &&
+    allAnimeNames(anime).length > 0;
 }
 
 export function buildAnimeMetadata(anime: Anime, canonicalUrl: string): Metadata {
