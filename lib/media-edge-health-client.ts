@@ -18,6 +18,25 @@ type MediaEdgeCircuitState = {
 const circuits = new Map<string, MediaEdgeCircuitState>();
 const listeners = new Set<() => void>();
 let revision = 0;
+const cooldownTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function scheduleCooldownExpiry(origin: string) {
+  if (cooldownTimers.has(origin) || listeners.size === 0) return;
+  const state = circuits.get(origin);
+  if (!state || state.blockedUntil === 0) return;
+  const timer = setTimeout(() => {
+    cooldownTimers.delete(origin);
+    if (state.blockedUntil > Date.now()) {
+      scheduleCooldownExpiry(origin);
+      return;
+    }
+    state.blockedUntil = 0;
+    state.failedSources.clear();
+    state.windowStartedAt = 0;
+    emitChange();
+  }, Math.max(0, state.blockedUntil - Date.now()));
+  cooldownTimers.set(origin, timer);
+}
 
 function emitChange() {
   revision += 1;
@@ -119,6 +138,7 @@ export function reportMediaEdgeFailure(value: string) {
   }
 
   state.blockedUntil = now + MEDIA_EDGE_COOLDOWN_MS;
+  scheduleCooldownExpiry(origin);
   emitChange();
 
   return true;
@@ -147,9 +167,29 @@ export function reportMediaEdgeSuccess(value: string) {
   state.windowStartedAt = 0;
 }
 
+/** Wait only when every configured media origin in this chain is blocked. */
+export function getMediaEdgeRetryAfterMs(sources: string[]) {
+  if (typeof window === 'undefined') return 0;
+  const origins = new Set(sources.map(mediaOriginForRequest).filter(
+    (origin): origin is string => origin !== null,
+  ));
+  if (origins.size === 0) return 0;
+  const waits = [...origins].map(origin => Math.max(
+    0, (circuits.get(origin)?.blockedUntil ?? 0) - Date.now(),
+  ));
+  return Math.min(...waits);
+}
+
 export function subscribeMediaEdgeHealth(listener: () => void) {
   listeners.add(listener);
-  return () => listeners.delete(listener);
+  for (const origin of circuits.keys()) scheduleCooldownExpiry(origin);
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0) {
+      for (const timer of cooldownTimers.values()) clearTimeout(timer);
+      cooldownTimers.clear();
+    }
+  };
 }
 
 export function getMediaEdgeHealthRevision() {

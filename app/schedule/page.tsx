@@ -276,7 +276,11 @@ export default function SchedulePage() {
                                 englishName={
                                   item.media.title.english || item.media.title.romaji || undefined
                                 }
-                                className="weekly-calendar__poster"
+                                containerClassName="weekly-calendar__poster"
+                                sourcePreference="compact"
+                                preset="tiny"
+                                quality={60}
+                                sizes="28px"
                               />
 
                               <div>
