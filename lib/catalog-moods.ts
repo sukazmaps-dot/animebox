@@ -1,14 +1,15 @@
+import { MOOD_ICON_ASSETS } from '@/lib/mood-icon-assets';
 import type { Anime } from '@/types/anime';
 
 export const CATALOG_MOODS = [
-  { id: 'any', label: 'Любое настроение', icon: '/brand/emojis/moods/mood-any-cat.webp' },
-  { id: 'cry', label: 'Поплакать', icon: '/brand/emojis/moods/mood-cry.webp' },
-  { id: 'chill', label: 'Чиловый вайб', icon: '/brand/emojis/moods/mood-cozy-cup.webp' },
-  { id: 'dark', label: 'Мрачняк', icon: '/brand/emojis/moods/mood-dark-kitsune.webp' },
-  { id: 'glass', label: 'Стекло', icon: '/brand/emojis/moods/mood-heartbreak.webp' },
-  { id: 'fun', label: 'Под пиво', icon: '/brand/emojis/moods/mood-fun.webp' },
-  { id: 'hype', label: 'Нужен хайп', icon: '/brand/emojis/moods/mood-hype-fire.webp' },
-  { id: 'romantic', label: 'Романтика', icon: '/brand/emojis/moods/mood-romantic-hearts.webp' },
+  { id: 'any', label: 'Любое настроение', icon: MOOD_ICON_ASSETS['mood-any-cat.webp'] },
+  { id: 'cry', label: 'Поплакать', icon: MOOD_ICON_ASSETS['mood-cry.webp'] },
+  { id: 'chill', label: 'Чиловый вайб', icon: MOOD_ICON_ASSETS['mood-cozy-cup.webp'] },
+  { id: 'dark', label: 'Мрачняк', icon: MOOD_ICON_ASSETS['mood-dark-kitsune.webp'] },
+  { id: 'glass', label: 'Стекло', icon: MOOD_ICON_ASSETS['mood-heartbreak.webp'] },
+  { id: 'fun', label: 'Под пиво', icon: MOOD_ICON_ASSETS['mood-fun.webp'] },
+  { id: 'hype', label: 'Нужен хайп', icon: MOOD_ICON_ASSETS['mood-hype-fire.webp'] },
+  { id: 'romantic', label: 'Романтика', icon: MOOD_ICON_ASSETS['mood-romantic-hearts.webp'] },
 ] as const;
 
 export type CatalogMood = (typeof CATALOG_MOODS)[number]['id'];

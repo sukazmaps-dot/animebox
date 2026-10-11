@@ -53,6 +53,7 @@ export default function MoodFilter({ value, onChange }: MoodFilterProps) {
         <span className={styles.emoji} aria-hidden="true">
           <Image
             src={selected.icon}
+            unoptimized
             alt=""
             width={24}
             height={24}
@@ -99,6 +100,7 @@ export default function MoodFilter({ value, onChange }: MoodFilterProps) {
                 <span className={styles.optionEmoji} aria-hidden="true">
                   <Image
                     src={mood.icon}
+                    unoptimized
                     alt=""
                     width={30}
                     height={30}

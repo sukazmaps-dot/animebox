@@ -164,6 +164,15 @@ const nextConfig: NextConfig = {
       { source: '/premium/:path*', headers: staticHeaders },
       { source: '/backgrounds/:path*', headers: staticHeaders },
       { source: '/brand/:path*', headers: staticHeaders },
+      {
+        // Only content-hashed compact icons can safely keep this URL for a year.
+        source: '/brand/emojis/moods/compact/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+          { key: 'Vercel-CDN-Cache-Control', value: 'public, max-age=31536000, immutable' },
+          { key: 'Cloudflare-CDN-Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
       { source: '/og/:path*', headers: staticHeaders },
       {
         source: '/animebox-sw.js',

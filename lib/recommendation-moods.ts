@@ -1,3 +1,4 @@
+import { MOOD_ICON_ASSETS } from '@/lib/mood-icon-assets';
 import type { TasteMood } from '@/lib/personalization';
 
 export type ActiveTasteMood = Exclude<TasteMood, 'any'>;
@@ -30,7 +31,7 @@ export const RECOMMENDATION_MOODS: Record<
     id: 'comfort',
     label: 'Уют',
     hint: 'Спокойно и тепло',
-    icon: '/brand/emojis/moods/mood-cozy-cup.webp',
+    icon: MOOD_ICON_ASSETS['mood-cozy-cup.webp'],
     primaryGenres: [
       'Slice of Life',
       'Повседневность',
@@ -85,7 +86,7 @@ export const RECOMMENDATION_MOODS: Record<
     id: 'tension',
     label: 'Триллер',
     hint: 'Тайны, риск и напряжение',
-    icon: '/brand/emojis/moods/mood-dark-kitsune.webp',
+    icon: MOOD_ICON_ASSETS['mood-dark-kitsune.webp'],
     primaryGenres: [
       'Thriller',
       'Триллер',
@@ -142,7 +143,7 @@ export const RECOMMENDATION_MOODS: Record<
     id: 'emotion',
     label: 'Драма',
     hint: 'Истории, которые цепляют',
-    icon: '/brand/emojis/moods/mood-cry.webp',
+    icon: MOOD_ICON_ASSETS['mood-cry.webp'],
     primaryGenres: [
       'Drama',
       'Драма',
@@ -188,7 +189,7 @@ export const RECOMMENDATION_MOODS: Record<
     id: 'adventure',
     label: 'Другие миры',
     hint: 'Фэнтези и приключения',
-    icon: '/brand/emojis/moods/mood-hype-fire.webp',
+    icon: MOOD_ICON_ASSETS['mood-hype-fire.webp'],
     primaryGenres: [
       'Adventure',
       'Приключения',
@@ -244,7 +245,7 @@ export const HOME_MOOD_OPTIONS: ReadonlyArray<{
     value: 'any',
     label: 'Мой вкус',
     hint: 'По истории',
-    icon: '/brand/emojis/moods/mood-any-cat.webp',
+    icon: MOOD_ICON_ASSETS['mood-any-cat.webp'],
   },
   ...(
     ['comfort', 'tension', 'emotion', 'adventure'] as const

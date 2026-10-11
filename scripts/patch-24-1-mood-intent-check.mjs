@@ -74,8 +74,9 @@ if (!failures.length) {
         '',
       );
 
+    const iconAssets = read('lib/mood-icon-assets.ts');
     const compiled = ts.transpileModule(
-      `${moodRuntimeSource}\n${scorerRuntimeSource}`,
+      `${iconAssets}\n${moodRuntimeSource.replace("import { MOOD_ICON_ASSETS } from '@/lib/mood-icon-assets';\n", '')}\n${scorerRuntimeSource}`,
       {
         compilerOptions: {
           module: ts.ModuleKind.ESNext,
