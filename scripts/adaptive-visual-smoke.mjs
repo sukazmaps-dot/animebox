@@ -41,6 +41,12 @@ try {
     } catch { return route.abort(); }
   });
   await page.goto('http://animebox.test/', { waitUntil: 'load' });
+  // Scrolling alone must release the artwork, including on touch devices.
+  await page.locator('.mood-picker').scrollIntoViewIfNeeded();
+  await page.waitForFunction(() => {
+    const icons = [...document.querySelectorAll('.mood-chip__image')];
+    return icons.length === 5 && icons.every((icon) => icon.complete && icon.naturalWidth === 128 && icon.src.includes('/compact/'));
+  });
   await page.locator('.home-utility-grid').scrollIntoViewIfNeeded();
   await page.waitForFunction(() => document.querySelectorAll('.home-service-card').length === 3);
   if (process.env.VISUAL_SOURCE_OVERRIDE === '1') {

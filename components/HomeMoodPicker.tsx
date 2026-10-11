@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { observeNearViewportMedia } from '@/lib/media-warmup-client';
 
 import {
   HOME_MOOD_OPTIONS,
@@ -27,6 +28,13 @@ export default function HomeMoodPicker({
 }) {
   const selectedLabel = getRecommendationMoodLabel(value);
   const [artUnlocked, setArtUnlocked] = useState(false);
+  const rootRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || artUnlocked) return;
+    return observeNearViewportMedia(root, () => setArtUnlocked(true));
+  }, [artUnlocked]);
 
   const unlockArt = () => {
     setArtUnlocked(true);
@@ -34,6 +42,7 @@ export default function HomeMoodPicker({
 
   return (
     <section
+      ref={rootRef}
       className="mood-picker"
       aria-labelledby="mood-picker-title"
       aria-busy={busy}
@@ -75,8 +84,8 @@ export default function HomeMoodPicker({
                 {artUnlocked ? (
                   // These decorative illustrations are intentionally released
                   // only when the visitor reaches/interacts with the picker.
-                  // The source assets are much larger than their ~27–32px slot
-                  // and must never compete with the Home LCP network window.
+                  // Compact, content-hashed assets remain low priority so they
+                  // do not compete with the Home LCP network window.
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={mood.icon}
