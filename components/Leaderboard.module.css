@@ -1628,3 +1628,27 @@
   .seasonMe { align-items:flex-start; flex-direction:column; }
   .seasonMe b { text-align:left; }
 }
+
+/* Page consistency: compact rhythm, natural height and shared theme tokens. */
+.page.page { width:min(1320px,calc(100% - 32px)); padding:24px 0 32px; color:var(--ab-ui-text)!important; }
+.page.page :is(.hero,.seasonPanel,.personal,.board,.state) { background:var(--ab-ui-surface)!important; border-color:var(--ab-ui-border)!important; border-radius:var(--ab-ui-radius); }
+.page.page .hero { padding:22px; }
+.page.page :is(.heroStatus,.tabs,.modeSwitch,.rewardTier,.seasonCountdown,.boardHeader) { background:var(--ab-ui-raised)!important; border-color:var(--ab-ui-border)!important; }
+.page.page :is(.hero p,.heroMeta,.heroStatus span,.heroStatus small,.seasonPanelHead p,.rewardTier small,.seasonMe,.periodBadge,.timeLabel,.note,.boardHeader,.episodes,.tabs button,.modeSwitch a,.rowOpen) { color:var(--ab-ui-muted)!important; }
+.page.page :is(.hero h1,.heroStatus strong,.seasonPanel h2,.rewardTier strong,.podiumName,.personalText strong,.user strong,.rank) { color:var(--ab-ui-text)!important; }
+.page.page :is(.eyebrow,.seasonEyebrow) { color:var(--ab-ui-accent)!important; }
+.page.page .sectionHeading { margin:20px 0 12px; }
+.page.page .podium { align-items:stretch; padding-top:0; gap:12px; }
+.page.page .podiumCard { min-height:270px; background:var(--ab-ui-surface)!important; border-radius:var(--ab-ui-radius); }
+.page.page .podiumCard[data-rank='1'] { min-height:290px; background:var(--ab-ui-surface)!important; }
+.page.page .avatarStage { margin:18px 0 12px; }
+.page.page .podiumCard[data-rank='1'] .avatarStage { margin-top:32px; }
+.page.page .personal { margin-top:16px; }
+@media(min-width:1100px) { .page.page .seasonPanel { display:grid; grid-template-columns:minmax(220px,.7fr) minmax(0,1.3fr); gap:12px; } .page.page .seasonMe { grid-column:1/-1; margin-top:0; } }
+@media(max-width:600px) { .page.page { width:calc(100% - 24px); padding-top:16px; } .page.page .hero { padding:16px; } .page.page .podiumCard { padding-inline:10px; } }
+.page.page .timeLabel, .page.page .cardFooter { color:var(--ab-ui-muted)!important; }
+.page.page .heroStatusEmpty small { color:var(--ab-ui-muted)!important; }
+.page.page .heroControls button { color:var(--ab-ui-muted)!important; }
+.page.page .heroControls button[aria-pressed='true'] { background:var(--ab-ui-selected)!important; color:var(--ab-ui-text)!important; }
+.page.page :is(.modeSwitch span,.cardProfileAction,.personalAction,.heroMeta span:first-child) { background:var(--ab-ui-selected)!important; color:var(--ab-ui-text)!important; border-color:var(--ab-ui-border)!important; }
+.page.page :is(.time,.placeLabel) { color:var(--ab-ui-accent)!important; }

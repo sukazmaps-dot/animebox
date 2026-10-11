@@ -83,3 +83,8 @@
   background: var(--ab-ui-raised);
   border-color: var(--ab-ui-border);
 }
+/* Every placement follows the shared palette, including the hub banner. */
+.card.card { background:var(--ab-ui-surface)!important; border-color:var(--ab-ui-border)!important; border-radius:var(--ab-ui-radius); color:var(--ab-ui-text)!important; }
+.card.card .dismiss { background:var(--ab-ui-raised)!important; border-color:var(--ab-ui-border)!important; color:var(--ab-ui-text)!important; }
+.card.card :is(.brand b,.copy p) { color:var(--ab-ui-muted)!important; opacity:1; }
+.card.card :is(.brandMark,.benefits span,.cta) { background:var(--ab-ui-selected)!important; border-color:var(--ab-ui-border)!important; color:var(--ab-ui-text)!important; }

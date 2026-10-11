@@ -12,6 +12,7 @@ import {
 } from '@/lib/tracker-client';
 import { isTelegramMiniAppRuntime } from '@/lib/telegram-auto-login';
 import { useAuthState } from '@/components/AuthStateProvider';
+import AnimeCardContent from '@/components/AnimeCardContent';
 import LibraryStatusControl from '@/components/LibraryStatusControl';
 import TrackerEmptyArt from '@/components/tracker/TrackerEmptyArt';
 import TrackerGuestEmptyState from '@/components/tracker/TrackerGuestEmptyState';
@@ -262,10 +263,12 @@ export default function MyListPage() {
                 >
                   <div className="tracker-card__top">
                     <div className="tracker-card__identity">
+                      <AnimeCardContent variant="inline" media={
                       <div className="tracker-card__mark" aria-hidden="true">
                         <img src="/brand/brand-mark.png" alt="" />
                       </div>
 
+                      }>
                       <div className="tracker-card__title">
                         <span className="tracker-card__label">
                           ЛИЧНАЯ БИБЛИОТЕКА
@@ -274,6 +277,7 @@ export default function MyListPage() {
                           {item.title}
                         </Link>
                       </div>
+                      </AnimeCardContent>
                     </div>
 
                     <div className="tracker-card__right shrink-0">

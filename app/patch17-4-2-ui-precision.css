@@ -458,3 +458,5 @@ html :is(.sidebar, .topbar, .mobile-nav, .site-footer) :is(a, button, input):foc
   outline-offset: 3px;
 }
 html .topbar__search:focus-within { outline: 2px solid var(--ab-ui-accent); outline-offset: 2px; }
+html .search-page .anime-grid { grid-template-columns:repeat(auto-fill,minmax(170px,1fr))!important; gap:1rem!important; }
+@media(max-width:600px) { html .search-page .anime-grid { grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:.75rem!important; } }
