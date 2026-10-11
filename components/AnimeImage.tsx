@@ -27,6 +27,7 @@ import {
   type MediaWarmupActivation,
 } from '@/lib/media-warmup-client';
 import {
+  getMediaEdgeRetryAfterMs,
   getMediaEdgeHealthRevision,
   getMediaEdgeHealthServerRevision,
   isMediaEdgeBlocked,
@@ -49,6 +50,7 @@ type Props = {
   alt?: string | null;
   englishName?: string | null;
   className?: string;
+  containerClassName?: string;
   loading?: 'lazy' | 'eager' | 'near';
   fetchPriority?: 'high' | 'low' | 'auto';
   preferOriginal?: boolean;
@@ -111,6 +113,7 @@ export default function AnimeImage({
   alt,
   englishName,
   className = '',
+  containerClassName = '',
   loading = 'lazy',
   fetchPriority = 'auto',
   sizes = DEFAULT_SIZES,
@@ -212,7 +215,7 @@ export default function AnimeImage({
 
   const sourcesKey = sources.join('|');
 
-  const mediaEdgeRevision = useSyncExternalStore(
+  useSyncExternalStore(
     subscribeMediaEdgeHealth,
     getMediaEdgeHealthRevision,
     getMediaEdgeHealthServerRevision,
@@ -415,6 +418,14 @@ export default function AnimeImage({
       // offline. The online event will schedule a jittered recovery instead.
       if (navigator.onLine === false) return;
 
+      // A circuit can open after this poster reached its fallback. Preserve
+      // the recovery attempt until at least one media edge can be tried.
+      const retryAfter = getMediaEdgeRetryAfterMs(sources);
+      if (retryAfter > 0) {
+        schedule(retryAfter + 1_000 + (baseDelay % 5_001));
+        return;
+      }
+
       transientRetryCountRef.current += 1;
       setImageState({
         key: sourcesKey,
@@ -434,7 +445,10 @@ export default function AnimeImage({
       }, delayMs);
     };
 
-    schedule(baseDelay);
+    schedule(Math.max(
+      baseDelay,
+      getMediaEdgeRetryAfterMs(sources) + 1_000 + (baseDelay % 5_001),
+    ));
 
     const onOnline = () => {
       if (transientRetryCountRef.current >= 1) return;
@@ -454,7 +468,6 @@ export default function AnimeImage({
     };
   }, [
     isFallback,
-    mediaEdgeRevision,
     sources,
     sources.length,
     sourcesKey,
@@ -512,7 +525,10 @@ export default function AnimeImage({
   return (
     <div
       ref={hostRef}
-      className="relative h-full w-full min-h-0 overflow-hidden bg-slate-950"
+      className={[
+        'relative h-full w-full min-h-0 overflow-hidden bg-slate-950',
+        containerClassName,
+      ].join(' ')}
       data-image-delivery="animebox-media"
       data-image-state={publicState}
       data-image-source-index={sourceIndex}
@@ -542,7 +558,7 @@ export default function AnimeImage({
             width={40}
             height={40}
             decoding="async"
-            className="h-10 w-10 object-contain opacity-55"
+            className="h-10 w-10 max-h-full max-w-full object-contain opacity-55"
           />
         </div>
       ) : (
@@ -584,6 +600,7 @@ export default function AnimeImage({
                 loading={nativeLoading}
                 fetchPriority={nativeFetchPriority}
                 decoding="async"
+                referrerPolicy="no-referrer"
                 sizes={sizes}
                 onLoad={handleLoad}
                 onError={handleError}

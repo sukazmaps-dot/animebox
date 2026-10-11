@@ -106,8 +106,8 @@ html .schedule-page-v2 .weekly-calendar__day { min-height:44px!important; paddin
 html .schedule-page-v2 .weekly-calendar__events { gap:6px!important; padding:6px!important; }
 html .schedule-page-v2 .weekly-calendar__event { padding:7px!important; border-radius:10px!important; background:var(--ab-ui-raised)!important; border-color:var(--ab-ui-border)!important; }
 html .schedule-page-v2 .weekly-calendar__event-time { margin-bottom:4px!important; }
-html .schedule-page-v2 .weekly-calendar__event-main { gap:6px!important; }
-html .schedule-page-v2 .weekly-calendar__poster { width:28px!important; height:40px!important; border-radius:5px; }
+html .schedule-page-v2 .weekly-calendar__event-main { grid-template-columns:28px minmax(0,1fr)!important; gap:6px!important; }
+html .schedule-page-v2 .weekly-calendar__poster { width:28px!important; height:42px!important; border-radius:5px; align-self:center; }
 html .schedule-page-v2 :is(.weekly-calendar__event-main span,.weekly-calendar__day span,.weekly-calendar__day strong) { color:var(--ab-ui-muted)!important; }
 html .schedule-page-v2 :is(.weekly-calendar__event-time strong,.schedule-page-v2__eyebrow) { color:var(--ab-ui-accent)!important; }
 html .schedule-page-v2 .weekly-calendar__event-main strong { color:var(--ab-ui-text)!important; font-size:11px!important; line-height:1.35!important; }
