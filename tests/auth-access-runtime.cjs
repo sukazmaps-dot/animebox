@@ -25,7 +25,7 @@ const shikiPoster = 'https://shikimori.io/system/animes/original/1.jpg';
 const shikiPreview = 'https://shikimori.io/system/animes/preview/1.jpg';
 for (const sources of [[aniListPoster, shikiPoster], [shikiPoster, shikiPreview]]) {
   const chain = images.buildImageCandidateChain(sources, { preset: 'card' });
-  assert.ok(chain.includes('/api/image?' + new URLSearchParams({ url: sources[1] })));
+  assert.ok(chain.includes('/api/image?' + new URLSearchParams({ url: sources[1], fallback: 'error' })));
   assert.ok(!chain.includes(shikiPoster) && !chain.includes(shikiPreview), 'secondary Shikimori must also stay server-side');
 }
 let session = true, user = true, username = 'existing', exchanged = [], verified = [];

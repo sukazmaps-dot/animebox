@@ -362,30 +362,30 @@ body{font-size:var(--ab-fluid-body)}
    This existing final shared sheet avoids another root CSS import. */
 :root,
 html[data-animebox-theme='dark'] {
-  --ab-ui-canvas: #0b0d14;
-  --ab-ui-surface: #141824;
-  --ab-ui-raised: #1c2232;
-  --ab-ui-border: #30384a;
-  --ab-ui-text: #f1f3fa;
-  --ab-ui-muted: #a8b1c3;
-  --ab-ui-accent: #a78bfa;
-  --ab-ui-primary: #7551c8;
+  --ab-ui-canvas: #131217;
+  --ab-ui-surface: #1c1b22;
+  --ab-ui-raised: #26242e;
+  --ab-ui-border: #36333f;
+  --ab-ui-text: #edeaf2;
+  --ab-ui-muted: #aca6b6;
+  --ab-ui-accent: #a798cf;
+  --ab-ui-primary: #7863ae;
   --ab-ui-primary-text: #ffffff;
-  --ab-ui-selected: #26203c;
+  --ab-ui-selected: #2e293c;
   --ab-ui-radius: .875rem;
   --ab-ui-gap: 1rem;
 }
 html[data-animebox-theme='light'] {
-  --ab-ui-canvas: #f5f6fa;
-  --ab-ui-surface: #ffffff;
-  --ab-ui-raised: #eceff6;
-  --ab-ui-border: #cbd2e0;
-  --ab-ui-text: #202536;
-  --ab-ui-muted: #566176;
-  --ab-ui-accent: #6941b5;
-  --ab-ui-primary: #7551c8;
+  --ab-ui-canvas: #f7f5f8;
+  --ab-ui-surface: #fdfcfe;
+  --ab-ui-raised: #eeeaf2;
+  --ab-ui-border: #d6d0dd;
+  --ab-ui-text: #2b2633;
+  --ab-ui-muted: #696174;
+  --ab-ui-accent: #70558f;
+  --ab-ui-primary: #7863ae;
   --ab-ui-primary-text: #ffffff;
-  --ab-ui-selected: #ede7f8;
+  --ab-ui-selected: #ece6f3;
 }
 html[data-animebox-theme], :root {
   --bg: var(--ab-ui-canvas);

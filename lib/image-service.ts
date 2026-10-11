@@ -55,7 +55,7 @@ export function proxyImageUrl(
   if (!url) return null;
   if (url.startsWith('/')) return url;
 
-  const params = new URLSearchParams({ url });
+  const params = new URLSearchParams({ url, fallback: 'error' });
   return `/api/image?${params.toString()}`;
 }
 
@@ -116,6 +116,7 @@ export function buildImageCandidateChain(
   const secondaryFallback = secondary
     ? prefersLegacyProxy(secondary) ? proxyImageUrl(secondary) : secondary
     : null;
+  const secondaryProxy = secondary ? proxyImageUrl(secondary) : null;
   const mediaVariant = delivery
     ? buildAnimeBoxMediaDefaultVariant(
         primary,
@@ -147,6 +148,9 @@ export function buildImageCandidateChain(
     result.push(primary);
     if (secondaryFallback) result.push(secondaryFallback);
   }
+
+  // Preserve a server route for the alternate original when the edge/browser fail.
+  if (secondaryProxy && !result.includes(secondaryProxy)) result.push(secondaryProxy);
 
   if (
     legacyProxy &&
@@ -217,12 +221,8 @@ export function getImageCandidates(
    * Worker resize/cache the exact responsive variant; medium is only fallback.
    */
   const preferred = imageValues(image, preference);
-  // Preserve the srcSet's upstream identity; only reorder tiny-slot fallback.
-  const values = delivery?.preset === 'tiny'
-    ? [preferred[0], image.medium, ...preferred.slice(1)]
-    : preferred;
   return buildImageCandidateChain(
-    values,
+    preferred,
     delivery,
   );
 }

@@ -71,8 +71,8 @@
 }
 
 /* Only the home footer joins the common service-card layout. */
-.footer .footerContent { display: contents; }
-.footer .brand small { font-size: .625rem; letter-spacing: .06em; font-weight: 760; }
+.footer .footerContent { display: flex; flex: 1; min-height: 0; gap: .875rem; }
+.footer .brand small { font-size: .6875rem; letter-spacing: .06em; font-weight: 760; }
 .footer .brand b { font-size: .625rem; }
 .footer .benefits { margin-bottom: .25rem; }
 .footer .brand { padding-right: 3.5rem; }
