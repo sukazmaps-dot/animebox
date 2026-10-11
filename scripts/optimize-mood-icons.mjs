@@ -18,7 +18,8 @@ for (const name of (await readdir(root)).filter((name) => name.endsWith('.webp')
   const hash = createHash('sha256').update(bytes).digest('hex').slice(0, 12);
   const filename = `${name.slice(0, -5)}.${hash}.webp`;
   await writeFile(new URL(filename, output), bytes);
-  entries.push(`  '${name}': '/brand/emojis/moods/compact/${filename}',`);
+  // Separate artwork requests from any cached pre-deploy 404 at the bare URL.
+  entries.push(`  '${name}': '/brand/emojis/moods/compact/${filename}?v=mood-icons-v1',`);
   console.log(`${name}: ${bytes.length} bytes`);
 }
 await writeFile(new URL('../lib/mood-icon-assets.ts', import.meta.url),

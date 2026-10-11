@@ -24,9 +24,10 @@ const cacheControl = headers[ruleIndex].headers.find((header) => header.key === 
 assert.equal(cacheControl, 'public, max-age=31536000, immutable');
 let total = 0;
 for (const url of Object.values(assets)) {
-  const bytes = await readFile(`public${url}`);
+  const pathname = new URL(url, 'http://animebox.test').pathname;
+  const bytes = await readFile(`public${pathname}`);
   const hash = createHash('sha256').update(bytes).digest('hex').slice(0, 12);
-  assert(url.endsWith(`.${hash}.webp`), `stale content hash: ${url}`);
+  assert(pathname.endsWith(`.${hash}.webp`), `stale content hash: ${url}`);
   const metadata = await sharp(bytes).metadata();
   assert.equal(metadata.width, 128);
   assert.equal(metadata.height, 128);
@@ -48,7 +49,7 @@ const server = createServer(async (request, response) => {
     assetRequests++;
     response.setHeader('Cache-Control', cacheControl);
     response.setHeader('Content-Type', 'image/webp');
-    response.end(await readFile(`public${request.url}`));
+    response.end(await readFile(`public${new URL(request.url, 'http://animebox.test').pathname}`));
   } else { response.writeHead(404); response.end(); }
 });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
