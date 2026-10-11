@@ -1638,7 +1638,7 @@
 .page.page :is(.hero h1,.heroStatus strong,.seasonPanel h2,.rewardTier strong,.podiumName,.personalText strong,.user strong,.rank) { color:var(--ab-ui-text)!important; }
 .page.page :is(.eyebrow,.seasonEyebrow) { color:var(--ab-ui-accent)!important; }
 .page.page .sectionHeading { margin:20px 0 12px; }
-.page.page .podium { align-items:stretch; padding-top:0; gap:12px; }
+.page.page .podium { align-items:end; padding-top:0; gap:12px; }
 .page.page .podiumCard { min-height:270px; background:var(--ab-ui-surface)!important; border-radius:var(--ab-ui-radius); }
 .page.page .podiumCard[data-rank='1'] { min-height:290px; background:var(--ab-ui-surface)!important; }
 .page.page .avatarStage { margin:18px 0 12px; }
@@ -1660,10 +1660,98 @@
   .results:has(.board)>.sectionHeading { grid-column:1; grid-row:1; margin:0; }
   .results:has(.board)>.sectionHeading:not(:first-child) { grid-column:2; }
   .results:has(.board)>.podium { grid-column:1; grid-row:2; min-width:0; }
-  .results:has(.board)>.personal { grid-column:1; grid-row:3; margin:0; min-width:0; flex-wrap:wrap; }
-  .results:has(.board)>.board { grid-column:2; grid-row:2/span 2; margin:0; min-width:0; }
+  .results:has(.board)>.personal { grid-column:1/-1; grid-row:3; margin:0; min-width:0; }
+  .results:has(.board)>.board { grid-column:2; grid-row:2; margin:0; min-width:0; }
   .results:has(.board)>.note { grid-column:1/-1; margin-top:0; }
   .results:has(.board) .podiumCard { padding-inline:12px; }
   .results:has(.board) .podiumName { font-size:16px; }
   .results:has(.board) .cardFooter { flex-wrap:wrap; justify-content:center; padding-top:8px; }
 }
+
+/* Leaderboard continuous flow: fit content, never viewport-sized sections. */
+.page.page { display:flex; flex-direction:column; gap:16px; height:auto; max-height:none; }
+.page.page>.seasonPanel, .page.page>.state { margin-top:0; }
+.page.page .hero { height:auto; min-height:0; padding:18px 22px; gap:12px 24px; }
+.page.page .hero h1 { font-size:clamp(28px,2.4vw,38px); }
+.page.page .heroControls { margin-top:0; padding-top:12px; }
+.page.page .heroMeta { margin-top:8px; }
+.page.page .sectionHeading { margin:0 0 12px; min-height:40px; }
+.page.page .podium { align-items:end; }
+.page.page .podiumCard {
+  display:grid; grid-template-rows:14px minmax(80px,1fr) 52px 50px 50px;
+  align-items:center; justify-items:center; box-sizing:border-box;
+  height:316px; min-height:0; padding:12px; gap:3px; overflow:visible;
+}
+.page.page .podiumCard[data-rank='1'] { height:344px; min-height:0; }
+.page.page .podiumCard>.profilePreviewTrigger { align-self:center; }
+.page.page .podiumCard .avatarStage { margin:0; }
+.page.page .podiumIdentity { display:grid; align-content:center; justify-items:center; gap:4px; width:100%; min-width:0; height:52px; }
+.page.page .podiumIdentity .profilePreviewName { min-width:0; max-width:100%; height:28px; flex-wrap:nowrap; }
+.page.page .podiumIdentity .podiumName { margin:0; font-size:16px; }
+.page.page .podiumIdentity .levelBadge { margin:0; max-width:100%; white-space:nowrap; }
+.page.page .podiumIdentity .youBadge { position:absolute; right:10px; top:30px; margin:0; }
+.page.page .podiumStats { display:grid; align-content:center; justify-items:center; gap:4px; width:100%; min-width:0; height:50px; }
+.page.page .podiumStats .time { margin:0; white-space:nowrap; font-size:clamp(18px,1.6vw,24px); line-height:1.2; }
+.page.page .podiumStats .timeLabel { margin:0; line-height:1.4; }
+.page.page .podiumCard .cardFooter { display:flex; flex-direction:column; justify-content:center; gap:4px; min-height:50px; margin:0; padding:4px 0 0; font-size:9px; line-height:1.2; width:100%; }
+.page.page .podiumCard .cardProfileAction { min-height:30px; }
+.page.page .personal { grid-template-columns:46px minmax(0,1fr) minmax(0,300px) max-content!important; gap:14px; padding:14px 20px!important; height:auto; min-width:0; }
+.page.page .personalStats { min-width:0; width:100%; grid-column:auto; grid-row:auto; grid-template-columns:repeat(3,minmax(0,1fr)); }
+.page.page .personalAction { grid-column:auto; grid-row:auto; width:auto; justify-self:end; white-space:nowrap; }
+.page.page .personalStats small { color:var(--ab-ui-muted)!important; }
+.page.page .personalStats strong { color:var(--ab-ui-text)!important; }
+.page.page .rewardTiers { margin:0; align-items:stretch; }
+.page.page .rewardTier { grid-template-columns:34px minmax(0,1fr); gap:10px; padding:12px; align-items:start; }
+.page.page .rewardTier>span { flex-shrink:0; }
+.page.page .rewardTier>div { min-width:0; }
+.page.page .rewardTier strong, .page.page .rewardTier small { white-space:normal; overflow:visible; text-overflow:clip; overflow-wrap:anywhere; line-height:1.45; }
+@media(min-width:1200px) {
+  .page.page .seasonPanel { grid-template-columns:minmax(0,280px) minmax(0,1fr); align-items:center; }
+  .page.page .seasonPanelHead { flex-wrap:wrap; gap:8px; }
+  .page.page .seasonCountdown { min-width:0; padding:6px 10px; text-align:left; }
+  .page.page .seasonCountdown small { display:inline; margin-right:8px; }
+  .page.page .seasonCountdown strong { display:inline; }
+}
+@media(max-width:1199px) {
+  .page.page .results { display:flex; flex-direction:column; gap:12px; }
+  .page.page .results>.sectionHeading, .page.page .personal, .page.page .note { margin:0; }
+  .page.page .seasonPanel { display:block; }
+  .page.page .rewardTiers { margin-top:12px; }
+}
+@media(max-width:980px) {
+  .page.page .personal { grid-template-columns:46px minmax(0,1fr) max-content!important; }
+  .page.page .personalStats { grid-column:2/-1; grid-row:2; }
+  .page.page .personalAction { grid-column:3; grid-row:1; }
+}
+@media(max-width:760px) {
+  .page.page .hero { padding:16px; }
+  .page.page .podiumCard { height:324px; padding-inline:10px; }
+  .page.page .podiumCard[data-rank='1'] { height:348px; }
+  .page.page .personal { grid-template-columns:46px minmax(0,1fr)!important; padding:14px!important; }
+  .page.page .personalStats, .page.page .personalAction { grid-column:1/-1; grid-row:auto; }
+  .page.page .personalAction { width:100%; }
+}
+
+.page.page .hero { padding:14px 20px; gap:8px 24px; }
+.page.page .hero h1 { margin:4px 0; font-size:clamp(28px,2.2vw,34px); line-height:1.1; }
+.page.page .hero p { font-size:12px; line-height:1.5; }
+.page.page .heroMeta { margin-top:4px; }
+.page.page .heroMeta span:first-child { padding:2px 6px; }
+.page.page .heroControls { padding-top:8px; }
+.page.page .heroControls button, .page.page .modeSwitch a, .page.page .modeSwitch span { min-height:32px; }
+.page.page .sectionHeading h2 { margin:0; line-height:1.25; }
+.page.page .personal h2 { margin:3px 0; line-height:1.3; }
+.page.page .personalText>.eyebrow { line-height:1.4; }
+.page.page .seasonPanelHead h2 { margin:3px 0; line-height:1.25; }
+.page.page .seasonPanelHead p { line-height:1.45; }
+@media(min-width:1200px) {
+ .page.page .seasonPanelHead { display:block; }
+ .page.page .seasonCountdown { margin-top:6px; padding:4px 8px; width:max-content; }
+ .page.page .results:has(.board)>.sectionHeading { margin:0; }
+}
+
+.page.page .seasonPanelFooter { display:flex; flex-wrap:wrap; align-items:center; gap:12px; grid-column:1/-1; }
+.page.page .seasonPanelFooter .seasonMe { flex:1 1 260px; margin:0; }
+.page.page .seasonPanelFooter .seasonCountdown { margin:0; flex:0 0 auto; min-width:0; padding:6px 10px; }
+@media(max-width:1199px) { .page.page .seasonPanelFooter { margin-top:12px; } }
+@media(max-width:620px) { .page.page .seasonPanelFooter .seasonCountdown { flex-basis:100%; } }

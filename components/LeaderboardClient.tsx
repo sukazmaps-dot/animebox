@@ -213,10 +213,7 @@ export default function LeaderboardClient() {
               <h2>Награды {period === 'month' ? 'месяца' : 'недели'}</h2>
               <p>Финальная позиция фиксируется по подтверждённому времени просмотра. Рамка действует {period === 'month' ? '30 дней' : '7 дней'} после получения.</p>
             </div>
-            <div className={styles.seasonCountdown}>
-              <small>ДО КОНЦА СЕЗОНА</small>
-              <strong>{formatCountdown(data.season.endsAt, nowMs)}</strong>
-            </div>
+
           </div>
 
           <div className={styles.rewardTiers}>
@@ -228,18 +225,24 @@ export default function LeaderboardClient() {
             ))}
           </div>
 
-          {me && (
-            <div className={styles.seasonMe}>
-              <span>Сейчас ты <strong>#{me.rank}</strong></span>
-              {myReward ? (
-                <b>Текущая награда: {myReward.shortLabel}</b>
-              ) : gapToTop10 !== null ? (
-                <b>До Топ-10: {formatWatchTime(gapToTop10)}</b>
-              ) : (
-                <b>Продолжай смотреть — Топ-10 получает временную сезонную рамку</b>
-              )}
+          <div className={styles.seasonPanelFooter}>
+            {me && (
+              <div className={styles.seasonMe}>
+                <span>Сейчас ты <strong>#{me.rank}</strong></span>
+                {myReward ? (
+                  <b>Текущая награда: {myReward.shortLabel}</b>
+                ) : gapToTop10 !== null ? (
+                  <b>До Топ-10: {formatWatchTime(gapToTop10)}</b>
+                ) : (
+                  <b>Продолжай смотреть — Топ-10 получает временную сезонную рамку</b>
+                )}
+              </div>
+            )}
+            <div className={styles.seasonCountdown}>
+              <small>ДО КОНЦА СЕЗОНА</small>
+              <strong>{formatCountdown(data.season.endsAt, nowMs)}</strong>
             </div>
-          )}
+          </div>
         </section>
       )}
 
@@ -296,24 +299,28 @@ export default function LeaderboardClient() {
                     <span className={styles.rankSeal}>{entry.rank}</span>
                   </span>
                 </ProfilePreview>
-                <ProfilePreview
-                  userId={entry.userId}
-                  username={entry.username}
-                  className={`${styles.nameLine} ${styles.profilePreviewName}`}
-                >
-                  <UserIdentity
+                <div className={styles.podiumIdentity}>
+                  <ProfilePreview
+                    userId={entry.userId}
                     username={entry.username}
-                    role={entry.role}
-                    sponsor={entry.sponsor}
-                    premium={entry.premium}
-                    compact
-                    nameClassName={styles.podiumName}
-                  />
-                </ProfilePreview>
-                <span className={styles.levelBadge}>LVL {entry.progression.level} · {entry.progression.rank}</span>
-                {entry.isCurrentUser && <span className={styles.youBadge}>Это ты</span>}
-                <span className={styles.time}>{formatWatchTime(entry.activeMs)}</span>
-                <span className={styles.timeLabel}>подтверждённого просмотра</span>
+                    className={`${styles.nameLine} ${styles.profilePreviewName}`}
+                  >
+                    <UserIdentity
+                      username={entry.username}
+                      role={entry.role}
+                      sponsor={entry.sponsor}
+                      premium={entry.premium}
+                      compact
+                      nameClassName={styles.podiumName}
+                    />
+                  </ProfilePreview>
+                  <span className={styles.levelBadge}>LVL {entry.progression.level} · {entry.progression.rank}</span>
+                  {entry.isCurrentUser && <span className={styles.youBadge}>Это ты</span>}
+                </div>
+                <div className={styles.podiumStats}>
+                  <span className={styles.time}>{formatWatchTime(entry.activeMs)}</span>
+                  <span className={styles.timeLabel}>подтверждённого просмотра</span>
+                </div>
                 <div className={styles.cardFooter}>
                   <span>{entry.completedEpisodes} эп. завершено</span>
                   <Link className={styles.cardProfileAction} href={`/profile/${entry.userId}`}>Профиль <span aria-hidden="true">↗</span></Link>
