@@ -813,3 +813,10 @@
   font-weight: 800;
   text-decoration: none;
 }
+
+/* Application chrome uses the common theme tokens. */
+.page.page { color:var(--ab-ui-text); }
+.page.page :is(.hero,.card,.summary,.filterBar,.milestone,.seasonCard) { background:var(--ab-ui-surface)!important; border-color:var(--ab-ui-border)!important; }
+.page.page :is(.hero h1,.card h3,.sectionTitle,.milestoneCopy h3) { color:var(--ab-ui-text)!important; }
+.page.page :is(.hero p,.card p,.card small,.milestoneCopy p,.milestoneCopy small,.frameRule) { color:var(--ab-ui-muted)!important; }
+.page.page :is(.eyebrow,.sectionEyebrow) { color:var(--ab-ui-accent)!important; }

@@ -5,6 +5,8 @@ import '../boosty-premium-v18.css';
 import '../patch20-2-premium-v2.css';
 import '../patch20-3-profile-experience.css';
 
+import '../anime-route-palette.css';
+
 export default function PremiumLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {

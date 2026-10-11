@@ -1,9 +1,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import styles from './not-found.module.css';
 
 export default function NotFound() {
   return (
-    <main className="animebox-not-found">
+    <main className={`animebox-not-found ${styles.page}`}>
       <section className="animebox-not-found__card">
         <Image
           src="/brand/illustrations/error-404.webp"

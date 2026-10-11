@@ -6,6 +6,8 @@ import '../premium-media-performance-v19.css';
 import '../community.css';
 import '../engagement-v1.css';
 import '../sponsor-v2.css';
+import '../anime-route-palette.css';
+
 export default function AnimeLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {

@@ -18,22 +18,22 @@
   --ab-ink-1: #090d14;
   --ab-ink-2: #0c111a;
 
-  --ab-surface-1: #0e131d;
-  --ab-surface-2: #121925;
-  --ab-surface-3: #17202d;
-  --ab-surface-4: #1c2635;
+  --ab-surface-1: var(--ab-ui-surface);
+  --ab-surface-2: var(--ab-ui-raised);
+  --ab-surface-3: var(--ab-ui-raised);
+  --ab-surface-4: var(--ab-ui-selected);
 
   --ab-porcelain: #f3f0ea;
-  --ab-text: var(--ab-porcelain);
-  --ab-text-soft: #c8cad0;
-  --ab-muted: #8d95a5;
-  --ab-muted-2: #626b7b;
+  --ab-text: var(--ab-ui-text);
+  --ab-text-soft: var(--ab-ui-text);
+  --ab-muted: var(--ab-ui-muted);
+  --ab-muted-2: var(--ab-ui-muted);
 
-  --ab-iris: #9788e7;
-  --ab-iris-hover: #aa9bf0;
-  --ab-iris-strong: #b7aaff;
-  --ab-iris-soft: rgba(151, 136, 231, .11);
-  --ab-iris-faint: rgba(151, 136, 231, .055);
+  --ab-iris: var(--ab-ui-accent);
+  --ab-iris-hover: var(--ab-ui-accent);
+  --ab-iris-strong: var(--ab-ui-accent);
+  --ab-iris-soft: var(--ab-ui-selected);
+  --ab-iris-faint: var(--ab-ui-selected);
 
   --ab-ember: #e6a06f;
   --ab-ember-soft: rgba(230, 160, 111, .10);

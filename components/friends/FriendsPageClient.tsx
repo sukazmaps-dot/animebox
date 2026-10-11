@@ -44,7 +44,7 @@ function PersonCard({
   secondaryAction?: { label: string; onClick: () => void };
 }) {
   return (
-    <article className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-3">
+    <article className="flex min-w-0 items-center gap-3 rounded-2xl border border-[var(--ab-ui-border)] bg-[var(--ab-ui-surface)] p-3">
       <ProfilePreview
         userId={item.userId}
         username={item.username}
@@ -58,7 +58,7 @@ function PersonCard({
           />
           {item.online && item.direction === 'friend' && (
             <span
-              className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#090d18] bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.35)]"
+              className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[var(--ab-ui-surface)] bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.35)]"
               title="В сети"
               aria-label="В сети"
             />
@@ -69,7 +69,7 @@ function PersonCard({
         <ProfilePreview
           userId={item.userId}
           username={item.username}
-          className="block max-w-full truncate text-sm font-black text-slate-100 hover:text-violet-200"
+          className="block max-w-full truncate text-sm font-black text-[var(--ab-ui-text)] hover:text-[var(--ab-ui-accent)]"
         >
           <UserIdentity
             username={item.username}
@@ -77,7 +77,7 @@ function PersonCard({
             compact
           />
         </ProfilePreview>
-        <span className="text-[11px] font-semibold text-slate-500">
+        <span className="text-[11px] font-semibold text-[var(--ab-ui-muted)]">
           {item.direction === 'friend'
             ? item.online
               ? 'В сети · друг AnimeBox'
@@ -95,8 +95,8 @@ function PersonCard({
               onClick={action.onClick}
               className={`min-h-9 rounded-xl px-3 text-xs font-black ${
                 action.primary
-                  ? 'border border-violet-400/25 bg-violet-500/15 text-violet-100'
-                  : 'border border-white/10 bg-white/[0.035] text-slate-300'
+                  ? 'border border-[var(--ab-ui-accent)] bg-[var(--ab-ui-selected)] text-[var(--ab-ui-text)]'
+                  : 'border border-white/10 bg-white/[0.035] text-[var(--ab-ui-muted)]'
               }`}
             >
               {action.label}
@@ -106,7 +106,7 @@ function PersonCard({
             <button
               type="button"
               onClick={secondaryAction.onClick}
-              className="min-h-9 rounded-xl border border-white/8 bg-transparent px-3 text-xs font-bold text-slate-500 hover:text-rose-300"
+              className="min-h-9 rounded-xl border border-[var(--ab-ui-border)] bg-transparent px-3 text-xs font-bold text-[var(--ab-ui-muted)] hover:text-rose-300"
             >
               {secondaryAction.label}
             </button>
@@ -197,26 +197,26 @@ export default function FriendsPageClient() {
 
   if (!user) {
     return (
-      <section className="mx-auto max-w-3xl rounded-3xl border border-white/[0.07] bg-white/[0.025] p-8 text-center">
-        <h1 className="text-3xl font-black text-white">Друзья AnimeBox</h1>
-        <p className="mt-3 text-sm text-slate-400">Войди, чтобы добавлять друзей и приглашать их в Watch Together.</p>
-        <Link href="/login?next=/friends" className="mt-5 inline-flex rounded-xl bg-violet-500 px-5 py-3 text-sm font-black text-white">Войти</Link>
+      <section className="mx-auto max-w-3xl rounded-3xl border border-[var(--ab-ui-border)] bg-[var(--ab-ui-surface)] p-8 text-center">
+        <h1 className="text-3xl font-black text-[var(--ab-ui-text)]">Друзья AnimeBox</h1>
+        <p className="mt-3 text-sm text-[var(--ab-ui-muted)]">Войди, чтобы добавлять друзей и приглашать их в Watch Together.</p>
+        <Link href="/login?next=/friends" className="mt-5 inline-flex rounded-xl bg-[var(--ab-ui-primary)] px-5 py-3 text-sm font-black text-[var(--ab-ui-primary-text)]">Войти</Link>
       </section>
     );
   }
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
-      <header className="rounded-3xl border border-violet-400/10 bg-[radial-gradient(circle_at_15%_0%,rgba(124,92,255,.16),transparent_35%),rgba(8,12,22,.75)] p-6 sm:p-8">
-        <span className="text-[10px] font-black tracking-[.16em] text-violet-300">SOCIAL GRAPH · 17.7</span>
-        <h1 className="mt-2 text-3xl font-black tracking-tight text-white sm:text-4xl">Друзья AnimeBox</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+      <header className="rounded-3xl border border-[var(--ab-ui-border)] bg-[var(--ab-ui-surface)] p-6 sm:p-8">
+        <span className="text-[10px] font-black tracking-[.16em] text-[var(--ab-ui-accent)]">SOCIAL GRAPH · 17.7</span>
+        <h1 className="mt-2 text-3xl font-black tracking-tight text-[var(--ab-ui-text)] sm:text-4xl">Друзья AnimeBox</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--ab-ui-muted)]">
           Добавляй знакомых, следи за заявками и приглашай друзей в совместный просмотр.
         </p>
-        <div className="mt-5 flex flex-wrap gap-2 text-xs font-bold text-slate-300">
-          <span className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5">Друзей · {data.friends.length}</span>
-          <span className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5">Входящих · {data.incoming.length}</span>
-          <span className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5">Исходящих · {data.outgoing.length}</span>
+        <div className="mt-5 flex flex-wrap gap-2 text-xs font-bold text-[var(--ab-ui-muted)]">
+          <span className="rounded-full border border-[var(--ab-ui-border)] bg-white/[0.03] px-3 py-1.5">Друзей · {data.friends.length}</span>
+          <span className="rounded-full border border-[var(--ab-ui-border)] bg-white/[0.03] px-3 py-1.5">Входящих · {data.incoming.length}</span>
+          <span className="rounded-full border border-[var(--ab-ui-border)] bg-white/[0.03] px-3 py-1.5">Исходящих · {data.outgoing.length}</span>
         </div>
       </header>
 
@@ -225,10 +225,10 @@ export default function FriendsPageClient() {
       <SocialGraphPanels />
 
       {data.incoming.length > 0 && (
-        <section className="rounded-3xl border border-white/[0.06] bg-[#090d18]/80 p-5 sm:p-6">
+        <section className="rounded-3xl border border-[var(--ab-ui-border)] bg-[var(--ab-ui-surface)] p-5 sm:p-6">
           <div className="mb-4">
-            <span className="text-[9px] font-black tracking-[.14em] text-violet-300">ВХОДЯЩИЕ</span>
-            <h2 className="mt-1 text-xl font-black text-white">Заявки в друзья</h2>
+            <span className="text-[9px] font-black tracking-[.14em] text-[var(--ab-ui-accent)]">ВХОДЯЩИЕ</span>
+            <h2 className="mt-1 text-xl font-black text-[var(--ab-ui-text)]">Заявки в друзья</h2>
           </div>
           <div className="grid gap-2 lg:grid-cols-2">
             {data.incoming.map((item) => (
@@ -243,10 +243,10 @@ export default function FriendsPageClient() {
         </section>
       )}
 
-      <section className="rounded-3xl border border-white/[0.06] bg-[#090d18]/80 p-5 sm:p-6">
+      <section className="rounded-3xl border border-[var(--ab-ui-border)] bg-[var(--ab-ui-surface)] p-5 sm:p-6">
         <div className="mb-4">
-          <span className="text-[9px] font-black tracking-[.14em] text-violet-300">ТВОЙ КРУГ</span>
-          <h2 className="mt-1 text-xl font-black text-white">Друзья</h2>
+          <span className="text-[9px] font-black tracking-[.14em] text-[var(--ab-ui-accent)]">ТВОЙ КРУГ</span>
+          <h2 className="mt-1 text-xl font-black text-[var(--ab-ui-text)]">Друзья</h2>
         </div>
         {data.friends.length ? (
           <div className="grid gap-2 lg:grid-cols-2">
@@ -259,18 +259,18 @@ export default function FriendsPageClient() {
             ))}
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-white/8 p-8 text-center">
-            <strong className="text-sm text-slate-200">Пока никого</strong>
-            <p className="mt-1 text-xs text-slate-500">Открой публичный профиль пользователя и нажми «Добавить в друзья».</p>
+          <div className="rounded-2xl border border-dashed border-[var(--ab-ui-border)] p-8 text-center">
+            <strong className="text-sm text-[var(--ab-ui-text)]">Пока никого</strong>
+            <p className="mt-1 text-xs text-[var(--ab-ui-muted)]">Открой публичный профиль пользователя и нажми «Добавить в друзья».</p>
           </div>
         )}
       </section>
 
       {data.outgoing.length > 0 && (
-        <section className="rounded-3xl border border-white/[0.06] bg-[#090d18]/80 p-5 sm:p-6">
+        <section className="rounded-3xl border border-[var(--ab-ui-border)] bg-[var(--ab-ui-surface)] p-5 sm:p-6">
           <div className="mb-4">
-            <span className="text-[9px] font-black tracking-[.14em] text-violet-300">ОЖИДАНИЕ</span>
-            <h2 className="mt-1 text-xl font-black text-white">Отправленные заявки</h2>
+            <span className="text-[9px] font-black tracking-[.14em] text-[var(--ab-ui-accent)]">ОЖИДАНИЕ</span>
+            <h2 className="mt-1 text-xl font-black text-[var(--ab-ui-text)]">Отправленные заявки</h2>
           </div>
           <div className="grid gap-2 lg:grid-cols-2">
             {data.outgoing.map((item) => (

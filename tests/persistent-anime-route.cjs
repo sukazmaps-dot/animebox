@@ -1,0 +1,27 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const ts = require('typescript');
+const source = ts.transpileModule(fs.readFileSync('lib/persistent-anime-route.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+let fixtures = {}, calls = [];
+const client={from(table){let column,slug,prefix=false;const q={select(){return q},eq(c,s){column=c;slug=s;return q},like(c,s){column=c;slug=s;prefix=true;return q},limit(n){assert.equal(n,21);return q},async abortSignal(){calls.push({table,column,slug,prefix});return fixtures[`${table}:${prefix}`]??{data:[],error:null}}};return q}};
+const mod={exports:{}};
+new Function('require','module','exports',source)(name=>name==='server-only'?{}:{createSupabaseAdmin:()=>client},mod,mod.exports);
+const find=mod.exports.findPersistentAnimeRoute;
+(async()=>{
+ fixtures={'anime_search_documents:false':{data:[{anime_id:154587,slug:'sousou-no-frieren'}],error:null}};
+ assert.deepEqual(await find('sousou-no-frieren'),{id:154587,slug:'sousou-no-frieren'});
+ assert.equal(calls.length,3);
+ fixtures={'seo_anime_index:true':{data:[{anime_id:154587,slug:'sousou-no-frieren-154587'},{anime_id:182255,slug:'sousou-no-frieren-2nd-season-182255'}],error:null}};
+ assert.equal((await find('sousou-no-frieren')).id,154587);
+ fixtures={'anime_search_documents:false':{data:[{anime_id:1,slug:'same'}],error:null},'anime_catalog:false':{data:[{id:2,slug:'same'}],error:null}};
+ assert.equal(await find('same'),null);
+ fixtures={'seo_anime_index:true':{data:[{anime_id:1,slug:'same-1'},{anime_id:2,slug:'same-2'}],error:null}};
+ assert.equal(await find('same'),null);
+ fixtures={'seo_anime_index:true':{data:Array.from({length:21},()=>({anime_id:1,slug:'same-1'})),error:null}};
+ assert.equal(await find('same'),null);
+ fixtures={};assert.equal(await find('missing-title'),null);
+ calls=[];assert.equal(await find('unsafe_%'),null);assert.equal(calls.length,0);
+ fixtures={'anime_catalog:false':{data:null,error:{message:'timeout'}}};
+ await assert.rejects(find('missing-title'),/incomplete/);
+ console.log('Persistent anime routes: exact, stable alias, ambiguity, overflow, missing, invalid and partial outage passed.');
+})().catch(error=>{console.error(error);process.exitCode=1});

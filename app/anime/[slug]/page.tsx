@@ -522,7 +522,7 @@ export default async function AnimePage({
           className="
             absolute
             inset-0
-            bg-black/60
+            anime-detail-v4__banner-shade
           "
         />
 
@@ -533,10 +533,7 @@ export default async function AnimePage({
           className="
             absolute
             inset-0
-            bg-gradient-to-b
-            from-black/20
-            via-[#08080c]/80
-            to-[#08080c]
+            anime-detail-v4__banner-gradient
           "
         />
 
