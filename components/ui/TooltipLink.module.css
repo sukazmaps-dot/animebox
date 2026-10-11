@@ -1,0 +1,1 @@
+.tooltip { position:fixed; z-index:10000; width:max-content; max-width:min(320px,calc(100vw - 24px)); padding:10px 12px; border:1px solid var(--ab-ui-border); border-radius:var(--ab-ui-radius); background:var(--ab-ui-raised); color:var(--ab-ui-text); box-shadow:0 8px 28px #0005; font-size:13px; line-height:1.5; white-space:normal; overflow-wrap:anywhere; pointer-events:auto; }

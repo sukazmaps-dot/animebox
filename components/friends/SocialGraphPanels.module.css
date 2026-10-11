@@ -241,3 +241,10 @@
     padding: 8px;
   }
 }
+/* Shared chrome and bounded social rows. */
+.grid .panel { background:var(--ab-ui-surface)!important; border-color:var(--ab-ui-border)!important; border-radius:var(--ab-ui-radius); }
+.grid :is(.head h2,.personCopy strong,.activityCopy strong) { color:var(--ab-ui-text)!important; }
+.grid :is(.head p,.personCopy small,.activityCopy small,.empty,.privacy) { color:var(--ab-ui-muted)!important; }
+.grid .head span { color:var(--ab-ui-accent)!important; }
+.grid :is(.person,.activityRow,.search) { border-color:var(--ab-ui-border); border-radius:var(--ab-ui-radius); background:var(--ab-ui-raised); }
+.grid :is(.person,.activityRow) { align-items:center; }

@@ -78,14 +78,17 @@ try {
       while(parent){const color=getComputedStyle(parent).backgroundColor;const parts=color.match(/[\d.]+/g);if(parts && (parts.length===3 || Number(parts[3])===1)){background=color;break;}parent=parent.parentElement;}
       return ratio(getComputedStyle(el).color,background||getComputedStyle(document.body).backgroundColor);
     });
+    const podium=document.querySelector('[aria-label="Топ-3"]')?.getBoundingClientRect(), board=document.querySelector('[aria-label="Топ-100 AnimeBox"]')?.getBoundingClientRect();
+    const leaderboardColumns=Boolean(podium && board && board.left>=podium.right);
     const event=document.querySelector('.weekly-calendar__event'), day=document.querySelector('.weekly-calendar__day');
     const card=document.querySelector('.anime-card__image-wrap');
-    return {actualContrasts,route,width:innerWidth,overflow:document.documentElement.scrollWidth>innerWidth+1,contrast,days:document.querySelectorAll('.weekly-calendar__column').length,events:document.querySelectorAll('.weekly-calendar__event').length,eventHeight:event?.getBoundingClientRect().height,dayHeight:day?.getBoundingClientRect().height,posterRatio:card?card.getBoundingClientRect().width/card.getBoundingClientRect().height:null,trackerColor:document.querySelector('.tracker-card__label')?getComputedStyle(document.querySelector('.tracker-card__label')).color:null};
+    return {leaderboardColumns,actualContrasts,route,width:innerWidth,overflow:document.documentElement.scrollWidth>innerWidth+1,contrast,days:document.querySelectorAll('.weekly-calendar__column').length,events:document.querySelectorAll('.weekly-calendar__event').length,eventHeight:event?.getBoundingClientRect().height,dayHeight:day?.getBoundingClientRect().height,posterRatio:card?card.getBoundingClientRect().width/card.getBoundingClientRect().height:null,trackerColor:document.querySelector('.tracker-card__label')?getComputedStyle(document.querySelector('.tracker-card__label')).color:null};
    },route);
    assert.ok(!value.overflow,`${route}/${theme}/${width}: horizontal page overflow`);
    assert.ok(value.actualContrasts.every(n=>n>=4.5),`${route}/${theme} actual text contrast: ${value.actualContrasts}`);
    assert.ok(value.contrast>=4.5,`${theme} muted contrast ${value.contrast}`);
-   if(route==='/schedule'){assert.equal(value.days,7);assert.equal(value.events,56);assert.ok(value.dayHeight<=46);assert.ok(value.eventHeight<=85);}
+   if(route==='/leaderboard' && width>=1440)assert.ok(value.leaderboardColumns,'two-column ranking layout');
+   if(route==='/schedule'){assert.equal(value.days,7);assert.equal(value.events,56);assert.ok(value.dayHeight<=46);assert.ok(value.eventHeight<=85,JSON.stringify(value));}
    if(route==='/')assert.ok(value.posterRatio,'catalog card rendered');
    if(value.posterRatio)assert.ok(Math.abs(value.posterRatio-2/3)<.01,'poster ratio');
    results.push({theme,...value});

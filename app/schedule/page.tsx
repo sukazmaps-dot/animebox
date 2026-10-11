@@ -2,7 +2,7 @@
 import {scheduleAnimeHref} from '@/lib/schedule-url';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
+import TooltipLink from '@/components/ui/TooltipLink';
 
 import AnimeImage from '@/components/AnimeImage';
 import type { AnimeImage as AnimeImageType } from '@/types/anime';
@@ -258,11 +258,11 @@ export default function SchedulePage() {
                         const episodeLabel = item.episode == null ? 'Плановый выход' : `Эпизод ${item.episode}${item.timingKind ? ' · план' : ''}`;
 
                         return (
-                          <Link
+                          <TooltipLink
                             key={item.id}
                             href={scheduleAnimeHref(item.media)}
                             className="weekly-calendar__event"
-                            title={`${title} — ${episodeLabel}`}
+                            label={`${title} — ${episodeLabel}`}
                           >
                             <div className="weekly-calendar__event-time">
                               <strong>{formatTime(item.airingAt)}</strong>
@@ -284,7 +284,7 @@ export default function SchedulePage() {
                                 <span>{episodeLabel}</span>
                               </div>
                             </div>
-                          </Link>
+                          </TooltipLink>
                         );
                       })
                     )}

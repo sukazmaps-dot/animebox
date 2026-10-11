@@ -256,7 +256,7 @@ export default function LeaderboardClient() {
           <span>Первое подтверждённое время просмотра появится здесь автоматически.</span>
         </section>
       ) : data ? (
-        <>
+        <div className={styles.results}>
           <div className={styles.sectionHeading}>
             <div><span className={styles.eyebrow}>Пьедестал</span><h2>Пьедестал AnimeBox</h2></div>
             <span className={styles.periodBadge}>{periodLabels[period]}</span>
@@ -394,7 +394,7 @@ export default function LeaderboardClient() {
             Недельный и месячный сезоны начинаются заново в календарных границах UTC.
             Ручные отметки не добавляют время, а завершённые сезоны сохраняются в Зале славы.
           </p>
-        </>
+        </div>
       ) : null}
     </main>
   );
