@@ -1,3 +1,4 @@
+import AnimeCardContent from '@/components/AnimeCardContent';
 import { animeHref } from '@/lib/anime-url';
 import Link from 'next/link';
 import type { Anime } from '@/types/anime';
@@ -84,7 +85,8 @@ export default function AnimeCard({
         compact ? 'anime-card--compact' : ''
       }`}
     >
-      <div
+      <AnimeCardContent media={
+        <div
         className="anime-card__image-wrap aspect-[2/3] shrink-0"
         style={{ aspectRatio: '2 / 3' }}
       >
@@ -121,7 +123,7 @@ export default function AnimeCard({
           </span>
         )}
       </div>
-
+      }>
       <div className="anime-card__body flex min-w-0 flex-1 flex-col">
         <h3 title={title} className="line-clamp-2">
           {title}
@@ -150,6 +152,7 @@ export default function AnimeCard({
           </div>
         )}
       </div>
+      </AnimeCardContent>
     </Link>
   );
 }

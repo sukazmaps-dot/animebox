@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import AnimeCardContent from '@/components/AnimeCardContent';
 import { useEffect, useRef, useState } from 'react';
 
 import AnimeImage, { type AnimeImageLoadState } from '@/components/AnimeImage';
@@ -525,7 +526,8 @@ export default function SmartRecommendationCard({
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
     >
-      <Link
+      <AnimeCardContent media={
+        <Link
         href={animeHref(anime)}
         prefetch={true}
         className="smart-card__poster-link"
@@ -569,7 +571,7 @@ export default function SmartRecommendationCard({
           </div>
         </div>
       </Link>
-
+      }>
       <div className="smart-card__body">
         <Link
           href={animeHref(anime)}
@@ -678,6 +680,8 @@ export default function SmartRecommendationCard({
           </button>
         </div>
       </div>
+
+      </AnimeCardContent>
 
       <dialog
         ref={feedbackDialogRef}

@@ -2077,3 +2077,28 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Hub only: the active room theater and its sticky player keep their layout. */
+.page.page { padding:24px 20px 32px; color:var(--ab-ui-text)!important; }
+.page.page :is(.hero,.joinCard,.publicRooms,.builder,.publicRoomCard,.stepGrid article) { background:var(--ab-ui-surface)!important; border-color:var(--ab-ui-border)!important; border-radius:var(--ab-ui-radius); box-shadow:none; }
+.page.page .hero { padding:22px; gap:20px; align-items:start; }
+.page.page .heroCopy h1 { font-size:clamp(1.75rem,3vw,2.75rem); margin-block:12px; color:var(--ab-ui-text)!important; }
+.page.page .heroGlow { display:none; }
+.page.page .joinCard { padding:18px; background:var(--ab-ui-raised)!important; }
+.page.page :is(.joinInput input,.searchBox,.lobbyTabs,.lobbyStats > div) { background:var(--ab-ui-raised)!important; border-color:var(--ab-ui-border)!important; color:var(--ab-ui-text)!important; }
+.page.page :is(.heroCopy > p,.joinCard p,.joinCard small,.lobbyStats span,.lobbyStats > small,.roomInfo > span,.roomMeta,.publicEmpty > span:not(.emptyPulse),.empty,.loading,.stepGrid p,.lobbyTabs button,.heroSecondary) { color:var(--ab-ui-muted)!important; }
+.page.page :is(.eyebrow,.joinEyebrow,.sectionHead span) { color:var(--ab-ui-accent)!important; }
+.page.page :is(.publicEmpty strong,.joinCard strong,.sectionHead h2,.roomInfo strong) { color:var(--ab-ui-text)!important; }
+.page.page :is(.heroPrimary,.joinInput button) { background:var(--ab-ui-primary)!important; color:var(--ab-ui-primary-text)!important; }
+.page.page .publicRooms { margin-top:16px; padding:20px; }
+.page.page .publicEmpty { min-height:136px; padding:20px; background:var(--ab-ui-raised)!important; border-color:var(--ab-ui-border)!important; }
+.page.page :is(.empty,.loading) { min-height:136px; }
+.page.page .publicRoomGrid { grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); }
+.page.page .builder { margin-top:16px; padding:20px; }
+@media(max-width:760px) { .page.page { padding:16px 12px 24px; } .page.page .hero { grid-template-columns:minmax(0,1fr); padding:16px; } .page.page :is(.publicRooms,.builder) { padding:16px; } }
+.page.page .joinCard { align-self:start; justify-content:flex-start; }
+.page.page .searchBox input { background:var(--ab-ui-raised)!important; color:var(--ab-ui-text)!important; }
+.page.page input::placeholder { color:var(--ab-ui-muted)!important; opacity:1; }
+.page.page :is(.features span,.lobbyStats strong,.publicEmpty a,.sectionHead button,.roomSearch input) { color:var(--ab-ui-text)!important; }
+.page.page :is(.features span,.publicEmpty a,.sectionHead button,.roomSearch) { background:var(--ab-ui-raised)!important; border-color:var(--ab-ui-border)!important; }
+.page.page .roomSearch input { background:transparent!important; }
