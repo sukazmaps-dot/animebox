@@ -40,6 +40,9 @@ jobs:
       - name: SEO cron recovery and sitemap regression check
         run: npm run seo-cron-recovery:check
 
+      - name: SEO AniList source pagination depth check
+        run: npm run seo-anilist-depth:check
+
       - name: TypeScript
         run: npx tsc --noEmit
 
