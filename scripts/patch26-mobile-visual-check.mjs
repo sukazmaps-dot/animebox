@@ -1,18 +1,18 @@
-// UI Patch 26.0: route-specific, no JS data-path changes.
+// UI Patch 26.0: no extra root CSS imports or search data-path changes.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const read = (path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const home = read('components/home/HomeScheduleSection.tsx');
-const css = read('app/patch26-mobile-visual-geometry.css');
+const homeCss = read('components/home/HomeScheduleSection.module.css');
+const cardCss = read('components/AnimeCardContent.module.css');
 const layout = read('app/layout.tsx');
-assert.match(home, /home-schedule--polished/);
+assert.match(home, /styles\.root/);
 assert.match(home, /role="group"/);
 assert.match(home, /aria-label="Выбор дня выхода серий/);
-assert.match(home, /home-schedule__swipe-hint/);
-assert.match(css, /\.home-page \.home-schedule--polished \.schedule__tabs/);
-assert.match(css, /overflow-x: auto !important/);
-assert.match(css, /\.search-page \.anime-card\.anime-card \.anime-card__meta/);
-assert.match(css, /height: auto !important/);
-assert.doesNotMatch(css, /\.schedule-page-v2/);
-assert.match(layout, /import '\.\/patch26-mobile-visual-geometry\.css';/);
-console.log('PASS: UI Patch 26.0 schedule tabs and metadata geometry contract');
+assert.match(home, /styles\.swipeHint/);
+assert.match(homeCss, /\.root\.root :global\(\.schedule__tabs\)/);
+assert.match(homeCss, /overflow-x: auto !important/);
+assert.match(cardCss, /:global\(\.search-page\) \.content\.content :global\(\.anime-card__meta\)/);
+assert.match(cardCss, /height: auto !important/);
+assert.doesNotMatch(layout, /patch26-mobile-visual-geometry/);
+console.log('PASS: UI Patch 26.0 component-local mobile geometry contract');
