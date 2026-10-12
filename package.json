@@ -116,7 +116,7 @@
     "media-origin-recovery:check": "node tests/media-origin-relay.mjs && node tests/telegram-health-sitemap.cjs",
     "home-geometry:check": "node tests/home-schedule-ssr.mjs",
     "seo-indexing-media:check": "node tests/seo-indexing-media-efficiency.mjs",
-    "home-tracker-recovery:check": "node tests/home-feed-recovery.cjs && node tests/tracker-posters.cjs && node tests/mood-schedule-recovery.cjs"
+    "home-tracker-recovery:check": "node tests/home-feed-recovery.cjs && node tests/tracker-posters.cjs && node tests/mood-schedule-recovery.cjs && node tests/tooltip-poster-reliability.cjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

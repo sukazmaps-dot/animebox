@@ -8,6 +8,7 @@ const PUBLIC_CACHEABLE_API_PATHS = new Set([
   '/api/anime',
   '/api/recommendations',
   '/api/schedule',
+  '/api/image',
   '/api/watch-party/rooms',
 ]);
 

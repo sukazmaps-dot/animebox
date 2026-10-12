@@ -41,7 +41,9 @@ try {
   await page.clock.fastForward(58_000);
   assert.equal(mediaRequests,initialRequests,'retry must wait for media cooldown');
   healthy=true;
-  await page.clock.fastForward(20_000);
+  // First independent proxy retry also fails in this fixture. The second
+  // full pass waits for the Worker cooldown before recovering.
+  await page.clock.fastForward(80_000);
   await page.waitForFunction(()=>[...document.querySelectorAll('.weekly-calendar__poster[data-image-state]')].every(p=>p.dataset.imageState==='loaded'));
   const recoveredRequests=mediaRequests;
   assert.ok(recoveredRequests>initialRequests && recoveredRequests<=initialRequests+8,'bounded recovery requests');

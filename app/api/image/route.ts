@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { enforceIpRateLimit } from '@/lib/api-rate-limit';
+import { privateNoStoreHeaders, publicApiCacheHeaders } from '@/lib/edge-cache-policy';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -230,6 +231,7 @@ async function placeholder(error: string, attempts = 0, strict = false) {
     return new NextResponse(null, {
       status: 502,
       headers: {
+        ...privateNoStoreHeaders(),
         'Cache-Control': 'no-store',
         'Vercel-CDN-Cache-Control': 'no-store',
         'Cloudflare-CDN-Cache-Control': 'no-store',
@@ -244,6 +246,7 @@ async function placeholder(error: string, attempts = 0, strict = false) {
     status: 200,
     headers: {
       'Content-Type': 'image/svg+xml',
+      'CDN-Cache-Control': 'public, max-age=15',
       'Cache-Control': 'public, max-age=15, s-maxage=15',
       'Vercel-CDN-Cache-Control': 'public, max-age=15',
       'Cloudflare-CDN-Cache-Control': 'public, max-age=15',
@@ -282,7 +285,10 @@ export async function GET(
   const limited = await enforceIpRateLimit(request, {
     scope: 'image_proxy_ip', limit: 600, windowSeconds: 60,
   });
-  if (limited) return limited;
+  if (limited) {
+    for (const [key, value] of Object.entries(privateNoStoreHeaders())) limited.headers.set(key, value);
+    return limited;
+  }
 
   const rawUrl =
     request.nextUrl.searchParams.get('url');
@@ -290,7 +296,7 @@ export async function GET(
   if (!rawUrl) {
     return new NextResponse(
       'Missing image URL',
-      { status: 400 },
+      { status: 400, headers: privateNoStoreHeaders() },
     );
   }
 
@@ -301,7 +307,7 @@ export async function GET(
   ) {
     return new NextResponse(
       'Local image URL is not proxyable',
-      { status: 400 },
+      { status: 400, headers: privateNoStoreHeaders() },
     );
   }
 
@@ -311,7 +317,7 @@ export async function GET(
   if (!sourceUrl) {
     return new NextResponse(
       'Image host is not allowed',
-      { status: 403 },
+      { status: 403, headers: privateNoStoreHeaders() },
     );
   }
 
@@ -356,12 +362,11 @@ export async function GET(
       status: 200,
       headers: {
         'Content-Type': contentType,
-        'Cache-Control':
-          'public, max-age=604800, s-maxage=2592000, stale-while-revalidate=2592000',
-        'Vercel-CDN-Cache-Control':
-          'public, max-age=2592000, stale-while-revalidate=604800',
-        'Cloudflare-CDN-Cache-Control':
-          'public, max-age=2592000, stale-while-revalidate=604800',
+        ...publicApiCacheHeaders({
+          browserSeconds: 604800,
+          edgeSeconds: 2592000,
+          staleWhileRevalidateSeconds: 2592000,
+        }),
         'X-Image-Source':
           sourceUrl.hostname,
         'X-AnimeBox-Image-Delivery': 'proxy-v2',

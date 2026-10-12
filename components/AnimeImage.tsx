@@ -31,6 +31,7 @@ import {
   getMediaEdgeHealthRevision,
   getMediaEdgeHealthServerRevision,
   isMediaEdgeBlocked,
+  isAnimeBoxMediaRequest,
   reportMediaEdgeFailure,
   reportMediaEdgeSuccess,
   subscribeMediaEdgeHealth,
@@ -42,6 +43,7 @@ const FALLBACK_SOURCE_TIMEOUT_MS = 7_500;
 const PROXY_SOURCE_TIMEOUT_MS = 9_500;
 const TRANSIENT_RETRY_MIN_DELAY_MS = 20_000;
 const TRANSIENT_RETRY_MAX_DELAY_MS = 45_000;
+const TRANSIENT_RETRY_LIMIT = 2;
 
 export type AnimeImageLoadState = 'loading' | 'loaded' | 'fallback';
 
@@ -226,6 +228,20 @@ export default function AnimeImage({
     sourceIndex: 0,
     loaded: false,
   }));
+  const [lastFailure, setLastFailure] = useState<{
+    key: string;
+    stage: 'media' | 'proxy' | 'origin' | 'local';
+    reason: 'network-or-decode' | 'timeout';
+  } | null>(null);
+  const [retryInfo, setRetryInfo] = useState({ key: sourcesKey, count: 0 });
+  // Remember every source transition, including A -> B -> A. Otherwise an
+  // old terminal fallback for A can reappear when that card is reused.
+  if (imageState.key !== sourcesKey) {
+    setImageState({ key: sourcesKey, sourceIndex: 0, loaded: false });
+  }
+  if (retryInfo.key !== sourcesKey) {
+    setRetryInfo({ key: sourcesKey, count: 0 });
+  }
 
   const storedSourceIndex =
     imageState.key === sourcesKey
@@ -246,6 +262,15 @@ export default function AnimeImage({
 
   const current = sources[sourceIndex] ?? FALLBACK;
   const isFallback = current === FALLBACK;
+  const recordFailure = useCallback((reason: 'network-or-decode' | 'timeout') => {
+    setLastFailure({
+      key: sourcesKey,
+      stage: isAnimeBoxMediaRequest(current) ? 'media'
+        : current.startsWith('/api/image?') ? 'proxy'
+          : current.startsWith('/') ? 'local' : 'origin',
+      reason,
+    });
+  }, [current, sourcesKey]);
 
   const resolvedAlt =
     alt?.trim() ||
@@ -351,6 +376,7 @@ export default function AnimeImage({
 
   const handleError = useCallback(() => {
     if (!isFallback) {
+      recordFailure('network-or-decode');
       reportMediaEdgeFailure(current);
       goToNextSource();
       return;
@@ -361,7 +387,7 @@ export default function AnimeImage({
       sourceIndex,
       loaded: true,
     });
-  }, [current, goToNextSource, isFallback, sourceIndex, sourcesKey]);
+  }, [current, goToNextSource, isFallback, recordFailure, sourceIndex, sourcesKey]);
 
   /*
    * Native lazy scheduling and the shared near-viewport scheduler own the
@@ -380,6 +406,7 @@ export default function AnimeImage({
     }
 
     const timeout = window.setTimeout(() => {
+      recordFailure('timeout');
       reportMediaEdgeFailure(current);
       goToNextSource();
     }, sourceTimeoutMs(current, sourceIndex));
@@ -391,6 +418,7 @@ export default function AnimeImage({
     isFallback,
     loaded,
     nativeLoading,
+    recordFailure,
     shouldRequestSource,
     sourceIndex,
   ]);
@@ -403,7 +431,8 @@ export default function AnimeImage({
     if (
       !isFallback ||
       sources.length <= 1 ||
-      transientRetryCountRef.current >= 1
+      transientRetryCountRef.current >= TRANSIENT_RETRY_LIMIT ||
+      !sources.some((source) => source.startsWith('/api/image?') || /^https?:/.test(source))
     ) {
       return;
     }
@@ -412,24 +441,38 @@ export default function AnimeImage({
     const baseDelay = stableRetryDelayMs(sourcesKey);
 
     const retry = () => {
-      if (transientRetryCountRef.current >= 1) return;
+      if (transientRetryCountRef.current >= TRANSIENT_RETRY_LIMIT) return;
 
-      // Do not consume the only retry while the browser still knows it is
+      // Do not consume a retry while the browser still knows it is
       // offline. The online event will schedule a jittered recovery instead.
       if (navigator.onLine === false) return;
 
-      // A circuit can open after this poster reached its fallback. Preserve
-      // the recovery attempt until at least one media edge can be tried.
-      const retryAfter = getMediaEdgeRetryAfterMs(sources);
+      // Do not spend the bounded recovery budget on hidden cards.
+      const bounds = hostRef.current?.getBoundingClientRect();
+      if (document.visibilityState === 'hidden' || !bounds ||
+        bounds.bottom <= 0 || bounds.top >= window.innerHeight ||
+        bounds.right <= 0 || bounds.left >= window.innerWidth) {
+        schedule(30_000);
+        return;
+      }
+
+      // First recovery uses the independent server path, not a failing Worker.
+      const proxyIndex = sources.findIndex((source) => source.startsWith('/api/image?'));
+      const recoverViaProxy = transientRetryCountRef.current === 0 && proxyIndex >= 0;
+
+      // The second pass can use media again after its cooldown. The first
+      // proxy pass is independent and must not wait for that circuit.
+      const retryAfter = recoverViaProxy ? 0 : getMediaEdgeRetryAfterMs(sources);
       if (retryAfter > 0) {
         schedule(retryAfter + 1_000 + (baseDelay % 5_001));
         return;
       }
 
       transientRetryCountRef.current += 1;
+      setRetryInfo({ key: sourcesKey, count: transientRetryCountRef.current });
       setImageState({
         key: sourcesKey,
-        sourceIndex: firstUsableSourceIndex(sources, 0),
+        sourceIndex: recoverViaProxy ? proxyIndex : firstUsableSourceIndex(sources, 0),
         loaded: false,
       });
     };
@@ -445,13 +488,13 @@ export default function AnimeImage({
       }, delayMs);
     };
 
-    schedule(Math.max(
-      baseDelay,
-      getMediaEdgeRetryAfterMs(sources) + 1_000 + (baseDelay % 5_001),
-    ));
+    const independentRecovery = transientRetryCountRef.current === 0 &&
+      sources.some((source) => source.startsWith('/api/image?'));
+    schedule(Math.max(baseDelay, independentRecovery ? 0 :
+      getMediaEdgeRetryAfterMs(sources) + 1_000 + (baseDelay % 5_001)));
 
     const onOnline = () => {
-      if (transientRetryCountRef.current >= 1) return;
+      if (transientRetryCountRef.current >= TRANSIENT_RETRY_LIMIT) return;
 
       // Avoid a reconnect thundering herd when dozens of posters failed while
       // offline. Every source gets a deterministic 1–6 second reconnect jitter.
@@ -507,6 +550,7 @@ export default function AnimeImage({
         return;
       }
 
+      recordFailure('network-or-decode');
       reportMediaEdgeFailure(current);
       goToNextSource();
     });
@@ -517,6 +561,7 @@ export default function AnimeImage({
     goToNextSource,
     isFallback,
     shouldRequestSource,
+    recordFailure,
     sourceIndex,
     sources,
     sourcesKey,
@@ -537,6 +582,9 @@ export default function AnimeImage({
       data-image-preference={sourcePreference}
       data-image-preset={effectivePreset}
       data-image-format={format}
+      data-image-retry-count={retryInfo.key === sourcesKey ? retryInfo.count : 0}
+      data-image-last-failure-stage={lastFailure?.key === sourcesKey ? lastFailure.stage : undefined}
+      data-image-last-failure-reason={lastFailure?.key === sourcesKey ? lastFailure.reason : undefined}
     >
       {!loaded && !isFallback && (
         <div
