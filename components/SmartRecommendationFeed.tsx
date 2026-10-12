@@ -531,7 +531,6 @@ export default function SmartRecommendationFeed({
   const railVirtualMetricsRef = useRef<Map<RecommendationRailId, ScrollRowVirtualMetrics>>(new Map());
   const sparseRailSectionRefs = useRef<Map<RecommendationRailId, HTMLElement>>(new Map());
   const sparseRailPrimedRef = useRef<Set<RecommendationRailId>>(new Set());
-  const sparseRailQueueRef = useRef<Promise<void>>(Promise.resolve());
   const consumedPointerKeysRef = useRef<Set<string>>(new Set());
 
   const [sessionId, setSessionId] = useState(() => createSessionId());
@@ -633,7 +632,6 @@ export default function SmartRecommendationFeed({
         railVirtualMetricsRef.current = new Map();
         sparseRailSectionRefs.current = new Map();
         sparseRailPrimedRef.current = new Set();
-        sparseRailQueueRef.current = Promise.resolve();
         consumedPointerKeysRef.current = new Set();
         railLoadingRef.current = new Set();
         setLocallyHidden(new Set());
@@ -711,6 +709,9 @@ export default function SmartRecommendationFeed({
     return () => {
       requestGenerationRef.current += 1;
       requestControllerRef.current?.abort();
+      sharedBatchPromiseRef.current = null;
+      railLoadingRef.current.clear();
+      sparseRailPrimedRef.current.clear();
       transitionTokenRef.current += 1;
 
       if (transitionTimerRef.current !== null) {
@@ -998,16 +999,24 @@ export default function SmartRecommendationFeed({
   const ensureRailDepth = useCallback(
     async (
       rail: RecommendationRail,
-      options: { bootstrap?: boolean } = {},
+      options: { bootstrap?: boolean; retry?: boolean } = {},
     ) => {
       const bootstrap = options.bootstrap === true;
       if (
         moodTransitionRef.current ||
         !hasMoreRef.current ||
         railLoadingRef.current.has(rail.id) ||
-        exhaustedRails.has(rail.id)
+        (exhaustedRails.has(rail.id) && !options.retry)
       ) {
         return;
+      }
+
+      if (options.retry) {
+        setExhaustedRails((current) => {
+          const next = new Set(current);
+          next.delete(rail.id);
+          return next;
+        });
       }
 
       const generation = requestGenerationRef.current;
@@ -1212,6 +1221,9 @@ export default function SmartRecommendationFeed({
         });
       } finally {
         if (isCurrentGeneration()) {
+          // Publish partial successes even if a later page failed. Reserved
+          // cards must not disappear behind the row's error state.
+          setRailOwnership(new Map(railOwnershipRef.current));
           railLoadingRef.current.delete(rail.id);
           setLoadingRails((current) => {
             if (!current.has(rail.id)) return current;
@@ -1232,83 +1244,69 @@ export default function SmartRecommendationFeed({
   );
 
   useEffect(() => {
-    if (
-      isMoodSwapping ||
-      !hasMore ||
-      typeof IntersectionObserver === 'undefined'
-    ) {
-      return;
-    }
+    if (isMoodSwapping || !hasMore) return;
 
     const sparseRails = new Map(
-      rails
-        .filter(
-          (rail) =>
-            rail.items.length < MIN_INITIAL_RAIL_ITEMS &&
-            !loadingRails.has(rail.id) &&
-            !exhaustedRails.has(rail.id) &&
-            !sparseRailPrimedRef.current.has(rail.id),
-        )
-        .map((rail) => [rail.id, rail] as const),
+      rails.filter((rail) =>
+        rail.items.length < MIN_INITIAL_RAIL_ITEMS &&
+        !loadingRails.has(rail.id) &&
+        !exhaustedRails.has(rail.id) &&
+        !railErrors.has(rail.id) &&
+        !sparseRailPrimedRef.current.has(rail.id),
+      ).map((rail) => [rail.id, rail] as const),
     );
-
     if (!sparseRails.size) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
+    const prime = (railId: RecommendationRailId) => {
+      const rail = sparseRails.get(railId);
+      if (!rail || sparseRailPrimedRef.current.has(railId)) return;
+      sparseRailPrimedRef.current.add(railId);
+      // Rows share candidate requests, but never wait for another row's
+      // complete multi-page search before they can use those candidates.
+      void ensureRailDepth(rail, { bootstrap: true });
+    };
+
+    const observer = typeof IntersectionObserver === 'undefined' ? null :
+      new IntersectionObserver((entries) => {
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
-
-          const railId = entry.target.getAttribute(
-            'data-recommendation-rail-id',
-          ) as RecommendationRailId | null;
-          if (!railId) continue;
-
-          const rail = sparseRails.get(railId);
-          if (!rail || sparseRailPrimedRef.current.has(railId)) continue;
-
-          sparseRailPrimedRef.current.add(railId);
-          observer.unobserve(entry.target);
-
-          const generation = requestGenerationRef.current;
-          sparseRailQueueRef.current = sparseRailQueueRef.current
-            .then(async () => {
-              if (
-                moodTransitionRef.current ||
-                generation !== requestGenerationRef.current
-              ) return;
-              await ensureRailDepth(rail, { bootstrap: true });
-            })
-            .catch((error) => {
-              console.error(
-                'Recommendation sparse rail bootstrap:',
-                railId,
-                error,
-              );
-            });
+          const id = entry.target.getAttribute('data-recommendation-rail-id') as RecommendationRailId | null;
+          if (id) prime(id);
         }
-      },
-      {
-        root: null,
-        rootMargin: SPARSE_RAIL_ROOT_MARGIN,
-        threshold: 0.01,
-      },
-    );
+      }, { root: null, rootMargin: SPARSE_RAIL_ROOT_MARGIN, threshold: 0.01 });
 
-    for (const railId of sparseRails.keys()) {
-      const node = sparseRailSectionRefs.current.get(railId);
-      if (node) observer.observe(node);
+    // A synchronous visibility check covers mounts already in view and
+    // embedded browsers with missing/delayed IntersectionObserver delivery.
+    const checkVisible = () => {
+      for (const id of sparseRails.keys()) {
+        const node = sparseRailSectionRefs.current.get(id);
+        if (!node) continue;
+        const bounds = node.getBoundingClientRect();
+        if (bounds.bottom >= -520 && bounds.top <= window.innerHeight + 520) prime(id);
+      }
+    };
+    let frame: number | null = null;
+    const scheduleCheck = () => {
+      if (frame !== null) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = null;
+        checkVisible();
+      });
+    };
+    for (const id of sparseRails.keys()) {
+      const node = sparseRailSectionRefs.current.get(id);
+      if (node) observer?.observe(node);
     }
-
-    return () => observer.disconnect();
-  }, [
-    ensureRailDepth,
-    exhaustedRails,
-    hasMore,
-    isMoodSwapping,
-    loadingRails,
-    rails,
-  ]);
+    scheduleCheck();
+    window.addEventListener('scroll', scheduleCheck, { passive: true });
+    window.addEventListener('resize', scheduleCheck);
+    return () => {
+      observer?.disconnect();
+      if (frame !== null) window.cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', scheduleCheck);
+      window.removeEventListener('resize', scheduleCheck);
+    };
+  }, [ensureRailDepth, exhaustedRails, hasMore, isMoodSwapping, loadingRails, railErrors, rails]);
 
   if (filtered.length === 0 && !hasMore && loadingRails.size === 0) {
     return (
@@ -1427,13 +1425,13 @@ export default function SmartRecommendationFeed({
 
                 </ScrollRow>
 
-                {railFailed && !railLoading && (
+                {(railFailed || (exhaustedRails.has(rail.id) && hasMore)) && !railLoading && (
                   <button
                     type="button"
                     className="smart-feed__rail-retry"
-                    onClick={() => void ensureRailDepth(rail)}
+                    onClick={() => void ensureRailDepth(rail, { retry: true, bootstrap: rail.items.length < MIN_INITIAL_RAIL_ITEMS })}
                   >
-                    Не удалось загрузить ещё · Повторить
+                    {railFailed ? 'Не удалось загрузить ещё · Повторить' : 'Продолжить поиск карточек'}
                   </button>
                 )}
               </section>

@@ -546,9 +546,7 @@
   padding: clamp(22px, 3vw, 34px);
   border: 1px solid rgba(255, 255, 255, .055);
   border-radius: 27px;
-  background:
-    radial-gradient(circle at 88% 0%, rgba(104, 75, 255, .08), transparent 34%),
-    linear-gradient(155deg, rgba(10, 14, 25, .97), rgba(6, 9, 17, .98));
+  background: var(--ab-ui-surface);
 }
 
 .seoIntro {
@@ -2102,3 +2100,9 @@
 .page.page :is(.features span,.lobbyStats strong,.publicEmpty a,.sectionHead button,.roomSearch input) { color:var(--ab-ui-text)!important; }
 .page.page :is(.features span,.publicEmpty a,.sectionHead button,.roomSearch) { background:var(--ab-ui-raised)!important; border-color:var(--ab-ui-border)!important; }
 .page.page .roomSearch input { background:transparent!important; }
+
+.seoContent { border-color:var(--ab-ui-border); color:var(--ab-ui-text); }
+.seoContent :is(h2,h3) { color:var(--ab-ui-text); }
+.seoContent :is(p,summary) { color:var(--ab-ui-muted); }
+.seoContent :is(.seoIntro > span,.stepGrid article > span) { color:var(--ab-ui-accent); }
+.seoContent :is(.stepGrid article,.seoSplit article) { background:var(--ab-ui-raised); border-color:var(--ab-ui-border); }

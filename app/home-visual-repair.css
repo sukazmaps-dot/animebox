@@ -339,7 +339,7 @@
   box-shadow: none !important;
 }
 .home-page .home-utility-grid .home-service-card__action {
-  font-size: .9375rem !important;
+  font-size: .8125rem !important;
   overflow-wrap: break-word;
 }
 .home-page .main-column .home-utility-grid .home-service-card__action {
@@ -360,10 +360,10 @@
 }
 .home-page .main-column .schedule__card {
   display: grid !important;
-  grid-template-columns: 2.75rem minmax(0, 1fr) auto !important;
+  grid-template-columns: 2.25rem minmax(0, 1fr) auto !important;
   gap: .75rem !important;
   align-items: center;
-  padding: .75rem !important;
+  padding: .5rem !important;
   width: 100%;
   min-width: 0;
   background: var(--ab-ui-surface) !important;
@@ -373,8 +373,8 @@
 }
 .home-page .main-column .schedule__card .anime-schedule-image,
 .home-page .main-column .home-loading-schedule-card__poster {
-  width: 2.75rem !important;
-  height: 4.125rem !important;
+  width: 2.25rem !important;
+  height: 3.375rem !important;
   min-width: 0 !important;
   object-fit: cover;
   aspect-ratio: 2 / 3;
@@ -386,7 +386,7 @@
   white-space: normal !important;
   overflow: hidden;
   overflow-wrap: break-word;
-  font-size: .9375rem !important;
+  font-size: .8125rem !important;
   line-height: 1.4 !important;
   color: var(--ab-ui-text) !important;
 }
@@ -402,22 +402,33 @@
   max-width: none !important;
 }
 .home-page .main-column .schedule__tabs {
-  display: flex !important;
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
   width: 100% !important;
   margin-inline: 0 !important;
-  background: var(--ab-ui-surface) !important;
-  overflow-x: auto;
+  background: transparent !important;
+  overflow: visible !important;
+  gap: .375rem !important;
 }
 .home-page .main-column .schedule__tab {
   flex: 0 0 auto;
-  min-height: 2.75rem;
-  min-width: 5.25rem;
+  min-height: 2.75rem !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  padding: .375rem .25rem !important;
+  border: 1px solid var(--ab-ui-border);
+  font-size: .75rem !important;
+  cursor: pointer;
   color: var(--ab-ui-muted) !important;
   background: var(--ab-ui-raised) !important;
 }
 .home-page .main-column .schedule__tab.is-active {
-  background: var(--ab-ui-primary) !important;
-  color: var(--ab-ui-primary-text) !important;
+  background: var(--ab-ui-selected) !important;
+  color: var(--ab-ui-text) !important;
+  border-color: var(--ab-ui-accent);
 }
 .home-page .section-head { flex-wrap: wrap; gap: .75rem; }
 .home-page .section-link { color: var(--ab-ui-muted) !important; }
@@ -485,3 +496,16 @@ html[data-animebox-theme] .home-page .main-column .home-utility-grid .home-servi
     line-height: 1.2 !important;
   }
 }
+
+.home-page .schedule__tab small { font-size:.6875rem; color:var(--ab-ui-muted); }
+.home-page .schedule__tab:focus-visible { outline:2px solid var(--ab-ui-accent); outline-offset:2px; }
+.home-page .schedule__poster { width:2.25rem; height:3.375rem; overflow:hidden; border-radius:.375rem; }
+.home-page .schedule__more { display:inline-flex; align-items:center; min-height:44px; margin-top:.375rem; }
+@media(max-width:600px) {
+  .home-page .main-column .schedule__tabs { grid-template-columns:repeat(4,minmax(0,1fr))!important; }
+  .home-page .main-column .schedule__card { gap:.5rem!important; }
+}
+
+/* Legacy identity fade covered the last poster and its actions with a dark curtain. */
+.home-page .smart-feed__rail::after { display:none!important; }
+.home-page .smart-feed__rail [role='region'] { padding-right:2px; }
