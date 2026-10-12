@@ -177,7 +177,10 @@ if (
   !proxy.includes("'Vercel-CDN-Cache-Control'") ||
   !proxy.includes("'Cloudflare-CDN-Cache-Control'") ||
   !proxy.includes("'X-AnimeBox-Image-Delivery': 'proxy-v2'") ||
-  !proxy.includes('max-age=604800')
+  !proxy.includes('publicApiCacheHeaders({') ||
+  !proxy.includes('browserSeconds: 604800') ||
+  !proxy.includes('edgeSeconds: 2592000') ||
+  !proxy.includes('privateNoStoreHeaders()')
 ) {
   failures.push('legacy image proxy host-aware/cache contract is incomplete');
 }

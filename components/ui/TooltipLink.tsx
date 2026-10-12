@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { createPortal } from 'react-dom';
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import styles from './TooltipLink.module.css';
 
 type Props = { href: string; className?: string; label: string; children: ReactNode };
+let dismissActiveTooltip: (() => void) | null = null;
 
 /** A descriptive link tooltip outside clipping/stacking contexts, including keyboard access. */
 export default function TooltipLink({ href, className, label, children }: Props) {
@@ -13,17 +14,48 @@ export default function TooltipLink({ href, className, label, children }: Props)
   const anchor = useRef<HTMLAnchorElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const keyboardFocus = useRef(false);
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
-  const clearTimer = () => { if (timer.current) clearTimeout(timer.current); timer.current = null; };
-  const show = () => { clearTimer(); setOpen(true); };
+  const clearTimer = useCallback(() => { if (timer.current) clearTimeout(timer.current); timer.current = null; }, []);
+  const dismiss = useCallback(() => { clearTimer(); setOpen(false); setPosition(null); }, [clearTimer]);
+  const claim = () => {
+    dismissActiveTooltip?.();
+    dismissActiveTooltip = dismiss;
+  };
+  const show = (event: React.PointerEvent<HTMLAnchorElement>) => {
+    if (event.pointerType === 'touch') return;
+    claim();
+    timer.current = setTimeout(() => { timer.current = null; setOpen(true); }, 350);
+  };
+  const focus = () => {
+    keyboardFocus.current = Boolean(anchor.current?.matches(':focus-visible'));
+    if (!keyboardFocus.current) return;
+    claim();
+    setOpen(true);
+  };
   const leave = () => {
     clearTimer();
     timer.current = setTimeout(() => {
-      if (document.activeElement !== anchor.current) setOpen(false);
+      timer.current = null;
+      if (!keyboardFocus.current) { setOpen(false); setPosition(null); }
     }, 150);
   };
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  useEffect(() => {
+    const close = dismiss;
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') close(); };
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    window.addEventListener('keydown', escape);
+    return () => {
+      clearTimer();
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+      window.removeEventListener('keydown', escape);
+      // Clear ownership only if this is still the active anchor.
+      if (dismissActiveTooltip === dismiss) dismissActiveTooltip = null;
+    };
+  }, [clearTimer, dismiss]);
   useLayoutEffect(() => {
     if (!open) return;
     let frame = 0;
@@ -38,20 +70,17 @@ export default function TooltipLink({ href, className, label, children }: Props)
       });
     };
     const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(place); };
-    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') { setOpen(false); setPosition(null); } };
     schedule();
     const observer = new ResizeObserver(schedule); observer.observe(panel.current!);
-    window.addEventListener('scroll', schedule, true); window.addEventListener('resize', schedule); window.addEventListener('keydown', escape);
-    return () => { cancelAnimationFrame(frame); observer.disconnect(); window.removeEventListener('scroll', schedule, true); window.removeEventListener('resize', schedule); window.removeEventListener('keydown', escape); };
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); };
   }, [open]);
   return <>
     <Link ref={anchor} href={href} className={className} aria-describedby={open ? id : undefined}
-      onPointerEnter={show} onPointerLeave={leave} onFocus={show}
-      onBlur={leave} onClick={() => { setOpen(false); setPosition(null); }}>
+      onPointerEnter={show} onPointerLeave={leave} onFocus={focus}
+      onBlur={() => { keyboardFocus.current = false; dismiss(); }} onClick={dismiss}>
       {children}
     </Link>
     {open && createPortal(<div ref={panel} id={id} role="tooltip" className={styles.tooltip}
-      style={{ left: position?.left ?? 0, top: position?.top ?? 0, visibility: position ? 'visible' : 'hidden' }}
-      onPointerEnter={clearTimer} onPointerLeave={leave}>{label}</div>, document.body)}
+      style={{ left: position?.left ?? 0, top: position?.top ?? 0, visibility: position ? 'visible' : 'hidden' }}>{label}</div>, document.body)}
   </>;
 }
