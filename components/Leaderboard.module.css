@@ -1763,3 +1763,266 @@
 .page.page .seasonPanelFooter .seasonCountdown { margin:0; flex:0 0 auto; min-width:0; padding:6px 10px; }
 @media(max-width:1199px) { .page.page .seasonPanelFooter { margin-top:12px; } }
 @media(max-width:620px) { .page.page .seasonPanelFooter .seasonCountdown { flex-basis:100%; } }
+
+
+/* Leaderboard compact split v3 — independent natural-height columns.
+   Keep the personal summary with the podium rather than after the entire list. */
+.page.page .results {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+.page.page .resultsColumns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+}
+.page.page .podiumColumn,
+.page.page .boardColumn {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 12px;
+}
+.page.page .podiumColumn > .sectionHeading,
+.page.page .boardColumn > .sectionHeading {
+  margin: 0;
+  min-height: 38px;
+}
+.page.page .podiumColumn .podium {
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0;
+  align-items: end;
+}
+.page.page .podiumColumn .podiumCard {
+  min-height: 282px;
+  height: auto;
+  grid-template-rows: 14px 112px minmax(40px, auto) 42px 46px;
+  gap: 7px;
+  padding: 10px 8px 0;
+}
+.page.page .podiumColumn .podiumCard[data-rank='1'] {
+  min-height: 298px;
+  grid-template-rows: 14px 126px minmax(40px, auto) 42px 46px;
+}
+.page.page .podiumColumn .podiumCard .avatarStage {
+  --podium-avatar-size: 62px;
+  --podium-art-size: 96px;
+  width: 124px;
+  height: 112px;
+  flex-basis: auto;
+  margin: 0;
+}
+.page.page .podiumColumn .podiumCard[data-rank='1'] .avatarStage {
+  --podium-avatar-size: 76px;
+  --podium-art-size: 108px;
+  width: 140px;
+  height: 126px;
+  margin: 0;
+}
+.page.page .podiumColumn .podiumIdentity {
+  min-height: 40px;
+  gap: 3px;
+}
+.page.page .podiumColumn .podiumIdentity .profilePreviewName {
+  height: auto;
+  min-height: 21px;
+}
+.page.page .podiumColumn .podiumIdentity .podiumName {
+  font-size: 14px;
+}
+.page.page .podiumColumn .podiumStats {
+  height: auto;
+  gap: 2px;
+}
+.page.page .podiumColumn .podiumStats .time {
+  font-size: clamp(16px, 1.4vw, 21px);
+}
+.page.page .podiumColumn .timeLabel {
+  color: var(--ab-ui-muted) !important;
+  font-size: 9px !important;
+}
+.page.page .podiumColumn .podiumCard .cardFooter {
+  min-height: 46px;
+  gap: 4px;
+  padding-top: 5px;
+}
+.page.page .podiumColumn .podiumCard .cardProfileAction {
+  min-height: 28px;
+}
+.page.page .podiumColumn .personal {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto !important;
+  gap: 8px 10px;
+  min-height: 0;
+  margin: 0;
+  padding: 12px 14px !important;
+}
+.page.page .podiumColumn .personalIcon {
+  grid-column: 1;
+  grid-row: 1;
+  width: 40px;
+  height: 40px;
+}
+.page.page .podiumColumn .personalText {
+  grid-column: 2;
+  grid-row: 1;
+}
+.page.page .podiumColumn .personalText h2 {
+  font-size: 14px;
+}
+.page.page .podiumColumn .personalStats {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: grid !important;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.page.page .podiumColumn .personalStats > span {
+  padding: 6px 8px !important;
+}
+.page.page .podiumColumn .personalAction {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  min-width: 82px;
+  width: auto;
+  white-space: nowrap;
+}
+.page.page .boardColumn .board {
+  min-width: 0;
+  margin: 0;
+}
+.page.page .boardColumn .boardHeader,
+.page.page .boardColumn .row {
+  grid-template-columns: 36px minmax(0, 1fr) 66px 102px 28px !important;
+  gap: 9px !important;
+  padding-inline: 12px !important;
+}
+.page.page .boardColumn .boardHeader {
+  min-height: 38px;
+  padding-block: 0 !important;
+}
+.page.page .boardColumn .row {
+  min-height: 54px;
+  padding-block: 6px !important;
+}
+.page.page .boardColumn .user {
+  gap: 9px;
+}
+.page.page .boardColumn .user img,
+.page.page .boardColumn .user .avatarFallback {
+  width: 34px;
+  height: 34px;
+}
+.page.page .boardColumn .rank {
+  font-size: 13px;
+}
+.page.page .boardColumn .rowTime {
+  font-size: 12px;
+  white-space: nowrap;
+}
+.page.page .boardColumn .user small {
+  color: var(--ab-ui-muted) !important;
+}
+.page.page .boardColumn .board:focus-visible {
+  outline: 2px solid var(--ab-ui-accent);
+  outline-offset: 3px;
+}
+.page.page .results > .note {
+  margin: 16px 0 0;
+  max-width: 950px;
+  line-height: 1.6;
+}
+@media (min-width: 1180px) {
+  .page.page .resultsColumns {
+    grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
+    gap: 22px;
+  }
+  .page.page .boardColumn .board {
+    max-height: min(62vh, 540px);
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ab-ui-border) transparent;
+  }
+  .page.page .boardColumn .boardHeader {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+}
+@media (max-width: 760px) {
+  .page.page .resultsColumns { gap: 16px; }
+  .page.page .podiumColumn .podium {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+  .page.page .podiumColumn .podiumCard {
+    min-height: 256px;
+    grid-template-rows: 13px 96px minmax(36px, auto) 38px 42px;
+    gap: 6px;
+  }
+  .page.page .podiumColumn .podiumCard[data-rank='1'] {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    min-height: 274px;
+    grid-template-rows: 13px 112px minmax(36px, auto) 38px 42px;
+  }
+  .page.page .podiumColumn .podiumCard[data-rank='2'] { grid-column: 1; grid-row: 2; }
+  .page.page .podiumColumn .podiumCard[data-rank='3'] { grid-column: 2; grid-row: 2; }
+  .page.page .podiumColumn .podiumCard .avatarStage {
+    --podium-avatar-size: 56px;
+    --podium-art-size: 84px;
+    width: 102px;
+    height: 96px;
+  }
+  .page.page .podiumColumn .podiumCard[data-rank='1'] .avatarStage {
+    --podium-avatar-size: 70px;
+    --podium-art-size: 100px;
+    width: 124px;
+    height: 112px;
+  }
+  .page.page .boardColumn .board { max-height: none; overflow: hidden; }
+  .page.page .boardColumn .boardHeader,
+  .page.page .boardColumn .row {
+    grid-template-columns: 32px minmax(0, 1fr) 80px 26px !important;
+    gap: 7px !important;
+    padding-inline: 10px !important;
+  }
+  .page.page .boardColumn .boardHeader span:nth-child(3),
+  .page.page .boardColumn .episodes { display: none; }
+  .page.page .boardColumn .row { min-height: 52px; }
+}
+@media (max-width: 520px) {
+  .page.page .podiumColumn .personal {
+    grid-template-columns: 40px minmax(0, 1fr) !important;
+  }
+  .page.page .podiumColumn .personalStats { grid-row: 2; }
+  .page.page .podiumColumn .personalAction {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-self: stretch;
+    width: 100%;
+    min-height: 44px;
+  }
+  .page.page .heroStatus {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .page.page .heroStatus > div {
+    border-top: 0;
+    border-left: 1px solid var(--ab-ui-border);
+  }
+  .page.page .heroStatus > div:first-child { border-left: 0; }
+  .page.page .heroStatusEmpty { grid-column: 1 / -1; }
+  .page.page .boardColumn .user img,
+  .page.page .boardColumn .user .avatarFallback {
+    width: 30px;
+    height: 30px;
+  }
+}
