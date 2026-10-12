@@ -37,6 +37,9 @@ jobs:
       - name: Schedule media and search regression checks
         run: npm run schedule-media:check
 
+      - name: SEO cron recovery and sitemap regression check
+        run: npm run seo-cron-recovery:check
+
       - name: TypeScript
         run: npx tsc --noEmit
 
