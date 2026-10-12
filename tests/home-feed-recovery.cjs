@@ -1,3 +1,8 @@
+// Build hosts can set NODE_ENV=production before running prebuild gates.
+// React act() is a test-only API: select test exports before requiring React.
+// This affects this test process only; the subsequent Next build stays production.
+process.env.NODE_ENV = 'test';
+
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');

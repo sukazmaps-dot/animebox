@@ -276,4 +276,4 @@ jobs:
         run: npm run media-origin-recovery:check && python3 tests/seo-sitemap-smoke-test.py
 
       - name: Production build
-        run: npm run build
+        run: NODE_ENV=production npm run build
