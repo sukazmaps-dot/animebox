@@ -5,6 +5,7 @@ export type ServerSecretName =
   | 'TELEGRAM_BOT_TOKEN'
   | 'TELEGRAM_WEBHOOK_SECRET'
   | 'CRON_SECRET'
+  | 'SEO_INDEX_CRON_SECRET'
   | 'DONATEPAY_API_TOKEN';
 
 function assertNotPublic(name: ServerSecretName) {
