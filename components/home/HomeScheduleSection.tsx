@@ -27,7 +27,7 @@ export default function HomeScheduleSection() {
   return (
     <section
       ref={scheduleSectionRef}
-      className="section schedule"
+      className="section schedule home-schedule--polished"
       aria-busy={scheduleLoading}
     >
       <div className="section-head">
@@ -49,7 +49,12 @@ export default function HomeScheduleSection() {
         </Link>
       </div>
 
-      <div className="schedule__tabs">
+      <p className="home-schedule__swipe-hint" aria-hidden="true">Листай дни →</p>
+      <div
+        className="schedule__tabs"
+        role="group"
+        aria-label="Выбор дня выхода серий. Прокручивается горизонтально"
+      >
         {scheduleDays.length === 0 && Array.from({ length: 7 }, (_, index) => (
           <span key={index} className="schedule__tab" aria-hidden="true">
             {index === 0 ? 'Сегодня' : index === 1 ? 'Завтра' : '…'}
