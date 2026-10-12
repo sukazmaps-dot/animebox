@@ -26,3 +26,47 @@
 @media(hover:hover) {
   :global(.anime-card):has(.content):hover, :global(.smart-card):has(.content):hover { transform:none!important; border-color:var(--ab-ui-accent)!important; }
 }
+
+/* Patch 26.0 — prevent mobile catalog/tracker metadata clipping.
+   The title and metadata must not share fixed pixel heights from legacy CSS. */
+@media (max-width: 768px) {
+  :global(.search-page) .content.content :global(.anime-card__meta),
+  :global(.tracker-page) .content.content :global(.anime-card__meta) {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    height: auto !important;
+    min-height: calc(1.45em + 4px);
+    padding-block: 2px;
+    gap: clamp(3px, 1.2vw, 6px);
+    line-height: 1.45 !important;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  :global(.search-page) .content.content :global(.anime-card__meta > span),
+  :global(.tracker-page) .content.content :global(.anime-card__meta > span) {
+    flex: 0 0 auto;
+    line-height: inherit;
+  }
+
+  :global(.search-page) .content.content :global(.anime-card__meta > span:last-child),
+  :global(.tracker-page) .content.content :global(.anime-card__meta > span:last-child) {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  :global(.search-page) .content.content :global(.anime-card__body h3),
+  :global(.tracker-page) .content.content :global(.anime-card__body h3) {
+    height: auto !important;
+    min-height: 2.8em;
+    max-height: 2.8em;
+    margin-bottom: 0;
+    line-height: 1.4 !important;
+    overflow: hidden;
+  }
+}
