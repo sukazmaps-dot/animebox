@@ -3,6 +3,7 @@ import { animeHref } from '@/lib/anime-url';
 import Link from 'next/link';
 import AnimeImageCascade from '@/components/AnimeImageCascade';
 import HorizontalNavRail from '@/components/ui/HorizontalNavRail';
+import styles from './AnimeFranchise.module.css';
 import {
   FRANCHISE_CATEGORY_LABELS,
   getPrimarySeasonItems,
@@ -80,6 +81,7 @@ export default async function AnimeFranchise({
             </div>
 
             <HorizontalNavRail
+              className={styles.seasonsRail}
               ariaLabel="Сезоны и части франшизы"
               stepRatio={0.74}
             >
@@ -108,7 +110,7 @@ export default async function AnimeFranchise({
                     key={item.id}
                     aria-current="page"
                     data-rail-active="true"
-                    className="anime-franchise-v3__season is-current min-w-[164px] max-w-[210px] shrink-0 text-white"
+                    className={`${styles.season} anime-franchise-v3__season is-current min-w-[150px] w-[190px] shrink-0 snap-start text-white md:w-[210px]`}
                   >
                     {content}
                     <span className="anime-franchise-v3__current">Сейчас</span>
@@ -118,7 +120,7 @@ export default async function AnimeFranchise({
                     key={item.id}
                     href={animeHref(item)}
                     prefetch={false}
-                    className="anime-franchise-v3__season min-w-[164px] max-w-[210px] shrink-0 text-white/75"
+                    className={`${styles.season} anime-franchise-v3__season min-w-[150px] w-[190px] shrink-0 snap-start text-white/75 md:w-[210px]`}
                   >
                     {content}
                   </Link>
