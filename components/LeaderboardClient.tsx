@@ -260,6 +260,8 @@ export default function LeaderboardClient() {
         </section>
       ) : data ? (
         <div className={styles.results}>
+          <div className={styles.resultsColumns}>
+            <div className={styles.podiumColumn}>
           <div className={styles.sectionHeading}>
             <div><span className={styles.eyebrow}>Пьедестал</span><h2>Пьедестал AnimeBox</h2></div>
             <span className={styles.periodBadge}>{periodLabels[period]}</span>
@@ -348,9 +350,15 @@ export default function LeaderboardClient() {
             <Link className={styles.personalAction} href={me ? `/profile/${me.userId}` : '/search'}>{me ? 'Профиль' : 'Выбрать аниме'} <span aria-hidden="true">↗</span></Link>
           </section>
 
-          {rest.length > 0 && <div className={styles.sectionHeading}><h2>В одном ряду с лучшими</h2><span className={styles.periodBadge}>#{rest[0].rank} — #{rest[rest.length - 1].rank}</span></div>}
-          {rest.length > 0 && (
-          <section className={styles.board} aria-label="Топ-100 AnimeBox">
+            </div>
+
+            {rest.length > 0 && (
+              <div className={styles.boardColumn}>
+                <div className={styles.sectionHeading}>
+                  <h2>В одном ряду с лучшими</h2>
+                  <span className={styles.periodBadge}>#{rest[0].rank} — #{rest[rest.length - 1].rank}</span>
+                </div>
+          <section className={styles.board} aria-label="Топ-100 AnimeBox — прокручиваемый список" tabIndex={0}>
             <div className={styles.boardHeader}>
               <span>Место</span>
               <span>Пользователь</span>
@@ -393,8 +401,9 @@ export default function LeaderboardClient() {
               </div>
             ))}
           </section>
-
-          )}
+              </div>
+            )}
+          </div>
 
           <p className={styles.note}>
             Честный рейтинг: учитывается подтверждённое время просмотра в плеере, а завершённой серия считается после ≥90% доступного просмотра.
