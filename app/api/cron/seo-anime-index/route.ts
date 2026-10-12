@@ -3,7 +3,8 @@ import { syncSeoAnimeSourceEntries } from '@/lib/seo-anime-index-server';
 import { ANIME_SITEMAP_SHARDS, SITE_URL } from '@/lib/seo-config';
 import { submitIndexNowUrls } from '@/lib/indexnow';
 import { beginOperationalJob } from '@/lib/operational-job-server';
-import { isCronAuthorized } from '@/lib/server-request-auth';
+import { isCronAuthorized, secureServerSecretEqual } from '@/lib/server-request-auth';
+import { optionalServerSecret } from '@/lib/env/server';
 import { createSystemJobObserver } from '@/lib/system-observability-server';
 
 export const runtime = 'nodejs';
@@ -44,8 +45,17 @@ function requestedShard(
     : 'invalid';
 }
 
+function isSeoCronAuthorized(request: Request) {
+  // Dedicated SEO scheduler credential; the legacy CRON_SECRET remains valid
+  // for existing integrations and is never copied into the new scheduler.
+  return isCronAuthorized(request) || secureServerSecretEqual(
+    optionalServerSecret('SEO_INDEX_CRON_SECRET'),
+    request.headers.get('x-seo-cron-secret')?.trim(),
+  );
+}
+
 async function run(request: Request) {
-  if (!isCronAuthorized(request)) {
+  if (!isSeoCronAuthorized(request)) {
     return Response.json(
       { ok: false, error: 'unauthorized' },
       { status: 401, headers: { 'Cache-Control': 'no-store' } },
