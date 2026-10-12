@@ -4,6 +4,7 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import { cache, Suspense, type CSSProperties } from 'react';
 
 import LibraryStatusControl from '@/components/LibraryStatusControl';
+import styles from './page.module.css';
 
 import AnimeFranchise, {
   AnimeFranchiseLoading,
@@ -460,18 +461,20 @@ export default async function AnimePage({
     ],
   };
 
+  const synopsis = anime.description ? cleanShikimoriDescription(anime.description) : '';
+  const relationSynopsis = synopsis.length <= 180 && /^(Продолжение|Предыстория|Спин-офф)/i.test(synopsis);
+
   /* =========================================================
      PAGE
      ========================================================= */
 
   return (
     <main
-      className="anime-detail-v3 anime-detail-v4
+      className={`${styles.page} anime-detail-v3 anime-detail-v4
         min-h-screen
         overflow-hidden
         bg-[#08080c]
-        text-white
-      "
+        text-white`}
       style={{ '--anime-page-accent': accentColor } as CSSProperties}
     >
       {animeStructuredData && (
@@ -495,7 +498,7 @@ export default async function AnimePage({
           HERO / ОПИСАНИЕ ТАЙТЛА
           ===================================================== */}
 
-      <section className="anime-detail-v4__hero-shell relative overflow-hidden">
+      <section className={`${styles.hero} anime-detail-v4__hero-shell relative overflow-hidden`}>
 
 
         {/* =====================
@@ -541,8 +544,7 @@ export default async function AnimePage({
         {/* Контент */}
 
         <div
-          className="
-            anime-detail-hero
+          className={`${styles.heroInner} anime-detail-hero
 
             relative
 
@@ -553,14 +555,12 @@ export default async function AnimePage({
             py-10
 
             md:px-6
-            md:py-16
-          "
+            md:py-16`}
         >
 
 
           <div
-            className="
-              anime-detail-grid
+            className={`${styles.heroGrid} anime-detail-grid
 
               grid
               grid-cols-1
@@ -571,8 +571,7 @@ export default async function AnimePage({
               md:items-stretch
 
               lg:grid-cols-[260px_minmax(0,1fr)]
-              lg:gap-10
-            "
+              lg:gap-10`}
           >
 
 
@@ -581,8 +580,7 @@ export default async function AnimePage({
                 ===================== */}
 
             <div
-              className="
-                anime-detail-poster
+              className={`${styles.poster} anime-detail-poster
 
                 relative
                 overflow-hidden
@@ -597,8 +595,7 @@ export default async function AnimePage({
                 shadow-lg
 
                 md:min-h-[420px]
-                md:self-stretch
-              "
+                md:self-stretch`}
             >
 
               <div
@@ -626,10 +623,11 @@ export default async function AnimePage({
                   fetchPriority="high"
                   preset="large"
                   quality={80}
-                  sizes="(max-width: 767px) 68vw, (max-width: 1024px) 230px, 260px"
+                  sizes="(max-width: 767px) 100vw, (max-width: 1024px) 230px, 260px"
                 />
 
               </div>
+              <div aria-hidden="true" className={`${styles.posterGradient} pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-black/40 to-[#0e0e10] md:hidden`} />
 
             </div>
 
@@ -639,10 +637,8 @@ export default async function AnimePage({
                 ===================== */}
 
             <div
-              className="
-                anime-detail-content
-                min-w-0
-              "
+              className={`${styles.heroContent} anime-detail-content
+                min-w-0`}
             >
               <nav className="anime-detail-v4__breadcrumbs" aria-label="Навигация по каталогу">
                 <Link href="/search">Каталог</Link>
@@ -754,9 +750,8 @@ export default async function AnimePage({
                     className="
                       anime-detail-v4__original-title
                       mt-2
-
-                      text-lg
-                      text-white/50
+                      text-sm
+                      text-neutral-400
                     "
                   >
                     {anime.name}
@@ -764,39 +759,11 @@ export default async function AnimePage({
 
                 )}
 
-              {visibleAlternateNames.length > 0 && (
-                <p className="anime-detail-v4__aliases mt-3 max-w-3xl text-xs leading-5 text-white/35 md:text-sm">
-                  <span className="text-white/50">Другие названия:</span>{' '}
-                  {visibleAlternateNames.join(' · ')}
+              {relationSynopsis && (
+                <p className={`${styles.relationTag} mt-3 inline-flex max-w-full rounded-md bg-neutral-800 px-2 py-0.5 text-xs text-neutral-300`}>
+                  {synopsis}
                 </p>
               )}
-
-
-              {/* Описание */}
-
-              {anime.description && (
-                <p
-                  className="
-                    anime-detail-v4__description
-                    mt-6
-
-                    max-w-3xl
-
-                    whitespace-pre-line
-
-                    text-sm
-                    leading-7
-                    text-white/70
-
-                    md:text-base
-                  "
-                >
-                  {cleanShikimoriDescription(
-                    anime.description,
-                  )}
-                </p>
-              )}
-
 
               {/* Рейтинг / эпизоды */}
 
@@ -927,6 +894,21 @@ export default async function AnimePage({
       </section>
 
 
+      {(visibleAlternateNames.length > 0 || (synopsis && !relationSynopsis)) && (
+        <section className={`${styles.description} mx-auto w-full max-w-5xl px-4 py-6 md:px-6`} aria-label="Описание и другие названия">
+          {visibleAlternateNames.length > 0 && (
+            <p className="anime-detail-v4__aliases max-w-3xl text-xs leading-5 text-neutral-400">
+              <span>Другие названия:</span>{' '}{visibleAlternateNames.join(' · ')}
+            </p>
+          )}
+          {synopsis && !relationSynopsis && (
+            <p className="anime-detail-v4__description mt-3 max-w-3xl whitespace-pre-line text-sm leading-7 md:text-base">
+              {synopsis}
+            </p>
+          )}
+        </section>
+      )}
+
       {/* =====================================================
           CONTENT INTELLIGENCE / КОРОТКИЙ ПАСПОРТ ТАЙТЛА
           ===================================================== */}
@@ -1021,7 +1003,7 @@ export default async function AnimePage({
           ===================================================== */}
 
       <section
-        className="anime-detail-library-section anime-detail-v4__personal mx-auto max-w-7xl px-4 pb-6 pt-2 md:px-6"
+        className={`${styles.personal} anime-detail-library-section anime-detail-v4__personal mx-auto w-full max-w-5xl px-4 pb-6 pt-2 md:px-6`}
         aria-labelledby="anime-personal-title"
       >
         <div className="anime-detail-v4__section-head anime-detail-v4__section-head--compact">
@@ -1031,24 +1013,23 @@ export default async function AnimePage({
           </div>
         </div>
 
-        <div className="anime-detail-v4__personal-grid">
-          <LibraryStatusControl
-            animeId={numericId}
-            variant="compact"
-          />
-
-          {!playbackRestricted && (
-            <AnimeNotificationControl
-              animeId={numericId}
-              animeSlug={resolved.slug}
-              animeTitle={anime.russian || anime.name}
-              episodesAired={anime.episodes_aired || 0}
-              isFinished={String(resolved.status).toUpperCase() === 'FINISHED'}
-              variant="compact"
-            />
-          )}
-
-          <AnimeRatingControl animeId={numericId} />
+        <div className={`${styles.personalGrid} anime-detail-v4__personal-grid grid grid-cols-1 gap-4 md:grid-cols-2`}>
+          <div className="flex min-w-0 flex-col gap-4">
+            <LibraryStatusControl animeId={numericId} variant="compact" />
+            {!playbackRestricted && (
+              <AnimeNotificationControl
+                animeId={numericId}
+                animeSlug={resolved.slug}
+                animeTitle={anime.russian || anime.name}
+                episodesAired={anime.episodes_aired || 0}
+                isFinished={String(resolved.status).toUpperCase() === 'FINISHED'}
+                variant="compact"
+              />
+            )}
+          </div>
+          <div className="min-w-0">
+            <AnimeRatingControl animeId={numericId} />
+          </div>
         </div>
       </section>
 
@@ -1129,7 +1110,7 @@ export default async function AnimePage({
           ОБСУЖДЕНИЯ СЕРИЙ
           ===================================================== */}
 
-      <section className="anime-detail-after-hero mx-auto max-w-7xl px-4 pb-8 md:px-6">
+      <section className={`${styles.discussion} anime-detail-after-hero mx-auto w-full max-w-5xl px-4 pb-8 md:px-6`}>
         <EpisodeDiscussionHub
           animeSlug={resolved.slug}
           animeTitle={anime.russian || anime.name}

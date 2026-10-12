@@ -1,0 +1,54 @@
+.seasonsRail > [role='region'] {
+  gap: 16px;
+}
+.seasonsRail .season {
+  grid-template-columns: 24px minmax(0, 1fr);
+  min-width: 150px;
+  min-height: 112px;
+  align-content: start;
+  padding: 14px;
+  border-radius: 12px;
+  scroll-snap-align: start;
+}
+.season :global(.anime-franchise-v3__season-title) {
+  white-space: normal !important;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+  overflow-wrap: anywhere;
+}
+.season :global(.anime-franchise-v3__season-label) {
+  line-height: 1.4;
+}
+.season :global(.anime-franchise-v3__current) {
+  position: static;
+  grid-column: 2;
+  justify-self: start;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--ab-ui-selected);
+  color: var(--ab-ui-accent);
+  font-size: 10px;
+}
+@media (max-width: 767px) {
+  .seasonsRail > [role='region'] {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    width: 100%;
+    margin-inline: 0;
+    padding-inline: 0;
+    scroll-padding-inline: 0;
+  }
+  .seasonsRail > [role='region']::-webkit-scrollbar {
+    display: none;
+  }
+  .seasonsRail .season {
+    flex: 0 0 190px;
+  }
+}

@@ -1,0 +1,159 @@
+.page .personal,
+.page .discussion,
+.page .description {
+  max-width: 1040px !important;
+  margin-inline: auto !important;
+}
+.page .personalGrid {
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 16px !important;
+  align-items: start;
+}
+.page .personalGrid > * {
+  grid-column: auto !important;
+  grid-row: auto !important;
+  min-width: 0;
+}
+.page .personalGrid :global(.anime-rating-control) {
+  width: 100%;
+  margin: 0;
+}
+.page .discussion :global(.episode-discussion-hub) {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: clamp(20px, 3vw, 28px) !important;
+}
+.page .description :global(.anime-detail-v4__description) {
+  margin-top: 12px !important;
+  font-size: 14px !important;
+  line-height: 1.7 !important;
+}
+.page .description :global(.anime-detail-v4__aliases) {
+  display: block;
+  margin-top: 0 !important;
+  font-size: 12px !important;
+  color: #a3a3a3 !important;
+  overflow-wrap: anywhere;
+}
+.page .hero .heroContent :global(.anime-detail-v4__original-title) {
+  font-size: 14px !important;
+  color: #a3a3a3 !important;
+  line-height: 1.5;
+}
+.page .hero .heroContent :global(.anime-detail-v4__chip) {
+  display: inline-flex;
+  max-width: 100%;
+  border: 0 !important;
+  border-radius: 6px !important;
+  background: #262626 !important;
+  color: #d4d4d4 !important;
+  padding: 2px 8px !important;
+  font-size: 12px !important;
+  line-height: 1.5;
+}
+@media (min-width: 768px) {
+  .page .personalGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 767px) {
+  .page .hero {
+    isolation: isolate;
+    background: #0e0e10 !important;
+    border-radius: 0 !important;
+  }
+  .page .hero :global(.anime-detail-v3__banner),
+  .page .hero :global(.anime-detail-v4__banner-shade),
+  .page .hero :global(.anime-detail-v4__banner-gradient) {
+    display: none;
+  }
+  .page .hero .heroInner {
+    position: relative;
+    padding: 0 !important;
+  }
+  .page .hero .heroGrid {
+    position: relative;
+    display: block !important;
+    min-height: 560px;
+    padding-top: clamp(240px, 64vw, 380px);
+  }
+  .page .hero .poster {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    aspect-ratio: auto !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .page .hero .poster > div:first-child {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    aspect-ratio: auto;
+  }
+  .page .hero .poster img {
+    object-position: center 20%;
+  }
+  .page .hero .posterGradient {
+    z-index: 1;
+    background: linear-gradient(180deg, transparent 0%, rgb(0 0 0 / 40%) 24%, rgb(14 14 16 / 94%) 58%, #0e0e10 100%);
+  }
+  .page .hero .heroContent {
+    position: relative;
+    z-index: 2;
+    padding: 24px 20px 28px;
+    color: #fafafa !important;
+    background: linear-gradient(180deg, transparent, #0e0e10);
+  }
+  .page .hero .heroContent :global(.anime-detail-v4__title) {
+    font-size: clamp(28px, 7.5vw, 36px) !important;
+    font-weight: 800 !important;
+    line-height: 1.12 !important;
+    color: #fafafa !important;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+  }
+  .page .hero .heroContent :global(.anime-detail-v4__breadcrumbs) {
+    display: none;
+  }
+  .page .hero .heroContent :global(.anime-detail-v4__metrics) > div {
+    color: #e5e5e5 !important;
+    background: rgb(23 23 23 / 85%) !important;
+    border-color: rgb(255 255 255 / 12%) !important;
+  }
+  .page .hero .heroContent :global(.anime-detail-actions__watch) {
+    width: 100%;
+    min-height: 48px;
+    color: #fff !important;
+    background: var(--ab-ui-primary) !important;
+  }
+}
+.page .relationTag {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #d4d4d4;
+  background: #262626;
+}
+.page .personalGrid :global(.anime-rating-control__stars--ten) {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 2px;
+  width: 100%;
+}
+.page .personalGrid :global(.anime-rating-control__star-button) {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  font-size: clamp(20px, 3vw, 30px);
+}
+.page .personalGrid :global(.anime-rating-control__star-base),
+.page .personalGrid :global(.anime-rating-control__star-fill) {
+  font-size: inherit;
+  line-height: 44px;
+}
