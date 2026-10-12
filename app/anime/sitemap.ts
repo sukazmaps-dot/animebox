@@ -35,9 +35,9 @@ export default async function sitemap({
       images: anime.imageUrl ? [anime.imageUrl] : undefined,
     }));
   } catch (error) {
-    // Registry/database failure must not trigger an external provider crawl
-    // storm. Return an empty shard and let the CDN/crawler retry later.
-    console.warn(`Anime sitemap registry shard ${shard} failed:`, error);
-    return [];
+    // Never return HTTP 200 with an empty sitemap on an actual DB outage.
+    // A failed response is retryable; a fake empty shard can be indexed.
+    console.error(`Anime sitemap registry shard ${shard} failed:`, error);
+    throw error;
   }
 }

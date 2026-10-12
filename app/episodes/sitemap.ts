@@ -55,7 +55,9 @@ export default async function sitemap({
         };
       });
   } catch (error) {
-    console.warn(`Episode sitemap shard ${shard} failed:`, error);
-    return [];
+    // Preserve failure semantics so crawlers retry instead of accepting a
+    // transiently empty successful sitemap as the canonical listing.
+    console.error(`Episode sitemap shard ${shard} failed:`, error);
+    throw error;
   }
 }

@@ -27,7 +27,10 @@ async function loadSeoEpisodeShard(shard: number): Promise<SeoEpisodeEntry[]> {
       'anime_id,episode_number,slug,first_available_at,last_confirmed_at,last_content_change_at,thumbnail_url',
     )
     .eq('indexable', true)
-    .order('last_confirmed_at', { ascending: false })
+    // Stable composite key prevents episodes moving between sitemap shards
+    // when last_confirmed_at changes during background refreshes.
+    .order('anime_id', { ascending: true })
+    .order('episode_number', { ascending: true })
     .range(from, to);
 
   if (error) throw error;
