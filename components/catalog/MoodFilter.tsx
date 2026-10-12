@@ -9,6 +9,7 @@ import {
 } from '@/lib/catalog-moods';
 
 import styles from './MoodFilter.module.css';
+import { moodMenuLayout } from '@/lib/mood-menu-layout';
 
 type MoodFilterProps = {
   value: CatalogMood;
@@ -27,23 +28,34 @@ export default function MoodFilter({ value, onChange }: MoodFilterProps) {
     const measure = () => {
       const menu = dropdownRef.current;
       if (!menu) return;
-      const viewportBottom = window.visualViewport
-        ? window.visualViewport.offsetTop + window.visualViewport.height
-        : window.innerHeight;
-      const bottomNavigation = document.querySelector('.mobile-nav, .mobile-bottom-nav, .bottom-nav, [data-mobile-nav]');
-      const bottom = bottomNavigation?.getBoundingClientRect().top ?? viewportBottom - 80;
-      const available = Math.min(bottom, viewportBottom) - menu.getBoundingClientRect().top - 12;
-      menu.style.setProperty('--mood-menu-available-height', `${Math.max(44, available)}px`);
+      const trigger = triggerRef.current;
+      if (!trigger) return;
+      const viewportTop = window.visualViewport?.offsetTop ?? 0;
+      const viewportBottom = viewportTop + (window.visualViewport?.height ?? window.innerHeight);
+      const navigation = Array.from(document.querySelectorAll<HTMLElement>(
+        '.mobile-nav, .mobile-bottom-nav, .bottom-nav, [data-mobile-nav]',
+      )).filter((element) => {
+        const style = window.getComputedStyle(element);
+        return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0;
+      }).map((element) => element.getBoundingClientRect());
+      const layout = moodMenuLayout({
+        trigger: trigger.getBoundingClientRect(), viewportTop, viewportBottom,
+        navigation, desiredHeight: menu.scrollHeight,
+      });
+      menu.dataset.direction = layout.opensUp ? 'up' : 'down';
+      menu.style.setProperty('--mood-menu-available-height', `${layout.maxHeight}px`);
     };
     measure();
     dropdownRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]')?.focus({ preventScroll: true });
     window.addEventListener('resize', measure);
     window.addEventListener('scroll', measure, { passive: true });
     window.visualViewport?.addEventListener('resize', measure);
+    window.visualViewport?.addEventListener('scroll', measure);
     return () => {
       window.removeEventListener('resize', measure);
       window.removeEventListener('scroll', measure);
       window.visualViewport?.removeEventListener('resize', measure);
+      window.visualViewport?.removeEventListener('scroll', measure);
     };
   }, [open]);
 

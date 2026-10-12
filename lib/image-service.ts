@@ -132,6 +132,16 @@ export function buildImageCandidateChain(
   const legacyProxy = proxyImageUrl(primary);
   const result: string[] = [...mediaCandidates];
 
+  // Compact schedule posters have a verified same-origin recovery path.
+  // Avoid trying several blocked browser sizes before this route after edge 403.
+  if (delivery?.preset === 'tiny' && legacyProxy) {
+    result.push(legacyProxy);
+    if (secondaryFallback) result.push(secondaryFallback);
+    if (secondaryProxy) result.push(secondaryProxy);
+    result.push(...local);
+    return Array.from(new Set(result));
+  }
+
   // Shikimori must stay server-side: direct browser requests reset/403.
   if (prefersLegacyProxy(primary) && legacyProxy) {
     if (secondaryFallback) result.push(secondaryFallback);

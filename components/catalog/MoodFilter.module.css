@@ -81,7 +81,7 @@
   border: 1px solid var(--ab-ui-border);
   border-radius: 14px;
   background: var(--ab-ui-surface);
-  max-height: min(560px, var(--mood-menu-available-height, 60dvh));
+  max-height: var(--mood-menu-available-height, min(560px, 60dvh));
   overflow-y: auto;
   overscroll-behavior: contain;
   box-shadow: 0 12px 32px rgba(0, 0, 0, .2);
@@ -211,3 +211,5 @@
 }
 
 .trigger:focus-visible, .option:focus-visible { outline:2px solid var(--ab-ui-accent); outline-offset:2px; }
+
+.dropdown[data-direction='up'] { top:auto; bottom:calc(100% + 9px); transform-origin:bottom left; }

@@ -1614,7 +1614,7 @@
 .seasonMe { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:10px; padding:10px 12px; border-radius:10px; background:rgba(111,88,255,.055); color:#8993a5; font-size:9px; }
 .seasonMe strong { color:#e7e3ff; font-size:12px; }
 .seasonMe b { color:#b7a8f3; font-weight:700; text-align:right; }
-.seasonFrameOverlay { inset:-18% !important; z-index:3 !important; }
+.seasonFrameOverlay { inset:0 !important; z-index:3 !important; }
 
 @media (max-width: 900px) {
   .rewardTiers { grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -1678,17 +1678,25 @@
 .page.page .sectionHeading { margin:0 0 12px; min-height:40px; }
 .page.page .podium { align-items:end; }
 .page.page .podiumCard {
-  display:grid; grid-template-rows:14px minmax(80px,1fr) 52px 50px 50px;
+  display:grid; grid-template-rows:auto auto auto auto auto;
   align-items:center; justify-items:center; box-sizing:border-box;
-  height:316px; min-height:0; padding:12px; gap:3px; overflow:visible;
+  height:auto; min-height:316px; padding:12px; gap:10px; overflow:visible;
 }
-.page.page .podiumCard[data-rank='1'] { height:344px; min-height:0; }
+.page.page .podiumCard[data-rank='1'] { height:auto; min-height:344px; }
 .page.page .podiumCard>.profilePreviewTrigger { align-self:center; }
-.page.page .podiumCard .avatarStage { margin:0; }
-.page.page .podiumIdentity { display:grid; align-content:center; justify-items:center; gap:4px; width:100%; min-width:0; height:52px; }
+/* Reserve the old 18% artwork overhang in normal flow. Avatar pixels stay unchanged. */
+.page.page .podiumCard .avatarStage {
+  width:calc(var(--podium-art-size) * 1.36);
+  height:calc(var(--podium-art-size) * 1.36);
+  flex-basis:calc(var(--podium-art-size) * 1.36);
+  margin:10px 0 0;
+}
+.page.page .podiumCard .crownFloat { top:0; }
+.page.page .podiumCard .rankSeal { bottom:5px; }
+.page.page .podiumIdentity { display:grid; align-content:center; justify-items:center; gap:4px; width:100%; min-width:0; min-height:52px; height:auto; }
 .page.page .podiumIdentity .profilePreviewName { min-width:0; max-width:100%; height:28px; flex-wrap:nowrap; }
 .page.page .podiumIdentity .podiumName { margin:0; font-size:16px; }
-.page.page .podiumIdentity .levelBadge { margin:0; max-width:100%; white-space:nowrap; }
+.page.page .podiumIdentity .levelBadge { margin:0; max-width:100%; white-space:normal; text-align:center; overflow-wrap:anywhere; }
 .page.page .podiumIdentity .youBadge { position:absolute; right:10px; top:30px; margin:0; }
 .page.page .podiumStats { display:grid; align-content:center; justify-items:center; gap:4px; width:100%; min-width:0; height:50px; }
 .page.page .podiumStats .time { margin:0; white-space:nowrap; font-size:clamp(18px,1.6vw,24px); line-height:1.2; }
@@ -1725,8 +1733,8 @@
 }
 @media(max-width:760px) {
   .page.page .hero { padding:16px; }
-  .page.page .podiumCard { height:324px; padding-inline:10px; }
-  .page.page .podiumCard[data-rank='1'] { height:348px; }
+  .page.page .podiumCard { height:auto; min-height:324px; padding-inline:10px; }
+  .page.page .podiumCard[data-rank='1'] { height:auto; min-height:348px; }
   .page.page .personal { grid-template-columns:46px minmax(0,1fr)!important; padding:14px!important; }
   .page.page .personalStats, .page.page .personalAction { grid-column:1/-1; grid-row:auto; }
   .page.page .personalAction { width:100%; }
