@@ -64,8 +64,13 @@ export type SeoAnimeSourceEntry = {
   slug: string;
 };
 
-function buildShardQuery(shard: number): string {
-  const startPage = shard * ANIME_PAGES_PER_SITEMAP + 1;
+export function buildShardQuery(shard: number, year = new Date().getUTCFullYear()): string {
+  if (!Number.isInteger(shard) || shard < 0 || shard >= ANIME_SITEMAP_SHARDS) throw new Error('Invalid SEO source shard');
+  const recentShards = Math.floor(5000 / (ANIME_PAGES_PER_SITEMAP * ANIME_ITEMS_PER_PAGE));
+  const slot = shard - recentShards;
+  const seasons = ['WINTER','SPRING','SUMMER','FALL'];
+  const scope = slot >= 0 ? `season: ${seasons[slot % 4]} seasonYear: ${year - Math.floor((ANIME_SITEMAP_SHARDS - recentShards) / 4) + 1 + Math.floor(slot / 4)}` : '';
+  const startPage = slot >= 0 ? 1 : shard * ANIME_PAGES_PER_SITEMAP + 1;
   const pages = Array.from(
     { length: ANIME_PAGES_PER_SITEMAP },
     (_, index) => startPage + index,
@@ -80,6 +85,7 @@ function buildShardQuery(shard: number): string {
             countryOfOrigin: JP
             isAdult: false
             format_in: [TV, TV_SHORT, MOVIE, OVA, ONA, SPECIAL]
+            ${scope}
             sort: ID_DESC
           ) {
             id
@@ -192,7 +198,7 @@ async function loadSeoAnimeSourceShard(
 
 const getCachedSeoAnimeSourceShard = unstable_cache(
   async (shard: number) => loadSeoAnimeSourceShard(shard),
-  ['animebox-seo-anilist-registry-v4'],
+  ['animebox-seo-anilist-registry-v5-season-bounded'],
   {
     revalidate: CACHE_SECONDS,
   },
