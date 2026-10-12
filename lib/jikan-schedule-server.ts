@@ -1,6 +1,7 @@
 import 'server-only';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { stableAnimeSlug } from '@/lib/anime-url';
+import { schedulePosterImage } from '@/lib/schedule-poster';
 
 type WeeklyAnime = {
   mal_id: number;
@@ -8,6 +9,7 @@ type WeeklyAnime = {
   title_english?: string | null;
   title_japanese?: string | null;
   airing?: boolean;
+  images?: { jpg?: { image_url?: string | null; large_image_url?: string | null } };
   broadcast?: { day?: string | null; time?: string | null; timezone?: string | null };
 };
 type SavedCard = {
@@ -48,7 +50,8 @@ let inFlight: Promise<WeeklySnapshot> | null = null;
 
 function compactAnime(item: WeeklyAnime): WeeklyAnime {
   return {mal_id: item.mal_id, title: item.title, title_english: item.title_english,
-    title_japanese: item.title_japanese, airing: item.airing, broadcast: item.broadcast};
+    title_japanese: item.title_japanese, airing: item.airing, broadcast: item.broadcast,
+    images: { jpg: { image_url: item.images?.jpg?.image_url, large_image_url: item.images?.jpg?.large_image_url } }};
 }
 
 async function readSnapshot(): Promise<WeeklySnapshot | null> {
@@ -171,7 +174,9 @@ export async function getJikanSchedule(from: number, to: number, limit?: number 
     if (ids?.size !== 1) return [];
     const id = [...ids][0];
     const card = cards.get(id);
-    if (!card?.poster_url) return [];
+    if (!card) return [];
+    const poster = schedulePosterImage(card.poster_url, anime.images?.jpg?.large_image_url, anime.images?.jpg?.image_url);
+    if (!poster) return [];
     matchedTitles++;
     return times.map(airingAt => ({
       id: `mal-${anime.mal_id}-${airingAt}`, airingAt, episode: null, timingKind: 'weekly' as const,
@@ -180,7 +185,7 @@ export async function getJikanSchedule(from: number, to: number, limit?: number 
         format: card.format, status: 'RELEASING',
         title: { russian: card.title, romaji: anime.title || null,
           english: anime.title_english || null, native: anime.title_japanese || null },
-        coverImage: {large: card.poster_url, extraLarge: card.poster_url}, bannerImage: null,
+        coverImage: poster, bannerImage: null,
       },
     }));
   }).sort((a, b) => a.airingAt - b.airingAt || a.media.id - b.media.id).slice(0, limit ?? undefined);

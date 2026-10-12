@@ -1,4 +1,5 @@
 import {shikimoriPoster} from '@/lib/shikimori-metadata.mjs';
+import {schedulePosterImage} from '@/lib/schedule-poster';
 import 'server-only';
 import {createSupabaseAdmin} from '@/lib/supabase/admin';
 import {stableAnimeSlug} from '@/lib/anime-url';
@@ -103,18 +104,18 @@ export async function getShikimoriSchedule(from:number,to:number,limit?:number|n
     id:string;airingAt:number;episode:number|null;timingKind:'planned';
     media:{id:number|null;idMal:number;slug:string|null;format:string|null;status:string|null;
       title:{russian:string;romaji:string;english:null;native:null};
-      coverImage:{large:string;extraLarge:string}|null;bannerImage:null};
+      coverImage:ReturnType<typeof schedulePosterImage>;bannerImage:null};
   }>();
   for(const row of selected){
     const matches=mapping.get(row.anime.id);
     const id=matches?.size===1?[...matches][0]:null,card=id==null?undefined:cards.get(id);
-    const poster=card?.poster_url?.trim()||shikimoriPoster(row.anime.image?.original);
+    const poster=schedulePosterImage(card?.poster_url,shikimoriPoster(row.anime.image?.original));
     const airingAt=Date.parse(row.next_episode_at)/1000;
     const key=`shikimori-${row.anime.id}-${airingAt}`;
     events.set(key,{id:key,airingAt,episode:row.next_episode,timingKind:'planned',media:{
       id,idMal:row.anime.id,slug:id==null?null:card?.slug||stableAnimeSlug(id,row.anime.name),format:card?.format||row.anime.kind?.toUpperCase()||null,status:row.anime.status??null,
       title:{russian:card?.title||row.anime.russian||row.anime.name,romaji:row.anime.name,english:null,native:null},
-      coverImage:poster?{large:poster,extraLarge:poster}:null,bannerImage:null,
+      coverImage:poster,bannerImage:null,
     }});
   }
   const items=[...events.values()].sort((a,b)=>a.airingAt-b.airingAt||a.media.idMal-b.media.idMal).slice(0,limit??undefined);

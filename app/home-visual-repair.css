@@ -353,7 +353,7 @@
 /* Schedule: never squeeze copy between four fixed cells. */
 .home-page .main-column .schedule__cards {
   display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr)) !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   width: 100% !important;
   gap: .75rem !important;
   overflow: visible !important;
@@ -509,3 +509,10 @@ html[data-animebox-theme] .home-page .main-column .home-utility-grid .home-servi
 /* Legacy identity fade covered the last poster and its actions with a dark curtain. */
 .home-page .smart-feed__rail::after { display:none!important; }
 .home-page .smart-feed__rail [role='region'] { padding-right:2px; }
+
+@container home-main (min-width: 76rem) {
+  .home-page .main-column .schedule__cards { grid-template-columns:repeat(4,minmax(0,1fr))!important; }
+}
+@media(max-width:600px) {
+  .home-page .main-column .schedule__cards { grid-template-columns:minmax(0,1fr)!important; }
+}
