@@ -9,6 +9,7 @@ export type TrackerSnapshot = {
     anime_id: number;
     title: string;
     slug?: string | null;
+    posterUrl?: string | null;
     status: LibraryStatus;
     progress?: WatchTitleOverview | null;
   }[];
@@ -17,8 +18,8 @@ export type TrackerSnapshot = {
 type CacheEntry = { data: TrackerSnapshot; expiresAt: number };
 const TTL_MS = 60_000;
 
-// v4 invalidates snapshots seeded before duplicate-title disambiguation existed.
-const PREFIX = 'animebox:tracker:v4:';
+// v5 invalidates snapshots created before tracker posters were included.
+const PREFIX = 'animebox:tracker:v5-posters:';
 const memory = new Map<string, CacheEntry>();
 const inflight = new Map<string, Promise<TrackerSnapshot>>();
 
@@ -86,7 +87,8 @@ export function seedTrackerSnapshot(userId: string, data: TrackerSnapshot) {
   // metadata than the dedicated tracker endpoint. If two distinct catalog
   // entries share the same translated title, don't seed an ambiguous cache:
   // let /api/community/tracker resolve their stage/season qualifiers instead.
-  if (hasDuplicateVisibleTitles(data.library)) {
+  if (hasDuplicateVisibleTitles(data.library) ||
+      data.library.some((item) => !Object.hasOwn(item, 'posterUrl'))) {
     invalidateTrackerSnapshot(userId);
     return;
   }

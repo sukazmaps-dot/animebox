@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import {
   CATALOG_MOODS,
@@ -18,6 +18,34 @@ type MoodFilterProps = {
 export default function MoodFilter({ value, onChange }: MoodFilterProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const listId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    const measure = () => {
+      const menu = dropdownRef.current;
+      if (!menu) return;
+      const viewportBottom = window.visualViewport
+        ? window.visualViewport.offsetTop + window.visualViewport.height
+        : window.innerHeight;
+      const bottomNavigation = document.querySelector('.mobile-nav, .mobile-bottom-nav, .bottom-nav, [data-mobile-nav]');
+      const bottom = bottomNavigation?.getBoundingClientRect().top ?? viewportBottom - 80;
+      const available = Math.min(bottom, viewportBottom) - menu.getBoundingClientRect().top - 12;
+      menu.style.setProperty('--mood-menu-available-height', `${Math.max(44, available)}px`);
+    };
+    measure();
+    dropdownRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]')?.focus({ preventScroll: true });
+    window.addEventListener('resize', measure);
+    window.addEventListener('scroll', measure, { passive: true });
+    window.visualViewport?.addEventListener('resize', measure);
+    return () => {
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure);
+      window.visualViewport?.removeEventListener('resize', measure);
+    };
+  }, [open]);
 
   const selected = CATALOG_MOODS.find((mood) => mood.id === value) ?? CATALOG_MOODS[0];
 
@@ -29,7 +57,10 @@ export default function MoodFilter({ value, onChange }: MoodFilterProps) {
     }
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key === 'Escape' && rootRef.current?.contains(document.activeElement)) {
+        setOpen(false);
+        triggerRef.current?.focus({ preventScroll: true });
+      }
     }
 
     document.addEventListener('pointerdown', onPointerDown);
@@ -44,11 +75,19 @@ export default function MoodFilter({ value, onChange }: MoodFilterProps) {
   return (
     <div ref={rootRef} className={styles.root}>
       <button
+        ref={triggerRef}
         type="button"
         className={`${styles.trigger} ${value !== 'any' ? styles.triggerActive : ''}`}
         onClick={() => setOpen((current) => !current)}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={listId}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            setOpen(true);
+          }
+        }}
       >
         <span className={styles.emoji} aria-hidden="true">
           <Image
@@ -72,6 +111,18 @@ export default function MoodFilter({ value, onChange }: MoodFilterProps) {
       </button>
 
       <div
+        id={listId}
+        ref={dropdownRef}
+        inert={!open}
+        onKeyDown={(event) => {
+          if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+          event.preventDefault();
+          const options = Array.from(dropdownRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? []);
+          const index = options.indexOf(document.activeElement as HTMLButtonElement);
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 :
+            (index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length;
+          options[next]?.focus();
+        }}
         className={`${styles.dropdown} ${open ? styles.dropdownOpen : ''}`}
         role="listbox"
         aria-label="Под настроение"
@@ -95,6 +146,7 @@ export default function MoodFilter({ value, onChange }: MoodFilterProps) {
                 onClick={() => {
                   onChange(mood.id);
                   setOpen(false);
+                  triggerRef.current?.focus({ preventScroll: true });
                 }}
               >
                 <span className={styles.optionEmoji} aria-hidden="true">

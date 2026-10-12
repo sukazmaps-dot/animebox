@@ -51,12 +51,12 @@
 
 .wrapper::before {
   left: 0;
-  background: linear-gradient(90deg, rgba(6, 10, 20, .98), rgba(6, 10, 20, 0));
+  background: linear-gradient(90deg, var(--ab-ui-canvas), transparent);
 }
 
 .wrapper::after {
   right: 0;
-  background: linear-gradient(270deg, rgba(6, 10, 20, .98), rgba(6, 10, 20, 0));
+  background: linear-gradient(270deg, var(--ab-ui-canvas), transparent);
 }
 
 .hasLeft::before,
@@ -148,3 +148,5 @@
   border-color: rgba(120,104,238,.38);
   filter: none;
 }
+
+@media(max-width:768px) { .wrapper::before,.wrapper::after { display:none; } }

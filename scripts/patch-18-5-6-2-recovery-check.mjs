@@ -104,21 +104,20 @@ for (const fail of [false, true]) {
   assert.ok(writes.includes('setRailOwnership'));
 }
 {
-  const queueStart = feed.indexOf('          const generation = requestGenerationRef.current;');
-  const queueEnd = feed.indexOf('\n        }\n      },', queueStart);
-  assert.ok(queueStart > 0 && queueEnd > queueStart);
-  const blocker = deferred();
-  let requests = 0;
+  // The old serialized bootstrap queue was removed. Execute the production
+  // prime callback: independent visible rows start immediately, once each.
+  const primeStart = feed.indexOf('    const prime = (railId:');
+  const primeEnd = feed.indexOf('\n    const observer =', primeStart);
+  assert.ok(primeStart > 0 && primeEnd > primeStart);
+  const calls = [];
   const c = vm.createContext({
-    requestGenerationRef: { current: 1 }, moodTransitionRef: { current: false },
-    sparseRailQueueRef: { current: blocker.promise },
-    ensureRailDepth: async () => { requests++; }, rail: {}, railId: 'test', console,
+    sparseRails: new Map([['first', { id: 'first' }], ['second', { id: 'second' }]]),
+    sparseRailPrimedRef: { current: new Set() },
+    ensureRailDepth: async (rail) => { calls.push(rail.id); },
   });
-  vm.runInContext(feed.slice(queueStart, queueEnd), c);
-  c.requestGenerationRef.current++;
-  blocker.resolve();
-  await c.sparseRailQueueRef.current;
-  assert.equal(requests, 0, 'queued task from an old mood must not fetch');
+  vm.runInContext(ts.transpile(feed.slice(primeStart, primeEnd), { target: ts.ScriptTarget.ES2022 }) + '\nglobalThis.primeRow = prime;', c);
+  c.primeRow('first'); c.primeRow('second'); c.primeRow('first');
+  assert.deepEqual(calls, ['first', 'second']);
 }
 // Check the actual jitter function across many image keys, not only its name.
 {

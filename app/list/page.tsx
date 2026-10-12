@@ -13,6 +13,7 @@ import {
 import { isTelegramMiniAppRuntime } from '@/lib/telegram-auto-login';
 import { useAuthState } from '@/components/AuthStateProvider';
 import AnimeCardContent from '@/components/AnimeCardContent';
+import AnimeImage from '@/components/AnimeImage';
 import LibraryStatusControl from '@/components/LibraryStatusControl';
 import TrackerEmptyArt from '@/components/tracker/TrackerEmptyArt';
 import TrackerGuestEmptyState from '@/components/tracker/TrackerGuestEmptyState';
@@ -264,16 +265,22 @@ export default function MyListPage() {
                   <div className="tracker-card__top">
                     <div className="tracker-card__identity">
                       <AnimeCardContent variant="inline" media={
-                      <div className="tracker-card__mark" aria-hidden="true">
-                        <img src="/brand/brand-mark.png" alt="" />
-                      </div>
-
+                        <Link href={item.slug ? `/anime/${item.slug}` : `/anime/${item.anime_id}`}
+                          className="tracker-card__poster" aria-label={`Открыть: ${item.title}`}>
+                          <AnimeImage
+                            image={item.posterUrl ? { large: item.posterUrl } : null}
+                            alt={item.title}
+                            containerClassName="tracker-card__poster-media"
+                            className="tracker-card__poster-image"
+                            sizes="56px" preset="tiny" sourcePreference="compact"
+                          />
+                        </Link>
                       }>
                       <div className="tracker-card__title">
                         <span className="tracker-card__label">
                           ЛИЧНАЯ БИБЛИОТЕКА
                         </span>
-                        <Link href={`/anime/${item.anime_id}`} title={item.title}>
+                        <Link href={item.slug ? `/anime/${item.slug}` : `/anime/${item.anime_id}`} title={item.title}>
                           {item.title}
                         </Link>
                       </div>
@@ -282,7 +289,7 @@ export default function MyListPage() {
 
                     <div className="tracker-card__right shrink-0">
                       <Link
-                        href={`/anime/${item.anime_id}`}
+                        href={item.slug ? `/anime/${item.slug}` : `/anime/${item.anime_id}`}
                         className="tracker-card__open"
                       >
                         Открыть <span aria-hidden="true">→</span>

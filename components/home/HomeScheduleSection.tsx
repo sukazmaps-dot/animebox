@@ -67,12 +67,11 @@ export default function HomeScheduleSection() {
               }`
             }
             onClick={() => setSelectedScheduleDay(day.key)}
-            style={{
-              border: 0,
-              cursor: 'pointer',
-            }}
+            aria-pressed={selectedScheduleDay === day.key}
+            aria-label={`${day.label}, ${day.key.split('-').reverse().slice(0, 2).join('.')}`}
           >
-            {day.label}
+            <span>{day.label}</span>
+            <small>{day.key.split('-').reverse().slice(0, 2).join('.')}</small>
           </button>
         ))}
       </div>
@@ -112,7 +111,8 @@ export default function HomeScheduleSection() {
                       item.media.title.romaji
                     }
                     className="anime-schedule-image"
-                    sizes="58px"
+                    containerClassName="schedule__poster"
+                    sizes="36px"
                     quality={60}
                     sourcePreference="compact"
                     preset="tiny"
@@ -138,6 +138,11 @@ export default function HomeScheduleSection() {
               );
             })}
         </div>
+      )}
+      {!scheduleLoading && !scheduleError && visibleScheduleItems.length > 4 && (
+        <Link className="section-link schedule__more" href="/schedule">
+          Все выпуски за день · {visibleScheduleItems.length} →
+        </Link>
       )}
     </section>
   );

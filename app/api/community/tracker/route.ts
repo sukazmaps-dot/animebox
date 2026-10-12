@@ -17,12 +17,14 @@ const VALID_STATUS = new Set<LibraryStatus>([
 type CatalogRelation = {
   title?: string | null;
   slug?: string | null;
+  poster_url?: string | null;
 };
 
 type TrackerLibraryItem = {
   anime_id: number;
   title: string;
   slug: string | null;
+  posterUrl: string | null;
   status: LibraryStatus;
 };
 
@@ -130,7 +132,7 @@ export async function GET() {
 
     const { data, error } = await admin
       .from('anime_library')
-      .select('anime_id,status,updated_at,anime_catalog!inner(title,slug)')
+      .select('anime_id,status,updated_at,anime_catalog!inner(title,slug,poster_url)')
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false });
 
@@ -169,6 +171,7 @@ export async function GET() {
         anime_id: animeId,
         title: catalog?.title?.trim() || `Аниме #${animeId}`,
         slug: catalog?.slug?.trim() || null,
+        posterUrl: catalog?.poster_url?.trim() || null,
         status,
       });
     }

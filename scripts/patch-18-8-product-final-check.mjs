@@ -440,7 +440,7 @@ need('mini-profile seasonal frame layout', profilePreviewCss, [
 
 
 need('tracker canonical identity', trackerRoute, [
-  "anime_catalog!inner(title,slug)",
+  "anime_catalog!inner(title,slug,poster_url)",
   'seenAnimeIds',
   'disambiguateDuplicateTitles',
   'trackerQualifierFromSlug',
@@ -451,7 +451,7 @@ need('tracker canonical identity', trackerRoute, [
 ]);
 
 need('tracker cache ambiguity shield', trackerClient, [
-  "animebox:tracker:v4:",
+  "animebox:tracker:v5-posters:",
   'hasDuplicateVisibleTitles',
   'invalidateTrackerSnapshot(userId)',
   'let /api/community/tracker resolve their stage/season qualifiers instead',

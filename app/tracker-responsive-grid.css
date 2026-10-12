@@ -122,3 +122,18 @@ html .tracker-page .tracker-filter.is-active { background:var(--ab-ui-selected)!
 html .tracker-page .tracker-card__progress a { background:var(--ab-ui-selected)!important; color:var(--ab-ui-text)!important; }
 html .tracker-page :is(.tracker-card__label,.tracker-card__progress span,.episode-library-compact__trigger-copy small) { font-size:.6875rem!important; line-height:1.45; }
 html .tracker-page .tracker-card__progress strong { font-size:.8125rem!important; }
+
+/* The media slot holds a real poster with stable dimensions, including fallback. */
+.tracker-page .anime-card-content--inline { grid-template-columns: 56px minmax(0, 1fr); }
+.tracker-page .tracker-card__poster { display:block; width:56px; height:84px; overflow:hidden; border-radius:.5rem; background:var(--ab-ui-raised); }
+.tracker-page .tracker-card__poster-media { width:100%; height:100%; }
+.tracker-page .tracker-card__poster-image { display:block; width:100%!important; height:100%!important; object-fit:cover; }
+html .tracker-page :is(.tracker-guest,.tracker-empty) { background:var(--ab-ui-surface)!important; border-color:var(--ab-ui-border)!important; box-shadow:none!important; }
+.tracker-page :is(.tracker-guest,.tracker-empty)::before { display:none; }
+html .tracker-page .tracker-guest { padding:24px 20px!important; }
+.tracker-page .tracker-guest__art { width:96px; height:88px; }
+html .tracker-page :is(.tracker-guest p,.tracker-empty p) { color:var(--ab-ui-muted)!important; }
+html .tracker-page .tracker-guest__eyebrow { color:var(--ab-ui-accent)!important; }
+html .tracker-page .tracker-guest__cta { background:var(--ab-ui-primary)!important; color:var(--ab-ui-primary-text)!important; border-color:var(--ab-ui-primary)!important; box-shadow:none!important; min-height:44px; }
+.tracker-page .tracker-guest__icon-core .ab-icon-core__shell { background:var(--ab-ui-raised); border-color:var(--ab-ui-border); box-shadow:none; }
+.tracker-page :is(.tracker-guest__books,.tracker-guest__spark) { color:var(--ab-ui-accent); filter:none; }
