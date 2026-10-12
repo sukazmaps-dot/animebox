@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 import AnimeImage from '@/components/AnimeImage';
 import Icon from '@/components/Icon';
+import styles from './HomeScheduleSection.module.css';
 import { ScheduleGridSkeleton } from '@/components/home/HomeLoadingSkeletons';
 import {
   formatScheduleTime,
@@ -27,7 +28,7 @@ export default function HomeScheduleSection() {
   return (
     <section
       ref={scheduleSectionRef}
-      className="section schedule home-schedule--polished"
+      className={`section schedule ${styles.root}`}
       aria-busy={scheduleLoading}
     >
       <div className="section-head">
@@ -49,7 +50,7 @@ export default function HomeScheduleSection() {
         </Link>
       </div>
 
-      <p className="home-schedule__swipe-hint" aria-hidden="true">Листай дни →</p>
+      <p className={styles.swipeHint} aria-hidden="true">Листай дни →</p>
       <div
         className="schedule__tabs"
         role="group"
