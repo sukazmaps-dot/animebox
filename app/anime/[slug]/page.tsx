@@ -506,43 +506,41 @@ export default async function AnimePage({
 
 
       <div className={layout.layout}>
-        <aside className={layout.sidebar} aria-label="Обложка и личные действия">
-          <div className={layout.poster}>
-            <AnimeImageCascade sources={posterSources} alt={seoIdentity.pageHeading}
-              loading="eager" fetchPriority="high" preset="large" quality={80}
-              sizes="(max-width: 767px) 112px, 260px" />
-          </div>
-          <div className={layout.facts} aria-label="Коротко о тайтле">
-            {[contentFacts.release, contentFacts.format, contentFacts.episodes, contentFacts.status, seoIdentity.seasonLabel].filter(Boolean).map((fact, index) => (
-              <span key={`${index}-${fact}`}>{fact}</span>
-            ))}
-            {score && <span>★ {score} / 10 · AniList</span>}
-          </div>
-          <div className={layout.actions}>
-            {playbackRestricted ? <PlaybackRestrictionNotice /> : (
-              <AnimeDetailControls anime={normalizedAnimeForControls} showEpisodes={false} />
-            )}
-          </div>
-          <div className={layout.personal}>
-            <AnimePersonalPanel animeHref={animeHref(resolved)}>
-              <LibraryStatusControl animeId={numericId} variant="inline" />
-              {!playbackRestricted && String(resolved.status).toUpperCase() !== 'FINISHED' && (
-                <AnimeNotificationControl animeId={numericId} animeSlug={resolved.slug}
-                  animeTitle={seoIdentity.pageHeading} episodesAired={anime.episodes_aired || 0}
-                  isFinished={false} variant="inline" />
-              )}
-              <AnimeRatingControl animeId={numericId} />
-            </AnimePersonalPanel>
-          </div>
-          {!playbackRestricted && <Link className={layout.together} href="/watch-together">Смотреть с друзьями →</Link>}
-        </aside>
-        <div className={layout.mainColumn}>
-          <header className={layout.identity}>
+        <header className={`${layout.hero} ${imageCascade.banner ? '' : layout.withPoster}`}>
+          {imageCascade.banner ? (
+            <div className={layout.backdrop} aria-hidden="true">
+              <AnimeImageCascade sources={[imageCascade.banner]} alt="" loading="eager"
+                fetchPriority="high" preset="hero" sizes="(max-width: 767px) 100vw, 1240px" quality={80} />
+            </div>
+          ) : (
+            <div className={layout.poster} aria-label="Обложка тайтла">
+              <AnimeImageCascade sources={posterSources} alt={seoIdentity.pageHeading}
+                loading="eager" fetchPriority="high" preset="large" quality={80}
+                sizes="(max-width: 767px) 120px, 220px" />
+            </div>
+          )}
+          <div className={layout.heroContent}>
             <nav className={layout.breadcrumbs} aria-label="Навигация по каталогу">
               <Link href="/search">Каталог</Link><span aria-hidden="true"> / </span><span>{seoIdentity.pageHeading}</span>
             </nav>
-            <h1>{seoIdentity.pageHeading}</h1>
-            {anime.name && anime.russian && anime.name !== anime.russian && <p>{anime.name}</p>}
+            <div className={layout.identity}>
+              <h1>{seoIdentity.pageHeading}</h1>
+              {anime.name && anime.russian && anime.name !== anime.russian && <p>{anime.name}</p>}
+            </div>
+            <div className={layout.facts} aria-label="Коротко о тайтле">
+              {[contentFacts.release, contentFacts.format, contentFacts.episodes, contentFacts.status, seoIdentity.seasonLabel].filter(Boolean).map((fact, index) => (
+                <span key={`${index}-${fact}`}>{fact}</span>
+              ))}
+              {score && <span className={layout.score}>★ {score} · AniList</span>}
+            </div>
+            <div className={layout.actions}>
+              {playbackRestricted ? <PlaybackRestrictionNotice /> : (
+                <AnimeDetailControls anime={normalizedAnimeForControls} showEpisodes={false} variant="cinematic" />
+              )}
+            </div>
+            <section className={layout.description} aria-label="Описание и другие названия">
+              {synopsis && <AnimeSynopsis text={synopsis} variant="hero" />}
+            </section>
             <div className={layout.genres} aria-label="Жанры">
               {Array.from(new Map((resolved.genres || []).map((genre) => {
                 const match = findAnimeGenre(genre);
@@ -551,107 +549,58 @@ export default async function AnimePage({
                 <Link key={genre.value} href={genreLink(genre.value)}>{genre.label}</Link>
               ))}
             </div>
-          </header>
-          <section className={layout.description} aria-label="Описание и другие названия">
-            {synopsis && <AnimeSynopsis text={synopsis} />}
-            {visibleAlternateNames.length > 0 && (
-              <details><summary>Другие названия</summary><p>{visibleAlternateNames.join(' · ')}</p></details>
-            )}
-          </section>
-          <div className={layout.episodes}>      {!playbackRestricted && (
-        <section
-          className="anime-detail-v4__episodes mx-auto w-full pb-4"
-          aria-labelledby="anime-episodes-title"
-        >
-          <div className="anime-detail-v4__section-head">
-            <div>
-              <span>Эпизоды</span>
-              <h2 id="anime-episodes-title">Сезоны и эпизоды</h2>
-              <p>Выбери часть и продолжай с нужной серии.</p>
+          </div>
+        </header>
+
+        <div className={layout.mainColumn}>
+          {!playbackRestricted && (
+            <section className={layout.episodes} aria-labelledby="anime-episodes-title">
+              <div className={layout.sectionHead}>
+                <div><span>ПРОДОЛЖАЙ ИСТОРИЮ</span><h2 id="anime-episodes-title">Сезоны и эпизоды</h2></div>
+                <Link href={`${animeHref(resolved)}/watch`}>Открыть просмотр →</Link>
+              </div>
+              <EpisodeList trackingAnimeId={numericId} animeId={resolved.slug}
+                episodes={anime.episodes} episodesAired={anime.episodes_aired}
+                totalEpisodesKnown={Boolean(anime.episodes && anime.episodes > 0)} variant="cinematic" />
+            </section>
+          )}
+          <div className={layout.related}>
+            <AdSlot placement="anime-detail-before-related" format="native" />
+            <Suspense fallback={<RelatedAnimeLoading />}>
+              <RelatedAnime animeId={numericId} genres={resolved.genres} />
+            </Suspense>
+          </div>
+          <div className={layout.secondary}>
+            <div className={layout.personal}>
+              <AnimePersonalPanel animeHref={animeHref(resolved)}>
+                <LibraryStatusControl animeId={numericId} variant="inline" />
+                {!playbackRestricted && String(resolved.status).toUpperCase() !== 'FINISHED' && (
+                  <AnimeNotificationControl animeId={numericId} animeSlug={resolved.slug}
+                    animeTitle={seoIdentity.pageHeading} episodesAired={anime.episodes_aired || 0}
+                    isFinished={false} variant="inline" />
+                )}
+                <AnimeRatingControl animeId={numericId} />
+              </AnimePersonalPanel>
             </div>
-            <Link href={`${animeHref(resolved)}/watch`}>Открыть просмотр →</Link>
+            {!playbackRestricted && <Link className={layout.together} href="/watch-together">Смотреть с друзьями →</Link>}
           </div>
-
-          <div className="detail__episodes anime-detail-v4__episode-list">
-            <EpisodeList
-              trackingAnimeId={numericId}
-              animeId={resolved.slug}
-              episodes={anime.episodes}
-              episodesAired={anime.episodes_aired}
-              totalEpisodesKnown={Boolean(anime.episodes && anime.episodes > 0)}
-            />
-          </div>
-        </section>
-      )}
-
-
-</div>
-          <details className={layout.franchise}><summary>Порядок частей</summary>      {aniList.id && (
-
-        <section
-          className="
-            anime-detail-franchise-section
-
-            border-t
-            border-white/[0.04]
-
-            pt-2
-            pb-14
-          "
-        >
-
-          <Suspense
-            key={
-              aniList.id
-            }
-            fallback={
-              <AnimeFranchiseLoading />
-            }
-          >
-
-            <AnimeFranchise
-              animeId={
-                aniList.id
-              }
-              currentTitle={
-                anime.russian ||
-                anime.name
-              }
-            />
-
-          </Suspense>
-
-        </section>
-
-      )}
-
-</details>
-          <div className={layout.discussion}>      <section className={`${styles.discussion} anime-detail-after-hero mx-auto w-full max-w-5xl pb-6`}>
-        <EpisodeDiscussionHub
-          animeSlug={resolved.slug}
-          animeTitle={anime.russian || anime.name}
-          latestEpisode={Math.max(1, anime.episodes_aired || 1)}
-        />
-      </section>
-
-</div>
-          <div className={layout.related}>      <section className="anime-detail-after-hero mx-auto w-full pb-4">
-        <AdSlot placement="anime-detail-before-related" format="native" />
-      </section>
-
-      {/* =====================================================
-          ПОХОЖИЕ АНИМЕ / ВНУТРЕННЯЯ ПЕРЕЛИНКОВКА
-          ===================================================== */}
-
-      <Suspense fallback={<RelatedAnimeLoading />}>
-        <RelatedAnime
-          animeId={numericId}
-          genres={resolved.genres}
-        />
-      </Suspense></div>
+          {visibleAlternateNames.length > 0 && (
+            <details className={layout.aliases}><summary>Другие названия</summary><p>{visibleAlternateNames.join(' · ')}</p></details>
+          )}
+          <details className={layout.franchise}>
+            <summary>Порядок частей</summary>
+            {aniList.id && (
+              <Suspense key={aniList.id} fallback={<AnimeFranchiseLoading />}>
+                <AnimeFranchise animeId={aniList.id} currentTitle={anime.russian || anime.name} />
+              </Suspense>
+            )}
+          </details>
+          <section className={layout.discussion}>
+            <EpisodeDiscussionHub animeSlug={resolved.slug} animeTitle={anime.russian || anime.name}
+              latestEpisode={Math.max(1, anime.episodes_aired || 1)} />
+          </section>
         </div>
       </div>
-
     </main>
   );
 }

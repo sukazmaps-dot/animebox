@@ -7,6 +7,6 @@ import styles from './AnimePersonalPanel.module.css';
 export default function AnimePersonalPanel({ children, animeHref }: { children: ReactNode; animeHref: string }) {
   const { user, loading } = useAuthState();
   if (loading) return <p className={styles.guest} role="status">Проверяем аккаунт…</p>;
-  if (!user) return <Link className={styles.guest} href={`/login?next=${encodeURIComponent(animeHref)}`}>Войти, чтобы сохранять и оценивать</Link>;
+  if (!user) return <Link className={styles.guest} href={`/login?next=${encodeURIComponent(animeHref)}`}>Войти для синхронизации библиотеки и оценок</Link>;
   return <section className={styles.panel} aria-label="Мой тайтл">{children}</section>;
 }
