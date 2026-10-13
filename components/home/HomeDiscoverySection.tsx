@@ -4,7 +4,6 @@ import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
 
-import HomeContinueWatching from '@/components/HomeContinueWatching';
 import HomeMoodPicker from '@/components/HomeMoodPicker';
 import { useHomeFeedRuntime } from '@/components/home/HomeFeedRuntimeProvider';
 import { RecommendationFeedSkeleton } from '@/components/home/HomeLoadingSkeletons';
@@ -22,7 +21,6 @@ const SmartRecommendationFeed = dynamic(
 
 export default function HomeDiscoverySection() {
   const {
-    continueWatchingItems,
     mood,
     recommendationMood,
     moodSwitching,
@@ -44,7 +42,6 @@ export default function HomeDiscoverySection() {
 
   return (
     <>
-      <HomeContinueWatching items={continueWatchingItems} />
       <HomePersonalScheduleSection />
 
       <div className="home-discovery-flow">
