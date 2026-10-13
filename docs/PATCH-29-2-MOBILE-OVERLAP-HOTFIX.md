@@ -25,3 +25,11 @@
 
 ## Rollback
 Revert the PR; no SQL migration or data changes.
+
+## Browser geometry regression
+- Install Playwright 1.62.1 and run `npx playwright install chromium` once, then `npm run anime-layout:check`.
+- Quality Gate installs pinned Playwright in a temporary directory and Chromium and runs this check before TypeScript and production build.
+- Covers 160 fixtures: dark/light; 320/360/375/390/430/720/767/768/1024/1920px; 100%/125% text; guest/saved/resume/error states.
+- Measures button bounds, wrapper containment, synopsis separation, viewport overflow and mobile touch targets using real source CSS. Global imports follow `app/layout.tsx`; CSS Modules use Next's scoping plugins; Tailwind is compiled.
+- Offline DOM fixture, not a React interaction or deployed-page test. Does not verify authentication, playback, remote media, live rooms or Android rendering.
+- Local check passed with Chromium 153 via `CHROMIUM_EXECUTABLE_PATH`; CI uses the browser installed by pinned Playwright.
