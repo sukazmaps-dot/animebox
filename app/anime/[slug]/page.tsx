@@ -3,7 +3,11 @@ import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { cache, Suspense, type CSSProperties } from 'react';
 
-import AnimeDetailTabs from '@/components/AnimeDetailTabs';
+import AnimePersonalPanel from '@/components/AnimePersonalPanel';
+import layout from './detail-layout.module.css';
+import { findAnimeGenre } from '@/lib/anime-taxonomy';
+import { SEO_GENRE_LANDINGS } from '@/lib/search-seo';
+import { CATALOG_DISCOVERY_FILTERS } from '@/lib/catalog-filter-state';
 import AnimeSynopsis from '@/components/AnimeSynopsis';
 import LibraryStatusControl from '@/components/LibraryStatusControl';
 import styles from './page.module.css';
@@ -37,6 +41,13 @@ import {
 
 import type { Anime } from '@/types/anime';
 
+
+function genreLink(value: string) {
+  const landing = SEO_GENRE_LANDINGS.find((item) => item.value === value);
+  if (landing) return `/anime/genre/${landing.slug}`;
+  const filter = CATALOG_DISCOVERY_FILTERS.find((item) => item.provider === 'genre' && item.value === value);
+  return filter ? `/search?tags=${encodeURIComponent(filter.id)}` : '/search';
+}
 
 type PageProps = {
   params: Promise<{
@@ -463,7 +474,6 @@ export default async function AnimePage({
   };
 
   const synopsis = anime.description ? cleanShikimoriDescription(anime.description) : '';
-  const relationSynopsis = synopsis.length <= 180 && /^(Продолжение|Предыстория|Спин-офф)/i.test(synopsis);
 
   /* =========================================================
      PAGE
@@ -495,324 +505,62 @@ export default async function AnimePage({
       />
 
 
-      {/* =====================================================
-          HERO / ОПИСАНИЕ ТАЙТЛА
-          ===================================================== */}
-
-      <section className={`${styles.hero} anime-detail-v4__hero-shell relative overflow-hidden`}>
-
-
-        {/* =====================
-            Banner
-            ===================== */}
-
-        {imageCascade.banner && (
-          <img
-            src={imageCascade.banner}
-            alt=""
-            aria-hidden="true"
-            loading="eager"
-            fetchPriority="low"
-            decoding="async"
-            referrerPolicy="no-referrer"
-            className="anime-detail-v3__banner absolute inset-0 h-full w-full object-cover object-center"
-          />
-        )}
-
-
-        {/* Затемнение */}
-
-        <div
-          className="
-            absolute
-            inset-0
-            anime-detail-v4__banner-shade
-          "
-        />
-
-
-        {/* Градиент */}
-
-        <div
-          className="
-            absolute
-            inset-0
-            anime-detail-v4__banner-gradient
-          "
-        />
-
-
-        {/* Контент */}
-
-        <div
-          className={`${styles.heroInner} anime-detail-hero
-
-            relative
-
-            mx-auto
-            max-w-7xl
-
-            px-4
-            py-10
-
-            md:px-6
-            md:py-16`}
-        >
-
-
-          <div
-            className={`${styles.heroGrid} anime-detail-grid
-
-              grid
-              grid-cols-1
-              items-start
-              gap-8
-
-              md:grid-cols-[230px_minmax(0,1fr)]
-              md:items-stretch
-
-              lg:grid-cols-[260px_minmax(0,1fr)]
-              lg:gap-10`}
-          >
-
-
-            {/* =====================
-                Постер
-                ===================== */}
-
-            <div
-              className={`${styles.poster} anime-detail-poster
-
-                relative
-                overflow-hidden
-
-                rounded-xl
-
-                border
-                border-white/10
-
-                bg-white/5
-
-                shadow-lg
-
-                md:min-h-[420px]
-                md:self-stretch`}
-            >
-
-              <div
-                className="
-                  aspect-[2/3]
-
-                  md:absolute
-                  md:inset-0
-                  md:h-full
-                  md:w-full
-                  md:aspect-auto
-                "
-              >
-
-                <AnimeImageCascade
-                  sources={
-                    posterSources
-                  }
-                  alt={
-                    anime.russian ||
-                    anime.name ||
-                    'Аниме'
-                  }
-                  loading="eager"
-                  fetchPriority="high"
-                  preset="large"
-                  quality={80}
-                  sizes="(max-width: 767px) 112px, (max-width: 1024px) 230px, 260px"
-                />
-
-              </div>
-              <div aria-hidden="true" className={`${styles.posterGradient} pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-black/40 to-[#0e0e10] md:hidden`} />
-
-            </div>
-
-
-            {/* =====================
-                Информация
-                ===================== */}
-
-            <div
-              className={`${styles.heroContent} anime-detail-content
-                min-w-0`}
-            >
-              <div className={styles.identity}>
-              <nav className="anime-detail-v4__breadcrumbs" aria-label="Навигация по каталогу">
-                <Link href="/search">Каталог</Link>
-                <span aria-hidden="true">/</span>
-                <span aria-current="page">{anime.russian || anime.name}</span>
-              </nav>
-
-
-              {/* Название */}
-
-              <h1
-                className="
-                  anime-detail-v4__title
-                  text-3xl
-                  font-black
-                  tracking-tight
-
-                  md:text-5xl
-                "
-              >
-                {seoIdentity.pageHeading}
-              </h1>
-
-
-              {/* Оригинальное название */}
-
-              {anime.name &&
-                anime.russian &&
-                anime.name !==
-                  anime.russian && (
-
-                  <p
-                    className="
-                      anime-detail-v4__original-title
-                      mt-2
-                      text-sm
-                      text-neutral-400
-                    "
-                  >
-                    {anime.name}
-                  </p>
-
-                )}
-
-              {relationSynopsis && (
-                <p className={`${styles.relationTag} mt-3 inline-flex max-w-full rounded-md bg-neutral-800 px-2 py-0.5 text-xs text-neutral-300`}>
-                  {synopsis}
-                </p>
-              )}
-
-              </div>
-              <div className={styles.quickFacts} aria-label="Коротко о тайтле">
-                {[contentFacts.release, contentFacts.format, contentFacts.episodes, contentFacts.status, seoIdentity.seasonLabel].filter(Boolean).map((fact, index) => (
-                  <span key={`${index}-${fact}`}>{fact}</span>
-                ))}
-                {score && <span className={styles.score}>★ {score} / 10 · AniList</span>}
-              </div>
-              {/* =====================
-                  Кнопки тайтла
-                  ===================== */}
-
-              <div className={styles.heroActions}>
-
-                {playbackRestricted ? (
-                  <PlaybackRestrictionNotice />
-                ) : (
-                  <AnimeDetailControls
-                    anime={normalizedAnimeForControls}
-                    showEpisodes={false}
-                  />
-                )}
-
-              </div>
-
-
-            </div>
-
+      <div className={layout.layout}>
+        <aside className={layout.sidebar} aria-label="Обложка и личные действия">
+          <div className={layout.poster}>
+            <AnimeImageCascade sources={posterSources} alt={seoIdentity.pageHeading}
+              loading="eager" fetchPriority="high" preset="large" quality={80}
+              sizes="(max-width: 767px) 112px, 260px" />
           </div>
-
-        </div>
-
-      </section>
-
-
-      <AnimeDetailTabs
-        key={numericId}
-        info={<>
-          <div className={styles.genres} aria-label="Жанры">
-            {resolved.genres?.slice(0, 6).map((genre) => <span key={genre}>{genre}</span>)}
+          <div className={layout.facts} aria-label="Коротко о тайтле">
+            {[contentFacts.release, contentFacts.format, contentFacts.episodes, contentFacts.status, seoIdentity.seasonLabel].filter(Boolean).map((fact, index) => (
+              <span key={`${index}-${fact}`}>{fact}</span>
+            ))}
+            {score && <span>★ {score} / 10 · AniList</span>}
           </div>
-      {(visibleAlternateNames.length > 0 || (synopsis && !relationSynopsis)) && (
-        <section className={`${styles.description} mx-auto w-full max-w-5xl px-4 py-6 md:px-6`} aria-label="Описание и другие названия">
-          {visibleAlternateNames.length > 0 && (
-            <details className={styles.aliases}><summary>Другие названия</summary><p className="anime-detail-v4__aliases max-w-3xl text-xs leading-5 text-neutral-400">
-              <span>Другие названия:</span>{' '}{visibleAlternateNames.join(' · ')}
-            </p></details>
-          )}
-          {synopsis && !relationSynopsis && (
-            <AnimeSynopsis text={synopsis} />
-          )}
-        </section>
-      )}
-
-      {/* =====================================================
-          БИБЛИОТЕКА
-          ===================================================== */}
-
-      <section
-        className={`${styles.personal} anime-detail-library-section anime-detail-v4__personal mx-auto w-full max-w-5xl px-4 pb-6 pt-2 md:px-6`}
-        aria-labelledby="anime-personal-title"
-      >
-        <div className="anime-detail-v4__section-head anime-detail-v4__section-head--compact">
-          <div>
-            <span>МОЙ ANIMEBOX</span>
-            <h2 id="anime-personal-title">Мой тайтл</h2>
-          </div>
-        </div>
-
-        <div className={`${styles.personalGrid} anime-detail-v4__personal-grid grid grid-cols-1 gap-4 md:grid-cols-2`}>
-          <div className="flex min-w-0 flex-col gap-4">
-            <LibraryStatusControl animeId={numericId} variant="compact" />
-            {!playbackRestricted && (
-              <AnimeNotificationControl
-                animeId={numericId}
-                animeSlug={resolved.slug}
-                animeTitle={anime.russian || anime.name}
-                episodesAired={anime.episodes_aired || 0}
-                isFinished={String(resolved.status).toUpperCase() === 'FINISHED'}
-                variant="compact"
-              />
+          <div className={layout.actions}>
+            {playbackRestricted ? <PlaybackRestrictionNotice /> : (
+              <AnimeDetailControls anime={normalizedAnimeForControls} showEpisodes={false} />
             )}
           </div>
-          <div className="min-w-0">
-            <AnimeRatingControl animeId={numericId} />
+          <div className={layout.personal}>
+            <AnimePersonalPanel animeHref={animeHref(resolved)}>
+              <LibraryStatusControl animeId={numericId} variant="inline" />
+              {!playbackRestricted && String(resolved.status).toUpperCase() !== 'FINISHED' && (
+                <AnimeNotificationControl animeId={numericId} animeSlug={resolved.slug}
+                  animeTitle={seoIdentity.pageHeading} episodesAired={anime.episodes_aired || 0}
+                  isFinished={false} variant="inline" />
+              )}
+              <AnimeRatingControl animeId={numericId} />
+            </AnimePersonalPanel>
           </div>
-        </div>
-      </section>
-
-
-
-      {/* =====================================================
-          WATCH TOGETHER / LONG-TAIL SEO + ПЕРЕЛИНКОВКА
-          ===================================================== */}
-
-      {!playbackRestricted && (
+          {!playbackRestricted && <Link className={layout.together} href="/watch-together">Смотреть с друзьями →</Link>}
+        </aside>
+        <div className={layout.mainColumn}>
+          <header className={layout.identity}>
+            <nav className={layout.breadcrumbs} aria-label="Навигация по каталогу">
+              <Link href="/search">Каталог</Link><span aria-hidden="true"> / </span><span>{seoIdentity.pageHeading}</span>
+            </nav>
+            <h1>{seoIdentity.pageHeading}</h1>
+            {anime.name && anime.russian && anime.name !== anime.russian && <p>{anime.name}</p>}
+            <div className={layout.genres} aria-label="Жанры">
+              {Array.from(new Map((resolved.genres || []).map((genre) => {
+                const match = findAnimeGenre(genre);
+                return [match?.value || genre, { value: match?.value || genre, label: match?.label || genre }];
+              })).values()).slice(0, 6).map((genre) => (
+                <Link key={genre.value} href={genreLink(genre.value)}>{genre.label}</Link>
+              ))}
+            </div>
+          </header>
+          <section className={layout.description} aria-label="Описание и другие названия">
+            {synopsis && <AnimeSynopsis text={synopsis} />}
+            {visibleAlternateNames.length > 0 && (
+              <details><summary>Другие названия</summary><p>{visibleAlternateNames.join(' · ')}</p></details>
+            )}
+          </section>
+          <div className={layout.episodes}>      {!playbackRestricted && (
         <section
-        className="anime-detail-v4__watch-together mx-auto max-w-7xl px-4 pb-7 md:px-6"
-        aria-labelledby="watch-together-anime-title"
-      >
-        <div className="anime-detail-v4__watch-together-inner">
-          <div className="min-w-0">
-            <span>ВМЕСТЕ</span>
-            <h2 id="watch-together-anime-title">
-              Смотреть с друзьями
-            </h2>
-            <p>
-              Открой комнату, отправь ссылку — AnimeBox синхронизирует просмотр.
-            </p>
-          </div>
-
-          <Link href="/watch-together">
-            Открыть комнаты <span aria-hidden="true">→</span>
-          </Link>
-        </div>
-      </section>
-      )}
-
-</>}
-        episodes={<>
-      {!playbackRestricted && (
-        <section
-          className="anime-detail-v4__episodes mx-auto max-w-7xl px-4 pb-6 pt-2 md:px-6"
+          className="anime-detail-v4__episodes mx-auto w-full pb-4"
           aria-labelledby="anime-episodes-title"
         >
           <div className="anime-detail-v4__section-head">
@@ -837,11 +585,8 @@ export default async function AnimePage({
       )}
 
 
-      {/* =====================================================
-          ФРАНШИЗА
-          ===================================================== */}
-
-      {aniList.id && (
+</div>
+          <details className={layout.franchise}><summary>Порядок частей</summary>      {aniList.id && (
 
         <section
           className="
@@ -880,14 +625,8 @@ export default async function AnimePage({
 
       )}
 
-
-</>}
-        discussion={<>
-      {/* =====================================================
-          ОБСУЖДЕНИЯ СЕРИЙ
-          ===================================================== */}
-
-      <section className={`${styles.discussion} anime-detail-after-hero mx-auto w-full max-w-5xl px-4 pb-8 md:px-6`}>
+</details>
+          <div className={layout.discussion}>      <section className={`${styles.discussion} anime-detail-after-hero mx-auto w-full max-w-5xl pb-6`}>
         <EpisodeDiscussionHub
           animeSlug={resolved.slug}
           animeTitle={anime.russian || anime.name}
@@ -895,10 +634,8 @@ export default async function AnimePage({
         />
       </section>
 
-
-</>}
-        related={<>
-      <section className="anime-detail-after-hero mx-auto max-w-7xl px-4 pb-5 md:px-6">
+</div>
+          <div className={layout.related}>      <section className="anime-detail-after-hero mx-auto w-full pb-4">
         <AdSlot placement="anime-detail-before-related" format="native" />
       </section>
 
@@ -911,9 +648,9 @@ export default async function AnimePage({
           animeId={numericId}
           genres={resolved.genres}
         />
-      </Suspense>
-</>}
-      />
+      </Suspense></div>
+        </div>
+      </div>
 
     </main>
   );

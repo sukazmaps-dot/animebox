@@ -1,5 +1,6 @@
 'use client';
 
+import densityStyles from './EpisodePageDensity.module.css';
 import {sourceFailureReason} from '@/lib/source-failure-reason';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
@@ -1594,7 +1595,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
   }
 
   return (
-    <div className="detail episode-page anime-title-accent-scope" style={titleAccentStyle}>
+    <div className={`${densityStyles.page} detail episode-page anime-title-accent-scope`} style={titleAccentStyle}>
       <nav className="episode-seo-breadcrumbs" aria-label="Навигационная цепочка">
         <Link href="/">AnimeBox</Link>
         <span aria-hidden="true">›</span>
@@ -1649,6 +1650,8 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         </div>
       )}
 
+      <EpisodeCompletion key={`${anime.id}:${episodeNumber}`} animeId={anime.id} episode={episodeNumber} />
+
       <EpisodeQuickSelector
         currentEpisode={episodeNumber}
         totalEpisodes={currentSeasonEpisodes || availableEpisodes || episodeNumber}
@@ -1661,6 +1664,31 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         onSelect={goToEpisode}
       />
 
+
+
+
+
+      <section className="episode-page__identity-compact">
+        <div>
+          <h1>{title} — {episodeNumber} серия</h1>
+          <span>Сезон {anime.providerSeason || 1}</span>
+        </div>
+        <Link href={`/anime/${animeIdParam}`}>К тайтлу</Link>
+      </section>
+
+      <section className="episode-engagement-grid" aria-label="Отслеживание и уведомления">
+        <LibraryStatusControl animeId={anime.id} variant="inline" />
+
+        <AnimeNotificationControl
+          animeId={anime.id}
+          animeSlug={anime.slug || String(anime.id)}
+          animeTitle={title}
+          episodesAired={anime.episodesAired || 0}
+          variant="inline"
+        />
+
+      </section>
+
       <WatchPartyPanel
         animeTitle={title}
         animeSlug={animeIdParam}
@@ -1670,28 +1698,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         mode="inline"
       />
 
-      <EpisodeCompletion key={`${anime.id}:${episodeNumber}`} animeId={anime.id} episode={episodeNumber} />
 
-      <section className="episode-engagement-grid" aria-label="Отслеживание и уведомления">
-        <LibraryStatusControl animeId={anime.id} variant="compact" />
-
-        <AnimeNotificationControl
-          animeId={anime.id}
-          animeSlug={anime.slug || String(anime.id)}
-          animeTitle={title}
-          episodesAired={anime.episodesAired || 0}
-          variant="compact"
-        />
-
-      </section>
-
-      <section className="episode-page__identity-compact">
-        <div>
-          <h1>{title} — {episodeNumber} серия</h1>
-          <span>Сезон {anime.providerSeason || 1}</span>
-        </div>
-        <Link href={`/anime/${animeIdParam}`}>К тайтлу</Link>
-      </section>
 
       <section
         className="detail__section detail__episodes"

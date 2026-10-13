@@ -2949,6 +2949,8 @@ export default function AnimePlayer({
             <button
               type="button"
               onClick={() => setTheaterMode((current) => !current)}
+              aria-label={theaterMode ? 'Обычный режим' : 'Кинотеатр'}
+              aria-pressed={theaterMode}
               className="premium-player-toolbar-button inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 text-[11px] font-bold text-white/55 transition hover:border-violet-400/20 hover:bg-violet-500/[0.07] hover:text-white"
             >
               <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
@@ -2962,6 +2964,7 @@ export default function AnimePlayer({
           <button
             type="button"
             onClick={() => void toggleFullscreen()}
+            aria-label={fullscreenActive ? 'Выйти из полного экрана' : 'Полный экран'}
             className="premium-player-toolbar-button inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 text-[11px] font-bold text-white/55 transition hover:border-violet-400/20 hover:bg-violet-500/[0.07] hover:text-white"
           >
             <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">

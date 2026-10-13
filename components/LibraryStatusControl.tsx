@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import quickStyles from './AnimeQuickActions.module.css';
 
 import { useAuthModal } from '@/components/AuthModalProvider';
 import { useAuthState } from '@/components/AuthStateProvider';
@@ -26,10 +27,11 @@ export default function LibraryStatusControl({
 }: {
   animeId: number;
   initialStatus?: LibraryStatus;
-  variant?: 'default' | 'compact';
+  variant?: 'default' | 'compact' | 'inline';
   onRemoved?: () => void;
 }) {
-  const compact = variant === 'compact';
+  const inline = variant === 'inline';
+  const compact = variant === 'compact' || inline;
   const { user, loading: authLoading } = useAuthState();
   const { openAuth } = useAuthModal();
   const guest = !authLoading && !user;
@@ -179,7 +181,7 @@ export default function LibraryStatusControl({
     return (
       <section
         ref={compactRootRef}
-        className="episode-library-compact episode-library-compact--guest"
+        className={`${inline ? quickStyles.library : ''} episode-library-compact episode-library-compact--guest`}
         data-status="guest"
       >
         <button
@@ -205,8 +207,8 @@ export default function LibraryStatusControl({
           </span>
 
           <span className="episode-library-compact__trigger-copy">
-            <small>Чтобы пользоваться библиотекой</small>
-            <strong>Войти / зарегистрироваться</strong>
+            {!inline && <small>Чтобы пользоваться библиотекой</small>}
+            <strong>{inline ? 'Библиотека' : 'Войти / зарегистрироваться'}</strong>
           </span>
 
           <svg
@@ -226,7 +228,7 @@ export default function LibraryStatusControl({
     return (
       <section
         ref={compactRootRef}
-        className="episode-library-compact"
+        className={`${inline ? quickStyles.library : ''} episode-library-compact`}
         data-status={status || 'empty'}
       >
         <div className="episode-library-compact__picker">
@@ -252,8 +254,8 @@ export default function LibraryStatusControl({
             </span>
 
             <span className="episode-library-compact__trigger-copy">
-              <small>Моя библиотека</small>
-              <strong>{status ? statusLabels[status] : 'Добавить в библиотеку'}</strong>
+              {!inline && <small>Моя библиотека</small>}
+              <strong>{status ? statusLabels[status] : inline ? 'Библиотека' : 'Добавить в библиотеку'}</strong>
             </span>
 
             <svg

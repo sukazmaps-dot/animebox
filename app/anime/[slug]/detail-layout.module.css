@@ -1,0 +1,74 @@
+.layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 32px; max-width: 1240px; margin: 0 auto; padding: 24px; align-items: start; }
+.sidebar { display: grid; gap: 14px; min-width: 0; }
+.mainColumn { display: grid; gap: 20px; min-width: 0; }
+.poster { position: relative; width: 100%; aspect-ratio: 2 / 3; overflow: hidden; border-radius: 14px; border: 1px solid rgb(255 255 255 / 12%); box-shadow: 0 12px 30px rgb(0 0 0 / 25%); }
+.poster > div { position: absolute; inset: 0; height: 100%; width: 100%; }
+.identity h1 { margin: 0; font-size: clamp(28px, 3vw, 40px); font-weight: 800; line-height: 1.15; color: #f5f3fa; overflow-wrap: anywhere; }
+.identity > p { margin-top: 8px; font-size: 14px; color: #c6c0d2; }
+.breadcrumbs { margin-bottom: 12px; font-size: 12px; color: #c6c0d2; }
+.facts, .genres { display: flex; flex-wrap: wrap; gap: 6px; }
+.facts > span, .genres > a { border: 1px solid rgb(255 255 255 / 14%); border-radius: 8px; background: rgb(255 255 255 / 5%); padding: 5px 8px; color: #e5e0ee; font-size: 12px; line-height: 1.4; }
+.genres { margin-top: 12px; }
+.genres > a { min-height: 32px; display: inline-flex; align-items: center; }
+.description { min-width: 0; color: #e0dce8; }
+.description > details { margin-top: 10px; font-size: 12px; color: #bcb5cc; }
+.description summary { cursor: pointer; min-height: 32px; }
+.actions :global(.anime-detail-actions) { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; margin: 0 !important; gap: 8px !important; }
+.actions :global(.anime-detail-actions__watch) { grid-column: 1 / -1; min-height: 48px !important; color: white !important; background: var(--ab-ui-primary, #7c3aed) !important; }
+.actions :global(.anime-detail-actions__favorite), .actions :global(.anime-detail-actions__tracker) { min-height: 44px !important; padding-inline: 8px !important; font-size: 12px !important; }
+.actions :global(.anime-detail-actions__state) { grid-column: 1 / -1; font-size: 12px; }
+.together { display: block; min-height: 44px; padding-block: 10px; font-size: 13px; color: #c4b5fd; }
+.personal, .episodes, .franchise, .discussion, .related { min-width: 0; }
+.episodes :global(.anime-detail-v4__section-head) { margin-bottom: 12px !important; }
+.episodes :global(.anime-detail-v4__section-head) h2 { font-size: 22px !important; }
+.episodes :global(.anime-detail-v4__section-head) p { font-size: 13px !important; color: #c6c0d2 !important; }
+.episodes :global(.anime-detail-v4__section-head) > div > span { display: none; }
+.franchise { border-block: 1px solid rgb(255 255 255 / 12%); padding: 10px 0; }
+.franchise > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; gap: 8px; font-weight: 600; color: #ddd4ed; }
+.franchise > summary::after { content: '＋'; margin-left: auto; }
+.franchise[open] > summary::after { content: '−'; }
+.franchise :global(.anime-detail-franchise-section) { border: 0; padding: 0 0 12px; }
+.related :global(.anime-detail-after-hero) { padding-inline: 0 !important; }
+@media (max-width: 767px) {
+  .layout { grid-template-columns: 112px minmax(0, 1fr); gap: 14px 16px; padding: 16px; }
+  .sidebar, .mainColumn { display: contents; }
+  .poster { grid-column: 1; grid-row: 1; width: 112px; height: 168px; }
+  .identity { grid-column: 2; grid-row: 1; align-self: center; }
+  .identity h1 { font-size: clamp(21px, 5.7vw, 28px); line-height: 1.2; }
+  .identity > p { font-size: 12px; }
+  .identity .genres { gap: 4px; }
+  .identity .genres > a { font-size: 10px; padding: 4px 6px; min-height: 28px; }
+  .breadcrumbs { display: none; }
+  .facts { grid-column: 1 / -1; grid-row: 2; }
+  .actions { grid-column: 1 / -1; grid-row: 3; }
+  .description { grid-column: 1 / -1; grid-row: 4; }
+  .episodes { grid-column: 1 / -1; grid-row: 5; }
+  .personal { grid-column: 1 / -1; grid-row: 6; }
+  .together { grid-column: 1 / -1; grid-row: 7; }
+  .franchise { grid-column: 1 / -1; grid-row: 8; }
+  .discussion { grid-column: 1 / -1; grid-row: 9; }
+  .related { grid-column: 1 / -1; grid-row: 10; }
+}
+:global(html[data-animebox-theme='light']) .identity h1 { color: #282232; }
+:global(html[data-animebox-theme='light']) .identity > p, :global(html[data-animebox-theme='light']) .breadcrumbs,
+:global(html[data-animebox-theme='light']) .episodes :global(.anime-detail-v4__section-head) p { color: #554960 !important; }
+:global(html[data-animebox-theme='light']) .facts > span, :global(html[data-animebox-theme='light']) .genres > a { color: #44374e; background: #f0eaf8; border-color: #d9d0e2; }
+:global(html[data-animebox-theme='light']) .franchise > summary, :global(html[data-animebox-theme='light']) .together { color: #6d28d9; }
+
+@media (min-width: 768px) {
+  :global(body):has(.layout) :global(.topbar) { height: 56px !important; }
+  :global(body):has(.layout) :global(.topbar__search) { height: 40px !important; }
+  :global(body):has(.layout) :global(.app-shell) { padding-top: 56px !important; }
+}
+
+.discussion :global(.episode-discussion-hub) { padding: 16px !important; min-height: 0 !important; }
+.discussion :global(.episode-discussion-hub__copy) h2 { font-size: 22px !important; }
+.discussion :global(.episode-discussion-hub__meta) { display: none; }
+@media (min-width: 768px) {
+  .layout .episodes :global(.episode-list) { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important; max-height: 348px !important; align-content: start !important; }
+  .layout .episodes :global(.episode-list__item) { display: grid !important; grid-template-columns: 28px minmax(0, 1fr) 14px !important; grid-template-rows: 1fr 2px !important; min-height: 56px !important; height: 56px !important; padding: 6px 8px !important; gap: 0 6px !important; }
+  .layout .episodes :global(.episode-list .episode-list__copy) { gap: 2px !important; }
+  .layout .episodes :global(.episode-list .episode-list__copy > .episode-list__label) { font-size: 12px !important; line-height: 1.3 !important; }
+  .layout .episodes :global(.episode-list .episode-list__copy > small) { font-size: 10px !important; line-height: 1.3 !important; white-space: nowrap !important; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .layout .episodes :global(.episode-list__number) { font-size: 18px !important; }
+}
