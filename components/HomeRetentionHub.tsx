@@ -85,7 +85,7 @@ export default function HomeRetentionHub({
                 has_near_completion: Boolean(completion),
                 signal_count:
                   Number(Boolean(episode)) +
-                  Number(Boolean(completion)) +
+                  Number(Boolean(completion)),
               },
             });
 
