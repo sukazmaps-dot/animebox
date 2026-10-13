@@ -1,0 +1,7 @@
+.synopsis { max-width: 72ch; color: #d1ceda; font-size: 14px; line-height: 1.65; }
+.preview, .full { margin: 0; white-space: pre-line; }
+.preview { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
+.synopsis button { min-height: 44px; font-size: 13px; font-weight: 600; color: #c4b5fd; }
+.synopsis button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+:global(html[data-animebox-theme='light']) .synopsis { color: #494250; }
+:global(html[data-animebox-theme='light']) .synopsis button { color: #6d28d9; }
