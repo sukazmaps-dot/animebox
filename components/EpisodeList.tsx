@@ -531,6 +531,8 @@ export default function EpisodeList({
                   type="button"
                   role="tab"
                   aria-selected={active}
+                  aria-label={`${season.label}: ${season.title}`}
+                  title={season.title}
                   data-season-tab-active={active ? 'true' : undefined}
                   onClick={() => {
                     setActiveTab(seasonKey(season.id));
@@ -626,9 +628,7 @@ export default function EpisodeList({
             )}
           </div>
 
-          <p className="mt-1 text-[10px] text-white/30 md:hidden">
-            Свайпните по сезонам влево или вправо
-          </p>
+
         </div>
       )}
 

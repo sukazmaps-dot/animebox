@@ -1,4 +1,5 @@
 'use client';
+import quickStyles from './AnimeQuickActions.module.css';
 
 import {
   BellRingingIcon,
@@ -88,9 +89,10 @@ export default function AnimeNotificationControl({
   animeTitle: string;
   episodesAired: number | null;
   isFinished?: boolean;
-  variant?: 'card' | 'compact';
+  variant?: 'card' | 'compact' | 'inline';
 }) {
-  const compact = variant === 'compact';
+  const inline = variant === 'inline';
+  const compact = variant === 'compact' || inline;
   const reducedMotion = useReducedMotion();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -241,16 +243,18 @@ export default function AnimeNotificationControl({
                 : 'Уведомлять о новых сериях';
 
     return (
-      <section className="episode-notification-compact">
+      <section className={`${inline ? quickStyles.notifications : ''} episode-notification-compact`}>
         <button
           type="button"
           className={enabled ? 'is-enabled' : ''}
           disabled={loading || busy || terminalFinished}
           aria-pressed={enabled}
+          aria-label={compactLabel}
+          title={compactLabel}
           onClick={() => void toggle()}
         >
           <BellRingingIcon size={19} weight={enabled ? 'fill' : 'regular'} aria-hidden="true" />
-          <span>{compactLabel}</span>
+          <span>{inline && !loading && !busy && !terminalFinished ? 'Уведомления' : compactLabel}</span>
         </button>
 
         {authenticated && telegramLinked && !terminalFinished && (

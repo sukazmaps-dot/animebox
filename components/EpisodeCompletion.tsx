@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useId } from 'react';
+import styles from './EpisodeCompletion.module.css';
 import type { WatchProgressEventDetail } from '@/components/useWatchSession';
 
 type WatchStateResponse = {
@@ -32,6 +33,7 @@ export default function EpisodeCompletion({
   animeId: number;
   episode: number;
 }) {
+  const progressId = useId();
   const [percent, setPercent] = useState<number | null>(null);
   const [completed, setCompleted] = useState(false);
   const [available, setAvailable] = useState(false);
@@ -102,32 +104,18 @@ export default function EpisodeCompletion({
   const shownPercent = completed ? 100 : Math.max(0, percent ?? 0);
 
   return (
-    <section className="community-panel community-completion" aria-live="polite">
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <strong>
-            Серия {episode}: {completed ? 'просмотрена' : 'прогресс просмотра'}
-          </strong>
-          <span className="text-sm font-bold text-violet-200">
-            {shownPercent}%
-          </span>
-        </div>
-
-        <div
-          className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.06]"
-          aria-hidden="true"
-        >
-          <span
-            className="block h-full rounded-full bg-gradient-to-r from-violet-500 to-indigo-400 transition-[width] duration-500"
-            style={{ width: `${shownPercent}%` }}
-          />
-        </div>
-
-        <p className="mt-2">
-          {completed
-            ? 'AnimeBox подтвердил просмотр автоматически.'
-            : 'Серия засчитывается автоматически после 90% подтверждённой обязательной части. Кнопки пропуска опенинга/эндинга учитываются, обычная перемотка — нет.'}
-        </p>
+    <section className={styles.completion} aria-label={`Прогресс просмотра серии ${episode}`}>
+      <div className={styles.heading}>
+        <span>Серия {episode} · {completed ? 'просмотрена' : 'прогресс'}</span>
+        <span>{shownPercent}%</span>
+        <details className={styles.help}>
+          <summary aria-label="Как засчитывается просмотр" title="Как засчитывается просмотр">?</summary>
+          <p>Серия засчитывается автоматически после 90% подтверждённой обязательной части. Кнопки пропуска опенинга/эндинга учитываются, обычная перемотка — нет.</p>
+        </details>
+      </div>
+      <div id={progressId} className={styles.track} role="progressbar"
+        aria-label={`Серия ${episode}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={shownPercent}>
+        <span style={{ width: `${shownPercent}%` }} />
       </div>
     </section>
   );

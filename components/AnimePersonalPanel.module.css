@@ -1,0 +1,12 @@
+.guest { display: block; padding: 10px 0; color: #c4b5fd; font-size: 13px; line-height: 1.5; min-height: 44px; }
+.panel { display: grid; gap: 8px; min-width: 0; }
+.panel :global(.anime-rating-control) { min-height: 0 !important; margin: 0 !important; padding: 12px !important; border-radius: 12px !important; box-shadow: none !important; }
+.panel :global(.anime-rating-control__eyebrow), .panel :global(.anime-rating-control__head) p { display: none; }
+.panel :global(.anime-rating-control__head) { gap: 8px !important; margin-bottom: 8px !important; }
+.panel :global(.anime-rating-control__head) h2 { font-size: 16px !important; }
+.panel :global(.anime-rating-control__summary) { padding: 6px 8px !important; min-height: 0 !important; }
+.panel :global(.anime-rating-control__stars) { display: grid !important; grid-template-columns: repeat(10, minmax(0, 1fr)) !important; gap: 0 !important; margin-block: 6px !important; }
+.panel :global(.anime-rating-control__star-button) { width: 100% !important; min-width: 0 !important; height: 44px !important; font-size: 22px !important; }
+.panel :global(.anime-rating-control__star-base), .panel :global(.anime-rating-control__star-fill) { font-size: inherit !important; line-height: 44px !important; }
+.panel :global(.anime-rating-control__footer) { margin-top: 4px !important; font-size: 12px !important; }
+:global(html[data-animebox-theme='light']) .guest { color: #6d28d9; }
