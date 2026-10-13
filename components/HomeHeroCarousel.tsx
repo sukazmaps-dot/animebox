@@ -11,6 +11,7 @@ import {
 } from 'react';
 
 import Link from 'next/link';
+import homeSocialStyles from '@/components/HomeHeroSocialLink.module.css';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import type {
@@ -717,6 +718,9 @@ export default function HomeHeroCarousel({
             Подробнее
           </Link>
         </div>
+        <Link href="/watch-together" className={homeSocialStyles.link}>
+          <span aria-hidden="true">✦</span> Смотреть вместе с друзьями →
+        </Link>
       </div>
 
       {slides.length > 1 && (
