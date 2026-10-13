@@ -5,7 +5,7 @@ import {
   failure,
   positiveInteger,
   readBody,
-  ensureAnime,
+  ensureAnimeForLibraryWrite,
   ApiError,
 } from '@/lib/community-server';
 
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       throw new ApiError(400, 'Неизвестный статус.');
     }
 
-    await ensureAnime(id);
+    await ensureAnimeForLibraryWrite(id);
 
     const { error } = await client.rpc('set_library_status', {
       p_anime: id,
