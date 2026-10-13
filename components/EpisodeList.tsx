@@ -103,6 +103,7 @@ export default function EpisodeList({
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
+    seasonManuallySelectedRef.current = false;
 
     fetch(`/api/anime/${trackingAnimeId}/seasons`, {
       signal: controller.signal,
