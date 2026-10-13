@@ -1,0 +1,51 @@
+.section {
+  width: 100%;
+  min-width: 0;
+  padding: clamp(18px, 2.5vw, 26px);
+  margin: 12px 0 22px;
+  border: 1px solid rgba(177, 153, 255, .23);
+  border-radius: 20px;
+  background: linear-gradient(120deg, #19162a 0%, #141626 60%, #1e182e 100%);
+  color: #f6f4ff;
+  overflow: hidden;
+}
+.heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.headingCopy { min-width: 0; flex: 1 1 320px; }
+.eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .11em; color: #bea9ff; }
+.heading h2 { font-size: clamp(21px, 2.3vw, 29px); line-height: 1.2; letter-spacing: -.03em; font-weight: 800; margin: 6px 0 8px; }
+.heading p { font-size: 13px; line-height: 1.55; color: #d0cbdf; max-width: 630px; margin: 0; }
+.headingActions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+.primaryAction, .secondaryAction { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: 8px; border-radius: 11px; padding: 9px 13px; font-weight: 730; font-size: 12px; text-decoration: none; white-space: nowrap; }
+.primaryAction { background: #7957df; color: white; }
+.secondaryAction { color: #ece5ff; border: 1px solid rgba(195, 179, 238, .28); background: rgba(255,255,255,.035); }
+.primaryAction:hover { background: #8c68f1; }
+.secondaryAction:hover { background: rgba(195, 179, 238, .12); }
+.primaryAction:focus-visible, .secondaryAction:focus-visible, .joinButton:focus-visible, .error button:focus-visible { outline: 3px solid #e2d3ff; outline-offset: 3px; }
+.lobby { min-width: 0; margin-top: 17px; }
+.roomGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.roomCard { display: flex; min-width: 0; align-items: stretch; gap: 11px; padding: 10px; background: rgba(255,255,255,.045); border: 1px solid rgba(210, 201, 255, .1); border-radius: 14px; }
+.poster { flex: 0 0 68px; height: 108px; border-radius: 9px; background: #2b2542; overflow: hidden; }
+.poster img { width: 100%; height: 100%; object-fit: cover; }
+.roomCopy { display: flex; align-items: flex-start; flex-direction: column; min-width: 0; flex: 1; }
+.roomStatus { font-size: 10px; line-height: 1.4; color: #cbb9ff; }
+.roomCopy h3 { font-size: 13px; line-height: 1.35; font-weight: 750; margin: 6px 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.roomCopy p { max-width: 100%; margin: 0 0 8px; font-size: 11px; color: #d1cede; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+.joinButton { min-height: 33px; margin-top: auto; cursor: pointer; font-size: 11px; font-weight: 750; color: #f5efff; background: rgba(137, 108, 238, .2); border: 1px solid rgba(172, 149, 249, .5); border-radius: 8px; padding: 6px 10px; }
+.joinButton:disabled { cursor: wait; opacity: .55; }
+.empty { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 6px; min-height: 128px; padding: 19px; background: rgba(255,255,255,.025); border: 1px dashed rgba(191, 171, 253, .25); border-radius: 13px; color: #c9c4de; font-size: 13px; }
+.empty strong { font-size: 15px; color: #fff; }
+.empty p { margin: 0; line-height: 1.5; }
+.emptyIcon { font-size: 24px; color: #b7a3ff; }
+.error { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; font-size: 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(250, 184, 184, .3); color: #ffd2d2; }
+.error button { color: #fff; background: transparent; cursor: pointer; text-decoration: underline; }
+@media (max-width: 1150px) { .roomGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .roomCard:last-child:nth-child(odd) { grid-column: 1 / -1; } }
+@media (max-width: 760px) {
+  .section { padding: 16px; margin-block: 12px 18px; border-radius: 16px; }
+  .headingActions { width: 100%; }
+  .primaryAction, .secondaryAction { flex: 1; padding-inline: 8px; }
+  .roomGrid { grid-template-columns: minmax(0,1fr); }
+  .roomCard:last-child:nth-child(odd) { grid-column: auto; }
+  .poster { flex-basis: 73px; height: 109px; }
+}
+@media (max-width: 360px) { .headingActions { flex-direction: column; } .primaryAction, .secondaryAction { width: 100%; } .roomCard { padding: 8px; gap: 8px; } .poster { flex-basis: 60px; } }
+@media (prefers-reduced-motion: reduce) { .section * { animation: none !important; transition: none !important; } }

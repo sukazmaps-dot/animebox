@@ -159,11 +159,9 @@ export function HomePersonalScheduleSection() {
 
 export function HomeRetentionSections() {
   const {
-    userId,
     hasPersonalHistory,
     hasWatchHistory,
     continueWatchingItems,
-    personalAnimeIdList,
   } = useHomeFeedRuntime();
 
   const {
@@ -183,8 +181,6 @@ export function HomeRetentionSections() {
           <HomeRetentionHub
             episode={retentionEpisodeSignal}
             completion={retentionCompletionSignal}
-            personalAnimeIds={personalAnimeIdList}
-            enableRooms={Boolean(userId)}
           />
         </DeferredMount>
       )}
