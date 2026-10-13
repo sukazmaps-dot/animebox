@@ -52,6 +52,7 @@ export default function HomeWatchTogetherLobby() {
   const joinRef = useRef<AbortController | null>(null);
   const joinBusyRef = useRef(false);
   const lastFetchRef = useRef(0);
+  const pollTimerRef = useRef<number | null>(null);
   const lobbyRef = useRef<HTMLDivElement | null>(null);
 
   const rooms = useMemo(
@@ -78,8 +79,10 @@ export default function HomeWatchTogetherLobby() {
       setDegraded(Boolean(payload.degraded));
       setError('');
     } catch {
-      if (!mountedRef.current) return;
-      setError('Не удалось обновить список комнат.');
+      if (!mountedRef.current || (controller.signal.aborted && (!visibleRef.current || document.hidden))) return;
+      setError(controller.signal.aborted
+        ? 'Сервер комнат отвечает слишком долго. Повтори попытку.'
+        : 'Не удалось обновить список комнат.');
     } finally {
       window.clearTimeout(timeout);
       if (requestRef.current === controller) requestRef.current = null;
@@ -90,28 +93,46 @@ export default function HomeWatchTogetherLobby() {
   useEffect(() => {
     mountedRef.current = true;
     const host = lobbyRef.current;
+
+    // No scheduled work when offscreen or when the tab is in the background.
+    const stopPolling = () => {
+      if (pollTimerRef.current !== null) {
+        window.clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+      requestRef.current?.abort();
+    };
+    const syncPolling = () => {
+      if (!visibleRef.current || document.hidden) {
+        stopPolling();
+        return;
+      }
+      void refresh();
+      if (pollTimerRef.current === null) {
+        pollTimerRef.current = window.setInterval(() => { void refresh(); }, REFRESH_MS);
+      }
+    };
+
     const observer = host && typeof IntersectionObserver !== 'undefined'
       ? new IntersectionObserver((entries) => {
           visibleRef.current = entries.some((entry) => entry.isIntersecting);
-          if (visibleRef.current) void refresh();
+          syncPolling();
         }, { rootMargin: '160px 0px', threshold: 0 })
       : null;
 
     if (host) observer?.observe(host);
     if (!observer) {
       visibleRef.current = true;
-      void refresh();
+      syncPolling();
     }
-    const interval = window.setInterval(() => { void refresh(); }, REFRESH_MS);
-    const onVisibility = () => { if (!document.hidden) void refresh(); };
-    document.addEventListener('visibilitychange', onVisibility);
 
+    const onVisibility = () => { syncPolling(); };
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
       mountedRef.current = false;
       observer?.disconnect();
-      window.clearInterval(interval);
+      stopPolling();
       document.removeEventListener('visibilitychange', onVisibility);
-      requestRef.current?.abort();
       joinRef.current?.abort();
       requestRef.current = null;
       joinRef.current = null;

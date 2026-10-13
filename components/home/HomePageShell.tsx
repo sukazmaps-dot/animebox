@@ -5,6 +5,7 @@ import type { Anime } from '@/types/anime';
 import HomeFeedRuntimeProvider from '@/components/home/HomeFeedRuntimeProvider';
 import HomeScheduleRuntimeProvider from '@/components/home/HomeScheduleRuntimeProvider';
 import HomeHeroSection from '@/components/home/HomeHeroSection';
+import HomeContinueSection from '@/components/home/HomeContinueSection';
 import HomeWatchTogetherSection from '@/components/home/HomeWatchTogetherSection';
 import HomeDiscoverySection from '@/components/home/HomeDiscoverySection';
 import HomeCatalogSections from '@/components/home/HomeCatalogSections';
@@ -126,6 +127,7 @@ export default function HomePageShell({
           <div className="home-grid home-grid--main">
             <div className="main-column">
               <HomeHeroSection />
+              <HomeContinueSection />
               <HomeWatchTogetherSection />
               <HomeDiscoverySection />
 

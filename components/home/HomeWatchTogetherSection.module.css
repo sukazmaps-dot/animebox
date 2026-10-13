@@ -49,3 +49,56 @@
 }
 @media (max-width: 360px) { .headingActions { flex-direction: column; } .primaryAction, .secondaryAction { width: 100%; } .roomCard { padding: 8px; gap: 8px; } .poster { flex-basis: 60px; } }
 @media (prefers-reduced-motion: reduce) { .section * { animation: none !important; transition: none !important; } }
+
+/* Patch 29.1 — compact mobile actions and readable live room summaries. */
+@media (max-width: 760px) {
+  .section { padding: 13px 14px; margin-bottom: 15px; }
+  .heading { gap: 10px; }
+  .heading h2 { font-size: clamp(19px, 5.4vw, 23px); margin: 4px 0 5px; }
+  .heading p { font-size: 12px; line-height: 1.45; }
+  .headingActions {
+    display: grid;
+    grid-template-columns: minmax(0, 1.22fr) minmax(0, .95fr);
+    gap: 8px;
+  }
+  .primaryAction, .secondaryAction {
+    min-width: 0;
+    min-height: 44px;
+    white-space: normal;
+    font-size: 11px;
+    padding: 9px 7px;
+    text-align: center;
+  }
+  .lobby { margin-top: 11px; }
+  .roomGrid { gap: 7px; }
+  .roomCard { padding: 8px; min-height: 102px; gap: 10px; }
+  .poster { flex-basis: 60px; height: 85px; }
+  .roomCopy h3 { margin: 3px 0; font-size: 12px; }
+  .roomCopy p { margin-bottom: 3px; font-size: 10px; }
+  .joinButton { min-height: 44px; }
+  .empty { min-height: 83px; padding: 12px 13px; gap: 3px; }
+  .empty p { font-size: 12px; }
+}
+@media (max-width: 360px) {
+  .headingActions { display: grid; grid-template-columns: minmax(0, 1.22fr) minmax(0, .95fr); }
+  .primaryAction, .secondaryAction { width: auto; font-size: 10px; }
+}
+/* Respect the global user-selected light theme. */
+:global(html[data-animebox-theme="light"]) .section {
+  border-color: #d4c5ed;
+  background: linear-gradient(120deg, #f5f0ff, #eae9fa);
+  color: #28213b;
+}
+:global(html[data-animebox-theme="light"]) .heading p,
+:global(html[data-animebox-theme="light"]) .roomCopy p,
+:global(html[data-animebox-theme="light"]) .empty { color: #494057; }
+:global(html[data-animebox-theme="light"]) .roomCard,
+:global(html[data-animebox-theme="light"]) .empty {
+  background: rgba(255,255,255,.72);
+  border-color: #d5cbec;
+}
+:global(html[data-animebox-theme="light"]) .empty strong { color: #28213b; }
+:global(html[data-animebox-theme="light"]) .secondaryAction { color: #35265f; border-color: #c3b4de; }
+:global(html[data-animebox-theme="light"]) .joinButton { color: #35265f; background: #eee8ff; border-color: #b09bdc; }
+:global(html[data-animebox-theme="light"]) .eyebrow,
+:global(html[data-animebox-theme="light"]) .roomStatus { color: #5d3caa; }
