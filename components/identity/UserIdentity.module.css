@@ -209,3 +209,7 @@
     box-shadow: 0 0 17px rgba(126, 88, 224, .18);
   }
 }
+
+/* Keep artwork square inside its own slot; parent avatar sizing must not apply. */
+.iconImage { flex-shrink: 0; }
+.compact .mark { width: 20px; height: 20px; flex-basis: 20px; }
