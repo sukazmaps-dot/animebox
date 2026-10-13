@@ -457,6 +457,87 @@ export async function ensureAnime(id: number) {
   return anime;
 }
 
+/**
+ * User library mutations must not block on third-party metadata refresh.
+ * A trusted row in our catalog (even stale) is sufficient for the FK.
+ * Only unseen IDs need catalog bootstrap from our own indexed records.
+ */
+export async function ensureAnimeForLibraryWrite(id: number) {
+  const admin = adminClient();
+  const { data: existing, error: lookupError } = await admin
+    .from('anime_catalog')
+    .select('id')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (lookupError) throw lookupError;
+  if (existing) return;
+
+  // Search/SEO indexes are server-managed, unlike client-provided titles.
+  // Bootstraps a trusted, minimal row without requiring live AniList access.
+  const { data: indexed, error: searchError } = await admin
+    .from('anime_search_documents')
+    .select('title,slug,poster_url,total_episodes,finished,genres,studios,format,start_year')
+    .eq('anime_id', id)
+    .maybeSingle();
+
+  if (searchError) throw searchError;
+
+  let title = typeof indexed?.title === 'string' ? indexed.title.trim() : '';
+  let slug = typeof indexed?.slug === 'string' ? indexed.slug.trim() : '';
+  let poster = typeof indexed?.poster_url === 'string' ? indexed.poster_url.trim() : '';
+
+  if (!title) {
+    const { data: seo, error: seoError } = await admin
+      .from('seo_anime_index')
+      .select('title,slug,image_url')
+      .eq('anime_id', id)
+      .eq('indexable', true)
+      .maybeSingle();
+
+    if (seoError) throw seoError;
+    title = typeof seo?.title === 'string' ? seo.title.trim() : '';
+    slug = typeof seo?.slug === 'string' ? seo.slug.trim() : '';
+    poster = typeof seo?.image_url === 'string' ? seo.image_url.trim() : '';
+  }
+
+  if (title) {
+    const episodes = Number(indexed?.total_episodes);
+    const startYear = Number(indexed?.start_year);
+    const safeFormat = typeof indexed?.format === 'string' ? indexed.format.trim().slice(0, 32) : '';
+    const { error: seedError } = await admin
+      .from('anime_catalog')
+      .upsert({
+        id,
+        title: title.slice(0, 300),
+        slug: slug || null,
+        poster_url: poster || null,
+        total_episodes: Number.isSafeInteger(episodes) && episodes > 0 ? episodes : null,
+        finished: indexed?.finished === true,
+        genres: Array.isArray(indexed?.genres) ? indexed.genres : [],
+        studios: Array.isArray(indexed?.studios) ? indexed.studios : [],
+        format: safeFormat || null,
+        start_year: Number.isSafeInteger(startYear) && startYear >= 1940 && startYear <= 2200
+          ? startYear : null,
+        // 0 requests a full refresh on a later metadata maintenance path.
+        recommendation_metadata_version: 0,
+      }, { onConflict: 'id', ignoreDuplicates: true });
+    if (seedError) throw seedError;
+    return;
+  }
+
+  // Completely unknown IDs still require independent server verification.
+  try {
+    await ensureAnime(id);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/anilist.*(429|pressure|circuit_open)|upstream.*(429|circuit_open)/i.test(message)) {
+      throw new ApiError(503, 'Каталог временно ограничил новые запросы. Попробуй добавить тайтл позже.');
+    }
+    throw error;
+  }
+}
+
 export async function ensureAnimeArtwork(id: number) {
   const admin = adminClient();
   const cached = cachedAnimeCatalogRow(id, Date.now());
