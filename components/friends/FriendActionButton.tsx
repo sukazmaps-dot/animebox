@@ -221,16 +221,28 @@ export default function FriendActionButton({
           >
             ✓ В друзьях
           </Link>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void removeFriend()}
-            className={preview
-              ? styles.previewDanger
-              : 'min-h-10 rounded-xl border border-white/8 bg-transparent px-3 text-xs font-bold text-slate-500 hover:text-rose-300 disabled:opacity-50'}
-          >
-            Удалить
-          </button>
+          {preview ? (
+            <details className={styles.previewMore}>
+              <summary aria-label="Дополнительные действия дружбы">Ещё</summary>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void removeFriend()}
+                className={styles.previewDanger}
+              >
+                {busy ? 'Удаляем…' : 'Удалить из друзей'}
+              </button>
+            </details>
+          ) : (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void removeFriend()}
+              className={'min-h-10 rounded-xl border border-white/8 bg-transparent px-3 text-xs font-bold text-slate-500 hover:text-rose-300 disabled:opacity-50'}
+            >
+              Удалить
+            </button>
+          )}
         </>
       )}
 

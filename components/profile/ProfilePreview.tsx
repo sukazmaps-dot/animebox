@@ -227,7 +227,26 @@ export default function ProfilePreview({
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setOpen(false);
+      }
+      if (event.key !== 'Tab') return;
+      const card = cardRef.current;
+      if (!card) return;
+      const focusable = [...card.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, [tabindex="0"]',
+      )].filter((element) => element.getClientRects().length > 0);
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first) return;
+      if (event.shiftKey && (document.activeElement === first || !card.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !card.contains(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
+      }
     };
 
     const onScroll = (event: Event) => {
@@ -240,7 +259,11 @@ export default function ProfilePreview({
       setOpen(false);
     };
 
-    const frame = window.requestAnimationFrame(updatePosition);
+    const triggerToRestore = triggerRef.current;
+    const frame = window.requestAnimationFrame(() => {
+      updatePosition();
+      cardRef.current?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true });
+    });
     const observer =
       typeof ResizeObserver !== 'undefined'
         ? new ResizeObserver(() => {
@@ -262,6 +285,7 @@ export default function ProfilePreview({
       window.removeEventListener('scroll', onScroll, true);
       window.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('fullscreenchange', updatePosition);
+      if (triggerToRestore?.isConnected) triggerToRestore.focus({ preventScroll: true });
     };
   }, [open]);
 
@@ -550,6 +574,7 @@ export default function ProfilePreview({
                           lastActiveDate={data.streak.lastActiveDate}
                           todayKey={data.streak.todayKey}
                           variant="compact"
+                          className={styles.streakCard}
                         />
 
                         <div className={styles.metaCard}>

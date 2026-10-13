@@ -1433,3 +1433,42 @@ html[data-animebox-theme='light'] .close {
     min-height: 80px;
   }
 }
+
+/* Patch 29.4: readable intrinsic content; artwork and Premium frame geometry stay owned above. */
+.card { width: min(380px, calc(100vw - 24px)); }
+.card .close { width: 44px; height: 44px; top: 8px; right: 8px; }
+.card .body {
+  container-type: inline-size;
+  color: var(--ab-ui-text, #edeaf2);
+  background: var(--ab-ui-surface, #1c1b22);
+  min-height: 0;
+  padding: 12px 16px 16px;
+}
+.card .bio { font-size: 13px; line-height: 1.55; margin: 0 0 12px; color: var(--ab-ui-muted, #aca6b6); overflow-wrap: anywhere; }
+.card .kicker, .card .levelBadge, .card .rankLabel { font-size: 11px; line-height: 1.45; }
+.card .metaGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 0; }
+.card .metaCard, .card .streakCard {
+  min-width: 0; min-height: 64px; padding: 10px; gap: 8px;
+  background: var(--ab-ui-raised, #26242e); border-color: var(--ab-ui-border, #36333f); border-radius: 10px;
+}
+.card .metaCard small, .card .metaCard em,
+.card .streakCard small, .card .streakCard em { font-size: 11px; line-height: 1.45; color: var(--ab-ui-muted, #aca6b6); }
+.card .metaCard strong, .card .streakCard strong { font-size: 13px; line-height: 1.4; font-weight: 650; color: var(--ab-ui-text, #edeaf2); }
+.card .metaCard strong, .card .metaCard em,
+.card .streakCard strong, .card .streakCard em { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+.card .streakCard > span:first-child { flex: 0 0 32px; width: 32px; height: 36px; }
+.card .streakCard > span:last-child { min-width: 0; flex: 1; }
+.card .actions { grid-template-columns: minmax(0, 1fr) minmax(0, 112px); align-items: start; gap: 8px; margin-top: 12px; padding-top: 12px; }
+.card .actions > :only-child { grid-column: 1 / -1; }
+.card .openProfile { width: auto; min-width: 0; max-width: 100%; overflow-wrap: anywhere; min-height: 44px; padding: 10px 12px; font-size: 12px; line-height: 1.4; font-weight: 600; color: var(--ab-ui-text, #edeaf2); background: var(--ab-ui-raised, #26242e); }
+.card .openProfile:focus-visible, .card .close:focus-visible { outline: 2px solid var(--ab-ui-accent, #a798cf); outline-offset: 2px; }
+@container (max-width: 300px) { .card .metaGrid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) {
+  .card { width: calc(100vw - 24px); max-height: calc(100dvh - 24px); }
+  .card .body { padding-inline: 12px; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+}
+
+:global(html[data-animebox-theme='light']) .card .metaCard :is(small, em),
+:global(html[data-animebox-theme='light']) .card .bio { color: var(--ab-ui-muted, #696174); }
+.card .metaCard > span:last-child, .card .streakCard > span:last-child { flex: 1; min-width: 0; grid-template-columns: minmax(0, 1fr); }
+.card .metaCard :is(small, strong, em), .card .streakCard :is(small, strong, em) { min-width: 0; overflow-wrap: anywhere; }
