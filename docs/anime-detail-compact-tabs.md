@@ -24,3 +24,11 @@ Browser screenshots and real Android/Telegram testing are still required. Local 
 ## Release check
 
 At 360/390/430/768/1440/1920 px, verify no horizontal page overflow, title/poster balance, visible first-screen watch button, long RU names, all ten ratings, episode selection/progress, panel keyboard navigation, light theme and copyright-restricted titles. No migration needed.
+
+## Episode tile cascade hotfix
+
+Mobile screenshots exposed the legacy `.episode-list .episode-list__copy { display: flex !important; }` replay winning over the new normal `display: none`. Legacy row sizing/positioning also remained on number/status children.
+
+The tile scope now explicitly owns all states: one centered number, hidden copy/marker, fixed 48px border-box cell, absolute progress/check indicators and consistent borders. The scroller fits six complete rows (326px including gaps/padding). Season titles have a two-line 1.4 line-height slot instead of a single truncated label; contrast is raised in both themes.
+
+Browser fixture QA with the real CSS cascade reproduced the original duplicate copy (`display:flex`). The corrected cascade passed at 360/390/430/767px, even with legacy CSS loaded after the module: no page overflow, equal cell heights, centered unclipped numbers, hidden duplicate labels and adequate season-title height. At 768/1440px desktop labels remain visible. Current, partial, watched and untouched states are covered; a 390px screenshot was inspected. This validates the CSS fixture rather than authenticated live playback.

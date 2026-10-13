@@ -134,12 +134,111 @@
   .page .personalGrid > div:first-child { gap: 8px !important; }
   .page .personalGrid :global(.anime-rating-control__head) { display: flex !important; flex-wrap: wrap; align-items: center; }
   .page .personalGrid :global(.anime-rating-control__stars) { margin-block: 4px !important; }
-  .page :global(.anime-detail-v4__episodes .episode-list) { display: grid !important; grid-template-columns: repeat(5, minmax(0, 1fr)) !important; gap: 6px !important; max-height: 320px !important; overflow-y: auto !important; padding: 4px !important; }
-  .page :global(.anime-detail-v4__episodes .episode-list__item) { position: relative; display: flex !important; justify-content: center !important; align-items: center !important; min-height: 48px !important; height: 48px !important; padding: 6px !important; border-radius: 9px !important; gap: 0 !important; }
-  .page :global(.anime-detail-v4__episodes .episode-list__number) { min-width: 0 !important; width: auto !important; font-size: 15px !important; }
-  .page :global(.anime-detail-v4__episodes .episode-list__copy) { display: none; }
-  .page :global(.anime-detail-v4__episodes .episode-list__check) { position: absolute; right: 3px; top: 3px; font-size: 10px; }
-  .page :global(.anime-detail-v4__episodes .episode-list__progress) { position: absolute; bottom: 0; left: 0; right: 0; }
+  /* Own tile geometry for every state; legacy rows use !important flex/copy rules. */
+  .page :global(.anime-detail-v4__episodes .episode-list) {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    grid-auto-rows: 48px !important;
+    gap: 6px !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: 326px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    padding: 4px !important;
+    align-content: start !important;
+    scroll-snap-type: none !important;
+  }
+  .page :global(.anime-detail-v4__episodes .episode-list .episode-list__item) {
+    position: relative !important;
+    display: grid !important;
+    grid-template: 1fr / minmax(0, 1fr) !important;
+    place-items: center !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    margin: 0 !important;
+    padding: 6px !important;
+    border: 1px solid rgb(255 255 255 / 12%) !important;
+    border-radius: 9px !important;
+    background: #24212e !important;
+    gap: 0 !important;
+    overflow: hidden !important;
+    transform: none !important;
+  }
+  .page :global(.anime-detail-v4__episodes .episode-list .episode-list__item.is-current),
+  .page :global(.anime-detail-v4__episodes .episode-list .episode-list__item.is-partial) {
+    border-color: #a78bfa !important;
+    background: #302540 !important;
+  }
+  .page :global(.anime-detail-v4__episodes .episode-list .episode-list__item.is-watched) {
+    border-color: rgb(110 231 183 / 30%) !important;
+    background: #172d29 !important;
+  }
+  .page :global(.anime-detail-v4__episodes .episode-list .episode-list__number) {
+    position: static !important;
+    grid-area: 1 / 1 !important;
+    align-self: center !important;
+    justify-self: center !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 16px !important;
+    line-height: 1 !important;
+    transform: none !important;
+  }
+  .page :global(.anime-detail-v4__episodes .episode-list .episode-list__copy),
+  .page :global(.anime-detail-v4__episodes .episode-list .episode-list__marker) {
+    display: none !important;
+  }
+  .page :global(.anime-detail-v4__episodes .episode-list .episode-list__check) {
+    position: absolute !important;
+    inset: 3px 3px auto auto !important;
+    margin: 0 !important;
+    font-size: 10px !important;
+    line-height: 1 !important;
+  }
+  .page :global(.anime-detail-v4__episodes .episode-list .episode-list__progress) {
+    position: absolute !important;
+    inset: auto 0 0 !important;
+    width: 100% !important;
+    height: 3px !important;
+    margin: 0 !important;
+  }
+  .page :global(.anime-detail-v4__episodes .episode-list__season-tab) {
+    box-sizing: border-box !important;
+    width: 160px !important;
+    min-width: 160px !important;
+    height: auto !important;
+    min-height: 100px !important;
+    max-height: none !important;
+  }
+  .page :global(.anime-detail-v4__episodes .episode-list__season-tab) > span:nth-child(2) {
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 2.8em !important;
+    max-height: none !important;
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+    color: #cbc5d9 !important;
+    overflow: hidden !important;
+    overflow-wrap: anywhere;
+  }
+  .page :global(.anime-detail-v4__episodes .episode-list__season-tab) > span:nth-child(3) {
+    white-space: normal !important;
+    font-size: 10px !important;
+    line-height: 1.4 !important;
+    color: #b8b1c8 !important;
+  }
   .page :global(.anime-detail-v4__section-head) h2 { font-size: 20px !important; }
   .page :global(.anime-detail-v4__section-head) p { font-size: 13px !important; color: #c6c2d2 !important; }
   .page :global(.anime-detail-franchise-section .anime-franchise-v3__group-list) { grid-template-columns: minmax(0, 1fr) !important; }
@@ -153,3 +252,30 @@
 :global(html[data-animebox-theme='light']) .page .genres,
 :global(html[data-animebox-theme='light']) .page .aliases { color: #554b64 !important; }
 :global(html[data-animebox-theme='light']) .page .quickFacts > span { color: #42384e; background: rgb(109 40 217 / 5%); border-color: rgb(69 48 94 / 18%); }
+
+@media (max-width: 767px) {
+  :global(html[data-animebox-theme='light']) .page :global(.anime-detail-v4__episodes .episode-list .episode-list__item) {
+    background: #f3effa !important;
+    border-color: #d6ccdf !important;
+  }
+  :global(html[data-animebox-theme='light']) .page :global(.anime-detail-v4__episodes .episode-list .episode-list__item.is-current),
+  :global(html[data-animebox-theme='light']) .page :global(.anime-detail-v4__episodes .episode-list .episode-list__item.is-partial) {
+    background: #e9dffa !important;
+    border-color: #7c3aed !important;
+  }
+  :global(html[data-animebox-theme='light']) .page :global(.anime-detail-v4__episodes .episode-list .episode-list__item.is-watched) {
+    background: #e3f3eb !important;
+    border-color: #328564 !important;
+  }
+  :global(html[data-animebox-theme='light']) .page :global(.anime-detail-v4__episodes .episode-list .episode-list__number) {
+    color: #5b2c8b !important;
+    -webkit-text-fill-color: currentColor !important;
+  }
+  :global(html[data-animebox-theme='light']) .page :global(.anime-detail-v4__episodes .episode-list .episode-list__item.is-watched .episode-list__number) {
+    color: #226447 !important;
+  }
+  :global(html[data-animebox-theme='light']) .page :global(.anime-detail-v4__episodes .episode-list__season-tab) > span:nth-child(2),
+  :global(html[data-animebox-theme='light']) .page :global(.anime-detail-v4__episodes .episode-list__season-tab) > span:nth-child(3) {
+    color: #574966 !important;
+  }
+}
