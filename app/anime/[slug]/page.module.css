@@ -267,6 +267,13 @@
     background: #e3f3eb !important;
     border-color: #328564 !important;
   }
+  :global(html[data-animebox-theme='light']) .page :global(.anime-detail-v4__episodes .episode-list .episode-list__number) {
+    color: #5b2c8b !important;
+    -webkit-text-fill-color: currentColor !important;
+  }
+  :global(html[data-animebox-theme='light']) .page :global(.anime-detail-v4__episodes .episode-list .episode-list__item.is-watched .episode-list__number) {
+    color: #226447 !important;
+  }
   :global(html[data-animebox-theme='light']) .page :global(.anime-detail-v4__episodes .episode-list__season-tab) > span:nth-child(2),
   :global(html[data-animebox-theme='light']) .page :global(.anime-detail-v4__episodes .episode-list__season-tab) > span:nth-child(3) {
     color: #574966 !important;
