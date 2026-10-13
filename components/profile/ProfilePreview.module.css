@@ -1472,3 +1472,30 @@ html[data-animebox-theme='light'] .close {
 :global(html[data-animebox-theme='light']) .card .bio { color: var(--ab-ui-muted, #696174); }
 .card .metaCard > span:last-child, .card .streakCard > span:last-child { flex: 1; min-width: 0; grid-template-columns: minmax(0, 1fr); }
 .card .metaCard :is(small, strong, em), .card .streakCard :is(small, strong, em) { min-width: 0; overflow-wrap: anywhere; }
+
+/* Hotfix 29.4.1: Premium palette owns the whole preview, including shared controls.
+   Scope semantic aliases to this card, never to the surrounding site. */
+:global(html) .card[data-premium='true'] {
+  --ab-ui-surface: var(--profile-preview-primary);
+  --ab-ui-raised: color-mix(in srgb, var(--profile-preview-primary) 96%, var(--profile-preview-text) 4%);
+  --ab-ui-text: var(--profile-preview-text);
+  --ab-ui-muted: color-mix(in srgb, var(--profile-preview-text) 82%, var(--profile-preview-primary) 18%);
+  --ab-ui-border: color-mix(in srgb, var(--profile-preview-accent) 30%, var(--profile-preview-primary) 70%);
+  --ab-ui-accent: var(--profile-preview-accent);
+  background: var(--ab-ui-surface);
+  color: var(--ab-ui-text);
+  border-color: var(--ab-ui-border);
+}
+.card[data-premium='true'] .rankLabel,
+.card[data-premium='true'] .levelBadge {
+  color: var(--ab-ui-text);
+  background: var(--ab-ui-raised);
+  border-color: var(--ab-ui-border);
+}
+.card[data-premium='true'] .kicker { color: var(--ab-ui-accent); }
+:global(html) .card[data-premium='true'] .close {
+  background: color-mix(in srgb, var(--ab-ui-surface) 88%, transparent);
+  color: var(--ab-ui-text);
+  border-color: var(--ab-ui-border);
+}
+.card .actions > .openProfile:only-child { justify-self: end; }
