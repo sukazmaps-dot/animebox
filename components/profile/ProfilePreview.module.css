@@ -1499,3 +1499,28 @@ html[data-animebox-theme='light'] .close {
   border-color: var(--ab-ui-border);
 }
 .card .actions > .openProfile:only-child { justify-self: end; }
+
+/* Mini-profile composition: larger visual identity, description with the name. */
+.card .avatarShell { flex: 0 0 82px; width: 82px; height: 82px; }
+.card .avatarShellSeason { margin: 0; }
+.card .avatarShellIdentity { flex-basis: 112px; width: 112px; height: 112px; min-width: 112px; min-height: 112px; }
+.card .heroIdentity { align-items: flex-start; gap: 12px; margin-top: -36px; }
+.card .identityCopy { padding-top: 28px; }
+.card .identityCopy .bio {
+  margin: 4px 0 0; color: color-mix(in srgb, var(--profile-preview-text) 78%, var(--profile-preview-primary) 22%);
+  font-size: 13px; line-height: 1.45; display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3; overflow: hidden;
+}
+:global(html[data-animebox-theme='light']) .card:not([data-premium='true']) .identityCopy .bio { color: var(--ab-ui-muted, #696174); }
+.card .metaCard, .card .streakCard { background: transparent; gap: 12px; }
+.card .metaGlyph, .card .streakCard > span:first-child { flex: 0 0 32px; width: 32px; height: 36px; }
+.card .metaGlyph { color: var(--ab-ui-accent, #a798cf); }
+.card .streakCard > span:first-child img { width: 28px; height: 28px; object-fit: contain; }
+.card .openProfile { background: transparent; border-color: var(--ab-ui-border, #36333f); border-radius: 8px; }
+.card .openProfile:hover { background: var(--ab-ui-raised, #26242e); border-color: var(--ab-ui-accent, #a798cf); }
+@media (max-width: 640px) {
+  .card .avatarShell { flex-basis: 79px; width: 79px; height: 79px; }
+  .card .avatarShellIdentity { flex-basis: 102px; width: 102px; height: 102px; min-width: 102px; min-height: 102px; }
+  .card .heroIdentity { margin-top: -30px; }
+  .card .identityCopy { padding-top: 24px; }
+}

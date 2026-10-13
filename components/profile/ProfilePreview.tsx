@@ -560,13 +560,12 @@ export default function ProfilePreview({
                             <span className={styles.levelBadge}>{data.progression.level} уровень</span>
                             <span className={styles.rankLabel}>{data.progression.rank}</span>
                           </span>
+                          {data.bio && <p className={styles.bio} title={data.bio}>{data.bio}</p>}
                         </div>
                       </div>
                     </div>
 
                     <div className={styles.body}>
-                      {data.bio && <p className={styles.bio}>{data.bio}</p>}
-
                       <div className={styles.metaGrid}>
                         <StreakDisplay
                           current={data.streak.current}
