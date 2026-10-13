@@ -5,3 +5,6 @@
 .synopsis button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 :global(html[data-animebox-theme='light']) .synopsis { color: #494250; }
 :global(html[data-animebox-theme='light']) .synopsis button { color: #6d28d9; }
+.hero { color: #e3ddea; font-weight: 400; max-width: 64ch; }
+:global(html[data-animebox-theme='light']) .hero { color: #e3ddea; }
+:global(html[data-animebox-theme='light']) .hero button { color: #d0b4ff; }

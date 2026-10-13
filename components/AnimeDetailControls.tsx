@@ -1,4 +1,5 @@
 'use client';
+import cinema from './AnimeDetailControls.module.css';
 import { communityRequest } from '@/lib/community-client';
 import {
   getEpisodeAvailability,
@@ -150,9 +151,11 @@ function useEpisodeAvailability(anime: Anime) {
 export default function AnimeDetailControls({
   anime,
   showEpisodes = true,
+  variant = 'default',
 }: {
   anime: Anime;
   showEpisodes?: boolean;
+  variant?: 'default' | 'cinematic';
 }) {
   const router = useRouter();
 
@@ -333,7 +336,7 @@ export default function AnimeDetailControls({
   return (
     <>
       {trackerMessage && <p className="anime-detail-actions__message" role="status">{trackerMessage}</p>}
-      <div className="anime-detail-actions mt-7 flex flex-wrap gap-3">
+      <div className={`${variant === 'cinematic' ? cinema.actions : ''} anime-detail-actions mt-7 flex flex-wrap gap-3`}>
         <button
           type="button"
           className="btn btn--primary anime-detail-actions__watch"
@@ -349,7 +352,7 @@ export default function AnimeDetailControls({
                   : undefined
           }
         >
-          ▶{' '}
+          <span aria-hidden="true" className={cinema.playIcon}>▶</span>{' '}
           {episodeAvailabilityPending
             ? 'Проверяем плеер…'
             : playbackUnknown
@@ -374,21 +377,30 @@ export default function AnimeDetailControls({
           }`}
           onClick={handleFavorite}
           aria-pressed={favorite}
+          aria-label={favorite ? 'Убрать из избранного' : 'Добавить в избранное'}
+          title={favorite ? 'Убрать из избранного' : 'Добавить в избранное'}
         >
-          {favorite
-            ? '♥ В избранном'
-            : '♡ В избранное'}
+          {variant === 'cinematic' ? (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill={favorite ? 'currentColor' : 'none'} aria-hidden="true">
+              <path d="M12 20s-8-4.6-8-10a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.4-8 10-8 10Z" stroke="currentColor" strokeWidth="1.7" />
+            </svg>
+          ) : favorite ? '♥ В избранном' : '♡ В избранное'}
         </button>
 
         {!saved && (
           <button
             type="button"
             className="btn btn--ghost anime-detail-actions__tracker"
-            onClick={
-              handleAddToTracker
-            }
+            onClick={handleAddToTracker}
+            disabled={trackerBusy}
+            aria-label={trackerBusy ? 'Сохраняем в трекер' : 'Добавить в трекер'}
+            title={trackerBusy ? 'Сохраняем…' : 'Добавить в трекер'}
           >
-            {trackerBusy ? 'Сохраняем…' : '＋ В трекер'}
+            {variant === 'cinematic' ? (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            ) : trackerBusy ? 'Сохраняем…' : '＋ В трекер'}
           </button>
         )}
 
@@ -416,6 +428,16 @@ export default function AnimeDetailControls({
             </span>
           )}
       </div>
+
+      {variant === 'cinematic' && watchState && !watchState.completed &&
+        watchState.durationMs != null && watchState.durationMs > 0 && watchState.positionMs > 0 && (
+          <div className={cinema.resume} aria-label="Позиция продолжения просмотра">
+            <div className={cinema.resumeTrack} aria-hidden="true">
+              <span style={{ width: `${Math.max(0, Math.min(100, watchState.positionMs / watchState.durationMs * 100))}%` }} />
+            </div>
+            <span>Серия {watchState.episode} · продолжить с {Math.floor(watchState.positionMs / 60000)}:{String(Math.floor(watchState.positionMs / 1000) % 60).padStart(2, '0')}</span>
+          </div>
+        )}
 
       {showEpisodes &&
         (availableEpisodes || episodeAvailabilityPending || episodesUnavailable || playbackUnknown) && (

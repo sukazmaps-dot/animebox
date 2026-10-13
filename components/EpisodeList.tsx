@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import CinematicEpisodeCard from '@/components/CinematicEpisodeCard';
+import cinema from './CinematicEpisodeList.module.css';
 import { useRouter } from 'next/navigation';
 import {
   useCallback,
@@ -40,6 +42,7 @@ interface EpisodeListProps {
   totalEpisodesKnown?: boolean;
   currentEpisode?: number;
   watchedUpTo?: number;
+  variant?: 'default' | 'cinematic';
 }
 
 function seasonKey(id: number) {
@@ -67,8 +70,12 @@ export default function EpisodeList({
   totalEpisodesKnown = true,
   currentEpisode,
   watchedUpTo = 0,
+  variant = 'default',
 }: EpisodeListProps) {
   const router = useRouter();
+  const cinematic = variant === 'cinematic';
+  const seasonManuallySelectedRef = useRef(false);
+  const [cinemaVisibleCount, setCinemaVisibleCount] = useState(8);
   const currentCount =
     episodes && episodes > 0
       ? episodes
@@ -83,6 +90,8 @@ export default function EpisodeList({
   });
   const [activeTab, setActiveTab] = useState(seasonKey(trackingAnimeId));
   const [completedEpisodes, setCompletedEpisodes] = useState<number[]>([]);
+  const [progressAnimeId, setProgressAnimeId] = useState(trackingAnimeId);
+  const progressAnimeIdRef = useRef(trackingAnimeId);
   const [episodeProgress, setEpisodeProgress] = useState<EpisodeWatchListItem[]>([]);
   const [availability, setAvailability] = useState<EpisodeAvailabilityResponse | null>(
     () => peekEpisodeAvailability(trackingAnimeId),
@@ -108,7 +117,7 @@ export default function EpisodeList({
         setSeasonData(data);
 
         const currentSeason = data.seasons.find((season) => season.isCurrent);
-        if (currentSeason) {
+        if (currentSeason && !seasonManuallySelectedRef.current) {
           setActiveTab(seasonKey(currentSeason.id));
         }
       })
@@ -130,6 +139,13 @@ export default function EpisodeList({
     const id = Number(activeTab.slice('season:'.length));
     return seasonData.seasons.find((season) => season.id === id) ?? null;
   }, [activeTab, seasonData.seasons]);
+
+  const selectSeason = (key: string) => {
+    seasonManuallySelectedRef.current = true;
+    setActiveTab(key);
+    setSelectedGroupId(null);
+    setCinemaVisibleCount(8);
+  };
 
   const selectedAnimeId = activeSeason?.id ?? trackingAnimeId;
   const selectedAnimeSlug = activeSeason?.slug ?? String(animeId);
@@ -200,11 +216,15 @@ export default function EpisodeList({
       )
         .then((data) => {
           if (!active) return;
+          progressAnimeIdRef.current = selectedAnimeId;
+          setProgressAnimeId(selectedAnimeId);
           setCompletedEpisodes(data.episodes);
           setEpisodeProgress(Array.isArray(data.progress) ? data.progress : []);
         })
         .catch(() => {
           if (!active) return;
+          progressAnimeIdRef.current = selectedAnimeId;
+          setProgressAnimeId(selectedAnimeId);
           setCompletedEpisodes([]);
           setEpisodeProgress([]);
         });
@@ -213,6 +233,10 @@ export default function EpisodeList({
       const detail = (event as CustomEvent<WatchProgressEventDetail>).detail;
       if (!active || !detail || detail.animeId !== selectedAnimeId) return;
 
+      const previousMatches = progressAnimeIdRef.current === selectedAnimeId;
+      progressAnimeIdRef.current = selectedAnimeId;
+      setProgressAnimeId(selectedAnimeId);
+      if (!previousMatches) setCompletedEpisodes([]);
       setEpisodeProgress((current) => {
         const nextItem: EpisodeWatchListItem = {
           episode: detail.episode,
@@ -226,16 +250,16 @@ export default function EpisodeList({
         };
 
         return [
-          ...current.filter((item) => item.episode !== detail.episode),
+          ...(previousMatches ? current : []).filter((item) => item.episode !== detail.episode),
           nextItem,
         ].sort((a, b) => a.episode - b.episode);
       });
 
       if (detail.completed) {
         setCompletedEpisodes((current) =>
-          current.includes(detail.episode)
+          previousMatches && current.includes(detail.episode)
             ? current
-            : [...current, detail.episode].sort((a, b) => a - b),
+            : [...(previousMatches ? current : []), detail.episode].sort((a, b) => a - b),
         );
       }
     };
@@ -254,9 +278,11 @@ export default function EpisodeList({
   const progressByEpisode = useMemo(
     () =>
       new Map(
-        episodeProgress.map((item) => [item.episode, item] as const),
+        progressAnimeId === selectedAnimeId
+          ? episodeProgress.map((item) => [item.episode, item] as const)
+          : [],
       ),
-    [episodeProgress],
+    [episodeProgress, progressAnimeId, selectedAnimeId],
   );
 
   const groups = useMemo(
@@ -273,7 +299,7 @@ export default function EpisodeList({
       return Math.min(watchedUpTo + 1, selectedCount || watchedUpTo + 1);
     }
 
-    if (completedEpisodes.length > 0) {
+    if (progressAnimeId === selectedAnimeId && completedEpisodes.length > 0) {
       const highestCompleted = Math.max(...completedEpisodes);
       return Math.min(highestCompleted + 1, selectedCount || highestCompleted + 1);
     }
@@ -281,6 +307,8 @@ export default function EpisodeList({
     return 1;
   }, [
     completedEpisodes,
+    progressAnimeId,
+    selectedAnimeId,
     currentEpisode,
     selectedCount,
     selectedIsCurrent,
@@ -500,8 +528,22 @@ export default function EpisodeList({
   ]);
 
   return (
-    <div className={`episode-list-shell ${hasSeasonTabs ? 'has-seasons' : ''}`}>
-      {hasSeasonTabs && (
+    <div className={`${cinematic ? cinema.shell : ''} episode-list-shell ${hasSeasonTabs ? 'has-seasons' : ''}`}>
+      {cinematic && hasSeasonTabs && (
+        <div className={cinema.seasons} role="group" aria-label="Сезоны и части">
+          {seasonData.seasons.map((season) => (
+            <button type="button" key={season.id} aria-pressed={activeTab === seasonKey(season.id)}
+              aria-label={`${season.label}: ${season.title}`} title={season.title}
+              onClick={() => selectSeason(seasonKey(season.id))}>
+              <span>{season.label}</span>{season.year && <small>{season.year}</small>}
+            </button>
+          ))}
+          {seasonData.extras.length > 0 && <button type="button" aria-pressed={extrasActive}
+            onClick={() => selectSeason('extras')}>Фильмы / OVA</button>}
+          {seasonData.partial && <span className={cinema.partial}>Не все части подтверждены</span>}
+        </div>
+      )}
+      {!cinematic && hasSeasonTabs && (
         <div className="episode-list__seasons mb-5">
           <div className="episode-list__seasons-head mb-2 flex items-center justify-between gap-3">
             <span className="episode-list__micro-heading">
@@ -535,8 +577,7 @@ export default function EpisodeList({
                   title={season.title}
                   data-season-tab-active={active ? 'true' : undefined}
                   onClick={() => {
-                    setActiveTab(seasonKey(season.id));
-                    setSelectedGroupId(null);
+                    selectSeason(seasonKey(season.id));
                   }}
                   className={`episode-list__season-tab group min-w-[118px] shrink-0 rounded-xl border px-3.5 py-2.5 text-left transition-all duration-200 ${
                     active
@@ -588,8 +629,7 @@ export default function EpisodeList({
                 aria-selected={extrasActive}
                 data-season-tab-active={extrasActive ? 'true' : undefined}
                 onClick={() => {
-                  setActiveTab('extras');
-                  setSelectedGroupId(null);
+                  selectSeason('extras');
                 }}
                 className={`episode-list__season-tab episode-list__season-tab--extras min-w-[128px] shrink-0 rounded-xl border px-3.5 py-2.5 text-left transition-all duration-200 ${
                   extrasActive
@@ -760,7 +800,7 @@ export default function EpisodeList({
                         role="tab"
                         aria-selected={active}
                         data-episode-group-active={active ? 'true' : undefined}
-                        onClick={() => setSelectedGroupId(group.id)}
+                        onClick={() => { setSelectedGroupId(group.id); setCinemaVisibleCount(8); }}
                         className={`episode-list__group-tab shrink-0 rounded-xl border px-3 py-2 text-left transition-colors ${
                           active
                             ? 'border-violet-400/60 bg-violet-500/20 text-white'
@@ -787,16 +827,16 @@ export default function EpisodeList({
 
           <div
             ref={episodeListRef}
-            className="episode-list"
+            className={cinematic ? cinema.grid : 'episode-list'}
             role="list"
             aria-label="Эпизоды"
           >
-            {visibleEpisodes.map((number) => {
+            {(cinematic ? visibleEpisodes.slice(0, cinemaVisibleCount) : visibleEpisodes).map((number) => {
               const progress = progressByEpisode.get(number);
               const isCurrent =
                 selectedIsCurrent && number === currentEpisode;
               const isCompleted =
-                Boolean(progress?.completed) || completedEpisodes.includes(number);
+                Boolean(progress?.completed) || (progressAnimeId === selectedAnimeId && completedEpisodes.includes(number));
               const percent = isCompleted
                 ? 100
                 : progress?.percent != null
@@ -829,6 +869,13 @@ export default function EpisodeList({
                   : isPartial
                     ? `${number} серия, просмотрено ${percent}%`
                     : `${number} серия`;
+
+              if (cinematic) {
+                return <CinematicEpisodeCard key={`${selectedAnimeId}:${number}`} slug={selectedAnimeSlug}
+                  number={number} percent={percent} current={isCurrent} completed={isCompleted}
+                  positionMs={progress?.positionMs}
+                  detail={availability?.episodeDetails?.find((item) => item.episode === number)} />;
+              }
 
               return (
                 <Link
@@ -878,6 +925,11 @@ export default function EpisodeList({
               );
             })}
           </div>
+          {cinematic && cinemaVisibleCount < visibleEpisodes.length && (
+            <button className={cinema.more} type="button" onClick={() => setCinemaVisibleCount((count) => count + 8)}>
+              Показать ещё · {visibleEpisodes.length - cinemaVisibleCount} серий
+            </button>
+          )}
         </>
       )}
       </div>
