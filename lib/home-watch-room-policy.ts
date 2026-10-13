@@ -22,7 +22,7 @@ const validInteger = (value: unknown, min: number, max: number) =>
 export function isHomePublicWatchRoom(value: unknown): value is HomePublicWatchRoom {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const room = value as Record<string, unknown>;
-  const host = room.host as Record<string, unknown> | null;
+  const host = room.host as { username?: string } | null | undefined;
   return typeof room.roomId === 'string' && ROOM_ID.test(room.roomId) &&
     typeof room.roomCode === 'string' && ROOM_CODE.test(room.roomCode) &&
     room.visibility === 'public' &&
@@ -36,8 +36,7 @@ export function isHomePublicWatchRoom(value: unknown): value is HomePublicWatchR
     validInteger(room.maxParticipants, 1, 50) &&
     Number(room.participantCount) < Number(room.maxParticipants) &&
     room.isFull === false &&
-    Boolean(host) && typeof host.username === 'string' &&
-    host.username.trim().length > 0;
+    Boolean(host && typeof host.username === 'string' && host.username.trim().length > 0);
 }
 
 export function selectHomeWatchRooms(
