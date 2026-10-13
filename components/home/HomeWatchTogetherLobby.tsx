@@ -193,7 +193,7 @@ export default function HomeWatchTogetherLobby() {
       {loading ? (
         <div className={styles.empty} role="status">Ищем открытые комнаты…</div>
       ) : rooms.length ? (
-        <div ref={impressionRef} className={styles.roomGrid}>
+        <section ref={impressionRef} className={styles.roomGrid} aria-label="Доступные комнаты">
           {rooms.map((room) => {
             const cover = safeCover(room.coverUrl);
             return (
@@ -228,13 +228,13 @@ export default function HomeWatchTogetherLobby() {
               </article>
             );
           })}
-        </div>
+        </section>
       ) : (
-        <div ref={impressionRef} className={styles.empty}>
+        <section ref={impressionRef} className={styles.empty} aria-label="Состояние комнат">
           <span className={styles.emptyIcon} aria-hidden="true">✦</span>
           <strong>{degraded ? 'Совместные просмотры временно недоступны' : 'Сейчас нет открытых комнат'}</strong>
           <p>Начни свою комнату и пригласи друзей — живой просмотр начинается с одного приглашения.</p>
-        </div>
+        </section>
       )}
 
       {error && (
