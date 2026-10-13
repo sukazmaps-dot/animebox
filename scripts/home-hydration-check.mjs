@@ -19,6 +19,7 @@ const discovery = read(
 const personal = read(
   'components/home/HomePersonalRetentionSections.tsx',
 );
+const continueSection = read('components/home/HomeContinueSection.tsx');
 
 const progressBlock =
   feedRuntime.match(
@@ -70,15 +71,28 @@ if (
 }
 
 if (
-  !discovery.includes('<HomeContinueWatching') ||
+  !continueSection.includes('<HomeContinueWatching items={continueWatchingItems} />') ||
+  !continueSection.includes('useHomeFeedRuntime()') ||
+  discovery.includes('<HomeContinueWatching') ||
   !discovery.includes('className="home-discovery-flow"') ||
   !personal.includes(
     'export function HomePersonalScheduleSection',
   )
 ) {
   failures.push(
-    'Home hierarchy islands lost continue/discovery/personal schedule ownership.',
+    'Home hierarchy must own a single resume shelf, discovery flow and personal schedule.',
   );
+}
+
+const heroIndex = shell.indexOf('<HomeHeroSection />');
+const resumeIndex = shell.indexOf('<HomeContinueSection />');
+const socialIndex = shell.indexOf('<HomeWatchTogetherSection />');
+const homeDiscoveryIndex = shell.indexOf('<HomeDiscoverySection />');
+if (
+  !(heroIndex >= 0 && resumeIndex > heroIndex &&
+    socialIndex > resumeIndex && homeDiscoveryIndex > socialIndex)
+) {
+  failures.push('Mobile-first Hero/resume/Watch Together/discovery order regressed.');
 }
 
 const discoveryIndex =
