@@ -1,104 +1,64 @@
+/* A secondary homepage surface: shared palette, quiet actions and intrinsic height. */
 .section {
   width: 100%;
   min-width: 0;
-  padding: clamp(18px, 2.5vw, 26px);
-  margin: 12px 0 22px;
-  border: 1px solid rgba(177, 153, 255, .23);
-  border-radius: 20px;
-  background: linear-gradient(120deg, #19162a 0%, #141626 60%, #1e182e 100%);
-  color: #f6f4ff;
-  overflow: hidden;
+  padding: 22px 24px;
+  margin: 28px 0;
+  border: 1px solid var(--ab-ui-border, #36333f);
+  border-radius: 14px;
+  background: var(--ab-ui-surface, #1c1b22);
+  color: var(--ab-ui-text, #edeaf2);
 }
-.heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.headingCopy { min-width: 0; flex: 1 1 320px; }
-.eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .11em; color: #bea9ff; }
-.heading h2 { font-size: clamp(21px, 2.3vw, 29px); line-height: 1.2; letter-spacing: -.03em; font-weight: 800; margin: 6px 0 8px; }
-.heading p { font-size: 13px; line-height: 1.55; color: #d0cbdf; max-width: 630px; margin: 0; }
-.headingActions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
-.primaryAction, .secondaryAction { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: 8px; border-radius: 11px; padding: 9px 13px; font-weight: 730; font-size: 12px; text-decoration: none; white-space: nowrap; }
-.primaryAction { background: #7957df; color: white; }
-.secondaryAction { color: #ece5ff; border: 1px solid rgba(195, 179, 238, .28); background: rgba(255,255,255,.035); }
-.primaryAction:hover { background: #8c68f1; }
-.secondaryAction:hover { background: rgba(195, 179, 238, .12); }
-.primaryAction:focus-visible, .secondaryAction:focus-visible, .joinButton:focus-visible, .error button:focus-visible { outline: 3px solid #e2d3ff; outline-offset: 3px; }
-.lobby { min-width: 0; margin-top: 17px; }
-.roomGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.roomCard { display: flex; min-width: 0; align-items: stretch; gap: 11px; padding: 10px; background: rgba(255,255,255,.045); border: 1px solid rgba(210, 201, 255, .1); border-radius: 14px; }
-.poster { flex: 0 0 68px; height: 108px; border-radius: 9px; background: #2b2542; overflow: hidden; }
+.heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 24px; }
+.headingCopy { min-width: 0; }
+.eyebrow { font-size: 10px; line-height: 1.5; font-weight: 600; letter-spacing: .09em; color: var(--ab-ui-accent, #a798cf); }
+.heading h2 { font-size: 22px; line-height: 1.3; letter-spacing: -.02em; font-weight: 650; margin: 6px 0 8px; text-wrap: balance; }
+.heading p { font-size: 14px; line-height: 1.6; color: var(--ab-ui-muted, #aca6b6); max-width: 62ch; margin: 0; }
+.headingActions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.primaryAction, .secondaryAction { display: inline-flex; min-width: 0; min-height: 44px; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 8px; padding: 10px 14px; font-weight: 600; font-size: 13px; line-height: 1.4; text-decoration: none; white-space: nowrap; }
+.primaryAction { background: var(--ab-ui-raised, #26242e); border-color: var(--ab-ui-border, #36333f); color: var(--ab-ui-text, #edeaf2); }
+.secondaryAction { color: var(--ab-ui-muted, #aca6b6); background: transparent; }
+.primaryAction:hover { border-color: var(--ab-ui-accent, #a798cf); }
+.secondaryAction:hover { background: var(--ab-ui-raised, #26242e); color: var(--ab-ui-text, #edeaf2); }
+.primaryAction:focus-visible, .secondaryAction:focus-visible, .joinButton:focus-visible, .error button:focus-visible { outline: 2px solid var(--ab-ui-accent, #a798cf); outline-offset: 3px; }
+.lobby { min-width: 0; margin-top: 18px; }
+.roomGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.roomCard { display: flex; min-width: 0; align-items: stretch; gap: 12px; padding: 12px; background: var(--ab-ui-raised, #26242e); border: 1px solid var(--ab-ui-border, #36333f); border-radius: 10px; }
+.poster { flex: 0 0 68px; height: 102px; border-radius: 6px; background: var(--ab-ui-surface, #1c1b22); overflow: hidden; }
 .poster img { width: 100%; height: 100%; object-fit: cover; }
 .roomCopy { display: flex; align-items: flex-start; flex-direction: column; min-width: 0; flex: 1; }
-.roomStatus { font-size: 10px; line-height: 1.4; color: #cbb9ff; }
-.roomCopy h3 { font-size: 13px; line-height: 1.35; font-weight: 750; margin: 6px 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
-.roomCopy p { max-width: 100%; margin: 0 0 8px; font-size: 11px; color: #d1cede; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
-.joinButton { min-height: 33px; margin-top: auto; cursor: pointer; font-size: 11px; font-weight: 750; color: #f5efff; background: rgba(137, 108, 238, .2); border: 1px solid rgba(172, 149, 249, .5); border-radius: 8px; padding: 6px 10px; }
+.roomStatus { font-size: 11px; line-height: 1.4; color: var(--ab-ui-accent, #a798cf); }
+.roomCopy h3 { font-size: 14px; line-height: 1.4; font-weight: 600; margin: 5px 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.roomCopy p { max-width: 100%; margin: 0 0 8px; font-size: 12px; color: var(--ab-ui-muted, #aca6b6); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+.joinButton { min-height: 44px; max-width: 100%; margin-top: auto; cursor: pointer; font-size: 12px; line-height: 1.4; font-weight: 600; color: var(--ab-ui-text, #edeaf2); background: var(--ab-ui-surface, #1c1b22); border: 1px solid var(--ab-ui-border, #36333f); border-radius: 7px; padding: 8px 10px; overflow-wrap: anywhere; }
+.joinButton:hover:not(:disabled) { border-color: var(--ab-ui-accent, #a798cf); }
 .joinButton:disabled { cursor: wait; opacity: .55; }
-.empty { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 6px; min-height: 128px; padding: 19px; background: rgba(255,255,255,.025); border: 1px dashed rgba(191, 171, 253, .25); border-radius: 13px; color: #c9c4de; font-size: 13px; }
-.empty strong { font-size: 15px; color: #fff; }
-.empty p { margin: 0; line-height: 1.5; }
-.emptyIcon { font-size: 24px; color: #b7a3ff; }
-.error { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; font-size: 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(250, 184, 184, .3); color: #ffd2d2; }
-.error button { color: #fff; background: transparent; cursor: pointer; text-decoration: underline; }
+/* Empty/loading states are a short divider row, not another large boxed panel. */
+.empty { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: center; gap: 4px 12px; min-height: 0; padding: 16px 0 0; border-top: 1px solid var(--ab-ui-border, #36333f); color: var(--ab-ui-muted, #aca6b6); font-size: 13px; line-height: 1.5; }
+.empty:not(:has(.emptyIcon)) { grid-template-columns: minmax(0, 1fr); }
+.empty strong { grid-column: 2; font-size: 13px; line-height: 1.5; font-weight: 600; color: var(--ab-ui-text, #edeaf2); }
+.empty p { grid-column: 2; min-width: 0; margin: 0; line-height: 1.5; }
+.emptyIcon { grid-column: 1; grid-row: 1 / 3; align-self: start; font-size: 20px; line-height: 24px; color: var(--ab-ui-accent, #a798cf); }
+.error { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; font-size: 13px; line-height: 1.5; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(250, 184, 184, .3); color: #ffd2d2; }
+.error button { min-height: 44px; color: inherit; background: transparent; cursor: pointer; text-decoration: underline; }
 @media (max-width: 1150px) { .roomGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .roomCard:last-child:nth-child(odd) { grid-column: 1 / -1; } }
+@media (max-width: 1000px) {
+  .heading { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+}
 @media (max-width: 760px) {
-  .section { padding: 16px; margin-block: 12px 18px; border-radius: 16px; }
-  .headingActions { width: 100%; }
-  .primaryAction, .secondaryAction { flex: 1; padding-inline: 8px; }
-  .roomGrid { grid-template-columns: minmax(0,1fr); }
+  .section { padding: 18px 16px; margin-block: 20px 24px; border-radius: 12px; }
+  .heading { gap: 14px; }
+  .heading h2 { font-size: 20px; margin: 5px 0 8px; }
+  .heading p { font-size: 14px; line-height: 1.6; }
+  .headingActions { display: grid; grid-template-columns: minmax(0, 1.22fr) minmax(0, .95fr); gap: 8px; }
+  .primaryAction, .secondaryAction { white-space: normal; padding: 10px; text-align: center; }
+  .lobby { margin-top: 16px; }
+  .roomGrid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .roomCard { padding: 10px; gap: 12px; }
   .roomCard:last-child:nth-child(odd) { grid-column: auto; }
-  .poster { flex-basis: 73px; height: 109px; }
+  .poster { flex-basis: 64px; height: 96px; }
 }
-@media (max-width: 360px) { .headingActions { flex-direction: column; } .primaryAction, .secondaryAction { width: 100%; } .roomCard { padding: 8px; gap: 8px; } .poster { flex-basis: 60px; } }
+@media (max-width: 360px) { .headingActions { grid-template-columns: minmax(0, 1fr); } }
+/* The shared surface tokens also follow the user's light theme. */
+:global(html[data-animebox-theme="light"]) .error { color: #8b3038; border-color: #ddabb0; }
 @media (prefers-reduced-motion: reduce) { .section * { animation: none !important; transition: none !important; } }
-
-/* Patch 29.1 — compact mobile actions and readable live room summaries. */
-@media (max-width: 760px) {
-  .section { padding: 13px 14px; margin-bottom: 15px; }
-  .heading { gap: 10px; }
-  .heading h2 { font-size: clamp(19px, 5.4vw, 23px); margin: 4px 0 5px; }
-  .heading p { font-size: 12px; line-height: 1.45; }
-  .headingActions {
-    display: grid;
-    grid-template-columns: minmax(0, 1.22fr) minmax(0, .95fr);
-    gap: 8px;
-  }
-  .primaryAction, .secondaryAction {
-    min-width: 0;
-    min-height: 44px;
-    white-space: normal;
-    font-size: 11px;
-    padding: 9px 7px;
-    text-align: center;
-  }
-  .lobby { margin-top: 11px; }
-  .roomGrid { gap: 7px; }
-  .roomCard { padding: 8px; min-height: 102px; gap: 10px; }
-  .poster { flex-basis: 60px; height: 85px; }
-  .roomCopy h3 { margin: 3px 0; font-size: 12px; }
-  .roomCopy p { margin-bottom: 3px; font-size: 10px; }
-  .joinButton { min-height: 44px; }
-  .empty { min-height: 83px; padding: 12px 13px; gap: 3px; }
-  .empty p { font-size: 12px; }
-}
-@media (max-width: 360px) {
-  .headingActions { display: grid; grid-template-columns: minmax(0, 1.22fr) minmax(0, .95fr); }
-  .primaryAction, .secondaryAction { width: auto; font-size: 10px; }
-}
-/* Respect the global user-selected light theme. */
-:global(html[data-animebox-theme="light"]) .section {
-  border-color: #d4c5ed;
-  background: linear-gradient(120deg, #f5f0ff, #eae9fa);
-  color: #28213b;
-}
-:global(html[data-animebox-theme="light"]) .heading p,
-:global(html[data-animebox-theme="light"]) .roomCopy p,
-:global(html[data-animebox-theme="light"]) .empty { color: #494057; }
-:global(html[data-animebox-theme="light"]) .roomCard,
-:global(html[data-animebox-theme="light"]) .empty {
-  background: rgba(255,255,255,.72);
-  border-color: #d5cbec;
-}
-:global(html[data-animebox-theme="light"]) .empty strong { color: #28213b; }
-:global(html[data-animebox-theme="light"]) .secondaryAction { color: #35265f; border-color: #c3b4de; }
-:global(html[data-animebox-theme="light"]) .joinButton { color: #35265f; background: #eee8ff; border-color: #b09bdc; }
-:global(html[data-animebox-theme="light"]) .eyebrow,
-:global(html[data-animebox-theme="light"]) .roomStatus { color: #5d3caa; }

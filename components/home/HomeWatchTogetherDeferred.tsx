@@ -13,7 +13,7 @@ export default function HomeWatchTogetherDeferred() {
   return (
     <DeferredMount
       className="home-deferred home-deferred--social-lobby"
-      minHeight={142}
+      minHeight={80}
       rootMargin="250px 0px"
       ariaLabel="Открытые комнаты AnimeBox"
     >
