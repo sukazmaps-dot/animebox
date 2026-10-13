@@ -1,0 +1,17 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const server = fs.readFileSync('lib/community-server.ts', 'utf8');
+const route = fs.readFileSync('app/api/community/library/route.ts', 'utf8');
+const library = server.slice(server.indexOf('export async function ensureAnimeForLibraryWrite'),server.indexOf('export async function ensureAnimeArtwork'));
+assert(library.startsWith('export async function ensureAnimeForLibraryWrite'));
+assert(library.indexOf("if (existing) return;") < library.indexOf("from('anime_search_documents')"));
+assert(library.includes("from('seo_anime_index')"), 'SEO fallback when a new title is indexed');
+assert(library.includes("ignoreDuplicates: true"), 'must not overwrite concurrent catalog metadata');
+assert(library.includes("recommendation_metadata_version: 0"), 'fallback seed cannot claim verified metadata');
+assert(library.includes("await ensureAnime(id);"), 'completely unknown anime must still be verified');
+assert(library.includes("anilist.*(429|pressure|circuit_open)"), 'upstream overload must be actionable');
+assert(route.includes('await ensureAnimeForLibraryWrite(id)'), 'all library writes must use fast path');
+assert(!route.includes('await ensureAnime(id)'), 'no unconditional live AniList refresh on user mutations');
+assert(route.includes("client.rpc('set_library_status'"), 'authenticated RPC ownership enforcement retained');
+assert(route.includes("'watching', 'planned', 'completed', 'dropped'"), 'four supported statuses');
+console.log('Tracker library mutation independent of stale external metadata: passed.');
