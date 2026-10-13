@@ -123,7 +123,8 @@
     "tracker-library-write:check": "node tests/tracker-library-write.cjs",
     "patch29:check": "node tests/patch29-social-home.cjs",
     "patch29-1:check": "node tests/patch29-1-mobile-social.cjs",
-    "patch29-2:check": "node tests/patch29-2-mobile-hotfix.cjs"
+    "patch29-2:check": "node tests/patch29-2-mobile-hotfix.cjs",
+    "anime-layout:check": "node scripts/anime-detail-layout-smoke.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
