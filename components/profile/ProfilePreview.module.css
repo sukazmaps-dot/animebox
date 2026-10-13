@@ -1472,3 +1472,55 @@ html[data-animebox-theme='light'] .close {
 :global(html[data-animebox-theme='light']) .card .bio { color: var(--ab-ui-muted, #696174); }
 .card .metaCard > span:last-child, .card .streakCard > span:last-child { flex: 1; min-width: 0; grid-template-columns: minmax(0, 1fr); }
 .card .metaCard :is(small, strong, em), .card .streakCard :is(small, strong, em) { min-width: 0; overflow-wrap: anywhere; }
+
+/* Hotfix 29.4.1: Premium palette owns the whole preview, including shared controls.
+   Scope semantic aliases to this card, never to the surrounding site. */
+:global(html) .card[data-premium='true'] {
+  --ab-ui-surface: var(--profile-preview-primary);
+  --ab-ui-raised: color-mix(in srgb, var(--profile-preview-primary) 96%, var(--profile-preview-text) 4%);
+  --ab-ui-text: var(--profile-preview-text);
+  --ab-ui-muted: color-mix(in srgb, var(--profile-preview-text) 82%, var(--profile-preview-primary) 18%);
+  --ab-ui-border: color-mix(in srgb, var(--profile-preview-accent) 30%, var(--profile-preview-primary) 70%);
+  --ab-ui-accent: var(--profile-preview-accent);
+  background: var(--ab-ui-surface);
+  color: var(--ab-ui-text);
+  border-color: var(--ab-ui-border);
+}
+.card[data-premium='true'] .rankLabel,
+.card[data-premium='true'] .levelBadge {
+  color: var(--ab-ui-text);
+  background: var(--ab-ui-raised);
+  border-color: var(--ab-ui-border);
+}
+.card[data-premium='true'] .kicker { color: var(--ab-ui-accent); }
+:global(html) .card[data-premium='true'] .close {
+  background: color-mix(in srgb, var(--ab-ui-surface) 88%, transparent);
+  color: var(--ab-ui-text);
+  border-color: var(--ab-ui-border);
+}
+.card .actions > .openProfile:only-child { justify-self: end; }
+
+/* Mini-profile composition: larger visual identity, description with the name. */
+.card .avatarShell { flex: 0 0 82px; width: 82px; height: 82px; }
+.card .avatarShellSeason { margin: 0; }
+.card .avatarShellIdentity { flex-basis: 112px; width: 112px; height: 112px; min-width: 112px; min-height: 112px; }
+.card .heroIdentity { align-items: flex-start; gap: 12px; margin-top: -36px; }
+.card .identityCopy { padding-top: 28px; }
+.card .identityCopy .bio {
+  margin: 4px 0 0; color: color-mix(in srgb, var(--profile-preview-text) 78%, var(--profile-preview-primary) 22%);
+  font-size: 13px; line-height: 1.45; display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3; overflow: hidden;
+}
+:global(html[data-animebox-theme='light']) .card:not([data-premium='true']) .identityCopy .bio { color: var(--ab-ui-muted, #696174); }
+.card .metaCard, .card .streakCard { background: transparent; gap: 12px; }
+.card .metaGlyph, .card .streakCard > span:first-child { flex: 0 0 32px; width: 32px; height: 36px; }
+.card .metaGlyph { color: var(--ab-ui-accent, #a798cf); }
+.card .streakCard > span:first-child img { width: 28px; height: 28px; object-fit: contain; }
+.card .openProfile { background: transparent; border-color: var(--ab-ui-border, #36333f); border-radius: 8px; }
+.card .openProfile:hover { background: var(--ab-ui-raised, #26242e); border-color: var(--ab-ui-accent, #a798cf); }
+@media (max-width: 640px) {
+  .card .avatarShell { flex-basis: 79px; width: 79px; height: 79px; }
+  .card .avatarShellIdentity { flex-basis: 102px; width: 102px; height: 102px; min-width: 102px; min-height: 102px; }
+  .card .heroIdentity { margin-top: -30px; }
+  .card .identityCopy { padding-top: 24px; }
+}

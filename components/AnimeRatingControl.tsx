@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { useAuthState } from '@/components/AuthStateProvider';
+import styles from './AnimeRatingControl.module.css';
 
 type RatingPayload = {
   ok?: boolean;
@@ -182,7 +183,7 @@ export default function AnimeRatingControl({
   const visualScore = hoverScore ?? myScore ?? 0;
 
   return (
-    <section className="anime-rating-control" aria-labelledby="animebox-rating-title">
+    <section className={`${styles.control} anime-rating-control`} aria-labelledby="animebox-rating-title">
       <div className="anime-rating-control__head">
         <div>
           <span className="anime-rating-control__eyebrow">ОЦЕНКА ANIMEBOX</span>
