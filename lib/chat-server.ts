@@ -5,6 +5,7 @@ import { unstable_cache } from 'next/cache';
 import { ApiError, adminClient } from '@/lib/community-server';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
 import { resolvePublicAppearances } from '@/lib/public-avatar-server';
+import { getSelectedProfileFrames } from '@/lib/leaderboard-rewards-server';
 import { getSponsorStatuses } from '@/lib/sponsor-server';
 import {
   CHAT_REACTIONS,
@@ -50,9 +51,10 @@ export async function getChatAuthors(userIds: string[]): Promise<Map<string, Cha
   if (!ids.length) return result;
 
   const admin = adminClient();
-  const [profilesResult, sponsorByUser] = await Promise.all([
+  const [profilesResult, sponsorByUser, frameByUser] = await Promise.all([
     admin.from('profiles').select('id,username,avatar_path').in('id', ids),
     getSponsorStatuses(ids),
+    getSelectedProfileFrames(ids),
   ]);
   if (profilesResult.error) throw profilesResult.error;
 
@@ -68,6 +70,7 @@ export async function getChatAuthors(userIds: string[]): Promise<Map<string, Cha
       username: typeof profile.username === 'string' ? profile.username.trim() || null : null,
       avatarUrl: appearance?.avatarUrl ?? '/default-avatar.webp',
       avatarTransform: appearance?.avatarTransform ?? null,
+      profileFrameKey: frameByUser.get(profile.id) ?? null,
       sponsor: sponsorByUser.get(profile.id) ?? null,
       role: publicIdentityRoleFor(profile.id),
       premium: appearance?.premiumBadge ?? false,
@@ -83,6 +86,7 @@ export async function getChatAuthors(userIds: string[]): Promise<Map<string, Cha
       username: null,
       avatarUrl: null,
       avatarTransform: null,
+      profileFrameKey: null,
       sponsor: sponsorByUser.get(id) ?? null,
       role: publicIdentityRoleFor(id),
       premium: false,

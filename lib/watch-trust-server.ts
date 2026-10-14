@@ -182,44 +182,21 @@ export async function assessWatchSessionTrust(input: {
   return { ...assessment, available: true };
 }
 
-function metadataState(value: unknown) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  const state = (value as Record<string, unknown>).state;
-  return typeof state === 'string' ? state : null;
-}
-
 export async function getHighRiskUsersFromTrustEvents(input: {
-  userIds: string[];
-  startsAt: string;
-  endsAt?: string | null;
+  userIds: string[]; startsAt: string; endsAt?: string | null;
 }) {
   const ids = [...new Set(input.userIds.filter(Boolean))];
   const result = new Set<string>();
   if (!ids.length) return result;
-
-  const admin = adminClient();
-  let query = admin
-    .from('product_events')
-    .select('user_id,metadata,created_at')
-    .eq('event_name', 'watch_trust_assessed')
-    .in('user_id', ids)
-    .gte('created_at', input.startsAt)
-    .order('created_at', { ascending: false })
-    .limit(1_000);
-
-  if (input.endsAt) {
-    query = query.lt('created_at', input.endsAt);
+  for (let offset = 0; ; offset += 500) {
+    let query = watchClient().from('leaderboard_trust_restrictions')
+      .select('user_id,assessed_at').in('user_id', ids).gte('assessed_at', input.startsAt)
+      .order('assessed_at', { ascending: true }).order('user_id', { ascending: true }).range(offset, offset + 499);
+    if (input.endsAt) query = query.lt('assessed_at', input.endsAt);
+    const { data, error } = await query;
+    if (error) throw error;
+    for (const row of data ?? []) if (typeof row.user_id === 'string') result.add(row.user_id);
+    if ((data ?? []).length < 500) break;
   }
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  for (const row of data ?? []) {
-    const userId = typeof row.user_id === 'string' ? row.user_id : null;
-    if (userId && metadataState(row.metadata) === 'high_risk') {
-      result.add(userId);
-    }
-  }
-
   return result;
 }

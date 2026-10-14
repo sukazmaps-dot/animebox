@@ -1,3 +1,4 @@
+import { ANIME_GENRES } from '@/lib/anime-taxonomy';
 import type { CatalogSeason, CatalogSeasonValue } from '@/lib/catalog-season';
 
 export type CatalogStatus = 'ongoing' | 'finished' | 'upcoming';
@@ -30,6 +31,8 @@ export const CATALOG_DISCOVERY_FILTERS = [
   { id: 'mahou-shoujo', label: 'Махо-сёдзё', provider: 'genre', value: 'Mahou Shoujo' },
   { id: 'psychological', label: 'Психологическое', provider: 'genre', value: 'Psychological' },
   { id: 'school', label: 'Школа', provider: 'tag', value: 'School' },
+  ...ANIME_GENRES.filter(genre => !['Mecha', 'Slice of Life', 'Sports', 'Mahou Shoujo', 'Psychological'].includes(genre.value))
+    .map(genre => ({ id: genre.value.toLowerCase().replace(/[^a-z0-9]+/g, '-'), label: genre.label, provider: 'genre' as const, value: genre.value })),
 ] as const;
 
 export const CATALOG_FORMATS: Array<{ value: CatalogFormat; label: string }> = [

@@ -44,13 +44,13 @@ if (
   failures.push('watch reward quarantine is not enforced');
 }
 
+const durableMigration = fs.readFileSync('supabase/migrations/20261013200155_leaderboard_durable_periods_v1.sql', 'utf8');
 if (
-  !leaderboard.includes('getHighRiskUsersFromTrustEvents') ||
-  !leaderboard.includes('const trustedRows = rows.filter') ||
-  !leaderboard.includes('rank: index + 1')
-) {
-  failures.push('live leaderboard trust filter is missing');
-}
+  !durableMigration.includes('leaderboard_trust_restrictions') ||
+  !durableMigration.includes('not exists(select 1 from animebox_watch.leaderboard_trust_restrictions') ||
+  !leaderboard.includes('rank: Number(row.rank_no)') ||
+  leaderboard.includes('rank: index + 1')
+) failures.push('season eligibility must precede rank/limit in SQL; API preserves true ranks');
 
 if (
   !rewards.includes('getHighRiskUsersFromTrustEvents') ||

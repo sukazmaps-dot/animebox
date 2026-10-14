@@ -11,8 +11,8 @@ import {
   type PublicAppearancePreload,
 } from '@/lib/public-avatar-server';
 import { normalizeProgression } from '@/lib/progression';
-import { getSelectedSeasonFrames } from '@/lib/leaderboard-rewards-server';
 import { getHighRiskUsersFromTrustEvents } from '@/lib/watch-trust-server';
+import { getSelectedSeasonFrames } from '@/lib/leaderboard-rewards-server';
 import {
   currentLeaderboardMonthUtc,
   currentLeaderboardWeekUtc,
@@ -90,25 +90,20 @@ export async function GET(request: Request) {
         ? { ...currentLeaderboardMonthUtc(), rewards: MONTHLY_REWARD_TIERS }
         : null;
 
-    const trustStartsAt =
-      season?.startsAt ??
-      new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const highRiskUsers = await getHighRiskUsersFromTrustEvents({
-      userIds: rows.map((row) => row.user_id),
-      startsAt: trustStartsAt,
-    }).catch((error) => {
-      // Leaderboard trust filtering is fail-open on telemetry outages. Watch
-      // progress and the leaderboard API must remain available.
-      console.warn('[leaderboard] trust filter unavailable:', error);
-      return new Set<string>();
-    });
-    const trustedRows = rows.filter(
-      (row) => !highRiskUsers.has(row.user_id),
-    );
+    // SQL applies seasonal eligibility BEFORE assigning ranks and selecting top-100.
+    // All-time is the profile ledger; one seasonal flag cannot hide lifetime stats.
+    const trustedRows = rows;
+    const [{ data: health, error: healthError }, myRestrictions] = await Promise.all([
+      admin.rpc('leaderboard_data_health', { p_period: period }),
+      currentUserId && season ? getHighRiskUsersFromTrustEvents({ userIds: [currentUserId], startsAt: season.startsAt, endsAt: season.endsAt }) : Promise.resolve(new Set<string>()),
+    ]);
+    const myEligibility = currentUserId && myRestrictions.has(currentUserId) ? 'restricted' : 'eligible';
+    if (healthError) throw healthError;
+    const coverage = { ...health, complete: period === 'all' || Boolean(season && Date.parse(season.startsAt) >= Date.parse(health?.coveredFrom ?? '')) };
 
     if (trustedRows.length === 0) {
       return Response.json(
-        { period, entries: [], me: null, season },
+        { period, entries: [], me: null, season, coverage, myEligibility },
         { headers: { 'Cache-Control': 'private, no-store' } },
       );
     }
@@ -138,12 +133,12 @@ export async function GET(request: Request) {
       trustedRows.map((row) => row.user_id),
     ).catch(() => new Map());
 
-    const normalized = trustedRows.map((row, index) => {
+    const normalized = trustedRows.map((row) => {
       const appearance = appearanceByUser.get(row.user_id);
       const sponsorPreferences = asRecord(row.sponsor_preferences);
 
       return {
-        rank: index + 1,
+        rank: Number(row.rank_no),
         userId: row.user_id,
         username: publicUsernameOrFallback(row.username, row.user_id),
         avatarUrl: appearance?.avatarUrl ?? '/default-avatar.webp',
@@ -167,6 +162,8 @@ export async function GET(request: Request) {
     return Response.json(
       {
         period,
+        coverage,
+        myEligibility,
         entries: normalized.filter((entry) => entry.rank <= 100),
         me: normalized.find((entry) => entry.isCurrentUser) ?? null,
         season,

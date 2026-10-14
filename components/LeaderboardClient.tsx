@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
+import { formatSeasonRange } from '@/lib/seasons';
 import styles from './Leaderboard.module.css';
 import UserIdentity from '@/components/identity/UserIdentity';
 import ProfilePreview from '@/components/profile/ProfilePreview';
@@ -35,6 +36,8 @@ type Entry = {
 
 type Payload = {
   period: Period;
+  myEligibility?: 'eligible' | 'restricted';
+  coverage?: { complete: boolean; participantCount: number; computedAt: string };
   entries: Entry[];
   me: Entry | null;
   season: null | {
@@ -148,6 +151,10 @@ export default function LeaderboardClient() {
           <h1>Твоё место в топе.</h1>
           <p>Сравни время просмотра с другими зрителями AnimeBox.</p>
           <div className={styles.heroMeta}><span>Топ-100</span><span>По подтверждённому времени просмотра</span></div>
+          {data?.coverage && <p role="status">
+            {data.coverage.participantCount} участников · {data.season ? formatSeasonRange(data.season.startsAt, data.season.endsAt) : 'Всё время'} · UTC.
+            {!data.coverage.complete && ' История периода неполная: время может быть занижено.'}
+          </p>}
         </div>
 
         <div className={styles.heroStatus} aria-label="Твоя статистика рейтинга">
@@ -161,7 +168,7 @@ export default function LeaderboardClient() {
             <div className={styles.heroStatusEmpty}>
               <span>ТВОЯ ПОЗИЦИЯ</span>
               <strong>—</strong>
-              <small>Начни смотреть — место появится здесь</small>
+              <small>{data?.myEligibility === 'restricted' ? 'Участие в этом периоде ограничено. Общая статистика просмотра сохранена.' : 'Начни смотреть — место появится здесь'}</small>
             </div>
           )}
         </div>

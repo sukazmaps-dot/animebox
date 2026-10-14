@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 
     const { data: seasons, error: seasonsError } = await admin
       .from('leaderboard_seasons')
-      .select('id,period_type,period_key,starts_at,ends_at,finalized_at')
+      .select('id,period_type,period_key,starts_at,ends_at,finalized_at,archive_status,calculation_version')
       .eq('period_type', period)
       .order('ends_at', { ascending: false })
       .limit(8);
@@ -90,6 +90,8 @@ export async function GET(request: Request) {
 
         return {
           id: season.id,
+          archiveStatus: season.archive_status,
+          calculationVersion: season.calculation_version,
           periodType: season.period_type,
           periodKey: season.period_key,
           startsAt: season.starts_at,
@@ -114,7 +116,7 @@ export async function GET(request: Request) {
           }),
         };
       })
-      .filter((season) => season.entries.length > 0);
+;
 
     return Response.json(
       { period, seasons: payload },

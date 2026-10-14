@@ -24,6 +24,7 @@ type Entry = {
 };
 
 type Season = {
+  archiveStatus?: 'legacy' | 'complete' | 'partial';
   id: string;
   periodType: Period;
   periodKey: string;
@@ -51,8 +52,11 @@ export default function HallOfFameClient() {
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
-    setError('');
+    queueMicrotask(() => {
+      if (controller.signal.aborted) return;
+      setLoading(true);
+      setError('');
+    });
 
     fetch(`/api/community/hall-of-fame?period=${period}`, {
       signal: controller.signal,
@@ -133,9 +137,14 @@ export default function HallOfFameClient() {
                     <span>{season.periodType === 'week' ? 'НЕДЕЛЬНЫЙ СЕЗОН' : 'МЕСЯЧНЫЙ СЕЗОН'}</span>
                     <h2>{formatSeasonRange(season.startsAt, season.endsAt)}</h2>
                   </div>
-                  <small>Top {season.entries.length}</small>
+                  <small>{season.archiveStatus === 'partial' ? 'Неполный архив' : `Top ${season.entries.length}`}</small>
                 </header>
 
+                {season.entries.length === 0 && (
+                  <p role="status">{season.archiveStatus === 'partial'
+                    ? 'Часть истории просмотра недоступна. Точные места и награды за этот период не определены.'
+                    : 'В этом сезоне нет участников с засчитанным временем.'}</p>
+                )}
                 <div className={styles.podium}>
                   {podium.map((entry) => (
                     <Link

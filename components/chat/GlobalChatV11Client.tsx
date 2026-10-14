@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { useAuthState } from '@/components/AuthStateProvider';
 import ProfilePreview from '@/components/profile/ProfilePreview';
 import { createClient } from '@/lib/supabase/client';
-import { resolveSponsorFrame } from '@/lib/sponsor';
+import { compactProfileFrameAsset } from '@/lib/profile-frames';
+import { resolveAvatarIdentityVisuals } from '@/lib/avatar-identity';
 import {
   deleteChatMessage,
   fetchChatAuthors,
@@ -78,11 +79,20 @@ function identityLabel(author: ChatAuthor | null) {
   return null;
 }
 
-function frameKind(author: ChatAuthor | null) {
-  if (!author) return null;
-  if (author.role === 'owner') return 'owner';
-  if (!author.sponsor) return null;
-  return resolveSponsorFrame(author.sponsor.tier, author.sponsor.cosmetics?.selectedFrame);
+function chatAvatar(author: ChatAuthor | null) {
+  const visual = resolveAvatarIdentityVisuals({ role: author?.role, sponsor: author?.sponsor, profileFrameKey: author?.profileFrameKey });
+  const frameSrc = compactProfileFrameAsset(visual.profileFrameKey) ?? visual.identityFrameSrc;
+  return (
+    <span className={styles.avatarCanvas}>
+      <span className={styles.avatarCrop} style={{ inset: `${visual.avatarInsetPct}%` }}>
+        <img src={author?.avatarUrl || '/default-avatar.webp'} alt={author?.username || 'Пользователь'} className={styles.avatar} style={avatarStyle(author)} />
+      </span>
+      {frameSrc && (
+        <img src={frameSrc} alt="" className={styles.frame} aria-hidden="true"
+          style={{ transform: `translate(-50%, -50%) scale(${visual.identityFrameScale})` }} />
+      )}
+    </span>
+  );
 }
 
 function getBroadcastRecord(payload: unknown): Record<string, unknown> | null {
@@ -606,7 +616,6 @@ export default function GlobalChatV11Client({ initialPage }: { initialPage: Chat
               const author = message.author;
               const badge = identityLabel(author);
               const reply = message.reply_to ? messageById.get(message.reply_to) ?? null : null;
-              const frame = frameKind(author);
               const state = delivery[message.id];
               const isSystem = message.kind === 'system';
 
@@ -616,8 +625,7 @@ export default function GlobalChatV11Client({ initialPage }: { initialPage: Chat
                   <article className={`${styles.message} ${message.user_id === user?.id ? styles.mine : ''} ${isSystem ? styles.systemMessage : ''}`}>
                     {isSystem ? (
                       <span className={styles.avatarWrap}>
-                        <img src={author?.avatarUrl || '/default-avatar.webp'} alt="" className={styles.avatar} style={avatarStyle(author)} />
-                        {frame && <img src={`/brand/identity/frame-${frame}.webp`} alt="" className={styles.frame} aria-hidden="true" />}
+                        {chatAvatar(author)}
                       </span>
                     ) : (
                       <ProfilePreview
@@ -625,8 +633,7 @@ export default function GlobalChatV11Client({ initialPage }: { initialPage: Chat
                         username={author?.username || 'Пользователь'}
                         className={styles.avatarWrap}
                       >
-                        <img src={author?.avatarUrl || '/default-avatar.webp'} alt={author?.username || 'Пользователь'} className={styles.avatar} style={avatarStyle(author)} />
-                        {frame && <img src={`/brand/identity/frame-${frame}.webp`} alt="" className={styles.frame} aria-hidden="true" />}
+                        {chatAvatar(author)}
                       </ProfilePreview>
                     )}
 
