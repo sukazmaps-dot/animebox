@@ -5,19 +5,19 @@
    ========================================================= */
 
 .animebox-premium-player {
-  border: 1px solid rgba(204, 208, 220, .075);
+  border: 1px solid var(--ab-ui-border);
   border-radius: 18px;
-  background: #0a0d14;
+  background: var(--ab-ui-surface);
   box-shadow: 0 24px 64px rgba(0,0,0,.34);
 }
 
 .animebox-premium-player:not(.is-premium-themed) {
   --player-accent: var(--ab-accent);
   --player-accent-2: var(--ab-accent);
-  --player-primary: #0a0d14;
+  --player-primary: var(--ab-ui-surface);
   --player-text: var(--ab-text);
   --player-on-accent: #fff;
-  --player-border: rgba(204,208,220,.075);
+  --player-border: var(--ab-ui-border);
   --player-shadow: 0 24px 64px rgba(0,0,0,.34);
 }
 
@@ -30,8 +30,8 @@
 }
 
 .animebox-player-header {
-  border-bottom: 1px solid rgba(204,208,220,.06);
-  background: #0b0f17;
+  border-bottom: 1px solid var(--ab-ui-border);
+  background: var(--ab-ui-surface);
 }
 
 .animebox-premium-player .premium-player-dot {
@@ -41,14 +41,14 @@
 }
 
 .animebox-premium-player .premium-player-accent-text {
-  color: #a9a4ba !important;
+  color: var(--ab-ui-muted) !important;
 }
 
 .animebox-player-source-switcher {
   gap: 2px;
   border: 0;
   border-radius: 7px;
-  background: #111722;
+  background: var(--ab-ui-surface);
 }
 
 .animebox-premium-player .premium-player-source {
@@ -58,8 +58,8 @@
 
 .animebox-premium-player .premium-player-source.is-active,
 .animebox-premium-player .premium-player-source[aria-pressed='true'] {
-  background: #23283a !important;
-  color: #f3f1ee !important;
+  background: var(--ab-ui-raised) !important;
+  color: var(--ab-ui-text) !important;
 }
 
 .animebox-player-quality,
@@ -67,32 +67,32 @@
 .animebox-premium-player .premium-player-toolbar-button {
   border: 0 !important;
   border-radius: 6px !important;
-  background: #111722 !important;
+  background: var(--ab-ui-surface) !important;
   box-shadow: none !important;
 }
 
 .animebox-premium-player .premium-player-dropdown-trigger:hover,
 .animebox-premium-player .premium-player-toolbar-button:hover {
-  background: #171f2c !important;
-  color: #f1f0ed !important;
+  background: var(--ab-ui-raised) !important;
+  color: var(--ab-ui-text) !important;
 }
 
 .animebox-premium-player .premium-player-control-icon {
   border: 0 !important;
   border-radius: 5px !important;
-  background: #0c111a !important;
-  color: #aaa1d4 !important;
+  background: var(--ab-ui-surface) !important;
+  color: var(--ab-ui-accent) !important;
 }
 
 .animebox-premium-player .premium-player-dropdown-trigger.is-open {
-  background: #171d2a !important;
+  background: var(--ab-ui-surface) !important;
   box-shadow: inset 2px 0 0 var(--player-accent) !important;
 }
 
 .animebox-premium-player .premium-player-dropdown-trigger + div {
-  border-color: rgba(204,208,220,.08) !important;
+  border-color: var(--ab-ui-border) !important;
   border-radius: 8px !important;
-  background: rgba(10,13,20,.985) !important;
+  background: color-mix(in srgb, var(--ab-ui-surface) 98.5%, transparent) !important;
   box-shadow: 0 20px 55px rgba(0,0,0,.46) !important;
   backdrop-filter: none !important;
 }
@@ -102,20 +102,20 @@
 }
 
 .animebox-premium-player .premium-player-dropdown-option.is-active {
-  background: #1d2231 !important;
+  background: var(--ab-ui-raised) !important;
   box-shadow: inset 2px 0 0 var(--player-accent) !important;
 }
 
 .animebox-player-stage-shell {
-  background: #07090e;
+  background: var(--ab-ui-canvas);
 }
 
 .animebox-player-notice {
   border: 0;
   border-left: 2px solid var(--ab-signal);
   border-radius: 4px;
-  background: #111722;
-  color: #c7c9d0;
+  background: var(--ab-ui-surface);
+  color: var(--ab-ui-muted);
 }
 
 .animebox-player-viewport {
@@ -130,7 +130,7 @@
   inset: auto 0 0;
   z-index: -1;
   height: 34%;
-  background: linear-gradient(180deg, transparent, rgba(3,4,7,.55));
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--ab-ui-canvas) 55%, transparent));
   pointer-events: none;
 }
 
@@ -138,53 +138,53 @@
   width: 76px !important;
   height: 76px !important;
   border: 1px solid rgba(255,255,255,.18) !important;
-  background: rgba(12,15,24,.88) !important;
+  background: color-mix(in srgb, var(--ab-ui-surface) 88%, transparent) !important;
   box-shadow: 0 14px 38px rgba(0,0,0,.38) !important;
 }
 
 @media (hover: hover) {
   .animebox-player-cover:hover .premium-player-play-button {
     transform: translateY(-2px) !important;
-    background: #171c2a !important;
+    background: var(--ab-ui-surface) !important;
   }
 }
 
 .animebox-player-provider-badge {
   border: 0;
   border-radius: 5px;
-  background: rgba(7,9,14,.78);
-  color: #bbbcc4;
+  background: color-mix(in srgb, var(--ab-ui-canvas) 78%, transparent);
+  color: var(--ab-ui-muted);
   backdrop-filter: none;
 }
 
 .animebox-player-loading {
-  background: rgba(6,8,12,.94);
+  background: color-mix(in srgb, var(--ab-ui-canvas) 94%, transparent);
   backdrop-filter: none;
 }
 
 .animebox-player-error-card {
-  border: 1px solid rgba(204,208,220,.08);
+  border: 1px solid var(--ab-ui-border);
   border-radius: 8px;
-  background: #0d1119;
+  background: var(--ab-ui-surface);
   box-shadow: 0 20px 55px rgba(0,0,0,.42);
 }
 
 .animebox-player-nav {
-  border-top: 1px solid rgba(204,208,220,.06);
-  background: #0b0f17;
+  border-top: 1px solid var(--ab-ui-border);
+  background: var(--ab-ui-surface);
 }
 
 .animebox-player-prev-button,
 .animebox-player-meta {
   border: 0;
   border-radius: 6px;
-  background: #111722;
-  color: #9ea4b1;
+  background: var(--ab-ui-surface);
+  color: var(--ab-ui-muted);
 }
 
 .animebox-player-prev-button:hover {
-  background: #171f2c;
-  color: #f1f0ed;
+  background: var(--ab-ui-raised);
+  color: var(--ab-ui-text);
 }
 
 .animebox-player-meta {
@@ -248,14 +248,14 @@
 
 .animebox-player-end-screen {
   background:
-    linear-gradient(180deg, rgba(5,7,11,.82), rgba(5,7,11,.94));
+    linear-gradient(180deg, color-mix(in srgb, var(--ab-ui-canvas) 82%, transparent), color-mix(in srgb, var(--ab-ui-canvas) 94%, transparent));
 }
 
 .animebox-player-end-card {
   padding: 24px;
-  border: 1px solid rgba(204,208,220,.08);
+  border: 1px solid var(--ab-ui-border);
   border-radius: 10px;
-  background: #0c1018;
+  background: var(--ab-ui-surface);
   box-shadow: 0 22px 58px rgba(0,0,0,.42);
 }
 
@@ -308,13 +308,13 @@
 .animebox-player-end-primary {
   border: 0;
   background: var(--player-accent);
-  color: var(--player-on-accent, #fff);
+  color: var(--player-on-accent, var(--ab-ui-text));
 }
 
 .animebox-player-end-secondary {
   border: 0;
-  background: #151b26;
-  color: #aeb3bf;
+  background: var(--ab-ui-surface);
+  color: var(--ab-ui-muted);
 }
 
 @media (hover: hover) {
@@ -324,8 +324,8 @@
   }
 
   .animebox-player-end-secondary:hover {
-    background: #1b2330;
-    color: #f1f0ed;
+    background: var(--ab-ui-raised);
+    color: var(--ab-ui-text);
   }
 }
 
@@ -353,7 +353,7 @@
 
 .animebox-premium-player {
   border-radius: 14px;
-  background: #080b11;
+  background: var(--ab-ui-surface);
   box-shadow: 0 22px 58px rgba(0,0,0,.30);
 }
 
@@ -368,7 +368,7 @@
   gap: 18px !important;
   padding-top: 14px !important;
   padding-bottom: 14px !important;
-  background: #0a0e15;
+  background: var(--ab-ui-surface);
 }
 
 .animebox-player-titleblock {
@@ -397,7 +397,7 @@
 .animebox-player-source-switcher {
   padding: 3px !important;
   border-radius: 6px;
-  background: #0f1520;
+  background: var(--ab-ui-surface);
 }
 
 .animebox-premium-player .premium-player-source {
@@ -405,18 +405,18 @@
   padding: 0 10px !important;
   border-radius: 4px !important;
   background: transparent !important;
-  color: #7f899a !important;
+  color: var(--ab-ui-muted) !important;
 }
 
 .animebox-premium-player .premium-player-source:hover {
   background: rgba(255,255,255,.035) !important;
-  color: #d4d6db !important;
+  color: var(--ab-ui-text) !important;
 }
 
 .animebox-premium-player .premium-player-source.is-active,
 .animebox-premium-player .premium-player-source[aria-pressed='true'] {
-  background: #20283a !important;
-  color: #f1f0ed !important;
+  background: var(--ab-ui-raised) !important;
+  color: var(--ab-ui-text) !important;
   box-shadow: inset 2px 0 0 var(--player-accent) !important;
 }
 
@@ -424,7 +424,7 @@
   min-height: 38px !important;
   min-width: 156px !important;
   border-radius: 6px !important;
-  background: #0f1520 !important;
+  background: var(--ab-ui-surface) !important;
 }
 
 .animebox-premium-player .premium-player-dropdown-trigger,
@@ -432,17 +432,17 @@
   height: 38px !important;
   min-height: 38px !important;
   border-radius: 5px !important;
-  background: #0f1520 !important;
+  background: var(--ab-ui-surface) !important;
 }
 
 .animebox-premium-player .premium-player-dropdown-trigger:hover,
 .animebox-premium-player .premium-player-toolbar-button:hover {
-  background: #151d29 !important;
+  background: var(--ab-ui-surface) !important;
 }
 
 .animebox-player-stage-shell {
   padding: 10px !important;
-  background: #06080c;
+  background: var(--ab-ui-canvas);
 }
 
 .animebox-player-viewport {
@@ -452,11 +452,11 @@
 
 .animebox-player-cover::after {
   height: 48%;
-  background: linear-gradient(180deg, transparent, rgba(4,6,10,.62));
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--ab-ui-canvas) 62%, transparent));
 }
 
 .animebox-player-cover-copy {
-  background: linear-gradient(180deg, rgba(4,7,12,.18), rgba(4,7,12,.34));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ab-ui-canvas) 18%, transparent), color-mix(in srgb, var(--ab-ui-canvas) 34%, transparent));
 }
 
 .animebox-player-resume-cta > span:not(.premium-player-play-button) {
@@ -468,7 +468,7 @@
   height: 62px !important;
   border: 1px solid rgba(255,255,255,.16) !important;
   border-radius: 50% !important;
-  background: rgba(9,13,20,.90) !important;
+  background: color-mix(in srgb, var(--ab-ui-surface) 90%, transparent) !important;
   box-shadow:
     0 10px 26px rgba(0,0,0,.32),
     inset 0 1px 0 rgba(255,255,255,.05) !important;
@@ -489,7 +489,7 @@
 .animebox-player-cover-copy > p:last-of-type {
   margin-top: 6px !important;
   font-size: 11px !important;
-  color: rgba(238,239,243,.62) !important;
+  color: var(--ab-ui-text) !important;
 }
 
 .animebox-player-provider-badge {
@@ -497,13 +497,13 @@
   left: 12px !important;
   padding: 5px 8px !important;
   border-radius: 4px;
-  background: rgba(6,9,14,.72);
+  background: color-mix(in srgb, var(--ab-ui-canvas) 72%, transparent);
   font-size: 9px !important;
   font-weight: 720 !important;
 }
 
 .animebox-player-loading {
-  background: rgba(5,8,12,.92);
+  background: color-mix(in srgb, var(--ab-ui-canvas) 92%, transparent);
 }
 
 .animebox-player-loading > div {
@@ -515,7 +515,7 @@
 
 .animebox-player-empty-source,
 .animebox-player-error-screen {
-  background: linear-gradient(180deg, rgba(5,8,12,.91), rgba(5,8,12,.97));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ab-ui-canvas) 91%, transparent), color-mix(in srgb, var(--ab-ui-canvas) 97%, transparent));
 }
 
 .animebox-player-empty-source__icon,
@@ -526,12 +526,12 @@
   height: 42px !important;
   border: 0 !important;
   border-radius: 6px !important;
-  background: #121925 !important;
-  color: #9ba4b4 !important;
+  background: var(--ab-ui-surface) !important;
+  color: var(--ab-ui-muted) !important;
 }
 
 .animebox-player-empty-source__title {
-  color: #eeedea;
+  color: var(--ab-ui-text);
   font-size: 13px;
   font-weight: 760;
 }
@@ -539,7 +539,7 @@
 .animebox-player-empty-source__copy {
   margin-top: 5px;
   max-width: 390px;
-  color: #7f8999;
+  color: var(--ab-ui-muted);
   font-size: 11px;
   line-height: 1.55;
 }
@@ -556,14 +556,14 @@
 .animebox-player-error-primary {
   padding: 0 13px;
   background: var(--player-accent);
-  color: #fff;
+  color: var(--ab-ui-text);
   font-size: 11px;
   font-weight: 780;
 }
 
 .animebox-player-error-secondary {
-  background: #141b27;
-  color: #aeb4bf;
+  background: var(--ab-ui-surface);
+  color: var(--ab-ui-muted);
 }
 
 .animebox-player-error-card {
@@ -571,20 +571,20 @@
   padding: 18px !important;
   border: 0;
   border-radius: 8px;
-  background: #0d121a;
+  background: var(--ab-ui-surface);
   box-shadow: 0 16px 44px rgba(0,0,0,.34);
 }
 
 .animebox-player-notice {
   margin-bottom: 8px !important;
   border-left-color: var(--ab-signal);
-  background: #101722;
+  background: var(--ab-ui-surface);
 }
 
 .animebox-player-nav {
   padding: 9px 10px !important;
-  border-top: 1px solid rgba(204,208,220,.055);
-  background: #090d14;
+  border-top: 1px solid var(--ab-ui-border);
+  background: var(--ab-ui-surface);
 }
 
 .animebox-player-prev-button,
@@ -594,13 +594,13 @@
 }
 
 .animebox-player-prev-button {
-  background: #101722;
+  background: var(--ab-ui-surface);
 }
 
 .animebox-player-meta {
   min-height: 34px !important;
   background: transparent;
-  color: #747f91;
+  color: var(--ab-ui-muted);
 }
 
 @media (max-width: 900px) {

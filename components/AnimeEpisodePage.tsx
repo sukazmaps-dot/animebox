@@ -1464,7 +1464,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
   };
 
   const title = getAnimeTitle(anime);
-  const accentColor = anime.coverImage?.color || '#7c68ee';
+  const accentColor = anime.coverImage?.color || '#a798cf';
   const titleAccentStyle = {
     '--anime-page-accent': accentColor,
     '--ab-accent': accentColor,
@@ -1607,8 +1607,8 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
       </nav>
 
       {waitingForSources ? (
-        <div className="relative isolate overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(14,19,34,0.98),rgba(7,10,20,0.98))] p-3 shadow-[0_28px_90px_rgba(0,0,0,0.50)] md:p-4">
-          <div className="pointer-events-none absolute inset-x-16 top-0 h-px bg-gradient-to-r from-transparent via-violet-400/60 to-transparent" />
+        <div className="relative isolate overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,color-mix(in_srgb,_var(--ab-ui-surface)_98%,_transparent),color-mix(in_srgb,_var(--ab-ui-surface)_98%,_transparent))] p-3 shadow-[0_28px_90px_rgba(0,0,0,0.50)] md:p-4">
+          <div className="pointer-events-none absolute inset-x-16 top-0 h-px bg-gradient-to-r from-transparent via-[var(--ab-ui-primary)]/60 to-transparent" />
           <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-[20px] border border-white/[0.08] bg-black">
             <div className="flex flex-col items-center gap-3 text-center">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-violet-400" />

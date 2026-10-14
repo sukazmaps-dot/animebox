@@ -3,11 +3,11 @@
   overflow: hidden;
   margin: 18px 0 24px;
   padding: 22px;
-  border: 1px solid rgba(148, 116, 255, 0.2);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 20%, transparent);
   border-radius: 24px;
   background:
-    radial-gradient(circle at 82% -20%, rgba(131, 76, 255, 0.2), transparent 32%),
-    linear-gradient(145deg, rgba(15, 18, 34, 0.98), rgba(8, 10, 22, 0.96));
+    radial-gradient(circle at 82% -20%, color-mix(in srgb, var(--ab-ui-accent) 20%, transparent), transparent 32%),
+    linear-gradient(145deg, color-mix(in srgb, var(--ab-ui-surface) 98%, transparent), color-mix(in srgb, var(--ab-ui-surface) 96%, transparent));
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
 }
 
@@ -45,19 +45,19 @@
   margin: 4px 0 6px;
   font-size: clamp(1.35rem, 2.2vw, 2rem);
   letter-spacing: -0.035em;
-  color: #f7f4ff;
+  color: var(--ab-ui-text);
 }
 
 .header p {
   max-width: 780px;
   margin: 0;
-  color: rgba(226, 221, 255, 0.64);
+  color: var(--ab-ui-text);
   font-size: 0.92rem;
 }
 
 .eyebrow,
 .panelHead span {
-  color: #a98cff;
+  color: var(--ab-ui-accent);
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -67,7 +67,7 @@
   display: inline-flex;
   gap: 4px;
   padding: 4px;
-  border: 1px solid rgba(154, 124, 255, 0.18);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 18%, transparent);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.035);
 }
@@ -78,16 +78,16 @@
   border: 0;
   border-radius: 10px;
   background: transparent;
-  color: rgba(235, 231, 255, 0.64);
+  color: var(--ab-ui-text);
   font-weight: 800;
   cursor: pointer;
 }
 
 .range button:hover,
 .range .activeRange {
-  background: linear-gradient(135deg, rgba(132, 82, 255, 0.86), rgba(183, 91, 255, 0.74));
-  color: #fff;
-  box-shadow: 0 8px 26px rgba(125, 73, 255, 0.2);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--ab-ui-primary) 86%, transparent), color-mix(in srgb, var(--ab-ui-accent) 74%, transparent));
+  color: var(--ab-ui-text);
+  box-shadow: 0 8px 26px color-mix(in srgb, var(--ab-ui-accent) 20%, transparent);
 }
 
 .kpis {
@@ -118,13 +118,13 @@
 .adStats span,
 .funnel span,
 .breakdownRow span {
-  color: rgba(225, 220, 250, 0.58);
+  color: var(--ab-ui-text);
   font-size: 0.74rem;
 }
 
 .kpis strong {
   margin: 8px 0 4px;
-  color: #fff;
+  color: var(--ab-ui-text);
   font-size: clamp(1.22rem, 1.8vw, 1.65rem);
   letter-spacing: -0.035em;
   overflow-wrap: anywhere;
@@ -135,7 +135,7 @@
 .adStats small,
 .funnel small,
 .panelHead small {
-  color: rgba(211, 203, 241, 0.43);
+  color: var(--ab-ui-text);
   font-size: 0.68rem;
 }
 
@@ -162,7 +162,7 @@
 .chartHead strong {
   display: block;
   margin-top: 3px;
-  color: #fff;
+  color: var(--ab-ui-text);
   font-size: 1.35rem;
 }
 
@@ -175,17 +175,17 @@
 
 .sparkline polyline {
   fill: none;
-  stroke: #a78bfa;
+  stroke: var(--ab-ui-accent);
   stroke-width: 2.1;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: drop-shadow(0 0 5px rgba(167, 139, 250, 0.48));
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--ab-ui-accent) 48%, transparent));
 }
 
 .chartAxis {
   display: flex;
   justify-content: space-between;
-  color: rgba(218, 210, 246, 0.35);
+  color: var(--ab-ui-text);
   font-size: 0.63rem;
 }
 
@@ -216,7 +216,7 @@
 
 .panelHead h3 {
   margin: 2px 0 0;
-  color: #f8f5ff;
+  color: var(--ab-ui-text);
   font-size: 1rem;
 }
 
@@ -234,7 +234,7 @@
 }
 
 .breakdownRow strong {
-  color: #f7f4ff;
+  color: var(--ab-ui-text);
   font-size: 0.84rem;
 }
 
@@ -249,8 +249,8 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, rgba(125, 88, 255, 0.74), rgba(204, 109, 255, 0.9));
-  box-shadow: 0 0 18px rgba(160, 100, 255, 0.35);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--ab-ui-accent) 74%, transparent), color-mix(in srgb, var(--ab-ui-primary) 90%, transparent));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--ab-ui-accent) 35%, transparent);
 }
 
 .funnel {
@@ -270,21 +270,21 @@
 
 .funnel strong {
   display: block;
-  color: #fff;
+  color: var(--ab-ui-text);
   font-size: 1.18rem;
 }
 
 .funnel b {
-  color: rgba(178, 151, 255, 0.42);
+  color: var(--ab-ui-accent);
 }
 
 .funnelFooter {
   margin-top: 10px;
-  color: rgba(220, 215, 243, 0.56);
+  color: var(--ab-ui-text);
   font-size: 0.75rem;
 }
 
-.funnelFooter strong { color: #c7b7ff; }
+.funnelFooter strong { color: var(--ab-ui-accent); }
 
 .adStats {
   display: grid;
@@ -302,7 +302,7 @@
 .adStats strong {
   display: block;
   margin: 3px 0 2px;
-  color: #fff;
+  color: var(--ab-ui-text);
   font-size: 1.18rem;
 }
 
@@ -310,7 +310,7 @@
   margin: 12px 0 0;
   padding-top: 12px;
   border-top: 1px solid rgba(255,255,255,.06);
-  color: rgba(225, 219, 246, 0.5);
+  color: var(--ab-ui-text);
   font-size: 0.72rem;
   line-height: 1.55;
 }
@@ -323,7 +323,7 @@
   width: 100%;
   min-width: 760px;
   border-collapse: collapse;
-  color: rgba(239, 235, 255, 0.84);
+  color: var(--ab-ui-text);
   font-size: 0.77rem;
 }
 
@@ -335,7 +335,7 @@
 }
 
 .table th {
-  color: rgba(208, 200, 238, 0.42);
+  color: var(--ab-ui-text);
   font-size: 0.66rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -345,19 +345,19 @@
   display: inline-flex;
   padding: 4px 7px;
   border-radius: 99px;
-  background: rgba(124, 92, 255, 0.12);
-  color: #c8b9ff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 12%, transparent);
+  color: var(--ab-ui-accent);
   font-size: 0.66rem;
   font-weight: 800;
 }
 
-.status[data-status='paid'] { background: rgba(64, 214, 147, 0.11); color: #8de9bd; }
-.status[data-status='refunded'] { background: rgba(255, 101, 133, 0.11); color: #ff9fb3; }
+.status[data-status='paid'] { background: color-mix(in srgb, var(--ab-ui-success) 11%, transparent); color: var(--ab-ui-success); }
+.status[data-status='refunded'] { background: color-mix(in srgb, var(--ab-ui-danger) 11%, transparent); color: var(--ab-ui-danger); }
 
 .updated,
 .empty {
   margin-top: 10px;
-  color: rgba(208, 202, 232, 0.36);
+  color: var(--ab-ui-text);
   font-size: 0.66rem;
   text-align: right;
 }
@@ -367,13 +367,13 @@
   padding: 13px 15px;
   border-radius: 14px;
   background: rgba(255,255,255,.035);
-  color: rgba(236, 230, 255, 0.72);
+  color: var(--ab-ui-text);
   font-size: 0.78rem;
 }
 
 .error {
-  border: 1px solid rgba(255, 91, 129, 0.18);
-  color: #ffb0c0;
+  border: 1px solid color-mix(in srgb, var(--ab-ui-danger) 18%, transparent);
+  color: var(--ab-ui-danger);
 }
 
 @media (max-width: 1100px) {

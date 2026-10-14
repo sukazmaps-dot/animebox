@@ -167,12 +167,12 @@ export default function AnimeImageCascade({
   ]);
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[#0b0b10]">
+    <div className="relative h-full w-full overflow-hidden bg-[var(--ab-ui-surface)] ">
       {!loaded &&
         !isFallback && (
           <div
             aria-hidden="true"
-            className="absolute inset-0 z-0 animate-pulse bg-slate-900"
+            className="absolute inset-0 z-0 animate-pulse bg-[var(--ab-ui-surface)]"
           />
         )}
 

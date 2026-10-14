@@ -7,10 +7,10 @@ import Icon from '@/components/Icon';
 
 export function TopAnimePanel({ items }: { items: Anime[] }) {
   return (
-    <section className="rounded-[20px] border border-white/10 bg-[linear-gradient(180deg,#0d192a,#09131f)] shadow-[0_18px_40px_rgba(0,0,0,.16)]">
+    <section className="rounded-[20px] border border-white/10 bg-[linear-gradient(180deg,var(--ab-ui-surface),var(--ab-ui-surface))] shadow-[0_18px_40px_rgba(0,0,0,.16)]">
       <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
         <h2 className="text-sm font-semibold text-white">Топ аниме</h2>
-        <span className="text-[10px] text-slate-500">2026</span>
+        <span className="text-[10px] text-[var(--ab-ui-muted)]">2026</span>
       </div>
       <div className="px-2 pb-2">
         {items.slice(0, 5).map((anime, index) => (
@@ -23,7 +23,7 @@ export function TopAnimePanel({ items }: { items: Anime[] }) {
 
 export function UpcomingPanel({ items }: { items: Anime[] }) {
   return (
-    <section className="rounded-[20px] border border-white/10 bg-[linear-gradient(180deg,#0d192a,#09131f)] shadow-[0_18px_40px_rgba(0,0,0,.16)]">
+    <section className="rounded-[20px] border border-white/10 bg-[linear-gradient(180deg,var(--ab-ui-surface),var(--ab-ui-surface))] shadow-[0_18px_40px_rgba(0,0,0,.16)]">
       <div className="border-b border-white/[0.06] px-4 py-3">
         <h2 className="text-sm font-semibold text-white">Ближайшие серии</h2>
       </div>
@@ -38,14 +38,14 @@ export function UpcomingPanel({ items }: { items: Anime[] }) {
             >
               <AnimeImage image={anime.image} alt={anime.russian} sizes="32px" quality={60} className="h-10 w-8 rounded-md object-cover transition duration-300 group-hover:scale-105" />
               <div className="min-w-0">
-                <div className="truncate text-[10px] font-semibold text-slate-100">{anime.russian}</div>
-                <div className="mt-1 flex items-center gap-1.5 text-[9px] text-slate-500">
+                <div className="truncate text-[10px] font-semibold text-[var(--ab-ui-text)]">{anime.russian}</div>
+                <div className="mt-1 flex items-center gap-1.5 text-[9px] text-[var(--ab-ui-muted)]">
                   <span>{episode ? `Серия ${episode}` : 'Новый эпизод'}</span>
-                  <span className="text-slate-700">•</span>
+                  <span className="text-[var(--ab-ui-muted)]">•</span>
                   <span>скоро</span>
                 </div>
               </div>
-              <Icon name="chevron" width={11} height={11} className="text-slate-600 transition group-hover:text-violet-300" />
+              <Icon name="chevron" width={11} height={11} className="text-[var(--ab-ui-muted)] transition group-hover:text-[var(--ab-ui-accent)]" />
             </Link>
           );
         })}

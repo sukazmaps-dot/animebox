@@ -72,8 +72,8 @@
     background:
       linear-gradient(
         180deg,
-        color-mix(in srgb, var(--ab-premium-primary) 82%, #060913 18%),
-        color-mix(in srgb, var(--ab-premium-primary) 92%, #03050a 8%)
+        color-mix(in srgb, var(--ab-premium-primary) 82%, var(--ab-ui-surface) 18%),
+        color-mix(in srgb, var(--ab-premium-primary) 92%, var(--ab-ui-canvas) 8%)
       ) !important;
   }
 

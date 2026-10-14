@@ -4,6 +4,25 @@
    ========================================================= */
 
 .profile-v2.premium-profile-custom {
+  /* Shared components inherit the user's palette within this profile only. */
+  --ab-ui-surface: var(--ab-premium-primary);
+  --ab-ui-raised: color-mix(in srgb, var(--ab-premium-primary) 94%, var(--ab-premium-text) 6%);
+  --ab-ui-text: var(--ab-premium-text);
+  --ab-ui-muted: color-mix(in srgb, var(--ab-premium-text) 82%, var(--ab-premium-primary) 18%);
+  --ab-ui-border: color-mix(in srgb, var(--ab-premium-accent) 30%, var(--ab-premium-primary) 70%);
+  --ab-ui-accent: var(--ab-premium-accent);
+  --ab-ui-accent-rgb: var(--ab-premium-accent-rgb);
+  --ab-ui-primary: var(--ab-premium-accent);
+  --ab-ui-primary-text: var(--ab-premium-on-accent);
+  /* Legacy light-theme rules consume these inherited compatibility names. */
+  --text: var(--ab-ui-text);
+  --muted: var(--ab-ui-muted);
+  --panel: var(--ab-ui-surface);
+  --panel-2: var(--ab-ui-raised);
+  --line: var(--ab-ui-border);
+  --ab-vl-text: var(--ab-ui-text);
+  --ab-vl-muted: var(--ab-ui-muted);
+  --ab-vl-surface: var(--ab-ui-surface);
   /* Compatibility aliases for old profile/streak rules. */
   --profile-theme-accent: var(--ab-premium-accent);
   --profile-theme-accent-rgb: var(--ab-premium-accent-rgb);

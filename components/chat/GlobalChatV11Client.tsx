@@ -652,7 +652,7 @@ export default function GlobalChatV11Client({ initialPage }: { initialPage: Chat
                               data-effect={author?.nicknameEffect ?? 'none'}
                               style={
                                 {
-                                  '--chat-nick-accent': author?.nicknameAccent ?? '#7C4DFF',
+                                  '--chat-nick-accent': author?.nicknameAccent ?? '#a798cf',
                                 } as CSSProperties
                               }
                             >

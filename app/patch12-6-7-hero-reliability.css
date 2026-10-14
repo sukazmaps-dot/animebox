@@ -10,7 +10,7 @@
       rgba(var(--hero-ambient-rgb), .20),
       transparent 46%
     ),
-    #080c13 !important;
+    var(--ab-ui-surface) !important;
 }
 
 .home-page .home-hero-carousel .home-hero-carousel__backdrop {
@@ -66,8 +66,8 @@
 
   .home-page .home-hero-carousel.no-banner .page-hero__overlay {
     background:
-      linear-gradient(90deg, rgba(7,10,17,.98), rgba(7,10,17,.84) 46%, rgba(7,10,17,.42)),
-      linear-gradient(0deg, #070a11, rgba(7,10,17,.62) 42%, transparent)
+      linear-gradient(90deg, color-mix(in srgb, var(--ab-ui-surface) 98%, transparent), color-mix(in srgb, var(--ab-ui-surface) 84%, transparent) 46%, color-mix(in srgb, var(--ab-ui-surface) 42%, transparent)),
+      linear-gradient(0deg, var(--ab-ui-surface), color-mix(in srgb, var(--ab-ui-surface) 62%, transparent) 42%, transparent)
       !important;
   }
 }

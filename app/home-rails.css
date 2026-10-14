@@ -77,14 +77,14 @@
   width: 40px;
   height: 40px;
   padding: 0;
-  border: 1px solid rgba(164, 143, 255, .36);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 36%, transparent);
   border-radius: 50%;
 
-  background: rgba(7, 11, 24, .94);
-  color: #f6f3ff;
+  background: color-mix(in srgb, var(--ab-ui-surface) 94%, transparent);
+  color: var(--ab-ui-text);
   box-shadow:
     0 14px 34px rgba(0, 0, 0, .46),
-    0 0 26px rgba(110, 82, 255, .16);
+    0 0 26px color-mix(in srgb, var(--ab-ui-accent) 16%, transparent);
   backdrop-filter: blur(12px);
 
   font: inherit;
@@ -101,13 +101,13 @@
 }
 
 .home-anime-rail__arrow:hover:not(:disabled) {
-  border-color: rgba(181, 163, 255, .70);
-  background: rgba(24, 21, 54, .98);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 70%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-raised) 98%, transparent);
   transform: translateY(-50%) scale(1.06);
 }
 
 .home-anime-rail__arrow:focus-visible {
-  outline: 2px solid rgba(170, 148, 255, .85);
+  outline: 2px solid color-mix(in srgb, var(--ab-ui-accent) 85%, transparent);
   outline-offset: 3px;
 }
 

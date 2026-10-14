@@ -7,10 +7,10 @@
    ========================================================= */
 
 .episode-list-shell {
-  --episode-line: rgba(204, 208, 219, .075);
-  --episode-line-soft: rgba(204, 208, 219, .045);
+  --episode-line: var(--ab-ui-border);
+  --episode-line-soft: var(--ab-ui-border);
   --episode-current: var(--ab-iris);
-  --episode-complete: #6bc8a5;
+  --episode-complete: var(--ab-ui-success);
 }
 
 .episode-list__micro-heading {
@@ -94,7 +94,7 @@
 }
 
 .episode-list__group-tab[aria-selected='true'] {
-  border-bottom-color: rgba(151,136,231,.72) !important;
+  border-bottom-color: color-mix(in srgb, var(--ab-ui-accent) 72%, transparent) !important;
   color: var(--ab-text-soft) !important;
 }
 
@@ -143,10 +143,10 @@
   width: 66px;
   height: 32px;
   padding: 0 8px;
-  border: 1px solid rgba(204, 208, 219, .09);
+  border: 1px solid var(--ab-ui-border);
   border-radius: 4px;
   outline: 0;
-  background: #0d131c;
+  background: var(--ab-ui-surface);
   color: var(--ab-text);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
@@ -155,10 +155,10 @@
 .episode-list__jump button {
   height: 32px;
   padding: 0 10px;
-  border: 1px solid rgba(151, 136, 231, .22);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 22%, transparent);
   border-radius: 4px;
-  background: rgba(151, 136, 231, .075);
-  color: #d8d2f5;
+  background: color-mix(in srgb, var(--ab-ui-accent) 7.5%, transparent);
+  color: var(--ab-ui-text);
   font-size: 10px;
   font-weight: 680;
   cursor: pointer;
@@ -172,8 +172,8 @@
 
 @media (hover:hover) and (pointer:fine) {
   .episode-list__jump button:hover {
-    border-color: rgba(151, 136, 231, .42);
-    background: rgba(151, 136, 231, .12);
+    border-color: color-mix(in srgb, var(--ab-ui-accent) 42%, transparent);
+    background: color-mix(in srgb, var(--ab-ui-accent) 12%, transparent);
   }
 }
 
@@ -204,7 +204,7 @@
     border-bottom: 0;
     scroll-snap-type: y proximity;
     scrollbar-width: thin;
-    scrollbar-color: #303744 transparent;
+    scrollbar-color: var(--ab-ui-raised) transparent;
   }
 
   .episode-list::-webkit-scrollbar,
@@ -216,7 +216,7 @@
   .episode-list::-webkit-scrollbar-thumb,
   .detail__episodes .episode-list::-webkit-scrollbar-thumb {
     border-radius: 0 !important;
-    background: #303744 !important;
+    background: var(--ab-ui-raised) !important;
   }
 
   .episode-list__item,
@@ -261,7 +261,7 @@
     grid-row: 1;
     grid-column: 1;
     align-self: center;
-    color: #d8d6d1 !important;
+    color: var(--ab-ui-text) !important;
     background: none !important;
     -webkit-text-fill-color: currentColor !important;
     font-size: 20px !important;
@@ -307,7 +307,7 @@
     width: 100%;
     height: 2px;
     overflow: hidden;
-    background: rgba(204,208,219,.075);
+    background: color-mix(in srgb, var(--ab-ui-surface) 7.5%, transparent);
   }
 
   .episode-list__progress i {
@@ -331,7 +331,7 @@
 
   .episode-list__item.is-current {
     background:
-      linear-gradient(90deg, rgba(151,136,231,.075), transparent 88%) !important;
+      linear-gradient(90deg, color-mix(in srgb, var(--ab-ui-accent) 7.5%, transparent), transparent 88%) !important;
   }
 
   .episode-list__item.is-current .episode-list__marker {
@@ -339,7 +339,7 @@
   }
 
   .episode-list__item.is-current .episode-list__number {
-    color: #eeeaff !important;
+    color: var(--ab-ui-text) !important;
   }
 
   .episode-list__item.is-current .episode-list__label {
@@ -347,7 +347,7 @@
   }
 
   .episode-list__item.is-watched .episode-list__marker {
-    background: rgba(107,200,165,.55);
+    background: color-mix(in srgb, var(--ab-ui-success) 55%, transparent);
   }
 
   .episode-list__item.is-watched .episode-list__progress i {
@@ -355,15 +355,15 @@
   }
 
   .episode-list__item.is-watched .episode-list__label {
-    color: #94cbb6 !important;
+    color: var(--ab-ui-success) !important;
   }
 
   .episode-list__item.is-partial .episode-list__number {
-    color: #e2dff0 !important;
+    color: var(--ab-ui-text) !important;
   }
 
   .episode-list__item.is-partial .episode-list__label {
-    color: #aaa3c6 !important;
+    color: var(--ab-ui-muted) !important;
   }
 
 }
@@ -374,7 +374,7 @@
   }
 
   .episode-list__item:hover .episode-list__number {
-    color: #fff !important;
+    color: var(--ab-ui-text) !important;
   }
 
   .episode-list__item:hover .episode-list__label {
@@ -528,7 +528,7 @@
 
   .episode-list__item.is-current {
     background:
-      linear-gradient(90deg, rgba(151,136,231,.075), transparent 88%) !important;
+      linear-gradient(90deg, color-mix(in srgb, var(--ab-ui-accent) 7.5%, transparent), transparent 88%) !important;
   }
 }
 
@@ -570,15 +570,15 @@
   gap: 7px;
   margin-top: 10px;
   padding: 7px;
-  border: 1px solid rgba(204,208,219,.08);
+  border: 1px solid var(--ab-ui-border);
   border-radius: 14px;
-  background: rgba(9,13,23,.82);
+  background: color-mix(in srgb, var(--ab-ui-surface) 82%, transparent);
 }
 .episode-quick-nav__step,
 .episode-quick-nav__current,
 .episode-quick-nav__all {
   min-height: 42px;
-  border: 1px solid rgba(204,208,219,.08);
+  border: 1px solid var(--ab-ui-border);
   border-radius: 10px;
   background: rgba(255,255,255,.025);
   color: var(--ab-text-soft);
@@ -594,60 +594,60 @@
   display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:7px; padding:0 12px; text-align:left;
 }
 .episode-quick-nav__current small { color:var(--ab-muted-2); font-size:9px; font-weight:620; }
-.episode-quick-nav__all { display:inline-flex; align-items:center; justify-content:center; padding-inline:12px; color:color-mix(in srgb,var(--anime-page-accent,#7c68ee) 74%,white 26%); }
+.episode-quick-nav__all { display:inline-flex; align-items:center; justify-content:center; padding-inline:12px; color:color-mix(in srgb,var(--anime-page-accent,var(--ab-ui-accent)) 74%,white 26%); }
 .episode-quick-nav__backdrop { position:fixed; z-index:119; inset:0; border:0; background:rgba(0,0,0,.52); cursor:default; }
 .episode-quick-nav__sheet {
-  position:absolute; z-index:120; top:calc(100% + 8px); left:50%; width:min(520px,calc(100vw - 32px)); max-height:min(70vh,560px); overflow:hidden; transform:translateX(-50%); border:1px solid rgba(157,139,250,.18); border-radius:16px; background:rgba(8,12,22,.985); box-shadow:0 28px 90px rgba(0,0,0,.52);
+  position:absolute; z-index:120; top:calc(100% + 8px); left:50%; width:min(520px,calc(100vw - 32px)); max-height:min(70vh,560px); overflow:hidden; transform:translateX(-50%); border:1px solid color-mix(in srgb, var(--ab-ui-accent) 18%, transparent); border-radius:16px; background:color-mix(in srgb, var(--ab-ui-surface) 98.5%, transparent); box-shadow:0 28px 90px rgba(0,0,0,.52);
 }
-.episode-quick-nav__sheet-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:13px 14px; border-bottom:1px solid rgba(204,208,219,.07); }
+.episode-quick-nav__sheet-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:13px 14px; border-bottom:1px solid var(--ab-ui-border); }
 .episode-quick-nav__sheet-head strong,.episode-quick-nav__sheet-head span { display:block; }
 .episode-quick-nav__sheet-head strong { color:var(--ab-text); font-size:13px; }
 .episode-quick-nav__sheet-head span { margin-top:2px; color:var(--ab-muted-2); font-size:9px; }
 .episode-quick-nav__sheet-head > button { width:34px; height:34px; border:0; border-radius:9px; background:rgba(255,255,255,.04); color:var(--ab-text); font-size:20px; cursor:pointer; }
 .episode-quick-nav__grid { display:grid; grid-template-columns:repeat(8,minmax(0,1fr)); gap:6px; max-height:360px; padding:12px; overflow-y:auto; }
-.episode-quick-nav__grid button { min-height:38px; border:1px solid rgba(204,208,219,.07); border-radius:8px; background:rgba(255,255,255,.025); color:var(--ab-muted); font-size:11px; font-weight:720; cursor:pointer; }
-.episode-quick-nav__grid button.is-current { border-color:color-mix(in srgb,var(--anime-page-accent,#7c68ee) 48%,transparent); background:color-mix(in srgb,var(--anime-page-accent,#7c68ee) 16%,transparent); color:#fff; }
-.episode-quick-nav__full { display:flex; min-height:42px; align-items:center; justify-content:center; border-top:1px solid rgba(204,208,219,.07); color:var(--ab-iris-strong); font-size:10px; font-weight:740; text-decoration:none; }
+.episode-quick-nav__grid button { min-height:38px; border:1px solid var(--ab-ui-border); border-radius:8px; background:rgba(255,255,255,.025); color:var(--ab-muted); font-size:11px; font-weight:720; cursor:pointer; }
+.episode-quick-nav__grid button.is-current { border-color:color-mix(in srgb,var(--anime-page-accent,var(--ab-ui-accent)) 48%,transparent); background:color-mix(in srgb,var(--anime-page-accent,var(--ab-ui-primary)) 16%,transparent); color:var(--ab-ui-text); }
+.episode-quick-nav__full { display:flex; min-height:42px; align-items:center; justify-content:center; border-top:1px solid var(--ab-ui-border); color:var(--ab-iris-strong); font-size:10px; font-weight:740; text-decoration:none; }
 .episode-engagement-grid { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
-.episode-page__identity-compact { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:12px; padding:10px 2px; border-bottom:1px solid rgba(204,208,219,.055); }
+.episode-page__identity-compact { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:12px; padding:10px 2px; border-bottom:1px solid var(--ab-ui-border); }
 .episode-page__identity-compact h1 { margin:0; color:var(--ab-text); font-size:clamp(16px,1.6vw,21px); line-height:1.25; }
 .episode-page__identity-compact span { display:block; margin-top:3px; color:var(--ab-muted-2); font-size:9px; }
 .episode-page__identity-compact a { flex:0 0 auto; color:var(--ab-iris-strong); font-size:10px; font-weight:720; text-decoration:none; }
 .episode-comments__header--compact { align-items:center; margin-bottom:14px; }
 .episode-comments__header--compact h2 { margin:0; }
 .episode-comments__header--compact h2 span { color:var(--ab-muted-2); font-weight:620; }
-.episode-comments__sort-select select { min-height:38px; padding:0 34px 0 11px; border:1px solid rgba(204,208,219,.08); border-radius:9px; outline:0; background:#0c111b; color:var(--ab-text-soft); font-size:10px; cursor:pointer; }
-.episode-library-compact,.episode-notification-compact { position:relative; min-width:0; border:1px solid rgba(204,208,219,.07); border-radius:13px; background:rgba(9,13,23,.68); }
+.episode-comments__sort-select select { min-height:38px; padding:0 34px 0 11px; border:1px solid var(--ab-ui-border); border-radius:9px; outline:0; background:var(--ab-ui-surface); color:var(--ab-text-soft); font-size:10px; cursor:pointer; }
+.episode-library-compact,.episode-notification-compact { position:relative; min-width:0; border:1px solid var(--ab-ui-border); border-radius:13px; background:color-mix(in srgb, var(--ab-ui-surface) 68%, transparent); }
 .episode-library-compact { display:flex; min-height:58px; align-items:center; gap:8px; padding:7px; overflow:visible; }
 .episode-library-compact__picker { position:relative; min-width:0; flex:1 1 auto; width:100%; }
-.episode-library-compact__trigger { display:grid; width:100%; min-height:44px; grid-template-columns:30px minmax(0,1fr) 18px; align-items:center; gap:9px; padding:5px 9px 5px 7px; border:1px solid rgba(151,136,231,.17); border-radius:11px; outline:0; background:linear-gradient(180deg,rgba(18,24,40,.94),rgba(12,17,29,.94)); box-shadow:inset 0 1px 0 rgba(255,255,255,.025); color:var(--ab-text-soft); cursor:pointer; transition:border-color 150ms ease,background 150ms ease,box-shadow 150ms ease; }
-.episode-library-compact__trigger:hover { border-color:rgba(151,136,231,.31); background:linear-gradient(180deg,rgba(22,28,47,.96),rgba(13,18,31,.96)); }
-.episode-library-compact__trigger:focus-visible { border-color:color-mix(in srgb,var(--anime-page-accent,#7c68ee) 55%,white 5%); box-shadow:0 0 0 3px color-mix(in srgb,var(--anime-page-accent,#7c68ee) 12%,transparent); }
+.episode-library-compact__trigger { display:grid; width:100%; min-height:44px; grid-template-columns:30px minmax(0,1fr) 18px; align-items:center; gap:9px; padding:5px 9px 5px 7px; border:1px solid color-mix(in srgb, var(--ab-ui-accent) 17%, transparent); border-radius:11px; outline:0; background:linear-gradient(180deg,color-mix(in srgb, var(--ab-ui-surface) 94%, transparent),color-mix(in srgb, var(--ab-ui-surface) 94%, transparent)); box-shadow:inset 0 1px 0 rgba(255,255,255,.025); color:var(--ab-text-soft); cursor:pointer; transition:border-color 150ms ease,background 150ms ease,box-shadow 150ms ease; }
+.episode-library-compact__trigger:hover { border-color:color-mix(in srgb, var(--ab-ui-accent) 31%, transparent); background:linear-gradient(180deg,color-mix(in srgb, var(--ab-ui-raised) 96%, transparent),color-mix(in srgb, var(--ab-ui-surface) 96%, transparent)); }
+.episode-library-compact__trigger:focus-visible { border-color:color-mix(in srgb,var(--anime-page-accent,var(--ab-ui-accent)) 55%,white 5%); box-shadow:0 0 0 3px color-mix(in srgb,var(--anime-page-accent,var(--ab-ui-accent)) 12%,transparent); }
 .episode-library-compact__trigger:disabled { opacity:.58; cursor:wait; }
-.episode-library-compact__status-icon { display:grid; width:30px; height:30px; place-items:center; overflow:hidden; border:1px solid rgba(151,136,231,.14); border-radius:8px; background:rgba(151,136,231,.075); color:#c7bbff; font-size:16px; font-weight:500; }
+.episode-library-compact__status-icon { display:grid; width:30px; height:30px; place-items:center; overflow:hidden; border:1px solid color-mix(in srgb, var(--ab-ui-accent) 14%, transparent); border-radius:8px; background:color-mix(in srgb, var(--ab-ui-accent) 7.5%, transparent); color:var(--ab-ui-accent); font-size:16px; font-weight:500; }
 .episode-library-compact__status-icon img { width:18px; height:18px; object-fit:contain; }
 .episode-library-compact__trigger-copy { min-width:0; display:flex; flex-direction:column; align-items:flex-start; gap:2px; }
 .episode-library-compact__trigger-copy small { color:var(--ab-muted-2); font-size:8px; font-weight:620; line-height:1.15; }
 .episode-library-compact__trigger-copy strong { width:100%; overflow:hidden; color:var(--ab-text); font-size:10.5px; font-weight:780; line-height:1.2; text-overflow:ellipsis; white-space:nowrap; }
 .episode-library-compact__chevron { width:18px; height:18px; color:var(--ab-muted); transition:transform 150ms ease,color 150ms ease; }
-.episode-library-compact__trigger[aria-expanded='true'] .episode-library-compact__chevron { transform:rotate(180deg); color:#cfc6ff; }
-.episode-library-compact__menu { position:absolute; z-index:95; top:calc(100% + 7px); left:0; right:0; min-width:210px; padding:5px; overflow:hidden; border:1px solid rgba(151,136,231,.18); border-radius:12px; background:rgba(8,12,21,.985); box-shadow:0 20px 54px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.025); backdrop-filter:blur(18px); }
+.episode-library-compact__trigger[aria-expanded='true'] .episode-library-compact__chevron { transform:rotate(180deg); color:var(--ab-ui-accent); }
+.episode-library-compact__menu { position:absolute; z-index:95; top:calc(100% + 7px); left:0; right:0; min-width:210px; padding:5px; overflow:hidden; border:1px solid color-mix(in srgb, var(--ab-ui-accent) 18%, transparent); border-radius:12px; background:color-mix(in srgb, var(--ab-ui-surface) 98.5%, transparent); box-shadow:0 20px 54px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.025); backdrop-filter:blur(18px); }
 .episode-library-compact__menu button { display:grid; width:100%; min-height:40px; grid-template-columns:25px minmax(0,1fr) 18px; align-items:center; gap:8px; padding:0 9px; border:0; border-radius:8px; background:transparent; color:var(--ab-muted); font:inherit; font-size:10px; font-weight:670; text-align:left; cursor:pointer; transition:background 130ms ease,color 130ms ease; }
-.episode-library-compact__menu button:hover { background:rgba(151,136,231,.08); color:var(--ab-text); }
-.episode-library-compact__menu button.is-active { background:color-mix(in srgb,var(--anime-page-accent,#7c68ee) 12%,transparent); color:color-mix(in srgb,var(--anime-page-accent,#7c68ee) 54%,white 46%); }
-.episode-library-compact__menu button b { justify-self:end; color:#b9abff; font-size:11px; }
+.episode-library-compact__menu button:hover { background:color-mix(in srgb, var(--ab-ui-accent) 8%, transparent); color:var(--ab-text); }
+.episode-library-compact__menu button.is-active { background:color-mix(in srgb,var(--anime-page-accent,var(--ab-ui-primary)) 12%,transparent); color:color-mix(in srgb,var(--anime-page-accent,var(--ab-ui-accent)) 54%,white 46%); }
+.episode-library-compact__menu button b { justify-self:end; color:var(--ab-ui-accent); font-size:11px; }
 .episode-library-compact__menu-icon { display:grid; width:25px; height:25px; place-items:center; border-radius:7px; background:rgba(255,255,255,.025); }
 .episode-library-compact__menu-icon img { width:16px; height:16px; object-fit:contain; }
-.episode-library-compact__remove { min-height:42px; padding:0 10px; border:1px solid rgba(248,113,133,.10); border-radius:10px; background:rgba(244,63,94,.025); color:#c98d95; font-size:9px; font-weight:650; cursor:pointer; transition:border-color 150ms ease,background 150ms ease,color 150ms ease; }
-.episode-library-compact__remove:hover { border-color:rgba(248,113,133,.20); background:rgba(244,63,94,.065); color:#f0aeb6; }
-.episode-library-compact__remove.is-confirm { border-color:rgba(248,113,133,.28); background:rgba(244,63,94,.10); color:#fecdd3; }
+.episode-library-compact__remove { min-height:42px; padding:0 10px; border:1px solid color-mix(in srgb, var(--ab-ui-danger) 10%, transparent); border-radius:10px; background:color-mix(in srgb, var(--ab-ui-danger) 2.5%, transparent); color:var(--ab-ui-danger); font-size:9px; font-weight:650; cursor:pointer; transition:border-color 150ms ease,background 150ms ease,color 150ms ease; }
+.episode-library-compact__remove:hover { border-color:color-mix(in srgb, var(--ab-ui-danger) 20%, transparent); background:color-mix(in srgb, var(--ab-ui-danger) 6.5%, transparent); color:var(--ab-ui-danger); }
+.episode-library-compact__remove.is-confirm { border-color:color-mix(in srgb, var(--ab-ui-danger) 28%, transparent); background:color-mix(in srgb, var(--ab-ui-danger) 10%, transparent); color:var(--ab-ui-danger); }
 .episode-library-compact__message,.episode-notification-compact__message { display:block; color:var(--ab-muted-2); font-size:9px; }
 .episode-library-compact__message { flex:1 0 100%; padding:0 3px 2px; }
-.episode-notification-compact { position:relative; min-width:0; border:1px solid rgba(204,208,219,.07); border-radius:13px; background:rgba(9,13,23,.68); }
+.episode-notification-compact { position:relative; min-width:0; border:1px solid var(--ab-ui-border); border-radius:13px; background:color-mix(in srgb, var(--ab-ui-surface) 68%, transparent); }
 .episode-notification-compact { display:flex; min-height:58px; align-items:center; gap:6px; padding:7px; flex-wrap:wrap; }
-.episode-notification-compact > button { display:inline-flex; min-width:0; min-height:42px; flex:1 1 auto; align-items:center; justify-content:center; gap:8px; padding:0 10px; border:1px solid rgba(204,208,219,.07); border-radius:10px; background:rgba(255,255,255,.025); color:var(--ab-text-soft); font-size:10px; font-weight:720; cursor:pointer; }
-.episode-notification-compact > button.is-enabled { border-color:rgba(93,211,153,.20); background:rgba(40,120,79,.12); color:#c8f4dd; }
-.episode-notification-compact__settings { display:grid; width:42px; height:42px; flex:0 0 42px; place-items:center; border:1px solid rgba(204,208,219,.07); border-radius:10px; color:var(--ab-muted); }
+.episode-notification-compact > button { display:inline-flex; min-width:0; min-height:42px; flex:1 1 auto; align-items:center; justify-content:center; gap:8px; padding:0 10px; border:1px solid var(--ab-ui-border); border-radius:10px; background:rgba(255,255,255,.025); color:var(--ab-text-soft); font-size:10px; font-weight:720; cursor:pointer; }
+.episode-notification-compact > button.is-enabled { border-color:color-mix(in srgb, var(--ab-ui-success) 20%, transparent); background:color-mix(in srgb, var(--ab-ui-success) 12%, transparent); color:var(--ab-ui-success); }
+.episode-notification-compact__settings { display:grid; width:42px; height:42px; flex:0 0 42px; place-items:center; border:1px solid var(--ab-ui-border); border-radius:10px; color:var(--ab-muted); }
 .episode-notification-compact__message { flex:1 0 100%; padding:0 3px 2px; }
 @media (max-width:768px) {
   .episode-quick-nav { grid-template-columns:42px minmax(0,1fr) 42px; }
@@ -760,13 +760,13 @@
 
 .episode-engagement-grid .episode-library-compact__trigger--guest {
   grid-template-columns: 30px minmax(0, 1fr) 18px !important;
-  border-color: rgba(151,136,231,.13) !important;
-  background: linear-gradient(180deg,rgba(17,22,37,.88),rgba(11,16,27,.9)) !important;
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 13%, transparent) !important;
+  background: linear-gradient(180deg,color-mix(in srgb, var(--ab-ui-surface) 88%, transparent),color-mix(in srgb, var(--ab-ui-surface) 90%, transparent)) !important;
 }
 
 .episode-engagement-grid .episode-library-compact__trigger--guest:hover {
-  border-color: rgba(151,136,231,.3) !important;
-  background: linear-gradient(180deg,rgba(22,28,47,.95),rgba(13,18,31,.95)) !important;
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 30%, transparent) !important;
+  background: linear-gradient(180deg,color-mix(in srgb, var(--ab-ui-raised) 95%, transparent),color-mix(in srgb, var(--ab-ui-surface) 95%, transparent)) !important;
 }
 
 .episode-library-compact__status-icon--guest svg {
@@ -785,7 +785,7 @@
 
 .episode-library-compact__trigger--guest:hover .episode-library-compact__guest-arrow {
   transform: translateX(2px);
-  color: #cfc6ff;
+  color: var(--ab-ui-accent);
 }
 
 .community-library-guest {
@@ -807,10 +807,10 @@
   min-height: 40px;
   flex: 0 0 auto;
   padding: 0 14px;
-  border: 1px solid rgba(151,136,231,.24);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 24%, transparent);
   border-radius: 10px;
-  background: rgba(151,136,231,.08);
-  color: #e5e0ff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
+  color: var(--ab-ui-text);
   font: inherit;
   font-size: 10px;
   font-weight: 740;
@@ -818,8 +818,8 @@
 }
 
 .community-library-guest__action:hover {
-  border-color: rgba(151,136,231,.42);
-  background: rgba(151,136,231,.13);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 42%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-accent) 13%, transparent);
 }
 
 @media (max-width: 768px) {
@@ -863,13 +863,13 @@
 .episode-quick-nav__next {
   min-width: 0;
   padding-inline: 18px !important;
-  border-color: color-mix(in srgb,var(--anime-page-accent,#7c68ee) 34%,transparent) !important;
-  background: linear-gradient(135deg,color-mix(in srgb,var(--anime-page-accent,#7c68ee) 75%,#5b45d6),#5e4bd5) !important;
-  color: #fff !important;
-  box-shadow: 0 10px 28px color-mix(in srgb,var(--anime-page-accent,#7c68ee) 16%,transparent);
+  border-color: color-mix(in srgb,var(--anime-page-accent,var(--ab-ui-accent)) 34%,transparent) !important;
+  background: linear-gradient(135deg,color-mix(in srgb,var(--anime-page-accent,var(--ab-ui-primary)) 75%,var(--ab-ui-primary)),var(--ab-ui-primary)) !important;
+  color: var(--ab-ui-text) !important;
+  box-shadow: 0 10px 28px color-mix(in srgb,var(--anime-page-accent,var(--ab-ui-accent)) 16%,transparent);
 }
 .episode-quick-nav__next:hover:not(:disabled) {
-  border-color: color-mix(in srgb,var(--anime-page-accent,#7c68ee) 58%,white 6%) !important;
+  border-color: color-mix(in srgb,var(--anime-page-accent,var(--ab-ui-accent)) 58%,white 6%) !important;
   filter: brightness(1.06);
 }
 @media (max-width: 768px) {
@@ -945,15 +945,15 @@
 
 .episode-quick-nav__previous:disabled {
   opacity: 1 !important;
-  border-color: rgba(204,208,219,.065) !important;
+  border-color: var(--ab-ui-border) !important;
   background: rgba(255,255,255,.018) !important;
-  color: rgba(188,194,208,.40) !important;
+  color: var(--ab-ui-muted) !important;
   box-shadow: none !important;
   cursor: not-allowed !important;
 }
 
 .episode-quick-nav__previous:disabled span[aria-hidden='true'] {
-  color: rgba(188,194,208,.34) !important;
+  color: var(--ab-ui-muted) !important;
 }
 
 .episode-quick-nav__all {
@@ -963,13 +963,13 @@
 
 @media (hover:hover) and (pointer:fine) {
   .episode-quick-nav__all:hover {
-    background: rgba(151,136,231,.055) !important;
-    color: color-mix(in srgb,var(--anime-page-accent,#7c68ee) 62%,white 38%) !important;
+    background: color-mix(in srgb, var(--ab-ui-accent) 5.5%, transparent) !important;
+    color: color-mix(in srgb,var(--anime-page-accent,var(--ab-ui-accent)) 62%,white 38%) !important;
   }
 }
 
 .episode-quick-nav__all:focus-visible {
-  outline: 2px solid color-mix(in srgb,var(--anime-page-accent,#7c68ee) 58%,white 5%);
+  outline: 2px solid color-mix(in srgb,var(--anime-page-accent,var(--ab-ui-accent)) 58%,white 5%);
   outline-offset: 2px;
 }
 

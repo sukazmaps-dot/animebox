@@ -1,7 +1,7 @@
 .root {
-  --streak-accent: var(--profile-preview-accent, var(--ab-premium-accent, #8b5cf6));
-  --streak-text: var(--profile-preview-text, var(--ab-premium-text, #f7f3ff));
-  --streak-muted: rgba(199, 207, 224, .52);
+  --streak-accent: var(--profile-preview-accent, var(--ab-premium-accent, var(--ab-ui-accent)));
+  --streak-text: var(--profile-preview-text, var(--ab-premium-text, var(--ab-ui-text)));
+  --streak-muted: var(--ab-ui-text);
   position: relative;
   isolation: isolate;
 }
@@ -85,7 +85,7 @@
   padding: 3px 6px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--streak-accent) 8%, transparent);
-  color: rgba(214, 220, 235, .48);
+  color: var(--ab-ui-text);
   font-size: 7px;
   font-style: normal;
   font-weight: 800;
@@ -116,7 +116,7 @@
 }
 
 .record span {
-  color: rgba(183, 193, 213, .42);
+  color: var(--ab-ui-muted);
   font-size: 7px;
   font-weight: 800;
   letter-spacing: .05em;
@@ -124,7 +124,7 @@
 }
 
 .record strong {
-  color: rgba(242, 244, 250, .78);
+  color: var(--ab-ui-text);
   font-size: 12px;
   font-weight: 850;
 }
@@ -142,7 +142,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  color: rgba(173, 184, 206, .44);
+  color: var(--ab-ui-muted);
   font-size: 7.5px;
   font-weight: 750;
 }
@@ -170,8 +170,8 @@
   border-radius: inherit;
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--streak-accent) 78%, #ff9ad8 22%),
-    color-mix(in srgb, var(--streak-accent) 64%, #ffd59a 36%)
+    color-mix(in srgb, var(--streak-accent) 78%, var(--ab-ui-danger) 22%),
+    color-mix(in srgb, var(--streak-accent) 64%, var(--ab-ui-danger) 36%)
   );
   box-shadow: 0 0 12px color-mix(in srgb, var(--streak-accent) 24%, transparent);
   transition: width 180ms ease;
@@ -214,7 +214,7 @@
 }
 
 .compactCopy small {
-  color: rgba(177,188,211,.42);
+  color: var(--ab-ui-muted);
   font-size: 7px;
   font-weight: 850;
   letter-spacing: .05em;
@@ -223,7 +223,7 @@
 
 .compactCopy strong {
   overflow: hidden;
-  color: rgba(246,247,252,.92);
+  color: var(--ab-ui-text);
   font-size: 12px;
   font-weight: 900;
   text-overflow: ellipsis;
@@ -232,7 +232,7 @@
 
 .compactCopy em {
   overflow: hidden;
-  color: rgba(178,186,207,.42);
+  color: var(--ab-ui-muted);
   font-size: 7.5px;
   font-style: normal;
   font-weight: 700;
@@ -291,7 +291,7 @@
     saturate(1.3)
     brightness(1.14)
     drop-shadow(0 0 12px color-mix(in srgb, var(--streak-accent) 52%, transparent))
-    drop-shadow(0 0 18px rgba(255, 201, 126, .12));
+    drop-shadow(0 0 18px color-mix(in srgb, var(--ab-ui-danger) 12%, transparent));
   transform: scale(1.07);
 }
 
@@ -301,8 +301,8 @@
 }
 
 .root[data-active-today='true'] .heading > em {
-  background: rgba(84, 211, 160, .075);
-  color: rgba(141, 235, 198, .72);
+  background: color-mix(in srgb, var(--ab-ui-success) 7.5%, transparent);
+  color: var(--ab-ui-success);
 }
 
 @media (max-width: 720px) {

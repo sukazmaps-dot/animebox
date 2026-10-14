@@ -55,7 +55,7 @@
   min-height: 390px;
   border: 1px solid var(--ab-border);
   border-radius: var(--ab-radius-lg);
-  background: #090d14;
+  background: var(--ab-ui-surface);
   box-shadow: none;
 }
 
@@ -67,8 +67,8 @@
 
 .home-grid .page-hero__overlay {
   background:
-    linear-gradient(90deg, rgba(5, 8, 13, .98) 0%, rgba(5, 8, 13, .88) 34%, rgba(5, 8, 13, .42) 62%, rgba(5, 8, 13, .12) 100%),
-    linear-gradient(0deg, rgba(5, 8, 13, .78) 0%, transparent 44%);
+    linear-gradient(90deg, color-mix(in srgb, var(--ab-ui-canvas) 98%, transparent) 0%, color-mix(in srgb, var(--ab-ui-canvas) 88%, transparent) 34%, color-mix(in srgb, var(--ab-ui-canvas) 42%, transparent) 62%, color-mix(in srgb, var(--ab-ui-canvas) 12%, transparent) 100%),
+    linear-gradient(0deg, color-mix(in srgb, var(--ab-ui-canvas) 78%, transparent) 0%, transparent 44%);
 }
 
 .home-grid .page-hero__content.home-hero-carousel__content {
@@ -82,14 +82,14 @@
   gap: 9px;
   min-height: 20px;
   margin-bottom: 12px;
-  color: #b0bac8;
+  color: var(--ab-ui-muted);
   font-size: 9px;
   font-weight: 650;
 }
 
 .home-hero-carousel__label strong {
   margin-left: 3px;
-  color: #e2c46c;
+  color: var(--ab-ui-danger);
   font-weight: 700;
 }
 
@@ -105,7 +105,7 @@
   max-width: 600px;
   overflow: hidden;
   margin-bottom: 8px;
-  color: rgba(196, 204, 217, .56);
+  color: var(--ab-ui-muted);
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -114,7 +114,7 @@
 .home-grid .page-hero h1 {
   max-width: 650px;
   margin: 0;
-  color: #f5f7fb;
+  color: var(--ab-ui-text);
   font-size: clamp(36px, 3.7vw, 54px);
   font-weight: 760;
   line-height: 1.01;
@@ -126,7 +126,7 @@
   max-width: 580px;
   overflow: hidden;
   margin: 14px 0 13px;
-  color: rgba(198, 207, 220, .68);
+  color: var(--ab-ui-muted);
   font-size: 12px;
   line-height: 1.6;
   -webkit-box-orient: vertical;
@@ -139,7 +139,7 @@
   align-items: center;
   gap: 0;
   margin: 0 0 18px;
-  color: rgba(194, 202, 215, .62);
+  color: var(--ab-ui-muted);
   font-size: 9px;
 }
 
@@ -151,11 +151,11 @@
 .home-hero-carousel__facts span + span::before {
   content: '·';
   margin: 0 8px;
-  color: rgba(165, 175, 191, .28);
+  color: var(--ab-ui-muted);
 }
 
 .home-hero-carousel__facts .is-status {
-  color: #a79df2;
+  color: var(--ab-ui-accent);
 }
 
 .home-grid .hero-actions {
@@ -170,12 +170,12 @@
 }
 
 .home-grid .hero-actions .btn--primary {
-  background: #f0f2f7;
-  color: #0a0d13;
+  background: var(--ab-ui-surface);
+  color: var(--ab-ui-text);
 }
 
 .home-grid .hero-actions .btn--primary svg {
-  color: #0a0d13;
+  color: var(--ab-ui-text);
 }
 
 .home-grid .hero-actions .btn--primary:hover {
@@ -184,8 +184,8 @@
 
 .home-grid .hero-actions .btn--ghost {
   border-color: rgba(255,255,255,.12);
-  background: rgba(7, 10, 16, .56);
-  color: rgba(237, 241, 248, .86);
+  background: color-mix(in srgb, var(--ab-ui-canvas) 56%, transparent);
+  color: var(--ab-ui-text);
   backdrop-filter: blur(8px);
 }
 
@@ -202,7 +202,7 @@
 
 .home-hero-carousel__counter {
   min-width: 46px;
-  color: rgba(230, 234, 241, .76);
+  color: var(--ab-ui-text);
   font-size: 9px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
@@ -210,7 +210,7 @@
 
 .home-hero-carousel__counter i {
   margin: 0 4px;
-  color: rgba(176, 185, 200, .28);
+  color: var(--ab-ui-muted);
   font-style: normal;
 }
 
@@ -228,7 +228,7 @@
   padding: 0;
   border: 0;
   border-radius: 2px;
-  background: rgba(228, 233, 240, .18);
+  background: color-mix(in srgb, var(--ab-ui-surface) 18%, transparent);
   cursor: pointer;
   transition: width .2s ease, background .2s ease;
 }
@@ -252,8 +252,8 @@
   place-items: center;
   border: 1px solid rgba(255,255,255,.10);
   border-radius: 7px;
-  background: rgba(6, 9, 14, .58);
-  color: rgba(239, 242, 248, .78);
+  background: color-mix(in srgb, var(--ab-ui-canvas) 58%, transparent);
+  color: var(--ab-ui-text);
   font-size: 13px;
   cursor: pointer;
   backdrop-filter: blur(8px);
@@ -261,7 +261,7 @@
 }
 
 .home-hero-carousel__arrow:hover {
-  border-color: rgba(120,104,238,.42);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 42%, transparent);
   color: white;
 }
 
@@ -321,13 +321,13 @@
   align-items: center;
   gap: 7px;
   margin-left: auto;
-  color: #a99ff1;
+  color: var(--ab-ui-accent);
   font-size: 9px;
   font-weight: 650;
 }
 
 .home-pulse__link:hover {
-  color: #d5d0ff;
+  color: var(--ab-ui-accent);
 }
 
 /* ---------- Continue watching ---------- */
@@ -356,7 +356,7 @@
 
 .continue-smart-card:hover {
   transform: translateY(-1px);
-  border-color: rgba(120,104,238,.25);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 25%, transparent);
   background: var(--ab-surface-1);
 }
 
@@ -374,18 +374,18 @@
   bottom: 4px;
   width: 19px;
   height: 19px;
-  background: rgba(8,11,17,.84);
+  background: color-mix(in srgb, var(--ab-ui-surface) 84%, transparent);
   box-shadow: none;
 }
 
 .continue-smart-card__eyebrow {
-  color: #8f85dc;
+  color: var(--ab-ui-accent);
   font-weight: 650;
   letter-spacing: .03em;
 }
 
 .continue-smart-card__progress {
-  background: rgba(151,164,188,.12);
+  background: color-mix(in srgb, var(--ab-ui-raised) 12%, transparent);
 }
 
 .continue-smart-card__progress i {
@@ -393,7 +393,7 @@
 }
 
 .continue-smart-card__arrow {
-  color: rgba(175, 184, 198, .42);
+  color: var(--ab-ui-muted);
 }
 
 /* ---------- Mood is a tool, not a promo card ---------- */
@@ -446,7 +446,7 @@
 }
 
 .mood-chip.is-active {
-  border-color: rgba(120,104,238,.24);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 24%, transparent);
   background: var(--ab-accent-soft);
   box-shadow: inset 2px 0 0 var(--ab-accent);
 }
@@ -495,7 +495,7 @@
 
 .anime-card--signature:hover .anime-card__image-wrap {
   transform: translateY(-2px);
-  border-color: rgba(120,104,238,.28);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 28%, transparent);
 }
 
 .anime-card--signature:hover .anime-card__image {
@@ -514,8 +514,8 @@
   padding: 0 6px;
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 6px;
-  background: rgba(5,8,12,.78);
-  color: rgba(240,243,248,.88);
+  background: color-mix(in srgb, var(--ab-ui-canvas) 78%, transparent);
+  color: var(--ab-ui-text);
   font-size: 8px;
   font-weight: 700;
   backdrop-filter: blur(7px);
@@ -527,12 +527,12 @@
 
 .anime-card--signature .anime-card__state {
   right: 7px;
-  color: rgba(210,214,225,.72);
+  color: var(--ab-ui-text);
 }
 
 .anime-card--signature .anime-card__shine {
   height: 22%;
-  background: linear-gradient(180deg, transparent, rgba(4,6,10,.44));
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--ab-ui-canvas) 44%, transparent));
 }
 
 .anime-card__watch-progress {
@@ -577,7 +577,7 @@
   gap: 5px;
   min-height: 18px;
   margin-top: 4px;
-  color: #9f96ea;
+  color: var(--ab-ui-accent);
   font-size: 8px;
 }
 
@@ -629,7 +629,7 @@
 }
 
 .smart-card:hover .smart-card__poster {
-  border-color: rgba(120,104,238,.28);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 28%, transparent);
 }
 
 .smart-card:hover .smart-card__image {
@@ -638,13 +638,13 @@
 
 .smart-card__poster::after {
   inset: 62% 0 0;
-  background: linear-gradient(180deg, transparent, rgba(3,6,10,.5));
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--ab-ui-canvas) 50%, transparent));
 }
 
 .smart-card__rating {
   min-height: 21px;
   border: 1px solid rgba(255,255,255,.08);
-  background: rgba(5,8,12,.78);
+  background: color-mix(in srgb, var(--ab-ui-canvas) 78%, transparent);
   font-weight: 700;
 }
 
@@ -656,8 +656,8 @@
   min-height: 21px;
   padding: 0 6px;
   border: 1px solid rgba(255,255,255,.08);
-  background: rgba(5,8,12,.78);
-  color: rgba(240,243,248,.82);
+  background: color-mix(in srgb, var(--ab-ui-canvas) 78%, transparent);
+  color: var(--ab-ui-text);
 }
 
 .smart-card__open span:first-child {
@@ -683,8 +683,8 @@
   min-height: 0;
   margin-top: 7px;
   padding-left: 8px;
-  border-left: 2px solid rgba(120,104,238,.54);
-  color: rgba(176,167,219,.72);
+  border-left: 2px solid color-mix(in srgb, var(--ab-ui-accent) 54%, transparent);
+  color: var(--ab-ui-accent);
   -webkit-line-clamp: 1;
 }
 
@@ -703,11 +703,11 @@
   border-radius: 7px;
   background: transparent;
   box-shadow: none;
-  color: rgba(221,225,233,.76);
+  color: var(--ab-ui-text);
 }
 
 .smart-card__plan:hover:not(:disabled) {
-  border-color: rgba(120,104,238,.30);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 30%, transparent);
   background: var(--ab-accent-soft);
 }
 
@@ -766,7 +766,7 @@
   align-items: center;
   min-height: 70px;
   padding: 7px 2px;
-  border-top: 1px solid rgba(151,164,188,.07);
+  border-top: 1px solid var(--ab-ui-border);
 }
 
 .top-anime-item:nth-child(-n+2) {
@@ -774,14 +774,14 @@
 }
 
 .top-anime-item__rank {
-  color: rgba(157,167,183,.34);
+  color: var(--ab-ui-muted);
   font-size: 14px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
 .top-anime-item:nth-child(-n+3) .top-anime-item__rank {
-  color: #978ce7;
+  color: var(--ab-ui-accent);
 }
 
 .top-anime-item__poster {
@@ -826,7 +826,7 @@
 }
 
 .top-anime-item__copy b {
-  color: #d8bd63;
+  color: var(--ab-ui-danger);
   font-weight: 650;
 }
 
@@ -847,7 +847,7 @@
   border: 1px solid var(--ab-border);
   border-radius: var(--ab-radius-sm);
   background: var(--ab-surface-2);
-  color: #9d93e7;
+  color: var(--ab-ui-accent);
 }
 
 .home-utility-card__icon svg {
@@ -887,7 +887,7 @@
   gap: 6px;
   align-self: end;
   width: max-content;
-  color: #a99ff1;
+  color: var(--ab-ui-accent);
   font-size: 9px;
   font-weight: 650;
 }
@@ -1009,8 +1009,8 @@
 
   .home-grid .page-hero__overlay {
     background:
-      linear-gradient(90deg, rgba(5,8,13,.94) 0%, rgba(5,8,13,.58) 64%, rgba(5,8,13,.2) 100%),
-      linear-gradient(0deg, rgba(5,8,13,.92) 0%, rgba(5,8,13,.2) 62%);
+      linear-gradient(90deg, color-mix(in srgb, var(--ab-ui-canvas) 94%, transparent) 0%, color-mix(in srgb, var(--ab-ui-canvas) 58%, transparent) 64%, color-mix(in srgb, var(--ab-ui-canvas) 20%, transparent) 100%),
+      linear-gradient(0deg, color-mix(in srgb, var(--ab-ui-canvas) 92%, transparent) 0%, color-mix(in srgb, var(--ab-ui-canvas) 20%, transparent) 62%);
   }
 
   .home-grid .page-hero__content.home-hero-carousel__content {
@@ -1450,7 +1450,7 @@
   padding: 0 !important;
   border: 0 !important;
   border-radius: 2px !important;
-  background: rgba(228, 233, 240, .18) !important;
+  background: color-mix(in srgb, var(--ab-ui-surface) 18%, transparent) !important;
   box-shadow: none !important;
 }
 
@@ -1537,14 +1537,14 @@
   gap: 5px;
   min-width: 0;
   margin-top: 6px;
-  color: rgba(196,181,253,.72);
+  color: var(--ab-ui-accent);
   font-size: 8px;
   line-height: 1.2;
 }
 
 .anime-card__match strong {
   flex: 0 0 auto;
-  color: rgba(221,214,254,.96);
+  color: var(--ab-ui-text);
   font-size: 9px;
 }
 

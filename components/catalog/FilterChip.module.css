@@ -5,10 +5,10 @@
   align-items: center;
   gap: 7px;
   padding: 0 10px;
-  border: 1px solid rgba(151, 136, 231, .24);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 24%, transparent);
   border-radius: 999px;
-  background: rgba(151, 136, 231, .08);
-  color: #d9d4ef;
+  background: color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
+  color: var(--ab-ui-text);
   font-size: 10.5px;
   font-weight: 650;
   white-space: nowrap;
@@ -16,9 +16,9 @@
 }
 
 .chip:hover {
-  border-color: rgba(151, 136, 231, .44);
-  background: rgba(151, 136, 231, .12);
-  color: #f1edff;
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 44%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-accent) 12%, transparent);
+  color: var(--ab-ui-text);
 }
 
 .chip:focus-visible {
@@ -27,7 +27,7 @@
 }
 
 .chip > span:last-child {
-  color: #a79bf0;
+  color: var(--ab-ui-accent);
   font-size: 15px;
   font-weight: 500;
   line-height: 1;

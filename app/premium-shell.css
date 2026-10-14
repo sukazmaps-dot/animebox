@@ -4,5 +4,5 @@
   width: 24px;
   height: 24px;
   object-fit: contain;
-  filter: drop-shadow(0 0 10px rgba(155, 93, 255, .35));
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--ab-ui-accent) 35%, transparent));
 }

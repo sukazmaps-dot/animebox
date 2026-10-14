@@ -22,14 +22,14 @@
   align-items: center;
   gap: 10px;
   padding: 13px 14px;
-  background: rgba(7, 11, 21, .96);
+  background: color-mix(in srgb, var(--ab-ui-surface) 96%, transparent);
   color: inherit;
   text-decoration: none;
   transition: background 150ms ease, transform 150ms ease;
 }
 
 .home-shortcuts__item:hover {
-  background: rgba(15, 20, 35, .98);
+  background: color-mix(in srgb, var(--ab-ui-surface) 98%, transparent);
 }
 
 .home-shortcuts__item:active {
@@ -37,7 +37,7 @@
 }
 
 .home-shortcuts__index {
-  color: rgba(151, 132, 223, .58);
+  color: var(--ab-ui-accent);
   font-size: 8px;
   font-weight: 900;
   letter-spacing: .08em;
@@ -51,7 +51,7 @@
 
 .home-shortcuts__item strong {
   overflow: hidden;
-  color: #eceaf4;
+  color: var(--ab-ui-text);
   font-size: 11px;
   font-weight: 820;
   text-overflow: ellipsis;
@@ -60,7 +60,7 @@
 
 .home-shortcuts__item small {
   overflow: hidden;
-  color: #777b8e;
+  color: var(--ab-ui-muted);
   font-size: 8.5px;
   line-height: 1.25;
   text-overflow: ellipsis;
@@ -68,14 +68,14 @@
 }
 
 .home-shortcuts__item b {
-  color: #77718f;
+  color: var(--ab-ui-muted);
   font-size: 13px;
   font-weight: 600;
 }
 
 .mood-picker {
   border-color: rgba(255, 255, 255, .07);
-  background: linear-gradient(145deg, rgba(12, 17, 31, .98), rgba(8, 12, 23, .98));
+  background: linear-gradient(145deg, color-mix(in srgb, var(--ab-ui-surface) 98%, transparent), color-mix(in srgb, var(--ab-ui-surface) 98%, transparent));
   box-shadow: none;
 }
 
@@ -89,7 +89,7 @@
 
 .home-activation-v2 {
   border-color: rgba(255, 255, 255, .07);
-  background: linear-gradient(145deg, rgba(14, 17, 30, .96), rgba(9, 11, 21, .96));
+  background: linear-gradient(145deg, color-mix(in srgb, var(--ab-ui-surface) 96%, transparent), color-mix(in srgb, var(--ab-ui-surface) 96%, transparent));
 }
 
 .home-activation-v2::after {

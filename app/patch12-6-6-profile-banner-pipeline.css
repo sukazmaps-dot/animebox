@@ -20,8 +20,8 @@
   display: grid;
   place-items: center;
   padding: 18px;
-  background: rgba(7, 9, 17, .92);
-  color: rgba(240, 235, 249, .72);
+  background: color-mix(in srgb, var(--ab-ui-surface) 92%, transparent);
+  color: var(--ab-ui-text);
   font-size: 10px;
   font-weight: 700;
   line-height: 1.45;

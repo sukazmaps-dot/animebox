@@ -11,10 +11,10 @@
   padding-bottom: max(10px, env(safe-area-inset-bottom));
   padding-left: max(10px, env(safe-area-inset-left));
   background:
-    radial-gradient(circle at 16% 0%, rgba(95, 73, 220, 0.15), transparent 33%),
-    radial-gradient(circle at 88% 8%, rgba(139, 92, 246, 0.08), transparent 28%),
-    #040710;
-  color: #fff;
+    radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--ab-ui-accent) 15%, transparent), transparent 33%),
+    radial-gradient(circle at 88% 8%, color-mix(in srgb, var(--ab-ui-accent) 8%, transparent), transparent 28%),
+    var(--ab-ui-canvas);
+  color: var(--ab-ui-text);
 }
 
 .viewport::before {
@@ -51,7 +51,7 @@
   padding: 5px 6px 5px 10px;
   border: 1px solid rgba(255, 255, 255, 0.055);
   border-radius: 14px;
-  background: rgba(8, 11, 22, 0.8);
+  background: color-mix(in srgb, var(--ab-ui-surface) 80%, transparent);
   backdrop-filter: blur(18px);
   box-shadow: 0 14px 42px rgba(0, 0, 0, 0.18);
 }
@@ -71,14 +71,14 @@
   display: grid;
   place-items: center;
   flex: 0 0 30px;
-  border: 1px solid rgba(139, 92, 246, 0.22);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 22%, transparent);
   border-radius: 10px;
   background:
-    radial-gradient(circle at 35% 25%, rgba(167, 139, 250, 0.32), transparent 40%),
-    rgba(124, 92, 255, 0.08);
-  color: #cabfff;
+    radial-gradient(circle at 35% 25%, color-mix(in srgb, var(--ab-ui-accent) 32%, transparent), transparent 40%),
+    color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
+  color: var(--ab-ui-accent);
   font-size: 13px;
-  box-shadow: inset 0 0 22px rgba(124, 92, 255, 0.08);
+  box-shadow: inset 0 0 22px color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
 }
 
 .brandCopy {
@@ -89,7 +89,7 @@
 .brandCopy span {
   display: block;
   overflow: hidden;
-  color: rgba(167, 139, 250, 0.65);
+  color: var(--ab-ui-accent);
   font-size: 7px;
   font-weight: 900;
   letter-spacing: 0.14em;
@@ -102,7 +102,7 @@
   max-width: 100%;
   margin-top: 2px;
   overflow: hidden;
-  color: rgba(249, 248, 255, 0.94);
+  color: var(--ab-ui-text);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -121,10 +121,10 @@
   gap: 6px;
   min-height: 30px;
   padding: 0 9px;
-  border: 1px solid rgba(85, 214, 160, 0.12);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-success) 12%, transparent);
   border-radius: 9px;
-  background: rgba(85, 214, 160, 0.04);
-  color: rgba(172, 235, 207, 0.72);
+  background: color-mix(in srgb, var(--ab-ui-success) 4%, transparent);
+  color: var(--ab-ui-success);
   font-size: 7px;
   font-weight: 800;
 }
@@ -134,8 +134,8 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #55d6a0;
-  box-shadow: 0 0 12px rgba(85, 214, 160, 0.48);
+  background: var(--ab-ui-success);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--ab-ui-success) 48%, transparent);
 }
 
 .exitButton,
@@ -145,7 +145,7 @@
   border: 1px solid rgba(255, 255, 255, 0.075);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.03);
-  color: rgba(238, 241, 252, 0.72);
+  color: var(--ab-ui-text);
   font-size: 8px;
   font-weight: 800;
   cursor: pointer;
@@ -158,11 +158,11 @@
   gap: 8px;
   padding-left: 7px;
   padding-right: 12px;
-  border-color: rgba(167, 139, 250, 0.16);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 16%, transparent);
   background:
-    linear-gradient(180deg, rgba(139, 92, 246, 0.075), rgba(255, 255, 255, 0.018)),
-    rgba(7, 10, 20, 0.72);
-  color: rgba(235, 232, 255, 0.84);
+    linear-gradient(180deg, color-mix(in srgb, var(--ab-ui-accent) 7.5%, transparent), rgba(255, 255, 255, 0.018)),
+    color-mix(in srgb, var(--ab-ui-surface) 72%, transparent);
+  color: var(--ab-ui-text);
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.035),
     0 8px 22px rgba(0,0,0,.16);
@@ -180,10 +180,10 @@
   flex: 0 0 22px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(167, 139, 250, 0.15);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 15%, transparent);
   border-radius: 7px;
-  background: rgba(139, 92, 246, 0.08);
-  color: #c9bdff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
+  color: var(--ab-ui-accent);
 }
 
 .exitButtonIcon svg {
@@ -202,11 +202,11 @@
 
 .exitButton:hover,
 .chatToggle:hover {
-  border-color: rgba(167, 139, 250, 0.28);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 28%, transparent);
   background:
-    linear-gradient(180deg, rgba(139, 92, 246, 0.12), rgba(255, 255, 255, 0.025)),
-    rgba(7, 10, 20, 0.82);
-  color: #fff;
+    linear-gradient(180deg, color-mix(in srgb, var(--ab-ui-accent) 12%, transparent), rgba(255, 255, 255, 0.025)),
+    color-mix(in srgb, var(--ab-ui-surface) 82%, transparent);
+  color: var(--ab-ui-text);
 }
 
 .exitButton:hover {
@@ -222,7 +222,7 @@
 
 .exitButton:focus-visible,
 .chatToggle:focus-visible {
-  outline: 2px solid rgba(167, 139, 250, 0.72);
+  outline: 2px solid color-mix(in srgb, var(--ab-ui-accent) 72%, transparent);
   outline-offset: 2px;
 }
 
@@ -249,8 +249,8 @@
   border: 1px solid rgba(255, 255, 255, 0.045);
   border-radius: 18px;
   background:
-    radial-gradient(circle at 50% 10%, rgba(124, 92, 255, 0.075), transparent 38%),
-    rgba(2, 4, 10, 0.82);
+    radial-gradient(circle at 50% 10%, color-mix(in srgb, var(--ab-ui-accent) 7.5%, transparent), transparent 38%),
+    color-mix(in srgb, var(--ab-ui-canvas) 82%, transparent);
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.28);
 }
 
@@ -268,10 +268,10 @@
 .sourceError {
   margin: 6px 8px 8px;
   padding: 8px 10px;
-  border: 1px solid rgba(245, 158, 11, 0.16);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-danger) 16%, transparent);
   border-radius: 10px;
-  background: rgba(120, 53, 15, 0.12);
-  color: rgba(253, 186, 116, 0.86);
+  background: color-mix(in srgb, var(--ab-ui-danger) 12%, transparent);
+  color: var(--ab-ui-danger);
   font-size: 9px;
   text-align: center;
 }
@@ -295,7 +295,7 @@
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 18px;
-  background: #02040a;
+  background: var(--ab-ui-canvas);
 }
 
 .loadingInner {
@@ -303,7 +303,7 @@
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  color: rgba(233, 237, 250, 0.45);
+  color: var(--ab-ui-text);
   font-size: 10px;
   font-weight: 700;
 }
@@ -312,7 +312,7 @@
   width: 28px;
   height: 28px;
   border: 2px solid rgba(255, 255, 255, 0.08);
-  border-top-color: rgba(167, 139, 250, 0.9);
+  border-top-color: color-mix(in srgb, var(--ab-ui-accent) 90%, transparent);
   border-radius: 50%;
   animation: spin 0.85s linear infinite;
 }

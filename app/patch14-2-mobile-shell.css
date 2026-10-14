@@ -57,7 +57,7 @@
     border: 0 !important;
     border-bottom: 1px solid var(--ab-line) !important;
     border-radius: 0 !important;
-    background: rgba(7, 9, 15, .97) !important;
+    background: color-mix(in srgb, var(--ab-ui-canvas) 97%, transparent) !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
@@ -74,8 +74,8 @@
 
   .topbar__search:focus-within {
     border-color: var(--ab-line-iris) !important;
-    background: #151c29 !important;
-    box-shadow: 0 0 0 3px rgba(151,136,231,.055) !important;
+    background: var(--ab-ui-surface) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ab-ui-accent) 5.5%, transparent) !important;
   }
 
   .topbar__search input {
@@ -141,7 +141,7 @@
     border: 0 !important;
     border-top: 1px solid var(--ab-line-strong) !important;
     border-radius: 0 !important;
-    background: rgba(8, 11, 17, .975) !important;
+    background: color-mix(in srgb, var(--ab-ui-surface) 97.5%, transparent) !important;
     box-shadow: 0 -10px 28px rgba(0,0,0,.18) !important;
     backdrop-filter: blur(14px) saturate(1.02) !important;
     -webkit-backdrop-filter: blur(14px) saturate(1.02) !important;
@@ -178,7 +178,7 @@
     border-radius: 0 !important;
     background: transparent !important;
     box-shadow: none !important;
-    color: #767e8e !important;
+    color: var(--ab-ui-muted) !important;
     transition:
       color var(--ab-fast) ease,
       opacity var(--ab-fast) ease !important;
@@ -223,7 +223,7 @@
   }
 
   .mobile-nav__item.is-active {
-    color: #ece9f3 !important;
+    color: var(--ab-ui-text) !important;
   }
 
   .mobile-nav__item.is-active::after {
@@ -242,15 +242,15 @@
     width: 21px !important;
     height: 21px !important;
     overflow: hidden;
-    border: 1px solid rgba(204,208,219,.13) !important;
+    border: 1px solid var(--ab-ui-border) !important;
     border-radius: 50% !important;
     background: var(--ab-surface-3) !important;
     box-shadow: none !important;
   }
 
   .mobile-nav__profile.is-active .mobile-nav__avatar {
-    border-color: rgba(183,170,255,.58) !important;
-    box-shadow: 0 0 0 2px rgba(151,136,231,.08) !important;
+    border-color: color-mix(in srgb, var(--ab-ui-accent) 58%, transparent) !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--ab-ui-accent) 8%, transparent) !important;
   }
 
   /* ---------------------------------------------------------
@@ -262,7 +262,7 @@
     position: fixed !important;
     z-index: 980 !important;
     inset: 0 !important;
-    background: rgba(3, 5, 10, .70) !important;
+    background: color-mix(in srgb, var(--ab-ui-canvas) 70%, transparent) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
@@ -294,7 +294,7 @@
     overflow-y: auto !important;
     border: 1px solid var(--ab-line-strong) !important;
     border-radius: 16px 16px 11px 11px !important;
-    background: #0d121c !important;
+    background: var(--ab-ui-surface) !important;
     box-shadow: 0 22px 64px rgba(0,0,0,.48) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
@@ -308,7 +308,7 @@
     height: 3px !important;
     margin: 1px auto 7px !important;
     border-radius: 2px !important;
-    background: #343b48 !important;
+    background: var(--ab-ui-raised) !important;
   }
 
   .mobile-account__identity {
@@ -320,7 +320,7 @@
     margin: 0 -1px;
     padding: 7px 4px 9px !important;
     border-bottom: 1px solid var(--ab-line);
-    background: #0d121c !important;
+    background: var(--ab-ui-surface) !important;
   }
 
   .mobile-account__avatar {
@@ -368,7 +368,7 @@
     gap: 8px !important;
     padding: 6px 7px !important;
     border: 0 !important;
-    border-bottom: 1px solid rgba(204,208,219,.045) !important;
+    border-bottom: 1px solid var(--ab-ui-border) !important;
     border-radius: 0 !important;
     background: transparent !important;
     box-shadow: none !important;
@@ -385,17 +385,17 @@
   .mobile-account__link > svg:first-child {
     width: 17px !important;
     height: 17px !important;
-    color: #9187bd !important;
+    color: var(--ab-ui-accent) !important;
   }
 
   .mobile-account__link > svg:last-child {
     width: 12px !important;
     height: 12px !important;
-    color: #4f5664 !important;
+    color: var(--ab-ui-text) !important;
   }
 
   .mobile-account__link strong {
-    color: #d9d8dd !important;
+    color: var(--ab-ui-text) !important;
     font-size: 11px !important;
     font-weight: 650 !important;
   }
@@ -405,7 +405,7 @@
     margin-top: 6px !important;
     padding: 6px 7px !important;
     border: 0 !important;
-    border-left: 2px solid rgba(151,136,231,.50) !important;
+    border-left: 2px solid color-mix(in srgb, var(--ab-ui-accent) 50%, transparent) !important;
     border-radius: 0 !important;
     background: var(--ab-iris-faint) !important;
     box-shadow: none !important;
@@ -444,10 +444,10 @@
     height: 72px;
     display: grid;
     place-items: center;
-    border: 1px solid rgba(151,136,231,.14);
+    border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 14%, transparent);
     border-radius: 50%;
     background: var(--ab-iris-faint);
-    color: #a99de4;
+    color: var(--ab-ui-accent);
   }
 
   .telegram-growth-card__art-fallback svg {

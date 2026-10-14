@@ -131,7 +131,7 @@ export default function UserAvatarWithFrame({
       data-profile-frame={visuals.profileFrameKey ?? 'none'}
     >
       <div
-        className="absolute z-10 overflow-hidden rounded-full ring-4 ring-[#091221] transition-[inset] duration-200"
+        className="absolute z-10 overflow-hidden rounded-full ring-4 ring-[var(--ab-ui-border)] transition-[inset] duration-200"
         style={{ inset: `${visuals.avatarInsetPct}%` }}
       >
         <picture className="absolute inset-0 block h-full w-full">

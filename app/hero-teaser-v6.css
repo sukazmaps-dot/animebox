@@ -17,7 +17,7 @@
   width: min(610px, 100%);
   max-width: 610px !important;
   margin: 14px 0 16px !important;
-  color: rgba(229, 232, 241, .78) !important;
+  color: var(--ab-ui-text) !important;
   font-size: 15px !important;
   font-weight: 450;
   line-height: 1.52 !important;

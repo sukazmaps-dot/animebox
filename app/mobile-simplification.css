@@ -38,7 +38,7 @@
     height: auto !important;
     aspect-ratio: 2 / 3;
     border-radius: 9px;
-    background: #191a2b;
+    background: var(--ab-ui-raised);
   }
 
   .home-page .home-top-anime-panel--mobile .top-anime-item__rank {
@@ -48,7 +48,7 @@
     z-index: 1;
     padding: 3px 5px;
     border-radius: 5px;
-    background: rgba(9, 10, 21, .82);
+    background: color-mix(in srgb, var(--ab-ui-surface) 82%, transparent);
     color: white;
     font-size: 11px;
   }
@@ -61,7 +61,7 @@
     white-space: normal;
     font-size: 12px !important;
     line-height: 1.28;
-    color: #eeeaf6;
+    color: var(--ab-ui-text);
   }
 
   .home-page .home-top-anime-panel--mobile .top-anime-item__copy span {
@@ -171,7 +171,7 @@
 /* AnimeBox home editorial rail. Covers and readable names carry the section. */
 .home-page .home-top-anime-panel {
   border: 0;
-  border-top: 1px solid rgba(207, 213, 228, .12);
+  border-top: 1px solid var(--ab-ui-border);
   border-radius: 0;
   background: transparent;
   box-shadow: none;
@@ -187,7 +187,7 @@
   align-items: center;
   gap: 9px;
   margin: 0;
-  color: #f2f0f5;
+  color: var(--ab-ui-text);
   font-size: 18px;
   font-weight: 760;
   line-height: 1.3;
@@ -219,9 +219,9 @@
   height: auto;
   aspect-ratio: 2 / 3;
   overflow: hidden;
-  border: 1px solid rgba(212, 216, 227, .14);
+  border: 1px solid var(--ab-ui-border);
   border-radius: 8px;
-  background: #1a1d27;
+  background: var(--ab-ui-surface);
 }
 
 .home-page .top-anime-item--editorial .top-anime-item__rank {
@@ -231,8 +231,8 @@
   left: 8px;
   padding: 4px 6px;
   border-radius: 4px;
-  background: rgba(9, 11, 17, .88);
-  color: #f6f4f8;
+  background: color-mix(in srgb, var(--ab-ui-surface) 88%, transparent);
+  color: var(--ab-ui-text);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
@@ -240,7 +240,7 @@
 .home-page .top-anime-item--editorial .top-anime-item__copy strong {
   display: -webkit-box;
   overflow: hidden;
-  color: #f1eef5;
+  color: var(--ab-ui-text);
   font-size: 14px;
   font-weight: 700;
   line-height: 1.37;
@@ -250,20 +250,20 @@
 }
 
 .home-page .top-anime-item--editorial .top-anime-item__copy span { display: none; }
-.home-page .top-anime-item--editorial:focus-visible { outline: 2px solid #b4a3e6; outline-offset: 4px; }
+.home-page .top-anime-item--editorial:focus-visible { outline: 2px solid var(--ab-ui-accent); outline-offset: 4px; }
 
 .home-page .home-shortcuts {
   gap: 0;
   margin-top: 20px;
   border: 0;
-  border-top: 1px solid rgba(207, 213, 228, .12);
+  border-top: 1px solid var(--ab-ui-border);
   border-radius: 0;
   background: transparent;
 }
 
 .home-page .home-shortcuts__item {
   min-height: 62px;
-  border-right: 1px solid rgba(207, 213, 228, .08);
+  border-right: 1px solid var(--ab-ui-border);
   background: transparent;
 }
 
@@ -326,15 +326,15 @@
   .home-page .home-activation-v2__mobile-entry {
     width: 48px;
     height: 48px;
-    border: 1px solid rgba(196, 181, 238, .3);
+    border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 30%, transparent);
     border-radius: 10px;
-    background: #1a1d29;
+    background: var(--ab-ui-raised);
     box-shadow: none;
-    color: #eeeaf8;
+    color: var(--ab-ui-text);
     cursor: pointer;
   }
   .home-page .home-activation-v2__mobile-entry:focus-visible {
-    outline: 2px solid #b4a3e6;
+    outline: 2px solid var(--ab-ui-accent);
     outline-offset: 3px;
   }
 
@@ -342,7 +342,7 @@
   .home-page .home-shortcuts__item {
     flex: 0 0 min(47vw, 190px);
     border: 0;
-    border-bottom: 1px solid rgba(207, 213, 228, .12);
+    border-bottom: 1px solid var(--ab-ui-border);
     border-radius: 0;
     background: transparent;
   }

@@ -16,8 +16,8 @@ export default function EpisodeRouteError({
 
   return (
     <main className="mx-auto flex min-h-[70vh] max-w-3xl items-center px-4 py-16 md:px-6">
-      <section className="w-full rounded-2xl border border-white/10 bg-slate-950/75 p-6 shadow-2xl md:p-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-300/70">
+      <section className="w-full rounded-2xl border border-white/10 bg-[color-mix(in_srgb,var(--ab-ui-surface)_75%,transparent)] p-6 shadow-2xl md:p-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color-mix(in_srgb,var(--ab-ui-accent)_70%,transparent)]">
           AnimeBox · Playback
         </p>
         <h1 className="mt-3 text-2xl font-black text-white">
@@ -31,7 +31,7 @@ export default function EpisodeRouteError({
           <button
             type="button"
             onClick={reset}
-            className="rounded-xl bg-violet-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-violet-400"
+            className="rounded-xl bg-[var(--ab-ui-primary)] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[var(--ab-ui-primary)]"
           >
             Повторить
           </button>

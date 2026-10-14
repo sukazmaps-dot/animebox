@@ -1,7 +1,7 @@
 export default function LoadingAnime() {
   return (
     <main
-      className="anime-detail-v3 anime-detail-v4 min-h-screen overflow-hidden bg-[#08080c] text-white"
+      className="anime-detail-v3 anime-detail-v4 min-h-screen overflow-hidden bg-[var(--ab-ui-surface)] text-white"
       aria-busy="true"
     >
       <section
@@ -37,7 +37,7 @@ export default function LoadingAnime() {
               </div>
 
               <div className="mt-7 flex flex-wrap gap-3" aria-hidden="true">
-                <span className="h-11 w-36 animate-pulse rounded-xl bg-violet-400/[0.10] motion-reduce:animate-none" />
+                <span className="h-11 w-36 animate-pulse rounded-xl bg-[var(--ab-ui-primary)]/[0.10] motion-reduce:animate-none" />
                 <span className="h-11 w-32 animate-pulse rounded-xl bg-white/[0.06] motion-reduce:animate-none" />
               </div>
             </div>

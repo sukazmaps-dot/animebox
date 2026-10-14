@@ -298,7 +298,7 @@ export default async function AnimePage({
 
   const accentColor =
     (/^#[0-9a-f]{6}$/i.test(aniList.coverImage?.color || '') ? aniList.coverImage?.color : null) ||
-    '#7c3aed';
+    '#a798cf';
 
 
   /* =========================================================
@@ -484,7 +484,7 @@ export default async function AnimePage({
       className={`${styles.page} anime-detail-v3 anime-detail-v4
         min-h-screen
         overflow-hidden
-        bg-[#08080c]
+        bg-[var(--ab-ui-surface)]
         text-white`}
       style={{ '--anime-page-accent': accentColor } as CSSProperties}
     >

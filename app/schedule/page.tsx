@@ -207,7 +207,7 @@ export default function SchedulePage() {
       </header>
 
       {staleNotice && !error && <p role="status">{staleNotice}</p>}
-      {notice && !error && <details className="mb-4 text-sm text-slate-400">
+      {notice && !error && <details className="mb-4 text-sm text-[var(--ab-ui-muted)]">
         <summary className="cursor-pointer">О времени выхода</summary>
         <p className="mt-2">Время выхода плановое; озвучка может появиться позже.</p>
       </details>}

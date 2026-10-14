@@ -1,10 +1,10 @@
-.synopsis { max-width: 72ch; color: #e0dce8; font-size: 16px; line-height: 1.6; }
+.synopsis { max-width: 72ch; color: var(--ab-ui-text); font-size: 16px; line-height: 1.6; }
 .preview, .full { margin: 0; white-space: pre-line; }
 .preview { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 6; overflow: hidden; }
-.synopsis button { min-height: 44px; font-size: 13px; font-weight: 600; color: #c4b5fd; }
+.synopsis button { min-height: 44px; font-size: 13px; font-weight: 600; color: var(--ab-ui-accent); }
 .synopsis button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
-:global(html[data-animebox-theme='light']) .synopsis { color: #494250; }
-:global(html[data-animebox-theme='light']) .synopsis button { color: #6d28d9; }
-.hero { color: #e3ddea; font-weight: 400; max-width: 64ch; }
-:global(html[data-animebox-theme='light']) .hero { color: #e3ddea; }
-:global(html[data-animebox-theme='light']) .hero button { color: #d0b4ff; }
+:global(html[data-animebox-theme='light']) .synopsis { color: var(--ab-ui-text); }
+:global(html[data-animebox-theme='light']) .synopsis button { color: var(--ab-ui-accent); }
+.hero { color: var(--ab-ui-text); font-weight: 400; max-width: 64ch; }
+:global(html[data-animebox-theme='light']) .hero { color: var(--ab-ui-text); }
+:global(html[data-animebox-theme='light']) .hero button { color: var(--ab-ui-accent); }

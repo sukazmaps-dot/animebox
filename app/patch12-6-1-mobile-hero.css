@@ -14,7 +14,7 @@
     max-height: 326px !important;
     overflow: hidden;
     border-radius: 12px !important;
-    background: #070a11 !important;
+    background: var(--ab-ui-surface) !important;
   }
 
   /* Wide AniList banner is only ambience on phones. */
@@ -49,8 +49,8 @@
     inset: 0;
     pointer-events: none;
     background:
-      linear-gradient(90deg, #070a11 0%, rgba(7,10,17,.72) 15%, transparent 48%),
-      linear-gradient(0deg, #070a11 0%, rgba(7,10,17,.45) 18%, transparent 58%);
+      linear-gradient(90deg, var(--ab-ui-surface) 0%, color-mix(in srgb, var(--ab-ui-surface) 72%, transparent) 15%, transparent 48%),
+      linear-gradient(0deg, var(--ab-ui-surface) 0%, color-mix(in srgb, var(--ab-ui-surface) 45%, transparent) 18%, transparent 58%);
   }
 
   .home-page .home-hero-carousel__mobile-keyart-image {
@@ -62,8 +62,8 @@
   .home-page .home-hero-carousel .page-hero__overlay {
     z-index: 1;
     background:
-      linear-gradient(90deg, rgba(7,10,17,.96) 0%, rgba(7,10,17,.78) 34%, rgba(7,10,17,.22) 70%, rgba(7,10,17,.08) 100%),
-      linear-gradient(0deg, #070a11 0%, rgba(7,10,17,.94) 18%, rgba(7,10,17,.30) 58%, transparent 100%) !important;
+      linear-gradient(90deg, color-mix(in srgb, var(--ab-ui-surface) 96%, transparent) 0%, color-mix(in srgb, var(--ab-ui-surface) 78%, transparent) 34%, color-mix(in srgb, var(--ab-ui-surface) 22%, transparent) 70%, color-mix(in srgb, var(--ab-ui-surface) 8%, transparent) 100%),
+      linear-gradient(0deg, var(--ab-ui-surface) 0%, color-mix(in srgb, var(--ab-ui-surface) 94%, transparent) 18%, color-mix(in srgb, var(--ab-ui-surface) 30%, transparent) 58%, transparent 100%) !important;
   }
 
   .home-page .page-hero__content.home-hero-carousel__content {

@@ -189,7 +189,7 @@ export default function UpdatePasswordPage() {
   if (!validSession) {
     return (
       <main className="mx-auto flex min-h-[70vh] max-w-md items-center px-4">
-        <section className="w-full rounded-2xl border border-white/10 bg-[#0b1220] p-6">
+        <section className="w-full rounded-2xl border border-white/10 bg-[var(--ab-ui-surface)] p-6">
           <h1 className="text-xl font-bold text-white">
             Ссылка недействительна
           </h1>
@@ -205,7 +205,7 @@ export default function UpdatePasswordPage() {
                 '/auth/forgot-password',
               )
             }
-            className="mt-5 rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white"
+            className="mt-5 rounded-xl bg-[var(--ab-ui-primary)] px-4 py-3 text-sm font-semibold text-white"
           >
             Получить новую ссылку
           </button>
@@ -216,7 +216,7 @@ export default function UpdatePasswordPage() {
 
   return (
     <main className="mx-auto flex min-h-[70vh] max-w-md items-center px-4">
-      <section className="w-full rounded-2xl border border-white/10 bg-[#0b1220] p-6 shadow-2xl">
+      <section className="w-full rounded-2xl border border-white/10 bg-[var(--ab-ui-surface)] p-6 shadow-2xl">
         <h1 className="text-2xl font-bold text-white">
           Новый пароль
         </h1>
@@ -239,7 +239,7 @@ export default function UpdatePasswordPage() {
             }
             autoComplete="new-password"
             placeholder="Новый пароль"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-violet-500"
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-[var(--ab-ui-accent)]"
           />
 
           <input
@@ -252,7 +252,7 @@ export default function UpdatePasswordPage() {
             }
             autoComplete="new-password"
             placeholder="Повторите пароль"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-violet-500"
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-[var(--ab-ui-accent)]"
           />
 
           {error && (
@@ -264,7 +264,7 @@ export default function UpdatePasswordPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-violet-600 px-4 py-3 font-semibold text-white disabled:opacity-50"
+            className="w-full rounded-xl bg-[var(--ab-ui-primary)] px-4 py-3 font-semibold text-white disabled:opacity-50"
           >
             {loading
               ? 'Сохраняем...'

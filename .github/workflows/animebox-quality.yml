@@ -46,6 +46,11 @@ jobs:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
         run: node scripts/chat-frame-layout-smoke.cjs
 
+      - name: Shared palette and Premium browser regression
+        env:
+          PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
+        run: npm run palette:check && node scripts/site-palette-smoke.cjs
+
       - name: Release consolidation invariants
         run: npm run release-consolidation:check
 

@@ -127,7 +127,7 @@ mustInclude(
 );
 mustInclude(
   player,
-  'bg-[#090d19] text-white',
+  'bg-[var(--ab-ui-surface)] text-white',
   'dark mobile selector option surface',
 );
 

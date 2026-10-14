@@ -28,9 +28,9 @@
   display: grid !important;
   place-items: center !important;
   border-radius: 12px !important;
-  background: rgba(7, 11, 21, .66) !important;
+  background: color-mix(in srgb, var(--ab-ui-surface) 66%, transparent) !important;
   border: 1px solid rgba(255, 255, 255, .14) !important;
-  color: #eef1ff !important;
+  color: var(--ab-ui-text) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 8px 28px rgba(0, 0, 0, .24);
@@ -49,8 +49,8 @@
 }
 
 .home-hero-carousel__arrow:hover {
-  background: rgba(112, 76, 255, .80) !important;
-  border-color: rgba(168, 137, 255, .60) !important;
+  background: color-mix(in srgb, var(--ab-ui-primary) 80%, transparent) !important;
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 60%, transparent) !important;
 }
 
 .home-hero-carousel__arrow:active {

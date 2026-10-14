@@ -453,7 +453,7 @@ export default function PremiumClient() {
 
       <section className="premium-benefits" id="premium-benefits">
         <div className="premium-section-head">
-          <span className="tracking-wider text-xs uppercase text-violet-300/60">ЧТО ВХОДИТ</span>
+          <span className="tracking-wider text-xs uppercase text-[color-mix(in_srgb,var(--ab-ui-accent)_60%,transparent)]">ЧТО ВХОДИТ</span>
           <h2>Premium — это уровень аккаунта</h2>
           <p>Просмотр не закрывается за подпиской: Premium даёт персонализацию и дополнительные функции AnimeBox.</p>
         </div>
@@ -462,7 +462,7 @@ export default function PremiumClient() {
           {BENEFITS.map((benefit) => (
             <article
               key={benefit.title}
-              className="bg-slate-900/40 backdrop-blur-md border border-slate-800/60"
+              className="bg-[color-mix(in_srgb,var(--ab-ui-surface)_40%,transparent)] backdrop-blur-md border border-[color-mix(in_srgb,var(--ab-ui-border)_60%,transparent)]"
             >
               <span className="premium-benefits__icon" aria-hidden="true">
                 <Icon name={benefit.icon} size={20} weight="regular" />

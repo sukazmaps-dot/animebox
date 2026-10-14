@@ -87,14 +87,14 @@ export default async function PublicProfilePage({ params }: Props) {
 
   const joinedDate = formatJoinedDate(profile.createdAt);
   const watchTime = formatWatchTime(profile.stats.activeMs);
-  const premiumStyle = profile.premiumStudio
+  const premiumIdentityActive = Boolean(profile.premium && profile.premiumStudio);
+  const premiumStyle = premiumIdentityActive && profile.premiumStudio
     ? (premiumStudioCssVariables(profile.premiumStudio) as CSSProperties)
     : undefined;
-  const premiumIdentityActive = Boolean(profile.premium && profile.premiumStudio);
 
   return (
     <main
-      className={`profile-v2 profile-v2--public premium-profile-theme--${profile.premiumTheme} ${profile.premiumStudio ? 'premium-profile-custom' : ''} ${premiumIdentityActive ? 'premium-profile-v21' : ''}`}
+      className={`profile-v2 profile-v2--public ${profile.premium ? `premium-profile-theme--${profile.premiumTheme}` : ''} ${premiumIdentityActive ? 'premium-profile-custom premium-profile-v21' : ''}`}
       style={premiumStyle}
       data-premium-atmosphere={premiumIdentityActive ? profile.premiumStudio?.atmosphereEffect : undefined}
       data-premium-motion={premiumIdentityActive ? profile.premiumStudio?.motionMode : undefined}
@@ -183,7 +183,7 @@ export default async function PublicProfilePage({ params }: Props) {
                   </h1>
 
                   <span
-                    className="inline-flex min-h-6 items-center rounded-full border border-violet-400/20 bg-violet-400/10 px-2.5 text-[9px] font-black tracking-[0.04em] text-violet-200"
+                    className="inline-flex min-h-6 items-center rounded-full border border-[color-mix(in_srgb,var(--ab-ui-accent)_20%,transparent)] bg-[color-mix(in_srgb,var(--ab-ui-selected)_10%,transparent)] px-2.5 text-[9px] font-black tracking-[0.04em] text-[var(--ab-ui-accent)]"
                     title={`${profile.progression.totalXp.toLocaleString('ru-RU')} XP`}
                   >
                     LVL {profile.progression.level} · {profile.progression.rank}

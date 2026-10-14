@@ -20,7 +20,7 @@ assert.ok(chatPrefix,'built chat CSS');
 const chat=`<main class="${chatPrefix}shell"><section class="${chatPrefix}chatPanel"><header class="${chatPrefix}header"><h1>Чат</h1><p data-muted>Описание чата</p></header><div class="${chatPrefix}composer"><textarea placeholder="Сообщение"></textarea></div></section><aside class="${chatPrefix}sideCard"><p data-muted>Правила чата</p></aside></main>`;
 const achievements=fixture('Achievements');
 const anime='<main class="anime-detail-v4"><section class="anime-detail-v4__hero-shell"><h1 class="anime-detail-v4__title">Фрирен</h1><p class="anime-detail-v4__description" data-muted>Подробное описание аниме</p></section><section class="anime-detail-v3__facts-shell"><dl class="anime-detail-v3__facts-list"><dt data-muted>Студия</dt><dd>Bones</dd></dl></section></main><main class="episode-page"><nav class="episode-quick-nav"><button class="episode-quick-nav__current">Серия 1</button></nav><section class="community-panel"><p data-muted>Подтверждённый просмотр</p></section></main>';
-const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE_PATH,args:['--no-sandbox','--single-process','--no-zygote','--disable-gpu']});
+const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE_PATH,args:['--no-sandbox']});
 const output='/tmp/animebox-section-palette';await fs.mkdir(output,{recursive:true});
 let checks=0;
 try{

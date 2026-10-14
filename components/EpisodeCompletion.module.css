@@ -1,11 +1,11 @@
-.completion { margin: 10px 0; padding: 8px 0; color: #d8d2e4; font-size: 12px; }
+.completion { margin: 10px 0; padding: 8px 0; color: var(--ab-ui-text); font-size: 12px; }
 .heading { display: flex; align-items: center; gap: 8px; }
 .heading > span:first-child { margin-right: auto; }
 .help { position: relative; }
 .help summary { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; cursor: pointer; font-weight: 700; list-style: none; }
 .help summary::-webkit-details-marker { display: none; }
-.help p { position: absolute; right: 0; top: 100%; z-index: 90; width: min(300px, 80vw); padding: 12px; border: 1px solid #675475; border-radius: 10px; background: #25202e; color: #eee7f7; font-size: 13px; line-height: 1.5; box-shadow: 0 8px 30px rgb(0 0 0 / 30%); }
-.track { height: 4px; overflow: hidden; border-radius: 4px; background: #302a3b; }
-.track > span { display: block; height: 100%; background: #a78bfa; }
-:global(html[data-animebox-theme='light']) .completion { color: #4f415b; }
-:global(html[data-animebox-theme='light']) .track { background: #ded5e7; }
+.help p { position: absolute; right: 0; top: 100%; z-index: 90; width: min(300px, 80vw); padding: 12px; border: 1px solid var(--ab-ui-border); border-radius: 10px; background: var(--ab-ui-raised); color: var(--ab-ui-text); font-size: 13px; line-height: 1.5; box-shadow: 0 8px 30px rgb(0 0 0 / 30%); }
+.track { height: 4px; overflow: hidden; border-radius: 4px; background: var(--ab-ui-raised); }
+.track > span { display: block; height: 100%; background: var(--ab-ui-primary); }
+:global(html[data-animebox-theme='light']) .completion { color: var(--ab-ui-text); }
+:global(html[data-animebox-theme='light']) .track { background: var(--ab-ui-surface); }

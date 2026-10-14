@@ -3,11 +3,11 @@
   gap: 14px;
   margin-bottom: 14px;
   padding: 18px;
-  border: 1px solid rgba(238, 183, 92, .14);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-danger) 14%, transparent);
   border-radius: 16px;
   background:
-    radial-gradient(circle at top right, rgba(238,183,92,.08), transparent 42%),
-    #10131e;
+    radial-gradient(circle at top right, color-mix(in srgb, var(--ab-ui-danger) 8%, transparent), transparent 42%),
+    var(--ab-ui-surface);
 }
 
 .externalHead {
@@ -18,7 +18,7 @@
 }
 
 .externalHead span {
-  color: #d5aa67;
+  color: var(--ab-ui-danger);
   font-size: 9px;
   font-weight: 850;
   letter-spacing: .13em;
@@ -32,7 +32,7 @@
 .externalHead p {
   max-width: 760px;
   margin: 0;
-  color: #7b8495;
+  color: var(--ab-ui-muted);
   font-size: 10px;
   line-height: 1.55;
 }
@@ -40,9 +40,9 @@
 .externalHead > strong {
   flex: 0 0 auto;
   padding: 5px 8px;
-  border: 1px solid rgba(238,183,92,.17);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-danger) 17%, transparent);
   border-radius: 999px;
-  color: #e0ba7d;
+  color: var(--ab-ui-danger);
   font-size: 8px;
   text-transform: uppercase;
   letter-spacing: .08em;
@@ -60,7 +60,7 @@
 }
 
 .externalGrid label > span {
-  color: #788296;
+  color: var(--ab-ui-muted);
   font-size: 9px;
 }
 
@@ -70,8 +70,8 @@
   border: 1px solid rgba(255,255,255,.09);
   border-radius: 8px;
   outline: 0;
-  background: #111621;
-  color: #eef0f6;
+  background: var(--ab-ui-surface);
+  color: var(--ab-ui-text);
   font: inherit;
   font-size: 10px;
 }
@@ -93,10 +93,10 @@
 .externalForm > button {
   width: fit-content;
   padding: 9px 12px;
-  border: 1px solid rgba(238,183,92,.25);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-danger) 25%, transparent);
   border-radius: 9px;
-  background: rgba(238,183,92,.10);
-  color: #efd09c;
+  background: color-mix(in srgb, var(--ab-ui-danger) 10%, transparent);
+  color: var(--ab-ui-danger);
   font-size: 10px;
   font-weight: 760;
   cursor: pointer;
@@ -117,7 +117,7 @@
 .detail {
   border: 1px solid rgba(255,255,255,.07);
   border-radius: 16px;
-  background: #10131e;
+  background: var(--ab-ui-surface);
 }
 
 .caseList {
@@ -134,7 +134,7 @@
   border: 0;
   border-bottom: 1px solid rgba(255,255,255,.055);
   background: transparent;
-  color: #d8dce7;
+  color: var(--ab-ui-text);
   text-align: left;
   cursor: pointer;
 }
@@ -142,8 +142,8 @@
 .caseActive {
   background: linear-gradient(
     90deg,
-    rgba(133, 96, 223, .15),
-    rgba(133, 96, 223, .035)
+    color-mix(in srgb, var(--ab-ui-accent) 15%, transparent),
+    color-mix(in srgb, var(--ab-ui-accent) 3.5%, transparent)
   );
 }
 
@@ -155,7 +155,7 @@
 }
 
 .caseTop strong {
-  color: #bda9f4;
+  color: var(--ab-ui-accent);
   font-size: 9px;
   letter-spacing: .05em;
 }
@@ -164,7 +164,7 @@
   padding: 3px 6px;
   border-radius: 999px;
   background: rgba(255,255,255,.055);
-  color: #8f98aa;
+  color: var(--ab-ui-muted);
   font-size: 8px;
   font-style: normal;
 }
@@ -179,7 +179,7 @@
 
 .caseButton small,
 .caseActive small {
-  color: #70798d;
+  color: var(--ab-ui-muted);
   font-size: 9px;
 }
 
@@ -197,7 +197,7 @@
 }
 
 .detailHead span {
-  color: #957bd9;
+  color: var(--ab-ui-accent);
   font-size: 9px;
   font-weight: 850;
   letter-spacing: .1em;
@@ -210,12 +210,12 @@
 
 .detailHead p {
   margin: 0;
-  color: #7d8799;
+  color: var(--ab-ui-muted);
   font-size: 10px;
 }
 
 .detailHead a {
-  color: #b69bf3;
+  color: var(--ab-ui-accent);
   font-size: 10px;
 }
 
@@ -227,7 +227,7 @@
 
 .copyBlock > strong,
 .urls > strong {
-  color: #aab0bf;
+  color: var(--ab-ui-muted);
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: .08em;
@@ -235,7 +235,7 @@
 
 .copyBlock p {
   margin: 7px 0 0;
-  color: #c5cad6;
+  color: var(--ab-ui-muted);
   font-size: 12px;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -248,7 +248,7 @@
 
 .urls a {
   overflow: hidden;
-  color: #9f8cdf;
+  color: var(--ab-ui-accent);
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -265,10 +265,10 @@
 .restrictionForm button,
 .restrictions button {
   padding: 8px 10px;
-  border: 1px solid rgba(159,124,243,.25);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 25%, transparent);
   border-radius: 8px;
-  background: rgba(145,112,222,.10);
-  color: #d8ccfa;
+  background: color-mix(in srgb, var(--ab-ui-accent) 10%, transparent);
+  color: var(--ab-ui-accent);
   font-size: 10px;
   cursor: pointer;
 }
@@ -278,13 +278,13 @@
   gap: 12px;
   margin-top: 22px;
   padding: 16px;
-  border: 1px solid rgba(174,144,244,.12);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 12%, transparent);
   border-radius: 13px;
-  background: #0c1019;
+  background: var(--ab-ui-surface);
 }
 
 .restrictionForm > div:first-child span {
-  color: #947bd8;
+  color: var(--ab-ui-accent);
   font-size: 9px;
   font-weight: 850;
   letter-spacing: .12em;
@@ -307,7 +307,7 @@
 }
 
 .restrictionForm label span {
-  color: #788296;
+  color: var(--ab-ui-muted);
   font-size: 9px;
 }
 
@@ -318,8 +318,8 @@
   border: 1px solid rgba(255,255,255,.09);
   border-radius: 8px;
   outline: 0;
-  background: #111621;
-  color: #eef0f6;
+  background: var(--ab-ui-surface);
+  color: var(--ab-ui-text);
   font: inherit;
   font-size: 10px;
 }
@@ -344,7 +344,7 @@
 }
 
 .restrictions > p {
-  color: #70798b;
+  color: var(--ab-ui-muted);
   font-size: 10px;
 }
 
@@ -367,18 +367,18 @@
 }
 
 .restrictions article span {
-  color: #747e91;
+  color: var(--ab-ui-muted);
   font-size: 9px;
 }
 
 .restrictions article em {
-  color: #74d8a6;
+  color: var(--ab-ui-success);
   font-size: 8px;
   font-style: normal;
 }
 
 .restrictions article em[data-active="false"] {
-  color: #6d7586;
+  color: var(--ab-ui-muted);
 }
 
 .statusActions button:disabled,

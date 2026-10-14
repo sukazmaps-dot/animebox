@@ -115,7 +115,7 @@ export default function HomeHero({
 
   if (!anime) {
     return (
-      <section className="rounded-[28px] border border-white/10 bg-[#0a1422] p-8 shadow-2xl">
+      <section className="rounded-[28px] border border-white/10 bg-[var(--ab-ui-surface)] p-8 shadow-2xl">
         <div className="animate-pulse space-y-5">
           <div className="h-5 w-40 rounded-full bg-white/5" />
 
@@ -164,7 +164,7 @@ export default function HomeHero({
 
   return (
     <section
-      className="group relative min-h-[400px] overflow-hidden rounded-[28px] border border-white/10 bg-[#091320] shadow-[0_28px_70px_rgba(0,0,0,.28)]"
+      className="group relative min-h-[400px] overflow-hidden rounded-[28px] border border-white/10 bg-[var(--ab-ui-surface)] shadow-[0_28px_70px_rgba(0,0,0,.28)]"
       onMouseEnter={() =>
         setPaused(true)
       }
@@ -189,24 +189,24 @@ export default function HomeHero({
         />
       )}
 
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,10,18,.98)_0%,rgba(5,10,18,.9)_38%,rgba(5,10,18,.54)_66%,rgba(5,10,18,.72)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,color-mix(in_srgb,_var(--ab-ui-canvas)_98%,_transparent)_0%,color-mix(in_srgb,_var(--ab-ui-canvas)_90%,_transparent)_38%,color-mix(in_srgb,_var(--ab-ui-canvas)_54%,_transparent)_66%,color-mix(in_srgb,_var(--ab-ui-canvas)_72%,_transparent)_100%)]" />
 
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,10,18,.12),#08111d_94%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,_var(--ab-ui-canvas)_12%,_transparent),var(--ab-ui-surface)_94%)]" />
 
       <div className="relative z-10 grid min-h-[400px] grid-cols-1 items-center gap-8 px-6 py-8 sm:px-8 lg:grid-cols-[minmax(0,1fr)_230px] lg:px-10">
         <div className="max-w-2xl">
           <div className="mb-4 flex flex-wrap gap-2">
-            <span className="rounded-full border border-violet-400/20 bg-violet-500/15 px-3 py-1 text-[10px] font-semibold text-violet-200">
+            <span className="rounded-full border border-[color-mix(in_srgb,var(--ab-ui-accent)_20%,transparent)] bg-[color-mix(in_srgb,var(--ab-ui-selected)_15%,transparent)] px-3 py-1 text-[10px] font-semibold text-[var(--ab-ui-accent)]">
               Рекомендация
             </span>
 
-            <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[10px] text-slate-200">
+            <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[10px] text-[var(--ab-ui-text)]">
               {isOngoing
                 ? 'Онгоинг'
                 : 'Завершено'}
             </span>
 
-            <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[10px] text-slate-200">
+            <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[10px] text-[var(--ab-ui-text)]">
               <Icon
                 name="star"
                 width={11}
@@ -218,7 +218,7 @@ export default function HomeHero({
           </div>
 
           {originalTitle && (
-            <p className="mb-2 text-[10px] uppercase tracking-[0.18em] text-slate-400/80">
+            <p className="mb-2 text-[10px] uppercase tracking-[0.18em] text-[color-mix(in_srgb,var(--ab-ui-muted)_80%,transparent)]">
               {originalTitle}
             </p>
           )}
@@ -227,7 +227,7 @@ export default function HomeHero({
             {title}
           </h1>
 
-          <p className="mt-5 line-clamp-3 max-w-2xl text-sm leading-7 text-slate-300/80">
+          <p className="mt-5 line-clamp-3 max-w-2xl text-sm leading-7 text-[color-mix(in_srgb,var(--ab-ui-muted)_80%,transparent)]">
             {anime.description?.trim() ||
               'Подборка для продолжения просмотра и знакомства с новым тайтлом.'}
           </p>
@@ -267,7 +267,7 @@ export default function HomeHero({
             className="justify-self-center lg:justify-self-end"
           >
             <div className="relative w-[170px] sm:w-[190px] lg:w-[205px]">
-              <div className="absolute -inset-4 rounded-[30px] bg-violet-500/15 blur-2xl transition duration-500 group-hover:bg-violet-500/25" />
+              <div className="absolute -inset-4 rounded-[30px] bg-[color-mix(in_srgb,var(--ab-ui-selected)_15%,transparent)] blur-2xl transition duration-500 group-hover:bg-[color-mix(in_srgb,var(--ab-ui-selected)_25%,transparent)]" />
 
               <div className="relative overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.04] p-1 shadow-2xl transition duration-500 group-hover:-translate-y-2 group-hover:rotate-[1deg]">
                 <AnimeImage
@@ -304,7 +304,7 @@ export default function HomeHero({
                 }
                 className={`h-1.5 rounded-full transition-all duration-300 ${
                   index === active
-                    ? 'w-8 bg-violet-400'
+                    ? 'w-8 bg-[var(--ab-ui-primary)]'
                     : 'w-1.5 bg-white/30 hover:bg-white/55'
                 }`}
               />

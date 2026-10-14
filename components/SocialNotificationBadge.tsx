@@ -117,7 +117,7 @@ export default function SocialNotificationBadge() {
   if (unread <= 0) return null;
 
   return (
-    <span className="pointer-events-none absolute -right-1 -top-1 grid min-h-[16px] min-w-[16px] place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-black leading-none text-white shadow-[0_0_14px_rgba(244,63,94,0.45)]">
+    <span className="pointer-events-none absolute -right-1 -top-1 grid min-h-[16px] min-w-[16px] place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-black leading-none text-white shadow-[0_0_14px_color-mix(in_srgb,_var(--ab-ui-danger)_45%,_transparent)]">
       {unread > 99 ? '99+' : unread}
     </span>
   );

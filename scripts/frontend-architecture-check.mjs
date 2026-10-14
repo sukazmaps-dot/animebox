@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { gzipSync } from 'node:zlib';
 
 const root = process.cwd();
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -34,10 +35,16 @@ if (rootCssImports.length > 76) {
   );
 }
 
-if (rootCssBytes > 830_000) {
+// Semantic colour expressions are longer in source, but compress better than
+// hundreds of unrelated literals. Retain an import bound and a transfer bound.
+if (rootCssBytes > 900_000) {
   failures.push(
-    `root layout CSS source budget regressed: ${rootCssBytes} > 830000 bytes`,
+    `root layout CSS source budget regressed: ${rootCssBytes} > 900000 bytes`,
   );
+}
+const rootCssTransferBytes = gzipSync(rootCssImports.map(read).join('\n')).length;
+if (rootCssTransferBytes > 152_000) {
+  failures.push(`root CSS gzip transfer budget regressed: ${rootCssTransferBytes} > 152000 bytes`);
 }
 
 for (const forbidden of [

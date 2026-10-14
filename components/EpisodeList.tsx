@@ -582,8 +582,8 @@ export default function EpisodeList({
                   }}
                   className={`episode-list__season-tab group min-w-[118px] shrink-0 rounded-xl border px-3.5 py-2.5 text-left transition-all duration-200 ${
                     active
-                      ? 'border-violet-400/55 bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_22px_rgba(124,58,237,0.30)]'
-                      : 'border-slate-800/80 bg-slate-900/50 text-gray-400 hover:border-violet-400/35 hover:bg-slate-900/80 hover:text-white'
+                      ? 'border-[color-mix(in_srgb,var(--ab-ui-accent)_55%,transparent)] bg-gradient-to-r from-[var(--ab-ui-primary)] to-[var(--ab-ui-primary)] text-white shadow-[0_0_22px_color-mix(in_srgb,_var(--ab-ui-accent)_30%,_transparent)]'
+                      : 'border-[color-mix(in_srgb,var(--ab-ui-border)_80%,transparent)] bg-[color-mix(in_srgb,var(--ab-ui-surface)_50%,transparent)] text-[var(--ab-ui-muted)] hover:border-[color-mix(in_srgb,var(--ab-ui-accent)_35%,transparent)] hover:bg-[color-mix(in_srgb,var(--ab-ui-surface)_80%,transparent)] hover:text-white'
                   }`}
                 >
                   <span className="block text-xs font-medium">{season.label}</span>
@@ -634,8 +634,8 @@ export default function EpisodeList({
                 }}
                 className={`episode-list__season-tab episode-list__season-tab--extras min-w-[128px] shrink-0 rounded-xl border px-3.5 py-2.5 text-left transition-all duration-200 ${
                   extrasActive
-                    ? 'border-violet-400/55 bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_22px_rgba(124,58,237,0.30)]'
-                    : 'border-slate-800/80 bg-slate-900/50 text-gray-400 hover:border-violet-400/35 hover:bg-slate-900/80 hover:text-white'
+                    ? 'border-[color-mix(in_srgb,var(--ab-ui-accent)_55%,transparent)] bg-gradient-to-r from-[var(--ab-ui-primary)] to-[var(--ab-ui-primary)] text-white shadow-[0_0_22px_color-mix(in_srgb,_var(--ab-ui-accent)_30%,_transparent)]'
+                    : 'border-[color-mix(in_srgb,var(--ab-ui-border)_80%,transparent)] bg-[color-mix(in_srgb,var(--ab-ui-surface)_50%,transparent)] text-[var(--ab-ui-muted)] hover:border-[color-mix(in_srgb,var(--ab-ui-accent)_35%,transparent)] hover:bg-[color-mix(in_srgb,var(--ab-ui-surface)_80%,transparent)] hover:text-white'
                 }`}
               >
                 <span className="block text-xs font-medium">Фильмы / OVA</span>
@@ -651,7 +651,7 @@ export default function EpisodeList({
                 type="button"
                 onClick={() => scrollSeasonTabs('left')}
                 aria-label="Показать предыдущие сезоны"
-                className="absolute left-1 top-1/2 z-20 hidden h-9 w-9 -translate-y-[60%] place-items-center rounded-full border border-violet-300/35 bg-slate-950/90 text-white shadow-[0_10px_28px_rgba(0,0,0,0.40)] backdrop-blur transition hover:border-violet-300/70 hover:bg-violet-500/25 md:grid"
+                className="absolute left-1 top-1/2 z-20 hidden h-9 w-9 -translate-y-[60%] place-items-center rounded-full border border-[color-mix(in_srgb,var(--ab-ui-accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--ab-ui-surface)_90%,transparent)] text-white shadow-[0_10px_28px_rgba(0,0,0,0.40)] backdrop-blur transition hover:border-[color-mix(in_srgb,var(--ab-ui-accent)_70%,transparent)] hover:bg-[color-mix(in_srgb,var(--ab-ui-selected)_25%,transparent)] md:grid"
               >
                 <SeasonChevron direction="left" />
               </button>
@@ -662,7 +662,7 @@ export default function EpisodeList({
                 type="button"
                 onClick={() => scrollSeasonTabs('right')}
                 aria-label="Показать следующие сезоны"
-                className="absolute right-1 top-1/2 z-20 hidden h-9 w-9 -translate-y-[60%] place-items-center rounded-full border border-violet-300/35 bg-slate-950/90 text-white shadow-[0_10px_28px_rgba(0,0,0,0.40)] backdrop-blur transition hover:border-violet-300/70 hover:bg-violet-500/25 md:grid"
+                className="absolute right-1 top-1/2 z-20 hidden h-9 w-9 -translate-y-[60%] place-items-center rounded-full border border-[color-mix(in_srgb,var(--ab-ui-accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--ab-ui-surface)_90%,transparent)] text-white shadow-[0_10px_28px_rgba(0,0,0,0.40)] backdrop-blur transition hover:border-[color-mix(in_srgb,var(--ab-ui-accent)_70%,transparent)] hover:bg-[color-mix(in_srgb,var(--ab-ui-selected)_25%,transparent)] md:grid"
               >
                 <SeasonChevron direction="right" />
               </button>
@@ -693,7 +693,7 @@ export default function EpisodeList({
             <Link
               href={`/anime/${activeSeason.slug}`}
               prefetch={false}
-              className="mt-3 inline-flex rounded-lg border border-violet-400/30 bg-violet-500/10 px-3 py-2 text-xs font-semibold text-violet-200 transition hover:bg-violet-500/20"
+              className="mt-3 inline-flex rounded-lg border border-[color-mix(in_srgb,var(--ab-ui-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--ab-ui-selected)_10%,transparent)] px-3 py-2 text-xs font-semibold text-[var(--ab-ui-accent)] transition hover:bg-[color-mix(in_srgb,var(--ab-ui-selected)_20%,transparent)]"
             >
               Открыть сезон
             </Link>
@@ -707,7 +707,7 @@ export default function EpisodeList({
             <Link
               href={`/anime/${activeSeason.slug}`}
               prefetch={false}
-              className="mt-3 inline-flex rounded-lg border border-violet-400/30 bg-violet-500/10 px-3 py-2 text-xs font-semibold text-violet-200 transition hover:bg-violet-500/20"
+              className="mt-3 inline-flex rounded-lg border border-[color-mix(in_srgb,var(--ab-ui-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--ab-ui-selected)_10%,transparent)] px-3 py-2 text-xs font-semibold text-[var(--ab-ui-accent)] transition hover:bg-[color-mix(in_srgb,var(--ab-ui-selected)_20%,transparent)]"
             >
               Открыть сезон
             </Link>
@@ -720,7 +720,7 @@ export default function EpisodeList({
             <Link
               href={`/anime/${activeSeason.slug}`}
               prefetch={false}
-              className="mt-3 inline-flex rounded-lg border border-violet-400/30 bg-violet-500/10 px-3 py-2 text-xs font-semibold text-violet-200 transition hover:bg-violet-500/20"
+              className="mt-3 inline-flex rounded-lg border border-[color-mix(in_srgb,var(--ab-ui-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--ab-ui-selected)_10%,transparent)] px-3 py-2 text-xs font-semibold text-[var(--ab-ui-accent)] transition hover:bg-[color-mix(in_srgb,var(--ab-ui-selected)_20%,transparent)]"
             >
               Открыть сезон
             </Link>
@@ -804,8 +804,8 @@ export default function EpisodeList({
                         onClick={() => { setSelectedGroupId(group.id); setCinemaVisibleCount(8); }}
                         className={`episode-list__group-tab shrink-0 rounded-xl border px-3 py-2 text-left transition-colors ${
                           active
-                            ? 'border-violet-400/60 bg-violet-500/20 text-white'
-                            : 'border-white/10 bg-white/[0.03] text-white/60 hover:border-violet-400/35 hover:text-white'
+                            ? 'border-[color-mix(in_srgb,var(--ab-ui-accent)_60%,transparent)] bg-[color-mix(in_srgb,var(--ab-ui-selected)_20%,transparent)] text-white'
+                            : 'border-white/10 bg-white/[0.03] text-white/60 hover:border-[color-mix(in_srgb,var(--ab-ui-accent)_35%,transparent)] hover:text-white'
                         }`}
                       >
                         <span className="block text-xs font-semibold">
@@ -974,11 +974,11 @@ function ExtrasGrid({ items }: { items: EpisodeExtraItem[] }) {
           key={item.id}
           href={`/anime/${item.slug}`}
           prefetch={false}
-          className="episode-list__extra group rounded-xl border border-white/10 bg-white/[0.03] p-3 transition-all hover:-translate-y-0.5 hover:border-violet-400/35 hover:bg-violet-500/[0.07]"
+          className="episode-list__extra group rounded-xl border border-white/10 bg-white/[0.03] p-3 transition-all hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--ab-ui-accent)_35%,transparent)] hover:bg-[var(--ab-ui-primary)]/[0.07]"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-violet-300/75">
+              <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-[color-mix(in_srgb,var(--ab-ui-accent)_75%,transparent)]">
                 {extraFormatLabel(item.format)}
               </span>
               <strong className="mt-1 block truncate text-sm text-white/85 group-hover:text-white">

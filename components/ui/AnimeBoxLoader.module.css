@@ -5,7 +5,7 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  color: rgba(214, 205, 239, .68);
+  color: var(--ab-ui-text);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: .015em;
@@ -17,8 +17,8 @@
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  border: 2px solid rgba(180, 169, 235, .18);
-  border-left-color: #b9a5fa;
+  border: 2px solid color-mix(in srgb, var(--ab-ui-accent) 18%, transparent);
+  border-left-color: var(--ab-ui-accent);
   border-radius: 50%;
   animation: animebox-loader-spin 1.3s linear infinite;
 }
@@ -27,7 +27,7 @@
   content: '';
   position: absolute;
   inset: 19%;
-  border: 1px solid rgba(151, 136, 231, .45);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 45%, transparent);
   border-radius: 50%;
 }
 
@@ -35,7 +35,7 @@
   width: 19%;
   height: 19%;
   border-radius: 3px;
-  background: #d8cafa;
+  background: var(--ab-ui-primary);
   transform: rotate(45deg);
 }
 

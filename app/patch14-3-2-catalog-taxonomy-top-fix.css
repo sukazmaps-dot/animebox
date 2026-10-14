@@ -52,7 +52,7 @@
     padding: 7px 0 !important;
     overflow: hidden !important;
     border: 0 !important;
-    border-bottom: 1px solid rgba(204, 208, 219, .055) !important;
+    border-bottom: 1px solid var(--ab-ui-border) !important;
     border-radius: 0 !important;
     background: transparent !important;
     box-shadow: none !important;

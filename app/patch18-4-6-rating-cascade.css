@@ -55,13 +55,13 @@ position: absolute;
 }
 
 .anime-rating-control__star-button .anime-rating-control__star-base {
-color: rgba(213, 219, 234, .16);
+color: var(--ab-ui-text);
 }
 
 .anime-rating-control__star-button .anime-rating-control__star-fill {
-color: #f2c96d;
+color: var(--ab-ui-danger);
   opacity: 0;
-  text-shadow: 0 0 18px rgba(242, 201, 109, .12);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--ab-ui-danger) 12%, transparent);
 }
 
 .anime-rating-control__star-button[data-filled='true'] .anime-rating-control__star-fill,
@@ -70,9 +70,9 @@ opacity: 1;
 }
 
 .anime-rating-control__star-button:focus-visible {
-outline: 2px solid rgba(173, 151, 255, .9);
+outline: 2px solid color-mix(in srgb, var(--ab-ui-accent) 90%, transparent);
   outline-offset: 2px;
-  background: rgba(126, 91, 221, .08);
+  background: color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
 }
 
 .anime-rating-control__star-button:disabled {
@@ -86,22 +86,22 @@ opacity: .58;
 @media (hover: hover) and (pointer: fine) {
 .anime-rating-control__star-button:not(:disabled):hover {
 transform: translateY(-2px) scale(1.04);
-    background: rgba(242, 201, 109, .045);
+    background: color-mix(in srgb, var(--ab-ui-danger) 4.5%, transparent);
 }
 }
 
 html[data-animebox-theme='light'] .anime-rating-control__star-button .anime-rating-control__star-base {
-color: rgba(73, 68, 89, .14);
+color: var(--ab-ui-text);
 }
 
 html[data-animebox-theme='light'] .anime-rating-control__star-button .anime-rating-control__star-fill {
-color: #d89b25;
+color: var(--ab-ui-danger);
   text-shadow: none;
 }
 
 html[data-animebox-theme='light'] .anime-rating-control__star-button:focus-visible {
-outline-color: rgba(101, 66, 187, .72);
-  background: rgba(101, 66, 187, .06);
+outline-color: color-mix(in srgb, var(--ab-ui-accent) 72%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-accent) 6%, transparent);
 }
 
 @media (max-width: 680px) {

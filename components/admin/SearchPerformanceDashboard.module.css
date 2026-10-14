@@ -72,9 +72,9 @@
   box-shadow: 0 0 18px currentColor;
 }
 
-.status[data-tone='healthy'] { color: #8ce7b0; }
-.status[data-tone='warning'] { color: #f1c87a; }
-.status[data-tone='critical'] { color: #ff9696; }
+.status[data-tone='healthy'] { color: var(--ab-ui-success); }
+.status[data-tone='warning'] { color: var(--ab-ui-danger); }
+.status[data-tone='critical'] { color: var(--ab-ui-danger); }
 
 .status small,
 .status span {
@@ -162,7 +162,7 @@
 }
 
 .error {
-  color: #ffaaaa;
+  color: var(--ab-ui-danger);
 }
 
 @media (max-width: 900px) {

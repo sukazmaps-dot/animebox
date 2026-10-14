@@ -12,7 +12,7 @@
   --ab-control-sm: 36px;
   --ab-control-md: 40px;
   --ab-control-lg: 44px;
-  --ab-focus-ring: 0 0 0 3px rgba(120, 104, 238, .16);
+  --ab-focus-ring: 0 0 0 3px color-mix(in srgb, var(--ab-ui-accent) 16%, transparent);
   --ab-shadow-card: 0 12px 30px rgba(0, 0, 0, .16);
 }
 
@@ -34,7 +34,7 @@
 }
 
 :where(a, button, input, textarea, select):focus-visible {
-  outline: 2px solid rgba(164, 151, 255, .78);
+  outline: 2px solid color-mix(in srgb, var(--ab-ui-accent) 78%, transparent);
   outline-offset: 3px;
 }
 
@@ -88,14 +88,14 @@
 
 .anime-card__shine {
   height: 38%;
-  background: linear-gradient(180deg, transparent, rgba(2, 5, 10, .62));
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--ab-ui-canvas) 62%, transparent));
 }
 
 .anime-card__rating,
 .anime-card__state {
   border: 1px solid rgba(255,255,255,.07);
   border-radius: 6px;
-  background: rgba(5, 8, 14, .76);
+  background: color-mix(in srgb, var(--ab-ui-canvas) 76%, transparent);
   box-shadow: none;
   backdrop-filter: blur(6px);
 }
@@ -117,14 +117,14 @@
 }
 
 .anime-card__personal {
-  border-color: rgba(120,104,238,.18);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 18%, transparent);
   background: var(--ab-accent-soft);
 }
 
 @media (hover: hover) {
   .anime-card:hover {
     transform: translateY(-2px);
-    border-color: rgba(120,104,238,.3);
+    border-color: color-mix(in srgb, var(--ab-ui-accent) 30%, transparent);
     box-shadow: var(--ab-shadow-card);
   }
 
@@ -162,10 +162,10 @@
 
 .profile-v2__edit,
 .profile-v2__library-empty a {
-  border-color: rgba(120,104,238,.24);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 24%, transparent);
   border-radius: var(--ab-radius-sm);
   background: var(--ab-accent-soft);
-  color: #d7d1ff;
+  color: var(--ab-ui-accent);
   box-shadow: none;
 }
 
@@ -181,7 +181,7 @@
 }
 
 .profile-v2__achievement.is-unlocked {
-  border-color: rgba(120,104,238,.2);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 20%, transparent);
   background: var(--ab-accent-soft);
 }
 
@@ -198,7 +198,7 @@
 .auth-form input {
   border-color: var(--ab-border);
   border-radius: var(--ab-radius-sm);
-  background: #080d15;
+  background: var(--ab-ui-surface);
 }
 
 .profile-edit-modal__save,
@@ -229,7 +229,7 @@
 .episode-comments__eyebrow {
   display: block;
   margin-bottom: 6px;
-  color: #978de9;
+  color: var(--ab-ui-accent);
   font-size: 9px;
   font-weight: 800;
   letter-spacing: .11em;
@@ -261,7 +261,7 @@
   padding: 3px;
   border: 1px solid var(--ab-border);
   border-radius: var(--ab-radius-sm);
-  background: #080d15;
+  background: var(--ab-ui-surface);
 }
 
 .episode-comments__sort button {
@@ -277,7 +277,7 @@
 
 .episode-comments__sort button.is-active {
   background: var(--ab-accent-soft);
-  color: #ddd8ff;
+  color: var(--ab-ui-text);
 }
 
 .episode-comments__count {
@@ -298,13 +298,13 @@
   gap: 10px;
   margin: -2px 0 12px;
   padding: 9px 11px;
-  border-left: 2px solid rgba(120,104,238,.52);
-  background: rgba(120,104,238,.055);
+  border-left: 2px solid color-mix(in srgb, var(--ab-ui-accent) 52%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-accent) 5.5%, transparent);
 }
 
 .episode-comments__scope span {
   flex: 0 0 auto;
-  color: #c7c0ff;
+  color: var(--ab-ui-accent);
   font-size: 10px;
   font-weight: 800;
 }
@@ -320,7 +320,7 @@
   padding: 11px;
   border: 1px solid var(--ab-border);
   border-radius: var(--ab-radius-md);
-  background: #080d15;
+  background: var(--ab-ui-surface);
 }
 
 .episode-comments__controls button {
@@ -418,7 +418,7 @@
 
 .episode-comment__body p {
   margin: 8px 0 0;
-  color: #cdd5e1;
+  color: var(--ab-ui-text);
   font-size: 12px;
   line-height: 1.6;
   overflow-wrap: anywhere;
@@ -449,7 +449,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #9187df;
+  color: var(--ab-ui-accent);
   font-size: 10px;
   font-weight: 700;
 }
@@ -457,7 +457,7 @@
 .episode-comment__children {
   margin: 10px 0 0 46px;
   padding-left: 12px;
-  border-left: 1px solid rgba(120,104,238,.22);
+  border-left: 1px solid color-mix(in srgb, var(--ab-ui-accent) 22%, transparent);
 }
 
 .episode-comments__empty {

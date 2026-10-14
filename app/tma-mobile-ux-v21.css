@@ -128,7 +128,7 @@
   .mobile-account__telegram-bound {
     display: block;
     width: 100%;
-    color: rgba(157, 173, 201, .74);
+    color: var(--ab-ui-accent);
     font-size: 11px;
     line-height: 1.45;
     text-align: center;

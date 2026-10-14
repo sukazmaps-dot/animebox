@@ -334,9 +334,9 @@ export default function ProfilePreview({
 
   const themeStyle = data
     ? ({
-        '--profile-preview-primary': data.primaryColor,
-        '--profile-preview-accent': data.accentColor,
-        '--profile-preview-text': data.textColor,
+        '--profile-preview-primary': data.premium ? data.primaryColor : 'var(--ab-ui-surface)',
+        '--profile-preview-accent': data.premium ? data.accentColor : 'var(--ab-ui-accent)',
+        '--profile-preview-text': data.premium ? data.textColor : 'var(--ab-ui-text)',
         '--profile-preview-atmosphere-alpha': String(atmosphereAlpha),
         '--profile-preview-atmosphere-live-alpha': String(atmosphereLiveAlpha),
         '--profile-preview-atmosphere-clean-alpha': String(atmosphereCleanAlpha),

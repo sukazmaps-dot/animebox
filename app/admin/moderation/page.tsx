@@ -114,7 +114,7 @@ export default function Moderation() {
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
             href="/admin/community/media"
-            className="rounded-xl border border-violet-400/20 bg-violet-500/[0.08] px-4 py-2 text-sm font-bold text-violet-100"
+            className="rounded-xl border border-[color-mix(in_srgb,var(--ab-ui-accent)_20%,transparent)] bg-[var(--ab-ui-primary)]/[0.08] px-4 py-2 text-sm font-bold text-[var(--ab-ui-accent)]"
           >
             Старая очередь медиа →
           </Link>

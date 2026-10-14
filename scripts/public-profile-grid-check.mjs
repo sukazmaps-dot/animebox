@@ -35,9 +35,9 @@ if (
 }
 
 if (
-  !css.includes('#7c3aed') ||
-  !css.includes('#6366f1') ||
-  !css.includes('#a78bfa')
+  !css.includes('.profile-widget__genre-track i') ||
+  !css.includes('linear-gradient(') ||
+  !css.includes('var(--ab-ui-primary)')
 ) {
   failures.push('taste snapshot gradient bars are missing');
 }

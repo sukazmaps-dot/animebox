@@ -15,7 +15,7 @@ export default function PlaybackRestrictionNotice() {
       </p>
       <Link
         href="/copyright"
-        className="mt-4 inline-flex text-xs font-semibold text-violet-300/80 transition hover:text-violet-200"
+        className="mt-4 inline-flex text-xs font-semibold text-[color-mix(in_srgb,var(--ab-ui-accent)_80%,transparent)] transition hover:text-[var(--ab-ui-accent)]"
       >
         Подробнее →
       </Link>
