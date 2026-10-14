@@ -44,7 +44,7 @@ if (
   failures.push('watch reward quarantine is not enforced');
 }
 
-const durableMigration = fs.readFileSync('supabase/migrations/20261013200155_leaderboard_durable_periods_v1.sql', 'utf8');
+const durableMigration = fs.readFileSync('supabase/migrations/20261014081146_leaderboard_durable_periods_v1.sql', 'utf8');
 if (
   !durableMigration.includes('leaderboard_trust_restrictions') ||
   !durableMigration.includes('not exists(select 1 from animebox_watch.leaderboard_trust_restrictions') ||

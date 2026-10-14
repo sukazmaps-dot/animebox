@@ -1,4 +1,5 @@
--- Apply AFTER application deploy. Provision matching Railway/Vault secret first.
+-- Provision matching Railway/Vault secret first. Jobs install dormant.
+-- Activate only AFTER compatible application deployment has been verified.
 -- Vault name animebox_leaderboard_cron_secret; Railway LEADERBOARD_CRON_SECRET.
 do $$ begin
  if not exists(select 1 from vault.secrets where name='animebox_leaderboard_cron_secret') then
@@ -17,3 +18,8 @@ select cron.schedule('animebox-leaderboard-seasons-retry','20 1 * * *',$job$
  where not exists(select 1 from public.system_job_runs where job_key='leaderboard-seasons' and status='succeeded'
  and started_at>=(date_trunc('day',now() at time zone 'UTC') at time zone 'UTC'));
 $job$);
+
+-- Installation is safe before the app deployment; activation is a separate
+-- operator action after confirming the protected endpoint and job success.
+select cron.alter_job((select jobid from cron.job where jobname='animebox-leaderboard-seasons'),active:=false);
+select cron.alter_job((select jobid from cron.job where jobname='animebox-leaderboard-seasons-retry'),active:=false);
