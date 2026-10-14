@@ -114,12 +114,12 @@ export async function materializeLeaderboardSeasonRewards(seasonId: string) {
   const admin = createSupabaseAdmin();
   const { data: season, error: seasonError } = await admin
     .from('leaderboard_seasons')
-    .select('id,period_type,period_key,starts_at,ends_at')
+    .select('id,period_type,period_key,starts_at,ends_at,archive_status')
     .eq('id', seasonId)
     .maybeSingle();
 
   if (seasonError) throw seasonError;
-  if (!season || (season.period_type !== 'week' && season.period_type !== 'month')) {
+  if (!season || season.archive_status === 'partial' || (season.period_type !== 'week' && season.period_type !== 'month')) {
     return { seasonId, inserted: 0, skipped: true };
   }
 
@@ -142,10 +142,9 @@ export async function materializeLeaderboardSeasonRewards(seasonId: string) {
     startsAt: String(season.starts_at),
     endsAt: String(season.ends_at),
   }).catch((error) => {
-    // Prize assignment stays available if telemetry storage is degraded.
-    // The watch route still gates XP/challenges independently.
+    // Retry the job rather than awarding a prize without eligibility data.
     console.warn('[Leaderboard rewards] trust filter unavailable:', error);
-    return new Set<string>();
+    throw error;
   });
   const eligibleEntries = (entries ?? []).filter(
     (entry) => !highRiskUsers.has(String(entry.user_id)),

@@ -2,11 +2,10 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import SeoAnimeLanding from '@/components/SeoAnimeLanding';
-import { getAnimesWithShikimori } from '@/lib/combined-anime';
-import type { Anime } from '@/types/anime';
+import { getGenreLandingCollection } from '@/lib/genre-landing-server';
 import { getSeoGenre } from '@/lib/search-seo';
 
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -40,17 +39,7 @@ export default async function GenreLandingPage({ params }: Props) {
   const genre = getSeoGenre(slug);
   if (!genre) notFound();
 
-  let items: Anime[] = [];
-  try {
-    items = await getAnimesWithShikimori({
-      page: 1,
-      limit: 24,
-      order: 'popularity',
-      genres: [genre.value],
-    });
-  } catch (error) {
-    console.warn('[SEO genre landing]', genre.value, error);
-  }
+  const collection = await getGenreLandingCollection(genre.value, genre.label);
 
   const path = `/anime/genre/${genre.slug}`;
   return (
@@ -58,7 +47,9 @@ export default async function GenreLandingPage({ params }: Props) {
       title={`Аниме жанра «${genre.label}»`}
       description={genre.description}
       path={path}
-      items={items}
+      items={collection.items}
+      collectionStatus={collection.status}
+      catalogHref={`/search?tags=${encodeURIComponent(genre.slug)}`}
       breadcrumbs={[
         { label: 'AnimeBox', path: '/' },
         { label: 'Каталог', path: '/search' },

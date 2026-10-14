@@ -17,12 +17,16 @@ export default function SeoAnimeLanding({
   path,
   items,
   breadcrumbs,
+  collectionStatus = 'ready',
+  catalogHref = '/search',
 }: {
   title: string;
   description: string;
   path: string;
   items: Anime[];
   breadcrumbs: Breadcrumb[];
+  collectionStatus?: 'ready' | 'fallback' | 'empty' | 'unavailable';
+  catalogHref?: string;
 }) {
   const structuredData = {
     '@context': 'https://schema.org',
@@ -75,11 +79,12 @@ export default function SeoAnimeLanding({
       <section className="section">
         <div className="section-head">
           <h2 className="section-title">Что посмотреть</h2>
-          <Link href="/search" className="section-link">
+          <Link href={catalogHref} className="section-link">
             Открыть весь каталог →
           </Link>
         </div>
 
+        {collectionStatus === 'fallback' && <p role="status">Показана сохранённая подборка этого жанра.</p>}
         {items.length ? (
           <div className="anime-grid">
             {items.map((anime) => (
@@ -88,8 +93,10 @@ export default function SeoAnimeLanding({
           </div>
         ) : (
           <div className="empty-state">
-            <strong>Подборка временно недоступна</strong>
-            <span>Открой каталог — поиск и фильтры продолжат работать.</span>
+            <strong>{collectionStatus === 'empty' ? 'В этой подборке пока нет тайтлов' : 'Подборка временно недоступна'}</strong>
+            <span>Открой каталог с выбранным жанром или попробуй загрузить подборку снова.</span>
+            <Link href={catalogHref}>Открыть подборку в каталоге →</Link>
+            <Link href={path} prefetch={false}>Повторить загрузку</Link>
           </div>
         )}
       </section>

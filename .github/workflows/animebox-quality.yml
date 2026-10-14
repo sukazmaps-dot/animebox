@@ -41,6 +41,11 @@ jobs:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
         run: npm run anime-layout:check
 
+      - name: Chat frame browser layout regression
+        env:
+          PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
+        run: node scripts/chat-frame-layout-smoke.cjs
+
       - name: Release consolidation invariants
         run: npm run release-consolidation:check
 
@@ -52,6 +57,9 @@ jobs:
 
       - name: SEO AniList source pagination depth check
         run: npm run seo-anilist-depth:check
+
+      - name: Durable leaderboard SQL regression
+        run: npm run league-reliability:check
 
       - name: TypeScript
         run: npx tsc --noEmit

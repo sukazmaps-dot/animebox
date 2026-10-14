@@ -168,7 +168,8 @@ need('reward materialization', rewardServer, [
 
 need('season finalization', seasons, [
   'materializeLeaderboardSeasonRewards',
-  "period.periodType === 'week' || period.periodType === 'month'",
+  'closedLeaderboardPeriods',
+  "data?.status === 'complete'",
 ]);
 
 need('reward API', rewardApi, [

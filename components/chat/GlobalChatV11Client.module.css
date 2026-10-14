@@ -84,3 +84,10 @@
 .shell.shell :is(.eyebrow,.sideEyebrow,.sideCard a,.authGate a) { color:var(--ab-ui-accent)!important; }
 .shell.shell .composer textarea::placeholder { color:var(--ab-ui-muted); }
 .shell.shell .send { background:var(--ab-ui-primary); color:var(--ab-ui-primary-text); }
+
+/* Patch 29.10: crop image independently of decoration. Shared identity geometry. */
+.message .avatarWrap { width: 42px; height: 42px; flex-shrink: 0; overflow: visible; }
+.avatarCanvas { position: relative; display: block; width: 100%; height: 100%; isolation: isolate; }
+.avatarCrop { position: absolute; border-radius: 50%; overflow: hidden; z-index: 1; }
+.avatarCrop .avatar { inset: 0; width: 100%; height: 100%; max-width: none; box-shadow: none; }
+.avatarCanvas .frame { inset: auto; left: 50%; top: 50%; width: 100%; height: 100%; max-width: none; z-index: 2; object-fit: contain; transform-origin: center; }

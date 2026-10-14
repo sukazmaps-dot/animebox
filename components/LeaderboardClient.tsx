@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
+import { formatSeasonRange } from '@/lib/seasons';
 import styles from './Leaderboard.module.css';
 import UserIdentity from '@/components/identity/UserIdentity';
 import ProfilePreview from '@/components/profile/ProfilePreview';
@@ -35,6 +36,8 @@ type Entry = {
 
 type Payload = {
   period: Period;
+  myEligibility?: 'eligible' | 'restricted';
+  coverage?: { complete: boolean; participantCount: number; computedAt: string };
   entries: Entry[];
   me: Entry | null;
   season: null | {
@@ -148,6 +151,10 @@ export default function LeaderboardClient() {
           <h1>Твоё место в топе.</h1>
           <p>Сравни время просмотра с другими зрителями AnimeBox.</p>
           <div className={styles.heroMeta}><span>Топ-100</span><span>По подтверждённому времени просмотра</span></div>
+          {data?.coverage && <p role="status">
+            {data.coverage.participantCount} участников · {data.season ? formatSeasonRange(data.season.startsAt, data.season.endsAt) : 'Всё время'} · UTC.
+            {!data.coverage.complete && ' История периода неполная: время может быть занижено.'}
+          </p>}
         </div>
 
         <div className={styles.heroStatus} aria-label="Твоя статистика рейтинга">
@@ -161,7 +168,7 @@ export default function LeaderboardClient() {
             <div className={styles.heroStatusEmpty}>
               <span>ТВОЯ ПОЗИЦИЯ</span>
               <strong>—</strong>
-              <small>Начни смотреть — место появится здесь</small>
+              <small>{data?.myEligibility === 'restricted' ? 'Участие в этом периоде ограничено. Общая статистика просмотра сохранена.' : 'Начни смотреть — место появится здесь'}</small>
             </div>
           )}
         </div>
@@ -260,6 +267,24 @@ export default function LeaderboardClient() {
         </section>
       ) : data ? (
         <div className={styles.results}>
+          <section className={styles.personal} aria-label="Твоё место в рейтинге">
+            <div className={styles.personalIcon}>
+              {me ? <strong>#{me.rank}</strong> : <Icon name="crown" size={26} weight="regular" />}
+            </div>
+            <div className={styles.personalText}>
+              <span className={styles.eyebrow}>{me ? 'Твоя позиция' : 'Твоё место в рейтинге'}</span>
+              <h2>{me ? (me.rank <= 3 ? 'Ты уже на пьедестале' : 'Держишь место в рейтинге') : 'Здесь может быть твоё имя'}</h2>
+              {gap !== null && <p className={styles.gap}>До третьего места: {gap === 0 ? 'одинаковое время' : formatWatchTime(gap)}</p>}
+            </div>
+            {me && (
+              <div className={styles.personalStats} aria-label="Твоя статистика">
+                <span><small>Время</small><strong>{formatWatchTime(me.activeMs)}</strong></span>
+                <span><small>Серии</small><strong>{me.completedEpisodes}</strong></span>
+                <span><small>Уровень</small><strong>LVL {me.progression.level}</strong></span>
+              </div>
+            )}
+            <Link className={styles.personalAction} href={me ? `/profile/${me.userId}` : '/search'}>{me ? 'Профиль' : 'Выбрать аниме'} <span aria-hidden="true">↗</span></Link>
+          </section>
           <div className={styles.resultsColumns}>
             <div className={styles.podiumColumn}>
           <div className={styles.sectionHeading}>
@@ -331,24 +356,7 @@ export default function LeaderboardClient() {
             ))}
           </section>
 
-          <section className={styles.personal} aria-label="Твоё место в рейтинге">
-            <div className={styles.personalIcon}>
-              {me ? <strong>#{me.rank}</strong> : <Icon name="crown" size={26} weight="regular" />}
-            </div>
-            <div className={styles.personalText}>
-              <span className={styles.eyebrow}>{me ? 'Твоя позиция' : 'Твоё место в рейтинге'}</span>
-              <h2>{me ? (me.rank <= 3 ? 'Ты уже на пьедестале' : 'Держишь место в рейтинге') : 'Здесь может быть твоё имя'}</h2>
-              {gap !== null && <p className={styles.gap}>До третьего места: {gap === 0 ? 'одинаковое время' : formatWatchTime(gap)}</p>}
-            </div>
-            {me && (
-              <div className={styles.personalStats} aria-label="Твоя статистика">
-                <span><small>Время</small><strong>{formatWatchTime(me.activeMs)}</strong></span>
-                <span><small>Серии</small><strong>{me.completedEpisodes}</strong></span>
-                <span><small>Уровень</small><strong>LVL {me.progression.level}</strong></span>
-              </div>
-            )}
-            <Link className={styles.personalAction} href={me ? `/profile/${me.userId}` : '/search'}>{me ? 'Профиль' : 'Выбрать аниме'} <span aria-hidden="true">↗</span></Link>
-          </section>
+
 
             </div>
 
@@ -388,9 +396,9 @@ export default function LeaderboardClient() {
                         premium={entry.premium}
                         compact
                       />
+                      {entry.isCurrentUser && <span className={styles.rowYou}>Это ты</span>}
                     </span>
                     <small>
-                      {entry.isCurrentUser ? 'Это ты · ' : ''}
                       LVL {entry.progression.level} · {entry.progression.rank}
                     </small>
                   </span>

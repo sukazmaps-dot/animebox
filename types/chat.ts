@@ -12,6 +12,7 @@ export type ChatAuthor = {
   username: string | null;
   avatarUrl: string | null;
   avatarTransform: PremiumMediaTransform | null;
+  profileFrameKey?: string | null;
   sponsor: SponsorStatus | null;
   role: PublicIdentityRole;
   premium: boolean;
