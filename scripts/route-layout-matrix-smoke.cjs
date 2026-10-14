@@ -158,13 +158,18 @@ async function scopedCSS(file,prefix) {
       const text=await main.innerText();
       assert(text.trim().length>0,name+': real built route has no content');
       if(name==='/list')assert(await page.locator('.tracker-page').count(), 'Built /list missing tracker component');
-      for(const theme of ['dark','light'])for(const {width,height} of widths) {
+      for(const {width,height} of widths)for(const theme of ['dark','light']) {
         await page.setViewportSize({width,height});
         await page.evaluate(t=>{document.documentElement.dataset.animeboxTheme=t;},theme);
         await page.evaluate(()=>new Promise(done=>requestAnimationFrame(()=>requestAnimationFrame(done))));
         const m=await page.evaluate(()=>{
           const el=document.querySelector('.page-content'),r=el.getBoundingClientRect();
-          return {x:r.x,right:r.right,width:r.width,page:document.documentElement.scrollWidth,vw:innerWidth};
+          const shell=document.querySelector('.app-shell');
+          const shellCss=getComputedStyle(shell);
+          return {x:r.x,right:r.right,width:r.width,page:document.documentElement.scrollWidth,vw:innerWidth,
+            mediaMobile:matchMedia('(max-width: 768px)').matches,
+            shellMargin:shellCss.marginLeft, shellWidth:shellCss.width,
+            sidebar:getComputedStyle(document.querySelector('.sidebar')).display};
         });
         assert(m.width>100&&m.x>=-1&&m.right<=width+1,name+'/'+theme+'/'+width+': actual page-content clipped: '+JSON.stringify(m));
         assert(m.page<=m.vw+1,name+'/'+theme+'/'+width+': actual built route overflow');
@@ -177,7 +182,7 @@ async function scopedCSS(file,prefix) {
     for(const [name,markup] of [['catalog',catalog],['tracker-auth',tracker],['anime',anime],['public-profile',publicProfile]]) {
       await page.locator('.page-content').evaluate((el,html)=>{el.innerHTML=html;},markup);
       assert(await page.locator('[data-fixture]').count(),name+': fixture failed to mount');
-      for(const theme of ['dark','light'])for(const {width,height} of widths) {
+      for(const {width,height} of widths)for(const theme of ['dark','light']) {
         await page.setViewportSize({width,height});
         await page.evaluate(t=>{document.documentElement.dataset.animeboxTheme=t;},theme);
         await page.evaluate(()=>new Promise(done=>requestAnimationFrame(()=>requestAnimationFrame(done))));
