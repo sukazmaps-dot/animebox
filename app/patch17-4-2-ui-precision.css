@@ -437,10 +437,16 @@ html .topbar__search input {
 html .topbar__search input::placeholder { color: var(--ab-ui-muted) !important; }
 html .sidebar__item, html .mobile-nav__item,
 html .brand small, html .sidebar__label { color: var(--ab-ui-muted) !important; }
-html .sidebar__item.is-active, html .mobile-nav__item.is-active {
+/* Desktop sidebar uses a left selected marker. Do NOT couple it to the
+   mobile nav: Patch 14.2 owns the mobile top-line selection indicator.
+   A shared !important background/box-shadow here resurrected old mobile UI. */
+html .sidebar__item.is-active {
   background: var(--ab-ui-selected) !important;
   color: var(--ab-ui-text) !important;
   box-shadow: inset 2px 0 var(--ab-ui-accent) !important;
+}
+html .mobile-nav__item.is-active {
+  color: var(--ab-ui-text) !important;
 }
 html .topbar__icon, html .topbar__login {
   background: var(--ab-ui-raised) !important;
