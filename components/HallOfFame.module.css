@@ -2,7 +2,7 @@
   width: min(1140px, calc(100% - 32px));
   margin: 0 auto;
   padding: 38px 0 90px;
-  color: #f2efff;
+  color: var(--ab-ui-text);
 }
 
 .hero {
@@ -10,15 +10,15 @@
   justify-content: space-between;
   gap: 28px;
   padding: 34px;
-  border: 1px solid rgba(151, 117, 255, .17);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 17%, transparent);
   border-radius: 26px;
   background:
-    radial-gradient(circle at 85% 10%, rgba(134, 83, 246, .17), transparent 34%),
-    linear-gradient(145deg, #0d1424, #080d18);
+    radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--ab-ui-accent) 17%, transparent), transparent 34%),
+    var(--ab-ui-surface);
 }
 
 .eyebrow {
-  color: #a286ff;
+  color: var(--ab-ui-accent);
   font-size: 9px;
   font-weight: 950;
   letter-spacing: .14em;
@@ -33,7 +33,7 @@
 .hero p {
   max-width: 650px;
   margin: 0;
-  color: rgba(186, 196, 218, .58);
+  color: var(--ab-ui-muted);
   font-size: 12px;
   line-height: 1.7;
 }
@@ -63,7 +63,7 @@
 
 .heroStats span {
   margin-top: 4px;
-  color: rgba(161, 175, 201, .50);
+  color: var(--ab-ui-muted);
   font-size: 8px;
 }
 
@@ -76,7 +76,7 @@
 }
 
 .toolbar > a {
-  color: #a88fff;
+  color: var(--ab-ui-accent);
   font-size: 10px;
   font-weight: 850;
   text-decoration: none;
@@ -88,7 +88,7 @@
   padding: 5px;
   border: 1px solid rgba(255,255,255,.06);
   border-radius: 12px;
-  background: rgba(8, 13, 24, .82);
+  background: color-mix(in srgb, var(--ab-ui-surface) 82%, transparent);
 }
 
 .tabs button {
@@ -97,15 +97,15 @@
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: rgba(172, 183, 207, .60);
+  color: var(--ab-ui-muted);
   font-size: 10px;
   font-weight: 850;
   cursor: pointer;
 }
 
 .tabs button.active {
-  background: rgba(124, 82, 232, .16);
-  color: #ece5ff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 16%, transparent);
+  color: var(--ab-ui-text);
 }
 
 .state {
@@ -115,21 +115,21 @@
   align-content: center;
   gap: 9px;
   padding: 30px;
-  border: 1px solid rgba(138, 150, 180, .10);
+  border: 1px solid var(--ab-ui-border);
   border-radius: 20px;
-  background: rgba(9, 16, 29, .88);
-  color: rgba(185, 196, 218, .62);
+  background: color-mix(in srgb, var(--ab-ui-surface) 88%, transparent);
+  color: var(--ab-ui-muted);
   text-align: center;
 }
 
 .state strong {
-  color: #efebff;
+  color: var(--ab-ui-text);
   font-size: 18px;
 }
 
 .state a {
   margin-top: 6px;
-  color: #aa90ff;
+  color: var(--ab-ui-accent);
   text-decoration: none;
 }
 
@@ -140,9 +140,9 @@
 
 .season {
   padding: 18px;
-  border: 1px solid rgba(136, 149, 180, .10);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 10%, transparent);
   border-radius: 20px;
-  background: linear-gradient(145deg, rgba(10, 18, 32, .95), rgba(8, 13, 24, .95));
+  background: linear-gradient(145deg, color-mix(in srgb, var(--ab-ui-surface) 95%, transparent), color-mix(in srgb, var(--ab-ui-surface) 95%, transparent));
 }
 
 .seasonHead {
@@ -154,7 +154,7 @@
 }
 
 .seasonHead span {
-  color: #8f76e8;
+  color: var(--ab-ui-accent);
   font-size: 8px;
   font-weight: 950;
   letter-spacing: .13em;
@@ -166,7 +166,7 @@
 }
 
 .seasonHead small {
-  color: rgba(164, 176, 202, .48);
+  color: var(--ab-ui-muted);
   font-size: 9px;
 }
 
@@ -183,7 +183,7 @@
   justify-items: center;
   gap: 5px;
   padding: 20px 12px 15px;
-  border: 1px solid rgba(142, 119, 214, .13);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 13%, transparent);
   border-radius: 16px;
   background: rgba(255,255,255,.018);
   color: inherit;
@@ -191,9 +191,9 @@
 }
 
 .podiumCard[data-place='1'] {
-  border-color: rgba(235, 190, 101, .28);
+  border-color: color-mix(in srgb, var(--ab-ui-danger) 28%, transparent);
   background:
-    radial-gradient(circle at 50% 0%, rgba(221, 160, 74, .08), transparent 55%),
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--ab-ui-danger) 8%, transparent), transparent 55%),
     rgba(255,255,255,.02);
 }
 
@@ -201,7 +201,7 @@
   position: absolute;
   left: 10px;
   top: 10px;
-  color: rgba(176, 158, 233, .58);
+  color: var(--ab-ui-accent);
   font-size: 9px;
   font-weight: 950;
 }
@@ -210,9 +210,9 @@
   width: 64px;
   height: 64px;
   overflow: hidden;
-  border: 2px solid rgba(157, 124, 255, .20);
+  border: 2px solid color-mix(in srgb, var(--ab-ui-accent) 20%, transparent);
   border-radius: 50%;
-  background: #101625;
+  background: var(--ab-ui-surface);
 }
 
 .avatar img {
@@ -231,18 +231,18 @@
 }
 
 .podiumCard > small {
-  color: rgba(174, 183, 204, .52);
+  color: var(--ab-ui-muted);
   font-size: 8px;
 }
 
 .podiumCard > b {
   margin-top: 3px;
-  color: #c2abff;
+  color: var(--ab-ui-accent);
   font-size: 13px;
 }
 
 .podiumCard > span:last-child {
-  color: rgba(151, 165, 191, .46);
+  color: var(--ab-ui-muted);
   font-size: 8px;
 }
 
@@ -266,7 +266,7 @@
 }
 
 .row > b {
-  color: #9b83e8;
+  color: var(--ab-ui-accent);
   font-size: 10px;
 }
 
@@ -279,12 +279,12 @@
 }
 
 .row > small {
-  color: rgba(157, 169, 195, .46);
+  color: var(--ab-ui-muted);
   font-size: 8px;
 }
 
 .row > strong {
-  color: rgba(225, 219, 247, .75);
+  color: var(--ab-ui-text);
   font-size: 9px;
   text-align: right;
 }
@@ -348,7 +348,7 @@
 }
 .eyebrow,
 .seasonHead span {
-  color: #9186e7;
+  color: var(--ab-ui-accent);
   font-weight: 650;
   letter-spacing: .08em;
 }
@@ -373,7 +373,7 @@
 }
 .tabs button.active {
   background: var(--ab-accent-soft);
-  color: #ddd8ff;
+  color: var(--ab-ui-text);
 }
 .podiumCard {
   border-color: var(--ab-border);
@@ -381,14 +381,14 @@
   background: var(--ab-surface-2);
 }
 .podiumCard[data-place='1'] {
-  border-color: rgba(217,171,88,.30);
-  background: #15140f;
+  border-color: color-mix(in srgb, var(--ab-ui-danger) 30%, transparent);
+  background: var(--ab-ui-surface);
 }
 .place {
   font-weight: 700;
 }
 .row {
-  border-color: rgba(151,164,188,.07);
+  border-color: var(--ab-ui-border);
   border-radius: var(--ab-radius-sm);
 }
 .row > span {

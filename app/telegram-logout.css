@@ -13,5 +13,5 @@
 }
 
 html.telegram-mini-app[data-telegram-autologin='disabled'] .mobile-account {
-  border-color: rgba(85, 172, 238, 0.24);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 24%, transparent);
 }

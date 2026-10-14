@@ -13,26 +13,26 @@
 
 :root {
   /* Ink palette */
-  --ab-bg: #080a11;
-  --ab-bg-raised: #0a0e17;
-  --ab-surface-1: #0d121c;
-  --ab-surface-2: #121927;
-  --ab-surface-3: #182130;
+  --ab-bg: var(--ab-ui-canvas);
+  --ab-bg-raised: var(--ab-ui-raised);
+  --ab-surface-1: var(--ab-ui-surface);
+  --ab-surface-2: var(--ab-ui-raised);
+  --ab-surface-3: var(--ab-ui-raised);
 
-  --ab-border: rgba(194, 201, 218, .065);
-  --ab-border-strong: rgba(194, 201, 218, .12);
+  --ab-border: var(--ab-ui-border);
+  --ab-border-strong: var(--ab-ui-border);
 
-  --ab-text: #f1f0ed;
-  --ab-text-soft: #cbcdd3;
-  --ab-muted: #8b94a6;
-  --ab-muted-2: #646d7e;
+  --ab-text: var(--ab-ui-text);
+  --ab-text-soft: var(--ab-ui-muted);
+  --ab-muted: var(--ab-ui-muted);
+  --ab-muted-2: var(--ab-ui-muted);
 
   /* AnimeBox iris + editorial warm signal. */
-  --ab-accent: #9382e6;
-  --ab-accent-hover: #a291ec;
-  --ab-accent-soft: rgba(147, 130, 230, .10);
-  --ab-signal: #e7a074;
-  --ab-signal-soft: rgba(231, 160, 116, .10);
+  --ab-accent: var(--ab-ui-accent);
+  --ab-accent-hover: var(--ab-ui-accent);
+  --ab-accent-soft: color-mix(in srgb, var(--ab-ui-accent) 10%, transparent);
+  --ab-signal: var(--ab-ui-danger);
+  --ab-signal-soft: color-mix(in srgb, var(--ab-ui-danger) 10%, transparent);
 
   /* Deliberate radius contrast: standard UI is sharp, features stay soft. */
   --ab-radius-sm: 6px;
@@ -54,7 +54,7 @@ html {
 
 body {
   background:
-    linear-gradient(180deg, #080a11 0%, #0a0d15 46%, #080a11 100%);
+    linear-gradient(180deg, var(--ab-ui-surface) 0%, var(--ab-ui-surface) 46%, var(--ab-ui-surface) 100%);
   color: var(--ab-text);
 }
 
@@ -87,7 +87,7 @@ body {
   .profile-v2__hero,
   .anime-detail-v4__hero-shell
 ) {
-  border-color: rgba(203, 207, 222, .08);
+  border-color: var(--ab-ui-border);
   box-shadow: var(--ab-shadow-feature);
 }
 
@@ -127,7 +127,7 @@ body {
 .btn--primary {
   border: 0;
   background: var(--ab-accent);
-  color: #fff;
+  color: var(--ab-ui-primary-text);
   box-shadow: none;
 }
 
@@ -155,8 +155,8 @@ body {
 
 .topbar__search:focus-within,
 .search-box:focus-within {
-  border-color: rgba(147,130,230,.24);
-  box-shadow: 0 0 0 2px rgba(147,130,230,.09);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 24%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ab-ui-accent) 9%, transparent);
 }
 
 /* =========================================================
@@ -164,9 +164,9 @@ body {
    ========================================================= */
 
 .sidebar {
-  border-right-color: rgba(197, 202, 218, .055);
+  border-right-color: var(--ab-ui-border);
   background:
-    linear-gradient(180deg, rgba(8,10,17,.965), rgba(10,12,22,.96) 62%, rgba(13,13,27,.98)),
+    linear-gradient(180deg, color-mix(in srgb, var(--ab-ui-surface) 96.5%, transparent), color-mix(in srgb, var(--ab-ui-surface) 96%, transparent) 62%, color-mix(in srgb, var(--ab-ui-surface) 98%, transparent)),
     url('/backgrounds/sidebar-japan.webp') center bottom / cover no-repeat;
 }
 
@@ -187,24 +187,24 @@ body {
 
 .sidebar__item.is-active {
   border-color: transparent;
-  background: rgba(147,130,230,.11);
+  background: color-mix(in srgb, var(--ab-ui-accent) 11%, transparent);
   box-shadow: inset 2px 0 0 var(--ab-accent);
 }
 
 .sidebar__divider {
-  background: rgba(198,203,218,.055);
+  background: color-mix(in srgb, var(--ab-ui-raised) 5.5%, transparent);
 }
 
 .brand__mark {
   border-color: transparent;
   border-radius: 7px;
-  background: rgba(147,130,230,.08);
+  background: color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
   box-shadow: none;
 }
 
 .topbar {
-  border-bottom-color: rgba(197,202,218,.055);
-  background: rgba(8,10,17,.94);
+  border-bottom-color: var(--ab-ui-border);
+  background: color-mix(in srgb, var(--ab-ui-surface) 94%, transparent);
 }
 
 /* =========================================================
@@ -215,7 +215,7 @@ body {
 .home-page .main-column > .section {
   position: relative;
   padding-top: 18px;
-  border-top: 1px solid rgba(196,201,216,.07);
+  border-top: 1px solid var(--ab-ui-border);
 }
 
 .home-page .main-column > .section > .section-head {
@@ -241,17 +241,17 @@ body {
 
 /* Shortcuts read as an editorial strip, not four SaaS cards. */
 .home-shortcuts {
-  border-color: rgba(196,201,216,.055);
+  border-color: var(--ab-ui-border);
   border-radius: 8px;
-  background: rgba(196,201,216,.04);
+  background: color-mix(in srgb, var(--ab-ui-raised) 4%, transparent);
 }
 
 .home-shortcuts__item {
-  background: #0b0f18;
+  background: var(--ab-ui-surface);
 }
 
 .home-shortcuts__item:hover {
-  background: #101620;
+  background: var(--ab-ui-surface);
 }
 
 /* =========================================================
@@ -284,7 +284,7 @@ body {
 .anime-card--signature .anime-card__state {
   border-color: rgba(255,255,255,.055);
   border-radius: 5px;
-  background: rgba(7,9,14,.82);
+  background: color-mix(in srgb, var(--ab-ui-canvas) 82%, transparent);
   backdrop-filter: none;
 }
 
@@ -336,9 +336,9 @@ body {
 }
 
 .empty-state {
-  border-color: rgba(196,201,216,.08);
+  border-color: var(--ab-ui-border);
   border-radius: 8px;
-  background: rgba(196,201,216,.018);
+  background: color-mix(in srgb, var(--ab-ui-raised) 1.8%, transparent);
 }
 
 /* =========================================================
@@ -347,9 +347,9 @@ body {
    ========================================================= */
 
 .home-grid .page-hero.home-hero-carousel {
-  border-color: rgba(196,201,216,.08);
+  border-color: var(--ab-ui-border);
   border-radius: 18px;
-  background: #0a0d14;
+  background: var(--ab-ui-surface);
   box-shadow: var(--ab-shadow-feature);
 }
 
@@ -382,7 +382,7 @@ body {
   }
 
   .home-shortcuts__item {
-    border-color: rgba(196,201,216,.06);
+    border-color: var(--ab-ui-border);
     border-radius: 8px;
   }
 
@@ -560,9 +560,9 @@ body {
   pointer-events: none;
   background: linear-gradient(
     90deg,
-    rgba(7, 10, 17, 0),
-    rgba(7, 10, 17, .86) 72%,
-    rgba(7, 10, 17, .98)
+    color-mix(in srgb, var(--ab-ui-surface) 0%, transparent),
+    color-mix(in srgb, var(--ab-ui-surface) 86%, transparent) 72%,
+    color-mix(in srgb, var(--ab-ui-surface) 98%, transparent)
   );
 }
 

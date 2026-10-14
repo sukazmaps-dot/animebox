@@ -55,11 +55,11 @@ function PersonCard({
           <img
             src={item.avatarUrl}
             alt=""
-            className="h-12 w-12 rounded-full border border-violet-400/15 object-cover"
+            className="h-12 w-12 rounded-full border border-[color-mix(in_srgb,var(--ab-ui-accent)_15%,transparent)] object-cover"
           />
           {item.online && item.direction === 'friend' && (
             <span
-              className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[var(--ab-ui-surface)] bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.35)]"
+              className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[var(--ab-ui-surface)] bg-emerald-400 shadow-[0_0_10px_color-mix(in_srgb,_var(--ab-ui-success)_35%,_transparent)]"
               title="В сети"
               aria-label="В сети"
             />

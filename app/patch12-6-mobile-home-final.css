@@ -166,8 +166,8 @@
     padding: 0 !important;
     overflow: visible !important;
     border: 0 !important;
-    border-top: 1px solid rgba(207, 213, 228, .12) !important;
-    border-bottom: 1px solid rgba(207, 213, 228, .12) !important;
+    border-top: 1px solid var(--ab-ui-border) !important;
+    border-bottom: 1px solid var(--ab-ui-border) !important;
     border-radius: 0 !important;
     background: transparent !important;
   }
@@ -185,15 +185,15 @@
   }
 
   .home-page .home-shortcuts__item:nth-child(odd) {
-    border-right: 1px solid rgba(207, 213, 228, .09) !important;
+    border-right: 1px solid var(--ab-ui-border) !important;
   }
 
   .home-page .home-shortcuts__item:nth-child(-n + 2) {
-    border-bottom: 1px solid rgba(207, 213, 228, .09) !important;
+    border-bottom: 1px solid var(--ab-ui-border) !important;
   }
 
   .home-page .home-shortcuts__item strong {
-    color: #eceaf3 !important;
+    color: var(--ab-ui-text) !important;
     font-size: 13px !important;
     line-height: 1.2 !important;
   }
@@ -203,7 +203,7 @@
   }
 
   .home-page .home-shortcuts__item b {
-    color: #777b8c !important;
+    color: var(--ab-ui-muted) !important;
     font-size: 12px !important;
   }
 

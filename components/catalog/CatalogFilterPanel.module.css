@@ -5,8 +5,8 @@
   row-gap: 18px;
   margin-bottom: 22px;
   padding: 20px 0 22px;
-  border-top: 1px solid rgba(204,208,219,.08);
-  border-bottom: 1px solid rgba(204,208,219,.08);
+  border-top: 1px solid var(--ab-ui-border);
+  border-bottom: 1px solid var(--ab-ui-border);
 }
 
 .head {
@@ -16,7 +16,7 @@
   justify-content: space-between;
   gap: 18px;
   padding-bottom: 13px;
-  border-bottom: 1px solid rgba(204,208,219,.055);
+  border-bottom: 1px solid var(--ab-ui-border);
 }
 
 .head > div {
@@ -55,7 +55,7 @@
 
 .secondary {
   padding-left: 18px;
-  border-left: 1px solid rgba(204,208,219,.055);
+  border-left: 1px solid var(--ab-ui-border);
 }
 
 .group {
@@ -74,8 +74,8 @@
 .choiceGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid rgba(204,208,219,.045);
-  border-left: 1px solid rgba(204,208,219,.045);
+  border-top: 1px solid var(--ab-ui-border);
+  border-left: 1px solid var(--ab-ui-border);
 }
 
 .choice,
@@ -85,11 +85,11 @@
   min-height: 37px;
   padding: 0 11px;
   border: 0;
-  border-right: 1px solid rgba(204,208,219,.045);
-  border-bottom: 1px solid rgba(204,208,219,.045);
+  border-right: 1px solid var(--ab-ui-border);
+  border-bottom: 1px solid var(--ab-ui-border);
   border-radius: 0;
   background: transparent;
-  color: #a8afbc;
+  color: var(--ab-ui-muted);
   font-size: 11px;
   font-weight: 630;
   cursor: pointer;
@@ -114,7 +114,7 @@
 .choiceActive,
 .compactActive {
   background: var(--ab-iris-faint);
-  color: #ddd7f7;
+  color: var(--ab-ui-text);
   box-shadow: inset 2px 0 0 var(--ab-iris);
 }
 
@@ -125,8 +125,8 @@
 .inlineChoices {
   display: flex;
   flex-wrap: wrap;
-  border-top: 1px solid rgba(204,208,219,.045);
-  border-left: 1px solid rgba(204,208,219,.045);
+  border-top: 1px solid var(--ab-ui-border);
+  border-left: 1px solid var(--ab-ui-border);
 }
 
 .compact,
@@ -141,7 +141,7 @@
 
 .sortList {
   display: grid;
-  border-top: 1px solid rgba(204,208,219,.045);
+  border-top: 1px solid var(--ab-ui-border);
 }
 
 .sort,
@@ -151,9 +151,9 @@
   min-height: 48px;
   padding: 8px 10px;
   border: 0;
-  border-bottom: 1px solid rgba(204,208,219,.045);
+  border-bottom: 1px solid var(--ab-ui-border);
   background: transparent;
-  color: #929baa;
+  color: var(--ab-ui-muted);
   text-align: left;
   cursor: pointer;
 }
@@ -174,7 +174,7 @@
 
 .sortActive {
   background: var(--ab-iris-faint);
-  color: #ddd7f7;
+  color: var(--ab-ui-text);
   box-shadow: inset 2px 0 0 var(--ab-iris);
 }
 
@@ -197,7 +197,7 @@
   .secondary {
     padding-left: 0;
     padding-top: 17px;
-    border-top: 1px solid rgba(204,208,219,.055);
+    border-top: 1px solid var(--ab-ui-border);
     border-left: 0;
   }
 }

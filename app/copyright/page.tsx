@@ -15,9 +15,9 @@ export const metadata: Metadata = buildStaticPageMetadata({
 export default function CopyrightPage() {
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-10 md:px-6 md:py-14">
-      <section className="relative overflow-hidden rounded-[22px] border border-white/[0.08] bg-[linear-gradient(145deg,rgba(17,22,34,.98),rgba(9,13,21,.99))] px-5 py-8 md:px-8 md:py-10">
-        <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-violet-500/[0.08] blur-3xl" />
-        <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-violet-300/65">
+      <section className="relative overflow-hidden rounded-[22px] border border-white/[0.08] bg-[linear-gradient(145deg,color-mix(in_srgb,_var(--ab-ui-surface)_98%,_transparent),color-mix(in_srgb,_var(--ab-ui-surface)_99%,_transparent))] px-5 py-8 md:px-8 md:py-10">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-[var(--ab-ui-primary)]/[0.08] blur-3xl" />
+        <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color-mix(in_srgb,var(--ab-ui-accent)_65%,transparent)]">
           ANIMEBOX · RIGHTS HOLDERS
         </span>
         <h1 className="mt-3 text-3xl font-black tracking-[-0.04em] text-white md:text-5xl">
@@ -32,7 +32,7 @@ export default function CopyrightPage() {
         <p className="mt-3 text-xs leading-6 text-white/35">
           Контакт для обращений:{' '}
           <a
-            className="text-violet-300/80"
+            className="text-[color-mix(in_srgb,var(--ab-ui-accent)_80%,transparent)]"
             href={'mailto:' + COPYRIGHT_EMAIL}
           >
             {COPYRIGHT_EMAIL}
@@ -42,21 +42,21 @@ export default function CopyrightPage() {
 
       <div className="mt-5 grid gap-4 md:grid-cols-3">
         <article className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5">
-          <span className="text-[10px] font-black uppercase tracking-[0.15em] text-violet-300/55">01</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[color-mix(in_srgb,var(--ab-ui-accent)_55%,transparent)]">01</span>
           <h2 className="mt-2 text-base font-extrabold">Укажи точный материал</h2>
           <p className="mt-2 text-xs leading-6 text-white/40">
             Нужны конкретные URL AnimeBox и произведение, к которому относится обращение.
           </p>
         </article>
         <article className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5">
-          <span className="text-[10px] font-black uppercase tracking-[0.15em] text-violet-300/55">02</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[color-mix(in_srgb,var(--ab-ui-accent)_55%,transparent)]">02</span>
           <h2 className="mt-2 text-base font-extrabold">Опиши основание</h2>
           <p className="mt-2 text-xs leading-6 text-white/40">
             Укажи заявленные права и почему ты вправе направлять обращение от своего имени или от имени правообладателя.
           </p>
         </article>
         <article className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5">
-          <span className="text-[10px] font-black uppercase tracking-[0.15em] text-violet-300/55">03</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[color-mix(in_srgb,var(--ab-ui-accent)_55%,transparent)]">03</span>
           <h2 className="mt-2 text-base font-extrabold">Мы зафиксируем дело</h2>
           <p className="mt-2 text-xs leading-6 text-white/40">
             После отправки форма выдаст номер дела. AnimeBox сможет запросить дополнительную информацию или ограничить спорный источник.
@@ -66,7 +66,7 @@ export default function CopyrightPage() {
 
       <section className="mt-7">
         <div className="mb-4">
-          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-violet-300/55">
+          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--ab-ui-accent)_55%,transparent)]">
             COPYRIGHT REPORT
           </span>
           <h2 className="mt-2 text-2xl font-black tracking-[-0.03em]">Отправить обращение</h2>
@@ -101,7 +101,7 @@ export default function CopyrightPage() {
           exact AnimeBox URLs, identify the work and rights at issue, explain your
           authority, and include a valid contact email. You may also contact{' '}
           <a
-            className="text-violet-300/75"
+            className="text-[color-mix(in_srgb,var(--ab-ui-accent)_75%,transparent)]"
             href={'mailto:' + COPYRIGHT_EMAIL}
           >
             {COPYRIGHT_EMAIL}

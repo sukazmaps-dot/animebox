@@ -39,7 +39,7 @@
 .empty strong { grid-column: 2; font-size: 13px; line-height: 1.5; font-weight: 600; color: var(--ab-ui-text, #edeaf2); }
 .empty p { grid-column: 2; min-width: 0; margin: 0; line-height: 1.5; }
 .emptyIcon { grid-column: 1; grid-row: 1 / 3; align-self: start; font-size: 20px; line-height: 24px; color: var(--ab-ui-accent, #a798cf); }
-.error { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; font-size: 13px; line-height: 1.5; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(250, 184, 184, .3); color: #ffd2d2; }
+.error { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; font-size: 13px; line-height: 1.5; padding: 10px 12px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--ab-ui-danger) 30%, transparent); color: var(--ab-ui-danger); }
 .error button { min-height: 44px; color: inherit; background: transparent; cursor: pointer; text-decoration: underline; }
 @media (max-width: 1150px) { .roomGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .roomCard:last-child:nth-child(odd) { grid-column: 1 / -1; } }
 @media (max-width: 1000px) {
@@ -60,5 +60,5 @@
 }
 @media (max-width: 360px) { .headingActions { grid-template-columns: minmax(0, 1fr); } }
 /* The shared surface tokens also follow the user's light theme. */
-:global(html[data-animebox-theme="light"]) .error { color: #8b3038; border-color: #ddabb0; }
+:global(html[data-animebox-theme="light"]) .error { color: var(--ab-ui-danger); border-color: var(--ab-ui-danger); }
 @media (prefers-reduced-motion: reduce) { .section * { animation: none !important; transition: none !important; } }

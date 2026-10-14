@@ -46,8 +46,8 @@
 
   .home-page .home-hero-carousel__mobile-keyart::after {
     background:
-      linear-gradient(90deg, #070a11 0%, rgba(7,10,17,.56) 15%, transparent 48%),
-      linear-gradient(0deg, #070a11 0%, rgba(7,10,17,.28) 12%, transparent 42%) !important;
+      linear-gradient(90deg, var(--ab-ui-surface) 0%, color-mix(in srgb, var(--ab-ui-surface) 56%, transparent) 15%, transparent 48%),
+      linear-gradient(0deg, var(--ab-ui-surface) 0%, color-mix(in srgb, var(--ab-ui-surface) 28%, transparent) 12%, transparent 42%) !important;
   }
 
   .home-page .home-hero-carousel__mobile-keyart-image {
@@ -73,7 +73,7 @@
     width: 9px;
     height: 45%;
     overflow: hidden;
-    border: 1px solid rgba(235, 232, 248, .13);
+    border: 1px solid var(--ab-ui-border);
     border-right: 0;
     border-radius: 7px 0 0 7px;
     opacity: .72;
@@ -88,8 +88,8 @@
 
   .home-page .home-hero-carousel .page-hero__overlay {
     background:
-      linear-gradient(90deg, rgba(7,10,17,.98) 0%, rgba(7,10,17,.82) 31%, rgba(7,10,17,.17) 68%, rgba(7,10,17,.04) 100%),
-      linear-gradient(0deg, #070a11 0%, rgba(7,10,17,.91) 17%, rgba(7,10,17,.20) 56%, transparent 100%) !important;
+      linear-gradient(90deg, color-mix(in srgb, var(--ab-ui-surface) 98%, transparent) 0%, color-mix(in srgb, var(--ab-ui-surface) 82%, transparent) 31%, color-mix(in srgb, var(--ab-ui-surface) 17%, transparent) 68%, color-mix(in srgb, var(--ab-ui-surface) 4%, transparent) 100%),
+      linear-gradient(0deg, var(--ab-ui-surface) 0%, color-mix(in srgb, var(--ab-ui-surface) 91%, transparent) 17%, color-mix(in srgb, var(--ab-ui-surface) 20%, transparent) 56%, transparent 100%) !important;
   }
 
   .home-page .home-hero-carousel h1,
@@ -117,9 +117,9 @@
   }
 
   .home-page .home-hero-carousel .hero-actions .btn--ghost {
-    border-color: rgba(234, 232, 242, .24) !important;
-    background: rgba(9, 12, 21, .76) !important;
-    color: #e8e5ee !important;
+    border-color: var(--ab-ui-border) !important;
+    background: color-mix(in srgb, var(--ab-ui-surface) 76%, transparent) !important;
+    color: var(--ab-ui-text) !important;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
   }
@@ -150,7 +150,7 @@
     height: 6px !important;
     margin: 0 auto;
     border-radius: 999px !important;
-    background: rgba(219, 217, 230, .38) !important;
+    background: color-mix(in srgb, var(--ab-ui-surface) 38%, transparent) !important;
     transform: translateY(-50%);
     transition:
       width 180ms ease,
@@ -160,8 +160,8 @@
 
   .home-page .home-hero-carousel .home-hero-carousel__dot.is-active::before {
     width: 18px !important;
-    background: #a58cf7 !important;
-    box-shadow: 0 0 10px rgba(151, 126, 239, .24);
+    background: var(--ab-ui-primary) !important;
+    box-shadow: 0 0 10px color-mix(in srgb, var(--ab-ui-accent) 24%, transparent);
   }
 
   .home-page .continue-watching-section {

@@ -59,7 +59,7 @@ need('anime route continuity skeleton', animeLoading, [
 need('recommendation action footer', actionCss, [
   '"plan plan plan"',
   '"like watched dismiss"',
-  'border-top: 1px solid rgba(151, 160, 188, .10)',
+  'border-top: 1px solid var(--ab-ui-border)',
   '.home-page .smart-card__plan-icon',
   'background: transparent !important',
 ]);

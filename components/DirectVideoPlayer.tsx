@@ -483,7 +483,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
           <div className="relative mb-2 h-5 w-full touch-none">
             <div className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-white/15">
               <span className="absolute inset-y-0 left-0 bg-white/15" style={{ width: `${bufferedProgress}%` }} />
-              <span className="absolute inset-y-0 left-0 bg-violet-400" style={{ width: `${progress}%` }} />
+              <span className="absolute inset-y-0 left-0 bg-[var(--ab-ui-primary)]" style={{ width: `${progress}%` }} />
             </div>
             <input
               type="range"
@@ -497,7 +497,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
             />
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-violet-500 shadow-[0_0_0_3px_rgba(139,92,246,.18)]"
+              className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-[var(--ab-ui-primary)] shadow-[0_0_0_3px_color-mix(in_srgb,_var(--ab-ui-accent)_18%,_transparent)]"
               style={{ left: `${progress}%` }}
             />
           </div>
@@ -569,7 +569,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
               <button
                 type="button"
                 onClick={() => void togglePip()}
-                className={`hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl transition sm:inline-flex ${pipActive ? 'bg-violet-500/15 text-violet-200' : 'text-white/65 hover:bg-white/10 hover:text-white'}`}
+                className={`hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl transition sm:inline-flex ${pipActive ? 'bg-[color-mix(in_srgb,var(--ab-ui-selected)_15%,transparent)] text-[var(--ab-ui-accent)]' : 'text-white/65 hover:bg-white/10 hover:text-white'}`}
                 aria-label={pipActive ? 'Закрыть картинку в картинке' : 'Картинка в картинке'}
               >
                 <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2" stroke="currentColor" strokeWidth="1.6"/><rect x="11.5" y="11" width="7" height="5" rx="1" fill="currentColor"/></svg>
@@ -580,7 +580,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
               <button
                 type="button"
                 onClick={() => setSettingsOpen((value) => !value)}
-                className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition ${settingsOpen ? 'bg-violet-500/15 text-violet-200' : 'text-white/65 hover:bg-white/10 hover:text-white'}`}
+                className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition ${settingsOpen ? 'bg-[color-mix(in_srgb,var(--ab-ui-selected)_15%,transparent)] text-[var(--ab-ui-accent)]' : 'text-white/65 hover:bg-white/10 hover:text-white'}`}
                 aria-label="Настройки плеера"
                 aria-expanded={settingsOpen}
               >
@@ -588,11 +588,11 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
               </button>
 
               {settingsOpen && (
-                <div className="absolute bottom-12 right-0 w-56 overflow-hidden rounded-2xl border border-white/10 bg-[#090d17]/95 p-2 shadow-[0_20px_60px_rgba(0,0,0,.55)] backdrop-blur-xl">
+                <div className="absolute bottom-12 right-0 w-56 overflow-hidden rounded-2xl border border-white/10 bg-[var(--ab-ui-surface)]/95 p-2 shadow-[0_20px_60px_rgba(0,0,0,.55)] backdrop-blur-xl">
                   <div className="px-2 pb-2 pt-1 text-[9px] font-extrabold uppercase tracking-[0.16em] text-white/30">Качество</div>
-                  <button type="button" onClick={() => setQuality(-1)} disabled={!hlsRef.current} className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-bold transition ${qualityLevel === -1 ? 'bg-violet-500/12 text-violet-100' : 'text-white/55 hover:bg-white/5 hover:text-white'}`}><span>Авто</span>{qualityLevel === -1 && <span>✓</span>}</button>
+                  <button type="button" onClick={() => setQuality(-1)} disabled={!hlsRef.current} className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-bold transition ${qualityLevel === -1 ? 'bg-[color-mix(in_srgb,var(--ab-ui-selected)_12%,transparent)] text-[var(--ab-ui-accent)]' : 'text-white/55 hover:bg-white/5 hover:text-white'}`}><span>Авто</span>{qualityLevel === -1 && <span>✓</span>}</button>
                   {qualities.map((quality) => (
-                    <button key={quality.id} type="button" onClick={() => setQuality(quality.id)} className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-bold transition ${qualityLevel === quality.id ? 'bg-violet-500/12 text-violet-100' : 'text-white/55 hover:bg-white/5 hover:text-white'}`}>
+                    <button key={quality.id} type="button" onClick={() => setQuality(quality.id)} className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-bold transition ${qualityLevel === quality.id ? 'bg-[color-mix(in_srgb,var(--ab-ui-selected)_12%,transparent)] text-[var(--ab-ui-accent)]' : 'text-white/55 hover:bg-white/5 hover:text-white'}`}>
                       <span>{quality.label}</span>
                       <span className="text-[9px] font-semibold text-white/25">{quality.bitrate ? `${Math.round(quality.bitrate / 1_000_000 * 10) / 10} Mbps` : qualityLevel === quality.id ? '✓' : ''}</span>
                     </button>
@@ -601,7 +601,7 @@ const DirectVideoPlayer = forwardRef<HTMLVideoElement, DirectVideoPlayerProps>(f
                   <div className="px-2 pb-1 pt-2 text-[9px] font-extrabold uppercase tracking-[0.16em] text-white/30">Скорость</div>
                   <div className="grid grid-cols-4 gap-1 px-1 pb-1">
                     {[0.75, 1, 1.25, 1.5, 2].map((rate) => (
-                      <button key={rate} type="button" onClick={() => setRate(rate)} className={`rounded-lg px-1.5 py-2 text-[10px] font-bold transition ${playbackRate === rate ? 'bg-violet-500/15 text-violet-100' : 'text-white/45 hover:bg-white/5 hover:text-white'}`}>{rate}×</button>
+                      <button key={rate} type="button" onClick={() => setRate(rate)} className={`rounded-lg px-1.5 py-2 text-[10px] font-bold transition ${playbackRate === rate ? 'bg-[color-mix(in_srgb,var(--ab-ui-selected)_15%,transparent)] text-[var(--ab-ui-accent)]' : 'text-white/45 hover:bg-white/5 hover:text-white'}`}>{rate}×</button>
                     ))}
                   </div>
                 </div>

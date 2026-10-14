@@ -6,9 +6,9 @@
   z-index: 120;
   display: grid;
   overflow: hidden;
-  border: 1px solid rgba(160, 149, 196, .16);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 16%, transparent);
   border-radius: 12px;
-  background: rgba(9, 14, 26, .98);
+  background: color-mix(in srgb, var(--ab-ui-surface) 98%, transparent);
   box-shadow: 0 18px 48px rgba(0, 0, 0, .34);
   backdrop-filter: blur(18px);
 }
@@ -19,18 +19,18 @@
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border-bottom: 1px solid rgba(148, 163, 184, .07);
+  border-bottom: 1px solid var(--ab-ui-border);
   color: inherit;
 }
 
 .item:hover,
 .item:focus-visible,
 .itemActive {
-  background: rgba(124, 104, 238, .10);
+  background: color-mix(in srgb, var(--ab-ui-accent) 10%, transparent);
 }
 
 .itemActive {
-  box-shadow: inset 2px 0 0 rgba(151, 128, 255, .68);
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--ab-ui-accent) 68%, transparent);
 }
 
 .poster {
@@ -41,8 +41,8 @@
   display: grid;
   place-items: center;
   border-radius: 7px;
-  background: #12182a;
-  color: #9587d8;
+  background: var(--ab-ui-surface);
+  color: var(--ab-ui-accent);
   font-size: 9px;
 }
 
@@ -66,25 +66,25 @@
 }
 
 .copy strong {
-  color: #eff1f7;
+  color: var(--ab-ui-text);
   font-size: 11px;
 }
 
 .copy mark {
   padding: 0;
   background: transparent;
-  color: #c8bfff;
+  color: var(--ab-ui-accent);
   font-weight: 850;
 }
 
 .copy small {
-  color: #818ca3;
+  color: var(--ab-ui-muted);
   font-size: 8px;
 }
 
 .all {
   padding: 10px 12px;
-  color: #b8abf5;
+  color: var(--ab-ui-accent);
   font-size: 9px;
   font-weight: 800;
 }

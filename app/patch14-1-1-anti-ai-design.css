@@ -48,9 +48,9 @@
 }
 
 .pill--accent {
-  border-color: rgba(151,136,231,.16);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 16%, transparent);
   background: var(--ab-iris-faint);
-  color: #c9c0f6;
+  color: var(--ab-ui-accent);
 }
 
 /* =========================================================
@@ -102,7 +102,7 @@
 }
 
 .home-shortcuts__item > b {
-  color: #6d7584;
+  color: var(--ab-ui-muted);
   font-weight: 500;
   transition: color var(--ab-fast) ease, transform var(--ab-fast) ease;
 }
@@ -175,7 +175,7 @@
   height: 24px;
   border-radius: var(--ab-radius-xs);
   background: var(--ab-iris-faint);
-  color: #aea3e6;
+  color: var(--ab-ui-accent);
   font-weight: 720;
 }
 
@@ -292,7 +292,7 @@
 
 .home-retention__rail {
   gap: 0;
-  border-top: 1px solid rgba(204,208,219,.04);
+  border-top: 1px solid var(--ab-ui-border);
 }
 
 .home-retention__card {
@@ -387,7 +387,7 @@
 .anime-card__image-wrap,
 .anime-card--signature .anime-card__image-wrap {
   overflow: hidden;
-  border-color: rgba(204,208,219,.04);
+  border-color: var(--ab-ui-border);
   box-shadow: 0 7px 20px rgba(0,0,0,.13);
 }
 
@@ -398,7 +398,7 @@
 
 .anime-card__match {
   border: 0 !important;
-  border-left: 2px solid rgba(151,136,231,.48) !important;
+  border-left: 2px solid color-mix(in srgb, var(--ab-ui-accent) 48%, transparent) !important;
   border-radius: 0 !important;
   background: transparent !important;
   box-shadow: none !important;

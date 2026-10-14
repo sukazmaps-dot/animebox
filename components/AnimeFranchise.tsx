@@ -156,7 +156,7 @@ export default async function AnimeFranchise({
                         <div className="min-w-0 py-1">
                           <p className="line-clamp-3 text-sm font-semibold leading-5">{title}</p>
                           {details && <p className="mt-2 text-xs text-white/45">{details}</p>}
-                          {item.isCurrent && <p className="mt-2 text-xs font-medium text-violet-300">Вы здесь</p>}
+                          {item.isCurrent && <p className="mt-2 text-xs font-medium text-[var(--ab-ui-accent)]">Вы здесь</p>}
                         </div>
                       </>
                     );

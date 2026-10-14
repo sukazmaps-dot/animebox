@@ -82,7 +82,7 @@ export default function ProfileMediaReviewClient() {
   return (
     <div className="space-y-5">
       {message && (
-        <div className="rounded-xl border border-violet-400/20 bg-violet-500/[0.08] px-4 py-3 text-sm text-violet-100/85">
+        <div className="rounded-xl border border-[color-mix(in_srgb,var(--ab-ui-accent)_20%,transparent)] bg-[var(--ab-ui-primary)]/[0.08] px-4 py-3 text-sm text-[color-mix(in_srgb,var(--ab-ui-accent)_85%,transparent)]">
           {message}
         </div>
       )}
@@ -100,7 +100,7 @@ export default function ProfileMediaReviewClient() {
             .slice(0, 5);
 
           return (
-            <article key={group.id} className="overflow-hidden rounded-2xl border border-white/10 bg-[#090d18] shadow-[0_20px_55px_rgba(0,0,0,.2)]">
+            <article key={group.id} className="overflow-hidden rounded-2xl border border-white/10 bg-[var(--ab-ui-surface)] shadow-[0_20px_55px_rgba(0,0,0,.2)]">
               <div className="grid gap-0 lg:grid-cols-[320px_minmax(0,1fr)]">
                 <div className="grid min-h-[260px] place-items-center bg-black/35 p-4">
                   {original?.signedUrl ? (
@@ -116,7 +116,7 @@ export default function ProfileMediaReviewClient() {
 
                 <div className="flex flex-col gap-5 p-5">
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-300/55">PROFILE MEDIA REVIEW</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[color-mix(in_srgb,var(--ab-ui-accent)_55%,transparent)]">PROFILE MEDIA REVIEW</span>
                     <h2 className="mt-2 text-lg font-black text-white">{group.username}</h2>
                     <p className="mt-1 text-sm text-white/45">
                       {group.scope === 'premium' ? 'Premium' : 'Обычный профиль'} · {group.kind === 'avatar' ? 'аватар' : 'баннер'}
@@ -143,7 +143,7 @@ export default function ProfileMediaReviewClient() {
                       type="button"
                       disabled={busy === group.id}
                       onClick={() => void act(group.id, 'approve')}
-                      className="rounded-xl bg-gradient-to-r from-violet-600 to-indigo-500 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+                      className="rounded-xl bg-gradient-to-r from-[var(--ab-ui-primary)] to-[var(--ab-ui-primary)] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
                     >
                       Одобрить
                     </button>

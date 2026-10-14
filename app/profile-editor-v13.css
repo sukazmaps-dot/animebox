@@ -10,9 +10,9 @@
   overflow: hidden;
   isolation: isolate;
   background:
-    radial-gradient(circle at 18% 18%, rgba(107, 65, 255, .12), transparent 30%),
-    radial-gradient(circle at 82% 8%, rgba(34, 142, 255, .07), transparent 26%),
-    #060914;
+    radial-gradient(circle at 18% 18%, color-mix(in srgb, var(--ab-ui-accent) 12%, transparent), transparent 30%),
+    radial-gradient(circle at 82% 8%, color-mix(in srgb, var(--ab-ui-accent) 7%, transparent), transparent 26%),
+    var(--ab-ui-surface);
 }
 
 .profile-editor-v13__ambient {
@@ -21,8 +21,8 @@
   z-index: -2;
   pointer-events: none;
   background:
-    radial-gradient(circle at 50% 0%, rgba(127, 78, 255, .11), transparent 28%),
-    linear-gradient(115deg, transparent 20%, rgba(121, 84, 255, .035) 48%, transparent 72%);
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--ab-ui-accent) 11%, transparent), transparent 28%),
+    linear-gradient(115deg, transparent 20%, color-mix(in srgb, var(--ab-ui-accent) 3.5%, transparent) 48%, transparent 72%);
   filter: blur(8px);
 }
 
@@ -30,15 +30,15 @@
   position: relative;
   width: min(1320px, 100%);
   margin: 0 auto;
-  border: 1px solid rgba(167, 126, 255, .16);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 16%, transparent);
   border-radius: 30px;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(12, 17, 34, .97), rgba(7, 10, 23, .985));
+    linear-gradient(180deg, color-mix(in srgb, var(--ab-ui-surface) 97%, transparent), color-mix(in srgb, var(--ab-ui-surface) 98.5%, transparent));
   box-shadow:
     0 28px 100px rgba(0, 0, 0, .48),
     0 0 0 1px rgba(255, 255, 255, .018) inset,
-    0 0 64px rgba(112, 70, 255, .08);
+    0 0 64px color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
 }
 
 .profile-editor-v13__header {
@@ -52,7 +52,7 @@
   min-height: 110px;
   padding: 22px 28px;
   border-bottom: 1px solid rgba(255, 255, 255, .055);
-  background: rgba(9, 13, 28, .88);
+  background: color-mix(in srgb, var(--ab-ui-surface) 88%, transparent);
   backdrop-filter: blur(22px);
 }
 
@@ -60,7 +60,7 @@
 .profile-editor-v13__preview-label > span {
   display: block;
   margin-bottom: 6px;
-  color: #9d79ff;
+  color: var(--ab-ui-accent);
   font-size: 10px;
   font-weight: 900;
   letter-spacing: .14em;
@@ -68,7 +68,7 @@
 
 .profile-editor-v13__header h1 {
   margin: 0;
-  color: #f5f2ff;
+  color: var(--ab-ui-text);
   font-size: clamp(25px, 2.2vw, 34px);
   line-height: 1.05;
   letter-spacing: -.035em;
@@ -76,7 +76,7 @@
 
 .profile-editor-v13__header p {
   margin: 7px 0 0;
-  color: rgba(225, 222, 239, .5);
+  color: var(--ab-ui-text);
   font-size: 12px;
 }
 
@@ -89,7 +89,7 @@
 
 .profile-editor-v13__header-actions small {
   margin-right: 4px;
-  color: rgba(223, 216, 240, .42);
+  color: var(--ab-ui-text);
   font-size: 10px;
 }
 
@@ -105,7 +105,7 @@
   align-items: center;
   justify-content: center;
   background: rgba(255, 255, 255, .025);
-  color: #dcd7e9;
+  color: var(--ab-ui-text);
   font-size: 11px;
   font-weight: 800;
   text-decoration: none;
@@ -114,10 +114,10 @@
 
 .profile-editor-v13__header-actions button,
 .profile-editor-v13__mobile-save button {
-  border-color: rgba(161, 111, 255, .3);
-  background: linear-gradient(135deg, #7b4dff, #925cff);
-  color: #fff;
-  box-shadow: 0 10px 26px rgba(118, 72, 255, .18);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 30%, transparent);
+  background: var(--ab-ui-primary);
+  color: var(--ab-ui-text);
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--ab-ui-accent) 18%, transparent);
 }
 
 .profile-editor-v13__header-actions button:disabled,
@@ -131,7 +131,7 @@
   gap: 8px;
   padding: 14px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, .05);
-  background: rgba(5, 8, 18, .55);
+  background: color-mix(in srgb, var(--ab-ui-canvas) 55%, transparent);
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -148,14 +148,14 @@
   gap: 8px;
   flex: 0 0 auto;
   background: transparent;
-  color: rgba(227, 223, 239, .52);
+  color: var(--ab-ui-text);
   font-size: 11px;
   font-weight: 800;
   cursor: pointer;
 }
 
 .profile-editor-v13__tabs button > span {
-  color: rgba(181, 156, 255, .6);
+  color: var(--ab-ui-accent);
   font: 900 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
@@ -163,18 +163,18 @@
   width: 22px;
   height: 22px;
   object-fit: contain;
-  filter: drop-shadow(0 0 10px rgba(141, 82, 255, .25));
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--ab-ui-accent) 25%, transparent));
 }
 
 .profile-editor-v13__tabs button:hover {
-  color: #ece7f8;
+  color: var(--ab-ui-text);
   background: rgba(255, 255, 255, .025);
 }
 
 .profile-editor-v13__tabs button.is-active {
-  border-color: rgba(151, 104, 255, .24);
-  background: rgba(122, 75, 255, .1);
-  color: #fff;
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 24%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-accent) 10%, transparent);
+  color: var(--ab-ui-text);
 }
 
 .profile-editor-v13__tabs button.is-premium {
@@ -182,8 +182,8 @@
 }
 
 .profile-editor-v13__tabs button.is-premium.is-active {
-  border-color: rgba(216, 165, 255, .3);
-  background: linear-gradient(135deg, rgba(127, 70, 255, .14), rgba(255, 180, 98, .05));
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 30%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--ab-ui-accent) 14%, transparent), color-mix(in srgb, var(--ab-ui-danger) 5%, transparent));
 }
 
 .profile-editor-v13__workspace {
@@ -209,7 +209,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(157, 109, 255, .14),
+    color-mix(in srgb, var(--ab-ui-accent) 14%, transparent),
     transparent
   );
 }
@@ -219,8 +219,8 @@
   border: 1px solid rgba(255, 255, 255, .055);
   border-radius: 22px;
   background:
-    radial-gradient(circle at 90% 0%, rgba(118, 72, 255, .055), transparent 28%),
-    rgba(13, 18, 34, .76);
+    radial-gradient(circle at 90% 0%, color-mix(in srgb, var(--ab-ui-accent) 5.5%, transparent), transparent 28%),
+    color-mix(in srgb, var(--ab-ui-surface) 76%, transparent);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .018);
 }
 
@@ -237,23 +237,23 @@
   flex: 0 0 32px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(170, 127, 255, .2);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 20%, transparent);
   border-radius: 10px;
-  background: rgba(122, 76, 255, .07);
-  color: #b89aff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 7%, transparent);
+  color: var(--ab-ui-accent);
   font: 900 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .profile-editor-v13__section-title h2 {
   margin: 0;
-  color: #f3effb;
+  color: var(--ab-ui-text);
   font-size: 18px;
   letter-spacing: -.02em;
 }
 
 .profile-editor-v13__section-title p {
   margin: 4px 0 0;
-  color: rgba(226, 220, 240, .44);
+  color: var(--ab-ui-text);
   font-size: 11px;
   line-height: 1.5;
 }
@@ -271,12 +271,12 @@
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  color: rgba(231, 226, 241, .72);
+  color: var(--ab-ui-text);
   font-size: 11px;
 }
 
 .profile-editor-v13__field > span small {
-  color: rgba(226, 220, 240, .34);
+  color: var(--ab-ui-text);
 }
 
 .profile-editor-v13__field input,
@@ -285,8 +285,8 @@
   border: 1px solid rgba(255, 255, 255, .065);
   border-radius: 14px;
   outline: none;
-  background: rgba(3, 6, 15, .55);
-  color: #f1edf8;
+  background: color-mix(in srgb, var(--ab-ui-canvas) 55%, transparent);
+  color: var(--ab-ui-text);
   font: inherit;
   font-size: 13px;
   transition: border-color .16s ease, box-shadow .16s ease;
@@ -297,23 +297,23 @@
 
 .profile-editor-v13__field input:focus,
 .profile-editor-v13__field textarea:focus {
-  border-color: rgba(154, 103, 255, .38);
-  box-shadow: 0 0 0 3px rgba(126, 79, 255, .07);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 38%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ab-ui-accent) 7%, transparent);
 }
 
 .profile-editor-v13__hint-card,
 .profile-editor-v13__preview-note {
   margin-top: 18px;
   padding: 13px 14px;
-  border: 1px solid rgba(133, 97, 211, .1);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 10%, transparent);
   border-radius: 14px;
-  background: rgba(124, 79, 255, .035);
+  background: color-mix(in srgb, var(--ab-ui-accent) 3.5%, transparent);
 }
 
-.profile-editor-v13__hint-card strong { color: #d8caff; font-size: 11px; }
+.profile-editor-v13__hint-card strong { color: var(--ab-ui-accent); font-size: 11px; }
 .profile-editor-v13__hint-card p,
 .profile-editor-v13__preview-note {
-  color: rgba(222, 216, 237, .44);
+  color: var(--ab-ui-text);
   font-size: 10px;
   line-height: 1.55;
 }
@@ -332,7 +332,7 @@
   overflow: hidden;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #11172d, #080b16);
+  background: var(--ab-ui-surface);
 }
 
 .profile-editor-v13__banner-editor > img {
@@ -344,7 +344,7 @@
 }
 
 .profile-editor-v13__banner-editor > div:not(.profile-editor-v13__media-actions) {
-  color: rgba(222, 214, 241, .25);
+  color: var(--ab-ui-text);
   font-size: 11px;
   font-weight: 900;
   letter-spacing: .18em;
@@ -374,8 +374,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(8, 11, 22, .84);
-  color: #e9e3f4;
+  background: color-mix(in srgb, var(--ab-ui-surface) 84%, transparent);
+  color: var(--ab-ui-text);
   font-size: 10px;
   font-weight: 800;
   cursor: pointer;
@@ -383,7 +383,7 @@
 }
 
 .profile-editor-v13__media-actions button {
-  color: #ffa7b7;
+  color: var(--ab-ui-danger);
 }
 
 .profile-editor-v13__avatar-editor {
@@ -401,8 +401,8 @@
   height: 76px;
   border-radius: 23px;
   object-fit: cover;
-  border: 1px solid rgba(167, 121, 255, .18);
-  box-shadow: 0 0 24px rgba(117, 71, 255, .09);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 18%, transparent);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--ab-ui-accent) 9%, transparent);
 }
 
 .profile-editor-v13__avatar-editor strong,
@@ -410,8 +410,8 @@
   display: block;
 }
 
-.profile-editor-v13__avatar-editor strong { color: #f0ebf8; font-size: 12px; }
-.profile-editor-v13__avatar-editor small { margin-top: 4px; color: rgba(226, 220, 240, .4); font-size: 10px; }
+.profile-editor-v13__avatar-editor strong { color: var(--ab-ui-text); font-size: 12px; }
+.profile-editor-v13__avatar-editor small { margin-top: 4px; color: var(--ab-ui-text); font-size: 10px; }
 
 .profile-editor-v13__premium-callout {
   display: grid;
@@ -420,27 +420,27 @@
   gap: 14px;
   margin-top: 18px;
   padding: 14px;
-  border: 1px solid rgba(176, 129, 255, .16);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 16%, transparent);
   border-radius: 16px;
-  background: linear-gradient(135deg, rgba(120, 70, 255, .08), rgba(255, 183, 96, .025));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--ab-ui-accent) 8%, transparent), color-mix(in srgb, var(--ab-ui-danger) 2.5%, transparent));
 }
 
 .profile-editor-v13__premium-callout > img {
   width: 54px;
   height: 54px;
   object-fit: contain;
-  filter: drop-shadow(0 9px 20px rgba(132, 77, 255, .22));
+  filter: drop-shadow(0 9px 20px color-mix(in srgb, var(--ab-ui-accent) 22%, transparent));
 }
 
-.profile-editor-v13__premium-callout strong { display: block; color: #f2edf9; font-size: 11px; }
-.profile-editor-v13__premium-callout p { margin: 4px 0 0; color: rgba(225, 219, 238, .42); font-size: 10px; line-height: 1.45; }
+.profile-editor-v13__premium-callout strong { display: block; color: var(--ab-ui-text); font-size: 11px; }
+.profile-editor-v13__premium-callout p { margin: 4px 0 0; color: var(--ab-ui-text); font-size: 10px; line-height: 1.45; }
 .profile-editor-v13__premium-callout button {
   min-height: 38px;
   padding: 0 12px;
-  border: 1px solid rgba(169, 119, 255, .22);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 22%, transparent);
   border-radius: 11px;
-  background: rgba(128, 76, 255, .1);
-  color: #d9c9ff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 10%, transparent);
+  color: var(--ab-ui-accent);
   font-size: 10px;
   font-weight: 800;
   cursor: pointer;
@@ -449,13 +449,13 @@
 .profile-editor-v13__preview-column { min-width: 0; }
 .profile-editor-v13__preview-sticky { position: sticky; top: 142px; }
 .profile-editor-v13__preview-label { margin: 0 0 10px 2px; }
-.profile-editor-v13__preview-label small { color: rgba(225, 219, 238, .35); font-size: 10px; }
+.profile-editor-v13__preview-label small { color: var(--ab-ui-text); font-size: 10px; }
 
 .profile-editor-v13__profile-preview {
   overflow: hidden;
-  border: 1px solid rgba(164, 117, 255, .13);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 13%, transparent);
   border-radius: 22px;
-  background: #0c1122;
+  background: var(--ab-ui-surface);
   box-shadow: 0 22px 52px rgba(0, 0, 0, .28);
 }
 
@@ -463,7 +463,7 @@
   position: relative;
   height: 170px;
   overflow: hidden;
-  background: linear-gradient(135deg, #151b33, #0a0e1c 70%);
+  background: linear-gradient(135deg, var(--ab-ui-raised), var(--ab-ui-surface) 70%);
 }
 
 .profile-editor-v13__preview-banner > img {
@@ -475,7 +475,7 @@
 .profile-editor-v13__preview-banner > span {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 30%, rgba(8, 12, 25, .9));
+  background: linear-gradient(180deg, transparent 30%, color-mix(in srgb, var(--ab-ui-surface) 90%, transparent));
 }
 
 .profile-editor-v13__preview-body {
@@ -492,30 +492,30 @@
   flex: 0 0 82px;
   border-radius: 26px;
   object-fit: cover;
-  border: 4px solid #0c1122;
-  box-shadow: 0 0 0 1px rgba(165, 121, 255, .18);
+  border: 4px solid var(--ab-ui-border);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ab-ui-accent) 18%, transparent);
   z-index: 2;
 }
 
 .profile-editor-v13__preview-body > div { min-width: 0; padding-top: 11px; }
-.profile-editor-v13__preview-body span { color: #9e7cff; font-size: 8px; font-weight: 900; letter-spacing: .1em; }
-.profile-editor-v13__preview-body h3 { margin: 4px 0 0; color: #fff; font-size: 19px; letter-spacing: -.03em; }
-.profile-editor-v13__preview-body p { margin: 7px 0 0; color: rgba(226, 220, 240, .46); font-size: 10px; line-height: 1.55; overflow-wrap: anywhere; }
+.profile-editor-v13__preview-body span { color: var(--ab-ui-accent); font-size: 8px; font-weight: 900; letter-spacing: .1em; }
+.profile-editor-v13__preview-body h3 { margin: 4px 0 0; color: var(--ab-ui-text); font-size: 19px; letter-spacing: -.03em; }
+.profile-editor-v13__preview-body p { margin: 7px 0 0; color: var(--ab-ui-text); font-size: 10px; line-height: 1.55; overflow-wrap: anywhere; }
 
 .profile-editor-v13__message {
   margin-top: 12px;
   padding: 11px 13px;
-  border: 1px solid rgba(87, 207, 144, .16);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-success) 16%, transparent);
   border-radius: 12px;
-  background: rgba(48, 157, 98, .045);
-  color: #9ee4be;
+  background: color-mix(in srgb, var(--ab-ui-success) 4.5%, transparent);
+  color: var(--ab-ui-success);
   font-size: 10px;
 }
 
 .profile-editor-v13__message.is-error {
-  border-color: rgba(255, 101, 128, .18);
-  background: rgba(207, 56, 86, .05);
-  color: #ff9dad;
+  border-color: color-mix(in srgb, var(--ab-ui-danger) 18%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-danger) 5%, transparent);
+  color: var(--ab-ui-danger);
 }
 
 .profile-editor-v13__premium-tab {
@@ -543,7 +543,7 @@
   min-height: 70vh;
   display: grid;
   place-items: center;
-  color: rgba(231, 226, 241, .62);
+  color: var(--ab-ui-text);
 }
 
 @media (max-width: 980px) {
@@ -608,9 +608,9 @@
     grid-template-columns: auto 1fr;
     gap: 8px;
     padding: 8px;
-    border: 1px solid rgba(157, 109, 255, .18);
+    border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 18%, transparent);
     border-radius: 16px;
-    background: rgba(8, 12, 25, .91);
+    background: color-mix(in srgb, var(--ab-ui-surface) 91%, transparent);
     backdrop-filter: blur(18px);
     box-shadow: 0 18px 45px rgba(0, 0, 0, .35);
   }
@@ -645,22 +645,22 @@
   align-items: center;
   margin-top: 18px;
   padding: 16px 18px;
-  border: 1px solid rgba(166, 119, 255, .16);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 16%, transparent);
   border-radius: 18px;
   background:
-    radial-gradient(circle at 0 0, rgba(127, 77, 255, .10), transparent 38%),
+    radial-gradient(circle at 0 0, color-mix(in srgb, var(--ab-ui-accent) 10%, transparent), transparent 38%),
     rgba(255, 255, 255, .018);
 }
 
 .profile-editor-v17__appearance-status strong {
-  color: #f2ecff;
+  color: var(--ab-ui-text);
   font-size: 13px;
 }
 
 .profile-editor-v17__appearance-status p {
   grid-column: 1;
   margin: 0;
-  color: rgba(232, 225, 246, .52);
+  color: var(--ab-ui-text);
   font-size: 11px;
   line-height: 1.6;
 }
@@ -670,10 +670,10 @@
   grid-row: 1 / span 2;
   min-height: 40px;
   padding: 0 14px;
-  border: 1px solid rgba(184, 140, 255, .22);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 22%, transparent);
   border-radius: 12px;
-  background: rgba(126, 77, 255, .11);
-  color: #eee6ff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 11%, transparent);
+  color: var(--ab-ui-text);
   font-size: 11px;
   font-weight: 800;
   cursor: pointer;
@@ -703,10 +703,10 @@
 .profile-editor-v17__appearance-actions button {
   min-height: 40px;
   padding: 0 14px;
-  border: 1px solid rgba(184, 140, 255, .22);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 22%, transparent);
   border-radius: 12px;
-  background: rgba(126, 77, 255, .11);
-  color: #eee6ff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 11%, transparent);
+  color: var(--ab-ui-text);
   font-size: 11px;
   font-weight: 800;
   cursor: pointer;
@@ -715,7 +715,7 @@
 .profile-editor-v17__appearance-actions button.is-secondary {
   border-color: rgba(255,255,255,.08);
   background: rgba(255,255,255,.025);
-  color: rgba(239,233,248,.62);
+  color: var(--ab-ui-text);
 }
 
 @media (max-width: 640px) {
@@ -749,17 +749,17 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  border: 1px solid rgba(91, 207, 144, .12);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-success) 12%, transparent);
   border-radius: 11px;
-  background: rgba(48, 157, 98, .035);
-  color: rgba(166, 220, 190, .72);
+  background: color-mix(in srgb, var(--ab-ui-success) 3.5%, transparent);
+  color: var(--ab-ui-success);
   font-size: 10px;
   font-weight: 720;
   white-space: nowrap;
 }
 
 .profile-editor-v13__save-state > span {
-  color: #83d7a8;
+  color: var(--ab-ui-success);
   font-size: 12px;
 }
 
@@ -772,29 +772,29 @@
 }
 
 .profile-editor-v13__field > span small {
-  color: rgba(226, 220, 240, .42);
+  color: var(--ab-ui-text);
   transition: color .15s ease;
 }
 
 .profile-editor-v13__field:focus-within > span small {
-  color: rgba(194, 177, 234, .72);
+  color: var(--ab-ui-accent);
 }
 
 .profile-editor-v13__inline-hint {
   margin: 14px 2px 0;
-  color: rgba(219, 213, 232, .46);
+  color: var(--ab-ui-text);
   font-size: 10.5px;
   line-height: 1.55;
 }
 
 .profile-editor-v13__inline-hint strong {
-  color: rgba(212, 196, 247, .66);
+  color: var(--ab-ui-accent);
   font-weight: 760;
 }
 
 .profile-editor-v13__media-caption {
   margin-top: 5px !important;
-  color: rgba(226, 220, 240, .42) !important;
+  color: var(--ab-ui-text) !important;
   font-size: 10px !important;
   line-height: 1.45;
 }
@@ -802,7 +802,7 @@
 .profile-editor-v13__media-meta {
   margin: 0;
   padding: 2px 2px 0;
-  color: rgba(220, 214, 234, .36);
+  color: var(--ab-ui-text);
   font-size: 9.5px;
   line-height: 1.5;
 }
@@ -813,8 +813,8 @@
 
 .profile-editor-v13__media-actions label:hover,
 .profile-editor-v13__media-actions label:focus-within {
-  border-color: rgba(167, 129, 255, .26);
-  background: rgba(125, 81, 229, .1);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 26%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-accent) 10%, transparent);
 }
 
 .profile-editor-v17__appearance-status {
@@ -829,7 +829,7 @@
   min-height: 38px;
   border-color: rgba(255,255,255,.08);
   background: transparent;
-  color: rgba(239,233,248,.66);
+  color: var(--ab-ui-text);
 }
 
 .profile-editor-v13__premium-callout button {
@@ -899,14 +899,14 @@
     overflow: visible;
     border-right: 1px solid rgba(255,255,255,.05);
     border-bottom: 0;
-    background: rgba(5,8,18,.60);
+    background: color-mix(in srgb, var(--ab-ui-canvas) 60%, transparent);
     backdrop-filter: blur(18px);
   }
 
   .profile-editor-v18__rail-title {
     display: block;
     padding: 0 10px 10px;
-    color: rgba(176,156,231,.45);
+    color: var(--ab-ui-accent);
     font-size: 8px;
     font-weight: 850;
     letter-spacing: .16em;
@@ -928,8 +928,8 @@
   }
 
   .profile-editor-v18__rail button.is-active {
-    border-color: rgba(151,126,255,.18);
-    background: linear-gradient(90deg, rgba(124,92,255,.12), rgba(124,92,255,.035));
+    border-color: color-mix(in srgb, var(--ab-ui-accent) 18%, transparent);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--ab-ui-accent) 12%, transparent), color-mix(in srgb, var(--ab-ui-accent) 3.5%, transparent));
   }
 
   .profile-editor-v13__workspace,
@@ -967,7 +967,7 @@
 .profile-editor-v18__panel {
   border-radius: 18px;
   background:
-    linear-gradient(180deg, rgba(15,20,36,.82), rgba(9,13,25,.80));
+    linear-gradient(180deg, color-mix(in srgb, var(--ab-ui-surface) 82%, transparent), color-mix(in srgb, var(--ab-ui-surface) 80%, transparent));
 }
 
 .profile-editor-v18__rewards-tab {
@@ -987,13 +987,13 @@
   padding: 9px 10px 9px 14px;
   border: 1px solid rgba(255,255,255,.075);
   border-radius: 14px;
-  background: rgba(9,13,24,.92);
+  background: color-mix(in srgb, var(--ab-ui-surface) 92%, transparent);
   box-shadow: 0 18px 54px rgba(0,0,0,.38);
   backdrop-filter: blur(22px);
 }
 
 .profile-editor-v18__savebar.is-dirty {
-  border-color: rgba(151,126,255,.20);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 20%, transparent);
 }
 
 .profile-editor-v18__savebar-copy {
@@ -1006,14 +1006,14 @@
 }
 
 .profile-editor-v18__savebar-copy strong {
-  color: rgba(244,241,252,.90);
+  color: var(--ab-ui-text);
   font-size: 10.5px;
 }
 
 .profile-editor-v18__savebar-copy small {
   margin-top: 2px;
   overflow: hidden;
-  color: rgba(201,197,215,.42);
+  color: var(--ab-ui-muted);
   font-size: 8.5px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1022,7 +1022,7 @@
 .profile-editor-v18__savebar .profile-editor-v18__reset {
   border-color: rgba(255,255,255,.07);
   background: transparent;
-  color: rgba(222,217,234,.65);
+  color: var(--ab-ui-text);
   box-shadow: none;
 }
 
@@ -1096,7 +1096,7 @@
     top: 0;
     z-index: 28;
     padding: 8px 10px;
-    background: rgba(7,10,20,.94);
+    background: color-mix(in srgb, var(--ab-ui-surface) 94%, transparent);
     backdrop-filter: blur(18px);
   }
 

@@ -24,7 +24,7 @@
 }
 
 .track:focus-visible {
-  outline: 1px solid rgba(164, 137, 255, 0.34);
+  outline: 1px solid color-mix(in srgb, var(--ab-ui-accent) 34%, transparent);
   outline-offset: 4px;
   border-radius: 12px;
 }
@@ -42,14 +42,14 @@
   place-items: center;
   width: 44px;
   height: 44px;
-  border: 1px solid rgba(163, 130, 255, 0.56);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 56%, transparent);
   border-radius: 999px;
   background:
-    linear-gradient(145deg, rgba(98, 63, 186, 0.84), rgba(25, 20, 49, 0.92));
-  color: #fff;
+    linear-gradient(145deg, color-mix(in srgb, var(--ab-ui-primary) 84%, transparent), color-mix(in srgb, var(--ab-ui-raised) 92%, transparent));
+  color: var(--ab-ui-text);
   box-shadow:
-    0 0 0 1px rgba(196, 174, 255, 0.05) inset,
-    0 0 24px rgba(124, 78, 255, 0.27),
+    0 0 0 1px color-mix(in srgb, var(--ab-ui-accent) 5%, transparent) inset,
+    0 0 24px color-mix(in srgb, var(--ab-ui-accent) 27%, transparent),
     0 12px 36px rgba(0, 0, 0, 0.38);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -84,12 +84,12 @@
 }
 
 .arrow:hover {
-  border-color: rgba(202, 181, 255, 0.92);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 92%, transparent);
   background:
-    linear-gradient(145deg, rgba(126, 83, 232, 0.96), rgba(48, 31, 91, 0.97));
+    linear-gradient(145deg, color-mix(in srgb, var(--ab-ui-primary) 96%, transparent), color-mix(in srgb, var(--ab-ui-raised) 97%, transparent));
   box-shadow:
-    0 0 0 1px rgba(221, 209, 255, 0.08) inset,
-    0 0 30px rgba(139, 92, 246, 0.48),
+    0 0 0 1px color-mix(in srgb, var(--ab-ui-accent) 8%, transparent) inset,
+    0 0 30px color-mix(in srgb, var(--ab-ui-accent) 48%, transparent),
     0 14px 38px rgba(0, 0, 0, 0.42);
 }
 
@@ -98,7 +98,7 @@
 }
 
 .arrow:focus-visible {
-  outline: 2px solid rgba(210, 193, 255, 0.96);
+  outline: 2px solid color-mix(in srgb, var(--ab-ui-accent) 96%, transparent);
   outline-offset: 3px;
 }
 
@@ -142,12 +142,12 @@
   height: 38px;
   border-color: var(--ab-border-strong);
   border-radius: var(--ab-radius-sm);
-  background: rgba(12,18,28,.96);
+  background: color-mix(in srgb, var(--ab-ui-surface) 96%, transparent);
   box-shadow: 0 10px 24px rgba(0,0,0,.22);
   backdrop-filter: blur(10px);
 }
 .arrow:hover {
-  border-color: rgba(120,104,238,.38);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 38%, transparent);
   background: var(--ab-surface-2);
   box-shadow: 0 12px 28px rgba(0,0,0,.25);
 }

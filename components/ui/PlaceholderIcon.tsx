@@ -13,7 +13,7 @@ export default function PlaceholderIcon({ variant, className = '' }: Placeholder
   return (
     <div
       aria-hidden="true"
-      className={`grid size-24 shrink-0 place-items-center rounded-xl border border-purple-400/15 bg-slate-950/40 text-purple-400/50 ${className}`}
+      className={`grid size-24 shrink-0 place-items-center rounded-xl border border-[color-mix(in_srgb,var(--ab-ui-accent)_15%,transparent)] bg-[color-mix(in_srgb,var(--ab-ui-surface)_40%,transparent)] text-[color-mix(in_srgb,var(--ab-ui-accent)_50%,transparent)] ${className}`}
     >
       <motion.svg
         viewBox="0 0 64 64"

@@ -20,7 +20,7 @@
 .profile-editor-v13__showcase-title > div > span {
   display: block;
   margin-bottom: 6px;
-  color: #9c86eb;
+  color: var(--ab-ui-accent);
   font-size: 8px;
   font-weight: 900;
   letter-spacing: .15em;
@@ -35,20 +35,20 @@
   border: 1px solid rgba(255,255,255,.055);
   border-radius: 18px;
   background: rgba(255,255,255,.014);
-  color: rgba(232,226,244,.58);
+  color: var(--ab-ui-text);
 }
 
 .profile-editor-v13__showcase-state.is-error {
-  color: #ff9dad;
+  color: var(--ab-ui-danger);
 }
 
 .profile-editor-v13__showcase-state button {
   min-height: 38px;
   padding: 0 13px;
-  border: 1px solid rgba(164,141,246,.18);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 18%, transparent);
   border-radius: 11px;
-  background: rgba(126,97,222,.08);
-  color: #d8cbff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
+  color: var(--ab-ui-accent);
   font: inherit;
   font-weight: 800;
   cursor: pointer;
@@ -80,9 +80,9 @@
   bottom: max(12px, env(safe-area-inset-bottom)) !important;
   margin: 18px 0 4px !important;
   padding: 10px !important;
-  border: 1px solid rgba(151, 128, 235, .14);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 14%, transparent);
   border-radius: 14px;
-  background: rgba(8, 11, 22, .94) !important;
+  background: color-mix(in srgb, var(--ab-ui-surface) 94%, transparent) !important;
   box-shadow:
     0 16px 34px rgba(0, 0, 0, .26),
     0 0 0 1px rgba(255, 255, 255, .015) inset;
@@ -113,8 +113,8 @@
 }
 
 html[data-animebox-theme='light'] .profile-widgets-editor--embedded .profile-widgets-editor__actions {
-  border-color: rgba(60, 52, 70, .09);
-  background: rgba(250, 248, 244, .95) !important;
+  border-color: var(--ab-ui-border);
+  background: color-mix(in srgb, var(--ab-ui-surface) 95%, transparent) !important;
   box-shadow:
     0 16px 34px rgba(47, 39, 55, .10),
     0 0 0 1px rgba(255, 255, 255, .55) inset;

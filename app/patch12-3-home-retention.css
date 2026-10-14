@@ -10,7 +10,7 @@
   border: 1px solid var(--ab-border);
   border-radius: var(--ab-radius-lg);
   background:
-    linear-gradient(110deg, rgba(120, 104, 238, .045), transparent 38%),
+    linear-gradient(110deg, color-mix(in srgb, var(--ab-ui-accent) 4.5%, transparent), transparent 38%),
     var(--ab-surface-1);
 }
 
@@ -29,7 +29,7 @@
 .home-retention__head span {
   display: block;
   margin-bottom: 5px;
-  color: #9188db;
+  color: var(--ab-ui-accent);
   font-size: 9px;
   font-weight: 800;
   letter-spacing: .11em;
@@ -64,9 +64,9 @@
   align-items: center;
   gap: 10px;
   padding: 8px 10px 8px 8px;
-  border: 1px solid rgba(151, 164, 188, .09);
+  border: 1px solid var(--ab-ui-border);
   border-radius: var(--ab-radius-md);
-  background: #090e17;
+  background: var(--ab-ui-surface);
   transition:
     transform 160ms ease,
     border-color 160ms ease,
@@ -102,7 +102,7 @@
 }
 
 .home-retention__copy small {
-  color: #9188db;
+  color: var(--ab-ui-accent);
   font-size: 8px;
   font-weight: 850;
   letter-spacing: .08em;
@@ -129,7 +129,7 @@
 }
 
 .home-retention__card > b {
-  color: #777f92;
+  color: var(--ab-ui-muted);
   font-size: 13px;
   font-weight: 500;
 }
@@ -137,12 +137,12 @@
 @media (hover: hover) {
   .home-retention__card:hover {
     transform: translateY(-2px);
-    border-color: rgba(120, 104, 238, .25);
-    background: #0b111c;
+    border-color: color-mix(in srgb, var(--ab-ui-accent) 25%, transparent);
+    background: var(--ab-ui-surface);
   }
 
   .home-retention__card:hover > b {
-    color: #c6bfff;
+    color: var(--ab-ui-accent);
   }
 }
 

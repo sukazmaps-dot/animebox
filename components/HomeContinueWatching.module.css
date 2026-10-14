@@ -17,10 +17,10 @@
   min-height: 154px;
   padding: 20px;
   gap: 20px;
-  border: 1px solid rgba(167, 139, 250, .38);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 38%, transparent);
   background:
-    radial-gradient(circle at 4% 50%, rgba(118, 86, 255, .13), transparent 30%),
-    linear-gradient(115deg, rgba(101, 63, 173, .22), rgba(20, 19, 33, .96));
+    radial-gradient(circle at 4% 50%, color-mix(in srgb, var(--ab-ui-accent) 13%, transparent), transparent 30%),
+    linear-gradient(115deg, color-mix(in srgb, var(--ab-ui-accent) 22%, transparent), color-mix(in srgb, var(--ab-ui-surface) 96%, transparent));
 }
 
 .section .featured :global(.continue-smart-card__poster) {
@@ -47,11 +47,11 @@
   width: auto;
   white-space: nowrap;
   font-size: 14px;
-  color: #ddd0ff;
+  color: var(--ab-ui-accent);
 }
 
 .section a:focus-visible {
-  outline: 2px solid #c4b5fd;
+  outline: 2px solid var(--ab-ui-accent);
   outline-offset: 4px;
 }
 
@@ -109,10 +109,10 @@
   }
 
   .section .featured {
-    border-color: rgba(157, 126, 255, .32);
+    border-color: color-mix(in srgb, var(--ab-ui-accent) 32%, transparent);
     background:
-      radial-gradient(circle at 3% 50%, rgba(112, 78, 255, .13), transparent 34%),
-      linear-gradient(135deg, rgba(16, 22, 42, .98), rgba(8, 13, 26, .99));
+      radial-gradient(circle at 3% 50%, color-mix(in srgb, var(--ab-ui-accent) 13%, transparent), transparent 34%),
+      linear-gradient(135deg, color-mix(in srgb, var(--ab-ui-surface) 98%, transparent), color-mix(in srgb, var(--ab-ui-surface) 99%, transparent));
   }
 
   .section .card :global(.continue-smart-card__poster),
@@ -179,7 +179,7 @@
     min-width: 22px;
     height: 34px;
     overflow: hidden;
-    color: rgba(201, 190, 255, .72);
+    color: var(--ab-ui-accent);
     font-size: 0 !important;
   }
 

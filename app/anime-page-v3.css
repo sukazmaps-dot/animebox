@@ -3,8 +3,8 @@
    ========================================================= */
 
 .anime-detail-v3 {
-  --anime-page-accent: #7c68ee;
-  background: #080a10;
+  --anime-page-accent: var(--ab-ui-accent);
+  background: var(--ab-ui-surface);
 }
 
 .anime-detail-v3 .anime-detail-hero {
@@ -25,7 +25,7 @@
 .anime-detail-v3 .anime-detail-poster {
   border-radius: 10px;
   border-color: rgba(255, 255, 255, .10);
-  background: #0b0e16;
+  background: var(--ab-ui-surface);
   box-shadow: 0 20px 50px rgba(0, 0, 0, .28);
 }
 
@@ -52,7 +52,7 @@
 }
 
 .anime-detail-v3__facts-heading span {
-  color: #8f82e4;
+  color: var(--ab-ui-accent);
   font-size: 9px;
   font-weight: 720;
   letter-spacing: .12em;
@@ -61,7 +61,7 @@
 
 .anime-detail-v3__facts-heading h2 {
   margin-top: 5px;
-  color: rgba(244, 246, 255, .94);
+  color: var(--ab-ui-text);
   font-size: 17px;
   font-weight: 720;
   letter-spacing: -.02em;
@@ -85,7 +85,7 @@
 }
 
 .anime-detail-v3__facts-list dt {
-  color: rgba(160, 172, 199, .44);
+  color: var(--ab-ui-muted);
   font-size: 8px;
   font-weight: 650;
   letter-spacing: .07em;
@@ -95,7 +95,7 @@
 .anime-detail-v3__facts-list dd {
   overflow: hidden;
   margin-top: 5px;
-  color: rgba(239, 242, 252, .9);
+  color: var(--ab-ui-text);
   font-size: 12px;
   font-weight: 680;
   text-overflow: ellipsis;
@@ -112,7 +112,7 @@
 
 .anime-detail-v3__genres span {
   position: relative;
-  color: rgba(173, 183, 207, .58);
+  color: var(--ab-ui-muted);
   font-size: 10px;
   font-weight: 590;
 }
@@ -121,7 +121,7 @@
   content: '·';
   position: absolute;
   right: -8px;
-  color: rgba(139, 124, 224, .55);
+  color: var(--ab-ui-accent);
 }
 
 /* Below-the-fold public content stays in the HTML for SEO but can skip paint
@@ -193,7 +193,7 @@
 }
 
 .anime-franchise-v3__eyebrow {
-  color: #8f82e4;
+  color: var(--ab-ui-accent);
   font-size: 9px;
   font-weight: 720;
   letter-spacing: .12em;
@@ -202,7 +202,7 @@
 
 .anime-franchise-v3__title {
   margin-top: 5px;
-  color: #f3f4fa;
+  color: var(--ab-ui-text);
   font-size: clamp(1.35rem, 2vw, 1.8rem);
   font-weight: 760;
   letter-spacing: -.028em;
@@ -211,7 +211,7 @@
 .anime-franchise-v3__subtitle {
   max-width: 680px;
   margin-top: 6px;
-  color: rgba(172, 183, 207, .5);
+  color: var(--ab-ui-muted);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -225,7 +225,7 @@
   padding: 12px 12px 11px;
   border: 1px solid rgba(255, 255, 255, .08);
   border-radius: 8px 14px 8px 8px;
-  background: #0d111a;
+  background: var(--ab-ui-surface);
   text-decoration: none;
   transition: border-color .18s ease, background .18s ease;
 }
@@ -237,37 +237,37 @@
   top: 50%;
   width: 9px;
   height: 1px;
-  background: rgba(125, 111, 214, .34);
+  background: color-mix(in srgb, var(--ab-ui-accent) 34%, transparent);
 }
 
 .anime-franchise-v3__season:hover {
-  border-color: rgba(139, 124, 232, .32);
-  background: #101522;
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 32%, transparent);
+  background: var(--ab-ui-surface);
 }
 
 .anime-franchise-v3__season.is-current {
-  border-color: rgba(139, 124, 232, .44);
-  background: rgba(116, 99, 218, .08);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 44%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
 }
 
 .anime-franchise-v3__step {
   grid-row: 1 / span 3;
   align-self: start;
-  color: rgba(143, 130, 228, .62);
+  color: var(--ab-ui-accent);
   font-size: 11px;
   font-weight: 760;
   font-variant-numeric: tabular-nums;
 }
 
 .anime-franchise-v3__season-label {
-  color: rgba(242, 243, 250, .92);
+  color: var(--ab-ui-text);
   font-size: 12px;
   font-weight: 720;
 }
 
 .anime-franchise-v3__season-title {
   overflow: hidden;
-  color: rgba(172, 183, 207, .52);
+  color: var(--ab-ui-muted);
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -275,7 +275,7 @@
 
 .anime-franchise-v3__year,
 .anime-franchise-v3__current {
-  color: rgba(146, 157, 181, .38);
+  color: var(--ab-ui-muted);
   font-size: 9px;
 }
 
@@ -283,20 +283,20 @@
   position: absolute;
   right: 10px;
   top: 9px;
-  color: #a99cff;
+  color: var(--ab-ui-accent);
   font-weight: 720;
 }
 
 .anime-franchise-v3__related {
   border: 1px solid rgba(255, 255, 255, .07);
   border-radius: 8px 13px 8px 8px;
-  background: #0d1119;
+  background: var(--ab-ui-surface);
   text-decoration: none;
   transition: border-color .18s ease, background .18s ease;
 }
 
 .anime-franchise-v3__related:hover,
 .anime-franchise-v3__related.is-current {
-  border-color: rgba(139, 124, 232, .28);
-  background: #10141f;
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 28%, transparent);
+  background: var(--ab-ui-surface);
 }

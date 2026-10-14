@@ -112,7 +112,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <main className="mx-auto flex min-h-[70vh] max-w-md items-center px-4">
-      <section className="w-full rounded-2xl border border-white/10 bg-[#0b1220] p-6 shadow-2xl">
+      <section className="w-full rounded-2xl border border-white/10 bg-[var(--ab-ui-surface)] p-6 shadow-2xl">
         <h1 className="text-2xl font-bold text-white">
           Восстановление пароля
         </h1>
@@ -143,17 +143,17 @@ export default function ForgotPasswordPage() {
                 value={code}
                 onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
                 placeholder="6 цифр"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-violet-500"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-[var(--ab-ui-accent)]"
               />
               {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
-              <button type="submit" disabled={verifying} className="w-full rounded-xl bg-violet-600 px-4 py-3 font-semibold text-white disabled:opacity-50">
+              <button type="submit" disabled={verifying} className="w-full rounded-xl bg-[var(--ab-ui-primary)] px-4 py-3 font-semibold text-white disabled:opacity-50">
                 {verifying ? 'Проверяем…' : 'Продолжить'}
               </button>
             </form>
 
             <Link
               href="/login"
-              className="mt-5 inline-block text-sm text-violet-400 hover:text-violet-300"
+              className="mt-5 inline-block text-sm text-[var(--ab-ui-accent)] hover:text-[var(--ab-ui-accent)]"
             >
               ← Вернуться ко входу
             </Link>
@@ -178,7 +178,7 @@ export default function ForgotPasswordPage() {
                 autoComplete="email"
                 required
                 placeholder="example@mail.com"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-violet-500"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-[var(--ab-ui-accent)]"
               />
             </label>
 
@@ -191,7 +191,7 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-violet-600 px-4 py-3 font-semibold text-white transition hover:bg-violet-500 disabled:opacity-50"
+              className="w-full rounded-xl bg-[var(--ab-ui-primary)] px-4 py-3 font-semibold text-white transition hover:bg-[var(--ab-ui-primary)] disabled:opacity-50"
             >
               {loading
                 ? 'Отправляем...'

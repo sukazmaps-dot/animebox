@@ -14,16 +14,16 @@
   color-scheme: dark;
 
   /* Core identity */
-  --ab-ink-0: #07090f;
-  --ab-ink-1: #090d14;
-  --ab-ink-2: #0c111a;
+  --ab-ink-0: var(--ab-ui-canvas);
+  --ab-ink-1: var(--ab-ui-surface);
+  --ab-ink-2: var(--ab-ui-surface);
 
   --ab-surface-1: var(--ab-ui-surface);
   --ab-surface-2: var(--ab-ui-raised);
   --ab-surface-3: var(--ab-ui-raised);
   --ab-surface-4: var(--ab-ui-selected);
 
-  --ab-porcelain: #f3f0ea;
+  --ab-porcelain: var(--ab-ui-text);
   --ab-text: var(--ab-ui-text);
   --ab-text-soft: var(--ab-ui-text);
   --ab-muted: var(--ab-ui-muted);
@@ -35,12 +35,12 @@
   --ab-iris-soft: var(--ab-ui-selected);
   --ab-iris-faint: var(--ab-ui-selected);
 
-  --ab-ember: #e6a06f;
-  --ab-ember-soft: rgba(230, 160, 111, .10);
+  --ab-ember: var(--ab-ui-danger);
+  --ab-ember-soft: color-mix(in srgb, var(--ab-ui-danger) 10%, transparent);
 
-  --ab-success: #69d6ad;
-  --ab-danger: #e8849c;
-  --ab-info: #7cb7ed;
+  --ab-success: var(--ab-ui-success);
+  --ab-danger: var(--ab-ui-danger);
+  --ab-info: var(--ab-ui-primary);
 
   /* Existing aliases stay compatible with older CSS. */
   --ab-accent: var(--ab-iris);
@@ -68,9 +68,9 @@
   --ab-radius-feature: 24px;
 
   /* Borders are intentionally quiet. */
-  --ab-line: rgba(204, 208, 219, .065);
-  --ab-line-strong: rgba(204, 208, 219, .115);
-  --ab-line-iris: rgba(151, 136, 231, .24);
+  --ab-line: var(--ab-ui-border);
+  --ab-line-strong: var(--ab-ui-border);
+  --ab-line-iris: var(--ab-ui-accent);
 
   /* Shadows do not carry brand color by default. */
   --ab-shadow-xs: 0 6px 18px rgba(0, 0, 0, .10);
@@ -92,21 +92,21 @@
 html {
   background: var(--ab-ink-0);
   color: var(--ab-text);
-  scrollbar-color: #303744 var(--ab-ink-0);
+  scrollbar-color: var(--ab-ui-raised) var(--ab-ink-0);
 }
 
 body {
   background:
-    radial-gradient(70% 45% at 86% -12%, rgba(151, 136, 231, .07), transparent 62%),
-    linear-gradient(180deg, var(--ab-ink-0) 0%, var(--ab-ink-1) 46%, #080b12 100%);
+    radial-gradient(70% 45% at 86% -12%, color-mix(in srgb, var(--ab-ui-accent) 7%, transparent), transparent 62%),
+    linear-gradient(180deg, var(--ab-ink-0) 0%, var(--ab-ink-1) 46%, var(--ab-ui-surface) 100%);
   color: var(--ab-text);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
 ::selection {
-  background: rgba(151, 136, 231, .30);
-  color: #fff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 30%, transparent);
+  color: var(--ab-ui-text);
 }
 
 :where(h1, h2, h3, h4, strong, b) {
@@ -122,7 +122,7 @@ body {
 }
 
 :where(button, input, textarea, select, a):focus-visible {
-  outline: 2px solid rgba(183, 170, 255, .78);
+  outline: 2px solid color-mix(in srgb, var(--ab-ui-accent) 78%, transparent);
   outline-offset: 2px;
 }
 
@@ -132,7 +132,7 @@ body {
 
 .topbar {
   border-bottom-color: var(--ab-line);
-  background: rgba(7, 9, 15, .92);
+  background: color-mix(in srgb, var(--ab-ui-canvas) 92%, transparent);
   box-shadow: 0 1px 0 rgba(255,255,255,.015);
 }
 
@@ -155,8 +155,8 @@ body {
 .topbar__search:focus-within,
 .search-box:focus-within {
   border-color: var(--ab-line-iris);
-  background: #151c29;
-  box-shadow: 0 0 0 3px rgba(151,136,231,.07);
+  background: var(--ab-ui-surface);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ab-ui-accent) 7%, transparent);
 }
 
 /* =========================================================
@@ -205,7 +205,7 @@ body {
     .anime-notification-control,
     .detail__section
   ):hover {
-    border-color: rgba(204,208,219,.09);
+    border-color: var(--ab-ui-border);
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,.022),
       var(--ab-shadow-sm);
@@ -246,7 +246,7 @@ body {
 .topbar__register {
   border: 1px solid rgba(255,255,255,.04);
   background: var(--ab-iris);
-  color: #fff;
+  color: var(--ab-ui-primary-text);
   box-shadow: none;
 }
 
@@ -306,9 +306,9 @@ button:disabled,
   .schedule__tab.is-active,
   .tracker-filter.is-active
 ) {
-  border-color: rgba(151,136,231,.18);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 18%, transparent);
   background: var(--ab-iris-soft);
-  color: #eeeaff;
+  color: var(--ab-ui-text);
   box-shadow: inset 2px 0 0 var(--ab-iris);
 }
 
@@ -354,7 +354,7 @@ button:disabled,
 
 .anime-card__image-wrap,
 .anime-card--signature .anime-card__image-wrap {
-  border: 1px solid rgba(204,208,219,.045);
+  border: 1px solid var(--ab-ui-border);
   border-radius: var(--ab-radius-sm);
   background: var(--ab-surface-2);
   box-shadow: var(--ab-shadow-xs);
@@ -365,7 +365,7 @@ button:disabled,
 }
 
 .anime-card__body h3 {
-  color: #eeece8;
+  color: var(--ab-ui-text);
   font-weight: 660;
   letter-spacing: -.012em;
 }
@@ -378,7 +378,7 @@ button:disabled,
 .anime-card__state {
   border-radius: var(--ab-radius-xs) !important;
   border-color: rgba(255,255,255,.05) !important;
-  background: rgba(7,9,15,.82) !important;
+  background: color-mix(in srgb, var(--ab-ui-canvas) 82%, transparent) !important;
   backdrop-filter: blur(8px);
 }
 
@@ -391,7 +391,7 @@ button:disabled,
   .anime-card:hover .anime-card__image-wrap,
   .anime-card--signature:hover .anime-card__image-wrap {
     transform: translateY(-2px);
-    border-color: rgba(151,136,231,.16);
+    border-color: color-mix(in srgb, var(--ab-ui-accent) 16%, transparent);
     box-shadow: var(--ab-shadow-sm);
   }
 
@@ -413,16 +413,16 @@ button:disabled,
 }
 
 .episode-seo-context__links a {
-  border-color: rgba(151,136,231,.13);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 13%, transparent);
   background: var(--ab-surface-2);
-  color: #cfc8ef;
+  color: var(--ab-ui-text);
   box-shadow: none;
 }
 
 .episode-seo-context__links a:hover {
-  border-color: rgba(151,136,231,.25);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 25%, transparent);
   background: var(--ab-surface-3);
-  color: #fff;
+  color: var(--ab-ui-text);
 }
 
 /* =========================================================
@@ -436,7 +436,7 @@ button:disabled,
 
   body {
     background:
-      linear-gradient(180deg, var(--ab-ink-0) 0%, var(--ab-ink-1) 58%, #080b12 100%);
+      linear-gradient(180deg, var(--ab-ink-0) 0%, var(--ab-ink-1) 58%, var(--ab-ui-surface) 100%);
   }
 
   .page-content {

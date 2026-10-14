@@ -9,10 +9,10 @@
   padding: 4px 9px 4px 6px;
   border: 1px solid rgb(var(--sponsor-a) / 0.34);
   border-radius: 999px;
-  color: #f5efff;
+  color: var(--ab-ui-text);
   background:
     linear-gradient(135deg, rgb(var(--sponsor-a) / 0.2), rgb(var(--sponsor-b) / 0.12)),
-    rgba(11, 8, 22, 0.88);
+    color-mix(in srgb, var(--ab-ui-surface) 88%, transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 5px 18px rgb(var(--sponsor-a) / 0.13);
@@ -47,7 +47,7 @@
 .patron {
   --sponsor-a: 245 158 11;
   --sponsor-b: 168 85 247;
-  color: #fff8dc;
+  color: var(--ab-ui-text);
 }
 
 .icon {

@@ -17,9 +17,9 @@
     height: 58px !important;
     gap: 2px !important;
     padding: 4px 5px !important;
-    border: 1px solid rgba(184, 177, 221, .11) !important;
+    border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 11%, transparent) !important;
     border-radius: 16px !important;
-    background: rgba(8, 11, 21, .94) !important;
+    background: color-mix(in srgb, var(--ab-ui-surface) 94%, transparent) !important;
     box-shadow:
       0 10px 28px rgba(0, 0, 0, .34),
       inset 0 1px 0 rgba(255, 255, 255, .025) !important;
@@ -40,7 +40,7 @@
     border-radius: 10px !important;
     background: transparent !important;
     box-shadow: none !important;
-    color: #81899c !important;
+    color: var(--ab-ui-muted) !important;
   }
 
   .mobile-nav__item::before {
@@ -80,17 +80,17 @@
   .mobile-nav__item.is-active {
     background: transparent !important;
     box-shadow: none !important;
-    color: #f1eff8 !important;
+    color: var(--ab-ui-text) !important;
   }
 
   .mobile-nav__item.is-active::before {
-    border-color: rgba(152, 130, 255, .20);
-    background: rgba(116, 88, 226, .13);
+    border-color: color-mix(in srgb, var(--ab-ui-accent) 20%, transparent);
+    background: color-mix(in srgb, var(--ab-ui-accent) 13%, transparent);
   }
 
   .mobile-nav__item.is-active svg {
-    color: #c8baff !important;
-    filter: drop-shadow(0 0 6px rgba(132, 102, 255, .17));
+    color: var(--ab-ui-accent) !important;
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--ab-ui-accent) 17%, transparent));
   }
 
   .mobile-nav__avatar {
@@ -98,12 +98,12 @@
     z-index: 1;
     width: 20px !important;
     height: 20px !important;
-    border-color: rgba(163, 148, 225, .22) !important;
+    border-color: color-mix(in srgb, var(--ab-ui-accent) 22%, transparent) !important;
     background: rgba(255,255,255,.025) !important;
   }
 
   .mobile-nav__profile.is-active .mobile-nav__avatar {
-    border-color: rgba(186, 169, 255, .42) !important;
+    border-color: color-mix(in srgb, var(--ab-ui-accent) 42%, transparent) !important;
   }
 
   /* Fixed chrome must still leave a real scrollable safe zone at page end. */
@@ -134,7 +134,7 @@
   /* Compact account sheet: a menu, not a second full-screen page. */
   .mobile-account__backdrop {
     z-index: 360 !important;
-    background: rgba(2, 4, 9, .54) !important;
+    background: color-mix(in srgb, var(--ab-ui-canvas) 54%, transparent) !important;
     backdrop-filter: blur(4px) !important;
     -webkit-backdrop-filter: blur(4px) !important;
   }
@@ -152,9 +152,9 @@
     padding: 6px 8px 9px !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
-    border: 1px solid rgba(176, 165, 218, .14) !important;
+    border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 14%, transparent) !important;
     border-radius: 16px !important;
-    background: rgba(9, 12, 23, .975) !important;
+    background: color-mix(in srgb, var(--ab-ui-surface) 97.5%, transparent) !important;
     box-shadow: 0 18px 46px rgba(0, 0, 0, .46) !important;
     backdrop-filter: blur(18px) saturate(1.04) !important;
     -webkit-backdrop-filter: blur(18px) saturate(1.04) !important;
@@ -239,18 +239,18 @@
   .mobile-account__link > svg:first-child {
     width: 17px !important;
     height: 17px !important;
-    color: #9b8cdf !important;
+    color: var(--ab-ui-accent) !important;
   }
 
   .mobile-account__link > svg:last-child {
     width: 12px !important;
     height: 12px !important;
-    color: #535b6d !important;
+    color: var(--ab-ui-muted) !important;
   }
 
   .mobile-account__link strong {
     overflow: hidden;
-    color: #d9d7e1 !important;
+    color: var(--ab-ui-text) !important;
     font-size: 11px !important;
     font-weight: 670 !important;
     text-overflow: ellipsis;
@@ -267,9 +267,9 @@
     gap: 8px !important;
     margin-top: 5px !important;
     padding: 6px 8px !important;
-    border-color: rgba(168, 132, 241, .18) !important;
+    border-color: color-mix(in srgb, var(--ab-ui-accent) 18%, transparent) !important;
     border-radius: 10px !important;
-    background: rgba(107, 73, 197, .09) !important;
+    background: color-mix(in srgb, var(--ab-ui-accent) 9%, transparent) !important;
     box-shadow: none !important;
   }
 
@@ -363,43 +363,43 @@
 
   .home-page .continue-watching-section .section-link {
     margin-bottom: 0 !important;
-    color: #777d8e !important;
+    color: var(--ab-ui-muted) !important;
     font-size: 10.5px !important;
   }
 
   .home-page .continue-watching-section .continue-smart-card,
   .home-page .continue-watching-section .continue-smart-card:first-child {
-    border-color: rgba(151, 135, 211, .18) !important;
+    border-color: color-mix(in srgb, var(--ab-ui-accent) 18%, transparent) !important;
     background:
-      linear-gradient(135deg, rgba(12, 16, 29, .97), rgba(8, 11, 20, .99))
+      linear-gradient(135deg, color-mix(in srgb, var(--ab-ui-surface) 97%, transparent), color-mix(in srgb, var(--ab-ui-surface) 99%, transparent))
       !important;
     box-shadow: none !important;
   }
 
   .home-page .continue-watching-section .continue-smart-card__eyebrow {
-    color: #8e82c3 !important;
+    color: var(--ab-ui-accent) !important;
     font-size: 9px !important;
   }
 
   .home-page .continue-watching-section .continue-smart-card__body strong {
-    color: #eceaf2 !important;
+    color: var(--ab-ui-text) !important;
     font-weight: 700 !important;
   }
 
   .home-page .continue-watching-section .continue-smart-card__progress {
-    background: rgba(184, 188, 203, .10) !important;
+    background: color-mix(in srgb, var(--ab-ui-raised) 10%, transparent) !important;
   }
 
   .home-page .continue-watching-section .continue-smart-card__progress i {
-    background: #8c78e7 !important;
+    background: var(--ab-ui-primary) !important;
   }
 
   .home-page .continue-watching-section .continue-smart-card__body small {
-    color: #7d8393 !important;
+    color: var(--ab-ui-muted) !important;
   }
 
   .home-page .continue-watching-section .continue-smart-card__arrow {
-    color: rgba(184, 173, 225, .62) !important;
+    color: var(--ab-ui-accent) !important;
   }
 
   .home-page .home-shortcuts {
@@ -416,7 +416,7 @@
   }
 
   .home-page .home-shortcuts__item b {
-    color: #777d8d !important;
+    color: var(--ab-ui-muted) !important;
   }
 }
 

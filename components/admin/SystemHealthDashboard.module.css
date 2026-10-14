@@ -2,7 +2,7 @@
   display: grid;
   gap: 20px;
   padding: 28px;
-  color: #f5f6fb;
+  color: var(--ab-ui-text);
 }
 
 .header {
@@ -22,19 +22,19 @@
 .header p {
   max-width: 820px;
   margin: 0;
-  color: rgba(255,255,255,.5);
+  color: var(--ab-ui-text);
   line-height: 1.6;
 }
 
 .header small {
   display: block;
   margin-top: 9px;
-  color: rgba(255,255,255,.32);
+  color: var(--ab-ui-text);
 }
 
 .eyebrow,
 .panelHead span {
-  color: #9d8df3;
+  color: var(--ab-ui-accent);
   font-size: 10px;
   font-weight: 850;
   letter-spacing: .14em;
@@ -43,10 +43,10 @@
 .refresh {
   min-height: 40px;
   padding: 0 15px;
-  border: 1px solid rgba(157,141,243,.24);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 24%, transparent);
   border-radius: 10px;
-  background: rgba(157,141,243,.08);
-  color: #ebe7ff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
+  color: var(--ab-ui-text);
   font-size: 11px;
   font-weight: 750;
   cursor: pointer;
@@ -66,7 +66,7 @@
   padding: 16px 18px;
   border: 1px solid rgba(255,255,255,.07);
   border-radius: 13px;
-  background: #0d121d;
+  background: var(--ab-ui-surface);
 }
 
 .overall > div {
@@ -77,7 +77,7 @@
 
 .overall small {
   display: block;
-  color: rgba(255,255,255,.35);
+  color: var(--ab-ui-text);
   font-size: 9px;
   font-weight: 780;
   letter-spacing: .1em;
@@ -91,7 +91,7 @@
 
 .overall p {
   margin: 0;
-  color: rgba(255,255,255,.42);
+  color: var(--ab-ui-text);
   font-size: 11px;
 }
 
@@ -99,18 +99,18 @@
   width: 11px;
   height: 11px;
   border-radius: 999px;
-  background: #6bd19c;
-  box-shadow: 0 0 16px rgba(107,209,156,.32);
+  background: var(--ab-ui-success);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--ab-ui-success) 32%, transparent);
 }
 
 .overall[data-tone='degraded'] .statusDot {
-  background: #e4a65d;
-  box-shadow: 0 0 16px rgba(228,166,93,.3);
+  background: var(--ab-ui-danger);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--ab-ui-danger) 30%, transparent);
 }
 
 .overall[data-tone='critical'] .statusDot {
-  background: #ef7789;
-  box-shadow: 0 0 18px rgba(239,119,137,.32);
+  background: var(--ab-ui-danger);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--ab-ui-danger) 32%, transparent);
 }
 
 .kpis {
@@ -122,7 +122,7 @@
 .kpis article,
 .panel {
   border: 1px solid rgba(255,255,255,.065);
-  background: #0c111b;
+  background: var(--ab-ui-surface);
 }
 
 .kpis article {
@@ -133,7 +133,7 @@
 
 .kpis span {
   display: block;
-  color: rgba(255,255,255,.38);
+  color: var(--ab-ui-text);
   font-size: 10px;
   font-weight: 720;
 }
@@ -146,7 +146,7 @@
 }
 
 .kpis small {
-  color: rgba(255,255,255,.34);
+  color: var(--ab-ui-text);
 }
 
 .grid {
@@ -179,7 +179,7 @@
 }
 
 .panelHead small {
-  color: rgba(255,255,255,.3);
+  color: var(--ab-ui-text);
   font-size: 9px;
 }
 
@@ -213,7 +213,7 @@
 .incidentRow strong {
   display: block;
   overflow: hidden;
-  color: rgba(255,255,255,.86);
+  color: var(--ab-ui-text);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -222,7 +222,7 @@
 .providerRow small,
 .jobRow small,
 .incidentRow small {
-  color: rgba(255,255,255,.34);
+  color: var(--ab-ui-text);
   font-size: 9px;
 }
 
@@ -232,7 +232,7 @@
   padding: 4px 7px;
   border: 1px solid rgba(255,255,255,.07);
   border-radius: 999px;
-  color: rgba(255,255,255,.52);
+  color: var(--ab-ui-text);
   font-size: 9px;
   font-weight: 760;
 }
@@ -240,19 +240,19 @@
 .providerRow > span[data-state='healthy'],
 .providerRow > span[data-state='closed'],
 .jobRow > span[data-state='succeeded'] {
-  border-color: rgba(81,189,132,.18);
-  color: #79cea0;
+  border-color: color-mix(in srgb, var(--ab-ui-success) 18%, transparent);
+  color: var(--ab-ui-success);
 }
 
 .jobRow > span[data-state='degraded'],
 .jobRow > span[data-state='skipped'] {
-  border-color: rgba(220,157,74,.18);
-  color: #ddb16f;
+  border-color: color-mix(in srgb, var(--ab-ui-danger) 18%, transparent);
+  color: var(--ab-ui-danger);
 }
 
 .jobRow > span[data-state='failed'] {
-  border-color: rgba(228,97,120,.2);
-  color: #e9a0ad;
+  border-color: color-mix(in srgb, var(--ab-ui-danger) 20%, transparent);
+  color: var(--ab-ui-danger);
 }
 
 .providerMeta,
@@ -276,19 +276,19 @@
 
 .incidentRow > span {
   align-self: start;
-  color: #d6aa69;
+  color: var(--ab-ui-danger);
   font-size: 9px;
   font-weight: 780;
 }
 
 .incidentRow[data-severity='critical'] > span {
-  color: #efa0ae;
+  color: var(--ab-ui-danger);
 }
 
 .incidentRow p {
   grid-column: 1 / -1;
   margin: 0;
-  color: rgba(255,255,255,.42);
+  color: var(--ab-ui-text);
   font-size: 10px;
   line-height: 1.45;
   word-break: break-word;
@@ -313,13 +313,13 @@
 }
 
 .metrics dt {
-  color: rgba(255,255,255,.4);
+  color: var(--ab-ui-text);
   font-size: 10px;
 }
 
 .metrics dd {
   margin: 0;
-  color: rgba(255,255,255,.8);
+  color: var(--ab-ui-text);
   font-size: 10px;
   font-weight: 700;
   text-align: right;
@@ -355,14 +355,14 @@
 .routeRow strong {
   display: block;
   overflow: hidden;
-  color: rgba(255,255,255,.86);
+  color: var(--ab-ui-text);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .routeRow small {
-  color: rgba(255,255,255,.34);
+  color: var(--ab-ui-text);
   font-size: 9px;
 }
 
@@ -398,12 +398,12 @@
 
 .controlRow strong {
   display: block;
-  color: rgba(255,255,255,.86);
+  color: var(--ab-ui-text);
   font-size: 11px;
 }
 
 .controlRow small {
-  color: rgba(255,255,255,.34);
+  color: var(--ab-ui-text);
   font-size: 9px;
 }
 
@@ -412,30 +412,30 @@
   padding: 4px 7px;
   border: 1px solid rgba(255,255,255,.07);
   border-radius: 999px;
-  color: rgba(255,255,255,.52);
+  color: var(--ab-ui-text);
   font-size: 9px;
   font-weight: 760;
 }
 
 .controlRow > span[data-state='normal'],
 .controlRow > span[data-state='enabled'] {
-  border-color: rgba(81,189,132,.18);
-  color: #79cea0;
+  border-color: color-mix(in srgb, var(--ab-ui-success) 18%, transparent);
+  color: var(--ab-ui-success);
 }
 
 .controlRow > span[data-state='brownout'],
 .controlRow > span[data-state='disabled'] {
-  border-color: rgba(220,157,74,.18);
-  color: #ddb16f;
+  border-color: color-mix(in srgb, var(--ab-ui-danger) 18%, transparent);
+  color: var(--ab-ui-danger);
 }
 
 .controlRow button {
   min-height: 32px;
   padding: 0 10px;
-  border: 1px solid rgba(157,141,243,.2);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 20%, transparent);
   border-radius: 8px;
-  background: rgba(157,141,243,.06);
-  color: #e7e2ff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 6%, transparent);
+  color: var(--ab-ui-text);
   font-size: 9px;
   font-weight: 760;
   cursor: pointer;
@@ -450,7 +450,7 @@
 .error,
 .loading {
   padding: 16px 17px;
-  color: rgba(255,255,255,.45);
+  color: var(--ab-ui-text);
   font-size: 11px;
 }
 
@@ -462,8 +462,8 @@
 }
 
 .error {
-  border-color: rgba(226,100,118,.2);
-  color: #f2b1bc;
+  border-color: color-mix(in srgb, var(--ab-ui-danger) 20%, transparent);
+  color: var(--ab-ui-danger);
 }
 
 @media (max-width: 1180px) {
@@ -532,13 +532,13 @@
 }
 
 .incidentActions > span {
-  color: #d6aa69;
+  color: var(--ab-ui-danger);
   font-size: 9px;
   font-weight: 780;
 }
 
 .incidentRow[data-severity='critical'] .incidentActions > span {
-  color: #efa0ae;
+  color: var(--ab-ui-danger);
 }
 
 .incidentActions button {
@@ -547,15 +547,15 @@
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 8px;
   background: rgba(255,255,255,.025);
-  color: rgba(255,255,255,.54);
+  color: var(--ab-ui-text);
   font-size: 9px;
   font-weight: 720;
   cursor: pointer;
 }
 
 .incidentActions button:hover:not(:disabled) {
-  border-color: rgba(157,141,243,.25);
-  color: #e7e2ff;
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 25%, transparent);
+  color: var(--ab-ui-text);
 }
 
 .incidentActions button:disabled {

@@ -111,11 +111,11 @@ img{
   }
 
   .topbar {
-    background: rgba(6, 10, 20, .96);
+    background: color-mix(in srgb, var(--ab-ui-surface) 96%, transparent);
   }
 
   .sidebar {
-    background: rgba(8, 12, 27, .98);
+    background: color-mix(in srgb, var(--ab-ui-surface) 98%, transparent);
   }
 
   .home-page .section.schedule,
@@ -172,7 +172,7 @@ img{
     right: 8px;
     height: 2px;
     border-radius: 2px;
-    background: rgba(228, 233, 240, .18);
+    background: color-mix(in srgb, var(--ab-ui-surface) 18%, transparent);
     transform: translateY(-50%);
   }
 
@@ -194,7 +194,7 @@ img{
 
 .personal-schedule-section .section-head p {
   margin: 6px 0 0;
-  color: rgba(151, 163, 184, .68);
+  color: var(--ab-ui-muted);
   font-size: 11px;
   line-height: 1.45;
 }
@@ -204,9 +204,9 @@ img{
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px 14px;
   padding: 2px 14px;
-  border: 1px solid rgba(148, 163, 184, .10);
+  border: 1px solid var(--ab-ui-border);
   border-radius: 14px;
-  background: rgba(9, 18, 31, .66);
+  background: color-mix(in srgb, var(--ab-ui-surface) 66%, transparent);
   contain: layout paint;
 }
 

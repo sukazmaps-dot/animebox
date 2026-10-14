@@ -65,13 +65,13 @@
 /* Progress sync is a secondary status line; keep it readable when recovery is active. */
 .animebox-player-sync-status {
   border-top: 1px solid rgba(255,255,255,.045);
-  background: rgba(6, 9, 18, .72);
-  color: rgba(226,232,240,.48);
+  background: color-mix(in srgb, var(--ab-ui-surface) 72%, transparent);
+  color: var(--ab-ui-text);
 }
 
 .animebox-player-sync-status[data-recovery='true'] {
-  color: rgba(196,181,253,.76);
-  background: rgba(90,60,170,.08);
+  color: var(--ab-ui-accent);
+  background: color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
 }
 
 

@@ -589,14 +589,14 @@ export default function AnimeImage({
       {!loaded && !isFallback && (
         <div
           aria-hidden="true"
-          className="absolute inset-0 z-0 bg-slate-900"
+          className="absolute inset-0 z-0 bg-[var(--ab-ui-surface)]"
         />
       )}
 
       {isFallback ? (
         <div
           aria-hidden="true"
-          className="absolute inset-0 z-10 flex items-center justify-center bg-[radial-gradient(circle_at_50%_35%,rgba(124,58,237,0.20),transparent_48%),linear-gradient(145deg,#11162a,#080b16)]"
+          className="absolute inset-0 z-10 flex items-center justify-center bg-[radial-gradient(circle_at_50%_35%,color-mix(in_srgb,_var(--ab-ui-accent)_20%,_transparent),transparent_48%),linear-gradient(145deg,var(--ab-ui-surface),var(--ab-ui-surface))]"
         >
           {/* Local fallback intentionally bypasses Next Image. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -19,7 +19,7 @@
 
 .smart-feed__rail-heading h3 {
   margin: 0;
-  color: #f3f4fb;
+  color: var(--ab-ui-text);
   font-size: clamp(15px, 1.2vw, 19px);
   font-weight: 850;
   line-height: 1.15;
@@ -29,13 +29,13 @@
 .smart-feed__rail-heading p {
   max-width: 680px;
   margin: 5px 0 0;
-  color: #858fa7;
+  color: var(--ab-ui-muted);
   font-size: 10px;
   line-height: 1.5;
 }
 
 .smart-feed__personal-rail:first-child .smart-feed__rail-heading h3 {
-  color: #fff;
+  color: var(--ab-ui-text);
 }
 
 .smart-card__actions {
@@ -69,60 +69,60 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(138, 150, 181, .12);
-  background: rgba(15, 21, 38, .82);
-  color: #8e98af;
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 12%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-surface) 82%, transparent);
+  color: var(--ab-ui-muted);
 }
 
 .smart-card__feedback:hover,
 .smart-card__feedback:focus-visible {
-  border-color: rgba(151, 128, 255, .34);
-  background: rgba(111, 79, 218, .14);
-  color: #d9d0ff;
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 34%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-accent) 14%, transparent);
+  color: var(--ab-ui-accent);
 }
 
 .smart-card__feedback.is-active {
-  border-color: rgba(209, 112, 155, .36);
-  background: rgba(151, 52, 93, .17);
-  color: #ffb9d3;
+  border-color: color-mix(in srgb, var(--ab-ui-danger) 36%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-danger) 17%, transparent);
+  color: var(--ab-ui-danger);
 }
 
 .smart-card__feedback:focus-visible,
 .smart-card__dismiss:focus-visible {
-  outline: 2px solid rgba(180, 160, 255, .68);
+  outline: 2px solid color-mix(in srgb, var(--ab-ui-accent) 68%, transparent);
   outline-offset: 2px;
 }
 
 html[data-animebox-theme='light'] .smart-feed__rail-heading h3 {
-  color: #26283a;
+  color: var(--ab-ui-text);
 }
 
 html[data-animebox-theme='light'] .smart-feed__personal-rail:first-child .smart-feed__rail-heading h3 {
-  color: #202235;
+  color: var(--ab-ui-text);
 }
 
 html[data-animebox-theme='light'] .smart-feed__rail-heading p {
-  color: #686d80;
+  color: var(--ab-ui-muted);
 }
 
 html[data-animebox-theme='light'] .smart-card__feedback,
 html[data-animebox-theme='light'] .smart-card__dismiss {
-  border-color: rgba(73, 76, 105, .13);
-  background: rgba(247, 248, 252, .94);
-  color: #696f83;
+  border-color: var(--ab-ui-border);
+  background: color-mix(in srgb, var(--ab-ui-surface) 94%, transparent);
+  color: var(--ab-ui-muted);
 }
 
 html[data-animebox-theme='light'] .smart-card__feedback:hover,
 html[data-animebox-theme='light'] .smart-card__feedback:focus-visible {
-  border-color: rgba(117, 88, 224, .25);
-  background: rgba(119, 91, 223, .08);
-  color: #6651b9;
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 25%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
+  color: var(--ab-ui-accent);
 }
 
 html[data-animebox-theme='light'] .smart-card__feedback.is-active {
-  border-color: rgba(205, 81, 132, .24);
-  background: rgba(216, 80, 139, .08);
-  color: #b23f72;
+  border-color: color-mix(in srgb, var(--ab-ui-danger) 24%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-danger) 8%, transparent);
+  color: var(--ab-ui-danger);
 }
 
 @media (max-width: 720px) {

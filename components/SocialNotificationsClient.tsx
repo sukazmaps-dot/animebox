@@ -186,18 +186,18 @@ export default function SocialNotificationsClient() {
   if (!user || (loading && items.length === 0)) return null;
 
   return (
-    <section className="mb-6 rounded-3xl border border-violet-400/10 bg-[radial-gradient(circle_at_10%_0%,rgba(122,92,255,.12),transparent_34%),rgba(8,12,22,.72)] p-5 sm:p-6">
+    <section className="mb-6 rounded-3xl border border-[color-mix(in_srgb,var(--ab-ui-accent)_10%,transparent)] bg-[radial-gradient(circle_at_10%_0%,color-mix(in_srgb,_var(--ab-ui-accent)_12%,_transparent),transparent_34%),color-mix(in_srgb,_var(--ab-ui-surface)_72%,_transparent)] p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <span className="text-[9px] font-black tracking-[.14em] text-violet-300">SOCIAL</span>
+          <span className="text-[9px] font-black tracking-[.14em] text-[var(--ab-ui-accent)]">SOCIAL</span>
           <h2 className="mt-1 text-xl font-black text-white">Социальные уведомления</h2>
-          <p className="mt-1 text-xs text-slate-500">Друзья, ответы, упоминания, Watch Together и рейтинг.</p>
+          <p className="mt-1 text-xs text-[var(--ab-ui-muted)]">Друзья, ответы, упоминания, Watch Together и рейтинг.</p>
         </div>
         {unread > 0 && (
           <button
             type="button"
             onClick={() => void markRead()}
-            className="rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2 text-xs font-bold text-slate-400 hover:text-white"
+            className="rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2 text-xs font-bold text-[var(--ab-ui-muted)] hover:text-white"
           >
             Прочитать все · {unread}
           </button>
@@ -208,8 +208,8 @@ export default function SocialNotificationsClient() {
 
       {items.length === 0 ? (
         <div className="mt-5 rounded-2xl border border-dashed border-white/8 p-6 text-center">
-          <strong className="text-sm text-slate-300">Пока тихо</strong>
-          <p className="mt-1 text-xs text-slate-500">Заявки в друзья и приглашения появятся здесь.</p>
+          <strong className="text-sm text-[var(--ab-ui-muted)]">Пока тихо</strong>
+          <p className="mt-1 text-xs text-[var(--ab-ui-muted)]">Заявки в друзья и приглашения появятся здесь.</p>
         </div>
       ) : (
         <div className="mt-5 grid gap-2">
@@ -226,7 +226,7 @@ export default function SocialNotificationsClient() {
                 className={`flex min-w-0 items-center gap-3 rounded-2xl border p-3 transition hover:-translate-y-px ${
                   item.readAt
                     ? 'border-white/[0.05] bg-white/[0.018]'
-                    : 'border-violet-400/15 bg-violet-500/[0.055]'
+                    : 'border-[color-mix(in_srgb,var(--ab-ui-accent)_15%,transparent)] bg-[var(--ab-ui-primary)]/[0.055]'
                 }`}
               >
                 {item.actor ? (
@@ -236,13 +236,13 @@ export default function SocialNotificationsClient() {
                     className="h-11 w-11 shrink-0 rounded-full border border-white/10 object-cover"
                   />
                 ) : (
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-violet-400/15 bg-violet-500/10 text-lg text-violet-200">✦</span>
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[color-mix(in_srgb,var(--ab-ui-accent)_15%,transparent)] bg-[color-mix(in_srgb,var(--ab-ui-selected)_10%,transparent)] text-lg text-[var(--ab-ui-accent)]">✦</span>
                 )}
                 <span className="min-w-0 flex-1">
-                  <strong className="block text-sm font-black text-slate-100">{copy.title}</strong>
-                  <span className="mt-0.5 block truncate text-xs text-slate-500">{copy.text}</span>
+                  <strong className="block text-sm font-black text-[var(--ab-ui-text)]">{copy.title}</strong>
+                  <span className="mt-0.5 block truncate text-xs text-[var(--ab-ui-muted)]">{copy.text}</span>
                 </span>
-                <span className="shrink-0 text-[10px] font-semibold text-slate-600">{timeLabel(item.createdAt)}</span>
+                <span className="shrink-0 text-[10px] font-semibold text-[var(--ab-ui-muted)]">{timeLabel(item.createdAt)}</span>
               </Link>
             );
           })}

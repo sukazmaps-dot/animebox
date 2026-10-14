@@ -31,16 +31,16 @@
 
 .premium-media-crop__loading {
   background:
-    radial-gradient(circle at 50% 45%, rgba(133, 94, 230, .11), transparent 36%),
-    rgba(7, 9, 17, .78);
-  color: rgba(240, 235, 249, .58);
+    radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--ab-ui-accent) 11%, transparent), transparent 36%),
+    color-mix(in srgb, var(--ab-ui-surface) 78%, transparent);
+  color: var(--ab-ui-text);
   font-size: 10px;
   font-weight: 750;
 }
 
 .premium-media-crop__error {
-  background: rgba(7, 9, 17, .94);
-  color: rgba(255, 184, 198, .82);
+  background: color-mix(in srgb, var(--ab-ui-surface) 94%, transparent);
+  color: var(--ab-ui-danger);
   font-size: 10px;
   font-weight: 750;
   line-height: 1.45;
@@ -73,10 +73,10 @@
 
 .profile-editor-v13__media-error {
   padding: 10px 12px;
-  border: 1px solid rgba(255, 107, 132, .17);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-danger) 17%, transparent);
   border-radius: 10px;
-  background: rgba(211, 55, 84, .055);
-  color: #f4a2b1;
+  background: color-mix(in srgb, var(--ab-ui-danger) 5.5%, transparent);
+  color: var(--ab-ui-danger);
   font-size: 10px;
   font-weight: 650;
   line-height: 1.45;

@@ -176,7 +176,7 @@ iframe {
     gap: 8px !important;
     border-bottom: 1px solid var(--ab-line) !important;
     border-radius: 0 !important;
-    background: rgba(7, 9, 15, .97) !important;
+    background: color-mix(in srgb, var(--ab-ui-canvas) 97%, transparent) !important;
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
   }
@@ -244,9 +244,9 @@ iframe {
     grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
     gap: 2px !important;
     padding: 3px !important;
-    border: 1px solid rgba(204, 210, 229, .08) !important;
+    border: 1px solid var(--ab-ui-border) !important;
     border-radius: 16px !important;
-    background: rgba(8, 10, 16, .96) !important;
+    background: color-mix(in srgb, var(--ab-ui-surface) 96%, transparent) !important;
     box-shadow: 0 12px 36px rgba(0, 0, 0, .28) !important;
     transform: translate3d(0, 0, 0) !important;
     opacity: 1 !important;

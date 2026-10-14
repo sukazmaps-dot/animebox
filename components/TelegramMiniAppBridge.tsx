@@ -205,9 +205,9 @@ export default function TelegramMiniAppBridge() {
     telegram.expand();
 
     try {
-      telegram.setHeaderColor?.('#080912');
-      telegram.setBackgroundColor?.('#080912');
-      telegram.setBottomBarColor?.('#080912');
+      telegram.setHeaderColor?.('#131217');
+      telegram.setBackgroundColor?.('#131217');
+      telegram.setBottomBarColor?.('#131217');
     } catch (error) {
       console.warn('[AnimeBox Telegram] theme colors:', error);
     }

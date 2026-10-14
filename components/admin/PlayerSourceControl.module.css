@@ -8,16 +8,16 @@
   height: 34px;
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 9px;
-  background: #111620;
-  color: #7c8597;
+  background: var(--ab-ui-surface);
+  color: var(--ab-ui-muted);
   font-size: 10px;
   cursor: pointer;
 }
 
 .range button[data-active="true"] {
-  border-color: rgba(156,126,234,.35);
-  background: rgba(132,99,224,.12);
-  color: #d9ccfa;
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 35%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-accent) 12%, transparent);
+  color: var(--ab-ui-accent);
 }
 
 .legend {
@@ -25,7 +25,7 @@
   flex-wrap: wrap;
   gap: 14px;
   margin-bottom: 14px;
-  color: #778094;
+  color: var(--ab-ui-muted);
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: .08em;
@@ -46,10 +46,10 @@
   border-radius: 999px;
 }
 
-.dotHealthy { background: #62d99d; }
-.dotDegraded { background: #e4bb68; }
-.dotUnavailable { background: #e56b7e; }
-.dotUnknown { background: #788197; }
+.dotHealthy { background: var(--ab-ui-success); }
+.dotDegraded { background: var(--ab-ui-danger); }
+.dotUnavailable { background: var(--ab-ui-danger); }
+.dotUnknown { background: var(--ab-ui-raised); }
 
 .grid {
   display: grid;
@@ -65,8 +65,8 @@
   border: 1px solid rgba(255,255,255,.07);
   border-radius: 16px;
   background:
-    radial-gradient(circle at 100% 0%, rgba(118,88,212,.08), transparent 32%),
-    #0f131d;
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--ab-ui-accent) 8%, transparent), transparent 32%),
+    var(--ab-ui-surface);
 }
 
 .cardHead {
@@ -77,7 +77,7 @@
 }
 
 .cardHead span {
-  color: #816eb8;
+  color: var(--ab-ui-accent);
   font-size: 8px;
   font-weight: 850;
   letter-spacing: .12em;
@@ -95,10 +95,10 @@
   font-style: normal;
 }
 
-.state[data-state="healthy"] { color: #82dfaf; }
-.state[data-state="degraded"] { color: #e6c77f; }
-.state[data-state="unavailable"] { color: #ef8594; }
-.state[data-state="unknown"] { color: #8d96a8; }
+.state[data-state="healthy"] { color: var(--ab-ui-success); }
+.state[data-state="degraded"] { color: var(--ab-ui-danger); }
+.state[data-state="unavailable"] { color: var(--ab-ui-danger); }
+.state[data-state="unknown"] { color: var(--ab-ui-muted); }
 
 .switchRow {
   display: flex;
@@ -121,7 +121,7 @@
 }
 
 .switchRow small {
-  color: #6f788b;
+  color: var(--ab-ui-muted);
   font-size: 8px;
 }
 
@@ -132,10 +132,10 @@
 
 .warning {
   padding: 9px 10px;
-  border: 1px solid rgba(229,187,104,.15);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-danger) 15%, transparent);
   border-radius: 9px;
-  background: rgba(229,187,104,.055);
-  color: #c9ad74;
+  background: color-mix(in srgb, var(--ab-ui-danger) 5.5%, transparent);
+  color: var(--ab-ui-danger);
   font-size: 9px;
   line-height: 1.45;
 }
@@ -154,7 +154,7 @@
 
 .fields span,
 .notes span {
-  color: #747e91;
+  color: var(--ab-ui-muted);
   font-size: 8px;
 }
 
@@ -164,8 +164,8 @@
   border: 1px solid rgba(255,255,255,.085);
   border-radius: 8px;
   outline: 0;
-  background: #121722;
-  color: #eef1f7;
+  background: var(--ab-ui-surface);
+  color: var(--ab-ui-text);
   font: inherit;
   font-size: 10px;
 }
@@ -191,12 +191,12 @@
   gap: 2px;
   padding: 9px;
   border-radius: 9px;
-  background: #0b0f17;
+  background: var(--ab-ui-surface);
 }
 
 .metrics span,
 .runtime span {
-  color: #687286;
+  color: var(--ab-ui-muted);
   font-size: 8px;
 }
 
@@ -216,13 +216,13 @@
 }
 
 .runtime strong {
-  color: #aeb5c4;
+  color: var(--ab-ui-muted);
   font-size: 8px;
   text-align: right;
 }
 
 .errorLine strong {
-  color: #dd8a98;
+  color: var(--ab-ui-danger);
   overflow-wrap: anywhere;
 }
 
@@ -235,16 +235,16 @@
 .actions button {
   min-height: 34px;
   padding: 0 11px;
-  border: 1px solid rgba(153,121,235,.22);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 22%, transparent);
   border-radius: 8px;
-  background: rgba(133,99,222,.10);
-  color: #d7cbf7;
+  background: color-mix(in srgb, var(--ab-ui-accent) 10%, transparent);
+  color: var(--ab-ui-accent);
   font-size: 9px;
   cursor: pointer;
 }
 
 .actions button:first-child {
-  background: #6650b9;
+  background: var(--ab-ui-primary);
   color: white;
 }
 

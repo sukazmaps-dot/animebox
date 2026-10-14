@@ -51,7 +51,7 @@
   background:
     linear-gradient(
       135deg,
-      color-mix(in srgb, var(--profile-preview-accent) 78%, #111827 22%),
+      color-mix(in srgb, var(--profile-preview-accent) 78%, var(--ab-ui-surface) 22%),
       color-mix(in srgb, var(--profile-preview-accent) 48%, var(--profile-preview-primary) 52%)
     );
   box-shadow:
@@ -83,28 +83,28 @@
 
 .previewAccepted {
   flex: 1 1 150px;
-  border: 1px solid color-mix(in srgb, var(--profile-preview-accent) 26%, #5ee7b7 18%);
+  border: 1px solid color-mix(in srgb, var(--profile-preview-accent) 26%, var(--ab-ui-success) 18%);
   background:
     linear-gradient(
       135deg,
-      color-mix(in srgb, var(--profile-preview-accent) 12%, #5ee7b7 7%),
-      rgba(94,231,183,.04)
+      color-mix(in srgb, var(--profile-preview-accent) 12%, var(--ab-ui-success) 7%),
+      color-mix(in srgb, var(--ab-ui-success) 4%, transparent)
     );
-  color: color-mix(in srgb, var(--profile-preview-text) 86%, #b7ffe8 14%);
+  color: color-mix(in srgb, var(--profile-preview-text) 86%, var(--ab-ui-success) 14%);
   text-decoration: none;
 }
 
 .previewDanger {
   flex: 0 0 auto;
-  border: 1px solid rgba(251,113,133,.10);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-danger) 10%, transparent);
   background: transparent;
-  color: rgba(202,210,226,.42);
+  color: var(--ab-ui-text);
 }
 
 .previewDanger:hover:not(:disabled) {
-  border-color: rgba(251,113,133,.20);
-  background: rgba(244,63,94,.055);
-  color: #fda4af;
+  border-color: color-mix(in srgb, var(--ab-ui-danger) 20%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-danger) 5.5%, transparent);
+  color: var(--ab-ui-danger);
 }
 
 .previewPrimary:disabled,
@@ -117,7 +117,7 @@
 
 .previewError {
   flex-basis: 100%;
-  color: #fda4af;
+  color: var(--ab-ui-danger);
   font-size: 8px;
   font-weight: 750;
   line-height: 1.4;
@@ -171,7 +171,7 @@
 }
 .previewMore summary::-webkit-details-marker { display: none; }
 .previewMore[open] summary { margin-bottom: 8px; }
-.previewMore .previewDanger { width: 100%; color: #fda4af; background: var(--ab-ui-raised, #26242e); }
+.previewMore .previewDanger { width: 100%; color: var(--ab-ui-danger); background: var(--ab-ui-raised, #26242e); }
 .previewRoot :is(button, a, summary):focus-visible { outline: 2px solid var(--ab-ui-accent, #a798cf); outline-offset: 2px; }
 
-:global(html[data-animebox-theme='light']) .previewMore .previewDanger { color: #8b3038; }
+:global(html[data-animebox-theme='light']) .previewMore .previewDanger { color: var(--ab-ui-danger); }

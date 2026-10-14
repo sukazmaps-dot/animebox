@@ -1032,7 +1032,7 @@ export default function SearchCatalogClient({
         )}
         {view === 'catalog' && discoveryMeta?.meta?.relaxed && <p className={styles.relaxedHint}>Точных совпадений по всем условиям мало — показываем ближайшие варианты.</p>}
         {view === 'catalog' && searchClassification?.mode !== 'context' && searchIntent && searchIntent.titleQuery !== searchIntent.normalized && (
-          <p className="mt-2 text-xs text-violet-200/70">Понял запрос: <strong className="text-violet-100">{searchIntent.titleQuery}</strong>{searchIntent.seasonNumber ? ` · сезон ${searchIntent.seasonNumber}` : ''}{searchIntent.partNumber ? ` · часть ${searchIntent.partNumber}` : ''}{searchIntent.episodeNumber ? ` · серия ${searchIntent.episodeNumber}` : ''}</p>
+          <p className="mt-2 text-xs text-[color-mix(in_srgb,var(--ab-ui-accent)_70%,transparent)]">Понял запрос: <strong className="text-[var(--ab-ui-accent)]">{searchIntent.titleQuery}</strong>{searchIntent.seasonNumber ? ` · сезон ${searchIntent.seasonNumber}` : ''}{searchIntent.partNumber ? ` · часть ${searchIntent.partNumber}` : ''}{searchIntent.episodeNumber ? ` · серия ${searchIntent.episodeNumber}` : ''}</p>
         )}
         {view === 'catalog' && searchCorrection && (
           <div className={styles.searchCorrection} role="status">

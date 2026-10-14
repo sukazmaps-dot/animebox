@@ -1,16 +1,16 @@
-.layout { --cinema-bg: #111016; max-width: 1240px; margin: 0 auto; padding: 20px 24px 48px; }
-.hero { position: relative; isolation: isolate; overflow: hidden; min-height: 440px; border-radius: 18px; background: radial-gradient(ellipse at 90% 20%, color-mix(in srgb, var(--anime-page-accent) 25%, #24202e), var(--cinema-bg) 70%); }
+.layout { --cinema-bg: var(--ab-ui-canvas); max-width: 1240px; margin: 0 auto; padding: 20px 24px 48px; }
+.hero { position: relative; isolation: isolate; overflow: hidden; min-height: 440px; border-radius: 18px; background: radial-gradient(ellipse at 90% 20%, color-mix(in srgb, var(--anime-page-accent) 25%, var(--ab-ui-raised)), var(--cinema-bg) 70%); }
 .backdrop { position: absolute; inset: 0; z-index: -2; }
 .backdrop > div { height: 100%; width: 100%; }
 .backdrop img { object-position: 70% center; }
-.hero::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: -1; background: linear-gradient(90deg, rgb(17 16 22 / 98%) 0%, rgb(17 16 22 / 92%) 25%, rgb(17 16 22 / 62%) 53%, rgb(17 16 22 / 10%) 100%), linear-gradient(0deg, #111016 0%, transparent 65%); }
+.hero::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: -1; background: linear-gradient(90deg, rgb(17 16 22 / 98%) 0%, rgb(17 16 22 / 92%) 25%, rgb(17 16 22 / 62%) 53%, rgb(17 16 22 / 10%) 100%), linear-gradient(0deg, var(--ab-ui-surface) 0%, transparent 65%); }
 .heroContent { position: relative; max-width: 710px; padding: 24px 40px; display: grid; align-content: center; gap: 12px; min-height: 440px; }
-.breadcrumbs { color: #bcb5c9; font-size: 11px; line-height: 1.5; }
-.identity h1 { margin: 0; font-size: clamp(32px, 3.2vw, 42px); font-weight: 750; letter-spacing: -.035em; line-height: 1.12; color: #fff; text-wrap: balance; overflow-wrap: anywhere; }
-.identity > p { margin: 8px 0 0; color: #bdb5cc; font-size: 13px; }
-.facts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 0; color: #ded8e9; font-size: 12px; }
-.facts > span + span::before { content: '·'; display: inline-block; margin: 0 9px; color: #8f879c; }
-.facts .score { color: #efcd78; }
+.breadcrumbs { color: var(--ab-ui-muted); font-size: 11px; line-height: 1.5; }
+.identity h1 { margin: 0; font-size: clamp(32px, 3.2vw, 42px); font-weight: 750; letter-spacing: -.035em; line-height: 1.12; color: var(--ab-ui-text); text-wrap: balance; overflow-wrap: anywhere; }
+.identity > p { margin: 8px 0 0; color: var(--ab-ui-muted); font-size: 13px; }
+.facts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 0; color: var(--ab-ui-text); font-size: 12px; }
+.facts > span + span::before { content: '·'; display: inline-block; margin: 0 9px; color: var(--ab-ui-muted); }
+.facts .score { color: var(--ab-ui-danger); }
 /* Explicit action grid item: legacy templates did not define this class.
    Keeping the wrapper in normal flow prevents synopsis from painting underneath
    wrapped circular action buttons on narrow screens. */
@@ -18,13 +18,13 @@
 .actions :global(.anime-detail-actions) { width: 100%; max-width: 100%; height: auto; min-height: 0; }
 .description { min-width: 0; position: relative; margin: 0; clear: both; }
 
-.description > details { font-size: 12px; color: #bcb5cc; margin-top: 2px; }
+.description > details { font-size: 12px; color: var(--ab-ui-muted); margin-top: 2px; }
 .description > details p { line-height: 1.6; margin: 4px 0; }
 .description summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; gap: 6px; }
-.genres { display: flex; flex-wrap: wrap; align-items: center; color: #d6cce5; font-size: 12px; }
+.genres { display: flex; flex-wrap: wrap; align-items: center; color: var(--ab-ui-text); font-size: 12px; }
 .genres > a { display: inline-flex; align-items: center; min-height: 32px; }
-.genres > a + a::before { content: '•'; margin: 0 9px; color: #8e839e; }
-.genres a:hover { color: #fff; text-decoration: underline; }
+.genres > a + a::before { content: '•'; margin: 0 9px; color: var(--ab-ui-muted); }
+.genres a:hover { color: var(--ab-ui-text); text-decoration: underline; }
 .poster { position: absolute; right: 40px; top: 50%; transform: translateY(-50%); width: 220px; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgb(0 0 0 / 35%); }
 .poster > div { width: 100%; height: 100%; }
 .withPoster .heroContent { max-width: calc(100% - 280px); }
@@ -32,12 +32,12 @@
 .episodes, .related, .discussion, .personal { min-width: 0; }
 .sectionHead { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .sectionHead h2 { margin: 5px 0 0; font-size: 25px; line-height: 1.2; font-weight: 700; letter-spacing: -.025em; }
-.sectionHead > div > span { color: #bda6df; letter-spacing: .15em; font-size: 10px; font-weight: 650; }
-.sectionHead > a { display: inline-flex; align-items: center; min-height: 44px; font-size: 12px; color: #c9b4ea; }
+.sectionHead > div > span { color: var(--ab-ui-accent); letter-spacing: .15em; font-size: 10px; font-weight: 650; }
+.sectionHead > a { display: inline-flex; align-items: center; min-height: 44px; font-size: 12px; color: var(--ab-ui-accent); }
 .secondary { display: grid; grid-template-columns: minmax(0, 640px) auto; align-items: start; gap: 24px; }
-.together { display: flex; align-items: center; min-height: 44px; color: #c4b5fd; font-size: 13px; }
+.together { display: flex; align-items: center; min-height: 44px; color: var(--ab-ui-accent); font-size: 13px; }
 .franchise { border-block: 1px solid rgb(255 255 255 / 9%); }
-.franchise > summary { cursor: pointer; min-height: 52px; display: flex; align-items: center; gap: 8px; font-weight: 600; color: #ddd4ed; font-size: 14px; }
+.franchise > summary { cursor: pointer; min-height: 52px; display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--ab-ui-text); font-size: 14px; }
 .franchise > summary::after { content: '＋'; margin-left: auto; }
 .franchise[open] > summary::after { content: '−'; }
 .franchise :global(.anime-detail-franchise-section) { border: 0; padding: 0 0 12px; }
@@ -59,7 +59,7 @@
   .layout { padding: 12px 12px 28px; }
   .hero { border-radius: 14px; min-height: 0; }
   .heroContent { min-height: 0; max-width: none; padding: 120px 20px 20px; gap: 12px; }
-  .hero::after { background: linear-gradient(0deg, #111016 0%, rgb(17 16 22 / 95%) 48%, rgb(17 16 22 / 45%) 80%, rgb(17 16 22 / 5%) 100%); }
+  .hero::after { background: linear-gradient(0deg, var(--ab-ui-surface) 0%, rgb(17 16 22 / 95%) 48%, rgb(17 16 22 / 45%) 80%, rgb(17 16 22 / 5%) 100%); }
   .backdrop { bottom: auto; height: 330px; }
   .backdrop img { object-position: 65% top; }
   .breadcrumbs { display: none; }
@@ -123,14 +123,14 @@
   .sectionHead h2 { font-size: 22px; }
   .secondary { grid-template-columns: minmax(0, 1fr); gap: 8px; }
 }
-:global(html[data-animebox-theme='light']) .layout { --cinema-bg: #111016; }
-:global(html[data-animebox-theme='light']) .sectionHead h2 { color: #282232; }
+:global(html[data-animebox-theme='light']) .layout { --cinema-bg: var(--ab-ui-canvas); }
+:global(html[data-animebox-theme='light']) .sectionHead h2 { color: var(--ab-ui-text); }
 :global(html[data-animebox-theme='light']) .sectionHead > div > span, :global(html[data-animebox-theme='light']) .sectionHead > a,
-:global(html[data-animebox-theme='light']) .franchise > summary, :global(html[data-animebox-theme='light']) .together { color: #6d28d9; }
-:global(html[data-animebox-theme='light']) .franchise { border-color: #d9d0e2; }
+:global(html[data-animebox-theme='light']) .franchise > summary, :global(html[data-animebox-theme='light']) .together { color: var(--ab-ui-accent); }
+:global(html[data-animebox-theme='light']) .franchise { border-color: var(--ab-ui-border); }
 @media (prefers-reduced-motion: reduce) { .backdrop img { transition: none; } }
 
-.aliases { font-size: 12px; color: #bcb5cc; }
+.aliases { font-size: 12px; color: var(--ab-ui-muted); }
 .aliases summary { min-height: 44px; cursor: pointer; display: flex; align-items: center; }
 .aliases p { line-height: 1.6; }
-:global(html[data-animebox-theme='light']) .aliases { color: #665074; }
+:global(html[data-animebox-theme='light']) .aliases { color: var(--ab-ui-muted); }

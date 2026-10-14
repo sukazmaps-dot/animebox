@@ -2,7 +2,7 @@
   display: grid;
   gap: 22px;
   padding: 28px;
-  color: #f5f6fb;
+  color: var(--ab-ui-text);
 }
 
 .header {
@@ -22,19 +22,19 @@
 .header p {
   max-width: 760px;
   margin: 0;
-  color: rgba(255,255,255,.5);
+  color: var(--ab-ui-text);
   line-height: 1.6;
 }
 
 .header small {
   display: block;
   margin-top: 9px;
-  color: rgba(255,255,255,.3);
+  color: var(--ab-ui-text);
 }
 
 .eyebrow,
 .panelHead span {
-  color: #9d8df3;
+  color: var(--ab-ui-accent);
   font-size: 10px;
   font-weight: 850;
   letter-spacing: .14em;
@@ -43,10 +43,10 @@
 .refresh {
   min-height: 38px;
   padding: 0 14px;
-  border: 1px solid rgba(157,141,243,.24);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 24%, transparent);
   border-radius: 8px;
-  background: rgba(157,141,243,.08);
-  color: #e5e0ff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
+  color: var(--ab-ui-text);
   font-size: 11px;
   font-weight: 720;
   cursor: pointer;
@@ -66,7 +66,7 @@
 .kpis article,
 .panel {
   border: 1px solid rgba(255,255,255,.065);
-  background: #0c111b;
+  background: var(--ab-ui-surface);
 }
 
 .kpis article {
@@ -77,7 +77,7 @@
 
 .kpis span {
   display: block;
-  color: rgba(255,255,255,.38);
+  color: var(--ab-ui-text);
   font-size: 10px;
   font-weight: 720;
 }
@@ -90,7 +90,7 @@
 }
 
 .kpis small {
-  color: rgba(255,255,255,.34);
+  color: var(--ab-ui-text);
 }
 
 .grid {
@@ -134,20 +134,20 @@
 }
 
 .panel dt {
-  color: rgba(255,255,255,.42);
+  color: var(--ab-ui-text);
   font-size: 11px;
 }
 
 .panel dd {
   margin: 0;
-  color: rgba(255,255,255,.84);
+  color: var(--ab-ui-text);
   font-size: 12px;
   font-weight: 700;
   text-align: right;
 }
 
-.good { color: #69c69d !important; }
-.warn { color: #e3a45e !important; }
+.good { color: var(--ab-ui-success) !important; }
+.warn { color: var(--ab-ui-danger) !important; }
 
 .error,
 .loading {
@@ -155,12 +155,12 @@
   border: 1px solid rgba(255,255,255,.065);
   border-radius: 10px;
   background: rgba(255,255,255,.025);
-  color: rgba(255,255,255,.55);
+  color: var(--ab-ui-text);
 }
 
 .error {
-  border-color: rgba(226,100,118,.2);
-  color: #f2b1bc;
+  border-color: color-mix(in srgb, var(--ab-ui-danger) 20%, transparent);
+  color: var(--ab-ui-danger);
 }
 
 @media (max-width: 1050px) {

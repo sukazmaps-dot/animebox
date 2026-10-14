@@ -12,12 +12,12 @@
 }
 
 .telegram-subscription-gate__logo-fallback {
-  color: #b99bff;
-  filter: drop-shadow(0 0 18px rgba(145,102,255,.28));
+  color: var(--ab-ui-accent);
+  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--ab-ui-accent) 28%, transparent));
 }
 
 .telegram-subscription-gate__logo-fallback path:first-child {
-  fill: rgba(128,82,255,.10);
+  fill: var(--ab-ui-accent);
   stroke: currentColor;
   stroke-width: 2;
 }
@@ -29,7 +29,7 @@
 
 .telegram-subscription-gate__logo-fallback path:last-child {
   fill: none;
-  stroke: #efe8ff;
+  stroke: var(--ab-ui-text);
   stroke-width: 2;
   stroke-linecap: round;
 }

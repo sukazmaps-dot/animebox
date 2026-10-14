@@ -24,7 +24,7 @@
   gap: 12px;
   padding: 0 10px;
   border: 0;
-  border-bottom: 1px solid rgba(204, 208, 219, .1);
+  border-bottom: 1px solid var(--ab-ui-border);
   background: transparent;
   color: var(--ab-text-soft);
   font-size: 11px;
@@ -34,7 +34,7 @@
 
 .trigger:hover,
 .trigger[aria-expanded='true'] {
-  border-bottom-color: rgba(151, 136, 231, .42);
+  border-bottom-color: color-mix(in srgb, var(--ab-ui-accent) 42%, transparent);
 }
 
 .trigger:focus-visible,
@@ -64,9 +64,9 @@
   left: 0;
   width: min(330px, 100%);
   padding: 6px;
-  border: 1px solid rgba(194, 201, 218, .14);
+  border: 1px solid var(--ab-ui-border);
   border-radius: 7px;
-  background: #111721;
+  background: var(--ab-ui-surface);
   box-shadow: 0 16px 38px rgba(0, 0, 0, .38);
 }
 
@@ -79,9 +79,9 @@
   width: 100%;
   min-height: 36px;
   padding: 0 10px;
-  border: 1px solid rgba(204, 208, 219, .09);
+  border: 1px solid var(--ab-ui-border);
   border-radius: 5px;
-  background: #0d131c;
+  background: var(--ab-ui-surface);
   color: var(--ab-text-soft);
   font-size: 11px;
 }
@@ -108,7 +108,7 @@
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: #aeb5c2;
+  color: var(--ab-ui-muted);
   font-size: 11px;
   text-align: left;
   cursor: pointer;
@@ -120,8 +120,8 @@
 }
 
 .optionActive {
-  background: rgba(151, 136, 231, .13);
-  color: #eee9ff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 13%, transparent);
+  color: var(--ab-ui-text);
   box-shadow: inset 2px 0 0 var(--ab-iris);
 }
 

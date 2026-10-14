@@ -31,7 +31,7 @@
 }
 
 .track:focus-visible {
-  outline: 1px solid rgba(165, 133, 255, .34);
+  outline: 1px solid color-mix(in srgb, var(--ab-ui-accent) 34%, transparent);
   outline-offset: 3px;
   border-radius: 12px;
 }
@@ -73,11 +73,11 @@
   width: 34px;
   height: 34px;
   padding: 0;
-  border: 1px solid rgba(163, 130, 255, .46);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 46%, transparent);
   border-radius: 11px;
-  background: linear-gradient(145deg, rgba(40, 32, 75, .96), rgba(13, 16, 29, .96));
-  color: #f7f3ff;
-  box-shadow: 0 9px 28px rgba(0, 0, 0, .35), 0 0 20px rgba(121, 79, 255, .14);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--ab-ui-raised) 96%, transparent), color-mix(in srgb, var(--ab-ui-surface) 96%, transparent));
+  color: var(--ab-ui-text);
+  box-shadow: 0 9px 28px rgba(0, 0, 0, .35), 0 0 20px color-mix(in srgb, var(--ab-ui-accent) 14%, transparent);
   transform: translateY(-50%);
   cursor: pointer;
   transition: transform 150ms ease, border-color 150ms ease, filter 150ms ease;
@@ -92,7 +92,7 @@
 }
 
 .arrow:hover {
-  border-color: rgba(196, 171, 255, .78);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 78%, transparent);
   filter: brightness(1.08);
 }
 
@@ -101,7 +101,7 @@
 }
 
 .arrow:focus-visible {
-  outline: 2px solid rgba(216, 196, 255, .94);
+  outline: 2px solid color-mix(in srgb, var(--ab-ui-accent) 94%, transparent);
   outline-offset: 2px;
 }
 
@@ -141,11 +141,11 @@
 .arrow {
   border-color: var(--ab-border-strong);
   border-radius: var(--ab-radius-sm);
-  background: rgba(12,18,28,.96);
+  background: color-mix(in srgb, var(--ab-ui-surface) 96%, transparent);
   box-shadow: 0 10px 24px rgba(0,0,0,.22);
 }
 .arrow:hover {
-  border-color: rgba(120,104,238,.38);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 38%, transparent);
   filter: none;
 }
 

@@ -5,10 +5,10 @@
   isolation: isolate;
   overflow: hidden;
   padding: 0;
-  border: 1px solid rgba(139, 116, 255, .18);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 18%, transparent);
   background:
-    radial-gradient(circle at 78% 12%, rgba(122, 92, 255, .16), transparent 34%),
-    linear-gradient(145deg, rgba(17, 22, 37, .98), rgba(8, 12, 22, .99));
+    radial-gradient(circle at 78% 12%, color-mix(in srgb, var(--ab-ui-accent) 16%, transparent), transparent 34%),
+    linear-gradient(145deg, color-mix(in srgb, var(--ab-ui-surface) 98%, transparent), color-mix(in srgb, var(--ab-ui-surface) 99%, transparent));
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.028),
     0 6px 18px rgba(0,0,0,.08);
@@ -35,7 +35,7 @@
   right: -90px;
   top: -95px;
   border-radius: 50%;
-  background: rgba(106, 79, 255, .2);
+  background: color-mix(in srgb, var(--ab-ui-accent) 20%, transparent);
   filter: blur(56px);
   pointer-events: none;
 }
@@ -51,8 +51,8 @@
   place-items: center;
   border: 1px solid rgba(255,255,255,.07);
   border-radius: 9px;
-  background: rgba(7, 11, 19, .64);
-  color: rgba(218, 221, 236, .5);
+  background: color-mix(in srgb, var(--ab-ui-surface) 64%, transparent);
+  color: var(--ab-ui-text);
   font-size: 14px;
   line-height: 1;
   backdrop-filter: blur(12px);
@@ -61,8 +61,8 @@
 
 .telegram-growth-card__dismiss:hover {
   border-color: rgba(255,255,255,.14);
-  background: rgba(14, 18, 30, .9);
-  color: #fff;
+  background: color-mix(in srgb, var(--ab-ui-surface) 90%, transparent);
+  color: var(--ab-ui-text);
 }
 
 .telegram-growth-card__content {
@@ -82,11 +82,11 @@
   flex: 0 0 34px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(164, 149, 255, .2);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 20%, transparent);
   border-radius: 11px;
   background:
-    linear-gradient(145deg, rgba(129, 104, 255, .18), rgba(83, 67, 200, .08));
-  color: #b7abff;
+    linear-gradient(145deg, color-mix(in srgb, var(--ab-ui-accent) 18%, transparent), color-mix(in srgb, var(--ab-ui-accent) 8%, transparent));
+  color: var(--ab-ui-accent);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
 }
 
@@ -103,14 +103,14 @@
 }
 
 .telegram-growth-card__brand small {
-  color: #9c8cff;
+  color: var(--ab-ui-accent);
   font-size: 7px;
   font-weight: 900;
   letter-spacing: .11em;
 }
 
 .telegram-growth-card__brand b {
-  color: rgba(197, 202, 221, .38);
+  color: var(--ab-ui-muted);
   font-size: 6px;
   font-weight: 800;
   letter-spacing: .08em;
@@ -118,7 +118,7 @@
 
 .telegram-growth-card__copy h3 {
   margin: 14px 0 0;
-  color: #f4f2ff;
+  color: var(--ab-ui-text);
   font-size: clamp(15px, 1.1vw, 19px);
   line-height: 1.1;
   letter-spacing: -.035em;
@@ -126,7 +126,7 @@
 
 .telegram-growth-card__copy p {
   margin: 8px 0 0;
-  color: rgba(165, 174, 197, .58);
+  color: var(--ab-ui-muted);
   font-size: 9px;
   line-height: 1.55;
 }
@@ -143,10 +143,10 @@
   display: inline-flex;
   align-items: center;
   padding: 0 8px;
-  border: 1px solid rgba(143, 122, 255, .14);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 14%, transparent);
   border-radius: 999px;
-  background: rgba(119, 96, 238, .06);
-  color: rgba(203, 197, 239, .72);
+  background: color-mix(in srgb, var(--ab-ui-accent) 6%, transparent);
+  color: var(--ab-ui-text);
   font-size: 7px;
   font-weight: 800;
 }
@@ -159,14 +159,14 @@
   gap: 10px;
   margin-top: 15px;
   padding: 0 13px;
-  border: 1px solid rgba(157, 137, 255, .28);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 28%, transparent);
   border-radius: 12px;
   background:
-    linear-gradient(100deg, rgba(121, 92, 255, .2), rgba(88, 69, 205, .11));
-  color: #ece9ff;
+    linear-gradient(100deg, color-mix(in srgb, var(--ab-ui-accent) 20%, transparent), color-mix(in srgb, var(--ab-ui-accent) 11%, transparent));
+  color: var(--ab-ui-text);
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.035),
-    0 5px 14px rgba(64, 43, 165, .06);
+    0 5px 14px color-mix(in srgb, var(--ab-ui-accent) 6%, transparent);
   transition:
     transform .16s ease,
     border-color .16s ease,
@@ -176,12 +176,12 @@
 
 .telegram-growth-card__cta:hover {
   transform: translateY(-1px);
-  border-color: rgba(173, 155, 255, .42);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 42%, transparent);
   background:
-    linear-gradient(100deg, rgba(129, 98, 255, .27), rgba(92, 72, 214, .15));
+    linear-gradient(100deg, color-mix(in srgb, var(--ab-ui-accent) 27%, transparent), color-mix(in srgb, var(--ab-ui-accent) 15%, transparent));
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.045),
-    0 7px 18px rgba(64, 43, 165, .09);
+    0 7px 18px color-mix(in srgb, var(--ab-ui-accent) 9%, transparent);
 }
 
 .telegram-growth-card__cta > span {
@@ -194,7 +194,7 @@
 }
 
 .telegram-growth-card__cta small {
-  color: rgba(190, 196, 217, .42);
+  color: var(--ab-ui-muted);
   font-size: 7px;
   font-weight: 650;
 }
@@ -206,8 +206,8 @@
   display: grid;
   place-items: center;
   border-radius: 8px;
-  background: rgba(158, 139, 255, .09);
-  color: #a99cff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 9%, transparent);
+  color: var(--ab-ui-accent);
   font-size: 12px;
 }
 
@@ -258,7 +258,7 @@
   content: '';
   position: absolute;
   inset: 56% 0 0;
-  background: linear-gradient(180deg, transparent, rgba(8,12,22,.9));
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--ab-ui-surface) 90%, transparent));
 }
 
 .telegram-growth-card--compact .telegram-growth-card__benefits {
@@ -315,8 +315,8 @@
   overflow: hidden;
   border-left: 1px solid rgba(255,255,255,.04);
   background:
-    radial-gradient(circle at 52% 45%, rgba(117, 91, 255, .19), transparent 48%),
-    linear-gradient(135deg, rgba(20,25,43,.2), rgba(12,16,29,.72));
+    radial-gradient(circle at 52% 45%, color-mix(in srgb, var(--ab-ui-accent) 19%, transparent), transparent 48%),
+    linear-gradient(135deg, color-mix(in srgb, var(--ab-ui-surface) 20%, transparent), color-mix(in srgb, var(--ab-ui-surface) 72%, transparent));
 }
 
 .telegram-growth-card--community .telegram-growth-card__art::before {
@@ -324,11 +324,11 @@
   position: absolute;
   width: 210px;
   height: 210px;
-  border: 1px solid rgba(157, 139, 255, .09);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 9%, transparent);
   border-radius: 50%;
   box-shadow:
-    0 0 0 26px rgba(135, 113, 255, .025),
-    0 0 0 54px rgba(135, 113, 255, .014);
+    0 0 0 26px color-mix(in srgb, var(--ab-ui-accent) 2.5%, transparent),
+    0 0 0 54px color-mix(in srgb, var(--ab-ui-accent) 1.4%, transparent);
 }
 
 .telegram-growth-card--community .telegram-growth-card__art img {
@@ -346,7 +346,7 @@
   display: grid;
   place-items: center;
   padding: 22px;
-  background: rgba(3, 6, 13, .78);
+  background: color-mix(in srgb, var(--ab-ui-canvas) 78%, transparent);
   backdrop-filter: blur(14px);
   animation: telegramWelcomeFade .2s ease-out;
 }
@@ -358,11 +358,11 @@
   display: grid;
   grid-template-columns: minmax(260px, .86fr) minmax(0, 1.14fr);
   overflow: hidden;
-  border: 1px solid rgba(151, 130, 255, .25);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 25%, transparent);
   border-radius: 24px;
   background:
-    radial-gradient(circle at 20% 22%, rgba(106, 83, 255, .14), transparent 36%),
-    linear-gradient(145deg, #111526, #0a0e19 68%);
+    radial-gradient(circle at 20% 22%, color-mix(in srgb, var(--ab-ui-accent) 14%, transparent), transparent 36%),
+    linear-gradient(145deg, var(--ab-ui-surface), var(--ab-ui-surface) 68%);
   box-shadow:
     0 18px 54px rgba(0,0,0,.36),
     inset 0 1px 0 rgba(255,255,255,.04);
@@ -392,14 +392,14 @@
   place-items: center;
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 10px;
-  background: rgba(7,10,18,.65);
-  color: rgba(224,226,239,.55);
+  background: color-mix(in srgb, var(--ab-ui-surface) 65%, transparent);
+  color: var(--ab-ui-text);
   font-size: 18px;
   backdrop-filter: blur(10px);
 }
 
 .telegram-welcome__close:hover {
-  color: #fff;
+  color: var(--ab-ui-text);
   border-color: rgba(255,255,255,.16);
 }
 
@@ -411,8 +411,8 @@
   overflow: hidden;
   border-right: 1px solid rgba(255,255,255,.045);
   background:
-    radial-gradient(circle at 50% 48%, rgba(117, 91, 255, .22), transparent 42%),
-    rgba(6, 10, 19, .35);
+    radial-gradient(circle at 50% 48%, color-mix(in srgb, var(--ab-ui-accent) 22%, transparent), transparent 42%),
+    color-mix(in srgb, var(--ab-ui-surface) 35%, transparent);
 }
 
 .telegram-welcome__art img {
@@ -427,7 +427,7 @@
 
 .telegram-welcome__orbit {
   position: absolute;
-  border: 1px solid rgba(159, 143, 255, .11);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 11%, transparent);
   border-radius: 50%;
 }
 
@@ -460,10 +460,10 @@
   height: 38px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(159, 142, 255, .2);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 20%, transparent);
   border-radius: 12px;
-  background: rgba(113, 89, 239, .11);
-  color: #b8acff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 11%, transparent);
+  color: var(--ab-ui-accent);
 }
 
 .telegram-welcome__brand svg {
@@ -472,7 +472,7 @@
 }
 
 .telegram-welcome__brand small {
-  color: #9e90ff;
+  color: var(--ab-ui-accent);
   font-size: 8px;
   font-weight: 900;
   letter-spacing: .12em;
@@ -484,17 +484,17 @@
   min-height: 25px;
   margin-top: 20px;
   padding: 0 9px;
-  border: 1px solid rgba(94, 219, 166, .13);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-success) 13%, transparent);
   border-radius: 999px;
-  background: rgba(75, 195, 142, .055);
-  color: rgba(139, 229, 190, .78);
+  background: color-mix(in srgb, var(--ab-ui-success) 5.5%, transparent);
+  color: var(--ab-ui-success);
   font-size: 8px;
   font-weight: 800;
 }
 
 .telegram-welcome__content h2 {
   margin: 13px 0 0;
-  color: #f5f3ff;
+  color: var(--ab-ui-text);
   font-size: clamp(27px, 3vw, 38px);
   line-height: 1.02;
   letter-spacing: -.045em;
@@ -502,7 +502,7 @@
 
 .telegram-welcome__content > p {
   margin: 13px 0 0;
-  color: rgba(173, 181, 203, .62);
+  color: var(--ab-ui-muted);
   font-size: 11px;
   line-height: 1.62;
 }
@@ -519,10 +519,10 @@
   display: inline-flex;
   align-items: center;
   padding: 0 9px;
-  border: 1px solid rgba(145, 124, 255, .13);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 13%, transparent);
   border-radius: 999px;
-  background: rgba(123, 98, 244, .055);
-  color: rgba(211, 205, 243, .72);
+  background: color-mix(in srgb, var(--ab-ui-accent) 5.5%, transparent);
+  color: var(--ab-ui-text);
   font-size: 8px;
   font-weight: 800;
 }
@@ -535,20 +535,20 @@
   gap: 12px;
   margin-top: 22px;
   padding: 0 16px;
-  border: 1px solid rgba(164, 146, 255, .34);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 34%, transparent);
   border-radius: 14px;
   background:
-    linear-gradient(105deg, rgba(126, 94, 255, .32), rgba(88, 67, 214, .16));
-  color: #f1eeff;
-  box-shadow: 0 15px 34px rgba(66, 44, 169, .15);
+    linear-gradient(105deg, color-mix(in srgb, var(--ab-ui-accent) 32%, transparent), color-mix(in srgb, var(--ab-ui-accent) 16%, transparent));
+  color: var(--ab-ui-text);
+  box-shadow: 0 15px 34px color-mix(in srgb, var(--ab-ui-accent) 15%, transparent);
   transition: transform .16s ease, border-color .16s ease, background .16s ease;
 }
 
 .telegram-welcome__cta:hover {
   transform: translateY(-1px);
-  border-color: rgba(183, 168, 255, .48);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 48%, transparent);
   background:
-    linear-gradient(105deg, rgba(135, 104, 255, .4), rgba(95, 73, 224, .2));
+    linear-gradient(105deg, color-mix(in srgb, var(--ab-ui-accent) 40%, transparent), color-mix(in srgb, var(--ab-ui-accent) 20%, transparent));
 }
 
 .telegram-welcome__cta > span {
@@ -560,7 +560,7 @@
 }
 
 .telegram-welcome__cta small {
-  color: rgba(207, 210, 229, .48);
+  color: var(--ab-ui-text);
   font-size: 8px;
   font-weight: 650;
 }
@@ -572,7 +572,7 @@
   place-items: center;
   border-radius: 10px;
   background: rgba(255,255,255,.05);
-  color: #b5aaff;
+  color: var(--ab-ui-accent);
   font-size: 14px;
 }
 
@@ -581,13 +581,13 @@
   margin-top: 10px;
   border: 0;
   background: transparent;
-  color: rgba(183, 188, 207, .42);
+  color: var(--ab-ui-muted);
   font-size: 9px;
   font-weight: 750;
 }
 
 .telegram-welcome__later:hover {
-  color: rgba(220, 223, 237, .72);
+  color: var(--ab-ui-text);
 }
 
 @keyframes telegramWelcomeFade {
@@ -721,11 +721,11 @@
   height: 148px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(158, 141, 255, .19);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 19%, transparent);
   border-radius: 38px;
   background:
-    radial-gradient(circle at 38% 28%, rgba(156, 137, 255, .2), transparent 42%),
-    rgba(11, 15, 27, .78);
+    radial-gradient(circle at 38% 28%, color-mix(in srgb, var(--ab-ui-accent) 20%, transparent), transparent 42%),
+    color-mix(in srgb, var(--ab-ui-surface) 78%, transparent);
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.04),
     0 18px 46px rgba(0,0,0,.22);
@@ -744,12 +744,12 @@
   place-items: center;
   border-radius: 30px;
   background:
-    radial-gradient(circle at 35% 28%, rgba(181, 166, 255, .2), transparent 45%),
-    rgba(124, 92, 255, .08);
-  color: #b7abff;
+    radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--ab-ui-accent) 20%, transparent), transparent 45%),
+    color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
+  color: var(--ab-ui-accent);
   font-size: 40px;
   line-height: 1;
-  text-shadow: 0 0 22px rgba(124, 92, 255, .4);
+  text-shadow: 0 0 22px color-mix(in srgb, var(--ab-ui-accent) 40%, transparent);
 }
 
 .registration-welcome__art-copy {
@@ -761,20 +761,20 @@
 }
 
 .registration-welcome__art-copy small {
-  color: #9e90ff;
+  color: var(--ab-ui-accent);
   font-size: 8px;
   font-weight: 900;
   letter-spacing: .12em;
 }
 
 .registration-welcome__art-copy strong {
-  color: #f5f3ff;
+  color: var(--ab-ui-text);
   font-size: 17px;
   letter-spacing: -.025em;
 }
 
 .registration-welcome__art-copy span {
-  color: rgba(173, 181, 203, .52);
+  color: var(--ab-ui-muted);
   font-size: 9px;
 }
 
@@ -800,11 +800,11 @@
   align-items: center;
   gap: 10px;
   padding: 11px 12px;
-  border: 1px solid rgba(145, 128, 255, .13);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 13%, transparent);
   border-radius: 14px;
   background:
-    linear-gradient(145deg, rgba(126, 100, 246, .075), rgba(255,255,255,.015));
-  color: #eeebff;
+    linear-gradient(145deg, color-mix(in srgb, var(--ab-ui-accent) 7.5%, transparent), rgba(255,255,255,.015));
+  color: var(--ab-ui-text);
   transition:
     transform .16s ease,
     border-color .16s ease,
@@ -813,15 +813,15 @@
 
 .registration-welcome__action:hover {
   transform: translateY(-1px);
-  border-color: rgba(166, 149, 255, .28);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 28%, transparent);
   background:
-    linear-gradient(145deg, rgba(132, 105, 255, .12), rgba(255,255,255,.025));
+    linear-gradient(145deg, color-mix(in srgb, var(--ab-ui-accent) 12%, transparent), rgba(255,255,255,.025));
 }
 
 .registration-welcome__action--telegram {
-  border-color: rgba(99, 154, 255, .18);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 18%, transparent);
   background:
-    linear-gradient(145deg, rgba(67, 130, 255, .095), rgba(117, 86, 245, .055));
+    linear-gradient(145deg, color-mix(in srgb, var(--ab-ui-accent) 9.5%, transparent), color-mix(in srgb, var(--ab-ui-accent) 5.5%, transparent));
 }
 
 .registration-welcome__action-icon {
@@ -829,10 +829,10 @@
   height: 38px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(159, 143, 255, .14);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 14%, transparent);
   border-radius: 12px;
-  background: rgba(112, 89, 229, .08);
-  color: #aa9eff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
+  color: var(--ab-ui-accent);
 }
 
 .registration-welcome__action-icon svg {
@@ -853,7 +853,7 @@
 
 .registration-welcome__action small {
   overflow: hidden;
-  color: rgba(184, 190, 211, .48);
+  color: var(--ab-ui-muted);
   font-size: 8px;
   line-height: 1.3;
   text-overflow: ellipsis;
@@ -861,14 +861,14 @@
 }
 
 .registration-welcome__action > b {
-  color: rgba(176, 164, 255, .66);
+  color: var(--ab-ui-accent);
   font-size: 13px;
   text-align: center;
 }
 
 .registration-welcome__continue {
   width: 100%;
-  border: 1px solid rgba(164, 146, 255, .34);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 34%, transparent);
   cursor: pointer;
 }
 

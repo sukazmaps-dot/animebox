@@ -12,7 +12,7 @@
 }
 
 .header span {
-  color: #8f7cff;
+  color: var(--ab-ui-accent);
   font-size: 10px;
   font-weight: 900;
   letter-spacing: .12em;
@@ -26,7 +26,7 @@
 .header p {
   max-width: 720px;
   margin: 8px 0 0;
-  color: #8b95aa;
+  color: var(--ab-ui-muted);
   line-height: 1.55;
 }
 
@@ -34,10 +34,10 @@
 .recheck button {
   min-height: 38px;
   padding: 0 14px;
-  border: 1px solid rgba(150, 128, 255, .28);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 28%, transparent);
   border-radius: 10px;
-  background: rgba(111, 83, 236, .16);
-  color: #ded8ff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 16%, transparent);
+  color: var(--ab-ui-text);
   cursor: pointer;
 }
 
@@ -50,9 +50,9 @@
 .kpis article,
 .panel,
 .recheck {
-  border: 1px solid rgba(137, 150, 184, .12);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 12%, transparent);
   border-radius: 14px;
-  background: rgba(10, 15, 29, .88);
+  background: color-mix(in srgb, var(--ab-ui-surface) 88%, transparent);
 }
 
 .kpis article {
@@ -66,7 +66,7 @@
 .panelHead small,
 .recheck small,
 .rows small {
-  color: #78839b;
+  color: var(--ab-ui-muted);
   font-size: 11px;
 }
 
@@ -90,10 +90,10 @@
 .recheck input {
   min-height: 38px;
   padding: 0 11px;
-  border: 1px solid rgba(137, 150, 184, .16);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 16%, transparent);
   border-radius: 10px;
-  background: #090f1d;
-  color: #f1f3fb;
+  background: var(--ab-ui-surface);
+  color: var(--ab-ui-text);
 }
 
 .panel {
@@ -105,7 +105,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 14px 16px;
-  border-bottom: 1px solid rgba(137, 150, 184, .10);
+  border-bottom: 1px solid color-mix(in srgb, var(--ab-ui-accent) 10%, transparent);
 }
 
 .rows {
@@ -117,7 +117,7 @@
   grid-template-columns: minmax(150px, .35fr) minmax(0, 1fr);
   gap: 18px;
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(137, 150, 184, .07);
+  border-bottom: 1px solid color-mix(in srgb, var(--ab-ui-accent) 7%, transparent);
 }
 
 .rows article:last-child {
@@ -132,7 +132,7 @@
 
 .rows span {
   overflow: hidden;
-  color: #aab1c3;
+  color: var(--ab-ui-muted);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -141,13 +141,13 @@
 .empty,
 .message {
   padding: 14px 16px;
-  color: #949eb3;
+  color: var(--ab-ui-muted);
 }
 
 .message {
-  border: 1px solid rgba(143, 124, 255, .16);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 16%, transparent);
   border-radius: 10px;
-  background: rgba(111, 83, 236, .08);
+  background: color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
 }
 
 @media (max-width: 900px) {

@@ -1,22 +1,22 @@
 /* Light theme component contracts. Media overlays keep their own dark palette. */
 html[data-animebox-theme='light'] {
-  --bg: #f5f6fa;
-  --bg-2: #eceef5;
-  --panel: #fff;
-  --panel-2: #f0f1f8;
-  --text: #252638;
-  --muted: #606479;
-  --line: #dcdfea;
-  --ab-vl-canvas: #f5f6fa;
-  --ab-vl-surface: #fff;
-  --ab-vl-surface-raised: #f0f1f8;
-  --ab-vl-text: #252638;
-  --ab-vl-text-soft: #4c5067;
-  --ab-vl-muted: #606479;
-  --ab-vl-muted-2: #606479;
+  --bg: var(--ab-ui-canvas);
+  --bg-2: var(--ab-ui-surface);
+  --panel: var(--ab-ui-surface);
+  --panel-2: var(--ab-ui-raised);
+  --text: var(--ab-ui-text);
+  --muted: var(--ab-ui-muted);
+  --line: var(--ab-ui-border);
+  --ab-vl-canvas: var(--ab-ui-canvas);
+  --ab-vl-surface: var(--ab-ui-surface);
+  --ab-vl-surface-raised: var(--ab-ui-raised);
+  --ab-vl-text: var(--ab-ui-text);
+  --ab-vl-text-soft: var(--ab-ui-text);
+  --ab-vl-muted: var(--ab-ui-muted);
+  --ab-vl-muted-2: var(--ab-ui-muted);
 }
 html[data-animebox-theme='light'] body {
-  background: radial-gradient(ellipse at 80% 0, #eeebfb 0, transparent 35%), #f5f6fa;
+  background: radial-gradient(ellipse at 80% 0, var(--ab-ui-surface) 0, transparent 35%), var(--ab-ui-surface);
 }
 html[data-animebox-theme='light'] .sidebar,
 html[data-animebox-theme='light'] .topbar,
@@ -48,7 +48,7 @@ html[data-animebox-theme='light'] :is(
   .continue-smart-card__eyebrow, .home-library-panel__eyebrow,
   .mood-picker__eyebrow, .sidebar-membership__icon,
   .home-activation-v2__eyebrow
-) { color: #6542bb !important; }
+) { color: var(--ab-ui-accent) !important; }
 html[data-animebox-theme='light'] :is(
   .continue-smart-card, .personal-schedule-grid, .personal-schedule-card,
   .home-library-panel, .home-activation-v2, .smart-card,
@@ -63,7 +63,7 @@ html[data-animebox-theme='light'] :is(
 html[data-animebox-theme='light'] :is(
   .home-shortcuts__item:hover, .home-retention__card:hover,
   .continue-smart-card:hover, .mood-chip:hover, .mood-chip.is-active
-) { background: #ede9fa !important; border-color: #c5b7ec !important; }
+) { background: var(--ab-ui-surface) !important; border-color: var(--ab-ui-accent) !important; }
 html[data-animebox-theme='light'] .smart-feed__rail::after {
   /* No opaque dark curtain across posters or the action row. */
   display: none !important;
@@ -78,42 +78,42 @@ html[data-animebox-theme='light'] .smart-card__reason {
   line-height: 1.5 !important;
 }
 html[data-animebox-theme='light'] .smart-card__plan {
-  background: #eee9fa !important;
-  border-color: #d0c2ee !important;
-  color: #513390 !important;
+  background: var(--ab-ui-surface) !important;
+  border-color: var(--ab-ui-accent) !important;
+  color: var(--ab-ui-accent) !important;
 }
 html[data-animebox-theme='light'] .smart-card__plan-icon {
-  color: #513390 !important;
+  color: var(--ab-ui-accent) !important;
   background: transparent !important;
 }
 html[data-animebox-theme='light'] .smart-card__plan:hover:not(:disabled) {
-  background: #e2d9f5 !important;
+  background: var(--ab-ui-surface) !important;
 }
 html[data-animebox-theme='light'] .schedule-item {
   border-color: var(--line) !important;
 }
 html[data-animebox-theme='light'] .schedule-item:hover {
-  background: #f0ecfa !important;
+  background: var(--ab-ui-surface) !important;
 }
 html[data-animebox-theme='light'] .schedule-item__countdown {
-  background: #eee9fa !important;
-  border-color: #d0c2ee !important;
-  color: #513390 !important;
+  background: var(--ab-ui-surface) !important;
+  border-color: var(--ab-ui-accent) !important;
+  color: var(--ab-ui-accent) !important;
 }
 html[data-animebox-theme='light'] .schedule-item__countdown > span {
-  color: #513390 !important;
+  color: var(--ab-ui-accent) !important;
 }
 html[data-animebox-theme='light'] .schedule-item__countdown > .schedule-item__released {
-  color: #146342 !important;
+  color: var(--ab-ui-success) !important;
 }
-html[data-animebox-theme='light'] .schedule-item__chevron { color: #606479; }
+html[data-animebox-theme='light'] .schedule-item__chevron { color: var(--ab-ui-muted); }
 html[data-animebox-theme='light'] .topbar :is(.auth-user__trigger, .auth-user__username) {
   color: var(--text) !important;
 }
 html[data-animebox-theme='light'] .home-library-panel .btn {
-  background: #6542bb !important;
-  color: #fff !important;
-  border-color: #6542bb !important;
+  background: var(--ab-ui-primary) !important;
+  color: var(--ab-ui-text) !important;
+  border-color: var(--ab-ui-accent) !important;
 }
 
 html[data-animebox-theme='light'] :is(.auth-user__dropdown, .auth-user__profile, .auth-user__links a) {
@@ -131,9 +131,9 @@ html[data-animebox-theme='light'] :is(.episode-list__copy small, .episode-list__
   color: var(--muted) !important;
 }
 html[data-animebox-theme='light'] .episode-list__item.is-current,
-html[data-animebox-theme='light'] .episode-list__item:hover { background: #ede9fa !important; }
-html[data-animebox-theme='light'] .episode-list__item.is-watched { background: #eaf6ef !important; }
-html[data-animebox-theme='light'] .episode-list__number { color: #6542bb !important; }
+html[data-animebox-theme='light'] .episode-list__item:hover { background: var(--ab-ui-surface) !important; }
+html[data-animebox-theme='light'] .episode-list__item.is-watched { background: var(--ab-ui-surface) !important; }
+html[data-animebox-theme='light'] .episode-list__number { color: var(--ab-ui-accent) !important; }
 
 html[data-animebox-theme='light'] :is(
   .home-pulse strong, .home-shortcuts__item strong, .home-retention__copy strong,

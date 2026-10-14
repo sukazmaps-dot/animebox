@@ -4,14 +4,14 @@
   grid-template-columns: minmax(0, 1fr) minmax(210px, 32%);
   align-items: center;
   gap: 12px;
-  background: linear-gradient(112deg, #211b32, #171625 63%, #161824);
+  background: linear-gradient(112deg, var(--ab-ui-raised), var(--ab-ui-surface) 63%, var(--ab-ui-surface));
 }
 .support-page .support-page__hero-copy { max-width: none; }
 .support-heart-art {
   width: min(100%, 308px);
   aspect-ratio: 1;
   justify-self: center;
-  color: #c4a4ff;
+  color: var(--ab-ui-accent);
   pointer-events: none;
 }
 .support-heart-art__mark { display: block; width: 100%; height: 100%; overflow: visible; }
@@ -41,9 +41,9 @@
   width: auto;
   gap: 2px;
   padding: 4px;
-  border: 1px solid rgba(189, 171, 219, .2);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 20%, transparent);
   border-radius: 11px;
-  background: rgba(8, 10, 19, .58);
+  background: color-mix(in srgb, var(--ab-ui-surface) 58%, transparent);
 }
 .support-page .sponsor-v3-dashboard-actions > .btn {
   display: inline-flex;
@@ -57,7 +57,7 @@
   border-radius: 7px;
   background: transparent;
   box-shadow: none;
-  color: #c7c4d5;
+  color: var(--ab-ui-muted);
   font-size: 12px;
   font-weight: 650;
   line-height: 1.25;
@@ -68,16 +68,16 @@
 }
 .support-page .sponsor-v3-dashboard-actions > .btn:hover,
 .support-page .sponsor-v3-dashboard-actions > .btn:focus-visible {
-  background: rgba(162, 134, 222, .18);
-  color: #fff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 18%, transparent);
+  color: var(--ab-ui-text);
 }
 .support-page .sponsor-v3-dashboard-actions > .btn:focus-visible {
-  outline: 2px solid #c4a4ff;
+  outline: 2px solid var(--ab-ui-accent);
   outline-offset: -2px;
 }
 .support-page .sponsor-v3-dashboard-actions > .btn:disabled { opacity: .45; cursor: wait; }
 .support-page .sponsor-v3-dashboard-actions > button:last-child {
-  border-left: 1px solid rgba(189, 171, 219, .18);
+  border-left: 1px solid color-mix(in srgb, var(--ab-ui-accent) 18%, transparent);
   border-radius: 2px 7px 7px 2px;
 }
 @media (max-width: 700px) {

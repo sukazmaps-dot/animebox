@@ -3,11 +3,11 @@
   gap: 14px;
   margin-top: 18px;
   padding: 16px;
-  border: 1px solid color-mix(in srgb, var(--ab-border, #283247) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ab-border, var(--ab-ui-border)) 78%, transparent);
   border-radius: 18px;
   background:
-    radial-gradient(circle at 100% 0%, rgba(41, 169, 235, .14), transparent 42%),
-    color-mix(in srgb, var(--ab-surface, #111827) 90%, transparent);
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--ab-ui-accent) 14%, transparent), transparent 42%),
+    color-mix(in srgb, var(--ab-surface, var(--ab-ui-surface)) 90%, transparent);
 }
 
 .header {
@@ -23,8 +23,8 @@
   flex: 0 0 40px;
   place-items: center;
   border-radius: 14px;
-  background: rgba(41, 169, 235, .14);
-  color: #35aee2;
+  background: color-mix(in srgb, var(--ab-ui-accent) 14%, transparent);
+  color: var(--ab-ui-accent);
 }
 
 .copy {
@@ -38,7 +38,7 @@
 }
 
 .copy span {
-  color: var(--ab-text-muted, #93a4bb);
+  color: var(--ab-text-muted, var(--ab-ui-muted));
   font-size: 12px;
   line-height: 1.45;
 }
@@ -47,17 +47,17 @@
   margin-left: auto;
   flex: 0 0 auto;
   padding: 6px 9px;
-  border: 1px solid rgba(148, 163, 184, .16);
+  border: 1px solid var(--ab-ui-border);
   border-radius: 999px;
-  color: var(--ab-text-muted, #93a4bb);
+  color: var(--ab-text-muted, var(--ab-ui-muted));
   font-size: 11px;
   font-weight: 700;
 }
 
 .statusLinked {
-  border-color: rgba(52, 211, 153, .22);
-  background: rgba(52, 211, 153, .09);
-  color: #6ee7b7;
+  border-color: color-mix(in srgb, var(--ab-ui-success) 22%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-success) 9%, transparent);
+  color: var(--ab-ui-success);
 }
 
 .actions {
@@ -69,9 +69,9 @@
 .button {
   min-height: 40px;
   padding: 0 14px;
-  border: 1px solid rgba(53, 174, 226, .28);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 28%, transparent);
   border-radius: 13px;
-  background: linear-gradient(135deg, rgba(53, 174, 226, .22), rgba(37, 99, 235, .13));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--ab-ui-accent) 22%, transparent), color-mix(in srgb, var(--ab-ui-accent) 13%, transparent));
   color: inherit;
   font: inherit;
   font-size: 13px;
@@ -80,7 +80,7 @@
 }
 
 .button:hover:not(:disabled) {
-  border-color: rgba(53, 174, 226, .48);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 48%, transparent);
 }
 
 .button:disabled {
@@ -89,14 +89,14 @@
 }
 
 .secondary {
-  border-color: rgba(148, 163, 184, .18);
-  background: rgba(148, 163, 184, .07);
+  border-color: var(--ab-ui-border);
+  background: color-mix(in srgb, var(--ab-ui-raised) 7%, transparent);
 }
 
 .danger {
-  border-color: rgba(248, 113, 113, .22);
-  background: rgba(248, 113, 113, .07);
-  color: #fca5a5;
+  border-color: color-mix(in srgb, var(--ab-ui-danger) 22%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-danger) 7%, transparent);
+  color: var(--ab-ui-danger);
 }
 
 .note,
@@ -107,11 +107,11 @@
 }
 
 .note {
-  color: var(--ab-text-muted, #93a4bb);
+  color: var(--ab-text-muted, var(--ab-ui-muted));
 }
 
 .error {
-  color: #fca5a5;
+  color: var(--ab-ui-danger);
 }
 
 @media (max-width: 640px) {

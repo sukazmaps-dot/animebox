@@ -12,7 +12,7 @@
   gap: 12px;
   padding: 0 10px;
   border: 0;
-  border-bottom: 1px solid rgba(204, 208, 219, .1);
+  border-bottom: 1px solid var(--ab-ui-border);
   background: transparent;
   color: var(--ab-text-soft);
   font-size: 11px;
@@ -22,7 +22,7 @@
 
 .trigger:hover,
 .trigger[aria-expanded='true'] {
-  border-bottom-color: rgba(151, 136, 231, .42);
+  border-bottom-color: color-mix(in srgb, var(--ab-ui-accent) 42%, transparent);
 }
 
 .trigger:focus-visible,
@@ -58,9 +58,9 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 7px;
-  border: 1px solid rgba(194, 201, 218, .14);
+  border: 1px solid var(--ab-ui-border);
   border-radius: 7px;
-  background: #111721;
+  background: var(--ab-ui-surface);
   box-shadow: 0 16px 38px rgba(0, 0, 0, .38);
   scrollbar-width: thin;
 }
@@ -70,14 +70,14 @@
   gap: 5px;
   margin: 7px 0 8px;
   padding: 9px;
-  border: 1px solid rgba(151,136,231,.11);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 11%, transparent);
   border-radius: 5px;
-  background: rgba(151,136,231,.035);
+  background: color-mix(in srgb, var(--ab-ui-accent) 3.5%, transparent);
 }
 
 .currentBlock > span,
 .yearLabel {
-  color: #747d8d;
+  color: var(--ab-ui-muted);
   font-size: 9px;
   font-weight: 720;
   letter-spacing: .04em;
@@ -90,7 +90,7 @@
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: #cfd4de;
+  color: var(--ab-ui-text);
   font-size: 11px;
   font-weight: 650;
   text-align: left;
@@ -98,8 +98,8 @@
 }
 
 .currentActive {
-  background: rgba(151, 136, 231, .13);
-  color: #eee9ff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 13%, transparent);
+  color: var(--ab-ui-text);
   box-shadow: inset 2px 0 0 var(--ab-iris);
 }
 
@@ -139,8 +139,8 @@
 
 .quickActive,
 .optionActive {
-  background: rgba(151, 136, 231, .13);
-  color: #eee9ff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 13%, transparent);
+  color: var(--ab-ui-text);
   box-shadow: inset 2px 0 0 var(--ab-iris);
 }
 
@@ -148,7 +148,7 @@
   display: grid;
   gap: 4px;
   padding-top: 6px;
-  border-top: 1px solid rgba(204,208,219,.055);
+  border-top: 1px solid var(--ab-ui-border);
 }
 
 .yearGroup {

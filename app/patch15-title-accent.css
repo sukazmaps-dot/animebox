@@ -4,24 +4,24 @@
 
 .anime-detail-v4,
 .anime-title-accent-scope {
-  --ab-accent: var(--anime-page-accent, #7c68ee);
-  --ab-iris: var(--anime-page-accent, #7c68ee);
+  --ab-accent: var(--anime-page-accent, var(--ab-ui-accent));
+  --ab-iris: var(--anime-page-accent, var(--ab-ui-accent));
   --ab-iris-strong: color-mix(
     in srgb,
-    var(--anime-page-accent, #7c68ee) 72%,
+    var(--anime-page-accent, var(--ab-ui-accent)) 72%,
     white 28%
   );
   --ab-accent-soft: color-mix(
     in srgb,
-    var(--anime-page-accent, #7c68ee) 15%,
+    var(--anime-page-accent, var(--ab-ui-primary)) 15%,
     transparent
   );
-  --ab-ember: var(--anime-page-accent, #7c68ee);
+  --ab-ember: var(--anime-page-accent, var(--ab-ui-primary));
 }
 
 .anime-detail-v4 .section-title::before,
 .anime-title-accent-scope .section-title::before {
-  background: var(--anime-page-accent, #7c68ee);
+  background: var(--anime-page-accent, var(--ab-ui-primary));
 }
 
 .anime-detail-v4 .section-title__icon,
@@ -30,26 +30,26 @@
 .anime-title-accent-scope .section-link:hover {
   color: color-mix(
     in srgb,
-    var(--anime-page-accent, #7c68ee) 74%,
+    var(--anime-page-accent, var(--ab-ui-accent)) 74%,
     white 26%
   );
 }
 
 .anime-detail-v4 .episode-list-shell,
 .anime-title-accent-scope .episode-list-shell {
-  --episode-current: var(--anime-page-accent, #7c68ee);
+  --episode-current: var(--anime-page-accent, var(--ab-ui-primary));
 }
 
 .anime-detail-v4 .episode-list__season-tab[aria-selected='true'],
 .anime-title-accent-scope .episode-list__season-tab[aria-selected='true'],
 .anime-detail-v4 .episode-list__group-tab[aria-selected='true'],
 .anime-title-accent-scope .episode-list__group-tab[aria-selected='true'] {
-  border-bottom-color: var(--anime-page-accent, #7c68ee) !important;
+  border-bottom-color: var(--anime-page-accent, var(--ab-ui-accent)) !important;
 }
 
 .anime-detail-v4 .episode-list__progress i,
 .anime-title-accent-scope .episode-list__progress i {
-  background: var(--anime-page-accent, #7c68ee);
+  background: var(--anime-page-accent, var(--ab-ui-primary));
 }
 
 .anime-detail-v4 .episode-list__item.is-current,
@@ -57,7 +57,7 @@
   background:
     linear-gradient(
       90deg,
-      color-mix(in srgb, var(--anime-page-accent, #7c68ee) 12%, transparent),
+      color-mix(in srgb, var(--anime-page-accent, var(--ab-ui-primary)) 12%, transparent),
       transparent 88%
     ) !important;
 }
@@ -66,7 +66,7 @@
 .anime-title-accent-scope .episode-list__item.is-current .episode-list__label {
   color: color-mix(
     in srgb,
-    var(--anime-page-accent, #7c68ee) 72%,
+    var(--anime-page-accent, var(--ab-ui-accent)) 72%,
     white 28%
   ) !important;
 }
@@ -77,7 +77,7 @@
     background:
       linear-gradient(
         90deg,
-        color-mix(in srgb, var(--anime-page-accent, #7c68ee) 8%, transparent),
+        color-mix(in srgb, var(--anime-page-accent, var(--ab-ui-primary)) 8%, transparent),
         rgba(255,255,255,.012)
       ) !important;
   }
@@ -86,14 +86,14 @@
   .anime-title-accent-scope .episode-list__item:hover .episode-list__label {
     color: color-mix(
       in srgb,
-      var(--anime-page-accent, #7c68ee) 76%,
+      var(--anime-page-accent, var(--ab-ui-accent)) 76%,
       white 24%
     ) !important;
   }
 
   .anime-detail-v4 .episode-list__extra:hover,
   .anime-title-accent-scope .episode-list__extra:hover {
-    border-left-color: var(--anime-page-accent, #7c68ee) !important;
+    border-left-color: var(--anime-page-accent, var(--ab-ui-accent)) !important;
   }
 }
 
@@ -112,11 +112,11 @@
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: var(--anime-page-accent, #7c68ee);
+  background: var(--anime-page-accent, var(--ab-ui-primary));
   box-shadow:
     0 0 0 3px color-mix(
       in srgb,
-      var(--anime-page-accent, #7c68ee) 12%,
+      var(--anime-page-accent, var(--ab-ui-accent)) 12%,
       transparent
     );
   animation: episode-verification-pulse 1.2s ease-in-out infinite;

@@ -28,7 +28,7 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  color: rgba(235, 237, 248, .74);
+  color: var(--ab-ui-text);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -39,10 +39,10 @@
   width: 24px;
   height: 24px;
   place-items: center;
-  border: 1px solid rgba(182, 137, 255, .28);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 28%, transparent);
   border-radius: 8px;
-  background: rgba(141, 89, 225, .12);
-  color: #d8c4ff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 12%, transparent);
+  color: var(--ab-ui-accent);
   font-size: 10px;
 }
 
@@ -52,16 +52,16 @@
   gap: 6px 10px;
   align-items: center;
   padding: 14px;
-  border: 1px solid rgba(175, 128, 255, .28);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 28%, transparent);
   border-radius: 16px;
   background:
-    radial-gradient(circle at 15% 0%, rgba(143, 86, 231, .14), transparent 42%),
-    rgba(7, 9, 17, .78);
+    radial-gradient(circle at 15% 0%, color-mix(in srgb, var(--ab-ui-accent) 14%, transparent), transparent 42%),
+    color-mix(in srgb, var(--ab-ui-surface) 78%, transparent);
 }
 
 .support-donatepay-claim__codebox small {
   grid-column: 1 / -1;
-  color: rgba(218, 221, 238, .48);
+  color: var(--ab-ui-text);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: .08em;
@@ -70,7 +70,7 @@
 
 .support-donatepay-claim__codebox code {
   overflow-wrap: anywhere;
-  color: #f0e7ff;
+  color: var(--ab-ui-text);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: clamp(15px, 3vw, 19px);
   font-weight: 900;
@@ -80,10 +80,10 @@
 .support-donatepay-claim__codebox button {
   min-height: 38px;
   padding: 8px 11px;
-  border: 1px solid rgba(180, 137, 255, .3);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 30%, transparent);
   border-radius: 10px;
-  background: rgba(133, 84, 211, .14);
-  color: #d9c7ff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 14%, transparent);
+  color: var(--ab-ui-accent);
   font-size: 11px;
   font-weight: 800;
   cursor: pointer;
@@ -99,18 +99,18 @@
 .support-donatepay-claim__success {
   margin-top: 14px;
   padding: 12px 14px;
-  border: 1px solid rgba(169, 126, 255, .2);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 20%, transparent);
   border-radius: 13px;
-  background: rgba(118, 77, 190, .08);
-  color: #d7c8f3;
+  background: color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
+  color: var(--ab-ui-accent);
   font-size: 12px;
   line-height: 1.5;
 }
 
 .support-donatepay-claim__notice.is-error {
-  border-color: rgba(255, 105, 120, .22);
-  background: rgba(255, 72, 91, .08);
-  color: #ffc0c8;
+  border-color: color-mix(in srgb, var(--ab-ui-danger) 22%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-danger) 8%, transparent);
+  color: var(--ab-ui-danger);
 }
 
 .support-donatepay-claim__success {
@@ -119,13 +119,13 @@
   justify-content: space-between;
   gap: 12px;
   margin-top: 0;
-  border-color: rgba(106, 226, 166, .2);
-  background: rgba(58, 170, 113, .08);
-  color: #baf3d1;
+  border-color: color-mix(in srgb, var(--ab-ui-success) 20%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-success) 8%, transparent);
+  color: var(--ab-ui-success);
 }
 
 .support-donatepay-claim__success span {
-  color: #effff5;
+  color: var(--ab-ui-text);
   font-weight: 900;
   white-space: nowrap;
 }
@@ -133,7 +133,7 @@
 .support-donatepay-claim__muted {
   display: block;
   margin-top: 10px;
-  color: rgba(215, 218, 234, .46);
+  color: var(--ab-ui-text);
   font-size: 11px;
   line-height: 1.5;
 }
@@ -151,17 +151,17 @@
 }
 
 .sponsor-v4-history-title strong {
-  color: #eee8f7;
+  color: var(--ab-ui-text);
   font-size: 13px;
 }
 
 .sponsor-v4-history-title span {
-  color: #8f879b;
+  color: var(--ab-ui-muted);
   font-size: 10px;
 }
 
 .sponsor-v4-donation-history li > strong {
-  color: #cdb7ff;
+  color: var(--ab-ui-accent);
 }
 
 @media (max-width: 640px) {

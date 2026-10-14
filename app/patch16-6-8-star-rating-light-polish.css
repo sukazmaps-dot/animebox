@@ -36,13 +36,13 @@
 }
 
 .anime-rating-control__star-base {
-  color: rgba(213, 219, 234, .16);
+  color: var(--ab-ui-text);
 }
 
 .anime-rating-control__star-fill {
   width: 0;
-  color: #f2c96d;
-  text-shadow: 0 0 18px rgba(242, 201, 109, .12);
+  color: var(--ab-ui-danger);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--ab-ui-danger) 12%, transparent);
 }
 
 .anime-rating-control__star-hitbox {
@@ -64,7 +64,7 @@
 }
 
 .anime-rating-control__star-half:focus-visible {
-  outline: 2px solid rgba(173, 151, 255, .9);
+  outline: 2px solid color-mix(in srgb, var(--ab-ui-accent) 90%, transparent);
   outline-offset: 1px;
 }
 
@@ -108,7 +108,7 @@ html[data-animebox-theme='light'] .anime-detail-v4__hero {
 }
 
 html[data-animebox-theme='light'] .anime-detail-v4__hero .anime-detail-v4__title {
-  color: #fff !important;
+  color: var(--ab-ui-text) !important;
   text-shadow: none !important;
 }
 
@@ -116,13 +116,13 @@ html[data-animebox-theme='light'] .anime-detail-v4__hero [class*='text-white'],
 html[data-animebox-theme='light'] .anime-detail-v4__hero .anime-detail-v4__original-title,
 html[data-animebox-theme='light'] .anime-detail-v4__hero .anime-detail-v4__aliases,
 html[data-animebox-theme='light'] .anime-detail-v4__hero .anime-detail-v4__description {
-  color: rgba(244, 246, 251, .78) !important;
+  color: var(--ab-ui-text) !important;
   text-shadow: none !important;
 }
 
 html[data-animebox-theme='light'] .anime-detail-v4__hero .anime-detail-v4__chip {
-  color: #f7f7fb !important;
-  background: rgba(13, 16, 24, .42) !important;
+  color: var(--ab-ui-text) !important;
+  background: color-mix(in srgb, var(--ab-ui-surface) 42%, transparent) !important;
   border-color: rgba(255, 255, 255, .15) !important;
 }
 
@@ -140,7 +140,7 @@ html[data-animebox-theme='light'] .community-library-control__eyebrow,
 html[data-animebox-theme='light'] .anime-notification-control__eyebrow,
 html[data-animebox-theme='light'] .episode-discussion-hub__eyebrow,
 html[data-animebox-theme='light'] .anime-detail-v4__watch-together-inner > div > span {
-  color: #6542bb !important;
+  color: var(--ab-ui-accent) !important;
   text-shadow: none !important;
 }
 
@@ -157,7 +157,7 @@ html[data-animebox-theme='light'] .anime-detail-v4__watch-together-inner p {
 
 html[data-animebox-theme='light'] .anime-detail-v4__section-head > a,
 html[data-animebox-theme='light'] .anime-detail-v4__watch-together-inner > a {
-  color: #6542bb !important;
+  color: var(--ab-ui-accent) !important;
 }
 
 html[data-animebox-theme='light'] :is(
@@ -175,58 +175,58 @@ html[data-animebox-theme='light'] :is(
 }
 
 html[data-animebox-theme='light'] .community-library-control__current {
-  border-color: #d5c9f0 !important;
-  background: #f0ebfb !important;
-  color: #56379a !important;
+  border-color: var(--ab-ui-border) !important;
+  background: var(--ab-ui-surface) !important;
+  color: var(--ab-ui-accent) !important;
 }
 
 html[data-animebox-theme='light'] .community-library-status {
   border-color: var(--line) !important;
-  background: #f7f8fb !important;
-  color: #4f5368 !important;
+  background: var(--ab-ui-surface) !important;
+  color: var(--ab-ui-muted) !important;
   box-shadow: none !important;
 }
 
 html[data-animebox-theme='light'] .community-library-status:hover:not(:disabled),
 html[data-animebox-theme='light'] .community-library-status.is-active {
-  border-color: #cbbced !important;
-  background: #eee9fa !important;
-  color: #4f328f !important;
+  border-color: var(--ab-ui-accent) !important;
+  background: var(--ab-ui-surface) !important;
+  color: var(--ab-ui-accent) !important;
 }
 
 html[data-animebox-theme='light'] .community-library-remove,
 html[data-animebox-theme='light'] .community-library-remove-confirm__cancel {
-  color: #6b6f82 !important;
+  color: var(--ab-ui-muted) !important;
 }
 
 html[data-animebox-theme='light'] .anime-notification-control__settings,
 html[data-animebox-theme='light'] .episode-discussion-hub__secondary {
   border-color: var(--line) !important;
-  background: #f5f6fa !important;
-  color: #555a70 !important;
+  background: var(--ab-ui-surface) !important;
+  color: var(--ab-ui-muted) !important;
 }
 
 html[data-animebox-theme='light'] .episode-discussion-hub__meta > span {
   border-color: var(--line) !important;
-  background: #f7f8fb !important;
+  background: var(--ab-ui-surface) !important;
 }
 
 html[data-animebox-theme='light'] .episode-discussion-hub__meta b {
-  color: #34374a !important;
+  color: var(--ab-ui-text) !important;
   text-shadow: none !important;
 }
 
 html[data-animebox-theme='light'] .anime-rating-control__star-base {
-  color: rgba(73, 68, 89, .14);
+  color: var(--ab-ui-text);
 }
 
 html[data-animebox-theme='light'] .anime-rating-control__star-fill {
-  color: #d89b25;
+  color: var(--ab-ui-danger);
   text-shadow: none;
 }
 
 html[data-animebox-theme='light'] .anime-rating-control__star-half:focus-visible {
-  outline-color: rgba(101, 66, 187, .72);
+  outline-color: color-mix(in srgb, var(--ab-ui-accent) 72%, transparent);
 }
 
 html[data-animebox-theme='light'] .anime-detail-v4__personal,

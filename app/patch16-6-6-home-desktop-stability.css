@@ -111,7 +111,7 @@
     width: 100% !important;
     min-width: 0 !important;
     min-height: 62px !important;
-    border-bottom: 1px solid rgba(148, 163, 184, .07) !important;
+    border-bottom: 1px solid var(--ab-ui-border) !important;
   }
 
   .home-page .home-upcoming-panel__list > a:last-child {
@@ -211,7 +211,7 @@
   }
   .home-page .home-upcoming-panel .schedule-item__chevron { display: none; }
   .home-page .home-upcoming-panel .schedule-item:hover {
-    background: rgba(139, 112, 255, .07);
+    background: color-mix(in srgb, var(--ab-ui-accent) 7%, transparent);
   }
 }
 
@@ -228,7 +228,7 @@
   display: block;
   font-size: 14px !important;
   line-height: 1.4 !important;
-  color: var(--text, #edf0f7) !important;
+  color: var(--text, var(--ab-ui-text)) !important;
 }
 .episode-list .episode-list__copy > small {
   display: block;

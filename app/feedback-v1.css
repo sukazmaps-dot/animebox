@@ -167,26 +167,26 @@
   gap: 10px;
   padding: 10px 11px;
   overflow: hidden;
-  border: 1px solid rgba(151, 119, 255, .16);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 16%, transparent);
   border-radius: 13px;
   background:
-    radial-gradient(circle at 92% 8%, rgba(142, 100, 255, .14), transparent 38%),
-    linear-gradient(135deg, rgba(111, 74, 215, .085), rgba(29, 26, 63, .34));
-  color: #ddd5ff;
+    radial-gradient(circle at 92% 8%, color-mix(in srgb, var(--ab-ui-accent) 14%, transparent), transparent 38%),
+    linear-gradient(135deg, color-mix(in srgb, var(--ab-ui-accent) 8.5%, transparent), color-mix(in srgb, var(--ab-ui-raised) 34%, transparent));
+  color: var(--ab-ui-text);
   transition: border-color .18s ease, background .18s ease, transform .18s ease;
 }
 
 .sidebar-membership:hover,
 .sidebar-membership:focus-visible {
-  border-color: rgba(171, 142, 255, .3);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 30%, transparent);
   background:
-    radial-gradient(circle at 92% 8%, rgba(142, 100, 255, .2), transparent 40%),
-    linear-gradient(135deg, rgba(111, 74, 215, .13), rgba(29, 26, 63, .42));
+    radial-gradient(circle at 92% 8%, color-mix(in srgb, var(--ab-ui-accent) 20%, transparent), transparent 40%),
+    linear-gradient(135deg, color-mix(in srgb, var(--ab-ui-accent) 13%, transparent), color-mix(in srgb, var(--ab-ui-raised) 42%, transparent));
 }
 
 .sidebar-membership.is-active {
-  border-color: rgba(193, 165, 255, .31);
-  box-shadow: inset 0 0 0 1px rgba(173, 140, 255, .045);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 31%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ab-ui-accent) 4.5%, transparent);
 }
 
 .sidebar-membership__icon {
@@ -194,17 +194,17 @@
   height: 30px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(196, 178, 255, .13);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 13%, transparent);
   border-radius: 10px;
-  background: rgba(126, 88, 235, .12);
-  color: #c6b3ff;
+  background: color-mix(in srgb, var(--ab-ui-accent) 12%, transparent);
+  color: var(--ab-ui-accent);
   font-size: 14px;
-  box-shadow: 0 7px 20px rgba(76, 47, 160, .12);
+  box-shadow: 0 7px 20px color-mix(in srgb, var(--ab-ui-accent) 12%, transparent);
 }
 
 .sidebar-membership.is-active .sidebar-membership__icon {
-  background: linear-gradient(145deg, rgba(152, 103, 255, .28), rgba(97, 76, 220, .15));
-  color: #f0eaff;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--ab-ui-accent) 28%, transparent), color-mix(in srgb, var(--ab-ui-accent) 15%, transparent));
+  color: var(--ab-ui-text);
 }
 
 .sidebar-membership__copy {
@@ -216,7 +216,7 @@
 
 .sidebar-membership__copy strong {
   overflow: hidden;
-  color: #eeeaff;
+  color: var(--ab-ui-text);
   font-size: 11px;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -225,7 +225,7 @@
 
 .sidebar-membership__copy small {
   overflow: hidden;
-  color: #8f92ad;
+  color: var(--ab-ui-muted);
   font-size: 8px;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -236,10 +236,10 @@
   max-width: 62px;
   overflow: hidden;
   padding: 4px 6px;
-  border: 1px solid rgba(177, 150, 255, .14);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 14%, transparent);
   border-radius: 999px;
-  background: rgba(136, 96, 232, .09);
-  color: #baa7ef;
+  background: color-mix(in srgb, var(--ab-ui-accent) 9%, transparent);
+  color: var(--ab-ui-accent);
   font-size: 7px;
   font-weight: 850;
   letter-spacing: .02em;
@@ -250,17 +250,17 @@
 .sidebar__support {
   min-height: 52px !important;
   align-items: center;
-  border: 1px solid rgba(190, 103, 211, .08) !important;
-  background: rgba(161, 73, 180, .025);
-  color: #c8b5cc !important;
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 8%, transparent) !important;
+  background: color-mix(in srgb, var(--ab-ui-accent) 2.5%, transparent);
+  color: var(--ab-ui-muted) !important;
 }
 
 .sidebar__support:hover,
 .sidebar__support:focus-visible,
 .sidebar__support.is-active {
-  border-color: rgba(205, 115, 224, .15) !important;
-  background: rgba(161, 73, 180, .07) !important;
-  color: #f0dff4 !important;
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 15%, transparent) !important;
+  background: color-mix(in srgb, var(--ab-ui-accent) 7%, transparent) !important;
+  color: var(--ab-ui-text) !important;
 }
 
 .sidebar__support > span {
@@ -280,7 +280,7 @@
 
 .sidebar__support small {
   overflow: hidden;
-  color: #7f8294;
+  color: var(--ab-ui-muted);
   font-size: 7.5px;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -343,7 +343,7 @@
   width: 100%;
   margin-top: 10px;
   border-top: 1px solid rgba(255,255,255,.055);
-  background: linear-gradient(180deg, rgba(7,10,18,.15), rgba(7,10,18,.64));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ab-ui-surface) 15%, transparent), color-mix(in srgb, var(--ab-ui-surface) 64%, transparent));
 }
 
 .site-footer__inner {
@@ -363,13 +363,13 @@
 }
 
 .site-footer__brand strong {
-  color: #eff1f7;
+  color: var(--ab-ui-text);
   font-size: 13px;
   letter-spacing: .04em;
 }
 
 .site-footer__brand span {
-  color: #747d91;
+  color: var(--ab-ui-muted);
   font-size: 10px;
 }
 
@@ -381,7 +381,7 @@
 }
 
 .site-footer__links a {
-  color: #929aac;
+  color: var(--ab-ui-muted);
   font-size: 11px;
   text-decoration: none;
   transition: color .18s ease;
@@ -389,7 +389,7 @@
 
 .site-footer__links a:hover,
 .site-footer__links a:focus-visible {
-  color: #d9d0ff;
+  color: var(--ab-ui-accent);
 }
 
 @media (min-width: 769px) and (max-width: 1200px) {
@@ -431,7 +431,7 @@
 
 .schedule-page-v2__heading h1 {
   margin: 5px 0 8px;
-  color: #f6f7fb;
+  color: var(--ab-ui-text);
   font-size: clamp(28px, 3vw, 40px);
   line-height: 1.05;
   letter-spacing: -.04em;
@@ -440,13 +440,13 @@
 .schedule-page-v2__heading p {
   margin: 0;
   max-width: 690px;
-  color: #939cad;
+  color: var(--ab-ui-muted);
   font-size: 13px;
   line-height: 1.6;
 }
 
 .schedule-page-v2__eyebrow {
-  color: #a68cff;
+  color: var(--ab-ui-accent);
   font-size: 10px;
   font-weight: 850;
   letter-spacing: .16em;
@@ -458,20 +458,20 @@
   flex-direction: column;
   align-items: flex-end;
   padding: 12px 14px;
-  border: 1px solid rgba(151,119,255,.15);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 15%, transparent);
   border-radius: 14px;
-  background: rgba(124,83,232,.055);
+  background: color-mix(in srgb, var(--ab-ui-accent) 5.5%, transparent);
 }
 
 .schedule-page-v2__counter strong {
-  color: #fff;
+  color: var(--ab-ui-text);
   font-size: 23px;
   line-height: 1;
 }
 
 .schedule-page-v2__counter span {
   margin-top: 5px;
-  color: #8c94a5;
+  color: var(--ab-ui-muted);
   font-size: 9px;
   white-space: nowrap;
 }
@@ -479,7 +479,7 @@
 .weekly-calendar-wrap {
   overflow-x: auto;
   padding-bottom: 10px;
-  scrollbar-color: rgba(139,92,246,.32) transparent;
+  scrollbar-color: color-mix(in srgb, var(--ab-ui-accent) 32%, transparent) transparent;
   scrollbar-width: thin;
 }
 
@@ -490,7 +490,7 @@
   overflow: hidden;
   border: 1px solid rgba(255,255,255,.065);
   border-radius: 20px;
-  background: linear-gradient(180deg, rgba(14,18,31,.94), rgba(8,12,22,.92));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ab-ui-surface) 94%, transparent), color-mix(in srgb, var(--ab-ui-surface) 92%, transparent));
   box-shadow: 0 24px 70px rgba(0,0,0,.18);
 }
 
@@ -506,7 +506,7 @@
 }
 
 .weekly-calendar__column.is-today {
-  background: linear-gradient(180deg, rgba(116,78,230,.08), rgba(116,78,230,.015) 36%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ab-ui-accent) 8%, transparent), color-mix(in srgb, var(--ab-ui-accent) 1.5%, transparent) 36%, transparent);
 }
 
 .weekly-calendar__day {
@@ -520,12 +520,12 @@
   gap: 8px;
   padding: 12px 12px;
   border-bottom: 1px solid rgba(255,255,255,.055);
-  background: rgba(10,14,25,.94);
+  background: color-mix(in srgb, var(--ab-ui-surface) 94%, transparent);
   backdrop-filter: blur(12px);
 }
 
 .weekly-calendar__day span {
-  color: #a4acbb;
+  color: var(--ab-ui-muted);
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
@@ -538,19 +538,19 @@
   min-height: 32px;
   place-items: center;
   border-radius: 10px;
-  color: #8d96a8;
+  color: var(--ab-ui-muted);
   font-size: 11px;
   background: rgba(255,255,255,.025);
 }
 
 .weekly-calendar__column.is-today .weekly-calendar__day span {
-  color: #c8baff;
+  color: var(--ab-ui-accent);
 }
 
 .weekly-calendar__column.is-today .weekly-calendar__day strong {
-  color: #fff;
-  background: linear-gradient(135deg, #7759e8, #5e67df);
-  box-shadow: 0 7px 22px rgba(105,72,255,.24);
+  color: var(--ab-ui-text);
+  background: var(--ab-ui-primary);
+  box-shadow: 0 7px 22px color-mix(in srgb, var(--ab-ui-accent) 24%, transparent);
 }
 
 .weekly-calendar__events {
@@ -575,8 +575,8 @@
 .weekly-calendar__event:hover,
 .weekly-calendar__event:focus-visible {
   transform: translateY(-1px);
-  border-color: rgba(154,123,255,.24);
-  background: rgba(126,88,235,.065);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 24%, transparent);
+  background: color-mix(in srgb, var(--ab-ui-accent) 6.5%, transparent);
 }
 
 .weekly-calendar__event-time {
@@ -589,14 +589,14 @@
 }
 
 .weekly-calendar__event-time strong {
-  color: #c9bbff;
+  color: var(--ab-ui-accent);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
 
 .weekly-calendar__event-time span {
   overflow: hidden;
-  color: #74d9a6;
+  color: var(--ab-ui-success);
   font-size: 8px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -614,7 +614,7 @@
   height: 44px;
   border-radius: 8px;
   object-fit: cover;
-  background: #111725;
+  background: var(--ab-ui-surface);
 }
 
 .weekly-calendar__event-main > div {
@@ -624,7 +624,7 @@
 .weekly-calendar__event-main strong {
   display: -webkit-box;
   overflow: hidden;
-  color: #e9ebf2;
+  color: var(--ab-ui-text);
   font-size: 10px;
   line-height: 1.32;
   -webkit-box-orient: vertical;
@@ -634,7 +634,7 @@
 .weekly-calendar__event-main span {
   display: block;
   margin-top: 4px;
-  color: #778195;
+  color: var(--ab-ui-muted);
   font-size: 9px;
 }
 
@@ -644,7 +644,7 @@
   place-items: center;
   align-content: center;
   gap: 4px;
-  color: #4f586b;
+  color: var(--ab-ui-muted);
   text-align: center;
 }
 
@@ -692,11 +692,11 @@
 }
 
 .schedule-page-v2__empty strong {
-  color: #e7e9ef;
+  color: var(--ab-ui-text);
 }
 
 .schedule-page-v2__empty span {
-  color: #80899b;
+  color: var(--ab-ui-muted);
   font-size: 12px;
 }
 

@@ -8,7 +8,7 @@
 .section,
 .integrity {
   border: 1px solid color-mix(in srgb, var(--border, #ffffff) 12%, transparent);
-  background: color-mix(in srgb, var(--surface, #15151b) 92%, transparent);
+  background: color-mix(in srgb, var(--surface, var(--ab-ui-surface)) 92%, transparent);
   border-radius: 28px;
 }
 
@@ -28,7 +28,7 @@
 .targetCard p,
 .milestone p,
 .integrity p {
-  color: var(--muted, #a8a8b3);
+  color: var(--muted, var(--ab-ui-muted));
   line-height: 1.65;
 }
 
@@ -53,7 +53,7 @@
 
 .heroStats span,
 .heroStats small {
-  color: var(--muted, #a8a8b3);
+  color: var(--muted, var(--ab-ui-muted));
 }
 
 .nav {
@@ -68,7 +68,7 @@
   padding: 9px 13px;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--border, #ffffff) 12%, transparent);
-  background: color-mix(in srgb, var(--surface, #15151b) 88%, transparent);
+  background: color-mix(in srgb, var(--surface, var(--ab-ui-surface)) 88%, transparent);
 }
 
 .section {
@@ -96,7 +96,7 @@
   border-radius: 20px;
   padding: 18px;
   border: 1px solid color-mix(in srgb, var(--border, #ffffff) 10%, transparent);
-  background: color-mix(in srgb, var(--surface, #15151b) 80%, transparent);
+  background: color-mix(in srgb, var(--surface, var(--ab-ui-surface)) 80%, transparent);
 }
 
 .targetTop,
@@ -112,7 +112,7 @@
 .categoryCard span,
 .categoryCard small,
 .milestone span {
-  color: var(--muted, #a8a8b3);
+  color: var(--muted, var(--ab-ui-muted));
   font-size: 13px;
 }
 
@@ -197,7 +197,7 @@
 .completeState,
 .state {
   padding: 28px;
-  color: var(--muted, #a8a8b3);
+  color: var(--muted, var(--ab-ui-muted));
 }
 
 .state {

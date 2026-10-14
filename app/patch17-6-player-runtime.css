@@ -2,10 +2,10 @@
    Mobile control density, source recovery clarity and safe-area handling. */
 
 .animebox-premium-player .animebox-player-notice {
-  border: 1px solid rgba(139, 92, 246, .16);
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 16%, transparent);
   border-radius: 10px;
-  background: rgba(93, 61, 173, .08);
-  color: rgba(231, 226, 248, .78);
+  background: color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
+  color: var(--ab-ui-text);
 }
 
 .animebox-premium-player .premium-player-source {

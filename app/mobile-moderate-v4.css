@@ -128,7 +128,7 @@
   .home-hero-carousel__content > p {
     max-width: 92%;
     margin: 10px 0 12px !important;
-    color: rgba(226, 229, 239, .82) !important;
+    color: var(--ab-ui-text) !important;
     font-size: 13px !important;
     line-height: 1.5 !important;
     -webkit-line-clamp: 2 !important;
@@ -158,8 +158,8 @@
 
   .home-grid .page-hero__overlay {
     background:
-      linear-gradient(90deg, rgba(5, 8, 18, .93) 0%, rgba(5, 8, 18, .68) 58%, rgba(5, 8, 18, .28) 100%),
-      linear-gradient(0deg, rgba(5, 8, 18, .92), rgba(5, 8, 18, .08) 68%) !important;
+      linear-gradient(90deg, color-mix(in srgb, var(--ab-ui-canvas) 93%, transparent) 0%, color-mix(in srgb, var(--ab-ui-canvas) 68%, transparent) 58%, color-mix(in srgb, var(--ab-ui-canvas) 28%, transparent) 100%),
+      linear-gradient(0deg, color-mix(in srgb, var(--ab-ui-canvas) 92%, transparent), color-mix(in srgb, var(--ab-ui-canvas) 8%, transparent) 68%) !important;
   }
 
   .home-grid .page-hero__backdrop {
