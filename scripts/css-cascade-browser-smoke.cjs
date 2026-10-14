@@ -35,6 +35,7 @@ const html = (theme) => '<!doctype html><html data-animebox-theme="' + theme +
   let checks = 0;
   try {
     const page = await browser.newPage();
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     const screens = [
       { w: 320, h: 700, mode: 'portrait' },
       { w: 360, h: 800, mode: 'portrait' },
