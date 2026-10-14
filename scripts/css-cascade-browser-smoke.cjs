@@ -99,6 +99,9 @@ const html = (theme) => '<!doctype html><html data-animebox-theme="' + theme +
           assert.equal(metrics.sidebarDisplay, 'none', ctx + ': sidebar visible over mobile dock');
           assert.equal(metrics.navPointer, 'auto', ctx + ': mobile dock not interactive');
           await page.locator('.mobile-nav').evaluate((node) => node.classList.add('is-hidden'));
+          // CSS may animate transform for 220ms even when the caller sets
+          // reduced motion; assert the settled layout, not transition frame 0.
+          if (screen.mode === 'portrait') await page.waitForTimeout(330);
           const hidden = await page.locator('.mobile-nav').evaluate((node) => {
             const s = getComputedStyle(node);
             return { pointer: s.pointerEvents, transform: s.transform, display: s.display };
