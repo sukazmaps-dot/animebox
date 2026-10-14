@@ -152,7 +152,7 @@ async function scopedCSS(file,prefix) {
     await page.emulateMedia({reducedMotion:'reduce'});
     // ACTUAL: HTML from a built public route, not an invented component.
     for(const name of ['/list','/settings']) {
-      await page.goto('http://animebox.test'+name,{waitUntil:'domcontentloaded'});
+      await page.goto('http://animebox.test'+name,{waitUntil:'load'});
       const main=page.locator('.page-content');
       assert(await main.count(),name+': real page-content unavailable');
       const text=await main.innerText();
@@ -161,6 +161,7 @@ async function scopedCSS(file,prefix) {
       for(const theme of ['dark','light'])for(const {width,height} of widths) {
         await page.setViewportSize({width,height});
         await page.evaluate(t=>{document.documentElement.dataset.animeboxTheme=t;},theme);
+        await page.evaluate(()=>new Promise(done=>requestAnimationFrame(()=>requestAnimationFrame(done))));
         const m=await page.evaluate(()=>{
           const el=document.querySelector('.page-content'),r=el.getBoundingClientRect();
           return {x:r.x,right:r.right,width:r.width,page:document.documentElement.scrollWidth,vw:innerWidth};
@@ -171,7 +172,7 @@ async function scopedCSS(file,prefix) {
       }
     }
     // SOURCE-EQUIVALENT: actual stylesheet + explicit deterministic route DOM.
-    await page.goto('http://animebox.test/list',{waitUntil:'domcontentloaded'});
+    await page.goto('http://animebox.test/list',{waitUntil:'load'});
     await page.addStyleTag({content:assetsStyle});
     for(const [name,markup] of [['catalog',catalog],['tracker-auth',tracker],['anime',anime],['public-profile',publicProfile]]) {
       await page.locator('.page-content').evaluate((el,html)=>{el.innerHTML=html;},markup);
@@ -179,6 +180,7 @@ async function scopedCSS(file,prefix) {
       for(const theme of ['dark','light'])for(const {width,height} of widths) {
         await page.setViewportSize({width,height});
         await page.evaluate(t=>{document.documentElement.dataset.animeboxTheme=t;},theme);
+        await page.evaluate(()=>new Promise(done=>requestAnimationFrame(()=>requestAnimationFrame(done))));
         const result=await page.evaluate((kind)=>{
           const root=document.querySelector('[data-fixture]');
           const r=el=>{const b=el.getBoundingClientRect();return {left:b.left,top:b.top,right:b.right,bottom:b.bottom,width:b.width,height:b.height};};
