@@ -168,7 +168,7 @@ need('reward materialization', rewardServer, [
 
 need('season finalization', seasons, [
   'materializeLeaderboardSeasonRewards',
-  'closedLeaderboardPeriods',
+  'missingLeaderboardPeriods',
   "data?.status === 'complete'",
 ]);
 
