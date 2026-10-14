@@ -15,6 +15,9 @@ for (const [name, marker] of [
 ]) assert(progress.includes(marker), 'Missing ' + name);
 assert(!/text-white(?:\/\d+)?|bg-white\/\[0\.055\]|text-\[color-mix\(in_srgb,var\(--ab-ui-accent\)_\d+%,transparent\)\]/.test(progress),
   'Theme-invariant white/transparent progress styling has reappeared');
+const responsive=fs.readFileSync('app/patch12-4-1-mobile-anime-flow.css','utf8');
+assert(/\.tracker-page\s+\.tracker-card__progress\s+a\s*\{\s*min-height:\s*44px\s*!important/.test(responsive),
+  'Legacy mobile CSS must preserve a 44px resume touch target');
 for (const file of ['scripts/route-layout-matrix-smoke.cjs', 'docs/PATCH-29-14-ROUTE-VISUAL-STABILITY.md']) {
   assert(fs.existsSync(file), 'Missing route layout contract: ' + file);
 }
