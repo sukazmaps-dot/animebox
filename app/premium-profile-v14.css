@@ -3640,3 +3640,10 @@
     transition: none;
   }
 }
+
+@media (max-width: 767px) {
+  .profile-editor-v13 .premium-studio-v22__preview-fab {
+    bottom: calc(var(--profile-editor-nav-offset, 70px) + var(--profile-editor-savebar-height, 104px) + 24px);
+    z-index: 81;
+  }
+}

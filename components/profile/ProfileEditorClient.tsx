@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+
+import { observeProfileEditorDock } from '@/lib/profile-editor-dock';
 
 import { useAuthState } from '@/components/AuthStateProvider';
 import PremiumStudioClient, { type PremiumStudioHandle } from '@/components/premium/PremiumStudioClient';
@@ -73,6 +75,10 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     loading: authLoading,
     refresh: refreshAuth,
   } = useAuthState();
+
+  const savebarRef = useCallback((node: HTMLDivElement | null) => {
+    if (node) return observeProfileEditorDock(node);
+  }, []);
 
   const [activeTab, setActiveTab] = useState<EditorTab>(normalizedTab(initialTab));
   const [profile, setProfile] = useState<ProfileRow | null>(null);
@@ -818,7 +824,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           </div>
         )}
 
-        <div className={`profile-editor-v13__mobile-save profile-editor-v18__savebar ${dirty ? 'is-dirty' : ''}`}>
+        <div ref={savebarRef} className={`profile-editor-v13__mobile-save profile-editor-v18__savebar ${dirty ? 'is-dirty' : ''}`}>
           <span className="profile-editor-v18__savebar-copy">
             <strong>{dirty ? 'Есть несохранённые изменения' : 'Всё сохранено'}</strong>
             <small>{dirty ? 'Проверь предпросмотр и сохрани, когда всё выглядит как нужно.' : 'Редактор профиля синхронизирован.'}</small>
