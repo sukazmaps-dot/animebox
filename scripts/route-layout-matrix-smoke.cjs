@@ -23,11 +23,7 @@ const widths = [
   { width: 1440, height: 900 },
   { width: 1920, height: 1080 },
 ];
-const routeHtml = {
-  '/list': awaitIfExists('unused')
-};
-// keep the test data deterministic; no live accounts, provider access or mutations.
-function awaitIfExists(_) { return null; }
+// Keep fixtures deterministic: no live accounts, provider access or mutations.
 
 const animeTitle = 'Невероятное приключение героя в мире, где сезон продолжается и всё становится сложнее';
 const poster = '<div class="anime-card__image-wrap" style="aspect-ratio:2/3"><div class="anime-card__image-fill"></div><span class="anime-card__rating">★ 9.2</span></div>';
