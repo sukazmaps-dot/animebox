@@ -99,7 +99,7 @@ export default function HomeMoodPicker({
                   />
                 ) : (
                   <span
-                    className="grid h-[27px] w-[27px] place-items-center text-[18px] leading-none text-white/80"
+                    className="mood-chip__placeholder"
                   >
                     {MOOD_FALLBACK_GLYPHS[mood.value]}
                   </span>

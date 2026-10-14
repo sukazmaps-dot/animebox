@@ -19,6 +19,37 @@ try{const page=await browser.newPage();for(const theme of ['dark','light'])for(c
  });
  assert(!result.overflow,`${theme}/${width}: overflow`);for(const c of result.contrasts)assert(c.ratio>=4.5,`${theme}/${width}: ${c.text}: ${c.ratio}`);
  assert.equal(result.ordinary,theme==='dark'?'rgb(28, 27, 34)':'rgb(253, 252, 254)');assert.equal(result.premium,'rgb(36, 16, 30)');assert.equal(result.publicPremium,'rgb(255, 111, 175)');assert.equal(result.cta,'rgb(120, 99, 174)');
+ // Regression: the light theme must not expand 48–50px mood chips to 14/12px
+ // labels, and fallback glyphs must remain visible before deferred art loads.
+ const mood=await page.evaluate(()=>{
+   const fixture=document.createElement('div');
+   fixture.className='home-page';
+   fixture.style.cssText='max-width:420px;margin:16px 0;';
+   fixture.innerHTML='<div class="home-discovery-flow"><section class="mood-picker"><div class="mood-picker__options"><button class="mood-chip is-active"><span class="mood-chip__icon"><span class="mood-chip__placeholder">✦</span></span><span class="mood-chip__copy"><strong>Спокойное</strong><small>Неспешный вечер</small></span></button><button class="mood-chip"><span class="mood-chip__icon">☕</span><span class="mood-chip__copy"><strong>Любое</strong><small>Все тайтлы</small></span></button></div></section></div>';
+   document.body.appendChild(fixture);
+   const active=fixture.querySelector('.mood-chip.is-active'),idle=fixture.querySelector('.mood-chip:not(.is-active)');
+   const label=active.querySelector('strong'),placeholder=active.querySelector('.mood-chip__placeholder');
+   const out={
+     labelPx:parseFloat(getComputedStyle(label).fontSize),
+     activeHeight:active.getBoundingClientRect().height,
+     activeBackground:getComputedStyle(active).backgroundColor,
+     idleBackground:getComputedStyle(idle).backgroundColor,
+     placeholderColor:getComputedStyle(placeholder).color,
+     placeholderBackground:getComputedStyle(placeholder).backgroundColor,
+     iconBackground:getComputedStyle(active.querySelector('.mood-chip__icon')).backgroundColor,
+     overflow:document.documentElement.scrollWidth>innerWidth+1,
+   };
+   fixture.remove();return out;
+ });
+ assert(mood.labelPx>0&&mood.labelPx<=13,`${theme}/${width}: mood label inflated to ${mood.labelPx}px`);
+ assert(mood.activeHeight>=38&&mood.activeHeight<=64,`${theme}/${width}: mood chip height ${mood.activeHeight}`);
+ assert.notEqual(mood.placeholderColor,'rgb(255, 255, 255)',`${theme}/${width}: invisible white mood glyph`);
+ assert(!mood.overflow,`${theme}/${width}: mood rail causes horizontal page overflow`);
+ if(theme==='light'){
+   assert.notEqual(mood.activeBackground,mood.idleBackground,`${width}: light mood selection invisible`);
+   assert.notEqual(mood.iconBackground,'rgba(0, 0, 0, 0)',`${width}: mood art has no light-surface backing`);
+ }
+
  if(process.env.PALETTE_SCREENSHOT_DIR){fs.mkdirSync(process.env.PALETTE_SCREENSHOT_DIR,{recursive:true});await page.screenshot({path:path.join(process.env.PALETTE_SCREENSHOT_DIR,`palette-${theme}-${width}.png`),fullPage:true})}checks++;
 }console.log(`PASS: ${checks} theme/viewport combinations; real CSS cascade, text contrast >=4.5, shared surfaces/CTA and custom Premium preserved.`)}finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

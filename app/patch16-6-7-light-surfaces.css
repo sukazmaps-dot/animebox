@@ -137,9 +137,35 @@ html[data-animebox-theme='light'] .episode-list__number { color: var(--ab-ui-acc
 
 html[data-animebox-theme='light'] :is(
   .home-pulse strong, .home-shortcuts__item strong, .home-retention__copy strong,
-  .continue-smart-card__body strong, .mood-chip__copy strong
+  .continue-smart-card__body strong
 ) { font-size: 14px !important; line-height: 1.4 !important; }
 html[data-animebox-theme='light'] :is(
   .home-pulse small, .home-shortcuts__item small, .home-retention__copy small,
-  .continue-smart-card__body small, .mood-chip__copy small
+  .continue-smart-card__body small
 ) { font-size: 12px !important; line-height: 1.5 !important; }
+
+/* Mood discovery uses a horizontal rail on phones and compact five-item tabs on desktop.
+   The old generic light-surface and 14/12px text overrides inflated 48px rows.
+   Keep the same geometry in both themes; adjust only color and artwork contrast. */
+html[data-animebox-theme='light'] .home-discovery-flow .mood-chip {
+  background: transparent !important;
+  color: var(--ab-ui-text);
+}
+html[data-animebox-theme='light'] .home-discovery-flow .mood-chip:hover {
+  background: color-mix(in srgb, var(--ab-ui-accent) 6%, transparent) !important;
+}
+html[data-animebox-theme='light'] .home-discovery-flow .mood-chip.is-active {
+  background: color-mix(in srgb, var(--ab-ui-accent) 11%, transparent) !important;
+  border-left-color: var(--ab-ui-accent) !important;
+}
+html[data-animebox-theme='light'] .home-discovery-flow .mood-chip__icon {
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 12%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--ab-ui-accent) 15%, var(--ab-ui-surface));
+}
+html[data-animebox-theme='light'] .home-discovery-flow .mood-chip__image {
+  filter: drop-shadow(0 2px 3px rgba(26, 16, 51, .17));
+}
+html[data-animebox-theme='light'] .home-discovery-flow .mood-chip.is-active .mood-chip__image {
+  filter: drop-shadow(0 2px 4px rgba(26, 16, 51, .22));
+}
