@@ -10,6 +10,9 @@ const assert = require('node:assert/strict');
 const postcss = require('postcss');
 const local = require('next/dist/compiled/postcss-modules-local-by-default');
 const scope = require('next/dist/compiled/postcss-modules-scope');
+const ts = require('typescript');
+const React = require('react');
+const { renderToStaticMarkup } = require('react-dom/server');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE_PATH || 'playwright');
 const read = (p) => fs.readFile(p, 'utf8');
 
@@ -26,14 +29,11 @@ const widths = [
 // Keep fixtures deterministic: no live accounts, provider access or mutations.
 
 const animeTitle = 'Невероятное приключение героя в мире, где сезон продолжается и всё становится сложнее';
-const poster = '<div class="anime-card__image-wrap" style="aspect-ratio:2/3"><div class="anime-card__image-fill"></div><span class="anime-card__rating">★ 9.2</span></div>';
-const catalogCard = '<a class="anime-card anime-card--signature flex h-full min-w-0 flex-col" href="#">' +
-  poster + '<div class="anime-card__body flex min-w-0 flex-1 flex-col"><h3 class="line-clamp-2">' +
-  animeTitle + '</h3><div class="anime-card__meta">2026 · TV · 24 эп.</div></div></a>';
+// Render the real AnimeCard component below, after reading its CSS Modules output.
 const catalog = '<main class="search-page" data-fixture="catalog">' +
   '<div class="page-heading"><h1>Каталог аниме</h1><p>Ищи тайтлы по названию или жанру</p></div>' +
   '<div class="section"><div class="section-head"><h2>Результаты</h2></div>' +
-  '<div class="anime-grid">' + catalogCard.repeat(8) + '</div></div></main>';
+  '<div class="anime-grid">%%ACTUAL_ANIME_CARDS%%</div></div></main>';
 
 const trackerProgress = '<div class="tracker-card__progress mt-3 min-w-0 rounded-xl border border-[color-mix(in_srgb,var(--ab-ui-accent)_10%,transparent)] bg-[var(--ab-ui-primary)]/[0.035] p-3">' +
   '<div class="flex min-w-0 flex-wrap items-start justify-between gap-2"><div class="min-w-0">' +
@@ -114,6 +114,37 @@ async function scopedCSS(file,prefix) {
   const chunks=(await fs.readdir(cssDir)).filter(name=>name.endsWith('.css'));
   assert(chunks.length,'Production build CSS chunks required; run after npm run build');
   const css=(await Promise.all(chunks.map(name=>read(path.join(cssDir,name))))).join('\n');
+  // Same real React component rendering as page-consistency-smoke. The previous
+  // hand-written card omitted AnimeCardContent's wrapper and falsified geometry.
+  const cardCSS=css.includes('AnimeCardContent-module')?css:null;
+  assert(cardCSS,'Production build does not contain AnimeCardContent CSS');
+  const matched=cardCSS.match(/\.(AnimeCardContent-module__[\w]+__content)/);
+  assert(matched,'AnimeCardContent CSS Module class unavailable');
+  const prefix=matched[1].replace(/content$/,'');
+  const cardStyles=Object.fromEntries(['content','poster','inline','media','details'].map(key=>[key,prefix+key]));
+  async function compile(file,imports){
+    const mod={exports:{}};
+    const transformed=ts.transpileModule(await read(file),{
+      compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}
+    }).outputText;
+    new Function('require','exports','module',transformed)(
+      name=>name==='react/jsx-runtime'?require(name):imports[name],mod.exports,mod
+    );
+    return mod.exports;
+  }
+  const cardContent=await compile('components/AnimeCardContent.tsx',{
+    './AnimeCardContent.module.css':{default:cardStyles}
+  });
+  const animeCard=await compile('components/AnimeCard.tsx',{
+    '@/components/AnimeCardContent':cardContent,
+    'next/link':{default:({prefetch,...props})=>React.createElement('a',props)},
+    '@/components/AnimeImage':{default:({alt,className})=>React.createElement('img',{src:'/brand/brand-mark.webp',alt,className})},
+    '@/lib/anime-url':{animeHref:anime=>'/anime/'+anime.id},
+    '@/lib/anime-display':{getAnimeTitle:anime=>anime.title.russian,isAnimeOngoing:()=>false},
+  });
+  const item={id:101,title:{russian:animeTitle},genres:[],score:9.2,format:'TV',episodes:24,startDate:{year:2026}};
+  const realCard=renderToStaticMarkup(React.createElement(animeCard.default,{anime:item}));
+  const catalogWithRealCards=catalog.replace('%%ACTUAL_ANIME_CARDS%%',realCard.repeat(8));
   const modules=await Promise.all([
     scopedCSS('app/anime/[slug]/page.module.css','page'),
     scopedCSS('app/anime/[slug]/detail-layout.module.css','detail'),
@@ -179,7 +210,7 @@ async function scopedCSS(file,prefix) {
     // SOURCE-EQUIVALENT: actual stylesheet + explicit deterministic route DOM.
     await page.goto('http://animebox.test/list',{waitUntil:'load'});
     await page.addStyleTag({content:assetsStyle});
-    for(const [name,markup] of [['catalog',catalog],['tracker-auth',tracker],['anime',anime],['public-profile',publicProfile]]) {
+    for(const [name,markup] of [['catalog',catalogWithRealCards],['tracker-auth',tracker],['anime',anime],['public-profile',publicProfile]]) {
       await page.locator('.page-content').evaluate((el,html)=>{el.innerHTML=html;},markup);
       assert(await page.locator('[data-fixture]').count(),name+': fixture failed to mount');
       for(const {width,height} of widths)for(const theme of ['dark','light']) {
