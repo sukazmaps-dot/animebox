@@ -151,7 +151,21 @@ async function scopedCSS(file,prefix) {
     scopedCSS('components/AnimeDetailControls.module.css','controls'),
     scopedCSS('components/AnimeSynopsis.module.css','synopsis'),
   ]);
-  const assetsStyle=css+'\n'+modules.join('\n');
+  // Chunk filenames are content-hashed and unordered. Loading their entire
+  // CSS concatenation alone gives legacy card-layout rules an artificial
+  // chance to run after modern mobile fixes. Keep compiled Tailwind utilities,
+  // then replay the *real* layout CSS ownership/import order from source.
+  const rootImports=[...((await read('app/layout.tsx')).matchAll(/import '\.\/([^']+\.css)'/g))]
+    .map(m=>'app/'+m[1]);
+  const profileImports=[...((await read('app/profile/layout.tsx')).matchAll(/import '\.\.\/([^']+\.css)'/g))]
+    .map(m=>'app/'+m[1]);
+  const animeImports=[...((await read('app/anime/[slug]/layout.tsx')).matchAll(/import '\.\.\/\.\.\/([^']+\.css)'/g))]
+    .map(m=>'app/'+m[1]);
+  async function inSourceOrder(files) {
+    return (await Promise.all(files.map(read))).map(s=>s.replace(/@import[^;]+;/g,'')).join('\n');
+  }
+  const assetsStyle=css+'\n'+await inSourceOrder(rootImports)+'\n'+
+    await inSourceOrder(profileImports)+'\n'+await inSourceOrder(animeImports)+'\n'+modules.join('\n');
   const browser=await chromium.launch({headless:true,args:['--no-sandbox'],
     ...(process.env.CHROMIUM_PATH ? {executablePath:process.env.CHROMIUM_PATH}: {})});
   let cases=0;
@@ -248,7 +262,8 @@ async function scopedCSS(file,prefix) {
         if(name==='catalog') {
           assert.equal(result.cards.length,8,tag+': catalog fixture cards missing');
           const art=await page.locator('.anime-card__image-wrap').first().boundingBox();
-          assert(art&&art.height>0&&Math.abs(art.width/art.height-2/3)<0.04,tag+': poster ratio');
+          assert(art&&art.height>0&&Math.abs(art.width/art.height-2/3)<0.04,
+            tag+': poster ratio '+JSON.stringify(art)+' ratio='+((art?.width||0)/(art?.height||1)));
         }
         if(name==='tracker-auth') {
           assert.equal(result.cards.length,3,tag+': tracker fixture cards missing');
