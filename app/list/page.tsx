@@ -301,10 +301,10 @@ export default function MyListPage() {
                     <div className="tracker-card__progress mt-3 min-w-0 rounded-xl border border-[color-mix(in_srgb,var(--ab-ui-accent)_10%,transparent)] bg-[var(--ab-ui-primary)]/[0.035] p-3">
                       <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <span className="block text-[9px] font-extrabold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--ab-ui-accent)_45%,transparent)]">
+                          <span className="block text-[10px] font-extrabold uppercase tracking-[0.1em] text-[var(--ab-ui-muted)]">
                             Подтверждённый просмотр
                           </span>
-                          <strong className="mt-1 block truncate text-xs text-white/80">
+                          <strong className="mt-1 block min-w-0 break-words text-xs text-[var(--ab-ui-text)]">
                             {item.progress.fullyCompleted
                               ? 'Тайтл полностью просмотрен'
                               : item.progress.resumeEpisode
@@ -315,14 +315,14 @@ export default function MyListPage() {
                           </strong>
                         </div>
 
-                        <span className="shrink-0 text-[10px] font-bold text-[color-mix(in_srgb,var(--ab-ui-accent)_70%,transparent)]">
+                        <span className="shrink-0 text-[11px] font-bold text-[var(--ab-ui-accent)]">
                           {item.progress.totalEpisodes
                             ? `${item.progress.completedEpisodes} / ${item.progress.totalEpisodes} серий`
                             : `${item.progress.completedEpisodes} серий подтверждено`}
                         </span>
                       </div>
 
-                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.055]">
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--ab-ui-border)]">
                         <span
                           className="block h-full rounded-full bg-gradient-to-r from-[var(--ab-ui-primary)] to-[var(--ab-ui-primary)]"
                           style={{
@@ -344,7 +344,7 @@ export default function MyListPage() {
                       {item.progress.resumeEpisode && (
                         <Link
                           href={`/anime/${item.anime_id}/episode/${item.progress.resumeEpisode}`}
-                          className="mt-2 inline-flex min-h-9 items-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--ab-ui-accent)_15%,transparent)] bg-[var(--ab-ui-primary)]/[0.07] px-3 text-[11px] font-bold text-[var(--ab-ui-accent)] transition hover:bg-[var(--ab-ui-primary)]/[0.12]"
+                          className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--ab-ui-accent)_15%,transparent)] bg-[var(--ab-ui-primary)]/[0.07] px-3 text-[11px] font-bold text-[var(--ab-ui-accent)] transition hover:bg-[var(--ab-ui-primary)]/[0.12]"
                         >
                           Продолжить
                           {item.progress.resumePositionMs >= 10_000
