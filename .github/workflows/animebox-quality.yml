@@ -51,6 +51,11 @@ jobs:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
         run: npm run palette:check && node scripts/site-palette-smoke.cjs
 
+      - name: Patch 29.13 CSS cascade ownership and responsive browser regression
+        env:
+          PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
+        run: npm run css-cascade:check && npm run css-cascade:browser
+
       - name: Profile editor mobile dock regression
         env:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright

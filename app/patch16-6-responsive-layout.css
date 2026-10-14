@@ -288,8 +288,34 @@ iframe {
     height: 23px !important;
   }
 
+  /* Landscape phones from 769–1100px do not match the <=768px
+     mobile-shell indicator rules. Keep the same top marker in this mode. */
+  .mobile-nav__item {
+    position: relative !important;
+  }
+
+  .mobile-nav__item.is-active {
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--ab-ui-text) !important;
+  }
+
   .mobile-nav__item::after {
+    content: '' !important;
+    position: absolute !important;
     top: 1px !important;
+    left: 50% !important;
+    width: 0;
+    height: 2px !important;
+    border-radius: 0 0 2px 2px;
+    background: transparent;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .mobile-nav__item.is-active::after {
+    width: 24px !important;
+    background: var(--ab-ui-accent) !important;
   }
 
   /* Account sheet becomes a side sheet so it does not cover the entire
