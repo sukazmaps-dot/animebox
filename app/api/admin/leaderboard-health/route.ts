@@ -1,6 +1,6 @@
 import { requireAdmin } from '@/lib/admin-server';
 import { adminClient, failure } from '@/lib/community-server';
-import { closedLeaderboardPeriods } from '@/lib/leaderboard-periods';
+import { closedLeaderboardPeriods, missingLeaderboardPeriods } from '@/lib/leaderboard-periods';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,10 +17,14 @@ export async function GET(request: Request) {
     if (seasons.error) throw seasons.error;
     if (job.error) throw job.error;
     const rows = seasons.data ?? [];
-    const first = rows.reduce((value, row) => row.starts_at < value ? row.starts_at : value, String(health.data?.coveredFrom));
-    const periods = closedLeaderboardPeriods(new Date(first), new Date());
-    const known = new Set(rows.map(row => `${row.period_type}:${row.period_key}`));
-    const missing = periods.filter(p => !known.has(`${p.periodType}:${p.periodKey}`));
+    const now = new Date();
+    const coveredFrom = String(health.data?.coveredFrom);
+    const missing = missingLeaderboardPeriods(rows, coveredFrom, now);
+    const periods = (['week', 'month'] as const).flatMap(type => {
+      const first = rows.filter(row => row.period_type === type)
+        .reduce((since, row) => !since || row.starts_at < since ? row.starts_at : since, '');
+      return closedLeaderboardPeriods(new Date(first || coveredFrom), now).filter(p => p.periodType === type);
+    }).sort((a, b) => a.endsAt.localeCompare(b.endsAt));
     const key = new URL(request.url).searchParams.get('preview');
     let preview = null;
     if (key) {

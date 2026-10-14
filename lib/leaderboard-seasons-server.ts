@@ -2,7 +2,7 @@ import 'server-only';
 
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { materializeLeaderboardSeasonRewards } from '@/lib/leaderboard-rewards-server';
-import { closedLeaderboardPeriods } from '@/lib/leaderboard-periods';
+import { missingLeaderboardPeriods } from '@/lib/leaderboard-periods';
 
 export async function finalizeRecentLeaderboardSeasons(now = new Date(), shouldStop = () => false) {
   const admin = createSupabaseAdmin();
@@ -17,9 +17,7 @@ export async function finalizeRecentLeaderboardSeasons(now = new Date(), shouldS
     if ((data ?? []).length < 500) break;
   }
   const coveredFrom = typeof health?.coveredFrom === 'string' ? health.coveredFrom : now.toISOString();
-  const since = existing[0]?.starts_at ?? coveredFrom;
-  const known = new Set(existing.map(row => `${row.period_type}:${row.period_key}`));
-  const periods = closedLeaderboardPeriods(new Date(since), now).filter(p => !known.has(`${p.periodType}:${p.periodKey}`));
+  const periods = missingLeaderboardPeriods(existing, coveredFrom, now);
   const results: unknown[] = [];
   for (const period of periods.slice(0, 6)) {
     if (shouldStop()) break;

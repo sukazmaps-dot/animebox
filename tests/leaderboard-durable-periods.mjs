@@ -75,3 +75,14 @@ assert(!periods.some(p=>p.periodKey==='2026-10' && p.periodType==='month'));
 const leap=context.exports.closedLeaderboardPeriods(new Date('2024-02-01'),new Date('2024-03-01'));
 assert(leap.some(p=>p.periodType==='month' && p.startsAt==='2024-02-01T00:00:00.000Z' && p.endsAt==='2024-03-01T00:00:00.000Z'));
 console.log('PASS: durable SQL migration, delta/idempotency, UTC boundaries, cap, retention, trust, archives, rank>100, RLS, period catch-up');
+
+const history = [
+ {period_type:'month',period_key:'2026-08',starts_at:'2026-08-01T00:00:00Z'},
+ {period_type:'month',period_key:'2026-09',starts_at:'2026-09-01T00:00:00Z'},
+ ...['2026-09-07','2026-09-14','2026-09-21'].map(day=>({period_type:'week',period_key:day,starts_at:day+'T00:00:00Z'})),
+];
+const missing=context.exports.missingLeaderboardPeriods(history,'2026-10-03T00:00:00Z',new Date('2026-10-14T08:00:00Z'));
+assert.deepEqual(Array.from(missing,p=>p.periodKey),['2026-09-28','2026-10-05'],'monthly history cannot manufacture earlier weeks');
+const emptyWeek=context.exports.missingLeaderboardPeriods(history.filter(row=>row.period_type==='month'),'2026-10-03T00:00:00Z',new Date('2026-10-14T08:00:00Z'));
+assert(!emptyWeek.some(p=>p.periodType==='week' && p.periodKey<'2026-09-28'),'fresh weekly horizon follows coverage, not legacy month');
+console.log('PASS: independent weekly/monthly catch-up horizons');

@@ -21,3 +21,20 @@ export function closedLeaderboardPeriods(since: Date, now: Date): ClosedLeaderbo
   }
   return result.sort((a, b) => a.endsAt.localeCompare(b.endsAt) || a.periodType.localeCompare(b.periodType));
 }
+
+/** Each period type has its own historical horizon. A legacy empty month
+ * must never manufacture weeks predating the site's weekly seasons. */
+export function missingLeaderboardPeriods(
+  existing: Array<{ period_type: string; period_key: string; starts_at: string }>,
+  coveredFrom: string,
+  now: Date,
+): ClosedLeaderboardPeriod[] {
+  const known = new Set(existing.map(row => `${row.period_type}:${row.period_key}`));
+  return (['week', 'month'] as const).flatMap(type => {
+    const first = existing.filter(row => row.period_type === type)
+      .reduce((since, row) => !since || row.starts_at < since ? row.starts_at : since, '');
+    const since = first || coveredFrom;
+    return closedLeaderboardPeriods(new Date(since), now)
+      .filter(period => period.periodType === type && !known.has(`${type}:${period.periodKey}`));
+  }).sort((a, b) => a.endsAt.localeCompare(b.endsAt) || a.periodType.localeCompare(b.periodType));
+}
