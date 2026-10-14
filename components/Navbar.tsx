@@ -493,6 +493,16 @@ function NavbarContent() {
             <span className="sidebar__icon" aria-hidden="true"><Icon name="mail" weight={isActive('/copyright') ? 'fill' : 'regular'} /></span>
             <span>Правообладателям</span>
           </Link>
+          <Link
+            href="/settings"
+            className={`sidebar__item sidebar__item--utility ${
+              isActive('/settings') ? 'is-active' : ''
+            }`}
+            title="Настройки"
+          >
+            <span className="sidebar__icon" aria-hidden="true"><Icon name="settings" weight={isActive('/settings') ? 'fill' : 'regular'} /></span>
+            <span>Настройки</span>
+          </Link>
         </nav>
 
         {!authLoading && user && (
@@ -522,16 +532,7 @@ function NavbarContent() {
                 <span>Друзья</span>
               </Link>
 
-              <Link
-                href="/settings"
-                className={`sidebar__item sidebar__item--utility ${
-                  isActive('/settings') ? 'is-active' : ''
-                }`}
-                title="Настройки"
-              >
-                <span className="sidebar__icon" aria-hidden="true"><Icon name="settings" weight={isActive('/settings') ? 'fill' : 'regular'} /></span>
-                <span>Настройки</span>
-              </Link>
+
             </nav>
           </div>
         )}

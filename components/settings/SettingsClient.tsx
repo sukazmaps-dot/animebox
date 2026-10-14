@@ -87,6 +87,7 @@ export default function SettingsClient() {
 
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_USER_PREFERENCES);
   const [notificationLoading, setNotificationLoading] = useState(true);
+  const [notificationOwner, setNotificationOwner] = useState<string | null>(null);
   const [notificationBusy, setNotificationBusy] = useState(false);
   const [telegramLinked, setTelegramLinked] = useState(false);
   const [telegramEnabled, setTelegramEnabled] = useState(false);
@@ -107,11 +108,7 @@ export default function SettingsClient() {
   }, []);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      window.location.replace('/login?next=%2Fsettings');
-      return;
-    }
+    if (authLoading || !user) return;
 
     let active = true;
     const controller = new AbortController();
@@ -131,13 +128,16 @@ export default function SettingsClient() {
         if (!active) return;
         setTelegramLinked(Boolean(payload.telegramLinked));
         setTelegramEnabled(Boolean(payload.telegramEnabled));
+        setNotificationOwner(user.id);
       })
       .catch((error) => {
         if (!active || (error as Error).name === 'AbortError') return;
         setMessage(error instanceof Error ? error.message : 'Не удалось загрузить уведомления.');
       })
       .finally(() => {
-        if (active) setNotificationLoading(false);
+        if (active) {
+          setNotificationLoading(false);
+        }
       });
 
     return () => {
@@ -160,7 +160,7 @@ export default function SettingsClient() {
   }
 
   async function toggleTelegram() {
-    if (notificationBusy || notificationLoading || !telegramLinked) return;
+    if (!user || notificationOwner !== user.id || notificationBusy || notificationLoading || !telegramLinked) return;
     setNotificationBusy(true);
     setMessage('');
 
@@ -217,13 +217,6 @@ export default function SettingsClient() {
     window.location.replace('/');
   }
 
-  if (authLoading || !user) {
-    return (
-      <main className={styles.page}>
-        <div className={styles.loading}>Загружаем настройки…</div>
-      </main>
-    );
-  }
 
   return (
     <main className={styles.page}>
@@ -232,10 +225,10 @@ export default function SettingsClient() {
         <div>
           <span className={styles.eyebrow}>ANIMEBOX SETTINGS</span>
           <h1>Настройки</h1>
-          <p>Управляй просмотром, уведомлениями и аккаунтом в одном месте.</p>
+          <p>Настрой просмотр и интерфейс на этом устройстве. Для функций аккаунта нужен вход.</p>
         </div>
 
-        <div className={styles.accountChip}>
+        {user ? <div className={styles.accountChip}>
           <span className={styles.avatar}>
             <img
               src={avatarUrl}
@@ -247,7 +240,10 @@ export default function SettingsClient() {
             <strong>{username}</strong>
             <small>{user.email || 'AnimeBox аккаунт'}</small>
           </span>
-        </div>
+        </div> : <div className={styles.accountChip}>
+          <span><strong>{authLoading ? 'Проверяем аккаунт…' : 'Гостевой режим'}</strong><small>Настройки сохраняются на этом устройстве</small></span>
+          {!authLoading && <Link href="/login?next=%2Fsettings" className={styles.inlineLink}>Войти</Link>}
+        </div>}
       </section>
 
       {message && <div className={styles.toast} role="status">{message}</div>}
@@ -324,21 +320,23 @@ export default function SettingsClient() {
             <div>
               <strong>Уведомления о новых сериях</strong>
               <p>
-                {telegramLinked
+                {!user
+                  ? 'Войди в аккаунт, чтобы привязать Telegram и управлять уведомлениями.'
+                  : notificationOwner === user.id && telegramLinked
                   ? 'Главный переключатель Telegram-уведомлений AnimeBox.'
                   : 'Telegram ещё не привязан к этому аккаунту.'}
               </p>
             </div>
             <Toggle
-              checked={telegramEnabled}
-              disabled={notificationLoading || notificationBusy || !telegramLinked}
+              checked={Boolean(user && notificationOwner === user.id && telegramEnabled)}
+              disabled={!user || notificationOwner !== user.id || notificationLoading || notificationBusy || !telegramLinked}
               onChange={() => void toggleTelegram()}
               label="Telegram-уведомления"
             />
           </div>
 
-          <Link href="/notifications" className={styles.inlineLink}>
-            Управление подписками на тайтлы <Icon name="chevron" />
+          <Link href={user ? "/notifications" : "/login?next=%2Fsettings"} className={styles.inlineLink}>
+            {user ? "Управление подписками на тайтлы" : "Войти для настройки уведомлений"} <Icon name="chevron" />
           </Link>
         </section>
 
@@ -348,12 +346,15 @@ export default function SettingsClient() {
             <div><small>ПРОФИЛЬ</small><h2>Оформление аккаунта</h2></div>
           </div>
 
-          <div className={styles.linkGrid}>
+          {user ? <div className={styles.linkGrid}>
             <Link href="/profile"><strong>Мой профиль</strong><small>Публичная страница и статистика</small></Link>
             <Link href="/profile/edit"><strong>Редактировать профиль</strong><small>Ник, аватар и баннер</small></Link>
             <Link href="/profile/studio"><strong>Profile Studio</strong><small>Premium-оформление профиля</small></Link>
             <Link href="/settings/sponsor"><strong>Спонсорское оформление</strong><small>Рамка, ник и приватность</small></Link>
-          </div>
+          </div> : <div>
+            <p className={styles.cardCopy}>Войди, чтобы редактировать профиль, аватар и персональное оформление.</p>
+            <Link href="/login?next=%2Fsettings" className={styles.inlineLink}>Войти в аккаунт <Icon name="chevron" /></Link>
+          </div>}
         </section>
 
         <section className={styles.card}>
@@ -386,10 +387,10 @@ export default function SettingsClient() {
               <span><strong>Локальные настройки</strong><small>Вернуть настройки интерфейса и просмотра по умолчанию</small></span>
               <button type="button" onClick={resetLocalSettings}>Сбросить</button>
             </div>
-            <div>
+            {user && <div>
               <span><strong>Выйти из аккаунта</strong><small>Сессия AnimeBox на этом устройстве будет завершена</small></span>
               <button type="button" className={styles.logoutButton} onClick={() => void logout()}>Выйти</button>
-            </div>
+            </div>}
           </div>
         </section>
       </div>

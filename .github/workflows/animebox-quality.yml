@@ -51,6 +51,11 @@ jobs:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
         run: npm run palette:check && node scripts/site-palette-smoke.cjs
 
+      - name: Profile editor mobile dock regression
+        env:
+          PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
+        run: node scripts/profile-editor-dock-smoke.cjs
+
       - name: Release consolidation invariants
         run: npm run release-consolidation:check
 
@@ -306,3 +311,8 @@ jobs:
 
       - name: Production build
         run: NODE_ENV=production npm run build
+
+      - name: Guest settings hydration regression
+        env:
+          PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
+        run: node scripts/settings-guest-smoke.cjs
