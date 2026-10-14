@@ -269,6 +269,20 @@
   transform: translateZ(0);
 }
 
+/* The deferred mood artwork needs a theme-aware fallback, not white glyphs on light surfaces. */
+.mood-chip__placeholder {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--ab-ui-accent) 12%, transparent);
+  color: var(--ab-ui-accent);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+}
+
 .mood-chip:hover .mood-chip__icon {
   transform: translateY(-1px) scale(1.04);
 }
