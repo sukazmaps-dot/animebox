@@ -3,7 +3,7 @@ import { animeHref } from '@/lib/anime-url';
 import Link from 'next/link';
 import type { Anime } from '@/types/anime';
 
-import AnimeImage from '@/components/AnimeImage';
+import AnimePoster from '@/components/AnimePoster';
 import { getAnimeTitle, isAnimeOngoing } from '@/lib/anime-display';
 
 function formatLabel(
@@ -91,7 +91,8 @@ export default function AnimeCard({
         style={{ aspectRatio: '2 / 3' }}
       >
         <div className="anime-card__image-fill">
-          <AnimeImage
+          <AnimePoster
+            key={anime.id}
             image={anime.coverImage}
             alt={title}
             englishName={anime.title?.english || anime.title?.romaji}
