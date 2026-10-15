@@ -6,9 +6,15 @@
   inset: auto 16px 12px clamp(16px, 4vw, 64px);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  width: max-content;
+  max-width: calc(100% - 32px);
   min-width: 0;
   height: 44px;
+  padding: 0 10px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ab-ui-surface) 78%, transparent);
+  backdrop-filter: blur(8px);
   pointer-events: none;
 }
 
@@ -31,8 +37,8 @@
 .position {
   display: grid;
   place-items: center;
-  flex: 1 1 44px;
-  width: 44px;
+  flex: 1 1 34px;
+  width: 34px;
   min-width: 24px;
   height: 44px;
   margin: 0;
@@ -63,5 +69,5 @@
 }
 
 @media (max-width: 768px) {
-  .pagination { inset: auto 14px 8px; }
+  .pagination { inset: auto auto 10px 14px; }
 }
