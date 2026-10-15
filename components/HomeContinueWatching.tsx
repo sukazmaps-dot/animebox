@@ -96,7 +96,7 @@ export default function HomeContinueWatching({
           completedEpisodes,
           totalEpisodes: explicitTotalEpisodes,
           lastWatchedAt,
-        }, index) => {
+        }) => {
           const title = getAnimeTitle(anime);
           const totalEpisodes =
             explicitTotalEpisodes ??
@@ -112,7 +112,7 @@ export default function HomeContinueWatching({
             <Link
               key={anime.id}
               href={`${animeHref(anime)}/watch?ep=${Math.max(1, episode)}`}
-              className={`continue-smart-card ${styles.card} ${index === 0 ? styles.featured : ""}`}
+              className={`continue-smart-card ${styles.card}`}
               onClick={() => {
                 rememberContinueWatchingAttribution({
                   animeId: anime.id,
@@ -153,7 +153,7 @@ export default function HomeContinueWatching({
                   englishName={anime.title?.english || anime.title?.romaji}
                   className="continue-smart-card__image"
                   loading="lazy"
-                  sizes={index === 0 ? '(max-width: 600px) 76px, 96px' : '54px'}
+                  sizes="(max-width: 600px) 62px, 96px"
                   quality={60}
                   sourcePreference="compact"
                   preset="tiny"
@@ -186,7 +186,7 @@ export default function HomeContinueWatching({
                 </small>
               </div>
 
-              <span className={`continue-smart-card__arrow ${index === 0 ? styles.action : ''}`} aria-hidden="true">{index === 0 ? 'Смотреть →' : '→'}</span>
+              <span className="continue-smart-card__arrow" aria-hidden="true">→</span>
             </Link>
           );
         })}

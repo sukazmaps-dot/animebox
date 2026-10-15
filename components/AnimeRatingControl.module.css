@@ -3,7 +3,7 @@
 .control:global(.anime-rating-control) :global(.anime-rating-control__stars--ten) {
   display: grid !important;
   grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
-  width: 100% !important;
+  width: min(100%, 440px) !important;
   min-width: 0;
   max-width: 100%;
   gap: 4px !important;
@@ -17,7 +17,7 @@
   min-height: 44px;
   height: 44px !important;
   padding: 0 !important;
-  font-size: 24px !important;
+  font-size: clamp(19px, 2.2vw, 26px) !important;
 }
 .control:global(.anime-rating-control) :global(.anime-rating-control__star-base),
 .control:global(.anime-rating-control) :global(.anime-rating-control__star-fill) {
