@@ -191,6 +191,7 @@ export default function SmartRecommendationCard({
   const [posterState, setPosterState] = useState<AnimeImageLoadState>('loading');
   const ratingLabel = formatAnimeScore(anime);
   const durationLabel = formatDuration(anime.duration);
+  const releaseYear = Number(anime.startDate?.year);
   const primaryExplanation = explanations[0];
 
   const eventContext = {
@@ -529,7 +530,7 @@ export default function SmartRecommendationCard({
       <AnimeCardContent media={
         <Link
         href={animeHref(anime)}
-        prefetch={true}
+        prefetch={false}
         className="smart-card__poster-link"
         onClick={trackOpen}
         aria-label={`Открыть ${title}`}
@@ -575,7 +576,7 @@ export default function SmartRecommendationCard({
       <div className="smart-card__body">
         <Link
           href={animeHref(anime)}
-          prefetch={true}
+          prefetch={false}
           onClick={trackOpen}
           className="smart-card__title"
           title={title}
@@ -584,6 +585,7 @@ export default function SmartRecommendationCard({
         </Link>
 
         <div className="smart-card__meta" aria-label="Информация об аниме">
+          {Number.isInteger(releaseYear) && releaseYear > 1900 && <span>{releaseYear}</span>}
           <span>{formatLabel(anime.format)}</span>
           {durationLabel && (
             <>
@@ -636,33 +638,11 @@ export default function SmartRecommendationCard({
 
           <button
             type="button"
-            className={liked
-              ? 'smart-card__feedback smart-card__feedback--like is-active'
-              : 'smart-card__feedback smart-card__feedback--like'}
-            onClick={likeMore}
-            aria-pressed={liked}
-            aria-label={`Хочу больше похожего на ${title}`}
-            title="Больше похожего"
-          >
-            <Icon name="heart" size={19} weight={liked ? 'fill' : 'regular'} />
-          </button>
-
-          <button
-            type="button"
-            className="smart-card__feedback smart-card__feedback--watched"
-            onClick={markWatched}
-            aria-label={`Я уже смотрел ${title}`}
-            title="Уже смотрел"
-          >
-            <Icon name="check" size={19} weight="bold" />
-          </button>
-
-          <button
-            type="button"
             className="smart-card__dismiss smart-card__feedback--dismiss"
             onClick={openFeedbackMenu}
             aria-label={`Настроить рекомендации для ${title}`}
-            title="Почему не подходит?"
+            title="Настроить подборку"
+            aria-haspopup="dialog"
           >
             <svg
               className="smart-card__feedback-icon"
@@ -670,12 +650,9 @@ export default function SmartRecommendationCard({
               fill="none"
               aria-hidden="true"
             >
-              <path
-                d="M6.5 6.5l11 11M17.5 6.5l-11 11"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
+              <circle cx="5" cy="12" r="2" fill="currentColor" />
+              <circle cx="12" cy="12" r="2" fill="currentColor" />
+              <circle cx="19" cy="12" r="2" fill="currentColor" />
             </svg>
           </button>
         </div>
@@ -698,7 +675,7 @@ export default function SmartRecommendationCard({
             <div>
               <span>НАСТРОИТЬ ЛЕНТУ</span>
               <strong id={`feedback-title-${anime.id}`}>
-                Почему не подходит?
+                Настроить подборку
               </strong>
             </div>
             <button
@@ -712,9 +689,40 @@ export default function SmartRecommendationCard({
           </div>
 
           <p className="smart-card__feedback-dialog-copy">
-            Причина влияет на рекомендации по-разному. «Не сейчас» не портит
-            долгосрочный профиль вкуса.
+            Выбери, что учесть в следующих рекомендациях. «Не сейчас»
+            не меняет твой долгосрочный вкус.
           </p>
+
+          <div className="smart-card__dialog-quick-actions">
+            <button
+              type="button"
+              className={liked
+                ? 'smart-card__feedback smart-card__feedback--like is-active'
+                : 'smart-card__feedback smart-card__feedback--like'}
+              onClick={() => {
+                likeMore();
+                feedbackDialogRef.current?.close();
+              }}
+              aria-pressed={liked}
+              aria-label={`Хочу больше похожего на ${title}`}
+              title="Больше похожего"
+            >
+              <Icon name="heart" size={19} weight={liked ? 'fill' : 'regular'} />
+              <span>{liked ? 'Учтено: больше похожего' : 'Больше похожего'}</span>
+            </button>
+
+            <button
+              type="button"
+              className="smart-card__feedback smart-card__feedback--watched"
+              onClick={markWatched}
+              aria-label={`Я уже смотрел ${title}`}
+              title="Уже смотрел"
+            >
+              <Icon name="check" size={19} weight="bold" />
+              <span>Уже смотрел</span>
+            </button>
+
+          </div>
 
           <div className="smart-card__feedback-dialog-options">
             {STRUCTURED_FEEDBACK_MENU.map((item) => (

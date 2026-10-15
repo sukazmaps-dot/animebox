@@ -8,7 +8,7 @@ const animeCard = read('components/AnimeCard.tsx');
 const smartCard = read('components/SmartRecommendationCard.tsx');
 const animeLoading = read('app/anime/[slug]/loading.tsx');
 const episodePage = read('components/AnimeEpisodePage.tsx');
-const actionCss = read('app/patch17-6-home-recommendation-actions.css');
+const actionCss = read('app/patch30-1-home-visual.css');
 const telegramBridge = read('components/TelegramMiniAppBridge.tsx');
 const telegramGate = read('components/TelegramSubscriptionGate.tsx');
 const pkg = JSON.parse(read('package.json'));
@@ -39,8 +39,12 @@ need('anime card navigation', animeCard, [
 need('recommendation navigation', smartCard, [
   'className="smart-card__poster-link"',
   'className="smart-card__title"',
-  'prefetch={true}',
+  'prefetch={false}',
 ]);
+// 30.1 deliberately stops speculative full-page loads on recommendation rails.
+if ((smartCard.match(/prefetch={false}/g) ?? []).length !== 2 || smartCard.includes('prefetch={true}')) {
+  failures.push('both recommendation links must avoid speculative full-page prefetch');
+}
 
 if (
   animeLoading.includes('AnimeBoxLoader') ||
@@ -57,17 +61,17 @@ need('anime route continuity skeleton', animeLoading, [
 ]);
 
 need('recommendation action footer', actionCss, [
-  '"plan plan plan"',
-  '"like watched dismiss"',
-  'border-top: 1px solid var(--ab-ui-border)',
-  '.home-page .smart-card__plan-icon',
+  'grid-template-columns: minmax(0, 1fr) 44px',
+  '"plan dismiss"',
+  'min-height: 44px !important',
+  '.smart-card__dialog-quick-actions',
   'background: transparent !important',
 ]);
 if (
-  actionCss.indexOf('"plan plan plan"') >
-  actionCss.indexOf('"like watched dismiss"')
+  smartCard.indexOf('className={planClassName}') >
+  smartCard.indexOf('onClick={openFeedbackMenu}')
 ) {
-  failures.push('“В список” must appear before secondary recommendation feedback controls');
+  failures.push('“В список” must appear before the secondary recommendation menu');
 }
 
 if (

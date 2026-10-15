@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { observeNearViewportMedia } from '@/lib/media-warmup-client';
+import Icon from '@/components/Icon';
 
 import {
   HOME_MOOD_OPTIONS,
@@ -9,12 +10,12 @@ import {
 } from '@/lib/recommendation-moods';
 import type { TasteMood } from '@/lib/personalization';
 
-const MOOD_FALLBACK_GLYPHS: Record<TasteMood, string> = {
-  any: '✦',
-  comfort: '☕',
-  tension: '◆',
-  emotion: '◇',
-  adventure: '🔥',
+const MOOD_FALLBACK_GLYPHS: Record<TasteMood, 'spark' | 'home' | 'search' | 'heart' | 'chevron'> = {
+  any: 'spark',
+  comfort: 'home',
+  tension: 'search',
+  emotion: 'heart',
+  adventure: 'chevron',
 };
 
 export default function HomeMoodPicker({
@@ -40,6 +41,20 @@ export default function HomeMoodPicker({
     setArtUnlocked(true);
   };
 
+  const navigateMoods = (event: KeyboardEvent<HTMLDivElement>) => {
+    const directions: Record<string, number> = {
+      ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1,
+    };
+    if (!(event.key in directions) && event.key !== 'Home' && event.key !== 'End') return;
+    event.preventDefault();
+    const current = HOME_MOOD_OPTIONS.findIndex((mood) => mood.value === value);
+    const index = event.key === 'Home' ? 0 : event.key === 'End'
+      ? HOME_MOOD_OPTIONS.length - 1
+      : (current + directions[event.key] + HOME_MOOD_OPTIONS.length) % HOME_MOOD_OPTIONS.length;
+    onChange(HOME_MOOD_OPTIONS[index].value);
+    event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]')[index]?.focus();
+  };
+
   return (
     <section
       ref={rootRef}
@@ -54,7 +69,7 @@ export default function HomeMoodPicker({
       <div className="mood-picker__intro">
         <span className="mood-picker__eyebrow">Настроение</span>
         <div>
-          <h2 id="mood-picker-title">Какое настроение на вечер?</h2>
+          <h2 id="mood-picker-title">Что хочется посмотреть?</h2>
           <p aria-live="polite">
             {busy
               ? `Подбираем под настроение «${selectedLabel}»…`
@@ -67,6 +82,7 @@ export default function HomeMoodPicker({
         className="mood-picker__options"
         role="radiogroup"
         aria-label="Настроение для рекомендаций"
+        onKeyDown={navigateMoods}
       >
         {HOME_MOOD_OPTIONS.map((mood) => {
           const active = value === mood.value;
@@ -77,6 +93,8 @@ export default function HomeMoodPicker({
               type="button"
               role="radio"
               aria-checked={active}
+              tabIndex={active ? 0 : -1}
+              data-mood={mood.value}
               className={active ? 'mood-chip is-active' : 'mood-chip'}
               onClick={() => onChange(mood.value)}
             >
@@ -101,7 +119,7 @@ export default function HomeMoodPicker({
                   <span
                     className="mood-chip__placeholder"
                   >
-                    {MOOD_FALLBACK_GLYPHS[mood.value]}
+                    <Icon name={MOOD_FALLBACK_GLYPHS[mood.value]} size={22} />
                   </span>
                 )}
               </span>
@@ -110,6 +128,7 @@ export default function HomeMoodPicker({
                 <strong>{mood.label}</strong>
                 <small>{mood.hint}</small>
               </span>
+              <span className="mood-chip__selected" aria-hidden="true">{active ? '✓' : ''}</span>
             </button>
           );
         })}
