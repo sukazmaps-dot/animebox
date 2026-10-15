@@ -1292,7 +1292,8 @@ export default function AnimePlayer({
         setSkipOpeningVisible(false);
       }
 
-      // Only the provider's actual "ended" event initiates navigation.
+      // Ending start is informational; navigation is armed exclusively by
+      // the provider/native "ended" event, never by this time sample.
       // Re-evaluate on every sample: rewinding must close the hint.
       const showEndingPrompt =
         !watchTogetherMode &&
