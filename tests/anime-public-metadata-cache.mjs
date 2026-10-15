@@ -1,12 +1,7 @@
 import assert from 'node:assert/strict';
-import { build } from 'esbuild';
-import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import ts from 'typescript';
+import { readFileSync } from 'node:fs';
 
-const root = process.cwd();
-const temp = mkdtempSync(join(tmpdir(), 'animebox-metadata-cache-'));
 const jobs = [];
 const snapshots = new Map();
 const state = { dbDown: false, providerDown: false, providerCalls: 0, dbReads: [], writes: 0 };
@@ -52,52 +47,68 @@ function fakeQuery() {
 }
 
 try {
-  await build({
-    entryPoints: [resolve(root, 'lib/anime-public-metadata-server.ts')],
-    outfile: join(temp, 'cache.mjs'),
-    format: 'esm', bundle: true, platform: 'node',
-    plugins: [{ name: 'metadata-fixtures', setup(builder) {
-      builder.onResolve({ filter: /^(server-only|next\/server|@\/lib\/supabase\/admin|@\/lib\/anilist|@\/lib\/runtime-refresh-lease-server)$/ },
-        (arg) => ({ path: arg.path, namespace: 'fixture' }));
-      builder.onLoad({ filter: /.*/, namespace: 'fixture' }, arg => ({
-        loader: 'js',
-        contents: arg.path === 'server-only' ? '' :
-          arg.path === 'next/server' ? 'export const after=work=>globalThis.patch304.jobs.push(work);' :
-          arg.path === '@/lib/runtime-refresh-lease-server' ?
-          'export const tryAcquireRuntimeRefreshLease=async()=>({acquired:!globalThis.patch304.state.leaseDenied,ownerToken:\'mock-owner\',degraded:false});export const releaseRuntimeRefreshLease=async()=>{};' :
-          arg.path === '@/lib/anilist' ? `
-            export async function getAnimesByIds(ids) {
-              globalThis.patch304.state.providerCalls++;
-              if (globalThis.patch304.state.providerDown) throw Error('provider HTTP 429');
-              return ids.map(id=>({id,score:9.3,averageScore:93,episodes:12,
-                episodesAired:5,status:'RELEASING',title:{romaji:'Provider'},genres:[]}));
-            }` :
-          `export const createSupabaseAdmin=()=>({
-            from(table) {
-              if (table !== 'anime_public_metadata_cache') throw Error(table);
-              return globalThis.patch304.fakeQuery();
-            },
-            async rpc(name, args) {
-              if (name !== 'merge_anilist_metadata_batch') throw Error(name);
-              if (globalThis.patch304.state.dbDown) return {error:{message:'database offline'}};
-              if (args.rows.length > 30) throw Error('unbounded writes');
-              globalThis.patch304.state.writes++;
-              for (const row of args.rows) {
-                const current = globalThis.patch304.snapshots.get(row.anime_id);
-                if (!current || current.fetched_at <= row.fetched_at) {
-                  globalThis.patch304.snapshots.set(row.anime_id,
-                    {...row,source:'anilist'});
-                }
-              }
-              return { error: null };
-            }
-          });`,
-      }));
-      builder.onResolve({ filter: /^@\// }, arg => ({ path: resolve(root, arg.path.slice(2)+'.ts') }));
-    }}],
-  });
+  function compile(path, modules = {}) {
+    const source = readFileSync(path, 'utf8');
+    const javascript = ts.transpileModule(source, {
+      fileName: path,
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+      reportDiagnostics: true,
+    });
+    assert.equal(javascript.diagnostics?.length ?? 0, 0, 'could not transpile '+path);
+    const moduleRef = { exports: {} };
+    new Function('require','exports','module', javascript.outputText)(
+      (name) => {
+        if (Object.prototype.hasOwnProperty.call(modules, name)) return modules[name];
+        throw new Error('Unexpected import '+name+' in '+path);
+      },
+      moduleRef.exports, moduleRef,
+    );
+    return moduleRef.exports;
+  }
+  const score = compile('lib/anime-score.ts');
   globalThis.patch304.fakeQuery = fakeQuery;
-  const api = await import(pathToFileURL(join(temp, 'cache.mjs')));
+  const db = {
+    createSupabaseAdmin: () => ({
+      from(table) {
+        assert.equal(table, 'anime_public_metadata_cache');
+        return fakeQuery();
+      },
+      async rpc(name, args) {
+        assert.equal(name, 'merge_anilist_metadata_batch');
+        if (state.dbDown) return { error: { message: 'database offline' } };
+        assert(args.rows.length <= 30, 'unbounded writes');
+        state.writes++;
+        for (const row of args.rows) {
+          const current = snapshots.get(row.anime_id);
+          if (!current || current.fetched_at <= row.fetched_at) {
+            snapshots.set(row.anime_id, { ...row, source:'anilist' });
+          }
+        }
+        return { error:null };
+      },
+    }),
+  };
+  const api = compile('lib/anime-public-metadata-server.ts', {
+    'server-only': {},
+    'next/server': { after: (work) => jobs.push(work) },
+    '@/lib/anilist': {
+      getAnimesByIds: async (ids) => {
+        state.providerCalls++;
+        if (state.providerDown) throw Error('provider HTTP 429');
+        return ids.map(id => ({ id, score:9.3, averageScore:93,
+          episodes:12, episodesAired:5, status:'RELEASING',
+          title:{romaji:'Provider'}, genres:[] }));
+      },
+    },
+    '@/lib/supabase/admin': db,
+    '@/lib/anime-score': score,
+    '@/lib/runtime-refresh-lease-server': {
+      tryAcquireRuntimeRefreshLease: async () => ({
+        acquired: !state.leaseDenied, ownerToken:'mock-owner', degraded:false,
+      }),
+      releaseRuntimeRefreshLease: async () => {},
+    },
+  });
 
   const saved = [
     { id: 101, idMal: 998, title: { russian: 'Сохранённый' },
@@ -180,6 +191,5 @@ try {
   assert(source.includes('unstable_cache'), 'existing home cache retained');
   console.log('PASS Patch 30.4: canonical score, unknown, expiry, provider outage, DB fallback, batch overlay/write, home async refresh, field/identity preservation.');
 } finally {
-  rmSync(temp,{recursive:true,force:true});
   delete globalThis.patch304;
 }
