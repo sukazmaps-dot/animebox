@@ -4,6 +4,7 @@ import { after } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { getAnimesByIds } from '@/lib/anilist';
 import { normalizedAnimeScore } from '@/lib/anime-score';
+import { tryAcquireRuntimeRefreshLease, releaseRuntimeRefreshLease } from '@/lib/runtime-refresh-lease-server';
 import type { Anime } from '@/types/anime';
 
 const TABLE = 'anime_public_metadata_cache';
@@ -133,10 +134,10 @@ export async function enrichSavedAnimeMetadata(animes: Anime[]): Promise<Anime[]
 }
 
 function isReleasing(status: string | null | undefined) {
-  return ['RELEASING', 'ongoing', 'онгоинг'].includes(status ?? '');
+  return ['releasing', 'ongoing', 'онгоинг'].includes(status?.toLowerCase() ?? '');
 }
 function isFinished(status: string | null | undefined) {
-  return ['FINISHED', 'released', 'Вышло', 'Завершено'].includes(status ?? '');
+  return ['finished', 'released', 'вышло', 'завершено'].includes(status?.toLowerCase() ?? '');
 }
 
 /** Only call with records successfully fetched from AniList, never fallback. */
@@ -177,11 +178,21 @@ export async function persistAniListMetadata(animes: readonly Anime[]): Promise<
 }
 
 /** Store known AniList detail metadata after sending the page, never on the critical path. */
+const lastDetailPersist = new Map<number, number>();
 export function scheduleAniListMetadataPersist(anime: Anime) {
+  if (!knownId(anime?.id)) return;
+  const now = Date.now();
+  if (now - (lastDetailPersist.get(anime.id) ?? 0) < 10 * 60_000) return;
   try {
     after(async () => {
       await persistAniListMetadata([anime]);
     });
+    lastDetailPersist.delete(anime.id);
+    lastDetailPersist.set(anime.id, now);
+    if (lastDetailPersist.size > 1200) {
+      const oldest = lastDetailPersist.keys().next().value;
+      if (oldest != null) lastDetailPersist.delete(oldest);
+    }
   } catch (error) {
     // SSG/outside-request execution can lack an after() context.
     warnCache('background schedule', error);
@@ -201,6 +212,13 @@ export function scheduleHomeMetadataRefresh(animes: readonly Anime[]) {
       const fresh = await readFreshAnimeMetadata(ids);
       const missing = ids.filter((id) => !fresh.has(id));
       if (!missing.length) return;
+
+      // Reuse the existing cross-instance lease rather than inventing another
+      // refresh coordination table. It expires automatically on worker death.
+      const lease = await tryAcquireRuntimeRefreshLease(
+        'anime_catalog_metadata', 'patch30.4:home-metadata', 20,
+      );
+      if (!lease.acquired) return;
       try {
         const fetched = await getAnimesByIds(missing, {
           signal: AbortSignal.timeout(REFRESH_TIMEOUT_MS),
@@ -208,6 +226,10 @@ export function scheduleHomeMetadataRefresh(animes: readonly Anime[]) {
         if (fetched.length) await persistAniListMetadata(fetched);
       } catch (error) {
         warnCache('AniList batch refresh', error);
+      } finally {
+        await releaseRuntimeRefreshLease(
+          'anime_catalog_metadata', 'patch30.4:home-metadata', lease.ownerToken,
+        );
       }
     });
   } catch (error) {
