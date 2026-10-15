@@ -42,7 +42,7 @@ export default async function AnimeFranchise({
 }) {
   let franchise: FranchiseData | null;
   try {
-    franchise = await getAnimeFranchiseWithShikimori(animeId);
+    franchise = await getAnimeFranchiseWithShikimori(animeId, { maxRequests: 16 });
   } catch (error) {
     console.error('Franchise section failed:', error);
     franchise = null;
