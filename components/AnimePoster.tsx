@@ -29,7 +29,7 @@ export default function AnimePoster({
     >
       <div
         aria-hidden="true"
-        className={`absolute inset-0 z-0 scale-110 blur-xl transition-opacity duration-200 ease-out ${state === 'loading' ? 'opacity-100 motion-safe:animate-pulse' : 'opacity-0'}`}
+        className={`pointer-events-none absolute inset-0 z-20 scale-110 blur-xl transition-opacity duration-200 ease-out ${state === 'loading' ? 'opacity-100 motion-safe:animate-pulse' : 'opacity-0'}`}
         style={{
           background: `radial-gradient(ellipse at 45% 25%, ${coverColor}, #141418 78%)`,
         }}
