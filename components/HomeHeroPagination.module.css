@@ -37,9 +37,9 @@
 .position {
   display: grid;
   place-items: center;
-  flex: 1 1 34px;
-  width: 34px;
-  min-width: 24px;
+  flex: 1 1 44px;
+  width: 44px;
+  min-width: 44px;
   height: 44px;
   margin: 0;
   padding: 0;
