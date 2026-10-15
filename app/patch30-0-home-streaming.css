@@ -1,0 +1,111 @@
+/* AnimeBox 30.0 — homepage-only streaming composition and single-image mobile hero.
+ * This stylesheet belongs to app/page.tsx, after Patch 29.1. It MUST NOT style
+ * global .anime-card/.page-hero without a .home-page scope.
+ */
+.home-page .home-catalog-section {
+  min-width: 0;
+  margin-block: clamp(18px, 2.3vw, 30px);
+}
+.home-page .home-catalog-section .section-head {
+  align-items: center;
+  margin-bottom: 13px;
+}
+.home-page .home-catalog-section .section-title {
+  letter-spacing: -.025em;
+  text-wrap: balance;
+}
+.home-page .home-catalog-section .home-anime-rail {
+  min-width: 0;
+}
+.home-page .home-catalog-section .home-anime-rail__viewport {
+  scroll-padding-inline: 2px;
+  overscroll-behavior-inline: contain;
+}
+.home-page .home-catalog-section .home-anime-rail__viewport .anime-card {
+  min-width: 0;
+  border-radius: 12px;
+}
+.home-page .home-catalog-section .home-anime-rail__arrow {
+  width: 44px;
+  height: 44px;
+  top: 41%;
+  border-color: var(--ab-ui-border);
+  background: var(--ab-ui-surface);
+  color: var(--ab-ui-text);
+  box-shadow: 0 12px 25px rgb(0 0 0 / 22%);
+  backdrop-filter: none;
+}
+.home-page .home-catalog-section .home-anime-rail__arrow:focus-visible {
+  outline: 2px solid var(--ab-ui-accent);
+  outline-offset: 3px;
+}
+.home-page .main-column > #animebox-watch-together {
+  margin-block: 20px 16px;
+}
+.home-page #animebox-watch-together + .home-shortcuts {
+  margin-top: 10px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .home-page .home-catalog-section .home-anime-rail__viewport .anime-card:hover {
+    border-color: color-mix(in srgb, var(--ab-ui-accent) 42%, var(--ab-ui-border));
+  }
+}
+@media (max-width: 768px) {
+  /* One picture with portrait artwork replaces two independently requested
+     image elements. Reserve a right-hand art slot, not a full-screen crop. */
+  .home-page .home-grid .home-hero-carousel .home-hero-carousel__backdrop {
+    top: 4% !important;
+    right: 0 !important;
+    bottom: auto !important;
+    left: auto !important;
+    width: min(59%, 270px) !important;
+    height: 90% !important;
+    object-fit: cover !important;
+    object-position: center 20% !important;
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+  .home-page .home-grid .home-hero-carousel .page-hero__overlay {
+    background:
+      linear-gradient(90deg,
+        var(--ab-ui-surface) 0%,
+        color-mix(in srgb, var(--ab-ui-surface) 98%, transparent) 30%,
+        color-mix(in srgb, var(--ab-ui-surface) 45%, transparent) 65%,
+        transparent 100%),
+      linear-gradient(0deg,
+        var(--ab-ui-surface) 0%,
+        color-mix(in srgb, var(--ab-ui-surface) 72%, transparent) 20%,
+        transparent 82%) !important;
+  }
+  .home-page .home-catalog-section {
+    margin-block: 17px;
+  }
+  .home-page .home-catalog-section .home-anime-rail__viewport {
+    grid-auto-columns: min(42vw, 164px);
+    gap: 10px;
+    scroll-snap-type: x proximity;
+    padding-bottom: 7px;
+  }
+  .home-page .home-catalog-section .home-anime-rail__arrow {
+    display: none;
+  }
+  .home-page .main-column > #animebox-watch-together {
+    margin-block: 14px;
+  }
+}
+@media (max-width: 360px) {
+  .home-page .home-catalog-section .home-anime-rail__viewport {
+    grid-auto-columns: min(43vw, 150px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-page .home-catalog-section .home-anime-rail__viewport {
+    scroll-behavior: auto;
+  }
+  .home-page .home-catalog-section .home-anime-rail__viewport .anime-card {
+    animation: none !important;
+    transition: none !important;
+  }
+}
