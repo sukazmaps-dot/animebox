@@ -1,5 +1,10 @@
 import { getSeoAnimeSourceShard } from '@/lib/seo-anilist';
 import { syncSeoAnimeSourceEntries } from '@/lib/seo-anime-index-server';
+import {
+  getSeoCatalogRepairPageCount,
+  repairSeoCatalogPage,
+  scheduledSeoCatalogRepairPage,
+} from '@/lib/seo-catalog-recovery-server';
 import { ANIME_SITEMAP_SHARDS, SITE_URL } from '@/lib/seo-config';
 import { submitIndexNowUrls } from '@/lib/indexnow';
 import { beginOperationalJob } from '@/lib/operational-job-server';
@@ -45,6 +50,25 @@ function requestedShard(
     : 'invalid';
 }
 
+function requestedCatalogRepair(request: Request) {
+  const params = new URL(request.url).searchParams;
+  const repairValue = params.get('catalogRepair');
+  const pageValue = params.get('catalogPage');
+  const dryRunValue = params.get('dryRun');
+  if (repairValue != null && repairValue !== '1') return { invalid: true };
+  if (dryRunValue != null && dryRunValue !== '1') return { invalid: true };
+  if (pageValue != null && !/^(?:0|[1-9][0-9]{0,3})$/.test(pageValue))
+    return { invalid: true };
+  if ((pageValue != null || dryRunValue != null) && repairValue !== '1')
+    return { invalid: true };
+  return {
+    invalid: false,
+    manual: repairValue === '1',
+    page: pageValue == null ? null : Number(pageValue),
+    dryRun: dryRunValue === '1',
+  };
+}
+
 function isSeoCronAuthorized(request: Request) {
   // Dedicated SEO scheduler credential; the legacy CRON_SECRET remains valid
   // for existing integrations and is never copied into the new scheduler.
@@ -66,10 +90,12 @@ async function run(request: Request) {
     service: 'cron',
   });
   const manualShard = requestedShard(request);
+  const catalogRepair = requestedCatalogRepair(request);
 
-  if (manualShard === 'invalid') {
+  if (manualShard === 'invalid' || catalogRepair.invalid ||
+      (catalogRepair.manual && manualShard != null)) {
     return Response.json(
-      { ok: false, error: 'invalid_source_shard' },
+      { ok: false, error: 'invalid_seo_index_request' },
       { status: 400, headers: { 'Cache-Control': 'no-store' } },
     );
   }
@@ -87,11 +113,28 @@ async function run(request: Request) {
     );
   }
 
-  const shards = manualShard == null
-    ? scheduledSourceShards()
-    : [manualShard];
+  const shards = catalogRepair.manual
+    ? []
+    : manualShard == null ? scheduledSourceShards() : [manualShard];
 
   try {
+    // The local catalogue often contains real titles absent from the bounded
+    // AniList SEO source shards. Keep recovery strictly inside this signed cron
+    // and the existing distributed job lease; never run it for crawlers.
+    let catalogRecovery: Awaited<ReturnType<typeof repairSeoCatalogPage>> | null = null;
+    const shouldRepair = catalogRepair.manual || manualShard == null;
+    if (shouldRepair && !permit.shouldStop(12_000)) {
+      const pageCount = await getSeoCatalogRepairPageCount();
+      const page = catalogRepair.page ??
+        scheduledSeoCatalogRepairPage(pageCount);
+      if (page < pageCount) {
+        catalogRecovery = await repairSeoCatalogPage({
+          page,
+          dryRun: catalogRepair.dryRun,
+        });
+      }
+    }
+
     const results = [];
     let budgetExhausted = false;
 
@@ -118,11 +161,10 @@ async function run(request: Request) {
 
     const changedUrls = [
       ...new Set(
-        results.flatMap((item) =>
-          item.changedSlugs.map(
-            (slug) => `${SITE_URL}/anime/${encodeURIComponent(slug)}`,
-          ),
-        ),
+        [
+          ...results.flatMap((item) => item.changedSlugs),
+          ...(catalogRecovery?.insertedSlugs ?? []),
+        ].map((slug) => `${SITE_URL}/anime/${encodeURIComponent(slug)}`),
       ),
     ];
 
@@ -138,6 +180,7 @@ async function run(request: Request) {
 
     const summary = {
       sourceShards: shards,
+      catalogRecovery,
       completedShards: results.map((item) => item.sourceShard),
       budgetExhausted,
       remainingMs: permit.remainingMs(),
