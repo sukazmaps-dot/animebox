@@ -98,6 +98,9 @@ jobs:
       - name: Patch 30.6 premium page geometry regression
         run: npm run patch30-6:check
 
+      - name: Patch 30.4 canonical AniList metadata consistency
+        run: npm run patch30-4:check
+
       - name: TypeScript
         run: npx tsc --noEmit
 
