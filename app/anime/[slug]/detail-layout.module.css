@@ -154,6 +154,6 @@
   .heroContent, .identity, .description, .discussion { min-width: 0; max-width: 100%; }
   .backdrop { width: 100%; overflow: hidden; }
   .hero::after {
-    background: linear-gradient(180deg, rgb(15 15 19 / 12%) 0%, rgb(15 15 19 / 76%) 55%, var(--ab-ui-surface) 100%);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--ab-ui-surface) 12%, transparent) 0%, color-mix(in srgb, var(--ab-ui-surface) 76%, transparent) 55%, var(--ab-ui-surface) 100%);
   }
 }
