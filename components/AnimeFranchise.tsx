@@ -12,6 +12,7 @@ import {
 } from '@/lib/anime-franchise';
 import { translateFormat } from '@/lib/anilist';
 import { getAnimeFranchiseWithShikimori } from '@/lib/combined-anime';
+import { getCachedAnimeFranchise } from '@/lib/anime-franchise-cache-server';
 
 const CATEGORIES: FranchiseCategory[] = [
   'series', 'movies', 'ova', 'specials', 'spinOffs', 'other',
@@ -42,7 +43,9 @@ export default async function AnimeFranchise({
 }) {
   let franchise: FranchiseData | null;
   try {
-    franchise = await getAnimeFranchiseWithShikimori(animeId, { maxRequests: 16 });
+    franchise = await getCachedAnimeFranchise(animeId, (signal) =>
+      getAnimeFranchiseWithShikimori(animeId, { maxRequests: 16, signal }),
+    );
   } catch (error) {
     console.error('Franchise section failed:', error);
     franchise = null;
