@@ -8,11 +8,14 @@ import type { Anime } from '@/types/anime';
 type HomeAnimeRailProps = {
   items: Anime[];
   ariaLabel: string;
+  /** Progress is supplied by the existing Home feed; never fetch per card. */
+  watchedEpisodes?: ReadonlyMap<number, number>;
 };
 
 export default function HomeAnimeRail({
   items,
   ariaLabel,
+  watchedEpisodes,
 }: HomeAnimeRailProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [canGoBack, setCanGoBack] = useState(false);
@@ -134,7 +137,11 @@ export default function HomeAnimeRail({
         aria-label={ariaLabel}
       >
         {items.map((anime) => (
-          <AnimeCard key={anime.id} anime={anime} />
+          <AnimeCard
+            key={anime.id}
+            anime={anime}
+            watchedEpisode={watchedEpisodes?.get(anime.id) ?? null}
+          />
         ))}
       </div>
 
