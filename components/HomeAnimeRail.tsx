@@ -61,7 +61,15 @@ export default function HomeAnimeRail({
 
     measureAfterLayout();
 
-    const onScroll = () => updateControls();
+    // Scroll events can arrive at 60–120 Hz; measure once per paint at most.
+    let scrollFrame = 0;
+    const onScroll = () => {
+      if (scrollFrame) return;
+      scrollFrame = window.requestAnimationFrame(() => {
+        scrollFrame = 0;
+        updateControls();
+      });
+    };
     const onResize = () => updateControls();
 
     viewport.addEventListener('scroll', onScroll, { passive: true });
@@ -90,6 +98,7 @@ export default function HomeAnimeRail({
     return () => {
       window.cancelAnimationFrame(frame1);
       window.cancelAnimationFrame(frame2);
+      window.cancelAnimationFrame(scrollFrame);
       window.clearTimeout(delayedMeasure);
       viewport.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onResize);
