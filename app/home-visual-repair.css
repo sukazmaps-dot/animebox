@@ -146,3 +146,331 @@
     min-height: 0 !important;
   }
 }
+
+/* Recommendation card geometry is independent of item count. Sparse shelves
+   keep the same poster cards while pagination appends real matches. */
+
+/* Footer cards now share a simple vertical flow matching their actual DOM. */
+.home-page .main-column .home-utility-grid .home-service-card {
+  display: flex !important;
+  flex-direction: column;
+  align-items: stretch !important;
+  justify-content: flex-start;
+  gap: .875rem !important;
+  padding: 1.25rem !important;
+}
+
+.home-page .main-column .home-utility-grid .home-service-card .home-service-card__action {
+  align-self: flex-start;
+  margin-top: auto;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.home-page .main-column .home-utility-grid .home-service-card__copy {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.home-page .main-column .home-utility-grid .home-deferred--telegram > section {
+  height: 100%;
+}
+
+/* Shared footer typography overrides the older tracker/support grids. */
+.home-page .home-utility-grid .home-service-card__head {
+  min-height: 2.5rem;
+  margin: 0;
+}
+.home-page .home-utility-grid .home-service-card__copy :is(h2, h3) {
+  margin: 0 !important;
+  font-size: clamp(1.125rem, 1rem + .25vw, 1.3125rem) !important;
+  font-weight: 800;
+  line-height: 1.2 !important;
+  letter-spacing: -.02em;
+}
+.home-page .home-utility-grid .home-service-card__copy p {
+  margin: .625rem 0 0 !important;
+  font-size: .8125rem !important;
+  line-height: 1.5 !important;
+}
+.home-page .home-utility-grid .home-service-card__action {
+  min-height: 2.75rem;
+  height: auto;
+  padding: .625rem .875rem !important;
+  font-size: .8125rem !important;
+  line-height: 1.35 !important;
+}
+.home-page .home-utility-grid .home-service-card__icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  min-width: 2.5rem;
+  flex-shrink: 0;
+}
+
+/* Adaptive foundation: measurements belong to content, not the viewport.
+   Important declarations replace historical important home grid rules. */
+.home-page { container: home / inline-size; }
+.home-page .home-grid.home-grid--main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 1.5rem !important;
+  width: 100%;
+  min-width: 0;
+}
+.home-page .home-grid--main > .main-column {
+  container: home-main / inline-size;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+.home-page .home-grid--main > .right-rail {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-column: auto !important;
+  width: 100%;
+  min-width: 0;
+  gap: 1rem !important;
+}
+@container home (min-width: 75rem) {
+  .home-page .home-grid.home-grid--main {
+    grid-template-columns: minmax(0, 1fr) 18rem !important;
+  }
+}
+
+.home-page .main-column > .home-utility-grid {
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: var(--ab-ui-gap) !important;
+}
+.home-page .main-column > .home-utility-grid > * {
+  grid-column: auto !important;
+}
+@container home-main (min-width: 34rem) {
+  .home-page .main-column > .home-utility-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .home-page .main-column > .home-utility-grid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1 !important;
+  }
+}
+@container home-main (min-width: 52rem) {
+  .home-page .main-column > .home-utility-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr)) !important;
+  }
+  .home-page .main-column > .home-utility-grid > :last-child:nth-child(odd) {
+    grid-column: auto !important;
+  }
+}
+.home-page .main-column > .home-utility-grid > .home-deferred--telegram[data-ready='true']:empty {
+  display: none !important;
+}
+.home-page .main-column .home-utility-grid .home-service-card {
+  background: var(--ab-ui-surface) !important;
+  color: var(--ab-ui-text) !important;
+  border: 1px solid var(--ab-ui-border) !important;
+  border-radius: var(--ab-ui-radius) !important;
+  box-shadow: none !important;
+}
+.home-page .home-utility-grid .home-service-card__copy {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+.home-page .home-utility-grid .home-service-card__copy :is(h2, h3) {
+  line-height: 1.3 !important;
+  color: var(--ab-ui-text) !important;
+  overflow-wrap: break-word;
+}
+.home-page .home-utility-grid .home-service-card__copy p {
+  color: var(--ab-ui-muted) !important;
+  font-size: 1rem !important;
+  line-height: 1.55 !important;
+  opacity: 1 !important;
+  overflow-wrap: break-word;
+}
+.home-page .home-utility-grid .home-service-card__eyebrow {
+  color: var(--ab-ui-accent) !important;
+}
+.home-page .home-utility-grid .home-service-card__icon,
+.home-page .home-utility-grid .home-service-card__action {
+  color: var(--ab-ui-text) !important;
+  background: var(--ab-ui-raised) !important;
+  border: 1px solid var(--ab-ui-border) !important;
+  box-shadow: none !important;
+}
+.home-page .home-utility-grid .home-service-card__action {
+  font-size: .8125rem !important;
+  overflow-wrap: break-word;
+}
+.home-page .main-column .home-utility-grid .home-service-card__action {
+  min-height: 44px !important;
+}
+.home-page .home-utility-grid .home-service-card__head {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+/* Schedule: never squeeze copy between four fixed cells. */
+.home-page .main-column .schedule__cards {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  width: 100% !important;
+  gap: .75rem !important;
+  overflow: visible !important;
+}
+.home-page .main-column .schedule__card {
+  display: grid !important;
+  grid-template-columns: 2.25rem minmax(0, 1fr) auto !important;
+  gap: .75rem !important;
+  align-items: center;
+  padding: .5rem !important;
+  width: 100%;
+  min-width: 0;
+  background: var(--ab-ui-surface) !important;
+  border: 1px solid var(--ab-ui-border) !important;
+  color: var(--ab-ui-text) !important;
+  border-radius: var(--ab-ui-radius);
+}
+.home-page .main-column .schedule__card .anime-schedule-image,
+.home-page .main-column .home-loading-schedule-card__poster {
+  width: 2.25rem !important;
+  height: 3.375rem !important;
+  min-width: 0 !important;
+  object-fit: cover;
+  aspect-ratio: 2 / 3;
+}
+.home-page .main-column .schedule__card strong {
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal !important;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  font-size: .8125rem !important;
+  line-height: 1.4 !important;
+  color: var(--ab-ui-text) !important;
+}
+.home-page .main-column .schedule__card span {
+  font-size: .8125rem !important;
+  line-height: 1.5 !important;
+  color: var(--ab-ui-muted) !important;
+}
+.home-page .main-column .schedule__time {
+  grid-column: auto;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  max-width: none !important;
+}
+.home-page .main-column .schedule__tabs {
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  width: 100% !important;
+  margin-inline: 0 !important;
+  background: transparent !important;
+  overflow: visible !important;
+  gap: .375rem !important;
+}
+.home-page .main-column .schedule__tab {
+  flex: 0 0 auto;
+  min-height: 2.75rem !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  padding: .375rem .25rem !important;
+  border: 1px solid var(--ab-ui-border);
+  font-size: .75rem !important;
+  cursor: pointer;
+  color: var(--ab-ui-muted) !important;
+  background: var(--ab-ui-raised) !important;
+}
+.home-page .main-column .schedule__tab.is-active {
+  background: var(--ab-ui-selected) !important;
+  color: var(--ab-ui-text) !important;
+  border-color: var(--ab-ui-accent);
+}
+.home-page .section-head { flex-wrap: wrap; gap: .75rem; }
+.home-page .section-link { color: var(--ab-ui-muted) !important; }
+html[data-animebox-theme] .home-page .section-title,
+html[data-animebox-theme] .home-page .panel__head,
+html[data-animebox-theme] .home-page .panel__title-with-icon {
+  color: var(--ab-ui-text) !important;
+}
+html[data-animebox-theme] .home-page .empty-state {
+  background: var(--ab-ui-surface) !important;
+  color: var(--ab-ui-text) !important;
+  border-color: var(--ab-ui-border) !important;
+}
+html[data-animebox-theme] .home-page .empty-state span {
+  color: var(--ab-ui-muted) !important;
+}
+html[data-animebox-theme] .home-page .main-column .home-utility-grid .home-service-card__action {
+  background: var(--ab-ui-raised) !important;
+  color: var(--ab-ui-text) !important;
+  border-color: var(--ab-ui-border) !important;
+}
+.home-page .right-rail .home-upcoming-panel {
+  background: var(--ab-ui-surface) !important;
+  border-color: var(--ab-ui-border) !important;
+}
+.home-page .right-rail .schedule-item__title {
+  color: var(--ab-ui-text) !important;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow: hidden;
+  line-height: 1.4;
+}
+.home-page .right-rail .schedule-item__meta { color: var(--ab-ui-muted) !important; }
+.home-page .right-rail .schedule-item__countdown {
+  background: var(--ab-ui-selected) !important;
+  border-color: var(--ab-ui-border) !important;
+  color: var(--ab-ui-accent);
+}
+.home-page :is(a, button):focus-visible {
+  outline: 2px solid var(--ab-ui-accent) !important;
+  outline-offset: 3px;
+}
+@container home-main (max-width: 24rem) {
+  .home-page .main-column .schedule__card {
+    grid-template-columns: 2.75rem minmax(0, 1fr) !important;
+  }
+  .home-page .main-column .schedule__card .anime-schedule-image { grid-row: span 2; }
+  .home-page .main-column .home-loading-schedule-card__poster { grid-row: span 2; }
+  .home-page .main-column .schedule__time {
+    grid-column: 2;
+    justify-self: start;
+    text-align: left;
+  }
+  .home-page .main-column .home-loading-schedule-card__time { grid-column: 2; }
+  .home-page .home-grid .page-hero h1 {
+    display: block !important;
+    white-space: normal !important;
+    -webkit-line-clamp: unset !important;
+    max-height: none !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    font-size: clamp(1.5rem, 6vw, 2rem) !important;
+    line-height: 1.2 !important;
+  }
+}
+
+.home-page .schedule__tab small { font-size:.6875rem; color:var(--ab-ui-muted); }
+.home-page .schedule__tab:focus-visible { outline:2px solid var(--ab-ui-accent); outline-offset:2px; }
+.home-page .schedule__poster { width:2.25rem; height:3.375rem; overflow:hidden; border-radius:.375rem; }
+.home-page .schedule__more { display:inline-flex; align-items:center; min-height:44px; margin-top:.375rem; }
+@media(max-width:600px) {
+  .home-page .main-column .schedule__tabs { grid-template-columns:repeat(4,minmax(0,1fr))!important; }
+  .home-page .main-column .schedule__card { gap:.5rem!important; }
+}
+
+/* Legacy identity fade covered the last poster and its actions with a dark curtain. */
+.home-page .smart-feed__rail::after { display:none!important; }
+.home-page .smart-feed__rail [role='region'] { padding-right:2px; }
+
+@container home-main (min-width: 76rem) {
+  .home-page .main-column .schedule__cards { grid-template-columns:repeat(4,minmax(0,1fr))!important; }
+}
+@media(max-width:600px) {
+  .home-page .main-column .schedule__cards { grid-template-columns:minmax(0,1fr)!important; }
+}
