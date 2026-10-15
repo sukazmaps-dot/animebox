@@ -6,6 +6,7 @@ import { after } from 'next/server';
 
 import { getAnimesWithShikimori } from '@/lib/combined-anime';
 import type { Anime } from '@/types/anime';
+import { scheduleHomeMetadataRefresh } from '@/lib/anime-public-metadata-server';
 import {
   filterAnimeByAvailability,
   refreshCatalogAvailabilityBatch,
@@ -45,10 +46,18 @@ const loadHomeInitialFeed = unstable_cache(
         await refreshCatalogAvailabilityBatch(availability.refreshTargets, { limit: 6 });
       });
     }
-    return {
+    const result = {
       popular: popular.filter(anime => allowed.has(anime.id)),
       ongoing: ongoing.filter(anime => allowed.has(anime.id)),
     };
+    // Refresh stale canonical metadata after the page response, once per
+    // 5-minute home-feed cache fill. Never block first-screen cards on AniList.
+    scheduleHomeMetadataRefresh(
+      [...result.popular, ...result.ongoing].filter(
+        (anime) => anime.metadataSource === 'saved',
+      ),
+    );
+    return result;
   },
   ['animebox-home-initial-feed-v7-saved-first-screen'],
   {
