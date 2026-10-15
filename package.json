@@ -131,7 +131,8 @@
     "anime-layout:check": "node scripts/anime-detail-layout-smoke.mjs",
     "league-reliability:check": "node tests/leaderboard-durable-periods.mjs && node tests/genre-landing-recovery.cjs",
     "palette:check": "node scripts/site-palette-audit.mjs",
-    "hero-pagination:browser": "node scripts/home-hero-pagination-smoke.cjs"
+    "hero-pagination:browser": "node scripts/home-hero-pagination-smoke.cjs",
+    "auth-modal:browser": "node scripts/auth-modal-layout-smoke.cjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

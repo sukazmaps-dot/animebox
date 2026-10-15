@@ -251,6 +251,7 @@ jobs:
           components/GoogleAuthButton.tsx
           components/TelegramAuthButton.tsx
           components/AuthModalProvider.tsx
+          components/useDialogViewport.ts
           app/register/page.tsx
           lib/telegram-growth-client.ts
           lib/copyright-server.ts
@@ -321,6 +322,11 @@ jobs:
         env:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
         run: node scripts/settings-guest-smoke.cjs
+
+      - name: Mobile auth modal hydration and visual viewport lifecycle
+        env:
+          PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
+        run: npm run auth-modal:browser
 
       - name: Patch 29.14 actual guest routes and dynamic source-equivalent geometry
         env:

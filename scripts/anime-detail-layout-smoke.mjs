@@ -15,6 +15,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE_PATH || 'playwright')
 
 const rootLayout = await fs.readFile('app/layout.tsx', 'utf8');
 const imports = [...rootLayout.matchAll(/import ['"]\.\/(.*?\.css)['"]/g)].map(match => `app/${match[1]}`);
+const animeLayout = await fs.readFile('app/anime/[slug]/layout.tsx', 'utf8');
+imports.push(...[...animeLayout.matchAll(/import ['"]\.\.\/\.\.\/(.*?\.css)['"]/g)].map(match => `app/${match[1]}`));
 const globals = [];
 for (const file of imports) {
   const source = await fs.readFile(file, 'utf8');
@@ -50,15 +52,16 @@ try {
       await page.setViewportSize({ width, height: 1200 });
       for (const scale of [1, 1.25]) {
         for (const state of ['guest', 'saved', 'resume', 'error']) {
-          const label = `${theme}/${width}/${scale}/${state}`;
-          await page.evaluate(({ theme, scale, state }) => {
+         for (const art of ['poster', 'banner']) {
+          const label = `${theme}/${width}/${scale}/${state}/${art}`;
+          await page.evaluate(({ theme, scale, state, art }) => {
             document.documentElement.dataset.animeboxTheme = theme;
             const saved = state === 'saved';
             document.querySelector('#fixture').innerHTML = `
-              <div class="detail_layout"><header class="detail_hero detail_withPoster">
-                <div class="detail_poster">Обложка</div>
+              <div class="detail_layout"><header class="detail_hero ${art === 'poster' ? 'detail_withPoster' : ''}">
+                ${art === 'poster' ? '<div class="detail_poster">Обложка</div>' : '<div class="detail_backdrop"><div style="background:linear-gradient(90deg,#101010,#ffffff)"></div></div>'}
                 <div class="detail_heroContent">
-                  <div class="detail_identity"><h1>Невероятное приключение: очень длинное название аниме и его нового сезона</h1></div>
+                  <div class="detail_identity"><h1>${state === 'error' ? 'ОченьДлинноеНепрерывноеНазвание'.repeat(4) : 'Невероятное приключение: очень длинное название аниме и его нового сезона'}</h1></div>
                   <div class="detail_facts"><span>2026</span><span>TV</span><span>24 серии</span></div>
                   <div class="detail_actions">
                     ${state === 'error' ? '<p class="anime-detail-actions__message" role="status">Не удалось сохранить. Попробуй ещё раз чуть позже.</p>' : ''}
@@ -75,7 +78,7 @@ try {
             for (const element of document.querySelectorAll('h1, p, button, .anime-detail-actions__state, .controls_resume > span')) {
               element.style.setProperty('font-size', `${parseFloat(getComputedStyle(element).fontSize) * scale}px`, 'important');
             }
-          }, { theme, scale, state });
+          }, { theme, scale, state, art });
           const geometry = await page.evaluate(() => {
             const rect = selector => {
               const r = document.querySelector(selector).getBoundingClientRect();
@@ -85,9 +88,23 @@ try {
               const r = el.getBoundingClientRect();
               return { left: r.left, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
             });
-            return { actions: rect('.detail_actions'), description: rect('.detail_description'),
+            const watchStyle = getComputedStyle(document.querySelector('.anime-detail-actions__watch'));
+            const canvas = document.createElement('canvas'); canvas.width = canvas.height = 1;
+            const ctx = canvas.getContext('2d');
+            const luminance = color => {
+              ctx.fillStyle = color; ctx.fillRect(0,0,1,1);
+              return [...ctx.getImageData(0,0,1,1).data].slice(0,3).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;})
+                .reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
+            };
+            const fg=luminance(watchStyle.color),bg=luminance(watchStyle.backgroundColor);
+            const ctaContrast=(Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05);
+            const title=document.querySelector('.detail_identity h1');
+            return { title:rect('.detail_identity h1'),titleScroll:title.scrollWidth,titleWidth:title.clientWidth,ctaContrast, overlay:getComputedStyle(document.querySelector('.detail_hero'),'::after').backgroundImage, hero: rect('.detail_hero'), identity: rect('.detail_identity'), poster: document.querySelector('.detail_poster') && rect('.detail_poster'), actions: rect('.detail_actions'), description: rect('.detail_description'),
               copy: rect('.synopsis_full'), watch: rect('.anime-detail-actions__watch'), controls };
           });
+          assert(geometry.ctaContrast>=4.5, `${label}: watch text contrast ${geometry.ctaContrast}`);
+          assert(geometry.title.left>=-1&&geometry.title.right<=width+1&&geometry.titleScroll<=geometry.titleWidth+1,`${label}: title text overflows`);
+          if (theme === 'light') assert(!geometry.overlay.includes('17, 16, 22'), `${label}: fixed dark overlay in light theme`);
           assert(geometry.description.top >= geometry.actions.bottom + 1, `${label}: synopsis overlaps actions`);
           for (const control of geometry.controls) {
             assert(control.bottom <= geometry.actions.bottom + 1, `${label}: control escapes its wrapper`);
@@ -96,11 +113,25 @@ try {
           assert(geometry.copy.left >= -1 && geometry.copy.right <= width + 1, `${label}: synopsis overflows viewport`);
           if (width < 768) {
             assert(geometry.watch.height >= 48, `${label}: watch touch target`);
+            if (art === 'poster') {
+            assert(geometry.identity.top <= geometry.hero.top + 32, `${label}: poster fallback wastes upper hero space`);
+            assert(geometry.identity.right - 100 <= geometry.poster.left + 1, `${label}: poster reservation missing`);
+            }
             const favorite = geometry.controls[1];
             assert(favorite.width >= 48 && favorite.height >= 48, `${label}: favorite touch target`);
+            if (state !== 'saved') {
+              const tracker = geometry.controls[2];
+              assert(Math.abs(tracker.bottom - favorite.bottom) < 2, `${label}: icon actions wrap separately`);
+              assert(tracker.left - favorite.right <= 16, `${label}: icon actions spread apart`);
+            }
             assert(favorite.bottom > geometry.watch.bottom, `${label}: icons must occupy a separate row`);
           }
+          if (process.env.ANIME_LAYOUT_SCREENSHOT_DIR && width === 390 && scale === 1 && state === 'guest') {
+            await fs.mkdir(process.env.ANIME_LAYOUT_SCREENSHOT_DIR,{recursive:true});
+            await page.screenshot({path:`${process.env.ANIME_LAYOUT_SCREENSHOT_DIR}/${theme}-${art}.png`,fullPage:true});
+          }
           cases++;
+         }
         }
       }
     }

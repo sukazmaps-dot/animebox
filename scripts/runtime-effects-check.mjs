@@ -36,6 +36,22 @@ const rootListenerCount = rootRuntimeFiles.reduce((total, file) => {
   return total + (source.match(/addEventListener\(/g) ?? []).length;
 }, 0);
 
+// Dialog viewport listeners are bounded to the conditional AuthModal mount,
+// not the persistent provider. Keep the existing root budget unchanged and
+// audit this separate lifetime instead of allowing more always-on listeners.
+const modalProvider = read('components/AuthModalProvider.tsx');
+const modalViewport = read('components/useDialogViewport.ts');
+const modalFunctionIndex = modalProvider.indexOf('function AuthModal({');
+const viewportHookIndex = modalProvider.indexOf('useDialogViewport(dialogRef);');
+if (!modalProvider.includes('{state.open && (') || modalFunctionIndex < 0 || viewportHookIndex < modalFunctionIndex) {
+  failures.push('Dialog viewport subscription must only mount inside the open AuthModal.');
+}
+if ((modalViewport.match(/addEventListener\(/g) ?? []).length > 3 ||
+    (modalViewport.match(/removeEventListener\(/g) ?? []).length !== 3 ||
+    !modalViewport.includes('window.cancelAnimationFrame(frame)')) {
+  failures.push('Dialog viewport listeners/RAF must remain bounded and cleaned up.');
+}
+
 if (rootListenerCount > 35) {
   failures.push(
     `root runtime listener budget regressed: ${rootListenerCount} > 35`,
