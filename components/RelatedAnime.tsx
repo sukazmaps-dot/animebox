@@ -4,36 +4,20 @@ import { after } from 'next/server';
 import HomeAnimeRail from '@/components/HomeAnimeRail';
 import { getAnimeRecommendationsById } from '@/lib/anilist';
 import { getAnimesWithShikimori } from '@/lib/combined-anime';
+import { findAnimeGenre, findAnimeTag } from '@/lib/anime-taxonomy';
 import type { Anime } from '@/types/anime';
 import {
   filterAnimeByAvailability,
   refreshCatalogAvailabilityBatch,
 } from '@/lib/catalog-availability-server';
 
-const ANILIST_GENRE_BY_RUSSIAN: Record<string, string> = {
-  'Экшен': 'Action',
-  'Приключения': 'Adventure',
-  'Комедия': 'Comedy',
-  'Драма': 'Drama',
-  'Эччи': 'Ecchi',
-  'Фэнтези': 'Fantasy',
-  'Ужасы': 'Horror',
-  'Махо-сёдзё': 'Mahou Shoujo',
-  'Меха': 'Mecha',
-  'Музыка': 'Music',
-  'Детектив': 'Mystery',
-  'Тайна': 'Mystery',
-  'Психологическое': 'Psychological',
-  'Романтика': 'Romance',
-  'Фантастика': 'Sci-Fi',
-  'Повседневность': 'Slice of Life',
-  'Спорт': 'Sports',
-  'Сверхъестественное': 'Supernatural',
-  'Триллер': 'Thriller',
-};
-
 function genreKey(value: string): string {
-  return (ANILIST_GENRE_BY_RUSSIAN[value.trim()] ?? value)
+  return (findAnimeGenre(value)?.value ?? value)
+    .normalize('NFKC').trim().toLocaleLowerCase('en');
+}
+
+function tagKey(value: string): string {
+  return (findAnimeTag(value)?.value ?? value)
     .normalize('NFKC').trim().toLocaleLowerCase('en');
 }
 
@@ -72,11 +56,19 @@ async function loadRelatedAnime(
   genres: string[],
   tags: string[],
 ): Promise<Anime[]> {
-  const activeGenres = [...new Set(genres.map(genreKey).filter(Boolean))];
-  const activeTags = new Set(normalizeNames(tags).slice(0, 12));
-  const displayGenres = [...new Set(genres.map((value) =>
-    ANILIST_GENRE_BY_RUSSIAN[value.trim()] ?? value.trim(),
-  ).filter(Boolean))];
+  const displayGenres = [...new Set(genres.flatMap((value) => {
+    const genre = findAnimeGenre(value);
+    return genre ? [genre.value] : [];
+  }))];
+  const activeGenres = displayGenres.map(genreKey);
+  const displayTags = [...new Set([
+    ...tags,
+    ...genres.flatMap((value) => {
+      const tag = findAnimeTag(value);
+      return tag ? [tag.value] : [];
+    }),
+  ].map((value) => findAnimeTag(value)?.value ?? value.trim()).filter(Boolean))];
+  const activeTags = new Set(displayTags.map(tagKey).slice(0, 12));
 
   const [graphResult, genresResult] = await Promise.allSettled([
     getAnimeRecommendationsById(animeId, 30),
@@ -87,7 +79,14 @@ async function loadRelatedAnime(
           order: 'popularity',
           genres: displayGenres.slice(0, 3),
         })
-      : Promise.resolve([] as Anime[]),
+      : displayTags.length
+        ? getAnimesWithShikimori({
+            page: 1,
+            limit: 30,
+            order: 'popularity',
+            tags: displayTags.slice(0, 3),
+          })
+        : Promise.resolve([] as Anime[]),
   ]);
 
   if (graphResult.status === 'rejected') {
@@ -104,9 +103,12 @@ async function loadRelatedAnime(
 
   const ranked = uniqueWithoutCurrent([...graph, ...genrePool], animeId)
     .map((anime) => {
-      const matchingGenres = normalizeNames(anime.genres)
-        .filter((genre) => requestedGenres.has(genreKey(genre))).length;
-      const matchingTags = normalizeNames(anime.tags)
+      const matchingGenres = [...new Set(normalizeNames(anime.genres).map(genreKey))]
+        .filter((genre) => requestedGenres.has(genre)).length;
+      const matchingTags = [...new Set([
+        ...normalizeNames(anime.tags),
+        ...normalizeNames(anime.genres).filter((value) => findAnimeTag(value)),
+      ].map(tagKey))]
         .filter((tag) => activeTags.has(tag)).length;
       const hasContext = requestedGenres.size > 0 || activeTags.size > 0;
       if (hasContext && matchingGenres === 0 && matchingTags === 0) {
@@ -191,3 +193,4 @@ export default async function RelatedAnime({
     </section>
   );
 }
+
