@@ -121,13 +121,15 @@ function getHeroBackdropAttempts(anime: Anime): HeroImageAttempt[] {
 function getMobileHeroAttempts(anime: Anime): HeroImageAttempt[] {
   return buildHeroImageAttempts(
     uniqueImageSources([
-      anime.mobileHeroImage,
+      // For the compact hero show proper portrait key art, never a
+      // stretched landscape AniList banner unless all posters are absent.
       anime.coverImage?.extraLarge,
-      anime.image?.original,
       anime.coverImage?.large,
+      anime.image?.original,
       anime.image?.large,
-      anime.bannerImage,
+      anime.mobileHeroImage,
       anime.image?.medium,
+      anime.bannerImage,
     ]),
     'large',
   );
@@ -686,7 +688,7 @@ export default function HomeHeroCarousel({
         setPaused(false)
       }
     >
-      {bannerImage && (
+      {(bannerImage || mobileKeyArt) && (
         // One responsive <picture>, not two separate <img> downloads on phones.
         // Desktop keeps cinematic scenery; portrait screens get the mobile art.
         <picture>
@@ -714,7 +716,7 @@ export default function HomeHeroCarousel({
           )}
           <Image
             key={`${anime.id}-art-${backdropAttemptIndex}-${mobileAttemptIndex}-${ultraWideOriginFailed}`}
-            src={bannerImage}
+            src={bannerImage ?? mobileKeyArt ?? '/anime-placeholder.svg'}
             alt=""
             fill
             // React responsive image source selection handles media-specific
