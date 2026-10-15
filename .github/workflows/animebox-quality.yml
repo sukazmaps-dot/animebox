@@ -87,6 +87,9 @@ jobs:
       - name: Patch 30.3 metadata normalization and episode display
         run: npm run patch30-3:check
 
+      - name: SEO catalog integrity and canonical safety
+        run: npm run patch30-5:check
+
       - name: TypeScript
         run: npx tsc --noEmit
 
