@@ -64,6 +64,9 @@ jobs:
       - name: Release consolidation invariants
         run: npm run release-consolidation:check
 
+      - name: Patch 30.0 streaming home and media regression
+        run: npm run patch30-0:check && npm run home-hydration:check && npm run image-delivery:check && npm run mobile-performance:check
+
       - name: Schedule media and search regression checks
         run: npm run schedule-media:check
 
