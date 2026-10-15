@@ -510,12 +510,12 @@ export default async function AnimePage({
           {imageCascade.banner ? (
             <div className={layout.backdrop} aria-hidden="true">
               <AnimeImageCascade sources={[imageCascade.banner]} alt="" loading="eager"
-                fetchPriority="high" preset="hero" sizes="(max-width: 767px) 100vw, 1240px" quality={80} />
+                fetchPriority="high" preset="hero" format="auto" sizes="(max-width: 767px) 100vw, 1240px" quality={80} />
             </div>
           ) : (
             <div className={layout.poster} aria-label="Обложка тайтла">
               <AnimeImageCascade sources={posterSources} alt={seoIdentity.pageHeading}
-                loading="eager" fetchPriority="high" preset="large" quality={80}
+                loading="eager" fetchPriority="high" preset="large" format="auto" quality={80}
                 sizes="(max-width: 767px) 120px, 220px" />
             </div>
           )}
