@@ -56,6 +56,11 @@ jobs:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
         run: npm run css-cascade:check && npm run css-cascade:browser
 
+      - name: Episode mobile player controls at 360px
+        env:
+          PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
+        run: npm run player-hotfix:browser
+
       - name: Profile editor mobile dock regression
         env:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
@@ -86,6 +91,9 @@ jobs:
 
       - name: Patch 30.3 metadata normalization and episode display
         run: npm run patch30-3:check
+
+      - name: Mobile player overlay and ending timing regression
+        run: npm run player-hotfix:check
 
       - name: Patch 30.6 premium page geometry regression
         run: npm run patch30-6:check

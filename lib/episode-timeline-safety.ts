@@ -364,3 +364,43 @@ export function openingAutoSkipSafetyDecision(input: {
     jumpSeconds,
   };
 }
+
+/**
+ * A near-end invitation must not trust an early/invalid ending marker.
+ * Actual episode completion still comes from the player "ended" event.
+ *
+ * Unknown real duration => no prompt. A missing ending marker can show a
+ * small near-end hint, while an explicitly invalid marker fails closed.
+ */
+export function endingPromptShouldShow(input: {
+  timeline: EpisodeTimelineMeta | null | undefined;
+  observedDurationSeconds: number | null | undefined;
+  positionSeconds: number;
+}): boolean {
+  const duration = finitePositiveSeconds(input.observedDurationSeconds);
+  const position = input.positionSeconds;
+  if (duration == null || duration < 60 ||
+      !Number.isFinite(position) || position < 0) return false;
+
+  let triggerSeconds = duration - 10;
+  const ending = input.timeline?.ending;
+  if (ending) {
+    if (input.timeline?.lookupStatus !== 'found' ||
+        !timelineDurationMatchesObserved(input.timeline.durationMs, duration) ||
+        !Number.isFinite(ending.startMs) ||
+        !Number.isFinite(ending.endMs) ||
+        ending.startMs < 0 ||
+        ending.endMs <= ending.startMs ||
+        ending.endMs / 1000 > duration + 2) return false;
+
+    triggerSeconds = ending.startMs / 1000;
+  }
+
+  // Prevent bad database ranges (e.g. an ending at 8% of the episode)
+  // from covering the video, even when the duration itself matches.
+  if (triggerSeconds < duration * 0.6 ||
+      triggerSeconds >= duration - 0.5) return false;
+
+  // Rewinding out of the ending closes the hint on the next position sample.
+  return position >= triggerSeconds && position < duration - 0.5;
+}
