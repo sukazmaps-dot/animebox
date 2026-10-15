@@ -40,7 +40,7 @@ function query() {
     update(value) { operation = 'update'; changes = value; return q; },
     upsert(value) {
       if (!storeReady) return Promise.resolve({ error: { message: 'database down' } });
-      rows.set(value.anime_id, { ...(rows.get(value.anime_id) ?? {}), ...value });
+      rows.set(value.anime_id, { refresh_lease_until: new Date(0).toISOString(), ...(rows.get(value.anime_id) ?? {}), ...value });
       return Promise.resolve({ error: null });
     },
     maybeSingle() { return Promise.resolve(evaluate()); },
