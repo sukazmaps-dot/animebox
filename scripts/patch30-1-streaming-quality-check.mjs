@@ -34,7 +34,7 @@ assert(related.includes('matchingGenres === 0 && matchingTags === 0'), 'taxonomy
 assert(!related.includes("order: 'ranked'"), 'generic top-rated recommendations may not replace matches');
 assert(related.includes('uniqueWithoutCurrent'), 'same anime must be excluded');
 assert(related.includes('key={animeId}'), 'similar rail state must reset between anime pages');
-assert(title.includes('tags={Array.isArray(resolved.tags)'), 'current title tags not passed');
+assert(title.includes('genres={resolved.genres}'), 'current title genres not passed');
 assert(card.includes('<AnimeImage'), 'legacy cards retain the reliable poster renderer');
 assert(franchise.includes('<AnimePoster'), 'franchise cards must use the shared 2:3 poster');
 assert(poster.includes("aspectRatio: '2 / 3'"), 'poster aspect ratio missing');
