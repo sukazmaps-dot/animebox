@@ -31,6 +31,7 @@ import { animeHref } from '@/lib/anime-url';
 import { createImageCascade } from '@/lib/image-cascade';
 import { cleanShikimoriDescription } from '@/lib/shikimori-text';
 import { animeContentFacts } from '@/lib/anime-content-intelligence';
+import { formatAnimeScore, normalizedAnimeScore } from '@/lib/anime-score';
 import { SITE_URL } from '@/lib/seo-config';
 import { getPlaybackRestriction } from '@/lib/copyright-server';
 import {
@@ -196,14 +197,8 @@ export default async function AnimePage({
      AniList
      ========================================================= */
 
-  const aniList = {
-    ...resolved,
-
-    averageScore:
-      resolved.score
-        ? resolved.score * 10
-        : null,
-  };
+  // Preserve provider values: a derived score must not overwrite averageScore.
+  const aniList = resolved;
 
 
   /* =========================================================
@@ -305,14 +300,7 @@ export default async function AnimePage({
      Метаданные тайтла
      ========================================================= */
 
-  const score =
-    aniList.averageScore
-      ? (
-          aniList.averageScore /
-          10
-        ).toFixed(1)
-      : anime.score ||
-        null;
+  const score = formatAnimeScore(resolved);
 
 
   const episodesCount =
@@ -321,10 +309,7 @@ export default async function AnimePage({
     anime.episodes_aired ||
     null;
 
-  const contentFacts = animeContentFacts({
-    ...resolved,
-    episodes: episodesCount,
-  });
+  const contentFacts = animeContentFacts(resolved);
 
 
 
@@ -373,10 +358,7 @@ export default async function AnimePage({
         anime.description ||
         null,
 
-      score:
-        score
-          ? Number(score)
-          : null,
+      score: normalizedAnimeScore(resolved),
 
       episodes:
         episodesCount,
