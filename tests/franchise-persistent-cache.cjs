@@ -119,9 +119,19 @@ async function drain() {
   assert.equal(upstreamCalls, 2, 'lease + freshness recheck must collapse refreshes');
   assert.equal((await get(9, loader)).partial, false);
 
+  now += 3 * 60 * 60 * 1000 + 1;
+  const stillVisible = await get(9, async () => {
+    upstreamCalls++;
+    throw new Error('AniList unavailable');
+  });
+  assert.equal(stillVisible.items.length, 2, 'stale parts must survive upstream outage');
+  await drain();
+  assert.equal(rows.get(9).payload.items.length, 2,
+    'failed refresh must not replace last successful snapshot');
+
   storeReady = false;
   assert.equal((await get(9, loader)).items.length, 2, 'DB outage must fail open');
-  assert.equal(upstreamCalls, 3);
+  assert.equal(upstreamCalls, 4);
 
   storeReady = true;
   rows.set(9, { anime_id: 9, payload: { malicious: 'shape' },
