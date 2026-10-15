@@ -61,7 +61,9 @@ export function HomePersonalScheduleSection() {
     personalizedHome &&
     personalAnimeIdList.length > 0;
 
-  if (!showLoading && personalScheduleItems.length === 0) {
+  // Do not render a large empty title/description while awaiting a personal
+  // schedule. Once real entries arrive the section mounts with its cards.
+  if (personalScheduleItems.length === 0) {
     return null;
   }
 
