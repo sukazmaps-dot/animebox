@@ -132,7 +132,8 @@
     "league-reliability:check": "node tests/leaderboard-durable-periods.mjs && node tests/genre-landing-recovery.cjs",
     "palette:check": "node scripts/site-palette-audit.mjs",
     "hero-pagination:browser": "node scripts/home-hero-pagination-smoke.cjs",
-    "auth-modal:browser": "node scripts/auth-modal-layout-smoke.cjs"
+    "auth-modal:browser": "node scripts/auth-modal-layout-smoke.cjs",
+    "schedule-tooltip:browser": "node scripts/schedule-tooltip-browser-smoke.cjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
