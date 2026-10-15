@@ -35,7 +35,8 @@ assert(!related.includes("order: 'ranked'"), 'generic top-rated recommendations 
 assert(related.includes('uniqueWithoutCurrent'), 'same anime must be excluded');
 assert(related.includes('key={animeId}'), 'similar rail state must reset between anime pages');
 assert(title.includes('tags={Array.isArray(resolved.tags)'), 'current title tags not passed');
-assert(card.includes('AnimePoster'), 'AnimeCard should reuse shared poster');
+assert(card.includes('<AnimeImage'), 'legacy cards retain the reliable poster renderer');
+assert(franchise.includes('<AnimePoster'), 'franchise cards must use the shared 2:3 poster');
 assert(poster.includes("aspectRatio: '2 / 3'"), 'poster aspect ratio missing');
 assert(poster.includes("rounded-[8px]"), 'poster radius missing');
 assert(poster.includes("onStateChange={setState}"), 'poster skeleton is not tied to real load state');
