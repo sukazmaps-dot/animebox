@@ -28,7 +28,20 @@
   .page:global(.episode-page) :global(.premium-player-dropdown) { grid-column: span 2; min-width: 0 !important; width: 100% !important; }
   .page:global(.episode-page) :global(.premium-player-toolbar-button) { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 44px !important; min-width: 44px !important; min-height: 44px !important; padding: 8px !important; }
   .page:global(.episode-page) :global(.premium-player-toolbar-button) > span { display: none !important; }
-  .page:global(.episode-page) :global(.premium-player-dropdown) + :global(.premium-player-toolbar-button) { grid-column: 3; }
+  /* Keep player actions together after the source/episode selectors. */
+  .page:global(.episode-page) :global(.animebox-player-actions) {
+    grid-column: 1 / -1 !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+  }
+  /* Cinema is desktop-only; keep its exit control if already active. */
+  .page:global(.episode-page) :global(.premium-player-toolbar-button[data-player-action='theater'][aria-pressed='false']) {
+    display: none !important;
+  }
   .page:global(.episode-page) :global(.episode-engagement-grid) > section { flex: 1 1 140px; }
   .page:global(.episode-page) :global(.animebox-player-stage-shell) { padding: 6px !important; }
   .page:global(.episode-page) :global(.detail__section-header) h2 { font-size: 18px !important; }
