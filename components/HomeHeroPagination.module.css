@@ -71,3 +71,7 @@
 @media (max-width: 768px) {
   .pagination { inset: auto auto 10px 14px; }
 }
+@media (max-width: 390px) {
+  .pagination { left: 6px; max-width: calc(100% - 12px); padding-inline: 4px; gap: 4px; }
+  .counter { flex-basis: 38px; }
+}
