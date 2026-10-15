@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
-import fs, { mkdtempSync, rmSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -57,12 +57,14 @@ try {
     outfile: join(temp, 'cache.mjs'),
     format: 'esm', bundle: true, platform: 'node',
     plugins: [{ name: 'metadata-fixtures', setup(builder) {
-      builder.onResolve({ filter: /^(server-only|next\/server|@\/lib\/supabase\/admin|@\/lib\/anilist)$/ },
+      builder.onResolve({ filter: /^(server-only|next\/server|@\/lib\/supabase\/admin|@\/lib\/anilist|@\/lib\/runtime-refresh-lease-server)$/ },
         (arg) => ({ path: arg.path, namespace: 'fixture' }));
       builder.onLoad({ filter: /.*/, namespace: 'fixture' }, arg => ({
         loader: 'js',
         contents: arg.path === 'server-only' ? '' :
           arg.path === 'next/server' ? 'export const after=work=>globalThis.patch304.jobs.push(work);' :
+          arg.path === '@/lib/runtime-refresh-lease-server' ?
+          'export const tryAcquireRuntimeRefreshLease=async()=>({acquired:!globalThis.patch304.state.leaseDenied,ownerToken:\'mock-owner\',degraded:false});export const releaseRuntimeRefreshLease=async()=>{};' :
           arg.path === '@/lib/anilist' ? `
             export async function getAnimesByIds(ids) {
               globalThis.patch304.state.providerCalls++;
