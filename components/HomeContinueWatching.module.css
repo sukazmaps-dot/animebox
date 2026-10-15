@@ -104,16 +104,12 @@
     gap: 10px !important;
     padding: 10px !important;
     border-radius: 14px;
+    border: 1px solid var(--ab-ui-border);
+    background: var(--ab-ui-surface);
     scroll-snap-align: start;
     scroll-snap-stop: always;
   }
 
-  .section .featured {
-    border-color: color-mix(in srgb, var(--ab-ui-accent) 32%, transparent);
-    background:
-      radial-gradient(circle at 3% 50%, color-mix(in srgb, var(--ab-ui-accent) 13%, transparent), transparent 34%),
-      linear-gradient(135deg, color-mix(in srgb, var(--ab-ui-surface) 98%, transparent), color-mix(in srgb, var(--ab-ui-surface) 99%, transparent));
-  }
 
   .section .card :global(.continue-smart-card__poster),
   .section .featured :global(.continue-smart-card__poster) {
