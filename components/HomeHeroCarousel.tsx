@@ -311,6 +311,13 @@ export default function HomeHeroCarousel({
     slides[0] ??
     null;
 
+  // URLSearchParams/srcset generation is unnecessary during hover and
+  // pagination focus updates; only recalculate when the selected anime changes.
+  const imageAttempts = useMemo(() => ({
+    backdrop: anime ? getHeroBackdropAttempts(anime) : [],
+    mobile: anime ? getMobileHeroAttempts(anime) : [],
+  }), [anime]);
+
   useEffect(() => {
     queueMicrotask(() => {
       setBackdropAttemptIndex(0);
@@ -448,8 +455,8 @@ export default function HomeHeroCarousel({
   const title =
     getAnimeTitle(anime);
 
-  const backdropAttempts = getHeroBackdropAttempts(anime);
-  const mobileAttempts = getMobileHeroAttempts(anime);
+  const backdropAttempts = imageAttempts.backdrop;
+  const mobileAttempts = imageAttempts.mobile;
 
   const backdropAttempt =
     backdropAttempts[backdropAttemptIndex] ??
