@@ -129,6 +129,8 @@ async function main() {
   assert.equal(api.SEO_CATALOG_RECOVERY_PAGE_SIZE,120);
   assert.equal(api.parseSeoCatalogRecoveryRow(rows[0]).anime.id,21175);
   assert.equal(api.parseSeoCatalogRecoveryRow(rows[1]).slug,'trigun');
+  assert.equal(api.parseSeoCatalogRecoveryRow({...rows[1],slug:'ab'}),null,
+    'SEO registry rejects a slug shorter than three characters');
   for (const i of [3,4,5,6,7]) {
     assert.equal(api.parseSeoCatalogRecoveryRow(rows[i]),null,
       'invalid/insufficient catalogue evidence must fail closed: '+i);
