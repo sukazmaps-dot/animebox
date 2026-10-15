@@ -12,6 +12,7 @@ import {
 
 import Link from 'next/link';
 import homeSocialStyles from '@/components/HomeHeroSocialLink.module.css';
+import HomeHeroPagination from '@/components/HomeHeroPagination';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import type {
@@ -723,30 +724,11 @@ export default function HomeHeroCarousel({
         </Link>
       </div>
 
-      {slides.length > 1 && (
-        <div className="home-hero-carousel__nav">
-          <span className="home-hero-carousel__counter" aria-hidden="true">
-            {String(safeActiveIndex + 1).padStart(2, '0')}
-            <i>/</i>
-            {String(slides.length).padStart(2, '0')}
-          </span>
-          <div className="home-hero-carousel__dots">
-            {slides.map((item, index) => (
-              <button
-                key={item.id}
-                type="button"
-                aria-pressed={index === safeActiveIndex}
-                aria-label={`Показать: ${getAnimeTitle(item)}`}
-                className={`home-hero-carousel__dot ${
-                  index === safeActiveIndex ? 'is-active' : ''
-                }`}
-                onClick={() => setActiveIndex(index)}
-              />
-            ))}
-          </div>
-
-        </div>
-      )}
+      <HomeHeroPagination
+        slides={slides.map((slide) => ({ id: slide.id, title: getAnimeTitle(slide) }))}
+        activeIndex={safeActiveIndex}
+        onSelect={setActiveIndex}
+      />
     </section>
   );
 }

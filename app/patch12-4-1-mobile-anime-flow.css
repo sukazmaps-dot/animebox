@@ -161,8 +161,10 @@
     border-radius: 11px !important;
   }
 
+  /* Patch 29.14: the old 36px !important override defeated the modern
+     44px mobile resume CTA. This is the owning responsive rule. */
   .tracker-page .tracker-card__progress a {
-    min-height: 36px !important;
+    min-height: 44px !important;
     margin-top: 8px !important;
   }
 

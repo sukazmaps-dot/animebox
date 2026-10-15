@@ -321,3 +321,13 @@ jobs:
         env:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
         run: node scripts/settings-guest-smoke.cjs
+
+      - name: Patch 29.14 actual guest routes and dynamic source-equivalent geometry
+        env:
+          PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
+        run: npm run route-layout:check && npm run route-layout:browser
+
+      - name: Mobile hero pagination geometry and accessible positions
+        env:
+          PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
+        run: npm run hero-pagination:browser
