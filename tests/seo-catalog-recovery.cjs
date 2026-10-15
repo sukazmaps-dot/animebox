@@ -58,14 +58,20 @@ const admin = {
       select(_cols,options) {
         if (options?.head) {
           calls.count++;
-          return Promise.resolve({count:rows.length,error:null});
+          return {abortSignal(signal) {
+            assert(signal instanceof AbortSignal);
+            return Promise.resolve({count:rows.length,error:null});
+          }};
         }
         return {order(col) {
           assert.equal(col,'id');
           return {range(from,to) {
             calls.reads++;
             calls.ranges.push({from,to});
-            return Promise.resolve({data:rows.slice(from,to+1),error:null});
+            return {abortSignal(signal) {
+              assert(signal instanceof AbortSignal);
+              return Promise.resolve({data:rows.slice(from,to+1),error:null});
+            }};
           }};
         }};
       },
@@ -78,7 +84,10 @@ const admin = {
           assert.equal(key,'anime_id');
           calls.lookups++;
           assert(ids.length <= 120,'no N+1 queries');
-          return Promise.resolve({data:ids.flatMap(id=>stored.has(id)?[{anime_id:id}]:[]),error:null});
+          return {abortSignal(signal) {
+            assert(signal instanceof AbortSignal);
+            return Promise.resolve({data:ids.flatMap(id=>stored.has(id)?[{anime_id:id}]:[]),error:null});
+          }};
         }};
       },
       upsert(batch,options) {
@@ -97,7 +106,10 @@ const admin = {
           stored.set(record.anime_id,record);
           created.push({anime_id:record.anime_id,slug:record.slug});
         }
-        return {select() { return Promise.resolve({data:created,error:null}); }};
+        return {select() {return {abortSignal(signal) {
+          assert(signal instanceof AbortSignal);
+          return Promise.resolve({data:created,error:null});
+        }};}};
       },
     };
   },
