@@ -56,6 +56,11 @@ jobs:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
         run: npm run css-cascade:check && npm run css-cascade:browser
 
+      - name: Episode mobile player controls at 360px
+        env:
+          PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
+        run: npm run player-hotfix:browser
+
       - name: Profile editor mobile dock regression
         env:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
