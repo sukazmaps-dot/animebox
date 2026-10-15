@@ -112,7 +112,7 @@ export default function HomeContinueWatching({
             <Link
               key={anime.id}
               href={`${animeHref(anime)}/watch?ep=${Math.max(1, episode)}`}
-              className={`continue-smart-card ${styles.card} ${index === 0 ? styles.featured : ""}`}
+              className={`continue-smart-card ${styles.card}`}
               onClick={() => {
                 rememberContinueWatchingAttribution({
                   animeId: anime.id,
@@ -186,7 +186,7 @@ export default function HomeContinueWatching({
                 </small>
               </div>
 
-              <span className={`continue-smart-card__arrow ${index === 0 ? styles.action : ''}`} aria-hidden="true">{index === 0 ? 'Смотреть →' : '→'}</span>
+              <span className="continue-smart-card__arrow" aria-hidden="true">→</span>
             </Link>
           );
         })}
