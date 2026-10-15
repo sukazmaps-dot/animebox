@@ -27,12 +27,16 @@ const compile = async (file,imports) => {
  return mod.exports;
 };
 const content = await compile('components/AnimeCardContent.tsx', {'./AnimeCardContent.module.css':{default:styles}});
+const scoreDisplay = await compile('lib/anime-score.ts', {});
+const episodeDisplay = await compile('lib/anime-content-intelligence.ts', {});
 const catalog = await compile('components/AnimeCard.tsx', {
  '@/components/AnimeCardContent':content,
  'next/link':{default:({prefetch,...props})=>React.createElement('a',props)},
  '@/components/AnimeImage':{default:({alt,className})=>React.createElement('img',{src:'/brand/brand-mark.webp',alt,className})},
  '@/lib/anime-url':{animeHref:anime=>`/anime/${anime.id}`},
  '@/lib/anime-display':{getAnimeTitle:anime=>anime.title.russian,isAnimeOngoing:()=>false},
+ '@/lib/anime-score':scoreDisplay,
+ '@/lib/anime-content-intelligence':episodeDisplay,
 });
 const fixtureCard = renderToStaticMarkup(React.createElement(catalog.default,{anime:{id:101,title:{russian:'Длинное название аниме на две строки'},genres:[],score:9.1,format:'TV',episodes:12,startDate:{year:2026}}}));
 const browser = await chromium.launch({headless:true, executablePath:process.env.CHROMIUM_EXECUTABLE_PATH, args:['--no-sandbox','--single-process','--no-zygote','--disable-gpu']});
