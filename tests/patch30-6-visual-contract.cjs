@@ -68,6 +68,19 @@ assert(!continueComponent.includes('styles.featured'),
   'continue-watching cards have consistent mobile and desktop markup');
 assert(continueCSS.includes('border: 1px solid var(--ab-ui-border)'),
   'mobile cards use one border geometry');
+assert(!continueCSS.includes('.featured'),
+  'unused featured resume card styles must stay removed');
+for(const selector of [
+  '.section .card :global(.continue-smart-card__poster) {',
+  '.section .card :global(.continue-smart-card__body) {',
+  '.section .card :global(.continue-smart-card__arrow) {',
+  '.section .card :global(.continue-smart-card__arrow)::after {',
+]){
+  assert(continueCSS.includes(selector), 'mobile card selector was accidentally concatenated: '+selector);
+}
+assert(!/:(?:global)\([^)]*\) :global\(\.continue-smart-card__/.test(continueCSS),
+  'duplicate descendant global selectors disable card CSS');
+
 assert(schedule.includes('if (personalScheduleItems.length === 0)'),
   'never render blank personalized schedule');
 
