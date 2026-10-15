@@ -2,6 +2,13 @@
  * This stylesheet belongs to app/page.tsx, after Patch 29.1. It MUST NOT style
  * global .anime-card/.page-hero without a .home-page scope.
  */
+.home-page .home-hero-carousel > picture {
+  position: absolute;
+  inset: 0;
+}
+.home-page .home-grid .home-hero-carousel .hero-actions .btn {
+  min-height: 44px !important;
+}
 .home-page .home-catalog-section {
   min-width: 0;
   margin-block: clamp(18px, 2.3vw, 30px);

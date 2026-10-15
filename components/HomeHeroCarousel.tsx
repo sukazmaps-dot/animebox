@@ -286,6 +286,7 @@ export default function HomeHeroCarousel({
 
   const [backdropAttemptIndex, setBackdropAttemptIndex] = useState(0);
   const [mobileAttemptIndex, setMobileAttemptIndex] = useState(0);
+  const [ultraWideOriginFailed, setUltraWideOriginFailed] = useState(false);
 
   // Do not rotate the largest above-the-fold content before the visitor has
   // interacted with the page. A timed hero swap can become a new LCP
@@ -325,6 +326,7 @@ export default function HomeHeroCarousel({
     queueMicrotask(() => {
       setBackdropAttemptIndex(0);
       setMobileAttemptIndex(0);
+      setUltraWideOriginFailed(false);
     });
   }, [anime?.id]);
 
@@ -689,11 +691,13 @@ export default function HomeHeroCarousel({
         // Desktop keeps cinematic scenery; portrait screens get the mobile art.
         <picture>
           {/* R2 currently tops out at 1440px: keep original detail on 2K/4K screens. */}
-          <source
-            media="(min-width: 2400px)"
-            srcSet={backdropAttempt?.ultraWideSrc ?? bannerImage}
-            sizes="(min-width: 3400px) 2100px, (min-width: 3000px) 1950px, (min-width: 2400px) 1750px"
-          />
+          {!ultraWideOriginFailed && backdropAttempt?.ultraWideSrc && (
+            <source
+              media="(min-width: 2400px)"
+              srcSet={backdropAttempt.ultraWideSrc}
+              sizes="(min-width: 3400px) 2100px, (min-width: 3000px) 1950px, (min-width: 2400px) 1750px"
+            />
+          )}
           {mobileKeyArt && (
             <source
               media="(max-width: 768px)"
@@ -709,7 +713,7 @@ export default function HomeHeroCarousel({
             />
           )}
           <Image
-            key={`${anime.id}-art-${backdropAttemptIndex}-${mobileAttemptIndex}`}
+            key={`${anime.id}-art-${backdropAttemptIndex}-${mobileAttemptIndex}-${ultraWideOriginFailed}`}
             src={bannerImage}
             alt=""
             fill
@@ -723,7 +727,17 @@ export default function HomeHeroCarousel({
             sizes="(min-width: 1920px) 1500px, (max-width: 768px) 55vw, (max-width: 1200px) calc(100vw - 100px), 1380px"
             className="page-hero__backdrop home-hero-carousel__backdrop is-visible"
             aria-hidden="true"
-            onError={() => {
+            onError={(event) => {
+              // The ultra-wide source bypasses the first CDN attempt. Retry
+              // that unused attempt before advancing to alternate artwork.
+              if (
+                !ultraWideOriginFailed &&
+                window.matchMedia('(min-width: 2400px)').matches &&
+                event.currentTarget.currentSrc === backdropAttempt?.ultraWideSrc
+              ) {
+                setUltraWideOriginFailed(true);
+                return;
+              }
               if (window.matchMedia('(max-width: 768px)').matches && mobileKeyArt) {
                 setMobileAttemptIndex((current) => current + 1);
               } else {

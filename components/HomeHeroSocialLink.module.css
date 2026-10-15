@@ -1,4 +1,4 @@
-.link { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; margin-top: 12px; padding: 8px 12px; border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 42%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--ab-ui-surface) 56%, transparent); color: var(--ab-ui-text); font-size: 12px; font-weight: 750; line-height: 1.4; text-decoration: none; }
+.link { display: inline-flex; min-height: 44px; align-items: center; gap: 8px; max-width: 100%; margin-top: 12px; padding: 8px 12px; border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 42%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--ab-ui-surface) 56%, transparent); color: var(--ab-ui-text); font-size: 12px; font-weight: 750; line-height: 1.4; text-decoration: none; }
 .link:hover { background: color-mix(in srgb, var(--ab-ui-accent) 72%, transparent); }
 .link:focus-visible { outline: 3px solid var(--ab-ui-border); outline-offset: 3px; }
 @media (max-width: 390px) { .link { font-size: 11px; padding: 7px 10px; } }
