@@ -187,6 +187,7 @@ try {
   const savedSource = readFileSync('lib/saved-catalog-server.ts','utf8');
   assert(source.includes('scheduleHomeMetadataRefresh('));
   assert(detail.includes('scheduleAniListMetadataPersist(baseAnime)'));
+  assert(detail.includes('enrichSavedAnimeMetadata([localized])'), 'canonical snapshots must restore title score on AniList outage');
   assert(savedSource.includes('enrichSavedAnimeMetadata('));
   assert(source.includes('unstable_cache'), 'existing home cache retained');
   console.log('PASS Patch 30.4: canonical score, unknown, expiry, provider outage, DB fallback, batch overlay/write, home async refresh, field/identity preservation.');
