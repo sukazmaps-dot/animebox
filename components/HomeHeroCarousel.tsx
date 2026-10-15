@@ -704,7 +704,7 @@ export default function HomeHeroCarousel({
             <source
               media="(max-width: 768px)"
               srcSet={mobileAttempt?.srcSet ?? mobileKeyArt}
-              sizes="(max-width: 768px) 55vw, 1px"
+              sizes="(max-width: 768px) 42vw, 1px"
             />
           )}
           {backdropAttempt?.srcSet && (
@@ -726,7 +726,7 @@ export default function HomeHeroCarousel({
             loading={safeActiveIndex === 0 ? 'eager' : 'lazy'}
             decoding="async"
             unoptimized
-            sizes="(min-width: 1920px) 1500px, (max-width: 768px) 55vw, (max-width: 1200px) calc(100vw - 100px), 1380px"
+            sizes="(min-width: 1920px) 1500px, (max-width: 768px) 42vw, (max-width: 1200px) calc(100vw - 100px), 1380px"
             className="page-hero__backdrop home-hero-carousel__backdrop is-visible"
             aria-hidden="true"
             onError={(event) => {
