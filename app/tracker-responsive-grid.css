@@ -50,6 +50,13 @@
   max-width: 100%;
 }
 
+.tracker-list--responsive .tracker-card__planned-note {
+  margin: 10px 0 0;
+  color: var(--ab-ui-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .tracker-list--responsive .tracker-card__right {
   flex: 0 0 auto;
 }
