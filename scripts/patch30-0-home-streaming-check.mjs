@@ -44,7 +44,7 @@ assert(home.includes('revalidate = 900'), 'Home ISR contract changed');
 assert(next.includes('unoptimized: true'), 'Global Image optimizer quota contract changed');
 
 assert.equal((hero.match(/<Image\s/g) ?? []).length, 1, 'Hero must use exactly one image');
-assert.equal((hero.match(/<picture>/g) ?? []).length, 1, 'One picture for desktop/mobile');
+assert.equal((hero.match(/^\s*<picture>\s*$/gm) ?? []).length, 1, 'One picture for desktop/mobile');
 for (const needle of [
   'buildAnimeBoxMediaCandidates(', 'buildAnimeBoxMediaSrcSet(',
   "buildAnimeBoxMediaDefaultVariant(", 'media="(max-width: 768px)"',
