@@ -1,12 +1,18 @@
 .guest { display: block; padding: 10px 0; color: var(--ab-ui-accent); font-size: 13px; line-height: 1.5; min-height: 44px; }
-.panel { display: grid; gap: 8px; min-width: 0; }
-.panel :global(.anime-rating-control) { min-height: 0 !important; margin: 0 !important; padding: 12px !important; border-radius: 12px !important; box-shadow: none !important; }
+.panel { display: grid; gap: 12px; min-width: 0; width: 100%; }
+/* Compact detail-card geometry: keep one owner for the stars in AnimeRatingControl.module.css. */
+.panel :global(.anime-rating-control) { min-height: 0 !important; margin: 0 !important; padding: 16px !important; border-radius: 12px !important; box-shadow: none !important; }
 .panel :global(.anime-rating-control__eyebrow), .panel :global(.anime-rating-control__head) p { display: none; }
-.panel :global(.anime-rating-control__head) { gap: 8px !important; margin-bottom: 8px !important; }
-.panel :global(.anime-rating-control__head) h2 { font-size: 16px !important; }
-.panel :global(.anime-rating-control__summary) { padding: 6px 8px !important; min-height: 0 !important; }
-.panel :global(.anime-rating-control__stars) { display: grid !important; grid-template-columns: repeat(10, minmax(0, 1fr)) !important; gap: 0 !important; margin-block: 6px !important; }
-.panel :global(.anime-rating-control__star-button) { width: 100% !important; min-width: 0 !important; height: 44px !important; font-size: 22px !important; }
-.panel :global(.anime-rating-control__star-base), .panel :global(.anime-rating-control__star-fill) { font-size: inherit !important; line-height: 44px !important; }
-.panel :global(.anime-rating-control__footer) { margin-top: 4px !important; font-size: 12px !important; }
+.panel :global(.anime-rating-control__head) { align-items: center; gap: 12px; margin-bottom: 10px !important; }
+.panel :global(.anime-rating-control__head) h2 { margin: 0; font-size: clamp(16px, 2vw, 19px) !important; line-height: 1.3; }
+.panel :global(.anime-rating-control__summary) { min-width: 140px; padding: 10px 12px !important; min-height: 0 !important; }
+.panel :global(.anime-rating-control__summary) span,
+.panel :global(.anime-rating-control__summary) small { font-size: 11px; line-height: 1.4; }
+.panel :global(.anime-rating-control__summary) strong { font-size: clamp(20px, 2.3vw, 26px); }
+.panel :global(.anime-rating-control__footer) { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px !important; font-size: 12px !important; line-height: 1.5; }
+.panel :global(.anime-rating-control__clear) { min-height: 40px; padding: 7px 10px; font-size: 12px; color: var(--ab-ui-accent); }
+@media (max-width: 420px) {
+  .panel :global(.anime-rating-control__head) { grid-template-columns: minmax(0, 1fr); }
+  .panel :global(.anime-rating-control__summary) { justify-items: start; width: max-content; max-width: 100%; }
+}
 :global(html[data-animebox-theme='light']) .guest { color: var(--ab-ui-accent); }
