@@ -96,7 +96,7 @@ export default function HomeContinueWatching({
           completedEpisodes,
           totalEpisodes: explicitTotalEpisodes,
           lastWatchedAt,
-        }, index) => {
+        }) => {
           const title = getAnimeTitle(anime);
           const totalEpisodes =
             explicitTotalEpisodes ??
@@ -153,7 +153,7 @@ export default function HomeContinueWatching({
                   englishName={anime.title?.english || anime.title?.romaji}
                   className="continue-smart-card__image"
                   loading="lazy"
-                  sizes={index === 0 ? '(max-width: 600px) 76px, 96px' : '54px'}
+                  sizes="(max-width: 600px) 62px, 96px"
                   quality={60}
                   sourcePreference="compact"
                   preset="tiny"
