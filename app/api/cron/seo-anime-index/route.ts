@@ -200,8 +200,11 @@ async function run(request: Request) {
       ...totals,
     };
 
-    if (budgetExhausted) {
-      await observer.degraded('seo_index_budget_exhausted', summary);
+    if (budgetExhausted || catalogRecoveryFailed) {
+      await observer.degraded(
+        budgetExhausted ? 'seo_index_budget_exhausted' : 'seo_catalog_recovery_failed',
+        summary,
+      );
     } else {
       await observer.success(summary);
     }
@@ -209,7 +212,7 @@ async function run(request: Request) {
     return Response.json(
       {
         ok: true,
-        degraded: budgetExhausted,
+        degraded: budgetExhausted || catalogRecoveryFailed,
         ...summary,
         results,
       },
