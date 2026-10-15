@@ -16,7 +16,7 @@ import { getAnimeFranchiseWithShikimori } from '@/lib/combined-anime';
 const CATEGORIES: FranchiseCategory[] = [
   'series', 'movies', 'ova', 'specials', 'spinOffs', 'other',
 ];
-const SECTION_CLASS = 'anime-franchise-v3 mx-auto max-w-7xl px-4 pb-8 pt-2 md:px-6';
+const SECTION_CLASS = 'anime-franchise-v3 w-full min-w-0 max-w-full pb-6 pt-2';
 
 export function AnimeFranchiseLoading() {
   return (
@@ -34,9 +34,11 @@ export function AnimeFranchiseLoading() {
 export default async function AnimeFranchise({
   animeId,
   currentTitle,
+  watchHref,
 }: {
   animeId: number;
   currentTitle?: string | null;
+  watchHref?: string;
 }) {
   let franchise: FranchiseData | null;
   try {
@@ -46,12 +48,22 @@ export default async function AnimeFranchise({
     franchise = null;
   }
 
-  // Франшиза — дополнительный блок. Если внешний API временно
-  // ограничил запросы, основная страница аниме всё равно должна работать.
-  if (!franchise) return null;
-
-  // У отдельного произведения не показываем блок из одной карточки.
-  if (franchise.items.length <= 1 && !franchise.partial) return null;
+  // Never leave an open "Порядок частей" accordion completely blank:
+  // AniList relation lookup may fail or report no linked parts.
+  if (!franchise || (franchise.items.length <= 1 && !franchise.partial)) {
+    return (
+      <div className="min-w-0 px-0 pb-5 text-sm leading-6 text-[var(--ab-ui-muted)]" role="status">
+        <p>{!franchise
+          ? 'Не удалось загрузить порядок частей. Попробуй позже.'
+          : 'Связанные сезоны пока не найдены в каталоге.'}</p>
+        {watchHref && (
+          <Link href={watchHref} className="mt-2 inline-flex min-h-11 items-center text-[var(--ab-ui-accent)]">
+            Открыть раздел просмотра →
+          </Link>
+        )}
+      </div>
+    );
+  }
 
   franchise.items = franchise.items.map(registerAnime);
   for (const category of CATEGORIES) franchise.groups[category] = franchise.groups[category].map(registerAnime);
@@ -60,7 +72,7 @@ export default async function AnimeFranchise({
 
   return (
     <section className={SECTION_CLASS} aria-labelledby="franchise-heading">
-      <div className="anime-franchise-v3__inner border-t border-white/10 pt-6">
+      <div className="anime-franchise-v3__inner min-w-0 max-w-full pt-3">
         <span className="anime-franchise-v3__eyebrow">Франшиза</span>
         <h2 id="franchise-heading" className="anime-franchise-v3__title">Порядок частей</h2>
         <p className="anime-franchise-v3__subtitle">Сезоны, фильмы и спецвыпуски по порядку выхода.</p>
