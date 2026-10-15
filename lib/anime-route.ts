@@ -13,7 +13,7 @@ import {
 } from './anime-registry';
 import { findPersistentAnimeRoute } from '@/lib/persistent-anime-route';
 import { getSeoAnimeDetailFallback } from '@/lib/seo-anime-index-server';
-import { scheduleAniListMetadataPersist } from '@/lib/anime-public-metadata-server';
+import { scheduleAniListMetadataPersist, enrichSavedAnimeMetadata } from '@/lib/anime-public-metadata-server';
 
 const getCachedAnimeBase = unstable_cache(
   async (id: number) =>
@@ -48,6 +48,7 @@ export const resolveAnimeRoute = cache(async (slug: string) => {
     );
   }
 
+  const freshAniListResult = Boolean(baseAnime);
   if (baseAnime) {
     // Only an actual AniList result is authoritative. A local/Shikimori
     // fallback must never be saved as though it came from AniList.
@@ -71,7 +72,13 @@ export const resolveAnimeRoute = cache(async (slug: string) => {
   // Existing AnimeBox catalogue entries remain routable even if AniList is
   // temporarily unavailable or rejects the fresh detail object. External
   // metadata enriches the page; it no longer decides whether the page exists.
-  const anime = registerAnime(await localizeAnimeDetail(baseAnime));
+  const localized = await localizeAnimeDetail(baseAnime);
+  // When AniList is unavailable, the persisted canonical snapshot (if fresh)
+  // still wins over the Shikimori/local fallback. No extra read on healthy pages.
+  const restored = freshAniListResult
+    ? localized
+    : (await enrichSavedAnimeMetadata([localized]))[0] ?? localized;
+  const anime = registerAnime(restored);
 
   return {
     ...anime,
