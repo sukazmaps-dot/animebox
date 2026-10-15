@@ -1,6 +1,10 @@
 # AnimeBox — Patch 29.14: Route Visual Stability
 
 Дата: 14.10.2026. База: main после Patch 29.13 (PR #225). Ветка: fix/patch29-14-route-layout-stability.
+
+Продолжение 15.10.2026: [подробное ТЗ завершения PR #226 и мобильной пагинации](PATCH-29-14-STABILIZATION-SPEC.md).
+Последний CI выявил замер во время CSS theme transition; исходный порог 4.5:1 сохранён,
+измерение теперь завершается после конечных переходов и использует реальный фон текста.
 Тип: UI, CSS, тесты и документация. Без БД/SQL, новых пакетов, auth/RLS, media API.
 
 ## 0. Executive summary и предел достоверности

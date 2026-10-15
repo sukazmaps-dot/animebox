@@ -13,7 +13,7 @@
     height: auto !important;
     min-height: 340px !important;
     max-height: none !important;
-    padding: 82px 16px 52px !important;
+    padding: 82px 16px 64px !important;
     justify-content: flex-end !important;
   }
   .home-page .home-grid .home-hero-carousel .home-hero-carousel__content h1 {
@@ -49,10 +49,6 @@
   .home-page .home-hero-carousel .home-hero-carousel__backdrop {
     transform: none !important;
   }
-  .home-page .home-grid .home-hero-carousel .home-hero-carousel__nav {
-    bottom: 9px !important;
-    z-index: 4;
-  }
   .home-page .continue-watching-section {
     margin-top: 10px !important;
     margin-bottom: 7px;
@@ -69,7 +65,7 @@
   }
   .home-page .home-grid .page-hero__content.home-hero-carousel__content {
     min-height: 320px !important;
-    padding: 72px 14px 50px !important;
+    padding: 72px 14px 64px !important;
   }
   .home-page .home-hero-carousel .hero-actions { width: 100% !important; }
   .home-page .home-grid .home-hero-carousel .hero-actions .btn { min-height: 44px !important; }
@@ -81,5 +77,23 @@
     animation: none !important;
     transition: none !important;
     transform: none !important;
+  }
+}
+
+/* Rotated phones exceed 768px: the old 58dvh/310px cap clipped the
+   content while retaining the desktop content min-height. Fit the copy
+   and social action first, then reserve the same pagination space. */
+@media (min-width: 769px) and (max-width: 1100px) and (orientation: landscape) and (max-height: 600px) {
+  .home-page .home-grid .page-hero.home-hero-carousel {
+    height: auto !important;
+    min-height: 260px !important;
+    max-height: none !important;
+  }
+  .home-page .home-grid .page-hero__content.home-hero-carousel__content {
+    width: min(100%, 790px) !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 260px !important;
+    padding: 24px 24px 68px !important;
   }
 }

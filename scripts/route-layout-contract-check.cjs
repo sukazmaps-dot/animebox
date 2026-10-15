@@ -18,6 +18,10 @@ assert(!/text-white(?:\/\d+)?|bg-white\/\[0\.055\]|text-\[color-mix\(in_srgb,var
 const responsive=fs.readFileSync('app/patch12-4-1-mobile-anime-flow.css','utf8');
 assert(/\.tracker-page\s+\.tracker-card__progress\s+a\s*\{\s*min-height:\s*44px\s*!important/.test(responsive),
   'Legacy mobile CSS must preserve a 44px resume touch target');
+const hero=fs.readFileSync('components/HomeHeroCarousel.tsx','utf8');
+assert(hero.includes('<HomeHeroPagination'), 'Hero must use the isolated pagination component');
+assert(!/home-hero-carousel__(?:dot|dots|counter|nav)/.test(hero),
+  'Legacy hero pagination classes must not regain ownership of the live controls');
 for (const file of ['scripts/route-layout-matrix-smoke.cjs', 'docs/PATCH-29-14-ROUTE-VISUAL-STABILITY.md']) {
   assert(fs.existsSync(file), 'Missing route layout contract: ' + file);
 }

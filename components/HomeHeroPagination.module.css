@@ -1,0 +1,67 @@
+/* One owner for the hero's counter and positions. Do not reuse legacy
+   home-hero-carousel__dot/nav classes: they have incompatible global models. */
+.pagination {
+  position: absolute;
+  z-index: 4;
+  inset: auto 16px 12px clamp(16px, 4vw, 64px);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  height: 44px;
+  pointer-events: none;
+}
+
+.counter {
+  flex: 0 0 40px;
+  color: var(--ab-ui-text);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.positions {
+  display: flex;
+  flex: 0 1 220px;
+  min-width: 0;
+  pointer-events: auto;
+}
+
+.position {
+  display: grid;
+  place-items: center;
+  flex: 1 1 44px;
+  width: 44px;
+  min-width: 24px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.mark {
+  display: block;
+  width: 8px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--ab-ui-muted);
+  pointer-events: none;
+}
+
+.position[aria-pressed='true'] .mark {
+  width: 24px;
+  background: var(--ab-ui-accent);
+}
+
+.position:focus-visible {
+  outline: 2px solid var(--ab-ui-accent);
+  outline-offset: -2px;
+}
+
+@media (max-width: 768px) {
+  .pagination { inset: auto 14px 8px; }
+}

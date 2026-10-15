@@ -41,7 +41,7 @@ const trackerProgress = '<div class="tracker-card__progress mt-3 min-w-0 rounded
   '<strong class="mt-1 block min-w-0 break-words text-xs text-[var(--ab-ui-text)]" data-check="progress-title">Серия 123 — специальный дополнительный выпуск</strong>' +
   '</div><span class="shrink-0 text-[11px] font-bold text-[var(--ab-ui-accent)]" data-check="progress-count">123 / 999 серий</span></div>' +
   '<div class="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--ab-ui-border)]"><span class="block h-full rounded-full bg-gradient-to-r from-[var(--ab-ui-primary)] to-[var(--ab-ui-primary)]" style="width:65%"></span></div>' +
-  '<a href="#" class="mt-2 inline-flex min-h-11 items-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--ab-ui-accent)_15%,transparent)] bg-[var(--ab-ui-primary)]/[0.07] px-3 text-[11px] font-bold text-[var(--ab-ui-accent)]">Продолжить · 12:34 →</a></div>';
+  '<a href="#" data-check="progress-resume" class="mt-2 inline-flex min-h-11 items-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--ab-ui-accent)_15%,transparent)] bg-[var(--ab-ui-primary)]/[0.07] px-3 text-[11px] font-bold text-[var(--ab-ui-accent)]">Продолжить · 12:34 →</a></div>';
 const trackerCard = '<article class="tracker-card flex h-full min-w-0 flex-col" data-status="watching">' +
   '<div class="tracker-card__top"><div class="tracker-card__identity">' +
   '<div class="tracker-card__poster" aria-label="Обложка"><div class="tracker-card__poster-media"></div></div>' +
@@ -107,6 +107,19 @@ async function scopedCSS(file,prefix) {
   const result=await postcss([local(),scope({generateScopedName: name => prefix+'_'+name})]).process(content,{from:file});
   result.root.walkRules(':export',r=>r.remove());
   return result.css;
+}
+
+// A theme switch starts CSS transitions even with reduced-motion enabled.
+// Two rAFs can still land on their first sample (including 0.01ms transitions).
+// Measure the final layout/colors; keep thresholds and production CSS intact.
+async function settleTheme(page) {
+  await page.evaluate(async () => {
+    await new Promise(done => requestAnimationFrame(done));
+    for (const animation of document.getAnimations()) {
+      if (Number.isFinite(animation.effect?.getComputedTiming().endTime)) animation.finish();
+    }
+    await new Promise(done => requestAnimationFrame(done));
+  });
 }
 
 (async () => {
@@ -206,7 +219,7 @@ async function scopedCSS(file,prefix) {
       for(const {width,height} of widths)for(const theme of ['dark','light']) {
         await page.setViewportSize({width,height});
         await page.evaluate(t=>{document.documentElement.dataset.animeboxTheme=t;},theme);
-        await page.evaluate(()=>new Promise(done=>requestAnimationFrame(()=>requestAnimationFrame(done))));
+        await settleTheme(page);
         const m=await page.evaluate(()=>{
           const el=document.querySelector('.page-content'),r=el.getBoundingClientRect();
           const shell=document.querySelector('.app-shell');
@@ -230,7 +243,7 @@ async function scopedCSS(file,prefix) {
       for(const {width,height} of widths)for(const theme of ['dark','light']) {
         await page.setViewportSize({width,height});
         await page.evaluate(t=>{document.documentElement.dataset.animeboxTheme=t;},theme);
-        await page.evaluate(()=>new Promise(done=>requestAnimationFrame(()=>requestAnimationFrame(done))));
+        await settleTheme(page);
         const result=await page.evaluate((kind)=>{
           const root=document.querySelector('[data-fixture]');
           const r=el=>{const b=el.getBoundingClientRect();return {left:b.left,top:b.top,right:b.right,bottom:b.bottom,width:b.width,height:b.height};};
@@ -242,12 +255,19 @@ async function scopedCSS(file,prefix) {
           const hero=root.querySelector('.profile-v2__hero');
           const contrast=[...root.querySelectorAll('[data-check]')].map(el=>{
             const css=getComputedStyle(el);
-            const panel=root.querySelector('.tracker-card');
-            const parentColor=panel?getComputedStyle(panel).backgroundColor:getComputedStyle(document.body).backgroundColor;
-            const toRGB=value=>{const temp=document.createElement('span');temp.style.backgroundColor=value;document.body.appendChild(temp);
-              const out=getComputedStyle(temp).backgroundColor;temp.remove();return out;};
-            return {name:el.dataset.check,color:css.color,background:parentColor,
-              surface:toRGB('var(--ab-ui-surface)')};
+            // Composite the real ancestor backgrounds; the progress panel is
+            // raised, while the resume link uses the selected surface. Testing
+            // against the root surface token misses these actual backgrounds.
+            const canvas=document.createElement('canvas');canvas.width=canvas.height=1;
+            const ctx=canvas.getContext('2d');
+            ctx.fillStyle='#fff';ctx.fillRect(0,0,1,1);
+            const ancestors=[];
+            for(let node=el;node;node=node.parentElement)ancestors.unshift(node);
+            for(const node of ancestors){ctx.fillStyle=getComputedStyle(node).backgroundColor;ctx.fillRect(0,0,1,1);}
+            const surface='rgb('+[...ctx.getImageData(0,0,1,1).data].slice(0,3).join(',')+')';
+            ctx.fillStyle=css.color;ctx.globalAlpha=Number(css.opacity);ctx.fillRect(0,0,1,1);
+            const color='rgb('+[...ctx.getImageData(0,0,1,1).data].slice(0,3).join(',')+')';
+            return {name:el.dataset.check,color,surface};
           });
           return {root:r(root),cards,pageWidth:document.documentElement.scrollWidth,viewport:innerWidth,
             actions:marker&&r(marker),description:copy&&r(copy),watch:watch&&r(watch),
