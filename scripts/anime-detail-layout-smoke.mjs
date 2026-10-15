@@ -36,6 +36,8 @@ const modules = await Promise.all([
   cssModule('app/anime/[slug]/detail-layout.module.css', 'detail'),
   cssModule('components/AnimeDetailControls.module.css', 'controls'),
   cssModule('components/AnimeSynopsis.module.css', 'synopsis'),
+  cssModule('components/ui/HorizontalNavRail.module.css', 'navrail'),
+  cssModule('components/AnimeFranchise.module.css', 'franchise'),
 ]);
 const browser = await chromium.launch({
   headless: true,
@@ -48,7 +50,7 @@ try {
   await page.route('**/*', route => route.abort());
   await page.setContent(`<html><head><style>${globals.join('\n')}\n${modules.join('\n')}</style></head><body><main id="fixture" class="page_page anime-detail-v3 anime-detail-v4 min-h-screen overflow-hidden text-white" style="--anime-page-accent:#bba2e3"></main></body></html>`);
   for (const theme of ['dark', 'light']) {
-    for (const width of [320, 360, 375, 390, 430, 720, 767, 768, 1024, 1920]) {
+    for (const width of [320, 360, 375, 390, 430, 720, 767, 768, 1024, 1440, 1920]) {
       await page.setViewportSize({ width, height: 1200 });
       for (const scale of [1, 1.25]) {
         for (const state of ['guest', 'saved', 'resume', 'error']) {
@@ -73,7 +75,22 @@ try {
                     ${state === 'resume' ? '<div class="controls_resume"><div class="controls_resumeTrack"><span style="width:45%"></span></div><span>Серия 123 · продолжить с 12:34</span></div>' : ''}
                   </div>
                   <section class="detail_description"><div class="synopsis_synopsis synopsis_hero"><p class="synopsis_full">Умэ Мидзуноэ — первокурсник, который начинает новую жизнь. Длинное описание должно оставаться под кнопками даже при увеличенном тексте и переносах.</p><button>Полное описание ↓</button></div></section>
-                </div></header></div>`;
+                </div></header>
+                <div class="detail_mainColumn">
+                  <details open class="detail_franchise">
+                    <summary>Порядок частей</summary>
+                    <section class="anime-franchise-v3 w-full min-w-0 max-w-full pb-6 pt-2">
+                      <div class="anime-franchise-v3__inner min-w-0 max-w-full pt-3">
+                        <div class="navrail_wrapper franchise_seasonsRail">
+                          <div class="navrail_track" role="region" aria-label="Сезоны и части франшизы" tabindex="0">
+                            ${Array.from({length: 12}, (_, index) => `<a class="franchise_season anime-franchise-v3__season min-w-[150px] w-[190px] shrink-0 snap-start md:w-[210px]" href="#season-${index}"><span class="anime-franchise-v3__step">${index + 1}</span><span class="anime-franchise-v3__season-label">Сезон ${index + 1}</span><span class="anime-franchise-v3__season-title">ОченьДлинноеНазваниеСвязаннойЧастиБезПробелов${index}</span><span class="anime-franchise-v3__year">2026</span></a>`).join('')}
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+                  </details>
+                  <section class="detail_discussion"><h2>Обсуждение</h2><p>Обсуждение должно оставаться в пределах экрана.</p></section>
+                </div></div>`;
             // Emulate enlarged browser text without changing the viewport or button icons.
             for (const element of document.querySelectorAll('h1, p, button, .anime-detail-actions__state, .controls_resume > span')) {
               element.style.setProperty('font-size', `${parseFloat(getComputedStyle(element).fontSize) * scale}px`, 'important');
@@ -99,10 +116,17 @@ try {
             const fg=luminance(watchStyle.color),bg=luminance(watchStyle.backgroundColor);
             const ctaContrast=(Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05);
             const title=document.querySelector('.detail_identity h1');
-            return { title:rect('.detail_identity h1'),titleScroll:title.scrollWidth,titleWidth:title.clientWidth,ctaContrast, overlay:getComputedStyle(document.querySelector('.detail_hero'),'::after').backgroundImage, hero: rect('.detail_hero'), identity: rect('.detail_identity'), poster: document.querySelector('.detail_poster') && rect('.detail_poster'), actions: rect('.detail_actions'), description: rect('.detail_description'),
+            const track = document.querySelector('.navrail_track');
+            track.scrollTo({ left: track.scrollWidth, behavior: 'instant' });
+            return { franchise: rect('.detail_franchise'), discussion: rect('.detail_discussion'), track: rect('.navrail_track'), trackWidth: track.clientWidth, trackScrollWidth: track.scrollWidth, trackScrollLeft: track.scrollLeft, title:rect('.detail_identity h1'),titleScroll:title.scrollWidth,titleWidth:title.clientWidth,ctaContrast, overlay:getComputedStyle(document.querySelector('.detail_hero'),'::after').backgroundImage, hero: rect('.detail_hero'), identity: rect('.detail_identity'), poster: document.querySelector('.detail_poster') && rect('.detail_poster'), actions: rect('.detail_actions'), description: rect('.detail_description'),
               copy: rect('.synopsis_full'), watch: rect('.anime-detail-actions__watch'), controls };
           });
           assert(geometry.ctaContrast>=4.5, `${label}: watch text contrast ${geometry.ctaContrast}`);
+          for (const key of ['franchise', 'discussion', 'track']) {
+            assert(geometry[key].width > 0 && geometry[key].left >= -1 && geometry[key].right <= width + 1, `${label}: ${key} escapes viewport`);
+          }
+          assert(geometry.trackScrollWidth > geometry.trackWidth, `${label}: franchise fixture must overflow inside its track`);
+          assert(geometry.trackScrollLeft > 0, `${label}: franchise track must scroll internally`);
           assert(geometry.title.left>=-1&&geometry.title.right<=width+1&&geometry.titleScroll<=geometry.titleWidth+1,`${label}: title text overflows`);
           if (theme === 'light') assert(!geometry.overlay.includes('17, 16, 22'), `${label}: fixed dark overlay in light theme`);
           assert(geometry.description.top >= geometry.actions.bottom + 1, `${label}: synopsis overlaps actions`);
@@ -140,3 +164,4 @@ try {
 } finally {
   await browser.close();
 }
+

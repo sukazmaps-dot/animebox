@@ -173,6 +173,9 @@ jobs:
           components/home/HomeRightRail.tsx
           app/api/schedule/route.ts
           components/AnimeImage.tsx
+          components/AnimePoster.tsx
+          components/RelatedAnime.tsx
+          lib/anime-taxonomy.ts
           lib/media-warmup-client.ts
           components/AnimeCard.tsx
           components/HomeContinueWatching.tsx
