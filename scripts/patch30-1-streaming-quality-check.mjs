@@ -45,7 +45,7 @@ assert(cascade.includes('setRetryCount(1)'), 'hero retry missing');
 assert(cascade.includes('8_500'), 'hero timeout missing');
 assert(franchise.includes('Связанные сезоны пока не найдены'), 'franchise empty state missing');
 assert(franchise.includes('watchHref'), 'watch-route fallback missing');
-assert(franchise.includes('{ maxRequests: 16 }'), 'description and watch franchise traversal budgets differ');
+assert(franchise.includes('maxRequests: 16'), 'description and watch franchise traversal budgets differ');
 assert(rail.includes('overflow: hidden') && rail.includes('width: 100% !important'), 'rail containment missing');
 assert(layout.includes('grid-template-columns: minmax(0, 1fr)'), 'min-content grid overflow not fixed');
 assert(synopsis.includes('expanded || !collapsible ? styles.full : styles.preview'), 'hero excerpt cannot expand/collapse correctly');

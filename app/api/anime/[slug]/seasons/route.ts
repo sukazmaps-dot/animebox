@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { getAnimeFranchiseWithShikimori } from '@/lib/combined-anime';
+import { getCachedAnimeFranchise } from '@/lib/anime-franchise-cache-server';
 import { getPrimarySeasonItems } from '@/lib/anime-franchise';
 import { registerAnime } from '@/lib/anime-registry';
 import type {
@@ -44,9 +45,9 @@ export async function GET(
   }
 
   try {
-    const franchise = await getAnimeFranchiseWithShikimori(animeId, {
-      maxRequests: 16,
-    });
+    const franchise = await getCachedAnimeFranchise(animeId, (signal) =>
+      getAnimeFranchiseWithShikimori(animeId, { maxRequests: 16, signal }),
+    );
 
     if (!franchise) {
       const empty: EpisodeSeasonsResponse = {
