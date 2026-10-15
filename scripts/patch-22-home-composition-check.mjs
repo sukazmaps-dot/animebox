@@ -23,7 +23,7 @@ for (const [label, source, needle] of [
   ['schedule slot marker', feed, 'data-home-composition-slot="personal-schedule"'],
   ['schedule insertion helper usage', feed, 'getHomeScheduleInsertionIndex(rails)'],
   ['home schedule before discovery', discovery, '<HomePersonalScheduleSection />'],
-  ['legacy standalone schedule removed', shell, '<HomeDiscoverySection />\n\n              <HomeShortcuts />'],
+  ['single discovery surface retained', shell, '<HomeDiscoverySection />'],
   ['phase L docs', docs, 'Status: **implemented / under CI**'],
 ]) {
   if (!source.includes(needle)) {
@@ -46,6 +46,10 @@ if (
   failures.push(
     'adaptive rail priority contract is not Mood(active) -> Top Match -> Session -> Story',
   );
+}
+
+if ((shell.match(/<HomeDiscoverySection \/>/g) ?? []).length !== 1) {
+  failures.push('HomePageShell must mount exactly one discovery surface');
 }
 
 if (shell.includes('<HomePersonalScheduleSection />')) {
