@@ -206,7 +206,7 @@ if (
   !hero.includes('loading={safeActiveIndex === 0') ||
   !hero.includes('fetchPriority={safeActiveIndex === 0') ||
   !hero.includes('unoptimized') ||
-  (hero.match(/<Image\\s/g) ?? []).length !== 1 ||
+  (hero.match(/<Image\s/g) ?? []).length !== 1 ||
   (hero.match(/fetchPriority=.*high/g) ?? []).length > 1
 ) {
   failures.push('hero single-picture responsive R2/origin/LCP contract has regressed');
