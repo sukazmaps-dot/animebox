@@ -35,6 +35,8 @@ import {
 } from '@/lib/media-delivery';
 
 import { getAnimeTitle } from '@/lib/anime-display';
+import { formatAnimeScore } from '@/lib/anime-score';
+import { cleanSeoText, truncateSeoText } from '@/lib/seo-text';
 
 
 function subscribeHydrationReady() {
@@ -321,6 +323,10 @@ export default function HomeHeroCarousel({
     backdrop: anime ? getHeroBackdropAttempts(anime) : [],
     mobile: anime ? getMobileHeroAttempts(anime) : [],
   }), [anime]);
+  const heroSummary = useMemo(
+    () => truncateSeoText(cleanSeoText(anime?.description), 160),
+    [anime?.description],
+  );
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -459,6 +465,13 @@ export default function HomeHeroCarousel({
 
   const title =
     getAnimeTitle(anime);
+  const heroRating = formatAnimeScore(anime);
+  const heroYear = Number(anime.startDate?.year);
+  const heroFacts = [
+    Number.isInteger(heroYear) && heroYear > 1900 ? String(heroYear) : null,
+    anime.format === 'TV' ? 'Сериал' : anime.format === 'MOVIE' ? 'Фильм' : anime.format,
+    anime.episodes && anime.episodes > 0 ? `${anime.episodes} эп.` : null,
+  ].filter(Boolean);
 
   const backdropAttempts = imageAttempts.backdrop;
   const mobileAttempts = imageAttempts.mobile;
@@ -702,7 +715,7 @@ export default function HomeHeroCarousel({
             <source
               media="(max-width: 768px)"
               srcSet={mobileAttempt?.srcSet ?? mobileKeyArt}
-              sizes="(max-width: 768px) 55vw, 1px"
+              sizes="(max-width: 768px) 100vw, 1px"
             />
           )}
           {backdropAttempt?.srcSet && (
@@ -724,7 +737,7 @@ export default function HomeHeroCarousel({
             loading={safeActiveIndex === 0 ? 'eager' : 'lazy'}
             decoding="async"
             unoptimized
-            sizes="(min-width: 1920px) 1500px, (max-width: 768px) 55vw, (max-width: 1200px) calc(100vw - 100px), 1380px"
+            sizes="(min-width: 1920px) 1500px, (max-width: 768px) 100vw, (max-width: 1200px) calc(100vw - 100px), 1380px"
             className="page-hero__backdrop home-hero-carousel__backdrop is-visible"
             aria-hidden="true"
             onError={(event) => {
@@ -754,9 +767,28 @@ export default function HomeHeroCarousel({
         className="page-hero__content home-hero-carousel__content"
         key={`content-${anime.id}`}
       >
+        <span className="home-hero-scene__eyebrow">
+          <span aria-hidden="true" /> Открой для себя
+        </span>
         <h1 className={title.length > 55 ? 'is-long-title' : undefined}>
           {title}
         </h1>
+
+        {(heroRating || heroFacts.length > 0) && (
+          <div className="home-hero-scene__facts" aria-label="Информация об аниме">
+            {heroRating && (
+              <span className="home-hero-scene__score">
+                <Icon name="star" size={15} weight="fill" /> {heroRating}
+                <span className="sr-only"> из 10</span>
+              </span>
+            )}
+            {heroFacts.map((fact) => <span key={fact}>{fact}</span>)}
+          </div>
+        )}
+        {anime.genres?.length > 0 && (
+          <p className="home-hero-scene__genres">{anime.genres.slice(0, 2).join(' · ')}</p>
+        )}
+        {heroSummary && <p className="home-hero-scene__summary">{heroSummary}</p>}
 
         <div className="hero-actions">
           <Link
