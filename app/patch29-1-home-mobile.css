@@ -13,7 +13,7 @@
     height: auto !important;
     min-height: 340px !important;
     max-height: none !important;
-    padding: 82px 16px 64px !important;
+    padding: clamp(230px, calc(64vw + 28px), 345px) 16px 64px !important;
     justify-content: flex-end !important;
   }
   .home-page .home-grid .home-hero-carousel .home-hero-carousel__content h1 {
@@ -69,7 +69,7 @@
   }
   .home-page .home-grid .page-hero__content.home-hero-carousel__content {
     min-height: 320px !important;
-    padding: 72px 14px 64px !important;
+    padding: clamp(230px, calc(64vw + 28px), 275px) 14px 64px !important;
   }
   .home-page .home-hero-carousel .hero-actions { width: 100% !important; }
   .home-page .home-grid .home-hero-carousel .hero-actions .btn { min-height: 44px !important; }
