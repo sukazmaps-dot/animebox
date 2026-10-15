@@ -17,5 +17,5 @@ export function normalizedAnimeScore(anime: Pick<Anime, 'score' | 'averageScore'
 export function formatAnimeScore(anime: Pick<Anime, 'score' | 'averageScore'>): string | null {
   const score = normalizedAnimeScore(anime);
   if (score == null) return null;
-  return score.toFixed(1).replace(/\.0$/, '');
+  return score.toFixed(1);
 }
