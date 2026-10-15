@@ -87,6 +87,9 @@ jobs:
       - name: Patch 30.3 metadata normalization and episode display
         run: npm run patch30-3:check
 
+      - name: Patch 30.6 premium page geometry regression
+        run: npm run patch30-6:check
+
       - name: TypeScript
         run: npx tsc --noEmit
 
