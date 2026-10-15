@@ -1,0 +1,111 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+const read = (path) => readFileSync(path, 'utf8');
+const shell = read('components/home/HomePageShell.tsx');
+const home = read('app/page.tsx');
+const hero = read('components/HomeHeroCarousel.tsx');
+const rails = read('components/HomeAnimeRail.tsx');
+const catalogue = read('components/home/HomeCatalogSections.tsx');
+const runtime = read('components/home/HomeFeedRuntimeProvider.tsx');
+const social = read('components/home/HomeWatchTogetherSection.tsx');
+const lobby = read('components/home/HomeWatchTogetherLobby.tsx');
+const styles = read('app/patch30-0-home-streaming.css');
+const socials = read('components/home/HomeWatchTogetherSection.module.css');
+const media = read('lib/media-delivery.ts');
+const next = read('next.config.ts');
+
+function ordered(markers, source = shell) {
+  let previous = -1;
+  for (const marker of markers) {
+    const index = source.indexOf(marker);
+    assert(index > previous, 'Lost/incorrect order: ' + marker);
+    previous = index;
+  }
+}
+
+ordered([
+  '<HomeHeroSection />',
+  '<HomeContinueSection />',
+  '<HomeDiscoverySection />',
+  '<HomeCatalogSections />',
+  '<HomeWatchTogetherSection />',
+  '<HomeShortcuts />',
+  '<HomeDeferredChat />',
+  '<HomeScheduleSection />',
+  '<HomeRetentionSections />',
+  '<HomeRightRail />',
+]);
+assert(!shell.includes("'use client'"), 'Server shell cannot become a client island');
+assert(home.includes("import './patch30-0-home-streaming.css';"), 'route CSS not imported');
+assert(home.indexOf("import './patch30-0-home-streaming.css';") >
+  home.indexOf("import './patch29-1-home-mobile.css';"), 'CSS must come after mobile fix');
+assert(home.includes('revalidate = 900'), 'Home ISR contract changed');
+assert(next.includes('unoptimized: true'), 'Global Image optimizer quota contract changed');
+
+assert.equal((hero.match(/<Image\s/g) ?? []).length, 1, 'Hero must use exactly one image');
+assert.equal((hero.match(/<picture>/g) ?? []).length, 1, 'One picture for desktop/mobile');
+for (const needle of [
+  'buildAnimeBoxMediaCandidates(', 'buildAnimeBoxMediaSrcSet(',
+  "buildAnimeBoxMediaDefaultVariant(", 'media="(max-width: 768px)"',
+  'media="(min-width: 769px)"', "loading={safeActiveIndex === 0",
+  "fetchPriority={safeActiveIndex === 0", 'priority={false}',
+  'setMobileAttemptIndex((current) => current + 1)',
+  'setBackdropAttemptIndex((current) => current + 1)',
+  '...sources.map((src) => ({ src, fallback: true }))',
+  "window.matchMedia('(max-width: 768px)').matches",
+]) {
+  assert(hero.includes(needle), 'Hero missing performance/recovery contract: ' + needle);
+}
+assert(!hero.includes('home-hero-carousel__mobile-keyart-image'),
+  'Secondary mobile Image should not silently be reintroduced');
+assert(hero.includes('<HomeHeroPagination'), 'Existing paging must remain');
+assert(hero.includes("import('@/lib/recommendations')"),
+  'Hero recommendation engine must remain dynamically imported');
+
+assert(catalogue.includes("import HomeAnimeRail"), 'Catalogue not using the rail');
+assert.equal((catalogue.match(/<HomeAnimeRail/g) ?? []).length, 2, 'Exactly two rails');
+assert.equal((catalogue.match(/watchedEpisodes={personalEpisodeByAnime}/g) ?? []).length,
+  2, 'Both rails must use existing progress map');
+assert(!catalogue.includes('<AnimeCard'), 'No duplicate grid card path');
+assert(rails.includes('watchedEpisodes?: ReadonlyMap<number, number>'),
+  'Rail optional progress contract lost');
+assert(rails.includes('watchedEpisode={watchedEpisodes?.get(anime.id) ?? null}'),
+  'Progress no longer reaches AnimeCard');
+assert(rails.includes('window.requestAnimationFrame(() =>'),
+  'Rail scroll handler no longer frame bounded');
+assert(rails.includes('window.cancelAnimationFrame(scrollFrame)'),
+  'Rail scroll frame leaks after unmount');
+assert(rails.includes("window.removeEventListener('resize', onResize)"),
+  'Rail resize listener not cleaned up');
+assert(rails.includes('resizeObserver?.disconnect()'),
+  'Rail observer not cleaned up');
+assert(runtime.includes('const personalEpisodeByAnime = useMemo'),
+  'Original progress computation removed');
+
+assert(social.includes('<HomeWatchTogetherDeferred />'),
+  'Room lobby must remain deferred');
+assert(lobby.includes('stopPolling()') && lobby.includes('document.hidden'),
+  'Visibility lifecycle missing');
+assert(lobby.includes('intent: \'watch_party\''),
+  'Guest room join permission lost');
+assert(socials.includes('.empty'), 'Social empty row removed');
+assert(socials.includes(':global(html[data-animebox-theme="light"])'),
+  'Social light theme missing');
+
+assert(styles.includes('@media (max-width: 768px)'),
+  'Mobile art/rail layout missing');
+assert(styles.includes('width: min(59%, 270px)'),
+  'Mobile single art geometry missing');
+assert(styles.includes('scroll-snap-type: x proximity'),
+  'Touch rail snapping missing');
+assert(styles.includes('prefers-reduced-motion: reduce'),
+  'Reduced motion guard missing');
+assert(styles.includes('--ab-ui-text') && styles.includes('--ab-ui-surface'),
+  'Theme tokens missing');
+assert(!/(^|\n)\s*\.anime-card\s*\{/m.test(styles),
+  'Unscoped global card style forbidden');
+assert(media.includes("export function buildAnimeBoxMediaSrcSet"),
+  'Cloudflare image pipeline changed');
+
+console.log('[Patch 30.0] PASS: homepage order, responsive hero, rails, progress, safety and styles');
