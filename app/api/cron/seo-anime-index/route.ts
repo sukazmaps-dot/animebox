@@ -92,10 +92,15 @@ async function run(request: Request) {
   const manualShard = requestedShard(request);
   const catalogRepair = requestedCatalogRepair(request);
 
-  if (manualShard === 'invalid' || catalogRepair.invalid ||
-      (catalogRepair.manual && manualShard != null)) {
+  if (manualShard === 'invalid') {
     return Response.json(
-      { ok: false, error: 'invalid_seo_index_request' },
+      { ok: false, error: 'invalid_source_shard' },
+      { status: 400, headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
+  if (catalogRepair.invalid || (catalogRepair.manual && manualShard != null)) {
+    return Response.json(
+      { ok: false, error: 'invalid_catalog_repair' },
       { status: 400, headers: { 'Cache-Control': 'no-store' } },
     );
   }
