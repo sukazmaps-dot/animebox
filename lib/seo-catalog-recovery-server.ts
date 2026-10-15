@@ -9,6 +9,7 @@ import type { Anime } from '@/types/anime';
 
 export const SEO_CATALOG_RECOVERY_PAGE_SIZE = 120;
 export const SEO_CATALOG_RECOVERY_MAX_PAGE = 9999;
+const DB_TIMEOUT_MS = 2_500;
 
 type CatalogRow = {
   id: number | string;
@@ -95,7 +96,8 @@ export function parseSeoCatalogRecoveryRow(row: CatalogRow): CatalogCandidate | 
 
 export async function getSeoCatalogRepairPageCount(): Promise<number> {
   const { count, error } = await createSupabaseAdmin().from('anime_catalog')
-    .select('id', { count: 'exact', head: true });
+    .select('id', { count: 'exact', head: true })
+    .abortSignal(AbortSignal.timeout(DB_TIMEOUT_MS));
   if (error) throw error;
   const total = Math.max(0, Number(count ?? 0));
   return Math.max(1, Math.ceil(total / SEO_CATALOG_RECOVERY_PAGE_SIZE));
@@ -128,7 +130,8 @@ export async function repairSeoCatalogPage(options: {
   const { data, error } = await admin.from('anime_catalog')
     .select('id,slug,title,poster_url,genres,total_episodes,finished,start_year,format')
     .order('id', { ascending: true })
-    .range(from, from + SEO_CATALOG_RECOVERY_PAGE_SIZE - 1);
+    .range(from, from + SEO_CATALOG_RECOVERY_PAGE_SIZE - 1)
+    .abortSignal(AbortSignal.timeout(DB_TIMEOUT_MS));
   if (error) throw error;
 
   const records = (data ?? []) as CatalogRow[];
@@ -145,7 +148,8 @@ export async function repairSeoCatalogPage(options: {
   if (!idList.length) return result;
 
   const existing = await admin.from('seo_anime_index')
-    .select('anime_id').in('anime_id', idList);
+    .select('anime_id').in('anime_id', idList)
+    .abortSignal(AbortSignal.timeout(DB_TIMEOUT_MS));
   if (existing.error) throw existing.error;
   const known = new Set((existing.data ?? []).map(row => Number(row.anime_id)));
   const missing = candidates.filter(candidate => !known.has(candidate.anime.id));
@@ -179,7 +183,8 @@ export async function repairSeoCatalogPage(options: {
   // A concurrently refreshed AniList record is never overwritten.
   const inserted = await admin.from('seo_anime_index')
     .upsert(rows, { onConflict: 'anime_id', ignoreDuplicates: true })
-    .select('anime_id,slug');
+    .select('anime_id,slug')
+    .abortSignal(AbortSignal.timeout(DB_TIMEOUT_MS));
   if (inserted.error) throw inserted.error;
   const created = inserted.data ?? [];
   result.inserted = created.length;
