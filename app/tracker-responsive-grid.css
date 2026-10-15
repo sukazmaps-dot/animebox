@@ -36,6 +36,9 @@
   height: 100%;
 }
 
+/* Never show a clipped inset stripe beside rounded poster/status cards. */
+.tracker-list--responsive > .tracker-card::before { content: none; }
+
 .tracker-list--responsive .tracker-card__top,
 .tracker-list--responsive .tracker-card__identity,
 .tracker-list--responsive .tracker-card__title,
@@ -85,7 +88,7 @@
 
 @media (max-width: 800px) {
   .tracker-page.tracker-page--fluid {
-    padding: 18px 14px 50px;
+    padding: 18px 14px 28px;
   }
 }
 
