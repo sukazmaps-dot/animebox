@@ -5,6 +5,8 @@ import type { Anime } from '@/types/anime';
 
 import AnimeImage from '@/components/AnimeImage';
 import { getAnimeTitle, isAnimeOngoing } from '@/lib/anime-display';
+import { formatAnimeScore } from '@/lib/anime-score';
+import { animeEpisodesDisplay } from '@/lib/anime-content-intelligence';
 
 function formatLabel(
   format: string | null | undefined,
@@ -29,13 +31,6 @@ function formatLabel(
   return labels[format] ?? format;
 }
 
-function episodeLabel(anime: Anime): string {
-  if (!anime.episodes || anime.episodes <= 0) {
-    return 'Эпизоды уточняются';
-  }
-
-  return `${anime.episodes} эп.`;
-}
 
 function yearLabel(anime: Anime): string | null {
   const year = Number(anime.startDate?.year ?? 0);
@@ -108,7 +103,7 @@ export default function AnimeCard({
 
         <span className="anime-card__rating">
           <span aria-hidden="true">★</span>
-          {anime.score ?? anime.averageScore ?? '—'}
+          {formatAnimeScore(anime) ?? '—'}
         </span>
 
         <span className="anime-card__state">
@@ -148,7 +143,7 @@ export default function AnimeCard({
             {year && <span aria-hidden="true">·</span>}
             <span>{formatLabel(anime.format)}</span>
             <span aria-hidden="true">·</span>
-            <span>{episodeLabel(anime)}</span>
+            <span>{animeEpisodesDisplay(anime) ?? 'Эпизоды уточняются'}</span>
           </div>
         )}
       </div>
