@@ -71,7 +71,7 @@
   }
 
 
-  .section .card :global(.continue-smart-card__poster) :global(.continue-smart-card__poster) {
+  .section .card :global(.continue-smart-card__poster) {
     width: 62px !important;
     height: 86px !important;
     flex: 0 0 62px !important;
@@ -79,24 +79,24 @@
   }
 
   .section .card :global(.continue-smart-card__poster) > div:first-child,
-  .section .card :global(.continue-smart-card__image) :global(.continue-smart-card__poster) > div:first-child :global(.continue-smart-card__image) {
+  .section .card :global(.continue-smart-card__image) {
     width: 100% !important;
     height: 100% !important;
   }
 
-  .section .card :global(.continue-smart-card__body) :global(.continue-smart-card__body) {
+  .section .card :global(.continue-smart-card__body) {
     min-width: 0;
     align-self: center;
     padding-right: 0;
   }
 
-  .section .card :global(.continue-smart-card__eyebrow) :global(.continue-smart-card__eyebrow) {
+  .section .card :global(.continue-smart-card__eyebrow) {
     margin-bottom: 4px;
     font-size: 8px;
     letter-spacing: .055em;
   }
 
-  .section .card :global(.continue-smart-card__body) strong :global(.continue-smart-card__body) strong {
+  .section .card :global(.continue-smart-card__body) strong {
     display: -webkit-box;
     overflow: hidden;
     font-size: 13px;
@@ -105,12 +105,12 @@
     -webkit-line-clamp: 2;
   }
 
-  .section .card :global(.continue-smart-card__progress) :global(.continue-smart-card__progress) {
+  .section .card :global(.continue-smart-card__progress) {
     height: 3px;
     margin-top: 7px;
   }
 
-  .section .card :global(.continue-smart-card__body) small :global(.continue-smart-card__body) small {
+  .section .card :global(.continue-smart-card__body) small {
     margin-top: 5px;
     overflow: hidden;
     font-size: 9px;
@@ -119,7 +119,7 @@
     white-space: nowrap;
   }
 
-  .section .card :global(.continue-smart-card__arrow) .action {
+  .section .card :global(.continue-smart-card__arrow) {
     display: grid !important;
     place-items: center;
     width: 22px !important;
@@ -130,7 +130,7 @@
     font-size: 0 !important;
   }
 
-  .section .card :global(.continue-smart-card__arrow)::after .action::after {
+  .section .card :global(.continue-smart-card__arrow)::after {
     content: '→';
     font-size: 19px;
     line-height: 1;
@@ -147,7 +147,7 @@
     padding: 9px !important;
   }
 
-  .section .card :global(.continue-smart-card__poster) :global(.continue-smart-card__poster) {
+  .section .card :global(.continue-smart-card__poster) {
     width: 58px !important;
     height: 80px !important;
     flex-basis: 58px !important;
