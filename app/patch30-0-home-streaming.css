@@ -58,18 +58,21 @@
   }
 }
 @media (max-width: 768px) {
-  /* One picture with portrait artwork replaces two independently requested
-     image elements. Reserve a right-hand art slot, not a full-screen crop. */
+  /* This is actual poster art (2:3), not a landscape backdrop.
+     Keep the whole portrait visible at mobile widths and out of the copy. */
   .home-page .home-grid .home-hero-carousel .home-hero-carousel__backdrop {
-    top: 4% !important;
-    right: 0 !important;
+    top: 18px !important;
+    right: 16px !important;
     bottom: auto !important;
     left: auto !important;
-    width: min(59%, 270px) !important;
-    height: 90% !important;
+    width: min(42%, 200px) !important;
+    height: auto !important;
+    aspect-ratio: 2 / 3;
+    max-height: calc(100% - 105px);
+    border-radius: 12px;
     object-fit: cover !important;
-    object-position: center 20% !important;
-    opacity: 1 !important;
+    object-position: center top !important;
+    opacity: .92 !important;
     filter: none !important;
     transform: none !important;
     will-change: auto !important;
@@ -78,13 +81,13 @@
     background:
       linear-gradient(90deg,
         var(--ab-ui-surface) 0%,
-        color-mix(in srgb, var(--ab-ui-surface) 98%, transparent) 30%,
-        color-mix(in srgb, var(--ab-ui-surface) 45%, transparent) 65%,
-        transparent 100%),
+        color-mix(in srgb, var(--ab-ui-surface) 96%, transparent) 28%,
+        color-mix(in srgb, var(--ab-ui-surface) 60%, transparent) 72%,
+        color-mix(in srgb, var(--ab-ui-surface) 22%, transparent) 100%),
       linear-gradient(0deg,
         var(--ab-ui-surface) 0%,
-        color-mix(in srgb, var(--ab-ui-surface) 72%, transparent) 20%,
-        transparent 82%) !important;
+        color-mix(in srgb, var(--ab-ui-surface) 90%, transparent) 26%,
+        transparent 90%) !important;
   }
   .home-page .home-catalog-section {
     margin-block: 17px;

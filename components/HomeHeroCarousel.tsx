@@ -121,13 +121,15 @@ function getHeroBackdropAttempts(anime: Anime): HeroImageAttempt[] {
 function getMobileHeroAttempts(anime: Anime): HeroImageAttempt[] {
   return buildHeroImageAttempts(
     uniqueImageSources([
-      anime.mobileHeroImage,
+      // For the compact hero show proper portrait key art, never a
+      // stretched landscape AniList banner unless all posters are absent.
       anime.coverImage?.extraLarge,
-      anime.image?.original,
       anime.coverImage?.large,
+      anime.image?.original,
       anime.image?.large,
-      anime.bannerImage,
+      anime.mobileHeroImage,
       anime.image?.medium,
+      anime.bannerImage,
     ]),
     'large',
   );
@@ -686,7 +688,7 @@ export default function HomeHeroCarousel({
         setPaused(false)
       }
     >
-      {bannerImage && (
+      {(bannerImage || mobileKeyArt) && (
         // One responsive <picture>, not two separate <img> downloads on phones.
         // Desktop keeps cinematic scenery; portrait screens get the mobile art.
         <picture>
@@ -702,7 +704,7 @@ export default function HomeHeroCarousel({
             <source
               media="(max-width: 768px)"
               srcSet={mobileAttempt?.srcSet ?? mobileKeyArt}
-              sizes="(max-width: 768px) 55vw, 1px"
+              sizes="(max-width: 768px) 42vw, 1px"
             />
           )}
           {backdropAttempt?.srcSet && (
@@ -714,7 +716,7 @@ export default function HomeHeroCarousel({
           )}
           <Image
             key={`${anime.id}-art-${backdropAttemptIndex}-${mobileAttemptIndex}-${ultraWideOriginFailed}`}
-            src={bannerImage}
+            src={bannerImage ?? mobileKeyArt ?? '/anime-placeholder.svg'}
             alt=""
             fill
             // React responsive image source selection handles media-specific
@@ -724,7 +726,7 @@ export default function HomeHeroCarousel({
             loading={safeActiveIndex === 0 ? 'eager' : 'lazy'}
             decoding="async"
             unoptimized
-            sizes="(min-width: 1920px) 1500px, (max-width: 768px) 55vw, (max-width: 1200px) calc(100vw - 100px), 1380px"
+            sizes="(min-width: 1920px) 1500px, (max-width: 768px) 42vw, (max-width: 1200px) calc(100vw - 100px), 1380px"
             className="page-hero__backdrop home-hero-carousel__backdrop is-visible"
             aria-hidden="true"
             onError={(event) => {

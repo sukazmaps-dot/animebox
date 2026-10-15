@@ -147,48 +147,6 @@
   }
 }
 
-/* Home-only repair of legacy geometry. Keep carousel identity and ordering. */
-@media (max-width: 768px) {
-  .home-page .home-grid .page-hero.home-hero-carousel {
-    height: auto !important;
-    min-height: 25rem !important;
-    max-height: none !important;
-  }
-
-  .home-page .home-grid .page-hero__content.home-hero-carousel__content {
-    height: auto !important;
-    min-height: 25rem !important;
-    max-height: none !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 7rem 1rem 4.5rem !important;
-    justify-content: flex-end !important;
-  }
-
-  .home-page .home-grid .home-hero-carousel .home-hero-carousel__content h1 {
-    display: block !important;
-    overflow: visible !important;
-    width: 100%;
-    max-width: 100% !important;
-    max-height: none !important;
-    margin: 0;
-    font-size: clamp(1.5rem, 6.5vw, 2rem) !important;
-    line-height: 1.15 !important;
-    -webkit-line-clamp: unset !important;
-    text-wrap: balance;
-    overflow-wrap: anywhere;
-  }
-
-  .home-page .home-grid .home-hero-carousel .home-hero-carousel__content h1.is-long-title {
-    font-size: clamp(1.25rem, 5.5vw, 1.65rem) !important;
-  }
-
-  .home-page .home-grid .home-hero-carousel .hero-actions .btn {
-    min-height: 2.75rem !important;
-    font-size: .875rem !important;
-  }
-}
-
 /* Recommendation card geometry is independent of item count. Sparse shelves
    keep the same poster cards while pagination appends real matches. */
 
@@ -485,16 +443,6 @@ html[data-animebox-theme] .home-page .main-column .home-utility-grid .home-servi
     text-align: left;
   }
   .home-page .main-column .home-loading-schedule-card__time { grid-column: 2; }
-  .home-page .home-grid .page-hero h1 {
-    display: block !important;
-    white-space: normal !important;
-    -webkit-line-clamp: unset !important;
-    max-height: none !important;
-    overflow: visible !important;
-    text-overflow: clip !important;
-    font-size: clamp(1.5rem, 6vw, 2rem) !important;
-    line-height: 1.2 !important;
-  }
 }
 
 .home-page .schedule__tab small { font-size:.6875rem; color:var(--ab-ui-muted); }

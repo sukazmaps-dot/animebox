@@ -8,6 +8,7 @@ import type { Anime } from '@/types/anime';
 import { createPublicResultCache } from '@/lib/public-result-cache';
 import { mergeAnimeMetadata } from '@/lib/anime-metadata-merge';
 import { getCompatibleSavedDocuments } from '@/lib/saved-catalog-compat-server';
+import { enrichSavedAnimeMetadata } from '@/lib/anime-public-metadata-server';
 
 type SavedDocument = {
   anime_id: number; slug: string | null; title: string; aliases: string[];
@@ -91,13 +92,13 @@ export async function getSavedCatalogPage(options: GetAnimesOptions) {
     // remain an actual failure instead of causing extra database traffic.
     if (!/PGRST20[045]|42P01|42703/.test(error.code ?? '') && !/schema cache|does not exist|could not find/i.test(error.message)) throw new Error('Saved catalog unavailable');
     const compatible = await getCompatibleSavedDocuments(options);
-    return { anime: compatible.rows.map(row => savedDocumentToAnime(row as SavedDocument)),
+    return { anime: await enrichSavedAnimeMetadata(compatible.rows.map(row => savedDocumentToAnime(row as SavedDocument))),
       hasNextPage: compatible.hasNextPage, unsupportedFilters: compatible.unsupportedFilters,
       scanLimited: compatible.scanLimited, compatibility: true };
   }
   const rows = (data ?? []) as SavedDocument[];
   return {
-    anime: rows.slice(0, limit).map(savedDocumentToAnime),
+    anime: await enrichSavedAnimeMetadata(rows.slice(0, limit).map(savedDocumentToAnime)),
     hasNextPage: rows.length > limit,
     unsupportedFilters,
     scanLimited: false,
@@ -119,7 +120,7 @@ export async function getSavedAnimeMetadata(ids: number[]): Promise<Anime[]> {
         .from('anime_saved_playable_catalog').select(fields).in('anime_id', unique)
         .abortSignal(AbortSignal.timeout(1200));
       if (error) throw new Error(error.message);
-      return ((data ?? []) as SavedDocument[]).map(savedDocumentToAnime);
+      return enrichSavedAnimeMetadata(((data ?? []) as SavedDocument[]).map(savedDocumentToAnime));
     });
   } catch (error) {
     console.warn('[saved anime metadata] optional batch unavailable:', error);

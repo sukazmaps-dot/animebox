@@ -5,6 +5,7 @@ import type { EpisodeTimelineMeta } from '@/types/episode-timeline';
 import {
   openingAutoSkipSafetyDecision,
   openingSkipSafetyDecision,
+  endingPromptShouldShow,
 } from '@/lib/episode-timeline-safety';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -1047,6 +1048,8 @@ export default function AnimePlayer({
 
       lastExplicitSeekAtRef.current = Date.now();
       openingAutoSkipCandidateRef.current = null;
+      // Dismiss the previous ending hint immediately on deliberate seeks.
+      setEndingPromptOpen(false);
 
       const observedDurationSeconds = isKodik
         ? kodikPlayerRef.current?.getState().durationSeconds ?? null
@@ -1289,41 +1292,23 @@ export default function AnimePlayer({
         setSkipOpeningVisible(false);
       }
 
-      if (
+      // Ending start is informational; navigation is armed exclusively by
+      // the provider/native "ended" event, never by this time sample.
+      // Re-evaluate on every sample: rewinding must close the hint.
+      const showEndingPrompt =
         !watchTogetherMode &&
         !autoNextCancelled &&
         !endScreenOpen &&
-        !endingPromptOpen &&
         hasNext &&
-        onEnded
-      ) {
-        const durationSeconds =
-          sample.durationSeconds != null &&
-          Number.isFinite(sample.durationSeconds) &&
-          sample.durationSeconds > 0
-            ? sample.durationSeconds
-            : timeline?.durationMs
-              ? timeline.durationMs / 1000
-              : null;
-
-        const endingTriggerSeconds =
-          timeline?.ending?.startMs != null
-            ? timeline.ending.startMs / 1000
-            : durationSeconds != null
-              ? Math.max(0, durationSeconds - 10)
-              : null;
-
-        if (
-          endingTriggerSeconds != null &&
-          positionSeconds >= endingTriggerSeconds &&
-          (durationSeconds == null || positionSeconds < durationSeconds - 0.5)
-        ) {
-          // This is informational only. Starting the ending must never be
-          // treated as playback completion; navigation is armed exclusively
-          // by the provider/native ended boundary.
-          setEndingPromptOpen(true);
-        }
-      }
+        Boolean(onEnded) &&
+        endingPromptShouldShow({
+          timeline,
+          observedDurationSeconds,
+          positionSeconds,
+        });
+      setEndingPromptOpen((previous) =>
+        previous === showEndingPrompt ? previous : showEndingPrompt,
+      );
 
       if (
         !watchTogetherMode &&
@@ -1338,7 +1323,6 @@ export default function AnimePlayer({
     [
       autoNextCancelled,
       endScreenOpen,
-      endingPromptOpen,
       hasNext,
       markConfirmedPlaybackStart,
       onEnded,
@@ -2945,9 +2929,11 @@ export default function AnimePlayer({
             />
           )}
 
+          <div className="animebox-player-actions flex flex-wrap items-center justify-end gap-2">
           {!watchTogetherMode && (
             <button
               type="button"
+              data-player-action="theater"
               onClick={() => setTheaterMode((current) => !current)}
               aria-label={theaterMode ? 'Обычный режим' : 'Кинотеатр'}
               aria-pressed={theaterMode}
@@ -2963,6 +2949,7 @@ export default function AnimePlayer({
 
           <button
             type="button"
+            data-player-action="fullscreen"
             onClick={() => void toggleFullscreen()}
             aria-label={fullscreenActive ? 'Выйти из полного экрана' : 'Полный экран'}
             className="premium-player-toolbar-button inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 text-[11px] font-bold text-white/55 transition hover:border-[color-mix(in_srgb,var(--ab-ui-accent)_20%,transparent)] hover:bg-[var(--ab-ui-primary)]/[0.07] hover:text-white"
@@ -2972,6 +2959,7 @@ export default function AnimePlayer({
             </svg>
             <span className="hidden sm:inline">{fullscreenActive ? 'Выйти из полного экрана' : 'Полный экран'}</span>
           </button>
+          </div>
         </div>
       </div>
 
@@ -3214,7 +3202,7 @@ export default function AnimePlayer({
             </>
           )}
 
-          {skipOpeningVisible && !watchTogetherMode && (
+          {skipOpeningVisible && !watchTogetherMode && !isKodik && (
             <button
               type="button"
               onClick={skipOpening}
@@ -3225,33 +3213,27 @@ export default function AnimePlayer({
             </button>
           )}
 
-          {endingPromptOpen &&
-            !watchTogetherMode &&
-            hasNext &&
-            onEnded && (
-              <div className="absolute bottom-4 right-4 z-[63] w-[min(330px,calc(100%-2rem))] rounded-2xl border border-[color-mix(in_srgb,var(--ab-ui-accent)_20%,transparent)] bg-[var(--ab-ui-surface)]/95 p-4 text-left shadow-[0_22px_60px_rgba(0,0,0,.55),0_0_36px_color-mix(in_srgb,_var(--ab-ui-accent)_16%,_transparent)] backdrop-blur-xl">
-                <span className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[color-mix(in_srgb,var(--ab-ui-accent)_70%,transparent)]">
-                  Следующая серия
-                </span>
-                <div className="mt-1 flex items-end justify-between gap-4">
-                  <div>
-                    <strong className="block text-sm font-black text-white">
-                      Эндинг идёт
-                    </strong>
-                    <span className="mt-1 block text-[11px] leading-4 text-white/45">
-                      Автопереход начнётся только после фактического завершения видео.
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={cancelEndingAutoNext}
-                    className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-bold text-white/70 transition hover:bg-white/[0.08] hover:text-white"
-                  >
-                    Не переходить
-                  </button>
-                </div>
+          {endingPromptOpen && !watchTogetherMode && hasNext && onEnded && (
+            <div
+              role="status"
+              className="animebox-player-ending-prompt absolute bottom-3 right-3 z-[63] flex max-w-[60%] items-center gap-1.5 rounded-xl border border-[color-mix(in_srgb,var(--ab-ui-accent)_20%,transparent)] bg-[var(--ab-ui-surface)]/95 px-2 py-1.5 text-left shadow-[0_12px_30px_rgba(0,0,0,.4)] backdrop-blur-xl md:bottom-4 md:right-4 md:w-[min(330px,calc(100%-2rem))] md:max-w-none md:items-end md:gap-3 md:rounded-2xl md:p-4"
+            >
+              <div className="min-w-0 flex-1">
+                <span className="block truncate whitespace-nowrap text-[10px] font-bold text-white md:text-[9px] md:font-extrabold md:uppercase md:tracking-[0.18em] md:text-[color-mix(in_srgb,var(--ab-ui-accent)_70%,transparent)]">Следующая серия</span>
+                <strong className="mt-1 hidden text-sm font-black text-white md:block">Эндинг идёт</strong>
+                <span className="mt-1 hidden text-[11px] leading-4 text-white/50 md:block">Автопереход начнётся только после фактического завершения видео.</span>
               </div>
-            )}
+              <button
+                type="button"
+                onClick={cancelEndingAutoNext}
+                aria-label="Отменить автоматический переход к следующей серии"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.08] text-lg font-bold text-white transition hover:bg-white/[0.16] md:h-auto md:w-auto md:rounded-xl md:px-3 md:py-2 md:text-[11px]"
+              >
+                <span aria-hidden="true" className="md:hidden">×</span>
+                <span className="hidden md:inline">Не переходить</span>
+              </button>
+            </div>
+          )}
 
           {endScreenOpen && !watchTogetherMode && (
             <div className="animebox-player-end-screen absolute inset-0 z-[65] flex items-center justify-center p-5 text-center">
