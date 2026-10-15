@@ -233,14 +233,21 @@ function compareReleaseDates(a: AniListFranchiseMedia, b: AniListFranchiseMedia)
 
 /** Full TV/ONA prequel/sequel chain, bounded and cached. Side stories stay direct links. */
 const franchiseCache = new Map<number, { expires: number; data: AnimeFranchise }>();
+const FRANCHISE_STALE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
 export async function getAnimeFranchise(
   id: number | string,
   options: { signal?: AbortSignal; maxRequests?: number } = {},
 ): Promise<AnimeFranchise | null> {
   const currentId = Number(id);
   if (!Number.isSafeInteger(currentId) || currentId <= 0) return null;
+  options.signal?.throwIfAborted();
   const cached = franchiseCache.get(currentId);
   if (cached && cached.expires > Date.now()) return cached.data;
+  const stale = cached && cached.expires + FRANCHISE_STALE_GRACE_MS > Date.now()
+    ? cached.data : null;
+  const recoverStale = (failedIds: number[]): AnimeFranchise | null => stale
+    ? { ...stale, partial: true, failedIds }
+    : null;
   const mediaById = new Map<number, AniListFranchiseMedia>();
   const links: FranchiseLink[] = [];
   const spinOffIds = new Set<number>();
@@ -256,9 +263,14 @@ export async function getAnimeFranchise(
     requests++;
     let result;
     try { result = await getAnimeRelationsById(nextId, { signal: options.signal }); }
-    catch { options.signal?.throwIfAborted(); failedIds.push(nextId); break; }
+    catch (error) {
+      options.signal?.throwIfAborted();
+      console.warn(`Franchise relation lookup failed for ${nextId}:`, error);
+      failedIds.push(nextId);
+      break;
+    }
     if (!result || result.id !== nextId || result.type !== 'ANIME') {
-      if (nextId === currentId) return null;
+      if (nextId === currentId) return recoverStale([currentId]);
       failedIds.push(nextId); break;
     }
     const { relations, ...root } = result;
@@ -275,6 +287,7 @@ export async function getAnimeFranchise(
       if (primary && !queued.has(node.id)) { queue.push(node.id); queued.add(node.id); }
     }
   }
+  if (!mediaById.has(currentId)) return recoverStale(failedIds);
   const items: FranchiseItem[] = [...mediaById.values()].sort(compareReleaseDates).map(media => ({
     ...media, category: categoryOf(media, spinOffIds.has(media.id)), isCurrent: media.id === currentId,
   }));
@@ -282,7 +295,13 @@ export async function getAnimeFranchise(
   for (const item of items) groups[item.category].push(item);
   const unexpandedIds = [...queued].filter(value => !expanded.has(value) && !failedIds.includes(value));
   const data = { currentId, items, groups, links, partial: Boolean(failedIds.length || unexpandedIds.length), failedIds, unexpandedIds };
+  // An incomplete refresh must not erase already-known parts. Do not renew
+  // the old expiry here: repeated failures must not extend stale retention.
+  if (data.partial && stale && stale.items.length > items.length) {
+    return recoverStale(failedIds);
+  }
   if (franchiseCache.size >= 100) franchiseCache.delete(franchiseCache.keys().next().value!);
   franchiseCache.set(currentId, { expires: Date.now() + (data.partial ? 30_000 : 3_600_000), data });
   return data;
 }
+
