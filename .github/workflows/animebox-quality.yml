@@ -84,6 +84,9 @@ jobs:
       - name: Durable leaderboard SQL regression
         run: npm run league-reliability:check
 
+      - name: Patch 30.3 metadata normalization and episode display
+        run: npm run patch30-3:check
+
       - name: TypeScript
         run: npx tsc --noEmit
 
