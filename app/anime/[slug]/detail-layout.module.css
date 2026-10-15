@@ -3,7 +3,7 @@
 .backdrop { position: absolute; inset: 0; z-index: -2; }
 .backdrop > div { height: 100%; width: 100%; }
 .backdrop img { object-position: 70% center; }
-.hero::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: -1; background: linear-gradient(90deg, rgb(17 16 22 / 98%) 0%, rgb(17 16 22 / 92%) 25%, rgb(17 16 22 / 62%) 53%, rgb(17 16 22 / 10%) 100%), linear-gradient(0deg, var(--ab-ui-surface) 0%, transparent 65%); }
+.hero::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: -1; background: linear-gradient(90deg, color-mix(in srgb, var(--ab-ui-surface) 98%, transparent) 0%, color-mix(in srgb, var(--ab-ui-surface) 96%, transparent) 25%, color-mix(in srgb, var(--ab-ui-surface) 88%, transparent) 53%, color-mix(in srgb, var(--ab-ui-surface) 10%, transparent) 100%), linear-gradient(0deg, var(--ab-ui-surface) 0%, transparent 65%); }
 .heroContent { position: relative; max-width: 710px; padding: 24px 40px; display: grid; align-content: center; gap: 12px; min-height: 440px; }
 .breadcrumbs { color: var(--ab-ui-muted); font-size: 11px; line-height: 1.5; }
 .identity h1 { margin: 0; font-size: clamp(32px, 3.2vw, 42px); font-weight: 750; letter-spacing: -.035em; line-height: 1.12; color: var(--ab-ui-text); text-wrap: balance; overflow-wrap: anywhere; }
@@ -59,7 +59,7 @@
   .layout { padding: 12px 12px 28px; }
   .hero { border-radius: 14px; min-height: 0; }
   .heroContent { min-height: 0; max-width: none; padding: 120px 20px 20px; gap: 12px; }
-  .hero::after { background: linear-gradient(0deg, var(--ab-ui-surface) 0%, rgb(17 16 22 / 95%) 48%, rgb(17 16 22 / 45%) 80%, rgb(17 16 22 / 5%) 100%); }
+  .hero::after { background: linear-gradient(180deg, color-mix(in srgb, var(--ab-ui-surface) 20%, transparent) 0%, color-mix(in srgb, var(--ab-ui-surface) 90%, transparent) 100px, var(--ab-ui-surface) 220px); }
   .backdrop { bottom: auto; height: 330px; }
   .backdrop img { object-position: 65% top; }
   .breadcrumbs { display: none; }
@@ -67,8 +67,11 @@
   .identity > p { font-size: 12px; }
   .facts { font-size: 11px; }
   .facts > span + span::before { margin: 0 6px; }
-  .poster { top: 20px; right: 20px; transform: none; width: 100px; }
-  .withPoster .heroContent { max-width: none; padding-top: 186px; }
+  .poster { top: 20px; right: 20px; transform: none; width: 84px; }
+  .withPoster::after { background: none; }
+  .withPoster .heroContent { max-width: none; padding-top: 20px; }
+  .withPoster .identity { min-height: 126px; padding-right: 100px; display: flex; flex-direction: column; justify-content: center; }
+  .identity > p { overflow-wrap: anywhere; }
   /* The view-action row must occupy its full intrinsic height before synopsis. */
   .actions {
     display: flow-root;

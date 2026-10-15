@@ -15,6 +15,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 
 import GoogleAuthButton from '@/components/GoogleAuthButton';
+import { useDialogViewport } from '@/components/useDialogViewport';
 import TelegramAuthButton from '@/components/TelegramAuthButton';
 import { useAuthState } from '@/components/AuthStateProvider';
 import { trackProductClientEvent } from '@/lib/product-events-client';
@@ -279,8 +280,11 @@ function AuthModal({
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
+  useDialogViewport(dialogRef);
+
   useEffect(() => {
     const dialog = dialogRef.current;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const focusable = dialog?.querySelector<HTMLElement>('input, button, [href]');
     focusable?.focus();
 
@@ -304,7 +308,10 @@ function AuthModal({
     };
 
     dialog?.addEventListener('keydown', onKeyDown);
-    return () => dialog?.removeEventListener('keydown', onKeyDown);
+    return () => {
+      dialog?.removeEventListener('keydown', onKeyDown);
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+    };
   }, []);
 
   const setMode = (mode: AuthMode) => {
@@ -397,6 +404,13 @@ function AuthModal({
         aria-labelledby="auth-modal-title"
       >
         <button type="button" className="auth-modal-v2__close" onClick={closeAuth} aria-label="Закрыть окно входа">×</button>
+
+        <div className="auth-modal-v2__mobile-header" aria-hidden="true">
+          <div className="auth-modal-v2__brand">
+            <Image src="/logo.png" alt="" width={28} height={28} />
+            <span>ANIMEBOX</span>
+          </div>
+        </div>
 
         <aside className="auth-modal-v2__story" aria-hidden="true">
           <div className="auth-modal-v2__brand">

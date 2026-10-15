@@ -1,14 +1,14 @@
 .actions:global(.anime-detail-actions) { display: flex !important; align-items: center !important; flex-wrap: wrap !important; gap: 10px !important; margin: 0 !important; }
-.actions:global(.anime-detail-actions) :global(.btn) { border-radius: 50% !important; min-height: 46px !important; width: 46px !important; padding: 0 !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border: 1px solid rgb(255 255 255 / 40%) !important; background: rgb(28 24 37 / 65%) !important; color: var(--ab-ui-text) !important; }
-.actions:global(.anime-detail-actions) :global(.anime-detail-actions__watch) { width: auto !important; min-width: 220px !important; min-height: 50px !important; padding: 12px 22px !important; border-radius: 9px !important; background: var(--ab-ui-primary) !important; color: var(--ab-ui-text) !important; font-size: 14px !important; font-weight: 750 !important; border-color: transparent !important; box-shadow: 0 6px 24px rgb(0 0 0 / 16%) !important; }
+.actions:global(.anime-detail-actions) :global(.btn) { border-radius: 50% !important; min-height: 46px !important; width: 46px !important; padding: 0 !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border: 1px solid var(--ab-ui-border) !important; background: var(--ab-ui-raised) !important; color: var(--ab-ui-text) !important; }
+.actions:global(.anime-detail-actions) :global(.anime-detail-actions__watch) { width: auto !important; min-width: 220px !important; min-height: 50px !important; padding: 12px 22px !important; border-radius: 9px !important; background: var(--ab-ui-primary) !important; color: var(--ab-ui-primary-text) !important; font-size: 14px !important; font-weight: 750 !important; border-color: transparent !important; box-shadow: 0 6px 24px rgb(0 0 0 / 16%) !important; }
 .actions:global(.anime-detail-actions) :global(.anime-detail-actions__watch):disabled { opacity: .7; }
 .actions:global(.anime-detail-actions) :global(.btn):hover:not(:disabled) { filter: brightness(1.12); }
-.actions:global(.anime-detail-actions) :global(.btn):focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
+.actions:global(.anime-detail-actions) :global(.btn):focus-visible { outline: 2px solid var(--ab-ui-accent); outline-offset: 4px; }
 .actions:global(.anime-detail-actions) :global(.anime-detail-actions__favorite)[aria-pressed='true'] { color: var(--ab-ui-accent) !important; border-color: var(--ab-ui-accent) !important; }
 .actions:global(.anime-detail-actions) :global(.anime-detail-actions__state), .actions:global(.anime-detail-actions) > span { font-size: 12px !important; color: var(--ab-ui-text) !important; }
 .playIcon { font-size: 17px; margin-right: 5px; }
 .resume { display: grid; gap: 6px; max-width: 300px; margin-top: 10px; color: var(--ab-ui-muted); font-size: 11px; }
-.resumeTrack { height: 4px; background: rgb(255 255 255 / 20%); border-radius: 2px; overflow: hidden; }
+.resumeTrack { height: 4px; background: var(--ab-ui-border); border-radius: 2px; overflow: hidden; }
 .resumeTrack > span { display: block; height: 100%; background: var(--ab-ui-primary); }
 @media (max-width: 767px) {
   .actions:global(.anime-detail-actions) :global(.anime-detail-actions__watch) { flex: 1 0 100% !important; min-width: 0 !important; }

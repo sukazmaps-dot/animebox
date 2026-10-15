@@ -48,7 +48,7 @@
 .auth-modal-v2__story p { color: var(--ab-ui-muted); }
 .auth-modal-v2__mode { gap: 3px; border: 1px solid var(--ab-ui-border); border-radius: 9px; background: var(--ab-ui-surface); }
 .auth-modal-v2__mode button { border-radius: 6px; color: var(--ab-ui-muted); transition: background .18s ease, color .18s ease; }
-.auth-modal-v2__mode button.is-active { background: var(--ab-ui-primary); color: var(--ab-ui-text); box-shadow: none; }
+.auth-modal-v2__mode button.is-active { background: var(--ab-ui-primary); color: var(--ab-ui-primary-text); box-shadow: none; }
 .auth-modal-v2__mode button:hover:not(.is-active) { background: color-mix(in srgb, var(--ab-ui-accent) 11%, transparent); color: var(--ab-ui-text); }
 .auth-modal-v2__mode button:focus-visible { outline: 2px solid var(--ab-ui-accent); outline-offset: 2px; }
 .auth-modal-v2__submit { border-radius: 8px; background: var(--ab-ui-primary); box-shadow: none; }
