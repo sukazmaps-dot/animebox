@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { after } from 'next/server';
 
 import HomeAnimeRail from '@/components/HomeAnimeRail';
+import { getAnimeRecommendationsById } from '@/lib/anilist';
 import { getAnimesWithShikimori } from '@/lib/combined-anime';
 import type { Anime } from '@/types/anime';
 import {
@@ -17,7 +18,7 @@ const ANILIST_GENRE_BY_RUSSIAN: Record<string, string> = {
   'Эччи': 'Ecchi',
   'Фэнтези': 'Fantasy',
   'Ужасы': 'Horror',
-  'Махо-сёдзё': 'MahouShoujo',
+  'Махо-сёдзё': 'Mahou Shoujo',
   'Меха': 'Mecha',
   'Музыка': 'Music',
   'Детектив': 'Mystery',
@@ -31,103 +32,129 @@ const ANILIST_GENRE_BY_RUSSIAN: Record<string, string> = {
   'Триллер': 'Thriller',
 };
 
-function normalizeGenre(genre?: string | null): string | undefined {
-  const value = genre?.trim();
-  if (!value) return undefined;
-  return ANILIST_GENRE_BY_RUSSIAN[value] ?? value;
+function genreKey(value: string): string {
+  return (ANILIST_GENRE_BY_RUSSIAN[value.trim()] ?? value)
+    .normalize('NFKC').trim().toLocaleLowerCase('en');
+}
+
+function normalizeNames(values: unknown): string[] {
+  if (!Array.isArray(values)) return [];
+  return values
+    .map((value) => {
+      if (typeof value === 'string') return value;
+      if (value && typeof value === 'object' && 'name' in value &&
+        typeof value.name === 'string') return value.name;
+      return '';
+    })
+    .map((value) => value.normalize('NFKC').trim().toLocaleLowerCase('en'))
+    .filter(Boolean);
 }
 
 function uniqueWithoutCurrent(items: Anime[], animeId: number): Anime[] {
   const seen = new Set<number>([animeId]);
-
   return items.filter((anime) => {
     if (!Number.isSafeInteger(anime.id) || anime.id <= 0 || seen.has(anime.id)) {
       return false;
     }
-
     seen.add(anime.id);
     return true;
   });
 }
 
+/**
+ * A title-specific graph, combined with an OR-genre candidate pool.
+ * Unlike the old ranked fallback, every returned item must share at least
+ * one genre/tag with the page (unless the source lacks taxonomy entirely).
+ * No global cache key or global top-anime list is used here.
+ */
 async function loadRelatedAnime(
   animeId: number,
   genres: string[],
+  tags: string[],
 ): Promise<Anime[]> {
-  const genre = normalizeGenre(genres[0]);
+  const activeGenres = [...new Set(genres.map(genreKey).filter(Boolean))];
+  const activeTags = new Set(normalizeNames(tags).slice(0, 12));
+  const displayGenres = [...new Set(genres.map((value) =>
+    ANILIST_GENRE_BY_RUSSIAN[value.trim()] ?? value.trim(),
+  ).filter(Boolean))];
 
-  try {
-    const related = await getAnimesWithShikimori({
-      page: 1,
-      limit: 16,
-      order: 'popularity',
-      genre,
-    });
+  const [graphResult, genresResult] = await Promise.allSettled([
+    getAnimeRecommendationsById(animeId, 30),
+    displayGenres.length
+      ? getAnimesWithShikimori({
+          page: 1,
+          limit: 30,
+          order: 'popularity',
+          genres: displayGenres.slice(0, 3),
+        })
+      : Promise.resolve([] as Anime[]),
+  ]);
 
-    const filtered = uniqueWithoutCurrent(related, animeId);
-    const availability = await filterAnimeByAvailability(
-      filtered,
-      'catalog',
-    );
-    const visible = availability.items.slice(0, 12);
-
-    if (availability.refreshTargets.length > 0) {
-      after(async () => {
-        await refreshCatalogAvailabilityBatch(
-          availability.refreshTargets,
-          { limit: 4 },
-        );
-      });
-    }
-
-    if (visible.length >= 6) {
-      return visible;
-    }
-  } catch (error) {
-    console.warn('Related anime by genre failed:', error);
+  if (graphResult.status === 'rejected') {
+    console.warn('Related anime graph failed:', graphResult.reason);
+  }
+  if (genresResult.status === 'rejected') {
+    console.warn('Related anime genre lookup failed:', genresResult.reason);
   }
 
+  const graph = graphResult.status === 'fulfilled' ? graphResult.value : [];
+  const genrePool = genresResult.status === 'fulfilled' ? genresResult.value : [];
+  const graphIds = new Set(graph.map((anime) => anime.id));
+  const requestedGenres = new Set(activeGenres);
+
+  const ranked = uniqueWithoutCurrent([...graph, ...genrePool], animeId)
+    .map((anime) => {
+      const matchingGenres = normalizeNames(anime.genres)
+        .filter((genre) => requestedGenres.has(genreKey(genre))).length;
+      const matchingTags = normalizeNames(anime.tags)
+        .filter((tag) => activeTags.has(tag)).length;
+      const hasContext = requestedGenres.size > 0 || activeTags.size > 0;
+      if (hasContext && matchingGenres === 0 && matchingTags === 0) {
+        return null;
+      }
+      const rating = Number(anime.score ?? 0);
+      return {
+        anime,
+        relevance:
+          matchingGenres * 12 +
+          matchingTags * 4 +
+          (graphIds.has(anime.id) ? 6 : 0) +
+          (Number.isFinite(rating) ? Math.min(10, rating) / 10 : 0),
+      };
+    })
+    .filter((item): item is { anime: Anime; relevance: number } => item !== null)
+    .sort((a, b) => b.relevance - a.relevance || a.anime.id - b.anime.id)
+    .slice(0, 30)
+    .map(({ anime }) => anime);
+
+  if (ranked.length === 0) return [];
+
   try {
-    const fallback = await getAnimesWithShikimori({
-      page: 1,
-      limit: 16,
-      order: 'ranked',
-    });
-
-    const filtered = uniqueWithoutCurrent(fallback, animeId);
-    const availability = await filterAnimeByAvailability(
-      filtered,
-      'catalog',
-    );
-
+    const availability = await filterAnimeByAvailability(ranked, 'catalog');
     if (availability.refreshTargets.length > 0) {
       after(async () => {
-        await refreshCatalogAvailabilityBatch(
-          availability.refreshTargets,
-          { limit: 4 },
-        );
+        await refreshCatalogAvailabilityBatch(availability.refreshTargets, { limit: 4 });
       });
     }
-
     return availability.items.slice(0, 12);
   } catch (error) {
-    console.warn('Related anime fallback failed:', error);
+    console.warn('Related anime availability failed:', error);
+    // Fail closed for availability, not over to an unrelated global ranking.
     return [];
   }
 }
 
 export function RelatedAnimeLoading() {
   return (
-    <section className="border-t border-white/[0.04] py-10">
+    <section className="border-t border-white/[0.04] py-8">
       <div className="mx-auto max-w-7xl px-4 md:px-6">
         <div className="mb-5 h-7 w-52 animate-pulse rounded-lg bg-white/[0.06]" />
-
-        <div className="flex gap-4 overflow-hidden">
+        <div className="flex gap-3 overflow-hidden">
           {Array.from({ length: 6 }).map((_, index) => (
-            <div
-              key={index}
-              className="h-[310px] w-[170px] shrink-0 animate-pulse rounded-2xl bg-white/[0.04]"
-            />
+            <div key={index} className="w-[140px] shrink-0">
+              <div className="aspect-[2/3] animate-pulse rounded-[8px] bg-white/[0.06]" />
+              <div className="mt-3 h-4 w-4/5 animate-pulse rounded bg-white/[0.04]" />
+            </div>
           ))}
         </div>
       </div>
@@ -138,36 +165,28 @@ export function RelatedAnimeLoading() {
 export default async function RelatedAnime({
   animeId,
   genres,
+  tags = [],
 }: {
   animeId: number;
   genres: string[];
+  tags?: string[];
 }) {
-  const items = await loadRelatedAnime(animeId, genres);
-
-  if (items.length === 0) {
-    return null;
-  }
+  const items = await loadRelatedAnime(animeId, genres, tags);
+  if (items.length === 0) return null;
 
   return (
-    <section className="border-t border-white/[0.04] py-10">
+    <section className="border-t border-white/[0.04] py-8">
       <div className="mx-auto max-w-7xl px-4 md:px-6">
         <div className="section-head">
           <div>
             <h2 className="section-title">Похожие аниме</h2>
             <p className="mt-1 text-sm text-white/45">
-              Тайтлы с похожими жанрами и интересами аудитории
+              По жанрам, темам и рекомендациям зрителей
             </p>
           </div>
-
-          <Link href="/search" className="section-link">
-            Весь каталог →
-          </Link>
+          <Link href="/search" className="section-link">Весь каталог →</Link>
         </div>
-
-        <HomeAnimeRail
-          items={items}
-          ariaLabel="Похожие аниме"
-        />
+        <HomeAnimeRail items={items} ariaLabel="Похожие аниме" />
       </div>
     </section>
   );
