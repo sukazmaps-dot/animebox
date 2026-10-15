@@ -60,7 +60,8 @@ export function parseSeoCatalogRecoveryRow(row: CatalogRow): CatalogCandidate | 
   const id = safeId(row.id);
   const slug = typeof row.slug === 'string' ? row.slug.trim() : '';
   const title = typeof row.title === 'string' ? row.title.replace(/\s+/g, ' ').trim() : '';
-  if (!id || !/^[a-z0-9](?:[a-z0-9-]{0,158}[a-z0-9])?$/.test(slug) ||
+  // Match the existing Postgres SEO index CHECK (slug length 3..180).
+  if (!id || slug.length < 3 || !/^[a-z0-9](?:[a-z0-9-]{0,158}[a-z0-9])?$/.test(slug) ||
       !title || title.length > 240 ||
       /^(?:anime|аниме|без названия|unknown|untitled)(?:\s*\d+)?$/i.test(title)) return null;
 
