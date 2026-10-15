@@ -112,6 +112,15 @@ async function refreshInBackground(
   if (!acquired) return;
 
   try {
+    // A second callback may have been queued before the first one completed.
+    // Re-check freshness after taking the lease to avoid redundant upstream I/O.
+    const { data: current, error: checkError } = await db.from(TABLE)
+      .select('expires_at')
+      .eq('anime_id', id)
+      .maybeSingle();
+    if (checkError) { warnStore(checkError.message); return; }
+    if (current && Date.parse(current.expires_at) > Date.now()) return;
+
     const refreshed = await loader();
     if (!refreshed || !isFranchise(refreshed, id)) return;
     // Existing cached parts survive upstream partial responses.
