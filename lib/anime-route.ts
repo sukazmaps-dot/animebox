@@ -13,6 +13,7 @@ import {
 } from './anime-registry';
 import { findPersistentAnimeRoute } from '@/lib/persistent-anime-route';
 import { getSeoAnimeDetailFallback } from '@/lib/seo-anime-index-server';
+import { scheduleAniListMetadataPersist } from '@/lib/anime-public-metadata-server';
 
 const getCachedAnimeBase = unstable_cache(
   async (id: number) =>
@@ -45,6 +46,12 @@ export const resolveAnimeRoute = cache(async (slug: string) => {
       `[anime route] AniList detail unavailable for ${id}; using local catalog fallback`,
       error,
     );
+  }
+
+  if (baseAnime) {
+    // Only an actual AniList result is authoritative. A local/Shikimori
+    // fallback must never be saved as though it came from AniList.
+    scheduleAniListMetadataPersist(baseAnime);
   }
 
   if (!baseAnime) {
