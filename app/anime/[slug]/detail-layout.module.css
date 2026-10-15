@@ -63,7 +63,7 @@
   .hero { border-radius: 14px; min-height: 0; }
   .heroContent { min-height: 0; max-width: none; padding: 146px 20px 20px; gap: 12px; }
   /* The bottom-weighted scrim lets copy sit below the characters, not across faces. */
-  .hero::after { background: linear-gradient(180deg, rgb(12 11 19 / 12%) 0%, rgb(12 11 19 / 28%) 18%, color-mix(in srgb, var(--ab-ui-surface) 88%, transparent) 165px, var(--ab-ui-surface) 265px); }
+  .hero::after { background: linear-gradient(180deg, color-mix(in srgb, var(--ab-ui-surface) 18%, transparent) 0%, color-mix(in srgb, var(--ab-ui-surface) 38%, transparent) 18%, color-mix(in srgb, var(--ab-ui-surface) 88%, transparent) 165px, var(--ab-ui-surface) 265px); }
   .backdrop { bottom: auto; height: 350px; }
   .backdrop img { object-position: 68% 20%; }
   .breadcrumbs { display: none; }
