@@ -22,7 +22,7 @@ export default function AnimeSynopsis({ text, variant = 'default' }: { text: str
   const collapsible = variant === 'hero' ? excerpt !== text : text.length > 1100 || text.split(/\n\s*\n/).filter(Boolean).length > 3;
   return (
     <div className={`${styles.synopsis} ${variant === 'hero' ? styles.hero : ''}`}>
-      <p id={id} className={expanded || !collapsible || variant === 'hero' ? styles.full : styles.preview}>{expanded ? text : excerpt}</p>
+      <p id={id} className={expanded || !collapsible ? styles.full : styles.preview}>{expanded ? text : excerpt}</p>
       {collapsible && (
         <button type="button" aria-expanded={expanded} aria-controls={id}
           onClick={() => setExpanded((value) => !value)}>

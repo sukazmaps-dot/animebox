@@ -8,3 +8,9 @@
 .hero { color: var(--ab-ui-text); font-weight: 400; max-width: 64ch; }
 :global(html[data-animebox-theme='light']) .hero { color: var(--ab-ui-text); }
 :global(html[data-animebox-theme='light']) .hero button { color: var(--ab-ui-accent); }
+
+/* Cinematic mobile summaries: four lines, with the existing accessible expand control. */
+.hero .preview { -webkit-line-clamp: 4; }
+@media (prefers-reduced-motion: reduce) {
+  .synopsis * { scroll-behavior: auto; }
+}

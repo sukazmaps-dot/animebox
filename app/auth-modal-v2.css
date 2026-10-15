@@ -4,6 +4,9 @@
   top: var(--auth-viewport-top, 0px);
   bottom: auto;
   height: var(--auth-viewport-height, 100dvh);
+  /* Keyboard geometry must apply in the viewport hook's first frame. Global
+     reduced-motion duration rules otherwise activate transitions on all props. */
+  transition-property: none;
   z-index: 2500;
   display: grid;
   place-items: center;

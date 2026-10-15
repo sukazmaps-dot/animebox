@@ -137,3 +137,23 @@
 .aliases summary { min-height: 44px; cursor: pointer; display: flex; align-items: center; }
 .aliases p { line-height: 1.6; }
 :global(html[data-animebox-theme='light']) .aliases { color: var(--ab-ui-muted); }
+
+/* Patch 30.1: prevent min-content expansion from horizontal franchise rails
+   and long discussion copy. Never clip scrolling at the document level. */
+.layout { min-width: 0; max-width: min(100%, 1240px); box-sizing: border-box; }
+.mainColumn { grid-template-columns: minmax(0, 1fr); max-width: 100%; }
+.mainColumn > * { min-width: 0; max-width: 100%; }
+.franchise { box-sizing: border-box; min-width: 0; max-width: 100%; overflow: hidden; }
+.franchise > section { min-width: 0; max-width: 100%; }
+.franchise :global(.anime-franchise-v3__inner),
+.franchise :global(.anime-franchise-v3__groups),
+.franchise :global(.anime-franchise-v3__group-list) { min-width: 0; max-width: 100%; }
+.backdrop img { width: 100%; height: 100%; object-fit: cover; }
+@media (max-width: 767px) {
+  .layout { padding-inline: 12px; }
+  .heroContent, .identity, .description, .discussion { min-width: 0; max-width: 100%; }
+  .backdrop { width: 100%; overflow: hidden; }
+  .hero::after {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--ab-ui-surface) 12%, transparent) 0%, color-mix(in srgb, var(--ab-ui-surface) 76%, transparent) 55%, var(--ab-ui-surface) 100%);
+  }
+}

@@ -52,3 +52,29 @@
     flex: 0 0 190px;
   }
 }
+
+/* Patch 30.1: the rail scrolls internally; its grid parent must never grow
+   to the min-content width of every season card combined. */
+.seasonsRail {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+.seasonsRail > [role='region'] {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 767px) {
+  .seasonsRail > [role='region'] {
+    margin-inline: 0 !important;
+    width: 100% !important;
+    padding-inline: 0 !important;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+  }
+  .seasonsRail .season {
+    flex: 0 0 min(190px, 75vw);
+    max-width: min(190px, 75vw);
+  }
+}

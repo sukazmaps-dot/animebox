@@ -73,6 +73,7 @@ export default function AnimeImageCascade({
 
   const [loaded, setLoaded] =
     useState<boolean>(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   const imageRef =
     useRef<HTMLImageElement | null>(
@@ -92,6 +93,7 @@ export default function AnimeImageCascade({
   useEffect(() => {
     setIndex(0);
     setLoaded(false);
+    setRetryCount(0);
   }, [candidatesKey]);
 
   const goToNextSource = () => {
@@ -111,6 +113,30 @@ export default function AnimeImageCascade({
       return nextIndex;
     });
   };
+
+  // Bounded watchdog for critical eager hero images. Lazy posters must never
+  // be treated as stalled while the browser intentionally defers them.
+  useEffect(() => {
+    if (loaded || isFallback || loading !== 'eager') return;
+    const timeout = window.setTimeout(() => {
+      setLoaded(false);
+      setIndex((value) => Math.min(value + 1, candidates.length - 1));
+    }, 8_500);
+    return () => window.clearTimeout(timeout);
+  }, [current, loaded, isFallback, loading, candidates.length]);
+
+  // A failed edge response may be cached for ~15 seconds. One delayed retry
+  // recovers transient network failures without a manual page refresh.
+  useEffect(() => {
+    if (!isFallback || retryCount >= 1 || candidates.length <= 1) return;
+    const timeout = window.setTimeout(() => {
+      if (navigator.onLine === false || document.visibilityState === 'hidden') return;
+      setRetryCount(1);
+      setIndex(0);
+      setLoaded(false);
+    }, 16_000);
+    return () => window.clearTimeout(timeout);
+  }, [isFallback, retryCount, candidates.length]);
 
   const handleLoad = (
     event: SyntheticEvent<HTMLImageElement>,
@@ -167,7 +193,7 @@ export default function AnimeImageCascade({
   ]);
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[var(--ab-ui-surface)] ">
+    <div className="relative h-full w-full min-w-0 overflow-hidden bg-[var(--ab-ui-surface)]">
       {!loaded &&
         !isFallback && (
           <div
@@ -201,13 +227,6 @@ export default function AnimeImageCascade({
         ].join(' ')}
       />
 
-      {isFallback && (
-        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-gradient-to-t from-black/80 via-black/30 to-black/20">
-          <span className="rounded-md border border-white/10 bg-black/50 px-3 py-1.5 text-[10px] font-bold tracking-[0.18em] text-white/65 backdrop-blur">
-            NO IMAGE
-          </span>
-        </div>
-      )}
     </div>
   );
 }

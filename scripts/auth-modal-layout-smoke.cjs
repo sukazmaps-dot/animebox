@@ -127,10 +127,20 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
   await page.setViewportSize({width:390,height:844});
   const trigger=page.getByRole('link',{name:'Войти',exact:true}).first();
   await trigger.click();
-  await page.evaluate(()=>{window.__authViewportHeight=350;window.__authViewportTop=80;window.__authViewport.dispatchEvent(new Event('resize'));});
+  await page.waitForFunction(()=>document.querySelector('.auth-modal-v2')?.style.getPropertyValue('--auth-viewport-height')==='844px');
+  // Read in the same frame as the viewport hook's rAF update. Even a .01ms
+  // reduced-motion transition otherwise reports the OLD keyboard geometry
+  // until the following frame. Waiting for eventual settlement hides this.
+  const vp=await page.evaluate(()=>new Promise(resolve=>{
+   window.__authViewportHeight=350;window.__authViewportTop=80;
+   window.__authViewport.dispatchEvent(new Event('resize'));
+   requestAnimationFrame(()=>{
+    const element=document.querySelector('.auth-modal-v2'),r=element.getBoundingClientRect();
+    resolve({y:r.y,height:r.height,transition:getComputedStyle(element).transition});
+   });
+  }));
   await page.waitForFunction(()=>document.querySelector('.auth-modal-v2')?.style.getPropertyValue('--auth-viewport-height')==='350px');
-  const vp=await page.locator('.auth-modal-v2').boundingBox();
-  assert(Math.abs(vp.y-80)<1&&Math.abs(vp.height-350)<1,'visualViewport height/offset not applied');
+  assert(Math.abs(vp.y-80)<1&&Math.abs(vp.height-350)<1,'visualViewport height/offset not applied: '+JSON.stringify(vp));
   await page.getByRole('dialog').getByRole('button',{name:'Закрыть окно входа'}).click();
   await page.getByRole('dialog').waitFor({state:'detached'});
   await page.evaluate(()=>{window.__authViewportHeight=844;window.__authViewportTop=0;window.__authViewport.dispatchEvent(new Event('resize'));});

@@ -44,7 +44,7 @@ export const ANIME_THEMES = [
 
 export const ANIME_AUDIENCES = [
   { value: 'Shounen', label: 'Сёнен', aliases: ['shounen', 'shonen', 'сёнен', 'сенен'] },
-  { value: 'Seinen', label: 'Сэйнэн', aliases: ['seinen', 'сэйнэн', 'сейнен'] },
+  { value: 'Seinen', label: 'Сэйнэн', aliases: ['seinen', 'сэйнэн', 'сэйнен', 'сейнен'] },
   { value: 'Shoujo', label: 'Сёдзё', aliases: ['shoujo', 'shojo', 'сёдзё', 'седзе'] },
   { value: 'Josei', label: 'Дзёсэй', aliases: ['josei', 'дзёсэй', 'дзесей'] },
 ] as const satisfies readonly AnimeTaxonomyOption[];
@@ -112,3 +112,4 @@ export function findAnimeTag(value: string): AnimeTaxonomyOption | undefined {
       .some((candidate) => normalizeTaxonomyText(candidate) === normalized),
   );
 }
+
