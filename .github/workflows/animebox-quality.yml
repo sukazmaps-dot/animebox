@@ -67,6 +67,11 @@ jobs:
       - name: Schedule media and search regression checks
         run: npm run schedule-media:check
 
+      - name: Schedule tooltip interaction and idle listener regression
+        env:
+          PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
+        run: npm run schedule-tooltip:browser
+
       - name: SEO cron recovery and sitemap regression check
         run: npm run seo-cron-recovery:check
 
@@ -252,6 +257,7 @@ jobs:
           components/TelegramAuthButton.tsx
           components/AuthModalProvider.tsx
           components/useDialogViewport.ts
+          components/ui/TooltipLink.tsx
           app/register/page.tsx
           lib/telegram-growth-client.ts
           lib/copyright-server.ts

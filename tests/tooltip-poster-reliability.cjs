@@ -34,7 +34,8 @@ global.innerHeight = 800; global.innerWidth = 1200;
 global.window = { innerHeight, innerWidth, setTimeout: setTimer, clearTimeout: clearTimer, requestAnimationFrame, cancelAnimationFrame, addEventListener: add, removeEventListener: remove };
 global.document = { body: {}, visibilityState: 'visible' };
 Object.defineProperty(global, 'navigator', { value: { onLine: true }, configurable: true });
-global.ResizeObserver = class { observe() {} disconnect() {} };
+const observers = new Set();
+global.ResizeObserver = class { observe() { observers.add(this); } disconnect() { observers.delete(this); } };
 
 async function tooltip() {
   const Link = React.forwardRef((props, ref) => React.createElement('a', { ...props, ref }));
@@ -43,21 +44,35 @@ async function tooltip() {
     'react-dom': { createPortal: node => node },
     './TooltipLink.module.css': { __esModule: true, default: { tooltip: 'tooltip' } },
   }).default;
-  let keyboard = false, tree;
-  await act(async () => { tree = create(React.createElement('section', null, ['a','b'].map(name => React.createElement(Tip, { key: name, href: '/' + name, label: name }, name))), {
-    createNodeMock: el => el.type === 'a' ? { matches: () => keyboard, getBoundingClientRect: () => ({ top: 300, bottom: 350, left: 100, right: 250, width: 150 }) }
+  let keyboard = false, outside = false, tree;
+  const children = () => React.createElement('section', null, ['a','b'].map(name => React.createElement(Tip, { key: name, href: '/' + name, label: name }, name)));
+  await act(async () => { tree = create(children(), {
+    createNodeMock: el => el.type === 'a' ? { matches: () => keyboard, getBoundingClientRect: () => ({ top: outside ? 900 : 300, bottom: outside ? 950 : 350, left: 100, right: 250, width: 150 }) }
       : { getBoundingClientRect: () => ({ width: 320, height: 120 }) },
   }); });
   const anchor = index => tree.root.findAllByType('a')[index];
   const count = () => tree.root.findAllByProps({ role: 'tooltip' }).length;
+  const subscriptions = () => [...listeners.values()].reduce((sum, set) => sum + set.size, 0);
+  assert.equal(subscriptions(), 0, 'idle links must not subscribe globally');
   await act(async () => anchor(0).props.onPointerEnter({ pointerType: 'mouse' }));
+  assert.equal(subscriptions(), 3, 'pending owner cancels on scroll/resize/Escape');
   await advance(349); assert.equal(count(), 0);
   await advance(1); assert.equal(count(), 1);
+  await act(async () => anchor(0).props.onPointerLeave());
+  await advance(100);
+  await act(async () => anchor(0).props.onPointerEnter({ pointerType: 'mouse' }));
+  await advance(100);
+  assert.equal(count(), 1, 'returning during close delay preserves visible tooltip');
+  assert.equal(timers.size, 0, 'reentry must not schedule a second opening timer');
   assert.equal(tree.root.findByProps({ role: 'tooltip' }).props.onPointerEnter, undefined);
   await act(async () => anchor(1).props.onPointerEnter({ pointerType: 'mouse' }));
   assert.equal(count(), 0); await advance(350); assert.equal(count(), 1);
+  assert.equal(subscriptions(), 3, 'switching owners must not multiply global listeners');
   await act(async () => anchor(1).props.onPointerLeave()); await advance(150); assert.equal(count(), 0);
+  assert.equal(subscriptions(), 0, 'closed owner releases global listeners');
   await act(async () => anchor(0).props.onPointerEnter({ pointerType: 'touch' })); await advance(500); assert.equal(count(), 0);
+  await act(async () => anchor(0).props.onPointerLeave());
+  assert.equal(timers.size, 0, 'touch leave must not start an orphan close timer');
   keyboard = true; await act(async () => anchor(0).props.onFocus()); assert.equal(count(), 1);
   await event('keydown', { key: 'Escape' }); assert.equal(count(), 0);
   keyboard = false; await act(async () => anchor(0).props.onFocus()); assert.equal(count(), 0, 'mouse focus is not keyboard focus');
@@ -65,6 +80,22 @@ async function tooltip() {
   await event('scroll'); await advance(400); assert.equal(count(), 0, 'scroll cancels pending open');
   keyboard = true; await act(async () => anchor(0).props.onFocus());
   await event('resize'); assert.equal(count(), 0);
+  assert.equal(subscriptions(), 0); assert.equal(observers.size, 0);
+  outside = true;
+  await act(async () => anchor(0).props.onFocus()); await advance(1);
+  assert.equal(count(), 0, 'offscreen anchor dismisses panel');
+  assert.equal(subscriptions(), 0, 'offscreen anchor must release ownership subscriptions');
+  outside = false; keyboard = false;
+  for (const state of ['pending', 'open', 'leaving']) {
+    await act(async () => anchor(0).props.onPointerEnter({ pointerType: 'mouse' }));
+    if (state !== 'pending') await advance(350);
+    if (state === 'leaving') await act(async () => anchor(0).props.onPointerLeave());
+    await act(async () => tree.update(null));
+    assert.equal(subscriptions(), 0, state + ' unmount listeners');
+    assert.equal(timers.size, 0, state + ' unmount timers/RAF');
+    assert.equal(observers.size, 0, state + ' unmount observer');
+    await act(async () => tree.update(children()));
+  }
   await act(async () => tree.unmount()); assert.equal(timers.size, 0);
   assert.match(fs.readFileSync('components/ui/TooltipLink.module.css', 'utf8'), /pointer-events:\s*none/);
 }
