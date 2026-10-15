@@ -277,9 +277,6 @@ export default function MyListPage() {
                         </Link>
                       }>
                       <div className="tracker-card__title">
-                        <span className="tracker-card__label">
-                          ЛИЧНАЯ БИБЛИОТЕКА
-                        </span>
                         <Link href={item.slug ? `/anime/${item.slug}` : `/anime/${item.anime_id}`} title={item.title}>
                           {item.title}
                         </Link>
@@ -297,6 +294,9 @@ export default function MyListPage() {
                     </div>
                   </div>
 
+                  {item.status === 'planned' && (!item.progress || item.progress.trackedEpisodes === 0) && (
+                    <p className="tracker-card__planned-note">Просмотр ещё не начат</p>
+                  )}
                   {item.progress && item.progress.trackedEpisodes > 0 && (
                     <div className="tracker-card__progress mt-3 min-w-0 rounded-xl border border-[color-mix(in_srgb,var(--ab-ui-accent)_10%,transparent)] bg-[var(--ab-ui-primary)]/[0.035] p-3">
                       <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
