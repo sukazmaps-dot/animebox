@@ -567,10 +567,7 @@ export default async function AnimePage({
           <div className={layout.related}>
             <AdSlot placement="anime-detail-before-related" format="native" />
             <Suspense fallback={<RelatedAnimeLoading />}>
-              <RelatedAnime animeId={numericId} genres={resolved.genres}
-                tags={Array.isArray(resolved.tags)
-                  ? resolved.tags.filter((tag: unknown): tag is string => typeof tag === 'string')
-                  : []} />
+              <RelatedAnime animeId={numericId} genres={resolved.genres} />
             </Suspense>
           </div>
           <div className={layout.secondary}>
