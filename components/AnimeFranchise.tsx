@@ -1,7 +1,7 @@
 import { registerAnime } from '@/lib/anime-registry';
 import { animeHref } from '@/lib/anime-url';
 import Link from 'next/link';
-import AnimeImageCascade from '@/components/AnimeImageCascade';
+import AnimePoster from '@/components/AnimePoster';
 import HorizontalNavRail from '@/components/ui/HorizontalNavRail';
 import styles from './AnimeFranchise.module.css';
 import {
@@ -157,13 +157,11 @@ export default async function AnimeFranchise({
                 <ul className="anime-franchise-v3__group-list">
                   {items.map((item) => {
                     const title = item.title.russian || (item.isCurrent && currentTitle) || item.title.romaji || item.title.english || item.title.native || 'Без названия';
-                    const sources = [item.coverImage.extraLarge, item.coverImage.large, item.coverImage.medium]
-                      .filter((source): source is string => Boolean(source));
                     const details = [translateFormat(item.format), item.startDate?.year].filter(Boolean).join(' · ');
                     const content = (
                       <>
                         <div className="h-28 w-[74px] shrink-0 overflow-hidden rounded-lg">
-                          <AnimeImageCascade sources={sources} alt="" loading="lazy" />
+                          <AnimePoster image={item.coverImage} alt="" loading="lazy" preset="card" format="auto" />
                         </div>
                         <div className="min-w-0 py-1">
                           <p className="line-clamp-3 text-sm font-semibold leading-5">{title}</p>
