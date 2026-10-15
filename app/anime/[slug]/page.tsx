@@ -5,7 +5,7 @@ import { cache, Suspense, type CSSProperties } from 'react';
 
 import AnimePersonalPanel from '@/components/AnimePersonalPanel';
 import layout from './detail-layout.module.css';
-import { findAnimeGenre } from '@/lib/anime-taxonomy';
+import { localizeDetailGenres } from '@/lib/anime-detail-genres';
 import { SEO_GENRE_LANDINGS } from '@/lib/search-seo';
 import { CATALOG_DISCOVERY_FILTERS } from '@/lib/catalog-filter-state';
 import AnimeSynopsis from '@/components/AnimeSynopsis';
@@ -310,6 +310,8 @@ export default async function AnimePage({
     null;
 
   const contentFacts = animeContentFacts(resolved);
+  const finished = ['FINISHED', 'COMPLETED', 'RELEASED', 'ВЫШЛО', 'ЗАВЕРШЕНО']
+    .includes(String(resolved.status ?? anime.status ?? '').trim().toUpperCase());
 
 
 
@@ -524,10 +526,7 @@ export default async function AnimePage({
               {synopsis && <AnimeSynopsis text={synopsis} variant="hero" />}
             </section>
             <div className={layout.genres} aria-label="Жанры">
-              {Array.from(new Map((resolved.genres || []).map((genre) => {
-                const match = findAnimeGenre(genre);
-                return [match?.value || genre, { value: match?.value || genre, label: match?.label || genre }];
-              })).values()).slice(0, 6).map((genre) => (
+              {localizeDetailGenres(resolved.genres || []).slice(0, 6).map((genre) => (
                 <Link key={genre.value} href={genreLink(genre.value)}>{genre.label}</Link>
               ))}
             </div>
@@ -556,15 +555,24 @@ export default async function AnimePage({
             <div className={layout.personal}>
               <AnimePersonalPanel animeHref={animeHref(resolved)}>
                 <LibraryStatusControl animeId={numericId} variant="inline" />
-                {!playbackRestricted && String(resolved.status).toUpperCase() !== 'FINISHED' && (
+                {!playbackRestricted && (finished ? (
+                  <span className={layout.finishedStatus} aria-label="Тайтл завершён">
+                    Тайтл завершён · уведомления о новых сериях не нужны
+                  </span>
+                ) : (
                   <AnimeNotificationControl animeId={numericId} animeSlug={resolved.slug}
                     animeTitle={seoIdentity.pageHeading} episodesAired={anime.episodes_aired || 0}
                     isFinished={false} variant="inline" />
-                )}
+                ))}
                 <AnimeRatingControl animeId={numericId} />
               </AnimePersonalPanel>
+              {!playbackRestricted && (
+                <Link className={layout.together} href="/watch-together">
+                  <span aria-hidden="true">✦</span>
+                  Смотреть с друзьями <span aria-hidden="true">→</span>
+                </Link>
+              )}
             </div>
-            {!playbackRestricted && <Link className={layout.together} href="/watch-together">Смотреть с друзьями →</Link>}
           </div>
           {visibleAlternateNames.length > 0 && (
             <details className={layout.aliases}><summary>Другие названия</summary><p>{visibleAlternateNames.join(' · ')}</p></details>

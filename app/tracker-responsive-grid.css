@@ -36,6 +36,9 @@
   height: 100%;
 }
 
+/* Never show a clipped inset stripe beside rounded poster/status cards. */
+.tracker-list--responsive > .tracker-card::before { content: none; }
+
 .tracker-list--responsive .tracker-card__top,
 .tracker-list--responsive .tracker-card__identity,
 .tracker-list--responsive .tracker-card__title,
@@ -45,6 +48,13 @@
 
 .tracker-list--responsive .tracker-card__title > a {
   max-width: 100%;
+}
+
+.tracker-list--responsive .tracker-card__planned-note {
+  margin: 10px 0 0;
+  color: var(--ab-ui-muted);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .tracker-list--responsive .tracker-card__right {
@@ -85,7 +95,7 @@
 
 @media (max-width: 800px) {
   .tracker-page.tracker-page--fluid {
-    padding: 18px 14px 50px;
+    padding: 18px 14px 28px;
   }
 }
 

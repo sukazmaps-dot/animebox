@@ -61,7 +61,7 @@ function contrast(a,b) {
     for(const theme of ['dark','light'])for(const [width,height] of screens)for(const activeIndex of [0,2,4]) {
       await page.setViewportSize({width,height});
       const pagination=renderToStaticMarkup(React.createElement(Pagination,{slides,activeIndex,onSelect:()=>{}}));
-      await page.setContent(`<!doctype html><html data-animebox-theme="${theme}"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>${globalCSS}\n${moduleCSS.css}\n${socialCSS.css}</style></head><body><div class="app-shell"><main class="page-content"><div class="home-page"><div class="home-grid home-grid--main"><div class="main-column"><section class="page-hero home-hero-carousel"><div class="page-hero__content home-hero-carousel__content"><h1 class="is-long-title">${title}</h1><div class="hero-actions"><a href="#" class="btn btn--primary">Смотреть</a><a href="#" class="btn btn--ghost">Подробнее</a></div><a href="#" data-social class="social_link">✦ Смотреть вместе с друзьями →</a></div>${pagination}</section></div></div></div></main></div></body></html>`);
+      await page.setContent(`<!doctype html><html data-animebox-theme="${theme}"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>${globalCSS}\n${moduleCSS.css}\n${socialCSS.css}</style></head><body><div class="app-shell"><main class="page-content"><div class="home-page"><div class="home-grid home-grid--main"><div class="main-column"><section class="page-hero home-hero-carousel"><picture><img alt="" class="page-hero__backdrop home-hero-carousel__backdrop is-visible" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='450'%3E%3C/svg%3E"></picture><div class="page-hero__overlay"></div><div class="page-hero__content home-hero-carousel__content"><h1 class="is-long-title">${title}</h1><div class="hero-actions"><a href="#" class="btn btn--primary">Смотреть</a><a href="#" class="btn btn--ghost">Подробнее</a></div><a href="#" data-social class="social_link">✦ Смотреть вместе с друзьями →</a></div>${pagination}</section></div></div></div></main></div></body></html>`);
       await page.locator('.hero_pagination').scrollIntoViewIfNeeded();
       const geometry=await page.evaluate(()=>{
         for(const animation of document.getAnimations())if(Number.isFinite(animation.effect?.getComputedTiming().endTime))animation.finish();
@@ -75,7 +75,12 @@ function contrast(a,b) {
           return {rect:r(el),mark:r(mark),color,bg,pressed:el.getAttribute('aria-pressed'),display:getComputedStyle(mark).display,
             hit:document.elementFromPoint(el.getBoundingClientRect().left+el.clientWidth/2,Math.min(innerHeight-1,el.getBoundingClientRect().top+22))===el};
         });
-        return {hero:r(hero),nav:r(nav),social:r(document.querySelector('[data-social]')),buttons,
+        const art=document.querySelector('.home-hero-carousel__backdrop');
+        const title=document.querySelector('.home-hero-carousel__content h1');
+        const titleCss=getComputedStyle(title);
+        return {hero:r(hero),nav:r(nav),social:r(document.querySelector('[data-social]')),
+          art:r(art),title:r(title),titleCss:{clamp:titleCss.webkitLineClamp,display:titleCss.display,overflow:titleCss.overflow},
+          buttons,
           counter:document.querySelector('.hero_counter').textContent,scroll:document.documentElement.scrollWidth};
       });
       const tag=`${theme}/${width}x${height}/active-${activeIndex}`;
@@ -83,6 +88,15 @@ function contrast(a,b) {
       assert.equal(geometry.counter,`${String(activeIndex+1).padStart(2,'0')} / 05`,tag+': counter');
       assert.equal(geometry.buttons.filter(b=>b.pressed==='true').length,1,tag+': selected count');
       assert(geometry.scroll<=width+1,tag+': document overflow');
+      if(width<=768){
+        assert(geometry.art.width>=110,tag+': mobile poster not visible');
+        assert(Math.abs(geometry.art.width/geometry.art.height-2/3)<0.05,
+          tag+': poster aspect ratio not 2:3 '+JSON.stringify(geometry.art));
+        assert(geometry.titleCss.clamp==='2' && geometry.titleCss.overflow==='hidden',
+          tag+': the CSS cascade disables two-line clamp '+JSON.stringify(geometry.titleCss));
+        assert(geometry.title.top>=geometry.art.bottom-2,
+          tag+': mobile headline overlays the poster '+JSON.stringify({title:geometry.title,poster:geometry.art}));
+      }
       assert(geometry.nav.top>=geometry.social.bottom+8,tag+': social link overlaps pagination '+JSON.stringify(geometry));
       for(const [index,item] of geometry.buttons.entries()) {
         assert(item.rect.width>=44&&item.rect.height>=44,tag+': target below 44px '+JSON.stringify(item.rect));

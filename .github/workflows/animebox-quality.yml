@@ -95,6 +95,9 @@ jobs:
       - name: Mobile player overlay and ending timing regression
         run: npm run player-hotfix:check
 
+      - name: Patch 30.6 premium page geometry regression
+        run: npm run patch30-6:check
+
       - name: TypeScript
         run: npx tsc --noEmit
 
