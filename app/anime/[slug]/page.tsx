@@ -567,7 +567,10 @@ export default async function AnimePage({
           <div className={layout.related}>
             <AdSlot placement="anime-detail-before-related" format="native" />
             <Suspense fallback={<RelatedAnimeLoading />}>
-              <RelatedAnime animeId={numericId} genres={resolved.genres} />
+              <RelatedAnime animeId={numericId} genres={resolved.genres}
+                tags={Array.isArray(resolved.tags)
+                  ? resolved.tags.filter((tag: unknown): tag is string => typeof tag === 'string')
+                  : []} />
             </Suspense>
           </div>
           <div className={layout.secondary}>
@@ -591,7 +594,8 @@ export default async function AnimePage({
             <summary>Порядок частей</summary>
             {aniList.id && (
               <Suspense key={aniList.id} fallback={<AnimeFranchiseLoading />}>
-                <AnimeFranchise animeId={aniList.id} currentTitle={anime.russian || anime.name} />
+                <AnimeFranchise animeId={aniList.id} currentTitle={anime.russian || anime.name}
+                  watchHref={`${animeHref(resolved)}/watch`} />
               </Suspense>
             )}
           </details>
