@@ -443,16 +443,6 @@ html[data-animebox-theme] .home-page .main-column .home-utility-grid .home-servi
     text-align: left;
   }
   .home-page .main-column .home-loading-schedule-card__time { grid-column: 2; }
-  .home-page .home-grid .page-hero h1 {
-    display: block !important;
-    white-space: normal !important;
-    -webkit-line-clamp: unset !important;
-    max-height: none !important;
-    overflow: visible !important;
-    text-overflow: clip !important;
-    font-size: clamp(1.5rem, 6vw, 2rem) !important;
-    line-height: 1.2 !important;
-  }
 }
 
 .home-page .schedule__tab small { font-size:.6875rem; color:var(--ab-ui-muted); }
