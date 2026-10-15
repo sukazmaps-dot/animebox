@@ -126,16 +126,15 @@ export default function HomePageShell({
         <div className="home-page">
           <div className="home-grid home-grid--main">
             <div className="main-column">
+              {/* Streaming-first order: the next watch is more important than utilities. */}
               <HomeHeroSection />
               <HomeContinueSection />
-              <HomeWatchTogetherSection />
               <HomeDiscoverySection />
+              <HomeCatalogSections />
+              <HomeWatchTogetherSection />
 
               <HomeShortcuts />
-
               <HomeDeferredChat />
-
-              <HomeCatalogSections />
               <HomeScheduleSection />
               <HomeRetentionSections />
 

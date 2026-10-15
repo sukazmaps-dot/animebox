@@ -27,6 +27,12 @@ import Icon from '@/components/Icon';
 import {
   normalizeImageUrl,
 } from '@/lib/image-service';
+import {
+  buildAnimeBoxMediaCandidates,
+  buildAnimeBoxMediaDefaultVariant,
+  buildAnimeBoxMediaSrcSet,
+  type MediaImagePreset,
+} from '@/lib/media-delivery';
 
 import { getAnimeTitle } from '@/lib/anime-display';
 
@@ -52,7 +58,10 @@ function isValidAnime(
 
 type HeroImageAttempt = {
   src: string;
-  unoptimized: boolean;
+  /** Browser may choose a smaller Cloudflare/R2 variant before the source URL. */
+  srcSet?: string;
+  /** Large desktops can use the native source above R2's 1440px variant cap. */
+  ultraWideSrc?: string;
   fallback: boolean;
 };
 
@@ -70,12 +79,28 @@ function uniqueImageSources(values: Array<string | null | undefined>) {
   return sources;
 }
 
-function buildHeroImageAttempts(sources: string[]): HeroImageAttempt[] {
-  return sources.map((src, index) => ({
-    src,
-    unoptimized: true,
-    fallback: index > 0,
-  }));
+function buildHeroImageAttempts(
+  sources: string[],
+  preset: MediaImagePreset,
+): HeroImageAttempt[] {
+  const first = sources[0];
+  if (!first) return [];
+
+  const variant = buildAnimeBoxMediaDefaultVariant(first, preset, 80, 'webp');
+  const edge = buildAnimeBoxMediaCandidates(first, variant);
+  const responsive = buildAnimeBoxMediaSrcSet(first, preset, 80, 'webp');
+
+  // The original URLs remain in the chain. On an edge 403/timeout, the
+  // picture onError moves on to a direct origin before changing the artwork.
+  return [
+    ...edge.map((src, index) => ({
+      src,
+      srcSet: index === 0 ? responsive : undefined,
+      ultraWideSrc: index === 0 ? first : undefined,
+      fallback: index > 0,
+    })),
+    ...sources.map((src) => ({ src, fallback: true })),
+  ];
 }
 
 function getHeroBackdropAttempts(anime: Anime): HeroImageAttempt[] {
@@ -89,6 +114,7 @@ function getHeroBackdropAttempts(anime: Anime): HeroImageAttempt[] {
       anime.image?.large,
       anime.image?.medium,
     ]),
+    'hero',
   );
 }
 
@@ -103,6 +129,7 @@ function getMobileHeroAttempts(anime: Anime): HeroImageAttempt[] {
       anime.bannerImage,
       anime.image?.medium,
     ]),
+    'large',
   );
 }
 
@@ -259,6 +286,7 @@ export default function HomeHeroCarousel({
 
   const [backdropAttemptIndex, setBackdropAttemptIndex] = useState(0);
   const [mobileAttemptIndex, setMobileAttemptIndex] = useState(0);
+  const [ultraWideOriginFailed, setUltraWideOriginFailed] = useState(false);
 
   // Do not rotate the largest above-the-fold content before the visitor has
   // interacted with the page. A timed hero swap can become a new LCP
@@ -287,10 +315,18 @@ export default function HomeHeroCarousel({
     slides[0] ??
     null;
 
+  // URLSearchParams/srcset generation is unnecessary during hover and
+  // pagination focus updates; only recalculate when the selected anime changes.
+  const imageAttempts = useMemo(() => ({
+    backdrop: anime ? getHeroBackdropAttempts(anime) : [],
+    mobile: anime ? getMobileHeroAttempts(anime) : [],
+  }), [anime]);
+
   useEffect(() => {
     queueMicrotask(() => {
       setBackdropAttemptIndex(0);
       setMobileAttemptIndex(0);
+      setUltraWideOriginFailed(false);
     });
   }, [anime?.id]);
 
@@ -424,8 +460,8 @@ export default function HomeHeroCarousel({
   const title =
     getAnimeTitle(anime);
 
-  const backdropAttempts = getHeroBackdropAttempts(anime);
-  const mobileAttempts = getMobileHeroAttempts(anime);
+  const backdropAttempts = imageAttempts.backdrop;
+  const mobileAttempts = imageAttempts.mobile;
 
   const backdropAttempt =
     backdropAttempts[backdropAttemptIndex] ??
@@ -651,45 +687,65 @@ export default function HomeHeroCarousel({
       }
     >
       {bannerImage && (
-        <Image
-          key={`${anime.id}-backdrop-${backdropAttemptIndex}`}
-          src={bannerImage}
-          alt=""
-          fill
-          priority={safeActiveIndex === 0 && backdropAttemptIndex === 0}
-          fetchPriority={safeActiveIndex === 0 && backdropAttemptIndex === 0 ? 'high' : 'auto'}
-          decoding="async"
-          quality={82}
-          unoptimized={Boolean(backdropAttempt?.unoptimized)}
-          sizes="(min-width: 3400px) 2100px, (min-width: 3000px) 1950px, (min-width: 2400px) 1750px, (min-width: 1920px) 1500px, (max-width: 390px) calc(100vw - 20px), (max-width: 768px) calc(100vw - 24px), (max-width: 1200px) calc(100vw - 100px), (max-width: 1700px) calc(100vw - 300px), 1380px"
-          className="page-hero__backdrop home-hero-carousel__backdrop is-visible"
-          aria-hidden="true"
-          onError={() => {
-            setBackdropAttemptIndex((current) => current + 1);
-          }}
-        />
-      )}
-
-      {mobileKeyArt && (
-        <div className="home-hero-carousel__mobile-keyart" aria-hidden="true">
+        // One responsive <picture>, not two separate <img> downloads on phones.
+        // Desktop keeps cinematic scenery; portrait screens get the mobile art.
+        <picture>
+          {/* R2 currently tops out at 1440px: keep original detail on 2K/4K screens. */}
+          {!ultraWideOriginFailed && backdropAttempt?.ultraWideSrc && (
+            <source
+              media="(min-width: 2400px)"
+              srcSet={backdropAttempt.ultraWideSrc}
+              sizes="(min-width: 3400px) 2100px, (min-width: 3000px) 1950px, (min-width: 2400px) 1750px"
+            />
+          )}
+          {mobileKeyArt && (
+            <source
+              media="(max-width: 768px)"
+              srcSet={mobileAttempt?.srcSet ?? mobileKeyArt}
+              sizes="(max-width: 768px) 55vw, 1px"
+            />
+          )}
+          {backdropAttempt?.srcSet && (
+            <source
+              media="(min-width: 769px)"
+              srcSet={backdropAttempt.srcSet}
+              sizes="(min-width: 3400px) 2100px, (min-width: 3000px) 1950px, (min-width: 2400px) 1750px, (min-width: 1920px) 1500px, (max-width: 1200px) calc(100vw - 100px), 1380px"
+            />
+          )}
           <Image
-            key={`${anime.id}-mobile-keyart-${mobileAttemptIndex}`}
-            src={mobileKeyArt}
+            key={`${anime.id}-art-${backdropAttemptIndex}-${mobileAttemptIndex}-${ultraWideOriginFailed}`}
+            src={bannerImage}
             alt=""
             fill
+            // React responsive image source selection handles media-specific
+            // fetch priority; an unconditional preload would waste a request.
             priority={false}
-            fetchPriority="auto"
-            loading="lazy"
+            fetchPriority={safeActiveIndex === 0 ? 'high' : 'auto'}
+            loading={safeActiveIndex === 0 ? 'eager' : 'lazy'}
             decoding="async"
-            quality={88}
-            unoptimized={Boolean(mobileAttempt?.unoptimized)}
-            sizes="(max-width: 390px) 52vw, (max-width: 768px) 50vw, 1px"
-            className="home-hero-carousel__mobile-keyart-image"
-            onError={() => {
-              setMobileAttemptIndex((current) => current + 1);
+            unoptimized
+            sizes="(min-width: 1920px) 1500px, (max-width: 768px) 55vw, (max-width: 1200px) calc(100vw - 100px), 1380px"
+            className="page-hero__backdrop home-hero-carousel__backdrop is-visible"
+            aria-hidden="true"
+            onError={(event) => {
+              // The ultra-wide source bypasses the first CDN attempt. Retry
+              // that unused attempt before advancing to alternate artwork.
+              if (
+                !ultraWideOriginFailed &&
+                window.matchMedia('(min-width: 2400px)').matches &&
+                event.currentTarget.currentSrc === backdropAttempt?.ultraWideSrc
+              ) {
+                setUltraWideOriginFailed(true);
+                return;
+              }
+              if (window.matchMedia('(max-width: 768px)').matches && mobileKeyArt) {
+                setMobileAttemptIndex((current) => current + 1);
+              } else {
+                setBackdropAttemptIndex((current) => current + 1);
+              }
             }}
           />
-        </div>
+        </picture>
       )}
 
       <div className="page-hero__overlay" />

@@ -192,22 +192,24 @@ if (!nextConfig.includes('unoptimized: true')) {
   failures.push('next.config must keep the global Vercel image optimizer bypass enabled');
 }
 
+// Patch 30.0: art direction now uses ONE native responsive picture. Edge
+// variants are followed by direct origin fallback; only the first scene
+// is eager/high-priority, with no unconditional preload for desktop art.
 if (
   !hero.includes("from 'next/image'") ||
-  !hero.includes('unoptimized={Boolean(backdropAttempt?.unoptimized)}') ||
-  !hero.includes('unoptimized: true') ||
-  hero.includes('unoptimized: false') ||
-  !hero.includes('priority={safeActiveIndex === 0')
-) {
-  failures.push('hero must remain direct-source-first while preserving LCP priority');
-}
-
-if (
+  !hero.includes('buildAnimeBoxMediaSrcSet(') ||
+  !hero.includes('buildAnimeBoxMediaCandidates(') ||
+  !hero.includes('...sources.map((src) => ({ src, fallback: true }))') ||
+  !hero.includes('<picture>') ||
+  !hero.includes('media="(max-width: 768px)"') ||
   !hero.includes('priority={false}') ||
-  !hero.includes('loading="lazy"') ||
+  !hero.includes('loading={safeActiveIndex === 0') ||
+  !hero.includes('fetchPriority={safeActiveIndex === 0') ||
+  !hero.includes('unoptimized') ||
+  (hero.match(/<Image\s/g) ?? []).length !== 1 ||
   (hero.match(/fetchPriority=.*high/g) ?? []).length > 1
 ) {
-  failures.push('mobile hero must not compete with the backdrop as a second high-priority LCP request');
+  failures.push('hero single-picture responsive R2/origin/LCP contract has regressed');
 }
 
 if (

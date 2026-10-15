@@ -88,11 +88,13 @@ const heroIndex = shell.indexOf('<HomeHeroSection />');
 const resumeIndex = shell.indexOf('<HomeContinueSection />');
 const socialIndex = shell.indexOf('<HomeWatchTogetherSection />');
 const homeDiscoveryIndex = shell.indexOf('<HomeDiscoverySection />');
+const catalogueIndex = shell.indexOf('<HomeCatalogSections />');
 if (
   !(heroIndex >= 0 && resumeIndex > heroIndex &&
-    socialIndex > resumeIndex && homeDiscoveryIndex > socialIndex)
+    homeDiscoveryIndex > resumeIndex && catalogueIndex > homeDiscoveryIndex &&
+    socialIndex > catalogueIndex)
 ) {
-  failures.push('Mobile-first Hero/resume/Watch Together/discovery order regressed.');
+  failures.push('Streaming-first Hero/resume/discovery/catalogue/Watch Together order regressed.');
 }
 
 const discoveryIndex =

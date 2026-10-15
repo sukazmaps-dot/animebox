@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-import AnimeCard from '@/components/AnimeCard';
+import HomeAnimeRail from '@/components/HomeAnimeRail';
 import { useHomeFeedRuntime } from '@/components/home/HomeFeedRuntimeProvider';
 
 export default function HomeCatalogSections() {
@@ -60,17 +60,11 @@ export default function HomeCatalogSections() {
             <span>{popularError}</span>
           </div>
         ) : (
-          <div className="anime-grid home-anime-grid">
-            {popular.slice(0, 10).map((anime) => (
-              <AnimeCard
-                key={anime.id}
-                anime={anime}
-                watchedEpisode={
-                  personalEpisodeByAnime.get(anime.id) ?? null
-                }
-              />
-            ))}
-          </div>
+          <HomeAnimeRail
+            items={popular.slice(0, 10)}
+            ariaLabel="Популярные аниме"
+            watchedEpisodes={personalEpisodeByAnime}
+          />
         )}
       </section>
 
@@ -115,17 +109,11 @@ export default function HomeCatalogSections() {
             <span>{ongoingError}</span>
           </div>
         ) : (
-          <div className="anime-grid home-anime-grid">
-            {fallbackItems.slice(0, 10).map((anime) => (
-              <AnimeCard
-                key={anime.id}
-                anime={anime}
-                watchedEpisode={
-                  personalEpisodeByAnime.get(anime.id) ?? null
-                }
-              />
-            ))}
-          </div>
+          <HomeAnimeRail
+            items={fallbackItems.slice(0, 10)}
+            ariaLabel="Продолжающиеся аниме"
+            watchedEpisodes={personalEpisodeByAnime}
+          />
         )}
       </section>
     </>

@@ -64,6 +64,9 @@ jobs:
       - name: Release consolidation invariants
         run: npm run release-consolidation:check
 
+      - name: Patch 30.0 streaming home and media regression
+        run: npm run patch30-0:check && npm run home-hydration:check && npm run image-delivery:check && npm run mobile-performance:check
+
       - name: Schedule media and search regression checks
         run: npm run schedule-media:check
 
@@ -320,6 +323,11 @@ jobs:
 
       - name: Media relay, owner Telegram diagnostics and sitemap regression checks
         run: npm run media-origin-recovery:check && python3 tests/seo-sitemap-smoke-test.py
+
+      - name: Patch 30.0 hydrated homepage geometry and media recovery
+        env:
+          PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
+        run: node scripts/patch30-0-home-browser-smoke.cjs
 
       - name: Production build
         run: NODE_ENV=production npm run build
