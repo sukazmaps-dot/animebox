@@ -186,7 +186,7 @@ export default async function RelatedAnime({
           </div>
           <Link href="/search" className="section-link">Весь каталог →</Link>
         </div>
-        <HomeAnimeRail items={items} ariaLabel="Похожие аниме" />
+        <HomeAnimeRail key={animeId} items={items} ariaLabel="Похожие аниме" />
       </div>
     </section>
   );
