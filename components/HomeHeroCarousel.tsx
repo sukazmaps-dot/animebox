@@ -60,6 +60,8 @@ type HeroImageAttempt = {
   src: string;
   /** Browser may choose a smaller Cloudflare/R2 variant before the source URL. */
   srcSet?: string;
+  /** Large desktops can use the native source above R2's 1440px variant cap. */
+  ultraWideSrc?: string;
   fallback: boolean;
 };
 
@@ -94,6 +96,7 @@ function buildHeroImageAttempts(
     ...edge.map((src, index) => ({
       src,
       srcSet: index === 0 ? responsive : undefined,
+      ultraWideSrc: index === 0 ? first : undefined,
       fallback: index > 0,
     })),
     ...sources.map((src) => ({ src, fallback: true })),
@@ -685,6 +688,12 @@ export default function HomeHeroCarousel({
         // One responsive <picture>, not two separate <img> downloads on phones.
         // Desktop keeps cinematic scenery; portrait screens get the mobile art.
         <picture>
+          {/* R2 currently tops out at 1440px: keep original detail on 2K/4K screens. */}
+          <source
+            media="(min-width: 2400px)"
+            srcSet={backdropAttempt?.ultraWideSrc ?? bannerImage}
+            sizes="(min-width: 3400px) 2100px, (min-width: 3000px) 1950px, (min-width: 2400px) 1750px"
+          />
           {mobileKeyArt && (
             <source
               media="(max-width: 768px)"
@@ -696,7 +705,7 @@ export default function HomeHeroCarousel({
             <source
               media="(min-width: 769px)"
               srcSet={backdropAttempt.srcSet}
-              sizes="(min-width: 1920px) 1500px, (max-width: 1200px) calc(100vw - 100px), 1380px"
+              sizes="(min-width: 3400px) 2100px, (min-width: 3000px) 1950px, (min-width: 2400px) 1750px, (min-width: 1920px) 1500px, (max-width: 1200px) calc(100vw - 100px), 1380px"
             />
           )}
           <Image
