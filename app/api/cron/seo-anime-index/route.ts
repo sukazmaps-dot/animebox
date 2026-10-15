@@ -122,16 +122,26 @@ async function run(request: Request) {
     // AniList SEO source shards. Keep recovery strictly inside this signed cron
     // and the existing distributed job lease; never run it for crawlers.
     let catalogRecovery: Awaited<ReturnType<typeof repairSeoCatalogPage>> | null = null;
+    let catalogRecoveryFailed = false;
     const shouldRepair = catalogRepair.manual || manualShard == null;
     if (shouldRepair && !permit.shouldStop(12_000)) {
-      const pageCount = await getSeoCatalogRepairPageCount();
-      const page = catalogRepair.page ??
-        scheduledSeoCatalogRepairPage(pageCount);
-      if (page < pageCount) {
-        catalogRecovery = await repairSeoCatalogPage({
-          page,
-          dryRun: catalogRepair.dryRun,
-        });
+      try {
+        const pageCount = await getSeoCatalogRepairPageCount();
+        const page = catalogRepair.page ??
+          scheduledSeoCatalogRepairPage(pageCount);
+        if (page < pageCount) {
+          catalogRecovery = await repairSeoCatalogPage({
+            page,
+            dryRun: catalogRepair.dryRun,
+          });
+        }
+      } catch (error) {
+        // Catalog recovery is best-effort during daily AniList shard refresh.
+        // Never starve the existing SEO cron because an optional local
+        // backfill read failed. Explicit operator runs must report failure.
+        if (catalogRepair.manual) throw error;
+        catalogRecoveryFailed = true;
+        console.warn('[SEO anime index cron] Local catalog recovery unavailable:', error);
       }
     }
 
@@ -181,6 +191,7 @@ async function run(request: Request) {
     const summary = {
       sourceShards: shards,
       catalogRecovery,
+      catalogRecoveryFailed,
       completedShards: results.map((item) => item.sourceShard),
       budgetExhausted,
       remainingMs: permit.remainingMs(),
