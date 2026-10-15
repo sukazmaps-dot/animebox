@@ -13,6 +13,7 @@ import type { Anime } from '@/types/anime';
 
 import AnimeImage from '@/components/AnimeImage';
 import Icon from '@/components/Icon';
+import { formatAnimeScore } from '@/lib/anime-score';
 
 import {
   normalizeImageUrl,
@@ -213,7 +214,7 @@ export default function HomeHero({
                 height={11}
               />
 
-              {anime.score ?? '—'}
+              {formatAnimeScore(anime) ?? '—'}
             </span>
           </div>
 
