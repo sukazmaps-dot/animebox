@@ -21,6 +21,7 @@ import { getPremiumMe } from '@/lib/entitlements-client';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 import { getAnimes, isAbortError } from '@/lib/anime-client';
 import { getAnimeOriginalTitle, getAnimeTitle } from '@/lib/anime-display';
+import { formatAnimeScore } from '@/lib/anime-score';
 import { parseAnimeSearchIntent } from '@/lib/search-intent';
 import {
   buildWatchPartyUrl,
@@ -964,7 +965,7 @@ export default function WatchTogetherHub() {
                       alt={title}
                       englishName={anime.title?.english || anime.title?.romaji}
                     />
-                    <b>★ {anime.score ?? anime.averageScore ?? '—'}</b>
+                    <b>★ {formatAnimeScore(anime) ?? '—'}</b>
                   </span>
                   <span className={styles.cardCopy}>
                     <strong>{title}</strong>
