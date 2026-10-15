@@ -15,6 +15,7 @@ const fixtures = new Map([
     const key=JSON.stringify(args); if(!map.has(key))map.set(key,fn(...args)); return map.get(key);
   }; };`],
   ['next/cache', 'export const unstable_cache = fn => fn;'],
+  ['@/lib/anime-public-metadata-server', 'export function scheduleAniListMetadataPersist(){}'],
   ['@/lib/anilist', 'export async function getAnimeById(){return globalThis.seoMediaTest.remote;}'],
   ['@/lib/anime-localization-server', `export async function getLocalAnimeDetailFallback(){return globalThis.seoMediaTest.local;}
     export async function localizeAnimeDetail(anime){return anime;}`],
