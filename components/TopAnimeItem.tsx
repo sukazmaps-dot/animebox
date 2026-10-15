@@ -2,6 +2,8 @@ import Link from 'next/link';
 import AnimeImage from '@/components/AnimeImage';
 import { animeHref } from '@/lib/anime-url';
 import { getAnimeTitle } from '@/lib/anime-display';
+import { formatAnimeScore } from '@/lib/anime-score';
+import { animeEpisodesDisplay } from '@/lib/anime-content-intelligence';
 import type { Anime } from '@/types/anime';
 
 export default function TopAnimeItem({
@@ -35,9 +37,9 @@ export default function TopAnimeItem({
       <div className="top-anime-item__copy">
         <strong title={title}>{title}</strong>
         <span>
-          <b>★ {anime.score ?? anime.averageScore ?? '—'}</b>
+          <b>★ {formatAnimeScore(anime) ?? '—'}</b>
           {anime.format ? ` · ${anime.format}` : ''}
-          {anime.episodes ? ` · ${anime.episodes} эп.` : ''}
+          {animeEpisodesDisplay(anime) ? ` · ${animeEpisodesDisplay(anime)}` : ''}
         </span>
       </div>
     </Link>
