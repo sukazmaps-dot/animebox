@@ -196,7 +196,6 @@ body { background-color: var(--ab-canvas); }
 .home-page .continue-smart-card__eyebrow { font-size: 11px !important; }
 .home-page .home-shortcuts__item strong { font-size: 13px; }
 .home-page .home-shortcuts__item small { font-size: 11px; }
-.profile-v2__banner-default { background-image: linear-gradient(135deg, var(--ab-ui-raised), var(--ab-ui-raised) 55%, var(--ab-ui-raised)) !important; }
 
 @media (max-width: 800px) {
   .premium-hero__preview { max-width: 350px; transform: none; box-shadow: 8px 10px 0 color-mix(in srgb, var(--ab-ui-accent) 12%, transparent); }
