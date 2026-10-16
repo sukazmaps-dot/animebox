@@ -134,12 +134,12 @@
   gap: 6px;
   border: 1px solid rgba(255,255,255,.1);
   border-radius: 10px;
-  background: color-mix(in srgb, var(--ab-ui-canvas) 68%, transparent);
-  color: var(--ab-ui-text);
+  background: rgba(23, 22, 34, .82);
+  color: #fff;
   font-size: 9px;
   font-weight: 850;
   backdrop-filter: blur(12px);
-  opacity: .68;
+  opacity: .92;
   transition: opacity .16s ease, transform .16s ease, border-color .16s ease;
 }
 
