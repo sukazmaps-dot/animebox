@@ -17,6 +17,9 @@ import {
   uploadPrivateProfileMedia,
   type PendingProfileMediaUpload,
 } from '@/lib/profile-media-upload-client';
+import { normalizePickedImage, stabilizePickedFile, isAnimatedPickedImage } from '@/lib/profile-media-normalize-client';
+import { prepareBaseProfileMedia, extractDominantColor } from '@/lib/profile-media-crop-client';
+import ProfileMediaModal from '@/components/profile/ProfileMediaModal';
 import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor';
 import PremiumStudioLivePreview from '@/components/premium/PremiumStudioLivePreview';
 import Icon from '@/components/Icon';
@@ -152,6 +155,7 @@ const BANNER_HEIGHT_META: Record<
 type MediaEditorState = {
   kind: UploadKind;
   mode: 'upload' | 'edit';
+  baked?: boolean;
   src: string;
   file?: File;
   transform: PremiumMediaTransform;
@@ -443,7 +447,6 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [studioSection, setStudioSection] = useState<'appearance' | 'atmosphere' | 'effects' | 'media'>('appearance');
   const [mediaEditor, setMediaEditor] = useState<MediaEditorState | null>(null);
-  const mediaEditorOpen = Boolean(mediaEditor);
 
   useEffect(() => {
     if (initialSettings) return;
@@ -535,28 +538,6 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       document.body.style.overflow = previousOverflow;
     };
   }, [mobilePreviewOpen]);
-
-  useEffect(() => {
-    if (!mediaEditorOpen) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      if (mediaObjectUrlRef.current) {
-        URL.revokeObjectURL(mediaObjectUrlRef.current);
-        mediaObjectUrlRef.current = null;
-      }
-      setMediaEditor(null);
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [mediaEditorOpen]);
 
   useEffect(() => () => {
     if (mediaObjectUrlRef.current) URL.revokeObjectURL(mediaObjectUrlRef.current);
@@ -831,6 +812,24 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     setSaved('');
     setMediaWarning('');
 
+    if (file.size > 32 * 1024 * 1024) {
+      setError('Исходное изображение должно быть не больше 32 МБ.');
+      resetMediaInput(kind); return;
+    }
+    let animated = false;
+    try {
+      file = await stabilizePickedFile(file);
+      animated = await isAnimatedPickedImage(file);
+      if (!animated) file = await normalizePickedImage(file);
+      else {
+        const signature = new Uint8Array(await file.slice(0,3).arrayBuffer());
+        const type = signature[0] === 71 && signature[1] === 73 && signature[2] === 70 ? 'image/gif' : 'image/webp';
+        file = new File([file],file.name,{type,lastModified:file.lastModified});
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Не удалось прочитать файл.');
+      resetMediaInput(kind); return;
+    }
     if (!ALLOWED_MEDIA_TYPES.has(file.type)) {
       setError('Поддерживаются WEBP, animated WEBP, GIF, PNG и JPG.');
       resetMediaInput(kind);
@@ -858,7 +857,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
           `Premium-аватар должен быть не меньше ${MIN_PREMIUM_AVATAR_DIMENSION}×${MIN_PREMIUM_AVATAR_DIMENSION}px.`,
         );
       }
-      if (kind === 'avatar' && (
+      if (animated && kind === 'avatar' && (
         dimensions.width > MAX_AVATAR_SOURCE_DIMENSION ||
         dimensions.height > MAX_AVATAR_SOURCE_DIMENSION
       )) {
@@ -869,7 +868,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       if (kind === 'avatar' && file.size > PREMIUM_AVATAR_RECOMMENDED_BYTES) {
         setMediaWarning('Тяжёлая анимация: для более быстрой загрузки рекомендуем Premium-аватар до 4 МБ.');
       }
-      if (kind === 'banner' && (
+      if (animated && kind === 'banner' && (
         dimensions.width > MAX_BANNER_SOURCE_WIDTH ||
         dimensions.height > MAX_BANNER_SOURCE_HEIGHT
       )) {
@@ -884,6 +883,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       setMediaEditor({
         kind,
         mode: 'upload',
+        baked: !animated,
         src,
         file,
         transform: { x: 50, y: 50, zoom: 1 },
@@ -918,6 +918,17 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   ): Promise<boolean> {
     if (!file || !allowed || uploading || saving) return false;
 
+    let animated = false;
+    try {
+      animated = await isAnimatedPickedImage(file);
+      if (!animated) {
+        file = await prepareBaseProfileMedia(file, kind, transform, true);
+        transform = {x:50,y:50,zoom:1};
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Не удалось сжать изображение.');
+      return false;
+    }
     setError('');
     setSaved('');
     setMediaWarning('');
@@ -941,7 +952,9 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     const pendingMedia: PendingProfileMediaUpload[] = [];
 
     try {
-      const fallback = await staticWebpFallback(file, kind);
+      const dimensions = !animated ? await readImageDimensions(file) : null;
+      const fallback = animated ? await staticWebpFallback(file, kind)
+        : {blob:file,sourceWidth:dimensions!.width,sourceHeight:dimensions!.height};
       const staticBlob = fallback.blob;
 
       if (kind === 'avatar' && (
@@ -978,14 +991,10 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       });
       pendingMedia.push(originalUpload);
 
-      const staticUpload = await uploadPrivateProfileMedia({
-        scope: 'premium',
-        kind,
-        variant: 'static',
-        body: staticBlob,
-        mimeType: 'image/webp',
-      });
-      pendingMedia.push(staticUpload);
+      const staticUpload = animated ? await uploadPrivateProfileMedia({
+        scope: 'premium', kind, variant: 'static', body: staticBlob, mimeType: 'image/webp',
+      }) : originalUpload;
+      if (animated) pendingMedia.push(staticUpload);
 
       const oldPath = kind === 'avatar' ? settings.avatarPath : settings.bannerPath;
       const oldStaticPath = kind === 'avatar' ? settings.avatarStaticPath : settings.bannerStaticPath;
@@ -1013,6 +1022,16 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
         kind === 'avatar' ? 'Premium-аватар обновлён ✓' : 'Premium-баннер обновлён ✓',
         pendingMedia,
       );
+
+      if (kind === 'avatar' && user?.id) {
+        try {
+          const color = await extractDominantColor(file);
+          const sampled = await supabase.from('profiles').update({banner_color:color})
+            .eq('id',user.id).eq('banner_color_mode','auto');
+          if (sampled.error) throw sampled.error;
+          notifyProfileAppearanceChanged(user.id);
+        } catch { console.warn('[ProfileMedia] automatic color update deferred'); }
+      }
 
       const obsolete = [oldPath, oldStaticPath]
         .filter((path): path is string => Boolean(path && path.includes('/premium/')))
@@ -1925,18 +1944,9 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
         : null}
 
       {mediaEditor && (
-        <div
-          className="premium-media-editor-modal"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !uploading && !saving) closeMediaEditor();
-          }}
-        >
+        <ProfileMediaModal busy={Boolean(uploading) || saving} onClose={closeMediaEditor} labelledBy="premium-media-editor-title">
           <section
             className={`premium-media-editor-modal__dialog ${mediaEditor.kind === 'banner' ? 'is-banner' : 'is-avatar'}`}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="premium-media-editor-title"
           >
             <div className="premium-media-editor-modal__top">
               <div>
@@ -1957,6 +1967,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
             </div>
 
             <PremiumMediaCropEditor
+              baked={mediaEditor.baked}
               kind={mediaEditor.kind}
               src={mediaEditor.src}
               value={mediaEditor.transform}
@@ -1974,7 +1985,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
               </button>
             </div>
           </section>
-        </div>
+        </ProfileMediaModal>
       )}
     </div>
   );
