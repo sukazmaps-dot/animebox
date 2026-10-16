@@ -138,6 +138,7 @@ export default function ProfileDirectEditSurface({
   const [frameLoading, setFrameLoading] = useState(true);
   const [frameBusy, setFrameBusy] = useState('');
   const [frameError, setFrameError] = useState('');
+  const inspectorRef = useRef<HTMLElement | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const bannerInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -244,6 +245,19 @@ export default function ProfileDirectEditSurface({
     ? Math.min(0.72, selectedMilestoneScale + 0.14)
     : null;
 
+  function openBannerColorEditor() {
+    setTarget('banner');
+    setBannerEditorMode('color');
+    if (window.matchMedia('(max-width: 768px)').matches) {
+      window.requestAnimationFrame(() => {
+        inspectorRef.current?.scrollIntoView({
+          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+          block: 'start',
+        });
+      });
+    }
+  }
+
   function openMediaPicker(kind: 'avatar' | 'banner') {
     if (kind === 'avatar') {
       setTarget('avatar');
@@ -299,7 +313,7 @@ export default function ProfileDirectEditSurface({
           <div>
             <span>ПРОФИЛЬ</span>
             <h2>Настраивай профиль прямо здесь</h2>
-            <p>Нажми на аватар или баннер, чтобы заменить изображение. Имя и описание можно менять прямо на карточке.</p>
+            <p>Нажми на аватар или баннер, чтобы изменить оформление. Имя и описание можно менять прямо на карточке.</p>
           </div>
           <div className={styles.liveBadge}><span /> СРАЗУ</div>
         </div>
@@ -310,7 +324,7 @@ export default function ProfileDirectEditSurface({
             className={styles.banner}
             style={{background: bannerStyleBackground(bannerColor, visibleBannerStyle(bannerStyle, premiumActive))}}
             data-selected={target === 'banner' ? 'true' : 'false'}
-            onClick={() => { setTarget('banner'); setBannerEditorMode('color'); }}
+            onClick={openBannerColorEditor}
             aria-label="Настроить баннер"
           >
             {bannerUrl && <img src={bannerUrl} alt="" aria-hidden="true" />}
@@ -437,7 +451,7 @@ export default function ProfileDirectEditSurface({
         </div>
       </section>
 
-      <aside className={styles.inspector} data-target={target}>
+      <aside ref={inspectorRef} className={styles.inspector} data-target={target}>
         <div className={styles.inspectorHead}>
           <div>
             <span>НАСТРОЙКИ ЭЛЕМЕНТА</span>

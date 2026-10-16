@@ -1244,3 +1244,5 @@
 .bannerHexRow { display:grid; grid-template-columns:minmax(0,1fr) 46px; align-items:end; gap:8px; }
 .bannerHexRow input[type='color'] { width:46px; height:42px; padding:2px; border:1px solid var(--ab-ui-border); border-radius:9px; background:var(--ab-ui-surface); cursor:pointer; }
 @media (max-width: 620px) { .bannerPresetGrid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+@media (max-width: 768px) { .inspector { scroll-margin-top: 120px; } }
