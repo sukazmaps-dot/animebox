@@ -51,6 +51,7 @@ export type PublicProfileData = {
   avatarUrl: string;
   avatarMobileUrl: string;
   bannerUrl: string | null;
+  bannerColor: string;
   bannerMobileUrl: string | null;
   createdAt: string;
   ogNumber: number | null;
@@ -82,6 +83,7 @@ type ProfileRow = {
   bio: string | null;
   avatar_path: string | null;
   banner_path: string | null;
+  banner_color?: string;
   created_at: string;
 };
 
@@ -144,7 +146,7 @@ export async function getPublicProfile(
 
   const { data: profileData, error: profileError } = await admin
     .from('profiles')
-    .select('id,username,bio,avatar_path,banner_path,created_at')
+    .select('id,username,bio,avatar_path,banner_path,banner_color,created_at')
     .eq('id', userId)
     .maybeSingle();
 
@@ -351,6 +353,7 @@ export async function getPublicProfile(
     avatarUrl,
     avatarMobileUrl,
     bannerUrl,
+    bannerColor: profile.banner_color ?? '#70618c',
     bannerMobileUrl,
     createdAt: profile.created_at,
     ogNumber:
