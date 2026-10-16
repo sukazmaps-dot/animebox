@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -16,6 +15,7 @@ import ProfileWidgetEditor from '@/components/profile/ProfileWidgetEditor';
 import ProfileRewardsPanel from '@/components/profile/ProfileRewardsPanel';
 import ProgressionOverview from '@/components/progression/ProgressionOverview';
 import ProfileDirectEditSurface from '@/components/profile/ProfileDirectEditSurface';
+import ProfileEditorLivePreview, { type ProfileEditorSection } from '@/components/profile/ProfileEditorLivePreview';
 import TelegramAccountLinkCard from '@/components/profile/TelegramAccountLinkCard';
 import Icon from '@/components/Icon';
 import { notifyAuthChanged } from '@/lib/auth-events';
@@ -39,7 +39,7 @@ import type {
   PremiumStudioSettings,
 } from '@/lib/premium-studio';
 
-type EditorTab = 'profile' | 'showcase' | 'rewards' | 'style';
+type EditorTab = ProfileEditorSection | 'showcase' | 'rewards';
 
 type ProfileRow = {
   id: string;
@@ -66,6 +66,7 @@ type BaseMediaEditorState = {
 
 function normalizedTab(value: string | null | undefined): EditorTab {
   if (value === 'style' || value === 'premium') return 'style';
+  if (value === 'avatar' || value === 'banner' || value === 'frame') return value;
   if (value === 'appearance' || value === 'media') return 'profile';
   if (value === 'showcase' || value === 'widgets') return 'showcase';
   if (value === 'rewards' || value === 'awards') return 'rewards';
@@ -86,6 +87,11 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   }, []);
 
   const [activeTab, setActiveTab] = useState<EditorTab>(normalizedTab(initialTab));
+  const [selectedFrame, setSelectedFrame] = useState<string | null>(null);
+  useEffect(() => {
+    document.documentElement.classList.add('ab-profile-editor-open');
+    return () => document.documentElement.classList.remove('ab-profile-editor-open');
+  }, []);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -294,6 +300,17 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     setSaved('');
     const url = tab === 'profile' ? '/profile/edit' : `/profile/edit?tab=${tab}`;
     window.history.replaceState(null, '', url);
+  }
+
+  function leaveEditor() {
+    if (dirty && !window.confirm('Есть несохранённые изменения. Выйти без сохранения?')) return;
+    router.push('/profile');
+  }
+
+  function cancelChanges() {
+    if (dirty && !window.confirm('Сбросить несохранённые изменения?')) return;
+    if (dirty) resetDraft();
+    else leaveEditor();
   }
 
   function revokeBaseMediaPreviewLater(src?: string | null) {
@@ -691,48 +708,43 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
       <section className="profile-editor-v13__shell">
         <header className="profile-editor-v13__header">
-          <div>
-            <span>РЕДАКТОР ПРОФИЛЯ</span>
-            <h1>Редактирование профиля</h1>
-            <p>Нажимай прямо на элементы профиля: аватар, баннер, ник, описание и рамку.</p>
+          <div className="profile-editor-v31__header-title">
+            <button type="button" onClick={leaveEditor} aria-label="Закрыть редактор">×</button>
+            <h1>Редактор профиля</h1>
           </div>
-
-          <div className="profile-editor-v13__header-actions">
-            <Link href="/profile">← В профиль</Link>
-            {dirty || saving ? (
-              <button
-                type="button"
-                disabled={!dirty || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)}
-                onClick={() => void saveProfile()}
-              >
-                {saving ? 'Сохраняем…' : 'Сохранить изменения'}
-              </button>
-            ) : (
-              <span className="profile-editor-v13__save-state" role="status">
-                <span aria-hidden="true">✓</span> Изменения сохранены
-              </span>
-            )}
-          </div>
+          <span className="profile-editor-v31__status" role="status">{saving ? 'Сохранение…' : dirty ? '● Не сохранено' : '✓ Сохранено'}</span>
         </header>
 
+        <div className="profile-editor-v31__live-preview">
+          <ProfileEditorLivePreview
+            username={username} bio={bio} avatarUrl={resolvedAvatarPreview}
+            bannerUrl={resolvedBannerPreview} bannerColor={bannerColor}
+            bannerStyle={bannerStyle} premiumActive={premiumActive}
+            frameKey={selectedFrame} onNavigate={switchTab}
+          />
+        </div>
+
         <nav className="profile-editor-v13__tabs profile-editor-v18__rail" aria-label="Разделы редактора профиля">
-          <span className="profile-editor-v18__rail-title">РЕДАКТОР ПРОФИЛЯ</span>
-          <button className={activeTab === 'profile' ? 'is-active' : ''} onClick={() => switchTab('profile')} type="button">
-            <Icon name="user" size={18} weight="regular" /> <span>Профиль</span>
-          </button>
-          <button className={activeTab === 'showcase' ? 'is-active' : ''} onClick={() => switchTab('showcase')} type="button">
-            <Icon name="grid" size={18} weight="regular" /> <span>Витрина</span>
-          </button>
-          <button className={activeTab === 'rewards' ? 'is-active' : ''} onClick={() => switchTab('rewards')} type="button">
-            <Icon name="trophy" size={18} weight="regular" /> <span>Награды</span>
-          </button>
-          <button className={activeTab === 'style' ? 'is-active is-premium' : 'is-premium'} onClick={() => switchTab('style')} type="button">
-            <Icon name="crown" size={18} weight="fill" /> <span>Premium</span>
-          </button>
+          {([
+            ['profile','Профиль','user'],
+            ['avatar','Аватар','image'],
+            ['banner','Баннер','palette'],
+            ['frame','Рамка','award'],
+            ['style','Оформление','crown'],
+          ] as const).map(([section,label,icon]) => (
+            <button key={section} className={activeTab === section ? 'is-active' : ''}
+              aria-current={activeTab===section?'page':undefined} type="button" onClick={()=>switchTab(section)}>
+              <Icon name={icon} size={17} weight="regular" /><span>{label}</span>
+            </button>
+          ))}
+          <details className="profile-editor-v31__more">
+            <summary>Ещё</summary>
+            <button type="button" onClick={()=>switchTab('showcase')}>Витрина</button>
+            <button type="button" onClick={()=>switchTab('rewards')}>Награды</button>
+          </details>
         </nav>
 
-        {activeTab === 'style' ? (
-          <div className="profile-editor-v13__premium-tab">
+        <div className="profile-editor-v13__premium-tab" hidden={activeTab !== 'style'}>
             <PremiumStudioClient
               ref={premiumStudioRef}
               embedded
@@ -751,7 +763,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
               }}
             />
           </div>
-        ) : activeTab === 'rewards' ? (
+        {activeTab === 'rewards' ? (
           <div className="profile-editor-v13__showcase-tab profile-editor-v18__rewards-tab">
             <ProgressionOverview />
             <ProfileRewardsPanel />
@@ -800,9 +812,13 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
               />
             )}
           </div>
-        ) : (
+        ) : activeTab !== 'style' ? (
           <div className="profile-editor-v19__direct-tab">
             <ProfileDirectEditSurface
+            section={activeTab}
+            showPreview={false}
+            onSectionChange={switchTab}
+            onFrameChange={setSelectedFrame}
             username={username}
             bio={bio}
             avatarUrl={resolvedAvatarPreview}
@@ -864,25 +880,22 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             onOpenPremium={() => switchTab('style')}
           />
 
-          <TelegramAccountLinkCard />
+          {activeTab === 'profile' && <TelegramAccountLinkCard />}
           </div>
         )}
 
-        <div ref={savebarRef} data-visible={dirty || saving || Boolean(saved) ? 'true' : 'false'} className={`profile-editor-v13__mobile-save profile-editor-v18__savebar ${dirty ? 'is-dirty' : ''}`} role="status" aria-live="polite">
+        <div ref={savebarRef} data-visible="true" className={`profile-editor-v13__mobile-save profile-editor-v18__savebar ${dirty ? 'is-dirty' : ''}`} role="status" aria-live="polite">
           <span className="profile-editor-v18__savebar-copy">
-            <strong>{saving ? 'Сохраняем изменения…' : dirty ? 'Есть несохранённые изменения' : saved || 'Всё сохранено'}</strong>
+            <strong>{saving ? 'Сохраняем…' : dirty ? 'Есть несохранённые изменения' : saved || 'Все изменения сохранены'}</strong>
             {dirty && <small>Изменения ещё не сохранены.</small>}
           </span>
-          {(dirty || saving) && (
-            <>
-              <button type="button" className="profile-editor-v18__reset" disabled={!dirty || saving || premiumBusy} onClick={resetDraft}>
-                Сбросить
-              </button>
-              <button type="button" disabled={!dirty || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)} onClick={() => void saveProfile()}>
-                {saving ? 'Сохраняем…' : 'Сохранить изменения'}
-              </button>
-            </>
-          )}
+          <button type="button" className="profile-editor-v18__reset" disabled={saving} onClick={cancelChanges}>
+            Отмена
+          </button>
+          <button type="button" disabled={!dirty || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)}
+            onClick={() => !premiumActive && activeTab === 'style' ? router.push('/premium#premium-plans') : void saveProfile()}>
+            {saving ? 'Сохраняем…' : !premiumActive && activeTab === 'style' ? 'Сохранить с Premium' : 'Сохранить'}
+          </button>
         </div>
       </section>
 
