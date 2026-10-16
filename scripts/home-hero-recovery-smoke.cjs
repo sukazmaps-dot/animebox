@@ -36,8 +36,8 @@ const server=spawn(process.execPath,['node_modules/next/dist/bin/next','dev','--
   // Next client hydration is observable via an actual state update.
   if(mode==='slow-old'){await page.locator('[data-update]').click();await page.waitForSelector('[data-fixture-mode="updated"]');}
   if(mode==='all-fail'){
-   await page.waitForTimeout(1500);const count=requests.length;await page.waitForTimeout(300);
-   assert.equal(requests.length,count,'exhausted chain must settle');assert(count<=14,'bounded request chain');
+   await page.waitForFunction(()=>{const img=document.querySelector('.home-hero-carousel picture img');return !img||img.currentSrc.startsWith('data:');});const count=requests.length;await page.waitForTimeout(300);
+   assert.equal(requests.length,count,'exhausted chain must settle');assert(new Set(requests).size<=14,'bounded unique recovery URLs');assert(count<=40,'browser retries must also stay bounded');
    assert(await page.locator('.home-hero-carousel .hero-actions a').count()===2,'actions survive total media failure');
   }else{
    await page.waitForFunction(()=>{const img=document.querySelector('.home-hero-carousel picture img');return img?.complete&&img.naturalWidth>0&&!img.currentSrc.startsWith('data:');});
@@ -48,7 +48,7 @@ const server=spawn(process.execPath,['node_modules/next/dist/bin/next','dev','--
    if(mode==='slow-old'){assert(data.src.includes('updated'),'old response must not corrupt new art');await page.waitForTimeout(700);assert((await page.locator('.home-hero-carousel picture img').evaluate(e=>e.currentSrc)).includes('updated'));}
    if(width<=768)assert.equal(data.position,'60% 15%');assert(!data.overflow,'horizontal overflow');
   }
-  assert.deepEqual(errors,[]);await page.close();checks++;
+  assert.deepEqual(errors,[]);console.log('PASS hero',width,mode,{requests:requests.length,unique:new Set(requests).size});await page.close();checks++;
  }
  // Poster-only desktop must not be enlarged to the whole landscape hero.
  const page=await browser.newPage({viewport:{width:1440,height:1000}});

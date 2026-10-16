@@ -224,7 +224,7 @@ export function HomeHeroArtwork({
 
   if (!bannerImage && !mobileKeyArt) return null;
   return (
-        <picture data-hero-desktop-kind={backdropAttempt?.poster ? 'poster' : 'art'}>
+        <picture key={attemptKey} data-hero-desktop-kind={backdropAttempt?.poster ? 'poster' : 'art'}>
           {/* R2 currently tops out at 1440px: keep original detail on 2K/4K screens. */}
           {!ultraWideOriginFailed && backdropAttempt?.ultraWideSrc && (
             <source
