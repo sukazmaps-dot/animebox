@@ -520,6 +520,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   );
   const frameDirty = frameLoaded && selectedFrame !== savedFrame;
   const dirty = baseDirty || (premiumActive && premiumDirty) || frameDirty;
+  const editorBusy=saving||premiumBusy||baseMediaProcessing||Boolean(baseMediaOpening)||Boolean(baseMediaEditor);
   const editorDraft = useMemo<ProfileEditorDraft>(() => ({
     username,bio,bannerColor,bannerColorMode,bannerStyle,frame:selectedFrame,
     premium:premiumDraft ?? premiumSettings,avatar:avatarFile,banner:bannerFile,removeAvatar,removeBanner,
@@ -583,7 +584,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
 
   async function saveProfile() {
-    if (!profile || !user || saving || premiumBusy || !dirty) return;
+    if (!profile || !user || editorBusy || !dirty) return;
 
     const cleanUsername = username.trim();
     const cleanBio = bio.trim();
@@ -771,8 +772,13 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
   useEffect(()=>{
     const keydown=(event:KeyboardEvent)=>{
-      if(document.querySelector('dialog[open]') || !(event.ctrlKey||event.metaKey))return;
-      if(event.key.toLowerCase()==='s') {event.preventDefault();void saveProfile();return;}
+      if(!(event.ctrlKey||event.metaKey))return;
+      if(event.key.toLowerCase()==='s') {
+        event.preventDefault();
+        if(!document.querySelector('dialog[open]'))document.querySelector<HTMLButtonElement>('[data-editor-save]')?.click();
+        return;
+      }
+      if(editorBusy || document.querySelector('dialog[open]'))return;
       const target=event.target as HTMLElement;
       // Text inputs keep native undo; the toolbar undoes changes across sections.
       if(target.closest('input,textarea,[contenteditable="true"]'))return;
@@ -882,8 +888,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         <div className="profile-editor-v31__settings">
         <div className="profile-editor-v31__tools">
           <span>Настроено {configuredSections} из 5</span>
-          <button type="button" disabled={!editorHistory.canUndo || saving || premiumBusy} onClick={editorHistory.undo} title="Отменить изменение (Ctrl+Z)">↶</button>
-          <button type="button" disabled={!editorHistory.canRedo || saving || premiumBusy} onClick={editorHistory.redo} title="Вернуть изменение (Ctrl+Shift+Z)">↷</button>
+          <button type="button" disabled={!editorHistory.canUndo || editorBusy} onClick={editorHistory.undo} title="Отменить изменение (Ctrl+Z)">↶</button>
+          <button type="button" disabled={!editorHistory.canRedo || editorBusy} onClick={editorHistory.redo} title="Вернуть изменение (Ctrl+Shift+Z)">↷</button>
           <button type="button" aria-pressed={comparing}
             onPointerDown={event=>{event.currentTarget.setPointerCapture(event.pointerId);setComparing(true);}}
             onPointerUp={()=>setComparing(false)} onPointerCancel={()=>setComparing(false)} onBlur={()=>setComparing(false)}
@@ -892,8 +898,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         </div>
         {editorHistory.recovery && <div className="profile-editor-v31__recovery" role="status">
           <span>На устройстве есть несохранённый черновик.</span>
-          <button type="button" onClick={editorHistory.restore}>Восстановить</button>
-          <button type="button" onClick={editorHistory.discard}>Удалить</button>
+          <button type="button" disabled={editorBusy} onClick={editorHistory.restore}>Восстановить</button>
+          <button type="button" disabled={editorBusy} onClick={editorHistory.discard}>Удалить</button>
         </div>}
         {editorHistory.notice && <p className="profile-editor-v31__draft-note">{editorHistory.notice}</p>}
         <div className="profile-editor-v13__premium-tab" hidden={activeTab !== 'style'}>
@@ -1057,10 +1063,10 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             {resetUndoAvailable && <button type="button" onClick={()=>{editorHistory.undo();setResetUndoAvailable(false);}}>Вернуть сброшенное</button>}
             {error ? <small className="profile-editor-v31__error" role="alert">{error}</small> : dirty && <small>Изменения ещё не сохранены.</small>}
           </span>
-          <button type="button" className="profile-editor-v18__reset" disabled={saving || premiumBusy || (!dirty && !premiumDirty)} onClick={cancelChanges}>
+          <button type="button" className="profile-editor-v18__reset" disabled={editorBusy || (!dirty && !premiumDirty)} onClick={cancelChanges}>
             Сбросить
           </button>
-          <button type="button" disabled={(!dirty && !needsPremiumCTA) || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)}
+          <button type="button" data-editor-save disabled={(!dirty && !needsPremiumCTA) || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)}
             onClick={() => needsPremiumCTA ? router.push('/premium#premium-plans') : void saveProfile()}>
             {saving ? 'Сохраняем…' : needsPremiumCTA ? 'Сохранить с Premium' : 'Сохранить'}
           </button>
