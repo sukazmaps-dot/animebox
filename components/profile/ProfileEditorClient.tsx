@@ -382,6 +382,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
       if (editor.kind === 'avatar') {
         if (bannerColorMode === 'auto') {
+          bannerColorRequestRef.current++;
           try { setBannerColor(await extractDominantColor(optimized)); }
           catch { console.warn('[ProfileMedia] color sampling unavailable'); }
         }
@@ -605,6 +606,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
   function resetDraft() {
     if (!profile) return;
+    bannerColorRequestRef.current++;
     setUsername(profile.username ?? '');
     setBio(profile.bio ?? '');
     setBannerColor(profile.banner_color ?? '#70618c');
@@ -797,13 +799,13 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             bannerColorMode={bannerColorMode}
             onBannerColorChange={async (color, mode) => {
               const request = ++bannerColorRequestRef.current;
-              setBannerColorMode(mode); setSaved('');
+              setBannerColorMode(mode); setSaved(''); setBaseMediaError('');
               if (mode === 'manual') { setBannerColor(color); return; }
               try {
                 const file = avatarFile ?? new File([await (await fetch(displayedAvatar)).blob()], 'avatar');
                 const sampled = await extractDominantColor(file);
                 if (request === bannerColorRequestRef.current) setBannerColor(sampled);
-              } catch { setBaseMediaError('Не удалось подобрать цвет. Выбери его вручную.'); }
+              } catch { if (request === bannerColorRequestRef.current) setBaseMediaError('Не удалось подобрать цвет. Выбери его вручную.'); }
             }}
             premiumActive={premiumActive}
             avatarPremiumOverride={premiumAvatarOverride}
