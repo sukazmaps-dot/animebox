@@ -59,18 +59,20 @@ need('anime route continuity skeleton', animeLoading, [
   'motion-reduce:animate-none',
 ]);
 
-need('recommendation action footer', actionCss, [
-  '"plan plan plan"',
-  '"like watched dismiss"',
-  'border-top: 1px solid var(--ab-ui-border)',
-  '.home-page .smart-card__plan-icon',
-  'background: transparent !important',
+const v31Css = read('app/patch30-1-home-visual.css');
+need('integrated recommendation action footer', v31Css, [
+  'grid-template-columns: minmax(0, 1fr) 44px',
+  '"plan dismiss"',
+  '.smart-card__dialog-quick-actions',
 ]);
-if (
-  actionCss.indexOf('"plan plan plan"') >
-  actionCss.indexOf('"like watched dismiss"')
-) {
-  failures.push('“В список” must appear before secondary recommendation feedback controls');
+need('integrated recommendation actions', smartCard, [
+  'className={planClassName}',
+  'onClick={openFeedbackMenu}',
+  'smart-card__dialog-quick-actions',
+  '<AnimeIntentLink',
+]);
+if (smartCard.indexOf('className={planClassName}') > smartCard.indexOf('onClick={openFeedbackMenu}')) {
+  failures.push('Plan action must precede the feedback menu');
 }
 
 if (

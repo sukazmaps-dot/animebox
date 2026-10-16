@@ -123,7 +123,7 @@ export default function HomePageShell({
       initialOngoing={initialOngoing}
     >
       <HomeScheduleRuntimeProvider>
-        <div className="home-page">
+        <div className="home-page home-visual-v31">
           <div className="home-grid home-grid--main">
             <div className="main-column">
               {/* Streaming-first order: the next watch is more important than utilities. */}

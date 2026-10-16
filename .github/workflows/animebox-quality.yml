@@ -351,7 +351,7 @@ jobs:
       - name: Media relay, owner Telegram diagnostics and sitemap regression checks
         run: npm run media-origin-recovery:check && python3 tests/seo-sitemap-smoke-test.py
 
-      - name: Patch 30.0 hydrated homepage geometry and media recovery
+      - name: Patch 31.1 integrated home visual, mobile hero and media recovery
         env:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
         run: node scripts/patch30-0-home-browser-smoke.cjs

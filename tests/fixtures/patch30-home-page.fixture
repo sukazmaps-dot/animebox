@@ -1,10 +1,61 @@
 'use client';
+import { useState } from 'react';
 import '../patch17-6-home-recommendation-actions.css';
 import '../patch18-6-3-loading-ux.css';
 import '../home-visual-repair.css';
 import '../patch29-1-home-mobile.css';
 import '../patch30-0-home-streaming.css';
+import '../patch30-1-home-visual.css';
 import HomeHeroCarousel from '@/components/HomeHeroCarousel';
+import HomeContinueWatching from '@/components/HomeContinueWatching';
 import HomeAnimeRail from '@/components/HomeAnimeRail';
-const items = Array.from({length:10}, (_,i)=>({id:100+i, title:{russian:i===0?'Провожающая в последний путь Фрирен':`Невероятное приключение героя в другом мире — сезон ${i+1}`},genres:['Приключения'],score:9.1,episodes:24,format:'TV',startDate:{year:2026},bannerImage:`https://qa-images.test/banner-${i}.jpg`,mobileHeroImage:`https://qa-images.test/portrait-${i}.jpg`,coverImage:{extraLarge:`https://qa-images.test/cover-${i}.jpg`}}));
-export default function QAHome(){return <div className="home-page"><div className="home-grid home-grid--main"><div className="main-column"><HomeHeroCarousel popular={items} ongoing={[]} /><section className="section home-catalog-section"><div className="section-head"><h2 className="section-title">Популярное</h2></div><HomeAnimeRail items={items} ariaLabel="Популярные аниме" watchedEpisodes={new Map([[100,7]])}/></section></div></div></div>}
+import HomeMoodPicker from '@/components/HomeMoodPicker';
+import SmartRecommendationCard, { type RecommendationFeedbackUndoPayload } from '@/components/SmartRecommendationCard';
+import type { RankedRecommendation } from '@/lib/recommendations';
+import type { TasteMood } from '@/lib/personalization';
+const items = Array.from({ length: 10 }, (_, i) => ({
+  id: 100 + i,
+  title: { russian: i === 0 ? 'Провожающая в последний путь Фрирен' : `Невероятное приключение героя в другом мире — сезон ${i + 1}` },
+  mobileHeroPosition: { x: 60, y: 15 },
+  genres: ['Adventure'], score: 9.1, episodes: 24, format: 'TV',
+  description: i % 2 === 0 ? 'Долгое путешествие заканчивается, но для эльфийки Фрирен всё только начинается. Новые встречи помогают ей понять, что значит время, дружба и память.' : '',
+  startDate: { year: 2026 },
+  bannerImage: `https://qa-images.test/banner-${i}.jpg`,
+  mobileHeroImage: `https://qa-images.test/portrait-${i}.jpg`,
+  coverImage: { extraLarge: `https://qa-images.test/cover-${i}.jpg` },
+}));
+const recommendations = items.slice(0, 4).map(anime => ({
+  anime, reason: 'Совпадает с твоим вкусом: приключения и фэнтези',
+  reasons: ['Совпадает с твоим вкусом'], explanations: [], explanationVersion: 'fixture',
+  source: 'popular', score: 9, matchScore: 92, diversity: null,
+}) as RankedRecommendation);
+export default function QAHome() {
+  const [mood, setMood] = useState<TasteMood>('any');
+  const [hidden, setHidden] = useState<number[]>([]);
+  const [feedback, setFeedback] = useState<RecommendationFeedbackUndoPayload | null>(null);
+  return <div className="home-page home-visual-v31"><div className="home-grid home-grid--main"><div className="main-column">
+    <HomeHeroCarousel popular={items} ongoing={[]} />
+    <HomeContinueWatching items={items.slice(0,2).map(anime=>({anime:{...anime,lastViewedAt:1,viewCount:1},episode:7,resumeSeconds:33,completedEpisodes:6,totalEpisodes:24}))} />
+    <div className="home-discovery-flow">
+      <HomeMoodPicker value={mood} onChange={setMood} />
+      <section className="section smart-feed-section">
+        <div className="section-head"><div className="smart-feed-heading">
+          <span className="smart-section-eyebrow">Твоя следующая история</span>
+          <div className="smart-feed-heading__line"><h2 className="section-title">Подобрано для тебя</h2></div>
+          <p>По твоему вкусу, истории просмотра и настроению.</p>
+        </div></div>
+        <div className="smart-feed__rail-heading"><div className="smart-feed__rail-titleline"><span className="smart-feed__rail-badge">ВКУС</span><h3>Точно в твоём вкусе</h3></div><p>Рекомендации по твоей истории</p></div>
+        <div className="smart-feed__rail" style={{ display: 'flex', gap: 14, overflowX: 'auto', padding: 3 }}>
+          {recommendations.filter(item => !hidden.includes(item.anime.id)).map((item, i) => <div key={item.anime.id} className="smart-feed__slide" style={{ flex: '0 0 180px' }}>
+            <SmartRecommendationCard recommendation={item} position={i + 1} mood={mood} source="qa-fixture"
+              onHidden={id => setHidden(previous => [...previous, id])} onFeedbackApplied={setFeedback} />
+          </div>)}
+        </div>
+        {feedback && <button type="button" data-qa-undo onClick={() => { feedback.undo(); setHidden(previous => previous.filter(id => id !== feedback.anime.id)); setFeedback(null); }}>Отменить</button>}
+      </section>
+    </div>
+    <section className="section home-catalog-section"><div className="section-head"><h2 className="section-title">Популярное</h2></div>
+      <HomeAnimeRail items={items} ariaLabel="Популярные аниме" watchedEpisodes={new Map([[100, 7]])} />
+    </section>
+  </div></div></div>;
+}

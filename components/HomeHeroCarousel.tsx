@@ -12,6 +12,7 @@ import {
 
 import Link from 'next/link';
 import homeSocialStyles from '@/components/HomeHeroSocialLink.module.css';
+import factStyles from '@/components/HomeHeroFacts.module.css';
 import HomeHeroPagination from '@/components/HomeHeroPagination';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -35,6 +36,10 @@ import {
 } from '@/lib/media-delivery';
 
 import { getAnimeTitle } from '@/lib/anime-display';
+import { cleanSeoText, truncateSeoText } from '@/lib/seo-text';
+import { normalizedAnimeScore } from '@/lib/anime-score';
+import { localizeDetailGenres } from '@/lib/anime-detail-genres';
+import { mobileHeroObjectPosition } from '@/lib/home-hero-art';
 
 
 function subscribeHydrationReady() {
@@ -121,13 +126,12 @@ function getHeroBackdropAttempts(anime: Anime): HeroImageAttempt[] {
 function getMobileHeroAttempts(anime: Anime): HeroImageAttempt[] {
   return buildHeroImageAttempts(
     uniqueImageSources([
-      // For the compact hero show proper portrait key art, never a
-      // stretched landscape AniList banner unless all posters are absent.
+      // Dedicated phone artwork takes precedence over catalogue posters.
+      anime.mobileHeroImage,
       anime.coverImage?.extraLarge,
       anime.coverImage?.large,
       anime.image?.original,
       anime.image?.large,
-      anime.mobileHeroImage,
       anime.image?.medium,
       anime.bannerImage,
     ]),
@@ -461,6 +465,11 @@ export default function HomeHeroCarousel({
 
   const title =
     getAnimeTitle(anime);
+  const heroSummary = truncateSeoText(cleanSeoText(anime.description), 160);
+  const score = normalizedAnimeScore(anime);
+  const year = anime.startDate?.year;
+  const validYear = typeof year === 'number' && Number.isInteger(year) && year >= 1900 && year <= 2100;
+  const genre = localizeDetailGenres(anime.genres ?? [])[0]?.label;
 
   const backdropAttempts = imageAttempts.backdrop;
   const mobileAttempts = imageAttempts.mobile;
@@ -669,6 +678,7 @@ export default function HomeHeroCarousel({
       onPointerEnter={handlePointerEnter}
       style={{
         ['--hero-ambient-rgb' as string]: `${ambientR}, ${ambientG}, ${ambientB}`,
+        ['--hero-mobile-position' as string]: mobileHeroObjectPosition(anime),
       }}
       onPointerDown={handleSwipePointerDown}
       onPointerMove={handlePointerMove}
@@ -704,7 +714,7 @@ export default function HomeHeroCarousel({
             <source
               media="(max-width: 768px)"
               srcSet={mobileAttempt?.srcSet ?? mobileKeyArt}
-              sizes="(max-width: 768px) 42vw, 1px"
+              sizes="(max-width: 768px) calc(100vw - 32px), 1px"
             />
           )}
           {backdropAttempt?.srcSet && (
@@ -726,7 +736,7 @@ export default function HomeHeroCarousel({
             loading={safeActiveIndex === 0 ? 'eager' : 'lazy'}
             decoding="async"
             unoptimized
-            sizes="(min-width: 1920px) 1500px, (max-width: 768px) 42vw, (max-width: 1200px) calc(100vw - 100px), 1380px"
+            sizes="(min-width: 1920px) 1500px, (max-width: 768px) calc(100vw - 32px), (max-width: 1200px) calc(100vw - 100px), 1380px"
             className="page-hero__backdrop home-hero-carousel__backdrop is-visible"
             aria-hidden="true"
             onError={(event) => {
@@ -756,9 +766,33 @@ export default function HomeHeroCarousel({
         className="page-hero__content home-hero-carousel__content"
         key={`content-${anime.id}`}
       >
-        <h1 className={title.length > 55 ? 'is-long-title' : undefined}>
+        <span className="home-hero-scene__eyebrow"><span aria-hidden="true" /> Открой для себя</span>
+        <h1 title={title} className={title.length > 55 ? 'is-long-title' : undefined}>
           {title}
         </h1>
+
+        {(validYear || genre || score != null) && (
+          <div className={factStyles.facts}>
+            {validYear && <span>{year}</span>}
+            {genre && <span>{genre}</span>}
+            {score != null && <span className={factStyles.score} aria-label={`Рейтинг: ${score.toFixed(1)} из 10`}>★ {score.toFixed(1)}</span>}
+          </div>
+        )}
+        {(score != null || validYear || anime.format || anime.episodes) && (
+          <div className="home-hero-scene__facts" aria-label="Информация об аниме">
+            {score != null && (
+              <span className="home-hero-scene__score">
+                <Icon name="star" size={15} weight="fill" /> {score.toFixed(1)}
+                <span className="sr-only"> из 10</span>
+              </span>
+            )}
+            {validYear && <span>{year}</span>}
+            {anime.format && <span>{anime.format === 'TV' ? 'Сериал' : anime.format === 'MOVIE' ? 'Фильм' : anime.format}</span>}
+            {typeof anime.episodes === 'number' && Number.isSafeInteger(anime.episodes) && anime.episodes > 0 && <span>{anime.episodes} эп.</span>}
+          </div>
+        )}
+        {genre && <p className="home-hero-scene__genres">{genre}</p>}
+        {heroSummary && <p className="home-hero-scene__summary">{heroSummary}</p>}
 
         <div className="hero-actions">
           <Link

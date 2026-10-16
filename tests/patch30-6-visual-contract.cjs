@@ -51,15 +51,15 @@ assert(plannedIcon.includes('L32 41') && !plannedIcon.includes('M32 14v36'),
   'planned status is not an add-plus icon');
 
 assert(homepage.includes('anime.coverImage?.extraLarge,\n      anime.coverImage?.large'),
-  'portrait poster must precede landscape mobile art');
+  'portrait poster fallback remains available');
 assert(homepage.includes('anime.bannerImage,') && homepage.includes('media="(max-width: 768px)"'),
   'landscape image is mobile fallback, desktop art path retained');
-assert(homepageCSS.includes('aspect-ratio: 2 / 3') &&
-       homepageCSS.includes('width: min(42%, 200px)'),
-  'mobile key art should be a properly proportioned 2:3 image');
+assert(homepageCSS.includes('object-fit: cover !important') &&
+       homepageCSS.includes('object-position: var(--hero-mobile-position'),
+  'mobile art covers hero with a configurable focal point');
 assert(mobileHome.includes('-webkit-line-clamp: 2') &&
-       mobileHome.includes('max-width: 80%'),
-  'hero title cannot overlap whole poster');
+       mobileHome.includes('max-width: 100%'),
+  'hero title fits the full-width scrim in two lines');
 assert(social.includes('@media (max-width: 768px) { .link { display: none; } }'),
   'third oversized mobile CTA removed while desktop link stays');
 assert(pager.includes('background: color-mix') && pager.includes('min-width: 44px'),
