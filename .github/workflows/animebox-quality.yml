@@ -66,6 +66,9 @@ jobs:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
         run: node scripts/profile-editor-dock-smoke.cjs
 
+      - name: Patch 30.7 intent-based card prefetch
+        run: npm run patch30-7:check
+
       - name: Release consolidation invariants
         run: npm run release-consolidation:check
 
