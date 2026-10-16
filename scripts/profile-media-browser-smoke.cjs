@@ -59,6 +59,8 @@ try{
  let cases=0;
  for(const theme of ['dark','light'])for(const [width,height] of [[360,740],[390,844],[412,915],[844,390]]){
   await page.setViewportSize({width,height});await page.evaluate(theme=>document.documentElement.dataset.animeboxTheme=theme,theme);
+  const color=await page.locator('[data-qa-color]').evaluate(el=>({color:getComputedStyle(el).backgroundColor,image:getComputedStyle(el).backgroundImage}));
+  assert.equal(color.color,'rgb(18, 52, 86)','legacy CSS masks saved banner color');assert.equal(color.image,'none','old placeholder image overrides solid banner');
   await page.locator('#open-crop').click();await page.waitForSelector('dialog[open]');
   const apply=page.locator('#apply-crop');await apply.scrollIntoViewIfNeeded();
   const g=await apply.evaluate(el=>{const r=el.getBoundingClientRect(),d=document.querySelector('dialog');return {width:r.width,height:r.height,top:r.top,bottom:r.bottom,hit:document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)===el,modal:d.matches(':modal'),overflow:document.documentElement.scrollWidth>innerWidth+1};});
