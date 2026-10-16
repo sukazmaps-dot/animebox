@@ -101,7 +101,7 @@ export default function BannerColorSheet({color,onPreview,onCancel,onAccept}:Pro
         </label>
         <div className={styles.fieldRow}>
           <label><span>HEX</span>
-            <input autoFocus spellCheck={false} maxLength={7} inputMode="text" value={text}
+            <input spellCheck={false} maxLength={7} inputMode="text" value={text}
               aria-invalid={!!error} onChange={e=>{setText(e.target.value);setError('');}}
               onBlur={()=>{if(validBannerColor(text))send(hexToHsv(text));}} />
           </label>

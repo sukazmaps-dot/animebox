@@ -42,7 +42,7 @@ type Props = {
   bannerColorMode?: 'auto' | 'manual';
   bannerStyle?: BannerStyle;
   onBannerStyleChange?: (style: BannerStyle) => void;
-  onBannerColorChange?: (color: string, mode: 'auto' | 'manual') => void | Promise<void>;
+  onBannerColorChange?: (color: string, mode: 'auto' | 'manual', skipSampling?: boolean) => void | Promise<void>;
   premiumActive: boolean;
   avatarPremiumOverride: boolean;
   bannerPremiumOverride: boolean;
@@ -469,7 +469,6 @@ export default function ProfileDirectEditSurface({
               <input
                 value={username}
                 maxLength={24}
-                autoFocus
                 onChange={(event) => onUsernameChange(event.target.value)}
               />
             </label>
@@ -484,8 +483,7 @@ export default function ProfileDirectEditSurface({
               <textarea
                 value={bio}
                 maxLength={300}
-                rows={7}
-                autoFocus
+                rows={5}
                 onChange={(event) => onBioChange(event.target.value)}
               />
             </label>
@@ -554,7 +552,7 @@ export default function ProfileDirectEditSurface({
                   color={sheetStart.color}
                   onPreview={color=>void onBannerColorChange?.(color,'manual')}
                   onCancel={()=>{
-                    void onBannerColorChange?.(sheetStart.color,sheetStart.mode);
+                    void onBannerColorChange?.(sheetStart.color,sheetStart.mode,true);
                     setSheetStart(null);
                   }}
                   onAccept={()=>setSheetStart(null)}

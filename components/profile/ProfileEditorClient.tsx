@@ -879,13 +879,13 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             bannerColorMode={bannerColorMode}
             bannerStyle={bannerStyle}
             onBannerStyleChange={(style) => { setBannerStyle(style); setSaved(''); setBaseMediaError(''); }}
-            onBannerColorChange={async (color, mode) => {
+            onBannerColorChange={async (color, mode, skipSampling) => {
               const request = ++bannerColorRequestRef.current;
               setBannerColorMode(mode); setSaved(''); setBaseMediaError('');
               // Once Premium expires, selecting a new color falls back to a free fill.
               // A saved Premium fill remains visible until explicitly edited.
               if (!premiumActive && !FREE_BANNER_STYLES.includes(bannerStyle) && bannerStyle === normalizeBannerStyle(profile.banner_style)) setBannerStyle('soft');
-              if (mode === 'manual') { setBannerColor(color); return; }
+              if (mode === 'manual' || skipSampling) { setBannerColor(color); return; }
               try {
                 const file = avatarFile ?? new File([await (await fetch(displayedAvatar)).blob()], 'avatar');
                 const sampled = await extractDominantColor(file);
