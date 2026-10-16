@@ -252,24 +252,26 @@ html.animebox-player-telegram-fullscreen .animebox-telegram-player-viewport vide
 .animebox-player-fullscreen-button {
   position: absolute;
   z-index: 80;
-  right: max(12px, env(safe-area-inset-right));
-  /* Keep clear of provider transport controls at the bottom edge. */
+  right: max(8px, env(safe-area-inset-right));
+  /* Stay clear of the provider transport bar; never cover it with a text badge. */
   bottom: max(56px, env(safe-area-inset-bottom));
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  width: 44px;
+  height: 44px;
   min-width: 44px;
   min-height: 44px;
-  padding: 8px 12px;
-  border: 1px solid #ffffff40;
+  padding: 0;
+  border: 1px solid #ffffff30;
   border-radius: 10px;
-  background: #000b;
+  background: #0006;
   color: #fff;
-  font-size: 12px;
-  font-weight: 700;
   cursor: pointer;
 }
+.animebox-player-fullscreen-button svg { width: 20px; height: 20px; }
+.animebox-player-fullscreen-button:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 2px; }
+
 :is(.animebox-telegram-player-viewport, .animebox-player-media:fullscreen) .animebox-player-fullscreen-button {
   top: max(12px, calc(var(--player-safe-top, 0px) + 8px), env(safe-area-inset-top));
   right: max(12px, calc(var(--player-safe-right, 0px) + 8px), env(safe-area-inset-right));

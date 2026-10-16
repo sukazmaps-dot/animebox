@@ -389,7 +389,7 @@ export default function MobileAccountNav({ pathname }: Props) {
         aria-label={profile ? `Профиль ${username}` : 'Аккаунт'}
       >
         <span className={`mobile-nav__avatar ${loading ? 'is-loading' : ''}`}>
-          {profile ? <img src={avatarUrl} alt="" style={premiumMediaStyle(profile?.display_avatar_transform)} /> : <Icon name="user" />}
+          {profile ? <img src={avatarUrl} alt="" width={24} height={24} style={premiumMediaStyle(profile?.display_avatar_transform)} /> : <Icon name="user" />}
         </span>
         <span>Профиль</span>
       </button>

@@ -1637,6 +1637,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           onPrev={goToPrevious}
           onNext={goToNext}
           showEpisodeNavigation={false}
+          showEpisodeSelector={false}
           onPlaybackQualified={handlePlaybackQualified}
           onDurationObserved={handleTimelineDurationObserved}
           onEnded={hasNext ? goToNext : undefined}
