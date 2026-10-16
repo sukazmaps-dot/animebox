@@ -1315,7 +1315,7 @@ html.ab-profile-editor-open .sidebar { display: none; }
   overflow-y: auto;
   overscroll-behavior: contain;
   scroll-padding-top: calc(var(--editor-header-height) + var(--editor-preview-height) + var(--editor-tab-height));
-  padding: 0 0 calc(108px + env(safe-area-inset-bottom));
+  padding: 0 0 calc(var(--profile-editor-savebar-height, 108px) + 32px + env(safe-area-inset-bottom) + var(--ab-editor-keyboard-inset, 0px));
   background: var(--ab-ui-canvas);
   isolation: isolate;
 }
