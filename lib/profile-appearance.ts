@@ -20,7 +20,7 @@ export type ResolvedProfileAppearance = {
  *
  * Premium is a visual layer above the base profile, not a second profile.
  * - active Premium: animated/custom Premium media wins;
- * - expired Premium: the static WebP fallback remains visible;
+ * - expired Premium: the static avatar remains, banner becomes a profile color;
  * - Premium-only palette/effects are never applied after entitlement expiry.
  */
 export function resolveProfileAppearance({
@@ -37,7 +37,7 @@ export function resolveProfileAppearance({
   premiumMediaActive?: boolean;
 }): ResolvedProfileAppearance {
   const baseAvatar = baseAvatarPath || null;
-  const baseBanner = baseBannerPath || null;
+  const baseBanner = premiumActive ? baseBannerPath || null : null;
 
   let avatarPath: string | null = baseAvatar;
   let avatarSource: ResolvedProfileAppearance['avatarSource'] = baseAvatar ? 'base' : 'default';
@@ -53,10 +53,10 @@ export function resolveProfileAppearance({
       avatarSource = 'premium-static';
     }
 
-    if (premiumMediaActive && premiumStudio.bannerPath) {
+    if (premiumActive && premiumMediaActive && premiumStudio.bannerPath) {
       bannerPath = premiumStudio.bannerPath;
       bannerSource = 'premium-animated';
-    } else if (premiumStudio.bannerStaticPath) {
+    } else if (premiumActive && premiumStudio.bannerStaticPath) {
       bannerPath = premiumStudio.bannerStaticPath;
       bannerSource = 'premium-static';
     }

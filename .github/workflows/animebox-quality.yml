@@ -356,6 +356,11 @@ jobs:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
         run: node scripts/patch30-0-home-browser-smoke.cjs
 
+      - name: Profile media reading, compression and crop dialog regression
+        env:
+          PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
+        run: npm run patch30-9:check && npm run profile-media:browser
+
       - name: Production build
         run: NODE_ENV=production npm run build
 

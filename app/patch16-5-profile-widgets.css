@@ -1034,9 +1034,7 @@
   inset: 0;
   overflow: hidden;
   background:
-    radial-gradient(circle at 80% 16%, color-mix(in srgb, var(--ab-ui-accent) 22%, transparent), transparent 26%),
-    radial-gradient(circle at 18% 80%, color-mix(in srgb, var(--ab-ui-accent) 10%, transparent), transparent 24%),
-    linear-gradient(135deg, var(--ab-ui-surface), var(--ab-ui-surface) 58%, var(--ab-ui-surface));
+    var(--profile-banner-color, var(--ab-ui-surface)) !important;
 }
 
 .profile-v2__banner-default::before,
@@ -1071,13 +1069,7 @@
 
 .profile-v2.premium-profile-custom .profile-v2__banner-default {
   background:
-    radial-gradient(circle at 80% 16%, rgba(var(--profile-theme-accent-rgb), .26), transparent 28%),
-    radial-gradient(circle at 18% 80%, rgba(var(--profile-theme-accent-rgb), .08), transparent 24%),
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--profile-theme-primary) 88%, var(--ab-ui-surface) 12%),
-      color-mix(in srgb, var(--profile-theme-primary) 72%, var(--ab-ui-canvas) 28%)
-    ) !important;
+    var(--profile-banner-color, var(--ab-ui-surface)) !important;
 }
 
 .profile-v2.premium-profile-custom .profile-v2__banner-default::after {

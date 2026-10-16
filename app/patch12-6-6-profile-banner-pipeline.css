@@ -5,7 +5,7 @@
 
 /* Base banner editor and baked WEBP share one phone-friendly master ratio. */
 .premium-media-editor-modal .premium-media-crop.is-banner .premium-media-crop__surface {
-  aspect-ratio: 2.35 / 1 !important;
+  aspect-ratio: 3 / 1 !important;
 }
 
 /* Never show the browser's broken-image glyph inside the crop surface. */
@@ -51,7 +51,7 @@
     width: 100%;
     height: auto !important;
     min-height: 0 !important;
-    aspect-ratio: 2.35 / 1;
+    aspect-ratio: 3 / 1;
   }
 
   .profile-v2__banner-picture,
@@ -62,6 +62,6 @@
   }
 
   .premium-media-editor-modal .premium-media-crop.is-banner .premium-media-crop__surface {
-    aspect-ratio: 2.35 / 1 !important;
+    aspect-ratio: 3 / 1 !important;
   }
 }

@@ -37,7 +37,7 @@ import { enforceIpAndUserRateLimit, enforceUserRateLimit } from '@/lib/api-rate-
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const PROFILE_COLUMNS = 'id,username,bio,avatar_path,banner_path,created_at';
+const PROFILE_COLUMNS = 'id,username,bio,avatar_path,banner_path,banner_color,banner_color_mode,created_at';
 const STUDIO_COLUMNS = [
   'theme',
   'primary_color',
@@ -77,6 +77,8 @@ type ProfilePatch = {
   bio: string | null;
   avatar_path: string | null;
   banner_path: string | null;
+  banner_color?: string;
+  banner_color_mode?: 'auto' | 'manual';
 };
 
 type ExistingProfile = {
@@ -85,6 +87,8 @@ type ExistingProfile = {
   bio: string | null;
   avatar_path: string | null;
   banner_path: string | null;
+  banner_color: string;
+  banner_color_mode: 'auto' | 'manual';
   created_at: string;
 };
 
@@ -208,12 +212,20 @@ function readProfilePatch(value: unknown, userId: string): ProfilePatch {
     throw new ApiError(400, usernameError);
   }
   if (bio.length > 300) throw new ApiError(400, 'Описание не может быть длиннее 300 символов.');
+  if (data.bannerColor !== undefined && (typeof data.bannerColor !== 'string' || !/^#[0-9a-f]{6}$/i.test(data.bannerColor))) {
+    throw new ApiError(400, 'Цвет баннера должен быть в формате #RRGGBB.');
+  }
+  if (data.bannerColorMode !== undefined && data.bannerColorMode !== 'auto' && data.bannerColorMode !== 'manual') {
+    throw new ApiError(400, 'Выбери автоматический или ручной цвет баннера.');
+  }
 
   return {
     username,
     bio: bio || null,
     avatar_path: safeBaseMediaPath(data.avatarPath, userId, 'Аватар'),
     banner_path: safeBaseMediaPath(data.bannerPath, userId, 'Баннер'),
+    ...(typeof data.bannerColor === 'string' ? {banner_color: data.bannerColor.toLowerCase()} : {}),
+    ...(data.bannerColorMode === 'auto' || data.bannerColorMode === 'manual' ? {banner_color_mode: data.bannerColorMode} : {}),
   };
 }
 
@@ -505,6 +517,7 @@ export async function GET() {
       settings,
       studio: settings,
       allowed,
+      is_premium: allowed,
       capabilities: {
         premium: allowed,
         profileStudio: Boolean(entitlements.profileStudio),
@@ -562,6 +575,9 @@ export async function POST(request: Request) {
 
     const oldProfile = oldProfileResult.data as ExistingProfile;
     const oldSettings = studioSettingsFromRow(oldStudioResult.data as Record<string, unknown> | null);
+    if (!allowed && profilePatch?.banner_path && profilePatch.banner_path !== oldProfile.banner_path) {
+      throw new ApiError(403, 'Изображение баннера доступно только с AnimeBox Premium. Можно выбрать цвет.');
+    }
 
     // Patch 11 post-moderation pipeline:
     // quarantine -> technical validation -> public storage.
@@ -569,6 +585,7 @@ export async function POST(request: Request) {
     mediaPublish = await publishProfileMediaGroups(
       user.id,
       changedMediaGroups(profilePatch, oldProfile, settings, oldSettings, pendingMedia),
+      allowed,
     );
 
     let committedProfile = oldProfileResult.data;
@@ -576,12 +593,11 @@ export async function POST(request: Request) {
     let profileWritten = false;
 
     if (profilePatch) {
-      const { data, error } = await admin
-        .from('profiles')
-        .update(profilePatch)
-        .eq('id', user.id)
-        .select(PROFILE_COLUMNS)
-        .single();
+      let update = admin.from('profiles').update(profilePatch).eq('id', user.id);
+      update = oldProfile.avatar_path === null ? update.is('avatar_path',null) : update.eq('avatar_path',oldProfile.avatar_path);
+      update = oldProfile.banner_path === null ? update.is('banner_path',null) : update.eq('banner_path',oldProfile.banner_path);
+      const {data,error} = await update.select(PROFILE_COLUMNS).single();
+      if (error?.code === 'PGRST116') throw new ApiError(409, 'Профиль изменился в другой вкладке. Обнови страницу перед сохранением.');
 
       if (error?.code === '23505') throw new ApiError(409, 'Этот ник уже занят.');
       if (error && /USERNAME_RESERVED/i.test(error.message)) {
@@ -612,6 +628,8 @@ export async function POST(request: Request) {
               bio: oldProfile.bio,
               avatar_path: oldProfile.avatar_path,
               banner_path: oldProfile.banner_path,
+              banner_color: oldProfile.banner_color,
+              banner_color_mode: oldProfile.banner_color_mode,
             })
             .eq('id', user.id);
         }
@@ -624,12 +642,30 @@ export async function POST(request: Request) {
     await finalizeProfileMediaPublish(mediaPublish);
     mediaPublish = null;
 
+    // Delete replaced media only after both profile/settings commits succeeded.
+    const retained = new Set([
+      committedProfile?.avatar_path, committedProfile?.banner_path,
+      committedSettings.avatarPath, committedSettings.avatarStaticPath,
+      committedSettings.bannerPath, committedSettings.bannerStaticPath,
+    ].filter(Boolean));
+    const obsolete = [...new Set([
+      oldProfile.avatar_path, oldProfile.banner_path, oldSettings.avatarPath,
+      oldSettings.avatarStaticPath, oldSettings.bannerPath, oldSettings.bannerStaticPath,
+    ].filter((path): path is string => Boolean(path && path.startsWith(`${user.id}/`) && !retained.has(path))))];
+    if (obsolete.length) {
+      try {
+        const cleanup = await admin.storage.from('profile-media').remove(obsolete);
+        if (cleanup.error) throw cleanup.error;
+      } catch { console.warn('[ProfileMedia] cleanup deferred', {stage:'cleanup'}); }
+    }
+
     return response({
       ok: true,
       profile: committedProfile,
       settings: committedSettings,
       studio: committedSettings,
       allowed,
+      is_premium: allowed,
       capabilities: {
         premium: allowed,
         profileStudio: Boolean(entitlements.profileStudio),

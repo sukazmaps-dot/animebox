@@ -1,6 +1,6 @@
 /* =========================================================
    AnimeBox Patch 12.6.8 — Profile Banner Cropper Rebuild
-   One crop algorithm for preview + final WebP, mobile-first 2.35:1 banners.
+   One crop algorithm for preview + final WebP, mobile-first 3:1 banners.
    ========================================================= */
 
 .premium-media-crop__surface {
@@ -56,7 +56,7 @@
 .profile-editor-v13__banner-editor {
   width: 100%;
   min-height: 0 !important;
-  aspect-ratio: 2.35 / 1;
+  aspect-ratio: 3 / 1;
 }
 
 .profile-editor-v13__banner-editor > img,
@@ -97,12 +97,12 @@
   }
 
   .premium-media-editor-modal .premium-media-crop.is-banner .premium-media-crop__surface {
-    aspect-ratio: 2.35 / 1 !important;
+    aspect-ratio: 3 / 1 !important;
     min-height: 0 !important;
   }
 
   .profile-editor-v13__banner-editor {
-    aspect-ratio: 2.35 / 1;
+    aspect-ratio: 3 / 1;
     min-height: 0 !important;
   }
 
@@ -110,6 +110,6 @@
     width: 100%;
     height: auto !important;
     min-height: 0 !important;
-    aspect-ratio: 2.35 / 1;
+    aspect-ratio: 3 / 1;
   }
 }
