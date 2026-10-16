@@ -251,7 +251,7 @@ export default function ProfileDirectEditSurface({
     if (window.matchMedia('(max-width: 768px)').matches) {
       window.requestAnimationFrame(() => {
         inspectorRef.current?.scrollIntoView({
-          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
           block: 'start',
         });
       });
