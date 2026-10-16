@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import AnimeIntentLink from '@/components/AnimeIntentLink';
 import AnimeCardContent from '@/components/AnimeCardContent';
 import { useEffect, useRef, useState } from 'react';
 
@@ -527,9 +527,8 @@ export default function SmartRecommendationCard({
       onPointerLeave={handlePointerLeave}
     >
       <AnimeCardContent media={
-        <Link
+        <AnimeIntentLink
         href={animeHref(anime)}
-        prefetch={true}
         className="smart-card__poster-link"
         onClick={trackOpen}
         aria-label={`Открыть ${title}`}
@@ -570,18 +569,17 @@ export default function SmartRecommendationCard({
             <span aria-hidden="true">↗</span>
           </div>
         </div>
-      </Link>
+      </AnimeIntentLink>
       }>
       <div className="smart-card__body">
-        <Link
+        <AnimeIntentLink
           href={animeHref(anime)}
-          prefetch={true}
           onClick={trackOpen}
           className="smart-card__title"
           title={title}
         >
           {title}
-        </Link>
+        </AnimeIntentLink>
 
         <div className="smart-card__meta" aria-label="Информация об аниме">
           <span>{formatLabel(anime.format)}</span>
