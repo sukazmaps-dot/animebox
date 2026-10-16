@@ -14,6 +14,7 @@ import {
   type PremiumStudioSettings,
 } from '@/lib/premium-studio';
 import { resolveProfileAppearance } from '@/lib/profile-appearance';
+import { normalizeBannerStyle, type BannerStyle } from '@/lib/profile-banner-style';
 import {
   normalizeProgression,
   type AchievementRarity,
@@ -52,6 +53,7 @@ export type PublicProfileData = {
   avatarMobileUrl: string;
   bannerUrl: string | null;
   bannerColor: string;
+  bannerStyle: BannerStyle;
   bannerMobileUrl: string | null;
   createdAt: string;
   ogNumber: number | null;
@@ -84,6 +86,7 @@ type ProfileRow = {
   avatar_path: string | null;
   banner_path: string | null;
   banner_color?: string;
+  banner_style?: string | null;
   created_at: string;
 };
 
@@ -146,7 +149,7 @@ export async function getPublicProfile(
 
   const { data: profileData, error: profileError } = await admin
     .from('profiles')
-    .select('id,username,bio,avatar_path,banner_path,banner_color,created_at')
+    .select('id,username,bio,avatar_path,banner_path,banner_color,banner_style,created_at')
     .eq('id', userId)
     .maybeSingle();
 
@@ -354,6 +357,7 @@ export async function getPublicProfile(
     avatarMobileUrl,
     bannerUrl,
     bannerColor: profile.banner_color ?? '#70618c',
+    bannerStyle: normalizeBannerStyle(profile.banner_style),
     bannerMobileUrl,
     createdAt: profile.created_at,
     ogNumber:

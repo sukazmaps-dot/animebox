@@ -4,6 +4,7 @@ import { adminClient } from '@/lib/community-server';
 import { getUserChallengesSnapshot } from '@/lib/challenges-server';
 import { publicIdentityRoleFor } from '@/lib/identity-server';
 import { resolveProfileAppearance } from '@/lib/profile-appearance';
+import { normalizeBannerStyle } from '@/lib/profile-banner-style';
 import { normalizeProgression } from '@/lib/progression';
 import { premiumSceneContextSettings } from '@/lib/premium-studio';
 import { resolvePublicAppearances } from '@/lib/public-avatar-server';
@@ -26,7 +27,7 @@ export async function getProfilePreview(userId: string) {
   const admin = adminClient();
   const { data: profile, error } = await admin
     .from('profiles')
-    .select('id,username,bio,avatar_path,banner_path,banner_color,created_at')
+    .select('id,username,bio,avatar_path,banner_path,banner_color,banner_style,created_at')
     .eq('id', userId)
     .maybeSingle();
 
@@ -98,6 +99,7 @@ export async function getProfilePreview(userId: string) {
     avatarStaticUrl:
       publicStorageUrl(admin, lightweight.avatarPath) || '/default-avatar.webp',
     bannerColor: profile.banner_color ?? '#70618c',
+    bannerStyle: normalizeBannerStyle(profile.banner_style),
     bannerUrl: publicStorageUrl(admin, appearance.bannerPath),
     bannerStaticUrl: publicStorageUrl(admin, lightweight.bannerPath),
     avatarTransform: appearance.avatarTransform,

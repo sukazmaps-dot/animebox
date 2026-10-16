@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { getPublicProfile } from '@/lib/public-profile-server';
+import { bannerStyleBackground } from '@/lib/profile-banner-style';
 import UserIdentity from '@/components/identity/UserIdentity';
 import UserAvatarWithFrame from '@/components/profile/UserAvatarWithFrame';
 import PremiumParticleLayer from '@/components/profile/PremiumParticleLayer';
@@ -141,7 +142,7 @@ export default async function PublicProfilePage({ params }: Props) {
           ) : (
             <div
               className="profile-v2__banner-default"
-              style={{['--profile-banner-color' as string]: profile.bannerColor, background: profile.bannerColor}}
+              style={{['--profile-banner-color' as string]: profile.bannerColor, background: bannerStyleBackground(profile.bannerColor, profile.bannerStyle)}}
               aria-hidden="true"
             />
           )}
