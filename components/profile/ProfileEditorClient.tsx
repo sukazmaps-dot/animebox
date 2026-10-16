@@ -303,16 +303,6 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   }
 
   useEffect(() => {
-    if (!dirty) return;
-    const confirmUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = '';
-    };
-    window.addEventListener('beforeunload', confirmUnload);
-    return () => window.removeEventListener('beforeunload', confirmUnload);
-  }, [dirty]);
-
-  useEffect(() => {
     const updateViewport = () => {
       const vp = window.visualViewport;
       document.documentElement.style.setProperty('--ab-editor-viewport-height', `${vp?.height ?? window.innerHeight}px`);
@@ -511,6 +501,18 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     )
   );
   const dirty = baseDirty || premiumDirty;
+
+  useEffect(() => {
+    if (!dirty) return;
+    const confirmUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', confirmUnload);
+    return () => window.removeEventListener('beforeunload', confirmUnload);
+  }, [dirty]);
+
+
 
   async function saveProfile() {
     if (!profile || !user || saving || premiumBusy || !dirty) return;
