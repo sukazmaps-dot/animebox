@@ -996,27 +996,11 @@ body {
     appearance: none;
   }
 
-  .mobile-nav__avatar {
-    width: 22px;
-    height: 22px;
-    display: grid;
-    place-items: center;
-    overflow: hidden;
-    border-radius: 50%;
-    border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 30%, transparent);
-    background: rgba(255, 255, 255, .04);
-  }
 
-  .mobile-nav__avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
 
-  .mobile-nav__avatar svg {
-    width: 15px;
-    height: 15px;
-  }
+
+
+
 
   .mobile-nav__avatar.is-loading {
     animation: mobileAccountPulse 1.2s ease-in-out infinite;
@@ -2353,4 +2337,29 @@ body {
 .topbar__search:focus-within .topbar__asset-icon--search {
   opacity: 1;
   filter: drop-shadow(0 0 12px color-mix(in srgb, var(--ab-ui-accent) 38%, transparent));
+}
+
+
+/* Mobile account media owns its bounds even when the mobile shell is shown
+   in 769–1100px landscape. Do not gate clipping behind portrait width. */
+.mobile-nav__avatar {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 30%, transparent);
+  background: rgba(255, 255, 255, .04);
+}
+
+.mobile-nav__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mobile-nav__avatar svg {
+  width: 15px;
+  height: 15px;
 }

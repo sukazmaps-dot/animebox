@@ -117,6 +117,7 @@ interface AnimePlayerProps {
   onPlaybackQualified?: () => void;
   onDurationObserved?: (durationSeconds: number) => void;
   showEpisodeNavigation?: boolean;
+  showEpisodeSelector?: boolean;
   watchTogetherMode?: boolean;
 }
 
@@ -419,6 +420,7 @@ export default function AnimePlayer({
   onPlaybackQualified,
   onDurationObserved,
   showEpisodeNavigation = true,
+  showEpisodeSelector = true,
   watchTogetherMode = false,
 }: AnimePlayerProps) {
   const { user, loading: authLoading } = useAuthState();
@@ -2861,9 +2863,7 @@ export default function AnimePlayer({
                   <path d="M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               )}
-              <span className="hidden min-[390px]:inline">
-                {fullscreenActive ? 'Выйти' : 'На весь экран'}
-              </span>
+
             </button>
           )}
 
@@ -2941,7 +2941,7 @@ export default function AnimePlayer({
           </div>
         )}
 
-        <div className={`anime-player__toolbar animebox-player-toolbar ${watchTogetherMode ? 'watch-together-player-toolbar' : ''} flex flex-wrap items-center gap-2`}>
+        <div data-single-selector={!showEpisodeSelector || translationOptions.length === 0} className={`anime-player__toolbar animebox-player-toolbar ${watchTogetherMode ? 'watch-together-player-toolbar' : ''} flex flex-wrap items-center gap-2`}>
           {sources.length > 1 && (
             <div className="animebox-player-source-switcher flex max-w-full items-center overflow-x-auto p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <button
@@ -3024,13 +3024,15 @@ export default function AnimePlayer({
             </span>
           </div>
 
-          <PlayerDropdown
-            label="Серия"
-            value={String(episodeNumber)}
-            options={episodeOptions}
-            onChange={selectEpisode}
-            icon={<Icon name="play" className="h-3.5 w-3.5" />}
-          />
+          {showEpisodeSelector && (
+            <PlayerDropdown
+              label="Серия"
+              value={String(episodeNumber)}
+              options={episodeOptions}
+              onChange={selectEpisode}
+              icon={<Icon name="play" className="h-3.5 w-3.5" />}
+            />
+          )}
 
           {translationOptions.length > 0 && (
             <PlayerDropdown

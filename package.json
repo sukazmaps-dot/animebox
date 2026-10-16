@@ -154,7 +154,8 @@
     "patch31-4:browser": "node scripts/home-hero-recovery-smoke.cjs",
     "editor-workspace:check": "node tests/profile-editor-workspace.cjs",
     "editor-workspace:browser": "node scripts/profile-editor-responsive-smoke.cjs",
-    "player-fullscreen:browser": "node scripts/player-fullscreen-browser-smoke.cjs"
+    "player-fullscreen:browser": "node scripts/player-fullscreen-browser-smoke.cjs",
+    "mobile-player-shell:browser": "node scripts/mobile-player-shell-smoke.cjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

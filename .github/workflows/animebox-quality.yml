@@ -64,7 +64,7 @@ jobs:
       - name: Episode mobile player controls at 360px
         env:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
-        run: npm run player-hotfix:browser
+        run: npm run player-hotfix:browser && npm run mobile-player-shell:browser
 
       - name: Profile editor responsive workspace and draft recovery
         env:
