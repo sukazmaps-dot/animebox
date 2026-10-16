@@ -95,8 +95,8 @@ assert(socials.includes(':global(html[data-animebox-theme="light"])'),
 
 assert(styles.includes('@media (max-width: 768px)'),
   'Mobile art/rail layout missing');
-assert(styles.includes('width: min(42%, 200px)') && styles.includes('aspect-ratio: 2 / 3'),
-  'Mobile single art geometry missing');
+assert(styles.includes('width: 100% !important') && styles.includes('height: 100% !important') &&
+  styles.includes('--hero-mobile-position'), 'Mobile full-bleed art geometry missing');
 assert(styles.includes('scroll-snap-type: x proximity'),
   'Touch rail snapping missing');
 assert(styles.includes('prefers-reduced-motion: reduce'),

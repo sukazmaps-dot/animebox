@@ -33,7 +33,7 @@
     font-size: 11px;
   }
 
-  .section :global(.continue-smart-grid) {
+  :global(.home-page) .section :global(.continue-smart-grid) {
     display: flex !important;
     grid-template-columns: none !important;
     gap: 10px !important;
@@ -45,13 +45,17 @@
     scroll-padding-inline: 0;
     overscroll-behavior-inline: contain;
     scrollbar-width: none;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
   }
 
-  .section :global(.continue-smart-grid)::-webkit-scrollbar {
+  :global(.home-page) .section :global(.continue-smart-grid)::-webkit-scrollbar {
     display: none;
   }
 
-  .section .card {
+  :global(.home-page) .section .card,
+  :global(.home-page) .section .card:first-child {
     flex: 0 0 100%;
     width: 100%;
     max-width: none;
@@ -63,40 +67,40 @@
     align-items: center;
     gap: 10px !important;
     padding: 10px !important;
-    border-radius: 14px;
-    border: 1px solid var(--ab-ui-border);
-    background: var(--ab-ui-surface);
+    border-radius: 14px !important;
+    border: 1px solid var(--ab-ui-border) !important;
+    background: var(--ab-ui-surface) !important;
     scroll-snap-align: start;
     scroll-snap-stop: always;
   }
 
 
-  .section .card :global(.continue-smart-card__poster) {
+  :global(.home-page) .section .card :global(.continue-smart-card__poster) {
     width: 62px !important;
     height: 86px !important;
     flex: 0 0 62px !important;
     border-radius: 10px;
   }
 
-  .section .card :global(.continue-smart-card__poster) > div:first-child,
-  .section .card :global(.continue-smart-card__image) {
+  :global(.home-page) .section .card :global(.continue-smart-card__poster) > div:first-child,
+  :global(.home-page) .section .card :global(.continue-smart-card__image) {
     width: 100% !important;
     height: 100% !important;
   }
 
-  .section .card :global(.continue-smart-card__body) {
+  :global(.home-page) .section .card :global(.continue-smart-card__body) {
     min-width: 0;
     align-self: center;
     padding-right: 0;
   }
 
-  .section .card :global(.continue-smart-card__eyebrow) {
+  :global(.home-page) .section .card :global(.continue-smart-card__eyebrow) {
     margin-bottom: 4px;
     font-size: 8px;
     letter-spacing: .055em;
   }
 
-  .section .card :global(.continue-smart-card__body) strong {
+  :global(.home-page) .section .card :global(.continue-smart-card__body) strong {
     display: -webkit-box;
     overflow: hidden;
     font-size: 13px;
@@ -105,12 +109,12 @@
     -webkit-line-clamp: 2;
   }
 
-  .section .card :global(.continue-smart-card__progress) {
+  :global(.home-page) .section .card :global(.continue-smart-card__progress) {
     height: 3px;
     margin-top: 7px;
   }
 
-  .section .card :global(.continue-smart-card__body) small {
+  :global(.home-page) .section .card :global(.continue-smart-card__body) small {
     margin-top: 5px;
     overflow: hidden;
     font-size: 9px;
@@ -119,7 +123,7 @@
     white-space: nowrap;
   }
 
-  .section .card :global(.continue-smart-card__arrow) {
+  :global(.home-page) .section .card :global(.continue-smart-card__arrow) {
     display: grid !important;
     place-items: center;
     width: 22px !important;
@@ -130,7 +134,7 @@
     font-size: 0 !important;
   }
 
-  .section .card :global(.continue-smart-card__arrow)::after {
+  :global(.home-page) .section .card :global(.continue-smart-card__arrow)::after {
     content: '→';
     font-size: 19px;
     line-height: 1;
@@ -138,7 +142,8 @@
 }
 
 @media (max-width: 390px) {
-  .section .card {
+  :global(.home-page) .section .card,
+  :global(.home-page) .section .card:first-child {
     grid-template-columns: 58px minmax(0, 1fr) 20px !important;
     height: 106px !important;
     min-height: 106px !important;
@@ -147,7 +152,7 @@
     padding: 9px !important;
   }
 
-  .section .card :global(.continue-smart-card__poster) {
+  :global(.home-page) .section .card :global(.continue-smart-card__poster) {
     width: 58px !important;
     height: 80px !important;
     flex-basis: 58px !important;
@@ -155,7 +160,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .section :global(.continue-smart-grid) {
+  :global(.home-page) .section :global(.continue-smart-grid) {
     scroll-behavior: auto;
   }
 }

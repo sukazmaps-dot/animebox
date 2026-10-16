@@ -1,0 +1,19 @@
+.facts { display: none; }
+
+@media (max-width: 768px) {
+  .facts {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    max-width: 100%;
+    margin-top: 10px;
+    color: rgb(255 255 255 / 88%);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+  .facts > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .facts > span + span::before { content: '·'; margin-right: 8px; opacity: .7; }
+  .facts .score { flex-shrink: 0; color: #f5dc96; }
+}
