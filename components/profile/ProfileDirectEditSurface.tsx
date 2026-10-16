@@ -450,7 +450,7 @@ export default function ProfileDirectEditSurface({
             <h3>
               {target === 'avatar' && (section === 'frame' ? 'Рамка профиля' : 'Аватар')}
               {target === 'banner' && 'Баннер профиля'}
-              {target === 'username' && 'Имя пользователя'}
+              {target === 'username' && 'Имя и описание'}
               {target === 'bio' && 'О себе'}
             </h3>
           </div>
@@ -462,7 +462,7 @@ export default function ProfileDirectEditSurface({
           </span>
         </div>
 
-        {target === 'username' && (
+        {section === 'profile' && (
           <div className={styles.inspectorSection}>
             <label className={styles.field}>
               <span><strong>Имя пользователя</strong><small>{username.trim().length}/24</small></span>
@@ -477,7 +477,7 @@ export default function ProfileDirectEditSurface({
           </div>
         )}
 
-        {target === 'bio' && (
+        {section === 'profile' && (
           <div className={styles.inspectorSection}>
             <label className={styles.field}>
               <span><strong>Описание</strong><small>{bio.length}/300</small></span>
