@@ -1,0 +1,31 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const read = path => fs.readFileSync(path, 'utf8');
+const editor = read('components/profile/ProfileEditorClient.tsx');
+const css = read('app/profile-editor-v13.css');
+const direct = read('components/profile/ProfileDirectEditSurface.tsx');
+const card = read('components/profile/ProfileDirectEditSurface.module.css');
+const api = read('app/api/profile/editor/route.ts');
+const banner = read('lib/profile-banner-style.ts');
+assert(css.includes('padding-bottom: calc(var(--profile-editor-nav-offset) + var(--profile-editor-savebar-height, 0px) + 48px)'));
+assert(!css.includes('margin: -78px 24px 18px'));
+assert(css.includes(".profile-editor-v18__savebar[data-visible='false']"));
+assert(editor.includes("data-visible={dirty || saving || Boolean(saved)"));
+assert(editor.includes("message=\"\""));
+assert(editor.includes("setTimeout(() => setSaved(''), 3500)"));
+assert(!editor.includes('Сохранить всё'));
+assert(direct.includes('setBannerEditorMode(\'color\')'));
+assert(direct.includes('role="tablist"'));
+assert(direct.includes('validBannerColor(hexDraft)'));
+assert(direct.includes('BANNER_COLOR_PRESETS.map'));
+assert(direct.includes('onBannerStyleChange'));
+assert(!direct.includes('ПРОФИЛЬ ANIMEBOX'));
+assert(!card.includes('border-bottom: 1px solid rgba(255,255,255,.04)'));
+assert(card.includes("var(--profile-edit-body-surface) 100%"));
+assert(card.includes('@media (hover: none), (pointer: coarse)'));
+assert(api.includes('banner_style') && api.includes('FREE_BANNER_STYLES'));
+assert(banner.includes('validBannerColor'));
+for (const p of ['lib/profile-preview-server.ts','lib/public-profile-server.ts','app/profile/page.tsx','app/profile/[id]/page.tsx','components/profile/ProfilePreview.tsx']) {
+  assert(read(p).includes('bannerStyle'));
+}
+console.log('PASS Patch 31.2: editor dock, banner palette, persistence, preview and safety');
