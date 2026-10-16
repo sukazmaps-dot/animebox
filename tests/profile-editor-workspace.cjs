@@ -1,3 +1,5 @@
+// act is development-only. This override affects this test process, not the production build.
+process.env.NODE_ENV = 'development';
 const fs=require('node:fs'),path=require('node:path'),ts=require('typescript'),assert=require('node:assert/strict');
 const React=require('react'),{act,create}=require('react-test-renderer');global.IS_REACT_ACT_ENVIRONMENT=true;
 const cache=new Map();
