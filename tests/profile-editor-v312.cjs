@@ -10,7 +10,7 @@ const banner = read('lib/profile-banner-style.ts');
 assert(css.includes('padding-bottom: calc(var(--profile-editor-nav-offset) + var(--profile-editor-savebar-height, 0px) + 48px)'));
 assert(!css.includes('margin: -78px 24px 18px'));
 assert(css.includes(".profile-editor-v18__savebar[data-visible='false']"));
-assert(editor.includes("data-visible={dirty || saving || Boolean(saved)"));
+assert(editor.includes('data-visible="true"'), '31.3 editor must retain visible save dock');
 assert(editor.includes("message=\"\""));
 assert(editor.includes("setTimeout(() => setSaved(''), 3500)"));
 assert(!editor.includes('Сохранить всё'));
@@ -19,7 +19,7 @@ assert(direct.includes('onClick={openBannerColorEditor}'));
 assert(direct.includes('inspectorRef.current?.scrollIntoView'));
 assert(card.includes('scroll-margin-top: 120px'));
 assert(direct.includes('role="tablist"'));
-assert(direct.includes('validBannerColor(draft)'));
+assert(read('components/profile/BannerColorSheet.tsx').includes('validBannerColor(text)'));
 assert(direct.includes('BANNER_COLOR_PRESETS.map'));
 assert(direct.includes('onBannerStyleChange'));
 assert(!direct.includes('ПРОФИЛЬ ANIMEBOX'));
@@ -31,7 +31,7 @@ assert(api.includes("profilePatch.banner_style === oldProfile.banner_style"), 'E
 assert(api.includes('profilePatch.banner_color === oldProfile.banner_color'), 'No free recolor of a paid fill');
 assert(editor.includes("setBannerStyle('soft')"), 'Free users editing a paid fill must get a free style');
 assert(editor.includes('FREE_BANNER_STYLES.includes(bannerStyle)'));
-assert(direct.includes('<BannerHexInput key={bannerColor}'), 'Hex input must remain controlled');
+assert(direct.includes('<BannerColorSheet'), 'HEX editor is now in the in-app bottom sheet');
 assert(!direct.includes('setHexDraft(bannerColor)'), 'Never synchronously set React state inside an effect');
 
 assert(banner.includes('validBannerColor'));
