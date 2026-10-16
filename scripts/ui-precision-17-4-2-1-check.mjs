@@ -60,7 +60,7 @@ if (
 
 if (
   !editor.includes('data-visible="true"') ||
-  !editor.includes('Все изменения сохранены') ||
+  !editor.includes('✓ Сохранено') ||
   !editor.includes('disabled={(!dirty && !needsPremiumCTA)')
 ) {
   failures.push('clean profile editor state must have a visible, inactive Save action and clear status');

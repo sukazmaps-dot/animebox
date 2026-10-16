@@ -1,9 +1,10 @@
 .preview {
   --preview-surface: var(--ab-ui-surface);
   position: relative;
-  width: min(760px, calc(100% - 32px));
-  height: 238px;
-  margin: 12px auto 8px;
+  width: calc(100% - 24px);
+  max-width: 100%;
+  height: 176px;
+  margin: 8px auto;
   flex: 0 0 auto;
   border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 20%, transparent);
   border-radius: 18px;
@@ -15,7 +16,7 @@
 .banner {
   position: relative;
   display: block;
-  height: 158px;
+  height: 108px;
   width: 100%;
   padding: 0;
   border: 0;
@@ -56,7 +57,7 @@
 .copy { min-width: 0; align-self: flex-end; padding-bottom: 8px; flex: 1; }
 .name {
   display: flex; align-items: center; gap: 6px; max-width: 100%;
-  min-height: 30px; padding: 0; border: 0; background:transparent;
+  min-height: 44px; padding: 0; border: 0; background:transparent;
   color:var(--ab-ui-text); font-size: clamp(16px,4.5vw,22px); font-weight:800;
   letter-spacing: 0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
   cursor:pointer;
@@ -64,10 +65,13 @@
 .name > span { font-size: 14px; color: var(--ab-ui-accent); }
 .bio { margin: 2px 0 0; color:var(--ab-ui-muted); font-size: 11px; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 @media(max-width: 430px) {
-  .preview { width:calc(100% - 20px); height:222px; margin-top: 8px; }
-  .banner { height:145px; }
+  .preview { width:calc(100% - 20px); }
   .identity { padding-inline:12px; }
   .avatar { width:76px; height:76px; flex-basis:76px; }
+}
+@media(min-width:900px) and (min-height:661px) {
+  .preview {width:100%;height:238px;margin:0;}
+  .banner {height:158px;}
 }
 :global(html[data-animebox-theme='light']) .preview { --preview-surface:#fff; }
 @media(prefers-reduced-motion:reduce) { .banner { transition:none; } }
@@ -88,3 +92,6 @@
   .copy { padding-bottom:0; }
   .bio { max-width:100%;font-size:10px; }
 }
+
+.preview.expanded {width:100%;height:320px;margin:0;}
+.preview.expanded .banner {height:230px;}

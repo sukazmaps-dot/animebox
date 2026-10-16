@@ -1772,6 +1772,10 @@
   will-change: transform, object-position;
 }
 
+.premium-media-crop__safe-zones {position:absolute;inset:0;pointer-events:none;z-index:2;}
+.premium-media-crop__avatar-zone {position:absolute;bottom:0;left:4%;width:18%;aspect-ratio:1;border:2px dashed #fff9;border-radius:50%;background:#0005;display:grid;place-items:center;color:#fff;font-size:10px;}
+.premium-media-crop__safe-copy {position:absolute;inset:12% 12% 24% 25%;border:1px dashed #fff9;display:grid;place-items:center;padding:8px;color:#fff;text-align:center;font-size:11px;text-shadow:0 1px 4px #000;}
+
 .premium-media-crop__guide {
   position: absolute;
   z-index: 2;
@@ -3090,208 +3094,56 @@
 }
 
 
-/* =========================================================
-   AnimeBox Patch 18.9.1 — persistent Premium Studio preview
-   Keep one live preview visible while editing every lower section.
-   ========================================================= */
-
-@media (min-width: 1201px) {
+/* Embedded Studio uses the editor scroll root, never a second wheel trap.
+ * Its own live Premium card replaces the base profile preview in the right rail. */
+@media (min-width: 900px) {
   .profile-editor-v13 .premium-studio-v15__layout {
-    grid-template-columns: minmax(0, 1fr) minmax(390px, .88fr);
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
     grid-template-rows: auto auto auto auto auto;
-    column-gap: 22px;
+    column-gap: 24px;
     row-gap: 18px;
     align-items: start;
   }
-
-  /*
-   * The old hero wrapper limited position:sticky to the Palette block.
-   * display:contents promotes Palette + Preview into the full studio grid,
-   * so the preview rail can span Palette, tabs and the active editor panel.
-   */
-  .profile-editor-v13 .premium-studio-v15__hero {
-    display: contents;
-  }
-
-  .profile-editor-v13 .premium-studio-v15__hero-main {
-    grid-column: 1;
-    grid-row: 1;
-    min-width: 0;
-  }
-
+  .profile-editor-v13 .premium-studio-v15__hero { display: contents; }
+  .profile-editor-v13 .premium-studio-v15__hero-main {grid-column:1;grid-row:1;min-width:0;}
   .profile-editor-v13 .premium-studio-v15__preview-wrap {
-    grid-column: 2;
-    grid-row: 1 / span 3;
-    align-self: stretch;
-    min-width: 0;
-    min-height: 100%;
+    grid-column:2;
+    grid-row:1 / span 3;
+    align-self:stretch;
+    min-width:0;
+    min-height:0;
   }
-
   .profile-editor-v13 .premium-studio-v15__sticky {
-    position: sticky;
-    top: 96px;
-    z-index: 12;
-    max-height: calc(100dvh - 116px);
-    overflow: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: thin;
-    scrollbar-color: color-mix(in srgb, var(--ab-ui-accent) 26%, transparent) transparent;
+    position:sticky;
+    top:calc(var(--editor-header-height) + var(--editor-tab-height) + 16px);
+    max-height:none;
+    overflow:visible;
   }
-
-  .profile-editor-v13 .premium-studio-v15__sticky::-webkit-scrollbar {
-    width: 5px;
+  .profile-editor-v13 .premium-studio-v15__preview-label {position:static;margin:0 0 10px;padding:0;}
+  .profile-editor-v13 .premium-studio-v16__section-nav {grid-column:1;grid-row:2;min-width:0;}
+  .profile-editor-v13 .premium-studio-v15__sections {grid-column:1;grid-row:3;min-width:0;}
+  .profile-editor-v13 .premium-studio-v15__dock {grid-column:1 / -1;grid-row:4;}
+  .profile-editor-v13 .premium-studio-v15__messages {grid-column:1 / -1;grid-row:5;}
+  .profile-editor-v13 .premium-studio-v15__preview {min-height:0 !important;}
+  .profile-editor-v13 .premium-studio-v15__preview-banner {min-height:150px !important;}
+  .profile-editor-v13 .premium-studio-v15__preview-body {gap:10px;padding-bottom:18px;}
+  .profile-editor-v13 .premium-studio-v23__demo {
+    grid-template-columns:minmax(0,1fr) minmax(300px,380px);
+    align-items:start;
+    column-gap:24px;
   }
-
-  .profile-editor-v13 .premium-studio-v15__sticky::-webkit-scrollbar-thumb {
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--ab-ui-accent) 24%, transparent);
-  }
-
-  .profile-editor-v13 .premium-studio-v15__preview-label {
-    position: sticky;
-    top: 0;
-    z-index: 6;
-    margin: 0 0 10px;
-    padding: 3px 4px 8px;
-    background: linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--ab-ui-surface) 98%, transparent) 0%,
-      color-mix(in srgb, var(--ab-ui-surface) 90%, transparent) 72%,
-      color-mix(in srgb, var(--ab-ui-surface) 0%, transparent) 100%
-    );
-    backdrop-filter: blur(10px);
-  }
-
-  .profile-editor-v13 .premium-studio-v16__section-nav {
-    grid-column: 1;
-    grid-row: 2;
-    min-width: 0;
-  }
-
-  .profile-editor-v13 .premium-studio-v15__sections {
-    grid-column: 1;
-    grid-row: 3;
-    min-width: 0;
-  }
-
-  .profile-editor-v13 .premium-studio-v15__dock {
-    grid-column: 1 / -1;
-    grid-row: 4;
-  }
-
-  .profile-editor-v13 .premium-studio-v15__messages {
-    grid-column: 1 / -1;
-    grid-row: 5;
-  }
-
-  /*
-   * The live card should fit inside a typical laptop viewport while sticky.
-   * Content remains unchanged; only the excessive cinematic height is reduced.
-   */
-  .profile-editor-v13 .premium-studio-v15__preview {
-    min-height: 440px !important;
-  }
-
-  .profile-editor-v13 .premium-studio-v15__preview-banner {
-    min-height: clamp(160px, 22vh, 205px) !important;
-  }
-
-  .profile-editor-v13 .premium-studio-v15__preview-body {
-    gap: 10px;
-    padding-bottom: 18px;
+  .profile-editor-v13 .premium-studio-v23__demo-copy {grid-column:1;grid-row:1;}
+  .profile-editor-v13 .premium-studio-v23__demo-scenes {grid-column:1;grid-row:2;min-width:0;}
+  .profile-editor-v13 .premium-studio-v23__demo-preview {
+    grid-column:2;grid-row:1 / span 3;
+    position:sticky;
+    top:calc(var(--editor-header-height) + var(--editor-tab-height) + 16px);
   }
 }
-
-/*
- * Slightly narrower desktops still keep a useful sticky preview.
- * Below 1040px the Studio returns to the existing single-column flow.
- */
-@media (min-width: 1041px) and (max-width: 1200px) {
-  .profile-editor-v13 .premium-studio-v15__layout {
-    grid-template-columns: minmax(0, 1fr) minmax(330px, 390px);
-    grid-template-rows: auto auto auto auto auto;
-    column-gap: 16px;
-    row-gap: 16px;
-    align-items: start;
-  }
-
-  .profile-editor-v13 .premium-studio-v15__hero {
-    display: contents;
-  }
-
-  .profile-editor-v13 .premium-studio-v15__hero-main {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .profile-editor-v13 .premium-studio-v15__preview-wrap {
-    grid-column: 2;
-    grid-row: 1 / span 3;
-    align-self: stretch;
-    min-height: 100%;
-  }
-
-  .profile-editor-v13 .premium-studio-v15__sticky {
-    position: sticky;
-    top: 88px;
-    z-index: 12;
-    max-height: calc(100dvh - 104px);
-    overflow: auto;
-    overscroll-behavior: contain;
-  }
-
-  .profile-editor-v13 .premium-studio-v16__section-nav {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
-  .profile-editor-v13 .premium-studio-v15__sections {
-    grid-column: 1;
-    grid-row: 3;
-  }
-
-  .profile-editor-v13 .premium-studio-v15__dock {
-    grid-column: 1 / -1;
-    grid-row: 4;
-  }
-
-  .profile-editor-v13 .premium-studio-v15__messages {
-    grid-column: 1 / -1;
-    grid-row: 5;
-  }
-
-  .profile-editor-v13 .premium-studio-v15__preview {
-    min-height: 410px !important;
-  }
-
-  .profile-editor-v13 .premium-studio-v15__preview-banner {
-    min-height: 150px !important;
-  }
-
-  .profile-editor-v13 .premium-studio-v15__preview-body {
-    gap: 9px;
-    padding-bottom: 16px;
-  }
-}
-
-@media (max-width: 1040px) {
-  .profile-editor-v13 .premium-studio-v15__preview-wrap {
-    order: -1;
-  }
-
-  .profile-editor-v13 .premium-studio-v15__sticky {
-    position: static;
-    max-height: none;
-    overflow: visible;
-  }
-
-  .profile-editor-v13 .premium-studio-v15__preview {
-    min-height: 390px !important;
-  }
-
-  .profile-editor-v13 .premium-studio-v15__preview-banner {
-    min-height: 150px !important;
-  }
+@media (max-width: 899px) {
+  .profile-editor-v13 .premium-studio-v15__layout {display:block;}
+  .profile-editor-v13 .premium-studio-v15__hero {display:block;}
+  .profile-editor-v13 .premium-studio-v16__section-nav {margin-block:16px;}
 }
 
 
@@ -3387,6 +3239,9 @@
   font-size: 20px;
 }
 
+.premium-studio-v22__preview-sheet > .premium-studio-v23__preview-tabs {margin:0 16px 12px;}
+.premium-studio-v22__preview-sheet .premium-studio-v23__preview-tabs button {min-height:44px;}
+
 .premium-studio-v22__preview-sheet-body {
   min-height: 0;
   overflow-y: auto;
@@ -3448,7 +3303,7 @@
   to { opacity: 1; transform: none; }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 899px) {
   .profile-editor-v13 .premium-studio-v15__preview-wrap {
     display: none !important;
   }
@@ -3648,10 +3503,10 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 899px) {
   .profile-editor-v13 .premium-studio-v22__preview-fab {
-    bottom: calc(var(--profile-editor-nav-offset, 70px) + var(--profile-editor-savebar-height, 104px) + 24px);
-    z-index: 81;
+    bottom: calc(var(--profile-editor-savebar-height, 104px) + var(--editor-mobile-nav-height,0px) + max(8px, env(safe-area-inset-bottom)) + var(--ab-editor-keyboard-inset, 0px) + 16px);
+    z-index: 810;
   }
 }
 
