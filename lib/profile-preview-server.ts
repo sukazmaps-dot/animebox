@@ -26,7 +26,7 @@ export async function getProfilePreview(userId: string) {
   const admin = adminClient();
   const { data: profile, error } = await admin
     .from('profiles')
-    .select('id,username,bio,avatar_path,banner_path,created_at')
+    .select('id,username,bio,avatar_path,banner_path,banner_color,created_at')
     .eq('id', userId)
     .maybeSingle();
 
@@ -97,6 +97,7 @@ export async function getProfilePreview(userId: string) {
       publicStorageUrl(admin, appearance.avatarPath) || '/default-avatar.webp',
     avatarStaticUrl:
       publicStorageUrl(admin, lightweight.avatarPath) || '/default-avatar.webp',
+    bannerColor: profile.banner_color ?? '#70618c',
     bannerUrl: publicStorageUrl(admin, appearance.bannerPath),
     bannerStaticUrl: publicStorageUrl(admin, lightweight.bannerPath),
     avatarTransform: appearance.avatarTransform,
