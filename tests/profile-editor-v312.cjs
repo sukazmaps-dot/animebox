@@ -16,7 +16,7 @@ assert(editor.includes("setTimeout(() => setSaved(''), 3500)"));
 assert(!editor.includes('Сохранить всё'));
 assert(direct.includes('setBannerEditorMode(\'color\')'));
 assert(direct.includes('role="tablist"'));
-assert(direct.includes('validBannerColor(hexDraft)'));
+assert(direct.includes('validBannerColor(draft)'));
 assert(direct.includes('BANNER_COLOR_PRESETS.map'));
 assert(direct.includes('onBannerStyleChange'));
 assert(!direct.includes('ПРОФИЛЬ ANIMEBOX'));
