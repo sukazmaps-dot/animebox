@@ -82,7 +82,8 @@
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 16%, transparent);
   border-radius: 24px;
-  background: var(--ab-ui-surface);
+  --profile-edit-body-surface: var(--ab-ui-surface);
+  background: var(--profile-edit-body-surface);
   box-shadow: 0 26px 70px rgba(0, 0, 0, .32);
 }
 
@@ -95,8 +96,7 @@
   display: grid;
   place-items: center;
   border: 0;
-  border-bottom: 1px solid rgba(255,255,255,.04);
-  background: linear-gradient(135deg, var(--ab-ui-raised), var(--ab-ui-surface) 72%);
+  background: linear-gradient(135deg, var(--ab-ui-raised), var(--profile-edit-body-surface) 100%);
   cursor: pointer;
 }
 
@@ -119,7 +119,7 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, transparent 38%, color-mix(in srgb, var(--ab-ui-surface) 78%, transparent)),
+    linear-gradient(180deg, transparent 25%, var(--profile-edit-body-surface) 100%),
     linear-gradient(90deg, color-mix(in srgb, var(--ab-ui-canvas) 16%, transparent), transparent 45%);
 }
 
@@ -134,12 +134,12 @@
   gap: 6px;
   border: 1px solid rgba(255,255,255,.1);
   border-radius: 10px;
-  background: color-mix(in srgb, var(--ab-ui-canvas) 68%, transparent);
-  color: var(--ab-ui-text);
+  background: rgba(23, 22, 34, .82);
+  color: #fff;
   font-size: 9px;
   font-weight: 850;
   backdrop-filter: blur(12px);
-  opacity: .68;
+  opacity: .92;
   transition: opacity .16s ease, transform .16s ease, border-color .16s ease;
 }
 
@@ -312,6 +312,10 @@
   color: var(--ab-ui-accent);
   font-size: 13px;
   transition: opacity .16s ease;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .editGlyph, .bioButton span { opacity: 1; }
 }
 
 .nameButton:hover .editGlyph,
@@ -1076,10 +1080,10 @@
   }
 
   .inspector {
-    position: sticky;
-    z-index: 40;
-    bottom: calc(82px + env(safe-area-inset-bottom));
-    max-height: 58dvh;
+    position: static;
+    z-index: auto;
+    bottom: auto;
+    max-height: none;
     padding: 14px;
     border-radius: 18px 18px 14px 14px;
     background: color-mix(in srgb, var(--ab-ui-surface) 97%, transparent);
@@ -1146,19 +1150,19 @@
 }
 
 :global(html[data-animebox-theme='light']) .profileCard {
+  --profile-edit-body-surface: #fff;
   border-color: color-mix(in srgb, var(--ab-ui-accent) 12%, transparent);
   background: #fff;
   box-shadow: 0 24px 64px color-mix(in srgb, var(--ab-ui-accent) 9%, transparent);
 }
 
 :global(html[data-animebox-theme='light']) .banner {
-  border-bottom-color: var(--ab-ui-border);
-  background: linear-gradient(135deg, var(--ab-ui-surface), var(--ab-ui-surface) 72%);
+  background: linear-gradient(135deg, var(--ab-ui-surface), var(--profile-edit-body-surface) 100%);
 }
 
 :global(html[data-animebox-theme='light']) .bannerShade {
   background:
-    linear-gradient(180deg, transparent 38%, color-mix(in srgb, var(--ab-ui-surface) 76%, transparent)),
+    linear-gradient(180deg, transparent 25%, var(--profile-edit-body-surface) 100%),
     linear-gradient(90deg, rgba(255,255,255,.08), transparent 45%);
 }
 
@@ -1227,3 +1231,18 @@
     height: 24px;
   }
 }
+
+/* Native banner palette controls belong to this CSS module, not a global patch. */
+.bannerModes { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:12px; }
+.bannerModes button { min-height:40px; flex:1 1 auto; padding:8px 12px; border-radius:10px; border:1px solid var(--ab-ui-border); background:var(--ab-ui-surface); color:var(--ab-ui-text); font-size:11px; cursor:pointer; }
+.bannerModes button[data-active='true'] { border-color:var(--ab-ui-accent); background:color-mix(in srgb,var(--ab-ui-accent) 12%,var(--ab-ui-surface)); }
+.bannerPalette { min-width:0; }
+.bannerPresetGrid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:12px 0; }
+.bannerPreset { min-width:0; min-height:74px; display:flex; flex-direction:column; align-items:stretch; gap:5px; padding:5px; border:1px solid var(--ab-ui-border); border-radius:10px; background:var(--ab-ui-surface); color:var(--ab-ui-text); font-size:10px; cursor:pointer; }
+.bannerPreset[data-active='true'] { border-color:var(--ab-ui-accent); outline:2px solid color-mix(in srgb,var(--ab-ui-accent) 30%,transparent); }
+.bannerPresetSwatch { min-height:40px; border-radius:7px; }
+.bannerHexRow { display:grid; grid-template-columns:minmax(0,1fr) 46px; align-items:end; gap:8px; }
+.bannerHexRow input[type='color'] { width:46px; height:42px; padding:2px; border:1px solid var(--ab-ui-border); border-radius:9px; background:var(--ab-ui-surface); cursor:pointer; }
+@media (max-width: 620px) { .bannerPresetGrid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+@media (max-width: 768px) { .inspector { scroll-margin-top: 120px; } }

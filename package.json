@@ -146,6 +146,7 @@
     "patch30-7:check": "node tests/anime-intent-link.cjs",
     "patch30-8:check": "node tests/home-hero-art.cjs",
     "patch31-1:check": "node tests/patch31-1-integration.cjs",
+    "patch31-2:check": "node tests/profile-editor-v312.cjs",
     "patch30-9:check": "node tests/profile-media-v309.cjs",
     "profile-media:browser": "node scripts/profile-media-browser-smoke.cjs"
   },

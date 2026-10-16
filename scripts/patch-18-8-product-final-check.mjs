@@ -285,8 +285,8 @@ need('Profile Studio mobile inspector', directEditorCss, [
   '.workspace',
   '.inspector',
   '@media (max-width: 620px)',
-  'position: sticky',
-  '58dvh',
+  'position: static',
+  'max-height: none',
 ]);
 
 

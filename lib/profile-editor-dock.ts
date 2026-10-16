@@ -3,6 +3,7 @@ export function observeProfileEditorDock(savebar: HTMLElement): () => void {
   const root = savebar.closest<HTMLElement>('.profile-editor-v13');
   if (!root) return () => {};
   const nav = document.querySelector<HTMLElement>('.mobile-nav');
+  // The nav owns its safe-area inset; use its rendered height exactly once.
   const measure = () => {
     root.style.setProperty('--profile-editor-savebar-height', `${Math.ceil(savebar.getBoundingClientRect().height)}px`);
     if (nav) root.style.setProperty('--profile-editor-nav-height', `${Math.ceil(nav.getBoundingClientRect().height)}px`);

@@ -598,22 +598,7 @@
   .profile-editor-v13__premium-callout > img { width: 46px; height: 46px; }
   .profile-editor-v13__premium-callout button { grid-column: 1 / -1; width: 100%; }
 
-  .profile-editor-v13__mobile-save {
-    position: fixed;
-    z-index: 90;
-    left: max(10px, env(safe-area-inset-left));
-    right: max(10px, env(safe-area-inset-right));
-    bottom: calc(70px + env(safe-area-inset-bottom));
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 8px;
-    padding: 8px;
-    border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 18%, transparent);
-    border-radius: 16px;
-    background: color-mix(in srgb, var(--ab-ui-surface) 91%, transparent);
-    backdrop-filter: blur(18px);
-    box-shadow: 0 18px 45px rgba(0, 0, 0, .35);
-  }
+  /* Only .profile-editor-v18__savebar owns dock positioning. */
 
   .profile-editor-v13__mobile-save a,
   .profile-editor-v13__mobile-save button { min-height: 42px; }
@@ -983,7 +968,7 @@
   align-items: center;
   gap: 9px;
   width: calc(100% - 48px);
-  margin: -78px 24px 18px;
+  margin: 12px 24px 18px;
   padding: 9px 10px 9px 14px;
   border: 1px solid rgba(255,255,255,.075);
   border-radius: 14px;
@@ -991,6 +976,9 @@
   box-shadow: 0 18px 54px rgba(0,0,0,.38);
   backdrop-filter: blur(22px);
 }
+
+/* Clean editor has no redundant floating 'everything saved' panel. */
+.profile-editor-v18__savebar[data-visible='false'] { display: none; }
 
 .profile-editor-v18__savebar.is-dirty {
   border-color: color-mix(in srgb, var(--ab-ui-accent) 20%, transparent);
@@ -1137,21 +1125,13 @@
     grid-column: auto;
   }
 
-  .profile-editor-v18__savebar {
-    position: fixed;
-    right: 10px;
-    bottom: calc(10px + env(safe-area-inset-bottom));
-    left: 10px;
-    width: auto;
-    margin: 0;
-    grid-template-columns: minmax(0,1fr) auto auto;
-    border-radius: 15px;
-  }
+  /* At 769–820px the savebar stays in document flow; mobile navigation
+     and the fixed dock begin only at 768px. */
 }
 
 @media (max-width: 560px) {
   .profile-editor-v13 {
-    padding: 8px 8px 94px;
+    padding-inline: 8px;
   }
 
   .profile-editor-v13__shell {
@@ -1289,14 +1269,25 @@
 
 /* Mobile editor dock: nav -> save actions -> preview, with measured heights. */
 @media (max-width: 768px) {
+  .profile-editor-v13__header-actions > .profile-editor-v13__save-state {
+    display: none;
+  }
   .profile-editor-v13 {
     --profile-editor-nav-offset: var(--profile-editor-nav-height, calc(var(--ab-mobile-nav-core-height, 56px) + env(safe-area-inset-bottom)));
-    padding-bottom: calc(var(--profile-editor-nav-offset) + var(--profile-editor-savebar-height, 104px) + 88px);
+    padding-bottom: calc(var(--profile-editor-nav-offset) + var(--profile-editor-savebar-height, 0px) + 48px);
   }
   .profile-editor-v13 .profile-editor-v18__savebar {
+    position: fixed;
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
     bottom: calc(var(--profile-editor-nav-offset) + 10px);
-    z-index: 80;
-    max-height: calc(100dvh - var(--profile-editor-nav-offset) - 80px);
+    z-index: 90;
+    width: auto;
+    margin: 0;
+    max-height: calc(100dvh - var(--profile-editor-nav-offset) - 32px);
     overflow-y: auto;
+  }
+  .profile-editor-v13 .profile-editor-v18__savebar[data-visible='false'] {
+    display: none;
   }
 }

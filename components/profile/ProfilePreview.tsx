@@ -14,6 +14,7 @@ import PremiumParticleLayer from '@/components/profile/PremiumParticleLayer';
 import UserIdentity from '@/components/identity/UserIdentity';
 import type { PublicIdentityRole } from '@/lib/identity';
 import type { SponsorStatus } from '@/lib/sponsor';
+import { bannerStyleBackground, type BannerStyle } from '@/lib/profile-banner-style';
 import { isLevelFrameKey, levelFrameAvatarScale } from '@/lib/progression';
 import { resolveAvatarIdentityVisuals } from '@/lib/avatar-identity';
 import {
@@ -43,6 +44,7 @@ type PreviewData = {
   avatarStaticUrl: string;
   bannerUrl: string | null;
   bannerColor?: string;
+  bannerStyle?: BannerStyle;
   bannerStaticUrl: string | null;
   avatarTransform: PremiumMediaTransform;
   bannerTransform: PremiumMediaTransform;
@@ -457,7 +459,7 @@ export default function ProfilePreview({
                             />
                           </picture>
                         ) : (
-                          <div aria-hidden="true" style={{position:'absolute',inset:0,background:data.bannerColor ?? '#70618c'}} />
+                          <div aria-hidden="true" style={{position:'absolute',inset:0,background:bannerStyleBackground(data.bannerColor, data.bannerStyle)}} />
                         )}
                       </div>
 

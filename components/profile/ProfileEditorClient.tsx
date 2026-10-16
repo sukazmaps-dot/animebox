@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { observeProfileEditorDock } from '@/lib/profile-editor-dock';
+import { FREE_BANNER_STYLES, normalizeBannerStyle, type BannerStyle } from '@/lib/profile-banner-style';
 
 import { useAuthState } from '@/components/AuthStateProvider';
 import PremiumStudioClient, { type PremiumStudioHandle } from '@/components/premium/PremiumStudioClient';
@@ -48,6 +49,7 @@ type ProfileRow = {
   banner_path: string | null;
   banner_color?: string;
   banner_color_mode?: 'auto' | 'manual';
+  banner_style?: BannerStyle | null;
   created_at: string;
 };
 
@@ -90,10 +92,17 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
 
+  useEffect(() => {
+    if (!saved) return;
+    const timer = window.setTimeout(() => setSaved(''), 3500);
+    return () => window.clearTimeout(timer);
+  }, [saved]);
+
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [bannerColor, setBannerColor] = useState('#70618c');
   const [bannerColorMode, setBannerColorMode] = useState<'auto' | 'manual'>('auto');
+  const [bannerStyle, setBannerStyle] = useState<BannerStyle>('soft');
   const bannerColorRequestRef = useRef(0);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
@@ -141,7 +150,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
     void supabase
       .from('profiles')
-      .select('id, username, bio, avatar_path, banner_path, banner_color, banner_color_mode, created_at')
+      .select('id, username, bio, avatar_path, banner_path, banner_color, banner_color_mode, banner_style, created_at')
       .eq('id', user.id)
       .single()
       .then(({ data, error: loadError }) => {
@@ -158,6 +167,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         setBio(next.bio ?? '');
         setBannerColor(next.banner_color ?? '#70618c');
         setBannerColorMode(next.banner_color_mode ?? 'auto');
+        setBannerStyle(normalizeBannerStyle(next.banner_style));
         saveProfileCache(user.id, next);
         setLoading(false);
       });
@@ -389,12 +399,12 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         setAvatarFile(optimized);
         setAvatarPreview(preview);
         setRemoveAvatar(false);
-        setSaved('Кадр аватара подготовлен и оптимизирован — нажми «Сохранить всё».');
+        setSaved('Кадр аватара подготовлен и оптимизирован — нажми «Сохранить изменения».');
       } else {
         setBannerFile(optimized);
         setBannerPreview(preview);
         setRemoveBanner(false);
-        setSaved('Баннер подогнан и оптимизирован — нажми «Сохранить всё».');
+        setSaved('Баннер подогнан и оптимизирован — нажми «Сохранить изменения».');
       }
 
       const editorSrc = editor.src;
@@ -446,6 +456,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       bio.trim() !== (profile.bio ?? '').trim() ||
       bannerColor !== (profile.banner_color ?? '#70618c') ||
       bannerColorMode !== (profile.banner_color_mode ?? 'auto') ||
+      bannerStyle !== normalizeBannerStyle(profile.banner_style) ||
       avatarFile ||
       bannerFile ||
       removeAvatar ||
@@ -516,6 +527,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                   bannerPath: finalBannerPath,
                   bannerColor,
                   bannerColorMode,
+                  bannerStyle,
                 },
               }
             : {}),
@@ -554,6 +566,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       setBio(next.bio ?? '');
       setBannerColor(next.banner_color ?? bannerColor);
       setBannerColorMode(next.banner_color_mode ?? bannerColorMode);
+      setBannerStyle(normalizeBannerStyle(next.banner_style));
       setAvatarFile(null);
       setBannerFile(null);
       setRemoveAvatar(false);
@@ -611,6 +624,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     setBio(profile.bio ?? '');
     setBannerColor(profile.banner_color ?? '#70618c');
     setBannerColorMode(profile.banner_color_mode ?? 'auto');
+    setBannerStyle(normalizeBannerStyle(profile.banner_style));
     setAvatarFile(null);
     setBannerFile(null);
     setRemoveAvatar(false);
@@ -797,9 +811,14 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             baseBannerUrl={displayedBanner}
             bannerColor={bannerColor}
             bannerColorMode={bannerColorMode}
+            bannerStyle={bannerStyle}
+            onBannerStyleChange={(style) => { setBannerStyle(style); setSaved(''); setBaseMediaError(''); }}
             onBannerColorChange={async (color, mode) => {
               const request = ++bannerColorRequestRef.current;
               setBannerColorMode(mode); setSaved(''); setBaseMediaError('');
+              // Once Premium expires, selecting a new color falls back to a free fill.
+              // A saved Premium fill remains visible until explicitly edited.
+              if (!premiumActive && !FREE_BANNER_STYLES.includes(bannerStyle)) setBannerStyle('soft');
               if (mode === 'manual') { setBannerColor(color); return; }
               try {
                 const file = avatarFile ?? new File([await (await fetch(displayedAvatar)).blob()], 'avatar');
@@ -815,7 +834,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             canRemoveAvatar={Boolean(profile.avatar_path || avatarFile)}
             canRemoveBanner={Boolean(profile.banner_path || bannerFile)}
             error={baseMediaError || error}
-            message={saved}
+            message=""
             onUsernameChange={(value) => {
               setUsername(value);
               setSaved('');
@@ -849,17 +868,21 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           </div>
         )}
 
-        <div ref={savebarRef} className={`profile-editor-v13__mobile-save profile-editor-v18__savebar ${dirty ? 'is-dirty' : ''}`}>
+        <div ref={savebarRef} data-visible={dirty || saving || Boolean(saved) ? 'true' : 'false'} className={`profile-editor-v13__mobile-save profile-editor-v18__savebar ${dirty ? 'is-dirty' : ''}`} role="status" aria-live="polite">
           <span className="profile-editor-v18__savebar-copy">
-            <strong>{dirty ? 'Есть несохранённые изменения' : 'Всё сохранено'}</strong>
-            <small>{dirty ? 'Проверь предпросмотр и сохрани, когда всё выглядит как нужно.' : 'Редактор профиля синхронизирован.'}</small>
+            <strong>{saving ? 'Сохраняем изменения…' : dirty ? 'Есть несохранённые изменения' : saved || 'Всё сохранено'}</strong>
+            {dirty && <small>Изменения ещё не сохранены.</small>}
           </span>
-          <button type="button" className="profile-editor-v18__reset" disabled={!dirty || saving || premiumBusy} onClick={resetDraft}>
-            Сбросить
-          </button>
-          <button type="button" disabled={!dirty || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)} onClick={() => void saveProfile()}>
-            {saving ? 'Сохраняем…' : 'Сохранить изменения'}
-          </button>
+          {(dirty || saving) && (
+            <>
+              <button type="button" className="profile-editor-v18__reset" disabled={!dirty || saving || premiumBusy} onClick={resetDraft}>
+                Сбросить
+              </button>
+              <button type="button" disabled={!dirty || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)} onClick={() => void saveProfile()}>
+                {saving ? 'Сохраняем…' : 'Сохранить изменения'}
+              </button>
+            </>
+          )}
         </div>
       </section>
 

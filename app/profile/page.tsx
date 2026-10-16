@@ -25,6 +25,7 @@ import {
   type PremiumStudioSettings,
 } from '@/lib/premium-studio';
 import { resolveProfileAppearance } from '@/lib/profile-appearance';
+import { bannerStyleBackground, visibleBannerStyle } from '@/lib/profile-banner-style';
 
 type Profile = {
   id: string;
@@ -33,6 +34,7 @@ type Profile = {
   avatar_path: string | null;
   banner_path: string | null;
   banner_color?: string;
+  banner_style?: string | null;
   created_at: string;
   og_number: number | null;
 };
@@ -149,7 +151,7 @@ export default function ProfilePage() {
       const [profileResult, ogResult] = await Promise.all([
         supabase
           .from('profiles')
-          .select('id, username, bio, avatar_path, banner_path, banner_color, created_at')
+          .select('id, username, bio, avatar_path, banner_path, banner_color, banner_style, created_at')
           .eq('id', currentUser.id)
           .single(),
         supabase
@@ -396,7 +398,7 @@ export default function ProfilePage() {
           ) : (
             <div
               className="profile-v2__banner-default"
-              style={{['--profile-banner-color' as string]: profile?.banner_color ?? '#70618c', background: profile?.banner_color ?? '#70618c'}}
+              style={{['--profile-banner-color' as string]: profile?.banner_color ?? '#70618c', background: bannerStyleBackground(profile?.banner_color, visibleBannerStyle(profile?.banner_style, premiumActive))}}
               aria-hidden="true"
             />
           )}

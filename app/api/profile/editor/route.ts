@@ -7,6 +7,7 @@ import {
   userClient,
 } from '@/lib/community-server';
 import { getEffectiveUserEntitlements } from '@/lib/entitlements-server';
+import { isBannerStyle, FREE_BANNER_STYLES, type BannerStyle } from '@/lib/profile-banner-style';
 import { usernamePolicyError } from '@/lib/auth-identity-policy';
 import {
   DEFAULT_PREMIUM_STUDIO_SETTINGS,
@@ -37,7 +38,7 @@ import { enforceIpAndUserRateLimit, enforceUserRateLimit } from '@/lib/api-rate-
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const PROFILE_COLUMNS = 'id,username,bio,avatar_path,banner_path,banner_color,banner_color_mode,created_at';
+const PROFILE_COLUMNS = 'id,username,bio,avatar_path,banner_path,banner_color,banner_color_mode,banner_style,created_at';
 const STUDIO_COLUMNS = [
   'theme',
   'primary_color',
@@ -79,6 +80,7 @@ type ProfilePatch = {
   banner_path: string | null;
   banner_color?: string;
   banner_color_mode?: 'auto' | 'manual';
+  banner_style?: BannerStyle;
 };
 
 type ExistingProfile = {
@@ -89,6 +91,7 @@ type ExistingProfile = {
   banner_path: string | null;
   banner_color: string;
   banner_color_mode: 'auto' | 'manual';
+  banner_style: BannerStyle | null;
   created_at: string;
 };
 
@@ -218,6 +221,9 @@ function readProfilePatch(value: unknown, userId: string): ProfilePatch {
   if (data.bannerColorMode !== undefined && data.bannerColorMode !== 'auto' && data.bannerColorMode !== 'manual') {
     throw new ApiError(400, 'Выбери автоматический или ручной цвет баннера.');
   }
+  if (data.bannerStyle !== undefined && !isBannerStyle(data.bannerStyle)) {
+    throw new ApiError(400, 'Неизвестный стиль баннера.');
+  }
 
   return {
     username,
@@ -226,6 +232,7 @@ function readProfilePatch(value: unknown, userId: string): ProfilePatch {
     banner_path: safeBaseMediaPath(data.bannerPath, userId, 'Баннер'),
     ...(typeof data.bannerColor === 'string' ? {banner_color: data.bannerColor.toLowerCase()} : {}),
     ...(data.bannerColorMode === 'auto' || data.bannerColorMode === 'manual' ? {banner_color_mode: data.bannerColorMode} : {}),
+    ...(isBannerStyle(data.bannerStyle) ? {banner_style: data.bannerStyle} : {}),
   };
 }
 
@@ -574,6 +581,17 @@ export async function POST(request: Request) {
     if (oldStudioResult.error) throw oldStudioResult.error;
 
     const oldProfile = oldProfileResult.data as ExistingProfile;
+    // Users whose Premium expired must still be able to edit ordinary profile fields.
+    // Existing Premium fills are grandfathered for display only: free accounts cannot
+    // select a new paid fill or recolor a previously paid fill.
+    if (!allowed && profilePatch?.banner_style && !FREE_BANNER_STYLES.includes(profilePatch.banner_style)) {
+      const unchangedPremiumFill =
+        profilePatch.banner_style === oldProfile.banner_style &&
+        (profilePatch.banner_color === undefined || profilePatch.banner_color === oldProfile.banner_color);
+      if (!unchangedPremiumFill) {
+        throw new ApiError(403, 'Расширенные градиенты доступны только с AnimeBox Premium.');
+      }
+    }
     const oldSettings = studioSettingsFromRow(oldStudioResult.data as Record<string, unknown> | null);
     if (!allowed && profilePatch?.banner_path && profilePatch.banner_path !== oldProfile.banner_path) {
       throw new ApiError(403, 'Изображение баннера доступно только с AnimeBox Premium. Можно выбрать цвет.');
@@ -630,6 +648,7 @@ export async function POST(request: Request) {
               banner_path: oldProfile.banner_path,
               banner_color: oldProfile.banner_color,
               banner_color_mode: oldProfile.banner_color_mode,
+              banner_style: oldProfile.banner_style,
             })
             .eq('id', user.id);
         }
