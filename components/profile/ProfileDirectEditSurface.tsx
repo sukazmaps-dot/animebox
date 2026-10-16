@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import Icon from '@/components/Icon';
 import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
+import type { ProfileEditorSection } from '@/components/profile/ProfileEditorLivePreview';
 import { BANNER_COLOR_PRESETS, bannerStyleBackground, validBannerColor, visibleBannerStyle, type BannerStyle } from '@/lib/profile-banner-style';
 import { isLevelFrameKey, levelFrameAvatarScale, levelFrameLabel, LEVEL_MILESTONES, type LevelFrameKey } from '@/lib/progression';
 
@@ -26,6 +27,10 @@ type FramePayload = {
 };
 
 type Props = {
+  section?: ProfileEditorSection;
+  showPreview?: boolean;
+  onSectionChange?: (section: ProfileEditorSection) => void;
+  onFrameChange?: (frame: string | null) => void;
   username: string;
   bio: string;
   avatarUrl: string;
@@ -99,6 +104,10 @@ function BannerHexInput({ color, onChange }: { color: string; onChange: (hex: st
 }
 
 export default function ProfileDirectEditSurface({
+  section = 'profile',
+  showPreview = true,
+  onSectionChange,
+  onFrameChange,
   username,
   bio,
   avatarUrl,
@@ -129,7 +138,8 @@ export default function ProfileDirectEditSurface({
   onUseBaseBanner,
   onOpenPremium,
 }: Props) {
-  const [target, setTarget] = useState<InspectorTarget>('avatar');
+  const [profileField, setProfileField] = useState<'username'|'bio'>('username');
+  const target: InspectorTarget = section === 'profile' ? profileField : section === 'banner' ? 'banner' : 'avatar';
   const [bannerEditorMode, setBannerEditorMode] = useState<'color' | 'image'>('color');
   const [editingName, setEditingName] = useState(false);
   const [editingBio, setEditingBio] = useState(false);
@@ -153,6 +163,7 @@ export default function ProfileDirectEditSurface({
           if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить рамки.');
           if (active) {
             setFrames(payload);
+            onFrameChange?.(payload.selectedFrame ?? null);
             setFrameError('');
           }
         })
@@ -198,6 +209,7 @@ export default function ProfileDirectEditSurface({
         ...(current ?? {}),
         selectedFrame: payload.selectedFrame ?? null,
       }));
+      onFrameChange?.(payload.selectedFrame ?? null);
       window.dispatchEvent(new Event('animebox:profile-cosmetic-changed'));
     } catch (selectError) {
       setFrameError(
@@ -246,7 +258,7 @@ export default function ProfileDirectEditSurface({
     : null;
 
   function openBannerColorEditor() {
-    setTarget('banner');
+    onSectionChange?.('banner');
     setBannerEditorMode('color');
     if (window.matchMedia('(max-width: 768px)').matches) {
       window.requestAnimationFrame(() => {
@@ -260,12 +272,12 @@ export default function ProfileDirectEditSurface({
 
   function openMediaPicker(kind: 'avatar' | 'banner') {
     if (kind === 'avatar') {
-      setTarget('avatar');
+      onSectionChange?.('avatar');
       avatarInputRef.current?.click();
       return;
     }
 
-    setTarget('banner');
+    onSectionChange?.('banner');
     if (premiumActive) bannerInputRef.current?.click();
   }
 
@@ -279,17 +291,17 @@ export default function ProfileDirectEditSurface({
   }
 
   function openUsername() {
-    setTarget('username');
+    setProfileField('username'); onSectionChange?.('profile');
     setEditingName(true);
   }
 
   function openBio() {
-    setTarget('bio');
+    setProfileField('bio'); onSectionChange?.('profile');
     setEditingBio(true);
   }
 
   return (
-    <div className={styles.workspace}>
+    <div className={styles.workspace} data-settings-only={showPreview ? 'false' : 'true'}>
       <input
         ref={avatarInputRef}
         className={styles.hiddenMediaInput}
@@ -308,7 +320,7 @@ export default function ProfileDirectEditSurface({
         accept={MEDIA_ACCEPT}
         onChange={(event) => handleMediaInput('banner', event.currentTarget)}
       />
-      <section className={styles.canvas}>
+      {showPreview && <section className={styles.canvas}>
         <div className={styles.canvasHead}>
           <div>
             <span>ПРОФИЛЬ</span>
@@ -398,7 +410,7 @@ export default function ProfileDirectEditSurface({
               <button
                 type="button"
                 className={styles.frameLine}
-                onClick={() => setTarget('avatar')}
+                onClick={() => onSectionChange?.('avatar')}
                 title="Открыть инвентарь рамок"
               >
                 <span className={styles.frameDot} />
@@ -449,14 +461,14 @@ export default function ProfileDirectEditSurface({
           <strong>Всё для профиля — в одном месте.</strong>
           <span>Имя, описание, аватар, баннер и рамка теперь настраиваются в одном редакторе.</span>
         </div>
-      </section>
+      </section>}
 
       <aside ref={inspectorRef} className={styles.inspector} data-target={target}>
         <div className={styles.inspectorHead}>
           <div>
             <span>НАСТРОЙКИ ЭЛЕМЕНТА</span>
             <h3>
-              {target === 'avatar' && 'Аватар и рамка'}
+              {target === 'avatar' && (section === 'frame' ? 'Рамка профиля' : 'Аватар')}
               {target === 'banner' && 'Баннер профиля'}
               {target === 'username' && 'Имя пользователя'}
               {target === 'bio' && 'О себе'}
@@ -512,7 +524,7 @@ export default function ProfileDirectEditSurface({
 
             {bannerEditorMode === 'color' ? (
               <div role="tabpanel" className={styles.bannerPalette}>
-                <p className={styles.help}>Выбери готовый вариант или укажи свой цвет. Заливка появится после «Сохранить изменения».</p>
+                <p className={styles.help}>Выбери оттенок — изменения сразу видны в превью.</p>
                 <div className={styles.bannerPresetGrid} aria-label="Готовые цвета баннера">
                   {BANNER_COLOR_PRESETS.map((preset) => {
                     const locked = Boolean(preset.premium && !premiumActive);
@@ -560,9 +572,11 @@ export default function ProfileDirectEditSurface({
               </div>
             ) : (
               <div role="tabpanel">
-                <div className={styles.mediaPreview} data-kind="banner">
-                  {baseBannerUrl ? <img src={baseBannerUrl} alt="" /> : <span>Без базового баннера</span>}
-                </div>
+                <button type="button" className={styles.bannerDropzone} disabled={!premiumActive || bannerBusy}
+                  onClick={() => openMediaPicker('banner')}>
+                  {baseBannerUrl ? <img src={baseBannerUrl} alt="Текущий баннер" /> : <Icon name="image" size={26} />}
+                  <span>{baseBannerUrl ? 'Заменить изображение' : 'Загрузить баннер · 960×320'}</span>
+                </button>
                 <div className={styles.actionRow}>
                   <button type="button" className={styles.primaryAction} aria-busy={bannerBusy}
                     disabled={bannerBusy || !premiumActive} onClick={() => openMediaPicker('banner')}>
@@ -592,7 +606,7 @@ export default function ProfileDirectEditSurface({
 
         {target === 'avatar' && (
           <>
-            <div className={styles.inspectorSection}>
+            {section !== 'frame' && <div className={styles.inspectorSection}>
               <div className={styles.avatarControl}>
                 <span
                   className={styles.avatarControlPreview}
@@ -650,9 +664,9 @@ export default function ProfileDirectEditSurface({
                   <button type="button" onClick={() => void onUseBaseAvatar()}>Базовый вариант</button>
                 </div>
               )}
-            </div>
+            </div>}
 
-            <div className={styles.inventorySection}>
+            {section === 'frame' && <div className={styles.inventorySection}>
               <div className={styles.inventoryHead}>
                 <div>
                   <span>КОЛЛЕКЦИЯ РАМОК</span>
@@ -784,7 +798,7 @@ export default function ProfileDirectEditSurface({
                 </div>
                 {!premiumActive && <button type="button" onClick={onOpenPremium}>Подробнее</button>}
               </div>
-            </div>
+            </div>}
           </>
         )}
       </aside>
