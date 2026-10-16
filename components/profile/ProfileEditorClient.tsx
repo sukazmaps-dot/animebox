@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { observeProfileEditorDock } from '@/lib/profile-editor-dock';
+import { normalizeBannerStyle, type BannerStyle } from '@/lib/profile-banner-style';
 
 import { useAuthState } from '@/components/AuthStateProvider';
 import PremiumStudioClient, { type PremiumStudioHandle } from '@/components/premium/PremiumStudioClient';
@@ -48,6 +49,7 @@ type ProfileRow = {
   banner_path: string | null;
   banner_color?: string;
   banner_color_mode?: 'auto' | 'manual';
+  banner_style?: BannerStyle | null;
   created_at: string;
 };
 
@@ -100,6 +102,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   const [bio, setBio] = useState('');
   const [bannerColor, setBannerColor] = useState('#70618c');
   const [bannerColorMode, setBannerColorMode] = useState<'auto' | 'manual'>('auto');
+  const [bannerStyle, setBannerStyle] = useState<BannerStyle>('soft');
   const bannerColorRequestRef = useRef(0);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
@@ -147,7 +150,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
     void supabase
       .from('profiles')
-      .select('id, username, bio, avatar_path, banner_path, banner_color, banner_color_mode, created_at')
+      .select('id, username, bio, avatar_path, banner_path, banner_color, banner_color_mode, banner_style, created_at')
       .eq('id', user.id)
       .single()
       .then(({ data, error: loadError }) => {
@@ -164,6 +167,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         setBio(next.bio ?? '');
         setBannerColor(next.banner_color ?? '#70618c');
         setBannerColorMode(next.banner_color_mode ?? 'auto');
+        setBannerStyle(normalizeBannerStyle(next.banner_style));
         saveProfileCache(user.id, next);
         setLoading(false);
       });
@@ -452,6 +456,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       bio.trim() !== (profile.bio ?? '').trim() ||
       bannerColor !== (profile.banner_color ?? '#70618c') ||
       bannerColorMode !== (profile.banner_color_mode ?? 'auto') ||
+      bannerStyle !== normalizeBannerStyle(profile.banner_style) ||
       avatarFile ||
       bannerFile ||
       removeAvatar ||
@@ -522,6 +527,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                   bannerPath: finalBannerPath,
                   bannerColor,
                   bannerColorMode,
+                  bannerStyle,
                 },
               }
             : {}),
@@ -560,6 +566,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       setBio(next.bio ?? '');
       setBannerColor(next.banner_color ?? bannerColor);
       setBannerColorMode(next.banner_color_mode ?? bannerColorMode);
+      setBannerStyle(normalizeBannerStyle(next.banner_style));
       setAvatarFile(null);
       setBannerFile(null);
       setRemoveAvatar(false);
@@ -617,6 +624,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     setBio(profile.bio ?? '');
     setBannerColor(profile.banner_color ?? '#70618c');
     setBannerColorMode(profile.banner_color_mode ?? 'auto');
+    setBannerStyle(normalizeBannerStyle(profile.banner_style));
     setAvatarFile(null);
     setBannerFile(null);
     setRemoveAvatar(false);
@@ -803,6 +811,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             baseBannerUrl={displayedBanner}
             bannerColor={bannerColor}
             bannerColorMode={bannerColorMode}
+            bannerStyle={bannerStyle}
+            onBannerStyleChange={(style) => { setBannerStyle(style); setSaved(''); setBaseMediaError(''); }}
             onBannerColorChange={async (color, mode) => {
               const request = ++bannerColorRequestRef.current;
               setBannerColorMode(mode); setSaved(''); setBaseMediaError('');
