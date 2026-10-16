@@ -33,6 +33,11 @@ export function mergeAnimeMetadata(primary: Anime, fallback: Anime | undefined):
   if (positive(primaryMal) && positive(fallbackMal) && primaryMal !== fallbackMal) return primary;
 
   const result: Anime = {...primary, title: {...primary.title}};
+  // Coordinates belong to their art, not to an unrelated fallback image.
+  if (!primary.mobileHeroPosition &&
+      (!text(primary.mobileHeroImage) || primary.mobileHeroImage === fallback.mobileHeroImage)) {
+    result.mobileHeroPosition = fallback.mobileHeroPosition;
+  }
   for (const key of ['russian','romaji','english','native'] as const) {
     const a = primary.title?.[key], b = fallback.title?.[key];
     const mislabeled = (key === 'russian' && text(b) && /[А-Яа-яЁё]/.test(b) && (!text(a) || !/[А-Яа-яЁё]/.test(a))) ||
