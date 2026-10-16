@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 
 import {
   PROFILE_MEDIA_ASPECT,
+  calculateProfileMediaCropRect,
   type ProfileMediaKind,
 } from '@/lib/profile-media-crop-client';
 import {
@@ -17,6 +18,7 @@ type Props = {
   src: string;
   value: PremiumMediaTransform;
   onChange: (next: PremiumMediaTransform) => void;
+  baked?: boolean;
 };
 
 type DragState = {
@@ -41,12 +43,21 @@ export default function PremiumMediaCropEditor({
   src,
   value,
   onChange,
+  baked = false,
 }: Props) {
   const surfaceRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const [imageReady, setImageReady] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const avatar = kind === 'avatar';
+  const [dimensions, setDimensions] = useState({width:1,height:1});
+  const crop = calculateProfileMediaCropRect(dimensions.width, dimensions.height, kind, value);
+  const bakedStyle: CSSProperties = {
+    left: `${-crop.left / crop.width * 100}%`, top: `${-crop.top / crop.height * 100}%`,
+    right: 'auto', bottom:'auto', maxWidth:'none', maxHeight:'none',
+    width:`${dimensions.width / crop.width * 100}%`, height:`${dimensions.height / crop.height * 100}%`,
+    objectFit:'fill', transform:'none',
+  };
 
   function beginDrag(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.button !== 0) return;
@@ -103,9 +114,9 @@ export default function PremiumMediaCropEditor({
     >
       <div className="premium-media-crop__head">
         <span>
-          <strong>{avatar ? 'Живое кадрирование аватара' : 'Живая подгонка баннера'}</strong>
+          <strong>{baked ? (avatar ? 'Кадрирование аватара' : 'Кадрирование баннера') : (avatar ? 'Живое кадрирование аватара' : 'Живая подгонка баннера')}</strong>
           <small>
-            {avatar
+            {baked ? 'Перетащи изображение и выбери масштаб. Предпросмотр совпадает с сохранённым кадром.' : avatar
               ? 'GIF и Animated WebP продолжают двигаться прямо в редакторе. Круг показывает реальный итоговый аватар.'
               : 'Анимированный баннер продолжает двигаться. Позиция и масштаб совпадают с итоговым hero профиля.'}
           </small>
@@ -131,6 +142,14 @@ export default function PremiumMediaCropEditor({
         onPointerMove={moveDrag}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
+        tabIndex={0}
+        onKeyDown={event => {
+          const delta: Record<string, [number,number]> = {ArrowLeft:[-2,0],ArrowRight:[2,0],ArrowUp:[0,-2],ArrowDown:[0,2]};
+          const move = delta[event.key];
+          if (!move) return;
+          event.preventDefault();
+          onChange({...value,x:clamp(value.x+move[0],0,100),y:clamp(value.y+move[1],0,100)});
+        }}
         role="application"
         aria-label={avatar ? 'Живое кадрирование аватара' : 'Живая подгонка баннера'}
       >
@@ -141,8 +160,9 @@ export default function PremiumMediaCropEditor({
           aria-hidden="true"
           draggable={false}
           decoding="async"
-          style={premiumMediaStyle(value) as CSSProperties}
-          onLoad={() => {
+          style={baked ? bakedStyle : premiumMediaStyle(value) as CSSProperties}
+          onLoad={(event) => {
+            setDimensions({width:event.currentTarget.naturalWidth,height:event.currentTarget.naturalHeight});
             setImageReady(true);
             setImageFailed(false);
           }}
@@ -166,7 +186,7 @@ export default function PremiumMediaCropEditor({
 
         <div className="premium-media-crop__guide" aria-hidden="true" />
         <span className="premium-media-crop__hint" aria-hidden="true">
-          {avatar ? 'Перетащи · анимация остаётся живой' : 'Перетащи баннер'}
+          {baked ? 'Перетащи, чтобы выбрать кадр' : avatar ? 'Перетащи · анимация остаётся живой' : 'Перетащи баннер'}
         </span>
       </div>
 
