@@ -30,7 +30,7 @@ for (const [label, needle] of [
 }
 
 for (const [label, source, needle] of [
-  ['Profile Studio profile tab', editorShell, "switchTab('profile')"],
+  ['Profile Studio profile tab', editorShell, "['profile','Профиль','user']"],
   ['Profile Studio direct edit surface', editorShell, '<ProfileDirectEditSurface'],
   ['Profile Studio rewards tab', editorShell, "switchTab('rewards')"],
   ['legacy appearance URL alias remains supported', editPage, "params.tab === 'appearance' || params.tab === 'media'"],
@@ -58,7 +58,7 @@ for (const [label, source, needle] of [
   }
 }
 
-if (!editorShell.includes("type EditorTab = 'profile' | 'showcase' | 'rewards' | 'style'")) {
+if (!editorShell.includes("type EditorTab = ProfileEditorSection | 'showcase' | 'rewards'") || !editorShell.includes("'frame'")) {
   failures.push('Profile Studio Direct Edit tab contract regressed.');
 }
 
