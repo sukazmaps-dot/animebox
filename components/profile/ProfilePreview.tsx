@@ -42,6 +42,7 @@ type PreviewData = {
   avatarUrl: string;
   avatarStaticUrl: string;
   bannerUrl: string | null;
+  bannerColor?: string;
   bannerStaticUrl: string | null;
   avatarTransform: PremiumMediaTransform;
   bannerTransform: PremiumMediaTransform;
@@ -456,12 +457,7 @@ export default function ProfilePreview({
                             />
                           </picture>
                         ) : (
-                          <img
-                            src="/brand/profile-banner-default.webp"
-                            alt=""
-                            loading="eager"
-                            decoding="async"
-                          />
+                          <div aria-hidden="true" style={{position:'absolute',inset:0,background:data.bannerColor ?? '#70618c'}} />
                         )}
                       </div>
 
