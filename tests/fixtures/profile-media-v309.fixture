@@ -9,7 +9,7 @@ export default function MediaQA(){
  useEffect(()=>{(window as any).__profileMediaQA={normalizePickedImage,stabilizePickedFile,isAnimatedPickedImage,compressImage,extractDominantColor};
   const c=document.createElement('canvas');c.width=900;c.height=1200;const x=c.getContext('2d')!;x.fillStyle='#984648';x.fillRect(0,0,900,1200);x.fillStyle='#efc89a';x.fillRect(250,150,400,500);setSrc(c.toDataURL());
  },[]);
- return <main><button id="open-crop" onClick={()=>setOpen(true)}>Кадр аватара</button>
+ return <main><section className="profile-v2 premium-profile-custom"><div className="profile-v2__banner"><div data-qa-color className="profile-v2__banner-default" style={{['--profile-banner-color' as string]:'#123456'}} /></div></section><button id="open-crop" onClick={()=>setOpen(true)}>Кадр аватара</button>
  <nav className="mobile-nav" style={{display:'flex',position:'fixed',inset:'auto 0 0',height:92,zIndex:2147483647}}>Нижняя навигация</nav>
  {open&&<ProfileMediaModal busy={false} onClose={()=>setOpen(false)} labelledBy="qa-crop-title"><section className="premium-media-editor-modal__dialog is-avatar">
  <div className="premium-media-editor-modal__top"><div><span>Аватар</span><h2 id="qa-crop-title">Настрой кадр аватара</h2><p>Перетащи изображение, чтобы выбрать удобный кадр.</p></div><button aria-label="Закрыть редактор" onClick={()=>setOpen(false)}>×</button></div>
