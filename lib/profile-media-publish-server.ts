@@ -82,13 +82,14 @@ function maxAllowedBytes(scope: ProfileMediaScope, kind: ProfileMediaKind) {
   if (scope === 'premium') {
     return kind === 'avatar' ? 8 * 1024 * 1024 : 6 * 1024 * 1024;
   }
-  return 5 * 1024 * 1024;
+  return kind === 'avatar' ? 200 * 1024 : 300 * 1024;
 }
 
 function mediaGeometryLimit(
   scope: ProfileMediaScope,
   kind: ProfileMediaKind,
   variant: ProfileMediaVariant,
+  premiumBaseAvatar = false,
 ) {
   if (scope === 'premium' && variant === 'static') {
     return kind === 'avatar'
@@ -100,18 +101,18 @@ function mediaGeometryLimit(
     return {
       minWidth: scope === 'premium' ? 256 : 1,
       minHeight: scope === 'premium' ? 256 : 1,
-      maxWidth: 1024,
-      maxHeight: 1024,
-      maxPixels: 1024 * 1024,
+      maxWidth: scope === 'base' ? (premiumBaseAvatar ? 512 : 256) : 1024,
+      maxHeight: scope === 'base' ? (premiumBaseAvatar ? 512 : 256) : 1024,
+      maxPixels: scope === 'base' ? (premiumBaseAvatar ? 512 * 512 : 256 * 256) : 1024 * 1024,
     };
   }
 
   return {
     minWidth: 1,
     minHeight: 1,
-    maxWidth: 2400,
-    maxHeight: 1200,
-    maxPixels: 2400 * 1200,
+    maxWidth: scope === 'base' ? 960 : 2400,
+    maxHeight: scope === 'base' ? 320 : 1200,
+    maxPixels: scope === 'base' ? 960 * 320 : 2400 * 1200,
   };
 }
 
@@ -219,12 +220,17 @@ async function loadCandidate(candidate: ProfileMediaCandidate): Promise<LoadedMe
 function validateTechnicalMedia(
   group: ProfileMediaCandidateGroup,
   item: LoadedMedia,
+  premiumBaseAvatar = false,
 ) {
   if (item.size < 1 || item.size > maxAllowedBytes(group.scope, group.kind)) {
     throw new ApiError(413, 'Изображение превышает допустимый размер.');
   }
 
   const { inspection } = item;
+  if (!inspection.animated && item.candidate.variant === 'original' &&
+      item.size > (group.kind === 'avatar' ? 200 * 1024 : 300 * 1024)) {
+    throw new ApiError(413, 'Статичное изображение превышает допустимый размер.');
+  }
 
   if (!allowedDetectedMime(group.scope, item.candidate.variant, inspection.mimeType)) {
     throw new ApiError(400, 'Этот формат изображения нельзя использовать в выбранном режиме.');
@@ -245,11 +251,17 @@ function validateTechnicalMedia(
     );
   }
 
-  const geometry = mediaGeometryLimit(
+  let geometry = mediaGeometryLimit(
     group.scope,
     group.kind,
     item.candidate.variant,
+    premiumBaseAvatar,
   );
+  if (group.scope === 'premium' && item.candidate.variant === 'original' && !inspection.animated) {
+    geometry = {...geometry, maxWidth: group.kind === 'avatar' ? 512 : 960,
+      maxHeight: group.kind === 'avatar' ? 512 : 320,
+      maxPixels: group.kind === 'avatar' ? 512 * 512 : 960 * 320};
+  }
 
   const pixels = inspection.width * inspection.height;
   if (
@@ -293,6 +305,7 @@ async function removePaths(bucket: string, paths: string[]) {
 export async function publishProfileMediaGroups(
   userId: string,
   groups: ProfileMediaCandidateGroup[],
+  premiumBaseAvatar = false,
 ): Promise<ProfileMediaPublishResult> {
   const result: ProfileMediaPublishResult = {
     publishedPaths: [],
@@ -316,7 +329,7 @@ export async function publishProfileMediaGroups(
       }
 
       const items = await Promise.all(group.candidates.map(loadCandidate));
-      for (const item of items) validateTechnicalMedia(group, item);
+      for (const item of items) validateTechnicalMedia(group, item, premiumBaseAvatar);
 
       for (const item of items) {
         const uploadBody = Uint8Array.from(item.bytes).buffer;
