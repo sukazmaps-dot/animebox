@@ -58,4 +58,12 @@ const server=spawn(process.execPath,['node_modules/next/dist/bin/next','dev','--
  const layout=await page.locator('.home-hero-carousel').evaluate(hero=>{const img=hero.querySelector('picture img');return {fit:getComputedStyle(img).objectFit,ratio:img.getBoundingClientRect().width/hero.getBoundingClientRect().width}});
  assert.equal(layout.fit,'contain');assert(layout.ratio<0.5,'poster width bounded');await page.close();
  console.log(`PASS ${checks+1} actual React hero recovery/viewport/source-update/poster scenarios.`);
-}finally{if(browser)await browser.close();server.kill('SIGTERM');fs.closeSync(log);fs.rmSync(fixture,{recursive:true,force:true});}})().catch(error=>{console.error(error);console.error('Next log:',logPath);process.exitCode=1});
+}finally{
+ if(browser)await browser.close();
+ server.kill('SIGTERM');
+ if(server.exitCode===null&&server.signalCode===null)await new Promise(resolve=>server.once('exit',resolve));
+ fs.rmSync(fixture,{recursive:true,force:true});
+ // Generated Next validators import the temporary page even after its removal.
+ fs.rmSync('.next/dev/types',{recursive:true,force:true});
+ fs.closeSync(log);
+}})().catch(error=>{console.error(error);console.error('Next log:',logPath);process.exitCode=1});
