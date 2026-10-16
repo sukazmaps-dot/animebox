@@ -1,0 +1,19 @@
+'use client';
+import {useEffect,useState} from 'react';
+import ProfileMediaModal from '@/components/profile/ProfileMediaModal';
+import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor';
+import {normalizePickedImage,stabilizePickedFile,isAnimatedPickedImage} from '@/lib/profile-media-normalize-client';
+import {compressImage,extractDominantColor} from '@/lib/profile-media-crop-client';
+export default function MediaQA(){
+ const [open,setOpen]=useState(false),[src,setSrc]=useState(''),[value,setValue]=useState({x:50,y:50,zoom:1});
+ useEffect(()=>{(window as any).__profileMediaQA={normalizePickedImage,stabilizePickedFile,isAnimatedPickedImage,compressImage,extractDominantColor};
+  const c=document.createElement('canvas');c.width=900;c.height=1200;const x=c.getContext('2d')!;x.fillStyle='#984648';x.fillRect(0,0,900,1200);x.fillStyle='#efc89a';x.fillRect(250,150,400,500);setSrc(c.toDataURL());
+ },[]);
+ return <main><button id="open-crop" onClick={()=>setOpen(true)}>Кадр аватара</button>
+ <nav className="mobile-nav" style={{display:'flex',position:'fixed',inset:'auto 0 0',height:92,zIndex:2147483647}}>Нижняя навигация</nav>
+ {open&&<ProfileMediaModal busy={false} onClose={()=>setOpen(false)} labelledBy="qa-crop-title"><section className="premium-media-editor-modal__dialog is-avatar">
+ <div className="premium-media-editor-modal__top"><div><span>Аватар</span><h2 id="qa-crop-title">Настрой кадр аватара</h2><p>Перетащи изображение, чтобы выбрать удобный кадр.</p></div><button aria-label="Закрыть редактор" onClick={()=>setOpen(false)}>×</button></div>
+ <PremiumMediaCropEditor baked kind="avatar" src={src} value={value} onChange={setValue}/>
+ <div className="premium-media-editor-modal__actions"><button className="is-secondary" onClick={()=>setOpen(false)}>Отмена</button><button id="apply-crop" className="is-primary" onClick={()=>setOpen(false)}>Применить кадр</button></div>
+ </section></ProfileMediaModal>}</main>;
+}
