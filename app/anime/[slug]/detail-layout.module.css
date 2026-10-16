@@ -45,7 +45,7 @@
 .franchise[open] > summary::after { content: '−'; }
 .franchise :global(.anime-detail-franchise-section) { border: 0; padding: 0 0 12px; }
 /* Related rail shares the main column's edges; inner cards own no page gutter. */
-.related :global(.home-anime-rail__viewport) { padding-inline: 0; }
+.related :global(.home-anime-rail__viewport) { margin-inline: 0; padding-inline: 0; }
 .related :global(.home-anime-rail__viewport .anime-card .anime-card__body) > h3 {
   flex: 0 0 auto;
   height: 2.8em !important;
