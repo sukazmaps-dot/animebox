@@ -90,6 +90,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   const [selectedFrame, setSelectedFrame] = useState<string | null>(null);
   const [savedFrame, setSavedFrame] = useState<string | null>(null);
   const frameInitializedRef = useRef(false);
+  const [frameLoaded, setFrameLoaded] = useState(false);
   useEffect(() => {
     document.documentElement.classList.add('ab-profile-editor-open');
     return () => document.documentElement.classList.remove('ab-profile-editor-open');
@@ -502,7 +503,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       removeBanner
     )
   );
-  const frameDirty = frameInitializedRef.current && selectedFrame !== savedFrame;
+  const frameDirty = frameLoaded && selectedFrame !== savedFrame;
   const dirty = baseDirty || (premiumActive && premiumDirty) || frameDirty;
   // Expired Premium users can edit ordinary fields without repurchasing an unchanged
   // legacy Premium fill. Only a newly selected paid style or recolor needs upsell.
@@ -888,10 +889,11 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             showPreview={false}
             onSectionChange={switchTab}
             onFrameChange={setSelectedFrame}
-            selectedFrameDraft={frameInitializedRef.current ? selectedFrame : undefined}
+            selectedFrameDraft={frameLoaded ? selectedFrame : undefined}
             onFrameLoaded={frame => {
               if (frameInitializedRef.current) return;
               frameInitializedRef.current = true;
+              setFrameLoaded(true);
               setSelectedFrame(frame);
               setSavedFrame(frame);
             }}
