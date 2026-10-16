@@ -42,7 +42,7 @@ function maxBytes(scope: Scope, kind: Kind) {
   if (scope === 'premium') {
     return kind === 'avatar' ? 8 * 1024 * 1024 : 6 * 1024 * 1024;
   }
-  return 5 * 1024 * 1024;
+  return kind === 'avatar' ? 200 * 1024 : 300 * 1024;
 }
 
 function allowedMime(scope: Scope, variant: Variant, mimeType: string) {
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
       throw new ApiError(413, 'Изображение превышает допустимый размер.');
     }
 
-    if (scope === 'premium') {
+    if (scope === 'premium' || kind === 'banner') {
       const entitlements = await getEffectiveUserEntitlements(user.id);
       if (!entitlements.profileStudio || !entitlements.premiumThemes) {
         throw new ApiError(403, 'Premium-медиа доступно только с AnimeBox Premium.');
