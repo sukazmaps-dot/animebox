@@ -3094,6 +3094,8 @@
 }
 
 
+.profile-editor-v13 .premium-studio-v15__hero-main[hidden] {display:none;}
+
 /* Embedded Studio uses the editor scroll root, never a second wheel trap.
  * Its own live Premium card replaces the base profile preview in the right rail. */
 @media (min-width: 900px) {
@@ -3105,7 +3107,7 @@
     align-items: start;
   }
   .profile-editor-v13 .premium-studio-v15__hero { display: contents; }
-  .profile-editor-v13 .premium-studio-v15__hero-main {grid-column:1;grid-row:1;min-width:0;}
+  .profile-editor-v13 .premium-studio-v15__hero-main {grid-column:1;grid-row:2;min-width:0;}
   .profile-editor-v13 .premium-studio-v15__preview-wrap {
     grid-column:2;
     grid-row:1 / span 3;
@@ -3120,7 +3122,7 @@
     overflow:visible;
   }
   .profile-editor-v13 .premium-studio-v15__preview-label {position:static;margin:0 0 10px;padding:0;}
-  .profile-editor-v13 .premium-studio-v16__section-nav {grid-column:1;grid-row:2;min-width:0;}
+  .profile-editor-v13 .premium-studio-v16__section-nav {grid-column:1;grid-row:1;min-width:0;}
   .profile-editor-v13 .premium-studio-v15__sections {grid-column:1;grid-row:3;min-width:0;}
   .profile-editor-v13 .premium-studio-v15__dock {grid-column:1 / -1;grid-row:4;}
   .profile-editor-v13 .premium-studio-v15__messages {grid-column:1 / -1;grid-row:5;}

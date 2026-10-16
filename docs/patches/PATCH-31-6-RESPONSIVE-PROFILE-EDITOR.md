@@ -11,6 +11,7 @@ The 31.3 shell still inherited the 18.8 desktop two-column grid and explicit row
 - 900–1179px: horizontal navigation above form and 300–360px sticky right preview.
 - From 1180px: compact 180px menu, flexible form, 320–380px sticky right preview. Shell uses available width up to 1600px instead of 960px. Buttons remain 44–56px, not stretched to viewport height.
 - Premium replaces the base preview with its own context-aware preview and uses the full content area. Only the editor owns vertical scrolling; the desktop preview has no independent wheel trap. On mobile/tablet, the existing preview action opens a native top-layer dialog with Profile/Mini/Comment/Room contexts, focus containment and Escape support.
+- Premium section navigation precedes the palette. The palette is only shown in Appearance, so Atmosphere/Effects/Media open directly on their own controls instead of forcing a scroll past unrelated colors.
 - Switching editor sections returns the editor scroll to the top without remounting Premium or discarding its draft.
 
 ## Editing actions

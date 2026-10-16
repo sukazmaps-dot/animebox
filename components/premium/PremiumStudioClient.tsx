@@ -1123,8 +1123,16 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       </div>}
 
       <div className="premium-studio-v15__layout">
+        <div className="premium-studio-v16__section-nav" role="tablist" aria-label="Разделы Premium Studio">
+          <button type="button" role="tab" aria-selected={studioSection === 'appearance'} className={studioSection === 'appearance' ? 'is-active' : ''} onClick={() => setStudioSection('appearance')}>Оформление</button>
+          <button type="button" role="tab" aria-selected={studioSection === 'atmosphere'} className={studioSection === 'atmosphere' ? 'is-active' : ''} onClick={() => setStudioSection('atmosphere')}>Атмосфера</button>
+          <button type="button" role="tab" aria-selected={studioSection === 'effects'} className={studioSection === 'effects' ? 'is-active' : ''} onClick={() => setStudioSection('effects')}>Эффекты</button>
+          <button type="button" role="tab" aria-selected={studioSection === 'media'} className={studioSection === 'media' ? 'is-active' : ''} onClick={() => setStudioSection('media')}>Медиа</button>
+        </div>
+
+
         <div className="premium-studio-v15__hero">
-          <div className="premium-studio-v15__hero-main">
+          <div className="premium-studio-v15__hero-main" hidden={embedded && studioSection !== 'appearance'}>
             <section className="premium-studio-v12__panel premium-studio-v15__panel premium-studio-v15__palette-panel">
               <div className="premium-studio-v12__section-head premium-studio-v15__section-head">
                 <div>
@@ -1252,13 +1260,6 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
               />
             </div>
           </aside>
-        </div>
-
-        <div className="premium-studio-v16__section-nav" role="tablist" aria-label="Разделы Premium Studio">
-          <button type="button" role="tab" aria-selected={studioSection === 'appearance'} className={studioSection === 'appearance' ? 'is-active' : ''} onClick={() => setStudioSection('appearance')}>Оформление</button>
-          <button type="button" role="tab" aria-selected={studioSection === 'atmosphere'} className={studioSection === 'atmosphere' ? 'is-active' : ''} onClick={() => setStudioSection('atmosphere')}>Атмосфера</button>
-          <button type="button" role="tab" aria-selected={studioSection === 'effects'} className={studioSection === 'effects' ? 'is-active' : ''} onClick={() => setStudioSection('effects')}>Эффекты</button>
-          <button type="button" role="tab" aria-selected={studioSection === 'media'} className={studioSection === 'media' ? 'is-active' : ''} onClick={() => setStudioSection('media')}>Медиа</button>
         </div>
 
         <div className="premium-studio-v15__sections premium-studio-v16__sections">

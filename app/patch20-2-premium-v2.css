@@ -1976,4 +1976,5 @@
 .profile-editor-v13 .premium-studio-v31__theme-actions button {min-height:44px;padding:8px 12px;border:1px solid var(--ab-ui-border);border-radius:12px;background:var(--ab-ui-surface);color:var(--ab-ui-text);cursor:pointer;font-size:12px;}
 .profile-editor-v13 .premium-studio-v31__notice {font-size:12px;line-height:1.5;margin:8px 0;}
 .profile-editor-v13 .premium-studio-v15__color-list {display:grid;grid-template-columns:minmax(0,1fr);gap:12px;}
-@media(min-width:1500px) {.profile-editor-v13 .premium-studio-v15__color-list {grid-template-columns:repeat(2,minmax(0,1fr));}}
+.profile-editor-v13 .premium-studio-v15__palette-panel {container-type:inline-size;}
+@container(min-width:640px) {.profile-editor-v13 .premium-studio-v15__color-list {grid-template-columns:repeat(2,minmax(0,1fr));}}
