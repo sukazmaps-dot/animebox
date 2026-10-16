@@ -788,7 +788,7 @@ export default function HomeHeroCarousel({
             )}
             {validYear && <span>{year}</span>}
             {anime.format && <span>{anime.format === 'TV' ? 'Сериал' : anime.format === 'MOVIE' ? 'Фильм' : anime.format}</span>}
-            {Number.isSafeInteger(anime.episodes) && anime.episodes > 0 && <span>{anime.episodes} эп.</span>}
+            {typeof anime.episodes === 'number' && Number.isSafeInteger(anime.episodes) && anime.episodes > 0 && <span>{anime.episodes} эп.</span>}
           </div>
         )}
         {genre && <p className="home-hero-scene__genres">{genre}</p>}
