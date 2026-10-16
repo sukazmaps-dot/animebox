@@ -317,6 +317,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       const vp = window.visualViewport;
       document.documentElement.style.setProperty('--ab-editor-viewport-height', `${vp?.height ?? window.innerHeight}px`);
       document.documentElement.style.setProperty('--ab-editor-viewport-top', `${vp?.offsetTop ?? 0}px`);
+      const keyboardInset = Math.max(0, window.innerHeight - ((vp?.offsetTop ?? 0) + (vp?.height ?? window.innerHeight)));
+      document.documentElement.style.setProperty('--ab-editor-keyboard-inset', `${keyboardInset}px`);
     };
     updateViewport();
     window.visualViewport?.addEventListener('resize', updateViewport);
@@ -326,6 +328,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       window.visualViewport?.removeEventListener('scroll', updateViewport);
       document.documentElement.style.removeProperty('--ab-editor-viewport-height');
       document.documentElement.style.removeProperty('--ab-editor-viewport-top');
+      document.documentElement.style.removeProperty('--ab-editor-keyboard-inset');
     };
   }, []);
 
@@ -790,6 +793,9 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
               }}
             />
           </div>
+        {(error || baseMediaError) && (
+          <div className="profile-editor-v31__error" role="alert">{baseMediaError || error}</div>
+        )}
         {activeTab === 'rewards' ? (
           <div className="profile-editor-v13__showcase-tab profile-editor-v18__rewards-tab">
             <ProgressionOverview />
