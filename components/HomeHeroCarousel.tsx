@@ -36,6 +36,7 @@ import {
 } from '@/lib/media-delivery';
 
 import { getAnimeTitle } from '@/lib/anime-display';
+import { cleanSeoText, truncateSeoText } from '@/lib/seo-text';
 import { normalizedAnimeScore } from '@/lib/anime-score';
 import { localizeDetailGenres } from '@/lib/anime-detail-genres';
 import { mobileHeroObjectPosition } from '@/lib/home-hero-art';
@@ -464,6 +465,7 @@ export default function HomeHeroCarousel({
 
   const title =
     getAnimeTitle(anime);
+  const heroSummary = truncateSeoText(cleanSeoText(anime.description), 160);
   const score = normalizedAnimeScore(anime);
   const year = anime.startDate?.year;
   const validYear = typeof year === 'number' && Number.isInteger(year) && year >= 1900 && year <= 2100;
@@ -764,6 +766,7 @@ export default function HomeHeroCarousel({
         className="page-hero__content home-hero-carousel__content"
         key={`content-${anime.id}`}
       >
+        <span className="home-hero-scene__eyebrow"><span aria-hidden="true" /> Открой для себя</span>
         <h1 title={title} className={title.length > 55 ? 'is-long-title' : undefined}>
           {title}
         </h1>
@@ -775,6 +778,7 @@ export default function HomeHeroCarousel({
             {score != null && <span className={factStyles.score} aria-label={`Рейтинг: ${score.toFixed(1)} из 10`}>★ {score.toFixed(1)}</span>}
           </div>
         )}
+        {heroSummary && <p className="home-hero-scene__summary">{heroSummary}</p>}
 
         <div className="hero-actions">
           <Link

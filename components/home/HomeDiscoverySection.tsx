@@ -59,7 +59,7 @@ export default function HomeDiscoverySection() {
           <div className="section-head">
             <div className="smart-feed-heading">
               <span className="smart-section-eyebrow">
-                Для тебя
+                Твоя следующая история
               </span>
 
               <div className="smart-feed-heading__line">
@@ -77,13 +77,12 @@ export default function HomeDiscoverySection() {
                 </span>
 
                 <h2 className="section-title">
-                  Что смотреть дальше
+                  Подобрано для тебя
                 </h2>
               </div>
 
               <p>
-                Подборка меняется вместе с твоим настроением
-                и историей просмотра.
+                По твоему вкусу, истории просмотра и настроению.
               </p>
             </div>
 
