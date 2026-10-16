@@ -32,6 +32,8 @@ type Props = {
   showPreview?: boolean;
   onSectionChange?: (section: ProfileEditorSection) => void;
   onFrameChange?: (frame: string | null) => void;
+  onFrameLoaded?: (frame: string | null) => void;
+  selectedFrameDraft?: string | null;
   username: string;
   bio: string;
   avatarUrl: string;
@@ -87,6 +89,8 @@ export default function ProfileDirectEditSurface({
   showPreview = true,
   onSectionChange,
   onFrameChange,
+  onFrameLoaded,
+  selectedFrameDraft,
   username,
   bio,
   avatarUrl,
@@ -126,7 +130,6 @@ export default function ProfileDirectEditSurface({
   const [frameFilter, setFrameFilter] = useState<FrameFilter>('all');
   const [frames, setFrames] = useState<FramePayload | null>(null);
   const [frameLoading, setFrameLoading] = useState(true);
-  const [frameBusy, setFrameBusy] = useState('');
   const [frameError, setFrameError] = useState('');
   const inspectorRef = useRef<HTMLElement | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
@@ -143,7 +146,7 @@ export default function ProfileDirectEditSurface({
           if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить рамки.');
           if (active) {
             setFrames(payload);
-            onFrameChange?.(payload.selectedFrame ?? null);
+            onFrameLoaded?.(payload.selectedFrame ?? null);
             setFrameError('');
           }
         })
@@ -170,39 +173,16 @@ export default function ProfileDirectEditSurface({
     };
   }, []);
 
-  async function selectFrame(frameKey: string | null) {
-    if (frameBusy) return;
-    setFrameBusy(frameKey ?? 'none');
+  function selectFrame(frameKey: string | null) {
+    // Stage selection locally; common Save/Cancel dock owns persistence.
     setFrameError('');
-
-    try {
-      const response = await fetch('/api/community/leaderboard-rewards', {
-        method: 'POST',
-        cache: 'no-store',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'select_frame', frameKey }),
-      });
-      const payload = await response.json() as FramePayload;
-      if (!response.ok) throw new Error(payload.error || 'Не удалось выбрать рамку.');
-
-      setFrames((current) => ({
-        ...(current ?? {}),
-        selectedFrame: payload.selectedFrame ?? null,
-      }));
-      onFrameChange?.(payload.selectedFrame ?? null);
-      window.dispatchEvent(new Event('animebox:profile-cosmetic-changed'));
-    } catch (selectError) {
-      setFrameError(
-        selectError instanceof Error ? selectError.message : 'Не удалось выбрать рамку.',
-      );
-    } finally {
-      setFrameBusy('');
-    }
+    setFrames(current => ({ ...(current ?? {}), selectedFrame: frameKey }));
+    onFrameChange?.(frameKey);
   }
 
   const leagueFrames = frames?.unlockedFrames ?? [];
   const levelFrames = frames?.unlockedLevelFrames ?? [];
-  const selectedFrame = frames?.selectedFrame ?? null;
+  const selectedFrame = selectedFrameDraft === undefined ? frames?.selectedFrame ?? null : selectedFrameDraft;
   const ownedFrames = useMemo(() => {
     const level = levelFrames.map((key) => ({
       key,
@@ -688,7 +668,7 @@ export default function ProfileDirectEditSurface({
                       type="button"
                       className={styles.frameItem}
                       data-selected={!selectedFrame ? 'true' : 'false'}
-                      disabled={Boolean(frameBusy)}
+                      disabled={frameLoading}
                       onClick={() => void selectFrame(null)}
                     >
                       <span className={styles.noFrame}>○</span>
@@ -707,7 +687,7 @@ export default function ProfileDirectEditSurface({
                         className={styles.frameItem}
                         data-selected={selected ? 'true' : 'false'}
                         key={frame.key}
-                        disabled={Boolean(frameBusy)}
+                        disabled={frameLoading}
                         onClick={() => void selectFrame(selected ? null : frame.key)}
                       >
                         <span className={styles.frameThumb} data-kind={frame.kind}>

@@ -88,6 +88,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
   const [activeTab, setActiveTab] = useState<EditorTab>(normalizedTab(initialTab));
   const [selectedFrame, setSelectedFrame] = useState<string | null>(null);
+  const [savedFrame, setSavedFrame] = useState<string | null>(null);
+  const frameInitializedRef = useRef(false);
   useEffect(() => {
     document.documentElement.classList.add('ab-profile-editor-open');
     return () => document.documentElement.classList.remove('ab-profile-editor-open');
@@ -500,7 +502,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       removeBanner
     )
   );
-  const dirty = baseDirty || (premiumActive && premiumDirty);
+  const frameDirty = frameInitializedRef.current && selectedFrame !== savedFrame;
+  const dirty = baseDirty || (premiumActive && premiumDirty) || frameDirty;
   // Expired Premium users can edit ordinary fields without repurchasing an unchanged
   // legacy Premium fill. Only a newly selected paid style or recolor needs upsell.
   const bannerFillUpgradeRequired = !premiumActive &&
@@ -584,38 +587,28 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       }
 
       const studioDraft = premiumActive && premiumDirty ? premiumStudioRef.current?.getDraft() ?? premiumSettings : null;
-      const response = await profileMediaFetchWithTimeout('/api/profile/editor', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...(baseDirty
-            ? {
-                profile: {
-                  username: cleanUsername,
-                  bio: cleanBio,
-                  avatarPath: finalAvatarPath,
-                  bannerPath: finalBannerPath,
-                  bannerColor,
-                  bannerColorMode,
-                  bannerStyle,
-                },
-              }
-            : {}),
-          ...(premiumActive && premiumDirty && studioDraft ? { studio: studioDraft } : {}),
-          ...(pendingMedia.length ? { pendingMedia } : {}),
-        }),
-      }, 20_000);
-      const payload = (await response.json()) as {
-        profile?: ProfileRow;
-        settings?: PremiumStudioSettings;
-        error?: string;
-      };
-
-      if (!response.ok) {
-        if (pendingMedia.length) {
-          await discardPrivateProfileMedia(pendingMedia);
+      let payload: {profile?: ProfileRow; settings?: PremiumStudioSettings; error?: string} = {};
+      if (baseDirty || (premiumActive && premiumDirty)) {
+        const response = await profileMediaFetchWithTimeout('/api/profile/editor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...(baseDirty
+              ? { profile: {
+                  username: cleanUsername, bio: cleanBio,
+                  avatarPath: finalAvatarPath, bannerPath: finalBannerPath,
+                  bannerColor, bannerColorMode, bannerStyle,
+                } }
+              : {}),
+            ...(premiumActive && premiumDirty && studioDraft ? { studio: studioDraft } : {}),
+            ...(pendingMedia.length ? { pendingMedia } : {}),
+          }),
+        }, 20_000);
+        payload = (await response.json()) as typeof payload;
+        if (!response.ok) {
+          if (pendingMedia.length) await discardPrivateProfileMedia(pendingMedia);
+          throw new Error(payload.error || 'Не удалось сохранить профиль.');
         }
-        throw new Error(payload.error || 'Не удалось сохранить профиль.');
       }
 
       const next = payload.profile ?? profile;
@@ -676,6 +669,24 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       void refreshAuth();
       router.refresh();
 
+      if (frameDirty) {
+        try {
+          const frameResponse = await fetch('/api/community/leaderboard-rewards', {
+            method: 'POST', cache: 'no-store',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'select_frame', frameKey: selectedFrame }),
+          });
+          const frameResult = (await frameResponse.json()) as {error?:string;selectedFrame?:string|null};
+          if (!frameResponse.ok) throw new Error(frameResult.error || 'Не удалось сохранить рамку.');
+          setSavedFrame(frameResult.selectedFrame ?? null);
+          window.dispatchEvent(new Event('animebox:profile-cosmetic-changed'));
+        } catch (frameError) {
+          // Base/media updates have already committed; never delete those files here.
+          setError('Профиль сохранён, но рамку выбрать не удалось: ' +
+            (frameError instanceof Error ? frameError.message : 'Повтори попытку.'));
+          return;
+        }
+      }
       setSaved('Профиль и оформление сохранены ✓');
     } catch (requestError) {
       if (pendingMedia.length) {
@@ -689,6 +700,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
   function resetDraft() {
     if (!profile) return;
+    setSelectedFrame(savedFrame);
     bannerColorRequestRef.current++;
     setUsername(profile.username ?? '');
     setBio(profile.bio ?? '');
@@ -876,6 +888,13 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             showPreview={false}
             onSectionChange={switchTab}
             onFrameChange={setSelectedFrame}
+            selectedFrameDraft={frameInitializedRef.current ? selectedFrame : undefined}
+            onFrameLoaded={frame => {
+              if (frameInitializedRef.current) return;
+              frameInitializedRef.current = true;
+              setSelectedFrame(frame);
+              setSavedFrame(frame);
+            }}
             username={username}
             bio={bio}
             avatarUrl={resolvedAvatarPreview}

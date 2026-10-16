@@ -42,6 +42,11 @@ assert(root.includes("mode, skipSampling") && root.includes("|| skipSampling"), 
 assert(root.includes('bannerFillUpgradeRequired'),'Expired Premium owners can still save ordinary changes');
 assert(root.includes('needsPremiumCTA'),'Premium upgrade should not hijack saving normal profile changes');
 assert(root.includes('profile-editor-v31__error'),'Saving errors must remain visible above bottom dock');
+assert(direct.includes('Stage selection locally'),'Frame selection must not persist immediately');
+assert(root.includes('const frameDirty') && root.includes('selectedFrame !== savedFrame'),'Frame is part of editor draft');
+assert(root.includes("action: 'select_frame'") && root.includes('setSavedFrame(frameResult.selectedFrame'),'Shared Save must commit frame');
+assert(root.includes('setSelectedFrame(savedFrame)'),'Cancel restores saved frame');
+
 
 assert(premium.includes('selectedDemoScene'));
 assert(premiumCss.includes('.profile-editor-v13__premium-tab .premium-studio-v23__demo-scenes'));
