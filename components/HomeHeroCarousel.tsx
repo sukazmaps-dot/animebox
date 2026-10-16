@@ -778,6 +778,20 @@ export default function HomeHeroCarousel({
             {score != null && <span className={factStyles.score} aria-label={`Рейтинг: ${score.toFixed(1)} из 10`}>★ {score.toFixed(1)}</span>}
           </div>
         )}
+        {(score != null || validYear || anime.format || anime.episodes) && (
+          <div className="home-hero-scene__facts" aria-label="Информация об аниме">
+            {score != null && (
+              <span className="home-hero-scene__score">
+                <Icon name="star" size={15} weight="fill" /> {score.toFixed(1)}
+                <span className="sr-only"> из 10</span>
+              </span>
+            )}
+            {validYear && <span>{year}</span>}
+            {anime.format && <span>{anime.format === 'TV' ? 'Сериал' : anime.format === 'MOVIE' ? 'Фильм' : anime.format}</span>}
+            {Number.isSafeInteger(anime.episodes) && anime.episodes > 0 && <span>{anime.episodes} эп.</span>}
+          </div>
+        )}
+        {genre && <p className="home-hero-scene__genres">{genre}</p>}
         {heroSummary && <p className="home-hero-scene__summary">{heroSummary}</p>}
 
         <div className="hero-actions">

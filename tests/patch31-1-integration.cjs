@@ -17,6 +17,8 @@ assert(styles.includes('grid-template-areas: "plan dismiss"'));
 assert(styles.includes('.mood-chip__selected'));
 assert(mobile.includes('--hero-mobile-position'));
 assert(home.includes('mobileHeroObjectPosition') && home.includes('home-hero-scene__summary'));
+assert(home.includes('className="home-hero-scene__facts"') && home.includes('className="home-hero-scene__score"'));
+assert(styles.includes('.home-hero-scene__facts,') && styles.includes('display: none !important'));
 assert(mood.includes('onKeyDown={navigateMoods}') && mood.includes('role="radiogroup"'));
 assert(smart.includes('<AnimeIntentLink') && smart.includes('smart-card__dialog-quick-actions'));
 assert(!smart.includes('prefetch={true}'));

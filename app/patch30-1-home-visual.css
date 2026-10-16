@@ -345,7 +345,9 @@
   .home-page.home-visual-v31 .smart-feed__rail-titleline h3 { font-size: 17px !important; }
   .home-page.home-visual-v31 .smart-feed__rail-heading p { font-size: 11px !important; }
   .home-page.home-visual-v31 .home-hero-scene__eyebrow,
-  .home-page.home-visual-v31 .home-hero-scene__summary { display: none !important; }
+  .home-page.home-visual-v31 .home-hero-scene__summary,
+  .home-page.home-visual-v31 .home-hero-scene__facts,
+  .home-page.home-visual-v31 .home-hero-scene__genres { display: none !important; }
 }
 @media (min-width: 769px) and (max-height: 600px) {
   .home-page.home-visual-v31 .home-grid .page-hero__content.home-hero-carousel__content {
