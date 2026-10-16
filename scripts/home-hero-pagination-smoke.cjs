@@ -89,13 +89,13 @@ function contrast(a,b) {
       assert.equal(geometry.buttons.filter(b=>b.pressed==='true').length,1,tag+': selected count');
       assert(geometry.scroll<=width+1,tag+': document overflow');
       if(width<=768){
-        assert(geometry.art.width>=110,tag+': mobile poster not visible');
-        assert(Math.abs(geometry.art.width/geometry.art.height-2/3)<0.05,
-          tag+': poster aspect ratio not 2:3 '+JSON.stringify(geometry.art));
+        assert(Math.abs(geometry.art.width-geometry.hero.width)<=2 &&
+          Math.abs(geometry.art.height-geometry.hero.height)<=2,
+          tag+': mobile artwork must cover hero '+JSON.stringify(geometry));
         assert(geometry.titleCss.clamp==='2' && geometry.titleCss.overflow==='hidden',
           tag+': the CSS cascade disables two-line clamp '+JSON.stringify(geometry.titleCss));
-        assert(geometry.title.top>=geometry.art.bottom-2,
-          tag+': mobile headline overlays the poster '+JSON.stringify({title:geometry.title,poster:geometry.art}));
+        assert(geometry.title.top>=geometry.hero.top+96 && geometry.title.bottom<geometry.art.bottom,
+          tag+': mobile headline must sit over lower scrim '+JSON.stringify({title:geometry.title,art:geometry.art}));
       }
       assert(geometry.nav.top>=geometry.social.bottom+8,tag+': social link overlaps pagination '+JSON.stringify(geometry));
       for(const [index,item] of geometry.buttons.entries()) {

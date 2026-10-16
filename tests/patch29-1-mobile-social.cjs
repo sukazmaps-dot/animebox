@@ -22,7 +22,7 @@ assert(lobby.includes('if (!visibleRef.current || document.hidden)'), 'no backgr
 assert(lobby.includes("window.location.assign(safeTarget)"), 'secure room join must remain');
 assert(lobby.includes("intent: 'watch_party'"), 'guest login flow remains');
 assert(page.includes("import './patch29-1-home-mobile.css';"), 'home route CSS missing');
-assert(css.includes('min-height: 340px !important'), 'compact mobile hero 340');
+assert(css.includes('min-height: clamp(380px, 108vw, 460px) !important'), 'mobile art composition');
 assert(css.includes('min-height: 320px !important'), 'compact narrow mobile hero 320');
 assert(css.includes('min-height: 44px !important'), 'mobile touch targets');
 assert(css.includes('filter: none !important'), 'disable costly mobile visual filters');
