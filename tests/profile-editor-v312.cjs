@@ -24,6 +24,13 @@ assert(!card.includes('border-bottom: 1px solid rgba(255,255,255,.04)'));
 assert(card.includes("var(--profile-edit-body-surface) 100%"));
 assert(card.includes('@media (hover: none), (pointer: coarse)'));
 assert(api.includes('banner_style') && api.includes('FREE_BANNER_STYLES'));
+assert(api.includes("profilePatch.banner_style === oldProfile.banner_style"), 'Expired Premium should allow unchanged paid fill');
+assert(api.includes('profilePatch.banner_color === oldProfile.banner_color'), 'No free recolor of a paid fill');
+assert(editor.includes("setBannerStyle('soft')"), 'Free users editing a paid fill must get a free style');
+assert(editor.includes('FREE_BANNER_STYLES.includes(bannerStyle)'));
+assert(direct.includes('<BannerHexInput key={bannerColor}'), 'Hex input must remain controlled');
+assert(!direct.includes('setHexDraft(bannerColor)'), 'Never synchronously set React state inside an effect');
+
 assert(banner.includes('validBannerColor'));
 for (const p of ['lib/profile-preview-server.ts','lib/public-profile-server.ts','app/profile/page.tsx','app/profile/[id]/page.tsx','components/profile/ProfilePreview.tsx']) {
   assert(read(p).includes('bannerStyle'));
