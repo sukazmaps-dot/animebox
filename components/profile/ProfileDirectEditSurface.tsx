@@ -540,6 +540,9 @@ export default function ProfileDirectEditSurface({
                   }}>Сбросить цвет</button>
                 </div>
                 <p className={styles.help}>10 пресетов бесплатны. Расширенные градиенты и анимация — Premium.</p>
+                <button type="button" className={styles.premiumLink} onClick={onOpenPremium}>
+                  <Icon name="crown" size={15} /> Анимированный баннер и Premium-палитра
+                </button>
               </div>
             ) : (
               <div role="tabpanel">
