@@ -282,12 +282,12 @@ export default function ProfileDirectEditSurface({
             className={styles.banner}
             style={{background: bannerColor}}
             data-selected={target === 'banner' ? 'true' : 'false'}
-            onClick={() => openMediaPicker('banner')}
-            aria-label="Изменить баннер"
+            onClick={() => setTarget('banner')}
+            aria-label="Настроить баннер"
           >
-            {bannerUrl ? <img src={bannerUrl} alt="" aria-hidden="true" /> : <span className={styles.bannerEmpty}>ПРОФИЛЬ ANIMEBOX</span>}
+            {bannerUrl && <img src={bannerUrl} alt="" aria-hidden="true" />}
             <span className={styles.bannerShade} />
-            <span className={styles.editChip}><Icon name="image" size={14} /> {premiumActive ? 'Изменить баннер' : 'Цвет баннера'}</span>
+            <span className={styles.editChip}><Icon name="image" size={14} /> Изменить баннер</span>
           </button>
 
           <div className={styles.profileBody}>
@@ -326,7 +326,6 @@ export default function ProfileDirectEditSurface({
             </button>
 
             <div className={styles.identity}>
-              <span className={styles.identityEyebrow}>ПРОФИЛЬ ANIMEBOX</span>
 
               {editingName ? (
                 <input

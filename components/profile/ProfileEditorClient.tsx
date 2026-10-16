@@ -90,6 +90,12 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
 
+  useEffect(() => {
+    if (!saved) return;
+    const timer = window.setTimeout(() => setSaved(''), 3500);
+    return () => window.clearTimeout(timer);
+  }, [saved]);
+
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [bannerColor, setBannerColor] = useState('#70618c');
@@ -389,12 +395,12 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         setAvatarFile(optimized);
         setAvatarPreview(preview);
         setRemoveAvatar(false);
-        setSaved('Кадр аватара подготовлен и оптимизирован — нажми «Сохранить всё».');
+        setSaved('Кадр аватара подготовлен и оптимизирован — нажми «Сохранить изменения».');
       } else {
         setBannerFile(optimized);
         setBannerPreview(preview);
         setRemoveBanner(false);
-        setSaved('Баннер подогнан и оптимизирован — нажми «Сохранить всё».');
+        setSaved('Баннер подогнан и оптимизирован — нажми «Сохранить изменения».');
       }
 
       const editorSrc = editor.src;
@@ -815,7 +821,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             canRemoveAvatar={Boolean(profile.avatar_path || avatarFile)}
             canRemoveBanner={Boolean(profile.banner_path || bannerFile)}
             error={baseMediaError || error}
-            message={saved}
+            message=""
             onUsernameChange={(value) => {
               setUsername(value);
               setSaved('');
@@ -849,17 +855,21 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           </div>
         )}
 
-        <div ref={savebarRef} className={`profile-editor-v13__mobile-save profile-editor-v18__savebar ${dirty ? 'is-dirty' : ''}`}>
+        <div ref={savebarRef} data-visible={dirty || saving || Boolean(saved) ? 'true' : 'false'} className={`profile-editor-v13__mobile-save profile-editor-v18__savebar ${dirty ? 'is-dirty' : ''}`} role="status" aria-live="polite">
           <span className="profile-editor-v18__savebar-copy">
-            <strong>{dirty ? 'Есть несохранённые изменения' : 'Всё сохранено'}</strong>
-            <small>{dirty ? 'Проверь предпросмотр и сохрани, когда всё выглядит как нужно.' : 'Редактор профиля синхронизирован.'}</small>
+            <strong>{saving ? 'Сохраняем изменения…' : dirty ? 'Есть несохранённые изменения' : saved || 'Всё сохранено'}</strong>
+            {dirty && <small>Изменения ещё не сохранены.</small>}
           </span>
-          <button type="button" className="profile-editor-v18__reset" disabled={!dirty || saving || premiumBusy} onClick={resetDraft}>
-            Сбросить
-          </button>
-          <button type="button" disabled={!dirty || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)} onClick={() => void saveProfile()}>
-            {saving ? 'Сохраняем…' : 'Сохранить изменения'}
-          </button>
+          {(dirty || saving) && (
+            <>
+              <button type="button" className="profile-editor-v18__reset" disabled={!dirty || saving || premiumBusy} onClick={resetDraft}>
+                Сбросить
+              </button>
+              <button type="button" disabled={!dirty || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)} onClick={() => void saveProfile()}>
+                {saving ? 'Сохраняем…' : 'Сохранить изменения'}
+              </button>
+            </>
+          )}
         </div>
       </section>
 
