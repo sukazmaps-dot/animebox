@@ -75,6 +75,7 @@ export default function AnimeCard({
   return (
     <AnimeIntentLink
       href={animeHref(anime)}
+      aria-label={title}
       className={`anime-card anime-card--signature flex h-full min-w-0 flex-col ${
         compact ? 'anime-card--compact' : ''
       }`}
@@ -119,7 +120,7 @@ export default function AnimeCard({
       </div>
       }>
       <div className="anime-card__body flex min-w-0 flex-1 flex-col">
-        <h3 title={title} className="line-clamp-2">
+        <h3 className="line-clamp-2">
           {title}
         </h3>
 

@@ -34,7 +34,7 @@
 .sectionHead h2 { margin: 5px 0 0; font-size: 25px; line-height: 1.2; font-weight: 700; letter-spacing: -.025em; }
 .sectionHead > div > span { color: var(--ab-ui-accent); letter-spacing: .15em; font-size: 10px; font-weight: 650; }
 .sectionHead > a { display: inline-flex; align-items: center; min-height: 44px; font-size: 12px; color: var(--ab-ui-accent); }
-.secondary { display: grid; grid-template-columns: minmax(0, 680px); align-items: start; gap: 16px; }
+.secondary { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 16px; }
 .personal { display: grid; gap: 12px; max-width: 100%; }
 .together { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 48px; padding: 10px 16px; border: 1px solid var(--ab-ui-border); border-radius: 12px; background: var(--ab-ui-raised); color: var(--ab-ui-text); font-size: 13px; font-weight: 700; text-align: center; text-decoration: none; }
 .together:hover, .together:focus-visible { border-color: var(--ab-ui-accent); }
@@ -44,6 +44,19 @@
 .franchise > summary::after { content: '＋'; margin-left: auto; }
 .franchise[open] > summary::after { content: '−'; }
 .franchise :global(.anime-detail-franchise-section) { border: 0; padding: 0 0 12px; }
+/* Related rail shares the main column's edges; inner cards own no page gutter. */
+.related :global(.home-anime-rail__viewport) { margin-inline: 0; padding-inline: 0; }
+.related :global(.home-anime-rail__viewport .anime-card .anime-card__body) > h3 {
+  flex: 0 0 auto;
+  height: 2.8em !important;
+  min-height: 2.8em !important;
+  max-height: 2.8em !important;
+  margin: 0 !important;
+  line-height: 1.4 !important;
+}
+.related :global(.anime-card__meta) { flex: 0 0 auto; flex-wrap: nowrap; white-space: nowrap; }
+.related :global(.anime-card__meta > span) { flex: 0 0 auto; }
+.related :global(.anime-card__meta > span:last-child) { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .related :global(.anime-detail-after-hero) { padding-inline: 0 !important; padding-block: 0 !important; }
 .discussion :global(.episode-discussion-hub) { padding: 20px !important; min-height: 0 !important; }
 .discussion :global(.episode-discussion-hub__copy) h2 { font-size: 22px !important; }

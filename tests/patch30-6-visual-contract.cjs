@@ -19,8 +19,8 @@ const continueCSS = read('components/HomeContinueWatching.module.css');
 const schedule = read('components/home/HomePersonalRetentionSections.tsx');
 const plannedIcon = read('public/brand/icons/planned.svg');
 
-assert(layout.includes('grid-template-columns: minmax(0, 680px)'),
-  'right column must not push watch-together outside rating/library');
+assert(/\.secondary\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\)/.test(layout),
+  'personal actions must share the full content width with aliases/franchise');
 assert(layout.includes('.personal { display: grid; gap: 12px'), 'watch together aligned with personal stack');
 assert(detail.includes('<Link className={layout.together}'), 'watch-together CTA retained');
 assert(layout.includes('.finishedStatus') && detail.includes('finished ? ('),
