@@ -8,13 +8,14 @@ type Props = {
   username: string; bio: string; avatarUrl: string; bannerUrl: string | null;
   bannerColor: string; bannerStyle: BannerStyle; premiumActive: boolean;
   frameKey?: string | null;
+  previewPremiumFill?: boolean;
   onNavigate: (section: ProfileEditorSection) => void;
 };
 export default function ProfileEditorLivePreview({
   username, bio, avatarUrl, bannerUrl, bannerColor, bannerStyle,
-  premiumActive, frameKey, onNavigate,
+  premiumActive, frameKey, previewPremiumFill=false, onNavigate,
 }: Props) {
-  const background = bannerStyleBackground(bannerColor, visibleBannerStyle(bannerStyle, premiumActive));
+  const background = bannerStyleBackground(bannerColor, previewPremiumFill ? bannerStyle : visibleBannerStyle(bannerStyle, premiumActive));
   return (
     <section className={styles.preview} aria-label="Живой предпросмотр профиля">
       <button type="button" className={styles.banner}

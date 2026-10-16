@@ -514,7 +514,7 @@ export default function ProfileDirectEditSurface({
                         data-active={active} title={preset.label} aria-label={preset.label+(locked?' — Premium':'')}
                         aria-pressed={active}
                         onClick={() => {
-                          if(locked){onOpenPremium();return;}
+                          // Paid fills may be previewed by everyone. Saving opens the Premium upsell.
                           onBannerStyleChange?.(preset.style);
                           void onBannerColorChange?.(preset.color,'manual');
                           try {
@@ -533,7 +533,7 @@ export default function ProfileDirectEditSurface({
                     const labels:Record<BannerStyle,string>={solid:'Однотонный',soft:'Градиент',glow:'Свечение ✦',sunset:'Закат ✦'};
                     return <button type="button" key={choice} data-active={bannerStyle===choice}
                       aria-pressed={bannerStyle===choice}
-                      onClick={()=> premiumChoice&&!premiumActive ? onOpenPremium():onBannerStyleChange?.(choice)}>
+                      onClick={()=>onBannerStyleChange?.(choice)}>
                       {labels[choice]}
                     </button>;
                   })}
