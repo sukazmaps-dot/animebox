@@ -10,6 +10,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '@/components/Icon';
+import { usePlayerFullscreen } from '@/hooks/usePlayerFullscreen';
 import KodikPlayer, { type KodikPlayerHandle } from '@/components/KodikPlayer';
 import DirectVideoPlayer from '@/components/DirectVideoPlayer';
 import { useWatchSession } from '@/components/useWatchSession';
@@ -433,9 +434,6 @@ export default function AnimePlayer({
   const [started, setStarted] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
   const [theaterMode, setTheaterMode] = useState(false);
-  const [fullscreen, setFullscreen] = useState(false);
-  const [telegramAndroidMiniApp, setTelegramAndroidMiniApp] = useState(false);
-  const [telegramPseudoFullscreen, setTelegramPseudoFullscreen] = useState(false);
   const [resumeSeconds, setResumeSeconds] = useState(0);
   const [resumeOrigin, setResumeOrigin] = useState<ResumeOrigin>('none');
   const [endScreenOpen, setEndScreenOpen] = useState(false);
@@ -522,11 +520,7 @@ export default function AnimePlayer({
   const lastReportedTimelineDurationRef = useRef<number | null>(null);
   const openingSkipFallbackTimerRef = useRef<number | null>(null);
   const playerViewportRef = useRef<HTMLDivElement | null>(null);
-  const telegramFullscreenOwnedRef = useRef(false);
-  const telegramDomFullscreenOwnedRef = useRef(false);
-  const telegramOrientationOwnedRef = useRef(false);
-  const telegramWasFullscreenRef = useRef(false);
-  const telegramVerticalSwipesWereEnabledRef = useRef<boolean | null>(null);
+  const { fullscreen, pseudoFullscreen: telegramPseudoFullscreen, toggleFullscreen } = usePlayerFullscreen(playerViewportRef);
   const partySuppressUntilRef = useRef(0);
   const pendingPartyCommandRef = useRef<WatchPartyPlayerCommandDetail | null>(null);
   const lastAppliedPartyCommandSeqRef = useRef(-1);
@@ -1893,21 +1887,6 @@ export default function AnimePlayer({
   }, [isIframe, resumeSeconds, started, videoLink]);
 
   useEffect(() => {
-    const telegram = window.Telegram?.WebApp;
-    const platform = telegram?.platform?.toLowerCase() || '';
-    const isTelegramAndroid = Boolean(
-      telegram?.initData &&
-        (platform === 'android' || platform.startsWith('android_')),
-    );
-
-    const timer = window.setTimeout(() => {
-      setTelegramAndroidMiniApp(isTelegramAndroid);
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
     if (!theaterMode) return;
 
     const previousOverflow = document.body.style.overflow;
@@ -1917,206 +1896,6 @@ export default function AnimePlayer({
       document.body.style.overflow = previousOverflow;
     };
   }, [theaterMode]);
-
-  useEffect(() => {
-    if (!telegramPseudoFullscreen) return;
-
-    const telegram = window.Telegram?.WebApp;
-    const root = document.documentElement;
-    const body = document.body;
-    const previousBodyOverflow = body.style.overflow;
-    const previousBodyOverscroll = body.style.overscrollBehavior;
-    const previousRootOverflow = root.style.overflow;
-
-    body.style.overflow = 'hidden';
-    body.style.overscrollBehavior = 'none';
-    root.style.overflow = 'hidden';
-    root.classList.add('animebox-player-telegram-fullscreen');
-
-    const syncPlayerViewport = () => {
-      const visualHeight = window.visualViewport?.height;
-      const height =
-        typeof visualHeight === 'number' && Number.isFinite(visualHeight) && visualHeight > 0
-          ? visualHeight
-          : window.innerHeight;
-
-      root.style.setProperty('--animebox-player-viewport-height', `${Math.round(height)}px`);
-    };
-
-    const syncAfterForeground = () => {
-      if (document.visibilityState !== 'visible') return;
-
-      try {
-        telegram?.expand();
-      } catch {
-        // CSS pseudo-fullscreen remains the fallback.
-      }
-
-      syncPlayerViewport();
-    };
-
-    syncPlayerViewport();
-    window.visualViewport?.addEventListener('resize', syncPlayerViewport);
-    window.addEventListener('resize', syncPlayerViewport);
-    window.addEventListener('orientationchange', syncPlayerViewport);
-    document.addEventListener('visibilitychange', syncAfterForeground);
-    telegram?.onEvent?.('viewportChanged', syncPlayerViewport);
-    telegram?.onEvent?.('safeAreaChanged', syncPlayerViewport);
-    telegram?.onEvent?.('contentSafeAreaChanged', syncPlayerViewport);
-    telegram?.onEvent?.('fullscreenChanged', syncPlayerViewport);
-
-    telegramWasFullscreenRef.current = Boolean(telegram?.isFullscreen);
-    telegramFullscreenOwnedRef.current = false;
-    telegramOrientationOwnedRef.current = false;
-    telegramVerticalSwipesWereEnabledRef.current =
-      typeof telegram?.isVerticalSwipesEnabled === 'boolean'
-        ? telegram.isVerticalSwipesEnabled
-        : null;
-
-    try {
-      telegram?.expand();
-
-      // Disable Telegram's own vertical collapse gesture only while the
-      // player occupies the whole Mini App. Normal pages keep vertical swipes
-      // enabled so document scrolling continues to work on Android.
-      telegram?.disableVerticalSwipes?.();
-
-      // The CSS layer can cover only AnimeBox DOM. Telegram's own header and
-      // close/menu chrome live outside the document, so request Mini App
-      // fullscreen as well. The fixed viewport stays mounted as a fallback if
-      // the Telegram client rejects or delays the native fullscreen request.
-      if (
-        !telegramWasFullscreenRef.current &&
-        telegram?.requestFullscreen
-      ) {
-        telegram.requestFullscreen();
-        telegramFullscreenOwnedRef.current = true;
-      }
-
-      // Telegram can only lock the CURRENT orientation. Lock it only when the
-      // viewer already rotated the phone to landscape; never trap portrait.
-      if (
-        window.innerWidth > window.innerHeight &&
-        telegram?.lockOrientation &&
-        !telegram.isOrientationLocked
-      ) {
-        telegram.lockOrientation();
-        telegramOrientationOwnedRef.current = true;
-      }
-    } catch (error) {
-      // The CSS layer below is the actual Android fallback, so a Telegram SDK
-      // failure must not prevent the viewer from getting a full player surface.
-      console.warn('[AnimePlayer] Telegram fullscreen request failed:', error);
-    }
-
-    return () => {
-      body.style.overflow = previousBodyOverflow;
-      body.style.overscrollBehavior = previousBodyOverscroll;
-      root.style.overflow = previousRootOverflow;
-      root.classList.remove('animebox-player-telegram-fullscreen');
-      root.style.removeProperty('--animebox-player-viewport-height');
-      window.visualViewport?.removeEventListener('resize', syncPlayerViewport);
-      window.removeEventListener('resize', syncPlayerViewport);
-      window.removeEventListener('orientationchange', syncPlayerViewport);
-      document.removeEventListener('visibilitychange', syncAfterForeground);
-      telegram?.offEvent?.('viewportChanged', syncPlayerViewport);
-      telegram?.offEvent?.('safeAreaChanged', syncPlayerViewport);
-      telegram?.offEvent?.('contentSafeAreaChanged', syncPlayerViewport);
-      telegram?.offEvent?.('fullscreenChanged', syncPlayerViewport);
-
-      try {
-        // Undo only the gesture change AnimeBox made for pseudo-fullscreen.
-        // If Telegram already had vertical swipes disabled, keep that state.
-        if (telegramVerticalSwipesWereEnabledRef.current !== false) {
-          telegram?.enableVerticalSwipes?.();
-        }
-
-        if (telegramOrientationOwnedRef.current) {
-          telegram?.unlockOrientation?.();
-        }
-
-        if (
-          telegramFullscreenOwnedRef.current &&
-          !telegramWasFullscreenRef.current
-        ) {
-          telegram?.exitFullscreen?.();
-        }
-      } catch (error) {
-        console.warn('[AnimePlayer] Telegram fullscreen cleanup failed:', error);
-      } finally {
-        telegramFullscreenOwnedRef.current = false;
-        telegramOrientationOwnedRef.current = false;
-        telegramVerticalSwipesWereEnabledRef.current = null;
-      }
-    };
-  }, [telegramAndroidMiniApp, telegramPseudoFullscreen]);
-
-  useEffect(() => {
-    function onFullscreenChange() {
-      const activeElement =
-        document.fullscreenElement ||
-        (document as Document & { webkitFullscreenElement?: Element | null })
-          .webkitFullscreenElement;
-
-      const domFullscreenActive = Boolean(activeElement);
-      setFullscreen(domFullscreenActive);
-
-      // Kodik and other cross-origin providers can enter the browser Fullscreen
-      // API from inside their iframe. On Telegram Android that does not hide the
-      // Mini App header by itself, so mirror the provider fullscreen state to
-      // Telegram.WebApp fullscreen. This keeps the Telegram chrome out of the
-      // video while preserving the provider iframe and playback position.
-      if (!telegramAndroidMiniApp) return;
-
-      const telegram = window.Telegram?.WebApp;
-      if (!telegram?.initData) return;
-
-      try {
-        if (domFullscreenActive) {
-          telegram.expand();
-
-          if (!telegram.isFullscreen && telegram.requestFullscreen) {
-            telegram.requestFullscreen();
-            telegramDomFullscreenOwnedRef.current = true;
-          }
-
-          return;
-        }
-
-        if (
-          telegramDomFullscreenOwnedRef.current &&
-          !telegramPseudoFullscreen
-        ) {
-          telegram.exitFullscreen?.();
-          telegramDomFullscreenOwnedRef.current = false;
-        }
-      } catch (error) {
-        console.warn('[AnimePlayer] Telegram DOM fullscreen sync failed:', error);
-      }
-    }
-
-    onFullscreenChange();
-    document.addEventListener('fullscreenchange', onFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', onFullscreenChange as EventListener);
-
-    return () => {
-      document.removeEventListener('fullscreenchange', onFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', onFullscreenChange as EventListener);
-
-      if (
-        telegramDomFullscreenOwnedRef.current &&
-        !telegramPseudoFullscreen
-      ) {
-        try {
-          window.Telegram?.WebApp?.exitFullscreen?.();
-        } catch {
-          // Ignore cleanup failures from Telegram clients.
-        } finally {
-          telegramDomFullscreenOwnedRef.current = false;
-        }
-      }
-    };
-  }, [telegramAndroidMiniApp, telegramPseudoFullscreen]);
 
   useEffect(() => {
     failedCandidatesRef.current.clear();
@@ -2661,46 +2440,6 @@ export default function AnimePlayer({
     setStarted(true);
   }
 
-  async function toggleFullscreen() {
-    /*
-     * Telegram Android WebView can reject native DOM/iframe fullscreen even
-     * when the same player works in Chrome. In that environment we make the
-     * Mini App fullscreen and pin the AnimeBox viewport over the whole WebView.
-     * Playback is NOT remounted, so Kodik/HLS position is preserved.
-     */
-    if (telegramAndroidMiniApp) {
-      setTelegramPseudoFullscreen((current) => !current);
-      return;
-    }
-
-    const node = playerViewportRef.current as
-      | (HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> | void })
-      | null;
-
-    if (!node) return;
-
-    const doc = document as Document & {
-      webkitExitFullscreen?: () => Promise<void> | void;
-      webkitFullscreenElement?: Element | null;
-    };
-
-    try {
-      if (document.fullscreenElement || doc.webkitFullscreenElement) {
-        if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        } else {
-          await doc.webkitExitFullscreen?.();
-        }
-      } else if (node.requestFullscreen) {
-        await node.requestFullscreen();
-      } else {
-        await node.webkitRequestFullscreen?.();
-      }
-    } catch (error) {
-      console.warn('[AnimePlayer] fullscreen unavailable:', error);
-    }
-  }
-
   const fullscreenActive = fullscreen || telegramPseudoFullscreen;
 
   const watchTogetherMobileControls = (
@@ -2801,210 +2540,23 @@ export default function AnimePlayer({
           )
         : null}
       <div className="premium-player-accent-line pointer-events-none absolute inset-x-20 top-0 h-px bg-gradient-to-r from-transparent via-[var(--ab-ui-primary)]/70 to-transparent" />
-      {/* Premium header */}
-      <div
-        className={`${
-          watchTogetherMode ? 'watch-together-player-header' : ''
-        } animebox-player-header flex flex-col gap-5 px-4 py-4 sm:px-5 md:flex-row md:items-end md:justify-between md:px-6 md:py-5`}
-      >
-        {!watchTogetherMode && (
-          <div className="animebox-player-titleblock min-w-0">
-            <div className="mb-2 flex items-center gap-2">
-              <span className="premium-player-dot h-1.5 w-1.5 rounded-full bg-[var(--ab-ui-primary)] shadow-[0_0_14px_color-mix(in_srgb,_var(--ab-ui-primary)_95%,_transparent)]" />
-              <span className="premium-player-accent-text text-[9px] font-extrabold uppercase tracking-[0.2em] text-[color-mix(in_srgb,var(--ab-ui-accent)_65%,transparent)]">
-                AnimeBox Cinema
-              </span>
-            </div>
-
-            <h1 className="truncate text-base font-black tracking-[-0.025em] text-white sm:text-lg md:text-xl">
-              {title}
-            </h1>
-            <p className="mt-1 text-xs font-semibold text-white/35">{episodeMeta}</p>
-          </div>
-        )}
-
-        <div className={`anime-player__toolbar animebox-player-toolbar ${watchTogetherMode ? 'watch-together-player-toolbar' : ''} flex flex-wrap items-center gap-2`}>
-          {sources.length > 1 && (
-            <div className="animebox-player-source-switcher flex max-w-full items-center overflow-x-auto p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <button
-                type="button"
-                onClick={enableAutoSource}
-                aria-pressed={sourceMode === 'auto'}
-                title="AnimeBox выбирает источник по скорости и последним сбоям на этом устройстве"
-                className={`premium-player-source ${sourceMode === 'auto' ? 'is-active' : ''} shrink-0 rounded-xl px-3.5 py-2 text-[11px] font-extrabold transition-all duration-200 ${
-                  sourceMode === 'auto'
-                    ? 'bg-gradient-to-r from-[var(--ab-ui-primary)] to-[var(--ab-ui-primary)] text-white shadow-[0_8px_26px_color-mix(in_srgb,_var(--ab-ui-accent)_30%,_transparent)]'
-                    : 'text-white/40 hover:bg-white/[0.05] hover:text-white/75'
-                }`}
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--ab-ui-selected)] shadow-[0_0_8px_color-mix(in_srgb,_var(--ab-ui-accent)_55%,_transparent)]" />
-                  Авто
-                </span>
-              </button>
-
-              {sources.map((source, index) => {
-                const active = activeSourceIndex === index;
-                const status = sourceStatuses[source.name] || 'idle';
-                const manualActive = active && sourceMode === 'manual';
-
-                return (
-                  <button
-                    key={`${source.name}-${index}`}
-                    type="button"
-                    onClick={() => selectSource(index)}
-                    aria-pressed={manualActive}
-                    className={`premium-player-source ${active ? 'is-active' : ''} shrink-0 rounded-xl px-3.5 py-2 text-[11px] font-extrabold transition-all duration-200 ${
-                      manualActive
-                        ? 'bg-gradient-to-r from-[var(--ab-ui-primary)] to-[var(--ab-ui-primary)] text-white shadow-[0_8px_26px_color-mix(in_srgb,_var(--ab-ui-accent)_30%,_transparent)]'
-                        : active
-                          ? 'bg-white/[0.07] text-white/80'
-                          : 'text-white/40 hover:bg-white/[0.05] hover:text-white/75'
-                    }`}
-                  >
-                    <span className="inline-flex items-center gap-1.5">
-                      <span
-                        aria-hidden="true"
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          status === 'ready'
-                            ? 'bg-emerald-400 shadow-[0_0_8px_color-mix(in_srgb,_var(--ab-ui-success)_65%,_transparent)]'
-                            : status === 'loading'
-                              ? 'animate-pulse bg-[var(--ab-ui-selected)]'
-                              : status === 'timeout'
-                                ? 'bg-amber-400'
-                                : status === 'error'
-                                  ? 'bg-red-400'
-                                  : 'bg-white/20'
-                        }`}
-                      />
-                      {sourceLabel(source.name)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          <div
-            className="animebox-player-quality hidden min-h-11 min-w-[180px] items-center gap-3 px-3.5 lg:flex"
-            title={qualitySummary}
-          >
-            <span className={`h-2 w-2 shrink-0 rounded-full ${
-              qualityInfo?.confidence === 'verified'
-                ? 'bg-emerald-400 shadow-[0_0_9px_color-mix(in_srgb,_var(--ab-ui-success)_50%,_transparent)]'
-                : qualityInfo?.confidence === 'provider-reported'
-                  ? 'bg-amber-300'
-                  : 'bg-white/25'
-            }`} />
-            <span className="min-w-0">
-              <span className="block text-[9px] font-extrabold uppercase tracking-[0.16em] text-white/30">
-                Качество · {deliverySummary}
-              </span>
-              <span className="mt-0.5 block truncate text-[11px] font-bold text-white/75">
-                {qualitySummary}
-              </span>
-            </span>
-          </div>
-
-          <PlayerDropdown
-            label="Серия"
-            value={String(episodeNumber)}
-            options={episodeOptions}
-            onChange={selectEpisode}
-            icon={<Icon name="play" className="h-3.5 w-3.5" />}
-          />
-
-          {translationOptions.length > 0 && (
-            <PlayerDropdown
-              label={currentSource?.name === 'Kodik' ? 'Озвучка' : 'Качество'}
-              value={String(activeTranslationIndex)}
-              options={translationOptions}
-              onChange={selectTranslation}
-              align="right"
-              icon={
-                <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
-                  <path d="M5 9v6M9 6v12M13 8v8M17 5v14M21 10v4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-                </svg>
-              }
-            />
-          )}
-
-          <div className="animebox-player-actions flex flex-wrap items-center justify-end gap-2">
-          {!watchTogetherMode && (
-            <button
-              type="button"
-              data-player-action="theater"
-              onClick={() => setTheaterMode((current) => !current)}
-              aria-label={theaterMode ? 'Обычный режим' : 'Кинотеатр'}
-              aria-pressed={theaterMode}
-              className="premium-player-toolbar-button inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 text-[11px] font-bold text-white/55 transition hover:border-[color-mix(in_srgb,var(--ab-ui-accent)_20%,transparent)] hover:bg-[var(--ab-ui-primary)]/[0.07] hover:text-white"
-            >
-              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
-                <path d="M4 7h16v10H4z" stroke="currentColor" strokeWidth="1.7" />
-                <path d="M8 20h8M12 17v3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-              </svg>
-              <span className="hidden sm:inline">{theaterMode ? 'Обычный режим' : 'Кинотеатр'}</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            data-player-action="fullscreen"
-            onClick={() => void toggleFullscreen()}
-            aria-label={fullscreenActive ? 'Выйти из полного экрана' : 'Полный экран'}
-            className="premium-player-toolbar-button inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 text-[11px] font-bold text-white/55 transition hover:border-[color-mix(in_srgb,var(--ab-ui-accent)_20%,transparent)] hover:bg-[var(--ab-ui-primary)]/[0.07] hover:text-white"
-          >
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
-              <path d="M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span className="hidden sm:inline">{fullscreenActive ? 'Выйти из полного экрана' : 'Полный экран'}</span>
-          </button>
-          </div>
-        </div>
-      </div>
-
       {/* Player shell */}
       <div
         className={`animebox-player-stage-shell relative p-2.5 sm:p-3.5 md:p-4 ${
           watchTogetherMode ? 'watch-together-player-stage-shell' : ''
         }`}
       >
-        {sourceNotice && (
-          <div
-            role="status"
-            className="animebox-player-notice mb-2.5 flex items-center gap-2 px-3 py-2 text-[11px] font-semibold sm:mb-3"
-          >
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--ab-ui-selected)] shadow-[0_0_9px_color-mix(in_srgb,_var(--ab-ui-accent)_55%,_transparent)]" />
-            <span>{sourceNotice}</span>
-          </div>
-        )}
+
 
         <div
           ref={playerViewportRef}
-          className={`${watchTogetherMode && !fullscreenActive ? 'watch-together-player-viewport' : ''} ${telegramPseudoFullscreen ? 'animebox-telegram-player-viewport' : ''} ${
+          className={`animebox-player-media ${watchTogetherMode && !fullscreenActive ? 'watch-together-player-viewport' : ''} ${telegramPseudoFullscreen ? 'animebox-telegram-player-viewport' : ''} ${
             telegramPseudoFullscreen
               ? 'fixed inset-0 z-[2147483000] m-0 max-w-none overflow-hidden rounded-none border-0 bg-black shadow-none ring-0'
               : fullscreen
                 ? 'relative h-screen w-screen overflow-hidden rounded-none border-0 bg-black'
                 : 'animebox-player-viewport relative aspect-video w-full overflow-hidden bg-black'
-          } transition-all duration-300`}
-          style={
-            telegramPseudoFullscreen
-              ? {
-                  position: 'fixed',
-                  inset: 0,
-                  top: 0,
-                  right: 0,
-                  bottom: 0,
-                  left: 0,
-                  width: '100vw',
-                  height: 'var(--animebox-player-viewport-height, 100dvh)',
-                  maxWidth: 'none',
-                  margin: 0,
-                  zIndex: 2147483000,
-                }
-              : undefined
-          }
+          }`}
         >
           {isKodik && videoLink && (
             <KodikPlayer
@@ -3288,22 +2840,19 @@ export default function AnimePlayer({
             </div>
           )}
 
-          {telegramAndroidMiniApp && started && videoLink && (
+          {(
             <button
               type="button"
               onClick={() => void toggleFullscreen()}
-              className="absolute z-[70] inline-flex h-10 items-center gap-2 rounded-xl border border-white/15 bg-black/65 px-3 text-[11px] font-extrabold text-white shadow-[0_12px_36px_rgba(0,0,0,.45)] backdrop-blur-md transition active:scale-95"
-              style={{
-                top: 'max(0.75rem, var(--animebox-tg-safe-top, 0px), env(safe-area-inset-top))',
-                right: 'max(0.75rem, var(--animebox-tg-safe-right, 0px), env(safe-area-inset-right))',
-              }}
+              data-player-action="fullscreen"
+              className="animebox-player-fullscreen-button"
               aria-label={
-                telegramPseudoFullscreen
+                fullscreenActive
                   ? 'Выйти из полного экрана'
                   : 'Открыть плеер на весь экран'
               }
             >
-              {telegramPseudoFullscreen ? (
+              {fullscreenActive ? (
                 <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
                   <path d="M7 7l10 10M17 7 7 17" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
                 </svg>
@@ -3313,7 +2862,7 @@ export default function AnimePlayer({
                 </svg>
               )}
               <span className="hidden min-[390px]:inline">
-                {telegramPseudoFullscreen ? 'Выйти' : 'На весь экран'}
+                {fullscreenActive ? 'Выйти' : 'На весь экран'}
               </span>
             </button>
           )}
@@ -3369,6 +2918,168 @@ export default function AnimePlayer({
           )}
         </div>
       </div>
+
+      {/* Premium header */}
+      <div
+        className={`${
+          watchTogetherMode ? 'watch-together-player-header' : ''
+        } animebox-player-header flex flex-col gap-5 px-4 py-4 sm:px-5 md:flex-row md:items-end md:justify-between md:px-6 md:py-5`}
+      >
+        {!watchTogetherMode && (
+          <div className="animebox-player-titleblock min-w-0">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="premium-player-dot h-1.5 w-1.5 rounded-full bg-[var(--ab-ui-primary)] shadow-[0_0_14px_color-mix(in_srgb,_var(--ab-ui-primary)_95%,_transparent)]" />
+              <span className="premium-player-accent-text text-[9px] font-extrabold uppercase tracking-[0.2em] text-[color-mix(in_srgb,var(--ab-ui-accent)_65%,transparent)]">
+                AnimeBox Cinema
+              </span>
+            </div>
+
+            <h1 className="truncate text-base font-black tracking-[-0.025em] text-white sm:text-lg md:text-xl">
+              {title}
+            </h1>
+            <p className="mt-1 text-xs font-semibold text-white/35">{episodeMeta}</p>
+          </div>
+        )}
+
+        <div className={`anime-player__toolbar animebox-player-toolbar ${watchTogetherMode ? 'watch-together-player-toolbar' : ''} flex flex-wrap items-center gap-2`}>
+          {sources.length > 1 && (
+            <div className="animebox-player-source-switcher flex max-w-full items-center overflow-x-auto p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <button
+                type="button"
+                onClick={enableAutoSource}
+                aria-pressed={sourceMode === 'auto'}
+                title="AnimeBox выбирает источник по скорости и последним сбоям на этом устройстве"
+                className={`premium-player-source ${sourceMode === 'auto' ? 'is-active' : ''} shrink-0 rounded-xl px-3.5 py-2 text-[11px] font-extrabold transition-all duration-200 ${
+                  sourceMode === 'auto'
+                    ? 'bg-gradient-to-r from-[var(--ab-ui-primary)] to-[var(--ab-ui-primary)] text-white shadow-[0_8px_26px_color-mix(in_srgb,_var(--ab-ui-accent)_30%,_transparent)]'
+                    : 'text-white/40 hover:bg-white/[0.05] hover:text-white/75'
+                }`}
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--ab-ui-selected)] shadow-[0_0_8px_color-mix(in_srgb,_var(--ab-ui-accent)_55%,_transparent)]" />
+                  Авто
+                </span>
+              </button>
+
+              {sources.map((source, index) => {
+                const active = activeSourceIndex === index;
+                const status = sourceStatuses[source.name] || 'idle';
+                const manualActive = active && sourceMode === 'manual';
+
+                return (
+                  <button
+                    key={`${source.name}-${index}`}
+                    type="button"
+                    onClick={() => selectSource(index)}
+                    aria-pressed={manualActive}
+                    className={`premium-player-source ${manualActive ? 'is-active' : ''} shrink-0 rounded-xl px-3.5 py-2 text-[11px] font-extrabold transition-all duration-200 ${
+                      manualActive
+                        ? 'bg-gradient-to-r from-[var(--ab-ui-primary)] to-[var(--ab-ui-primary)] text-white shadow-[0_8px_26px_color-mix(in_srgb,_var(--ab-ui-accent)_30%,_transparent)]'
+                        : active
+                          ? 'bg-white/[0.07] text-white/80'
+                          : 'text-white/40 hover:bg-white/[0.05] hover:text-white/75'
+                    }`}
+                  >
+                    <span className="inline-flex items-center gap-1.5">
+                      <span
+                        aria-hidden="true"
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          status === 'ready'
+                            ? 'bg-emerald-400 shadow-[0_0_8px_color-mix(in_srgb,_var(--ab-ui-success)_65%,_transparent)]'
+                            : status === 'loading'
+                              ? 'animate-pulse bg-[var(--ab-ui-selected)]'
+                              : status === 'timeout'
+                                ? 'bg-amber-400'
+                                : status === 'error'
+                                  ? 'bg-red-400'
+                                  : 'bg-white/20'
+                        }`}
+                      />
+                      {sourceLabel(source.name)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div
+            className="animebox-player-quality hidden min-h-11 min-w-[180px] items-center gap-3 px-3.5 lg:flex"
+            title={qualitySummary}
+          >
+            <span className={`h-2 w-2 shrink-0 rounded-full ${
+              qualityInfo?.confidence === 'verified'
+                ? 'bg-emerald-400 shadow-[0_0_9px_color-mix(in_srgb,_var(--ab-ui-success)_50%,_transparent)]'
+                : qualityInfo?.confidence === 'provider-reported'
+                  ? 'bg-amber-300'
+                  : 'bg-white/25'
+            }`} />
+            <span className="min-w-0">
+              <span className="block text-[9px] font-extrabold uppercase tracking-[0.16em] text-white/30">
+                Качество · {deliverySummary}
+              </span>
+              <span className="mt-0.5 block truncate text-[11px] font-bold text-white/75">
+                {qualitySummary}
+              </span>
+            </span>
+          </div>
+
+          <PlayerDropdown
+            label="Серия"
+            value={String(episodeNumber)}
+            options={episodeOptions}
+            onChange={selectEpisode}
+            icon={<Icon name="play" className="h-3.5 w-3.5" />}
+          />
+
+          {translationOptions.length > 0 && (
+            <PlayerDropdown
+              label={currentSource?.name === 'Kodik' ? 'Озвучка' : 'Качество'}
+              value={String(activeTranslationIndex)}
+              options={translationOptions}
+              onChange={selectTranslation}
+              align="right"
+              icon={
+                <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+                  <path d="M5 9v6M9 6v12M13 8v8M17 5v14M21 10v4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                </svg>
+              }
+            />
+          )}
+
+          <div className="animebox-player-actions flex flex-wrap items-center justify-end gap-2">
+          {!watchTogetherMode && (
+            <button
+              type="button"
+              data-player-action="theater"
+              onClick={() => setTheaterMode((current) => !current)}
+              aria-label={theaterMode ? 'Обычный режим' : 'Кинотеатр'}
+              aria-pressed={theaterMode}
+              className="premium-player-toolbar-button inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 text-[11px] font-bold text-white/55 transition hover:border-[color-mix(in_srgb,var(--ab-ui-accent)_20%,transparent)] hover:bg-[var(--ab-ui-primary)]/[0.07] hover:text-white"
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+                <path d="M4 7h16v10H4z" stroke="currentColor" strokeWidth="1.7" />
+                <path d="M8 20h8M12 17v3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+              </svg>
+              <span className="hidden sm:inline">{theaterMode ? 'Обычный режим' : 'Кинотеатр'}</span>
+            </button>
+          )}
+
+
+          </div>
+        </div>
+      </div>
+
+
+        {sourceNotice && (
+          <div
+            role="status"
+            className="animebox-player-notice mb-2.5 flex items-center gap-2 px-3 py-2 text-[11px] font-semibold sm:mb-3"
+          >
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--ab-ui-selected)] shadow-[0_0_9px_color-mix(in_srgb,_var(--ab-ui-accent)_55%,_transparent)]" />
+            <span>{sourceNotice}</span>
+          </div>
+        )}
 
       {/* Bottom navigation. Normal episode pages use EpisodeQuickSelector as the
           single navigation surface; Watch Together keeps the embedded controls. */}

@@ -9,6 +9,7 @@ const watchProgress = read('lib/watch-progress.ts');
 const watchServer = read('lib/watch-server.ts');
 const watchSession = read('components/useWatchSession.ts');
 const player = read('components/AnimePlayer.tsx');
+const fullscreen = read('hooks/usePlayerFullscreen.ts');
 const directPlayer = read('components/DirectVideoPlayer.tsx');
 const telegramBridge = read('components/TelegramMiniAppBridge.tsx');
 
@@ -31,8 +32,8 @@ for (const [label, source, needle] of [
   ['native resume re-arm', player, 'resumeAppliedRef.current = target <= 0'],
   ['source-switch resume origin', player, "'source_switch'"],
   ['mobile native selector', player, 'className="absolute inset-0 z-[60] h-11 w-full cursor-pointer opacity-0 sm:hidden"'],
-  ['Telegram foreground viewport recovery', player, 'syncAfterForeground'],
-  ['Telegram viewport event recovery', player, "telegram?.onEvent?.('viewportChanged', syncPlayerViewport)"],
+  ['Telegram foreground viewport recovery', fullscreen, 'onForeground'],
+  ['Telegram viewport event recovery', fullscreen, "['viewportChanged', 'safeAreaChanged', 'contentSafeAreaChanged', 'activated']"],
   ['Telegram safe right metric', telegramBridge, "'--animebox-tg-safe-right'"],
   ['Telegram safe left metric', telegramBridge, "'--animebox-tg-safe-left'"],
   ['fullscreen safe bottom', directPlayer, 'var(--animebox-tg-safe-bottom, 0px)'],

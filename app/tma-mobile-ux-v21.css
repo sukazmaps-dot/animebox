@@ -189,38 +189,44 @@
    ========================================================= */
 html.animebox-player-telegram-fullscreen,
 html.animebox-player-telegram-fullscreen body {
-  width: 100% !important;
-  height: var(--animebox-player-viewport-height, 100dvh) !important;
-  min-height: var(--animebox-player-viewport-height, 100dvh) !important;
-  max-height: var(--animebox-player-viewport-height, 100dvh) !important;
   overflow: hidden !important;
   overscroll-behavior: none !important;
-  touch-action: none;
+  background: #000 !important;
 }
 
-html.animebox-player-telegram-fullscreen .app-shell,
-html.animebox-player-telegram-fullscreen .page-content,
-html.animebox-player-telegram-fullscreen .site-footer,
-html.animebox-player-telegram-fullscreen .mobile-nav,
-html.animebox-player-telegram-fullscreen .topbar,
-html.animebox-player-telegram-fullscreen .sidebar {
+/* Hide sibling surfaces along the player path. Leave the player's internal
+   visibility states intact (menus, controls and loading/error overlays). */
+html.animebox-player-telegram-fullscreen [data-player-fullscreen-hidden],
+html.animebox-player-telegram-fullscreen [data-player-fullscreen-hidden] * {
+  visibility: hidden !important;
   pointer-events: none !important;
 }
-
-html.animebox-player-telegram-fullscreen .mobile-nav,
-html.animebox-player-telegram-fullscreen .topbar,
-html.animebox-player-telegram-fullscreen .sidebar {
-  visibility: hidden !important;
+html.animebox-player-telegram-fullscreen [data-player-fullscreen-ancestor] {
+  transform: none !important;
+  translate: none !important;
+  scale: none !important;
+  rotate: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  perspective: none !important;
+  contain: none !important;
+  content-visibility: visible !important;
+  isolation: auto !important;
+  will-change: auto !important;
+  clip-path: none !important;
+  overflow: visible !important;
+  z-index: auto !important;
 }
-
 html.animebox-player-telegram-fullscreen .animebox-telegram-player-viewport {
+  display: block !important;
   position: fixed !important;
   inset: 0 !important;
   width: 100vw !important;
   width: 100dvw !important;
   height: var(--animebox-player-viewport-height, 100dvh) !important;
-  min-height: var(--animebox-player-viewport-height, 100dvh) !important;
-  max-height: var(--animebox-player-viewport-height, 100dvh) !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  aspect-ratio: auto !important;
   margin: 0 !important;
   padding: 0 !important;
   border: 0 !important;
@@ -229,11 +235,12 @@ html.animebox-player-telegram-fullscreen .animebox-telegram-player-viewport {
   background: #000 !important;
   box-shadow: none !important;
   transform: none !important;
+  transition: none !important;
   z-index: 2147483600 !important;
   pointer-events: auto !important;
-  touch-action: manipulation;
 }
-
+.animebox-player-media::backdrop { background: #000; }
+.animebox-player-media:fullscreen { width: 100vw; height: 100dvh; aspect-ratio: auto; background: #000; }
 html.animebox-player-telegram-fullscreen .animebox-telegram-player-viewport iframe,
 html.animebox-player-telegram-fullscreen .animebox-telegram-player-viewport video {
   width: 100% !important;
@@ -241,6 +248,32 @@ html.animebox-player-telegram-fullscreen .animebox-telegram-player-viewport vide
   max-width: none !important;
   max-height: none !important;
   border-radius: 0 !important;
+}
+.animebox-player-fullscreen-button {
+  position: absolute;
+  z-index: 80;
+  right: max(12px, env(safe-area-inset-right));
+  /* Keep clear of provider transport controls at the bottom edge. */
+  bottom: max(56px, env(safe-area-inset-bottom));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #ffffff40;
+  border-radius: 10px;
+  background: #000b;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+:is(.animebox-telegram-player-viewport, .animebox-player-media:fullscreen) .animebox-player-fullscreen-button {
+  top: max(12px, calc(var(--player-safe-top, 0px) + 8px), env(safe-area-inset-top));
+  right: max(12px, calc(var(--player-safe-right, 0px) + 8px), env(safe-area-inset-right));
+  bottom: auto;
 }
 
 

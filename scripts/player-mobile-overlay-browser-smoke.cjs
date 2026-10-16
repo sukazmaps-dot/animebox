@@ -50,8 +50,7 @@ body{margin:0;background:#13131b;color:white;font:12px Arial}
   <div class="premium-player-dropdown"><button class="premium-player-dropdown-trigger">Серия</button></div>
   <div class="premium-player-dropdown"><button class="premium-player-dropdown-trigger">Озвучка</button></div>
   <div class="animebox-player-actions">
-   <button class="premium-player-toolbar-button" data-player-action="theater" aria-pressed="${activeCinema}">Кинотеатр</button>
-   <button class="premium-player-toolbar-button" data-player-action="fullscreen">Полный экран</button>
+   <button class="premium-player-toolbar-button" data-player-action="theater" aria-pressed="${activeCinema}"><span>Кинотеатр</span></button>
   </div>
  </div>
 </div></body></html>`);
@@ -68,7 +67,6 @@ body{margin:0;background:#13131b;color:white;font:12px Arial}
             first:rect('.premium-player-dropdown'),
             second:rect('.premium-player-dropdown + .premium-player-dropdown'),
             actions:rect('.animebox-player-actions'),
-            fullscreen:rect('[data-player-action="fullscreen"]'),
             theater:rect('[data-player-action="theater"]') };
         });
 
@@ -83,8 +81,6 @@ body{margin:0;background:#13131b;color:white;font:12px Arial}
             'action group must follow dropdown row at '+width);
           assert(geometry.actions.width >= geometry.toolbar.width - 1,
             'action group must span all grid columns at '+width);
-          assert(Math.abs(geometry.fullscreen.right - geometry.toolbar.right) <= 2,
-            'fullscreen button must align right at '+width);
         } else {
           assert(geometry.theater.display !== 'none', 'desktop cinema must stay visible');
         }

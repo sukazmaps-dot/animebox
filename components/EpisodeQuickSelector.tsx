@@ -141,14 +141,6 @@ export default function EpisodeQuickSelector({
           <small>{safeTotal > 1 ? `из ${safeTotal}` : 'текущая'}</small>
           <span aria-hidden="true">⌄</span>
         </button>
-
-        <a
-          className="episode-quick-nav__all"
-          href="#episode-browser"
-          onClick={openFullEpisodeBrowser}
-        >
-          Все серии
-        </a>
       </div>
 
       <button
@@ -161,6 +153,14 @@ export default function EpisodeQuickSelector({
         <span>{nextLabel}</span>
         <span aria-hidden="true">→</span>
       </button>
+
+      <a
+        className="episode-quick-nav__all"
+        href="#episode-browser"
+        onClick={openFullEpisodeBrowser}
+      >
+        Все серии
+      </a>
 
       {open && (
         <>

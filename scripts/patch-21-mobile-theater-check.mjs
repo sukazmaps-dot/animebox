@@ -8,6 +8,7 @@ const episode = read('components/AnimeEpisodePage.tsx');
 const theaterCss = read('components/watch-party/WatchTogetherTheater.module.css');
 const panelCss = read('components/watch-party/WatchPartyPanel.module.css');
 const player = read('components/AnimePlayer.tsx');
+const fullscreen = read('hooks/usePlayerFullscreen.ts');
 
 for (const [label, source, needle] of [
   ['visual viewport resize listener', episode, "window.visualViewport?.addEventListener('resize', syncVisualViewport)"],
@@ -23,8 +24,8 @@ for (const [label, source, needle] of [
   ['mobile room shell visible viewport sizing', panelCss, 'var(--animebox-wt-viewport-height, 100dvh)'],
   ['chat input iOS zoom protection', panelCss, 'font-size: 16px;'],
   ['telegram pseudo fullscreen state', player, 'telegramPseudoFullscreen'],
-  ['native fullscreen listener', player, "document.addEventListener('fullscreenchange', onFullscreenChange)"],
-  ['Telegram viewport refresh', player, "telegram?.onEvent?.('viewportChanged', syncPlayerViewport)"],
+  ['native fullscreen listener', fullscreen, "document.addEventListener('fullscreenchange', sync)"],
+  ['Telegram viewport refresh', fullscreen, "['viewportChanged', 'safeAreaChanged', 'contentSafeAreaChanged', 'activated']"],
 ]) {
   if (!source.includes(needle)) {
     failures.push(`${label}: missing ${needle}`);
