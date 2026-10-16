@@ -501,6 +501,20 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     )
   );
   const dirty = baseDirty || premiumDirty;
+  // Native Telegram back follows the same draft confirmation as the close button.
+  useEffect(() => {
+    const tg = (window as Window & {Telegram?:{WebApp?:{BackButton?:{
+      show?:()=>void; hide?:()=>void; onClick?:(handler:()=>void)=>void; offClick?:(handler:()=>void)=>void;
+    }}}}).Telegram?.WebApp?.BackButton;
+    if (!tg) return;
+    const back = () => {
+      if (dirty && !window.confirm('Есть несохранённые изменения. Выйти без сохранения?')) return;
+      router.push('/profile');
+    };
+    tg.show?.(); tg.onClick?.(back);
+    return () => { tg.offClick?.(back); tg.hide?.(); };
+  }, [dirty,router]);
+
 
   useEffect(() => {
     if (!dirty) return;

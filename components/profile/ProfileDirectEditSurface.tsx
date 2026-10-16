@@ -529,7 +529,7 @@ export default function ProfileDirectEditSurface({
                 </div>
                 <div className={styles.fillModeRail} role="group" aria-label="Тип заливки">
                   {(['solid','soft','glow','sunset'] as const).map(choice => {
-                    const premiumChoice=(choice==='glow'||choice==='sunset');
+
                     const labels:Record<BannerStyle,string>={solid:'Однотонный',soft:'Градиент',glow:'Свечение ✦',sunset:'Закат ✦'};
                     return <button type="button" key={choice} data-active={bannerStyle===choice}
                       aria-pressed={bannerStyle===choice}
