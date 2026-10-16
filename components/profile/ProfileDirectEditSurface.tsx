@@ -564,10 +564,10 @@ export default function ProfileDirectEditSurface({
               </div>
             ) : (
               <div role="tabpanel">
-                <button type="button" className={styles.bannerDropzone} disabled={!premiumActive || bannerBusy}
-                  onClick={() => openMediaPicker('banner')}>
+                <button type="button" className={styles.bannerDropzone} disabled={bannerBusy}
+                  onClick={() => premiumActive ? openMediaPicker('banner') : onOpenPremium()}>
                   {baseBannerUrl ? <img src={baseBannerUrl} alt="Текущий баннер" /> : <Icon name="image" size={26} />}
-                  <span>{baseBannerUrl ? 'Заменить изображение' : 'Загрузить баннер · 960×320'}</span>
+                  <span>{premiumActive ? (baseBannerUrl ? 'Заменить изображение' : 'Загрузить баннер · 960×320') : 'Картинка баннера · Premium'}</span>
                 </button>
                 <div className={styles.actionRow}>
                   <button type="button" className={styles.primaryAction} aria-busy={bannerBusy}
@@ -588,9 +588,7 @@ export default function ProfileDirectEditSurface({
                     <button type="button" onClick={() => void onUseBaseBanner()}>Использовать базовый</button>
                   </div>
                 )}
-                {!premiumActive && <button type="button" className={styles.premiumLink} onClick={onOpenPremium}>
-                  <Icon name="crown" size={15} /> Открыть Premium-баннеры
-                </button>}
+}
               </div>
             )}
           </div>
