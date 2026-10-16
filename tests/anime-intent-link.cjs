@@ -1,3 +1,6 @@
+// React act is development-only; npm prebuild inherits production NODE_ENV in CI.
+// This override is confined to this test process, never the application build.
+process.env.NODE_ENV = 'development';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
