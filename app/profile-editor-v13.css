@@ -1439,9 +1439,13 @@ html.ab-profile-editor-open .sidebar { display: none; }
 
 .profile-editor-v13 .profile-editor-v31__error {
   display:block;
+  max-width:none;
+  margin:4px 0 0;
+  padding:0;
+  border:0;
+  background:transparent;
   color:var(--ab-ui-danger);
   font-size:11px;
-  margin-top:4px;
   white-space:normal;
 }
 
