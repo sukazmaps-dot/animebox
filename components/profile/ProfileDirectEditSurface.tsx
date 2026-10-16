@@ -588,7 +588,6 @@ export default function ProfileDirectEditSurface({
                     <button type="button" onClick={() => void onUseBaseBanner()}>Использовать базовый</button>
                   </div>
                 )}
-}
               </div>
             )}
           </div>
