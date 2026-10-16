@@ -500,7 +500,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       removeBanner
     )
   );
-  const dirty = baseDirty || premiumDirty;
+  const dirty = baseDirty || (premiumActive && premiumDirty);
   // Native Telegram back follows the same draft confirmation as the close button.
   useEffect(() => {
     const tg = (window as Window & {Telegram?:{WebApp?:{BackButton?:{
@@ -576,7 +576,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         finalBannerPath = upload.publicPath;
       }
 
-      const studioDraft = premiumDirty ? premiumStudioRef.current?.getDraft() ?? premiumSettings : null;
+      const studioDraft = premiumActive && premiumDirty ? premiumStudioRef.current?.getDraft() ?? premiumSettings : null;
       const response = await profileMediaFetchWithTimeout('/api/profile/editor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -594,7 +594,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                 },
               }
             : {}),
-          ...(premiumDirty && studioDraft ? { studio: studioDraft } : {}),
+          ...(premiumActive && premiumDirty && studioDraft ? { studio: studioDraft } : {}),
           ...(pendingMedia.length ? { pendingMedia } : {}),
         }),
       }, 20_000);

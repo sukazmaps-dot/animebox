@@ -15,7 +15,8 @@ for(const section of ["'profile'","'avatar'","'banner'","'frame'","'style'"])
   assert(root.includes(section),'Missing editor section '+section);
 assert(root.includes('ProfileEditorLivePreview'));
 assert(root.includes("data-visible=\"true\""),'Save dock should remain available in clean state');
-assert(root.includes('const dirty = baseDirty || premiumDirty'),'Unsaved changes must use shared draft state');
+assert(root.includes('const dirty = baseDirty || (premiumActive && premiumDirty)'),'Free Premium demo must not mark base form dirty');
+assert(root.includes('premiumActive && premiumDirty && studioDraft'),'Free profile save must not submit paid demo settings');
 assert(root.includes("confirm('Есть несохранённые изменения."),'Close must confirm when dirty');
 assert(root.includes('BackButton'),'Telegram native back handler needed');
 assert(baseCss.includes('position: fixed') && baseCss.includes('--ab-editor-keyboard-inset'));
