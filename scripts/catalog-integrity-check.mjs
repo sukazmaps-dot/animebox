@@ -144,7 +144,7 @@ if (
 
 if (
   !homeFeed.includes('refreshCatalogAvailabilityBatch(') ||
-  !homeFeed.includes("animebox-home-initial-feed-v7-saved-first-screen")
+  !homeFeed.includes("animebox-home-initial-feed-v8-hero-art")
 ) {
   failures.push('home feed does not warm hidden/stale playback candidates');
 }

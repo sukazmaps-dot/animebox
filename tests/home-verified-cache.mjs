@@ -12,6 +12,7 @@ try {
    a.path==='server-only'?'':
    a.path==='next/cache'?`export const unstable_cache=fn=>{let cached;return async()=>{if(cached)return cached;cached=await fn();return cached}};`:
    a.path==='next/server'?`export const after=fn=>fn();`:
+   a.path==='@/lib/home-hero-art-server'?`export const enrichHomeHeroArt=async items=>items;`:
    a.path==='@/lib/combined-anime'?`export async function getAnimesWithShikimori(options){if(globalThis.homeCacheTest.partial&&options.status)throw new Error('ongoing provider unavailable');globalThis.homeCacheTest.upstream=(globalThis.homeCacheTest.upstream??0)+1;return [{id:1,metadataSource:globalThis.homeCacheTest.saved?'saved':undefined}]}`:
    a.path==='@/lib/anime-public-metadata-server'?`export const scheduleHomeMetadataRefresh=()=>{};`:
    a.path==='@/lib/saved-catalog-server'?`export async function getSavedCatalogPage(options){return {anime:globalThis.homeCacheTest.savedFirst||(globalThis.homeCacheTest.partial&&!options.status)?[{id:2,metadataSource:'saved'}]:[]}}`:

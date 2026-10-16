@@ -44,15 +44,15 @@ assert(home.includes('revalidate = 900'), 'Home ISR contract changed');
 assert(next.includes('unoptimized: true'), 'Global Image optimizer quota contract changed');
 
 assert.equal((hero.match(/<Image\s/g) ?? []).length, 1, 'Hero must use exactly one image');
-assert.equal((hero.match(/^\s*<picture>\s*$/gm) ?? []).length, 1, 'One picture for desktop/mobile');
+assert.equal((hero.match(/^\s*<picture(?:\s[^>]*)?>\s*$/gm) ?? []).length, 1, 'One picture for desktop/mobile');
 for (const needle of [
   'buildAnimeBoxMediaCandidates(', 'buildAnimeBoxMediaSrcSet(',
   "buildAnimeBoxMediaDefaultVariant(", 'media="(max-width: 768px)"',
-  'media="(min-width: 769px)"', "loading={safeActiveIndex === 0",
-  "fetchPriority={safeActiveIndex === 0", 'priority={false}',
-  'setMobileAttemptIndex((current) => current + 1)',
-  'setBackdropAttemptIndex((current) => current + 1)',
-  '...sources.map((src) => ({ src, fallback: true }))',
+  'media="(min-width: 769px)"', 'loading="eager"',
+  "fetchPriority={firstSlide", 'priority={false}',
+  'Math.min(current + 1, mobileAttempts.length)',
+  'Math.min(current + 1, backdropAttempts.length)',
+  'proxyImageUrl(src)',
   "window.matchMedia('(max-width: 768px)').matches",
 ]) {
   assert(hero.includes(needle), 'Hero missing performance/recovery contract: ' + needle);

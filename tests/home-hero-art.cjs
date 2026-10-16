@@ -36,7 +36,7 @@ const {renderToStaticMarkup} = require('react-dom/server');
 const media = load('lib/media-delivery.ts');
 const imageService = load('lib/image-service.ts', {'@/lib/media-delivery':media});
 const taxonomy = load('lib/anime-taxonomy.ts');
-const Hero = load('components/HomeHeroCarousel.tsx', {
+const heroModule = load('components/HomeHeroCarousel.tsx', {
   'next/link':{default:({children,...props})=>React.createElement('a',props,children)},
   'next/image':{default:({fill,priority,unoptimized,fetchPriority,...props})=>React.createElement('img',props)},
   'next/navigation':{useRouter:()=>({push:()=>{throw Error('SSR navigation');}})},
@@ -52,7 +52,8 @@ const Hero = load('components/HomeHeroCarousel.tsx', {
   '@/lib/anime-score':load('lib/anime-score.ts'),
   '@/lib/anime-detail-genres':load('lib/anime-detail-genres.ts',{'@/lib/anime-taxonomy':taxonomy}),
   '@/lib/home-hero-art':{mobileHeroObjectPosition:position},
-}).default;
+});
+const Hero = heroModule.default;
 const render = item=>renderToStaticMarkup(React.createElement(Hero,{popular:[item],ongoing:[]}));
 let html=render(anime);
 assert(!html.includes('class="facts"'),'missing data must not create an empty facts row');
@@ -68,3 +69,13 @@ assert.equal((html.match(/<img /g)||[]).length,1,'one image for all media');
 assert(/media="\(max-width: 768px\)"[^>]+curated/.test(html),'curated art selected before cover in actual picture');
 assert(!html.includes('42vw'),'responsive sizes must match full hero width');
 console.log('PASS actual carousel SSR: curated picture source, normalized/missing facts, unknown genre, image-free recovery and actions.');
+
+const artworkAnime = {...anime,bannerImage:'https://s4.anilist.co/banner.jpg',coverImage:{large:'https://s4.anilist.co/poster.jpg'}};
+const desktop=heroModule.getHeroBackdropAttempts(artworkAnime);
+const mobile=heroModule.getMobileHeroAttempts(artworkAnime);
+assert(desktop.find(a=>a.src.startsWith('/api/image?')&&decodeURIComponent(a.src).includes('/banner.jpg')),'desktop has same-origin banner rescue');
+assert(mobile.find(a=>a.src.startsWith('/api/image?')&&decodeURIComponent(a.src).includes('/poster.jpg')),'mobile has same-origin poster rescue');
+assert.equal(desktop[0].poster,false);
+assert.equal(mobile[0].poster,true);
+assert(desktop.find(a=>a.src.endsWith('/poster.jpg')).poster,'poster fallback retains its layout kind');
+console.log('PASS desktop/mobile artwork direction and same-origin recovery candidates.');

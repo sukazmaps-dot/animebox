@@ -199,12 +199,12 @@ if (
   !hero.includes("from 'next/image'") ||
   !hero.includes('buildAnimeBoxMediaSrcSet(') ||
   !hero.includes('buildAnimeBoxMediaCandidates(') ||
-  !hero.includes('...sources.map((src) => ({ src, fallback: true }))') ||
-  !hero.includes('<picture>') ||
+  !hero.includes('proxyImageUrl(src)') ||
+  !hero.includes('<picture data-hero-desktop-kind=') ||
   !hero.includes('media="(max-width: 768px)"') ||
   !hero.includes('priority={false}') ||
-  !hero.includes('loading={safeActiveIndex === 0') ||
-  !hero.includes('fetchPriority={safeActiveIndex === 0') ||
+  !hero.includes('loading="eager"') ||
+  !hero.includes('fetchPriority={firstSlide') ||
   !hero.includes('unoptimized') ||
   (hero.match(/<Image\s/g) ?? []).length !== 1 ||
   (hero.match(/fetchPriority=.*high/g) ?? []).length > 1

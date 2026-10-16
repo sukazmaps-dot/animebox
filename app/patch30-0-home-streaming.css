@@ -57,6 +57,18 @@
     border-color: color-mix(in srgb, var(--ab-ui-accent) 42%, var(--ab-ui-border));
   }
 }
+/* A portrait fallback is a poster, not a full-width cinematic backdrop. */
+@media (min-width: 769px) {
+  .home-page .home-grid .home-hero-carousel > picture[data-hero-desktop-kind="poster"] .home-hero-carousel__backdrop {
+    inset: 4% 3% 4% auto !important;
+    width: 43% !important;
+    height: 92% !important;
+    object-fit: contain !important;
+    object-position: right center !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
 @media (max-width: 768px) {
   /* Patch 30.8: a single full-bleed mobile artwork. Geometry belongs here;
      content spacing belongs to patch29-1-home-mobile.css, not another layer. */

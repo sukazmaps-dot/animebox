@@ -1,0 +1,27 @@
+'use client';
+import { useState } from 'react';
+import '../patch29-1-home-mobile.css';
+import '../patch30-0-home-streaming.css';
+import '../patch30-1-home-visual.css';
+import HomeHeroCarousel from '@/components/HomeHeroCarousel';
+export default function QAHeroRecovery() {
+  const [mode, setMode] = useState('normal');
+  const items = [0, 1].map(i => ({
+    id: 202957 + i,
+    title: { russian: `Проверка восстановления арта ${i}` },
+    genres: ['Adventure'], score: 7.6, startDate: { year: 2026 },
+    bannerImage: mode === 'poster' ? null : `https://qa-images.test/banner-${mode}-${i}.jpg`,
+    mobileHeroImage: `https://qa-images.test/portrait-${mode}-${i}.jpg`,
+    mobileHeroPosition: { x: 60, y: 15 },
+    coverImage: { extraLarge: `https://qa-images.test/cover-${mode}-${i}.jpg` },
+  }));
+  // Without any dedicated art, the desktop recovery must use poster layout.
+  if (mode === 'poster') items.forEach(item => { item.mobileHeroImage = ''; });
+  return <>
+    <button data-update onClick={() => setMode('updated')}>Обновить источники</button>
+    <button data-poster onClick={() => setMode('poster')}>Без баннера</button>
+    <div className="home-page home-visual-v31" data-fixture-mode={mode}><div className="home-grid home-grid--main"><div className="main-column">
+      <HomeHeroCarousel popular={items} ongoing={[]} />
+    </div></div></div>
+  </>;
+}
