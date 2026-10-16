@@ -919,7 +919,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           <button type="button" className="profile-editor-v18__reset" disabled={saving} onClick={cancelChanges}>
             Отмена
           </button>
-          <button type="button" disabled={!dirty || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)}
+          <button type="button" disabled={(!dirty && !(activeTab === 'style' && !premiumActive)) || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)}
             onClick={() => !premiumActive && activeTab === 'style' ? router.push('/premium#premium-plans') : void saveProfile()}>
             {saving ? 'Сохраняем…' : !premiumActive && activeTab === 'style' ? 'Сохранить с Premium' : 'Сохранить'}
           </button>

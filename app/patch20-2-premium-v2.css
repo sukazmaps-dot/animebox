@@ -1888,3 +1888,81 @@
     justify-content: flex-start;
   }
 }
+
+/* Patch 31.3: compact embedded Premium demos in the fullscreen profile workspace.
+ * Existing standalone Premium page retains its full-size presentation. */
+.profile-editor-v13__premium-tab .premium-studio-v23__demo {
+  width:100%;
+  margin: 0 auto;
+  display:grid;
+  gap:12px;
+}
+.profile-editor-v13__premium-tab .premium-studio-v23__demo-copy { padding:0; }
+.profile-editor-v13__premium-tab .premium-studio-v23__demo-copy > span { display:none; }
+.profile-editor-v13__premium-tab .premium-studio-v23__demo-copy h1 {
+  margin: 0 0 4px;
+  font-size:clamp(20px,5vw,26px);
+}
+.profile-editor-v13__premium-tab .premium-studio-v23__demo-copy p {
+  font-size:11px;
+  line-height:1.5;
+  max-width:500px;
+}
+.profile-editor-v13__premium-tab .premium-studio-v23__demo-scenes {
+  display:flex;
+  flex-wrap:nowrap;
+  gap:10px;
+  overflow-x:auto;
+  padding:4px 2px 12px;
+  scroll-snap-type:x mandatory;
+  scrollbar-width:thin;
+}
+.profile-editor-v13__premium-tab .premium-studio-v23__demo-scenes button {
+  flex:0 0 132px;
+  width:132px;
+  min-width:132px;
+  min-height:112px;
+  padding:6px;
+  scroll-snap-align:start;
+  border-radius:14px;
+}
+.profile-editor-v13__premium-tab .premium-studio-v23__demo-scenes button[aria-pressed='true'] {
+  border-color:var(--ab-ui-accent);
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--ab-ui-accent) 18%,transparent);
+}
+.profile-editor-v13__premium-tab .premium-studio-v23__demo-scenes button > i {
+  width:120px;
+  height:72px;
+  min-height:72px;
+  border-radius:10px;
+}
+.profile-editor-v13__premium-tab .premium-studio-v23__demo-scenes strong {
+  font-size:11px;
+  text-align:center;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.profile-editor-v13__premium-tab .premium-studio-v23__demo-scenes small {display:none;}
+.profile-editor-v13__premium-tab .premium-studio-v23__preview-tabs {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:4px;
+  width:100%;
+}
+.profile-editor-v13__premium-tab .premium-studio-v23__preview-tabs button {
+  min-width:0;
+  min-height:44px;
+  padding:8px 3px;
+  font-size:10px;
+}
+.profile-editor-v13__premium-tab .premium-studio-v23__demo-actions {display:none;}
+.profile-editor-v13__premium-tab .premium-studio-v23__demo-preview {max-width:560px;width:100%;margin:auto;gap:10px;}
+.profile-editor-v13__premium-tab .premium-studio-v23__preview,
+.profile-editor-v13__premium-tab .premium-studio-v12__preview {min-height:0;}
+.profile-editor-v13__premium-tab .premium-studio-v23__preview .premium-studio-v15__preview-body {
+  min-height:0;
+}
+.profile-editor-v13__premium-tab .premium-profile-v21__nickname {
+  letter-spacing:normal;
+}
