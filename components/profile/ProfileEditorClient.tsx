@@ -781,10 +781,10 @@ function ProfileEditorWorkspace({ initialTab = 'profile' }: Props) {
       if(!(event.ctrlKey||event.metaKey))return;
       if(event.key.toLowerCase()==='s') {
         event.preventDefault();
-        if(!document.querySelector('dialog[open]'))document.querySelector<HTMLButtonElement>('[data-editor-save]')?.click();
+        if(!document.querySelector('dialog[open],[aria-modal="true"]'))document.querySelector<HTMLButtonElement>('[data-editor-save]')?.click();
         return;
       }
-      if(editorBusy || document.querySelector('dialog[open]'))return;
+      if(editorBusy || document.querySelector('dialog[open],[aria-modal="true"]'))return;
       const target=event.target as HTMLElement;
       // Text inputs keep native undo; the toolbar undoes changes across sections.
       if(target.closest('input,textarea,[contenteditable="true"]'))return;
