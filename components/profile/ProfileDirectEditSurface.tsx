@@ -4,8 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import Icon from '@/components/Icon';
 import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
+import BannerColorSheet from '@/components/profile/BannerColorSheet';
 import type { ProfileEditorSection } from '@/components/profile/ProfileEditorLivePreview';
-import { BANNER_COLOR_PRESETS, bannerStyleBackground, validBannerColor, visibleBannerStyle, type BannerStyle } from '@/lib/profile-banner-style';
+import { BANNER_COLOR_PRESETS, bannerStyleBackground, visibleBannerStyle, type BannerStyle } from '@/lib/profile-banner-style';
 import { isLevelFrameKey, levelFrameAvatarScale, levelFrameLabel, LEVEL_MILESTONES, type LevelFrameKey } from '@/lib/progression';
 
 import styles from './ProfileDirectEditSurface.module.css';
@@ -81,28 +82,6 @@ function formatExpiry(value?: string | null) {
   }).format(date);
 }
 
-function BannerHexInput({ color, onChange }: { color: string; onChange: (hex: string) => void }) {
-  const [draft, setDraft] = useState(color);
-  const [error, setError] = useState('');
-  return (
-    <>
-      <label className={styles.field}>
-        <span><strong>Свой цвет (HEX)</strong></span>
-        <input type="text" inputMode="text" spellCheck={false} maxLength={7}
-          value={draft} aria-invalid={Boolean(error)} aria-label="HEX цвет баннера"
-          onChange={event => { setDraft(event.target.value); setError(''); }}
-          onBlur={() => {
-            if (!validBannerColor(draft)) { setError('Используй #RRGGBB'); return; }
-            onChange(draft);
-          }}
-          onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }}
-        />
-      </label>
-      {error && <p className={styles.messageError} role="alert">{error}</p>}
-    </>
-  );
-}
-
 export default function ProfileDirectEditSurface({
   section = 'profile',
   showPreview = true,
@@ -141,6 +120,7 @@ export default function ProfileDirectEditSurface({
   const [profileField, setProfileField] = useState<'username'|'bio'>('username');
   const target: InspectorTarget = section === 'profile' ? profileField : section === 'banner' ? 'banner' : 'avatar';
   const [bannerEditorMode, setBannerEditorMode] = useState<'color' | 'image'>('color');
+  const [sheetStart, setSheetStart] = useState<{color:string;mode:'auto'|'manual'}|null>(null);
   const [editingName, setEditingName] = useState(false);
   const [editingBio, setEditingBio] = useState(false);
   const [frameFilter, setFrameFilter] = useState<FrameFilter>('all');
@@ -525,50 +505,62 @@ export default function ProfileDirectEditSurface({
             {bannerEditorMode === 'color' ? (
               <div role="tabpanel" className={styles.bannerPalette}>
                 <p className={styles.help}>Выбери оттенок — изменения сразу видны в превью.</p>
-                <div className={styles.bannerPresetGrid} aria-label="Готовые цвета баннера">
-                  {BANNER_COLOR_PRESETS.map((preset) => {
-                    const locked = Boolean(preset.premium && !premiumActive);
-                    const active = bannerColor.toLowerCase() === preset.color && bannerStyle === preset.style && bannerColorMode === 'manual';
+                <div className={styles.bannerPresetGrid} aria-label="Цвета баннера">
+                  {BANNER_COLOR_PRESETS.map(preset => {
+                    const locked=Boolean(preset.premium && !premiumActive);
+                    const active=bannerColor.toLowerCase()===preset.color && bannerStyle===preset.style && bannerColorMode==='manual';
                     return (
                       <button type="button" key={preset.label} className={styles.bannerPreset}
-                        data-active={active} aria-pressed={active}
-                        aria-label={`${preset.label}${locked ? ' — Premium' : ''}`}
+                        data-active={active} title={preset.label} aria-label={preset.label+(locked?' — Premium':'')}
+                        aria-pressed={active}
                         onClick={() => {
-                          if (locked) { onOpenPremium(); return; }
+                          if(locked){onOpenPremium();return;}
                           onBannerStyleChange?.(preset.style);
-                          void onBannerColorChange?.(preset.color, 'manual');
+                          void onBannerColorChange?.(preset.color,'manual');
+                          try {
+                            (window as Window & {Telegram?:{WebApp?:{HapticFeedback?:{selectionChanged?:()=>void}}}}).Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
+                          }catch {}
                         }}>
-                        <span className={styles.bannerPresetSwatch} style={{background:bannerStyleBackground(preset.color,preset.style)}} aria-hidden="true" />
-                        <span>{preset.label}{locked && ' ✦'}</span>
+                        <span className={styles.bannerPresetSwatch} style={{background:bannerStyleBackground(preset.color,preset.style)}} />
+                        {locked && <span className={styles.premiumStar} aria-hidden="true">✦</span>}
                       </button>
                     );
                   })}
                 </div>
-                <div className={styles.bannerModes} role="group" aria-label="Тип фона баннера">
-                  {(['solid','soft','glow','sunset'] as const).map((choice) => {
-                    const locked = (choice === 'glow' || choice === 'sunset') && !premiumActive;
-                    const labels: Record<BannerStyle, string> = {solid:'Однотонный',soft:'Градиент',glow:'Свечение ✦',sunset:'Закат ✦'};
-                    return <button type="button" key={choice} data-active={bannerStyle===choice} aria-pressed={bannerStyle===choice}
-                      onClick={() => locked ? onOpenPremium() : onBannerStyleChange?.(choice)}>{labels[choice]}</button>;
+                <div className={styles.fillModeRail} role="group" aria-label="Тип заливки">
+                  {(['solid','soft','glow','sunset'] as const).map(choice => {
+                    const premiumChoice=(choice==='glow'||choice==='sunset');
+                    const labels:Record<BannerStyle,string>={solid:'Однотонный',soft:'Градиент',glow:'Свечение ✦',sunset:'Закат ✦'};
+                    return <button type="button" key={choice} data-active={bannerStyle===choice}
+                      aria-pressed={bannerStyle===choice}
+                      onClick={()=> premiumChoice&&!premiumActive ? onOpenPremium():onBannerStyleChange?.(choice)}>
+                      {labels[choice]}
+                    </button>;
                   })}
                 </div>
-                <div className={styles.bannerHexRow}>
-                  <BannerHexInput key={bannerColor} color={bannerColor}
-                    onChange={value => void onBannerColorChange?.(value, 'manual')} />
-                  <input type="color" aria-label="Палитра цвета баннера" value={bannerColor}
-                    onChange={event=>void onBannerColorChange?.(event.target.value,'manual')} />
-                </div>
-                <div className={styles.actionRow}>
+                <div className={styles.colorActionRow}>
+                  <button type="button" className={styles.colorOpen} onClick={()=>setSheetStart({color:bannerColor,mode:bannerColorMode})}>
+                    <span className={styles.colorOpenSwatch} style={{background:bannerColor}} />
+                    <span>Свой цвет · {bannerColor.toUpperCase()}</span>
+                    <span aria-hidden="true">✎</span>
+                  </button>
                   <button type="button" onClick={()=>void onBannerColorChange?.(bannerColor,'auto')}>Из аватара</button>
                   <button type="button" onClick={()=>{
                     onBannerStyleChange?.('soft');
                     void onBannerColorChange?.('#70618c','manual');
-                  }}>Сбросить цвет</button>
+                  }}>↺ Сброс</button>
                 </div>
-                <p className={styles.help}>10 пресетов бесплатны. Расширенные градиенты и анимация — Premium.</p>
-                <button type="button" className={styles.premiumLink} onClick={onOpenPremium}>
-                  <Icon name="crown" size={15} /> Анимированный баннер и Premium-палитра
-                </button>
+                {sheetStart && <BannerColorSheet
+                  color={sheetStart.color}
+                  onPreview={color=>void onBannerColorChange?.(color,'manual')}
+                  onCancel={()=>{
+                    void onBannerColorChange?.(sheetStart.color,sheetStart.mode);
+                    setSheetStart(null);
+                  }}
+                  onAccept={()=>setSheetStart(null)}
+                />}
+                <p className={styles.help}>10 цветов доступны бесплатно. Дополнительные эффекты — Premium.</p>
+
               </div>
             ) : (
               <div role="tabpanel">

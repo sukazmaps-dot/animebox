@@ -1254,3 +1254,24 @@
 .bannerDropzone { display:flex;align-items:center;justify-content:center;flex-direction:column;gap:9px;width:100%;min-height:132px;border:1px dashed var(--ab-ui-accent);border-radius:16px;background:var(--ab-ui-raised);color:var(--ab-ui-text);cursor:pointer;overflow:hidden;font-size:13px; }
 .bannerDropzone > img {width:100%;max-height:160px;object-fit:cover;}
 .bannerDropzone:disabled { opacity:.65; cursor: not-allowed; }
+
+/* 31.3 compact swatches and equal-width single-row fill controls */
+.bannerPresetGrid {display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:12px 0;}
+.bannerPreset {position:relative;aspect-ratio:1;min-height:0;min-width:0;width:100%;padding:3px;border:2px solid transparent;border-radius:50%;background:transparent;cursor:pointer;}
+.bannerPreset[data-active='true'] {border-color:var(--ab-ui-accent);outline:2px solid color-mix(in srgb,var(--ab-ui-accent) 24%,transparent);}
+.bannerPresetSwatch {display:block;min-height:0;width:100%;height:100%;border:1px solid rgba(255,255,255,.18);border-radius:50%;}
+.premiumStar {position:absolute;right:-3px;bottom:-3px;font-size:12px;color:var(--ab-ui-accent);background:var(--ab-ui-surface);border-radius:50%;width:16px;height:16px;}
+.fillModeRail {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:12px 0;}
+.fillModeRail button {min-width:0;min-height:44px;padding:8px 3px;border:1px solid var(--ab-ui-border);border-radius:12px;background:var(--ab-ui-surface);color:var(--ab-ui-text);font-size:10px;cursor:pointer;}
+.fillModeRail button[data-active='true'] {border-color:var(--ab-ui-accent);background:color-mix(in srgb,var(--ab-ui-accent) 16%,var(--ab-ui-surface));}
+.colorActionRow {display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;}
+.colorActionRow button {display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 10px;border-radius:12px;border:1px solid var(--ab-ui-border);background:var(--ab-ui-raised);color:var(--ab-ui-text);font-size:11px;cursor:pointer;}
+.colorActionRow .colorOpen {min-width:0;justify-content:flex-start;}
+.colorOpen > span:nth-child(2) {min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.colorOpenSwatch {width:22px;height:22px;flex:0 0 22px;border-radius:7px;border:1px solid #aaa;}
+@media(max-width:430px){
+  .fillModeRail {display:flex;overflow-x:auto;scrollbar-width:none;}
+  .fillModeRail button {flex:0 0 auto;min-width:93px;}
+  .colorActionRow {grid-template-columns:repeat(2,minmax(0,1fr));}
+  .colorActionRow .colorOpen {grid-column:1/-1;}
+}
