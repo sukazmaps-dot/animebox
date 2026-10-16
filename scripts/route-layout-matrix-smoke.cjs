@@ -67,7 +67,13 @@ const anime = '<main class="page_page anime-detail-v3 anime-detail-v4 min-h-scre
   '<p class="synopsis_full">Длинное описание не должно накладываться на кнопки или исчезать при переносе. ' +
   'Умэ Мидзуноэ — первокурсник, который решает изменить привычный ход истории.</p></div></section>' +
   '</div></header><div class="detail_mainColumn"><section class="detail_episodes">Сезоны и эпизоды</section>' +
-  '<section class="detail_secondary"><div class="detail_personal">Сохрани тайтл</div></section></div></div></main>';
+  '<div class="detail_related"><section><div class="min-w-0 w-full"><div class="home-anime-rail"><div class="home-anime-rail__viewport">%%ACTUAL_RELATED_CARDS%%</div></div></div></section></div>' +
+  '<section class="detail_secondary"><div class="detail_personal"><section class="personal_panel">' +
+  '<button>Библиотека</button><button>Уведомления</button><section class="rating_control anime-rating-control">' +
+  '<div class="anime-rating-control__head"><h2>Как тебе этот тайтл?</h2></div></section></section>' +
+  '<a class="detail_together" href="#">Смотреть с друзьями</a></div></section>' +
+  '<details class="detail_aliases"><summary>Другие названия</summary></details>' +
+  '<details class="detail_franchise"><summary>Порядок частей</summary></details></div></div></main>';
 
 const publicProfile = '<main class="profile-v2 profile-v2--public" data-fixture="profile-source">' +
   '<section class="profile-v2__hero"><div class="profile-v2__banner"><div class="profile-v2__banner-default"></div></div>' +
@@ -167,11 +173,15 @@ async function settleTheme(page) {
   const item={id:101,title:{russian:animeTitle},genres:[],score:9.2,format:'TV',episodes:24,startDate:{year:2026}};
   const realCard=renderToStaticMarkup(React.createElement(animeCard.default,{anime:item}));
   const catalogWithRealCards=catalog.replace('%%ACTUAL_ANIME_CARDS%%',realCard.repeat(8));
+  const relatedCards=['Короткое',animeTitle,'Две строки достаточно длинного названия', 'Ещё тайтл', animeTitle].map((title,index)=>renderToStaticMarkup(React.createElement(animeCard.default,{anime:{...item,id:201+index,title:{russian:title}}}))).join('');
+  const animeWithRealCards=anime.replace('%%ACTUAL_RELATED_CARDS%%',relatedCards);
   const modules=await Promise.all([
     scopedCSS('app/anime/[slug]/page.module.css','page'),
     scopedCSS('app/anime/[slug]/detail-layout.module.css','detail'),
     scopedCSS('components/AnimeDetailControls.module.css','controls'),
     scopedCSS('components/AnimeSynopsis.module.css','synopsis'),
+    scopedCSS('components/AnimePersonalPanel.module.css','personal'),
+    scopedCSS('components/AnimeRatingControl.module.css','rating'),
   ]);
   // Chunk filenames are content-hashed and unordered. Loading their entire
   // CSS concatenation alone gives legacy card-layout rules an artificial
@@ -246,7 +256,7 @@ async function settleTheme(page) {
     // SOURCE-EQUIVALENT: actual stylesheet + explicit deterministic route DOM.
     await page.goto('http://animebox.test/list',{waitUntil:'load'});
     await page.addStyleTag({content:assetsStyle});
-    for(const [name,markup] of [['catalog',catalogWithRealCards],['tracker-auth',tracker],['anime',anime],['public-profile',publicProfile]]) {
+    for(const [name,markup] of [['catalog',catalogWithRealCards],['tracker-auth',tracker],['anime',animeWithRealCards],['public-profile',publicProfile]]) {
       await page.locator('.page-content').evaluate((el,html)=>{el.innerHTML=html;},markup);
       assert(await page.locator('[data-fixture]').count(),name+': fixture failed to mount');
       for(const {width,height} of widths)for(const theme of ['dark','light']) {
@@ -256,7 +266,7 @@ async function settleTheme(page) {
         const result=await page.evaluate((kind)=>{
           const root=document.querySelector('[data-fixture]');
           const r=el=>{const b=el.getBoundingClientRect();return {left:b.left,top:b.top,right:b.right,bottom:b.bottom,width:b.width,height:b.height};};
-          const cards=[...root.querySelectorAll('.anime-card,.tracker-card,.profile-v2__stat')].map(r);
+          const cards=[...root.querySelectorAll('.anime-card,.tracker-card,.profile-v2__stat')].filter(el=>!el.closest('.home-anime-rail__viewport')).map(r);
           const marker=root.querySelector('.detail_actions');
           const copy=root.querySelector('.detail_description');
           const watch=root.querySelector('.anime-detail-actions__watch');
@@ -280,7 +290,13 @@ async function settleTheme(page) {
           });
           return {root:r(root),cards,pageWidth:document.documentElement.scrollWidth,viewport:innerWidth,
             actions:marker&&r(marker),description:copy&&r(copy),watch:watch&&r(watch),
-            title:title&&r(title),hero:hero&&r(hero),contrast};
+            title:title&&r(title),hero:hero&&r(hero),contrast,
+            detailAlignment:kind==='anime'?{
+              edges:['.detail_secondary','.detail_personal','.anime-rating-control','.detail_together','.detail_aliases','.detail_franchise','.home-anime-rail__viewport'].map(selector=>({selector,...r(root.querySelector(selector))})),
+              titles:[...root.querySelectorAll('.detail_related .anime-card h3')].map(el=>({height:r(el).height,native:el.hasAttribute('title')})),
+              meta:[...root.querySelectorAll('.detail_related .anime-card__meta')].map(el=>r(el).top),
+              spacing:getComputedStyle(root.querySelector('.anime-rating-control h2')).letterSpacing,
+            }:null};
         },name);
         const tag=name+'/'+theme+'/'+width;
         assert(result.root.width>0&&result.root.left>=-1&&result.root.right<=width+1,tag+': root outside viewport: '+JSON.stringify(result.root));
@@ -304,6 +320,11 @@ async function settleTheme(page) {
           assert(resume&&resume.height>=44,tag+': resume touch action too short');
         }
         if(name==='anime') {
+          const alignment=result.detailAlignment,edge=alignment.edges[0];
+          for(const item of alignment.edges){assert(Math.abs(item.left-edge.left)<=1&&Math.abs(item.right-edge.right)<=1,tag+': misaligned '+item.selector+' '+JSON.stringify(alignment.edges));}
+          assert(alignment.titles.every(title=>Math.abs(title.height-alignment.titles[0].height)<1&&!title.native),tag+': title slot/native tooltip');
+          assert(alignment.meta.every(top=>Math.abs(top-alignment.meta[0])<1),tag+': metadata baselines');
+          assert(['normal','0px'].includes(alignment.spacing),tag+': condensed rating heading');
           assert(result.actions&&result.description&&result.watch,tag+': cinematic action/description missing');
           assert(result.description.top>=result.actions.bottom+1,tag+': synopsis overlaps actions');
           if(width<=767)assert(result.watch.height>=48,tag+': mobile watch action too short');

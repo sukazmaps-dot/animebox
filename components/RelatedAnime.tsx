@@ -149,7 +149,7 @@ async function loadRelatedAnime(
 export function RelatedAnimeLoading() {
   return (
     <section className="border-t border-white/[0.04] py-8">
-      <div className="mx-auto max-w-7xl px-4 md:px-6">
+      <div className="min-w-0 w-full">
         <div className="mb-5 h-7 w-52 animate-pulse rounded-lg bg-white/[0.06]" />
         <div className="flex gap-3 overflow-hidden">
           {Array.from({ length: 6 }).map((_, index) => (
@@ -178,7 +178,7 @@ export default async function RelatedAnime({
 
   return (
     <section className="border-t border-white/[0.04] py-8">
-      <div className="mx-auto max-w-7xl px-4 md:px-6">
+      <div className="min-w-0 w-full">
         <div className="section-head">
           <div>
             <h2 className="section-title">Похожие аниме</h2>
