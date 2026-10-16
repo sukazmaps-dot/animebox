@@ -8,6 +8,7 @@ import { observeProfileEditorDock } from '@/lib/profile-editor-dock';
 
 import { useAuthState } from '@/components/AuthStateProvider';
 import PremiumStudioClient, { type PremiumStudioHandle } from '@/components/premium/PremiumStudioClient';
+import ProfileMediaModal from '@/components/profile/ProfileMediaModal';
 import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import ProfileWidgetEditor from '@/components/profile/ProfileWidgetEditor';
@@ -29,7 +30,7 @@ import {
   uploadPrivateProfileMedia,
   type PendingProfileMediaUpload,
 } from '@/lib/profile-media-upload-client';
-import { prepareBaseProfileMedia } from '@/lib/profile-media-crop-client';
+import { prepareBaseProfileMedia, extractDominantColor } from '@/lib/profile-media-crop-client';
 import { normalizePickedImage } from '@/lib/profile-media-normalize-client';
 import type { ProfileWidgetsData } from '@/types/profile-widgets';
 import type {
@@ -45,6 +46,8 @@ type ProfileRow = {
   bio: string | null;
   avatar_path: string | null;
   banner_path: string | null;
+  banner_color?: string;
+  banner_color_mode?: 'auto' | 'manual';
   created_at: string;
 };
 
@@ -89,6 +92,9 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
+  const [bannerColor, setBannerColor] = useState('#70618c');
+  const [bannerColorMode, setBannerColorMode] = useState<'auto' | 'manual'>('auto');
+  const bannerColorRequestRef = useRef(0);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -135,7 +141,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
     void supabase
       .from('profiles')
-      .select('id, username, bio, avatar_path, banner_path, created_at')
+      .select('id, username, bio, avatar_path, banner_path, banner_color, banner_color_mode, created_at')
       .eq('id', user.id)
       .single()
       .then(({ data, error: loadError }) => {
@@ -150,6 +156,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         setProfile(next);
         setUsername(next.username ?? '');
         setBio(next.bio ?? '');
+        setBannerColor(next.banner_color ?? '#70618c');
+        setBannerColorMode(next.banner_color_mode ?? 'auto');
         saveProfileCache(user.id, next);
         setLoading(false);
       });
@@ -257,7 +265,11 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   }, [bannerPreview]);
 
   useEffect(() => {
+    const requestRef = baseMediaRequestRef;
+    const colorRequestRef = bannerColorRequestRef;
     return () => {
+      requestRef.current++;
+      colorRequestRef.current++;
       if (baseMediaPreviewUrlRef.current) {
         URL.revokeObjectURL(baseMediaPreviewUrlRef.current);
         baseMediaPreviewUrlRef.current = null;
@@ -265,24 +277,6 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     };
   }, []);
 
-  useEffect(() => {
-    if (!baseMediaEditor) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !baseMediaProcessing) {
-        closeBaseMediaEditor();
-      }
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [baseMediaEditor, baseMediaProcessing]);
 
   function switchTab(tab: EditorTab) {
     setActiveTab(tab);
@@ -316,6 +310,10 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   async function stageMedia(kind: 'avatar' | 'banner', file?: File) {
     if (!file || baseMediaProcessing || baseMediaOpening) return;
 
+    if (kind === 'banner' && !premiumActive) {
+      setBaseMediaError('Изображение баннера доступно с Premium. Без Premium выбери цвет.');
+      return;
+    }
     const requestId = ++baseMediaRequestRef.current;
     setBaseMediaOpening(kind);
     setBaseMediaError('');
@@ -378,10 +376,15 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         editor.file,
         editor.kind,
         editor.transform,
+        premiumActive,
       );
       const preview = URL.createObjectURL(optimized);
 
       if (editor.kind === 'avatar') {
+        if (bannerColorMode === 'auto') {
+          try { setBannerColor(await extractDominantColor(optimized)); }
+          catch { console.warn('[ProfileMedia] color sampling unavailable'); }
+        }
         setAvatarFile(optimized);
         setAvatarPreview(preview);
         setRemoveAvatar(false);
@@ -414,7 +417,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   }
 
   const currentAvatarUrl = publicMediaUrl(profile?.avatar_path) || '/default-avatar.webp';
-  const currentBannerUrl = publicMediaUrl(profile?.banner_path);
+  const currentBannerUrl = premiumActive ? publicMediaUrl(profile?.banner_path) : null;
   const displayedAvatar = removeAvatar ? '/default-avatar.webp' : avatarPreview || currentAvatarUrl;
   const displayedBanner = removeBanner ? null : bannerPreview || currentBannerUrl;
 
@@ -428,18 +431,20 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     : premiumStaticAvatar || displayedAvatar;
   const resolvedBannerPreview = premiumActive
     ? premiumAnimatedBanner || premiumStaticBanner || displayedBanner
-    : premiumStaticBanner || displayedBanner;
+    : null;
   const premiumAvatarOverride = Boolean(
     premiumActive ? premiumAnimatedAvatar || premiumStaticAvatar : premiumStaticAvatar,
   );
   const premiumBannerOverride = Boolean(
-    premiumActive ? premiumAnimatedBanner || premiumStaticBanner : premiumStaticBanner,
+    premiumActive && (premiumAnimatedBanner || premiumStaticBanner),
   );
 
   const baseDirty = Boolean(
     profile && (
       username.trim() !== (profile.username ?? '').trim() ||
       bio.trim() !== (profile.bio ?? '').trim() ||
+      bannerColor !== (profile.banner_color ?? '#70618c') ||
+      bannerColorMode !== (profile.banner_color_mode ?? 'auto') ||
       avatarFile ||
       bannerFile ||
       removeAvatar ||
@@ -508,6 +513,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                   bio: cleanBio,
                   avatarPath: finalAvatarPath,
                   bannerPath: finalBannerPath,
+                  bannerColor,
+                  bannerColorMode,
                 },
               }
             : {}),
@@ -544,6 +551,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       setProfile(next);
       setUsername(next.username ?? '');
       setBio(next.bio ?? '');
+      setBannerColor(next.banner_color ?? bannerColor);
+      setBannerColorMode(next.banner_color_mode ?? bannerColorMode);
       setAvatarFile(null);
       setBannerFile(null);
       setRemoveAvatar(false);
@@ -598,6 +607,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     if (!profile) return;
     setUsername(profile.username ?? '');
     setBio(profile.bio ?? '');
+    setBannerColor(profile.banner_color ?? '#70618c');
+    setBannerColorMode(profile.banner_color_mode ?? 'auto');
     setAvatarFile(null);
     setBannerFile(null);
     setRemoveAvatar(false);
@@ -782,6 +793,18 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             bannerUrl={resolvedBannerPreview}
             baseAvatarUrl={displayedAvatar}
             baseBannerUrl={displayedBanner}
+            bannerColor={bannerColor}
+            bannerColorMode={bannerColorMode}
+            onBannerColorChange={async (color, mode) => {
+              const request = ++bannerColorRequestRef.current;
+              setBannerColorMode(mode); setSaved('');
+              if (mode === 'manual') { setBannerColor(color); return; }
+              try {
+                const file = avatarFile ?? new File([await (await fetch(displayedAvatar)).blob()], 'avatar');
+                const sampled = await extractDominantColor(file);
+                if (request === bannerColorRequestRef.current) setBannerColor(sampled);
+              } catch { setBaseMediaError('Не удалось подобрать цвет. Выбери его вручную.'); }
+            }}
             premiumActive={premiumActive}
             avatarPremiumOverride={premiumAvatarOverride}
             bannerPremiumOverride={premiumBannerOverride}
@@ -839,20 +862,9 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       </section>
 
       {baseMediaEditor && (
-        <div
-          className="premium-media-editor-modal"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !baseMediaProcessing) {
-              closeBaseMediaEditor();
-            }
-          }}
-        >
+        <ProfileMediaModal busy={baseMediaProcessing} onClose={closeBaseMediaEditor} labelledBy="base-media-editor-title">
           <section
             className={`premium-media-editor-modal__dialog ${baseMediaEditor.kind === 'banner' ? 'is-banner' : 'is-avatar'}`}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="base-media-editor-title"
           >
             <div className="premium-media-editor-modal__top">
               <div>
@@ -864,8 +876,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
                 </h2>
                 <p>
                   {baseMediaEditor.kind === 'avatar'
-                    ? 'Перетащи изображение и выбери масштаб. После подтверждения AnimeBox создаст лёгкий квадратный WEBP, который одинаково выглядит в профиле, комментариях и меню.'
-                    : 'Перетащи изображение внутри широкой рамки. После подтверждения AnimeBox подготовит облегчённый WEBP под баннер профиля.'}
+                    ? 'Перетащи изображение и выбери масштаб. Выбранный кадр будет виден в профиле, комментариях и меню.'
+                    : 'Перетащи изображение внутри рамки и выбери кадр для баннера.'}
                 </p>
               </div>
               <button
@@ -880,6 +892,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             </div>
 
             <PremiumMediaCropEditor
+              baked
               kind={baseMediaEditor.kind}
               src={baseMediaEditor.src}
               value={baseMediaEditor.transform}
@@ -913,7 +926,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
               </button>
             </div>
           </section>
-        </div>
+        </ProfileMediaModal>
       )}
     </main>
   );
