@@ -50,7 +50,7 @@ export function useProfileEditorHistory({userId,ready,baseline,draft,dirty,onApp
     window.addEventListener('pagehide',flush);
     const hidden=()=>{if(document.visibilityState==='hidden')flush();};
     document.addEventListener('visibilitychange',hidden);
-    return()=>{window.removeEventListener('pagehide',flush);document.removeEventListener('visibilitychange',hidden);};
+    return()=>{flush();window.removeEventListener('pagehide',flush);document.removeEventListener('visibilitychange',hidden);};
   },[ready,userId,recovery]);
   const undo=()=>{history.current?.record(draft);const value=history.current?.undo();if(value)onApply(value);sync();};
   const redo=()=>{const value=history.current?.redo();if(value)onApply(value);sync();};

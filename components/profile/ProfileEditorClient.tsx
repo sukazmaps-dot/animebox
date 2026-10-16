@@ -73,7 +73,13 @@ function normalizedTab(value: string | null | undefined): EditorTab {
   return 'profile';
 }
 
-export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
+export default function ProfileEditorClient(props: Props) {
+  const {user}=useAuthState();
+  // A new account must never inherit the previous account's in-memory draft/files.
+  return <ProfileEditorWorkspace key={user?.id ?? 'guest'} {...props} />;
+}
+
+function ProfileEditorWorkspace({ initialTab = 'profile' }: Props) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const {
