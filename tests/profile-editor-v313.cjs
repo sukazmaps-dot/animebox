@@ -35,6 +35,12 @@ assert(moduleCss.includes('.fillModeRail'));
 assert(sheet.includes('role="dialog"') && sheet.includes('createPortal'));
 assert(sheet.includes('EyeDropper') && sheet.includes("ab-banner-recent-colors"));
 assert(sheet.includes("const keyboard=")===false);
+assert(!/maxLength=\{24\}\s+autoFocus/.test(direct),'Name editor must not summon mobile keyboard on open');
+assert(!/rows=\{[0-9]+\}\s+autoFocus/.test(direct),'Bio editor must not summon mobile keyboard on open');
+assert(direct.includes('sheetStart.mode,true'),'Color sheet cancel must bypass avatar sampling');
+assert(root.includes("mode, skipSampling") && root.includes("|| skipSampling"), 'Cancel must restore the exact prior color/mode');
+assert(root.includes('bannerFillUpgradeRequired'),'Expired Premium owners can still save ordinary changes');
+
 assert(premium.includes('selectedDemoScene'));
 assert(premiumCss.includes('.profile-editor-v13__premium-tab .premium-studio-v23__demo-scenes'));
 assert(premiumCss.includes('scroll-snap-type:x mandatory'));
