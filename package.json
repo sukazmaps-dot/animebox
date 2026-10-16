@@ -153,7 +153,8 @@
     "patch31-4:check": "node tests/home-hero-art-server.cjs && node tests/home-hero-art.cjs",
     "patch31-4:browser": "node scripts/home-hero-recovery-smoke.cjs",
     "editor-workspace:check": "node tests/profile-editor-workspace.cjs",
-    "editor-workspace:browser": "node scripts/profile-editor-responsive-smoke.cjs"
+    "editor-workspace:browser": "node scripts/profile-editor-responsive-smoke.cjs",
+    "player-fullscreen:browser": "node scripts/player-fullscreen-browser-smoke.cjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

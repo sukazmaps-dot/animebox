@@ -1650,7 +1650,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         </div>
       )}
 
-      <EpisodeCompletion key={`${anime.id}:${episodeNumber}`} animeId={anime.id} episode={episodeNumber} />
+
 
       <EpisodeQuickSelector
         currentEpisode={episodeNumber}
@@ -1668,14 +1668,6 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
 
 
-      <section className="episode-page__identity-compact">
-        <div>
-          <h1>{title} — {episodeNumber} серия</h1>
-          <span>Сезон {anime.providerSeason || 1}</span>
-        </div>
-        <Link href={`/anime/${animeIdParam}`}>К тайтлу</Link>
-      </section>
-
       <section className="episode-engagement-grid" aria-label="Отслеживание и уведомления">
         <LibraryStatusControl animeId={anime.id} variant="inline" />
 
@@ -1687,6 +1679,16 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           variant="inline"
         />
 
+      </section>
+
+      <EpisodeCompletion key={`${anime.id}:${episodeNumber}`} animeId={anime.id} episode={episodeNumber} />
+
+      <section className="episode-page__identity-compact">
+        <div>
+          <h1>{title} — {episodeNumber} серия</h1>
+          <span>Сезон {anime.providerSeason || 1}</span>
+        </div>
+        <Link href={`/anime/${animeIdParam}`}>К тайтлу</Link>
       </section>
 
       <WatchPartyPanel
