@@ -302,6 +302,33 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     window.history.replaceState(null, '', url);
   }
 
+  useEffect(() => {
+    if (!dirty) return;
+    const confirmUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', confirmUnload);
+    return () => window.removeEventListener('beforeunload', confirmUnload);
+  }, [dirty]);
+
+  useEffect(() => {
+    const updateViewport = () => {
+      const vp = window.visualViewport;
+      document.documentElement.style.setProperty('--ab-editor-viewport-height', `${vp?.height ?? window.innerHeight}px`);
+      document.documentElement.style.setProperty('--ab-editor-viewport-top', `${vp?.offsetTop ?? 0}px`);
+    };
+    updateViewport();
+    window.visualViewport?.addEventListener('resize', updateViewport);
+    window.visualViewport?.addEventListener('scroll', updateViewport);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', updateViewport);
+      window.visualViewport?.removeEventListener('scroll', updateViewport);
+      document.documentElement.style.removeProperty('--ab-editor-viewport-height');
+      document.documentElement.style.removeProperty('--ab-editor-viewport-top');
+    };
+  }, []);
+
   function leaveEditor() {
     if (dirty && !window.confirm('Есть несохранённые изменения. Выйти без сохранения?')) return;
     router.push('/profile');
@@ -882,7 +909,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
           {activeTab === 'profile' && <TelegramAccountLinkCard />}
           </div>
-        )}
+        ) : null}
 
         <div ref={savebarRef} data-visible="true" className={`profile-editor-v13__mobile-save profile-editor-v18__savebar ${dirty ? 'is-dirty' : ''}`} role="status" aria-live="polite">
           <span className="profile-editor-v18__savebar-copy">

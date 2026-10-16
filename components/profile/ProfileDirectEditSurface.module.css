@@ -1246,3 +1246,11 @@
 @media (max-width: 620px) { .bannerPresetGrid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 
 @media (max-width: 768px) { .inspector { scroll-margin-top: 120px; } }
+
+
+/* Compact settings-only layout: preview now belongs to ProfileEditorLivePreview. */
+.workspace[data-settings-only='true'] { display:block; padding: 0; }
+.workspace[data-settings-only='true'] .inspector { width:100%;max-height:none;position:static;box-shadow:none; }
+.bannerDropzone { display:flex;align-items:center;justify-content:center;flex-direction:column;gap:9px;width:100%;min-height:132px;border:1px dashed var(--ab-ui-accent);border-radius:16px;background:var(--ab-ui-raised);color:var(--ab-ui-text);cursor:pointer;overflow:hidden;font-size:13px; }
+.bannerDropzone > img {width:100%;max-height:160px;object-fit:cover;}
+.bannerDropzone:disabled { opacity:.65; cursor: not-allowed; }
