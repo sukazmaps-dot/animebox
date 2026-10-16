@@ -209,6 +209,11 @@ cleanup deferred. Массовое удаление прежних объект�
 в document.body. Native top layer находится над fixed-навигацией и savebar
 независимо от CSS z-index и transform/contain родителей.
 
+Убраны устаревшие конфликтующие background-image заглушки из community/identity CSS.
+Цвет обычного и Premium fallback-баннера задаётся единственным владельцем
+в patch16-5-profile-widgets.css через --profile-banner-color; проверяется
+по computed styles, включая светлую тему и Premium-класс.
+
 Диалог учитывает visualViewport, safe-area, ограничение высоты и внутренний
 scroll. Действия sticky снизу, цели нажатия не менее 44px. Escape, фокус,
 запрет фоновой прокрутки и его снятие имеют одного владельца. Старые
