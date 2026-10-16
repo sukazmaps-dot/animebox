@@ -501,6 +501,12 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     )
   );
   const dirty = baseDirty || (premiumActive && premiumDirty);
+  // Expired Premium users can edit ordinary fields without repurchasing an unchanged
+  // legacy Premium fill. Only a newly selected paid style or recolor needs upsell.
+  const bannerFillUpgradeRequired = !premiumActive &&
+    !FREE_BANNER_STYLES.includes(bannerStyle) &&
+    (bannerStyle !== normalizeBannerStyle(profile?.banner_style) ||
+      bannerColor.toLowerCase() !== (profile?.banner_color ?? '#70618c').toLowerCase());
   // Native Telegram back follows the same draft confirmation as the close button.
   useEffect(() => {
     const tg = (window as Window & {Telegram?:{WebApp?:{BackButton?:{
@@ -767,7 +773,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             bannerUrl={resolvedBannerPreview} bannerColor={bannerColor}
             bannerStyle={bannerStyle} premiumActive={premiumActive}
             frameKey={selectedFrame} onNavigate={switchTab}
-            previewPremiumFill={!premiumActive && bannerStyle !== normalizeBannerStyle(profile.banner_style)}
+            previewPremiumFill={bannerFillUpgradeRequired}
           />
         </div>
 
@@ -943,8 +949,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             Отмена
           </button>
           <button type="button" disabled={(!dirty && !(activeTab === 'style' && !premiumActive)) || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)}
-            onClick={() => !premiumActive && (activeTab === 'style' || !FREE_BANNER_STYLES.includes(bannerStyle)) ? router.push('/premium#premium-plans') : void saveProfile()}>
-            {saving ? 'Сохраняем…' : !premiumActive && (activeTab === 'style' || !FREE_BANNER_STYLES.includes(bannerStyle)) ? 'Сохранить с Premium' : 'Сохранить'}
+            onClick={() => (!premiumActive && activeTab === 'style') || bannerFillUpgradeRequired ? router.push('/premium#premium-plans') : void saveProfile()}>
+            {saving ? 'Сохраняем…' : (!premiumActive && activeTab === 'style') || bannerFillUpgradeRequired ? 'Сохранить с Premium' : 'Сохранить'}
           </button>
         </div>
       </section>
