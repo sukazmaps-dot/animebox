@@ -755,8 +755,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           {([
             ['profile','Профиль','user'],
             ['avatar','Аватар','image'],
-            ['banner','Баннер','palette'],
-            ['frame','Рамка','award'],
+            ['banner','Баннер','image'],
+            ['frame','Рамка','trophy'],
             ['style','Оформление','crown'],
           ] as const).map(([section,label,icon]) => (
             <button key={section} className={activeTab === section ? 'is-active' : ''}
