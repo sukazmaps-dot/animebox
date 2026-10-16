@@ -31,6 +31,9 @@ type Props = {
   bannerUrl: string | null;
   baseAvatarUrl: string;
   baseBannerUrl: string | null;
+  bannerColor?: string;
+  bannerColorMode?: 'auto' | 'manual';
+  onBannerColorChange?: (color: string, mode: 'auto' | 'manual') => void | Promise<void>;
   premiumActive: boolean;
   avatarPremiumOverride: boolean;
   bannerPremiumOverride: boolean;
@@ -77,6 +80,9 @@ export default function ProfileDirectEditSurface({
   bannerUrl,
   baseAvatarUrl,
   baseBannerUrl,
+  bannerColor = '#70618c',
+  bannerColorMode = 'auto',
+  onBannerColorChange,
   premiumActive,
   avatarPremiumOverride,
   bannerPremiumOverride,
@@ -218,7 +224,7 @@ export default function ProfileDirectEditSurface({
     }
 
     setTarget('banner');
-    bannerInputRef.current?.click();
+    if (premiumActive) bannerInputRef.current?.click();
   }
 
   function handleMediaInput(kind: 'avatar' | 'banner', input: HTMLInputElement) {
@@ -274,13 +280,14 @@ export default function ProfileDirectEditSurface({
           <button
             type="button"
             className={styles.banner}
+            style={{background: bannerColor}}
             data-selected={target === 'banner' ? 'true' : 'false'}
             onClick={() => openMediaPicker('banner')}
             aria-label="Изменить баннер"
           >
             {bannerUrl ? <img src={bannerUrl} alt="" aria-hidden="true" /> : <span className={styles.bannerEmpty}>ПРОФИЛЬ ANIMEBOX</span>}
             <span className={styles.bannerShade} />
-            <span className={styles.editChip}><Icon name="image" size={14} /> Изменить баннер</span>
+            <span className={styles.editChip}><Icon name="image" size={14} /> {premiumActive ? 'Изменить баннер' : 'Цвет баннера'}</span>
           </button>
 
           <div className={styles.profileBody}>
@@ -463,7 +470,7 @@ export default function ProfileDirectEditSurface({
                 type="button"
                 className={styles.primaryAction}
                 aria-busy={bannerBusy}
-                disabled={bannerBusy}
+                disabled={bannerBusy || !premiumActive}
                 onClick={() => openMediaPicker('banner')}
               >
                 <Icon name="image" size={15} />
@@ -475,7 +482,19 @@ export default function ProfileDirectEditSurface({
                 </button>
               )}
             </div>
-            <p className={styles.help}>JPG, PNG, WebP, AVIF, HEIC/HEIF · до 16 МБ. Перед сохранением откроется редактор кадра.</p>
+            <label className={styles.field}>
+              <span><strong>Цвет баннера</strong></span>
+              <select aria-label="Режим цвета баннера" value={bannerColorMode}
+                onChange={event => void onBannerColorChange?.(bannerColor, event.target.value as 'auto' | 'manual')}>
+                <option value="auto">Авто — по аватарке</option>
+                <option value="manual">Выбрать вручную</option>
+              </select>
+              {bannerColorMode === 'manual' && <input type="color" aria-label="Цвет баннера" value={bannerColor}
+                onChange={event => void onBannerColorChange?.(event.target.value, 'manual')} />}
+            </label>
+            <p className={styles.help}>{premiumActive
+              ? 'JPG, PNG, WebP, AVIF, HEIC/HEIF · до 32 МБ до сжатия. Итоговый баннер до 300 КБ.'
+              : 'Без Premium доступен цвет. Изображение баннера и анимация доступны с Premium.'}</p>
             {bannerPremiumOverride && (
               <div className={styles.overrideCard}>
                 <Icon name="crown" size={18} />
