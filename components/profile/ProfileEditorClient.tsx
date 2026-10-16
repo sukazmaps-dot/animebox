@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { observeProfileEditorDock } from '@/lib/profile-editor-dock';
-import { normalizeBannerStyle, type BannerStyle } from '@/lib/profile-banner-style';
+import { FREE_BANNER_STYLES, normalizeBannerStyle, type BannerStyle } from '@/lib/profile-banner-style';
 
 import { useAuthState } from '@/components/AuthStateProvider';
 import PremiumStudioClient, { type PremiumStudioHandle } from '@/components/premium/PremiumStudioClient';
@@ -816,6 +816,9 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             onBannerColorChange={async (color, mode) => {
               const request = ++bannerColorRequestRef.current;
               setBannerColorMode(mode); setSaved(''); setBaseMediaError('');
+              // Once Premium expires, selecting a new color falls back to a free fill.
+              // A saved Premium fill remains visible until explicitly edited.
+              if (!premiumActive && !FREE_BANNER_STYLES.includes(bannerStyle)) setBannerStyle('soft');
               if (mode === 'manual') { setBannerColor(color); return; }
               try {
                 const file = avatarFile ?? new File([await (await fetch(displayedAvatar)).blob()], 'avatar');
