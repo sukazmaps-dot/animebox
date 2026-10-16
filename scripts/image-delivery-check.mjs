@@ -200,7 +200,8 @@ if (
   !hero.includes('buildAnimeBoxMediaSrcSet(') ||
   !hero.includes('buildAnimeBoxMediaCandidates(') ||
   !hero.includes('proxyImageUrl(src)') ||
-  !hero.includes('<picture data-hero-desktop-kind=') ||
+  (hero.match(/<picture\b/g) ?? []).length !== 1 ||
+  !hero.includes('data-hero-desktop-kind=') ||
   !hero.includes('media="(max-width: 768px)"') ||
   !hero.includes('priority={false}') ||
   !hero.includes('loading="eager"') ||
