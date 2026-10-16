@@ -57,6 +57,8 @@ export type Anime = {
   bannerImage?: string | null;
   /** Optional curated portrait/vertical hero art for phone layouts. */
   mobileHeroImage?: string | null;
+  /** Focal point of mobile hero art, in percent (0–100 per axis). */
+  mobileHeroPosition?: { x: number; y: number } | null;
   [key: string]: any;
 };
 
