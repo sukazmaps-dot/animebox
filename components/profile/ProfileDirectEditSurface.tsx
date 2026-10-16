@@ -76,6 +76,28 @@ function formatExpiry(value?: string | null) {
   }).format(date);
 }
 
+function BannerHexInput({ color, onChange }: { color: string; onChange: (hex: string) => void }) {
+  const [draft, setDraft] = useState(color);
+  const [error, setError] = useState('');
+  return (
+    <>
+      <label className={styles.field}>
+        <span><strong>Свой цвет (HEX)</strong></span>
+        <input type="text" inputMode="text" spellCheck={false} maxLength={7}
+          value={draft} aria-invalid={Boolean(error)} aria-label="HEX цвет баннера"
+          onChange={event => { setDraft(event.target.value); setError(''); }}
+          onBlur={() => {
+            if (!validBannerColor(draft)) { setError('Используй #RRGGBB'); return; }
+            onChange(draft);
+          }}
+          onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }}
+        />
+      </label>
+      {error && <p className={styles.messageError} role="alert">{error}</p>}
+    </>
+  );
+}
+
 export default function ProfileDirectEditSurface({
   username,
   bio,
@@ -109,9 +131,6 @@ export default function ProfileDirectEditSurface({
 }: Props) {
   const [target, setTarget] = useState<InspectorTarget>('avatar');
   const [bannerEditorMode, setBannerEditorMode] = useState<'color' | 'image'>('color');
-  const [hexDraft, setHexDraft] = useState(bannerColor);
-  const [hexError, setHexError] = useState('');
-  useEffect(() => { setHexDraft(bannerColor); setHexError(''); }, [bannerColor]);
   const [editingName, setEditingName] = useState(false);
   const [editingBio, setEditingBio] = useState(false);
   const [frameFilter, setFrameFilter] = useState<FrameFilter>('all');
@@ -508,21 +527,11 @@ export default function ProfileDirectEditSurface({
                   })}
                 </div>
                 <div className={styles.bannerHexRow}>
-                  <label className={styles.field}>
-                    <span><strong>Свой цвет (HEX)</strong></span>
-                    <input type="text" inputMode="text" spellCheck={false} maxLength={7} value={hexDraft}
-                      aria-invalid={Boolean(hexError)} aria-label="HEX цвет баннера"
-                      onChange={event=>{setHexDraft(event.target.value);setHexError('');}}
-                      onBlur={()=>{
-                        if (!validBannerColor(hexDraft)){setHexError('Используй #RRGGBB');return;}
-                        void onBannerColorChange?.(hexDraft, 'manual');
-                      }}
-                      onKeyDown={event=>{if(event.key==='Enter') event.currentTarget.blur();}} />
-                  </label>
+                  <BannerHexInput key={bannerColor} color={bannerColor}
+                    onChange={value => void onBannerColorChange?.(value, 'manual')} />
                   <input type="color" aria-label="Палитра цвета баннера" value={bannerColor}
                     onChange={event=>void onBannerColorChange?.(event.target.value,'manual')} />
                 </div>
-                {hexError && <p className={styles.messageError} role="alert">{hexError}</p>}
                 <div className={styles.actionRow}>
                   <button type="button" onClick={()=>void onBannerColorChange?.(bannerColor,'auto')}>Из аватара</button>
                   <button type="button" onClick={()=>{
