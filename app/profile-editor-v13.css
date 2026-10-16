@@ -1436,3 +1436,11 @@ html.ab-profile-editor-open .sidebar { display: none; }
 .profile-editor-v31__error {max-width:800px;margin:12px auto;padding:12px 16px;border:1px solid color-mix(in srgb,var(--ab-ui-danger) 35%,transparent);border-radius:12px;background:color-mix(in srgb,var(--ab-ui-danger) 10%,var(--ab-ui-surface));color:var(--ab-ui-text);font-size:12px;}
 .profile-editor-v13 .profile-editor-v18__savebar {bottom:calc(max(8px,env(safe-area-inset-bottom)) + var(--ab-editor-keyboard-inset,0px));}
 .profile-editor-v13 input:focus,.profile-editor-v13 textarea:focus {scroll-margin-top:calc(var(--editor-header-height) + var(--editor-preview-height) + var(--editor-tab-height) + 12px);}
+
+.profile-editor-v13 .profile-editor-v31__error {
+  display:block;
+  color:var(--ab-ui-danger);
+  font-size:11px;
+  margin-top:4px;
+  white-space:normal;
+}

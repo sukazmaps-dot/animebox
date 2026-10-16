@@ -507,6 +507,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     !FREE_BANNER_STYLES.includes(bannerStyle) &&
     (bannerStyle !== normalizeBannerStyle(profile?.banner_style) ||
       bannerColor.toLowerCase() !== (profile?.banner_color ?? '#70618c').toLowerCase());
+  const needsPremiumCTA = bannerFillUpgradeRequired || (!premiumActive && activeTab === 'style' && !baseDirty);
   // Native Telegram back follows the same draft confirmation as the close button.
   useEffect(() => {
     const tg = (window as Window & {Telegram?:{WebApp?:{BackButton?:{
@@ -943,14 +944,14 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
         <div ref={savebarRef} data-visible="true" className={`profile-editor-v13__mobile-save profile-editor-v18__savebar ${dirty ? 'is-dirty' : ''}`} role="status" aria-live="polite">
           <span className="profile-editor-v18__savebar-copy">
             <strong>{saving ? 'Сохраняем…' : dirty ? 'Есть несохранённые изменения' : saved || 'Все изменения сохранены'}</strong>
-            {dirty && <small>Изменения ещё не сохранены.</small>}
+            {error ? <small className="profile-editor-v31__error" role="alert">{error}</small> : dirty && <small>Изменения ещё не сохранены.</small>}
           </span>
           <button type="button" className="profile-editor-v18__reset" disabled={saving} onClick={cancelChanges}>
             Отмена
           </button>
-          <button type="button" disabled={(!dirty && !(activeTab === 'style' && !premiumActive)) || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)}
-            onClick={() => (!premiumActive && activeTab === 'style') || bannerFillUpgradeRequired ? router.push('/premium#premium-plans') : void saveProfile()}>
-            {saving ? 'Сохраняем…' : (!premiumActive && activeTab === 'style') || bannerFillUpgradeRequired ? 'Сохранить с Premium' : 'Сохранить'}
+          <button type="button" disabled={(!dirty && !needsPremiumCTA) || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)}
+            onClick={() => needsPremiumCTA ? router.push('/premium#premium-plans') : void saveProfile()}>
+            {saving ? 'Сохраняем…' : needsPremiumCTA ? 'Сохранить с Premium' : 'Сохранить'}
           </button>
         </div>
       </section>

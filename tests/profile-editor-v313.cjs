@@ -40,6 +40,8 @@ assert(!/rows=\{[0-9]+\}\s+autoFocus/.test(direct),'Bio editor must not summon m
 assert(direct.includes('sheetStart.mode,true'),'Color sheet cancel must bypass avatar sampling');
 assert(root.includes("mode, skipSampling") && root.includes("|| skipSampling"), 'Cancel must restore the exact prior color/mode');
 assert(root.includes('bannerFillUpgradeRequired'),'Expired Premium owners can still save ordinary changes');
+assert(root.includes('needsPremiumCTA'),'Premium upgrade should not hijack saving normal profile changes');
+assert(root.includes('profile-editor-v31__error'),'Saving errors must remain visible above bottom dock');
 
 assert(premium.includes('selectedDemoScene'));
 assert(premiumCss.includes('.profile-editor-v13__premium-tab .premium-studio-v23__demo-scenes'));
