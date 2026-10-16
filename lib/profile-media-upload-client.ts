@@ -20,7 +20,7 @@ type PrepareArgs = {
 
 
 const SIGNED_URL_TIMEOUT_MS = 10_000;
-const STORAGE_UPLOAD_TIMEOUT_MS = 30_000;
+const STORAGE_UPLOAD_TIMEOUT_MS = 60_000;
 
 export async function profileMediaFetchWithTimeout(
   input: RequestInfo | URL,
@@ -104,7 +104,18 @@ export async function uploadPrivateProfileMedia({
     STORAGE_UPLOAD_TIMEOUT_MS,
   );
 
-  if (uploaded.error) throw uploaded.error;
+  if (uploaded.error) {
+    const error = uploaded.error as {name?: string; message?: string; statusCode?: string};
+    console.warn('[ProfileMedia] upload failed', {
+      stage: 'storage-upload', code: error.statusCode ?? error.name,
+      type: mimeType, bytes: body.size, kind, scope,
+    });
+    throw new Error(error.statusCode === '413'
+      ? 'Storage отклонил размер изображения. Попробуй уменьшить файл.'
+      : error.statusCode === '403'
+        ? 'Нет доступа к загрузке. Обнови страницу и войди в аккаунт заново.'
+        : `Не удалось загрузить изображение${error.statusCode ? ` (код ${error.statusCode})` : ''}. Попробуй ещё раз.`);
+  }
 
   return {
     scope,
@@ -113,6 +124,29 @@ export async function uploadPrivateProfileMedia({
     publicPath: payload.publicPath,
     quarantinePath: payload.quarantinePath,
   };
+}
+
+export function uploadAvatar(args: Omit<PrepareArgs, 'kind'>) {
+  return uploadPrivateProfileMedia({...args, kind:'avatar'});
+}
+
+export function uploadBanner(args: Omit<PrepareArgs, 'kind'>) {
+  // Premium is rechecked by the signed-upload API and at profile commit.
+  return uploadPrivateProfileMedia({...args, kind:'banner'});
+}
+
+export async function setBannerColor(color: string, mode: 'auto' | 'manual' = 'manual') {
+  if (!/^#[0-9a-f]{6}$/i.test(color) || !['auto','manual'].includes(mode)) {
+    throw new Error('Цвет должен быть в формате #RRGGBB.');
+  }
+  const supabase = createClient();
+  const {data:{user}, error:authError} = await supabase.auth.getUser();
+  if (authError || !user) throw new Error('Войди в аккаунт, чтобы сохранить цвет.');
+  const {data,error} = await supabase.from('profiles')
+    .update({banner_color:color.toLowerCase(),banner_color_mode:mode})
+    .eq('id',user.id).select('banner_color,banner_color_mode').single();
+  if (error) throw new Error('Не удалось сохранить цвет баннера.');
+  return data;
 }
 
 export async function discardPrivateProfileMedia(
