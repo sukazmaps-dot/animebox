@@ -891,7 +891,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile' }: Props) {
           </details>
         </nav>
 
-        <div className="profile-editor-v31__settings">
+        <fieldset className="profile-editor-v31__settings" disabled={editorBusy}>
         <div className="profile-editor-v31__tools">
           <span>Настроено {configuredSections} из 5</span>
           <button type="button" disabled={!editorHistory.canUndo || editorBusy} onClick={editorHistory.undo} title="Отменить изменение (Ctrl+Z)">↶</button>
@@ -1061,12 +1061,12 @@ function ProfileEditorWorkspace({ initialTab = 'profile' }: Props) {
           </div>
         ) : null}
 
-        </div>
+        </fieldset>
 
         <div ref={savebarRef} data-visible="true" className={`profile-editor-v13__mobile-save profile-editor-v18__savebar ${dirty ? 'is-dirty' : ''}`} >
           <span className="profile-editor-v18__savebar-copy">
             <strong>Правки видны в предпросмотре</strong>
-            {resetUndoAvailable && <button type="button" onClick={()=>{editorHistory.undo();setResetUndoAvailable(false);}}>Вернуть сброшенное</button>}
+            {resetUndoAvailable && <button type="button" disabled={editorBusy} onClick={()=>{editorHistory.undo();setResetUndoAvailable(false);}}>Вернуть сброшенное</button>}
             {error ? <small className="profile-editor-v31__error" role="alert">{error}</small> : dirty && <small>Изменения ещё не сохранены.</small>}
           </span>
           <button type="button" className="profile-editor-v18__reset" disabled={editorBusy || (!dirty && !premiumDirty)} onClick={cancelChanges}>

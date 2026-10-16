@@ -1376,7 +1376,7 @@ html.ab-profile-editor-open .sidebar { display: none; }
 .profile-editor-v31__more summary {display:flex;align-items:center;justify-content:center;min-height:44px;padding:0 12px;border:1px solid var(--editor-border);border-radius:12px;cursor:pointer; }
 .profile-editor-v31__more[open] {display:flex;align-items:center;gap:4px;}
 .profile-editor-v31__more[open] button {white-space:nowrap;}
-.profile-editor-v31__settings {grid-area:settings;min-width:0;}
+.profile-editor-v31__settings {grid-area:settings;min-width:0;min-inline-size:0;margin:0;padding:0;border:0;}
 .profile-editor-v13[data-editor-tab='style'] {--editor-preview-height:0px;}
 .profile-editor-v13[data-editor-tab='style'] .profile-editor-v31__live-preview {display:none;}
 .profile-editor-v13 .profile-editor-v13__premium-tab[hidden] { display:none; }
