@@ -61,6 +61,15 @@ function fixture(tab){return `<style>${css}</style><style>body{margin:0}.lastCon
  const keyboard=await page.evaluate(()=>({root:document.querySelector('.profile-editor-v13').getBoundingClientRect().height,preview:getComputedStyle(document.querySelector('.profile-editor-v31__live-preview')).display,bar:document.querySelector('.profile-editor-v18__savebar').getBoundingClientRect().bottom,nav:document.querySelector('nav').getBoundingClientRect().top}));
  assert.equal(keyboard.root,400,'legacy min-height must not override visualViewport');assert.equal(keyboard.preview,'none','keyboard leaves room for editing');assert(keyboard.bar<=keyboard.nav+1,'keyboard save controls overlap navigation');
  await page.evaluate(()=>{document.documentElement.removeAttribute('data-profile-editor-keyboard');document.documentElement.style.removeProperty('--ab-editor-viewport-height');document.documentElement.style.removeProperty('--ab-editor-keyboard-inset');});
+ // A long save failure must stay visible in the fixed dock and reserve its new height.
+ await page.setViewportSize({width:360,height:900});await page.setContent(fixture('profile'));
+ await page.addScriptTag({content:`(()=>{const exports={};${dockSource};window.stopDock=exports.observeProfileEditorDock(document.querySelector('.profile-editor-v18__savebar'));})()`});
+ await page.evaluate(()=>{document.querySelector('.profile-editor-v18__savebar-copy').innerHTML='<strong>Правки видны в превью</strong><small class="profile-editor-v31__error" role="alert">Не удалось сохранить профиль. Проверь соединение и повтори попытку. Черновик остаётся на устройстве.</small>';});
+ await page.waitForTimeout(60);
+ const saveError=await page.locator('.profile-editor-v18__savebar-copy .profile-editor-v31__error').boundingBox();assert(saveError&&saveError.height>0,'save error is hidden by an old small-text rule');
+ await page.evaluate(()=>{const root=document.querySelector('.profile-editor-v13');root.scrollTop=root.scrollHeight;});
+ const finalControl=await page.locator('.lastControl').boundingBox(),errorDock=await page.locator('.profile-editor-v18__savebar').boundingBox();assert(finalControl.y+finalControl.height<=errorDock.y+1,'resized error dock hides the last setting');
+ await page.evaluate(()=>window.stopDock());
  // Real browser IndexedDB: staged files survive a reload and accounts stay separate.
  await page.route('http://editor-fixture.test/**',route=>route.fulfill({contentType:'text/html',body:'<html></html>'}));
  await page.goto('http://editor-fixture.test/');

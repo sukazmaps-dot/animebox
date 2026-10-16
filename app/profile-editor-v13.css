@@ -1410,7 +1410,7 @@ html.ab-profile-editor-open .sidebar { display: none; }
 }
 .profile-editor-v13 .profile-editor-v18__savebar button {min-width:88px;min-height:44px;width:auto;padding-inline:14px;}
 .profile-editor-v13 .profile-editor-v18__savebar-copy {grid-column:auto;padding:0;}
-.profile-editor-v13 .profile-editor-v18__savebar-copy small {display:none;}
+.profile-editor-v13 .profile-editor-v18__savebar-copy small:not(.profile-editor-v31__error) {display:none;}
 @media(max-width:600px) {
   .profile-editor-v13 {--editor-header-height:56px;--editor-tab-height:54px;}
   .profile-editor-v13 .profile-editor-v13__header {padding-inline:12px;}

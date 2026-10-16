@@ -1286,7 +1286,7 @@
 }
 
 .premium-studio-v16__section-nav button {
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 16px;
   border: 1px solid transparent;
   border-radius: 12px;
@@ -2833,7 +2833,7 @@
 }
 
 .premium-studio-v21__adaptive button {
-  min-height: 38px;
+  min-height: 44px;
   padding: 0 12px;
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 11px;
@@ -3047,7 +3047,7 @@
 }
 
 .premium-studio-v21__replay-row button {
-  min-height: 38px;
+  min-height: 44px;
   padding: 0 13px;
   border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 22%, transparent);
   border-radius: 11px;
@@ -3143,7 +3143,8 @@
 @media (max-width: 899px) {
   .profile-editor-v13 .premium-studio-v15__layout {display:block;}
   .profile-editor-v13 .premium-studio-v15__hero {display:block;}
-  .profile-editor-v13 .premium-studio-v16__section-nav {margin-block:16px;}
+  .profile-editor-v13 .premium-studio-v16__section-nav {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible;scroll-snap-type:none;margin-block:16px;}
+  .profile-editor-v13 .premium-studio-v16__section-nav > button {min-width:0;width:100%;}
 }
 
 
@@ -3275,7 +3276,7 @@
 }
 
 .premium-studio-v22__preview-sheet-actions button {
-  min-height: 42px;
+  min-height: 44px;
   border-radius: 12px;
   font-size: 10px;
   font-weight: 900;
