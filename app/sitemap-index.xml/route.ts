@@ -5,7 +5,10 @@ import {
 } from '@/lib/seo-config';
 
 export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+// The index only contains public, deployment-stable sitemap URLs.
+// Opt in to static route caching; shard content is refreshed by its own handlers.
+export const dynamic = 'force-static';
+export const revalidate = 3600;
 
 function xml(value: string) {
   return value
