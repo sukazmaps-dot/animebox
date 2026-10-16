@@ -48,6 +48,7 @@ const Hero = load('components/HomeHeroCarousel.tsx', {
   '@/lib/image-service':imageService,
   '@/lib/media-delivery':media,
   '@/lib/anime-display':load('lib/anime-display.ts'),
+  '@/lib/seo-text':load('lib/seo-text.ts'),
   '@/lib/anime-score':load('lib/anime-score.ts'),
   '@/lib/anime-detail-genres':load('lib/anime-detail-genres.ts',{'@/lib/anime-taxonomy':taxonomy}),
   '@/lib/home-hero-art':{mobileHeroObjectPosition:position},
