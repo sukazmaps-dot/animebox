@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import Icon from '@/components/Icon';
 import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
+import { BANNER_COLOR_PRESETS, bannerStyleBackground, validBannerColor, type BannerStyle } from '@/lib/profile-banner-style';
 import { isLevelFrameKey, levelFrameAvatarScale, levelFrameLabel, LEVEL_MILESTONES, type LevelFrameKey } from '@/lib/progression';
 
 import styles from './ProfileDirectEditSurface.module.css';
@@ -33,6 +34,8 @@ type Props = {
   baseBannerUrl: string | null;
   bannerColor?: string;
   bannerColorMode?: 'auto' | 'manual';
+  bannerStyle?: BannerStyle;
+  onBannerStyleChange?: (style: BannerStyle) => void;
   onBannerColorChange?: (color: string, mode: 'auto' | 'manual') => void | Promise<void>;
   premiumActive: boolean;
   avatarPremiumOverride: boolean;
@@ -82,6 +85,8 @@ export default function ProfileDirectEditSurface({
   baseBannerUrl,
   bannerColor = '#70618c',
   bannerColorMode = 'auto',
+  bannerStyle = 'soft',
+  onBannerStyleChange,
   onBannerColorChange,
   premiumActive,
   avatarPremiumOverride,
@@ -103,6 +108,10 @@ export default function ProfileDirectEditSurface({
   onOpenPremium,
 }: Props) {
   const [target, setTarget] = useState<InspectorTarget>('avatar');
+  const [bannerEditorMode, setBannerEditorMode] = useState<'color' | 'image'>('color');
+  const [hexDraft, setHexDraft] = useState(bannerColor);
+  const [hexError, setHexError] = useState('');
+  useEffect(() => { setHexDraft(bannerColor); setHexError(''); }, [bannerColor]);
   const [editingName, setEditingName] = useState(false);
   const [editingBio, setEditingBio] = useState(false);
   const [frameFilter, setFrameFilter] = useState<FrameFilter>('all');
@@ -280,9 +289,9 @@ export default function ProfileDirectEditSurface({
           <button
             type="button"
             className={styles.banner}
-            style={{background: bannerColor}}
+            style={{background: bannerStyleBackground(bannerColor, bannerStyle)}}
             data-selected={target === 'banner' ? 'true' : 'false'}
-            onClick={() => setTarget('banner')}
+            onClick={() => { setTarget('banner'); setBannerEditorMode('color'); }}
             aria-label="Настроить баннер"
           >
             {bannerUrl && <img src={bannerUrl} alt="" aria-hidden="true" />}
@@ -461,52 +470,97 @@ export default function ProfileDirectEditSurface({
 
         {target === 'banner' && (
           <div className={styles.inspectorSection}>
-            <div className={styles.mediaPreview} data-kind="banner">
-              {baseBannerUrl ? <img src={baseBannerUrl} alt="" /> : <span>Без базового баннера</span>}
+            <div className={styles.bannerModes} role="tablist" aria-label="Режим редактирования баннера">
+              <button type="button" role="tab" aria-selected={bannerEditorMode === 'color'}
+                data-active={bannerEditorMode === 'color'} onClick={() => setBannerEditorMode('color')}>Цвет</button>
+              <button type="button" role="tab" aria-selected={bannerEditorMode === 'image'}
+                data-active={bannerEditorMode === 'image'} onClick={() => setBannerEditorMode('image')}>Картинка</button>
             </div>
-            <div className={styles.actionRow}>
-              <button
-                type="button"
-                className={styles.primaryAction}
-                aria-busy={bannerBusy}
-                disabled={bannerBusy || !premiumActive}
-                onClick={() => openMediaPicker('banner')}
-              >
-                <Icon name="image" size={15} />
-                {bannerBusy ? 'Открываем…' : 'Изменить баннер'}
-              </button>
-              {canRemoveBanner && (
-                <button type="button" className={styles.dangerAction} onClick={onRemoveBanner}>
-                  Удалить
-                </button>
-              )}
-            </div>
-            <label className={styles.field}>
-              <span><strong>Цвет баннера</strong></span>
-              <select aria-label="Режим цвета баннера" value={bannerColorMode}
-                onChange={event => void onBannerColorChange?.(bannerColor, event.target.value as 'auto' | 'manual')}>
-                <option value="auto">Авто — по аватарке</option>
-                <option value="manual">Выбрать вручную</option>
-              </select>
-              {bannerColorMode === 'manual' && <input type="color" aria-label="Цвет баннера" value={bannerColor}
-                onChange={event => void onBannerColorChange?.(event.target.value, 'manual')} />}
-            </label>
-            <p className={styles.help}>{premiumActive
-              ? 'JPG, PNG, WebP, AVIF, HEIC/HEIF · до 32 МБ до сжатия. Итоговый баннер до 300 КБ.'
-              : 'Без Premium доступен цвет. Изображение баннера и анимация доступны с Premium.'}</p>
-            {bannerPremiumOverride && (
-              <div className={styles.overrideCard}>
-                <Icon name="crown" size={18} />
-                <div>
-                  <strong>{premiumActive ? 'Сейчас виден Premium-баннер' : 'Используется сохранённая статичная версия'}</strong>
-                  <p>{premiumActive ? 'Изменения базового баннера сохранятся как запасной вариант.' : 'Анимация уже выключена; можно одним нажатием вернуть базовый баннер.'}</p>
+
+            {bannerEditorMode === 'color' ? (
+              <div role="tabpanel" className={styles.bannerPalette}>
+                <p className={styles.help}>Выбери готовый вариант или укажи свой цвет. Заливка появится после «Сохранить изменения».</p>
+                <div className={styles.bannerPresetGrid} aria-label="Готовые цвета баннера">
+                  {BANNER_COLOR_PRESETS.map((preset) => {
+                    const locked = Boolean(preset.premium && !premiumActive);
+                    const active = bannerColor.toLowerCase() === preset.color && bannerStyle === preset.style && bannerColorMode === 'manual';
+                    return (
+                      <button type="button" key={preset.label} className={styles.bannerPreset}
+                        data-active={active} aria-pressed={active}
+                        aria-label={`${preset.label}${locked ? ' — Premium' : ''}`}
+                        onClick={() => {
+                          if (locked) { onOpenPremium(); return; }
+                          onBannerStyleChange?.(preset.style);
+                          void onBannerColorChange?.(preset.color, 'manual');
+                        }}>
+                        <span className={styles.bannerPresetSwatch} style={{background:bannerStyleBackground(preset.color,preset.style)}} aria-hidden="true" />
+                        <span>{preset.label}{locked && ' ✦'}</span>
+                      </button>
+                    );
+                  })}
                 </div>
-                <button type="button" onClick={() => void onUseBaseBanner()}>Использовать базовый</button>
+                <div className={styles.bannerModes} role="group" aria-label="Тип фона баннера">
+                  {(['solid','soft','glow','sunset'] as const).map((choice) => {
+                    const locked = (choice === 'glow' || choice === 'sunset') && !premiumActive;
+                    const labels: Record<BannerStyle, string> = {solid:'Однотонный',soft:'Градиент',glow:'Свечение ✦',sunset:'Закат ✦'};
+                    return <button type="button" key={choice} data-active={bannerStyle===choice} aria-pressed={bannerStyle===choice}
+                      onClick={() => locked ? onOpenPremium() : onBannerStyleChange?.(choice)}>{labels[choice]}</button>;
+                  })}
+                </div>
+                <div className={styles.bannerHexRow}>
+                  <label className={styles.field}>
+                    <span><strong>Свой цвет (HEX)</strong></span>
+                    <input type="text" inputMode="text" spellCheck={false} maxLength={7} value={hexDraft}
+                      aria-invalid={Boolean(hexError)} aria-label="HEX цвет баннера"
+                      onChange={event=>{setHexDraft(event.target.value);setHexError('');}}
+                      onBlur={()=>{
+                        if (!validBannerColor(hexDraft)){setHexError('Используй #RRGGBB');return;}
+                        void onBannerColorChange?.(hexDraft, 'manual');
+                      }}
+                      onKeyDown={event=>{if(event.key==='Enter') event.currentTarget.blur();}} />
+                  </label>
+                  <input type="color" aria-label="Палитра цвета баннера" value={bannerColor}
+                    onChange={event=>void onBannerColorChange?.(event.target.value,'manual')} />
+                </div>
+                {hexError && <p className={styles.messageError} role="alert">{hexError}</p>}
+                <div className={styles.actionRow}>
+                  <button type="button" onClick={()=>void onBannerColorChange?.(bannerColor,'auto')}>Из аватара</button>
+                  <button type="button" onClick={()=>{
+                    onBannerStyleChange?.('soft');
+                    void onBannerColorChange?.('#70618c','manual');
+                  }}>Сбросить цвет</button>
+                </div>
+                <p className={styles.help}>10 пресетов бесплатны. Расширенные градиенты и анимация — Premium.</p>
+              </div>
+            ) : (
+              <div role="tabpanel">
+                <div className={styles.mediaPreview} data-kind="banner">
+                  {baseBannerUrl ? <img src={baseBannerUrl} alt="" /> : <span>Без базового баннера</span>}
+                </div>
+                <div className={styles.actionRow}>
+                  <button type="button" className={styles.primaryAction} aria-busy={bannerBusy}
+                    disabled={bannerBusy || !premiumActive} onClick={() => openMediaPicker('banner')}>
+                    <Icon name="image" size={15} />
+                    {bannerBusy ? 'Открываем…' : 'Загрузить картинку'}
+                  </button>
+                  {canRemoveBanner && <button type="button" className={styles.dangerAction} onClick={onRemoveBanner}>Удалить</button>}
+                </div>
+                <p className={styles.help}>{premiumActive
+                  ? 'JPG, PNG, WebP, AVIF, HEIC/HEIF · до 32 МБ до сжатия. Итоговый баннер до 300 КБ.'
+                  : 'Для загрузки картинки и анимации требуется Premium. Цвет доступен бесплатно.'}</p>
+                {bannerPremiumOverride && (
+                  <div className={styles.overrideCard}>
+                    <Icon name="crown" size={18} />
+                    <div><strong>Сейчас виден Premium-баннер</strong>
+                      <p>Цвет будет запасным оформлением, пока есть изображение.</p></div>
+                    <button type="button" onClick={() => void onUseBaseBanner()}>Использовать базовый</button>
+                  </div>
+                )}
+                {!premiumActive && <button type="button" className={styles.premiumLink} onClick={onOpenPremium}>
+                  <Icon name="crown" size={15} /> Открыть Premium-баннеры
+                </button>}
               </div>
             )}
-            <button type="button" className={styles.premiumLink} onClick={onOpenPremium}>
-              <Icon name="crown" size={15} /> Анимированный баннер и Premium-палитра
-            </button>
           </div>
         )}
 
