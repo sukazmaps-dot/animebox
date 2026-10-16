@@ -60,6 +60,7 @@ const logPath = path.join(os.tmpdir(), 'animebox30-browser-' + process.pid + '.l
       p.on('pageerror', e => errors.push(e.message));
       await p.route('**/*', async r => {
         const u = r.request().url();
+        if (u.startsWith('http://127.0.0.1:3100/api/')) return r.fulfill({ json: { items: [], ok: true } });
         if (u.startsWith('http://127.0.0.1:3100')) return r.continue();
         if (r.request().resourceType() === 'image') {
           if (u.includes('portrait-0') || u.includes('banner-0')) media.push(u);
@@ -154,6 +155,71 @@ const logPath = path.join(os.tmpdir(), 'animebox30-browser-' + process.pid + '.l
       assert.equal(errors.length, 0, errors.join(';'));
       assert(media.length <= 1, 'duplicate hero download before screenshot ' + media.join(';'));
       if (width === 390) {
+        const radios = p.getByRole('radio');
+        assert.equal(await radios.count(), 5, 'five mood options');
+        await radios.first().focus();
+        await p.keyboard.press('ArrowRight');
+        assert.equal(await radios.nth(1).getAttribute('aria-checked'), 'true');
+        await p.keyboard.press('End');
+        assert.equal(await radios.last().getAttribute('aria-checked'), 'true');
+        await p.keyboard.press('Home');
+        assert.equal(await radios.first().getAttribute('aria-checked'), 'true');
+        assert.equal(await p.locator('[role="radio"][tabindex="0"]').count(), 1);
+        await radios.nth(2).click();
+        assert.equal(await radios.nth(2).getAttribute('aria-checked'), 'true');
+        const moodBox = await p.locator('.mood-picker__options').boundingBox();
+        assert(moodBox.x >= -1 && moodBox.x + moodBox.width <= width + 1, 'mood rail overflow');
+        const card = p.locator('.smart-card').first();
+        assert.equal(await card.locator('.smart-card__actions > button').count(), 2, 'single action row');
+        if(process.env.HOME_SCREENSHOT_DIR) await p.locator('.home-discovery-flow').screenshot({path:path.join(process.env.HOME_SCREENSHOT_DIR, 'discovery-'+theme+'-dpr'+dpr+'.png')});
+        const cardGeometry = await card.evaluate(e => {
+          const rect = n => {const r=n.getBoundingClientRect();return {top:r.top,bottom:r.bottom,height:r.height,width:r.width};};
+          return {card:rect(e),body:rect(e.querySelector('.smart-card__body')),actions:rect(e.querySelector('.smart-card__actions')),rail:rect(e.closest('.smart-feed__rail')),overflow:getComputedStyle(e.closest('.smart-feed__rail')).overflowY};
+        });
+        console.log('CARD',theme,cardGeometry);
+        assert(cardGeometry.actions.bottom <= cardGeometry.card.bottom + 1,'actions below card');
+        assert(cardGeometry.actions.bottom <= cardGeometry.rail.bottom + 1,'actions clipped by rail');
+        const menu = card.locator('.smart-card__dismiss');
+        await menu.click();
+        const dialog = card.locator('dialog');
+        await p.waitForFunction(() => document.querySelector('dialog')?.open);
+        const box = await dialog.boundingBox();
+        assert(box.x >= 0 && box.x + box.width <= width + 1, 'dialog outside viewport');
+        await p.keyboard.press('Escape');
+        assert.equal(await dialog.getAttribute('open'), null);
+        assert(await menu.evaluate(e => document.activeElement === e), 'dialog focus not returned');
+        await menu.click();
+        await dialog.locator('.smart-card__feedback--like').click();
+        await menu.click();
+        assert.equal(await dialog.locator('.smart-card__feedback--like').getAttribute('aria-pressed'), 'true');
+        await p.keyboard.press('Escape');
+        let attempts = 0;
+        await p.route('**/api/community/library', r => r.fulfill(++attempts === 1
+          ? { status: 500, json: { error: 'Test error' } }
+          : { json: { ok: true } }));
+        const save = card.locator('.smart-card__plan');
+        await save.click();
+        await p.waitForFunction(() => document.querySelector('.smart-card__plan')?.textContent.includes('Повторить'));
+        await save.click();
+        await p.waitForFunction(() => document.querySelector('.smart-card__plan')?.textContent.includes('Сохранено'));
+        assert.equal(attempts, 2);
+        assert(await save.isDisabled());
+        await menu.click();
+        await dialog.locator('.smart-card__feedback--watched').click();
+        assert.equal(await p.locator('.smart-card').count(), 3, 'watched callback did not hide card');
+        await p.locator('[data-qa-undo]').click();
+        assert.equal(await p.locator('.smart-card').count(), 4, 'undo did not restore card');
+        await p.locator('[aria-label^="Показать:"]').nth(1).click();
+        await p.waitForFunction(() => document.querySelector('.home-hero-carousel h1')?.textContent.includes('Невероятное'));
+        assert(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'long title overflows');
+        assert(await p.locator('.home-hero-carousel').evaluate(hero => {
+          const bottom = hero.getBoundingClientRect().bottom;
+          return [...hero.querySelectorAll('a,button')].every(e => e.getBoundingClientRect().bottom <= bottom + 1);
+        }), 'long title clips actions');
+        console.log('PASS mood keyboard, single action row, dialog, focus, like, save failure/retry, watched and undo:', theme);
+      }
+
+      if (width === 390) {
         await p.getByRole('button', {name:'Показать: Невероятное приключение героя в другом мире — сезон 2',exact:true}).click();
         await p.waitForFunction(()=>document.querySelector('.home-hero-carousel h1').textContent.includes('сезон 2'));
         const next = await p.locator('.home-hero-carousel').evaluate(e=>({
@@ -192,6 +258,7 @@ const logPath = path.join(os.tmpdir(), 'animebox30-browser-' + process.pid + '.l
       let hits = [];
       await p.route('**/*', async r => {
         const u = r.request().url();
+        if (u.startsWith('http://127.0.0.1:3100/api/')) return r.fulfill({ json: { items: [], ok: true } });
         if (u.startsWith('http://127.0.0.1:3100')) return r.continue();
         if (r.request().resourceType() === 'image') {
           if (u.includes('banner-') || u.includes('portrait-')) hits.push(u);
