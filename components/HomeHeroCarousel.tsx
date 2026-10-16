@@ -27,6 +27,7 @@ import Icon from '@/components/Icon';
 
 import {
   normalizeImageUrl,
+  proxyImageUrl,
 } from '@/lib/image-service';
 import {
   buildAnimeBoxMediaCandidates,
@@ -68,6 +69,7 @@ type HeroImageAttempt = {
   /** Large desktops can use the native source above R2's 1440px variant cap. */
   ultraWideSrc?: string;
   fallback: boolean;
+  poster: boolean;
 };
 
 function uniqueImageSources(values: Array<string | null | undefined>) {
@@ -87,6 +89,7 @@ function uniqueImageSources(values: Array<string | null | undefined>) {
 function buildHeroImageAttempts(
   sources: string[],
   preset: MediaImagePreset,
+  artwork: Array<string | null | undefined> = [],
 ): HeroImageAttempt[] {
   const first = sources[0];
   if (!first) return [];
@@ -94,6 +97,9 @@ function buildHeroImageAttempts(
   const variant = buildAnimeBoxMediaDefaultVariant(first, preset, 80, 'webp');
   const edge = buildAnimeBoxMediaCandidates(first, variant);
   const responsive = buildAnimeBoxMediaSrcSet(first, preset, 80, 'webp');
+
+  const poster = !artwork.includes(first);
+  const proxies = sources.map(src => proxyImageUrl(src)).filter((src): src is string => Boolean(src));
 
   // The original URLs remain in the chain. On an edge 403/timeout, the
   // picture onError moves on to a direct origin before changing the artwork.
@@ -103,12 +109,14 @@ function buildHeroImageAttempts(
       srcSet: index === 0 ? responsive : undefined,
       ultraWideSrc: index === 0 ? first : undefined,
       fallback: index > 0,
+      poster,
     })),
-    ...sources.map((src) => ({ src, fallback: true })),
+    ...proxies.map((src, index) => ({ src, fallback: true, poster: !artwork.includes(sources[index]) })),
+    ...sources.filter(src => !proxies.includes(src)).map((src) => ({ src, fallback: true, poster: !artwork.includes(src) })),
   ];
 }
 
-function getHeroBackdropAttempts(anime: Anime): HeroImageAttempt[] {
+export function getHeroBackdropAttempts(anime: Anime): HeroImageAttempt[] {
   return buildHeroImageAttempts(
     uniqueImageSources([
       anime.bannerImage,
@@ -120,10 +128,11 @@ function getHeroBackdropAttempts(anime: Anime): HeroImageAttempt[] {
       anime.image?.medium,
     ]),
     'hero',
+    [anime.bannerImage, anime.mobileHeroImage],
   );
 }
 
-function getMobileHeroAttempts(anime: Anime): HeroImageAttempt[] {
+export function getMobileHeroAttempts(anime: Anime): HeroImageAttempt[] {
   return buildHeroImageAttempts(
     uniqueImageSources([
       // Dedicated phone artwork takes precedence over catalogue posters.
@@ -136,6 +145,7 @@ function getMobileHeroAttempts(anime: Anime): HeroImageAttempt[] {
       anime.bannerImage,
     ]),
     'large',
+    [anime.mobileHeroImage, anime.bannerImage],
   );
 }
 
@@ -164,6 +174,100 @@ function getAmbientRgb(anime: Anime): readonly [number, number, number] {
   }
 
   return AMBIENT_FALLBACKS[Math.abs(anime.id) % AMBIENT_FALLBACKS.length];
+}
+
+/** Keyed by slide + source list: late events cannot advance a different slide. */
+export function HomeHeroArtwork({
+  animeId, backdropAttempts, mobileAttempts, firstSlide,
+}: {
+  animeId: number;
+  backdropAttempts: HeroImageAttempt[];
+  mobileAttempts: HeroImageAttempt[];
+  firstSlide: boolean;
+}) {
+  const [backdropAttemptIndex, setBackdropAttemptIndex] = useState(0);
+  const [mobileAttemptIndex, setMobileAttemptIndex] = useState(0);
+  const [ultraWideOriginFailed, setUltraWideOriginFailed] = useState(false);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const loadedRef = useRef(false);
+  const backdropAttempt = backdropAttempts[backdropAttemptIndex] ?? null;
+  const mobileAttempt = mobileAttempts[mobileAttemptIndex] ?? null;
+  const bannerImage = backdropAttempt?.src ?? null;
+  const mobileKeyArt = mobileAttempt?.src ?? null;
+  const attemptKey = `${backdropAttemptIndex}-${mobileAttemptIndex}-${ultraWideOriginFailed}`;
+
+  const advanceAttempt = () => {
+    const image = imageRef.current;
+    if (!ultraWideOriginFailed && window.matchMedia('(min-width: 2400px)').matches &&
+        image?.currentSrc === backdropAttempt?.ultraWideSrc) {
+      setUltraWideOriginFailed(true);
+    } else if (window.matchMedia('(max-width: 768px)').matches && mobileKeyArt) {
+      setMobileAttemptIndex(current => Math.min(current + 1, mobileAttempts.length));
+    } else {
+      setBackdropAttemptIndex(current => Math.min(current + 1, backdropAttempts.length));
+    }
+  };
+
+  useEffect(() => {
+    loadedRef.current = false;
+    const image = imageRef.current;
+    if (!image) return;
+    // Cached images may finish before React installs the event handlers.
+    if (image.complete && image.naturalWidth > 0) return;
+    const timer = window.setTimeout(() => {
+      if (!loadedRef.current && !(image.complete && image.naturalWidth > 0)) advanceAttempt();
+    }, 8_000);
+    return () => window.clearTimeout(timer);
+    // Each attempt owns its watchdog; cleanup prevents old requests advancing new ones.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attemptKey]);
+
+  if (!bannerImage && !mobileKeyArt) return null;
+  return (
+        <picture key={attemptKey} data-hero-desktop-kind={backdropAttempt?.poster ? 'poster' : 'art'}>
+          {/* R2 currently tops out at 1440px: keep original detail on 2K/4K screens. */}
+          {!ultraWideOriginFailed && backdropAttempt?.ultraWideSrc && (
+            <source
+              media="(min-width: 2400px)"
+              srcSet={backdropAttempt.ultraWideSrc}
+              sizes="(min-width: 3400px) 2100px, (min-width: 3000px) 1950px, (min-width: 2400px) 1750px"
+            />
+          )}
+          {mobileKeyArt && (
+            <source
+              media="(max-width: 768px)"
+              srcSet={mobileAttempt?.srcSet ?? mobileKeyArt}
+              sizes="(max-width: 768px) calc(100vw - 32px), 1px"
+            />
+          )}
+          {backdropAttempt?.srcSet && (
+            <source
+              media="(min-width: 769px)"
+              srcSet={backdropAttempt.srcSet}
+              sizes="(min-width: 3400px) 2100px, (min-width: 3000px) 1950px, (min-width: 2400px) 1750px, (min-width: 1920px) 1500px, (max-width: 1200px) calc(100vw - 100px), 1380px"
+            />
+          )}
+          <Image
+            key={`${animeId}-art-${backdropAttemptIndex}-${mobileAttemptIndex}-${ultraWideOriginFailed}`}
+            src={bannerImage ?? 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg"/%3E'}
+            alt=""
+            fill
+            // React responsive image source selection handles media-specific
+            // fetch priority; an unconditional preload would waste a request.
+            priority={false}
+            fetchPriority={firstSlide ? 'high' : 'auto'}
+            loading="eager"
+            decoding="async"
+            unoptimized
+            sizes="(min-width: 1920px) 1500px, (max-width: 768px) calc(100vw - 32px), (max-width: 1200px) calc(100vw - 100px), 1380px"
+            className="page-hero__backdrop home-hero-carousel__backdrop is-visible"
+            aria-hidden="true"
+            ref={imageRef}
+            onLoad={() => { loadedRef.current = true; }}
+            onError={advanceAttempt}
+          />
+        </picture>
+  );
 }
 
 export default function HomeHeroCarousel({
@@ -290,9 +394,6 @@ export default function HomeHeroCarousel({
   const [paused, setPaused] =
     useState(false);
 
-  const [backdropAttemptIndex, setBackdropAttemptIndex] = useState(0);
-  const [mobileAttemptIndex, setMobileAttemptIndex] = useState(0);
-  const [ultraWideOriginFailed, setUltraWideOriginFailed] = useState(false);
 
   // Do not rotate the largest above-the-fold content before the visitor has
   // interacted with the page. A timed hero swap can become a new LCP
@@ -328,13 +429,6 @@ export default function HomeHeroCarousel({
     mobile: anime ? getMobileHeroAttempts(anime) : [],
   }), [anime]);
 
-  useEffect(() => {
-    queueMicrotask(() => {
-      setBackdropAttemptIndex(0);
-      setMobileAttemptIndex(0);
-      setUltraWideOriginFailed(false);
-    });
-  }, [anime?.id]);
 
   useEffect(() => {
     if (!anime) return;
@@ -471,19 +565,7 @@ export default function HomeHeroCarousel({
   const validYear = typeof year === 'number' && Number.isInteger(year) && year >= 1900 && year <= 2100;
   const genre = localizeDetailGenres(anime.genres ?? [])[0]?.label;
 
-  const backdropAttempts = imageAttempts.backdrop;
-  const mobileAttempts = imageAttempts.mobile;
-
-  const backdropAttempt =
-    backdropAttempts[backdropAttemptIndex] ??
-    null;
-
-  const mobileAttempt =
-    mobileAttempts[mobileAttemptIndex] ??
-    null;
-
-  const bannerImage = backdropAttempt?.src ?? null;
-  const mobileKeyArt = mobileAttempt?.src ?? null;
+  const bannerImage = imageAttempts.backdrop[0]?.src ?? null;
 
   const [ambientR, ambientG, ambientB] = getAmbientRgb(anime);
 
@@ -669,7 +751,6 @@ export default function HomeHeroCarousel({
         'page-hero',
         'home-hero-carousel',
         bannerImage ? 'has-banner' : 'no-banner',
-        backdropAttempt?.fallback ? 'is-backdrop-fallback' : '',
         autoplayUnlocked ? 'is-motion-ready' : '',
         autoplayUnlocked && safeActiveIndex !== 0 ? 'is-slide-transition' : '',
       ].filter(Boolean).join(' ')}
@@ -698,67 +779,13 @@ export default function HomeHeroCarousel({
         setPaused(false)
       }
     >
-      {(bannerImage || mobileKeyArt) && (
-        // One responsive <picture>, not two separate <img> downloads on phones.
-        // Desktop keeps cinematic scenery; portrait screens get the mobile art.
-        <picture>
-          {/* R2 currently tops out at 1440px: keep original detail on 2K/4K screens. */}
-          {!ultraWideOriginFailed && backdropAttempt?.ultraWideSrc && (
-            <source
-              media="(min-width: 2400px)"
-              srcSet={backdropAttempt.ultraWideSrc}
-              sizes="(min-width: 3400px) 2100px, (min-width: 3000px) 1950px, (min-width: 2400px) 1750px"
-            />
-          )}
-          {mobileKeyArt && (
-            <source
-              media="(max-width: 768px)"
-              srcSet={mobileAttempt?.srcSet ?? mobileKeyArt}
-              sizes="(max-width: 768px) calc(100vw - 32px), 1px"
-            />
-          )}
-          {backdropAttempt?.srcSet && (
-            <source
-              media="(min-width: 769px)"
-              srcSet={backdropAttempt.srcSet}
-              sizes="(min-width: 3400px) 2100px, (min-width: 3000px) 1950px, (min-width: 2400px) 1750px, (min-width: 1920px) 1500px, (max-width: 1200px) calc(100vw - 100px), 1380px"
-            />
-          )}
-          <Image
-            key={`${anime.id}-art-${backdropAttemptIndex}-${mobileAttemptIndex}-${ultraWideOriginFailed}`}
-            src={bannerImage ?? mobileKeyArt ?? '/anime-placeholder.svg'}
-            alt=""
-            fill
-            // React responsive image source selection handles media-specific
-            // fetch priority; an unconditional preload would waste a request.
-            priority={false}
-            fetchPriority={safeActiveIndex === 0 ? 'high' : 'auto'}
-            loading={safeActiveIndex === 0 ? 'eager' : 'lazy'}
-            decoding="async"
-            unoptimized
-            sizes="(min-width: 1920px) 1500px, (max-width: 768px) calc(100vw - 32px), (max-width: 1200px) calc(100vw - 100px), 1380px"
-            className="page-hero__backdrop home-hero-carousel__backdrop is-visible"
-            aria-hidden="true"
-            onError={(event) => {
-              // The ultra-wide source bypasses the first CDN attempt. Retry
-              // that unused attempt before advancing to alternate artwork.
-              if (
-                !ultraWideOriginFailed &&
-                window.matchMedia('(min-width: 2400px)').matches &&
-                event.currentTarget.currentSrc === backdropAttempt?.ultraWideSrc
-              ) {
-                setUltraWideOriginFailed(true);
-                return;
-              }
-              if (window.matchMedia('(max-width: 768px)').matches && mobileKeyArt) {
-                setMobileAttemptIndex((current) => current + 1);
-              } else {
-                setBackdropAttemptIndex((current) => current + 1);
-              }
-            }}
-          />
-        </picture>
-      )}
+      <HomeHeroArtwork
+        key={JSON.stringify([anime.id, imageAttempts])}
+        animeId={anime.id}
+        backdropAttempts={imageAttempts.backdrop}
+        mobileAttempts={imageAttempts.mobile}
+        firstSlide={safeActiveIndex === 0}
+      />
 
       <div className="page-hero__overlay" />
 

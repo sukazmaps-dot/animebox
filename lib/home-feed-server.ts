@@ -1,4 +1,5 @@
 import {getSavedCatalogPage} from '@/lib/saved-catalog-server';
+import { enrichHomeHeroArt } from '@/lib/home-hero-art-server';
 import 'server-only';
 
 import { unstable_cache } from 'next/cache';
@@ -57,9 +58,13 @@ const loadHomeInitialFeed = unstable_cache(
         (anime) => anime.metadataSource === 'saved',
       ),
     );
-    return result;
+    const enriched = await enrichHomeHeroArt([...result.popular, ...result.ongoing]);
+    return {
+      popular: enriched.slice(0, result.popular.length),
+      ongoing: enriched.slice(result.popular.length),
+    };
   },
-  ['animebox-home-initial-feed-v7-saved-first-screen'],
+  ['animebox-home-initial-feed-v8-hero-art'],
   {
     revalidate: 300,
     tags: ['animebox-home-feed'],
