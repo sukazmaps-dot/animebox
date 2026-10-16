@@ -141,6 +141,7 @@ export default async function PublicProfilePage({ params }: Props) {
           ) : (
             <div
               className="profile-v2__banner-default"
+              style={{background: profile.bannerColor}}
               aria-hidden="true"
             />
           )}
