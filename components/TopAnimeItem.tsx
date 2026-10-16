@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import AnimeIntentLink from '@/components/AnimeIntentLink';
 import AnimeImage from '@/components/AnimeImage';
 import { animeHref } from '@/lib/anime-url';
 import { getAnimeTitle } from '@/lib/anime-display';
@@ -18,7 +18,7 @@ export default function TopAnimeItem({
   const title = getAnimeTitle(anime);
 
   return (
-    <Link href={animeHref(anime)} className={`top-anime-item${editorial ? ' top-anime-item--editorial' : ''}`}>
+    <AnimeIntentLink href={animeHref(anime)} className={`top-anime-item${editorial ? ' top-anime-item--editorial' : ''}`}>
       <span className="top-anime-item__rank">
         {String(rank)}
       </span>
@@ -42,6 +42,6 @@ export default function TopAnimeItem({
           {animeEpisodesDisplay(anime) ? ` · ${animeEpisodesDisplay(anime)}` : ''}
         </span>
       </div>
-    </Link>
+    </AnimeIntentLink>
   );
 }
