@@ -71,3 +71,20 @@
 }
 :global(html[data-animebox-theme='light']) .preview { --preview-surface:#fff; }
 @media(prefers-reduced-motion:reduce) { .banner { transition:none; } }
+
+@media (max-height:660px) {
+  .preview { height: 150px; margin-block: 5px; }
+  .banner { height: 93px; }
+  .avatar { width: 64px; height: 64px; flex-basis:64px; }
+  .identity { margin-top:-26px; }
+  .name { font-size: 16px; }
+}
+@media (max-height:500px) {
+  .preview { height:120px; }
+  .banner { height:68px; }
+  .avatar { width:56px; height:56px; flex-basis:56px; }
+  .identity { margin-top:-22px; }
+  .editAvatar { width:24px;height:24px;font-size:12px; }
+  .copy { padding-bottom:0; }
+  .bio { max-width:100%;font-size:10px; }
+}

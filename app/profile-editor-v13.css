@@ -1444,3 +1444,12 @@ html.ab-profile-editor-open .sidebar { display: none; }
   margin-top:4px;
   white-space:normal;
 }
+
+/* Short Android landscape / compact Mini App viewports: keep controls usable. */
+@media (max-height: 660px) {
+  .profile-editor-v13 { --editor-preview-height: 164px; }
+}
+@media (max-height: 500px) {
+  .profile-editor-v13 { --editor-preview-height: 132px; --editor-tab-height: 50px; }
+  .profile-editor-v13 .profile-editor-v18__savebar { min-height: 56px; }
+}
