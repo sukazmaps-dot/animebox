@@ -32,6 +32,11 @@ assert(direct.includes('<BannerHexInput key={bannerColor}'), 'Hex input must rem
 assert(!direct.includes('setHexDraft(bannerColor)'), 'Never synchronously set React state inside an effect');
 
 assert(banner.includes('validBannerColor'));
+assert(banner.includes('visibleBannerStyle(value: unknown, premiumActive: boolean)'));
+assert(read('lib/public-profile-server.ts').includes('visibleBannerStyle(profile.banner_style, premiumActive)'));
+assert(read('lib/profile-preview-server.ts').includes('visibleBannerStyle(profile.banner_style, resolved.premiumStudioActive)'));
+assert(read('app/profile/page.tsx').includes('visibleBannerStyle(profile?.banner_style, premiumActive)'));
+assert(direct.includes('visibleBannerStyle(bannerStyle, premiumActive)'));
 for (const p of ['lib/profile-preview-server.ts','lib/public-profile-server.ts','app/profile/page.tsx','app/profile/[id]/page.tsx','components/profile/ProfilePreview.tsx']) {
   assert(read(p).includes('bannerStyle'));
 }

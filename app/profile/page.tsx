@@ -25,7 +25,7 @@ import {
   type PremiumStudioSettings,
 } from '@/lib/premium-studio';
 import { resolveProfileAppearance } from '@/lib/profile-appearance';
-import { bannerStyleBackground, normalizeBannerStyle } from '@/lib/profile-banner-style';
+import { bannerStyleBackground, visibleBannerStyle } from '@/lib/profile-banner-style';
 
 type Profile = {
   id: string;
@@ -398,7 +398,7 @@ export default function ProfilePage() {
           ) : (
             <div
               className="profile-v2__banner-default"
-              style={{['--profile-banner-color' as string]: profile?.banner_color ?? '#70618c', background: bannerStyleBackground(profile?.banner_color, normalizeBannerStyle(profile?.banner_style))}}
+              style={{['--profile-banner-color' as string]: profile?.banner_color ?? '#70618c', background: bannerStyleBackground(profile?.banner_color, visibleBannerStyle(profile?.banner_style, premiumActive))}}
               aria-hidden="true"
             />
           )}

@@ -12,6 +12,11 @@ export function isBannerStyle(value: unknown): value is BannerStyle {
 export function normalizeBannerStyle(value: unknown): BannerStyle {
   return isBannerStyle(value) ? value : DEFAULT_BANNER_STYLE;
 }
+/** Paid fills are stored safely but shown as a free gradient after subscription expiry. */
+export function visibleBannerStyle(value: unknown, premiumActive: boolean): BannerStyle {
+  const style = normalizeBannerStyle(value);
+  return premiumActive || FREE_BANNER_STYLES.includes(style) ? style : DEFAULT_BANNER_STYLE;
+}
 export function bannerStyleBackground(value: unknown, style: unknown = DEFAULT_BANNER_STYLE): string {
   const color = validBannerColor(value) ? value.toLowerCase() : DEFAULT_BANNER_COLOR;
   switch (normalizeBannerStyle(style)) {

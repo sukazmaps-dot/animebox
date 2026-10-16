@@ -14,7 +14,7 @@ import {
   type PremiumStudioSettings,
 } from '@/lib/premium-studio';
 import { resolveProfileAppearance } from '@/lib/profile-appearance';
-import { normalizeBannerStyle, type BannerStyle } from '@/lib/profile-banner-style';
+import { visibleBannerStyle, type BannerStyle } from '@/lib/profile-banner-style';
 import {
   normalizeProgression,
   type AchievementRarity,
@@ -357,7 +357,7 @@ export async function getPublicProfile(
     avatarMobileUrl,
     bannerUrl,
     bannerColor: profile.banner_color ?? '#70618c',
-    bannerStyle: normalizeBannerStyle(profile.banner_style),
+    bannerStyle: visibleBannerStyle(profile.banner_style, premiumActive),
     bannerMobileUrl,
     createdAt: profile.created_at,
     ogNumber:

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import Icon from '@/components/Icon';
 import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
-import { BANNER_COLOR_PRESETS, bannerStyleBackground, validBannerColor, type BannerStyle } from '@/lib/profile-banner-style';
+import { BANNER_COLOR_PRESETS, bannerStyleBackground, validBannerColor, visibleBannerStyle, type BannerStyle } from '@/lib/profile-banner-style';
 import { isLevelFrameKey, levelFrameAvatarScale, levelFrameLabel, LEVEL_MILESTONES, type LevelFrameKey } from '@/lib/progression';
 
 import styles from './ProfileDirectEditSurface.module.css';
@@ -308,7 +308,7 @@ export default function ProfileDirectEditSurface({
           <button
             type="button"
             className={styles.banner}
-            style={{background: bannerStyleBackground(bannerColor, bannerStyle)}}
+            style={{background: bannerStyleBackground(bannerColor, visibleBannerStyle(bannerStyle, premiumActive))}}
             data-selected={target === 'banner' ? 'true' : 'false'}
             onClick={() => { setTarget('banner'); setBannerEditorMode('color'); }}
             aria-label="Настроить баннер"
