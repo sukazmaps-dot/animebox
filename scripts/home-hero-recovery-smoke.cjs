@@ -33,6 +33,7 @@ const server=spawn(process.execPath,['node_modules/next/dist/bin/next','dev','--
   });
   await page.goto('http://127.0.0.1:3104/qa-patch31-4-check',{waitUntil:'domcontentloaded',timeout:120000});
   await page.waitForSelector('.home-hero-carousel');
+  await page.waitForFunction(()=>document.documentElement.dataset.heroFixtureReady==='true');
   // Next client hydration is observable via an actual state update.
   if(mode==='slow-old'){await page.locator('[data-update]').click();await page.waitForSelector('[data-fixture-mode="updated"]');}
   if(mode==='all-fail'){
@@ -53,7 +54,7 @@ const server=spawn(process.execPath,['node_modules/next/dist/bin/next','dev','--
  // Poster-only desktop must not be enlarged to the whole landscape hero.
  const page=await browser.newPage({viewport:{width:1440,height:1000}});
  await page.route('**/*',route=>{const u=route.request().url();if(route.request().resourceType()==='image')return route.fulfill({contentType:'image/svg+xml',body:svg});if(u.startsWith('http://127.0.0.1:3104/api/'))return route.fulfill({json:{items:[]}});return u.startsWith('http://127.0.0.1:3104')?route.continue():route.abort();});
- await page.goto('http://127.0.0.1:3104/qa-patch31-4-check');await page.locator('[data-poster]').click();await page.waitForSelector('picture[data-hero-desktop-kind="poster"]');
+ await page.goto('http://127.0.0.1:3104/qa-patch31-4-check');await page.waitForFunction(()=>document.documentElement.dataset.heroFixtureReady==='true');await page.locator('[data-poster]').click();await page.waitForSelector('picture[data-hero-desktop-kind="poster"]');
  const layout=await page.locator('.home-hero-carousel').evaluate(hero=>{const img=hero.querySelector('picture img');return {fit:getComputedStyle(img).objectFit,ratio:img.getBoundingClientRect().width/hero.getBoundingClientRect().width}});
  assert.equal(layout.fit,'contain');assert(layout.ratio<0.5,'poster width bounded');await page.close();
  console.log(`PASS ${checks+1} actual React hero recovery/viewport/source-update/poster scenarios.`);

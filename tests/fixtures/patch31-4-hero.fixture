@@ -1,11 +1,15 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import '../patch29-1-home-mobile.css';
 import '../patch30-0-home-streaming.css';
 import '../patch30-1-home-visual.css';
 import HomeHeroCarousel from '@/components/HomeHeroCarousel';
 export default function QAHeroRecovery() {
   const [mode, setMode] = useState('normal');
+  useEffect(() => {
+    document.documentElement.dataset.heroFixtureReady = 'true';
+    return () => { delete document.documentElement.dataset.heroFixtureReady; };
+  }, []);
   const items = [0, 1].map(i => ({
     id: 202957 + i,
     title: { russian: `Проверка восстановления арта ${i}` },
