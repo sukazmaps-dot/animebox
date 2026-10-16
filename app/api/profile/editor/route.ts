@@ -569,9 +569,6 @@ export async function POST(request: Request) {
     const settings = hasStudio ? readStudioSettings(body.studio, user.id) : null;
     const pendingMedia = readPendingMedia(body.pendingMedia, user.id);
 
-    if (profilePatch?.banner_style && !allowed && !FREE_BANNER_STYLES.includes(profilePatch.banner_style)) {
-      throw new ApiError(403, 'Расширенные градиенты доступны только с AnimeBox Premium.');
-    }
     if (settings && !allowed) {
       throw new ApiError(403, 'Расширенное оформление доступно только с AnimeBox Premium.');
     }
@@ -584,6 +581,17 @@ export async function POST(request: Request) {
     if (oldStudioResult.error) throw oldStudioResult.error;
 
     const oldProfile = oldProfileResult.data as ExistingProfile;
+    // Users whose Premium expired must still be able to edit ordinary profile fields.
+    // Existing Premium fills are grandfathered for display only: free accounts cannot
+    // select a new paid fill or recolor a previously paid fill.
+    if (!allowed && profilePatch?.banner_style && !FREE_BANNER_STYLES.includes(profilePatch.banner_style)) {
+      const unchangedPremiumFill =
+        profilePatch.banner_style === oldProfile.banner_style &&
+        (profilePatch.banner_color === undefined || profilePatch.banner_color === oldProfile.banner_color);
+      if (!unchangedPremiumFill) {
+        throw new ApiError(403, 'Расширенные градиенты доступны только с AnimeBox Premium.');
+      }
+    }
     const oldSettings = studioSettingsFromRow(oldStudioResult.data as Record<string, unknown> | null);
     if (!allowed && profilePatch?.banner_path && profilePatch.banner_path !== oldProfile.banner_path) {
       throw new ApiError(403, 'Изображение баннера доступно только с AnimeBox Premium. Можно выбрать цвет.');
