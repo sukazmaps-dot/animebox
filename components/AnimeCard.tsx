@@ -1,6 +1,6 @@
 import AnimeCardContent from '@/components/AnimeCardContent';
 import { animeHref } from '@/lib/anime-url';
-import Link from 'next/link';
+import AnimeIntentLink from '@/components/AnimeIntentLink';
 import type { Anime } from '@/types/anime';
 
 import AnimeImage from '@/components/AnimeImage';
@@ -73,9 +73,8 @@ export default function AnimeCard({
   const ongoing = isAnimeOngoing(anime);
 
   return (
-    <Link
+    <AnimeIntentLink
       href={animeHref(anime)}
-      prefetch={true}
       className={`anime-card anime-card--signature flex h-full min-w-0 flex-col ${
         compact ? 'anime-card--compact' : ''
       }`}
@@ -148,6 +147,6 @@ export default function AnimeCard({
         )}
       </div>
       </AnimeCardContent>
-    </Link>
+    </AnimeIntentLink>
   );
 }

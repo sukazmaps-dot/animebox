@@ -6,6 +6,7 @@ const read = (path) =>
 const navbar = read('components/Navbar.tsx');
 const animeCard = read('components/AnimeCard.tsx');
 const smartCard = read('components/SmartRecommendationCard.tsx');
+const intentLink = read('components/AnimeIntentLink.tsx');
 const animeLoading = read('app/anime/[slug]/loading.tsx');
 const episodePage = read('components/AnimeEpisodePage.tsx');
 const actionCss = read('app/patch17-6-home-recommendation-actions.css');
@@ -33,14 +34,16 @@ need('search wording', navbar, [
 
 need('anime card navigation', animeCard, [
   'href={animeHref(anime)}',
-  'prefetch={true}',
+  '<AnimeIntentLink',
 ]);
 
 need('recommendation navigation', smartCard, [
   'className="smart-card__poster-link"',
   'className="smart-card__title"',
-  'prefetch={true}',
+  '<AnimeIntentLink',
 ]);
+
+need('intent-aware navigation', intentLink, ['prefetch={false}', 'router.prefetch(href)', "matches(':focus-visible')"]);
 
 if (
   animeLoading.includes('AnimeBoxLoader') ||

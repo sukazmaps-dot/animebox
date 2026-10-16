@@ -29,9 +29,14 @@ const compile = async (file,imports) => {
 const content = await compile('components/AnimeCardContent.tsx', {'./AnimeCardContent.module.css':{default:styles}});
 const scoreDisplay = await compile('lib/anime-score.ts', {});
 const episodeDisplay = await compile('lib/anime-content-intelligence.ts', {});
+const intentLink = await compile('components/AnimeIntentLink.tsx', {
+ react:React,
+ 'next/navigation':{useRouter:()=>({prefetch:()=>{throw new Error('SSR must not prefetch');}})},
+ 'next/link':{default:({prefetch,...props})=>React.createElement('a',props)},
+});
 const catalog = await compile('components/AnimeCard.tsx', {
  '@/components/AnimeCardContent':content,
- 'next/link':{default:({prefetch,...props})=>React.createElement('a',props)},
+ '@/components/AnimeIntentLink':intentLink,
  '@/components/AnimeImage':{default:({alt,className})=>React.createElement('img',{src:'/brand/brand-mark.webp',alt,className})},
  '@/lib/anime-url':{animeHref:anime=>`/anime/${anime.id}`},
  '@/lib/anime-display':{getAnimeTitle:anime=>anime.title.russian,isAnimeOngoing:()=>false},
