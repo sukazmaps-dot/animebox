@@ -4,7 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import Icon from '@/components/Icon';
 import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
-import { BANNER_COLOR_PRESETS, bannerStyleBackground, validBannerColor, visibleBannerStyle, type BannerStyle } from '@/lib/profile-banner-style';
+import BannerColorSheet from '@/components/profile/BannerColorSheet';
+import type { ProfileEditorSection } from '@/components/profile/ProfileEditorLivePreview';
+import { BANNER_COLOR_PRESETS, bannerStyleBackground, visibleBannerStyle, type BannerStyle } from '@/lib/profile-banner-style';
 import { isLevelFrameKey, levelFrameAvatarScale, levelFrameLabel, LEVEL_MILESTONES, type LevelFrameKey } from '@/lib/progression';
 
 import styles from './ProfileDirectEditSurface.module.css';
@@ -26,6 +28,12 @@ type FramePayload = {
 };
 
 type Props = {
+  section?: ProfileEditorSection;
+  showPreview?: boolean;
+  onSectionChange?: (section: ProfileEditorSection) => void;
+  onFrameChange?: (frame: string | null) => void;
+  onFrameLoaded?: (frame: string | null) => void;
+  selectedFrameDraft?: string | null;
   username: string;
   bio: string;
   avatarUrl: string;
@@ -36,7 +44,7 @@ type Props = {
   bannerColorMode?: 'auto' | 'manual';
   bannerStyle?: BannerStyle;
   onBannerStyleChange?: (style: BannerStyle) => void;
-  onBannerColorChange?: (color: string, mode: 'auto' | 'manual') => void | Promise<void>;
+  onBannerColorChange?: (color: string, mode: 'auto' | 'manual', skipSampling?: boolean) => void | Promise<void>;
   premiumActive: boolean;
   avatarPremiumOverride: boolean;
   bannerPremiumOverride: boolean;
@@ -76,29 +84,13 @@ function formatExpiry(value?: string | null) {
   }).format(date);
 }
 
-function BannerHexInput({ color, onChange }: { color: string; onChange: (hex: string) => void }) {
-  const [draft, setDraft] = useState(color);
-  const [error, setError] = useState('');
-  return (
-    <>
-      <label className={styles.field}>
-        <span><strong>Свой цвет (HEX)</strong></span>
-        <input type="text" inputMode="text" spellCheck={false} maxLength={7}
-          value={draft} aria-invalid={Boolean(error)} aria-label="HEX цвет баннера"
-          onChange={event => { setDraft(event.target.value); setError(''); }}
-          onBlur={() => {
-            if (!validBannerColor(draft)) { setError('Используй #RRGGBB'); return; }
-            onChange(draft);
-          }}
-          onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }}
-        />
-      </label>
-      {error && <p className={styles.messageError} role="alert">{error}</p>}
-    </>
-  );
-}
-
 export default function ProfileDirectEditSurface({
+  section = 'profile',
+  showPreview = true,
+  onSectionChange,
+  onFrameChange,
+  onFrameLoaded,
+  selectedFrameDraft,
   username,
   bio,
   avatarUrl,
@@ -129,14 +121,15 @@ export default function ProfileDirectEditSurface({
   onUseBaseBanner,
   onOpenPremium,
 }: Props) {
-  const [target, setTarget] = useState<InspectorTarget>('avatar');
+  const [profileField, setProfileField] = useState<'username'|'bio'>('username');
+  const target: InspectorTarget = section === 'profile' ? profileField : section === 'banner' ? 'banner' : 'avatar';
   const [bannerEditorMode, setBannerEditorMode] = useState<'color' | 'image'>('color');
+  const [sheetStart, setSheetStart] = useState<{color:string;mode:'auto'|'manual'}|null>(null);
   const [editingName, setEditingName] = useState(false);
   const [editingBio, setEditingBio] = useState(false);
   const [frameFilter, setFrameFilter] = useState<FrameFilter>('all');
   const [frames, setFrames] = useState<FramePayload | null>(null);
   const [frameLoading, setFrameLoading] = useState(true);
-  const [frameBusy, setFrameBusy] = useState('');
   const [frameError, setFrameError] = useState('');
   const inspectorRef = useRef<HTMLElement | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
@@ -153,6 +146,7 @@ export default function ProfileDirectEditSurface({
           if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить рамки.');
           if (active) {
             setFrames(payload);
+            onFrameLoaded?.(payload.selectedFrame ?? null);
             setFrameError('');
           }
         })
@@ -179,38 +173,16 @@ export default function ProfileDirectEditSurface({
     };
   }, []);
 
-  async function selectFrame(frameKey: string | null) {
-    if (frameBusy) return;
-    setFrameBusy(frameKey ?? 'none');
+  function selectFrame(frameKey: string | null) {
+    // Stage selection locally; common Save/Cancel dock owns persistence.
     setFrameError('');
-
-    try {
-      const response = await fetch('/api/community/leaderboard-rewards', {
-        method: 'POST',
-        cache: 'no-store',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'select_frame', frameKey }),
-      });
-      const payload = await response.json() as FramePayload;
-      if (!response.ok) throw new Error(payload.error || 'Не удалось выбрать рамку.');
-
-      setFrames((current) => ({
-        ...(current ?? {}),
-        selectedFrame: payload.selectedFrame ?? null,
-      }));
-      window.dispatchEvent(new Event('animebox:profile-cosmetic-changed'));
-    } catch (selectError) {
-      setFrameError(
-        selectError instanceof Error ? selectError.message : 'Не удалось выбрать рамку.',
-      );
-    } finally {
-      setFrameBusy('');
-    }
+    setFrames(current => ({ ...(current ?? {}), selectedFrame: frameKey }));
+    onFrameChange?.(frameKey);
   }
 
   const leagueFrames = frames?.unlockedFrames ?? [];
   const levelFrames = frames?.unlockedLevelFrames ?? [];
-  const selectedFrame = frames?.selectedFrame ?? null;
+  const selectedFrame = selectedFrameDraft === undefined ? frames?.selectedFrame ?? null : selectedFrameDraft;
   const ownedFrames = useMemo(() => {
     const level = levelFrames.map((key) => ({
       key,
@@ -246,7 +218,7 @@ export default function ProfileDirectEditSurface({
     : null;
 
   function openBannerColorEditor() {
-    setTarget('banner');
+    onSectionChange?.('banner');
     setBannerEditorMode('color');
     if (window.matchMedia('(max-width: 768px)').matches) {
       window.requestAnimationFrame(() => {
@@ -260,12 +232,12 @@ export default function ProfileDirectEditSurface({
 
   function openMediaPicker(kind: 'avatar' | 'banner') {
     if (kind === 'avatar') {
-      setTarget('avatar');
+      onSectionChange?.('avatar');
       avatarInputRef.current?.click();
       return;
     }
 
-    setTarget('banner');
+    onSectionChange?.('banner');
     if (premiumActive) bannerInputRef.current?.click();
   }
 
@@ -279,17 +251,17 @@ export default function ProfileDirectEditSurface({
   }
 
   function openUsername() {
-    setTarget('username');
+    setProfileField('username'); onSectionChange?.('profile');
     setEditingName(true);
   }
 
   function openBio() {
-    setTarget('bio');
+    setProfileField('bio'); onSectionChange?.('profile');
     setEditingBio(true);
   }
 
   return (
-    <div className={styles.workspace}>
+    <div className={styles.workspace} data-settings-only={showPreview ? 'false' : 'true'}>
       <input
         ref={avatarInputRef}
         className={styles.hiddenMediaInput}
@@ -308,7 +280,7 @@ export default function ProfileDirectEditSurface({
         accept={MEDIA_ACCEPT}
         onChange={(event) => handleMediaInput('banner', event.currentTarget)}
       />
-      <section className={styles.canvas}>
+      {showPreview && <section className={styles.canvas}>
         <div className={styles.canvasHead}>
           <div>
             <span>ПРОФИЛЬ</span>
@@ -398,7 +370,7 @@ export default function ProfileDirectEditSurface({
               <button
                 type="button"
                 className={styles.frameLine}
-                onClick={() => setTarget('avatar')}
+                onClick={() => onSectionChange?.('avatar')}
                 title="Открыть инвентарь рамок"
               >
                 <span className={styles.frameDot} />
@@ -449,16 +421,16 @@ export default function ProfileDirectEditSurface({
           <strong>Всё для профиля — в одном месте.</strong>
           <span>Имя, описание, аватар, баннер и рамка теперь настраиваются в одном редакторе.</span>
         </div>
-      </section>
+      </section>}
 
       <aside ref={inspectorRef} className={styles.inspector} data-target={target}>
         <div className={styles.inspectorHead}>
           <div>
             <span>НАСТРОЙКИ ЭЛЕМЕНТА</span>
             <h3>
-              {target === 'avatar' && 'Аватар и рамка'}
+              {target === 'avatar' && (section === 'frame' ? 'Рамка профиля' : 'Аватар')}
               {target === 'banner' && 'Баннер профиля'}
-              {target === 'username' && 'Имя пользователя'}
+              {target === 'username' && 'Имя и описание'}
               {target === 'bio' && 'О себе'}
             </h3>
           </div>
@@ -470,14 +442,13 @@ export default function ProfileDirectEditSurface({
           </span>
         </div>
 
-        {target === 'username' && (
+        {section === 'profile' && (
           <div className={styles.inspectorSection}>
             <label className={styles.field}>
               <span><strong>Имя пользователя</strong><small>{username.trim().length}/24</small></span>
               <input
                 value={username}
                 maxLength={24}
-                autoFocus
                 onChange={(event) => onUsernameChange(event.target.value)}
               />
             </label>
@@ -485,15 +456,14 @@ export default function ProfileDirectEditSurface({
           </div>
         )}
 
-        {target === 'bio' && (
+        {section === 'profile' && (
           <div className={styles.inspectorSection}>
             <label className={styles.field}>
               <span><strong>Описание</strong><small>{bio.length}/300</small></span>
               <textarea
                 value={bio}
                 maxLength={300}
-                rows={7}
-                autoFocus
+                rows={5}
                 onChange={(event) => onBioChange(event.target.value)}
               />
             </label>
@@ -512,57 +482,71 @@ export default function ProfileDirectEditSurface({
 
             {bannerEditorMode === 'color' ? (
               <div role="tabpanel" className={styles.bannerPalette}>
-                <p className={styles.help}>Выбери готовый вариант или укажи свой цвет. Заливка появится после «Сохранить изменения».</p>
-                <div className={styles.bannerPresetGrid} aria-label="Готовые цвета баннера">
-                  {BANNER_COLOR_PRESETS.map((preset) => {
-                    const locked = Boolean(preset.premium && !premiumActive);
-                    const active = bannerColor.toLowerCase() === preset.color && bannerStyle === preset.style && bannerColorMode === 'manual';
+                <p className={styles.help}>Выбери оттенок — изменения сразу видны в превью.</p>
+                <div className={styles.bannerPresetGrid} aria-label="Цвета баннера">
+                  {BANNER_COLOR_PRESETS.map(preset => {
+                    const locked=Boolean(preset.premium && !premiumActive);
+                    const active=bannerColor.toLowerCase()===preset.color && bannerStyle===preset.style && bannerColorMode==='manual';
                     return (
                       <button type="button" key={preset.label} className={styles.bannerPreset}
-                        data-active={active} aria-pressed={active}
-                        aria-label={`${preset.label}${locked ? ' — Premium' : ''}`}
+                        data-active={active} title={preset.label} aria-label={preset.label+(locked?' — Premium':'')}
+                        aria-pressed={active}
                         onClick={() => {
-                          if (locked) { onOpenPremium(); return; }
+                          // Paid fills may be previewed by everyone. Saving opens the Premium upsell.
                           onBannerStyleChange?.(preset.style);
-                          void onBannerColorChange?.(preset.color, 'manual');
+                          void onBannerColorChange?.(preset.color,'manual');
+                          try {
+                            (window as Window & {Telegram?:{WebApp?:{HapticFeedback?:{selectionChanged?:()=>void}}}}).Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
+                          }catch {}
                         }}>
-                        <span className={styles.bannerPresetSwatch} style={{background:bannerStyleBackground(preset.color,preset.style)}} aria-hidden="true" />
-                        <span>{preset.label}{locked && ' ✦'}</span>
+                        <span className={styles.bannerPresetSwatch} style={{background:bannerStyleBackground(preset.color,preset.style)}} />
+                        {locked && <span className={styles.premiumStar} aria-hidden="true">✦</span>}
                       </button>
                     );
                   })}
                 </div>
-                <div className={styles.bannerModes} role="group" aria-label="Тип фона баннера">
-                  {(['solid','soft','glow','sunset'] as const).map((choice) => {
-                    const locked = (choice === 'glow' || choice === 'sunset') && !premiumActive;
-                    const labels: Record<BannerStyle, string> = {solid:'Однотонный',soft:'Градиент',glow:'Свечение ✦',sunset:'Закат ✦'};
-                    return <button type="button" key={choice} data-active={bannerStyle===choice} aria-pressed={bannerStyle===choice}
-                      onClick={() => locked ? onOpenPremium() : onBannerStyleChange?.(choice)}>{labels[choice]}</button>;
+                <div className={styles.fillModeRail} role="group" aria-label="Тип заливки">
+                  {(['solid','soft','glow','sunset'] as const).map(choice => {
+
+                    const labels:Record<BannerStyle,string>={solid:'Однотонный',soft:'Градиент',glow:'Свечение ✦',sunset:'Закат ✦'};
+                    return <button type="button" key={choice} data-active={bannerStyle===choice}
+                      aria-pressed={bannerStyle===choice}
+                      onClick={()=>onBannerStyleChange?.(choice)}>
+                      {labels[choice]}
+                    </button>;
                   })}
                 </div>
-                <div className={styles.bannerHexRow}>
-                  <BannerHexInput key={bannerColor} color={bannerColor}
-                    onChange={value => void onBannerColorChange?.(value, 'manual')} />
-                  <input type="color" aria-label="Палитра цвета баннера" value={bannerColor}
-                    onChange={event=>void onBannerColorChange?.(event.target.value,'manual')} />
-                </div>
-                <div className={styles.actionRow}>
+                <div className={styles.colorActionRow}>
+                  <button type="button" className={styles.colorOpen} onClick={()=>setSheetStart({color:bannerColor,mode:bannerColorMode})}>
+                    <span className={styles.colorOpenSwatch} style={{background:bannerColor}} />
+                    <span>Свой цвет · {bannerColor.toUpperCase()}</span>
+                    <span aria-hidden="true">✎</span>
+                  </button>
                   <button type="button" onClick={()=>void onBannerColorChange?.(bannerColor,'auto')}>Из аватара</button>
                   <button type="button" onClick={()=>{
                     onBannerStyleChange?.('soft');
                     void onBannerColorChange?.('#70618c','manual');
-                  }}>Сбросить цвет</button>
+                  }}>↺ Сброс</button>
                 </div>
-                <p className={styles.help}>10 пресетов бесплатны. Расширенные градиенты и анимация — Premium.</p>
-                <button type="button" className={styles.premiumLink} onClick={onOpenPremium}>
-                  <Icon name="crown" size={15} /> Анимированный баннер и Premium-палитра
-                </button>
+                {sheetStart && <BannerColorSheet
+                  color={sheetStart.color}
+                  onPreview={color=>void onBannerColorChange?.(color,'manual')}
+                  onCancel={()=>{
+                    void onBannerColorChange?.(sheetStart.color,sheetStart.mode,true);
+                    setSheetStart(null);
+                  }}
+                  onAccept={()=>setSheetStart(null)}
+                />}
+                <p className={styles.help}>10 цветов доступны бесплатно. Дополнительные эффекты — Premium.</p>
+
               </div>
             ) : (
               <div role="tabpanel">
-                <div className={styles.mediaPreview} data-kind="banner">
-                  {baseBannerUrl ? <img src={baseBannerUrl} alt="" /> : <span>Без базового баннера</span>}
-                </div>
+                <button type="button" className={styles.bannerDropzone} disabled={bannerBusy}
+                  onClick={() => premiumActive ? openMediaPicker('banner') : onOpenPremium()}>
+                  {baseBannerUrl ? <img src={baseBannerUrl} alt="Текущий баннер" /> : <Icon name="image" size={26} />}
+                  <span>{premiumActive ? (baseBannerUrl ? 'Заменить изображение' : 'Загрузить баннер · 960×320') : 'Картинка баннера · Premium'}</span>
+                </button>
                 <div className={styles.actionRow}>
                   <button type="button" className={styles.primaryAction} aria-busy={bannerBusy}
                     disabled={bannerBusy || !premiumActive} onClick={() => openMediaPicker('banner')}>
@@ -582,9 +566,6 @@ export default function ProfileDirectEditSurface({
                     <button type="button" onClick={() => void onUseBaseBanner()}>Использовать базовый</button>
                   </div>
                 )}
-                {!premiumActive && <button type="button" className={styles.premiumLink} onClick={onOpenPremium}>
-                  <Icon name="crown" size={15} /> Открыть Premium-баннеры
-                </button>}
               </div>
             )}
           </div>
@@ -592,7 +573,7 @@ export default function ProfileDirectEditSurface({
 
         {target === 'avatar' && (
           <>
-            <div className={styles.inspectorSection}>
+            {section !== 'frame' && <div className={styles.inspectorSection}>
               <div className={styles.avatarControl}>
                 <span
                   className={styles.avatarControlPreview}
@@ -650,9 +631,9 @@ export default function ProfileDirectEditSurface({
                   <button type="button" onClick={() => void onUseBaseAvatar()}>Базовый вариант</button>
                 </div>
               )}
-            </div>
+            </div>}
 
-            <div className={styles.inventorySection}>
+            {section === 'frame' && <div className={styles.inventorySection}>
               <div className={styles.inventoryHead}>
                 <div>
                   <span>КОЛЛЕКЦИЯ РАМОК</span>
@@ -687,7 +668,7 @@ export default function ProfileDirectEditSurface({
                       type="button"
                       className={styles.frameItem}
                       data-selected={!selectedFrame ? 'true' : 'false'}
-                      disabled={Boolean(frameBusy)}
+                      disabled={frameLoading}
                       onClick={() => void selectFrame(null)}
                     >
                       <span className={styles.noFrame}>○</span>
@@ -706,7 +687,7 @@ export default function ProfileDirectEditSurface({
                         className={styles.frameItem}
                         data-selected={selected ? 'true' : 'false'}
                         key={frame.key}
-                        disabled={Boolean(frameBusy)}
+                        disabled={frameLoading}
                         onClick={() => void selectFrame(selected ? null : frame.key)}
                       >
                         <span className={styles.frameThumb} data-kind={frame.kind}>
@@ -784,7 +765,7 @@ export default function ProfileDirectEditSurface({
                 </div>
                 {!premiumActive && <button type="button" onClick={onOpenPremium}>Подробнее</button>}
               </div>
-            </div>
+            </div>}
           </>
         )}
       </aside>

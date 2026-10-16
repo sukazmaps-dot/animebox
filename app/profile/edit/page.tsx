@@ -14,7 +14,9 @@ type PageProps = {
 export default async function ProfileEditPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const tab =
-    params.tab === 'style' || params.tab === 'premium'
+    params.tab === 'avatar' || params.tab === 'banner' || params.tab === 'frame'
+      ? params.tab
+      : params.tab === 'style' || params.tab === 'premium'
       ? 'style'
       : params.tab === 'appearance' || params.tab === 'media'
         ? 'profile'

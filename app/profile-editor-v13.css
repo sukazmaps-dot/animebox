@@ -1291,3 +1291,169 @@
     display: none;
   }
 }
+
+
+/* Profile workspace 31.3: replace document-length editor with isolated app surface.
+ * This is the owning stylesheet; no extra cascade patch and no !important rules. */
+html.ab-profile-editor-open,
+html.ab-profile-editor-open body { overflow: hidden; }
+html.ab-profile-editor-open .mobile-nav,
+html.ab-profile-editor-open .topbar,
+html.ab-profile-editor-open .sidebar { display: none; }
+.profile-editor-v13 {
+  --editor-header-height: 64px;
+  --editor-preview-height: 258px;
+  --editor-tab-height: 56px;
+  --editor-surface: var(--ab-ui-surface);
+  --editor-border: color-mix(in srgb,var(--ab-ui-accent) 20%, transparent);
+  position: fixed;
+  top: var(--ab-editor-viewport-top,0px);
+  left: 0; right: 0;
+  height: var(--ab-editor-viewport-height,100dvh);
+  z-index: 750;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-top: calc(var(--editor-header-height) + var(--editor-preview-height) + var(--editor-tab-height));
+  padding: 0 0 calc(var(--profile-editor-savebar-height, 108px) + 32px + env(safe-area-inset-bottom) + var(--ab-editor-keyboard-inset, 0px));
+  background: var(--ab-ui-canvas);
+  isolation: isolate;
+}
+.profile-editor-v13__shell {
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: var(--editor-surface);
+}
+.profile-editor-v13 .profile-editor-v13__header {
+  position: sticky;
+  top: 0;
+  z-index: 62;
+  height: var(--editor-header-height);
+  min-height: 0;
+  padding: 8px max(16px,env(safe-area-inset-left));
+  border-bottom: 1px solid var(--editor-border);
+  background: var(--editor-surface);
+}
+.profile-editor-v31__header-title { display:flex;align-items:center;gap:10px;min-width:0; }
+.profile-editor-v31__header-title button {
+  width:44px;height:44px;flex:0 0 44px;border:0;border-radius:12px;
+  background:transparent;color:var(--ab-ui-text);font-size:27px;cursor:pointer;
+}
+.profile-editor-v31__header-title h1 { font-size: 18px; font-weight:800; letter-spacing:-.02em; }
+.profile-editor-v31__status {color:var(--ab-ui-muted);font-size:11px;white-space:nowrap; }
+.profile-editor-v31__live-preview {
+  position: sticky;
+  top: var(--editor-header-height);
+  z-index: 61;
+  height: var(--editor-preview-height);
+  display: grid;
+  align-items: center;
+  background: var(--editor-surface);
+  border-bottom: 1px solid var(--editor-border);
+  box-shadow: 0 10px 24px rgba(0,0,0,.18);
+}
+.profile-editor-v13 .profile-editor-v13__tabs.profile-editor-v18__rail {
+  position: sticky;
+  top: calc(var(--editor-header-height) + var(--editor-preview-height));
+  z-index: 60;
+  display:flex; flex-wrap:nowrap; align-items:center; gap:5px; height:var(--editor-tab-height);
+  width:100%; padding:5px 12px; overflow-x:auto;
+  background:var(--editor-surface);
+  border-bottom:1px solid var(--editor-border);
+  scrollbar-width:none;
+}
+.profile-editor-v13 .profile-editor-v13__tabs.profile-editor-v18__rail button {
+  display:flex; flex:1 0 auto; justify-content:center; align-items:center;
+  min-width:65px;min-height:44px;height:44px;padding:0 11px;gap:5px;
+  border-radius:12px;
+}
+.profile-editor-v13 .profile-editor-v13__tabs.profile-editor-v18__rail button span {
+  display:inline;font-size:11px;font-weight:700;line-height:1.2;font-family:inherit;color:inherit;
+}
+.profile-editor-v31__more { position:relative;flex:0 0 auto; }
+.profile-editor-v31__more summary {display:flex;align-items:center;justify-content:center;min-height:44px;padding:0 12px;border:1px solid var(--editor-border);border-radius:12px;cursor:pointer; }
+.profile-editor-v31__more[open] {display:flex;align-items:center;gap:4px;}
+.profile-editor-v31__more[open] button {white-space:nowrap;}
+.profile-editor-v13 .profile-editor-v13__premium-tab[hidden] { display:none; }
+.profile-editor-v13 .profile-editor-v19__direct-tab {padding: 0 12px 48px; max-width:800px;margin-inline:auto;}
+.profile-editor-v13 .profile-editor-v19__direct-tab [data-settings-only='true'] {
+  display:block;
+  padding: 12px 0;
+}
+.profile-editor-v13 .profile-editor-v19__direct-tab [data-settings-only='true'] > aside {
+  width:100%;max-width:none;margin:0;position:static;
+  box-shadow:none;
+}
+.profile-editor-v13 .profile-editor-v13__premium-tab,
+.profile-editor-v13 .profile-editor-v13__showcase-tab {padding:12px 16px 60px;max-width:800px;margin:0 auto;}
+.profile-editor-v13 .profile-editor-v18__savebar,
+.profile-editor-v13 .profile-editor-v18__savebar[data-visible='false'] {
+  position:fixed;
+  left:max(12px,env(safe-area-inset-left));
+  right:max(12px,env(safe-area-inset-right));
+  bottom:max(8px,env(safe-area-inset-bottom));
+  width:min(780px,calc(100% - 24px));
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto auto;
+  min-height:72px;
+  z-index:800;
+  gap:8px;padding:10px 12px;
+  border-radius:16px;
+  border:1px solid var(--editor-border);
+  background:var(--editor-surface);
+}
+.profile-editor-v13 .profile-editor-v18__savebar button {min-width:88px;min-height:44px;width:auto;padding-inline:14px;}
+.profile-editor-v13 .profile-editor-v18__savebar-copy {grid-column:auto;padding:0;}
+.profile-editor-v13 .profile-editor-v18__savebar-copy small {display:none;}
+@media(max-width:600px) {
+  .profile-editor-v13 {--editor-header-height:56px;--editor-preview-height:240px;--editor-tab-height:54px;}
+  .profile-editor-v13 .profile-editor-v13__header {padding-inline:12px;}
+  .profile-editor-v31__header-title h1 {font-size:16px;}
+  .profile-editor-v31__status {font-size:9px;}
+  .profile-editor-v13 .profile-editor-v13__tabs.profile-editor-v18__rail {padding:5px 8px;}
+  .profile-editor-v13 .profile-editor-v13__tabs.profile-editor-v18__rail button {min-width:65px;padding:0 8px;}
+  .profile-editor-v13 .profile-editor-v13__tabs.profile-editor-v18__rail button span {font-size:10px;}
+  .profile-editor-v13 .profile-editor-v18__savebar {
+    grid-template-columns:minmax(0,1fr) minmax(88px,auto) minmax(88px,auto);
+    min-height:66px;align-items:center;
+  }
+  .profile-editor-v13 .profile-editor-v18__savebar-copy strong {font-size:10px;}
+  .profile-editor-v13 .profile-editor-v18__savebar button {min-width:0;padding-inline:9px;font-size:11px;}
+}
+@media(max-width:365px) {
+  .profile-editor-v13 .profile-editor-v18__savebar {grid-template-columns:1fr 1fr;}
+  .profile-editor-v13 .profile-editor-v18__savebar-copy {grid-column:1/-1;}
+}
+@media(prefers-reduced-motion:reduce) {
+  .profile-editor-v13 :where(button, .profile-editor-v31__live-preview) {transition:none;}
+}
+
+.profile-editor-v31__error {max-width:800px;margin:12px auto;padding:12px 16px;border:1px solid color-mix(in srgb,var(--ab-ui-danger) 35%,transparent);border-radius:12px;background:color-mix(in srgb,var(--ab-ui-danger) 10%,var(--ab-ui-surface));color:var(--ab-ui-text);font-size:12px;}
+.profile-editor-v13 .profile-editor-v18__savebar {bottom:calc(max(8px,env(safe-area-inset-bottom)) + var(--ab-editor-keyboard-inset,0px));}
+.profile-editor-v13 input:focus,.profile-editor-v13 textarea:focus {scroll-margin-top:calc(var(--editor-header-height) + var(--editor-preview-height) + var(--editor-tab-height) + 12px);}
+
+.profile-editor-v13 .profile-editor-v31__error {
+  display:block;
+  max-width:none;
+  margin:4px 0 0;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:var(--ab-ui-danger);
+  font-size:11px;
+  white-space:normal;
+}
+
+/* Short Android landscape / compact Mini App viewports: keep controls usable. */
+@media (max-height: 660px) {
+  .profile-editor-v13 { --editor-preview-height: 164px; }
+}
+@media (max-height: 500px) {
+  .profile-editor-v13 { --editor-preview-height: 132px; --editor-tab-height: 50px; }
+  .profile-editor-v13 .profile-editor-v18__savebar { min-height: 56px; }
+}

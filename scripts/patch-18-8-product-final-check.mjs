@@ -262,8 +262,8 @@ need('deferred result modal', deferred, [
 ]);
 
 need('Profile Studio direct edit', editor, [
-  "type EditorTab = 'profile' | 'showcase' | 'rewards' | 'style'",
-  'РЕДАКТОР ПРОФИЛЯ',
+  "type EditorTab = ProfileEditorSection | 'showcase' | 'rewards'",
+  'Редактор профиля',
   '<ProfileDirectEditSurface',
   '<ProfileRewardsPanel',
   'profile-editor-v19__direct-tab',
@@ -277,7 +277,7 @@ need('Profile Studio direct-edit surface', directEditor, [
   'Твои рамки',
   'Активна только одна рамка',
   'Premium добавляет анимацию к уровневым рамкам',
-  "action: 'select_frame'",
+  'onFrameChange?.(frameKey)',
   '<ProfileFrameOverlay',
 ]);
 
@@ -298,8 +298,11 @@ need('Profile Studio icon contract', icon, [
   'const Glyph = icons[name] ?? InfoIcon',
 ]);
 
-if (!editor.includes('<Icon name="grid"')) {
-  failures.push('Profile Studio missing expected grid navigation icon');
+if (!editor.includes("switchTab('showcase')") || !editor.includes("switchTab('rewards')")) {
+  failures.push('Profile Studio missing accessible Showcase/Rewards entry in the editor');
+}
+if (!editor.includes("action: 'select_frame'") || !editor.includes('frameDirty')) {
+  failures.push('Profile Studio frame must persist via common Save action');
 }
 if (!directEditor.includes('<Icon name="image"')) {
   failures.push('Profile Studio direct editor missing image controls');

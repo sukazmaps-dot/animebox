@@ -44,7 +44,8 @@ if (
 
 if (
   !directEditor.includes('onOpenPremium') ||
-  !directEditor.includes('Анимированный баннер и Premium-палитра') ||
+  !directEditor.includes('Картинка баннера · Premium') ||
+  !directEditor.includes('styles.premiumStar') ||
   !directEditor.includes('Premium добавляет анимацию к уровневым рамкам')
 ) {
   failures.push('direct profile editor lost contextual Premium entry points');
@@ -58,10 +59,11 @@ if (
 }
 
 if (
-  !editor.includes('profile-editor-v13__save-state') ||
-  !editor.includes('✓</span> Изменения сохранены')
+  !editor.includes('data-visible="true"') ||
+  !editor.includes('Все изменения сохранены') ||
+  !editor.includes('disabled={(!dirty && !needsPremiumCTA)')
 ) {
-  failures.push('clean profile editor state is no longer a passive save status');
+  failures.push('clean profile editor state must have a visible, inactive Save action and clear status');
 }
 
 if (

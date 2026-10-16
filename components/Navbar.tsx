@@ -391,6 +391,10 @@ function NavbarContent() {
     return pathname.startsWith(href);
   }
 
+  // The profile workspace owns the whole screen; do not mount global
+  // search, sidebar or mobile navigation while editing.
+  if (pathname === '/profile/edit') return null;
+
   return (
     <>
       {/* Desktop / tablet sidebar. On phones it is replaced by mobile-nav. */}

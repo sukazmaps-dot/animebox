@@ -443,6 +443,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   const [paletteLoading, setPaletteLoading] = useState<'avatar' | 'banner' | ''>('');
   const [previewEpoch, setPreviewEpoch] = useState(0);
   const [previewContext, setPreviewContext] = useState<PremiumPreviewContext>('profile');
+  const [selectedDemoScene, setSelectedDemoScene] = useState<PremiumScenePreset | null>(null);
   const [previewFrameKey, setPreviewFrameKey] = useState<string | null>(null);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [studioSection, setStudioSection] = useState<'appearance' | 'atmosphere' | 'effects' | 'media'>('appearance');
@@ -1148,7 +1149,8 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
               <button
                 key={scene}
                 type="button"
-                onClick={() => applyScenePreset(scene)}
+                onClick={() => { setSelectedDemoScene(scene); applyScenePreset(scene); }}
+                aria-pressed={selectedDemoScene === scene}
               >
                 <i
                   style={{
