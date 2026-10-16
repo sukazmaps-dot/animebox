@@ -396,7 +396,7 @@ export default function ProfilePage() {
           ) : (
             <div
               className="profile-v2__banner-default"
-              style={{background: profile?.banner_color ?? '#70618c'}}
+              style={{['--profile-banner-color' as string]: profile?.banner_color ?? '#70618c', background: profile?.banner_color ?? '#70618c'}}
               aria-hidden="true"
             />
           )}
