@@ -1,0 +1,15 @@
+.field {container-type:inline-size;min-width:0;padding:14px;border:1px solid var(--ab-ui-border);border-radius:14px;background:var(--ab-ui-surface);display:grid;gap:8px;}
+.field label {font-size:13px;font-weight:750;color:var(--ab-ui-text);}
+.controls {display:grid;grid-template-columns:48px minmax(0,1fr) 44px;gap:8px;min-width:0;}
+.controls > input,.controls > button {width:100%;min-width:0;height:44px;border:1px solid var(--ab-ui-border);border-radius:10px;background:var(--ab-ui-raised);color:var(--ab-ui-text);font:inherit;}
+.swatch {padding:3px;cursor:pointer;}
+.hex {padding:0 10px;font-size:13px!important;}
+.controls > button {font-size:23px;cursor:pointer;}
+.field small {font-size:11px;line-height:1.5;color:var(--ab-ui-muted);}
+.presets {display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;}
+.presets button {min-width:0;min-height:44px;border:2px solid var(--ab-ui-border);border-radius:10px;cursor:pointer;}
+.presets button[aria-pressed=true] {outline:2px solid var(--ab-ui-accent);outline-offset:1px;}
+@container (max-width:280px) {.presets {grid-template-columns:repeat(3,minmax(0,1fr));}.controls {grid-template-columns:44px minmax(0,1fr) 44px;gap:5px;}}
+
+.labelRow {display:flex;flex-wrap:wrap;gap:6px;justify-content:space-between;align-items:center;}
+.labelRow > small {border:1px solid var(--ab-ui-border);border-radius:8px;padding:2px 6px;}

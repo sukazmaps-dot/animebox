@@ -66,10 +66,10 @@ jobs:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
         run: npm run player-hotfix:browser
 
-      - name: Profile editor mobile dock regression
+      - name: Profile editor responsive workspace and draft recovery
         env:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
-        run: node scripts/profile-editor-dock-smoke.cjs
+        run: node scripts/profile-editor-dock-smoke.cjs && npm run editor-workspace:check && npm run editor-workspace:browser
 
       - name: Patch 30.7 intent-based card prefetch
         run: npm run patch30-7:check

@@ -707,14 +707,14 @@ if (/var\(--particle-index\)/.test(premiumIdentityCss)) {
 }
 
 need('Persistent Premium Studio preview', premiumIdentityCss, [
-  'Patch 18.9.1 — persistent Premium Studio preview',
+  'Embedded Studio uses the editor scroll root',
   '.profile-editor-v13 .premium-studio-v15__hero',
   'display: contents',
   '.profile-editor-v13 .premium-studio-v15__preview-wrap',
-  'grid-row: 1 / span 3',
+  'grid-row:1 / span 3',
   '.profile-editor-v13 .premium-studio-v15__sticky',
   'position: sticky',
-  'max-height: calc(100dvh - 116px)',
+  'max-height:none',
   '.profile-editor-v13 .premium-studio-v16__section-nav',
   '.profile-editor-v13 .premium-studio-v15__sections',
 ]);
@@ -728,7 +728,7 @@ need('Mobile Premium Studio preview workflow', premiumIdentityCss, [
   '.premium-studio-v21__atmosphere-grid',
   'scroll-snap-type: x mandatory',
   '.premium-studio-v15__segmented',
-  '@media (max-width: 767px)',
+  '@media (max-width: 899px)',
 ]);
 
 need('Reusable Premium Studio live preview', premiumStudioLivePreview, [
@@ -741,15 +741,15 @@ need('Reusable Premium Studio live preview', premiumStudioLivePreview, [
 need('Mobile Premium preview BottomSheet', premiumStudioClient, [
   'mobilePreviewOpen',
   'premium-studio-v22__preview-fab',
-  'premium-studio-v22__preview-sheet-layer',
+  'premium-expanded-preview-title',
   '<PremiumStudioLivePreview',
-  'createPortal',
+  '<ProfileMediaModal',
   'Продолжить настройку',
 ]);
 
 need('Premium Studio atmosphere controls', premiumStudioClient, [
   "studioSection === 'atmosphere'",
-  'Автоподбор палитры',
+  'Подобрать палитру по изображению',
   'Атмосфера профиля',
   'PREMIUM_ATMOSPHERE_EFFECTS.map',
   'PREMIUM_MOTION_MODES.map',

@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
+import type { CSSProperties } from 'react';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { parseThemeShare, themeShareData } from '@/lib/profile-theme-share';
 
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/components/AuthStateProvider';
@@ -21,6 +21,7 @@ import { normalizePickedImage, stabilizePickedFile, isAnimatedPickedImage } from
 import { prepareBaseProfileMedia, extractDominantColor } from '@/lib/profile-media-crop-client';
 import ProfileMediaModal from '@/components/profile/ProfileMediaModal';
 import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor';
+import StudioColorField from '@/components/profile/ProfileColorField';
 import PremiumStudioLivePreview from '@/components/premium/PremiumStudioLivePreview';
 import Icon from '@/components/Icon';
 import { deriveAdaptiveProfilePalette } from '@/lib/adaptive-profile-theme-client';
@@ -43,7 +44,6 @@ import {
   applyPremiumScenePreset,
   contrastRatio,
   premiumBannerStyle,
-  isHexColor,
   resolveReadableTextColor,
   premiumMediaStyle,
   premiumThemePreset,
@@ -72,11 +72,14 @@ export type PremiumStudioHandle = {
   getDraft: () => PremiumStudioSettings;
   markSaved: (settings?: PremiumStudioSettings) => void;
   isDirty: () => boolean;
+  setDraft: (settings: PremiumStudioSettings) => void;
 };
 
 type PremiumStudioClientProps = {
   embedded?: boolean;
   hideDock?: boolean;
+  comparing?: boolean;
+  onDraftChange?: (settings: PremiumStudioSettings) => void;
   initialSettings?: PremiumStudioSettings | null;
   initialAllowed?: boolean | null;
   previewUsername?: string;
@@ -285,125 +288,20 @@ function hsvToHex(h: number, s: number, v: number) {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
-function StudioColorField({
-  label,
-  value,
-  hint,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-  onChange: (value: string) => void;
-}) {
-  const [draft, setDraft] = useState(value);
-  const [open, setOpen] = useState(false);
-  const fieldRef = useRef<HTMLDivElement>(null);
-  const hsv = useMemo(() => hexToHsv(value), [value]);
-
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => setDraft(value));
-    return () => window.cancelAnimationFrame(frame);
-  }, [value]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const close = (event: MouseEvent) => {
-      if (!fieldRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [open]);
-
-  function updateSaturationValue(event: ReactPointerEvent<HTMLDivElement>) {
-    if (event.type === 'pointermove' && event.buttons !== 1) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const saturation = clamp(((event.clientX - rect.left) / rect.width) * 100, 0, 100);
-    const brightness = clamp(100 - ((event.clientY - rect.top) / rect.height) * 100, 0, 100);
-    onChange(hsvToHex(hsv.h, saturation, brightness));
-    if (event.type === 'pointerdown') event.currentTarget.setPointerCapture(event.pointerId);
-  }
-
-  return (
-    <div ref={fieldRef} className={`premium-studio-v12__color-field premium-studio-v16__color-field ${open ? 'is-open' : ''}`}>
-      <span>
-        <strong>{label}</strong>
-        <small>{hint}</small>
-      </span>
-
-      <span className="premium-studio-v12__color-controls premium-studio-v16__color-controls">
-        <button
-          type="button"
-          className="premium-studio-v16__swatch"
-          style={{ background: value }}
-          onClick={() => setOpen((current) => !current)}
-          aria-label={`${label}: открыть палитру`}
-          aria-expanded={open}
-        >
-          <i />
-        </button>
-        <input
-          type="text"
-          value={draft}
-          maxLength={7}
-          spellCheck={false}
-          onChange={(event) => {
-            const next = event.target.value.toUpperCase();
-            setDraft(next);
-            if (isHexColor(next)) onChange(next);
-          }}
-          onBlur={() => {
-            if (!isHexColor(draft)) setDraft(value);
-          }}
-          aria-label={`${label}: HEX`}
-        />
-      </span>
-
-      {open && (
-        <span className="premium-studio-v16__picker" role="dialog" aria-label={`${label}: палитра`}>
-          <span
-            className="premium-studio-v16__sv"
-            style={{ backgroundColor: `hsl(${hsv.h} 100% 50%)` }}
-            onPointerDown={updateSaturationValue}
-            onPointerMove={updateSaturationValue}
-          >
-            <i
-              style={{
-                left: `${hsv.s}%`,
-                top: `${100 - hsv.v}%`,
-                background: value,
-              }}
-            />
-          </span>
-          <span className="premium-studio-v16__picker-row">
-            <small>Тон</small>
-            <input
-              type="range"
-              min="0"
-              max="359"
-              value={Math.round(hsv.h)}
-              onChange={(event) => onChange(hsvToHex(Number(event.target.value), hsv.s, hsv.v))}
-              aria-label={`${label}: оттенок`}
-            />
-          </span>
-          <span className="premium-studio-v16__picker-footer">
-            <span>
-              <i style={{ background: value }} />
-              <strong>{value}</strong>
-            </span>
-            <button type="button" onClick={() => setOpen(false)}>Готово</button>
-          </span>
-        </span>
-      )}
-    </div>
-  );
+function makePaletteOptions(palette:{primaryColor:string;accentColor:string;textColor:string},offset=0) {
+  const hsv=hexToHsv(palette.accentColor);
+  return [0,18,-22,45].map((shift,index)=>{
+    const accentColor=index===0&&!offset?palette.accentColor:hsvToHex((hsv.h+shift+offset+360)%360,clamp(hsv.s+index*3,25,90),clamp(hsv.v,65,95));
+    const primaryColor=index===0?palette.primaryColor:hsvToHex((hsv.h+shift+offset+360)%360,35+index*8,9+index*3);
+    return {primaryColor,accentColor,textColor:resolveReadableTextColor(palette.textColor,primaryColor)};
+  });
 }
 
 const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientProps>(function PremiumStudioClient({
   embedded = false,
   hideDock = false,
+  comparing = false,
+  onDraftChange,
   initialSettings = null,
   initialAllowed = null,
   previewUsername,
@@ -440,6 +338,8 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
   const [mediaWarning, setMediaWarning] = useState('');
+  const [paletteOptions, setPaletteOptions] = useState<Array<{primaryColor:string;accentColor:string;textColor:string}>>([]);
+  const [themeNotice, setThemeNotice] = useState('');
   const [paletteLoading, setPaletteLoading] = useState<'avatar' | 'banner' | ''>('');
   const [previewEpoch, setPreviewEpoch] = useState(0);
   const [previewContext, setPreviewContext] = useState<PremiumPreviewContext>('profile');
@@ -523,23 +423,6 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     });
   }, [allowed]);
 
-  useEffect(() => {
-    if (!mobilePreviewOpen) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMobilePreviewOpen(false);
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [mobilePreviewOpen]);
-
   useEffect(() => () => {
     if (mediaObjectUrlRef.current) URL.revokeObjectURL(mediaObjectUrlRef.current);
   }, []);
@@ -548,6 +431,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
 
   useImperativeHandle(ref, () => ({
     getDraft: () => settings,
+    setDraft: (nextSettings) => setSettings(nextSettings),
     markSaved: (nextSettings = settings) => {
       setSettings(nextSettings);
       setSavedSettings(nextSettings);
@@ -563,6 +447,16 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   useEffect(() => {
     onBusyChange?.(saving || Boolean(uploading));
   }, [onBusyChange, saving, uploading]);
+  useEffect(() => {if(allowed!==null)onDraftChange?.(settings);},[settings,onDraftChange,allowed]);
+  useEffect(()=>{
+    if(allowed===null)return;
+    const hash=window.location.hash;
+    if(!hash.startsWith('#theme='))return;
+    try {
+      const theme=parseThemeShare(decodeURIComponent(hash.slice(7)));
+      if(theme){const frame=requestAnimationFrame(()=>{setSettings(current=>({...current,...theme}));setThemeNotice('Оформление из ссылки открыто в черновике.');});return()=>cancelAnimationFrame(frame);}
+    }catch {/* An invalid shared theme never changes the draft. */}
+  },[allowed]);
   const contrast = contrastRatio(settings.textColor, settings.primaryColor);
   const safeTextColor = resolveReadableTextColor(settings.textColor, settings.primaryColor);
   const contrastProtected = safeTextColor !== settings.textColor;
@@ -749,13 +643,13 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   }
 
   async function applyAdaptivePalette(source: 'avatar' | 'banner') {
-    const url = source === 'banner' ? bannerUrl : avatarUrl;
+    const url = source === 'banner' ? effectiveBannerUrl : effectiveAvatarUrl;
 
     if (!url) {
       setError(
         source === 'banner'
-          ? 'Сначала загрузи Premium-баннер, чтобы подобрать палитру по нему.'
-          : 'Сначала загрузи Premium-аватар, чтобы подобрать палитру по нему.',
+          ? 'Сначала добавь баннер, чтобы подобрать палитру по нему.'
+          : 'Сначала добавь аватар, чтобы подобрать палитру по нему.',
       );
       return;
     }
@@ -766,17 +660,8 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
 
     try {
       const palette = await deriveAdaptiveProfilePalette(url);
-      setSettings((current) => ({
-        ...current,
-        primaryColor: palette.primaryColor,
-        accentColor: palette.accentColor,
-        textColor: palette.textColor,
-      }));
-      setSaved(
-        source === 'banner'
-          ? 'Палитра подобрана по баннеру — сохрани изменения.'
-          : 'Палитра подобрана по аватару — сохрани изменения.',
-      );
+      setPaletteOptions(makePaletteOptions(palette));
+      setThemeNotice('Выбери один из четырёх вариантов.');
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -1189,7 +1074,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
 
           <PremiumStudioLivePreview
             key={`demo:${previewEpoch}:${previewContext}`}
-            settings={settings}
+            settings={comparing ? savedSettings : settings}
             avatarUrl={effectiveAvatarUrl}
             bannerUrl={effectiveBannerUrl}
             avatarTransform={avatarTransform}
@@ -1238,8 +1123,16 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
       </div>}
 
       <div className="premium-studio-v15__layout">
+        <div className="premium-studio-v16__section-nav" role="tablist" aria-label="Разделы Premium Studio">
+          <button type="button" role="tab" aria-selected={studioSection === 'appearance'} className={studioSection === 'appearance' ? 'is-active' : ''} onClick={() => setStudioSection('appearance')}>Оформление</button>
+          <button type="button" role="tab" aria-selected={studioSection === 'atmosphere'} className={studioSection === 'atmosphere' ? 'is-active' : ''} onClick={() => setStudioSection('atmosphere')}>Атмосфера</button>
+          <button type="button" role="tab" aria-selected={studioSection === 'effects'} className={studioSection === 'effects' ? 'is-active' : ''} onClick={() => setStudioSection('effects')}>Эффекты</button>
+          <button type="button" role="tab" aria-selected={studioSection === 'media'} className={studioSection === 'media' ? 'is-active' : ''} onClick={() => setStudioSection('media')}>Медиа</button>
+        </div>
+
+
         <div className="premium-studio-v15__hero">
-          <div className="premium-studio-v15__hero-main">
+          <div className="premium-studio-v15__hero-main" hidden={embedded && studioSection !== 'appearance'}>
             <section className="premium-studio-v12__panel premium-studio-v15__panel premium-studio-v15__palette-panel">
               <div className="premium-studio-v12__section-head premium-studio-v15__section-head">
                 <div>
@@ -1248,30 +1141,9 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 </div>
               </div>
 
-              <div className="premium-studio-v12__color-list premium-studio-v15__color-list">
-                <StudioColorField
-                  label="Основной цвет"
-                  value={settings.primaryColor}
-                  hint="Фон карточек и основных блоков профиля"
-                  onChange={(primaryColor) => setSettings((current) => ({ ...current, primaryColor }))}
-                />
-                <StudioColorField
-                  label="Акцент"
-                  value={settings.accentColor}
-                  hint="Кнопки, прогресс, активные элементы и свечение"
-                  onChange={(accentColor) => setSettings((current) => ({ ...current, accentColor }))}
-                />
-                <StudioColorField
-                  label="Текст и иконки"
-                  value={settings.textColor}
-                  hint="Текст и иконки поверх фона. AnimeBox автоматически сохранит читаемость."
-                  onChange={(textColor) => setSettings((current) => ({ ...current, textColor }))}
-                />
-              </div>
-
               <div className="premium-studio-v21__adaptive">
                 <div>
-                  <strong>Автоподбор палитры</strong>
+                  <strong>Подобрать палитру по изображению</strong>
                   <small>AnimeBox берёт оттенки из изображения и подбирает подходящие фон, акцент и цвет текста.</small>
                 </div>
                 <div>
@@ -1293,9 +1165,48 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                 </div>
               </div>
 
+              {paletteOptions.length>0 && <div className="premium-studio-v31__palette-options">
+                {paletteOptions.map((palette,index)=><button type="button" key={index}
+                  aria-label={`Применить палитру ${index+1}`} onClick={()=>setSettings(current=>({...current,...palette}))}>
+                  <i style={{background:palette.primaryColor}}/><i style={{background:palette.accentColor}}/><i style={{background:palette.textColor}}/><span>Вариант {index+1}</span>
+                </button>)}
+                <button type="button" onClick={()=>setPaletteOptions(current=>makePaletteOptions(current[0],Math.floor(Math.random()*61)-30))}>Перемешать</button>
+              </div>}
+              <div className="premium-studio-v31__theme-actions">
+                <button type="button" onClick={()=>applyScenePreset(PREMIUM_SCENE_PRESETS[Math.floor(Math.random()*PREMIUM_SCENE_PRESETS.length)])}>Случайная тема</button>
+                <button type="button" onClick={async()=>{
+                  const url=new URL('/profile/edit?tab=style',window.location.origin);
+                  url.hash='theme='+encodeURIComponent(JSON.stringify(themeShareData(settings)));
+                  try {await navigator.clipboard.writeText(url.href);setThemeNotice('Ссылка скопирована. Личные данные и картинки в неё не включены.');}
+                  catch {setThemeNotice('Не удалось скопировать ссылку: браузер не разрешил доступ к буферу.');}
+                }}>Поделиться темой</button>
+              </div>
+              {themeNotice && <p className="premium-studio-v31__notice" role="status">{themeNotice}</p>}
+              <div className="premium-studio-v12__color-list premium-studio-v15__color-list">
+                <StudioColorField
+                  label="Основной цвет"
+                  value={settings.primaryColor}
+                  hint="Фон карточек и основных блоков профиля"
+                  onChange={(primaryColor) => setSettings((current) => ({ ...current, primaryColor }))}
+                />
+                <StudioColorField
+                  label="Акцент"
+                  value={settings.accentColor}
+                  hint="Кнопки, прогресс, активные элементы и свечение"
+                  onChange={(accentColor) => setSettings((current) => ({ ...current, accentColor }))}
+                />
+                <StudioColorField
+                  label="Текст и иконки"
+                  badge={contrastProtected ? "Контраст защищён" : "Читаемо"}
+                  value={settings.textColor}
+                  hint="Текст и иконки поверх фона. AnimeBox автоматически сохранит читаемость."
+                  onChange={(textColor) => setSettings((current) => ({ ...current, textColor }))}
+                />
+              </div>
+
               <div className={`premium-studio-v12__contrast premium-studio-v15__contrast ${contrastProtected ? 'is-warning is-protected' : 'is-good'}`}>
                 <div>
-                  <strong>{contrastProtected ? 'Защита контраста включена' : `Контраст ${contrast.toFixed(1)}:1`}</strong>
+                  <strong>{contrastProtected ? 'Защита контраста · текст скорректирован' : `Читаемо · ${contrast.toFixed(1)}:1`}</strong>
                   <small>{contrastProtected ? 'AnimeBox защитил читаемость интерфейса.' : 'Текст хорошо читается на выбранном фоне.'}</small>
                 </div>
                 <span>
@@ -1337,7 +1248,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
 
               <PremiumStudioLivePreview
                 key={`${previewEpoch}:${previewContext}`}
-                settings={settings}
+                settings={comparing ? savedSettings : settings}
                 avatarUrl={effectiveAvatarUrl}
                 bannerUrl={effectiveBannerUrl}
                 avatarTransform={avatarTransform}
@@ -1349,13 +1260,6 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
               />
             </div>
           </aside>
-        </div>
-
-        <div className="premium-studio-v16__section-nav" role="tablist" aria-label="Разделы Premium Studio">
-          <button type="button" role="tab" aria-selected={studioSection === 'appearance'} className={studioSection === 'appearance' ? 'is-active' : ''} onClick={() => setStudioSection('appearance')}>Оформление</button>
-          <button type="button" role="tab" aria-selected={studioSection === 'atmosphere'} className={studioSection === 'atmosphere' ? 'is-active' : ''} onClick={() => setStudioSection('atmosphere')}>Атмосфера</button>
-          <button type="button" role="tab" aria-selected={studioSection === 'effects'} className={studioSection === 'effects' ? 'is-active' : ''} onClick={() => setStudioSection('effects')}>Эффекты</button>
-          <button type="button" role="tab" aria-selected={studioSection === 'media'} className={studioSection === 'media' ? 'is-active' : ''} onClick={() => setStudioSection('media')}>Медиа</button>
         </div>
 
         <div className="premium-studio-v15__sections premium-studio-v16__sections">
@@ -1871,22 +1775,15 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
         {dirty && <i className="premium-studio-v22__preview-fab-dot" aria-hidden="true" />}
       </button>
 
-      {mobilePreviewOpen && typeof document !== 'undefined'
-        ? createPortal(
-            <div
-              className="premium-studio-v22__preview-sheet-layer"
-              role="presentation"
-              onMouseDown={(event) => {
-                if (event.currentTarget === event.target) setMobilePreviewOpen(false);
-              }}
-            >
+      {mobilePreviewOpen && <ProfileMediaModal busy={false} onClose={()=>setMobilePreviewOpen(false)} labelledBy="premium-expanded-preview-title">
               <section
                 className="premium-studio-v22__preview-sheet"
-                role="dialog"
-                aria-modal="true"
+
+
                 aria-label="Предпросмотр Premium-профиля"
               >
                 <div className="premium-studio-v22__preview-sheet-handle" aria-hidden="true" />
+                <h2 id="premium-expanded-preview-title" className="sr-only">Предпросмотр Premium-профиля</h2>
                 <header className="premium-studio-v22__preview-sheet-head">
                   <div>
                     <span>ПРЕДПРОСМОТР</span>
@@ -1901,10 +1798,13 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                   </button>
                 </header>
 
+                <div className="premium-studio-v23__preview-tabs" role="tablist" aria-label="Контекст мобильного предпросмотра">
+                  {([['profile','Профиль'],['mini','Мини'],['comment','Комментарий'],['watch-party','Комната']] as const).map(([id,label])=><button type="button" role="tab" key={id} aria-selected={previewContext===id} onClick={()=>setPreviewContext(id)}>{label}</button>)}
+                </div>
                 <div className="premium-studio-v22__preview-sheet-body">
                   <PremiumStudioLivePreview
                     key={`mobile-${previewEpoch}`}
-                    settings={settings}
+                    settings={comparing ? savedSettings : settings}
                     avatarUrl={effectiveAvatarUrl}
                     bannerUrl={effectiveBannerUrl}
                     avatarTransform={avatarTransform}
@@ -1940,10 +1840,7 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
                   )}
                 </footer>
               </section>
-            </div>,
-            document.body,
-          )
-        : null}
+      </ProfileMediaModal>}
 
       {mediaEditor && (
         <ProfileMediaModal busy={Boolean(uploading) || saving} onClose={closeMediaEditor} labelledBy="premium-media-editor-title">

@@ -5,19 +5,19 @@ import styles from './ProfileEditorLivePreview.module.css';
 
 export type ProfileEditorSection = 'profile' | 'avatar' | 'banner' | 'frame' | 'style';
 type Props = {
-  username: string; bio: string; avatarUrl: string; bannerUrl: string | null;
+  expanded?: boolean; username: string; bio: string; avatarUrl: string; bannerUrl: string | null;
   bannerColor: string; bannerStyle: BannerStyle; premiumActive: boolean;
   frameKey?: string | null;
   previewPremiumFill?: boolean;
   onNavigate: (section: ProfileEditorSection) => void;
 };
 export default function ProfileEditorLivePreview({
-  username, bio, avatarUrl, bannerUrl, bannerColor, bannerStyle,
+  expanded=false, username, bio, avatarUrl, bannerUrl, bannerColor, bannerStyle,
   premiumActive, frameKey, previewPremiumFill=false, onNavigate,
 }: Props) {
   const background = bannerStyleBackground(bannerColor, previewPremiumFill ? bannerStyle : visibleBannerStyle(bannerStyle, premiumActive));
   return (
-    <section className={styles.preview} aria-label="Живой предпросмотр профиля">
+    <section className={`${styles.preview} ${expanded ? styles.expanded : ""}`} aria-label="Живой предпросмотр профиля">
       <button type="button" className={styles.banner}
         style={{ background }} onClick={() => onNavigate('banner')} aria-label="Настроить баннер">
         {bannerUrl && <img src={bannerUrl} alt="" />}

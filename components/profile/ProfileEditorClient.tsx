@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { useProfileEditorHistory } from '@/hooks/useProfileEditorHistory';
+import type { ProfileEditorDraft } from '@/lib/profile-editor-draft';
 import { observeProfileEditorDock } from '@/lib/profile-editor-dock';
 import { FREE_BANNER_STYLES, normalizeBannerStyle, type BannerStyle } from '@/lib/profile-banner-style';
 
@@ -34,10 +36,8 @@ import {
 import { prepareBaseProfileMedia, extractDominantColor } from '@/lib/profile-media-crop-client';
 import { normalizePickedImage } from '@/lib/profile-media-normalize-client';
 import type { ProfileWidgetsData } from '@/types/profile-widgets';
-import type {
-  PremiumMediaTransform,
-  PremiumStudioSettings,
-} from '@/lib/premium-studio';
+import {DEFAULT_PREMIUM_STUDIO_SETTINGS,type PremiumMediaTransform,type PremiumStudioSettings} from '@/lib/premium-studio';
+import {themeShareData} from '@/lib/profile-theme-share';
 
 type EditorTab = ProfileEditorSection | 'showcase' | 'rewards';
 
@@ -73,7 +73,13 @@ function normalizedTab(value: string | null | undefined): EditorTab {
   return 'profile';
 }
 
-export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
+export default function ProfileEditorClient(props: Props) {
+  const {user}=useAuthState();
+  // A new account must never inherit the previous account's in-memory draft/files.
+  return <ProfileEditorWorkspace key={user?.id ?? 'guest'} {...props} />;
+}
+
+function ProfileEditorWorkspace({ initialTab = 'profile' }: Props) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const {
@@ -90,6 +96,8 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   const [selectedFrame, setSelectedFrame] = useState<string | null>(null);
   const [savedFrame, setSavedFrame] = useState<string | null>(null);
   const frameInitializedRef = useRef(false);
+  const frameDraftRestoredRef = useRef(false);
+  const [resetUndoAvailable,setResetUndoAvailable]=useState(false);
   const [frameLoaded, setFrameLoaded] = useState(false);
   useEffect(() => {
     document.documentElement.classList.add('ab-profile-editor-open');
@@ -126,6 +134,9 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   const [removeAvatar, setRemoveAvatar] = useState(false);
   const [removeBanner, setRemoveBanner] = useState(false);
   const [premiumSettings, setPremiumSettings] = useState<PremiumStudioSettings | null>(null);
+  const [premiumDraft, setPremiumDraft] = useState<PremiumStudioSettings | null>(null);
+  const [comparing, setComparing] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [premiumActive, setPremiumActive] = useState(false);
   const premiumStudioRef = useRef<PremiumStudioHandle | null>(null);
   const [premiumDirty, setPremiumDirty] = useState(false);
@@ -298,6 +309,9 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
 
   function switchTab(tab: EditorTab) {
+    document.querySelector<HTMLElement>('.profile-editor-v13')?.scrollTo({ top: 0 });
+    document.querySelector('.profile-editor-v31__more')?.removeAttribute('open');
+    setComparing(false);
     setActiveTab(tab);
     setError('');
     setSaved('');
@@ -311,12 +325,17 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
       document.documentElement.style.setProperty('--ab-editor-viewport-height', `${vp?.height ?? window.innerHeight}px`);
       document.documentElement.style.setProperty('--ab-editor-viewport-top', `${vp?.offsetTop ?? 0}px`);
       const keyboardInset = Math.max(0, window.innerHeight - ((vp?.offsetTop ?? 0) + (vp?.height ?? window.innerHeight)));
+      document.documentElement.toggleAttribute('data-profile-editor-keyboard',keyboardInset>120);
+      if(keyboardInset>120 && document.activeElement instanceof HTMLElement && document.activeElement.matches('.profile-editor-v13 input,.profile-editor-v13 textarea')) {
+        document.activeElement.scrollIntoView({block:'nearest'});
+      }
       document.documentElement.style.setProperty('--ab-editor-keyboard-inset', `${keyboardInset}px`);
     };
     updateViewport();
     window.visualViewport?.addEventListener('resize', updateViewport);
     window.visualViewport?.addEventListener('scroll', updateViewport);
     return () => {
+      document.documentElement.removeAttribute('data-profile-editor-keyboard');
       window.visualViewport?.removeEventListener('resize', updateViewport);
       window.visualViewport?.removeEventListener('scroll', updateViewport);
       document.documentElement.style.removeProperty('--ab-editor-viewport-height');
@@ -331,9 +350,11 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   }
 
   function cancelChanges() {
-    if (dirty && !window.confirm('Сбросить несохранённые изменения?')) return;
-    if (dirty) resetDraft();
-    else leaveEditor();
+    if (!dirty && !premiumDirty) return;
+    editorHistory.checkpoint();
+    editorHistory.discard();
+    resetDraft();
+    setResetUndoAvailable(true);
   }
 
   function revokeBaseMediaPreviewLater(src?: string | null) {
@@ -505,6 +526,35 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
   );
   const frameDirty = frameLoaded && selectedFrame !== savedFrame;
   const dirty = baseDirty || (premiumActive && premiumDirty) || frameDirty;
+  const editorBusy=saving||premiumBusy||baseMediaProcessing||Boolean(baseMediaOpening)||Boolean(baseMediaEditor);
+  const editorDraft = useMemo<ProfileEditorDraft>(() => ({
+    username,bio,bannerColor,bannerColorMode,bannerStyle,frame:selectedFrame,
+    premium:premiumDraft ?? premiumSettings,avatar:avatarFile,banner:bannerFile,removeAvatar,removeBanner,
+  }),[username,bio,bannerColor,bannerColorMode,bannerStyle,selectedFrame,premiumDraft,premiumSettings,avatarFile,bannerFile,removeAvatar,removeBanner]);
+  const applyEditorDraft = useCallback((next:ProfileEditorDraft) => {
+    bannerColorRequestRef.current++;
+    setUsername(next.username);setBio(next.bio);setBannerColor(next.bannerColor);
+    setBannerColorMode(next.bannerColorMode);setBannerStyle(normalizeBannerStyle(next.bannerStyle));
+    frameDraftRestoredRef.current=true;setResetUndoAvailable(false);
+    setSelectedFrame(next.frame);setAvatarFile(next.avatar);setBannerFile(next.banner);
+    setRemoveAvatar(next.removeAvatar);setRemoveBanner(next.removeBanner);
+    setAvatarPreview(next.avatar ? URL.createObjectURL(next.avatar) : null);
+    setBannerPreview(next.banner ? URL.createObjectURL(next.banner) : null);
+    if(next.premium)premiumStudioRef.current?.setDraft(next.premium);
+    setError('');setSaved('');
+  },[]);
+  const editorHistory = useProfileEditorHistory({
+    userId:user?.id ?? null,ready:!loading && !!profile && profile.id===user?.id && premiumDraft!==null,
+    baseline:JSON.stringify([profile,premiumSettings,savedFrame]),draft:editorDraft,
+    dirty:dirty || (!premiumActive && premiumDirty),onApply:applyEditorDraft,
+  });
+  const sectionDirty:Record<string,boolean> = {
+    profile:username.trim()!==(profile?.username ?? '').trim() || bio.trim()!==(profile?.bio ?? '').trim(),
+    avatar:!!avatarFile||removeAvatar,
+    banner:!!bannerFile||removeBanner||bannerColor!==(profile?.banner_color ?? '#70618c')||bannerStyle!==normalizeBannerStyle(profile?.banner_style)||bannerColorMode!==(profile?.banner_color_mode ?? 'auto'),
+    frame:frameDirty,style:premiumDirty,
+  };
+  const configuredSections=[!!(username.trim()&&bio.trim()),!!(avatarFile||profile?.avatar_path),!!(bannerFile||profile?.banner_path||bannerColorMode==='manual'),!!selectedFrame,!!premiumDraft && JSON.stringify(themeShareData(premiumDraft))!==JSON.stringify(themeShareData(DEFAULT_PREMIUM_STUDIO_SETTINGS))].filter(Boolean).length;
   // Expired Premium users can edit ordinary fields without repurchasing an unchanged
   // legacy Premium fill. Only a newly selected paid style or recolor needs upsell.
   const bannerFillUpgradeRequired = !premiumActive &&
@@ -540,7 +590,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
 
 
   async function saveProfile() {
-    if (!profile || !user || saving || premiumBusy || !dirty) return;
+    if (!profile || !user || editorBusy || !dirty) return;
 
     const cleanUsername = username.trim();
     const cleanBio = bio.trim();
@@ -688,6 +738,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           return;
         }
       }
+      editorHistory.discard();setResetUndoAvailable(false);
       setSaved('Профиль и оформление сохранены ✓');
     } catch (requestError) {
       if (pendingMedia.length) {
@@ -719,11 +770,36 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
     setBaseMediaError('');
     setError('');
     setSaved('Черновик сброшен.');
-    if (premiumDirty && premiumSettings) {
-      premiumStudioRef.current?.markSaved(premiumSettings);
+    if (premiumDirty) {
+      premiumStudioRef.current?.markSaved(premiumSettings ?? DEFAULT_PREMIUM_STUDIO_SETTINGS);
       setPremiumDirty(false);
     }
   }
+
+  useEffect(()=>{
+    const keydown=(event:KeyboardEvent)=>{
+      if(!(event.ctrlKey||event.metaKey))return;
+      if(event.key.toLowerCase()==='s') {
+        event.preventDefault();
+        if(!document.querySelector('dialog[open],[aria-modal="true"]'))document.querySelector<HTMLButtonElement>('[data-editor-save]')?.click();
+        return;
+      }
+      if(editorBusy || document.querySelector('dialog[open],[aria-modal="true"]'))return;
+      const target=event.target as HTMLElement;
+      // Text inputs keep native undo; the toolbar undoes changes across sections.
+      if(target.closest('input,textarea,[contenteditable="true"]'))return;
+      if(event.key.toLowerCase()==='z'){event.preventDefault();if(event.shiftKey)editorHistory.redo();else editorHistory.undo();}
+      if(event.key.toLowerCase()==='y'){event.preventDefault();editorHistory.redo();}
+    };
+    window.addEventListener('keydown',keydown);
+    return()=>window.removeEventListener('keydown',keydown);
+  });
+
+  useEffect(()=>{
+    if(!resetUndoAvailable)return;
+    const timer=setTimeout(()=>setResetUndoAvailable(false),8000);
+    return()=>clearTimeout(timer);
+  },[resetUndoAvailable]);
 
   async function clearPremiumFallbackMedia(media: 'avatar' | 'banner' | 'all' = 'all') {
     if (!user?.id) return;
@@ -778,15 +854,16 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             <button type="button" onClick={leaveEditor} aria-label="Закрыть редактор">×</button>
             <h1>Редактор профиля</h1>
           </div>
-          <span className="profile-editor-v31__status" role="status">{saving ? 'Сохранение…' : dirty ? '● Не сохранено' : '✓ Сохранено'}</span>
+          <span className="profile-editor-v31__status" role="status" aria-live="polite">{saving ? 'Сохранение…' : dirty ? '● Не сохранено' : '✓ Сохранено'}</span>
         </header>
 
         <div className="profile-editor-v31__live-preview">
+          <button type="button" className="profile-editor-v31__expand" onClick={() => setPreviewOpen(true)}>⤢ Развернуть превью</button>
           <ProfileEditorLivePreview
-            username={username} bio={bio} avatarUrl={resolvedAvatarPreview}
-            bannerUrl={resolvedBannerPreview} bannerColor={bannerColor}
-            bannerStyle={bannerStyle} premiumActive={premiumActive}
-            frameKey={selectedFrame} onNavigate={switchTab}
+            username={comparing ? profile.username ?? '' : username} bio={comparing ? profile.bio ?? '' : bio} avatarUrl={comparing ? displayedAvatar : resolvedAvatarPreview}
+            bannerUrl={comparing ? displayedBanner : resolvedBannerPreview} bannerColor={comparing ? profile.banner_color ?? '#70618c' : bannerColor}
+            bannerStyle={comparing ? normalizeBannerStyle(profile.banner_style) : bannerStyle} premiumActive={premiumActive}
+            frameKey={comparing ? savedFrame : selectedFrame} onNavigate={switchTab}
             previewPremiumFill={bannerFillUpgradeRequired}
           />
         </div>
@@ -799,23 +876,45 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
             ['frame','Рамка','trophy'],
             ['style','Оформление','crown'],
           ] as const).map(([section,label,icon]) => (
-            <button key={section} className={activeTab === section ? 'is-active' : ''}
+            <button key={section} data-section={section} data-dirty={sectionDirty[section] || undefined} className={activeTab === section ? 'is-active' : ''}
               aria-current={activeTab===section?'page':undefined} type="button" onClick={()=>switchTab(section)}>
               <Icon name={icon} size={17} weight="regular" /><span>{label}</span>
             </button>
           ))}
-          <details className="profile-editor-v31__more">
+          <details className="profile-editor-v31__more" data-active={["frame","showcase","rewards"].includes(activeTab) || undefined}>
             <summary>Ещё</summary>
+            <div className="profile-editor-v31__more-items">
+            <button className="profile-editor-v31__mobile-frame" aria-current={activeTab==='frame'?'page':undefined} type="button" onClick={()=>switchTab('frame')}>Рамка{frameDirty ? ' ●' : ''}</button>
             <button type="button" onClick={()=>switchTab('showcase')}>Витрина</button>
             <button type="button" onClick={()=>switchTab('rewards')}>Награды</button>
+            </div>
           </details>
         </nav>
 
+        <fieldset className="profile-editor-v31__settings" disabled={editorBusy}>
+        <div className="profile-editor-v31__tools">
+          <span>Настроено {configuredSections} из 5</span>
+          <button type="button" disabled={!editorHistory.canUndo || editorBusy} onClick={editorHistory.undo} title="Отменить изменение (Ctrl+Z)">↶</button>
+          <button type="button" disabled={!editorHistory.canRedo || editorBusy} onClick={editorHistory.redo} title="Вернуть изменение (Ctrl+Shift+Z)">↷</button>
+          <button type="button" aria-pressed={comparing}
+            onPointerDown={event=>{event.currentTarget.setPointerCapture(event.pointerId);setComparing(true);}}
+            onPointerUp={()=>setComparing(false)} onPointerCancel={()=>setComparing(false)} onBlur={()=>setComparing(false)}
+            onKeyDown={event=>{if(event.key===' '||event.key==='Enter'){event.preventDefault();setComparing(true);}}}
+            onKeyUp={()=>setComparing(false)}>Сравнить</button>
+        </div>
+        {editorHistory.recovery && <div className="profile-editor-v31__recovery" role="status">
+          <span>На устройстве есть несохранённый черновик.</span>
+          <button type="button" disabled={editorBusy} onClick={editorHistory.restore}>Восстановить</button>
+          <button type="button" disabled={editorBusy} onClick={editorHistory.discard}>Удалить</button>
+        </div>}
+        {editorHistory.notice && <p className="profile-editor-v31__draft-note">{editorHistory.notice}</p>}
         <div className="profile-editor-v13__premium-tab" hidden={activeTab !== 'style'}>
             <PremiumStudioClient
               ref={premiumStudioRef}
               embedded
               hideDock
+              comparing={comparing}
+              onDraftChange={setPremiumDraft}
               initialSettings={premiumSettings}
               initialAllowed={premiumActive}
               previewUsername={username}
@@ -894,7 +993,7 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
               if (frameInitializedRef.current) return;
               frameInitializedRef.current = true;
               setFrameLoaded(true);
-              setSelectedFrame(frame);
+              if(!frameDraftRestoredRef.current)setSelectedFrame(frame);
               setSavedFrame(frame);
             }}
             username={username}
@@ -962,20 +1061,33 @@ export default function ProfileEditorClient({ initialTab = 'profile' }: Props) {
           </div>
         ) : null}
 
-        <div ref={savebarRef} data-visible="true" className={`profile-editor-v13__mobile-save profile-editor-v18__savebar ${dirty ? 'is-dirty' : ''}`} role="status" aria-live="polite">
+        </fieldset>
+
+        <div ref={savebarRef} data-visible="true" className={`profile-editor-v13__mobile-save profile-editor-v18__savebar ${dirty ? 'is-dirty' : ''}`} >
           <span className="profile-editor-v18__savebar-copy">
-            <strong>{saving ? 'Сохраняем…' : dirty ? 'Есть несохранённые изменения' : saved || 'Все изменения сохранены'}</strong>
+            <strong>Правки видны в предпросмотре</strong>
+            {resetUndoAvailable && <button type="button" disabled={editorBusy} onClick={()=>{editorHistory.undo();setResetUndoAvailable(false);}}>Вернуть сброшенное</button>}
             {error ? <small className="profile-editor-v31__error" role="alert">{error}</small> : dirty && <small>Изменения ещё не сохранены.</small>}
           </span>
-          <button type="button" className="profile-editor-v18__reset" disabled={saving} onClick={cancelChanges}>
-            Отмена
+          <button type="button" className="profile-editor-v18__reset" disabled={editorBusy || (!dirty && !premiumDirty)} onClick={cancelChanges}>
+            Сбросить
           </button>
-          <button type="button" disabled={(!dirty && !needsPremiumCTA) || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)}
+          <button type="button" data-editor-save disabled={(!dirty && !needsPremiumCTA) || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)}
             onClick={() => needsPremiumCTA ? router.push('/premium#premium-plans') : void saveProfile()}>
             {saving ? 'Сохраняем…' : needsPremiumCTA ? 'Сохранить с Premium' : 'Сохранить'}
           </button>
         </div>
       </section>
+
+      {previewOpen && <ProfileMediaModal busy={false} onClose={()=>setPreviewOpen(false)} labelledBy="profile-expanded-preview-title">
+        <section className="profile-editor-v31__preview-dialog">
+          <header><h2 id="profile-expanded-preview-title">Предпросмотр профиля</h2><button type="button" onClick={()=>setPreviewOpen(false)}>Закрыть</button></header>
+          <ProfileEditorLivePreview expanded username={username} bio={bio} avatarUrl={resolvedAvatarPreview}
+            bannerUrl={resolvedBannerPreview} bannerColor={bannerColor} bannerStyle={bannerStyle}
+            premiumActive={premiumActive} frameKey={selectedFrame} previewPremiumFill={bannerFillUpgradeRequired}
+            onNavigate={section=>{setPreviewOpen(false);switchTab(section);}} />
+        </section>
+      </ProfileMediaModal>}
 
       {baseMediaEditor && (
         <ProfileMediaModal busy={baseMediaProcessing} onClose={closeBaseMediaEditor} labelledBy="base-media-editor-title">
