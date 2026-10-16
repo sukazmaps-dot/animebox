@@ -1,7 +1,7 @@
 'use client';
 
-const MAX_SOURCE_SIZE = 16 * 1024 * 1024;
-const MAX_EDITOR_DIMENSION = 4096;
+const MAX_SOURCE_SIZE = 32 * 1024 * 1024;
+const MAX_EDITOR_DIMENSION = 2048;
 const MAX_SOURCE_PIXELS = 80_000_000;
 const MAX_SOURCE_EDGE = 20_000;
 
@@ -51,12 +51,33 @@ function extensionOf(file: File) {
   return file.name.split('.').pop()?.trim().toLowerCase() ?? '';
 }
 
-async function stabilizePickedFile(file: File): Promise<File> {
+export async function stabilizePickedFile(file: File): Promise<File> {
   try {
     // Copy the bytes while the native picker still owns a valid handle.
     // This matters on Android/Samsung where clearing <input type="file">
     // can invalidate the content:// backed File before async decoding starts.
-    const buffer = await file.arrayBuffer();
+    let buffer: ArrayBuffer;
+    try {
+      buffer = await file.arrayBuffer();
+      if (!buffer.byteLength) throw new Error('Empty picker byte stream');
+    } catch (error) {
+      // Android content providers may reject Blob.arrayBuffer while the
+      // FileReader bridge can still read the same picker-backed File.
+      console.warn('[ProfileMedia] picker read fallback', {
+        stage: 'read', type: file.type, size: file.size,
+        code: error instanceof Error ? error.name : 'UnknownError',
+      });
+      buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+        const reader = new FileReader();
+        const timer = window.setTimeout(() => reader.abort(), 20_000);
+        reader.onloadend = () => window.clearTimeout(timer);
+        reader.onload = () => reader.result instanceof ArrayBuffer
+          ? resolve(reader.result) : reject(new Error('Empty FileReader result'));
+        reader.onerror = () => reject(reader.error ?? new Error('FileReader failed'));
+        reader.onabort = () => reject(new Error('File read timed out'));
+        reader.readAsArrayBuffer(file);
+      });
+    }
 
     if (!buffer.byteLength) {
       throw new Error('empty buffer');
@@ -308,6 +329,7 @@ async function decodePickedImage(
   const normalizedBlob = canonicalBlob(file, kind);
 
   if (kind === 'heic') {
+    try { return await decodeNative(normalizedBlob); } catch { /* Native HEIF is optional. */ }
     // heic2any also benefits from a canonical image/heic Blob type.
     const normalizedFile = new File(
       [normalizedBlob],
@@ -334,6 +356,13 @@ async function decodePickedImage(
 
     throw error;
   }
+}
+
+export async function isAnimatedPickedImage(file: File): Promise<boolean> {
+  const header = new Uint8Array(await file.slice(0, 32).arrayBuffer());
+  if (ascii(header.slice(0, 3)) === 'GIF') return true;
+  return ascii(header.slice(0, 4)) === 'RIFF' && ascii(header.slice(8, 12)) === 'WEBP'
+    && ascii(header.slice(12, 16)) === 'VP8X' && Boolean(header[20] & 0x02);
 }
 
 function scaledSize(
@@ -466,7 +495,7 @@ export async function normalizePickedImage(
 
   if (file.size > MAX_SOURCE_SIZE) {
     throw new Error(
-      'Исходное изображение должно быть не больше 16 МБ.',
+      'Исходное изображение должно быть не больше 32 МБ.',
     );
   }
 
