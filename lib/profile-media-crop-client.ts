@@ -6,7 +6,7 @@ export type ProfileMediaKind = 'avatar' | 'banner';
 
 export const PROFILE_MEDIA_ASPECT: Record<ProfileMediaKind, number> = {
   avatar: 1,
-  banner: 2.35,
+  banner: 3,
 };
 
 const OUTPUTS: Record<ProfileMediaKind, {
@@ -14,11 +14,11 @@ const OUTPUTS: Record<ProfileMediaKind, {
   quality: number;
 }> = {
   avatar: {
-    maxWidth: 640,
+    maxWidth: 256,
     quality: 0.88,
   },
   banner: {
-    maxWidth: 1800,
+    maxWidth: 960,
     quality: 0.9,
   },
 };
@@ -137,8 +137,10 @@ export async function prepareBaseProfileMedia(
   file: File,
   kind: ProfileMediaKind,
   transform: PremiumMediaTransform,
+  premium = false,
 ): Promise<File> {
   const decoded = await decodeProfileMedia(file);
+  const canvas = document.createElement('canvas');
 
   try {
     const crop = calculateProfileMediaCropRect(
@@ -154,14 +156,13 @@ export async function prepareBaseProfileMedia(
     // Never upscale a small source. Large phone photos are reduced locally.
     const outputWidth = Math.max(
       1,
-      Math.min(config.maxWidth, Math.round(crop.width)),
+      Math.min(kind === 'avatar' && premium ? 512 : config.maxWidth, Math.round(crop.width)),
     );
     const outputHeight = Math.max(
       1,
       Math.round(outputWidth / aspect),
     );
 
-    const canvas = document.createElement('canvas');
     canvas.width = outputWidth;
     canvas.height = outputHeight;
 
@@ -184,7 +185,7 @@ export async function prepareBaseProfileMedia(
       outputHeight,
     );
 
-    const blob = await new Promise<Blob>((resolve, reject) => {
+    const encode = (type: string, quality: number) => new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(
         (value) => {
           if (!value) {
@@ -193,24 +194,70 @@ export async function prepareBaseProfileMedia(
           }
           resolve(value);
         },
-        'image/webp',
-        config.quality,
+        type,
+        quality,
       );
     });
 
-    if (blob.type !== 'image/webp') {
-      throw new Error('Этот браузер не поддерживает сохранение баннера в WEBP.');
+    let blob = await encode('image/webp', config.quality);
+    let mime = 'image/webp';
+    if (blob.type !== mime) {
+      // Flatten transparency intentionally for the JPEG fallback.
+      context.globalCompositeOperation = 'destination-over';
+      context.fillStyle = '#202028';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      mime = 'image/jpeg';
+      blob = await encode(mime, config.quality);
+    }
+    const budget = kind === 'avatar' ? 200 * 1024 : 300 * 1024;
+    for (const quality of [.76, .64, .52, .4]) {
+      if (blob.size <= budget) break;
+      blob = await encode(mime, quality);
+    }
+    canvas.width = canvas.height = 1;
+    if (blob.type !== mime || blob.size > budget) {
+      throw new Error('Не удалось уменьшить изображение до допустимого размера. Выбери другой кадр.');
     }
 
     return new File(
       [blob],
-      `${kind}-${Date.now()}.webp`,
+      `${kind}-${Date.now()}.${mime === 'image/webp' ? 'webp' : 'jpg'}`,
       {
-        type: 'image/webp',
+        type: mime,
         lastModified: Date.now(),
       },
     );
   } finally {
+    canvas.width = canvas.height = 1;
     decoded.cleanup();
+  }
+}
+
+export const compressImage = prepareBaseProfileMedia;
+
+export async function extractDominantColor(file: File): Promise<string> {
+  const decoded = await decodeProfileMedia(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 32;
+  try {
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) return '#70618c';
+    context.drawImage(decoded.source, 0, 0, 32, 32);
+    const pixels = context.getImageData(0, 0, 32, 32).data;
+    const buckets = new Map<number, { count: number; r: number; g: number; b: number }>();
+    for (let i = 0; i < pixels.length; i += 4) {
+      if (pixels[i + 3] < 128) continue;
+      const [r, g, b] = [pixels[i], pixels[i + 1], pixels[i + 2]];
+      const key = (r >> 4) * 256 + (g >> 4) * 16 + (b >> 4);
+      const bucket = buckets.get(key) ?? { count: 0, r: 0, g: 0, b: 0 };
+      bucket.count++; bucket.r += r; bucket.g += g; bucket.b += b;
+      buckets.set(key, bucket);
+    }
+    const dominant = [...buckets.values()].sort((a, b) => b.count - a.count)[0];
+    return dominant ? '#' + [dominant.r, dominant.g, dominant.b]
+      .map(value => Math.round(value / dominant.count).toString(16).padStart(2, '0')).join('') : '#70618c';
+  } finally {
+    decoded.cleanup();
+    canvas.width = canvas.height = 1;
   }
 }
