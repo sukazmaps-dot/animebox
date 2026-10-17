@@ -117,6 +117,9 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // React state updates after the event. Lock synchronously to prevent a
+  // second click/Ctrl+S from starting duplicate media uploads or profile POST.
+  const savingRef = useRef(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
 
@@ -611,7 +614,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
 
 
   async function saveProfile() {
-    if (!profile || !user || editorBusy || !dirty) return;
+    if (!profile || !user || savingRef.current || editorBusy || !dirty) return;
 
     const cleanUsername = username.trim();
     const cleanBio = bio.trim();
@@ -629,6 +632,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
       return;
     }
 
+    savingRef.current = true;
     setSaving(true);
     const pendingMedia: PendingProfileMediaUpload[] = [];
 
@@ -678,7 +682,8 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
         }, 20_000);
         payload = (await response.json()) as typeof payload;
         if (!response.ok) {
-          if (pendingMedia.length) await discardPrivateProfileMedia(pendingMedia);
+          // One cleanup path in catch, so rejection cannot delete the same
+          // private upload twice or replace the original server error.
           throw new Error(payload.error || 'Не удалось сохранить профиль.');
         }
       }
@@ -763,10 +768,15 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
       setSaved('Профиль и оформление сохранены ✓');
     } catch (requestError) {
       if (pendingMedia.length) {
-        await discardPrivateProfileMedia(pendingMedia);
+        try {
+          await discardPrivateProfileMedia(pendingMedia);
+        } catch (cleanupError) {
+          console.warn('[Profile editor] private upload cleanup failed', cleanupError);
+        }
       }
       setError(requestError instanceof Error ? requestError.message : 'Не удалось сохранить профиль.');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
@@ -1096,7 +1106,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
           <button type="button" className="profile-editor-v18__reset" disabled={editorBusy || (!dirty && !premiumDirty)} onClick={cancelChanges}>
             Сбросить
           </button>
-          <button type="button" data-editor-save disabled={(!dirty && !needsPremiumCTA) || saving || premiumBusy || baseMediaProcessing || Boolean(baseMediaOpening)}
+          <button type="button" data-editor-save disabled={(!dirty && !needsPremiumCTA) || editorBusy}
             onClick={() => needsPremiumCTA ? router.push('/premium#premium-plans') : void saveProfile()}>
             {saving ? 'Сохраняем…' : needsPremiumCTA ? 'Сохранить с Premium' : 'Сохранить'}
           </button>
