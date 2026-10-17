@@ -1345,3 +1345,12 @@
 /* 31.14: the modal inspector heading is owned by its single panel header. */
 .workspace[data-compact='true'] .inspectorHead { display:none; }
 .workspace[data-compact='true'] .inspector {padding:0;background:transparent;border:0;border-radius:0;}
+
+
+.workspace[data-compact='true'] .premiumFrameCard {display:flex;flex-direction:column;align-items:stretch;gap:10px;min-width:0;padding:12px;}
+.workspace[data-compact='true'] .premiumFrameCard > :first-child {align-self:flex-start;}
+.workspace[data-compact='true'] .premiumFrameCard > div {width:100%;min-width:0;}
+.workspace[data-compact='true'] .premiumFrameCard :is(p,strong) {font-size:12px;line-height:1.5;overflow-wrap:normal;}
+.workspace[data-compact='true'] .premiumFrameCard button {width:100%;min-height:40px;font-size:12px;}
+.workspace[data-compact='true'] .frameRule {grid-template-columns:22px minmax(0,1fr);}
+.workspace[data-compact='true'] .frameRule p {min-width:0;}
