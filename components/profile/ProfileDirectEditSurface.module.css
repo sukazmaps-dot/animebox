@@ -1326,3 +1326,18 @@
 .cardStack :is(.inventoryHead span,.lockedFrames > span,.frameError,.inventoryState) { font-size:12px; }
 .cardStack .inventoryHead h4 { font-size:14px; }
 .cardStack :is(.lockedFrames p,.lockedFrames strong,.lockedFrames small,.premiumFrameCard strong,.premiumFrameCard p) { font-size:12px; line-height:1.5; }
+
+/* Compact inspector presentation belongs to the component, not a global patch. */
+.workspace[data-compact='true'] {display:block;min-width:0;padding:0;gap:0;}
+.workspace[data-compact='true'] .cardStack {display:block;min-width:0;width:100%;padding:0;margin:0;}
+.workspace[data-compact='true'] .inspector {position:static;top:auto;max-height:none;overflow:visible;min-width:0;margin:0;padding:12px;border-radius:11px;box-shadow:none;background:var(--ab-ui-raised);border:1px solid var(--ab-ui-border);}
+.workspace[data-compact='true'] .inspectorHead {margin-bottom:12px;}
+.workspace[data-compact='true'] .inspectorHead h3 {font-size:14px;}
+.workspace[data-compact='true'] .field textarea {min-height:92px;}
+.workspace[data-compact='true'] .inventorySection {margin:0;padding:0;border:0;}
+.workspace[data-compact='true'] .inventorySection > summary {display:none;}
+.workspace[data-compact='true'] .inventorySection[open] > .collectionBody {display:grid;}
+.workspace[data-compact='true'] .frameGrid {grid-template-columns:minmax(0,1fr);}
+.workspace[data-compact='true'] .inspectorSection {gap:10px;}
+.workspace[data-compact='true'] .bannerPresetGrid {grid-template-columns:repeat(4,minmax(0,1fr));}
+.workspace[data-compact='true'] .field input {height:42px;}
