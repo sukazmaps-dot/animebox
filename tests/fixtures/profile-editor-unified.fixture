@@ -2,6 +2,7 @@
 import avatarImage from '@/public/ui/animebox-mascot.webp';
 import bannerImage from '@/public/backgrounds/hero-fallback.webp';
 import { StrictMode, useEffect, useState } from 'react';
+import Navigation from '@/components/profile/ProfileEditorNavigation';
 import Surface from '@/components/profile/ProfileDirectEditSurface';
 import Viewport from '@/components/profile/ProfileEditorViewport';
 import Board from '@/components/profile/ProfileEditorShowcasePreview';
@@ -14,7 +15,7 @@ import { observeProfileEditorDock } from '@/lib/profile-editor-dock';
 const image=avatarImage;
 function Harness(){
  const [previewOpen,setPreviewOpen]=useState(false);
- const [tab,setTab]=useState('profile');
+ const [tab,setTab]=useState<'profile'|'style'|'showcase'|'rewards'>('profile');
  const [name,setName]=useState('Имя пользователя');
  const [bio,setBio]=useState('Описание профиля');
  const [color,setColor]=useState('#70618c');
@@ -27,9 +28,7 @@ function Harness(){
   <header className="profile-editor-v13__header"><div className="profile-editor-v31__header-title"><button type="button" aria-label="Закрыть редактор">×</button><h1>Редактор профиля</h1></div><span className="profile-editor-v31__status">Не сохранено</span></header>
   <div className="profile-editor-v31__live-preview"><button type="button" className="profile-editor-v31__expand" onClick={()=>setPreviewOpen(true)}>Развернуть превью</button><Preview full createdAt="2021-02-19T00:00:00Z" username={name} bio={bio} avatarUrl={image} bannerUrl={bannerImage} bannerColor={color} bannerStyle="soft" premiumActive={false} frameKey={frame} onNavigate={navigate}/></div>
   <aside className="profile-editor-v33__board" hidden={tab!=='profile'}><Board data={{layout:[{key:'favorites',position:0,visible:true},{key:'watching',position:1,visible:true}],favorites:Array.from({length:6},(_,i)=>({animeId:i,title:['Евангелион','Фрирен','Ван-Пис'][i%3],slug:null,posterUrl:bannerImage,genres:[],totalEpisodes:12,position:i})),watching:[],ratings:[],genres:[],activity:[],ratingSummary:{count:0,average:null}}} loading={false} error="" onConfigure={()=>setTab('showcase')} onRetry={()=>{}}/></aside>
-  <nav className="profile-editor-v13__tabs profile-editor-v18__rail" aria-label="Разделы">
-   {['profile','style','showcase','rewards'].map(value=><button key={value} data-section={value} onClick={()=>setTab(value)}><span>{{profile:'Профиль',style:'Оформление',showcase:'Витрина',rewards:'Награды'}[value]}</span></button>)}
-  </nav>
+  <Navigation activeTab={tab} onNavigate={setTab}/>
   <fieldset className="profile-editor-v31__settings">
    <div className="profile-editor-v19__direct-tab" hidden={tab!=='profile'}>
     <nav className="profile-editor-v32__anchors" data-profile-anchor-nav aria-label="Настройки профиля">

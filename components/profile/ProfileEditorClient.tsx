@@ -23,7 +23,7 @@ import ProgressionOverview from '@/components/progression/ProgressionOverview';
 import ProfileDirectEditSurface from '@/components/profile/ProfileDirectEditSurface';
 import ProfileEditorLivePreview, { type ProfileEditorSection } from '@/components/profile/ProfileEditorLivePreview';
 import TelegramAccountLinkCard from '@/components/profile/TelegramAccountLinkCard';
-import Icon from '@/components/Icon';
+import ProfileEditorNavigation from '@/components/profile/ProfileEditorNavigation';
 import { notifyAuthChanged } from '@/lib/auth-events';
 import { usernamePolicyError } from '@/lib/auth-identity-policy';
 import { communityRequest } from '@/lib/community-client';
@@ -41,7 +41,6 @@ import { prepareBaseProfileMedia, extractDominantColor } from '@/lib/profile-med
 import { normalizePickedImage } from '@/lib/profile-media-normalize-client';
 import type { ProfileWidgetsData } from '@/types/profile-widgets';
 import {DEFAULT_PREMIUM_STUDIO_SETTINGS,type PremiumMediaTransform,type PremiumStudioSettings} from '@/lib/premium-studio';
-import {themeShareData} from '@/lib/profile-theme-share';
 
 type EditorTab = 'profile' | 'style' | 'showcase' | 'rewards';
 
@@ -578,7 +577,6 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
     ...fieldDirty,
     profile: fieldDirty.profile || fieldDirty.avatar || fieldDirty.banner || fieldDirty.frame,
   };
-  const configuredSections=[!!(username.trim()&&bio.trim()),!!(avatarFile||profile?.avatar_path),!!(bannerFile||profile?.banner_path||bannerColorMode==='manual'),!!selectedFrame,!!premiumDraft && JSON.stringify(themeShareData(premiumDraft))!==JSON.stringify(themeShareData(DEFAULT_PREMIUM_STUDIO_SETTINGS))].filter(Boolean).length;
   // Expired Premium users can edit ordinary fields without repurchasing an unchanged
   // legacy Premium fill. Only a newly selected paid style or recolor needs upsell.
   const bannerFillUpgradeRequired = !premiumActive &&
@@ -905,25 +903,13 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
             onRetry={() => { setShowcaseError(''); setShowcaseReloadKey(value => value + 1); }} />
         </aside>
 
-        <nav className="profile-editor-v13__tabs profile-editor-v18__rail" aria-label="Разделы редактора профиля">
-          {([
-            ['profile','Профиль','user'],
-            ['style','Оформление','crown'],
-            ['showcase','Витрина','image'],
-            ['rewards','Награды','trophy'],
-          ] as const).map(([section,label,icon]) => (
-            <button key={section} data-section={section} data-dirty={sectionDirty[section] || undefined} className={activeTab === section ? 'is-active' : ''}
-              aria-current={activeTab===section?'page':undefined} type="button" onClick={()=>switchTab(section)}>
-              <Icon name={icon} size={17} weight="regular" /><span>{label}</span>
-            </button>
-          ))}
-        </nav>
+        <ProfileEditorNavigation activeTab={activeTab} dirty={sectionDirty} onNavigate={switchTab} />
 
         <fieldset className="profile-editor-v31__settings" disabled={editorBusy}>
         <div className="profile-editor-v31__tools">
-          <span>Настроено {configuredSections} из 5</span>
-          <button type="button" disabled={!editorHistory.canUndo || editorBusy} onClick={editorHistory.undo} title="Отменить изменение (Ctrl+Z)">↶</button>
-          <button type="button" disabled={!editorHistory.canRedo || editorBusy} onClick={editorHistory.redo} title="Вернуть изменение (Ctrl+Shift+Z)">↷</button>
+          <span>История правок</span>
+          <button type="button" disabled={!editorHistory.canUndo || editorBusy} onClick={editorHistory.undo} aria-label="Отменить изменение" title="Отменить изменение (Ctrl+Z)">↶</button>
+          <button type="button" disabled={!editorHistory.canRedo || editorBusy} onClick={editorHistory.redo} aria-label="Вернуть изменение" title="Вернуть изменение (Ctrl+Shift+Z)">↷</button>
           <button type="button" aria-pressed={comparing}
             onPointerDown={event=>{event.currentTarget.setPointerCapture(event.pointerId);setComparing(true);}}
             onPointerUp={()=>setComparing(false)} onPointerCancel={()=>setComparing(false)} onBlur={()=>setComparing(false)}
@@ -1092,14 +1078,17 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
             onOpenPremium={() => switchTab('style')}
           />
 
-          <TelegramAccountLinkCard />
+          <details className="profile-editor-v34__connections">
+            <summary>Привязка Telegram</summary>
+            <TelegramAccountLinkCard />
+          </details>
           </div>
 
         </fieldset>
 
         <div ref={savebarRef} data-visible="true" className={`profile-editor-v13__mobile-save profile-editor-v18__savebar ${dirty ? 'is-dirty' : ''}`} >
           <span className="profile-editor-v18__savebar-copy">
-            <strong>Правки видны в предпросмотре</strong>
+            <strong>{saving ? 'Сохранение…' : dirty ? 'Есть изменения' : 'Всё сохранено'}</strong>
             {resetUndoAvailable && <button type="button" disabled={editorBusy} onClick={()=>{editorHistory.undo();setResetUndoAvailable(false);}}>Вернуть сброшенное</button>}
             {error ? <small className="profile-editor-v31__error" role="alert">{error}</small> : dirty && <small>Изменения ещё не сохранены.</small>}
           </span>

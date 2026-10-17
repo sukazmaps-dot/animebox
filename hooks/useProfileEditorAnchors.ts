@@ -9,7 +9,11 @@ export function useProfileEditorAnchors(enabled: boolean, initialAnchor: Profile
   const [activeAnchor, setActiveAnchor] = useState<ProfileEditorAnchor>(initialAnchor);
   const [request, setRequest] = useState<{ anchor: ProfileEditorAnchor; sequence: number } | null>(null);
   const initialApplied = useRef(false);
+  // A compact form may reach the end before the requested section reaches the header.
+  // Preserve explicit navigation until the user takes over scrolling.
+  const navigationTarget = useRef<ProfileEditorAnchor | null>(initialAnchor === 'name' ? null : initialAnchor);
   const navigateToAnchor = useCallback((anchor: ProfileEditorAnchor) => {
+    navigationTarget.current = anchor;
     setRequest(previous => ({ anchor, sequence: (previous?.sequence ?? 0) + 1 }));
   }, []);
 
@@ -40,11 +44,21 @@ export function useProfileEditorAnchors(enabled: boolean, initialAnchor: Profile
       // A short last card cannot always reach the sticky threshold before the scroll ends.
       const last = ordered.at(-1);
       if (last && root.scrollTop > 0 && root.scrollTop + root.clientHeight >= root.scrollHeight - 2) current = last;
-      if (current) setActiveAnchor(current.dataset.profileAnchor as ProfileEditorAnchor);
+      if (navigationTarget.current) setActiveAnchor(navigationTarget.current);
+      else if (current) setActiveAnchor(current.dataset.profileAnchor as ProfileEditorAnchor);
     };
     const schedule = () => { if (!frame) frame = requestAnimationFrame(measure); };
     const observer = new ResizeObserver(schedule);
     [header, preview, navigation, chips, ...anchors].forEach(node => { if (node) observer.observe(node); });
+    const releaseNavigation = () => { navigationTarget.current = null; schedule(); };
+    const releaseOnKey = (event: KeyboardEvent) => {
+      if ((event.target as HTMLElement)?.closest('input,textarea,[contenteditable="true"]')) return;
+      if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' '].includes(event.key)) releaseNavigation();
+    };
+    root.addEventListener('wheel', releaseNavigation, { passive: true });
+    root.addEventListener('touchmove', releaseNavigation, { passive: true });
+    root.addEventListener('pointerdown', releaseNavigation, { passive: true });
+    root.addEventListener('keydown', releaseOnKey);
     root.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', schedule);
     measure();
@@ -52,6 +66,10 @@ export function useProfileEditorAnchors(enabled: boolean, initialAnchor: Profile
       cancelAnimationFrame(frame);
       observer.disconnect();
       root.removeEventListener('scroll', schedule);
+      root.removeEventListener('wheel', releaseNavigation);
+      root.removeEventListener('touchmove', releaseNavigation);
+      root.removeEventListener('pointerdown', releaseNavigation);
+      root.removeEventListener('keydown', releaseOnKey);
       window.removeEventListener('resize', schedule);
       root.style.removeProperty('--profile-editor-chips-top');
       root.style.removeProperty('--profile-editor-anchor-offset');

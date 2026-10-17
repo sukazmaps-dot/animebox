@@ -24,6 +24,7 @@ const podiumFrame = read('public/brand/frames/league/league-podium.svg');
 const top10Frame = read('public/brand/frames/league/league-top10.svg');
 const deferred = read('components/DeferredAppEnhancements.tsx');
 const editor = read('components/profile/ProfileEditorClient.tsx');
+const editorNavigation = read('components/profile/ProfileEditorNavigation.tsx');
 const directEditor = read('components/profile/ProfileDirectEditSurface.tsx');
 const directEditorCss = read('components/profile/ProfileDirectEditSurface.module.css');
 const editorCss = read('app/profile-editor-v13.css');
@@ -298,7 +299,7 @@ need('Profile Studio icon contract', icon, [
   'const Glyph = icons[name] ?? InfoIcon',
 ]);
 
-if (!editor.includes("['showcase','Витрина','image']") || !editor.includes("['rewards','Награды','trophy']")) {
+if (!editor.includes('<ProfileEditorNavigation') || !editorNavigation.includes("['showcase', 'Витрина']") || !editorNavigation.includes("['rewards', 'Награды']")) {
   failures.push('Profile Studio missing accessible Showcase/Rewards entry in the editor');
 }
 if (!editor.includes("action: 'select_frame'") || !editor.includes('frameDirty')) {

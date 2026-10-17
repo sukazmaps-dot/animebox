@@ -21,6 +21,8 @@ const root=process.cwd();
   requests=0;await page.setViewportSize({width,height:1000});await page.goto('http://editor-fixture.test/');await page.waitForSelector('#profile-editor-banner');await page.evaluate(theme=>document.documentElement.dataset.animeboxTheme=theme,theme);await page.waitForTimeout(150);
   assert.equal(await page.locator('[data-profile-anchor]').count(),4);assert.equal(requests,1,'one StrictMode frame request');
   assert.equal(await page.evaluate(()=>document.activeElement.tagName),'BODY','no autofocus');
+  assert.equal(await page.locator('[data-section=style]').isVisible(),false,'secondary destinations start collapsed');
+  assert.equal(await page.getByRole('button',{name:'Лаванда',exact:true}).isVisible(),false,'palette starts collapsed');
   assert(await page.evaluate(()=>document.querySelector('.profile-editor-v13').scrollWidth<=innerWidth+1),'overflow '+width);
   assert(await page.locator('[data-profile-anchor] button').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).every(n=>{const r=n.getBoundingClientRect();return r.width>=43.9&&r.height>=43.9;})),'44px card touch targets '+width);
   if(process.env.PROFILE_EDITOR_SCREENSHOT&&[390,1440].includes(width))await page.screenshot({path:process.env.PROFILE_EDITOR_SCREENSHOT.replace('.png','-'+theme+'-'+width+'.png')});
@@ -39,12 +41,21 @@ const root=process.cwd();
   await page.getByRole('button',{name:'Настроить баннер',exact:true}).click();await page.waitForTimeout(700);assert.equal(await page.locator('[data-profile-anchor-nav] [aria-current]').getAttribute('data-profile-anchor-link'),'banner');
   if(width===1440){await page.locator('#profile-editor-name input').fill('А'.repeat(24));await page.locator('#profile-editor-name textarea').fill('Длинноеслово'.repeat(30).slice(0,300));assert(await page.evaluate(()=>document.querySelector('.profile-editor-v13').scrollWidth<=innerWidth+1),'long draft overflows workspace');}
   if(width===390){await page.locator('.profile-editor-v31__expand').click();await page.waitForSelector('dialog[open]');assert(await page.locator('dialog [data-full=true]').count());assert(await page.locator('dialog [aria-label="Предпросмотр витрины"]').count());await page.getByRole('button',{name:'Закрыть',exact:true}).click();await page.waitForSelector('dialog',{state:'detached'});}
-  await page.locator('[data-section=style]').click();await page.locator('[data-section=profile]').click();await page.waitForTimeout(100);assert.equal(requests,1,'tab switch remounts frames');
+  const draftName=await page.locator('#profile-editor-name input').inputValue();
+  await page.locator('.profile-editor-v34__more > summary').click();
+  await page.locator('.profile-editor-v34__more > summary').press('Escape');
+  assert.equal(await page.locator('[data-section=style]').isVisible(),false,'Escape closes secondary navigation');
+  await page.locator('.profile-editor-v34__more > summary').click();await page.locator('[data-section=style]').click();await page.locator('[data-section=profile]').click();await page.waitForTimeout(100);assert.equal(requests,1,'tab switch remounts frames');
+  assert.equal(await page.locator('#profile-editor-name input').inputValue(),draftName,'navigation retains draft');
+  await page.getByText('Палитра и эффекты',{exact:true}).click();
+  assert.equal(await page.locator('[aria-label="Цвета баннера"] button').count(),12,'all presets remain available');
+  await page.getByRole('button',{name:'Сакура',exact:true}).click();
+  assert(await page.getByRole('button',{name:/Свой цвет/}).innerText().then(t=>t.includes('#DB91AE')),'preset updates current color');
   console.log('PASS actual cards/anchors/preview/StrictMode/one fetch '+theme+' '+width);
  }
  await page.setViewportSize({width:900,height:450});await page.goto('http://editor-fixture.test/');await page.waitForTimeout(150);
  assert.equal(await page.locator('.profile-editor-v31__live-preview').evaluate(n=>getComputedStyle(n).position),'static','short viewport traps tall sticky preview');
- await page.locator('#profile-editor-banner button').last().scrollIntoViewIfNeeded();
+ await page.getByText('Палитра и эффекты',{exact:true}).click();await page.locator('#profile-editor-banner button').last().scrollIntoViewIfNeeded();
  const last=await page.locator('#profile-editor-banner button').last().boundingBox(),dock=await page.locator('.profile-editor-v18__savebar').boundingBox();assert(last.y+last.height<=dock.y+1,'short viewport dock hides final control');
  for(const anchor of ['avatar','banner','frame']){
   await page.emulateMedia({reducedMotion:'reduce'});await page.goto('http://editor-fixture.test/?tab='+anchor);await page.waitForTimeout(180);
