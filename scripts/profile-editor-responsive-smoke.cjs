@@ -76,7 +76,10 @@ function fixture(dirty,panelOpen){
   else assert.equal(g.boardDisplay,'none',label+' folded mobile showcase');
   if(panelOpen){assert(g.pop.left>=g.shell.left-1&&g.pop.right<=g.shell.right+1,label+' inspector horizontal bounds');
     if(dirty)assert(g.pop.bottom<=g.bar.top+2,label+' savebar obscures inspector');}
-  if(dirty)assert(g.bar.bottom<=g.shell.bottom+1,label+' savebar outside modal');
+  if(dirty){
+    assert(g.bar.bottom<=g.shell.bottom+1,label+' savebar outside modal');
+    assert(g.bar.left>=g.shell.left-1&&g.bar.right<=g.shell.right+1,label+' savebar shifted outside shell horizontally');
+  }
   count++;
  }
  await page.setViewportSize({width:390,height:900});await page.setContent(fixture(true,true));
