@@ -8,12 +8,12 @@ const titles: Record<ProfileWidgetKey, string> = {
 };
 type Props = {
   data: ProfileWidgetsData | null; loading: boolean; error: string;
-  onConfigure: () => void; onRetry: () => void;
+  onConfigure: () => void; onRetry: () => void; expanded?: boolean;
 };
-export default function ProfileEditorShowcasePreview({ data, loading, error, onConfigure, onRetry }: Props) {
+export default function ProfileEditorShowcasePreview({ data, loading, error, onConfigure, onRetry, expanded = false }: Props) {
   const visible = [...(data?.layout ?? [])].filter(item => item.visible).sort((a, b) => a.position - b.position);
   return (
-    <section className={styles.board} aria-label="Предпросмотр витрины">
+    <section className={styles.board} data-expanded={expanded ? "true" : "false"} aria-label="Предпросмотр витрины">
       <header className={styles.header}><h2>Доска профиля</h2><button type="button" onClick={onConfigure}>Настроить</button></header>
       {loading ? <p role="status">Загружаем витрину…</p> : error ? (
         <div className={styles.empty} role="alert"><p>{error}</p><button type="button" onClick={onRetry}>Повторить</button></div>
