@@ -20,12 +20,17 @@ export async function fetchWithRetry(
   attempts = 3,
   baseDelayMs = 400,
 ): Promise<Response> {
+  // One deadline for the whole retry chain, including backoff. Preserve callers'
+  // tighter signals; previously callers without a signal could wait indefinitely.
+  const signal = init?.signal ?? AbortSignal.timeout(8_000);
+  init = { ...init, signal };
   let lastError: unknown;
   const maxAttempts = Math.min(3, Math.max(1, Math.round(attempts)));
   const retryBaseDelayMs = Math.min(1_500, Math.max(50, Math.round(baseDelayMs)));
   const upstream = upstreamKeyForUrl(input);
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    signal.throwIfAborted();
     try {
       const response = upstream
         ? await runWithUpstreamBudget(
@@ -50,11 +55,13 @@ export async function fetchWithRetry(
         return response;
       }
 
+      await response.body?.cancel().catch(() => undefined);
       lastError = new Error(`HTTP ${response.status}`);
     } catch (error) {
       if (
         isUpstreamPressureError(error) ||
-        (error instanceof Error && error.name === 'AbortError')
+        signal.aborted ||
+        (error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError'))
       ) {
         throw error;
       }
@@ -66,8 +73,14 @@ export async function fetchWithRetry(
       }
     }
 
-    await new Promise((resolve) => {
-      setTimeout(resolve, retryBaseDelayMs * 2 ** attempt);
+    await new Promise<void>((resolve, reject) => {
+      const abort = () => { clearTimeout(timer); reject(signal.reason); };
+      const timer = setTimeout(() => {
+        signal.removeEventListener('abort', abort);
+        resolve();
+      }, retryBaseDelayMs * 2 ** attempt);
+      signal.addEventListener('abort', abort, { once: true });
+      if (signal.aborted) abort();
     });
   }
 

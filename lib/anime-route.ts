@@ -1,4 +1,6 @@
 import { cache } from 'react';
+import { createPublicResultCache } from '@/lib/public-result-cache';
+import type { Anime } from '@/types/anime';
 import { unstable_cache } from 'next/cache';
 import { getAnimeById as getAniListAnimeById } from '@/lib/anilist';
 import {
@@ -15,7 +17,7 @@ import { findPersistentAnimeRoute } from '@/lib/persistent-anime-route';
 import { getSeoAnimeDetailFallback } from '@/lib/seo-anime-index-server';
 import { scheduleAniListMetadataPersist, enrichSavedAnimeMetadata } from '@/lib/anime-public-metadata-server';
 
-const getCachedAnimeBase = unstable_cache(
+const getPersistedAnimeBase = unstable_cache(
   async (id: number) =>
     getAniListAnimeById(id, {
       throwOnError: true,
@@ -26,6 +28,15 @@ const getCachedAnimeBase = unstable_cache(
     tags: ['anime-detail-base'],
   },
 );
+
+// Next's persistent cache and React cache do not guarantee cross-request single-flight.
+// Keep only authoritative successful AniList results; never cache a missing title.
+const animeBaseCache = createPublicResultCache<Anime | null>({
+  ttlMs: 30 * 60_000, staleIfErrorMs: 6 * 60 * 60_000,
+  maxEntries: 1_000, cacheWhen: value => Boolean(value),
+});
+const getCachedAnimeBase = (id: number) =>
+  animeBaseCache(String(id), () => getPersistedAnimeBase(id));
 
 export const resolveAnimeRoute = cache(async (slug: string) => {
   const localId = /^\d+$/.test(slug)

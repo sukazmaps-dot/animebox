@@ -11,6 +11,7 @@ function compile(file, imports = {}) {
 const originalFetch = global.fetch;
 const originalError = console.error;
 const { GET } = compile('app/api/image/route.ts', {
+  '@/lib/public-result-cache': compile('lib/public-result-cache.ts'),
   'next/server': { NextResponse: Response }, '@/lib/api-rate-limit': { enforceIpRateLimit: async () => null },
   '@/lib/edge-cache-policy': compile('lib/edge-cache-policy.ts'),
 });
@@ -31,14 +32,14 @@ async function main() {
   for (const value of [source, encodeURIComponent(source), encodeURIComponent(encodeURIComponent(source))]) {
     assert.equal((await GET(request(value))).status, 200);
   }
-  assert.equal(calls, 3);
+  assert.equal(calls, 1);
   for (const value of ['https://127.0.0.1/a.png', 'https://localhost/a.png', 'https://shikimori.io.evil.test/a.png',
     'https://user:password@shikimori.io/a.png', 'https://shikimori.io:8443/a.png', 'http://shikimori.io/a.png']) {
     assert.equal((await GET(request(value))).status, 403);
   }
-  assert.equal(calls, 3, 'forbidden inputs cannot cause upstream traffic');
+  assert.equal(calls, 1, 'forbidden inputs cannot cause upstream traffic');
   const placeholder = async () => {
-    const response = await GET(request(source));
+    const response = await GET(request(source + "&failure=" + (++calls)));
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('content-type'), 'image/svg+xml');
     assert.match(response.headers.get('cache-control'), /max-age=15/);
@@ -47,7 +48,7 @@ async function main() {
   for (const status of [403, 404, 500]) {
     global.fetch = async () => new Response('blocked', { status });
     await placeholder();
-    const strictRequest = request(source);
+    const strictRequest = request(source + "&strict=" + status);
     strictRequest.nextUrl.searchParams.set('fallback', 'error');
     const failed = await GET(strictRequest);
     assert.equal(failed.status, 502, 'candidate failure must fire img.onerror');
