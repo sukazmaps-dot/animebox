@@ -174,3 +174,17 @@
  :global(.profile-editor-v13[data-editor-layout='modal']) .preview[data-full=true]:not(.expanded) .name {font-size:18px;min-height:0;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;}
  :global(.profile-editor-v13[data-editor-layout='modal']) .preview[data-full=true]:not(.expanded) .details {display:none;}
 }
+
+
+/* Framed avatar extends beyond the photo aperture; only the banner is clipped. */
+.preview {overflow:visible;}
+.banner {border-radius:17px 17px 0 0;overflow:clip;}
+.avatar {--av:80px;--frame-overflow:calc(var(--av) * .11);overflow:visible;box-shadow:none;}
+.avatar[data-has-frame='true'] {padding:0;border:0;border-radius:0;background:transparent;}
+.avatarImage {display:block;width:100%;height:100%;border-radius:50%;overflow:hidden;}
+.avatarImage img {display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.avatarFrame {position:absolute;inset:calc(var(--frame-overflow) * -1);width:auto;height:auto;pointer-events:none;overflow:visible;}
+.avatar[data-has-frame='true'] .avatarImage {box-shadow:none;border:0;}
+.preview.expanded .avatar {--av:96px;}
+:global(.profile-editor-v13[data-editor-layout='modal']) .preview[data-full=true]:not(.expanded) .avatar {--av:90px;}
+@media(max-width:430px){:global(.profile-editor-v13[data-editor-layout='modal']) .preview[data-full=true]:not(.expanded) .avatar {--av:74px;}}
