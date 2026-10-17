@@ -5,7 +5,7 @@ import { unstable_cache } from 'next/cache';
 import { getAnimesWithShikimori } from '@/lib/combined-anime';
 import type { GetAnimesOptions } from '@/lib/anilist';
 import { findAnimeGenre } from '@/lib/anime-taxonomy';
-import { enforceIpRateLimit } from '@/lib/api-rate-limit';
+import { enforcePublicIpRateLimit } from '@/lib/public-api-rate-limit';
 import {
   filterAnimeByAvailability,
   refreshCatalogAvailabilityBatch,
@@ -376,7 +376,7 @@ async function loadCandidatePage(input: {
  * and the first bootstrap request keep working during rollout.
  */
 async function observedGET(request: NextRequest) {
-  const limited = await enforceIpRateLimit(request, {
+  const limited = enforcePublicIpRateLimit(request, {
     scope: 'recommendations_ip',
     limit: 120,
     windowSeconds: 60,
