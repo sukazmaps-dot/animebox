@@ -49,7 +49,7 @@ AnimeEpisodePage
 
 ### 3.1. `components/AnimePlayer.tsx`
 
-Добавить класс `animebox-player-root` **существующей** внешней обёртке:
+Добавить класс `animebox-player-root` **существующей** внешней обёртке и атрибут `data-player-theater={theaterMode ? 'true' : undefined}`, чтобы условный z-index никогда не переопределял существующий theater root:
 
 ```tsx
 className={`animebox-player-root relative isolate w-full ${watchTogetherMode ? 'watch-together-player-root min-h-0' : ''} ${theaterMode ? 'z-[10001]' : ''}`}
@@ -63,14 +63,14 @@ className={`animebox-player-root relative isolate w-full ${watchTogetherMode ? '
 
 ```css
 .page:global(.episode-page)
-  :global(.animebox-player-root):has(
+  :global(.animebox-player-root):not([data-player-theater='true']):has(
     :global(.premium-player-dropdown-trigger[aria-expanded='true'])
   ) {
   z-index: 30;
 }
 ```
 
-Никаких `!important`, новых глобальных селекторов или CSS-файлов. Не удалять `isolate` (изоляция требуется остальным слоям плеера). Не изменять общий `z-index` navigation и portal/modal. Существующие внутренние правила `z-index: 20/2/3` из 31.10 остаются — это отдельная иерархия **внутри** поднимаемого корня. Условие `:has` снимается автоматически при `aria-expanded=false`.
+Никаких `!important`, новых глобальных селекторов или CSS-файлов. В режиме кинотеатра у корня уже есть `z-[10001]`; исключение `:not([data-player-theater='true'])` предотвращает его понижение до `30` при раскрытом меню. Не удалять `isolate` (изоляция требуется остальным слоям плеера). Не изменять общий `z-index` navigation и portal/modal. Существующие внутренние правила `z-index: 20/2/3` из 31.10 остаются — это отдельная иерархия **внутри** поднимаемого корня. Условие `:has` снимается автоматически при `aria-expanded=false`.
 
 ### 3.3. Почему не portal сейчас
 
@@ -88,6 +88,7 @@ Portal/Floating UI может в будущем устранить целый к
 - Внешний root реально обладает `isolation:isolate`.
 - Для ширин desktop/tablet меню позиционируется с геометрическим пересечением навигации, после чего в точке пересечения `document.elementFromPoint(x,y)` должен попадать **внутрь меню**, а не навигации.
 - Негативный контроль ставит `root.style.zIndex='auto'` на открытом меню, имитируя старый production; в той же точке должен побеждать `EpisodeQuickSelector`. Негативный контроль обязателен, чтобы тест **действительно ловил** дефект.
+- При искусственно включённом `data-player-theater=true` и существующем CSS-классе `z-[10001]` корень сохраняет computed z-index `10001`, даже если меню раскрыто.
 - После снятия `aria-expanded` computed z-index возвращается к `auto` (без ожидания таймеров).
 - Все существующие проверки аватарки, fullscreen 44×44, отсутствия overflow, одной навигации по сериям и мобильной компоновки остаются.
 - Проверка выполняется на ширинах **360, 390, 430, 740, 844, 960, 1100, 1440, 1920 px**, с двумя zoom-значениями аватара. Desktop/tab сценарии проверяют pointer hit; телефоны — условное поднятие и восстановление корня (на реальных телефонах используется также native `select`).
