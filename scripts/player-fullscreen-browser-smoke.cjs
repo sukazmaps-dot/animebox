@@ -83,6 +83,19 @@ const read = p => fs.readFileSync(p, 'utf8');
         });
         assert(Math.abs(full.x)<1&&Math.abs(full.y)<1&&Math.abs(full.w-full.vw)<1&&Math.abs(full.h-full.vh)<1,`fills viewport ${width}/${fallback}: ${JSON.stringify(full)}`);
         assert.equal(full.hidden,'hidden');assert.equal(await page.locator('#internal-hidden').evaluate(n=>getComputedStyle(n).visibility),'hidden');assert.equal(full.bodyOverflow,'hidden');assert(full.frameSame);assert.equal(full.loads,0);assert(full.buttonVisible);assert(full.buttonTop>=68);
+        if(width===1920&&!fallback){
+          // A viewer must see the video without a persistent top-right X.
+          // Only mouse/keyboard-capable clients auto-hide; touch retains exit.
+          await page.mouse.move(22,Math.min(250,full.h/2));
+          await page.locator('[data-player-action=fullscreen]').evaluate(b=>b.blur());
+          await page.waitForTimeout(2850);
+          const idle=await page.locator('[data-player-action=fullscreen]').evaluate(b=>({opacity:Number(getComputedStyle(b).opacity),display:getComputedStyle(b).display,rect:b.getBoundingClientRect().toJSON()}));
+          assert(idle.opacity<0.02&&idle.display!=='none','fullscreen X must fade after inactivity '+JSON.stringify(idle));
+          await page.locator('[data-player-action=fullscreen]').hover({force:true});
+          await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('[data-player-action=fullscreen]')).opacity)>0.99);
+          const restored=await page.evaluate(()=>({same:window.originalFrame===document.querySelector('#media'),loads:window.frameLoads}));
+          assert(restored.same&&restored.loads===0,'hover reveal must not reload iframe');
+        }
         if(fallback)await page.evaluate(()=>history.back());else await page.locator('[data-player-action=fullscreen]').click();
         await page.waitForFunction(()=>!document.documentElement.classList.contains('animebox-player-telegram-fullscreen'));
         await page.waitForTimeout(30);
@@ -140,6 +153,6 @@ const read = p => fs.readFileSync(p, 'utf8');
       assert.deepEqual(errors,[]);
       await page.close();
     }
-    console.log(`PASS ${cases} fullscreen geometry/identity cases: 320–1920px, API 6.0/7.6/7.7/8.0, SDK failure/owned-state preservation, rotation, transformed ancestor, top-layer and old-WebView fallback, safe area, browser/Telegram Back and cleanup.`);
+    console.log(`PASS ${cases} fullscreen geometry/identity cases: 320–1920px, desktop idle exit fade/hover reveal, API 6.0/7.6/7.7/8.0, SDK failure/owned-state preservation, rotation, transformed ancestor, top-layer and old-WebView fallback, safe area, browser/Telegram Back and cleanup.`);
   } finally { await browser.close(); }
 })().catch(e=>{console.error(e);process.exit(1)});
