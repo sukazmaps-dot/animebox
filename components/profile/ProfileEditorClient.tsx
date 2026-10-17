@@ -999,7 +999,8 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
               <span>ТВОЙ ПРОФИЛЬ</span>
               <div className="profile-editor-v40__stage-actions"><button type="button" className="profile-editor-v40__collapse" aria-expanded={!previewCollapsed} onClick={() => setPreviewCollapsed(v=>!v)}>{previewCollapsed ? "Показать" : "Свернуть"}</button><button type="button" onClick={() => setPreviewOpen(true)}>Развернуть ↗</button></div>
             </div>
-            <ProfileEditorLivePreview full createdAt={profile.created_at} appearance={comparing ? premiumSettings : premiumDraft ?? premiumSettings}
+            <div className={expandedStyles.stageSegments}>{previewSegments('Вид живого предпросмотра')}</div>
+            {previewContext === 'profile' ? <ProfileEditorLivePreview full createdAt={profile.created_at} appearance={comparing ? premiumSettings : premiumDraft ?? premiumSettings}
             username={comparing ? profile.username ?? '' : username} bio={comparing ? profile.bio ?? '' : bio} avatarUrl={comparing ? displayedAvatar : resolvedAvatarPreview}
             bannerUrl={comparing ? displayedBanner : resolvedBannerPreview} bannerColor={comparing ? profile.banner_color ?? '#70618c' : bannerColor}
             bannerStyle={comparing ? normalizeBannerStyle(profile.banner_style) : bannerStyle} premiumActive={premiumActive}
@@ -1042,7 +1043,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
               onSettingsCommitted={(settings) => {
                 setPremiumSettings(settings);
                 setPremiumDirty(false);
-              }}            />
+              }}            /> : <div className={expandedStyles.sceneInStage}>{scene(previewContext)}</div>}
               </div>
               {activeTab === 'rewards' && <div className="profile-editor-v18__rewards-tab">
                 <ProgressionOverview /><ProfileRewardsPanel />
