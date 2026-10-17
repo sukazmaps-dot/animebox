@@ -1008,7 +1008,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
             onUsernameChange={value => {setUsername(value);setSaved('');}}
             onBioChange={value => {setBio(value);setSaved('');}}
             previewPremiumFill={bannerFillUpgradeRequired}
-          />
+          /> : <div className={expandedStyles.sceneInStage}>{scene(previewContext)}</div>}
             <p className="profile-editor-v40__hint">Нажми на имя, аватар или баннер, чтобы изменить их.</p>
           </section>
           <aside className="profile-editor-v40__board" aria-label="Витрина профиля">
@@ -1043,7 +1043,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
               onSettingsCommitted={(settings) => {
                 setPremiumSettings(settings);
                 setPremiumDirty(false);
-              }}            /> : <div className={expandedStyles.sceneInStage}>{scene(previewContext)}</div>}
+              }}            />
               </div>
               {activeTab === 'rewards' && <div className="profile-editor-v18__rewards-tab">
                 <ProgressionOverview /><ProfileRewardsPanel />
