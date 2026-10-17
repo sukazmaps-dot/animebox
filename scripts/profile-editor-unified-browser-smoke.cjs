@@ -19,23 +19,23 @@ const root=process.cwd();
   return route.fulfill({contentType:'text/html',body:html});
  });
  let checks=0;
- for(const theme of ['dark','light'])for(const width of [320,390,560,768,900,1180,1440,1920]){
+ for(const theme of ['dark','light'])for(const width of [320,390,560,768,900,1024,1180,1366,1680,1920]){
   requests=0;await page.setViewportSize({width,height:900});
   await page.goto('http://editor-fixture.test/');
   await page.waitForSelector('.profile-editor-v40__stage');
   await page.evaluate(theme=>document.documentElement.dataset.animeboxTheme=theme,theme);
   await page.waitForTimeout(70);
-  assert.equal(await page.locator('.profile-editor-v40__tiles button').count(),7,'seven compact sidebar tiles');
+  assert.equal(await page.locator('.profile-editor-v40__tiles button').count(),8,'eight compact sidebar tiles');
   assert.equal(await page.locator('.profile-editor-v40__savebar').count(),0,'clean editor must not show savebar');
   assert.equal(await page.locator('.profile-editor-v40__popover').isVisible(),false,'no inspector on fresh load');
   assert.equal(await page.locator('[aria-label="Живой предпросмотр профиля"]').isVisible(),true,'shared live card visible');
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'document overflow '+width);
-  if(width>=900){
-   const geometry=await page.evaluate(()=>['.profile-editor-v40__tiles','.profile-editor-v40__stage','.profile-editor-v40__board'].map(selector=>{
+  if(width>=1280){
+   const geometry=await page.evaluate(()=>['.profile-editor-v40__tiles','.profile-editor-v40__popover','.profile-editor-v40__stage','.profile-editor-v40__board'].map(selector=>{
     const r=document.querySelector(selector).getBoundingClientRect();return {left:r.left,right:r.right};}));
-   assert(geometry[0].right<=geometry[1].left+2&&geometry[1].right<=geometry[2].left+2,'three-column modal geometry '+width);
-  }else assert.equal(await page.locator('.profile-editor-v40__board').isVisible(),false,'mobile board folded');
-  if(process.env.PROFILE_EDITOR_SCREENSHOT&&[390,1440].includes(width)){
+   assert(geometry[0].right<=geometry[1].left+2&&geometry[1].right<=geometry[2].left+2&&geometry[2].right<=geometry[3].left+2,'four-track modal geometry '+width);
+  }else assert.equal(await page.locator('.profile-editor-v40__board').isVisible(),false,'showcase moves to rail below 1280');
+  if(process.env.PROFILE_EDITOR_SCREENSHOT&&[390,1024,1366,1680,1920].includes(width)){
    await page.screenshot({path:process.env.PROFILE_EDITOR_SCREENSHOT.replace('.png','-'+theme+'-'+width+'.png')});
   }
   await page.getByRole('button',{name:'Имя',exact:true}).click();
@@ -58,7 +58,8 @@ const root=process.cwd();
   assert.equal(await page.locator('#profile-editor-frame').evaluate(n=>n.open),true,'frame inventory expanded');
   await page.getByRole('button',{name:'Имя',exact:true}).click();
   assert.equal(await page.locator('#profile-editor-name input').inputValue(),'Персональный профиль','tile switches retain draft');
-  await page.getByRole('button',{name:'Закрыть настройки'}).click();
+  if(width<1100)await page.getByRole('button',{name:'Закрыть настройки'}).click();
+  else await page.getByRole('button',{name:'Имя',exact:true}).click();
   assert.equal(await page.locator('.profile-editor-v40__popover').isVisible(),false,'popover closes without resetting draft');
   await page.locator('[data-editor-save]').click();
   assert.equal(await page.locator('.profile-editor-v40__savebar').count(),0,'savebar disappears after successful save');
