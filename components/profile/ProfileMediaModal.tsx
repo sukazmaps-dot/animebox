@@ -4,8 +4,8 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 /** Native top layer keeps crop actions above fixed navigation and save docks. */
-export default function ProfileMediaModal({children, onClose, busy, labelledBy}: {
-  children: ReactNode; onClose: () => void; busy: boolean; labelledBy: string;
+export default function ProfileMediaModal({children, onClose, busy, labelledBy, className = ''}: {
+  children: ReactNode; onClose: () => void; busy: boolean; labelledBy: string; className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -33,7 +33,7 @@ export default function ProfileMediaModal({children, onClose, busy, labelledBy}:
     };
   }, []);
   return createPortal(
-    <dialog ref={ref} className="premium-media-editor-modal" aria-labelledby={labelledBy}
+    <dialog ref={ref} className={`premium-media-editor-modal ${className}`} aria-labelledby={labelledBy}
       onCancel={event => {event.preventDefault(); if (!busy) onClose();}}
       onClick={event => {if (event.target === event.currentTarget && !busy) onClose();}}>
       {children}
