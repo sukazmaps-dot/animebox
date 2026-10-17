@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPublicResultCache } from '@/lib/public-result-cache';
-import { enforceIpRateLimit } from '@/lib/api-rate-limit';
+import { enforcePublicIpRateLimit } from '@/lib/public-api-rate-limit';
 import { privateNoStoreHeaders, publicApiCacheHeaders } from '@/lib/edge-cache-policy';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -307,7 +307,7 @@ async function loadBufferedImage(sourceUrl: URL): Promise<BufferedImage> {
 export async function GET(
   request: NextRequest,
 ) {
-  const limited = await enforceIpRateLimit(request, {
+  const limited = enforcePublicIpRateLimit(request, {
     scope: 'image_proxy_ip', limit: 600, windowSeconds: 60,
   });
   if (limited) {

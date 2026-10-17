@@ -12,7 +12,7 @@ const originalFetch = global.fetch;
 const originalError = console.error;
 const { GET } = compile('app/api/image/route.ts', {
   '@/lib/public-result-cache': compile('lib/public-result-cache.ts'),
-  'next/server': { NextResponse: Response }, '@/lib/api-rate-limit': { enforceIpRateLimit: async () => null },
+  'next/server': { NextResponse: Response }, '@/lib/public-api-rate-limit': { enforcePublicIpRateLimit: () => null },
   '@/lib/edge-cache-policy': compile('lib/edge-cache-policy.ts'),
 });
 const source = 'https://shikimori.io/system/animes/preview/18.jpg?token=a%2Fb&v=1';

@@ -126,7 +126,7 @@ async function images() {
     'next/server': { NextResponse: Response },
     '@/lib/public-result-cache': publicCache,
     '@/lib/edge-cache-policy': load('lib/edge-cache-policy.ts'),
-    '@/lib/api-rate-limit': { enforceIpRateLimit: async () => { guards++; return null; } },
+    '@/lib/public-api-rate-limit': { enforcePublicIpRateLimit: () => { guards++; return null; } },
   });
   const req = name => ({ nextUrl: new URL('https://example.test/api/image?url=https://s4.anilist.co/' + name) });
   try {
