@@ -103,7 +103,11 @@ export async function getSavedCatalogPage(options: GetAnimesOptions) {
   if (error) {
     // Only schema rollout errors qualify. An outage/invalid server key must
     // remain an actual failure instead of causing extra database traffic.
-    if (!/PGRST20[045]|42P01|42703/.test(error.code ?? '') && !/schema cache|does not exist|could not find/i.test(error.message)) {
+    // PGRST002 means PostgREST CANNOT CONNECT to DB to load its schema.
+    // It must not be mistaken for a missing table and trigger extra SQL reads.
+    const isSchemaRollout = /^(?:PGRST20[045]|42P01|42703)$/.test(error.code ?? '')
+      || /could not find .+ in the schema cache|relation .+ does not exist|column .+ does not exist/i.test(error.message ?? '');
+    if (!isSchemaRollout) {
       savedCatalogCircuit.recordFailure();
       throw new Error('Saved catalog unavailable');
     }
