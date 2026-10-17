@@ -22,6 +22,8 @@ export type PublicRateLimitPolicy = {
 type Bucket = { count: number; resetAt: number };
 const MAX_BUCKETS = 4096;
 const buckets = new Map<string, Bucket>();
+// On a unique-IP flood, do not scan the full 4096-entry map per request.
+let nextExpirySweepAt = 0;
 // This secret never leaves the process; raw IPs are not stored or logged.
 const processSalt = randomBytes(32);
 
@@ -81,9 +83,13 @@ export function enforcePublicIpRateLimit(
 
   if (bucket) buckets.delete(key);
   if (buckets.size >= MAX_BUCKETS) {
-    pruneExpired(now);
+    // Under saturation, cost is O(1) per rejected request. Expired buckets
+    // are swept at most once each second, never on every attacker identity.
+    if (now >= nextExpirySweepAt) {
+      nextExpirySweepAt = now + 1_000;
+      pruneExpired(now);
+    }
     // Never evict an active bucket just to admit arbitrary new identities.
-    // This prevents unlimited allocation during scans with many source IPs.
     if (buckets.size >= MAX_BUCKETS) return limitedResponse(policy.windowSeconds);
   }
 
