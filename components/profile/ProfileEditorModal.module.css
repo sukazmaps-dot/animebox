@@ -132,7 +132,7 @@
 .modal :global(.profile-editor-v40__error),
 .modal :global(.profile-editor-v40__recovery) {position:absolute;z-index:12;top:62px;left:84px;right:12px;padding:12px;margin:0;background:var(--editor-surface);border:1px solid var(--editor-border);border-radius:10px;}
 .modal :global(.profile-editor-v40__savebar) {
-  position:absolute;z-index:35;bottom:max(12px,env(safe-area-inset-bottom));left:50%;right:auto;
+  position:absolute;grid-column:auto;grid-row:auto;grid-area:auto;z-index:35;bottom:max(12px,env(safe-area-inset-bottom));left:50%;right:auto;
   transform:translateX(-50%);display:flex;align-items:center;justify-content:flex-end;
   gap:10px;width:min(570px,calc(100% - 28px));min-height:62px;margin:0;padding:9px 12px;
   border:1px solid color-mix(in srgb,var(--ab-ui-accent) 35%,transparent);
