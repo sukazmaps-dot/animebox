@@ -31,6 +31,22 @@ export class ProfileDraftHistory {
   undo() {if(this.canUndo)this.index--;return this.values[this.index];}
   redo() {if(this.canRedo)this.index++;return this.values[this.index];}
 }
+// Serialize persistence for each user. IndexedDB transactions opened in
+// different calls may finish out of order; a successful Save must never be
+// followed by an older queued write recreating an unsaved draft. Different
+// accounts keep separate queues so one account cannot block another.
+const persistenceQueues = new Map<string, Promise<void>>();
+export function runProfileDraftOperation<T>(userId: string, operation: () => Promise<T>): Promise<T> {
+  const previous = persistenceQueues.get(userId) ?? Promise.resolve();
+  const next = previous.then(operation, operation);
+  const settled = next.then(() => {}, () => {});
+  persistenceQueues.set(userId, settled);
+  void settled.then(() => {
+    if (persistenceQueues.get(userId) === settled) persistenceQueues.delete(userId);
+  });
+  return next;
+}
+
 const DB_NAME='animebox-profile-drafts-v1';
 export const DRAFT_TTL=7*24*60*60*1000;
 export type StoredProfileDraft={version:1;userId:string;updatedAt:number;draft:ProfileEditorDraft};
