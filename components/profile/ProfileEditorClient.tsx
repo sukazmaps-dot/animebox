@@ -365,6 +365,13 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
     };
   }, []);
 
+  // Mounted modal owns the viewport: avoid an independent document scrollbar.
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, []);
+
   function leaveEditor() {
     if (dirty && !window.confirm('Есть несохранённые изменения. Выйти без сохранения?')) return;
     router.push('/profile');
