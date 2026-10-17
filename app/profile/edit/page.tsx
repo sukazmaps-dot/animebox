@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { profileEditorAnchor } from '@/lib/profile-editor-navigation';
 import ProfileEditorClient from '@/components/profile/ProfileEditorClient';
 
 export const metadata: Metadata = {
@@ -14,9 +15,7 @@ type PageProps = {
 export default async function ProfileEditPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const tab =
-    params.tab === 'avatar' || params.tab === 'banner' || params.tab === 'frame'
-      ? params.tab
-      : params.tab === 'style' || params.tab === 'premium'
+    params.tab === 'style' || params.tab === 'premium'
       ? 'style'
       : params.tab === 'appearance' || params.tab === 'media'
         ? 'profile'
@@ -26,5 +25,5 @@ export default async function ProfileEditPage({ searchParams }: PageProps) {
             ? 'rewards'
             : 'profile';
 
-  return <ProfileEditorClient initialTab={tab} />;
+  return <ProfileEditorClient initialTab={tab} initialAnchor={profileEditorAnchor(params.tab)} />;
 }

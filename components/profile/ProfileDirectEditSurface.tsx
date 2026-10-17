@@ -131,7 +131,7 @@ export default function ProfileDirectEditSurface({
   const [frames, setFrames] = useState<FramePayload | null>(null);
   const [frameLoading, setFrameLoading] = useState(true);
   const [frameError, setFrameError] = useState('');
-  const inspectorRef = useRef<HTMLElement | null>(null);
+  const frameRequestRef = useRef<Promise<FramePayload> | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const bannerInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -140,10 +140,16 @@ export default function ProfileDirectEditSurface({
 
     const load = () => {
       setFrameLoading(true);
-      void fetch('/api/community/leaderboard-rewards', { cache: 'no-store' })
-        .then(async (response) => {
-          const payload = await response.json() as FramePayload;
-          if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить рамки.');
+      if (!frameRequestRef.current) {
+        frameRequestRef.current = fetch('/api/community/leaderboard-rewards', { cache: 'no-store' })
+          .then(async response => {
+            const payload = await response.json() as FramePayload;
+            if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить рамки.');
+            return payload;
+          }).finally(() => { frameRequestRef.current = null; });
+      }
+      void frameRequestRef.current
+        .then(payload => {
           if (active) {
             setFrames(payload);
             onFrameLoaded?.(payload.selectedFrame ?? null);
@@ -220,14 +226,6 @@ export default function ProfileDirectEditSurface({
   function openBannerColorEditor() {
     onSectionChange?.('banner');
     setBannerEditorMode('color');
-    if (window.matchMedia('(max-width: 768px)').matches) {
-      window.requestAnimationFrame(() => {
-        inspectorRef.current?.scrollIntoView({
-          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-          block: 'start',
-        });
-      });
-    }
   }
 
   function openMediaPicker(kind: 'avatar' | 'banner') {
@@ -344,7 +342,6 @@ export default function ProfileDirectEditSurface({
               {editingName ? (
                 <input
                   className={styles.inlineName}
-                  autoFocus
                   value={username}
                   maxLength={24}
                   onChange={(event) => onUsernameChange(event.target.value)}
@@ -370,7 +367,7 @@ export default function ProfileDirectEditSurface({
               <button
                 type="button"
                 className={styles.frameLine}
-                onClick={() => onSectionChange?.('avatar')}
+                onClick={() => onSectionChange?.('frame')}
                 title="Открыть инвентарь рамок"
               >
                 <span className={styles.frameDot} />
@@ -381,7 +378,6 @@ export default function ProfileDirectEditSurface({
               {editingBio ? (
                 <textarea
                   className={styles.inlineBio}
-                  autoFocus
                   value={bio}
                   maxLength={300}
                   rows={3}
@@ -423,27 +419,10 @@ export default function ProfileDirectEditSurface({
         </div>
       </section>}
 
-      <aside ref={inspectorRef} className={styles.inspector} data-target={target}>
-        <div className={styles.inspectorHead}>
-          <div>
-            <span>НАСТРОЙКИ ЭЛЕМЕНТА</span>
-            <h3>
-              {target === 'avatar' && (section === 'frame' ? 'Рамка профиля' : 'Аватар')}
-              {target === 'banner' && 'Баннер профиля'}
-              {target === 'username' && 'Имя и описание'}
-              {target === 'bio' && 'О себе'}
-            </h3>
-          </div>
-          <span className={styles.targetIcon}>
-            <Icon
-              name={target === 'banner' ? 'image' : target === 'avatar' ? 'user' : 'settings'}
-              size={18}
-            />
-          </span>
-        </div>
-
-        {section === 'profile' && (
-          <div className={styles.inspectorSection}>
+      <div className={styles.cardStack}>
+      <section id="profile-editor-name" data-profile-anchor="name" className={styles.inspector} aria-label="Имя и описание">
+        <div className={styles.inspectorHead}><h3>Имя и описание</h3></div>
+        <div className={styles.inspectorSection}>
             <label className={styles.field}>
               <span><strong>Имя пользователя</strong><small>{username.trim().length}/24</small></span>
               <input
@@ -454,10 +433,8 @@ export default function ProfileDirectEditSurface({
             </label>
             <p className={styles.help}>Новое имя сразу видно в предпросмотре. После сохранения оно обновится в профиле, комментариях и меню.</p>
           </div>
-        )}
 
-        {section === 'profile' && (
-          <div className={styles.inspectorSection}>
+        <div className={styles.inspectorSection}>
             <label className={styles.field}>
               <span><strong>Описание</strong><small>{bio.length}/300</small></span>
               <textarea
@@ -469,111 +446,12 @@ export default function ProfileDirectEditSurface({
             </label>
             <p className={styles.help}>Короткое био лучше читается в мини-профиле и на мобильных устройствах.</p>
           </div>
-        )}
 
-        {target === 'banner' && (
-          <div className={styles.inspectorSection}>
-            <div className={styles.bannerModes} role="tablist" aria-label="Режим редактирования баннера">
-              <button type="button" role="tab" aria-selected={bannerEditorMode === 'color'}
-                data-active={bannerEditorMode === 'color'} onClick={() => setBannerEditorMode('color')}>Цвет</button>
-              <button type="button" role="tab" aria-selected={bannerEditorMode === 'image'}
-                data-active={bannerEditorMode === 'image'} onClick={() => setBannerEditorMode('image')}>Картинка</button>
-            </div>
-
-            {bannerEditorMode === 'color' ? (
-              <div role="tabpanel" className={styles.bannerPalette}>
-                <p className={styles.help}>Выбери оттенок — изменения сразу видны в превью.</p>
-                <div className={styles.bannerPresetGrid} aria-label="Цвета баннера">
-                  {BANNER_COLOR_PRESETS.map(preset => {
-                    const locked=Boolean(preset.premium && !premiumActive);
-                    const active=bannerColor.toLowerCase()===preset.color && bannerStyle===preset.style && bannerColorMode==='manual';
-                    return (
-                      <button type="button" key={preset.label} className={styles.bannerPreset}
-                        data-active={active} title={preset.label} aria-label={preset.label+(locked?' — Premium':'')}
-                        aria-pressed={active}
-                        onClick={() => {
-                          // Paid fills may be previewed by everyone. Saving opens the Premium upsell.
-                          onBannerStyleChange?.(preset.style);
-                          void onBannerColorChange?.(preset.color,'manual');
-                          try {
-                            (window as Window & {Telegram?:{WebApp?:{HapticFeedback?:{selectionChanged?:()=>void}}}}).Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
-                          }catch {}
-                        }}>
-                        <span className={styles.bannerPresetSwatch} style={{background:bannerStyleBackground(preset.color,preset.style)}} />
-                        {locked && <span className={styles.premiumStar} aria-hidden="true">✦</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className={styles.fillModeRail} role="group" aria-label="Тип заливки">
-                  {(['solid','soft','glow','sunset'] as const).map(choice => {
-
-                    const labels:Record<BannerStyle,string>={solid:'Однотонный',soft:'Градиент',glow:'Свечение ✦',sunset:'Закат ✦'};
-                    return <button type="button" key={choice} data-active={bannerStyle===choice}
-                      aria-pressed={bannerStyle===choice}
-                      onClick={()=>onBannerStyleChange?.(choice)}>
-                      {labels[choice]}
-                    </button>;
-                  })}
-                </div>
-                <div className={styles.colorActionRow}>
-                  <button type="button" className={styles.colorOpen} onClick={()=>setSheetStart({color:bannerColor,mode:bannerColorMode})}>
-                    <span className={styles.colorOpenSwatch} style={{background:bannerColor}} />
-                    <span>Свой цвет · {bannerColor.toUpperCase()}</span>
-                    <span aria-hidden="true">✎</span>
-                  </button>
-                  <button type="button" onClick={()=>void onBannerColorChange?.(bannerColor,'auto')}>Из аватара</button>
-                  <button type="button" onClick={()=>{
-                    onBannerStyleChange?.('soft');
-                    void onBannerColorChange?.('#70618c','manual');
-                  }}>↺ Сброс</button>
-                </div>
-                {sheetStart && <BannerColorSheet
-                  color={sheetStart.color}
-                  onPreview={color=>void onBannerColorChange?.(color,'manual')}
-                  onCancel={()=>{
-                    void onBannerColorChange?.(sheetStart.color,sheetStart.mode,true);
-                    setSheetStart(null);
-                  }}
-                  onAccept={()=>setSheetStart(null)}
-                />}
-                <p className={styles.help}>10 цветов доступны бесплатно. Дополнительные эффекты — Premium.</p>
-
-              </div>
-            ) : (
-              <div role="tabpanel">
-                <button type="button" className={styles.bannerDropzone} disabled={bannerBusy}
-                  onClick={() => premiumActive ? openMediaPicker('banner') : onOpenPremium()}>
-                  {baseBannerUrl ? <img src={baseBannerUrl} alt="Текущий баннер" /> : <Icon name="image" size={26} />}
-                  <span>{premiumActive ? (baseBannerUrl ? 'Заменить изображение' : 'Загрузить баннер · 960×320') : 'Картинка баннера · Premium'}</span>
-                </button>
-                <div className={styles.actionRow}>
-                  <button type="button" className={styles.primaryAction} aria-busy={bannerBusy}
-                    disabled={bannerBusy || !premiumActive} onClick={() => openMediaPicker('banner')}>
-                    <Icon name="image" size={15} />
-                    {bannerBusy ? 'Открываем…' : 'Загрузить картинку'}
-                  </button>
-                  {canRemoveBanner && <button type="button" className={styles.dangerAction} onClick={onRemoveBanner}>Удалить</button>}
-                </div>
-                <p className={styles.help}>{premiumActive
-                  ? 'JPG, PNG, WebP, AVIF, HEIC/HEIF · до 32 МБ до сжатия. Итоговый баннер до 300 КБ.'
-                  : 'Для загрузки картинки и анимации требуется Premium. Цвет доступен бесплатно.'}</p>
-                {bannerPremiumOverride && (
-                  <div className={styles.overrideCard}>
-                    <Icon name="crown" size={18} />
-                    <div><strong>Сейчас виден Premium-баннер</strong>
-                      <p>Цвет будет запасным оформлением, пока есть изображение.</p></div>
-                    <button type="button" onClick={() => void onUseBaseBanner()}>Использовать базовый</button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {target === 'avatar' && (
-          <>
-            {section !== 'frame' && <div className={styles.inspectorSection}>
+      </section>
+      <section id="profile-editor-avatar" data-profile-anchor="avatar" className={styles.inspector} aria-label="Аватар и рамка">
+        <div className={styles.inspectorHead}><h3>Аватар и рамка</h3></div>
+        <>
+            <div className={styles.inspectorSection}>
               <div className={styles.avatarControl}>
                 <span
                   className={styles.avatarControlPreview}
@@ -631,9 +509,9 @@ export default function ProfileDirectEditSurface({
                   <button type="button" onClick={() => void onUseBaseAvatar()}>Базовый вариант</button>
                 </div>
               )}
-            </div>}
+            </div>
 
-            {section === 'frame' && <div className={styles.inventorySection}>
+            <div id="profile-editor-frame" data-profile-anchor="frame" className={styles.inventorySection}>
               <div className={styles.inventoryHead}>
                 <div>
                   <span>КОЛЛЕКЦИЯ РАМОК</span>
@@ -765,10 +643,111 @@ export default function ProfileDirectEditSurface({
                 </div>
                 {!premiumActive && <button type="button" onClick={onOpenPremium}>Подробнее</button>}
               </div>
-            </div>}
-          </>
-        )}
-      </aside>
+            </div>
+          </>   </section>
+      <section id="profile-editor-banner" data-profile-anchor="banner" className={styles.inspector} aria-label="Баннер">
+        <div className={styles.inspectorHead}><h3>Баннер</h3></div>
+        <div className={styles.inspectorSection}>
+            <div className={styles.bannerModes} role="tablist" aria-label="Режим редактирования баннера">
+              <button type="button" role="tab" aria-selected={bannerEditorMode === 'color'}
+                data-active={bannerEditorMode === 'color'} onClick={() => setBannerEditorMode('color')}>Цвет</button>
+              <button type="button" role="tab" aria-selected={bannerEditorMode === 'image'}
+                data-active={bannerEditorMode === 'image'} onClick={() => setBannerEditorMode('image')}>Картинка</button>
+            </div>
+
+            {bannerEditorMode === 'color' ? (
+              <div role="tabpanel" className={styles.bannerPalette}>
+                <p className={styles.help}>Выбери оттенок — изменения сразу видны в превью.</p>
+                <div className={styles.bannerPresetGrid} aria-label="Цвета баннера">
+                  {BANNER_COLOR_PRESETS.map(preset => {
+                    const locked=Boolean(preset.premium && !premiumActive);
+                    const active=bannerColor.toLowerCase()===preset.color && bannerStyle===preset.style && bannerColorMode==='manual';
+                    return (
+                      <button type="button" key={preset.label} className={styles.bannerPreset}
+                        data-active={active} title={preset.label} aria-label={preset.label+(locked?' — Premium':'')}
+                        aria-pressed={active}
+                        onClick={() => {
+                          // Paid fills may be previewed by everyone. Saving opens the Premium upsell.
+                          onBannerStyleChange?.(preset.style);
+                          void onBannerColorChange?.(preset.color,'manual');
+                          try {
+                            (window as Window & {Telegram?:{WebApp?:{HapticFeedback?:{selectionChanged?:()=>void}}}}).Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
+                          }catch {}
+                        }}>
+                        <span className={styles.bannerPresetSwatch} style={{background:bannerStyleBackground(preset.color,preset.style)}} />
+                        {locked && <span className={styles.premiumStar} aria-hidden="true">✦</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className={styles.fillModeRail} role="group" aria-label="Тип заливки">
+                  {(['solid','soft','glow','sunset'] as const).map(choice => {
+
+                    const labels:Record<BannerStyle,string>={solid:'Однотонный',soft:'Градиент',glow:'Свечение ✦',sunset:'Закат ✦'};
+                    return <button type="button" key={choice} data-active={bannerStyle===choice}
+                      aria-pressed={bannerStyle===choice}
+                      onClick={()=>onBannerStyleChange?.(choice)}>
+                      {labels[choice]}
+                    </button>;
+                  })}
+                </div>
+                <div className={styles.colorActionRow}>
+                  <button type="button" className={styles.colorOpen} onClick={()=>setSheetStart({color:bannerColor,mode:bannerColorMode})}>
+                    <span className={styles.colorOpenSwatch} style={{background:bannerColor}} />
+                    <span>Свой цвет · {bannerColor.toUpperCase()}</span>
+                    <span aria-hidden="true">✎</span>
+                  </button>
+                  <button type="button" onClick={()=>void onBannerColorChange?.(bannerColor,'auto')}>Из аватара</button>
+                  <button type="button" onClick={()=>{
+                    onBannerStyleChange?.('soft');
+                    void onBannerColorChange?.('#70618c','manual');
+                  }}>↺ Сброс</button>
+                </div>
+                {sheetStart && <BannerColorSheet
+                  color={sheetStart.color}
+                  onPreview={color=>void onBannerColorChange?.(color,'manual')}
+                  onCancel={()=>{
+                    void onBannerColorChange?.(sheetStart.color,sheetStart.mode,true);
+                    setSheetStart(null);
+                  }}
+                  onAccept={()=>setSheetStart(null)}
+                />}
+                <p className={styles.help}>10 цветов доступны бесплатно. Дополнительные эффекты — Premium.</p>
+
+              </div>
+            ) : (
+              <div role="tabpanel">
+                <button type="button" className={styles.bannerDropzone} disabled={bannerBusy}
+                  onClick={() => premiumActive ? openMediaPicker('banner') : onOpenPremium()}>
+                  {baseBannerUrl ? <img src={baseBannerUrl} alt="Текущий баннер" /> : <Icon name="image" size={26} />}
+                  <span>{premiumActive ? (baseBannerUrl ? 'Заменить изображение' : 'Загрузить баннер · 960×320') : 'Картинка баннера · Premium'}</span>
+                </button>
+                <div className={styles.actionRow}>
+                  <button type="button" className={styles.primaryAction} aria-busy={bannerBusy}
+                    disabled={bannerBusy || !premiumActive} onClick={() => openMediaPicker('banner')}>
+                    <Icon name="image" size={15} />
+                    {bannerBusy ? 'Открываем…' : 'Загрузить картинку'}
+                  </button>
+                  {canRemoveBanner && <button type="button" className={styles.dangerAction} onClick={onRemoveBanner}>Удалить</button>}
+                </div>
+                <p className={styles.help}>{premiumActive
+                  ? 'JPG, PNG, WebP, AVIF, HEIC/HEIF · до 32 МБ до сжатия. Итоговый баннер до 300 КБ.'
+                  : 'Для загрузки картинки и анимации требуется Premium. Цвет доступен бесплатно.'}</p>
+                {bannerPremiumOverride && (
+                  <div className={styles.overrideCard}>
+                    <Icon name="crown" size={18} />
+                    <div><strong>Сейчас виден Premium-баннер</strong>
+                      <p>Цвет будет запасным оформлением, пока есть изображение.</p></div>
+                    <button type="button" onClick={() => void onUseBaseBanner()}>Использовать базовый</button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+      </section>
+      </div>
+
     </div>
   );
 }

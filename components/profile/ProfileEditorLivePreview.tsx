@@ -3,6 +3,7 @@ import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
 import { bannerStyleBackground, visibleBannerStyle, type BannerStyle } from '@/lib/profile-banner-style';
 import styles from './ProfileEditorLivePreview.module.css';
 
+// Preview targets include legacy deep-link anchors, independently of the four navigation tabs.
 export type ProfileEditorSection = 'profile' | 'avatar' | 'banner' | 'frame' | 'style';
 type Props = {
   expanded?: boolean; username: string; bio: string; avatarUrl: string; bannerUrl: string | null;
@@ -19,20 +20,20 @@ export default function ProfileEditorLivePreview({
   return (
     <section className={`${styles.preview} ${expanded ? styles.expanded : ""}`} aria-label="Живой предпросмотр профиля">
       <button type="button" className={styles.banner}
-        style={{ background }} onClick={() => onNavigate('banner')} aria-label="Настроить баннер">
+        style={{ background }} onClick={() => onNavigate('banner')} aria-controls="profile-editor-banner" aria-label="Настроить баннер">
         {bannerUrl && <img src={bannerUrl} alt="" />}
         <span className={styles.shade} aria-hidden="true" />
         <span className={styles.editBanner}>✎ Баннер</span>
       </button>
       <div className={styles.identity}>
-        <button type="button" className={styles.avatar} onClick={() => onNavigate('avatar')} aria-label="Настроить аватар">
+        <button type="button" className={styles.avatar} onClick={() => onNavigate('avatar')} aria-controls="profile-editor-avatar" aria-label="Настроить аватар">
           <img src={avatarUrl} alt="" />
           <ProfileFrameOverlay frameKey={frameKey ?? null} premium={premiumActive} />
           <span className={styles.editAvatar} aria-hidden="true">✎</span>
         </button>
         <div className={styles.copy}>
           <button className={styles.name} type="button" onClick={() => onNavigate('profile')}
-            title={username.trim() || 'Пользователь'}>{username.trim() || 'Пользователь'} <span>✎</span></button>
+            aria-controls="profile-editor-name" title={username.trim() || 'Пользователь'}>{username.trim() || 'Пользователь'} <span>✎</span></button>
           <p className={styles.bio} title={bio}>{bio.trim() || 'Добавь пару слов о себе…'}</p>
         </div>
       </div>
