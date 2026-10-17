@@ -82,6 +82,11 @@ const Account=compile(read('components/MobileAccountNav.tsx'),id=>{
       const x=Math.max(m.left+4,Math.min(m.right-4,nav.left+nav.width/2));
       const y=Math.max(m.top+4,nav.top+12);
       const hit=()=>document.elementFromPoint(x,y);
+      // Reproduce an explicit competing sibling layer, as can happen when
+      // other route styles/sticky surfaces give navigation its own z-index.
+      // This is an adversarial stacking scenario, not a claim that the
+      // production nav has z-index:10.
+      navigation.style.zIndex='10';
       overlap=(x<m.right&&x>m.left&&x<nav.right&&x>nav.left&&y<m.bottom&&y>m.top&&y<nav.bottom&&y>nav.top);
       openHit={menu:menu.contains(hit()),navigation:navigation.contains(hit()),name:hit()?.className?.toString().slice(0,120)};
       // Negative control: emulate the previous patch's z-index:auto on the
@@ -89,6 +94,7 @@ const Account=compile(read('components/MobileAccountNav.tsx'),id=>{
       playerRoot.style.zIndex='auto';
       negativeHit={menu:menu.contains(hit()),navigation:navigation.contains(hit()),name:hit()?.className?.toString().slice(0,120)};
       playerRoot.style.removeProperty('z-index');
+      navigation.style.removeProperty('z-index');
      }
      trigger.setAttribute('aria-expanded','false');
      trigger.classList.remove('is-open');
@@ -103,7 +109,7 @@ const Account=compile(read('components/MobileAccountNav.tsx'),id=>{
     if(width>=740){
      assert(stack.overlap,'fixture must create real menu/navigation overlap '+width+' '+JSON.stringify(stack));
      assert(stack.openHit?.menu&&!stack.openHit.navigation,'open menu must win pointer hit '+width+' '+JSON.stringify(stack));
-     assert(stack.negativeHit?.navigation&&!stack.negativeHit.menu,'negative control must reproduce pre-hotfix occlusion '+width+' '+JSON.stringify(stack));
+     assert(stack.negativeHit?.navigation&&!stack.negativeHit.menu,'adversarial sibling layer must occlude menu without outer-root lift '+width+' '+JSON.stringify(stack));
     }
     // Embedded/Watch Together mode keeps its own selector.
     assert(renderToStaticMarkup(React.createElement(Header,{showEpisodeSelector:true})).includes('aria-label="Серия"'));
