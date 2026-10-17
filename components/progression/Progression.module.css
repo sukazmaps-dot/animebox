@@ -34,6 +34,7 @@
 /* Compact inspector uses a legible milestone list rather than mini 5-column cards. */
 @container inspector (max-width:380px) {
  .root{gap:12px;}
+ .eyebrow{display:none;}
  .status{grid-template-columns:64px minmax(0,1fr);padding:12px;gap:10px;}
  .frame{width:64px;height:64px;}
  .copy h3{font-size:15px;}
