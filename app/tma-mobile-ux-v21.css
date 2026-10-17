@@ -278,6 +278,30 @@ html.animebox-player-telegram-fullscreen .animebox-telegram-player-viewport vide
   bottom: auto;
 }
 
+/* Hotfix 31.10.3 — don't burn a permanent X into fullscreen video.
+   The exit action stays keyboard accessible and reveals on hover/focus;
+   touch devices retain the persistent 44px control (including old TMA
+   WebViews without a reliable BackButton). CSS-only: iframe never remounts. */
+@keyframes animebox-fullscreen-exit-idle {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@media (hover: hover) and (pointer: fine) {
+  :is(.animebox-telegram-player-viewport, .animebox-player-media:fullscreen) .animebox-player-fullscreen-button {
+    animation: animebox-fullscreen-exit-idle 180ms ease-out 2400ms forwards;
+  }
+
+  :is(.animebox-telegram-player-viewport, .animebox-player-media:fullscreen) .animebox-player-fullscreen-button:is(:hover, :focus-visible, :active) {
+    animation: none;
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) and (hover: hover) and (pointer: fine) {
+  :is(.animebox-telegram-player-viewport, .animebox-player-media:fullscreen) .animebox-player-fullscreen-button {
+    animation-duration: 1ms;
+  }
+}
+
 
 /* Patch 12.5.2 — direction-aware phone navigation */
 @media (max-width: 768px) {
