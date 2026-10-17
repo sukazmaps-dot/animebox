@@ -6,10 +6,8 @@ let css=[...read('app/layout.tsx').matchAll(/import '\.\/([^']+\.css)'/g)].map(m
 css+='\n'+[...read('app/profile/layout.tsx').matchAll(/import '\.\.\/([^']+\.css)'/g)].map(m=>read('app/'+m[1])).join('\n');
 function fixture(font,navHeight){
  return `<style>${css}</style>
- <style>body{margin:0}.mobile-nav{display:flex;position:fixed;inset:auto 0 0;height:${navHeight}px!important}
- .profile-editor-v40__savebar :is(button,strong){font-size:${font}px!important}
+ <style>body{margin:0}.profile-editor-v40__savebar :is(button,strong){font-size:${font}px!important}
  .lastCard{min-height:140px;padding:10px}</style>
- <div class="mobile-nav">Should be hidden by modal</div>
  <main class="profile-editor-v13" data-editor-tab="profile" data-editor-layout="modal">
  <section class="profile-editor-v13__shell profile-editor-v40__shell">
  <header class="profile-editor-v13__header profile-editor-v40__header"><h1>Редактор</h1></header>
@@ -37,14 +35,14 @@ for(const font of [14,22])for(const navHeight of [70,94]){
  const boxes=await page.evaluate(()=>{
   const box=s=>{const r=document.querySelector(s).getBoundingClientRect();return {top:r.top,bottom:r.bottom,height:r.height,left:r.left,right:r.right}};
   const bar=document.querySelector('.profile-editor-v40__savebar');
-  return {bar:box('.profile-editor-v40__savebar'),navDisplay:getComputedStyle(document.querySelector('.mobile-nav')).display,
+  return {bar:box('.profile-editor-v40__savebar'),navPresent:document.querySelector('.mobile-nav')!==null,
   panel:box('.profile-editor-v40__popover'),last:box('.lastCard'),
   barVar:parseFloat(document.querySelector('.profile-editor-v13').style.getPropertyValue('--profile-editor-savebar-height')),
   position:getComputedStyle(bar).position,overflow:document.documentElement.scrollWidth>innerWidth+1};
  });
  const label=`${theme} ${width}px font=${font} nav=${navHeight}`;
  assert.equal(boxes.position,'absolute',label+' dock anchored within modal');
- assert.equal(boxes.navDisplay,'none',label+' site navigation hidden');
+ assert.equal(boxes.navPresent,false,label+' real route unmounts the site navigation');
  assert(boxes.bar.bottom<=900+1&&boxes.bar.top>=0,label+' savebar within visible modal');
  assert(boxes.last.bottom<=boxes.bar.top+2,label+' last setting hidden behind savebar');
  assert(boxes.panel.bottom<=boxes.bar.top+2,label+' popover intersects savebar');
