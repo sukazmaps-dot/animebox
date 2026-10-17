@@ -116,7 +116,7 @@
   min-width:0;min-height:0;width:100%;max-height:calc(100% - 48px);
   margin:0;padding:14px 12px;border:0;
   overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;
-  scrollbar-width:thin;scrollbar-gutter:stable;
+  scrollbar-width:thin;scrollbar-gutter:stable;container-type:inline-size;container-name:profile-modal-inspector;
 }
 .modal :global(.profile-editor-v19__direct-tab),
 .modal :global(.profile-editor-v13__premium-tab),
