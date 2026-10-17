@@ -5,7 +5,7 @@ import {
   TelegramMembershipError,
 } from '@/lib/telegram/channel-membership';
 import { TELEGRAM_CHANNEL_URL } from '@/lib/telegram-links';
-import { enforceIpRateLimit } from '@/lib/api-rate-limit';
+import { enforcePublicIpRateLimit } from '@/lib/public-api-rate-limit';
 import { readJsonBody } from '@/lib/community-server';
 
 export const runtime = 'nodejs';
@@ -30,7 +30,7 @@ function json(data: unknown, status = 200) {
 
 export async function POST(request: Request) {
   try {
-    const limited = await enforceIpRateLimit(request, {
+    const limited = enforcePublicIpRateLimit(request, {
       scope: 'tg_subscription_ip', limit: 60, windowSeconds: 60,
     });
     if (limited) return limited;
