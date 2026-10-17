@@ -69,6 +69,7 @@ export function useProfileEditorAnchors(enabled: boolean, initialAnchor: Profile
         const root = document.querySelector<HTMLElement>('.profile-editor-v13');
         const target = root?.querySelector<HTMLElement>(`[data-profile-anchor="${anchor}"]`);
         if (!root || !target) return;
+        if (target instanceof HTMLDetailsElement) target.open = true;
         initialApplied.current = true;
         const offset = parseFloat(root.style.getPropertyValue('--profile-editor-anchor-offset')) || 120;
         root.scrollTo({ top: root.scrollTop + target.getBoundingClientRect().top - root.getBoundingClientRect().top - offset,

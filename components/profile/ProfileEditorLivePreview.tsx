@@ -1,4 +1,6 @@
 'use client';
+import type { CSSProperties } from 'react';
+import { premiumStudioCssVariables, type PremiumStudioSettings } from '@/lib/premium-studio';
 import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
 import { bannerStyleBackground, visibleBannerStyle, type BannerStyle } from '@/lib/profile-banner-style';
 import styles from './ProfileEditorLivePreview.module.css';
@@ -6,6 +8,7 @@ import styles from './ProfileEditorLivePreview.module.css';
 // Preview targets include legacy deep-link anchors, independently of the four navigation tabs.
 export type ProfileEditorSection = 'profile' | 'avatar' | 'banner' | 'frame' | 'style';
 type Props = {
+  full?: boolean; createdAt?: string; appearance?: PremiumStudioSettings | null;
   expanded?: boolean; username: string; bio: string; avatarUrl: string; bannerUrl: string | null;
   bannerColor: string; bannerStyle: BannerStyle; premiumActive: boolean;
   frameKey?: string | null;
@@ -13,12 +16,18 @@ type Props = {
   onNavigate: (section: ProfileEditorSection) => void;
 };
 export default function ProfileEditorLivePreview({
-  expanded=false, username, bio, avatarUrl, bannerUrl, bannerColor, bannerStyle,
+  full=false, createdAt, appearance, expanded=false, username, bio, avatarUrl, bannerUrl, bannerColor, bannerStyle,
   premiumActive, frameKey, previewPremiumFill=false, onNavigate,
 }: Props) {
   const background = bannerStyleBackground(bannerColor, previewPremiumFill ? bannerStyle : visibleBannerStyle(bannerStyle, premiumActive));
+  const joined = createdAt && Number.isFinite(Date.parse(createdAt))
+    ? new Intl.DateTimeFormat('ru-RU', { day:'numeric', month:'long', year:'numeric', timeZone:'UTC' }).format(new Date(createdAt)) : null;
+  const theme = premiumActive && appearance ? {
+    ...premiumStudioCssVariables(appearance), '--preview-surface':appearance.primaryColor,
+    '--preview-text':'var(--ab-premium-text)', '--preview-muted':'var(--ab-premium-text)',
+  } as CSSProperties : undefined;
   return (
-    <section className={`${styles.preview} ${expanded ? styles.expanded : ""}`} aria-label="Живой предпросмотр профиля">
+    <section className={`${styles.preview} ${expanded ? styles.expanded : ""}`} aria-label="Живой предпросмотр профиля" data-full={full || expanded || undefined} style={theme}>
       <button type="button" className={styles.banner}
         style={{ background }} onClick={() => onNavigate('banner')} aria-controls="profile-editor-banner" aria-label="Настроить баннер">
         {bannerUrl && <img src={bannerUrl} alt="" />}
@@ -37,6 +46,14 @@ export default function ProfileEditorLivePreview({
           <p className={styles.bio} title={bio}>{bio.trim() || 'Добавь пару слов о себе…'}</p>
         </div>
       </div>
+      {(full || expanded) && <div className={styles.details}>
+        <div className={styles.badges}>
+          <span>AnimeBox</span>{premiumActive && <span>✦ Premium</span>}
+          {frameKey && <button type="button" onClick={() => onNavigate('frame')} aria-controls="profile-editor-frame">Изменить рамку</button>}
+        </div>
+        <section className={styles.about}><h3>Обо мне</h3><p>{bio.trim() || 'Расскажи о любимых историях и о себе.'}</p></section>
+        {joined && <section className={styles.about}><h3>В AnimeBox с</h3><p>{joined}</p></section>}
+      </div>}
     </section>
   );
 }

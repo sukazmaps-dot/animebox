@@ -12,6 +12,8 @@ import { FREE_BANNER_STYLES, normalizeBannerStyle, type BannerStyle } from '@/li
 
 import { useAuthState } from '@/components/AuthStateProvider';
 import PremiumStudioClient, { type PremiumStudioHandle } from '@/components/premium/PremiumStudioClient';
+import ProfileEditorViewport from '@/components/profile/ProfileEditorViewport';
+import ProfileEditorShowcasePreview from '@/components/profile/ProfileEditorShowcasePreview';
 import ProfileMediaModal from '@/components/profile/ProfileMediaModal';
 import PremiumMediaCropEditor from '@/components/premium/PremiumMediaCropEditor';
 import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
@@ -55,6 +57,11 @@ type ProfileRow = {
   created_at: string;
 };
 
+type ShowcasePayload = {
+  ok: boolean; widgets: ProfileWidgetsData;
+  capabilities?: { extraShowcases?: boolean; maxFavorites?: number };
+};
+
 type Props = {
   initialTab?: EditorTab | 'avatar' | 'banner' | 'frame';
   initialAnchor?: ProfileEditorAnchor;
@@ -79,7 +86,7 @@ function normalizedTab(value: string | null | undefined): EditorTab {
 export default function ProfileEditorClient(props: Props) {
   const {user}=useAuthState();
   // A new account must never inherit the previous account's in-memory draft/files.
-  return <ProfileEditorWorkspace key={user?.id ?? 'guest'} {...props} />;
+  return <ProfileEditorViewport><ProfileEditorWorkspace key={user?.id ?? 'guest'} {...props} /></ProfileEditorViewport>;
 }
 
 function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props) {
@@ -95,6 +102,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
     if (node) return observeProfileEditorDock(node);
   }, []);
 
+  const showcaseRequestRef = useRef<Promise<ShowcasePayload> | null>(null);
   const [activeTab, setActiveTab] = useState<EditorTab>(normalizedTab(initialTab));
   const [selectedFrame, setSelectedFrame] = useState<string | null>(null);
   const [savedFrame, setSavedFrame] = useState<string | null>(null);
@@ -202,7 +210,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
   }, [authLoading, router, supabase, user]);
 
   useEffect(() => {
-    if (!user?.id || activeTab !== 'showcase' || showcase) return;
+    if (!user?.id || (activeTab !== 'profile' && activeTab !== 'showcase') || showcase) return;
 
     let active = true;
     queueMicrotask(() => {
@@ -211,14 +219,11 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
       setShowcaseError('');
     });
 
-    void communityRequest<{
-      ok: boolean;
-      widgets: ProfileWidgetsData;
-      capabilities?: {
-        extraShowcases?: boolean;
-        maxFavorites?: number;
-      };
-    }>('profile-widgets')
+    if (!showcaseRequestRef.current) {
+      showcaseRequestRef.current = communityRequest<ShowcasePayload>('profile-widgets')
+        .finally(() => { showcaseRequestRef.current = null; });
+    }
+    void showcaseRequestRef.current
       .then((payload) => {
         if (!active) return;
         setShowcase(payload.widgets);
@@ -875,7 +880,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
 
         <div className="profile-editor-v31__live-preview">
           <button type="button" className="profile-editor-v31__expand" onClick={() => setPreviewOpen(true)}>⤢ Развернуть превью</button>
-          <ProfileEditorLivePreview
+          <ProfileEditorLivePreview full createdAt={profile.created_at} appearance={comparing ? premiumSettings : premiumDraft ?? premiumSettings}
             username={comparing ? profile.username ?? '' : username} bio={comparing ? profile.bio ?? '' : bio} avatarUrl={comparing ? displayedAvatar : resolvedAvatarPreview}
             bannerUrl={comparing ? displayedBanner : resolvedBannerPreview} bannerColor={comparing ? profile.banner_color ?? '#70618c' : bannerColor}
             bannerStyle={comparing ? normalizeBannerStyle(profile.banner_style) : bannerStyle} premiumActive={premiumActive}
@@ -883,6 +888,12 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
             previewPremiumFill={bannerFillUpgradeRequired}
           />
         </div>
+
+        <aside className="profile-editor-v33__board" hidden={activeTab !== 'profile'}>
+          <ProfileEditorShowcasePreview data={showcase} loading={showcaseLoading || (!showcase && !showcaseError)} error={showcaseError}
+            onConfigure={() => switchTab('showcase')}
+            onRetry={() => { setShowcaseError(''); setShowcaseReloadKey(value => value + 1); }} />
+        </aside>
 
         <nav className="profile-editor-v13__tabs profile-editor-v18__rail" aria-label="Разделы редактора профиля">
           {([
@@ -993,7 +1004,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
           <div className="profile-editor-v19__direct-tab" hidden={activeTab !== 'profile'}>
           <nav className="profile-editor-v32__anchors" data-profile-anchor-nav aria-label="Настройки профиля">
             {([['name','Имя'],['avatar','Аватар'],['banner','Баннер'],['frame','Рамка']] as const).map(([anchor,label]) => (
-              <button type="button" key={anchor} aria-current={activeAnchor === anchor ? 'location' : undefined}
+              <button type="button" key={anchor} data-profile-anchor-link={anchor} aria-current={activeAnchor === anchor ? 'location' : undefined}
                 onClick={() => navigateToAnchor(anchor)}>{label}</button>
             ))}
           </nav>
@@ -1095,10 +1106,13 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
       {previewOpen && <ProfileMediaModal busy={false} onClose={()=>setPreviewOpen(false)} labelledBy="profile-expanded-preview-title">
         <section className="profile-editor-v31__preview-dialog">
           <header><h2 id="profile-expanded-preview-title">Предпросмотр профиля</h2><button type="button" onClick={()=>setPreviewOpen(false)}>Закрыть</button></header>
-          <ProfileEditorLivePreview expanded username={username} bio={bio} avatarUrl={resolvedAvatarPreview}
+          <ProfileEditorLivePreview expanded createdAt={profile.created_at} appearance={comparing ? premiumSettings : premiumDraft ?? premiumSettings} username={username} bio={bio} avatarUrl={resolvedAvatarPreview}
             bannerUrl={resolvedBannerPreview} bannerColor={bannerColor} bannerStyle={bannerStyle}
             premiumActive={premiumActive} frameKey={selectedFrame} previewPremiumFill={bannerFillUpgradeRequired}
             onNavigate={section=>{setPreviewOpen(false);navigatePreview(section);}} />
+          <ProfileEditorShowcasePreview data={showcase} loading={showcaseLoading || (!showcase && !showcaseError)} error={showcaseError}
+            onConfigure={() => { setPreviewOpen(false); switchTab('showcase'); }}
+            onRetry={() => { setShowcaseError(''); setShowcaseReloadKey(value => value + 1); }} />
         </section>
       </ProfileMediaModal>}
 

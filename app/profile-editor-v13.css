@@ -1288,13 +1288,14 @@ html.ab-profile-editor-open .topbar,
 html.ab-profile-editor-open .sidebar { display: none; }
 .profile-editor-v13 {
   --editor-header-height: 64px;
-  --editor-preview-height: 192px;
+  --editor-preview-height: 152px;
   --editor-tab-height: 56px;
   --editor-surface: var(--ab-ui-surface);
   --editor-border: color-mix(in srgb,var(--ab-ui-accent) 20%, transparent);
   position: fixed;
   top: var(--ab-editor-viewport-top,0px);
   left: 0; right: 0;
+  width:100%; max-width:none; min-width:0; margin:0;
   height: var(--ab-editor-viewport-height,100dvh);
   min-height:0;
   box-sizing:border-box;
@@ -1319,7 +1320,8 @@ html.ab-profile-editor-open .sidebar { display: none; }
   overflow: visible;
   border: 0;
   border-radius: 0;
-  background: var(--editor-surface);
+  background:transparent;
+  box-shadow:none;
 }
 .profile-editor-v13 .profile-editor-v13__header {
   grid-area: header;
@@ -1373,8 +1375,10 @@ html.ab-profile-editor-open .sidebar { display: none; }
   display:inline;font-size:11px;font-weight:700;line-height:1.2;font-family:inherit;color:inherit;
 }
 .profile-editor-v31__settings {grid-area:settings;min-width:0;min-inline-size:0;margin:0;padding:0;border:0;}
-.profile-editor-v13[data-editor-tab='style'] {--editor-preview-height:0px;}
-.profile-editor-v13[data-editor-tab='style'] .profile-editor-v31__live-preview {display:none;}
+.profile-editor-v13:not([data-editor-tab='profile']) {--editor-preview-height:0px;}
+.profile-editor-v13:not([data-editor-tab='profile']) .profile-editor-v31__live-preview {display:none;}
+.profile-editor-v33__board {grid-area:board;min-width:0;}
+.profile-editor-v33__board[hidden] {display:none;}
 .profile-editor-v13 .profile-editor-v13__premium-tab[hidden] { display:none; }
 .profile-editor-v13 .profile-editor-v19__direct-tab {padding: 0 16px 24px; width:100%;max-width:none;margin:0;}
 .profile-editor-v13 .profile-editor-v19__direct-tab [data-settings-only='true'] {
@@ -1434,50 +1438,49 @@ html.ab-profile-editor-open .sidebar { display: none; }
 .profile-editor-v13 .profile-editor-v18__savebar {bottom:calc(max(8px,env(safe-area-inset-bottom)) + var(--ab-editor-keyboard-inset,0px));}
 .profile-editor-v13 input:focus,.profile-editor-v13 textarea:focus {scroll-margin-top:calc(var(--editor-header-height) + var(--editor-preview-height) + var(--editor-tab-height) + 12px);scroll-margin-bottom:calc(var(--profile-editor-savebar-height,108px) + var(--editor-mobile-nav-height,0px) + 16px);}
 
-/* A real right column starts only when both form and preview remain usable.
- * Premium owns its right-hand preview inside the same two-column content area. */
-@media (min-width: 900px) {
+/* 31.9: inspector / identity / personal board. This block owns desktop geometry. */
+@media (min-width:900px) {
   .profile-editor-v13 {--editor-preview-height:0px;scroll-padding-top:calc(var(--editor-header-height) + var(--editor-tab-height) + 16px);}
   .profile-editor-v13 .profile-editor-v13__shell {
-    grid-template-columns:minmax(0,1fr) minmax(300px,360px);
-    grid-template-areas:'header header' 'nav nav' 'settings preview';
-    grid-template-rows:auto auto 1fr;
-    min-height:100%;
-    padding-inline:16px;
-    column-gap:16px;
+    grid-template-columns:minmax(280px,320px) minmax(0,1fr);
+    grid-template-areas:'header header' 'nav nav' 'settings preview' 'settings board';
+    grid-template-rows:auto auto auto 1fr;
+    min-height:100%;padding-inline:24px;column-gap:24px;
   }
   .profile-editor-v31__live-preview {
     top:calc(var(--editor-header-height) + var(--editor-tab-height) + 16px);
-    height:auto;
-    margin-top:16px;
-    border:0;
-    box-shadow:none;
+    height:auto;margin-top:16px;border:0;box-shadow:none;
   }
+  .profile-editor-v33__board {margin-block:24px;position:static;}
   .profile-editor-v13 .profile-editor-v13__tabs.profile-editor-v18__rail {top:var(--editor-header-height);}
-  .profile-editor-v13[data-editor-tab='style'] .profile-editor-v31__settings {grid-column:1 / -1;}
+  .profile-editor-v13[data-editor-tab='profile'] .profile-editor-v31__settings {padding:0 12px;background:var(--editor-surface);}
+  .profile-editor-v13[data-editor-tab='profile'] .profile-editor-v19__direct-tab {padding-inline:4px;}
+  .profile-editor-v13:not([data-editor-tab='profile']) .profile-editor-v13__shell {
+    grid-template-columns:180px minmax(0,1fr);
+    grid-template-areas:'header header' 'nav settings';grid-template-rows:auto 1fr;
+  }
+  .profile-editor-v13:not([data-editor-tab='profile']) .profile-editor-v13__tabs.profile-editor-v18__rail {
+    flex-direction:column;align-items:stretch;height:auto;margin-top:16px;
+  }
 }
-@media (min-width: 1180px) {
+@media (min-width:1180px) {
   .profile-editor-v13 {--editor-tab-height:0px;scroll-padding-top:calc(var(--editor-header-height) + 16px);}
-  .profile-editor-v13 .profile-editor-v13__shell {
-    grid-template-columns:180px minmax(0,1fr) minmax(320px,380px);
-    grid-template-areas:'header header header' 'nav settings preview';
-    grid-template-rows:auto 1fr;
-    column-gap:24px;
-    padding-inline:24px;
+  .profile-editor-v13[data-editor-tab='profile'] .profile-editor-v13__shell {
+    grid-template-columns:280px minmax(320px,400px) minmax(0,1fr);
+    grid-template-areas:'header header header' 'nav preview board' 'settings preview board';
+    grid-template-rows:auto auto 1fr;
   }
   .profile-editor-v13 .profile-editor-v13__tabs.profile-editor-v18__rail {
-    top:calc(var(--editor-header-height) + 16px);
-    flex-direction:column;
-    align-items:stretch;
-    height:auto;
-    margin-top:16px;
-    padding:8px;
-    border:1px solid var(--editor-border);
-    border-radius:16px;
-    overflow:visible;
+    top:calc(var(--editor-header-height) + 16px);height:auto;margin-top:16px;padding:8px;
+    flex-direction:column;align-items:stretch;border:0;border-radius:0;overflow:visible;
+  }
+  .profile-editor-v13[data-editor-tab='profile'] .profile-editor-v13__tabs.profile-editor-v18__rail {
+    position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;
   }
   .profile-editor-v13 .profile-editor-v13__tabs.profile-editor-v18__rail button {flex:0 0 auto;width:100%;justify-content:flex-start;}
-  .profile-editor-v13[data-editor-tab='style'] .profile-editor-v31__settings {grid-column:2 / -1;}
+  .profile-editor-v13[data-editor-tab='profile'] .profile-editor-v13__tabs.profile-editor-v18__rail button span {font-size:12px;}
+  .profile-editor-v31__live-preview {top:calc(var(--editor-header-height) + 16px);}
+  .profile-editor-v33__board {position:sticky;top:calc(var(--editor-header-height) + 16px);margin-top:16px;}
 }
 
 /* Shared controls and the mobile app navigation belong to this workspace. */
@@ -1494,6 +1497,7 @@ html.ab-profile-editor-open .sidebar { display: none; }
 .profile-editor-v31__preview-dialog h2 {font-size:18px;}
 .profile-editor-v31__preview-dialog header button {min-height:44px;padding:0 12px;border:1px solid var(--ab-ui-border);border-radius:10px;color:var(--ab-ui-text);background:var(--ab-ui-raised);cursor:pointer;}
 @media(max-width:899px) {
+  .profile-editor-v33__board {display:none;}
   .profile-editor-v13 {--editor-tab-height:0px;--editor-mobile-nav-height:64px;padding-bottom:calc(var(--profile-editor-savebar-height,108px) + var(--editor-mobile-nav-height) + 32px + env(safe-area-inset-bottom));}
   .profile-editor-v13 .profile-editor-v13__tabs.profile-editor-v18__rail {
     position:fixed;top:auto;bottom:var(--ab-editor-keyboard-inset,0px);left:0;right:0;
@@ -1533,6 +1537,9 @@ html.ab-profile-editor-open .sidebar { display: none; }
   .profile-editor-v13 { --editor-preview-height: 132px; --editor-tab-height: 50px; }
   .profile-editor-v13 .profile-editor-v18__savebar { min-height: 56px; }
 }
+@media (max-height:660px) and (min-width:900px) {
+  .profile-editor-v31__live-preview,.profile-editor-v33__board {position:static;}
+}
 
 /* Profile editor phase 2: four destinations and one anchored profile page.
    Geometry stays owned here; no new important cascade layer. */
@@ -1544,7 +1551,8 @@ html.ab-profile-editor-open .sidebar { display: none; }
 }
 .profile-editor-v32__anchors button {
   min-width:0; min-height:44px; padding:8px 4px; border:1px solid var(--editor-border);
-  border-radius:12px; background:var(--editor-surface); color:var(--ab-ui-text); cursor:pointer;
+  border-radius:6px; background:var(--editor-surface); color:var(--ab-ui-text); cursor:pointer;
+  font-size:12px; line-height:1.3;
 }
 .profile-editor-v32__anchors button[aria-current='location'] { background:var(--ab-ui-raised); border-color:var(--ab-ui-accent); }
 .profile-editor-v32__anchors button:focus-visible { outline:2px solid var(--ab-ui-accent); outline-offset:2px; }
@@ -1552,5 +1560,5 @@ html.ab-profile-editor-open .sidebar { display: none; }
 /* Phase 1 compatibility: desktop preview action follows the card. */
 @media (min-width: 900px) {
   .profile-editor-v31__live-preview { align-content:start; gap:8px; }
-  .profile-editor-v31__expand { position:static; order:2; width:100%; }
+  .profile-editor-v31__expand { position:static; order:2; width:100%; border:0; background:transparent; font-size:12px; }
 }
