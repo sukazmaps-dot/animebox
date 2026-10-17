@@ -13,6 +13,7 @@ import {
 import type { User } from '@supabase/supabase-js';
 
 import { createClient } from '@/lib/supabase/client';
+import { withLoadDeadline } from '@/lib/load-deadline';
 import { resolveProfileAppearance } from '@/lib/profile-appearance';
 import type { PremiumStudioSettings } from '@/lib/premium-studio';
 import { PROFILE_APPEARANCE_CHANGED_EVENT } from '@/lib/profile-live-sync';
@@ -32,6 +33,8 @@ type AuthStateValue = {
   user: User | null;
   profile: AuthProfileSnapshot | null;
   loading: boolean;
+  sessionError: string;
+  retrySession: () => void;
   refresh: () => Promise<void>;
   signOut: () => Promise<void>;
   telegramMiniApp: boolean;
@@ -119,6 +122,14 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<AuthProfileSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionError, setSessionError] = useState('');
+  const [sessionAttempt, setSessionAttempt] = useState(0);
+  const sessionRevision = useRef(0);
+  const retrySession = useCallback(() => {
+    setSessionError('');
+    setLoading(true);
+    setSessionAttempt(attempt => attempt + 1);
+  }, []);
   const [telegramMiniApp, setTelegramMiniApp] = useState(false);
   const [telegramAutoLoginDisabled, setTelegramAutoLoginDisabled] =
     useState(false);
@@ -127,94 +138,99 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     const serial = ++refreshSerial.current;
-
-    const {
-      data: { user: verifiedUser },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (serial !== refreshSerial.current) return;
-
-    if (!verifiedUser) {
-      const status = (userError as { status?: number } | null)?.status;
-      const missingSession =
-        !userError ||
-        userError.name === 'AuthSessionMissingError' ||
-        status === 401 ||
-        status === 403;
-
-      if (missingSession) {
-        setUser(null);
-        setProfile(null);
-        clearCachedProfile();
-      }
-
-      setLoading(false);
-      return;
-    }
-
-    setUser(verifiedUser);
-
-    const cached = readCachedProfile(verifiedUser.id);
-    if (cached) {
-      setProfile(cached);
-      setLoading(false);
-    } else {
-      setProfile((current) =>
-        current?.id === verifiedUser.id ? current : fallbackProfile(verifiedUser),
-      );
-      setLoading(false);
-    }
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, username, avatar_path')
-      .eq('id', verifiedUser.id)
-      .maybeSingle();
-
-    if (serial !== refreshSerial.current) return;
-
-    if (error) {
-      console.error('[AuthState] profile load:', error);
-      return;
-    }
-
-    let nextProfile: AuthProfileSnapshot = data
-      ? {
-          id: data.id,
-          username: data.username,
-          avatar_path: data.avatar_path,
-          display_avatar_path: data.avatar_path,
-          display_avatar_transform: null,
-        }
-      : fallbackProfile(verifiedUser);
-
     try {
-      const studioResponse = await fetch('/api/premium/studio', { cache: 'no-store' });
-      if (studioResponse.ok) {
-        const payload = (await studioResponse.json()) as {
-          allowed?: boolean;
-          settings?: PremiumStudioSettings;
-        };
-        const appearance = resolveProfileAppearance({
-          baseAvatarPath: nextProfile.avatar_path,
-          baseBannerPath: null,
-          premiumStudio: payload.settings ?? null,
-          premiumActive: Boolean(payload.allowed),
-        });
-        nextProfile = {
-          ...nextProfile,
-          display_avatar_path: appearance.avatarPath,
-          display_avatar_transform: appearance.avatarTransform,
-        };
-      }
-    } catch {
-      // Shell avatar falls back to the base profile if Premium appearance lookup fails.
-    }
+      const {
+        data: { user: verifiedUser },
+        error: userError,
+      } = await withLoadDeadline(() => supabase.auth.getUser());
 
-    if (serial !== refreshSerial.current) return;
-    setProfile(nextProfile);
-    saveCachedProfile(nextProfile);
+      if (serial !== refreshSerial.current) return;
+
+      if (!verifiedUser) {
+        const status = (userError as { status?: number } | null)?.status;
+        const missingSession =
+          !userError ||
+          userError.name === 'AuthSessionMissingError' ||
+          status === 401 ||
+          status === 403;
+
+        if (missingSession) {
+          setUser(null);
+          setProfile(null);
+          clearCachedProfile();
+        }
+
+        setLoading(false);
+        return;
+      }
+
+      setUser(verifiedUser);
+
+      const cached = readCachedProfile(verifiedUser.id);
+      if (cached) {
+        setProfile(cached);
+        setLoading(false);
+      } else {
+        setProfile((current) =>
+          current?.id === verifiedUser.id ? current : fallbackProfile(verifiedUser),
+        );
+        setLoading(false);
+      }
+
+      const { data, error } = await withLoadDeadline(signal => supabase
+        .from('profiles')
+        .select('id, username, avatar_path')
+        .eq('id', verifiedUser.id)
+        .abortSignal(signal)
+        .maybeSingle());
+
+      if (serial !== refreshSerial.current) return;
+
+      if (error) {
+        console.error('[AuthState] profile load:', error);
+        return;
+      }
+
+      let nextProfile: AuthProfileSnapshot = data
+        ? {
+            id: data.id,
+            username: data.username,
+            avatar_path: data.avatar_path,
+            display_avatar_path: data.avatar_path,
+            display_avatar_transform: null,
+          }
+        : fallbackProfile(verifiedUser);
+
+      try {
+        const studioResponse = await withLoadDeadline(signal => fetch('/api/premium/studio', { cache: 'no-store', signal }));
+        if (studioResponse.ok) {
+          const payload = (await studioResponse.json()) as {
+            allowed?: boolean;
+            settings?: PremiumStudioSettings;
+          };
+          const appearance = resolveProfileAppearance({
+            baseAvatarPath: nextProfile.avatar_path,
+            baseBannerPath: null,
+            premiumStudio: payload.settings ?? null,
+            premiumActive: Boolean(payload.allowed),
+          });
+          nextProfile = {
+            ...nextProfile,
+            display_avatar_path: appearance.avatarPath,
+            display_avatar_transform: appearance.avatarTransform,
+          };
+        }
+      } catch {
+        // Shell avatar falls back to the base profile if Premium appearance lookup fails.
+      }
+
+      if (serial !== refreshSerial.current) return;
+      setProfile(nextProfile);
+      saveCachedProfile(nextProfile);
+    } catch {
+      // A failed background verification is not evidence of a signed-out account.
+      if (serial === refreshSerial.current) setLoading(false);
+    }
   }, [supabase]);
 
   useEffect(() => {
@@ -245,33 +261,43 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
 
+    const hydrationController = new AbortController();
+    const revision = sessionRevision.current;
     async function hydrateFromLocalSession() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      try {
+        const {
+          data: { session }, error,
+        } = await withLoadDeadline(() => supabase.auth.getSession(), 8000, hydrationController.signal);
 
-      if (!active) return;
+        if (!active || revision !== sessionRevision.current) return;
+        if (error) throw error;
+        setSessionError('');
 
-      if (session?.user) {
-        const cached = readCachedProfile(session.user.id);
+        if (session?.user) {
+          const cached = readCachedProfile(session.user.id);
 
-        setUser(session.user);
-        setProfile(cached ?? fallbackProfile(session.user));
+          setUser(session.user);
+          setProfile(cached ?? fallbackProfile(session.user));
 
-        // A real local session should still be verified and its profile
-        // refreshed from the server. Anonymous visitors do not need this
-        // network round-trip during the critical rendering window.
+          // A real local session should still be verified and its profile
+          // refreshed from the server. Anonymous visitors do not need this
+          // network round-trip during the critical rendering window.
+          setLoading(false);
+          void refresh();
+          return;
+        }
+
+        setUser(null);
+        setProfile(null);
+
+        // No local session = no Supabase getUser/profile/Premium requests.
+        // onAuthStateChange still handles a login that happens later.
         setLoading(false);
-        void refresh();
-        return;
+      } catch {
+        if (!active || revision !== sessionRevision.current) return;
+        setSessionError('Не удалось восстановить сессию. Проверь соединение и повтори попытку.');
+        setLoading(false);
       }
-
-      setUser(null);
-      setProfile(null);
-
-      // No local session = no Supabase getUser/profile/Premium requests.
-      // onAuthStateChange still handles a login that happens later.
-      setLoading(false);
     }
 
     void hydrateFromLocalSession();
@@ -281,7 +307,9 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return;
 
-      if (event === 'SIGNED_OUT') {
+      sessionRevision.current += 1;
+      if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && !session)) {
+        setSessionError('');
         refreshSerial.current += 1;
         setUser(null);
         setProfile(null);
@@ -291,6 +319,7 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
       }
 
       if (session?.user) {
+        setSessionError('');
         const cached = readCachedProfile(session.user.id);
 
         setUser(session.user);
@@ -353,13 +382,14 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
 
     return () => {
       active = false;
+      hydrationController.abort();
       subscription.unsubscribe();
       window.removeEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);
       window.removeEventListener('animebox:premium-studio-updated', refreshAppearance);
       window.removeEventListener(PROFILE_APPEARANCE_CHANGED_EVENT, refreshAppearance);
       window.removeEventListener('animebox:entitlements-changed', refreshAppearance);
     };
-  }, [refresh, supabase]);
+  }, [refresh, supabase, sessionAttempt]);
 
   const signOut = useCallback(async () => {
     refreshSerial.current += 1;
@@ -408,6 +438,8 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
       user,
       profile,
       loading,
+      sessionError,
+      retrySession,
       refresh,
       signOut,
       telegramMiniApp,
@@ -416,6 +448,8 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
     }),
     [
       loading,
+      sessionError,
+      retrySession,
       profile,
       refresh,
       resumeTelegramAutoLogin,

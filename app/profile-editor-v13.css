@@ -545,6 +545,9 @@
   place-items: center;
   color: var(--ab-ui-text);
 }
+.profile-editor-v31__retry {min-height:44px;padding:10px 16px;margin:12px 8px 0 0;border:1px solid var(--ab-ui-border);border-radius:8px;background:var(--ab-ui-raised);color:var(--ab-ui-text);cursor:pointer;}
+.profile-editor-v31__retry:focus-visible {outline:2px solid var(--ab-ui-accent);outline-offset:2px;}
+
 
 @media (max-width: 980px) {
   .profile-editor-v13 { padding: 18px 14px 40px; }
