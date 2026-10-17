@@ -15,6 +15,7 @@ import {
 import { getEffectiveUserEntitlements } from '@/lib/entitlements-server';
 import { getEffectivePremiumState } from '@/lib/premium-server';
 import { consumeRateLimit } from '@/lib/api-rate-limit';
+import { resolvePublicAppearances } from '@/lib/public-avatar-server';
 
 export type WatchPartyRoomVisibility = 'public' | 'unlisted' | 'private';
 export type WatchPartyRoomStatus = 'waiting' | 'watching' | 'paused' | 'voting' | 'ended';
@@ -351,16 +352,33 @@ export async function listPublicWatchPartyRooms(limit = 12) {
 
   const rows = data ?? [];
   const hostIds = [...new Set(rows.map((row) => row.host_user_id).filter(Boolean))];
-  const hostNames = new Map<string, string>();
+  const hostProfiles = new Map<
+    string,
+    { username: string; avatarUrl: string; avatarTransform: { x: number; y: number; zoom: number } }
+  >();
 
   if (hostIds.length) {
     const { data: profiles, error: profileError } = await admin
       .from('profiles')
-      .select('id,username')
+      .select('id,username,avatar_path')
       .in('id', hostIds);
     if (profileError) throw profileError;
-    for (const profile of profiles ?? []) {
-      hostNames.set(profile.id, profile.username?.trim() || 'Пользователь');
+
+    const profileRows = profiles ?? [];
+    const appearances = await resolvePublicAppearances(
+      profileRows.map((profile) => ({
+        id: profile.id,
+        avatar_path: profile.avatar_path,
+      })),
+    );
+
+    for (const profile of profileRows) {
+      const appearance = appearances.get(profile.id);
+      hostProfiles.set(profile.id, {
+        username: profile.username?.trim() || 'Пользователь',
+        avatarUrl: appearance?.avatarUrl ?? '/default-avatar.webp',
+        avatarTransform: appearance?.avatarTransform ?? { x: 50, y: 50, zoom: 1 },
+      });
     }
   }
 
@@ -380,7 +398,10 @@ export async function listPublicWatchPartyRooms(limit = 12) {
     maxParticipants: row.max_participants,
     host: {
       id: row.host_user_id,
-      username: hostNames.get(row.host_user_id) || 'Пользователь',
+      username: hostProfiles.get(row.host_user_id)?.username || 'Пользователь',
+      avatarUrl: hostProfiles.get(row.host_user_id)?.avatarUrl || '/default-avatar.webp',
+      avatarTransform:
+        hostProfiles.get(row.host_user_id)?.avatarTransform ?? { x: 50, y: 50, zoom: 1 },
     },
     createdAt: row.created_at,
     updatedAt: row.updated_at,
