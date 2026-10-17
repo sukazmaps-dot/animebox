@@ -163,3 +163,14 @@
   :global(.profile-editor-v13[data-editor-layout='modal']) .preview[data-full=true] .name {font-size:18px;min-height:36px;}
   :global(.profile-editor-v13[data-editor-layout='modal']) .preview[data-full=true]:not(.expanded) .details {padding:12px;gap:12px;}
 }
+
+/* 31.14: genuinely small, readable mobile summary (never 460px tall). */
+@media (max-width:1099px) {
+ :global(.profile-editor-v13[data-editor-layout='modal']) .preview[data-full=true]:not(.expanded) {height:auto;min-height:0;max-height:220px;overflow:hidden;width:min(100%,440px);}
+ :global(.profile-editor-v13[data-editor-layout='modal']) .preview[data-full=true]:not(.expanded) .banner {height:85px;}
+ :global(.profile-editor-v13[data-editor-layout='modal']) .preview[data-full=true]:not(.expanded) .identity {display:flex;gap:12px;align-items:center;padding:0 14px 12px;margin-top:-26px;}
+ :global(.profile-editor-v13[data-editor-layout='modal']) .preview[data-full=true]:not(.expanded) .avatar {width:64px;height:64px;flex:0 0 64px;}
+ :global(.profile-editor-v13[data-editor-layout='modal']) .preview[data-full=true]:not(.expanded) .copy {min-width:0;flex:1;margin-top:18px;}
+ :global(.profile-editor-v13[data-editor-layout='modal']) .preview[data-full=true]:not(.expanded) .name {font-size:18px;min-height:0;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;}
+ :global(.profile-editor-v13[data-editor-layout='modal']) .preview[data-full=true]:not(.expanded) .details {display:none;}
+}
