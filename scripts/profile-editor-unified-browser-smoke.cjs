@@ -52,7 +52,7 @@ const root=process.cwd();
    const showcase=await page.evaluate(()=>{
     const header=document.querySelector('.profile-editor-v40__board header');
     const h=header.querySelector('h2').getBoundingClientRect(),b=header.querySelector('button').getBoundingClientRect();
-    return {sameRow:Math.abs(h.top-b.top)<20,posters:[...document.querySelectorAll('.profile-editor-v40__board .posters img')].map(n=>n.getBoundingClientRect().width)};
+    return {sameRow:Math.abs(h.top-b.top)<20,posters:[...document.querySelectorAll('.profile-editor-v40__board [aria-label="Предпросмотр витрины"] img')].map(n=>n.getBoundingClientRect().width)};
    });
    assert(showcase.sameRow,'showcase configure button must be alongside the heading');
    assert(showcase.posters.length>0&&showcase.posters.every(w=>w>=71),'showcase poster width >=72 px');
