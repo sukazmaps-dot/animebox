@@ -76,7 +76,17 @@ jobs:
         env:
           ESBUILD_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/esbuild
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
+          PROFILE_EDITOR_SCREENSHOT_DIR: artifacts/profile-editor
         run: node scripts/profile-editor-dock-smoke.cjs && npm run editor-workspace:check && npm run editor-workspace:browser && npm run editor-unified:browser
+
+      - name: Profile editor 31.14 browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: profile-editor-31-14
+          path: artifacts/profile-editor/*.png
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Patch 30.7 intent-based card prefetch
         run: npm run patch30-7:check
