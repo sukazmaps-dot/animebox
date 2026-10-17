@@ -1,10 +1,6 @@
 /* 31.14: the only geometry owner of the mounted profile editor.
    Legacy v13/v18 styles remain for non-modal components, but the modal
    selectors below intentionally win without another global patch layer. */
-:global(html.ab-profile-editor-open),
-:global(html.ab-profile-editor-open body) { overflow:hidden; }
-:global(html.ab-profile-editor-open) :is(:global(.mobile-nav),:global(.topbar),:global(.sidebar)) { display:none; }
-
 .modal {
   --editor-border:color-mix(in srgb,var(--ab-ui-accent) 18%,transparent);
   --editor-surface:var(--ab-ui-surface);
