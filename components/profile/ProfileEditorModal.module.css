@@ -148,6 +148,9 @@
 .modal :global(.profile-editor-v40__shell) button:focus-visible,
 .modal :global(.profile-editor-v40__shell) summary:focus-visible {outline:2px solid var(--ab-ui-accent);outline-offset:2px;}
 
+.modal :global(.profile-editor-v40__stage-actions) {display:flex;gap:9px;align-items:center;}
+.modal :global(.profile-editor-v40__collapse) {display:none;}
+.modal :global(.profile-editor-v40__shell):has(:global(.profile-editor-v40__savebar)) :global(.profile-editor-v40__popover) {max-height:calc(100% - 82px);}
 @media (min-width:1100px) and (max-width:1279px) {
   .modal :global(.profile-editor-v40__workbench) {grid-template-columns:72px 300px minmax(0,1fr);}
   .modal :global(.profile-editor-v40__workbench[data-panel-open='false']) {grid-template-columns:72px 0 minmax(0,1fr);}
@@ -177,6 +180,7 @@
     padding:12px 14px 112px;overflow-x:hidden;overflow-y:auto;
   }
   .modal :global(.profile-editor-v40__stage-header) {width:min(100%,440px);}
+  .modal :global(.profile-editor-v40__collapse) {display:inline-flex;}
   .modal :global(.profile-editor-v40__board) {display:none;}
   .modal :global(.profile-editor-v40__popover) {
     position:absolute;z-index:16;grid-column:auto;grid-row:auto;
@@ -189,6 +193,9 @@
   .modal :global(.profile-editor-v40__panel-content) {
     flex:0 1 auto;min-height:0;max-height:calc(80dvh - 48px);
     padding:12px 14px calc(104px + env(safe-area-inset-bottom));
+  }
+  .modal :global(.profile-editor-v40__shell):has(:global(.profile-editor-v40__savebar)) :global(.profile-editor-v40__popover) {
+    bottom:calc(80px + env(safe-area-inset-bottom));max-height:calc(80dvh - 80px - env(safe-area-inset-bottom));
   }
   .modal :global(.profile-editor-v40__savebar) {
     position:absolute;bottom:max(8px,env(safe-area-inset-bottom));
