@@ -24,7 +24,7 @@ assert(root.includes('const dirty = baseDirty || (premiumActive && premiumDirty)
 assert(root.includes('premiumActive && premiumDirty && studioDraft'),'Free profile save must not submit paid demo settings');
 assert(root.includes("confirm('Есть несохранённые изменения."),'Close must confirm when dirty');
 assert(root.includes('BackButton'),'Telegram native back handler needed');
-assert(/position:\\s*fixed/.test(modalCss) && root.includes('--ab-editor-keyboard-inset'));
+assert(/position:\s*fixed/.test(modalCss) && root.includes('--ab-editor-keyboard-inset'));
 assert(modalCss.includes('.profile-editor-v40__savebar') && modalCss.includes('.profile-editor-v40__popover'));
 assert(!baseCss.includes('position:absolute;left:88px'),'Legacy overlay geometry must be removed');
 assert(modalCss.includes('72px 300px minmax(360px,1fr) 340px'),'Desktop inspector needs its own grid track');
