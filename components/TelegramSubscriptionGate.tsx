@@ -17,7 +17,8 @@ type GateState =
   | 'detecting'
   | 'checking'
   | 'allowed'
-  | 'blocked';
+  | 'blocked'
+  | 'unavailable';
 
 const CHANNEL_URL_FALLBACK = TELEGRAM_CHANNEL_URL;
 
@@ -65,6 +66,7 @@ export default function TelegramSubscriptionGate({
   const [state, setState] = useState<GateState>('detecting');
   const [channelUrl, setChannelUrl] = useState(CHANNEL_URL_FALLBACK);
   const [checkingAgain, setCheckingAgain] = useState(false);
+  const [checkError, setCheckError] = useState('');
   const [logoFailed, setLogoFailed] = useState(false);
 
   const checkMembership = useCallback(async (isRetry = false) => {
@@ -85,6 +87,7 @@ export default function TelegramSubscriptionGate({
     } else {
       setState('checking');
     }
+    setCheckError('');
 
     try {
       telegram ??= await loadTelegramWebApp();
@@ -118,24 +121,37 @@ export default function TelegramSubscriptionGate({
           message: gateErrorText(data.error),
         });
 
-        // Inside a real Mini App we fail closed: access remains gated.
-        setState('blocked');
+        // An infrastructure or invalid-session error is NOT evidence
+        // that the user isn't a channel member. Keep access gated, but
+        // show a retryable outage instead of a false subscription demand.
+        document.documentElement.dataset.telegramSubscribed = 'unknown';
+        setCheckError(gateErrorText(data.error));
+        setState('unavailable');
         return;
       }
 
-      if (data.subscribed) {
+      if (data.subscribed === true) {
         document.documentElement.dataset.telegramSubscribed = 'true';
         setState('allowed');
         return;
       }
 
-      document.documentElement.dataset.telegramSubscribed = 'false';
-      setState('blocked');
+      if (data.subscribed === false) {
+        document.documentElement.dataset.telegramSubscribed = 'false';
+        setState('blocked');
+      } else {
+        document.documentElement.dataset.telegramSubscribed = 'unknown';
+        setCheckError('Сервер не вернул результат проверки подписки.');
+        setState('unavailable');
+      }
     } catch (error) {
       console.error('[Telegram subscription gate]', error);
 
-      // Only a real Mini App reaches this branch.
-      setState('blocked');
+      // Only a real Mini App reaches this branch. Never confuse a
+      // network/SDK failure with confirmed non-membership.
+      document.documentElement.dataset.telegramSubscribed = 'unknown';
+      setCheckError('Не удалось связаться с сервером. Проверь подключение и попробуй ещё раз.');
+      setState('unavailable');
     } finally {
       setCheckingAgain(false);
     }
@@ -159,7 +175,7 @@ export default function TelegramSubscriptionGate({
     }
 
     const recheckAfterReturn = () => {
-      if (state === 'blocked') {
+      if (state === 'blocked' || state === 'unavailable') {
         void checkMembership(true);
       }
     };
@@ -188,7 +204,7 @@ export default function TelegramSubscriptionGate({
 
   // Detecting is intentionally not locked. This prevents the normal website
   // from ever being covered by the Telegram gate during hydration.
-  const locked = state === 'checking' || state === 'blocked';
+  const locked = state === 'checking' || state === 'blocked' || state === 'unavailable';
 
   return (
     <div className="telegram-subscription-gate">
@@ -251,30 +267,34 @@ export default function TelegramSubscriptionGate({
                 <span className="telegram-subscription-gate__eyebrow">
                   ANIMEBOX MINI APP
                 </span>
-                <h1>Подписка на канал обязательна</h1>
-                <p>
-                  Чтобы пользоваться AnimeBox и ботом, подпишись на наш
-                  Telegram-канал. После подписки вернись сюда и нажми
-                  «Я подписался».
+                <h1>{state === 'unavailable' ? 'Не удалось проверить подписку' : 'Подписка на канал обязательна'}</h1>
+                <p aria-live="polite">
+                  {state === 'unavailable'
+                    ? checkError || 'Проверка сейчас недоступна. Это не означает, что ты не подписан. Попробуй ещё раз.'
+                    : 'Чтобы пользоваться AnimeBox и ботом, подпишись на наш Telegram-канал. После подписки вернись сюда и нажми «Я подписался».'}
                 </p>
 
                 <div className="telegram-subscription-gate__actions">
-                  <button
-                    type="button"
-                    className="telegram-subscription-gate__primary"
-                    onClick={openChannel}
-                    disabled={!channelUrl}
-                  >
-                    Подписаться на канал
-                  </button>
+                  {state === 'blocked' && (
+                    <button
+                      type="button"
+                      className="telegram-subscription-gate__primary"
+                      onClick={openChannel}
+                      disabled={!channelUrl}
+                    >
+                      Подписаться на канал
+                    </button>
+                  )}
 
                   <button
                     type="button"
-                    className="telegram-subscription-gate__secondary"
+                    className={state === 'unavailable'
+                      ? 'telegram-subscription-gate__primary'
+                      : 'telegram-subscription-gate__secondary'}
                     onClick={() => void checkMembership(true)}
                     disabled={checkingAgain}
                   >
-                    {checkingAgain ? 'Проверяем…' : 'Я подписался'}
+                    {checkingAgain ? 'Проверяем…' : state === 'unavailable' ? 'Повторить проверку' : 'Я подписался'}
                   </button>
                 </div>
               </>
