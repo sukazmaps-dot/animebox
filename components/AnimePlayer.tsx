@@ -3142,7 +3142,7 @@ export default function AnimePlayer({
 
   return (
     <div
-      className={`relative isolate w-full ${watchTogetherMode ? 'watch-together-player-root min-h-0' : ''} ${theaterMode ? 'z-[10001]' : ''}`}
+      className={`animebox-player-root relative isolate w-full ${watchTogetherMode ? 'watch-together-player-root min-h-0' : ''} ${theaterMode ? 'z-[10001]' : ''}`}
     >
       {theaterMode && (
         <button
