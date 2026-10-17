@@ -11,6 +11,8 @@ import { observeProfileEditorDock } from '@/lib/profile-editor-dock';
 import { FREE_BANNER_STYLES, normalizeBannerStyle, type BannerStyle } from '@/lib/profile-banner-style';
 
 import { useAuthState } from '@/components/AuthStateProvider';
+import { withLoadDeadline } from '@/lib/load-deadline';
+import { readProfileEditorAppearance } from '@/lib/profile-editor-read-client';
 import PremiumStudioClient, { type PremiumStudioHandle } from '@/components/premium/PremiumStudioClient';
 import ProfileEditorViewport from '@/components/profile/ProfileEditorViewport';
 import ProfileEditorShowcasePreview from '@/components/profile/ProfileEditorShowcasePreview';
@@ -94,6 +96,8 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
   const {
     user,
     loading: authLoading,
+    sessionError,
+    retrySession,
     refresh: refreshAuth,
   } = useAuthState();
 
@@ -115,6 +119,8 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
   }, []);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoadAttempt, setProfileLoadAttempt] = useState(0);
+  const userId = user?.id ?? null;
   const [saving, setSaving] = useState(false);
   // React state updates after the event. Lock synchronously to prevent a
   // second click/Ctrl+S from starting duplicate media uploads or profile POST.
@@ -162,54 +168,57 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
 
   useEffect(() => {
     let active = true;
-    let cachedFrame: number | null = null;
-
-    if (authLoading) return () => { active = false; };
-    if (!user) {
+    const controller = new AbortController();
+    if (authLoading || (!userId && sessionError)) return;
+    if (!userId) {
       router.replace('/login?next=/profile/edit');
-      return () => { active = false; };
+      return;
     }
+    const cached = readProfileCache<ProfileRow>(userId);
+    void (async () => {
+      await Promise.resolve();
+      if (!active) return;
 
-    const cached = readProfileCache<ProfileRow>(user.id);
-    if (cached?.username) {
-      cachedFrame = window.requestAnimationFrame(() => {
-        if (!active) return;
+      if (cached?.id === userId) {
         setProfile(cached);
         setUsername(cached.username ?? '');
         setBio(cached.bio ?? '');
+        setBannerColor(cached.banner_color ?? '#70618c');
+        setBannerColorMode(cached.banner_color_mode ?? 'auto');
+        setBannerStyle(normalizeBannerStyle(cached.banner_style));
         setLoading(false);
-      });
-    }
+      } else setLoading(true);
+      setError('');
 
-    void supabase
-      .from('profiles')
-      .select('id, username, bio, avatar_path, banner_path, banner_color, banner_color_mode, banner_style, created_at')
-      .eq('id', user.id)
-      .single()
-      .then(({ data, error: loadError }) => {
+      try {
+        const { data, error: loadError } = await withLoadDeadline(signal => supabase
+          .from('profiles')
+          .select('id, username, bio, avatar_path, banner_path, banner_color, banner_color_mode, banner_style, created_at')
+          .eq('id', userId)
+          .abortSignal(signal)
+          .single(), 8000, controller.signal);
         if (!active) return;
-        if (loadError || !data) {
-          setError('Не удалось загрузить профиль.');
-          setLoading(false);
-          return;
-        }
-
+        if (loadError || !data) throw loadError ?? new Error('PROFILE_MISSING');
         const next = data as ProfileRow;
+        if (next.id !== userId) throw new Error('PROFILE_ACCOUNT_MISMATCH');
         setProfile(next);
-        setUsername(next.username ?? '');
-        setBio(next.bio ?? '');
-        setBannerColor(next.banner_color ?? '#70618c');
-        setBannerColorMode(next.banner_color_mode ?? 'auto');
-        setBannerStyle(normalizeBannerStyle(next.banner_style));
-        saveProfileCache(user.id, next);
-        setLoading(false);
-      });
-
-    return () => {
-      active = false;
-      if (cachedFrame != null) window.cancelAnimationFrame(cachedFrame);
-    };
-  }, [authLoading, router, supabase, user]);
+        setUsername(current => cached?.id === userId && current !== (cached.username ?? '') ? current : next.username ?? '');
+        setBio(current => cached?.id === userId && current !== (cached.bio ?? '') ? current : next.bio ?? '');
+        setBannerColor(current => cached?.id === userId && current !== (cached.banner_color ?? '#70618c') ? current : next.banner_color ?? '#70618c');
+        setBannerColorMode(current => cached?.id === userId && current !== (cached.banner_color_mode ?? 'auto') ? current : next.banner_color_mode ?? 'auto');
+        setBannerStyle(current => cached?.id === userId && current !== normalizeBannerStyle(cached.banner_style) ? current : normalizeBannerStyle(next.banner_style));
+        saveProfileCache(userId, next);
+      } catch {
+        if (!active) return;
+        setError(cached?.id === userId
+          ? 'Не удалось обновить профиль. Показана сохранённая копия.'
+          : 'Не удалось загрузить профиль. Проверь соединение и повтори попытку.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; controller.abort(); };
+  }, [authLoading, router, supabase, userId, sessionError, profileLoadAttempt]);
 
   useEffect(() => {
     if (!user?.id || (activeTab !== 'profile' && activeTab !== 'showcase') || showcase) return;
@@ -264,13 +273,9 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
 
     let active = true;
     const loadAppearance = () => {
-      void fetch('/api/profile/editor', { cache: 'no-store' })
-        .then(async (response) => {
-          if (!response.ok || !active) return;
-          const payload = (await response.json()) as {
-            allowed?: boolean;
-            settings?: PremiumStudioSettings;
-          };
+      void readProfileEditorAppearance(user.id)
+        .then(payload => {
+          if (!active) return;
           setPremiumSettings(payload.settings ?? null);
           setPremiumActive(Boolean(payload.allowed));
         })
@@ -855,7 +860,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
     }
   }
 
-  if (loading) {
+  if (loading && !sessionError && (authLoading || userId)) {
     return (
       <main className="profile-editor-v13" data-editor-tab={activeTab}>
         <div className="profile-editor-v13__loading">
@@ -868,7 +873,17 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
   if (!profile) {
     return (
       <main className="profile-editor-v13" data-editor-tab={activeTab}>
-        <div className="profile-editor-v13__loading">{error || 'Профиль не найден'}</div>
+        <div className="profile-editor-v13__loading">
+          <div role="alert">
+            <p>{sessionError || error || (!userId ? 'Войди, чтобы открыть редактор профиля.' : 'Профиль не найден')}</p>
+            <button type="button" className="profile-editor-v31__retry" onClick={() => {
+              if (!userId && !sessionError) router.push('/login?next=/profile/edit');
+              else if (sessionError) retrySession();
+              else { setLoading(true); setProfileLoadAttempt(attempt => attempt + 1); }
+            }}>{!userId && !sessionError ? 'Войти' : 'Повторить'}</button>
+            <button type="button" className="profile-editor-v31__retry" onClick={() => router.push('/')}>На главную</button>
+          </div>
+        </div>
       </main>
     );
   }

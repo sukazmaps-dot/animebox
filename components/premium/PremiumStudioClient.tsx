@@ -7,6 +7,7 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState }
 import { parseThemeShare, themeShareData } from '@/lib/profile-theme-share';
 
 import { createClient } from '@/lib/supabase/client';
+import { readProfileEditorAppearance } from '@/lib/profile-editor-read-client';
 import { useAuthState } from '@/components/AuthStateProvider';
 import { notifyAuthChanged } from '@/lib/auth-events';
 import { notifyProfileAppearanceChanged } from '@/lib/profile-live-sync';
@@ -316,6 +317,9 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   const {
     user,
     profile: authProfile,
+    loading: authLoading,
+    sessionError,
+    retrySession,
     refresh: refreshAuth,
   } = useAuthState();
   const supabase = useMemo(() => createClient(), []);
@@ -336,6 +340,10 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<UploadKind | ''>('');
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const hydratedOwner = useRef<string | null>(null);
+  const studioUserId = user?.id ?? null;
   const [saved, setSaved] = useState('');
   const [mediaWarning, setMediaWarning] = useState('');
   const [paletteOptions, setPaletteOptions] = useState<Array<{primaryColor:string;accentColor:string;textColor:string}>>([]);
@@ -350,35 +358,39 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   const [mediaEditor, setMediaEditor] = useState<MediaEditorState | null>(null);
 
   useEffect(() => {
-    if (initialSettings) return;
-
+    if (authLoading) return;
     let active = true;
-
-    void fetch('/api/profile/editor', { cache: 'no-store' })
-      .then(async (response) => {
-        const payload = (await response.json()) as StudioResponse;
-        if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить оформление Premium');
+    void (async () => {
+      await Promise.resolve();
+      if (!active) return;
+      setLoadError('');
+      if (sessionError) { setLoadError(sessionError); return; }
+      if (initialSettings) {
+        // Props often arrive after mount. Hydrate once, without resetting later edits.
+        if (hydratedOwner.current !== studioUserId) {
+          hydratedOwner.current = studioUserId;
+          setSettings(initialSettings);
+          setSavedSettings(initialSettings);
+          setAllowed(Boolean(initialAllowed));
+        }
+        return;
+      }
+      if (!studioUserId) { setAllowed(false); return; }
+      try {
+        const payload = await readProfileEditorAppearance(studioUserId);
         if (!active) return;
-
         const next = payload.settings ?? DEFAULT_PREMIUM_STUDIO_SETTINGS;
+        hydratedOwner.current = studioUserId;
         setAllowed(Boolean(payload.allowed));
         setSettings(next);
         setSavedSettings(next);
-      })
-      .catch((requestError) => {
+      } catch {
         if (!active) return;
-        setAllowed(false);
-        setError(
-          requestError instanceof Error
-            ? requestError.message
-            : 'Не удалось загрузить оформление Premium',
-        );
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [initialAllowed, initialSettings]);
+        setLoadError('Не удалось загрузить Premium Studio. Проверь соединение и повтори попытку.');
+      }
+    })();
+    return () => { active = false; };
+  }, [authLoading, sessionError, studioUserId, initialAllowed, initialSettings, loadAttempt]);
 
   useEffect(() => {
     let active = true;
@@ -1010,7 +1022,14 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
   }
 
   if (allowed === null) {
-    const state = <div className="premium-studio__state">Загружаем Premium Studio…</div>;
+    const state = <div className="premium-studio__state" role={loadError ? 'alert' : 'status'}>
+      {loadError || 'Загружаем Premium Studio…'}
+      {loadError && <button type="button" className="profile-editor-v31__retry" onClick={() => {
+        setLoadError('');
+        if (sessionError) retrySession();
+        else setLoadAttempt(attempt => attempt + 1);
+      }}>Повторить</button>}
+    </div>;
     return embedded ? <div className="premium-studio premium-studio-v12 is-embedded">{state}</div> : <main className="premium-studio premium-studio-v12">{state}</main>;
   }
 
