@@ -126,7 +126,8 @@ export default function EpisodeQuickSelector({
         aria-label="Предыдущая серия"
       >
         <span aria-hidden="true">←</span>
-        <span>{prevLabel}</span>
+        <span className="episode-quick-nav__label-full">{prevLabel}</span>
+        <span className="episode-quick-nav__label-compact" aria-hidden="true">Пред.</span>
       </button>
 
       <div className="episode-quick-nav__center">
@@ -137,9 +138,9 @@ export default function EpisodeQuickSelector({
           aria-expanded={open}
           onClick={() => setOpen(true)}
         >
-          <span>Серия {currentEpisode}</span>
-          <small>{safeTotal > 1 ? `из ${safeTotal}` : 'текущая'}</small>
-          <span aria-hidden="true">⌄</span>
+          <span className="episode-quick-nav__episode-index">Серия {currentEpisode}</span>
+          <small className="episode-quick-nav__episode-total">{safeTotal > 1 ? `из ${safeTotal}` : 'текущая'}</small>
+          <span className="episode-quick-nav__chevron" aria-hidden="true">⌄</span>
         </button>
       </div>
 
@@ -150,7 +151,8 @@ export default function EpisodeQuickSelector({
         onClick={onNext}
         aria-label="Следующая серия"
       >
-        <span>{nextLabel}</span>
+        <span className="episode-quick-nav__label-full">{nextLabel}</span>
+        <span className="episode-quick-nav__label-compact" aria-hidden="true">След.</span>
         <span aria-hidden="true">→</span>
       </button>
 
