@@ -191,3 +191,14 @@
 
 /* Higher specificity than the reusable level/season overlay root. */
 .avatar .avatarFrame{position:absolute;inset:calc(var(--frame-overflow) * -1);width:auto;height:auto;overflow:visible;}
+
+
+/* Local avatar actions anchored to the unclipped identity layer. */
+.avatarMenu {
+  position:absolute;top:calc(var(--av,90px) + 6px);left:16px;z-index:50;
+  display:grid;gap:3px;width:min(240px,calc(100% - 32px));min-width:0;
+  padding:6px;border:1px solid var(--ab-ui-border);border-radius:12px;
+  background:var(--ab-ui-raised);box-shadow:0 16px 42px rgba(0,0,0,.55);
+}
+.avatarMenu button {min-height:40px;padding:9px 10px;border:0;border-radius:8px;text-align:left;background:transparent;color:var(--ab-ui-text);font-size:13px;cursor:pointer;}
+.avatarMenu button:hover,.avatarMenu button:focus-visible {background:color-mix(in srgb,var(--ab-ui-accent) 12%,var(--ab-ui-raised));}
