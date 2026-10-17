@@ -956,6 +956,8 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
             bannerUrl={comparing ? displayedBanner : resolvedBannerPreview} bannerColor={comparing ? profile.banner_color ?? '#70618c' : bannerColor}
             bannerStyle={comparing ? normalizeBannerStyle(profile.banner_style) : bannerStyle} premiumActive={premiumActive}
             frameKey={comparing ? savedFrame : selectedFrame} onNavigate={navigatePreview}
+            onUsernameChange={value => {setUsername(value);setSaved('');}}
+            onBioChange={value => {setBio(value);setSaved('');}}
             previewPremiumFill={bannerFillUpgradeRequired}
           />
             <p className="profile-editor-v40__hint">Нажми на имя, аватар или баннер, чтобы изменить их.</p>
