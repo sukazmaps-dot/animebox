@@ -10,7 +10,7 @@ const root=process.cwd();
  let css=[...fs.readFileSync('app/layout.tsx','utf8').matchAll(/import '\.\/([^']+\.css)'/g)].map(m=>fs.readFileSync('app/'+m[1],'utf8').replace(/@import[^;]+;/g,'')).join('\n');
  css+='\n'+[...fs.readFileSync('app/profile/layout.tsx','utf8').matchAll(/import '\.\.\/([^']+\.css)'/g)].map(m=>fs.readFileSync('app/'+m[1],'utf8')).join('\n')+'\n'+bundled.outputFiles.find(f=>f.path.endsWith('.css')).text;
  const js=bundled.outputFiles.find(f=>f.path.endsWith('.js')).text;
- const html='<style>'+css+'</style><div style="width:100%;overflow:hidden"><div id="root" style="transform:translateX(-160px);margin-left:230px;overflow:hidden;width:700px"></div></div><script>'+js.replace(/<\/script/g,'<\\/script')+'</script>';
+ const html='<style>'+css+'</style><div id="root"></div><script>'+js.replace(/<\/script/g,'<\\/script')+'</script>';
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox']});
  try {const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
  let requests=0;
