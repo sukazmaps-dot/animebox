@@ -6,7 +6,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const ts = require('typescript');
 const React = require('react');
-const {create, act} = require('react-test-renderer');
+const {create} = require('react-test-renderer');
+const {act} = React; // React 19: act is exposed by react, not react-test-renderer
 
 const player = fs.readFileSync('components/AnimePlayer.tsx', 'utf8');
 const kodik = fs.readFileSync('components/KodikPlayer.tsx', 'utf8');
