@@ -8,10 +8,10 @@ function fixture(font,navHeight){
  return `<style>${css}</style>
  <style>body{margin:0}.profile-editor-v40__savebar :is(button,strong){font-size:${font}px!important}
  .lastCard{min-height:140px;padding:10px}</style>
- <main class="profile-editor-v13" data-editor-tab="profile" data-editor-layout="modal">
+ <main class="profile-editor-v13 modalTest" data-editor-tab="profile" data-editor-layout="modal">
  <section class="profile-editor-v13__shell profile-editor-v40__shell">
  <header class="profile-editor-v13__header profile-editor-v40__header"><h1>Редактор</h1></header>
- <div class="profile-editor-v40__workbench"><nav class="profile-editor-v40__tiles"><button>Имя</button></nav>
+ <div class="profile-editor-v40__workbench" data-panel-open="true"><nav class="profile-editor-v40__tiles"><button>Имя</button></nav>
  <div class="profile-editor-v40__stage">Профиль</div>
  <aside class="profile-editor-v40__popover"><header><h2>Настройки</h2></header>
  <fieldset class="profile-editor-v31__settings profile-editor-v40__panel-content">
