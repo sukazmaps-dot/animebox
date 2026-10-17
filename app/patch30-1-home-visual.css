@@ -33,6 +33,15 @@
   letter-spacing: -.045em !important;
   text-shadow: none !important;
   color: var(--ab-ui-text) !important;
+  /* 31.8: the previous editorial style removed the title clamp. The full
+     title stays in the DOM / title attribute, but cannot displace CTAs. */
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 3 !important;
+  overflow: hidden !important;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+  min-width: 0;
 }
 .home-page.home-visual-v31 .home-grid .home-hero-carousel .home-hero-carousel__content h1.is-long-title {
   font-size: clamp(32px, 3vw, 48px) !important;
@@ -82,8 +91,13 @@
 .home-page.home-visual-v31 .home-hero-scene__summary {
   max-width: 48ch;
   width: 100%;
-  max-height: none !important;
-  display: block;
+  /* Keep at most three lines even if upstream excerpt sizing changes. */
+  max-height: 4.65em !important;
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 3 !important;
+  overflow: hidden !important;
+  overflow-wrap: anywhere;
   margin: 14px 0 0;
   font-size: 14px;
   line-height: 1.55;
