@@ -21,7 +21,7 @@ function builder(table) {
     contains(c,v){filters.push(row=>v.every(x=>(row[c]||[]).includes(x)));return q;},
     range(a,b){range=[a,b];return q;},
     then(resolve){
-      if(outage)return Promise.resolve({error:{code:'08006',message:'offline'}}).then(resolve);
+      if(outage)return Promise.resolve({error:{code:'PGRST002',message:'Could not query the database for the schema cache. Retrying.'}}).then(resolve);
       if(table==='anime_saved_playable_catalog' && viewMissing)return Promise.resolve({error:{code:'42P01',message:'relation does not exist'}}).then(resolve);
       const source=table==='anime_availability'?availability:rows;
       return Promise.resolve({data:source.filter(row=>filters.every(f=>f(row))).slice(range[0],range[1]+1),error:null}).then(resolve);
