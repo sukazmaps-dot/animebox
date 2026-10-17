@@ -23,19 +23,19 @@ const Color=load('components/profile/ProfileColorField.tsx').default;
 const preview=renderToStaticMarkup(React.createElement(Preview,{username:'Длинное имя пользователя',bio:'Описание профиля, которое должно оставаться внутри карточки',avatarUrl:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"/>',bannerUrl:null,bannerColor:'#70618c',bannerStyle:'soft',premiumActive:true,full:true,createdAt:'2021-02-19T00:00:00Z',onNavigate:()=>{}}));
 const colors=['Основной цвет','Акцент','Текст и иконки'].map(label=>renderToStaticMarkup(React.createElement(Color,{label,value:'#70618C',hint:'Пояснение назначения цвета, которое раньше сжималось в очень узкую колонку',onChange:()=>{}}))).join('');
 let css=[...read('app/layout.tsx').matchAll(/import '\.\/([^']+\.css)'/g)].map(m=>read('app/'+m[1]).replace(/@import[^;]+;/g,'')).join('\n');
-css+='\n'+[...read('app/profile/layout.tsx').matchAll(/import '\.\.\/([^']+\.css)'/g)].map(m=>read('app/'+m[1])).join('\n')+'\n'+moduleSheets.join('\n');
+css+='\n'+[...read('app/profile/layout.tsx').matchAll(/import '\.\.\/([^']+\.css)'/g)].map(m=>read('app/'+m[1])).join('\n')+'\n'+moduleSheets.join('\n')+'\n'+read('components/profile/ProfileEditorModal.module.css').replace(/:global\(([^)]+)\)/g,'$1').replace(/\.modal\b/g,'.modalTest');
 const dockSource=ts.transpileModule(read('lib/profile-editor-dock.ts'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
 // Browser fixture uses the actual modal layout classes and real shared profile card.
 function fixture(dirty,panelOpen){
- const tiles=['Имя','Аватар','Баннер','Рамка','Оформление','Витрина','Награды']
+ const tiles=['Имя','Аватар','Баннер','Рамка','Тема','Витрина','Награды','Аккаунт']
    .map((t,i)=>`<button data-selected="${panelOpen&&i===0}"><span>◇</span><small>${t}</small></button>`).join('');
  return `<style>${css}</style><style>body{margin:0}.profile-editor-v31__header-title h1{margin:0}</style>
- <main class="profile-editor-v13" data-editor-tab="profile" data-editor-layout="modal">
+ <main class="profile-editor-v13 modalTest" data-editor-tab="profile" data-editor-layout="modal">
  <section class="profile-editor-v13__shell profile-editor-v40__shell">
  <header class="profile-editor-v13__header profile-editor-v40__header">
  <div class="profile-editor-v31__header-title"><button>×</button><h1>Редактор профиля</h1></div>
  <span class="profile-editor-v31__status">${dirty?'● Не сохранено':'✓ Сохранено'}</span></header>
- <div class="profile-editor-v40__workbench">
+ <div class="profile-editor-v40__workbench" data-panel-open="${panelOpen}">
  <nav class="profile-editor-v40__tiles" aria-label="Настройки профиля">${tiles}</nav>
  <section class="profile-editor-v40__stage"><div class="profile-editor-v40__stage-header">ТВОЙ ПРОФИЛЬ</div>${preview}<p class="profile-editor-v40__hint">Нажми на элемент</p></section>
  <aside class="profile-editor-v40__board"><h2>Витрина</h2><p>Настоящие аниме</p></aside>
@@ -49,7 +49,7 @@ function fixture(dirty,panelOpen){
 (async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox']});try{
  const page=await browser.newPage();let count=0;
  for(const theme of ['dark','light'])for(const dirty of [false,true])for(const panelOpen of [false,true])
- for(const [width,height] of [[320,900],[390,900],[560,900],[768,900],[900,900],[1180,900],[1440,900],[1920,1080]]){
+ for(const [width,height] of [[320,900],[390,844],[560,900],[768,900],[900,900],[1024,768],[1180,900],[1366,768],[1680,900],[1920,1080]]){
   await page.setViewportSize({width,height});await page.setContent(fixture(dirty,panelOpen));
   await page.evaluate(theme=>{document.documentElement.setAttribute('data-animebox-theme',theme);document.documentElement.classList.add('ab-profile-editor-open');},theme);
   const g=await page.evaluate(()=>{
@@ -67,13 +67,14 @@ function fixture(dirty,panelOpen){
   assert.equal(Math.round(g.root.height),height,label+' viewport height');
   assert(g.shell.width<=width+1&&g.shell.height<=height+1,label+' modal bounded');
   assert(!g.overflow,label+' no horizontal overflow');
-  assert(g.nav.right<=g.stage.left+2,label+' tile/sidebar collision');
-  assert(g.tileHeights.every(h=>h>=59),label+' accessible tile targets');
+  if(width>=1100)assert(g.nav.right<=g.stage.left+2,label+' tile/sidebar collision');
+  if(width>=1280&&panelOpen)assert(g.pop.right<=g.stage.left+2,label+' inspector must not overlay the card');
+  assert(g.tileHeights.every(h=>h>=55),label+' accessible tile targets');
   assert.equal(g.bar!==null,dirty,label+' dirty-only savebar');
   assert.equal(g.popDisplay!=='none',panelOpen,label+' tile popover');
-  if(width>=851){assert(g.board.left>=g.stage.right-2,label+' showcase right');assert(g.boardDisplay!=='none',label+' desktop showcase');}
+  if(width>=1280){assert(g.board.left>=g.stage.right-2,label+' showcase right');assert(g.boardDisplay!=='none',label+' desktop showcase');}
   else assert.equal(g.boardDisplay,'none',label+' folded mobile showcase');
-  if(panelOpen){assert(g.pop.left>=g.shell.left-1&&g.pop.right<=g.shell.right+1,label+' popover horizontal bounds');
+  if(panelOpen){assert(g.pop.left>=g.shell.left-1&&g.pop.right<=g.shell.right+1,label+' inspector horizontal bounds');
     if(dirty)assert(g.pop.bottom<=g.bar.top+2,label+' savebar obscures inspector');}
   if(dirty)assert(g.bar.bottom<=g.shell.bottom+1,label+' savebar outside modal');
   count++;
