@@ -299,8 +299,11 @@ need('Profile Studio icon contract', icon, [
   'const Glyph = icons[name] ?? InfoIcon',
 ]);
 
-if (!editor.includes('<ProfileEditorNavigation') || !editorNavigation.includes("['showcase', 'Витрина']") || !editorNavigation.includes("['rewards', 'Награды']")) {
-  failures.push('Profile Studio missing accessible Showcase/Rewards entry in the editor');
+if (!editor.includes('profile-editor-v40__tiles') ||
+    !editor.includes("['showcase','Витрина','▦']") ||
+    !editor.includes("['rewards','Награды','★']") ||
+    !editor.includes('onClick={() => chooseTile(tile)}')) {
+  failures.push('Profile Studio missing accessible Showcase/Rewards tiles in the modal editor');
 }
 if (!editor.includes("action: 'select_frame'") || !editor.includes('frameDirty')) {
   failures.push('Profile Studio frame must persist via common Save action');
