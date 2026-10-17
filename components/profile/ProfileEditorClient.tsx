@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Type, CircleUserRound, Image as ImageIcon, Frame, Palette, LayoutGrid, Trophy, Link2 } from 'lucide-react';
+import { TextAa as Type, UserCircle as CircleUserRound, Image as ImageIcon, FrameCorners as Frame, Palette, SquaresFour as LayoutGrid, Trophy, Link as Link2 } from '@phosphor-icons/react';
 import modalStyles from './ProfileEditorModal.module.css';
 
 import type { ProfileEditorAnchor } from '@/lib/profile-editor-navigation';
@@ -965,7 +965,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
                   : tile === 'style' || tile === 'showcase' || tile === 'rewards'
                     ? activeTab === tile : !accountPanel && activeTab === 'profile' && focusedSection === tile)}
                 onClick={() => chooseTile(tile)}>
-                <Icon size={20} strokeWidth={1.8} aria-hidden="true" /><small>{label}</small>
+                <Icon size={20} weight="regular" aria-hidden="true" /><small>{label}</small>
                 {fieldDirty[tile] && <i aria-label="Есть изменения" />}
               </button>
             ))}
