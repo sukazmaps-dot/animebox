@@ -3,7 +3,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
 const read=p=>fs.readFileSync(p,'utf8');
 const source=ts.transpileModule(read('lib/profile-editor-dock.ts'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
 let css=[...read('app/layout.tsx').matchAll(/import '\.\/([^']+\.css)'/g)].map(m=>read('app/'+m[1]).replace(/@import[^;]+;/g,'')).join('\n');
-css+='\n'+[...read('app/profile/layout.tsx').matchAll(/import '\.\.\/([^']+\.css)'/g)].map(m=>read('app/'+m[1])).join('\n');
+css+='\n'+[...read('app/profile/layout.tsx').matchAll(/import '\.\.\/([^']+\.css)'/g)].map(m=>read('app/'+m[1])).join('\n')+'\n'+read('components/profile/ProfileEditorModal.module.css').replace(/:global\(([^)]+)\)/g,'$1').replace(/\.modal\b/g,'.modalTest');
 function fixture(font,navHeight){
  return `<style>${css}</style>
  <style>body{margin:0}.profile-editor-v40__savebar :is(button,strong){font-size:${font}px!important}
