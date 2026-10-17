@@ -66,6 +66,12 @@ jobs:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
         run: npm run player-hotfix:browser && npm run mobile-player-shell:browser
 
+      - name: Fullscreen exit overlay idle and iframe identity regression
+        env:
+          ESBUILD_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/esbuild
+          PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
+        run: npm run player-fullscreen:browser
+
       - name: Profile editor responsive workspace and draft recovery
         env:
           ESBUILD_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/esbuild
