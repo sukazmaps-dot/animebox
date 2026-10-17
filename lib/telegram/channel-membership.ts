@@ -94,13 +94,27 @@ export async function checkRequiredTelegramMembership(initData: string) {
   url.searchParams.set('chat_id', requiredChat);
   url.searchParams.set('user_id', String(validation.user.id));
 
-  const response = await fetch(url, {
-    method: 'GET',
-    cache: 'no-store',
-    headers: {
-      Accept: 'application/json',
-    },
-  });
+  // Telegram is an external prerequisite for Mini App admission.
+  // Keep the check bounded so an upstream outage does not hang the UI.
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'GET',
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/json',
+      },
+      signal: AbortSignal.timeout(4_500),
+    });
+  } catch (error) {
+    // Never log the request URL: it contains the Telegram bot token.
+    console.error('[Telegram membership] request unavailable', error instanceof Error ? error.name : 'unknown');
+    throw new TelegramMembershipError(
+      503,
+      'telegram_membership_check_failed',
+      'Telegram verification is temporarily unavailable',
+    );
+  }
 
   const payload = (await response
     .json()
