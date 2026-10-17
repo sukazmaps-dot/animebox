@@ -37,6 +37,9 @@ jobs:
       - name: Hotfix 31.16 Supabase outage regression
         run: npm run hotfix31-16:check
 
+      - name: Profile editor 31.18 inspector invariants
+        run: npm run profile-inspector:check
+
       - name: Install Chromium for layout regression
         run: |
           npm install --prefix "$RUNNER_TEMP/animebox-browser" --no-audit --no-fund --save-exact playwright@1.62.1 esbuild@0.28.2
