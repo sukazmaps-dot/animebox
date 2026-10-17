@@ -46,9 +46,18 @@ const root=process.cwd();
   assert.equal(await page.locator('[aria-label="Живой предпросмотр профиля"]').isVisible(),true,'shared live card visible');
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'document overflow '+width);
   if(width>=1280){
-   const geometry=await page.evaluate(()=>['.profile-editor-v40__tiles','.profile-editor-v40__stage','.profile-editor-v40__board'].map(selector=>{
-    const r=document.querySelector(selector).getBoundingClientRect();return {left:r.left,right:r.right};}));
-   assert(geometry[0].right<=geometry[1].left+2&&geometry[1].right<=geometry[2].left+2,'four-track modal geometry with closed inspector '+width);
+   const geometry=await page.evaluate(()=>{
+    const box=selector=>{const r=document.querySelector(selector).getBoundingClientRect();return {left:r.left,right:r.right,width:r.width,top:r.top,bottom:r.bottom};};
+    return {shell:box('.profile-editor-v40__shell'),workbench:box('.profile-editor-v40__workbench'),
+      rail:box('.profile-editor-v40__tiles'),stage:box('.profile-editor-v40__stage'),
+      board:box('.profile-editor-v40__board'),card:box('[aria-label="Живой предпросмотр профиля"]')};
+   });
+   assert(geometry.workbench.width>=geometry.shell.width-4,'workbench must span full modal shell '+width);
+   assert(geometry.rail.width>=68,'rail must be full 72px rather than clipped '+width);
+   assert(geometry.stage.width>=360&&geometry.board.width>=330,'card and 340px board tracks must be nonzero '+width);
+   assert(geometry.rail.right<=geometry.stage.left+2&&geometry.stage.right<=geometry.board.left+2,'four-track modal geometry '+width);
+   assert(geometry.card.width>=250&&geometry.card.left>=geometry.stage.left-1&&geometry.card.right<=geometry.stage.right+1,'real preview visible within its track '+width);
+   assert(geometry.board.right<=geometry.shell.right+2,'board must not be clipped by old 190px shell column '+width);
    const showcase=await page.evaluate(()=>{
     const header=document.querySelector('.profile-editor-v40__board header');
     const h=header.querySelector('h2').getBoundingClientRect(),b=header.querySelector('button').getBoundingClientRect();
@@ -69,6 +78,13 @@ const root=process.cwd();
     return a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;
    });
    assert(!overlap,'inspector and live profile must not overlap at '+width);
+   const actual=await page.evaluate(()=>{
+     const b=s=>document.querySelector(s).getBoundingClientRect();
+     const p=b('.profile-editor-v40__popover'),w=b('.profile-editor-v40__workbench'),t=b('.profile-editor-v40__stage');
+     return {panelLeft:p.left,panelRight:p.right,panelWidth:p.width,workbenchLeft:w.left,workbenchWidth:w.width,stageLeft:t.left};
+   });
+   assert(actual.panelWidth>=296&&actual.panelRight<=actual.stageLeft+2,
+     '300px inspector visible in separate track '+width+' '+JSON.stringify(actual));
   }
   await nameInput.fill('Персональный профиль');
   assert.equal(await page.locator('.profile-editor-v40__savebar').count(),1,'savebar appears on edit');
