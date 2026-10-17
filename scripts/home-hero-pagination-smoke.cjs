@@ -80,7 +80,7 @@ function contrast(a,b) {
         const titleCss=getComputedStyle(title);
         const summary=document.querySelector('.home-hero-scene__summary');const summaryCss=getComputedStyle(summary);
         return {hero:r(hero),nav:r(nav),social:r(document.querySelector('[data-social]')),
-          art:r(art),title:r(title),titleCss:{clamp:titleCss.webkitLineClamp,display:titleCss.display,overflow:titleCss.overflow},
+          art:r(art),title:r(title),titleCss:{clamp:titleCss.webkitLineClamp,display:titleCss.display,overflow:titleCss.overflow,lineHeight:titleCss.lineHeight},
           summary:r(summary),summaryCss:{clamp:summaryCss.webkitLineClamp,display:summaryCss.display,overflow:summaryCss.overflow,lineHeight:summaryCss.lineHeight},actions:r(document.querySelector('.hero-actions')),
           buttons,
           counter:document.querySelector('.hero_counter').textContent,scroll:document.documentElement.scrollWidth};
@@ -100,8 +100,12 @@ function contrast(a,b) {
           tag+': mobile headline must sit over lower scrim '+JSON.stringify({title:geometry.title,art:geometry.art}));
       }
       if(width>768){
-        assert(geometry.titleCss.clamp==='3' && geometry.titleCss.display==='-webkit-box' && geometry.titleCss.overflow==='hidden',
+        // Chromium normalizes prefixed -webkit-box to computed display:flow-root.
+        // The rendered box height, rather than computed display spelling, proves the clamp.
+        assert(geometry.titleCss.clamp==='3' && geometry.titleCss.overflow==='hidden',
           tag+': desktop hero headline escapes 3-line clamp '+JSON.stringify(geometry.titleCss));
+        assert(geometry.title.height<=parseFloat(geometry.titleCss.lineHeight)*3+2,
+          tag+': desktop title actually occupies more than 3 lines '+JSON.stringify(geometry.title));
         assert(geometry.summaryCss.clamp==='3' && geometry.summaryCss.overflow==='hidden',
           tag+': desktop hero excerpt escapes 3-line clamp '+JSON.stringify(geometry.summaryCss));
         assert(geometry.summary.height<=parseFloat(geometry.summaryCss.lineHeight)*3+2,
