@@ -24,6 +24,7 @@ const dependencies = {
   '@/lib/community-server': { readJsonBody: async request => { bodyReads++; return request.json(); } },
   '@/lib/supabase/server': { createClient: async () => ({ auth: { getUser: async () => ({ data: { user: null } }) } }) },
   '@/lib/api-rate-limit': { enforceIpRateLimit: async () => limited ? new Response(null, { status: 429 }) : null },
+  '@/lib/public-api-rate-limit': { enforcePublicIpRateLimit: () => limited ? new Response(null, { status: 429 }) : null },
   '@/lib/product-events-server': {
     PRODUCT_CLIENT_EVENT_NAMES: ['telegram_promo_impression'],
     trackProductEvents: async events => { stored.push(...events); return true; },
