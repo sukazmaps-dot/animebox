@@ -1,0 +1,41 @@
+'use client';
+import { StrictMode, useEffect, useState } from 'react';
+import Surface from '@/components/profile/ProfileDirectEditSurface';
+import Preview, { type ProfileEditorSection } from '@/components/profile/ProfileEditorLivePreview';
+import { useProfileEditorAnchors } from '@/hooks/useProfileEditorAnchors';
+import { profileEditorAnchor } from '@/lib/profile-editor-navigation';
+import { observeProfileEditorDock } from '@/lib/profile-editor-dock';
+
+const image='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="64" height="64"%3E%3Crect width="64" height="64" fill="purple"/%3E%3C/svg%3E';
+function Harness(){
+ const [tab,setTab]=useState('profile');
+ const [name,setName]=useState('Имя пользователя');
+ const [bio,setBio]=useState('Описание профиля');
+ const [color,setColor]=useState('#70618c');
+ const [frame,setFrame]=useState<string|null>(null);
+ const initial=typeof window==='undefined'?'name':profileEditorAnchor(new URLSearchParams(window.location.search).get('tab'));
+ const {activeAnchor,navigateToAnchor}=useProfileEditorAnchors(tab==='profile',initial);
+ useEffect(()=>observeProfileEditorDock(document.querySelector<HTMLElement>('.profile-editor-v18__savebar')),[]);
+ function navigate(section:ProfileEditorSection){setTab('profile');navigateToAnchor(profileEditorAnchor(section));}
+ return <main className="profile-editor-v13" data-editor-tab={tab}><section className="profile-editor-v13__shell">
+  <header className="profile-editor-v13__header"><h1>Редактор профиля</h1></header>
+  <div className="profile-editor-v31__live-preview"><Preview username={name} bio={bio} avatarUrl={image} bannerUrl={null} bannerColor={color} bannerStyle="soft" premiumActive={false} frameKey={frame} onNavigate={navigate}/></div>
+  <nav className="profile-editor-v13__tabs profile-editor-v18__rail" aria-label="Разделы">
+   {['profile','style','showcase','rewards'].map(value=><button key={value} data-section={value} onClick={()=>setTab(value)}><span>{value}</span></button>)}
+  </nav>
+  <fieldset className="profile-editor-v31__settings">
+   <div className="profile-editor-v19__direct-tab" hidden={tab!=='profile'}>
+    <nav className="profile-editor-v32__anchors" data-profile-anchor-nav aria-label="Настройки профиля">
+     {(['name','avatar','banner','frame'] as const).map(value=><button key={value} aria-current={activeAnchor===value?'location':undefined} onClick={()=>navigateToAnchor(value)}>{value}</button>)}
+    </nav>
+    <Surface showPreview={false} section="profile" username={name} bio={bio} avatarUrl={image} baseAvatarUrl={image} bannerUrl={null} baseBannerUrl={null} bannerColor={color} bannerColorMode="manual" premiumActive={false}
+     avatarPremiumOverride={false} bannerPremiumOverride={false} avatarBusy={false} bannerBusy={false} canRemoveAvatar={false} canRemoveBanner={false}
+     selectedFrameDraft={frame} onFrameChange={setFrame} onSectionChange={navigate} onUsernameChange={setName} onBioChange={setBio} onBannerColorChange={setColor}
+     onAvatarFile={()=>{}} onBannerFile={()=>{}} onRemoveAvatar={()=>{}} onRemoveBanner={()=>{}} onUseBaseAvatar={()=>{}} onUseBaseBanner={()=>{}} onOpenPremium={()=>setTab('style')}/>
+   </div>
+   {tab!=='profile'&&<p>Другой раздел</p>}
+  </fieldset>
+  <div className="profile-editor-v13__mobile-save profile-editor-v18__savebar" data-visible="true"><span className="profile-editor-v18__savebar-copy"><strong>Не сохранено</strong></span><button>Сбросить</button><button data-editor-save>Сохранить</button></div>
+ </section></main>;
+}
+export default function Fixture(){return <StrictMode><Harness/></StrictMode>;}

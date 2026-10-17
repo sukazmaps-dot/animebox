@@ -11,9 +11,13 @@ const moduleCss=read('components/profile/ProfileDirectEditSurface.module.css');
 const premium=read('components/premium/PremiumStudioClient.tsx');
 const premiumCss=read('app/patch20-2-premium-v2.css');
 assert(nav.includes("if (pathname === '/profile/edit') return null"),'Navbar must unmount for standalone editor');
-for(const section of ["'profile'","'avatar'","'banner'","'frame'","'style'"])
+for(const section of ["'profile'","'style'","'showcase'","'rewards'"])
   assert(root.includes(section),'Missing editor section '+section);
 assert(root.includes('ProfileEditorLivePreview'));
+assert(!root.includes('<details className="profile-editor-v31__more"'));
+assert(root.includes("hidden={activeTab !== 'profile'}"));
+assert(!direct.includes('autoFocus'));
+for(const anchor of ['name','avatar','banner','frame']) assert(direct.includes(`data-profile-anchor="${anchor}"`));
 assert(root.includes("data-visible=\"true\""),'Save dock should remain available in clean state');
 assert(root.includes('const dirty = baseDirty || (premiumActive && premiumDirty)'),'Free Premium demo must not mark base form dirty');
 assert(root.includes('premiumActive && premiumDirty && studioDraft'),'Free profile save must not submit paid demo settings');

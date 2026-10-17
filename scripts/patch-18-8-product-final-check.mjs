@@ -262,7 +262,7 @@ need('deferred result modal', deferred, [
 ]);
 
 need('Profile Studio direct edit', editor, [
-  "type EditorTab = ProfileEditorSection | 'showcase' | 'rewards'",
+  "type EditorTab = 'profile' | 'style' | 'showcase' | 'rewards'",
   'Редактор профиля',
   '<ProfileDirectEditSurface',
   '<ProfileRewardsPanel',
@@ -298,7 +298,7 @@ need('Profile Studio icon contract', icon, [
   'const Glyph = icons[name] ?? InfoIcon',
 ]);
 
-if (!editor.includes("switchTab('showcase')") || !editor.includes("switchTab('rewards')")) {
+if (!editor.includes("['showcase','Витрина','image']") || !editor.includes("['rewards','Награды','trophy']")) {
   failures.push('Profile Studio missing accessible Showcase/Rewards entry in the editor');
 }
 if (!editor.includes("action: 'select_frame'") || !editor.includes('frameDirty')) {

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { useProfileEditorAnchors } from '@/hooks/useProfileEditorAnchors';
+import { profileEditorAnchor, type ProfileEditorAnchor } from '@/lib/profile-editor-navigation';
 import { useProfileEditorHistory } from '@/hooks/useProfileEditorHistory';
 import type { ProfileEditorDraft } from '@/lib/profile-editor-draft';
 import { observeProfileEditorDock } from '@/lib/profile-editor-dock';
@@ -39,7 +41,7 @@ import type { ProfileWidgetsData } from '@/types/profile-widgets';
 import {DEFAULT_PREMIUM_STUDIO_SETTINGS,type PremiumMediaTransform,type PremiumStudioSettings} from '@/lib/premium-studio';
 import {themeShareData} from '@/lib/profile-theme-share';
 
-type EditorTab = ProfileEditorSection | 'showcase' | 'rewards';
+type EditorTab = 'profile' | 'style' | 'showcase' | 'rewards';
 
 type ProfileRow = {
   id: string;
@@ -54,7 +56,8 @@ type ProfileRow = {
 };
 
 type Props = {
-  initialTab?: EditorTab;
+  initialTab?: EditorTab | 'avatar' | 'banner' | 'frame';
+  initialAnchor?: ProfileEditorAnchor;
 };
 
 type BaseMediaEditorState = {
@@ -66,7 +69,7 @@ type BaseMediaEditorState = {
 
 function normalizedTab(value: string | null | undefined): EditorTab {
   if (value === 'style' || value === 'premium') return 'style';
-  if (value === 'avatar' || value === 'banner' || value === 'frame') return value;
+  if (value === 'avatar' || value === 'banner' || value === 'frame') return 'profile';
   if (value === 'appearance' || value === 'media') return 'profile';
   if (value === 'showcase' || value === 'widgets') return 'showcase';
   if (value === 'rewards' || value === 'awards') return 'rewards';
@@ -79,7 +82,7 @@ export default function ProfileEditorClient(props: Props) {
   return <ProfileEditorWorkspace key={user?.id ?? 'guest'} {...props} />;
 }
 
-function ProfileEditorWorkspace({ initialTab = 'profile' }: Props) {
+function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const {
@@ -310,13 +313,12 @@ function ProfileEditorWorkspace({ initialTab = 'profile' }: Props) {
 
   function switchTab(tab: EditorTab) {
     document.querySelector<HTMLElement>('.profile-editor-v13')?.scrollTo({ top: 0 });
-    document.querySelector('.profile-editor-v31__more')?.removeAttribute('open');
     setComparing(false);
     setActiveTab(tab);
     setError('');
     setSaved('');
     const url = tab === 'profile' ? '/profile/edit' : `/profile/edit?tab=${tab}`;
-    window.history.replaceState(null, '', url);
+    window.history.replaceState(window.history.state, '', url);
   }
 
   useEffect(() => {
@@ -548,11 +550,25 @@ function ProfileEditorWorkspace({ initialTab = 'profile' }: Props) {
     baseline:JSON.stringify([profile,premiumSettings,savedFrame]),draft:editorDraft,
     dirty:dirty || (!premiumActive && premiumDirty),onApply:applyEditorDraft,
   });
-  const sectionDirty:Record<string,boolean> = {
+  const { activeAnchor, navigateToAnchor } = useProfileEditorAnchors(
+    !loading && !!profile && activeTab === 'profile', initialAnchor ?? profileEditorAnchor(initialTab),
+  );
+  function navigatePreview(section: ProfileEditorSection) {
+    if (section === 'style') { switchTab('style'); return; }
+    if (activeTab !== 'profile') switchTab('profile');
+    else setComparing(false);
+    navigateToAnchor(profileEditorAnchor(section));
+  }
+
+  const fieldDirty:Record<string,boolean> = {
     profile:username.trim()!==(profile?.username ?? '').trim() || bio.trim()!==(profile?.bio ?? '').trim(),
     avatar:!!avatarFile||removeAvatar,
     banner:!!bannerFile||removeBanner||bannerColor!==(profile?.banner_color ?? '#70618c')||bannerStyle!==normalizeBannerStyle(profile?.banner_style)||bannerColorMode!==(profile?.banner_color_mode ?? 'auto'),
     frame:frameDirty,style:premiumDirty,
+  };
+  const sectionDirty:Record<string,boolean> = {
+    ...fieldDirty,
+    profile: fieldDirty.profile || fieldDirty.avatar || fieldDirty.banner || fieldDirty.frame,
   };
   const configuredSections=[!!(username.trim()&&bio.trim()),!!(avatarFile||profile?.avatar_path),!!(bannerFile||profile?.banner_path||bannerColorMode==='manual'),!!selectedFrame,!!premiumDraft && JSON.stringify(themeShareData(premiumDraft))!==JSON.stringify(themeShareData(DEFAULT_PREMIUM_STUDIO_SETTINGS))].filter(Boolean).length;
   // Expired Premium users can edit ordinary fields without repurchasing an unchanged
@@ -863,7 +879,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile' }: Props) {
             username={comparing ? profile.username ?? '' : username} bio={comparing ? profile.bio ?? '' : bio} avatarUrl={comparing ? displayedAvatar : resolvedAvatarPreview}
             bannerUrl={comparing ? displayedBanner : resolvedBannerPreview} bannerColor={comparing ? profile.banner_color ?? '#70618c' : bannerColor}
             bannerStyle={comparing ? normalizeBannerStyle(profile.banner_style) : bannerStyle} premiumActive={premiumActive}
-            frameKey={comparing ? savedFrame : selectedFrame} onNavigate={switchTab}
+            frameKey={comparing ? savedFrame : selectedFrame} onNavigate={navigatePreview}
             previewPremiumFill={bannerFillUpgradeRequired}
           />
         </div>
@@ -871,24 +887,15 @@ function ProfileEditorWorkspace({ initialTab = 'profile' }: Props) {
         <nav className="profile-editor-v13__tabs profile-editor-v18__rail" aria-label="Разделы редактора профиля">
           {([
             ['profile','Профиль','user'],
-            ['avatar','Аватар','image'],
-            ['banner','Баннер','image'],
-            ['frame','Рамка','trophy'],
             ['style','Оформление','crown'],
+            ['showcase','Витрина','image'],
+            ['rewards','Награды','trophy'],
           ] as const).map(([section,label,icon]) => (
             <button key={section} data-section={section} data-dirty={sectionDirty[section] || undefined} className={activeTab === section ? 'is-active' : ''}
               aria-current={activeTab===section?'page':undefined} type="button" onClick={()=>switchTab(section)}>
               <Icon name={icon} size={17} weight="regular" /><span>{label}</span>
             </button>
           ))}
-          <details className="profile-editor-v31__more" data-active={["frame","showcase","rewards"].includes(activeTab) || undefined}>
-            <summary>Ещё</summary>
-            <div className="profile-editor-v31__more-items">
-            <button className="profile-editor-v31__mobile-frame" aria-current={activeTab==='frame'?'page':undefined} type="button" onClick={()=>switchTab('frame')}>Рамка{frameDirty ? ' ●' : ''}</button>
-            <button type="button" onClick={()=>switchTab('showcase')}>Витрина</button>
-            <button type="button" onClick={()=>switchTab('rewards')}>Награды</button>
-            </div>
-          </details>
         </nav>
 
         <fieldset className="profile-editor-v31__settings" disabled={editorBusy}>
@@ -981,12 +988,19 @@ function ProfileEditorWorkspace({ initialTab = 'profile' }: Props) {
               />
             )}
           </div>
-        ) : activeTab !== 'style' ? (
-          <div className="profile-editor-v19__direct-tab">
+        ) : null}
+
+          <div className="profile-editor-v19__direct-tab" hidden={activeTab !== 'profile'}>
+          <nav className="profile-editor-v32__anchors" data-profile-anchor-nav aria-label="Настройки профиля">
+            {([['name','Имя'],['avatar','Аватар'],['banner','Баннер'],['frame','Рамка']] as const).map(([anchor,label]) => (
+              <button type="button" key={anchor} aria-current={activeAnchor === anchor ? 'location' : undefined}
+                onClick={() => navigateToAnchor(anchor)}>{label}</button>
+            ))}
+          </nav>
             <ProfileDirectEditSurface
-            section={activeTab}
+            section="profile"
             showPreview={false}
-            onSectionChange={switchTab}
+            onSectionChange={navigatePreview}
             onFrameChange={setSelectedFrame}
             selectedFrameDraft={frameLoaded ? selectedFrame : undefined}
             onFrameLoaded={frame => {
@@ -1057,9 +1071,8 @@ function ProfileEditorWorkspace({ initialTab = 'profile' }: Props) {
             onOpenPremium={() => switchTab('style')}
           />
 
-          {activeTab === 'profile' && <TelegramAccountLinkCard />}
+          <TelegramAccountLinkCard />
           </div>
-        ) : null}
 
         </fieldset>
 
@@ -1085,7 +1098,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile' }: Props) {
           <ProfileEditorLivePreview expanded username={username} bio={bio} avatarUrl={resolvedAvatarPreview}
             bannerUrl={resolvedBannerPreview} bannerColor={bannerColor} bannerStyle={bannerStyle}
             premiumActive={premiumActive} frameKey={selectedFrame} previewPremiumFill={bannerFillUpgradeRequired}
-            onNavigate={section=>{setPreviewOpen(false);switchTab(section);}} />
+            onNavigate={section=>{setPreviewOpen(false);navigatePreview(section);}} />
         </section>
       </ProfileMediaModal>}
 
