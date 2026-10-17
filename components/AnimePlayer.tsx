@@ -2849,7 +2849,10 @@ export default function AnimePlayer({
             </div>
           )}
 
-          {(
+          {/* Kodik owns its fullscreen control inside the iframe. Do not
+              overlay a second icon on its transport bar in normal playback.
+              Keep our Exit button when AnimeBox itself is fullscreen. */}
+          {(!isKodik || fullscreenActive) && (
             <button
               type="button"
               onClick={() => void toggleFullscreen()}
@@ -2962,8 +2965,7 @@ export default function AnimePlayer({
                     : 'text-white/40 hover:bg-white/[0.05] hover:text-white/75'
                 }`}
               >
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--ab-ui-selected)] shadow-[0_0_8px_color-mix(in_srgb,_var(--ab-ui-accent)_55%,_transparent)]" />
+                <span className="animebox-player-source-label inline-flex min-w-0 items-center justify-center whitespace-nowrap">
                   Авто
                 </span>
               </button>
@@ -2987,10 +2989,10 @@ export default function AnimePlayer({
                           : 'text-white/40 hover:bg-white/[0.05] hover:text-white/75'
                     }`}
                   >
-                    <span className="inline-flex items-center gap-1.5">
+                    <span className="animebox-player-source-label inline-flex min-w-0 items-center justify-center gap-1.5 whitespace-nowrap">
                       <span
                         aria-hidden="true"
-                        className={`h-1.5 w-1.5 rounded-full ${
+                        className={`animebox-player-source-dot block h-1.5 w-1.5 shrink-0 rounded-full ${
                           status === 'ready'
                             ? 'bg-emerald-400 shadow-[0_0_8px_color-mix(in_srgb,_var(--ab-ui-success)_65%,_transparent)]'
                             : status === 'loading'

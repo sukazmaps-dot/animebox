@@ -102,12 +102,38 @@
 .page:global(.episode-page) :global(.episode-engagement-grid) :is(:global(.episode-library-compact__trigger), :global(.episode-notification-compact) > button) { min-height: 48px !important; height: 100% !important; width: 100% !important; box-sizing: border-box; }
 .page:global(.episode-page) :global(.episode-engagement-grid) :global(.episode-library-compact__picker) { height: 100%; }
 .page:global(.episode-page) :global(.episode-engagement-grid) { margin-block: 4px !important; }
+/* Single route owner for episode control density: do not recreate mobile
+ * text through ::after. Rendered labels stay readable in zoom/translation. */
 .page:global(.episode-page) :global(.episode-quick-nav) { display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr) !important; align-items: stretch !important; gap: 8px !important; width: 100% !important; max-width: none !important; margin: 0 !important; padding: 8px !important; }
 .page:global(.episode-page) :global(.episode-quick-nav__center) { display: contents !important; }
-.page:global(.episode-page) :is(:global(.episode-quick-nav__step), :global(.episode-quick-nav__current), :global(.episode-quick-nav__all)) { position: static !important; transform: none !important; min-width: 0 !important; min-height: 48px !important; height: auto !important; margin: 0 !important; padding: 8px !important; border-radius: 10px !important; font-size: 12px !important; line-height: 1.3; }
+.page:global(.episode-page) :is(:global(.episode-quick-nav__step), :global(.episode-quick-nav__current), :global(.episode-quick-nav__all)) { position: static !important; transform: none !important; min-width: 0 !important; min-height: 48px !important; height: auto !important; margin: 0 !important; padding: 8px !important; border-radius: 10px !important; font-size: 12px !important; line-height: 1.3; box-sizing: border-box; }
 .page:global(.episode-page) :global(.episode-quick-nav__previous) { grid-column: 1 !important; grid-row: 1 !important; }
 .page:global(.episode-page) :global(.episode-quick-nav__current) { grid-column: 2 !important; grid-row: 1 !important; }
 .page:global(.episode-page) :global(.episode-quick-nav__next) { grid-column: 3 !important; grid-row: 1 !important; }
 .page:global(.episode-page) :global(.episode-quick-nav__all) { display: flex !important; align-items: center; justify-content: center; grid-column: 1 / -1 !important; grid-row: 2 !important; width: 100% !important; }
-.page:global(.episode-page) :global(.episode-quick-nav__step) span:not([aria-hidden='true']) { display: inline !important; font-size: inherit !important; }
-.page:global(.episode-page) :global(.episode-quick-nav__step) span::after { content: none !important; }
+.page:global(.episode-page) :global(.episode-quick-nav__step) { display: flex !important; justify-content: center; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; }
+.page:global(.episode-page) :global(.episode-quick-nav__step) > span { flex: 0 0 auto; }
+.page:global(.episode-page) :global(.episode-quick-nav__step) > :global(.episode-quick-nav__label-compact) { display: none !important; }
+.page:global(.episode-page) :global(.episode-quick-nav__current) { display: flex !important; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; overflow: hidden; text-align: center; }
+.page:global(.episode-page) :global(.episode-quick-nav__current) > span, .page:global(.episode-page) :global(.episode-quick-nav__current) > small { min-width: 0; flex-shrink: 0; }
+.page:global(.episode-page) :global(.animebox-player-source-switcher) :global(.premium-player-source) { border-radius: 10px; min-height: 44px; }
+.page:global(.episode-page) :global(.animebox-player-source-label) { display: inline-flex; align-items: center; justify-content: center; gap: 6px; line-height: 1; vertical-align: middle; }
+.page:global(.episode-page) :global(.animebox-player-source-dot) { display: block; flex: 0 0 6px; width: 6px; height: 6px; }
+.page:global(.episode-page) :global(.premium-player-dropdown-trigger) { min-height: 48px; border-radius: 10px; }
+.page:global(.episode-page) :global(.premium-player-control-icon) { border-radius: 8px; }
+.page:global(.episode-page) :global(.premium-player-dropdown) > div:last-child { border-radius: 10px; }
+@media (max-width: 559px) {
+  .page:global(.episode-page) :global(.episode-quick-nav) { grid-template-columns: minmax(68px, .85fr) minmax(0, 1.35fr) minmax(68px, .85fr) !important; gap: 6px !important; padding: 6px !important; }
+  .page:global(.episode-page) :global(.episode-quick-nav__step) { min-height: 48px !important; height: 48px !important; padding: 0 7px !important; font-size: 10px !important; gap: 4px; }
+  .page:global(.episode-page) :global(.episode-quick-nav__step) > :global(.episode-quick-nav__label-full) { display: none !important; }
+  .page:global(.episode-page) :global(.episode-quick-nav__step) > :global(.episode-quick-nav__label-compact) { display: inline !important; font-size: 10px !important; }
+  .page:global(.episode-page) :global(.episode-quick-nav__current) { min-height: 48px !important; height: 48px !important; gap: 4px; padding: 0 6px !important; font-size: 10px !important; }
+  .page:global(.episode-page) :global(.episode-quick-nav__episode-total) { font-size: 9px !important; }
+  .page:global(.episode-page) :global(.episode-quick-nav__all) { min-height: 44px !important; height: 44px !important; padding: 0 12px !important; font-size: 11px !important; }
+}
+@media (max-width: 350px) {
+  .page:global(.episode-page) :global(.episode-quick-nav) { grid-template-columns: 64px minmax(0, 1fr) 64px !important; gap: 4px !important; padding: 4px !important; }
+  .page:global(.episode-page) :global(.episode-quick-nav__step) { padding: 0 4px !important; }
+  .page:global(.episode-page) :global(.episode-quick-nav__current) { padding: 0 3px !important; gap: 3px; }
+  .page:global(.episode-page) :global(.episode-quick-nav__chevron) { display: none; }
+}

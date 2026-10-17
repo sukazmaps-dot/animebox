@@ -31,6 +31,8 @@ const Account=compile(read('components/MobileAccountNav.tsx'),id=>{
  assert(read('components/AnimeEpisodePage.tsx').includes('showEpisodeSelector={false}'),'normal route delegates episode selection to QuickSelector');
  assert(player.includes('animebox-player-root relative isolate w-full'),'smoke fixture must preserve production player outer isolation');
  assert(player.includes("data-player-theater={theaterMode ? 'true' : undefined}"),'theater state must opt out of lowered episode stacking');
+ assert(player.includes('{(!isKodik || fullscreenActive) && ('),'Kodik owns fullscreen in iframe when not in AnimeBox fullscreen');
+ assert(player.includes('animebox-player-source-dot block h-1.5 w-1.5 shrink-0'),'source marker must have fixed inline alignment');
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox']});let cases=0;
  try{
   for(const [width,height] of [[360,800],[390,844],[430,932],[740,360],[844,390],[960,440],[1100,500],[1440,900],[1920,1080]]){
@@ -38,7 +40,7 @@ const Account=compile(read('components/MobileAccountNav.tsx'),id=>{
     profile={username:'Длинное имя пользователя',avatar_path:'avatar.webp',display_avatar_transform:{x:50,y:50,zoom}};
     const account=renderToStaticMarkup(React.createElement(Account,{pathname:'/anime/test/episode/1'}));
     const controls=renderToStaticMarkup(React.createElement(Header,{showEpisodeSelector:false}));
-    const quick=renderToStaticMarkup(React.createElement(Quick,{currentEpisode:1,totalEpisodes:28,hasNext:true,hasPrev:false,nextLabel:'След.',onPrevious:()=>{},onNext:()=>{},onSelect:()=>{}}));
+    const quick=renderToStaticMarkup(React.createElement(Quick,{currentEpisode:1,totalEpisodes:28,hasNext:true,hasPrev:false,nextLabel:'Следующая серия',onPrevious:()=>{},onNext:()=>{},onSelect:()=>{}}));
     const entry=renderToStaticMarkup(React.createElement(Fullscreen,{}));
     const page=await browser.newPage({viewport:{width,height}});
     await page.setContent(`<html><head><style>*,*::before,*::after{box-sizing:border-box}body{margin:0}button{font:inherit}.hidden{display:none}.relative{position:relative}.isolate{isolation:isolate}.z-\\[10001\\]{z-index:10001}.absolute{position:absolute}.invisible{visibility:hidden}.opacity-0{opacity:0}.w-full{width:100%}.h-full{height:100%}.inset-0{inset:0}.flex{display:flex}.inline-flex{display:inline-flex}.items-center{align-items:center}.flex-1{flex:1}.block{display:block}.min-w-0{min-width:0}.h-4{height:16px}.w-4{width:16px}.shrink-0{flex-shrink:0}${css}</style></head><body><main class="fixture_page episode-page" style="padding:12px"><div class="animebox-player-root relative isolate w-full"><div><section class="animebox-premium-player"><div class="animebox-player-media relative" style="aspect-ratio:16/9;background:black">${entry}</div>${controls}</section></div></div>${quick}</main><nav class="mobile-nav">${'<a class="mobile-nav__item"><svg width="20" height="20"></svg><span>Главная</span></a>'.repeat(4)}${account}</nav></body></html>`);
@@ -52,6 +54,31 @@ const Account=compile(read('components/MobileAccountNav.tsx'),id=>{
     });
     if(width<1180){assert(r.avatar.w>=20&&r.avatar.w<=24&&r.avatar.h<=24,JSON.stringify(r));assert.equal(r.avatar.overflow,'hidden');assert.notEqual(r.avatar.display,'inline');assert(!r.leak,'zoomed avatar must be clipped');}
     assert.equal(r.button.w,44);assert.equal(r.button.h,44);assert.equal(r.button.text,'');assert(r.button.label);assert(r.button.fits);assert.equal(r.selectors,1);assert(r.selectorHeight>=44&&r.selectorHeight<=72,`selector height ${r.selectorHeight}`);assert.equal(r.episodeNative,0);assert.equal(r.quick,1);assert(Math.abs(r.selectorWidth-r.toolbarWidth)<1);assert(!r.overflow);
+    const compact=await page.evaluate(()=>{
+      const nav=document.querySelector('.episode-quick-nav');
+      const prev=nav.querySelector('.episode-quick-nav__previous');
+      const mid=nav.querySelector('.episode-quick-nav__current');
+      const next=nav.querySelector('.episode-quick-nav__next');
+      const all=nav.querySelector('.episode-quick-nav__all');
+      const short=next.querySelector('.episode-quick-nav__label-compact');
+      const long=next.querySelector('.episode-quick-nav__label-full');
+      const dot=document.querySelector('.animebox-player-source-dot');
+      const chip=dot.closest('.animebox-player-source-label');
+      const nr=next.getBoundingClientRect(),lr=short.getBoundingClientRect(),mr=mid.getBoundingClientRect(),pr=prev.getBoundingClientRect(),ar=all.getBoundingClientRect();
+      const dr=dot.getBoundingClientRect(),cr=chip.getBoundingClientRect();
+      return {navWidth:nav.getBoundingClientRect().width,shortText:short.textContent,shortVisible:getComputedStyle(short).display!=='none',longVisible:getComputedStyle(long).display!=='none',
+        nav:{previous:pr.toJSON(),current:mr.toJSON(),next:nr.toJSON(),all:ar.toJSON()},shortRect:lr.toJSON(),
+        dotCenter:dr.top+dr.height/2,chipCenter:cr.top+cr.height/2,stepWrap:getComputedStyle(next).whiteSpace,nextScrollWidth:next.scrollWidth};
+    });
+    assert(Math.abs(compact.dotCenter-compact.chipCenter)<2,'source dot must align vertically '+width+' '+JSON.stringify(compact));
+    assert(compact.nav.previous.right<=compact.nav.current.left+1&&compact.nav.current.right<=compact.nav.next.left+1,'episode columns must not collide '+width+' '+JSON.stringify(compact));
+    assert(compact.nav.next.right<=compact.nav.previous.left+compact.navWidth+1,'next action must stay inside nav '+width+' '+JSON.stringify(compact));
+    assert(compact.nav.next.height>=44&&compact.nav.all.height>=44,'tap targets must remain 44px+ '+width+' '+JSON.stringify(compact));
+    if(width<=430){
+      assert(compact.shortVisible&&!compact.longVisible&&compact.shortText==='След.','phone shows semantic short label '+width+' '+JSON.stringify(compact));
+      assert(compact.stepWrap==='nowrap','mobile labels must not wrap '+width);
+      assert(compact.nextScrollWidth<=Math.ceil(compact.nav.next.width)+1,'right control clips content '+width+' '+JSON.stringify(compact));
+    }
     if(width===390&&zoom===3)await page.screenshot({path:'/tmp/animebox-mobile-controls-hotfix.png',fullPage:true});
     // Stacking regression: the true AnimePlayer root is a separate `isolate`
     // context. The previous smoke omitted it, giving a false PASS even though
@@ -123,7 +150,7 @@ const Account=compile(read('components/MobileAccountNav.tsx'),id=>{
   for(const [width,height] of [[1440,900],[1920,1080]]){
    const page=await browser.newPage({viewport:{width,height}});
    const controls=renderToStaticMarkup(React.createElement(Header,{showEpisodeSelector:false}));
-   const quick=renderToStaticMarkup(React.createElement(Quick,{currentEpisode:1,totalEpisodes:28,hasNext:true,hasPrev:false,nextLabel:'След.',onPrevious:()=>{},onNext:()=>{},onSelect:()=>{}}));
+   const quick=renderToStaticMarkup(React.createElement(Quick,{currentEpisode:1,totalEpisodes:28,hasNext:true,hasPrev:false,nextLabel:'Следующая серия',onPrevious:()=>{},onNext:()=>{},onSelect:()=>{}}));
    await page.setContent(`<html><head><style>*,*::before,*::after{box-sizing:border-box}.relative{position:relative}.isolate{isolation:isolate}.absolute{position:absolute}.invisible{visibility:hidden}.opacity-0{opacity:0}.w-full{width:100%}.h-full{height:100%}.inset-0{inset:0}.flex{display:flex}.inline-flex{display:inline-flex}.items-center{align-items:center}.flex-1{flex:1}.block{display:block}.min-w-0{min-width:0}.h-4{height:16px}.w-4{width:16px}.shrink-0{flex-shrink:0}${css}</style></head><body><aside class="sidebar">ANIMEBOX</aside><header class="topbar"><form class="topbar__search"><input aria-label="Найти аниме" value="Фрирен" /></form></header><div class="app-shell"><main class="fixture_page episode-page" style="padding:12px"><div class="animebox-player-root relative isolate w-full"><div><section class="animebox-premium-player"><div class="animebox-player-media relative" style="height:420px;background:#333"></div>${controls}</section></div></div>${quick}<div style="height:1600px"></div></main></div></body></html>`);
    const geometry=await page.evaluate(()=>{
     const topbar=document.querySelector('.topbar'),search=topbar.querySelector('input'),side=document.querySelector('.sidebar');
