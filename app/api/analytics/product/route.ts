@@ -6,7 +6,7 @@ import {
   type ProductClientEventName,
   type ProductEventInput,
 } from '@/lib/product-events-server';
-import { enforceIpRateLimit } from '@/lib/api-rate-limit';
+import { enforcePublicIpRateLimit } from '@/lib/public-api-rate-limit';
 import { isAllowedBrowserOrigin } from '@/lib/browser-request-origin';
 
 export const runtime = 'nodejs';
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       return Response.json({ ok: false }, { status: 403 });
     }
 
-    const limited = await enforceIpRateLimit(request, {
+    const limited = enforcePublicIpRateLimit(request, {
       scope: 'product_analytics_ip', limit: 180, windowSeconds: 60,
     });
     if (limited) return limited;
