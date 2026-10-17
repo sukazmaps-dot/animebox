@@ -26,7 +26,7 @@ new Function('require','module','exports',compiled)(name => {
   throw new Error('Unexpected import: ' + name);
 },mod,mod.exports);
 const Pagination = mod.exports.default;
-const title = 'Провожающая в последний путь Фрирен';
+const title = 'Провожающая в последний путь Фрирен: история путешествия, которое начинается после завершения великого приключения и продолжается сквозь долгие столетия';
 const slides = Array.from({length:5},(_,i)=>({id:i+1,title:title+' · '+(i+1)}));
 function contrast(a,b) {
   const lum=c=>c.slice(0,3).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;})
@@ -57,11 +57,11 @@ function contrast(a,b) {
     await page.route('**/*',r=>r.abort());
     await page.emulateMedia({reducedMotion:'reduce'});
     const screens=[[320,700],[360,800],[375,812],[390,844],[412,915],[430,932],
-      [600,900],[768,1024],[844,390],[1024,520],[1440,900],[1920,1080]];
+      [600,900],[768,1024],[844,390],[1024,520],[1440,900],[1920,1080],[2560,1440]];
     for(const theme of ['dark','light'])for(const [width,height] of screens)for(const activeIndex of [0,2,4]) {
       await page.setViewportSize({width,height});
       const pagination=renderToStaticMarkup(React.createElement(Pagination,{slides,activeIndex,onSelect:()=>{}}));
-      await page.setContent(`<!doctype html><html data-animebox-theme="${theme}"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>${globalCSS}\n${moduleCSS.css}\n${socialCSS.css}</style></head><body><div class="app-shell"><main class="page-content"><div class="home-page"><div class="home-grid home-grid--main"><div class="main-column"><section class="page-hero home-hero-carousel"><picture><img alt="" class="page-hero__backdrop home-hero-carousel__backdrop is-visible" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='450'%3E%3C/svg%3E"></picture><div class="page-hero__overlay"></div><div class="page-hero__content home-hero-carousel__content"><h1 class="is-long-title">${title}</h1><div class="hero-actions"><a href="#" class="btn btn--primary">Смотреть</a><a href="#" class="btn btn--ghost">Подробнее</a></div><a href="#" data-social class="social_link">✦ Смотреть вместе с друзьями →</a></div>${pagination}</section></div></div></div></main></div></body></html>`);
+      await page.setContent(`<!doctype html><html data-animebox-theme="${theme}"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>${globalCSS}\n${moduleCSS.css}\n${socialCSS.css}</style></head><body><div class="app-shell"><main class="page-content"><div class="home-page home-visual-v31"><div class="home-grid home-grid--main"><div class="main-column"><section class="page-hero home-hero-carousel"><picture><img alt="" class="page-hero__backdrop home-hero-carousel__backdrop is-visible" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='450'%3E%3C/svg%3E"></picture><div class="page-hero__overlay"></div><div class="page-hero__content home-hero-carousel__content"><h1 class="is-long-title">${title}</h1><p class="home-hero-scene__summary">Длинное описание любимого аниме, которое не должно выталкивать кнопки и пагинацию из композиции первого экрана даже на узком планшете или широком дисплее.</p><div class="hero-actions"><a href="#" class="btn btn--primary">Смотреть</a><a href="#" class="btn btn--ghost">Подробнее</a></div><a href="#" data-social class="social_link">✦ Смотреть вместе с друзьями →</a></div>${pagination}</section></div></div></div></main></div></body></html>`);
       await page.locator('.hero_pagination').scrollIntoViewIfNeeded();
       const geometry=await page.evaluate(()=>{
         for(const animation of document.getAnimations())if(Number.isFinite(animation.effect?.getComputedTiming().endTime))animation.finish();
@@ -78,8 +78,10 @@ function contrast(a,b) {
         const art=document.querySelector('.home-hero-carousel__backdrop');
         const title=document.querySelector('.home-hero-carousel__content h1');
         const titleCss=getComputedStyle(title);
+        const summary=document.querySelector('.home-hero-scene__summary');const summaryCss=getComputedStyle(summary);
         return {hero:r(hero),nav:r(nav),social:r(document.querySelector('[data-social]')),
           art:r(art),title:r(title),titleCss:{clamp:titleCss.webkitLineClamp,display:titleCss.display,overflow:titleCss.overflow},
+          summary:r(summary),summaryCss:{clamp:summaryCss.webkitLineClamp,display:summaryCss.display,overflow:summaryCss.overflow,lineHeight:summaryCss.lineHeight},actions:r(document.querySelector('.hero-actions')),
           buttons,
           counter:document.querySelector('.hero_counter').textContent,scroll:document.documentElement.scrollWidth};
       });
@@ -96,6 +98,18 @@ function contrast(a,b) {
           tag+': the CSS cascade disables two-line clamp '+JSON.stringify(geometry.titleCss));
         assert(geometry.title.top>=geometry.hero.top+96 && geometry.title.bottom<geometry.art.bottom,
           tag+': mobile headline must sit over lower scrim '+JSON.stringify({title:geometry.title,art:geometry.art}));
+      }
+      if(width>768){
+        assert(geometry.titleCss.clamp==='3' && geometry.titleCss.display==='-webkit-box' && geometry.titleCss.overflow==='hidden',
+          tag+': desktop hero headline escapes 3-line clamp '+JSON.stringify(geometry.titleCss));
+        assert(geometry.summaryCss.clamp==='3' && geometry.summaryCss.overflow==='hidden',
+          tag+': desktop hero excerpt escapes 3-line clamp '+JSON.stringify(geometry.summaryCss));
+        assert(geometry.summary.height<=parseFloat(geometry.summaryCss.lineHeight)*3+2,
+          tag+': excerpt takes more than 3 lines '+JSON.stringify(geometry.summary));
+        assert(geometry.actions.top>=geometry.summary.bottom+4,
+          tag+': desktop CTAs overlap the excerpt '+JSON.stringify(geometry));
+      } else {
+        assert(geometry.summaryCss.display==='none',tag+': mobile copy should remain suppressed');
       }
       assert(geometry.nav.top>=geometry.social.bottom+8,tag+': social link overlaps pagination '+JSON.stringify(geometry));
       for(const [index,item] of geometry.buttons.entries()) {
