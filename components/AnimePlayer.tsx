@@ -914,6 +914,11 @@ export default function AnimePlayer({
       observedDurationSeconds?: number | null,
     ) => {
       if (!smartSeekSupported || watchTogetherMode) return false;
+      // Kodik owns its own intro/OP skip button inside the iframe. A second
+      // AnimeBox automatic seek races the provider's native skip and can
+      // restart playback near 0s on some provider builds. Keep the timeline
+      // automation for native HLS/video only; do not alter provider telemetry.
+      if (mode === 'auto' && isKodik) return false;
 
       const fromSeconds = latestPlaybackPositionSecondsRef.current;
       const pendingTarget = openingSkipTargetRef.current;
@@ -1265,6 +1270,7 @@ export default function AnimePlayer({
       if (
         !watchTogetherMode &&
         smartSeekSupported &&
+        !isKodik &&
         autoOpeningDecision.safe &&
         openingAutoSkipConfirmed &&
         !openingAutoSkipAttemptedRef.current
@@ -1320,6 +1326,7 @@ export default function AnimePlayer({
       autoNextCancelled,
       endScreenOpen,
       hasNext,
+      isKodik,
       markConfirmedPlaybackStart,
       onEnded,
       onPlaybackQualified,
