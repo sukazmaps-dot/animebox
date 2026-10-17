@@ -8,6 +8,7 @@ import type {
   CatalogProviderAvailabilityStatus,
 } from '@/lib/catalog-availability';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import { createPublicReadCircuit } from '@/lib/public-read-circuit';
 import { getAnimesByIdsWithShikimori } from '@/lib/combined-anime';
 import { searchKodikByShikimoriId } from '@/lib/kodik-episode-availability';
 import { checkAnimeCatalogAvailability } from '@/lib/source-availability';
@@ -26,6 +27,8 @@ const PLAYABLE_FINISHED_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const DEGRADED_ONGOING_GRACE_MS = 6 * 60 * 60 * 1000;
 const DEGRADED_FINISHED_GRACE_MS = 24 * 60 * 60 * 1000;
 const REGISTRY_READ_TTL_MS = 60_000;
+const REGISTRY_DB_TIMEOUT_MS = 1_800;
+const registryReadCircuit = createPublicReadCircuit(12_000);
 const REGISTRY_MISSING_TTL_MS = 20_000;
 const REGISTRY_READ_CACHE_LIMIT = 4_000;
 const REMOTE_REFRESH_SETTLE_MS = 180;
@@ -321,15 +324,27 @@ async function readRowsFromRegistry(
 }> {
   const rows = new Map<number, CatalogAvailabilityRow>();
 
+  // During a known outage preserve only already verified snapshots and
+  // avoid hammering PostgREST from every incoming public catalogue request.
+  if (registryReadCircuit.isOpen()) {
+    for (const id of unique) {
+      const snapshot = verifiedSnapshot.get(id);
+      if (snapshot) rows.set(id, snapshot);
+    }
+    return { rows, healthy: false };
+  }
+
   try {
     const { data, error } = await createSupabaseAdmin()
       .from('anime_availability')
       .select(
         'anime_id,mal_id,availability_status,kodik_status,aniliberty_status,direct_status,max_episode,consecutive_misses,last_checked_at,next_check_at,last_success_at,last_failure_at,last_reason,updated_at',
       )
-      .in('anime_id', unique);
+      .in('anime_id', unique)
+      .abortSignal(AbortSignal.timeout(REGISTRY_DB_TIMEOUT_MS));
 
     if (error) throw error;
+    registryReadCircuit.recordSuccess();
 
     for (const row of (data ?? []) as CatalogAvailabilityRow[]) {
       const animeId = Number(row.anime_id);
@@ -349,6 +364,7 @@ async function readRowsFromRegistry(
 
     return { rows, healthy: true };
   } catch (error) {
+    registryReadCircuit.recordFailure();
     const message = error instanceof Error ? error.message : String(error);
     console.warn('[Catalog Availability] registry read failed:', message);
 
@@ -629,6 +645,9 @@ export async function refreshCatalogAvailability(
   options: { force?: boolean; signal?: AbortSignal } = {},
 ) {
   const existing = await readRows([anime.id]);
+  // No playable/unavailable assertion or external player probing is safe when
+  // the registry itself is unreachable.
+  if (!existing.healthy) return null;
   const previous = existing.rows.get(anime.id);
 
   if (!options.force && rowIsFresh(previous)) {
@@ -660,6 +679,8 @@ export async function refreshCatalogAvailabilityBatch(
   if (!unique.length) return [];
 
   const previousRows = await readRows(unique.map((item) => item.id));
+  // Prevent a read outage from triggering batches of futile provider/DB writes.
+  if (!previousRows.healthy) return [];
 
   return Promise.allSettled(
     unique.map((item) => {
