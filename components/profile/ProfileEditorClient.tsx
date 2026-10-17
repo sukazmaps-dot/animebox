@@ -577,6 +577,17 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
     if (tile === 'showcase' || tile === 'rewards' || tile === 'style') switchTab(tile);
     else navigatePreview(tile);
   }
+  useEffect(() => {
+    if (!panelOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || baseMediaEditor || previewOpen) return;
+      if ((event.target as HTMLElement | null)?.closest('dialog,[role="dialog"]') &&
+        !(event.target as HTMLElement).closest('.profile-editor-v40__shell')) return;
+      setPanelOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [panelOpen, baseMediaEditor, previewOpen]);
 
   const fieldDirty:Record<string,boolean> = {
     profile:username.trim()!==(profile?.username ?? '').trim() || bio.trim()!==(profile?.bio ?? '').trim(),
@@ -819,12 +830,14 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
   useEffect(()=>{
     const keydown=(event:KeyboardEvent)=>{
       if(!(event.ctrlKey||event.metaKey))return;
+      const blockingDialog = [...document.querySelectorAll('dialog[open],[aria-modal="true"]')]
+        .some(element => !element.classList.contains('profile-editor-v40__shell'));
       if(event.key.toLowerCase()==='s') {
         event.preventDefault();
-        if(!document.querySelector('dialog[open],[aria-modal="true"]'))document.querySelector<HTMLButtonElement>('[data-editor-save]')?.click();
+        if(!blockingDialog)document.querySelector<HTMLButtonElement>('[data-editor-save]')?.click();
         return;
       }
-      if(editorBusy || document.querySelector('dialog[open],[aria-modal="true"]'))return;
+      if(editorBusy || blockingDialog)return;
       const target=event.target as HTMLElement;
       // Text inputs keep native undo; the toolbar undoes changes across sections.
       if(target.closest('input,textarea,[contenteditable="true"]'))return;
@@ -896,7 +909,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
 
   return (
     <main className="profile-editor-v13" data-editor-tab={activeTab} data-editor-layout="modal">
-      <section className="profile-editor-v13__shell profile-editor-v40__shell" aria-label="Редактор профиля">
+      <section className="profile-editor-v13__shell profile-editor-v40__shell" role="dialog" aria-modal="true" aria-label="Редактор профиля">
         <header className="profile-editor-v13__header profile-editor-v40__header">
           <div className="profile-editor-v31__header-title">
             <button type="button" onClick={leaveEditor} aria-label="Закрыть редактор">×</button>
