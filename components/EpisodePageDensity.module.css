@@ -80,7 +80,8 @@
  * cannot lift it above the following EpisodeQuickSelector sibling. Elevate the
  * entire isolated root only while a menu is expanded; never globally change
  * stacking for Watch Together, fullscreen, or closed episode controls. */
-.page:global(.episode-page) :global(.animebox-player-root):has(:global(.premium-player-dropdown-trigger[aria-expanded='true'])) { z-index: 30; }
+/* Theater already uses z-[10001]; never lower that separate fullscreen context. */
+.page:global(.episode-page) :global(.animebox-player-root):not([data-player-theater='true']):has(:global(.premium-player-dropdown-trigger[aria-expanded='true'])) { z-index: 30; }
 .page:global(.episode-page) :global(.animebox-premium-player):has(:global(.premium-player-dropdown-trigger[aria-expanded='true'])) { position: relative; z-index: 20; }
 .page:global(.episode-page) :global(.animebox-player-header):has(:global(.premium-player-dropdown-trigger[aria-expanded='true'])) { position: relative; z-index: 2; }
 .page:global(.episode-page) :global(.premium-player-dropdown):has(:global(.premium-player-dropdown-trigger[aria-expanded='true'])) { z-index: 3; }
