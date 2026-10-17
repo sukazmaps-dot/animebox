@@ -14,7 +14,7 @@
     "css-cascade:browser": "node scripts/css-cascade-browser-smoke.cjs",
     "route-layout:check": "node scripts/route-layout-contract-check.cjs",
     "route-layout:browser": "node scripts/route-layout-matrix-smoke.cjs",
-    "hotfix31-15:check": "node tests/patch31-15-api-stability.cjs",
+    "hotfix31-15:check": "node tests/patch31-15-api-stability.cjs && node tests/hotfix-31-15-api-stability.cjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
