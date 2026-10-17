@@ -30,6 +30,7 @@ const Account=compile(read('components/MobileAccountNav.tsx'),id=>{
  const css=['app/layout.tsx','app/anime/layout.tsx'].flatMap(p=>[...read(p).matchAll(/import '\.\.?\/([^']+\.css)'/g)].map(m=>read('app/'+m[1]).replace(/@import[^;]+;/g,''))).join('\n')+'\n'+moduleCss.css;
  assert(read('components/AnimeEpisodePage.tsx').includes('showEpisodeSelector={false}'),'normal route delegates episode selection to QuickSelector');
  assert(player.includes('animebox-player-root relative isolate w-full'),'smoke fixture must preserve production player outer isolation');
+ assert(player.includes("data-player-theater={theaterMode ? 'true' : undefined}"),'theater state must opt out of lowered episode stacking');
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox']});let cases=0;
  try{
   for(const [width,height] of [[360,800],[390,844],[430,932],[740,360],[844,390],[960,440],[1100,500],[1440,900],[1920,1080]]){
@@ -40,7 +41,7 @@ const Account=compile(read('components/MobileAccountNav.tsx'),id=>{
     const quick=renderToStaticMarkup(React.createElement(Quick,{currentEpisode:1,totalEpisodes:28,hasNext:true,hasPrev:false,nextLabel:'След.',onPrevious:()=>{},onNext:()=>{},onSelect:()=>{}}));
     const entry=renderToStaticMarkup(React.createElement(Fullscreen,{}));
     const page=await browser.newPage({viewport:{width,height}});
-    await page.setContent(`<html><head><style>*,*::before,*::after{box-sizing:border-box}body{margin:0}button{font:inherit}.hidden{display:none}.relative{position:relative}.isolate{isolation:isolate}.absolute{position:absolute}.invisible{visibility:hidden}.opacity-0{opacity:0}.w-full{width:100%}.h-full{height:100%}.inset-0{inset:0}.flex{display:flex}.inline-flex{display:inline-flex}.items-center{align-items:center}.flex-1{flex:1}.block{display:block}.min-w-0{min-width:0}.h-4{height:16px}.w-4{width:16px}.shrink-0{flex-shrink:0}${css}</style></head><body><main class="fixture_page episode-page" style="padding:12px"><div class="animebox-player-root relative isolate w-full"><div><section class="animebox-premium-player"><div class="animebox-player-media relative" style="aspect-ratio:16/9;background:black">${entry}</div>${controls}</section></div></div>${quick}</main><nav class="mobile-nav">${'<a class="mobile-nav__item"><svg width="20" height="20"></svg><span>Главная</span></a>'.repeat(4)}${account}</nav></body></html>`);
+    await page.setContent(`<html><head><style>*,*::before,*::after{box-sizing:border-box}body{margin:0}button{font:inherit}.hidden{display:none}.relative{position:relative}.isolate{isolation:isolate}.z-\\[10001\\]{z-index:10001}.absolute{position:absolute}.invisible{visibility:hidden}.opacity-0{opacity:0}.w-full{width:100%}.h-full{height:100%}.inset-0{inset:0}.flex{display:flex}.inline-flex{display:inline-flex}.items-center{align-items:center}.flex-1{flex:1}.block{display:block}.min-w-0{min-width:0}.h-4{height:16px}.w-4{width:16px}.shrink-0{flex-shrink:0}${css}</style></head><body><main class="fixture_page episode-page" style="padding:12px"><div class="animebox-player-root relative isolate w-full"><div><section class="animebox-premium-player"><div class="animebox-player-media relative" style="aspect-ratio:16/9;background:black">${entry}</div>${controls}</section></div></div>${quick}</main><nav class="mobile-nav">${'<a class="mobile-nav__item"><svg width="20" height="20"></svg><span>Главная</span></a>'.repeat(4)}${account}</nav></body></html>`);
     await page.locator('.mobile-nav__avatar img').waitFor({state:'attached'});
     const r=await page.evaluate(()=>{
      const avatar=document.querySelector('.mobile-nav__avatar'),img=avatar.querySelector('img'),a=avatar.getBoundingClientRect();
@@ -67,6 +68,13 @@ const Account=compile(read('components/MobileAccountNav.tsx'),id=>{
      trigger.classList.add('is-open');
      Object.assign(menu.style,{position:'absolute',top:'calc(100% + 10px)',left:'0',width:'100%',height:'300px',visibility:'visible',opacity:'1',zIndex:'50',background:'#222'});
      const openZ=z(),isolated=getComputedStyle(playerRoot).isolation;
+     // Theater has an existing z-[10001] root; the normal-menu rule must
+     // not override that with z-index:30 even if a dropdown is expanded.
+     playerRoot.classList.add('z-[10001]');
+     playerRoot.setAttribute('data-player-theater','true');
+     const theaterZ=z();
+     playerRoot.classList.remove('z-[10001]');
+     playerRoot.removeAttribute('data-player-theater');
      let overlap=null,openHit=null,negativeHit=null;
      if(checkOverlap){
       window.scrollTo(0,navigation.getBoundingClientRect().top+scrollY-80);
@@ -85,11 +93,12 @@ const Account=compile(read('components/MobileAccountNav.tsx'),id=>{
      trigger.setAttribute('aria-expanded','false');
      trigger.classList.remove('is-open');
      const closedAfter=z();
-     return {closedBefore,openZ,closedAfter,isolated,overlap,openHit,negativeHit};
+     return {closedBefore,openZ,theaterZ,closedAfter,isolated,overlap,openHit,negativeHit};
     },width>=740);
     assert.equal(stack.isolated,'isolate','true production isolation '+width);
     assert.equal(stack.closedBefore,'auto','closed player must retain normal stacking '+width);
     assert.equal(stack.openZ,'30','open dropdown must elevate outer isolated root '+width);
+    assert.equal(stack.theaterZ,'10001','theater mode must preserve pre-existing fullscreen stacking '+width);
     assert.equal(stack.closedAfter,'auto','closing dropdown restores stacking '+width);
     if(width>=740){
      assert(stack.overlap,'fixture must create real menu/navigation overlap '+width+' '+JSON.stringify(stack));
