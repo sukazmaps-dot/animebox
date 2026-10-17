@@ -29,6 +29,7 @@ const Account=compile(read('components/MobileAccountNav.tsx'),id=>{
  const moduleCss=await postcss([local(),scope({generateScopedName:n=>'fixture_'+n})]).process(read('components/EpisodePageDensity.module.css'),{from:undefined});
  const css=['app/layout.tsx','app/anime/layout.tsx'].flatMap(p=>[...read(p).matchAll(/import '\.\.?\/([^']+\.css)'/g)].map(m=>read('app/'+m[1]).replace(/@import[^;]+;/g,''))).join('\n')+'\n'+moduleCss.css;
  assert(read('components/AnimeEpisodePage.tsx').includes('showEpisodeSelector={false}'),'normal route delegates episode selection to QuickSelector');
+ assert(player.includes('animebox-player-root relative isolate w-full'),'smoke fixture must preserve production player outer isolation');
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox']});let cases=0;
  try{
   for(const [width,height] of [[360,800],[390,844],[430,932],[740,360],[844,390],[960,440],[1100,500],[1440,900],[1920,1080]]){
@@ -39,7 +40,7 @@ const Account=compile(read('components/MobileAccountNav.tsx'),id=>{
     const quick=renderToStaticMarkup(React.createElement(Quick,{currentEpisode:1,totalEpisodes:28,hasNext:true,hasPrev:false,nextLabel:'След.',onPrevious:()=>{},onNext:()=>{},onSelect:()=>{}}));
     const entry=renderToStaticMarkup(React.createElement(Fullscreen,{}));
     const page=await browser.newPage({viewport:{width,height}});
-    await page.setContent(`<html><head><style>*,*::before,*::after{box-sizing:border-box}body{margin:0}button{font:inherit}.hidden{display:none}.relative{position:relative}.absolute{position:absolute}.invisible{visibility:hidden}.opacity-0{opacity:0}.w-full{width:100%}.h-full{height:100%}.inset-0{inset:0}.flex{display:flex}.inline-flex{display:inline-flex}.items-center{align-items:center}.flex-1{flex:1}.block{display:block}.min-w-0{min-width:0}.h-4{height:16px}.w-4{width:16px}.shrink-0{flex-shrink:0}${css}</style></head><body><main class="fixture_page episode-page" style="padding:12px"><section class="animebox-premium-player"><div class="animebox-player-media relative" style="aspect-ratio:16/9;background:black">${entry}</div>${controls}</section>${quick}</main><nav class="mobile-nav">${'<a class="mobile-nav__item"><svg width="20" height="20"></svg><span>Главная</span></a>'.repeat(4)}${account}</nav></body></html>`);
+    await page.setContent(`<html><head><style>*,*::before,*::after{box-sizing:border-box}body{margin:0}button{font:inherit}.hidden{display:none}.relative{position:relative}.isolate{isolation:isolate}.absolute{position:absolute}.invisible{visibility:hidden}.opacity-0{opacity:0}.w-full{width:100%}.h-full{height:100%}.inset-0{inset:0}.flex{display:flex}.inline-flex{display:inline-flex}.items-center{align-items:center}.flex-1{flex:1}.block{display:block}.min-w-0{min-width:0}.h-4{height:16px}.w-4{width:16px}.shrink-0{flex-shrink:0}${css}</style></head><body><main class="fixture_page episode-page" style="padding:12px"><div class="animebox-player-root relative isolate w-full"><div><section class="animebox-premium-player"><div class="animebox-player-media relative" style="aspect-ratio:16/9;background:black">${entry}</div>${controls}</section></div></div>${quick}</main><nav class="mobile-nav">${'<a class="mobile-nav__item"><svg width="20" height="20"></svg><span>Главная</span></a>'.repeat(4)}${account}</nav></body></html>`);
     await page.locator('.mobile-nav__avatar img').waitFor({state:'attached'});
     const r=await page.evaluate(()=>{
      const avatar=document.querySelector('.mobile-nav__avatar'),img=avatar.querySelector('img'),a=avatar.getBoundingClientRect();
@@ -51,24 +52,55 @@ const Account=compile(read('components/MobileAccountNav.tsx'),id=>{
     if(width<1180){assert(r.avatar.w>=20&&r.avatar.w<=24&&r.avatar.h<=24,JSON.stringify(r));assert.equal(r.avatar.overflow,'hidden');assert.notEqual(r.avatar.display,'inline');assert(!r.leak,'zoomed avatar must be clipped');}
     assert.equal(r.button.w,44);assert.equal(r.button.h,44);assert.equal(r.button.text,'');assert(r.button.label);assert(r.button.fits);assert.equal(r.selectors,1);assert(r.selectorHeight>=44&&r.selectorHeight<=72,`selector height ${r.selectorHeight}`);assert.equal(r.episodeNative,0);assert.equal(r.quick,1);assert(Math.abs(r.selectorWidth-r.toolbarWidth)<1);assert(!r.overflow);
     if(width===390&&zoom===3)await page.screenshot({path:'/tmp/animebox-mobile-controls-hotfix.png',fullPage:true});
-    // CSS stacking regression: expanded voice menu must receive pointer hits
-    // where it overlaps the actual next-episode card (not just have a large z-index).
-    if(width>=740){
-     const stack=await page.evaluate(()=>{
-      const root=document.querySelector('.premium-player-dropdown'),trigger=root.querySelector('button'),menu=root.lastElementChild;
-      trigger.setAttribute('aria-expanded','true');trigger.classList.add('is-open');
-      Object.assign(menu.style,{position:'absolute',top:'calc(100% + 10px)',left:'0',width:'100%',height:'300px',visibility:'visible',opacity:'1',zIndex:'50',background:'#222'});
-      const navigation=document.querySelector('.episode-quick-nav');window.scrollTo(0,navigation.getBoundingClientRect().top+scrollY-80);
+    // Stacking regression: the true AnimePlayer root is a separate `isolate`
+    // context. The previous smoke omitted it, giving a false PASS even though
+    // the following EpisodeQuickSelector covered the voice menu in production.
+    const stack=await page.evaluate((checkOverlap)=>{
+     const playerRoot=document.querySelector('.animebox-player-root');
+     const dropdown=document.querySelector('.premium-player-dropdown');
+     const trigger=dropdown.querySelector('.premium-player-dropdown-trigger');
+     const menu=dropdown.lastElementChild;
+     const navigation=document.querySelector('.episode-quick-nav');
+     const z=()=>getComputedStyle(playerRoot).zIndex;
+     const closedBefore=z();
+     trigger.setAttribute('aria-expanded','true');
+     trigger.classList.add('is-open');
+     Object.assign(menu.style,{position:'absolute',top:'calc(100% + 10px)',left:'0',width:'100%',height:'300px',visibility:'visible',opacity:'1',zIndex:'50',background:'#222'});
+     const openZ=z(),isolated=getComputedStyle(playerRoot).isolation;
+     let overlap=null,openHit=null,negativeHit=null;
+     if(checkOverlap){
+      window.scrollTo(0,navigation.getBoundingClientRect().top+scrollY-80);
       const nav=navigation.getBoundingClientRect(),m=menu.getBoundingClientRect();
-      const x=Math.max(m.left+4,Math.min(m.right-4,nav.left+nav.width/2)),y=Math.max(m.top+4,nav.top+12);
-      return {overlap:y<m.bottom&&y<nav.bottom,hit:menu.contains(document.elementFromPoint(x,y)),x,y,menu:{top:m.top,bottom:m.bottom},target:document.elementFromPoint(x,y)?.outerHTML.slice(0,300),pointer:getComputedStyle(menu).pointerEvents,rootZ:getComputedStyle(document.querySelector('.animebox-premium-player')).zIndex};
-     });assert(stack.overlap&&stack.hit,'voice menu hidden under episode controls '+width+' '+JSON.stringify(stack));
+      const x=Math.max(m.left+4,Math.min(m.right-4,nav.left+nav.width/2));
+      const y=Math.max(m.top+4,nav.top+12);
+      const hit=()=>document.elementFromPoint(x,y);
+      overlap=(x<m.right&&x>m.left&&x<nav.right&&x>nav.left&&y<m.bottom&&y>m.top&&y<nav.bottom&&y>nav.top);
+      openHit={menu:menu.contains(hit()),navigation:navigation.contains(hit()),name:hit()?.className?.toString().slice(0,120)};
+      // Negative control: emulate the previous patch's z-index:auto on the
+      // isolated root. The following navigation must capture this same point.
+      playerRoot.style.zIndex='auto';
+      negativeHit={menu:menu.contains(hit()),navigation:navigation.contains(hit()),name:hit()?.className?.toString().slice(0,120)};
+      playerRoot.style.removeProperty('z-index');
+     }
+     trigger.setAttribute('aria-expanded','false');
+     trigger.classList.remove('is-open');
+     const closedAfter=z();
+     return {closedBefore,openZ,closedAfter,isolated,overlap,openHit,negativeHit};
+    },width>=740);
+    assert.equal(stack.isolated,'isolate','true production isolation '+width);
+    assert.equal(stack.closedBefore,'auto','closed player must retain normal stacking '+width);
+    assert.equal(stack.openZ,'30','open dropdown must elevate outer isolated root '+width);
+    assert.equal(stack.closedAfter,'auto','closing dropdown restores stacking '+width);
+    if(width>=740){
+     assert(stack.overlap,'fixture must create real menu/navigation overlap '+width+' '+JSON.stringify(stack));
+     assert(stack.openHit?.menu&&!stack.openHit.navigation,'open menu must win pointer hit '+width+' '+JSON.stringify(stack));
+     assert(stack.negativeHit?.navigation&&!stack.negativeHit.menu,'negative control must reproduce pre-hotfix occlusion '+width+' '+JSON.stringify(stack));
     }
     // Embedded/Watch Together mode keeps its own selector.
     assert(renderToStaticMarkup(React.createElement(Header,{showEpisodeSelector:true})).includes('aria-label="Серия"'));
     await page.close();cases++;
    }
   }
-  console.log(`PASS ${cases} actual-source controls/nav/voice-menu cases: 360–1920px, portrait/landscape, avatar zoom 1–3, one episode picker, full-width translation, icon-only 44px fullscreen.`);
+  console.log(`PASS ${cases} actual-source controls/nav/isolated-voice-menu cases: 360–1920px, restored z-index and negative occlusion control, avatar zoom 1–3, one episode picker, 44px fullscreen.`);
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});
