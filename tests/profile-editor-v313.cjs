@@ -15,17 +15,17 @@ for(const section of ["'profile'","'style'","'showcase'","'rewards'"])
   assert(root.includes(section),'Missing editor section '+section);
 assert(root.includes('ProfileEditorLivePreview'));
 assert(!root.includes('<details className="profile-editor-v31__more"'));
-assert(root.includes("hidden={activeTab !== 'profile'}"));
+assert(root.includes('profile-editor-v40__workbench') && root.includes('profile-editor-v40__tiles'));
 assert(!direct.includes('autoFocus'));
 for(const anchor of ['name','avatar','banner','frame']) assert(direct.includes(`data-profile-anchor="${anchor}"`));
-assert(root.includes("data-visible=\"true\""),'Save dock should remain available in clean state');
+assert(root.includes('{dirty && <div ref={savebarRef}'),'Save dock must exist only with unsaved changes');
 assert(root.includes('const dirty = baseDirty || (premiumActive && premiumDirty)'),'Free Premium demo must not mark base form dirty');
 assert(root.includes('premiumActive && premiumDirty && studioDraft'),'Free profile save must not submit paid demo settings');
 assert(root.includes("confirm('Есть несохранённые изменения."),'Close must confirm when dirty');
 assert(root.includes('BackButton'),'Telegram native back handler needed');
-assert(baseCss.includes('position: fixed') && baseCss.includes('--ab-editor-keyboard-inset'));
-assert(baseCss.includes('var(--profile-editor-savebar-height, 108px)'));
-assert(baseCss.includes('.profile-editor-v31__live-preview'));
+assert(/position:\\s*fixed/.test(baseCss) && root.includes('--ab-editor-keyboard-inset'));
+assert(baseCss.includes('.profile-editor-v40__savebar') && baseCss.includes('.profile-editor-v40__popover'));
+assert(baseCss.includes('.profile-editor-v40__stage') && !root.includes('<ProfileEditorNavigation'));
 assert(preview.includes('bannerStyleBackground(bannerColor'),'Banner draft must update live');
 assert(preview.includes("onNavigate('banner')") && preview.includes("onNavigate('avatar')"));
 assert(preview.includes('letter-spacing')===false,'User display name must not rely on spaced glyphs');
@@ -55,4 +55,4 @@ assert(root.includes('setSelectedFrame(savedFrame)'),'Cancel restores saved fram
 assert(premium.includes('selectedDemoScene'));
 assert(premiumCss.includes('.profile-editor-v13__premium-tab .premium-studio-v23__demo-scenes'));
 assert(premiumCss.includes('scroll-snap-type:x mandatory'));
-console.log('PASS Patch 31.3 workspace contracts: sticky preview, dock, tabs, picker, compact Premium and navbar');
+console.log('PASS modal editor contracts: live preview, focused tile popovers, dirty-only dock, picker, Premium and navbar');
