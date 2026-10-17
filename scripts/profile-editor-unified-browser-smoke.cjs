@@ -18,14 +18,29 @@ const root=process.cwd();
   if(route.request().url().includes('/api/')){requests++;return route.fulfill({json:{selectedFrame:null,unlockedLevelFrames:[],unlockedFrames:[]}});}
   return route.fulfill({contentType:'text/html',body:html});
  });
- let checks=0;
+ let checks=0, screenshotCount=0;
+ const screenshotSizes={390:844,1024:768,1366:768,1680:900,1920:1080};
+ async function capture(theme,width,tab){
+  if(theme!=='dark'||!process.env.PROFILE_EDITOR_SCREENSHOT_DIR||!Object.hasOwn(screenshotSizes,width))return;
+  const dir=process.env.PROFILE_EDITOR_SCREENSHOT_DIR;fs.mkdirSync(dir,{recursive:true});
+  await page.screenshot({path:path.join(dir,width+'x'+screenshotSizes[width]+'-'+tab+'.png'),fullPage:false});
+  screenshotCount++;
+ }
  for(const theme of ['dark','light'])for(const width of [320,390,560,768,900,1024,1180,1366,1680,1920]){
-  requests=0;await page.setViewportSize({width,height:900});
+  requests=0;await page.setViewportSize({width,height:screenshotSizes[width]||900});
   await page.goto('http://editor-fixture.test/');
   await page.waitForSelector('.profile-editor-v40__stage');
   await page.evaluate(theme=>document.documentElement.dataset.animeboxTheme=theme,theme);
   await page.waitForTimeout(70);
   assert.equal(await page.locator('.profile-editor-v40__tiles button').count(),8,'eight compact sidebar tiles');
+  const initial=await page.evaluate(()=>{
+   const modal=document.querySelector('.profile-editor-v40__shell').getBoundingClientRect();
+   const tiles=[...document.querySelectorAll('.profile-editor-v40__tiles button small')];
+   return {modalTop:modal.top,modalBottom:modal.bottom,viewport:innerHeight,
+    labels:tiles.map(n=>({client:n.clientWidth,scroll:n.scrollWidth}))};
+  });
+  assert(initial.modalTop>=-1&&initial.modalBottom<=initial.viewport+1,'modal stays entirely in viewport '+width);
+  assert(initial.labels.every(v=>v.scroll<=v.client+1),'rail tile labels should ellipsize without overflow '+width);
   assert.equal(await page.locator('.profile-editor-v40__savebar').count(),0,'clean editor must not show savebar');
   assert.equal(await page.locator('.profile-editor-v40__popover').isVisible(),false,'no inspector on fresh load');
   assert.equal(await page.locator('[aria-label="Живой предпросмотр профиля"]').isVisible(),true,'shared live card visible');
@@ -35,16 +50,28 @@ const root=process.cwd();
     const r=document.querySelector(selector).getBoundingClientRect();return {left:r.left,right:r.right};}));
    assert(geometry[0].right<=geometry[1].left+2&&geometry[1].right<=geometry[2].left+2&&geometry[2].right<=geometry[3].left+2,'four-track modal geometry '+width);
   }else assert.equal(await page.locator('.profile-editor-v40__board').isVisible(),false,'showcase moves to rail below 1280');
-  if(process.env.PROFILE_EDITOR_SCREENSHOT&&[390,1024,1366,1680,1920].includes(width)){
-   await page.screenshot({path:process.env.PROFILE_EDITOR_SCREENSHOT.replace('.png','-'+theme+'-'+width+'.png')});
-  }
   await page.getByRole('button',{name:'Имя',exact:true}).click();
   assert(await page.locator('.profile-editor-v40__popover').isVisible(),'name inspector opens '+width);
   assert.equal(await page.locator('[data-profile-anchor]').count(),1,'focused section only');
   const nameInput=page.locator('#profile-editor-name input');
   assert(await nameInput.isVisible());
+  if(width>=1100){
+   const overlap=await page.evaluate(()=>{
+    const a=document.querySelector('.profile-editor-v40__popover').getBoundingClientRect();
+    const b=document.querySelector('[aria-label="Живой предпросмотр профиля"]').getBoundingClientRect();
+    return a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;
+   });
+   assert(!overlap,'inspector and live profile must not overlap at '+width);
+  }
   await nameInput.fill('Персональный профиль');
   assert.equal(await page.locator('.profile-editor-v40__savebar').count(),1,'savebar appears on edit');
+  const dock=await page.evaluate(()=>{
+   const a=document.querySelector('.profile-editor-v40__savebar').getBoundingClientRect();
+   const b=document.querySelector('.profile-editor-v40__shell').getBoundingClientRect();
+   return {top:a.top,bottom:a.bottom,modalBottom:b.bottom};
+  });
+  assert(dock.top>=-1&&dock.bottom<=dock.modalBottom+1,'dirty savebar inside shell '+width);
+  await capture(theme,width,'name');
   assert((await page.locator('[aria-label="Живой предпросмотр профиля"]').innerText()).includes('Персональный профиль'),'live card updates');
   await page.getByRole('button',{name:'Баннер',exact:true}).click();
   assert.equal(await page.locator('[data-profile-anchor]').count(),1,'name inspector no longer rendered');
@@ -53,9 +80,14 @@ const root=process.cwd();
   assert.equal(await page.locator('[aria-label="Цвета баннера"] button').count(),12,'12 banner presets');
   await page.getByRole('button',{name:'Сакура',exact:true}).click();
   assert((await page.getByRole('button',{name:/Свой цвет/}).innerText()).includes('#DB91AE'),'color preview and draft update');
+  await capture(theme,width,'banner');
   await page.getByRole('button',{name:'Рамка',exact:true}).click();
   assert(await page.locator('#profile-editor-frame').isVisible(),'frame section opens');
   assert.equal(await page.locator('#profile-editor-frame').evaluate(n=>n.open),true,'frame inventory expanded');
+  await page.getByRole('button',{name:'Тема',exact:true}).click();
+  await capture(theme,width,'theme');
+  await page.getByRole('button',{name:'Витрина',exact:true}).click();
+  await capture(theme,width,'showcase');
   await page.getByRole('button',{name:'Имя',exact:true}).click();
   assert.equal(await page.locator('#profile-editor-name input').inputValue(),'Персональный профиль','tile switches retain draft');
   if(width<1100)await page.getByRole('button',{name:'Закрыть настройки'}).click();
@@ -74,6 +106,6 @@ const root=process.cwd();
   assert(await page.locator('#profile-editor-'+anchor).isVisible(),'legacy URL deep-link '+anchor);
  }
  assert.deepEqual(errors,[],'React browser errors');
- console.log('PASS '+checks+' actual React modal editor layouts: inline profile, tiles, banner presets, frame, draft/save and old URL links.');
+ console.log('PASS '+checks+' actual React modal editor layouts: inspector isolation, bounded modal and savebar, inline profile, tiles, banner presets, frame, draft/save and old URL links; '+screenshotCount+' fixture screenshots.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1)});
