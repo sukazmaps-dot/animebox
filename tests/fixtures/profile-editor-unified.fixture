@@ -8,7 +8,7 @@ import Board from '@/components/profile/ProfileEditorShowcasePreview';
 import Preview, { type ProfileEditorSection } from '@/components/profile/ProfileEditorLivePreview';
 import { observeProfileEditorDock } from '@/lib/profile-editor-dock';
 import modalStyles from '@/components/profile/ProfileEditorModal.module.css';
-import { Type, CircleUserRound, Image as ImageIcon, Frame, Palette, LayoutGrid, Trophy, Link2 } from 'lucide-react';
+import { TextAa as Type, UserCircle as CircleUserRound, Image as ImageIcon, FrameCorners as Frame, Palette, SquaresFour as LayoutGrid, Trophy, Link as Link2 } from '@phosphor-icons/react';
 
 type Tile = ProfileEditorSection | 'showcase' | 'rewards' | 'account';
 const boardData = {
