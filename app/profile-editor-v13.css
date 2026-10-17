@@ -935,9 +935,7 @@
     top: 126px;
   }
 
-  .profile-editor-v18__savebar {
-    grid-column: 2;
-  }
+  /* Obsolete grid placement for the old full-page Save dock removed. */
 }
 
 .profile-editor-v18__panel {
