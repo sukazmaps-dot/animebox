@@ -14,18 +14,20 @@ export function useProfileEditorHistory({userId,ready,baseline,draft,dirty,onApp
   // Clear is a save boundary: stale debounced/pagehide writes must never
   // recreate a draft that the user just committed or explicitly discarded.
   const storageRevision=useRef(0);
-  const clearedDraftKey=useRef<string|null>(null);
+  const clearedDraft=useRef<ProfileEditorDraft|null>(null);
   const latest=useRef({draft,dirty,onApply});
   const queueWrite=useCallback((id:string,value:ProfileEditorDraft)=>{
     const revision=storageRevision.current;
-    if(draftKey(value)===clearedDraftKey.current)return Promise.resolve(null);
+    // Only suppress the exact pre-save snapshot; retyping identical content
+    // later creates a new draft object and must persist normally.
+    if(value===clearedDraft.current)return Promise.resolve(null);
     return runProfileDraftOperation(id,()=>revision===storageRevision.current
       ? profileDraftStorage(id,'write',value)
       : Promise.resolve(null));
   },[]);
   const queueDelete=useCallback((id:string)=>{
     const revision=++storageRevision.current;
-    clearedDraftKey.current=draftKey(latest.current.draft);
+    clearedDraft.current=latest.current.draft;
     return runProfileDraftOperation(id,()=>revision===storageRevision.current
       ? profileDraftStorage(id,'delete')
       : Promise.resolve(null));
@@ -75,7 +77,7 @@ export function useProfileEditorHistory({userId,ready,baseline,draft,dirty,onApp
   const undo=()=>{history.current?.record(draft);const value=history.current?.undo();if(value)onApply(value);sync();};
   const redo=()=>{const value=history.current?.redo();if(value)onApply(value);sync();};
   const checkpoint=()=>{history.current?.record(draft);sync();};
-  const restore=()=>{if(recovery){clearedDraftKey.current=null;checkpoint();onApply(recovery.draft);setRecovery(null);setNotice('Черновик восстановлен. Файлы ещё не отправлены.');}};
+  const restore=()=>{if(recovery){clearedDraft.current=null;checkpoint();onApply(recovery.draft);setRecovery(null);setNotice('Черновик восстановлен. Файлы ещё не отправлены.');}};
   const discard=()=>{
     setRecovery(null);
     if(userId)void queueDelete(userId).catch(()=>setNotice('Не удалось удалить локальный черновик.'));
