@@ -24,6 +24,7 @@ const root=process.cwd();
   assert(await page.evaluate(()=>document.querySelector('.profile-editor-v13').scrollWidth<=innerWidth+1),'overflow '+width);
   assert(await page.locator('[data-profile-anchor] button').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).every(n=>{const r=n.getBoundingClientRect();return r.width>=43.9&&r.height>=43.9;})),'44px card touch targets '+width);
   if(process.env.PROFILE_EDITOR_SCREENSHOT&&width===390)await page.screenshot({path:process.env.PROFILE_EDITOR_SCREENSHOT});
+  if(width>=900){const below=await page.locator('.profile-editor-v31__expand').evaluate(button=>button.getBoundingClientRect().top>=document.querySelector('[aria-label="Живой предпросмотр профиля"]').getBoundingClientRect().bottom);assert(below,'expand button covers desktop preview '+width);}
   const cards=await page.locator('[data-profile-anchor]').evaluateAll(nodes=>nodes.filter(n=>n.tagName==='SECTION').map(n=>({width:n.getBoundingClientRect().width,height:n.getBoundingClientRect().height,overflow:getComputedStyle(n).overflowY})));
   assert.equal(cards.length,3);assert(cards.every(c=>c.height>100&&c.overflow==='visible'),'stacked cards '+JSON.stringify(cards));
   for(const anchor of ['avatar','frame','banner','name']){

@@ -2386,6 +2386,12 @@ export function profileEditorAnchor(value?: string | null): ProfileEditorAnchor 
 }
 .profile-editor-v32__anchors button[aria-current='location'] { background:var(--ab-ui-raised); border-color:var(--ab-ui-accent); }
 .profile-editor-v32__anchors button:focus-visible { outline:2px solid var(--ab-ui-accent); outline-offset:2px; }
+
+/* Phase 1 compatibility: desktop preview action follows the card. */
+@media (min-width: 900px) {
+  .profile-editor-v31__live-preview { align-content:start; gap:8px; }
+  .profile-editor-v31__expand { position:static; order:2; width:100%; }
+}
 ```
 
 ## components/profile/ProfileDirectEditSurface.module.css
@@ -2407,7 +2413,7 @@ export function profileEditorAnchor(value?: string | null): ProfileEditorAnchor 
 .bannerDropzone:disabled { opacity:.65; cursor: not-allowed; }
 
 /* 31.3 compact swatches and equal-width single-row fill controls */
-.bannerPresetGrid {display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:12px 0;}
+.bannerPresetGrid {display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:12px 0;max-width:360px;}
 .bannerPreset {position:relative;aspect-ratio:1;min-height:0;min-width:0;width:100%;padding:3px;border:2px solid transparent;border-radius:50%;background:transparent;cursor:pointer;}
 .bannerPreset[data-active='true'] {border-color:var(--ab-ui-accent);outline:2px solid color-mix(in srgb,var(--ab-ui-accent) 24%,transparent);}
 .bannerPresetSwatch {display:block;min-height:0;width:100%;height:100%;border:1px solid rgba(255,255,255,.18);border-radius:50%;}

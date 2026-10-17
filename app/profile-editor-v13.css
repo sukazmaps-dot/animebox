@@ -1548,3 +1548,9 @@ html.ab-profile-editor-open .sidebar { display: none; }
 }
 .profile-editor-v32__anchors button[aria-current='location'] { background:var(--ab-ui-raised); border-color:var(--ab-ui-accent); }
 .profile-editor-v32__anchors button:focus-visible { outline:2px solid var(--ab-ui-accent); outline-offset:2px; }
+
+/* Phase 1 compatibility: desktop preview action follows the card. */
+@media (min-width: 900px) {
+  .profile-editor-v31__live-preview { align-content:start; gap:8px; }
+  .profile-editor-v31__expand { position:static; order:2; width:100%; }
+}

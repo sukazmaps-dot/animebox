@@ -19,7 +19,7 @@ function Harness(){
  function navigate(section:ProfileEditorSection){setTab('profile');navigateToAnchor(profileEditorAnchor(section));}
  return <main className="profile-editor-v13" data-editor-tab={tab}><section className="profile-editor-v13__shell">
   <header className="profile-editor-v13__header"><h1>Редактор профиля</h1></header>
-  <div className="profile-editor-v31__live-preview"><Preview username={name} bio={bio} avatarUrl={image} bannerUrl={null} bannerColor={color} bannerStyle="soft" premiumActive={false} frameKey={frame} onNavigate={navigate}/></div>
+  <div className="profile-editor-v31__live-preview"><button type="button" className="profile-editor-v31__expand">Развернуть превью</button><Preview username={name} bio={bio} avatarUrl={image} bannerUrl={null} bannerColor={color} bannerStyle="soft" premiumActive={false} frameKey={frame} onNavigate={navigate}/></div>
   <nav className="profile-editor-v13__tabs profile-editor-v18__rail" aria-label="Разделы">
    {['profile','style','showcase','rewards'].map(value=><button key={value} data-section={value} onClick={()=>setTab(value)}><span>{value}</span></button>)}
   </nav>
