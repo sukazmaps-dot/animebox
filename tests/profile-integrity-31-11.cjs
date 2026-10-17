@@ -83,6 +83,14 @@ async function testHook() {
  await act(async()=>{setDraft({...base,bio:'new edit after save'});});
  await act(async()=>{await delay(690);});
  assert.equal(persisted?.draft.bio,'new edit after save','new edits after Save persist normally');
+ // Repeat *exactly* the same draft after discarding it. Comparing draftKey
+ // strings forever would incorrectly suppress this legitimate new edit.
+ await act(async()=>{api.discard();setDraft(base);});
+ await act(async()=>{await delay(35);});
+ assert.equal(persisted,null,'discard removes the newer draft');
+ await act(async()=>{setDraft({...base,bio:'new edit after save'});});
+ await act(async()=>{await delay(690);});
+ assert.equal(persisted?.draft.bio,'new edit after save','retyping identical content after discard must still persist');
  await act(async()=>tree.unmount());
  delete global.window;delete global.document;
  delete global.requestAnimationFrame;delete global.cancelAnimationFrame;
