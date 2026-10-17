@@ -40,12 +40,12 @@
 
 .modal :global(.profile-editor-v40__workbench) {
   position:relative;grid-column:1;grid-row:2;display:grid;
-  grid-template-columns:72px 300px minmax(360px,1fr) 340px;
+  grid-template-columns:72px 340px minmax(360px,1fr) 320px;
   grid-template-rows:minmax(0,1fr);
   min-width:0;min-height:0;width:100%;height:100%;overflow:hidden;
 }
 .modal :global(.profile-editor-v40__workbench[data-panel-open='false']) {
-  grid-template-columns:72px 0 minmax(360px,1fr) 340px;
+  grid-template-columns:72px 0 minmax(360px,1fr) 320px;
 }
 .modal :global(.profile-editor-v40__tiles) {
   grid-column:1;grid-row:1;display:flex;flex-direction:column;
@@ -98,9 +98,9 @@
 .modal :global(.profile-editor-v40__popover[hidden]) {display:none;}
 .modal :global(.profile-editor-v40__popover) {
   grid-column:2;grid-row:1;position:relative;inset:auto;
-  display:flex;flex-direction:column;align-self:start;
+  display:flex;flex-direction:column;align-self:stretch;
   min-width:0;min-height:0;width:100%;max-width:none;
-  height:auto;max-height:100%;overflow:hidden;z-index:auto;
+  height:100%;max-height:100%;overflow:hidden;z-index:auto;
   border:0;border-right:1px solid var(--editor-border);border-radius:0;
   background:var(--editor-surface);box-shadow:none;
 }
@@ -112,11 +112,11 @@
 .modal :global(.profile-editor-v40__popover) > header h2 {margin:0;font-size:14px;font-weight:700;color:var(--ab-ui-text);}
 .modal :global(.profile-editor-v40__popover) > header button {display:none;}
 .modal :global(.profile-editor-v40__panel-content) {
-  display:block;position:relative;flex:0 1 auto;
-  min-width:0;min-height:0;width:100%;max-height:calc(100% - 48px);
-  margin:0;padding:14px 12px;border:0;
+  display:block;position:relative;flex:1 1 auto;
+  min-width:0;min-height:0;width:100%;max-height:none;
+  margin:0;padding:12px 12px 24px;border:0;
   overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;
-  scrollbar-width:thin;scrollbar-gutter:stable;container-type:inline-size;container-name:profile-modal-inspector;
+  scrollbar-width:thin;scrollbar-gutter:stable;container-type:inline-size;container-name:inspector profile-modal-inspector;
 }
 .modal :global(.profile-editor-v19__direct-tab),
 .modal :global(.profile-editor-v13__premium-tab),
@@ -148,8 +148,60 @@
 .modal :global(.profile-editor-v40__collapse) {display:none;}
 .modal :global(.profile-editor-v40__shell):has(:global(.profile-editor-v40__savebar)) :global(.profile-editor-v40__popover) {max-height:calc(100% - 82px);}
 .modal :global(.profile-editor-v40__shell):has(:global(.profile-editor-v40__savebar)) :global(.profile-editor-v40__panel-content) {padding-bottom:96px;}
+
+/* 31.18: owner-scoped fixes for third-party-size inspector children. */
+.modal :global(.profile-editor-v40__panel-content) > * {min-width:0;max-width:100%;}
+.modal :global(.profile-editor-v40__panel-content) :is(p,small) {font-size:12px;line-height:1.5;word-break:normal;}
+.modal :global(.profile-editor-v40__panel-content) :is(h2,h3) {font-size:14px;line-height:1.4;}
+.modal :global(.profile-editor-v40__panel-content) button {min-height:36px;}
+.modal :global(.premium-studio-v12.is-embedded),
+.modal :global(.premium-studio-v15__layout),
+.modal :global(.premium-studio-v15__hero),
+.modal :global(.premium-studio-v15__hero-main),
+.modal :global(.premium-studio-v15__sections) {display:block;width:100%;min-width:0;max-width:100%;margin:0;}
+.modal :global(.premium-studio-v12__preview-wrap),
+.modal :global(.premium-studio-v15__preview-wrap),
+.modal :global(.premium-studio-v22__preview-fab),
+.modal :global(.premium-studio-v22__preview-sheet) {display:none;}
+.modal :global(.premium-studio-v12__panel) {min-width:0;width:100%;padding:12px;margin:8px 0;}
+.modal :global(.premium-studio-v16__section-nav) {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:0 0 12px;overflow:visible;}
+.modal :global(.premium-studio-v16__section-nav) button {width:100%;min-width:0;padding:7px;font-size:12px;}
+.modal :global(.premium-studio-v21__adaptive) {display:flex;flex-direction:column;gap:10px;min-width:0;}
+.modal :global(.premium-studio-v21__adaptive) > * {min-width:0;width:100%;}
+.modal :global(.premium-studio-v12__color-list),
+.modal :global(.premium-studio-v15__segmented),
+.modal :global(.premium-studio-v21__identity-controls),
+.modal :global(.premium-studio-v23__layout-grid) {min-width:0;max-width:100%;}
+.modal :global(.premium-studio-v23__demo) {display:block;width:100%;max-width:100%;padding:0;margin:0;}
+.modal :global(.premium-studio-v23__demo-scenes) {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0;width:100%;}
+.modal :global(.premium-studio-v23__demo-scenes) button {display:flex;gap:6px;align-items:center;min-width:0;min-height:64px;padding:8px;font-size:12px;}
+.modal :global(.premium-studio-v23__demo-scenes) small {display:none;}
+.modal :global(.premium-studio-v23__demo) > :global(.premium-cta) {display:flex;align-items:center;justify-content:center;min-height:40px;margin-top:12px;font-size:12px;}
+.modal :global(.premium-studio-v40__premium-info) {font-size:12px;}
+.modal :global(.profile-widgets-editor--embedded),
+.modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__dialog) {min-width:0;max-width:100%;width:100%;margin:0;padding:0;background:transparent;border:0;box-shadow:none;overflow:visible;}
+.modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__top) {display:none;}
+.modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__section) {padding-top:12px;margin-top:0;}
+.modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__section-head strong) {font-size:14px;}
+.modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__section-head small) {font-size:12px;}
+.modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__layout-row) {display:grid;grid-template-columns:28px minmax(0,1fr) 72px 58px;gap:6px;padding:7px;min-width:0;}
+.modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__layout-row > strong) {min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__row-actions) {display:flex;gap:2px;min-width:0;}
+.modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__row-actions button) {min-width:34px;width:34px;min-height:36px;height:36px;padding:0;font-size:15px;}
+.modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__visibility) {min-width:0;width:58px;min-height:36px;height:36px;padding:3px;font-size:11px;border:1px solid var(--ab-ui-border);border-radius:8px;color:var(--ab-ui-muted);background:transparent;}
+.modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__visibility[data-on='true']) {color:var(--ab-ui-success);border-color:color-mix(in srgb,var(--ab-ui-success) 24%,transparent);background:color-mix(in srgb,var(--ab-ui-success) 8%,transparent);}
+.modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__selected) {display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px;}
+.modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__selected > button) {display:flex;flex-direction:column;min-width:0;align-items:stretch;}
+.modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__selected strong) {font-size:11px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;}
+.modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__selected-poster) {width:100%;height:auto;aspect-ratio:2/3;}
+.modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__selected small) {font-size:11px;}
+.modal :global(.profile-editor-v18__rewards-tab) {min-width:0;}
+@container inspector (max-width:350px) {
+ .modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__layout-row) {grid-template-columns:28px minmax(0,1fr) 68px 54px;}
+}
+
 @media (min-width:1100px) and (max-width:1279px) {
-  .modal :global(.profile-editor-v40__workbench) {grid-template-columns:72px 300px minmax(0,1fr);}
+  .modal :global(.profile-editor-v40__workbench) {grid-template-columns:72px 340px minmax(0,1fr);}
   .modal :global(.profile-editor-v40__workbench[data-panel-open='false']) {grid-template-columns:72px 0 minmax(0,1fr);}
   .modal :global(.profile-editor-v40__board) {display:none;}
 }
