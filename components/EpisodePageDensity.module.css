@@ -76,6 +76,12 @@
 :global(html[data-animebox-theme='light']) .page:global(.episode-page) :global(.premium-player-dropdown) > div:last-child { background: var(--ab-ui-surface) !important; }
 
 /* Playback layout owner: media, title, source chips, selectors, then page actions. */
+/* Open voice menus belong above sibling episode/actions cards. Keep this on
+ * the player ancestor: a high z-index on the menu cannot escape its stack. */
+.page:global(.episode-page) :global(.animebox-premium-player):has(:global(.premium-player-dropdown-trigger[aria-expanded='true'])) { position: relative; z-index: 20; }
+.page:global(.episode-page) :global(.animebox-player-header):has(:global(.premium-player-dropdown-trigger[aria-expanded='true'])) { position: relative; z-index: 2; }
+.page:global(.episode-page) :global(.premium-player-dropdown):has(:global(.premium-player-dropdown-trigger[aria-expanded='true'])) { z-index: 3; }
+
 .page:global(.episode-page) :global(.animebox-player-header) { display: flex !important; flex-direction: column !important; align-items: stretch !important; }
 .page:global(.episode-page) :global(.animebox-player-titleblock) { flex: none; width: 100%; }
 .page:global(.episode-page) :global(.animebox-player-toolbar) { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; align-items: stretch !important; width: 100%; overflow: visible !important; }

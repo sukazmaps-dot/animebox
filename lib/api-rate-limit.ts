@@ -50,7 +50,7 @@ export async function consumeRateLimit(key: string, policy: RateLimitPolicy) {
     p_key_hash: digestKey(key),
     p_window_seconds: policy.windowSeconds,
     p_max_requests: policy.limit,
-  });
+  }).abortSignal(AbortSignal.timeout(1_500));
 
   if (error || typeof data !== 'boolean') {
     console.error('[API rate limit] unavailable', policy.scope, error);

@@ -1,6 +1,7 @@
 import {readShikimoriMetadata,mergeShikimoriMetadata} from '@/lib/shikimori-metadata-server';
 import 'server-only';
 
+import { createPublicResultCache } from '@/lib/public-result-cache';
 import { adminClient } from '@/lib/community-server';
 import { fetchWithRetry } from '@/lib/fetch-retry';
 import { cleanShikimoriDescription } from '@/lib/shikimori-text';
@@ -79,25 +80,33 @@ function providerRetryBlocked(id: number) {
   return true;
 }
 
-async function readLocalLocalization(animeId: number) {
+// Public catalog data only. Share reads across metadata/page and concurrent visitors.
+const localLocalizationCache = createPublicResultCache<Awaited<ReturnType<typeof loadLocalLocalization>>>({
+  ttlMs: 60_000, maxEntries: 1_000, cacheWhen: value => value.healthy,
+});
+function readLocalLocalization(animeId: number) {
+  return localLocalizationCache(String(animeId), () => loadLocalLocalization(animeId));
+}
+async function loadLocalLocalization(animeId: number) {
   const admin = adminClient();
+  const signal = AbortSignal.timeout(1_500);
 
   const [documentResult, catalogResult, mappingResult] = await Promise.all([
     admin
       .from('anime_search_documents')
       .select('title,aliases,description,updated_at')
       .eq('anime_id', animeId)
-      .maybeSingle(),
+      .abortSignal(signal).maybeSingle(),
     admin
       .from('anime_catalog')
       .select('title,genres,total_episodes,finished,poster_url')
       .eq('id', animeId)
-      .maybeSingle(),
+      .abortSignal(signal).maybeSingle(),
     admin
       .from('anime_availability')
       .select('mal_id')
       .eq('anime_id', animeId)
-      .maybeSingle(),
+      .abortSignal(signal).maybeSingle(),
   ]);
 
   if (documentResult.error) {
@@ -121,6 +130,7 @@ async function readLocalLocalization(animeId: number) {
   const malId = Number(mappingResult.data?.mal_id);
 
   return {
+    healthy: !documentResult.error && !catalogResult.error && !mappingResult.error,
     document: (documentResult.data ?? null) as SearchLocalizationRow | null,
     catalog: (catalogResult.data ?? null) as CatalogLocalizationRow | null,
     malId: Number.isSafeInteger(malId) && malId > 0 ? malId : null,
@@ -307,6 +317,7 @@ export async function getLocalAnimeDetailFallback(
 
 export async function localizeAnimeDetail(anime: Anime): Promise<Anime> {
   let local: Awaited<ReturnType<typeof readLocalLocalization>> = {
+    healthy: false,
     document: null,
     catalog: null,
     malId: null,

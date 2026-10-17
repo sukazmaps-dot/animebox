@@ -2,6 +2,7 @@
 export function createPublicResultCache<T>(options: {
   ttlMs: number;
   maxEntries: number;
+  staleIfErrorMs?: number;
   cacheWhen: (value: T) => boolean;
 }) {
   const cache = new Map<string, {value: T; expiresAt: number}>();
@@ -9,21 +10,24 @@ export function createPublicResultCache<T>(options: {
   return async (key: string, load: () => Promise<T>): Promise<T> => {
     const hit = cache.get(key);
     if (hit && hit.expiresAt > Date.now()) return hit.value;
-    cache.delete(key);
+    if (hit && hit.expiresAt + (options.staleIfErrorMs ?? 0) <= Date.now()) cache.delete(key);
     const inflight = pending.get(key);
     if (inflight) return inflight;
     if (pending.size >= options.maxEntries) return load();
-    const request = Promise.resolve().then(load);
-    pending.set(key, request);
-    try {
-      const value = await request;
+    // Share the settled result, including stale-on-error, with every waiter.
+    const request = Promise.resolve().then(load).then(value => {
       if (options.cacheWhen(value)) {
         cache.set(key, {value, expiresAt: Date.now() + options.ttlMs});
         while (cache.size > options.maxEntries) cache.delete(cache.keys().next().value!);
       }
       return value;
-    } finally {
+    }).catch(error => {
+      if (hit && hit.expiresAt + (options.staleIfErrorMs ?? 0) > Date.now()) return hit.value;
+      throw error;
+    }).finally(() => {
       if (pending.get(key) === request) pending.delete(key);
-    }
+    });
+    pending.set(key, request);
+    return request;
   };
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createPublicResultCache } from '@/lib/public-result-cache';
 import { enforceIpRateLimit } from '@/lib/api-rate-limit';
 import { privateNoStoreHeaders, publicApiCacheHeaders } from '@/lib/edge-cache-policy';
 import { readFile } from 'node:fs/promises';
@@ -146,6 +147,7 @@ async function fetchImage(
 
         const location =
           response.headers.get('location');
+        await response.body?.cancel().catch(() => undefined);
 
         if (!location) {
           console.error(
@@ -187,6 +189,7 @@ async function fetchImage(
         continue;
       }
 
+      await response.body?.cancel().catch(() => undefined);
       console.error(
         'Image upstream returned error:',
         current.toString(),
@@ -279,6 +282,28 @@ async function readImageBody(response: Response) {
   return bytes;
 }
 
+type BufferedImage = { bytes: Uint8Array; contentType: string; error: null; attempts: number }
+  | { bytes: null; contentType: string; error: string; attempts: number };
+// At most 32 MiB retained; large images still work but are not kept in memory.
+const bufferedImages = createPublicResultCache<BufferedImage>({
+  ttlMs: 60_000, maxEntries: 32,
+  cacheWhen: value => Boolean(value.bytes && value.bytes.byteLength <= 1024 * 1024),
+});
+async function loadBufferedImage(sourceUrl: URL): Promise<BufferedImage> {
+  const result = await fetchImage(sourceUrl);
+  const upstream = result.response;
+  const failed = async (error: string): Promise<BufferedImage> => {
+    await upstream?.body?.cancel().catch(() => undefined);
+    return { bytes: null, contentType: '', error, attempts: result.attempts };
+  };
+  if (!upstream) return failed(result.error ?? 'origin-failed');
+  const contentType = upstream.headers.get('content-type') ?? '';
+  if (!contentType.toLowerCase().startsWith('image/')) return failed('origin-not-image');
+  if (Number(upstream.headers.get('content-length') ?? '0') > MAX_IMAGE_SIZE) return failed('origin-too-large');
+  const bytes = await readImageBody(upstream);
+  return { bytes, contentType, error: null, attempts: result.attempts };
+}
+
 export async function GET(
   request: NextRequest,
 ) {
@@ -322,43 +347,12 @@ export async function GET(
   }
 
   try {
-    const upstreamResult =
-      await fetchImage(sourceUrl);
-    const upstream = upstreamResult.response;
+    const image = await bufferedImages(sourceUrl.toString(), () => loadBufferedImage(sourceUrl));
+    if (!image.bytes) return placeholder(image.error, image.attempts, strict);
+    const buffer = image.bytes;
+    const contentType = image.contentType;
 
-    if (!upstream) {
-      return placeholder(upstreamResult.error ?? 'origin-failed', upstreamResult.attempts, strict);
-    }
-
-    const contentType =
-      upstream.headers.get(
-        'content-type',
-      ) ?? '';
-
-    if (
-      !contentType
-        .toLowerCase()
-        .startsWith('image/')
-    ) {
-      return placeholder('origin-not-image', upstreamResult.attempts, strict);
-    }
-
-    const contentLength = Number(
-      upstream.headers.get(
-        'content-length',
-      ) ?? '0',
-    );
-
-    if (
-      contentLength > MAX_IMAGE_SIZE
-    ) {
-      await upstream.body?.cancel();
-      return placeholder('origin-too-large', upstreamResult.attempts, strict);
-    }
-
-    const buffer = await readImageBody(upstream);
-
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         'Content-Type': contentType,

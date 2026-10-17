@@ -151,6 +151,7 @@ async function cache() {
   assert.equal(shield.proxy(new NextRequest('https://youranimebox.com/api/community/tracker')).headers.get('cache-control'), 'private, no-store');
   let limited = false;
   const route = compile('app/api/image/route.ts', {
+    '@/lib/public-result-cache': compile('lib/public-result-cache.ts'),
     '@/lib/api-rate-limit': { enforceIpRateLimit: async () => limited ? new NextResponse(null, { status: 429 }) : null },
     '@/lib/edge-cache-policy': policy,
   });
@@ -163,7 +164,7 @@ async function cache() {
   const noStore = response => { for (const key of ['cache-control','cdn-cache-control','cloudflare-cdn-cache-control','vercel-cdn-cache-control']) assert.match(response.headers.get(key), /no-store/); };
   for (const suffix of ['', '?url=/api/foo', '?url=https://evil.test/x']) noStore(await route.GET(request(suffix)));
   global.fetch = async () => new Response(null, { status: 403 });
-  const bad = await route.GET(request('?url=https://s4.anilist.co/test.jpg&fallback=error'));
+  const bad = await route.GET(request('?url=https://s4.anilist.co/missing.jpg&fallback=error'));
   assert.equal(bad.status,502); noStore(bad);
   limited = true; const rate = await route.GET(request('?url=x')); assert.equal(rate.status,429); noStore(rate);
 }
