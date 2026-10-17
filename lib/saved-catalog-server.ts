@@ -6,6 +6,7 @@ import { stableAnimeSlug } from '@/lib/anime-url';
 import type { GetAnimesOptions } from '@/lib/anilist';
 import type { Anime } from '@/types/anime';
 import { createPublicResultCache } from '@/lib/public-result-cache';
+import { createPublicReadCircuit } from '@/lib/public-read-circuit';
 import { mergeAnimeMetadata } from '@/lib/anime-metadata-merge';
 import { getCompatibleSavedDocuments } from '@/lib/saved-catalog-compat-server';
 import { enrichSavedAnimeMetadata } from '@/lib/anime-public-metadata-server';
@@ -21,6 +22,7 @@ type SavedDocument = {
 };
 
 const fields = 'anime_id,slug,title,aliases,description,genres,tags,poster_url,studios,format,start_year,total_episodes,finished,mal_id,provider_status,start_month,provider_score,episodes_aired,provider_romaji';
+const savedCatalogCircuit = createPublicReadCircuit(12_000);
 const formatNames: Record<string, string[]> = {
   TV: ['TV', 'ТВ'], MOVIE: ['MOVIE', 'Фильм'], OVA: ['OVA'],
   ONA: ['ONA'], SPECIAL: ['SPECIAL', 'Спешл'],
@@ -54,6 +56,10 @@ export async function getSavedCatalogPage(options: GetAnimesOptions) {
   const unsupportedFilters: string[] = [];
   if (unsupportedFilters.length) return {anime: [] as Anime[], hasNextPage: false, unsupportedFilters};
 
+  if (savedCatalogCircuit.isOpen()) {
+    throw new Error('Saved public catalogue temporarily unavailable');
+  }
+
   const admin = createSupabaseAdmin();
   // The join in this view filters playable cards before pagination.
   let query = admin.from('anime_saved_playable_catalog').select(fields);
@@ -86,16 +92,35 @@ export async function getSavedCatalogPage(options: GetAnimesOptions) {
     .order('anime_id', {ascending: true});
   const offset = (page - 1) * limit;
   if (!Number.isSafeInteger(offset)) throw new Error('Invalid catalog page');
-  const {data, error} = await query.abortSignal(AbortSignal.timeout(5000)).range(offset, offset + limit);
+  let response;
+  try {
+    response = await query.abortSignal(AbortSignal.timeout(2_200)).range(offset, offset + limit);
+  } catch (error) {
+    savedCatalogCircuit.recordFailure();
+    throw error;
+  }
+  const {data, error} = response;
   if (error) {
     // Only schema rollout errors qualify. An outage/invalid server key must
     // remain an actual failure instead of causing extra database traffic.
-    if (!/PGRST20[045]|42P01|42703/.test(error.code ?? '') && !/schema cache|does not exist|could not find/i.test(error.message)) throw new Error('Saved catalog unavailable');
-    const compatible = await getCompatibleSavedDocuments(options);
+    // PGRST002 means PostgREST CANNOT CONNECT to DB to load its schema.
+    // It must not be mistaken for a missing table and trigger extra SQL reads.
+    const isSchemaRollout = /^(?:PGRST20[045]|42P01|42703)$/.test(error.code ?? '')
+      || /could not find .+ in the schema cache|relation .+ does not exist|column .+ does not exist/i.test(error.message ?? '');
+    if (!isSchemaRollout) {
+      savedCatalogCircuit.recordFailure();
+      throw new Error('Saved catalog unavailable');
+    }
+    const compatible = await getCompatibleSavedDocuments(options).catch(error => {
+      savedCatalogCircuit.recordFailure();
+      throw error;
+    });
+    savedCatalogCircuit.recordSuccess();
     return { anime: await enrichSavedAnimeMetadata(compatible.rows.map(row => savedDocumentToAnime(row as SavedDocument))),
       hasNextPage: compatible.hasNextPage, unsupportedFilters: compatible.unsupportedFilters,
       scanLimited: compatible.scanLimited, compatibility: true };
   }
+  savedCatalogCircuit.recordSuccess();
   const rows = (data ?? []) as SavedDocument[];
   return {
     anime: await enrichSavedAnimeMetadata(rows.slice(0, limit).map(savedDocumentToAnime)),

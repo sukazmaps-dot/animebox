@@ -34,6 +34,9 @@ jobs:
       - name: Hotfix 31.15 independent API protection and Telegram outage tests
         run: npm run hotfix31-15:check
 
+      - name: Hotfix 31.16 Supabase outage regression
+        run: npm run hotfix31-16:check
+
       - name: Install Chromium for layout regression
         run: |
           npm install --prefix "$RUNNER_TEMP/animebox-browser" --no-audit --no-fund --save-exact playwright@1.62.1 esbuild@0.28.2

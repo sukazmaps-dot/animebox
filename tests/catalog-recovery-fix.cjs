@@ -21,7 +21,7 @@ function builder(table) {
     contains(c,v){filters.push(row=>v.every(x=>(row[c]||[]).includes(x)));return q;},
     range(a,b){range=[a,b];return q;},
     then(resolve){
-      if(outage)return Promise.resolve({error:{code:'08006',message:'offline'}}).then(resolve);
+      if(outage)return Promise.resolve({error:{code:'PGRST002',message:'Could not query the database for the schema cache. Retrying.'}}).then(resolve);
       if(table==='anime_saved_playable_catalog' && viewMissing)return Promise.resolve({error:{code:'42P01',message:'relation does not exist'}}).then(resolve);
       const source=table==='anime_availability'?availability:rows;
       return Promise.resolve({data:source.filter(row=>filters.every(f=>f(row))).slice(range[0],range[1]+1),error:null}).then(resolve);
@@ -52,7 +52,11 @@ async function main(){
   assert.deepEqual((await getSavedCatalogPage({season:'FALL'})).unsupportedFilters,['season']);
   assert.equal((await getSavedCatalogPage({page:100,limit:20})).scanLimited,true);
   outage=true;const count=tableCalls.length;
-  await assert.rejects(getSavedCatalogPage({search:'Наруто'}));assert.equal(tableCalls.length,count+1,'database outage must not fan out');outage=false;
+  await assert.rejects(getSavedCatalogPage({search:'Наруто'}));assert.equal(tableCalls.length,count+1,'database outage must not fan out');
+  await assert.rejects(getSavedCatalogPage({search:'Наруто'}));assert.equal(tableCalls.length,count+1,'circuit must suppress repeated outage reads');
+  outage=false;
+  // Advance the test clock beyond the 12 s retry gate without sleeping.
+  const realNow=Date.now;Date.now=()=>realNow()+13_000;
   const {GET}=require('../app/api/anime/route.ts');
   const response=await GET({nextUrl:new URL('https://youranimebox.com/api/anime?search=Наруто&limit=2')});
   assert.equal(response.status,200);assert.equal((await response.json()).catalogMeta.source,'saved');
@@ -64,6 +68,7 @@ async function main(){
   await assert.rejects(withCatalogProviderBudget(signal=>{signal.addEventListener('abort',()=>{aborted=true;});return new Promise(()=>{});},5),{name:'TimeoutError'});
   assert.equal(aborted,true);
   assert.equal(await withCatalogProviderBudget(async()=>42,50),42);
-  console.log('PASS: missing saved view, RU/EN pagination after availability, unsupported filters, database outage, optional search failure and hanging-provider deadline');
+  Date.now=realNow;
+  console.log('PASS: missing saved view, RU/EN pagination after availability, public read circuit, database outage, optional search failure and hanging-provider deadline');
 }
 main().catch(error=>{console.error(error);process.exitCode=1;}).finally(()=>{Module._load=originalLoad;Module._resolveFilename=originalResolve;});

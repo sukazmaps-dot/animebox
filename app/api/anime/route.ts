@@ -172,6 +172,7 @@ async function observedGET(
 
   try {
     let providerHasNextPage = false;
+    let registryDegraded = false;
     const fallbackState: {saved: Awaited<ReturnType<typeof getSavedCatalogPage>> | null} = {saved: null};
 
     // Local lexical lookup is independent from the provider request. Starting
@@ -267,9 +268,19 @@ async function observedGET(
         candidates,
         'catalog',
       );
+      // Never cache an infrastructure outage as a successful empty catalogue.
+      if (availability.registryHealthy === false) {
+        if (availability.items.length === 0) {
+          return NextResponse.json(
+            { error: 'Каталог временно недоступен', code: 'CATALOG_AVAILABILITY_UNAVAILABLE' },
+            { status: 503, headers: { ...privateNoStoreHeaders(), 'Retry-After': '12' } },
+          );
+        }
+        registryDegraded = true;
+      }
       candidates = availability.items;
 
-      if (availability.refreshTargets.length > 0) {
+      if (!registryDegraded && availability.refreshTargets.length > 0) {
         after(async () => {
           await refreshCatalogAvailabilityBatch(
             availability.refreshTargets,
@@ -325,6 +336,9 @@ async function observedGET(
     return NextResponse.json(
       {
         anime,
+        ...(registryDegraded ? {
+          catalogMeta: {source: 'degraded', message: 'Показаны только ранее проверенные тайтлы. Данные обновятся после восстановления каталога.'},
+        } : {}),
         ...(savedCatalog ? {
           catalogMeta: {
             source: 'saved',
@@ -360,7 +374,9 @@ async function observedGET(
           : {}),
       },
       {
-        headers: savedCatalog
+        headers: registryDegraded
+          ? privateNoStoreHeaders()
+          : savedCatalog
           ? publicApiCacheHeaders({browserSeconds: 15, edgeSeconds: 30, staleWhileRevalidateSeconds: 60})
           : rawSearch?.trim()
           ? publicApiCacheHeaders({
