@@ -152,7 +152,7 @@ async function cache() {
   let limited = false;
   const route = compile('app/api/image/route.ts', {
     '@/lib/public-result-cache': compile('lib/public-result-cache.ts'),
-    '@/lib/api-rate-limit': { enforceIpRateLimit: async () => limited ? new NextResponse(null, { status: 429 }) : null },
+    '@/lib/public-api-rate-limit': { enforcePublicIpRateLimit: () => limited ? new NextResponse(null, { status: 429 }) : null },
     '@/lib/edge-cache-policy': policy,
   });
   global.fetch = async () => new Response(Uint8Array.from([1,2,3]), { headers: { 'content-type': 'image/jpeg' } });
